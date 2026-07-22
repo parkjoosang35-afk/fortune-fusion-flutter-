@@ -14,6 +14,20 @@ import 'features/fortune/daily/application/daily_fortune_provider.dart';
 import 'features/fortune/daily/data/daily_fortune_repository.dart';
 import 'features/fortune/saju/application/saju_provider.dart';
 import 'features/fortune/saju/data/saju_repository.dart';
+import 'features/fortune/tarot/application/tarot_provider.dart';
+import 'features/fortune/tarot/data/tarot_repository.dart';
+import 'features/fortune/face/application/face_provider.dart';
+import 'features/fortune/face/data/face_repository.dart';
+import 'features/fortune/palm/application/palm_provider.dart';
+import 'features/fortune/palm/data/palm_repository.dart';
+import 'features/compatibility/application/compatibility_provider.dart';
+import 'features/compatibility/data/compatibility_repository.dart';
+import 'features/consultation/application/consultation_provider.dart';
+import 'features/consultation/data/consultation_repository.dart';
+import 'features/mission/application/mission_provider.dart';
+import 'features/mission/data/mission_repository.dart';
+import 'features/ranking/application/ranking_provider.dart';
+import 'features/ranking/data/ranking_repository.dart';
 import 'features/community/application/wish_post_provider.dart';
 import 'features/community/data/wish_post_repository.dart';
 
@@ -36,6 +50,13 @@ class App extends StatelessWidget {
 
         // ── 기능별 Provider ──
         ChangeNotifierProvider(create: (_) => SajuProvider(SajuRepository())),
+        ChangeNotifierProvider(create: (_) => TarotProvider(TarotRepository())),
+        ChangeNotifierProvider(create: (_) => FaceProvider(FaceRepository())),
+        ChangeNotifierProvider(create: (_) => PalmProvider(PalmRepository())),
+        ChangeNotifierProvider(create: (_) => CompatibilityProvider(CompatibilityRepository())),
+        ChangeNotifierProvider(create: (_) => ConsultationProvider(ConsultationRepository())),
+        ChangeNotifierProvider(create: (_) => MissionProvider(MissionRepository())),
+        ChangeNotifierProvider(create: (_) => RankingProvider(RankingRepository())),
         ChangeNotifierProvider(create: (_) => WishPostProvider(WishPostRepository())),
       ],
       child: MaterialApp(

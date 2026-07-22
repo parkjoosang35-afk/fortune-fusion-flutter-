@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../widgets/coming_soon_screen.dart';
 import 'app_shell.dart';
 import '../../features/auth/presentation/splash_screen.dart';
 import '../../features/auth/presentation/onboarding_screen.dart';
@@ -11,13 +10,30 @@ import '../../features/fortune/saju/presentation/saju_input_screen.dart';
 import '../../features/fortune/saju/presentation/saju_loading_screen.dart';
 import '../../features/fortune/saju/presentation/saju_result_screen.dart';
 import '../../features/fortune/saju/presentation/saju_history_screen.dart';
+import '../../features/fortune/tarot/presentation/tarot_question_screen.dart';
+import '../../features/fortune/tarot/presentation/tarot_loading_screen.dart';
+import '../../features/fortune/tarot/presentation/tarot_result_screen.dart';
+import '../../features/fortune/tarot/presentation/tarot_history_screen.dart';
+import '../../features/fortune/face/presentation/face_capture_screen.dart';
+import '../../features/fortune/face/presentation/face_analyzing_screen.dart';
+import '../../features/fortune/face/presentation/face_result_screen.dart';
+import '../../features/fortune/face/presentation/face_history_screen.dart';
+import '../../features/fortune/palm/presentation/palm_capture_screen.dart';
+import '../../features/fortune/palm/presentation/palm_analyzing_screen.dart';
+import '../../features/fortune/palm/presentation/palm_result_screen.dart';
+import '../../features/fortune/palm/presentation/palm_history_screen.dart';
+import '../../features/compatibility/presentation/compatibility_input_screen.dart';
+import '../../features/compatibility/presentation/compatibility_result_screen.dart';
+import '../../features/consultation/presentation/consultation_type_screen.dart';
+import '../../features/consultation/presentation/consultation_chat_screen.dart';
 import '../../features/wallet/presentation/wallet_screen.dart';
+import '../../features/mission/presentation/mission_screen.dart';
+import '../../features/ranking/presentation/ranking_screen.dart';
 import '../../features/notification/notifications_screen.dart';
 
 /// 07단계 §3.2 라우팅 테이블 - Navigator 1.0(onGenerateRoute) 구현
-/// 62개 화면 인벤토리 중, 10단계(A안) 1차 구현 범위(Auth/Home/Saju/Wallet/Notification)는
-/// 실제 화면으로 연결하고, 나머지 AI 기능(타로/관상/손금/궁합/AI상담)은
-/// ComingSoonScreen으로 라우팅을 미리 연결해 둔다(추후 실제 화면으로 교체 예정).
+/// 10단계(A안): AI 6대 기능(사주/타로/관상/손금/궁합/AI상담) + 리워드(미션/랭킹)까지
+/// 전체 화면이 실제 구현되어 라우팅에 연결된 상태.
 class AppRouter {
   AppRouter._();
 
@@ -47,25 +63,55 @@ class AppRouter {
       case '/ai-fortune/saju/history':
         return _page(const SajuHistoryScreen());
 
-      // ── AI 타로/관상/손금/궁합/AI상담 (준비중 - 라우팅만 선연결) ──
+      // ── AI 타로 ──
       case '/ai-fortune/tarot/question':
-        return _page(const ComingSoonScreen(title: '타로', icon: Icons.style_rounded));
+        return _page(const TarotQuestionScreen());
+      case '/ai-fortune/tarot/loading':
+        return _page(const TarotLoadingScreen());
+      case '/ai-fortune/tarot/result':
+        return _page(TarotResultScreen(resultId: settings.arguments as String?));
+      case '/ai-fortune/tarot/history':
+        return _page(const TarotHistoryScreen());
+
+      // ── AI 관상 ──
       case '/ai-fortune/face/capture':
-        return _page(const ComingSoonScreen(title: '관상', icon: Icons.face_retouching_natural_rounded));
+        return _page(const FaceCaptureScreen());
+      case '/ai-fortune/face/analyzing':
+        return _page(const FaceAnalyzingScreen());
+      case '/ai-fortune/face/result':
+        return _page(FaceResultScreen(resultId: settings.arguments as String?));
+      case '/ai-fortune/face/history':
+        return _page(const FaceHistoryScreen());
+
+      // ── AI 손금 ──
       case '/ai-fortune/palm/capture':
-        return _page(const ComingSoonScreen(title: '손금', icon: Icons.back_hand_rounded));
+        return _page(const PalmCaptureScreen());
+      case '/ai-fortune/palm/analyzing':
+        return _page(const PalmAnalyzingScreen());
+      case '/ai-fortune/palm/result':
+        return _page(PalmResultScreen(resultId: settings.arguments as String?));
+      case '/ai-fortune/palm/history':
+        return _page(const PalmHistoryScreen());
+
+      // ── AI 궁합 ──
       case '/ai-fortune/compatibility/input':
-        return _page(const ComingSoonScreen(title: '궁합', icon: Icons.favorite_rounded));
+        return _page(const CompatibilityInputScreen());
+      case '/ai-fortune/compatibility/result':
+        return _page(const CompatibilityResultScreen());
+
+      // ── AI상담 ──
       case '/ai-fortune/consultation/type':
-        return _page(const ComingSoonScreen(title: 'AI상담', icon: Icons.chat_bubble_rounded));
+        return _page(const ConsultationTypeScreen());
+      case '/ai-fortune/consultation/chat':
+        return _page(const ConsultationChatScreen());
 
       // ── 리워드 ──
       case '/reward/wallet':
         return _page(const WalletScreen());
       case '/reward/missions':
-        return _page(const ComingSoonScreen(title: '미션', icon: Icons.checklist_rounded));
+        return _page(const MissionScreen());
       case '/reward/ranking':
-        return _page(const ComingSoonScreen(title: '랭킹', icon: Icons.leaderboard_rounded));
+        return _page(const RankingScreen());
 
       // ── 마이 ──
       case '/my/notifications':
