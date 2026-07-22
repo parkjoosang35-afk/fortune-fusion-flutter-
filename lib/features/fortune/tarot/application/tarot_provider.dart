@@ -17,7 +17,10 @@ class TarotProvider extends ChangeNotifier {
   String? _question;
   String _spreadType = 'one_card';
 
-  Future<void> draw({required String question, required String spreadType}) async {
+  Future<void> draw({
+    required String question,
+    required String spreadType,
+  }) async {
     _question = question;
     _spreadType = spreadType;
 

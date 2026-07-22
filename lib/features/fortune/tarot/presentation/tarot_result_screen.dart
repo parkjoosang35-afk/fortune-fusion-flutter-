@@ -47,11 +47,13 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
       ),
       body: SafeArea(
         child: switch (state.status) {
-          LoadStatus.loading => const Center(child: CircularProgressIndicator()),
+          LoadStatus.loading => const Center(
+            child: CircularProgressIndicator(),
+          ),
           LoadStatus.error => AppErrorState(
-              message: state.errorMessage ?? '타로 리딩에 실패했습니다.',
-              onRetry: () => provider.retry(),
-            ),
+            message: state.errorMessage ?? '타로 리딩에 실패했습니다.',
+            onRetry: () => provider.retry(),
+          ),
           LoadStatus.success => _TarotResultBody(result: state.data!),
           LoadStatus.initial => const AppErrorState(message: '입력 정보가 없습니다.'),
         },
@@ -64,7 +66,9 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () => Navigator.of(context).pushNamed('/ai-fortune/tarot/history'),
+                        onPressed: () => Navigator.of(
+                          context,
+                        ).pushNamed('/ai-fortune/tarot/history'),
                         icon: const Icon(Icons.history_rounded, size: 18),
                         label: const Text('히스토리'),
                       ),
@@ -72,7 +76,9 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
                     const SizedBox(width: AppSpacing.md),
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: () => Navigator.of(context).pushNamed('/ai-fortune/tarot/question'),
+                        onPressed: () => Navigator.of(
+                          context,
+                        ).pushNamed('/ai-fortune/tarot/question'),
                         icon: const Icon(Icons.refresh_rounded, size: 18),
                         label: const Text('다시 뽑기'),
                       ),
@@ -97,15 +103,25 @@ class _TarotResultBody extends StatelessWidget {
       children: [
         Container(
           padding: const EdgeInsets.all(AppSpacing.lg),
-          decoration: BoxDecoration(gradient: AppColors.mysticGradient, borderRadius: BorderRadius.circular(AppRadius.card)),
+          decoration: BoxDecoration(
+            gradient: AppColors.mysticGradient,
+            borderRadius: BorderRadius.circular(AppRadius.card),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('질문', style: TextStyle(color: Colors.white70, fontSize: 12)),
+              const Text(
+                '질문',
+                style: TextStyle(color: Colors.white70, fontSize: 12),
+              ),
               const SizedBox(height: 6),
               Text(
                 result.question,
-                style: const TextStyle(color: AppColors.onDeepSpace, fontSize: 16, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  color: AppColors.onDeepSpace,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
@@ -115,13 +131,19 @@ class _TarotResultBody extends StatelessWidget {
         const SizedBox(height: AppSpacing.md),
         Container(
           padding: const EdgeInsets.all(AppSpacing.lg),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppRadius.card)),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(AppRadius.card),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('총평', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: AppSpacing.sm),
-              Text(result.summary, style: const TextStyle(fontSize: 14, height: 1.6)),
+              Text(
+                result.summary,
+                style: const TextStyle(fontSize: 14, height: 1.6),
+              ),
             ],
           ),
         ),
@@ -141,7 +163,10 @@ class _PositionCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.lg),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppRadius.card)),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+        ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -154,7 +179,13 @@ class _PositionCard extends StatelessWidget {
               ),
               child: Transform.rotate(
                 angle: card.isReversed ? 3.14159 : 0,
-                child: const Center(child: Icon(Icons.auto_awesome, color: AppColors.secondary, size: 20)),
+                child: const Center(
+                  child: Icon(
+                    Icons.auto_awesome,
+                    color: AppColors.secondary,
+                    size: 20,
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -165,12 +196,22 @@ class _PositionCard extends StatelessWidget {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.sm,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.primaryContainer,
                           borderRadius: BorderRadius.circular(AppRadius.full),
                         ),
-                        child: Text(position.label, style: const TextStyle(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.w600)),
+                        child: Text(
+                          position.label,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -180,7 +221,10 @@ class _PositionCard extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 4),
-                  Text(position.interpretation, style: const TextStyle(fontSize: 13, height: 1.5)),
+                  Text(
+                    position.interpretation,
+                    style: const TextStyle(fontSize: 13, height: 1.5),
+                  ),
                 ],
               ),
             ),

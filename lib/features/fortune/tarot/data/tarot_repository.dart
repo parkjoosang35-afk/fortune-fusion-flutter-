@@ -43,13 +43,22 @@ class TarotRepository {
     '세계': '완성과 성취, 하나의 여정이 마무리되는 순간입니다.',
   };
 
-  Future<ApiResult<TarotResultModel>> drawOneCard({required String question}) async {
+  Future<ApiResult<TarotResultModel>> drawOneCard({
+    required String question,
+  }) async {
     await mockDelay(ms: 1500);
-    final seed = (question.hashCode.abs() + DateTime.now().millisecondsSinceEpoch) % _deck.length;
+    final seed =
+        (question.hashCode.abs() + DateTime.now().millisecondsSinceEpoch) %
+        _deck.length;
     final (name, nameKr) = _deck[seed];
     final reversed = DateTime.now().millisecond % 2 == 0;
 
-    final card = TarotCard(id: 'card_$seed', name: name, nameKr: nameKr, isReversed: reversed);
+    final card = TarotCard(
+      id: 'card_$seed',
+      name: name,
+      nameKr: nameKr,
+      isReversed: reversed,
+    );
     final baseText = _oneCardMeanings[nameKr] ?? '변화와 성장의 기운이 감돌고 있습니다.';
     final interpretation = reversed
         ? '(역방향) $baseText 다만 지금은 조급함을 내려놓고 신중하게 접근하는 것이 좋습니다.'
@@ -59,7 +68,13 @@ class TarotRepository {
       id: 'tarot_${DateTime.now().millisecondsSinceEpoch}',
       question: question,
       spreadType: 'one_card',
-      positions: [TarotSpreadPosition(label: '오늘의 카드', card: card, interpretation: interpretation)],
+      positions: [
+        TarotSpreadPosition(
+          label: '오늘의 카드',
+          card: card,
+          interpretation: interpretation,
+        ),
+      ],
       summary: interpretation,
       createdAt: DateTime.now(),
     );
@@ -68,7 +83,9 @@ class TarotRepository {
     return ApiResult.ok(result);
   }
 
-  Future<ApiResult<TarotResultModel>> drawThreeCard({required String question}) async {
+  Future<ApiResult<TarotResultModel>> drawThreeCard({
+    required String question,
+  }) async {
     await mockDelay(ms: 1800);
     final seedBase = question.hashCode.abs();
     const labels = ['과거', '현재', '미래'];
@@ -78,10 +95,17 @@ class TarotRepository {
       final idx = (seedBase + i * 5) % _deck.length;
       final (name, nameKr) = _deck[idx];
       final reversed = (seedBase + i) % 3 == 0;
-      final card = TarotCard(id: 'card_${idx}_$i', name: name, nameKr: nameKr, isReversed: reversed);
+      final card = TarotCard(
+        id: 'card_${idx}_$i',
+        name: name,
+        nameKr: nameKr,
+        isReversed: reversed,
+      );
       final baseText = _oneCardMeanings[nameKr] ?? '변화와 성장의 기운이 감돌고 있습니다.';
       final text = reversed ? '(역방향) $baseText' : baseText;
-      positions.add(TarotSpreadPosition(label: labels[i], card: card, interpretation: text));
+      positions.add(
+        TarotSpreadPosition(label: labels[i], card: card, interpretation: text),
+      );
     }
 
     final result = TarotResultModel(
@@ -89,7 +113,8 @@ class TarotRepository {
       question: question,
       spreadType: 'three_card',
       positions: positions,
-      summary: '과거의 흐름이 현재에 영향을 주고 있으며, 지금의 선택이 앞으로의 결과를 결정짓게 됩니다. ${positions[2].interpretation}',
+      summary:
+          '과거의 흐름이 현재에 영향을 주고 있으며, 지금의 선택이 앞으로의 결과를 결정짓게 됩니다. ${positions[2].interpretation}',
       createdAt: DateTime.now(),
     );
 

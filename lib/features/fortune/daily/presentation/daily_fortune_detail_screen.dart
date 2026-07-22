@@ -20,7 +20,13 @@ class DailyFortuneDetailScreen extends StatelessWidget {
         child: provider.isLoading || today == null
             ? const Padding(
                 padding: EdgeInsets.all(AppSpacing.lg),
-                child: Column(children: [SkeletonCard(), SizedBox(height: AppSpacing.lg), SkeletonCard()]),
+                child: Column(
+                  children: [
+                    SkeletonCard(),
+                    SizedBox(height: AppSpacing.lg),
+                    SkeletonCard(),
+                  ],
+                ),
               )
             : ListView(
                 padding: const EdgeInsets.all(AppSpacing.lg),
@@ -36,19 +42,34 @@ class DailyFortuneDetailScreen extends StatelessWidget {
                       children: [
                         Text(
                           '${today.date.month}월 ${today.date.day}일의 운세',
-                          style: const TextStyle(color: Colors.white70, fontSize: 13),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
+                          ),
                         ),
                         const SizedBox(height: AppSpacing.md),
                         Text(
                           today.summaryText,
-                          style: const TextStyle(color: AppColors.onDeepSpace, fontSize: 17, height: 1.5),
+                          style: const TextStyle(
+                            color: AppColors.onDeepSpace,
+                            fontSize: 17,
+                            height: 1.5,
+                          ),
                         ),
                         const SizedBox(height: AppSpacing.lg),
                         Row(
                           children: [
-                            _luckyChip(Icons.palette_rounded, '행운의 색', today.luckyColor),
+                            _luckyChip(
+                              Icons.palette_rounded,
+                              '행운의 색',
+                              today.luckyColor,
+                            ),
                             const SizedBox(width: AppSpacing.md),
-                            _luckyChip(Icons.pin_rounded, '행운의 숫자', '${today.luckyNumber}'),
+                            _luckyChip(
+                              Icons.pin_rounded,
+                              '행운의 숫자',
+                              '${today.luckyNumber}',
+                            ),
                           ],
                         ),
                       ],
@@ -72,7 +93,10 @@ class DailyFortuneDetailScreen extends StatelessWidget {
   Widget _luckyChip(IconData icon, String label, String value) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm, horizontal: AppSpacing.md),
+        padding: const EdgeInsets.symmetric(
+          vertical: AppSpacing.sm,
+          horizontal: AppSpacing.md,
+        ),
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(AppRadius.cardSmall),
@@ -85,8 +109,17 @@ class DailyFortuneDetailScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: const TextStyle(color: Colors.white54, fontSize: 10)),
-                  Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                  Text(
+                    label,
+                    style: const TextStyle(color: Colors.white54, fontSize: 10),
+                  ),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -107,7 +140,10 @@ class _ScoreBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppRadius.cardSmall)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.cardSmall),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -115,7 +151,13 @@ class _ScoreBar extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(label, style: Theme.of(context).textTheme.titleMedium),
-              Text('$score점', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
+              Text(
+                '$score점',
+                style: const TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: AppSpacing.sm),

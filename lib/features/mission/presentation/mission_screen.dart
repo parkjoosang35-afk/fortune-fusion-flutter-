@@ -20,7 +20,9 @@ class _MissionScreenState extends State<MissionScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => context.read<MissionProvider>().load());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => context.read<MissionProvider>().load(),
+    );
   }
 
   Future<void> _complete(MissionModel mission) async {
@@ -48,11 +50,21 @@ class _MissionScreenState extends State<MissionScreen> {
                 children: [
                   Text('일일 미션', style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(height: AppSpacing.md),
-                  ...provider.daily.map((m) => _MissionTile(mission: m, onComplete: () => _complete(m))),
+                  ...provider.daily.map(
+                    (m) => _MissionTile(
+                      mission: m,
+                      onComplete: () => _complete(m),
+                    ),
+                  ),
                   const SizedBox(height: AppSpacing.lg),
                   Text('주간 미션', style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(height: AppSpacing.md),
-                  ...provider.weekly.map((m) => _MissionTile(mission: m, onComplete: () => _complete(m))),
+                  ...provider.weekly.map(
+                    (m) => _MissionTile(
+                      mission: m,
+                      onComplete: () => _complete(m),
+                    ),
+                  ),
                 ],
               ),
       ),
@@ -71,18 +83,27 @@ class _MissionTile extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.lg),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppRadius.card)),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+        ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(AppSpacing.md),
               decoration: BoxDecoration(
-                color: mission.isCompleted ? AppColors.divider : AppColors.primaryContainer,
+                color: mission.isCompleted
+                    ? AppColors.divider
+                    : AppColors.primaryContainer,
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                mission.isCompleted ? Icons.check_rounded : Icons.checklist_rounded,
-                color: mission.isCompleted ? AppColors.textHint : AppColors.primary,
+                mission.isCompleted
+                    ? Icons.check_rounded
+                    : Icons.checklist_rounded,
+                color: mission.isCompleted
+                    ? AppColors.textHint
+                    : AppColors.primary,
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -90,11 +111,24 @@ class _MissionTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(mission.title, style: Theme.of(context).textTheme.titleMedium),
+                  Text(
+                    mission.title,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                   const SizedBox(height: 2),
-                  Text(mission.description, style: Theme.of(context).textTheme.bodySmall),
+                  Text(
+                    mission.description,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                   const SizedBox(height: 4),
-                  Text('+${mission.rewardPoints} P', style: const TextStyle(color: AppColors.secondaryDark, fontSize: 12, fontWeight: FontWeight.w700)),
+                  Text(
+                    '+${mission.rewardPoints} P',
+                    style: const TextStyle(
+                      color: AppColors.secondaryDark,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -103,8 +137,13 @@ class _MissionTile extends StatelessWidget {
               width: 76,
               child: ElevatedButton(
                 onPressed: mission.isCompleted ? null : onComplete,
-                style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 8)),
-                child: Text(mission.isCompleted ? '완료' : '받기', style: const TextStyle(fontSize: 12)),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                ),
+                child: Text(
+                  mission.isCompleted ? '완료' : '받기',
+                  style: const TextStyle(fontSize: 12),
+                ),
               ),
             ),
           ],

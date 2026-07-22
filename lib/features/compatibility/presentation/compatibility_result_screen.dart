@@ -22,13 +22,19 @@ class CompatibilityResultScreen extends StatelessWidget {
         title: const Text('궁합 결과'),
         actions: [
           if (state.isSuccess)
-            IconButton(icon: const Icon(Icons.share_outlined), onPressed: () => AppToast.show(context, '공유 링크가 복사되었습니다.')),
+            IconButton(
+              icon: const Icon(Icons.share_outlined),
+              onPressed: () => AppToast.show(context, '공유 링크가 복사되었습니다.'),
+            ),
         ],
       ),
       body: SafeArea(
         child: switch (state.status) {
           LoadStatus.loading => const _CompatLoading(),
-          LoadStatus.error => AppErrorState(message: state.errorMessage ?? '분석에 실패했습니다.', onRetry: () => provider.retry()),
+          LoadStatus.error => AppErrorState(
+            message: state.errorMessage ?? '분석에 실패했습니다.',
+            onRetry: () => provider.retry(),
+          ),
           LoadStatus.success => _CompatibilityResultBody(result: state.data!),
           LoadStatus.initial => const AppErrorState(message: '입력 정보가 없습니다.'),
         },
@@ -38,7 +44,9 @@ class CompatibilityResultScreen extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(AppSpacing.md),
                 child: ElevatedButton.icon(
-                  onPressed: () => Navigator.of(context).pushNamed('/ai-fortune/compatibility/input'),
+                  onPressed: () => Navigator.of(
+                    context,
+                  ).pushNamed('/ai-fortune/compatibility/input'),
                   icon: const Icon(Icons.refresh_rounded, size: 18),
                   label: const Text('다시 분석'),
                 ),
@@ -62,7 +70,10 @@ class _CompatLoading extends StatelessWidget {
           children: [
             Icon(Icons.favorite_rounded, color: AppColors.secondary, size: 64),
             SizedBox(height: 24),
-            Text('두 사람의 인연을 분석하고 있어요...', style: TextStyle(color: Colors.white, fontSize: 15)),
+            Text(
+              '두 사람의 인연을 분석하고 있어요...',
+              style: TextStyle(color: Colors.white, fontSize: 15),
+            ),
           ],
         ),
       ),
@@ -81,12 +92,19 @@ class _CompatibilityResultBody extends StatelessWidget {
       children: [
         Container(
           padding: const EdgeInsets.all(AppSpacing.xl),
-          decoration: BoxDecoration(gradient: AppColors.mysticGradient, borderRadius: BorderRadius.circular(AppRadius.card)),
+          decoration: BoxDecoration(
+            gradient: AppColors.mysticGradient,
+            borderRadius: BorderRadius.circular(AppRadius.card),
+          ),
           child: Column(
             children: [
               Text(
                 '${result.nameA} ❤ ${result.nameB}',
-                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: AppSpacing.lg),
               Stack(
@@ -105,8 +123,18 @@ class _CompatibilityResultBody extends StatelessWidget {
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text('${result.score}', style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w800)),
-                      const Text('점', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                      Text(
+                        '${result.score}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 32,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const Text(
+                        '점',
+                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                      ),
                     ],
                   ),
                 ],
@@ -114,7 +142,11 @@ class _CompatibilityResultBody extends StatelessWidget {
               const SizedBox(height: AppSpacing.lg),
               Text(
                 result.summary,
-                style: const TextStyle(color: AppColors.onDeepSpace, fontSize: 14, height: 1.5),
+                style: const TextStyle(
+                  color: AppColors.onDeepSpace,
+                  fontSize: 14,
+                  height: 1.5,
+                ),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -123,21 +155,29 @@ class _CompatibilityResultBody extends StatelessWidget {
         const SizedBox(height: AppSpacing.xl),
         Text('주제별 분석', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: AppSpacing.md),
-        ...result.topicResults.entries.map((e) => Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.md),
-              child: Container(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppRadius.cardSmall)),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(e.key, style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 4),
-                    Text(e.value, style: const TextStyle(fontSize: 13, height: 1.5)),
-                  ],
-                ),
+        ...result.topicResults.entries.map(
+          (e) => Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.md),
+            child: Container(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(AppRadius.cardSmall),
               ),
-            )),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(e.key, style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 4),
+                  Text(
+                    e.value,
+                    style: const TextStyle(fontSize: 13, height: 1.5),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ],
     );
   }

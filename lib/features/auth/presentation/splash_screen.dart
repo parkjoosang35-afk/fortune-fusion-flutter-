@@ -51,15 +51,25 @@ class _SplashScreenState extends State<SplashScreen> {
               SizedBox(height: 16),
               Text(
                 'Fortune Fusion',
-                style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w800),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
               SizedBox(height: 8),
-              Text('AI 종합 운세 슈퍼앱', style: TextStyle(color: Colors.white70, fontSize: 14)),
+              Text(
+                'AI 종합 운세 슈퍼앱',
+                style: TextStyle(color: Colors.white70, fontSize: 14),
+              ),
               SizedBox(height: 40),
               SizedBox(
                 width: 28,
                 height: 28,
-                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2.5,
+                ),
               ),
             ],
           ),

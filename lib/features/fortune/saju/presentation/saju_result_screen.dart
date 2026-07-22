@@ -47,11 +47,13 @@ class _SajuResultScreenState extends State<SajuResultScreen> {
       ),
       body: SafeArea(
         child: switch (state.status) {
-          LoadStatus.loading => const Center(child: CircularProgressIndicator()),
+          LoadStatus.loading => const Center(
+            child: CircularProgressIndicator(),
+          ),
           LoadStatus.error => AppErrorState(
-              message: state.errorMessage ?? '분석에 실패했습니다.',
-              onRetry: () => provider.retry(),
-            ),
+            message: state.errorMessage ?? '분석에 실패했습니다.',
+            onRetry: () => provider.retry(),
+          ),
           LoadStatus.success => _SajuResultBody(result: state.data!),
           LoadStatus.initial => const AppErrorState(message: '입력 정보가 없습니다.'),
         },
@@ -64,7 +66,9 @@ class _SajuResultScreenState extends State<SajuResultScreen> {
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () => Navigator.of(context).pushNamed('/ai-fortune/saju/history'),
+                        onPressed: () => Navigator.of(
+                          context,
+                        ).pushNamed('/ai-fortune/saju/history'),
                         icon: const Icon(Icons.history_rounded, size: 18),
                         label: const Text('히스토리'),
                       ),
@@ -72,7 +76,9 @@ class _SajuResultScreenState extends State<SajuResultScreen> {
                     const SizedBox(width: AppSpacing.md),
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: () => Navigator.of(context).pushNamed('/ai-fortune/saju/input'),
+                        onPressed: () => Navigator.of(
+                          context,
+                        ).pushNamed('/ai-fortune/saju/input'),
                         icon: const Icon(Icons.refresh_rounded, size: 18),
                         label: const Text('다시 분석'),
                       ),
@@ -94,7 +100,8 @@ class _SajuResultBody extends StatefulWidget {
   State<_SajuResultBody> createState() => _SajuResultBodyState();
 }
 
-class _SajuResultBodyState extends State<_SajuResultBody> with SingleTickerProviderStateMixin {
+class _SajuResultBodyState extends State<_SajuResultBody>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -138,13 +145,15 @@ class _SajuResultBodyState extends State<_SajuResultBody> with SingleTickerProvi
           child: TabBarView(
             controller: _tabController,
             children: topics
-                .map((t) => SingleChildScrollView(
-                      padding: const EdgeInsets.all(AppSpacing.lg),
-                      child: Text(
-                        result.topicResults[t] ?? '',
-                        style: const TextStyle(fontSize: 15, height: 1.6),
-                      ),
-                    ))
+                .map(
+                  (t) => SingleChildScrollView(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    child: Text(
+                      result.topicResults[t] ?? '',
+                      style: const TextStyle(fontSize: 15, height: 1.6),
+                    ),
+                  ),
+                )
                 .toList(),
           ),
         ),
@@ -163,11 +172,17 @@ class _SummaryCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.all(AppSpacing.lg),
       padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(gradient: AppColors.mysticGradient, borderRadius: BorderRadius.circular(AppRadius.card)),
+      decoration: BoxDecoration(
+        gradient: AppColors.mysticGradient,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('나의 사주 명식', style: TextStyle(color: Colors.white70, fontSize: 12)),
+          const Text(
+            '나의 사주 명식',
+            style: TextStyle(color: Colors.white70, fontSize: 12),
+          ),
           const SizedBox(height: AppSpacing.md),
           Row(
             children: [
@@ -178,17 +193,25 @@ class _SummaryCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
-          const Text('오행 분포', style: TextStyle(color: Colors.white70, fontSize: 12)),
+          const Text(
+            '오행 분포',
+            style: TextStyle(color: Colors.white70, fontSize: 12),
+          ),
           const SizedBox(height: AppSpacing.sm),
           Wrap(
             spacing: AppSpacing.sm,
             children: result.fiveElements.entries
-                .map((e) => Chip(
-                      label: Text('${e.key} ${e.value}', style: const TextStyle(fontSize: 11)),
-                      backgroundColor: Colors.white.withValues(alpha: 0.15),
-                      labelStyle: const TextStyle(color: Colors.white),
-                      side: BorderSide.none,
-                    ))
+                .map(
+                  (e) => Chip(
+                    label: Text(
+                      '${e.key} ${e.value}',
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                    backgroundColor: Colors.white.withValues(alpha: 0.15),
+                    labelStyle: const TextStyle(color: Colors.white),
+                    side: BorderSide.none,
+                  ),
+                )
                 .toList(),
           ),
         ],
@@ -207,9 +230,19 @@ class _SummaryCard extends StatelessWidget {
         ),
         child: Column(
           children: [
-            Text(label, style: const TextStyle(color: Colors.white54, fontSize: 10)),
+            Text(
+              label,
+              style: const TextStyle(color: Colors.white54, fontSize: 10),
+            ),
             const SizedBox(height: 2),
-            Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+            Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 16,
+              ),
+            ),
           ],
         ),
       ),
@@ -227,10 +260,18 @@ class _TabBarDelegate extends SliverPersistentHeaderDelegate {
   double get maxExtent => tabBar.preferredSize.height;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(color: Theme.of(context).scaffoldBackgroundColor, child: tabBar);
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Container(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: tabBar,
+    );
   }
 
   @override
-  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) => false;
+  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) =>
+      false;
 }

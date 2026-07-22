@@ -27,7 +27,9 @@ class _ProfileCheckScreenState extends State<ProfileCheckScreen> {
     if (user?.birthDate != null) {
       // 이미 프로필이 있으면 곧바로 홈으로
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/home', (route) => false);
       });
     }
   }
@@ -43,7 +45,10 @@ class _ProfileCheckScreenState extends State<ProfileCheckScreen> {
   }
 
   Future<void> _pickTime() async {
-    final picked = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 12, minute: 0));
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: const TimeOfDay(hour: 12, minute: 0),
+    );
     if (picked != null) setState(() => _birthTime = picked);
   }
 
@@ -56,12 +61,13 @@ class _ProfileCheckScreenState extends State<ProfileCheckScreen> {
         : null;
 
     await context.read<AuthProvider>().updateProfile(
-          birthDate: birthDateStr,
-          birthTime: birthTimeStr,
-          isLunar: _isLunar,
-          gender: _gender,
-        );
-    if (mounted) Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+      birthDate: birthDateStr,
+      birthTime: birthTimeStr,
+      isLunar: _isLunar,
+      gender: _gender,
+    );
+    if (mounted)
+      Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
   }
 
   @override
@@ -74,7 +80,10 @@ class _ProfileCheckScreenState extends State<ProfileCheckScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('정확한 사주/운세 분석을 위해\n생년월일시를 입력해 주세요', style: Theme.of(context).textTheme.titleLarge),
+              Text(
+                '정확한 사주/운세 분석을 위해\n생년월일시를 입력해 주세요',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
               const SizedBox(height: AppSpacing.xl),
               _FieldTile(
                 icon: Icons.cake_outlined,
@@ -87,17 +96,27 @@ class _ProfileCheckScreenState extends State<ProfileCheckScreen> {
               Row(
                 children: [
                   const Text('음력'),
-                  Switch(value: _isLunar, onChanged: (v) => setState(() => _isLunar = v), activeThumbColor: AppColors.primary),
+                  Switch(
+                    value: _isLunar,
+                    onChanged: (v) => setState(() => _isLunar = v),
+                    activeThumbColor: AppColors.primary,
+                  ),
                   const Spacer(),
                   const Text('시간 모름'),
-                  Switch(value: _skipTime, onChanged: (v) => setState(() => _skipTime = v), activeThumbColor: AppColors.primary),
+                  Switch(
+                    value: _skipTime,
+                    onChanged: (v) => setState(() => _skipTime = v),
+                    activeThumbColor: AppColors.primary,
+                  ),
                 ],
               ),
               if (!_skipTime) ...[
                 const SizedBox(height: AppSpacing.md),
                 _FieldTile(
                   icon: Icons.access_time_rounded,
-                  label: _birthTime == null ? '태어난 시간 선택' : _birthTime!.format(context),
+                  label: _birthTime == null
+                      ? '태어난 시간 선택'
+                      : _birthTime!.format(context),
                   onTap: _pickTime,
                 ),
               ],
@@ -116,7 +135,9 @@ class _ProfileCheckScreenState extends State<ProfileCheckScreen> {
                 child: const Text('완료'),
               ),
               TextButton(
-                onPressed: () => Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false),
+                onPressed: () => Navigator.of(
+                  context,
+                ).pushNamedAndRemoveUntil('/home', (route) => false),
                 child: const Text('나중에 하기'),
               ),
             ],
@@ -132,7 +153,11 @@ class _FieldTile extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
 
-  const _FieldTile({required this.icon, required this.label, required this.onTap});
+  const _FieldTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {

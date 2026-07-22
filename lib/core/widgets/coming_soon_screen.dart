@@ -9,7 +9,11 @@ class ComingSoonScreen extends StatelessWidget {
   final String title;
   final IconData icon;
 
-  const ComingSoonScreen({super.key, required this.title, this.icon = Icons.auto_awesome_rounded});
+  const ComingSoonScreen({
+    super.key,
+    required this.title,
+    this.icon = Icons.auto_awesome_rounded,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +28,10 @@ class ComingSoonScreen extends StatelessWidget {
               children: [
                 Container(
                   padding: const EdgeInsets.all(AppSpacing.xxl),
-                  decoration: const BoxDecoration(color: AppColors.primaryContainer, shape: BoxShape.circle),
+                  decoration: const BoxDecoration(
+                    color: AppColors.primaryContainer,
+                    shape: BoxShape.circle,
+                  ),
                   child: Icon(icon, size: 48, color: AppColors.primary),
                 ),
                 const SizedBox(height: AppSpacing.xl),

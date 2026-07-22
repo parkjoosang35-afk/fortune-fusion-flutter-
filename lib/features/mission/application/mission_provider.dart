@@ -12,8 +12,10 @@ class MissionProvider extends ChangeNotifier {
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
-  List<MissionModel> get daily => _missions.where((m) => m.period == MissionPeriod.daily).toList();
-  List<MissionModel> get weekly => _missions.where((m) => m.period == MissionPeriod.weekly).toList();
+  List<MissionModel> get daily =>
+      _missions.where((m) => m.period == MissionPeriod.daily).toList();
+  List<MissionModel> get weekly =>
+      _missions.where((m) => m.period == MissionPeriod.weekly).toList();
 
   Future<void> load() async {
     _isLoading = true;

@@ -7,7 +7,12 @@ class ApiResult<T> {
   final String? errorCode;
   final String? errorMessage;
 
-  const ApiResult._({required this.success, this.data, this.errorCode, this.errorMessage});
+  const ApiResult._({
+    required this.success,
+    this.data,
+    this.errorCode,
+    this.errorMessage,
+  });
 
   factory ApiResult.ok(T data) => ApiResult._(success: true, data: data);
   factory ApiResult.fail(String message, {String? code}) =>

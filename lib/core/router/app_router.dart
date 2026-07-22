@@ -30,6 +30,8 @@ import '../../features/wallet/presentation/wallet_screen.dart';
 import '../../features/mission/presentation/mission_screen.dart';
 import '../../features/ranking/presentation/ranking_screen.dart';
 import '../../features/notification/notifications_screen.dart';
+import '../../features/mypage/presentation/settings_screen.dart';
+import '../widgets/coming_soon_screen.dart';
 
 /// 07단계 §3.2 라우팅 테이블 - Navigator 1.0(onGenerateRoute) 구현
 /// 10단계(A안): AI 6대 기능(사주/타로/관상/손금/궁합/AI상담) + 리워드(미션/랭킹)까지
@@ -69,7 +71,9 @@ class AppRouter {
       case '/ai-fortune/tarot/loading':
         return _page(const TarotLoadingScreen());
       case '/ai-fortune/tarot/result':
-        return _page(TarotResultScreen(resultId: settings.arguments as String?));
+        return _page(
+          TarotResultScreen(resultId: settings.arguments as String?),
+        );
       case '/ai-fortune/tarot/history':
         return _page(const TarotHistoryScreen());
 
@@ -112,10 +116,26 @@ class AppRouter {
         return _page(const MissionScreen());
       case '/reward/ranking':
         return _page(const RankingScreen());
+      case '/reward/luckybag':
+        return _page(
+          const ComingSoonScreen(
+            title: '복주머니',
+            icon: Icons.card_giftcard_rounded,
+          ),
+        );
+      case '/reward/amulet':
+        return _page(
+          const ComingSoonScreen(
+            title: '디지털 부적',
+            icon: Icons.auto_awesome_rounded,
+          ),
+        );
 
       // ── 마이 ──
       case '/my/notifications':
         return _page(const NotificationsScreen());
+      case '/my/settings':
+        return _page(const SettingsScreen());
 
       default:
         return _page(const HomeScreen());

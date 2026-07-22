@@ -31,8 +31,13 @@ class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
   }
 
   void _submit() {
-    final question = _questionController.text.trim().isEmpty ? '오늘의 전반적인 운세' : _questionController.text.trim();
-    context.read<TarotProvider>().draw(question: question, spreadType: _spreadType);
+    final question = _questionController.text.trim().isEmpty
+        ? '오늘의 전반적인 운세'
+        : _questionController.text.trim();
+    context.read<TarotProvider>().draw(
+      question: question,
+      spreadType: _spreadType,
+    );
     Navigator.of(context).pushNamed('/ai-fortune/tarot/loading');
   }
 
@@ -46,22 +51,30 @@ class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('무엇이 궁금하신가요?', style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                '무엇이 궁금하신가요?',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: AppSpacing.sm),
               TextField(
                 controller: _questionController,
                 maxLines: 3,
-                decoration: const InputDecoration(hintText: '궁금한 질문을 자유롭게 적어보세요'),
+                decoration: const InputDecoration(
+                  hintText: '궁금한 질문을 자유롭게 적어보세요',
+                ),
               ),
               const SizedBox(height: AppSpacing.md),
               Wrap(
                 spacing: AppSpacing.sm,
                 runSpacing: AppSpacing.sm,
                 children: _presetQuestions
-                    .map((q) => ActionChip(
-                          label: Text(q, style: const TextStyle(fontSize: 12)),
-                          onPressed: () => setState(() => _questionController.text = q),
-                        ))
+                    .map(
+                      (q) => ActionChip(
+                        label: Text(q, style: const TextStyle(fontSize: 12)),
+                        onPressed: () =>
+                            setState(() => _questionController.text = q),
+                      ),
+                    )
                     .toList(),
               ),
               const SizedBox(height: AppSpacing.xl),
@@ -91,10 +104,7 @@ class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
                 ],
               ),
               const SizedBox(height: AppSpacing.xxl),
-              ElevatedButton(
-                onPressed: _submit,
-                child: const Text('카드 뽑기'),
-              ),
+              ElevatedButton(onPressed: _submit, child: const Text('카드 뽑기')),
             ],
           ),
         ),
@@ -127,7 +137,9 @@ class _SpreadOption extends StatelessWidget {
         padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
           color: selected ? AppColors.primaryContainer : Colors.white,
-          border: Border.all(color: selected ? AppColors.primary : AppColors.divider),
+          border: Border.all(
+            color: selected ? AppColors.primary : AppColors.divider,
+          ),
           borderRadius: BorderRadius.circular(AppRadius.card),
         ),
         child: Column(

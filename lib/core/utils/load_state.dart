@@ -10,10 +10,12 @@ class LoadState<T> {
   const LoadState({required this.status, this.data, this.errorMessage});
 
   const LoadState.initial() : this(status: LoadStatus.initial);
-  const LoadState.loading({T? previousData}) : this(status: LoadStatus.loading, data: previousData);
-  const LoadState.success(T data) : this(status: LoadStatus.success, data: data);
+  const LoadState.loading({T? previousData})
+    : this(status: LoadStatus.loading, data: previousData);
+  const LoadState.success(T data)
+    : this(status: LoadStatus.success, data: data);
   const LoadState.error(String message, {T? previousData})
-      : this(status: LoadStatus.error, errorMessage: message, data: previousData);
+    : this(status: LoadStatus.error, errorMessage: message, data: previousData);
 
   bool get isInitial => status == LoadStatus.initial;
   bool get isLoading => status == LoadStatus.loading;

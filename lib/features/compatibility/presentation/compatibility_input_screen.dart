@@ -10,7 +10,8 @@ class CompatibilityInputScreen extends StatefulWidget {
   const CompatibilityInputScreen({super.key});
 
   @override
-  State<CompatibilityInputScreen> createState() => _CompatibilityInputScreenState();
+  State<CompatibilityInputScreen> createState() =>
+      _CompatibilityInputScreenState();
 }
 
 class _CompatibilityInputScreenState extends State<CompatibilityInputScreen> {
@@ -46,14 +47,15 @@ class _CompatibilityInputScreenState extends State<CompatibilityInputScreen> {
 
   void _submit() {
     if (_birthDateA == null || _birthDateB == null) return;
-    String fmt(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+    String fmt(DateTime d) =>
+        '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
     context.read<CompatibilityProvider>().request(
-          birthDateA: fmt(_birthDateA!),
-          birthDateB: fmt(_birthDateB!),
-          nameA: _nameAController.text.trim(),
-          nameB: _nameBController.text.trim(),
-        );
+      birthDateA: fmt(_birthDateA!),
+      birthDateB: fmt(_birthDateB!),
+      nameA: _nameAController.text.trim(),
+      nameB: _nameBController.text.trim(),
+    );
     Navigator.of(context).pushNamed('/ai-fortune/compatibility/result');
   }
 
@@ -76,7 +78,13 @@ class _CompatibilityInputScreenState extends State<CompatibilityInputScreen> {
                 onPickDate: () => _pickDate(true),
               ),
               const SizedBox(height: AppSpacing.md),
-              const Center(child: Icon(Icons.favorite_rounded, color: AppColors.primary, size: 28)),
+              const Center(
+                child: Icon(
+                  Icons.favorite_rounded,
+                  color: AppColors.primary,
+                  size: 28,
+                ),
+              ),
               const SizedBox(height: AppSpacing.md),
               _PersonCard(
                 title: '상대방',
@@ -117,7 +125,10 @@ class _PersonCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppRadius.card)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -139,10 +150,16 @@ class _PersonCard extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.cake_outlined, color: AppColors.primary, size: 18),
+                  const Icon(
+                    Icons.cake_outlined,
+                    color: AppColors.primary,
+                    size: 18,
+                  ),
                   const SizedBox(width: AppSpacing.sm),
                   Text(
-                    birthDate == null ? '생년월일 선택' : '${birthDate!.year}년 ${birthDate!.month}월 ${birthDate!.day}일',
+                    birthDate == null
+                        ? '생년월일 선택'
+                        : '${birthDate!.year}년 ${birthDate!.month}월 ${birthDate!.day}일',
                   ),
                 ],
               ),

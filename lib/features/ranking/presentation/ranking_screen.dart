@@ -37,8 +37,10 @@ class _RankingScreenState extends State<RankingScreen> {
             : ListView.separated(
                 padding: const EdgeInsets.all(AppSpacing.lg),
                 itemCount: provider.entries.length,
-                separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
-                itemBuilder: (context, index) => _RankTile(entry: provider.entries[index]),
+                separatorBuilder: (_, __) =>
+                    const SizedBox(height: AppSpacing.sm),
+                itemBuilder: (context, index) =>
+                    _RankTile(entry: provider.entries[index]),
               ),
       ),
     );
@@ -69,7 +71,9 @@ class _RankTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: entry.isMe ? AppColors.primaryContainer : Colors.white,
         borderRadius: BorderRadius.circular(AppRadius.card),
-        border: entry.isMe ? Border.all(color: AppColors.primary, width: 1.5) : null,
+        border: entry.isMe
+            ? Border.all(color: AppColors.primary, width: 1.5)
+            : null,
       ),
       child: Row(
         children: [
@@ -77,10 +81,17 @@ class _RankTile extends StatelessWidget {
             width: 32,
             height: 32,
             alignment: Alignment.center,
-            decoration: BoxDecoration(color: _rankColor(entry.rank), shape: BoxShape.circle),
+            decoration: BoxDecoration(
+              color: _rankColor(entry.rank),
+              shape: BoxShape.circle,
+            ),
             child: Text(
               '${entry.rank}',
-              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.textPrimary),
+              style: const TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 13,
+                color: AppColors.textPrimary,
+              ),
             ),
           ),
           const SizedBox(width: AppSpacing.md),
@@ -88,11 +99,18 @@ class _RankTile extends StatelessWidget {
             child: Text(
               entry.isMe ? '${entry.nickname} (나)' : entry.nickname,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: entry.isMe ? FontWeight.w800 : FontWeight.w600,
-                  ),
+                fontWeight: entry.isMe ? FontWeight.w800 : FontWeight.w600,
+              ),
             ),
           ),
-          Text('${entry.points} P', style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
+          Text(
+            '${entry.points} P',
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );

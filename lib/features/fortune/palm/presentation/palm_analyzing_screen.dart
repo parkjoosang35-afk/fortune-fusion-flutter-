@@ -10,7 +10,8 @@ class PalmAnalyzingScreen extends StatefulWidget {
   State<PalmAnalyzingScreen> createState() => _PalmAnalyzingScreenState();
 }
 
-class _PalmAnalyzingScreenState extends State<PalmAnalyzingScreen> with SingleTickerProviderStateMixin {
+class _PalmAnalyzingScreenState extends State<PalmAnalyzingScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   bool _navigated = false;
 
@@ -23,7 +24,10 @@ class _PalmAnalyzingScreenState extends State<PalmAnalyzingScreen> with SingleTi
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat();
   }
 
   @override
@@ -37,7 +41,10 @@ class _PalmAnalyzingScreenState extends State<PalmAnalyzingScreen> with SingleTi
     if (provider.state.isSuccess || provider.state.isError) {
       _navigated = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.of(context).pushReplacementNamed('/ai-fortune/palm/result', arguments: provider.state.data?.id);
+        Navigator.of(context).pushReplacementNamed(
+          '/ai-fortune/palm/result',
+          arguments: provider.state.data?.id,
+        );
       });
     }
   }
@@ -58,10 +65,18 @@ class _PalmAnalyzingScreenState extends State<PalmAnalyzingScreen> with SingleTi
             children: [
               RotationTransition(
                 turns: _controller,
-                child: const Icon(Icons.back_hand_rounded, color: AppColors.secondary, size: 72),
+                child: const Icon(
+                  Icons.back_hand_rounded,
+                  color: AppColors.secondary,
+                  size: 72,
+                ),
               ),
               const SizedBox(height: 32),
-              Text(_messages[msgIndex], style: const TextStyle(color: Colors.white, fontSize: 15), textAlign: TextAlign.center),
+              Text(
+                _messages[msgIndex],
+                style: const TextStyle(color: Colors.white, fontSize: 15),
+                textAlign: TextAlign.center,
+              ),
             ],
           ),
         ),

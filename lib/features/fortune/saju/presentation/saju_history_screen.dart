@@ -17,7 +17,9 @@ class _SajuHistoryScreenState extends State<SajuHistoryScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => context.read<SajuProvider>().loadHistory());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => context.read<SajuProvider>().loadHistory(),
+    );
   }
 
   @override
@@ -28,29 +30,46 @@ class _SajuHistoryScreenState extends State<SajuHistoryScreen> {
       appBar: AppBar(title: const Text('사주 히스토리')),
       body: SafeArea(
         child: history.isEmpty
-            ? const AppEmptyState(icon: Icons.auto_stories_outlined, title: '아직 분석 기록이 없어요', description: 'AI 사주를 분석해보세요')
+            ? const AppEmptyState(
+                icon: Icons.auto_stories_outlined,
+                title: '아직 분석 기록이 없어요',
+                description: 'AI 사주를 분석해보세요',
+              )
             : ListView.separated(
                 padding: const EdgeInsets.all(AppSpacing.lg),
                 itemCount: history.length,
-                separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
+                separatorBuilder: (_, __) =>
+                    const SizedBox(height: AppSpacing.md),
                 itemBuilder: (context, index) {
                   final item = history[index];
                   return InkWell(
                     borderRadius: BorderRadius.circular(AppRadius.card),
-                    onTap: () => Navigator.of(context).pushNamed('/ai-fortune/saju/result', arguments: item.id),
+                    onTap: () => Navigator.of(
+                      context,
+                    ).pushNamed('/ai-fortune/saju/result', arguments: item.id),
                     child: Container(
                       padding: const EdgeInsets.all(AppSpacing.lg),
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppRadius.card)),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(AppRadius.card),
+                      ),
                       child: Row(
                         children: [
-                          const Icon(Icons.auto_stories_rounded, color: AppColors.primary),
+                          const Icon(
+                            Icons.auto_stories_rounded,
+                            color: AppColors.primary,
+                          ),
                           const SizedBox(width: AppSpacing.md),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('${item.pillars.year} ${item.pillars.month} ${item.pillars.day}',
-                                    style: Theme.of(context).textTheme.titleMedium),
+                                Text(
+                                  '${item.pillars.year} ${item.pillars.month} ${item.pillars.day}',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleMedium,
+                                ),
                                 Text(
                                   '${item.createdAt.year}.${item.createdAt.month}.${item.createdAt.day}',
                                   style: Theme.of(context).textTheme.bodySmall,
@@ -58,7 +77,10 @@ class _SajuHistoryScreenState extends State<SajuHistoryScreen> {
                               ],
                             ),
                           ),
-                          const Icon(Icons.chevron_right_rounded, color: AppColors.textHint),
+                          const Icon(
+                            Icons.chevron_right_rounded,
+                            color: AppColors.textHint,
+                          ),
                         ],
                       ),
                     ),

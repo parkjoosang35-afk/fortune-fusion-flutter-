@@ -45,7 +45,10 @@ class NotificationProvider extends ChangeNotifier {
   }
 
   void markRead(String id) {
-    final item = _items.firstWhere((e) => e.id == id, orElse: () => _items.first);
+    final item = _items.firstWhere(
+      (e) => e.id == id,
+      orElse: () => _items.first,
+    );
     item.isRead = true;
     notifyListeners();
   }

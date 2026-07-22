@@ -58,7 +58,9 @@ class _RewardScreenState extends State<RewardScreen> {
             _MenuCard(
               icon: Icons.calendar_month_rounded,
               title: '출석체크',
-              subtitle: attendance.checkedToday ? '오늘 출석 완료 · 연속 ${attendance.streak}일' : '연속 ${attendance.streak}일째 · 오늘 출석하기',
+              subtitle: attendance.checkedToday
+                  ? '오늘 출석 완료 · 연속 ${attendance.streak}일'
+                  : '연속 ${attendance.streak}일째 · 오늘 출석하기',
               onTap: () => Navigator.of(context).pushNamed('/reward/wallet'),
             ),
             const SizedBox(height: AppSpacing.md),
@@ -88,7 +90,12 @@ class _MenuCard extends StatelessWidget {
   final String subtitle;
   final VoidCallback onTap;
 
-  const _MenuCard({required this.icon, required this.title, required this.subtitle, required this.onTap});
+  const _MenuCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -97,12 +104,18 @@ class _MenuCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.lg),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppRadius.card)),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+        ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(AppSpacing.md),
-              decoration: const BoxDecoration(color: AppColors.primaryContainer, shape: BoxShape.circle),
+              decoration: const BoxDecoration(
+                color: AppColors.primaryContainer,
+                shape: BoxShape.circle,
+              ),
               child: Icon(icon, color: AppColors.primary),
             ),
             const SizedBox(width: AppSpacing.md),

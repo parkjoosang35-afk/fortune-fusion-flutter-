@@ -16,11 +16,11 @@ class ConsultationMessage {
   });
 
   ConsultationMessage copyWith({String? text}) => ConsultationMessage(
-        id: id,
-        role: role,
-        text: text ?? this.text,
-        createdAt: createdAt,
-      );
+    id: id,
+    role: role,
+    text: text ?? this.text,
+    createdAt: createdAt,
+  );
 }
 
 /// 상담 유형: saju(사주상담) / tarot(타로상담) / general(일반상담)

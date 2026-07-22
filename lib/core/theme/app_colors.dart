@@ -49,4 +49,13 @@ class AppColors {
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
+
+  // ── Dark mode neutrals (07단계 §10 신규) ──
+  static const Color backgroundDark = Color(0xFF14101F);
+  static const Color surfaceDark = Color(0xFF1F1A30);
+  static const Color textPrimaryDark = Color(0xFFF2EFFA);
+  static const Color textSecondaryDark = Color(0xFFB6AFC9);
+  static const Color textHintDark = Color(0xFF7C7591);
+  static const Color dividerDark = Color(0xFF332B4D);
+  static const Color primaryContainerDark = Color(0xFF352A5E);
 }

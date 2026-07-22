@@ -23,9 +23,21 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   int _index = 0;
 
   static const _pages = [
-    _OnboardingPage(Icons.auto_stories_rounded, 'AI 사주부터 타로까지', 'AI가 분석하는 나만의 운세를\n한 곳에서 만나보세요'),
-    _OnboardingPage(Icons.emoji_events_rounded, '출석하고 포인트 받기', '매일 출석체크와 미션으로\n행운 포인트를 모아보세요'),
-    _OnboardingPage(Icons.favorite_rounded, 'AI 궁합 & 커뮤니티', '소중한 인연과의 궁합을 확인하고\n소원게시판에서 소통하세요'),
+    _OnboardingPage(
+      Icons.auto_stories_rounded,
+      'AI 사주부터 타로까지',
+      'AI가 분석하는 나만의 운세를\n한 곳에서 만나보세요',
+    ),
+    _OnboardingPage(
+      Icons.emoji_events_rounded,
+      '출석하고 포인트 받기',
+      '매일 출석체크와 미션으로\n행운 포인트를 모아보세요',
+    ),
+    _OnboardingPage(
+      Icons.favorite_rounded,
+      'AI 궁합 & 커뮤니티',
+      '소중한 인연과의 궁합을 확인하고\n소원게시판에서 소통하세요',
+    ),
   ];
 
   Future<void> _finish() async {
@@ -54,8 +66,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       children: [
                         Container(
                           padding: const EdgeInsets.all(AppSpacing.xxl),
-                          decoration: const BoxDecoration(color: AppColors.primaryContainer, shape: BoxShape.circle),
-                          child: Icon(page.icon, size: 56, color: AppColors.primary),
+                          decoration: const BoxDecoration(
+                            color: AppColors.primaryContainer,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            page.icon,
+                            size: 56,
+                            color: AppColors.primary,
+                          ),
                         ),
                         const SizedBox(height: AppSpacing.xxl),
                         Text(
@@ -100,7 +119,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     if (_index == _pages.length - 1) {
                       _finish();
                     } else {
-                      _controller.nextPage(duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+                      _controller.nextPage(
+                        duration: const Duration(milliseconds: 250),
+                        curve: Curves.easeOut,
+                      );
                     }
                   },
                   child: Text(_index == _pages.length - 1 ? '시작하기' : '다음'),

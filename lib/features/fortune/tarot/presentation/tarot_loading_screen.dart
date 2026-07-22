@@ -11,7 +11,8 @@ class TarotLoadingScreen extends StatefulWidget {
   State<TarotLoadingScreen> createState() => _TarotLoadingScreenState();
 }
 
-class _TarotLoadingScreenState extends State<TarotLoadingScreen> with SingleTickerProviderStateMixin {
+class _TarotLoadingScreenState extends State<TarotLoadingScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   bool _navigated = false;
 
@@ -24,7 +25,10 @@ class _TarotLoadingScreenState extends State<TarotLoadingScreen> with SingleTick
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))..repeat(reverse: true);
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
   }
 
   @override
@@ -62,7 +66,11 @@ class _TarotLoadingScreenState extends State<TarotLoadingScreen> with SingleTick
             children: [
               ScaleTransition(
                 scale: Tween(begin: 0.9, end: 1.1).animate(_controller),
-                child: const Icon(Icons.style_rounded, color: AppColors.secondary, size: 72),
+                child: const Icon(
+                  Icons.style_rounded,
+                  color: AppColors.secondary,
+                  size: 72,
+                ),
               ),
               const SizedBox(height: 32),
               Text(

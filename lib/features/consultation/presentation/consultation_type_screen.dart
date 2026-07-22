@@ -30,7 +30,10 @@ class ConsultationTypeScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('어떤 상담을 받아보고 싶으신가요?', style: Theme.of(context).textTheme.titleLarge),
+              Text(
+                '어떤 상담을 받아보고 싶으신가요?',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
               const SizedBox(height: AppSpacing.sm),
               Text(
                 'AI 상담사와 실시간으로 대화하며 궁금한 점을 물어보세요',
@@ -46,26 +49,47 @@ class ConsultationTypeScreen extends StatelessWidget {
                     onTap: () => _start(context, type),
                     child: Container(
                       padding: const EdgeInsets.all(AppSpacing.lg),
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppRadius.card)),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(AppRadius.card),
+                      ),
                       child: Row(
                         children: [
                           Container(
                             padding: const EdgeInsets.all(AppSpacing.md),
-                            decoration: const BoxDecoration(color: AppColors.primaryContainer, shape: BoxShape.circle),
-                            child: Icon(icon, color: AppColors.primary, size: 24),
+                            decoration: const BoxDecoration(
+                              color: AppColors.primaryContainer,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              icon,
+                              color: AppColors.primary,
+                              size: 24,
+                            ),
                           ),
                           const SizedBox(width: AppSpacing.md),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(label, style: Theme.of(context).textTheme.titleMedium),
+                                Text(
+                                  label,
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleMedium,
+                                ),
                                 const SizedBox(height: 2),
-                                Text(desc, style: Theme.of(context).textTheme.bodySmall),
+                                Text(
+                                  desc,
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
                               ],
                             ),
                           ),
-                          const Icon(Icons.chevron_right_rounded, color: AppColors.textHint),
+                          const Icon(
+                            Icons.chevron_right_rounded,
+                            color: AppColors.textHint,
+                          ),
                         ],
                       ),
                     ),

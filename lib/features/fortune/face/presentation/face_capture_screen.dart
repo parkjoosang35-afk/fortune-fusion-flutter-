@@ -34,10 +34,18 @@ class FaceCaptureScreen extends StatelessWidget {
                         height: 220,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(color: AppColors.primary, width: 2, style: BorderStyle.solid),
+                          border: Border.all(
+                            color: AppColors.primary,
+                            width: 2,
+                            style: BorderStyle.solid,
+                          ),
                           color: AppColors.primaryContainer,
                         ),
-                        child: const Icon(Icons.face_retouching_natural_rounded, size: 96, color: AppColors.primary),
+                        child: const Icon(
+                          Icons.face_retouching_natural_rounded,
+                          size: 96,
+                          color: AppColors.primary,
+                        ),
                       ),
                       const SizedBox(height: AppSpacing.xl),
                       Text(

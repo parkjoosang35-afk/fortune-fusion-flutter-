@@ -31,7 +31,9 @@ class ConsultationRepository {
     ],
   };
 
-  Future<ApiResult<ConsultationSessionModel>> createSession({required String type}) async {
+  Future<ApiResult<ConsultationSessionModel>> createSession({
+    required String type,
+  }) async {
     await mockDelay(ms: 300);
     final session = ConsultationSessionModel(
       id: 'consult_${DateTime.now().millisecondsSinceEpoch}',
@@ -51,7 +53,10 @@ class ConsultationRepository {
 
   /// 09단계 §1.2 `generateStream()` Mock 구현체
   /// 실제 SSE 대신 Dart Stream으로 토큰(어절) 단위 지연 방출을 재현한다.
-  Stream<String> streamReply({required String type, required String userMessage}) async* {
+  Stream<String> streamReply({
+    required String type,
+    required String userMessage,
+  }) async* {
     final pool = _replyPool[type] ?? _replyPool['general']!;
     final seed = userMessage.hashCode.abs() % pool.length;
     final fullText = pool[seed];

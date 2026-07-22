@@ -5,7 +5,12 @@ class SajuPillars {
   final String day;
   final String? hour;
 
-  const SajuPillars({required this.year, required this.month, required this.day, this.hour});
+  const SajuPillars({
+    required this.year,
+    required this.month,
+    required this.day,
+    this.hour,
+  });
 }
 
 class SajuResultModel {

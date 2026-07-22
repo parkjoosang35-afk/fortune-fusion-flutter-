@@ -14,22 +14,30 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController(text: 'demo@fortunefusion.app');
+  final _emailController = TextEditingController(
+    text: 'demo@fortunefusion.app',
+  );
   final _passwordController = TextEditingController(text: 'password');
   bool _isSubmitting = false;
 
   Future<void> _login() async {
     setState(() => _isSubmitting = true);
     final ok = await context.read<AuthProvider>().login(
-          _emailController.text.trim(),
-          _passwordController.text,
-        );
+      _emailController.text.trim(),
+      _passwordController.text,
+    );
     setState(() => _isSubmitting = false);
     if (!mounted) return;
     if (ok) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/signup/profile-check', (route) => false);
+      Navigator.of(
+        context,
+      ).pushNamedAndRemoveUntil('/signup/profile-check', (route) => false);
     } else {
-      AppToast.show(context, context.read<AuthProvider>().state.errorMessage ?? '로그인 실패', isError: true);
+      AppToast.show(
+        context,
+        context.read<AuthProvider>().state.errorMessage ?? '로그인 실패',
+        isError: true,
+      );
     }
   }
 
@@ -39,7 +47,9 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isSubmitting = false);
     if (!mounted) return;
     if (ok) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/signup/profile-check', (route) => false);
+      Navigator.of(
+        context,
+      ).pushNamedAndRemoveUntil('/signup/profile-check', (route) => false);
     }
   }
 
@@ -60,19 +70,33 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: AppSpacing.xxl),
-              const Icon(Icons.auto_awesome, color: AppColors.primary, size: 48),
+              const Icon(
+                Icons.auto_awesome,
+                color: AppColors.primary,
+                size: 48,
+              ),
               const SizedBox(height: AppSpacing.md),
-              Text('Fortune Fusion', style: Theme.of(context).textTheme.headlineMedium, textAlign: TextAlign.center),
+              Text(
+                'Fortune Fusion',
+                style: Theme.of(context).textTheme.headlineMedium,
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: AppSpacing.xxl),
               TextField(
                 controller: _emailController,
-                decoration: const InputDecoration(labelText: '이메일', prefixIcon: Icon(Icons.email_outlined)),
+                decoration: const InputDecoration(
+                  labelText: '이메일',
+                  prefixIcon: Icon(Icons.email_outlined),
+                ),
               ),
               const SizedBox(height: AppSpacing.md),
               TextField(
                 controller: _passwordController,
                 obscureText: true,
-                decoration: const InputDecoration(labelText: '비밀번호', prefixIcon: Icon(Icons.lock_outline)),
+                decoration: const InputDecoration(
+                  labelText: '비밀번호',
+                  prefixIcon: Icon(Icons.lock_outline),
+                ),
               ),
               const SizedBox(height: AppSpacing.lg),
               ElevatedButton(
@@ -81,7 +105,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
                       )
                     : const Text('이메일로 로그인'),
               ),
@@ -91,7 +118,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   Expanded(child: Divider()),
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                    child: Text('또는', style: TextStyle(color: AppColors.textHint)),
+                    child: Text(
+                      '또는',
+                      style: TextStyle(color: AppColors.textHint),
+                    ),
                   ),
                   Expanded(child: Divider()),
                 ],

@@ -18,7 +18,11 @@ class _ConsultationChatScreenState extends State<ConsultationChatScreen> {
   final _inputController = TextEditingController();
   final _scrollController = ScrollController();
 
-  static const _typeLabels = {'saju': '사주상담', 'tarot': '타로상담', 'general': '일반상담'};
+  static const _typeLabels = {
+    'saju': '사주상담',
+    'tarot': '타로상담',
+    'general': '일반상담',
+  };
 
   @override
   void dispose() {
@@ -68,7 +72,10 @@ class _ConsultationChatScreenState extends State<ConsultationChatScreen> {
                         final isLast = index == provider.messages.length - 1;
                         return _MessageBubble(
                           message: msg,
-                          showTypingCursor: isLast && msg.role == ConsultationRole.ai && provider.isStreaming,
+                          showTypingCursor:
+                              isLast &&
+                              msg.role == ConsultationRole.ai &&
+                              provider.isStreaming,
                         );
                       },
                     ),
@@ -100,8 +107,13 @@ class _MessageBubble extends StatelessWidget {
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.only(bottom: AppSpacing.md),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
+        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.md,
+        ),
         decoration: BoxDecoration(
           color: bubbleColor,
           borderRadius: BorderRadius.circular(AppRadius.card),
@@ -110,7 +122,13 @@ class _MessageBubble extends StatelessWidget {
             ? const SizedBox(
                 width: 28,
                 height: 16,
-                child: Center(child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))),
+                child: Center(
+                  child: SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
               )
             : Text(
                 showTypingCursor ? '${message.text}▏' : message.text,
@@ -126,7 +144,11 @@ class _InputBar extends StatelessWidget {
   final bool enabled;
   final VoidCallback onSend;
 
-  const _InputBar({required this.controller, required this.enabled, required this.onSend});
+  const _InputBar({
+    required this.controller,
+    required this.enabled,
+    required this.onSend,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -150,8 +172,14 @@ class _InputBar extends StatelessWidget {
                 hintText: enabled ? '메시지를 입력하세요' : 'AI가 답변하고 있어요...',
                 filled: true,
                 fillColor: AppColors.background,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.full), borderSide: BorderSide.none),
-                contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.full),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg,
+                  vertical: AppSpacing.sm,
+                ),
               ),
             ),
           ),

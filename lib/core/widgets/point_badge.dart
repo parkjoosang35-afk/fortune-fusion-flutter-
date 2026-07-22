@@ -16,7 +16,10 @@ class PointBadge extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppRadius.full),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 6),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: 6,
+        ),
         decoration: BoxDecoration(
           gradient: AppColors.goldGradient,
           borderRadius: BorderRadius.circular(AppRadius.full),
@@ -24,7 +27,11 @@ class PointBadge extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.auto_awesome, size: 14, color: AppColors.textPrimary),
+            const Icon(
+              Icons.auto_awesome,
+              size: 14,
+              color: AppColors.textPrimary,
+            ),
             const SizedBox(width: 4),
             Text(
               _formatBalance(balance),

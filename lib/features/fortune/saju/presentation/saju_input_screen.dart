@@ -28,7 +28,11 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
     final user = context.read<AuthProvider>().currentUser;
     if (user?.birthDate != null) {
       final parts = user!.birthDate!.split('-');
-      _birthDate = DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+      _birthDate = DateTime(
+        int.parse(parts[0]),
+        int.parse(parts[1]),
+        int.parse(parts[2]),
+      );
       _isLunar = user.isLunar;
       if (user.birthTime != null) {
         final t = user.birthTime!.split(':');
@@ -48,7 +52,10 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
   }
 
   Future<void> _pickTime() async {
-    final picked = await showTimePicker(context: context, initialTime: _birthTime ?? const TimeOfDay(hour: 12, minute: 0));
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _birthTime ?? const TimeOfDay(hour: 12, minute: 0),
+    );
     if (picked != null) setState(() => _birthTime = picked);
   }
 
@@ -61,11 +68,11 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
         : null;
 
     context.read<SajuProvider>().requestSaju(
-          birthDate: birthDateStr,
-          birthTime: birthTimeStr,
-          isLunar: _isLunar,
-          topics: _topics.toList(),
-        );
+      birthDate: birthDateStr,
+      birthTime: birthTimeStr,
+      isLunar: _isLunar,
+      topics: _topics.toList(),
+    );
     Navigator.of(context).pushNamed('/ai-fortune/saju/loading');
   }
 
@@ -91,17 +98,26 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
               const SizedBox(height: AppSpacing.sm),
               _FieldTile(
                 icon: Icons.access_time_rounded,
-                label: _birthTime == null ? '태어난 시간(선택)' : _birthTime!.format(context),
+                label: _birthTime == null
+                    ? '태어난 시간(선택)'
+                    : _birthTime!.format(context),
                 onTap: _pickTime,
               ),
               Row(
                 children: [
                   const Text('음력'),
-                  Switch(value: _isLunar, onChanged: (v) => setState(() => _isLunar = v), activeThumbColor: AppColors.primary),
+                  Switch(
+                    value: _isLunar,
+                    onChanged: (v) => setState(() => _isLunar = v),
+                    activeThumbColor: AppColors.primary,
+                  ),
                 ],
               ),
               const SizedBox(height: AppSpacing.lg),
-              Text('관심 주제 (다중 선택 가능)', style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                '관심 주제 (다중 선택 가능)',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: AppSpacing.sm),
               Wrap(
                 spacing: AppSpacing.sm,
@@ -141,7 +157,11 @@ class _FieldTile extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
 
-  const _FieldTile({required this.icon, required this.label, required this.onTap});
+  const _FieldTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {

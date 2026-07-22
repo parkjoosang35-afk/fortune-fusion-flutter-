@@ -19,11 +19,11 @@ class MissionModel {
   });
 
   MissionModel copyWith({bool? isCompleted}) => MissionModel(
-        id: id,
-        title: title,
-        description: description,
-        rewardPoints: rewardPoints,
-        period: period,
-        isCompleted: isCompleted ?? this.isCompleted,
-      );
+    id: id,
+    title: title,
+    description: description,
+    rewardPoints: rewardPoints,
+    period: period,
+    isCompleted: isCompleted ?? this.isCompleted,
+  );
 }

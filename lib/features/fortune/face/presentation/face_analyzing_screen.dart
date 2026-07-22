@@ -11,7 +11,8 @@ class FaceAnalyzingScreen extends StatefulWidget {
   State<FaceAnalyzingScreen> createState() => _FaceAnalyzingScreenState();
 }
 
-class _FaceAnalyzingScreenState extends State<FaceAnalyzingScreen> with SingleTickerProviderStateMixin {
+class _FaceAnalyzingScreenState extends State<FaceAnalyzingScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   bool _navigated = false;
 
@@ -24,7 +25,10 @@ class _FaceAnalyzingScreenState extends State<FaceAnalyzingScreen> with SingleTi
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat();
   }
 
   @override
@@ -62,7 +66,11 @@ class _FaceAnalyzingScreenState extends State<FaceAnalyzingScreen> with SingleTi
             children: [
               RotationTransition(
                 turns: _controller,
-                child: const Icon(Icons.face_retouching_natural_rounded, color: AppColors.secondary, size: 72),
+                child: const Icon(
+                  Icons.face_retouching_natural_rounded,
+                  color: AppColors.secondary,
+                  size: 72,
+                ),
               ),
               const SizedBox(height: 32),
               Text(

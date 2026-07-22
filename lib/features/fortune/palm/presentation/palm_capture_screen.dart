@@ -30,8 +30,15 @@ class PalmCaptureScreen extends StatelessWidget {
                       Container(
                         width: 220,
                         height: 220,
-                        decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.primaryContainer),
-                        child: const Icon(Icons.back_hand_rounded, size: 96, color: AppColors.primary),
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.primaryContainer,
+                        ),
+                        child: const Icon(
+                          Icons.back_hand_rounded,
+                          size: 96,
+                          color: AppColors.primary,
+                        ),
                       ),
                       const SizedBox(height: AppSpacing.xl),
                       Text(

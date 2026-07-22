@@ -11,7 +11,8 @@ class SajuLoadingScreen extends StatefulWidget {
   State<SajuLoadingScreen> createState() => _SajuLoadingScreenState();
 }
 
-class _SajuLoadingScreenState extends State<SajuLoadingScreen> with SingleTickerProviderStateMixin {
+class _SajuLoadingScreenState extends State<SajuLoadingScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   bool _navigated = false;
 
@@ -24,7 +25,10 @@ class _SajuLoadingScreenState extends State<SajuLoadingScreen> with SingleTicker
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat();
   }
 
   @override
@@ -46,7 +50,9 @@ class _SajuLoadingScreenState extends State<SajuLoadingScreen> with SingleTicker
     } else if (provider.state.isError) {
       _navigated = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.of(context).pushReplacementNamed('/ai-fortune/saju/result', arguments: null);
+        Navigator.of(
+          context,
+        ).pushReplacementNamed('/ai-fortune/saju/result', arguments: null);
       });
     }
   }
@@ -67,7 +73,11 @@ class _SajuLoadingScreenState extends State<SajuLoadingScreen> with SingleTicker
             children: [
               RotationTransition(
                 turns: _controller,
-                child: const Icon(Icons.auto_awesome, color: AppColors.secondary, size: 72),
+                child: const Icon(
+                  Icons.auto_awesome,
+                  color: AppColors.secondary,
+                  size: 72,
+                ),
               ),
               const SizedBox(height: 32),
               Text(

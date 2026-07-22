@@ -50,7 +50,12 @@ class SajuProvider extends ChangeNotifier {
 
   Future<void> retry() async {
     if (_birthDate == null) return;
-    await requestSaju(birthDate: _birthDate!, birthTime: _birthTime, isLunar: _isLunar, topics: _topics);
+    await requestSaju(
+      birthDate: _birthDate!,
+      birthTime: _birthTime,
+      isLunar: _isLunar,
+      topics: _topics,
+    );
   }
 
   Future<void> loadHistory() async {

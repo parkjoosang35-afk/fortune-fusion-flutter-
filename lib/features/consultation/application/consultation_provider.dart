@@ -49,12 +49,22 @@ class ConsultationProvider extends ChangeNotifier {
 
     _isStreaming = true;
     final aiId = 'ai_${DateTime.now().millisecondsSinceEpoch}';
-    _messages.add(ConsultationMessage(id: aiId, role: ConsultationRole.ai, text: '', createdAt: DateTime.now()));
+    _messages.add(
+      ConsultationMessage(
+        id: aiId,
+        role: ConsultationRole.ai,
+        text: '',
+        createdAt: DateTime.now(),
+      ),
+    );
     notifyListeners();
 
     final buffer = StringBuffer();
     try {
-      await for (final chunk in _repository.streamReply(type: type, userMessage: trimmed)) {
+      await for (final chunk in _repository.streamReply(
+        type: type,
+        userMessage: trimmed,
+      )) {
         buffer.write(chunk);
         final idx = _messages.indexWhere((m) => m.id == aiId);
         if (idx != -1) {

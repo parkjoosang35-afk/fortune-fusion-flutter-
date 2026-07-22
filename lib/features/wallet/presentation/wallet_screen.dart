@@ -18,7 +18,9 @@ class _WalletScreenState extends State<WalletScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => context.read<WalletProvider>().load());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => context.read<WalletProvider>().load(),
+    );
   }
 
   @override
@@ -36,17 +38,33 @@ class _WalletScreenState extends State<WalletScreen> {
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(AppSpacing.xl),
-                decoration: BoxDecoration(gradient: AppColors.goldGradient, borderRadius: BorderRadius.circular(AppRadius.card)),
+                decoration: BoxDecoration(
+                  gradient: AppColors.goldGradient,
+                  borderRadius: BorderRadius.circular(AppRadius.card),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('보유 포인트', style: TextStyle(color: AppColors.textPrimary, fontSize: 13)),
+                    const Text(
+                      '보유 포인트',
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 13,
+                      ),
+                    ),
                     const SizedBox(height: AppSpacing.sm),
                     wallet.isLoading
-                        ? const SizedBox(height: 32, child: CircularProgressIndicator(strokeWidth: 2))
+                        ? const SizedBox(
+                            height: 32,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
                         : Text(
                             '${_comma(wallet.balance)} P',
-                            style: const TextStyle(color: AppColors.textPrimary, fontSize: 30, fontWeight: FontWeight.w800),
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 30,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                   ],
                 ),
@@ -55,7 +73,10 @@ class _WalletScreenState extends State<WalletScreen> {
               Text('적립/사용 내역', style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: AppSpacing.md),
               if (wallet.history.isEmpty)
-                const AppEmptyState(icon: Icons.receipt_long_outlined, title: '아직 포인트 내역이 없어요')
+                const AppEmptyState(
+                  icon: Icons.receipt_long_outlined,
+                  title: '아직 포인트 내역이 없어요',
+                )
               else
                 ...wallet.history.map((e) => _HistoryTile(item: e)),
             ],
@@ -87,13 +108,18 @@ class _HistoryTile extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.lg),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppRadius.cardSmall)),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(AppRadius.cardSmall),
+        ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(AppSpacing.sm),
               decoration: BoxDecoration(
-                color: isEarn ? AppColors.success.withValues(alpha: 0.12) : AppColors.error.withValues(alpha: 0.12),
+                color: isEarn
+                    ? AppColors.success.withValues(alpha: 0.12)
+                    : AppColors.error.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -107,7 +133,10 @@ class _HistoryTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(item.reason, style: Theme.of(context).textTheme.titleMedium),
+                  Text(
+                    item.reason,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                   Text(
                     '${item.createdAt.month}.${item.createdAt.day} ${item.createdAt.hour.toString().padLeft(2, '0')}:${item.createdAt.minute.toString().padLeft(2, '0')}',
                     style: Theme.of(context).textTheme.bodySmall,

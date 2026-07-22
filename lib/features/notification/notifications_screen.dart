@@ -30,28 +30,45 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       appBar: AppBar(title: const Text('알림')),
       body: SafeArea(
         child: items.isEmpty
-            ? const AppEmptyState(icon: Icons.notifications_none_rounded, title: '알림이 없어요')
+            ? const AppEmptyState(
+                icon: Icons.notifications_none_rounded,
+                title: '알림이 없어요',
+              )
             : ListView.separated(
                 padding: const EdgeInsets.all(AppSpacing.lg),
                 itemCount: items.length,
-                separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
+                separatorBuilder: (_, __) =>
+                    const SizedBox(height: AppSpacing.md),
                 itemBuilder: (context, index) {
                   final item = items[index];
                   return Container(
                     padding: const EdgeInsets.all(AppSpacing.lg),
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppRadius.card)),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(AppRadius.card),
+                    ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.auto_awesome, color: AppColors.primary, size: 20),
+                        const Icon(
+                          Icons.auto_awesome,
+                          color: AppColors.primary,
+                          size: 20,
+                        ),
                         const SizedBox(width: AppSpacing.md),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(item.title, style: Theme.of(context).textTheme.titleMedium),
+                              Text(
+                                item.title,
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
                               const SizedBox(height: 2),
-                              Text(item.body, style: Theme.of(context).textTheme.bodyMedium),
+                              Text(
+                                item.body,
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
                               const SizedBox(height: 4),
                               Text(
                                 '${item.createdAt.month}.${item.createdAt.day} ${item.createdAt.hour.toString().padLeft(2, '0')}:${item.createdAt.minute.toString().padLeft(2, '0')}',

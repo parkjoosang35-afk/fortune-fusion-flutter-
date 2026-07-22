@@ -49,7 +49,12 @@ class CompatibilityProvider extends ChangeNotifier {
 
   Future<void> retry() async {
     if (_birthDateA == null || _birthDateB == null) return;
-    await request(birthDateA: _birthDateA!, birthDateB: _birthDateB!, nameA: _nameA, nameB: _nameB);
+    await request(
+      birthDateA: _birthDateA!,
+      birthDateB: _birthDateB!,
+      nameA: _nameA,
+      nameB: _nameB,
+    );
   }
 
   Future<void> loadHistory() async {

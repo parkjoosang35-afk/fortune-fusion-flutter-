@@ -17,7 +17,9 @@ class _TarotHistoryScreenState extends State<TarotHistoryScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => context.read<TarotProvider>().loadHistory());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => context.read<TarotProvider>().loadHistory(),
+    );
   }
 
   @override
@@ -28,22 +30,35 @@ class _TarotHistoryScreenState extends State<TarotHistoryScreen> {
       appBar: AppBar(title: const Text('타로 히스토리')),
       body: SafeArea(
         child: history.isEmpty
-            ? const AppEmptyState(icon: Icons.style_outlined, title: '아직 타로 기록이 없어요', description: 'AI 타로를 뽑아보세요')
+            ? const AppEmptyState(
+                icon: Icons.style_outlined,
+                title: '아직 타로 기록이 없어요',
+                description: 'AI 타로를 뽑아보세요',
+              )
             : ListView.separated(
                 padding: const EdgeInsets.all(AppSpacing.lg),
                 itemCount: history.length,
-                separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
+                separatorBuilder: (_, __) =>
+                    const SizedBox(height: AppSpacing.md),
                 itemBuilder: (context, index) {
                   final item = history[index];
                   return InkWell(
                     borderRadius: BorderRadius.circular(AppRadius.card),
-                    onTap: () => Navigator.of(context).pushNamed('/ai-fortune/tarot/result', arguments: item.id),
+                    onTap: () => Navigator.of(
+                      context,
+                    ).pushNamed('/ai-fortune/tarot/result', arguments: item.id),
                     child: Container(
                       padding: const EdgeInsets.all(AppSpacing.lg),
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppRadius.card)),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(AppRadius.card),
+                      ),
                       child: Row(
                         children: [
-                          const Icon(Icons.style_rounded, color: AppColors.primary),
+                          const Icon(
+                            Icons.style_rounded,
+                            color: AppColors.primary,
+                          ),
                           const SizedBox(width: AppSpacing.md),
                           Expanded(
                             child: Column(
@@ -51,7 +66,9 @@ class _TarotHistoryScreenState extends State<TarotHistoryScreen> {
                               children: [
                                 Text(
                                   item.question,
-                                  style: Theme.of(context).textTheme.titleMedium,
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleMedium,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -62,7 +79,10 @@ class _TarotHistoryScreenState extends State<TarotHistoryScreen> {
                               ],
                             ),
                           ),
-                          const Icon(Icons.chevron_right_rounded, color: AppColors.textHint),
+                          const Icon(
+                            Icons.chevron_right_rounded,
+                            color: AppColors.textHint,
+                          ),
                         ],
                       ),
                     ),

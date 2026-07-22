@@ -41,24 +41,24 @@ class UserModel {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'nickname': nickname,
-        'email': email,
-        'birth_date': birthDate,
-        'birth_time': birthTime,
-        'is_lunar': isLunar,
-        'gender': gender,
-        'grade': grade,
-      };
+    'id': id,
+    'nickname': nickname,
+    'email': email,
+    'birth_date': birthDate,
+    'birth_time': birthTime,
+    'is_lunar': isLunar,
+    'gender': gender,
+    'grade': grade,
+  };
 
   factory UserModel.fromJson(Map<String, dynamic> json) => UserModel(
-        id: json['id'] as String,
-        nickname: json['nickname'] as String,
-        email: json['email'] as String?,
-        birthDate: json['birth_date'] as String?,
-        birthTime: json['birth_time'] as String?,
-        isLunar: json['is_lunar'] as bool? ?? false,
-        gender: json['gender'] as String?,
-        grade: json['grade'] as String? ?? 'normal',
-      );
+    id: json['id'] as String,
+    nickname: json['nickname'] as String,
+    email: json['email'] as String?,
+    birthDate: json['birth_date'] as String?,
+    birthTime: json['birth_time'] as String?,
+    isLunar: json['is_lunar'] as bool? ?? false,
+    gender: json['gender'] as String?,
+    grade: json['grade'] as String? ?? 'normal',
+  );
 }
