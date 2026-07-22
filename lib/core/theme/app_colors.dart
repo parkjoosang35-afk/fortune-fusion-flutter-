@@ -58,4 +58,22 @@ class AppColors {
   static const Color textHintDark = Color(0xFF7C7591);
   static const Color dividerDark = Color(0xFF332B4D);
   static const Color primaryContainerDark = Color(0xFF352A5E);
+
+  // ── 브랜드 컬러 네이밍 체계 별칭 (03단계 §3.1 신규) ──
+  // 기존 상수와 값은 동일, "무엇을 위한 색인지" 브랜드 언어로 재노출한다.
+  // 코드 마이그레이션 부담 없이 신규 화면부터 아래 이름을 우선 사용할 것을 권장.
+  static const Color mysticPurple = primary; // 신비/사주·타로 컨셉 대표색
+  static const Color premiumGold = secondary; // 포인트/리워드/구독 프리미엄
+  static const Color fortuneBlue = info; // 신뢰/정보 전달(AI상담, 안내)
+  static const Color hopeGreen = success; // 희망/긍정/완료
+
+  /// 오늘의 행운 색상(Luck Color) 후보 팔레트 — 03단계 §3.1
+  /// `daily_fortunes.lucky_color`(문자열, 예: "보라") 값을 실제 색상으로 매핑할 때 사용.
+  /// 홈 리추얼 배너(§14)에서 중복 정의되어 있던 팔레트를 이곳으로 중앙화.
+  static const Map<String, Color> luckColorPalette = {
+    '보라': primaryLight,
+    '골드': secondary,
+    '블루': info,
+    '그린': success,
+  };
 }

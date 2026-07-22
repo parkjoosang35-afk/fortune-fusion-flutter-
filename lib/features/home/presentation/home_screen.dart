@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/point_badge.dart';
 import '../../auth/application/auth_provider.dart';
@@ -266,12 +267,12 @@ class _AiShortcutGrid extends StatelessWidget {
   const _AiShortcutGrid();
 
   static const _items = [
-    (Icons.auto_stories_rounded, '사주', '/ai-fortune/saju/input'),
-    (Icons.style_rounded, '타로', '/ai-fortune/tarot/question'),
-    (Icons.face_retouching_natural_rounded, '관상', '/ai-fortune/face/capture'),
-    (Icons.back_hand_rounded, '손금', '/ai-fortune/palm/capture'),
-    (Icons.favorite_rounded, '궁합', '/ai-fortune/compatibility/input'),
-    (Icons.chat_bubble_rounded, 'AI상담', '/ai-fortune/consultation/type'),
+    (AppIcons.saju, '사주', '/ai-fortune/saju/input'),
+    (AppIcons.tarot, '타로', '/ai-fortune/tarot/question'),
+    (AppIcons.face, '관상', '/ai-fortune/face/capture'),
+    (AppIcons.palm, '손금', '/ai-fortune/palm/capture'),
+    (AppIcons.compatibility, '궁합', '/ai-fortune/compatibility/input'),
+    (AppIcons.aiConsultation, 'AI상담', '/ai-fortune/consultation/type'),
   ];
 
   @override
@@ -360,18 +361,13 @@ class _LuckRitualBannerState extends State<_LuckRitualBanner> {
     super.dispose();
   }
 
-  static const _luckyColorMap = {
-    '보라': Color(0xFF9C82FF),
-    '골드': Color(0xFFFFC542),
-    '블루': Color(0xFF4DA8FF),
-    '그린': Color(0xFF2ECC71),
-  };
-
   @override
   Widget build(BuildContext context) {
     final today = context.watch<DailyFortuneProvider>().today;
     final luckyBag = context.watch<LuckyBagProvider>().summary;
     final amulet = context.watch<AmuletProvider>().summary;
+    // 03단계 §3.1 Luck Color 팔레트 중앙화(AppColors.luckColorPalette) 참조
+    final luckyColorMap = AppColors.luckColorPalette;
 
     final cards = <Widget>[
       _RitualCard(
@@ -385,7 +381,7 @@ class _LuckRitualBannerState extends State<_LuckRitualBanner> {
         emoji: '🍀',
         title: '오늘의 행운 색상',
         body: today?.luckyColor ?? '-',
-        swatch: today != null ? _luckyColorMap[today.luckyColor] : null,
+        swatch: today != null ? luckyColorMap[today.luckyColor] : null,
         onTap: () =>
             Navigator.of(context).pushNamed('/home/daily-fortune-detail'),
       ),

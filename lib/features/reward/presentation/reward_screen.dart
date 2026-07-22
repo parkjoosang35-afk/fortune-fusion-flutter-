@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/point_badge.dart';
 import '../../wallet/application/wallet_provider.dart';
@@ -49,14 +50,14 @@ class _RewardScreenState extends State<RewardScreen> {
           padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
             _MenuCard(
-              icon: Icons.wallet_rounded,
+              icon: AppIcons.wallet,
               title: '포인트 지갑',
               subtitle: '보유 ${wallet.balance} P · 내역 확인',
               onTap: () => Navigator.of(context).pushNamed('/reward/wallet'),
             ),
             const SizedBox(height: AppSpacing.md),
             _MenuCard(
-              icon: Icons.calendar_month_rounded,
+              icon: AppIcons.attendance,
               title: '출석체크',
               subtitle: attendance.checkedToday
                   ? '오늘 출석 완료 · 연속 ${attendance.streak}일'
@@ -65,17 +66,31 @@ class _RewardScreenState extends State<RewardScreen> {
             ),
             const SizedBox(height: AppSpacing.md),
             _MenuCard(
-              icon: Icons.checklist_rounded,
+              icon: AppIcons.mission,
               title: '미션',
               subtitle: '일일/주간 미션을 완료하고 포인트 받기',
               onTap: () => Navigator.of(context).pushNamed('/reward/missions'),
             ),
             const SizedBox(height: AppSpacing.md),
             _MenuCard(
-              icon: Icons.leaderboard_rounded,
+              icon: AppIcons.ranking,
               title: '랭킹',
               subtitle: '포인트 랭킹 TOP 유저 확인하기',
               onTap: () => Navigator.of(context).pushNamed('/reward/ranking'),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            _MenuCard(
+              icon: AppIcons.luckyBag,
+              title: '복주머니',
+              subtitle: '오늘의 복주머니를 열어 행운을 확인해보세요',
+              onTap: () => Navigator.of(context).pushNamed('/reward/luckybag'),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            _MenuCard(
+              icon: AppIcons.amulet,
+              title: '디지털 부적',
+              subtitle: '나를 지켜주는 디지털 부적을 확인해보세요',
+              onTap: () => Navigator.of(context).pushNamed('/reward/amulet'),
             ),
           ],
         ),
@@ -129,7 +144,7 @@ class _MenuCard extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded, color: AppColors.textHint),
+            const Icon(AppIcons.chevronRight, color: AppColors.textHint),
           ],
         ),
       ),
