@@ -120,6 +120,15 @@ class _CommunityScreenState extends State<CommunityScreen>
     return Scaffold(
       appBar: AppBar(
         title: const Text('소원게시판'),
+        actions: [
+          // 02§12 리워드 커뮤니티(자유게시판) 진입점 - Phase16, 기존 소원게시판 로직은 변경하지 않음
+          IconButton(
+            tooltip: '커뮤니티 게시판',
+            icon: const Icon(Icons.forum_outlined),
+            onPressed: () =>
+                Navigator.of(context).pushNamed('/community/board/list'),
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           tabs: const [

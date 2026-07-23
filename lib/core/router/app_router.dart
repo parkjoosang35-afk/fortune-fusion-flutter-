@@ -45,6 +45,7 @@ import '../../features/luckybag/presentation/luckybag_result_screen.dart';
 import '../../features/luckybag/presentation/luckybag_history_screen.dart';
 import '../../features/community/domain/wish_post_model.dart';
 import '../../features/community/presentation/wish_detail_screen.dart';
+import '../../features/community/presentation/community_board_list_screen.dart';
 import '../../features/matching/presentation/matching_profile_setup_screen.dart';
 import '../../features/matching/presentation/matching_discover_screen.dart';
 import '../../features/matching/presentation/matching_pairs_screen.dart';
@@ -201,6 +202,8 @@ class AppRouter {
         return _page(
           WishDetailScreen(post: settings.arguments as WishPostModel),
         );
+      case '/community/board/list':
+        return _page(const CommunityBoardListScreen());
 
       // ── 마이 ──
       case '/my/notifications':

@@ -31,6 +31,8 @@ import 'features/ranking/application/ranking_provider.dart';
 import 'features/ranking/data/ranking_repository.dart';
 import 'features/community/application/wish_post_provider.dart';
 import 'features/community/data/wish_post_repository.dart';
+import 'features/community/application/community_post_provider.dart';
+import 'features/community/data/community_post_repository.dart';
 import 'features/luckybag/application/luckybag_provider.dart';
 import 'features/luckybag/data/luckybag_repository.dart';
 import 'features/amulet/application/amulet_provider.dart';
@@ -93,6 +95,9 @@ class App extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (_) => WishPostProvider(WishPostRepository()),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => CommunityPostProvider(CommunityPostRepository()),
         ),
         ChangeNotifierProvider(
           create: (_) => MatchingProvider(MatchingRepository()),
