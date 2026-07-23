@@ -23,8 +23,35 @@ class CompatibilityResultScreen extends StatelessWidget {
         actions: [
           if (state.isSuccess)
             IconButton(
+              icon: Icon(
+                state.data!.isSaved
+                    ? Icons.bookmark_rounded
+                    : Icons.bookmark_border_rounded,
+                color: state.data!.isSaved ? AppColors.secondary : null,
+              ),
+              onPressed: () async {
+                final saved = await provider.toggleSave(state.data!.id);
+                if (context.mounted) {
+                  AppToast.show(
+                    context,
+                    saved ? '보관함에 저장되었습니다.' : '보관함에서 제거되었습니다.',
+                  );
+                }
+              },
+            ),
+          if (state.isSuccess)
+            IconButton(
               icon: const Icon(Icons.share_outlined),
-              onPressed: () => AppToast.show(context, '공유 링크가 복사되었습니다.'),
+              onPressed: () async {
+                final url = await provider.generateShareLink(state.data!.id);
+                if (context.mounted) {
+                  AppToast.show(
+                    context,
+                    url != null ? '공유 링크가 생성되었습니다: $url' : '공유 링크 생성에 실패했습니다.',
+                    isError: url == null,
+                  );
+                }
+              },
             ),
         ],
       ),
@@ -98,6 +125,21 @@ class _CompatibilityResultBody extends StatelessWidget {
           ),
           child: Column(
             children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  result.type.label,
+                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
               Text(
                 '${result.nameA} ❤ ${result.nameB}',
                 style: const TextStyle(

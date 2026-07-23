@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../application/compatibility_provider.dart';
+import '../domain/compatibility_model.dart';
 
 /// 03단계 §3.3 / 07단계 - CompatibilityInputScreen (입력형 패턴)
 /// 두 사람의 이름/생년월일 입력 → 결과화면에서 로딩 상태 처리
@@ -19,6 +20,7 @@ class _CompatibilityInputScreenState extends State<CompatibilityInputScreen> {
   final _nameBController = TextEditingController();
   DateTime? _birthDateA;
   DateTime? _birthDateB;
+  CompatibilityType _type = CompatibilityType.love;
 
   @override
   void dispose() {
@@ -55,6 +57,7 @@ class _CompatibilityInputScreenState extends State<CompatibilityInputScreen> {
       birthDateB: fmt(_birthDateB!),
       nameA: _nameAController.text.trim(),
       nameB: _nameBController.text.trim(),
+      type: _type,
     );
     Navigator.of(context).pushNamed('/ai-fortune/compatibility/result');
   }
@@ -71,6 +74,28 @@ class _CompatibilityInputScreenState extends State<CompatibilityInputScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Text('관계유형', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: AppSpacing.sm),
+              Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.sm,
+                children: CompatibilityType.values.map((t) {
+                  final selected = _type == t;
+                  return ChoiceChip(
+                    label: Text(t.label),
+                    selected: selected,
+                    onSelected: (_) => setState(() => _type = t),
+                    selectedColor: AppColors.primaryContainer,
+                    labelStyle: TextStyle(
+                      color: selected
+                          ? AppColors.primary
+                          : AppColors.textSecondary,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: AppSpacing.lg),
               _PersonCard(
                 title: '나',
                 nameController: _nameAController,
