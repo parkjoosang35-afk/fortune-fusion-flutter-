@@ -9,6 +9,7 @@ import '../../../core/widgets/app_toast.dart';
 import '../../wallet/application/wallet_provider.dart';
 import '../application/amulet_provider.dart';
 import '../domain/amulet_item_model.dart';
+import 'widgets/amulet_acquired_dialog.dart';
 import 'widgets/amulet_card.dart';
 
 /// 03단계 §3.3 리워드 탭 - AmuletShopScreen(디지털 부적 상점)
@@ -72,7 +73,8 @@ class _AmuletShopScreenState extends State<AmuletShopScreen> {
     setState(() => _purchasing = false);
 
     if (result != null) {
-      AppToast.show(context, '${item.name}을 구매했습니다!');
+      // 03§10.2 부적 획득 애니메이션(봉투펼침+골드광택스윕) 공용 다이얼로그 재사용
+      await AmuletAcquiredDialog.show(context, item: item);
     } else {
       // 예외처리: 지급 실패 시 차감된 포인트 환불(rollback)
       await wallet.earn(item.pricePoint, '${item.name} 구매 실패 환불');

@@ -8,6 +8,7 @@ import '../../../core/widgets/app_toast.dart';
 import '../../wallet/application/wallet_provider.dart';
 import '../application/amulet_provider.dart';
 import '../domain/amulet_item_model.dart';
+import 'widgets/amulet_acquired_dialog.dart';
 
 /// 03단계 §3.3 / 06§4.8 `POST /v1/amulets/generate` 대응
 /// AI 생성형 부적(isAiGenerated=true 상품) 선택 → 생성 요청 → 결과 애니메이션 화면.
@@ -19,14 +20,13 @@ class AmuletGenerateScreen extends StatefulWidget {
   State<AmuletGenerateScreen> createState() => _AmuletGenerateScreenState();
 }
 
-enum _GenerateStep { select, generating, done }
+enum _GenerateStep { select, generating }
 
 class _AmuletGenerateScreenState extends State<AmuletGenerateScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _pulseController;
   _GenerateStep _step = _GenerateStep.select;
   AmuletItemModel? _selected;
-  AmuletItemModel? _generatedBase;
 
   @override
   void initState() {
@@ -76,10 +76,11 @@ class _AmuletGenerateScreenState extends State<AmuletGenerateScreen>
     if (!mounted) return;
 
     if (result != null) {
-      setState(() {
-        _generatedBase = base;
-        _step = _GenerateStep.done;
-      });
+      setState(() => _step = _GenerateStep.select);
+      // 03§10.2 부적 획득 애니메이션(봉투펼침+골드광택스윕) 공용 다이얼로그 재사용
+      await AmuletAcquiredDialog.show(context, item: base);
+      if (!mounted) return;
+      Navigator.of(context).pushReplacementNamed('/reward/amulet/my');
     } else {
       // 예외처리: 생성 실패 시 차감된 포인트 환불(rollback)
       await wallet.earn(base.pricePoint, '${base.name} 생성 실패 환불');
@@ -101,7 +102,6 @@ class _AmuletGenerateScreenState extends State<AmuletGenerateScreen>
         child: switch (_step) {
           _GenerateStep.select => _buildSelect(context),
           _GenerateStep.generating => _buildGenerating(context),
-          _GenerateStep.done => _buildDone(context),
         },
       ),
     );
@@ -208,72 +208,6 @@ class _AmuletGenerateScreenState extends State<AmuletGenerateScreen>
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildDone(BuildContext context) {
-    final base = _generatedBase!;
-    // 03§10.2 "부적 획득" 애니메이션: 봉투펼침+골드광택스윕(1~1.5초) 개념을 반영한
-    // TweenAnimationBuilder 기반 스케일+페이드 연출(간이 구현).
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 1200),
-      curve: Curves.elasticOut,
-      builder: (context, value, _) {
-        return Center(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Transform.scale(
-                  scale: value.clamp(0, 1),
-                  child: Container(
-                    width: 120,
-                    height: 120,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      gradient: AppColors.goldGradient,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.secondary.withValues(alpha: 0.4),
-                          blurRadius: 24,
-                          spreadRadius: 4,
-                        ),
-                      ],
-                    ),
-                    child: Text(
-                      base.iconEmoji,
-                      style: const TextStyle(fontSize: 48),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                Text(
-                  '당신을 지켜줄 부적이 도착했어요',
-                  style: Theme.of(context).textTheme.titleLarge,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  base.name,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleMedium?.copyWith(color: AppColors.primary),
-                ),
-                const SizedBox(height: AppSpacing.xxl),
-                AppButton(
-                  label: '내 부적 보관함으로 이동',
-                  onPressed: () => Navigator.of(
-                    context,
-                  ).pushReplacementNamed('/reward/amulet/my'),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 }
