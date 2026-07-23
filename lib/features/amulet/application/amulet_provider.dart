@@ -42,6 +42,28 @@ class AmuletProvider extends ChangeNotifier {
   UserAmuletModel? get equippedAmulet =>
       _myAmulets.where((a) => a.isEquipped).firstOrNull;
 
+  /// 04A `amulet_collections`(H-6) 대응 - 도감 진행률.
+  /// 별도 API 호출 없이 이미 로드된 [_myAmulets]를 item.id 기준으로 그룹화하여 파생한다.
+  /// (Mock 단계: GET /my 응답 하나로 보유목록+도감을 동시에 구성 - 불필요한 API 증설 방지)
+  List<AmuletCollectionEntry> get collection {
+    final byItemId = <String, List<UserAmuletModel>>{};
+    for (final a in _myAmulets) {
+      byItemId.putIfAbsent(a.item.id, () => []).add(a);
+    }
+    final entries = byItemId.values.map((list) {
+      list.sort((a, b) => a.acquiredAt.compareTo(b.acquiredAt));
+      return AmuletCollectionEntry(
+        item: list.first.item,
+        firstAcquiredAt: list.first.acquiredAt,
+        totalCount: list.length,
+      );
+    }).toList();
+    entries.sort(
+      (a, b) => a.item.grade.sortOrder.compareTo(b.item.grade.sortOrder),
+    );
+    return entries;
+  }
+
   Future<void> loadShop() async {
     _isShopLoading = true;
     notifyListeners();

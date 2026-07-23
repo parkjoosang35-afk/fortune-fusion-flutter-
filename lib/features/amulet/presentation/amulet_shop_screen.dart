@@ -94,6 +94,12 @@ class _AmuletShopScreenState extends State<AmuletShopScreen> {
       appBar: AppBar(
         title: const Text('디지털 부적 상점'),
         actions: [
+          IconButton(
+            tooltip: '내 부적',
+            icon: const Icon(Icons.inventory_2_outlined),
+            onPressed: () =>
+                Navigator.of(context).pushNamed('/reward/amulet/my'),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: AppSpacing.lg),
             child: Center(
