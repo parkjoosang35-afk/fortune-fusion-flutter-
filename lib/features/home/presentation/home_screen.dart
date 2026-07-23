@@ -240,10 +240,20 @@ class _AttendanceWidget extends StatelessWidget {
                 ? null
                 : () async {
                     final earned = await provider.checkIn();
-                    if (context.mounted) {
-                      context.read<WalletProvider>().load();
+                    if (!context.mounted) return;
+                    if (earned > 0) {
+                      // 06§4.2 원칙: 적립은 도메인 액션(출석)이 WalletService.earn을 호출.
+                      await context.read<WalletProvider>().earn(
+                        earned,
+                        '출석체크 보상',
+                      );
+                      if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('출석 완료! +$earned P 지급')),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('출석 처리에 실패했습니다.')),
                       );
                     }
                   },

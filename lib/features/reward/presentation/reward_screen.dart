@@ -3,11 +3,15 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/widgets/app_dialog.dart';
+import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/point_badge.dart';
 import '../../wallet/application/wallet_provider.dart';
 import '../../attendance/application/attendance_provider.dart';
 
 /// 03단계 §3.3 리워드 탭 - RewardScreen(지갑/출석체크/미션/랭킹 허브)
+/// 03§5.3 AttendanceCheckScreen(캘린더형)은 아직 별도 화면으로 구현되지 않아,
+/// 출석체크 카드는 홈 위젯과 동일한 즉시 출석처리 동작으로 연결한다(Phase15 DoD 재검증에서 발견/수정).
 class RewardScreen extends StatefulWidget {
   const RewardScreen({super.key});
 
@@ -23,6 +27,32 @@ class _RewardScreenState extends State<RewardScreen> {
       context.read<WalletProvider>().load();
       context.read<AttendanceProvider>().load();
     });
+  }
+
+  Future<void> _handleAttendanceTap() async {
+    final attendance = context.read<AttendanceProvider>();
+    if (attendance.checkedToday) {
+      AppToast.show(context, '오늘 출석을 이미 완료했어요. (연속 ${attendance.streak}일째)');
+      return;
+    }
+    final confirmed = await showAppConfirmDialog(
+      context,
+      title: '오늘 출석하기',
+      message: '출석체크를 하고 포인트를 받으시겠습니까?',
+      confirmLabel: '출석하기',
+    );
+    if (!confirmed || !mounted) return;
+
+    final earned = await attendance.checkIn();
+    if (!mounted) return;
+    if (earned > 0) {
+      // 06§4.2 원칙: 적립은 도메인 액션(출석)이 WalletService.earn을 호출.
+      await context.read<WalletProvider>().earn(earned, '출석체크 보상');
+      if (!mounted) return;
+      AppToast.show(context, '출석 완료! +$earned P 지급되었습니다.');
+    } else {
+      AppToast.show(context, '출석 처리에 실패했습니다.', isError: true);
+    }
   }
 
   @override
@@ -62,7 +92,7 @@ class _RewardScreenState extends State<RewardScreen> {
               subtitle: attendance.checkedToday
                   ? '오늘 출석 완료 · 연속 ${attendance.streak}일'
                   : '연속 ${attendance.streak}일째 · 오늘 출석하기',
-              onTap: () => Navigator.of(context).pushNamed('/reward/wallet'),
+              onTap: _handleAttendanceTap,
             ),
             const SizedBox(height: AppSpacing.md),
             _MenuCard(
