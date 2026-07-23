@@ -140,29 +140,33 @@ model User {
   createdBy        String?   @map("created_by")
   updatedBy        String?   @map("updated_by")
 
-  grade               UserGrade?          @relation(fields: [gradeId], references: [id])
-  profile             UserProfile?
-  loginLogs           UserLoginLog[]
-  withdrawalLogs      UserWithdrawalLog[]
-  wallets             Wallet[]
-  pointHistories      PointHistory[]
-  attendances         Attendance[]
-  userMissions        UserMission[]
-  userAchievements    UserAchievement[]
-  rankingSnapshots    RankingSnapshot[]
-  userAmulets         UserAmulet[]
-  amuletCollections   AmuletCollection[]
-  amuletGiftsSent     AmuletGift[]        @relation("AmuletGiftFrom")
-  amuletGiftsReceived AmuletGift[]        @relation("AmuletGiftTo")
-  luckybagOpenLogs    LuckybagOpenLog[]
-  giftcardIssues      GiftcardIssue[]
-  couponIssues        CouponIssue[]
-  communityPosts      CommunityPost[]
-  wishes              Wish[]
-  comments            Comment[]
-  reportsSubmitted    Report[]            @relation("ReportReporter")
-  likes               Like[]
-  matchingProfile     MatchingProfile?
+  grade                 UserGrade?          @relation(fields: [gradeId], references: [id])
+  profile               UserProfile?
+  loginLogs             UserLoginLog[]
+  withdrawalLogs        UserWithdrawalLog[]
+  wallets               Wallet[]
+  pointHistories        PointHistory[]
+  attendances           Attendance[]
+  userMissions          UserMission[]
+  userAchievements      UserAchievement[]
+  rankingSnapshots      RankingSnapshot[]
+  userAmulets           UserAmulet[]
+  amuletCollections     AmuletCollection[]
+  amuletGiftsSent       AmuletGift[]        @relation("AmuletGiftFrom")
+  amuletGiftsReceived   AmuletGift[]        @relation("AmuletGiftTo")
+  luckybagOpenLogs      LuckybagOpenLog[]
+  giftcardIssues        GiftcardIssue[]
+  couponIssues          CouponIssue[]
+  communityPosts        CommunityPost[]
+  wishes                Wish[]
+  comments              Comment[]
+  reportsSubmitted      Report[]            @relation("ReportReporter")
+  likes                 Like[]
+  matchingProfile       MatchingProfile?
+  matchingLikesSent     MatchingLike[]      @relation("MatchingLikeFrom")
+  matchingLikesReceived MatchingLike[]      @relation("MatchingLikeTo")
+  matchingPairsAsA      MatchingPair[]      @relation("MatchingPairA")
+  matchingPairsAsB      MatchingPair[]      @relation("MatchingPairB")
 
   @@map("users")
 }
@@ -1410,4 +1414,56 @@ model MatchingProfile {
   user User @relation(fields: [userId], references: [id])
 
   @@map("matching_profiles")
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 05§3.6 "매칭/궁합 관리" — 2차 소단위: M-2/M-3 매칭 성사 이력
+//   (matching_likes, matching_pairs, 조회 전용)
+// [범위 결정] 05§3.6 화면 스펙: "매칭 성사 이력 | matching_likes, matching_pairs
+//   조회(어뷰징/신고 연계)" — "조회"만 명시(CUD 없음). 매칭 좋아요 발송/매칭
+//   성사 자체는 회원 앱 전용 기능이므로(1차 소단위 matching_profiles와 동일
+//   원칙), 이번 소단위는 likes(4차 소단위, community/likes)와 동일하게 Server
+//   Action 없이 순수 읽기 전용 페이지만 구현한다.
+// [M-2 matching_likes] UQ(from_user_id,to_user_id) 조합 — 04A 명시대로 두 개의
+//   users FK를 갖는 비폴리모픽 구조이나, 동일 User 모델을 양방향으로 참조하므로
+//   Prisma 네이밍된 관계(@relation 이름 지정)가 필요하다(fromUser/toUser).
+// [M-3 matching_pairs] UQ(user_a_id,user_b_id) 조합, status(Base) 사용값
+//   active/unmatched(04A 명시). matched_at은 04A 원본 컬럼명 그대로 별도
+//   필드로 둔다(Base created_at과는 의미가 다름 — 매칭이 "성사"된 시각).
+model MatchingLike {
+  id         Int       @id @default(autoincrement())
+  fromUserId Int       @map("from_user_id")
+  toUserId   Int       @map("to_user_id")
+  type       String    @default("normal") // normal/super(향후 유료 확장)
+  status     String    @default("active")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+  createdBy  String?   @map("created_by")
+  updatedBy  String?   @map("updated_by")
+
+  fromUser User @relation("MatchingLikeFrom", fields: [fromUserId], references: [id])
+  toUser   User @relation("MatchingLikeTo", fields: [toUserId], references: [id])
+
+  @@unique([fromUserId, toUserId])
+  @@map("matching_likes")
+}
+
+model MatchingPair {
+  id        Int       @id @default(autoincrement())
+  userAId   Int       @map("user_a_id")
+  userBId   Int       @map("user_b_id")
+  matchedAt DateTime  @default(now()) @map("matched_at")
+  status    String    @default("active") // active/unmatched (04A 명시)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
+
+  userA User @relation("MatchingPairA", fields: [userAId], references: [id])
+  userB User @relation("MatchingPairB", fields: [userBId], references: [id])
+
+  @@unique([userAId, userBId])
+  @@map("matching_pairs")
 }
