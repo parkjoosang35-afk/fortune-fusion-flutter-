@@ -171,6 +171,7 @@ model User {
   friendsAsFriend       Friend[]            @relation("FriendAsFriend")
   followersOf           Follow[]            @relation("FollowFollowing") // 나를 팔로우하는 관계(내가 following)
   followingOf           Follow[]            @relation("FollowFollower") // 내가 팔로우하는 관계(내가 follower)
+  sentChatMessages      ChatMessage[]       @relation("ChatMessageSender")
 
   @@map("users")
 }
@@ -1465,8 +1466,9 @@ model MatchingPair {
   createdBy String?   @map("created_by")
   updatedBy String?   @map("updated_by")
 
-  userA User @relation("MatchingPairA", fields: [userAId], references: [id])
-  userB User @relation("MatchingPairB", fields: [userBId], references: [id])
+  userA     User       @relation("MatchingPairA", fields: [userAId], references: [id])
+  userB     User       @relation("MatchingPairB", fields: [userBId], references: [id])
+  chatRooms ChatRoom[] // 4차 소단위(채팅 모니터링)에서 역참조
 
   @@unique([userAId, userBId])
   @@map("matching_pairs")
@@ -1524,4 +1526,68 @@ model Follow {
 
   @@unique([followerId, followingId])
   @@map("follows")
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 05§3.6 "매칭/궁합 관리" — 4차 소단위: M-6/M-7 채팅 모니터링
+//   (chat_rooms, chat_messages, "신고된 대화만 열람" 사생활 보호 원칙,
+//   평시 비열람)
+// [설계 충돌 검토 및 해결 — 원칙② 준수] 05§3.6은 "신고된 대화만 열람"을
+//   요구하나, 04A L-6 reports.target_type 화이트리스트(post/comment/wish/
+//   user, fortune_result 제외 — Report 모델 설계결정2)에는 chat_room/
+//   chat_message가 포함되어 있지 않다. 즉 "채팅 자체를 신고 대상으로
+//   지정"하는 04A 스키마상의 직접 경로는 존재하지 않는다.
+//   → 04A 원본 스키마를 확장(target_type에 chat_room 추가)하는 것은 이번
+//     소단위 범위를 넘어서는 문서 변경이므로(원칙① 설계문서기반개발 위반
+//     소지) 채택하지 않는다.
+//   → 대신 이미 존재하는 target_type=user 신고를 매개로 간접 연결한다:
+//     신고당한 회원(reports.target_id, target_type=user)이 참여한
+//     matching_pairs(관리자 3차 소단위에서 구현됨) → 그 pair의
+//     related_pair_id로 연결된 chat_rooms만 "신고 관계자 대화방"으로
+//     페이지에 노출한다. 04A/05 두 문서 모두 수정 없이 그대로 준수하며,
+//     "열람 후보"를 관리자에게 보여주고 실제 신고 내용과의 관련성 판단은
+//     관리자가 최종 수행하는 방식으로 사생활 보호 원칙을 지킨다(평시에는
+//     신고 없는 대화방은 이 화면에 전혀 노출되지 않음).
+// [M-6 chat_rooms] type(matching/friend, 04A 명시), related_pair_id는
+//   nullable FK→matching_pairs.id(friend 타입 채팅방은 매칭쌍과 무관하므로
+//   nullable 그대로 유지).
+// [M-7 chat_messages] room_id/sender_id FK, message_type(text/image/system,
+//   04A 명시 기본값 text). "파티션 대상"은 04A상 대규모 운영 시 파티셔닝
+//   전략 표시이며, 현재 개발 단계 SQLite 스키마에는 영향 없음(주석으로만
+//   기록, 실제 파티션 DDL은 이번 스코프 제외).
+model ChatRoom {
+  id            Int       @id @default(autoincrement())
+  type          String // matching/friend (04A 명시)
+  relatedPairId Int?      @map("related_pair_id")
+  status        String    @default("active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+  createdBy     String?   @map("created_by")
+  updatedBy     String?   @map("updated_by")
+
+  relatedPair MatchingPair? @relation(fields: [relatedPairId], references: [id])
+  messages    ChatMessage[]
+
+  @@map("chat_rooms")
+}
+
+model ChatMessage {
+  id          Int       @id @default(autoincrement())
+  roomId      Int       @map("room_id")
+  senderId    Int       @map("sender_id")
+  content     String
+  messageType String    @default("text") @map("message_type") // text/image/system (04A 명시)
+  status      String    @default("active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+  createdBy   String?   @map("created_by")
+  updatedBy   String?   @map("updated_by")
+
+  room   ChatRoom @relation(fields: [roomId], references: [id])
+  sender User     @relation("ChatMessageSender", fields: [senderId], references: [id])
+
+  @@index([roomId, createdAt])
+  @@map("chat_messages")
 }
