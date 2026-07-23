@@ -3,6 +3,9 @@ import '../data/wallet_repository.dart';
 import '../domain/point_history_model.dart';
 
 /// 07단계 §2.1 전역 Provider - WalletProvider(잔액 캐시, 최근 트랜잭션)
+/// Phase2-1b: 04A §A-5 등급 배율(point_earn_multiplier)을 earn() 단일 지점에 적용.
+/// app.dart에서 ChangeNotifierProxyProvider로 AuthProvider.pointEarnMultiplier를
+/// 주입받아 [updateMultiplier]를 호출한다 - 각 화면의 earn() 호출부는 무변경.
 class WalletProvider extends ChangeNotifier {
   final WalletRepository _repository;
   WalletProvider(this._repository);
@@ -10,10 +13,17 @@ class WalletProvider extends ChangeNotifier {
   int _balance = 0;
   List<PointHistoryModel> _history = [];
   bool _isLoading = false;
+  double _multiplier = 1.0;
 
   int get balance => _balance;
   List<PointHistoryModel> get history => _history;
   bool get isLoading => _isLoading;
+
+  /// AuthProvider의 등급 배율을 반영한다(값이 바뀔 때만 갱신하여 불필요한 rebuild 방지).
+  void updateMultiplier(double multiplier) {
+    if (_multiplier == multiplier) return;
+    _multiplier = multiplier;
+  }
 
   Future<void> load() async {
     _isLoading = true;
@@ -27,7 +37,11 @@ class WalletProvider extends ChangeNotifier {
   }
 
   Future<void> earn(int amount, String reason) async {
-    _balance = await _repository.earn(amount, reason);
+    final finalAmount = (amount * _multiplier).round();
+    final appliedReason = _multiplier > 1.0
+        ? '$reason (등급 $_multiplier배 적용)'
+        : reason;
+    _balance = await _repository.earn(finalAmount, appliedReason);
     await load();
   }
 

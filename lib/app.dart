@@ -49,8 +49,12 @@ class App extends StatelessWidget {
         // ── 전역 Provider(앱 전체에서 상시 참조) ──
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider(AuthRepository())),
-        ChangeNotifierProvider(
+        // Phase2-1b: AuthProvider의 등급 배율(pointEarnMultiplier)을 WalletProvider에 주입.
+        // AuthProvider가 갱신될 때마다 WalletProvider.updateMultiplier가 호출된다.
+        ChangeNotifierProxyProvider<AuthProvider, WalletProvider>(
           create: (_) => WalletProvider(WalletRepository()),
+          update: (_, auth, wallet) =>
+              wallet!..updateMultiplier(auth.pointEarnMultiplier),
         ),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(
