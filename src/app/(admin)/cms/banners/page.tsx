@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { verifyAdminSession } from "@/lib/dal";
 import { canAccessMenu, RBAC_MATRIX } from "@/lib/rbac";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import BannerCreateForm from "@/components/BannerCreateForm";
 import BannerRow from "@/components/BannerRow";
 
@@ -44,6 +45,26 @@ export default async function CmsBannersPage() {
           쿠팡파트너스 등 제휴사 광고 배너를 등록/관리합니다. 이미지, 제휴 링크(link_url),
           노출 위치·기간·활성 여부를 설정할 수 있습니다.
         </p>
+        <nav className="mt-4 flex gap-2 border-b border-slate-800 text-sm">
+          <Link
+            href="/cms/banners"
+            className="px-3 py-2 font-medium text-white border-b-2 border-indigo-500"
+          >
+            배너 관리
+          </Link>
+          <Link href="/cms/popups" className="px-3 py-2 text-slate-400 hover:text-white">
+            팝업 관리
+          </Link>
+          <Link href="/cms/notices" className="px-3 py-2 text-slate-400 hover:text-white">
+            공지사항 관리
+          </Link>
+          <Link href="/cms/faqs" className="px-3 py-2 text-slate-400 hover:text-white">
+            FAQ 관리
+          </Link>
+          <Link href="/cms/events" className="px-3 py-2 text-slate-400 hover:text-white">
+            이벤트 관리
+          </Link>
+        </nav>
       </div>
 
       <BannerCreateForm canWrite={canWrite} />

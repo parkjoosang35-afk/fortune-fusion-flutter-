@@ -176,6 +176,7 @@ model User {
   compatibilityRequestsTargeted CompatibilityRequest[] @relation("CompatibilityRequestTarget")
   payments                      Payment[]
   userSubscriptions             UserSubscription[]
+  eventParticipations           EventParticipation[]
 
   @@map("users")
 }
@@ -1951,4 +1952,64 @@ model Faq {
 
   @@index([category])
   @@map("faqs")
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 05§3.8 "CMS" — 5차(마지막) 소단위: 이벤트 관리 (events, event_participations)
+// ══════════════════════════════════════════════════════════════════
+
+// ── 04A N-5: events (※Base 포함) ────────────────────────────────────
+// [범위 결정] 05§3.8 화면 스펙: "이벤트 관리 | events, event_participations
+//   CRUD 및 참여 현황 조회(룰렛/출석보너스 등 이벤트 타입별 설정 폼)".
+//   banner_file_id(FK→files.id, nullable)는 배너 관리(aa0fad2)에서 확립된
+//   전례와 동일하게 imageUrl(String, nullable)로 단순화한다(파일 업로드
+//   서브시스템이 없는 현재 CMS 구현 범위에서 URL 직접입력 방식 일관 적용
+//   — 원칙② 설계충돌 방지, 파일 업로드 인프라를 임의로 신설하지 않음).
+//   config(JSONB, NN)는 SQLite String 매핑(SubscriptionPlan.benefits와
+//   동일 전례) — event_type별 상이한 스키마를 자유롭게 담기 위한 용도이므로
+//   JSON.stringify/parse로 애플리케이션 레벨 처리.
+model Event {
+  id        Int       @id @default(autoincrement())
+  title     String
+  imageUrl  String?   @map("image_url")
+  eventType String    @map("event_type") // attendance_bonus / roulette / special_mission
+  config    String    @map("config") // JSONB→String 매핑: 타입별 설정(플러그인 구조)
+  startAt   DateTime  @map("start_at")
+  endAt     DateTime  @map("end_at")
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
+
+  participations EventParticipation[]
+
+  @@index([startAt, endAt])
+  @@map("events")
+}
+
+// ── 04A N-6: event_participations (※Base 포함, UQ(event_id,user_id)) ─
+// [범위 결정] event_id/user_id는 04A 명시 그대로 실제 FK(→events.id,
+//   →users.id)로 구성한다(배너/팝업 등과 달리 이 테이블은 관계형 무결성이
+//   핵심이므로 files FK 단순화 전례와는 별개로 원안 그대로 유지).
+//   participation_data(JSONB, nullable)도 String 매핑, reward_claimed는
+//   04A 명시 그대로 NN default false.
+model EventParticipation {
+  id                Int       @id @default(autoincrement())
+  eventId           Int       @map("event_id")
+  userId            Int       @map("user_id")
+  participationData String?   @map("participation_data") // JSONB→String 매핑
+  rewardClaimed     Boolean   @default(false) @map("reward_claimed")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  deletedAt         DateTime? @map("deleted_at")
+  createdBy         String?   @map("created_by")
+  updatedBy         String?   @map("updated_by")
+
+  event Event @relation(fields: [eventId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@unique([eventId, userId])
+  @@map("event_participations")
 }
