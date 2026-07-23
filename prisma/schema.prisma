@@ -578,6 +578,36 @@ model RankingSnapshot {
   @@map("ranking_snapshots")
 }
 
+// ── 04A N-7: banners (※Base 포함) ──
+// 05_Admin_System_Design.md §3.8 "배너 관리" — cms 메뉴(/cms/banners)에 매핑.
+// [스코프 결정] 쿠팡파트너스 등 제휴사 광고 배너를 이 테이블로 관리한다.
+//   - link_url: 제휴사(쿠팡파트너스 등) 어필리에이트 링크
+//   - image_file_id(04A 원본): 본 로컬DB에서는 TarotCard.imageUrl과 동일한 전례로
+//     files 테이블 없이 image_url 문자열로 단순화
+//   - display_condition(JSON 조건편집기)은 04A상 popups 전용이라 banners에는 없음 —
+//     대신 04A 그대로 position_code/sort_order/start_at/end_at만 사용(가장 쉬운 관리 형태)
+//   - 클릭수/노출수 등 통계 컬럼은 04A banners 스펙에 없어 이번 1차 구현에서는 제외
+model Banner {
+  id           Int       @id @default(autoincrement())
+  title        String
+  imageUrl     String    @map("image_url")
+  linkUrl      String?   @map("link_url") // 쿠팡파트너스 등 제휴 광고 링크
+  positionCode String    @map("position_code") // home_top/home_middle/home_bottom 등
+  sortOrder    Int       @default(0) @map("sort_order")
+  isActive     Boolean   @default(true) @map("is_active")
+  startAt      DateTime? @map("start_at")
+  endAt        DateTime? @map("end_at")
+  status       String    @default("active")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+  createdBy    String?   @map("created_by")
+  updatedBy    String?   @map("updated_by")
+
+  @@index([positionCode, isActive])
+  @@map("banners")
+}
+
 // ── 04A D-8: ranking_rewards (※Base 포함) ──
 model RankingReward {
   id             Int       @id @default(autoincrement())
