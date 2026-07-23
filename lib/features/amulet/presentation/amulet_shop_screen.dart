@@ -139,13 +139,21 @@ class _AmuletShopScreenState extends State<AmuletShopScreen> {
                       item: item,
                       trailing: SizedBox(
                         width: double.infinity,
-                        child: AppButton(
-                          label: '${item.pricePoint}P',
-                          onPressed: _purchasing
-                              ? null
-                              : () => _handlePurchase(item),
-                          fullWidth: true,
-                        ),
+                        child: item.isAiGenerated
+                            ? AppButton.secondary(
+                                label: 'AI로 생성하기',
+                                icon: Icons.auto_awesome_rounded,
+                                onPressed: () => Navigator.of(
+                                  context,
+                                ).pushNamed('/reward/amulet/generate'),
+                              )
+                            : AppButton(
+                                label: '${item.pricePoint}P',
+                                onPressed: _purchasing
+                                    ? null
+                                    : () => _handlePurchase(item),
+                                fullWidth: true,
+                              ),
                       ),
                     );
                   },
