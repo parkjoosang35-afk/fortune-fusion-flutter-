@@ -79,6 +79,14 @@ class _MyAmuletsScreenState extends State<MyAmuletsScreen>
     return Scaffold(
       appBar: AppBar(
         title: const Text('내 부적'),
+        actions: [
+          IconButton(
+            tooltip: '선물하기',
+            icon: const Icon(Icons.card_giftcard_outlined),
+            onPressed: () =>
+                Navigator.of(context).pushNamed('/reward/amulet/gift'),
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           tabs: const [

@@ -35,6 +35,7 @@ import '../../features/mypage/presentation/settings_screen.dart';
 import '../../features/amulet/presentation/amulet_shop_screen.dart';
 import '../../features/amulet/presentation/my_amulets_screen.dart';
 import '../../features/amulet/presentation/amulet_generate_screen.dart';
+import '../../features/amulet/presentation/amulet_gift_screen.dart';
 import '../widgets/coming_soon_screen.dart';
 
 /// 07단계 §3.2 라우팅 테이블 - Navigator 1.0(onGenerateRoute) 구현
@@ -135,6 +136,8 @@ class AppRouter {
         return _page(const MyAmuletsScreen());
       case '/reward/amulet/generate':
         return _page(const AmuletGenerateScreen());
+      case '/reward/amulet/gift':
+        return _page(const AmuletGiftScreen());
 
       // ── 마이 ──
       case '/my/notifications':
