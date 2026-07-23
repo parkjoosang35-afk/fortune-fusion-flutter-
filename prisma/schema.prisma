@@ -1901,3 +1901,29 @@ model Popup {
   @@index([startAt, endAt])
   @@map("popups")
 }
+
+// ══════════════════════════════════════════════════════════════════
+// 05§3.8 "CMS" — 3차 소단위: 공지사항 관리 (notices)
+// ══════════════════════════════════════════════════════════════════
+
+// ── 04A N-9: notices (※Base 포함) ───────────────────────────────────
+// [범위 결정] 05§3.8 화면 스펙: "공지사항 관리 | notices CRUD(고정 여부)".
+//   banners/popups(aa0fad2, a407d56)에서 확립된 CMS 단순 CRUD 패턴을 그대로
+//   재사용한다. 04A 명시 컬럼은 title(NN)/content(TEXT, NN)/is_pinned(NN,
+//   default false, IDX(is_pinned,created_at))뿐이며 노출기간/이미지 등의
+//   컬럼이 없다 — 배너/팝업과 달리 "고정 여부"만으로 단순하게 구성된 스펙이므로
+//   불필요한 컬럼을 임의로 추가하지 않는다(원칙② 설계충돌 방지).
+model Notice {
+  id        Int       @id @default(autoincrement())
+  title     String
+  content   String
+  isPinned  Boolean   @default(false) @map("is_pinned")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
+
+  @@index([isPinned, createdAt])
+  @@map("notices")
+}
