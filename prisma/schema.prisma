@@ -177,6 +177,7 @@ model User {
   payments                      Payment[]
   userSubscriptions             UserSubscription[]
   eventParticipations           EventParticipation[]
+  notifications                 Notification[]
 
   @@map("users")
 }
@@ -2035,5 +2036,41 @@ model NotificationTemplate {
   createdBy String?   @map("created_by")
   updatedBy String?   @map("updated_by")
 
+  notifications Notification[]
+
   @@map("notification_templates")
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 05§3.9 "알림 관리" — 2차 소단위: 발송 이력 조회 (notifications)
+// ══════════════════════════════════════════════════════════════════
+
+// ── 04A N-2: notifications (※Base 포함, 파티션 대상) ────────────────
+// [범위 결정] 05§3.9 화면 스펙: "발송 이력 조회 | notifications 조회
+//   (수신자/발송상태)". 04A에는 별도 status enum 컬럼이 없고 is_read(읽음
+//   여부)/sent_at(발송시각)만 존재하므로, "발송상태"는 is_read로 표현한다
+//   (원칙② 설계충돌 방지: 04A에 없는 컬럼을 임의로 추가하지 않음). 이 화면은
+//   조회 전용(관리자가 알림을 생성/수정/삭제하지 않음 — 실제 발송은 세그먼트
+//   발송 화면(3차 소단위)에서 별도 처리)이므로 CUD Server Action을 두지 않는다.
+//   title/body는 04A 명시대로 "발송 시점 스냅샷"이라 템플릿 변경과 무관하게
+//   불변 — 템플릿 FK(template_id)는 참조용으로만 유지.
+model Notification {
+  id         Int       @id @default(autoincrement())
+  userId     Int       @map("user_id")
+  templateId Int?      @map("template_id")
+  title      String
+  body       String
+  isRead     Boolean   @default(false) @map("is_read")
+  sentAt     DateTime  @default(now()) @map("sent_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+  createdBy  String?   @map("created_by")
+  updatedBy  String?   @map("updated_by")
+
+  user     User                  @relation(fields: [userId], references: [id])
+  template NotificationTemplate? @relation(fields: [templateId], references: [id])
+
+  @@index([userId, isRead])
+  @@map("notifications")
 }
