@@ -1731,9 +1731,56 @@ model Payment {
   createdBy    String?   @map("created_by")
   updatedBy    String?   @map("updated_by")
 
-  user User @relation(fields: [userId], references: [id])
+  user    User            @relation(fields: [userId], references: [id])
+  refunds PaymentRefund[]
 
   @@index([userId, createdAt])
   @@index([orderType])
   @@map("payments")
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 05§3.7 "결제/구독 관리" — 2차 소단위: K-2 환불 처리 (payment_refunds)
+// ══════════════════════════════════════════════════════════════════
+
+// ── 04A K-2: payment_refunds (※Base 포함) ──────────────────────────
+// [범위 결정] 05§3.7 화면 스펙: "환불 처리 | payment_refunds 신규 생성
+//   워크플로우(원본 payments는 상태만 변경)". 04A 절대원칙3("결제/포인트는
+//   관리자 화면에서도 직접 수정 절대 금지 — 조회 전용 + '조정 요청'은
+//   반드시 별도 이력 레코드 생성 방식으로만 허용")에 따라, 원본 payments
+//   레코드의 amount/pg_tx_id 등 핵심 필드는 절대 직접 수정하지 않고,
+//   ① payment_refunds에 새 이력 레코드를 생성 ② 원본 payments.status만
+//   paid → cancelled로 전환하는 2단계 방식으로만 환불을 반영한다
+//   (K-1 schema.prisma 주석과 동일 원칙의 연장 적용 — 설계충돌 없음).
+// [status 사용값] 04A 명시: pending/completed/failed.
+// [RBAC 2단계 승인 구조] 05§5.2: "결제/구독 관리 | operator: R(+환불요청,
+//   최종승인은 super_admin)". 이는 RBAC_MATRIX.payments={read:true,
+//   write:false}만으로는 표현할 수 없는 "예외적 부분 write 권한"이므로,
+//   reports.ts의 canWriteReports 전용 헬퍼 패턴을 재사용하여 이 파일
+//   전용의 2개 헬퍼를 신설한다(Server Action 파일에서 구현):
+//   - canRequestRefund(roleCode): super_admin/operator 허용(환불 요청
+//     생성=status:pending) — cs/content_manager는 payments가 R 또는 X이므로
+//     제외.
+//   - canApproveRefund(roleCode): super_admin만 허용(status:pending→
+//     completed 전이 + 원본 payments.status→cancelled 반영).
+//   operator가 생성한 pending 건을 super_admin이 승인/거부하는 2단계
+//   워크플로우로, 04A가 명시한 "별도 이력 레코드 생성 방식" 원칙과
+//   05§5.2의 "최종승인은 super_admin" 제약을 모두 만족한다.
+model PaymentRefund {
+  id          Int       @id @default(autoincrement())
+  paymentId   Int       @map("payment_id")
+  amount      Int
+  reason      String?
+  status      String    @default("pending") // pending/completed/failed (04A 명시)
+  processedAt DateTime? @map("processed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+  createdBy   String?   @map("created_by")
+  updatedBy   String?   @map("updated_by")
+
+  payment Payment @relation(fields: [paymentId], references: [id])
+
+  @@index([paymentId])
+  @@map("payment_refunds")
 }
