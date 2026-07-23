@@ -73,3 +73,15 @@ export function canAccessMenu(roleCode: string, menuCode: string): boolean {
 export function getVisibleMenusForRole(roleCode: string): AdminMenuGroup[] {
   return ADMIN_MENU_GROUPS.filter((menu) => canAccessMenu(roleCode, menu.code));
 }
+
+// 범용 write/delete 권한 체크 헬퍼(메뉴 공통) — "use server" 액션 파일에서는
+// export되는 모든 함수가 async여야 하므로, 이런 동기 헬퍼는 여기(rbac.ts)에 둔다.
+export function canWriteMenu(roleCode: string, menuCode: string): boolean {
+  if (!canAccessMenu(roleCode, menuCode)) return false;
+  return !!RBAC_MATRIX[menuCode]?.[roleCode as AdminRoleCode]?.write;
+}
+
+export function canDeleteMenu(roleCode: string, menuCode: string): boolean {
+  if (!canAccessMenu(roleCode, menuCode)) return false;
+  return !!RBAC_MATRIX[menuCode]?.[roleCode as AdminRoleCode]?.delete;
+}
