@@ -162,6 +162,7 @@ model User {
   comments            Comment[]
   reportsSubmitted    Report[]            @relation("ReportReporter")
   likes               Like[]
+  matchingProfile     MatchingProfile?
 
   @@map("users")
 }
@@ -1374,4 +1375,39 @@ model File {
 
   @@index([ownerType, ownerId])
   @@map("files")
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 05§3.6 "매칭/궁합 관리" — 1차 소단위: M-1 매칭 프로필 모니터링(matching_profiles)
+// [범위 결정] 05§3.6 화면 스펙: "매칭 프로필 모니터링 | matching_profiles 조회,
+//   부적절 프로필 강제 비활성화". 04A M-1은 UQ(user_id) 1:1 관계이며 CUD 중
+//   "생성"은 회원 앱 전용 기능(매칭 프로필 등록)이므로, comments/likes/files와
+//   동일 원칙에 따라 이번 소단위는 목록 조회 + 관리자 강제 비활성화 Server Action만
+//   구현한다(preferences/intro_text 자체의 수정 기능은 제공하지 않음 — 회원이
+//   직접 관리하는 콘텐츠이며 관리자 화면 스펙에도 "조회, 강제 비활성화"만 명시).
+// [설계 결정: is_public vs status] 04A M-1의 is_public(BOOLEAN)은 회원이 스스로
+//   설정하는 "매칭 공개 여부"이고, 05§3.6이 요구하는 "부적절 프로필 강제
+//   비활성화"는 관리자가 개입하는 별도의 상태 전환이다. 두 개념은 스코프가 다르므로
+//   (원칙② 설계충돌 방지) is_public 값은 그대로 유지하고, Base 표준 status
+//   컬럼을 active/deactivated_by_admin 2단계로 사용하여 관리자 조치를 별도
+//   기록한다(files의 active/deleted_by_admin과 동일 패턴, "비활성화"이므로
+//   "deleted"가 아닌 "deactivated"로 명명).
+// [preferences JSONB] SQLite에는 네이티브 JSONB가 없으므로(기존 reward_result/
+//   used_location_meta와 동일 전례) JSON 문자열로 저장하는 String? 컬럼으로 둔다.
+model MatchingProfile {
+  id          Int       @id @default(autoincrement())
+  userId      Int       @unique @map("user_id")
+  isPublic    Boolean   @default(true) @map("is_public")
+  preferences String?   @map("preferences") // JSON 문자열(SQLite 네이티브 JSONB 없음) — 이상형 조건 등
+  introText   String?   @map("intro_text")
+  status      String    @default("active") // active/deactivated_by_admin (부적절 프로필 강제 비활성화)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+  createdBy   String?   @map("created_by")
+  updatedBy   String?   @map("updated_by")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("matching_profiles")
 }
