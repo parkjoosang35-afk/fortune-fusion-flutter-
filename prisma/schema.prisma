@@ -158,6 +158,7 @@ model User {
   couponIssues        CouponIssue[]
   communityPosts      CommunityPost[]
   wishes              Wish[]
+  comments            Comment[]
 
   @@map("users")
 }
@@ -1184,4 +1185,41 @@ model Wish {
 
   @@index([category, createdAt])
   @@map("wishes")
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 05§3.5 "커뮤니티 관리" — 2차 소단위: L-4 댓글 관리(comments, 폴리모픽)
+// [범위 결정] 원칙⑤(소단위 개발): 05§3.5 "댓글 관리 | comments(폴리모픽) 목록/삭제"
+//   스펙을 그대로 구현. 신고처리(L-6)/좋아요통계(L-5)/파일관리(L-7)는 다음 소단위.
+// ══════════════════════════════════════════════════════════════════
+
+// ── 04A L-4: comments (폴리모픽, ※Base 포함) ──
+// [설계 결정] 04A L-4 원본에는 status 사용값이 명시되어 있지 않으나, 05§3.5 화면
+//   스펙이 community_posts/wishes(L-2/L-3, 노출/숨김/삭제 3단계)와 달리 "목록/삭제"
+//   만 명시하므로(숨김 기능 없음), comments의 status는 active/deleted_by_admin
+//   2단계만 사용한다(원칙② 설계충돌 없음: Base status 컬럼의 "도메인별 상이" 허용
+//   범위 내이며, 화면 기능 요구사항 차이를 그대로 반영한 결정).
+// [폴리모픽 제약] targetType은 04A 명시대로 post/wish 화이트리스트로 애플리케이션
+//   레벨(zod enum)에서 검증한다. Prisma에서 폴리모픽 FK는 표현할 수 없으므로
+//   targetId는 단순 Int 컬럼으로 두고, 조회 시 targetType에 따라
+//   CommunityPost/Wish를 애플리케이션 레벨에서 분기 조회하여 조합한다
+//   (04A상 reports/likes/files도 동일한 폴리모픽 패턴이며 이번 comments가
+//   이 프로젝트에서 최초로 구현되는 폴리모픽 테이블).
+model Comment {
+  id         Int       @id @default(autoincrement())
+  targetType String    @map("target_type") // post/wish (화이트리스트 검증)
+  targetId   Int       @map("target_id")
+  userId     Int       @map("user_id")
+  content    String
+  status     String    @default("active") // active/deleted_by_admin (2단계, 위 설계결정 참조)
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+  createdBy  String?   @map("created_by")
+  updatedBy  String?   @map("updated_by")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([targetType, targetId])
+  @@map("comments")
 }

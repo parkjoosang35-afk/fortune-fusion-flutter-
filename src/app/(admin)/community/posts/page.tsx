@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { verifyAdminSession } from "@/lib/dal";
 import { canAccessMenu, RBAC_MATRIX } from "@/lib/rbac";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import CommunityPostRow from "@/components/CommunityPostRow";
 import WishRow from "@/components/WishRow";
 
@@ -50,6 +51,15 @@ export default async function CommunityPostsPage() {
           게시글과 소원을 조회하고 노출/숨김/삭제(Soft Delete) 처리를 합니다.
           작성 기능은 회원 앱에서만 제공됩니다.
         </p>
+        <nav className="mt-4 flex gap-2 border-b border-slate-800 text-sm">
+          <Link href="/community/boards" className="px-3 py-2 text-slate-400 hover:text-white">
+            게시판
+          </Link>
+          <span className="border-b-2 border-indigo-500 px-3 py-2 text-white">게시글/소원</span>
+          <Link href="/community/comments" className="px-3 py-2 text-slate-400 hover:text-white">
+            댓글
+          </Link>
+        </nav>
       </div>
 
       <section>

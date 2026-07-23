@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { verifyAdminSession } from "@/lib/dal";
 import { canAccessMenu, RBAC_MATRIX } from "@/lib/rbac";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import CommunityBoardCreateForm from "@/components/CommunityBoardCreateForm";
 import CommunityBoardRow from "@/components/CommunityBoardRow";
 
@@ -43,6 +44,15 @@ export default async function CommunityBoardsPage() {
           게시판 종류를 등록/관리하고 공개 여부를 설정합니다. 게시글이 존재하는
           게시판은 삭제할 수 없습니다.
         </p>
+        <nav className="mt-4 flex gap-2 border-b border-slate-800 text-sm">
+          <span className="border-b-2 border-indigo-500 px-3 py-2 text-white">게시판</span>
+          <Link href="/community/posts" className="px-3 py-2 text-slate-400 hover:text-white">
+            게시글/소원
+          </Link>
+          <Link href="/community/comments" className="px-3 py-2 text-slate-400 hover:text-white">
+            댓글
+          </Link>
+        </nav>
       </div>
 
       <section>
