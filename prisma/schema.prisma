@@ -2123,3 +2123,27 @@ model PushToken {
   @@index([userId])
   @@map("push_tokens")
 }
+
+// ══════════════════════════════════════════════════════════════════
+// 05§3.11 "시스템 설정" — 1차 소단위: 전역 설정값 관리 (system_settings)
+// ══════════════════════════════════════════════════════════════════
+
+// ── 04A O-1: system_settings (※Base 포함, UQ(key)) ──────────────────
+// [범위 결정] 05§3.11 화면 스펙: "전역 설정값 관리 | system_settings(key-value)
+//   CRUD — 예: 서비스 점검모드 on/off, 최소 앱버전". notices/point-policies에서
+//   확립된 단순 CRUD 패턴을 재사용한다. value는 04A상 JSONB → SQLite에서는
+//   String(JSON 문자열)으로 매핑(다른 JSONB 컬럼들과 동일 전례).
+model SystemSetting {
+  id          Int       @id @default(autoincrement())
+  key         String    @unique
+  value       String // JSON 문자열(불린/문자열/숫자/객체 모두 JSON.stringify로 저장)
+  description String?
+  status      String    @default("active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+  createdBy   String?   @map("created_by")
+  updatedBy   String?   @map("updated_by")
+
+  @@map("system_settings")
+}
