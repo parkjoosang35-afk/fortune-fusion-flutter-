@@ -175,6 +175,7 @@ model User {
   compatibilityRequestsSent     CompatibilityRequest[] @relation("CompatibilityRequestRequester")
   compatibilityRequestsTargeted CompatibilityRequest[] @relation("CompatibilityRequestTarget")
   payments                      Payment[]
+  userSubscriptions             UserSubscription[]
 
   @@map("users")
 }
@@ -1816,6 +1817,48 @@ model SubscriptionPlan {
   createdBy String?   @map("created_by")
   updatedBy String?   @map("updated_by")
 
+  userSubscriptions UserSubscription[]
+
   @@index([isActive])
   @@map("subscription_plans")
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 05§3.7 "결제/구독 관리" — 4차 소단위: K-4 구독 현황 조회 (user_subscriptions)
+// ══════════════════════════════════════════════════════════════════
+
+// ── 04A K-4: user_subscriptions (※Base 포함) ───────────────────────
+// [범위 결정] 05§3.7 화면 스펙: "구독 현황 조회 | user_subscriptions
+//   조회, 강제 해지(사유 필수)". K-3(완전CRUD)와 달리 이 화면은 "조회 +
+//   제한적 write 1건(강제해지)"만 명시되어 있다.
+// [사유 필수 처리] 04A user_subscriptions 테이블에는 취소사유 전용 컬럼이
+//   없다(payments/payment_refunds처럼 reason 컬럼이 명시돼 있지 않음).
+//   K-1~K-3에서 이미 모든 변경작업을 operation_logs.before/after에
+//   기록해온 전례와 동일하게, 강제해지 사유는 별도 컬럼 신설 없이
+//   operationLog.after에 포함하여 기록한다(설계 확장이 아닌 기존 로깅
+//   패턴의 재사용 — 04A 스키마 변경 없이 05 화면 요구사항 충족).
+// [status 화이트리스트] 04A 명시 4종: active/cancelled/expired/past_due.
+// [FK] user_id→users.id, plan_id→subscription_plans.id.
+// [UQ] pg_subscription_id(nullable unique).
+// [IDX] (user_id, status) 복합, current_period_end.
+model UserSubscription {
+  id               Int       @id @default(autoincrement())
+  userId           Int       @map("user_id")
+  planId           Int       @map("plan_id")
+  status           String    @default("active") // active/cancelled/expired/past_due (04A 명시)
+  startedAt        DateTime  @default(now()) @map("started_at")
+  currentPeriodEnd DateTime  @map("current_period_end")
+  pgSubscriptionId String?   @unique @map("pg_subscription_id")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+  createdBy        String?   @map("created_by")
+  updatedBy        String?   @map("updated_by")
+
+  user User             @relation(fields: [userId], references: [id])
+  plan SubscriptionPlan @relation(fields: [planId], references: [id])
+
+  @@index([userId, status])
+  @@index([currentPeriodEnd])
+  @@map("user_subscriptions")
 }
