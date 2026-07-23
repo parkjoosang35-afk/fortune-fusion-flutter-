@@ -36,6 +36,7 @@ import '../../features/amulet/presentation/amulet_shop_screen.dart';
 import '../../features/amulet/presentation/my_amulets_screen.dart';
 import '../../features/amulet/presentation/amulet_generate_screen.dart';
 import '../../features/amulet/presentation/amulet_gift_screen.dart';
+import '../../features/luckybag/presentation/luckybag_shop_screen.dart';
 import '../widgets/coming_soon_screen.dart';
 
 /// 07단계 §3.2 라우팅 테이블 - Navigator 1.0(onGenerateRoute) 구현
@@ -124,10 +125,19 @@ class AppRouter {
       case '/reward/ranking':
         return _page(const RankingScreen());
       case '/reward/luckybag':
+        return _page(const LuckyBagShopScreen());
+      case '/reward/luckybag/open':
         return _page(
           const ComingSoonScreen(
-            title: '복주머니',
+            title: '복주머니 개봉',
             icon: Icons.card_giftcard_rounded,
+          ),
+        );
+      case '/reward/luckybag/history':
+        return _page(
+          const ComingSoonScreen(
+            title: '복주머니 개봉 이력',
+            icon: Icons.history_rounded,
           ),
         );
       case '/reward/amulet':
