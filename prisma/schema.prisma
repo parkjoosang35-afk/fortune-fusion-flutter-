@@ -70,8 +70,9 @@ model AdminUser {
   createdBy    String?   @map("created_by")
   updatedBy    String?   @map("updated_by")
 
-  role      AdminRole       @relation(fields: [roleId], references: [id])
-  loginLogs AdminLoginLog[]
+  role            AdminRole       @relation(fields: [roleId], references: [id])
+  loginLogs       AdminLoginLog[]
+  assignedReports Report[]        @relation("ReportAssignedAdmin")
 
   @@map("admin_users")
 }
@@ -159,6 +160,7 @@ model User {
   communityPosts      CommunityPost[]
   wishes              Wish[]
   comments            Comment[]
+  reportsSubmitted    Report[]            @relation("ReportReporter")
 
   @@map("users")
 }
@@ -1087,12 +1089,12 @@ model Coupon {
 // ── 04A J-9: coupon_issues (※Base 포함) ──
 // status(Base) 사용값: unused/used/expired
 model CouponIssue {
-  id       Int       @id @default(autoincrement())
-  couponId Int       @map("coupon_id")
-  userId   Int       @map("user_id")
-  issuedAt DateTime  @default(now()) @map("issued_at")
-  usedAt   DateTime? @map("used_at")
-  status   String    @default("unused")
+  id        Int       @id @default(autoincrement())
+  couponId  Int       @map("coupon_id")
+  userId    Int       @map("user_id")
+  issuedAt  DateTime  @default(now()) @map("issued_at")
+  usedAt    DateTime? @map("used_at")
+  status    String    @default("unused")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
@@ -1222,4 +1224,72 @@ model Comment {
 
   @@index([targetType, targetId])
   @@map("comments")
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 05§3.5 "커뮤니티 관리" — 3차 소단위: L-6 신고 처리함(reports, 폴리모픽)
+// ══════════════════════════════════════════════════════════════════
+
+// ── 04A L-6: reports (폴리모픽, ※Base 포함) — v1.1: assigned_admin_id 추가 ──
+// [설계 결정 1: status 값 불일치 해결] 04A L-6 명시값(pending/reviewed/actioned)과
+//   05§4.1 워크플로우 서술(resolved/rejected)이 서로 다른 상태값을 언급하여
+//   원칙②(설계충돌코드금지) 위반 소지가 있음. 04A가 데이터 스펙의 원천(Source of
+//   Truth)이므로 04A 3개 값을 그대로 채택하고, 여기에 05§4.1이 요구하는 "반려"
+//   결과를 표현하기 위해 rejected 1개 값만 추가하여 4단계로 확장한다:
+//     - pending   : 신고 접수 직후(기본값), 담당자 미배정 또는 배정되었으나 미검토
+//     - reviewed  : 담당자가 배정되어 검토를 시작한 상태(조치/반려 결정 전)
+//     - actioned  : 조치(삭제/경고/계정정지 중 1개 이상) 완료 — 05§4.1 "resolved"에 대응
+//     - rejected  : 반려(신고 기각) — 05§4.1 "rejected"와 동일 명칭으로 그대로 채택
+//   즉 05§4.1의 resolved는 04A의 actioned로 재해석하고, rejected는 04A에 신규
+//   추가한다. Base status 컬럼의 "도메인별 상이" 허용범위 내의 결정이며, 근거를
+//   이 주석에 명시하여 원칙② 준수를 보장한다.
+// [설계 결정 2: target_type 화이트리스트] 04A 명시값은 post/comment/wish/user/
+//   fortune_result 5종이나, fortune_result는 fortune_results 테이블이 이 프로젝트
+//   스코프 밖(회원 앱 AI 운세 생성 도메인, 이전 소단위들에서 반복 결정된 제외
+//   대상)이므로 화이트리스트에서 제외한다. 05§3.5의 "부적거래" 언급은 04A L-6에
+//   명시되지 않은 대상이므로(04A가 스펙 원천), comments 소단위에서 04A 명시값만
+//   화이트리스트로 삼은 전례와 동일하게 이번에도 04A 명시값(fortune_result 제외
+//   4종: post/comment/wish/user)만 화이트리스트로 채택한다.
+// [설계 결정 3: 조치(action) 처리 범위] 원칙⑤(소단위 개발)에 따라 이번 소단위는
+//   report 자체의 상태전이 + 담당자배정 + 최소한의 실제 연동조치만 다룬다:
+//     - action="deleted"  : target_type이 post/comment/wish인 경우, 대상 레코드의
+//       status를 기존 관리자 페이지(community.ts/comments.ts)와 동일하게
+//       "deleted_by_admin"으로 실제 연동 변경한다(이미 구현된 로직 재사용).
+//       target_type=user인 경우 "삭제" 액션은 선택 불가(대상이 사용자 자체이므로).
+//     - action="suspended": 대상 사용자(target_type=user면 target_id 자신, 그 외
+//       타입이면 해당 콘텐츠 작성자)의 users.status를 "suspended"로 변경한다
+//       (users 테이블에 04A A-1 기준 이미 존재하는 필드를 재사용).
+//     - action="warned"   : 경고 조치는 별도 알림/경고카운트 도메인(05§3.9 알림
+//       관리, 미구현)과 연계되어야 완전한 기능이나, 이번 소단위 스코프에서는
+//       operation_logs에 조치 사실만 기록하고 users/콘텐츠 테이블 변경은 하지
+//       않는다(알림 발송은 05§4.1에도 "선택"으로 명시되어 있어 이번 스코프 제외).
+//     - status="rejected" (반려) 시에는 action=null로 두고 대상에는 어떤 변경도
+//       가하지 않는다.
+//   조치 실행 시 operation_logs 자동 기록은 05§4.1 요구사항을 그대로 반영한다.
+// [폴리모픽 제약] target_type은 위 화이트리스트로 애플리케이션 레벨(zod enum)에서
+//   검증하며, 조회 시 target_type별로 CommunityPost/Comment/Wish/User를
+//   배치 조회하여 조합한다(comments 소단위에서 확립한 패턴 재사용).
+// [reporter_id / assigned_admin_id] 04A 명시대로 reporter_id는 FK→users.id(신고자),
+//   assigned_admin_id는 FK→admin_users.id(nullable, 05§6 요구사항 반영, v1.1 추가).
+model Report {
+  id              Int       @id @default(autoincrement())
+  targetType      String    @map("target_type") // post/comment/wish/user (화이트리스트, fortune_result 제외 — 위 설계결정 2)
+  targetId        Int       @map("target_id")
+  reporterId      Int       @map("reporter_id")
+  reason          String
+  assignedAdminId Int?      @map("assigned_admin_id")
+  action          String?   @map("action") // null/deleted/warned/suspended (조치 완료 시만 기록 — 위 설계결정 3)
+  status          String    @default("pending") // pending/reviewed/actioned/rejected (위 설계결정 1)
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+  createdBy       String?   @map("created_by")
+  updatedBy       String?   @map("updated_by")
+
+  reporter      User       @relation("ReportReporter", fields: [reporterId], references: [id])
+  assignedAdmin AdminUser? @relation("ReportAssignedAdmin", fields: [assignedAdminId], references: [id])
+
+  @@index([targetType, targetId])
+  @@index([status])
+  @@map("reports")
 }
