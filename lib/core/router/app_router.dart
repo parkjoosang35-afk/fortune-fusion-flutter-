@@ -42,6 +42,8 @@ import '../../features/luckybag/presentation/luckybag_shop_screen.dart';
 import '../../features/luckybag/presentation/luckybag_open_animation_screen.dart';
 import '../../features/luckybag/presentation/luckybag_result_screen.dart';
 import '../../features/luckybag/presentation/luckybag_history_screen.dart';
+import '../../features/community/domain/wish_post_model.dart';
+import '../../features/community/presentation/wish_detail_screen.dart';
 
 /// 07단계 §3.2 라우팅 테이블 - Navigator 1.0(onGenerateRoute) 구현
 /// 10단계(A안): AI 6대 기능(사주/타로/관상/손금/궁합/AI상담) + 리워드(미션/랭킹)까지
@@ -154,6 +156,12 @@ class AppRouter {
         return _page(const AmuletGenerateScreen());
       case '/reward/amulet/gift':
         return _page(const AmuletGiftScreen());
+
+      // ── 커뮤니티 ──
+      case '/community/wish/detail':
+        return _page(
+          WishDetailScreen(post: settings.arguments as WishPostModel),
+        );
 
       // ── 마이 ──
       case '/my/notifications':
