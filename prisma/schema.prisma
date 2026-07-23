@@ -1,0 +1,91 @@
+// Prisma schema — Fortune Fusion Admin Web (Phase18-0)
+// 기준 문서: 04A_Database_Full_Column_Specification.md 도메인 B(관리자)
+// 로컬 개발용 SQLite 사용 (Firebase 미구성으로 인한 대안, 사용자 승인됨)
+//
+// [설계 결정 메모] 04A는 id를 BIGINT(Snowflake)로 정의하지만, 본 프로젝트는
+// 완전히 별도의 로컬 개발 DB(SQLite)이므로 실무적으로 Int autoincrement를 사용한다.
+// 컬럼명/제약/의미는 04A와 1:1 매칭하여 설계 충돌이 없도록 한다.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ── 04A B-2: admin_roles (마스터) ──────────────────────────────
+model AdminRole {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique // super_admin / operator / cs / content_manager
+  name      String
+  status    String   @default("active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  createdBy String?  @map("created_by")
+  updatedBy String?  @map("updated_by")
+
+  adminUsers  AdminUser[]
+  permissions AdminPermission[]
+
+  @@map("admin_roles")
+}
+
+// ── 04A B-3: admin_permissions ─────────────────────────────────
+model AdminPermission {
+  id        Int      @id @default(autoincrement())
+  roleId    Int      @map("role_id")
+  menuCode  String   @map("menu_code")
+  canRead   Boolean  @default(false) @map("can_read")
+  canWrite  Boolean  @default(false) @map("can_write")
+  canDelete Boolean  @default(false) @map("can_delete")
+  status    String   @default("active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  createdBy String?  @map("created_by")
+  updatedBy String?  @map("updated_by")
+
+  role AdminRole @relation(fields: [roleId], references: [id])
+
+  @@unique([roleId, menuCode])
+  @@map("admin_permissions")
+}
+
+// ── 04A B-1: admin_users ───────────────────────────────────────
+model AdminUser {
+  id            Int       @id @default(autoincrement())
+  email         String    @unique
+  passwordHash  String    @map("password_hash")
+  name          String
+  roleId        Int       @map("role_id")
+  is2faEnabled  Boolean   @default(false) @map("is_2fa_enabled")
+  lastLoginAt   DateTime? @map("last_login_at")
+  status        String    @default("active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+  createdBy     String?   @map("created_by")
+  updatedBy     String?   @map("updated_by")
+
+  role       AdminRole       @relation(fields: [roleId], references: [id])
+  loginLogs  AdminLoginLog[]
+
+  @@map("admin_users")
+}
+
+// ── 04A B-4: admin_login_logs (Append-only) ────────────────────
+model AdminLoginLog {
+  id           Int      @id @default(autoincrement())
+  adminUserId  Int      @map("admin_user_id")
+  ipAddress    String   @map("ip_address")
+  successFlag  Boolean  @map("success_flag")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  adminUser AdminUser @relation(fields: [adminUserId], references: [id])
+
+  @@index([adminUserId, createdAt])
+  @@map("admin_login_logs")
+}

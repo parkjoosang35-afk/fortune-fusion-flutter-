@@ -1,0 +1,22 @@
+
+> admin_web@0.1.0 dev
+> next dev -p 3000
+
+▲ Next.js 16.2.11 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://169.254.0.21:3000
+- Environments: .env
+✓ Ready in 700ms
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+
+○ Compiling / ...
+ GET / 307 in 4.0s (next.js: 3.7s, application-code: 216ms)
+ GET /login 200 in 1289ms (next.js: 1223ms, application-code: 65ms)
+ GET / 307 in 98ms (next.js: 7ms, application-code: 91ms)
+ GET /dashboard 307 in 1544ms (next.js: 1422ms, application-code: 122ms)
+ GET /login 200 in 69ms (next.js: 5ms, application-code: 64ms)
+ GET /dashboard 307 in 67ms (next.js: 3ms, application-code: 63ms)
