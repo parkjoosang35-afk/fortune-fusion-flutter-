@@ -118,4 +118,23 @@ class GiftcardRepository {
     await mockDelay(ms: 300);
     return ApiResult.ok(List.unmodifiable(_issues));
   }
+
+  /// POST /v1/giftcards/orders/:id/use - `giftcard_usages`(J-3) 대응 사용처리.
+  /// UQ(issue_id) 제약(04A) 반영: 이미 사용된 건은 재사용 불가.
+  Future<ApiResult<GiftcardIssueModel>> useIssue(String issueId) async {
+    await mockDelay(ms: 300);
+    final index = _issues.indexWhere((i) => i.id == issueId);
+    if (index == -1) return ApiResult.fail('상품권 내역을 찾을 수 없습니다.');
+    final issue = _issues[index];
+    if (issue.status != GiftcardIssueStatus.issued) {
+      return ApiResult.fail('사용할 수 없는 상태입니다.');
+    }
+    if (issue.isUsed) return ApiResult.fail('이미 사용된 상품권입니다.');
+    if (issue.expiresAt != null && issue.expiresAt!.isBefore(DateTime.now())) {
+      return ApiResult.fail('사용 기간이 만료되었습니다.');
+    }
+    final updated = issue.copyWith(usedAt: DateTime.now());
+    _issues[index] = updated;
+    return ApiResult.ok(updated);
+  }
 }

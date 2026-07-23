@@ -51,7 +51,10 @@ import '../../features/matching/presentation/matching_pairs_screen.dart';
 import '../../features/matching/presentation/matching_chat_screen.dart';
 import '../../features/matching/domain/matching_model.dart';
 import '../../features/giftcard/presentation/giftcard_catalog_screen.dart';
-import '../../core/widgets/coming_soon_screen.dart';
+import '../../features/giftcard/presentation/giftcard_detail_screen.dart';
+import '../../features/giftcard/presentation/giftcard_result_screen.dart';
+import '../../features/giftcard/presentation/my_giftcards_screen.dart';
+import '../../features/giftcard/domain/giftcard_model.dart';
 
 /// 07단계 §3.2 라우팅 테이블 - Navigator 1.0(onGenerateRoute) 구현
 /// 10단계(A안): AI 6대 기능(사주/타로/관상/손금/궁합/AI상담) + 리워드(미션/랭킹)까지
@@ -180,14 +183,18 @@ class AppRouter {
         return _page(const AmuletGiftScreen());
       case '/reward/giftcard':
         return _page(const GiftcardCatalogScreen());
-      case '/reward/giftcard/my':
-        // Phase14-2에서 MyGiftcardsScreen(발급코드/사용처리)으로 교체 예정.
+      case '/reward/giftcard/detail':
         return _page(
-          const ComingSoonScreen(
-            title: '내 상품권함',
-            icon: Icons.card_giftcard_outlined,
+          GiftcardDetailScreen(
+            product: settings.arguments as GiftcardProductModel,
           ),
         );
+      case '/reward/giftcard/result':
+        return _page(
+          GiftcardResultScreen(issue: settings.arguments as GiftcardIssueModel),
+        );
+      case '/reward/giftcard/my':
+        return _page(const MyGiftcardsScreen());
 
       // ── 커뮤니티 ──
       case '/community/wish/detail':

@@ -62,4 +62,17 @@ class GiftcardProvider extends ChangeNotifier {
     _isMyOrdersLoading = false;
     notifyListeners();
   }
+
+  /// POST /v1/giftcards/orders/:id/use - 사용처리(J-3 giftcard_usages 대응)
+  Future<bool> useIssue(String issueId) async {
+    _actionError = null;
+    final result = await _repository.useIssue(issueId);
+    if (result.success) {
+      await loadMyOrders();
+      return true;
+    }
+    _actionError = result.errorMessage;
+    notifyListeners();
+    return false;
+  }
 }
