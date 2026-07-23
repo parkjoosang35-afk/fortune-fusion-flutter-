@@ -882,3 +882,37 @@ model LuckybagOpenLog {
   @@index([userId, createdAt])
   @@map("luckybag_open_logs")
 }
+
+// ══════════════════════════════════════════════════════════════════
+// 도메인 J. 상품권 (05§3.4 "상품권 상품 관리") — 1차 소단위: giftcard_products
+// [범위 결정] 원칙⑤(소단위 개발)에 따라 이번 단계는 상품(재고 포함) CRUD까지만 다룬다.
+// giftcard_issues~expiry_logs(J-2~J-7, 생명주기)와 coupons/coupon_issues(J-8/J-9)는
+// 다음 소단위에서 순서대로 추가한다(amulet_items -> user_amulets 분할 전례와 동일 방식).
+// ══════════════════════════════════════════════════════════════════
+
+// ── 04A J-1: giftcard_products (※Base 포함) ──
+// [스코프 결정] image_file_id(04A 원본, files.id FK)는 AmuletItem/LuckybagProduct와
+// 동일한 전례로 image_url 문자열로 단순화.
+// stock_count CHECK(>=0)는 SQLite datasource+Prisma 조합에서 DB 레벨 CHECK 제약을
+// 직접 선언할 수 없어(다른 숫자 컬럼과 동일 전례), zod에서 min(0) 검증 + 애플리케이션
+// 레벨에서만 음수 방지를 보장한다(원자적 감소는 J-2 발급 로직 구현 시 트랜잭션으로 처리 예정).
+model GiftcardProduct {
+  id            Int       @id @default(autoincrement())
+  name          String
+  brand         String
+  requiredPoint Int       @map("required_point")
+  stockCount    Int       @default(0) @map("stock_count") // CHECK(stock_count>=0) — 애플리케이션 레벨 검증
+  validDays     Int       @default(365) @map("valid_days") // 발급일로부터 유효기간(일)
+  imageUrl      String?   @map("image_url")
+  isActive      Boolean   @default(true) @map("is_active")
+  status        String    @default("active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+  createdBy     String?   @map("created_by")
+  updatedBy     String?   @map("updated_by")
+
+  @@index([brand])
+  @@index([isActive])
+  @@map("giftcard_products")
+}
