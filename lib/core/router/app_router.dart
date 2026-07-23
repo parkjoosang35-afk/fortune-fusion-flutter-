@@ -47,7 +47,9 @@ import '../../features/community/domain/wish_post_model.dart';
 import '../../features/community/presentation/wish_detail_screen.dart';
 import '../../features/matching/presentation/matching_profile_setup_screen.dart';
 import '../../features/matching/presentation/matching_discover_screen.dart';
-import '../widgets/coming_soon_screen.dart';
+import '../../features/matching/presentation/matching_pairs_screen.dart';
+import '../../features/matching/presentation/matching_chat_screen.dart';
+import '../../features/matching/domain/matching_model.dart';
 
 /// 07단계 §3.2 라우팅 테이블 - Navigator 1.0(onGenerateRoute) 구현
 /// 10단계(A안): AI 6대 기능(사주/타로/관상/손금/궁합/AI상담) + 리워드(미션/랭킹)까지
@@ -135,9 +137,10 @@ class AppRouter {
       case '/ai-fortune/matching/discover':
         return _page(const MatchingDiscoverScreen());
       case '/ai-fortune/matching/pairs':
-        // Phase13-3에서 MatchingPairsScreen으로 교체 예정
+        return _page(const MatchingPairsScreen());
+      case '/ai-fortune/matching/chat':
         return _page(
-          const ComingSoonScreen(title: '매칭 목록', icon: Icons.favorite_rounded),
+          MatchingChatScreen(pair: settings.arguments as MatchingPairModel),
         );
 
       // ── 리워드 ──
