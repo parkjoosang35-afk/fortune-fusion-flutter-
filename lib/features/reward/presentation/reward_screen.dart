@@ -92,6 +92,13 @@ class _RewardScreenState extends State<RewardScreen> {
               subtitle: '나를 지켜주는 디지털 부적을 확인해보세요',
               onTap: () => Navigator.of(context).pushNamed('/reward/amulet'),
             ),
+            const SizedBox(height: AppSpacing.md),
+            _MenuCard(
+              icon: AppIcons.giftcard,
+              title: '상품권',
+              subtitle: '포인트로 상품권을 교환해보세요',
+              onTap: () => Navigator.of(context).pushNamed('/reward/giftcard'),
+            ),
           ],
         ),
       ),

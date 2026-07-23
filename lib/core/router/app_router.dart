@@ -50,6 +50,8 @@ import '../../features/matching/presentation/matching_discover_screen.dart';
 import '../../features/matching/presentation/matching_pairs_screen.dart';
 import '../../features/matching/presentation/matching_chat_screen.dart';
 import '../../features/matching/domain/matching_model.dart';
+import '../../features/giftcard/presentation/giftcard_catalog_screen.dart';
+import '../../core/widgets/coming_soon_screen.dart';
 
 /// 07단계 §3.2 라우팅 테이블 - Navigator 1.0(onGenerateRoute) 구현
 /// 10단계(A안): AI 6대 기능(사주/타로/관상/손금/궁합/AI상담) + 리워드(미션/랭킹)까지
@@ -176,6 +178,16 @@ class AppRouter {
         return _page(const AmuletGenerateScreen());
       case '/reward/amulet/gift':
         return _page(const AmuletGiftScreen());
+      case '/reward/giftcard':
+        return _page(const GiftcardCatalogScreen());
+      case '/reward/giftcard/my':
+        // Phase14-2에서 MyGiftcardsScreen(발급코드/사용처리)으로 교체 예정.
+        return _page(
+          const ComingSoonScreen(
+            title: '내 상품권함',
+            icon: Icons.card_giftcard_outlined,
+          ),
+        );
 
       // ── 커뮤니티 ──
       case '/community/wish/detail':
