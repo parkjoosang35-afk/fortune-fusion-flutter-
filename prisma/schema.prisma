@@ -2184,3 +2184,28 @@ model ErrorLog {
   @@index([source, severity, createdAt])
   @@map("error_logs")
 }
+
+// ══════════════════════════════════════════════════════════════════
+// 05§3.11 "시스템 설정" — 3차(마지막) 소단위: 통계 스냅샷 관리
+// (statistics_snapshots — 배치 실행 상태 확인, 04A상 관리자 CUD 스펙 없음)
+// ══════════════════════════════════════════════════════════════════
+
+// ── 04A O-5: statistics_snapshots (※Base 포함, UQ(metric_code,period)) ──
+// [범위 결정] 05§3.11 화면 스펙: "통계 스냅샷 관리 | statistics_snapshots 배치
+//   실행 상태 확인" — "확인"만 명시(CUD 없음). 배치 시스템이 생성하는 값이므로
+//   관리자는 조회만 한다(원칙② 준수 — 04A에 관리자 CUD 스펙 없음).
+model StatisticsSnapshot {
+  id         Int       @id @default(autoincrement())
+  metricCode String    @map("metric_code") // 예: dau/point_issued_daily
+  period     String // 예: 2026-07-23
+  value      String // JSONB→String 매핑(집계 결과 JSON)
+  status     String    @default("active")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+  createdBy  String?   @map("created_by")
+  updatedBy  String?   @map("updated_by")
+
+  @@unique([metricCode, period])
+  @@map("statistics_snapshots")
+}
