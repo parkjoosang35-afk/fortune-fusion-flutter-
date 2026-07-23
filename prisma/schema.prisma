@@ -139,16 +139,20 @@ model User {
   createdBy        String?   @map("created_by")
   updatedBy        String?   @map("updated_by")
 
-  grade            UserGrade?          @relation(fields: [gradeId], references: [id])
-  profile          UserProfile?
-  loginLogs        UserLoginLog[]
-  withdrawalLogs   UserWithdrawalLog[]
-  wallets          Wallet[]
-  pointHistories   PointHistory[]
-  attendances      Attendance[]
-  userMissions     UserMission[]
-  userAchievements UserAchievement[]
-  rankingSnapshots RankingSnapshot[]
+  grade               UserGrade?          @relation(fields: [gradeId], references: [id])
+  profile             UserProfile?
+  loginLogs           UserLoginLog[]
+  withdrawalLogs      UserWithdrawalLog[]
+  wallets             Wallet[]
+  pointHistories      PointHistory[]
+  attendances         Attendance[]
+  userMissions        UserMission[]
+  userAchievements    UserAchievement[]
+  rankingSnapshots    RankingSnapshot[]
+  userAmulets         UserAmulet[]
+  amuletCollections   AmuletCollection[]
+  amuletGiftsSent     AmuletGift[]        @relation("AmuletGiftFrom")
+  amuletGiftsReceived AmuletGift[]        @relation("AmuletGiftTo")
 
   @@map("users")
 }
@@ -668,8 +672,94 @@ model AmuletItem {
   createdBy         String?   @map("created_by")
   updatedBy         String?   @map("updated_by")
 
-  grade AmuletGrade @relation(fields: [gradeId], references: [id])
+  grade       AmuletGrade        @relation(fields: [gradeId], references: [id])
+  userAmulets UserAmulet[]
+  collections AmuletCollection[]
 
   @@index([gradeId])
   @@map("amulet_items")
+}
+
+// ── 04A H-3: user_amulets (※Base 포함) ── 조회 전용(회원 활동 결과 데이터)
+// status(Base) 사용값: held/used/expired/gifted
+model UserAmulet {
+  id               Int       @id @default(autoincrement())
+  userId           Int       @map("user_id")
+  amuletItemId     Int       @map("amulet_item_id")
+  acquiredAt       DateTime  @default(now()) @map("acquired_at")
+  expiresAt        DateTime? @map("expires_at")
+  sourceType       String    @map("source_type") // purchase/event/gift/luckybag
+  externalAssetRef String?   @map("external_asset_ref")
+  status           String    @default("held")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+  createdBy        String?   @map("created_by")
+  updatedBy        String?   @map("updated_by")
+
+  user       User             @relation(fields: [userId], references: [id])
+  amuletItem AmuletItem       @relation(fields: [amuletItemId], references: [id])
+  usageLogs  AmuletUsageLog[]
+  gifts      AmuletGift[]
+
+  @@index([userId, status])
+  @@map("user_amulets")
+}
+
+// ── 04A H-4: amulet_usage_logs (Append-only) ── 조회 전용
+model AmuletUsageLog {
+  id              Int      @id @default(autoincrement())
+  userAmuletId    Int      @map("user_amulet_id")
+  usedContextType String?  @map("used_context_type") // 폴리모픽(예: fortune_request)
+  usedContextId   Int?     @map("used_context_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  userAmulet UserAmulet @relation(fields: [userAmuletId], references: [id])
+
+  @@index([userAmuletId])
+  @@map("amulet_usage_logs")
+}
+
+// ── 04A H-5: amulet_gifts (※Base 포함) ── 조회 전용
+model AmuletGift {
+  id           Int       @id @default(autoincrement())
+  fromUserId   Int       @map("from_user_id")
+  toUserId     Int       @map("to_user_id")
+  userAmuletId Int       @map("user_amulet_id")
+  message      String?
+  status       String    @default("active")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+  createdBy    String?   @map("created_by")
+  updatedBy    String?   @map("updated_by")
+
+  fromUser   User       @relation("AmuletGiftFrom", fields: [fromUserId], references: [id])
+  toUser     User       @relation("AmuletGiftTo", fields: [toUserId], references: [id])
+  userAmulet UserAmulet @relation(fields: [userAmuletId], references: [id])
+
+  @@index([fromUserId])
+  @@index([toUserId])
+  @@map("amulet_gifts")
+}
+
+// ── 04A H-6: amulet_collections (※Base 포함, UQ(user_id,amulet_item_id)) ── 조회 전용(도감 진행률)
+model AmuletCollection {
+  id              Int       @id @default(autoincrement())
+  userId          Int       @map("user_id")
+  amuletItemId    Int       @map("amulet_item_id")
+  firstAcquiredAt DateTime  @default(now()) @map("first_acquired_at")
+  totalCount      Int       @default(1) @map("total_count")
+  status          String    @default("active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+  createdBy       String?   @map("created_by")
+  updatedBy       String?   @map("updated_by")
+
+  user       User       @relation(fields: [userId], references: [id])
+  amuletItem AmuletItem @relation(fields: [amuletItemId], references: [id])
+
+  @@unique([userId, amuletItemId])
+  @@map("amulet_collections")
 }
