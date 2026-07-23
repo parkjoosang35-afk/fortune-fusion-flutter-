@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_button.dart';
+import '../../../core/widgets/app_dialog.dart';
 import '../../../core/widgets/app_empty_state.dart';
+import '../../../core/widgets/app_toast.dart';
 import '../../wallet/application/wallet_provider.dart';
 import '../application/luckybag_provider.dart';
 import '../domain/luckybag_product_model.dart';
@@ -36,7 +38,23 @@ class _LuckyBagShopScreenState extends State<LuckyBagShopScreen> {
     await showLuckyBagProbabilitySheet(context, product: product);
   }
 
-  void _openBag(LuckyBagProductModel product) {
+  Future<void> _openBag(LuckyBagProductModel product) async {
+    final wallet = context.read<WalletProvider>();
+    if (wallet.balance < product.pricePoint) {
+      AppToast.show(
+        context,
+        '포인트가 부족합니다. (보유 ${wallet.balance}P)',
+        isError: true,
+      );
+      return;
+    }
+    final confirmed = await showAppConfirmDialog(
+      context,
+      title: '${product.name} 열기',
+      message: '${product.pricePoint}P를 사용하여 복주머니를 여시겠습니까?',
+      confirmLabel: '열기',
+    );
+    if (!confirmed || !mounted) return;
     Navigator.of(
       context,
     ).pushNamed('/reward/luckybag/open', arguments: product);

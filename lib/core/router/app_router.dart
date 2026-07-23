@@ -36,7 +36,11 @@ import '../../features/amulet/presentation/amulet_shop_screen.dart';
 import '../../features/amulet/presentation/my_amulets_screen.dart';
 import '../../features/amulet/presentation/amulet_generate_screen.dart';
 import '../../features/amulet/presentation/amulet_gift_screen.dart';
+import '../../features/luckybag/domain/luckybag_product_model.dart';
+import '../../features/luckybag/domain/luckybag_reward_model.dart';
 import '../../features/luckybag/presentation/luckybag_shop_screen.dart';
+import '../../features/luckybag/presentation/luckybag_open_animation_screen.dart';
+import '../../features/luckybag/presentation/luckybag_result_screen.dart';
 import '../widgets/coming_soon_screen.dart';
 
 /// 07단계 §3.2 라우팅 테이블 - Navigator 1.0(onGenerateRoute) 구현
@@ -128,9 +132,16 @@ class AppRouter {
         return _page(const LuckyBagShopScreen());
       case '/reward/luckybag/open':
         return _page(
-          const ComingSoonScreen(
-            title: '복주머니 개봉',
-            icon: Icons.card_giftcard_rounded,
+          LuckyBagOpenAnimationScreen(
+            product: settings.arguments as LuckyBagProductModel,
+          ),
+        );
+      case '/reward/luckybag/result':
+        final args = settings.arguments as Map<String, dynamic>;
+        return _page(
+          LuckyBagResultScreen(
+            result: args['result'] as LuckyBagOpenResult,
+            product: args['product'] as LuckyBagProductModel,
           ),
         );
       case '/reward/luckybag/history':
