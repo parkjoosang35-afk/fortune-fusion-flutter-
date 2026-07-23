@@ -41,7 +41,7 @@ import '../../features/luckybag/domain/luckybag_reward_model.dart';
 import '../../features/luckybag/presentation/luckybag_shop_screen.dart';
 import '../../features/luckybag/presentation/luckybag_open_animation_screen.dart';
 import '../../features/luckybag/presentation/luckybag_result_screen.dart';
-import '../widgets/coming_soon_screen.dart';
+import '../../features/luckybag/presentation/luckybag_history_screen.dart';
 
 /// 07단계 §3.2 라우팅 테이블 - Navigator 1.0(onGenerateRoute) 구현
 /// 10단계(A안): AI 6대 기능(사주/타로/관상/손금/궁합/AI상담) + 리워드(미션/랭킹)까지
@@ -145,12 +145,7 @@ class AppRouter {
           ),
         );
       case '/reward/luckybag/history':
-        return _page(
-          const ComingSoonScreen(
-            title: '복주머니 개봉 이력',
-            icon: Icons.history_rounded,
-          ),
-        );
+        return _page(const LuckyBagHistoryScreen());
       case '/reward/amulet':
         return _page(const AmuletShopScreen());
       case '/reward/amulet/my':
