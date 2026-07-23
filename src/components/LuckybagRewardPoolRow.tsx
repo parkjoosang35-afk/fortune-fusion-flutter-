@@ -1,5 +1,8 @@
 "use client";
 
+// 05§4.4 워크플로우: 확률테이블 수정도 신규 추가와 동일하게 2단계 확인 모달을 거친다
+// (수정 근거는 LuckybagRewardPoolCreateForm.tsx 상단 주석 참조). 삭제(deleteLuckybagRewardPool)는
+// 05 스펙상 §4.4 대상이 아니므로(확률 값 변경이 아님) 이번 수정 범위에서 제외한다.
 import { useActionState, useState } from "react";
 import {
   updateLuckybagRewardPool,
@@ -50,12 +53,23 @@ export default function LuckybagRewardPoolRow({
 
   const productName = products.find((p) => p.id === pool.luckybagProductId)?.name ?? "-";
   const gradeName = grades.find((g) => g.id === pool.gradeId)?.name ?? "-";
+  const [confirming, setConfirming] = useState(false);
 
   if (editing) {
     return (
       <tr className="border-b border-slate-800/60 bg-slate-800/30">
         <td colSpan={6} className="px-4 py-3">
-          <form action={updateAction} className="flex flex-wrap items-center gap-2">
+          <form
+            onSubmit={(e) => {
+              // 05§4.4: 1단계 제출 시점에는 서버 전송을 막고 2단계 확인만 노출한다.
+              if (!confirming) {
+                e.preventDefault();
+                setConfirming(true);
+              }
+            }}
+            action={updateAction}
+            className="flex flex-wrap items-center gap-2"
+          >
             <input type="hidden" name="id" value={pool.id} />
             <select
               name="luckybagProductId"
@@ -106,16 +120,28 @@ export default function LuckybagRewardPoolRow({
               step={0.0001}
               className="w-24 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
             />
+            {confirming && (
+              <p className="w-full rounded-lg border border-rose-900/60 bg-rose-950/20 p-2 text-xs font-semibold text-rose-300">
+                ⚠ 정말 저장하시겠습니까? 실제 서비스에 즉시 반영됩니다. (다시 누르면 저장됩니다)
+              </p>
+            )}
             <button
               type="submit"
               disabled={updatePending}
-              className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
+              className={
+                confirming
+                  ? "rounded-lg bg-rose-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-rose-600 disabled:opacity-50"
+                  : "rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
+              }
             >
-              저장
+              {updatePending ? "저장 중..." : confirming ? "확인(최종 저장)" : "저장"}
             </button>
             <button
               type="button"
-              onClick={() => setEditing(false)}
+              onClick={() => {
+                setEditing(false);
+                setConfirming(false);
+              }}
               className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
             >
               취소
