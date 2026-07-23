@@ -153,6 +153,7 @@ model User {
   amuletCollections   AmuletCollection[]
   amuletGiftsSent     AmuletGift[]        @relation("AmuletGiftFrom")
   amuletGiftsReceived AmuletGift[]        @relation("AmuletGiftTo")
+  luckybagOpenLogs    LuckybagOpenLog[]
 
   @@map("users")
 }
@@ -762,4 +763,122 @@ model AmuletCollection {
 
   @@unique([userId, amuletItemId])
   @@map("amulet_collections")
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 도메인 I. 복주머니 (05§3.4 "복주머니 상품 관리/시즌이벤트/개봉이력")
+// ══════════════════════════════════════════════════════════════════
+
+// ── 04A I-2: luckybag_grades (마스터, ※Base 포함) ──
+model LuckybagGrade {
+  id        Int       @id @default(autoincrement())
+  code      String    @unique // none/common/rare/best
+  name      String
+  sortOrder Int       @default(0) @map("sort_order")
+  status    String    @default("active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
+
+  rewardPools LuckybagRewardPool[]
+
+  @@map("luckybag_grades")
+}
+
+// ── 04A I-4: luckybag_seasons (※Base 포함) ──
+// [스코프 결정] event_id(04A 원본, FK→events.id nullable)는 events 테이블이 아직
+// 스키마에 존재하지 않아 이번 단계에서는 FK 관계 없는 단순 nullable Int 컬럼으로 둔다.
+// events 도메인 구현 시 추가 마이그레이션으로 FK 관계를 연결할 예정.
+model LuckybagSeason {
+  id        Int       @id @default(autoincrement())
+  name      String
+  startAt   DateTime  @map("start_at")
+  endAt     DateTime  @map("end_at")
+  eventId   Int?      @map("event_id")
+  status    String    @default("active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
+
+  products LuckybagProduct[]
+
+  @@index([startAt, endAt])
+  @@map("luckybag_seasons")
+}
+
+// ── 04A I-1: luckybag_products (※Base 포함) ──
+// [스코프 결정] image_file_id는 AmuletItem과 동일한 전례로 image_url 문자열로 단순화.
+model LuckybagProduct {
+  id         Int       @id @default(autoincrement())
+  name       String
+  pricePoint Int       @default(0) @map("price_point")
+  imageUrl   String?   @map("image_url")
+  seasonId   Int?      @map("season_id")
+  isActive   Boolean   @default(true) @map("is_active")
+  status     String    @default("active")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+  createdBy  String?   @map("created_by")
+  updatedBy  String?   @map("updated_by")
+
+  season      LuckybagSeason?      @relation(fields: [seasonId], references: [id])
+  rewardPools LuckybagRewardPool[]
+  openLogs    LuckybagOpenLog[]
+
+  @@index([seasonId])
+  @@map("luckybag_products")
+}
+
+// ── 04A I-3: luckybag_reward_pools (※Base 포함) ──
+// probability: 그룹(luckybag_product_id 동일 그룹) 합계가 100이 되어야 함 — 애플리케이션 레벨 검증.
+model LuckybagRewardPool {
+  id                Int       @id @default(autoincrement())
+  luckybagProductId Int       @map("luckybag_product_id")
+  gradeId           Int       @map("grade_id")
+  rewardType        String    @map("reward_type") // point/amulet/giftcard_fragment/none
+  rewardRefId       Int?      @map("reward_ref_id") // 폴리모픽(amulet_item_id 등)
+  rewardAmount      Int?      @map("reward_amount")
+  probability       Float // 0 < probability <= 100, 그룹 합계=100 애플리케이션 검증
+  status            String    @default("active")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  deletedAt         DateTime? @map("deleted_at")
+  createdBy         String?   @map("created_by")
+  updatedBy         String?   @map("updated_by")
+
+  luckybagProduct LuckybagProduct   @relation(fields: [luckybagProductId], references: [id])
+  grade           LuckybagGrade     @relation(fields: [gradeId], references: [id])
+  openLogs        LuckybagOpenLog[]
+
+  @@index([luckybagProductId])
+  @@map("luckybag_reward_pools")
+}
+
+// ── 04A I-5: luckybag_open_logs (※Base 포함, 파티션 대상) ── 조회 전용(어뷰징 모니터링)
+// status(Base) 사용값: processing/completed/failed
+model LuckybagOpenLog {
+  id                Int       @id @default(autoincrement())
+  userId            Int       @map("user_id")
+  luckybagProductId Int       @map("luckybag_product_id")
+  rewardPoolId      Int       @map("reward_pool_id")
+  rewardResult      String    @map("reward_result") // JSON 문자열 스냅샷(SQLite에는 네이티브 JSONB 없음)
+  externalAssetRef  String?   @map("external_asset_ref")
+  status            String    @default("completed")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  deletedAt         DateTime? @map("deleted_at")
+  createdBy         String?   @map("created_by")
+  updatedBy         String?   @map("updated_by")
+
+  user            User               @relation(fields: [userId], references: [id])
+  luckybagProduct LuckybagProduct    @relation(fields: [luckybagProductId], references: [id])
+  rewardPool      LuckybagRewardPool @relation(fields: [rewardPoolId], references: [id])
+
+  @@index([userId, createdAt])
+  @@map("luckybag_open_logs")
 }
