@@ -3,7 +3,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 
 /// 03단계 §3.3 AI운세 탭 - AiFortuneHubScreen
-/// 6개 AI 기능(사주/타로/관상/손금/궁합/AI상담)으로 진입하는 허브 그리드
+/// 7개 AI 기능(사주/타로/관상/손금/궁합/AI상담/매칭)으로 진입하는 허브 그리드
 class AiFortuneHubScreen extends StatelessWidget {
   const AiFortuneHubScreen({super.key});
 
@@ -43,6 +43,12 @@ class AiFortuneHubScreen extends StatelessWidget {
       'AI상담',
       '실시간 AI 운세 상담',
       '/ai-fortune/consultation/type',
+    ),
+    (
+      Icons.people_alt_rounded,
+      'AI매칭',
+      '나와 인연이 될 사람을 찾아보세요',
+      '/ai-fortune/matching/profile-setup',
     ),
   ];
 
