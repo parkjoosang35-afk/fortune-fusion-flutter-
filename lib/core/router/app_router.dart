@@ -25,6 +25,7 @@ import '../../features/fortune/palm/presentation/palm_result_screen.dart';
 import '../../features/fortune/palm/presentation/palm_history_screen.dart';
 import '../../features/compatibility/presentation/compatibility_input_screen.dart';
 import '../../features/compatibility/presentation/compatibility_result_screen.dart';
+import '../../features/compatibility/presentation/compatibility_history_screen.dart';
 import '../../features/consultation/presentation/consultation_type_screen.dart';
 import '../../features/consultation/presentation/consultation_chat_screen.dart';
 import '../../features/wallet/presentation/wallet_screen.dart';
@@ -116,6 +117,8 @@ class AppRouter {
         return _page(const CompatibilityInputScreen());
       case '/ai-fortune/compatibility/result':
         return _page(const CompatibilityResultScreen());
+      case '/ai-fortune/compatibility/history':
+        return _page(const CompatibilityHistoryScreen());
 
       // ── AI상담 ──
       case '/ai-fortune/consultation/type':

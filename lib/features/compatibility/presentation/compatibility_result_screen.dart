@@ -70,12 +70,31 @@ class CompatibilityResultScreen extends StatelessWidget {
           ? SafeArea(
               child: Padding(
                 padding: const EdgeInsets.all(AppSpacing.md),
-                child: ElevatedButton.icon(
-                  onPressed: () => Navigator.of(
-                    context,
-                  ).pushNamed('/ai-fortune/compatibility/input'),
-                  icon: const Icon(Icons.refresh_rounded, size: 18),
-                  label: const Text('다시 분석'),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => Navigator.of(
+                          context,
+                        ).pushNamed('/ai-fortune/compatibility/history'),
+                        icon: const Icon(
+                          Icons.bookmark_outline_rounded,
+                          size: 18,
+                        ),
+                        label: const Text('보관함 보기'),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => Navigator.of(
+                          context,
+                        ).pushNamed('/ai-fortune/compatibility/input'),
+                        icon: const Icon(Icons.refresh_rounded, size: 18),
+                        label: const Text('다시 분석'),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             )
