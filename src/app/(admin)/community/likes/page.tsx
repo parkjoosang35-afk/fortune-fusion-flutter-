@@ -103,6 +103,9 @@ export default async function CommunityLikesPage() {
             신고
           </Link>
           <span className="border-b-2 border-indigo-500 px-3 py-2 text-white">좋아요 통계</span>
+          <Link href="/community/files" className="px-3 py-2 text-slate-400 hover:text-white">
+            파일/업로드
+          </Link>
         </nav>
       </div>
 
