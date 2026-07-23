@@ -87,6 +87,11 @@ class MyPageScreen extends StatelessWidget {
               onTap: () => Navigator.of(context).pushNamed('/reward/wallet'),
             ),
             _MenuTile(
+              icon: Icons.workspace_premium_outlined,
+              title: '프리미엄 구독',
+              onTap: () => Navigator.of(context).pushNamed('/my/subscription'),
+            ),
+            _MenuTile(
               icon: Icons.notifications_none_rounded,
               title: '알림',
               onTap: () => Navigator.of(context).pushNamed('/my/notifications'),
