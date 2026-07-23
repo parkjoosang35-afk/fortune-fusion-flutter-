@@ -3,6 +3,7 @@ import 'app_shell.dart';
 import '../../features/auth/presentation/splash_screen.dart';
 import '../../features/auth/presentation/onboarding_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
+import '../../features/auth/presentation/signup_screen.dart';
 import '../../features/auth/presentation/profile_check_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/fortune/daily/presentation/daily_fortune_detail_screen.dart';
@@ -47,6 +48,8 @@ class AppRouter {
         return _page(const OnboardingScreen());
       case '/login':
         return _page(const LoginScreen());
+      case '/signup':
+        return _page(const SignupScreen());
       case '/signup/profile-check':
         return _page(const ProfileCheckScreen());
 

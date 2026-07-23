@@ -42,6 +42,22 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Phase2-2: 이메일 회원가입(로그인과 분리된 절차)
+  Future<bool> signup(String email, String password, String nickname) async {
+    _state = const LoadState.loading();
+    notifyListeners();
+    final result = await _repository.emailSignup(email, password, nickname);
+    if (result.success && result.data != null) {
+      await _loadGrade(result.data!);
+      _state = LoadState.success(result.data!);
+      notifyListeners();
+      return true;
+    }
+    _state = LoadState.error(result.errorMessage ?? '회원가입에 실패했습니다.');
+    notifyListeners();
+    return false;
+  }
+
   Future<bool> login(String email, String password) async {
     _state = const LoadState.loading();
     notifyListeners();

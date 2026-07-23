@@ -138,6 +138,16 @@ class _LoginScreenState extends State<LoginScreen> {
                 icon: const Icon(Icons.g_mobiledata_rounded, size: 22),
                 label: const Text('구글로 계속하기'),
               ),
+              const SizedBox(height: AppSpacing.lg),
+              TextButton(
+                onPressed: _isSubmitting
+                    ? null
+                    : () => Navigator.of(context).pushNamed('/signup'),
+                child: const Text(
+                  '계정이 없으신가요? 회원가입',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
+              ),
             ],
           ),
         ),
