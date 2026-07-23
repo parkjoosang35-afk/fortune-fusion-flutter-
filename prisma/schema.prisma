@@ -154,6 +154,7 @@ model User {
   amuletGiftsSent     AmuletGift[]        @relation("AmuletGiftFrom")
   amuletGiftsReceived AmuletGift[]        @relation("AmuletGiftTo")
   luckybagOpenLogs    LuckybagOpenLog[]
+  giftcardIssues      GiftcardIssue[]
 
   @@map("users")
 }
@@ -379,8 +380,9 @@ model PointHistory {
   memo         String? // 관리자 수동조정 시 사유 등
   createdAt    DateTime  @default(now()) @map("created_at")
 
-  wallet Wallet @relation(fields: [walletId], references: [id])
-  user   User   @relation(fields: [userId], references: [id])
+  wallet          Wallet           @relation(fields: [walletId], references: [id])
+  user            User             @relation(fields: [userId], references: [id])
+  giftcardRefunds GiftcardRefund[]
 
   @@index([userId, createdAt])
   @@index([sourceType, sourceId])
@@ -912,7 +914,142 @@ model GiftcardProduct {
   createdBy     String?   @map("created_by")
   updatedBy     String?   @map("updated_by")
 
+  issues GiftcardIssue[]
+
   @@index([brand])
   @@index([isActive])
   @@map("giftcard_products")
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 05§3.4 "상품권 생명주기 조회" — 2차 소단위: J-2~J-7 조회 전용 통합 구현
+// [범위 결정] 이번 단계는 "생명주기 조회"(조회 전용) 화면만 구현한다.
+// "상품권 환불/재발급 처리"(2단계 확인 필수, 포인트 자동 복원)는 05§3.4상
+// 별도 화면으로 명시되어 있으므로, 실제 admin이 취소/환불/재발급을 "처리"하는
+// Server Action(쓰기)은 다음 소단위에서 구현한다. 이번 단계는 issues~expiry_logs
+// 각 이력 테이블을 조회 전용으로 노출하며, 시딩 데이터로 각 상태 전이를 보여준다.
+// ══════════════════════════════════════════════════════════════════
+
+// ── 04A J-2: giftcard_issues (※Base 포함) ── 조회 전용
+// status(Base) 사용값: requested/issued/failed/cancelled/expired
+// [스코프 결정] issued_code(04A 원본 "암호화" 컬럼)는 로컬 개발 DB에서는 평문 문자열로 단순화.
+model GiftcardIssue {
+  id         Int       @id @default(autoincrement())
+  userId     Int       @map("user_id")
+  productId  Int       @map("product_id")
+  pointSpent Int       @map("point_spent") // 거래시점 가격 스냅샷
+  issuedCode String?   @map("issued_code") // 발급된 쿠폰코드/바코드(로컬DB 평문 단순화)
+  issuedAt   DateTime? @map("issued_at")
+  expiresAt  DateTime? @map("expires_at")
+  status     String    @default("requested")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+  createdBy  String?   @map("created_by")
+  updatedBy  String?   @map("updated_by")
+
+  user         User                @relation(fields: [userId], references: [id])
+  product      GiftcardProduct     @relation(fields: [productId], references: [id])
+  usage        GiftcardUsage?
+  cancels      GiftcardCancel[]
+  expiryLogs   GiftcardExpiryLog[]
+  reissuesFrom GiftcardReissue[]   @relation("GiftcardReissueOriginal")
+  reissuesTo   GiftcardReissue[]   @relation("GiftcardReissueNew")
+
+  @@index([userId, createdAt])
+  @@index([expiresAt])
+  @@map("giftcard_issues")
+}
+
+// ── 04A J-3: giftcard_usages (※Base 포함, UQ(issue_id)) ── 조회 전용
+model GiftcardUsage {
+  id               Int       @id @default(autoincrement())
+  issueId          Int       @unique @map("issue_id")
+  usedAt           DateTime  @default(now()) @map("used_at")
+  usedLocationMeta String?   @map("used_location_meta") // JSON 문자열(SQLite 네이티브 JSONB 없음)
+  status           String    @default("active")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+  createdBy        String?   @map("created_by")
+  updatedBy        String?   @map("updated_by")
+
+  issue GiftcardIssue @relation(fields: [issueId], references: [id])
+
+  @@map("giftcard_usages")
+}
+
+// ── 04A J-4: giftcard_cancels (※Base 포함) ── 조회 전용
+model GiftcardCancel {
+  id            Int       @id @default(autoincrement())
+  issueId       Int       @map("issue_id")
+  reason        String?
+  cancelledAt   DateTime  @default(now()) @map("cancelled_at")
+  refundedPoint Int       @map("refunded_point")
+  status        String    @default("active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+  createdBy     String?   @map("created_by")
+  updatedBy     String?   @map("updated_by")
+
+  issue   GiftcardIssue    @relation(fields: [issueId], references: [id])
+  refunds GiftcardRefund[]
+
+  @@index([issueId])
+  @@map("giftcard_cancels")
+}
+
+// ── 04A J-5: giftcard_refunds (※Base 포함) ── 조회 전용
+// status(Base) 사용값: pending/completed/failed
+model GiftcardRefund {
+  id                   Int       @id @default(autoincrement())
+  cancelId             Int       @map("cancel_id")
+  refundPointHistoryId Int       @map("refund_point_history_id")
+  status               String    @default("pending")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+  deletedAt            DateTime? @map("deleted_at")
+  createdBy            String?   @map("created_by")
+  updatedBy            String?   @map("updated_by")
+
+  cancel             GiftcardCancel @relation(fields: [cancelId], references: [id])
+  refundPointHistory PointHistory   @relation(fields: [refundPointHistoryId], references: [id])
+
+  @@index([cancelId])
+  @@map("giftcard_refunds")
+}
+
+// ── 04A J-6: giftcard_reissues (※Base 포함) ── 조회 전용
+model GiftcardReissue {
+  id              Int       @id @default(autoincrement())
+  originalIssueId Int       @map("original_issue_id")
+  newIssueId      Int       @map("new_issue_id")
+  reason          String?
+  status          String    @default("active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+  createdBy       String?   @map("created_by")
+  updatedBy       String?   @map("updated_by")
+
+  originalIssue GiftcardIssue @relation("GiftcardReissueOriginal", fields: [originalIssueId], references: [id])
+  newIssue      GiftcardIssue @relation("GiftcardReissueNew", fields: [newIssueId], references: [id])
+
+  @@index([originalIssueId])
+  @@map("giftcard_reissues")
+}
+
+// ── 04A J-7: giftcard_expiry_logs (Append-only) ── 조회 전용
+model GiftcardExpiryLog {
+  id        Int      @id @default(autoincrement())
+  issueId   Int      @map("issue_id")
+  expiredAt DateTime @default(now()) @map("expired_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  issue GiftcardIssue @relation(fields: [issueId], references: [id])
+
+  @@index([issueId])
+  @@index([expiredAt])
+  @@map("giftcard_expiry_logs")
 }
