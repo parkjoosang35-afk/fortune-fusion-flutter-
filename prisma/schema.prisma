@@ -89,3 +89,131 @@ model AdminLoginLog {
   @@index([adminUserId, createdAt])
   @@map("admin_login_logs")
 }
+
+// ════════════════════════════════════════════════════════════════
+// Phase18-1: 회원 관리 (05_Admin_System_Design.md §3.1)
+// 04A 도메인 A(회원/인증/권한) 중 회원관리 화면에 필요한 5개 테이블만 우선 구현.
+// [범위 결정] user_sns_accounts/user_grade_histories/user_interests/
+// user_values/user_activity_patterns/user_consents는 04A에 정의되어 있으나
+// 현 단계 회원관리 화면(목록/상세/상태변경) 요구사항에 직접 쓰이지 않아
+// 절대원칙④·⑤(소단위개발)에 따라 이번 범위에서 제외한다(추후 필요시 추가).
+// ════════════════════════════════════════════════════════════════
+
+// ── 04A A-5: user_grades (마스터) ───────────────────────────────
+model UserGrade {
+  id                  Int      @id @default(autoincrement())
+  code                String   @unique // bronze/silver/gold/vip
+  name                String
+  minActivityScore    Int      @default(0) @map("min_activity_score")
+  pointEarnMultiplier Float    @default(1.0) @map("point_earn_multiplier")
+  sortOrder           Int      @default(0) @map("sort_order")
+  status              String   @default("active")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  deletedAt           DateTime? @map("deleted_at")
+  createdBy           String?  @map("created_by")
+  updatedBy           String?  @map("updated_by")
+
+  users User[]
+
+  @@map("user_grades")
+}
+
+// ── 04A A-1: users ───────────────────────────────────────────────
+model User {
+  id                Int       @id @default(autoincrement())
+  email             String?   @unique
+  phone             String?   @unique
+  passwordHash      String?   @map("password_hash")
+  nickname          String    @unique
+  gender            String?
+  status            String    @default("active") // active/suspended/withdrawn
+  withdrawalReason  String?   @map("withdrawal_reason")
+  lastLoginAt       DateTime? @map("last_login_at")
+  signupChannel     String    @default("app") @map("signup_channel")
+  marketingAgreed   Boolean   @default(false) @map("marketing_agreed")
+  gradeId           Int?      @map("grade_id")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  deletedAt         DateTime? @map("deleted_at")
+  createdBy         String?   @map("created_by")
+  updatedBy         String?   @map("updated_by")
+
+  grade           UserGrade?        @relation(fields: [gradeId], references: [id])
+  profile         UserProfile?
+  loginLogs       UserLoginLog[]
+  withdrawalLogs  UserWithdrawalLog[]
+
+  @@map("users")
+}
+
+// ── 04A A-2: user_profiles (1:1) ────────────────────────────────
+model UserProfile {
+  id            Int       @id @default(autoincrement())
+  userId        Int       @unique @map("user_id")
+  birthDate     String?   @map("birth_date") // 민감정보(암호화 대상), 로컬 개발단계에서는 평문 문자열로 보관
+  birthTime     String?   @map("birth_time")
+  isLunar       Boolean   @default(false) @map("is_lunar")
+  birthPlace    String?   @map("birth_place")
+  mbti          String?
+  introText     String?   @map("intro_text")
+  status        String    @default("active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+  createdBy     String?   @map("created_by")
+  updatedBy     String?   @map("updated_by")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("user_profiles")
+}
+
+// ── 04A A-4: user_login_logs (Append-only) ──────────────────────
+model UserLoginLog {
+  id          Int      @id @default(autoincrement())
+  userId      Int?     @map("user_id")
+  loginType   String   @map("login_type") // email/kakao/google/apple
+  ipAddress   String   @map("ip_address")
+  deviceInfo  String?  @map("device_info") // JSON 문자열
+  successFlag Boolean  @map("success_flag")
+  failReason  String?  @map("fail_reason")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@map("user_login_logs")
+}
+
+// ── 04A A-11: user_withdrawal_logs (Append-only) ────────────────
+model UserWithdrawalLog {
+  id                     Int       @id @default(autoincrement())
+  userId                 Int       @map("user_id")
+  reason                 String?
+  requestedAt            DateTime  @default(now()) @map("requested_at")
+  dataPurgeScheduledAt   DateTime  @map("data_purge_scheduled_at")
+  dataPurgedAt           DateTime? @map("data_purged_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("user_withdrawal_logs")
+}
+
+// ── 04A O-2: operation_logs (Append-only, 관리자 CUD 감사로그) ──
+// 05_Admin_System_Design.md 원칙2: "모든 CUD 작업은 예외 없이 operation_logs 기록"
+model OperationLog {
+  id         Int      @id @default(autoincrement())
+  actorType  String   @map("actor_type") // admin/user/system
+  actorId    Int?     @map("actor_id")
+  action     String   // create/update/delete/status_change 등
+  targetType String   @map("target_type") // 폴리모픽: user 등
+  targetId   Int?     @map("target_id")
+  before     String?  // JSON 문자열(변경 전 스냅샷)
+  after      String?  // JSON 문자열(변경 후 스냅샷)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([actorType, actorId, createdAt])
+  @@map("operation_logs")
+}
