@@ -32,6 +32,7 @@ import '../../features/mission/presentation/mission_screen.dart';
 import '../../features/ranking/presentation/ranking_screen.dart';
 import '../../features/notification/notifications_screen.dart';
 import '../../features/mypage/presentation/settings_screen.dart';
+import '../../features/amulet/presentation/amulet_shop_screen.dart';
 import '../widgets/coming_soon_screen.dart';
 
 /// 07단계 §3.2 라우팅 테이블 - Navigator 1.0(onGenerateRoute) 구현
@@ -127,12 +128,7 @@ class AppRouter {
           ),
         );
       case '/reward/amulet':
-        return _page(
-          const ComingSoonScreen(
-            title: '디지털 부적',
-            icon: Icons.auto_awesome_rounded,
-          ),
-        );
+        return _page(const AmuletShopScreen());
 
       // ── 마이 ──
       case '/my/notifications':
