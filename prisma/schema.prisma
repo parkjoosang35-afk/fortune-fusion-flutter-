@@ -1591,3 +1591,39 @@ model ChatMessage {
   @@index([roomId, createdAt])
   @@map("chat_messages")
 }
+
+// ══════════════════════════════════════════════════════════════════
+// 05§3.6 "매칭/궁합 관리" — 5차 소단위: F-3 궁합 요소 가중치 설정
+//   (compatibility_factor_weights)
+// [범위 결정] 05§3.6 화면 스펙: "궁합 요소 가중치 설정 | compatibility_
+//   factor_weights(사주/MBTI/취미/가치관/활동패턴 다차원 가중치) — 정책
+//   수치를 관리자가 직접 조정 가능, 04A F도메인 설계 취지 반영" — §3.6의
+//   6개 화면 중 유일하게 write(Server Action)가 필요한 화면이다(나머지
+//   5개는 조회 전용 또는 조회+강제조치 수준).
+// [타입 매핑] 04A 명시 타입 DECIMAL(3,2) → Prisma Float로 매핑한다(기존
+//   UserGrade.pointEarnMultiplier가 동일 DECIMAL(3,2)→Float 전례를 이미
+//   확립했으므로 이번에도 동일 패턴 재사용, SQLite에는 네이티브 DECIMAL이
+//   없음).
+// [factor_type 화이트리스트] 04A 명시값 5종: saju/mbti/interest/value/
+//   activity_pattern, UQ 제약(회원당이 아닌 전역 단일 정책 레코드이므로
+//   factor_type 자체가 유일해야 함).
+// [weight 검증] 04A 명시: "가중치(합 1.00 권장, 애플리케이션 검증)" —
+//   "권장"이라는 표현이므로 강제(hard constraint)가 아닌 경고 수준으로
+//   구현한다(활성(is_active=true) 상태인 항목들의 weight 합계가 1.00에서
+//   벗어나면 UI상 경고 배지만 표시하고 저장 자체를 막지는 않음 — 04A 원문의
+//   "권장" 표현을 그대로 존중, 원칙② 설계충돌 방지).
+// [is_active] 04A 명시 기본값 true. 특정 요소를 궁합 계산에서 임시
+//   제외하고자 할 때 사용(레코드 삭제 대신 비활성화로 표현).
+model CompatibilityFactorWeight {
+  id         Int       @id @default(autoincrement())
+  factorType String    @unique @map("factor_type") // saju/mbti/interest/value/activity_pattern (04A 명시 화이트리스트)
+  weight     Float // DECIMAL(3,2)→Float 매핑(UserGrade.pointEarnMultiplier 전례), 합 1.00 권장(애플리케이션 경고 수준 검증)
+  isActive   Boolean   @default(true) @map("is_active")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+  createdBy  String?   @map("created_by")
+  updatedBy  String?   @map("updated_by")
+
+  @@map("compatibility_factor_weights")
+}
