@@ -155,6 +155,7 @@ model User {
   amuletGiftsReceived AmuletGift[]        @relation("AmuletGiftTo")
   luckybagOpenLogs    LuckybagOpenLog[]
   giftcardIssues      GiftcardIssue[]
+  couponIssues        CouponIssue[]
 
   @@map("users")
 }
@@ -1052,4 +1053,53 @@ model GiftcardExpiryLog {
   @@index([issueId])
   @@index([expiredAt])
   @@map("giftcard_expiry_logs")
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 05§3.4 "쿠폰 관리" — 7차 소단위: J-8/J-9 쿠폰 CRUD/발급
+// ══════════════════════════════════════════════════════════════════
+
+// ── 04A J-8: coupons (※Base 포함) ──
+model Coupon {
+  id            Int       @id @default(autoincrement())
+  code          String    @unique
+  discountType  String    @map("discount_type") // rate/fixed_point
+  discountValue Float     @map("discount_value")
+  validFrom     DateTime  @map("valid_from")
+  validTo       DateTime  @map("valid_to")
+  usageLimit    Int?      @map("usage_limit") // 전체 사용 가능 횟수(NULL=무제한)
+  status        String    @default("active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+  createdBy     String?   @map("created_by")
+  updatedBy     String?   @map("updated_by")
+
+  issues CouponIssue[]
+
+  @@index([validTo])
+  @@map("coupons")
+}
+
+// ── 04A J-9: coupon_issues (※Base 포함) ──
+// status(Base) 사용값: unused/used/expired
+model CouponIssue {
+  id       Int       @id @default(autoincrement())
+  couponId Int       @map("coupon_id")
+  userId   Int       @map("user_id")
+  issuedAt DateTime  @default(now()) @map("issued_at")
+  usedAt   DateTime? @map("used_at")
+  status   String    @default("unused")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
+
+  coupon Coupon @relation(fields: [couponId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([userId, status])
+  @@index([couponId])
+  @@map("coupon_issues")
 }
