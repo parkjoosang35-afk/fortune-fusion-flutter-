@@ -7,13 +7,16 @@
 // §4.1 워크플로우: 신고접수 → 담당자배정(선택) → 검토 → 조치선택(삭제/경고/
 //   계정정지/반려) → operation_logs 자동기록 → 알림(선택, 이번 스코프 제외) →
 //   reports.status 전이
-// [범위 결정] prisma/schema.prisma의 Report 모델 주석(설계 결정 1~3)에 기술된
-//   내용을 그대로 따른다:
+// [범위 결정] prisma/schema.prisma의 Report 모델 주석(설계 결정 1~3, v1.2)에
+//   기술된 내용을 그대로 따른다:
 //   - status: pending/reviewed/actioned/rejected 4단계
-//   - target_type 화이트리스트: post/comment/wish/user (fortune_result 제외)
-//   - action(조치): deleted(콘텐츠 대상, community.ts/comments.ts의 상태변경
-//     로직 재사용)/suspended(사용자 대상, users.status 변경)/warned(로그만
-//     기록, 실제 알림·경고카운트 연동은 알림 도메인 미구현으로 제외)
+//   - target_type 화이트리스트(v1.2): post/comment/wish/user/fortune_result
+//     (fortune_result는 Phase18-FortuneCore-1에서 fortune_results 테이블이
+//     신규 추가되어 배제 근거가 해소됨에 따라 이번에 화이트리스트에 추가)
+//   - action(조치): deleted(콘텐츠 대상 — post/comment/wish/fortune_result,
+//     각 도메인 상태변경 로직 재사용)/suspended(사용자 대상, users.status
+//     변경)/warned(로그만 기록, 실제 알림·경고카운트 연동은 알림 도메인
+//     미구현으로 제외)
 // [RBAC] 05§5.2: "커뮤니티 관리 | cs: RW(신고처리)" — 1차/2차 소단위
 //   (community.ts/comments.ts)의 canWriteCommunity/canDeleteCommunity와 반대로,
 //   신고 처리함에서는 cs 역할도 write(담당자배정/조치/반려) 가능해야 한다.
@@ -156,6 +159,12 @@ export async function actionReport(
         where: { id: before.targetId },
         data: { status: "deleted_by_admin", deletedAt: new Date(), updatedBy: session.email },
       });
+    } else if (before.targetType === "fortune_result") {
+      // fortune_result는 FortuneResult.id를 target_id로 참조(설계결정 2, v1.2).
+      await prisma.fortuneResult.update({
+        where: { id: before.targetId },
+        data: { status: "deleted_by_admin", deletedAt: new Date(), updatedBy: session.email },
+      });
     }
   } else if (action === "suspended") {
     let targetUserId: number | null = null;
@@ -170,6 +179,12 @@ export async function actionReport(
     } else if (before.targetType === "wish") {
       const wish = await prisma.wish.findUnique({ where: { id: before.targetId } });
       targetUserId = wish?.userId ?? null;
+    } else if (before.targetType === "fortune_result") {
+      const result = await prisma.fortuneResult.findUnique({
+        where: { id: before.targetId },
+        include: { request: { select: { userId: true } } },
+      });
+      targetUserId = result?.request.userId ?? null;
     }
     if (targetUserId) {
       await prisma.user.update({

@@ -10,7 +10,7 @@ import { assignReportToMe, actionReport, rejectReport, type ReportFormState } fr
 interface ReportRowProps {
   report: {
     id: number;
-    targetType: string; // post/comment/wish/user
+    targetType: string; // post/comment/wish/user/fortune_result
     targetLabel: string; // 대상 라벨(애플리케이션 레벨 조합)
     reporterNickname: string;
     reason: string;
@@ -29,6 +29,7 @@ const TARGET_TYPE_LABEL: Record<string, string> = {
   comment: "댓글",
   wish: "소원",
   user: "회원",
+  fortune_result: "운세결과",
 };
 
 const STATUS_LABEL: Record<string, { label: string; cls: string }> = {

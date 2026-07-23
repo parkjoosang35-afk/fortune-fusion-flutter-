@@ -18,9 +18,14 @@ async function main() {
   const wishes = await prisma.wish.findMany({ orderBy: { id: "asc" } });
   const comments = await prisma.comment.findMany({ orderBy: { id: "asc" } });
   const admin = await prisma.adminUser.findFirst({ orderBy: { id: "asc" } });
+  const fortuneResults = await prisma.fortuneResult.findMany({ orderBy: { id: "asc" } });
 
   if (users.length < 6 || posts.length === 0 || wishes.length === 0 || comments.length === 0 || !admin) {
     console.error("신고 대상(회원/게시글/소원/댓글/관리자)이 부족합니다. 선행 시드를 먼저 실행하세요.");
+    process.exit(1);
+  }
+  if (fortuneResults.length < 2) {
+    console.error("신고 대상(운세결과)이 부족합니다. seed_fortune_core.ts를 먼저 실행하세요.");
     process.exit(1);
   }
 
@@ -124,6 +129,26 @@ async function main() {
       assignedAdminId: admin.id,
       action: "suspended",
       status: "actioned",
+    },
+    // 11) fortune_result 신고 — pending, 담당자 미배정 (05§3.2 명시 대상)
+    {
+      targetType: "fortune_result",
+      targetId: fortuneResults[0].id,
+      reporterId: users[0].id,
+      reason: "운세 결과 내용이 불쾌하고 부적절합니다.",
+      assignedAdminId: null,
+      action: null,
+      status: "pending",
+    },
+    // 12) fortune_result 신고 — reviewed, 담당자 배정됨
+    {
+      targetType: "fortune_result",
+      targetId: fortuneResults[1].id,
+      reporterId: users[1].id,
+      reason: "AI가 생성한 운세 결과에 차별적 표현이 포함되어 있습니다.",
+      assignedAdminId: admin.id,
+      action: null,
+      status: "reviewed",
     },
   ];
 

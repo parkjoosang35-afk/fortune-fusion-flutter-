@@ -13,10 +13,10 @@ import ReportRow from "@/components/ReportRow";
 // [08§3.2 라우트] /community/reports는 08 문서에 이미 명시된 라우트이므로
 //   신설 근거를 별도로 남길 필요가 없다(1차/2차 소단위의 boards/comments와
 //   달리 문서-스펙 시점차 갭이 없음).
-// [폴리모픽 조합] target_type(post/comment/wish/user)별로 target_id를 그룹핑하여
-//   CommunityPost/Comment/Wish/User를 배치 조회한 뒤, 애플리케이션 레벨에서
-//   각 신고에 대상 라벨을 매핑한다(comments 소단위에서 확립한 패턴 재사용,
-//   user 타입 배치조회만 이번에 추가됨).
+// [폴리모픽 조합] target_type(post/comment/wish/user/fortune_result)별로 target_id를
+//   그룹핑하여 CommunityPost/Comment/Wish/User/FortuneResult를 배치 조회한 뒤,
+//   애플리케이션 레벨에서 각 신고에 대상 라벨을 매핑한다(comments 소단위에서
+//   확립한 패턴 재사용). fortune_result는 05§3.2 명시에 따라 추가됨.
 export const dynamic = "force-dynamic";
 
 export default async function CommunityReportsPage() {
@@ -42,8 +42,9 @@ export default async function CommunityReportsPage() {
   const commentIds = reports.filter((r) => r.targetType === "comment").map((r) => r.targetId);
   const wishIds = reports.filter((r) => r.targetType === "wish").map((r) => r.targetId);
   const userIds = reports.filter((r) => r.targetType === "user").map((r) => r.targetId);
+  const fortuneResultIds = reports.filter((r) => r.targetType === "fortune_result").map((r) => r.targetId);
 
-  const [posts, comments, wishes, targetUsers] = await Promise.all([
+  const [posts, comments, wishes, targetUsers, fortuneResults] = await Promise.all([
     postIds.length > 0
       ? prisma.communityPost.findMany({ where: { id: { in: postIds } }, select: { id: true, title: true } })
       : Promise.resolve([]),
@@ -56,11 +57,18 @@ export default async function CommunityReportsPage() {
     userIds.length > 0
       ? prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, nickname: true } })
       : Promise.resolve([]),
+    fortuneResultIds.length > 0
+      ? prisma.fortuneResult.findMany({
+          where: { id: { in: fortuneResultIds } },
+          select: { id: true, resultText: true },
+        })
+      : Promise.resolve([]),
   ]);
   const postMap = new Map(posts.map((p) => [p.id, p.title]));
   const commentMap = new Map(comments.map((c) => [c.id, c.content]));
   const wishMap = new Map(wishes.map((w) => [w.id, w.content]));
   const userMap = new Map(targetUsers.map((u) => [u.id, u.nickname]));
+  const fortuneResultMap = new Map(fortuneResults.map((f) => [f.id, f.resultText]));
 
   function truncate(text: string, len: number): string {
     return text.length > len ? text.slice(0, len) + "…" : text;
@@ -82,6 +90,10 @@ export default async function CommunityReportsPage() {
     if (targetType === "user") {
       const nickname = userMap.get(targetId);
       return nickname ?? `(알 수 없는 회원 #${targetId})`;
+    }
+    if (targetType === "fortune_result") {
+      const text = fortuneResultMap.get(targetId);
+      return text ? truncate(text, 20) : `(삭제된 운세결과 #${targetId})`;
     }
     return `#${targetId}`;
   }

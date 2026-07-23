@@ -180,6 +180,7 @@ model User {
   notifications                 Notification[]
   notificationPreferences       NotificationPreference[]
   pushTokens                    PushToken[]
+  fortuneRequests               FortuneRequest[]
 
   @@map("users")
 }
@@ -283,8 +284,70 @@ model AiPromptTemplate {
   createdBy           String?   @map("created_by")
   updatedBy           String?   @map("updated_by")
 
+  fortuneResults FortuneResult[]
+
   @@index([fortuneTypeOrDomain, isActive])
   @@map("ai_prompt_templates")
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 04A 도메인 E "AI 운세 콘텐츠" — E-1/E-2 신규 추가(Phase18-FortuneCore-1)
+// [범위 결정] 원칙⑤(소단위 개발): 04A 도메인 E 전체(7테이블) 중, 공통
+//   프레임워크의 뼈대인 fortune_requests(E-1)+fortune_results(E-2) 2개만
+//   이번 소단위에서 추가한다. 사주/타로/관상/손금 세부 확장 테이블
+//   (saju_charts/tarot_draws/face_analyses/palm_analyses, E-3~E-9 중 세부분)과
+//   daily_fortunes(E-4)는 각각 별도 소단위로 순차 진행한다(원칙⑦).
+//   이 2개 테이블만으로도 05§3.0 라이브운영센터 🟢 위젯 및 05§3.2
+//   "운세 결과 조회(조회전용)" 화면 신설의 최소 데이터 기반이 마련된다.
+// [소프트 삭제 없음] 04A Base 컬럼 정의상 deleted_at은 모든 테이블에 존재하나,
+//   fortune_requests/results는 이력성(append-only에 준함) 데이터로 실무상
+//   관리자가 삭제할 근거가 없어(05문서에 CUD 스펙 없음, 조회 전용) deletedAt
+//   컬럼은 Base 표준 유지 차원에서 포함하되 애플리케이션 레벨 CUD는 구현하지
+//   않는다(조회 전용 화면만 다음 소단위에서 추가).
+// ══════════════════════════════════════════════════════════════════
+
+// ── 04A E-1: fortune_requests (※Base 포함, 파티션 대상) ──
+model FortuneRequest {
+  id           Int       @id @default(autoincrement())
+  userId       Int       @map("user_id")
+  fortuneType  String    @map("fortune_type") // saju/daily/tarot/face/palm
+  inputPayload String    @map("input_payload") // JSONB→String 매핑(SQLite)
+  sourceType   String    @default("ai_generated") @map("source_type") // ai_generated/admin_created/external_import
+  pointSpent   Int       @default(0) @map("point_spent")
+  status       String    @default("pending") // pending/success/failed
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+  createdBy    String?   @map("created_by")
+  updatedBy    String?   @map("updated_by")
+
+  user   User           @relation(fields: [userId], references: [id])
+  result FortuneResult?
+
+  @@index([userId, fortuneType, createdAt])
+  @@map("fortune_requests")
+}
+
+// ── 04A E-2: fortune_results (※Base 포함, UQ(request_id)) ──
+model FortuneResult {
+  id               Int       @id @default(autoincrement())
+  requestId        Int       @unique @map("request_id")
+  resultText       String    @map("result_text")
+  resultMeta       String?   @map("result_meta") // JSONB→String 매핑(SQLite)
+  aiModel          String    @map("ai_model")
+  promptTemplateId Int       @map("prompt_template_id")
+  promptVersion    Int       @map("prompt_version")
+  status           String    @default("active")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+  createdBy        String?   @map("created_by")
+  updatedBy        String?   @map("updated_by")
+
+  request        FortuneRequest   @relation(fields: [requestId], references: [id])
+  promptTemplate AiPromptTemplate @relation(fields: [promptTemplateId], references: [id])
+
+  @@map("fortune_results")
 }
 
 // ── 04A G-4: ai_request_logs (Append-only) ─────────────────────
@@ -1262,13 +1325,15 @@ model Comment {
 //   즉 05§4.1의 resolved는 04A의 actioned로 재해석하고, rejected는 04A에 신규
 //   추가한다. Base status 컬럼의 "도메인별 상이" 허용범위 내의 결정이며, 근거를
 //   이 주석에 명시하여 원칙② 준수를 보장한다.
-// [설계 결정 2: target_type 화이트리스트] 04A 명시값은 post/comment/wish/user/
-//   fortune_result 5종이나, fortune_result는 fortune_results 테이블이 이 프로젝트
-//   스코프 밖(회원 앱 AI 운세 생성 도메인, 이전 소단위들에서 반복 결정된 제외
-//   대상)이므로 화이트리스트에서 제외한다. 05§3.5의 "부적거래" 언급은 04A L-6에
-//   명시되지 않은 대상이므로(04A가 스펙 원천), comments 소단위에서 04A 명시값만
-//   화이트리스트로 삼은 전례와 동일하게 이번에도 04A 명시값(fortune_result 제외
-//   4종: post/comment/wish/user)만 화이트리스트로 채택한다.
+// [설계 결정 2: target_type 화이트리스트 — v1.2 갭 해소] 04A 명시값은
+//   post/comment/wish/user/fortune_result 5종. 최초 구현 시점에는 fortune_result가
+//   fortune_results 테이블 부재로 제외되었으나(v1.1 주석 참조), Phase18-FortuneCore-1
+//   소단위에서 fortune_requests/fortune_results(04A E-1/E-2)를 신규 추가하였으므로
+//   배제 근거가 해소되어 04A 명시 5종 전체로 화이트리스트를 확장한다
+//   (05§3.2 "콘텐츠 신고 처리 | reports(target_type=fortune_result) 목록/처리"
+//   요구사항을 이제 충족). target_type=fortune_result인 경우 target_id는
+//   fortune_results.id를 참조하며, 조회 시 FortuneResult+FortuneRequest를
+//   배치조회하여 신고 대상 텍스트(resultText 일부)를 라벨로 표시한다.
 // [설계 결정 3: 조치(action) 처리 범위] 원칙⑤(소단위 개발)에 따라 이번 소단위는
 //   report 자체의 상태전이 + 담당자배정 + 최소한의 실제 연동조치만 다룬다:
 //     - action="deleted"  : target_type이 post/comment/wish인 경우, 대상 레코드의
@@ -1292,7 +1357,7 @@ model Comment {
 //   assigned_admin_id는 FK→admin_users.id(nullable, 05§6 요구사항 반영, v1.1 추가).
 model Report {
   id              Int       @id @default(autoincrement())
-  targetType      String    @map("target_type") // post/comment/wish/user (화이트리스트, fortune_result 제외 — 위 설계결정 2)
+  targetType      String    @map("target_type") // post/comment/wish/user/fortune_result (화이트리스트, 05§3.2 명시)
   targetId        Int       @map("target_id")
   reporterId      Int       @map("reporter_id")
   reason          String
@@ -2173,13 +2238,13 @@ model AccessLog {
 
 // ── 04A O-4: error_logs (Append-only) ────────────────────────────────
 model ErrorLog {
-  id             Int      @id @default(autoincrement())
-  source         String // api/batch/ai
-  errorCode      String?  @map("error_code")
-  message        String
-  stackTraceRef  String?  @map("stack_trace_ref")
-  severity       String // info/warning/critical
-  createdAt      DateTime @default(now()) @map("created_at")
+  id            Int      @id @default(autoincrement())
+  source        String // api/batch/ai
+  errorCode     String?  @map("error_code")
+  message       String
+  stackTraceRef String?  @map("stack_trace_ref")
+  severity      String // info/warning/critical
+  createdAt     DateTime @default(now()) @map("created_at")
 
   @@index([source, severity, createdAt])
   @@map("error_logs")
