@@ -145,6 +145,10 @@ model User {
   withdrawalLogs  UserWithdrawalLog[]
   wallets         Wallet[]
   pointHistories  PointHistory[]
+  attendances     Attendance[]
+  userMissions    UserMission[]
+  userAchievements UserAchievement[]
+  rankingSnapshots RankingSnapshot[]
 
   @@map("users")
 }
@@ -405,4 +409,191 @@ model PointExpiryBatch {
 
   @@index([targetDate])
   @@map("point_expiry_batches")
+}
+
+// ════════════════════════════════════════════════════════════════
+// Phase18-3-2: 리워드 관리 (05_Admin_System_Design.md §3.3) — 2차 소단위
+// 04A 도메인D(출석/미션/업적/랭킹) 8개 테이블 전체를 구현한다.
+// [범위 결정] 05§3.3의 나머지 4개 화면을 구현(절대원칙④·⑤ 소단위개발):
+//  5) 출석 보상 규칙 설정 (attendance_reward_rules) — attendances는 조회용 이력으로 함께 노출
+//  6) 미션 관리 (missions CRUD + user_missions 진행현황 조회)
+//  7) 업적 관리 (achievements CRUD, user_achievements는 조회용으로 함께 노출)
+//  8) 랭킹 시즌 관리 (ranking_snapshots 조회 + ranking_rewards 보상 설정)
+// 08§3.2 라우트매핑표 기준으로 3개 라우트에 분산 구현:
+//  - /reward/missions      → 출석보상규칙설정 + 미션관리 (둘 다 "행동 기반 보상" 성격이라 통합)
+//  - /reward/achievements  → 업적관리
+//  - /reward/ranking       → 랭킹시즌관리
+// attendances(D-1)/user_missions(D-4)/user_achievements(D-6)/ranking_snapshots(D-7)는
+// 회원 활동 결과 "조회" 대상이므로, Phase18-3의 point_histories 조회 화면과 동일하게
+// 조회 전용으로 노출하고 CUD Server Action은 만들지 않는다(회원 앱에서 발생하는 이벤트).
+// ════════════════════════════════════════════════════════════════
+
+// ── 04A D-1: attendances (Append-only 성격, UQ(user_id,attend_date)) ──
+model Attendance {
+  id             Int       @id @default(autoincrement())
+  userId         Int       @map("user_id")
+  attendDate     DateTime  @map("attend_date")
+  streakCount    Int       @default(1) @map("streak_count")
+  rewardPoint    Int       @default(0) @map("reward_point")
+  bonusItemType  String?   @map("bonus_item_type")
+  bonusItemId    Int?      @map("bonus_item_id")
+  status         String    @default("active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+  createdBy      String?   @map("created_by")
+  updatedBy      String?   @map("updated_by")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, attendDate])
+  @@map("attendances")
+}
+
+// ── 04A D-2: attendance_reward_rules (※Base 포함, UQ(streak_day)) ──
+model AttendanceRewardRule {
+  id             Int       @id @default(autoincrement())
+  streakDay      Int       @unique @map("streak_day")
+  rewardPoint    Int       @default(0) @map("reward_point")
+  bonusItemType  String?   @map("bonus_item_type")
+  bonusItemId    Int?      @map("bonus_item_id")
+  status         String    @default("active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+  createdBy      String?   @map("created_by")
+  updatedBy      String?   @map("updated_by")
+
+  @@map("attendance_reward_rules")
+}
+
+// ── 04A D-3: missions (※Base 포함) ──
+model Mission {
+  id             Int       @id @default(autoincrement())
+  title          String
+  actionType     String    @map("action_type")
+  targetCount    Int       @default(1) @map("target_count")
+  rewardPoint    Int       @default(0) @map("reward_point")
+  rewardItemType String?   @map("reward_item_type")
+  rewardItemId   Int?      @map("reward_item_id")
+  periodType     String    @map("period_type") // daily/weekly/achievement
+  startAt        DateTime? @map("start_at")
+  endAt          DateTime? @map("end_at")
+  isActive       Boolean   @default(true) @map("is_active")
+  status         String    @default("active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+  createdBy      String?   @map("created_by")
+  updatedBy      String?   @map("updated_by")
+
+  userMissions UserMission[]
+
+  @@index([periodType, isActive])
+  @@map("missions")
+}
+
+// ── 04A D-4: user_missions (※Base 포함, UQ(user_id,mission_id)) ──
+model UserMission {
+  id             Int       @id @default(autoincrement())
+  userId         Int       @map("user_id")
+  missionId      Int       @map("mission_id")
+  progressCount  Int       @default(0) @map("progress_count")
+  status         String    @default("in_progress") // in_progress/completed/claimed
+  claimedAt      DateTime? @map("claimed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+  createdBy      String?   @map("created_by")
+  updatedBy      String?   @map("updated_by")
+
+  user    User    @relation(fields: [userId], references: [id])
+  mission Mission @relation(fields: [missionId], references: [id])
+
+  @@unique([userId, missionId])
+  @@index([status])
+  @@map("user_missions")
+}
+
+// ── 04A D-5: achievements (마스터, ※Base 포함) ──
+model Achievement {
+  id               Int       @id @default(autoincrement())
+  code             String    @unique
+  title            String
+  conditionType    String    @map("condition_type")
+  conditionValue   String    @map("condition_value") // JSON 문자열(조건 파라미터)
+  rewardPoint      Int       @default(0) @map("reward_point")
+  badgeImageFileId Int?      @map("badge_image_file_id") // 04A상 files.id FK, 로컬DB에서는 참조ID만 보관
+  status           String    @default("active")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+  createdBy        String?   @map("created_by")
+  updatedBy        String?   @map("updated_by")
+
+  userAchievements UserAchievement[]
+
+  @@map("achievements")
+}
+
+// ── 04A D-6: user_achievements (※Base 포함, UQ(user_id,achievement_id)) ──
+model UserAchievement {
+  id            Int       @id @default(autoincrement())
+  userId        Int       @map("user_id")
+  achievementId Int       @map("achievement_id")
+  achievedAt    DateTime  @default(now()) @map("achieved_at")
+  status        String    @default("active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+  createdBy     String?   @map("created_by")
+  updatedBy     String?   @map("updated_by")
+
+  user        User        @relation(fields: [userId], references: [id])
+  achievement Achievement @relation(fields: [achievementId], references: [id])
+
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
+}
+
+// ── 04A D-7: ranking_snapshots (※Base 포함, UQ(ranking_type,period,user_id)) ──
+model RankingSnapshot {
+  id          Int       @id @default(autoincrement())
+  rankingType String    @map("ranking_type") // point/attendance/community_like 등
+  period      String    // 예: 2025-W07, 2025-03
+  userId      Int       @map("user_id")
+  rank        Int
+  score       Int
+  status      String    @default("active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+  createdBy   String?   @map("created_by")
+  updatedBy   String?   @map("updated_by")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([rankingType, period, userId])
+  @@index([rankingType, period, rank])
+  @@map("ranking_snapshots")
+}
+
+// ── 04A D-8: ranking_rewards (※Base 포함) ──
+model RankingReward {
+  id             Int       @id @default(autoincrement())
+  rankingType    String    @map("ranking_type")
+  rankRangeMin   Int       @map("rank_range_min")
+  rankRangeMax   Int       @map("rank_range_max")
+  rewardPoint    Int       @default(0) @map("reward_point")
+  rewardItemType String?   @map("reward_item_type")
+  rewardItemId   Int?      @map("reward_item_id")
+  status         String    @default("active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+  createdBy      String?   @map("created_by")
+  updatedBy      String?   @map("updated_by")
+
+  @@index([rankingType])
+  @@map("ranking_rewards")
 }
