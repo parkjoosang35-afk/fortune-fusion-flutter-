@@ -119,4 +119,17 @@ class AuthProvider extends ChangeNotifier {
     _currentGrade = null;
     notifyListeners();
   }
+
+  /// Phase2-3: 회원탈퇴(소프트삭제) - 02번 §1.1
+  Future<bool> withdraw() async {
+    final email = currentUser?.email;
+    final result = await _repository.withdrawAccount(email);
+    if (result.success) {
+      _state = const LoadState.initial();
+      _currentGrade = null;
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
 }

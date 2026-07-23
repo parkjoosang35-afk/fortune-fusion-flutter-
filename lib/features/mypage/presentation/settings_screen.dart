@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/theme_provider.dart';
+import '../../../core/widgets/app_dialog.dart';
+import '../../../core/widgets/app_toast.dart';
+import '../../auth/application/auth_provider.dart';
 
 /// 07단계 §10 다크모드 설계 - 마이페이지 설정 화면(테마 전환)
 /// ThemeMode.system(기본값) / light / dark 3단 선택, 선택값은 shared_preferences에 저장되어 유지됨.
@@ -51,10 +54,60 @@ class SettingsScreen extends StatelessWidget {
                 ],
               ),
             ),
+            const SizedBox(height: AppSpacing.xxl),
+            Text('계정', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: AppSpacing.sm),
+            Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardTheme.color,
+                borderRadius: BorderRadius.circular(AppRadius.card),
+              ),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(AppRadius.card),
+                onTap: () => _confirmWithdraw(context),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: AppSpacing.lg,
+                    vertical: AppSpacing.md,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.person_remove_outlined,
+                        color: AppColors.error,
+                      ),
+                      SizedBox(width: AppSpacing.md),
+                      Text('회원탈퇴', style: TextStyle(color: AppColors.error)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  /// Phase2-3: 02번 §1.1 회원탈퇴(소프트삭제) - 확인 다이얼로그 → 탈퇴 처리 → 로그인화면 이동
+  Future<void> _confirmWithdraw(BuildContext context) async {
+    final confirmed = await showAppConfirmDialog(
+      context,
+      title: '회원탈퇴',
+      message: '탈퇴 시 계정 정보와 이용 내역이 모두 삭제되며 복구할 수 없습니다.\n정말 탈퇴하시겠어요?',
+      confirmLabel: '탈퇴하기',
+      isDanger: true,
+    );
+    if (!confirmed || !context.mounted) return;
+
+    final ok = await context.read<AuthProvider>().withdraw();
+    if (!context.mounted) return;
+
+    if (ok) {
+      Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+    } else {
+      AppToast.show(context, '탈퇴 처리에 실패했습니다.', isError: true);
+    }
   }
 }
 

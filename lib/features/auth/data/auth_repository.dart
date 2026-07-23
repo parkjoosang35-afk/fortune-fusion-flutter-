@@ -93,6 +93,20 @@ class AuthRepository {
     await prefs.remove(_kTokenKey);
   }
 
+  /// Phase2-3: 02번 §1.1 "회원탈퇴(소프트 삭제)" — Mock에서는 가입 이메일 목록에서
+  /// 제거(재가입 가능 상태로 되돌림)하고 로컬 세션을 삭제한다.
+  /// 실제 API 연동 시 `DELETE /v1/users/me` → users.status='withdrawn' + 개인정보 파기 배치로 대체.
+  Future<ApiResult<void>> withdrawAccount(String? email) async {
+    await mockDelay(ms: 400);
+    if (email != null) {
+      _registeredEmails.remove(email);
+    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_kUserKey);
+    await prefs.remove(_kTokenKey);
+    return ApiResult.ok(null);
+  }
+
   Future<void> _persistSession(UserModel user) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kUserKey, jsonEncode(user.toJson()));
