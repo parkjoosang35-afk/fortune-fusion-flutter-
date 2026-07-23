@@ -167,6 +167,10 @@ model User {
   matchingLikesReceived MatchingLike[]      @relation("MatchingLikeTo")
   matchingPairsAsA      MatchingPair[]      @relation("MatchingPairA")
   matchingPairsAsB      MatchingPair[]      @relation("MatchingPairB")
+  friendsAsUser         Friend[]            @relation("FriendAsUser")
+  friendsAsFriend       Friend[]            @relation("FriendAsFriend")
+  followersOf           Follow[]            @relation("FollowFollowing") // 나를 팔로우하는 관계(내가 following)
+  followingOf           Follow[]            @relation("FollowFollower") // 내가 팔로우하는 관계(내가 follower)
 
   @@map("users")
 }
@@ -1466,4 +1470,58 @@ model MatchingPair {
 
   @@unique([userAId, userBId])
   @@map("matching_pairs")
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 05§3.6 "매칭/궁합 관리" — 3차 소단위: M-4/M-5 친구/팔로우 모니터링
+//   (friends, follows, "선택, 조회 전용" 명시 → Server Action 없이 조회
+//   전용 페이지만 구현. matching_likes/matching_pairs 2차 소단위와 동일
+//   원칙 적용)
+// [M-4 friends] UQ(user_id,friend_user_id) 조합, 동일 User 모델 양방향
+//   참조이므로 Prisma 네이밍된 관계 필요(user/friendUser).
+//   [핵심 차이점] 이전 소단위들(matching_profiles/matching_likes/
+//   matching_pairs)의 status 컬럼은 "관리자 액션 기록용"으로 Base 표준
+//   컬럼을 재사용(예: active/deactivated_by_admin)한 것이었으나, M-4의
+//   status는 04A에 이미 실제 애플리케이션 레벨의 친구관계 상태값
+//   (requested/accepted/blocked)으로 명시되어 있어 별도 재정의가
+//   필요 없다(원칙② 설계충돌 방지 — 04A 원본 의미 그대로 사용).
+// [M-5 follows] UQ(follower_id,following_id) 조합, 동일 User 모델
+//   양방향 참조이므로 Prisma 네이밍된 관계 필요(follower/following).
+//   04A에 status 사용값이 별도 명시되어 있지 않으므로 Base 기본값
+//   "active"를 그대로 사용한다(단순 팔로우 관계 — unfollow는 레코드
+//   삭제 또는 deletedAt 처리로 표현될 것으로 예상, 관리자는 조회만).
+model Friend {
+  id           Int       @id @default(autoincrement())
+  userId       Int       @map("user_id")
+  friendUserId Int       @map("friend_user_id")
+  status       String    @default("requested") // requested/accepted/blocked (04A 명시, 실제 관계상태)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+  createdBy    String?   @map("created_by")
+  updatedBy    String?   @map("updated_by")
+
+  user       User @relation("FriendAsUser", fields: [userId], references: [id])
+  friendUser User @relation("FriendAsFriend", fields: [friendUserId], references: [id])
+
+  @@unique([userId, friendUserId])
+  @@map("friends")
+}
+
+model Follow {
+  id          Int       @id @default(autoincrement())
+  followerId  Int       @map("follower_id")
+  followingId Int       @map("following_id")
+  status      String    @default("active") // 04A 별도 명시 없음 — Base 기본값 그대로 사용
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+  createdBy   String?   @map("created_by")
+  updatedBy   String?   @map("updated_by")
+
+  follower  User @relation("FollowFollower", fields: [followerId], references: [id])
+  following User @relation("FollowFollowing", fields: [followingId], references: [id])
+
+  @@unique([followerId, followingId])
+  @@map("follows")
 }
