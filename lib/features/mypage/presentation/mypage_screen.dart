@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../auth/application/auth_provider.dart';
+import '../../auth/domain/grade_model.dart';
 
 /// 03단계 §3.3 마이 탭 - MyPageScreen(프로필/히스토리/설정)
 class MyPageScreen extends StatelessWidget {
@@ -41,9 +42,17 @@ class MyPageScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          user?.nickname ?? '게스트',
-                          style: Theme.of(context).textTheme.titleLarge,
+                        Row(
+                          children: [
+                            Text(
+                              user?.nickname ?? '게스트',
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            if (auth.currentGrade != null) ...[
+                              const SizedBox(width: AppSpacing.sm),
+                              _GradeBadge(grade: auth.currentGrade!),
+                            ],
+                          ],
                         ),
                         const SizedBox(height: 2),
                         Text(
@@ -109,6 +118,46 @@ class MyPageScreen extends StatelessWidget {
               child: const Text('로그아웃'),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Phase2-1: 04A §A-5 `user_grades` 등급 배지 - 마이페이지 프로필 카드에 노출
+class _GradeBadge extends StatelessWidget {
+  final GradeModel grade;
+
+  const _GradeBadge({required this.grade});
+
+  Color get _color {
+    switch (grade.code) {
+      case 'vip':
+        return AppColors.secondaryDark;
+      case 'gold':
+        return AppColors.secondary;
+      case 'silver':
+        return AppColors.textSecondary;
+      default:
+        return AppColors.primaryLight;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: _color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(AppRadius.full),
+        border: Border.all(color: _color.withValues(alpha: 0.4)),
+      ),
+      child: Text(
+        grade.name,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: _color,
         ),
       ),
     );
