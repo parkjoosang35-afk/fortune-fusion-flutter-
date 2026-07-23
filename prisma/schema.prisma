@@ -17,15 +17,15 @@ datasource db {
 
 // ── 04A B-2: admin_roles (마스터) ──────────────────────────────
 model AdminRole {
-  id        Int      @id @default(autoincrement())
-  code      String   @unique // super_admin / operator / cs / content_manager
+  id        Int       @id @default(autoincrement())
+  code      String    @unique // super_admin / operator / cs / content_manager
   name      String
-  status    String   @default("active")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  status    String    @default("active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
-  createdBy String?  @map("created_by")
-  updatedBy String?  @map("updated_by")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
 
   adminUsers  AdminUser[]
   permissions AdminPermission[]
@@ -35,18 +35,18 @@ model AdminRole {
 
 // ── 04A B-3: admin_permissions ─────────────────────────────────
 model AdminPermission {
-  id        Int      @id @default(autoincrement())
-  roleId    Int      @map("role_id")
-  menuCode  String   @map("menu_code")
-  canRead   Boolean  @default(false) @map("can_read")
-  canWrite  Boolean  @default(false) @map("can_write")
-  canDelete Boolean  @default(false) @map("can_delete")
-  status    String   @default("active")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id        Int       @id @default(autoincrement())
+  roleId    Int       @map("role_id")
+  menuCode  String    @map("menu_code")
+  canRead   Boolean   @default(false) @map("can_read")
+  canWrite  Boolean   @default(false) @map("can_write")
+  canDelete Boolean   @default(false) @map("can_delete")
+  status    String    @default("active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
-  createdBy String?  @map("created_by")
-  updatedBy String?  @map("updated_by")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
 
   role AdminRole @relation(fields: [roleId], references: [id])
 
@@ -56,33 +56,33 @@ model AdminPermission {
 
 // ── 04A B-1: admin_users ───────────────────────────────────────
 model AdminUser {
-  id            Int       @id @default(autoincrement())
-  email         String    @unique
-  passwordHash  String    @map("password_hash")
-  name          String
-  roleId        Int       @map("role_id")
-  is2faEnabled  Boolean   @default(false) @map("is_2fa_enabled")
-  lastLoginAt   DateTime? @map("last_login_at")
-  status        String    @default("active")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
-  deletedAt     DateTime? @map("deleted_at")
-  createdBy     String?   @map("created_by")
-  updatedBy     String?   @map("updated_by")
+  id           Int       @id @default(autoincrement())
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  name         String
+  roleId       Int       @map("role_id")
+  is2faEnabled Boolean   @default(false) @map("is_2fa_enabled")
+  lastLoginAt  DateTime? @map("last_login_at")
+  status       String    @default("active")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+  createdBy    String?   @map("created_by")
+  updatedBy    String?   @map("updated_by")
 
-  role       AdminRole       @relation(fields: [roleId], references: [id])
-  loginLogs  AdminLoginLog[]
+  role      AdminRole       @relation(fields: [roleId], references: [id])
+  loginLogs AdminLoginLog[]
 
   @@map("admin_users")
 }
 
 // ── 04A B-4: admin_login_logs (Append-only) ────────────────────
 model AdminLoginLog {
-  id           Int      @id @default(autoincrement())
-  adminUserId  Int      @map("admin_user_id")
-  ipAddress    String   @map("ip_address")
-  successFlag  Boolean  @map("success_flag")
-  createdAt    DateTime @default(now()) @map("created_at")
+  id          Int      @id @default(autoincrement())
+  adminUserId Int      @map("admin_user_id")
+  ipAddress   String   @map("ip_address")
+  successFlag Boolean  @map("success_flag")
+  createdAt   DateTime @default(now()) @map("created_at")
 
   adminUser AdminUser @relation(fields: [adminUserId], references: [id])
 
@@ -101,18 +101,18 @@ model AdminLoginLog {
 
 // ── 04A A-5: user_grades (마스터) ───────────────────────────────
 model UserGrade {
-  id                  Int      @id @default(autoincrement())
-  code                String   @unique // bronze/silver/gold/vip
+  id                  Int       @id @default(autoincrement())
+  code                String    @unique // bronze/silver/gold/vip
   name                String
-  minActivityScore    Int      @default(0) @map("min_activity_score")
-  pointEarnMultiplier Float    @default(1.0) @map("point_earn_multiplier")
-  sortOrder           Int      @default(0) @map("sort_order")
-  status              String   @default("active")
-  createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @updatedAt @map("updated_at")
+  minActivityScore    Int       @default(0) @map("min_activity_score")
+  pointEarnMultiplier Float     @default(1.0) @map("point_earn_multiplier")
+  sortOrder           Int       @default(0) @map("sort_order")
+  status              String    @default("active")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
   deletedAt           DateTime? @map("deleted_at")
-  createdBy           String?  @map("created_by")
-  updatedBy           String?  @map("updated_by")
+  createdBy           String?   @map("created_by")
+  updatedBy           String?   @map("updated_by")
 
   users User[]
 
@@ -121,32 +121,32 @@ model UserGrade {
 
 // ── 04A A-1: users ───────────────────────────────────────────────
 model User {
-  id                Int       @id @default(autoincrement())
-  email             String?   @unique
-  phone             String?   @unique
-  passwordHash      String?   @map("password_hash")
-  nickname          String    @unique
-  gender            String?
-  status            String    @default("active") // active/suspended/withdrawn
-  withdrawalReason  String?   @map("withdrawal_reason")
-  lastLoginAt       DateTime? @map("last_login_at")
-  signupChannel     String    @default("app") @map("signup_channel")
-  marketingAgreed   Boolean   @default(false) @map("marketing_agreed")
-  gradeId           Int?      @map("grade_id")
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
-  deletedAt         DateTime? @map("deleted_at")
-  createdBy         String?   @map("created_by")
-  updatedBy         String?   @map("updated_by")
+  id               Int       @id @default(autoincrement())
+  email            String?   @unique
+  phone            String?   @unique
+  passwordHash     String?   @map("password_hash")
+  nickname         String    @unique
+  gender           String?
+  status           String    @default("active") // active/suspended/withdrawn
+  withdrawalReason String?   @map("withdrawal_reason")
+  lastLoginAt      DateTime? @map("last_login_at")
+  signupChannel    String    @default("app") @map("signup_channel")
+  marketingAgreed  Boolean   @default(false) @map("marketing_agreed")
+  gradeId          Int?      @map("grade_id")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+  createdBy        String?   @map("created_by")
+  updatedBy        String?   @map("updated_by")
 
-  grade           UserGrade?        @relation(fields: [gradeId], references: [id])
-  profile         UserProfile?
-  loginLogs       UserLoginLog[]
-  withdrawalLogs  UserWithdrawalLog[]
-  wallets         Wallet[]
-  pointHistories  PointHistory[]
-  attendances     Attendance[]
-  userMissions    UserMission[]
+  grade            UserGrade?          @relation(fields: [gradeId], references: [id])
+  profile          UserProfile?
+  loginLogs        UserLoginLog[]
+  withdrawalLogs   UserWithdrawalLog[]
+  wallets          Wallet[]
+  pointHistories   PointHistory[]
+  attendances      Attendance[]
+  userMissions     UserMission[]
   userAchievements UserAchievement[]
   rankingSnapshots RankingSnapshot[]
 
@@ -155,20 +155,20 @@ model User {
 
 // ── 04A A-2: user_profiles (1:1) ────────────────────────────────
 model UserProfile {
-  id            Int       @id @default(autoincrement())
-  userId        Int       @unique @map("user_id")
-  birthDate     String?   @map("birth_date") // 민감정보(암호화 대상), 로컬 개발단계에서는 평문 문자열로 보관
-  birthTime     String?   @map("birth_time")
-  isLunar       Boolean   @default(false) @map("is_lunar")
-  birthPlace    String?   @map("birth_place")
-  mbti          String?
-  introText     String?   @map("intro_text")
-  status        String    @default("active")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
-  deletedAt     DateTime? @map("deleted_at")
-  createdBy     String?   @map("created_by")
-  updatedBy     String?   @map("updated_by")
+  id         Int       @id @default(autoincrement())
+  userId     Int       @unique @map("user_id")
+  birthDate  String?   @map("birth_date") // 민감정보(암호화 대상), 로컬 개발단계에서는 평문 문자열로 보관
+  birthTime  String?   @map("birth_time")
+  isLunar    Boolean   @default(false) @map("is_lunar")
+  birthPlace String?   @map("birth_place")
+  mbti       String?
+  introText  String?   @map("intro_text")
+  status     String    @default("active")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+  createdBy  String?   @map("created_by")
+  updatedBy  String?   @map("updated_by")
 
   user User @relation(fields: [userId], references: [id])
 
@@ -194,12 +194,12 @@ model UserLoginLog {
 
 // ── 04A A-11: user_withdrawal_logs (Append-only) ────────────────
 model UserWithdrawalLog {
-  id                     Int       @id @default(autoincrement())
-  userId                 Int       @map("user_id")
-  reason                 String?
-  requestedAt            DateTime  @default(now()) @map("requested_at")
-  dataPurgeScheduledAt   DateTime  @map("data_purge_scheduled_at")
-  dataPurgedAt           DateTime? @map("data_purged_at")
+  id                   Int       @id @default(autoincrement())
+  userId               Int       @map("user_id")
+  reason               String?
+  requestedAt          DateTime  @default(now()) @map("requested_at")
+  dataPurgeScheduledAt DateTime  @map("data_purge_scheduled_at")
+  dataPurgedAt         DateTime? @map("data_purged_at")
 
   user User @relation(fields: [userId], references: [id])
 
@@ -213,11 +213,11 @@ model OperationLog {
   id         Int      @id @default(autoincrement())
   actorType  String   @map("actor_type") // admin/user/system
   actorId    Int?     @map("actor_id")
-  action     String   // create/update/delete/status_change 등
+  action     String // create/update/delete/status_change 등
   targetType String   @map("target_type") // 폴리모픽: user/ai_prompt_template/tarot_card 등
   targetId   Int?     @map("target_id")
-  before     String?  // JSON 문자열(변경 전 스냅샷)
-  after      String?  // JSON 문자열(변경 후 스냅샷)
+  before     String? // JSON 문자열(변경 전 스냅샷)
+  after      String? // JSON 문자열(변경 후 스냅샷)
   createdAt  DateTime @default(now()) @map("created_at")
 
   @@index([actorType, actorId, createdAt])
@@ -240,17 +240,17 @@ model OperationLog {
 
 // ── 04A G-3: ai_prompt_templates (버전 증가, 덮어쓰기 금지) ─────
 model AiPromptTemplate {
-  id                    Int       @id @default(autoincrement())
-  fortuneTypeOrDomain   String    @map("fortune_type_or_domain") // saju/daily/tarot/face/palm/consultation/compatibility
-  version               Int
-  templateBody          String    @map("template_body")
-  isActive              Boolean   @default(false) @map("is_active")
-  status                String    @default("active")
-  createdAt             DateTime  @default(now()) @map("created_at")
-  updatedAt             DateTime  @updatedAt @map("updated_at")
-  deletedAt             DateTime? @map("deleted_at")
-  createdBy             String?   @map("created_by")
-  updatedBy             String?   @map("updated_by")
+  id                  Int       @id @default(autoincrement())
+  fortuneTypeOrDomain String    @map("fortune_type_or_domain") // saju/daily/tarot/face/palm/consultation/compatibility
+  version             Int
+  templateBody        String    @map("template_body")
+  isActive            Boolean   @default(false) @map("is_active")
+  status              String    @default("active")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  deletedAt           DateTime? @map("deleted_at")
+  createdBy           String?   @map("created_by")
+  updatedBy           String?   @map("updated_by")
 
   @@index([fortuneTypeOrDomain, isActive])
   @@map("ai_prompt_templates")
@@ -258,15 +258,15 @@ model AiPromptTemplate {
 
 // ── 04A G-4: ai_request_logs (Append-only) ─────────────────────
 model AiRequestLog {
-  id            Int       @id @default(autoincrement())
-  domain        String    // saju/tarot/face/palm/consultation/compatibility
-  requestRefId  Int?      @map("request_ref_id")
-  aiModel       String    @map("ai_model")
-  latencyMs     Int?      @map("latency_ms")
-  tokenUsage    Int?      @map("token_usage")
-  costEstimate  Float?    @map("cost_estimate")
-  status        String    // success/failed/timeout
-  createdAt     DateTime  @default(now()) @map("created_at")
+  id           Int      @id @default(autoincrement())
+  domain       String // saju/tarot/face/palm/consultation/compatibility
+  requestRefId Int?     @map("request_ref_id")
+  aiModel      String   @map("ai_model")
+  latencyMs    Int?     @map("latency_ms")
+  tokenUsage   Int?     @map("token_usage")
+  costEstimate Float?   @map("cost_estimate")
+  status       String // success/failed/timeout
+  createdAt    DateTime @default(now()) @map("created_at")
 
   @@index([domain, createdAt])
   @@map("ai_request_logs")
@@ -274,19 +274,19 @@ model AiRequestLog {
 
 // ── 04A E-5: tarot_cards (마스터) ───────────────────────────────
 model TarotCard {
-  id               Int       @id @default(autoincrement())
-  name             String    @unique
-  imageUrl         String?   @map("image_url") // 04A상 files.id FK지만 이번 로컬DB에서는 URL 문자열로 단순화
-  uprightMeaning   String    @map("upright_meaning")
-  reversedMeaning  String    @map("reversed_meaning")
-  arcanaType       String    @map("arcana_type") // major/minor
-  sortOrder        Int       @default(0) @map("sort_order")
-  status           String    @default("active")
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
-  deletedAt        DateTime? @map("deleted_at")
-  createdBy        String?   @map("created_by")
-  updatedBy        String?   @map("updated_by")
+  id              Int       @id @default(autoincrement())
+  name            String    @unique
+  imageUrl        String?   @map("image_url") // 04A상 files.id FK지만 이번 로컬DB에서는 URL 문자열로 단순화
+  uprightMeaning  String    @map("upright_meaning")
+  reversedMeaning String    @map("reversed_meaning")
+  arcanaType      String    @map("arcana_type") // major/minor
+  sortOrder       Int       @default(0) @map("sort_order")
+  status          String    @default("active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+  createdBy       String?   @map("created_by")
+  updatedBy       String?   @map("updated_by")
 
   @@index([arcanaType])
   @@map("tarot_cards")
@@ -294,17 +294,17 @@ model TarotCard {
 
 // ── 04A E-6: tarot_spreads (마스터) ─────────────────────────────
 model TarotSpread {
-  id           Int       @id @default(autoincrement())
-  name         String    @unique
-  cardCount    Int       @map("card_count")
-  isPremium    Boolean   @default(false) @map("is_premium")
-  layoutMeta   String    @map("layout_meta") // JSON 문자열: 카드 배치 좌표/의미 매핑
-  status       String    @default("active")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
-  deletedAt    DateTime? @map("deleted_at")
-  createdBy    String?   @map("created_by")
-  updatedBy    String?   @map("updated_by")
+  id         Int       @id @default(autoincrement())
+  name       String    @unique
+  cardCount  Int       @map("card_count")
+  isPremium  Boolean   @default(false) @map("is_premium")
+  layoutMeta String    @map("layout_meta") // JSON 문자열: 카드 배치 좌표/의미 매핑
+  status     String    @default("active")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+  createdBy  String?   @map("created_by")
+  updatedBy  String?   @map("updated_by")
 
   @@map("tarot_spreads")
 }
@@ -341,20 +341,20 @@ model TarotSpread {
 
 // ── 04A C-1: wallets ─────────────────────────────────────────────
 model Wallet {
-  id               Int       @id @default(autoincrement())
-  userId           Int       @map("user_id")
-  currencyType     String    @default("POINT") @map("currency_type")
-  balance          Int       @default(0) @map("balance") // 원장 합계 캐시값(파생) — 직접 UPDATE 금지, WalletService만 갱신
-  balanceSyncedAt  DateTime? @map("balance_synced_at")
-  status           String    @default("active")
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
-  deletedAt        DateTime? @map("deleted_at")
-  createdBy        String?   @map("created_by")
-  updatedBy        String?   @map("updated_by")
+  id              Int       @id @default(autoincrement())
+  userId          Int       @map("user_id")
+  currencyType    String    @default("POINT") @map("currency_type")
+  balance         Int       @default(0) @map("balance") // 원장 합계 캐시값(파생) — 직접 UPDATE 금지, WalletService만 갱신
+  balanceSyncedAt DateTime? @map("balance_synced_at")
+  status          String    @default("active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+  createdBy       String?   @map("created_by")
+  updatedBy       String?   @map("updated_by")
 
-  user       User          @relation(fields: [userId], references: [id])
-  histories  PointHistory[]
+  user      User           @relation(fields: [userId], references: [id])
+  histories PointHistory[]
 
   @@unique([userId, currencyType])
   @@map("wallets")
@@ -362,17 +362,17 @@ model Wallet {
 
 // ── 04A C-2: point_histories (Append-only) ────────────────────────
 model PointHistory {
-  id            Int       @id @default(autoincrement())
-  walletId      Int       @map("wallet_id")
-  userId        Int       @map("user_id")
-  amount        Int       // +적립/-차감
-  type          String    // earn/spend
-  sourceType    String    @map("source_type") // attendance/mission/community/event/purchase/admin_adjust/refund/expire/ai_saju_request 등
-  sourceId      Int?      @map("source_id")
-  balanceAfter  Int       @map("balance_after") // 처리 후 잔액(스냅샷)
-  expireAt      DateTime? @map("expire_at")
-  memo          String?   // 관리자 수동조정 시 사유 등
-  createdAt     DateTime  @default(now()) @map("created_at")
+  id           Int       @id @default(autoincrement())
+  walletId     Int       @map("wallet_id")
+  userId       Int       @map("user_id")
+  amount       Int // +적립/-차감
+  type         String // earn/spend
+  sourceType   String    @map("source_type") // attendance/mission/community/event/purchase/admin_adjust/refund/expire/ai_saju_request 등
+  sourceId     Int?      @map("source_id")
+  balanceAfter Int       @map("balance_after") // 처리 후 잔액(스냅샷)
+  expireAt     DateTime? @map("expire_at")
+  memo         String? // 관리자 수동조정 시 사유 등
+  createdAt    DateTime  @default(now()) @map("created_at")
 
   wallet Wallet @relation(fields: [walletId], references: [id])
   user   User   @relation(fields: [userId], references: [id])
@@ -384,28 +384,28 @@ model PointHistory {
 
 // ── 04A C-3: point_policies ───────────────────────────────────────
 model PointPolicy {
-  id         Int      @id @default(autoincrement())
-  sourceType String   @unique @map("source_type")
-  amount     Int      @default(0) // 기본 지급/차감액(양수로 저장, 방향은 sourceType으로 판별)
-  dailyLimit Int?     @map("daily_limit") // 1일 최대 지급 횟수/무료 횟수
-  isActive   Boolean  @default(true) @map("is_active")
-  status     String   @default("active")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  id         Int       @id @default(autoincrement())
+  sourceType String    @unique @map("source_type")
+  amount     Int       @default(0) // 기본 지급/차감액(양수로 저장, 방향은 sourceType으로 판별)
+  dailyLimit Int?      @map("daily_limit") // 1일 최대 지급 횟수/무료 횟수
+  isActive   Boolean   @default(true) @map("is_active")
+  status     String    @default("active")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
   deletedAt  DateTime? @map("deleted_at")
-  createdBy  String?  @map("created_by")
-  updatedBy  String?  @map("updated_by")
+  createdBy  String?   @map("created_by")
+  updatedBy  String?   @map("updated_by")
 
   @@map("point_policies")
 }
 
 // ── 04A C-4: point_expiry_batches (Append-only, 배치 실행 이력) ──
 model PointExpiryBatch {
-  id                   Int      @id @default(autoincrement())
-  targetDate           DateTime @map("target_date")
-  expiredAmountTotal   Int      @default(0) @map("expired_amount_total")
-  processedUserCount   Int      @default(0) @map("processed_user_count")
-  createdAt            DateTime @default(now()) @map("created_at")
+  id                 Int      @id @default(autoincrement())
+  targetDate         DateTime @map("target_date")
+  expiredAmountTotal Int      @default(0) @map("expired_amount_total")
+  processedUserCount Int      @default(0) @map("processed_user_count")
+  createdAt          DateTime @default(now()) @map("created_at")
 
   @@index([targetDate])
   @@map("point_expiry_batches")
@@ -430,19 +430,19 @@ model PointExpiryBatch {
 
 // ── 04A D-1: attendances (Append-only 성격, UQ(user_id,attend_date)) ──
 model Attendance {
-  id             Int       @id @default(autoincrement())
-  userId         Int       @map("user_id")
-  attendDate     DateTime  @map("attend_date")
-  streakCount    Int       @default(1) @map("streak_count")
-  rewardPoint    Int       @default(0) @map("reward_point")
-  bonusItemType  String?   @map("bonus_item_type")
-  bonusItemId    Int?      @map("bonus_item_id")
-  status         String    @default("active")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
-  deletedAt      DateTime? @map("deleted_at")
-  createdBy      String?   @map("created_by")
-  updatedBy      String?   @map("updated_by")
+  id            Int       @id @default(autoincrement())
+  userId        Int       @map("user_id")
+  attendDate    DateTime  @map("attend_date")
+  streakCount   Int       @default(1) @map("streak_count")
+  rewardPoint   Int       @default(0) @map("reward_point")
+  bonusItemType String?   @map("bonus_item_type")
+  bonusItemId   Int?      @map("bonus_item_id")
+  status        String    @default("active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+  createdBy     String?   @map("created_by")
+  updatedBy     String?   @map("updated_by")
 
   user User @relation(fields: [userId], references: [id])
 
@@ -452,17 +452,17 @@ model Attendance {
 
 // ── 04A D-2: attendance_reward_rules (※Base 포함, UQ(streak_day)) ──
 model AttendanceRewardRule {
-  id             Int       @id @default(autoincrement())
-  streakDay      Int       @unique @map("streak_day")
-  rewardPoint    Int       @default(0) @map("reward_point")
-  bonusItemType  String?   @map("bonus_item_type")
-  bonusItemId    Int?      @map("bonus_item_id")
-  status         String    @default("active")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
-  deletedAt      DateTime? @map("deleted_at")
-  createdBy      String?   @map("created_by")
-  updatedBy      String?   @map("updated_by")
+  id            Int       @id @default(autoincrement())
+  streakDay     Int       @unique @map("streak_day")
+  rewardPoint   Int       @default(0) @map("reward_point")
+  bonusItemType String?   @map("bonus_item_type")
+  bonusItemId   Int?      @map("bonus_item_id")
+  status        String    @default("active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+  createdBy     String?   @map("created_by")
+  updatedBy     String?   @map("updated_by")
 
   @@map("attendance_reward_rules")
 }
@@ -495,17 +495,17 @@ model Mission {
 
 // ── 04A D-4: user_missions (※Base 포함, UQ(user_id,mission_id)) ──
 model UserMission {
-  id             Int       @id @default(autoincrement())
-  userId         Int       @map("user_id")
-  missionId      Int       @map("mission_id")
-  progressCount  Int       @default(0) @map("progress_count")
-  status         String    @default("in_progress") // in_progress/completed/claimed
-  claimedAt      DateTime? @map("claimed_at")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
-  deletedAt      DateTime? @map("deleted_at")
-  createdBy      String?   @map("created_by")
-  updatedBy      String?   @map("updated_by")
+  id            Int       @id @default(autoincrement())
+  userId        Int       @map("user_id")
+  missionId     Int       @map("mission_id")
+  progressCount Int       @default(0) @map("progress_count")
+  status        String    @default("in_progress") // in_progress/completed/claimed
+  claimedAt     DateTime? @map("claimed_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+  createdBy     String?   @map("created_by")
+  updatedBy     String?   @map("updated_by")
 
   user    User    @relation(fields: [userId], references: [id])
   mission Mission @relation(fields: [missionId], references: [id])
@@ -560,7 +560,7 @@ model UserAchievement {
 model RankingSnapshot {
   id          Int       @id @default(autoincrement())
   rankingType String    @map("ranking_type") // point/attendance/community_like 등
-  period      String    // 예: 2025-W07, 2025-03
+  period      String // 예: 2025-W07, 2025-03
   userId      Int       @map("user_id")
   rank        Int
   score       Int
@@ -626,4 +626,50 @@ model RankingReward {
 
   @@index([rankingType])
   @@map("ranking_rewards")
+}
+
+// ── 04A H-2: amulet_grades (마스터, ※Base 포함) ──
+// 05_Admin_System_Design.md §3.4 "상점 관리" — 디지털부적 상품 관리 1단계(등급 마스터 + 상품)
+model AmuletGrade {
+  id        Int       @id @default(autoincrement())
+  code      String    @unique // common/rare/heroic/legendary
+  name      String
+  sortOrder Int       @default(0) @map("sort_order")
+  status    String    @default("active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
+
+  amuletItems AmuletItem[]
+
+  @@map("amulet_grades")
+}
+
+// ── 04A H-1: amulet_items (※Base 포함) ──
+// [스코프 결정] image_file_id(04A 원본, files.id FK)는 TarotCard.imageUrl/Achievement.badgeImageFileId
+// 전례와 동일하게 로컬DB에서는 files 테이블 없이 image_url 문자열로 단순화.
+// user_amulets 등 지급/보유 이력(H-3~H-6)은 회원 활동 결과 데이터이므로 이번 1단계 범위에서 제외
+// (missions 화면의 user_missions 조회전용 패턴과 동일하게 다음 소단위에서 추가 예정).
+model AmuletItem {
+  id                Int       @id @default(autoincrement())
+  name              String
+  gradeId           Int       @map("grade_id")
+  effectDescription String    @map("effect_description")
+  imageUrl          String?   @map("image_url")
+  isAiGenerated     Boolean   @default(false) @map("is_ai_generated")
+  pricePoint        Int       @default(0) @map("price_point")
+  isLimited         Boolean   @default(false) @map("is_limited")
+  status            String    @default("active")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  deletedAt         DateTime? @map("deleted_at")
+  createdBy         String?   @map("created_by")
+  updatedBy         String?   @map("updated_by")
+
+  grade AmuletGrade @relation(fields: [gradeId], references: [id])
+
+  @@index([gradeId])
+  @@map("amulet_items")
 }
