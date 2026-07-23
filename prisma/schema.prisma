@@ -174,6 +174,7 @@ model User {
   sentChatMessages              ChatMessage[]          @relation("ChatMessageSender")
   compatibilityRequestsSent     CompatibilityRequest[] @relation("CompatibilityRequestRequester")
   compatibilityRequestsTargeted CompatibilityRequest[] @relation("CompatibilityRequestTarget")
+  payments                      Payment[]
 
   @@map("users")
 }
@@ -1686,4 +1687,53 @@ model CompatibilityResult {
   request CompatibilityRequest @relation(fields: [requestId], references: [id])
 
   @@map("compatibility_results")
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 05§3.7 "결제/구독 관리" — 1차 소단위: K-1 결제 내역 조회 (payments)
+// ══════════════════════════════════════════════════════════════════
+
+// ── 04A K-1: payments (※Base 포함, ⚠️삭제 절대 금지 원칙, 파티션 대상) ──
+// [범위 결정] 05§3.7 화면 스펙: "결제 내역 조회 | payments — 조회 전용,
+//   삭제 버튼 자체를 UI에서 제공하지 않음(04A K도메인 '삭제 절대 금지'
+//   원칙의 UI 레벨 강제)". 04A 원문 절대원칙 3번("결제/포인트는 관리자
+//   화면에서도 직접 수정 절대 금지 — 조회 전용 + '조정 요청'은 반드시
+//   별도 이력 레코드 생성 방식으로만 허용")과 정확히 일치하므로, 이번
+//   소단위는 Server Action을 전혀 두지 않는다(원칙② 설계충돌 방지 —
+//   두 문서 모두 "조회 전용"을 강하게 명시, 애매함 없음).
+// [deleted_at 미사용 원칙] 04A 명시: "deleted_at 컬럼은 존재하되
+//   애플리케이션 레벨에서 사용 금지(정책적 무시)". Base 표준 컬럼
+//   세트를 그대로 두되(deletedAt 필드는 존재), 조회 로직에서
+//   `where: { deletedAt: null }` 필터를 절대 사용하지 않는다(다른 모든
+//   소단위와 다른 유일한 예외 — soft delete 자체가 이 테이블에는
+//   존재하지 않는 정책). 소프트 삭제 자체가 봉인된 필드이므로 UI에서도
+//   삭제 버튼을 제공하지 않는다(이미 원칙에서 명시).
+// [order_type 화이트리스트] 04A 명시 4종: subscription/giftcard/amulet/
+//   luckybag. order_ref_id는 폴리모픽 참조(user_subscriptions.id 등)이나
+//   04A가 FK 제약을 명시하지 않았으므로(타입별로 참조 테이블이 다름)
+//   Prisma 관계 없이 순수 Int? 컬럼으로만 둔다(폴리모픽 관계는 04A의
+//   다른 폴리모픽 테이블들(reports/likes/comments)과 동일 원칙 재사용).
+// [pg_tx_id UQ] PG사 거래ID 중복 방지(멱등성 보장).
+// [status 사용값] 04A 명시: paid/failed/cancelled.
+model Payment {
+  id           Int       @id @default(autoincrement())
+  userId       Int       @map("user_id")
+  orderType    String    @map("order_type") // subscription/giftcard/amulet/luckybag (04A 명시 화이트리스트)
+  orderRefId   Int?      @map("order_ref_id") // 폴리모픽 참조(user_subscriptions.id 등) — FK 미설정(대상 테이블이 타입별로 다름)
+  amount       Int
+  currencyCode String    @default("KRW") @map("currency_code")
+  pgProvider   String    @map("pg_provider") // toss/iamport 등
+  pgTxId       String    @unique @map("pg_tx_id")
+  status       String    @default("paid") // paid/failed/cancelled (04A 명시)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at") // ⚠️04A 명시: 애플리케이션 레벨에서 사용 금지(정책적 무시) — 조회 필터에 절대 사용하지 않음
+  createdBy    String?   @map("created_by")
+  updatedBy    String?   @map("updated_by")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([orderType])
+  @@map("payments")
 }

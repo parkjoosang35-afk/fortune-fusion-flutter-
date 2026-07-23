@@ -35,7 +35,7 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
   { code: "shop", label: "상점 관리", path: "/shop/amulets", icon: "Store" },
   { code: "community", label: "커뮤니티 관리", path: "/community/posts", icon: "MessageSquare" },
   { code: "matching", label: "매칭/궁합 관리", path: "/matching/profiles", icon: "Heart" },
-  { code: "payments", label: "결제/구독 관리", path: "/payments", icon: "CreditCard" },
+  { code: "payments", label: "결제/구독 관리", path: "/payments/list", icon: "CreditCard" },
   { code: "cms", label: "CMS", path: "/cms/banners", icon: "FileText" },
   { code: "notifications", label: "알림 관리", path: "/notifications/templates", icon: "Bell" },
   { code: "ops_security", label: "운영/보안", path: "/admin-users", icon: "ShieldCheck" },
