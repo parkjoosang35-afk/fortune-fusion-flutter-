@@ -161,6 +161,7 @@ model User {
   wishes              Wish[]
   comments            Comment[]
   reportsSubmitted    Report[]            @relation("ReportReporter")
+  likes               Like[]
 
   @@map("users")
 }
@@ -1292,4 +1293,41 @@ model Report {
   @@index([targetType, targetId])
   @@index([status])
   @@map("reports")
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 05§3.5 "커뮤니티 관리" — 4차 소단위: L-5 좋아요 통계(likes, 폴리모픽)
+// ══════════════════════════════════════════════════════════════════
+
+// ── 04A L-5: likes (폴리모픽, ※Base 포함, UQ(target_type,target_id,user_id)) ──
+// [범위 결정] 05§3.5 화면 스펙: "좋아요 통계 | likes(폴리모픽) 집계 조회(어뷰징
+//   패턴 탐지용)". comments(L-4)/reports(L-6)와 달리 CUD 기능이 전혀 명시되지
+//   않고 "집계 조회"만 명시되어 있으므로(좋아요 등록/취소는 회원 앱 전용 기능),
+//   원칙⑤(소단위 개발)에 따라 이번 소단위는 Server Action 없이 순수 읽기 전용
+//   페이지만 구현한다(reward/ranking의 "조회 전용" 섹션 패턴과 동일).
+// [target_type 화이트리스트] 04A 명시대로 post/wish/comment 3종만 사용한다
+//   (reports의 화이트리스트와 달리 user/fortune_result는 대상이 아님 — 좋아요는
+//   콘텐츠에 대한 반응이므로 회원 자체에는 적용되지 않는 개념).
+// [status 컬럼] 04A Base 표준컬럼에 포함되나, likes는 UQ(target_type,target_id,
+//   user_id) 제약과 "누르기/취소" 토글 특성상 회원 앱에서 행 자체를 delete하는
+//   것이 자연스러운 도메인이다(04A에 별도 status 사용값 명시 없음). 관리자 화면은
+//   "집계 조회"만 다루므로 status 필드는 Base 표준대로 유지하되(기본값 active)
+//   실질적으로 사용하지 않는다(향후 회원 앱 구현 시 결정 필요 — 이번 스코프 밖).
+model Like {
+  id         Int       @id @default(autoincrement())
+  targetType String    @map("target_type") // post/wish/comment (화이트리스트, 위 설계결정 참조)
+  targetId   Int       @map("target_id")
+  userId     Int       @map("user_id")
+  status     String    @default("active")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+  createdBy  String?   @map("created_by")
+  updatedBy  String?   @map("updated_by")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([targetType, targetId, userId])
+  @@index([targetType, targetId])
+  @@map("likes")
 }

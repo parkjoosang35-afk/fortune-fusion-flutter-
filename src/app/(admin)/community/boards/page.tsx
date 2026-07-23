@@ -55,6 +55,9 @@ export default async function CommunityBoardsPage() {
           <Link href="/community/reports" className="px-3 py-2 text-slate-400 hover:text-white">
             신고
           </Link>
+          <Link href="/community/likes" className="px-3 py-2 text-slate-400 hover:text-white">
+            좋아요 통계
+          </Link>
         </nav>
       </div>
 

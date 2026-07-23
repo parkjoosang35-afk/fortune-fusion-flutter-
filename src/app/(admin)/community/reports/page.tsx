@@ -104,6 +104,9 @@ export default async function CommunityReportsPage() {
             댓글
           </Link>
           <span className="border-b-2 border-indigo-500 px-3 py-2 text-white">신고</span>
+          <Link href="/community/likes" className="px-3 py-2 text-slate-400 hover:text-white">
+            좋아요 통계
+          </Link>
         </nav>
       </div>
 
