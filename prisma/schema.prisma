@@ -2013,3 +2013,27 @@ model EventParticipation {
   @@unique([eventId, userId])
   @@map("event_participations")
 }
+
+// ══════════════════════════════════════════════════════════════════
+// 05§3.9 "알림 관리" — 1차 소단위: 알림 템플릿 관리 (notification_templates)
+// ══════════════════════════════════════════════════════════════════
+
+// ── 04A N-1: notification_templates (※Base 포함) ───────────────────
+// [범위 결정] 05§3.9 화면 스펙: "알림 템플릿 관리 | notification_templates
+//   CRUD(푸시/인앱 공용 템플릿)". 04A 명시 컬럼은 code(NN,UQ)/title(NN,
+//   VARCHAR100)/body(NN,VARCHAR500)/deep_link(Y)뿐이다. notices/faqs와
+//   동일한 CMS류 단순 CRUD 패턴을 재사용한다(원칙② 설계충돌 방지).
+model NotificationTemplate {
+  id        Int       @id @default(autoincrement())
+  code      String    @unique
+  title     String
+  body      String
+  deepLink  String?   @map("deep_link")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
+
+  @@map("notification_templates")
+}
