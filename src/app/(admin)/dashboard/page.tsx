@@ -6,13 +6,16 @@ import Link from "next/link";
 // Phase18-Dashboard 1차 소단위: 기존 04A 테이블(luckybag_open_logs/user_amulets/
 // giftcard_issues/wishes/matching_pairs/reports/error_logs/payments/point_histories/
 // statistics_snapshots/ai_request_logs)만으로 산출 가능한 위젯을 우선 구현한다.
+// Phase18-Dashboard 2차 소단위(FortuneCore-1 후속): 04A E-1(fortune_requests) 테이블이
+//   신규 추가되어, 🟢"지금 운세 보는 사람 수" 위젯을 fortune_requests.status="pending"
+//   카운트로 해소한다(요청 접수~AI응답 완료 전까지의 상태를 seed_fortune_core.ts에서
+//   금일 요청의 8%를 의도적으로 pending으로 시딩해 시연 가능하도록 구성함).
 // [범위 결정] §3.0.1의 10종 위젯 중 🔴현재 접속자 수(신규 실시간 세션 캐시 필요),
-//   🟢지금 운세 보는 사람 수 + 💬AI상담 진행 건수(fortune_requests/consultation_sessions
-//   테이블 자체가 schema.prisma에 아직 없음 — 04A 도메인 E/G 미구현) 3종은 이번
-//   소단위에서 데이터 소스가 없어 구현 불가하다. 화면 깨짐 방지 및 investigation
-//   투명성을 위해 "준비 중" 배지로 명시하고, 다음 소단위(04A 도메인 E/G 신규 테이블
-//   추가)에서 후속 구현한다. 나머지 7종은 기존 인덱스(created_at/status)만으로
-//   당일분 카운트/합계 쿼리이므로 신규 인덱스 없이 그대로 구현한다.
+//   💬AI상담 진행 건수(consultation_sessions 테이블 자체가 아직 없음 — 04A 도메인 G
+//   미구현) 2종은 이번 소단위에서도 데이터 소스가 없어 구현 불가하다. 화면 깨짐 방지 및
+//   투명성을 위해 "준비 중" 배지로 명시하고, 다음 소단위(04A 도메인 G 신규 테이블 추가)
+//   에서 후속 구현한다. 나머지 8종은 기존 인덱스(created_at/status)만으로 당일분
+//   카운트/합계 쿼리이므로 신규 인덱스 없이 그대로 구현한다.
 // [RBAC] §3.0.1 권한: super_admin/operator는 전체 위젯, cs/content_manager는
 //   매출·리워드 관련 위젯(🎁🎟📈)을 비노출 — RBAC_MATRIX.dashboard 자체는 4역할
 //   모두 read=true이므로, 위젯 단위 세부 노출은 이 페이지 내부에서 역할코드로 분기한다.
@@ -69,6 +72,7 @@ export default async function DashboardPage() {
     pointHistoryToday,
     snapshots14d,
     aiLogsToday,
+    fortuneRequestsPending,
   ] = await Promise.all([
     prisma.luckybagOpenLog.count({ where: { createdAt: { gte: today }, status: "completed" } }),
     prisma.userAmulet.count({ where: { acquiredAt: { gte: today } } }),
@@ -84,6 +88,7 @@ export default async function DashboardPage() {
       orderBy: { period: "desc" },
     }),
     prisma.aiRequestLog.findMany({ where: { createdAt: { gte: today } }, select: { domain: true, costEstimate: true } }),
+    prisma.fortuneRequest.count({ where: { status: "pending" } }),
   ]);
 
   const revenueToday = paymentsToday.reduce((s, p) => s + p.amount, 0);
@@ -127,15 +132,18 @@ export default async function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {/* 준비 중 위젯 3종 — 데이터 소스 부재(신규 세션캐시 / fortune_requests / consultation_sessions) */}
+          {/* 준비 중 위젯 2종 — 데이터 소스 부재(신규 세션캐시 / consultation_sessions) */}
           <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900/40 p-4">
             <p className="text-sm text-slate-500">🔴 현재 접속자 수</p>
             <p className="mt-2 text-xs text-amber-400">준비 중 — 실시간 세션 캐시 인프라 필요</p>
           </div>
-          <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900/40 p-4">
-            <p className="text-sm text-slate-500">🟢 지금 운세 보는 사람 수</p>
-            <p className="mt-2 text-xs text-amber-400">준비 중 — fortune_requests 테이블 미구현</p>
+
+          {/* 지금 운세 보는 사람 수 — fortune_requests.status="pending" 카운트 */}
+          <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+            <p className="text-sm text-slate-400">🟢 지금 운세 보는 사람 수</p>
+            <p className="mt-2 text-2xl font-bold text-white">{fortuneRequestsPending.toLocaleString()}명</p>
           </div>
+
           <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900/40 p-4">
             <p className="text-sm text-slate-500">💬 AI 상담 진행 건수</p>
             <p className="mt-2 text-xs text-amber-400">준비 중 — consultation_sessions 테이블 미구현</p>
