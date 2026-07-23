@@ -156,6 +156,8 @@ model User {
   luckybagOpenLogs    LuckybagOpenLog[]
   giftcardIssues      GiftcardIssue[]
   couponIssues        CouponIssue[]
+  communityPosts      CommunityPost[]
+  wishes              Wish[]
 
   @@map("users")
 }
@@ -1102,4 +1104,84 @@ model CouponIssue {
   @@index([userId, status])
   @@index([couponId])
   @@map("coupon_issues")
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 05§3.5 "커뮤니티 관리" — 1차 소단위: L-1/L-2/L-3 게시판/게시글/소원 관리
+// [범위 결정] 원칙⑤(소단위 개발): 05§3.5 6개 화면 중 "게시판 관리"(community_boards
+//   CRUD) + "게시글/소원 관리"(community_posts, wishes 목록/숨김/삭제) 2개 화면을
+//   1차 소단위로 함께 구현한다. 게시판이 있어야 게시글 관리 화면이 의미를 가지므로
+//   같은 소단위로 진행(상점관리 1차 소단위=amulet_grades+amulet_items 패턴과 동일).
+//   댓글(L-4)/신고처리(L-6)/좋아요통계(L-5)/파일관리(L-7)는 이후 소단위에서 순차 구현.
+// ══════════════════════════════════════════════════════════════════
+
+// ── 04A L-1: community_boards (마스터, ※Base 포함) ──
+model CommunityBoard {
+  id          Int       @id @default(autoincrement())
+  code        String    @unique // free/saju_share/tarot_share 등
+  name        String
+  description String?
+  sortOrder   Int       @default(0) @map("sort_order")
+  isPublic    Boolean   @default(true) @map("is_public")
+  status      String    @default("active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+  createdBy   String?   @map("created_by")
+  updatedBy   String?   @map("updated_by")
+
+  posts CommunityPost[]
+
+  @@map("community_boards")
+}
+
+// ── 04A L-2: community_posts (※Base 포함) ──
+// status(Base) 사용값: visible/blinded/deleted_by_admin
+// [스코프 결정] linked_fortune_result_id(04A 원본, fortune_results.id FK)는 fortune_results
+// 테이블이 이번 프로젝트 범위 밖(회원 앱 AI 운세 생성 도메인, Phase18-2 주석에서 이미 제외
+// 결정됨)이라 이번 소단위에서 함께 제외한다. like_count/comment_count는 04A 명시대로
+// 캐시(비정규화) 컬럼으로 스키마에는 유지하되, 실제 갱신 로직(likes/comments 연동)은
+// 각각 L-5/L-4 소단위에서 구현할 예정이므로 이번 단계에서는 0으로 고정.
+model CommunityPost {
+  id           Int       @id @default(autoincrement())
+  boardId      Int       @map("board_id")
+  userId       Int       @map("user_id")
+  title        String
+  content      String
+  likeCount    Int       @default(0) @map("like_count")
+  commentCount Int       @default(0) @map("comment_count")
+  isPinned     Boolean   @default(false) @map("is_pinned")
+  status       String    @default("visible")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+  createdBy    String?   @map("created_by")
+  updatedBy    String?   @map("updated_by")
+
+  board CommunityBoard @relation(fields: [boardId], references: [id])
+  user  User           @relation(fields: [userId], references: [id])
+
+  @@index([boardId, createdAt])
+  @@map("community_posts")
+}
+
+// ── 04A L-3: wishes (※Base 포함) ──
+model Wish {
+  id           Int       @id @default(autoincrement())
+  userId       Int       @map("user_id")
+  content      String
+  category     String // health/wealth/love/exam 등
+  isAnonymous  Boolean   @default(false) @map("is_anonymous")
+  supportCount Int       @default(0) @map("support_count")
+  status       String    @default("visible")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+  createdBy    String?   @map("created_by")
+  updatedBy    String?   @map("updated_by")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([category, createdAt])
+  @@map("wishes")
 }
