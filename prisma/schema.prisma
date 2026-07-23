@@ -1784,3 +1784,38 @@ model PaymentRefund {
   @@index([paymentId])
   @@map("payment_refunds")
 }
+
+// ══════════════════════════════════════════════════════════════════
+// 05§3.7 "결제/구독 관리" — 3차 소단위: K-3 구독 플랜 관리 (subscription_plans)
+// ══════════════════════════════════════════════════════════════════
+
+// ── 04A K-3: subscription_plans (※Base 포함) ───────────────────────
+// [범위 결정] 05§3.7 화면 스펙: "구독 플랜 관리 | subscription_plans
+//   CRUD(가격/기간/혜택)". K-1/K-2와 달리 이 화면은 §3.7에서 유일하게
+//   완전 CRUD(생성/수정/삭제 포함)가 명시되어 있다. RBAC_MATRIX.payments가
+//   이미 {super_admin: RWD, operator: R, cs: R, content_manager: X}로
+//   설정되어 있으므로(K-1 소단위 커밋에서 확인), 표준 canWriteMenu/
+//   canDeleteMenu(payments) 헬퍼를 그대로 사용한다(K-2의 canRequestRefund/
+//   canApproveRefund 같은 별도 예외 헬퍼 불필요 — operator는 CRUD 시도 시
+//   canWriteMenu가 자동으로 false를 반환하여 거부됨, 설계충돌 없음).
+// [period 화이트리스트] 04A 명시 2종: monthly/yearly.
+// [benefits JSONB] SQLite에는 JSONB가 없으므로 04A B계열 폴리모픽 처리
+//   전례(reports.before/after 등)와 동일하게 String으로 매핑하고
+//   애플리케이션 레벨에서 JSON.stringify/parse한다.
+// [is_active] 04A 명시: BOOLEAN NN default true, IDX.
+model SubscriptionPlan {
+  id        Int       @id @default(autoincrement())
+  name      String
+  price     Int
+  period    String // monthly/yearly (04A 명시 화이트리스트)
+  benefits  String // JSON 배열/객체 문자열(04A JSONB → SQLite String 매핑)
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
+
+  @@index([isActive])
+  @@map("subscription_plans")
+}
