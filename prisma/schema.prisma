@@ -140,7 +140,7 @@ model User {
   createdBy        String?   @map("created_by")
   updatedBy        String?   @map("updated_by")
 
-  grade                         UserGrade?             @relation(fields: [gradeId], references: [id])
+  grade                         UserGrade?               @relation(fields: [gradeId], references: [id])
   profile                       UserProfile?
   loginLogs                     UserLoginLog[]
   withdrawalLogs                UserWithdrawalLog[]
@@ -152,32 +152,34 @@ model User {
   rankingSnapshots              RankingSnapshot[]
   userAmulets                   UserAmulet[]
   amuletCollections             AmuletCollection[]
-  amuletGiftsSent               AmuletGift[]           @relation("AmuletGiftFrom")
-  amuletGiftsReceived           AmuletGift[]           @relation("AmuletGiftTo")
+  amuletGiftsSent               AmuletGift[]             @relation("AmuletGiftFrom")
+  amuletGiftsReceived           AmuletGift[]             @relation("AmuletGiftTo")
   luckybagOpenLogs              LuckybagOpenLog[]
   giftcardIssues                GiftcardIssue[]
   couponIssues                  CouponIssue[]
   communityPosts                CommunityPost[]
   wishes                        Wish[]
   comments                      Comment[]
-  reportsSubmitted              Report[]               @relation("ReportReporter")
+  reportsSubmitted              Report[]                 @relation("ReportReporter")
   likes                         Like[]
   matchingProfile               MatchingProfile?
-  matchingLikesSent             MatchingLike[]         @relation("MatchingLikeFrom")
-  matchingLikesReceived         MatchingLike[]         @relation("MatchingLikeTo")
-  matchingPairsAsA              MatchingPair[]         @relation("MatchingPairA")
-  matchingPairsAsB              MatchingPair[]         @relation("MatchingPairB")
-  friendsAsUser                 Friend[]               @relation("FriendAsUser")
-  friendsAsFriend               Friend[]               @relation("FriendAsFriend")
-  followersOf                   Follow[]               @relation("FollowFollowing") // 나를 팔로우하는 관계(내가 following)
-  followingOf                   Follow[]               @relation("FollowFollower") // 내가 팔로우하는 관계(내가 follower)
-  sentChatMessages              ChatMessage[]          @relation("ChatMessageSender")
-  compatibilityRequestsSent     CompatibilityRequest[] @relation("CompatibilityRequestRequester")
-  compatibilityRequestsTargeted CompatibilityRequest[] @relation("CompatibilityRequestTarget")
+  matchingLikesSent             MatchingLike[]           @relation("MatchingLikeFrom")
+  matchingLikesReceived         MatchingLike[]           @relation("MatchingLikeTo")
+  matchingPairsAsA              MatchingPair[]           @relation("MatchingPairA")
+  matchingPairsAsB              MatchingPair[]           @relation("MatchingPairB")
+  friendsAsUser                 Friend[]                 @relation("FriendAsUser")
+  friendsAsFriend               Friend[]                 @relation("FriendAsFriend")
+  followersOf                   Follow[]                 @relation("FollowFollowing") // 나를 팔로우하는 관계(내가 following)
+  followingOf                   Follow[]                 @relation("FollowFollower") // 내가 팔로우하는 관계(내가 follower)
+  sentChatMessages              ChatMessage[]            @relation("ChatMessageSender")
+  compatibilityRequestsSent     CompatibilityRequest[]   @relation("CompatibilityRequestRequester")
+  compatibilityRequestsTargeted CompatibilityRequest[]   @relation("CompatibilityRequestTarget")
   payments                      Payment[]
   userSubscriptions             UserSubscription[]
   eventParticipations           EventParticipation[]
   notifications                 Notification[]
+  notificationPreferences       NotificationPreference[]
+  pushTokens                    PushToken[]
 
   @@map("users")
 }
@@ -2073,4 +2075,51 @@ model Notification {
 
   @@index([userId, isRead])
   @@map("notifications")
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 05§3.9 "알림 관리" — 4차(마지막) 소단위: 발송 설정 현황
+//   (notification_preferences 집계, push_tokens 유효성 모니터링)
+// ══════════════════════════════════════════════════════════════════
+
+// ── 04A N-3: notification_preferences (※Base 포함, UQ(user_id,category)) ──
+// [범위 결정] 05§3.9 화면 스펙: "발송 설정 현황 | notification_preferences
+//   (회원별 수신동의) 집계, push_tokens 유효성 모니터링" — "집계"/"모니터링"만
+//   명시(CUD 없음). 회원 앱에서 본인이 직접 설정하는 값이므로 관리자는 조회만
+//   한다(원칙② 준수 — 04A에 관리자 CUD 스펙 없음).
+model NotificationPreference {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  category  String // marketing/fortune_update/matching/community (04A 명시 화이트리스트)
+  isEnabled Boolean   @default(true) @map("is_enabled")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, category])
+  @@map("notification_preferences")
+}
+
+// ── 04A N-4: push_tokens (※Base 포함, UQ(fcm_token)) ────────────────
+// [범위 결정] FCM 토큰은 회원 앱이 등록/갱신하는 값이며, 관리자는 플랫폼별
+//   분포/유효성만 모니터링한다(조회 전용, 원칙② 준수).
+model PushToken {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  fcmToken  String    @unique @map("fcm_token")
+  platform  String // android/ios/web (04A 명시 화이트리스트)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("push_tokens")
 }
