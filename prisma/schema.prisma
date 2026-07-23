@@ -1862,3 +1862,42 @@ model UserSubscription {
   @@index([currentPeriodEnd])
   @@map("user_subscriptions")
 }
+
+// ══════════════════════════════════════════════════════════════════
+// 05§3.8 "CMS" — 2차 소단위: 팝업 관리 (popups)
+// ══════════════════════════════════════════════════════════════════
+
+// ── 04A N-8: popups (※Base 포함) ────────────────────────────────────
+// [범위 결정] 05§3.8 화면 스펙: "팝업 관리 | popups CRUD(노출 조건,
+//   1회성/반복 설정)". 배너 관리(aa0fad2)에서 확립된 CMS 단순 CRUD 패턴을
+//   그대로 재사용한다. 배너와의 핵심 차이점:
+//   - image_file_id/link_url이 04A 명시상 nullable(배너는 image_file_id NN)
+//     → 텍스트 전용 팝업(공지성) 허용을 위해 imageUrl을 optional로 설계.
+//   - display_condition(JSONB) — 04A가 배너에서는 명시적으로 배제했던
+//     필드이나 팝업에는 명시되어 있음. SQLite JSONB 미지원이므로
+//     SubscriptionPlan.benefits와 동일한 전례(String + JSON.stringify/parse)
+//     를 적용한다. "1회성/반복 설정"은 05 화면기능 문구이며 04A 컬럼으로는
+//     display_condition JSON 내부에 {once: boolean, segment?: string} 형태로
+//     담아 표현한다(04A 컬럼 추가 없이 05 요구사항을 JSON 필드 내부 스키마로
+//     수용 — 원칙② 설계충돌 방지, 컬럼 신설 대신 기존 JSONB 컬럼 활용).
+// [start_at/end_at NN] 04A 명시: 배너와 달리 팝업은 두 컬럼 모두 NOT NULL
+//   (노출기간이 필수). is_active 컬럼은 04A에 없으나 배너 전례와 동일하게
+//   운영 편의를 위해 추가(soft delete와 별개의 노출 on/off 토글 용도).
+model Popup {
+  id               Int       @id @default(autoincrement())
+  title            String
+  imageUrl         String?   @map("image_url")
+  linkUrl          String?   @map("link_url")
+  displayCondition String?   @map("display_condition") // JSONB→String 매핑: {once, segment 등}
+  startAt          DateTime  @map("start_at")
+  endAt            DateTime  @map("end_at")
+  isActive         Boolean   @default(true) @map("is_active")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+  createdBy        String?   @map("created_by")
+  updatedBy        String?   @map("updated_by")
+
+  @@index([startAt, endAt])
+  @@map("popups")
+}
