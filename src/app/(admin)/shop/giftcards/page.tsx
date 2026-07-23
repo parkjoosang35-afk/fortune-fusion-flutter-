@@ -4,15 +4,17 @@ import { canAccessMenu, RBAC_MATRIX } from "@/lib/rbac";
 import { redirect } from "next/navigation";
 import GiftcardProductCreateForm from "@/components/GiftcardProductCreateForm";
 import GiftcardProductRow from "@/components/GiftcardProductRow";
+import GiftcardIssueActionCell from "@/components/GiftcardIssueActionCell";
 
 // 05_Admin_System_Design.md §3.4 "상점 관리" — 4차 소단위(도메인 J 1단계): 상품권 상품 관리
 // 04A J-1 giftcard_products CRUD(재고 stock_count 관리 포함).
 // 5차 소단위(도메인 J 2단계): 상품권 생명주기 조회 — 04A J-2~J-7
 //   (giftcard_issues/usages/cancels/refunds/reissues/expiry_logs) 조회 전용 통합.
-// [범위 결정] 원칙⑤(소단위 개발)에 따라 "조회"만 이번 단계에서 다룬다.
-//   05§3.4 "상품권 환불/재발급 처리"(2단계 확인 필수, 포인트 자동 복원 Server Action)는
-//   별도 화면으로 명시되어 있어 다음 소단위에서 구현한다. coupons/coupon_issues(J-8/J-9)도
-//   순서대로 다음 소단위에서 추가한다(08§3.2 라우트매핑: /shop/giftcards).
+// 6차 소단위(도메인 J 3단계): 상품권 환불/재발급 처리 — 2단계 확인 필수, 환불 시
+//   포인트 복원 로직은 시스템(WalletService 트랜잭션 패턴)이 자동 처리한다
+//   (관리자 수동 balance 수정 없음). GiftcardIssueActionCell(client)에서 처리.
+// [범위 결정] coupons/coupon_issues(J-8/J-9)는 다음 소단위에서 순서대로 추가한다
+//   (08§3.2 라우트매핑: /shop/giftcards).
 export const dynamic = "force-dynamic";
 
 const ISSUE_STATUS_LABEL: Record<string, { label: string; cls: string }> = {
@@ -93,7 +95,8 @@ export default async function ShopGiftcardsPage() {
         <h1 className="text-2xl font-bold text-white">상점 관리 — 상품권</h1>
         <p className="mt-1 text-sm text-slate-400">
           상품권(기프트카드) 상품을 등록/관리하고, 발급/사용/취소/환불/재발급/만료 등 생명주기
-          이력을 조회합니다. 환불/재발급 처리(쓰기)는 다음 소단위에서 추가됩니다.
+          이력을 조회합니다. 발급완료(미사용) 건은 발급 이력 표에서 환불/재발급 처리(2단계 확인
+          필수)를 할 수 있습니다.
         </p>
       </div>
 
@@ -136,7 +139,7 @@ export default async function ShopGiftcardsPage() {
       {/* 상품권 생명주기 조회 (조회 전용) */}
       <section className="mt-8">
         <h2 className="mb-3 text-lg font-semibold text-white">
-          상품권 발급 이력 (조회 전용, 최근 50건)
+          상품권 발급 이력 (최근 50건)
         </h2>
         <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
           <table className="w-full text-left text-sm">
@@ -150,12 +153,13 @@ export default async function ShopGiftcardsPage() {
                 <th className="px-4 py-3">사용여부</th>
                 <th className="px-4 py-3">발급 시각</th>
                 <th className="px-4 py-3">만료 시각</th>
+                <th className="px-4 py-3">처리</th>
               </tr>
             </thead>
             <tbody>
               {issues.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-10 text-center text-slate-500">
+                  <td colSpan={9} className="px-4 py-10 text-center text-slate-500">
                     발급 이력이 없습니다.
                   </td>
                 </tr>
@@ -165,6 +169,7 @@ export default async function ShopGiftcardsPage() {
                   label: iss.status,
                   cls: "bg-slate-800 text-slate-400",
                 };
+                const eligible = iss.status === "issued" && !iss.usage;
                 return (
                   <tr key={iss.id} className="border-b border-slate-800/60 hover:bg-slate-800/40">
                     <td className="px-4 py-3 text-slate-200">{iss.user.nickname}</td>
@@ -179,6 +184,14 @@ export default async function ShopGiftcardsPage() {
                     </td>
                     <td className="px-4 py-3 text-slate-500">{fmtDate(iss.issuedAt)}</td>
                     <td className="px-4 py-3 text-slate-500">{fmtDate(iss.expiresAt)}</td>
+                    <td className="px-4 py-3">
+                      <GiftcardIssueActionCell
+                        issueId={iss.id}
+                        pointSpent={iss.pointSpent}
+                        canWrite={canWrite}
+                        eligible={eligible}
+                      />
+                    </td>
                   </tr>
                 );
               })}
@@ -186,9 +199,10 @@ export default async function ShopGiftcardsPage() {
           </table>
         </div>
         <p className="mt-2 text-xs text-slate-500">
-          이 섹션은 조회 전용입니다. &quot;사용여부&quot;는 04A J-3 giftcard_usages(UQ issue_id) 레코드
-          존재로 판단하며, issue.status 자체는 requested/issued/failed/cancelled/expired만
-          사용합니다(사용완료는 별도 상태값이 아님).
+          &quot;사용여부&quot;는 04A J-3 giftcard_usages(UQ issue_id) 레코드 존재로 판단하며,
+          issue.status 자체는 requested/issued/failed/cancelled/expired만 사용합니다(사용완료는
+          별도 상태값이 아님). 환불/재발급 처리는 발급완료(issued) &amp; 미사용 건에 한해 2단계
+          확인 절차를 거쳐 실행됩니다.
         </p>
       </section>
 
@@ -316,8 +330,7 @@ export default async function ShopGiftcardsPage() {
           </table>
         </div>
         <p className="mt-2 text-xs text-slate-500">
-          Append-only 로그입니다(배치가 만료 처리 시 기록). 상품권 환불/재발급 &quot;처리&quot;(쓰기 액션)는
-          다음 소단위에서 2단계 확인 절차와 함께 구현됩니다.
+          Append-only 로그입니다(배치가 만료 처리 시 기록). 만료된 건은 환불/재발급 대상이 아닙니다.
         </p>
       </section>
     </div>
