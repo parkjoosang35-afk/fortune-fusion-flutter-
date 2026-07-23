@@ -208,7 +208,7 @@ model OperationLog {
   actorType  String   @map("actor_type") // admin/user/system
   actorId    Int?     @map("actor_id")
   action     String   // create/update/delete/status_change 등
-  targetType String   @map("target_type") // 폴리모픽: user 등
+  targetType String   @map("target_type") // 폴리모픽: user/ai_prompt_template/tarot_card 등
   targetId   Int?     @map("target_id")
   before     String?  // JSON 문자열(변경 전 스냅샷)
   after      String?  // JSON 문자열(변경 후 스냅샷)
@@ -216,4 +216,89 @@ model OperationLog {
 
   @@index([actorType, actorId, createdAt])
   @@map("operation_logs")
+}
+
+// ════════════════════════════════════════════════════════════════
+// Phase18-2: AI 콘텐츠 관리 (05_Admin_System_Design.md §3.2)
+// 04A 도메인G(AI 상담/로그/프롬프트) + 도메인E(타로 마스터)의 일부를 구현.
+// [범위 결정] 이번 단계에서는 아래 3개 화면만 구현한다(절대원칙④·⑤ 소단위개발):
+//  1) 프롬프트 템플릿 목록/버전이력/편집/배포 (ai_prompt_templates)
+//  2) AI 호출 로그/비용 대시보드 (ai_request_logs)
+//  3) 타로카드/스프레드 마스터 관리 (tarot_cards, tarot_spreads)
+// [범위 제외] A/B테스트 설정(05§3.2에 "선택기능, P2"로 명시), 무료/유료 정책 설정
+// (리워드관리 point_policies와 함께 다루는 것이 구조적으로 자연스러움, Phase18-3에서 검토),
+// 콘텐츠 신고 처리(reports는 커뮤니티관리 3.5와 공유하는 폴리모픽 테이블이라 통합 구현 예정).
+// fortune_requests/fortune_results 등 실제 AI 운세 생성 도메인(E-1~E-4,E-7~E-9)은
+// 회원 앱 기능 자체이며 관리자 화면 05§3.2 요구사항에 직접 쓰이지 않아 이번 범위에서 제외.
+// ════════════════════════════════════════════════════════════════
+
+// ── 04A G-3: ai_prompt_templates (버전 증가, 덮어쓰기 금지) ─────
+model AiPromptTemplate {
+  id                    Int       @id @default(autoincrement())
+  fortuneTypeOrDomain   String    @map("fortune_type_or_domain") // saju/daily/tarot/face/palm/consultation/compatibility
+  version               Int
+  templateBody          String    @map("template_body")
+  isActive              Boolean   @default(false) @map("is_active")
+  status                String    @default("active")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+  deletedAt             DateTime? @map("deleted_at")
+  createdBy             String?   @map("created_by")
+  updatedBy             String?   @map("updated_by")
+
+  @@index([fortuneTypeOrDomain, isActive])
+  @@map("ai_prompt_templates")
+}
+
+// ── 04A G-4: ai_request_logs (Append-only) ─────────────────────
+model AiRequestLog {
+  id            Int       @id @default(autoincrement())
+  domain        String    // saju/tarot/face/palm/consultation/compatibility
+  requestRefId  Int?      @map("request_ref_id")
+  aiModel       String    @map("ai_model")
+  latencyMs     Int?      @map("latency_ms")
+  tokenUsage    Int?      @map("token_usage")
+  costEstimate  Float?    @map("cost_estimate")
+  status        String    // success/failed/timeout
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  @@index([domain, createdAt])
+  @@map("ai_request_logs")
+}
+
+// ── 04A E-5: tarot_cards (마스터) ───────────────────────────────
+model TarotCard {
+  id               Int       @id @default(autoincrement())
+  name             String    @unique
+  imageUrl         String?   @map("image_url") // 04A상 files.id FK지만 이번 로컬DB에서는 URL 문자열로 단순화
+  uprightMeaning   String    @map("upright_meaning")
+  reversedMeaning  String    @map("reversed_meaning")
+  arcanaType       String    @map("arcana_type") // major/minor
+  sortOrder        Int       @default(0) @map("sort_order")
+  status           String    @default("active")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+  createdBy        String?   @map("created_by")
+  updatedBy        String?   @map("updated_by")
+
+  @@index([arcanaType])
+  @@map("tarot_cards")
+}
+
+// ── 04A E-6: tarot_spreads (마스터) ─────────────────────────────
+model TarotSpread {
+  id           Int       @id @default(autoincrement())
+  name         String    @unique
+  cardCount    Int       @map("card_count")
+  isPremium    Boolean   @default(false) @map("is_premium")
+  layoutMeta   String    @map("layout_meta") // JSON 문자열: 카드 배치 좌표/의미 매핑
+  status       String    @default("active")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+  createdBy    String?   @map("created_by")
+  updatedBy    String?   @map("updated_by")
+
+  @@map("tarot_spreads")
 }
