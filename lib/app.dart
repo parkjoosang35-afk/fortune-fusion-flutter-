@@ -35,6 +35,8 @@ import 'features/luckybag/application/luckybag_provider.dart';
 import 'features/luckybag/data/luckybag_repository.dart';
 import 'features/amulet/application/amulet_provider.dart';
 import 'features/amulet/data/amulet_repository.dart';
+import 'features/matching/application/matching_provider.dart';
+import 'features/matching/data/matching_repository.dart';
 
 /// 07단계 §2.1 앱 루트 - MultiProvider 전역 등록 + MaterialApp 라우팅 연결
 /// 10단계(A안): 모든 Repository는 Mock 구현이며, 향후 실제 API 연동 시
@@ -89,6 +91,9 @@ class App extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (_) => WishPostProvider(WishPostRepository()),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => MatchingProvider(MatchingRepository()),
         ),
       ],
       child: Consumer<ThemeProvider>(
