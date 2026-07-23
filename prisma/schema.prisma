@@ -2147,3 +2147,40 @@ model SystemSetting {
 
   @@map("system_settings")
 }
+
+// ══════════════════════════════════════════════════════════════════
+// 05§3.11 "시스템 설정" — 2차 소단위: 접근/에러 로그 조회
+// (access_logs, error_logs — 04A상 관리자 CUD 스펙 없음, 조회 전용)
+// ══════════════════════════════════════════════════════════════════
+
+// ── 04A O-3: access_logs (Append-only, 파티션 대상, 단기보관) ───────
+// [범위 결정] 05§3.11 화면 스펙: "접근/에러 로그 조회 | access_logs, error_logs
+//   조회(critical 필터)" — 조회만 명시(CUD 없음). admin_login_logs와 동일하게
+//   Append-only 특성상 updated_at/updated_by/deleted_at 컬럼 생략(04A 0장 예외 규정).
+model AccessLog {
+  id             Int      @id @default(autoincrement())
+  userId         Int?     @map("user_id")
+  ipAddress      String   @map("ip_address")
+  path           String
+  method         String
+  responseStatus Int      @map("response_status")
+  latencyMs      Int?     @map("latency_ms")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@map("access_logs")
+}
+
+// ── 04A O-4: error_logs (Append-only) ────────────────────────────────
+model ErrorLog {
+  id             Int      @id @default(autoincrement())
+  source         String // api/batch/ai
+  errorCode      String?  @map("error_code")
+  message        String
+  stackTraceRef  String?  @map("stack_trace_ref")
+  severity       String // info/warning/critical
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([source, severity, createdAt])
+  @@map("error_logs")
+}
