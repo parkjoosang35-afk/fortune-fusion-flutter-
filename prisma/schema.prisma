@@ -1927,3 +1927,28 @@ model Notice {
   @@index([isPinned, createdAt])
   @@map("notices")
 }
+
+// ══════════════════════════════════════════════════════════════════
+// 05§3.8 "CMS" — 4차 소단위: FAQ 관리 (faqs)
+// ══════════════════════════════════════════════════════════════════
+
+// ── 04A N-10: faqs (※Base 포함) ─────────────────────────────────────
+// [범위 결정] 05§3.8 화면 스펙: "FAQ 관리 | faqs CRUD(카테고리/정렬순서)".
+//   notices(4f71ca7)와 동일한 CMS 단순 CRUD 패턴을 재사용한다. 04A 명시
+//   컬럼은 category(NN,IDX)/question(NN)/answer(TEXT,NN)/sort_order(NN,
+//   default 0)뿐이다.
+model Faq {
+  id        Int       @id @default(autoincrement())
+  category  String
+  question  String
+  answer    String
+  sortOrder Int       @default(0) @map("sort_order")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
+
+  @@index([category])
+  @@map("faqs")
+}
