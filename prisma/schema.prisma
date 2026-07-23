@@ -140,38 +140,40 @@ model User {
   createdBy        String?   @map("created_by")
   updatedBy        String?   @map("updated_by")
 
-  grade                 UserGrade?          @relation(fields: [gradeId], references: [id])
-  profile               UserProfile?
-  loginLogs             UserLoginLog[]
-  withdrawalLogs        UserWithdrawalLog[]
-  wallets               Wallet[]
-  pointHistories        PointHistory[]
-  attendances           Attendance[]
-  userMissions          UserMission[]
-  userAchievements      UserAchievement[]
-  rankingSnapshots      RankingSnapshot[]
-  userAmulets           UserAmulet[]
-  amuletCollections     AmuletCollection[]
-  amuletGiftsSent       AmuletGift[]        @relation("AmuletGiftFrom")
-  amuletGiftsReceived   AmuletGift[]        @relation("AmuletGiftTo")
-  luckybagOpenLogs      LuckybagOpenLog[]
-  giftcardIssues        GiftcardIssue[]
-  couponIssues          CouponIssue[]
-  communityPosts        CommunityPost[]
-  wishes                Wish[]
-  comments              Comment[]
-  reportsSubmitted      Report[]            @relation("ReportReporter")
-  likes                 Like[]
-  matchingProfile       MatchingProfile?
-  matchingLikesSent     MatchingLike[]      @relation("MatchingLikeFrom")
-  matchingLikesReceived MatchingLike[]      @relation("MatchingLikeTo")
-  matchingPairsAsA      MatchingPair[]      @relation("MatchingPairA")
-  matchingPairsAsB      MatchingPair[]      @relation("MatchingPairB")
-  friendsAsUser         Friend[]            @relation("FriendAsUser")
-  friendsAsFriend       Friend[]            @relation("FriendAsFriend")
-  followersOf           Follow[]            @relation("FollowFollowing") // 나를 팔로우하는 관계(내가 following)
-  followingOf           Follow[]            @relation("FollowFollower") // 내가 팔로우하는 관계(내가 follower)
-  sentChatMessages      ChatMessage[]       @relation("ChatMessageSender")
+  grade                         UserGrade?             @relation(fields: [gradeId], references: [id])
+  profile                       UserProfile?
+  loginLogs                     UserLoginLog[]
+  withdrawalLogs                UserWithdrawalLog[]
+  wallets                       Wallet[]
+  pointHistories                PointHistory[]
+  attendances                   Attendance[]
+  userMissions                  UserMission[]
+  userAchievements              UserAchievement[]
+  rankingSnapshots              RankingSnapshot[]
+  userAmulets                   UserAmulet[]
+  amuletCollections             AmuletCollection[]
+  amuletGiftsSent               AmuletGift[]           @relation("AmuletGiftFrom")
+  amuletGiftsReceived           AmuletGift[]           @relation("AmuletGiftTo")
+  luckybagOpenLogs              LuckybagOpenLog[]
+  giftcardIssues                GiftcardIssue[]
+  couponIssues                  CouponIssue[]
+  communityPosts                CommunityPost[]
+  wishes                        Wish[]
+  comments                      Comment[]
+  reportsSubmitted              Report[]               @relation("ReportReporter")
+  likes                         Like[]
+  matchingProfile               MatchingProfile?
+  matchingLikesSent             MatchingLike[]         @relation("MatchingLikeFrom")
+  matchingLikesReceived         MatchingLike[]         @relation("MatchingLikeTo")
+  matchingPairsAsA              MatchingPair[]         @relation("MatchingPairA")
+  matchingPairsAsB              MatchingPair[]         @relation("MatchingPairB")
+  friendsAsUser                 Friend[]               @relation("FriendAsUser")
+  friendsAsFriend               Friend[]               @relation("FriendAsFriend")
+  followersOf                   Follow[]               @relation("FollowFollowing") // 나를 팔로우하는 관계(내가 following)
+  followingOf                   Follow[]               @relation("FollowFollower") // 내가 팔로우하는 관계(내가 follower)
+  sentChatMessages              ChatMessage[]          @relation("ChatMessageSender")
+  compatibilityRequestsSent     CompatibilityRequest[] @relation("CompatibilityRequestRequester")
+  compatibilityRequestsTargeted CompatibilityRequest[] @relation("CompatibilityRequestTarget")
 
   @@map("users")
 }
@@ -1626,4 +1628,62 @@ model CompatibilityFactorWeight {
   updatedBy  String?   @map("updated_by")
 
   @@map("compatibility_factor_weights")
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 05§3.6 "매칭/궁합 관리" — 6차(마지막) 소단위: F-1/F-2 궁합 요청/결과 통계
+//   (compatibility_requests, compatibility_results)
+// [범위 결정] 05§3.6 화면 스펙: "궁합 요청/결과 통계 | compatibility_requests,
+//   compatibility_results 집계" — "집계"만 명시(CUD 없음). 궁합 요청 생성/AI
+//   결과 산출 자체는 회원 앱 + AI 엔진 전용 기능이므로(이전 조회전용
+//   소단위들과 동일 원칙), Server Action 없이 순수 집계/조회 페이지만
+//   구현한다. 이것으로 §3.6 매칭/궁합 관리 전체 6개 화면이 완료된다.
+// [F-1 compatibility_requests] requester_user_id는 FK→users(NN), target_user_id는
+//   FK→users(Y, 상대가 회원인 경우만). target_input(JSONB, 비회원 상대 정보)은
+//   SQLite에 네이티브 JSONB가 없으므로 다른 JSON 컬럼들(MatchingProfile.
+//   preferences 등)과 동일하게 String(JSON 문자열)으로 매핑한다. type은
+//   04A 명시 화이트리스트 love/friend/business/family.
+// [F-2 compatibility_results] request_id는 FK→compatibility_requests.id,
+//   UQ(1:1 관계 — 요청 1건당 결과 최대 1건). score(INT, 0~100), detail은
+//   요소별(사주/mbti/관심사/가치관) 세부점수 JSONB → String(JSON 문자열)
+//   매핑(target_input과 동일 원칙).
+// [FK 방향] requester_user_id는 NN이므로 필수 관계, target_user_id는
+//   nullable이므로 optional 관계로 선언한다. 두 필드 모두 동일 User
+//   모델을 참조하므로 named relation 필요(requester/targetUser).
+model CompatibilityRequest {
+  id              Int       @id @default(autoincrement())
+  requesterUserId Int       @map("requester_user_id")
+  targetUserId    Int?      @map("target_user_id")
+  targetInput     String?   @map("target_input") // JSON 문자열: 비회원 상대 정보(이름/생년월일시 등, 최소수집)
+  type            String // love/friend/business/family (04A 명시)
+  status          String    @default("active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+  createdBy       String?   @map("created_by")
+  updatedBy       String?   @map("updated_by")
+
+  requester  User                 @relation("CompatibilityRequestRequester", fields: [requesterUserId], references: [id])
+  targetUser User?                @relation("CompatibilityRequestTarget", fields: [targetUserId], references: [id])
+  result     CompatibilityResult?
+
+  @@index([requesterUserId, createdAt])
+  @@map("compatibility_requests")
+}
+
+model CompatibilityResult {
+  id        Int       @id @default(autoincrement())
+  requestId Int       @unique @map("request_id")
+  score     Int // 0~100 (04A 명시)
+  detail    String // JSON 문자열: 요소별(사주/mbti/관심사/가치관) 세부 점수
+  status    String    @default("active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
+
+  request CompatibilityRequest @relation(fields: [requestId], references: [id])
+
+  @@map("compatibility_results")
 }
