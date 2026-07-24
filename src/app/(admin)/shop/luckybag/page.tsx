@@ -65,6 +65,8 @@ export default async function ShopLuckybagPage() {
       (probabilitySumByProduct.get(pool.luckybagProductId) ?? 0) + pool.probability
     );
   }
+  // ProbabilityEditor(클라이언트 컴포넌트)로 넘기기 위해 Map → plain object 변환
+  const probabilitySumRecord: Record<number, number> = Object.fromEntries(probabilitySumByProduct);
 
   const seasonOptions = seasons.map((s) => ({ id: s.id, name: s.name }));
   const productOptions = products.map((p) => ({ id: p.id, name: p.name }));
@@ -208,6 +210,7 @@ export default async function ShopLuckybagPage() {
           canWrite={canWrite}
           products={productOptions}
           grades={gradeOptions}
+          probabilitySumByProduct={probabilitySumRecord}
         />
         <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
           <table className="w-full text-left text-sm">
@@ -237,6 +240,7 @@ export default async function ShopLuckybagPage() {
                   grades={gradeOptions}
                   canWrite={canWrite}
                   canDelete={canDelete}
+                  probabilitySumByProduct={probabilitySumRecord}
                 />
               ))}
             </tbody>

@@ -10,6 +10,7 @@ import {
   type LuckybagFormState,
 } from "@/app/actions/luckybag";
 import ConfirmDangerDialog from "./ConfirmDangerDialog";
+import ProbabilityEditor from "./ProbabilityEditor";
 
 interface LuckybagRewardPoolRowProps {
   pool: {
@@ -24,6 +25,8 @@ interface LuckybagRewardPoolRowProps {
   grades: { id: number; name: string; code: string }[];
   canWrite: boolean;
   canDelete: boolean;
+  /** 08§3.4 ProbabilityEditor 실시간 검증용: 상품별 기존 확률 합계(%, 자기 자신 포함) */
+  probabilitySumByProduct: Record<number, number>;
 }
 
 const REWARD_TYPE_LABEL: Record<string, string> = {
@@ -41,6 +44,7 @@ export default function LuckybagRewardPoolRow({
   grades,
   canWrite,
   canDelete,
+  probabilitySumByProduct,
 }: LuckybagRewardPoolRowProps) {
   const [editing, setEditing] = useState(false);
   const [updateState, updateAction, updatePending] = useActionState(
@@ -55,6 +59,9 @@ export default function LuckybagRewardPoolRow({
   const productName = products.find((p) => p.id === pool.luckybagProductId)?.name ?? "-";
   const gradeName = grades.find((g) => g.id === pool.gradeId)?.name ?? "-";
   const [confirming, setConfirming] = useState(false);
+  // 08§3.4 ProbabilityEditor: 수정모드 진입 시 기존 값으로 초기화, 실시간 합계 검증용
+  const [editProductId, setEditProductId] = useState(pool.luckybagProductId);
+  const [editProbability, setEditProbability] = useState(String(pool.probability));
 
   if (editing) {
     return (
@@ -74,7 +81,8 @@ export default function LuckybagRewardPoolRow({
             <input type="hidden" name="id" value={pool.id} />
             <select
               name="luckybagProductId"
-              defaultValue={pool.luckybagProductId}
+              value={editProductId}
+              onChange={(e) => setEditProductId(Number(e.target.value))}
               className="rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
             >
               {products.map((p) => (
@@ -115,11 +123,20 @@ export default function LuckybagRewardPoolRow({
             <input
               type="number"
               name="probability"
-              defaultValue={pool.probability}
+              value={editProbability}
+              onChange={(e) => setEditProbability(e.target.value)}
               min={0.0001}
               max={100}
               step={0.0001}
               className="w-24 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+            />
+            <ProbabilityEditor
+              selectedProductId={editProductId}
+              probabilityInput={editProbability}
+              probabilitySumByProduct={probabilitySumByProduct}
+              excludeProductId={pool.luckybagProductId}
+              excludeAmount={pool.probability}
+              wrapperClassName="w-full"
             />
             <ConfirmDangerDialog
               confirming={confirming}
@@ -137,6 +154,8 @@ export default function LuckybagRewardPoolRow({
               onCancel={() => {
                 setEditing(false);
                 setConfirming(false);
+                setEditProductId(pool.luckybagProductId);
+                setEditProbability(String(pool.probability));
               }}
             />
             {updateState.error && <p className="w-full text-xs text-red-400">{updateState.error}</p>}

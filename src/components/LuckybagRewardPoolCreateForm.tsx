@@ -9,11 +9,14 @@
 import { useActionState, useRef, useState } from "react";
 import { createLuckybagRewardPool, type LuckybagFormState } from "@/app/actions/luckybag";
 import ConfirmDangerDialog from "./ConfirmDangerDialog";
+import ProbabilityEditor from "./ProbabilityEditor";
 
 interface LuckybagRewardPoolCreateFormProps {
   canWrite: boolean;
   products: { id: number; name: string }[];
   grades: { id: number; name: string; code: string }[];
+  /** 08§3.4 ProbabilityEditor 실시간 검증용: 상품별 기존 확률 합계(%) */
+  probabilitySumByProduct: Record<number, number>;
 }
 
 const REWARD_TYPES = [
@@ -29,10 +32,14 @@ export default function LuckybagRewardPoolCreateForm({
   canWrite,
   products,
   grades,
+  probabilitySumByProduct,
 }: LuckybagRewardPoolCreateFormProps) {
   const [state, formAction, pending] = useActionState(createLuckybagRewardPool, initialState);
   const formRef = useRef<HTMLFormElement>(null);
   const [confirming, setConfirming] = useState(false);
+  // 08§3.4 ProbabilityEditor: 실시간 합계 검증을 위한 입력값 추적(서버 액션 로직은 변경 없음)
+  const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
+  const [probabilityInput, setProbabilityInput] = useState("");
 
   if (!canWrite) return null;
 
@@ -50,6 +57,10 @@ export default function LuckybagRewardPoolCreateForm({
         await formAction(formData);
         formRef.current?.reset();
         setConfirming(false);
+        // probability는 value로 제어되는 controlled input이므로 form.reset()만으로는
+        // 초기화되지 않는다 — React state도 함께 리셋한다.
+        setSelectedProductId(null);
+        setProbabilityInput("");
       }}
       className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-800 bg-slate-900 p-4 md:grid-cols-6"
     >
@@ -60,6 +71,7 @@ export default function LuckybagRewardPoolCreateForm({
         name="luckybagProductId"
         required
         defaultValue=""
+        onChange={(e) => setSelectedProductId(e.target.value ? Number(e.target.value) : null)}
         className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 md:col-span-2"
       >
         <option value="" disabled>
@@ -113,7 +125,16 @@ export default function LuckybagRewardPoolCreateForm({
         max={100}
         step={0.0001}
         required
+        value={probabilityInput}
+        onChange={(e) => setProbabilityInput(e.target.value)}
         className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+      />
+
+      <ProbabilityEditor
+        selectedProductId={selectedProductId}
+        probabilityInput={probabilityInput}
+        probabilitySumByProduct={probabilitySumByProduct}
+        wrapperClassName="col-span-full"
       />
 
       {state.error && (
