@@ -10,12 +10,17 @@ import Link from "next/link";
 //   신규 추가되어, 🟢"지금 운세 보는 사람 수" 위젯을 fortune_requests.status="pending"
 //   카운트로 해소한다(요청 접수~AI응답 완료 전까지의 상태를 seed_fortune_core.ts에서
 //   금일 요청의 8%를 의도적으로 pending으로 시딩해 시연 가능하도록 구성함).
-// [범위 결정] §3.0.1의 10종 위젯 중 🔴현재 접속자 수(신규 실시간 세션 캐시 필요),
-//   💬AI상담 진행 건수(consultation_sessions 테이블 자체가 아직 없음 — 04A 도메인 G
-//   미구현) 2종은 이번 소단위에서도 데이터 소스가 없어 구현 불가하다. 화면 깨짐 방지 및
-//   투명성을 위해 "준비 중" 배지로 명시하고, 다음 소단위(04A 도메인 G 신규 테이블 추가)
-//   에서 후속 구현한다. 나머지 8종은 기존 인덱스(created_at/status)만으로 당일분
-//   카운트/합계 쿼리이므로 신규 인덱스 없이 그대로 구현한다.
+// Phase18-Dashboard 3차 소단위(Consultation-1 후속): 04A G-1(consultation_sessions)
+//   테이블이 신규 추가되어, 💬"AI 상담 진행 건수" 위젯을 consultation_sessions
+//   WHERE ended_at IS NULL 카운트로 해소한다(05§3.0.1 명시 산출 방식 그대로 적용).
+//   05§3.0.1 원문상 🟢 위젯의 데이터 소스는 fortune_requests + consultation_sessions
+//   (ended_at IS NULL) 두 테이블 합산으로 정의되어 있으므로, 🟢 위젯도 두 값의 합으로
+//   보정한다(💬 위젯과 데이터가 일부 중복되나, 05문서가 명시한 산출 방식 그대로임).
+// [범위 결정] §3.0.1의 10종 위젯 중 🔴현재 접속자 수(신규 실시간 세션 캐시 필요) 1종만
+//   이번 소단위에서도 데이터 소스가 없어 구현 불가하다. 화면 깨짐 방지 및 투명성을 위해
+//   "준비 중" 배지로 명시하고, 8절의 Redis 캐시 계층 도입 시 후속 구현한다. 나머지
+//   9종은 기존 인덱스(created_at/status)만으로 당일분 카운트/합계 쿼리이므로 신규
+//   인덱스 없이 그대로 구현한다.
 // [RBAC] §3.0.1 권한: super_admin/operator는 전체 위젯, cs/content_manager는
 //   매출·리워드 관련 위젯(🎁🎟📈)을 비노출 — RBAC_MATRIX.dashboard 자체는 4역할
 //   모두 read=true이므로, 위젯 단위 세부 노출은 이 페이지 내부에서 역할코드로 분기한다.
@@ -73,6 +78,7 @@ export default async function DashboardPage() {
     snapshots14d,
     aiLogsToday,
     fortuneRequestsPending,
+    consultationOngoing,
   ] = await Promise.all([
     prisma.luckybagOpenLog.count({ where: { createdAt: { gte: today }, status: "completed" } }),
     prisma.userAmulet.count({ where: { acquiredAt: { gte: today } } }),
@@ -89,7 +95,11 @@ export default async function DashboardPage() {
     }),
     prisma.aiRequestLog.findMany({ where: { createdAt: { gte: today } }, select: { domain: true, costEstimate: true } }),
     prisma.fortuneRequest.count({ where: { status: "pending" } }),
+    prisma.consultationSession.count({ where: { endedAt: null } }),
   ]);
+
+  // 05§3.0.1 🟢 위젯 산출 방식: fortune_requests(pending) + consultation_sessions(진행중) 합산
+  const nowViewingFortuneCount = fortuneRequestsPending + consultationOngoing;
 
   const revenueToday = paymentsToday.reduce((s, p) => s + p.amount, 0);
   const pointEarnedToday = pointHistoryToday.filter((h) => h.type === "earn").reduce((s, h) => s + h.amount, 0);
@@ -132,21 +142,22 @@ export default async function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {/* 준비 중 위젯 2종 — 데이터 소스 부재(신규 세션캐시 / consultation_sessions) */}
+          {/* 준비 중 위젯 1종 — 데이터 소스 부재(신규 실시간 세션 캐시) */}
           <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900/40 p-4">
             <p className="text-sm text-slate-500">🔴 현재 접속자 수</p>
             <p className="mt-2 text-xs text-amber-400">준비 중 — 실시간 세션 캐시 인프라 필요</p>
           </div>
 
-          {/* 지금 운세 보는 사람 수 — fortune_requests.status="pending" 카운트 */}
+          {/* 지금 운세 보는 사람 수 — fortune_requests.pending + consultation_sessions(진행중) 합산 */}
           <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
             <p className="text-sm text-slate-400">🟢 지금 운세 보는 사람 수</p>
-            <p className="mt-2 text-2xl font-bold text-white">{fortuneRequestsPending.toLocaleString()}명</p>
+            <p className="mt-2 text-2xl font-bold text-white">{nowViewingFortuneCount.toLocaleString()}명</p>
           </div>
 
-          <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900/40 p-4">
-            <p className="text-sm text-slate-500">💬 AI 상담 진행 건수</p>
-            <p className="mt-2 text-xs text-amber-400">준비 중 — consultation_sessions 테이블 미구현</p>
+          {/* AI 상담 진행 건수 — consultation_sessions WHERE ended_at IS NULL */}
+          <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+            <p className="text-sm text-slate-400">💬 AI 상담 진행 건수</p>
+            <p className="mt-2 text-2xl font-bold text-white">{consultationOngoing.toLocaleString()}건</p>
           </div>
 
           {/* 오늘 발급된 디지털 부적 */}

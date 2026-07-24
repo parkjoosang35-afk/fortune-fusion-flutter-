@@ -181,6 +181,7 @@ model User {
   notificationPreferences       NotificationPreference[]
   pushTokens                    PushToken[]
   fortuneRequests               FortuneRequest[]
+  consultationSessions          ConsultationSession[]
 
   @@map("users")
 }
@@ -364,6 +365,61 @@ model AiRequestLog {
 
   @@index([domain, createdAt])
   @@map("ai_request_logs")
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 04A 도메인 G "AI 상담" — G-1/G-2 신규 추가(Phase18-Consultation-1)
+// [범위 결정] 원칙⑤(소단위 개발): fortune_requests/results(E-1/E-2)와 동일한
+//   패턴으로, 05§3.0.1 💬"AI 상담 진행 건수" 라이브 위젯의 데이터 소스가
+//   schema.prisma에 없어 여전히 "준비 중" 상태였던 갭을 해소한다.
+//   05§3.2 "관련 04A 테이블"에 consultation_sessions/consultation_messages가
+//   나열되어 있으나, 독립된 CRUD 관리자 화면 스펙은 없음(E-1/E-2와 동일하게
+//   조회 전용 근거 데이터로만 명시됨) — 별도 화면은 만들지 않는다.
+// [소프트 삭제 없음] fortune_requests/results와 동일 사유로 deletedAt 컬럼은
+//   Base 표준 유지 차원에서 포함하되, 애플리케이션 레벨 CUD는 구현하지 않는다.
+// ════════════════════════════════════════════════════════════════════
+
+// ── 04A G-1: consultation_sessions (※Base 포함) ──
+model ConsultationSession {
+  id                Int       @id @default(autoincrement())
+  userId            Int       @map("user_id")
+  type              String // love/career/general/(향후)human_expert
+  startedAt         DateTime  @default(now()) @map("started_at")
+  endedAt           DateTime? @map("ended_at")
+  satisfactionScore Int?      @map("satisfaction_score") // 1~5
+  consentToStore    Boolean   @default(false) @map("consent_to_store")
+  status            String    @default("active")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  deletedAt         DateTime? @map("deleted_at")
+  createdBy         String?   @map("created_by")
+  updatedBy         String?   @map("updated_by")
+
+  user     User                  @relation(fields: [userId], references: [id])
+  messages ConsultationMessage[]
+
+  @@index([userId, createdAt])
+  @@map("consultation_sessions")
+}
+
+// ── 04A G-2: consultation_messages (※Base 포함, 파티션 대상) ──
+model ConsultationMessage {
+  id         Int       @id @default(autoincrement())
+  sessionId  Int       @map("session_id")
+  sender     String // user/ai
+  content    String
+  tokenCount Int?      @map("token_count")
+  status     String    @default("active")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+  createdBy  String?   @map("created_by")
+  updatedBy  String?   @map("updated_by")
+
+  session ConsultationSession @relation(fields: [sessionId], references: [id])
+
+  @@index([sessionId, createdAt])
+  @@map("consultation_messages")
 }
 
 // ── 04A E-5: tarot_cards (마스터) ───────────────────────────────
