@@ -8,6 +8,7 @@
 //   "1단계 확인 노출 → 2단계 최종 확인 시에만 실제 submit" 패턴만 추가한다(설계 충돌 없음).
 import { useActionState, useRef, useState } from "react";
 import { createLuckybagRewardPool, type LuckybagFormState } from "@/app/actions/luckybag";
+import ConfirmDangerDialog from "./ConfirmDangerDialog";
 
 interface LuckybagRewardPoolCreateFormProps {
   canWrite: boolean;
@@ -126,39 +127,21 @@ export default function LuckybagRewardPoolCreateForm({
         </p>
       )}
 
-      {confirming && (
-        <div className="col-span-full rounded-lg border border-rose-900/60 bg-rose-950/20 p-3">
-          <p className="text-xs font-semibold text-rose-300">
-            ⚠ 정말 추가하시겠습니까? 실제 서비스에 즉시 반영됩니다.
-          </p>
-          <p className="mt-1 text-xs text-slate-400">
-            2단계 확인 — 확인을 누르면 즉시 저장되어 회원의 복주머니 추첨 확률에 반영됩니다.
-          </p>
-        </div>
-      )}
-
-      <div className="col-span-full flex gap-2">
-        <button
-          type="submit"
-          disabled={pending}
-          className={
-            confirming
-              ? "rounded-lg bg-rose-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-600 disabled:cursor-not-allowed disabled:opacity-50"
-              : "rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
-          }
-        >
-          {pending ? "추가 중..." : confirming ? "확인(최종 추가)" : "보상 항목 추가"}
-        </button>
-        {confirming && (
-          <button
-            type="button"
-            onClick={() => setConfirming(false)}
-            className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:bg-slate-800"
-          >
-            취소
-          </button>
-        )}
-      </div>
+      <ConfirmDangerDialog
+        confirming={confirming}
+        pending={pending}
+        warningText="정말 추가하시겠습니까? 실제 서비스에 즉시 반영됩니다."
+        helperText="2단계 확인 — 확인을 누르면 즉시 저장되어 회원의 복주머니 추첨 확률에 반영됩니다."
+        warningClassName="col-span-full rounded-lg border border-rose-900/60 bg-rose-950/20 p-3"
+        idleLabel="보상 항목 추가"
+        confirmLabel="확인(최종 추가)"
+        pendingLabel="추가 중..."
+        idleButtonClassName="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+        confirmButtonClassName="rounded-lg bg-rose-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-600 disabled:cursor-not-allowed disabled:opacity-50"
+        cancelButtonClassName="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:bg-slate-800"
+        buttonWrapperClassName="col-span-full flex gap-2"
+        onCancel={() => setConfirming(false)}
+      />
       <p className="col-span-full mt-2 text-xs text-slate-500">
         ※ 04A I-3 명시: 동일 상품 내 보상 항목의 확률 합계는 100%를 넘을 수 없습니다.
         위 상품 목록의 &quot;확률 합계&quot; 뱃지가 100%가 아니면 아직 확률테이블이 미완성 상태입니다.

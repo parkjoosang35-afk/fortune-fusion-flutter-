@@ -9,6 +9,7 @@ import {
   deleteLuckybagRewardPool,
   type LuckybagFormState,
 } from "@/app/actions/luckybag";
+import ConfirmDangerDialog from "./ConfirmDangerDialog";
 
 interface LuckybagRewardPoolRowProps {
   pool: {
@@ -120,32 +121,24 @@ export default function LuckybagRewardPoolRow({
               step={0.0001}
               className="w-24 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
             />
-            {confirming && (
-              <p className="w-full rounded-lg border border-rose-900/60 bg-rose-950/20 p-2 text-xs font-semibold text-rose-300">
-                ⚠ 정말 저장하시겠습니까? 실제 서비스에 즉시 반영됩니다. (다시 누르면 저장됩니다)
-              </p>
-            )}
-            <button
-              type="submit"
-              disabled={updatePending}
-              className={
-                confirming
-                  ? "rounded-lg bg-rose-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-rose-600 disabled:opacity-50"
-                  : "rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
-              }
-            >
-              {updatePending ? "저장 중..." : confirming ? "확인(최종 저장)" : "저장"}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
+            <ConfirmDangerDialog
+              confirming={confirming}
+              pending={updatePending}
+              warningText="정말 저장하시겠습니까? 실제 서비스에 즉시 반영됩니다. (다시 누르면 저장됩니다)"
+              warningClassName="w-full rounded-lg border border-rose-900/60 bg-rose-950/20 p-2 text-xs font-semibold text-rose-300"
+              idleLabel="저장"
+              confirmLabel="확인(최종 저장)"
+              pendingLabel="저장 중..."
+              idleButtonClassName="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
+              confirmButtonClassName="rounded-lg bg-rose-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-rose-600 disabled:opacity-50"
+              showCancelWhenIdle
+              cancelButtonClassName="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
+              buttonWrapperClassName="contents"
+              onCancel={() => {
                 setEditing(false);
                 setConfirming(false);
               }}
-              className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
-            >
-              취소
-            </button>
+            />
             {updateState.error && <p className="w-full text-xs text-red-400">{updateState.error}</p>}
           </form>
         </td>

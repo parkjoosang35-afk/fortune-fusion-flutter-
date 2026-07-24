@@ -6,6 +6,7 @@
 // 원칙7 대상 목록에 없으므로 이번 수정 범위에서 제외한다.
 import { useActionState, useState } from "react";
 import { assignReportToMe, actionReport, rejectReport, type ReportFormState } from "@/app/actions/reports";
+import ConfirmDangerDialog from "./ConfirmDangerDialog";
 
 interface ReportRowProps {
   report: {
@@ -133,33 +134,20 @@ export default function ReportRow({ report, canWrite }: ReportRowProps) {
                 >
                   <input type="hidden" name="id" value={report.id} />
                   <input type="hidden" name="action" value="suspended" />
-                  {confirmingSuspend && (
-                    <p className="max-w-[220px] rounded-lg border border-rose-900/60 bg-rose-950/20 p-2 text-[11px] font-semibold text-rose-300">
-                      ⚠ 정말 계정정지 조치하시겠습니까? (다시 누르면 처리됩니다)
-                    </p>
-                  )}
-                  <div className="flex gap-1">
-                    <button
-                      type="submit"
-                      disabled={actionPending}
-                      className={
-                        confirmingSuspend
-                          ? "rounded-lg bg-rose-700 px-3 py-1 text-xs font-medium text-white hover:bg-rose-600 disabled:opacity-50"
-                          : "rounded-lg border border-orange-900 px-3 py-1 text-xs text-orange-400 hover:bg-orange-950/40 disabled:opacity-50"
-                      }
-                    >
-                      {actionPending ? "처리 중..." : confirmingSuspend ? "확인(최종 처리)" : "계정정지"}
-                    </button>
-                    {confirmingSuspend && (
-                      <button
-                        type="button"
-                        onClick={() => setConfirmingSuspend(false)}
-                        className="rounded-lg border border-slate-700 px-3 py-1 text-xs text-slate-300 hover:bg-slate-800"
-                      >
-                        취소
-                      </button>
-                    )}
-                  </div>
+                  <ConfirmDangerDialog
+                    confirming={confirmingSuspend}
+                    pending={actionPending}
+                    warningText="정말 계정정지 조치하시겠습니까? (다시 누르면 처리됩니다)"
+                    warningClassName="max-w-[220px] rounded-lg border border-rose-900/60 bg-rose-950/20 p-2 text-[11px] font-semibold text-rose-300"
+                    idleLabel="계정정지"
+                    confirmLabel="확인(최종 처리)"
+                    pendingLabel="처리 중..."
+                    idleButtonClassName="rounded-lg border border-orange-900 px-3 py-1 text-xs text-orange-400 hover:bg-orange-950/40 disabled:opacity-50"
+                    confirmButtonClassName="rounded-lg bg-rose-700 px-3 py-1 text-xs font-medium text-white hover:bg-rose-600 disabled:opacity-50"
+                    cancelButtonClassName="rounded-lg border border-slate-700 px-3 py-1 text-xs text-slate-300 hover:bg-slate-800"
+                    buttonWrapperClassName="flex gap-1"
+                    onCancel={() => setConfirmingSuspend(false)}
+                  />
                 </form>
                 <form action={rejectAction}>
                   <input type="hidden" name="id" value={report.id} />
