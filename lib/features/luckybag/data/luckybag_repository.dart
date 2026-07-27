@@ -1,16 +1,30 @@
-import 'dart:math';
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import '../../../core/api/api_result.dart';
+import '../../../core/config/env_config.dart';
 import '../../../core/utils/mock_delay.dart';
 import '../domain/luckybag_model.dart';
 import '../domain/luckybag_open_log_model.dart';
 import '../domain/luckybag_product_model.dart';
 import '../domain/luckybag_reward_model.dart';
 
-/// 06단계 §4.9 `/v1/luckybags/*` 대응 Mock Repository
-/// 10단계(Mock): 상품/확률테이블/개봉이력을 메모리에 고정 데이터로 유지.
-/// 향후 실제 API 연동 시 이 클래스 내부 구현만 http 호출로 교체.
+/// 06단계 §4.9 `/v1/luckybags/*` 대응 Repository — admin_web 공개 API
+/// (`GET /api/public/luckybag`, `POST /api/public/luckybag/open`,
+/// `GET /api/public/luckybag/history`)를 호출한다.
+///
+/// [핵심 원칙] 확률 추첨과 포인트 차감/지급은 서버(admin_web `luckybag/open` API)가
+/// 단일 트랜잭션으로 처리한다. 이 Repository와 화면은 결과를 받아 표시만 한다
+/// (클라이언트에서 별도로 확률을 뽑거나 포인트를 차감하지 않음).
+///
+/// [방법 A — 임시 인증 우회] 회원 로그인 시스템이 아직 없어, 서버가 시딩해둔
+/// 테스트 유저(userId=1)를 고정으로 사용한다(WalletRepository와 동일한 임시 값).
 class LuckyBagRepository {
-  // ── 기존(홈 배너 요약) - 변경 없음 ──
+  static const int _userId = 1;
+
+  // ── 기존(홈 배너 요약) - Mock 유지 ──
+  // [비고] 서버 측 보상은 개봉 즉시 지급되는 구조라 "받을 수 있는(미수령) 복주머니 개수"
+  // 개념이 별도로 존재하지 않는다. 홈 배너용 요약이므로 우선 Mock을 유지한다.
   Future<ApiResult<LuckyBagSummary>> getPendingSummary() async {
     await mockDelay(ms: 300);
     final seed = DateTime.now().day;
@@ -21,218 +35,234 @@ class LuckyBagRepository {
     return ApiResult.ok(LuckyBagSummary(pendingCount: pending, grade: grade));
   }
 
-  // ── Phase10: 상점/개봉/이력/보상요약 ──
-  static const List<LuckyBagProductModel> _products = [
-    LuckyBagProductModel(
-      id: 'lb_001',
-      name: '오늘의 복주머니',
-      pricePoint: 300,
-      iconEmoji: '🧿',
-    ),
-    LuckyBagProductModel(
-      id: 'lb_002',
-      name: '황금 복주머니',
-      pricePoint: 800,
-      iconEmoji: '🎊',
-    ),
-    LuckyBagProductModel(
-      id: 'lb_003',
-      name: '신년 특별 복주머니',
-      pricePoint: 1500,
-      iconEmoji: '🧧',
-      seasonName: '신년 이벤트',
-    ),
-  ];
+  // 마지막으로 조회한 확률표를 캐시(같은 화면 내 확률보기 반복 호출 시 재요청 방지용).
+  Map<String, List<LuckyBagRewardPoolModel>>? _cachedProbabilities;
 
-  /// 04A `luckybag_reward_pools`(I-3) 대응 Mock 확률 테이블(상품별 공통 적용, Mock 단순화)
-  static final Map<String, List<LuckyBagRewardPoolModel>> _rewardPools = {
-    'lb_001': [
-      LuckyBagRewardPoolModel(
-        id: 'rp_001_1',
-        grade: LuckyBagGrade.byCode('none'),
-        rewardType: 'none',
-        rewardLabel: '다음 기회에',
-        probability: 40,
-      ),
-      LuckyBagRewardPoolModel(
-        id: 'rp_001_2',
-        grade: LuckyBagGrade.byCode('common'),
-        rewardType: 'point',
-        rewardLabel: '100P',
-        rewardAmount: 100,
-        probability: 40,
-      ),
-      LuckyBagRewardPoolModel(
-        id: 'rp_001_3',
-        grade: LuckyBagGrade.byCode('rare'),
-        rewardType: 'point',
-        rewardLabel: '500P',
-        rewardAmount: 500,
-        probability: 15,
-      ),
-      LuckyBagRewardPoolModel(
-        id: 'rp_001_4',
-        grade: LuckyBagGrade.byCode('best'),
-        rewardType: 'amulet',
-        rewardLabel: '전설 부적',
-        probability: 5,
-      ),
-    ],
-    'lb_002': [
-      LuckyBagRewardPoolModel(
-        id: 'rp_002_1',
-        grade: LuckyBagGrade.byCode('none'),
-        rewardType: 'none',
-        rewardLabel: '다음 기회에',
-        probability: 25,
-      ),
-      LuckyBagRewardPoolModel(
-        id: 'rp_002_2',
-        grade: LuckyBagGrade.byCode('common'),
-        rewardType: 'point',
-        rewardLabel: '300P',
-        rewardAmount: 300,
-        probability: 45,
-      ),
-      LuckyBagRewardPoolModel(
-        id: 'rp_002_3',
-        grade: LuckyBagGrade.byCode('rare'),
-        rewardType: 'point',
-        rewardLabel: '1,000P',
-        rewardAmount: 1000,
-        probability: 22,
-      ),
-      LuckyBagRewardPoolModel(
-        id: 'rp_002_4',
-        grade: LuckyBagGrade.byCode('best'),
-        rewardType: 'giftcard_fragment',
-        rewardLabel: '상품권 조각',
-        probability: 8,
-      ),
-    ],
-    'lb_003': [
-      LuckyBagRewardPoolModel(
-        id: 'rp_003_1',
-        grade: LuckyBagGrade.byCode('common'),
-        rewardType: 'point',
-        rewardLabel: '500P',
-        rewardAmount: 500,
-        probability: 55,
-      ),
-      LuckyBagRewardPoolModel(
-        id: 'rp_003_2',
-        grade: LuckyBagGrade.byCode('rare'),
-        rewardType: 'point',
-        rewardLabel: '2,000P',
-        rewardAmount: 2000,
-        probability: 30,
-      ),
-      LuckyBagRewardPoolModel(
-        id: 'rp_003_3',
-        grade: LuckyBagGrade.byCode('best'),
-        rewardType: 'amulet',
-        rewardLabel: '한정판 황금부적',
-        probability: 15,
-      ),
-    ],
-  };
+  String _iconEmojiFor(String name) {
+    if (name.contains('황금') || name.contains('한정')) return '🧧';
+    if (name.contains('고급') || name.contains('프리미엄')) return '🎊';
+    return '🧿';
+  }
 
-  final List<LuckyBagOpenLogModel> _openLogs = [];
-  final _random = Random();
+  /// GET /api/public/luckybag - 상품 목록 + 확률표를 한 번에 받아 각각 캐시한다.
+  Future<Map<String, dynamic>?> _fetchLuckyBagData() async {
+    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/luckybag');
+    debugPrint('[LuckyBagRepository] [1] 상품/확률표 요청 -> $uri');
+
+    final response = await http
+        .get(uri, headers: {'Accept': 'application/json'})
+        .timeout(const Duration(seconds: 10));
+
+    debugPrint(
+      '[LuckyBagRepository] [2] 응답 수신 -> statusCode=${response.statusCode}',
+    );
+
+    if (response.statusCode != 200) return null;
+    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+    if (decoded['success'] != true) return null;
+    return decoded['data'] as Map<String, dynamic>;
+  }
 
   /// GET /v1/luckybags
   Future<ApiResult<List<LuckyBagProductModel>>> getProducts() async {
-    await mockDelay(ms: 300);
-    return ApiResult.ok(List.unmodifiable(_products));
+    try {
+      final data = await _fetchLuckyBagData();
+      if (data == null) {
+        return ApiResult.fail('복주머니 목록을 불러오지 못했습니다.');
+      }
+
+      final productsRaw = data['products'] as List<dynamic>;
+      final products = productsRaw.map((e) {
+        final map = e as Map<String, dynamic>;
+        final name = map['name'] as String;
+        return LuckyBagProductModel(
+          id: (map['id'] as int).toString(),
+          name: name,
+          pricePoint: map['pricePoint'] as int,
+          iconEmoji: _iconEmojiFor(name),
+          seasonName: map['seasonName'] as String?,
+        );
+      }).toList();
+
+      final probabilitiesRaw = data['probabilities'] as Map<String, dynamic>;
+      final probabilities = <String, List<LuckyBagRewardPoolModel>>{};
+      for (final entry in probabilitiesRaw.entries) {
+        probabilities[entry.key] = (entry.value as List<dynamic>).map((e) {
+          final map = e as Map<String, dynamic>;
+          return LuckyBagRewardPoolModel(
+            id: (map['id'] as int).toString(),
+            grade: LuckyBagGrade.byCode(map['gradeCode'] as String),
+            rewardType: map['rewardType'] as String,
+            rewardLabel: map['rewardLabel'] as String,
+            rewardAmount: map['rewardAmount'] as int?,
+            probability: (map['probability'] as num).toDouble(),
+          );
+        }).toList();
+      }
+
+      _cachedProbabilities = probabilities;
+
+      return ApiResult.ok(List.unmodifiable(products));
+    } catch (e, st) {
+      debugPrint('[LuckyBagRepository] [X] getProducts 예외 -> $e');
+      if (kDebugMode) debugPrint('$st');
+      return ApiResult.fail('복주머니 목록을 불러오지 못했습니다: $e');
+    }
   }
 
-  /// GET /v1/luckybags/:id/probabilities
+  /// GET /v1/luckybags/:id/probabilities - 확률 공개(투명성, 법적 요건)
   Future<ApiResult<List<LuckyBagRewardPoolModel>>> getProbabilities(
     String productId,
   ) async {
-    await mockDelay(ms: 300);
-    final pools = _rewardPools[productId];
-    if (pools == null) return ApiResult.fail('존재하지 않는 상품입니다.');
-    return ApiResult.ok(List.unmodifiable(pools));
+    try {
+      // 캐시가 없으면(예: 상점 목록을 거치지 않고 직접 진입) 먼저 목록을 받아온다.
+      if (_cachedProbabilities == null) {
+        final productsResult = await getProducts();
+        if (!productsResult.success) {
+          return ApiResult.fail(
+            productsResult.errorMessage ?? '확률 정보를 불러오지 못했습니다.',
+          );
+        }
+      }
+      final pools = _cachedProbabilities?[productId];
+      if (pools == null) return ApiResult.fail('존재하지 않는 상품입니다.');
+      return ApiResult.ok(List.unmodifiable(pools));
+    } catch (e) {
+      debugPrint('[LuckyBagRepository] [X] getProbabilities 예외 -> $e');
+      return ApiResult.fail('확률 정보를 불러오지 못했습니다: $e');
+    }
   }
 
-  /// POST /v1/luckybags/:id/open - 개봉(구매+추첨 동시 처리)
-  /// 내부적으로 단일 트랜잭션 흉내: 확률 추첨 → open_logs 기록.
-  /// 실제 포인트 spend/earn은 Provider단(WalletProvider)에서 orchestrate.
+  /// POST /v1/luckybags/:id/open - 개봉(구매+추첨). 서버(admin_web)가 포인트 차감,
+  /// 확률 추첨, 보상 지급, 개봉 로그 기록을 하나의 트랜잭션으로 처리하고 그 결과를
+  /// 그대로 반환한다. [remainingBalance] 파라미터는 기존 시그니처 호환용으로 남겨두되
+  /// 실제로는 사용하지 않는다(서버가 계산한 값을 신뢰).
   Future<ApiResult<LuckyBagOpenResult>> open(
     String productId,
     int remainingBalance,
   ) async {
-    await mockDelay(ms: 500);
-    final product = _products.where((p) => p.id == productId).firstOrNull;
-    final pools = _rewardPools[productId];
-    if (product == null || pools == null || pools.isEmpty) {
-      return ApiResult.fail('존재하지 않는 상품입니다.');
-    }
+    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/luckybag/open');
+    debugPrint('[LuckyBagRepository] [open] 요청 시작 -> productId=$productId');
 
-    // 확률 가중 추첨(그룹 합=100 가정)
-    final roll = _random.nextDouble() * 100;
-    double acc = 0;
-    var picked = pools.last;
-    for (final pool in pools) {
-      acc += pool.probability;
-      if (roll <= acc) {
-        picked = pool;
-        break;
+    try {
+      final response = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'userId': _userId,
+              'productId': int.parse(productId),
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      debugPrint(
+        '[LuckyBagRepository] [open] 응답 수신 -> statusCode=${response.statusCode}',
+      );
+
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        return ApiResult.fail(
+          decoded['error'] as String? ?? '개봉 처리 중 오류가 발생했습니다.',
+        );
       }
+
+      final data = decoded['data'] as Map<String, dynamic>;
+      return ApiResult.ok(
+        LuckyBagOpenResult(
+          openLogId: (data['openLogId'] as int).toString(),
+          grade: LuckyBagGrade.byCode(data['gradeCode'] as String),
+          rewardType: data['rewardType'] as String,
+          rewardLabel: data['rewardLabel'] as String,
+          rewardAmount: data['rewardAmount'] as int?,
+          remainingBalance: data['remainingBalance'] as int,
+        ),
+      );
+    } catch (e, st) {
+      debugPrint('[LuckyBagRepository] [X] open 예외 -> $e');
+      if (kDebugMode) debugPrint('$st');
+      return ApiResult.fail('개봉 처리 중 오류가 발생했습니다: $e');
     }
-
-    final logId = 'lbol_${_openLogs.length + 1}';
-    _openLogs.insert(
-      0,
-      LuckyBagOpenLogModel(
-        id: logId,
-        product: product,
-        grade: picked.grade,
-        rewardType: picked.rewardType,
-        rewardLabel: picked.rewardLabel,
-        rewardAmount: picked.rewardAmount,
-        openedAt: DateTime.now(),
-      ),
-    );
-
-    return ApiResult.ok(
-      LuckyBagOpenResult(
-        openLogId: logId,
-        grade: picked.grade,
-        rewardType: picked.rewardType,
-        rewardLabel: picked.rewardLabel,
-        rewardAmount: picked.rewardAmount,
-        remainingBalance: remainingBalance,
-      ),
-    );
   }
 
   /// GET /v1/luckybags/history
   Future<ApiResult<List<LuckyBagOpenLogModel>>> getHistory() async {
-    await mockDelay(ms: 300);
-    return ApiResult.ok(List.unmodifiable(_openLogs));
+    try {
+      final result = await _fetchHistory();
+      if (result == null) return ApiResult.fail('개봉 이력을 불러오지 못했습니다.');
+      return ApiResult.ok(List.unmodifiable(result.$1));
+    } catch (e, st) {
+      debugPrint('[LuckyBagRepository] [X] getHistory 예외 -> $e');
+      if (kDebugMode) debugPrint('$st');
+      return ApiResult.fail('개봉 이력을 불러오지 못했습니다: $e');
+    }
   }
 
-  /// GET /v1/luckybags/rewards/my - 등급/보상타입별 집계
+  /// GET /v1/luckybags/rewards/my - 등급/보상타입별 집계(서버가 미리 합산해 제공)
   Future<ApiResult<List<LuckyBagRewardSummaryEntry>>> getRewardSummary() async {
-    await mockDelay(ms: 300);
-    final byGrade = <String, List<LuckyBagOpenLogModel>>{};
-    for (final log in _openLogs) {
-      byGrade.putIfAbsent(log.grade.code, () => []).add(log);
+    try {
+      final result = await _fetchHistory();
+      if (result == null) return ApiResult.fail('보상 요약을 불러오지 못했습니다.');
+      return ApiResult.ok(List.unmodifiable(result.$2));
+    } catch (e, st) {
+      debugPrint('[LuckyBagRepository] [X] getRewardSummary 예외 -> $e');
+      if (kDebugMode) debugPrint('$st');
+      return ApiResult.fail('보상 요약을 불러오지 못했습니다: $e');
     }
-    final entries = byGrade.entries.map((e) {
-      final grade = LuckyBagGrade.byCode(e.key);
-      final totalPoint = e.value
-          .where((l) => l.rewardType == 'point')
-          .fold<int>(0, (sum, l) => sum + (l.rewardAmount ?? 0));
-      return LuckyBagRewardSummaryEntry(
-        grade: grade,
-        count: e.value.length,
-        totalPointReward: totalPoint,
+  }
+
+  Future<(List<LuckyBagOpenLogModel>, List<LuckyBagRewardSummaryEntry>)?>
+      _fetchHistory() async {
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/luckybag/history?userId=$_userId',
+    );
+    debugPrint('[LuckyBagRepository] [history] 요청 시작 -> $uri');
+
+    final response = await http
+        .get(uri, headers: {'Accept': 'application/json'})
+        .timeout(const Duration(seconds: 10));
+
+    debugPrint(
+      '[LuckyBagRepository] [history] 응답 수신 -> statusCode=${response.statusCode}',
+    );
+
+    if (response.statusCode != 200) return null;
+    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+    if (decoded['success'] != true) return null;
+
+    final data = decoded['data'] as Map<String, dynamic>;
+    final itemsRaw = data['items'] as List<dynamic>;
+    final items = itemsRaw.map((e) {
+      final map = e as Map<String, dynamic>;
+      final productMap = map['product'] as Map<String, dynamic>;
+      final productName = productMap['name'] as String;
+      return LuckyBagOpenLogModel(
+        id: (map['id'] as int).toString(),
+        product: LuckyBagProductModel(
+          id: (productMap['id'] as int).toString(),
+          name: productName,
+          pricePoint: productMap['pricePoint'] as int,
+          iconEmoji: _iconEmojiFor(productName),
+        ),
+        grade: LuckyBagGrade.byCode(map['gradeCode'] as String),
+        rewardType: map['rewardType'] as String,
+        rewardLabel: map['rewardLabel'] as String,
+        rewardAmount: map['rewardAmount'] as int?,
+        openedAt: DateTime.parse(map['openedAt'] as String),
       );
     }).toList();
-    entries.sort((a, b) => b.grade.sortOrder.compareTo(a.grade.sortOrder));
-    return ApiResult.ok(entries);
+
+    final summaryRaw = data['summary'] as List<dynamic>;
+    final summary = summaryRaw.map((e) {
+      final map = e as Map<String, dynamic>;
+      return LuckyBagRewardSummaryEntry(
+        grade: LuckyBagGrade.byCode(map['gradeCode'] as String),
+        count: map['count'] as int,
+        totalPointReward: map['totalPointReward'] as int,
+      );
+    }).toList()
+      ..sort((a, b) => b.grade.sortOrder.compareTo(a.grade.sortOrder));
+
+    return (items, summary);
   }
 }

@@ -54,30 +54,27 @@ class _LuckyBagOpenAnimationScreenState
 
     final animationFuture = _controller.forward();
 
-    final spent = await wallet.spend(product.pricePoint, '${product.name} 열기');
-    if (!mounted) return;
-    if (!spent) {
-      AppToast.show(context, '포인트 차감에 실패했습니다.', isError: true);
-      Navigator.of(context).pop();
-      return;
-    }
-
+    // [방법 A] 서버(admin_web `POST /api/public/luckybag/open`)가 포인트 차감 +
+    // 확률 추첨 + 보상 지급 + 로그 기록을 단일 트랜잭션으로 원자적으로 처리한다.
+    // 클라이언트는 더 이상 wallet.spend()/wallet.earn()을 직접 호출하지 않는다
+    // (그렇게 하면 서버가 이미 차감한 금액이 중복 차감/환불되는 버그가 발생한다).
     final result = await luckybag.open(product.id, wallet.balance);
     await animationFuture; // 최소 애니메이션 지속시간 보장
     if (!mounted) return;
 
     if (result == null) {
-      // 예외처리: 개봉 실패 시 차감된 포인트 환불(rollback)
-      await wallet.earn(product.pricePoint, '${product.name} 개봉 실패 환불');
-      if (!mounted) return;
       AppToast.show(
         context,
-        luckybag.actionError ?? '개봉에 실패했습니다. 포인트가 환불되었습니다.',
+        luckybag.actionError ?? '개봉에 실패했습니다.',
         isError: true,
       );
       Navigator.of(context).pop();
       return;
     }
+
+    // 서버가 확정한 최신 잔액을 반영(재조회하여 이력까지 동기화).
+    await wallet.load();
+    if (!mounted) return;
 
     Navigator.of(context).pushReplacementNamed(
       '/reward/luckybag/result',
