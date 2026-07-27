@@ -3,31 +3,105 @@ import 'package:flutter/material.dart';
 /// 03단계 UX/UI 설계서 §2 디자인 시스템 토큰 - Color 구체화
 /// Primary: 브랜드 보라/남색 계열(운세/신비 컨셉)
 /// Secondary: 포인트/리워드 강조색(골드/옐로)
+///
+/// [웹→앱 이식] "신통방통" 모바일웹의 "신비롭고 고급스러운 밤하늘(검정·남색·보라·금색)"
+/// 디자인 시스템 팔레트를 그대로 이식하여 다크 테마를 기본 정체성으로 승격한다.
+/// (참고: 신통방통 css/style.css :root 변수 --bg-deep/--bg-navy/--purple/--gold 등)
 class AppColors {
   AppColors._();
 
+  // ══════════════════════════════════════════════════════════════
+  // [운세 앱 개발 프롬프트-메인 UI 리뉴얼] 현대카드 앱 스타일 팔레트
+  // 참고 스크린샷(신통방통 x 현대카드 앱) 정밀 색상 추출값.
+  // 메인 홈 화면(라이트 모드)의 1차 소스오브트루스로 사용하고,
+  // 기존 신비 컨셉 다크 팔레트(deepSpace 등)는 결과화면/리추얼 등에서 계속 활용.
+  // ══════════════════════════════════════════════════════════════
+  // [Sowoon.kr 리디자인 프롬프트] 골드 액센트 팔레트로 전환(퍼플→골드).
+  // 기존 hcPurple*는 하위호환을 위해 값만 유지하되, 메인 화면/전역 테마에서는
+  // 더 이상 참조하지 않는다(레거시).
+  static const Color hcPurple = Color(0xFF5E17EB); // (레거시, 미사용)
+  static const Color hcPurpleContainer = Color(0xFFEAEAFF); // (레거시, 미사용)
+
+  /// 액센트: 블루/바이올렛 계열 (레퍼런스 스크린샷 기반 리디자인)
+  /// (이름은 하위호환을 위해 hcGold*로 유지하되 실제 색상값은 블루/바이올렛)
+  static const Color hcGold = Color(0xFF5F39F8); // 텍스트 강조/아이콘
+  static const Color hcGoldDark = Color(0xFF4B2AE0); // 버튼/선택 상태 등 진한 톤
+  static const LinearGradient hcGoldGradient = LinearGradient(
+    colors: [hcGold, hcGoldDark],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  /// 배지 연한 배경(라벤더) - 액센트 컬러 전용 소프트 배경
+  static const Color hcAccentSoft = Color(0xFFEEEBFF);
+
+  /// 텍스트: 검은색/진한 회색 계열
+  static const Color hcTextDark = Color(0xFF1A1A1A); // 헤드라인/타이틀
+  static const Color hcTextBody = Color(0xFF333333); // 본문/AppBar 텍스트
+
+  /// 경계선/구분선: 라이트 그레이
+  static const Color hcBorderLight = Color(0xFFEEEEEE);
+  static const Color hcBorderLight2 = Color(0xFFF5F5F5);
+
+  /// 배지 배경: 라이트 라벤더(액센트 소프트 톤)
+  static const Color hcCream = Color(0xFFEEEBFF);
+  static const Color hcCream2 = Color(0xFFF7F5FF);
+
+  /// 카드 그림자: 밝은 그레이(미세함, rgba(0,0,0,0.08))
+  static const Color hcCardShadow = Color(0x14000000);
+
+  static const Color hcInk = Color(0xFF14121F); // CTA 버튼 배경(다크 네이비/블랙) - 레퍼런스 스크린샷 기준
+  static const Color hcCardBg = Color(0xFFFFFFFF); // 카드 배경(화이트 + 라이트그레이 경계)
+  static const Color hcCardBg2 = Color(0xFFF5F5F5); // 운세 메뉴 그리드 카드 배경(라이트 그레이)
+  static const Color hcBackground = Color(0xFFFFFFFF); // 전체 배경(순백색)
+  static const Color hcAmber = Color(0xFFFF9500); // "인기" 배지(별도 강조 색상)
+  static const Color hcTextSecondary = Color(0xFF666666); // 보조/설명 텍스트
+  static const Color hcBrownStart = Color(0xFF472D1E); // 소원방 배너 그라디언트 시작
+  static const Color hcBrownEnd = Color(0xFF2C1A10); // 소원방 배너 그라디언트 끝
+
+  static const LinearGradient hcWishRoomGradient = LinearGradient(
+    colors: [hcBrownStart, hcBrownEnd],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  /// 운세 메뉴 그리드 아이콘 원형(화이트) 안에 들어가는 아이콘 색상(카테고리별 소프트 틴트)
+  /// - 카드 배경 자체는 통일된 라이트 그레이(hcCardBg2)를 사용하고, 아이콘만 포인트 컬러로.
+  static const Map<String, Color> hcCategoryIconColor = {
+    'daily': Color(0xFFFF9500),
+    'saju': hcGoldDark,
+    'tarot': hcGold,
+    'compatibility': Color(0xFFFF3B69),
+    'zodiac': Color(0xFFE8B400),
+    'palm': Color(0xFF8A8A8E),
+    'face': Color(0xFFE8935A),
+    'yearly': Color(0xFF8A8A8E),
+  };
+
   // ── Primary (보라/남색 - 신비/운세 컨셉) ──
-  static const Color primary = Color(0xFF6C4DFF);
-  static const Color primaryDark = Color(0xFF4B2ED6);
-  static const Color primaryLight = Color(0xFF9C82FF);
+  // 신통방통 --purple 계열로 정밀 조정
+  static const Color primary = Color(0xFF7B4FD1); // --purple
+  static const Color primaryDark = Color(0xFF4A2A8C); // --purple-deep
+  static const Color primaryLight = Color(0xFFA97CF0); // --purple-light
   static const Color primaryContainer = Color(0xFFEDE7FF);
 
-  // 배경 그라디언트(신비로운 밤하늘 느낌)
-  static const Color deepSpace = Color(0xFF1A1035);
-  static const Color deepSpaceLight = Color(0xFF2D1B5E);
+  // 배경 그라디언트(신비로운 밤하늘 느낌) - 신통방통 --bg-deep/--bg-navy
+  static const Color deepSpace = Color(0xFF05040F); // --bg-deep
+  static const Color deepSpaceLight = Color(0xFF161335); // --bg-navy-2
 
   // ── Secondary (골드/옐로 - 포인트/리워드) ──
-  static const Color secondary = Color(0xFFFFC542);
-  static const Color secondaryDark = Color(0xFFE8A800);
-  static const Color secondaryLight = Color(0xFFFFE0A3);
+  // 신통방통 --gold 계열로 정밀 조정
+  static const Color secondary = Color(0xFFE0B356); // --gold
+  static const Color secondaryDark = Color(0xFFA9772F); // --gold-deep
+  static const Color secondaryLight = Color(0xFFF5D992); // --gold-light
 
   // ── Semantic ──
-  static const Color success = Color(0xFF2ECC71);
+  static const Color success = Color(0xFF5FE3B3); // --success
   static const Color warning = Color(0xFFFFA940);
-  static const Color error = Color(0xFFFF5757);
+  static const Color error = Color(0xFFFF6B8B); // --danger
   static const Color info = Color(0xFF4DA8FF);
 
-  // ── Neutral ──
+  // ── Neutral (라이트 모드) ──
   static const Color background = Color(0xFFF7F5FC);
   static const Color surface = Color(0xFFFFFFFF);
   static const Color textPrimary = Color(0xFF1E1A2B);
@@ -50,14 +124,37 @@ class AppColors {
     end: Alignment.bottomRight,
   );
 
-  // ── Dark mode neutrals (07단계 §10 신규) ──
-  static const Color backgroundDark = Color(0xFF14101F);
-  static const Color surfaceDark = Color(0xFF1F1A30);
-  static const Color textPrimaryDark = Color(0xFFF2EFFA);
-  static const Color textSecondaryDark = Color(0xFFB6AFC9);
-  static const Color textHintDark = Color(0xFF7C7591);
-  static const Color dividerDark = Color(0xFF332B4D);
+  /// 신통방통 --gradient-purple 이식 - 보조 보라 그라디언트(부적/매칭 등 강조 영역)
+  static const LinearGradient purpleGradient = LinearGradient(
+    colors: [primaryDark, primary, primaryLight],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  // ── Dark mode neutrals (07단계 §10 신규, 신통방통 팔레트로 정밀 조정) ──
+  // 신통방통 --bg-deep(스캐폴드 배경) / --bg-navy(카드 서페이스) 대응
+  static const Color backgroundDark = Color(0xFF05040F); // --bg-deep
+  static const Color surfaceDark = Color(0xFF161335); // --bg-navy-2 (카드 배경)
+  static const Color surfaceDark2 = Color(0xFF1A1740); // --surface (약간 더 밝은 서페이스)
+  static const Color textPrimaryDark = Color(0xFFF4F1FF); // --text-main
+  static const Color textSecondaryDark = Color(0xFFB7AEDE); // --text-muted
+  static const Color textHintDark = Color(0xFF7A71A3); // --text-faint
+  static const Color dividerDark = Color(0x1AFFFFFF); // rgba(255,255,255,0.1)
   static const Color primaryContainerDark = Color(0xFF352A5E);
+
+  /// 신통방통 --gradient-card 이식 - 다크 모드 카드 표면(옅은 화이트 오버레이 그라디언트)
+  /// 배경 위에 얹어 미세한 유리질감(glass-card)을 표현할 때 사용.
+  static const LinearGradient cardGradientDark = LinearGradient(
+    colors: [Color(0x0FFFFFFF), Color(0x03FFFFFF)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  /// 다크 모드 카드 보더(골드 톤 은은한 테두리) - 신통방통 rgba(255,255,255,0.07~0.08)
+  static const Color cardBorderDark = Color(0x14FFFFFF);
+
+  /// 골드 글로우 보더 - 강조 카드(오늘의 운세, CTA 등)
+  static const Color goldGlowBorder = Color(0x3AE0B356); // rgba(224,179,86,0.23)
 
   // ── 브랜드 컬러 네이밍 체계 별칭 (03단계 §3.1 신규) ──
   // 기존 상수와 값은 동일, "무엇을 위한 색인지" 브랜드 언어로 재노출한다.
@@ -66,6 +163,38 @@ class AppColors {
   static const Color premiumGold = secondary; // 포인트/리워드/구독 프리미엄
   static const Color fortuneBlue = info; // 신뢰/정보 전달(AI상담, 안내)
   static const Color hopeGreen = success; // 희망/긍정/완료
+
+  // ── 다크모드 대응 컨텍스트 헬퍼 (07단계 §10 보강) ──
+  // 화면 곳곳에서 AppColors.textHint/textSecondary/primaryContainer 등을
+  // 다크모드에서도 자동으로 올바른 톤을 쓰도록 하는 컨텍스트 인지형 접근자.
+  // 기존 상수(라이트 고정값)는 하위호환을 위해 유지하고, 신규/수정 코드는
+  // 아래 *Of(context) 헬퍼 사용을 권장한다.
+  static Color textHintOf(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return isDark ? textHintDark : textHint;
+  }
+
+  static Color textSecondaryOf(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return isDark ? textSecondaryDark : textSecondary;
+  }
+
+  static Color textPrimaryOf(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return isDark ? textPrimaryDark : textPrimary;
+  }
+
+  /// 아이콘 원형 배지 등의 컨테이너 배경 - 다크모드에서는 옅은 보라 대신
+  /// 카드보다 살짝 밝은 반투명 화이트(신통방통 유리질감)를 사용한다.
+  static Color containerOf(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return isDark ? const Color(0x1FA97CF0) : primaryContainer;
+  }
+
+  static Color dividerOf(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return isDark ? dividerDark : divider;
+  }
 
   /// 오늘의 행운 색상(Luck Color) 후보 팔레트 — 03단계 §3.1
   /// `daily_fortunes.lucky_color`(문자열, 예: "보라") 값을 실제 색상으로 매핑할 때 사용.

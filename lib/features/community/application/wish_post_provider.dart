@@ -1,10 +1,26 @@
+import 'dart:math';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../data/wish_post_repository.dart';
 import '../domain/wish_post_model.dart';
+
+/// [웹→앱 이식] 신통방통 wish.html "오늘의 행운 룰렷" 결과 명언 풀
+/// (js/wish-engine.js ROULETTE_QUOTES 그대로 이식)
+const _rouletteQuotes = [
+  '느리더라도 멈추지 않으면 반드시 도착한다.',
+  '오늘의 작은 용기가 내일의 큰 행운이 된다.',
+  '기다림도 준비의 한 과정이다.',
+  '당신의 진심은 언젠가 반드시 통한다.',
+  '지금의 이 순간도 결국 지나간 뒤엔 그리운 날이 된다.',
+  '마음을 다잡으면 길이 보인다.',
+  '행운은 준비된 자에게 우연을 가장해 찾아온다.',
+];
 
 class WishPostProvider extends ChangeNotifier {
   final WishPostRepository _repository;
   WishPostProvider(this._repository);
+
+  static const _rouletteLastKey = 'wish_roulette_last_date';
 
   List<WishPostModel> _posts = [];
   bool _isLoading = false;
@@ -13,9 +29,76 @@ class WishPostProvider extends ChangeNotifier {
   final Map<String, List<WishCommentModel>> _commentsByWishId = {};
   final Set<String> _loadingCommentsFor = {};
 
+  String? _rouletteResult;
+  bool _canSpinRoulette = true;
+
   List<WishPostModel> get posts => _posts;
   bool get isLoading => _isLoading;
   WishFeedTab get currentTab => _currentTab;
+  String? get rouletteResult => _rouletteResult;
+  bool get canSpinRoulette => _canSpinRoulette;
+
+  /// [웹→앱 이식] 신통방통 wish.html "오늘의 인기 소원" - 응원수 상위 5개(파생 데이터)
+  List<WishPostModel> get hotWishes {
+    final list = List<WishPostModel>.from(_posts)
+      ..sort((a, b) => b.supportCount.compareTo(a.supportCount));
+    return list.take(5).toList();
+  }
+
+  /// [웹→앱 이식] 신통방통 wish.html "🏆 소원성 명예의 전당" - 작성자별 응원 합산 상위 5명
+  List<WishHallOfFameEntry> get hallOfFame {
+    final byAuthor = <String, List<WishPostModel>>{};
+    for (final p in _posts) {
+      if (p.isAnonymous) continue;
+      byAuthor.putIfAbsent(p.authorNickname, () => []).add(p);
+    }
+    final entries = byAuthor.entries.map((e) {
+      final total = e.value.fold<int>(0, (sum, p) => sum + p.supportCount);
+      return WishHallOfFameEntry(
+        nickname: e.key,
+        totalSupport: total,
+        wishCount: e.value.length,
+      );
+    }).toList();
+    entries.sort((a, b) => b.totalSupport.compareTo(a.totalSupport));
+    return entries.take(5).toList();
+  }
+
+  /// [웹→앱 이식] 신통방통 wish.html "오늘 등록된 소원" 카운트
+  int get todayCount {
+    final now = DateTime.now();
+    return _posts
+        .where(
+          (p) =>
+              p.createdAt.year == now.year &&
+              p.createdAt.month == now.month &&
+              p.createdAt.day == now.day,
+        )
+        .length;
+  }
+
+  Future<void> checkRouletteAvailability() async {
+    final prefs = await SharedPreferences.getInstance();
+    final last = prefs.getString(_rouletteLastKey);
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    _canSpinRoulette = last != today;
+    notifyListeners();
+  }
+
+  /// [웹→앱 이식] 신통방통 wish.html "행운 룰렷 돌리기 (하루 1회)"
+  Future<String?> spinRoulette() async {
+    if (!_canSpinRoulette) return null;
+    final quote = _rouletteQuotes[Random().nextInt(_rouletteQuotes.length)];
+    _rouletteResult = quote;
+    _canSpinRoulette = false;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _rouletteLastKey,
+      DateTime.now().toIso8601String().substring(0, 10),
+    );
+    return quote;
+  }
 
   List<WishCommentModel> commentsOf(String wishId) =>
       _commentsByWishId[wishId] ?? const [];
@@ -41,11 +124,13 @@ class WishPostProvider extends ChangeNotifier {
     String content, {
     String category = '기타',
     bool isAnonymous = false,
+    String? goalTag,
   }) async {
     final result = await _repository.createPost(
       content,
       category: category,
       isAnonymous: isAnonymous,
+      goalTag: goalTag,
     );
     if (result.success) {
       await loadFeed();

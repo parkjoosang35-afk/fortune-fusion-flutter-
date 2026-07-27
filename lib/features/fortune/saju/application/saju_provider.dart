@@ -18,17 +18,29 @@ class SajuProvider extends ChangeNotifier {
   String? _birthTime;
   bool _isLunar = false;
   List<String> _topics = [];
+  String? _profileId;
+  String? _profileName;
+
+  // [웹→앱 이식] "내 사주함" 프로필 목록 상태
+  List<SajuProfileModel> _profiles = [];
+  List<SajuProfileModel> get profiles => _profiles;
+  bool _profilesLoading = false;
+  bool get profilesLoading => _profilesLoading;
 
   Future<void> requestSaju({
     required String birthDate,
     String? birthTime,
     required bool isLunar,
     required List<String> topics,
+    String? profileId,
+    String? profileName,
   }) async {
     _birthDate = birthDate;
     _birthTime = birthTime;
     _isLunar = isLunar;
     _topics = topics;
+    _profileId = profileId;
+    _profileName = profileName;
 
     _state = const LoadState.loading();
     notifyListeners();
@@ -38,6 +50,8 @@ class SajuProvider extends ChangeNotifier {
       birthTime: birthTime,
       isLunar: isLunar,
       topics: topics,
+      profileId: profileId,
+      profileName: profileName,
     );
 
     if (result.success && result.data != null) {
@@ -55,6 +69,8 @@ class SajuProvider extends ChangeNotifier {
       birthTime: _birthTime,
       isLunar: _isLunar,
       topics: _topics,
+      profileId: _profileId,
+      profileName: _profileName,
     );
   }
 
@@ -74,5 +90,76 @@ class SajuProvider extends ChangeNotifier {
       _state = LoadState.success(found.first);
       notifyListeners();
     }
+  }
+
+  // ── [웹→앱 이식] "내 사주함" 프로필 관리 ────────────────────────────
+  Future<void> loadProfiles() async {
+    _profilesLoading = true;
+    notifyListeners();
+    final result = await _repository.getProfiles();
+    if (result.success && result.data != null) {
+      _profiles = result.data!;
+    }
+    _profilesLoading = false;
+    notifyListeners();
+  }
+
+  Future<bool> createProfile({
+    required String profileName,
+    required String name,
+    required String gender,
+    required String birthDate,
+    String? birthTime,
+    bool isLunar = false,
+    SajuRelationship relationship = SajuRelationship.self,
+  }) async {
+    final result = await _repository.createProfile(
+      profileName: profileName,
+      name: name,
+      gender: gender,
+      birthDate: birthDate,
+      birthTime: birthTime,
+      isLunar: isLunar,
+      relationship: relationship,
+    );
+    if (result.success) {
+      await loadProfiles();
+      return true;
+    }
+    return false;
+  }
+
+  Future<bool> updateProfile(SajuProfileModel profile) async {
+    final result = await _repository.updateProfile(profile);
+    if (result.success) {
+      await loadProfiles();
+      return true;
+    }
+    return false;
+  }
+
+  Future<void> deleteProfile(String id) async {
+    await _repository.deleteProfile(id);
+    await loadProfiles();
+  }
+
+  Future<void> setPrimaryProfile(String id) async {
+    await _repository.setPrimaryProfile(id);
+    await loadProfiles();
+  }
+
+  /// "내 사주함"에서 프로필을 선택해 즉시 분석 요청
+  Future<void> requestSajuFromProfile(
+    SajuProfileModel profile, {
+    List<String> topics = const ['종합'],
+  }) {
+    return requestSaju(
+      birthDate: profile.birthDate,
+      birthTime: profile.birthTime,
+      isLunar: profile.isLunar,
+      topics: topics,
+      profileId: profile.id,
+      profileName: profile.profileName,
+    );
   }
 }

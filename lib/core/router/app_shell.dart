@@ -45,7 +45,7 @@ class _AppShellState extends State<AppShell> {
             .map(
               (e) => BottomNavigationBarItem(
                 icon: Icon(e.$1),
-                activeIcon: Icon(e.$2, color: AppColors.primary),
+                activeIcon: Icon(e.$2, color: AppColors.hcGoldDark),
                 label: e.$3,
               ),
             )

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import '../../../../core/api/api_result.dart';
 import '../../../../core/utils/mock_delay.dart';
 import '../domain/face_model.dart';
@@ -5,6 +7,13 @@ import '../domain/face_model.dart';
 /// 06단계 §4.3 `POST /v1/fortune/face/analyze` 대응 Mock Repository
 /// 실제 사진 업로드/분석 대신 09단계 §7 개인정보보호 원칙(이미지 즉시파기)에 맞춰
 /// Mock 단계에서는 이미지를 서버에 전송하지 않고 로컬에서 결과만 시뮬레이션한다.
+///
+/// 07단계(추가) §3.3 - [analyze]가 선택적으로 [image]를 전달받도록 확장되었으나,
+/// Mock 구현에서는 실제로 파일을 읽거나 전송하지 않는다(향후 실제 API 연동 시
+/// multipart 업로드 로직으로 교체될 지점).
+///
+/// 07단계(추가, 수정) §3.3 - Flutter Web은 dart:io의 File을 지원하지 않으므로
+/// 웹/Android 공통으로 동작하는 [Uint8List] 기반으로 시그니처를 변경한다.
 class FaceRepository {
   final List<FaceResultModel> _history = [];
 
@@ -24,9 +33,10 @@ class FaceRepository {
     '종합': '전체적으로 조화롭고 안정적인 인상으로, 스스로의 강점을 잘 살리면 좋은 흐름을 이어갈 수 있습니다.',
   };
 
-  Future<ApiResult<FaceResultModel>> analyze() async {
+  Future<ApiResult<FaceResultModel>> analyze({Uint8List? image}) async {
     await mockDelay(ms: 2000); // 09단계 §5 이미지 분석 대기시간 재현
 
+    // 07단계(추가) §3.3 - 실제 API 연동 시 이 지점에서 image를 multipart로 전송한다.
     final seed = DateTime.now().millisecondsSinceEpoch;
     final features = <String, String>{};
     _featurePool.forEach((part, options) {

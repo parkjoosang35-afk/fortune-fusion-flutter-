@@ -132,7 +132,7 @@ class _WishContentCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(AppRadius.card),
       ),
       child: Column(
@@ -271,8 +271,8 @@ class _CommentInputBar extends StatelessWidget {
         top: AppSpacing.sm,
         bottom: AppSpacing.sm + MediaQuery.of(context).padding.bottom,
       ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardTheme.color,
         border: Border(top: BorderSide(color: AppColors.divider)),
       ),
       child: Row(

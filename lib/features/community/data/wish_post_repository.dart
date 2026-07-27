@@ -25,6 +25,7 @@ class WishPostRepository {
       supportCount: 12,
       commentCount: 3,
       createdAt: DateTime.now().subtract(const Duration(hours: 2)),
+      goalTag: '이사/이동',
     ),
     WishPostModel(
       id: 'wp_2',
@@ -35,6 +36,7 @@ class WishPostRepository {
       supportCount: 8,
       commentCount: 1,
       createdAt: DateTime.now().subtract(const Duration(hours: 5)),
+      goalTag: '합격/시험',
     ),
     WishPostModel(
       id: 'wp_3',
@@ -45,6 +47,28 @@ class WishPostRepository {
       supportCount: 21,
       commentCount: 7,
       createdAt: DateTime.now().subtract(const Duration(days: 1)),
+    ),
+    WishPostModel(
+      id: 'wp_4',
+      authorNickname: '별빛달빛',
+      content: '올 한해 우리 가족 모두 건강하게 지낼 수 있길 바라요',
+      category: '건강',
+      isAnonymous: false,
+      supportCount: 34,
+      commentCount: 5,
+      createdAt: DateTime.now().subtract(const Duration(hours: 8)),
+      goalTag: '건강',
+    ),
+    WishPostModel(
+      id: 'wp_5',
+      authorNickname: '초심자',
+      content: '이번 취업 준비 꼭 좋은 결과로 이어지길 소원합니다',
+      category: '재물/사업',
+      isAnonymous: false,
+      supportCount: 17,
+      commentCount: 2,
+      createdAt: DateTime.now().subtract(const Duration(hours: 12)),
+      goalTag: '취업/사업',
     ),
   ];
 
@@ -87,6 +111,7 @@ class WishPostRepository {
     String content, {
     String category = '기타',
     bool isAnonymous = false,
+    String? goalTag,
   }) async {
     await mockDelay(ms: 400);
     if (content.trim().isEmpty) return ApiResult.fail('내용을 입력해 주세요.');
@@ -100,6 +125,7 @@ class WishPostRepository {
       commentCount: 0,
       isMine: true,
       createdAt: DateTime.now(),
+      goalTag: goalTag,
     );
     _posts.insert(0, post);
     return ApiResult.ok(post);

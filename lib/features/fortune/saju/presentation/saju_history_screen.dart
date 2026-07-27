@@ -50,7 +50,7 @@ class _SajuHistoryScreenState extends State<SajuHistoryScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(AppSpacing.lg),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Theme.of(context).cardTheme.color,
                         borderRadius: BorderRadius.circular(AppRadius.card),
                       ),
                       child: Row(

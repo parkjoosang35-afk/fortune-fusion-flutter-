@@ -179,8 +179,8 @@ class _InputBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardTheme.color,
         border: Border(top: BorderSide(color: AppColors.divider)),
       ),
       child: Row(

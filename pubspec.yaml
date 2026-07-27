@@ -43,6 +43,25 @@ dependencies:
   hive_flutter: 1.1.0         # Hive Flutter 통합
   intl: ^0.19.0               # 날짜/숫자 포맷팅(사주/운세/포인트 표시)
 
+  # 07단계(추가, 수정) - AI 손금/관상 분석 이미지 입력 기능(§3.3)
+  # 07단계(추가, 수정2) - camera 패키지(getUserMedia 기반 실시간 미리보기)는 모바일
+  # 브라우저 환경에서 초기화 실패가 잦아 제거하고, image_picker의 ImageSource.camera
+  # (OS 네이티브 카메라 앱 호출 - 웹에서는 <input capture> 방식으로 폴백)로 통일한다.
+  image_picker: 1.2.2          # 갤러리 선택 + 카메라 촬영(OS 네이티브 카메라 호출)
+
+  # CMS 제휴광고(배너) 클릭 시 외부 제휴 링크(쿠팡파트너스 등)를 열기 위한 패키지
+  url_launcher: 6.3.1
+
+  # CMS 제휴광고 "광고소스형"(제휴사가 발급한 원본 <iframe>/<script> 태그) 렌더링:
+  # - Android/iOS: webview_flutter로 loadHtmlString() 렌더링
+  # - Web: package:web + dart:ui_web으로 원본 iframe을 DOM에 직접 삽입(HtmlElementView)
+  webview_flutter: 4.9.0
+  web: ^1.1.1
+
+  # "오늘의 행운숫자" 관리자 콘텐츠(영상) 재생용. [사용자 요청] 이 기능은 광고(ad_banner)와
+  # 무관한 별도 콘텐츠이므로 webview_flutter가 아닌 video_player로 네이티브 영상 재생을 구현한다.
+  video_player: 2.9.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -77,20 +96,21 @@ flutter:
 
   # To add custom fonts to your application, add a fonts section here,
   # in this "flutter" section. Each entry in this list should have a
-  # "family" key with the font family name, and a "fonts" key with a
-  # list giving the asset and other descriptors for the font. For
-  # example:
-  # fonts:
-  #   - family: Schyler
-  #     fonts:
-  #       - asset: fonts/Schyler-Regular.ttf
-  #       - asset: fonts/Schyler-Italic.ttf
-  #         style: italic
-  #   - family: Trajan Pro
-  #     fonts:
-  #       - asset: fonts/TrajanPro.ttf
-  #       - asset: fonts/TrajanPro_Bold.ttf
-  #         weight: 700
+  # [운세 앱 개발 프롬프트-메인 UI 리뉴얼] 현대카드 앱 스타일 참고 - Pretendard 폰트 적용
+  # (Pretendard: 우아한형제들/orioncactus 배포, OFL 1.1 라이선스, 상업적 이용 무료)
+  fonts:
+    - family: Pretendard
+      fonts:
+        - asset: assets/fonts/Pretendard-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Pretendard-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Pretendard-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Pretendard-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Pretendard-ExtraBold.ttf
+          weight: 800
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package

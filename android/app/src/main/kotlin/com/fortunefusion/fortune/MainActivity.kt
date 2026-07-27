@@ -1,5 +1,6 @@
-package com.fortunefusion.flutter_app
+package com.fortunefusion.fortune
 
 import io.flutter.embedding.android.FlutterActivity
 
 class MainActivity : FlutterActivity()
+

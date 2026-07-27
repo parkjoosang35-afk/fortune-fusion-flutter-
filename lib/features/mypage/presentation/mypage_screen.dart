@@ -23,15 +23,15 @@ class MyPageScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(AppSpacing.lg),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardTheme.color,
                 borderRadius: BorderRadius.circular(AppRadius.card),
               ),
               child: Row(
                 children: [
-                  const CircleAvatar(
+                  CircleAvatar(
                     radius: 28,
-                    backgroundColor: AppColors.primaryContainer,
-                    child: Icon(
+                    backgroundColor: AppColors.containerOf(context),
+                    child: const Icon(
                       Icons.person,
                       color: AppColors.primary,
                       size: 28,
@@ -63,9 +63,9 @@ class MyPageScreen extends StatelessWidget {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.edit_outlined,
-                      color: AppColors.textHint,
+                      color: AppColors.textHintOf(context),
                     ),
                     onPressed: () => Navigator.of(
                       context,
@@ -142,7 +142,7 @@ class _GradeBadge extends StatelessWidget {
       case 'gold':
         return AppColors.secondary;
       case 'silver':
-        return AppColors.textSecondary;
+        return AppColors.textSecondary; // grade badge silver: 라이트 톤 유지(뱃지 자체 배경 대비용)
       default:
         return AppColors.primaryLight;
     }
@@ -190,12 +190,12 @@ class _MenuTile extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).cardTheme.color,
             borderRadius: BorderRadius.circular(AppRadius.cardSmall),
           ),
           child: Row(
             children: [
-              Icon(icon, color: AppColors.textSecondary),
+              Icon(icon, color: AppColors.textSecondaryOf(context)),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Text(
@@ -203,9 +203,9 @@ class _MenuTile extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.chevron_right_rounded,
-                color: AppColors.textHint,
+                color: AppColors.textHintOf(context),
               ),
             ],
           ),

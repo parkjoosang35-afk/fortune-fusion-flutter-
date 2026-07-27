@@ -43,6 +43,10 @@ import 'features/giftcard/application/giftcard_provider.dart';
 import 'features/giftcard/data/giftcard_repository.dart';
 import 'features/subscription/application/subscription_provider.dart';
 import 'features/subscription/data/subscription_repository.dart';
+import 'features/ad_banner/application/ad_banner_provider.dart';
+import 'features/ad_banner/data/ad_banner_repository.dart';
+import 'features/lucky_number/application/lucky_number_provider.dart';
+import 'features/lucky_number/data/lucky_number_repository.dart';
 
 /// 07단계 §2.1 앱 루트 - MultiProvider 전역 등록 + MaterialApp 라우팅 연결
 /// 10단계(A안): 모든 Repository는 Mock 구현이며, 향후 실제 API 연동 시
@@ -77,6 +81,15 @@ class App extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => AmuletProvider(AmuletRepository()),
         ),
+        // CMS 제휴광고 배너 — admin_web `/api/public/banners` 실 API 연동(Mock 아님)
+        ChangeNotifierProvider(
+          create: (_) => AdBannerProvider(AdBannerRepository()),
+        ),
+        // [사용자 요청] "오늘의 행운숫자"는 광고가 아닌 별도 관리자 콘텐츠 —
+        // admin_web `/api/public/lucky-number` 실 API 연동(AdBannerProvider와 분리)
+        ChangeNotifierProvider(
+          create: (_) => LuckyNumberProvider(LuckyNumberRepository()),
+        ),
 
         // ── 기능별 Provider ──
         ChangeNotifierProvider(create: (_) => SajuProvider(SajuRepository())),
@@ -86,8 +99,18 @@ class App extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => CompatibilityProvider(CompatibilityRepository()),
         ),
-        ChangeNotifierProvider(
+        // 07단계(추가) §3.5 - ConsultationProvider가 사주 계산/타로 카드뽑기를
+        // 채팅 흐름 안에서 수행하려면 SajuProvider/TarotProvider 인스턴스가 필요하다.
+        // 새 Provider를 만들지 않고 위에서 이미 등록한 인스턴스를 attachFortuneProviders로
+        // 주입해, 사주/타로 히스토리 화면과 동일한 상태(LoadState)를 공유한다.
+        ChangeNotifierProxyProvider2<
+          SajuProvider,
+          TarotProvider,
+          ConsultationProvider
+        >(
           create: (_) => ConsultationProvider(ConsultationRepository()),
+          update: (_, saju, tarot, consultation) =>
+              consultation!..attachFortuneProviders(saju, tarot),
         ),
         ChangeNotifierProvider(
           create: (_) => MissionProvider(MissionRepository()),

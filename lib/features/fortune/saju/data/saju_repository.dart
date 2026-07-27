@@ -7,6 +7,9 @@ import '../domain/saju_model.dart';
 class SajuRepository {
   final List<SajuResultModel> _history = [];
 
+  // [웹→앱 이식] 신통방통 js/saju-profile-engine.js "내 사주함" Mock 저장소
+  final List<SajuProfileModel> _profiles = [];
+
   static const _stems = ['갑', '을', '병', '정', '무', '기', '경', '신', '임', '계'];
   static const _branches = [
     '자',
@@ -28,6 +31,8 @@ class SajuRepository {
     String? birthTime,
     required bool isLunar,
     required List<String> topics,
+    String? profileId,
+    String? profileName,
   }) async {
     await mockDelay(ms: 1800); // 09단계 §5 재시도/타임아웃 UX 재현을 위한 의도적 지연
 
@@ -74,6 +79,8 @@ class SajuRepository {
       topicResults: topicResults,
       summary: topicTexts['종합']!,
       createdAt: DateTime.now(),
+      profileId: profileId,
+      profileName: profileName,
     );
 
     _history.insert(0, result);
@@ -83,5 +90,67 @@ class SajuRepository {
   Future<ApiResult<List<SajuResultModel>>> getHistory() async {
     await mockDelay(ms: 300);
     return ApiResult.ok(List.unmodifiable(_history));
+  }
+
+  // ── [웹→앱 이식] "내 사주함" 프로필 CRUD Mock ──────────────────────────
+  // 신통방통 js/saju-profile-engine.js getMySajuProfiles/createSajuProfile/
+  // updateSajuProfile/deleteSajuProfile/setPrimarySajuProfile 대응
+
+  Future<ApiResult<List<SajuProfileModel>>> getProfiles() async {
+    await mockDelay(ms: 250);
+    return ApiResult.ok(List.unmodifiable(_profiles));
+  }
+
+  Future<ApiResult<SajuProfileModel>> createProfile({
+    required String profileName,
+    required String name,
+    required String gender,
+    required String birthDate,
+    String? birthTime,
+    bool isLunar = false,
+    SajuRelationship relationship = SajuRelationship.self,
+  }) async {
+    await mockDelay(ms: 300);
+    final isFirst = _profiles.isEmpty;
+    final profile = SajuProfileModel(
+      id: 'sp_${DateTime.now().millisecondsSinceEpoch}',
+      profileName: profileName,
+      name: name,
+      gender: gender,
+      birthDate: birthDate,
+      birthTime: birthTime,
+      isLunar: isLunar,
+      relationship: relationship,
+      isPrimary: isFirst, // 첫 프로필은 자동으로 대표 프로필로 지정
+      createdAt: DateTime.now(),
+    );
+    _profiles.add(profile);
+    return ApiResult.ok(profile);
+  }
+
+  Future<ApiResult<SajuProfileModel>> updateProfile(
+    SajuProfileModel updated,
+  ) async {
+    await mockDelay(ms: 300);
+    final index = _profiles.indexWhere((p) => p.id == updated.id);
+    if (index == -1) {
+      return ApiResult.fail('프로필을 찾을 수 없습니다.');
+    }
+    _profiles[index] = updated;
+    return ApiResult.ok(updated);
+  }
+
+  Future<ApiResult<void>> deleteProfile(String id) async {
+    await mockDelay(ms: 250);
+    _profiles.removeWhere((p) => p.id == id);
+    return ApiResult.ok(null);
+  }
+
+  Future<ApiResult<void>> setPrimaryProfile(String id) async {
+    await mockDelay(ms: 250);
+    for (var i = 0; i < _profiles.length; i++) {
+      _profiles[i] = _profiles[i].copyWith(isPrimary: _profiles[i].id == id);
+    }
+    return ApiResult.ok(null);
   }
 }

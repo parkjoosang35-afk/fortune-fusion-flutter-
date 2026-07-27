@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 
 /// 03단계 §2 Component 원자단위 - Skeleton Loader
@@ -45,11 +44,12 @@ class _SkeletonBoxState extends State<SkeletonBox>
       builder: (context, _) {
         final t = _controller.value;
         final opacity = 0.4 + 0.3 * (t < 0.5 ? t * 2 : (1 - t) * 2);
+        final baseColor = Theme.of(context).dividerColor;
         return Container(
           width: widget.width,
           height: widget.height,
           decoration: BoxDecoration(
-            color: AppColors.divider.withValues(alpha: opacity),
+            color: baseColor.withValues(alpha: opacity),
             borderRadius: BorderRadius.circular(widget.radius),
           ),
         );
@@ -67,7 +67,7 @@ class SkeletonCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(AppRadius.card),
       ),
       child: Column(

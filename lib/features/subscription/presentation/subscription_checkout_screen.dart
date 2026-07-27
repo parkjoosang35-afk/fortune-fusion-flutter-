@@ -63,7 +63,7 @@ class _SubscriptionCheckoutScreenState
                   Container(
                     padding: const EdgeInsets.all(AppSpacing.lg),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardTheme.color,
                       borderRadius: BorderRadius.circular(AppRadius.card),
                     ),
                     child: Column(
@@ -145,7 +145,7 @@ class _PaymentMethodTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardTheme.color,
           borderRadius: BorderRadius.circular(AppRadius.cardSmall),
           border: Border.all(
             color: selected ? AppColors.primary : AppColors.divider,

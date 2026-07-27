@@ -74,7 +74,7 @@ class AiFortuneHubScreen extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(AppSpacing.lg),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).cardTheme.color,
                   borderRadius: BorderRadius.circular(AppRadius.card),
                 ),
                 child: Column(
@@ -82,8 +82,8 @@ class AiFortuneHubScreen extends StatelessWidget {
                   children: [
                     Container(
                       padding: const EdgeInsets.all(AppSpacing.md),
-                      decoration: const BoxDecoration(
-                        color: AppColors.primaryContainer,
+                      decoration: BoxDecoration(
+                        color: AppColors.containerOf(context),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(icon, color: AppColors.primary, size: 24),

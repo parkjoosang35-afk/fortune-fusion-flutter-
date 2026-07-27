@@ -96,7 +96,7 @@ class _MatchingProfileSetupScreenState
               Container(
                 padding: const EdgeInsets.all(AppSpacing.lg),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).cardTheme.color,
                   borderRadius: BorderRadius.circular(AppRadius.card),
                 ),
                 child: Row(
@@ -132,7 +132,7 @@ class _MatchingProfileSetupScreenState
               const SizedBox(height: AppSpacing.sm),
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).cardTheme.color,
                   borderRadius: BorderRadius.circular(AppRadius.card),
                 ),
                 child: TextField(

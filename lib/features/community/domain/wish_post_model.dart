@@ -16,6 +16,9 @@ class WishPostModel {
   final bool isSupportedByMe;
   final bool isMine;
   final DateTime createdAt;
+  /// [웹→앱 이식] 신통방통 wish.html "같은 목표를 가진 사람과 함께 응원받기(선택)" 목표태그.
+  /// 04A 신규 원자단위 신설 없이 wishes 엔티티에 편의 필드로 포함(선택값, null 허용).
+  final String? goalTag;
 
   const WishPostModel({
     required this.id,
@@ -28,6 +31,7 @@ class WishPostModel {
     required this.createdAt,
     this.isSupportedByMe = false,
     this.isMine = false,
+    this.goalTag,
   });
 
   /// 기존 화면(community_screen.dart)에서 사용 중인 명칭과의 호환을 위한 별칭
@@ -50,8 +54,23 @@ class WishPostModel {
       isSupportedByMe: isSupportedByMe ?? this.isSupportedByMe,
       isMine: isMine,
       createdAt: createdAt,
+      goalTag: goalTag,
     );
   }
+}
+
+/// [웹→앱 이식] 신통방통 wish.html "🏆 소원성 명예의 전당" 대응 - 응원을 많이 받은
+/// 작성자 랭킹 항목(파생 데이터, 별도 API/원자단위 없이 posts로부터 클라이언트에서 집계).
+class WishHallOfFameEntry {
+  final String nickname;
+  final int totalSupport;
+  final int wishCount;
+
+  const WishHallOfFameEntry({
+    required this.nickname,
+    required this.totalSupport,
+    required this.wishCount,
+  });
 }
 
 /// 04A 도메인L `comments`(L-4, 폴리모픽) 대응 모델

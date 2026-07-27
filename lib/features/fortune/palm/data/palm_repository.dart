@@ -1,9 +1,19 @@
+import 'dart:typed_data';
+
 import '../../../../core/api/api_result.dart';
 import '../../../../core/utils/mock_delay.dart';
 import '../domain/palm_model.dart';
 
 /// 06단계 §4.3 `POST /v1/fortune/palm/analyze` 대응 Mock Repository
 /// 09단계 §7 개인정보보호 원칙에 따라 이미지는 서버 전송/저장 없이 로컬에서 결과만 시뮬레이션
+///
+/// 07단계(추가) §3.3 - [analyze]가 선택적으로 [image]를 전달받도록 확장되었으나,
+/// Mock 구현에서는 실제로 파일을 읽거나 전송하지 않는다(향후 실제 API 연동 시
+/// multipart 업로드 로직으로 교체될 지점). 이 시그니처 확장만으로 Provider/Presentation
+/// 레이어는 변경 없이 재사용 가능하도록 10단계(A안) 설계를 따른다.
+///
+/// 07단계(추가, 수정) §3.3 - Flutter Web은 dart:io의 File을 지원하지 않으므로
+/// 웹/Android 공통으로 동작하는 [Uint8List] 기반으로 시그니처를 변경한다.
 class PalmRepository {
   final List<PalmResultModel> _history = [];
 
@@ -31,9 +41,11 @@ class PalmRepository {
     '종합': '전체적으로 균형 잡힌 손금으로, 스스로의 강점을 신뢰하고 나아가면 좋은 결실을 맺을 수 있습니다.',
   };
 
-  Future<ApiResult<PalmResultModel>> analyze() async {
+  Future<ApiResult<PalmResultModel>> analyze({Uint8List? image}) async {
     await mockDelay(ms: 2000);
 
+    // 07단계(추가) §3.3 - 실제 API 연동 시 이 지점에서 image를 multipart로 전송한다.
+    // Mock 단계에서는 이미지 유무와 무관하게 동일한 시뮬레이션 결과를 생성한다.
     final seed = DateTime.now().millisecondsSinceEpoch;
     final lines = <String, String>{};
     _linePool.forEach((line, options) {

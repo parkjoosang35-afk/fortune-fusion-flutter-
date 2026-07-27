@@ -169,7 +169,7 @@ class _MatchingDiscoverScreenState extends State<MatchingDiscoverScreen> {
       margin: EdgeInsets.only(top: depth * 10.0),
       padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(AppRadius.card),
         boxShadow: [
           BoxShadow(
@@ -275,7 +275,7 @@ class _RoundActionButton extends StatelessWidget {
         width: 56,
         height: 56,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardTheme.color,
           shape: BoxShape.circle,
           border: Border.all(color: color.withValues(alpha: 0.4)),
           boxShadow: [
