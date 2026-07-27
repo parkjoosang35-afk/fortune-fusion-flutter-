@@ -55,6 +55,9 @@ export default async function CmsFaqsPage() {
           <Link href="/cms/events" className="px-3 py-2 text-slate-400 hover:text-white">
             이벤트 관리
           </Link>
+          <Link href="/cms/lucky-number" className="px-3 py-2 text-slate-400 hover:text-white">
+            오늘의 행운숫자
+          </Link>
         </nav>
       </div>
 

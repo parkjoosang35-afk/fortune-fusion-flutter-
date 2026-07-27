@@ -7,6 +7,7 @@ import {
   toggleEventActive,
   type EventFormState,
 } from "@/app/actions/events";
+import ImageUploadField from "@/components/ImageUploadField";
 
 const EVENT_TYPE_LABEL: Record<string, string> = {
   attendance_bonus: "출석 보너스",
@@ -91,12 +92,12 @@ export default function EventRow({
                 활성화
               </label>
             </div>
-            <input
-              type="text"
+            <ImageUploadField
               name="imageUrl"
-              defaultValue={event.imageUrl ?? ""}
+              category="events"
+              defaultValue={event.imageUrl}
               placeholder="배너 이미지 URL (선택)"
-              className="rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              compact
             />
             <div className="flex flex-wrap gap-2">
               <input

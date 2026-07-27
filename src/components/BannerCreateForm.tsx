@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useRef } from "react";
+import { useActionState, useRef, useState } from "react";
 import { createBanner, type BannerFormState } from "@/app/actions/banners";
+import ImageUploadField from "@/components/ImageUploadField";
 
 const initialState: BannerFormState = {};
 
@@ -14,6 +15,8 @@ const POSITION_OPTIONS = [
 export default function BannerCreateForm({ canWrite }: { canWrite: boolean }) {
   const [state, formAction, pending] = useActionState(createBanner, initialState);
   const formRef = useRef<HTMLFormElement>(null);
+  const [uploadFieldKey, setUploadFieldKey] = useState(0);
+  const [adType, setAdType] = useState<"image" | "script">("image");
 
   if (!canWrite) return null;
 
@@ -23,12 +26,42 @@ export default function BannerCreateForm({ canWrite }: { canWrite: boolean }) {
       action={async (formData) => {
         await formAction(formData);
         formRef.current?.reset();
+        setUploadFieldKey((k) => k + 1);
+        setAdType("image");
       }}
       className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-800 bg-slate-900 p-4 md:grid-cols-4"
     >
       <h3 className="col-span-full text-sm font-semibold text-white">
         새 배너(제휴 광고) 추가
       </h3>
+
+      {/* 광고 유형 선택: 이미지형(기존) vs 광고소스형(제휴사 원본 스크립트/iframe) */}
+      <div className="col-span-full flex gap-4 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-slate-300">
+        <span className="text-xs text-slate-500">광고 유형</span>
+        <label className="flex items-center gap-1.5">
+          <input
+            type="radio"
+            name="adType"
+            value="image"
+            checked={adType === "image"}
+            onChange={() => setAdType("image")}
+            className="accent-indigo-500"
+          />
+          이미지 + 링크 (기존 방식)
+        </label>
+        <label className="flex items-center gap-1.5">
+          <input
+            type="radio"
+            name="adType"
+            value="script"
+            checked={adType === "script"}
+            onChange={() => setAdType("script")}
+            className="accent-indigo-500"
+          />
+          광고소스(스크립트/iframe) 붙여넣기
+        </label>
+      </div>
+
       <input
         type="text"
         name="title"
@@ -55,19 +88,39 @@ export default function BannerCreateForm({ canWrite }: { canWrite: boolean }) {
         defaultValue={0}
         className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
       />
-      <input
-        type="text"
-        name="imageUrl"
-        placeholder="이미지 URL (배너 썸네일)"
-        required
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 md:col-span-2"
-      />
-      <input
-        type="text"
-        name="linkUrl"
-        placeholder="제휴 링크 URL (쿠팡파트너스 등, 선택)"
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 md:col-span-2"
-      />
+
+      {adType === "image" ? (
+        <>
+          <ImageUploadField
+            key={uploadFieldKey}
+            name="imageUrl"
+            category="banners"
+            className="md:col-span-2"
+            placeholder="이미지 URL (배너 썸네일)"
+          />
+          <input
+            type="text"
+            name="linkUrl"
+            placeholder="제휴 링크 URL (쿠팡파트너스 등, 선택)"
+            className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 md:col-span-2"
+          />
+        </>
+      ) : (
+        <div className="col-span-full">
+          <textarea
+            name="adScript"
+            rows={4}
+            placeholder={
+              '제휴사가 제공한 원본 광고 태그를 그대로 붙여넣으세요.\n예) <iframe src="https://ads-partners.coupang.com/widgets.html?id=..." width="680" height="140" frameborder="0" scrolling="no"></iframe>'
+            }
+            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 font-mono text-xs text-white outline-none focus:border-indigo-500"
+          />
+          <p className="mt-1 text-xs text-slate-500">
+            쿠팡파트너스 위젯, Google AdSense, 기타 제휴사가 발급한 &lt;iframe&gt;/&lt;script&gt; 코드를
+            그대로 붙여넣으면 앱/웹에서 그대로 렌더링됩니다. (link_url은 사용하지 않음)
+          </p>
+        </div>
+      )}
       <label className="flex flex-col gap-1 text-xs text-slate-400">
         시작일시(선택)
         <input

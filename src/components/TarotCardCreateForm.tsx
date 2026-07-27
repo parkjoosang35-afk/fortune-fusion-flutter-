@@ -1,13 +1,15 @@
 "use client";
 
-import { useActionState, useRef } from "react";
+import { useActionState, useRef, useState } from "react";
 import { createTarotCard, type TarotCardFormState } from "@/app/actions/tarot-cards";
+import ImageUploadField from "@/components/ImageUploadField";
 
 const initialState: TarotCardFormState = {};
 
 export default function TarotCardCreateForm({ canWrite }: { canWrite: boolean }) {
   const [state, formAction, pending] = useActionState(createTarotCard, initialState);
   const formRef = useRef<HTMLFormElement>(null);
+  const [uploadFieldKey, setUploadFieldKey] = useState(0);
 
   if (!canWrite) return null;
 
@@ -17,6 +19,7 @@ export default function TarotCardCreateForm({ canWrite }: { canWrite: boolean })
       action={async (formData) => {
         await formAction(formData);
         formRef.current?.reset();
+        setUploadFieldKey((k) => k + 1);
       }}
       className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-800 bg-slate-900 p-4 md:grid-cols-2"
     >
@@ -43,12 +46,7 @@ export default function TarotCardCreateForm({ canWrite }: { canWrite: boolean })
         defaultValue={0}
         className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
       />
-      <input
-        type="text"
-        name="imageUrl"
-        placeholder="이미지 URL (선택)"
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
-      />
+      <ImageUploadField key={uploadFieldKey} name="imageUrl" category="tarot-cards" />
       <textarea
         name="uprightMeaning"
         placeholder="정방향 의미"

@@ -6,6 +6,7 @@ import {
   deleteAmuletItem,
   type AmuletFormState,
 } from "@/app/actions/amulets";
+import ImageUploadField from "@/components/ImageUploadField";
 
 interface AmuletItemRowProps {
   item: {
@@ -68,12 +69,11 @@ export default function AmuletItemRow({ item, grades, canWrite, canDelete }: Amu
               defaultValue={item.effectDescription}
               className="w-48 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
             />
-            <input
-              type="text"
+            <ImageUploadField
               name="imageUrl"
-              defaultValue={item.imageUrl ?? ""}
-              placeholder="이미지 URL"
-              className="w-40 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              category="amulets"
+              defaultValue={item.imageUrl}
+              compact
             />
             <label className="flex items-center gap-1 text-xs text-slate-300">
               <input

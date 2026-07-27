@@ -6,6 +6,7 @@ import {
   deleteLuckybagProduct,
   type LuckybagFormState,
 } from "@/app/actions/luckybag";
+import ImageUploadField from "@/components/ImageUploadField";
 
 interface LuckybagProductRowProps {
   product: {
@@ -75,12 +76,11 @@ export default function LuckybagProductRow({
                 </option>
               ))}
             </select>
-            <input
-              type="text"
+            <ImageUploadField
               name="imageUrl"
-              defaultValue={product.imageUrl ?? ""}
-              placeholder="이미지 URL"
-              className="w-40 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              category="luckybag"
+              defaultValue={product.imageUrl}
+              compact
             />
             <label className="flex items-center gap-1 text-xs text-slate-300">
               <input

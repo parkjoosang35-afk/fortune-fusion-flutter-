@@ -741,8 +741,15 @@ model RankingSnapshot {
 model Banner {
   id           Int       @id @default(autoincrement())
   title        String
-  imageUrl     String    @map("image_url")
-  linkUrl      String?   @map("link_url") // 쿠팡파트너스 등 제휴 광고 링크
+  // adType='image'일 때만 사용하는 배너 썸네일 이미지. adType='script'인 경우
+  // 제휴사 원본 광고소스(HTML/스크립트)가 이미지를 대신하므로 nullable로 둔다.
+  imageUrl     String?   @map("image_url")
+  linkUrl      String?   @map("link_url") // 쿠팡파트너스 등 제휴 광고 링크 (adType='image' 전용)
+  // 'image': 이미지 URL + 링크(기존 방식) / 'script': 제휴사 원본 광고소스(HTML/iframe/script 태그) 그대로 삽입
+  adType       String    @default("image") @map("ad_type")
+  // 제휴사가 제공하는 원본 광고 태그(iframe/script). adType='script'일 때 필수.
+  // 예) 쿠팡파트너스 <iframe src="https://ads-partners.coupang.com/widgets.html?..."></iframe>
+  adScript     String?   @map("ad_script")
   positionCode String    @map("position_code") // home_top/home_middle/home_bottom 등
   sortOrder    Int       @default(0) @map("sort_order")
   isActive     Boolean   @default(true) @map("is_active")
@@ -757,6 +764,36 @@ model Banner {
 
   @@index([positionCode, isActive])
   @@map("banners")
+}
+
+// [사용자 요청: "오늘의 행운숫자" 관리자 콘텐츠 - 광고(banners)와 완전히 분리된 별도 모델]
+// 홈 화면 "오늘의 행운 리추얼" 배너의 "오늘의 행운 숫자" 카드에 관리자가 이미지/영상/스크립트
+// 형태의 콘텐츠를 등록하면 앱에 노출된다. Banner 모델과 스키마 형태는 유사하지만
+// (1) "AD" 배지 없음 (2) 광고/제휴 링크 개념 없음 (3) contentType에 'video' 지원
+// 이라는 점에서 명확히 다른 용도이므로 별도 테이블로 신설한다(광고 재사용 금지 요청 반영).
+model LuckyNumberContent {
+  id          Int       @id @default(autoincrement())
+  title       String
+  // 'image': imageUrl(정지 이미지) / 'video': videoUrl(mp4 등) / 'script': 커스텀 HTML(제휴 아님, 순수 콘텐츠)
+  contentType String    @default("image") @map("content_type")
+  imageUrl    String?   @map("image_url")
+  videoUrl    String?   @map("video_url")
+  script      String?
+  // 콘텐츠가 없을 때 앱이 폴백으로 보여줄 텍스트(비워두면 daily_fortune의 luckyNumber 사용)
+  caption     String?
+  sortOrder   Int       @default(0) @map("sort_order")
+  isActive    Boolean   @default(true) @map("is_active")
+  startAt     DateTime? @map("start_at")
+  endAt       DateTime? @map("end_at")
+  status      String    @default("active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+  createdBy   String?   @map("created_by")
+  updatedBy   String?   @map("updated_by")
+
+  @@index([isActive])
+  @@map("lucky_number_contents")
 }
 
 // ── 04A D-8: ranking_rewards (※Base 포함) ──

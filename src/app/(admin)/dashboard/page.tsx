@@ -98,6 +98,22 @@ export default async function DashboardPage() {
     prisma.consultationSession.count({ where: { endedAt: null } }),
   ]);
 
+  // [운세 앱 개발 프롬프트-Task3] 대시보드에서 "광고 배너 현황"을 한눈에 보고
+  // CMS 배너 관리로 바로 이동할 수 있게 하는 요약 위젯용 집계.
+  const bannerPositions = ["home_top", "home_middle", "home_bottom"] as const;
+  const bannerRows = await prisma.banner.findMany({
+    where: { deletedAt: null },
+    select: { positionCode: true, isActive: true },
+  });
+  const bannerSummary = bannerPositions.map((positionCode) => {
+    const inPosition = bannerRows.filter((b) => b.positionCode === positionCode);
+    return {
+      positionCode,
+      total: inPosition.length,
+      active: inPosition.filter((b) => b.isActive).length,
+    };
+  });
+
   // 05§3.0.1 🟢 위젯 산출 방식: fortune_requests(pending) + consultation_sessions(진행중) 합산
   const nowViewingFortuneCount = fortuneRequestsPending + consultationOngoing;
 
@@ -233,6 +249,56 @@ export default async function DashboardPage() {
               <p className="mt-2 text-xs text-slate-500">권한 없음(매출 위젯 비노출)</p>
             )}
           </div>
+        </div>
+      </section>
+
+      {/* [운세 앱 개발 프롬프트-Task3] 광고 배너 현황 요약 — CMS 배너 관리로 바로 이동 */}
+      <section className="mb-10">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-white">📢 광고 배너 현황</h2>
+          <Link href="/cms/banners" className="text-xs text-indigo-400 hover:underline">
+            배너 관리로 이동 →
+          </Link>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {bannerSummary.map((s) => {
+            const label =
+              s.positionCode === "home_top"
+                ? "홈 상단"
+                : s.positionCode === "home_middle"
+                  ? "홈 중단"
+                  : "홈 하단";
+            const allActive = s.total > 0 && s.active === s.total;
+            const noneActive = s.active === 0;
+            return (
+              <Link
+                key={s.positionCode}
+                href="/cms/banners"
+                className="rounded-xl border border-slate-800 bg-slate-900 p-4 transition hover:border-indigo-800 hover:bg-indigo-950/10"
+              >
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-slate-400">{label}</p>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                      s.total === 0
+                        ? "bg-slate-800 text-slate-400"
+                        : allActive
+                          ? "bg-emerald-950/60 text-emerald-400"
+                          : noneActive
+                            ? "bg-slate-800 text-slate-400"
+                            : "bg-amber-950/60 text-amber-400"
+                    }`}
+                  >
+                    {s.total === 0 ? "배너 없음" : allActive ? "노출중" : noneActive ? "비노출" : "일부 노출"}
+                  </span>
+                </div>
+                <p className="mt-2 text-xl font-bold text-white">
+                  {s.active}
+                  <span className="text-sm font-normal text-slate-500"> / {s.total}건 활성</span>
+                </p>
+              </Link>
+            );
+          })}
         </div>
       </section>
 

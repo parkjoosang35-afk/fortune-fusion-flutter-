@@ -1,13 +1,15 @@
 "use client";
 
-import { useActionState, useRef } from "react";
+import { useActionState, useRef, useState } from "react";
 import { createPopup, type PopupFormState } from "@/app/actions/popups";
+import ImageUploadField from "@/components/ImageUploadField";
 
 const initialState: PopupFormState = {};
 
 export default function PopupCreateForm({ canWrite }: { canWrite: boolean }) {
   const [state, formAction, pending] = useActionState(createPopup, initialState);
   const formRef = useRef<HTMLFormElement>(null);
+  const [uploadFieldKey, setUploadFieldKey] = useState(0);
 
   if (!canWrite) return null;
 
@@ -17,6 +19,7 @@ export default function PopupCreateForm({ canWrite }: { canWrite: boolean }) {
       action={async (formData) => {
         await formAction(formData);
         formRef.current?.reset();
+        setUploadFieldKey((k) => k + 1);
       }}
       className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-800 bg-slate-900 p-4 md:grid-cols-4"
     >
@@ -34,11 +37,12 @@ export default function PopupCreateForm({ canWrite }: { canWrite: boolean }) {
         placeholder="대상 세그먼트 (선택, 예: new_user)"
         className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 md:col-span-2"
       />
-      <input
-        type="text"
+      <ImageUploadField
+        key={uploadFieldKey}
         name="imageUrl"
+        category="popups"
+        className="md:col-span-2"
         placeholder="이미지 URL (선택 - 텍스트 전용 팝업 허용)"
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 md:col-span-2"
       />
       <input
         type="text"

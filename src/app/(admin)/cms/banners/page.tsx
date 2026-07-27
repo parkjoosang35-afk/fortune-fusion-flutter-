@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import BannerCreateForm from "@/components/BannerCreateForm";
 import BannerRow from "@/components/BannerRow";
+import BannerPositionMasterSwitch from "@/components/BannerPositionMasterSwitch";
 
 // 05_Admin_System_Design.md §3.8 "CMS" — "배너 관리" (04A N-7 banners CRUD)
 // [스코프 결정] 쿠팡파트너스 등 제휴사 광고 배너를 이 화면으로 관리한다.
@@ -37,6 +38,16 @@ export default async function CmsBannersPage() {
 
   const activeCount = banners.filter((b) => b.isActive).length;
 
+  // [운세 앱 개발 프롬프트-Task3] 위치별 마스터 스위치 카드용 집계(전체/활성 건수)
+  const positionSummaries = POSITION_ORDER.map((positionCode) => {
+    const inPosition = banners.filter((b) => b.positionCode === positionCode);
+    return {
+      positionCode,
+      total: inPosition.length,
+      active: inPosition.filter((b) => b.isActive).length,
+    };
+  });
+
   return (
     <div>
       <div className="mb-6">
@@ -64,8 +75,13 @@ export default async function CmsBannersPage() {
           <Link href="/cms/events" className="px-3 py-2 text-slate-400 hover:text-white">
             이벤트 관리
           </Link>
+          <Link href="/cms/lucky-number" className="px-3 py-2 text-slate-400 hover:text-white">
+            오늘의 행운숫자
+          </Link>
         </nav>
       </div>
+
+      <BannerPositionMasterSwitch summaries={positionSummaries} canWrite={canWrite} />
 
       <BannerCreateForm canWrite={canWrite} />
 

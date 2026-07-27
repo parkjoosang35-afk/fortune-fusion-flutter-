@@ -2,6 +2,7 @@
 
 import { useActionState, useRef, useState } from "react";
 import { createEvent, type EventFormState } from "@/app/actions/events";
+import ImageUploadField from "@/components/ImageUploadField";
 
 const initialState: EventFormState = {};
 
@@ -38,6 +39,7 @@ export default function EventCreateForm({ canWrite }: { canWrite: boolean }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [eventType, setEventType] = useState<keyof typeof CONFIG_TEMPLATES>("attendance_bonus");
   const [config, setConfig] = useState(CONFIG_TEMPLATES.attendance_bonus);
+  const [uploadFieldKey, setUploadFieldKey] = useState(0);
 
   if (!canWrite) return null;
 
@@ -49,6 +51,7 @@ export default function EventCreateForm({ canWrite }: { canWrite: boolean }) {
         formRef.current?.reset();
         setConfig(CONFIG_TEMPLATES.attendance_bonus);
         setEventType("attendance_bonus");
+        setUploadFieldKey((k) => k + 1);
       }}
       className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-800 bg-slate-900 p-4 md:grid-cols-2"
     >
@@ -60,11 +63,12 @@ export default function EventCreateForm({ canWrite }: { canWrite: boolean }) {
         required
         className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 md:col-span-2"
       />
-      <input
-        type="text"
+      <ImageUploadField
+        key={uploadFieldKey}
         name="imageUrl"
+        category="events"
+        className="md:col-span-2"
         placeholder="배너 이미지 URL (선택)"
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 md:col-span-2"
       />
       <select
         name="eventType"

@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useRef } from "react";
+import { useActionState, useRef, useState } from "react";
 import { createGiftcardProduct, type GiftcardFormState } from "@/app/actions/giftcards";
+import ImageUploadField from "@/components/ImageUploadField";
 
 interface GiftcardProductCreateFormProps {
   canWrite: boolean;
@@ -14,6 +15,7 @@ export default function GiftcardProductCreateForm({
 }: GiftcardProductCreateFormProps) {
   const [state, formAction, pending] = useActionState(createGiftcardProduct, initialState);
   const formRef = useRef<HTMLFormElement>(null);
+  const [uploadFieldKey, setUploadFieldKey] = useState(0);
 
   if (!canWrite) return null;
 
@@ -23,6 +25,7 @@ export default function GiftcardProductCreateForm({
       action={async (formData) => {
         await formAction(formData);
         formRef.current?.reset();
+        setUploadFieldKey((k) => k + 1);
       }}
       className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-800 bg-slate-900 p-4 md:grid-cols-4"
     >
@@ -66,11 +69,11 @@ export default function GiftcardProductCreateForm({
         defaultValue={365}
         className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
       />
-      <input
-        type="text"
+      <ImageUploadField
+        key={uploadFieldKey}
         name="imageUrl"
-        placeholder="이미지 URL (선택)"
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 md:col-span-2"
+        category="giftcards"
+        className="md:col-span-2"
       />
       <label className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300">
         <input type="checkbox" name="isActive" defaultChecked className="accent-indigo-500" />

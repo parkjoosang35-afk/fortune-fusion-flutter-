@@ -46,3 +46,7 @@ next-env.d.ts
 /prisma/dev.db
 /prisma/dev.db-journal
 dev.log
+
+# 관리자 이미지 업로드 파일 (로컬 개발용 저장소, 저장소 크기 증가 방지 위해 미추적)
+/public/uploads/*
+!/public/uploads/.gitkeep

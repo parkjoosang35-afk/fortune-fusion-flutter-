@@ -6,6 +6,7 @@ import {
   deleteGiftcardProduct,
   type GiftcardFormState,
 } from "@/app/actions/giftcards";
+import ImageUploadField from "@/components/ImageUploadField";
 
 interface GiftcardProductRowProps {
   product: {
@@ -80,12 +81,11 @@ export default function GiftcardProductRow({
               min={1}
               className="w-20 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
             />
-            <input
-              type="text"
+            <ImageUploadField
               name="imageUrl"
-              defaultValue={product.imageUrl ?? ""}
-              placeholder="이미지 URL"
-              className="w-40 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              category="giftcards"
+              defaultValue={product.imageUrl}
+              compact
             />
             <label className="flex items-center gap-1 text-xs text-slate-300">
               <input

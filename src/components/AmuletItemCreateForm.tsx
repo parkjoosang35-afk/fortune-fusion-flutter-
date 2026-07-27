@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useRef } from "react";
+import { useActionState, useRef, useState } from "react";
 import { createAmuletItem, type AmuletFormState } from "@/app/actions/amulets";
+import ImageUploadField from "@/components/ImageUploadField";
 
 interface AmuletItemCreateFormProps {
   canWrite: boolean;
@@ -13,6 +14,9 @@ const initialState: AmuletFormState = {};
 export default function AmuletItemCreateForm({ canWrite, grades }: AmuletItemCreateFormProps) {
   const [state, formAction, pending] = useActionState(createAmuletItem, initialState);
   const formRef = useRef<HTMLFormElement>(null);
+  // 업로드 필드는 URL을 컨트롤드 state로 들고 있어서 form.reset()만으로는
+  // 초기화되지 않는다. 제출 완료 시 key를 바꿔 강제로 리마운트해 초기화한다.
+  const [uploadFieldKey, setUploadFieldKey] = useState(0);
 
   if (!canWrite) return null;
 
@@ -22,6 +26,7 @@ export default function AmuletItemCreateForm({ canWrite, grades }: AmuletItemCre
       action={async (formData) => {
         await formAction(formData);
         formRef.current?.reset();
+        setUploadFieldKey((k) => k + 1);
       }}
       className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-800 bg-slate-900 p-4 md:grid-cols-4"
     >
@@ -63,11 +68,11 @@ export default function AmuletItemCreateForm({ canWrite, grades }: AmuletItemCre
         rows={2}
         className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 md:col-span-2"
       />
-      <input
-        type="text"
+      <ImageUploadField
+        key={uploadFieldKey}
         name="imageUrl"
-        placeholder="이미지 URL (선택)"
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 md:col-span-2"
+        category="amulets"
+        className="md:col-span-2"
       />
       <label className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300">
         <input type="checkbox" name="isAiGenerated" className="accent-indigo-500" />

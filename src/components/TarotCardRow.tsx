@@ -6,6 +6,7 @@ import {
   deleteTarotCard,
   type TarotCardFormState,
 } from "@/app/actions/tarot-cards";
+import ImageUploadField from "@/components/ImageUploadField";
 
 const initialState: TarotCardFormState = {};
 
@@ -67,12 +68,10 @@ export default function TarotCardRow({ card, canWrite, canDelete }: TarotCardRow
               defaultValue={card.sortOrder}
               className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
             />
-            <input
-              type="text"
+            <ImageUploadField
               name="imageUrl"
-              defaultValue={card.imageUrl ?? ""}
-              placeholder="이미지 URL"
-              className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+              category="tarot-cards"
+              defaultValue={card.imageUrl}
             />
             <textarea
               name="uprightMeaning"

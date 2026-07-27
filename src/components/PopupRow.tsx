@@ -7,6 +7,7 @@ import {
   togglePopupActive,
   type PopupFormState,
 } from "@/app/actions/popups";
+import ImageUploadField from "@/components/ImageUploadField";
 
 interface PopupRowProps {
   popup: {
@@ -73,12 +74,12 @@ export default function PopupRow({ popup, canWrite, canDelete }: PopupRowProps) 
               placeholder="세그먼트(선택)"
               className="w-32 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
             />
-            <input
-              type="text"
+            <ImageUploadField
               name="imageUrl"
-              defaultValue={popup.imageUrl ?? ""}
+              category="popups"
+              defaultValue={popup.imageUrl}
               placeholder="이미지 URL(선택)"
-              className="w-52 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              compact
             />
             <input
               type="text"

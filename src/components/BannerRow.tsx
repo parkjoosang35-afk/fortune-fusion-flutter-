@@ -7,13 +7,16 @@ import {
   toggleBannerActive,
   type BannerFormState,
 } from "@/app/actions/banners";
+import ImageUploadField from "@/components/ImageUploadField";
 
 interface BannerRowProps {
   banner: {
     id: number;
     title: string;
-    imageUrl: string;
+    imageUrl: string | null;
     linkUrl: string | null;
+    adType: string;
+    adScript: string | null;
     positionCode: string;
     sortOrder: number;
     isActive: boolean;
@@ -44,6 +47,9 @@ function formatDate(d: Date | null): string {
 
 export default function BannerRow({ banner, canWrite, canDelete }: BannerRowProps) {
   const [editing, setEditing] = useState(false);
+  const [adType, setAdType] = useState<"image" | "script">(
+    banner.adType === "script" ? "script" : "image"
+  );
   const [updateState, updateAction, updatePending] = useActionState(updateBanner, initialState);
   const [deleteState, deleteAction, deletePending] = useActionState(deleteBanner, initialState);
   const [toggleState, toggleAction, togglePending] = useActionState(
@@ -57,6 +63,31 @@ export default function BannerRow({ banner, canWrite, canDelete }: BannerRowProp
         <td colSpan={7} className="px-4 py-3">
           <form action={updateAction} className="flex flex-wrap items-center gap-2">
             <input type="hidden" name="id" value={banner.id} />
+            <div className="flex w-full gap-4 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-xs text-slate-300">
+              <span className="text-slate-500">광고 유형</span>
+              <label className="flex items-center gap-1">
+                <input
+                  type="radio"
+                  name="adType"
+                  value="image"
+                  checked={adType === "image"}
+                  onChange={() => setAdType("image")}
+                  className="accent-indigo-500"
+                />
+                이미지+링크
+              </label>
+              <label className="flex items-center gap-1">
+                <input
+                  type="radio"
+                  name="adType"
+                  value="script"
+                  checked={adType === "script"}
+                  onChange={() => setAdType("script")}
+                  className="accent-indigo-500"
+                />
+                광고소스(스크립트)
+              </label>
+            </div>
             <input
               type="text"
               name="title"
@@ -79,20 +110,31 @@ export default function BannerRow({ banner, canWrite, canDelete }: BannerRowProp
               min={0}
               className="w-20 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
             />
-            <input
-              type="text"
-              name="imageUrl"
-              defaultValue={banner.imageUrl}
-              placeholder="이미지 URL"
-              className="w-52 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
-            />
-            <input
-              type="text"
-              name="linkUrl"
-              defaultValue={banner.linkUrl ?? ""}
-              placeholder="제휴 링크 URL(선택)"
-              className="w-52 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
-            />
+            {adType === "image" ? (
+              <>
+                <ImageUploadField
+                  name="imageUrl"
+                  category="banners"
+                  defaultValue={banner.imageUrl}
+                  compact
+                />
+                <input
+                  type="text"
+                  name="linkUrl"
+                  defaultValue={banner.linkUrl ?? ""}
+                  placeholder="제휴 링크 URL(선택)"
+                  className="w-52 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+                />
+              </>
+            ) : (
+              <textarea
+                name="adScript"
+                defaultValue={banner.adScript ?? ""}
+                rows={3}
+                placeholder="제휴사 원본 광고 스크립트/iframe 코드"
+                className="w-full rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 font-mono text-xs text-white outline-none focus:border-indigo-500"
+              />
+            )}
             <input
               type="datetime-local"
               name="startAt"
@@ -138,20 +180,44 @@ export default function BannerRow({ banner, canWrite, canDelete }: BannerRowProp
   return (
     <tr className="border-b border-slate-800/60 hover:bg-slate-800/40">
       <td className="px-4 py-3">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={banner.imageUrl}
-          alt={banner.title}
-          className="h-10 w-20 rounded-md border border-slate-700 object-cover"
-        />
+        {banner.adType === "script" ? (
+          <span className="inline-flex h-10 w-20 items-center justify-center rounded-md border border-dashed border-indigo-700 bg-indigo-950/40 text-[10px] text-indigo-300">
+            &lt;script&gt;
+          </span>
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={banner.imageUrl ?? ""}
+            alt={banner.title}
+            className="h-10 w-20 rounded-md border border-slate-700 object-cover"
+          />
+        )}
       </td>
-      <td className="px-4 py-3 text-slate-200">{banner.title}</td>
+      <td className="px-4 py-3 text-slate-200">
+        {banner.title}
+        <span
+          className={`ml-2 rounded-full px-1.5 py-0.5 text-[10px] ${
+            banner.adType === "script"
+              ? "bg-indigo-950/60 text-indigo-300"
+              : "bg-slate-800 text-slate-400"
+          }`}
+        >
+          {banner.adType === "script" ? "광고소스" : "이미지"}
+        </span>
+      </td>
       <td className="px-4 py-3 text-slate-300">
         {POSITION_LABEL[banner.positionCode] ?? banner.positionCode}
         <span className="ml-1 text-xs text-slate-500">#{banner.sortOrder}</span>
       </td>
       <td className="px-4 py-3">
-        {banner.linkUrl ? (
+        {banner.adType === "script" ? (
+          <span
+            className="block max-w-[240px] truncate font-mono text-xs text-slate-400"
+            title={banner.adScript ?? ""}
+          >
+            {banner.adScript}
+          </span>
+        ) : banner.linkUrl ? (
           <a
             href={banner.linkUrl}
             target="_blank"
