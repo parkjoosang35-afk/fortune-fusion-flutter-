@@ -533,6 +533,24 @@ model PointHistory {
   @@map("point_histories")
 }
 
+// ── 신규: economy_config (복주머니 경제 핀조절 레버) ──────────────
+// [배경] "Fortune Fusion 마스터 개발 프롬프트" 2부(복주머니 경제 엔진) 철학 이식
+// (사용자 승인 - 옵션B: 기존 Provider/Next.js/Prisma 스택 유지, 경제 로직만 이식).
+// key-value 구조로 관리자가 대시보드 슬라이더에서 값만 바꾸면 즉시 경제에 반영되도록
+// 한다(코드 재배포 없이 튜닝). 최초 시딩 값과 의미:
+//   refund_rate            = 0.5  (소모성 서비스 이용 시 즉시 환급률, spend_refund 로직에 사용)
+//   send_refund_rate       = 0.5  (포인트 보내기 시 "보낸 사람" 환급률)
+//   daily_send_limit       = 200  (1인 1일 포인트 보내기 한도, 인플레이션 방어)
+model EconomyConfig {
+  key         String   @id
+  value       Float
+  description String?
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  updatedBy   String?  @map("updated_by")
+
+  @@map("economy_config")
+}
+
 // ── 04A C-3: point_policies ───────────────────────────────────────
 model PointPolicy {
   id         Int       @id @default(autoincrement())
