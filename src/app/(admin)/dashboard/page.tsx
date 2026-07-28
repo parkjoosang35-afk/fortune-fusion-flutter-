@@ -98,6 +98,19 @@ export default async function DashboardPage() {
     prisma.consultationSession.count({ where: { endedAt: null } }),
   ]);
 
+  // [Phase4 - 복 경제 대시보드, 옵션B] 금일 "복 나누기(send_bok)" 발행/환급 요약.
+  // economy_config 값 자체의 조회/수정 UI는 /reward/policies에 위치(RBAC=reward 재사용).
+  const sendBokToday = await prisma.pointHistory.findMany({
+    where: { sourceType: "send_bok", createdAt: { gte: today } },
+    select: { amount: true, type: true },
+  });
+  const sendBokSentToday = sendBokToday
+    .filter((h) => h.type === "spend")
+    .reduce((s, h) => s + Math.abs(h.amount), 0);
+  const sendBokRefundToday = sendBokToday
+    .filter((h) => h.type === "earn" && h.amount > 0)
+    .reduce((s, h) => s + h.amount, 0);
+
   // [운세 앱 개발 프롬프트-Task3] 대시보드에서 "광고 배너 현황"을 한눈에 보고
   // CMS 배너 관리로 바로 이동할 수 있게 하는 요약 위젯용 집계.
   const bannerPositions = ["home_top", "home_middle", "home_bottom"] as const;
@@ -249,6 +262,29 @@ export default async function DashboardPage() {
               <p className="mt-2 text-xs text-slate-500">권한 없음(매출 위젯 비노출)</p>
             )}
           </div>
+
+          {/* [Phase4] 복 나누기(send_bok) 발행/환급 — "복은 나눌수록 커진다" 경제 철학 지표 */}
+          <Link
+            href="/reward/policies"
+            className="rounded-xl border border-slate-800 bg-slate-900 p-4 transition hover:border-indigo-800 hover:bg-indigo-950/10 sm:col-span-2"
+          >
+            <p className="text-sm text-slate-400">🔁 금일 복 나누기(발행/환급)</p>
+            {canSeeRevenue ? (
+              <div className="mt-2 flex flex-wrap gap-6">
+                <div>
+                  <p className="text-xs text-slate-500">보낸 금액(발행)</p>
+                  <p className="text-xl font-bold text-white">{sendBokSentToday.toLocaleString()}P</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">환급(양쪽 증식분)</p>
+                  <p className="text-xl font-bold text-emerald-400">+{sendBokRefundToday.toLocaleString()}P</p>
+                </div>
+              </div>
+            ) : (
+              <p className="mt-2 text-xs text-slate-500">권한 없음(리워드 위젯 비노출)</p>
+            )}
+            <p className="mt-1 text-xs text-indigo-400">경제 설정(환급률/한도) 조정하기 →</p>
+          </Link>
         </div>
       </section>
 

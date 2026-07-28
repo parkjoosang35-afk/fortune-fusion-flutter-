@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import PointPolicyCreateForm from "@/components/PointPolicyCreateForm";
 import PointPolicyRow from "@/components/PointPolicyRow";
 import PointAdjustForm from "@/components/PointAdjustForm";
+import EconomyConfigForm from "@/components/EconomyConfigForm";
+import { ECONOMY_CONFIG_KEYS } from "@/lib/economy-config-meta";
 
 // 05_Admin_System_Design.md §3.3 "리워드 관리" — 1차 소단위(지갑/포인트, 04A 도메인C)
 // 화면 4종을 /reward/policies 라우트 하위 섹션으로 통합 구현:
@@ -15,6 +17,12 @@ import PointAdjustForm from "@/components/PointAdjustForm";
 export const dynamic = "force-dynamic";
 
 const HISTORY_PAGE_SIZE = 20;
+
+function today(): Date {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
 
 interface RewardPoliciesPageProps {
   searchParams: Promise<{
@@ -84,6 +92,29 @@ export default async function RewardPoliciesPage({ searchParams }: RewardPolicie
     take: 12,
   });
 
+  // ── 5) 복(福) 경제 설정 (Phase4, 옵션B — economy_config) ──
+  const economyConfigRows = await prisma.economyConfig.findMany({
+    where: { key: { in: ECONOMY_CONFIG_KEYS.map((k) => k.key) } },
+  });
+  const economyConfigViewRows = economyConfigRows.map((r) => ({
+    key: r.key,
+    value: r.value,
+    updatedAt: r.updatedAt.toISOString(),
+    updatedBy: r.updatedBy,
+  }));
+
+  // ── 6) 금일 "복 나누기(send_bok)" 발행/환급 요약 ──
+  const sendBokToday = await prisma.pointHistory.findMany({
+    where: { sourceType: "send_bok", createdAt: { gte: today() } },
+    select: { amount: true, type: true },
+  });
+  const sendBokSentToday = sendBokToday
+    .filter((h) => h.type === "spend")
+    .reduce((s, h) => s + Math.abs(h.amount), 0);
+  const sendBokRefundToday = sendBokToday
+    .filter((h) => h.type === "earn" && h.amount > 0)
+    .reduce((s, h) => s + h.amount, 0);
+
   return (
     <div>
       <div className="mb-6">
@@ -92,6 +123,29 @@ export default async function RewardPoliciesPage({ searchParams }: RewardPolicie
           지갑/포인트 정책, 수동 조정, 이력 조회, 만료 배치 모니터링을 관리합니다.
         </p>
       </div>
+
+      {/* 5) 복(福) 경제 설정 — Phase4(관리자 대시보드, 옵션B) */}
+      <section className="mb-8">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-white">복(福) 경제 설정</h2>
+          <p className="text-xs text-slate-500">
+            &quot;복은 나눌수록 커진다&quot; 경제 철학의 핀조절 레버(economy_config) — 저장 즉시 API에 반영
+          </p>
+        </div>
+        <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+            <p className="text-sm text-slate-400">🔁 금일 복 나누기 발행(보낸 금액)</p>
+            <p className="mt-2 text-2xl font-bold text-white">{sendBokSentToday.toLocaleString()}P</p>
+          </div>
+          <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+            <p className="text-sm text-slate-400">🔁 금일 복 나누기 환급(양쪽 증식분)</p>
+            <p className="mt-2 text-2xl font-bold text-emerald-400">
+              +{sendBokRefundToday.toLocaleString()}P
+            </p>
+          </div>
+        </div>
+        <EconomyConfigForm canWrite={canWrite} rows={economyConfigViewRows} />
+      </section>
 
       {/* 1) 포인트 정책 설정 */}
       <section className="mb-8">
