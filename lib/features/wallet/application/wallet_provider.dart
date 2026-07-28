@@ -50,4 +50,27 @@ class WalletProvider extends ChangeNotifier {
     if (ok) await load();
     return ok;
   }
+
+  /// [Phase22 - 복주머니 경제철학 이식] "복 나누기" — 성공 시 (환급액, 오늘 남은 송금가능액)을
+  /// 반환하고, 실패 시 null을 반환한다(에러 메시지는 [lastSendError]로 확인).
+  String? lastSendError;
+
+  Future<({int refundAmount, int dailySendRemaining})?> sendBok({
+    required int toUserId,
+    required int amount,
+    String memo = '복 나누기',
+  }) async {
+    final result = await _repository.sendBok(
+      toUserId: toUserId,
+      amount: amount,
+      memo: memo,
+    );
+    if (!result.success) {
+      lastSendError = result.errorMessage;
+      return null;
+    }
+    lastSendError = null;
+    await load();
+    return result.data;
+  }
 }

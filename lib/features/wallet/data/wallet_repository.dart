@@ -128,6 +128,57 @@ class WalletRepository {
     }
   }
 
+  /// [Phase22 - 복주머니 경제철학 이식] "복 나누기(송금)" — POST /api/public/wallet/send
+  /// 보낸 사람은 amount만큼 차감되지만 economy_config.send_refund_rate만큼 즉시 환급받고,
+  /// 받은 사람은 amount 전액을 그대로 적립받는 "양쪽 증식" 구조.
+  /// 반환값: 성공 시 (환급받은 복 액수, 오늘 남은 송금가능액), 실패 시 에러 메시지를 던진다.
+  Future<ApiResult<({int refundAmount, int dailySendRemaining})>> sendBok({
+    required int toUserId,
+    required int amount,
+    String memo = '복 나누기',
+  }) async {
+    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/wallet/send');
+    debugPrint(
+      '[WalletRepository] [sendBok] 요청 시작 -> toUserId=$toUserId, amount=$amount',
+    );
+
+    try {
+      final response = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'fromUserId': _userId,
+              'toUserId': toUserId,
+              'amount': amount,
+              'memo': memo,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        final error = decoded['error'] as String? ?? '복 나누기에 실패했습니다.';
+        debugPrint('[WalletRepository] [sendBok] 실패 -> $error');
+        return ApiResult.fail(error);
+      }
+
+      final data = decoded['data'] as Map<String, dynamic>;
+      final refundAmount = data['refundAmount'] as int? ?? 0;
+      final dailySendRemaining = data['dailySendRemaining'] as int? ?? 0;
+      debugPrint(
+        '[WalletRepository] [sendBok] 성공 -> refundAmount=$refundAmount, dailySendRemaining=$dailySendRemaining',
+      );
+      return ApiResult.ok((
+        refundAmount: refundAmount,
+        dailySendRemaining: dailySendRemaining,
+      ));
+    } catch (e) {
+      debugPrint('[WalletRepository] [sendBok] 예외 -> $e');
+      return ApiResult.fail('복 나누기 중 오류가 발생했습니다: $e');
+    }
+  }
+
   /// WalletService.spend — 성공 시 true, 잔액 부족/오류 시 false.
   Future<bool> spend(int amount, String reason) async {
     final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/wallet/spend');
