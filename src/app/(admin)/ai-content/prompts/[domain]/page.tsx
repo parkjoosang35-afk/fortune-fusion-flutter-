@@ -5,19 +5,11 @@ import { verifyAdminSession } from "@/lib/dal";
 import { canAccessMenu, RBAC_MATRIX } from "@/lib/rbac";
 import PromptVersionForm from "@/components/PromptVersionForm";
 import PromptDeployButton from "@/components/PromptDeployButton";
+import { DOMAIN_LABEL } from "@/lib/ai-prompt-domain-meta";
 
 // 05_Admin_System_Design.md §3.2 "템플릿 편집" + 버전 이력 + 배포
 // 09_AI_System_Design.md §4: 버전 증가(INSERT-only), 배포는 is_active 토글
 export const dynamic = "force-dynamic";
-
-const DOMAIN_LABEL: Record<string, string> = {
-  saju: "사주풀이",
-  daily: "오늘의 운세",
-  tarot: "타로",
-  face: "관상",
-  palm: "손금",
-  consultation: "AI 상담",
-};
 
 const VALID_DOMAINS = Object.keys(DOMAIN_LABEL);
 

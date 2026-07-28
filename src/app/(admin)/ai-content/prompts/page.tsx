@@ -3,21 +3,11 @@ import { prisma } from "@/lib/db";
 import { verifyAdminSession } from "@/lib/dal";
 import { canAccessMenu } from "@/lib/rbac";
 import { redirect } from "next/navigation";
+import { DOMAIN_LABEL, DOMAIN_ORDER } from "@/lib/ai-prompt-domain-meta";
 
 // 05_Admin_System_Design.md §3.2 "프롬프트 템플릿 목록"
 // 기능별(도메인별) 최신 활성 버전 요약 + 버전 개수를 보여주고, 상세(편집/배포)로 진입.
 export const dynamic = "force-dynamic";
-
-const DOMAIN_LABEL: Record<string, string> = {
-  saju: "사주풀이",
-  daily: "오늘의 운세",
-  tarot: "타로",
-  face: "관상",
-  palm: "손금",
-  consultation: "AI 상담",
-};
-
-const DOMAIN_ORDER = ["saju", "daily", "tarot", "face", "palm", "consultation"];
 
 export default async function AiPromptsPage() {
   const session = await verifyAdminSession();
