@@ -1,110 +1,52 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
+
 import '../../../core/api/api_result.dart';
-import '../../../core/utils/mock_delay.dart';
+import '../../../core/config/env_config.dart';
 import '../domain/wish_post_model.dart';
 
-/// 06단계 §4.12(소원게시판/커뮤니티) `/v1/wishes/*` 대응 Mock Repository
+/// 06단계 §4.12(소원게시판/커뮤니티) `/v1/wishes/*` 대응 Repository (Mock→실API 전환)
 ///
-/// 대응 API:
-/// - GET  /wishes/feed            -> getFeed()
-/// - GET  /wishes/popular         -> getFeed(tab: popular) 로 통합 처리(Mock 단순화)
-/// - POST /wishes                 -> createPost()
-/// - POST /wishes/:id/support     -> toggleSupport() ("행운 보내기" 임시정책: 포인트이동 없는 단순 응원카운트,
-///                                    03§10.3/§18/§570 정책 미확정 사항 - 향후 포인트전송형 확정 시
-///                                    amount 파라미터만 추가하면 되도록 인터페이스 설계)
-/// - GET  /wishes/:id (댓글포함)   -> getComments()
-/// - POST /wishes/:id/comments    -> addComment()
-/// - POST /{targetType}/:id/report -> report() (폴리모픽 공용신고, L-6 대응)
+/// 대응 API(admin_web):
+/// - GET  /api/public/wishes?tab=all|popular|mine     -> getFeed()
+/// - POST /api/public/wishes                          -> createPost()
+/// - POST /api/public/wishes/:id/support              -> toggleSupport() ("행운 보내기"
+///                                                        임시정책: 포인트이동 없는 단순 응원카운트,
+///                                                        03§10.3/§18/§570 정책 미확정 사항 유지)
+/// - GET  /api/public/wishes/:id/comments             -> getComments()
+/// - POST /api/public/wishes/:id/comments             -> addComment()
+/// - POST /api/public/reports (targetType=wish)       -> report() (폴리모픽 공용신고,
+///                                                        community_post_repository.dart와 동일 엔드포인트 재사용)
+///
+/// [방법 A — 임시 인증 우회] 회원 로그인 시스템이 아직 없어, 서버가 시딩해둔
+/// 테스트 유저(userId=1)를 고정으로 사용한다(daily_fortune_repository.dart와 동일 패턴).
 class WishPostRepository {
-  final List<WishPostModel> _posts = [
-    WishPostModel(
-      id: 'wp_1',
-      authorNickname: '별빛달빛',
-      content: '올해는 꼭 이사가 잘 되길 소원해봅니다 🙏',
-      category: '이사/이동',
-      isAnonymous: false,
-      supportCount: 12,
-      commentCount: 3,
-      createdAt: DateTime.now().subtract(const Duration(hours: 2)),
-      goalTag: '이사/이동',
-    ),
-    WishPostModel(
-      id: 'wp_2',
-      authorNickname: '익명',
-      content: '다음 달 시험 꼭 붙게 해주세요! AI 사주에서도 좋다고 나왔어요',
-      category: '학업/시험',
-      isAnonymous: true,
-      supportCount: 8,
-      commentCount: 1,
-      createdAt: DateTime.now().subtract(const Duration(hours: 5)),
-      goalTag: '합격/시험',
-    ),
-    WishPostModel(
-      id: 'wp_3',
-      authorNickname: '초심자',
-      content: '오늘 타로 결과가 너무 정확해서 놀랐어요 다들 해보세요',
-      category: '기타',
-      isAnonymous: false,
-      supportCount: 21,
-      commentCount: 7,
-      createdAt: DateTime.now().subtract(const Duration(days: 1)),
-    ),
-    WishPostModel(
-      id: 'wp_4',
-      authorNickname: '별빛달빛',
-      content: '올 한해 우리 가족 모두 건강하게 지낼 수 있길 바라요',
-      category: '건강',
-      isAnonymous: false,
-      supportCount: 34,
-      commentCount: 5,
-      createdAt: DateTime.now().subtract(const Duration(hours: 8)),
-      goalTag: '건강',
-    ),
-    WishPostModel(
-      id: 'wp_5',
-      authorNickname: '초심자',
-      content: '이번 취업 준비 꼭 좋은 결과로 이어지길 소원합니다',
-      category: '재물/사업',
-      isAnonymous: false,
-      supportCount: 17,
-      commentCount: 2,
-      createdAt: DateTime.now().subtract(const Duration(hours: 12)),
-      goalTag: '취업/사업',
-    ),
-  ];
-
-  final Map<String, List<WishCommentModel>> _comments = {
-    'wp_1': [
-      WishCommentModel(
-        id: 'wc_1',
-        wishId: 'wp_1',
-        authorNickname: '행운가득',
-        content: '꼭 이루어지길 바라요!',
-        createdAt: DateTime.now().subtract(const Duration(hours: 1)),
-      ),
-    ],
-  };
-
-  final List<Map<String, String>> _reports = [];
-
-  int _commentSeq = 2;
-  int _postSeq = 4;
+  static const int _userId = 1;
 
   Future<ApiResult<List<WishPostModel>>> getFeed({
     WishFeedTab tab = WishFeedTab.all,
   }) async {
-    await mockDelay(ms: 500);
-    var list = List<WishPostModel>.from(_posts);
-    switch (tab) {
-      case WishFeedTab.popular:
-        list.sort((a, b) => b.supportCount.compareTo(a.supportCount));
-        break;
-      case WishFeedTab.mine:
-        list = list.where((p) => p.isMine).toList();
-        break;
-      case WishFeedTab.all:
-        break;
+    final qp = <String, String>{'userId': '$_userId', 'tab': tab.name};
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/wishes',
+    ).replace(queryParameters: qp);
+    try {
+      final response = await http
+          .get(uri, headers: {'Accept': 'application/json'})
+          .timeout(const Duration(seconds: 15));
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        return ApiResult.fail(decoded['error'] as String? ?? '소원 목록을 불러오지 못했습니다.');
+      }
+      final list = (decoded['data'] as List<dynamic>)
+          .map((e) => _wishFromJson(e as Map<String, dynamic>))
+          .toList();
+      return ApiResult.ok(list);
+    } catch (e) {
+      debugPrint('[WishPostRepository] [getFeed] 예외 -> $e');
+      return ApiResult.fail('소원 목록을 불러오지 못했습니다: $e');
     }
-    return ApiResult.ok(List.unmodifiable(list));
   }
 
   Future<ApiResult<WishPostModel>> createPost(
@@ -113,81 +55,162 @@ class WishPostRepository {
     bool isAnonymous = false,
     String? goalTag,
   }) async {
-    await mockDelay(ms: 400);
     if (content.trim().isEmpty) return ApiResult.fail('내용을 입력해 주세요.');
-    final post = WishPostModel(
-      id: 'wp_${_postSeq++}',
-      authorNickname: isAnonymous ? '익명' : '나',
-      content: content.trim(),
-      category: category,
-      isAnonymous: isAnonymous,
-      supportCount: 0,
-      commentCount: 0,
-      isMine: true,
-      createdAt: DateTime.now(),
-      goalTag: goalTag,
-    );
-    _posts.insert(0, post);
-    return ApiResult.ok(post);
+    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/wishes');
+    try {
+      final response = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'userId': _userId,
+              'content': content.trim(),
+              'category': category,
+              'isAnonymous': isAnonymous,
+              'goalTag': goalTag,
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        return ApiResult.fail(decoded['error'] as String? ?? '소원 등록에 실패했습니다.');
+      }
+      return ApiResult.ok(_wishFromJson(decoded['data'] as Map<String, dynamic>));
+    } catch (e) {
+      debugPrint('[WishPostRepository] [createPost] 예외 -> $e');
+      return ApiResult.fail('소원 등록에 실패했습니다: $e');
+    }
   }
 
   /// "행운 보내기" - 포인트 이동 없는 단순 응원(support) 토글
   Future<ApiResult<WishPostModel>> toggleSupport(String wishId) async {
-    await mockDelay(ms: 250);
-    final index = _posts.indexWhere((p) => p.id == wishId);
-    if (index == -1) return ApiResult.fail('게시글을 찾을 수 없습니다.');
-    final current = _posts[index];
-    final nextSupported = !current.isSupportedByMe;
-    final updated = current.copyWith(
-      supportCount: current.supportCount + (nextSupported ? 1 : -1),
-      isSupportedByMe: nextSupported,
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/wishes/$wishId/support',
     );
-    _posts[index] = updated;
-    return ApiResult.ok(updated);
+    try {
+      final response = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'userId': _userId}),
+          )
+          .timeout(const Duration(seconds: 15));
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        return ApiResult.fail(decoded['error'] as String? ?? '응원 처리에 실패했습니다.');
+      }
+      return ApiResult.ok(_wishFromJson(decoded['data'] as Map<String, dynamic>));
+    } catch (e) {
+      debugPrint('[WishPostRepository] [toggleSupport] 예외 -> $e');
+      return ApiResult.fail('응원 처리에 실패했습니다: $e');
+    }
   }
 
   Future<ApiResult<List<WishCommentModel>>> getComments(String wishId) async {
-    await mockDelay(ms: 300);
-    return ApiResult.ok(List.unmodifiable(_comments[wishId] ?? const []));
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/wishes/$wishId/comments',
+    );
+    try {
+      final response = await http
+          .get(uri, headers: {'Accept': 'application/json'})
+          .timeout(const Duration(seconds: 15));
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        return ApiResult.fail(decoded['error'] as String? ?? '댓글을 불러오지 못했습니다.');
+      }
+      final list = (decoded['data'] as List<dynamic>)
+          .map((e) => _commentFromJson(e as Map<String, dynamic>))
+          .toList();
+      return ApiResult.ok(list);
+    } catch (e) {
+      debugPrint('[WishPostRepository] [getComments] 예외 -> $e');
+      return ApiResult.fail('댓글을 불러오지 못했습니다: $e');
+    }
   }
 
   Future<ApiResult<WishCommentModel>> addComment(
     String wishId,
     String content,
   ) async {
-    await mockDelay(ms: 300);
     if (content.trim().isEmpty) return ApiResult.fail('댓글 내용을 입력해 주세요.');
-    final comment = WishCommentModel(
-      id: 'wc_${_commentSeq++}',
-      wishId: wishId,
-      authorNickname: '나',
-      content: content.trim(),
-      createdAt: DateTime.now(),
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/wishes/$wishId/comments',
     );
-    _comments.putIfAbsent(wishId, () => []).add(comment);
-    final postIndex = _posts.indexWhere((p) => p.id == wishId);
-    if (postIndex != -1) {
-      final current = _posts[postIndex];
-      _posts[postIndex] = current.copyWith(
-        commentCount: current.commentCount + 1,
-      );
+    try {
+      final response = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'userId': _userId, 'content': content.trim()}),
+          )
+          .timeout(const Duration(seconds: 15));
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        return ApiResult.fail(decoded['error'] as String? ?? '댓글 작성에 실패했습니다.');
+      }
+      return ApiResult.ok(_commentFromJson(decoded['data'] as Map<String, dynamic>));
+    } catch (e) {
+      debugPrint('[WishPostRepository] [addComment] 예외 -> $e');
+      return ApiResult.fail('댓글 작성에 실패했습니다: $e');
     }
-    return ApiResult.ok(comment);
   }
 
   /// 06§4.12 `POST /{targetType}/:id/report` 공용 신고(L-6, 폴리모픽)
+  /// community_post_repository.dart와 동일한 /api/public/reports 엔드포인트 재사용
   Future<ApiResult<void>> report(
     ReportTargetType targetType,
     String targetId,
     String reason,
   ) async {
-    await mockDelay(ms: 300);
     if (reason.trim().isEmpty) return ApiResult.fail('신고 사유를 입력해 주세요.');
-    _reports.add({
-      'targetType': targetType.name,
-      'targetId': targetId,
-      'reason': reason.trim(),
-    });
-    return ApiResult.ok(null);
+    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/reports');
+    try {
+      final response = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'userId': _userId,
+              'targetType': targetType.name,
+              'targetId': targetId,
+              'reason': reason.trim(),
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        return ApiResult.fail(decoded['error'] as String? ?? '신고 접수에 실패했습니다.');
+      }
+      return ApiResult.ok(null);
+    } catch (e) {
+      debugPrint('[WishPostRepository] [report] 예외 -> $e');
+      return ApiResult.fail('신고 접수에 실패했습니다: $e');
+    }
+  }
+
+  WishPostModel _wishFromJson(Map<String, dynamic> e) {
+    return WishPostModel(
+      id: e['id'] as String,
+      authorNickname: e['authorNickname'] as String,
+      content: e['content'] as String,
+      category: e['category'] as String,
+      isAnonymous: e['isAnonymous'] as bool? ?? false,
+      supportCount: (e['supportCount'] as num?)?.toInt() ?? 0,
+      commentCount: (e['commentCount'] as num?)?.toInt() ?? 0,
+      isSupportedByMe: e['isSupportedByMe'] as bool? ?? false,
+      isMine: e['isMine'] as bool? ?? false,
+      createdAt: DateTime.parse(e['createdAt'] as String),
+      goalTag: e['goalTag'] as String?,
+    );
+  }
+
+  WishCommentModel _commentFromJson(Map<String, dynamic> e) {
+    return WishCommentModel(
+      id: e['id'] as String,
+      wishId: e['wishId'] as String,
+      authorNickname: e['authorNickname'] as String,
+      content: e['content'] as String,
+      createdAt: DateTime.parse(e['createdAt'] as String),
+    );
   }
 }
