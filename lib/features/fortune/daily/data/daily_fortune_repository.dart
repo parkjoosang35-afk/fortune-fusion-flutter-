@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../../../core/api/api_result.dart';
+import '../../../../core/auth/auth_token_store.dart';
 import '../../../../core/config/env_config.dart';
 import '../domain/daily_fortune_model.dart';
 
@@ -13,14 +14,13 @@ import '../domain/daily_fortune_model.dart';
 /// 처리한다. 같은 날 재호출 시에는 서버가 캐시된 기존 결과를 재차감 없이 반환한다
 /// (alreadyGenerated 플래그로 구분 가능).
 ///
-/// [방법 A — 임시 인증 우회] 회원 로그인 시스템이 아직 없어, 서버가 시딩해둔
-/// 테스트 유저(userId=1)를 고정으로 사용한다.
+/// [로드맵④] 실 로그인 사용자 ID를 [AuthTokenStore]에서 조회한다.
+/// 비로그인 상태에서는 폴백 테스트 유저(userId=1)를 그대로 사용한다.
 class DailyFortuneRepository {
-  static const int _userId = 1;
-
   Future<ApiResult<DailyFortuneModel>> getToday() async {
+    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
-      '${EnvConfig.adminApiBaseUrl}/api/public/fortune/daily?userId=$_userId',
+      '${EnvConfig.adminApiBaseUrl}/api/public/fortune/daily?userId=$userId',
     );
     debugPrint('[DailyFortuneRepository] [getToday] 요청 시작 -> $uri');
 

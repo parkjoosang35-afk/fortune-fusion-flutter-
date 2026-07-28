@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/api/api_result.dart';
+import '../../../core/auth/auth_token_store.dart';
 import '../../../core/config/env_config.dart';
 import '../domain/matching_model.dart';
 
@@ -9,7 +10,6 @@ import '../domain/matching_model.dart';
 /// (`/api/public/matching/*`)를 호출한다. [방법 A] 로그인 시스템이 아직 없어
 /// 테스트 유저(userId=1)를 고정으로 사용한다(wallet_repository.dart와 동일 패턴).
 class MatchingRepository {
-  static const int _userId = 1;
   static String get _base => '${EnvConfig.adminApiBaseUrl}/api/public/matching';
 
   Future<ApiResult<MatchingProfileModel>> saveProfile({
@@ -17,6 +17,7 @@ class MatchingRepository {
     required String introText,
     required List<String> preferences,
   }) async {
+    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse('$_base/profile');
     try {
       final response = await http
@@ -24,7 +25,7 @@ class MatchingRepository {
             uri,
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
-              'userId': _userId,
+              'userId': userId,
               'isPublic': isPublic,
               'introText': introText,
               'preferences': preferences,
@@ -43,7 +44,8 @@ class MatchingRepository {
   }
 
   Future<ApiResult<MatchingProfileModel?>> getMyProfile() async {
-    final uri = Uri.parse('$_base/profile?userId=$_userId');
+    final userId = await AuthTokenStore.getCurrentUserId();
+    final uri = Uri.parse('$_base/profile?userId=$userId');
     try {
       final response = await http
           .get(uri, headers: {'Accept': 'application/json'})
@@ -62,7 +64,8 @@ class MatchingRepository {
   }
 
   Future<ApiResult<List<MatchingCandidateModel>>> getRecommendations() async {
-    final uri = Uri.parse('$_base/recommendations?userId=$_userId');
+    final userId = await AuthTokenStore.getCurrentUserId();
+    final uri = Uri.parse('$_base/recommendations?userId=$userId');
     try {
       final response = await http
           .get(uri, headers: {'Accept': 'application/json'})
@@ -84,13 +87,14 @@ class MatchingRepository {
   /// 좋아요 - 서버가 상호확인 시 즉시 matching_pairs를 active로 생성한다
   /// (Mock의 pendingAccept 개념은 실API에서 사용하지 않음 - 설계결정 참조).
   Future<ApiResult<bool>> like(String targetUserId) async {
+    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse('$_base/like');
     try {
       final response = await http
           .post(
             uri,
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'userId': _userId, 'targetUserId': targetUserId}),
+            body: jsonEncode({'userId': userId, 'targetUserId': targetUserId}),
           )
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
@@ -110,13 +114,14 @@ class MatchingRepository {
   }
 
   Future<ApiResult<MatchingPairModel>> acceptPair(String pairId) async {
+    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse('$_base/pairs/$pairId/accept');
     try {
       final response = await http
           .post(
             uri,
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'userId': _userId}),
+            body: jsonEncode({'userId': userId}),
           )
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
@@ -131,13 +136,14 @@ class MatchingRepository {
   }
 
   Future<ApiResult<MatchingPairModel>> endPair(String pairId, {String? reason}) async {
+    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse('$_base/pairs/$pairId/end');
     try {
       final response = await http
           .post(
             uri,
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'userId': _userId, 'reason': reason}),
+            body: jsonEncode({'userId': userId, 'reason': reason}),
           )
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
@@ -152,7 +158,8 @@ class MatchingRepository {
   }
 
   Future<ApiResult<List<MatchingPairModel>>> getPairs() async {
-    final uri = Uri.parse('$_base/pairs?userId=$_userId');
+    final userId = await AuthTokenStore.getCurrentUserId();
+    final uri = Uri.parse('$_base/pairs?userId=$userId');
     try {
       final response = await http
           .get(uri, headers: {'Accept': 'application/json'})
@@ -176,6 +183,7 @@ class MatchingRepository {
     String targetId,
     String reason,
   ) async {
+    final userId = await AuthTokenStore.getCurrentUserId();
     if (reason.trim().isEmpty) return ApiResult.fail('신고 사유를 입력해 주세요.');
     final uri = Uri.parse('$_base/report');
     try {
@@ -184,7 +192,7 @@ class MatchingRepository {
             uri,
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
-              'userId': _userId,
+              'userId': userId,
               'targetType': targetType.name,
               'targetId': targetId,
               'reason': reason.trim(),
@@ -203,7 +211,8 @@ class MatchingRepository {
   }
 
   Future<ApiResult<List<ChatMessageModel>>> getMessages(String pairId) async {
-    final uri = Uri.parse('$_base/chats/$pairId/messages?userId=$_userId');
+    final userId = await AuthTokenStore.getCurrentUserId();
+    final uri = Uri.parse('$_base/chats/$pairId/messages?userId=$userId');
     try {
       final response = await http
           .get(uri, headers: {'Accept': 'application/json'})
@@ -223,6 +232,7 @@ class MatchingRepository {
   }
 
   Future<ApiResult<ChatMessageModel>> sendMessage(String pairId, String content) async {
+    final userId = await AuthTokenStore.getCurrentUserId();
     if (content.trim().isEmpty) return ApiResult.fail('메시지를 입력해 주세요.');
     final uri = Uri.parse('$_base/chats/$pairId/messages');
     try {
@@ -230,7 +240,7 @@ class MatchingRepository {
           .post(
             uri,
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'userId': _userId, 'content': content.trim()}),
+            body: jsonEncode({'userId': userId, 'content': content.trim()}),
           )
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;

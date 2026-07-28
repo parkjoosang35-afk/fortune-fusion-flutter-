@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/api/api_result.dart';
+import '../../../core/auth/auth_token_store.dart';
 import '../../../core/config/env_config.dart';
 import '../domain/point_history_model.dart';
 
@@ -11,9 +12,8 @@ import '../domain/point_history_model.dart';
 ///
 /// [방법 A — 임시 인증 우회] 회원 로그인 시스템이 아직 없어, 서버가 시딩해둔
 /// 테스트 유저(userId=1, "별빛나그네")를 고정으로 사용한다. 추후 실제 로그인이
-/// 붙으면 [_userId]를 로그인한 사용자의 id로 교체하기만 하면 된다.
+/// 붙으면 [userId]를 로그인한 사용자의 id로 교체하기만 하면 된다.
 class WalletRepository {
-  static const int _userId = 1;
 
   Future<ApiResult<int>> getBalance() async {
     final result = await _fetchWallet();
@@ -40,8 +40,9 @@ class WalletRepository {
   }
 
   Future<ApiResult<({int balance, List<PointHistoryModel> history})>> _fetchWallet() async {
+    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
-      '${EnvConfig.adminApiBaseUrl}/api/public/wallet?userId=$_userId',
+      '${EnvConfig.adminApiBaseUrl}/api/public/wallet?userId=$userId',
     );
     debugPrint('[WalletRepository] [1] 지갑 조회 요청 -> $uri');
 
@@ -94,6 +95,7 @@ class WalletRepository {
   /// 반환값: 적립 후 최신 잔액. 실패 시 예외를 던진다(기존 Mock 시그니처와 동일하게
   /// int를 반환하되, 통신 실패는 Provider 쪽에서 try/catch로 처리하도록 위임).
   Future<int> earn(int amount, String reason) async {
+    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/wallet/earn');
     debugPrint('[WalletRepository] [earn] 요청 시작 -> amount=$amount, reason=$reason');
 
@@ -103,7 +105,7 @@ class WalletRepository {
             uri,
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
-              'userId': _userId,
+              'userId': userId,
               'amount': amount,
               'reason': reason,
               'sourceType': 'app',
@@ -137,6 +139,7 @@ class WalletRepository {
     required int amount,
     String memo = '복 나누기',
   }) async {
+    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/wallet/send');
     debugPrint(
       '[WalletRepository] [sendBok] 요청 시작 -> toUserId=$toUserId, amount=$amount',
@@ -148,7 +151,7 @@ class WalletRepository {
             uri,
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
-              'fromUserId': _userId,
+              'fromUserId': userId,
               'toUserId': toUserId,
               'amount': amount,
               'memo': memo,
@@ -215,6 +218,7 @@ class WalletRepository {
 
   /// WalletService.spend — 성공 시 true, 잔액 부족/오류 시 false.
   Future<bool> spend(int amount, String reason) async {
+    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/wallet/spend');
     debugPrint('[WalletRepository] [spend] 요청 시작 -> amount=$amount, reason=$reason');
 
@@ -224,7 +228,7 @@ class WalletRepository {
             uri,
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
-              'userId': _userId,
+              'userId': userId,
               'amount': amount,
               'reason': reason,
               'sourceType': 'app',

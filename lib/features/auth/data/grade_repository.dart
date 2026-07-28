@@ -16,15 +16,15 @@ class GradeRepository {
     GradeModel(
       code: 'silver',
       name: '실버',
-      minActivityScore: 300,
+      minActivityScore: 100,
       pointEarnMultiplier: 1.1,
       sortOrder: 2,
     ),
     GradeModel(
       code: 'gold',
       name: '골드',
-      minActivityScore: 800,
-      pointEarnMultiplier: 1.2,
+      minActivityScore: 500,
+      pointEarnMultiplier: 1.3,
       sortOrder: 3,
     ),
     GradeModel(

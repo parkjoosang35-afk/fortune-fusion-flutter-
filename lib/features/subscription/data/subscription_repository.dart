@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/api/api_result.dart';
+import '../../../core/auth/auth_token_store.dart';
 import '../../../core/config/env_config.dart';
 import '../domain/subscription_model.dart';
 
@@ -11,7 +12,6 @@ import '../domain/subscription_model.dart';
 ///
 /// ⚠️ 실제 PG 연동은 범위 밖(서버가 즉시 성공 시뮬레이션 처리).
 class SubscriptionRepository {
-  static const int _userId = 1;
   static String get _base => '${EnvConfig.adminApiBaseUrl}/api/public/subscription';
 
   Future<ApiResult<List<SubscriptionPlanModel>>> getPlans() async {
@@ -35,7 +35,8 @@ class SubscriptionRepository {
   }
 
   Future<ApiResult<UserSubscriptionModel?>> getMySubscription() async {
-    final uri = Uri.parse('$_base/my?userId=$_userId');
+    final userId = await AuthTokenStore.getCurrentUserId();
+    final uri = Uri.parse('$_base/my?userId=$userId');
     try {
       final response = await http
           .get(uri, headers: {'Accept': 'application/json'})
@@ -57,6 +58,7 @@ class SubscriptionRepository {
   Future<ApiResult<UserSubscriptionModel>> subscribe(
     SubscriptionPlanModel plan,
   ) async {
+    final userId = await AuthTokenStore.getCurrentUserId();
     if (plan.price <= 0) {
       return ApiResult.fail('무료 플랜은 별도 결제가 필요하지 않습니다.');
     }
@@ -66,7 +68,7 @@ class SubscriptionRepository {
           .post(
             uri,
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'userId': _userId, 'planId': plan.id}),
+            body: jsonEncode({'userId': userId, 'planId': plan.id}),
           )
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
@@ -81,13 +83,14 @@ class SubscriptionRepository {
   }
 
   Future<ApiResult<UserSubscriptionModel>> cancel() async {
+    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse('$_base/cancel');
     try {
       final response = await http
           .post(
             uri,
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'userId': _userId}),
+            body: jsonEncode({'userId': userId}),
           )
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
@@ -102,7 +105,8 @@ class SubscriptionRepository {
   }
 
   Future<ApiResult<List<PaymentModel>>> getPaymentHistory() async {
-    final uri = Uri.parse('$_base/payments?userId=$_userId');
+    final userId = await AuthTokenStore.getCurrentUserId();
+    final uri = Uri.parse('$_base/payments?userId=$userId');
     try {
       final response = await http
           .get(uri, headers: {'Accept': 'application/json'})

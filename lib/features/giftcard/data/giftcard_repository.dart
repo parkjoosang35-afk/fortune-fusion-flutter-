@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/api/api_result.dart';
+import '../../../core/auth/auth_token_store.dart';
 import '../../../core/config/env_config.dart';
 import '../domain/giftcard_model.dart';
 
@@ -9,7 +10,6 @@ import '../domain/giftcard_model.dart';
 /// (`/api/public/giftcard/*`)를 호출한다. [방법 A] 테스트 유저(userId=1) 고정
 /// (matching_repository.dart / wallet_repository.dart와 동일 패턴).
 class GiftcardRepository {
-  static const int _userId = 1;
   static String get _base => '${EnvConfig.adminApiBaseUrl}/api/public/giftcard';
 
   /// GET /api/public/giftcard/products
@@ -38,13 +38,14 @@ class GiftcardRepository {
   /// 재고소진 시에도 서버는 status:"failed" 레코드를 생성해 success:true로 응답한다
   /// (Flutter의 issue.status==failed 감지 → 환불 처리 흐름과 정합성 유지 - 설계결정 참조).
   Future<ApiResult<GiftcardIssueModel>> orderProduct(String productId) async {
+    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse('$_base/orders');
     try {
       final response = await http
           .post(
             uri,
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'userId': _userId, 'productId': productId}),
+            body: jsonEncode({'userId': userId, 'productId': productId}),
           )
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
@@ -60,7 +61,8 @@ class GiftcardRepository {
 
   /// GET /api/public/giftcard/orders/my
   Future<ApiResult<List<GiftcardIssueModel>>> getMyOrders() async {
-    final uri = Uri.parse('$_base/orders/my?userId=$_userId');
+    final userId = await AuthTokenStore.getCurrentUserId();
+    final uri = Uri.parse('$_base/orders/my?userId=$userId');
     try {
       final response = await http
           .get(uri, headers: {'Accept': 'application/json'})
@@ -81,13 +83,14 @@ class GiftcardRepository {
 
   /// POST /api/public/giftcard/orders/:id/use
   Future<ApiResult<GiftcardIssueModel>> useIssue(String issueId) async {
+    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse('$_base/orders/$issueId/use');
     try {
       final response = await http
           .post(
             uri,
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'userId': _userId}),
+            body: jsonEncode({'userId': userId}),
           )
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;

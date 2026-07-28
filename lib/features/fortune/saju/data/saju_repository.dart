@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../../../../core/api/api_result.dart';
+import '../../../../core/auth/auth_token_store.dart';
 import '../../../../core/config/env_config.dart';
 import '../../../../core/utils/mock_delay.dart';
 import '../domain/saju_model.dart';
@@ -19,11 +20,9 @@ import '../domain/saju_model.dart';
 /// [내 사주함(프로필 CRUD)] 서버에 대응 API가 아직 없어, 프로필 관리는
 /// 이전과 동일하게 로컬 Mock으로 유지한다(범위 밖).
 ///
-/// [방법 A — 임시 인증 우회] 회원 로그인 시스템이 아직 없어, 서버가 시딩해둔
-/// 테스트 유저(userId=1)를 고정으로 사용한다.
+/// [로드맵④] 실 로그인 사용자 ID를 [AuthTokenStore]에서 조회한다.
+/// 비로그인 상태에서는 폴백 테스트 유저(userId=1)를 그대로 사용한다.
 class SajuRepository {
-  static const int _userId = 1;
-
   final List<SajuResultModel> _history = [];
 
   // [웹→앱 이식] 신통방통 js/saju-profile-engine.js "내 사주함" Mock 저장소
@@ -41,12 +40,13 @@ class SajuRepository {
     debugPrint('[SajuRepository] [requestSaju] 요청 시작 -> $uri');
 
     try {
+      final userId = await AuthTokenStore.getCurrentUserId();
       final response = await http
           .post(
             uri,
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
-              'userId': _userId,
+              'userId': userId,
               'birthDate': birthDate,
               'birthTime': birthTime,
               'isLunar': isLunar,

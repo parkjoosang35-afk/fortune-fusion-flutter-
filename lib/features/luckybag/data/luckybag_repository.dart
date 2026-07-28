@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/api/api_result.dart';
+import '../../../core/auth/auth_token_store.dart';
 import '../../../core/config/env_config.dart';
 import '../../../core/utils/mock_delay.dart';
 import '../domain/luckybag_model.dart';
@@ -20,7 +21,6 @@ import '../domain/luckybag_reward_model.dart';
 /// [방법 A — 임시 인증 우회] 회원 로그인 시스템이 아직 없어, 서버가 시딩해둔
 /// 테스트 유저(userId=1)를 고정으로 사용한다(WalletRepository와 동일한 임시 값).
 class LuckyBagRepository {
-  static const int _userId = 1;
 
   // ── 기존(홈 배너 요약) - Mock 유지 ──
   // [비고] 서버 측 보상은 개봉 즉시 지급되는 구조라 "받을 수 있는(미수령) 복주머니 개수"
@@ -141,6 +141,7 @@ class LuckyBagRepository {
     String productId,
     int remainingBalance,
   ) async {
+    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/luckybag/open');
     debugPrint('[LuckyBagRepository] [open] 요청 시작 -> productId=$productId');
 
@@ -150,7 +151,7 @@ class LuckyBagRepository {
             uri,
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
-              'userId': _userId,
+              'userId': userId,
               'productId': int.parse(productId),
             }),
           )
@@ -213,8 +214,9 @@ class LuckyBagRepository {
 
   Future<(List<LuckyBagOpenLogModel>, List<LuckyBagRewardSummaryEntry>)?>
       _fetchHistory() async {
+    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
-      '${EnvConfig.adminApiBaseUrl}/api/public/luckybag/history?userId=$_userId',
+      '${EnvConfig.adminApiBaseUrl}/api/public/luckybag/history?userId=$userId',
     );
     debugPrint('[LuckyBagRepository] [history] 요청 시작 -> $uri');
 

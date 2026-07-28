@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../../../core/api/api_result.dart';
+import '../../../core/auth/auth_token_store.dart';
 import '../../../core/config/env_config.dart';
 import '../domain/wish_post_model.dart';
 
@@ -22,12 +23,11 @@ import '../domain/wish_post_model.dart';
 /// [방법 A — 임시 인증 우회] 회원 로그인 시스템이 아직 없어, 서버가 시딩해둔
 /// 테스트 유저(userId=1)를 고정으로 사용한다(daily_fortune_repository.dart와 동일 패턴).
 class WishPostRepository {
-  static const int _userId = 1;
-
   Future<ApiResult<List<WishPostModel>>> getFeed({
     WishFeedTab tab = WishFeedTab.all,
   }) async {
-    final qp = <String, String>{'userId': '$_userId', 'tab': tab.name};
+    final userId = await AuthTokenStore.getCurrentUserId();
+    final qp = <String, String>{'userId': '$userId', 'tab': tab.name};
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/wishes',
     ).replace(queryParameters: qp);
@@ -58,12 +58,13 @@ class WishPostRepository {
     if (content.trim().isEmpty) return ApiResult.fail('내용을 입력해 주세요.');
     final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/wishes');
     try {
+      final userId = await AuthTokenStore.getCurrentUserId();
       final response = await http
           .post(
             uri,
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
-              'userId': _userId,
+              'userId': userId,
               'content': content.trim(),
               'category': category,
               'isAnonymous': isAnonymous,
@@ -88,11 +89,12 @@ class WishPostRepository {
       '${EnvConfig.adminApiBaseUrl}/api/public/wishes/$wishId/support',
     );
     try {
+      final userId = await AuthTokenStore.getCurrentUserId();
       final response = await http
           .post(
             uri,
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'userId': _userId}),
+            body: jsonEncode({'userId': userId}),
           )
           .timeout(const Duration(seconds: 15));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
@@ -137,11 +139,12 @@ class WishPostRepository {
       '${EnvConfig.adminApiBaseUrl}/api/public/wishes/$wishId/comments',
     );
     try {
+      final userId = await AuthTokenStore.getCurrentUserId();
       final response = await http
           .post(
             uri,
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'userId': _userId, 'content': content.trim()}),
+            body: jsonEncode({'userId': userId, 'content': content.trim()}),
           )
           .timeout(const Duration(seconds: 15));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
@@ -165,12 +168,13 @@ class WishPostRepository {
     if (reason.trim().isEmpty) return ApiResult.fail('신고 사유를 입력해 주세요.');
     final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/reports');
     try {
+      final userId = await AuthTokenStore.getCurrentUserId();
       final response = await http
           .post(
             uri,
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
-              'userId': _userId,
+              'userId': userId,
               'targetType': targetType.name,
               'targetId': targetId,
               'reason': reason.trim(),

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../../../core/api/api_result.dart';
+import '../../../core/auth/auth_token_store.dart';
 import '../../../core/config/env_config.dart';
 import '../domain/community_post_model.dart';
 import '../domain/wish_post_model.dart' show ReportTargetType;
@@ -22,7 +23,6 @@ import '../domain/wish_post_model.dart' show ReportTargetType;
 /// [방법 A — 임시 인증 우회] 회원 로그인 시스템이 아직 없어, 서버가 시딩해둔
 /// 테스트 유저(userId=1)를 고정으로 사용한다(daily_fortune_repository.dart와 동일 패턴).
 class CommunityPostRepository {
-  static const int _userId = 1;
 
   Future<ApiResult<List<CommunityBoardModel>>> getBoards() async {
     final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/community/boards');
@@ -56,7 +56,8 @@ class CommunityPostRepository {
     String? boardId,
     bool sortByPopular = false,
   }) async {
-    final qp = <String, String>{'userId': '$_userId'};
+    final userId = await AuthTokenStore.getCurrentUserId();
+    final qp = <String, String>{'userId': '$userId'};
     if (boardId != null) qp['boardId'] = boardId;
     if (sortByPopular) qp['sortByPopular'] = 'true';
     final uri = Uri.parse(
@@ -85,6 +86,7 @@ class CommunityPostRepository {
     required String title,
     required String content,
   }) async {
+    final userId = await AuthTokenStore.getCurrentUserId();
     if (title.trim().isEmpty || content.trim().isEmpty) {
       return ApiResult.fail('제목과 내용을 모두 입력해 주세요.');
     }
@@ -95,7 +97,7 @@ class CommunityPostRepository {
             uri,
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
-              'userId': _userId,
+              'userId': userId,
               'boardId': boardId,
               'title': title.trim(),
               'content': content.trim(),
@@ -114,6 +116,7 @@ class CommunityPostRepository {
   }
 
   Future<ApiResult<CommunityPostModel>> toggleLike(String postId) async {
+    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/community/posts/$postId/like',
     );
@@ -122,7 +125,7 @@ class CommunityPostRepository {
           .post(
             uri,
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'userId': _userId}),
+            body: jsonEncode({'userId': userId}),
           )
           .timeout(const Duration(seconds: 15));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
@@ -164,6 +167,7 @@ class CommunityPostRepository {
     String postId,
     String content,
   ) async {
+    final userId = await AuthTokenStore.getCurrentUserId();
     if (content.trim().isEmpty) return ApiResult.fail('댓글 내용을 입력해 주세요.');
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/community/posts/$postId/comments',
@@ -173,7 +177,7 @@ class CommunityPostRepository {
           .post(
             uri,
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'userId': _userId, 'content': content.trim()}),
+            body: jsonEncode({'userId': userId, 'content': content.trim()}),
           )
           .timeout(const Duration(seconds: 15));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
@@ -194,6 +198,7 @@ class CommunityPostRepository {
     String targetId,
     String reason,
   ) async {
+    final userId = await AuthTokenStore.getCurrentUserId();
     if (reason.trim().isEmpty) return ApiResult.fail('신고 사유를 입력해 주세요.');
     final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/reports');
     try {
@@ -202,7 +207,7 @@ class CommunityPostRepository {
             uri,
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
-              'userId': _userId,
+              'userId': userId,
               'targetType': targetType.name,
               'targetId': targetId,
               'reason': reason.trim(),

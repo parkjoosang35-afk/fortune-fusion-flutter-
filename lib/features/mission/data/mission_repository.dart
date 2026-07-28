@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/api/api_result.dart';
+import '../../../core/auth/auth_token_store.dart';
 import '../../../core/config/env_config.dart';
 import '../domain/mission_model.dart';
 
@@ -18,11 +19,11 @@ import '../domain/mission_model.dart';
 /// [방법 A — 임시 인증 우회] 회원 로그인 시스템이 아직 없어, 서버가 시딩해둔
 /// 테스트 유저(userId=1)를 고정으로 사용한다.
 class MissionRepository {
-  static const int _userId = 1;
 
   Future<ApiResult<List<MissionModel>>> getMissions() async {
+    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
-      '${EnvConfig.adminApiBaseUrl}/api/public/missions?userId=$_userId',
+      '${EnvConfig.adminApiBaseUrl}/api/public/missions?userId=$userId',
     );
     debugPrint('[MissionRepository] [getMissions] 요청 시작 -> $uri');
 

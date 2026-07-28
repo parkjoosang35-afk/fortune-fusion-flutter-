@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../../../../core/api/api_result.dart';
+import '../../../../core/auth/auth_token_store.dart';
 import '../../../../core/config/env_config.dart';
 import '../domain/tarot_model.dart';
 
@@ -20,11 +21,9 @@ import '../domain/tarot_model.dart';
 /// 않지만(서버가 총평을 대신 생성), 카드 아이콘 조회 등 화면 표시용 헬퍼로는
 /// 계속 참조될 수 있어 파일 자체는 삭제하지 않는다.
 ///
-/// [방법 A — 임시 인증 우회] 회원 로그인 시스템이 아직 없어, 서버가 시딩해둔
-/// 테스트 유저(userId=1)를 고정으로 사용한다.
+/// [로드맵④] 실 로그인 사용자 ID를 [AuthTokenStore]에서 조회한다.
+/// 비로그인 상태에서는 폴백 테스트 유저(userId=1)를 그대로 사용한다.
 class TarotRepository {
-  static const int _userId = 1;
-
   final List<TarotResultModel> _history = [];
 
   Future<ApiResult<TarotResultModel>> drawOneCard({
@@ -49,12 +48,13 @@ class TarotRepository {
     debugPrint('[TarotRepository] [_draw] 요청 시작 -> $uri (spreadType=$spreadType, topic=$topic)');
 
     try {
+      final userId = await AuthTokenStore.getCurrentUserId();
       final response = await http
           .post(
             uri,
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
-              'userId': _userId,
+              'userId': userId,
               'question': question,
               'spreadType': spreadType,
               'topic': topic,

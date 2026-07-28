@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/api/api_result.dart';
+import '../../../core/auth/auth_token_store.dart';
 import '../../../core/config/env_config.dart';
 import '../domain/ranking_model.dart';
 
@@ -13,13 +14,13 @@ import '../domain/ranking_model.dart';
 /// 반환한다(Mock의 "myPoints로 임의 순위 삽입" 방식은 사용하지 않음 - 설계결정 참조).
 /// myPoints 파라미터는 서버에서 사용하지 않으며, isMe 판정은 서버가 userId로 자동 처리한다.
 class RankingRepository {
-  static const int _userId = 1;
   static String get _base => '${EnvConfig.adminApiBaseUrl}/api/public/ranking';
 
   Future<ApiResult<List<RankingEntryModel>>> getWeeklyRanking({
     required int myPoints,
   }) async {
-    final uri = Uri.parse('$_base/weekly?userId=$_userId');
+    final userId = await AuthTokenStore.getCurrentUserId();
+    final uri = Uri.parse('$_base/weekly?userId=$userId');
     try {
       final response = await http
           .get(uri, headers: {'Accept': 'application/json'})

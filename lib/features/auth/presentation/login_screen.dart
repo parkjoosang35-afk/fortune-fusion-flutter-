@@ -14,10 +14,8 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController(
-    text: 'demo@fortunefusion.app',
-  );
-  final _passwordController = TextEditingController(text: 'password');
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _isSubmitting = false;
 
   Future<void> _login() async {
@@ -41,6 +39,9 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  /// [설계결정 - 로드맵④] 실제 카카오/구글 OAuth SDK 연동은 이번 범위 밖이다.
+  /// 서버(`/api/public/auth/social-login`)가 501을 정직하게 응답하며, 이 화면은
+  /// 그 실패를 "추후 지원 예정" 안내로 표시한다(가짜 성공 처리 금지).
   Future<void> _socialLogin(String provider) async {
     setState(() => _isSubmitting = true);
     final ok = await context.read<AuthProvider>().loginWithSocial(provider);
@@ -50,6 +51,8 @@ class _LoginScreenState extends State<LoginScreen> {
       Navigator.of(
         context,
       ).pushNamedAndRemoveUntil('/signup/profile-check', (route) => false);
+    } else {
+      AppToast.show(context, '$provider 로그인은 추후 지원 예정입니다.');
     }
   }
 
