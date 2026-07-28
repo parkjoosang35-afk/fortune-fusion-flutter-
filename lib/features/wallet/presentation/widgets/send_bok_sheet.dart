@@ -7,6 +7,7 @@ import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../application/wallet_provider.dart';
+import 'send_bok_success_dialog.dart';
 
 /// [Phase22-3 - 커뮤니티 화면 황금률 출구버튼] "복 나누기" 공용 바텀시트.
 ///
@@ -16,17 +17,37 @@ import '../../application/wallet_provider.dart';
 /// 상태로 호출되므로, 내부에서 [WalletRepository.lookupUserByNickname]으로 먼저
 /// 실제 userId를 확인한 뒤에만 [WalletProvider.sendBok]을 호출한다.
 ///
+/// 성공 시 바텀시트가 닫힌 뒤(호출한 화면의 context에서) 화려한 축하 애니메이션
+/// 다이얼로그([SendBokSuccessDialog])를 이어서 재생한다(03§10.2 "획득 애니메이션"
+/// 패턴의 확장판 - 파티클+골드스윕+환급액 카운트업).
+///
 /// 반환값: 실제로 복 나누기가 성공했으면 true, 취소/실패로 닫혔으면 false.
 Future<bool> showSendBokSheet(
   BuildContext context, {
   required String recipientNickname,
 }) async {
-  final result = await showAppBottomSheet<bool>(
+  final result = await showAppBottomSheet<_SendBokResult>(
     context,
     title: '복 나누기',
     child: _SendBokForm(recipientNickname: recipientNickname),
   );
-  return result ?? false;
+  if (result == null) return false;
+
+  if (context.mounted) {
+    await SendBokSuccessDialog.show(
+      context,
+      recipientNickname: recipientNickname,
+      sentAmount: result.sentAmount,
+      refundAmount: result.refundAmount,
+    );
+  }
+  return true;
+}
+
+class _SendBokResult {
+  final int sentAmount;
+  final int refundAmount;
+  const _SendBokResult({required this.sentAmount, required this.refundAmount});
 }
 
 enum _SendBokStep { lookingUp, ready, lookupFailed }
@@ -100,10 +121,8 @@ class _SendBokFormState extends State<_SendBokForm> {
     setState(() => _isSubmitting = false);
 
     if (sent != null) {
-      Navigator.of(context).pop(true);
-      AppToast.show(
-        context,
-        '$amount복을 나눴어요! ${sent.refundAmount}복을 환급받았어요 🍀',
+      Navigator.of(context).pop(
+        _SendBokResult(sentAmount: amount, refundAmount: sent.refundAmount),
       );
     } else {
       AppToast.show(
@@ -142,7 +161,7 @@ class _SendBokFormState extends State<_SendBokForm> {
             const SizedBox(height: AppSpacing.lg),
             AppButton.ghost(
               label: '닫기',
-              onPressed: () => Navigator.of(context).pop(false),
+              onPressed: () => Navigator.of(context).pop(),
             ),
           ],
         );
