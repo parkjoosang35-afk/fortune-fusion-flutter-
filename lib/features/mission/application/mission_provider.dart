@@ -27,14 +27,4 @@ class MissionProvider extends ChangeNotifier {
     _isLoading = false;
     notifyListeners();
   }
-
-  /// 미션 완료 처리 후 지급 포인트를 반환한다(호출측에서 WalletProvider.earn 연계).
-  Future<int?> complete(String id) async {
-    final result = await _repository.completeMission(id);
-    if (result.success && result.data != null) {
-      await load();
-      return result.data!;
-    }
-    return null;
-  }
 }

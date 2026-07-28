@@ -9,6 +9,11 @@ class MissionModel {
   final MissionPeriod period;
   final bool isCompleted;
 
+  /// [Phase5 - 게임화 최소연동] 서버(admin_web)가 실제 진행률을 반환한다.
+  /// 기존 Mock 단계에는 없던 필드로, 기본값(0/1)을 둬 기존 생성 코드와 호환한다.
+  final int progressCount;
+  final int targetCount;
+
   const MissionModel({
     required this.id,
     required this.title,
@@ -16,6 +21,8 @@ class MissionModel {
     required this.rewardPoints,
     required this.period,
     required this.isCompleted,
+    this.progressCount = 0,
+    this.targetCount = 1,
   });
 
   MissionModel copyWith({bool? isCompleted}) => MissionModel(
@@ -25,5 +32,7 @@ class MissionModel {
     rewardPoints: rewardPoints,
     period: period,
     isCompleted: isCompleted ?? this.isCompleted,
+    progressCount: progressCount,
+    targetCount: targetCount,
   );
 }

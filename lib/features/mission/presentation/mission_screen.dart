@@ -2,13 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/widgets/app_toast.dart';
-import '../../wallet/application/wallet_provider.dart';
 import '../application/mission_provider.dart';
 import '../domain/mission_model.dart';
 
 /// 03단계 §3.3 - MissionScreen (리스트형 패턴)
-/// 일일/주간 미션 목록 + 완료 처리 → WalletProvider.earn 연계
+/// 일일/주간 미션 목록 + 진행률 표시
+///
+/// [Phase5 - 게임화 최소연동] 이전에는 "받기" 버튼을 눌러 로컬에서 완료 처리하는
+/// Mock이었으나, 이제는 서버(admin_web)가 실제 행동(오늘의 운세 확인, 복 나누기 등)
+/// 발생 시 진행률을 자동으로 갱신하고 목표 달성 즉시 보상까지 자동 지급한다.
+/// 따라서 이 화면은 진행률(progressCount/targetCount)을 보여주는 조회 전용 화면으로
+/// 전환하고, "다른 화면에서 활동하면 자동으로 반영된다"는 안내를 덧붙인다.
 class MissionScreen extends StatefulWidget {
   const MissionScreen({super.key});
 
@@ -25,16 +29,7 @@ class _MissionScreenState extends State<MissionScreen> {
     );
   }
 
-  Future<void> _complete(MissionModel mission) async {
-    final reward = await context.read<MissionProvider>().complete(mission.id);
-    if (!mounted) return;
-    if (reward != null) {
-      await context.read<WalletProvider>().earn(reward, '${mission.title} 완료');
-      if (mounted) AppToast.show(context, '미션 완료! +$reward P 지급되었습니다.');
-    } else {
-      AppToast.show(context, '미션 처리에 실패했습니다.', isError: true);
-    }
-  }
+  Future<void> _refresh() => context.read<MissionProvider>().load();
 
   @override
   Widget build(BuildContext context) {
@@ -45,27 +40,31 @@ class _MissionScreenState extends State<MissionScreen> {
       body: SafeArea(
         child: provider.isLoading && provider.missions.isEmpty
             ? const Center(child: CircularProgressIndicator())
-            : ListView(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                children: [
-                  Text('일일 미션', style: Theme.of(context).textTheme.titleLarge),
-                  const SizedBox(height: AppSpacing.md),
-                  ...provider.daily.map(
-                    (m) => _MissionTile(
-                      mission: m,
-                      onComplete: () => _complete(m),
+            : RefreshIndicator(
+                onRefresh: _refresh,
+                child: ListView(
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  children: [
+                    Text(
+                      '일일 미션',
+                      style: Theme.of(context).textTheme.titleLarge,
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  Text('주간 미션', style: Theme.of(context).textTheme.titleLarge),
-                  const SizedBox(height: AppSpacing.md),
-                  ...provider.weekly.map(
-                    (m) => _MissionTile(
-                      mission: m,
-                      onComplete: () => _complete(m),
+                    const SizedBox(height: 4),
+                    Text(
+                      '오늘의 운세 확인, 타로 리딩, 복 나누기 등 활동을 하면 자동으로 진행됩니다.',
+                      style: Theme.of(context).textTheme.bodySmall,
                     ),
-                  ),
-                ],
+                    const SizedBox(height: AppSpacing.md),
+                    ...provider.daily.map((m) => _MissionTile(mission: m)),
+                    const SizedBox(height: AppSpacing.lg),
+                    Text(
+                      '주간 미션',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    ...provider.weekly.map((m) => _MissionTile(mission: m)),
+                  ],
+                ),
               ),
       ),
     );
@@ -74,11 +73,14 @@ class _MissionScreenState extends State<MissionScreen> {
 
 class _MissionTile extends StatelessWidget {
   final MissionModel mission;
-  final VoidCallback onComplete;
-  const _MissionTile({required this.mission, required this.onComplete});
+  const _MissionTile({required this.mission});
 
   @override
   Widget build(BuildContext context) {
+    final progress = mission.targetCount > 0
+        ? (mission.progressCount / mission.targetCount).clamp(0.0, 1.0)
+        : 0.0;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Container(
@@ -120,9 +122,21 @@ class _MissionTile extends StatelessWidget {
                     mission.description,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 6,
+                      backgroundColor: AppColors.divider,
+                      color: mission.isCompleted
+                          ? AppColors.textHint
+                          : AppColors.primary,
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   Text(
-                    '+${mission.rewardPoints} P',
+                    '${mission.progressCount}/${mission.targetCount}  ·  +${mission.rewardPoints} P',
                     style: const TextStyle(
                       color: AppColors.secondaryDark,
                       fontSize: 12,
@@ -133,18 +147,14 @@ class _MissionTile extends StatelessWidget {
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
-            SizedBox(
-              width: 76,
-              child: ElevatedButton(
-                onPressed: mission.isCompleted ? null : onComplete,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                ),
-                child: Text(
-                  mission.isCompleted ? '완료' : '받기',
-                  style: const TextStyle(fontSize: 12),
-                ),
-              ),
+            Icon(
+              mission.isCompleted
+                  ? Icons.emoji_events_rounded
+                  : Icons.hourglass_bottom_rounded,
+              color: mission.isCompleted
+                  ? AppColors.secondaryDark
+                  : AppColors.textHint,
+              size: 22,
             ),
           ],
         ),
