@@ -1369,6 +1369,10 @@ model Wish {
   category     String // health/wealth/love/exam 등
   isAnonymous  Boolean   @default(false) @map("is_anonymous")
   supportCount Int       @default(0) @map("support_count")
+  // [Phase6-2 - 커뮤니티 실API 연동] Flutter WishPostModel.goalTag(nullable) 대응.
+  // 04A 원본에는 없던 필드이나, wish_post_model.dart 주석에 "필요 시점에 nullable
+  // 필드만 추가하면 되므로 지금 신설하지 않음"이라 명시돼 있어 이번 소단위에서 추가한다.
+  goalTag      String?   @map("goal_tag")
   status       String    @default("visible")
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
