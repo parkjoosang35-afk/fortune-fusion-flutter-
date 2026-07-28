@@ -26,9 +26,8 @@ import '../domain/tarot_model.dart';
 class TarotRepository {
   final List<TarotResultModel> _history = [];
 
-  Future<ApiResult<TarotResultModel>> drawOneCard({
-    required String question,
-  }) => _draw(question: question, spreadType: 'one_card', topic: 'general');
+  Future<ApiResult<TarotResultModel>> drawOneCard({required String question}) =>
+      _draw(question: question, spreadType: 'one_card', topic: 'general');
 
   Future<ApiResult<TarotResultModel>> drawThreeCard({
     required String question,
@@ -44,8 +43,12 @@ class TarotRepository {
     required String spreadType,
     required String topic,
   }) async {
-    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/fortune/tarot');
-    debugPrint('[TarotRepository] [_draw] 요청 시작 -> $uri (spreadType=$spreadType, topic=$topic)');
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/fortune/tarot',
+    );
+    debugPrint(
+      '[TarotRepository] [_draw] 요청 시작 -> $uri (spreadType=$spreadType, topic=$topic)',
+    );
 
     try {
       final userId = await AuthTokenStore.getCurrentUserId();

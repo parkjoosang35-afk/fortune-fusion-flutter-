@@ -1,9 +1,24 @@
+import 'dart:math';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../application/tarot_provider.dart';
+import 'widgets/tarot_mystic_background.dart';
 
-/// 03단계 §3.3 / 07단계 - TarotLoadingScreen (연출용 로딩)
+/// [AI 타로 리딩 UX/UI 개선] TarotLoadingScreen 전면 재구성.
+///
+/// §1 "리딩 시작 애니메이션"(카드 리비테이션 + 빛 확산 + 회전 + 마법진) →
+/// §2/§3 "AI가 실제로 분석하는 느낌"(랜덤 단계 문구 + 살아있는 배경)의 2단계
+/// 시네마틱 로딩을 구현한다. 실제 카드 정체(어떤 카드가 나왔는지)는 이 단계
+/// 시점에는 아직 서버 응답이 도착하지 않았을 수 있으므로(비동기), 여기서는
+/// "정체를 알 수 없는 신비로운 카드 뒷면"만 보여주고 실제 카드 공개는 결과
+/// 화면(§4~6)의 전용 리빌 연출로 넘긴다 - 화면 간 역할을 명확히 분리해
+/// 로딩 화면 로직이 결과 화면 로직과 뒤섞이지 않게 한다.
+///
+/// [체감 리추얼 보장] API가 즉시 응답하더라도 최소 [_minRitualDuration]만큼은
+/// 반드시 연출을 재생한다("바로 결과를 보여주지 않습니다" 원칙, §1). API가
+/// 느리면 문구 로테이션이 계속 이어지며 자연스럽게 대기 시간을 채운다.
 class TarotLoadingScreen extends StatefulWidget {
   const TarotLoadingScreen({super.key});
 
@@ -12,36 +27,78 @@ class TarotLoadingScreen extends StatefulWidget {
 }
 
 class _TarotLoadingScreenState extends State<TarotLoadingScreen>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  bool _navigated = false;
+    with TickerProviderStateMixin {
+  static const _minRitualDuration = Duration(milliseconds: 4400);
+  static const _riseDuration = Duration(milliseconds: 2200);
+  static const _messageInterval = Duration(milliseconds: 1700);
 
-  static const _messages = [
-    '카드를 섞고 있어요...',
-    'AI가 카드의 의미를 해석하고 있어요...',
-    '당신을 위한 메시지를 준비하고 있어요...',
+  static const _allMessages = [
+    ('✨', '카드의 기운을 읽는 중...'),
+    ('🔮', '운명의 흐름을 분석하는 중...'),
+    ('🌙', '당신의 에너지를 연결하는 중...'),
+    ('⭐', '미래의 가능성을 살펴보는 중...'),
+    ('📜', '최종 리딩을 준비하는 중...'),
   ];
+
+  late final AnimationController _riseController;
+  late final AnimationController _circleController;
+  late final AnimationController _breatheController;
+
+  late List<(String, String)> _messages;
+  int _messageIndex = 0;
+  Timer? _messageTimer;
+
+  bool _minTimeElapsed = false;
+  bool _navigated = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
+    _riseController = AnimationController(vsync: this, duration: _riseDuration)
+      ..forward();
+    _circleController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(seconds: 7),
+    )..repeat();
+    _breatheController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
     )..repeat(reverse: true);
+
+    _messages = List.of(_allMessages)..shuffle(Random());
+    _messageTimer = Timer.periodic(_messageInterval, (_) {
+      if (!mounted) return;
+      setState(() {
+        _messageIndex++;
+        if (_messageIndex >= _messages.length) {
+          _messageIndex = 0;
+          _messages.shuffle(Random());
+        }
+      });
+    });
+
+    Future.delayed(_minRitualDuration, () {
+      if (!mounted) return;
+      _minTimeElapsed = true;
+      _tryNavigate(context.read<TarotProvider>());
+    });
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _messageTimer?.cancel();
+    _riseController.dispose();
+    _circleController.dispose();
+    _breatheController.dispose();
     super.dispose();
   }
 
-  void _navigateOnResult(TarotProvider provider) {
-    if (_navigated) return;
+  void _tryNavigate(TarotProvider provider) {
+    if (_navigated || !_minTimeElapsed) return;
     if (provider.state.isSuccess || provider.state.isError) {
       _navigated = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
         Navigator.of(context).pushReplacementNamed(
           '/ai-fortune/tarot/result',
           arguments: provider.state.data?.id,
@@ -53,35 +110,214 @@ class _TarotLoadingScreenState extends State<TarotLoadingScreen>
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<TarotProvider>();
-    _navigateOnResult(provider);
+    _tryNavigate(provider);
 
-    final msgIndex = (DateTime.now().second ~/ 2) % _messages.length;
+    final isRising = _riseController.value < 1.0;
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(gradient: AppColors.mysticGradient),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ScaleTransition(
-                scale: Tween(begin: 0.9, end: 1.1).animate(_controller),
-                child: const Icon(
-                  Icons.style_rounded,
-                  color: AppColors.secondary,
-                  size: 72,
-                ),
+      backgroundColor: AppColors.deepSpace,
+      body: Stack(
+        children: [
+          const TarotMysticBackground(intensity: 1.0),
+          SafeArea(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 220,
+                    height: 260,
+                    child: AnimatedBuilder(
+                      animation: Listenable.merge([
+                        _riseController,
+                        _circleController,
+                        _breatheController,
+                      ]),
+                      builder: (context, _) {
+                        final rise = CurvedAnimation(
+                          parent: _riseController,
+                          curve: Curves.easeOutCubic,
+                        ).value;
+                        final settle = CurvedAnimation(
+                          parent: _riseController,
+                          curve: Curves.elasticOut,
+                        ).value;
+                        final breathe = _breatheController.value;
+
+                        return Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            // 빛이 퍼짐(§1) - 카드가 떠오르며 함께 확산되는 후광
+                            Opacity(
+                              opacity: (rise * 0.9).clamp(0.0, 0.9),
+                              child: Container(
+                                width: 170 + breathe * 10,
+                                height: 170 + breathe * 10,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: RadialGradient(
+                                    colors: [
+                                      AppColors.secondary.withValues(
+                                        alpha: 0.35,
+                                      ),
+                                      Colors.transparent,
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            // 은빛/골드 마법진(§1 "빛나는 원형 마법진")
+                            Opacity(
+                              opacity: rise.clamp(0.0, 1.0),
+                              child: Transform.rotate(
+                                angle: _circleController.value * 2 * pi,
+                                child: CustomPaint(
+                                  size: const Size(200, 200),
+                                  painter: _MagicCirclePainter(),
+                                ),
+                              ),
+                            ),
+                            Transform.rotate(
+                              angle: -_circleController.value * 2 * pi * 0.6,
+                              child: Opacity(
+                                opacity: (rise * 0.7).clamp(0.0, 0.7),
+                                child: CustomPaint(
+                                  size: const Size(150, 150),
+                                  painter: _MagicCirclePainter(dashCount: 18),
+                                ),
+                              ),
+                            ),
+                            // 떠오르는 카드(§1 "카드가 천천히 떠오릅니다" +
+                            // "카드가 살짝 회전합니다") - 등장 후에는 §3
+                            // "카드가 미세하게 흔들림"으로 계속 살아있게 유지.
+                            Transform.translate(
+                              offset: Offset(0, (1 - rise) * 60),
+                              child: Transform.rotate(
+                                angle: isRising
+                                    ? (1 - settle) * -0.25
+                                    : sin(breathe * pi) * 0.02,
+                                child: Opacity(
+                                  opacity: rise.clamp(0.0, 1.0),
+                                  child: const _CardBack(),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 400),
+                    transitionBuilder: (child, animation) => FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position: Tween(
+                          begin: const Offset(0, 0.15),
+                          end: Offset.zero,
+                        ).animate(animation),
+                        child: child,
+                      ),
+                    ),
+                    child: Padding(
+                      key: ValueKey(_messageIndex),
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
+                      child: Text(
+                        '${_messages[_messageIndex].$1} ${_messages[_messageIndex].$2}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 32),
-              Text(
-                _messages[msgIndex],
-                style: const TextStyle(color: Colors.white, fontSize: 15),
-                textAlign: TextAlign.center,
-              ),
-            ],
+            ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 정체를 알 수 없는 신비로운 카드 뒷면(§1) - 실제 카드는 결과 화면에서 공개.
+class _CardBack extends StatelessWidget {
+  const _CardBack();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 118,
+      height: 178,
+      decoration: BoxDecoration(
+        gradient: AppColors.mysticGradient,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: AppColors.secondary.withValues(alpha: 0.7),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.secondary.withValues(alpha: 0.35),
+            blurRadius: 24,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: Center(
+        child: Container(
+          width: 84,
+          height: 138,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: AppColors.secondaryLight.withValues(alpha: 0.6),
+            ),
+          ),
+          alignment: Alignment.center,
+          child: const Text('✨', style: TextStyle(fontSize: 34)),
         ),
       ),
     );
   }
+}
+
+/// 회전하는 마법진 - 원형 테두리 + 방사형 점(§1 "빛나는 원형 마법진").
+class _MagicCirclePainter extends CustomPainter {
+  final int dashCount;
+  _MagicCirclePainter({this.dashCount = 24});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+    final ringPaint = Paint()
+      ..color = AppColors.secondaryLight.withValues(alpha: 0.55)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    canvas.drawCircle(center, radius, ringPaint);
+
+    final dotPaint = Paint()
+      ..color = AppColors.secondaryLight.withValues(alpha: 0.8);
+    for (var i = 0; i < dashCount; i++) {
+      final angle = (i / dashCount) * 2 * pi;
+      final dotRadius = i % 3 == 0 ? 2.4 : 1.3;
+      canvas.drawCircle(
+        Offset(
+          center.dx + cos(angle) * radius,
+          center.dy + sin(angle) * radius,
+        ),
+        dotRadius,
+        dotPaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _MagicCirclePainter oldDelegate) => false;
 }
