@@ -5,7 +5,12 @@ import '../../../core/theme/app_spacing.dart';
 import '../../wallet/presentation/widgets/send_bok_sheet.dart';
 import '../application/wish_post_provider.dart';
 import '../domain/wish_post_model.dart';
+import 'community_screen.dart' show WishCandleBadge;
+import 'widgets/send_bokju_sheet.dart';
+import 'widgets/wish_journey_sheet.dart';
+import 'widgets/wish_milestone_dialog.dart';
 import 'widgets/wish_report_sheet.dart';
+import 'widgets/wish_review_sheet.dart';
 
 /// 03단계 §7.7 WishFeedScreen 연계 상세화면 - 소원 상세 + 댓글(comments L-4)
 class WishDetailScreen extends StatefulWidget {
@@ -23,9 +28,12 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => context.read<WishPostProvider>().loadComments(widget.post.id),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<WishPostProvider>().loadComments(widget.post.id);
+      // [소원성(Wish Castle) 확장] 최종단계(레벨4) 특별 연출 - 아직 노출한 적이
+      // 없는 경우에만 1회 재생(내부에서 isMilestoneShown/isMaxLevel 이중 검사).
+      WishMilestoneDialog.showIfNeeded(context, widget.post);
+    });
   }
 
   @override
@@ -177,6 +185,23 @@ class _WishContentCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.md),
           Text(post.content, style: const TextStyle(fontSize: 15, height: 1.6)),
           const SizedBox(height: AppSpacing.md),
+          // [소원성(Wish Castle) 확장] 촛불 레벨/진행바 - 미니멀 원칙에 따라
+          // 한 줄 배지 형태로만 표시(화려한 연출은 별도 다이얼로그에서만 재생).
+          Row(
+            children: [
+              Expanded(child: WishCandleBadge(post: post)),
+              TextButton.icon(
+                onPressed: () => showWishJourneySheet(context, post),
+                icon: const Icon(Icons.timeline_rounded, size: 16),
+                label: const Text('소원의 여정', style: TextStyle(fontSize: 12.5)),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.textSecondaryOf(context),
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
           Row(
             children: [
               InkWell(
@@ -226,6 +251,53 @@ class _WishContentCard extends StatelessWidget {
                         ),
                         SizedBox(width: 4),
                         Text('복 나누기', style: TextStyle(fontSize: 12.5)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+              // [소원성(Wish Castle) 확장] 복주머니 보내기 - 익명/본인 게시물 여부와
+              // 무관하게 항상 노출한다(포인트 이동이 없는 상징적 응원이라 대상 특정이
+              // 무의미해지는 문제가 없음). 최종 레벨 도달 시에는 이미 다 자란 상태이므로
+              // 숨겨서 불필요한 상호작용을 막는다.
+              if (!post.isMaxLevel) ...[
+                const SizedBox(width: AppSpacing.md),
+                InkWell(
+                  borderRadius: BorderRadius.circular(999),
+                  onTap: () => showSendBokjuSheet(context, wishId: post.id),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.auto_awesome_rounded,
+                          size: 18,
+                          color: AppColors.secondaryDark,
+                        ),
+                        SizedBox(width: 4),
+                        Text('복주머니 보내기', style: TextStyle(fontSize: 12.5)),
+                      ],
+                    ),
+                  ),
+                ),
+              ] else ...[
+                // [소원성(Wish Castle) 확장] 성취 후기 작성 - 최종레벨(가장 밝은
+                // 불꽃) 도달 소원에서만 노출(서버도 candleLevel<4면 400 거부).
+                const SizedBox(width: AppSpacing.md),
+                InkWell(
+                  borderRadius: BorderRadius.circular(999),
+                  onTap: () => showWishReviewSheet(context, wishId: post.id),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.edit_note_rounded,
+                          size: 18,
+                          color: AppColors.secondaryDark,
+                        ),
+                        SizedBox(width: 4),
+                        Text('성취 후기 남기기', style: TextStyle(fontSize: 12.5)),
                       ],
                     ),
                   ),

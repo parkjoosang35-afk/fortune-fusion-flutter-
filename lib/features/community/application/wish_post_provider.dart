@@ -32,11 +32,25 @@ class WishPostProvider extends ChangeNotifier {
   String? _rouletteResult;
   bool _canSpinRoulette = true;
 
+  // [소원성(Wish Castle) 확장] 명예의 전당(서버 집계 버전) 상태.
+  // 기존 hallOfFame(클라이언트 파생 집계) getter와는 별개로 유지한다(하위호환).
+  List<Map<String, dynamic>> _featuredReviews = [];
+  List<Map<String, dynamic>> _hallOfFameRanking = [];
+  bool _isLoadingHallOfFame = false;
+
   List<WishPostModel> get posts => _posts;
   bool get isLoading => _isLoading;
   WishFeedTab get currentTab => _currentTab;
   String? get rouletteResult => _rouletteResult;
   bool get canSpinRoulette => _canSpinRoulette;
+
+  /// [소원성(Wish Castle) 확장] 관리자가 수동 선정한 성취 후기 목록(서버 집계).
+  List<Map<String, dynamic>> get featuredReviews => _featuredReviews;
+
+  /// [소원성(Wish Castle) 확장] 응원 누적 상위 랭킹(서버 집계, top 10).
+  List<Map<String, dynamic>> get hallOfFameRanking => _hallOfFameRanking;
+
+  bool get isLoadingHallOfFame => _isLoadingHallOfFame;
 
   /// [웹→앱 이식] 신통방통 wish.html "오늘의 인기 소원" - 응원수 상위 5개(파생 데이터)
   List<WishPostModel> get hotWishes {
@@ -184,4 +198,96 @@ class WishPostProvider extends ChangeNotifier {
     final result = await _repository.report(targetType, targetId, reason);
     return result.success;
   }
+
+  /// [소원성(Wish Castle) 확장] 복주머니 보내기 - 실제 포인트 이동 없는 상징적 응원.
+  /// 성공 시 posts 캐시를 서버 응답값으로 즉시 갱신하고, 레벨업 여부/이전 레벨/
+  /// 최종레벨 최초 도달 여부를 [WishBokjuSendResult]로 반환해 호출부(UI)가
+  /// 성장 연출/레벨업 연출/최종단계 특별연출을 분기할 수 있게 한다.
+  Future<WishBokjuSendResult?> sendBokju(String wishId, int amount) async {
+    final result = await _repository.sendBokju(wishId, amount);
+    if (!result.success || result.data == null) return null;
+    final data = result.data!;
+    final index = _posts.indexWhere((p) => p.id == wishId);
+    final newCandleLevel = (data['candleLevel'] as num).toInt();
+    final newBokjuCount = (data['bokjuCount'] as num).toInt();
+    final previousLevel = (data['previousLevel'] as num).toInt();
+    final leveledUp = data['leveledUp'] as bool? ?? false;
+    final isMilestoneShown = data['isMilestoneShown'] as bool? ?? false;
+    final achievedAt = data['achievedAt'] != null
+        ? DateTime.parse(data['achievedAt'] as String)
+        : null;
+    if (index != -1) {
+      _posts[index] = _posts[index].copyWith(
+        candleLevel: newCandleLevel,
+        bokjuCount: newBokjuCount,
+        achievedAt: achievedAt,
+        isMilestoneShown: isMilestoneShown,
+      );
+      notifyListeners();
+    }
+    return WishBokjuSendResult(
+      candleLevel: newCandleLevel,
+      bokjuCount: newBokjuCount,
+      previousLevel: previousLevel,
+      leveledUp: leveledUp,
+      reachedMaxLevel:
+          leveledUp && newCandleLevel >= WishPostModel.maxCandleLevel,
+    );
+  }
+
+  /// [소원성(Wish Castle) 확장] 최종단계(레벨4) 특별 연출을 1회만 노출하기 위한
+  /// "이미 봤음" 표시. 로컬 캐시도 함께 갱신해 같은 화면에서 재진입 시 재생되지 않게 한다.
+  Future<void> markMilestoneShown(String wishId) async {
+    await _repository.markMilestoneShown(wishId);
+    final index = _posts.indexWhere((p) => p.id == wishId);
+    if (index != -1) {
+      _posts[index] = _posts[index].copyWith(isMilestoneShown: true);
+      notifyListeners();
+    }
+  }
+
+  /// [소원성(Wish Castle) 확장] 명예의 전당(서버 집계 버전) 로드.
+  /// - featuredReviews: 관리자가 CMS에서 수동 선정한 성취 후기
+  /// - ranking: 응원 누적 상위 랭킹(top 10)
+  Future<void> loadHallOfFame() async {
+    _isLoadingHallOfFame = true;
+    notifyListeners();
+    final result = await _repository.getHallOfFame();
+    if (result.success && result.data != null) {
+      final data = result.data!;
+      _featuredReviews = (data['featuredReviews'] as List<dynamic>? ?? const [])
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+      _hallOfFameRanking = (data['ranking'] as List<dynamic>? ?? const [])
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+    }
+    _isLoadingHallOfFame = false;
+    notifyListeners();
+  }
+
+  /// [소원성(Wish Castle) 확장] 성취 후기 작성 - 최종레벨(레벨4) 도달 소원만 작성 가능.
+  /// (서버 측에서도 candleLevel<4면 400을 반환하므로 UI는 isMaxLevel일 때만 진입점을 노출한다.)
+  Future<bool> submitReview(String wishId, String content) async {
+    final result = await _repository.submitReview(wishId, content);
+    return result.success;
+  }
+}
+
+/// [소원성(Wish Castle) 확장] sendBokju() 결과 - UI가 성장/레벨업/최종연출을
+/// 분기하기 위한 최소 정보만 담는다(신규 원자단위 신설 없이 순수 데이터 클래스).
+class WishBokjuSendResult {
+  final int candleLevel;
+  final int bokjuCount;
+  final int previousLevel;
+  final bool leveledUp;
+  final bool reachedMaxLevel;
+
+  const WishBokjuSendResult({
+    required this.candleLevel,
+    required this.bokjuCount,
+    required this.previousLevel,
+    required this.leveledUp,
+    required this.reachedMaxLevel,
+  });
 }

@@ -6,7 +6,10 @@ import '../../../core/widgets/app_bottom_sheet.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_empty_state.dart';
 import '../application/wish_post_provider.dart';
+import '../application/wish_castle_config_provider.dart';
 import '../domain/wish_post_model.dart';
+import 'widgets/wish_castle_intro_screen.dart';
+import 'widgets/wish_hall_of_fame_sheet.dart';
 import 'widgets/wish_report_sheet.dart';
 
 const _wishCategories = ['이사/이동', '학업/시험', '연애/인연', '건강', '재물/사업', '기타'];
@@ -36,9 +39,14 @@ class _CommunityScreenState extends State<CommunityScreen>
       if (_tabController.indexIsChanging) return;
       context.read<WishPostProvider>().changeTab(_tabs[_tabController.index]);
     });
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       context.read<WishPostProvider>().loadFeed();
       context.read<WishPostProvider>().checkRouletteAvailability();
+      // [소원성(Wish Castle) 확장] 촛불 레벨 임계값 등 CMS 설정을 커뮤니티 탭
+      // 진입 시 1회 로드(이미 로드되어 있으면 재호출해도 가벼운 GET 1회일 뿐이라 무해).
+      context.read<WishCastleConfigProvider>().loadConfig();
+      // [소원성(Wish Castle) 확장] 소원성 인트로 + 온보딩 - 최초 1회만 노출.
+      if (mounted) await showWishCastleIntroIfNeeded(context);
     });
   }
 
@@ -105,9 +113,8 @@ class _CommunityScreenState extends State<CommunityScreen>
                   return ChoiceChip(
                     label: Text(tag),
                     selected: selected,
-                    onSelected: (_) => setSheetState(
-                      () => goalTag = selected ? null : tag,
-                    ),
+                    onSelected: (_) =>
+                        setSheetState(() => goalTag = selected ? null : tag),
                     selectedColor: AppColors.secondary.withValues(alpha: 0.2),
                     labelStyle: TextStyle(
                       color: selected
@@ -205,9 +212,27 @@ class _CommunityScreenState extends State<CommunityScreen>
                             const SizedBox(height: AppSpacing.lg),
                           ],
                           if (provider.hallOfFame.isNotEmpty) ...[
-                            _SectionHeader(
-                              icon: Icons.emoji_events_rounded,
-                              title: '소원성 명예의 전당',
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _SectionHeader(
+                                    icon: Icons.emoji_events_rounded,
+                                    title: '소원성 명예의 전당',
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () =>
+                                      showWishHallOfFameSheet(context),
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: const Size(0, 0),
+                                  ),
+                                  child: const Text(
+                                    '전체보기',
+                                    style: TextStyle(fontSize: 12.5),
+                                  ),
+                                ),
+                              ],
                             ),
                             const SizedBox(height: AppSpacing.sm),
                             _HallOfFameStrip(entries: provider.hallOfFame),
@@ -342,8 +367,9 @@ class _HotWishStrip extends StatelessWidget {
                     const SizedBox(width: 4),
                     Text(
                       '${w.supportCount}',
-                      style: Theme.of(context).textTheme.labelMedium
-                          ?.copyWith(color: AppColors.secondaryDark),
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: AppColors.secondaryDark,
+                      ),
                     ),
                   ],
                 ),
@@ -528,6 +554,64 @@ class _LuckyRouletteCardState extends State<_LuckyRouletteCard>
   }
 }
 
+/// [소원성(Wish Castle) 확장] 촛불 레벨 아이콘 + 진행바 - 게시글 카드/상세화면 공용.
+/// 미니멀 원칙(마스터 기획 §UI 디자인 원칙 화이트 미니멀)에 따라 이모지 1개 + 얇은
+/// 프로그레스바만으로 성장 상태를 표현하고, 화려한 연출은 별도 애니메이션 위젯(성장/
+/// 레벨업 연출)에서만 터뜨린다. 카드 자체는 항상 심플하게 유지한다.
+class WishCandleBadge extends StatelessWidget {
+  final WishPostModel post;
+  final bool compact;
+  const WishCandleBadge({super.key, required this.post, this.compact = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<WishCastleConfigProvider>();
+    final meta = wishCandleLevelOf(post.candleLevel);
+    final progress = provider.isLoaded
+        ? provider.progressWithinLevel(post.bokjuCount, post.candleLevel)
+        : (post.isMaxLevel ? 1.0 : 0.0);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(meta.emoji, style: TextStyle(fontSize: compact ? 13 : 15)),
+        const SizedBox(width: 4),
+        if (!compact)
+          Text(
+            meta.name,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: AppColors.secondaryDark,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        const SizedBox(width: 6),
+        SizedBox(
+          width: compact ? 44 : 64,
+          height: 5,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 5,
+              backgroundColor: AppColors.containerOf(context),
+              valueColor: const AlwaysStoppedAnimation(AppColors.secondary),
+            ),
+          ),
+        ),
+        if (!compact) ...[
+          const SizedBox(width: 6),
+          Text(
+            '🧧 ${post.bokjuCount}',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: AppColors.textSecondaryOf(context),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 class _PostCard extends StatelessWidget {
   final WishPostModel post;
   const _PostCard({required this.post});
@@ -565,6 +649,8 @@ class _PostCard extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const Spacer(),
+                WishCandleBadge(post: post, compact: true),
+                const SizedBox(width: AppSpacing.sm),
                 Text(
                   '${post.createdAt.month}.${post.createdAt.day}',
                   style: Theme.of(context).textTheme.bodySmall,

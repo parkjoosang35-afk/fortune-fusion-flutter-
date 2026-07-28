@@ -23,16 +23,19 @@ import '../domain/wish_post_model.dart' show ReportTargetType;
 /// [방법 A — 임시 인증 우회] 회원 로그인 시스템이 아직 없어, 서버가 시딩해둔
 /// 테스트 유저(userId=1)를 고정으로 사용한다(daily_fortune_repository.dart와 동일 패턴).
 class CommunityPostRepository {
-
   Future<ApiResult<List<CommunityBoardModel>>> getBoards() async {
-    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/community/boards');
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/community/boards',
+    );
     try {
       final response = await http
           .get(uri, headers: {'Accept': 'application/json'})
           .timeout(const Duration(seconds: 15));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
-        return ApiResult.fail(decoded['error'] as String? ?? '게시판 목록을 불러오지 못했습니다.');
+        return ApiResult.fail(
+          decoded['error'] as String? ?? '게시판 목록을 불러오지 못했습니다.',
+        );
       }
       final list = (decoded['data'] as List<dynamic>)
           .map(
@@ -69,7 +72,9 @@ class CommunityPostRepository {
           .timeout(const Duration(seconds: 15));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
-        return ApiResult.fail(decoded['error'] as String? ?? '게시글 목록을 불러오지 못했습니다.');
+        return ApiResult.fail(
+          decoded['error'] as String? ?? '게시글 목록을 불러오지 못했습니다.',
+        );
       }
       final list = (decoded['data'] as List<dynamic>)
           .map((e) => _postFromJson(e as Map<String, dynamic>))
@@ -90,7 +95,9 @@ class CommunityPostRepository {
     if (title.trim().isEmpty || content.trim().isEmpty) {
       return ApiResult.fail('제목과 내용을 모두 입력해 주세요.');
     }
-    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/community/posts');
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/community/posts',
+    );
     try {
       final response = await http
           .post(
@@ -108,7 +115,9 @@ class CommunityPostRepository {
       if (response.statusCode != 200 || decoded['success'] != true) {
         return ApiResult.fail(decoded['error'] as String? ?? '게시글 작성에 실패했습니다.');
       }
-      return ApiResult.ok(_postFromJson(decoded['data'] as Map<String, dynamic>));
+      return ApiResult.ok(
+        _postFromJson(decoded['data'] as Map<String, dynamic>),
+      );
     } catch (e) {
       debugPrint('[CommunityPostRepository] [createPost] 예외 -> $e');
       return ApiResult.fail('게시글 작성에 실패했습니다: $e');
@@ -132,7 +141,9 @@ class CommunityPostRepository {
       if (response.statusCode != 200 || decoded['success'] != true) {
         return ApiResult.fail(decoded['error'] as String? ?? '좋아요 처리에 실패했습니다.');
       }
-      return ApiResult.ok(_postFromJson(decoded['data'] as Map<String, dynamic>));
+      return ApiResult.ok(
+        _postFromJson(decoded['data'] as Map<String, dynamic>),
+      );
     } catch (e) {
       debugPrint('[CommunityPostRepository] [toggleLike] 예외 -> $e');
       return ApiResult.fail('좋아요 처리에 실패했습니다: $e');
@@ -184,7 +195,9 @@ class CommunityPostRepository {
       if (response.statusCode != 200 || decoded['success'] != true) {
         return ApiResult.fail(decoded['error'] as String? ?? '댓글 작성에 실패했습니다.');
       }
-      return ApiResult.ok(_commentFromJson(decoded['data'] as Map<String, dynamic>));
+      return ApiResult.ok(
+        _commentFromJson(decoded['data'] as Map<String, dynamic>),
+      );
     } catch (e) {
       debugPrint('[CommunityPostRepository] [addComment] 예외 -> $e');
       return ApiResult.fail('댓글 작성에 실패했습니다: $e');
