@@ -15,6 +15,7 @@
 // 추후 실제 AI 연동 시 이 필드로 구분 가능하게 한다.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { incrementMissionProgress } from "@/lib/mission-progress";
 
 export const dynamic = "force-dynamic";
 
@@ -105,6 +106,7 @@ export async function GET(request: NextRequest) {
           result: existing.result,
           refundAmount: 0,
           balance: null as number | null,
+          missionUpdates: [] as Awaited<ReturnType<typeof incrementMissionProgress>>,
         };
       }
 
@@ -209,6 +211,15 @@ export async function GET(request: NextRequest) {
           })
         : null;
 
+      // 9) [Phase5 - 게임화 최소연동] "오늘의 운세 확인" 행동을 관련 미션(view_daily_fortune)에
+      //    반영한다. 1일 1회 과금 원칙과 동일하게, 새로 생성될 때만(재조회 캐시 반환 시는 제외)
+      //    미션 진행률을 올려 중복 카운트를 방지한다.
+      const missionUpdates = await incrementMissionProgress(tx, userId, "view_daily_fortune");
+      const missionRewardTotal = missionUpdates.reduce((sum, m) => sum + m.rewardPoint, 0);
+      if (missionRewardTotal > 0) {
+        balance += missionRewardTotal;
+      }
+
       return {
         alreadyGenerated: false,
         request: fortuneRequest,
@@ -216,6 +227,7 @@ export async function GET(request: NextRequest) {
         refundAmount,
         balance,
         fortune,
+        missionUpdates,
       };
     });
 
@@ -236,6 +248,7 @@ export async function GET(request: NextRequest) {
           alreadyGenerated: outcome.alreadyGenerated,
           refundAmount: outcome.refundAmount,
           balance: outcome.balance,
+          missionUpdates: outcome.missionUpdates,
         },
       },
       { headers: CORS_HEADERS }

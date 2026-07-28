@@ -11,6 +11,7 @@
 // [인증 임시 방편] 아직 로그인 시스템이 없으므로 fromUserId/toUserId를 바디로 직접 받는다.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { incrementMissionProgress } from "@/lib/mission-progress";
 
 export const dynamic = "force-dynamic";
 
@@ -171,10 +172,19 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      // 6) [Phase5 - 게임화 최소연동] "복 나누기" 행동을 관련 미션(send_bok)에 반영.
+      //    보상으로 지급되는 포인트는 fromBalance에도 합산해 응답에 최신 잔액을 반영한다.
+      const missionUpdates = await incrementMissionProgress(tx, fromUserId, "send_bok");
+      const missionRewardTotal = missionUpdates.reduce((sum, m) => sum + m.rewardPoint, 0);
+      if (missionRewardTotal > 0) {
+        fromBalance += missionRewardTotal;
+      }
+
       return {
         fromBalance,
         refundAmount,
         dailySendRemaining: dailySendLimit - (alreadySentToday + amount),
+        missionUpdates,
       };
     });
 
@@ -185,6 +195,7 @@ export async function POST(request: NextRequest) {
           balance: result.fromBalance,
           refundAmount: result.refundAmount,
           dailySendRemaining: result.dailySendRemaining,
+          missionUpdates: result.missionUpdates,
         },
       },
       { headers: CORS_HEADERS }
