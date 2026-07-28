@@ -1,36 +1,70 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import '../../../../core/api/api_result.dart';
-import '../../../../core/utils/mock_delay.dart';
+import '../../../../core/config/env_config.dart';
 import '../domain/daily_fortune_model.dart';
 
-/// 06단계 §4.3 `GET /v1/fortune/daily/today` 대응 Mock Repository
-/// 09단계 §3.2-② 프롬프트 출력 스키마(category_scores/lucky_color/lucky_number/summary_text)를
-/// DB 컬럼과 1:1 매핑한 것과 동일한 구조로 Mock 데이터를 생성한다.
+/// 06단계 §4.3 `GET /v1/fortune/daily/today` 대응 Repository — admin_web 공개 API
+/// (`GET /api/public/fortune/daily?userId=`)를 호출하는 실제 구현체 (Mock→실API 전환).
+///
+/// [Phase22 - 복주머니 경제철학 이식] 서버가 point_policies.ai_daily_request(30P) 기준
+/// 포인트를 차감하고, economy_config.refund_rate(기본 50%)만큼 즉시 환급까지 원자적으로
+/// 처리한다. 같은 날 재호출 시에는 서버가 캐시된 기존 결과를 재차감 없이 반환한다
+/// (alreadyGenerated 플래그로 구분 가능).
+///
+/// [방법 A — 임시 인증 우회] 회원 로그인 시스템이 아직 없어, 서버가 시딩해둔
+/// 테스트 유저(userId=1)를 고정으로 사용한다.
 class DailyFortuneRepository {
-  static const _summaries = [
-    '오늘은 새로운 인연이 다가올 좋은 기운이 감돌고 있어요. 평소보다 적극적인 태도가 행운을 부릅니다.',
-    '작은 실수에 주의가 필요한 날입니다. 서두르지 않고 차분하게 하루를 보내면 무난하게 지나갈 거예요.',
-    '재물운이 상승하는 하루! 뜻밖의 좋은 소식이 있을 수 있으니 기대해도 좋습니다.',
-    '몸과 마음의 휴식이 필요한 시기입니다. 무리한 일정보다는 컨디션 관리에 집중하세요.',
-  ];
+  static const int _userId = 1;
 
   Future<ApiResult<DailyFortuneModel>> getToday() async {
-    await mockDelay(ms: 500);
-    final now = DateTime.now();
-    final seed = now.day + now.month;
-    return ApiResult.ok(
-      DailyFortuneModel(
-        id: 'df_${now.year}${now.month}${now.day}',
-        date: DateTime(now.year, now.month, now.day),
-        categoryScores: {
-          '총운': 60 + (seed * 7) % 40,
-          '애정': 55 + (seed * 3) % 40,
-          '재물': 50 + (seed * 11) % 45,
-          '건강': 65 + (seed * 5) % 30,
-        },
-        luckyColor: ['보라', '골드', '블루', '그린'][seed % 4],
-        luckyNumber: (seed % 9) + 1,
-        summaryText: _summaries[seed % _summaries.length],
-      ),
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/fortune/daily?userId=$_userId',
     );
+    debugPrint('[DailyFortuneRepository] [getToday] 요청 시작 -> $uri');
+
+    try {
+      final response = await http
+          .get(uri, headers: {'Accept': 'application/json'})
+          .timeout(const Duration(seconds: 15));
+
+      debugPrint(
+        '[DailyFortuneRepository] [getToday] 응답 수신 -> statusCode=${response.statusCode}',
+      );
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        final error = decoded['error'] as String? ?? '오늘의 운세를 불러오지 못했습니다.';
+        debugPrint('[DailyFortuneRepository] [getToday] 실패 -> $error');
+        return ApiResult.fail(error);
+      }
+
+      final data = decoded['data'] as Map<String, dynamic>;
+      final categoryScoresRaw = data['categoryScores'] as Map<String, dynamic>? ?? {};
+      final categoryScores = categoryScoresRaw.map(
+        (key, value) => MapEntry(key, (value as num).toInt()),
+      );
+
+      final model = DailyFortuneModel(
+        id: data['id'] as String,
+        date: DateTime.parse(data['date'] as String),
+        categoryScores: categoryScores,
+        luckyColor: data['luckyColor'] as String,
+        luckyNumber: (data['luckyNumber'] as num).toInt(),
+        summaryText: data['summaryText'] as String,
+      );
+
+      debugPrint(
+        '[DailyFortuneRepository] [getToday] 성공 -> alreadyGenerated=${data['alreadyGenerated']}, '
+        'refundAmount=${data['refundAmount']}',
+      );
+
+      return ApiResult.ok(model);
+    } catch (e, st) {
+      debugPrint('[DailyFortuneRepository] [getToday] 예외 -> $e');
+      if (kDebugMode) debugPrint('$st');
+      return ApiResult.fail('오늘의 운세를 불러오지 못했습니다: $e');
+    }
   }
 }
