@@ -5,6 +5,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/utils/load_state.dart';
 import '../../../core/widgets/app_error_state.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../../wallet/presentation/widgets/send_bok_sheet.dart';
 import '../application/compatibility_provider.dart';
 import '../domain/compatibility_model.dart';
 
@@ -209,6 +210,23 @@ class _CompatibilityResultBody extends StatelessWidget {
                   height: 1.5,
                 ),
                 textAlign: TextAlign.center,
+              ),
+              // [Phase22-3 - 황금률 출구버튼] nameB는 자유텍스트 입력값이라
+              // 실제 앱 유저와 매핑이 보장되지 않는다. 버튼은 항상 노출하고,
+              // 실제 유저가 아니면 showSendBokSheet 내부에서 조회 실패 UI로
+              // 안내한다(별도의 사전 검증 없이 위임 - 03§9.2 과설계 방지 원칙).
+              const SizedBox(height: AppSpacing.lg),
+              OutlinedButton.icon(
+                onPressed: () => showSendBokSheet(
+                  context,
+                  recipientNickname: result.nameB,
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  side: const BorderSide(color: Colors.white54),
+                ),
+                icon: const Icon(Icons.volunteer_activism_outlined, size: 18),
+                label: Text('${result.nameB}님에게 복 나누기'),
               ),
             ],
           ),

@@ -7,6 +7,7 @@ import '../../../core/widgets/app_dialog.dart';
 import '../../../core/widgets/app_empty_state.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../../wallet/presentation/widgets/send_bok_sheet.dart';
 import '../application/amulet_provider.dart';
 import '../domain/user_amulet_model.dart';
 
@@ -144,6 +145,28 @@ class _AmuletGiftScreenState extends State<AmuletGiftScreen> {
                       label: '선물 보내기',
                       isLoading: _sending,
                       onPressed: _selected == null ? null : _submit,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    // [Phase22-3 - 황금률 출구버튼] "부적 옮기기"와 별개로,
+                    // 입력한 닉네임에게 복(BOK)도 함께 나눌 수 있는 보조 출구.
+                    AppButton.ghost(
+                      label: '복도 함께 나누기',
+                      icon: Icons.volunteer_activism_outlined,
+                      onPressed: () {
+                        final nickname = _nicknameController.text.trim();
+                        if (nickname.isEmpty) {
+                          AppToast.show(
+                            context,
+                            '받는 사람 닉네임을 먼저 입력해주세요.',
+                            isError: true,
+                          );
+                          return;
+                        }
+                        showSendBokSheet(
+                          context,
+                          recipientNickname: nickname,
+                        );
+                      },
                     ),
                   ],
                 ),

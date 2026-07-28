@@ -179,6 +179,40 @@ class WalletRepository {
     }
   }
 
+  /// [Phase22-3 - 황금률 출구버튼] 닉네임 -> userId 조회 — GET /api/public/users/lookup
+  /// 커뮤니티/부적/궁합 화면은 작성자를 닉네임(문자열)으로만 갖고 있어, "복 나누기"
+  /// 실행 전에 이 API로 실제 userId를 확인한다. 활동 중(active)인 유저만 대상이 된다.
+  Future<ApiResult<({int userId, String nickname})>> lookupUserByNickname(
+    String nickname,
+  ) async {
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/users/lookup',
+    ).replace(queryParameters: {'nickname': nickname});
+    debugPrint('[WalletRepository] [lookup] 요청 시작 -> nickname=$nickname');
+
+    try {
+      final response = await http
+          .get(uri, headers: {'Accept': 'application/json'})
+          .timeout(const Duration(seconds: 10));
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        final error = decoded['error'] as String? ?? '유저를 찾을 수 없습니다.';
+        debugPrint('[WalletRepository] [lookup] 실패 -> $error');
+        return ApiResult.fail(error);
+      }
+
+      final data = decoded['data'] as Map<String, dynamic>;
+      final userId = data['userId'] as int;
+      final resolvedNickname = data['nickname'] as String? ?? nickname;
+      debugPrint('[WalletRepository] [lookup] 성공 -> userId=$userId');
+      return ApiResult.ok((userId: userId, nickname: resolvedNickname));
+    } catch (e) {
+      debugPrint('[WalletRepository] [lookup] 예외 -> $e');
+      return ApiResult.fail('유저 조회 중 오류가 발생했습니다: $e');
+    }
+  }
+
   /// WalletService.spend — 성공 시 true, 잔액 부족/오류 시 false.
   Future<bool> spend(int amount, String reason) async {
     final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/wallet/spend');

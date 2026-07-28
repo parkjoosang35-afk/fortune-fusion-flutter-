@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../wallet/presentation/widgets/send_bok_sheet.dart';
 import '../application/wish_post_provider.dart';
 import '../domain/wish_post_model.dart';
 import 'widgets/wish_report_sheet.dart';
@@ -204,6 +205,32 @@ class _WishContentCard extends StatelessWidget {
                   ),
                 ),
               ),
+              // [Phase22-3 - 황금률 출구버튼] 익명 게시물/내 게시물은 대상이
+              // 불명확하거나 무의미하므로 버튼을 노출하지 않는다.
+              if (!post.isAnonymous && !post.isMine) ...[
+                const SizedBox(width: AppSpacing.md),
+                InkWell(
+                  borderRadius: BorderRadius.circular(999),
+                  onTap: () => showSendBokSheet(
+                    context,
+                    recipientNickname: post.authorNickname,
+                  ),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.volunteer_activism_rounded,
+                          size: 18,
+                          color: AppColors.secondary,
+                        ),
+                        SizedBox(width: 4),
+                        Text('복 나누기', style: TextStyle(fontSize: 12.5)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ],

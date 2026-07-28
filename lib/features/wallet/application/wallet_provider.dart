@@ -55,6 +55,20 @@ class WalletProvider extends ChangeNotifier {
   /// 반환하고, 실패 시 null을 반환한다(에러 메시지는 [lastSendError]로 확인).
   String? lastSendError;
 
+  /// [Phase22-3] 닉네임 -> userId 조회(황금률 출구버튼에서 sendBok() 호출 전 사용).
+  /// 실패 시 null을 반환하고 [lastSendError]에 에러 메시지를 남긴다.
+  Future<({int userId, String nickname})?> lookupUserByNickname(
+    String nickname,
+  ) async {
+    final result = await _repository.lookupUserByNickname(nickname);
+    if (!result.success) {
+      lastSendError = result.errorMessage;
+      return null;
+    }
+    lastSendError = null;
+    return result.data;
+  }
+
   Future<({int refundAmount, int dailySendRemaining})?> sendBok({
     required int toUserId,
     required int amount,
