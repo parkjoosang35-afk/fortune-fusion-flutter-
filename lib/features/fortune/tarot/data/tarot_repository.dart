@@ -1,216 +1,122 @@
-import 'dart:math';
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 
 import '../../../../core/api/api_result.dart';
-import '../../../../core/utils/mock_delay.dart';
+import '../../../../core/config/env_config.dart';
 import '../domain/tarot_model.dart';
-import '../domain/tarot_text_engine.dart';
 
-/// 06단계 §4.3 `POST /v1/fortune/tarot/request` 대응 Mock Repository
+/// 06단계 §4.3 `POST /v1/fortune/tarot/request` 대응 Repository
 /// 09단계 §3.2-③ 타로 프롬프트 출력 스키마(cards/positions/interpretation) 반영
 ///
-/// 07단계(추가) §3.6 - 타로상담 기능 최적화: 기존 15장 고정 덱 기반
-/// [drawOneCard]/[drawThreeCard]는 그대로 유지하고(하위 호환), 78장 풀덱
-/// 기반의 [buildFullDeck]/[drawThreeCards]를 추가한다. 신규 메서드는
-/// [TarotTextEngine]의 주제별 조합형 텍스트 생성 로직을 사용한다.
+/// [Phase6 - AI운세 실LLM 연동] admin_web 공개 API(`POST /api/public/fortune/tarot`)를
+/// 호출해 실제 LLM(ai_prompt_templates 기반)이 생성한 총평(summary) 텍스트를
+/// 받아온다(Mock→실API 전환). 카드 뽑기 자체(어떤 카드가 정/역방향으로 나오는지)는
+/// 서버에서도 여전히 결정론적 규칙(질문 해시 시드)으로 처리되며, 이번 연동
+/// 범위는 "총평 텍스트"만 실LLM으로 교체하는 것이다.
+///
+/// [범위 밖] 78장 풀덱 로컬 메타데이터([TarotDeckData]/[buildFullTarotDeckMeta])와
+/// [TarotTextEngine] 조합형 텍스트 생성 로직은 이번 연동에서 더 이상 사용하지
+/// 않지만(서버가 총평을 대신 생성), 카드 아이콘 조회 등 화면 표시용 헬퍼로는
+/// 계속 참조될 수 있어 파일 자체는 삭제하지 않는다.
+///
+/// [방법 A — 임시 인증 우회] 회원 로그인 시스템이 아직 없어, 서버가 시딩해둔
+/// 테스트 유저(userId=1)를 고정으로 사용한다.
 class TarotRepository {
+  static const int _userId = 1;
+
   final List<TarotResultModel> _history = [];
-
-  static const _deck = [
-    ('The Fool', '바보'),
-    ('The Magician', '마법사'),
-    ('The High Priestess', '여사제'),
-    ('The Empress', '여황제'),
-    ('The Emperor', '황제'),
-    ('The Lovers', '연인'),
-    ('The Chariot', '전차'),
-    ('Strength', '힘'),
-    ('The Hermit', '은둔자'),
-    ('Wheel of Fortune', '운명의 수레바퀴'),
-    ('Justice', '정의'),
-    ('The Star', '별'),
-    ('The Sun', '태양'),
-    ('The Moon', '달'),
-    ('The World', '세계'),
-  ];
-
-  static const _oneCardMeanings = {
-    '바보': '새로운 시작과 자유로운 도전을 의미합니다. 두려움 없이 첫걸음을 내딛어보세요.',
-    '마법사': '스스로의 능력과 의지로 원하는 것을 만들어낼 수 있는 시기입니다.',
-    '여사제': '직관을 믿고 내면의 목소리에 귀 기울여야 할 때입니다.',
-    '여황제': '풍요와 안정, 따뜻한 결실이 찾아오는 흐름입니다.',
-    '황제': '체계와 안정을 바탕으로 목표를 향해 꾸준히 나아가세요.',
-    '연인': '관계에서의 조화와 선택의 순간이 다가오고 있습니다.',
-    '전차': '강한 의지로 장애물을 극복하고 앞으로 나아갈 힘이 있습니다.',
-    '힘': '부드러움 속의 강인함으로 어려움을 이겨낼 수 있습니다.',
-    '은둔자': '잠시 멈추고 스스로를 돌아보는 시간이 필요합니다.',
-    '운명의 수레바퀴': '변화의 흐름이 다가오고 있으니 유연하게 대응하세요.',
-    '정의': '공정한 판단과 균형이 필요한 시기입니다.',
-    '별': '희망과 치유, 밝은 미래에 대한 기대가 커지는 때입니다.',
-    '태양': '성공과 활력, 밝은 에너지가 가득한 최고의 시기입니다.',
-    '달': '불확실함 속에서도 직관을 믿고 나아가야 할 때입니다.',
-    '세계': '완성과 성취, 하나의 여정이 마무리되는 순간입니다.',
-  };
 
   Future<ApiResult<TarotResultModel>> drawOneCard({
     required String question,
-  }) async {
-    await mockDelay(ms: 1500);
-    final seed =
-        (question.hashCode.abs() + DateTime.now().millisecondsSinceEpoch) %
-        _deck.length;
-    final (name, nameKr) = _deck[seed];
-    final reversed = DateTime.now().millisecond % 2 == 0;
-
-    final card = TarotCard(
-      id: 'card_$seed',
-      name: name,
-      nameKr: nameKr,
-      isReversed: reversed,
-    );
-    final baseText = _oneCardMeanings[nameKr] ?? '변화와 성장의 기운이 감돌고 있습니다.';
-    final interpretation = reversed
-        ? '(역방향) $baseText 다만 지금은 조급함을 내려놓고 신중하게 접근하는 것이 좋습니다.'
-        : baseText;
-
-    final result = TarotResultModel(
-      id: 'tarot_${DateTime.now().millisecondsSinceEpoch}',
-      question: question,
-      spreadType: 'one_card',
-      positions: [
-        TarotSpreadPosition(
-          label: '오늘의 카드',
-          card: card,
-          interpretation: interpretation,
-        ),
-      ],
-      summary: interpretation,
-      createdAt: DateTime.now(),
-    );
-
-    _history.insert(0, result);
-    return ApiResult.ok(result);
-  }
+  }) => _draw(question: question, spreadType: 'one_card', topic: 'general');
 
   Future<ApiResult<TarotResultModel>> drawThreeCard({
     required String question,
-  }) async {
-    await mockDelay(ms: 1800);
-    final seedBase = question.hashCode.abs();
-    const labels = ['과거', '현재', '미래'];
-    final positions = <TarotSpreadPosition>[];
+  }) => _draw(question: question, spreadType: 'three_card', topic: 'general');
 
-    for (int i = 0; i < 3; i++) {
-      final idx = (seedBase + i * 5) % _deck.length;
-      final (name, nameKr) = _deck[idx];
-      final reversed = (seedBase + i) % 3 == 0;
-      final card = TarotCard(
-        id: 'card_${idx}_$i',
-        name: name,
-        nameKr: nameKr,
-        isReversed: reversed,
-      );
-      final baseText = _oneCardMeanings[nameKr] ?? '변화와 성장의 기운이 감돌고 있습니다.';
-      final text = reversed ? '(역방향) $baseText' : baseText;
-      positions.add(
-        TarotSpreadPosition(label: labels[i], card: card, interpretation: text),
-      );
-    }
-
-    final result = TarotResultModel(
-      id: 'tarot_${DateTime.now().millisecondsSinceEpoch}',
-      question: question,
-      spreadType: 'three_card',
-      positions: positions,
-      summary:
-          '과거의 흐름이 현재에 영향을 주고 있으며, 지금의 선택이 앞으로의 결과를 결정짓게 됩니다. ${positions[2].interpretation}',
-      createdAt: DateTime.now(),
-    );
-
-    _history.insert(0, result);
-    return ApiResult.ok(result);
-  }
-
-  Future<ApiResult<List<TarotResultModel>>> getHistory() async {
-    await mockDelay(ms: 300);
-    return ApiResult.ok(List.unmodifiable(_history));
-  }
-
-  // ── 07단계(추가) §3.6 - 78장 풀덱 기반 신규 기능 ──
-
-  /// 메이저 22장 + 마이너 56장(4수트 × 14랭크) = 78장 풀덱 메타데이터를 반환한다.
-  /// [tarot_model.dart]의 [buildFullTarotDeckMeta]를 그대로 노출하는 얇은 래퍼로,
-  /// Repository 계층에서 덱에 접근하는 단일 진입점을 제공한다.
-  List<TarotCardMeta> buildFullDeck() => TarotDeckData.fullDeck;
-
-  /// 07단계(추가) §3.6 - [question]의 해시값을 시드로 사용해 78장 풀덱에서
-  /// 3장을 정방향/역방향과 함께 결정론적으로 뽑고, [TarotTextEngine]으로
-  /// 주제별 해석을 생성해 [TarotResultModel]로 반환한다.
-  /// 같은 질문 + 같은 주제로 다시 호출하면 항상 같은 3장이 나온다(요구사항:
-  /// "질문 해시 시드 기반" 뽑기).
   Future<ApiResult<TarotResultModel>> drawThreeCards({
     required String question,
     String topic = 'general',
+  }) => _draw(question: question, spreadType: 'three_card', topic: topic);
+
+  Future<ApiResult<TarotResultModel>> _draw({
+    required String question,
+    required String spreadType,
+    required String topic,
   }) async {
-    await mockDelay(ms: 1800);
+    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/fortune/tarot');
+    debugPrint('[TarotRepository] [_draw] 요청 시작 -> $uri (spreadType=$spreadType, topic=$topic)');
 
-    final deck = buildFullDeck();
-    final seed = question.hashCode.abs();
-    final rng = Random(seed);
+    try {
+      final response = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'userId': _userId,
+              'question': question,
+              'spreadType': spreadType,
+              'topic': topic,
+            }),
+          )
+          .timeout(const Duration(seconds: 45));
 
-    // 중복 없이 3장 인덱스 선택
-    final indices = <int>{};
-    while (indices.length < 3) {
-      indices.add(rng.nextInt(deck.length));
-    }
-    final chosenIndices = indices.toList();
-
-    const labels = ['과거', '현재', '미래'];
-    final cards = <TarotCard>[];
-    for (int i = 0; i < chosenIndices.length; i++) {
-      final meta = deck[chosenIndices[i]];
-      final reversed = Random(seed + chosenIndices[i]).nextBool();
-      cards.add(
-        TarotCard.fromMeta(
-          meta,
-          id: 'card_${chosenIndices[i]}_$i',
-          isReversed: reversed,
-        ),
+      debugPrint(
+        '[TarotRepository] [_draw] 응답 수신 -> statusCode=${response.statusCode}',
       );
-    }
 
-    final positions = <TarotSpreadPosition>[];
-    for (int i = 0; i < cards.length; i++) {
-      positions.add(
-        TarotSpreadPosition(
-          label: labels[i],
-          card: cards[i],
-          interpretation: TarotTextEngine.generateCardInterpretation(
-            cards[i],
-            topic,
-            seed: seed + i,
-          ),
-        ),
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        final error = decoded['error'] as String? ?? '타로 리딩에 실패했습니다.';
+        debugPrint('[TarotRepository] [_draw] 실패 -> $error');
+        return ApiResult.fail(error);
+      }
+
+      final data = decoded['data'] as Map<String, dynamic>;
+      final positionsRaw = data['positions'] as List<dynamic>;
+      final positions = positionsRaw.map((p) {
+        final pos = p as Map<String, dynamic>;
+        final cardRaw = pos['card'] as Map<String, dynamic>;
+        final card = TarotCard(
+          id: cardRaw['id'] as String,
+          name: cardRaw['name'] as String,
+          nameKr: cardRaw['nameKr'] as String,
+          isReversed: cardRaw['isReversed'] as bool,
+        );
+        return TarotSpreadPosition(
+          label: pos['label'] as String,
+          card: card,
+          interpretation: pos['interpretation'] as String,
+        );
+      }).toList();
+
+      final result = TarotResultModel(
+        id: data['id'] as String,
+        question: data['question'] as String,
+        spreadType: data['spreadType'] as String,
+        positions: positions,
+        summary: data['summary'] as String,
+        createdAt: DateTime.parse(data['createdAt'] as String),
+        topic: data['topic'] as String? ?? 'general',
       );
+
+      _history.insert(0, result);
+      return ApiResult.ok(result);
+    } catch (e, st) {
+      debugPrint('[TarotRepository] [_draw] 예외 -> $e');
+      if (kDebugMode) debugPrint('$st');
+      return ApiResult.fail('타로 리딩에 실패했습니다: $e');
     }
-
-    final summary = TarotTextEngine.generateSummary(
-      cards,
-      question,
-      topic,
-      seed: seed,
-    );
-
-    final result = TarotResultModel(
-      id: 'tarot_${DateTime.now().millisecondsSinceEpoch}',
-      question: question,
-      spreadType: 'three_card',
-      positions: positions,
-      summary: summary,
-      createdAt: DateTime.now(),
-      topic: topic,
-    );
-
-    _history.insert(0, result);
-    return ApiResult.ok(result);
   }
+
+  Future<ApiResult<List<TarotResultModel>>> getHistory() async {
+    // [Phase6 범위] 히스토리 조회 API는 아직 신설하지 않아, 이번 요청으로
+    // 새로 생성된 결과들을 로컬에 누적해두고 그대로 반환한다(범위 밖: 서버 영속 조회).
+    return ApiResult.ok(List.unmodifiable(_history));
+  }
+
+  /// 07단계(추가) §3.6 - 78장 풀덱 메타데이터(화면 표시/카드 아이콘 조회용).
+  /// 실제 카드 뽑기는 서버가 담당하므로, 이 메서드는 UI 참조용으로만 남아있다.
+  List<TarotCardMeta> buildFullDeck() => TarotDeckData.fullDeck;
 }
