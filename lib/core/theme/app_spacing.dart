@@ -1,4 +1,8 @@
 /// 03단계 §2 디자인 시스템 토큰 - Spacing(4px 기준 배수 스케일) / Radius
+///
+/// [Fortune Fusion UI 리뉴얼 프롬프트] 기존 xs~xxl 값은 216회+ 참조되는
+/// 전역 레이아웃 상수이므로 값을 그대로 유지하고, 신규 스펙에서 요구하는
+/// `xxxl` 및 `radiusSm/Md/Lg/Xl` 필드만 추가한다.
 class AppSpacing {
   AppSpacing._();
 
@@ -8,6 +12,14 @@ class AppSpacing {
   static const double lg = 16;
   static const double xl = 24;
   static const double xxl = 32;
+  static const double xxxl = 32;
+
+  // [Fortune Fusion UI 리뉴얼 프롬프트] 신규 카드 라운드 스케일
+  // (CosmicCard 등 신규 Presentation 위젯 전용, 기존 AppRadius.*와 병행 사용)
+  static const double radiusSm = 12;
+  static const double radiusMd = 16;
+  static const double radiusLg = 20;
+  static const double radiusXl = 28;
 }
 
 class AppRadius {

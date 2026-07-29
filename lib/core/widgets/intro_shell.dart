@@ -150,15 +150,15 @@ class _IntroShellState<T> extends State<IntroShell<T>>
 
               // 각 단계 내에서의 진행률(0~1) - 반짝임/스케일 연출에 사용
               final stageCount = widget.stages.length;
-              final stageLocalT =
-                  ((t * stageCount) - stageIndex).clamp(0.0, 1.0);
+              final stageLocalT = ((t * stageCount) - stageIndex).clamp(
+                0.0,
+                1.0,
+              );
               final pulse =
                   0.9 + (sin(stageLocalT * pi) * 0.12).clamp(-0.12, 0.12);
 
               return Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.xl,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [

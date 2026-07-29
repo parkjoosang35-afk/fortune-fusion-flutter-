@@ -50,7 +50,9 @@ class AppColors {
   /// 카드 그림자: 밝은 그레이(미세함, rgba(0,0,0,0.08))
   static const Color hcCardShadow = Color(0x14000000);
 
-  static const Color hcInk = Color(0xFF14121F); // CTA 버튼 배경(다크 네이비/블랙) - 레퍼런스 스크린샷 기준
+  static const Color hcInk = Color(
+    0xFF14121F,
+  ); // CTA 버튼 배경(다크 네이비/블랙) - 레퍼런스 스크린샷 기준
   static const Color hcCardBg = Color(0xFFFFFFFF); // 카드 배경(화이트 + 라이트그레이 경계)
   static const Color hcCardBg2 = Color(0xFFF5F5F5); // 운세 메뉴 그리드 카드 배경(라이트 그레이)
   static const Color hcBackground = Color(0xFFFFFFFF); // 전체 배경(순백색)
@@ -132,15 +134,21 @@ class AppColors {
   );
 
   // ── Dark mode neutrals (07단계 §10 신규, 신통방통 팔레트로 정밀 조정) ──
-  // 신통방통 --bg-deep(스캐폴드 배경) / --bg-navy(카드 서페이스) 대응
-  static const Color backgroundDark = Color(0xFF05040F); // --bg-deep
-  static const Color surfaceDark = Color(0xFF161335); // --bg-navy-2 (카드 배경)
-  static const Color surfaceDark2 = Color(0xFF1A1740); // --surface (약간 더 밝은 서페이스)
-  static const Color textPrimaryDark = Color(0xFFF4F1FF); // --text-main
-  static const Color textSecondaryDark = Color(0xFFB7AEDE); // --text-muted
-  static const Color textHintDark = Color(0xFF7A71A3); // --text-faint
+  // [Fortune Fusion UI 리뉴얼 프롬프트] 웹 프로토타입(딥네이비+골드/퍼플 우주 감성)
+  // 톤에 맞춰 다크 팔레트 값을 우주 감성 색상으로 갱신한다.
+  // (이 상수들은 app_theme.dart의 dark ThemeData 생성에만 쓰이고, 화면 코드에서
+  // 직접 참조되는 곳은 없어 값 변경이 다른 화면에 영향을 주지 않는다)
+  static const Color backgroundDark = Color(0xFF0B0B1E); // = bgPrimary
+  static const Color surfaceDark = Color(0xFF13132B); // = bgSecondary (카드 배경)
+  static const Color surfaceDark2 = Color(0xFF1E1E3F); // = bgTertiary (서브 카드)
+  static const Color textPrimaryDark = Color(0xFFFFFFFF);
+  static const Color textSecondaryDark = Color(0xFFB8B8D4);
+  static const Color textHintDark = Color(0xFF7A7A9C);
+  static const Color textDimDark = Color(0xFF4A4A6E);
   static const Color dividerDark = Color(0x1AFFFFFF); // rgba(255,255,255,0.1)
-  static const Color primaryContainerDark = Color(0xFF352A5E);
+  static const Color primaryContainerDark = Color(
+    0x339D7BFF,
+  ); // accentPurple 20%
 
   /// 신통방통 --gradient-card 이식 - 다크 모드 카드 표면(옅은 화이트 오버레이 그라디언트)
   /// 배경 위에 얹어 미세한 유리질감(glass-card)을 표현할 때 사용.
@@ -150,11 +158,59 @@ class AppColors {
     end: Alignment.bottomRight,
   );
 
-  /// 다크 모드 카드 보더(골드 톤 은은한 테두리) - 신통방통 rgba(255,255,255,0.07~0.08)
-  static const Color cardBorderDark = Color(0x14FFFFFF);
+  /// 다크 모드 카드 보더(은은한 화이트 테두리) - 신규 우주 팔레트 border와 동일 값
+  static const Color cardBorderDark = Color(0x1AFFFFFF);
 
   /// 골드 글로우 보더 - 강조 카드(오늘의 운세, CTA 등)
-  static const Color goldGlowBorder = Color(0x3AE0B356); // rgba(224,179,86,0.23)
+  static const Color goldGlowBorder = Color(0x3AFFD700);
+
+  // ══════════════════════════════════════════════════════════════
+  // [Fortune Fusion UI 리뉴얼 프롬프트] 🌌 우주 감성 팔레트 (신규)
+  // 웹 프로토타입 톤 매칭. CosmicCard/StarryBackground/HeroFortuneCard 등
+  // 신규 Presentation 위젯 전용으로 추가하는 토큰들이며, 기존 토큰(primary,
+  // secondary, textPrimary 등)은 하위호환을 위해 그대로 유지한다.
+  // ══════════════════════════════════════════════════════════════
+  // 배경 (딥 네이비 → 자정 하늘)
+  static const Color bgPrimary = Color(0xFF0B0B1E); // 최상위 배경
+  static const Color bgSecondary = Color(0xFF13132B); // 카드 배경
+  static const Color bgTertiary = Color(0xFF1E1E3F); // 서브 카드
+  static const Color bgElevated = Color(0xFF252547); // 떠있는 요소
+
+  // 포인트 컬러 (우주 별빛)
+  static const Color accentGold = Color(0xFFFFD700); // 복주머니 🍀
+  static const Color accentPurple = Color(0xFF9D7BFF); // 신비/타로
+  static const Color accentPink = Color(0xFFFF6B9D); // 소원/감성
+  static const Color accentBlue = Color(0xFF4DA6FF); // 운세/미션
+  static const Color accentMint = Color(0xFF6EE7B7); // 완료/성공
+
+  // 그라디언트 (히어로 카드용)
+  static const LinearGradient gradientCosmic = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF1E1E3F), Color(0xFF3D2A5F), Color(0xFF1E1E3F)],
+  );
+  static const LinearGradient gradientGold = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+  );
+  static const LinearGradient gradientWish = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFFFF6B9D), Color(0xFF9D7BFF)],
+  );
+
+  // 카드 테두리 (은은한 별빛)
+  static const Color border = Color(0x1AFFFFFF); // 흰색 10%
+  static const Color borderStrong = Color(0x33FFFFFF); // 흰색 20%
+
+  // 텍스트(우주 감성 다크 전용) - 기존 textPrimary/textSecondary(라이트 고정값)와
+  // 이름이 충돌하여 그대로 재사용할 수 없으므로 cosmicText* 이름으로 노출한다.
+  // 값 자체는 위 textPrimaryDark/textSecondaryDark/textHintDark/textDimDark와 동일.
+  static const Color cosmicTextPrimary = textPrimaryDark; // 0xFFFFFFFF
+  static const Color cosmicTextSecondary = textSecondaryDark; // 0xFFB8B8D4
+  static const Color cosmicTextTertiary = textHintDark; // 0xFF7A7A9C
+  static const Color cosmicTextDim = textDimDark; // 0xFF4A4A6E
 
   // ── 브랜드 컬러 네이밍 체계 별칭 (03단계 §3.1 신규) ──
   // 기존 상수와 값은 동일, "무엇을 위한 색인지" 브랜드 언어로 재노출한다.

@@ -4,6 +4,9 @@ import '../theme/app_spacing.dart';
 
 /// 03단계 §3.2 전역 내비게이션 보조요소 - 포인트 잔액 요약 칩
 /// "포인트 잔액은 거의 모든 화면 상단에 상시 노출"
+///
+/// [Fortune Fusion UI 리뉴얼 프롬프트] §2-2 PointBadge 스타일 개선.
+/// 🍀 이모지 아이콘 + accentGold 15% 오파시티 pill 배경으로 우주 감성 톤에 맞춘다.
 class PointBadge extends StatelessWidget {
   final int balance;
   final VoidCallback? onTap;
@@ -16,29 +19,23 @@ class PointBadge extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppRadius.full),
       child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: 6,
-        ),
+        height: 32,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          gradient: AppColors.goldGradient,
+          color: AppColors.accentGold.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(AppRadius.full),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.auto_awesome,
-              size: 14,
-              color: AppColors.textPrimary,
-            ),
-            const SizedBox(width: 4),
+            const Text('🍀', style: TextStyle(fontSize: 14)),
+            const SizedBox(width: AppSpacing.xs),
             Text(
               _formatBalance(balance),
               style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
+                color: AppColors.accentGold,
               ),
             ),
           ],

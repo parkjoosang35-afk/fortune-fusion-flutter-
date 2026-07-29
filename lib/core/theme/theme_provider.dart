@@ -4,14 +4,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// 07단계 §10 다크모드 설계 - 마이페이지 설정에서 수동 전환(light/dark) 가능하도록 지원한다.
 /// 선택값은 shared_preferences에 저장되어 앱 재실행 시에도 유지된다.
 ///
-/// [Sowoon.kr 리디자인 프롬프트] 기존 다크(밤하늘) 컨셉을 완전히 걷어내고
-/// 화이트/골드 라이트 테마를 앱의 기본 첫인상으로 채택한다.
-/// 사용자가 아직 아무 것도 선택하지 않은 최초 실행 시점에는
-/// 항상 라이트 모드를 기본값으로 노출한다(다크모드 토글 자체도 노출하지 않음).
+/// [Fortune Fusion UI 리뉴얼 프롬프트] 우주 감성(딥네이비+골드/퍼플) 다크 테마가
+/// 앱의 정체성이므로, 이전 "Sowoon.kr 리디자인" 단계에서 강제했던 라이트 고정을
+/// 해제하고 다크 모드를 기본값으로 되돌린다. 사용자가 마이페이지에서 라이트로
+/// 전환한 이력이 있다면(shared_preferences 저장값) 그 선택을 존중한다.
 class ThemeProvider extends ChangeNotifier {
   static const _prefsKey = 'app_theme_mode';
 
-  ThemeMode _mode = ThemeMode.light;
+  ThemeMode _mode = ThemeMode.dark;
   ThemeMode get mode => _mode;
 
   ThemeProvider() {
@@ -19,9 +19,14 @@ class ThemeProvider extends ChangeNotifier {
   }
 
   Future<void> _load() async {
-    // [Sowoon.kr 리디자인 프롬프트] 다크모드 완전 제거 - 항상 라이트 모드로 고정.
-    // (기존에 저장된 'dark' 값이 있어도 무시하고 라이트로 강제한다)
-    _mode = ThemeMode.light;
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(_prefsKey);
+    if (saved == 'light') {
+      _mode = ThemeMode.light;
+    } else {
+      // 저장된 값이 없거나 'dark'인 경우 우주 감성 다크 모드를 기본값으로 사용.
+      _mode = ThemeMode.dark;
+    }
     notifyListeners();
   }
 
