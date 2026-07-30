@@ -16,14 +16,25 @@ import '../../amulet/presentation/amulet_shop_screen.dart';
 import '../../giftcard/presentation/giftcard_catalog_screen.dart';
 import '../../mission/presentation/mission_screen.dart';
 import '../../subscription/presentation/subscription_plans_screen.dart';
+import '../../community/presentation/community_hub_screen.dart';
+import '../../community/presentation/community_screen.dart';
+import '../../matching/presentation/matching_discover_screen.dart';
 
-/// [Fortune Fusion UI 리뉴얼 프롬프트] §7 LuckyBagScreen - 복주머니 탭
-/// 잔액 히어로 + 획득처/사용처/VIP/히스토리 섹션
+/// [8단계 - 복주머니 탭 정리] LuckyBagScreen - 복주머니 탭
+/// 잔액 히어로 + "커뮤니티 엔진" 설명 + 적립방법(출석·미션·커뮤니티) +
+/// 사용처(복주머니 열기·부적·상품권·소원응원·운명의 동행) + 구독 보너스 +
+/// 거래내역(개봉이력·포인트내역) 한 화면 구조.
 ///
 /// [주의] 실제 기능(WalletProvider, AttendanceProvider, LuckyBagProvider 등)은
 /// 기존 Provider/Repository를 그대로 재사용한다. 이미 완성된 화면(LuckyBagShopScreen,
 /// LuckyBagHistoryScreen, AmuletShopScreen, GiftcardCatalogScreen, MissionScreen,
-/// SubscriptionPlansScreen)은 재작성하지 않고 "바로가기 카드"로 진입시킨다.
+/// SubscriptionPlansScreen, CommunityHubScreen, CommunityScreen, MatchingDiscoverScreen)은
+/// 재작성하지 않고 "바로가기 카드"로 진입시킨다.
+///
+/// [3축 정책] 복주머니는 커뮤니티 중심 재화로 재정의되었다(마스터 프롬프트 §복주머니):
+/// 적립 - 출석/글쓰기/댓글/소원응원받기/미션수행, 소비 - 소원응원/부적만들기/
+/// 운명의동행/커뮤니티프리미엄액션. 이 화면 상단의 [_CommunityEngineBanner]가
+/// 이 정책을 사용자에게 한 줄로 설명한다.
 class LuckyBagScreen extends StatefulWidget {
   const LuckyBagScreen({super.key});
 
@@ -103,10 +114,15 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
               onWalletTap: () =>
                   Navigator.of(context).pushNamed('/reward/wallet'),
             ),
+            const SizedBox(height: AppSpacing.md),
+
+            // [8단계] "커뮤니티 엔진" 설명 배너 - 복주머니가 커뮤니티 활동으로
+            // 순환하는 재화임을 한 줄로 설명(3축 정책 - 복주머니).
+            const _CommunityEngineBanner(),
             const SizedBox(height: AppSpacing.xl),
 
             // §2 획득처
-            const _SectionTitle(title: '✨ 포인트 획득처'),
+            const _SectionTitle(title: '✨ 복주머니 적립방법'),
             const SizedBox(height: AppSpacing.md),
             _ShortcutCard(
               emoji: '📅',
@@ -127,10 +143,20 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
                 context,
               ).push(MaterialPageRoute(builder: (_) => const MissionScreen())),
             ),
+            const SizedBox(height: AppSpacing.md),
+            _ShortcutCard(
+              emoji: '✍️',
+              title: '커뮤니티 활동',
+              subtitle: '소원/게시글 작성 · 댓글 작성 시 복주머니 적립',
+              accentColor: AppColors.accentGold,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const CommunityHubScreen()),
+              ),
+            ),
             const SizedBox(height: AppSpacing.xl),
 
             // §3 사용처
-            const _SectionTitle(title: '🎁 포인트 사용처'),
+            const _SectionTitle(title: '🎁 복주머니 사용처'),
             const SizedBox(height: AppSpacing.md),
             _ShortcutCard(
               emoji: '🍀',
@@ -145,12 +171,34 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
             ),
             const SizedBox(height: AppSpacing.md),
             _ShortcutCard(
+              emoji: '💌',
+              title: '소원 응원하기',
+              subtitle: '다른 사람의 소원에 복주머니로 응원 보내기',
+              accentColor: AppColors.accentPink,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const CommunityScreen()),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            _ShortcutCard(
               emoji: '🧧',
-              title: '디지털 부적',
-              subtitle: '나를 지켜주는 디지털 부적을 확인해보세요',
+              title: '디지털 부적 만들기',
+              subtitle: '나를 지켜주는 디지털 부적을 만들어보세요',
               accentColor: AppColors.accentPurple,
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const AmuletShopScreen()),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            _ShortcutCard(
+              emoji: '💫',
+              title: '운명의 동행',
+              subtitle: '관심표시(좋아요) 1건당 복주머니 소비',
+              accentColor: AppColors.accentBlue,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const MatchingDiscoverScreen(),
+                ),
               ),
             ),
             const SizedBox(height: AppSpacing.md),
@@ -167,8 +215,8 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
             ),
             const SizedBox(height: AppSpacing.xl),
 
-            // §4 VIP 섹션
-            const _SectionTitle(title: '👑 VIP 등급'),
+            // §4 구독 보너스(VIP 등급)
+            const _SectionTitle(title: '👑 구독 보너스'),
             const SizedBox(height: AppSpacing.md),
             _VipCard(
               grade: grade,
@@ -222,6 +270,47 @@ class _SectionTitle extends StatelessWidget {
         fontSize: 16,
         fontWeight: FontWeight.w800,
         color: AppColors.cosmicTextPrimary,
+      ),
+    );
+  }
+}
+
+/// [8단계] "커뮤니티 엔진" 설명 배너 - 복주머니가 커뮤니티 활동으로 순환하는
+/// 재화임을 한 줄로 요약한다(3축 정책 - 복주머니 재정의). 관리자 정책(admin_web
+/// point_policies)이 바뀌어도 이 문구 자체는 하드코딩된 설명일 뿐 수치를 담지
+/// 않으므로 관리자 정책 변경과 무관하게 유효하다.
+class _CommunityEngineBanner extends StatelessWidget {
+  const _CommunityEngineBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.accentGold.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(AppRadius.cardSmall),
+        border: Border.all(
+          color: AppColors.accentGold.withValues(alpha: 0.3),
+        ),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('⚙️', style: TextStyle(fontSize: 18)),
+          SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              '복주머니는 커뮤니티 엔진입니다 — 글쓰기·댓글·응원으로 모으고, '
+              '소원응원·부적만들기·운명의 동행에 사용해요.',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.cosmicTextSecondary,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
