@@ -25,8 +25,8 @@ class _AppShellState extends State<AppShell> {
   static const _tabs = [
     HomeScreenCosmic(), // 🏠 홈 - 8섹션 신규 구성
     FortuneHubScreen(), // 🔮 운세 - 7개 카테고리+비용뱃지
-    CommunityHubScreen(), // 💬 커뮤니티 - 5개 서브탭
-    LuckyBagScreen(), // 🍀 복주머니 - 잔액 히어로+획득처/사용처/VIP/히스토리
+    CommunityHubScreen(), // 💬 커뮤니티 - 8개 서브탭(소원/자유/후기/고민상담/궁합이야기/부적/동행/랭킹)
+    LuckyBagScreen(), // 🍀 복주머니 - 잔액 히어로+커뮤니티엔진 배너+적립방법/사용처/구독보너스/히스토리
     MyScreen(), // 👤 마이 - 프로필+등급뱃지+아카이브+설정
   ];
 
