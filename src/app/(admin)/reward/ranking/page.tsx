@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { verifyAdminSession } from "@/lib/dal";
 import { canAccessMenu, RBAC_MATRIX } from "@/lib/rbac";
 import { redirect } from "next/navigation";
+import RewardSubNav from "@/components/RewardSubNav";
 import RankingRewardCreateForm from "@/components/RankingRewardCreateForm";
 import RankingRewardRow from "@/components/RankingRewardRow";
 
@@ -67,6 +68,8 @@ export default async function RewardRankingPage({ searchParams }: RewardRankingP
           기간별 랭킹 스냅샷을 조회하고, 순위구간별 보상을 설정합니다.
         </p>
       </div>
+
+      <RewardSubNav />
 
       {/* 1) 랭킹 조회 */}
       <section className="mb-8">

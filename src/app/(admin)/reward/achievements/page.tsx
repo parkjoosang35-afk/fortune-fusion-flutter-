@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { verifyAdminSession } from "@/lib/dal";
 import { canAccessMenu, RBAC_MATRIX } from "@/lib/rbac";
 import { redirect } from "next/navigation";
+import RewardSubNav from "@/components/RewardSubNav";
 import AchievementCreateForm from "@/components/AchievementCreateForm";
 import AchievementRow from "@/components/AchievementRow";
 
@@ -54,6 +55,8 @@ export default async function RewardAchievementsPage() {
           업적 마스터를 관리하고, 회원의 업적 달성현황을 조회합니다.
         </p>
       </div>
+
+      <RewardSubNav />
 
       {/* 1) 업적관리 */}
       <section className="mb-8">

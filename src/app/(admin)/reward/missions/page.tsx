@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { verifyAdminSession } from "@/lib/dal";
 import { canAccessMenu, RBAC_MATRIX } from "@/lib/rbac";
 import { redirect } from "next/navigation";
+import RewardSubNav from "@/components/RewardSubNav";
 import AttendanceRuleCreateForm from "@/components/AttendanceRuleCreateForm";
 import AttendanceRuleRow from "@/components/AttendanceRuleRow";
 import MissionCreateForm from "@/components/MissionCreateForm";
@@ -67,6 +68,8 @@ export default async function RewardMissionsPage() {
           출석보상규칙 및 미션 마스터를 관리하고, 회원의 출석/미션 진행현황을 조회합니다.
         </p>
       </div>
+
+      <RewardSubNav />
 
       {/* 1) 출석보상규칙설정 */}
       <section className="mb-8">

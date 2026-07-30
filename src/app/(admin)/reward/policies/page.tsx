@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { verifyAdminSession } from "@/lib/dal";
 import { canAccessMenu, RBAC_MATRIX } from "@/lib/rbac";
 import { redirect } from "next/navigation";
+import RewardSubNav from "@/components/RewardSubNav";
 import PointPolicyCreateForm from "@/components/PointPolicyCreateForm";
 import PointPolicyRow from "@/components/PointPolicyRow";
 import PointAdjustForm from "@/components/PointAdjustForm";
@@ -123,6 +124,8 @@ export default async function RewardPoliciesPage({ searchParams }: RewardPolicie
           지갑/포인트 정책, 수동 조정, 이력 조회, 만료 배치 모니터링을 관리합니다.
         </p>
       </div>
+
+      <RewardSubNav />
 
       {/* 5) 복(福) 경제 설정 — Phase4(관리자 대시보드, 옵션B) */}
       <section className="mb-8">
