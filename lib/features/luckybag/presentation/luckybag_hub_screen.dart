@@ -110,6 +110,7 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
             // §1 잔액 히어로
             _BalanceHero(
               balance: wallet.balance,
+              isLoading: wallet.isLoading,
               pendingBags: luckyBag.summary?.pendingCount ?? 0,
               onWalletTap: () =>
                   Navigator.of(context).pushNamed('/reward/wallet'),
@@ -318,14 +319,18 @@ class _CommunityEngineBanner extends StatelessWidget {
 }
 
 /// §1 잔액 히어로 카드
+/// [10단계 - 로딩 상태 보강] initState의 최초 load() 완료 전까지는
+/// "0 P"가 실제 빈 잔액인지 로딩 중인지 구분되지 않으므로 별도 표기한다.
 class _BalanceHero extends StatelessWidget {
   const _BalanceHero({
     required this.balance,
+    required this.isLoading,
     required this.pendingBags,
     required this.onWalletTap,
   });
 
   final int balance;
+  final bool isLoading;
   final int pendingBags;
   final VoidCallback onWalletTap;
 
@@ -373,7 +378,7 @@ class _BalanceHero extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.md),
           Text(
-            '${_formatBalance(balance)} P',
+            isLoading ? '불러오는 중...' : '${_formatBalance(balance)} P',
             style: const TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.w900,

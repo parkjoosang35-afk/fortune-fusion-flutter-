@@ -135,6 +135,7 @@ class _MyScreenState extends State<MyScreen> {
             const SizedBox(height: AppSpacing.md),
             _PassSummaryCard(
               pass: pass,
+              isLoading: pass.isLoading,
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const FortuneHubScreen()),
               ),
@@ -142,11 +143,13 @@ class _MyScreenState extends State<MyScreen> {
             const SizedBox(height: AppSpacing.md),
             _WalletSummaryCard(
               balance: wallet.balance,
+              isLoading: wallet.isLoading,
               onTap: () => Navigator.of(context).pushNamed('/reward/wallet'),
             ),
             const SizedBox(height: AppSpacing.md),
             _SubscriptionSummaryCard(
               subscription: subscription,
+              isLoading: subscription.isLoadingSubscription,
               onTap: () =>
                   Navigator.of(context).pushNamed('/my/subscription'),
             ),
@@ -270,10 +273,18 @@ class _MyScreenState extends State<MyScreen> {
 }
 
 /// [9단계] §1.5 알림패스 요약 카드 - 활성 여부와 남은 시간을 한눈에 보여준다.
+/// [10단계 - 로딩 상태 보강] initState의 최초 load() 완료 전까지는 스켈레톤을
+/// 표시해, "보유한 알림패스가 없어요"가 실제 무패스 상태인지 로딩 중인지
+/// 혼동되지 않게 한다.
 class _PassSummaryCard extends StatelessWidget {
-  const _PassSummaryCard({required this.pass, required this.onTap});
+  const _PassSummaryCard({
+    required this.pass,
+    required this.isLoading,
+    required this.onTap,
+  });
 
   final PassProvider pass;
+  final bool isLoading;
   final VoidCallback onTap;
 
   String _formatRemaining(int sec) {
@@ -317,9 +328,11 @@ class _PassSummaryCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  status.isActive
-                      ? '사용 중 · 남은 시간 ${_formatRemaining(status.remainingSec)}'
-                      : '보유한 알림패스가 없어요',
+                  isLoading
+                      ? '불러오는 중...'
+                      : status.isActive
+                          ? '사용 중 · 남은 시간 ${_formatRemaining(status.remainingSec)}'
+                          : '보유한 알림패스가 없어요',
                   style: const TextStyle(
                     fontSize: 11,
                     color: AppColors.cosmicTextTertiary,
@@ -341,9 +354,14 @@ class _PassSummaryCard extends StatelessWidget {
 
 /// [9단계] §1.5 복주머니 요약 카드 - 현재 잔액을 한눈에 보여준다.
 class _WalletSummaryCard extends StatelessWidget {
-  const _WalletSummaryCard({required this.balance, required this.onTap});
+  const _WalletSummaryCard({
+    required this.balance,
+    required this.isLoading,
+    required this.onTap,
+  });
 
   final int balance;
+  final bool isLoading;
   final VoidCallback onTap;
 
   String _formatBalance(int value) {
@@ -389,7 +407,7 @@ class _WalletSummaryCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${_formatBalance(balance)} P 보유 중',
+                  isLoading ? '불러오는 중...' : '${_formatBalance(balance)} P 보유 중',
                   style: const TextStyle(
                     fontSize: 11,
                     color: AppColors.cosmicTextTertiary,
@@ -413,10 +431,12 @@ class _WalletSummaryCard extends StatelessWidget {
 class _SubscriptionSummaryCard extends StatelessWidget {
   const _SubscriptionSummaryCard({
     required this.subscription,
+    required this.isLoading,
     required this.onTap,
   });
 
   final SubscriptionProvider subscription;
+  final bool isLoading;
   final VoidCallback onTap;
 
   @override
@@ -454,9 +474,11 @@ class _SubscriptionSummaryCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  isActive
-                      ? '${my?.plan.name ?? '프리미엄'} 구독 중'
-                      : '구독하고 알림패스·복주머니 혜택 받기',
+                  isLoading
+                      ? '불러오는 중...'
+                      : isActive
+                          ? '${my?.plan.name ?? '프리미엄'} 구독 중'
+                          : '구독하고 알림패스·복주머니 혜택 받기',
                   style: const TextStyle(
                     fontSize: 11,
                     color: AppColors.cosmicTextTertiary,
