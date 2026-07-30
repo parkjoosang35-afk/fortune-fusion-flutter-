@@ -105,6 +105,9 @@ export default async function CommunityFilesPage() {
             좋아요 통계
           </Link>
           <span className="border-b-2 border-indigo-500 px-3 py-2 text-white">파일/업로드</span>
+          <Link href="/community/wish-castle" className="px-3 py-2 text-slate-400 hover:text-white">
+            🏰 소원성 설정
+          </Link>
         </nav>
       </div>
 

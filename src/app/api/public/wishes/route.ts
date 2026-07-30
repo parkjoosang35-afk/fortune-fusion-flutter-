@@ -24,6 +24,10 @@ function toWishDto(
     supportCount: number;
     goalTag: string | null;
     createdAt: Date;
+    candleLevel: number;
+    bokjuCount: number;
+    achievedAt: Date | null;
+    isMilestoneShown: boolean;
   },
   commentCount: number,
   authorNickname: string,
@@ -42,6 +46,11 @@ function toWishDto(
     isMine: w.userId === currentUserId,
     createdAt: w.createdAt.toISOString(),
     goalTag: w.goalTag,
+    // [소원성(Wish Castle) 확장] 촛불 성장 시스템 필드 - 기존 필드는 그대로 유지
+    candleLevel: w.candleLevel,
+    bokjuCount: w.bokjuCount,
+    achievedAt: w.achievedAt?.toISOString() ?? null,
+    isMilestoneShown: w.isMilestoneShown,
   };
 }
 

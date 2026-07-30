@@ -4,6 +4,7 @@
 // 응답 시점에 comments 테이블을 직접 count해서 내려준다(GET /api/public/wishes와 동일 방식).
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { computeCandleLevel, getCandleLevelThresholds, getWishConfigValue, WISH_MAX_LEVEL } from "@/lib/wish-castle";
 
 export const dynamic = "force-dynamic";
 
@@ -86,6 +87,13 @@ export async function POST(
   }
 
   try {
+    // [소원성(Wish Castle) 확장] 응원 댓글 작성 시 wish_config.comment_bokju_reward
+    // 만큼 자동으로 복주머니를 지급한다(관리자가 0으로 설정하면 비활성화).
+    // 트랜잭션 밖에서 설정값/임계값을 미리 읽어 트랜잭션 내부 로직을 단순화한다.
+    const rewardStr = await getWishConfigValue("comment_bokju_reward", "1");
+    const reward = Math.max(0, Math.floor(Number(rewardStr) || 0));
+    const thresholds = reward > 0 ? await getCandleLevelThresholds() : null;
+
     const result = await prisma.$transaction(async (tx) => {
       const wish = await tx.wish.findUnique({ where: { id: wishId } });
       if (!wish) throw new Error("WISH_NOT_FOUND");
@@ -96,7 +104,28 @@ export async function POST(
         data: { targetType: "wish", targetId: wishId, userId, content },
       });
 
-      return { comment, user };
+      let bokjuAwarded = 0;
+      let leveledUp = false;
+      if (reward > 0 && thresholds) {
+        await tx.wishBokju.create({
+          data: { wishId, userId, amount: reward, source: "comment_reward" },
+        });
+        bokjuAwarded = reward;
+        const newBokjuCount = wish.bokjuCount + reward;
+        const newLevel = computeCandleLevel(newBokjuCount, thresholds);
+        leveledUp = newLevel > wish.candleLevel;
+        const reachedMax = newLevel >= WISH_MAX_LEVEL && wish.candleLevel < WISH_MAX_LEVEL;
+        await tx.wish.update({
+          where: { id: wishId },
+          data: {
+            bokjuCount: newBokjuCount,
+            candleLevel: newLevel,
+            achievedAt: reachedMax ? new Date() : wish.achievedAt,
+          },
+        });
+      }
+
+      return { comment, user, bokjuAwarded, leveledUp };
     });
 
     return NextResponse.json(
@@ -108,6 +137,8 @@ export async function POST(
           authorNickname: result.user.nickname,
           content: result.comment.content,
           createdAt: result.comment.createdAt.toISOString(),
+          bokjuAwarded: result.bokjuAwarded,
+          leveledUp: result.leveledUp,
         },
       },
       { headers: CORS_HEADERS }

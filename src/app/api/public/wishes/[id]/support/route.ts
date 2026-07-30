@@ -81,6 +81,11 @@ export async function POST(
           isMine: result.updated.userId === userId,
           createdAt: result.updated.createdAt.toISOString(),
           goalTag: result.updated.goalTag,
+          // [소원성(Wish Castle) 확장] 촛불 성장 시스템 필드
+          candleLevel: result.updated.candleLevel,
+          bokjuCount: result.updated.bokjuCount,
+          achievedAt: result.updated.achievedAt?.toISOString() ?? null,
+          isMilestoneShown: result.updated.isMilestoneShown,
         },
       },
       { headers: CORS_HEADERS }

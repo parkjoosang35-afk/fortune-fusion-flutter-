@@ -68,6 +68,9 @@ export default async function CommunityPostsPage() {
           <Link href="/community/files" className="px-3 py-2 text-slate-400 hover:text-white">
             파일/업로드
           </Link>
+          <Link href="/community/wish-castle" className="px-3 py-2 text-slate-400 hover:text-white">
+            🏰 소원성 설정
+          </Link>
         </nav>
       </div>
 
