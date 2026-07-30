@@ -13,7 +13,6 @@ import '../application/luckybag_provider.dart';
 import 'luckybag_shop_screen.dart';
 import 'luckybag_history_screen.dart';
 import '../../amulet/presentation/amulet_shop_screen.dart';
-import '../../giftcard/presentation/giftcard_catalog_screen.dart';
 import '../../mission/presentation/mission_screen.dart';
 import '../../subscription/presentation/subscription_plans_screen.dart';
 import '../../community/presentation/community_hub_screen.dart';
@@ -27,9 +26,10 @@ import '../../matching/presentation/matching_discover_screen.dart';
 ///
 /// [주의] 실제 기능(WalletProvider, AttendanceProvider, LuckyBagProvider 등)은
 /// 기존 Provider/Repository를 그대로 재사용한다. 이미 완성된 화면(LuckyBagShopScreen,
-/// LuckyBagHistoryScreen, AmuletShopScreen, GiftcardCatalogScreen, MissionScreen,
-/// SubscriptionPlansScreen, CommunityHubScreen, CommunityScreen, MatchingDiscoverScreen)은
-/// 재작성하지 않고 "바로가기 카드"로 진입시킨다.
+/// LuckyBagHistoryScreen, AmuletShopScreen, MissionScreen, SubscriptionPlansScreen,
+/// CommunityHubScreen, CommunityScreen, MatchingDiscoverScreen)은 재작성하지 않고
+/// "바로가기 카드"로 진입시킨다. 상품권(GiftcardCatalogScreen)은 popUntil 복귀
+/// 로직과의 일관성을 위해 named route(`/reward/giftcard`)로 진입한다.
 ///
 /// [3축 정책] 복주머니는 커뮤니티 중심 재화로 재정의되었다(마스터 프롬프트 §복주머니):
 /// 적립 - 출석/글쓰기/댓글/소원응원받기/미션수행, 소비 - 소원응원/부적만들기/
@@ -207,11 +207,12 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
               title: '상품권',
               subtitle: '포인트로 상품권을 교환해보세요',
               accentColor: AppColors.accentPink,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const GiftcardCatalogScreen(),
-                ),
-              ),
+              // [10단계 - 데드/버그 라우트 정리] GiftcardResultScreen의 "확인"
+              // 버튼이 popUntil(name == '/reward/giftcard')로 복귀하므로,
+              // 진입도 named route로 맞춰야 스택에 해당 이름이 존재한다
+              // (이전엔 무명 MaterialPageRoute라 팝업 시 AppShell까지 밀려나는 버그였음).
+              onTap: () =>
+                  Navigator.of(context).pushNamed('/reward/giftcard'),
             ),
             const SizedBox(height: AppSpacing.xl),
 
