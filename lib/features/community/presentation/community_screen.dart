@@ -5,6 +5,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_bottom_sheet.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_empty_state.dart';
+import '../../../core/widgets/app_toast.dart';
 import '../application/wish_post_provider.dart';
 import '../application/wish_castle_config_provider.dart';
 import '../domain/wish_post_model.dart';
@@ -137,14 +138,20 @@ class _CommunityScreenState extends State<CommunityScreen>
               AppButton(
                 label: '소원 빌고 등록하기',
                 onPressed: () async {
-                  final ok = await context.read<WishPostProvider>().createPost(
-                    controller.text,
-                    category: category,
-                    isAnonymous: isAnonymous,
-                    goalTag: goalTag,
-                  );
-                  if (ok && sheetContext.mounted) {
-                    Navigator.of(sheetContext).pop();
+                  // [3단계 - 복주머니 커뮤니티 적립 연동] 성공 시 서버가 지급한
+                  // rewardPoint(int)를 받는다. null이면 실패.
+                  final rewardPoint = await context
+                      .read<WishPostProvider>()
+                      .createPost(
+                        controller.text,
+                        category: category,
+                        isAnonymous: isAnonymous,
+                        goalTag: goalTag,
+                      );
+                  if (rewardPoint == null) return;
+                  if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+                  if (rewardPoint > 0 && context.mounted) {
+                    AppToast.show(context, '소원 등록 완료! +$rewardPoint P 획득');
                   }
                 },
               ),

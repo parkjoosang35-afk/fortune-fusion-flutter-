@@ -51,7 +51,10 @@ class WishPostRepository {
     }
   }
 
-  Future<ApiResult<WishPostModel>> createPost(
+  /// [3단계 - 복주머니 커뮤니티 적립 연동] admin_web `POST /api/public/wishes`가
+  /// 소원 등록 시 point_policies.community 정책에 따라 지급한 rewardPoint를 함께
+  /// 내려주므로, 여기서 함께 파싱해 반환한다(호출부가 "+N P 획득" 피드백을 표시할 수 있도록).
+  Future<ApiResult<({WishPostModel post, int rewardPoint})>> createPost(
     String content, {
     String category = '기타',
     bool isAnonymous = false,
@@ -78,9 +81,11 @@ class WishPostRepository {
       if (response.statusCode != 200 || decoded['success'] != true) {
         return ApiResult.fail(decoded['error'] as String? ?? '소원 등록에 실패했습니다.');
       }
-      return ApiResult.ok(
-        _wishFromJson(decoded['data'] as Map<String, dynamic>),
-      );
+      final data = decoded['data'] as Map<String, dynamic>;
+      return ApiResult.ok((
+        post: _wishFromJson(data),
+        rewardPoint: (data['rewardPoint'] as num?)?.toInt() ?? 0,
+      ));
     } catch (e) {
       debugPrint('[WishPostRepository] [createPost] 예외 -> $e');
       return ApiResult.fail('소원 등록에 실패했습니다: $e');
@@ -136,10 +141,11 @@ class WishPostRepository {
     }
   }
 
-  Future<ApiResult<WishCommentModel>> addComment(
-    String wishId,
-    String content,
-  ) async {
+  /// [3단계 - 복주머니 커뮤니티 적립 연동] 소원 댓글 작성 시 admin_web이
+  /// wish_config.comment_bokju_reward 만큼 복주머니(bokjuAwarded)를 자동 지급하므로
+  /// 함께 반환한다(호출부가 "+N 복주머니" 피드백/레벨업 연출을 표시할 수 있도록).
+  Future<ApiResult<({WishCommentModel comment, int bokjuAwarded, bool leveledUp})>>
+  addComment(String wishId, String content) async {
     if (content.trim().isEmpty) return ApiResult.fail('댓글 내용을 입력해 주세요.');
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/wishes/$wishId/comments',
@@ -157,9 +163,12 @@ class WishPostRepository {
       if (response.statusCode != 200 || decoded['success'] != true) {
         return ApiResult.fail(decoded['error'] as String? ?? '댓글 작성에 실패했습니다.');
       }
-      return ApiResult.ok(
-        _commentFromJson(decoded['data'] as Map<String, dynamic>),
-      );
+      final data = decoded['data'] as Map<String, dynamic>;
+      return ApiResult.ok((
+        comment: _commentFromJson(data),
+        bokjuAwarded: (data['bokjuAwarded'] as num?)?.toInt() ?? 0,
+        leveledUp: data['leveledUp'] as bool? ?? false,
+      ));
     } catch (e) {
       debugPrint('[WishPostRepository] [addComment] 예외 -> $e');
       return ApiResult.fail('댓글 작성에 실패했습니다: $e');

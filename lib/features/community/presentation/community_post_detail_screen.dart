@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/widgets/app_toast.dart';
 import '../application/community_post_provider.dart';
 import '../domain/community_post_model.dart';
 import '../domain/wish_post_model.dart' show ReportTargetType;
@@ -46,13 +47,20 @@ class _CommunityPostDetailScreenState extends State<CommunityPostDetailScreen> {
     final content = _commentController.text.trim();
     if (content.isEmpty) return;
     setState(() => _isSubmittingComment = true);
-    final ok = await context.read<CommunityPostProvider>().addComment(
+    // [3단계 - 복주머니 커뮤니티 적립 연동] 성공 시 서버가 지급한
+    // rewardPoint(int)를 받는다. null이면 실패.
+    final rewardPoint = await context.read<CommunityPostProvider>().addComment(
       widget.post.id,
       content,
     );
     if (!mounted) return;
     setState(() => _isSubmittingComment = false);
-    if (ok) _commentController.clear();
+    if (rewardPoint != null) {
+      _commentController.clear();
+      if (rewardPoint > 0 && mounted) {
+        AppToast.show(context, '댓글 등록 완료! +$rewardPoint P 획득');
+      }
+    }
   }
 
   @override

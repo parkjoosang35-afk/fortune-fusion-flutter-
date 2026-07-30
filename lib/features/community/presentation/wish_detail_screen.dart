@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/widgets/app_toast.dart';
 import '../../wallet/presentation/widgets/send_bok_sheet.dart';
 import '../application/wish_post_provider.dart';
 import '../domain/wish_post_model.dart';
@@ -53,13 +54,20 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
     final content = _commentController.text.trim();
     if (content.isEmpty) return;
     setState(() => _isSubmittingComment = true);
-    final ok = await context.read<WishPostProvider>().addComment(
+    // [3단계 - 복주머니 커뮤니티 적립 연동] 성공 시 서버가 지급한
+    // bokjuAwarded(int)를 받는다. null이면 실패.
+    final bokjuAwarded = await context.read<WishPostProvider>().addComment(
       widget.post.id,
       content,
     );
     if (!mounted) return;
     setState(() => _isSubmittingComment = false);
-    if (ok) _commentController.clear();
+    if (bokjuAwarded != null) {
+      _commentController.clear();
+      if (bokjuAwarded > 0 && mounted) {
+        AppToast.show(context, '댓글 등록 완료! +$bokjuAwarded 복주머니');
+      }
+    }
   }
 
   @override

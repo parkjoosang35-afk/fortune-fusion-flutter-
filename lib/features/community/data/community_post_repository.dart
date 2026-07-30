@@ -86,7 +86,10 @@ class CommunityPostRepository {
     }
   }
 
-  Future<ApiResult<CommunityPostModel>> createPost({
+  /// [3단계 - 복주머니 커뮤니티 적립 연동] admin_web `POST /api/public/community/posts`가
+  /// point_policies.community 정책에 따라 지급한 rewardPoint를 함께 내려주므로
+  /// 함께 파싱해 반환한다(호출부가 "+N P 획득" 피드백을 표시할 수 있도록).
+  Future<ApiResult<({CommunityPostModel post, int rewardPoint})>> createPost({
     required String boardId,
     required String title,
     required String content,
@@ -115,9 +118,11 @@ class CommunityPostRepository {
       if (response.statusCode != 200 || decoded['success'] != true) {
         return ApiResult.fail(decoded['error'] as String? ?? '게시글 작성에 실패했습니다.');
       }
-      return ApiResult.ok(
-        _postFromJson(decoded['data'] as Map<String, dynamic>),
-      );
+      final data = decoded['data'] as Map<String, dynamic>;
+      return ApiResult.ok((
+        post: _postFromJson(data),
+        rewardPoint: (data['rewardPoint'] as num?)?.toInt() ?? 0,
+      ));
     } catch (e) {
       debugPrint('[CommunityPostRepository] [createPost] 예외 -> $e');
       return ApiResult.fail('게시글 작성에 실패했습니다: $e');
@@ -174,10 +179,11 @@ class CommunityPostRepository {
     }
   }
 
-  Future<ApiResult<CommunityCommentModel>> addComment(
-    String postId,
-    String content,
-  ) async {
+  /// [3단계 - 복주머니 커뮤니티 적립 연동] admin_web이 게시글 댓글 작성 시에도
+  /// point_policies.community 정책(게시글 작성과 동일 sourceType, 1일 한도 공유)에
+  /// 따라 지급한 rewardPoint를 함께 내려주므로 파싱해 반환한다.
+  Future<ApiResult<({CommunityCommentModel comment, int rewardPoint})>>
+  addComment(String postId, String content) async {
     final userId = await AuthTokenStore.getCurrentUserId();
     if (content.trim().isEmpty) return ApiResult.fail('댓글 내용을 입력해 주세요.');
     final uri = Uri.parse(
@@ -195,9 +201,11 @@ class CommunityPostRepository {
       if (response.statusCode != 200 || decoded['success'] != true) {
         return ApiResult.fail(decoded['error'] as String? ?? '댓글 작성에 실패했습니다.');
       }
-      return ApiResult.ok(
-        _commentFromJson(decoded['data'] as Map<String, dynamic>),
-      );
+      final data = decoded['data'] as Map<String, dynamic>;
+      return ApiResult.ok((
+        comment: _commentFromJson(data),
+        rewardPoint: (data['rewardPoint'] as num?)?.toInt() ?? 0,
+      ));
     } catch (e) {
       debugPrint('[CommunityPostRepository] [addComment] 예외 -> $e');
       return ApiResult.fail('댓글 작성에 실패했습니다: $e');

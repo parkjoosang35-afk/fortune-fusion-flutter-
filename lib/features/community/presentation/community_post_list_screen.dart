@@ -5,6 +5,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_bottom_sheet.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_empty_state.dart';
+import '../../../core/widgets/app_toast.dart';
 import '../application/community_post_provider.dart';
 import '../domain/community_post_model.dart';
 import 'community_post_detail_screen.dart';
@@ -75,15 +76,19 @@ class _CommunityPostListScreenState extends State<CommunityPostListScreen>
               AppButton(
                 label: '등록하기',
                 onPressed: () async {
-                  final ok = await context
+                  // [3단계 - 복주머니 커뮤니티 적립 연동] 성공 시 서버가 지급한
+                  // rewardPoint(int)를 받는다. null이면 실패.
+                  final rewardPoint = await context
                       .read<CommunityPostProvider>()
                       .createPost(
                         boardId: widget.board.id,
                         title: titleController.text,
                         content: contentController.text,
                       );
-                  if (ok && sheetContext.mounted) {
-                    Navigator.of(sheetContext).pop();
+                  if (rewardPoint == null) return;
+                  if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+                  if (rewardPoint > 0 && context.mounted) {
+                    AppToast.show(context, '게시글 등록 완료! +$rewardPoint P 획득');
                   }
                 },
               ),

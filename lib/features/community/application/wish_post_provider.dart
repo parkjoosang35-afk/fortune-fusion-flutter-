@@ -134,7 +134,9 @@ class WishPostProvider extends ChangeNotifier {
     await loadFeed(tab: tab);
   }
 
-  Future<bool> createPost(
+  /// [3단계 - 복주머니 커뮤니티 적립 연동] 성공 시 서버가 지급한 rewardPoint를
+  /// 반환한다(호출부 UI가 "+N P 획득" 토스트를 표시할 수 있도록). 실패 시 null.
+  Future<int?> createPost(
     String content, {
     String category = '기타',
     bool isAnonymous = false,
@@ -147,10 +149,11 @@ class WishPostProvider extends ChangeNotifier {
       goalTag: goalTag,
     );
     if (result.success) {
+      final rewardPoint = result.data!.rewardPoint;
       await loadFeed();
-      return true;
+      return rewardPoint;
     }
-    return false;
+    return null;
   }
 
   /// "행운 보내기" - Mock 단계 임시정책: 포인트 이동 없는 단순 응원 토글
@@ -176,9 +179,11 @@ class WishPostProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> addComment(String wishId, String content) async {
+  /// [3단계 - 복주머니 커뮤니티 적립 연동] 성공 시 서버가 지급한 복주머니(bokjuAwarded)를
+  /// 반환한다(호출부 UI가 "+N 복주머니" 피드백을 표시할 수 있도록). 실패 시 null.
+  Future<int?> addComment(String wishId, String content) async {
     final result = await _repository.addComment(wishId, content);
-    if (!result.success) return false;
+    if (!result.success) return null;
     await loadComments(wishId);
     final index = _posts.indexWhere((p) => p.id == wishId);
     if (index != -1) {
@@ -187,7 +192,7 @@ class WishPostProvider extends ChangeNotifier {
       );
       notifyListeners();
     }
-    return true;
+    return result.data!.bokjuAwarded;
   }
 
   Future<bool> report(

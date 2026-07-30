@@ -6,6 +6,7 @@ import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_empty_state.dart';
 import '../../../core/widgets/app_error_state.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../../wallet/application/wallet_provider.dart';
 import '../application/matching_provider.dart';
 import '../domain/matching_model.dart';
 
@@ -42,13 +43,27 @@ class _MatchingDiscoverScreenState extends State<MatchingDiscoverScreen> {
     });
   }
 
+  /// [3단계 - 복주머니 소비: 운명의 동행] 관심표시 1건당 서버가 point_policies.
+  /// matching_like 정책으로 복주머니를 차감한다(정책 없으면 무료). 서버가 이미
+  /// 지갑을 트랜잭션으로 갱신했으므로, 클라이언트는 WalletProvider.load()로
+  /// 잔액 캐시만 재조회한다(amulet_repository.purchase()와 동일한 "중복차감방지형"
+  /// 패턴 - 여기서 spend()를 별도로 또 호출하면 이중 차감이 된다).
   Future<void> _handleLike(MatchingCandidateModel candidate) async {
     setState(() => _deck.removeWhere((c) => c.userId == candidate.userId));
-    final matched = await context.read<MatchingProvider>().like(
+    final result = await context.read<MatchingProvider>().like(
       candidate.userId,
     );
     if (!mounted) return;
-    if (matched) {
+    if (!result.success) {
+      AppToast.show(context, result.errorMessage ?? '좋아요 처리에 실패했습니다.', isError: true);
+      return;
+    }
+    if (result.balanceAfter != null) {
+      // 서버가 이미 차감을 완료했으므로 잔액만 동기화(재차감 아님).
+      await context.read<WalletProvider>().load();
+    }
+    if (!mounted) return;
+    if (result.matched) {
       _showMatchedDialog(candidate);
     } else {
       AppToast.show(context, '${candidate.nickname}님에게 관심을 보냈어요.');

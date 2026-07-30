@@ -51,7 +51,9 @@ class CommunityPostProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> createPost({
+  /// [3단계 - 복주머니 커뮤니티 적립 연동] 성공 시 서버가 지급한 rewardPoint를
+  /// 반환한다(호출부 UI가 "+N P 획득" 토스트를 표시할 수 있도록). 실패 시 null.
+  Future<int?> createPost({
     required String boardId,
     required String title,
     required String content,
@@ -62,10 +64,11 @@ class CommunityPostProvider extends ChangeNotifier {
       content: content,
     );
     if (result.success) {
+      final rewardPoint = result.data!.rewardPoint;
       await loadPosts(boardId: _currentBoardId);
-      return true;
+      return rewardPoint;
     }
-    return false;
+    return null;
   }
 
   Future<void> toggleLike(String postId) async {
@@ -88,9 +91,11 @@ class CommunityPostProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> addComment(String postId, String content) async {
+  /// [3단계 - 복주머니 커뮤니티 적립 연동] 성공 시 서버가 지급한 rewardPoint를
+  /// 반환한다(호출부 UI가 "+N P 획득" 토스트를 표시할 수 있도록). 실패 시 null.
+  Future<int?> addComment(String postId, String content) async {
     final result = await _repository.addComment(postId, content);
-    if (!result.success) return false;
+    if (!result.success) return null;
     await loadComments(postId);
     final index = _posts.indexWhere((p) => p.id == postId);
     if (index != -1) {
@@ -99,7 +104,7 @@ class CommunityPostProvider extends ChangeNotifier {
       );
       notifyListeners();
     }
-    return true;
+    return result.data!.rewardPoint;
   }
 
   Future<bool> report(

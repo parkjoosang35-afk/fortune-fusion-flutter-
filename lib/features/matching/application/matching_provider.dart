@@ -79,9 +79,20 @@ class MatchingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// `POST /matching/like` - 반환값 true면 즉시 매칭 성사(카드 넘김 후 성사 안내 표시용)
-  Future<bool> like(String targetUserId) async {
+  /// `POST /matching/like` - [3단계 - 복주머니 소비: 운명의 동행] 서버가
+  /// point_policies.matching_like에 따라 복주머니를 차감하고 차감 후 잔액을
+  /// 함께 내려주므로, 실패(복주머니 부족 등)/매칭성사 여부/잔액을 모두 담아
+  /// [MatchingLikeResult]로 반환한다(호출부가 WalletProvider.load()로 잔액을
+  /// 동기화하거나 "복주머니 부족" 에러 토스트를 표시할 수 있도록).
+  Future<MatchingLikeResult> like(String targetUserId) async {
     final result = await _repository.like(targetUserId);
+    if (!result.success || result.data == null) {
+      return MatchingLikeResult(
+        success: false,
+        matched: false,
+        errorMessage: result.errorMessage ?? '좋아요 처리에 실패했습니다.',
+      );
+    }
     // 카드 스와이프 목록에서 제거(좋아요 처리된 대상은 추천목록에서 제외)
     final current = _candidatesState.data;
     if (current != null) {
@@ -90,12 +101,16 @@ class MatchingProvider extends ChangeNotifier {
       );
       notifyListeners();
     }
-    if (result.success && result.data == true) {
+    final matched = result.data!.matched;
+    if (matched) {
       // 매칭 성사 시 성사 목록도 최신화
       await loadPairs();
-      return true;
     }
-    return false;
+    return MatchingLikeResult(
+      success: true,
+      matched: matched,
+      balanceAfter: result.data!.balanceAfter,
+    );
   }
 
   /// `POST /matching/request/:targetUserId`
@@ -187,4 +202,20 @@ class MatchingProvider extends ChangeNotifier {
     list[index] = updated;
     _pairsState = LoadState.success(list);
   }
+}
+
+/// [3단계 - 복주머니 소비: 운명의 동행] MatchingProvider.like() 결과 -
+/// 성공여부/매칭성사여부/차감 후 잔액(정책이 없으면 null)/에러메시지를 담는다.
+class MatchingLikeResult {
+  final bool success;
+  final bool matched;
+  final int? balanceAfter;
+  final String? errorMessage;
+
+  const MatchingLikeResult({
+    required this.success,
+    required this.matched,
+    this.balanceAfter,
+    this.errorMessage,
+  });
 }

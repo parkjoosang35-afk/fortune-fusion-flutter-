@@ -6,8 +6,9 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_dialog.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/cosmic_card.dart';
-import '../../../core/widgets/hero_fortune_card.dart';
 import '../../../core/widgets/point_badge.dart';
+import '../../ad_banner/application/ad_banner_provider.dart';
+import '../../ad_banner/presentation/ad_banner_widget.dart';
 import '../../wallet/application/wallet_provider.dart';
 import '../../attendance/application/attendance_provider.dart';
 import '../../fortune/daily/application/daily_fortune_provider.dart';
@@ -20,13 +21,18 @@ import '../../lucky_number/application/lucky_number_provider.dart';
 import '../../lucky_number/presentation/lucky_number_widget.dart';
 import '../../pass/application/pass_provider.dart';
 import '../../pass/domain/pass_model.dart';
+import '../../pass/presentation/pass_gate_helper.dart';
+import '../../subscription/application/subscription_provider.dart';
 
-/// [Fortune Fusion UI 리뉴얼 프롬프트] §4 HomeScreen - 8개 섹션 신규 구성
-/// 1) 히어로카드 2) 4카드 그리드(오늘의 우주 이야기) 3) 행운숫자 영상
-/// 4) 인기 소원 5) 커뮤니티 안내 6) 미션 섹션 7) 부적/동행 2단카드 8) 광고배너
+/// [Fortune Fusion 3축 정책 반영] HomeScreen - 8개 섹션 신규 구성
+/// ①상단상태(패스/복주머니/알림/마이) ②알림패스핵심(광고/제휴/구독/잔여시간)
+/// ③운세카테고리(6종+패스검증) ④오늘의대표콘텐츠(요약운세/행운숫자, 무료미리보기)
+/// ⑤커뮤니티미리보기(인기소원) ⑥복주머니적립(출석/미션/글쓰기/댓글 안내)
+/// ⑦복주머니사용처(부적/동행) ⑧구독프로모션(추가혜택/광고배너)
 ///
 /// [주의] Application/Data/Domain 레이어(Provider/Repository/Model)는 기존
-/// 것을 그대로 재사용하며, 이 화면은 Presentation 레이어만 신규 작성한다.
+/// 것을 그대로 재사용하며, 이 화면은 Presentation 레이어의 섹션 순서/구성만
+/// 3축 정책(알림패스/복주머니/구독)에 맞춰 재배치한다.
 class HomeScreenCosmic extends StatefulWidget {
   const HomeScreenCosmic({super.key});
 
@@ -46,14 +52,12 @@ class _HomeScreenCosmicState extends State<HomeScreenCosmic> {
       context.read<AmuletProvider>().load();
       context.read<WishPostProvider>().loadFeed();
       context.read<LuckyNumberProvider>().load();
-      // [이전] legacy home_screen.dart(미사용)에만 있던 알림패스 로드 로직을
-      // 실제 홈 탭(HomeScreenCosmic)으로 이전 — 상단 상태바 카운트다운 +
-      // 알림패스 섹션 CTA 카드가 정상적으로 사용자에게 노출되도록 한다.
       context.read<PassProvider>().load();
-      // [실API 전환] NotificationProvider가 Mock 하드코딩에서 admin_web
-      // `/api/public/notifications` 실연동으로 전환됨에 따라, 헤더 알림 뱃지
-      // (unreadCount)가 최신 상태를 반영하도록 홈 진입 시 명시적으로 로드한다.
       context.read<NotificationProvider>().load();
+      context.read<SubscriptionProvider>().loadMySubscription();
+      // [5단계] §8 구독프로모션 섹션의 광고 배너를 실제 AdBannerWidget으로
+      // 연결하기 위해 관리자(admin_web CMS)가 등록한 배너를 미리 로드한다.
+      context.read<AdBannerProvider>().loadPositions(const ['home_bottom']);
     });
   }
 
@@ -74,8 +78,7 @@ class _HomeScreenCosmicState extends State<HomeScreenCosmic> {
             color: AppColors.cosmicTextPrimary,
           ),
         ),
-        // [이전] legacy home_screen.dart(미사용 파일)에만 있던 알림패스 상단
-        // 상태바를 실제 홈 탭으로 이전. 비활성 상태면 높이 0으로 접혀 보이지 않는다.
+        // ①상단상태 — 알림패스 카운트다운(패스/복주머니 상태는 항상 상단에서 확인 가능)
         bottom: const _AlarmPassStatusBar(),
         actions: [
           PointBadge(
@@ -97,52 +100,53 @@ class _HomeScreenCosmicState extends State<HomeScreenCosmic> {
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
-            // §1 히어로 카드
-            HeroFortuneCard(
+            // §2 알림패스 핵심 섹션(광고/제휴/구독 CTA) — 활성 상태면 자동 숨김
+            const _AlarmPassSection(),
+            const SizedBox(height: AppSpacing.xl),
+
+            // §3 운세 카테고리(6종) — 각 카드는 공통 패스게이트(navigateWithPassGate)를 통과
+            const _SectionTitle(title: '🔮 운세 카테고리'),
+            const SizedBox(height: AppSpacing.md),
+            const _FortuneCategoryGrid(),
+            const SizedBox(height: AppSpacing.xl),
+
+            // §4 오늘의 대표 콘텐츠 — 요약운세(무료 미리보기) + 행운숫자
+            HeroFortuneSummaryCard(
               onCtaTap: () =>
                   Navigator.of(context).pushNamed('/home/daily-fortune-detail'),
             ),
-            const SizedBox(height: AppSpacing.xl),
-
-            // §2 4카드 그리드 - "오늘의 우주 이야기"
-            const _SectionTitle(title: '✨ 오늘의 우주 이야기'),
             const SizedBox(height: AppSpacing.md),
-            const _CosmicStoryGrid(),
-            const SizedBox(height: AppSpacing.xl),
-
-            // §3 행운숫자 영상/콘텐츠
             const _SectionTitle(title: '🔢 오늘의 행운 숫자'),
             const SizedBox(height: AppSpacing.md),
             const _LuckyNumberSection(),
             const SizedBox(height: AppSpacing.xl),
 
-            // §4 인기 소원
+            // §5 커뮤니티 미리보기 — 인기 소원 + 커뮤니티 안내
             const _SectionTitle(title: '🌠 지금 인기 있는 소원'),
             const SizedBox(height: AppSpacing.md),
             const _PopularWishSection(),
-            const SizedBox(height: AppSpacing.xl),
-
-            // §4.5 알림패스(AlarmPass) 섹션 — [이전] legacy home_screen.dart에서
-            // 실제 홈 탭으로 이전. 이미 활성 상태면(상단 상태바로 안내되므로) 숨겨진다.
-            const _AlarmPassSection(),
-            const SizedBox(height: AppSpacing.xl),
-
-            // §5 커뮤니티 안내
+            const SizedBox(height: AppSpacing.md),
             const _CommunityBanner(),
             const SizedBox(height: AppSpacing.xl),
 
-            // §6 미션 섹션
-            const _SectionTitle(title: '🍀 오늘의 활동 미션'),
+            // §6 복주머니 적립 — 출석/미션/글쓰기·댓글(커뮤니티 활동) 안내
+            const _SectionTitle(title: '🍀 복주머니 적립하기'),
             const SizedBox(height: AppSpacing.md),
-            const _MissionSection(),
+            const _LuckyBagEarnSection(),
             const SizedBox(height: AppSpacing.xl),
 
-            // §7 부적/동행 2단 카드
+            // §7 복주머니 사용처 — 부적 만들기 / 운명의 동행
+            const _SectionTitle(title: '✨ 복주머니 사용처'),
+            const SizedBox(height: AppSpacing.md),
             const _AmuletMatchingRow(),
             const SizedBox(height: AppSpacing.xl),
 
-            // §8 광고 배너
-            const _AdBannerPlaceholder(),
+            // §8 구독 프로모션 — 추가 혜택 배너 + 관리자 등록 광고 배너
+            const _SectionTitle(title: '💎 구독으로 더 큰 혜택'),
+            const SizedBox(height: AppSpacing.md),
+            const _SubscriptionPromoBanner(),
+            const SizedBox(height: AppSpacing.md),
+            const AdBannerWidget(position: 'home_bottom'),
           ],
         ),
       ),
@@ -233,36 +237,33 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-/// §2 4카드 그리드 - 타로/사주/궁합/전체운세
-class _CosmicStoryGrid extends StatelessWidget {
-  const _CosmicStoryGrid();
+/// §3 운세 카테고리 그리드 — 6종(사주/타로/궁합/전체운세/관상/손금).
+/// [6단계] 각 카드는 FortuneHubScreen과 동일한 공통 패스게이트(navigateWithPassGate)를
+/// 통과해야 상세 화면으로 진입한다(무료 콘텐츠인 "전체운세"는 예외).
+class _FortuneCategoryGrid extends StatefulWidget {
+  const _FortuneCategoryGrid();
+
+  @override
+  State<_FortuneCategoryGrid> createState() => _FortuneCategoryGridState();
+}
+
+class _FortuneCategoryGridState extends State<_FortuneCategoryGrid> {
+  bool _checking = false;
 
   static const _items = [
-    (
-      '타로',
-      Icons.style_rounded,
-      AppColors.accentPurple,
-      '/ai-fortune/tarot/question',
-    ),
-    (
-      '사주',
-      Icons.auto_stories_rounded,
-      AppColors.accentGold,
-      '/ai-fortune/saju/input',
-    ),
-    (
-      '궁합',
-      Icons.favorite_rounded,
-      AppColors.accentPink,
-      '/ai-fortune/compatibility/input',
-    ),
-    (
-      '전체운세',
-      Icons.blur_circular_rounded,
-      AppColors.accentBlue,
-      '/home/daily-fortune-detail',
-    ),
+    ('타로', Icons.style_rounded, AppColors.accentPurple, '/ai-fortune/tarot/question', true),
+    ('사주', Icons.auto_stories_rounded, AppColors.accentGold, '/ai-fortune/saju/input', true),
+    ('궁합', Icons.favorite_rounded, AppColors.accentPink, '/ai-fortune/compatibility/input', true),
+    ('관상', Icons.face_retouching_natural_rounded, AppColors.accentPink, '/ai-fortune/face/capture', true),
+    ('손금', Icons.back_hand_rounded, AppColors.accentMint, '/ai-fortune/palm/capture', true),
+    ('전체운세', Icons.blur_circular_rounded, AppColors.accentBlue, '/home/daily-fortune-detail', false),
   ];
+
+  Future<void> _handleTap(String title, String route, bool requiresPass) async {
+    if (requiresPass) setState(() => _checking = true);
+    await navigateWithPassGate(context, title: title, route: route, requiresPass: requiresPass);
+    if (mounted && requiresPass) setState(() => _checking = false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -271,34 +272,34 @@ class _CosmicStoryGrid extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       itemCount: _items.length,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
+        crossAxisCount: 3,
         mainAxisSpacing: AppSpacing.md,
         crossAxisSpacing: AppSpacing.md,
-        childAspectRatio: 1.5,
+        childAspectRatio: 0.9,
       ),
       itemBuilder: (context, index) {
-        final (label, icon, color, route) = _items[index];
+        final (label, icon, color, route, requiresPass) = _items[index];
         return CosmicCard(
-          padding: const EdgeInsets.all(AppSpacing.md),
+          padding: const EdgeInsets.all(AppSpacing.sm),
           showGlow: false,
-          onTap: () => Navigator.of(context).pushNamed(route),
+          onTap: _checking ? null : () => _handleTap(label, route, requiresPass),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                width: 32,
-                height: 32,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, color: color, size: 18),
               ),
+              const SizedBox(height: AppSpacing.xs),
               Text(
                 label,
                 style: const TextStyle(
-                  fontSize: 14,
+                  fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: AppColors.cosmicTextPrimary,
                 ),
@@ -311,7 +312,92 @@ class _CosmicStoryGrid extends StatelessWidget {
   }
 }
 
-/// §3 행운숫자 영상/콘텐츠 섹션
+/// §4 오늘의 대표 콘텐츠 — 요약운세 카드(무료 미리보기, 상세는 daily-fortune-detail로 이동).
+/// 기존 core/widgets/hero_fortune_card.dart(HeroFortuneCard)를 그대로 재사용한다.
+class HeroFortuneSummaryCard extends StatelessWidget {
+  const HeroFortuneSummaryCard({super.key, this.onCtaTap});
+
+  final VoidCallback? onCtaTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final today = context.watch<DailyFortuneProvider>().today;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      decoration: BoxDecoration(
+        gradient: AppColors.gradientCosmic,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+        border: Border.all(color: AppColors.border, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '오늘의 대표 콘텐츠 · 무료 미리보기',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.cosmicTextSecondary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            today?.summaryText ?? '오늘 당신에게 어떤 이야기가 펼쳐질까요?',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: AppColors.cosmicTextPrimary,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Align(
+            alignment: Alignment.centerRight,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: onCtaTap,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
+                      vertical: AppSpacing.sm + 2,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: AppColors.gradientGold,
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '자세히 보기',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.bgPrimary,
+                          ),
+                        ),
+                        SizedBox(width: AppSpacing.xs),
+                        Icon(Icons.arrow_forward, size: 16, color: AppColors.bgPrimary),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// §4 행운숫자 영상/콘텐츠 섹션
 class _LuckyNumberSection extends StatelessWidget {
   const _LuckyNumberSection();
 
@@ -388,7 +474,7 @@ class _LuckyNumberFallback extends StatelessWidget {
   }
 }
 
-/// §4 인기 소원 섹션
+/// §5 인기 소원 섹션
 class _PopularWishSection extends StatelessWidget {
   const _PopularWishSection();
 
@@ -543,12 +629,15 @@ class _CommunityBanner extends StatelessWidget {
   }
 }
 
-/// §6 미션 섹션 (내 복주머니 표시 포함)
-class _MissionSection extends StatelessWidget {
-  const _MissionSection();
+/// §6 복주머니 적립 섹션 — 출석체크 + 미션 + 커뮤니티 활동(글쓰기/댓글) 안내.
+/// [3단계 복주머니 흐름 정리] 복주머니는 "커뮤니티 중심 재화"로, 적립 경로가
+/// 여러 화면에 흩어져 있으므로 홈에서 한번에 안내한다.
+class _LuckyBagEarnSection extends StatelessWidget {
+  const _LuckyBagEarnSection();
 
   @override
   Widget build(BuildContext context) {
+    final attendance = context.watch<AttendanceProvider>();
     final luckyBag = context.watch<LuckyBagProvider>();
     final pending = luckyBag.summary?.pendingCount ?? 0;
 
@@ -573,11 +662,11 @@ class _MissionSection extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: AppSpacing.md),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    const Text(
                       '오늘의 미션 완료하기',
                       style: TextStyle(
                         fontSize: 13,
@@ -586,8 +675,10 @@ class _MissionSection extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '미션 달성하고 포인트 받기',
-                      style: TextStyle(
+                      attendance.checkedToday
+                          ? '출석 완료 · 연속 ${attendance.streak}일'
+                          : '출석하고 복주머니 받기',
+                      style: const TextStyle(
                         fontSize: 11,
                         color: AppColors.cosmicTextTertiary,
                       ),
@@ -596,6 +687,46 @@ class _MissionSection extends StatelessWidget {
                 ),
               ),
               const Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 14,
+                color: AppColors.cosmicTextTertiary,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        CosmicCard(
+          showGlow: false,
+          onTap: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const CommunityScreen())),
+          child: const Row(
+            children: [
+              Text('✍️', style: TextStyle(fontSize: 20)),
+              SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '소원 글쓰기 · 댓글로 복주머니 받기',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.cosmicTextPrimary,
+                      ),
+                    ),
+                    Text(
+                      '커뮤니티 활동은 복주머니의 가장 큰 적립 경로예요',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.cosmicTextTertiary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
                 Icons.arrow_forward_ios_rounded,
                 size: 14,
                 color: AppColors.cosmicTextTertiary,
@@ -626,7 +757,7 @@ class _MissionSection extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      '내 복주머니',
+                      '내 복주머니 전체보기',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
@@ -636,7 +767,7 @@ class _MissionSection extends StatelessWidget {
                     Text(
                       pending > 0
                           ? '받을 수 있는 복주머니 $pending개'
-                          : '오늘의 복주머니를 확인해보세요',
+                          : '적립/사용 내역을 한눈에 확인해보세요',
                       style: const TextStyle(
                         fontSize: 11,
                         color: AppColors.cosmicTextTertiary,
@@ -658,7 +789,7 @@ class _MissionSection extends StatelessWidget {
   }
 }
 
-/// §7 부적/동행 2단 카드
+/// §7 부적/동행 2단 카드 — 복주머니 사용처
 class _AmuletMatchingRow extends StatelessWidget {
   const _AmuletMatchingRow();
 
@@ -762,32 +893,62 @@ class _AmuletMatchingRow extends StatelessWidget {
   }
 }
 
-/// §8 광고 배너 플레이스홀더(기존 ad_banner 모듈이 있으면 추후 교체 가능)
-class _AdBannerPlaceholder extends StatelessWidget {
-  const _AdBannerPlaceholder();
+/// §8 구독 프로모션 배너 — 미구독자에겐 가입 유도, 구독자에겐 혜택 요약을 보여준다.
+class _SubscriptionPromoBanner extends StatelessWidget {
+  const _SubscriptionPromoBanner();
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 60,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: AppColors.bgTertiary,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: const Text(
-        '광고 영역',
-        style: TextStyle(color: AppColors.cosmicTextDim, fontSize: 12),
+    final sub = context.watch<SubscriptionProvider>();
+    final isPremium = sub.isPremium;
+
+    return CosmicCard(
+      gradient: AppColors.gradientGold,
+      onTap: () => Navigator.of(context).pushNamed('/my/subscription/plans'),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              shape: BoxShape.circle,
+            ),
+            child: const Center(
+              child: Icon(Icons.workspace_premium_rounded, color: AppColors.bgPrimary),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isPremium ? '구독 혜택을 받고 있어요' : '알림패스 + 복주머니 강화 상품',
+                  style: const TextStyle(
+                    color: AppColors.bgPrimary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  isPremium
+                      ? '정기 보너스와 광고 스트레스 완화를 계속 누려보세요'
+                      : '알림패스 자동 지급 · 복주머니 정기 보너스 · 광고 완화',
+                  style: const TextStyle(color: AppColors.bgPrimary, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.bgPrimary, size: 16),
+        ],
       ),
     );
   }
 }
 
-/// [이전] 알림패스(AlarmPass) 상단 상태바 — AppBar.bottom에 장착되는 카운트다운.
-/// legacy home_screen.dart(미사용 파일)에만 있던 위젯을 실제 홈 탭으로 이전한
-/// 것으로, 우주 다크 테마(cosmic) 색상 체계로 스타일만 재작성했다.
+/// 알림패스(AlarmPass) 상단 상태바 — AppBar.bottom에 장착되는 카운트다운.
 /// 활성 상태가 아니면 높이 0(공간 차지 없음)으로 접혀 사라진다.
 /// 서버 값(remainingSec)을 기준으로 1초 간격 로컬 타이머 없이 Provider 값을
 /// 그대로 표시하고, 실제 만료 판정은 다음 PassProvider.load() 호출 시 서버가 갖는다.
@@ -834,7 +995,7 @@ class _AlarmPassStatusBar extends StatelessWidget
   }
 }
 
-/// [이전] 알림패스(AlarmPass) 섹션 — 광고 시청/파트너 방문 CTA 카드.
+/// §2 알림패스 핵심 섹션 — 광고 시청/파트너 방문 CTA 카드.
 /// admin_web `GET /api/public/pass/policies` 정책 중 passType이 ad/partner인
 /// 항목만 클라이언트에서 필터링해 노출한다(claim-ad/claim-partner API만 존재).
 /// 이미 알림패스가 활성 상태면(상단 상태바로 충분히 안내되므로) 섹션을 숨긴다.

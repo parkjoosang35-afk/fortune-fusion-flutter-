@@ -92,7 +92,15 @@ class MatchingRepository {
 
   /// 좋아요 - 서버가 상호확인 시 즉시 matching_pairs를 active로 생성한다
   /// (Mock의 pendingAccept 개념은 실API에서 사용하지 않음 - 설계결정 참조).
-  Future<ApiResult<bool>> like(String targetUserId) async {
+  ///
+  /// [3단계 - 복주머니 소비: 운명의 동행] admin_web이 point_policies.matching_like
+  /// 정책에 따라 관심표시 1건당 복주머니를 차감하고, 차감 후 잔액(balanceAfter)을
+  /// 함께 내려준다(정책이 없으면 무료라 balanceAfter=null). 호출부가 WalletProvider의
+  /// 잔액 캐시를 서버 결과값으로 즉시 동기화할 수 있도록 amulet_repository.purchase()와
+  /// 동일한 "서버가 먼저 처리한 결과를 클라이언트가 반영만" 패턴을 따른다.
+  Future<ApiResult<({bool matched, int? balanceAfter})>> like(
+    String targetUserId,
+  ) async {
     final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse('$_base/like');
     try {
@@ -107,7 +115,10 @@ class MatchingRepository {
       if (response.statusCode != 200 || decoded['success'] != true) {
         return ApiResult.fail(decoded['error'] as String? ?? '좋아요 처리에 실패했습니다.');
       }
-      return ApiResult.ok(decoded['data'] as bool? ?? false);
+      return ApiResult.ok((
+        matched: decoded['data'] as bool? ?? false,
+        balanceAfter: (decoded['balanceAfter'] as num?)?.toInt(),
+      ));
     } catch (e) {
       debugPrint('[MatchingRepository] [like] 예외 -> $e');
       return ApiResult.fail('좋아요 처리 중 오류가 발생했습니다: $e');
