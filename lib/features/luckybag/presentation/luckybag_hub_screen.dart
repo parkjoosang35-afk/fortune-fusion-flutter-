@@ -5,6 +5,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/cosmic_card.dart';
 import '../../../core/widgets/app_dialog.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../../../core/widgets/app_shortcut_row.dart';
 import '../../wallet/application/wallet_provider.dart';
 import '../../attendance/application/attendance_provider.dart';
 import '../../auth/application/auth_provider.dart';
@@ -421,6 +422,8 @@ class _BalanceHero extends StatelessWidget {
 }
 
 /// 획득처/사용처/히스토리 공통 바로가기 카드
+/// [10단계 - 중복 UI 정리] 내부 콘텐츠 행은 core/widgets/app_shortcut_row.dart의
+/// AppShortcutRow로 공통화하고, 이 위젯은 CosmicCard 래핑만 담당한다.
 class _ShortcutCard extends StatelessWidget {
   const _ShortcutCard({
     required this.emoji,
@@ -441,49 +444,11 @@ class _ShortcutCard extends StatelessWidget {
     return CosmicCard(
       showGlow: false,
       onTap: onTap,
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: accentColor.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(emoji, style: const TextStyle(fontSize: 18)),
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.cosmicTextPrimary,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.cosmicTextTertiary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Icon(
-            Icons.arrow_forward_ios_rounded,
-            size: 14,
-            color: AppColors.cosmicTextTertiary,
-          ),
-        ],
+      child: AppShortcutRow(
+        emoji: emoji,
+        accentColor: accentColor,
+        title: title,
+        subtitle: subtitle,
       ),
     );
   }

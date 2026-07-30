@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/cosmic_card.dart';
+import '../../../core/widgets/app_shortcut_row.dart';
 import '../../auth/application/auth_provider.dart';
 import '../../auth/domain/grade_model.dart';
 import '../../pass/application/pass_provider.dart';
@@ -300,53 +301,15 @@ class _PassSummaryCard extends StatelessWidget {
     return CosmicCard(
       showGlow: false,
       onTap: onTap,
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.accentBlue.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-            ),
-            child: const Center(
-              child: Text('🔔', style: TextStyle(fontSize: 18)),
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  '알림패스',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.cosmicTextPrimary,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  isLoading
-                      ? '불러오는 중...'
-                      : status.isActive
-                          ? '사용 중 · 남은 시간 ${_formatRemaining(status.remainingSec)}'
-                          : '보유한 알림패스가 없어요',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.cosmicTextTertiary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Icon(
-            Icons.arrow_forward_ios_rounded,
-            size: 14,
-            color: AppColors.cosmicTextTertiary,
-          ),
-        ],
+      child: AppShortcutRow(
+        emoji: '🔔',
+        accentColor: AppColors.accentBlue,
+        title: '알림패스',
+        subtitle: isLoading
+            ? '불러오는 중...'
+            : status.isActive
+                ? '사용 중 · 남은 시간 ${_formatRemaining(status.remainingSec)}'
+                : '보유한 알림패스가 없어요',
       ),
     );
   }
@@ -379,49 +342,11 @@ class _WalletSummaryCard extends StatelessWidget {
     return CosmicCard(
       showGlow: false,
       onTap: onTap,
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.accentGold.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-            ),
-            child: const Center(
-              child: Text('🍀', style: TextStyle(fontSize: 18)),
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  '복주머니',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.cosmicTextPrimary,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  isLoading ? '불러오는 중...' : '${_formatBalance(balance)} P 보유 중',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.cosmicTextTertiary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Icon(
-            Icons.arrow_forward_ios_rounded,
-            size: 14,
-            color: AppColors.cosmicTextTertiary,
-          ),
-        ],
+      child: AppShortcutRow(
+        emoji: '🍀',
+        accentColor: AppColors.accentGold,
+        title: '복주머니',
+        subtitle: isLoading ? '불러오는 중...' : '${_formatBalance(balance)} P 보유 중',
       ),
     );
   }
@@ -446,53 +371,15 @@ class _SubscriptionSummaryCard extends StatelessWidget {
     return CosmicCard(
       showGlow: false,
       onTap: onTap,
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.accentPurple.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-            ),
-            child: const Center(
-              child: Text('👑', style: TextStyle(fontSize: 18)),
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  '구독',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.cosmicTextPrimary,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  isLoading
-                      ? '불러오는 중...'
-                      : isActive
-                          ? '${my?.plan.name ?? '프리미엄'} 구독 중'
-                          : '구독하고 알림패스·복주머니 혜택 받기',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.cosmicTextTertiary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Icon(
-            Icons.arrow_forward_ios_rounded,
-            size: 14,
-            color: AppColors.cosmicTextTertiary,
-          ),
-        ],
+      child: AppShortcutRow(
+        emoji: '👑',
+        accentColor: AppColors.accentPurple,
+        title: '구독',
+        subtitle: isLoading
+            ? '불러오는 중...'
+            : isActive
+                ? '${my?.plan.name ?? '프리미엄'} 구독 중'
+                : '구독하고 알림패스·복주머니 혜택 받기',
       ),
     );
   }
