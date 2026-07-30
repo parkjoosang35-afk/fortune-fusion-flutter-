@@ -5,19 +5,45 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/cosmic_card.dart';
 import '../../auth/application/auth_provider.dart';
 import '../../auth/domain/grade_model.dart';
+import '../../pass/application/pass_provider.dart';
+import '../../wallet/application/wallet_provider.dart';
+import '../../subscription/application/subscription_provider.dart';
+import '../../community/presentation/community_hub_screen.dart';
+import '../../fortune/presentation/fortune_hub_screen.dart';
 
-/// [Fortune Fusion UI 리뉴얼 프롬프트] §8 MyScreen - 마이 탭
-/// 프로필+등급뱃지 + 아카이브(사주/타로/관상/손금/궁합 히스토리) + 설정
+/// [9단계 - 마이 탭 정리] MyScreen - 마이 탭
+/// 프로필+등급뱃지 + [알림패스/복주머니/구독 요약(3축 정책 한눈에 보기)]
+/// + 아카이브(사주/타로/관상/손금/궁합 히스토리) + 커뮤니티(내 글·소원) + 설정
 ///
-/// [주의] AuthProvider/GradeModel/UserModel은 기존 것을 그대로 재사용하며,
-/// 아카이브·설정 메뉴는 모두 기존 app_router.dart에 등록된 라우트로 이동한다.
-class MyScreen extends StatelessWidget {
+/// [주의] AuthProvider/GradeModel/UserModel/PassProvider/WalletProvider/
+/// SubscriptionProvider는 기존 것을 그대로 재사용하며, 아카이브·설정 메뉴는
+/// 모두 기존 app_router.dart에 등록된 라우트로 이동한다.
+class MyScreen extends StatefulWidget {
   const MyScreen({super.key});
+
+  @override
+  State<MyScreen> createState() => _MyScreenState();
+}
+
+class _MyScreenState extends State<MyScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // [9단계] 마이 탭 진입 시 알림패스/복주머니/구독 요약을 최신화한다.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<PassProvider>().load();
+      context.read<WalletProvider>().load();
+      context.read<SubscriptionProvider>().loadMySubscription();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final user = auth.currentUser;
+    final pass = context.watch<PassProvider>();
+    final wallet = context.watch<WalletProvider>();
+    final subscription = context.watch<SubscriptionProvider>();
 
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
@@ -103,6 +129,29 @@ class MyScreen extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.xl),
 
+            // [9단계] §1.5 알림패스/복주머니/구독 요약 - 3축 정책을 한 화면에서
+            // 확인할 수 있도록 마이 탭에 요약 카드 3개를 배치한다.
+            const _SectionTitle(title: '📋 내 혜택 요약'),
+            const SizedBox(height: AppSpacing.md),
+            _PassSummaryCard(
+              pass: pass,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const FortuneHubScreen()),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            _WalletSummaryCard(
+              balance: wallet.balance,
+              onTap: () => Navigator.of(context).pushNamed('/reward/wallet'),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            _SubscriptionSummaryCard(
+              subscription: subscription,
+              onTap: () =>
+                  Navigator.of(context).pushNamed('/my/subscription'),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+
             // §2 아카이브 섹션
             const _SectionTitle(title: '📚 나의 운세 아카이브'),
             const SizedBox(height: AppSpacing.md),
@@ -158,6 +207,21 @@ class MyScreen extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.xl),
 
+            // [9단계] §2.5 커뮤니티(내 글·내 소원) - 전용 "내 글 목록" API는
+            // 아직 백엔드에 없으므로(mock 상태), 커뮤니티 허브로 진입시켜
+            // 소원/게시판에서 직접 확인하도록 연결한다. 다음 턴에 "내 활동만
+            // 필터링하는" 전용 API/화면으로 고도화할 수 있다.
+            const _SectionTitle(title: '💬 나의 커뮤니티'),
+            const SizedBox(height: AppSpacing.md),
+            _MenuTile(
+              icon: Icons.forum_outlined,
+              title: '내 글 · 내 소원 보러가기',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const CommunityHubScreen()),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+
             // §3 설정 섹션
             const _SectionTitle(title: '⚙️ 설정'),
             const SizedBox(height: AppSpacing.md),
@@ -200,6 +264,213 @@ class MyScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// [9단계] §1.5 알림패스 요약 카드 - 활성 여부와 남은 시간을 한눈에 보여준다.
+class _PassSummaryCard extends StatelessWidget {
+  const _PassSummaryCard({required this.pass, required this.onTap});
+
+  final PassProvider pass;
+  final VoidCallback onTap;
+
+  String _formatRemaining(int sec) {
+    final m = sec ~/ 60;
+    final h = m ~/ 60;
+    if (h > 0) return '$h시간 ${m % 60}분';
+    return '$m분';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final status = pass.status;
+    return CosmicCard(
+      showGlow: false,
+      onTap: onTap,
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.accentBlue.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: const Center(
+              child: Text('🔔', style: TextStyle(fontSize: 18)),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '알림패스',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.cosmicTextPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  status.isActive
+                      ? '사용 중 · 남은 시간 ${_formatRemaining(status.remainingSec)}'
+                      : '보유한 알림패스가 없어요',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.cosmicTextTertiary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(
+            Icons.arrow_forward_ios_rounded,
+            size: 14,
+            color: AppColors.cosmicTextTertiary,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// [9단계] §1.5 복주머니 요약 카드 - 현재 잔액을 한눈에 보여준다.
+class _WalletSummaryCard extends StatelessWidget {
+  const _WalletSummaryCard({required this.balance, required this.onTap});
+
+  final int balance;
+  final VoidCallback onTap;
+
+  String _formatBalance(int value) {
+    final str = value.toString();
+    final buffer = StringBuffer();
+    for (int i = 0; i < str.length; i++) {
+      if (i > 0 && (str.length - i) % 3 == 0) buffer.write(',');
+      buffer.write(str[i]);
+    }
+    return buffer.toString();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CosmicCard(
+      showGlow: false,
+      onTap: onTap,
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.accentGold.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: const Center(
+              child: Text('🍀', style: TextStyle(fontSize: 18)),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '복주머니',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.cosmicTextPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${_formatBalance(balance)} P 보유 중',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.cosmicTextTertiary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(
+            Icons.arrow_forward_ios_rounded,
+            size: 14,
+            color: AppColors.cosmicTextTertiary,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// [9단계] §1.5 구독 요약 카드 - 구독 활성 여부를 한눈에 보여준다.
+class _SubscriptionSummaryCard extends StatelessWidget {
+  const _SubscriptionSummaryCard({
+    required this.subscription,
+    required this.onTap,
+  });
+
+  final SubscriptionProvider subscription;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final my = subscription.mySubscription;
+    final isActive = subscription.isPremium;
+    return CosmicCard(
+      showGlow: false,
+      onTap: onTap,
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.accentPurple.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: const Center(
+              child: Text('👑', style: TextStyle(fontSize: 18)),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '구독',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.cosmicTextPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  isActive
+                      ? '${my?.plan.name ?? '프리미엄'} 구독 중'
+                      : '구독하고 알림패스·복주머니 혜택 받기',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.cosmicTextTertiary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(
+            Icons.arrow_forward_ios_rounded,
+            size: 14,
+            color: AppColors.cosmicTextTertiary,
+          ),
+        ],
       ),
     );
   }
