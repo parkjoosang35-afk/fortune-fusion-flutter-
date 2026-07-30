@@ -44,7 +44,9 @@ class AmuletRepository {
 
   /// GET /api/public/amulets/shop
   Future<ApiResult<List<AmuletItemModel>>> getShopItems() async {
-    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/amulets/shop');
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/amulets/shop',
+    );
     debugPrint('[AmuletRepository] [shop] 요청 -> $uri');
 
     try {
@@ -105,7 +107,9 @@ class AmuletRepository {
   /// (중복 차감 방지 — amulet_shop_screen.dart / amulet_generate_screen.dart 참조).
   Future<ApiResult<Map<String, dynamic>>> purchase(String itemId) async {
     final userId = await AuthTokenStore.getCurrentUserId();
-    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/amulets/purchase');
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/amulets/purchase',
+    );
     debugPrint('[AmuletRepository] [purchase] 요청 -> itemId=$itemId');
 
     try {
@@ -132,7 +136,9 @@ class AmuletRepository {
 
   /// POST /api/public/amulets/use
   Future<ApiResult<void>> use(String userAmuletId) async {
-    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/amulets/use');
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/amulets/use',
+    );
     debugPrint('[AmuletRepository] [use] 요청 -> userAmuletId=$userAmuletId');
 
     try {
@@ -162,7 +168,9 @@ class AmuletRepository {
   /// WalletProvider.spend()를 유지해야 한다(향후 서버측 과금 로직 추가 여지 있음).
   Future<ApiResult<Map<String, dynamic>>> generate(String baseItemId) async {
     final userId = await AuthTokenStore.getCurrentUserId();
-    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/amulets/generate');
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/amulets/generate',
+    );
     debugPrint('[AmuletRepository] [generate] 요청 -> baseItemId=$baseItemId');
 
     try {
@@ -194,7 +202,9 @@ class AmuletRepository {
     String? message,
   ) async {
     final userId = await AuthTokenStore.getCurrentUserId();
-    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/amulets/gift');
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/amulets/gift',
+    );
     debugPrint('[AmuletRepository] [gift] 요청 -> userAmuletId=$userAmuletId');
 
     try {

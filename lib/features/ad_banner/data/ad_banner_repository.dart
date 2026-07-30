@@ -18,7 +18,9 @@ class AdBannerRepository {
     String? position,
   }) async {
     final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/banners')
-        .replace(queryParameters: position != null ? {'position': position} : null);
+        .replace(
+          queryParameters: position != null ? {'position': position} : null,
+        );
 
     debugPrint('[AdBannerRepository] [1] 요청 시작 -> $uri');
 

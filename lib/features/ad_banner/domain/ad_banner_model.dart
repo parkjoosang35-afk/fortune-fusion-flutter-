@@ -14,7 +14,8 @@ class AdBannerModel {
   final String? imageUrl; // banners.image_url (adType='image' 전용, nullable)
   final String? linkUrl; // banners.link_url (제휴 어필리에이트 링크, adType='image' 전용)
   final String? adScript; // banners.ad_script (adType='script' 전용, 원본 광고 태그)
-  final String positionCode; // banners.position_code (home_top/home_middle/home_bottom)
+  final String
+  positionCode; // banners.position_code (home_top/home_middle/home_bottom)
   final int sortOrder; // banners.sort_order
 
   const AdBannerModel({

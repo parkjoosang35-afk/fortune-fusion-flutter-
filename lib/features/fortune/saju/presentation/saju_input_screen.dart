@@ -177,7 +177,8 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
               const SizedBox(height: AppSpacing.md),
               AppButton(
                 label: '프로필 저장',
-                onPressed: pickerBirthDate == null || nameController.text.isEmpty
+                onPressed:
+                    pickerBirthDate == null || nameController.text.isEmpty
                     ? null
                     : () async {
                         final birthDateStr =
@@ -358,8 +359,7 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
               if (_selectedProfileId == null)
                 CheckboxListTile(
                   value: _saveAsProfile,
-                  onChanged: (v) =>
-                      setState(() => _saveAsProfile = v ?? false),
+                  onChanged: (v) => setState(() => _saveAsProfile = v ?? false),
                   title: const Text('이 정보를 내 사주함에 저장'),
                   controlAffinity: ListTileControlAffinity.leading,
                   contentPadding: EdgeInsets.zero,
@@ -411,7 +411,11 @@ class _ProfileChip extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (profile.isPrimary)
-                  const Icon(Icons.star_rounded, size: 12, color: AppColors.secondary),
+                  const Icon(
+                    Icons.star_rounded,
+                    size: 12,
+                    color: AppColors.secondary,
+                  ),
                 Icon(
                   Icons.person_rounded,
                   size: 18,
@@ -467,10 +471,7 @@ class _ProfileAddChip extends StatelessWidget {
               color: AppColors.textSecondaryOf(context),
             ),
             const SizedBox(height: 4),
-            Text(
-              '추가',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
+            Text('추가', style: Theme.of(context).textTheme.bodySmall),
           ],
         ),
       ),

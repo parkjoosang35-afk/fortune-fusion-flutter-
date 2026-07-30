@@ -109,7 +109,10 @@ class AuthRepository {
       );
     } catch (e) {
       debugPrint('[AuthRepository] [socialLogin] 예외 -> $e');
-      return ApiResult.fail('$provider 소셜 로그인은 추후 지원 예정입니다.', code: 'NOT_IMPLEMENTED');
+      return ApiResult.fail(
+        '$provider 소셜 로그인은 추후 지원 예정입니다.',
+        code: 'NOT_IMPLEMENTED',
+      );
     }
   }
 

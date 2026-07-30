@@ -12,7 +12,8 @@ import '../domain/subscription_model.dart';
 ///
 /// ⚠️ 실제 PG 연동은 범위 밖(서버가 즉시 성공 시뮬레이션 처리).
 class SubscriptionRepository {
-  static String get _base => '${EnvConfig.adminApiBaseUrl}/api/public/subscription';
+  static String get _base =>
+      '${EnvConfig.adminApiBaseUrl}/api/public/subscription';
 
   Future<ApiResult<List<SubscriptionPlanModel>>> getPlans() async {
     final uri = Uri.parse('$_base/plans');
@@ -22,7 +23,9 @@ class SubscriptionRepository {
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
-        return ApiResult.fail(decoded['error'] as String? ?? '구독 플랜을 불러오지 못했습니다.');
+        return ApiResult.fail(
+          decoded['error'] as String? ?? '구독 플랜을 불러오지 못했습니다.',
+        );
       }
       final list = (decoded['data'] as List<dynamic>)
           .map((e) => _planFromJson(e as Map<String, dynamic>))
@@ -43,7 +46,9 @@ class SubscriptionRepository {
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
-        return ApiResult.fail(decoded['error'] as String? ?? '구독 현황을 불러오지 못했습니다.');
+        return ApiResult.fail(
+          decoded['error'] as String? ?? '구독 현황을 불러오지 못했습니다.',
+        );
       }
       final data = decoded['data'];
       if (data == null) return ApiResult.ok(null);
@@ -75,7 +80,9 @@ class SubscriptionRepository {
       if (response.statusCode != 200 || decoded['success'] != true) {
         return ApiResult.fail(decoded['error'] as String? ?? '구독 처리에 실패했습니다.');
       }
-      return ApiResult.ok(_subscriptionFromJson(decoded['data'] as Map<String, dynamic>));
+      return ApiResult.ok(
+        _subscriptionFromJson(decoded['data'] as Map<String, dynamic>),
+      );
     } catch (e) {
       debugPrint('[SubscriptionRepository] [subscribe] 예외 -> $e');
       return ApiResult.fail('구독 처리 중 오류가 발생했습니다: $e');
@@ -97,7 +104,9 @@ class SubscriptionRepository {
       if (response.statusCode != 200 || decoded['success'] != true) {
         return ApiResult.fail(decoded['error'] as String? ?? '구독 중인 플랜이 없습니다.');
       }
-      return ApiResult.ok(_subscriptionFromJson(decoded['data'] as Map<String, dynamic>));
+      return ApiResult.ok(
+        _subscriptionFromJson(decoded['data'] as Map<String, dynamic>),
+      );
     } catch (e) {
       debugPrint('[SubscriptionRepository] [cancel] 예외 -> $e');
       return ApiResult.fail('구독 취소 중 오류가 발생했습니다: $e');
@@ -113,7 +122,9 @@ class SubscriptionRepository {
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
-        return ApiResult.fail(decoded['error'] as String? ?? '결제 내역을 불러오지 못했습니다.');
+        return ApiResult.fail(
+          decoded['error'] as String? ?? '결제 내역을 불러오지 못했습니다.',
+        );
       }
       final list = (decoded['data'] as List<dynamic>)
           .map((e) => _paymentFromJson(e as Map<String, dynamic>))

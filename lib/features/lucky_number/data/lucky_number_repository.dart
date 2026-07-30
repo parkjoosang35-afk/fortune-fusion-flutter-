@@ -13,7 +13,9 @@ import '../domain/lucky_number_model.dart';
 /// 단일 슬롯(nullable 단일 객체)만 반환한다는 점이 AdBannerRepository와 다르다.
 class LuckyNumberRepository {
   Future<ApiResult<LuckyNumberModel?>> getActiveContent() async {
-    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/lucky-number');
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/lucky-number',
+    );
 
     debugPrint('[LuckyNumberRepository] [1] 요청 시작 -> $uri');
 
@@ -46,7 +48,9 @@ class LuckyNumberRepository {
         return ApiResult.ok(null);
       }
 
-      final content = LuckyNumberModel.fromJson(rawData as Map<String, dynamic>);
+      final content = LuckyNumberModel.fromJson(
+        rawData as Map<String, dynamic>,
+      );
       debugPrint(
         '[LuckyNumberRepository] [4] 모델 변환 완료 -> id=${content.id}, type=${content.contentType}',
       );

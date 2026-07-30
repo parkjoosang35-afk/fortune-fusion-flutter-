@@ -19,7 +19,6 @@ import '../domain/mission_model.dart';
 /// [방법 A — 임시 인증 우회] 회원 로그인 시스템이 아직 없어, 서버가 시딩해둔
 /// 테스트 유저(userId=1)를 고정으로 사용한다.
 class MissionRepository {
-
   Future<ApiResult<List<MissionModel>>> getMissions() async {
     final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(

@@ -158,23 +158,23 @@ class _BannerCard extends StatelessWidget {
           children: [
             _buildMedia(),
             if (!banner.isScriptAd)
-            Positioned(
-              left: 12,
-              bottom: 10,
-              right: 12,
-              child: Text(
-                banner.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  shadows: const [
-                    Shadow(color: Colors.black54, blurRadius: 4),
-                  ],
+              Positioned(
+                left: 12,
+                bottom: 10,
+                right: 12,
+                child: Text(
+                  banner.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    shadows: const [
+                      Shadow(color: Colors.black54, blurRadius: 4),
+                    ],
+                  ),
                 ),
               ),
-            ),
             Positioned(
               right: 8,
               top: 8,

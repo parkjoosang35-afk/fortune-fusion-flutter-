@@ -9,6 +9,7 @@ import 'features/auth/data/auth_repository.dart';
 import 'features/wallet/application/wallet_provider.dart';
 import 'features/wallet/data/wallet_repository.dart';
 import 'features/notification/notification_provider.dart';
+import 'features/notification/data/notification_repository.dart';
 import 'features/attendance/application/attendance_provider.dart';
 import 'features/attendance/data/attendance_repository.dart';
 import 'features/fortune/daily/application/daily_fortune_provider.dart';
@@ -71,7 +72,9 @@ class App extends StatelessWidget {
           update: (_, auth, wallet) =>
               wallet!..updateMultiplier(auth.pointEarnMultiplier),
         ),
-        ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ChangeNotifierProvider(
+          create: (_) => NotificationProvider(NotificationRepository()),
+        ),
         ChangeNotifierProvider(
           create: (_) => AttendanceProvider(AttendanceRepository()),
         ),

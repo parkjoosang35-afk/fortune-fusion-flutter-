@@ -5,7 +5,6 @@ import '../../features/auth/presentation/onboarding_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/signup_screen.dart';
 import '../../features/auth/presentation/profile_check_screen.dart';
-import '../../features/home/presentation/home_screen.dart';
 import '../../features/fortune/daily/presentation/daily_fortune_detail_screen.dart';
 import '../../features/fortune/saju/presentation/saju_input_screen.dart';
 import '../../features/fortune/saju/presentation/saju_loading_screen.dart';
@@ -218,7 +217,9 @@ class AppRouter {
         return _page(const MySubscriptionScreen());
 
       default:
-        return _page(const HomeScreen());
+        // [P3 legacy 제거] 미사용 legacy HomeScreen(home_screen.dart) 대신
+        // 실제 홈 탭을 포함한 AppShell(5탭 IndexedStack)로 폴백한다.
+        return _page(const AppShell());
     }
   }
 

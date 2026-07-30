@@ -36,7 +36,9 @@ class SajuRepository {
     String? profileId,
     String? profileName,
   }) async {
-    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/fortune/saju');
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/fortune/saju',
+    );
     debugPrint('[SajuRepository] [requestSaju] 요청 시작 -> $uri');
 
     try {

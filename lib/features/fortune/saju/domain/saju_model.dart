@@ -1,6 +1,15 @@
 /// [웹→앱 이식] 신통방통 js/saju-profile-engine.js `saju_profiles` 테이블 대응
 /// 관계(relationship) 코드 - self/father/mother/spouse/child/sibling/friend/other
-enum SajuRelationship { self, father, mother, spouse, child, sibling, friend, other }
+enum SajuRelationship {
+  self,
+  father,
+  mother,
+  spouse,
+  child,
+  sibling,
+  friend,
+  other,
+}
 
 /// 신통방통 `SAJU_RELATIONSHIP_LABEL` 한글 매핑 이식
 const Map<SajuRelationship, String> sajuRelationshipLabel = {

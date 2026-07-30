@@ -16,7 +16,9 @@ import '../domain/pass_model.dart';
 class PassRepository {
   /// GET /api/public/pass/policies — 홈 화면 알림패스 섹션 CTA 카드 목록
   Future<ApiResult<List<PassPolicyModel>>> getPolicies() async {
-    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/pass/policies');
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/pass/policies',
+    );
     debugPrint('[PassRepository] [policies] 요청 -> $uri');
 
     try {
@@ -61,7 +63,9 @@ class PassRepository {
         return ApiResult.fail(error);
       }
 
-      final status = PassStatusModel.fromJson(decoded['data'] as Map<String, dynamic>);
+      final status = PassStatusModel.fromJson(
+        decoded['data'] as Map<String, dynamic>,
+      );
       return ApiResult.ok(status);
     } catch (e) {
       debugPrint('[PassRepository] [status] 예외 -> $e');
@@ -79,9 +83,14 @@ class PassRepository {
     return _claim('claim-partner', policyId: policyId);
   }
 
-  Future<ApiResult<PassStatusModel>> _claim(String endpoint, {int? policyId}) async {
+  Future<ApiResult<PassStatusModel>> _claim(
+    String endpoint, {
+    int? policyId,
+  }) async {
     final userId = await AuthTokenStore.getCurrentUserId();
-    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/pass/$endpoint');
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/pass/$endpoint',
+    );
     debugPrint('[PassRepository] [$endpoint] 요청 시작 -> userId=$userId');
 
     try {
@@ -89,7 +98,10 @@ class PassRepository {
           .post(
             uri,
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'userId': userId, if (policyId != null) 'policyId': policyId}),
+            body: jsonEncode({
+              'userId': userId,
+              if (policyId != null) 'policyId': policyId,
+            }),
           )
           .timeout(const Duration(seconds: 10));
 
@@ -126,7 +138,9 @@ class PassRepository {
     dynamic contentId,
   }) async {
     final userId = await AuthTokenStore.getCurrentUserId();
-    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/pass/consume');
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/pass/consume',
+    );
     debugPrint('[PassRepository] [consume] 요청 -> contentType=$contentType');
 
     try {

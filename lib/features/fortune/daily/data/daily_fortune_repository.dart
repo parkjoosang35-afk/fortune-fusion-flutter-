@@ -41,7 +41,8 @@ class DailyFortuneRepository {
       }
 
       final data = decoded['data'] as Map<String, dynamic>;
-      final categoryScoresRaw = data['categoryScores'] as Map<String, dynamic>? ?? {};
+      final categoryScoresRaw =
+          data['categoryScores'] as Map<String, dynamic>? ?? {};
       final categoryScores = categoryScoresRaw.map(
         (key, value) => MapEntry(key, (value as num).toInt()),
       );

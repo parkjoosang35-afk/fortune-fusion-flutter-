@@ -43,10 +43,7 @@ class UserAmuletModel {
         name: json['itemName'] as String,
         grade: AmuletGrade.byCode(gradeCode),
         effectDescription: json['effectDescription'] as String? ?? '',
-        iconEmoji: AmuletItemModel.iconForGrade(
-          gradeCode,
-          false,
-        ),
+        iconEmoji: AmuletItemModel.iconForGrade(gradeCode, false),
         pricePoint: 0,
       ),
       status: _statusFromCode(json['status'] as String? ?? 'held'),

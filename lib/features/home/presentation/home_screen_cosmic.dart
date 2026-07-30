@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/widgets/app_dialog.dart';
+import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/cosmic_card.dart';
 import '../../../core/widgets/hero_fortune_card.dart';
 import '../../../core/widgets/point_badge.dart';
@@ -15,6 +18,8 @@ import '../../community/application/wish_post_provider.dart';
 import '../../community/presentation/community_screen.dart';
 import '../../lucky_number/application/lucky_number_provider.dart';
 import '../../lucky_number/presentation/lucky_number_widget.dart';
+import '../../pass/application/pass_provider.dart';
+import '../../pass/domain/pass_model.dart';
 
 /// [Fortune Fusion UI 리뉴얼 프롬프트] §4 HomeScreen - 8개 섹션 신규 구성
 /// 1) 히어로카드 2) 4카드 그리드(오늘의 우주 이야기) 3) 행운숫자 영상
@@ -41,6 +46,14 @@ class _HomeScreenCosmicState extends State<HomeScreenCosmic> {
       context.read<AmuletProvider>().load();
       context.read<WishPostProvider>().loadFeed();
       context.read<LuckyNumberProvider>().load();
+      // [이전] legacy home_screen.dart(미사용)에만 있던 알림패스 로드 로직을
+      // 실제 홈 탭(HomeScreenCosmic)으로 이전 — 상단 상태바 카운트다운 +
+      // 알림패스 섹션 CTA 카드가 정상적으로 사용자에게 노출되도록 한다.
+      context.read<PassProvider>().load();
+      // [실API 전환] NotificationProvider가 Mock 하드코딩에서 admin_web
+      // `/api/public/notifications` 실연동으로 전환됨에 따라, 헤더 알림 뱃지
+      // (unreadCount)가 최신 상태를 반영하도록 홈 진입 시 명시적으로 로드한다.
+      context.read<NotificationProvider>().load();
     });
   }
 
@@ -61,6 +74,9 @@ class _HomeScreenCosmicState extends State<HomeScreenCosmic> {
             color: AppColors.cosmicTextPrimary,
           ),
         ),
+        // [이전] legacy home_screen.dart(미사용 파일)에만 있던 알림패스 상단
+        // 상태바를 실제 홈 탭으로 이전. 비활성 상태면 높이 0으로 접혀 보이지 않는다.
+        bottom: const _AlarmPassStatusBar(),
         actions: [
           PointBadge(
             balance: wallet.balance,
@@ -104,6 +120,11 @@ class _HomeScreenCosmicState extends State<HomeScreenCosmic> {
             const _SectionTitle(title: '🌠 지금 인기 있는 소원'),
             const SizedBox(height: AppSpacing.md),
             const _PopularWishSection(),
+            const SizedBox(height: AppSpacing.xl),
+
+            // §4.5 알림패스(AlarmPass) 섹션 — [이전] legacy home_screen.dart에서
+            // 실제 홈 탭으로 이전. 이미 활성 상태면(상단 상태바로 안내되므로) 숨겨진다.
+            const _AlarmPassSection(),
             const SizedBox(height: AppSpacing.xl),
 
             // §5 커뮤니티 안내
@@ -759,6 +780,252 @@ class _AdBannerPlaceholder extends StatelessWidget {
       child: const Text(
         '광고 영역',
         style: TextStyle(color: AppColors.cosmicTextDim, fontSize: 12),
+      ),
+    );
+  }
+}
+
+/// [이전] 알림패스(AlarmPass) 상단 상태바 — AppBar.bottom에 장착되는 카운트다운.
+/// legacy home_screen.dart(미사용 파일)에만 있던 위젯을 실제 홈 탭으로 이전한
+/// 것으로, 우주 다크 테마(cosmic) 색상 체계로 스타일만 재작성했다.
+/// 활성 상태가 아니면 높이 0(공간 차지 없음)으로 접혀 사라진다.
+/// 서버 값(remainingSec)을 기준으로 1초 간격 로컬 타이머 없이 Provider 값을
+/// 그대로 표시하고, 실제 만료 판정은 다음 PassProvider.load() 호출 시 서버가 갖는다.
+class _AlarmPassStatusBar extends StatelessWidget
+    implements PreferredSizeWidget {
+  const _AlarmPassStatusBar();
+
+  @override
+  Size get preferredSize => const Size.fromHeight(32);
+
+  @override
+  Widget build(BuildContext context) {
+    final pass = context.watch<PassProvider>();
+    if (!pass.isActive) return const SizedBox.shrink();
+
+    final remaining = pass.status.remainingSec;
+    final h = remaining ~/ 3600;
+    final m = (remaining % 3600) ~/ 60;
+    final s = remaining % 60;
+    final label = h > 0
+        ? '$h시간 $m분 남음'
+        : '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')} 남음';
+
+    return Container(
+      height: 32,
+      color: AppColors.bgTertiary,
+      alignment: Alignment.center,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.bolt_rounded, size: 14, color: AppColors.accentGold),
+          const SizedBox(width: 4),
+          Text(
+            '알림패스 활성중 · ${pass.status.policyName ?? ''} · $label',
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: AppColors.accentGold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// [이전] 알림패스(AlarmPass) 섹션 — 광고 시청/파트너 방문 CTA 카드.
+/// admin_web `GET /api/public/pass/policies` 정책 중 passType이 ad/partner인
+/// 항목만 클라이언트에서 필터링해 노출한다(claim-ad/claim-partner API만 존재).
+/// 이미 알림패스가 활성 상태면(상단 상태바로 충분히 안내되므로) 섹션을 숨긴다.
+class _AlarmPassSection extends StatefulWidget {
+  const _AlarmPassSection();
+
+  @override
+  State<_AlarmPassSection> createState() => _AlarmPassSectionState();
+}
+
+class _AlarmPassSectionState extends State<_AlarmPassSection> {
+  bool _claiming = false;
+
+  Future<void> _handleAdClaim(PassPolicyModel policy) async {
+    final pass = context.read<PassProvider>();
+    final confirmed = await showAppConfirmDialog(
+      context,
+      title: policy.name,
+      message: policy.ctaText ?? '광고를 시청하고 알림패스를 받으시겠습니까?',
+      confirmLabel: '시청하기',
+    );
+    if (!confirmed || !mounted) return;
+
+    setState(() => _claiming = true);
+    // [주의] AdMob 등 실제 광고 SDK가 아직 연동되지 않아, 확인 다이얼로그로
+    // "시청 완료"를 대신한다(관리자 정책/보너스 로직은 서버가 실제로 처리).
+    final ok = await pass.claimAd(policyId: policy.id);
+    if (!mounted) return;
+    setState(() => _claiming = false);
+
+    if (ok) {
+      await context.read<WalletProvider>().load();
+      if (!mounted) return;
+      AppToast.show(context, '알림패스가 발급되었습니다! (${policy.durationMin}분)');
+    } else {
+      AppToast.show(
+        context,
+        pass.lastError ?? '알림패스 발급에 실패했습니다.',
+        isError: true,
+      );
+    }
+  }
+
+  Future<void> _handlePartnerClaim(PassPolicyModel policy) async {
+    final pass = context.read<PassProvider>();
+    final confirmed = await showAppConfirmDialog(
+      context,
+      title: policy.name,
+      message: policy.ctaText ?? '파트너 페이지를 방문하고 알림패스를 받으시겠습니까?',
+      confirmLabel: '방문하기',
+    );
+    if (!confirmed || !mounted) return;
+
+    if (policy.linkUrl != null && policy.linkUrl!.isNotEmpty) {
+      final uri = Uri.tryParse(policy.linkUrl!);
+      if (uri != null) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    }
+    if (!mounted) return;
+
+    setState(() => _claiming = true);
+    final ok = await pass.claimPartner(policyId: policy.id);
+    if (!mounted) return;
+    setState(() => _claiming = false);
+
+    if (ok) {
+      await context.read<WalletProvider>().load();
+      if (!mounted) return;
+      AppToast.show(context, '알림패스가 발급되었습니다! (${policy.durationMin}분)');
+    } else {
+      AppToast.show(
+        context,
+        pass.lastError ?? '알림패스 발급에 실패했습니다.',
+        isError: true,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pass = context.watch<PassProvider>();
+    if (pass.isActive) return const SizedBox.shrink();
+
+    final actionablePolicies = pass.policies
+        .where(
+          (p) => p.passType == PassType.ad || p.passType == PassType.partner,
+        )
+        .toList();
+    if (actionablePolicies.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          '⏱️ 알림패스 받기',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: AppColors.cosmicTextPrimary,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        ...actionablePolicies.map(
+          (p) => Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+            child: _AlarmPassCard(
+              policy: p,
+              isBusy: _claiming,
+              onTap: () => p.passType == PassType.ad
+                  ? _handleAdClaim(p)
+                  : _handlePartnerClaim(p),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AlarmPassCard extends StatelessWidget {
+  final PassPolicyModel policy;
+  final bool isBusy;
+  final VoidCallback onTap;
+
+  const _AlarmPassCard({
+    required this.policy,
+    required this.isBusy,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isAd = policy.passType == PassType.ad;
+    return CosmicCard(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      showGlow: false,
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: AppColors.accentGold.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              isAd ? Icons.smart_display_rounded : Icons.storefront_rounded,
+              color: AppColors.accentGold,
+              size: 18,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  policy.name,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.cosmicTextPrimary,
+                  ),
+                ),
+                Text(
+                  '${policy.durationMin}분'
+                  '${policy.bonusPoint > 0 ? ' · +${policy.bonusPoint}P' : ''}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.cosmicTextTertiary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(
+            height: 32,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                textStyle: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              onPressed: isBusy ? null : onTap,
+              child: Text(isAd ? '시청' : '방문'),
+            ),
+          ),
+        ],
       ),
     );
   }

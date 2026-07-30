@@ -136,7 +136,10 @@ class CompatibilityProvider extends ChangeNotifier {
     if (_state.isSuccess) {
       pool[_state.data!.id] = _state.data!;
     }
-    final targets = ids.map((id) => pool[id]).whereType<CompatibilityResultModel>().toList();
+    final targets = ids
+        .map((id) => pool[id])
+        .whereType<CompatibilityResultModel>()
+        .toList();
     if (targets.length < 2) {
       return false;
     }

@@ -127,8 +127,10 @@ class _SendBokSuccessDialogState extends State<SendBokSuccessDialog>
                       final t = ((_controller.value - s.delay) / (1 - s.delay))
                           .clamp(0.0, 1.0);
                       final eased = Curves.easeOut.transform(t);
-                      final opacity =
-                          (sparkleFade.value * (1 - eased)).clamp(0.0, 1.0);
+                      final opacity = (sparkleFade.value * (1 - eased)).clamp(
+                        0.0,
+                        1.0,
+                      );
                       final dx = cos(s.angle) * s.distance * eased;
                       final dy = sin(s.angle) * s.distance * eased;
                       return Transform.translate(
@@ -175,16 +177,11 @@ class _SendBokSuccessDialogState extends State<SendBokSuccessDialog>
                                   child: Container(
                                     width: 36,
                                     height: 220,
-                                    color: Colors.white.withValues(
-                                      alpha: 0.55,
-                                    ),
+                                    color: Colors.white.withValues(alpha: 0.55),
                                   ),
                                 ),
                               ),
-                              const Text(
-                                '🧧',
-                                style: TextStyle(fontSize: 48),
-                              ),
+                              const Text('🧧', style: TextStyle(fontSize: 48)),
                             ],
                           ),
                         ),

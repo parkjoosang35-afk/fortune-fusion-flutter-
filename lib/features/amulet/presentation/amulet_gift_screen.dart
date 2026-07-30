@@ -162,10 +162,7 @@ class _AmuletGiftScreenState extends State<AmuletGiftScreen> {
                           );
                           return;
                         }
-                        showSendBokSheet(
-                          context,
-                          recipientNickname: nickname,
-                        );
+                        showSendBokSheet(context, recipientNickname: nickname);
                       },
                     ),
                   ],

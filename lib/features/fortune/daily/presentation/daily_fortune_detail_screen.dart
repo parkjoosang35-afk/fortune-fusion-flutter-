@@ -31,21 +31,16 @@ class _DailyFortuneDetailScreenState extends State<DailyFortuneDetailScreen> {
             ? _buildError(context)
             : provider.isLoading || today == null
             ? IntroShell<void>(
-                task: () =>
-                    context.read<DailyFortuneProvider>().loadToday(),
+                task: () => context.read<DailyFortuneProvider>().loadToday(),
                 onComplete: (_) {
                   if (!mounted) return;
                   if (context.read<DailyFortuneProvider>().today == null) {
-                    setState(
-                      () => _error = '운세를 불러오지 못했어요. 잠시 후 다시 시도해주세요.',
-                    );
+                    setState(() => _error = '운세를 불러오지 못했어요. 잠시 후 다시 시도해주세요.');
                   }
                 },
                 onError: (_) {
                   if (!mounted) return;
-                  setState(
-                    () => _error = '운세를 불러오지 못했어요. 잠시 후 다시 시도해주세요.',
-                  );
+                  setState(() => _error = '운세를 불러오지 못했어요. 잠시 후 다시 시도해주세요.');
                 },
               )
             : ListView(

@@ -21,7 +21,9 @@ class GiftcardRepository {
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
-        return ApiResult.fail(decoded['error'] as String? ?? '상품 목록을 불러오지 못했습니다.');
+        return ApiResult.fail(
+          decoded['error'] as String? ?? '상품 목록을 불러오지 못했습니다.',
+        );
       }
       final list = (decoded['data'] as List<dynamic>)
           .map((e) => _productFromJson(e as Map<String, dynamic>))
@@ -52,7 +54,9 @@ class GiftcardRepository {
       if (response.statusCode != 200 || decoded['success'] != true) {
         return ApiResult.fail(decoded['error'] as String? ?? '상품권 교환에 실패했습니다.');
       }
-      return ApiResult.ok(_issueFromJson(decoded['data'] as Map<String, dynamic>));
+      return ApiResult.ok(
+        _issueFromJson(decoded['data'] as Map<String, dynamic>),
+      );
     } catch (e) {
       debugPrint('[GiftcardRepository] [orderProduct] 예외 -> $e');
       return ApiResult.fail('상품권 교환 중 오류가 발생했습니다: $e');
@@ -69,7 +73,9 @@ class GiftcardRepository {
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
-        return ApiResult.fail(decoded['error'] as String? ?? '발급 내역을 불러오지 못했습니다.');
+        return ApiResult.fail(
+          decoded['error'] as String? ?? '발급 내역을 불러오지 못했습니다.',
+        );
       }
       final list = (decoded['data'] as List<dynamic>)
           .map((e) => _issueFromJson(e as Map<String, dynamic>))
@@ -95,9 +101,13 @@ class GiftcardRepository {
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
-        return ApiResult.fail(decoded['error'] as String? ?? '상품권을 사용할 수 없습니다.');
+        return ApiResult.fail(
+          decoded['error'] as String? ?? '상품권을 사용할 수 없습니다.',
+        );
       }
-      return ApiResult.ok(_issueFromJson(decoded['data'] as Map<String, dynamic>));
+      return ApiResult.ok(
+        _issueFromJson(decoded['data'] as Map<String, dynamic>),
+      );
     } catch (e) {
       debugPrint('[GiftcardRepository] [useIssue] 예외 -> $e');
       return ApiResult.fail('상품권 사용 중 오류가 발생했습니다: $e');
@@ -123,9 +133,15 @@ class GiftcardRepository {
       pointSpent: (j['pointSpent'] as num?)?.toInt() ?? 0,
       status: _statusFromString(j['status'] as String?),
       issuedCode: j['issuedCode'] as String?,
-      issuedAt: j['issuedAt'] != null ? DateTime.parse(j['issuedAt'] as String) : null,
-      expiresAt: j['expiresAt'] != null ? DateTime.parse(j['expiresAt'] as String) : null,
-      usedAt: j['usedAt'] != null ? DateTime.parse(j['usedAt'] as String) : null,
+      issuedAt: j['issuedAt'] != null
+          ? DateTime.parse(j['issuedAt'] as String)
+          : null,
+      expiresAt: j['expiresAt'] != null
+          ? DateTime.parse(j['expiresAt'] as String)
+          : null,
+      usedAt: j['usedAt'] != null
+          ? DateTime.parse(j['usedAt'] as String)
+          : null,
     );
   }
 

@@ -14,7 +14,6 @@ import '../domain/point_history_model.dart';
 /// 테스트 유저(userId=1, "별빛나그네")를 고정으로 사용한다. 추후 실제 로그인이
 /// 붙으면 [userId]를 로그인한 사용자의 id로 교체하기만 하면 된다.
 class WalletRepository {
-
   Future<ApiResult<int>> getBalance() async {
     final result = await _fetchWallet();
     if (!result.success) {
@@ -31,7 +30,8 @@ class WalletRepository {
     return ApiResult.ok(result.data!.history);
   }
 
-  Future<({int balance, List<PointHistoryModel> history})> _fetchWalletOrThrow() async {
+  Future<({int balance, List<PointHistoryModel> history})>
+  _fetchWalletOrThrow() async {
     final result = await _fetchWallet();
     if (!result.success) {
       throw Exception(result.errorMessage ?? '지갑 정보를 불러오지 못했습니다.');
@@ -39,7 +39,8 @@ class WalletRepository {
     return result.data!;
   }
 
-  Future<ApiResult<({int balance, List<PointHistoryModel> history})>> _fetchWallet() async {
+  Future<ApiResult<({int balance, List<PointHistoryModel> history})>>
+  _fetchWallet() async {
     final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/wallet?userId=$userId',
@@ -64,7 +65,9 @@ class WalletRepository {
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (decoded['success'] != true) {
-        return ApiResult.fail(decoded['error'] as String? ?? '지갑 응답 형식이 올바르지 않습니다.');
+        return ApiResult.fail(
+          decoded['error'] as String? ?? '지갑 응답 형식이 올바르지 않습니다.',
+        );
       }
 
       final data = decoded['data'] as Map<String, dynamic>;
@@ -72,7 +75,9 @@ class WalletRepository {
       final historyRaw = (data['history'] as List<dynamic>? ?? []);
       final history = historyRaw.map((e) {
         final map = e as Map<String, dynamic>;
-        final type = map['type'] == 'earn' ? PointHistoryType.earn : PointHistoryType.spend;
+        final type = map['type'] == 'earn'
+            ? PointHistoryType.earn
+            : PointHistoryType.spend;
         final rawAmount = map['amount'] as int;
         return PointHistoryModel(
           id: 'ph_${map['id']}',
@@ -96,8 +101,12 @@ class WalletRepository {
   /// int를 반환하되, 통신 실패는 Provider 쪽에서 try/catch로 처리하도록 위임).
   Future<int> earn(int amount, String reason) async {
     final userId = await AuthTokenStore.getCurrentUserId();
-    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/wallet/earn');
-    debugPrint('[WalletRepository] [earn] 요청 시작 -> amount=$amount, reason=$reason');
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/wallet/earn',
+    );
+    debugPrint(
+      '[WalletRepository] [earn] 요청 시작 -> amount=$amount, reason=$reason',
+    );
 
     try {
       final response = await http
@@ -120,7 +129,8 @@ class WalletRepository {
         return current.balance;
       }
 
-      final balance = (decoded['data'] as Map<String, dynamic>)['balance'] as int;
+      final balance =
+          (decoded['data'] as Map<String, dynamic>)['balance'] as int;
       debugPrint('[WalletRepository] [earn] 성공 -> balance=$balance');
       return balance;
     } catch (e) {
@@ -140,7 +150,9 @@ class WalletRepository {
     String memo = '복 나누기',
   }) async {
     final userId = await AuthTokenStore.getCurrentUserId();
-    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/wallet/send');
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/wallet/send',
+    );
     debugPrint(
       '[WalletRepository] [sendBok] 요청 시작 -> toUserId=$toUserId, amount=$amount',
     );
@@ -219,8 +231,12 @@ class WalletRepository {
   /// WalletService.spend — 성공 시 true, 잔액 부족/오류 시 false.
   Future<bool> spend(int amount, String reason) async {
     final userId = await AuthTokenStore.getCurrentUserId();
-    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/wallet/spend');
-    debugPrint('[WalletRepository] [spend] 요청 시작 -> amount=$amount, reason=$reason');
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/wallet/spend',
+    );
+    debugPrint(
+      '[WalletRepository] [spend] 요청 시작 -> amount=$amount, reason=$reason',
+    );
 
     try {
       final response = await http

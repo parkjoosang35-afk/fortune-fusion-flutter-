@@ -36,7 +36,9 @@ class MatchingRepository {
       if (response.statusCode != 200 || decoded['success'] != true) {
         return ApiResult.fail(decoded['error'] as String? ?? '프로필 저장에 실패했습니다.');
       }
-      return ApiResult.ok(_profileFromJson(decoded['data'] as Map<String, dynamic>));
+      return ApiResult.ok(
+        _profileFromJson(decoded['data'] as Map<String, dynamic>),
+      );
     } catch (e) {
       debugPrint('[MatchingRepository] [saveProfile] 예외 -> $e');
       return ApiResult.fail('프로필 저장 중 오류가 발생했습니다: $e');
@@ -52,7 +54,9 @@ class MatchingRepository {
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
-        return ApiResult.fail(decoded['error'] as String? ?? '프로필을 불러오지 못했습니다.');
+        return ApiResult.fail(
+          decoded['error'] as String? ?? '프로필을 불러오지 못했습니다.',
+        );
       }
       final data = decoded['data'];
       if (data == null) return ApiResult.ok(null);
@@ -72,7 +76,9 @@ class MatchingRepository {
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
-        return ApiResult.fail(decoded['error'] as String? ?? '추천 대상을 불러오지 못했습니다.');
+        return ApiResult.fail(
+          decoded['error'] as String? ?? '추천 대상을 불러오지 못했습니다.',
+        );
       }
       final list = (decoded['data'] as List<dynamic>)
           .map((e) => _candidateFromJson(e as Map<String, dynamic>))
@@ -128,14 +134,19 @@ class MatchingRepository {
       if (response.statusCode != 200 || decoded['success'] != true) {
         return ApiResult.fail(decoded['error'] as String? ?? '매칭을 찾을 수 없습니다.');
       }
-      return ApiResult.ok(_pairFromJson(decoded['data'] as Map<String, dynamic>));
+      return ApiResult.ok(
+        _pairFromJson(decoded['data'] as Map<String, dynamic>),
+      );
     } catch (e) {
       debugPrint('[MatchingRepository] [acceptPair] 예외 -> $e');
       return ApiResult.fail('매칭 수락 중 오류가 발생했습니다: $e');
     }
   }
 
-  Future<ApiResult<MatchingPairModel>> endPair(String pairId, {String? reason}) async {
+  Future<ApiResult<MatchingPairModel>> endPair(
+    String pairId, {
+    String? reason,
+  }) async {
     final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse('$_base/pairs/$pairId/end');
     try {
@@ -150,7 +161,9 @@ class MatchingRepository {
       if (response.statusCode != 200 || decoded['success'] != true) {
         return ApiResult.fail(decoded['error'] as String? ?? '매칭을 찾을 수 없습니다.');
       }
-      return ApiResult.ok(_pairFromJson(decoded['data'] as Map<String, dynamic>));
+      return ApiResult.ok(
+        _pairFromJson(decoded['data'] as Map<String, dynamic>),
+      );
     } catch (e) {
       debugPrint('[MatchingRepository] [endPair] 예외 -> $e');
       return ApiResult.fail('매칭 종료 중 오류가 발생했습니다: $e');
@@ -166,7 +179,9 @@ class MatchingRepository {
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
-        return ApiResult.fail(decoded['error'] as String? ?? '매칭 목록을 불러오지 못했습니다.');
+        return ApiResult.fail(
+          decoded['error'] as String? ?? '매칭 목록을 불러오지 못했습니다.',
+        );
       }
       final list = (decoded['data'] as List<dynamic>)
           .map((e) => _pairFromJson(e as Map<String, dynamic>))
@@ -219,7 +234,9 @@ class MatchingRepository {
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
-        return ApiResult.fail(decoded['error'] as String? ?? '메시지를 불러오지 못했습니다.');
+        return ApiResult.fail(
+          decoded['error'] as String? ?? '메시지를 불러오지 못했습니다.',
+        );
       }
       final list = (decoded['data'] as List<dynamic>)
           .map((e) => _messageFromJson(e as Map<String, dynamic>))
@@ -231,7 +248,10 @@ class MatchingRepository {
     }
   }
 
-  Future<ApiResult<ChatMessageModel>> sendMessage(String pairId, String content) async {
+  Future<ApiResult<ChatMessageModel>> sendMessage(
+    String pairId,
+    String content,
+  ) async {
     final userId = await AuthTokenStore.getCurrentUserId();
     if (content.trim().isEmpty) return ApiResult.fail('메시지를 입력해 주세요.');
     final uri = Uri.parse('$_base/chats/$pairId/messages');
@@ -247,7 +267,9 @@ class MatchingRepository {
       if (response.statusCode != 200 || decoded['success'] != true) {
         return ApiResult.fail(decoded['error'] as String? ?? '메시지 전송에 실패했습니다.');
       }
-      return ApiResult.ok(_messageFromJson(decoded['data'] as Map<String, dynamic>));
+      return ApiResult.ok(
+        _messageFromJson(decoded['data'] as Map<String, dynamic>),
+      );
     } catch (e) {
       debugPrint('[MatchingRepository] [sendMessage] 예외 -> $e');
       return ApiResult.fail('메시지 전송 중 오류가 발생했습니다: $e');

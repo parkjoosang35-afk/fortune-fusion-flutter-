@@ -16,7 +16,11 @@ import '../../ad_banner/presentation/ad_script_view.dart';
 class LuckyNumberWidget extends StatefulWidget {
   final Widget fallback;
   final double height;
-  const LuckyNumberWidget({super.key, required this.fallback, this.height = 160});
+  const LuckyNumberWidget({
+    super.key,
+    required this.fallback,
+    this.height = 160,
+  });
 
   @override
   State<LuckyNumberWidget> createState() => _LuckyNumberWidgetState();
@@ -81,20 +85,22 @@ class _LuckyNumberCardState extends State<_LuckyNumberCard> {
   @override
   void initState() {
     super.initState();
-    if (widget.content.isVideo && (widget.content.videoUrl?.isNotEmpty ?? false)) {
-      _videoController = VideoPlayerController.networkUrl(
-        Uri.parse(widget.content.videoUrl!),
-      )
-        ..setLooping(true)
-        ..setVolume(0)
-        ..initialize().then((_) {
-          if (mounted) {
-            setState(() {});
-            _videoController?.play();
-          }
-        }).catchError((e) {
-          debugPrint('[LuckyNumberWidget] 영상 초기화 실패 -> $e');
-        });
+    if (widget.content.isVideo &&
+        (widget.content.videoUrl?.isNotEmpty ?? false)) {
+      _videoController =
+          VideoPlayerController.networkUrl(Uri.parse(widget.content.videoUrl!))
+            ..setLooping(true)
+            ..setVolume(0)
+            ..initialize()
+                .then((_) {
+                  if (mounted) {
+                    setState(() {});
+                    _videoController?.play();
+                  }
+                })
+                .catchError((e) {
+                  debugPrint('[LuckyNumberWidget] 영상 초기화 실패 -> $e');
+                });
     }
   }
 

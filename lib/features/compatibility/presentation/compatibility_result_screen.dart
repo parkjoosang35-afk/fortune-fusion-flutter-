@@ -217,10 +217,8 @@ class _CompatibilityResultBody extends StatelessWidget {
               // 안내한다(별도의 사전 검증 없이 위임 - 03§9.2 과설계 방지 원칙).
               const SizedBox(height: AppSpacing.lg),
               OutlinedButton.icon(
-                onPressed: () => showSendBokSheet(
-                  context,
-                  recipientNickname: result.nameB,
-                ),
+                onPressed: () =>
+                    showSendBokSheet(context, recipientNickname: result.nameB),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.white,
                   side: const BorderSide(color: Colors.white54),

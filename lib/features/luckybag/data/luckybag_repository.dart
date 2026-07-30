@@ -21,7 +21,6 @@ import '../domain/luckybag_reward_model.dart';
 /// [방법 A — 임시 인증 우회] 회원 로그인 시스템이 아직 없어, 서버가 시딩해둔
 /// 테스트 유저(userId=1)를 고정으로 사용한다(WalletRepository와 동일한 임시 값).
 class LuckyBagRepository {
-
   // ── 기존(홈 배너 요약) - Mock 유지 ──
   // [비고] 서버 측 보상은 개봉 즉시 지급되는 구조라 "받을 수 있는(미수령) 복주머니 개수"
   // 개념이 별도로 존재하지 않는다. 홈 배너용 요약이므로 우선 Mock을 유지한다.
@@ -142,7 +141,9 @@ class LuckyBagRepository {
     int remainingBalance,
   ) async {
     final userId = await AuthTokenStore.getCurrentUserId();
-    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/luckybag/open');
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/luckybag/open',
+    );
     debugPrint('[LuckyBagRepository] [open] 요청 시작 -> productId=$productId');
 
     try {
@@ -213,7 +214,7 @@ class LuckyBagRepository {
   }
 
   Future<(List<LuckyBagOpenLogModel>, List<LuckyBagRewardSummaryEntry>)?>
-      _fetchHistory() async {
+  _fetchHistory() async {
     final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/luckybag/history?userId=$userId',
@@ -262,8 +263,7 @@ class LuckyBagRepository {
         count: map['count'] as int,
         totalPointReward: map['totalPointReward'] as int,
       );
-    }).toList()
-      ..sort((a, b) => b.grade.sortOrder.compareTo(a.grade.sortOrder));
+    }).toList()..sort((a, b) => b.grade.sortOrder.compareTo(a.grade.sortOrder));
 
     return (items, summary);
   }
