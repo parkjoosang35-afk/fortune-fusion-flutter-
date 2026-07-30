@@ -72,10 +72,10 @@ class _AmuletGenerateScreenState extends State<AmuletGenerateScreen>
       return;
     }
 
-    final result = await amuletProvider.generate(base.id);
+    final ok = await amuletProvider.generate(base.id);
     if (!mounted) return;
 
-    if (result != null) {
+    if (ok) {
       setState(() => _step = _GenerateStep.select);
       // 03§10.2 부적 획득 애니메이션(봉투펼침+골드광택스윕) 공용 다이얼로그 재사용
       await AmuletAcquiredDialog.show(context, item: base);

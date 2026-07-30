@@ -46,12 +46,16 @@ class _RewardScreenState extends State<RewardScreen> {
     final earned = await attendance.checkIn();
     if (!mounted) return;
     if (earned > 0) {
-      // 06§4.2 원칙: 적립은 도메인 액션(출석)이 WalletService.earn을 호출.
-      await context.read<WalletProvider>().earn(earned, '출석체크 보상');
+      // [실API 전환] 서버 checkin API가 지갑 적립까지 처리했으므로 잔액만 새로고침.
+      await context.read<WalletProvider>().load();
       if (!mounted) return;
       AppToast.show(context, '출석 완료! +$earned P 지급되었습니다.');
     } else {
-      AppToast.show(context, '출석 처리에 실패했습니다.', isError: true);
+      AppToast.show(
+        context,
+        attendance.lastError ?? '출석 처리에 실패했습니다.',
+        isError: true,
+      );
     }
   }
 

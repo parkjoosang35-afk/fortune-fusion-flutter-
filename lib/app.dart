@@ -48,6 +48,8 @@ import 'features/ad_banner/application/ad_banner_provider.dart';
 import 'features/ad_banner/data/ad_banner_repository.dart';
 import 'features/lucky_number/application/lucky_number_provider.dart';
 import 'features/lucky_number/data/lucky_number_repository.dart';
+import 'features/pass/application/pass_provider.dart';
+import 'features/pass/data/pass_repository.dart';
 
 /// 07단계 §2.1 앱 루트 - MultiProvider 전역 등록 + MaterialApp 라우팅 연결
 /// 10단계(A안): 모든 Repository는 Mock 구현이며, 향후 실제 API 연동 시
@@ -91,6 +93,9 @@ class App extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => LuckyNumberProvider(LuckyNumberRepository()),
         ),
+        // [신규] 알림패스(AlarmPass) — admin_web `/api/public/pass/*` 실 API 연동.
+        // 홈 화면 상단 상태바 + 알림패스 섹션에서 공유하는 전역 상태.
+        ChangeNotifierProvider(create: (_) => PassProvider(PassRepository())),
 
         // ── 기능별 Provider ──
         ChangeNotifierProvider(create: (_) => SajuProvider(SajuRepository())),

@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/widgets/app_dialog.dart';
+import '../../../core/widgets/app_toast.dart';
 import '../../wallet/application/wallet_provider.dart';
 import '../../attendance/application/attendance_provider.dart';
 import '../../fortune/daily/application/daily_fortune_provider.dart';
-import '../../fortune/presentation/ai_fortune_hub_screen.dart';
 import '../../notification/notification_provider.dart';
 import '../../luckybag/application/luckybag_provider.dart';
 import '../../amulet/application/amulet_provider.dart';
@@ -14,6 +16,8 @@ import '../../community/application/wish_post_provider.dart';
 import '../../community/presentation/community_screen.dart';
 import '../../lucky_number/application/lucky_number_provider.dart';
 import '../../lucky_number/presentation/lucky_number_widget.dart';
+import '../../pass/application/pass_provider.dart';
+import '../../pass/domain/pass_model.dart';
 
 /// 03단계 §3.3 홈 탭 - HomeScreen
 /// [Sowoon.kr 리디자인 프롬프트] 화이트/골드 미니멀 테마로 전면 리디자인.
@@ -40,6 +44,8 @@ class _HomeScreenState extends State<HomeScreen> {
       context.read<AmuletProvider>().load();
       // [웹→앱 이식] 신통방통 index.html "소원게시판" 요약 카드용 데이터 로드
       context.read<WishPostProvider>().loadFeed();
+      // [신규] 알림패스 — 상단 상태바 카운트다운 + 알림패스 섹션 CTA 카드 로드
+      context.read<PassProvider>().load();
     });
   }
 
@@ -55,6 +61,8 @@ class _HomeScreenState extends State<HomeScreen> {
           '신통방통',
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
+        // [신규] 알림패스 상단 상태바 — 활성 상태일 때만 AppBar 하단에 카운트다운 노출.
+        bottom: const _AlarmPassStatusBar(),
         actions: [
           _HcCircleIconButton(
             icon: notif.unreadCount > 0
@@ -124,6 +132,10 @@ class _HomeScreenState extends State<HomeScreen> {
             // 메시지" 카드는 배너 캐러셀 내부에서 제거(행운 색상/숫자 카드는 유지),
             // "오늘의 추천 행동"(_AiRecommendationCard)은 아래에서 완전히 숨김 처리한다.
             const _LuckRitualBanner(),
+            const SizedBox(height: AppSpacing.lg),
+            // [신규] 알림패스(AlarmPass) 섹션 — 정책 CTA 카드(광고/파트너) 노출.
+            // 이미 활성 상태면 섹션 자체를 숨긴다(상단 상태바로 충분히 안내됨).
+            const _AlarmPassSection(),
             const SizedBox(height: AppSpacing.lg),
             // [웹→앱 이식] 신통방통 index.html "🔮 부적 & 소원게시판" 세로배치 섹션
             const _TalismanWishSection(),
@@ -366,18 +378,20 @@ class _AttendanceWidget extends StatelessWidget {
                     final earned = await provider.checkIn();
                     if (!context.mounted) return;
                     if (earned > 0) {
-                      // 06§4.2 원칙: 적립은 도메인 액션(출석)이 WalletService.earn을 호출.
-                      await context.read<WalletProvider>().earn(
-                        earned,
-                        '출석체크 보상',
-                      );
+                      // [실API 전환] 서버 checkin API가 지갑 적립까지 트랜잭션으로
+                      // 처리했으므로, 여기서는 잔액만 새로고침한다(중복 적립 방지).
+                      await context.read<WalletProvider>().load();
                       if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('출석 완료! +$earned P 지급')),
                       );
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('출석 처리에 실패했습니다.')),
+                        SnackBar(
+                          content: Text(
+                            provider.lastError ?? '출석 처리에 실패했습니다.',
+                          ),
+                        ),
                       );
                     }
                   },
@@ -390,6 +404,253 @@ class _AttendanceWidget extends StatelessWidget {
                   : Colors.white,
             ),
             child: Text(provider.checkedToday ? '완료' : '출석'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// [신규] 알림패스(AlarmPass) 상단 상태바 — AppBar.bottom에 장착되는 카운트다운.
+/// 활성 상태가 아니면 높이 0(공간 차지 없음)으로 접혀 있는 그대로 사라진다.
+/// 서버 값(remainingSec)을 기준으로 1초 간격 로컬 타이머로 카운트다운만 표시하고,
+/// 실제 만료 판정은 다음 PassProvider.load() 호출(홈 재진입/새로고침) 시 서버가 갖는다.
+class _AlarmPassStatusBar extends StatefulWidget implements PreferredSizeWidget {
+  const _AlarmPassStatusBar();
+
+  @override
+  Size get preferredSize => const Size.fromHeight(32);
+
+  @override
+  State<_AlarmPassStatusBar> createState() => _AlarmPassStatusBarState();
+}
+
+class _AlarmPassStatusBarState extends State<_AlarmPassStatusBar> {
+  @override
+  Widget build(BuildContext context) {
+    final pass = context.watch<PassProvider>();
+    if (!pass.isActive) return const SizedBox.shrink();
+
+    final remaining = pass.status.remainingSec;
+    final h = remaining ~/ 3600;
+    final m = (remaining % 3600) ~/ 60;
+    final s = remaining % 60;
+    final label = h > 0
+        ? '$h시간 $m분 남음'
+        : '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')} 남음';
+
+    return Container(
+      height: 32,
+      color: AppColors.hcAccentSoft,
+      alignment: Alignment.center,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.bolt_rounded,
+            size: 14,
+            color: AppColors.hcGoldDark,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            '알림패스 활성중 · ${pass.status.policyName ?? ''} · $label',
+            style: const TextStyle(
+              fontFamily: 'Pretendard',
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: AppColors.hcGoldDark,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// [신규] 알림패스(AlarmPass) 섹션 — 광고 시청/파트너 방문 CTA 카드.
+/// admin_web `GET /api/public/pass/policies` 정책 중 passType이 ad/partner인
+/// 항목만 클라이언트에서 필터링해 노출한다(claim-ad/claim-partner API만 존재).
+/// 이미 알림패스가 활성 상태면(상단 상태바로 충분히 안내되므로) 섹션을 숨긴다.
+class _AlarmPassSection extends StatefulWidget {
+  const _AlarmPassSection();
+
+  @override
+  State<_AlarmPassSection> createState() => _AlarmPassSectionState();
+}
+
+class _AlarmPassSectionState extends State<_AlarmPassSection> {
+  bool _claiming = false;
+
+  Future<void> _handleAdClaim(PassPolicyModel policy) async {
+    final pass = context.read<PassProvider>();
+    final confirmed = await showAppConfirmDialog(
+      context,
+      title: policy.name,
+      message: policy.ctaText ?? '광고를 시청하고 알림패스를 받으시겠습니까?',
+      confirmLabel: '시청하기',
+    );
+    if (!confirmed || !mounted) return;
+
+    setState(() => _claiming = true);
+    // [주의] AdMob 등 실제 광고 SDK가 아직 연동되지 않아, 확인 다이얼로그로
+    // "시청 완료"를 대신한다(관리자 정책/보너스 로직은 서버가 실제로 처리).
+    final ok = await pass.claimAd(policyId: policy.id);
+    if (!mounted) return;
+    setState(() => _claiming = false);
+
+    if (ok) {
+      await context.read<WalletProvider>().load();
+      if (!mounted) return;
+      AppToast.show(context, '알림패스가 발급되었습니다! (${policy.durationMin}분)');
+    } else {
+      AppToast.show(context, pass.lastError ?? '알림패스 발급에 실패했습니다.', isError: true);
+    }
+  }
+
+  Future<void> _handlePartnerClaim(PassPolicyModel policy) async {
+    final pass = context.read<PassProvider>();
+    final confirmed = await showAppConfirmDialog(
+      context,
+      title: policy.name,
+      message: policy.ctaText ?? '파트너 페이지를 방문하고 알림패스를 받으시겠습니까?',
+      confirmLabel: '방문하기',
+    );
+    if (!confirmed || !mounted) return;
+
+    if (policy.linkUrl != null && policy.linkUrl!.isNotEmpty) {
+      final uri = Uri.tryParse(policy.linkUrl!);
+      if (uri != null) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    }
+    if (!mounted) return;
+
+    setState(() => _claiming = true);
+    final ok = await pass.claimPartner(policyId: policy.id);
+    if (!mounted) return;
+    setState(() => _claiming = false);
+
+    if (ok) {
+      await context.read<WalletProvider>().load();
+      if (!mounted) return;
+      AppToast.show(context, '알림패스가 발급되었습니다! (${policy.durationMin}분)');
+    } else {
+      AppToast.show(context, pass.lastError ?? '알림패스 발급에 실패했습니다.', isError: true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pass = context.watch<PassProvider>();
+    if (pass.isActive) return const SizedBox.shrink();
+
+    final actionablePolicies = pass.policies
+        .where(
+          (p) => p.passType == PassType.ad || p.passType == PassType.partner,
+        )
+        .toList();
+    if (actionablePolicies.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          '⏱️ 알림패스 받기',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: AppColors.hcTextDark,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        ...actionablePolicies.map(
+          (p) => Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+            child: _AlarmPassCard(
+              policy: p,
+              isBusy: _claiming,
+              onTap: () => p.passType == PassType.ad
+                  ? _handleAdClaim(p)
+                  : _handlePartnerClaim(p),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AlarmPassCard extends StatelessWidget {
+  final PassPolicyModel policy;
+  final bool isBusy;
+  final VoidCallback onTap;
+
+  const _AlarmPassCard({
+    required this.policy,
+    required this.isBusy,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isAd = policy.passType == PassType.ad;
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.hcCardBg,
+        borderRadius: BorderRadius.circular(AppRadius.hcCardMenu),
+        border: Border.all(color: AppColors.hcBorderLight),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: AppColors.hcCream,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              isAd ? Icons.smart_display_rounded : Icons.storefront_rounded,
+              color: AppColors.hcGoldDark,
+              size: 18,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  policy.name,
+                  style: const TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.hcTextDark,
+                  ),
+                ),
+                Text(
+                  '${policy.durationMin}분'
+                  '${policy.bonusPoint > 0 ? ' · +${policy.bonusPoint}P' : ''}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.hcTextSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(
+            height: 32,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+              ),
+              onPressed: isBusy ? null : onTap,
+              child: Text(isAd ? '시청' : '방문'),
+            ),
           ),
         ],
       ),

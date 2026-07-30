@@ -1,196 +1,226 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import '../../../core/api/api_result.dart';
-import '../../../core/utils/mock_delay.dart';
+import '../../../core/auth/auth_token_store.dart';
+import '../../../core/config/env_config.dart';
 import '../domain/amulet_item_model.dart';
 import '../domain/amulet_model.dart';
 import '../domain/user_amulet_model.dart';
 
-/// 06단계 §4.8 `/v1/amulets/*` 대응 Mock Repository
-/// 10단계(Mock): 상점 상품/보유목록을 메모리에 고정 데이터로 유지.
-/// 향후 실제 API 연동 시 이 클래스 내부 구현만 http 호출로 교체.
+/// 06단계 §4.8 `/v1/amulets/*` 대응 Repository — admin_web 공개 API
+/// (`GET /api/public/amulets/{shop,my}`, `POST /api/public/amulets/{purchase,use,generate,gift}`)를 호출한다.
+///
+/// [실API 전환 - 갭 처리] admin_web UserAmulet 스키마에는 isEquipped 컬럼이 없어
+/// "장착" 기능에 대응하는 서버 API가 없다. equip()은 서버 호출 없이
+/// AmuletProvider에서 클라이언트 로컬 상태로만 처리한다(본 Repository에는 정의하지 않음).
 class AmuletRepository {
-  static const _names = ['재물 부적', '애정 부적', '건강 부적', '취업운 부적'];
-  static const _icons = ['🧧', '💖', '🍀', '⭐'];
-
-  // ── GET /v1/amulets/shop 대응 Mock 상품 마스터 ──
-  static final List<AmuletItemModel> _shopItems = [
-    AmuletItemModel(
-      id: 'am_001',
-      name: '재물 부적',
-      grade: AmuletGrade.byCode('common'),
-      effectDescription: '금전운을 끌어당기는 기본 부적입니다.',
-      iconEmoji: '🧧',
-      pricePoint: 500,
-    ),
-    AmuletItemModel(
-      id: 'am_002',
-      name: '애정 부적',
-      grade: AmuletGrade.byCode('rare'),
-      effectDescription: '인연과 애정운을 밝혀주는 부적입니다.',
-      iconEmoji: '💖',
-      pricePoint: 1200,
-    ),
-    AmuletItemModel(
-      id: 'am_003',
-      name: '건강 부적',
-      grade: AmuletGrade.byCode('common'),
-      effectDescription: '몸과 마음의 건강을 지켜주는 부적입니다.',
-      iconEmoji: '🍀',
-      pricePoint: 500,
-    ),
-    AmuletItemModel(
-      id: 'am_004',
-      name: '취업운 부적',
-      grade: AmuletGrade.byCode('heroic'),
-      effectDescription: '새로운 기회와 취업운을 불러오는 부적입니다.',
-      iconEmoji: '⭐',
-      pricePoint: 2000,
-    ),
-    AmuletItemModel(
-      id: 'am_005',
-      name: '만사형통 황금부적',
-      grade: AmuletGrade.byCode('legendary'),
-      effectDescription: '모든 운을 상승시키는 한정판 부적입니다.',
-      iconEmoji: '👑',
-      pricePoint: 5000,
-      isLimited: true,
-    ),
-    AmuletItemModel(
-      id: 'am_006',
-      name: 'AI 맞춤 부적',
-      grade: AmuletGrade.byCode('heroic'),
-      effectDescription: 'AI가 당신만을 위해 생성하는 특별한 부적입니다.',
-      iconEmoji: '🎨',
-      pricePoint: 3000,
-      isAiGenerated: true,
-    ),
-  ];
-
-  // ── GET /v1/amulets/my 대응 Mock 보유 목록(user_amulets) ──
-  final List<UserAmuletModel> _myAmulets = [
-    UserAmuletModel(
-      id: 'ua_001',
-      item: _shopItems[0],
-      status: UserAmuletStatus.held,
-      acquiredAt: DateTime.now().subtract(const Duration(days: 2)),
-      sourceType: 'purchase',
-      isEquipped: true,
-    ),
-    UserAmuletModel(
-      id: 'ua_002',
-      item: _shopItems[2],
-      status: UserAmuletStatus.held,
-      acquiredAt: DateTime.now().subtract(const Duration(days: 5)),
-      sourceType: 'luckybag',
-    ),
-  ];
-
-  /// 기존(홈 배너 요약용) - 변경 없음
+  /// 홈 배너 요약용 — 서버에 전용 요약 API가 없어, 보유 목록 중 가장 최근 held 항목을
+  /// 요약으로 사용한다. 보유 부적이 없으면 hasActive=false로 안내 카드만 노출한다.
   Future<ApiResult<AmuletSummary>> getActiveSummary() async {
-    await mockDelay(ms: 300);
-    final seed = DateTime.now().day;
-    final hasActive = seed % 4 != 0;
+    final result = await getMyAmulets();
+    if (!result.success) {
+      return ApiResult.ok(
+        const AmuletSummary(hasActive: false, name: '', iconEmoji: '🧧'),
+      );
+    }
+    final held = result.data!
+        .where((a) => a.status == UserAmuletStatus.held)
+        .toList();
+    if (held.isEmpty) {
+      return ApiResult.ok(
+        const AmuletSummary(hasActive: false, name: '', iconEmoji: '🧧'),
+      );
+    }
+    final latest = held.first;
     return ApiResult.ok(
       AmuletSummary(
-        hasActive: hasActive,
-        name: _names[seed % _names.length],
-        iconEmoji: _icons[seed % _icons.length],
+        hasActive: true,
+        name: latest.item.name,
+        iconEmoji: latest.item.iconEmoji,
       ),
     );
   }
 
-  /// GET /v1/amulets/shop
+  /// GET /api/public/amulets/shop
   Future<ApiResult<List<AmuletItemModel>>> getShopItems() async {
-    await mockDelay(ms: 300);
-    return ApiResult.ok(List.unmodifiable(_shopItems));
+    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/amulets/shop');
+    debugPrint('[AmuletRepository] [shop] 요청 -> $uri');
+
+    try {
+      final response = await http
+          .get(uri, headers: {'Accept': 'application/json'})
+          .timeout(const Duration(seconds: 10));
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        final error = decoded['error'] as String? ?? '부적 상점 목록을 불러오지 못했습니다.';
+        debugPrint('[AmuletRepository] [shop] 실패 -> $error');
+        return ApiResult.fail(error);
+      }
+
+      final list = (decoded['data'] as List<dynamic>)
+          .map((e) => AmuletItemModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+      return ApiResult.ok(list);
+    } catch (e) {
+      debugPrint('[AmuletRepository] [shop] 예외 -> $e');
+      return ApiResult.fail('부적 상점 목록을 불러오지 못했습니다: $e');
+    }
   }
 
-  /// GET /v1/amulets/my - 보유 목록(컬렉션)
+  /// GET /api/public/amulets/my
   Future<ApiResult<List<UserAmuletModel>>> getMyAmulets() async {
-    await mockDelay(ms: 300);
-    return ApiResult.ok(List.unmodifiable(_myAmulets));
-  }
-
-  /// POST /v1/amulets/purchase - 구매(Wallet spend는 Provider단에서 연동)
-  Future<ApiResult<UserAmuletModel>> purchase(String itemId) async {
-    await mockDelay(ms: 400);
-    final item = _shopItems.where((i) => i.id == itemId).firstOrNull;
-    if (item == null) {
-      return ApiResult.fail('존재하지 않는 상품입니다.');
-    }
-    final userAmulet = UserAmuletModel(
-      id: 'ua_${_myAmulets.length + 1}',
-      item: item,
-      status: UserAmuletStatus.held,
-      acquiredAt: DateTime.now(),
-      sourceType: 'purchase',
+    final userId = await AuthTokenStore.getCurrentUserId();
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/amulets/my?userId=$userId',
     );
-    _myAmulets.insert(0, userAmulet);
-    return ApiResult.ok(userAmulet);
+    debugPrint('[AmuletRepository] [my] 요청 -> $uri');
+
+    try {
+      final response = await http
+          .get(uri, headers: {'Accept': 'application/json'})
+          .timeout(const Duration(seconds: 10));
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        final error = decoded['error'] as String? ?? '보유 부적 목록을 불러오지 못했습니다.';
+        debugPrint('[AmuletRepository] [my] 실패 -> $error');
+        return ApiResult.fail(error);
+      }
+
+      final list = (decoded['data'] as List<dynamic>)
+          .map((e) => UserAmuletModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+      return ApiResult.ok(list);
+    } catch (e) {
+      debugPrint('[AmuletRepository] [my] 예외 -> $e');
+      return ApiResult.fail('보유 부적 목록을 불러오지 못했습니다: $e');
+    }
   }
 
-  /// POST /v1/amulets/:id/use - 사용 처리(amulet_usage_logs 기록 대응)
+  /// POST /api/public/amulets/purchase — 서버가 지갑 차감까지 트랜잭션으로 처리한다.
+  /// [주의] 호출부(화면)는 더 이상 WalletProvider.spend()를 선행 호출하지 않고,
+  /// 성공 시 반환된 balanceAfter로 WalletProvider 잔액을 직접 동기화해야 한다
+  /// (중복 차감 방지 — amulet_shop_screen.dart / amulet_generate_screen.dart 참조).
+  Future<ApiResult<Map<String, dynamic>>> purchase(String itemId) async {
+    final userId = await AuthTokenStore.getCurrentUserId();
+    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/amulets/purchase');
+    debugPrint('[AmuletRepository] [purchase] 요청 -> itemId=$itemId');
+
+    try {
+      final response = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'userId': userId, 'itemId': itemId}),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        final error = decoded['error'] as String? ?? '부적 구매에 실패했습니다.';
+        debugPrint('[AmuletRepository] [purchase] 실패 -> $error');
+        return ApiResult.fail(error);
+      }
+      return ApiResult.ok(decoded['data'] as Map<String, dynamic>);
+    } catch (e) {
+      debugPrint('[AmuletRepository] [purchase] 예외 -> $e');
+      return ApiResult.fail('부적 구매 중 오류가 발생했습니다: $e');
+    }
+  }
+
+  /// POST /api/public/amulets/use
   Future<ApiResult<void>> use(String userAmuletId) async {
-    await mockDelay(ms: 300);
-    final idx = _myAmulets.indexWhere((a) => a.id == userAmuletId);
-    if (idx == -1) return ApiResult.fail('보유하지 않은 부적입니다.');
-    if (_myAmulets[idx].status != UserAmuletStatus.held) {
-      return ApiResult.fail('이미 사용되었거나 만료된 부적입니다.');
+    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/amulets/use');
+    debugPrint('[AmuletRepository] [use] 요청 -> userAmuletId=$userAmuletId');
+
+    try {
+      final response = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'userAmuletId': userAmuletId}),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        final error = decoded['error'] as String? ?? '부적 사용에 실패했습니다.';
+        debugPrint('[AmuletRepository] [use] 실패 -> $error');
+        return ApiResult.fail(error);
+      }
+      return ApiResult.ok(null);
+    } catch (e) {
+      debugPrint('[AmuletRepository] [use] 예외 -> $e');
+      return ApiResult.fail('부적 사용 중 오류가 발생했습니다: $e');
     }
-    _myAmulets[idx] = _myAmulets[idx].copyWith(
-      status: UserAmuletStatus.used,
-      isEquipped: false,
-    );
-    return ApiResult.ok(null);
   }
 
-  /// POST /v1/amulets/:id/equip - 장착(동시 장착 제한 1개 - 정책값 Mock)
-  Future<ApiResult<void>> equip(String userAmuletId) async {
-    await mockDelay(ms: 300);
-    final idx = _myAmulets.indexWhere((a) => a.id == userAmuletId);
-    if (idx == -1) return ApiResult.fail('보유하지 않은 부적입니다.');
-    if (_myAmulets[idx].status != UserAmuletStatus.held) {
-      return ApiResult.fail('사용/만료된 부적은 장착할 수 없습니다.');
+  /// POST /api/public/amulets/generate — [주의] purchase()와 동일하게 서버가 아직
+  /// 별도 차감을 하지 않으므로(현재 라우트는 무료 지급), 호출부에서 필요 시 별도
+  /// WalletProvider.spend()를 유지해야 한다(향후 서버측 과금 로직 추가 여지 있음).
+  Future<ApiResult<Map<String, dynamic>>> generate(String baseItemId) async {
+    final userId = await AuthTokenStore.getCurrentUserId();
+    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/amulets/generate');
+    debugPrint('[AmuletRepository] [generate] 요청 -> baseItemId=$baseItemId');
+
+    try {
+      final response = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'userId': userId, 'baseItemId': baseItemId}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        final error = decoded['error'] as String? ?? '부적 생성에 실패했습니다.';
+        debugPrint('[AmuletRepository] [generate] 실패 -> $error');
+        return ApiResult.fail(error);
+      }
+      return ApiResult.ok(decoded['data'] as Map<String, dynamic>);
+    } catch (e) {
+      debugPrint('[AmuletRepository] [generate] 예외 -> $e');
+      return ApiResult.fail('부적 생성 중 오류가 발생했습니다: $e');
     }
-    for (var i = 0; i < _myAmulets.length; i++) {
-      _myAmulets[i] = _myAmulets[i].copyWith(isEquipped: i == idx);
-    }
-    return ApiResult.ok(null);
   }
 
-  /// POST /v1/amulets/generate - AI 생성형 부적 생성 요청(ai_request_logs 대응)
-  Future<ApiResult<UserAmuletModel>> generate(String baseItemId) async {
-    await mockDelay(ms: 900); // AI 생성 특성상 다소 긴 대기 시뮬레이션
-    final base = _shopItems.where((i) => i.id == baseItemId).firstOrNull;
-    if (base == null || !base.isAiGenerated) {
-      return ApiResult.fail('AI 생성 가능한 상품이 아닙니다.');
-    }
-    final generated = UserAmuletModel(
-      id: 'ua_${_myAmulets.length + 1}',
-      item: base,
-      status: UserAmuletStatus.held,
-      acquiredAt: DateTime.now(),
-      sourceType: 'purchase',
-    );
-    _myAmulets.insert(0, generated);
-    return ApiResult.ok(generated);
-  }
-
-  /// POST /v1/amulets/gift - 선물하기
+  /// POST /api/public/amulets/gift
   Future<ApiResult<void>> gift(
     String userAmuletId,
     String toUserNickname,
     String? message,
   ) async {
-    await mockDelay(ms: 400);
-    final idx = _myAmulets.indexWhere((a) => a.id == userAmuletId);
-    if (idx == -1) return ApiResult.fail('보유하지 않은 부적입니다.');
-    if (_myAmulets[idx].status != UserAmuletStatus.held) {
-      return ApiResult.fail('선물할 수 없는 상태의 부적입니다.');
+    final userId = await AuthTokenStore.getCurrentUserId();
+    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/amulets/gift');
+    debugPrint('[AmuletRepository] [gift] 요청 -> userAmuletId=$userAmuletId');
+
+    try {
+      final response = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'userId': userId,
+              'userAmuletId': userAmuletId,
+              'toUserNickname': toUserNickname,
+              if (message != null) 'message': message,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        final error = decoded['error'] as String? ?? '부적 선물에 실패했습니다.';
+        debugPrint('[AmuletRepository] [gift] 실패 -> $error');
+        return ApiResult.fail(error);
+      }
+      return ApiResult.ok(null);
+    } catch (e) {
+      debugPrint('[AmuletRepository] [gift] 예외 -> $e');
+      return ApiResult.fail('부적 선물 중 오류가 발생했습니다: $e');
     }
-    _myAmulets[idx] = _myAmulets[idx].copyWith(
-      status: UserAmuletStatus.gifted,
-      isEquipped: false,
-    );
-    return ApiResult.ok(null);
   }
 }

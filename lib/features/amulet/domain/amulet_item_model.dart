@@ -41,4 +41,36 @@ class AmuletItemModel {
     required this.pricePoint,
     this.isLimited = false,
   });
+
+  /// admin_web에는 아직 이모지/아이콘 컬럼이 없어(imageUrl만 존재), 등급코드+AI생성여부
+  /// 기준으로 클라이언트에서 고정 매핑한다(03§3.1 임시표기 규칙과 동일한 원칙).
+  static String iconForGrade(String gradeCode, bool isAiGenerated) {
+    if (isAiGenerated) return '🎨';
+    switch (gradeCode) {
+      case 'legendary':
+        return '👑';
+      case 'heroic':
+        return '⭐';
+      case 'rare':
+        return '💖';
+      default:
+        return '🧧';
+    }
+  }
+
+  /// GET /api/public/amulets/shop 대응
+  factory AmuletItemModel.fromJson(Map<String, dynamic> json) {
+    final gradeCode = json['gradeCode'] as String? ?? 'common';
+    final isAiGenerated = json['isAiGenerated'] as bool? ?? false;
+    return AmuletItemModel(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      grade: AmuletGrade.byCode(gradeCode),
+      effectDescription: json['effectDescription'] as String? ?? '',
+      iconEmoji: iconForGrade(gradeCode, isAiGenerated),
+      isAiGenerated: isAiGenerated,
+      pricePoint: json['pricePoint'] as int? ?? 0,
+      isLimited: json['isLimited'] as bool? ?? false,
+    );
+  }
 }

@@ -51,6 +51,29 @@ class CompatibilityResultModel {
       shareUrl: shareUrl ?? this.shareUrl,
     );
   }
+
+  /// POST .../compatibility/request, GET .../history, GET .../result/:id 공통 응답 대응.
+  /// [주의] 서버 응답에는 isSaved/shareUrl 필드가 없다(admin_web 스키마에 보관/공유
+  /// 컬럼이 없음 — CompatibilityProvider가 클라이언트 로컬 상태로 별도 관리한다).
+  factory CompatibilityResultModel.fromJson(Map<String, dynamic> json) {
+    final topicResultsRaw =
+        json['topicResults'] as Map<String, dynamic>? ?? const {};
+    return CompatibilityResultModel(
+      id: json['id'] as String,
+      nameA: json['nameA'] as String? ?? '나',
+      nameB: json['nameB'] as String? ?? '상대방',
+      type: CompatibilityType.values.firstWhere(
+        (t) => t.name == (json['type'] as String? ?? 'love'),
+        orElse: () => CompatibilityType.love,
+      ),
+      score: json['score'] as int? ?? 0,
+      topicResults: topicResultsRaw.map(
+        (key, value) => MapEntry(key, value as String? ?? ''),
+      ),
+      summary: json['summary'] as String? ?? '',
+      createdAt: DateTime.parse(json['createdAt'] as String),
+    );
+  }
 }
 
 /// 06§4.5 `GET /compatibility/compare?ids=` 대응 - 보관한 결과끼리 항목별 비교표

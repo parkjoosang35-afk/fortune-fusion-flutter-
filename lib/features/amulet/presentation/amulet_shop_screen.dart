@@ -58,30 +58,22 @@ class _AmuletShopScreenState extends State<AmuletShopScreen> {
 
     setState(() => _purchasing = true);
 
-    // 1) Wallet spend 선행
-    final spent = await wallet.spend(item.pricePoint, '${item.name} 구매');
-    if (!mounted) return;
-    if (!spent) {
-      setState(() => _purchasing = false);
-      AppToast.show(context, '포인트 차감에 실패했습니다.', isError: true);
-      return;
-    }
-
-    // 2) 부적 지급
-    final result = await amulet.purchase(item.id);
+    // [실API 전환] 서버(`POST /amulets/purchase`)가 지갑 차감+부적 발급을
+    // 트랜잭션으로 함께 처리하므로, 클라이언트에서 선차감(wallet.spend)을 호출하지
+    // 않는다(중복 차감 방지). 성공 시 잔액만 새로고침한다.
+    final ok = await amulet.purchase(item.id);
     if (!mounted) return;
     setState(() => _purchasing = false);
 
-    if (result != null) {
+    if (ok) {
+      await wallet.load();
+      if (!mounted) return;
       // 03§10.2 부적 획득 애니메이션(봉투펼침+골드광택스윕) 공용 다이얼로그 재사용
       await AmuletAcquiredDialog.show(context, item: item);
     } else {
-      // 예외처리: 지급 실패 시 차감된 포인트 환불(rollback)
-      await wallet.earn(item.pricePoint, '${item.name} 구매 실패 환불');
-      if (!mounted) return;
       AppToast.show(
         context,
-        amulet.actionError ?? '구매에 실패했습니다. 포인트가 환불되었습니다.',
+        amulet.actionError ?? '구매에 실패했습니다.',
         isError: true,
       );
     }
