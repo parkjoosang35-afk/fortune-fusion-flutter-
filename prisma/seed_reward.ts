@@ -30,6 +30,10 @@ const POLICIES: Array<{
   { sourceType: "ai_face_request", amount: 150, dailyLimit: 1, isActive: true },
   { sourceType: "ai_palm_request", amount: 150, dailyLimit: 1, isActive: true },
   { sourceType: "ai_consultation_message", amount: 20, dailyLimit: 10, isActive: true },
+  // [3단계 - 복주머니 소비: 운명의 동행] 매칭 "관심표시(좋아요)" 1건당 차감.
+  // ai_compatibility_request와 동일하게 "정책이 없으면 무료" 하위호환 규칙을 쓰므로,
+  // 이 시드가 없어도 서버는 에러 없이 무료로 동작한다(관리자가 즉시 유료화 가능).
+  { sourceType: "matching_like", amount: 20, dailyLimit: null, isActive: true },
 ];
 
 async function seedPointPolicies() {

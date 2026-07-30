@@ -1,6 +1,11 @@
 // 공개(비인증) 커뮤니티 게시글 댓글 조회/작성 API
 // — CommunityPostRepository.getComments()/addComment() 대응.
 // comments(폴리모픽, targetType='post') + community_posts.comment_count 캐시 갱신.
+//
+// [3단계 - 복주머니 커뮤니티 적립 연동] 댓글 작성 시 point_policies.community
+// 정책(게시글/소원 작성과 동일 sourceType 재사용, 03단계 마스터 지시의 "적립: 글쓰기/
+// 댓글"을 하나의 "커뮤니티 활동" 한도로 묶어 관리)을 적용해 복주머니를 지급한다.
+// wishes/route.ts, community/posts/route.ts와 동일한 트랜잭션 패턴을 그대로 재사용.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
@@ -99,7 +104,46 @@ export async function POST(
         data: { commentCount: post.commentCount + 1 },
       });
 
-      return { comment, user };
+      // [3단계 - 복주머니 커뮤니티 적립 연동] point_policies.community 재사용.
+      // 게시글/소원 작성과 동일한 sourceType="community"로 1일 한도를 함께 관리한다.
+      const policy = await tx.pointPolicy.findUnique({ where: { sourceType: "community" } });
+      let rewardPoint = 0;
+      if (policy?.isActive && policy.amount > 0) {
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const todayCount = await tx.pointHistory.count({
+          where: { userId, sourceType: "community", type: "earn", createdAt: { gte: todayStart } },
+        });
+        const dailyLimit = policy.dailyLimit ?? Infinity;
+        if (todayCount < dailyLimit) {
+          rewardPoint = policy.amount;
+          let wallet = await tx.wallet.findFirst({
+            where: { userId, currencyType: "POINT", deletedAt: null },
+          });
+          if (!wallet) {
+            wallet = await tx.wallet.create({ data: { userId, currencyType: "POINT", balance: 0 } });
+          }
+          const newBalance = wallet.balance + rewardPoint;
+          await tx.wallet.update({
+            where: { id: wallet.id },
+            data: { balance: newBalance, balanceSyncedAt: new Date() },
+          });
+          await tx.pointHistory.create({
+            data: {
+              walletId: wallet.id,
+              userId,
+              amount: rewardPoint,
+              type: "earn",
+              sourceType: "community",
+              sourceId: comment.id,
+              balanceAfter: newBalance,
+              memo: "커뮤니티 댓글 작성",
+            },
+          });
+        }
+      }
+
+      return { comment, user, rewardPoint };
     });
 
     return NextResponse.json(
@@ -111,6 +155,7 @@ export async function POST(
           authorNickname: result.user.nickname,
           content: result.comment.content,
           createdAt: result.comment.createdAt.toISOString(),
+          rewardPoint: result.rewardPoint,
         },
       },
       { headers: CORS_HEADERS }

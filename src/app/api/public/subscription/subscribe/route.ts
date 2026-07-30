@@ -89,25 +89,110 @@ export async function POST(request: NextRequest) {
         },
         include: { plan: true },
       });
-      return subscription;
+
+      // [Fortune Fusion 3축 정책] 구독 = "알림패스 자동/추가 지급 + 복주머니 정기 지급"
+      // 구독 성공 시 passType="subscription" 정책을 조회해 UserPass를 즉시 발급하고,
+      // bonusPoint가 있으면 복주머니(포인트)도 함께 지급한다(claim-ad/route.ts와 동일한
+      // 트랜잭션 패턴 재사용). 정책이 비활성/미시딩 상태면 조용히 건너뛴다(구독 자체는 유효).
+      let issuedPass: { userPassId: number; policyId: number; policyName: string; expiresAt: Date; bonusPoint: number } | null = null;
+      const passPolicy = await tx.passPolicy.findFirst({
+        where: { passType: "subscription", isActive: true, deletedAt: null },
+        orderBy: { id: "asc" },
+      });
+      if (passPolicy) {
+        const passExpiresAt = new Date(now.getTime() + passPolicy.durationMin * 60 * 1000);
+        const userPass = await tx.userPass.create({
+          data: {
+            userId,
+            policyId: passPolicy.id,
+            activatedAt: now,
+            expiresAt: passExpiresAt,
+            sourceType: "subscription",
+          },
+        });
+
+        let wallet = await tx.wallet.findFirst({
+          where: { userId, currencyType: "POINT", deletedAt: null },
+        });
+        if (!wallet) {
+          wallet = await tx.wallet.create({ data: { userId, currencyType: "POINT", balance: 0 } });
+        }
+        if (passPolicy.bonusPoint > 0) {
+          const balanceAfter = wallet.balance + passPolicy.bonusPoint;
+          await tx.wallet.update({
+            where: { id: wallet.id },
+            data: { balance: balanceAfter, balanceSyncedAt: now },
+          });
+          await tx.pointHistory.create({
+            data: {
+              walletId: wallet.id,
+              userId,
+              amount: passPolicy.bonusPoint,
+              type: "earn",
+              sourceType: "pass_subscription_bonus",
+              sourceId: userPass.id,
+              balanceAfter,
+              memo: `구독 알림패스 지급 보너스: ${passPolicy.name}`,
+            },
+          });
+        }
+
+        await tx.operationLog.create({
+          data: {
+            actorType: "user",
+            actorId: userId,
+            action: "claim_subscription_pass",
+            targetType: "user_pass",
+            targetId: userPass.id,
+            before: null,
+            after: JSON.stringify({
+              policyId: passPolicy.id,
+              subscriptionId: subscription.id,
+              expiresAt: passExpiresAt.toISOString(),
+            }),
+          },
+        });
+
+        issuedPass = {
+          userPassId: userPass.id,
+          policyId: passPolicy.id,
+          policyName: passPolicy.name,
+          expiresAt: passExpiresAt,
+          bonusPoint: passPolicy.bonusPoint,
+        };
+      }
+
+      return { subscription, issuedPass };
     });
 
+    const { subscription, issuedPass } = result;
     return NextResponse.json(
       {
         success: true,
         data: {
-          id: `sub_${result.id}`,
+          id: `sub_${subscription.id}`,
           plan: {
-            id: `plan_${result.plan.id}`,
-            name: result.plan.name,
-            price: result.plan.price,
-            period: result.plan.period,
-            benefits: parseBenefits(result.plan.benefits),
-            isActive: result.plan.isActive,
+            id: `plan_${subscription.plan.id}`,
+            name: subscription.plan.name,
+            price: subscription.plan.price,
+            period: subscription.plan.period,
+            benefits: parseBenefits(subscription.plan.benefits),
+            isActive: subscription.plan.isActive,
           },
-          status: result.status,
-          startedAt: result.startedAt.toISOString(),
-          currentPeriodEnd: result.currentPeriodEnd.toISOString(),
+          status: subscription.status,
+          startedAt: subscription.startedAt.toISOString(),
+          currentPeriodEnd: subscription.currentPeriodEnd.toISOString(),
+          // [Fortune Fusion 3축 정책] 구독 성공 시 함께 발급된 알림패스 정보.
+          // passPolicy가 시딩되어 있지 않으면 null(구독 자체는 정상 처리됨).
+          issuedPass: issuedPass
+            ? {
+                userPassId: issuedPass.userPassId,
+                policyId: issuedPass.policyId,
+                policyName: issuedPass.policyName,
+                expiresAt: issuedPass.expiresAt.toISOString(),
+                bonusPoint: issuedPass.bonusPoint,
+              }
+            : null,
         },
       },
       { headers: CORS_HEADERS }

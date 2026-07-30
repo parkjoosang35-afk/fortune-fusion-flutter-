@@ -6,6 +6,11 @@
 // 확인되는 즉시 matching_pairs를 status="active"로 생성한다(자연스러운 앱 UX: 서로
 // 좋아요를 누르면 바로 매�칭). 서버는 pendingAccept를 절대 반환하지 않으므로 화면의
 // "수락" 버튼은 자연히 노출되지 않고, endPair(매칭 종료)만 실질적으로 쓰인다.
+//
+// [3단계 - 복주머니 소비: 운명의 동행] point_policies.matching_like가 있으면
+// 관심표시 1건당 차감(ai_compatibility_request와 동일한 "정책 없으면 무료" 규칙).
+// 매칭 성사 여부와 무관하게 "관심표시를 보내는 행위" 자체에 과금한다(스팸성 좋아요
+// 남발 방지 + 복주머니 사용처 확대라는 두 가지 목적을 동시에 달성).
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
@@ -40,7 +45,42 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const matched = await prisma.$transaction(async (tx) => {
+    const outcome = await prisma.$transaction(async (tx) => {
+      // 1) 과금(있으면 차감, 없으면 무료) — ai_compatibility_request와 동일 패턴
+      const policy = await tx.pointPolicy.findUnique({
+        where: { sourceType: "matching_like" },
+      });
+      let balanceAfter: number | null = null;
+      if (policy && policy.isActive && policy.amount > 0) {
+        const wallet = await tx.wallet.findFirst({
+          where: { userId, currencyType: "POINT", deletedAt: null },
+        });
+        const balance = wallet?.balance ?? 0;
+        if (balance < policy.amount) {
+          throw new Error("INSUFFICIENT_BALANCE");
+        }
+        balanceAfter = balance - policy.amount;
+        const walletRow = wallet
+          ? await tx.wallet.update({
+              where: { id: wallet.id },
+              data: { balance: balanceAfter, balanceSyncedAt: new Date() },
+            })
+          : await tx.wallet.create({
+              data: { userId, currencyType: "POINT", balance: balanceAfter },
+            });
+        await tx.pointHistory.create({
+          data: {
+            walletId: walletRow.id,
+            userId,
+            amount: -policy.amount,
+            type: "spend",
+            sourceType: "matching_like",
+            balanceAfter,
+            memo: "운명의 동행 관심표시",
+          },
+        });
+      }
+
       // 이미 좋아요를 보냈다면 그대로 유지(중복 방지, upsert)
       await tx.matchingLike.upsert({
         where: { fromUserId_toUserId: { fromUserId: userId, toUserId: targetUserId } },
@@ -53,7 +93,7 @@ export async function POST(request: NextRequest) {
         where: { fromUserId_toUserId: { fromUserId: targetUserId, toUserId: userId } },
       });
       if (!reverse || reverse.status !== "active") {
-        return false;
+        return { matched: false, balanceAfter };
       }
 
       // 이미 매칭 pair가 존재하면 중복 생성하지 않음
@@ -69,17 +109,27 @@ export async function POST(request: NextRequest) {
             data: { status: "active", matchedAt: new Date() },
           });
         }
-        return true;
+        return { matched: true, balanceAfter };
       }
 
       await tx.matchingPair.create({
         data: { userAId, userBId, status: "active" },
       });
-      return true;
+      return { matched: true, balanceAfter };
     });
 
-    return NextResponse.json({ success: true, data: matched }, { headers: CORS_HEADERS });
+    return NextResponse.json(
+      { success: true, data: outcome.matched, balanceAfter: outcome.balanceAfter },
+      { headers: CORS_HEADERS }
+    );
   } catch (e) {
+    const message = e instanceof Error ? e.message : "UNKNOWN";
+    if (message === "INSUFFICIENT_BALANCE") {
+      return NextResponse.json(
+        { success: false, error: "복주머니 잔액이 부족합니다." },
+        { status: 400, headers: CORS_HEADERS }
+      );
+    }
     console.error("[POST /api/public/matching/like] 실패:", e);
     return NextResponse.json(
       { success: false, error: "좋아요 처리 중 오류가 발생했습니다." },
