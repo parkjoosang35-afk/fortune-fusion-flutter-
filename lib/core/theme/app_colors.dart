@@ -261,4 +261,62 @@ class AppColors {
     '블루': info,
     '그린': success,
   };
+
+  // ══════════════════════════════════════════════════════════════
+  // [Fortune Fusion 디자인 우선 리디자인 프롬프트] ✨ 화이트 프리미엄 팔레트 (신규)
+  //
+  // 기존 다크 "우주(Cosmic)" 팔레트(bgPrimary/cosmicText* 등, 위 §섹션)는
+  // FortuneHub/CommunityHub/LuckyBag/My 등 아직 손대지 않는 화면들이 광범위하게
+  // 참조하고 있어(12개 파일) 값 자체를 바꾸면 그 화면들이 깨진다. 따라서 값을
+  // 덮어쓰지 않고, 이번 리디자인 대상(HomeScreen/공통위젯 신규분/하단탭)에서만
+  // 사용할 새 "Premium*" 이름의 화이트 베이스 상수를 별도로 추가한다.
+  // 다음 턴 이후 화면별로 점진적으로 이 팔레트로 옮겨갈 수 있다.
+  // ══════════════════════════════════════════════════════════════
+
+  // ── 배경 ──
+  static const Color premiumBgMain = Color(0xFFFCFBFF); // Main Background
+  static const Color premiumBgSection = Color(0xFFFFFFFF); // Section Background
+  static const Color premiumBgSubtle = Color(0xFFF7F4FF); // Subtle Surface(연라벤더)
+  static const Color premiumBgSecondary = Color(0xFFF9FAFC); // Secondary Surface(연회색)
+
+  // ── 텍스트 ──
+  static const Color premiumTextPrimary = Color(0xFF17181C);
+  static const Color premiumTextSecondary = Color(0xFF6B7280);
+  static const Color premiumTextTertiary = Color(0xFF9CA3AF);
+
+  // ── 포인트 컬러 ──
+  static const Color premiumMainPurple = Color(0xFF6F5BFF);
+  static const Color premiumSoftLavender = Color(0xFFEAE5FF);
+  static const Color premiumDeepNavy = Color(0xFF1F2340);
+  static const Color premiumSoftGold = Color(0xFFF6C453);
+  static const Color premiumMintAccent = Color(0xFFBDEFE1);
+  static const Color premiumCoralAccent = Color(0xFFFF8FA3); // 약하게만 사용
+
+  // ── 보더 ──
+  static const Color premiumLightBorder = Color(0xFFECE8F5);
+  static const Color premiumCardBorder = Color(0xFFEFEAF7);
+
+  /// 히어로 카드용 은은한 퍼플 그라디언트(화이트 → 연라벤더)
+  static const LinearGradient premiumHeroGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [premiumBgSection, premiumSoftLavender],
+  );
+
+  /// Primary CTA 그라디언트(딥네이비 → 메인퍼플) — 과하지 않게 살짝만.
+  static const LinearGradient premiumCtaGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [premiumDeepNavy, premiumMainPurple],
+  );
+
+  /// 골드 포인트(복주머니/보상) 전용 은은한 그라디언트
+  static const LinearGradient premiumGoldGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFFFBE0A6), premiumSoftGold],
+  );
+
+  /// 카드 은은한 그림자(다크 그림자 대신 아주 연한 퍼플 톤)
+  static const Color premiumCardShadow = Color(0x146F5BFF);
 }
