@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
-import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/premium_card.dart';
 import '../../../core/widgets/premium_badge.dart';
 import '../../../core/widgets/premium_chip.dart';
@@ -36,7 +34,7 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
     (
       '오늘의 운세',
       '매일 새로운 종합운을 확인해보세요',
-      '☀️',
+      Icons.wb_sunny_outlined,
       '무료',
       '/home/daily-fortune-detail',
       false,
@@ -45,7 +43,7 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
     (
       '사주',
       'AI가 분석하는 나의 사주 명식',
-      '📜',
+      Icons.auto_stories_outlined,
       '열림패스',
       '/ai-fortune/saju/input',
       true,
@@ -54,7 +52,7 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
     (
       '타로',
       '78장의 카드가 전하는 오늘의 메시지',
-      '🔮',
+      Icons.style_outlined,
       '열림패스',
       '/ai-fortune/tarot/question',
       true,
@@ -63,7 +61,7 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
     (
       '관상',
       '사진으로 보는 AI 관상 분석',
-      '🙂',
+      Icons.face_outlined,
       '열림패스',
       '/ai-fortune/face/capture',
       true,
@@ -72,7 +70,7 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
     (
       '손금',
       '손바닥 속에 숨겨진 나의 운명',
-      '✋',
+      Icons.back_hand_outlined,
       '열림패스',
       '/ai-fortune/palm/capture',
       true,
@@ -81,7 +79,7 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
     (
       '궁합',
       '두 사람의 인연과 케미를 확인해요',
-      '💞',
+      Icons.favorite_outline_rounded,
       '열림패스',
       '/ai-fortune/compatibility/input',
       true,
@@ -90,7 +88,7 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
     (
       'AI 상담',
       '실시간 AI 운세 상담사와 대화하기',
-      '💬',
+      Icons.chat_bubble_outline_rounded,
       '열림패스',
       '/ai-fortune/consultation/type',
       true,
@@ -119,24 +117,24 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
     final filtered = _filter == '전체'
         ? _items
         : _filter == '무료'
-            ? _items.where((e) => !e.$6).toList()
-            : _items.where((e) => e.$7 == _filter).toList();
+        ? _items.where((e) => !e.$6).toList()
+        : _items.where((e) => e.$7 == _filter).toList();
 
     return Scaffold(
-      backgroundColor: AppColors.premiumBgMain,
+      backgroundColor: UnifiedColors.bg,
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(
-            AppSpacing.lg,
-            AppSpacing.md,
-            AppSpacing.lg,
-            AppSpacing.xxl,
+            UnifiedTokens.screenPadding,
+            UnifiedTokens.spaceMd,
+            UnifiedTokens.screenPadding,
+            UnifiedTokens.spaceXxl,
           ),
           children: [
-            Text('운세', style: AppTypography.heroTitle),
+            Text('운세', style: UnifiedText.titleLarge()),
             const SizedBox(height: 4),
-            Text('오늘 당신의 운명은 어떤 이야기를 담고 있을까요?', style: AppTypography.bodyMain),
-            const SizedBox(height: AppSpacing.lg),
+            Text('오늘 당신의 운명은 어떤 이야기를 담고 있을까요?', style: UnifiedText.body()),
+            const SizedBox(height: UnifiedTokens.spaceXl),
 
             // 열림패스 상태 히어로 카드 - 기준 시안의 "오늘의 운세 이야기" 카드 톤 재사용.
             FadeSlideIn(
@@ -146,7 +144,7 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
                 isBusy: _checking,
               ),
             ),
-            const SizedBox(height: AppSpacing.xl),
+            const SizedBox(height: UnifiedTokens.spaceXxl),
 
             // 카테고리 칩 필터
             SizedBox(
@@ -154,45 +152,53 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: _filters.length,
-                separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.sm),
+                separatorBuilder: (_, __) =>
+                    const SizedBox(width: UnifiedTokens.spaceSm),
                 itemBuilder: (context, i) {
                   final f = _filters[i];
                   return PremiumChip(
                     label: f,
                     selected: _filter == f,
                     onTap: () => setState(() => _filter = f),
+                    activeBg: UnifiedColors.neon,
+                    activeFg: UnifiedColors.black,
+                    inactiveBg: UnifiedColors.chipInactiveBg,
+                    inactiveFg: UnifiedColors.textSecondary,
+                    labelStyle: UnifiedText.chipLabel(),
                   );
                 },
               ),
             ),
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: UnifiedTokens.spaceXl),
 
             ...List.generate(filtered.length, (index) {
-              final (title, desc, emoji, cost, route, requiresPass, _) =
+              final (title, desc, icon, cost, route, requiresPass, _) =
                   filtered[index];
               final isFree = !requiresPass;
-              final badgeLabel = isFree ? '무료' : (pass.isActive ? '이용가능' : cost);
+              final badgeLabel = isFree
+                  ? '무료'
+                  : (pass.isActive ? '이용가능' : cost);
               final badgeType = isFree || pass.isActive
                   ? PremiumBadgeType.done
                   : PremiumBadgeType.pass;
 
               return Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                padding: const EdgeInsets.only(bottom: UnifiedTokens.spaceMd),
                 child: FadeSlideIn(
                   delay: Duration(milliseconds: 40 * index),
                   child: _FortuneCategoryCard(
                     title: title,
                     desc: desc,
-                    emoji: emoji,
+                    icon: icon,
                     badgeLabel: badgeLabel,
                     badgeType: badgeType,
                     onTap: _checking
                         ? null
                         : () => _handleTap(
-                              title: title,
-                              route: route,
-                              requiresPass: requiresPass,
-                            ),
+                            title: title,
+                            route: route,
+                            requiresPass: requiresPass,
+                          ),
                   ),
                 ),
               );
@@ -223,37 +229,37 @@ class _PassHeroCard extends StatelessWidget {
     final timeLabel = h > 0 ? '$h시간 $m분 남음' : '$m분 남음';
 
     return PremiumCard(
-      gradient: AppColors.premiumHeroGradient,
-      borderColor: AppColors.premiumCardBorder,
-      child: Stack(
+      backgroundColor: UnifiedColors.cardMain,
+      borderColor: Colors.transparent,
+      showShadow: false,
+      borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Positioned(top: -6, right: 4, child: FloatingMoon(size: 26)),
-          const Positioned(top: 30, right: 34, child: SparkleDot(size: 10)),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
             children: [
-              Row(
-                children: [
-                  const Text('🔓', style: TextStyle(fontSize: 16)),
-                  const SizedBox(width: 6),
-                  Text(
-                    isBusy
-                        ? '열림패스 확인 중...'
-                        : isActive
-                            ? '열림패스 활성중 · $timeLabel'
-                            : '열림패스가 없어요',
-                    style: AppTypography.cardTitle.copyWith(fontSize: 15),
-                  ),
-                ],
+              Icon(
+                isActive ? Icons.lock_open_rounded : Icons.lock_outline_rounded,
+                size: UnifiedTokens.iconMd,
+                color: UnifiedColors.textPrimary,
               ),
-              const SizedBox(height: 6),
+              const SizedBox(width: UnifiedTokens.spaceSm),
               Text(
-                isActive
-                    ? '지금 모든 운세 카테고리를 자유롭게 열람할 수 있어요'
-                    : '카테고리 진입 시 발급 방법을 안내해드려요',
-                style: AppTypography.caption,
+                isBusy
+                    ? '열림패스 확인 중...'
+                    : isActive
+                    ? '열림패스 활성중 · $timeLabel'
+                    : '열림패스가 없어요',
+                style: UnifiedText.title(),
               ),
             ],
+          ),
+          const SizedBox(height: UnifiedTokens.spaceXs),
+          Text(
+            isActive
+                ? '지금 모든 운세 카테고리를 자유롭게 열람할 수 있어요'
+                : '카테고리 진입 시 발급 방법을 안내해드려요',
+            style: UnifiedText.caption(),
           ),
         ],
       ),
@@ -266,7 +272,7 @@ class _FortuneCategoryCard extends StatelessWidget {
   const _FortuneCategoryCard({
     required this.title,
     required this.desc,
-    required this.emoji,
+    required this.icon,
     required this.badgeLabel,
     required this.badgeType,
     required this.onTap,
@@ -274,7 +280,7 @@ class _FortuneCategoryCard extends StatelessWidget {
 
   final String title;
   final String desc;
-  final String emoji;
+  final IconData icon;
   final String badgeLabel;
   final PremiumBadgeType badgeType;
   final VoidCallback? onTap;
@@ -283,34 +289,43 @@ class _FortuneCategoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return PremiumCard(
       onTap: onTap,
+      backgroundColor: UnifiedColors.cardAllMenu,
+      borderColor: Colors.transparent,
+      showShadow: false,
+      borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
+      padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
       child: Row(
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: UnifiedTokens.iconCircleLg,
+            height: UnifiedTokens.iconCircleLg,
             decoration: BoxDecoration(
-              color: AppColors.premiumBgSubtle,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+              color: UnifiedColors.bg,
+              borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
             ),
-            child: Center(child: Text(emoji, style: const TextStyle(fontSize: 22))),
+            child: Icon(
+              icon,
+              size: UnifiedTokens.iconLg,
+              color: UnifiedColors.textPrimary,
+            ),
           ),
-          const SizedBox(width: AppSpacing.md),
+          const SizedBox(width: UnifiedTokens.spaceMd),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: AppTypography.cardTitle.copyWith(fontSize: 15)),
+                Text(title, style: UnifiedText.bodyStrong()),
                 const SizedBox(height: 2),
                 Text(
                   desc,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTypography.caption,
+                  style: UnifiedText.caption(),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: AppSpacing.sm),
+          const SizedBox(width: UnifiedTokens.spaceSm),
           PremiumBadge(label: badgeLabel, type: badgeType),
         ],
       ),
