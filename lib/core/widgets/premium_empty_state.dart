@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
-import '../theme/app_typography.dart';
+import '../theme/app_unified_style.dart';
 import 'premium_card.dart';
-import 'premium_graphics.dart';
 
 /// [Fortune Fusion 서브 디자인 통일 마스터 프롬프트] §3 빈 상태(empty state) 규칙
 ///
@@ -12,14 +9,14 @@ import 'premium_graphics.dart';
 class PremiumEmptyState extends StatelessWidget {
   const PremiumEmptyState({
     super.key,
-    required this.emoji,
+    required this.icon,
     required this.title,
     this.subtitle,
     this.actionLabel,
     this.onAction,
   });
 
-  final String emoji;
+  final IconData icon;
   final String title;
   final String? subtitle;
   final String? actionLabel;
@@ -28,56 +25,55 @@ class PremiumEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PremiumCard(
-      backgroundColor: AppColors.premiumBgSubtle,
-      borderColor: AppColors.premiumCardBorder,
+      backgroundColor: UnifiedColors.cardSection,
+      borderColor: Colors.transparent,
       showShadow: false,
+      borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
       child: Column(
         children: [
-          SizedBox(
-            height: 64,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                const Positioned(top: 0, right: 40, child: SparkleDot(size: 10)),
-                const Positioned(bottom: 4, left: 36, child: SparkleDot(size: 7)),
-                const FloatingMoon(size: 30),
-                Positioned(
-                  bottom: 0,
-                  child: Text(emoji, style: const TextStyle(fontSize: 26)),
-                ),
-              ],
+          Container(
+            width: UnifiedTokens.iconCircleLg,
+            height: UnifiedTokens.iconCircleLg,
+            decoration: BoxDecoration(
+              color: UnifiedColors.bg,
+              borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
+            ),
+            child: Icon(
+              icon,
+              size: UnifiedTokens.iconLg,
+              color: UnifiedColors.textSecondary,
             ),
           ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: UnifiedTokens.spaceMd),
           Text(
             title,
             textAlign: TextAlign.center,
-            style: AppTypography.cardTitle.copyWith(fontSize: 15),
+            style: UnifiedText.bodyStrong(),
           ),
           if (subtitle != null) ...[
             const SizedBox(height: 4),
             Text(
               subtitle!,
               textAlign: TextAlign.center,
-              style: AppTypography.caption,
+              style: UnifiedText.caption(),
             ),
           ],
           if (actionLabel != null) ...[
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: UnifiedTokens.spaceMd),
             GestureDetector(
               onTap: onAction,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
-                  color: AppColors.premiumNeonLime,
-                  borderRadius: BorderRadius.circular(999),
+                  color: UnifiedColors.neon,
+                  borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
                 ),
                 child: Text(
                   actionLabel!,
-                  style: AppTypography.smallLabel.copyWith(
-                    color: AppColors.premiumNeonLimeOnColor,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: UnifiedText.chipLabel(color: UnifiedColors.black),
                 ),
               ),
             ),

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
-import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/premium_card.dart';
 import '../../../core/widgets/premium_button.dart';
 import '../../../core/widgets/premium_chip.dart';
@@ -60,15 +58,15 @@ class _CommunityHubScreenState extends State<CommunityHubScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.premiumBgMain,
+      backgroundColor: UnifiedColors.bg,
       body: SafeArea(
         child: Column(
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg,
-                AppSpacing.md,
-                AppSpacing.lg,
+                UnifiedTokens.screenPadding,
+                UnifiedTokens.spaceMd,
+                UnifiedTokens.screenPadding,
                 0,
               ),
               child: Row(
@@ -78,38 +76,46 @@ class _CommunityHubScreenState extends State<CommunityHubScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('커뮤니티', style: AppTypography.heroTitle),
+                        Text('커뮤니티', style: UnifiedText.titleLarge()),
                         const SizedBox(height: 4),
-                        Text('오늘의 소원과 이야기를 나눠보세요', style: AppTypography.bodyMain),
+                        Text('오늘의 소원과 이야기를 나눠보세요', style: UnifiedText.body()),
                       ],
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: UnifiedTokens.spaceMd),
             SizedBox(
               height: 40,
               child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: UnifiedTokens.screenPadding,
+                ),
                 scrollDirection: Axis.horizontal,
                 itemCount: _tabLabels.length,
-                separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.sm),
+                separatorBuilder: (_, __) =>
+                    const SizedBox(width: UnifiedTokens.spaceSm),
                 itemBuilder: (context, i) => PremiumChip(
                   label: _tabLabels[i],
                   selected: _tabIndex == i,
                   onTap: () => setState(() => _tabIndex = i),
+                  activeBg: UnifiedColors.neon,
+                  activeFg: UnifiedColors.black,
+                  inactiveBg: UnifiedColors.chipInactiveBg,
+                  inactiveFg: UnifiedColors.textSecondary,
+                  labelStyle: UnifiedText.chipLabel(),
                 ),
               ),
             ),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: UnifiedTokens.spaceMd),
             Expanded(
               child: IndexedStack(
                 index: _tabIndex,
                 children: const [
                   _WishTab(),
                   _ShortcutTab(
-                    emoji: '💬',
+                    icon: Icons.chat_bubble_outline_rounded,
                     title: '자유게시판',
                     description: '자유롭게 이야기를 나눠보세요',
                     buttonLabel: '게시판 바로가기',
@@ -117,14 +123,14 @@ class _CommunityHubScreenState extends State<CommunityHubScreen> {
                     hint: '글쓰기 · 댓글 작성 시 행복머니 적립',
                   ),
                   _ShortcutTab(
-                    emoji: '🌟',
+                    icon: Icons.star_border_rounded,
                     title: '후기',
                     description: '소원을 이룬 사람들의 진짜 이야기를 만나보세요',
                     buttonLabel: '명예의 전당 보기',
                     hint: '이룬 소원 인증 · 응원 누적 랭킹',
                   ),
                   _ShortcutTab(
-                    emoji: '🧘',
+                    icon: Icons.self_improvement_outlined,
                     title: '고민상담',
                     description: '사주·타로 상담사와 편하게 이야기해보세요',
                     buttonLabel: '상담 시작하기',
@@ -132,7 +138,7 @@ class _CommunityHubScreenState extends State<CommunityHubScreen> {
                     hint: '상담 메시지 전송 시 행복머니 소비',
                   ),
                   _ShortcutTab(
-                    emoji: '💞',
+                    icon: Icons.favorite_outline_rounded,
                     title: '궁합이야기',
                     description: '나와 그 사람, 얼마나 잘 맞을까요?',
                     buttonLabel: '궁합 보러가기',
@@ -140,7 +146,7 @@ class _CommunityHubScreenState extends State<CommunityHubScreen> {
                     hint: '궁합 결과 확인 시 행복머니 소비',
                   ),
                   _ShortcutTab(
-                    emoji: '🧧',
+                    icon: Icons.shield_outlined,
                     title: '부적',
                     description: '나를 지켜주는 디지털 부적을 만나보세요',
                     buttonLabel: '부적샵 바로가기',
@@ -148,7 +154,7 @@ class _CommunityHubScreenState extends State<CommunityHubScreen> {
                     hint: '부적 만들기 시 행복머니 소비',
                   ),
                   _ShortcutTab(
-                    emoji: '💫',
+                    icon: Icons.groups_outlined,
                     title: '동행',
                     description: '나와 인연이 될 사람을 찾아보세요',
                     buttonLabel: 'AI매칭 바로가기',
@@ -156,7 +162,7 @@ class _CommunityHubScreenState extends State<CommunityHubScreen> {
                     hint: '관심표시(좋아요) 시 행복머니 소비',
                   ),
                   _ShortcutTab(
-                    emoji: '🏆',
+                    icon: Icons.emoji_events_outlined,
                     title: '랭킹',
                     description: '이번 주 행복머니 랭킹 TOP 유저 확인하기',
                     buttonLabel: '랭킹 바로가기',
@@ -185,41 +191,39 @@ class _WishTab extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(
-            AppSpacing.lg,
+            UnifiedTokens.screenPadding,
             0,
-            AppSpacing.lg,
-            AppSpacing.md,
+            UnifiedTokens.screenPadding,
+            UnifiedTokens.spaceMd,
           ),
           child: FadeSlideIn(
             child: PremiumCard(
-              gradient: AppColors.premiumHeroGradient,
-              onTap: () => Navigator.of(
-                context,
-              ).push(MaterialPageRoute(builder: (_) => const CommunityScreen())),
-              child: Stack(
+              backgroundColor: UnifiedColors.cardWish,
+              borderColor: Colors.transparent,
+              showShadow: false,
+              borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const CommunityScreen()),
+              ),
+              child: Row(
                 children: [
-                  const Positioned(top: -4, right: 0, child: FloatingMoon(size: 24)),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '소원게시판',
-                              style: AppTypography.cardTitle.copyWith(fontSize: 15),
-                            ),
-                            const SizedBox(height: 2),
-                            Text('전체 소원 보기 · 나도 소원 남기기', style: AppTypography.caption),
-                          ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('소원게시판', style: UnifiedText.bodyStrong()),
+                        const SizedBox(height: 2),
+                        Text(
+                          '전체 소원 보기 · 나도 소원 남기기',
+                          style: UnifiedText.caption(),
                         ),
-                      ),
-                      const Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        size: 14,
-                        color: AppColors.premiumTextTertiary,
-                      ),
-                    ],
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: UnifiedTokens.iconSm,
+                    color: UnifiedColors.textCaption,
                   ),
                 ],
               ),
@@ -229,34 +233,34 @@ class _WishTab extends StatelessWidget {
         Expanded(
           child: provider.isLoading && posts.isEmpty
               ? const Center(
-                  child: CircularProgressIndicator(
-                    color: AppColors.premiumMainPurple,
-                  ),
+                  child: CircularProgressIndicator(color: UnifiedColors.black),
                 )
               : posts.isEmpty
-                  ? Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                      child: const PremiumEmptyState(
-                        emoji: '🌙',
-                        title: '아직 등록된 소원이 없어요',
-                        subtitle: '첫 번째 소원을 남겨보세요',
-                      ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.lg,
-                        0,
-                        AppSpacing.lg,
-                        AppSpacing.lg,
-                      ),
-                      itemCount: posts.length,
-                      separatorBuilder: (_, __) =>
-                          const SizedBox(height: AppSpacing.md),
-                      itemBuilder: (context, index) => FadeSlideIn(
-                        delay: Duration(milliseconds: 30 * index),
-                        child: _WishCard(post: posts[index]),
-                      ),
-                    ),
+              ? Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: UnifiedTokens.screenPadding,
+                  ),
+                  child: const PremiumEmptyState(
+                    icon: Icons.nights_stay_outlined,
+                    title: '아직 등록된 소원이 없어요',
+                    subtitle: '첫 번째 소원을 남겨보세요',
+                  ),
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(
+                    UnifiedTokens.screenPadding,
+                    0,
+                    UnifiedTokens.screenPadding,
+                    UnifiedTokens.screenPadding,
+                  ),
+                  itemCount: posts.length,
+                  separatorBuilder: (_, __) =>
+                      const SizedBox(height: UnifiedTokens.spaceMd),
+                  itemBuilder: (context, index) => FadeSlideIn(
+                    delay: Duration(milliseconds: 30 * index),
+                    child: _WishCard(post: posts[index]),
+                  ),
+                ),
         ),
       ],
     );
@@ -274,6 +278,11 @@ class _WishCard extends StatelessWidget {
       onTap: () => Navigator.of(
         context,
       ).pushNamed('/community/wish/detail', arguments: post),
+      backgroundColor: UnifiedColors.cardSection,
+      borderColor: Colors.transparent,
+      showShadow: false,
+      borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
+      padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -283,38 +292,35 @@ class _WishCard extends StatelessWidget {
               const Spacer(),
               Text(
                 post.isAnonymous ? '익명' : post.authorNickname,
-                style: AppTypography.caption,
+                style: UnifiedText.caption(),
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: UnifiedTokens.spaceSm),
           Text(
             post.content,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: AppTypography.bodyMain.copyWith(
-              color: AppColors.premiumTextPrimary,
-              height: 1.3,
-            ),
+            style: UnifiedText.body(color: UnifiedColors.textPrimary),
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: UnifiedTokens.spaceSm),
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.favorite_rounded,
-                size: 13,
-                color: AppColors.premiumCoralAccent,
+                size: UnifiedTokens.iconSm,
+                color: UnifiedColors.textCaption,
               ),
               const SizedBox(width: 4),
-              Text('${post.supportCount}', style: AppTypography.caption),
-              const SizedBox(width: AppSpacing.md),
-              const Icon(
+              Text('${post.supportCount}', style: UnifiedText.caption()),
+              const SizedBox(width: UnifiedTokens.spaceMd),
+              Icon(
                 Icons.mode_comment_outlined,
-                size: 13,
-                color: AppColors.premiumTextTertiary,
+                size: UnifiedTokens.iconSm,
+                color: UnifiedColors.textCaption,
               ),
               const SizedBox(width: 4),
-              Text('${post.commentCount}', style: AppTypography.caption),
+              Text('${post.commentCount}', style: UnifiedText.caption()),
             ],
           ),
         ],
@@ -328,7 +334,7 @@ class _WishCard extends StatelessWidget {
 /// 블랙 CTA 버튼으로 기준 시안 톤을 유지한다.
 class _ShortcutTab extends StatelessWidget {
   const _ShortcutTab({
-    required this.emoji,
+    required this.icon,
     required this.title,
     required this.description,
     required this.buttonLabel,
@@ -336,7 +342,7 @@ class _ShortcutTab extends StatelessWidget {
     this.hint,
   });
 
-  final String emoji;
+  final IconData icon;
   final String title;
   final String description;
   final String buttonLabel;
@@ -348,40 +354,50 @@ class _ShortcutTab extends StatelessWidget {
       showWishHallOfFameSheet(context);
       return;
     }
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => destination!));
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => destination!));
   }
 
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      padding: const EdgeInsets.symmetric(
+        horizontal: UnifiedTokens.screenPadding,
+      ),
       child: FadeSlideIn(
         child: PremiumCard(
+          backgroundColor: UnifiedColors.cardAllMenu,
+          borderColor: Colors.transparent,
+          showShadow: false,
+          borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(
-                height: 56,
-                child: Stack(
-                  alignment: Alignment.centerLeft,
-                  children: [
-                    const Positioned(top: 0, right: 30, child: SparkleDot(size: 9)),
-                    const Positioned(right: 0, child: FloatingMoon(size: 26)),
-                    Text(emoji, style: const TextStyle(fontSize: 34)),
-                  ],
+              Container(
+                width: UnifiedTokens.iconCircleLg,
+                height: UnifiedTokens.iconCircleLg,
+                decoration: BoxDecoration(
+                  color: UnifiedColors.bg,
+                  borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
+                ),
+                child: Icon(
+                  icon,
+                  size: UnifiedTokens.iconLg,
+                  color: UnifiedColors.textPrimary,
                 ),
               ),
-              const SizedBox(height: AppSpacing.md),
-              Text(title, style: AppTypography.sectionTitle),
-              const SizedBox(height: AppSpacing.xs),
-              Text(description, style: AppTypography.bodyMain),
+              const SizedBox(height: UnifiedTokens.spaceMd),
+              Text(title, style: UnifiedText.title()),
+              const SizedBox(height: UnifiedTokens.spaceXs),
+              Text(description, style: UnifiedText.body()),
               if (hint != null) ...[
-                const SizedBox(height: AppSpacing.sm),
-                PremiumBadge(label: hint!, type: PremiumBadgeType.luckyBag, emoji: '🍀'),
+                const SizedBox(height: UnifiedTokens.spaceSm),
+                PremiumBadge(
+                  label: hint!,
+                  type: PremiumBadgeType.luckyBag,
+                  emoji: '🍀',
+                ),
               ],
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: UnifiedTokens.spaceLg),
               PremiumButton.black(
                 label: buttonLabel,
                 onPressed: () => _handleTap(context),
