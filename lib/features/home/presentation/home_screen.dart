@@ -240,16 +240,17 @@ class _FortuneCategoryChipsState extends State<_FortuneCategoryChips> {
   int _selected = 0;
   bool _checking = false;
 
+  // 기준 시안: 칩에는 아이콘 없이 텍스트만 표시
   static const _items = [
-    ('전체운세', Icons.blur_circular_rounded, '/home/daily-fortune-detail', false),
-    ('사주', Icons.auto_stories_rounded, '/ai-fortune/saju/input', true),
-    ('궁합', Icons.favorite_rounded, '/ai-fortune/compatibility/input', true),
-    ('손금', Icons.back_hand_rounded, '/ai-fortune/palm/capture', true),
+    ('전체운세', '/home/daily-fortune-detail', false),
+    ('사주', '/ai-fortune/saju/input', true),
+    ('궁합', '/ai-fortune/compatibility/input', true),
+    ('손금', '/ai-fortune/palm/capture', true),
   ];
 
   Future<void> _handleTap(int index) async {
     setState(() => _selected = index);
-    final (title, _, route, requiresPass) = _items[index];
+    final (title, route, requiresPass) = _items[index];
     if (requiresPass) setState(() => _checking = true);
     await navigateWithPassGate(
       context,
@@ -269,10 +270,9 @@ class _FortuneCategoryChipsState extends State<_FortuneCategoryChips> {
         itemCount: _items.length,
         separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.sm),
         itemBuilder: (context, index) {
-          final (label, icon, _, _) = _items[index];
+          final (label, _, _) = _items[index];
           return PremiumChip(
             label: label,
-            icon: icon,
             selected: _selected == index,
             onTap: _checking ? () {} : () => _handleTap(index),
           );
@@ -298,36 +298,16 @@ class _TodayStoryHeroCard extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.xl),
       child: Stack(
         children: [
-          // 은은한 원형 반짝임 장식(시안의 크레센트 아치 느낌)
+          // 은은한 크레센트(초승달형) 글로우 장식 - 카드 하단에서 우상단으로 스윕
           Positioned(
-            top: -20,
-            left: 40,
-            child: Container(
-              width: 130,
-              height: 130,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.14),
-                  width: 22,
-                ),
-              ),
-            ),
+            bottom: -30,
+            left: 10,
+            child: SoftGradientBlob(size: 150, color: Colors.white, opacity: 0.20),
           ),
           Positioned(
-            top: 20,
-            left: 90,
-            child: Container(
-              width: 90,
-              height: 90,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.10),
-                  width: 16,
-                ),
-              ),
-            ),
+            bottom: -10,
+            left: 70,
+            child: SoftGradientBlob(size: 110, color: Colors.white, opacity: 0.16),
           ),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -358,7 +338,7 @@ class _TodayStoryHeroCard extends StatelessWidget {
                 ),
               ),
               PremiumCircleButton(
-                icon: Icons.keyboard_arrow_up_rounded,
+                icon: Icons.arrow_drop_up_rounded,
                 style: PremiumCircleButtonStyle.neon,
                 size: 34,
                 onTap: () =>
@@ -386,7 +366,7 @@ class _WishBoardRoomRow extends StatelessWidget {
             child: _LavenderMiniCard(
               title: '소원게시판',
               bottomLabel: '참여해보세요',
-              circleIcon: Icons.keyboard_arrow_up_rounded,
+              circleIcon: Icons.arrow_drop_up_rounded,
               circleStyle: PremiumCircleButtonStyle.neon,
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const CommunityScreen()),
@@ -398,7 +378,7 @@ class _WishBoardRoomRow extends StatelessWidget {
             child: _LavenderMiniCard(
               title: '소원방',
               bottomLabel: '개인소원방',
-              circleIcon: Icons.keyboard_arrow_down_rounded,
+              circleIcon: Icons.arrow_drop_down_rounded,
               circleStyle: PremiumCircleButtonStyle.black,
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const CommunityScreen()),
@@ -492,7 +472,7 @@ class _AllMenuButtonsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 52,
+      height: 56,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: _items.length,
@@ -539,9 +519,6 @@ class _OpenPassBottomBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final pass = context.watch<PassProvider>();
     final isActive = pass.isActive;
-    final remaining = pass.status.remainingSec;
-    final h = remaining ~/ 3600;
-    final m = (remaining % 3600) ~/ 60;
 
     return SafeArea(
       top: false,
@@ -582,15 +559,6 @@ class _OpenPassBottomBar extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                if (isActive) ...[
-                  const SizedBox(width: AppSpacing.sm),
-                  Text(
-                    '$h시간 $m분 남음',
-                    style: AppTypography.smallLabel.copyWith(
-                      color: Colors.white.withValues(alpha: 0.6),
-                    ),
-                  ),
-                ],
                 const Spacer(),
                 PremiumCircleButton(
                   icon: Icons.chevron_right_rounded,
