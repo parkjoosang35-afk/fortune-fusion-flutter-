@@ -1,7 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
+import '../theme/app_unified_style.dart';
 
 /// [Phase22 - "Fortune Fusion 마스터 개발 프롬프트" 3부 IntroShell 철학 이식]
 /// 운세/AI서비스 결과를 받아오기 전 보여주는 "의례감 있는" 4단계 인트로 연출.
@@ -70,8 +69,12 @@ class IntroShell<T> extends StatefulWidget {
   /// 애니메이션 최소 지속시간(작업이 더 빨리 끝나도 의례감을 위해 이 시간만큼 대기).
   final Duration totalDuration;
 
-  /// 중앙에 표시할 심볼(이모지 또는 아이콘). 기본값은 초승달+별 이모지.
+  /// 중앙에 표시할 심볼(이모지). [centerIcon]이 지정되면 이모지 대신 사용된다.
   final String centerEmoji;
+
+  /// [서브 디자인 통일 확산 프롬프트] 이모지 남용 금지 원칙에 맞춰 중앙 심볼을
+  /// 라인 아이콘으로 대체할 수 있는 선택적 오버라이드(지정 시 [centerEmoji]보다 우선).
+  final IconData? centerIcon;
 
   const IntroShell({
     super.key,
@@ -81,6 +84,7 @@ class IntroShell<T> extends StatefulWidget {
     this.stages = kDefaultIntroShellStages,
     this.totalDuration = const Duration(milliseconds: 2800),
     this.centerEmoji = '🔮',
+    this.centerIcon,
   });
 
   @override
@@ -138,7 +142,7 @@ class _IntroShellState<T> extends State<IntroShell<T>>
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      decoration: const BoxDecoration(gradient: AppColors.mysticGradient),
+      color: UnifiedColors.cardMain,
       child: SafeArea(
         child: Center(
           child: AnimatedBuilder(
@@ -158,7 +162,9 @@ class _IntroShellState<T> extends State<IntroShell<T>>
                   0.9 + (sin(stageLocalT * pi) * 0.12).clamp(-0.12, 0.12);
 
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: UnifiedTokens.spaceXl,
+                ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -171,15 +177,29 @@ class _IntroShellState<T> extends State<IntroShell<T>>
                           ..._buildSparkles(stageLocalT, stageIndex),
                           Transform.scale(
                             scale: pulse,
-                            child: Text(
-                              widget.centerEmoji,
-                              style: const TextStyle(fontSize: 72),
-                            ),
+                            child: widget.centerIcon != null
+                                ? Container(
+                                    width: 72,
+                                    height: 72,
+                                    decoration: const BoxDecoration(
+                                      color: UnifiedColors.bg,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      widget.centerIcon,
+                                      size: 32,
+                                      color: UnifiedColors.textPrimary,
+                                    ),
+                                  )
+                                : Text(
+                                    widget.centerEmoji,
+                                    style: const TextStyle(fontSize: 56),
+                                  ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.xl),
+                    const SizedBox(height: UnifiedTokens.spaceXxl),
                     // 4단계 진행 인디케이터(점)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -192,31 +212,25 @@ class _IntroShellState<T> extends State<IntroShell<T>>
                           height: 8,
                           decoration: BoxDecoration(
                             color: active
-                                ? AppColors.secondary
-                                : Colors.white24,
+                                ? UnifiedColors.black
+                                : UnifiedColors.border,
                             borderRadius: BorderRadius.circular(4),
                           ),
                         );
                       }),
                     ),
-                    const SizedBox(height: AppSpacing.lg),
-                    Icon(stage.icon, color: Colors.white70, size: 22),
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      stage.label,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    const SizedBox(height: UnifiedTokens.spaceLg),
+                    Icon(
+                      stage.icon,
+                      color: UnifiedColors.textSecondary,
+                      size: UnifiedTokens.iconLg,
                     ),
-                    const SizedBox(height: AppSpacing.xs),
+                    const SizedBox(height: UnifiedTokens.spaceSm),
+                    Text(stage.label, style: UnifiedText.title()),
+                    const SizedBox(height: UnifiedTokens.spaceXs),
                     Text(
                       stage.description,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 13,
-                      ),
+                      style: UnifiedText.body(),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -243,11 +257,11 @@ class _IntroShellState<T> extends State<IntroShell<T>>
       return Transform.translate(
         offset: Offset(dx, dy),
         child: Opacity(
-          opacity: opacity,
+          opacity: opacity * 0.7,
           child: Icon(
             Icons.star_rounded,
-            size: 12 + (i % 3) * 4,
-            color: AppColors.secondary,
+            size: 10 + (i % 3) * 3,
+            color: UnifiedColors.textCaption,
           ),
         ),
       );

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
+import '../theme/app_unified_style.dart';
 import 'app_button.dart';
 
 /// 03단계 §9.1 공통 컴포넌트 - Dialog 표준 (Phase1-1 보강)
@@ -17,13 +17,12 @@ Future<bool> showAppConfirmDialog(
   final result = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
-      content: message != null
-          ? Text(
-              message,
-              style: const TextStyle(color: AppColors.textSecondary),
-            )
-          : null,
+      backgroundColor: UnifiedColors.bg,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
+      ),
+      title: Text(title, style: UnifiedText.title()),
+      content: message != null ? Text(message, style: UnifiedText.body()) : null,
       actionsPadding: const EdgeInsets.fromLTRB(
         AppSpacing.lg,
         0,
@@ -65,13 +64,12 @@ Future<void> showAppInfoDialog(
   return showDialog<void>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
-      content: message != null
-          ? Text(
-              message,
-              style: const TextStyle(color: AppColors.textSecondary),
-            )
-          : null,
+      backgroundColor: UnifiedColors.bg,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
+      ),
+      title: Text(title, style: UnifiedText.title()),
+      content: message != null ? Text(message, style: UnifiedText.body()) : null,
       actionsPadding: const EdgeInsets.fromLTRB(
         AppSpacing.lg,
         0,

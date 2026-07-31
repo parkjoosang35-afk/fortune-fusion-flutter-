@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/app_dialog.dart';
 import '../../../core/widgets/app_toast.dart';
-import '../../../core/widgets/cosmic_card.dart';
+import '../../../core/widgets/premium_card.dart';
 import '../../wallet/application/wallet_provider.dart';
 import '../application/pass_provider.dart';
 import '../domain/pass_model.dart';
@@ -61,44 +60,54 @@ Future<void> showPassRequiredSheet(
 
   final action = await showModalBottomSheet<String>(
     context: context,
-    backgroundColor: AppColors.bgSecondary,
+    backgroundColor: UnifiedColors.bg,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusLg)),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
     builder: (ctx) => SafeArea(
       child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
+        padding: const EdgeInsets.fromLTRB(
+          UnifiedTokens.spaceXl,
+          UnifiedTokens.spaceMd,
+          UnifiedTokens.spaceXl,
+          UnifiedTokens.spaceXl,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
-              children: [
-                Icon(Icons.lock_clock_rounded, color: AppColors.accentGold, size: 22),
-                SizedBox(width: AppSpacing.sm),
-                Text(
-                  '열림패스가 필요해요',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.cosmicTextPrimary,
-                  ),
+            // 핸들바
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: UnifiedTokens.spaceLg),
+                decoration: BoxDecoration(
+                  color: UnifiedColors.border,
+                  borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
                 ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              '"$categoryTitle" 상세 결과는 열림패스로 열람할 수 있어요.\n광고 시청, 파트너 방문 또는 구독으로 열림패스를 받아보세요.',
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppColors.cosmicTextSecondary,
-                height: 1.4,
               ),
             ),
-            const SizedBox(height: AppSpacing.lg),
+            Row(
+              children: [
+                Icon(
+                  Icons.lock_outline_rounded,
+                  color: UnifiedColors.textPrimary,
+                  size: UnifiedTokens.iconLg,
+                ),
+                const SizedBox(width: UnifiedTokens.spaceSm),
+                Text('열림패스가 필요해요', style: UnifiedText.title()),
+              ],
+            ),
+            const SizedBox(height: UnifiedTokens.spaceSm),
+            Text(
+              '"$categoryTitle" 상세 결과는 열림패스로 열람할 수 있어요.\n광고 시청, 파트너 방문 또는 구독으로 열림패스를 받아보세요.',
+              style: UnifiedText.body(),
+            ),
+            const SizedBox(height: UnifiedTokens.spaceLg),
             ...actionablePolicies.map(
               (p) => Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                padding: const EdgeInsets.only(bottom: UnifiedTokens.spaceMd),
                 child: _PassCtaTile(
                   policy: p,
                   onTap: () => Navigator.of(ctx).pop(p.passType.name),
@@ -106,16 +115,15 @@ Future<void> showPassRequiredSheet(
               ),
             ),
             Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+              padding: const EdgeInsets.only(bottom: UnifiedTokens.spaceMd),
               child: _SubscriptionCtaTile(
                 onTap: () => Navigator.of(ctx).pop('subscription'),
               ),
             ),
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text(
-                '나중에 할게요',
-                style: TextStyle(color: AppColors.cosmicTextTertiary),
+            Center(
+              child: TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text('나중에 할게요', style: UnifiedText.caption()),
               ),
             ),
           ],
@@ -182,50 +190,47 @@ class _PassCtaTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isAd = policy.passType == PassType.ad;
-    return CosmicCard(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      showGlow: false,
+    return PremiumCard(
+      padding: const EdgeInsets.all(UnifiedTokens.spaceMd),
+      backgroundColor: UnifiedColors.cardAllMenu,
+      borderColor: Colors.transparent,
+      showShadow: false,
+      borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
       onTap: onTap,
       child: Row(
         children: [
           Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: AppColors.accentGold.withValues(alpha: 0.15),
+            width: UnifiedTokens.iconCircleLg,
+            height: UnifiedTokens.iconCircleLg,
+            decoration: const BoxDecoration(
+              color: UnifiedColors.bg,
               shape: BoxShape.circle,
             ),
             child: Icon(
-              isAd ? Icons.smart_display_rounded : Icons.storefront_rounded,
-              color: AppColors.accentGold,
-              size: 18,
+              isAd ? Icons.smart_display_outlined : Icons.storefront_outlined,
+              color: UnifiedColors.textPrimary,
+              size: UnifiedTokens.iconMd,
             ),
           ),
-          const SizedBox(width: AppSpacing.md),
+          const SizedBox(width: UnifiedTokens.spaceMd),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  policy.name,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.cosmicTextPrimary,
-                  ),
-                ),
+                Text(policy.name, style: UnifiedText.bodyStrong()),
                 Text(
                   '${policy.durationMin}분'
                   '${policy.bonusPoint > 0 ? ' · +${policy.bonusPoint}P' : ''}',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.cosmicTextTertiary,
-                  ),
+                  style: UnifiedText.caption(),
                 ),
               ],
             ),
           ),
-          const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.cosmicTextTertiary),
+          Icon(
+            Icons.arrow_forward_ios_rounded,
+            size: UnifiedTokens.iconMd,
+            color: UnifiedColors.textCaption,
+          ),
         ],
       ),
     );
@@ -239,39 +244,49 @@ class _SubscriptionCtaTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CosmicCard(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      showGlow: false,
-      gradient: AppColors.gradientGold,
+    return PremiumCard(
+      padding: const EdgeInsets.all(UnifiedTokens.spaceMd),
+      backgroundColor: UnifiedColors.black,
+      borderColor: Colors.transparent,
+      showShadow: false,
+      borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
       onTap: onTap,
       child: Row(
         children: [
           Container(
-            width: 36,
-            height: 36,
+            width: UnifiedTokens.iconCircleLg,
+            height: UnifiedTokens.iconCircleLg,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
+              color: UnifiedColors.neon,
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.workspace_premium_rounded, color: Colors.white, size: 18),
+            child: Icon(
+              Icons.workspace_premium_outlined,
+              color: UnifiedColors.black,
+              size: UnifiedTokens.iconMd,
+            ),
           ),
-          const SizedBox(width: AppSpacing.md),
-          const Expanded(
+          const SizedBox(width: UnifiedTokens.spaceMd),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   '구독으로 열림패스 자동 지급',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.bgPrimary),
+                  style: UnifiedText.bodyStrong(color: Colors.white),
                 ),
                 Text(
                   '행복머니 정기 보너스까지 함께 받아보세요',
-                  style: TextStyle(fontSize: 11, color: AppColors.bgPrimary),
+                  style: UnifiedText.caption(color: const Color(0xFFB8B8B8)),
                 ),
               ],
             ),
           ),
-          const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.bgPrimary),
+          const Icon(
+            Icons.arrow_forward_ios_rounded,
+            size: UnifiedTokens.iconMd,
+            color: Colors.white,
+          ),
         ],
       ),
     );

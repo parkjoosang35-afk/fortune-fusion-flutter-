@@ -24,6 +24,15 @@ class AppShortcutRow extends StatelessWidget {
     required this.subtitle,
     this.titleColor,
     this.subtitleColor,
+    this.icon,
+    this.iconColor,
+    this.circleColor,
+    this.circleSize,
+    this.titleStyle,
+    this.subtitleStyle,
+    this.arrowColor,
+    this.arrowSize,
+    this.spacing,
   });
 
   final String emoji;
@@ -33,43 +42,68 @@ class AppShortcutRow extends StatelessWidget {
   final Color? titleColor;
   final Color? subtitleColor;
 
+  /// [서브 디자인 통일 확산 프롬프트] 라이트 톤 서브 화면(마이 탭 등)에서
+  /// 이모지 대신 라인 아이콘을 사용할 수 있도록 하는 선택적 오버라이드.
+  /// 지정하지 않으면 기존 이모지 렌더링을 그대로 유지해 마이 탭 외 다른
+  /// 사용처(없음)에도 영향이 없다.
+  final IconData? icon;
+  final Color? iconColor;
+  final Color? circleColor;
+  final double? circleSize;
+  final TextStyle? titleStyle;
+  final TextStyle? subtitleStyle;
+  final Color? arrowColor;
+  final double? arrowSize;
+  final double? spacing;
+
   @override
   Widget build(BuildContext context) {
     final tColor = titleColor ?? AppColors.cosmicTextPrimary;
     final sColor = subtitleColor ?? AppColors.cosmicTextTertiary;
+    final size = circleSize ?? 40;
     return Row(
       children: [
         Container(
-          width: 40,
-          height: 40,
+          width: size,
+          height: size,
           decoration: BoxDecoration(
-            color: accentColor.withValues(alpha: 0.15),
+            color: circleColor ?? accentColor.withValues(alpha: 0.15),
             shape: BoxShape.circle,
           ),
-          child: Center(child: Text(emoji, style: const TextStyle(fontSize: 18))),
+          child: Center(
+            child: icon != null
+                ? Icon(icon, size: size * 0.45, color: iconColor ?? accentColor)
+                : Text(emoji, style: const TextStyle(fontSize: 18)),
+          ),
         ),
-        const SizedBox(width: AppSpacing.md),
+        SizedBox(width: spacing ?? AppSpacing.md),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 title,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: tColor,
-                ),
+                style:
+                    titleStyle ??
+                    TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: tColor,
+                    ),
               ),
               const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: TextStyle(fontSize: 11, color: sColor),
+                style: subtitleStyle ?? TextStyle(fontSize: 11, color: sColor),
               ),
             ],
           ),
         ),
-        Icon(Icons.arrow_forward_ios_rounded, size: 14, color: sColor),
+        Icon(
+          Icons.arrow_forward_ios_rounded,
+          size: arrowSize ?? 14,
+          color: arrowColor ?? sColor,
+        ),
       ],
     );
   }
