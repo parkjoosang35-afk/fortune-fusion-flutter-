@@ -177,7 +177,7 @@ class AppColors {
   static const Color bgElevated = Color(0xFF252547); // 떠있는 요소
 
   // 포인트 컬러 (우주 별빛)
-  static const Color accentGold = Color(0xFFFFD700); // 복주머니 🍀
+  static const Color accentGold = Color(0xFFFFD700); // 행복머니 🍀
   static const Color accentPurple = Color(0xFF9D7BFF); // 신비/타로
   static const Color accentPink = Color(0xFFFF6B9D); // 소원/감성
   static const Color accentBlue = Color(0xFF4DA6FF); // 운세/미션
@@ -310,7 +310,7 @@ class AppColors {
     colors: [premiumDeepNavy, premiumMainPurple],
   );
 
-  /// 골드 포인트(복주머니/보상) 전용 은은한 그라디언트
+  /// 골드 포인트(행복머니/보상) 전용 은은한 그라디언트
   static const LinearGradient premiumGoldGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
@@ -319,4 +319,26 @@ class AppColors {
 
   /// 카드 은은한 그림자(다크 그림자 대신 아주 연한 퍼플 톤)
   static const Color premiumCardShadow = Color(0x146F5BFF);
+
+  // ══════════════════════════════════════════════════════════════
+  // [Fortune Fusion 서브 디자인 통일 마스터 프롬프트] ⚡ 액센트 확장 (신규)
+  //
+  // 첨부 기준 시안(화이트+소프트퍼플카드+블랙CTA+네온옐로우그린 포인트) 반영.
+  // 기존 premiumCtaGradient(네이비→퍼플)는 홈 화면에서 계속 쓰이므로 값을
+  // 바꾸지 않고, "블랙 CTA" 및 "네온 라임" 전용 신규 토큰만 별도로 추가한다.
+  // 이번 턴부터 서브 허브 화면(운세/행복머니/커뮤니티)은 아래 토큰을 사용한다.
+  // ══════════════════════════════════════════════════════════════
+
+  /// 메인 블랙 CTA 배경(순수 블랙에 가까운 다크) - 첨부 시안의 "+ 오늘의 운세보기" 버튼.
+  static const Color premiumBlackCta = Color(0xFF121212);
+
+  /// 포인트 액션 전용 네온 옐로우그린(형광) - 선택된 칩 / 원형 액션 버튼 / 상태 강조.
+  static const Color premiumNeonLime = Color(0xFFD2F547);
+
+  /// 네온 라임 위에 올라가는 텍스트/아이콘 색상(항상 다크 톤 대비).
+  static const Color premiumNeonLimeOnColor = Color(0xFF17181C);
+
+  /// 비활성 칩 / 보조 정보용 연회색.
+  static const Color premiumInactiveGrey = Color(0xFFF0F0F0);
+  static const Color premiumInactiveGreyText = Color(0xFF6B6B6F);
 }
