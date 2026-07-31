@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/premium_card.dart';
 import '../../../core/widgets/premium_button.dart';
 import '../../../core/widgets/premium_chip.dart';
@@ -19,6 +18,7 @@ import '../../community/application/wish_post_provider.dart';
 import '../../community/presentation/community_screen.dart';
 import '../../pass/application/pass_provider.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
+import 'home_style_tokens.dart';
 
 /// [Fortune Fusion 서브 디자인 통일 마스터 프롬프트] 홈 화면 - 기준 시안 그대로 구현
 ///
@@ -31,91 +31,109 @@ import '../../pass/presentation/pass_gate_helper.dart';
 /// 전체보기는 처음부터 3개 카드용으로 설계된 균등분배 레이아웃을 사용하며,
 /// AI 상담 배너 아래에는 일반상담을 재사용하는 보조 카드("고민상담")를 둔다.
 ///
+/// [홈 화면 최종 마감 정돈 프롬프트] 화면 구조/카드 배치/섹션 순서는 절대
+/// 바꾸지 않고, 색상·폰트·카드 크기·간격·정렬·아이콘 크기만 사용자가 제시한
+/// 정밀 스펙(390px 기준)으로 전면 재조정한다. 색/폰트는 `home_style_tokens.dart`
+/// (HomeColors/HomeText/HomeTokens, 이 화면 전용)를 단일 소스로 사용하고,
+/// 기존 하드코딩 값(그라디언트/장식 원/그림자 등)은 "그림자·외곽선·그라데이션
+/// 추가 금지" 원칙에 따라 제거한다. 다른 화면이 공유하는 `AppColors`/
+/// `AppTypography`/`PremiumChip`·`PremiumCircleButton`의 기존 기본값은 그대로
+/// 유지하고(회귀 방지), override 파라미터로만 이 화면에 스펙 색상을 주입한다.
+///
 /// [주의] Application/Data/Domain 레이어(Provider/Repository/Model)는 기존
 /// 것을 그대로 재사용하며, 이 화면은 Presentation 레이어만 재작성한다.
-///
-/// [화면 복제 정밀도 보정] 레퍼런스 이미지(390px 기준) 실측치를 그대로
-/// 하드코딩 상수화한다. 좌우 패딩(16px) 통일 + 각 블록이 CTA 버튼과 동일한
-/// 좌우 기준선(x=16 ~ x=374)에서 시작/종료하도록 폭을 맞추고, 세로 gap을
-/// 레퍼런스처럼 촘촘하게 조정한다.
 class _Dims {
   _Dims._();
 
-  // 좌우 기준 페이지 패딩(모든 섹션 공통 시작선)
+  // 좌우 기준 페이지 패딩(모든 섹션 공통 시작선, x=16 좌우 기준선과 동일)
   static const double pagePadding = 16;
 
-  // 헤더 아래 gap
-  static const double headerBottomGap = 18;
+  // 헤더 아래 gap(헤더 로우 → CTA 버튼). 스펙 "SafeArea→헤더 14~18" 범위와
+  // "세로 간격은 12/14/16/20만 사용" 원칙을 함께 만족시키는 값으로 확정.
+  static const double headerBottomGap = 16;
 
-  // CTA 버튼(+오늘의 운세보기) - radius는 PremiumButton이 height/2로 자동 계산(=22)
+  // CTA 버튼(+오늘의 운세보기) - radius는 PremiumButton이 height/2로 자동 계산(=22).
+  // 이 버튼은 스펙의 카드 크기 표에 명시되지 않은 요소라 크기 자체는 손대지 않았다.
   static const double ctaHeight = 44;
-  static const double ctaBottomGap = 22;
+  // CTA 버튼 → "타로이야기가기" 헤더 gap.
+  static const double ctaBottomGap = 16;
 
-  // 타로이야기가기 헤더 아래 gap(칩 로우까지)
+  // "타로이야기가기" 헤더 아래 gap(칩 로우까지) = 스펙 "섹션 제목 → 칩 라인: 12"
   static const double tarotHeaderBottomGap = 12;
-  static const double tarotCircleSize = 30;
+  // 섹션 우상단 원형 아이콘 배경 28 / 내부 아이콘 14(28*0.5=14, override 불필요)
+  static const double tarotCircleSize = 28;
 
-  // 카테고리 칩 - radius는 PremiumChip 내부에서 999(pill)로 고정
-  // [검증] PremiumChip 내부 padding을 vertical:10→8로 축소하여(공용 컴포넌트 수정)
-  // fontSize12/height1.3 텍스트(≈15.6px) + padding16 = 31.6px로 32px 타이트
-  // 제약(SizedBox) 안에 여유 0.4px로 정확히 들어맞도록 보정함.
-  static const double chipHeight = 32;
+  // 카테고리 칩 - 스펙: height30 / 좌우padding12 / radius15 / gap8
+  static const double chipHeight = 30;
   static const double chipGap = 8;
-  static const double chipsBottomGap = 16;
+  // 칩 라인 → 메인 카드 gap = 스펙 14
+  static const double chipsBottomGap = 14;
 
-  // 헤더 row(아이콘 간격)
+  // 헤더 row(아이콘 간격) - 스펙에 명시되지 않은 아이콘 내부 미세 간격이라 유지.
   static const double headerIconGap = 10;
 
-  // 히어로 카드(오늘의 운세 이야기)
-  static const double heroCardHeight = 136;
-  static const double heroCardRadius = 20;
-  static const double heroCardPadding = 18;
-  static const double heroCardBottomGap = 13;
-  static const double heroCircleSize = 30;
+  // 히어로 카드(오늘의 운세 이야기) - 스펙: width358(자동)/height108~116/radius16/padding14
+  static const double heroCardHeight = 112;
+  static const double heroCardRadius = 16;
+  static const double heroCardPadding = 14;
+  // 메인 카드 → 소원게시판/소원방 2열 gap = 스펙 12
+  static const double heroCardBottomGap = 12;
+  // 카드 우상단 원형 CTA 배경 26~28 → 28 선택(내부 아이콘 14로 override)
+  static const double heroCircleSize = 28;
 
-  // 소원게시판/소원방 2열 카드
+  // 소원게시판/소원방 2열 카드 - 스펙: gap8/각width175(자동)/height96~104/radius16/padding14
   static const double wishCardGap = 8;
-  static const double wishCardHeight = 120;
-  static const double wishCardRadius = 18;
+  static const double wishCardHeight = 100;
+  static const double wishCardRadius = 16;
   static const double wishCardPadding = 14;
-  static const double wishRowBottomGap = 18;
+  // 소원게시판/소원방 → 전체보기 제목 gap = 스펙 20
+  static const double wishRowBottomGap = 20;
+  // 카드 우상단 원형 CTA 배경 26~28 → 27(중앙값), 내부 아이콘 14로 override
   static const double wishCircleSize = 27;
 
   // 전체보기 타이틀 + 3카드(부적만들기/궁합매칭/커뮤니티) - 처음부터 3개용으로
   // 설계된 균등분배(Expanded) 레이아웃. 가로 스크롤 없이 한 화면에 고정 배치.
+  // 전체보기 제목 → 3카드 gap = 스펙 12
   static const double allMenuTitleBottomGap = 12;
-  static const double allMenuCardHeight = 84;
-  static const double allMenuCardRadius = 16;
-  static const double allMenuGap = 10;
-  static const double allMenuBottomGap = 20;
+  // 스펙: 각width114(자동, gap8 기준)/height64~72/radius14/padding12
+  static const double allMenuCardHeight = 68;
+  static const double allMenuCardRadius = 14;
+  static const double allMenuCardPadding = 12;
+  static const double allMenuGap = 8;
+  // 3카드 → AI 상담 배너 gap = 스펙 16
+  static const double allMenuBottomGap = 16;
 
   // 전체보기 아래 프로모 배너("AI 상담" 유도) - CMS 광고배너 없을 때 fallback
-  static const double bannerHeight = 84;
-  static const double bannerRadius = 20;
-  static const double bannerPadding = 16;
-  static const double bannerCircleSize = 30;
+  // 스펙: width358(자동)/height64~72/radius14/padding좌우14·상하12
+  static const double bannerHeight = 68;
+  static const double bannerRadius = 14;
+  static const double bannerPaddingH = 14;
+  static const double bannerPaddingV = 12;
+  // AI 상담 배너 우측 원형 CTA 배경 32 / 내부 아이콘 16(32*0.5=16, override 불필요)
+  static const double bannerCircleSize = 32;
 
-  // AI 상담 배너 아래 보조 진입 카드("고민상담") - 남는 공간을 메우는 가벼운 카드
-  static const double worryCardTopGap = 10;
-  static const double worryCardHeight = 72;
-  static const double worryCardRadius = 18;
-  static const double worryCardPadding = 14;
+  // AI 상담 배너 아래 보조 진입 카드("고민상담") - 남는 공간을 메우는 가벼운 카드.
+  // 스펙 표에 명시적 항목은 없으나 "카드 간 세로 간격은 12 또는 14" 원칙과
+  // 공통 카드 규칙(radius기본16 이하 계열 중 14, padding좌우14·상하12)을 그대로
+  // 적용해 다른 카드들과 통일감을 맞췄다.
+  static const double worryCardTopGap = 14;
+  static const double worryCardHeight = 68;
+  static const double worryCardRadius = 14;
+  static const double worryCardPaddingH = 14;
+  static const double worryCardPaddingV = 12;
   static const double worryCircleSize = 26;
 
-  // 하단 고정 열림패스 바
+  // 하단 고정 열림패스 바 - 스펙: width358(자동)/height48/radius24/좌우padding16
   static const double bottomBarHeight = 48;
   static const double bottomBarRadius = 24;
-  static const double bottomBarTopGap = 20; // 열림패스 바 위 여백(콘텐츠와의 거리)
-  static const double bottomBarBottomGap = 15; // 열림패스 바 아래 여백(탭바와의 거리)
+  // 고민상담 카드 → 열림패스 바 gap = 스펙 "AI배너→열림패스바 14"를 그대로 적용
+  // (고민상담 카드가 AI배너 뒤에 추가된 보조 카드이므로 동일한 카드형 gap 사용)
+  static const double bottomBarTopGap = 14;
+  // 열림패스 바 → 탭바 gap = 스펙 14
+  static const double bottomBarBottomGap = 14;
   static const double bottomBarCircleSize = 32;
 
   // ListView 하단 예약 공간(= 바 위 여백 + 바 높이 + 바 아래 여백).
-  // [배너 추가 세그먼트] 기존에는 +10 버퍼가 있어 배너~열림패스 사이 실제
-  // 시각 gap이 30px(10 버퍼 + bottomBarTopGap 20)이 되어 사용자 스펙(16~20)을
-  // 벗어났다. 버퍼를 제거해 마지막 콘텐츠(배너) 바로 아래가 열림패스 바의
-  // bottomBarTopGap(20)과 정확히 맞물리도록 하여 gap을 스펙 범위(16~20)로 보정.
-  // 열림패스 바 자체의 width/height/position(Positioned bottom:0 + 내부
-  // padding 값)은 전혀 변경하지 않았다.
   static const double bottomBarReservedSpace =
       bottomBarTopGap + bottomBarHeight + bottomBarBottomGap;
 }
@@ -145,7 +163,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.premiumBgMain,
+      backgroundColor: HomeColors.bg,
       body: SafeArea(
         bottom: false,
         child: Stack(
@@ -181,14 +199,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: _Dims.chipsBottomGap),
 
-                // ⑤ 오늘의 운세 이야기 - 인디고 그라디언트 히어로카드
+                // ⑤ 오늘의 운세 이야기 - 플랫 라벤더화이트 메인 카드(#F0EEFB)
                 const FadeSlideIn(
                   delay: Duration(milliseconds: 120),
                   child: _TodayStoryHeroCard(),
                 ),
                 const SizedBox(height: _Dims.heroCardBottomGap),
 
-                // ⑥ 소원게시판 / 소원방 2단 라벤더 카드
+                // ⑥ 소원게시판 / 소원방 2단 카드(#F5F3FB, 완전 동일)
                 const FadeSlideIn(
                   delay: Duration(milliseconds: 160),
                   child: _WishBoardRoomRow(),
@@ -200,10 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 // 로우(④, 네온라임 강조되는 "전체보기" 칩)로 옮겼으므로, 여기는
                 // 다시 단순 타이틀(터치 액션 없음)로 되돌리고 폰트를 더 작게
                 // (15px) 줄여 상단 칩과 역할이 겹치지 않게 한다.
-                Text(
-                  '전체보기',
-                  style: AppTypography.sectionTitle.copyWith(fontSize: 15),
-                ),
+                Text('전체보기', style: HomeText.title()),
                 const SizedBox(height: _Dims.allMenuTitleBottomGap),
                 const FadeSlideIn(
                   delay: Duration(milliseconds: 200),
@@ -231,7 +246,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
 
-            // ⑧ 하단 고정 블랙 pill 바 - "🔒 열림패스" + 네온라임 원형 화살표
+            // ⑧ 하단 고정 블랙 pill 바 - "열림패스" + 네온라임 원형 화살표
             const Positioned(
               left: 0,
               right: 0,
@@ -245,7 +260,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-/// ① 상단 헤더 - 좌측 로고 텍스트 + 우측 클로버🍀/벨🔔 bare 아이콘
+/// ① 상단 헤더 - 좌측 로고 텍스트 + 우측 클로버🍀/벨 bare 아이콘
 class _TopHeader extends StatelessWidget {
   const _TopHeader();
 
@@ -255,19 +270,30 @@ class _TopHeader extends StatelessWidget {
 
     return Row(
       children: [
+        // [예외] 브랜드 로고타입은 Type Scale(최대 17px) 범위를 벗어나는
+        // 유일한 예외 요소다(앱 전체에서 1회만 등장하는 워드마크). 크기(22)는
+        // 유지하고 컬러만 스펙 텍스트 기본색(#111111)으로 정확히 맞춘다.
         Text(
           '신통방통',
-          style: AppTypography.sectionTitle.copyWith(
+          style: TextStyle(
+            fontFamily: HomeText.family,
             fontSize: 22,
             fontWeight: FontWeight.w800,
+            letterSpacing: -0.2,
+            height: 1.3,
+            color: HomeColors.textPrimary,
           ),
         ),
         const Spacer(),
+        // 클로버(행복머니 마스코트) - 앱 전역에서 쓰이는 브랜드 아이콘이라 이모지를
+        // 유지하되, 스펙 범위(20~22)를 그대로 만족하는 22를 유지한다.
         GestureDetector(
           onTap: () => Navigator.of(context).pushNamed('/reward/wallet'),
           child: const Text('🍀', style: TextStyle(fontSize: 22)),
         ),
         const SizedBox(width: _Dims.headerIconGap),
+        // 벨 아이콘 - 스펙 "상단 우측 알림/클로버 아이콘: 20~22" 범위 상단값(22),
+        // 컬러는 기본 텍스트 아이콘 규칙(#111111) 적용.
         GestureDetector(
           onTap: () => Navigator.of(context).pushNamed('/my/notifications'),
           child: Stack(
@@ -277,8 +303,8 @@ class _TopHeader extends StatelessWidget {
                 notif.unreadCount > 0
                     ? Icons.notifications_rounded
                     : Icons.notifications_none_rounded,
-                size: 24,
-                color: AppColors.premiumTextPrimary,
+                size: HomeTokens.iconXl,
+                color: HomeColors.textPrimary,
               ),
               if (notif.unreadCount > 0)
                 Positioned(
@@ -290,10 +316,7 @@ class _TopHeader extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: AppColors.premiumCoralAccent,
                       shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppColors.premiumBgMain,
-                        width: 1.5,
-                      ),
+                      border: Border.all(color: HomeColors.bg, width: 1.5),
                     ),
                   ),
                 ),
@@ -306,6 +329,11 @@ class _TopHeader extends StatelessWidget {
 }
 
 /// ② "+ 오늘의 운세보기" 블랙 pill 버튼
+///
+/// [범위 외] PremiumButton.black은 CommunityHubScreen/LuckyBagScreen에서도
+/// 그대로 쓰이는 공유 컴포넌트라 색상(#121212, 스펙 #111111과 1px 차이로
+/// 육안상 동일)은 건드리지 않았다. 스펙의 카드 크기 표에도 이 CTA는 명시되지
+/// 않은 요소다.
 class _TodayFortuneCta extends StatelessWidget {
   const _TodayFortuneCta();
 
@@ -328,26 +356,30 @@ class _TarotStoryHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        // 섹션 헤더를 정리된 느낌으로 만드는 작은 블랙 포인트 배지. 상단 메인
-        // CTA(블랙 pill 버튼)나 우측 블랙 원형 버튼과 크기가 겹치지 않도록
-        // 가장 작은 사이즈(20)로 두어 시각적 위계를 명확히 한다.
+        // [범위 외] 이 20x20 블랙 배지는 스펙의 아이콘 크기표(헤더/섹션원형/
+        // 카드CTA/AI배너CTA/열림패스 등)에 명시되지 않은 장식 마커라 크기는
+        // 유지했다. 컬러만 블랙 포인트(#111111)로 통일한다.
         Container(
           width: 20,
           height: 20,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: AppColors.premiumBlackCta,
+            color: HomeColors.black,
             borderRadius: BorderRadius.circular(7),
           ),
           child: const Icon(Icons.style_rounded, size: 12, color: Colors.white),
         ),
         const SizedBox(width: 8),
-        Text('타로이야기가기', style: AppTypography.cardTitle.copyWith(fontSize: 17)),
+        Text('타로이야기가기', style: HomeText.titleLarge()),
         const Spacer(),
+        // 섹션 우상단 원형 아이콘 배경 28 / 내부 아이콘 14(28*0.5=14).
+        // 블랙 CTA 색상을 스펙 정확값(#111111)으로 override.
         PremiumCircleButton(
           icon: Icons.grid_view_rounded,
           style: PremiumCircleButtonStyle.black,
           size: _Dims.tarotCircleSize,
+          bgColor: HomeColors.black,
+          fgColor: Colors.white,
           onTap: () =>
               Navigator.of(context).pushNamed('/ai-fortune/tarot/question'),
         ),
@@ -402,10 +434,20 @@ class _FortuneCategoryChipsState extends State<_FortuneCategoryChips> {
         separatorBuilder: (_, __) => const SizedBox(width: _Dims.chipGap),
         itemBuilder: (context, index) {
           final (label, _, _) = _items[index];
+          final selected = _selected == index;
+          // 스펙: height30/좌우padding12/radius15/활성 칩만 형광(#C6F24E) 배경.
           return PremiumChip(
             label: label,
-            selected: _selected == index,
+            selected: selected,
             onTap: _checking ? () {} : () => _handleTap(index),
+            height: _Dims.chipHeight,
+            horizontalPadding: 12,
+            radius: 15,
+            activeBg: HomeColors.neon,
+            activeFg: HomeColors.textPrimary,
+            inactiveBg: HomeColors.chipInactiveBg,
+            inactiveFg: HomeColors.textSecondary,
+            labelStyle: HomeText.chipLabel(),
           );
         },
       ),
@@ -413,7 +455,13 @@ class _FortuneCategoryChipsState extends State<_FortuneCategoryChips> {
   }
 }
 
-/// ⑤ "오늘의 운세 이야기" 히어로카드 - 인디고 그라디언트 + 네온라임 원형 버튼
+/// ⑤ "오늘의 운세 이야기" 메인 카드 - 플랫 라벤더화이트(#F0EEFB) + 네온라임 원형 버튼
+///
+/// [색상 통일] 기존 진한 인디고 그라디언트(premiumIndigoHeroGradient)와 흰색
+/// 글로우 장식 원(SoftGradientBlob)을 제거했다. "카드 배경을 진한 톤으로
+/// 되돌리는 것 금지"/"그라데이션 추가 금지" 원칙에 따라 완전 플랫 컬러로
+/// 전환하고, 배경이 밝아진 만큼 텍스트도 화이트 → 스펙 기본/서브 텍스트색으로
+/// 바꿔 대비를 유지한다.
 class _TodayStoryHeroCard extends StatelessWidget {
   const _TodayStoryHeroCard();
 
@@ -422,7 +470,7 @@ class _TodayStoryHeroCard extends StatelessWidget {
     final today = context.watch<DailyFortuneProvider>().today;
 
     return PremiumCard(
-      gradient: AppColors.premiumIndigoHeroGradient,
+      backgroundColor: HomeColors.cardMain,
       borderColor: Colors.transparent,
       borderRadius: BorderRadius.circular(_Dims.heroCardRadius),
       showShadow: false,
@@ -431,66 +479,36 @@ class _TodayStoryHeroCard extends StatelessWidget {
       padding: const EdgeInsets.all(_Dims.heroCardPadding),
       child: SizedBox(
         height: _Dims.heroCardHeight - _Dims.heroCardPadding * 2,
-        child: Stack(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 은은한 크레센트(초승달형) 글로우 장식 - 카드 하단에서 우상단으로 스윕
-            Positioned(
-              bottom: -30,
-              left: 10,
-              child: SoftGradientBlob(
-                size: 150,
-                color: Colors.white,
-                opacity: 0.20,
-              ),
-            ),
-            Positioned(
-              bottom: -10,
-              left: 70,
-              child: SoftGradientBlob(
-                size: 110,
-                color: Colors.white,
-                opacity: 0.16,
-              ),
-            ),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        '오늘의 운세 이야기',
-                        style: AppTypography.cardTitle.copyWith(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      Text(
-                        today?.summaryText ?? '오늘은 당신의\n운명은 어떤 이야기가 펼쳐질까요?',
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTypography.bodyMain.copyWith(
-                          color: Colors.white.withValues(alpha: 0.92),
-                          height: 1.5,
-                          fontSize: 15,
-                        ),
-                      ),
-                    ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('오늘의 운세 이야기', style: HomeText.title()),
+                  // 제목-본문 gap 6(스펙 고정값).
+                  const SizedBox(height: 6),
+                  Text(
+                    today?.summaryText ?? '오늘은 당신의\n운명은 어떤 이야기가 펼쳐질까요?',
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: HomeText.body(),
                   ),
-                ),
-                PremiumCircleButton(
-                  icon: Icons.arrow_drop_up_rounded,
-                  style: PremiumCircleButtonStyle.neon,
-                  size: _Dims.heroCircleSize,
-                  onTap: () => Navigator.of(
-                    context,
-                  ).pushNamed('/home/daily-fortune-detail'),
-                ),
-              ],
+                ],
+              ),
+            ),
+            // 카드 우상단 원형 CTA 배경 26~28→28, 내부 아이콘 14(28*0.5=14).
+            // 네온 배경 위 아이콘은 반대색(#111111)으로 override.
+            PremiumCircleButton(
+              icon: Icons.arrow_drop_up_rounded,
+              style: PremiumCircleButtonStyle.neon,
+              size: _Dims.heroCircleSize,
+              bgColor: HomeColors.neon,
+              fgColor: HomeColors.textPrimary,
+              onTap: () =>
+                  Navigator.of(context).pushNamed('/home/daily-fortune-detail'),
             ),
           ],
         ),
@@ -499,7 +517,7 @@ class _TodayStoryHeroCard extends StatelessWidget {
   }
 }
 
-/// ⑥ 소원게시판 / 소원방 2단 라벤더 카드
+/// ⑥ 소원게시판 / 소원방 2단 카드 - #F5F3FB 완전 동일 배경/크기/구조
 class _WishBoardRoomRow extends StatelessWidget {
   const _WishBoardRoomRow();
 
@@ -556,52 +574,45 @@ class _LavenderMiniCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 네온 스타일 CTA만 정확한 스펙 hex(#C6F24E/#111111)로 override. 블랙
+    // 스타일(소원방)은 기존 premiumBlackCta(#121212)를 유지해도 스펙 #111111과
+    // 시각적으로 동일하지만, 완전한 hex 일치를 위해 이 화면에서는 두 카드 모두
+    // override로 정확히 맞춘다(두 카드 완전 대칭 유지가 최우선이기 때문).
+    final overrideBg = circleStyle == PremiumCircleButtonStyle.neon
+        ? HomeColors.neon
+        : HomeColors.black;
+    final overrideFg = circleStyle == PremiumCircleButtonStyle.neon
+        ? HomeColors.textPrimary
+        : Colors.white;
+
     return PremiumCard(
-      backgroundColor: AppColors.premiumSoftLavender,
+      backgroundColor: HomeColors.cardWish,
       borderColor: Colors.transparent,
       borderRadius: BorderRadius.circular(_Dims.wishCardRadius),
       showShadow: false,
       onTap: onTap,
       padding: const EdgeInsets.all(_Dims.wishCardPadding),
-      child: Stack(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // 은은한 원형 글로우 장식 - 레퍼런스처럼 카드 대부분을 채우는 큰 사이즈
-          Positioned(
-            bottom: -30,
-            right: -30,
-            child: Container(
-              width: 130,
-              height: 130,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.55),
-              ),
-            ),
-          ),
-          Column(
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: AppTypography.cardTitle.copyWith(fontSize: 15),
-                    ),
-                  ),
-                  PremiumCircleButton(
-                    icon: circleIcon,
-                    style: circleStyle,
-                    size: _Dims.wishCircleSize,
-                    onTap: onTap,
-                  ),
-                ],
+              Expanded(child: Text(title, style: HomeText.title())),
+              // 카드 우상단 원형 CTA 배경 26~28→27, 내부 아이콘 14로 override.
+              PremiumCircleButton(
+                icon: circleIcon,
+                style: circleStyle,
+                size: _Dims.wishCircleSize,
+                iconSize: 14,
+                bgColor: overrideBg,
+                fgColor: overrideFg,
+                onTap: onTap,
               ),
-              Text(bottomLabel, style: AppTypography.caption),
             ],
           ),
+          Text(bottomLabel, style: HomeText.caption()),
         ],
       ),
     );
@@ -659,17 +670,15 @@ class _AllMenuCard extends StatelessWidget {
       },
       child: Container(
         alignment: Alignment.center,
+        padding: const EdgeInsets.all(_Dims.allMenuCardPadding),
         decoration: BoxDecoration(
-          color: AppColors.premiumSoftLavender,
+          color: HomeColors.cardAllMenu,
           borderRadius: BorderRadius.circular(_Dims.allMenuCardRadius),
         ),
         child: Text(
           label,
           textAlign: TextAlign.center,
-          style: AppTypography.bodyStrong.copyWith(
-            color: AppColors.premiumDeepNavy,
-            fontWeight: FontWeight.w700,
-          ),
+          style: HomeText.bodyStrong(),
         ),
       ),
     );
@@ -680,24 +689,25 @@ class _AllMenuCard extends StatelessWidget {
 ///
 /// CMS 광고배너(`AdBannerWidget`)가 비어 있을 때(비활성/기간외/서버오류 등)
 /// 표시되는 fallback으로, 새 배너 시스템을 만들지 않고 기존 `PremiumCard` +
-/// `PremiumCircleButton` 디자인시스템 컴포넌트만 재사용해 구성한다. 톤은
-/// 연라벤더 배경(`premiumSoftLavender`)으로 전체보기 카드/소원게시판 카드와
-/// 통일하고, 시각적 무게는 열림패스 바(블랙 CTA)보다 가볍게 유지한다.
+/// `PremiumCircleButton` 디자인시스템 컴포넌트만 재사용해 구성한다.
 class _ConsultationPromoBanner extends StatelessWidget {
   const _ConsultationPromoBanner();
 
   @override
   Widget build(BuildContext context) {
     return PremiumCard(
-      backgroundColor: AppColors.premiumSoftLavender,
+      backgroundColor: HomeColors.cardBanner,
       borderColor: Colors.transparent,
       borderRadius: BorderRadius.circular(_Dims.bannerRadius),
       showShadow: false,
       onTap: () =>
           Navigator.of(context).pushNamed('/ai-fortune/consultation/type'),
-      padding: const EdgeInsets.all(_Dims.bannerPadding),
+      padding: const EdgeInsets.symmetric(
+        horizontal: _Dims.bannerPaddingH,
+        vertical: _Dims.bannerPaddingV,
+      ),
       child: SizedBox(
-        height: _Dims.bannerHeight - _Dims.bannerPadding * 2,
+        height: _Dims.bannerHeight - _Dims.bannerPaddingV * 2,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -711,23 +721,26 @@ class _ConsultationPromoBanner extends StatelessWidget {
                     'AI 상담으로 더 자세히 보기',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppTypography.cardTitle.copyWith(fontSize: 15),
+                    style: HomeText.title(),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     '오늘 본 운세를 기반으로 상담받아보세요',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppTypography.caption,
+                    style: HomeText.caption(),
                   ),
                 ],
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
+            // AI 상담 배너 원형 CTA 배경 32 / 내부 아이콘 16(32*0.5=16).
             PremiumCircleButton(
               icon: Icons.chevron_right_rounded,
               style: PremiumCircleButtonStyle.black,
               size: _Dims.bannerCircleSize,
+              bgColor: HomeColors.black,
+              fgColor: Colors.white,
               onTap: () => Navigator.of(
                 context,
               ).pushNamed('/ai-fortune/consultation/type'),
@@ -743,8 +756,10 @@ class _ConsultationPromoBanner extends StatelessWidget {
 ///
 /// 기능은 기존 "일반상담"(ConsultationProvider.startSession(type: 'general'))을
 /// 그대로 재사용하되, 사용자에게 노출되는 명칭은 "고민상담"으로만 표시한다.
-/// AI 상담 배너(진한 라벤더 + 블랙 원형 CTA)와 톤을 달리하여(더 옅은 배경,
-/// 더 낮은 시각적 무게) 서로 경쟁하지 않는 보조 카드처럼 보이도록 구성했다.
+/// AI 상담 배너보다 낮은 시각적 무게를 유지하기 위해 배경을 화면 배경에 더
+/// 가까운 톤(카드 팔레트 중 가장 옅은 계열)으로 두고, 낮은 대비를 보완하도록
+/// 얇은 테두리(#ECECEF)를 최소한으로만 사용한다("테두리 사용 최소화, 필요
+/// 시 #ECECEF" 규정에 부합).
 class _WorryConsultationBanner extends StatelessWidget {
   const _WorryConsultationBanner();
 
@@ -759,14 +774,17 @@ class _WorryConsultationBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PremiumCard(
-      backgroundColor: AppColors.premiumBgSubtle,
-      borderColor: AppColors.premiumLightBorder,
+      backgroundColor: HomeColors.bg,
+      borderColor: HomeColors.border,
       borderRadius: BorderRadius.circular(_Dims.worryCardRadius),
       showShadow: false,
       onTap: () => _open(context),
-      padding: const EdgeInsets.all(_Dims.worryCardPadding),
+      padding: const EdgeInsets.symmetric(
+        horizontal: _Dims.worryCardPaddingH,
+        vertical: _Dims.worryCardPaddingV,
+      ),
       child: SizedBox(
-        height: _Dims.worryCardHeight - _Dims.worryCardPadding * 2,
+        height: _Dims.worryCardHeight - _Dims.worryCardPaddingV * 2,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -780,23 +798,27 @@ class _WorryConsultationBanner extends StatelessWidget {
                     '고민상담',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppTypography.cardTitle.copyWith(fontSize: 14),
+                    style: HomeText.bodyStrong(),
                   ),
                   const SizedBox(height: 3),
                   Text(
                     '관계, 감정, 선택에 대한 상담 연결',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppTypography.caption,
+                    style: HomeText.caption(),
                   ),
                 ],
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
+            // 카드 우상단 원형 CTA 배경 26~28→26, 내부 아이콘 14로 override.
             PremiumCircleButton(
               icon: Icons.chevron_right_rounded,
               style: PremiumCircleButtonStyle.lavender,
               size: _Dims.worryCircleSize,
+              iconSize: 14,
+              bgColor: HomeColors.cardAllMenu,
+              fgColor: HomeColors.textSecondary,
               onTap: () => _open(context),
             ),
           ],
@@ -806,7 +828,12 @@ class _WorryConsultationBanner extends StatelessWidget {
   }
 }
 
-/// ⑧ 하단 고정 블랙 pill 바 - "🔒 열림패스" + 남은시간 + 네온라임 원형 화살표
+/// ⑧ 하단 고정 블랙 pill 바 - "열림패스" + 남은시간 + 네온라임 원형 화살표
+///
+/// [색상/아이콘 통일] 배경을 정확히 #111111로, 자물쇠 이모지를 라인 아이콘
+/// (lock_outline_rounded/lock_open_rounded, 두께감 있는 rounded 세트)으로
+/// 교체해 "라인 아이콘 기본" 원칙에 맞췄다. "그림자 사용 금지" 원칙에 따라
+/// 기존 BoxShadow도 제거했다.
 class _OpenPassBottomBar extends StatelessWidget {
   const _OpenPassBottomBar();
 
@@ -830,35 +857,31 @@ class _OpenPassBottomBar extends StatelessWidget {
             height: _Dims.bottomBarHeight,
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
             decoration: BoxDecoration(
-              color: AppColors.premiumBlackCta,
+              color: HomeColors.passBar,
               borderRadius: BorderRadius.circular(_Dims.bottomBarRadius),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.22),
-                  blurRadius: 18,
-                  offset: const Offset(0, 8),
-                ),
-              ],
             ),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(
-                  isActive ? '🔓' : '🔒',
-                  style: const TextStyle(fontSize: 16),
+                // 열림패스 좌측 자물쇠 아이콘 16(스펙 고정값).
+                Icon(
+                  isActive
+                      ? Icons.lock_open_rounded
+                      : Icons.lock_outline_rounded,
+                  size: HomeTokens.iconMd,
+                  color: Colors.white,
                 ),
-                const SizedBox(width: AppSpacing.sm),
-                Text(
-                  '열림패스',
-                  style: AppTypography.bodyStrong.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+                // 자물쇠-텍스트 gap 10(스펙 고정값).
+                const SizedBox(width: 10),
+                Text('열림패스', style: HomeText.bodyStrong(color: Colors.white)),
                 const Spacer(),
+                // 열림패스 우측 원형 버튼 32 / 내부 아이콘 16(32*0.5=16).
                 PremiumCircleButton(
                   icon: Icons.chevron_right_rounded,
                   style: PremiumCircleButtonStyle.neon,
                   size: _Dims.bottomBarCircleSize,
+                  bgColor: HomeColors.neon,
+                  fgColor: HomeColors.textPrimary,
                   onTap: () =>
                       Navigator.of(context).pushNamed('/reward/wallet'),
                 ),

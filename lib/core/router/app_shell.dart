@@ -44,12 +44,15 @@ class _AppShellState extends State<AppShell> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(index: _index, children: _tabs),
+      // [홈 화면 최종 마감 정돈 프롬프트] 탭바 5개 완전 통일: 아이콘 22 고정,
+      // 두께/라벨 크기·자간을 모두 동일 규칙으로 통일하고 활성(#111111)/
+      // 비활성(#9A9AA2)은 색상 규칙으로만 구분한다(굵기/크기 차이 제거).
+      // 여기 쓰이는 색상 리터럴은 이 위젯 내부에서만 쓰이는 값이라 전역
+      // AppColors 상수를 바꾸지 않고 직접 지정해도 다른 화면에 영향이 없다.
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           color: AppColors.premiumBgSection,
-          border: Border(
-            top: BorderSide(color: AppColors.premiumLightBorder, width: 1),
-          ),
+          border: Border(top: BorderSide(color: Color(0xFFECECEF), width: 1)),
         ),
         child: SafeArea(
           child: SizedBox(
@@ -60,21 +63,25 @@ class _AppShellState extends State<AppShell> {
               backgroundColor: AppColors.premiumBgSection,
               type: BottomNavigationBarType.fixed,
               elevation: 0,
-              selectedItemColor: AppColors.premiumDeepNavy,
-              unselectedItemColor: AppColors.premiumTextTertiary,
+              selectedItemColor: const Color(0xFF111111),
+              unselectedItemColor: const Color(0xFF9A9AA2),
               selectedLabelStyle: const TextStyle(
+                fontFamily: 'Pretendard',
                 fontSize: 11,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w600,
+                letterSpacing: -0.2,
               ),
               unselectedLabelStyle: const TextStyle(
+                fontFamily: 'Pretendard',
                 fontSize: 11,
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w600,
+                letterSpacing: -0.2,
               ),
               items: _navItems
                   .map(
                     (e) => BottomNavigationBarItem(
-                      icon: Icon(e.$1),
-                      activeIcon: Icon(e.$2),
+                      icon: Icon(e.$1, size: 22),
+                      activeIcon: Icon(e.$2, size: 22),
                       label: e.$3,
                     ),
                   )
