@@ -84,6 +84,12 @@ class _Dims {
   static const double allMenuGap = 10;
   static const double allMenuBottomGap = 20;
 
+  // 전체보기 아래 프로모 배너("AI 상담" 유도) - CMS 광고배너 없을 때 fallback
+  static const double bannerHeight = 84;
+  static const double bannerRadius = 20;
+  static const double bannerPadding = 16;
+  static const double bannerCircleSize = 30;
+
   // 하단 고정 열림패스 바
   static const double bottomBarHeight = 48;
   static const double bottomBarRadius = 24;
@@ -91,9 +97,15 @@ class _Dims {
   static const double bottomBarBottomGap = 15; // 열림패스 바 아래 여백(탭바와의 거리)
   static const double bottomBarCircleSize = 32;
 
-  // ListView 하단 예약 공간(= 바 위 여백 + 바 높이 + 바 아래 여백 + 여유)
+  // ListView 하단 예약 공간(= 바 위 여백 + 바 높이 + 바 아래 여백).
+  // [배너 추가 세그먼트] 기존에는 +10 버퍼가 있어 배너~열림패스 사이 실제
+  // 시각 gap이 30px(10 버퍼 + bottomBarTopGap 20)이 되어 사용자 스펙(16~20)을
+  // 벗어났다. 버퍼를 제거해 마지막 콘텐츠(배너) 바로 아래가 열림패스 바의
+  // bottomBarTopGap(20)과 정확히 맞물리도록 하여 gap을 스펙 범위(16~20)로 보정.
+  // 열림패스 바 자체의 width/height/position(Positioned bottom:0 + 내부
+  // padding 값)은 전혀 변경하지 않았다.
   static const double bottomBarReservedSpace =
-      bottomBarTopGap + bottomBarHeight + bottomBarBottomGap + 10;
+      bottomBarTopGap + bottomBarHeight + bottomBarBottomGap;
 }
 
 class HomeScreen extends StatefulWidget {
@@ -181,7 +193,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: _Dims.allMenuBottomGap),
 
-                const AdBannerWidget(position: 'home_bottom'),
+                // ⑧ 전체보기 아래 빈 공간 - 기존 AdBannerWidget(CMS 광고배너,
+                // features/ad_banner)을 재사용. CMS에 활성 배너가 없을 때는
+                // 완전히 사라지는 대신(fallback 없던 기존 동작) AI상담 유도
+                // 프로모 카드(_ConsultationPromoBanner)를 대체 표시한다.
+                AdBannerWidget(
+                  position: 'home_bottom',
+                  fallback: const _ConsultationPromoBanner(),
+                ),
               ],
             ),
 
@@ -543,6 +562,7 @@ class _AllMenuButtonsRow extends StatelessWidget {
     ('부적만들기', '/reward/amulet/generate'),
     ('궁합매칭', '/ai-fortune/matching/discover'),
     ('커뮤니티', null),
+    ('AI 상담', '/ai-fortune/consultation/type'),
   ];
 
   @override
@@ -582,6 +602,67 @@ class _AllMenuButtonsRow extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+/// [배너 추가 세그먼트] 전체보기 아래 빈 공간을 메우는 보조 프로모 카드.
+///
+/// CMS 광고배너(`AdBannerWidget`)가 비어 있을 때(비활성/기간외/서버오류 등)
+/// 표시되는 fallback으로, 새 배너 시스템을 만들지 않고 기존 `PremiumCard` +
+/// `PremiumCircleButton` 디자인시스템 컴포넌트만 재사용해 구성한다. 톤은
+/// 연라벤더 배경(`premiumSoftLavender`)으로 전체보기 카드/소원게시판 카드와
+/// 통일하고, 시각적 무게는 열림패스 바(블랙 CTA)보다 가볍게 유지한다.
+class _ConsultationPromoBanner extends StatelessWidget {
+  const _ConsultationPromoBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return PremiumCard(
+      backgroundColor: AppColors.premiumSoftLavender,
+      borderColor: Colors.transparent,
+      borderRadius: BorderRadius.circular(_Dims.bannerRadius),
+      showShadow: false,
+      onTap: () => Navigator.of(context).pushNamed('/ai-fortune/consultation/type'),
+      padding: const EdgeInsets.all(_Dims.bannerPadding),
+      child: SizedBox(
+        height: _Dims.bannerHeight - _Dims.bannerPadding * 2,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'AI 상담으로 더 자세히 보기',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.cardTitle.copyWith(fontSize: 15),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '오늘의 운세를 기반으로 상담받아보세요',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.caption,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            PremiumCircleButton(
+              icon: Icons.chevron_right_rounded,
+              style: PremiumCircleButtonStyle.black,
+              size: _Dims.bannerCircleSize,
+              onTap: () =>
+                  Navigator.of(context).pushNamed('/ai-fortune/consultation/type'),
+            ),
+          ],
+        ),
       ),
     );
   }

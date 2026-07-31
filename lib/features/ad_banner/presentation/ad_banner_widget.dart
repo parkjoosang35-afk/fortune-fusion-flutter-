@@ -17,7 +17,13 @@ import 'ad_script_view.dart';
 /// - 탭 시: linkUrl이 있으면 외부 브라우저로 제휴 링크 오픈
 class AdBannerWidget extends StatefulWidget {
   final String position; // 'home_top' | 'home_middle' | 'home_bottom'
-  const AdBannerWidget({super.key, required this.position});
+
+  /// [홈 하단 빈 공간 보완] CMS에 활성 배너가 없을 때(비활성/기간외/서버오류 등)
+  /// 표시할 대체 위젯. `LuckyNumberWidget`의 fallback 패턴을 그대로 재사용한다.
+  /// 지정하지 않으면 기존 동작대로 공간을 차지하지 않고 사라진다(SizedBox.shrink).
+  final Widget? fallback;
+
+  const AdBannerWidget({super.key, required this.position, this.fallback});
 
   @override
   State<AdBannerWidget> createState() => _AdBannerWidgetState();
@@ -60,9 +66,10 @@ class _AdBannerWidgetState extends State<AdBannerWidget> {
       return _buildSkeleton();
     }
 
-    // 데이터가 없으면(비활성/기간외/오류 등) 공간을 차지하지 않도록 빈 위젯 반환.
+    // 데이터가 없으면(비활성/기간외/오류 등) fallback이 지정된 경우 이를 표시하고,
+    // 없으면 기존 동작대로 공간을 차지하지 않도록 빈 위젯 반환.
     if (banners.isEmpty) {
-      return const SizedBox.shrink();
+      return widget.fallback ?? const SizedBox.shrink();
     }
 
     return SizedBox(
