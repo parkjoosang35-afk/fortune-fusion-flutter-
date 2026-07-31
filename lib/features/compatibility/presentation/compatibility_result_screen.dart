@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_unified_style.dart';
 import '../../../core/utils/load_state.dart';
 import '../../../core/widgets/app_error_state.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../../../core/widgets/premium_button.dart';
+import '../../../core/widgets/result_card_stack.dart';
 import '../../wallet/presentation/widgets/send_bok_sheet.dart';
 import '../application/compatibility_provider.dart';
 import '../domain/compatibility_model.dart';
 
 /// 07단계 결과형 패턴 - CompatibilityResultScreen
+///
+/// [서브 디자인 통일 확산 프롬프트] 결과 페이지 표준 스켈레톤([ResultCardStack])을
+/// 재사용해 오늘의 운세/사주 결과와 동일한 톤을 적용한다. 궁합 점수 원형
+/// 게이지 + 복 나누기 버튼은 히어로 카드 하단 [heroExtra]에 유지한다.
 class CompatibilityResultScreen extends StatelessWidget {
   const CompatibilityResultScreen({super.key});
 
@@ -19,8 +24,11 @@ class CompatibilityResultScreen extends StatelessWidget {
     final state = provider.state;
 
     return Scaffold(
+      backgroundColor: UnifiedColors.bg,
       appBar: AppBar(
-        title: const Text('궁합 결과'),
+        backgroundColor: UnifiedColors.bg,
+        elevation: 0,
+        title: Text('궁합 결과', style: UnifiedText.titleLarge()),
         actions: [
           if (state.isSuccess)
             IconButton(
@@ -28,7 +36,9 @@ class CompatibilityResultScreen extends StatelessWidget {
                 state.data!.isSaved
                     ? Icons.bookmark_rounded
                     : Icons.bookmark_border_rounded,
-                color: state.data!.isSaved ? AppColors.secondary : null,
+                color: state.data!.isSaved
+                    ? UnifiedColors.black
+                    : UnifiedColors.textSecondary,
               ),
               onPressed: () async {
                 final saved = await provider.toggleSave(state.data!.id);
@@ -42,7 +52,10 @@ class CompatibilityResultScreen extends StatelessWidget {
             ),
           if (state.isSuccess)
             IconButton(
-              icon: const Icon(Icons.share_outlined),
+              icon: Icon(
+                Icons.share_outlined,
+                color: UnifiedColors.textPrimary,
+              ),
               onPressed: () async {
                 final url = await provider.generateShareLink(state.data!.id);
                 if (context.mounted) {
@@ -63,43 +76,39 @@ class CompatibilityResultScreen extends StatelessWidget {
             message: state.errorMessage ?? '분석에 실패했습니다.',
             onRetry: () => provider.retry(),
           ),
-          LoadStatus.success => _CompatibilityResultBody(result: state.data!),
+          LoadStatus.success => _buildResult(context, state.data!),
           LoadStatus.initial => const AppErrorState(message: '입력 정보가 없습니다.'),
         },
       ),
-      bottomNavigationBar: state.isSuccess
-          ? SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => Navigator.of(
-                          context,
-                        ).pushNamed('/ai-fortune/compatibility/history'),
-                        icon: const Icon(
-                          Icons.bookmark_outline_rounded,
-                          size: 18,
-                        ),
-                        label: const Text('보관함 보기'),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () => Navigator.of(
-                          context,
-                        ).pushNamed('/ai-fortune/compatibility/input'),
-                        icon: const Icon(Icons.refresh_rounded, size: 18),
-                        label: const Text('다시 분석'),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            )
-          : null,
+    );
+  }
+
+  Widget _buildResult(BuildContext context, CompatibilityResultModel result) {
+    return ResultCardStack(
+      heroCaption:
+          '${result.nameA} \u2764 ${result.nameB} \u00b7 ${result.type.label}',
+      heroSummary: result.summary,
+      heroExtra: _ScoreExtra(result: result),
+      sectionTitle: '주제별 분석',
+      sections: result.topicResults.entries
+          .map((e) => ResultSection(title: e.key, body: e.value))
+          .toList(),
+      ctas: [
+        ResultCta(
+          label: '다시 분석하기',
+          icon: Icons.refresh_rounded,
+          onTap: () => Navigator.of(
+            context,
+          ).pushNamed('/ai-fortune/compatibility/input'),
+        ),
+        ResultCta(
+          label: '보관함 보기',
+          icon: Icons.bookmark_outline_rounded,
+          onTap: () => Navigator.of(
+            context,
+          ).pushNamed('/ai-fortune/compatibility/history'),
+        ),
+      ],
     );
   }
 }
@@ -109,150 +118,64 @@ class _CompatLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(gradient: AppColors.mysticGradient),
-      child: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.favorite_rounded, color: AppColors.secondary, size: 64),
-            SizedBox(height: 24),
-            Text(
-              '두 사람의 인연을 분석하고 있어요...',
-              style: TextStyle(color: Colors.white, fontSize: 15),
-            ),
-          ],
-        ),
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.favorite_outline_rounded,
+            color: UnifiedColors.textSecondary,
+            size: 48,
+          ),
+          const SizedBox(height: UnifiedTokens.spaceLg),
+          Text('두 사람의 인연을 분석하고 있어요...', style: UnifiedText.body()),
+        ],
       ),
     );
   }
 }
 
-class _CompatibilityResultBody extends StatelessWidget {
+/// 히어로 카드 하단 - 궁합 점수 원형 게이지 + 복 나누기 버튼을 그대로 유지한다.
+/// [주의] 포인트 컬러(네온)는 원형 CTA 전용이므로, 데이터 시각화인 이 점수
+/// 게이지에는 사용하지 않고 중립 톤(블랙)으로 표시한다.
+class _ScoreExtra extends StatelessWidget {
   final CompatibilityResultModel result;
-  const _CompatibilityResultBody({required this.result});
+  const _ScoreExtra({required this.result});
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+    return Column(
       children: [
-        Container(
-          padding: const EdgeInsets.all(AppSpacing.xl),
-          decoration: BoxDecoration(
-            gradient: AppColors.mysticGradient,
-            borderRadius: BorderRadius.circular(AppRadius.card),
-          ),
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white24,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  result.type.label,
-                  style: const TextStyle(color: Colors.white, fontSize: 12),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                '${result.nameA} ❤ ${result.nameB}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  SizedBox(
-                    width: 120,
-                    height: 120,
-                    child: CircularProgressIndicator(
-                      value: result.score / 100,
-                      strokeWidth: 8,
-                      backgroundColor: Colors.white24,
-                      color: AppColors.secondary,
-                    ),
-                  ),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '${result.score}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 32,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const Text(
-                        '점',
-                        style: TextStyle(color: Colors.white70, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              Text(
-                result.summary,
-                style: const TextStyle(
-                  color: AppColors.onDeepSpace,
-                  fontSize: 14,
-                  height: 1.5,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              // [Phase22-3 - 황금률 출구버튼] nameB는 자유텍스트 입력값이라
-              // 실제 앱 유저와 매핑이 보장되지 않는다. 버튼은 항상 노출하고,
-              // 실제 유저가 아니면 showSendBokSheet 내부에서 조회 실패 UI로
-              // 안내한다(별도의 사전 검증 없이 위임 - 03§9.2 과설계 방지 원칙).
-              const SizedBox(height: AppSpacing.lg),
-              OutlinedButton.icon(
-                onPressed: () =>
-                    showSendBokSheet(context, recipientNickname: result.nameB),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  side: const BorderSide(color: Colors.white54),
-                ),
-                icon: const Icon(Icons.volunteer_activism_outlined, size: 18),
-                label: Text('${result.nameB}님에게 복 나누기'),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xl),
-        Text('주제별 분석', style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: AppSpacing.md),
-        ...result.topicResults.entries.map(
-          (e) => Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.md),
-            child: Container(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardTheme.color,
-                borderRadius: BorderRadius.circular(AppRadius.cardSmall),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(e.key, style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 4),
-                  Text(
-                    e.value,
-                    style: const TextStyle(fontSize: 13, height: 1.5),
-                  ),
-                ],
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            SizedBox(
+              width: 100,
+              height: 100,
+              child: CircularProgressIndicator(
+                value: result.score / 100,
+                strokeWidth: 7,
+                backgroundColor: UnifiedColors.chipInactiveBg,
+                color: UnifiedColors.black,
               ),
             ),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('${result.score}', style: UnifiedText.titleLarge()),
+                Text('점', style: UnifiedText.caption()),
+              ],
+            ),
+          ],
+        ),
+        const SizedBox(height: UnifiedTokens.spaceLg),
+        SizedBox(
+          width: double.infinity,
+          child: PremiumButton.secondary(
+            label: '${result.nameB}님에게 복 나누기',
+            icon: Icons.volunteer_activism_outlined,
+            onPressed: () =>
+                showSendBokSheet(context, recipientNickname: result.nameB),
           ),
         ),
       ],
