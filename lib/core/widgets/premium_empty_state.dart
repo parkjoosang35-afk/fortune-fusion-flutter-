@@ -7,7 +7,7 @@ import 'premium_graphics.dart';
 
 /// [Fortune Fusion 서브 디자인 통일 마스터 프롬프트] §3 빈 상태(empty state) 규칙
 ///
-/// 절대 텅 빈 흰 화면으로 두지 않는다 — 연라벤더 카드 + 작은 그래픽 포인트
+/// 절대 텅 빈 흰 화면으로 두지 않는다 — 연라벤더 카드 + 작은 그래픽 행복머니
 /// (반달/별빛) + 짧은 감성 카피 + (선택) CTA로 항상 "디자인이 완성된" 느낌을 준다.
 class PremiumEmptyState extends StatelessWidget {
   const PremiumEmptyState({

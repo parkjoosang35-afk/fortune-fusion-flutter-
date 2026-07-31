@@ -179,7 +179,7 @@ class _LuckyBagResultScreenState extends State<LuckyBagResultScreen>
                             ),
                             const SizedBox(height: AppSpacing.sm),
                             Text(
-                              '남은 포인트 ${widget.result.remainingBalance} P',
+                              '남은 행복머니 ${widget.result.remainingBalance} P',
                               style: const TextStyle(
                                 color: Colors.white70,
                                 fontSize: 12,

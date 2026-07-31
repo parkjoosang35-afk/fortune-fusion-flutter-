@@ -35,7 +35,7 @@ class GiftcardRepository {
     }
   }
 
-  /// POST /api/public/giftcard/orders - 교환 요청(포인트 차감은 Provider단에서
+  /// POST /api/public/giftcard/orders - 교환 요청(행복머니 차감은 Provider단에서
   /// WalletProvider.spend와 orchestrate, 02번§1.2 WalletService 단일 인터페이스 원칙).
   /// 재고소진 시에도 서버는 status:"failed" 레코드를 생성해 success:true로 응답한다
   /// (Flutter의 issue.status==failed 감지 → 환불 처리 흐름과 정합성 유지 - 설계결정 참조).

@@ -6,7 +6,7 @@ import '../../../core/widgets/app_empty_state.dart';
 import '../application/wallet_provider.dart';
 import '../domain/point_history_model.dart';
 
-/// 03단계 §3.3 리워드 탭 - WalletScreen(포인트 잔액/적립·차감 내역)
+/// 03단계 §3.3 리워드 탭 - WalletScreen(행복머니 잔액/적립·차감 내역)
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
 
@@ -28,7 +28,7 @@ class _WalletScreenState extends State<WalletScreen> {
     final wallet = context.watch<WalletProvider>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('포인트 지갑')),
+      appBar: AppBar(title: const Text('행복머니 지갑')),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () => context.read<WalletProvider>().load(),
@@ -46,7 +46,7 @@ class _WalletScreenState extends State<WalletScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      '보유 포인트',
+                      '보유 행복머니',
                       style: TextStyle(
                         color: AppColors.textPrimary,
                         fontSize: 13,
@@ -75,7 +75,7 @@ class _WalletScreenState extends State<WalletScreen> {
               if (wallet.history.isEmpty)
                 const AppEmptyState(
                   icon: Icons.receipt_long_outlined,
-                  title: '아직 포인트 내역이 없어요',
+                  title: '아직 행복머니 내역이 없어요',
                 )
               else
                 ...wallet.history.map((e) => _HistoryTile(item: e)),

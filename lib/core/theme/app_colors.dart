@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 /// 03단계 UX/UI 설계서 §2 디자인 시스템 토큰 - Color 구체화
 /// Primary: 브랜드 보라/남색 계열(운세/신비 컨셉)
-/// Secondary: 포인트/리워드 강조색(골드/옐로)
+/// Secondary: 행복머니/리워드 강조색(골드/옐로)
 ///
 /// [웹→앱 이식] "신통방통" 모바일웹의 "신비롭고 고급스러운 밤하늘(검정·남색·보라·금색)"
 /// 디자인 시스템 팔레트를 그대로 이식하여 다크 테마를 기본 정체성으로 승격한다.
@@ -68,7 +68,7 @@ class AppColors {
   );
 
   /// 운세 메뉴 그리드 아이콘 원형(화이트) 안에 들어가는 아이콘 색상(카테고리별 소프트 틴트)
-  /// - 카드 배경 자체는 통일된 라이트 그레이(hcCardBg2)를 사용하고, 아이콘만 포인트 컬러로.
+  /// - 카드 배경 자체는 통일된 라이트 그레이(hcCardBg2)를 사용하고, 아이콘만 행복머니 컬러로.
   static const Map<String, Color> hcCategoryIconColor = {
     'daily': Color(0xFFFF9500),
     'saju': hcGoldDark,
@@ -91,7 +91,7 @@ class AppColors {
   static const Color deepSpace = Color(0xFF05040F); // --bg-deep
   static const Color deepSpaceLight = Color(0xFF161335); // --bg-navy-2
 
-  // ── Secondary (골드/옐로 - 포인트/리워드) ──
+  // ── Secondary (골드/옐로 - 행복머니/리워드) ──
   // 신통방통 --gold 계열로 정밀 조정
   static const Color secondary = Color(0xFFE0B356); // --gold
   static const Color secondaryDark = Color(0xFFA9772F); // --gold-deep
@@ -176,7 +176,7 @@ class AppColors {
   static const Color bgTertiary = Color(0xFF1E1E3F); // 서브 카드
   static const Color bgElevated = Color(0xFF252547); // 떠있는 요소
 
-  // 포인트 컬러 (우주 별빛)
+  // 행복머니 컬러 (우주 별빛)
   static const Color accentGold = Color(0xFFFFD700); // 행복머니 🍀
   static const Color accentPurple = Color(0xFF9D7BFF); // 신비/타로
   static const Color accentPink = Color(0xFFFF6B9D); // 소원/감성
@@ -216,7 +216,7 @@ class AppColors {
   // 기존 상수와 값은 동일, "무엇을 위한 색인지" 브랜드 언어로 재노출한다.
   // 코드 마이그레이션 부담 없이 신규 화면부터 아래 이름을 우선 사용할 것을 권장.
   static const Color mysticPurple = primary; // 신비/사주·타로 컨셉 대표색
-  static const Color premiumGold = secondary; // 포인트/리워드/구독 프리미엄
+  static const Color premiumGold = secondary; // 행복머니/리워드/구독 프리미엄
   static const Color fortuneBlue = info; // 신뢰/정보 전달(AI상담, 안내)
   static const Color hopeGreen = success; // 희망/긍정/완료
 
@@ -284,7 +284,7 @@ class AppColors {
   static const Color premiumTextSecondary = Color(0xFF6B7280);
   static const Color premiumTextTertiary = Color(0xFF9CA3AF);
 
-  // ── 포인트 컬러 ──
+  // ── 행복머니 컬러 ──
   static const Color premiumMainPurple = Color(0xFF6F5BFF);
   static const Color premiumSoftLavender = Color(0xFFEAE5FF);
   static const Color premiumDeepNavy = Color(0xFF1F2340);
@@ -310,7 +310,7 @@ class AppColors {
     colors: [premiumDeepNavy, premiumMainPurple],
   );
 
-  /// 골드 포인트(행복머니/보상) 전용 은은한 그라디언트
+  /// 골드 톤(행복머니/보상) 전용 은은한 그라디언트
   static const LinearGradient premiumGoldGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
@@ -323,7 +323,7 @@ class AppColors {
   // ══════════════════════════════════════════════════════════════
   // [Fortune Fusion 서브 디자인 통일 마스터 프롬프트] ⚡ 액센트 확장 (신규)
   //
-  // 첨부 기준 시안(화이트+소프트퍼플카드+블랙CTA+네온옐로우그린 포인트) 반영.
+  // 첨부 기준 시안(화이트+소프트퍼플카드+블랙CTA+네온옐로우그린 행복머니) 반영.
   // 기존 premiumCtaGradient(네이비→퍼플)는 홈 화면에서 계속 쓰이므로 값을
   // 바꾸지 않고, "블랙 CTA" 및 "네온 라임" 전용 신규 토큰만 별도로 추가한다.
   // 이번 턴부터 서브 허브 화면(운세/행복머니/커뮤니티)은 아래 토큰을 사용한다.
@@ -332,7 +332,7 @@ class AppColors {
   /// 메인 블랙 CTA 배경(순수 블랙에 가까운 다크) - 첨부 시안의 "+ 오늘의 운세보기" 버튼.
   static const Color premiumBlackCta = Color(0xFF121212);
 
-  /// 포인트 액션 전용 네온 옐로우그린(형광) - 선택된 칩 / 원형 액션 버튼 / 상태 강조.
+  /// 행복머니 액션 전용 네온 옐로우그린(형광) - 선택된 칩 / 원형 액션 버튼 / 상태 강조.
   static const Color premiumNeonLime = Color(0xFFD2F547);
 
   /// 네온 라임 위에 올라가는 텍스트/아이콘 색상(항상 다크 톤 대비).
@@ -341,4 +341,21 @@ class AppColors {
   /// 비활성 칩 / 보조 정보용 연회색.
   static const Color premiumInactiveGrey = Color(0xFFF0F0F0);
   static const Color premiumInactiveGreyText = Color(0xFF6B6B6F);
+
+  // ══════════════════════════════════════════════════════════════
+  // [Fortune Fusion 서브 디자인 통일 마스터 프롬프트] 홈 화면 기준 시안 전용 (신규)
+  //
+  // 첨부 홈 화면 목업(화이트+블랙CTA+인디고 히어로카드+네온라임 원형버튼) 정밀 색상
+  // 추출값. 기존 premiumHeroGradient(화이트→연라벤더)는 다른 화면에서 계속 쓰이므로
+  // 값을 바꾸지 않고, 홈 히어로카드 전용 진한 인디고 그라디언트를 별도로 추가한다.
+  // ══════════════════════════════════════════════════════════════
+  static const Color premiumIndigoStart = Color(0xFF5E5AD2);
+  static const Color premiumIndigoEnd = Color(0xFF5853C2);
+
+  /// 홈 화면 "오늘의 운세 이야기" 히어로카드 전용 진한 인디고 그라디언트.
+  static const LinearGradient premiumIndigoHeroGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [premiumIndigoStart, premiumIndigoEnd],
+  );
 }

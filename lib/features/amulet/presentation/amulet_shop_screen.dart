@@ -42,7 +42,7 @@ class _AmuletShopScreenState extends State<AmuletShopScreen> {
     if (wallet.balance < item.pricePoint) {
       AppToast.show(
         context,
-        '포인트가 부족합니다. (보유 ${wallet.balance}P)',
+        '행복머니가 부족합니다. (보유 ${wallet.balance}P)',
         isError: true,
       );
       return;

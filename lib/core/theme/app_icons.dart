@@ -24,7 +24,7 @@ class AppIcons {
   static const IconData ranking = Icons.leaderboard_rounded; // 랭킹
   static const IconData attendance = Icons.calendar_month_rounded; // 출석체크
   static const IconData mission = Icons.checklist_rounded; // 미션
-  static const IconData wallet = Icons.wallet_rounded; // 포인트 지갑
+  static const IconData wallet = Icons.wallet_rounded; // 행복머니 지갑
   static const IconData event = Icons.celebration_rounded; // 이벤트(신규 표준)
 
   // ── 커뮤니티/기타 ──

@@ -10,7 +10,7 @@ import '../domain/daily_fortune_model.dart';
 /// (`GET /api/public/fortune/daily?userId=`)를 호출하는 실제 구현체 (Mock→실API 전환).
 ///
 /// [Phase22 - 행복머니 경제철학 이식] 서버가 point_policies.ai_daily_request(30P) 기준
-/// 포인트를 차감하고, economy_config.refund_rate(기본 50%)만큼 즉시 환급까지 원자적으로
+/// 행복머니를 차감하고, economy_config.refund_rate(기본 50%)만큼 즉시 환급까지 원자적으로
 /// 처리한다. 같은 날 재호출 시에는 서버가 캐시된 기존 결과를 재차감 없이 반환한다
 /// (alreadyGenerated 플래그로 구분 가능).
 ///

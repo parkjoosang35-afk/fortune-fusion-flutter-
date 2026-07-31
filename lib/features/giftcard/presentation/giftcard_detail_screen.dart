@@ -23,7 +23,7 @@ class GiftcardDetailScreen extends StatelessWidget {
     if (wallet.balance < product.requiredPoint) {
       AppToast.show(
         context,
-        '포인트가 부족합니다. (보유 ${wallet.balance}P)',
+        '행복머니가 부족합니다. (보유 ${wallet.balance}P)',
         isError: true,
       );
       return;
@@ -37,16 +37,16 @@ class GiftcardDetailScreen extends StatelessWidget {
     );
     if (!confirmed || !context.mounted) return;
 
-    // 02§14 사용자흐름: 교환신청 → 포인트차감 → 발급대기 → 발급완료/실패.
+    // 02§14 사용자흐름: 교환신청 → 행복머니차감 → 발급대기 → 발급완료/실패.
     // WalletService.spend 단일 인터페이스 원칙(02§1.2)에 따라 화면 레이어에서
-    // 먼저 포인트를 차감하고, 발급이 실패하면 즉시 환불(earn)로 보상 처리한다.
+    // 먼저 행복머니를 차감하고, 발급이 실패하면 즉시 환불(earn)로 보상 처리한다.
     final spent = await wallet.spend(
       product.requiredPoint,
       '상품권 교환 - ${product.name}',
     );
     if (!spent) {
       if (!context.mounted) return;
-      AppToast.show(context, '포인트 차감에 실패했습니다.', isError: true);
+      AppToast.show(context, '행복머니 차감에 실패했습니다.', isError: true);
       return;
     }
 
@@ -54,7 +54,7 @@ class GiftcardDetailScreen extends StatelessWidget {
     if (!context.mounted) return;
 
     if (issue == null || issue.status == GiftcardIssueStatus.failed) {
-      // 발급 실패 - 포인트 자동 환불(트랜잭션 보상처리, 02§14 예외처리)
+      // 발급 실패 - 행복머니 자동 환불(트랜잭션 보상처리, 02§14 예외처리)
       await wallet.earn(
         product.requiredPoint,
         '상품권 발급 실패 환불 - ${product.name}',
@@ -166,7 +166,7 @@ class GiftcardDetailScreen extends StatelessWidget {
                     const Divider(height: AppSpacing.lg),
                     _InfoRow(
                       icon: Icons.wallet_outlined,
-                      label: '보유 포인트',
+                      label: '보유 행복머니',
                       value: '${wallet.balance} P',
                     ),
                   ],
@@ -174,7 +174,7 @@ class GiftcardDetailScreen extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.lg),
               const Text(
-                '교환 신청 시 포인트가 즉시 차감되며, 발급에 실패할 경우 포인트는 자동으로 환불됩니다.',
+                '교환 신청 시 행복머니가 즉시 차감되며, 발급에 실패할 경우 행복머니는 자동으로 환불됩니다.',
                 style: TextStyle(fontSize: 12, color: AppColors.textHint),
               ),
               const SizedBox(height: AppSpacing.xxl),

@@ -5,7 +5,7 @@ import 'consultation_type_style.dart';
 
 /// 07단계(추가) §3.4 - 재사용 가능한 채팅 입력창 컴포넌트.
 /// isLoading(전송/스트리밍 중)일 때 전송 버튼을 비활성화하고, 상담 유형별
-/// 포인트 컬러(typeStyle.primaryColor)로 전송 버튼을 강조한다.
+/// 행복머니 컬러(typeStyle.primaryColor)로 전송 버튼을 강조한다.
 ///
 /// 07단계(추가) §3.5 - 사주상담의 생년월일/출생시간 입력 단계에서는 텍스트 직접
 /// 입력과 함께 네이티브 피커(showDatePicker/showTimePicker)도 이용할 수 있도록

@@ -21,7 +21,7 @@ class MatchingDiscoverScreen extends StatefulWidget {
 
 class _MatchingDiscoverScreenState extends State<MatchingDiscoverScreen> {
   /// provider.candidatesState의 좋아요 처리분과 별개로, "넘기기(skip)"는 API 대응이
-  /// 없으므로(06§4.6에 dislike 엔드포인트 없음) 로컬 덱에서만 제거해 화면 흐름을 유지한다.
+  /// 없으므로(06§4.6에 dislike 엔드행복머니 없음) 로컬 덱에서만 제거해 화면 흐름을 유지한다.
   final List<MatchingCandidateModel> _deck = [];
   bool _initialized = false;
 

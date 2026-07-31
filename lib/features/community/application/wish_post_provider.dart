@@ -156,8 +156,8 @@ class WishPostProvider extends ChangeNotifier {
     return null;
   }
 
-  /// "행운 보내기" - Mock 단계 임시정책: 포인트 이동 없는 단순 응원 토글
-  /// (03§10.3/§18/§570 정책 미확정 - 향후 포인트전송형 확정 시 WalletProvider.spend/earn
+  /// "행운 보내기" - Mock 단계 임시정책: 행복머니 이동 없는 단순 응원 토글
+  /// (03§10.3/§18/§570 정책 미확정 - 향후 행복머니전송형 확정 시 WalletProvider.spend/earn
   /// orchestrate를 이 메서드에 추가하는 정도로 영향도 최소화되도록 설계)
   Future<void> toggleSupport(String wishId) async {
     final result = await _repository.toggleSupport(wishId);
@@ -204,7 +204,7 @@ class WishPostProvider extends ChangeNotifier {
     return result.success;
   }
 
-  /// [소원성(Wish Castle) 확장] 행복머니 보내기 - 실제 포인트 이동 없는 상징적 응원.
+  /// [소원성(Wish Castle) 확장] 행복머니 보내기 - 실제 행복머니 이동 없는 상징적 응원.
   /// 성공 시 posts 캐시를 서버 응답값으로 즉시 갱신하고, 레벨업 여부/이전 레벨/
   /// 최종레벨 최초 도달 여부를 [WishBokjuSendResult]로 반환해 호출부(UI)가
   /// 성장 연출/레벨업 연출/최종단계 특별연출을 분기할 수 있게 한다.

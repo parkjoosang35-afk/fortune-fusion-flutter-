@@ -43,7 +43,7 @@ class _LuckyBagShopScreenState extends State<LuckyBagShopScreen> {
     if (wallet.balance < product.pricePoint) {
       AppToast.show(
         context,
-        '포인트가 부족합니다. (보유 ${wallet.balance}P)',
+        '행복머니가 부족합니다. (보유 ${wallet.balance}P)',
         isError: true,
       );
       return;

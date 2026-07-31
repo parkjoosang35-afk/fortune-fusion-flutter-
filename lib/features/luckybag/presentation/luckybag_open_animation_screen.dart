@@ -54,7 +54,7 @@ class _LuckyBagOpenAnimationScreenState
 
     final animationFuture = _controller.forward();
 
-    // [방법 A] 서버(admin_web `POST /api/public/luckybag/open`)가 포인트 차감 +
+    // [방법 A] 서버(admin_web `POST /api/public/luckybag/open`)가 행복머니 차감 +
     // 확률 추첨 + 보상 지급 + 로그 기록을 단일 트랜잭션으로 원자적으로 처리한다.
     // 클라이언트는 더 이상 wallet.spend()/wallet.earn()을 직접 호출하지 않는다
     // (그렇게 하면 서버가 이미 차감한 금액이 중복 차감/환불되는 버그가 발생한다).

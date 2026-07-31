@@ -12,8 +12,8 @@ import 'wish_growth_dialog.dart';
 /// [소원성(Wish Castle) 확장] "행복머니 보내기" 공용 바텀시트.
 ///
 /// `send_bok_sheet.dart`의 "show*Sheet() + StatefulWidget 폼 + ChoiceChip 선택 단위"
-/// 패턴을 그대로 재사용하되, 실제 지갑조회(lookup) 단계는 없다(행복머니는 포인트
-/// 이동이 없는 상징적 응원 단위라 수신자 지갑을 조회할 필요가 없음 - 03§9.2).
+/// 패턴을 그대로 재사용하되, 실제 지갑조회(lookup) 단계는 없다(행복머니 응원은
+/// 실제 재화 이동이 없는 상징적 응원 단위라 수신자 지갑을 조회할 필요가 없음 - 03§9.2).
 ///
 /// 성공 시 바텀시트가 닫힌 뒤 [WishGrowthDialog] 또는 [WishLevelUpDialog]를
 /// 이어서 재생한다(레벨업 여부로 분기). CMS `animation_enabled`가 false면
@@ -95,7 +95,7 @@ class _SendBokjuFormState extends State<_SendBokjuForm> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          '이 소원에 행복머니를 보내 촛불을 밝혀주세요.\n실제 포인트가 차감되지 않는 상징적인 응원이에요.',
+          '이 소원에 행복머니를 보내 촛불을 밝혀주세요.\n실제 행복머니가 차감되지 않는 상징적인 응원이에요.',
           style: TextStyle(
             color: AppColors.textSecondaryOf(context),
             height: 1.5,

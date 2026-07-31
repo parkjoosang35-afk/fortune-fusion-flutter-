@@ -34,9 +34,9 @@ class GiftcardProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// POST /v1/giftcards/orders - 포인트 차감(WalletProvider.spend)은
+  /// POST /v1/giftcards/orders - 행복머니 차감(WalletProvider.spend)은
   /// 이 메서드 호출 전에 화면 레이어에서 먼저 성공을 확인한 뒤 호출해야 한다.
-  /// 발급 실패(Mock 10%) 시에도 포인트는 이미 차감되었으므로, 화면 레이어에서
+  /// 발급 실패(Mock 10%) 시에도 행복머니는 이미 차감되었으므로, 화면 레이어에서
   /// 실패 결과를 받으면 WalletProvider.earn()으로 환불 처리해야 한다(02§14 예외처리).
   Future<GiftcardIssueModel?> orderProduct(String productId) async {
     _actionError = null;

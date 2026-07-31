@@ -5,7 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 /// ConsultationTypeScreen(카드 선택)과 ConsultationChatScreen(헤더/말풍선)에서
 /// 동일한 색상/아이콘/그라디언트를 공유하기 위해 이 파일로 중앙화한다.
 ///
-/// ▸ 사주(saju): 🔮 보라색 계열 + 골드 포인트
+/// ▸ 사주(saju): 🔮 보라색 계열 + 골드 행복머니
 /// ▸ 타로(tarot): 🃏 레드/블랙 계열
 /// ▸ 일반(general): 💬 블루/그레이 계열
 class ConsultationTypeStyle {

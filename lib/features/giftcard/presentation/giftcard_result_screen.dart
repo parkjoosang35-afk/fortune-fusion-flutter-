@@ -110,7 +110,7 @@ class GiftcardResultScreen extends StatelessWidget {
                     ),
                   ] else
                     const Text(
-                      '사용한 포인트는 자동으로 환불되었습니다',
+                      '사용한 행복머니는 자동으로 환불되었습니다',
                       style: TextStyle(color: Colors.white70, fontSize: 13),
                       textAlign: TextAlign.center,
                     ),

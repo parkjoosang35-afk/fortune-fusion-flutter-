@@ -219,7 +219,7 @@ class _RewardSummaryTab extends StatelessWidget {
               ),
               Container(width: 1, height: 32, color: Colors.white24),
               Expanded(
-                child: _SummaryStat(label: '누적 포인트 획득', value: '$totalPoint P'),
+                child: _SummaryStat(label: '누적 행복머니 획득', value: '$totalPoint P'),
               ),
             ],
           ),

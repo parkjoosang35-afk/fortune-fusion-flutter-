@@ -13,12 +13,12 @@ import '../domain/wish_post_model.dart';
 /// - GET  /api/public/wishes?tab=all|popular|mine     -> getFeed()
 /// - POST /api/public/wishes                          -> createPost()
 /// - POST /api/public/wishes/:id/support              -> toggleSupport() ("행운 보내기"
-///                                                        임시정책: 포인트이동 없는 단순 응원카운트,
+///                                                        임시정책: 행복머니이동 없는 단순 응원카운트,
 ///                                                        03§10.3/§18/§570 정책 미확정 사항 유지)
 /// - GET  /api/public/wishes/:id/comments             -> getComments()
 /// - POST /api/public/wishes/:id/comments             -> addComment()
 /// - POST /api/public/reports (targetType=wish)       -> report() (폴리모픽 공용신고,
-///                                                        community_post_repository.dart와 동일 엔드포인트 재사용)
+///                                                        community_post_repository.dart와 동일 엔드행복머니 재사용)
 ///
 /// [방법 A — 임시 인증 우회] 회원 로그인 시스템이 아직 없어, 서버가 시딩해둔
 /// 테스트 유저(userId=1)를 고정으로 사용한다(daily_fortune_repository.dart와 동일 패턴).
@@ -92,7 +92,7 @@ class WishPostRepository {
     }
   }
 
-  /// "행운 보내기" - 포인트 이동 없는 단순 응원(support) 토글
+  /// "행운 보내기" - 행복머니 이동 없는 단순 응원(support) 토글
   Future<ApiResult<WishPostModel>> toggleSupport(String wishId) async {
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/wishes/$wishId/support',
@@ -176,7 +176,7 @@ class WishPostRepository {
   }
 
   /// 06§4.12 `POST /{targetType}/:id/report` 공용 신고(L-6, 폴리모픽)
-  /// community_post_repository.dart와 동일한 /api/public/reports 엔드포인트 재사용
+  /// community_post_repository.dart와 동일한 /api/public/reports 엔드행복머니 재사용
   Future<ApiResult<void>> report(
     ReportTargetType targetType,
     String targetId,
@@ -209,7 +209,7 @@ class WishPostRepository {
     }
   }
 
-  /// [소원성(Wish Castle) 확장] 행복머니 보내기 - 실제 포인트/지갑 이동 없는
+  /// [소원성(Wish Castle) 확장] 행복머니 보내기 - 실제 재화/지갑 이동 없는
   /// 상징적 응원 단위. amount는 admin_web bokju_preset_amounts 화이트리스트를
   /// 그대로 따른다(서버에서도 [1,5,10,50,100] 외 값은 400 처리).
   /// 반환 data에는 leveledUp/previousLevel이 포함되어 있어, 호출부(Provider)에서

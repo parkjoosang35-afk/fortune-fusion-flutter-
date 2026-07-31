@@ -25,7 +25,7 @@ import '../../matching/presentation/matching_discover_screen.dart';
 
 /// [Fortune Fusion 서브 디자인 통일 마스터 프롬프트] 행복머니 허브 화면 (v2)
 ///
-/// 기준 시안 톤(화이트 배경, 소프트 퍼플 카드, 블랙 CTA, 네온 라임 포인트)으로
+/// 기준 시안 톤(화이트 배경, 소프트 퍼플 카드, 블랙 CTA, 네온 라임 행복머니)으로
 /// 자산 화면답게 "밝고 정돈된" 느낌을 준다. 잔액 히어로 카드 → 적립 방법 →
 /// 사용처 → 구독 보너스 → 히스토리 순서를 유지하되, 전체 카드/버튼/타이포를
 /// 공통 Premium* 위젯으로 통일한다.
@@ -59,7 +59,7 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
     final confirmed = await showAppConfirmDialog(
       context,
       title: '오늘 출석하기',
-      message: '출석체크를 하고 포인트를 받으시겠습니까?',
+      message: '출석체크를 하고 행복머니를 받으시겠습니까?',
       confirmLabel: '출석하기',
     );
     if (!confirmed || !mounted) return;
@@ -132,7 +132,7 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
               child: _ShortcutCard(
                 emoji: '✅',
                 title: '미션',
-                subtitle: '일일/주간 미션을 완료하고 포인트 받기',
+                subtitle: '일일/주간 미션을 완료하고 행복머니 받기',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const MissionScreen()),
                 ),
@@ -212,7 +212,7 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
               child: _ShortcutCard(
                 emoji: '💳',
                 title: '상품권',
-                subtitle: '포인트로 상품권을 교환해보세요',
+                subtitle: '행복머니로 상품권을 교환해보세요',
                 onTap: () => Navigator.of(context).pushNamed('/reward/giftcard'),
               ),
             ),
@@ -253,7 +253,7 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
               delay: const Duration(milliseconds: 440),
               child: _ShortcutCard(
                 emoji: '🧾',
-                title: '포인트 내역',
+                title: '행복머니 내역',
                 subtitle: '적립·사용 전체 내역 확인하기',
                 onTap: () => Navigator.of(context).pushNamed('/reward/wallet'),
               ),
@@ -298,7 +298,7 @@ class _BalanceHero extends StatelessWidget {
                   const Text('🍀', style: TextStyle(fontSize: 20)),
                   const SizedBox(width: AppSpacing.sm),
                   Text(
-                    '내 포인트 잔액',
+                    '내 행복머니 잔액',
                     style: AppTypography.caption.copyWith(
                       color: Colors.white.withValues(alpha: 0.75),
                       fontWeight: FontWeight.w700,
@@ -337,7 +337,7 @@ class _BalanceHero extends StatelessWidget {
               Row(
                 children: [
                   Text(
-                    '포인트 지갑 바로가기',
+                    '행복머니 지갑 바로가기',
                     style: AppTypography.smallLabel.copyWith(
                       color: Colors.white.withValues(alpha: 0.8),
                       fontWeight: FontWeight.w700,
@@ -474,7 +474,7 @@ class _VipCard extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       grade != null
-                          ? '포인트 적립 ${grade!.pointEarnMultiplier}배 적용 중'
+                          ? '행복머니 적립 ${grade!.pointEarnMultiplier}배 적용 중'
                           : '프리미엄 구독으로 등급을 올려보세요',
                       style: AppTypography.caption.copyWith(
                         color: AppColors.premiumDeepNavy.withValues(alpha: 0.7),

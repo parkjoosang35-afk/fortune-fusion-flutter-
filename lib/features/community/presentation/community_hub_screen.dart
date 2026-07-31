@@ -158,7 +158,7 @@ class _CommunityHubScreenState extends State<CommunityHubScreen> {
                   _ShortcutTab(
                     emoji: '🏆',
                     title: '랭킹',
-                    description: '이번 주 포인트 랭킹 TOP 유저 확인하기',
+                    description: '이번 주 행복머니 랭킹 TOP 유저 확인하기',
                     buttonLabel: '랭킹 바로가기',
                     destination: RankingScreen(),
                   ),
