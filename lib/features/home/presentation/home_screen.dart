@@ -28,6 +28,74 @@ import '../../pass/presentation/pass_gate_helper.dart';
 ///
 /// [주의] Application/Data/Domain 레이어(Provider/Repository/Model)는 기존
 /// 것을 그대로 재사용하며, 이 화면은 Presentation 레이어만 재작성한다.
+///
+/// [화면 복제 정밀도 보정] 레퍼런스 이미지(390px 기준) 실측치를 그대로
+/// 하드코딩 상수화한다. 좌우 패딩(16px) 통일 + 각 블록이 CTA 버튼과 동일한
+/// 좌우 기준선(x=16 ~ x=374)에서 시작/종료하도록 폭을 맞추고, 세로 gap을
+/// 레퍼런스처럼 촘촘하게 조정한다.
+class _Dims {
+  _Dims._();
+
+  // 좌우 기준 페이지 패딩(모든 섹션 공통 시작선)
+  static const double pagePadding = 16;
+
+  // 헤더 아래 gap
+  static const double headerBottomGap = 18;
+
+  // CTA 버튼(+오늘의 운세보기) - radius는 PremiumButton이 height/2로 자동 계산(=22)
+  static const double ctaHeight = 44;
+  static const double ctaBottomGap = 22;
+
+  // 타로이야기가기 헤더 아래 gap(칩 로우까지)
+  static const double tarotHeaderBottomGap = 12;
+  static const double tarotCircleSize = 30;
+
+  // 카테고리 칩 - radius는 PremiumChip 내부에서 999(pill)로 고정
+  // [검증] PremiumChip 내부 padding을 vertical:10→8로 축소하여(공용 컴포넌트 수정)
+  // fontSize12/height1.3 텍스트(≈15.6px) + padding16 = 31.6px로 32px 타이트
+  // 제약(SizedBox) 안에 여유 0.4px로 정확히 들어맞도록 보정함.
+  static const double chipHeight = 32;
+  static const double chipGap = 8;
+  static const double chipsBottomGap = 16;
+
+  // 헤더 row(아이콘 간격)
+  static const double headerIconGap = 10;
+
+  // 히어로 카드(오늘의 운세 이야기)
+  static const double heroCardHeight = 136;
+  static const double heroCardRadius = 20;
+  static const double heroCardPadding = 18;
+  static const double heroCardBottomGap = 13;
+  static const double heroCircleSize = 30;
+
+  // 소원게시판/소원방 2열 카드
+  static const double wishCardGap = 8;
+  static const double wishCardHeight = 120;
+  static const double wishCardRadius = 18;
+  static const double wishCardPadding = 14;
+  static const double wishRowBottomGap = 18;
+  static const double wishCircleSize = 27;
+
+  // 전체보기 타이틀 + 3카드
+  static const double allMenuTitleBottomGap = 12;
+  static const double allMenuCardWidth = 108;
+  static const double allMenuCardHeight = 80;
+  static const double allMenuCardRadius = 16;
+  static const double allMenuGap = 10;
+  static const double allMenuBottomGap = 20;
+
+  // 하단 고정 열림패스 바
+  static const double bottomBarHeight = 48;
+  static const double bottomBarRadius = 24;
+  static const double bottomBarTopGap = 20; // 열림패스 바 위 여백(콘텐츠와의 거리)
+  static const double bottomBarBottomGap = 15; // 열림패스 바 아래 여백(탭바와의 거리)
+  static const double bottomBarCircleSize = 32;
+
+  // ListView 하단 예약 공간(= 바 위 여백 + 바 높이 + 바 아래 여백 + 여유)
+  static const double bottomBarReservedSpace =
+      bottomBarTopGap + bottomBarHeight + bottomBarBottomGap + 10;
+}
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -60,58 +128,58 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             ListView(
               padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg,
-                AppSpacing.md,
-                AppSpacing.lg,
-                96, // 하단 열림패스 고정바 높이만큼 여백 확보
+                _Dims.pagePadding,
+                _Dims.pagePadding,
+                _Dims.pagePadding,
+                _Dims.bottomBarReservedSpace, // 하단 열림패스 고정바(상단거리+높이+하단거리)만큼 여백 확보
               ),
               children: [
                 // ① 상단 헤더 - 로고 + 클로버/벨 아이콘(배경 없는 bare 아이콘)
                 const _TopHeader(),
-                const SizedBox(height: AppSpacing.lg),
+                const SizedBox(height: _Dims.headerBottomGap),
 
                 // ② 블랙 pill CTA - "+ 오늘의 운세보기"
                 const FadeSlideIn(
                   child: _TodayFortuneCta(),
                 ),
-                const SizedBox(height: AppSpacing.xl),
+                const SizedBox(height: _Dims.ctaBottomGap),
 
                 // ③ "타로이야기가기" 타이틀 + 우측 블랙 원형 그리드 버튼
                 const FadeSlideIn(
                   delay: Duration(milliseconds: 40),
                   child: _TarotStoryHeader(),
                 ),
-                const SizedBox(height: AppSpacing.md),
+                const SizedBox(height: _Dims.tarotHeaderBottomGap),
 
                 // ④ 칩 로우 - 전체운세(선택,네온라임)/사주/궁합/손금
                 const FadeSlideIn(
                   delay: Duration(milliseconds: 80),
                   child: _FortuneCategoryChips(),
                 ),
-                const SizedBox(height: AppSpacing.lg),
+                const SizedBox(height: _Dims.chipsBottomGap),
 
                 // ⑤ 오늘의 운세 이야기 - 인디고 그라디언트 히어로카드
                 const FadeSlideIn(
                   delay: Duration(milliseconds: 120),
                   child: _TodayStoryHeroCard(),
                 ),
-                const SizedBox(height: AppSpacing.md),
+                const SizedBox(height: _Dims.heroCardBottomGap),
 
                 // ⑥ 소원게시판 / 소원방 2단 라벤더 카드
                 const FadeSlideIn(
                   delay: Duration(milliseconds: 160),
                   child: _WishBoardRoomRow(),
                 ),
-                const SizedBox(height: AppSpacing.xl),
+                const SizedBox(height: _Dims.wishRowBottomGap),
 
                 // ⑦ 전체보기 타이틀 + 3버튼 로우
                 Text('전체보기', style: AppTypography.sectionTitle.copyWith(fontSize: 17)),
-                const SizedBox(height: AppSpacing.md),
+                const SizedBox(height: _Dims.allMenuTitleBottomGap),
                 const FadeSlideIn(
                   delay: Duration(milliseconds: 200),
                   child: _AllMenuButtonsRow(),
                 ),
-                const SizedBox(height: AppSpacing.xl),
+                const SizedBox(height: _Dims.allMenuBottomGap),
 
                 const AdBannerWidget(position: 'home_bottom'),
               ],
@@ -153,7 +221,7 @@ class _TopHeader extends StatelessWidget {
           onTap: () => Navigator.of(context).pushNamed('/reward/wallet'),
           child: const Text('🍀', style: TextStyle(fontSize: 22)),
         ),
-        const SizedBox(width: AppSpacing.md),
+        const SizedBox(width: _Dims.headerIconGap),
         GestureDetector(
           onTap: () => Navigator.of(context).pushNamed('/my/notifications'),
           child: Stack(
@@ -200,7 +268,7 @@ class _TodayFortuneCta extends StatelessWidget {
     return PremiumButton.black(
       label: '오늘의 운세보기',
       icon: Icons.add_rounded,
-      height: 52,
+      height: _Dims.ctaHeight,
       onPressed: () =>
           Navigator.of(context).pushNamed('/home/daily-fortune-detail'),
     );
@@ -220,7 +288,7 @@ class _TarotStoryHeader extends StatelessWidget {
         PremiumCircleButton(
           icon: Icons.grid_view_rounded,
           style: PremiumCircleButtonStyle.black,
-          size: 32,
+          size: _Dims.tarotCircleSize,
           onTap: () => Navigator.of(context).pushNamed('/ai-fortune/tarot/question'),
         ),
       ],
@@ -264,11 +332,11 @@ class _FortuneCategoryChipsState extends State<_FortuneCategoryChips> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 40,
+      height: _Dims.chipHeight,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: _items.length,
-        separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.sm),
+        separatorBuilder: (_, __) => const SizedBox(width: _Dims.chipGap),
         itemBuilder: (context, index) {
           final (label, _, _) = _items[index];
           return PremiumChip(
@@ -293,60 +361,66 @@ class _TodayStoryHeroCard extends StatelessWidget {
     return PremiumCard(
       gradient: AppColors.premiumIndigoHeroGradient,
       borderColor: Colors.transparent,
+      borderRadius: BorderRadius.circular(_Dims.heroCardRadius),
       showShadow: false,
       onTap: () => Navigator.of(context).pushNamed('/home/daily-fortune-detail'),
-      padding: const EdgeInsets.all(AppSpacing.xl),
-      child: Stack(
-        children: [
-          // 은은한 크레센트(초승달형) 글로우 장식 - 카드 하단에서 우상단으로 스윕
-          Positioned(
-            bottom: -30,
-            left: 10,
-            child: SoftGradientBlob(size: 150, color: Colors.white, opacity: 0.20),
-          ),
-          Positioned(
-            bottom: -10,
-            left: 70,
-            child: SoftGradientBlob(size: 110, color: Colors.white, opacity: 0.16),
-          ),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '오늘의 운세 이야기',
-                      style: AppTypography.cardTitle.copyWith(
-                        color: Colors.white,
-                        fontSize: 17,
+      padding: const EdgeInsets.all(_Dims.heroCardPadding),
+      child: SizedBox(
+        height: _Dims.heroCardHeight - _Dims.heroCardPadding * 2,
+        child: Stack(
+          children: [
+            // 은은한 크레센트(초승달형) 글로우 장식 - 카드 하단에서 우상단으로 스윕
+            Positioned(
+              bottom: -30,
+              left: 10,
+              child: SoftGradientBlob(size: 150, color: Colors.white, opacity: 0.20),
+            ),
+            Positioned(
+              bottom: -10,
+              left: 70,
+              child: SoftGradientBlob(size: 110, color: Colors.white, opacity: 0.16),
+            ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '오늘의 운세 이야기',
+                        style: AppTypography.cardTitle.copyWith(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    Text(
-                      today?.summaryText ?? '오늘은 당신의\n운명은 어떤 이야기가 펼쳐질까요?',
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.bodyMain.copyWith(
-                        color: Colors.white.withValues(alpha: 0.92),
-                        height: 1.5,
-                        fontSize: 16,
+                      const SizedBox(height: AppSpacing.md),
+                      Text(
+                        today?.summaryText ?? '오늘은 당신의\n운명은 어떤 이야기가 펼쳐질까요?',
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.bodyMain.copyWith(
+                          color: Colors.white.withValues(alpha: 0.92),
+                          height: 1.5,
+                          fontSize: 15,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              PremiumCircleButton(
-                icon: Icons.arrow_drop_up_rounded,
-                style: PremiumCircleButtonStyle.neon,
-                size: 34,
-                onTap: () =>
-                    Navigator.of(context).pushNamed('/home/daily-fortune-detail'),
-              ),
-            ],
-          ),
-        ],
+                PremiumCircleButton(
+                  icon: Icons.arrow_drop_up_rounded,
+                  style: PremiumCircleButtonStyle.neon,
+                  size: _Dims.heroCircleSize,
+                  onTap: () =>
+                      Navigator.of(context).pushNamed('/home/daily-fortune-detail'),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -358,7 +432,8 @@ class _WishBoardRoomRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IntrinsicHeight(
+    return SizedBox(
+      height: _Dims.wishCardHeight,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -373,7 +448,7 @@ class _WishBoardRoomRow extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: AppSpacing.md),
+          const SizedBox(width: _Dims.wishCardGap),
           Expanded(
             child: _LavenderMiniCard(
               title: '소원방',
@@ -411,26 +486,28 @@ class _LavenderMiniCard extends StatelessWidget {
     return PremiumCard(
       backgroundColor: AppColors.premiumSoftLavender,
       borderColor: Colors.transparent,
+      borderRadius: BorderRadius.circular(_Dims.wishCardRadius),
       showShadow: false,
       onTap: onTap,
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.all(_Dims.wishCardPadding),
       child: Stack(
         children: [
-          // 은은한 원형 글로우 장식
+          // 은은한 원형 글로우 장식 - 레퍼런스처럼 카드 대부분을 채우는 큰 사이즈
           Positioned(
-            bottom: -18,
-            left: -10,
+            bottom: -30,
+            right: -30,
             child: Container(
-              width: 90,
-              height: 90,
+              width: 130,
+              height: 130,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.5),
+                color: Colors.white.withValues(alpha: 0.55),
               ),
             ),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -444,12 +521,11 @@ class _LavenderMiniCard extends StatelessWidget {
                   PremiumCircleButton(
                     icon: circleIcon,
                     style: circleStyle,
-                    size: 28,
+                    size: _Dims.wishCircleSize,
                     onTap: onTap,
                   ),
                 ],
               ),
-              const SizedBox(height: 44),
               Text(bottomLabel, style: AppTypography.caption),
             ],
           ),
@@ -472,11 +548,11 @@ class _AllMenuButtonsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 56,
+      height: _Dims.allMenuCardHeight,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: _items.length,
-        separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.sm),
+        separatorBuilder: (_, __) => const SizedBox(width: _Dims.allMenuGap),
         itemBuilder: (context, index) {
           final (label, route) = _items[index];
           return GestureDetector(
@@ -490,11 +566,11 @@ class _AllMenuButtonsRow extends StatelessWidget {
               }
             },
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              width: _Dims.allMenuCardWidth,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: AppColors.premiumSoftLavender,
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                borderRadius: BorderRadius.circular(_Dims.allMenuCardRadius),
               ),
               child: Text(
                 label,
@@ -524,19 +600,19 @@ class _OpenPassBottomBar extends StatelessWidget {
       top: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
-          AppSpacing.lg,
-          AppSpacing.sm,
-          AppSpacing.lg,
-          AppSpacing.sm,
+          _Dims.pagePadding,
+          _Dims.bottomBarTopGap,
+          _Dims.pagePadding,
+          _Dims.bottomBarBottomGap,
         ),
         child: GestureDetector(
           onTap: () => Navigator.of(context).pushNamed('/reward/wallet'),
           child: Container(
-            height: 56,
+            height: _Dims.bottomBarHeight,
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
             decoration: BoxDecoration(
               color: AppColors.premiumBlackCta,
-              borderRadius: BorderRadius.circular(999),
+              borderRadius: BorderRadius.circular(_Dims.bottomBarRadius),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.22),
@@ -563,7 +639,7 @@ class _OpenPassBottomBar extends StatelessWidget {
                 PremiumCircleButton(
                   icon: Icons.chevron_right_rounded,
                   style: PremiumCircleButtonStyle.neon,
-                  size: 34,
+                  size: _Dims.bottomBarCircleSize,
                   onTap: () => Navigator.of(context).pushNamed('/reward/wallet'),
                 ),
               ],
