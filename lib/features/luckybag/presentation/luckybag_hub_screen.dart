@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
-import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/premium_card.dart';
 import '../../../core/widgets/premium_button.dart';
 import '../../../core/widgets/premium_section_title.dart';
@@ -87,20 +85,20 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
     final grade = context.watch<AuthProvider>().currentGrade;
 
     return Scaffold(
-      backgroundColor: AppColors.premiumBgMain,
+      backgroundColor: UnifiedColors.bg,
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(
-            AppSpacing.lg,
-            AppSpacing.md,
-            AppSpacing.lg,
-            AppSpacing.xxl,
+            UnifiedTokens.screenPadding,
+            UnifiedTokens.spaceMd,
+            UnifiedTokens.screenPadding,
+            UnifiedTokens.spaceXxl,
           ),
           children: [
-            Text('행복머니', style: AppTypography.heroTitle),
+            Text('행복머니', style: UnifiedText.titleLarge()),
             const SizedBox(height: 4),
-            Text('모으고, 나누고, 다시 행운으로 돌아와요', style: AppTypography.bodyMain),
-            const SizedBox(height: AppSpacing.lg),
+            Text('모으고, 나누고, 다시 행운으로 돌아와요', style: UnifiedText.body()),
+            const SizedBox(height: UnifiedTokens.spaceLg),
 
             FadeSlideIn(
               child: _BalanceHero(
@@ -111,14 +109,14 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
                     Navigator.of(context).pushNamed('/reward/wallet'),
               ),
             ),
-            const SizedBox(height: AppSpacing.xl),
+            const SizedBox(height: UnifiedTokens.spaceXxl),
 
-            const PremiumSectionTitle(title: '✨ 적립 방법'),
-            const SizedBox(height: AppSpacing.md),
+            const PremiumSectionTitle(title: '적립 방법'),
+            const SizedBox(height: UnifiedTokens.spaceMd),
             FadeSlideIn(
               delay: const Duration(milliseconds: 40),
               child: _ShortcutCard(
-                emoji: '📅',
+                icon: Icons.calendar_today_outlined,
                 title: '출석체크',
                 subtitle: attendance.checkedToday
                     ? '오늘 출석 완료 · 연속 ${attendance.streak}일'
@@ -126,11 +124,11 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
                 onTap: _handleAttendanceTap,
               ),
             ),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: UnifiedTokens.spaceMd),
             FadeSlideIn(
               delay: const Duration(milliseconds: 80),
               child: _ShortcutCard(
-                emoji: '✅',
+                icon: Icons.task_alt_outlined,
                 title: '미션',
                 subtitle: '일일/주간 미션을 완료하고 행복머니 받기',
                 onTap: () => Navigator.of(context).push(
@@ -138,11 +136,11 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: UnifiedTokens.spaceMd),
             FadeSlideIn(
               delay: const Duration(milliseconds: 120),
               child: _ShortcutCard(
-                emoji: '✍️',
+                icon: Icons.edit_outlined,
                 title: '커뮤니티 활동',
                 subtitle: '소원/게시글 작성 · 댓글 작성 시 행복머니 적립',
                 onTap: () => Navigator.of(context).push(
@@ -150,14 +148,14 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: AppSpacing.xl),
+            const SizedBox(height: UnifiedTokens.spaceXxl),
 
-            const PremiumSectionTitle(title: '🎁 사용처'),
-            const SizedBox(height: AppSpacing.md),
+            const PremiumSectionTitle(title: '사용처'),
+            const SizedBox(height: UnifiedTokens.spaceMd),
             FadeSlideIn(
               delay: const Duration(milliseconds: 160),
               child: _ShortcutCard(
-                emoji: '🍀',
+                icon: Icons.redeem_outlined,
                 title: '행복머니 열기',
                 subtitle: (luckyBag.summary?.pendingCount ?? 0) > 0
                     ? '받을 수 있는 행복머니 ${luckyBag.summary!.pendingCount}개'
@@ -168,11 +166,11 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: UnifiedTokens.spaceMd),
             FadeSlideIn(
               delay: const Duration(milliseconds: 200),
               child: _ShortcutCard(
-                emoji: '💌',
+                icon: Icons.volunteer_activism_outlined,
                 title: '소원 응원하기',
                 subtitle: '다른 사람의 소원에 행복머니로 응원 보내기',
                 onTap: () => Navigator.of(context).push(
@@ -180,11 +178,11 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: UnifiedTokens.spaceMd),
             FadeSlideIn(
               delay: const Duration(milliseconds: 240),
               child: _ShortcutCard(
-                emoji: '🧧',
+                icon: Icons.shield_outlined,
                 title: '디지털 부적 만들기',
                 subtitle: '나를 지켜주는 디지털 부적을 만들어보세요',
                 onTap: () => Navigator.of(context).push(
@@ -192,11 +190,11 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: UnifiedTokens.spaceMd),
             FadeSlideIn(
               delay: const Duration(milliseconds: 280),
               child: _ShortcutCard(
-                emoji: '💫',
+                icon: Icons.groups_outlined,
                 title: '운명의 동행',
                 subtitle: '관심표시(좋아요) 1건당 행복머니 소비',
                 onTap: () => Navigator.of(context).push(
@@ -206,20 +204,21 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: UnifiedTokens.spaceMd),
             FadeSlideIn(
               delay: const Duration(milliseconds: 320),
               child: _ShortcutCard(
-                emoji: '💳',
+                icon: Icons.confirmation_number_outlined,
                 title: '상품권',
                 subtitle: '행복머니로 상품권을 교환해보세요',
-                onTap: () => Navigator.of(context).pushNamed('/reward/giftcard'),
+                onTap: () =>
+                    Navigator.of(context).pushNamed('/reward/giftcard'),
               ),
             ),
-            const SizedBox(height: AppSpacing.xl),
+            const SizedBox(height: UnifiedTokens.spaceXxl),
 
-            const PremiumSectionTitle(title: '👑 구독 보너스'),
-            const SizedBox(height: AppSpacing.md),
+            const PremiumSectionTitle(title: '구독 보너스'),
+            const SizedBox(height: UnifiedTokens.spaceMd),
             FadeSlideIn(
               delay: const Duration(milliseconds: 360),
               child: _VipCard(
@@ -231,14 +230,14 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: AppSpacing.xl),
+            const SizedBox(height: UnifiedTokens.spaceXxl),
 
-            const PremiumSectionTitle(title: '📜 히스토리'),
-            const SizedBox(height: AppSpacing.md),
+            const PremiumSectionTitle(title: '히스토리'),
+            const SizedBox(height: UnifiedTokens.spaceMd),
             FadeSlideIn(
               delay: const Duration(milliseconds: 400),
               child: _ShortcutCard(
-                emoji: '📖',
+                icon: Icons.history_outlined,
                 title: '행복머니 개봉 이력',
                 subtitle: '지금까지 열어본 행복머니와 받은 보상 확인',
                 onTap: () => Navigator.of(context).push(
@@ -248,11 +247,11 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: UnifiedTokens.spaceMd),
             FadeSlideIn(
               delay: const Duration(milliseconds: 440),
               child: _ShortcutCard(
-                emoji: '🧾',
+                icon: Icons.receipt_long_outlined,
                 title: '행복머니 내역',
                 subtitle: '적립·사용 전체 내역 확인하기',
                 onTap: () => Navigator.of(context).pushNamed('/reward/wallet'),
@@ -265,8 +264,8 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
   }
 }
 
-/// §1 잔액 히어로 카드 - 딥네이비→퍼플 그라디언트(기존 premiumCtaGradient) 위에
-/// 골드 톤 잔액 숫자를 크게 강조해 "자산" 느낌을 살린다.
+/// §1 잔액 히어로 카드 - 연라벤더 플랫 카드 위에 잔액 숫자를 담백하게 보여준다.
+/// [주의] 포인트 컬러(네온)는 원형 CTA에만 사용하므로 여기서는 사용하지 않는다.
 class _BalanceHero extends StatelessWidget {
   const _BalanceHero({
     required this.balance,
@@ -283,73 +282,58 @@ class _BalanceHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PremiumCard(
-      backgroundColor: AppColors.premiumDeepNavy,
-      borderColor: AppColors.premiumDeepNavy,
+      backgroundColor: UnifiedColors.cardMain,
+      borderColor: Colors.transparent,
+      showShadow: false,
+      borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
+      padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
       onTap: onWalletTap,
-      child: Stack(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Positioned(top: -8, right: -4, child: DottedOrbit(size: 90)),
-          const Positioned(top: 4, right: 40, child: SparkleDot(size: 12)),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
             children: [
-              Row(
-                children: [
-                  const Text('🍀', style: TextStyle(fontSize: 20)),
-                  const SizedBox(width: AppSpacing.sm),
-                  Text(
-                    '내 행복머니 잔액',
-                    style: AppTypography.caption.copyWith(
-                      color: Colors.white.withValues(alpha: 0.75),
-                      fontWeight: FontWeight.w700,
+              Icon(
+                Icons.account_balance_wallet_outlined,
+                size: UnifiedTokens.iconMd,
+                color: UnifiedColors.textSecondary,
+              ),
+              const SizedBox(width: UnifiedTokens.spaceSm),
+              Text('내 행복머니 잔액', style: UnifiedText.caption()),
+              const Spacer(),
+              if (pendingBags > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: UnifiedTokens.spaceSm,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: UnifiedColors.black,
+                    borderRadius: BorderRadius.circular(
+                      UnifiedTokens.radiusPill,
                     ),
                   ),
-                  const Spacer(),
-                  if (pendingBags > 0)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.sm,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.premiumNeonLime,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        '받을 행복머니 $pendingBags개',
-                        style: AppTypography.smallLabel.copyWith(
-                          color: AppColors.premiumNeonLimeOnColor,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Text(
-                isLoading ? '불러오는 중...' : '${_formatBalance(balance)} P',
-                style: AppTypography.heroTitle.copyWith(
-                  color: Colors.white,
-                  fontSize: 30,
+                  child: Text(
+                    '받을 행복머니 $pendingBags개',
+                    style: UnifiedText.chipLabel(color: Colors.white),
+                  ),
                 ),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Row(
-                children: [
-                  Text(
-                    '행복머니 지갑 바로가기',
-                    style: AppTypography.smallLabel.copyWith(
-                      color: Colors.white.withValues(alpha: 0.8),
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    size: 12,
-                    color: Colors.white.withValues(alpha: 0.8),
-                  ),
-                ],
+            ],
+          ),
+          const SizedBox(height: UnifiedTokens.spaceMd),
+          Text(
+            isLoading ? '불러오는 중...' : '${_formatBalance(balance)} P',
+            style: UnifiedText.titleLarge(),
+          ),
+          const SizedBox(height: UnifiedTokens.spaceSm),
+          Row(
+            children: [
+              Text('행복머니 지갑 바로가기', style: UnifiedText.caption()),
+              const SizedBox(width: 4),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: UnifiedTokens.iconSm,
+                color: UnifiedColors.textCaption,
               ),
             ],
           ),
@@ -369,18 +353,18 @@ class _BalanceHero extends StatelessWidget {
   }
 }
 
-/// 획득처/사용처/히스토리 공통 바로가기 카드. [highlight]가 true면 연골드
-/// 배경으로 살짝 강조한다(예: "행복머니 열기").
+/// 획득처/사용처/히스토리 공통 바로가기 카드. [highlight]는 판매성 강조를 넣지
+/// 않고 동일한 톤을 유지한다(구조만 재사용, 시각적 차이는 두지 않음).
 class _ShortcutCard extends StatelessWidget {
   const _ShortcutCard({
-    required this.emoji,
+    required this.icon,
     required this.title,
     required this.subtitle,
     required this.onTap,
     this.highlight = false,
   });
 
-  final String emoji;
+  final IconData icon;
   final String title;
   final String subtitle;
   final VoidCallback onTap;
@@ -390,40 +374,46 @@ class _ShortcutCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return PremiumCard(
       onTap: onTap,
-      backgroundColor: highlight ? AppColors.premiumBgSubtle : AppColors.premiumBgSection,
+      backgroundColor: UnifiedColors.cardAllMenu,
+      borderColor: Colors.transparent,
+      showShadow: false,
+      borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
+      padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
       child: Row(
         children: [
           Container(
-            width: 44,
-            height: 44,
+            width: UnifiedTokens.iconCircleLg,
+            height: UnifiedTokens.iconCircleLg,
             decoration: BoxDecoration(
-              color: highlight
-                  ? AppColors.premiumSoftGold.withValues(alpha: 0.22)
-                  : AppColors.premiumSoftLavender,
-              shape: BoxShape.circle,
+              color: UnifiedColors.bg,
+              borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
             ),
-            child: Center(child: Text(emoji, style: const TextStyle(fontSize: 20))),
+            child: Icon(
+              icon,
+              size: UnifiedTokens.iconLg,
+              color: UnifiedColors.textPrimary,
+            ),
           ),
-          const SizedBox(width: AppSpacing.md),
+          const SizedBox(width: UnifiedTokens.spaceMd),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: AppTypography.cardTitle.copyWith(fontSize: 15)),
+                Text(title, style: UnifiedText.bodyStrong()),
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTypography.caption,
+                  style: UnifiedText.caption(),
                 ),
               ],
             ),
           ),
-          const Icon(
+          Icon(
             Icons.arrow_forward_ios_rounded,
-            size: 14,
-            color: AppColors.premiumTextTertiary,
+            size: UnifiedTokens.iconSm,
+            color: UnifiedColors.textCaption,
           ),
         ],
       ),
@@ -431,7 +421,8 @@ class _ShortcutCard extends StatelessWidget {
   }
 }
 
-/// §4 VIP 등급 카드 - 블랙 CTA 버튼으로 구독 유도.
+/// §4 VIP 등급 카드 - 블랙 카드 + 네온 원형 아이콘(포인트 컬러는 원형 CTA에만
+/// 사용) + 블랙 CTA 버튼으로 구독 유도. pass_gate_helper의 구독 CTA와 동일 톤.
 class _VipCard extends StatelessWidget {
   const _VipCard({required this.grade, required this.onTap});
 
@@ -441,43 +432,45 @@ class _VipCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PremiumCard(
-      gradient: AppColors.premiumGoldGradient,
-      borderColor: AppColors.premiumCardBorder,
+      backgroundColor: UnifiedColors.black,
+      borderColor: Colors.transparent,
+      showShadow: false,
+      borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
+      padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                width: 44,
-                height: 44,
+                width: UnifiedTokens.iconCircleLg,
+                height: UnifiedTokens.iconCircleLg,
                 decoration: const BoxDecoration(
-                  color: Colors.white,
+                  color: UnifiedColors.neon,
                   shape: BoxShape.circle,
                 ),
-                child: const Center(
-                  child: Text('👑', style: TextStyle(fontSize: 20)),
+                child: Icon(
+                  Icons.workspace_premium_outlined,
+                  color: UnifiedColors.black,
+                  size: UnifiedTokens.iconMd,
                 ),
               ),
-              const SizedBox(width: AppSpacing.md),
+              const SizedBox(width: UnifiedTokens.spaceMd),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       grade != null ? '${grade!.name} 등급' : '등급 정보 없음',
-                      style: AppTypography.cardTitle.copyWith(
-                        fontSize: 15,
-                        color: AppColors.premiumDeepNavy,
-                      ),
+                      style: UnifiedText.bodyStrong(color: Colors.white),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       grade != null
                           ? '행복머니 적립 ${grade!.pointEarnMultiplier}배 적용 중'
                           : '프리미엄 구독으로 등급을 올려보세요',
-                      style: AppTypography.caption.copyWith(
-                        color: AppColors.premiumDeepNavy.withValues(alpha: 0.7),
+                      style: UnifiedText.caption(
+                        color: const Color(0xFFB8B8B8),
                       ),
                     ),
                   ],
@@ -485,8 +478,8 @@ class _VipCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.md),
-          PremiumButton.black(
+          const SizedBox(height: UnifiedTokens.spaceMd),
+          PremiumButton.secondary(
             label: '구독 플랜 보기',
             height: 44,
             onPressed: onTap,

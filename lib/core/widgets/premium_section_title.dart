@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_typography.dart';
+import '../theme/app_unified_style.dart';
 
 /// [Fortune Fusion 서브 디자인 통일 마스터 프롬프트] §3 섹션 타이틀 규칙
 ///
@@ -22,18 +21,13 @@ class PremiumSectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(
-          child: Text(title, style: AppTypography.sectionTitle),
-        ),
+        Expanded(child: Text(title, style: UnifiedText.title())),
         if (actionLabel != null)
           GestureDetector(
             onTap: onActionTap,
             child: Text(
               actionLabel!,
-              style: AppTypography.caption.copyWith(
-                color: AppColors.premiumTextSecondary,
-                fontWeight: FontWeight.w600,
-              ),
+              style: UnifiedText.caption(color: UnifiedColors.textSecondary),
             ),
           ),
       ],
