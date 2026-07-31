@@ -6,6 +6,7 @@ import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/signup_screen.dart';
 import '../../features/auth/presentation/profile_check_screen.dart';
 import '../../features/fortune/daily/presentation/daily_fortune_detail_screen.dart';
+import '../../features/home/presentation/all_categories_screen.dart';
 import '../../features/fortune/saju/presentation/saju_input_screen.dart';
 import '../../features/fortune/saju/presentation/saju_loading_screen.dart';
 import '../../features/fortune/saju/presentation/saju_result_screen.dart';
@@ -81,6 +82,8 @@ class AppRouter {
         return _page(const AppShell());
       case '/home/daily-fortune-detail':
         return _page(const DailyFortuneDetailScreen());
+      case '/home/all-categories':
+        return _page(const AllCategoriesScreen());
 
       // ── AI 사주 ──
       case '/ai-fortune/saju/input':

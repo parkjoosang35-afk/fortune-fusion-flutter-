@@ -8,6 +8,7 @@ import '../../../core/widgets/premium_button.dart';
 import '../../../core/widgets/premium_chip.dart';
 import '../../../core/widgets/premium_circle_button.dart';
 import '../../../core/widgets/premium_graphics.dart';
+import '../../../core/widgets/premium_section_title.dart';
 import '../../ad_banner/application/ad_banner_provider.dart';
 import '../../ad_banner/presentation/ad_banner_widget.dart';
 import '../../consultation/application/consultation_provider.dart';
@@ -195,10 +196,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: _Dims.wishRowBottomGap),
 
-                // ⑦ 전체보기 타이틀 + 3버튼 로우
-                Text(
-                  '전체보기',
-                  style: AppTypography.sectionTitle.copyWith(fontSize: 17),
+                // ⑦ 전체보기 타이틀(우측 "더보기"→전체보기 카테고리 허브 페이지) + 3버튼 로우
+                PremiumSectionTitle(
+                  title: '전체보기',
+                  actionLabel: '더보기',
+                  onActionTap: () =>
+                      Navigator.of(context).pushNamed('/home/all-categories'),
                 ),
                 const SizedBox(height: _Dims.allMenuTitleBottomGap),
                 const FadeSlideIn(
