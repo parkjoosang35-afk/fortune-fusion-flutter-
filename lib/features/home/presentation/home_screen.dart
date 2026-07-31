@@ -8,7 +8,6 @@ import '../../../core/widgets/premium_button.dart';
 import '../../../core/widgets/premium_chip.dart';
 import '../../../core/widgets/premium_circle_button.dart';
 import '../../../core/widgets/premium_graphics.dart';
-import '../../../core/widgets/premium_section_title.dart';
 import '../../ad_banner/application/ad_banner_provider.dart';
 import '../../ad_banner/presentation/ad_banner_widget.dart';
 import '../../consultation/application/consultation_provider.dart';
@@ -24,7 +23,7 @@ import '../../pass/presentation/pass_gate_helper.dart';
 /// [Fortune Fusion 서브 디자인 통일 마스터 프롬프트] 홈 화면 - 기준 시안 그대로 구현
 ///
 /// 사용자가 제공한 홈 화면 목업(화이트 배경, 상단 로고+아이콘, 블랙 pill
-/// "오늘의 운세보기" 버튼, "타로이야기가기" 섹션, 전체운세/사주/궁합/손금 칩,
+/// "오늘의 운세보기" 버튼, "타로이야기가기" 섹션, 전체보기/사주/궁합/손금 칩,
 /// 인디고 그라디언트 히어로카드, 소원게시판/소원방 2단 라벤더 카드, 전체보기
 /// 3카드 로우, 하단 블랙 "열림패스" 바)를 기준 디자인으로 그대로 재구현한다.
 ///
@@ -175,7 +174,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: _Dims.tarotHeaderBottomGap),
 
-                // ④ 칩 로우 - 전체운세(선택,네온라임)/사주/궁합/손금
+                // ④ 칩 로우 - 전체보기(선택,네온라임)/사주/궁합/손금
                 const FadeSlideIn(
                   delay: Duration(milliseconds: 80),
                   child: _FortuneCategoryChips(),
@@ -196,12 +195,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: _Dims.wishRowBottomGap),
 
-                // ⑦ 전체보기 타이틀(우측 "더보기"→전체보기 카테고리 허브 페이지) + 3버튼 로우
-                PremiumSectionTitle(
-                  title: '전체보기',
-                  actionLabel: '더보기',
-                  onActionTap: () =>
-                      Navigator.of(context).pushNamed('/home/all-categories'),
+                // ⑦ 전체보기 타이틀 + 3버튼 로우
+                // [칩 이동 세그먼트] 전체보기 카테고리 허브 진입은 상단 칩
+                // 로우(④, 네온라임 강조되는 "전체보기" 칩)로 옮겼으므로, 여기는
+                // 다시 단순 타이틀(터치 액션 없음)로 되돌리고 폰트를 더 작게
+                // (15px) 줄여 상단 칩과 역할이 겹치지 않게 한다.
+                Text(
+                  '전체보기',
+                  style: AppTypography.sectionTitle.copyWith(fontSize: 15),
                 ),
                 const SizedBox(height: _Dims.allMenuTitleBottomGap),
                 const FadeSlideIn(
@@ -355,7 +356,7 @@ class _TarotStoryHeader extends StatelessWidget {
   }
 }
 
-/// ④ 운세 카테고리 칩(가로 스크롤) - 전체운세/사주/궁합/손금
+/// ④ 운세 카테고리 칩(가로 스크롤) - 전체보기/사주/궁합/손금
 class _FortuneCategoryChips extends StatefulWidget {
   const _FortuneCategoryChips();
 
@@ -368,8 +369,11 @@ class _FortuneCategoryChipsState extends State<_FortuneCategoryChips> {
   bool _checking = false;
 
   // 기준 시안: 칩에는 아이콘 없이 텍스트만 표시
+  // [칩 이동] 기본 선택(네온라임 강조)되는 첫 칩을 "전체보기"로 변경해, 앱의
+  // 전체 카테고리 허브(AllCategoriesScreen)로 바로 진입하는 대표 진입점으로
+  // 삼는다. 패스 불필요(단순 탐색 페이지이므로 게이트 없이 즉시 이동).
   static const _items = [
-    ('전체운세', '/home/daily-fortune-detail', false),
+    ('전체보기', '/home/all-categories', false),
     ('사주', '/ai-fortune/saju/input', true),
     ('궁합', '/ai-fortune/compatibility/input', true),
     ('손금', '/ai-fortune/palm/capture', true),
