@@ -8,6 +8,66 @@ import '../theme/app_colors.dart';
 /// subtle gradient blobs, tiny stars, moon icon, glow rings, soft sparkles.
 /// 과한 3D 대신 아주 옅은 오파시티 도형으로 "공기감"을 표현한다.
 
+/// [Fortune Fusion 디자인 우선 리디자인 프롬프트] §9 애니메이션 방향
+/// "카드 등장 시 부드러운 fade + slight up motion"을 재사용 가능한 래퍼로 표준화.
+/// [delay]를 다르게 주면 섹션들이 순차적으로(stagger) 나타나는 효과를 낼 수 있다.
+class FadeSlideIn extends StatefulWidget {
+  const FadeSlideIn({
+    super.key,
+    required this.child,
+    this.delay = Duration.zero,
+    this.duration = const Duration(milliseconds: 420),
+    this.offsetY = 14,
+  });
+
+  final Widget child;
+  final Duration delay;
+  final Duration duration;
+  final double offsetY;
+
+  @override
+  State<FadeSlideIn> createState() => _FadeSlideInState();
+}
+
+class _FadeSlideInState extends State<FadeSlideIn>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _fade;
+  late final Animation<Offset> _slide;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: widget.duration);
+    _fade = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
+    _slide = Tween<Offset>(
+      begin: Offset(0, widget.offsetY),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    Future.delayed(widget.delay, () {
+      if (mounted) _controller.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) => Opacity(
+        opacity: _fade.value,
+        child: Transform.translate(offset: _slide.value, child: child),
+      ),
+      child: widget.child,
+    );
+  }
+}
+
 /// 카드 배경 뒤에 까는 은은한 그라디언트 블롭(원형 번짐).
 class SoftGradientBlob extends StatelessWidget {
   const SoftGradientBlob({
