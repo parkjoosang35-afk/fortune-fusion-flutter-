@@ -1,4 +1,4 @@
-/// 알림패스(AlarmPass) — Fortune Fusion 3대 재화 중 ①시간제 콘텐츠 열람권.
+/// 열림패스(AlarmPass) — Fortune Fusion 3대 재화 중 ①시간제 콘텐츠 열람권.
 /// admin_web PassPolicy(정책 마스터)/UserPass(발급 이력) 모델 대응.
 /// [문서8 DB스키마초안 승인 반영] passType: ad/partner/subscription/event
 enum PassType { ad, partner, subscription, event }
@@ -58,7 +58,7 @@ class PassPolicyModel {
   }
 }
 
-/// GET /api/public/pass/status 대응 — 현재 사용자의 알림패스 활성 상태
+/// GET /api/public/pass/status 대응 — 현재 사용자의 열림패스 활성 상태
 class PassStatusModel {
   final bool isActive;
   final int? userPassId;

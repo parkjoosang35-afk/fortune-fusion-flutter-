@@ -58,7 +58,7 @@ class _WishCastleIntroScreenState extends State<WishCastleIntroScreen>
   static const _onboardingPages = [
     _OnboardPage('🏰', '소원성에 오신 것을 환영해요', '이곳은 여러분의 소원을 함께\n응원하고 지켜보는 공간이에요.'),
     _OnboardPage('🕯️', '촛불이 자라나요', '많은 분들의 응원을 받을수록\n작은 촛불이 5단계로 성장해요.'),
-    _OnboardPage('🧧', '복주머니로 응원해요', '실제 포인트가 차감되지 않는\n상징적인 응원 마음이에요.'),
+    _OnboardPage('🧧', '행복머니로 응원해요', '실제 포인트가 차감되지 않는\n상징적인 응원 마음이에요.'),
     _OnboardPage('🕐', '여정을 돌아볼 수 있어요', '소원이 남긴 발걸음을\n타임라인으로 살펴보세요.'),
     _OnboardPage('🌟', '이야기를 나눠요', '가장 밝은 불꽃에 닿으면\n성취 후기를 남길 수 있어요.'),
   ];

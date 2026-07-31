@@ -10,7 +10,7 @@ import '../../wallet/application/wallet_provider.dart';
 import '../application/pass_provider.dart';
 import '../domain/pass_model.dart';
 
-/// [6단계 운세 탭 정리] 알림패스 기반 이용 구조 공통화.
+/// [6단계 운세 탭 정리] 열림패스 기반 이용 구조 공통화.
 ///
 /// 홈 화면(운세 카테고리 그리드)과 FortuneHubScreen(운세 탭) 양쪽에서 동일하게
 /// 사용하는 공통 진입 흐름. "각 카테고리 상세 흐름에 공통 패스 체크를 붙인다 /
@@ -19,7 +19,7 @@ import '../domain/pass_model.dart';
 /// - [requiresPass]가 false면 게이트체크 없이 즉시 라우팅한다(무료 콘텐츠).
 /// - PassProvider.isActive가 이미 true면 서버 재검증 없이 즉시 통과시킨다.
 /// - 그 외에는 PassProvider.consume()으로 서버 게이트체크 후, 실패 시(유효한
-///   알림패스 없음) 발급 유도 바텀시트를 노출한다.
+///   열림패스 없음) 발급 유도 바텀시트를 노출한다.
 Future<void> navigateWithPassGate(
   BuildContext context, {
   required String title,
@@ -48,7 +48,7 @@ Future<void> navigateWithPassGate(
   await showPassRequiredSheet(context, categoryTitle: title);
 }
 
-/// 알림패스 발급 유도 바텀시트 — 광고 시청 / 파트너 방문 / 구독 안내.
+/// 열림패스 발급 유도 바텀시트 — 광고 시청 / 파트너 방문 / 구독 안내.
 /// [6단계] "패스없으면요약만·상세는패스유도" 요구사항의 공통 진입점.
 Future<void> showPassRequiredSheet(
   BuildContext context, {
@@ -77,7 +77,7 @@ Future<void> showPassRequiredSheet(
                 Icon(Icons.lock_clock_rounded, color: AppColors.accentGold, size: 22),
                 SizedBox(width: AppSpacing.sm),
                 Text(
-                  '알림패스가 필요해요',
+                  '열림패스가 필요해요',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
@@ -88,7 +88,7 @@ Future<void> showPassRequiredSheet(
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              '"$categoryTitle" 상세 결과는 알림패스로 열람할 수 있어요.\n광고 시청, 파트너 방문 또는 구독으로 알림패스를 받아보세요.',
+              '"$categoryTitle" 상세 결과는 열림패스로 열람할 수 있어요.\n광고 시청, 파트너 방문 또는 구독으로 열림패스를 받아보세요.',
               style: const TextStyle(
                 fontSize: 13,
                 color: AppColors.cosmicTextSecondary,
@@ -146,7 +146,7 @@ Future<void> _claimFromDialog(BuildContext context, PassPolicyModel policy) asyn
     context,
     title: policy.name,
     message: policy.ctaText ??
-        (isAd ? '광고를 시청하고 알림패스를 받으시겠습니까?' : '파트너 페이지를 방문하고 알림패스를 받으시겠습니까?'),
+        (isAd ? '광고를 시청하고 열림패스를 받으시겠습니까?' : '파트너 페이지를 방문하고 열림패스를 받으시겠습니까?'),
     confirmLabel: isAd ? '시청하기' : '방문하기',
   );
   if (!confirmed || !context.mounted) return;
@@ -167,9 +167,9 @@ Future<void> _claimFromDialog(BuildContext context, PassPolicyModel policy) asyn
   if (ok) {
     await context.read<WalletProvider>().load();
     if (!context.mounted) return;
-    AppToast.show(context, '알림패스가 발급되었습니다! (${policy.durationMin}분)');
+    AppToast.show(context, '열림패스가 발급되었습니다! (${policy.durationMin}분)');
   } else {
-    AppToast.show(context, pass.lastError ?? '알림패스 발급에 실패했습니다.', isError: true);
+    AppToast.show(context, pass.lastError ?? '열림패스 발급에 실패했습니다.', isError: true);
   }
 }
 
@@ -261,11 +261,11 @@ class _SubscriptionCtaTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '구독으로 알림패스 자동 지급',
+                  '구독으로 열림패스 자동 지급',
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.bgPrimary),
                 ),
                 Text(
-                  '복주머니 정기 보너스까지 함께 받아보세요',
+                  '행복머니 정기 보너스까지 함께 받아보세요',
                   style: TextStyle(fontSize: 11, color: AppColors.bgPrimary),
                 ),
               ],

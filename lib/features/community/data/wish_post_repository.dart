@@ -51,7 +51,7 @@ class WishPostRepository {
     }
   }
 
-  /// [3단계 - 복주머니 커뮤니티 적립 연동] admin_web `POST /api/public/wishes`가
+  /// [3단계 - 행복머니 커뮤니티 적립 연동] admin_web `POST /api/public/wishes`가
   /// 소원 등록 시 point_policies.community 정책에 따라 지급한 rewardPoint를 함께
   /// 내려주므로, 여기서 함께 파싱해 반환한다(호출부가 "+N P 획득" 피드백을 표시할 수 있도록).
   Future<ApiResult<({WishPostModel post, int rewardPoint})>> createPost(
@@ -141,9 +141,9 @@ class WishPostRepository {
     }
   }
 
-  /// [3단계 - 복주머니 커뮤니티 적립 연동] 소원 댓글 작성 시 admin_web이
-  /// wish_config.comment_bokju_reward 만큼 복주머니(bokjuAwarded)를 자동 지급하므로
-  /// 함께 반환한다(호출부가 "+N 복주머니" 피드백/레벨업 연출을 표시할 수 있도록).
+  /// [3단계 - 행복머니 커뮤니티 적립 연동] 소원 댓글 작성 시 admin_web이
+  /// wish_config.comment_bokju_reward 만큼 행복머니(bokjuAwarded)를 자동 지급하므로
+  /// 함께 반환한다(호출부가 "+N 행복머니" 피드백/레벨업 연출을 표시할 수 있도록).
   Future<ApiResult<({WishCommentModel comment, int bokjuAwarded, bool leveledUp})>>
   addComment(String wishId, String content) async {
     if (content.trim().isEmpty) return ApiResult.fail('댓글 내용을 입력해 주세요.');
@@ -209,7 +209,7 @@ class WishPostRepository {
     }
   }
 
-  /// [소원성(Wish Castle) 확장] 복주머니 보내기 - 실제 포인트/지갑 이동 없는
+  /// [소원성(Wish Castle) 확장] 행복머니 보내기 - 실제 포인트/지갑 이동 없는
   /// 상징적 응원 단위. amount는 admin_web bokju_preset_amounts 화이트리스트를
   /// 그대로 따른다(서버에서도 [1,5,10,50,100] 외 값은 400 처리).
   /// 반환 data에는 leveledUp/previousLevel이 포함되어 있어, 호출부(Provider)에서
@@ -233,17 +233,17 @@ class WishPostRepository {
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
         return ApiResult.fail(
-          decoded['error'] as String? ?? '복주머니 보내기에 실패했습니다.',
+          decoded['error'] as String? ?? '행복머니 보내기에 실패했습니다.',
         );
       }
       return ApiResult.ok(decoded['data'] as Map<String, dynamic>);
     } catch (e) {
       debugPrint('[WishPostRepository] [sendBokju] 예외 -> $e');
-      return ApiResult.fail('복주머니 보내기에 실패했습니다: $e');
+      return ApiResult.fail('행복머니 보내기에 실패했습니다: $e');
     }
   }
 
-  /// [소원성(Wish Castle) 확장] CMS 설정(촛불 임계값/댓글보상/복주머니 단위/
+  /// [소원성(Wish Castle) 확장] CMS 설정(촛불 임계값/댓글보상/행복머니 단위/
   /// AI 응원문구/애니메이션 ON-OFF) 전체를 key-value로 조회.
   /// admin_web wish-config-meta.ts의 WISH_CONFIG_KEYS와 동일한 키 목록을
   /// 클라이언트에서 파싱한다(파싱은 WishCastleConfigProvider 쪽에서 수행).

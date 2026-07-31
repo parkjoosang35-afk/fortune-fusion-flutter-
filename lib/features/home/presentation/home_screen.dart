@@ -23,7 +23,7 @@ import '../../pass/presentation/pass_gate_helper.dart';
 ///
 /// 화이트 베이스의 깨끗한 프리미엄 운세 앱 톤으로 9섹션 고정 순서 구성.
 /// ①상단인사말 ②오늘의우주이야기히어로 ③운세카테고리칩 ④인기있는소원
-/// ⑤커뮤니티미리보기 ⑥오늘의활동미션(복주머니) ⑦열림패스 ⑧부적/운명의동행
+/// ⑤커뮤니티미리보기 ⑥오늘의활동미션(행복머니) ⑦열림패스 ⑧부적/운명의동행
 /// ⑨(하단탭바는 AppShell에서 별도 처리)
 ///
 /// [주의] Application/Data/Domain 레이어(Provider/Repository/Model)는 기존
@@ -98,7 +98,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: AppSpacing.xl),
 
-            // ⑥ 오늘의 활동 미션(복주머니)
+            // ⑥ 오늘의 활동 미션(행복머니)
             const _SectionHeader(title: '🍀 오늘의 활동 미션'),
             const SizedBox(height: AppSpacing.md),
             const FadeSlideIn(
@@ -555,7 +555,7 @@ class _CommunityPreviewSection extends StatelessWidget {
   }
 }
 
-/// ⑥ 오늘의 활동 미션(복주머니)
+/// ⑥ 오늘의 활동 미션(행복머니)
 class _DailyMissionSection extends StatelessWidget {
   const _DailyMissionSection();
 
@@ -584,7 +584,7 @@ class _DailyMissionSection extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('내 복주머니', style: AppTypography.caption),
+                    Text('내 행복머니', style: AppTypography.caption),
                     Text(
                       '${wallet.balance}P',
                       style: AppTypography.cardTitle,
@@ -603,7 +603,7 @@ class _DailyMissionSection extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.md),
           Text(
-            '출석하고, 운세를 보고, 글을 쓰면 복주머니가 쌓여요.',
+            '출석하고, 운세를 보고, 글을 쓰면 행복머니가 쌓여요.',
             style: AppTypography.caption,
           ),
           const SizedBox(height: AppSpacing.md),

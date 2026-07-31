@@ -79,11 +79,11 @@ class MatchingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// `POST /matching/like` - [3단계 - 복주머니 소비: 운명의 동행] 서버가
-  /// point_policies.matching_like에 따라 복주머니를 차감하고 차감 후 잔액을
-  /// 함께 내려주므로, 실패(복주머니 부족 등)/매칭성사 여부/잔액을 모두 담아
+  /// `POST /matching/like` - [3단계 - 행복머니 소비: 운명의 동행] 서버가
+  /// point_policies.matching_like에 따라 행복머니를 차감하고 차감 후 잔액을
+  /// 함께 내려주므로, 실패(행복머니 부족 등)/매칭성사 여부/잔액을 모두 담아
   /// [MatchingLikeResult]로 반환한다(호출부가 WalletProvider.load()로 잔액을
-  /// 동기화하거나 "복주머니 부족" 에러 토스트를 표시할 수 있도록).
+  /// 동기화하거나 "행복머니 부족" 에러 토스트를 표시할 수 있도록).
   Future<MatchingLikeResult> like(String targetUserId) async {
     final result = await _repository.like(targetUserId);
     if (!result.success || result.data == null) {
@@ -204,7 +204,7 @@ class MatchingProvider extends ChangeNotifier {
   }
 }
 
-/// [3단계 - 복주머니 소비: 운명의 동행] MatchingProvider.like() 결과 -
+/// [3단계 - 행복머니 소비: 운명의 동행] MatchingProvider.like() 결과 -
 /// 성공여부/매칭성사여부/차감 후 잔액(정책이 없으면 null)/에러메시지를 담는다.
 class MatchingLikeResult {
   final bool success;

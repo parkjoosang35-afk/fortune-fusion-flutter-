@@ -1,4 +1,4 @@
-/// 04A 도메인I(복주머니) `luckybag_products`(I-1) + `luckybag_grades`(I-2, 마스터) 대응 모델
+/// 04A 도메인I(행복머니) `luckybag_products`(I-1) + `luckybag_grades`(I-2, 마스터) 대응 모델
 class LuckyBagGrade {
   final String code; // none/common/rare/best
   final String name;

@@ -17,7 +17,7 @@ class AppIcons {
   static const IconData aiHighlight = Icons.auto_awesome_rounded; // AI추천/마법 강조
 
   // ── 리워드 ──
-  static const IconData luckyBag = Icons.card_giftcard_rounded; // 복주머니
+  static const IconData luckyBag = Icons.card_giftcard_rounded; // 행복머니
   static const IconData amulet =
       Icons.auto_awesome_rounded; // 디지털부적(전용 아이콘 자원 없음, 이모지 병기 권장)
   static const IconData giftcard = Icons.receipt_long_outlined; // 상품권

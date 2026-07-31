@@ -5,10 +5,10 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../domain/wish_post_model.dart';
 
-/// [소원성(Wish Castle) 확장] "성장 연출" - 복주머니를 보냈지만 레벨업은 아직 아닐 때
+/// [소원성(Wish Castle) 확장] "성장 연출" - 행복머니를 보냈지만 레벨업은 아직 아닐 때
 /// 재생되는 짧은(1.3초) 축하 애니메이션. 03단계 §10.2 "부적 획득"/`SendBokSuccessDialog`의
 /// 스파클+스케일 패턴을 그대로 재사용하되, 골드 원형 대신 촛불 이모지를 사용해
-/// "복주머니가 촛불에 스며드는" 느낌으로 테마만 교체한다(신규 애니메이션 로직 최소화).
+/// "행복머니가 촛불에 스며드는" 느낌으로 테마만 교체한다(신규 애니메이션 로직 최소화).
 class WishGrowthDialog extends StatefulWidget {
   final int bokjuAmount;
   final int candleLevel;
@@ -166,7 +166,7 @@ class _WishGrowthDialogState extends State<WishGrowthDialog>
                 child: Column(
                   children: [
                     Text(
-                      '🧧 복주머니 +${widget.bokjuAmount}',
+                      '🧧 행복머니 +${widget.bokjuAmount}',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -405,7 +405,7 @@ class _WishLevelUpDialogState extends State<WishLevelUpDialog>
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '누적 복주머니 ${widget.bokjuCount}개',
+                        '누적 행복머니 ${widget.bokjuCount}개',
                         style: const TextStyle(
                           color: AppColors.secondaryLight,
                           fontSize: 13,

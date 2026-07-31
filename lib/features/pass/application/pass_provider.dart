@@ -2,9 +2,9 @@ import 'package:flutter/foundation.dart';
 import '../data/pass_repository.dart';
 import '../domain/pass_model.dart';
 
-/// 알림패스(AlarmPass) 전역 Provider — 홈 화면 상태바 + 알림패스 섹션에서 공유.
+/// 열림패스(AlarmPass) 전역 Provider — 홈 화면 상태바 + 열림패스 섹션에서 공유.
 /// [문서5 홈화면섹션구조표 승인 반영] 홈 상단 상태바에 remainingSec 카운트다운 노출,
-/// 알림패스 섹션에서 정책 목록(CTA 카드) + 발급/게이트체크 액션을 제공한다.
+/// 열림패스 섹션에서 정책 목록(CTA 카드) + 발급/게이트체크 액션을 제공한다.
 class PassProvider extends ChangeNotifier {
   final PassRepository _repository;
   PassProvider(this._repository);
@@ -63,7 +63,7 @@ class PassProvider extends ChangeNotifier {
     return true;
   }
 
-  /// 시간제 콘텐츠 열람 직전 게이트체크. 유효한 알림패스가 없으면 false를 반환하고
+  /// 시간제 콘텐츠 열람 직전 게이트체크. 유효한 열림패스가 없으면 false를 반환하고
   /// [lastError]에 안내 메시지를 남긴다(화면단에서 발급 유도 UI 노출용).
   Future<bool> consume({required String contentType, dynamic contentId}) async {
     final result = await _repository.consume(

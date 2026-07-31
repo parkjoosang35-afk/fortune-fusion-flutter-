@@ -48,7 +48,7 @@ class _WishJourneyBody extends StatelessWidget {
           icon: wishCandleLevelOf(level).emoji,
           title: '${wishCandleLevelOf(level).name}으로 성장',
           subtitle: level <= thresholds.length
-              ? '복주머니 ${thresholds[level - 1]}개 누적 달성'
+              ? '행복머니 ${thresholds[level - 1]}개 누적 달성'
               : null,
           achieved: post.candleLevel >= level,
         ),

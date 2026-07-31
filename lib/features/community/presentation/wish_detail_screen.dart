@@ -54,7 +54,7 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
     final content = _commentController.text.trim();
     if (content.isEmpty) return;
     setState(() => _isSubmittingComment = true);
-    // [3단계 - 복주머니 커뮤니티 적립 연동] 성공 시 서버가 지급한
+    // [3단계 - 행복머니 커뮤니티 적립 연동] 성공 시 서버가 지급한
     // bokjuAwarded(int)를 받는다. null이면 실패.
     final bokjuAwarded = await context.read<WishPostProvider>().addComment(
       widget.post.id,
@@ -65,7 +65,7 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
     if (bokjuAwarded != null) {
       _commentController.clear();
       if (bokjuAwarded > 0 && mounted) {
-        AppToast.show(context, '댓글 등록 완료! +$bokjuAwarded 복주머니');
+        AppToast.show(context, '댓글 등록 완료! +$bokjuAwarded 행복머니');
       }
     }
   }
@@ -264,7 +264,7 @@ class _WishContentCard extends StatelessWidget {
                   ),
                 ),
               ],
-              // [소원성(Wish Castle) 확장] 복주머니 보내기 - 익명/본인 게시물 여부와
+              // [소원성(Wish Castle) 확장] 행복머니 보내기 - 익명/본인 게시물 여부와
               // 무관하게 항상 노출한다(포인트 이동이 없는 상징적 응원이라 대상 특정이
               // 무의미해지는 문제가 없음). 최종 레벨 도달 시에는 이미 다 자란 상태이므로
               // 숨겨서 불필요한 상호작용을 막는다.
@@ -283,7 +283,7 @@ class _WishContentCard extends StatelessWidget {
                           color: AppColors.secondaryDark,
                         ),
                         SizedBox(width: 4),
-                        Text('복주머니 보내기', style: TextStyle(fontSize: 12.5)),
+                        Text('행복머니 보내기', style: TextStyle(fontSize: 12.5)),
                       ],
                     ),
                   ),

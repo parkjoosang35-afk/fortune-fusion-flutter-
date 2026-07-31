@@ -7,9 +7,9 @@ import '../domain/subscription_model.dart';
 import 'subscription_checkout_screen.dart';
 
 /// [4단계 구독 연동 정리] SubscriptionPlansScreen(요금제 비교)
-/// 구독을 "알림패스 + 복주머니 강화 상품"으로 UX/문구를 재정의한다.
-/// 구독 시 서버(subscribe/route.ts)가 알림패스를 자동 발급하고 복주머니 보너스를
-/// 지급하므로, 화면 문구도 이 3축 정책(알림패스/복주머니/구독)에 맞춰 정리한다.
+/// 구독을 "열림패스 + 행복머니 강화 상품"으로 UX/문구를 재정의한다.
+/// 구독 시 서버(subscribe/route.ts)가 열림패스를 자동 발급하고 행복머니 보너스를
+/// 지급하므로, 화면 문구도 이 3축 정책(열림패스/행복머니/구독)에 맞춰 정리한다.
 /// 02§21 사용자흐름 ①: Free vs Premium 비교 → 플랜 선택(월간/연간) → 결제화면
 class SubscriptionPlansScreen extends StatefulWidget {
   const SubscriptionPlansScreen({super.key});
@@ -58,7 +58,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                         ),
                         const SizedBox(height: AppSpacing.sm),
                         Text(
-                          isSubscribed ? '구독 혜택을 받고 있어요' : '알림패스 + 복주머니 강화 상품',
+                          isSubscribed ? '구독 혜택을 받고 있어요' : '열림패스 + 행복머니 강화 상품',
                           style: const TextStyle(
                             color: AppColors.onDeepSpace,
                             fontSize: 18,
@@ -67,7 +67,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                         ),
                         const SizedBox(height: 4),
                         const Text(
-                          '구독하면 알림패스가 자동으로 지급되고, 복주머니 정기 보너스와 광고 없는 쾌적한 이용까지 함께 누릴 수 있어요.',
+                          '구독하면 열림패스가 자동으로 지급되고, 행복머니 정기 보너스와 광고 없는 쾌적한 이용까지 함께 누릴 수 있어요.',
                           style: TextStyle(
                             color: AppColors.onDeepSpace,
                             fontSize: 13,
@@ -79,8 +79,8 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                           spacing: AppSpacing.sm,
                           runSpacing: AppSpacing.sm,
                           children: const [
-                            _MiniBenefitChip(icon: Icons.bolt_rounded, label: '알림패스 자동 지급'),
-                            _MiniBenefitChip(icon: Icons.savings_rounded, label: '복주머니 정기 보너스'),
+                            _MiniBenefitChip(icon: Icons.bolt_rounded, label: '열림패스 자동 지급'),
+                            _MiniBenefitChip(icon: Icons.savings_rounded, label: '행복머니 정기 보너스'),
                             _MiniBenefitChip(icon: Icons.block_rounded, label: '광고 스트레스 완화'),
                           ],
                         ),
@@ -216,7 +216,7 @@ class _PlanCard extends StatelessWidget {
   }
 }
 
-/// [4단계] 구독 히어로 카드용 미니 혜택 칩 — 알림패스/복주머니/광고완화 3축을
+/// [4단계] 구독 히어로 카드용 미니 혜택 칩 — 열림패스/행복머니/광고완화 3축을
 /// 한눈에 보여준다.
 class _MiniBenefitChip extends StatelessWidget {
   const _MiniBenefitChip({required this.icon, required this.label});

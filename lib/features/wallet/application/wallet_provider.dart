@@ -51,7 +51,7 @@ class WalletProvider extends ChangeNotifier {
     return ok;
   }
 
-  /// [Phase22 - 복주머니 경제철학 이식] "복 나누기" — 성공 시 (환급액, 오늘 남은 송금가능액)을
+  /// [Phase22 - 행복머니 경제철학 이식] "복 나누기" — 성공 시 (환급액, 오늘 남은 송금가능액)을
   /// 반환하고, 실패 시 null을 반환한다(에러 메시지는 [lastSendError]로 확인).
   String? lastSendError;
 

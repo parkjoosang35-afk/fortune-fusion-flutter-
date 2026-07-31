@@ -12,7 +12,7 @@ import '../domain/luckybag_product_model.dart';
 import 'widgets/luckybag_card.dart';
 import 'widgets/luckybag_probability_sheet.dart';
 
-/// 03단계 §3.3 리워드 탭 - LuckyBagShopScreen(복주머니 상점)
+/// 03단계 §3.3 리워드 탭 - LuckyBagShopScreen(행복머니 상점)
 /// 06§4.9 `GET /v1/luckybags` + `GET /:id/probabilities` 대응 화면.
 /// "열어보기" CTA는 Phase10-3(LuckyBagOpenAnimationScreen)에서 라우팅 연결 예정.
 class LuckyBagShopScreen extends StatefulWidget {
@@ -51,7 +51,7 @@ class _LuckyBagShopScreenState extends State<LuckyBagShopScreen> {
     final confirmed = await showAppConfirmDialog(
       context,
       title: '${product.name} 열기',
-      message: '${product.pricePoint}P를 사용하여 복주머니를 여시겠습니까?',
+      message: '${product.pricePoint}P를 사용하여 행복머니를 여시겠습니까?',
       confirmLabel: '열기',
     );
     if (!confirmed || !mounted) return;
@@ -67,7 +67,7 @@ class _LuckyBagShopScreenState extends State<LuckyBagShopScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('복주머니'),
+        title: const Text('행복머니'),
         actions: [
           IconButton(
             tooltip: '개봉 이력',
@@ -95,7 +95,7 @@ class _LuckyBagShopScreenState extends State<LuckyBagShopScreen> {
             : luckybag.products.isEmpty
             ? const AppEmptyState(
                 icon: Icons.card_giftcard_outlined,
-                title: '판매 중인 복주머니가 없어요',
+                title: '판매 중인 행복머니가 없어요',
               )
             : RefreshIndicator(
                 onRefresh: () => luckybag.loadProducts(),

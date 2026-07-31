@@ -140,7 +140,7 @@ class WalletRepository {
     }
   }
 
-  /// [Phase22 - 복주머니 경제철학 이식] "복 나누기(송금)" — POST /api/public/wallet/send
+  /// [Phase22 - 행복머니 경제철학 이식] "복 나누기(송금)" — POST /api/public/wallet/send
   /// 보낸 사람은 amount만큼 차감되지만 economy_config.send_refund_rate만큼 즉시 환급받고,
   /// 받은 사람은 amount 전액을 그대로 적립받는 "양쪽 증식" 구조.
   /// 반환값: 성공 시 (환급받은 복 액수, 오늘 남은 송금가능액), 실패 시 에러 메시지를 던진다.

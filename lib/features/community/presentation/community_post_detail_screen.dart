@@ -47,7 +47,7 @@ class _CommunityPostDetailScreenState extends State<CommunityPostDetailScreen> {
     final content = _commentController.text.trim();
     if (content.isEmpty) return;
     setState(() => _isSubmittingComment = true);
-    // [3단계 - 복주머니 커뮤니티 적립 연동] 성공 시 서버가 지급한
+    // [3단계 - 행복머니 커뮤니티 적립 연동] 성공 시 서버가 지급한
     // rewardPoint(int)를 받는다. null이면 실패.
     final rewardPoint = await context.read<CommunityPostProvider>().addComment(
       widget.post.id,

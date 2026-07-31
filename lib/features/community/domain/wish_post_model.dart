@@ -22,7 +22,7 @@ class WishPostModel {
   final String? goalTag;
 
   // [소원성(Wish Castle) 확장] 촛불 성장 시스템 필드 - 기존 support_count(단순 응원
-  // on/off)와는 완전히 별개의 신규 필드다. bokjuCount(복주머니)는 실제 포인트/지갑
+  // on/off)와는 완전히 별개의 신규 필드다. bokjuCount(행복머니)는 실제 포인트/지갑
   // 이동이 전혀 없는 상징적 응원 단위이며, candleLevel(0~4)은 서버가 bokjuCount와
   // wish_config 임계값을 기준으로 계산해 캐시해둔 값을 그대로 내려받는다.
   // 하위호환을 위해 전부 기본값을 둔다(과거 API 응답/Mock 데이터에 필드가 없어도 동작).

@@ -9,10 +9,10 @@ import '../../application/wish_castle_config_provider.dart';
 import '../../application/wish_post_provider.dart';
 import 'wish_growth_dialog.dart';
 
-/// [소원성(Wish Castle) 확장] "복주머니 보내기" 공용 바텀시트.
+/// [소원성(Wish Castle) 확장] "행복머니 보내기" 공용 바텀시트.
 ///
 /// `send_bok_sheet.dart`의 "show*Sheet() + StatefulWidget 폼 + ChoiceChip 선택 단위"
-/// 패턴을 그대로 재사용하되, 실제 지갑조회(lookup) 단계는 없다(복주머니는 포인트
+/// 패턴을 그대로 재사용하되, 실제 지갑조회(lookup) 단계는 없다(행복머니는 포인트
 /// 이동이 없는 상징적 응원 단위라 수신자 지갑을 조회할 필요가 없음 - 03§9.2).
 ///
 /// 성공 시 바텀시트가 닫힌 뒤 [WishGrowthDialog] 또는 [WishLevelUpDialog]를
@@ -27,7 +27,7 @@ Future<bool> showSendBokjuSheet(
 
   final amount = await showAppBottomSheet<int>(
     context,
-    title: '복주머니 보내기',
+    title: '행복머니 보내기',
     child: _SendBokjuForm(presets: presets),
   );
   if (amount == null || !context.mounted) return false;
@@ -37,12 +37,12 @@ Future<bool> showSendBokjuSheet(
   if (!context.mounted) return false;
 
   if (result == null) {
-    AppToast.show(context, '복주머니 보내기에 실패했습니다.', isError: true);
+    AppToast.show(context, '행복머니 보내기에 실패했습니다.', isError: true);
     return false;
   }
 
   if (!config.animationEnabled) {
-    AppToast.show(context, '🧧 복주머니 $amount개를 보냈어요');
+    AppToast.show(context, '🧧 행복머니 $amount개를 보냈어요');
     return true;
   }
 
@@ -95,7 +95,7 @@ class _SendBokjuFormState extends State<_SendBokjuForm> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          '이 소원에 복주머니를 보내 촛불을 밝혀주세요.\n실제 포인트가 차감되지 않는 상징적인 응원이에요.',
+          '이 소원에 행복머니를 보내 촛불을 밝혀주세요.\n실제 포인트가 차감되지 않는 상징적인 응원이에요.',
           style: TextStyle(
             color: AppColors.textSecondaryOf(context),
             height: 1.5,
@@ -123,7 +123,7 @@ class _SendBokjuFormState extends State<_SendBokjuForm> {
         ),
         const SizedBox(height: AppSpacing.lg),
         AppButton(
-          label: _selected == null ? '개수를 선택해 주세요' : '복주머니 $_selected개 보내기',
+          label: _selected == null ? '개수를 선택해 주세요' : '행복머니 $_selected개 보내기',
           onPressed: _selected == null
               ? null
               : () => Navigator.of(context).pop(_selected),

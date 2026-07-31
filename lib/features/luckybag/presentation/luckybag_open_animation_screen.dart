@@ -8,7 +8,7 @@ import '../../wallet/application/wallet_provider.dart';
 import '../application/luckybag_provider.dart';
 import '../domain/luckybag_product_model.dart';
 
-/// 03단계 §10.2 "복주머니 열기" 애니메이션 - 흔들림→확대→반짝임 파티클(1.5~2초).
+/// 03단계 §10.2 "행복머니 열기" 애니메이션 - 흔들림→확대→반짝임 파티클(1.5~2초).
 /// 06§4.9 `POST /v1/luckybags/:id/open` 대응 화면. 개봉(구매+추첨)이 완료되면
 /// LuckyBagResultScreen으로 결과를 전달하며 pushReplacement한다.
 class LuckyBagOpenAnimationScreen extends StatefulWidget {

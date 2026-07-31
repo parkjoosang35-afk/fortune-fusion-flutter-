@@ -22,7 +22,7 @@ import '../domain/luckybag_reward_model.dart';
 /// 테스트 유저(userId=1)를 고정으로 사용한다(WalletRepository와 동일한 임시 값).
 class LuckyBagRepository {
   // ── 기존(홈 배너 요약) - Mock 유지 ──
-  // [비고] 서버 측 보상은 개봉 즉시 지급되는 구조라 "받을 수 있는(미수령) 복주머니 개수"
+  // [비고] 서버 측 보상은 개봉 즉시 지급되는 구조라 "받을 수 있는(미수령) 행복머니 개수"
   // 개념이 별도로 존재하지 않는다. 홈 배너용 요약이므로 우선 Mock을 유지한다.
   Future<ApiResult<LuckyBagSummary>> getPendingSummary() async {
     await mockDelay(ms: 300);
@@ -67,7 +67,7 @@ class LuckyBagRepository {
     try {
       final data = await _fetchLuckyBagData();
       if (data == null) {
-        return ApiResult.fail('복주머니 목록을 불러오지 못했습니다.');
+        return ApiResult.fail('행복머니 목록을 불러오지 못했습니다.');
       }
 
       final productsRaw = data['products'] as List<dynamic>;
@@ -105,7 +105,7 @@ class LuckyBagRepository {
     } catch (e, st) {
       debugPrint('[LuckyBagRepository] [X] getProducts 예외 -> $e');
       if (kDebugMode) debugPrint('$st');
-      return ApiResult.fail('복주머니 목록을 불러오지 못했습니다: $e');
+      return ApiResult.fail('행복머니 목록을 불러오지 못했습니다: $e');
     }
   }
 

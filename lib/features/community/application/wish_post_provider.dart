@@ -134,7 +134,7 @@ class WishPostProvider extends ChangeNotifier {
     await loadFeed(tab: tab);
   }
 
-  /// [3단계 - 복주머니 커뮤니티 적립 연동] 성공 시 서버가 지급한 rewardPoint를
+  /// [3단계 - 행복머니 커뮤니티 적립 연동] 성공 시 서버가 지급한 rewardPoint를
   /// 반환한다(호출부 UI가 "+N P 획득" 토스트를 표시할 수 있도록). 실패 시 null.
   Future<int?> createPost(
     String content, {
@@ -179,8 +179,8 @@ class WishPostProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// [3단계 - 복주머니 커뮤니티 적립 연동] 성공 시 서버가 지급한 복주머니(bokjuAwarded)를
-  /// 반환한다(호출부 UI가 "+N 복주머니" 피드백을 표시할 수 있도록). 실패 시 null.
+  /// [3단계 - 행복머니 커뮤니티 적립 연동] 성공 시 서버가 지급한 행복머니(bokjuAwarded)를
+  /// 반환한다(호출부 UI가 "+N 행복머니" 피드백을 표시할 수 있도록). 실패 시 null.
   Future<int?> addComment(String wishId, String content) async {
     final result = await _repository.addComment(wishId, content);
     if (!result.success) return null;
@@ -204,7 +204,7 @@ class WishPostProvider extends ChangeNotifier {
     return result.success;
   }
 
-  /// [소원성(Wish Castle) 확장] 복주머니 보내기 - 실제 포인트 이동 없는 상징적 응원.
+  /// [소원성(Wish Castle) 확장] 행복머니 보내기 - 실제 포인트 이동 없는 상징적 응원.
   /// 성공 시 posts 캐시를 서버 응답값으로 즉시 갱신하고, 레벨업 여부/이전 레벨/
   /// 최종레벨 최초 도달 여부를 [WishBokjuSendResult]로 반환해 호출부(UI)가
   /// 성장 연출/레벨업 연출/최종단계 특별연출을 분기할 수 있게 한다.

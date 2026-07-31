@@ -25,14 +25,14 @@ import '../../pass/presentation/pass_gate_helper.dart';
 import '../../subscription/application/subscription_provider.dart';
 
 /// [Fortune Fusion 3축 정책 반영] HomeScreen - 8개 섹션 신규 구성
-/// ①상단상태(패스/복주머니/알림/마이) ②알림패스핵심(광고/제휴/구독/잔여시간)
+/// ①상단상태(패스/행복머니/알림/마이) ②열림패스핵심(광고/제휴/구독/잔여시간)
 /// ③운세카테고리(6종+패스검증) ④오늘의대표콘텐츠(요약운세/행운숫자, 무료미리보기)
-/// ⑤커뮤니티미리보기(인기소원) ⑥복주머니적립(출석/미션/글쓰기/댓글 안내)
-/// ⑦복주머니사용처(부적/동행) ⑧구독프로모션(추가혜택/광고배너)
+/// ⑤커뮤니티미리보기(인기소원) ⑥행복머니적립(출석/미션/글쓰기/댓글 안내)
+/// ⑦행복머니사용처(부적/동행) ⑧구독프로모션(추가혜택/광고배너)
 ///
 /// [주의] Application/Data/Domain 레이어(Provider/Repository/Model)는 기존
 /// 것을 그대로 재사용하며, 이 화면은 Presentation 레이어의 섹션 순서/구성만
-/// 3축 정책(알림패스/복주머니/구독)에 맞춰 재배치한다.
+/// 3축 정책(열림패스/행복머니/구독)에 맞춰 재배치한다.
 class HomeScreenCosmic extends StatefulWidget {
   const HomeScreenCosmic({super.key});
 
@@ -78,7 +78,7 @@ class _HomeScreenCosmicState extends State<HomeScreenCosmic> {
             color: AppColors.cosmicTextPrimary,
           ),
         ),
-        // ①상단상태 — 알림패스 카운트다운(패스/복주머니 상태는 항상 상단에서 확인 가능)
+        // ①상단상태 — 열림패스 카운트다운(패스/행복머니 상태는 항상 상단에서 확인 가능)
         bottom: const _AlarmPassStatusBar(),
         actions: [
           PointBadge(
@@ -100,7 +100,7 @@ class _HomeScreenCosmicState extends State<HomeScreenCosmic> {
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
-            // §2 알림패스 핵심 섹션(광고/제휴/구독 CTA) — 활성 상태면 자동 숨김
+            // §2 열림패스 핵심 섹션(광고/제휴/구독 CTA) — 활성 상태면 자동 숨김
             const _AlarmPassSection(),
             const SizedBox(height: AppSpacing.xl),
 
@@ -129,14 +129,14 @@ class _HomeScreenCosmicState extends State<HomeScreenCosmic> {
             const _CommunityBanner(),
             const SizedBox(height: AppSpacing.xl),
 
-            // §6 복주머니 적립 — 출석/미션/글쓰기·댓글(커뮤니티 활동) 안내
-            const _SectionTitle(title: '🍀 복주머니 적립하기'),
+            // §6 행복머니 적립 — 출석/미션/글쓰기·댓글(커뮤니티 활동) 안내
+            const _SectionTitle(title: '🍀 행복머니 적립하기'),
             const SizedBox(height: AppSpacing.md),
             const _LuckyBagEarnSection(),
             const SizedBox(height: AppSpacing.xl),
 
-            // §7 복주머니 사용처 — 부적 만들기 / 운명의 동행
-            const _SectionTitle(title: '✨ 복주머니 사용처'),
+            // §7 행복머니 사용처 — 부적 만들기 / 운명의 동행
+            const _SectionTitle(title: '✨ 행복머니 사용처'),
             const SizedBox(height: AppSpacing.md),
             const _AmuletMatchingRow(),
             const SizedBox(height: AppSpacing.xl),
@@ -629,8 +629,8 @@ class _CommunityBanner extends StatelessWidget {
   }
 }
 
-/// §6 복주머니 적립 섹션 — 출석체크 + 미션 + 커뮤니티 활동(글쓰기/댓글) 안내.
-/// [3단계 복주머니 흐름 정리] 복주머니는 "커뮤니티 중심 재화"로, 적립 경로가
+/// §6 행복머니 적립 섹션 — 출석체크 + 미션 + 커뮤니티 활동(글쓰기/댓글) 안내.
+/// [3단계 행복머니 흐름 정리] 행복머니는 "커뮤니티 중심 재화"로, 적립 경로가
 /// 여러 화면에 흩어져 있으므로 홈에서 한번에 안내한다.
 class _LuckyBagEarnSection extends StatelessWidget {
   const _LuckyBagEarnSection();
@@ -677,7 +677,7 @@ class _LuckyBagEarnSection extends StatelessWidget {
                     Text(
                       attendance.checkedToday
                           ? '출석 완료 · 연속 ${attendance.streak}일'
-                          : '출석하고 복주머니 받기',
+                          : '출석하고 행복머니 받기',
                       style: const TextStyle(
                         fontSize: 11,
                         color: AppColors.cosmicTextTertiary,
@@ -709,7 +709,7 @@ class _LuckyBagEarnSection extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '소원 글쓰기 · 댓글로 복주머니 받기',
+                      '소원 글쓰기 · 댓글로 행복머니 받기',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
@@ -717,7 +717,7 @@ class _LuckyBagEarnSection extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '커뮤니티 활동은 복주머니의 가장 큰 적립 경로예요',
+                      '커뮤니티 활동은 행복머니의 가장 큰 적립 경로예요',
                       style: TextStyle(
                         fontSize: 11,
                         color: AppColors.cosmicTextTertiary,
@@ -757,7 +757,7 @@ class _LuckyBagEarnSection extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      '내 복주머니 전체보기',
+                      '내 행복머니 전체보기',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
@@ -766,7 +766,7 @@ class _LuckyBagEarnSection extends StatelessWidget {
                     ),
                     Text(
                       pending > 0
-                          ? '받을 수 있는 복주머니 $pending개'
+                          ? '받을 수 있는 행복머니 $pending개'
                           : '적립/사용 내역을 한눈에 확인해보세요',
                       style: const TextStyle(
                         fontSize: 11,
@@ -789,7 +789,7 @@ class _LuckyBagEarnSection extends StatelessWidget {
   }
 }
 
-/// §7 부적/동행 2단 카드 — 복주머니 사용처
+/// §7 부적/동행 2단 카드 — 행복머니 사용처
 class _AmuletMatchingRow extends StatelessWidget {
   const _AmuletMatchingRow();
 
@@ -924,7 +924,7 @@ class _SubscriptionPromoBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isPremium ? '구독 혜택을 받고 있어요' : '알림패스 + 복주머니 강화 상품',
+                  isPremium ? '구독 혜택을 받고 있어요' : '열림패스 + 행복머니 강화 상품',
                   style: const TextStyle(
                     color: AppColors.bgPrimary,
                     fontSize: 14,
@@ -935,7 +935,7 @@ class _SubscriptionPromoBanner extends StatelessWidget {
                 Text(
                   isPremium
                       ? '정기 보너스와 광고 스트레스 완화를 계속 누려보세요'
-                      : '알림패스 자동 지급 · 복주머니 정기 보너스 · 광고 완화',
+                      : '열림패스 자동 지급 · 행복머니 정기 보너스 · 광고 완화',
                   style: const TextStyle(color: AppColors.bgPrimary, fontSize: 11),
                 ),
               ],
@@ -948,7 +948,7 @@ class _SubscriptionPromoBanner extends StatelessWidget {
   }
 }
 
-/// 알림패스(AlarmPass) 상단 상태바 — AppBar.bottom에 장착되는 카운트다운.
+/// 열림패스(AlarmPass) 상단 상태바 — AppBar.bottom에 장착되는 카운트다운.
 /// 활성 상태가 아니면 높이 0(공간 차지 없음)으로 접혀 사라진다.
 /// 서버 값(remainingSec)을 기준으로 1초 간격 로컬 타이머 없이 Provider 값을
 /// 그대로 표시하고, 실제 만료 판정은 다음 PassProvider.load() 호출 시 서버가 갖는다.
@@ -982,7 +982,7 @@ class _AlarmPassStatusBar extends StatelessWidget
           const Icon(Icons.bolt_rounded, size: 14, color: AppColors.accentGold),
           const SizedBox(width: 4),
           Text(
-            '알림패스 활성중 · ${pass.status.policyName ?? ''} · $label',
+            '열림패스 활성중 · ${pass.status.policyName ?? ''} · $label',
             style: const TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
@@ -995,10 +995,10 @@ class _AlarmPassStatusBar extends StatelessWidget
   }
 }
 
-/// §2 알림패스 핵심 섹션 — 광고 시청/파트너 방문 CTA 카드.
+/// §2 열림패스 핵심 섹션 — 광고 시청/파트너 방문 CTA 카드.
 /// admin_web `GET /api/public/pass/policies` 정책 중 passType이 ad/partner인
 /// 항목만 클라이언트에서 필터링해 노출한다(claim-ad/claim-partner API만 존재).
-/// 이미 알림패스가 활성 상태면(상단 상태바로 충분히 안내되므로) 섹션을 숨긴다.
+/// 이미 열림패스가 활성 상태면(상단 상태바로 충분히 안내되므로) 섹션을 숨긴다.
 class _AlarmPassSection extends StatefulWidget {
   const _AlarmPassSection();
 
@@ -1014,7 +1014,7 @@ class _AlarmPassSectionState extends State<_AlarmPassSection> {
     final confirmed = await showAppConfirmDialog(
       context,
       title: policy.name,
-      message: policy.ctaText ?? '광고를 시청하고 알림패스를 받으시겠습니까?',
+      message: policy.ctaText ?? '광고를 시청하고 열림패스를 받으시겠습니까?',
       confirmLabel: '시청하기',
     );
     if (!confirmed || !mounted) return;
@@ -1029,11 +1029,11 @@ class _AlarmPassSectionState extends State<_AlarmPassSection> {
     if (ok) {
       await context.read<WalletProvider>().load();
       if (!mounted) return;
-      AppToast.show(context, '알림패스가 발급되었습니다! (${policy.durationMin}분)');
+      AppToast.show(context, '열림패스가 발급되었습니다! (${policy.durationMin}분)');
     } else {
       AppToast.show(
         context,
-        pass.lastError ?? '알림패스 발급에 실패했습니다.',
+        pass.lastError ?? '열림패스 발급에 실패했습니다.',
         isError: true,
       );
     }
@@ -1044,7 +1044,7 @@ class _AlarmPassSectionState extends State<_AlarmPassSection> {
     final confirmed = await showAppConfirmDialog(
       context,
       title: policy.name,
-      message: policy.ctaText ?? '파트너 페이지를 방문하고 알림패스를 받으시겠습니까?',
+      message: policy.ctaText ?? '파트너 페이지를 방문하고 열림패스를 받으시겠습니까?',
       confirmLabel: '방문하기',
     );
     if (!confirmed || !mounted) return;
@@ -1065,11 +1065,11 @@ class _AlarmPassSectionState extends State<_AlarmPassSection> {
     if (ok) {
       await context.read<WalletProvider>().load();
       if (!mounted) return;
-      AppToast.show(context, '알림패스가 발급되었습니다! (${policy.durationMin}분)');
+      AppToast.show(context, '열림패스가 발급되었습니다! (${policy.durationMin}분)');
     } else {
       AppToast.show(
         context,
-        pass.lastError ?? '알림패스 발급에 실패했습니다.',
+        pass.lastError ?? '열림패스 발급에 실패했습니다.',
         isError: true,
       );
     }
@@ -1091,7 +1091,7 @@ class _AlarmPassSectionState extends State<_AlarmPassSection> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          '⏱️ 알림패스 받기',
+          '⏱️ 열림패스 받기',
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,

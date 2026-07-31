@@ -13,7 +13,7 @@ import '../../community/presentation/community_hub_screen.dart';
 import '../../fortune/presentation/fortune_hub_screen.dart';
 
 /// [9단계 - 마이 탭 정리] MyScreen - 마이 탭
-/// 프로필+등급뱃지 + [알림패스/복주머니/구독 요약(3축 정책 한눈에 보기)]
+/// 프로필+등급뱃지 + [열림패스/행복머니/구독 요약(3축 정책 한눈에 보기)]
 /// + 아카이브(사주/타로/관상/손금/궁합 히스토리) + 커뮤니티(내 글·소원) + 설정
 ///
 /// [주의] AuthProvider/GradeModel/UserModel/PassProvider/WalletProvider/
@@ -30,7 +30,7 @@ class _MyScreenState extends State<MyScreen> {
   @override
   void initState() {
     super.initState();
-    // [9단계] 마이 탭 진입 시 알림패스/복주머니/구독 요약을 최신화한다.
+    // [9단계] 마이 탭 진입 시 열림패스/행복머니/구독 요약을 최신화한다.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<PassProvider>().load();
       context.read<WalletProvider>().load();
@@ -130,7 +130,7 @@ class _MyScreenState extends State<MyScreen> {
             ),
             const SizedBox(height: AppSpacing.xl),
 
-            // [9단계] §1.5 알림패스/복주머니/구독 요약 - 3축 정책을 한 화면에서
+            // [9단계] §1.5 열림패스/행복머니/구독 요약 - 3축 정책을 한 화면에서
             // 확인할 수 있도록 마이 탭에 요약 카드 3개를 배치한다.
             const _SectionTitle(title: '📋 내 혜택 요약'),
             const SizedBox(height: AppSpacing.md),
@@ -273,9 +273,9 @@ class _MyScreenState extends State<MyScreen> {
   }
 }
 
-/// [9단계] §1.5 알림패스 요약 카드 - 활성 여부와 남은 시간을 한눈에 보여준다.
+/// [9단계] §1.5 열림패스 요약 카드 - 활성 여부와 남은 시간을 한눈에 보여준다.
 /// [10단계 - 로딩 상태 보강] initState의 최초 load() 완료 전까지는 스켈레톤을
-/// 표시해, "보유한 알림패스가 없어요"가 실제 무패스 상태인지 로딩 중인지
+/// 표시해, "보유한 열림패스가 없어요"가 실제 무패스 상태인지 로딩 중인지
 /// 혼동되지 않게 한다.
 class _PassSummaryCard extends StatelessWidget {
   const _PassSummaryCard({
@@ -304,18 +304,18 @@ class _PassSummaryCard extends StatelessWidget {
       child: AppShortcutRow(
         emoji: '🔔',
         accentColor: AppColors.accentBlue,
-        title: '알림패스',
+        title: '열림패스',
         subtitle: isLoading
             ? '불러오는 중...'
             : status.isActive
                 ? '사용 중 · 남은 시간 ${_formatRemaining(status.remainingSec)}'
-                : '보유한 알림패스가 없어요',
+                : '보유한 열림패스가 없어요',
       ),
     );
   }
 }
 
-/// [9단계] §1.5 복주머니 요약 카드 - 현재 잔액을 한눈에 보여준다.
+/// [9단계] §1.5 행복머니 요약 카드 - 현재 잔액을 한눈에 보여준다.
 class _WalletSummaryCard extends StatelessWidget {
   const _WalletSummaryCard({
     required this.balance,
@@ -345,7 +345,7 @@ class _WalletSummaryCard extends StatelessWidget {
       child: AppShortcutRow(
         emoji: '🍀',
         accentColor: AppColors.accentGold,
-        title: '복주머니',
+        title: '행복머니',
         subtitle: isLoading ? '불러오는 중...' : '${_formatBalance(balance)} P 보유 중',
       ),
     );
@@ -379,7 +379,7 @@ class _SubscriptionSummaryCard extends StatelessWidget {
             ? '불러오는 중...'
             : isActive
                 ? '${my?.plan.name ?? '프리미엄'} 구독 중'
-                : '구독하고 알림패스·복주머니 혜택 받기',
+                : '구독하고 열림패스·행복머니 혜택 받기',
       ),
     );
   }

@@ -6,7 +6,7 @@ import '../../../core/widgets/app_button.dart';
 import '../domain/luckybag_product_model.dart';
 import '../domain/luckybag_reward_model.dart';
 
-/// 03단계 §10.2 "복주머니 열기" 결과화면 - 결과 카드 페이드인.
+/// 03단계 §10.2 "행복머니 열기" 결과화면 - 결과 카드 페이드인.
 /// 등급별 반짝임 강도 차등(best > rare > common > none, 03§10.2 가이드).
 class LuckyBagResultScreen extends StatefulWidget {
   final LuckyBagOpenResult result;

@@ -96,8 +96,8 @@ class App extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => LuckyNumberProvider(LuckyNumberRepository()),
         ),
-        // [신규] 알림패스(AlarmPass) — admin_web `/api/public/pass/*` 실 API 연동.
-        // 홈 화면 상단 상태바 + 알림패스 섹션에서 공유하는 전역 상태.
+        // [신규] 열림패스(AlarmPass) — admin_web `/api/public/pass/*` 실 API 연동.
+        // 홈 화면 상단 상태바 + 열림패스 섹션에서 공유하는 전역 상태.
         ChangeNotifierProvider(create: (_) => PassProvider(PassRepository())),
 
         // ── 기능별 Provider ──
@@ -130,7 +130,7 @@ class App extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => WishPostProvider(WishPostRepository()),
         ),
-        // [소원성(Wish Castle) 확장] 촛불 레벨 임계값/복주머니 단위/AI 응원문구 등
+        // [소원성(Wish Castle) 확장] 촛불 레벨 임계값/행복머니 단위/AI 응원문구 등
         // admin_web CMS 설정을 전역에서 1회 로드해 보관(community_screen 진입 시 로드).
         ChangeNotifierProvider(
           create: (_) => WishCastleConfigProvider(WishPostRepository()),
