@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
-import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/premium_card.dart';
 import '../../../core/widgets/premium_button.dart';
 import '../../../core/widgets/premium_chip.dart';
@@ -76,18 +74,18 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
     final wallet = context.watch<WalletProvider>();
 
     return Scaffold(
-      backgroundColor: AppColors.premiumBgMain,
+      backgroundColor: UnifiedColors.bg,
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(
-            AppSpacing.lg,
-            AppSpacing.md,
-            AppSpacing.lg,
-            AppSpacing.xxl,
+            UnifiedTokens.spaceXl,
+            UnifiedTokens.spaceMd,
+            UnifiedTokens.spaceXl,
+            UnifiedTokens.spaceXxl,
           ),
           children: [
             _Header(balance: wallet.balance),
-            const SizedBox(height: AppSpacing.xl),
+            const SizedBox(height: UnifiedTokens.spaceXxl),
 
             FadeSlideIn(
               child: _TrendingRow(
@@ -99,7 +97,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: AppSpacing.xl),
+            const SizedBox(height: UnifiedTokens.spaceXxl),
 
             FadeSlideIn(
               delay: const Duration(milliseconds: 40),
@@ -108,7 +106,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                 subtitle: '오늘 가장 먼저 확인해볼 4가지',
               ),
             ),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: UnifiedTokens.spaceMd),
             FadeSlideIn(
               delay: const Duration(milliseconds: 60),
               child: _FeaturedGrid(
@@ -122,7 +120,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: AppSpacing.xl),
+            const SizedBox(height: UnifiedTokens.spaceXxl),
 
             FadeSlideIn(
               delay: const Duration(milliseconds: 80),
@@ -131,11 +129,11 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                 subtitle: '당신에게 맞는 해석을 골라보세요',
               ),
             ),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: UnifiedTokens.spaceMd),
             ...List.generate(_categoryGroups.length, (index) {
               final group = _categoryGroups[index];
               return Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                padding: const EdgeInsets.only(bottom: UnifiedTokens.spaceMd),
                 child: FadeSlideIn(
                   delay: Duration(milliseconds: 40 * index),
                   child: _CategoryGroupCard(
@@ -150,7 +148,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                 ),
               );
             }),
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: UnifiedTokens.spaceSm),
 
             FadeSlideIn(
               child: const PremiumSectionTitleLite(
@@ -158,15 +156,15 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                 subtitle: '운세 그 이상, 마음을 나누는 순간들',
               ),
             ),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: UnifiedTokens.spaceMd),
             FadeSlideIn(
               delay: const Duration(milliseconds: 40),
               child: const _QuickEntryRow(),
             ),
-            const SizedBox(height: AppSpacing.xl),
+            const SizedBox(height: UnifiedTokens.spaceXxl),
 
             FadeSlideIn(child: _PassStatusStrip(pass: pass)),
-            const SizedBox(height: AppSpacing.xl),
+            const SizedBox(height: UnifiedTokens.spaceXxl),
 
             FadeSlideIn(
               delay: const Duration(milliseconds: 40),
@@ -201,48 +199,46 @@ class _Header extends StatelessWidget {
             height: 36,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: AppColors.premiumBgSubtle,
-              borderRadius: BorderRadius.circular(12),
+              color: UnifiedColors.cardAllMenu,
+              borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.arrow_back_ios_new_rounded,
-              size: 16,
-              color: AppColors.premiumTextPrimary,
+              size: UnifiedTokens.iconMd,
+              color: UnifiedColors.textPrimary,
             ),
           ),
         ),
-        const SizedBox(width: AppSpacing.md),
+        const SizedBox(width: UnifiedTokens.spaceMd),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('전체보기', style: AppTypography.heroTitle),
+              Text('전체보기', style: UnifiedText.titleLarge()),
               const SizedBox(height: 4),
-              Text('오늘 필요한 운세와 해석을 한 번에 만나보세요', style: AppTypography.bodyMain),
+              Text('오늘 필요한 운세와 해석을 한 번에 만나보세요', style: UnifiedText.body()),
             ],
           ),
         ),
-        const SizedBox(width: AppSpacing.sm),
+        const SizedBox(width: UnifiedTokens.spaceSm),
         GestureDetector(
           onTap: () => Navigator.of(context).pushNamed('/reward/wallet'),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
             decoration: BoxDecoration(
-              color: AppColors.premiumBgSubtle,
-              borderRadius: BorderRadius.circular(999),
+              color: UnifiedColors.cardAllMenu,
+              borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('🍀', style: TextStyle(fontSize: 11)),
-                const SizedBox(width: 4),
-                Text(
-                  '$balance',
-                  style: AppTypography.smallLabel.copyWith(
-                    color: AppColors.premiumDeepNavy,
-                    fontWeight: FontWeight.w700,
-                  ),
+                Icon(
+                  Icons.savings_outlined,
+                  size: UnifiedTokens.iconSm,
+                  color: UnifiedColors.textSecondary,
                 ),
+                const SizedBox(width: 4),
+                Text('$balance', style: UnifiedText.chipLabel()),
               ],
             ),
           ),
@@ -270,9 +266,9 @@ class PremiumSectionTitleLite extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: AppTypography.sectionTitle),
+        Text(title, style: UnifiedText.title()),
         const SizedBox(height: 3),
-        Text(subtitle, style: AppTypography.caption),
+        Text(subtitle, style: UnifiedText.caption()),
       ],
     );
   }
@@ -286,11 +282,21 @@ class _TrendingRow extends StatelessWidget {
   final void Function(String label, String? route, bool requiresPass) onTap;
 
   static const _items = [
-    ('🔥 오늘의 운세', '오늘의 운세', '/home/daily-fortune-detail', false),
-    ('🔮 타로', '타로', '/ai-fortune/tarot/question', true),
-    ('💬 AI 상담', 'AI 상담', '/ai-fortune/consultation/type', true),
-    ('🧧 부적 만들기', '부적 만들기', '/reward/amulet/generate', false),
-    ('💞 궁합', '궁합', '/ai-fortune/compatibility/input', true),
+    (Icons.wb_sunny_outlined, '오늘의 운세', '/home/daily-fortune-detail', false),
+    (Icons.style_outlined, '타로', '/ai-fortune/tarot/question', true),
+    (
+      Icons.chat_bubble_outline_rounded,
+      'AI 상담',
+      '/ai-fortune/consultation/type',
+      true,
+    ),
+    (Icons.shield_outlined, '부적 만들기', '/reward/amulet/generate', false),
+    (
+      Icons.favorite_outline_rounded,
+      '궁합',
+      '/ai-fortune/compatibility/input',
+      true,
+    ),
   ];
 
   @override
@@ -300,13 +306,18 @@ class _TrendingRow extends StatelessWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: _items.length,
-        separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.sm),
+        separatorBuilder: (_, __) =>
+            const SizedBox(width: UnifiedTokens.spaceSm),
         itemBuilder: (context, i) {
-          final (chipLabel, label, route, requiresPass) = _items[i];
+          final (icon, label, route, requiresPass) = _items[i];
           return PremiumChip(
-            label: chipLabel,
+            label: label,
+            icon: icon,
             selected: false,
             onTap: () => onTap(label, route, requiresPass),
+            inactiveBg: UnifiedColors.chipInactiveBg,
+            inactiveFg: UnifiedColors.textSecondary,
+            labelStyle: UnifiedText.chipLabel(),
           );
         },
       ),
@@ -328,10 +339,34 @@ class _FeaturedGrid extends StatelessWidget {
   final void Function(String label, String route, bool requiresPass) onTap;
 
   static const _items = [
-    ('오늘의 운세', '오늘 하루의 흐름과 행운 포인트', '☀️', '/home/daily-fortune-detail', false),
-    ('정통사주', '타고난 기운과 인생의 방향', '📜', '/ai-fortune/saju/input', true),
-    ('궁합', '나와 상대의 감정과 관계 흐름', '💞', '/ai-fortune/compatibility/input', true),
-    ('타로', '지금 마음과 선택의 해석', '🔮', '/ai-fortune/tarot/question', true),
+    (
+      '오늘의 운세',
+      '오늘 하루의 흐름과 행운 포인트',
+      Icons.wb_sunny_outlined,
+      '/home/daily-fortune-detail',
+      false,
+    ),
+    (
+      '정통사주',
+      '타고난 기운과 인생의 방향',
+      Icons.auto_stories_outlined,
+      '/ai-fortune/saju/input',
+      true,
+    ),
+    (
+      '궁합',
+      '나와 상대의 감정과 관계 흐름',
+      Icons.favorite_outline_rounded,
+      '/ai-fortune/compatibility/input',
+      true,
+    ),
+    (
+      '타로',
+      '지금 마음과 선택의 해석',
+      Icons.style_outlined,
+      '/ai-fortune/tarot/question',
+      true,
+    ),
   ];
 
   @override
@@ -339,12 +374,12 @@ class _FeaturedGrid extends StatelessWidget {
     return Column(
       children: [
         for (var row = 0; row < 2; row++) ...[
-          if (row > 0) const SizedBox(height: AppSpacing.sm),
+          if (row > 0) const SizedBox(height: UnifiedTokens.spaceSm),
           Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               for (var col = 0; col < 2; col++) ...[
-                if (col > 0) const SizedBox(width: AppSpacing.sm),
+                if (col > 0) const SizedBox(width: UnifiedTokens.spaceSm),
                 Expanded(
                   child: _FeaturedCard(
                     item: _items[row * 2 + col],
@@ -370,14 +405,14 @@ class _FeaturedCard extends StatelessWidget {
     required this.onTap,
   });
 
-  final (String, String, String, String, bool) item;
+  final (String, String, IconData, String, bool) item;
   final PassProvider pass;
   final bool busy;
   final void Function(String label, String route, bool requiresPass) onTap;
 
   @override
   Widget build(BuildContext context) {
-    final (title, desc, emoji, route, requiresPass) = item;
+    final (title, desc, icon, route, requiresPass) = item;
     final isFree = !requiresPass;
     final badgeLabel = isFree ? '무료' : (pass.isActive ? '이용가능' : '열림패스');
     final badgeType = isFree || pass.isActive
@@ -387,11 +422,11 @@ class _FeaturedCard extends StatelessWidget {
     return SizedBox(
       height: 138,
       child: PremiumCard(
-        backgroundColor: AppColors.premiumBgSubtle,
-        borderColor: AppColors.premiumLightBorder,
-        borderRadius: BorderRadius.circular(20),
+        backgroundColor: UnifiedColors.cardAllMenu,
+        borderColor: Colors.transparent,
+        borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
         showShadow: false,
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
         onTap: busy ? null : () => onTap(title, route, requiresPass),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -399,27 +434,31 @@ class _FeaturedCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  width: 34,
-                  height: 34,
+                  width: UnifiedTokens.iconCircleLg,
+                  height: UnifiedTokens.iconCircleLg,
                   alignment: Alignment.center,
-                  decoration: const BoxDecoration(
-                    color: AppColors.premiumBgSection,
-                    shape: BoxShape.circle,
+                  decoration: BoxDecoration(
+                    color: UnifiedColors.bg,
+                    borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
                   ),
-                  child: Text(emoji, style: const TextStyle(fontSize: 17)),
+                  child: Icon(
+                    icon,
+                    size: UnifiedTokens.iconLg,
+                    color: UnifiedColors.textPrimary,
+                  ),
                 ),
                 const Spacer(),
                 PremiumBadge(label: badgeLabel, type: badgeType),
               ],
             ),
             const Spacer(),
-            Text(title, style: AppTypography.cardTitle.copyWith(fontSize: 15)),
+            Text(title, style: UnifiedText.title()),
             const SizedBox(height: 3),
             Text(
               desc,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: AppTypography.caption,
+              style: UnifiedText.caption(),
             ),
           ],
         ),
@@ -433,7 +472,7 @@ class _FeaturedCard extends StatelessWidget {
 /// requiresPass가 true인 항목은 [navigateWithPassGate]로 열림패스 게이트를 거친다.
 const List<
   ({
-    String emoji,
+    IconData icon,
     String title,
     String desc,
     List<({String label, String? route, bool pass})> items,
@@ -441,7 +480,7 @@ const List<
 >
 _categoryGroups = [
   (
-    emoji: '☀️',
+    icon: Icons.wb_sunny_outlined,
     title: '오늘/기간 운세',
     desc: '오늘 하루부터 신년까지, 흐름을 확인해보세요',
     items: [
@@ -454,7 +493,7 @@ _categoryGroups = [
     ],
   ),
   (
-    emoji: '📜',
+    icon: Icons.auto_stories_outlined,
     title: '사주',
     desc: '타고난 기운과 흐름을 깊게 해석해보세요',
     items: [
@@ -466,7 +505,7 @@ _categoryGroups = [
     ],
   ),
   (
-    emoji: '💞',
+    icon: Icons.favorite_outline_rounded,
     title: '궁합',
     desc: '나와 상대, 서로의 마음을 확인해보세요',
     items: [
@@ -477,7 +516,7 @@ _categoryGroups = [
     ],
   ),
   (
-    emoji: '🔮',
+    icon: Icons.style_outlined,
     title: '타로',
     desc: '지금 마음이 궁금할 때, 카드에게 물어보세요',
     items: [
@@ -489,7 +528,7 @@ _categoryGroups = [
     ],
   ),
   (
-    emoji: '🙂',
+    icon: Icons.face_outlined,
     title: '얼굴/손금',
     desc: '얼굴과 손에 담긴 이야기를 읽어보세요',
     items: [
@@ -499,7 +538,7 @@ _categoryGroups = [
     ],
   ),
   (
-    emoji: '🌙',
+    icon: Icons.nights_stay_outlined,
     title: '테마 운세',
     desc: '가볍게 즐기는 오늘의 재미 운세',
     items: [
@@ -511,7 +550,7 @@ _categoryGroups = [
     ],
   ),
   (
-    emoji: '🍀',
+    icon: Icons.auto_awesome_outlined,
     title: '행운/정화',
     desc: '나를 지키고 채워주는 행운 아이템',
     items: [
@@ -522,7 +561,7 @@ _categoryGroups = [
     ],
   ),
   (
-    emoji: '💬',
+    icon: Icons.chat_bubble_outline_rounded,
     title: '상담/해석',
     desc: '혼자 고민하지 말고 함께 이야기해요',
     items: [
@@ -538,7 +577,7 @@ class _CategoryGroupCard extends StatelessWidget {
   const _CategoryGroupCard({required this.group, required this.onTapItem});
 
   final ({
-    String emoji,
+    IconData icon,
     String title,
     String desc,
     List<({String label, String? route, bool pass})> items,
@@ -549,24 +588,27 @@ class _CategoryGroupCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PremiumCard(
-      borderColor: AppColors.premiumLightBorder,
+      backgroundColor: UnifiedColors.cardAllMenu,
+      borderColor: Colors.transparent,
       showShadow: false,
+      borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Text(group.emoji, style: const TextStyle(fontSize: 18)),
-              const SizedBox(width: 6),
-              Text(
-                group.title,
-                style: AppTypography.cardTitle.copyWith(fontSize: 15),
+              Icon(
+                group.icon,
+                size: UnifiedTokens.iconMd,
+                color: UnifiedColors.textPrimary,
               ),
+              const SizedBox(width: 6),
+              Text(group.title, style: UnifiedText.title()),
             ],
           ),
           const SizedBox(height: 3),
-          Text(group.desc, style: AppTypography.caption),
-          const SizedBox(height: AppSpacing.sm),
+          Text(group.desc, style: UnifiedText.caption()),
+          const SizedBox(height: UnifiedTokens.spaceSm),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -606,21 +648,16 @@ class _SubCategoryChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          color: isReady
-              ? AppColors.premiumBgSubtle
-              : AppColors.premiumBgSecondary,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: isReady ? AppColors.premiumLightBorder : Colors.transparent,
-          ),
+          color: isReady ? UnifiedColors.bg : UnifiedColors.chipInactiveBg,
+          borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
+          border: Border.all(color: Colors.transparent),
         ),
         child: Text(
           label,
-          style: AppTypography.smallLabel.copyWith(
+          style: UnifiedText.chipLabel(
             color: isReady
-                ? AppColors.premiumDeepNavy
-                : AppColors.premiumTextTertiary,
-            fontWeight: FontWeight.w600,
+                ? UnifiedColors.textPrimary
+                : UnifiedColors.textCaption,
           ),
         ),
       ),
@@ -640,12 +677,13 @@ class _QuickEntryRow extends StatelessWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: 5,
-        separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.sm),
+        separatorBuilder: (_, __) =>
+            const SizedBox(width: UnifiedTokens.spaceSm),
         itemBuilder: (context, i) {
           switch (i) {
             case 0:
               return _QuickEntryCard(
-                emoji: '💬',
+                icon: Icons.chat_bubble_outline_rounded,
                 label: 'AI 상담',
                 onTap: () async {
                   final pass = context.read<PassProvider>();
@@ -665,21 +703,21 @@ class _QuickEntryRow extends StatelessWidget {
               );
             case 1:
               return _QuickEntryCard(
-                emoji: '🧧',
+                icon: Icons.shield_outlined,
                 label: '부적 만들기',
                 onTap: () =>
                     Navigator.of(context).pushNamed('/reward/amulet/generate'),
               );
             case 2:
               return _QuickEntryCard(
-                emoji: '🍀',
+                icon: Icons.auto_awesome_outlined,
                 label: '행운의 번호',
                 onTap: () =>
                     AppToast.show(context, '오늘의 행운숫자는 홈 화면에서 곧 만나볼 수 있어요 ✨'),
               );
             case 3:
               return _QuickEntryCard(
-                emoji: '🌟',
+                icon: Icons.star_border_rounded,
                 label: '소원게시판',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const CommunityScreen()),
@@ -687,7 +725,7 @@ class _QuickEntryRow extends StatelessWidget {
               );
             default:
               return _QuickEntryCard(
-                emoji: '🕯️',
+                icon: Icons.nights_stay_outlined,
                 label: '소원방',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const CommunityScreen()),
@@ -702,12 +740,12 @@ class _QuickEntryRow extends StatelessWidget {
 
 class _QuickEntryCard extends StatelessWidget {
   const _QuickEntryCard({
-    required this.emoji,
+    required this.icon,
     required this.label,
     required this.onTap,
   });
 
-  final String emoji;
+  final IconData icon;
   final String label;
   final VoidCallback onTap;
 
@@ -716,26 +754,27 @@ class _QuickEntryCard extends StatelessWidget {
     return SizedBox(
       width: 86,
       child: PremiumCard(
-        backgroundColor: AppColors.premiumBgSubtle,
-        borderColor: AppColors.premiumLightBorder,
-        borderRadius: BorderRadius.circular(16),
+        backgroundColor: UnifiedColors.cardAllMenu,
+        borderColor: Colors.transparent,
+        borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
         showShadow: false,
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         onTap: onTap,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(emoji, style: const TextStyle(fontSize: 22)),
+            Icon(
+              icon,
+              size: UnifiedTokens.iconLg,
+              color: UnifiedColors.textPrimary,
+            ),
             const SizedBox(height: 8),
             Text(
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
-              style: AppTypography.smallLabel.copyWith(
-                color: AppColors.premiumTextPrimary,
-                fontWeight: FontWeight.w700,
-              ),
+              style: UnifiedText.chipLabel(),
             ),
           ],
         ),
@@ -762,26 +801,28 @@ class _PassStatusStrip extends StatelessWidget {
       final timeLabel = h > 0 ? '$h시간 $m분 남음' : '$m분 남음';
 
       return PremiumCard(
-        backgroundColor: AppColors.premiumBlackCta,
+        backgroundColor: UnifiedColors.passBar,
         borderColor: Colors.transparent,
         showShadow: false,
+        borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
         child: Row(
           children: [
-            const Text('🔓', style: TextStyle(fontSize: 15)),
+            Icon(
+              Icons.lock_open_rounded,
+              size: UnifiedTokens.iconMd,
+              color: Colors.white,
+            ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 '열림패스 이용 중',
-                style: AppTypography.bodyStrong.copyWith(color: Colors.white),
+                style: UnifiedText.bodyStrong(color: Colors.white),
               ),
             ),
             Text(
               timeLabel,
-              style: AppTypography.smallLabel.copyWith(
-                color: AppColors.premiumNeonLime,
-                fontWeight: FontWeight.w700,
-              ),
+              style: UnifiedText.chipLabel(color: UnifiedColors.neon),
             ),
           ],
         ),
@@ -789,9 +830,10 @@ class _PassStatusStrip extends StatelessWidget {
     }
 
     return PremiumCard(
-      backgroundColor: AppColors.premiumBgSubtle,
-      borderColor: AppColors.premiumLightBorder,
+      backgroundColor: UnifiedColors.cardAllMenu,
+      borderColor: Colors.transparent,
       showShadow: false,
+      borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         children: [
@@ -799,16 +841,13 @@ class _PassStatusStrip extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '열림패스로 더 많은 운세 보기',
-                  style: AppTypography.cardTitle.copyWith(fontSize: 14),
-                ),
+                Text('열림패스로 더 많은 운세 보기', style: UnifiedText.bodyStrong()),
                 const SizedBox(height: 3),
-                Text('광고 보고 전체 운세 열기', style: AppTypography.caption),
+                Text('광고 보고 전체 운세 열기', style: UnifiedText.caption()),
               ],
             ),
           ),
-          const SizedBox(width: AppSpacing.sm),
+          const SizedBox(width: UnifiedTokens.spaceSm),
           SizedBox(
             width: 96,
             child: PremiumButton.secondary(
@@ -843,7 +882,7 @@ class _BottomConnectRow extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: AppSpacing.sm),
+        const SizedBox(width: UnifiedTokens.spaceSm),
         Expanded(
           child: _ConnectTile(
             icon: Icons.emoji_events_rounded,
@@ -851,7 +890,7 @@ class _BottomConnectRow extends StatelessWidget {
             onTap: () => showWishHallOfFameSheet(context),
           ),
         ),
-        const SizedBox(width: AppSpacing.sm),
+        const SizedBox(width: UnifiedTokens.spaceSm),
         Expanded(
           child: _ConnectTile(
             icon: Icons.chat_bubble_rounded,
@@ -885,22 +924,23 @@ class _ConnectTile extends StatelessWidget {
         height: 68,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: AppColors.premiumBgSection,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.premiumLightBorder),
+          color: UnifiedColors.cardAllMenu,
+          borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
+          border: Border.all(color: Colors.transparent),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 18, color: AppColors.premiumDeepNavy),
+            Icon(
+              icon,
+              size: UnifiedTokens.iconMd,
+              color: UnifiedColors.textPrimary,
+            ),
             const SizedBox(height: 6),
             Text(
               label,
               textAlign: TextAlign.center,
-              style: AppTypography.smallLabel.copyWith(
-                color: AppColors.premiumTextPrimary,
-                fontWeight: FontWeight.w700,
-              ),
+              style: UnifiedText.chipLabel(),
             ),
           ],
         ),
