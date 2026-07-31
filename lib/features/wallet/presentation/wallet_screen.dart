@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/app_empty_state.dart';
 import '../application/wallet_provider.dart';
 import '../domain/point_history_model.dart';
@@ -28,31 +27,26 @@ class _WalletScreenState extends State<WalletScreen> {
     final wallet = context.watch<WalletProvider>();
 
     return Scaffold(
+      backgroundColor: UnifiedColors.bg,
       appBar: AppBar(title: const Text('행복머니 지갑')),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () => context.read<WalletProvider>().load(),
           child: ListView(
-            padding: const EdgeInsets.all(AppSpacing.lg),
+            padding: const EdgeInsets.all(UnifiedTokens.spaceXl),
             children: [
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(AppSpacing.xl),
+                padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
                 decoration: BoxDecoration(
-                  gradient: AppColors.goldGradient,
-                  borderRadius: BorderRadius.circular(AppRadius.card),
+                  color: UnifiedColors.cardMain,
+                  borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      '보유 행복머니',
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 13,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
+                    Text('보유 행복머니', style: UnifiedText.caption()),
+                    const SizedBox(height: UnifiedTokens.spaceSm),
                     wallet.isLoading
                         ? const SizedBox(
                             height: 32,
@@ -60,18 +54,14 @@ class _WalletScreenState extends State<WalletScreen> {
                           )
                         : Text(
                             '${_comma(wallet.balance)} P',
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: 30,
-                              fontWeight: FontWeight.w800,
-                            ),
+                            style: UnifiedText.titleLarge(),
                           ),
                   ],
                 ),
               ),
-              const SizedBox(height: AppSpacing.xl),
-              Text('적립/사용 내역', style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: UnifiedTokens.spaceXxl),
+              Text('적립/사용 내역', style: UnifiedText.title()),
+              const SizedBox(height: UnifiedTokens.spaceMd),
               if (wallet.history.isEmpty)
                 const AppEmptyState(
                   icon: Icons.receipt_long_outlined,
@@ -105,51 +95,43 @@ class _HistoryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isEarn = item.type == PointHistoryType.earn;
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      padding: const EdgeInsets.only(bottom: UnifiedTokens.spaceMd),
       child: Container(
-        padding: const EdgeInsets.all(AppSpacing.lg),
+        padding: const EdgeInsets.all(UnifiedTokens.spaceXl),
         decoration: BoxDecoration(
-          color: Theme.of(context).cardTheme.color,
-          borderRadius: BorderRadius.circular(AppRadius.cardSmall),
+          color: UnifiedColors.cardSection,
+          borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
         ),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(AppSpacing.sm),
-              decoration: BoxDecoration(
-                color: isEarn
-                    ? AppColors.success.withValues(alpha: 0.12)
-                    : AppColors.error.withValues(alpha: 0.12),
+              padding: const EdgeInsets.all(UnifiedTokens.spaceSm),
+              decoration: const BoxDecoration(
+                color: UnifiedColors.bg,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 isEarn ? Icons.add_rounded : Icons.remove_rounded,
-                size: 16,
-                color: isEarn ? AppColors.success : AppColors.error,
+                size: UnifiedTokens.iconMd,
+                color: UnifiedColors.textSecondary,
               ),
             ),
-            const SizedBox(width: AppSpacing.md),
+            const SizedBox(width: UnifiedTokens.spaceMd),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    item.reason,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
+                  Text(item.reason, style: UnifiedText.bodyStrong()),
                   Text(
                     '${item.createdAt.month}.${item.createdAt.day} ${item.createdAt.hour.toString().padLeft(2, '0')}:${item.createdAt.minute.toString().padLeft(2, '0')}',
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: UnifiedText.bodySmall(),
                   ),
                 ],
               ),
             ),
             Text(
               '${isEarn ? '+' : '-'}${item.amount} P',
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: isEarn ? AppColors.success : AppColors.error,
-              ),
+              style: UnifiedText.bodyStrong(),
             ),
           ],
         ),
