@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/widgets/cosmic_card.dart';
+import '../../../core/theme/app_typography.dart';
+import '../../../core/widgets/premium_card.dart';
+import '../../../core/widgets/premium_button.dart';
+import '../../../core/widgets/premium_section_title.dart';
+import '../../../core/widgets/premium_graphics.dart';
 import '../../../core/widgets/app_dialog.dart';
 import '../../../core/widgets/app_toast.dart';
-import '../../../core/widgets/app_shortcut_row.dart';
 import '../../wallet/application/wallet_provider.dart';
 import '../../attendance/application/attendance_provider.dart';
 import '../../auth/application/auth_provider.dart';
@@ -20,22 +23,15 @@ import '../../community/presentation/community_hub_screen.dart';
 import '../../community/presentation/community_screen.dart';
 import '../../matching/presentation/matching_discover_screen.dart';
 
-/// [8단계 - 복주머니 탭 정리] LuckyBagScreen - 복주머니 탭
-/// 잔액 히어로 + "커뮤니티 엔진" 설명 + 적립방법(출석·미션·커뮤니티) +
-/// 사용처(복주머니 열기·부적·상품권·소원응원·운명의 동행) + 구독 보너스 +
-/// 거래내역(개봉이력·포인트내역) 한 화면 구조.
+/// [Fortune Fusion 서브 디자인 통일 마스터 프롬프트] 행복머니 허브 화면 (v2)
+///
+/// 기준 시안 톤(화이트 배경, 소프트 퍼플 카드, 블랙 CTA, 네온 라임 포인트)으로
+/// 자산 화면답게 "밝고 정돈된" 느낌을 준다. 잔액 히어로 카드 → 적립 방법 →
+/// 사용처 → 구독 보너스 → 히스토리 순서를 유지하되, 전체 카드/버튼/타이포를
+/// 공통 Premium* 위젯으로 통일한다.
 ///
 /// [주의] 실제 기능(WalletProvider, AttendanceProvider, LuckyBagProvider 등)은
-/// 기존 Provider/Repository를 그대로 재사용한다. 이미 완성된 화면(LuckyBagShopScreen,
-/// LuckyBagHistoryScreen, AmuletShopScreen, MissionScreen, SubscriptionPlansScreen,
-/// CommunityHubScreen, CommunityScreen, MatchingDiscoverScreen)은 재작성하지 않고
-/// "바로가기 카드"로 진입시킨다. 상품권(GiftcardCatalogScreen)은 popUntil 복귀
-/// 로직과의 일관성을 위해 named route(`/reward/giftcard`)로 진입한다.
-///
-/// [3축 정책] 복주머니는 커뮤니티 중심 재화로 재정의되었다(마스터 프롬프트 §복주머니):
-/// 적립 - 출석/글쓰기/댓글/소원응원받기/미션수행, 소비 - 소원응원/부적만들기/
-/// 운명의동행/커뮤니티프리미엄액션. 이 화면 상단의 [_CommunityEngineBanner]가
-/// 이 정책을 사용자에게 한 줄로 설명한다.
+/// 기존 Provider/Repository를 그대로 재사용한다. 라우팅 구조도 무변경.
 class LuckyBagScreen extends StatefulWidget {
   const LuckyBagScreen({super.key});
 
@@ -71,7 +67,6 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
     final earned = await attendance.checkIn();
     if (!mounted) return;
     if (earned > 0) {
-      // [실API 전환] 서버 checkin API가 지갑 적립까지 처리했으므로 잔액만 새로고침.
       await context.read<WalletProvider>().load();
       if (!mounted) return;
       AppToast.show(context, '출석 완료! +$earned P 지급되었습니다.');
@@ -92,166 +87,176 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
     final grade = context.watch<AuthProvider>().currentGrade;
 
     return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
-      appBar: AppBar(
-        backgroundColor: AppColors.bgPrimary,
-        elevation: 0,
-        title: const Text(
-          '복주머니',
-          style: TextStyle(
-            fontWeight: FontWeight.w800,
-            color: AppColors.cosmicTextPrimary,
-          ),
-        ),
-      ),
+      backgroundColor: AppColors.premiumBgMain,
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.lg),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            AppSpacing.md,
+            AppSpacing.lg,
+            AppSpacing.xxl,
+          ),
           children: [
-            // §1 잔액 히어로
-            _BalanceHero(
-              balance: wallet.balance,
-              isLoading: wallet.isLoading,
-              pendingBags: luckyBag.summary?.pendingCount ?? 0,
-              onWalletTap: () =>
-                  Navigator.of(context).pushNamed('/reward/wallet'),
-            ),
-            const SizedBox(height: AppSpacing.md),
+            Text('행복머니', style: AppTypography.heroTitle),
+            const SizedBox(height: 4),
+            Text('모으고, 나누고, 다시 행운으로 돌아와요', style: AppTypography.bodyMain),
+            const SizedBox(height: AppSpacing.lg),
 
-            // [8단계] "커뮤니티 엔진" 설명 배너 - 복주머니가 커뮤니티 활동으로
-            // 순환하는 재화임을 한 줄로 설명(3축 정책 - 복주머니).
-            const _CommunityEngineBanner(),
-            const SizedBox(height: AppSpacing.xl),
-
-            // §2 획득처
-            const _SectionTitle(title: '✨ 복주머니 적립방법'),
-            const SizedBox(height: AppSpacing.md),
-            _ShortcutCard(
-              emoji: '📅',
-              title: '출석체크',
-              subtitle: attendance.checkedToday
-                  ? '오늘 출석 완료 · 연속 ${attendance.streak}일'
-                  : '연속 ${attendance.streak}일째 · 오늘 출석하기',
-              accentColor: AppColors.accentMint,
-              onTap: _handleAttendanceTap,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _ShortcutCard(
-              emoji: '✅',
-              title: '미션',
-              subtitle: '일일/주간 미션을 완료하고 포인트 받기',
-              accentColor: AppColors.accentBlue,
-              onTap: () => Navigator.of(
-                context,
-              ).push(MaterialPageRoute(builder: (_) => const MissionScreen())),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _ShortcutCard(
-              emoji: '✍️',
-              title: '커뮤니티 활동',
-              subtitle: '소원/게시글 작성 · 댓글 작성 시 복주머니 적립',
-              accentColor: AppColors.accentGold,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const CommunityHubScreen()),
+            FadeSlideIn(
+              child: _BalanceHero(
+                balance: wallet.balance,
+                isLoading: wallet.isLoading,
+                pendingBags: luckyBag.summary?.pendingCount ?? 0,
+                onWalletTap: () =>
+                    Navigator.of(context).pushNamed('/reward/wallet'),
               ),
             ),
             const SizedBox(height: AppSpacing.xl),
 
-            // §3 사용처
-            const _SectionTitle(title: '🎁 복주머니 사용처'),
+            const PremiumSectionTitle(title: '✨ 적립 방법'),
             const SizedBox(height: AppSpacing.md),
-            _ShortcutCard(
-              emoji: '🍀',
-              title: '복주머니 열기',
-              subtitle: (luckyBag.summary?.pendingCount ?? 0) > 0
-                  ? '받을 수 있는 복주머니 ${luckyBag.summary!.pendingCount}개'
-                  : '오늘의 복주머니를 열어 행운을 확인해보세요',
-              accentColor: AppColors.accentGold,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const LuckyBagShopScreen()),
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 40),
+              child: _ShortcutCard(
+                emoji: '📅',
+                title: '출석체크',
+                subtitle: attendance.checkedToday
+                    ? '오늘 출석 완료 · 연속 ${attendance.streak}일'
+                    : '연속 ${attendance.streak}일째 · 오늘 출석하기',
+                onTap: _handleAttendanceTap,
               ),
             ),
             const SizedBox(height: AppSpacing.md),
-            _ShortcutCard(
-              emoji: '💌',
-              title: '소원 응원하기',
-              subtitle: '다른 사람의 소원에 복주머니로 응원 보내기',
-              accentColor: AppColors.accentPink,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const CommunityScreen()),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _ShortcutCard(
-              emoji: '🧧',
-              title: '디지털 부적 만들기',
-              subtitle: '나를 지켜주는 디지털 부적을 만들어보세요',
-              accentColor: AppColors.accentPurple,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const AmuletShopScreen()),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _ShortcutCard(
-              emoji: '💫',
-              title: '운명의 동행',
-              subtitle: '관심표시(좋아요) 1건당 복주머니 소비',
-              accentColor: AppColors.accentBlue,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const MatchingDiscoverScreen(),
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 80),
+              child: _ShortcutCard(
+                emoji: '✅',
+                title: '미션',
+                subtitle: '일일/주간 미션을 완료하고 포인트 받기',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const MissionScreen()),
                 ),
               ),
             ),
             const SizedBox(height: AppSpacing.md),
-            _ShortcutCard(
-              emoji: '💳',
-              title: '상품권',
-              subtitle: '포인트로 상품권을 교환해보세요',
-              accentColor: AppColors.accentPink,
-              // [10단계 - 데드/버그 라우트 정리] GiftcardResultScreen의 "확인"
-              // 버튼이 popUntil(name == '/reward/giftcard')로 복귀하므로,
-              // 진입도 named route로 맞춰야 스택에 해당 이름이 존재한다
-              // (이전엔 무명 MaterialPageRoute라 팝업 시 AppShell까지 밀려나는 버그였음).
-              onTap: () =>
-                  Navigator.of(context).pushNamed('/reward/giftcard'),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-
-            // §4 구독 보너스(VIP 등급)
-            const _SectionTitle(title: '👑 구독 보너스'),
-            const SizedBox(height: AppSpacing.md),
-            _VipCard(
-              grade: grade,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const SubscriptionPlansScreen(),
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 120),
+              child: _ShortcutCard(
+                emoji: '✍️',
+                title: '커뮤니티 활동',
+                subtitle: '소원/게시글 작성 · 댓글 작성 시 행복머니 적립',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const CommunityHubScreen()),
                 ),
               ),
             ),
             const SizedBox(height: AppSpacing.xl),
 
-            // §5 히스토리
-            const _SectionTitle(title: '📜 히스토리'),
+            const PremiumSectionTitle(title: '🎁 사용처'),
             const SizedBox(height: AppSpacing.md),
-            _ShortcutCard(
-              emoji: '📖',
-              title: '복주머니 개봉 이력',
-              subtitle: '지금까지 열어본 복주머니와 받은 보상 확인',
-              accentColor: AppColors.accentBlue,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const LuckyBagHistoryScreen(),
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 160),
+              child: _ShortcutCard(
+                emoji: '🍀',
+                title: '행복머니 열기',
+                subtitle: (luckyBag.summary?.pendingCount ?? 0) > 0
+                    ? '받을 수 있는 행복머니 ${luckyBag.summary!.pendingCount}개'
+                    : '오늘의 행복머니를 열어 행운을 확인해보세요',
+                highlight: true,
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const LuckyBagShopScreen()),
                 ),
               ),
             ),
             const SizedBox(height: AppSpacing.md),
-            _ShortcutCard(
-              emoji: '🧾',
-              title: '포인트 내역',
-              subtitle: '적립·사용 전체 내역 확인하기',
-              accentColor: AppColors.accentMint,
-              onTap: () => Navigator.of(context).pushNamed('/reward/wallet'),
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 200),
+              child: _ShortcutCard(
+                emoji: '💌',
+                title: '소원 응원하기',
+                subtitle: '다른 사람의 소원에 행복머니로 응원 보내기',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const CommunityScreen()),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 240),
+              child: _ShortcutCard(
+                emoji: '🧧',
+                title: '디지털 부적 만들기',
+                subtitle: '나를 지켜주는 디지털 부적을 만들어보세요',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const AmuletShopScreen()),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 280),
+              child: _ShortcutCard(
+                emoji: '💫',
+                title: '운명의 동행',
+                subtitle: '관심표시(좋아요) 1건당 행복머니 소비',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const MatchingDiscoverScreen(),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 320),
+              child: _ShortcutCard(
+                emoji: '💳',
+                title: '상품권',
+                subtitle: '포인트로 상품권을 교환해보세요',
+                onTap: () => Navigator.of(context).pushNamed('/reward/giftcard'),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+
+            const PremiumSectionTitle(title: '👑 구독 보너스'),
+            const SizedBox(height: AppSpacing.md),
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 360),
+              child: _VipCard(
+                grade: grade,
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const SubscriptionPlansScreen(),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+
+            const PremiumSectionTitle(title: '📜 히스토리'),
+            const SizedBox(height: AppSpacing.md),
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 400),
+              child: _ShortcutCard(
+                emoji: '📖',
+                title: '행복머니 개봉 이력',
+                subtitle: '지금까지 열어본 행복머니와 받은 보상 확인',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const LuckyBagHistoryScreen(),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 440),
+              child: _ShortcutCard(
+                emoji: '🧾',
+                title: '포인트 내역',
+                subtitle: '적립·사용 전체 내역 확인하기',
+                onTap: () => Navigator.of(context).pushNamed('/reward/wallet'),
+              ),
             ),
           ],
         ),
@@ -260,68 +265,8 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
   }
 }
 
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w800,
-        color: AppColors.cosmicTextPrimary,
-      ),
-    );
-  }
-}
-
-/// [8단계] "커뮤니티 엔진" 설명 배너 - 복주머니가 커뮤니티 활동으로 순환하는
-/// 재화임을 한 줄로 요약한다(3축 정책 - 복주머니 재정의). 관리자 정책(admin_web
-/// point_policies)이 바뀌어도 이 문구 자체는 하드코딩된 설명일 뿐 수치를 담지
-/// 않으므로 관리자 정책 변경과 무관하게 유효하다.
-class _CommunityEngineBanner extends StatelessWidget {
-  const _CommunityEngineBanner();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.accentGold.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(AppRadius.cardSmall),
-        border: Border.all(
-          color: AppColors.accentGold.withValues(alpha: 0.3),
-        ),
-      ),
-      child: const Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('⚙️', style: TextStyle(fontSize: 18)),
-          SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Text(
-              '복주머니는 커뮤니티 엔진입니다 — 글쓰기·댓글·응원으로 모으고, '
-              '소원응원·부적만들기·운명의 동행에 사용해요.',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppColors.cosmicTextSecondary,
-                height: 1.4,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// §1 잔액 히어로 카드
-/// [10단계 - 로딩 상태 보강] initState의 최초 load() 완료 전까지는
-/// "0 P"가 실제 빈 잔액인지 로딩 중인지 구분되지 않으므로 별도 표기한다.
+/// §1 잔액 히어로 카드 - 딥네이비→퍼플 그라디언트(기존 premiumCtaGradient) 위에
+/// 골드 톤 잔액 숫자를 크게 강조해 "자산" 느낌을 살린다.
 class _BalanceHero extends StatelessWidget {
   const _BalanceHero({
     required this.balance,
@@ -337,71 +282,74 @@ class _BalanceHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CosmicCard(
-      gradient: AppColors.gradientGold,
+    return PremiumCard(
+      backgroundColor: AppColors.premiumDeepNavy,
+      borderColor: AppColors.premiumDeepNavy,
       onTap: onWalletTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          Row(
+          const Positioned(top: -8, right: -4, child: DottedOrbit(size: 90)),
+          const Positioned(top: 4, right: 40, child: SparkleDot(size: 12)),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('🍀', style: TextStyle(fontSize: 22)),
-              const SizedBox(width: AppSpacing.sm),
-              const Text(
-                '내 포인트 잔액',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.bgPrimary,
-                ),
-              ),
-              const Spacer(),
-              if (pendingBags > 0)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.sm,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(AppRadius.full),
-                  ),
-                  child: Text(
-                    '받을 복주머니 $pendingBags개',
-                    style: const TextStyle(
-                      fontSize: 10,
+              Row(
+                children: [
+                  const Text('🍀', style: TextStyle(fontSize: 20)),
+                  const SizedBox(width: AppSpacing.sm),
+                  Text(
+                    '내 포인트 잔액',
+                    style: AppTypography.caption.copyWith(
+                      color: Colors.white.withValues(alpha: 0.75),
                       fontWeight: FontWeight.w700,
-                      color: AppColors.bgPrimary,
                     ),
                   ),
-                ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Text(
-            isLoading ? '불러오는 중...' : '${_formatBalance(balance)} P',
-            style: const TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.w900,
-              color: AppColors.bgPrimary,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          const Row(
-            children: [
+                  const Spacer(),
+                  if (pendingBags > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.sm,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.premiumNeonLime,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        '받을 행복머니 $pendingBags개',
+                        style: AppTypography.smallLabel.copyWith(
+                          color: AppColors.premiumNeonLimeOnColor,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.md),
               Text(
-                '포인트 지갑 바로가기',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.bgPrimary,
+                isLoading ? '불러오는 중...' : '${_formatBalance(balance)} P',
+                style: AppTypography.heroTitle.copyWith(
+                  color: Colors.white,
+                  fontSize: 30,
                 ),
               ),
-              SizedBox(width: 4),
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 12,
-                color: AppColors.bgPrimary,
+              const SizedBox(height: AppSpacing.sm),
+              Row(
+                children: [
+                  Text(
+                    '포인트 지갑 바로가기',
+                    style: AppTypography.smallLabel.copyWith(
+                      color: Colors.white.withValues(alpha: 0.8),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 12,
+                    color: Colors.white.withValues(alpha: 0.8),
+                  ),
+                ],
               ),
             ],
           ),
@@ -421,102 +369,53 @@ class _BalanceHero extends StatelessWidget {
   }
 }
 
-/// 획득처/사용처/히스토리 공통 바로가기 카드
-/// [10단계 - 중복 UI 정리] 내부 콘텐츠 행은 core/widgets/app_shortcut_row.dart의
-/// AppShortcutRow로 공통화하고, 이 위젯은 CosmicCard 래핑만 담당한다.
+/// 획득처/사용처/히스토리 공통 바로가기 카드. [highlight]가 true면 연골드
+/// 배경으로 살짝 강조한다(예: "행복머니 열기").
 class _ShortcutCard extends StatelessWidget {
   const _ShortcutCard({
     required this.emoji,
     required this.title,
     required this.subtitle,
-    required this.accentColor,
     required this.onTap,
+    this.highlight = false,
   });
 
   final String emoji;
   final String title;
   final String subtitle;
-  final Color accentColor;
   final VoidCallback onTap;
+  final bool highlight;
 
   @override
   Widget build(BuildContext context) {
-    return CosmicCard(
-      showGlow: false,
+    return PremiumCard(
       onTap: onTap,
-      child: AppShortcutRow(
-        emoji: emoji,
-        accentColor: accentColor,
-        title: title,
-        subtitle: subtitle,
-      ),
-    );
-  }
-}
-
-/// §4 VIP 등급 카드
-class _VipCard extends StatelessWidget {
-  const _VipCard({required this.grade, required this.onTap});
-
-  final GradeModel? grade;
-  final VoidCallback onTap;
-
-  Color get _gradeColor {
-    switch (grade?.code) {
-      case 'vip':
-        return AppColors.accentGold;
-      case 'gold':
-        return AppColors.accentGold;
-      case 'silver':
-        return AppColors.cosmicTextSecondary;
-      default:
-        return AppColors.accentPurple;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final color = _gradeColor;
-    return CosmicCard(
-      gradient: AppColors.gradientCosmic,
-      onTap: onTap,
+      backgroundColor: highlight ? AppColors.premiumBgSubtle : AppColors.premiumBgSection,
       child: Row(
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.15),
+              color: highlight
+                  ? AppColors.premiumSoftGold.withValues(alpha: 0.22)
+                  : AppColors.premiumSoftLavender,
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              Icons.workspace_premium_rounded,
-              color: color,
-              size: 24,
-            ),
+            child: Center(child: Text(emoji, style: const TextStyle(fontSize: 20))),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  grade != null ? '${grade!.name} 등급' : '등급 정보 없음',
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.cosmicTextPrimary,
-                  ),
-                ),
+                Text(title, style: AppTypography.cardTitle.copyWith(fontSize: 15)),
                 const SizedBox(height: 2),
                 Text(
-                  grade != null
-                      ? '포인트 적립 ${grade!.pointEarnMultiplier}배 적용 중'
-                      : '프리미엄 구독으로 등급을 올려보세요',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.cosmicTextTertiary,
-                  ),
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.caption,
                 ),
               ],
             ),
@@ -524,7 +423,73 @@ class _VipCard extends StatelessWidget {
           const Icon(
             Icons.arrow_forward_ios_rounded,
             size: 14,
-            color: AppColors.cosmicTextTertiary,
+            color: AppColors.premiumTextTertiary,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// §4 VIP 등급 카드 - 블랙 CTA 버튼으로 구독 유도.
+class _VipCard extends StatelessWidget {
+  const _VipCard({required this.grade, required this.onTap});
+
+  final GradeModel? grade;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return PremiumCard(
+      gradient: AppColors.premiumGoldGradient,
+      borderColor: AppColors.premiumCardBorder,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: Text('👑', style: TextStyle(fontSize: 20)),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      grade != null ? '${grade!.name} 등급' : '등급 정보 없음',
+                      style: AppTypography.cardTitle.copyWith(
+                        fontSize: 15,
+                        color: AppColors.premiumDeepNavy,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      grade != null
+                          ? '포인트 적립 ${grade!.pointEarnMultiplier}배 적용 중'
+                          : '프리미엄 구독으로 등급을 올려보세요',
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.premiumDeepNavy.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          PremiumButton.black(
+            label: '구독 플랜 보기',
+            height: 44,
+            onPressed: onTap,
           ),
         ],
       ),
