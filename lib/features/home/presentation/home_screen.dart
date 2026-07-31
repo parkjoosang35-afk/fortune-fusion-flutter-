@@ -10,6 +10,7 @@ import '../../../core/widgets/premium_circle_button.dart';
 import '../../../core/widgets/premium_graphics.dart';
 import '../../ad_banner/application/ad_banner_provider.dart';
 import '../../ad_banner/presentation/ad_banner_widget.dart';
+import '../../consultation/application/consultation_provider.dart';
 import '../../wallet/application/wallet_provider.dart';
 import '../../attendance/application/attendance_provider.dart';
 import '../../fortune/daily/application/daily_fortune_provider.dart';
@@ -22,9 +23,13 @@ import '../../pass/presentation/pass_gate_helper.dart';
 /// [Fortune Fusion 서브 디자인 통일 마스터 프롬프트] 홈 화면 - 기준 시안 그대로 구현
 ///
 /// 사용자가 제공한 홈 화면 목업(화이트 배경, 상단 로고+아이콘, 블랙 pill
-/// "+오늘의 운세보기" 버튼, "타로이야기가기" 섹션, 전체운세/사주/궁합/손금 칩,
+/// "오늘의 운세보기" 버튼, "타로이야기가기" 섹션, 전체운세/사주/궁합/손금 칩,
 /// 인디고 그라디언트 히어로카드, 소원게시판/소원방 2단 라벤더 카드, 전체보기
-/// 3버튼 로우, 하단 블랙 "열림패스" 바)를 기준 디자인으로 그대로 재구현한다.
+/// 3카드 로우, 하단 블랙 "열림패스" 바)를 기준 디자인으로 그대로 재구현한다.
+///
+/// [UI 정리 세그먼트] 상단 CTA는 "+" 아이콘 없이 텍스트만 정중앙 정렬하고,
+/// 전체보기는 처음부터 3개 카드용으로 설계된 균등분배 레이아웃을 사용하며,
+/// AI 상담 배너 아래에는 일반상담을 재사용하는 보조 카드("고민상담")를 둔다.
 ///
 /// [주의] Application/Data/Domain 레이어(Provider/Repository/Model)는 기존
 /// 것을 그대로 재사용하며, 이 화면은 Presentation 레이어만 재작성한다.
@@ -76,10 +81,10 @@ class _Dims {
   static const double wishRowBottomGap = 18;
   static const double wishCircleSize = 27;
 
-  // 전체보기 타이틀 + 3카드
+  // 전체보기 타이틀 + 3카드(부적만들기/궁합매칭/커뮤니티) - 처음부터 3개용으로
+  // 설계된 균등분배(Expanded) 레이아웃. 가로 스크롤 없이 한 화면에 고정 배치.
   static const double allMenuTitleBottomGap = 12;
-  static const double allMenuCardWidth = 108;
-  static const double allMenuCardHeight = 80;
+  static const double allMenuCardHeight = 84;
   static const double allMenuCardRadius = 16;
   static const double allMenuGap = 10;
   static const double allMenuBottomGap = 20;
@@ -89,6 +94,13 @@ class _Dims {
   static const double bannerRadius = 20;
   static const double bannerPadding = 16;
   static const double bannerCircleSize = 30;
+
+  // AI 상담 배너 아래 보조 진입 카드("고민상담") - 남는 공간을 메우는 가벼운 카드
+  static const double worryCardTopGap = 10;
+  static const double worryCardHeight = 72;
+  static const double worryCardRadius = 18;
+  static const double worryCardPadding = 14;
+  static const double worryCircleSize = 26;
 
   // 하단 고정 열림패스 바
   static const double bottomBarHeight = 48;
@@ -143,7 +155,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 _Dims.pagePadding,
                 _Dims.pagePadding,
                 _Dims.pagePadding,
-                _Dims.bottomBarReservedSpace, // 하단 열림패스 고정바(상단거리+높이+하단거리)만큼 여백 확보
+                _Dims
+                    .bottomBarReservedSpace, // 하단 열림패스 고정바(상단거리+높이+하단거리)만큼 여백 확보
               ),
               children: [
                 // ① 상단 헤더 - 로고 + 클로버/벨 아이콘(배경 없는 bare 아이콘)
@@ -151,9 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: _Dims.headerBottomGap),
 
                 // ② 블랙 pill CTA - "+ 오늘의 운세보기"
-                const FadeSlideIn(
-                  child: _TodayFortuneCta(),
-                ),
+                const FadeSlideIn(child: _TodayFortuneCta()),
                 const SizedBox(height: _Dims.ctaBottomGap),
 
                 // ③ "타로이야기가기" 타이틀 + 우측 블랙 원형 그리드 버튼
@@ -185,7 +196,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: _Dims.wishRowBottomGap),
 
                 // ⑦ 전체보기 타이틀 + 3버튼 로우
-                Text('전체보기', style: AppTypography.sectionTitle.copyWith(fontSize: 17)),
+                Text(
+                  '전체보기',
+                  style: AppTypography.sectionTitle.copyWith(fontSize: 17),
+                ),
                 const SizedBox(height: _Dims.allMenuTitleBottomGap),
                 const FadeSlideIn(
                   delay: Duration(milliseconds: 200),
@@ -200,6 +214,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 AdBannerWidget(
                   position: 'home_bottom',
                   fallback: const _ConsultationPromoBanner(),
+                ),
+                const SizedBox(height: _Dims.worryCardTopGap),
+
+                // ⑨ AI 상담 배너 아래 남는 공간을 메우는 보조 진입 카드 - "고민상담".
+                // 기능은 기존 일반상담(type='general')을 그대로 재사용하고,
+                // 사용자 노출 명칭만 "고민상담"으로 표시한다(경쟁 구조가 아닌 보조 카드).
+                const FadeSlideIn(
+                  delay: Duration(milliseconds: 220),
+                  child: _WorryConsultationBanner(),
                 ),
               ],
             ),
@@ -286,7 +309,6 @@ class _TodayFortuneCta extends StatelessWidget {
   Widget build(BuildContext context) {
     return PremiumButton.black(
       label: '오늘의 운세보기',
-      icon: Icons.add_rounded,
       height: _Dims.ctaHeight,
       onPressed: () =>
           Navigator.of(context).pushNamed('/home/daily-fortune-detail'),
@@ -302,13 +324,28 @@ class _TarotStoryHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
+        // 섹션 헤더를 정리된 느낌으로 만드는 작은 블랙 포인트 배지. 상단 메인
+        // CTA(블랙 pill 버튼)나 우측 블랙 원형 버튼과 크기가 겹치지 않도록
+        // 가장 작은 사이즈(20)로 두어 시각적 위계를 명확히 한다.
+        Container(
+          width: 20,
+          height: 20,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: AppColors.premiumBlackCta,
+            borderRadius: BorderRadius.circular(7),
+          ),
+          child: const Icon(Icons.style_rounded, size: 12, color: Colors.white),
+        ),
+        const SizedBox(width: 8),
         Text('타로이야기가기', style: AppTypography.cardTitle.copyWith(fontSize: 17)),
         const Spacer(),
         PremiumCircleButton(
           icon: Icons.grid_view_rounded,
           style: PremiumCircleButtonStyle.black,
           size: _Dims.tarotCircleSize,
-          onTap: () => Navigator.of(context).pushNamed('/ai-fortune/tarot/question'),
+          onTap: () =>
+              Navigator.of(context).pushNamed('/ai-fortune/tarot/question'),
         ),
       ],
     );
@@ -382,7 +419,8 @@ class _TodayStoryHeroCard extends StatelessWidget {
       borderColor: Colors.transparent,
       borderRadius: BorderRadius.circular(_Dims.heroCardRadius),
       showShadow: false,
-      onTap: () => Navigator.of(context).pushNamed('/home/daily-fortune-detail'),
+      onTap: () =>
+          Navigator.of(context).pushNamed('/home/daily-fortune-detail'),
       padding: const EdgeInsets.all(_Dims.heroCardPadding),
       child: SizedBox(
         height: _Dims.heroCardHeight - _Dims.heroCardPadding * 2,
@@ -392,12 +430,20 @@ class _TodayStoryHeroCard extends StatelessWidget {
             Positioned(
               bottom: -30,
               left: 10,
-              child: SoftGradientBlob(size: 150, color: Colors.white, opacity: 0.20),
+              child: SoftGradientBlob(
+                size: 150,
+                color: Colors.white,
+                opacity: 0.20,
+              ),
             ),
             Positioned(
               bottom: -10,
               left: 70,
-              child: SoftGradientBlob(size: 110, color: Colors.white, opacity: 0.16),
+              child: SoftGradientBlob(
+                size: 110,
+                color: Colors.white,
+                opacity: 0.16,
+              ),
             ),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -433,8 +479,9 @@ class _TodayStoryHeroCard extends StatelessWidget {
                   icon: Icons.arrow_drop_up_rounded,
                   style: PremiumCircleButtonStyle.neon,
                   size: _Dims.heroCircleSize,
-                  onTap: () =>
-                      Navigator.of(context).pushNamed('/home/daily-fortune-detail'),
+                  onTap: () => Navigator.of(
+                    context,
+                  ).pushNamed('/home/daily-fortune-detail'),
                 ),
               ],
             ),
@@ -554,7 +601,12 @@ class _LavenderMiniCard extends StatelessWidget {
   }
 }
 
-/// ⑦ 전체보기 - 부적만들기/궁합매칭/커뮤니티 3버튼 로우(가로 스크롤)
+/// ⑦ 전체보기 - 부적만들기/궁합매칭/커뮤니티 3카드 균등분배 로우.
+///
+/// [UI 정리 세그먼트] 기존 4번째 "AI 상담" 카드를 제거하면서, 단순히 가로
+/// 스크롤 리스트에서 하나를 뺀 임시 상태가 아니라 처음부터 3개 카드를 위해
+/// 설계된 것처럼 보이도록 `ListView`(가로 스크롤) 대신 고정 `Row` + `Expanded`
+/// 균등분배 구조로 전환한다. 3개뿐이라 스크롤이 필요 없어졌기 때문.
 class _AllMenuButtonsRow extends StatelessWidget {
   const _AllMenuButtonsRow();
 
@@ -562,46 +614,56 @@ class _AllMenuButtonsRow extends StatelessWidget {
     ('부적만들기', '/reward/amulet/generate'),
     ('궁합매칭', '/ai-fortune/matching/discover'),
     ('커뮤니티', null),
-    ('AI 상담', '/ai-fortune/consultation/type'),
   ];
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       height: _Dims.allMenuCardHeight,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: _items.length,
-        separatorBuilder: (_, __) => const SizedBox(width: _Dims.allMenuGap),
-        itemBuilder: (context, index) {
-          final (label, route) = _items[index];
-          return GestureDetector(
-            onTap: () {
-              if (route != null) {
-                Navigator.of(context).pushNamed(route);
-              } else {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const CommunityScreen()),
-                );
-              }
-            },
-            child: Container(
-              width: _Dims.allMenuCardWidth,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: AppColors.premiumSoftLavender,
-                borderRadius: BorderRadius.circular(_Dims.allMenuCardRadius),
-              ),
-              child: Text(
-                label,
-                style: AppTypography.bodyStrong.copyWith(
-                  color: AppColors.premiumDeepNavy,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          );
-        },
+      child: Row(
+        children: [
+          for (var index = 0; index < _items.length; index++) ...[
+            if (index > 0) const SizedBox(width: _Dims.allMenuGap),
+            Expanded(child: _AllMenuCard(item: _items[index])),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _AllMenuCard extends StatelessWidget {
+  const _AllMenuCard({required this.item});
+
+  final (String, String?) item;
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, route) = item;
+    return GestureDetector(
+      onTap: () {
+        if (route != null) {
+          Navigator.of(context).pushNamed(route);
+        } else {
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const CommunityScreen()));
+        }
+      },
+      child: Container(
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: AppColors.premiumSoftLavender,
+          borderRadius: BorderRadius.circular(_Dims.allMenuCardRadius),
+        ),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: AppTypography.bodyStrong.copyWith(
+            color: AppColors.premiumDeepNavy,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
       ),
     );
   }
@@ -624,7 +686,8 @@ class _ConsultationPromoBanner extends StatelessWidget {
       borderColor: Colors.transparent,
       borderRadius: BorderRadius.circular(_Dims.bannerRadius),
       showShadow: false,
-      onTap: () => Navigator.of(context).pushNamed('/ai-fortune/consultation/type'),
+      onTap: () =>
+          Navigator.of(context).pushNamed('/ai-fortune/consultation/type'),
       padding: const EdgeInsets.all(_Dims.bannerPadding),
       child: SizedBox(
         height: _Dims.bannerHeight - _Dims.bannerPadding * 2,
@@ -645,7 +708,7 @@ class _ConsultationPromoBanner extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '오늘의 운세를 기반으로 상담받아보세요',
+                    '오늘 본 운세를 기반으로 상담받아보세요',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppTypography.caption,
@@ -658,8 +721,76 @@ class _ConsultationPromoBanner extends StatelessWidget {
               icon: Icons.chevron_right_rounded,
               style: PremiumCircleButtonStyle.black,
               size: _Dims.bannerCircleSize,
-              onTap: () =>
-                  Navigator.of(context).pushNamed('/ai-fortune/consultation/type'),
+              onTap: () => Navigator.of(
+                context,
+              ).pushNamed('/ai-fortune/consultation/type'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// [UI 정리 세그먼트] AI 상담 배너 아래 남는 공간을 메우는 보조 진입 카드.
+///
+/// 기능은 기존 "일반상담"(ConsultationProvider.startSession(type: 'general'))을
+/// 그대로 재사용하되, 사용자에게 노출되는 명칭은 "고민상담"으로만 표시한다.
+/// AI 상담 배너(진한 라벤더 + 블랙 원형 CTA)와 톤을 달리하여(더 옅은 배경,
+/// 더 낮은 시각적 무게) 서로 경쟁하지 않는 보조 카드처럼 보이도록 구성했다.
+class _WorryConsultationBanner extends StatelessWidget {
+  const _WorryConsultationBanner();
+
+  Future<void> _open(BuildContext context) async {
+    final provider = context.read<ConsultationProvider>();
+    final navigator = Navigator.of(context);
+    await provider.startSession('general');
+    if (!context.mounted) return;
+    navigator.pushNamed('/ai-fortune/consultation/chat');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PremiumCard(
+      backgroundColor: AppColors.premiumBgSubtle,
+      borderColor: AppColors.premiumLightBorder,
+      borderRadius: BorderRadius.circular(_Dims.worryCardRadius),
+      showShadow: false,
+      onTap: () => _open(context),
+      padding: const EdgeInsets.all(_Dims.worryCardPadding),
+      child: SizedBox(
+        height: _Dims.worryCardHeight - _Dims.worryCardPadding * 2,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '고민상담',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.cardTitle.copyWith(fontSize: 14),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    '관계, 감정, 선택에 대한 상담 연결',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.caption,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            PremiumCircleButton(
+              icon: Icons.chevron_right_rounded,
+              style: PremiumCircleButtonStyle.lavender,
+              size: _Dims.worryCircleSize,
+              onTap: () => _open(context),
             ),
           ],
         ),
@@ -721,7 +852,8 @@ class _OpenPassBottomBar extends StatelessWidget {
                   icon: Icons.chevron_right_rounded,
                   style: PremiumCircleButtonStyle.neon,
                   size: _Dims.bottomBarCircleSize,
-                  onTap: () => Navigator.of(context).pushNamed('/reward/wallet'),
+                  onTap: () =>
+                      Navigator.of(context).pushNamed('/reward/wallet'),
                 ),
               ],
             ),
