@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/app_empty_state.dart';
 import '../application/community_post_provider.dart';
 import '../domain/community_post_model.dart';
@@ -31,7 +30,12 @@ class _CommunityBoardListScreenState extends State<CommunityBoardListScreen> {
     final provider = context.watch<CommunityPostProvider>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('커뮤니티 게시판')),
+      backgroundColor: UnifiedColors.bg,
+      appBar: AppBar(
+        backgroundColor: UnifiedColors.bg,
+        elevation: 0,
+        title: Text('커뮤니티 게시판', style: UnifiedText.titleLarge()),
+      ),
       body: SafeArea(
         child: provider.isLoadingBoards && provider.boards.isEmpty
             ? const Center(child: CircularProgressIndicator())
@@ -42,10 +46,10 @@ class _CommunityBoardListScreenState extends State<CommunityBoardListScreen> {
                 description: '아직 등록된 게시판이 없습니다',
               )
             : ListView.separated(
-                padding: const EdgeInsets.all(AppSpacing.lg),
+                padding: const EdgeInsets.all(UnifiedTokens.screenPadding),
                 itemCount: provider.boards.length,
                 separatorBuilder: (_, __) =>
-                    const SizedBox(height: AppSpacing.md),
+                    const SizedBox(height: UnifiedTokens.spaceMd),
                 itemBuilder: (context, index) =>
                     _BoardTile(board: provider.boards[index]),
               ),
@@ -61,48 +65,51 @@ class _BoardTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      borderRadius: BorderRadius.circular(AppRadius.card),
+      borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => CommunityPostListScreen(board: board),
         ),
       ),
       child: Container(
-        padding: const EdgeInsets.all(AppSpacing.lg),
+        padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
         decoration: BoxDecoration(
-          color: Theme.of(context).cardTheme.color,
-          borderRadius: BorderRadius.circular(AppRadius.card),
+          color: UnifiedColors.cardSection,
+          borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
         ),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(AppSpacing.md),
+              width: UnifiedTokens.iconCircleMd,
+              height: UnifiedTokens.iconCircleMd,
               decoration: const BoxDecoration(
-                color: AppColors.primaryContainer,
+                color: UnifiedColors.cardAllMenu,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.forum_rounded, color: AppColors.primary),
+              child: Icon(
+                Icons.forum_outlined,
+                color: UnifiedColors.textPrimary,
+                size: UnifiedTokens.iconMd,
+              ),
             ),
-            const SizedBox(width: AppSpacing.md),
+            const SizedBox(width: UnifiedTokens.spaceMd),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    board.name,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
+                  Text(board.name, style: UnifiedText.bodyStrong()),
                   if (board.description != null) ...[
                     const SizedBox(height: 2),
-                    Text(
-                      board.description!,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
+                    Text(board.description!, style: UnifiedText.bodySmall()),
                   ],
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded, color: AppColors.textHint),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: UnifiedColors.textCaption,
+              size: UnifiedTokens.iconMd,
+            ),
           ],
         ),
       ),

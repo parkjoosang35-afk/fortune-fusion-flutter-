@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../application/community_post_provider.dart';
 import '../domain/community_post_model.dart';
@@ -71,8 +70,11 @@ class _CommunityPostDetailScreenState extends State<CommunityPostDetailScreen> {
     final isLoadingComments = provider.isLoadingCommentsOf(post.id);
 
     return Scaffold(
+      backgroundColor: UnifiedColors.bg,
       appBar: AppBar(
-        title: Text(post.boardName),
+        backgroundColor: UnifiedColors.bg,
+        elevation: 0,
+        title: Text(post.boardName, style: UnifiedText.titleLarge()),
         actions: [
           PopupMenuButton<String>(
             onSelected: (value) {
@@ -95,24 +97,23 @@ class _CommunityPostDetailScreenState extends State<CommunityPostDetailScreen> {
           children: [
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.all(AppSpacing.lg),
+                padding: const EdgeInsets.all(UnifiedTokens.screenPadding),
                 children: [
                   _PostContentCard(post: post),
-                  const SizedBox(height: AppSpacing.lg),
-                  Text(
-                    '댓글 ${post.commentCount}',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
+                  const SizedBox(height: UnifiedTokens.spaceXl),
+                  Text('댓글 ${post.commentCount}', style: UnifiedText.title()),
+                  const SizedBox(height: UnifiedTokens.spaceMd),
                   if (isLoadingComments)
                     const Center(child: CircularProgressIndicator())
                   else if (comments.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: UnifiedTokens.spaceXl,
+                      ),
                       child: Center(
                         child: Text(
                           '첫 댓글을 남겨보세요',
-                          style: TextStyle(color: AppColors.textHint),
+                          style: UnifiedText.caption(),
                         ),
                       ),
                     )
@@ -140,34 +141,34 @@ class _PostContentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
-        borderRadius: BorderRadius.circular(AppRadius.card),
+        color: UnifiedColors.cardSection,
+        borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(post.title, style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: AppSpacing.sm),
+          Text(post.title, style: UnifiedText.title()),
+          const SizedBox(height: UnifiedTokens.spaceSm),
           Row(
             children: [
-              Text(
-                post.authorNickname,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(width: AppSpacing.sm),
+              Text(post.authorNickname, style: UnifiedText.caption()),
+              const SizedBox(width: UnifiedTokens.spaceSm),
               Text(
                 '${post.createdAt.month}.${post.createdAt.day}',
-                style: Theme.of(context).textTheme.bodySmall,
+                style: UnifiedText.caption(),
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.md),
-          Text(post.content, style: const TextStyle(fontSize: 15, height: 1.6)),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: UnifiedTokens.spaceMd),
+          Text(
+            post.content,
+            style: UnifiedText.body(color: UnifiedColors.textPrimary),
+          ),
+          const SizedBox(height: UnifiedTokens.spaceMd),
           InkWell(
-            borderRadius: BorderRadius.circular(999),
+            borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
             onTap: () =>
                 context.read<CommunityPostProvider>().toggleLike(post.id),
             child: Padding(
@@ -180,14 +181,11 @@ class _PostContentCard extends StatelessWidget {
                         : Icons.favorite_border_rounded,
                     size: 18,
                     color: post.isLikedByMe
-                        ? AppColors.error
-                        : AppColors.textHint,
+                        ? UnifiedColors.black
+                        : UnifiedColors.textCaption,
                   ),
                   const SizedBox(width: 4),
-                  Text(
-                    '좋아요 ${post.likeCount}',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
+                  Text('좋아요 ${post.likeCount}', style: UnifiedText.caption()),
                 ],
               ),
             ),
@@ -205,28 +203,29 @@ class _CommentTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      padding: const EdgeInsets.symmetric(vertical: UnifiedTokens.spaceSm),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const CircleAvatar(
+          CircleAvatar(
             radius: 12,
-            backgroundColor: AppColors.primaryContainer,
-            child: Icon(Icons.person, size: 14, color: AppColors.primary),
+            backgroundColor: UnifiedColors.cardAllMenu,
+            child: Icon(
+              Icons.person_outline_rounded,
+              size: 14,
+              color: UnifiedColors.textPrimary,
+            ),
           ),
-          const SizedBox(width: AppSpacing.sm),
+          const SizedBox(width: UnifiedTokens.spaceSm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  comment.authorNickname,
-                  style: Theme.of(context).textTheme.labelMedium,
-                ),
+                Text(comment.authorNickname, style: UnifiedText.bodyStrong()),
                 const SizedBox(height: 2),
                 Text(
                   comment.content,
-                  style: const TextStyle(fontSize: 13.5, height: 1.4),
+                  style: UnifiedText.body(color: UnifiedColors.textPrimary),
                 ),
               ],
             ),
@@ -252,14 +251,14 @@ class _CommentInputBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.only(
-        left: AppSpacing.lg,
-        right: AppSpacing.sm,
-        top: AppSpacing.sm,
-        bottom: AppSpacing.sm + MediaQuery.of(context).padding.bottom,
+        left: UnifiedTokens.spaceLg,
+        right: UnifiedTokens.spaceSm,
+        top: UnifiedTokens.spaceSm,
+        bottom: UnifiedTokens.spaceSm + MediaQuery.of(context).padding.bottom,
       ),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
-        border: Border(top: BorderSide(color: AppColors.divider)),
+        color: UnifiedColors.bg,
+        border: Border(top: BorderSide(color: UnifiedColors.border)),
       ),
       child: Row(
         children: [
@@ -281,7 +280,7 @@ class _CommentInputBar extends StatelessWidget {
                     height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Icon(Icons.send_rounded, color: AppColors.primary),
+                : Icon(Icons.send_rounded, color: UnifiedColors.textPrimary),
           ),
         ],
       ),

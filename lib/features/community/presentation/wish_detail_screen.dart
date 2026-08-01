@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../wallet/presentation/widgets/send_bok_sheet.dart';
 import '../application/wish_post_provider.dart';
@@ -78,8 +77,11 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
     final isLoadingComments = provider.isLoadingCommentsOf(post.id);
 
     return Scaffold(
+      backgroundColor: UnifiedColors.bg,
       appBar: AppBar(
-        title: const Text('소원 상세'),
+        backgroundColor: UnifiedColors.bg,
+        elevation: 0,
+        title: Text('소원 상세', style: UnifiedText.titleLarge()),
         actions: [
           PopupMenuButton<String>(
             onSelected: (value) {
@@ -102,24 +104,23 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
           children: [
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.all(AppSpacing.lg),
+                padding: const EdgeInsets.all(UnifiedTokens.screenPadding),
                 children: [
                   _WishContentCard(post: post),
-                  const SizedBox(height: AppSpacing.lg),
-                  Text(
-                    '댓글 ${post.commentCount}',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
+                  const SizedBox(height: UnifiedTokens.spaceXl),
+                  Text('댓글 ${post.commentCount}', style: UnifiedText.title()),
+                  const SizedBox(height: UnifiedTokens.spaceMd),
                   if (isLoadingComments)
                     const Center(child: CircularProgressIndicator())
                   else if (comments.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: UnifiedTokens.spaceXl,
+                      ),
                       child: Center(
                         child: Text(
                           '첫 댓글을 남겨보세요',
-                          style: TextStyle(color: AppColors.textHint),
+                          style: UnifiedText.caption(),
                         ),
                       ),
                     )
@@ -147,52 +148,52 @@ class _WishContentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
-        borderRadius: BorderRadius.circular(AppRadius.card),
+        color: UnifiedColors.cardSection,
+        borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const CircleAvatar(
+              CircleAvatar(
                 radius: 14,
-                backgroundColor: AppColors.primaryContainer,
-                child: Icon(Icons.person, size: 16, color: AppColors.primary),
+                backgroundColor: UnifiedColors.cardAllMenu,
+                child: Icon(
+                  Icons.person_outline_rounded,
+                  size: 16,
+                  color: UnifiedColors.textPrimary,
+                ),
               ),
-              const SizedBox(width: AppSpacing.sm),
+              const SizedBox(width: UnifiedTokens.spaceSm),
               Text(
                 post.isAnonymous ? '익명' : post.authorNickname,
-                style: Theme.of(context).textTheme.titleMedium,
+                style: UnifiedText.bodyStrong(),
               ),
               const Spacer(),
               Text(
                 '${post.createdAt.month}.${post.createdAt.day}',
-                style: Theme.of(context).textTheme.bodySmall,
+                style: UnifiedText.caption(),
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: UnifiedTokens.spaceSm),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-              color: AppColors.primaryContainer,
-              borderRadius: BorderRadius.circular(999),
+              color: UnifiedColors.cardAllMenu,
+              borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
             ),
-            child: Text(
-              post.category,
-              style: const TextStyle(
-                fontSize: 11,
-                color: AppColors.primary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            child: Text(post.category, style: UnifiedText.chipLabel()),
           ),
-          const SizedBox(height: AppSpacing.md),
-          Text(post.content, style: const TextStyle(fontSize: 15, height: 1.6)),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: UnifiedTokens.spaceMd),
+          Text(
+            post.content,
+            style: UnifiedText.body(color: UnifiedColors.textPrimary),
+          ),
+          const SizedBox(height: UnifiedTokens.spaceMd),
           // [소원성(Wish Castle) 확장] 촛불 레벨/진행바 - 미니멀 원칙에 따라
           // 한 줄 배지 형태로만 표시(화려한 연출은 별도 다이얼로그에서만 재생).
           Row(
@@ -200,20 +201,24 @@ class _WishContentCard extends StatelessWidget {
               Expanded(child: WishCandleBadge(post: post)),
               TextButton.icon(
                 onPressed: () => showWishJourneySheet(context, post),
-                icon: const Icon(Icons.timeline_rounded, size: 16),
-                label: const Text('소원의 여정', style: TextStyle(fontSize: 12.5)),
+                icon: Icon(
+                  Icons.timeline_rounded,
+                  size: UnifiedTokens.iconSm,
+                  color: UnifiedColors.textCaption,
+                ),
+                label: Text('소원의 여정', style: UnifiedText.caption()),
                 style: TextButton.styleFrom(
-                  foregroundColor: AppColors.textSecondaryOf(context),
+                  foregroundColor: UnifiedColors.textCaption,
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: UnifiedTokens.spaceMd),
           Row(
             children: [
               InkWell(
-                borderRadius: BorderRadius.circular(999),
+                borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
                 onTap: () =>
                     context.read<WishPostProvider>().toggleSupport(post.id),
                 child: Padding(
@@ -226,13 +231,13 @@ class _WishContentCard extends StatelessWidget {
                             : Icons.favorite_border_rounded,
                         size: 18,
                         color: post.isSupportedByMe
-                            ? AppColors.error
-                            : AppColors.textHint,
+                            ? UnifiedColors.black
+                            : UnifiedColors.textCaption,
                       ),
                       const SizedBox(width: 4),
                       Text(
                         '행운 보내기 ${post.supportCount}',
-                        style: Theme.of(context).textTheme.bodySmall,
+                        style: UnifiedText.caption(),
                       ),
                     ],
                   ),
@@ -241,24 +246,24 @@ class _WishContentCard extends StatelessWidget {
               // [Phase22-3 - 황금률 출구버튼] 익명 게시물/내 게시물은 대상이
               // 불명확하거나 무의미하므로 버튼을 노출하지 않는다.
               if (!post.isAnonymous && !post.isMine) ...[
-                const SizedBox(width: AppSpacing.md),
+                const SizedBox(width: UnifiedTokens.spaceMd),
                 InkWell(
-                  borderRadius: BorderRadius.circular(999),
+                  borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
                   onTap: () => showSendBokSheet(
                     context,
                     recipientNickname: post.authorNickname,
                   ),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 4),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
                     child: Row(
                       children: [
                         Icon(
-                          Icons.volunteer_activism_rounded,
+                          Icons.volunteer_activism_outlined,
                           size: 18,
-                          color: AppColors.secondary,
+                          color: UnifiedColors.textPrimary,
                         ),
-                        SizedBox(width: 4),
-                        Text('복 나누기', style: TextStyle(fontSize: 12.5)),
+                        const SizedBox(width: 4),
+                        Text('복 나누기', style: UnifiedText.caption()),
                       ],
                     ),
                   ),
@@ -269,21 +274,21 @@ class _WishContentCard extends StatelessWidget {
               // 무의미해지는 문제가 없음). 최종 레벨 도달 시에는 이미 다 자란 상태이므로
               // 숨겨서 불필요한 상호작용을 막는다.
               if (!post.isMaxLevel) ...[
-                const SizedBox(width: AppSpacing.md),
+                const SizedBox(width: UnifiedTokens.spaceMd),
                 InkWell(
-                  borderRadius: BorderRadius.circular(999),
+                  borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
                   onTap: () => showSendBokjuSheet(context, wishId: post.id),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 4),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
                     child: Row(
                       children: [
                         Icon(
-                          Icons.auto_awesome_rounded,
+                          Icons.auto_awesome_outlined,
                           size: 18,
-                          color: AppColors.secondaryDark,
+                          color: UnifiedColors.textPrimary,
                         ),
-                        SizedBox(width: 4),
-                        Text('행복머니 보내기', style: TextStyle(fontSize: 12.5)),
+                        const SizedBox(width: 4),
+                        Text('행복머니 보내기', style: UnifiedText.caption()),
                       ],
                     ),
                   ),
@@ -291,21 +296,21 @@ class _WishContentCard extends StatelessWidget {
               ] else ...[
                 // [소원성(Wish Castle) 확장] 성취 후기 작성 - 최종레벨(가장 밝은
                 // 불꽃) 도달 소원에서만 노출(서버도 candleLevel<4면 400 거부).
-                const SizedBox(width: AppSpacing.md),
+                const SizedBox(width: UnifiedTokens.spaceMd),
                 InkWell(
-                  borderRadius: BorderRadius.circular(999),
+                  borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
                   onTap: () => showWishReviewSheet(context, wishId: post.id),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 4),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
                     child: Row(
                       children: [
                         Icon(
-                          Icons.edit_note_rounded,
+                          Icons.edit_note_outlined,
                           size: 18,
-                          color: AppColors.secondaryDark,
+                          color: UnifiedColors.textPrimary,
                         ),
-                        SizedBox(width: 4),
-                        Text('성취 후기 남기기', style: TextStyle(fontSize: 12.5)),
+                        const SizedBox(width: 4),
+                        Text('성취 후기 남기기', style: UnifiedText.caption()),
                       ],
                     ),
                   ),
@@ -326,28 +331,29 @@ class _CommentTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      padding: const EdgeInsets.symmetric(vertical: UnifiedTokens.spaceSm),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const CircleAvatar(
+          CircleAvatar(
             radius: 12,
-            backgroundColor: AppColors.primaryContainer,
-            child: Icon(Icons.person, size: 14, color: AppColors.primary),
+            backgroundColor: UnifiedColors.cardAllMenu,
+            child: Icon(
+              Icons.person_outline_rounded,
+              size: 14,
+              color: UnifiedColors.textPrimary,
+            ),
           ),
-          const SizedBox(width: AppSpacing.sm),
+          const SizedBox(width: UnifiedTokens.spaceSm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  comment.authorNickname,
-                  style: Theme.of(context).textTheme.labelMedium,
-                ),
+                Text(comment.authorNickname, style: UnifiedText.bodyStrong()),
                 const SizedBox(height: 2),
                 Text(
                   comment.content,
-                  style: const TextStyle(fontSize: 13.5, height: 1.4),
+                  style: UnifiedText.body(color: UnifiedColors.textPrimary),
                 ),
               ],
             ),
@@ -373,14 +379,14 @@ class _CommentInputBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.only(
-        left: AppSpacing.lg,
-        right: AppSpacing.sm,
-        top: AppSpacing.sm,
-        bottom: AppSpacing.sm + MediaQuery.of(context).padding.bottom,
+        left: UnifiedTokens.spaceLg,
+        right: UnifiedTokens.spaceSm,
+        top: UnifiedTokens.spaceSm,
+        bottom: UnifiedTokens.spaceSm + MediaQuery.of(context).padding.bottom,
       ),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
-        border: Border(top: BorderSide(color: AppColors.divider)),
+        color: UnifiedColors.bg,
+        border: Border(top: BorderSide(color: UnifiedColors.border)),
       ),
       child: Row(
         children: [
@@ -402,7 +408,7 @@ class _CommentInputBar extends StatelessWidget {
                     height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Icon(Icons.send_rounded, color: AppColors.primary),
+                : Icon(Icons.send_rounded, color: UnifiedColors.textPrimary),
           ),
         ],
       ),

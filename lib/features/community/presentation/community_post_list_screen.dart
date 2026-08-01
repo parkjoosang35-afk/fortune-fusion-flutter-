@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/app_bottom_sheet.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_empty_state.dart';
@@ -66,13 +65,13 @@ class _CommunityPostListScreenState extends State<CommunityPostListScreen>
                 controller: titleController,
                 decoration: const InputDecoration(hintText: '제목을 입력해 주세요'),
               ),
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: UnifiedTokens.spaceMd),
               TextField(
                 controller: contentController,
                 maxLines: 5,
                 decoration: const InputDecoration(hintText: '내용을 입력해 주세요'),
               ),
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: UnifiedTokens.spaceMd),
               AppButton(
                 label: '등록하기',
                 onPressed: () async {
@@ -104,10 +103,17 @@ class _CommunityPostListScreenState extends State<CommunityPostListScreen>
     final provider = context.watch<CommunityPostProvider>();
 
     return Scaffold(
+      backgroundColor: UnifiedColors.bg,
       appBar: AppBar(
-        title: Text(widget.board.name),
+        backgroundColor: UnifiedColors.bg,
+        elevation: 0,
+        title: Text(widget.board.name, style: UnifiedText.titleLarge()),
         bottom: TabBar(
           controller: _tabController,
+          labelColor: UnifiedColors.textPrimary,
+          unselectedLabelColor: UnifiedColors.textCaption,
+          indicatorColor: UnifiedColors.black,
+          labelStyle: UnifiedText.bodyStrong(),
           tabs: const [
             Tab(text: '최신'),
             Tab(text: '인기'),
@@ -116,7 +122,7 @@ class _CommunityPostListScreenState extends State<CommunityPostListScreen>
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _openWriteSheet,
-        backgroundColor: AppColors.primary,
+        backgroundColor: UnifiedColors.black,
         child: const Icon(Icons.edit_rounded, color: Colors.white),
       ),
       body: SafeArea(
@@ -135,10 +141,10 @@ class _CommunityPostListScreenState extends State<CommunityPostListScreen>
                       sortByPopular: _tabController.index == 1,
                     ),
                 child: ListView.separated(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  padding: const EdgeInsets.all(UnifiedTokens.screenPadding),
                   itemCount: provider.posts.length,
                   separatorBuilder: (_, __) =>
-                      const SizedBox(height: AppSpacing.md),
+                      const SizedBox(height: UnifiedTokens.spaceMd),
                   itemBuilder: (context, index) =>
                       _PostTile(post: provider.posts[index]),
                 ),
@@ -155,17 +161,17 @@ class _PostTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      borderRadius: BorderRadius.circular(AppRadius.card),
+      borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => CommunityPostDetailScreen(post: post),
         ),
       ),
       child: Container(
-        padding: const EdgeInsets.all(AppSpacing.lg),
+        padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
         decoration: BoxDecoration(
-          color: Theme.of(context).cardTheme.color,
-          borderRadius: BorderRadius.circular(AppRadius.card),
+          color: UnifiedColors.cardSection,
+          borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -173,41 +179,38 @@ class _PostTile extends StatelessWidget {
             Row(
               children: [
                 if (post.isPinned) ...[
-                  const Icon(
+                  Icon(
                     Icons.push_pin_rounded,
                     size: 14,
-                    color: AppColors.primary,
+                    color: UnifiedColors.textPrimary,
                   ),
                   const SizedBox(width: 4),
                 ],
                 Expanded(
                   child: Text(
                     post.title,
-                    style: Theme.of(context).textTheme.titleMedium,
+                    style: UnifiedText.bodyStrong(),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: UnifiedTokens.spaceSm),
             Text(
               post.content,
-              style: const TextStyle(fontSize: 13.5, height: 1.4),
+              style: UnifiedText.bodySmall(),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: UnifiedTokens.spaceMd),
             Row(
               children: [
-                Text(
-                  post.authorNickname,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                const SizedBox(width: AppSpacing.sm),
+                Text(post.authorNickname, style: UnifiedText.caption()),
+                const SizedBox(width: UnifiedTokens.spaceSm),
                 Text(
                   '${post.createdAt.month}.${post.createdAt.day}',
-                  style: Theme.of(context).textTheme.bodySmall,
+                  style: UnifiedText.caption(),
                 ),
                 const Spacer(),
                 Icon(
@@ -216,25 +219,19 @@ class _PostTile extends StatelessWidget {
                       : Icons.favorite_border_rounded,
                   size: 14,
                   color: post.isLikedByMe
-                      ? AppColors.error
-                      : AppColors.textHint,
+                      ? UnifiedColors.black
+                      : UnifiedColors.textCaption,
                 ),
                 const SizedBox(width: 4),
-                Text(
-                  '${post.likeCount}',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                const SizedBox(width: AppSpacing.md),
-                const Icon(
+                Text('${post.likeCount}', style: UnifiedText.caption()),
+                const SizedBox(width: UnifiedTokens.spaceMd),
+                Icon(
                   Icons.chat_bubble_outline_rounded,
                   size: 14,
-                  color: AppColors.textHint,
+                  color: UnifiedColors.textCaption,
                 ),
                 const SizedBox(width: 4),
-                Text(
-                  '${post.commentCount}',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
+                Text('${post.commentCount}', style: UnifiedText.caption()),
               ],
             ),
           ],
