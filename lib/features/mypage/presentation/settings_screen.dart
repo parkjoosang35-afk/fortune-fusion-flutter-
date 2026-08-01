@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/app_dialog.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../auth/application/auth_provider.dart';
@@ -14,34 +13,41 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('설정')),
+      backgroundColor: UnifiedColors.bg,
+      appBar: AppBar(
+        backgroundColor: UnifiedColors.bg,
+        elevation: 0,
+        title: Text('설정', style: UnifiedText.titleLarge()),
+      ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.lg),
+          padding: const EdgeInsets.all(UnifiedTokens.screenPadding),
           children: [
-            Text('계정', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: AppSpacing.sm),
+            Text('계정', style: UnifiedText.title()),
+            const SizedBox(height: UnifiedTokens.spaceSm),
             Container(
               decoration: BoxDecoration(
-                color: Theme.of(context).cardTheme.color,
-                borderRadius: BorderRadius.circular(AppRadius.card),
+                color: UnifiedColors.bg,
+                border: Border.all(color: UnifiedColors.border),
+                borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
               ),
               child: InkWell(
-                borderRadius: BorderRadius.circular(AppRadius.card),
+                borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
                 onTap: () => _confirmWithdraw(context),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: AppSpacing.lg,
-                    vertical: AppSpacing.md,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: UnifiedTokens.spaceLg,
+                    vertical: UnifiedTokens.spaceMd,
                   ),
                   child: Row(
                     children: [
                       Icon(
                         Icons.person_remove_outlined,
-                        color: AppColors.error,
+                        color: UnifiedColors.textSecondary,
+                        size: UnifiedTokens.iconLg,
                       ),
-                      SizedBox(width: AppSpacing.md),
-                      Text('회원탈퇴', style: TextStyle(color: AppColors.error)),
+                      const SizedBox(width: UnifiedTokens.spaceMd),
+                      Text('회원탈퇴', style: UnifiedText.bodyStrong()),
                     ],
                   ),
                 ),

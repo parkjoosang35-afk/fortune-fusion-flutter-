@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_unified_style.dart';
 import '../../../../core/widgets/app_bottom_sheet.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
@@ -138,7 +137,7 @@ class _SendBokFormState extends State<_SendBokForm> {
     switch (_step) {
       case _SendBokStep.lookingUp:
         return const Padding(
-          padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
+          padding: EdgeInsets.symmetric(vertical: UnifiedTokens.spaceXxl),
           child: Center(child: CircularProgressIndicator()),
         );
       case _SendBokStep.lookupFailed:
@@ -148,17 +147,21 @@ class _SendBokFormState extends State<_SendBokForm> {
           children: [
             Row(
               children: [
-                const Icon(Icons.error_outline_rounded, color: AppColors.error),
-                const SizedBox(width: AppSpacing.sm),
+                Icon(
+                  Icons.error_outline_rounded,
+                  color: UnifiedColors.textSecondary,
+                  size: UnifiedTokens.iconLg,
+                ),
+                const SizedBox(width: UnifiedTokens.spaceSm),
                 Expanded(
                   child: Text(
                     _lookupError ?? '유저를 찾을 수 없습니다.',
-                    style: const TextStyle(color: AppColors.textSecondary),
+                    style: UnifiedText.body(),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: UnifiedTokens.spaceXl),
             AppButton.ghost(
               label: '닫기',
               onPressed: () => Navigator.of(context).pop(),
@@ -172,32 +175,31 @@ class _SendBokFormState extends State<_SendBokForm> {
           children: [
             Text(
               '${widget.recipientNickname} 님에게 복을 나눠보세요.\n보내면 일부를 즉시 환급받아요.',
-              style: const TextStyle(
-                color: AppColors.textSecondary,
-                height: 1.5,
-              ),
+              style: UnifiedText.body(),
             ),
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: UnifiedTokens.spaceXl),
             AppTextField(
               label: '보낼 복(BOK)',
               controller: _amountController,
               hintText: '숫자만 입력해 주세요',
               keyboardType: TextInputType.number,
             ),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: UnifiedTokens.spaceMd),
             Wrap(
-              spacing: AppSpacing.sm,
+              spacing: UnifiedTokens.spaceSm,
               children: _presetAmounts.map((preset) {
                 return ChoiceChip(
-                  label: Text('$preset복'),
+                  label: Text('$preset복', style: UnifiedText.chipLabel()),
                   selected: _amountController.text.trim() == '$preset',
                   onSelected: (_) =>
                       setState(() => _amountController.text = '$preset'),
-                  selectedColor: AppColors.primaryContainer,
+                  backgroundColor: UnifiedColors.chipInactiveBg,
+                  selectedColor: UnifiedColors.cardAllMenu,
+                  side: BorderSide.none,
                 );
               }).toList(),
             ),
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: UnifiedTokens.spaceXl),
             AppButton(
               label: '복 나누기',
               isLoading: _isSubmitting,
