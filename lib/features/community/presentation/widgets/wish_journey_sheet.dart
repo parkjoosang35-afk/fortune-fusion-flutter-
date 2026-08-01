@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_unified_style.dart';
 import '../../../../core/widgets/app_bottom_sheet.dart';
 import '../../application/wish_castle_config_provider.dart';
 import '../../application/wish_post_provider.dart';
@@ -113,7 +112,7 @@ class _JourneyRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final dim = !item.achieved;
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      padding: const EdgeInsets.only(bottom: UnifiedTokens.spaceMd),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -124,8 +123,8 @@ class _JourneyRow extends StatelessWidget {
                 height: 30,
                 decoration: BoxDecoration(
                   color: dim
-                      ? AppColors.containerOf(context)
-                      : AppColors.secondary.withValues(alpha: 0.18),
+                      ? UnifiedColors.chipInactiveBg
+                      : UnifiedColors.cardAllMenu,
                   shape: BoxShape.circle,
                 ),
                 alignment: Alignment.center,
@@ -138,11 +137,11 @@ class _JourneyRow extends StatelessWidget {
                 Container(
                   width: 2,
                   height: item.subtitle != null ? 34 : 20,
-                  color: AppColors.dividerOf(context),
+                  color: UnifiedColors.border,
                 ),
             ],
           ),
-          const SizedBox(width: AppSpacing.sm),
+          const SizedBox(width: UnifiedTokens.spaceSm),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.only(top: 4),
@@ -151,11 +150,10 @@ class _JourneyRow extends StatelessWidget {
                 children: [
                   Text(
                     item.title,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
+                    style: UnifiedText.bodyStrong(
                       color: dim
-                          ? AppColors.textHintOf(context)
-                          : AppColors.textPrimaryOf(context),
+                          ? UnifiedColors.textCaption
+                          : UnifiedColors.textPrimary,
                     ),
                   ),
                   if (item.subtitle != null) ...[
@@ -164,8 +162,8 @@ class _JourneyRow extends StatelessWidget {
                       item.subtitle!,
                       maxLines: item.isComment ? 2 : 1,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondaryOf(context),
+                      style: UnifiedText.bodySmall(
+                        color: UnifiedColors.textSecondary,
                       ),
                     ),
                   ],

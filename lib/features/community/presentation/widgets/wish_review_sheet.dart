@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_unified_style.dart';
 import '../../../../core/widgets/app_bottom_sheet.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_toast.dart';
@@ -64,12 +63,9 @@ class _WishReviewFormState extends State<_WishReviewForm> {
       children: [
         Text(
           '가장 밝은 불꽃에 도달한 소원의 이야기를 남겨주세요.\n관리자가 선정한 후기는 소원성 명예의 전당에 소개될 수 있어요.',
-          style: TextStyle(
-            color: AppColors.textSecondaryOf(context),
-            height: 1.5,
-          ),
+          style: UnifiedText.body(color: UnifiedColors.textSecondary),
         ),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: UnifiedTokens.spaceXl),
         TextField(
           controller: _controller,
           maxLines: 5,
@@ -78,7 +74,7 @@ class _WishReviewFormState extends State<_WishReviewForm> {
             hintText: '소원을 이루기까지의 이야기를 자유롭게 남겨보세요.',
           ),
         ),
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: UnifiedTokens.spaceMd),
         AppButton(
           label: '후기 등록하기',
           onPressed: () => Navigator.of(context).pop(_controller.text),

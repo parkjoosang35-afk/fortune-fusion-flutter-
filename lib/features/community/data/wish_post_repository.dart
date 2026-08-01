@@ -144,7 +144,9 @@ class WishPostRepository {
   /// [3단계 - 행복머니 커뮤니티 적립 연동] 소원 댓글 작성 시 admin_web이
   /// wish_config.comment_bokju_reward 만큼 행복머니(bokjuAwarded)를 자동 지급하므로
   /// 함께 반환한다(호출부가 "+N 행복머니" 피드백/레벨업 연출을 표시할 수 있도록).
-  Future<ApiResult<({WishCommentModel comment, int bokjuAwarded, bool leveledUp})>>
+  Future<
+    ApiResult<({WishCommentModel comment, int bokjuAwarded, bool leveledUp})>
+  >
   addComment(String wishId, String content) async {
     if (content.trim().isEmpty) return ApiResult.fail('댓글 내용을 입력해 주세요.');
     final uri = Uri.parse(

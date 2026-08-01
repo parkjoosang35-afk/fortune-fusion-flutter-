@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_unified_style.dart';
 import '../../../../core/widgets/app_bottom_sheet.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_toast.dart';
@@ -96,32 +95,25 @@ class _SendBokjuFormState extends State<_SendBokjuForm> {
       children: [
         Text(
           '이 소원에 행복머니를 보내 촛불을 밝혀주세요.\n실제 행복머니가 차감되지 않는 상징적인 응원이에요.',
-          style: TextStyle(
-            color: AppColors.textSecondaryOf(context),
-            height: 1.5,
-          ),
+          style: UnifiedText.body(color: UnifiedColors.textSecondary),
         ),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: UnifiedTokens.spaceXl),
         Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.sm,
+          spacing: UnifiedTokens.spaceSm,
+          runSpacing: UnifiedTokens.spaceSm,
           children: widget.presets.map((preset) {
             final selected = _selected == preset;
             return ChoiceChip(
-              label: Text('🧧 $preset'),
+              label: Text('🧧 $preset', style: UnifiedText.chipLabel()),
               selected: selected,
               onSelected: (_) => setState(() => _selected = preset),
-              selectedColor: AppColors.secondary.withValues(alpha: 0.22),
-              labelStyle: TextStyle(
-                color: selected
-                    ? AppColors.secondaryDark
-                    : AppColors.textSecondaryOf(context),
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
-              ),
+              backgroundColor: UnifiedColors.chipInactiveBg,
+              selectedColor: UnifiedColors.cardAllMenu,
+              side: BorderSide.none,
             );
           }).toList(),
         ),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: UnifiedTokens.spaceXl),
         AppButton(
           label: _selected == null ? '개수를 선택해 주세요' : '행복머니 $_selected개 보내기',
           onPressed: _selected == null

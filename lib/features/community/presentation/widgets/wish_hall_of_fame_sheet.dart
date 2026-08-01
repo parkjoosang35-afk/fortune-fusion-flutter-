@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_unified_style.dart';
 import '../../../../core/widgets/app_bottom_sheet.dart';
 import '../../application/wish_post_provider.dart';
 
@@ -37,50 +36,44 @@ class _HallOfFameSheetBody extends StatelessWidget {
               provider.featuredReviews.isEmpty &&
               provider.hallOfFameRanking.isEmpty
           ? const Padding(
-              padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
+              padding: EdgeInsets.symmetric(vertical: UnifiedTokens.spaceXxl),
               child: Center(child: CircularProgressIndicator()),
             )
           : SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    '🌟 이룬 소원들의 이야기',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
+                  Text('🌟 이룬 소원들의 이야기', style: UnifiedText.title()),
+                  const SizedBox(height: UnifiedTokens.spaceSm),
                   if (provider.featuredReviews.isEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(
-                        vertical: AppSpacing.md,
+                        vertical: UnifiedTokens.spaceMd,
                       ),
                       child: Text(
                         '아직 선정된 후기가 없어요.',
-                        style: TextStyle(color: AppColors.textHintOf(context)),
+                        style: UnifiedText.body(
+                          color: UnifiedColors.textCaption,
+                        ),
                       ),
                     )
                   else
                     ...provider.featuredReviews.map(
                       (r) => _FeaturedReviewCard(review: r),
                     ),
-                  const SizedBox(height: AppSpacing.lg),
-                  Text(
-                    '🏆 응원 누적 랭킹',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
+                  const SizedBox(height: UnifiedTokens.spaceXl),
+                  Text('🏆 응원 누적 랭킹', style: UnifiedText.title()),
+                  const SizedBox(height: UnifiedTokens.spaceSm),
                   if (provider.hallOfFameRanking.isEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(
-                        vertical: AppSpacing.md,
+                        vertical: UnifiedTokens.spaceMd,
                       ),
                       child: Text(
                         '아직 랭킹 데이터가 없어요.',
-                        style: TextStyle(color: AppColors.textHintOf(context)),
+                        style: UnifiedText.body(
+                          color: UnifiedColors.textCaption,
+                        ),
                       ),
                     )
                   else
@@ -103,12 +96,11 @@ class _FeaturedReviewCard extends StatelessWidget {
     final nickname = review['authorNickname'] as String? ?? '익명';
     final content = review['content'] as String? ?? '';
     return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-      padding: const EdgeInsets.all(AppSpacing.md),
+      margin: const EdgeInsets.only(bottom: UnifiedTokens.spaceSm),
+      padding: const EdgeInsets.all(UnifiedTokens.spaceMd),
       decoration: BoxDecoration(
-        color: AppColors.secondary.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(AppRadius.cardSmall),
-        border: Border.all(color: AppColors.goldGlowBorder),
+        color: UnifiedColors.cardAllMenu,
+        borderRadius: BorderRadius.circular(UnifiedTokens.radiusSm),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -117,16 +109,11 @@ class _FeaturedReviewCard extends StatelessWidget {
             children: [
               const Text('🌟', style: TextStyle(fontSize: 13)),
               const SizedBox(width: 4),
-              Text(
-                nickname,
-                style: Theme.of(
-                  context,
-                ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700),
-              ),
+              Text(nickname, style: UnifiedText.bodyStrong()),
             ],
           ),
           const SizedBox(height: 4),
-          Text(content, style: const TextStyle(fontSize: 13, height: 1.5)),
+          Text(content, style: UnifiedText.bodySmall()),
         ],
       ),
     );
@@ -146,33 +133,25 @@ class _RankingRow extends StatelessWidget {
     final totalSupport = (entry['totalSupport'] as num?)?.toInt() ?? 0;
     final wishCount = (entry['wishCount'] as num?)?.toInt() ?? 0;
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      padding: const EdgeInsets.only(bottom: UnifiedTokens.spaceSm),
       child: Row(
         children: [
           Text(
             rank <= 3 ? _medals[rank - 1] : '$rank',
             style: const TextStyle(fontSize: 15),
           ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Text(
-              nickname,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ),
+          const SizedBox(width: UnifiedTokens.spaceSm),
+          Expanded(child: Text(nickname, style: UnifiedText.body())),
           Text(
             '소원 $wishCount개',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.textSecondaryOf(context),
-            ),
+            style: UnifiedText.bodySmall(color: UnifiedColors.textSecondary),
           ),
-          const SizedBox(width: AppSpacing.sm),
+          const SizedBox(width: UnifiedTokens.spaceSm),
           Text(
             '❤️ $totalSupport',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.error,
-              fontWeight: FontWeight.w700,
-            ),
+            style: UnifiedText.bodySmall(
+              color: UnifiedColors.textPrimary,
+            ).copyWith(fontWeight: FontWeight.w700),
           ),
         ],
       ),

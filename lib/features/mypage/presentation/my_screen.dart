@@ -146,8 +146,7 @@ class _MyScreenState extends State<MyScreen> {
             _SubscriptionSummaryCard(
               subscription: subscription,
               isLoading: subscription.isLoadingSubscription,
-              onTap: () =>
-                  Navigator.of(context).pushNamed('/my/subscription'),
+              onTap: () => Navigator.of(context).pushNamed('/my/subscription'),
             ),
             const SizedBox(height: UnifiedTokens.spaceXxl),
 
@@ -458,10 +457,7 @@ class _GradeBadge extends StatelessWidget {
         color: UnifiedColors.cardAllMenu,
         borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
       ),
-      child: Text(
-        grade.name,
-        style: UnifiedText.chipLabel(),
-      ),
+      child: Text(grade.name, style: UnifiedText.chipLabel()),
     );
   }
 }
@@ -546,9 +542,7 @@ class _MenuTile extends StatelessWidget {
             size: UnifiedTokens.iconLg,
           ),
           const SizedBox(width: UnifiedTokens.spaceMd),
-          Expanded(
-            child: Text(title, style: UnifiedText.bodyStrong()),
-          ),
+          Expanded(child: Text(title, style: UnifiedText.bodyStrong())),
           Icon(
             Icons.chevron_right_rounded,
             color: UnifiedColors.textCaption,
@@ -582,9 +576,7 @@ class _MenuRow extends StatelessWidget {
       onTap: onTap,
       child: Container(
         height: 52,
-        padding: const EdgeInsets.symmetric(
-          horizontal: UnifiedTokens.spaceLg,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: UnifiedTokens.spaceLg),
         decoration: BoxDecoration(
           border: showDivider
               ? const Border(
@@ -600,9 +592,7 @@ class _MenuRow extends StatelessWidget {
               size: UnifiedTokens.iconLg,
             ),
             const SizedBox(width: UnifiedTokens.spaceMd),
-            Expanded(
-              child: Text(title, style: UnifiedText.bodyStrong()),
-            ),
+            Expanded(child: Text(title, style: UnifiedText.bodyStrong())),
             Icon(
               Icons.chevron_right_rounded,
               color: UnifiedColors.textCaption,

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_unified_style.dart';
 import '../../../../core/widgets/app_bottom_sheet.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_toast.dart';
@@ -75,29 +74,27 @@ class _WishReportFormState extends State<_WishReportForm> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.sm,
+          spacing: UnifiedTokens.spaceSm,
+          runSpacing: UnifiedTokens.spaceSm,
           children: _reportReasons.map((reason) {
             final selected = _selectedReason == reason;
             return ChoiceChip(
-              label: Text(reason),
+              label: Text(reason, style: UnifiedText.chipLabel()),
               selected: selected,
               onSelected: (_) => setState(() => _selectedReason = reason),
-              selectedColor: AppColors.primaryContainer,
-              labelStyle: TextStyle(
-                color: selected ? AppColors.primary : AppColors.textSecondary,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
-              ),
+              backgroundColor: UnifiedColors.chipInactiveBg,
+              selectedColor: UnifiedColors.cardAllMenu,
+              side: BorderSide.none,
             );
           }).toList(),
         ),
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: UnifiedTokens.spaceMd),
         TextField(
           controller: _detailController,
           maxLines: 3,
           decoration: const InputDecoration(hintText: '상세 사유(선택)를 입력해 주세요'),
         ),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: UnifiedTokens.spaceXl),
         AppButton(
           label: '신고 제출',
           isLoading: _isSubmitting,
