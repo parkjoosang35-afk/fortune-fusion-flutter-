@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_unified_style.dart';
 import '../application/compatibility_provider.dart';
 import '../domain/compatibility_model.dart';
 
@@ -67,50 +66,51 @@ class _CompatibilityInputScreenState extends State<CompatibilityInputScreen> {
     final canSubmit = _birthDateA != null && _birthDateB != null;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('AI 궁합')),
+      backgroundColor: UnifiedColors.bg,
+      appBar: AppBar(
+        backgroundColor: UnifiedColors.bg,
+        elevation: 0,
+        title: Text('AI 궁합', style: UnifiedText.titleLarge()),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.lg),
+          padding: EdgeInsets.all(UnifiedTokens.screenPadding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('관계유형', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: AppSpacing.sm),
+              Text('관계유형', style: UnifiedText.title()),
+              SizedBox(height: UnifiedTokens.spaceSm),
               Wrap(
-                spacing: AppSpacing.sm,
-                runSpacing: AppSpacing.sm,
+                spacing: UnifiedTokens.spaceSm,
+                runSpacing: UnifiedTokens.spaceSm,
                 children: CompatibilityType.values.map((t) {
                   final selected = _type == t;
                   return ChoiceChip(
-                    label: Text(t.label),
+                    label: Text(t.label, style: UnifiedText.chipLabel()),
                     selected: selected,
                     onSelected: (_) => setState(() => _type = t),
-                    selectedColor: AppColors.primaryContainer,
-                    labelStyle: TextStyle(
-                      color: selected
-                          ? AppColors.primary
-                          : AppColors.textSecondary,
-                      fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
-                    ),
+                    backgroundColor: UnifiedColors.chipInactiveBg,
+                    selectedColor: UnifiedColors.cardAllMenu,
+                    side: BorderSide.none,
                   );
                 }).toList(),
               ),
-              const SizedBox(height: AppSpacing.lg),
+              SizedBox(height: UnifiedTokens.spaceXl),
               _PersonCard(
                 title: '나',
                 nameController: _nameAController,
                 birthDate: _birthDateA,
                 onPickDate: () => _pickDate(true),
               ),
-              const SizedBox(height: AppSpacing.md),
-              const Center(
+              SizedBox(height: UnifiedTokens.spaceMd),
+              Center(
                 child: Icon(
                   Icons.favorite_rounded,
-                  color: AppColors.primary,
+                  color: UnifiedColors.black,
                   size: 28,
                 ),
               ),
-              const SizedBox(height: AppSpacing.md),
+              SizedBox(height: UnifiedTokens.spaceMd),
               _PersonCard(
                 title: '상대방',
                 nameController: _nameBController,
@@ -118,7 +118,7 @@ class _CompatibilityInputScreenState extends State<CompatibilityInputScreen> {
                 onPickDate: () => _pickDate(false),
                 hint: '상대방 이름(선택)',
               ),
-              const SizedBox(height: AppSpacing.xxl),
+              SizedBox(height: UnifiedTokens.spaceXxl),
               ElevatedButton(
                 onPressed: canSubmit ? _submit : null,
                 child: const Text('궁합 분석하기'),
@@ -149,42 +149,43 @@ class _PersonCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: EdgeInsets.all(UnifiedTokens.spaceXl),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
-        borderRadius: BorderRadius.circular(AppRadius.card),
+        color: UnifiedColors.cardSection,
+        borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: AppSpacing.sm),
+          Text(title, style: UnifiedText.title()),
+          SizedBox(height: UnifiedTokens.spaceSm),
           TextField(
             controller: nameController,
             decoration: InputDecoration(hintText: hint ?? '이름'),
           ),
-          const SizedBox(height: AppSpacing.sm),
+          SizedBox(height: UnifiedTokens.spaceSm),
           InkWell(
             onTap: onPickDate,
-            borderRadius: BorderRadius.circular(AppRadius.button),
+            borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
             child: Container(
-              padding: const EdgeInsets.all(AppSpacing.md),
+              padding: EdgeInsets.all(UnifiedTokens.spaceMd),
               decoration: BoxDecoration(
-                border: Border.all(color: AppColors.divider),
-                borderRadius: BorderRadius.circular(AppRadius.button),
+                border: Border.all(color: UnifiedColors.border),
+                borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
               ),
               child: Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.cake_outlined,
-                    color: AppColors.primary,
+                    color: UnifiedColors.textPrimary,
                     size: 18,
                   ),
-                  const SizedBox(width: AppSpacing.sm),
+                  SizedBox(width: UnifiedTokens.spaceSm),
                   Text(
                     birthDate == null
                         ? '생년월일 선택'
                         : '${birthDate!.year}년 ${birthDate!.month}월 ${birthDate!.day}일',
+                    style: UnifiedText.body(color: UnifiedColors.textPrimary),
                   ),
                 ],
               ),

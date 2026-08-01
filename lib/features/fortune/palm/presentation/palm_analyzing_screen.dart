@@ -3,8 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_unified_style.dart';
 import '../application/palm_provider.dart';
 
 /// 07단계(추가) §3.3 - PalmAnalyzingScreen 로딩 애니메이션 고급화
@@ -93,44 +92,42 @@ class _PalmAnalyzingScreenState extends State<PalmAnalyzingScreen>
     _navigateOnResult(provider);
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(gradient: AppColors.mysticGradient),
-        child: SafeArea(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _PulsingRotationIcon(controller: _iconController),
-                  const SizedBox(height: AppSpacing.xl),
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 350),
-                    switchInCurve: Curves.easeInOutCubic,
-                    switchOutCurve: Curves.easeInOutCubic,
-                    transitionBuilder: (child, animation) => FadeTransition(
-                      opacity: animation,
-                      child: SlideTransition(
-                        position: Tween<Offset>(
-                          begin: const Offset(0, 0.15),
-                          end: Offset.zero,
-                        ).animate(animation),
-                        child: child,
-                      ),
-                    ),
-                    child: Text(
-                      _messages[_step],
-                      key: ValueKey(_step),
-                      style: const TextStyle(color: Colors.white, fontSize: 15),
-                      textAlign: TextAlign.center,
+      backgroundColor: UnifiedColors.bg,
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: UnifiedTokens.spaceXxl),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _PulsingRotationIcon(controller: _iconController),
+                SizedBox(height: UnifiedTokens.spaceXxl),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 350),
+                  switchInCurve: Curves.easeInOutCubic,
+                  switchOutCurve: Curves.easeInOutCubic,
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0, 0.15),
+                        end: Offset.zero,
+                      ).animate(animation),
+                      child: child,
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.lg),
-                  _DotLoader(controller: _dotController),
-                  const SizedBox(height: AppSpacing.xxl),
-                  _ProgressBar(value: _progressValues[_step]),
-                ],
-              ),
+                  child: Text(
+                    _messages[_step],
+                    key: ValueKey(_step),
+                    style: UnifiedText.body(color: UnifiedColors.textPrimary),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                SizedBox(height: UnifiedTokens.spaceXl),
+                _DotLoader(controller: _dotController),
+                SizedBox(height: UnifiedTokens.spaceXxl),
+                _ProgressBar(value: _progressValues[_step]),
+              ],
             ),
           ),
         ),
@@ -153,8 +150,8 @@ class _PulsingRotationIcon extends StatelessWidget {
         final t = (math.sin(controller.value * 2 * math.pi) + 1) / 2;
         final scale = 1.0 + (0.18 * t);
         final color = Color.lerp(
-          AppColors.secondary,
-          AppColors.primaryLight,
+          UnifiedColors.textSecondary,
+          UnifiedColors.black,
           t,
         )!;
         return Transform.rotate(
@@ -197,7 +194,7 @@ class _DotLoader extends StatelessWidget {
                   height: 8,
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
-                    color: AppColors.secondary,
+                    color: UnifiedColors.black,
                   ),
                 ),
               ),
@@ -219,13 +216,13 @@ class _ProgressBar extends StatelessWidget {
     return Column(
       children: [
         ClipRRect(
-          borderRadius: BorderRadius.circular(AppRadius.full),
+          borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
           child: SizedBox(
             width: 180,
             height: 6,
             child: Stack(
               children: [
-                Container(color: Colors.white.withValues(alpha: 0.15)),
+                Container(color: UnifiedColors.border),
                 TweenAnimationBuilder<double>(
                   tween: Tween<double>(begin: 0, end: value),
                   duration: const Duration(milliseconds: 600),
@@ -234,7 +231,7 @@ class _ProgressBar extends StatelessWidget {
                     return FractionallySizedBox(
                       alignment: Alignment.centerLeft,
                       widthFactor: animatedValue,
-                      child: Container(color: AppColors.secondary),
+                      child: Container(color: UnifiedColors.black),
                     );
                   },
                 ),
@@ -242,7 +239,7 @@ class _ProgressBar extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: AppSpacing.sm),
+        SizedBox(height: UnifiedTokens.spaceSm),
         TweenAnimationBuilder<double>(
           tween: Tween<double>(begin: 0, end: value),
           duration: const Duration(milliseconds: 600),
@@ -250,11 +247,7 @@ class _ProgressBar extends StatelessWidget {
           builder: (context, animatedValue, _) {
             return Text(
               '${(animatedValue * 100).round()}%',
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
+              style: UnifiedText.caption(color: UnifiedColors.textCaption),
             );
           },
         ),

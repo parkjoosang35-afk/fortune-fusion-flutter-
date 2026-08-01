@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_unified_style.dart';
 import '../../../../core/widgets/app_empty_state.dart';
 import '../application/saju_provider.dart';
 
@@ -27,7 +26,12 @@ class _SajuHistoryScreenState extends State<SajuHistoryScreen> {
     final history = context.watch<SajuProvider>().history;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('사주 히스토리')),
+      backgroundColor: UnifiedColors.bg,
+      appBar: AppBar(
+        backgroundColor: UnifiedColors.bg,
+        elevation: 0,
+        title: Text('사주 히스토리', style: UnifiedText.titleLarge()),
+      ),
       body: SafeArea(
         child: history.isEmpty
             ? const AppEmptyState(
@@ -36,50 +40,53 @@ class _SajuHistoryScreenState extends State<SajuHistoryScreen> {
                 description: 'AI 사주를 분석해보세요',
               )
             : ListView.separated(
-                padding: const EdgeInsets.all(AppSpacing.lg),
+                padding: EdgeInsets.all(UnifiedTokens.screenPadding),
                 itemCount: history.length,
                 separatorBuilder: (_, __) =>
-                    const SizedBox(height: AppSpacing.md),
+                    SizedBox(height: UnifiedTokens.spaceMd),
                 itemBuilder: (context, index) {
                   final item = history[index];
                   return InkWell(
-                    borderRadius: BorderRadius.circular(AppRadius.card),
+                    borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
                     onTap: () => Navigator.of(
                       context,
                     ).pushNamed('/ai-fortune/saju/result', arguments: item.id),
                     child: Container(
-                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      padding: EdgeInsets.all(UnifiedTokens.screenPadding),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).cardTheme.color,
-                        borderRadius: BorderRadius.circular(AppRadius.card),
+                        color: UnifiedColors.cardSection,
+                        borderRadius: BorderRadius.circular(
+                          UnifiedTokens.radiusMd,
+                        ),
                       ),
                       child: Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.auto_stories_rounded,
-                            color: AppColors.primary,
+                            size: UnifiedTokens.iconLg,
+                            color: UnifiedColors.textPrimary,
                           ),
-                          const SizedBox(width: AppSpacing.md),
+                          SizedBox(width: UnifiedTokens.spaceMd),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   '${item.pillars.year} ${item.pillars.month} ${item.pillars.day}',
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.titleMedium,
+                                  style: UnifiedText.bodyStrong(),
                                 ),
                                 Text(
                                   '${item.createdAt.year}.${item.createdAt.month}.${item.createdAt.day}',
-                                  style: Theme.of(context).textTheme.bodySmall,
+                                  style: UnifiedText.bodySmall(
+                                    color: UnifiedColors.textCaption,
+                                  ),
                                 ),
                               ],
                             ),
                           ),
-                          const Icon(
+                          Icon(
                             Icons.chevron_right_rounded,
-                            color: AppColors.textHint,
+                            color: UnifiedColors.textCaption,
                           ),
                         ],
                       ),

@@ -4,8 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_unified_style.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../application/palm_provider.dart';
 
@@ -74,10 +73,15 @@ class _PalmCaptureScreenState extends State<PalmCaptureScreen> {
     final hasImage = selectedImageBytes != null;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('AI 손금')),
+      backgroundColor: UnifiedColors.bg,
+      appBar: AppBar(
+        backgroundColor: UnifiedColors.bg,
+        elevation: 0,
+        title: Text('AI 손금', style: UnifiedText.titleLarge()),
+      ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
+          padding: EdgeInsets.all(UnifiedTokens.screenPadding),
           child: Column(
             children: [
               Expanded(
@@ -88,7 +92,9 @@ class _PalmCaptureScreenState extends State<PalmCaptureScreen> {
                       children: [
                         if (hasImage)
                           ClipRRect(
-                            borderRadius: BorderRadius.circular(AppRadius.card),
+                            borderRadius: BorderRadius.circular(
+                              UnifiedTokens.radiusMd,
+                            ),
                             child: Image.memory(
                               selectedImageBytes,
                               width: 220,
@@ -100,40 +106,43 @@ class _PalmCaptureScreenState extends State<PalmCaptureScreen> {
                           Container(
                             width: 220,
                             height: 220,
-                            decoration: const BoxDecoration(
+                            decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: AppColors.primaryContainer,
+                              color: UnifiedColors.cardAllMenu,
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.back_hand_rounded,
                               size: 96,
-                              color: AppColors.primary,
+                              color: UnifiedColors.textPrimary,
                             ),
                           ),
-                        const SizedBox(height: AppSpacing.xl),
+                        SizedBox(height: UnifiedTokens.spaceXl),
                         Text(
                           hasImage
                               ? '이 사진으로 분석을 시작할까요?'
                               : '손바닥을 펴고\n밝은 곳에서 촬영해주세요',
-                          style: Theme.of(context).textTheme.titleLarge,
+                          style: UnifiedText.title(),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: AppSpacing.sm),
+                        SizedBox(height: UnifiedTokens.spaceSm),
                         if (!hasImage)
                           Text(
                             '사진을 선택해주세요',
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(color: AppColors.primary),
+                            style: UnifiedText.bodyStrong(
+                              color: UnifiedColors.textPrimary,
+                            ),
                             textAlign: TextAlign.center,
                           ),
-                        const SizedBox(height: AppSpacing.xs),
+                        SizedBox(height: UnifiedTokens.spaceXs),
                         Text(
                           '촬영한 사진은 분석 즉시 파기되며 저장되지 않습니다',
-                          style: Theme.of(context).textTheme.bodySmall,
+                          style: UnifiedText.caption(
+                            color: UnifiedColors.textCaption,
+                          ),
                           textAlign: TextAlign.center,
                         ),
                         if (hasImage) ...[
-                          const SizedBox(height: AppSpacing.md),
+                          SizedBox(height: UnifiedTokens.spaceMd),
                           TextButton.icon(
                             onPressed: () => context
                                 .read<PalmProvider>()
@@ -171,7 +180,7 @@ class _PalmCaptureScreenState extends State<PalmCaptureScreen> {
                         label: const Text('갤러리에서 선택'),
                       ),
                     ),
-                    const SizedBox(width: AppSpacing.md),
+                    SizedBox(width: UnifiedTokens.spaceMd),
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: _isPicking

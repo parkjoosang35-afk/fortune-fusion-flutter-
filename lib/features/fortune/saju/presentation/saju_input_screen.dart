@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_unified_style.dart';
 import '../../../../core/widgets/app_bottom_sheet.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../auth/application/auth_provider.dart';
@@ -94,50 +93,59 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
                 controller: aliasController,
                 decoration: const InputDecoration(hintText: '별칭 (예: 엄마 사주)'),
               ),
-              const SizedBox(height: AppSpacing.sm),
+              SizedBox(height: UnifiedTokens.spaceSm),
               TextField(
                 controller: nameController,
                 decoration: const InputDecoration(hintText: '이름'),
               ),
-              const SizedBox(height: AppSpacing.sm),
+              SizedBox(height: UnifiedTokens.spaceSm),
               Wrap(
-                spacing: AppSpacing.sm,
+                spacing: UnifiedTokens.spaceSm,
                 children: sajuRelationshipLabel.entries.map((e) {
                   final selected = relationship == e.key;
                   return ChoiceChip(
-                    label: Text(e.value),
+                    label: Text(e.value, style: UnifiedText.chipLabel()),
                     selected: selected,
+                    backgroundColor: UnifiedColors.chipInactiveBg,
+                    selectedColor: UnifiedColors.cardAllMenu,
+                    side: BorderSide.none,
                     onSelected: (_) =>
                         setSheetState(() => relationship = e.key),
                   );
                 }).toList(),
               ),
-              const SizedBox(height: AppSpacing.sm),
+              SizedBox(height: UnifiedTokens.spaceSm),
               Row(
                 children: [
-                  const Text('성별'),
-                  const SizedBox(width: AppSpacing.md),
+                  Text('성별', style: UnifiedText.body()),
+                  SizedBox(width: UnifiedTokens.spaceMd),
                   ChoiceChip(
-                    label: const Text('남'),
+                    label: Text('남', style: UnifiedText.chipLabel()),
                     selected: gender == '남',
+                    backgroundColor: UnifiedColors.chipInactiveBg,
+                    selectedColor: UnifiedColors.cardAllMenu,
+                    side: BorderSide.none,
                     onSelected: (_) => setSheetState(() => gender = '남'),
                   ),
-                  const SizedBox(width: AppSpacing.sm),
+                  SizedBox(width: UnifiedTokens.spaceSm),
                   ChoiceChip(
-                    label: const Text('여'),
+                    label: Text('여', style: UnifiedText.chipLabel()),
                     selected: gender == '여',
+                    backgroundColor: UnifiedColors.chipInactiveBg,
+                    selectedColor: UnifiedColors.cardAllMenu,
+                    side: BorderSide.none,
                     onSelected: (_) => setSheetState(() => gender = '여'),
                   ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.sm),
+              SizedBox(height: UnifiedTokens.spaceSm),
               Row(
                 children: [
-                  const Text('음력'),
+                  Text('음력', style: UnifiedText.body()),
                   Switch(
                     value: pickerIsLunar,
                     onChanged: (v) => setSheetState(() => pickerIsLunar = v),
-                    activeThumbColor: AppColors.primary,
+                    activeThumbColor: UnifiedColors.black,
                   ),
                 ],
               ),
@@ -174,7 +182,7 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
                   }
                 },
               ),
-              const SizedBox(height: AppSpacing.md),
+              SizedBox(height: UnifiedTokens.spaceMd),
               AppButton(
                 label: '프로필 저장',
                 onPressed:
@@ -262,24 +270,29 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
   Widget build(BuildContext context) {
     final profiles = context.watch<SajuProvider>().profiles;
     return Scaffold(
-      appBar: AppBar(title: const Text('AI 사주')),
+      backgroundColor: UnifiedColors.bg,
+      appBar: AppBar(
+        backgroundColor: UnifiedColors.bg,
+        elevation: 0,
+        title: Text('AI 사주', style: UnifiedText.titleLarge()),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.lg),
+          padding: EdgeInsets.all(UnifiedTokens.screenPadding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // [웹→앱 이식] saju.html "내 사주함" - 저장된 프로필이 있을 때만 노출
               if (profiles.isNotEmpty) ...[
-                Text('내 사주함', style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: AppSpacing.sm),
+                Text('내 사주함', style: UnifiedText.title()),
+                SizedBox(height: UnifiedTokens.spaceSm),
                 SizedBox(
                   height: 76,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     itemCount: profiles.length + 1,
                     separatorBuilder: (_, __) =>
-                        const SizedBox(width: AppSpacing.sm),
+                        SizedBox(width: UnifiedTokens.spaceSm),
                     itemBuilder: (context, index) {
                       if (index == profiles.length) {
                         return _ProfileAddChip(onTap: _openAddProfileSheet);
@@ -293,7 +306,7 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
                     },
                   ),
                 ),
-                const SizedBox(height: AppSpacing.lg),
+                SizedBox(height: UnifiedTokens.spaceXl),
               ] else
                 Align(
                   alignment: Alignment.centerRight,
@@ -303,8 +316,8 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
                     label: const Text('내 사주함에 추가'),
                   ),
                 ),
-              Text('생년월일시', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: AppSpacing.sm),
+              Text('생년월일시', style: UnifiedText.title()),
+              SizedBox(height: UnifiedTokens.spaceSm),
               _FieldTile(
                 icon: Icons.cake_outlined,
                 label: _birthDate == null
@@ -312,7 +325,7 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
                     : '${_birthDate!.year}년 ${_birthDate!.month}월 ${_birthDate!.day}일',
                 onTap: _pickDate,
               ),
-              const SizedBox(height: AppSpacing.sm),
+              SizedBox(height: UnifiedTokens.spaceSm),
               _FieldTile(
                 icon: Icons.access_time_rounded,
                 label: _birthTime == null
@@ -322,30 +335,29 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
               ),
               Row(
                 children: [
-                  const Text('음력'),
+                  Text('음력', style: UnifiedText.body()),
                   Switch(
                     value: _isLunar,
                     onChanged: (v) => setState(() => _isLunar = v),
-                    activeThumbColor: AppColors.primary,
+                    activeThumbColor: UnifiedColors.black,
                   ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.lg),
-              Text(
-                '관심 주제 (다중 선택 가능)',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: AppSpacing.sm),
+              SizedBox(height: UnifiedTokens.spaceXl),
+              Text('관심 주제 (다중 선택 가능)', style: UnifiedText.title()),
+              SizedBox(height: UnifiedTokens.spaceSm),
               Wrap(
-                spacing: AppSpacing.sm,
-                runSpacing: AppSpacing.sm,
+                spacing: UnifiedTokens.spaceSm,
+                runSpacing: UnifiedTokens.spaceSm,
                 children: _allTopics.map((t) {
                   final selected = _topics.contains(t);
                   return FilterChip(
-                    label: Text(t),
+                    label: Text(t, style: UnifiedText.chipLabel()),
                     selected: selected,
-                    selectedColor: AppColors.primaryContainer,
-                    checkmarkColor: AppColors.primary,
+                    backgroundColor: UnifiedColors.chipInactiveBg,
+                    selectedColor: UnifiedColors.cardAllMenu,
+                    checkmarkColor: UnifiedColors.black,
+                    side: BorderSide.none,
                     onSelected: (v) => setState(() {
                       if (v) {
                         _topics.add(t);
@@ -360,11 +372,11 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
                 CheckboxListTile(
                   value: _saveAsProfile,
                   onChanged: (v) => setState(() => _saveAsProfile = v ?? false),
-                  title: const Text('이 정보를 내 사주함에 저장'),
+                  title: Text('이 정보를 내 사주함에 저장', style: UnifiedText.body()),
                   controlAffinity: ListTileControlAffinity.leading,
                   contentPadding: EdgeInsets.zero,
                 ),
-              const SizedBox(height: AppSpacing.xxl),
+              SizedBox(height: UnifiedTokens.spaceXxl),
               ElevatedButton(
                 onPressed: _birthDate == null ? null : _submit,
                 child: const Text('분석하기'),
@@ -391,19 +403,19 @@ class _ProfileChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      borderRadius: BorderRadius.circular(AppRadius.buttonSmall),
+      borderRadius: BorderRadius.circular(UnifiedTokens.radiusSm),
       onTap: onTap,
       child: Container(
         width: 92,
-        padding: const EdgeInsets.all(AppSpacing.sm),
+        padding: EdgeInsets.all(UnifiedTokens.spaceSm),
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.containerOf(context)
-              : Theme.of(context).cardTheme.color,
+              ? UnifiedColors.cardAllMenu
+              : UnifiedColors.cardSection,
           border: Border.all(
-            color: selected ? AppColors.primary : AppColors.dividerOf(context),
+            color: selected ? UnifiedColors.black : UnifiedColors.border,
           ),
-          borderRadius: BorderRadius.circular(AppRadius.buttonSmall),
+          borderRadius: BorderRadius.circular(UnifiedTokens.radiusSm),
         ),
         child: Column(
           children: [
@@ -411,17 +423,17 @@ class _ProfileChip extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (profile.isPrimary)
-                  const Icon(
+                  Icon(
                     Icons.star_rounded,
                     size: 12,
-                    color: AppColors.secondary,
+                    color: UnifiedColors.black,
                   ),
                 Icon(
                   Icons.person_rounded,
                   size: 18,
                   color: selected
-                      ? AppColors.primary
-                      : AppColors.textSecondaryOf(context),
+                      ? UnifiedColors.black
+                      : UnifiedColors.textCaption,
                 ),
               ],
             ),
@@ -430,15 +442,15 @@ class _ProfileChip extends StatelessWidget {
               profile.profileName,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+              style: UnifiedText.bodySmall(
+                color: selected
+                    ? UnifiedColors.textPrimary
+                    : UnifiedColors.textSecondary,
               ),
             ),
             Text(
               sajuRelationshipLabel[profile.relationship] ?? '',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: AppColors.textHintOf(context),
-              ),
+              style: UnifiedText.caption(color: UnifiedColors.textCaption),
             ),
           ],
         ),
@@ -454,24 +466,27 @@ class _ProfileAddChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      borderRadius: BorderRadius.circular(AppRadius.buttonSmall),
+      borderRadius: BorderRadius.circular(UnifiedTokens.radiusSm),
       onTap: onTap,
       child: Container(
         width: 92,
-        padding: const EdgeInsets.all(AppSpacing.sm),
+        padding: EdgeInsets.all(UnifiedTokens.spaceSm),
         decoration: BoxDecoration(
-          border: Border.all(color: AppColors.dividerOf(context)),
-          borderRadius: BorderRadius.circular(AppRadius.buttonSmall),
+          border: Border.all(color: UnifiedColors.border),
+          borderRadius: BorderRadius.circular(UnifiedTokens.radiusSm),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               Icons.add_circle_outline_rounded,
-              color: AppColors.textSecondaryOf(context),
+              color: UnifiedColors.textCaption,
             ),
             const SizedBox(height: 4),
-            Text('추가', style: Theme.of(context).textTheme.bodySmall),
+            Text(
+              '추가',
+              style: UnifiedText.bodySmall(color: UnifiedColors.textSecondary),
+            ),
           ],
         ),
       ),
@@ -493,21 +508,24 @@ class _FieldTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      padding: EdgeInsets.only(bottom: UnifiedTokens.spaceSm),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.button),
+        borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
         child: Container(
-          padding: const EdgeInsets.all(AppSpacing.lg),
+          padding: EdgeInsets.all(UnifiedTokens.spaceXl),
           decoration: BoxDecoration(
-            border: Border.all(color: AppColors.divider),
-            borderRadius: BorderRadius.circular(AppRadius.button),
+            border: Border.all(color: UnifiedColors.border),
+            borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
           ),
           child: Row(
             children: [
-              Icon(icon, color: AppColors.primary),
-              const SizedBox(width: AppSpacing.md),
-              Text(label),
+              Icon(icon, color: UnifiedColors.textPrimary),
+              SizedBox(width: UnifiedTokens.spaceMd),
+              Text(
+                label,
+                style: UnifiedText.body(color: UnifiedColors.textPrimary),
+              ),
             ],
           ),
         ),

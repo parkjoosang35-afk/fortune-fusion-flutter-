@@ -61,11 +61,7 @@ class _DailyFortuneDetailScreenState extends State<DailyFortuneDetailScreen> {
                 heroCaption: '${today.date.month}월 ${today.date.day}일의 운세',
                 heroSummary: today.summaryText,
                 heroChips: [
-                  _luckyChip(
-                    Icons.palette_outlined,
-                    '행운의 색',
-                    today.luckyColor,
-                  ),
+                  _luckyChip(Icons.palette_outlined, '행운의 색', today.luckyColor),
                   _luckyChip(
                     Icons.pin_outlined,
                     '행운의 숫자',
@@ -145,7 +141,11 @@ class _DailyFortuneDetailScreenState extends State<DailyFortuneDetailScreen> {
       ),
       child: Row(
         children: [
-          Icon(icon, color: UnifiedColors.textSecondary, size: UnifiedTokens.iconMd),
+          Icon(
+            icon,
+            color: UnifiedColors.textSecondary,
+            size: UnifiedTokens.iconMd,
+          ),
           const SizedBox(width: UnifiedTokens.spaceXs),
           Expanded(
             child: Column(

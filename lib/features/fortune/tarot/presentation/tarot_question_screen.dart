@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_unified_style.dart';
 import '../application/tarot_provider.dart';
 
 /// 03단계 §3.3 / 07단계 - TarotQuestionScreen (입력형 패턴)
@@ -44,18 +43,20 @@ class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('AI 타로')),
+      backgroundColor: UnifiedColors.bg,
+      appBar: AppBar(
+        backgroundColor: UnifiedColors.bg,
+        elevation: 0,
+        title: Text('AI 타로', style: UnifiedText.titleLarge()),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.lg),
+          padding: EdgeInsets.all(UnifiedTokens.screenPadding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                '무엇이 궁금하신가요?',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: AppSpacing.sm),
+              Text('무엇이 궁금하신가요?', style: UnifiedText.title()),
+              SizedBox(height: UnifiedTokens.spaceSm),
               TextField(
                 controller: _questionController,
                 maxLines: 3,
@@ -63,23 +64,25 @@ class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
                   hintText: '궁금한 질문을 자유롭게 적어보세요',
                 ),
               ),
-              const SizedBox(height: AppSpacing.md),
+              SizedBox(height: UnifiedTokens.spaceMd),
               Wrap(
-                spacing: AppSpacing.sm,
-                runSpacing: AppSpacing.sm,
+                spacing: UnifiedTokens.spaceSm,
+                runSpacing: UnifiedTokens.spaceSm,
                 children: _presetQuestions
                     .map(
                       (q) => ActionChip(
-                        label: Text(q, style: const TextStyle(fontSize: 12)),
+                        label: Text(q, style: UnifiedText.chipLabel()),
+                        backgroundColor: UnifiedColors.chipInactiveBg,
+                        side: BorderSide.none,
                         onPressed: () =>
                             setState(() => _questionController.text = q),
                       ),
                     )
                     .toList(),
               ),
-              const SizedBox(height: AppSpacing.xl),
-              Text('스프레드 선택', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: AppSpacing.sm),
+              SizedBox(height: UnifiedTokens.spaceXl),
+              Text('스프레드 선택', style: UnifiedText.title()),
+              SizedBox(height: UnifiedTokens.spaceSm),
               Row(
                 children: [
                   Expanded(
@@ -91,7 +94,7 @@ class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
                       onTap: () => setState(() => _spreadType = 'one_card'),
                     ),
                   ),
-                  const SizedBox(width: AppSpacing.md),
+                  SizedBox(width: UnifiedTokens.spaceMd),
                   Expanded(
                     child: _SpreadOption(
                       icon: Icons.filter_3_rounded,
@@ -103,7 +106,7 @@ class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.xxl),
+              SizedBox(height: UnifiedTokens.spaceXxl),
               ElevatedButton(onPressed: _submit, child: const Text('카드 뽑기')),
             ],
           ),
@@ -131,23 +134,26 @@ class _SpreadOption extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      borderRadius: BorderRadius.circular(AppRadius.card),
+      borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(AppSpacing.lg),
+        padding: EdgeInsets.all(UnifiedTokens.spaceXl),
         decoration: BoxDecoration(
-          color: selected ? AppColors.primaryContainer : Colors.white,
+          color: selected ? UnifiedColors.cardAllMenu : UnifiedColors.bg,
           border: Border.all(
-            color: selected ? AppColors.primary : AppColors.divider,
+            color: selected ? UnifiedColors.black : UnifiedColors.border,
           ),
-          borderRadius: BorderRadius.circular(AppRadius.card),
+          borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
         ),
         child: Column(
           children: [
-            Icon(icon, color: AppColors.primary, size: 28),
-            const SizedBox(height: AppSpacing.sm),
-            Text(label, style: Theme.of(context).textTheme.titleMedium),
-            Text(desc, style: Theme.of(context).textTheme.bodySmall),
+            Icon(icon, color: UnifiedColors.textPrimary, size: 28),
+            SizedBox(height: UnifiedTokens.spaceSm),
+            Text(label, style: UnifiedText.bodyStrong()),
+            Text(
+              desc,
+              style: UnifiedText.bodySmall(color: UnifiedColors.textCaption),
+            ),
           ],
         ),
       ),

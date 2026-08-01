@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/app_bottom_sheet.dart';
 import '../../../core/widgets/app_empty_state.dart';
 import '../../../core/widgets/app_toast.dart';
@@ -76,7 +75,12 @@ class _CompatibilityHistoryScreenState
     final savedCount = history.where((r) => r.isSaved).length;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('궁합 보관함')),
+      backgroundColor: UnifiedColors.bg,
+      appBar: AppBar(
+        backgroundColor: UnifiedColors.bg,
+        elevation: 0,
+        title: Text('궁합 보관함', style: UnifiedText.titleLarge()),
+      ),
       body: SafeArea(
         child: history.isEmpty
             ? const AppEmptyState(
@@ -88,7 +92,7 @@ class _CompatibilityHistoryScreenState
                 onRefresh: () =>
                     context.read<CompatibilityProvider>().loadHistory(),
                 child: ListView.builder(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  padding: EdgeInsets.all(UnifiedTokens.screenPadding),
                   itemCount: history.length,
                   itemBuilder: (context, index) {
                     final item = history[index];
@@ -106,7 +110,7 @@ class _CompatibilityHistoryScreenState
       floatingActionButton: savedCount >= 2
           ? FloatingActionButton.extended(
               onPressed: _isComparing ? null : _openCompare,
-              backgroundColor: AppColors.primary,
+              backgroundColor: UnifiedColors.black,
               icon: _isComparing
                   ? const SizedBox(
                       width: 16,
@@ -144,14 +148,14 @@ class _HistoryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      padding: EdgeInsets.only(bottom: UnifiedTokens.spaceMd),
       child: Container(
-        padding: const EdgeInsets.all(AppSpacing.lg),
+        padding: EdgeInsets.all(UnifiedTokens.spaceXl),
         decoration: BoxDecoration(
-          color: Theme.of(context).cardTheme.color,
-          borderRadius: BorderRadius.circular(AppRadius.cardSmall),
+          color: UnifiedColors.cardSection,
+          borderRadius: BorderRadius.circular(UnifiedTokens.radiusSm),
           border: selected
-              ? Border.all(color: AppColors.primary, width: 1.5)
+              ? Border.all(color: UnifiedColors.black, width: 1.5)
               : null,
         ),
         child: Row(
@@ -159,12 +163,12 @@ class _HistoryTile extends StatelessWidget {
             if (onToggle != null)
               Checkbox(value: selected, onChanged: (_) => onToggle!())
             else
-              const SizedBox(
+              SizedBox(
                 width: 40,
                 child: Icon(
                   Icons.bookmark_border_rounded,
                   size: 18,
-                  color: AppColors.textHint,
+                  color: UnifiedColors.textCaption,
                 ),
               ),
             Expanded(
@@ -173,12 +177,14 @@ class _HistoryTile extends StatelessWidget {
                 children: [
                   Text(
                     '${result.nameA} ❤ ${result.nameB}',
-                    style: Theme.of(context).textTheme.titleMedium,
+                    style: UnifiedText.bodyStrong(),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     '${result.type.label} · ${result.createdAt.month}.${result.createdAt.day}',
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: UnifiedText.bodySmall(
+                      color: UnifiedColors.textCaption,
+                    ),
                   ),
                 ],
               ),
@@ -186,16 +192,12 @@ class _HistoryTile extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.primaryContainer,
-                borderRadius: BorderRadius.circular(AppRadius.full),
+                color: UnifiedColors.cardAllMenu,
+                borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
               ),
               child: Text(
                 '${result.score}점',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.primary,
-                ),
+                style: UnifiedText.chipLabel(color: UnifiedColors.textPrimary),
               ),
             ),
           ],
@@ -217,28 +219,30 @@ class _CompareTable extends StatelessWidget {
       scrollDirection: Axis.horizontal,
       child: DataTable(
         columns: [
-          const DataColumn(label: Text('항목')),
+          DataColumn(label: Text('항목', style: UnifiedText.bodyStrong())),
           ...targets.map(
-            (t) => DataColumn(label: Text('${t.nameA}❤${t.nameB}')),
+            (t) => DataColumn(
+              label: Text(
+                '${t.nameA}❤${t.nameB}',
+                style: UnifiedText.bodyStrong(),
+              ),
+            ),
           ),
         ],
         rows: rows
             .map(
               (row) => DataRow(
                 cells: [
-                  DataCell(
-                    Text(
-                      row.topic,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                  ),
+                  DataCell(Text(row.topic, style: UnifiedText.bodyStrong())),
                   ...targets.map(
                     (t) => DataCell(
                       SizedBox(
                         width: 160,
                         child: Text(
                           row.valueByResultId[t.id] ?? '-',
-                          style: const TextStyle(fontSize: 12),
+                          style: UnifiedText.caption(
+                            color: UnifiedColors.textSecondary,
+                          ),
                         ),
                       ),
                     ),
