@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../data/wallet_repository.dart';
 import '../domain/point_history_model.dart';
+import '../../../core/widgets/luck_pouch_toast.dart';
 
 /// 07단계 §2.1 전역 Provider - WalletProvider(잔액 캐시, 최근 트랜잭션)
 /// Phase2-1b: 04A §A-5 등급 배율(point_earn_multiplier)을 earn() 단일 지점에 적용.
@@ -36,22 +37,42 @@ class WalletProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> earn(int amount, String reason) async {
+  /// 복주머니(및 그 위임체인) 적립. [sourceType]은 백엔드 PointHistory.sourceType과
+  /// 동일한 값으로 전달하여 서버측 일일상한/활동점수 엔진이 올바르게 집계하도록 한다.
+  Future<void> earn(
+    int amount,
+    String reason, {
+    String sourceType = 'app',
+  }) async {
     final finalAmount = (amount * _multiplier).round();
     final appliedReason = _multiplier > 1.0
         ? '$reason (등급 $_multiplier배 적용)'
         : reason;
-    _balance = await _repository.earn(finalAmount, appliedReason);
+    _balance = await _repository.earn(
+      finalAmount,
+      appliedReason,
+      sourceType: sourceType,
+    );
     await load();
+    LuckPouchToastController.instance.showEarn(finalAmount, reason);
   }
 
-  Future<bool> spend(int amount, String reason) async {
-    final ok = await _repository.spend(amount, reason);
-    if (ok) await load();
+  Future<bool> spend(
+    int amount,
+    String reason, {
+    String sourceType = 'app',
+  }) async {
+    final ok = await _repository.spend(amount, reason, sourceType: sourceType);
+    if (ok) {
+      await load();
+      LuckPouchToastController.instance.showSpend(amount, reason);
+    } else {
+      LuckPouchToastController.instance.showInsufficient(reason: reason);
+    }
     return ok;
   }
 
-  /// [Phase22 - 행복머니 경제철학 이식] "복 나누기" — 성공 시 (환급액, 오늘 남은 송금가능액)을
+  /// [Phase22 - 복주머니 경제철학 이식] "복 나누기" — 성공 시 (환급액, 오늘 남은 송금가능액)을
   /// 반환하고, 실패 시 null을 반환한다(에러 메시지는 [lastSendError]로 확인).
   String? lastSendError;
 

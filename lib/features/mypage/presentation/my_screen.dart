@@ -1,5 +1,9 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/domain/assets/open_pass_state.dart';
 import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/premium_card.dart';
 import '../../../core/widgets/app_shortcut_row.dart';
@@ -9,10 +13,13 @@ import '../../pass/application/pass_provider.dart';
 import '../../wallet/application/wallet_provider.dart';
 import '../../subscription/application/subscription_provider.dart';
 import '../../community/presentation/community_hub_screen.dart';
-import '../../fortune/presentation/fortune_hub_screen.dart';
+import '../../pass/domain/pass_model.dart';
+import '../../pass/presentation/pass_gate_helper.dart';
+import '../../pass/presentation/pass_time_format.dart';
+import '../../../core/widgets/luck_pouch_toast.dart';
 
 /// [9단계 - 마이 탭 정리] MyScreen - 마이 탭
-/// 프로필+등급뱃지 + [열림패스/행복머니/구독 요약(3축 정책 한눈에 보기)]
+/// 프로필+등급뱃지 + [열림패스/복주머니/구독 요약(3축 정책 한눈에 보기)]
 /// + 아카이브(사주/타로/관상/손금/궁합 히스토리) + 커뮤니티(내 글·소원) + 설정
 ///
 /// [서브 디자인 통일 확산 프롬프트] §5 마이 탭 확산 규칙 적용. 기존 다크
@@ -33,9 +40,10 @@ class _MyScreenState extends State<MyScreen> {
   @override
   void initState() {
     super.initState();
-    // [9단계] 마이 탭 진입 시 열림패스/행복머니/구독 요약을 최신화한다.
+    // [9단계] 마이 탭 진입 시 열림패스/복주머니/구독 요약을 최신화한다.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<PassProvider>().load();
+      context.read<PassProvider>().loadPurchaseOptions();
       context.read<WalletProvider>().load();
       context.read<SubscriptionProvider>().loadMySubscription();
     });
@@ -125,22 +133,23 @@ class _MyScreenState extends State<MyScreen> {
             ),
             const SizedBox(height: UnifiedTokens.spaceXxl),
 
-            // [9단계] §1.5 열림패스/행복머니/구독 요약 - 3축 정책을 한 화면에서
+            // [9단계] §1.5 열림패스/복주머니/구독 요약 - 3축 정책을 한 화면에서
             // 확인할 수 있도록 마이 탭에 요약 카드 3개를 배치한다.
             const _SectionTitle(title: '내 혜택 요약'),
             const SizedBox(height: UnifiedTokens.spaceMd),
             _PassSummaryCard(
               pass: pass,
               isLoading: pass.isLoading,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const FortuneHubScreen()),
-              ),
+              onAcquireTap: () =>
+                  showPassRequiredSheet(context, categoryTitle: '마이페이지'),
+              onPurchaseTap: () => _showPurchaseWithLuckPouchSheet(context),
             ),
             const SizedBox(height: UnifiedTokens.spaceMd),
             _WalletSummaryCard(
               balance: wallet.balance,
               isLoading: wallet.isLoading,
               onTap: () => Navigator.of(context).pushNamed('/reward/wallet'),
+              onChargeTap: () => Navigator.of(context).pushNamed('/reward/wallet'),
             ),
             const SizedBox(height: UnifiedTokens.spaceMd),
             _SubscriptionSummaryCard(
@@ -195,6 +204,13 @@ class _MyScreenState extends State<MyScreen> {
                   onTap: () => Navigator.of(
                     context,
                   ).pushNamed('/ai-fortune/compatibility/history'),
+                ),
+                // [오늘의 운세 표준 플로우 §6] 저장한 운세 카드 기록 진입점
+                _ArchiveCard(
+                  icon: Icons.bookmark_outline_rounded,
+                  label: '내 운세 기록',
+                  onTap: () =>
+                      Navigator.of(context).pushNamed('/my/fortune-records'),
                 ),
               ],
             ),
@@ -273,6 +289,16 @@ class _MyScreenState extends State<MyScreen> {
               ),
               child: Text('로그아웃', style: UnifiedText.bodyStrong()),
             ),
+            // [열림패스/복주머니/복주머니 통합정책 §5/§7] "열림패스 테스트 모드
+            // 구현: 강제 ON/OFF, 만료 상태 테스트, 남은 시간 표시 테스트"에
+            // 대응하는 QA 전용 패널. 실 사용자에게는 노출되지 않도록
+            // kDebugMode로 가드한다(릴리즈 빌드에서는 완전히 제거됨).
+            if (kDebugMode) ...[
+              const SizedBox(height: UnifiedTokens.spaceXxl),
+              const _SectionTitle(title: '개발자 테스트'),
+              const SizedBox(height: UnifiedTokens.spaceMd),
+              const _OpenPassTestPanel(),
+            ],
           ],
         ),
       ),
@@ -286,65 +312,121 @@ class _PassSummaryCard extends StatelessWidget {
   const _PassSummaryCard({
     required this.pass,
     required this.isLoading,
-    required this.onTap,
+    required this.onAcquireTap,
+    required this.onPurchaseTap,
   });
 
   final PassProvider pass;
   final bool isLoading;
-  final VoidCallback onTap;
+  final VoidCallback onAcquireTap;
+  final VoidCallback onPurchaseTap;
 
-  String _formatRemaining(int sec) {
-    final m = sec ~/ 60;
-    final h = m ~/ 60;
-    if (h > 0) return '$h시간 ${m % 60}분';
-    return '$m분';
+  // [프리패스 단순화 - 쿠팡파트너스 전용] §6 — HH:MM:SS 형식으로 통일.
+  String _formatRemaining(int sec) => formatPassHms(Duration(seconds: sec));
+
+  String _formatExpiry(DateTime dt) {
+    return '${dt.month}월 ${dt.day}일 ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 
   @override
   Widget build(BuildContext context) {
+    // [재잠금 정확도] pass.status(서버 스냅샷) 대신 OpenPassState.fromModel의
+    // 실시간 계산값을 사용해 만료 시점 이후 즉시 잠금 상태로 반영된다.
+    final liveState = OpenPassState.fromModel(pass.status);
     final status = pass.status;
+    final isActive = liveState.isActive;
+    final remainingSec = liveState.remaining.inSeconds;
     return PremiumCard(
       backgroundColor: UnifiedColors.cardAllMenu,
       borderColor: Colors.transparent,
       showShadow: false,
       borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
       padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
-      onTap: onTap,
-      child: AppShortcutRow(
-        emoji: '🔔',
-        accentColor: UnifiedColors.textPrimary,
-        icon: Icons.lock_clock_outlined,
-        iconColor: UnifiedColors.textPrimary,
-        circleColor: UnifiedColors.bg,
-        circleSize: UnifiedTokens.iconCircleLg,
-        spacing: UnifiedTokens.spaceMd,
-        titleStyle: UnifiedText.bodyStrong(),
-        subtitleStyle: UnifiedText.caption(),
-        arrowColor: UnifiedColors.textCaption,
-        arrowSize: UnifiedTokens.iconMd,
-        title: '열림패스',
-        subtitle: isLoading
-            ? '불러오는 중...'
-            : status.isActive
-            ? '남은 시간 ${_formatRemaining(status.remainingSec)}'
-            : '보유한 열림패스가 없어요',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppShortcutRow(
+            emoji: '🔔',
+            accentColor: UnifiedColors.textPrimary,
+            icon: Icons.lock_clock_outlined,
+            iconColor: UnifiedColors.textPrimary,
+            circleColor: UnifiedColors.bg,
+            circleSize: UnifiedTokens.iconCircleLg,
+            spacing: UnifiedTokens.spaceMd,
+            titleStyle: UnifiedText.bodyStrong(),
+            subtitleStyle: UnifiedText.caption(),
+            arrowColor: UnifiedColors.textCaption,
+            arrowSize: UnifiedTokens.iconMd,
+            title: '프리패스',
+            subtitle: isLoading
+                ? '불러오는 중...'
+                : isActive
+                ? '남은 시간 ${_formatRemaining(remainingSec)}'
+                : '보유한 프리패스가 없어요',
+          ),
+          const SizedBox(height: UnifiedTokens.spaceMd),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: onAcquireTap,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: UnifiedColors.textPrimary,
+                    side: const BorderSide(color: UnifiedColors.border),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        UnifiedTokens.radiusPill,
+                      ),
+                    ),
+                  ),
+                  child: const Text('획득방법 · 광고로 열기'),
+                ),
+              ),
+              const SizedBox(width: UnifiedTokens.spaceSm),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: onPurchaseTap,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: UnifiedColors.textPrimary,
+                    side: const BorderSide(color: UnifiedColors.border),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        UnifiedTokens.radiusPill,
+                      ),
+                    ),
+                  ),
+                  child: const Text('복주머니로 구매'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: UnifiedTokens.spaceSm),
+          Text(
+            isActive && status.expiresAt != null
+                ? '만료 예정: ${_formatExpiry(status.expiresAt!)}'
+                : '프리패스는 시간제 이용권이에요. 만료 후에는 다시 발급받아야 해요.',
+            style: UnifiedText.caption(),
+          ),
+        ],
       ),
     );
   }
 }
 
-/// [9단계] §1.5 행복머니 요약 카드 - 현재 잔액을 한눈에 보여준다.
-/// [서브 디자인 통일 확산 프롬프트] §5 "행복머니 요약은 잔액 + 짧은 안내".
+/// [9단계] §1.5 복주머니 요약 카드 - 현재 잔액을 한눈에 보여준다.
+/// [서브 디자인 통일 확산 프롬프트] §5 "복주머니 요약은 잔액 + 짧은 안내".
 class _WalletSummaryCard extends StatelessWidget {
   const _WalletSummaryCard({
     required this.balance,
     required this.isLoading,
     required this.onTap,
+    required this.onChargeTap,
   });
 
   final int balance;
   final bool isLoading;
   final VoidCallback onTap;
+  final VoidCallback onChargeTap;
 
   String _formatBalance(int value) {
     final str = value.toString();
@@ -364,23 +446,188 @@ class _WalletSummaryCard extends StatelessWidget {
       showShadow: false,
       borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
       padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
-      onTap: onTap,
-      child: AppShortcutRow(
-        emoji: '🍀',
-        accentColor: UnifiedColors.textPrimary,
-        icon: Icons.eco_outlined,
-        iconColor: UnifiedColors.textPrimary,
-        circleColor: UnifiedColors.bg,
-        circleSize: UnifiedTokens.iconCircleLg,
-        spacing: UnifiedTokens.spaceMd,
-        titleStyle: UnifiedText.bodyStrong(),
-        subtitleStyle: UnifiedText.caption(),
-        arrowColor: UnifiedColors.textCaption,
-        arrowSize: UnifiedTokens.iconMd,
-        title: '행복머니',
-        subtitle: isLoading ? '불러오는 중...' : '${_formatBalance(balance)} P 보유 중',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppShortcutRow(
+            emoji: '🍀',
+            accentColor: UnifiedColors.textPrimary,
+            icon: Icons.eco_outlined,
+            iconColor: UnifiedColors.textPrimary,
+            circleColor: UnifiedColors.bg,
+            circleSize: UnifiedTokens.iconCircleLg,
+            spacing: UnifiedTokens.spaceMd,
+            titleStyle: UnifiedText.bodyStrong(),
+            subtitleStyle: UnifiedText.caption(),
+            arrowColor: UnifiedColors.textCaption,
+            arrowSize: UnifiedTokens.iconMd,
+            title: '복주머니',
+            subtitle: isLoading
+                ? '불러오는 중...'
+                : '${_formatBalance(balance)}개 보유 중',
+          ),
+          const SizedBox(height: UnifiedTokens.spaceMd),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: onChargeTap,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: UnifiedColors.textPrimary,
+                    side: const BorderSide(color: UnifiedColors.border),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        UnifiedTokens.radiusPill,
+                      ),
+                    ),
+                  ),
+                  child: const Text('충전'),
+                ),
+              ),
+              const SizedBox(width: UnifiedTokens.spaceSm),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: onTap,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: UnifiedColors.textPrimary,
+                    side: const BorderSide(color: UnifiedColors.border),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        UnifiedTokens.radiusPill,
+                      ),
+                    ),
+                  ),
+                  child: const Text('내역'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: UnifiedTokens.spaceSm),
+          Text(
+            '출석, 커뮤니티 활동, 운세 이용 등으로 모을 수 있어요.',
+            style: UnifiedText.caption(),
+          ),
+        ],
       ),
     );
+  }
+}
+
+/// [재화 구조 정리] "복주머니로 구매" 바텀시트 — 프리패스 구매 옵션 목록을 보여주고
+/// 선택 시 확인 다이얼로그 → 실제 구매 API 호출 → 지갑 갱신 + 토스트까지 처리한다.
+void _showPurchaseWithLuckPouchSheet(BuildContext context) {
+  final pass = context.read<PassProvider>();
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: UnifiedColors.bg,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(UnifiedTokens.radiusLg),
+      ),
+    ),
+    builder: (sheetContext) {
+      return AnimatedBuilder(
+        animation: pass,
+        builder: (context, _) {
+          final options = pass.purchaseOptions;
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(UnifiedTokens.spaceXl),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('복주머니로 프리패스 구매', style: UnifiedText.bodyStrong()),
+                  const SizedBox(height: UnifiedTokens.spaceMd),
+                  if (pass.isPurchaseLoading)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(
+                        vertical: UnifiedTokens.spaceXl,
+                      ),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (options.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: UnifiedTokens.spaceXl,
+                      ),
+                      child: Text(
+                        '지금은 구매 가능한 프리패스 옵션이 없어요.',
+                        style: UnifiedText.caption(),
+                      ),
+                    )
+                  else
+                    ...options.map(
+                      (opt) => Padding(
+                        padding: const EdgeInsets.only(
+                          bottom: UnifiedTokens.spaceSm,
+                        ),
+                        child: OutlinedButton(
+                          onPressed: () =>
+                              _confirmAndPurchasePass(context, opt),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: UnifiedColors.textPrimary,
+                            side: const BorderSide(color: UnifiedColors.border),
+                            minimumSize: const Size.fromHeight(48),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                UnifiedTokens.radiusMd,
+                              ),
+                            ),
+                          ),
+                          child: Text('${opt.name} · 복주머니 ${opt.luckPouchPrice}개'),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    },
+  );
+}
+
+Future<void> _confirmAndPurchasePass(
+  BuildContext context,
+  PassPurchaseOptionModel option,
+) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('프리패스 구매'),
+      content: Text('복주머니 ${option.luckPouchPrice}개로 ${option.name}을 구매할까요?'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          child: const Text('취소'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          child: const Text('구매'),
+        ),
+      ],
+    ),
+  );
+  if (confirmed != true) return;
+
+  final pass = context.read<PassProvider>();
+  final wallet = context.read<WalletProvider>();
+  final ok = await pass.purchaseWithLuckPouch(policyId: option.id);
+  if (ok) {
+    await wallet.load();
+    LuckPouchToastController.instance.showSpend(
+      option.luckPouchPrice,
+      '${option.name} 구매',
+    );
+    if (context.mounted) Navigator.of(context).pop();
+  } else {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(pass.lastError ?? '프리패스 구매에 실패했어요.')),
+      );
+    }
   }
 }
 
@@ -424,7 +671,7 @@ class _SubscriptionSummaryCard extends StatelessWidget {
             ? '불러오는 중...'
             : isActive
             ? '${my?.plan.name ?? '프리미엄'} 구독 중'
-            : '구독하고 열림패스·행복머니 혜택 받기',
+            : '구독하고 프리패스·복주머니 혜택 받기',
       ),
     );
   }
@@ -601,6 +848,160 @@ class _MenuRow extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// [열림패스/복주머니/복주머니 통합정책 §5/§7] 열림패스 테스트 모드 패널.
+/// 실 서버 호출 없이 PassProvider.debugForceState()로 강제 ON/OFF/만료
+/// 상태를 만들고, 1초마다 남은 시간을 갱신해 카운트다운을 눈으로 QA할 수
+/// 있게 한다. kDebugMode 빌드에서만 마이페이지에 노출된다.
+class _OpenPassTestPanel extends StatefulWidget {
+  const _OpenPassTestPanel();
+
+  @override
+  State<_OpenPassTestPanel> createState() => _OpenPassTestPanelState();
+}
+
+class _OpenPassTestPanelState extends State<_OpenPassTestPanel> {
+  Timer? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    // 남은 시간 라벨이 실시간으로 줄어드는 것을 QA 화면에서 바로 확인할 수
+    // 있도록 1초마다 rebuild한다(PassProvider 자체 상태는 그대로).
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  String _statusLabel(OpenPassStatus status) => switch (status) {
+    OpenPassStatus.inactive => '비활성(inactive)',
+    OpenPassStatus.active => '활성(active)',
+    OpenPassStatus.expired => '만료(expired)',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final pass = context.watch<PassProvider>();
+    final state = pass.openPassState;
+
+    return PremiumCard(
+      backgroundColor: UnifiedColors.cardSection,
+      borderColor: Colors.transparent,
+      showShadow: false,
+      borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
+      padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.science_outlined,
+                size: UnifiedTokens.iconMd,
+                color: UnifiedColors.textSecondary,
+              ),
+              const SizedBox(width: UnifiedTokens.spaceSm),
+              Text('프리패스 테스트 모드', style: UnifiedText.title()),
+              if (pass.isDebugOverrideActive) ...[
+                const SizedBox(width: UnifiedTokens.spaceSm),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: UnifiedTokens.spaceSm,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: UnifiedColors.neon,
+                    borderRadius: BorderRadius.circular(
+                      UnifiedTokens.radiusPill,
+                    ),
+                  ),
+                  child: Text(
+                    'TEST',
+                    style: UnifiedText.caption(color: UnifiedColors.textPrimary),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: UnifiedTokens.spaceSm),
+          Text(
+            '상태: ${_statusLabel(state.status)}'
+            '${state.remainingLabel != null ? ' · ${state.remainingLabel}' : ''}',
+            style: UnifiedText.body(),
+          ),
+          const SizedBox(height: UnifiedTokens.spaceMd),
+          Wrap(
+            spacing: UnifiedTokens.spaceSm,
+            runSpacing: UnifiedTokens.spaceSm,
+            children: [
+              _TestButton(
+                label: '강제 ON(60분)',
+                onTap: () => pass.debugForceState(
+                  OpenPassStatus.active,
+                  remaining: const Duration(minutes: 60),
+                ),
+              ),
+              _TestButton(
+                label: '강제 ON(2분)',
+                onTap: () => pass.debugForceState(
+                  OpenPassStatus.active,
+                  remaining: const Duration(minutes: 2),
+                ),
+              ),
+              _TestButton(
+                label: '강제 OFF',
+                onTap: () => pass.debugForceState(OpenPassStatus.inactive),
+              ),
+              _TestButton(
+                label: '강제 만료',
+                onTap: () => pass.debugForceState(OpenPassStatus.expired),
+              ),
+              _TestButton(
+                label: '테스트 해제(실서버)',
+                onTap: () {
+                  pass.clearDebugOverride();
+                  pass.load();
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TestButton extends StatelessWidget {
+  const _TestButton({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton(
+      onPressed: onTap,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: UnifiedColors.textPrimary,
+        side: const BorderSide(color: UnifiedColors.border),
+        padding: const EdgeInsets.symmetric(
+          horizontal: UnifiedTokens.spaceMd,
+          vertical: UnifiedTokens.spaceSm,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
+        ),
+      ),
+      child: Text(label, style: UnifiedText.caption()),
     );
   }
 }

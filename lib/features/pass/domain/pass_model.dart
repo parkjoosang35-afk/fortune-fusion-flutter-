@@ -30,6 +30,19 @@ class PassPolicyModel {
   final String? bannerImageUrl;
   final String? linkUrl;
   final int bonusPoint;
+  // [재화 구조 정리] 복주머니로 직접 구매 시 가격(null=복주머니 구매 불가 정책).
+  // 백엔드 JSON 키는 과거 명칭 그대로 happyMoneyPrice이나, 재화 구조 정리 이후
+  // 의미상 복주머니 가격이므로 Dart 필드명은 luckPouchPrice로 둔다.
+  final int? luckPouchPrice;
+
+  // [프리패스 단순화 - 쿠팡파트너스 전용] §1/§2/§9
+  // CMS 쿠팡파트너스 배너(positionCode='open_pass')에서 병합되어 내려오는
+  // 값들. adType='script'면 [bannerImageUrl] 대신 [adScript](쿠팡파트너스
+  // 원본 iframe/script)를 렌더링해야 한다. adWaitSeconds는 관리자가 설정한
+  // "광고 확인 대기시간"(4/5/10초)으로, 쿠팡 방문 후 자동지급 전 대기하는 초.
+  final String adType; // 'image' | 'script'
+  final String? adScript;
+  final int adWaitSeconds;
 
   const PassPolicyModel({
     required this.id,
@@ -41,6 +54,10 @@ class PassPolicyModel {
     this.bannerImageUrl,
     this.linkUrl,
     this.bonusPoint = 0,
+    this.luckPouchPrice,
+    this.adType = 'image',
+    this.adScript,
+    this.adWaitSeconds = 5,
   });
 
   factory PassPolicyModel.fromJson(Map<String, dynamic> json) {
@@ -54,6 +71,39 @@ class PassPolicyModel {
       bannerImageUrl: json['bannerImageUrl'] as String?,
       linkUrl: json['linkUrl'] as String?,
       bonusPoint: json['bonusPoint'] as int? ?? 0,
+      luckPouchPrice: json['happyMoneyPrice'] as int?,
+      adType: json['adType'] as String? ?? 'image',
+      adScript: json['adScript'] as String?,
+      adWaitSeconds: json['adWaitSeconds'] as int? ?? 5,
+    );
+  }
+}
+
+/// GET /api/public/pass/purchase-options 대응 — "복주머니로 구매" 가능한 프리패스
+/// 옵션 목록(마이페이지 프리패스 영역에서 사용). [복주머니 사용 구간표]
+/// 프리패스30분-30 / 1시간-50 / 24시간-150.
+class PassPurchaseOptionModel {
+  final int id;
+  final String name;
+  final int durationMin;
+  final int luckPouchPrice;
+  final String? description;
+
+  const PassPurchaseOptionModel({
+    required this.id,
+    required this.name,
+    required this.durationMin,
+    required this.luckPouchPrice,
+    this.description,
+  });
+
+  factory PassPurchaseOptionModel.fromJson(Map<String, dynamic> json) {
+    return PassPurchaseOptionModel(
+      id: json['id'] as int,
+      name: json['name'] as String,
+      durationMin: json['durationMin'] as int? ?? 0,
+      luckPouchPrice: json['happyMoneyPrice'] as int? ?? 0,
+      description: json['description'] as String?,
     );
   }
 }

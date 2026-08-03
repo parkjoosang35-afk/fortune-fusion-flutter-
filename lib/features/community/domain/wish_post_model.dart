@@ -22,14 +22,21 @@ class WishPostModel {
   final String? goalTag;
 
   // [소원성(Wish Castle) 확장] 촛불 성장 시스템 필드 - 기존 support_count(단순 응원
-  // on/off)와는 완전히 별개의 신규 필드다. bokjuCount(행복머니)는 실제 재화/지갑
-  // 이동이 전혀 없는 상징적 응원 단위이며, candleLevel(0~4)은 서버가 bokjuCount와
-  // wish_config 임계값을 기준으로 계산해 캐시해둔 값을 그대로 내려받는다.
+  // on/off)와는 완전히 별개의 신규 필드다. [재화 구조 정리 - 재연결] bokjuCount는
+  // 사용자가 실제 지갑에서 차감하며 보낸 복주머니 누적 개수이며, candleLevel(0~4)은
+  // 서버가 bokjuCount와 wish_config 임계값을 기준으로 계산해 캐시해둔 값을 그대로 내려받는다.
   // 하위호환을 위해 전부 기본값을 둔다(과거 API 응답/Mock 데이터에 필드가 없어도 동작).
   final int candleLevel;
   final int bokjuCount;
   final DateTime? achievedAt;
   final bool isMilestoneShown;
+
+  // [재화 구조 정리 - 재연결] 글 강조(highlight)/노출 강화(expose_boost) 상태.
+  // 서버(GET /api/public/wishes)가 만료 여부까지 계산해 isHighlighted/isBoosted로
+  // 내려주므로, 클라이언트는 별도 시간 계산 없이 그대로 신뢰해 표시만 하면 된다.
+  final bool isHighlighted;
+  final DateTime? highlightedUntil;
+  final bool isBoosted;
 
   const WishPostModel({
     required this.id,
@@ -47,6 +54,9 @@ class WishPostModel {
     this.bokjuCount = 0,
     this.achievedAt,
     this.isMilestoneShown = false,
+    this.isHighlighted = false,
+    this.highlightedUntil,
+    this.isBoosted = false,
   });
 
   /// 기존 화면(community_screen.dart)에서 사용 중인 명칭과의 호환을 위한 별칭
@@ -66,6 +76,9 @@ class WishPostModel {
     int? bokjuCount,
     DateTime? achievedAt,
     bool? isMilestoneShown,
+    bool? isHighlighted,
+    DateTime? highlightedUntil,
+    bool? isBoosted,
   }) {
     return WishPostModel(
       id: id,
@@ -83,6 +96,9 @@ class WishPostModel {
       bokjuCount: bokjuCount ?? this.bokjuCount,
       achievedAt: achievedAt ?? this.achievedAt,
       isMilestoneShown: isMilestoneShown ?? this.isMilestoneShown,
+      isHighlighted: isHighlighted ?? this.isHighlighted,
+      highlightedUntil: highlightedUntil ?? this.highlightedUntil,
+      isBoosted: isBoosted ?? this.isBoosted,
     );
   }
 }
@@ -137,13 +153,32 @@ class WishCommentModel {
   final String content;
   final DateTime createdAt;
 
+  // [재화 구조 정리 - 재연결] 댓글 응원(cheer)/공감(empathize) 누적치.
+  // 복주머니를 소비하는 유료 반응이며, "행운 보내기"(support, 무료 토글)와는 별개다.
+  final int cheerCount;
+  final int empathizeCount;
+
   const WishCommentModel({
     required this.id,
     required this.wishId,
     required this.authorNickname,
     required this.content,
     required this.createdAt,
+    this.cheerCount = 0,
+    this.empathizeCount = 0,
   });
+
+  WishCommentModel copyWith({int? cheerCount, int? empathizeCount}) {
+    return WishCommentModel(
+      id: id,
+      wishId: wishId,
+      authorNickname: authorNickname,
+      content: content,
+      createdAt: createdAt,
+      cheerCount: cheerCount ?? this.cheerCount,
+      empathizeCount: empathizeCount ?? this.empathizeCount,
+    );
+  }
 }
 
 /// 소원게시판 피드 탭 상태 - 03§7.7 [전체/인기/내소원] 탭 대응

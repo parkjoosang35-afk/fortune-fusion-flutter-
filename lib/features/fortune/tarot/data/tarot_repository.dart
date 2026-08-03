@@ -38,6 +38,14 @@ class TarotRepository {
     String topic = 'general',
   }) => _draw(question: question, spreadType: 'three_card', topic: topic);
 
+  /// [운세 카테고리 확장] 타로 YES/NO 스프레드(1장 뽑아 방향으로 답변).
+  /// 기존 [drawOneCard]/[drawThreeCards]와 동일한 `_draw` 경로를 공유하며,
+  /// `spreadType: 'yes_no'`만 서버에 추가로 전달한다(하위 호환, 추가 방식).
+  Future<ApiResult<TarotResultModel>> drawYesNo({
+    required String question,
+    String topic = 'general',
+  }) => _draw(question: question, spreadType: 'yes_no', topic: topic);
+
   Future<ApiResult<TarotResultModel>> _draw({
     required String question,
     required String spreadType,
@@ -102,6 +110,7 @@ class TarotRepository {
         summary: data['summary'] as String,
         createdAt: DateTime.parse(data['createdAt'] as String),
         topic: data['topic'] as String? ?? 'general',
+        answer: data['answer'] as String?,
       );
 
       _history.insert(0, result);
@@ -113,10 +122,59 @@ class TarotRepository {
     }
   }
 
+  /// [남은 미세조정] `GET /api/public/fortune/tarot/history`가 신설되어,
+  /// 궁합(CompatibilityRepository.getHistory())과 동일한 패턴으로 서버
+  /// 영속 이력을 조회한다. 서버 조회에 실패해도(오프라인 등) 이번 세션에서
+  /// 누적된 로컬 결과는 그대로 보여줄 수 있도록 폴백을 유지한다.
   Future<ApiResult<List<TarotResultModel>>> getHistory() async {
-    // [Phase6 범위] 히스토리 조회 API는 아직 신설하지 않아, 이번 요청으로
-    // 새로 생성된 결과들을 로컬에 누적해두고 그대로 반환한다(범위 밖: 서버 영속 조회).
-    return ApiResult.ok(List.unmodifiable(_history));
+    try {
+      final userId = await AuthTokenStore.getCurrentUserId();
+      final uri = Uri.parse(
+        '${EnvConfig.adminApiBaseUrl}/api/public/fortune/tarot/history?userId=$userId',
+      );
+      final response = await http.get(uri).timeout(const Duration(seconds: 15));
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        debugPrint('[TarotRepository] [getHistory] 서버 조회 실패, 로컬로 폴백');
+        return ApiResult.ok(List.unmodifiable(_history));
+      }
+
+      final list = (decoded['data'] as List<dynamic>).map((e) {
+        final item = e as Map<String, dynamic>;
+        final positionsRaw = item['positions'] as List<dynamic>;
+        final positions = positionsRaw.map((p) {
+          final pos = p as Map<String, dynamic>;
+          final cardRaw = pos['card'] as Map<String, dynamic>;
+          final card = TarotCard(
+            id: cardRaw['id'] as String,
+            name: cardRaw['name'] as String,
+            nameKr: cardRaw['nameKr'] as String,
+            isReversed: cardRaw['isReversed'] as bool,
+          );
+          return TarotSpreadPosition(
+            label: pos['label'] as String,
+            card: card,
+            interpretation: pos['interpretation'] as String,
+          );
+        }).toList();
+
+        return TarotResultModel(
+          id: item['id'] as String,
+          question: item['question'] as String,
+          spreadType: item['spreadType'] as String,
+          positions: positions,
+          summary: item['summary'] as String,
+          createdAt: DateTime.parse(item['createdAt'] as String),
+          topic: item['topic'] as String? ?? 'general',
+          answer: item['answer'] as String?,
+        );
+      }).toList();
+
+      return ApiResult.ok(list);
+    } catch (e) {
+      debugPrint('[TarotRepository] [getHistory] 예외 -> $e, 로컬로 폴백');
+      return ApiResult.ok(List.unmodifiable(_history));
+    }
   }
 
   /// 07단계(추가) §3.6 - 78장 풀덱 메타데이터(화면 표시/카드 아이콘 조회용).

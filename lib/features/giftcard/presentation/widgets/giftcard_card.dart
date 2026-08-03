@@ -84,7 +84,7 @@ class GiftcardCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            '${product.requiredPoint}P',
+            '${product.requiredPoint}개',
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,

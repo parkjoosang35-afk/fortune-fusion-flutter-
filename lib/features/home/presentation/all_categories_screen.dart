@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/domain/access/access_checker.dart';
 import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/premium_card.dart';
 import '../../../core/widgets/premium_button.dart';
@@ -13,12 +15,15 @@ import '../../wallet/application/wallet_provider.dart';
 import '../../community/presentation/community_screen.dart';
 import '../../community/presentation/community_hub_screen.dart';
 import '../../community/presentation/widgets/wish_hall_of_fame_sheet.dart';
+import '../../wishroom/presentation/wish_room_main_screen.dart';
+import '../application/fortune_category_provider.dart';
+import '../domain/fortune_category_model.dart';
 
 /// [전체보기 카테고리 허브] Fortune Fusion(신통방통) 앱 전체 카테고리를 한 화면에서
 /// 파악·탐색할 수 있게 만드는 허브 페이지.
 ///
 /// 점신류 앱의 "카테고리 풍부함"을 벤치마킹하되 그대로 베끼지 않고, 우리 서비스
-/// 구조(열림패스/행복머니/부적/소원게시판·소원방/AI상담/커뮤니티)에 맞춰 재구성한다.
+/// 구조(열림패스/복주머니/부적/소원게시판·소원방/AI상담/커뮤니티)에 맞춰 재구성한다.
 /// 화면 순서: ①헤더 ②오늘 추천 ③대표카테고리4개 ④전체 8개 그룹 ⑤빠른진입
 /// ⑥열림패스 상태 ⑦하단 연결 CTA.
 ///
@@ -42,6 +47,11 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<PassProvider>().load();
       context.read<WalletProvider>().load();
+      // [운세 카테고리 확장] 관리자(FortuneCategory/FortuneCategoryGroup)가
+      // 설정한 그룹/정렬/노출 데이터를 로드한다. 실패하거나 아직 로딩 중이면
+      // 기존 정적 _categoryGroups로 그대로 폴백되어(_resolveCategoryGroups)
+      // 화면 동작에는 영향이 없다.
+      context.read<FortuneCategoryProvider>().load();
     });
   }
 
@@ -59,19 +69,162 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
       return;
     }
     if (requiresPass) setState(() => _checking = true);
+    // [운세 카테고리 확장 - 딥링크] 관리자 카테고리(오행 재물운/타로 YES·NO
+    // 등)를 탭한 경우, saju/tarot 공용 입력화면에 미리 선택된 토픽/스프레드를
+    // 넘겨준다. 매칭되는 관리자 카테고리가 없으면(기존 정적 항목) null이라
+    // 기존 동작과 완전히 동일하다.
+    final arguments = _resolveDeepLinkArguments(
+      context,
+      label: label,
+      route: route,
+    );
     await navigateWithPassGate(
       context,
       title: label,
       route: route,
       requiresPass: requiresPass,
+      arguments: arguments,
     );
     if (mounted && requiresPass) setState(() => _checking = false);
+  }
+
+  /// [운세 카테고리 확장 - 딥링크] categoryKey → saju 초기 토픽 매핑.
+  /// 매핑되지 않은 categoryKey(예: 종합 'saju')는 null을 반환해 기존
+  /// 기본 동작('종합' 선택)을 그대로 유지한다.
+  static const Map<String, String> _sajuTopicByCategoryKey = {
+    'saju_wealth': '재물',
+    'saju_career': '직업',
+    'saju_love': '애정',
+    'saju_health': '건강',
+    'saju_monthly': '월별',
+  };
+
+  /// [운세 카테고리 확장 - 딥링크] categoryKey → tarot 초기 스프레드/토픽 매핑.
+  static const Map<String, ({String? spreadType, String? topic})>
+  _tarotDeepLinkByCategoryKey = {
+    'tarot_yesno': (spreadType: 'yes_no', topic: null),
+    'tarot_love': (spreadType: null, topic: 'love'),
+  };
+
+  /// 탭한 항목의 [label]을 관리자(FortuneCategoryProvider) 카테고리 목록에서
+  /// 역매칭해 categoryKey를 찾고, saju/tarot 입력화면에 전달할 초기값 Map을
+  /// 만든다. 정적 placeholder 항목(관리자 데이터에 없는 label)이거나 대상
+  /// 라우트가 아니면 null → 기존 화면 기본 동작 그대로.
+  Object? _resolveDeepLinkArguments(
+    BuildContext context, {
+    required String label,
+    required String route,
+  }) {
+    if (route != '/ai-fortune/saju/input' &&
+        route != '/ai-fortune/tarot/question') {
+      return null;
+    }
+    final groups = context.read<FortuneCategoryProvider>().groups;
+    String? categoryKey;
+    for (final g in groups) {
+      for (final c in g.categories) {
+        if (c.title == label) {
+          categoryKey = c.categoryKey;
+          break;
+        }
+      }
+      if (categoryKey != null) break;
+    }
+    if (categoryKey == null) return null;
+
+    if (route == '/ai-fortune/saju/input') {
+      final topic = _sajuTopicByCategoryKey[categoryKey];
+      if (topic == null) return null;
+      return {
+        'initialTopics': [topic],
+      };
+    }
+
+    final cfg = _tarotDeepLinkByCategoryKey[categoryKey];
+    if (cfg == null) return null;
+    return {
+      if (cfg.spreadType != null) 'initialSpreadType': cfg.spreadType,
+      if (cfg.topic != null) 'initialTopic': cfg.topic,
+    };
+  }
+
+  /// [운세 카테고리 확장] 정적 그룹(_categoryGroups)의 [title] ↔ 관리자
+  /// FortuneCategoryGroup.code 매핑. 15개 신규 카테고리는 모두 이 7개 그룹
+  /// 중 하나에 속한다. "테마 운세"에는 이름 운세(성명학, name_theme)를,
+  /// "상담/해석"에는 AI상담(consultation_ext)을 병합한다 — 제목이 기존
+  /// 정적 항목("AI 상담")과 겹치면 [_resolveCategoryGroups]가 중복을 자동
+  /// 제거하므로 안전하다.
+  /// [남은 미세조정] "행운/정화"는 이미 동작하는 화면(부적 상점/부적
+  /// 만들기)이지만 관리자 스키마 밖에 있었다 — 새 화면을 만들지 않고
+  /// `luck_purify` 그룹으로 admin-manageable화했으므로 매핑을 추가한다.
+  static const Map<String, String> _groupCodeByTitle = {
+    '오늘/기간 운세': 'today',
+    '사주': 'saju',
+    '궁합': 'compatibility_relation',
+    '타로': 'tarot',
+    '얼굴/손금': 'face_palm',
+    '테마 운세': 'name_theme',
+    '상담/해석': 'consultation_ext',
+    '행운/정화': 'luck_purify',
+  };
+
+  /// 관리자 데이터를 기존 정적 그룹 구조([_categoryGroups]와 동일한 레코드
+  /// 타입)로 병합한다.
+  /// - 매핑되는 그룹: 관리자 카테고리(활성+노출, displayOrder 정렬)를 앞에
+  ///   배치하고, 아직 상세 화면이 없는 기존 정적 placeholder 항목(예:
+  ///   "만세력", "대운/세운")은 라벨이 중복되지 않는 한 뒤에 그대로 유지한다.
+  /// - 매핑되지 않는 그룹은 정적 데이터를 그대로 둔다.
+  /// - 관리자 데이터 로딩 실패/로딩 중/데이터 없음이면 전체를 기존 정적
+  ///   [_categoryGroups]로 폴백한다(레이아웃/문구 100% 기존 유지).
+  List<
+    ({
+      IconData icon,
+      String title,
+      String desc,
+      List<({String label, String? route, bool pass})> items,
+    })
+  >
+  _resolveCategoryGroups(FortuneCategoryProvider provider) {
+    if (!provider.state.isSuccess || provider.groups.isEmpty) {
+      return _categoryGroups;
+    }
+    final byCode = <String, FortuneCategoryGroupData>{
+      for (final g in provider.groups) g.code: g,
+    };
+
+    return _categoryGroups.map((staticGroup) {
+      final code = _groupCodeByTitle[staticGroup.title];
+      final adminGroup = code == null ? null : byCode[code];
+      if (adminGroup == null || adminGroup.categories.isEmpty) {
+        return staticGroup;
+      }
+
+      final adminItems = adminGroup.categories
+          .map((c) => (label: c.title, route: c.route, pass: c.requiresPass))
+          .toList();
+      final adminLabels = adminItems.map((e) => e.label).toSet();
+      final remainingStaticItems = staticGroup.items
+          .where((e) => !adminLabels.contains(e.label))
+          .toList();
+
+      return (
+        icon: staticGroup.icon,
+        title: adminGroup.label,
+        desc: adminGroup.description?.isNotEmpty == true
+            ? adminGroup.description!
+            : staticGroup.desc,
+        items: [...adminItems, ...remainingStaticItems],
+      );
+    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
     final pass = context.watch<PassProvider>();
     final wallet = context.watch<WalletProvider>();
+    final categoryGroups = _resolveCategoryGroups(
+      context.watch<FortuneCategoryProvider>(),
+    );
 
     return Scaffold(
       backgroundColor: UnifiedColors.bg,
@@ -130,8 +283,8 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
               ),
             ),
             const SizedBox(height: UnifiedTokens.spaceMd),
-            ...List.generate(_categoryGroups.length, (index) {
-              final group = _categoryGroups[index];
+            ...List.generate(categoryGroups.length, (index) {
+              final group = categoryGroups[index];
               return Padding(
                 padding: const EdgeInsets.only(bottom: UnifiedTokens.spaceMd),
                 child: FadeSlideIn(
@@ -177,9 +330,9 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
   }
 }
 
-/// ① 상단 헤더 - 뒤로가기 + 타이틀/보조카피 + 행복머니 소형 상태 표시.
+/// ① 상단 헤더 - 뒤로가기 + 타이틀/보조카피 + 복주머니 소형 상태 표시.
 ///
-/// [행복머니 노출 정책] 이 페이지의 주인공은 운세 카테고리 탐색이므로, 행복머니는
+/// [복주머니 노출 정책] 이 페이지의 주인공은 운세 카테고리 탐색이므로, 복주머니는
 /// 숫자를 크게 강조하지 않고 상단의 아주 작은 보조 pill로만 노출한다(탭하면
 /// 지갑 화면으로 연결). 적립/구매 구조는 지갑 화면에서 다룬다.
 class _Header extends StatelessWidget {
@@ -414,8 +567,11 @@ class _FeaturedCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final (title, desc, icon, route, requiresPass) = item;
     final isFree = !requiresPass;
-    final badgeLabel = isFree ? '무료' : (pass.isActive ? '이용가능' : '열림패스');
-    final badgeType = isFree || pass.isActive
+    // [재잠금 정확도] pass.isActive(서버 스냅샷) 대신 AccessChecker의 실시간
+    // 계산값을 사용해 만료 시점 이후 즉시 배지가 잠금 상태로 반영되게 한다.
+    final isPassActive = context.watch<AccessChecker>().openPassState.isActive;
+    final badgeLabel = isFree ? '무료' : (isPassActive ? '이용가능' : '프리패스');
+    final badgeType = isFree || isPassActive
         ? PremiumBadgeType.done
         : PremiumBadgeType.pass;
 
@@ -686,8 +842,10 @@ class _QuickEntryRow extends StatelessWidget {
                 icon: Icons.chat_bubble_outline_rounded,
                 label: 'AI 상담',
                 onTap: () async {
-                  final pass = context.read<PassProvider>();
-                  if (pass.isActive) {
+                  final isPassActive = context
+                      .read<AccessChecker>()
+                      .canAccessFortuneScope();
+                  if (isPassActive) {
                     Navigator.of(
                       context,
                     ).pushNamed('/ai-fortune/consultation/type');
@@ -728,7 +886,7 @@ class _QuickEntryRow extends StatelessWidget {
                 icon: Icons.nights_stay_outlined,
                 label: '소원방',
                 onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const CommunityScreen()),
+                  MaterialPageRoute(builder: (_) => const WishRoomMainScreen()),
                 ),
               );
           }
@@ -787,15 +945,40 @@ class _QuickEntryCard extends StatelessWidget {
 /// 구조"로만 취급한다.
 /// - 비활성: 옅은 안내 배너 + "광고 보고 열기" 버튼(기존 [showPassRequiredSheet] 재사용)
 /// - 활성: 홍보 문구를 완전히 숨기고 "남은 시간"만 깔끔하게 표시
-class _PassStatusStrip extends StatelessWidget {
+class _PassStatusStrip extends StatefulWidget {
   const _PassStatusStrip({required this.pass});
 
   final PassProvider pass;
 
   @override
+  State<_PassStatusStrip> createState() => _PassStatusStripState();
+}
+
+class _PassStatusStripState extends State<_PassStatusStrip> {
+  Timer? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    // [재잠금 정확도] 만료 시점이 지나면 사용자가 아무 조작을 하지 않아도
+    // 이 스트립이 자동으로 다시 나타나도록 1초 간격으로 리빌드한다.
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (pass.isActive) {
-      final sec = pass.status.remainingSec;
+    final access = context.watch<AccessChecker>();
+    final passState = access.openPassState;
+    if (passState.isActive) {
+      final sec = passState.remaining.inSeconds;
       final h = sec ~/ 3600;
       final m = (sec % 3600) ~/ 60;
       final timeLabel = h > 0 ? '$h시간 $m분 남음' : '$m분 남음';
@@ -816,7 +999,7 @@ class _PassStatusStrip extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                '열림패스 이용 중',
+                '프리패스 이용 중',
                 style: UnifiedText.bodyStrong(color: Colors.white),
               ),
             ),
@@ -841,7 +1024,7 @@ class _PassStatusStrip extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('열림패스로 더 많은 운세 보기', style: UnifiedText.bodyStrong()),
+                Text('프리패스로 더 많은 운세 보기', style: UnifiedText.bodyStrong()),
                 const SizedBox(height: 3),
                 Text('광고 보고 전체 운세 열기', style: UnifiedText.caption()),
               ],

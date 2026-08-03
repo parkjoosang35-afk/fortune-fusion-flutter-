@@ -136,7 +136,7 @@ class _MissionTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${mission.progressCount}/${mission.targetCount}  ·  +${mission.rewardPoints} P',
+                    '${mission.progressCount}/${mission.targetCount}  ·  +${mission.rewardPoints}개',
                     style: const TextStyle(
                       color: AppColors.secondaryDark,
                       fontSize: 12,

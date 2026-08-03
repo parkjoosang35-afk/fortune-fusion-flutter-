@@ -433,6 +433,13 @@ class _ResultContent extends StatelessWidget {
           start: 0.0,
           child: _QuestionBanner(question: result.question),
         ),
+        // [운세 카테고리 확장] 타로 YES/NO 스프레드 전용 배지(추가 전용,
+        // 기존 카드 등장 애니메이션/레이아웃에는 영향 없음). answer가 없는
+        // 기존 one_card/three_card 결과에서는 아무것도 렌더링하지 않는다.
+        if (result.answer != null) ...[
+          const SizedBox(height: AppSpacing.md),
+          _Reveal(t: t, start: 0.04, child: _YesNoBadge(answer: result.answer!)),
+        ],
         const SizedBox(height: AppSpacing.xl),
         // ① 카드 이름
         _Reveal(
@@ -575,6 +582,49 @@ class _QuestionBanner extends StatelessWidget {
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// [운세 카테고리 확장] 타로 YES/NO 스프레드의 답변 방향(YES/NO)을 강조해
+/// 보여주는 배지. 신규 위젯이며 기존 위젯을 대체하지 않는다(추가 전용).
+class _YesNoBadge extends StatelessWidget {
+  final String answer;
+  const _YesNoBadge({required this.answer});
+
+  @override
+  Widget build(BuildContext context) {
+    final isYes = answer.toUpperCase() == 'YES';
+    final color = isYes ? const Color(0xFF2ECC71) : const Color(0xFFE74C3C);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        vertical: AppSpacing.lg,
+        horizontal: AppSpacing.lg,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: color, width: 1.5),
+      ),
+      child: Column(
+        children: [
+          Text(
+            isYes ? '🔮 YES' : '🔮 NO',
+            style: TextStyle(
+              color: color,
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '카드가 가리키는 방향입니다',
+            style: TextStyle(color: color.withValues(alpha: 0.85), fontSize: 12),
           ),
         ],
       ),

@@ -21,9 +21,9 @@ import '../../community/presentation/community_hub_screen.dart';
 import '../../community/presentation/community_screen.dart';
 import '../../matching/presentation/matching_discover_screen.dart';
 
-/// [Fortune Fusion 서브 디자인 통일 마스터 프롬프트] 행복머니 허브 화면 (v2)
+/// [Fortune Fusion 서브 디자인 통일 마스터 프롬프트] 복주머니 허브 화면 (v2)
 ///
-/// 기준 시안 톤(화이트 배경, 소프트 퍼플 카드, 블랙 CTA, 네온 라임 행복머니)으로
+/// 기준 시안 톤(화이트 배경, 소프트 퍼플 카드, 블랙 CTA, 네온 라임 복주머니)으로
 /// 자산 화면답게 "밝고 정돈된" 느낌을 준다. 잔액 히어로 카드 → 적립 방법 →
 /// 사용처 → 구독 보너스 → 히스토리 순서를 유지하되, 전체 카드/버튼/타이포를
 /// 공통 Premium* 위젯으로 통일한다.
@@ -57,7 +57,7 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
     final confirmed = await showAppConfirmDialog(
       context,
       title: '오늘 출석하기',
-      message: '출석체크를 하고 행복머니를 받으시겠습니까?',
+      message: '출석체크를 하고 복주머니를 받으시겠습니까?',
       confirmLabel: '출석하기',
     );
     if (!confirmed || !mounted) return;
@@ -95,7 +95,7 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
             UnifiedTokens.spaceXxl,
           ),
           children: [
-            Text('행복머니', style: UnifiedText.titleLarge()),
+            Text('복주머니', style: UnifiedText.titleLarge()),
             const SizedBox(height: 4),
             Text('모으고, 나누고, 다시 행운으로 돌아와요', style: UnifiedText.body()),
             const SizedBox(height: UnifiedTokens.spaceLg),
@@ -130,7 +130,7 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
               child: _ShortcutCard(
                 icon: Icons.task_alt_outlined,
                 title: '미션',
-                subtitle: '일일/주간 미션을 완료하고 행복머니 받기',
+                subtitle: '일일/주간 미션을 완료하고 복주머니 받기',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const MissionScreen()),
                 ),
@@ -142,7 +142,7 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
               child: _ShortcutCard(
                 icon: Icons.edit_outlined,
                 title: '커뮤니티 활동',
-                subtitle: '소원/게시글 작성 · 댓글 작성 시 행복머니 적립',
+                subtitle: '소원/게시글 작성 · 댓글 작성 시 복주머니 적립',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const CommunityHubScreen()),
                 ),
@@ -156,10 +156,10 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
               delay: const Duration(milliseconds: 160),
               child: _ShortcutCard(
                 icon: Icons.redeem_outlined,
-                title: '행복머니 열기',
+                title: '복주머니 열기',
                 subtitle: (luckyBag.summary?.pendingCount ?? 0) > 0
-                    ? '받을 수 있는 행복머니 ${luckyBag.summary!.pendingCount}개'
-                    : '오늘의 행복머니를 열어 행운을 확인해보세요',
+                    ? '받을 수 있는 복주머니 ${luckyBag.summary!.pendingCount}개'
+                    : '오늘의 복주머니를 열어 행운을 확인해보세요',
                 highlight: true,
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const LuckyBagShopScreen()),
@@ -172,7 +172,7 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
               child: _ShortcutCard(
                 icon: Icons.volunteer_activism_outlined,
                 title: '소원 응원하기',
-                subtitle: '다른 사람의 소원에 행복머니로 응원 보내기',
+                subtitle: '다른 사람의 소원에 복주머니로 응원 보내기',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const CommunityScreen()),
                 ),
@@ -196,7 +196,7 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
               child: _ShortcutCard(
                 icon: Icons.groups_outlined,
                 title: '운명의 동행',
-                subtitle: '관심표시(좋아요) 1건당 행복머니 소비',
+                subtitle: '관심표시(좋아요) 1건당 복주머니 소비',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => const MatchingDiscoverScreen(),
@@ -210,7 +210,7 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
               child: _ShortcutCard(
                 icon: Icons.confirmation_number_outlined,
                 title: '상품권',
-                subtitle: '행복머니로 상품권을 교환해보세요',
+                subtitle: '복주머니로 상품권을 교환해보세요',
                 onTap: () =>
                     Navigator.of(context).pushNamed('/reward/giftcard'),
               ),
@@ -238,8 +238,8 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
               delay: const Duration(milliseconds: 400),
               child: _ShortcutCard(
                 icon: Icons.history_outlined,
-                title: '행복머니 개봉 이력',
-                subtitle: '지금까지 열어본 행복머니와 받은 보상 확인',
+                title: '복주머니 개봉 이력',
+                subtitle: '지금까지 열어본 복주머니와 받은 보상 확인',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => const LuckyBagHistoryScreen(),
@@ -252,7 +252,7 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
               delay: const Duration(milliseconds: 440),
               child: _ShortcutCard(
                 icon: Icons.receipt_long_outlined,
-                title: '행복머니 내역',
+                title: '복주머니 내역',
                 subtitle: '적립·사용 전체 내역 확인하기',
                 onTap: () => Navigator.of(context).pushNamed('/reward/wallet'),
               ),
@@ -299,7 +299,7 @@ class _BalanceHero extends StatelessWidget {
                 color: UnifiedColors.textSecondary,
               ),
               const SizedBox(width: UnifiedTokens.spaceSm),
-              Text('내 행복머니 잔액', style: UnifiedText.caption()),
+              Text('내 복주머니 잔액', style: UnifiedText.caption()),
               const Spacer(),
               if (pendingBags > 0)
                 Container(
@@ -314,7 +314,7 @@ class _BalanceHero extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    '받을 행복머니 $pendingBags개',
+                    '받을 복주머니 $pendingBags개',
                     style: UnifiedText.chipLabel(color: Colors.white),
                   ),
                 ),
@@ -322,13 +322,13 @@ class _BalanceHero extends StatelessWidget {
           ),
           const SizedBox(height: UnifiedTokens.spaceMd),
           Text(
-            isLoading ? '불러오는 중...' : '${_formatBalance(balance)} P',
+            isLoading ? '불러오는 중...' : '${_formatBalance(balance)}개',
             style: UnifiedText.titleLarge(),
           ),
           const SizedBox(height: UnifiedTokens.spaceSm),
           Row(
             children: [
-              Text('행복머니 지갑 바로가기', style: UnifiedText.caption()),
+              Text('복주머니 지갑 바로가기', style: UnifiedText.caption()),
               const SizedBox(width: 4),
               Icon(
                 Icons.arrow_forward_ios_rounded,
@@ -467,7 +467,7 @@ class _VipCard extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       grade != null
-                          ? '행복머니 적립 ${grade!.pointEarnMultiplier}배 적용 중'
+                          ? '복주머니 적립 ${grade!.pointEarnMultiplier}배 적용 중'
                           : '프리미엄 구독으로 등급을 올려보세요',
                       style: UnifiedText.caption(
                         color: const Color(0xFFB8B8B8),

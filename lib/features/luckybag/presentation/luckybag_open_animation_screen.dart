@@ -8,7 +8,7 @@ import '../../wallet/application/wallet_provider.dart';
 import '../application/luckybag_provider.dart';
 import '../domain/luckybag_product_model.dart';
 
-/// 03단계 §10.2 "행복머니 열기" 애니메이션 - 흔들림→확대→반짝임 파티클(1.5~2초).
+/// 03단계 §10.2 "복주머니 열기" 애니메이션 - 흔들림→확대→반짝임 파티클(1.5~2초).
 /// 06§4.9 `POST /v1/luckybags/:id/open` 대응 화면. 개봉(구매+추첨)이 완료되면
 /// LuckyBagResultScreen으로 결과를 전달하며 pushReplacement한다.
 class LuckyBagOpenAnimationScreen extends StatefulWidget {
@@ -54,7 +54,7 @@ class _LuckyBagOpenAnimationScreenState
 
     final animationFuture = _controller.forward();
 
-    // [방법 A] 서버(admin_web `POST /api/public/luckybag/open`)가 행복머니 차감 +
+    // [방법 A] 서버(admin_web `POST /api/public/luckybag/open`)가 복주머니 차감 +
     // 확률 추첨 + 보상 지급 + 로그 기록을 단일 트랜잭션으로 원자적으로 처리한다.
     // 클라이언트는 더 이상 wallet.spend()/wallet.earn()을 직접 호출하지 않는다
     // (그렇게 하면 서버가 이미 차감한 금액이 중복 차감/환불되는 버그가 발생한다).

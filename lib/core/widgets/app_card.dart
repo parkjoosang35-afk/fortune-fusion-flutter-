@@ -4,7 +4,7 @@ import '../theme/app_spacing.dart';
 /// 03단계 §9.1 공통 컴포넌트 - Card 표준 (Phase1-1 보강)
 ///
 /// 전역 [AppTheme]의 cardTheme(색상/그림자/라운드)을 그대로 상속받는 래퍼로,
-/// 03단계 §9.2 "도메인특화카드"(부적카드/행복머니카드 등)가 공통 기반으로
+/// 03단계 §9.2 "도메인특화카드"(부적카드/복주머니카드 등)가 공통 기반으로
 /// 확장(compose)할 수 있도록 padding/onTap만 표준화한다.
 class AppCard extends StatelessWidget {
   final Widget child;

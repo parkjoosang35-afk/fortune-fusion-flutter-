@@ -7,7 +7,7 @@ import '../application/ranking_provider.dart';
 import '../domain/ranking_model.dart';
 
 /// 03단계 §3.3 - RankingScreen (리스트형 패턴)
-/// 주간 행복머니 랭킹 TOP 리스트 (내 순위 강조표시)
+/// 주간 복주머니 랭킹 TOP 리스트 (내 순위 강조표시)
 class RankingScreen extends StatefulWidget {
   const RankingScreen({super.key});
 
@@ -104,7 +104,7 @@ class _RankTile extends StatelessWidget {
             ),
           ),
           Text(
-            '${entry.points} P',
+            '${entry.points}개',
             style: const TextStyle(
               color: AppColors.textSecondary,
               fontSize: 13,

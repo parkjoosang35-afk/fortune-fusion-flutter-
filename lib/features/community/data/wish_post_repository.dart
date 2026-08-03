@@ -13,12 +13,12 @@ import '../domain/wish_post_model.dart';
 /// - GET  /api/public/wishes?tab=all|popular|mine     -> getFeed()
 /// - POST /api/public/wishes                          -> createPost()
 /// - POST /api/public/wishes/:id/support              -> toggleSupport() ("행운 보내기"
-///                                                        임시정책: 행복머니이동 없는 단순 응원카운트,
+///                                                        임시정책: 복주머니이동 없는 단순 응원카운트,
 ///                                                        03§10.3/§18/§570 정책 미확정 사항 유지)
 /// - GET  /api/public/wishes/:id/comments             -> getComments()
 /// - POST /api/public/wishes/:id/comments             -> addComment()
 /// - POST /api/public/reports (targetType=wish)       -> report() (폴리모픽 공용신고,
-///                                                        community_post_repository.dart와 동일 엔드행복머니 재사용)
+///                                                        community_post_repository.dart와 동일 엔드복주머니 재사용)
 ///
 /// [방법 A — 임시 인증 우회] 회원 로그인 시스템이 아직 없어, 서버가 시딩해둔
 /// 테스트 유저(userId=1)를 고정으로 사용한다(daily_fortune_repository.dart와 동일 패턴).
@@ -51,7 +51,7 @@ class WishPostRepository {
     }
   }
 
-  /// [3단계 - 행복머니 커뮤니티 적립 연동] admin_web `POST /api/public/wishes`가
+  /// [3단계 - 복주머니 커뮤니티 적립 연동] admin_web `POST /api/public/wishes`가
   /// 소원 등록 시 point_policies.community 정책에 따라 지급한 rewardPoint를 함께
   /// 내려주므로, 여기서 함께 파싱해 반환한다(호출부가 "+N P 획득" 피드백을 표시할 수 있도록).
   Future<ApiResult<({WishPostModel post, int rewardPoint})>> createPost(
@@ -92,7 +92,7 @@ class WishPostRepository {
     }
   }
 
-  /// "행운 보내기" - 행복머니 이동 없는 단순 응원(support) 토글
+  /// "행운 보내기" - 복주머니 이동 없는 단순 응원(support) 토글
   Future<ApiResult<WishPostModel>> toggleSupport(String wishId) async {
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/wishes/$wishId/support',
@@ -141,9 +141,9 @@ class WishPostRepository {
     }
   }
 
-  /// [3단계 - 행복머니 커뮤니티 적립 연동] 소원 댓글 작성 시 admin_web이
-  /// wish_config.comment_bokju_reward 만큼 행복머니(bokjuAwarded)를 자동 지급하므로
-  /// 함께 반환한다(호출부가 "+N 행복머니" 피드백/레벨업 연출을 표시할 수 있도록).
+  /// [3단계 - 복주머니 커뮤니티 적립 연동] 소원 댓글 작성 시 admin_web이
+  /// wish_config.comment_bokju_reward 만큼 복주머니(bokjuAwarded)를 자동 지급하므로
+  /// 함께 반환한다(호출부가 "+N 복주머니" 피드백/레벨업 연출을 표시할 수 있도록).
   Future<
     ApiResult<({WishCommentModel comment, int bokjuAwarded, bool leveledUp})>
   >
@@ -178,7 +178,7 @@ class WishPostRepository {
   }
 
   /// 06§4.12 `POST /{targetType}/:id/report` 공용 신고(L-6, 폴리모픽)
-  /// community_post_repository.dart와 동일한 /api/public/reports 엔드행복머니 재사용
+  /// community_post_repository.dart와 동일한 /api/public/reports 엔드복주머니 재사용
   Future<ApiResult<void>> report(
     ReportTargetType targetType,
     String targetId,
@@ -211,11 +211,12 @@ class WishPostRepository {
     }
   }
 
-  /// [소원성(Wish Castle) 확장] 행복머니 보내기 - 실제 재화/지갑 이동 없는
-  /// 상징적 응원 단위. amount는 admin_web bokju_preset_amounts 화이트리스트를
-  /// 그대로 따른다(서버에서도 [1,5,10,50,100] 외 값은 400 처리).
-  /// 반환 data에는 leveledUp/previousLevel이 포함되어 있어, 호출부(Provider)에서
-  /// 레벨업 여부에 따라 성장 연출/레벨업 연출을 분기할 수 있다.
+  /// [재화 구조 정리 - 재연결] 복주머니 보내기 - amount만큼 실제 지갑(Wallet)에서
+  /// 차감된다(서버가 트랜잭션으로 원자 처리). amount는 admin_web
+  /// bokju_preset_amounts 화이트리스트를 그대로 따른다(서버에서도 [1,5,10,50,100]
+  /// 외 값은 400 처리). 잔액 부족 시 서버가 409 + errorMessage를 반환한다.
+  /// 반환 data에는 leveledUp/previousLevel/balanceAfter가 포함되어 있어, 호출부
+  /// (Provider)에서 레벨업 여부에 따라 성장 연출/레벨업 연출을 분기할 수 있다.
   Future<ApiResult<Map<String, dynamic>>> sendBokju(
     String wishId,
     int amount,
@@ -235,17 +236,17 @@ class WishPostRepository {
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
         return ApiResult.fail(
-          decoded['error'] as String? ?? '행복머니 보내기에 실패했습니다.',
+          decoded['error'] as String? ?? '복주머니 보내기에 실패했습니다.',
         );
       }
       return ApiResult.ok(decoded['data'] as Map<String, dynamic>);
     } catch (e) {
       debugPrint('[WishPostRepository] [sendBokju] 예외 -> $e');
-      return ApiResult.fail('행복머니 보내기에 실패했습니다: $e');
+      return ApiResult.fail('복주머니 보내기에 실패했습니다: $e');
     }
   }
 
-  /// [소원성(Wish Castle) 확장] CMS 설정(촛불 임계값/댓글보상/행복머니 단위/
+  /// [소원성(Wish Castle) 확장] CMS 설정(촛불 임계값/댓글보상/복주머니 단위/
   /// AI 응원문구/애니메이션 ON-OFF) 전체를 key-value로 조회.
   /// admin_web wish-config-meta.ts의 WISH_CONFIG_KEYS와 동일한 키 목록을
   /// 클라이언트에서 파싱한다(파싱은 WishCastleConfigProvider 쪽에서 수행).
@@ -362,6 +363,12 @@ class WishPostRepository {
           ? DateTime.parse(e['achievedAt'] as String)
           : null,
       isMilestoneShown: e['isMilestoneShown'] as bool? ?? false,
+      // [재화 구조 정리 - 재연결] 신규 필드 - 하위호환을 위해 없으면 기본값 사용
+      isHighlighted: e['isHighlighted'] as bool? ?? false,
+      highlightedUntil: e['highlightedUntil'] != null
+          ? DateTime.parse(e['highlightedUntil'] as String)
+          : null,
+      isBoosted: e['isBoosted'] as bool? ?? false,
     );
   }
 
@@ -372,6 +379,60 @@ class WishPostRepository {
       authorNickname: e['authorNickname'] as String,
       content: e['content'] as String,
       createdAt: DateTime.parse(e['createdAt'] as String),
+      cheerCount: (e['cheerCount'] as num?)?.toInt() ?? 0,
+      empathizeCount: (e['empathizeCount'] as num?)?.toInt() ?? 0,
     );
+  }
+
+  /// [재화 구조 정리 - 재연결] 댓글 응원(cheer) - 복주머니 소비, 성공 시 서버가
+  /// 최신 cheerCount/차감액/잔액을 함께 내려준다. 실패(잔액부족 등) 시 null.
+  Future<ApiResult<Map<String, dynamic>>> cheerComment(
+    String wishId,
+    String commentId,
+  ) => _postWishAction('/api/public/wishes/$wishId/comments/$commentId/cheer');
+
+  /// [재화 구조 정리 - 재연결] 댓글 공감(empathize) - cheer와 동일 구조.
+  Future<ApiResult<Map<String, dynamic>>> empathizeComment(
+    String wishId,
+    String commentId,
+  ) =>
+      _postWishAction('/api/public/wishes/$wishId/comments/$commentId/empathize');
+
+  /// [재화 구조 정리 - 재연결] 글 강조(highlight) - 본인 소원에만 적용 가능(서버가
+  /// 403으로 가드). 성공 시 highlightedUntil(만료 시각)을 함께 내려준다.
+  Future<ApiResult<Map<String, dynamic>>> highlightWish(String wishId) =>
+      _postWishAction('/api/public/wishes/$wishId/highlight');
+
+  /// [재화 구조 정리 - 재연결] 노출 강화(expose_boost) - 본인 소원에만 적용 가능.
+  /// 성공 시 boostedAt을 함께 내려주며, 이후 피드(GET /wishes, tab=all)에서
+  /// 상단으로 재노출된다.
+  Future<ApiResult<Map<String, dynamic>>> exposeBoostWish(String wishId) =>
+      _postWishAction('/api/public/wishes/$wishId/expose-boost');
+
+  /// cheer/empathize/highlight/expose-boost 4개 엔드포인트가 공통으로 갖는
+  /// "POST + {userId} + success/data 파싱 + 409(잔액부족) 에러메시지" 패턴을
+  /// 하나로 묶은 내부 헬퍼(중복 코드 방지).
+  Future<ApiResult<Map<String, dynamic>>> _postWishAction(
+    String path,
+  ) async {
+    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}$path');
+    try {
+      final userId = await AuthTokenStore.getCurrentUserId();
+      final response = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'userId': userId}),
+          )
+          .timeout(const Duration(seconds: 15));
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        return ApiResult.fail(decoded['error'] as String? ?? '처리에 실패했습니다.');
+      }
+      return ApiResult.ok(decoded['data'] as Map<String, dynamic>);
+    } catch (e) {
+      debugPrint('[WishPostRepository] [_postWishAction] $path 예외 -> $e');
+      return ApiResult.fail('처리에 실패했습니다: $e');
+    }
   }
 }

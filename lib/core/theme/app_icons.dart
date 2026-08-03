@@ -17,14 +17,14 @@ class AppIcons {
   static const IconData aiHighlight = Icons.auto_awesome_rounded; // AI추천/마법 강조
 
   // ── 리워드 ──
-  static const IconData luckyBag = Icons.card_giftcard_rounded; // 행복머니
+  static const IconData luckyBag = Icons.card_giftcard_rounded; // 복주머니
   static const IconData amulet =
       Icons.auto_awesome_rounded; // 디지털부적(전용 아이콘 자원 없음, 이모지 병기 권장)
   static const IconData giftcard = Icons.receipt_long_outlined; // 상품권
   static const IconData ranking = Icons.leaderboard_rounded; // 랭킹
   static const IconData attendance = Icons.calendar_month_rounded; // 출석체크
   static const IconData mission = Icons.checklist_rounded; // 미션
-  static const IconData wallet = Icons.wallet_rounded; // 행복머니 지갑
+  static const IconData wallet = Icons.wallet_rounded; // 복주머니 지갑
   static const IconData event = Icons.celebration_rounded; // 이벤트(신규 표준)
 
   // ── 커뮤니티/기타 ──

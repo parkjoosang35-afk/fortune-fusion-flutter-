@@ -154,7 +154,7 @@ class _SendBokSuccessDialogState extends State<SendBokSuccessDialog>
                         ),
                       );
                     }),
-                    // 골드 원형 배경 + 행복머니 아이콘
+                    // 골드 원형 배경 + 복주머니 아이콘
                     Transform.scale(
                       scale: scaleValue,
                       child: ClipOval(

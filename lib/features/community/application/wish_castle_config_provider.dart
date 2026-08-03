@@ -36,7 +36,7 @@ class WishCastleConfigProvider extends ChangeNotifier {
   bool get animationEnabled => _animationEnabled;
   List<String> get aiCheerMessages => _aiCheerMessages;
 
-  /// 누적 행복머니 개수로 촛불 레벨(0~4)을 계산 - admin_web computeCandleLevel()과
+  /// 누적 복주머니 개수로 촛불 레벨(0~4)을 계산 - admin_web computeCandleLevel()과
   /// 완전히 동일한 로직. 서버가 이미 candleLevel을 계산해 내려주므로 평소에는 서버값을
   /// 그대로 신뢰하면 되지만, 애니메이션 중간 단계(예: 진행바가 목표 레벨을 향해 차오르는
   /// 연출)를 매끄럽게 그리기 위해 클라이언트에서도 동일하게 계산할 수 있게 공개한다.

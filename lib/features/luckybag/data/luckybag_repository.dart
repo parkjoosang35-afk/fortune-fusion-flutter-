@@ -14,15 +14,15 @@ import '../domain/luckybag_reward_model.dart';
 /// (`GET /api/public/luckybag`, `POST /api/public/luckybag/open`,
 /// `GET /api/public/luckybag/history`)를 호출한다.
 ///
-/// [핵심 원칙] 확률 추첨과 행복머니 차감/지급은 서버(admin_web `luckybag/open` API)가
+/// [핵심 원칙] 확률 추첨과 복주머니 차감/지급은 서버(admin_web `luckybag/open` API)가
 /// 단일 트랜잭션으로 처리한다. 이 Repository와 화면은 결과를 받아 표시만 한다
-/// (클라이언트에서 별도로 확률을 뽑거나 행복머니를 차감하지 않음).
+/// (클라이언트에서 별도로 확률을 뽑거나 복주머니를 차감하지 않음).
 ///
 /// [방법 A — 임시 인증 우회] 회원 로그인 시스템이 아직 없어, 서버가 시딩해둔
 /// 테스트 유저(userId=1)를 고정으로 사용한다(WalletRepository와 동일한 임시 값).
 class LuckyBagRepository {
   // ── 기존(홈 배너 요약) - Mock 유지 ──
-  // [비고] 서버 측 보상은 개봉 즉시 지급되는 구조라 "받을 수 있는(미수령) 행복머니 개수"
+  // [비고] 서버 측 보상은 개봉 즉시 지급되는 구조라 "받을 수 있는(미수령) 복주머니 개수"
   // 개념이 별도로 존재하지 않는다. 홈 배너용 요약이므로 우선 Mock을 유지한다.
   Future<ApiResult<LuckyBagSummary>> getPendingSummary() async {
     await mockDelay(ms: 300);
@@ -67,7 +67,7 @@ class LuckyBagRepository {
     try {
       final data = await _fetchLuckyBagData();
       if (data == null) {
-        return ApiResult.fail('행복머니 목록을 불러오지 못했습니다.');
+        return ApiResult.fail('복주머니 목록을 불러오지 못했습니다.');
       }
 
       final productsRaw = data['products'] as List<dynamic>;
@@ -105,7 +105,7 @@ class LuckyBagRepository {
     } catch (e, st) {
       debugPrint('[LuckyBagRepository] [X] getProducts 예외 -> $e');
       if (kDebugMode) debugPrint('$st');
-      return ApiResult.fail('행복머니 목록을 불러오지 못했습니다: $e');
+      return ApiResult.fail('복주머니 목록을 불러오지 못했습니다: $e');
     }
   }
 
@@ -132,7 +132,7 @@ class LuckyBagRepository {
     }
   }
 
-  /// POST /v1/luckybags/:id/open - 개봉(구매+추첨). 서버(admin_web)가 행복머니 차감,
+  /// POST /v1/luckybags/:id/open - 개봉(구매+추첨). 서버(admin_web)가 복주머니 차감,
   /// 확률 추첨, 보상 지급, 개봉 로그 기록을 하나의 트랜잭션으로 처리하고 그 결과를
   /// 그대로 반환한다. [remainingBalance] 파라미터는 기존 시그니처 호환용으로 남겨두되
   /// 실제로는 사용하지 않는다(서버가 계산한 값을 신뢰).

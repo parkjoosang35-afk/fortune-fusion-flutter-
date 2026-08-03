@@ -62,6 +62,12 @@ dependencies:
   # 무관한 별도 콘텐츠이므로 webview_flutter가 아닌 video_player로 네이티브 영상 재생을 구현한다.
   video_player: 2.9.2
 
+  # [오늘의 운세 표준 플로우] §6 후속연결 "공유 → 이미지 생성 후 공유" 구현용.
+  # RepaintBoundary로 캡처한 결과 카드를 임시 파일로 저장(path_provider)한 뒤
+  # 네이티브 공유 시트로 전달(share_plus). 둘 다 Web 플랫폼도 지원한다.
+  share_plus: 10.1.4
+  path_provider: 2.1.5
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -4,7 +4,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../domain/luckybag_product_model.dart';
 
-/// 03단계 §9.2 도메인특화카드 - LuckyBagCard(행복머니카드)
+/// 03단계 §9.2 도메인특화카드 - LuckyBagCard(복주머니카드)
 /// 설계원칙: 신규 원자 단위를 늘리지 않고 기존 core/widgets의 AppCard 조합으로 구성.
 /// (AmuletCard와 동일한 설계원칙 적용 - 03§9.2)
 /// 사용 화면: LuckyBagShopScreen(상점)
@@ -76,7 +76,7 @@ class LuckyBagCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            '${product.pricePoint}P',
+            '${product.pricePoint}개',
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,

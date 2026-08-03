@@ -120,7 +120,7 @@ class _CommunityHubScreenState extends State<CommunityHubScreen> {
                     description: '자유롭게 이야기를 나눠보세요',
                     buttonLabel: '게시판 바로가기',
                     destination: CommunityBoardListScreen(),
-                    hint: '글쓰기 · 댓글 작성 시 행복머니 적립',
+                    hint: '글쓰기 · 댓글 작성 시 복주머니 적립',
                   ),
                   _ShortcutTab(
                     icon: Icons.star_border_rounded,
@@ -135,7 +135,7 @@ class _CommunityHubScreenState extends State<CommunityHubScreen> {
                     description: '사주·타로 상담사와 편하게 이야기해보세요',
                     buttonLabel: '상담 시작하기',
                     destination: ConsultationTypeScreen(),
-                    hint: '상담 메시지 전송 시 행복머니 소비',
+                    hint: '상담 메시지 전송 시 복주머니 소비',
                   ),
                   _ShortcutTab(
                     icon: Icons.favorite_outline_rounded,
@@ -143,7 +143,7 @@ class _CommunityHubScreenState extends State<CommunityHubScreen> {
                     description: '나와 그 사람, 얼마나 잘 맞을까요?',
                     buttonLabel: '궁합 보러가기',
                     destination: CompatibilityInputScreen(),
-                    hint: '궁합 결과 확인 시 행복머니 소비',
+                    hint: '궁합 결과 확인 시 복주머니 소비',
                   ),
                   _ShortcutTab(
                     icon: Icons.shield_outlined,
@@ -151,7 +151,7 @@ class _CommunityHubScreenState extends State<CommunityHubScreen> {
                     description: '나를 지켜주는 디지털 부적을 만나보세요',
                     buttonLabel: '부적샵 바로가기',
                     destination: AmuletShopScreen(),
-                    hint: '부적 만들기 시 행복머니 소비',
+                    hint: '부적 만들기 시 복주머니 소비',
                   ),
                   _ShortcutTab(
                     icon: Icons.groups_outlined,
@@ -159,12 +159,12 @@ class _CommunityHubScreenState extends State<CommunityHubScreen> {
                     description: '나와 인연이 될 사람을 찾아보세요',
                     buttonLabel: 'AI매칭 바로가기',
                     destination: MatchingDiscoverScreen(),
-                    hint: '관심표시(좋아요) 시 행복머니 소비',
+                    hint: '관심표시(좋아요) 시 복주머니 소비',
                   ),
                   _ShortcutTab(
                     icon: Icons.emoji_events_outlined,
                     title: '랭킹',
-                    description: '이번 주 행복머니 랭킹 TOP 유저 확인하기',
+                    description: '이번 주 복주머니 랭킹 TOP 유저 확인하기',
                     buttonLabel: '랭킹 바로가기',
                     destination: RankingScreen(),
                   ),

@@ -70,7 +70,7 @@ class _MyGiftcardsScreenState extends State<MyGiftcardsScreen> {
             ? const AppEmptyState(
                 icon: Icons.card_giftcard_outlined,
                 title: '보유 중인 상품권이 없어요',
-                description: '상점에서 행복머니로 상품권을 교환해보세요',
+                description: '상점에서 복주머니로 상품권을 교환해보세요',
               )
             : RefreshIndicator(
                 onRefresh: () => giftcard.loadMyOrders(),

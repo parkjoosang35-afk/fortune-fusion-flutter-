@@ -474,6 +474,11 @@ class TarotResultModel {
   /// 호출부(및 [TarotResultModel]을 읽기만 하는 화면들)에는 영향을 주지 않는다.
   final String topic;
 
+  /// [운세 카테고리 확장] 타로 YES/NO(spreadType == 'yes_no') 스프레드에서만
+  /// 채워지는 답변 방향('YES'/'NO'). 그 외 스프레드(one_card/three_card)는
+  /// 항상 null이며, 기존 화면(TarotResultScreen 등)의 동작에는 영향이 없다.
+  final String? answer;
+
   const TarotResultModel({
     required this.id,
     required this.question,
@@ -482,6 +487,7 @@ class TarotResultModel {
     required this.summary,
     required this.createdAt,
     this.topic = 'general',
+    this.answer,
   });
 }
 

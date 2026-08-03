@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 
-/// 03단계 §3.2 전역 내비게이션 보조요소 - 행복머니 잔액 요약 칩
-/// "행복머니 잔액은 거의 모든 화면 상단에 상시 노출"
+/// 03단계 §3.2 전역 내비게이션 보조요소 - 복주머니 잔액 요약 칩
+/// "복주머니 잔액은 거의 모든 화면 상단에 상시 노출"
 ///
 /// [Fortune Fusion UI 리뉴얼 프롬프트] §2-2 PointBadge 스타일 개선.
 /// 🍀 이모지 아이콘 + accentGold 15% 오파시티 pill 배경으로 우주 감성 톤에 맞춘다.

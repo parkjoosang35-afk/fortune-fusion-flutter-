@@ -1,12 +1,14 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/domain/access/access_checker.dart';
 import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/premium_card.dart';
 import '../../../core/widgets/premium_badge.dart';
 import '../../../core/widgets/premium_chip.dart';
 import '../../../core/widgets/premium_graphics.dart';
-import '../../pass/application/pass_provider.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
+import '../../pass/presentation/pass_time_format.dart';
 
 /// [Fortune Fusion 서브 디자인 통일 마스터 프롬프트] 운세 허브 화면 (v2)
 ///
@@ -27,6 +29,24 @@ class FortuneHubScreen extends StatefulWidget {
 class _FortuneHubScreenState extends State<FortuneHubScreen> {
   bool _checking = false;
   String _filter = '전체';
+  Timer? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    // [프리패스 테스트 인프라] §7/§13 — AccessChecker.openPassState가 expiresAt
+    // 기준으로 실시간 재계산하므로, 1초마다 rebuild만 트리거하면 만료 순간
+    // 자동으로 배지/히어로 카드가 잠금 상태로 전환된다(자동 재잠금).
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
 
   static const _filters = ['전체', '무료', '사주', '타로', '궁합', '손금'];
 
@@ -44,7 +64,7 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
       '사주',
       'AI가 분석하는 나의 사주 명식',
       Icons.auto_stories_outlined,
-      '열림패스',
+      '프리패스',
       '/ai-fortune/saju/input',
       true,
       '사주',
@@ -53,7 +73,7 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
       '타로',
       '78장의 카드가 전하는 오늘의 메시지',
       Icons.style_outlined,
-      '열림패스',
+      '프리패스',
       '/ai-fortune/tarot/question',
       true,
       '타로',
@@ -62,7 +82,7 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
       '관상',
       '사진으로 보는 AI 관상 분석',
       Icons.face_outlined,
-      '열림패스',
+      '프리패스',
       '/ai-fortune/face/capture',
       true,
       '전체',
@@ -71,7 +91,7 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
       '손금',
       '손바닥 속에 숨겨진 나의 운명',
       Icons.back_hand_outlined,
-      '열림패스',
+      '프리패스',
       '/ai-fortune/palm/capture',
       true,
       '손금',
@@ -80,16 +100,29 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
       '궁합',
       '두 사람의 인연과 케미를 확인해요',
       Icons.favorite_outline_rounded,
-      '열림패스',
+      '프리패스',
       '/ai-fortune/compatibility/input',
       true,
       '궁합',
+    ),
+    // [남은 미세조정] 이름 운세(성명학) — AllCategoriesScreen(전체보기)에는
+    // 이미 admin 데이터로 연결되어 있었으나, 이 허브(운세 탭)의 정적
+    // 목록에는 빠져 있어 추가한다. 전용 필터 칩이 없으므로 관상/AI상담과
+    // 동일하게 '전체' 필터에서만 노출되는 항목으로 둔다.
+    (
+      '이름 운세',
+      '이름에 담긴 기운을 성명학으로 해석해요',
+      Icons.badge_outlined,
+      '프리패스',
+      '/ai-fortune/name/input',
+      true,
+      '전체',
     ),
     (
       'AI 상담',
       '실시간 AI 운세 상담사와 대화하기',
       Icons.chat_bubble_outline_rounded,
-      '열림패스',
+      '프리패스',
       '/ai-fortune/consultation/type',
       true,
       '전체',
@@ -113,7 +146,9 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final pass = context.watch<PassProvider>();
+    final access = context.watch<AccessChecker>();
+    final passState = access.openPassState;
+    final isPassActive = passState.isActive;
     final filtered = _filter == '전체'
         ? _items
         : _filter == '무료'
@@ -139,8 +174,8 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
             // 열림패스 상태 히어로 카드 - 기준 시안의 "오늘의 운세 이야기" 카드 톤 재사용.
             FadeSlideIn(
               child: _PassHeroCard(
-                isActive: pass.isActive,
-                remainingSec: pass.status.remainingSec,
+                isActive: isPassActive,
+                remainingSec: passState.remaining.inSeconds,
                 isBusy: _checking,
               ),
             ),
@@ -177,8 +212,8 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
               final isFree = !requiresPass;
               final badgeLabel = isFree
                   ? '무료'
-                  : (pass.isActive ? '이용가능' : cost);
-              final badgeType = isFree || pass.isActive
+                  : (isPassActive ? '이용가능' : cost);
+              final badgeType = isFree || isPassActive
                   ? PremiumBadgeType.done
                   : PremiumBadgeType.pass;
 
@@ -224,9 +259,8 @@ class _PassHeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final h = remainingSec ~/ 3600;
-    final m = (remainingSec % 3600) ~/ 60;
-    final timeLabel = h > 0 ? '$h시간 $m분 남음' : '$m분 남음';
+    // [프리패스 단순화 - 쿠팡파트너스 전용] §6 — HH:MM:SS 형식으로 통일.
+    final timeLabel = '${formatPassHms(Duration(seconds: remainingSec))} 남음';
 
     return PremiumCard(
       backgroundColor: UnifiedColors.cardMain,
@@ -246,10 +280,10 @@ class _PassHeroCard extends StatelessWidget {
               const SizedBox(width: UnifiedTokens.spaceSm),
               Text(
                 isBusy
-                    ? '열림패스 확인 중...'
+                    ? '프리패스 확인 중...'
                     : isActive
-                    ? '열림패스 활성중 · $timeLabel'
-                    : '열림패스가 없어요',
+                    ? '프리패스 활성중 · $timeLabel'
+                    : '프리패스가 없어요',
                 style: UnifiedText.title(),
               ),
             ],

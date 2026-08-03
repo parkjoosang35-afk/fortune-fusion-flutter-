@@ -10,7 +10,14 @@ import '../domain/saju_model.dart';
 /// 03단계 §3.3 / 07단계 - SajuInputScreen (입력형 패턴)
 /// 생년월일시 확인/수정, 주제 선택(재물/애정/직업/건강 멀티선택)
 class SajuInputScreen extends StatefulWidget {
-  const SajuInputScreen({super.key});
+  // [운세 카테고리 확장] 전체보기(all_categories_screen)에서 관리자 카테고리
+  // (오행 재물운/직업운/연애운/건강운/월별운세 등)를 탭했을 때, 이 공용 입력
+  // 화면의 토픽 멀티선택을 해당 주제로 미리 선택해두기 위한 선택적 인자.
+  // null(기존 모든 진입 경로)이면 기존 동작과 완전히 동일하게 '종합'만
+  // 기본 선택된다(회귀 없음).
+  const SajuInputScreen({super.key, this.initialTopics});
+
+  final List<String>? initialTopics;
 
   @override
   State<SajuInputScreen> createState() => _SajuInputScreenState();
@@ -20,16 +27,27 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
   DateTime? _birthDate;
   TimeOfDay? _birthTime;
   bool _isLunar = false;
-  final Set<String> _topics = {'종합'};
+  late final Set<String> _topics;
   String? _selectedProfileId;
   String? _selectedProfileName;
   bool _saveAsProfile = false;
 
-  static const _allTopics = ['종합', '재물', '애정', '직업', '건강'];
+  // [운세 카테고리 확장] '월별' 추가 → 사주 월별 운세(saju_monthly) 도메인과
+  // 자연스럽게 연결(입력/결과 화면 구조는 기존 멀티 토픽 선택 방식 그대로 재사용).
+  static const _allTopics = ['종합', '재물', '애정', '직업', '건강', '월별'];
 
   @override
   void initState() {
     super.initState();
+    // [운세 카테고리 확장] 딥링크로 전달된 초기 토픽 중 실제 유효한
+    // 토픽(_allTopics)만 필터링해 선택 상태로 시드한다. 전달값이 없거나
+    // 전부 무효하면 기존 기본값('종합')으로 폴백한다.
+    final validInitial = widget.initialTopics
+        ?.where((t) => _allTopics.contains(t))
+        .toSet();
+    _topics = (validInitial == null || validInitial.isEmpty)
+        ? {'종합'}
+        : validInitial;
     final user = context.read<AuthProvider>().currentUser;
     if (user?.birthDate != null) {
       final parts = user!.birthDate!.split('-');

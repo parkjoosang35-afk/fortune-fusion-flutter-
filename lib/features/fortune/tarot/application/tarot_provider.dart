@@ -39,6 +39,8 @@ class TarotProvider extends ChangeNotifier {
 
     final result = spreadType == 'three_card'
         ? await _repository.drawThreeCards(question: question, topic: topic)
+        : spreadType == 'yes_no'
+        ? await _repository.drawYesNo(question: question, topic: topic)
         : await _repository.drawOneCard(question: question);
 
     if (result.success && result.data != null) {

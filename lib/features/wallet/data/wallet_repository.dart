@@ -99,13 +99,13 @@ class WalletRepository {
   /// WalletService.earn (02번 §1.2 Ledger 패턴 - 잔액은 파생값, 이력이 원본)
   /// 반환값: 적립 후 최신 잔액. 실패 시 예외를 던진다(기존 Mock 시그니처와 동일하게
   /// int를 반환하되, 통신 실패는 Provider 쪽에서 try/catch로 처리하도록 위임).
-  Future<int> earn(int amount, String reason) async {
+  Future<int> earn(int amount, String reason, {String sourceType = 'app'}) async {
     final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/wallet/earn',
     );
     debugPrint(
-      '[WalletRepository] [earn] 요청 시작 -> amount=$amount, reason=$reason',
+      '[WalletRepository] [earn] 요청 시작 -> amount=$amount, reason=$reason, sourceType=$sourceType',
     );
 
     try {
@@ -117,7 +117,7 @@ class WalletRepository {
               'userId': userId,
               'amount': amount,
               'reason': reason,
-              'sourceType': 'app',
+              'sourceType': sourceType,
             }),
           )
           .timeout(const Duration(seconds: 10));
@@ -140,7 +140,7 @@ class WalletRepository {
     }
   }
 
-  /// [Phase22 - 행복머니 경제철학 이식] "복 나누기(송금)" — POST /api/public/wallet/send
+  /// [Phase22 - 복주머니 경제철학 이식] "복 나누기(송금)" — POST /api/public/wallet/send
   /// 보낸 사람은 amount만큼 차감되지만 economy_config.send_refund_rate만큼 즉시 환급받고,
   /// 받은 사람은 amount 전액을 그대로 적립받는 "양쪽 증식" 구조.
   /// 반환값: 성공 시 (환급받은 복 액수, 오늘 남은 송금가능액), 실패 시 에러 메시지를 던진다.
@@ -229,13 +229,13 @@ class WalletRepository {
   }
 
   /// WalletService.spend — 성공 시 true, 잔액 부족/오류 시 false.
-  Future<bool> spend(int amount, String reason) async {
+  Future<bool> spend(int amount, String reason, {String sourceType = 'app'}) async {
     final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/wallet/spend',
     );
     debugPrint(
-      '[WalletRepository] [spend] 요청 시작 -> amount=$amount, reason=$reason',
+      '[WalletRepository] [spend] 요청 시작 -> amount=$amount, reason=$reason, sourceType=$sourceType',
     );
 
     try {
@@ -247,7 +247,7 @@ class WalletRepository {
               'userId': userId,
               'amount': amount,
               'reason': reason,
-              'sourceType': 'app',
+              'sourceType': sourceType,
             }),
           )
           .timeout(const Duration(seconds: 10));

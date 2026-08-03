@@ -86,7 +86,7 @@ class CommunityPostRepository {
     }
   }
 
-  /// [3단계 - 행복머니 커뮤니티 적립 연동] admin_web `POST /api/public/community/posts`가
+  /// [3단계 - 복주머니 커뮤니티 적립 연동] admin_web `POST /api/public/community/posts`가
   /// point_policies.community 정책에 따라 지급한 rewardPoint를 함께 내려주므로
   /// 함께 파싱해 반환한다(호출부가 "+N P 획득" 피드백을 표시할 수 있도록).
   Future<ApiResult<({CommunityPostModel post, int rewardPoint})>> createPost({
@@ -179,7 +179,7 @@ class CommunityPostRepository {
     }
   }
 
-  /// [3단계 - 행복머니 커뮤니티 적립 연동] admin_web이 게시글 댓글 작성 시에도
+  /// [3단계 - 복주머니 커뮤니티 적립 연동] admin_web이 게시글 댓글 작성 시에도
   /// point_policies.community 정책(게시글 작성과 동일 sourceType, 1일 한도 공유)에
   /// 따라 지급한 rewardPoint를 함께 내려주므로 파싱해 반환한다.
   Future<ApiResult<({CommunityCommentModel comment, int rewardPoint})>>

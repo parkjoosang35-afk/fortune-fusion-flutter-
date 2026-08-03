@@ -5,7 +5,7 @@ import '../../../core/widgets/app_empty_state.dart';
 import '../application/wallet_provider.dart';
 import '../domain/point_history_model.dart';
 
-/// 03단계 §3.3 리워드 탭 - WalletScreen(행복머니 잔액/적립·차감 내역)
+/// 03단계 §3.3 리워드 탭 - WalletScreen(복주머니 잔액/적립·차감 내역)
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
 
@@ -28,7 +28,7 @@ class _WalletScreenState extends State<WalletScreen> {
 
     return Scaffold(
       backgroundColor: UnifiedColors.bg,
-      appBar: AppBar(title: const Text('행복머니 지갑')),
+      appBar: AppBar(title: const Text('복주머니 지갑')),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () => context.read<WalletProvider>().load(),
@@ -45,7 +45,7 @@ class _WalletScreenState extends State<WalletScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('보유 행복머니', style: UnifiedText.caption()),
+                    Text('보유 복주머니', style: UnifiedText.caption()),
                     const SizedBox(height: UnifiedTokens.spaceSm),
                     wallet.isLoading
                         ? const SizedBox(
@@ -53,7 +53,7 @@ class _WalletScreenState extends State<WalletScreen> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : Text(
-                            '${_comma(wallet.balance)} P',
+                            '${_comma(wallet.balance)}개',
                             style: UnifiedText.titleLarge(),
                           ),
                   ],
@@ -65,7 +65,7 @@ class _WalletScreenState extends State<WalletScreen> {
               if (wallet.history.isEmpty)
                 const AppEmptyState(
                   icon: Icons.receipt_long_outlined,
-                  title: '아직 행복머니 내역이 없어요',
+                  title: '아직 복주머니 내역이 없어요',
                 )
               else
                 ...wallet.history.map((e) => _HistoryTile(item: e)),
@@ -130,7 +130,7 @@ class _HistoryTile extends StatelessWidget {
               ),
             ),
             Text(
-              '${isEarn ? '+' : '-'}${item.amount} P',
+              '${isEarn ? '+' : '-'}${item.amount}개',
               style: UnifiedText.bodyStrong(),
             ),
           ],

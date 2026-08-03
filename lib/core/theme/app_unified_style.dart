@@ -1,7 +1,7 @@
 /// [서브 디자인 통일 확산 프롬프트] 앱 전역 공용 디자인 토큰.
 ///
 /// 홈 화면 마감 정돈 작업(`home_style_tokens.dart`)에서 확정된 색상/폰트/
-/// spacing/radius/iconSize 값을 앱 전체 서브 화면(운세/커뮤니티/행복머니/
+/// spacing/radius/iconSize 값을 앱 전체 서브 화면(운세/커뮤니티/복주머니/
 /// 마이/결과 페이지)으로 확산하기 위해 `core/theme/`로 승격한 공용 토큰이다.
 ///
 /// 기존 전역 `AppColors`/`AppTypography`/`AppSpacing`는 값 자체가 다르고

@@ -134,7 +134,7 @@ class WishPostProvider extends ChangeNotifier {
     await loadFeed(tab: tab);
   }
 
-  /// [3단계 - 행복머니 커뮤니티 적립 연동] 성공 시 서버가 지급한 rewardPoint를
+  /// [3단계 - 복주머니 커뮤니티 적립 연동] 성공 시 서버가 지급한 rewardPoint를
   /// 반환한다(호출부 UI가 "+N P 획득" 토스트를 표시할 수 있도록). 실패 시 null.
   Future<int?> createPost(
     String content, {
@@ -156,8 +156,8 @@ class WishPostProvider extends ChangeNotifier {
     return null;
   }
 
-  /// "행운 보내기" - Mock 단계 임시정책: 행복머니 이동 없는 단순 응원 토글
-  /// (03§10.3/§18/§570 정책 미확정 - 향후 행복머니전송형 확정 시 WalletProvider.spend/earn
+  /// "행운 보내기" - Mock 단계 임시정책: 복주머니 이동 없는 단순 응원 토글
+  /// (03§10.3/§18/§570 정책 미확정 - 향후 복주머니전송형 확정 시 WalletProvider.spend/earn
   /// orchestrate를 이 메서드에 추가하는 정도로 영향도 최소화되도록 설계)
   Future<void> toggleSupport(String wishId) async {
     final result = await _repository.toggleSupport(wishId);
@@ -179,8 +179,8 @@ class WishPostProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// [3단계 - 행복머니 커뮤니티 적립 연동] 성공 시 서버가 지급한 행복머니(bokjuAwarded)를
-  /// 반환한다(호출부 UI가 "+N 행복머니" 피드백을 표시할 수 있도록). 실패 시 null.
+  /// [3단계 - 복주머니 커뮤니티 적립 연동] 성공 시 서버가 지급한 복주머니(bokjuAwarded)를
+  /// 반환한다(호출부 UI가 "+N 복주머니" 피드백을 표시할 수 있도록). 실패 시 null.
   Future<int?> addComment(String wishId, String content) async {
     final result = await _repository.addComment(wishId, content);
     if (!result.success) return null;
@@ -204,13 +204,21 @@ class WishPostProvider extends ChangeNotifier {
     return result.success;
   }
 
-  /// [소원성(Wish Castle) 확장] 행복머니 보내기 - 실제 행복머니 이동 없는 상징적 응원.
-  /// 성공 시 posts 캐시를 서버 응답값으로 즉시 갱신하고, 레벨업 여부/이전 레벨/
-  /// 최종레벨 최초 도달 여부를 [WishBokjuSendResult]로 반환해 호출부(UI)가
+  /// [재화 구조 정리] 복주머니 보내기 실패 시(주로 잔액 부족) UI에 보여줄 에러 메시지.
+  String? lastBokjuError;
+
+  /// [소원성(Wish Castle) 확장] 복주머니 보내기 - [재화 구조 정리]에 따라 선택한
+  /// amount만큼 실제 지갑(Wallet)에서 차감된다(서버가 원자적으로 처리, 잔액 부족
+  /// 시 409). 성공 시 posts 캐시를 서버 응답값으로 즉시 갱신하고, 레벨업 여부/
+  /// 이전 레벨/최종레벨 최초 도달 여부를 [WishBokjuSendResult]로 반환해 호출부(UI)가
   /// 성장 연출/레벨업 연출/최종단계 특별연출을 분기할 수 있게 한다.
   Future<WishBokjuSendResult?> sendBokju(String wishId, int amount) async {
     final result = await _repository.sendBokju(wishId, amount);
-    if (!result.success || result.data == null) return null;
+    if (!result.success || result.data == null) {
+      lastBokjuError = result.errorMessage ?? '복주머니 보내기에 실패했습니다.';
+      return null;
+    }
+    lastBokjuError = null;
     final data = result.data!;
     final index = _posts.indexWhere((p) => p.id == wishId);
     final newCandleLevel = (data['candleLevel'] as num).toInt();
@@ -277,6 +285,123 @@ class WishPostProvider extends ChangeNotifier {
     final result = await _repository.submitReview(wishId, content);
     return result.success;
   }
+
+  /// [재화 구조 정리 - 재연결] cheer/empathize/highlight/expose_boost 4개 유료
+  /// 액션 실패 시(주로 잔액부족/본인글아님) UI에 보여줄 에러 메시지.
+  String? lastWishActionError;
+
+  /// [재화 구조 정리 - 재연결] 댓글 응원(cheer) - 성공 시 결과(차감액/잔액/최신
+  /// cheerCount)를 반환한다. 실패 시 null(lastWishActionError 확인).
+  Future<WishSpendActionResult?> cheerComment(
+    String wishId,
+    String commentId,
+  ) async {
+    final result = await _repository.cheerComment(wishId, commentId);
+    if (!result.success || result.data == null) {
+      lastWishActionError = result.errorMessage ?? '응원 처리에 실패했습니다.';
+      return null;
+    }
+    lastWishActionError = null;
+    final data = result.data!;
+    final newCheerCount = (data['cheerCount'] as num).toInt();
+    final comments = _commentsByWishId[wishId];
+    if (comments != null) {
+      final index = comments.indexWhere((c) => c.id == commentId);
+      if (index != -1) {
+        comments[index] = comments[index].copyWith(cheerCount: newCheerCount);
+        notifyListeners();
+      }
+    }
+    return WishSpendActionResult(
+      amountSpent: (data['amountSpent'] as num).toInt(),
+      balanceAfter: (data['balanceAfter'] as num?)?.toInt(),
+    );
+  }
+
+  /// [재화 구조 정리 - 재연결] 댓글 공감(empathize) - cheerComment와 동일 구조.
+  Future<WishSpendActionResult?> empathizeComment(
+    String wishId,
+    String commentId,
+  ) async {
+    final result = await _repository.empathizeComment(wishId, commentId);
+    if (!result.success || result.data == null) {
+      lastWishActionError = result.errorMessage ?? '공감 처리에 실패했습니다.';
+      return null;
+    }
+    lastWishActionError = null;
+    final data = result.data!;
+    final newEmpathizeCount = (data['empathizeCount'] as num).toInt();
+    final comments = _commentsByWishId[wishId];
+    if (comments != null) {
+      final index = comments.indexWhere((c) => c.id == commentId);
+      if (index != -1) {
+        comments[index] = comments[index].copyWith(
+          empathizeCount: newEmpathizeCount,
+        );
+        notifyListeners();
+      }
+    }
+    return WishSpendActionResult(
+      amountSpent: (data['amountSpent'] as num).toInt(),
+      balanceAfter: (data['balanceAfter'] as num?)?.toInt(),
+    );
+  }
+
+  /// [재화 구조 정리 - 재연결] 글 강조(highlight) - 본인 소원에만 적용 가능(서버가
+  /// 403 가드). 성공 시 posts 캐시의 isHighlighted/highlightedUntil을 갱신한다.
+  Future<WishSpendActionResult?> highlightWish(String wishId) async {
+    final result = await _repository.highlightWish(wishId);
+    if (!result.success || result.data == null) {
+      lastWishActionError = result.errorMessage ?? '글 강조 처리에 실패했습니다.';
+      return null;
+    }
+    lastWishActionError = null;
+    final data = result.data!;
+    final index = _posts.indexWhere((p) => p.id == wishId);
+    if (index != -1) {
+      _posts[index] = _posts[index].copyWith(
+        isHighlighted: true,
+        highlightedUntil: data['highlightedUntil'] != null
+            ? DateTime.parse(data['highlightedUntil'] as String)
+            : null,
+      );
+      notifyListeners();
+    }
+    return WishSpendActionResult(
+      amountSpent: (data['amountSpent'] as num).toInt(),
+      balanceAfter: (data['balanceAfter'] as num?)?.toInt(),
+    );
+  }
+
+  /// [재화 구조 정리 - 재연결] 노출 강화(expose_boost) - 성공 시 posts 캐시의
+  /// isBoosted를 즉시 true로 갱신한다(피드 상단 재배치는 다음 loadFeed()부터 반영).
+  Future<WishSpendActionResult?> exposeBoostWish(String wishId) async {
+    final result = await _repository.exposeBoostWish(wishId);
+    if (!result.success || result.data == null) {
+      lastWishActionError = result.errorMessage ?? '노출 강화 처리에 실패했습니다.';
+      return null;
+    }
+    lastWishActionError = null;
+    final data = result.data!;
+    final index = _posts.indexWhere((p) => p.id == wishId);
+    if (index != -1) {
+      _posts[index] = _posts[index].copyWith(isBoosted: true);
+      notifyListeners();
+    }
+    return WishSpendActionResult(
+      amountSpent: (data['amountSpent'] as num).toInt(),
+      balanceAfter: (data['balanceAfter'] as num?)?.toInt(),
+    );
+  }
+}
+
+/// [재화 구조 정리 - 재연결] cheer/empathize/highlight/expose_boost 공통 응답
+/// 결과 - 실제 차감액과 처리 후 잔액을 담아 UI가 공용 차감 토스트를 띄울 수
+/// 있게 한다(신규 원자단위 신설 없이 순수 데이터 클래스).
+class WishSpendActionResult {
+  final int amountSpent;
+  final int? balanceAfter;
+  const WishSpendActionResult({required this.amountSpent, this.balanceAfter});
 }
 
 /// [소원성(Wish Castle) 확장] sendBokju() 결과 - UI가 성장/레벨업/최종연출을

@@ -28,7 +28,7 @@ class PassRepository {
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
-        final error = decoded['error'] as String? ?? '열림패스 정책을 불러오지 못했습니다.';
+        final error = decoded['error'] as String? ?? '프리패스 정책을 불러오지 못했습니다.';
         debugPrint('[PassRepository] [policies] 실패 -> $error');
         return ApiResult.fail(error);
       }
@@ -39,7 +39,7 @@ class PassRepository {
       return ApiResult.ok(list);
     } catch (e) {
       debugPrint('[PassRepository] [policies] 예외 -> $e');
-      return ApiResult.fail('열림패스 정책을 불러오지 못했습니다: $e');
+      return ApiResult.fail('프리패스 정책을 불러오지 못했습니다: $e');
     }
   }
 
@@ -58,7 +58,7 @@ class PassRepository {
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
-        final error = decoded['error'] as String? ?? '열림패스 상태를 불러오지 못했습니다.';
+        final error = decoded['error'] as String? ?? '프리패스 상태를 불러오지 못했습니다.';
         debugPrint('[PassRepository] [status] 실패 -> $error');
         return ApiResult.fail(error);
       }
@@ -69,7 +69,7 @@ class PassRepository {
       return ApiResult.ok(status);
     } catch (e) {
       debugPrint('[PassRepository] [status] 예외 -> $e');
-      return ApiResult.fail('열림패스 상태를 불러오지 못했습니다: $e');
+      return ApiResult.fail('프리패스 상태를 불러오지 못했습니다: $e');
     }
   }
 
@@ -107,7 +107,7 @@ class PassRepository {
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
-        final error = decoded['error'] as String? ?? '열림패스 발급에 실패했습니다.';
+        final error = decoded['error'] as String? ?? '프리패스 발급에 실패했습니다.';
         debugPrint('[PassRepository] [$endpoint] 실패 -> $error');
         return ApiResult.fail(error);
       }
@@ -126,7 +126,88 @@ class PassRepository {
       );
     } catch (e) {
       debugPrint('[PassRepository] [$endpoint] 예외 -> $e');
-      return ApiResult.fail('열림패스 발급 중 오류가 발생했습니다: $e');
+      return ApiResult.fail('프리패스 발급 중 오류가 발생했습니다: $e');
+    }
+  }
+
+  /// GET /api/public/pass/purchase-options — [재화 구조 정리] "복주머니로 구매"
+  /// 가능한 프리패스 옵션 목록(30분/1시간/24시간 등, happyMoneyPrice가 설정된 정책만).
+  Future<ApiResult<List<PassPurchaseOptionModel>>> getPurchaseOptions() async {
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/pass/purchase-options',
+    );
+    debugPrint('[PassRepository] [purchase-options] 요청 -> $uri');
+
+    try {
+      final response = await http
+          .get(uri, headers: {'Accept': 'application/json'})
+          .timeout(const Duration(seconds: 10));
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        final error =
+            decoded['error'] as String? ?? '구매 가능한 프리패스 옵션을 불러오지 못했습니다.';
+        debugPrint('[PassRepository] [purchase-options] 실패 -> $error');
+        return ApiResult.fail(error);
+      }
+
+      final list = (decoded['data'] as List<dynamic>)
+          .map(
+            (e) => PassPurchaseOptionModel.fromJson(e as Map<String, dynamic>),
+          )
+          .toList();
+      return ApiResult.ok(list);
+    } catch (e) {
+      debugPrint('[PassRepository] [purchase-options] 예외 -> $e');
+      return ApiResult.fail('구매 가능한 프리패스 옵션을 불러오지 못했습니다: $e');
+    }
+  }
+
+  /// POST /api/public/pass/purchase-with-luck-pouch — [재화 구조 정리] 복주머니
+  /// 차감으로 프리패스 즉시 구매. 잔액 부족 시 실패(ApiResult.fail)를 반환한다
+  /// (프리패스는 순수 시간제 이용권이므로 구매 시 별도 상시 적립/보너스는 없다).
+  Future<ApiResult<PassStatusModel>> purchaseWithLuckPouch({
+    required int policyId,
+  }) async {
+    final userId = await AuthTokenStore.getCurrentUserId();
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/pass/purchase-with-luck-pouch',
+    );
+    debugPrint(
+      '[PassRepository] [purchase-with-luck-pouch] 요청 -> userId=$userId, policyId=$policyId',
+    );
+
+    try {
+      final response = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'userId': userId, 'policyId': policyId}),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        final error = decoded['error'] as String? ?? '프리패스 구매에 실패했습니다.';
+        debugPrint('[PassRepository] [purchase-with-luck-pouch] 실패 -> $error');
+        return ApiResult.fail(error);
+      }
+
+      final data = decoded['data'] as Map<String, dynamic>;
+      final expiresAt = DateTime.parse(data['expiresAt'] as String);
+      return ApiResult.ok(
+        PassStatusModel(
+          isActive: true,
+          userPassId: data['userPassId'] as int?,
+          policyId: data['policyId'] as int?,
+          policyName: data['policyName'] as String?,
+          expiresAt: expiresAt,
+          remainingSec: expiresAt.difference(DateTime.now()).inSeconds,
+        ),
+      );
+    } catch (e) {
+      debugPrint('[PassRepository] [purchase-with-luck-pouch] 예외 -> $e');
+      return ApiResult.fail('프리패스 구매 중 오류가 발생했습니다: $e');
     }
   }
 
@@ -158,14 +239,14 @@ class PassRepository {
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
-        final error = decoded['error'] as String? ?? '유효한 열림패스가 없습니다.';
+        final error = decoded['error'] as String? ?? '유효한 프리패스가 없습니다.';
         debugPrint('[PassRepository] [consume] 실패 -> $error');
         return ApiResult.fail(error);
       }
       return ApiResult.ok(null);
     } catch (e) {
       debugPrint('[PassRepository] [consume] 예외 -> $e');
-      return ApiResult.fail('열림패스 검증 중 오류가 발생했습니다: $e');
+      return ApiResult.fail('프리패스 검증 중 오류가 발생했습니다: $e');
     }
   }
 }

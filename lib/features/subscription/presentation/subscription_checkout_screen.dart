@@ -32,14 +32,14 @@ class _SubscriptionCheckoutScreenState
     if (!mounted) return;
     if (result.success) {
       // [2단계 구독 연동] 구독 성공 시 서버(subscribe/route.ts)가 열림패스를
-      // 자동 발급하고 행복머니 보너스를 지급하므로, 클라이언트는 PassProvider/
+      // 자동 발급하고 복주머니 보너스를 지급하므로, 클라이언트는 PassProvider/
       // WalletProvider를 즉시 재조회해 홈/운세 탭 상태를 최신화한다.
       await Future.wait([
         context.read<PassProvider>().load(),
         context.read<WalletProvider>().load(),
       ]);
       if (!mounted) return;
-      AppToast.show(context, '구독이 시작되었습니다! 열림패스와 행복머니 보너스가 지급되었어요 🎉');
+      AppToast.show(context, '구독이 시작되었습니다! 프리패스와 복주머니 보너스가 지급되었어요 🎉');
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const MySubscriptionScreen()),
       );

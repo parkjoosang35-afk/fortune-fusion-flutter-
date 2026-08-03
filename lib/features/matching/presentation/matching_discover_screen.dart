@@ -21,7 +21,7 @@ class MatchingDiscoverScreen extends StatefulWidget {
 
 class _MatchingDiscoverScreenState extends State<MatchingDiscoverScreen> {
   /// provider.candidatesState의 좋아요 처리분과 별개로, "넘기기(skip)"는 API 대응이
-  /// 없으므로(06§4.6에 dislike 엔드행복머니 없음) 로컬 덱에서만 제거해 화면 흐름을 유지한다.
+  /// 없으므로(06§4.6에 dislike 엔드복주머니 없음) 로컬 덱에서만 제거해 화면 흐름을 유지한다.
   final List<MatchingCandidateModel> _deck = [];
   bool _initialized = false;
 
@@ -43,8 +43,8 @@ class _MatchingDiscoverScreenState extends State<MatchingDiscoverScreen> {
     });
   }
 
-  /// [3단계 - 행복머니 소비: 운명의 동행] 관심표시 1건당 서버가 point_policies.
-  /// matching_like 정책으로 행복머니를 차감한다(정책 없으면 무료). 서버가 이미
+  /// [3단계 - 복주머니 소비: 운명의 동행] 관심표시 1건당 서버가 point_policies.
+  /// matching_like 정책으로 복주머니를 차감한다(정책 없으면 무료). 서버가 이미
   /// 지갑을 트랜잭션으로 갱신했으므로, 클라이언트는 WalletProvider.load()로
   /// 잔액 캐시만 재조회한다(amulet_repository.purchase()와 동일한 "중복차감방지형"
   /// 패턴 - 여기서 spend()를 별도로 또 호출하면 이중 차감이 된다).

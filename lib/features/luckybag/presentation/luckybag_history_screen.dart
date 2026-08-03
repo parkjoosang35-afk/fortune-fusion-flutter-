@@ -42,7 +42,7 @@ class _LuckyBagHistoryScreenState extends State<LuckyBagHistoryScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('행복머니 이력'),
+        title: const Text('복주머니 이력'),
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
@@ -80,8 +80,8 @@ class _HistoryTab extends StatelessWidget {
     if (logs.isEmpty) {
       return const AppEmptyState(
         icon: Icons.card_giftcard_outlined,
-        title: '아직 개봉한 행복머니가 없어요',
-        description: '상점에서 행복머니를 열어보세요',
+        title: '아직 개봉한 복주머니가 없어요',
+        description: '상점에서 복주머니를 열어보세요',
       );
     }
     return RefreshIndicator(
@@ -194,7 +194,7 @@ class _RewardSummaryTab extends StatelessWidget {
       return const AppEmptyState(
         icon: Icons.bar_chart_rounded,
         title: '집계할 개봉 이력이 없어요',
-        description: '행복머니를 열면 등급별 통계가 여기에 표시돼요',
+        description: '복주머니를 열면 등급별 통계가 여기에 표시돼요',
       );
     }
     final totalCount = entries.fold<int>(0, (sum, e) => sum + e.count);
@@ -219,7 +219,7 @@ class _RewardSummaryTab extends StatelessWidget {
               ),
               Container(width: 1, height: 32, color: Colors.white24),
               Expanded(
-                child: _SummaryStat(label: '누적 행복머니 획득', value: '$totalPoint P'),
+                child: _SummaryStat(label: '누적 복주머니 획득', value: '$totalPoint개'),
               ),
             ],
           ),
@@ -265,7 +265,7 @@ class _RewardSummaryTab extends StatelessWidget {
                   ),
                   if (e.totalPointReward > 0)
                     Text(
-                      '${e.totalPointReward}P',
+                      '${e.totalPointReward}개',
                       style: const TextStyle(
                         fontWeight: FontWeight.w700,
                         color: AppColors.secondaryDark,

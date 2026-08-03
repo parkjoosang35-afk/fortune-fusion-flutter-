@@ -30,8 +30,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     ),
     _OnboardingPage(
       Icons.emoji_events_rounded,
-      '출석하고 행복머니 받기',
-      '매일 출석체크와 미션으로\n행운 행복머니를 모아보세요',
+      '출석하고 복주머니 받기',
+      '매일 출석체크와 미션으로\n행운 복주머니를 모아보세요',
     ),
     _OnboardingPage(
       Icons.favorite_rounded,

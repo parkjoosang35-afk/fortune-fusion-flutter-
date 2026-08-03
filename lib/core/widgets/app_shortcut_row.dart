@@ -4,7 +4,7 @@ import '../theme/app_spacing.dart';
 
 /// [10단계 - 중복 UI 정리] 공통 "바로가기/요약 행" 위젯.
 ///
-/// 행복머니 탭(`_ShortcutCard`)과 마이 탭(`_PassSummaryCard`/`_WalletSummaryCard`/
+/// 복주머니 탭(`_ShortcutCard`)과 마이 탭(`_PassSummaryCard`/`_WalletSummaryCard`/
 /// `_SubscriptionSummaryCard`)에서 "원형 이모지 아이콘 + 제목 + 부제목 + 화살표"
 /// 구조가 거의 동일하게 반복되고 있어 하나의 공통 위젯으로 정리한다.
 ///
@@ -14,7 +14,7 @@ import '../theme/app_spacing.dart';
 /// [Fortune Fusion 디자인 우선 리디자인 프롬프트] 화이트 프리미엄 화면(HomeScreen 등)
 /// 에서도 재사용할 수 있도록 [titleColor]/[subtitleColor]를 선택적으로 노출한다.
 /// 지정하지 않으면 기존 다크 우주 톤(cosmicTextPrimary/Tertiary)을 그대로 사용하므로
-/// 기존 화면(마이/행복머니)은 영향받지 않는다.
+/// 기존 화면(마이/복주머니)은 영향받지 않는다.
 class AppShortcutRow extends StatelessWidget {
   const AppShortcutRow({
     super.key,

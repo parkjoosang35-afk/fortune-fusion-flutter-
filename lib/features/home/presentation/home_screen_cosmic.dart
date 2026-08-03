@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../core/domain/access/access_checker.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_dialog.dart';
@@ -22,17 +24,25 @@ import '../../lucky_number/presentation/lucky_number_widget.dart';
 import '../../pass/application/pass_provider.dart';
 import '../../pass/domain/pass_model.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
+import '../../pass/presentation/coupang_pass_sheet.dart';
+import '../../pass/presentation/pass_countdown_badge.dart';
 import '../../subscription/application/subscription_provider.dart';
+import '../../auth/application/auth_provider.dart';
+import '../../luckpouch/application/luck_pouch_provider.dart';
+import '../application/home_page_config_provider.dart';
+import '../application/section_visibility_evaluator.dart';
+import '../domain/page_config_model.dart';
+import 'home_page_renderer.dart';
 
 /// [Fortune Fusion 3축 정책 반영] HomeScreen - 8개 섹션 신규 구성
-/// ①상단상태(패스/행복머니/알림/마이) ②열림패스핵심(광고/제휴/구독/잔여시간)
+/// ①상단상태(패스/복주머니/알림/마이) ②열림패스핵심(광고/제휴/구독/잔여시간)
 /// ③운세카테고리(6종+패스검증) ④오늘의대표콘텐츠(요약운세/행운숫자, 무료미리보기)
-/// ⑤커뮤니티미리보기(인기소원) ⑥행복머니적립(출석/미션/글쓰기/댓글 안내)
-/// ⑦행복머니사용처(부적/동행) ⑧구독프로모션(추가혜택/광고배너)
+/// ⑤커뮤니티미리보기(인기소원) ⑥복주머니적립(출석/미션/글쓰기/댓글 안내)
+/// ⑦복주머니사용처(부적/동행) ⑧구독프로모션(추가혜택/광고배너)
 ///
 /// [주의] Application/Data/Domain 레이어(Provider/Repository/Model)는 기존
 /// 것을 그대로 재사용하며, 이 화면은 Presentation 레이어의 섹션 순서/구성만
-/// 3축 정책(열림패스/행복머니/구독)에 맞춰 재배치한다.
+/// 3축 정책(열림패스/복주머니/구독)에 맞춰 재배치한다.
 class HomeScreenCosmic extends StatefulWidget {
   const HomeScreenCosmic({super.key});
 
@@ -58,13 +68,65 @@ class _HomeScreenCosmicState extends State<HomeScreenCosmic> {
       // [5단계] §8 구독프로모션 섹션의 광고 배너를 실제 AdBannerWidget으로
       // 연결하기 위해 관리자(admin_web CMS)가 등록한 배너를 미리 로드한다.
       context.read<AdBannerProvider>().loadPositions(const ['home_bottom']);
+      // [메인화면 관리자 편집기] admin_web에서 발행(publish)한 홈 화면 구성을
+      // 로드한다. 실패하거나 섹션이 없으면 build()에서 기존 정적 레이아웃으로
+      // 그대로 폴백한다(HomePageConfigProvider.shouldFallbackToStatic).
+      context.read<HomePageConfigProvider>().load();
     });
+  }
+
+  bool _isSameDay(DateTime? a, DateTime b) {
+    if (a == null) return false;
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  /// [메인화면 관리자 편집기] SectionVisibilityEvaluator에 넘길 현재 사용자
+  /// 상태 스냅샷. AuthProvider/PassProvider/WalletProvider/LuckPouchProvider/
+  /// DailyFortuneProvider/WishPostProvider는 모두 이미 이 화면(또는 앱 전역)이
+  /// 로드해두는 값을 그대로 재사용하며, 이 화면에서 추가 API 호출은 하지 않는다.
+  HomeVisibilityContext _buildVisibilityContext(BuildContext context) {
+    final now = DateTime.now();
+    final auth = context.watch<AuthProvider>();
+    context.watch<PassProvider>();
+    final access = context.watch<AccessChecker>();
+    final wallet = context.watch<WalletProvider>();
+    final luckPouch = context.watch<LuckPouchProvider>();
+    final dailyFortune = context.watch<DailyFortuneProvider>();
+    final wishPost = context.watch<WishPostProvider>();
+
+    return HomeVisibilityContext(
+      isLoggedIn: auth.isLoggedIn,
+      now: now,
+      // [재잠금 정확도] pass.isActive(서버 스냅샷) 대신 AccessChecker의
+      // 실시간 계산값을 사용해 만료 시점 이후 즉시 잠금 섹션이 반영되게 한다.
+      openPassActive: access.openPassState.isActive,
+      happyMoneyBalance: wallet.balance,
+      luckPouchBalance: luckPouch.balance,
+      dailyFortuneViewedToday: _isSameDay(dailyFortune.today?.date, now),
+      // [Phase-1 범위 한계] "오늘 내가 소원을 남겼는가"는 별도 조회 API가 없어
+      // 이미 로드된 피드(posts) 중 isMine=true & 오늘 작성된 글이 있는지로 근사한다.
+      wishBoardParticipatedToday: wishPost.posts.any(
+        (p) => p.isMine && _isSameDay(p.createdAt, now),
+      ),
+      platform: HomeVisibilityContext.currentPlatformKey(),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final wallet = context.watch<WalletProvider>();
     final notif = context.watch<NotificationProvider>();
+
+    // [메인화면 관리자 편집기] admin_web에서 발행한 홈 화면 구성이 있으면
+    // HomePageRenderer로 동적 렌더링하고, 조회 실패+캐시 없음일 때만 기존
+    // 정적 레이아웃(§2~§8 8개 섹션)으로 폴백한다.
+    final homeConfig = context.watch<HomePageConfigProvider>();
+    List<PageSectionModel>? visibleSections;
+    if (!homeConfig.shouldFallbackToStatic && homeConfig.rawSections.isNotEmpty) {
+      final ctx = _buildVisibilityContext(context);
+      visibleSections = homeConfig.visibleSections(ctx);
+    }
+    final useDynamicBody = visibleSections != null && visibleSections.isNotEmpty;
 
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
@@ -78,7 +140,7 @@ class _HomeScreenCosmicState extends State<HomeScreenCosmic> {
             color: AppColors.cosmicTextPrimary,
           ),
         ),
-        // ①상단상태 — 열림패스 카운트다운(패스/행복머니 상태는 항상 상단에서 확인 가능)
+        // ①상단상태 — 열림패스 카운트다운(패스/복주머니 상태는 항상 상단에서 확인 가능)
         bottom: const _AlarmPassStatusBar(),
         actions: [
           PointBadge(
@@ -97,59 +159,84 @@ class _HomeScreenCosmicState extends State<HomeScreenCosmic> {
         ],
       ),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          children: [
-            // §2 열림패스 핵심 섹션(광고/제휴/구독 CTA) — 활성 상태면 자동 숨김
-            const _AlarmPassSection(),
-            const SizedBox(height: AppSpacing.xl),
-
-            // §3 운세 카테고리(6종) — 각 카드는 공통 패스게이트(navigateWithPassGate)를 통과
-            const _SectionTitle(title: '🔮 운세 카테고리'),
-            const SizedBox(height: AppSpacing.md),
-            const _FortuneCategoryGrid(),
-            const SizedBox(height: AppSpacing.xl),
-
-            // §4 오늘의 대표 콘텐츠 — 요약운세(무료 미리보기) + 행운숫자
-            HeroFortuneSummaryCard(
-              onCtaTap: () =>
-                  Navigator.of(context).pushNamed('/home/daily-fortune-detail'),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            const _SectionTitle(title: '🔢 오늘의 행운 숫자'),
-            const SizedBox(height: AppSpacing.md),
-            const _LuckyNumberSection(),
-            const SizedBox(height: AppSpacing.xl),
-
-            // §5 커뮤니티 미리보기 — 인기 소원 + 커뮤니티 안내
-            const _SectionTitle(title: '🌠 지금 인기 있는 소원'),
-            const SizedBox(height: AppSpacing.md),
-            const _PopularWishSection(),
-            const SizedBox(height: AppSpacing.md),
-            const _CommunityBanner(),
-            const SizedBox(height: AppSpacing.xl),
-
-            // §6 행복머니 적립 — 출석/미션/글쓰기·댓글(커뮤니티 활동) 안내
-            const _SectionTitle(title: '🍀 행복머니 적립하기'),
-            const SizedBox(height: AppSpacing.md),
-            const _LuckyBagEarnSection(),
-            const SizedBox(height: AppSpacing.xl),
-
-            // §7 행복머니 사용처 — 부적 만들기 / 운명의 동행
-            const _SectionTitle(title: '✨ 행복머니 사용처'),
-            const SizedBox(height: AppSpacing.md),
-            const _AmuletMatchingRow(),
-            const SizedBox(height: AppSpacing.xl),
-
-            // §8 구독 프로모션 — 추가 혜택 배너 + 관리자 등록 광고 배너
-            const _SectionTitle(title: '💎 구독으로 더 큰 혜택'),
-            const SizedBox(height: AppSpacing.md),
-            const _SubscriptionPromoBanner(),
-            const SizedBox(height: AppSpacing.md),
-            const AdBannerWidget(position: 'home_bottom'),
-          ],
-        ),
+        child: useDynamicBody
+            ? _buildDynamicBody(context, visibleSections)
+            : _buildStaticBody(context),
       ),
+    );
+  }
+
+  /// [메인화면 관리자 편집기] admin_web에서 발행한 구성으로 그리는 동적 홈 본문.
+  /// AdBannerWidget(제휴 광고배너)은 page-config 관리 대상이 아니므로 기존과
+  /// 동일하게 항상 맨 아래에 그대로 유지한다.
+  Widget _buildDynamicBody(
+    BuildContext context,
+    List<PageSectionModel> visibleSections,
+  ) {
+    return ListView(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      children: [
+        HomePageRenderer(sections: visibleSections),
+        const AdBannerWidget(position: 'home_bottom'),
+      ],
+    );
+  }
+
+  /// [메인화면 관리자 편집기] §17 앱 동작 원칙 - 서버 조회 실패 + 로컬 캐시도
+  /// 없을 때 사용하는 최종 폴백. 기존에 이미 완성되어 있던 8개 섹션 정적
+  /// 레이아웃을 그대로 보존한다(내용/순서 변경 없음).
+  Widget _buildStaticBody(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      children: [
+        // §2 열림패스 핵심 섹션(광고/제휴/구독 CTA) — 활성 상태면 자동 숨김
+        const _AlarmPassSection(),
+        const SizedBox(height: AppSpacing.xl),
+
+        // §3 운세 카테고리(6종) — 각 카드는 공통 패스게이트(navigateWithPassGate)를 통과
+        const _SectionTitle(title: '🔮 운세 카테고리'),
+        const SizedBox(height: AppSpacing.md),
+        const _FortuneCategoryGrid(),
+        const SizedBox(height: AppSpacing.xl),
+
+        // §4 오늘의 대표 콘텐츠 — 요약운세(무료 미리보기) + 행운숫자
+        HeroFortuneSummaryCard(
+          onCtaTap: () =>
+              Navigator.of(context).pushNamed('/home/daily-fortune-detail'),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        const _SectionTitle(title: '🔢 오늘의 행운 숫자'),
+        const SizedBox(height: AppSpacing.md),
+        const _LuckyNumberSection(),
+        const SizedBox(height: AppSpacing.xl),
+
+        // §5 커뮤니티 미리보기 — 인기 소원 + 커뮤니티 안내
+        const _SectionTitle(title: '🌠 지금 인기 있는 소원'),
+        const SizedBox(height: AppSpacing.md),
+        const _PopularWishSection(),
+        const SizedBox(height: AppSpacing.md),
+        const _CommunityBanner(),
+        const SizedBox(height: AppSpacing.xl),
+
+        // §6 복주머니 적립 — 출석/미션/글쓰기·댓글(커뮤니티 활동) 안내
+        const _SectionTitle(title: '🍀 복주머니 적립하기'),
+        const SizedBox(height: AppSpacing.md),
+        const _LuckyBagEarnSection(),
+        const SizedBox(height: AppSpacing.xl),
+
+        // §7 복주머니 사용처 — 부적 만들기 / 운명의 동행
+        const _SectionTitle(title: '✨ 복주머니 사용처'),
+        const SizedBox(height: AppSpacing.md),
+        const _AmuletMatchingRow(),
+        const SizedBox(height: AppSpacing.xl),
+
+        // §8 구독 프로모션 — 추가 혜택 배너 + 관리자 등록 광고 배너
+        const _SectionTitle(title: '💎 구독으로 더 큰 혜택'),
+        const SizedBox(height: AppSpacing.md),
+        const _SubscriptionPromoBanner(),
+        const SizedBox(height: AppSpacing.md),
+        const AdBannerWidget(position: 'home_bottom'),
+      ],
     );
   }
 }
@@ -629,8 +716,8 @@ class _CommunityBanner extends StatelessWidget {
   }
 }
 
-/// §6 행복머니 적립 섹션 — 출석체크 + 미션 + 커뮤니티 활동(글쓰기/댓글) 안내.
-/// [3단계 행복머니 흐름 정리] 행복머니는 "커뮤니티 중심 재화"로, 적립 경로가
+/// §6 복주머니 적립 섹션 — 출석체크 + 미션 + 커뮤니티 활동(글쓰기/댓글) 안내.
+/// [3단계 복주머니 흐름 정리] 복주머니는 "커뮤니티 중심 재화"로, 적립 경로가
 /// 여러 화면에 흩어져 있으므로 홈에서 한번에 안내한다.
 class _LuckyBagEarnSection extends StatelessWidget {
   const _LuckyBagEarnSection();
@@ -677,7 +764,7 @@ class _LuckyBagEarnSection extends StatelessWidget {
                     Text(
                       attendance.checkedToday
                           ? '출석 완료 · 연속 ${attendance.streak}일'
-                          : '출석하고 행복머니 받기',
+                          : '출석하고 복주머니 받기',
                       style: const TextStyle(
                         fontSize: 11,
                         color: AppColors.cosmicTextTertiary,
@@ -709,7 +796,7 @@ class _LuckyBagEarnSection extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '소원 글쓰기 · 댓글로 행복머니 받기',
+                      '소원 글쓰기 · 댓글로 복주머니 받기',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
@@ -717,7 +804,7 @@ class _LuckyBagEarnSection extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '커뮤니티 활동은 행복머니의 가장 큰 적립 경로예요',
+                      '커뮤니티 활동은 복주머니의 가장 큰 적립 경로예요',
                       style: TextStyle(
                         fontSize: 11,
                         color: AppColors.cosmicTextTertiary,
@@ -757,7 +844,7 @@ class _LuckyBagEarnSection extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      '내 행복머니 전체보기',
+                      '내 복주머니 전체보기',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
@@ -766,7 +853,7 @@ class _LuckyBagEarnSection extends StatelessWidget {
                     ),
                     Text(
                       pending > 0
-                          ? '받을 수 있는 행복머니 $pending개'
+                          ? '받을 수 있는 복주머니 $pending개'
                           : '적립/사용 내역을 한눈에 확인해보세요',
                       style: const TextStyle(
                         fontSize: 11,
@@ -789,7 +876,7 @@ class _LuckyBagEarnSection extends StatelessWidget {
   }
 }
 
-/// §7 부적/동행 2단 카드 — 행복머니 사용처
+/// §7 부적/동행 2단 카드 — 복주머니 사용처
 class _AmuletMatchingRow extends StatelessWidget {
   const _AmuletMatchingRow();
 
@@ -924,7 +1011,7 @@ class _SubscriptionPromoBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isPremium ? '구독 혜택을 받고 있어요' : '열림패스 + 행복머니 강화 상품',
+                  isPremium ? '구독 혜택을 받고 있어요' : '프리패스 + 복주머니 강화 상품',
                   style: const TextStyle(
                     color: AppColors.bgPrimary,
                     fontSize: 14,
@@ -935,7 +1022,7 @@ class _SubscriptionPromoBanner extends StatelessWidget {
                 Text(
                   isPremium
                       ? '정기 보너스와 광고 스트레스 완화를 계속 누려보세요'
-                      : '열림패스 자동 지급 · 행복머니 정기 보너스 · 광고 완화',
+                      : '프리패스 자동 지급 · 복주머니 정기 보너스 · 광고 완화',
                   style: const TextStyle(color: AppColors.bgPrimary, fontSize: 11),
                 ),
               ],
@@ -950,46 +1037,40 @@ class _SubscriptionPromoBanner extends StatelessWidget {
 
 /// 열림패스(AlarmPass) 상단 상태바 — AppBar.bottom에 장착되는 카운트다운.
 /// 활성 상태가 아니면 높이 0(공간 차지 없음)으로 접혀 사라진다.
-/// 서버 값(remainingSec)을 기준으로 1초 간격 로컬 타이머 없이 Provider 값을
-/// 그대로 표시하고, 실제 만료 판정은 다음 PassProvider.load() 호출 시 서버가 갖는다.
-class _AlarmPassStatusBar extends StatelessWidget
+///
+/// [프리패스 테스트 인프라] §7/§13 — 남은 시간은 [AccessChecker.openPassState]
+/// (=[OpenPassState.fromModel])가 `expiresAt - DateTime.now()`로 매번
+/// 실시간 재계산하므로, 여기서는 1초마다 rebuild만 트리거하면 서버를 다시
+/// 호출하지 않아도 만료 순간 자동으로 바가 사라진다(자동 재잠금).
+class _AlarmPassStatusBar extends StatefulWidget
     implements PreferredSizeWidget {
   const _AlarmPassStatusBar();
 
   @override
-  Size get preferredSize => const Size.fromHeight(32);
+  Size get preferredSize => const Size.fromHeight(36);
 
   @override
+  State<_AlarmPassStatusBar> createState() => _AlarmPassStatusBarState();
+}
+
+class _AlarmPassStatusBarState extends State<_AlarmPassStatusBar> {
+  @override
   Widget build(BuildContext context) {
-    final pass = context.watch<PassProvider>();
-    if (!pass.isActive) return const SizedBox.shrink();
+    final access = context.watch<AccessChecker>();
+    if (!access.openPassState.isActive) return const SizedBox.shrink();
 
-    final remaining = pass.status.remainingSec;
-    final h = remaining ~/ 3600;
-    final m = (remaining % 3600) ~/ 60;
-    final s = remaining % 60;
-    final label = h > 0
-        ? '$h시간 $m분 남음'
-        : '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')} 남음';
-
+    // [프리패스 단순화 - 쿠팡파트너스 전용] §6/§7/§8 — HH:MM:SS 실시간
+    // 카운트다운 + Glow 펄스 + 숫자 Fade 전환은 [PassCountdownBadge]로
+    // 공통화했다. §8 자동 만료 순간에는 짧은 안내 토스트를 띄운다.
     return Container(
-      height: 32,
+      height: 36,
       color: AppColors.bgTertiary,
       alignment: Alignment.center,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.bolt_rounded, size: 14, color: AppColors.accentGold),
-          const SizedBox(width: 4),
-          Text(
-            '열림패스 활성중 · ${pass.status.policyName ?? ''} · $label',
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: AppColors.accentGold,
-            ),
-          ),
-        ],
+      child: PassCountdownBadge(
+        dense: true,
+        onExpired: () {
+          if (mounted) AppToast.show(context, '프리패스가 종료되었습니다.');
+        },
       ),
     );
   }
@@ -1008,35 +1089,29 @@ class _AlarmPassSection extends StatefulWidget {
 
 class _AlarmPassSectionState extends State<_AlarmPassSection> {
   bool _claiming = false;
+  Timer? _ticker;
 
+  @override
+  void initState() {
+    super.initState();
+    // [재잠금 정확도] 만료 시점이 지나면 사용자가 아무 조작을 하지 않아도
+    // 이 섹션이 자동으로 다시 나타나도록 1초 간격으로 리빌드한다.
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  /// [프리패스 단순화 - 쿠팡파트너스 전용] §3/§4 — 확인 다이얼로그 +
+  /// 즉시지급이던 기존 방식을 제거하고, "쿠팡 방문하기 → 대기 → 자동지급"
+  /// 전체 플로우를 담은 공용 바텀시트([showCoupangPassSheet])로 통일한다.
   Future<void> _handleAdClaim(PassPolicyModel policy) async {
-    final pass = context.read<PassProvider>();
-    final confirmed = await showAppConfirmDialog(
-      context,
-      title: policy.name,
-      message: policy.ctaText ?? '광고를 시청하고 열림패스를 받으시겠습니까?',
-      confirmLabel: '시청하기',
-    );
-    if (!confirmed || !mounted) return;
-
-    setState(() => _claiming = true);
-    // [주의] AdMob 등 실제 광고 SDK가 아직 연동되지 않아, 확인 다이얼로그로
-    // "시청 완료"를 대신한다(관리자 정책/보너스 로직은 서버가 실제로 처리).
-    final ok = await pass.claimAd(policyId: policy.id);
-    if (!mounted) return;
-    setState(() => _claiming = false);
-
-    if (ok) {
-      await context.read<WalletProvider>().load();
-      if (!mounted) return;
-      AppToast.show(context, '열림패스가 발급되었습니다! (${policy.durationMin}분)');
-    } else {
-      AppToast.show(
-        context,
-        pass.lastError ?? '열림패스 발급에 실패했습니다.',
-        isError: true,
-      );
-    }
+    await showCoupangPassSheet(context, categoryTitle: '홈');
   }
 
   Future<void> _handlePartnerClaim(PassPolicyModel policy) async {
@@ -1044,7 +1119,7 @@ class _AlarmPassSectionState extends State<_AlarmPassSection> {
     final confirmed = await showAppConfirmDialog(
       context,
       title: policy.name,
-      message: policy.ctaText ?? '파트너 페이지를 방문하고 열림패스를 받으시겠습니까?',
+      message: policy.ctaText ?? '파트너 페이지를 방문하고 프리패스를 받으시겠습니까?',
       confirmLabel: '방문하기',
     );
     if (!confirmed || !mounted) return;
@@ -1065,11 +1140,11 @@ class _AlarmPassSectionState extends State<_AlarmPassSection> {
     if (ok) {
       await context.read<WalletProvider>().load();
       if (!mounted) return;
-      AppToast.show(context, '열림패스가 발급되었습니다! (${policy.durationMin}분)');
+      AppToast.show(context, '프리패스가 발급되었습니다! (${policy.durationMin}분)');
     } else {
       AppToast.show(
         context,
-        pass.lastError ?? '열림패스 발급에 실패했습니다.',
+        pass.lastError ?? '프리패스 발급에 실패했습니다.',
         isError: true,
       );
     }
@@ -1078,7 +1153,9 @@ class _AlarmPassSectionState extends State<_AlarmPassSection> {
   @override
   Widget build(BuildContext context) {
     final pass = context.watch<PassProvider>();
-    if (pass.isActive) return const SizedBox.shrink();
+    final access = context.watch<AccessChecker>();
+    // [재잠금 정확도] pass.isActive(서버 스냅샷) 대신 실시간 계산값 사용.
+    if (access.openPassState.isActive) return const SizedBox.shrink();
 
     final actionablePolicies = pass.policies
         .where(
@@ -1091,7 +1168,7 @@ class _AlarmPassSectionState extends State<_AlarmPassSection> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          '⏱️ 열림패스 받기',
+          '⏱️ 프리패스 받기',
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,
@@ -1162,8 +1239,9 @@ class _AlarmPassCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '${policy.durationMin}분'
-                  '${policy.bonusPoint > 0 ? ' · +${policy.bonusPoint}P' : ''}',
+                  // [재화 구조 정리] 프리패스는 순수 시간제 이용권 — 상시 적립/보너스
+                  // 포인트 문구를 CTA에 노출하지 않는다(적립수단화 금지).
+                  '${policy.durationMin}분',
                   style: const TextStyle(
                     fontSize: 11,
                     color: AppColors.cosmicTextTertiary,
@@ -1183,7 +1261,7 @@ class _AlarmPassCard extends StatelessWidget {
                 ),
               ),
               onPressed: isBusy ? null : onTap,
-              child: Text(isAd ? '시청' : '방문'),
+              child: Text(isAd ? '받기' : '방문'),
             ),
           ),
         ],

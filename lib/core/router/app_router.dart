@@ -5,7 +5,12 @@ import '../../features/auth/presentation/onboarding_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/signup_screen.dart';
 import '../../features/auth/presentation/profile_check_screen.dart';
-import '../../features/fortune/daily/presentation/daily_fortune_detail_screen.dart';
+import '../../features/fortune/daily/presentation/daily_fortune_intro_screen.dart';
+import '../../features/fortune/daily/presentation/daily_fortune_input_screen.dart';
+import '../../features/fortune/daily/presentation/daily_fortune_loading_screen.dart';
+import '../../features/fortune/daily/presentation/daily_fortune_result_screen.dart';
+import '../../features/fortune/daily/domain/fortune_report_model.dart';
+import '../../features/mypage/presentation/my_fortune_records_screen.dart';
 import '../../features/home/presentation/all_categories_screen.dart';
 import '../../features/fortune/saju/presentation/saju_input_screen.dart';
 import '../../features/fortune/saju/presentation/saju_loading_screen.dart';
@@ -26,6 +31,8 @@ import '../../features/fortune/palm/presentation/palm_history_screen.dart';
 import '../../features/compatibility/presentation/compatibility_input_screen.dart';
 import '../../features/compatibility/presentation/compatibility_result_screen.dart';
 import '../../features/compatibility/presentation/compatibility_history_screen.dart';
+import '../../features/name_fortune/presentation/name_fortune_input_screen.dart';
+import '../../features/name_fortune/presentation/name_fortune_result_screen.dart';
 import '../../features/consultation/presentation/consultation_type_screen.dart';
 import '../../features/consultation/presentation/consultation_chat_screen.dart';
 import '../../features/wallet/presentation/wallet_screen.dart';
@@ -58,6 +65,7 @@ import '../../features/giftcard/presentation/my_giftcards_screen.dart';
 import '../../features/giftcard/domain/giftcard_model.dart';
 import '../../features/subscription/presentation/subscription_plans_screen.dart';
 import '../../features/subscription/presentation/my_subscription_screen.dart';
+import '../../features/wishroom/presentation/wish_room_main_screen.dart';
 
 /// 07단계 §3.2 라우팅 테이블 - Navigator 1.0(onGenerateRoute) 구현
 /// 10단계(A안): AI 6대 기능(사주/타로/관상/손금/궁합/AI상담) + 리워드(미션/랭킹)까지
@@ -80,14 +88,47 @@ class AppRouter {
 
       case '/home':
         return _page(const AppShell());
+      // [오늘의 운세 표준 플로우] 기존 진입점(홈 카드/전체보기 등)은 그대로
+      // 두고, 새 4단계 플로우의 진입 화면(intro)으로 라우팅한다.
       case '/home/daily-fortune-detail':
-        return _page(const DailyFortuneDetailScreen());
+      case '/fortune/today/intro':
+        return _page(const DailyFortuneIntroScreen());
+      case '/fortune/today/input':
+        return _page(const DailyFortuneInputScreen());
+      case '/fortune/today/loading':
+        return _page(
+          DailyFortuneLoadingScreen(
+            input: settings.arguments as FortuneInputModel,
+          ),
+        );
+      case '/fortune/today/result':
+        return _page(
+          DailyFortuneResultScreen(
+            input: settings.arguments as FortuneInputModel?,
+          ),
+        );
       case '/home/all-categories':
         return _page(const AllCategoriesScreen());
+      case '/my/fortune-records':
+        return _page(const MyFortuneRecordsScreen());
 
       // ── AI 사주 ──
       case '/ai-fortune/saju/input':
-        return _page(const SajuInputScreen());
+        {
+          // [운세 카테고리 확장] 전체보기에서 관리자 카테고리를 탭했을 때
+          // {'initialTopics': ['재물', ...]} 형태의 인자로 딥링크된다.
+          // arguments가 없거나(기존 모든 진입 경로) 형식이 다르면 그대로
+          // null로 전달되어 기존 기본 동작(종합 선택)과 동일하다.
+          final args = settings.arguments;
+          List<String>? initialTopics;
+          if (args is Map) {
+            final raw = args['initialTopics'];
+            if (raw is List) {
+              initialTopics = raw.map((e) => e.toString()).toList();
+            }
+          }
+          return _page(SajuInputScreen(initialTopics: initialTopics));
+        }
       case '/ai-fortune/saju/loading':
         return _page(const SajuLoadingScreen());
       case '/ai-fortune/saju/result':
@@ -97,7 +138,25 @@ class AppRouter {
 
       // ── AI 타로 ──
       case '/ai-fortune/tarot/question':
-        return _page(const TarotQuestionScreen());
+        {
+          // [운세 카테고리 확장] 전체보기에서 관리자 카테고리(YES/NO,
+          // 감정관계운 등)를 탭했을 때 {'initialSpreadType': ..,
+          // 'initialTopic': ..} 형태의 인자로 딥링크된다. 없거나 형식이
+          // 다르면 null로 전달되어 기존 기본 동작과 동일하다.
+          final args = settings.arguments;
+          String? initialSpreadType;
+          String? initialTopic;
+          if (args is Map) {
+            initialSpreadType = args['initialSpreadType'] as String?;
+            initialTopic = args['initialTopic'] as String?;
+          }
+          return _page(
+            TarotQuestionScreen(
+              initialSpreadType: initialSpreadType,
+              initialTopic: initialTopic,
+            ),
+          );
+        }
       case '/ai-fortune/tarot/loading':
         return _page(const TarotLoadingScreen());
       case '/ai-fortune/tarot/result':
@@ -134,6 +193,12 @@ class AppRouter {
         return _page(const CompatibilityResultScreen());
       case '/ai-fortune/compatibility/history':
         return _page(const CompatibilityHistoryScreen());
+
+      // ── 이름 운세(성명학) [운세 카테고리 확장 - 신규] ──
+      case '/ai-fortune/name/input':
+        return _page(const NameFortuneInputScreen());
+      case '/ai-fortune/name/result':
+        return _page(const NameFortuneResultScreen());
 
       // ── AI상담 ──
       case '/ai-fortune/consultation/type':
@@ -202,6 +267,8 @@ class AppRouter {
         return _page(const MyGiftcardsScreen());
 
       // ── 커뮤니티 ──
+      case '/community/wish-room':
+        return _page(const WishRoomMainScreen());
       case '/community/wish/detail':
         return _page(
           WishDetailScreen(post: settings.arguments as WishPostModel),

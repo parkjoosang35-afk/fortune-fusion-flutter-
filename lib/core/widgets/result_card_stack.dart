@@ -215,8 +215,8 @@ class _PassStatusBar extends StatelessWidget {
           Expanded(
             child: Text(
               isLocked
-                  ? (message ?? '상세 리포트는 열림패스로 열람할 수 있어요.')
-                  : '열림패스 사용 중${remainingLabel != null ? ' · $remainingLabel' : ''}',
+                  ? (message ?? '상세 리포트는 프리패스로 열람할 수 있어요.')
+                  : '프리패스 사용 중${remainingLabel != null ? ' · $remainingLabel' : ''}',
               style: UnifiedText.bodySmall(),
             ),
           ),

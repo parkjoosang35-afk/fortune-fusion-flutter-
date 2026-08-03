@@ -51,7 +51,7 @@ class CommunityPostProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// [3단계 - 행복머니 커뮤니티 적립 연동] 성공 시 서버가 지급한 rewardPoint를
+  /// [3단계 - 복주머니 커뮤니티 적립 연동] 성공 시 서버가 지급한 rewardPoint를
   /// 반환한다(호출부 UI가 "+N P 획득" 토스트를 표시할 수 있도록). 실패 시 null.
   Future<int?> createPost({
     required String boardId,
@@ -91,7 +91,7 @@ class CommunityPostProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// [3단계 - 행복머니 커뮤니티 적립 연동] 성공 시 서버가 지급한 rewardPoint를
+  /// [3단계 - 복주머니 커뮤니티 적립 연동] 성공 시 서버가 지급한 rewardPoint를
   /// 반환한다(호출부 UI가 "+N P 획득" 토스트를 표시할 수 있도록). 실패 시 null.
   Future<int?> addComment(String postId, String content) async {
     final result = await _repository.addComment(postId, content);

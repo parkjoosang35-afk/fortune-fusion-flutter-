@@ -147,7 +147,7 @@ class _FloatingMoonState extends State<FloatingMoon>
   }
 }
 
-/// 아주 약하게 반짝이는(opacity pulse) 작은 별 아이콘. 행복머니 배지 등에 사용.
+/// 아주 약하게 반짝이는(opacity pulse) 작은 별 아이콘. 복주머니 배지 등에 사용.
 class SparkleDot extends StatefulWidget {
   const SparkleDot({super.key, this.size = 14, this.color});
 

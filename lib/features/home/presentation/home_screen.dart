@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
@@ -18,6 +19,9 @@ import '../../community/application/wish_post_provider.dart';
 import '../../community/presentation/community_screen.dart';
 import '../../pass/application/pass_provider.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
+import '../../pass/presentation/pass_time_format.dart';
+import '../../../core/domain/access/access_checker.dart';
+import '../../wishroom/presentation/wish_room_main_screen.dart';
 import 'home_style_tokens.dart';
 
 /// [Fortune Fusion 서브 디자인 통일 마스터 프롬프트] 홈 화면 - 기준 시안 그대로 구현
@@ -285,7 +289,7 @@ class _TopHeader extends StatelessWidget {
           ),
         ),
         const Spacer(),
-        // 클로버(행복머니 마스코트) - 앱 전역에서 쓰이는 브랜드 아이콘이라 이모지를
+        // 클로버(복주머니 마스코트) - 앱 전역에서 쓰이는 브랜드 아이콘이라 이모지를
         // 유지하되, 스펙 범위(20~22)를 그대로 만족하는 22를 유지한다.
         GestureDetector(
           onTap: () => Navigator.of(context).pushNamed('/reward/wallet'),
@@ -547,7 +551,7 @@ class _WishBoardRoomRow extends StatelessWidget {
               circleIcon: Icons.arrow_drop_down_rounded,
               circleStyle: PremiumCircleButtonStyle.black,
               onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const CommunityScreen()),
+                MaterialPageRoute(builder: (_) => const WishRoomMainScreen()),
               ),
             ),
           ),
@@ -834,13 +838,46 @@ class _WorryConsultationBanner extends StatelessWidget {
 /// (lock_outline_rounded/lock_open_rounded, 두께감 있는 rounded 세트)으로
 /// 교체해 "라인 아이콘 기본" 원칙에 맞췄다. "그림자 사용 금지" 원칙에 따라
 /// 기존 BoxShadow도 제거했다.
-class _OpenPassBottomBar extends StatelessWidget {
+///
+/// [열림패스/복주머니/복주머니 통합정책 §3] "홈 화면은 운세 진입과 열림패스
+/// 중심으로 설계한다. ... 열림패스 남은 시간 노출이 우선"에 대응해, 활성 시
+/// 남은 시간을 라벨로 함께 노출한다(구매 유도 문구는 추가하지 않음).
+class _OpenPassBottomBar extends StatefulWidget {
   const _OpenPassBottomBar();
 
   @override
+  State<_OpenPassBottomBar> createState() => _OpenPassBottomBarState();
+}
+
+class _OpenPassBottomBarState extends State<_OpenPassBottomBar> {
+  Timer? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    // [프리패스 테스트 인프라] §6/§7/§13 — 남은 시간은 [OpenPassState.fromModel]이
+    // expiresAt 기준으로 매번 실시간 재계산하므로, 여기서는 1초마다 단순
+    // rebuild만 트리거해주면 만료 순간 자동으로 잠금 아이콘/문구로 전환된다
+    // (서버 재호출 없이 "자동 재잠금"이 화면에 실시간 반영됨).
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final pass = context.watch<PassProvider>();
-    final isActive = pass.isActive;
+    final access = context.watch<AccessChecker>();
+    final isActive = access.canAccessFortuneScope();
+    // [프리패스 단순화 - 쿠팡파트너스 전용] §6 — HH:MM:SS 형식으로 통일.
+    final remainingLabel = isActive
+        ? formatPassHms(access.openPassState.remaining)
+        : null;
 
     return SafeArea(
       top: false,
@@ -873,7 +910,14 @@ class _OpenPassBottomBar extends StatelessWidget {
                 ),
                 // 자물쇠-텍스트 gap 10(스펙 고정값).
                 const SizedBox(width: 10),
-                Text('열림패스', style: HomeText.bodyStrong(color: Colors.white)),
+                Text('프리패스', style: HomeText.bodyStrong(color: Colors.white)),
+                if (isActive && remainingLabel != null) ...[
+                  const SizedBox(width: 6),
+                  Text(
+                    '· $remainingLabel',
+                    style: HomeText.bodyStrong(color: HomeColors.neon),
+                  ),
+                ],
                 const Spacer(),
                 // 열림패스 우측 원형 버튼 32 / 내부 아이콘 16(32*0.5=16).
                 PremiumCircleButton(

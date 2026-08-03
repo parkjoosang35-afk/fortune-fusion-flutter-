@@ -24,6 +24,12 @@ import 'features/fortune/palm/application/palm_provider.dart';
 import 'features/fortune/palm/data/palm_repository.dart';
 import 'features/compatibility/application/compatibility_provider.dart';
 import 'features/compatibility/data/compatibility_repository.dart';
+import 'features/name_fortune/application/name_fortune_provider.dart';
+import 'features/name_fortune/data/name_fortune_repository.dart';
+import 'features/home/application/fortune_category_provider.dart';
+import 'features/home/data/fortune_category_repository.dart';
+import 'features/home/application/home_page_config_provider.dart';
+import 'features/home/data/page_config_repository.dart';
 import 'features/consultation/application/consultation_provider.dart';
 import 'features/consultation/data/consultation_repository.dart';
 import 'features/mission/application/mission_provider.dart';
@@ -50,7 +56,14 @@ import 'features/ad_banner/data/ad_banner_repository.dart';
 import 'features/lucky_number/application/lucky_number_provider.dart';
 import 'features/lucky_number/data/lucky_number_repository.dart';
 import 'features/pass/application/pass_provider.dart';
+import 'features/pass/application/open_pass_reward_controller.dart';
 import 'features/pass/data/pass_repository.dart';
+import 'features/pass/data/open_pass_repository.dart';
+import 'features/luckpouch/application/luck_pouch_provider.dart';
+import 'core/domain/access/access_checker.dart';
+import 'core/widgets/luck_pouch_toast.dart';
+import 'features/wishroom/application/wish_room_provider.dart';
+import 'features/wishroom/data/wish_room_repository.dart';
 
 /// 07단계 §2.1 앱 루트 - MultiProvider 전역 등록 + MaterialApp 라우팅 연결
 /// 10단계(A안): 모든 Repository는 Mock 구현이며, 향후 실제 API 연동 시
@@ -99,6 +112,51 @@ class App extends StatelessWidget {
         // [신규] 열림패스(AlarmPass) — admin_web `/api/public/pass/*` 실 API 연동.
         // 홈 화면 상단 상태바 + 열림패스 섹션에서 공유하는 전역 상태.
         ChangeNotifierProvider(create: (_) => PassProvider(PassRepository())),
+        // [재화 구조 정리 및 재연결] 복주머니 — WalletProvider(실 Wallet/PointHistory
+        // 원장) 위에 얹힌 얇은 위임 래퍼로 재구성했다(§8 금지 원칙은 "자산을 뒤섞지
+        // 않는다"는 원래 의미로, 복주머니가 곧 유일한 실사용자 재화가 된 지금은
+        // 프리패스와 복주머니가 섞이지 않도록 하는 데 적용된다). LuckPouchProvider
+        // 인스턴스 자체의 identity는 WishRoomProvider 등이 생성 시점에 한 번만
+        // 참조를 들고 있으므로 update에서 새로 만들지 않고 in-place로 갱신한다.
+        ChangeNotifierProxyProvider<WalletProvider, LuckPouchProvider>(
+          create: (context) =>
+              LuckPouchProvider(context.read<WalletProvider>()),
+          update: (_, wallet, previous) {
+            previous!.updateWallet(wallet);
+            return previous;
+          },
+        ),
+        // [재화 구조 정리 및 재연결] 열림패스 접근 체크 로직.
+        // 과거 "3대 자산(열림패스/행복머니/복주머니)" 설계 잔재로 WalletProvider·
+        // LuckPouchProvider까지 의존성으로 들고 있었으나, 상점/커뮤니티 진입은
+        // 잔액을 체크하지 않고 항상 허용하는 구조여서 실제로는 죽은 코드였다.
+        // 최종 2-자산 구조(프리패스+복주머니) 정리에 맞춰 PassProvider 단일
+        // 의존으로 단순화한다 — 화면은 여전히 context.read<AccessChecker>()로만
+        // 접근한다.
+        ProxyProvider<PassProvider, AccessChecker>(
+          update: (_, pass, __) => AccessChecker(pass: pass),
+        ),
+        // [열림패스 첨부/광고소스 연동] admin_web에 등록된 첨부파일/광고소스가
+        // 실제 광고 시청→지급/실패 플로우를 그대로 이끌어가도록 하는 오케스트레이터.
+        // 상태 없는 서비스(ChangeNotifier 아님)이므로 Provider로 등록하며,
+        // PassProvider가 교체될 때마다 최신 인스턴스로 갈아끼운다.
+        ProxyProvider<PassProvider, OpenPassRewardController>(
+          update: (_, pass, __) => OpenPassRewardController(
+            repository: OpenPassRepository(),
+            passProvider: pass,
+          ),
+        ),
+        // [소원방 MVP] 소원방 전역 상태. 치성 완료 보상 지급 시
+        // LuckPouchProvider.earn()을 직접 호출해야 하므로, 위에서 이미
+        // 등록된 LuckPouchProvider 인스턴스를 생성 시점에 주입한다(그 이후로
+        // LuckPouchProvider 인스턴스 자체가 교체되지 않으므로 ProxyProvider가
+        // 아닌 일반 ChangeNotifierProvider로 충분하다).
+        ChangeNotifierProvider(
+          create: (context) => WishRoomProvider(
+            WishRoomRepository(),
+            context.read<LuckPouchProvider>(),
+          ),
+        ),
 
         // ── 기능별 Provider ──
         ChangeNotifierProvider(create: (_) => SajuProvider(SajuRepository())),
@@ -107,6 +165,22 @@ class App extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => PalmProvider(PalmRepository())),
         ChangeNotifierProvider(
           create: (_) => CompatibilityProvider(CompatibilityRepository()),
+        ),
+        // [운세 카테고리 확장] 이름 운세(성명학) - 신규 카테고리 Provider.
+        ChangeNotifierProvider(
+          create: (_) => NameFortuneProvider(NameFortuneRepository()),
+        ),
+        // [운세 카테고리 확장] 전체보기(all_categories_screen.dart) 화면이
+        // 관리자 기준 그룹/정렬/노출/추천 데이터를 로드하는 전역 Provider.
+        ChangeNotifierProvider(
+          create: (_) => FortuneCategoryProvider(FortuneCategoryRepository()),
+        ),
+        // [메인화면 관리자 편집기] admin_web `/cms/page-configs/home`에서
+        // 발행(publish)한 홈 화면 구성을 로드해 HomeScreenCosmic이 동적으로
+        // 렌더링하도록 하는 전역 Provider. 조회 실패 시 로컬 캐시로 폴백하고,
+        // 캐시도 없으면 HomeScreenCosmic이 기존 정적 레이아웃으로 대신 폴백한다.
+        ChangeNotifierProvider(
+          create: (_) => HomePageConfigProvider(HomePageConfigRepository()),
         ),
         // 07단계(추가) §3.5 - ConsultationProvider가 사주 계산/타로 카드뽑기를
         // 채팅 흐름 안에서 수행하려면 SajuProvider/TarotProvider 인스턴스가 필요하다.
@@ -130,7 +204,7 @@ class App extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => WishPostProvider(WishPostRepository()),
         ),
-        // [소원성(Wish Castle) 확장] 촛불 레벨 임계값/행복머니 단위/AI 응원문구 등
+        // [소원성(Wish Castle) 확장] 촛불 레벨 임계값/복주머니 단위/AI 응원문구 등
         // admin_web CMS 설정을 전역에서 1회 로드해 보관(community_screen 진입 시 로드).
         ChangeNotifierProvider(
           create: (_) => WishCastleConfigProvider(WishPostRepository()),
@@ -158,6 +232,8 @@ class App extends StatelessWidget {
             themeMode: themeProvider.mode,
             initialRoute: '/splash',
             onGenerateRoute: AppRouter.onGenerateRoute,
+            builder: (context, child) =>
+                LuckPouchToastOverlay(child: child ?? const SizedBox.shrink()),
           );
         },
       ),

@@ -53,7 +53,7 @@ class _GiftcardCatalogScreenState extends State<GiftcardCatalogScreen> {
             padding: const EdgeInsets.only(right: AppSpacing.lg),
             child: Center(
               child: Text(
-                '${wallet.balance} P',
+                '${wallet.balance}개',
                 style: const TextStyle(
                   fontWeight: FontWeight.w700,
                   color: AppColors.secondaryDark,

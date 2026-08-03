@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_unified_style.dart';
+import '../../../core/widgets/app_dialog.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../../../core/widgets/luck_pouch_toast.dart';
+import '../../wallet/application/wallet_provider.dart';
 import '../../wallet/presentation/widgets/send_bok_sheet.dart';
 import '../application/wish_post_provider.dart';
 import '../domain/wish_post_model.dart';
@@ -11,6 +14,42 @@ import 'widgets/wish_journey_sheet.dart';
 import 'widgets/wish_milestone_dialog.dart';
 import 'widgets/wish_report_sheet.dart';
 import 'widgets/wish_review_sheet.dart';
+
+/// [재화 구조 정리 - 재연결] cheer/empathize/highlight/expose_boost 4개 유료
+/// 액션 공용 실행 헬퍼 - 확인 다이얼로그 → API 호출 → 지갑 새로고침 → 공용
+/// 차감 토스트까지의 반복 흐름을 한 곳에 모은다(send_bokju_sheet.dart와 동일 패턴).
+Future<void> _runWishSpendAction(
+  BuildContext context, {
+  required String title,
+  required String message,
+  required Future<WishSpendActionResult?> Function() action,
+  required String toastReason,
+}) async {
+  final confirmed = await showAppConfirmDialog(
+    context,
+    title: title,
+    message: message,
+  );
+  if (!confirmed || !context.mounted) return;
+
+  final provider = context.read<WishPostProvider>();
+  final result = await action();
+  if (!context.mounted) return;
+
+  if (result == null) {
+    final errMsg = provider.lastWishActionError ?? '처리에 실패했습니다.';
+    if (errMsg.contains('부족')) {
+      LuckPouchToastController.instance.showInsufficient();
+    } else {
+      AppToast.show(context, errMsg, isError: true);
+    }
+    return;
+  }
+
+  await context.read<WalletProvider>().load();
+  if (!context.mounted) return;
+  LuckPouchToastController.instance.showSpend(result.amountSpent, toastReason);
+}
 
 /// 03단계 §7.7 WishFeedScreen 연계 상세화면 - 소원 상세 + 댓글(comments L-4)
 class WishDetailScreen extends StatefulWidget {
@@ -53,7 +92,7 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
     final content = _commentController.text.trim();
     if (content.isEmpty) return;
     setState(() => _isSubmittingComment = true);
-    // [3단계 - 행복머니 커뮤니티 적립 연동] 성공 시 서버가 지급한
+    // [3단계 - 복주머니 커뮤니티 적립 연동] 성공 시 서버가 지급한
     // bokjuAwarded(int)를 받는다. null이면 실패.
     final bokjuAwarded = await context.read<WishPostProvider>().addComment(
       widget.post.id,
@@ -64,7 +103,7 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
     if (bokjuAwarded != null) {
       _commentController.clear();
       if (bokjuAwarded > 0 && mounted) {
-        AppToast.show(context, '댓글 등록 완료! +$bokjuAwarded 행복머니');
+        AppToast.show(context, '댓글 등록 완료! +$bokjuAwarded 복주머니');
       }
     }
   }
@@ -269,10 +308,10 @@ class _WishContentCard extends StatelessWidget {
                   ),
                 ),
               ],
-              // [소원성(Wish Castle) 확장] 행복머니 보내기 - 익명/본인 게시물 여부와
-              // 무관하게 항상 노출한다(행복머니 이동이 없는 상징적 응원이라 대상 특정이
-              // 무의미해지는 문제가 없음). 최종 레벨 도달 시에는 이미 다 자란 상태이므로
-              // 숨겨서 불필요한 상호작용을 막는다.
+              // [재화 구조 정리 - 재연결] 복주머니 보내기 - 선택한 개수만큼 실제
+              // 지갑에서 차감된다. 익명/본인 게시물 여부와 무관하게 항상 노출한다.
+              // 최종 레벨 도달 시에는 이미 다 자란 상태이므로 숨겨서 불필요한
+              // 상호작용을 막는다.
               if (!post.isMaxLevel) ...[
                 const SizedBox(width: UnifiedTokens.spaceMd),
                 InkWell(
@@ -288,7 +327,7 @@ class _WishContentCard extends StatelessWidget {
                           color: UnifiedColors.textPrimary,
                         ),
                         const SizedBox(width: 4),
-                        Text('행복머니 보내기', style: UnifiedText.caption()),
+                        Text('복주머니 보내기', style: UnifiedText.caption()),
                       ],
                     ),
                   ),
@@ -318,7 +357,95 @@ class _WishContentCard extends StatelessWidget {
               ],
             ],
           ),
+          // [재화 구조 정리 - 재연결] 글 강조(highlight)/노출 강화(expose_boost) -
+          // 본인 소원에만 노출한다(서버도 403으로 가드).
+          if (post.isMine) ...[
+            const SizedBox(height: UnifiedTokens.spaceSm),
+            Row(
+              children: [
+                _OwnerActionChip(
+                  icon: Icons.star_outline_rounded,
+                  label: post.isHighlighted ? '강조 중' : '글 강조',
+                  active: post.isHighlighted,
+                  onTap: post.isHighlighted
+                      ? null
+                      : () => _runWishSpendAction(
+                          context,
+                          title: '글 강조',
+                          message: '복주머니를 사용해 이 소원을 24시간 동안 강조 표시할까요?',
+                          action: () => context
+                              .read<WishPostProvider>()
+                              .highlightWish(post.id),
+                          toastReason: '글 강조',
+                        ),
+                ),
+                const SizedBox(width: UnifiedTokens.spaceMd),
+                _OwnerActionChip(
+                  icon: Icons.trending_up_rounded,
+                  label: post.isBoosted ? '노출 중' : '노출 강화',
+                  active: post.isBoosted,
+                  onTap: post.isBoosted
+                      ? null
+                      : () => _runWishSpendAction(
+                          context,
+                          title: '노출 강화',
+                          message: '복주머니를 사용해 이 소원을 24시간 동안 피드 상단에 노출할까요?',
+                          action: () => context
+                              .read<WishPostProvider>()
+                              .exposeBoostWish(post.id),
+                          toastReason: '노출 강화',
+                        ),
+                ),
+              ],
+            ),
+          ],
         ],
+      ),
+    );
+  }
+}
+
+/// [재화 구조 정리 - 재연결] 글 강조/노출 강화 진입 버튼 - 활성화 상태면
+/// 비활성 스타일(체크 아이콘 + 탭 불가)로 전환해 중복 구매를 막는다.
+class _OwnerActionChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool active;
+  final VoidCallback? onTap;
+  const _OwnerActionChip({
+    required this.icon,
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: active
+              ? UnifiedColors.neon.withValues(alpha: 0.35)
+              : UnifiedColors.cardAllMenu,
+          borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              active ? Icons.check_circle_rounded : icon,
+              size: 15,
+              color: active
+                  ? UnifiedColors.textPrimary
+                  : UnifiedColors.textCaption,
+            ),
+            const SizedBox(width: 4),
+            Text(label, style: UnifiedText.chipLabel()),
+          ],
+        ),
       ),
     );
   }
@@ -355,10 +482,75 @@ class _CommentTile extends StatelessWidget {
                   comment.content,
                   style: UnifiedText.body(color: UnifiedColors.textPrimary),
                 ),
+                const SizedBox(height: 4),
+                // [재화 구조 정리 - 재연결] 댓글 응원(cheer)/공감(empathize) -
+                // 복주머니를 소비하는 유료 반응(토글 아님, 누를 때마다 1씩 증가).
+                Row(
+                  children: [
+                    _ReactionButton(
+                      icon: Icons.celebration_outlined,
+                      count: comment.cheerCount,
+                      onTap: () => _runWishSpendAction(
+                        context,
+                        title: '댓글 응원',
+                        message: '복주머니를 사용해 이 댓글을 응원할까요?',
+                        action: () => context
+                            .read<WishPostProvider>()
+                            .cheerComment(comment.wishId, comment.id),
+                        toastReason: '댓글 응원',
+                      ),
+                    ),
+                    const SizedBox(width: UnifiedTokens.spaceMd),
+                    _ReactionButton(
+                      icon: Icons.favorite_outline_rounded,
+                      count: comment.empathizeCount,
+                      onTap: () => _runWishSpendAction(
+                        context,
+                        title: '댓글 공감',
+                        message: '복주머니를 사용해 이 댓글에 공감을 표시할까요?',
+                        action: () => context
+                            .read<WishPostProvider>()
+                            .empathizeComment(comment.wishId, comment.id),
+                        toastReason: '댓글 공감',
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// [재화 구조 정리 - 재연결] 댓글 응원/공감 카운트 버튼(최소 스타일 - 아이콘 + 숫자).
+class _ReactionButton extends StatelessWidget {
+  final IconData icon;
+  final int count;
+  final VoidCallback onTap;
+  const _ReactionButton({
+    required this.icon,
+    required this.count,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 15, color: UnifiedColors.textCaption),
+            const SizedBox(width: 3),
+            Text('$count', style: UnifiedText.caption()),
+          ],
+        ),
       ),
     );
   }

@@ -56,7 +56,7 @@ class _AmuletGenerateScreenState extends State<AmuletGenerateScreen>
     if (wallet.balance < base.pricePoint) {
       AppToast.show(
         context,
-        '행복머니가 부족합니다. (보유 ${wallet.balance}P)',
+        '복주머니가 부족합니다. (보유 ${wallet.balance}개)',
         isError: true,
       );
       return;
@@ -68,7 +68,7 @@ class _AmuletGenerateScreenState extends State<AmuletGenerateScreen>
     if (!mounted) return;
     if (!spent) {
       setState(() => _step = _GenerateStep.select);
-      AppToast.show(context, '행복머니 차감에 실패했습니다.', isError: true);
+      AppToast.show(context, '복주머니 차감에 실패했습니다.', isError: true);
       return;
     }
 
@@ -82,13 +82,13 @@ class _AmuletGenerateScreenState extends State<AmuletGenerateScreen>
       if (!mounted) return;
       Navigator.of(context).pushReplacementNamed('/reward/amulet/my');
     } else {
-      // 예외처리: 생성 실패 시 차감된 행복머니 환불(rollback)
+      // 예외처리: 생성 실패 시 차감된 복주머니 환불(rollback)
       await wallet.earn(base.pricePoint, '${base.name} 생성 실패 환불');
       if (!mounted) return;
       setState(() => _step = _GenerateStep.select);
       AppToast.show(
         context,
-        amuletProvider.actionError ?? '생성에 실패했습니다. 행복머니가 환불되었습니다.',
+        amuletProvider.actionError ?? '생성에 실패했습니다. 복주머니가 환불되었습니다.',
         isError: true,
       );
     }
@@ -161,13 +161,13 @@ class _AmuletGenerateScreenState extends State<AmuletGenerateScreen>
           AppButton(
             label: _selected == null
                 ? 'AI 부적 생성하기'
-                : '${_selected!.pricePoint}P로 생성하기',
+                : '${_selected!.pricePoint}개로 생성하기',
             onPressed: _selected == null ? null : _generate,
           ),
           const SizedBox(height: AppSpacing.sm),
           Center(
             child: Text(
-              '보유 ${wallet.balance} P',
+              '보유 ${wallet.balance}개',
               style: const TextStyle(
                 fontSize: 12,
                 color: AppColors.textSecondary,
@@ -262,7 +262,7 @@ class _SelectableTile extends StatelessWidget {
               ),
               const SizedBox(width: AppSpacing.sm),
               Text(
-                '${item.pricePoint}P',
+                '${item.pricePoint}개',
                 style: const TextStyle(
                   fontWeight: FontWeight.w700,
                   color: AppColors.secondaryDark,

@@ -42,7 +42,7 @@ class _AmuletShopScreenState extends State<AmuletShopScreen> {
     if (wallet.balance < item.pricePoint) {
       AppToast.show(
         context,
-        '행복머니가 부족합니다. (보유 ${wallet.balance}P)',
+        '복주머니가 부족합니다. (보유 ${wallet.balance}개)',
         isError: true,
       );
       return;
@@ -98,7 +98,7 @@ class _AmuletShopScreenState extends State<AmuletShopScreen> {
             padding: const EdgeInsets.only(right: AppSpacing.lg),
             child: Center(
               child: Text(
-                '${wallet.balance} P',
+                '${wallet.balance}개',
                 style: const TextStyle(
                   fontWeight: FontWeight.w700,
                   color: AppColors.secondaryDark,
@@ -142,7 +142,7 @@ class _AmuletShopScreenState extends State<AmuletShopScreen> {
                                 ).pushNamed('/reward/amulet/generate'),
                               )
                             : AppButton(
-                                label: '${item.pricePoint}P',
+                                label: '${item.pricePoint}개',
                                 onPressed: _purchasing
                                     ? null
                                     : () => _handlePurchase(item),
