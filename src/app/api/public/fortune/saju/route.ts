@@ -31,6 +31,9 @@ const TOPIC_DOMAIN: Record<string, string> = {
   애정: "saju_love",
   직업: "saju_career",
   건강: "saju_health",
+  // [운세 카테고리 확장] 사주 월별 운세(saju_monthly) — 기존 다중 토픽 선택 방식을
+  // 그대로 재사용해 신규 도메인만 추가 연결한다(입력화면/결과화면 변경 없음).
+  월별: "saju_monthly",
 };
 
 const FALLBACK_TEXT_BY_TOPIC: Record<string, string> = {
@@ -39,6 +42,7 @@ const FALLBACK_TEXT_BY_TOPIC: Record<string, string> = {
   애정: "인간관계에서 따뜻한 기운이 감돌고 있습니다. 서로에 대한 신뢰를 쌓아가는 시기입니다.",
   직업: "주변의 인정을 받으며 성장할 수 있는 흐름입니다. 신중하게 기회를 살펴보세요.",
   건강: "전반적으로 무난하나 과로에 주의가 필요합니다. 규칙적인 생활 패턴을 유지하세요.",
+  월별: "이번 달은 준비와 정리가 함께 필요한 시기입니다. 초반에는 신중하게 상황을 살피고, 중반 이후 서서히 기회가 열리니 무리한 결정은 뒤로 미루는 것이 좋습니다.",
 };
 
 function hashSeed(input: string): number {

@@ -33,6 +33,7 @@ const POSITION_LABEL: Record<string, string> = {
   home_top: "홈 상단",
   home_middle: "홈 중단",
   home_bottom: "홈 하단",
+  open_pass: "프리패스 광고",
 };
 
 function toLocalInputValue(d: Date | null): string {
@@ -102,6 +103,7 @@ export default function BannerRow({ banner, canWrite, canDelete }: BannerRowProp
               <option value="home_top">홈 상단</option>
               <option value="home_middle">홈 중단</option>
               <option value="home_bottom">홈 하단</option>
+              <option value="open_pass">프리패스 광고</option>
             </select>
             <input
               type="number"

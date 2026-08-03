@@ -12,7 +12,16 @@ const POSITION_OPTIONS = [
   { value: "home_bottom", label: "홈 하단(home_bottom)" },
 ];
 
-export default function BannerCreateForm({ canWrite }: { canWrite: boolean }) {
+interface BannerCreateFormProps {
+  canWrite: boolean;
+  // [프리패스 단순화] 프리패스 설정 화면에서 이 폼을 재사용할 때 지정된 값으로
+  // 고정하고(open_pass) 위치 선택 자체를 숨긴다. 생략시(CMS 홈배너 화면)는
+  // 기존과 동일하게 직접 선택하는 select를 보여준다.
+  fixedPositionCode?: string;
+  title?: string;
+}
+
+export default function BannerCreateForm({ canWrite, fixedPositionCode, title }: BannerCreateFormProps) {
   const [state, formAction, pending] = useActionState(createBanner, initialState);
   const formRef = useRef<HTMLFormElement>(null);
   const [uploadFieldKey, setUploadFieldKey] = useState(0);
@@ -32,7 +41,7 @@ export default function BannerCreateForm({ canWrite }: { canWrite: boolean }) {
       className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-800 bg-slate-900 p-4 md:grid-cols-4"
     >
       <h3 className="col-span-full text-sm font-semibold text-white">
-        새 배너(제휴 광고) 추가
+        {title ?? "새 배너(제휴 광고) 추가"}
       </h3>
 
       {/* 광고 유형 선택: 이미지형(기존) vs 광고소스형(제휴사 원본 스크립트/iframe) */}
@@ -69,17 +78,21 @@ export default function BannerCreateForm({ canWrite }: { canWrite: boolean }) {
         required
         className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 md:col-span-2"
       />
-      <select
-        name="positionCode"
-        defaultValue="home_top"
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
-      >
-        {POSITION_OPTIONS.map((p) => (
-          <option key={p.value} value={p.value}>
-            {p.label}
-          </option>
-        ))}
-      </select>
+      {fixedPositionCode ? (
+        <input type="hidden" name="positionCode" value={fixedPositionCode} />
+      ) : (
+        <select
+          name="positionCode"
+          defaultValue="home_top"
+          className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+        >
+          {POSITION_OPTIONS.map((p) => (
+            <option key={p.value} value={p.value}>
+              {p.label}
+            </option>
+          ))}
+        </select>
+      )}
       <input
         type="number"
         name="sortOrder"

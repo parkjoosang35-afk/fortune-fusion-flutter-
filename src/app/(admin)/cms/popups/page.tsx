@@ -50,6 +50,9 @@ export default async function CmsPopupsPage() {
           <Link href="/cms/lucky-number" className="px-3 py-2 text-slate-400 hover:text-white">
             오늘의 행운숫자
           </Link>
+          <Link href="/cms/page-configs/home" className="px-3 py-2 text-slate-400 hover:text-white">
+            메인화면 편집
+          </Link>
         </nav>
       </div>
 

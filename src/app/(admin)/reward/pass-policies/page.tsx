@@ -3,18 +3,27 @@ import { verifyAdminSession } from "@/lib/dal";
 import { canAccessMenu, RBAC_MATRIX } from "@/lib/rbac";
 import { redirect } from "next/navigation";
 import RewardSubNav from "@/components/RewardSubNav";
-import PassPolicyCreateForm from "@/components/PassPolicyCreateForm";
-import PassPolicyRow from "@/components/PassPolicyRow";
+import OpenPassSettingsForm from "@/components/OpenPassSettingsForm";
+import BannerCreateForm from "@/components/BannerCreateForm";
+import BannerRow from "@/components/BannerRow";
+import { getOrCreateOpenPassSettings } from "@/app/actions/pass-policies";
 
-// [신규] 알림패스(AlarmPass) 관리자 화면 — Fortune Fusion 3대 재화 중 ①시간제
-// 콘텐츠 열람권. Server Action(app/actions/pass-policies.ts)은 이미 완전
-// 구현되어 있었으나(createPassPolicy/updatePassPolicy/deletePassPolicy,
-// RBAC + operationLog 기록까지 완료), 대응하는 프론트 화면(이 파일)이 존재하지
-// 않아 관리자가 알림패스 정책을 등록/수정할 방법이 없었다(문서1·문서6·문서7·
-// 문서8에서 공통으로 지목된 "API는 있으나 UI만 부재" 케이스).
-// 화면 구성:
-//  1) 정책 관리(pass_policies) — 완전 CRUD (기존 Server Action 그대로 재사용)
-//  2) 발급 이력 조회(user_passes, 조회 전용) — 회원별 발급/소진 이력 모니터링
+// [프리패스 단순화 - 쿠팡파트너스 전용] §1~§10
+// 기존에는 이 화면에서 광고/파트너/구독/이벤트 4종 정책 + 첨부파일/광고소스/
+// 상품연결까지 전부 CRUD로 관리했으나(PassPolicyCreateForm/PassPolicyRow),
+// "프리패스는 쿠팡 파트너스 광고 전용 기능으로만 운영한다"는 결정에 따라
+// 관리자가 만지는 값을 아래 4가지로 줄인다.
+//   ① 프리패스 광고 이미지 1장  ② 쿠팡 파트너스 광고 소스(URL/스크립트)
+//   ③ 프리패스 이용시간        ④ 광고 확인 대기시간
+// ①②는 "CMS 쿠팡파트너스 배너 = 프리패스 광고" 구조에 따라 Banner
+// (positionCode='open_pass')를 그대로 재사용하고, 별도의 광고 관리 화면을
+// 새로 만들지 않고 이 페이지 안에 바로 임베드한다("하나의 관리 화면").
+// ③④는 PassPolicy(passType='ad') 싱글톤 설정으로 관리한다.
+//
+// [하위 호환] passType='ad' 외 정책(partner/subscription/event)이나 기존
+// PassPolicyCreateForm/PassPolicyRow, OpenPassAttachment/AdSource 관련
+// 파일/데이터/라우트는 삭제하지 않는다(마이그레이션 drift 회피 + 데이터
+// 손실 금지 원칙). 이 화면에서만 노출을 걷어낸다.
 export const dynamic = "force-dynamic";
 
 const HISTORY_PAGE_SIZE = 20;
@@ -35,13 +44,16 @@ export default async function RewardPassPoliciesPage({ searchParams }: PassPolic
   const canWrite = !!RBAC_MATRIX.reward[session.roleCode as keyof typeof RBAC_MATRIX.reward]?.write;
   const canDelete = !!RBAC_MATRIX.reward[session.roleCode as keyof typeof RBAC_MATRIX.reward]?.delete;
 
-  // ── 1) 정책 목록 ──
-  const policies = await prisma.passPolicy.findMany({
-    where: { deletedAt: null },
-    orderBy: [{ passType: "asc" }, { id: "asc" }],
+  // ── 1) 단일 프리패스 설정(이용시간/대기시간) ──
+  const settings = await getOrCreateOpenPassSettings();
+
+  // ── 2) 프리패스 광고 배너(CMS 쿠팡파트너스 배너 = 프리패스 광고) ──
+  const openPassBanners = await prisma.banner.findMany({
+    where: { deletedAt: null, positionCode: "open_pass" },
+    orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
   });
 
-  // ── 2) 발급 이력 조회 (단순 where만 사용, 복합쿼리 회피) ──
+  // ── 3) 발급 이력 조회 (단순 where만 사용, 복합쿼리 회피) ──
   const [historyTotal, histories] = await Promise.all([
     prisma.userPass.count(),
     prisma.userPass.findMany({
@@ -56,29 +68,29 @@ export default async function RewardPassPoliciesPage({ searchParams }: PassPolic
   ]);
   const historyTotalPages = Math.max(1, Math.ceil(historyTotal / HISTORY_PAGE_SIZE));
 
-  // ── 3) 요약 통계: 현재 활성중인 패스 수(expiresAt > now) ──
+  // ── 4) 요약 통계: 현재 활성중인 패스 수(expiresAt > now) ──
   const activeCount = await prisma.userPass.count({
     where: { expiresAt: { gt: new Date() } },
   });
 
+  const activeBanner = openPassBanners.find((b) => b.isActive);
+
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">리워드 관리 — 알림패스</h1>
+        <h1 className="text-2xl font-bold text-white">리워드 관리 — 프리패스</h1>
         <p className="mt-1 text-sm text-slate-400">
-          시간제 콘텐츠 열람권(알림패스) 정책을 관리하고 회원별 발급/소진 이력을 조회합니다.
+          프리패스는 쿠팡 파트너스 광고 전용 기능으로 운영됩니다. 광고 이미지/쿠팡 광고
+          소스는 아래 &quot;프리패스 광고(CMS 배너)&quot; 섹션에서, 이용시간·대기시간은
+          &quot;프리패스 설정&quot;에서 관리하며 저장 즉시 앱/웹에 실시간 반영됩니다.
         </p>
       </div>
 
       <RewardSubNav />
 
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-          <p className="text-sm text-slate-400">등록된 정책 수</p>
-          <p className="mt-2 text-2xl font-bold text-white">{policies.length}</p>
-        </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-          <p className="text-sm text-slate-400">현재 활성중인 알림패스</p>
+          <p className="text-sm text-slate-400">현재 활성중인 프리패스</p>
           <p className="mt-2 text-2xl font-bold text-emerald-400">{activeCount.toLocaleString()}</p>
         </div>
         <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
@@ -87,40 +99,65 @@ export default async function RewardPassPoliciesPage({ searchParams }: PassPolic
         </div>
       </div>
 
-      {/* 1) 정책 관리 */}
+      {/* ① 프리패스 설정 (이용시간 / 대기시간) */}
       <section className="mb-8">
-        <h2 className="mb-3 text-lg font-semibold text-white">알림패스 정책 관리</h2>
-        <PassPolicyCreateForm canWrite={canWrite} />
+        <h2 className="mb-3 text-lg font-semibold text-white">프리패스 설정</h2>
+        <OpenPassSettingsForm
+          canWrite={canWrite}
+          durationMin={settings.durationMin}
+          adWaitSeconds={settings.adWaitSeconds}
+          isActive={settings.isActive}
+        />
+      </section>
+
+      {/* ② 프리패스 광고 (CMS 쿠팡파트너스 배너 = 프리패스 광고) */}
+      <section className="mb-8">
+        <h2 className="mb-1 text-lg font-semibold text-white">프리패스 광고 (CMS 쿠팡파트너스 배너)</h2>
+        <p className="mb-3 text-xs text-slate-500">
+          이미지 1장(썸네일+링크) 또는 쿠팡파트너스 원본 광고 스크립트(iframe) 중 하나를
+          등록하세요. 여러 건을 등록해도 활성(노출) 상태인 최신 1건만 프리패스 화면에
+          사용됩니다.
+          {activeBanner && (
+            <span className="ml-1 text-emerald-400">
+              현재 적용중: &quot;{activeBanner.title}&quot;
+            </span>
+          )}
+        </p>
+        <BannerCreateForm
+          canWrite={canWrite}
+          fixedPositionCode="open_pass"
+          title="새 프리패스 광고 등록"
+        />
         <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
               <tr>
-                <th className="px-4 py-3">정책명</th>
-                <th className="px-4 py-3">유형</th>
-                <th className="px-4 py-3">지속시간</th>
-                <th className="px-4 py-3">1일 한도</th>
-                <th className="px-4 py-3">보너스P</th>
+                <th className="px-4 py-3">이미지</th>
+                <th className="px-4 py-3">제목</th>
+                <th className="px-4 py-3">노출 위치</th>
+                <th className="px-4 py-3">제휴 링크</th>
+                <th className="px-4 py-3">노출 기간</th>
                 <th className="px-4 py-3">상태</th>
                 <th className="px-4 py-3">관리</th>
               </tr>
             </thead>
             <tbody>
-              {policies.length === 0 && (
+              {openPassBanners.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-4 py-10 text-center text-slate-500">
-                    등록된 알림패스 정책이 없습니다.
+                    등록된 프리패스 광고가 없습니다. 위 폼으로 먼저 등록해주세요.
                   </td>
                 </tr>
               )}
-              {policies.map((p) => (
-                <PassPolicyRow key={p.id} policy={p} canWrite={canWrite} canDelete={canDelete} />
+              {openPassBanners.map((b) => (
+                <BannerRow key={b.id} banner={b} canWrite={canWrite} canDelete={canDelete} />
               ))}
             </tbody>
           </table>
         </div>
       </section>
 
-      {/* 2) 발급 이력 조회 */}
+      {/* ③ 발급 이력 조회 */}
       <section>
         <h2 className="mb-3 text-lg font-semibold text-white">발급 이력 조회</h2>
         <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">

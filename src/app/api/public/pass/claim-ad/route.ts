@@ -1,6 +1,7 @@
-// 공개(비인증) 광고 시청 알림패스 발급 API — Flutter PassRepository.claimAd() 대응.
-// 광고 시청 완료 콜백 시 호출: passType="ad" 정책을 조회해 UserPass를 발급하고,
-// bonusPoint가 있으면 복주머니(포인트)도 함께 지급한다(하나의 트랜잭션).
+// 공개(비인증) 광고 시청 프리패스 발급 API — Flutter PassRepository.claimAd() 대응.
+// 광고 시청 완료 콜백 시 호출: passType="ad" 정책을 조회해 UserPass를 발급한다.
+// [재화 구조 정리] 프리패스는 순수 시간제 이용권이므로 지급 시 상시 복주머니 적립을
+// 붙이지 않는다(과거 policy.bonusPoint 자동 지급 블록 제거).
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
@@ -33,8 +34,35 @@ export async function POST(request: NextRequest) {
 
     if (!policy) {
       return NextResponse.json(
-        { success: false, error: "활성화된 광고 알림패스 정책이 없습니다." },
+        { success: false, error: "활성화된 광고 프리패스 정책이 없습니다." },
         { status: 404, headers: CORS_HEADERS }
+      );
+    }
+
+    // [프리패스 단순화 - 자동지급 안전장치] §4/§9
+    // "쿠팡 방문 후 대기시간이 지나면 버튼을 다시 누를 필요 없이 자동
+    // 지급"하는 흐름에서는 앱 라이프사이클 이벤트가 중복 발생(예: 빠른
+    // 화면 전환/재진입)해도 claim-ad가 여러 번 호출될 수 있다. 이미
+    // 유효한(만료되지 않은) 프리패스가 있으면 새로 발급하지 않고 기존
+    // 발급 건을 그대로 반환해 중복 지급/시간 손해를 방지한다.
+    const now0 = new Date();
+    const existingActive = await prisma.userPass.findFirst({
+      where: { userId, expiresAt: { gt: now0 } },
+      orderBy: { expiresAt: "desc" },
+    });
+    if (existingActive) {
+      return NextResponse.json(
+        {
+          success: true,
+          data: {
+            userPassId: existingActive.id,
+            policyId: existingActive.policyId,
+            policyName: policy.name,
+            expiresAt: existingActive.expiresAt.toISOString(),
+            idempotent: true,
+          },
+        },
+        { headers: CORS_HEADERS }
       );
     }
 
@@ -47,7 +75,7 @@ export async function POST(request: NextRequest) {
       });
       if (todayCount >= policy.dailyLimit) {
         return NextResponse.json(
-          { success: false, error: "오늘의 광고 알림패스 발급 한도를 초과했습니다." },
+          { success: false, error: "오늘의 광고 프리패스 발급 한도를 초과했습니다." },
           { status: 429, headers: CORS_HEADERS }
         );
       }
@@ -67,33 +95,6 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      let balanceAfter: number | null = null;
-      if (policy.bonusPoint > 0) {
-        let wallet = await tx.wallet.findFirst({
-          where: { userId, currencyType: "POINT", deletedAt: null },
-        });
-        if (!wallet) {
-          wallet = await tx.wallet.create({ data: { userId, currencyType: "POINT", balance: 0 } });
-        }
-        balanceAfter = wallet.balance + policy.bonusPoint;
-        await tx.wallet.update({
-          where: { id: wallet.id },
-          data: { balance: balanceAfter, balanceSyncedAt: now },
-        });
-        await tx.pointHistory.create({
-          data: {
-            walletId: wallet.id,
-            userId,
-            amount: policy.bonusPoint,
-            type: "earn",
-            sourceType: "pass_ad_bonus",
-            sourceId: userPass.id,
-            balanceAfter,
-            memo: `광고 알림패스 지급 보너스: ${policy.name}`,
-          },
-        });
-      }
-
       await tx.operationLog.create({
         data: {
           actorType: "user",
@@ -106,7 +107,7 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      return { userPass, expiresAt, balanceAfter };
+      return { userPass, expiresAt };
     });
 
     return NextResponse.json(
@@ -117,8 +118,7 @@ export async function POST(request: NextRequest) {
           policyId: policy.id,
           policyName: policy.name,
           expiresAt: result.expiresAt.toISOString(),
-          bonusPoint: policy.bonusPoint,
-          balanceAfter: result.balanceAfter,
+          idempotent: false,
         },
       },
       { headers: CORS_HEADERS }
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
   } catch (e) {
     console.error("[POST /api/public/pass/claim-ad] 실패:", e);
     return NextResponse.json(
-      { success: false, error: "광고 알림패스 발급 중 오류가 발생했습니다." },
+      { success: false, error: "광고 프리패스 발급 중 오류가 발생했습니다." },
       { status: 500, headers: CORS_HEADERS }
     );
   }

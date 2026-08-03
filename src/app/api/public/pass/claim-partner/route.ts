@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 
     if (!policy) {
       return NextResponse.json(
-        { success: false, error: "활성화된 파트너 알림패스 정책이 없습니다." },
+        { success: false, error: "활성화된 파트너 프리패스 정책이 없습니다." },
         { status: 404, headers: CORS_HEADERS }
       );
     }
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
       });
       if (todayCount >= policy.dailyLimit) {
         return NextResponse.json(
-          { success: false, error: "오늘의 파트너 알림패스 발급 한도를 초과했습니다." },
+          { success: false, error: "오늘의 파트너 프리패스 발급 한도를 초과했습니다." },
           { status: 429, headers: CORS_HEADERS }
         );
       }
@@ -71,33 +71,7 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      let balanceAfter: number | null = null;
-      if (policy.bonusPoint > 0) {
-        let wallet = await tx.wallet.findFirst({
-          where: { userId, currencyType: "POINT", deletedAt: null },
-        });
-        if (!wallet) {
-          wallet = await tx.wallet.create({ data: { userId, currencyType: "POINT", balance: 0 } });
-        }
-        balanceAfter = wallet.balance + policy.bonusPoint;
-        await tx.wallet.update({
-          where: { id: wallet.id },
-          data: { balance: balanceAfter, balanceSyncedAt: now },
-        });
-        await tx.pointHistory.create({
-          data: {
-            walletId: wallet.id,
-            userId,
-            amount: policy.bonusPoint,
-            type: "earn",
-            sourceType: "pass_partner_bonus",
-            sourceId: userPass.id,
-            balanceAfter,
-            memo: `파트너 알림패스 지급 보너스: ${policy.name}`,
-          },
-        });
-      }
-
+      // [재화 구조 정리] 프리패스 지급 시 상시 복주머니 적립은 붙이지 않는다(제거됨).
       await tx.operationLog.create({
         data: {
           actorType: "user",
@@ -110,7 +84,7 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      return { userPass, expiresAt, balanceAfter };
+      return { userPass, expiresAt };
     });
 
     return NextResponse.json(
@@ -121,8 +95,6 @@ export async function POST(request: NextRequest) {
           policyId: policy.id,
           policyName: policy.name,
           expiresAt: result.expiresAt.toISOString(),
-          bonusPoint: policy.bonusPoint,
-          balanceAfter: result.balanceAfter,
         },
       },
       { headers: CORS_HEADERS }
@@ -130,7 +102,7 @@ export async function POST(request: NextRequest) {
   } catch (e) {
     console.error("[POST /api/public/pass/claim-partner] 실패:", e);
     return NextResponse.json(
-      { success: false, error: "파트너 알림패스 발급 중 오류가 발생했습니다." },
+      { success: false, error: "파트너 프리패스 발급 중 오류가 발생했습니다." },
       { status: 500, headers: CORS_HEADERS }
     );
   }

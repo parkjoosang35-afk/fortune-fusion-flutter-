@@ -1,14 +1,16 @@
-// 공개(비인증) 소원성(Wish Castle) "복주머니 보내기" API — 신규.
+// 공개(비인증) 소원성(Wish Castle) "복주머니 보내기" API.
 //
-// [설계 원칙] 기존 /wishes/[id]/support(단순 응원 on/off, 포인트 이동 없음)와는
-// 완전히 별개의 신규 엔드포인트다. "복주머니"는 기존 LuckyBag(가챠, 포인트 소모)나
-// "복 나누기"(WalletRepository.sendBok, 실제 포인트 이동)와도 다른 개념으로,
-// 소원성 안에서만 통용되는 상징적 응원 단위이며 실제 포인트/지갑 이동이 전혀 없다.
-// 누적치(wishes.bokju_count)가 wish_config의 레벨 임계값을 넘으면 촛불 레벨이
-// 오르고, 최종 레벨(4) 최초 도달 시 achievedAt을 기록한다(특별연출 1회 트리거용).
+// [재화 구조 정리 - 재연결] 기존에는 "실제 재화 이동이 없는 상징적 응원"으로
+// 설계되었으나, 최종 2-자산 구조(프리패스+복주머니) 확정에 따라 "복주머니 사용
+// 구간표(응원)" 항목과 재연결한다. 사용자가 보내기로 선택한 개수(amount)만큼
+// 실제 지갑(Wallet)에서 차감한 뒤, 소원의 누적치(wishes.bokju_count)를 올린다.
+// 잔액이 부족하면 차감 자체를 막고 409로 응답한다(부분 실패 없는 원자적 트랜잭션).
+// 누적치가 wish_config의 레벨 임계값을 넘으면 촛불 레벨이 오르고, 최종 레벨(4)
+// 최초 도달 시 achievedAt을 기록한다(특별연출 1회 트리거용).
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { computeCandleLevel, getCandleLevelThresholds, WISH_MAX_LEVEL } from "@/lib/wish-castle";
+import { spendLuckPouch } from "@/lib/luck-pouch-engine";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +61,19 @@ export async function POST(
       const wish = await tx.wish.findUnique({ where: { id: wishId } });
       if (!wish) throw new Error("WISH_NOT_FOUND");
 
+      // [재화 구조 정리] 복주머니 사용 구간표(응원) - 실제 지갑에서 amount만큼 차감.
+      // 잔액 부족 시 소원 상태를 건드리지 않고 트랜잭션 전체를 되돌린다.
+      const spendResult = await spendLuckPouch(tx, {
+        userId,
+        amount,
+        sourceType: "wish_bokju_send",
+        sourceId: wishId,
+        memo: "소원 응원(복주머니 보내기)",
+      });
+      if (!spendResult.ok) {
+        throw new Error(`INSUFFICIENT_BALANCE:${spendResult.balanceAfter ?? 0}`);
+      }
+
       await tx.wishBokju.create({
         data: { wishId, userId, amount, source: "manual" },
       });
@@ -78,7 +93,12 @@ export async function POST(
         },
       });
 
-      return { updated, leveledUp, previousLevel: wish.candleLevel };
+      return {
+        updated,
+        leveledUp,
+        previousLevel: wish.candleLevel,
+        balanceAfter: spendResult.balanceAfter,
+      };
     });
 
     return NextResponse.json(
@@ -92,6 +112,7 @@ export async function POST(
           leveledUp: result.leveledUp,
           achievedAt: result.updated.achievedAt?.toISOString() ?? null,
           isMilestoneShown: result.updated.isMilestoneShown,
+          balanceAfter: result.balanceAfter,
         },
       },
       { headers: CORS_HEADERS }
@@ -102,6 +123,17 @@ export async function POST(
       return NextResponse.json(
         { success: false, error: "소원을 찾을 수 없습니다." },
         { status: 404, headers: CORS_HEADERS }
+      );
+    }
+    if (message.startsWith("INSUFFICIENT_BALANCE:")) {
+      const balance = Number(message.split(":")[1] ?? 0);
+      return NextResponse.json(
+        {
+          success: false,
+          error: "복주머니가 부족합니다.",
+          data: { balance },
+        },
+        { status: 409, headers: CORS_HEADERS }
       );
     }
     console.error("[POST /api/public/wishes/[id]/bokju] 실패:", e);

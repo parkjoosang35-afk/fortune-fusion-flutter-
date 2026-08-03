@@ -24,6 +24,10 @@ const ALLOWED_CATEGORIES = new Set([
   "events",
   // [사용자 요청: "오늘의 행운숫자" 관리자 콘텐츠 - 이미지/영상/스크립트 첨부 지원]
   "lucky-number",
+  // [열림패스 첨부파일/광고소스 연동] 열림패스 상품별 첨부파일(이미지/영상/문서) 업로드
+  "open-pass",
+  // [메인화면 관리자 편집기] 섹션별 대표배너/서브배너/아이콘/배경/fallback 이미지 업로드
+  "page-configs",
 ]);
 
 const ALLOWED_IMAGE_MIME_TYPES: Record<string, string> = {
@@ -42,14 +46,22 @@ const ALLOWED_VIDEO_MIME_TYPES: Record<string, string> = {
   "video/quicktime": "mov",
 };
 
+// [열림패스 첨부파일] 안내 PDF 문서 업로드 지원(document 유형).
+const ALLOWED_DOCUMENT_MIME_TYPES: Record<string, string> = {
+  "application/pdf": "pdf",
+};
+
 const ALLOWED_MIME_TYPES: Record<string, string> = {
   ...ALLOWED_IMAGE_MIME_TYPES,
   ...ALLOWED_VIDEO_MIME_TYPES,
+  ...ALLOWED_DOCUMENT_MIME_TYPES,
 };
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB (이미지)
 // 영상은 이미지보다 용량이 크므로 별도 상한을 둔다(최대 40MB).
 const MAX_VIDEO_FILE_SIZE = 40 * 1024 * 1024;
+// PDF 등 문서 파일 상한(최대 15MB).
+const MAX_DOCUMENT_FILE_SIZE = 15 * 1024 * 1024;
 
 export async function POST(request: NextRequest) {
   // 인증 실패 시 verifyAdminSession()이 redirect()를 호출하는데, API Route(fetch)
@@ -76,13 +88,17 @@ export async function POST(request: NextRequest) {
   const ext = ALLOWED_MIME_TYPES[file.type];
   if (!ext) {
     return NextResponse.json(
-      { error: "지원하지 않는 파일 형식입니다. (이미지: jpg/png/webp/gif, 영상: mp4/webm/mov)" },
+      {
+        error:
+          "지원하지 않는 파일 형식입니다. (이미지: jpg/png/webp/gif, 영상: mp4/webm/mov, 문서: pdf)",
+      },
       { status: 400 }
     );
   }
 
   const isVideo = file.type in ALLOWED_VIDEO_MIME_TYPES;
-  const maxSize = isVideo ? MAX_VIDEO_FILE_SIZE : MAX_FILE_SIZE;
+  const isDocument = file.type in ALLOWED_DOCUMENT_MIME_TYPES;
+  const maxSize = isVideo ? MAX_VIDEO_FILE_SIZE : isDocument ? MAX_DOCUMENT_FILE_SIZE : MAX_FILE_SIZE;
   if (file.size > maxSize) {
     return NextResponse.json(
       { error: `파일 크기는 ${Math.floor(maxSize / (1024 * 1024))}MB를 초과할 수 없습니다.` },
@@ -107,5 +123,15 @@ export async function POST(request: NextRequest) {
   // 없을 경우에만 기존 방식(origin)으로 폴백한다.
   const baseUrl = process.env.PUBLIC_BASE_URL || request.nextUrl.origin;
   const url = `${baseUrl}/uploads/${category}/${fileName}`;
-  return NextResponse.json({ url });
+  // [열림패스 첨부파일] 원본 파일명/MIME/용량도 함께 반환한다(첨부파일 관리 폼이
+  // 이 메타데이터를 hidden input으로 그대로 저장할 수 있도록). 기존 소비자(ImageUploadField 등)는
+  // data.url만 사용하므로 필드 추가는 하위 호환성에 영향 없다.
+  return NextResponse.json({
+    url,
+    originalFileName: file.name,
+    mimeType: file.type,
+    fileSize: file.size,
+    isVideo,
+    isDocument,
+  });
 }

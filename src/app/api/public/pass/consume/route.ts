@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: "유효한 알림패스가 없습니다. 광고 시청, 파트너 방문 또는 구독으로 알림패스를 받아보세요.",
+          error: "유효한 프리패스가 없습니다. 광고 시청, 파트너 방문 또는 구독으로 프리패스를 받아보세요.",
         },
         { status: 403, headers: CORS_HEADERS }
       );
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
   } catch (e) {
     console.error("[POST /api/public/pass/consume] 실패:", e);
     return NextResponse.json(
-      { success: false, error: "알림패스 검증 중 오류가 발생했습니다." },
+      { success: false, error: "프리패스 검증 중 오류가 발생했습니다." },
       { status: 500, headers: CORS_HEADERS }
     );
   }

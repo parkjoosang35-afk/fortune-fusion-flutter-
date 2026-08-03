@@ -43,6 +43,9 @@ export async function GET(
       authorNickname: c.user.nickname,
       content: c.content,
       createdAt: c.createdAt.toISOString(),
+      // [재화 구조 정리 - 재연결] 댓글 응원(cheer)/공감(empathize) 누적치.
+      cheerCount: c.cheerCount,
+      empathizeCount: c.empathizeCount,
     }));
 
     return NextResponse.json({ success: true, data }, { headers: CORS_HEADERS });
@@ -139,6 +142,8 @@ export async function POST(
           createdAt: result.comment.createdAt.toISOString(),
           bokjuAwarded: result.bokjuAwarded,
           leveledUp: result.leveledUp,
+          cheerCount: result.comment.cheerCount,
+          empathizeCount: result.comment.empathizeCount,
         },
       },
       { headers: CORS_HEADERS }

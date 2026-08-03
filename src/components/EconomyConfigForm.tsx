@@ -23,6 +23,7 @@ function ConfigSlider({ canWrite, row }: { canWrite: boolean; row: ConfigRow }) 
   if (!meta) return null;
 
   const isRate = meta.unit === "rate";
+  const isFlag = meta.unit === "flag";
 
   return (
     <form
@@ -65,12 +66,17 @@ function ConfigSlider({ canWrite, row }: { canWrite: boolean; row: ConfigRow }) 
           }}
           className="w-24 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1.5 text-right text-sm text-white outline-none focus:border-indigo-500 disabled:opacity-50"
         />
-        <span className="w-10 text-xs text-slate-400">{isRate ? "" : "P"}</span>
+        <span className="w-10 text-xs text-slate-400">{isRate || isFlag ? "" : "개"}</span>
       </div>
 
       {isRate && (
         <p className="mt-1 text-xs text-indigo-400">
           현재 값: {(row.value * 100).toFixed(0)}%
+        </p>
+      )}
+      {isFlag && (
+        <p className="mt-1 text-xs text-indigo-400">
+          현재 상태: {row.value > 0 ? "🟢 이벤트 중(상향 적용)" : "⚪ 평시"}
         </p>
       )}
 

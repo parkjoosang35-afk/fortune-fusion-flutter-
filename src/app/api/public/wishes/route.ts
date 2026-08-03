@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { incrementMissionProgress } from "@/lib/mission-progress";
+import { isHighlightActive, isBoostActive } from "@/lib/wish-castle";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,8 @@ function toWishDto(
     bokjuCount: number;
     achievedAt: Date | null;
     isMilestoneShown: boolean;
+    highlightedUntil: Date | null;
+    boostedAt: Date | null;
   },
   commentCount: number,
   authorNickname: string,
@@ -51,6 +54,10 @@ function toWishDto(
     bokjuCount: w.bokjuCount,
     achievedAt: w.achievedAt?.toISOString() ?? null,
     isMilestoneShown: w.isMilestoneShown,
+    // [재화 구조 정리 - 재연결] 글 강조(highlight)/노출 강화(expose_boost) 상태.
+    isHighlighted: isHighlightActive(w.highlightedUntil),
+    highlightedUntil: w.highlightedUntil?.toISOString() ?? null,
+    isBoosted: isBoostActive(w.boostedAt),
   };
 }
 
@@ -66,11 +73,21 @@ export async function GET(request: NextRequest) {
     };
     if (tab === "mine") where.userId = userId;
 
-    const wishes = await prisma.wish.findMany({
+    let wishes = await prisma.wish.findMany({
       where,
       include: { user: true },
       orderBy: tab === "popular" ? [{ supportCount: "desc" }] : [{ createdAt: "desc" }],
     });
+
+    // [재화 구조 정리 - 재연결] 노출 강화(expose_boost) 적용 글은 "전체" 탭에서
+    // 상단으로 재배치한다(복주머니 사용 구간표를 실제 노출 효과로 연결).
+    // popular/mine 탭은 사용자가 명시적으로 고른 정렬 기준을 존중해 재배치하지 않는다.
+    if (tab === "all") {
+      const boosted = wishes.filter((w) => isBoostActive(w.boostedAt));
+      const rest = wishes.filter((w) => !isBoostActive(w.boostedAt));
+      boosted.sort((a, b) => (b.boostedAt?.getTime() ?? 0) - (a.boostedAt?.getTime() ?? 0));
+      wishes = [...boosted, ...rest];
+    }
 
     const [commentCounts, mySupports] = await Promise.all([
       prisma.comment.groupBy({

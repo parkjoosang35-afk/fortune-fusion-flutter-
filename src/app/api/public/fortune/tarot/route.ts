@@ -10,7 +10,11 @@
 // [프롬프트 도메인 매핑] ai_prompt_templates에는 tarot(종합)/tarot_love(감정
 // 관계운)/tarot_yesno(YES-NO) 3개 도메인이 있다. Flutter가 보내는 topic이
 // 연애 계열(love/reunion/crush/marriage)이면 tarot_love를, 그 외에는 tarot를
-// 사용한다(tarot_yesno는 Flutter에 전용 UI가 아직 없어 이번 범위에서 제외).
+// 사용한다.
+//
+// [운세 카테고리 확장] spreadType === "yes_no"이면 무조건 tarot_yesno 도메인을
+// 사용하고(topic 무관), 카드 1장의 정/역방향으로 answer(YES/NO)를 결정론적으로
+// 계산해 응답에 포함한다. 기존 one_card/three_card 흐름은 완전히 그대로 유지된다.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { completeText, LlmClientError } from "@/lib/llm-client";
@@ -95,7 +99,12 @@ export async function POST(request: NextRequest) {
 
   const userId = Number(body.userId ?? 1);
   const question = body.question?.trim();
-  const spreadType = body.spreadType === "three_card" ? "three_card" : "one_card";
+  const spreadType =
+    body.spreadType === "three_card"
+      ? "three_card"
+      : body.spreadType === "yes_no"
+        ? "yes_no"
+        : "one_card";
   const topic = body.topic ?? "general";
 
   if (!Number.isInteger(userId) || userId <= 0) {
@@ -115,15 +124,31 @@ export async function POST(request: NextRequest) {
     // 1) 카드 뽑기(결정론적, LLM 연동 대상 아님)
     const cardCount = spreadType === "three_card" ? 3 : 1;
     const drawn = drawCards(question, cardCount);
-    const labels = spreadType === "three_card" ? ["과거", "현재", "미래"] : ["오늘의 카드"];
+    const labels =
+      spreadType === "three_card"
+        ? ["과거", "현재", "미래"]
+        : spreadType === "yes_no"
+          ? ["답변"]
+          : ["오늘의 카드"];
     const positions = drawn.map((card, i) => ({
       label: labels[i],
       card,
       interpretation: card.meaning,
     }));
 
+    // [YES/NO] 카드 정/역방향으로 결정론적 answer 산출(정방향=YES, 역방향=NO).
+    // YES/NO 스프레드가 아니면 undefined(응답 JSON에서 생략)로 기존 흐름과 동일하게 유지.
+    const answer =
+      spreadType === "yes_no" ? (drawn[0].isReversed ? "NO" : "YES") : undefined;
+
     // 2) 총평(summary)만 LLM으로 생성
-    const domain = LOVE_TOPICS.has(topic) ? "tarot_love" : "tarot";
+    // YES/NO는 topic과 무관하게 항상 tarot_yesno 도메인을 사용한다.
+    const domain =
+      spreadType === "yes_no"
+        ? "tarot_yesno"
+        : LOVE_TOPICS.has(topic)
+          ? "tarot_love"
+          : "tarot";
     const template = await prisma.aiPromptTemplate.findFirst({
       where: { fortuneTypeOrDomain: domain, isActive: true },
       select: { id: true, version: true, templateBody: true },
@@ -134,12 +159,25 @@ export async function POST(request: NextRequest) {
       const cardsDesc = positions
         .map((p) => `${p.label}: ${p.card.nameKr}${p.card.isReversed ? "(역방향)" : "(정방향)"} - ${p.card.meaning}`)
         .join("\n");
-      const userPrompt = [
+      const spreadDesc =
+        spreadType === "three_card"
+          ? "3장(과거-현재-미래)"
+          : spreadType === "yes_no"
+            ? "YES/NO 1장"
+            : "1장";
+      const userPromptLines = [
         `사용자 질문: ${question}`,
-        `타로 스프레드: ${spreadType === "three_card" ? "3장(과거-현재-미래)" : "1장"}`,
+        `타로 스프레드: ${spreadDesc}`,
         `뽑힌 카드:\n${cardsDesc}`,
-        "위 [기본 규칙]과 [출력 형식]을 그대로 지켜서 이 스프레드에 대한 총평을 작성해주세요.",
-      ].join("\n");
+      ];
+      if (answer) {
+        userPromptLines.push(
+          `카드가 가리키는 방향: ${answer}`,
+          "답변은 반드시 YES 또는 NO 방향을 먼저 명확히 밝히고, 그 이유와 행동 힌트를 함께 제시하세요. YES/NO만 단답으로 끝내지 마세요."
+        );
+      }
+      userPromptLines.push("위 [기본 규칙]과 [출력 형식]을 그대로 지켜서 이 스프레드에 대한 총평을 작성해주세요.");
+      const userPrompt = userPromptLines.join("\n");
 
       try {
         summary = await completeText({ systemPrompt: template.templateBody, userPrompt });
@@ -219,7 +257,7 @@ export async function POST(request: NextRequest) {
           data: {
             requestId: fortuneRequest.id,
             resultText: summary,
-            resultMeta: JSON.stringify({ positions }),
+            resultMeta: JSON.stringify({ positions, answer }),
             aiModel: "claude-haiku-4-5",
             promptTemplateId: template.id,
             promptVersion: template.version,
@@ -240,6 +278,7 @@ export async function POST(request: NextRequest) {
           spreadType,
           topic,
           positions,
+          answer,
           summary,
           createdAt: outcome.createdAt.toISOString(),
           balance: outcome.balance,

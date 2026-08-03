@@ -35,7 +35,11 @@ const BannerBaseSchema = z.object({
     .optional()
     .nullable()
     .refine((v) => !v || /^https?:\/\/.+/.test(v), "올바른 URL 형식이 아닙니다."),
-  positionCode: z.enum(["home_top", "home_middle", "home_bottom"]),
+  // [프리패스 단순화 - CMS 쿠팡파트너스 배너 연동] positionCode='open_pass'는
+  // "CMS 쿠팡파트너스 배너 = 프리패스 광고" 요구사항에 따라 추가된 값이다.
+  // 이 값으로 등록된(활성 + 노출기간 내) 배너 1건이 /api/public/pass/policies
+  // 응답의 광고 이미지/링크/스크립트로 그대로 병합되어 앱에 노출된다.
+  positionCode: z.enum(["home_top", "home_middle", "home_bottom", "open_pass"]),
   sortOrder: z.coerce.number().int().min(0).optional().default(0),
   isActive: z.coerce.boolean().optional().default(true),
   startAt: z.string().optional().nullable(),
@@ -317,7 +321,7 @@ export async function toggleBannerActive(
 //  targetType="banner_position"으로 기록하고, targetId는 영향받은 배너 중 하나를
 //  대표로 남긴다 — targetId 컬럼이 Int? 단일값이라 폴리모픽 관례를 따름.)
 const BulkTogglePositionSchema = z.object({
-  positionCode: z.enum(["home_top", "home_middle", "home_bottom"]),
+  positionCode: z.enum(["home_top", "home_middle", "home_bottom", "open_pass"]),
   isActive: z.coerce.boolean(),
 });
 

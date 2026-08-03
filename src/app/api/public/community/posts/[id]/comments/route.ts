@@ -8,6 +8,7 @@
 // wishes/route.ts, community/posts/route.ts와 동일한 트랜잭션 패턴을 그대로 재사용.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { earnLuckPouch } from "@/lib/luck-pouch-engine";
 
 export const dynamic = "force-dynamic";
 
@@ -104,42 +105,29 @@ export async function POST(
         data: { commentCount: post.commentCount + 1 },
       });
 
-      // [3단계 - 복주머니 커뮤니티 적립 연동] point_policies.community 재사용.
-      // 게시글/소원 작성과 동일한 sourceType="community"로 1일 한도를 함께 관리한다.
-      const policy = await tx.pointPolicy.findUnique({ where: { sourceType: "community" } });
+      // [복주머니 적립 구간표] 댓글 작성 +3 (일 5회 제한) — point_policies.sourceType="community_comment".
+      // (과거에는 게시글과 동일한 sourceType="community"를 공유했으나, 수치/한도가
+      // 서로 다르므로(게시글 8/일2, 댓글 3/일5) 별도 sourceType으로 분리했다.)
+      const policy = await tx.pointPolicy.findUnique({ where: { sourceType: "community_comment" } });
+      const isActive = policy ? policy.isActive : true;
+      const earnAmount = policy?.amount ?? 3;
+      const dailyLimit = policy?.dailyLimit ?? 5;
       let rewardPoint = 0;
-      if (policy?.isActive && policy.amount > 0) {
+      if (isActive && earnAmount > 0) {
         const todayStart = new Date();
         todayStart.setHours(0, 0, 0, 0);
         const todayCount = await tx.pointHistory.count({
-          where: { userId, sourceType: "community", type: "earn", createdAt: { gte: todayStart } },
+          where: { userId, sourceType: "community_comment", type: "earn", createdAt: { gte: todayStart } },
         });
-        const dailyLimit = policy.dailyLimit ?? Infinity;
         if (todayCount < dailyLimit) {
-          rewardPoint = policy.amount;
-          let wallet = await tx.wallet.findFirst({
-            where: { userId, currencyType: "POINT", deletedAt: null },
+          const outcome = await earnLuckPouch(tx, {
+            userId,
+            amount: earnAmount,
+            sourceType: "community_comment",
+            sourceId: comment.id,
+            memo: "댓글 작성 보상",
           });
-          if (!wallet) {
-            wallet = await tx.wallet.create({ data: { userId, currencyType: "POINT", balance: 0 } });
-          }
-          const newBalance = wallet.balance + rewardPoint;
-          await tx.wallet.update({
-            where: { id: wallet.id },
-            data: { balance: newBalance, balanceSyncedAt: new Date() },
-          });
-          await tx.pointHistory.create({
-            data: {
-              walletId: wallet.id,
-              userId,
-              amount: rewardPoint,
-              type: "earn",
-              sourceType: "community",
-              sourceId: comment.id,
-              balanceAfter: newBalance,
-              memo: "커뮤니티 댓글 작성",
-            },
-          });
+          rewardPoint = outcome.grantedAmount;
         }
       }
 

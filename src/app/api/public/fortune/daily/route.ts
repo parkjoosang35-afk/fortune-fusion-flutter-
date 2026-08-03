@@ -16,6 +16,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { incrementMissionProgress } from "@/lib/mission-progress";
+import { earnLuckPouch } from "@/lib/luck-pouch-engine";
 
 export const dynamic = "force-dynamic";
 
@@ -107,6 +108,7 @@ export async function GET(request: NextRequest) {
           refundAmount: 0,
           balance: null as number | null,
           missionUpdates: [] as Awaited<ReturnType<typeof incrementMissionProgress>>,
+          firstViewBonus: 0,
         };
       }
 
@@ -220,6 +222,22 @@ export async function GET(request: NextRequest) {
         balance += missionRewardTotal;
       }
 
+      // 10) [재화 구조 정리 §복주머니 적립 구간표] "오늘의 운세" 하루 첫 열람 보너스(+5).
+      // 같은 날 재조회(캐시 반환, alreadyGenerated=true)는 이 지점에 도달하지 않으므로
+      // 자연히 1일 1회만 지급된다. 일일 총 적립 상한(daily_earn_cap_*)과 활동 점수
+      // 구간 보너스(ACTIVITY_SCORE_WEIGHTS.fortune_first_view)는 earnLuckPouch가
+      // 자동으로 함께 처리한다(§ 단일 소스 원칙 — 이 파일에서 직접 계산하지 않는다).
+      const firstViewBonus = await earnLuckPouch(tx, {
+        userId,
+        amount: 5,
+        sourceType: "fortune_first_view",
+        sourceId: fortuneRequest.id,
+        memo: "오늘의 운세 첫 열람 보너스",
+      });
+      if (firstViewBonus.grantedAmount > 0 && firstViewBonus.balanceAfter != null) {
+        balance = firstViewBonus.balanceAfter;
+      }
+
       return {
         alreadyGenerated: false,
         request: fortuneRequest,
@@ -228,6 +246,7 @@ export async function GET(request: NextRequest) {
         balance,
         fortune,
         missionUpdates,
+        firstViewBonus: firstViewBonus.grantedAmount,
       };
     });
 
@@ -249,6 +268,7 @@ export async function GET(request: NextRequest) {
           refundAmount: outcome.refundAmount,
           balance: outcome.balance,
           missionUpdates: outcome.missionUpdates,
+          firstViewBonus: outcome.firstViewBonus,
         },
       },
       { headers: CORS_HEADERS }

@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
   } catch (e) {
     console.error("[GET /api/public/pass/status] 실패:", e);
     return NextResponse.json(
-      { success: false, error: "알림패스 상태를 불러오지 못했습니다." },
+      { success: false, error: "프리패스 상태를 불러오지 못했습니다." },
       { status: 500, headers: CORS_HEADERS }
     );
   }

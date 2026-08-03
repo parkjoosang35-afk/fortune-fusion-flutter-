@@ -3,6 +3,7 @@
 // [인증 임시 방편] wallet/route.ts와 동일하게 userId를 바디로 받는다(기본값 1).
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { earnLuckPouch } from "@/lib/luck-pouch-engine";
 
 export const dynamic = "force-dynamic";
 
@@ -33,39 +34,30 @@ export async function POST(request: NextRequest) {
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      let wallet = await tx.wallet.findFirst({
-        where: { userId, currencyType: "POINT", deletedAt: null },
-      });
-      if (!wallet) {
-        wallet = await tx.wallet.create({
-          data: { userId, currencyType: "POINT", balance: 0 },
-        });
-      }
-
-      const newBalance = wallet.balance + amount;
-
-      await tx.wallet.update({
-        where: { id: wallet.id },
-        data: { balance: newBalance, balanceSyncedAt: new Date() },
-      });
-
-      await tx.pointHistory.create({
-        data: {
-          walletId: wallet.id,
-          userId,
-          amount,
-          type: "earn",
-          sourceType,
-          balanceAfter: newBalance,
-          memo: reason,
-        },
-      });
-
-      return newBalance;
+      // [복주머니 적립 구간표] 일일 총 적립 상한(일반 80/이벤트 120, 운영자 지급 제외)을
+      // 클리핑하고, 이어서 오늘 누적 활동 점수 구간(3/5/8/12) 보너스를 함께 판정한다.
+      const earnOutcome = await earnLuckPouch(tx, { userId, amount, sourceType, memo: reason });
+      const wallet = await tx.wallet.findFirst({ where: { userId, currencyType: "POINT", deletedAt: null } });
+      return {
+        balance: wallet?.balance ?? earnOutcome.balanceAfter ?? 0,
+        grantedAmount: earnOutcome.grantedAmount,
+        capped: earnOutcome.capped,
+        newlyGrantedTiers: earnOutcome.newlyGrantedTiers,
+        todayScore: earnOutcome.todayScore,
+      };
     });
 
     return NextResponse.json(
-      { success: true, data: { balance: result } },
+      {
+        success: true,
+        data: {
+          balance: result.balance,
+          grantedAmount: result.grantedAmount,
+          capped: result.capped,
+          activityScore: result.todayScore,
+          activityTierBonusGranted: result.newlyGrantedTiers,
+        },
+      },
       { headers: CORS_HEADERS }
     );
   } catch (e) {

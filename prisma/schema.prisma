@@ -183,6 +183,9 @@ model User {
   fortuneRequests               FortuneRequest[]
   consultationSessions          ConsultationSession[]
   passes                        UserPass[]
+  luckPouchWallet               LuckPouchWallet?
+  luckPouchHistories            LuckPouchHistory[]
+  openPassAdRewardLogs          OpenPassAdRewardLog[]
 
   @@map("users")
 }
@@ -1383,6 +1386,11 @@ model Wish {
   bokjuCount       Int       @default(0) @map("bokju_count") // 누적 복주머니(소원성 전용, 포인트 아님)
   isMilestoneShown Boolean   @default(false) @map("is_milestone_shown") // 최종단계 특별연출 1회 노출 플래그
   achievedAt       DateTime? @map("achieved_at") // 최종레벨(레벨4) 도달 시각(여정 타임라인용)
+  // [재화 구조 정리 §복주머니 사용 구간표] 글쓴이 자신의 소원에 LuckPouchRule
+  // (actionType=highlight/expose_boost, target_scope=wish_board)을 소비해 적용하는
+  // 프리미엄 자기개선 액션. null이면 미적용.
+  highlightedUntil DateTime? @map("highlighted_until") // 글 강조(필드 강조+배지) 만료 시각
+  boostedAt        DateTime? @map("boosted_at") // 노출 강화(피드 상단 재노출) 적용 시각
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
   deletedAt        DateTime? @map("deleted_at")
@@ -1465,17 +1473,23 @@ model WishReview {
 //   (04A상 reports/likes/files도 동일한 폴리모픽 패턴이며 이번 comments가
 //   이 프로젝트에서 최초로 구현되는 폴리모픽 테이블).
 model Comment {
-  id         Int       @id @default(autoincrement())
-  targetType String    @map("target_type") // post/wish (화이트리스트 검증)
-  targetId   Int       @map("target_id")
-  userId     Int       @map("user_id")
-  content    String
-  status     String    @default("active") // active/deleted_by_admin (2단계, 위 설계결정 참조)
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
-  deletedAt  DateTime? @map("deleted_at")
-  createdBy  String?   @map("created_by")
-  updatedBy  String?   @map("updated_by")
+  id             Int       @id @default(autoincrement())
+  targetType     String    @map("target_type") // post/wish (화이트리스트 검증)
+  targetId       Int       @map("target_id")
+  userId         Int       @map("user_id")
+  content        String
+  status         String    @default("active") // active/deleted_by_admin (2단계, 위 설계결정 참조)
+  // [재화 구조 정리 §복주머니 사용 구간표] targetType=wish 댓글 전용 유상 리액션 누적 카운트.
+  // LuckPouchRule(actionType=cheer/empathize, target_scope=wish_board)의 amount만큼
+  // 차감하고 이 카운터를 +1 한다(무료 Like 토글과 별개의 "소모형" 리액션이라 되돌릴 수
+  // 없으므로 Like 테이블 재사용 대신 단순 누적 카운터로 관리한다).
+  cheerCount     Int       @default(0) @map("cheer_count")
+  empathizeCount Int       @default(0) @map("empathize_count")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+  createdBy      String?   @map("created_by")
+  updatedBy      String?   @map("updated_by")
 
   user User @relation(fields: [userId], references: [id])
 
@@ -2476,24 +2490,569 @@ model PassPolicy {
   createdBy      String?   @map("created_by")
   updatedBy      String?   @map("updated_by")
 
-  userPasses UserPass[]
+  // ── [열림패스/행복머니/복주머니 통합정책] 확장 필드 ──
+  // description: 정책 상세 설명(관리자/앱 노출용, ctaText와 별개)
+  // scope: 이 패스가 적용되는 FeatureScope 키를 콤마(,)로 구분해 저장(SQLite는 스칼라 배열 미지원)
+  //   예: "fortune_today,fortune_tarot,fortune_saju,fortune_compatibility,fortune_face_palm,fortune_theme"
+  // happyMoneyPrice: 행복머니로 직접 구매 시 가격(null=행복머니 구매 불가 정책)
+  // adRewardEnabled: 광고 시청 보상 경로로 지급 가능한지 여부
+  // isFeatured/displayPriority: 앱 노출 우선순위 제어
+  // uiCopy: 배너/프로모션 문구 등 JSON 문자열(ctaText는 단일 버튼 문구, uiCopy는 확장 카피)
+  description          String?
+  scope                String  @default("fortune_today,fortune_tarot,fortune_saju,fortune_compatibility,fortune_face_palm,fortune_theme") @map("scope")
+  happyMoneyPrice      Int?    @map("happy_money_price")
+  adRewardEnabled      Boolean @default(true) @map("ad_reward_enabled")
+  isFeatured           Boolean @default(false) @map("is_featured")
+  // ── [열림패스 첨부파일/광고소스 연동] §8-1 대표 첨부파일 3종(soft reference, FK 미설정) ──
+  // heroAttachmentId: 상품 카드/상세의 대표 배너 / promoAttachmentId: 광고시청 유도 배너
+  // fallbackAttachmentId: 이 상품에 연결된 모든 광고소스가 실패/no-fill일 때 공통 대체 소재
+  // (개별 광고소스에도 fallbackAttachmentId가 있어 광고소스 우선, 없으면 상품 fallback 사용)
+  heroAttachmentId     Int?    @map("hero_attachment_id")
+  promoAttachmentId    Int?    @map("promo_attachment_id")
+  fallbackAttachmentId Int?    @map("fallback_attachment_id")
+  displayPriority      Int     @default(0) @map("display_priority")
+  uiCopy               String? @map("ui_copy")
+
+  // ── [프리패스 테스트 인프라] §3 운영기간/테스트모드 필드 ──
+  // startAt/endAt: 노출/판매 유효기간(null=상시). testModeAllowed: 테스트랩에서 이 정책을
+  // 대상으로 시뮬레이션(강제지급/강제만료 등)을 실행할 수 있는지 여부(false면 운영중 정책 보호).
+  startAt         DateTime? @map("start_at")
+  endAt           DateTime? @map("end_at")
+  testModeAllowed Boolean   @default(true) @map("test_mode_allowed")
+
+  // ── [프리패스 단순화 - 쿠팡파트너스 전용] §1 광고 확인 대기시간(초) ──
+  // 사용자가 "쿠팡 방문하기"를 누르고 앱으로 돌아온 뒤, 자동 지급 전 대기하는 초.
+  // 관리자는 4/5/10초 중에서만 선택(드롭다운). 광고 이미지/링크 자체는 더 이상 이
+  // 테이블에 직접 두지 않고 Banner(positionCode='open_pass')를 단일 소스로 사용한다.
+  adWaitSeconds Int @default(5) @map("ad_wait_seconds")
+
+  userPasses         UserPass[]
+  attachmentBindings OpenPassProductAttachment[]
+  adSourceBindings   OpenPassProductAdSource[]
 
   @@map("pass_policies")
 }
 
 // ── 신규: user_passes (Append-only 성격, 사용자별 발급/소진 이력) ──
+// [통합정책 확장] status/revokedAt/scope/grantedByAdminId 추가:
+//   - status: active/expired/revoked (강제만료·회수를 만료와 구분해 리포팅 가능하게)
+//   - scope: 정책의 scope를 오버라이드하는 특정 scope만 부여할 때 사용(null=정책 scope 그대로 적용)
+//   - grantedByAdminId: 관리자 수동지급/테스트랩 지급 시 감사 추적용(광고/구매 등 일반 발급은 null)
 model UserPass {
-  id          Int      @id @default(autoincrement())
-  userId      Int      @map("user_id")
-  policyId    Int      @map("policy_id")
-  activatedAt DateTime @default(now()) @map("activated_at")
-  expiresAt   DateTime @map("expires_at")
-  sourceType  String   @map("source_type") // ad/partner/subscription/event
-  createdAt   DateTime @default(now()) @map("created_at")
+  id               Int       @id @default(autoincrement())
+  userId           Int       @map("user_id")
+  policyId         Int       @map("policy_id")
+  activatedAt      DateTime  @default(now()) @map("activated_at")
+  expiresAt        DateTime  @map("expires_at")
+  sourceType       String    @map("source_type") // ad/partner/subscription/event/manual/test_mode
+  status           String    @default("active") // active/expired/revoked
+  revokedAt        DateTime? @map("revoked_at")
+  scope            String?   @map("scope")
+  grantedByAdminId Int?      @map("granted_by_admin_id")
+  createdAt        DateTime  @default(now()) @map("created_at")
 
   user   User       @relation(fields: [userId], references: [id])
   policy PassPolicy @relation(fields: [policyId], references: [id])
 
   @@index([userId, expiresAt])
   @@map("user_passes")
+}
+
+// ══════════════════════════════════════════════════════════════════
+// [열림패스/복주머니 통합정책 — Part D]
+//
+// [재화 구조 정리, 2026-08] 아래 설계는 원래 "행복머니/복주머니"를
+// Wallet(POINT) vs LuckPouchWallet의 서로 다른 두 테이블로 분리하는 "3대 자산"
+// 구조로 설계되었으나, 최종 정책은 "프리패스(시간권) + 복주머니(유일 화폐)"
+// 2자산 구조로 정리되어, LuckPouchWallet/LuckPouchHistory는 실제 앱의 어느
+// 화면도 읽지 않는 죽은 테이블임을 코드 전수 조사로 확인했다. 스키마 차원의
+// 완전 제거(DROP TABLE)를 시도했으나 이 프로젝트의 마이그레이션 이력 drift로
+// 인해 전체 DB 리셋이 요구되어 보류했다(모델 정의 자체는 아래에 그대로 남아
+// 있음 — 상세 사유는 두 모델 바로 위 주석 참고). 런타임 코드에서는 이미 완전히
+// 분리되어 있어(대체: earnLuckPouch/spendLuckPouch 공용 엔진이
+// Wallet(currencyType="POINT") 하나만을 복주머니 원장으로 다룬다) 데이터
+// 정확성 문제는 없고, 순수 스키마 정리 부채로만 존재한다.
+// HappyMoneyProduct(행복머니 충전 카탈로그)는
+// RewardSubNav.tsx에 이미 [금지]로 문서화된 레거시 잔존물로, 실제 앱이 호출하지
+// 않는다(별도 범위의 스키마 정리 대상으로 남겨둔).
+//
+// 자산 원장 설계 원칙(현재):
+//  - 복주머니(luck_pouch) = Wallet(currencyType="POINT") + PointHistory 유일 테이블
+//    (적립/사용/구매 모두 이 하나의 원장을 공유한다 — 이원화 금지 원칙)
+//  - 프리패스(open_pass) = UserPass/PassPolicy(시간기반 접근권, 화폐 개념 없음)
+//  - AssetTransaction(통합 원장)은 신규 테이블을 따로 만들지 않고,
+//    PointHistory + UserPass 2개 원장을 조회 시점에 AdminSimulationService가
+//    통합 뷰로 합쳐 제공한다(스키마 중복/불일치 위험 회피).
+//  - AdminAuditLog는 기존 OperationLog를 그대로 재사용한다(targetType으로 구분).
+// ══════════════════════════════════════════════════════════════════
+
+// ── 행복머니 충전 상품 정책 ──
+model HappyMoneyProduct {
+  id                 Int       @id @default(autoincrement())
+  name               String
+  cashPrice          Int       @map("cash_price") // 원화 가격(KRW)
+  happyMoneyAmount   Int       @map("happy_money_amount") // 지급 행복머니 수량
+  bonusAmount        Int       @default(0) @map("bonus_amount") // 추가 보너스 수량
+  isActive           Boolean   @default(true) @map("is_active")
+  isFeatured         Boolean   @default(false) @map("is_featured")
+  displayPriority    Int       @default(0) @map("display_priority")
+  allowedUsageScopes String    @default("pass,subscription,gift") @map("allowed_usage_scopes") // 콤마구분: pass/subscription/gift/all
+  isEventGrantable   Boolean   @default(true) @map("is_event_grantable") // 이벤트로 지급 가능한지
+  isManualGrantable  Boolean   @default(true) @map("is_manual_grantable") // 관리자 수동 지급 가능한지
+  status             String    @default("active")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  deletedAt          DateTime? @map("deleted_at")
+  createdBy          String?   @map("created_by")
+  updatedBy          String?   @map("updated_by")
+
+  @@map("happy_money_products")
+}
+
+// ── 복주머니 적립/소비/구매 규칙 ──
+model LuckPouchRule {
+  id                Int       @id @default(autoincrement())
+  name              String
+  ruleType          String    @map("rule_type") // earn/spend/purchase
+  actionType        String    @map("action_type") // attendance/cheer/empathize/highlight/expose_boost/talisman_make/wish_room_ritual/wish_room_wish/event/manual/purchase 등
+  targetScope       String?   @map("target_scope") // community/wish_board/wish_room/talisman(null=범용)
+  amount            Int // earn/spend: 적립·차감량 / purchase: 지급 복주머니 수량
+  cashPrice         Int?      @map("cash_price") // ruleType=purchase일 때 원화 가격(그 외 null)
+  dailyLimit        Int?      @map("daily_limit")
+  isPurchasable     Boolean   @default(false) @map("is_purchasable") // ruleType=purchase 항목 노출 여부
+  isManualGrantable Boolean   @default(true) @map("is_manual_grantable")
+  isActive          Boolean   @default(true) @map("is_active")
+  displayPriority   Int       @default(0) @map("display_priority")
+  status            String    @default("active")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  deletedAt         DateTime? @map("deleted_at")
+  createdBy         String?   @map("created_by")
+  updatedBy         String?   @map("updated_by")
+
+  @@map("luck_pouch_rules")
+}
+
+// [재화 구조 정리, 2026-08] 아래 두 모델(LuckPouchWallet/LuckPouchHistory)은 실제
+// 앱의 어느 화면·API도 읽지 않는 죽은 테이블임을 코드 전수 조사로 확인했다(모든
+// 실제 복주머니 잔액/원장 조작은 Wallet(currencyType="POINT") + PointHistory와
+// 공용 엔진 earnLuckPouch/spendLuckPouch(src/lib/luck-pouch-engine.ts)만 사용).
+// 스키마에서 완전히 제거(DROP TABLE)하는 것을 시도했으나, 이 프로젝트의 41개
+// 마이그레이션 이력이 schema.prisma의 현재 상태와 이미 광범위하게 어긋나 있어
+// (luck_pouch 무관 다수 테이블 — wish_config/wish_reviews/banners/wishes 등 —
+// 에 걸친 drift) `prisma migrate dev`가 "SQLite 개발 DB 전체 리셋 필요(모든 데이터
+// 유실)"를 요구했다. 이 두 죽은 테이블을 지우자고 운영 중인 개발 DB의 유저/지갑/
+// 소원 등 전체 데이터를 날릴 수는 없으므로, 스키마 차원 제거는 보류하고 모델
+// 정의는 그대로 유지한다(런타임 코드에서 이미 완전히 분리되어 있어 데이터 정확성
+// 문제는 없음 — 순수 스키마 정리 부채로만 존재). 마이그레이션 이력 정리는 이번
+// "재화 구조 재연결" 범위를 벗어나는 별도의 더 큰 작업으로 남겨둔다.
+
+// ── 복주머니 잔액(죽은 테이블 — 위 주석 참고, 실제로는 미사용) ──
+model LuckPouchWallet {
+  id              Int       @id @default(autoincrement())
+  userId          Int       @unique @map("user_id")
+  balance         Int       @default(0)
+  balanceSyncedAt DateTime? @map("balance_synced_at")
+  status          String    @default("active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  user      User               @relation(fields: [userId], references: [id])
+  histories LuckPouchHistory[]
+
+  @@map("luck_pouch_wallets")
+}
+
+// ── 복주머니 원장(죽은 테이블 — 위 주석 참고, 실제로는 미사용) ──
+model LuckPouchHistory {
+  id           Int      @id @default(autoincrement())
+  walletId     Int      @map("wallet_id")
+  userId       Int      @map("user_id")
+  amount       Int // +적립/-차감
+  type         String // earn/spend/grant/revoke/purchase
+  sourceType   String   @map("source_type") // attendance/cheer/empathize/highlight/expose_boost/talisman_make/wish_room_ritual/admin_adjust/purchase/test_mode 등
+  sourceId     Int?     @map("source_id")
+  balanceAfter Int      @map("balance_after")
+  memo         String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  wallet LuckPouchWallet @relation(fields: [walletId], references: [id])
+  user   User            @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([sourceType, sourceId])
+  @@map("luck_pouch_histories")
+}
+
+// ── 기능-자산 매핑(FeatureAssetBinding) — 화면별 하드코딩 금지의 핵심 테이블 ──
+// scope는 Flutter FeatureScope 확장 키와 1:1 대응(fortune_today/wish_room/community/talisman 등)
+model FeatureAssetBinding {
+  id              Int      @id @default(autoincrement())
+  scope           String   @unique // fortune_today/fortune_tarot/.../wish_board/wish_room/talisman/community/ai_consulting/subscription/gift_shop
+  featureGroup    String   @map("feature_group") // fortune/community/premium_shop
+  primaryAsset    String   @map("primary_asset") // open_pass/happy_money/luck_pouch/free
+  secondaryAssets String?  @map("secondary_assets") // 콤마구분 보조 자산 목록
+  accessType      String   @map("access_type") // free/open_pass/happy_money/luck_pouch/mixed_limited
+  editableByAdmin Boolean  @default(true) @map("editable_by_admin")
+  isActive        Boolean  @default(true) @map("is_active")
+  notes           String?
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  updatedBy       String?  @map("updated_by")
+
+  @@map("feature_asset_bindings")
+}
+
+// ══════════════════════════════════════════════════════════════════
+// [신규] 열림패스 첨부파일/광고소스 관리 — §1~17 요구사항 반영
+// "단순 파일 업로드"가 아니라 "용도(purpose)"를 함께 저장하고,
+// 열림패스 상품(PassPolicy)과 N:M으로 연결 가능한 재사용 가능 자산으로 설계한다.
+// ══════════════════════════════════════════════════════════════════
+
+// ── 열림패스 첨부파일(이미지/영상/문서/외부링크) — 상품과 독립된 재사용 가능 엔티티 ──
+model OpenPassAttachment {
+  id           Int       @id @default(autoincrement())
+  fileName     String    @map("file_name") // 원본 파일명(또는 external_link일 때 표시용 제목)
+  fileType     String    @map("file_type") // image/video/document/external_link/rich_text_html/ad_fallback_image/ad_fallback_video
+  mimeType     String?   @map("mime_type")
+  // fileType=rich_text_html일 때는 URL이 없을 수 있어 nullable(htmlContent로 대체 표시).
+  fileUrl      String?   @map("file_url") // 업로드된 정적 파일 URL 또는 외부 링크 URL
+  thumbnailUrl String?   @map("thumbnail_url") // image는 fileUrl과 동일, video/document는 별도 썸네일(선택)
+  purpose      String    @map("purpose") // hero_banner/product_thumbnail/reward_ad_promo/fallback_creative/terms_doc/event_banner/modal_image 등
+  fileSize     Int?      @map("file_size") // bytes
+  htmlContent  String?   @map("html_content") // fileType=rich_text_html일 때 본문
+  isActive     Boolean   @default(true) @map("is_active")
+  displayOrder Int       @default(0) @map("display_order")
+  metadataJson String?   @map("metadata_json") // 자유 형식 부가 정보(JSON 문자열)
+  status       String    @default("active") // active/deleted
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+  createdBy    String?   @map("created_by")
+  updatedBy    String?   @map("updated_by")
+
+  productBindings OpenPassProductAttachment[]
+
+  @@index([purpose, isActive])
+  @@map("open_pass_attachments")
+}
+
+// ── 열림패스 광고소스(리워드 광고 지급 채널) — 상품과 독립된 재사용 가능 엔티티 ──
+model OpenPassAdSource {
+  id                   Int       @id @default(autoincrement())
+  sourceName           String    @map("source_name")
+  sourceType           String    @map("source_type") // admob_rewarded/admob_interstitial/applovin_rewarded/meta_audience_rewarded/custom_vast/custom_web_ad/internal_promo_ad
+  networkName          String?   @map("network_name")
+  adUnitId             String?   @map("ad_unit_id")
+  placementId          String?   @map("placement_id")
+  rewardType           String?   @map("reward_type") // open_pass_minutes 등
+  rewardValue          Int?      @map("reward_value")
+  cooldownSeconds      Int       @default(0) @map("cooldown_seconds")
+  dailyLimit           Int?      @map("daily_limit")
+  failoverEnabled      Boolean   @default(true) @map("failover_enabled")
+  // soft reference(FK 미설정) — OpenPassAttachment.id. 삭제 시 참조 무결성은 애플리케이션에서 체크.
+  fallbackAttachmentId Int?      @map("fallback_attachment_id")
+  testModeEnabled      Boolean   @default(false) @map("test_mode_enabled")
+  isActive             Boolean   @default(true) @map("is_active")
+  priority             Int       @default(0) @map("priority")
+  startAt              DateTime? @map("start_at")
+  endAt                DateTime? @map("end_at")
+  status               String    @default("active") // active/deleted
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+  deletedAt            DateTime? @map("deleted_at")
+  createdBy            String?   @map("created_by")
+  updatedBy            String?   @map("updated_by")
+
+  // ── [프리패스 테스트 인프라] §4 테스트 광고소스(mock_rewarded_*) 전용 필드 ──
+  // simulatedDurationSeconds: 테스트 광고 화면에서 진행바/타이머로 보여줄 가짜 시청 시간(초).
+  // failMode: mock_rewarded_fail 타입일 때 실패 사유 라벨(예: "network_error","policy_violation").
+  // 실광고 소스에는 사용하지 않음(둘 다 null 유지).
+  simulatedDurationSeconds Int?    @map("simulated_duration_seconds")
+  failMode                 String? @map("fail_mode")
+
+  productBindings OpenPassProductAdSource[]
+  rewardLogs      OpenPassAdRewardLog[]
+
+  @@index([sourceType, isActive])
+  @@map("open_pass_ad_sources")
+}
+
+// ── 상품(PassPolicy) - 첨부파일(OpenPassAttachment) N:M 바인딩 ──
+// usageType: 상품 화면 내 실제 노출 위치(hero_banner/pre_ad_banner/post_ad_banner/detail_gallery/fallback 등).
+// attachment.purpose(파일 등록 시의 용도)와 별개로, "이 상품에서는 이 위치에 쓴다"를 여기서 결정한다.
+model OpenPassProductAttachment {
+  id           Int      @id @default(autoincrement())
+  passPolicyId Int      @map("pass_policy_id")
+  attachmentId Int      @map("attachment_id")
+  usageType    String   @map("usage_type") // hero_banner/pre_ad_banner/post_ad_banner/detail_gallery/fallback/modal_image 등
+  displayOrder Int      @default(0) @map("display_order")
+  isPrimary    Boolean  @default(false) @map("is_primary")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  passPolicy PassPolicy         @relation(fields: [passPolicyId], references: [id])
+  attachment OpenPassAttachment @relation(fields: [attachmentId], references: [id])
+
+  @@unique([passPolicyId, attachmentId, usageType])
+  @@index([passPolicyId, usageType])
+  @@map("open_pass_product_attachments")
+}
+
+// ── 상품(PassPolicy) - 광고소스(OpenPassAdSource) N:M 바인딩 ──
+// platform: all/android/ios/web — 플랫폼별 광고소스 분리 구조 준비(§6-4 요구사항).
+model OpenPassProductAdSource {
+  id           Int      @id @default(autoincrement())
+  passPolicyId Int      @map("pass_policy_id")
+  adSourceId   Int      @map("ad_source_id")
+  priority     Int      @default(0) @map("priority") // 낮을수록 우선(failover 순서)
+  isPrimary    Boolean  @default(false) @map("is_primary")
+  platform     String   @default("all") @map("platform") // all/android/ios/web
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  passPolicy PassPolicy       @relation(fields: [passPolicyId], references: [id])
+  adSource   OpenPassAdSource @relation(fields: [adSourceId], references: [id])
+
+  @@unique([passPolicyId, adSourceId, platform])
+  @@index([passPolicyId, platform, priority])
+  @@map("open_pass_product_ad_sources")
+}
+
+// ── 광고 시청/보상 이력 — cooldown/dailyLimit 체크 + 중복지급 방지(idempotencyKey)의 근거 원장 ──
+model OpenPassAdRewardLog {
+  id             Int      @id @default(autoincrement())
+  userId         Int      @map("user_id")
+  adSourceId     Int      @map("ad_source_id")
+  passPolicyId   Int?     @map("pass_policy_id")
+  result         String   @map("result") // success/fail/no_fill
+  rewardGranted  Boolean  @default(false) @map("reward_granted")
+  userPassId     Int?     @map("user_pass_id") // 지급된 UserPass.id(성공 시)
+  idempotencyKey String?  @unique @map("idempotency_key") // 클라이언트가 생성해 전달, 중복 reward-complete 방지
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user     User             @relation(fields: [userId], references: [id])
+  adSource OpenPassAdSource @relation(fields: [adSourceId], references: [id])
+
+  @@index([userId, adSourceId, createdAt])
+  @@map("open_pass_ad_reward_logs")
+}
+
+// ══════════════════════════════════════════════════════════════════
+// [Fortune Category Master 확장] 운세 카테고리 시스템 확장 작업
+// (요청: "이미 구현된 운세/화면/결과/관리자 연결은 유지, 없는 카테고리와
+//  부족한 관리자 연결만 추가")
+//
+// [설계 결정] AiPromptTemplate(버전 관리)는 이미 15개 도메인 전부에 대해
+// 완전히 동작 중이므로 그대로 재사용한다. 여기서 새로 추가하는 두 모델은
+// "앱 전체보기 화면에 노출하기 위한 카테고리 메타(제목/설명/아이콘/그룹/
+// 정렬/노출/추천/라우트)"만 담당하며, fortuneTypeOrDomain(=categoryKey)로
+// AiPromptTemplate과 1:1 매핑된다. 결과 텍스트의 실제 구조/톤/길이는
+// 여전히 AiPromptTemplate.templateBody(LLM 시스템 프롬프트)가 통제한다.
+// ══════════════════════════════════════════════════════════════════
+
+// ── Fortune Category Group (전체보기 그룹 섹션: 오늘/사주/타로/궁합 등) ──
+model FortuneCategoryGroup {
+  id           Int       @id @default(autoincrement())
+  code         String    @unique @map("code") // today/saju/tarot/compatibility/face_palm/name_theme/consultation
+  label        String    @map("label")
+  description  String?   @map("description")
+  displayOrder Int       @default(0) @map("display_order")
+  isVisible    Boolean   @default(true) @map("is_visible")
+  status       String    @default("active")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+  createdBy    String?   @map("created_by")
+  updatedBy    String?   @map("updated_by")
+
+  categories FortuneCategory[]
+
+  @@map("fortune_category_groups")
+}
+
+// ── Fortune Category Master (전체보기/결과보기 노출용 카테고리 메타) ──
+model FortuneCategory {
+  id                  Int       @id @default(autoincrement())
+  categoryKey         String    @unique @map("category_key") // = AiPromptTemplate.fortuneTypeOrDomain (saju/saju_wealth/.../name)
+  slug                String    @unique @map("slug")
+  title               String    @map("title")
+  shortDescription    String?   @map("short_description")
+  groupId             Int?      @map("group_id")
+  icon                String?   @map("icon") // Material icon codepoint 이름(e.g. "auto_stories_outlined")
+  heroImageUrl        String?   @map("hero_image_url")
+  isActive            Boolean   @default(true) @map("is_active")
+  isVisible           Boolean   @default(true) @map("is_visible")
+  displayOrder        Int       @default(0) @map("display_order")
+  isFeatured          Boolean   @default(false) @map("is_featured")
+  badgeLabel          String?   @map("badge_label") // NEW/추천/대표 등 (없으면 배지 미노출)
+  requiresPass        Boolean   @default(true) @map("requires_pass")
+  route               String?   @map("route") // Flutter 라우트 경로 (없으면 "준비중")
+  resultLengthHint    String?   @map("result_length_hint") // "400~500자" 등 관리자 안내용
+  inputTemplateId     String?   @map("input_template_id")
+  loadingTemplateId   String?   @map("loading_template_id")
+  resultTemplateId    String?   @map("result_template_id")
+  paywallTemplateId   String?   @map("paywall_template_id")
+  relatedCategoryKeys String?   @map("related_category_keys") // JSON string array
+  status              String    @default("active")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  deletedAt           DateTime? @map("deleted_at")
+  createdBy           String?   @map("created_by")
+  updatedBy           String?   @map("updated_by")
+
+  group FortuneCategoryGroup? @relation(fields: [groupId], references: [id])
+
+  @@index([groupId, displayOrder])
+  @@index([isActive, isVisible])
+  @@map("fortune_categories")
+}
+
+// ════════════════════════════════════════════════════════════════
+// [메인화면 관리자 편집기] Page > Section > Component Block > Content
+// > Display Rule 계층 구조.
+//
+// [핵심 설계] "완전 자유 배치"가 아니라 "블록형 편집"이다 — PageSection의
+// blockType은 Flutter가 미리 준비한 위젯(HomePageRenderer가 매핑)만 참조할
+// 수 있고, 관리자는 그 블록 안의 title/subtitle/description/buttonText 등
+// "내용"과 stylePreset 같은 "프리셋"만 바꾈 수 있다(폰트/패딩/좌표 직접
+// 입력 금지 — 앱 코드 레벨에서 강제).
+//
+// [버전 관리 방식] draft → publish 시 새 PageVersion을 만들어 draft의
+// PageSection들을 복제(snapshot)하고, PageConfig의 currentPublishedVersionId
+// 포인터만 그 새 버전으로 옮긴다. 과거 published 버전의 PageSection 행은
+// 삭제하지 않고 그대로 보관하므로, 롤백은 포인터를 옛 버전으로 되돌리는
+// 것만으로 즉시 가능하다(복사/재생성 불필요, append-only 패턴).
+// ════════════════════════════════════════════════════════════════
+
+// ── PageConfig: 페이지별(현재는 "home" 1개) 발행/초안 버전 포인터 ──
+model PageConfig {
+  id                        Int      @id @default(autoincrement())
+  pageKey                   String   @unique @map("page_key") // 현재는 "home"만 사용
+  currentPublishedVersionId Int?     @map("current_published_version_id")
+  currentDraftVersionId     Int?     @map("current_draft_version_id")
+  createdAt                 DateTime @default(now()) @map("created_at")
+  updatedAt                 DateTime @updatedAt @map("updated_at")
+
+  currentPublishedVersion PageVersion? @relation("PageConfigPublished", fields: [currentPublishedVersionId], references: [id])
+  currentDraftVersion     PageVersion? @relation("PageConfigDraft", fields: [currentDraftVersionId], references: [id])
+
+  @@map("page_configs")
+}
+
+// ── PageVersion: pageKey별 버전 스냅샷(draft/published/archived) ──
+model PageVersion {
+  id            Int       @id @default(autoincrement())
+  pageKey       String    @map("page_key")
+  versionNumber Int       @map("version_number")
+  status        String    @default("draft") @map("status") // draft/published/archived
+  createdBy     String?   @map("created_by")
+  publishedBy   String?   @map("published_by")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  publishedAt   DateTime? @map("published_at")
+
+  sections         PageSection[]
+  publishedForPage PageConfig[]  @relation("PageConfigPublished")
+  draftForPage     PageConfig[]  @relation("PageConfigDraft")
+
+  @@unique([pageKey, versionNumber])
+  @@index([pageKey, status])
+  @@map("page_versions")
+}
+
+// ── PageSection: 실제 섹션 콘텐츠(제목/부제/버튼/링크/프리셋/노출/스케줄) ──
+model PageSection {
+  id                 Int       @id @default(autoincrement())
+  pageVersionId      Int       @map("page_version_id")
+  sectionKey         String    @map("section_key") // 버전 간 동일 섹션 추적용 안정 식별자(예: "hero","daily_fortune")
+  blockType          String    @map("block_type") // hero_banner/single_card/... (BLOCK_TYPES 화이트리스트)
+  title              String?
+  subtitle           String?
+  description        String?
+  buttonText         String?   @map("button_text")
+  buttonLink         String?   @map("button_link")
+  badgeText          String?   @map("badge_text")
+  emptyStateText     String?   @map("empty_state_text")
+  stylePreset        String    @default("default") @map("style_preset")
+  backgroundPreset   String    @default("white") @map("background_preset")
+  alignmentPreset    String    @default("left") @map("alignment_preset")
+  densityPreset      String    @default("normal") @map("density_preset")
+  isVisible          Boolean   @default(true) @map("is_visible")
+  status             String    @default("visible") @map("status") // visible/hidden/archived
+  isPinned           Boolean   @default(false) @map("is_pinned") // 고정 섹션(순서변경 최상단/최하단 등 안내용)
+  isRequired         Boolean   @default(false) @map("is_required") // 필수 섹션(완전 삭제 방지, hidden까지만 허용)
+  sortOrder          Int       @default(0) @map("sort_order")
+  platformTargets    String?   @map("platform_targets") // JSON 배열 문자열(["ios","android","web"]), null=전체
+  scheduleEnabled    Boolean   @default(false) @map("schedule_enabled")
+  startAt            DateTime? @map("start_at")
+  endAt              DateTime? @map("end_at")
+  linkedAssetType    String?   @map("linked_asset_type") // open_pass/happy_money/luck_pouch
+  linkedFeatureScope String?   @map("linked_feature_scope")
+  linkedCampaignId   String?   @map("linked_campaign_id")
+  linkedProductId    String?   @map("linked_product_id")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  deletedAt          DateTime? @map("deleted_at")
+  createdBy          String?   @map("created_by")
+  updatedBy          String?   @map("updated_by")
+
+  pageVersion  PageVersion                @relation(fields: [pageVersionId], references: [id])
+  attachments  SectionAttachmentBinding[]
+  displayRules SectionDisplayRule[]
+
+  @@index([pageVersionId, sortOrder])
+  @@index([pageVersionId, sectionKey])
+  @@map("page_sections")
+}
+
+// ── SectionAttachmentBinding: 섹션 배너/아이콘/배경/썸네일/fallback 이미지 ──
+model SectionAttachmentBinding {
+  id            Int      @id @default(autoincrement())
+  sectionId     Int      @map("section_id")
+  attachmentUrl String   @map("attachment_url")
+  usageType     String   @map("usage_type") // banner/icon/background/thumbnail/fallback
+  isPrimary     Boolean  @default(false) @map("is_primary")
+  displayOrder  Int      @default(0) @map("display_order")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  section PageSection @relation(fields: [sectionId], references: [id])
+
+  @@index([sectionId, usageType])
+  @@map("section_attachment_bindings")
+}
+
+// ── SectionDisplayRule: 유저상태/플랫폼/기간에 따른 조건부 노출 규칙 ──
+// [설계] 운영자가 이해하기 쉬운 (ruleType, ruleOperator, ruleValue) 3분할
+// 구조만 제공한다 — 개발자용 표현식(JS 조건문 등) 직접 입력은 지원하지 않는다.
+model SectionDisplayRule {
+  id           Int      @id @default(autoincrement())
+  sectionId    Int      @map("section_id")
+  ruleType     String   @map("rule_type")
+  // login_status/user_new/open_pass_status/happy_money_balance/
+  // luck_pouch_status/daily_fortune_viewed/wish_board_participated/
+  // event_period/platform 중 하나(RULE_TYPES 화이트리스트)
+  ruleOperator String   @map("rule_operator") // equals/not_equals/gte/lte/in
+  ruleValue    String   @map("rule_value") // 문자열(다중값은 JSON 배열 문자열)
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  section PageSection @relation(fields: [sectionId], references: [id])
+
+  @@index([sectionId])
+  @@map("section_display_rules")
+}
+
+// ── PageAuditLog: 관리자 CUD 작업 감사 로그(변경 이력 화면 데이터 소스) ──
+model PageAuditLog {
+  id         Int      @id @default(autoincrement())
+  adminId    String?  @map("admin_id")
+  pageKey    String   @map("page_key")
+  sectionId  Int?     @map("section_id")
+  actionType String   @map("action_type") // create/update/reorder/hide/archive/duplicate/publish/rollback 등
+  summary    String
+  payload    String? // JSON 문자열(변경 전/후 스냅샷 등)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([pageKey, createdAt])
+  @@map("page_audit_logs")
 }

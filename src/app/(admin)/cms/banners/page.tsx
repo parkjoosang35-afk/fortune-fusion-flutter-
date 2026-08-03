@@ -26,8 +26,11 @@ export default async function CmsBannersPage() {
   const canWrite = !!RBAC_MATRIX.cms[session.roleCode as keyof typeof RBAC_MATRIX.cms]?.write;
   const canDelete = !!RBAC_MATRIX.cms[session.roleCode as keyof typeof RBAC_MATRIX.cms]?.delete;
 
+  // [프리패스 단순화] positionCode='open_pass'(프리패스 광고 전용 배너)는
+  // 이 화면이 아니라 /reward/pass-policies(프리패스 설정) 화면 하나에서만
+  // 관리한다("하나의 관리 화면에서 운영" 요구사항). 홈 배너 목록에서는 제외.
   const banners = await prisma.banner.findMany({
-    where: { deletedAt: null },
+    where: { deletedAt: null, positionCode: { not: "open_pass" } },
   });
 
   const sorted = [...banners].sort((a, b) => {
@@ -77,6 +80,9 @@ export default async function CmsBannersPage() {
           </Link>
           <Link href="/cms/lucky-number" className="px-3 py-2 text-slate-400 hover:text-white">
             오늘의 행운숫자
+          </Link>
+          <Link href="/cms/page-configs/home" className="px-3 py-2 text-slate-400 hover:text-white">
+            메인화면 편집
           </Link>
         </nav>
       </div>
