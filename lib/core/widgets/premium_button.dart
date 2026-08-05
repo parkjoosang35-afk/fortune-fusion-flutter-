@@ -115,10 +115,7 @@ class _PremiumButtonState extends State<PremiumButton> {
         decoration = BoxDecoration(
           color: AppColors.premiumBgSection,
           borderRadius: BorderRadius.circular(widget.height / 2),
-          border: Border.all(
-            color: AppColors.premiumSoftLavender,
-            width: 1.4,
-          ),
+          border: Border.all(color: AppColors.premiumSoftLavender, width: 1.4),
         );
     }
 

@@ -1,4 +1,5 @@
-import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatform, kIsWeb;
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import '../domain/page_config_model.dart';
 
 /// [메인화면 관리자 편집기] §7/§17 SectionVisibilityEvaluator
@@ -73,7 +74,9 @@ class SectionVisibilityEvaluator {
 
     // 3) 플랫폼 타겟
     final targets = section.platformTargets;
-    if (targets != null && targets.isNotEmpty && !targets.contains(ctx.platform)) {
+    if (targets != null &&
+        targets.isNotEmpty &&
+        !targets.contains(ctx.platform)) {
       return false;
     }
 
@@ -112,13 +115,29 @@ class SectionVisibilityEvaluator {
       case 'luck_pouch_insufficient':
         return _luckPouchInsufficient(ctx.luckPouchBalance, rule);
       case 'daily_fortune_viewed':
-        return _boolCompare(ctx.dailyFortuneViewedToday, rule, expectTrueOnly: true);
+        return _boolCompare(
+          ctx.dailyFortuneViewedToday,
+          rule,
+          expectTrueOnly: true,
+        );
       case 'daily_fortune_not_viewed':
-        return _boolCompare(!ctx.dailyFortuneViewedToday, rule, expectTrueOnly: true);
+        return _boolCompare(
+          !ctx.dailyFortuneViewedToday,
+          rule,
+          expectTrueOnly: true,
+        );
       case 'wish_board_participated':
-        return _boolCompare(ctx.wishBoardParticipatedToday, rule, expectTrueOnly: true);
+        return _boolCompare(
+          ctx.wishBoardParticipatedToday,
+          rule,
+          expectTrueOnly: true,
+        );
       case 'wish_board_not_participated':
-        return _boolCompare(!ctx.wishBoardParticipatedToday, rule, expectTrueOnly: true);
+        return _boolCompare(
+          !ctx.wishBoardParticipatedToday,
+          rule,
+          expectTrueOnly: true,
+        );
       case 'event_period':
         return _eventPeriodMatches(rule, ctx.now);
       case 'platform':

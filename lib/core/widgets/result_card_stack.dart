@@ -85,7 +85,11 @@ class ResultCardStack extends StatelessWidget {
         children: [
           // 열림패스 상태 바
           if (isLocked || remainingLabel != null) ...[
-            _PassStatusBar(isLocked: isLocked, message: lockMessage, remainingLabel: remainingLabel),
+            _PassStatusBar(
+              isLocked: isLocked,
+              message: lockMessage,
+              remainingLabel: remainingLabel,
+            ),
             const SizedBox(height: UnifiedTokens.spaceMd),
           ],
 
@@ -101,14 +105,20 @@ class ResultCardStack extends StatelessWidget {
               children: [
                 Text(heroCaption, style: UnifiedText.caption()),
                 const SizedBox(height: UnifiedTokens.spaceSm),
-                Text(heroSummary, style: UnifiedText.body(color: UnifiedColors.textPrimary).copyWith(fontSize: 15)),
+                Text(
+                  heroSummary,
+                  style: UnifiedText.body(
+                    color: UnifiedColors.textPrimary,
+                  ).copyWith(fontSize: 15),
+                ),
                 if (heroChips.isNotEmpty) ...[
                   const SizedBox(height: UnifiedTokens.spaceLg),
                   Row(
                     children: [
                       for (int i = 0; i < heroChips.length; i++) ...[
                         Expanded(child: heroChips[i]),
-                        if (i != heroChips.length - 1) const SizedBox(width: UnifiedTokens.spaceMd),
+                        if (i != heroChips.length - 1)
+                          const SizedBox(width: UnifiedTokens.spaceMd),
                       ],
                     ],
                   ),
@@ -127,7 +137,9 @@ class ResultCardStack extends StatelessWidget {
             const SizedBox(height: UnifiedTokens.spaceMd),
             for (int i = 0; i < sections.length; i++)
               Padding(
-                padding: EdgeInsets.only(bottom: i == sections.length - 1 ? 0 : UnifiedTokens.spaceMd),
+                padding: EdgeInsets.only(
+                  bottom: i == sections.length - 1 ? 0 : UnifiedTokens.spaceMd,
+                ),
                 child: _SectionCard(section: sections[i]),
               ),
           ],
@@ -136,7 +148,9 @@ class ResultCardStack extends StatelessWidget {
             const SizedBox(height: UnifiedTokens.spaceXxl),
             for (int i = 0; i < ctas.length; i++)
               Padding(
-                padding: EdgeInsets.only(bottom: i == ctas.length - 1 ? 0 : UnifiedTokens.spaceSm),
+                padding: EdgeInsets.only(
+                  bottom: i == ctas.length - 1 ? 0 : UnifiedTokens.spaceSm,
+                ),
                 child: i == 0
                     ? PremiumButton.black(
                         label: ctas[i].label,
@@ -187,7 +201,11 @@ class _SectionCard extends StatelessWidget {
 }
 
 class _PassStatusBar extends StatelessWidget {
-  const _PassStatusBar({required this.isLocked, this.message, this.remainingLabel});
+  const _PassStatusBar({
+    required this.isLocked,
+    this.message,
+    this.remainingLabel,
+  });
 
   final bool isLocked;
   final String? message;

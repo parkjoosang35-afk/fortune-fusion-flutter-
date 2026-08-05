@@ -57,7 +57,10 @@ class LuckPouchToastController extends ChangeNotifier {
     }
     _current = _queue.removeFirst();
     notifyListeners();
-    Future.delayed(const Duration(milliseconds: 1700), _dismissCurrentAndPlayNext);
+    Future.delayed(
+      const Duration(milliseconds: 1700),
+      _dismissCurrentAndPlayNext,
+    );
   }
 
   void _dismissCurrentAndPlayNext() {
@@ -69,20 +72,12 @@ class LuckPouchToastController extends ChangeNotifier {
 
   /// 복주머니 적립 토스트. [reason]은 "게시글 작성 보상", "출석 체크" 같은 짧은 사유.
   void showEarn(int amount, String reason) {
-    _enqueue(
-      LuckPouchToastType.earn,
-      '복주머니 +$amount개',
-      '$reason로 복주머니가 쌓였어요',
-    );
+    _enqueue(LuckPouchToastType.earn, '복주머니 +$amount개', '$reason로 복주머니가 쌓였어요');
   }
 
   /// 복주머니 차감 토스트. [reason]은 "응원 보내기", "부적 만들기" 같은 짧은 사유.
   void showSpend(int amount, String reason) {
-    _enqueue(
-      LuckPouchToastType.spend,
-      '복주머니 -$amount개',
-      '$reason에 사용했어요',
-    );
+    _enqueue(LuckPouchToastType.spend, '복주머니 -$amount개', '$reason에 사용했어요');
   }
 
   /// 복주머니 부족 안내 토스트.
@@ -148,7 +143,10 @@ class _LuckPouchToastOverlayState extends State<LuckPouchToastOverlay> {
                       },
                       child: entry == null
                           ? const SizedBox.shrink(key: ValueKey('empty'))
-                          : _LuckPouchToastCard(entry: entry, key: ValueKey(entry.id)),
+                          : _LuckPouchToastCard(
+                              entry: entry,
+                              key: ValueKey(entry.id),
+                            ),
                     ),
                   ),
                 );

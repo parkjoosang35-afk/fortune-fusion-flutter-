@@ -99,7 +99,11 @@ class WalletRepository {
   /// WalletService.earn (02번 §1.2 Ledger 패턴 - 잔액은 파생값, 이력이 원본)
   /// 반환값: 적립 후 최신 잔액. 실패 시 예외를 던진다(기존 Mock 시그니처와 동일하게
   /// int를 반환하되, 통신 실패는 Provider 쪽에서 try/catch로 처리하도록 위임).
-  Future<int> earn(int amount, String reason, {String sourceType = 'app'}) async {
+  Future<int> earn(
+    int amount,
+    String reason, {
+    String sourceType = 'app',
+  }) async {
     final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/wallet/earn',
@@ -229,7 +233,11 @@ class WalletRepository {
   }
 
   /// WalletService.spend — 성공 시 true, 잔액 부족/오류 시 false.
-  Future<bool> spend(int amount, String reason, {String sourceType = 'app'}) async {
+  Future<bool> spend(
+    int amount,
+    String reason, {
+    String sourceType = 'app',
+  }) async {
     final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/wallet/spend',

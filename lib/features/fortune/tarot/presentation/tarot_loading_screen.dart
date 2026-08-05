@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../application/tarot_provider.dart';
+import '../application/tarot_session_controller.dart';
+import 'theme/tarot_perf_config.dart';
+import 'theme/tarot_perf_monitor.dart';
 import 'widgets/tarot_mystic_background.dart';
 
 /// [AI 타로 리딩 UX/UI 개선] TarotLoadingScreen 전면 재구성.
@@ -54,6 +57,10 @@ class _TarotLoadingScreenState extends State<TarotLoadingScreen>
   @override
   void initState() {
     super.initState();
+    // [§11 P6] 이 화면은 [TarotThemeScope]를 사용하지 않는 유일한 타로
+    // 화면(기존 라이트 Scaffold + AppColors.deepSpace 유지)이므로,
+    // 프레임 성능 관측 진입/이탈을 여기서 직접 연결한다.
+    TarotPerfMonitor.enter();
     _riseController = AnimationController(vsync: this, duration: _riseDuration)
       ..forward();
     _circleController = AnimationController(
@@ -86,6 +93,7 @@ class _TarotLoadingScreenState extends State<TarotLoadingScreen>
 
   @override
   void dispose() {
+    TarotPerfMonitor.exit();
     _messageTimer?.cancel();
     _riseController.dispose();
     _circleController.dispose();
@@ -113,19 +121,26 @@ class _TarotLoadingScreenState extends State<TarotLoadingScreen>
     _tryNavigate(provider);
 
     final isRising = _riseController.value < 1.0;
+    // [타로 섹션 전면 개편 §7 P2] 카드선택 화면(⑤)에서 확정된 스프레드에
+    // 맞춰 리비테이션 카드 매수를 맞춘다(1카드/YES·NO는 1장, 3카드는
+    // 3장). 세션이 없는 레거시 경로(콘솔 진입 등)에서는 기존처럼 1장.
+    final session = context.watch<TarotSessionController>();
+    final cardCount = session.state.requiredCardCount.clamp(1, 3);
 
     return Scaffold(
       backgroundColor: AppColors.deepSpace,
       body: Stack(
         children: [
-          const TarotMysticBackground(intensity: 1.0),
+          TarotMysticBackground(
+            intensity: TarotPerfConfig.backgroundIntensity(1.0),
+          ),
           SafeArea(
             child: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   SizedBox(
-                    width: 220,
+                    width: cardCount > 1 ? 300 : 220,
                     height: 260,
                     child: AnimatedBuilder(
                       animation: Listenable.merge([
@@ -188,20 +203,41 @@ class _TarotLoadingScreenState extends State<TarotLoadingScreen>
                               ),
                             ),
                             // 떠오르는 카드(§1 "카드가 천천히 떠오릅니다" +
-                            // "카드가 살짝 회전합니다") - 등장 후에는 §3
-                            // "카드가 미세하게 흔들림"으로 계속 살아있게 유지.
-                            Transform.translate(
-                              offset: Offset(0, (1 - rise) * 60),
-                              child: Transform.rotate(
-                                angle: isRising
-                                    ? (1 - settle) * -0.25
-                                    : sin(breathe * pi) * 0.02,
-                                child: Opacity(
-                                  opacity: rise.clamp(0.0, 1.0),
-                                  child: const _CardBack(),
-                                ),
-                              ),
-                            ),
+                            // "카드가 살짝 회전합니다") - 3카드 스프레드는
+                            // 카드 3장이 살짝 시차(stagger)를 두고 함께
+                            // 떠오른다(등장 후 §3 "미세하게 흔들림" 유지).
+                            for (var i = 0; i < cardCount; i++)
+                              () {
+                                final stagger = cardCount > 1 ? i * 0.12 : 0.0;
+                                final localRise =
+                                    ((rise - stagger) / (1 - stagger)).clamp(
+                                      0.0,
+                                      1.0,
+                                    );
+                                final localSettle =
+                                    ((settle - stagger) / (1 - stagger)).clamp(
+                                      0.0,
+                                      1.0,
+                                    );
+                                final dx = cardCount > 1
+                                    ? (i - (cardCount - 1) / 2) * 84.0
+                                    : 0.0;
+                                return Transform.translate(
+                                  offset: Offset(dx, (1 - localRise) * 60),
+                                  child: Transform.rotate(
+                                    angle: isRising
+                                        ? (1 - localSettle) * -0.25
+                                        : sin((breathe + i * 0.3) * pi) * 0.02,
+                                    child: Opacity(
+                                      opacity: localRise.clamp(0.0, 1.0),
+                                      child: _CardBack(
+                                        width: cardCount > 1 ? 92 : 118,
+                                        height: cardCount > 1 ? 140 : 178,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }(),
                           ],
                         );
                       },
@@ -246,14 +282,18 @@ class _TarotLoadingScreenState extends State<TarotLoadingScreen>
 }
 
 /// 정체를 알 수 없는 신비로운 카드 뒷면(§1) - 실제 카드는 결과 화면에서 공개.
+/// [width]/[height]는 3카드 스프레드에서 카드 3장이 나란히 들어갈 수
+/// 있도록 축소된 크기를 전달받는다(1카드는 기존 크기 그대로 유지).
 class _CardBack extends StatelessWidget {
-  const _CardBack();
+  final double width;
+  final double height;
+  const _CardBack({this.width = 118, this.height = 178});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 118,
-      height: 178,
+      width: width,
+      height: height,
       decoration: BoxDecoration(
         gradient: AppColors.mysticGradient,
         borderRadius: BorderRadius.circular(14),
@@ -271,8 +311,8 @@ class _CardBack extends StatelessWidget {
       ),
       child: Center(
         child: Container(
-          width: 84,
-          height: 138,
+          width: width * 0.71,
+          height: height * 0.775,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
@@ -280,7 +320,7 @@ class _CardBack extends StatelessWidget {
             ),
           ),
           alignment: Alignment.center,
-          child: const Text('✨', style: TextStyle(fontSize: 34)),
+          child: Text('✨', style: TextStyle(fontSize: width * 0.29)),
         ),
       ),
     );

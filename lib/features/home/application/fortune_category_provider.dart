@@ -14,8 +14,7 @@ class FortuneCategoryProvider extends ChangeNotifier {
   final FortuneCategoryRepository _repository;
   FortuneCategoryProvider(this._repository);
 
-  LoadState<List<FortuneCategoryGroupData>> _state =
-      const LoadState.initial();
+  LoadState<List<FortuneCategoryGroupData>> _state = const LoadState.initial();
   LoadState<List<FortuneCategoryGroupData>> get state => _state;
 
   List<FortuneCategoryGroupData> get groups => _state.data ?? const [];

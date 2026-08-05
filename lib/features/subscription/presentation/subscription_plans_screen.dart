@@ -79,9 +79,18 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                           spacing: AppSpacing.sm,
                           runSpacing: AppSpacing.sm,
                           children: const [
-                            _MiniBenefitChip(icon: Icons.bolt_rounded, label: '프리패스 자동 지급'),
-                            _MiniBenefitChip(icon: Icons.savings_rounded, label: '복주머니 정기 보너스'),
-                            _MiniBenefitChip(icon: Icons.block_rounded, label: '광고 스트레스 완화'),
+                            _MiniBenefitChip(
+                              icon: Icons.bolt_rounded,
+                              label: '프리패스 자동 지급',
+                            ),
+                            _MiniBenefitChip(
+                              icon: Icons.savings_rounded,
+                              label: '복주머니 정기 보너스',
+                            ),
+                            _MiniBenefitChip(
+                              icon: Icons.block_rounded,
+                              label: '광고 스트레스 완화',
+                            ),
                           ],
                         ),
                       ],

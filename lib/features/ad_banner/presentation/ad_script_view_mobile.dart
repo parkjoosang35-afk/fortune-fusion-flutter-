@@ -37,6 +37,12 @@ String _wrapHtmlDocument(String bodyContent) {
         padding: 0;
         background: transparent;
         overflow: hidden;
+        height: 100%;
+      }
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
     </style>
   </head>

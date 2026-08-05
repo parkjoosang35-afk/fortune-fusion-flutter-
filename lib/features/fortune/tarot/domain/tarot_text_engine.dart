@@ -100,7 +100,9 @@ TarotTopic _resolveTopic(String topicId) =>
 class _TopicTemplates {
   _TopicTemplates._();
 
-  // 07단계(추가) §3.6 - OPENERS(주제별 8개): 해석을 시작하는 도입 문장.
+  // [§11 P7 텍스트엔진 확장] OPENERS(주제별 8→14개): 해석을 시작하는
+  // 도입 문장. 20개 주제 × 여러 화면(총평/심화해석 3관점)에서 반복
+  // 체감이 생기지 않도록 원본(07단계 §3.6) 8개에 6개를 추가했다.
   static const List<String> openers = [
     '{keyword}에 대해 카드가 조용히 이야기를 시작해요. {subject}을(를) 중심으로 살펴볼게요.',
     '지금 마음에 담아두신 {keyword} 고민, 카드들이 하나씩 답을 보여주고 있어요.',
@@ -110,18 +112,28 @@ class _TopicTemplates {
     '카드 속에 담긴 {keyword}의 메시지를 함께 풀어볼게요.',
     '{subject}을(를) 향한 마음이 카드에 고스란히 비치고 있네요.',
     '지금 이 순간의 {keyword} 기운을 카드가 대신 전해드릴게요.',
+    '{keyword}을(를) 향한 질문 앞에서, 카드가 잠시 숨을 고르고 답을 준비하고 있어요.',
+    '오래 마음에 품어온 {subject}, 카드가 조금씩 실마리를 풀어내고 있어요.',
+    '{keyword}의 결을 따라가 보면 생각보다 선명한 그림이 드러나고 있어요.',
+    '카드가 짚어낸 {subject}의 흐름이 지금 이 순간과 정확히 맞닿아 있네요.',
+    '{keyword} 이야기를 꺼내신 순간, 카드는 이미 대답을 준비하고 있었어요.',
+    '{subject}을(를) 둘러싼 기운이 카드 위에서 천천히 형태를 갖춰가고 있어요.',
   ];
 
-  // 07단계(추가) §3.6 - BODY_POOLS(주제별 4개): 카드 1장을 감싸는 문장 틀.
+  // [§11 P7] BODY_POOLS(주제별 4→8개): 카드 1장을 감싸는 문장 틀.
   // `{card}`에는 해당 카드의 정/역방향 키워드 문장(TarotCardMeta.up/down)이 들어간다.
   static const List<String> bodyPools = [
     '{name} 카드가 나왔어요. {card}',
     '{name} 카드는 지금, {card}',
     '이 자리에 {name} 카드가 자리했어요. {card}',
     '{name} 카드를 통해 보면, {card}',
+    '{name} 카드가 조용히 말을 건네네요. {card}',
+    '지금 이 순간과 맞닿은 {name} 카드가 나왔어요. {card}',
+    '{name} 카드의 기운을 짚어보면, {card}',
+    '눈여겨볼 카드는 {name}이에요. {card}',
   ];
 
-  // 07단계(추가) §3.6 - ADVICE_LINES(주제별 8개): 조언 문장.
+  // [§11 P7] ADVICE_LINES(주제별 8→14개): 조언 문장.
   static const List<String> adviceLines = [
     '지금은 {subject}에 조급해하지 말고 흐름을 지켜보는 것이 좋아요.',
     '작은 신호에도 귀 기울이면 {keyword}에서 좋은 기회를 잡을 수 있어요.',
@@ -131,9 +143,15 @@ class _TopicTemplates {
     '완벽함보다는 유연함으로 {subject}에 접근해보세요.',
     '필요하다면 잠시 쉬어가는 것도 {keyword}에 좋은 선택이 될 수 있어요.',
     '직감이 말해주는 방향을 무시하지 마세요.',
+    '{subject}을(를) 혼자 판단하기보다, 믿을 수 있는 사람의 시선도 함께 빌려보세요.',
+    '작게라도 지금 할 수 있는 한 걸음을 먼저 내딛어보세요. {keyword}의 흐름이 따라올 거예요.',
+    '억지로 밀어붙이기보다, {subject}이(가) 스스로 무르익을 시간을 주는 것도 방법이에요.',
+    '지금의 선택이 최선이 아니었더라도, {keyword}은(는) 언제든 다시 방향을 잡을 수 있어요.',
+    '마음이 급해질수록 오히려 {subject}에서 한 발 물러나 숨을 고르는 편이 나아요.',
+    '기록해두면 {keyword}의 흐름을 나중에 더 명확히 되짚어볼 수 있을 거예요.',
   ];
 
-  // 07단계(추가) §3.6 - CAUTION_LINES(주제별 7개): 주의 문장.
+  // [§11 P7] CAUTION_LINES(주제별 7→12개): 주의 문장.
   static const List<String> cautionLines = [
     '성급한 결정은 {subject}에 아쉬움을 남길 수 있어요.',
     '감정에 치우친 판단은 잠시 미뤄두는 게 좋겠어요.',
@@ -142,15 +160,24 @@ class _TopicTemplates {
     '중요한 결정을 내리기 전, 한 번 더 확인하는 신중함이 필요해요.',
     '혼자 짊어지려 하지 말고 도움을 요청해도 괜찮아요.',
     '지금의 불안함이 {subject}을(를) 왜곡해서 보이게 할 수 있으니 주의하세요.',
+    '너무 많은 정보에 휘둘리면 {keyword}의 본질을 놓칠 수 있어요.',
+    '과거의 아쉬움에 머무르면 {subject}의 다음 걸음이 늦어질 수 있어요.',
+    '확신이 서지 않을 때는 서두르기보다 다시 한번 되짚어보는 편이 안전해요.',
+    '{keyword}에서 겉으로 보이는 모습만 믿고 판단하면 후회가 남을 수 있어요.',
+    '조급한 비교는 {subject}을(를) 있는 그대로 보지 못하게 만들 수 있어요.',
   ];
 
-  // 07단계(추가) §3.6 - CLOSERS(5개): 주제 구분 없이 공용으로 사용되는 마무리 문장.
+  // [§11 P7] CLOSERS(5→9개): 주제 구분 없이 공용으로 사용되는 마무리 문장.
   static const List<String> closers = [
     '오늘의 리딩이 작은 위안이 되었길 바라요.',
     '카드는 힌트일 뿐, 답을 만들어가는 건 당신의 몫이에요.',
     '필요할 때 언제든 다시 카드를 뽑아보세요.',
     '지금 이 순간의 마음가짐이 앞으로의 흐름을 바꿀 수 있어요.',
     '당신의 선택을 응원할게요.',
+    '카드가 전한 이야기를 마음 한켠에 담아두셔도 좋아요.',
+    '오늘 하루도 당신에게 다정한 순간들이 이어지길 바라요.',
+    '결국 이 흐름을 완성하는 건 당신의 발걸음이라는 걸 잊지 마세요.',
+    '카드의 이야기는 여기까지지만, 당신의 이야기는 계속 이어질 거예요.',
   ];
 
   static String _fill(String template, TarotTopic topic) {
@@ -170,13 +197,13 @@ class _TopicTemplates {
 class TarotTextEngine {
   TarotTextEngine._();
 
-  /// 주제별 OPENERS 8개 (요구사항: `OPENERS` Map 구조).
+  /// 주제별 OPENERS 14개 (요구사항: `OPENERS` Map 구조. §11 P7에서 8→14로 확장).
   static Map<String, List<String>> get OPENERS => {
     for (final topic in tarotTopics)
       topic.id: _TopicTemplates.fillAll(_TopicTemplates.openers, topic),
   };
 
-  /// 주제별 BODY_POOLS 4개 (요구사항: `BODY_POOLS` Map 구조).
+  /// 주제별 BODY_POOLS 8개 (요구사항: `BODY_POOLS` Map 구조. §11 P7에서 4→8로 확장).
   /// `{card}`는 카드별 해석 문장 생성 시점([generateCardInterpretation])에
   /// 최종 치환되므로, 여기서는 `{keyword}`/`{subject}`만 채워진 템플릿을 보관한다.
   static Map<String, List<String>> get BODY_POOLS => {
@@ -184,19 +211,19 @@ class TarotTextEngine {
       topic.id: _TopicTemplates.fillAll(_TopicTemplates.bodyPools, topic),
   };
 
-  /// 주제별 ADVICE_LINES 8개 (요구사항: `ADVICE_LINES` Map 구조).
+  /// 주제별 ADVICE_LINES 14개 (요구사항: `ADVICE_LINES` Map 구조. §11 P7에서 8→14로 확장).
   static Map<String, List<String>> get ADVICE_LINES => {
     for (final topic in tarotTopics)
       topic.id: _TopicTemplates.fillAll(_TopicTemplates.adviceLines, topic),
   };
 
-  /// 주제별 CAUTION_LINES 7개 (요구사항: `CAUTION_LINES` Map 구조).
+  /// 주제별 CAUTION_LINES 12개 (요구사항: `CAUTION_LINES` Map 구조. §11 P7에서 7→12로 확장).
   static Map<String, List<String>> get CAUTION_LINES => {
     for (final topic in tarotTopics)
       topic.id: _TopicTemplates.fillAll(_TopicTemplates.cautionLines, topic),
   };
 
-  /// CLOSERS 5개 (요구사항: 주제 구분 없는 공용 마무리 문장 5개).
+  /// CLOSERS 9개 (요구사항: 주제 구분 없는 공용 마무리 문장. §11 P7에서 5→9로 확장).
   static List<String> get CLOSERS => List.unmodifiable(_TopicTemplates.closers);
 
   static TarotTopic topicMeta(String topicId) => _resolveTopic(topicId);

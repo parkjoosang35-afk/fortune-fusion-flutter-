@@ -73,7 +73,6 @@ class AppColors {
     'daily': Color(0xFFFF9500),
     'saju': hcGoldDark,
     'tarot': hcGold,
-    'compatibility': Color(0xFFFF3B69),
     'zodiac': Color(0xFFE8B400),
     'palm': Color(0xFF8A8A8E),
     'face': Color(0xFFE8935A),
@@ -276,8 +275,12 @@ class AppColors {
   // ── 배경 ──
   static const Color premiumBgMain = Color(0xFFFCFBFF); // Main Background
   static const Color premiumBgSection = Color(0xFFFFFFFF); // Section Background
-  static const Color premiumBgSubtle = Color(0xFFF7F4FF); // Subtle Surface(연라벤더)
-  static const Color premiumBgSecondary = Color(0xFFF9FAFC); // Secondary Surface(연회색)
+  static const Color premiumBgSubtle = Color(
+    0xFFF7F4FF,
+  ); // Subtle Surface(연라벤더)
+  static const Color premiumBgSecondary = Color(
+    0xFFF9FAFC,
+  ); // Secondary Surface(연회색)
 
   // ── 텍스트 ──
   static const Color premiumTextPrimary = Color(0xFF17181C);

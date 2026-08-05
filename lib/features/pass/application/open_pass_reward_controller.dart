@@ -23,9 +23,8 @@ class OpenPassRewardFlowResult {
   factory OpenPassRewardFlowResult.granted(OpenPassRewardGrantModel grant) =>
       OpenPassRewardFlowResult._(success: true, grant: grant);
 
-  factory OpenPassRewardFlowResult.failed(
-    OpenPassRewardFailedModel info,
-  ) => OpenPassRewardFlowResult._(success: false, failedInfo: info);
+  factory OpenPassRewardFlowResult.failed(OpenPassRewardFailedModel info) =>
+      OpenPassRewardFlowResult._(success: false, failedInfo: info);
 
   factory OpenPassRewardFlowResult.error(String message) =>
       OpenPassRewardFlowResult._(success: false, errorMessage: message);

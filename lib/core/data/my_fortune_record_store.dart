@@ -14,6 +14,7 @@ class SavedFortuneRecord {
     required this.score,
     required this.date,
     required this.savedAt,
+    this.cardImageAssetPath,
   });
 
   final String id;
@@ -26,6 +27,12 @@ class SavedFortuneRecord {
   final DateTime date;
   final DateTime savedAt;
 
+  /// [카드 이미지 교체] 타로 등 카드 기반 결과를 저장할 때만 채워지는
+  /// 카드 썸네일 이미지 경로(nullable). 카드와 무관한 카테고리(사주 등)
+  /// 기록은 항상 null이며, 기존 저장된 레코드(이 필드가 없던 시절 JSON)와도
+  /// 하위 호환되도록 [fromJson]에서 안전하게 파싱한다.
+  final String? cardImageAssetPath;
+
   Map<String, dynamic> toJson() => {
     'id': id,
     'categoryLabel': categoryLabel,
@@ -34,6 +41,7 @@ class SavedFortuneRecord {
     'score': score,
     'date': date.toIso8601String(),
     'savedAt': savedAt.toIso8601String(),
+    if (cardImageAssetPath != null) 'cardImageAssetPath': cardImageAssetPath,
   };
 
   factory SavedFortuneRecord.fromJson(Map<String, dynamic> json) {
@@ -45,6 +53,7 @@ class SavedFortuneRecord {
       score: json['score'] as int,
       date: DateTime.parse(json['date'] as String),
       savedAt: DateTime.parse(json['savedAt'] as String),
+      cardImageAssetPath: json['cardImageAssetPath'] as String?,
     );
   }
 }

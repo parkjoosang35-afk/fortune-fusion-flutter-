@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/domain/access/access_checker.dart';
+import '../../../core/domain/gate/category_gate.dart';
 import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/premium_card.dart';
 import '../../../core/widgets/premium_button.dart';
@@ -15,9 +16,11 @@ import '../../wallet/application/wallet_provider.dart';
 import '../../community/presentation/community_screen.dart';
 import '../../community/presentation/community_hub_screen.dart';
 import '../../community/presentation/widgets/wish_hall_of_fame_sheet.dart';
-import '../../wishroom/presentation/wish_room_main_screen.dart';
+import '../../wish_room/presentation/screens/wish_room_riverpod_entry.dart';
 import '../application/fortune_category_provider.dart';
 import '../domain/fortune_category_model.dart';
+import '../domain/fortune_matrix.dart';
+import 'widgets/fortune_matrix_section.dart';
 
 /// [전체보기 카테고리 허브] Fortune Fusion(신통방통) 앱 전체 카테고리를 한 화면에서
 /// 파악·탐색할 수 있게 만드는 허브 페이지.
@@ -86,6 +89,36 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
       arguments: arguments,
     );
     if (mounted && requiresPass) setState(() => _checking = false);
+  }
+
+  /// [운섹션 87 카테고리 통합] [FortuneMatrix] 항목 진입 핸들러.
+  ///
+  /// 기존 [_open]은 requiresPass(bool) 하나로만 판단해 서버 소진형
+  /// [PassProvider.consume]을 호출하지만, 87개 카테고리는 그보다 세분화된
+  /// 정책(하루1회/최초1회/항상프리패스)을 가지므로 [CategoryGate.decide]로
+  /// 먼저 판정한다. 통과하면 이미 화면이 있는 카테고리는 그 라우트로,
+  /// 아직 없는 카테고리는 공용 결과 화면(`/fortune/category`)으로 보낸다.
+  Future<void> _openMatrixEntry(FortuneCategoryEntry entry) async {
+    setState(() => _checking = true);
+    final access = context.read<AccessChecker>();
+    final decision = await CategoryGate.decide(entry, access);
+    if (!mounted) return;
+    setState(() => _checking = false);
+
+    if (!decision.allowed) {
+      await showPassRequiredSheet(context, categoryTitle: entry.title);
+      return;
+    }
+
+    if (entry.existingRoute != null) {
+      Navigator.of(
+        context,
+      ).pushNamed(entry.existingRoute!, arguments: entry.routeArguments);
+      return;
+    }
+    Navigator.of(
+      context,
+    ).pushNamed(FortuneMatrix.genericCategoryRoute, arguments: entry.id);
   }
 
   /// [운세 카테고리 확장 - 딥링크] categoryKey → saju 초기 토픽 매핑.
@@ -160,7 +193,6 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
   static const Map<String, String> _groupCodeByTitle = {
     '오늘/기간 운세': 'today',
     '사주': 'saju',
-    '궁합': 'compatibility_relation',
     '타로': 'tarot',
     '얼굴/손금': 'face_palm',
     '테마 운세': 'name_theme',
@@ -303,6 +335,23 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
             }),
             const SizedBox(height: UnifiedTokens.spaceSm),
 
+            // [운섹션 87 카테고리 통합] 위 "전체 카테고리"(관리자 8그룹)와는
+            // 별개로, 스펙에서 요구한 87개 카테고리(T/S/C/N/K/V/O/F/X/G/B/D/R)
+            // 전체를 한 화면에서 그룹별로 훑어볼 수 있게 노출한다. 각 항목을
+            // 탭하면 [_openMatrixEntry]가 [CategoryGate]로 판정 후 이동한다.
+            FadeSlideIn(
+              child: const PremiumSectionTitleLite(
+                title: '87가지 운세 한눈에 보기',
+                subtitle: '오늘·사주·궁합·이름·택일·평생운·추천·관상손금 등 전체',
+              ),
+            ),
+            const SizedBox(height: UnifiedTokens.spaceMd),
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 40),
+              child: FortuneMatrixSection(onTapEntry: _openMatrixEntry),
+            ),
+            const SizedBox(height: UnifiedTokens.spaceXxl),
+
             FadeSlideIn(
               child: const PremiumSectionTitleLite(
                 title: '지금 많이 찾는 기능',
@@ -443,13 +492,8 @@ class _TrendingRow extends StatelessWidget {
       '/ai-fortune/consultation/type',
       true,
     ),
-    (Icons.shield_outlined, '부적 만들기', '/reward/amulet/generate', false),
-    (
-      Icons.favorite_outline_rounded,
-      '궁합',
-      '/ai-fortune/compatibility/input',
-      true,
-    ),
+    (Icons.badge_outlined, '이름 운세', '/ai-fortune/name/input', true),
+    (Icons.back_hand_outlined, '손금', '/ai-fortune/palm/capture', true),
   ];
 
   @override
@@ -507,10 +551,10 @@ class _FeaturedGrid extends StatelessWidget {
       true,
     ),
     (
-      '궁합',
-      '나와 상대의 감정과 관계 흐름',
-      Icons.favorite_outline_rounded,
-      '/ai-fortune/compatibility/input',
+      '이름 운세',
+      '이름에 담긴 기운과 어울림',
+      Icons.badge_outlined,
+      '/ai-fortune/name/input',
       true,
     ),
     (
@@ -524,12 +568,20 @@ class _FeaturedGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // [버그 수정] 이 Column은 ListView(높이 unbounded) 안에 있으므로,
+    // 내부 Row에 crossAxisAlignment.stretch를 쓰면 Row가 "부모 높이에 맞춰
+    // 자식을 늘리라"는 tight 무한 높이 제약을 자식(_FeaturedCard)에 그대로
+    // 전달해 "BoxConstraints forces an infinite height" 레이아웃 예외가
+    // 발생한다. release 모드에서는 이 예외가 콘솔에 노출되지 않고 해당
+    // 서브트리만 조용히 비어 보이는 형태로 나타난다("대표 카테고리" 아래
+    // 카드 4개가 통째로 사라지는 버그의 정확한 원인).
+    // _FeaturedCard는 이미 SizedBox(height: 138)로 고정 높이를 갖고 있어
+    // stretch가 애초에 불필요했으므로 제거한다.
     return Column(
       children: [
         for (var row = 0; row < 2; row++) ...[
           if (row > 0) const SizedBox(height: UnifiedTokens.spaceSm),
           Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               for (var col = 0; col < 2; col++) ...[
                 if (col > 0) const SizedBox(width: UnifiedTokens.spaceSm),
@@ -661,17 +713,6 @@ _categoryGroups = [
     ],
   ),
   (
-    icon: Icons.favorite_outline_rounded,
-    title: '궁합',
-    desc: '나와 상대, 서로의 마음을 확인해보세요',
-    items: [
-      (label: '정통궁합', route: '/ai-fortune/compatibility/input', pass: true),
-      (label: '연애궁합', route: '/ai-fortune/compatibility/input', pass: true),
-      (label: '썸궁합', route: null, pass: false),
-      (label: '인맥궁합', route: null, pass: false),
-    ],
-  ),
-  (
     icon: Icons.style_outlined,
     title: '타로',
     desc: '지금 마음이 궁금할 때, 카드에게 물어보세요',
@@ -711,9 +752,7 @@ _categoryGroups = [
     desc: '나를 지키고 채워주는 행운 아이템',
     items: [
       (label: '행운의 번호', route: null, pass: false),
-      (label: '행운의 부적', route: '/reward/amulet', pass: false),
       (label: '살풀이', route: null, pass: false),
-      (label: '부적 만들기', route: '/reward/amulet/generate', pass: false),
     ],
   ),
   (
@@ -821,7 +860,7 @@ class _SubCategoryChip extends StatelessWidget {
   }
 }
 
-/// ⑤ 빠른 진입 기능 섹션 - AI상담/부적만들기/행운의번호/소원게시판/소원방.
+/// ⑤ 빠른 진입 기능 섹션 - AI상담/이름운세/행운의번호/소원게시판/소원방.
 /// 우리 서비스 고유 감성 기능·커뮤니티로 이어주는 짧은 CTA 카드 5개.
 class _QuickEntryRow extends StatelessWidget {
   const _QuickEntryRow();
@@ -861,10 +900,10 @@ class _QuickEntryRow extends StatelessWidget {
               );
             case 1:
               return _QuickEntryCard(
-                icon: Icons.shield_outlined,
-                label: '부적 만들기',
+                icon: Icons.badge_outlined,
+                label: '이름 운세',
                 onTap: () =>
-                    Navigator.of(context).pushNamed('/reward/amulet/generate'),
+                    Navigator.of(context).pushNamed('/ai-fortune/name/input'),
               );
             case 2:
               return _QuickEntryCard(
@@ -886,7 +925,7 @@ class _QuickEntryRow extends StatelessWidget {
                 icon: Icons.nights_stay_outlined,
                 label: '소원방',
                 onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const WishRoomMainScreen()),
+                  MaterialPageRoute(builder: (_) => const WishRoomRiverpodEntry()),
                 ),
               );
           }

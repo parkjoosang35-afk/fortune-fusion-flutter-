@@ -7,7 +7,15 @@
 /// 하위 호환을 위해 [TarotCard]/[TarotSpreadPosition]/[TarotResultModel]의
 /// 필드와 생성자 시그니처는 그대로 유지하고, 새로운 데이터/기능은 모두
 /// 추가(additive) 방식으로만 확장한다.
+///
+/// [카드 이미지 교체] 가짜 이모지 카드를 실제 타로카드 이미지로 교체하는
+/// 작업에서, [TarotDeckData.iconFor]와 동일한 name 기반 lookup 패턴으로
+/// [TarotDeckData.imageAssetFor]/[TarotDeckData.thumbAssetFor]를 추가하고,
+/// [TarotCard]에 [TarotCard.imageAssetPath]/[TarotCard.thumbAssetPath]
+/// getter를 추가한다(기존 필드/생성자/icon getter는 그대로 유지).
 library;
+
+import 'tarot_card_assets.dart';
 
 /// 카드가 메이저 아르카나인지 마이너 아르카나인지 구분한다.
 enum TarotArcanaType { major, minor }
@@ -409,6 +417,14 @@ class TarotDeckData {
   static TarotCardMeta? metaForName(String name) => _byName[name];
 
   static String iconFor(String name) => _byName[name]?.icon ?? '🃏';
+
+  /// [카드 이미지 교체] 카드명으로 결과 상세용 원본 이미지 경로를 조회한다.
+  /// 매핑이 없으면 기본 뒷면 경로로 폴백한다(위젯에서는 errorBuilder가
+  /// 이모지로 한 번 더 폴백하는 이중 안전망 구조).
+  static String imageAssetFor(String name) => tarotCardImagePath(name);
+
+  /// [카드 이미지 교체] 카드명으로 목록/작은 카드용 축소 이미지 경로를 조회한다.
+  static String thumbAssetFor(String name) => tarotCardThumbPath(name);
 }
 
 /// 화면(TarotResultScreen 등)에 실제로 표시되는 카드 1장.
@@ -447,6 +463,13 @@ class TarotCard {
   /// 07단계(추가) §3.6 - 카드명으로 78장 풀덱에서 아이콘을 조회한다.
   /// 풀덱에 없는 이름(레거시 데이터 등)이면 기본 카드 아이콘을 반환한다.
   String get icon => TarotDeckData.iconFor(name);
+
+  /// [카드 이미지 교체] 카드명으로 78장 풀덱에서 결과 상세용 원본 이미지
+  /// 경로를 조회한다. 풀덱에 없는 이름이면 기본 뒷면 경로로 폴백한다.
+  String get imageAssetPath => TarotDeckData.imageAssetFor(name);
+
+  /// [카드 이미지 교체] 카드명으로 목록/작은 카드용 축소 이미지 경로를 조회한다.
+  String get thumbAssetPath => TarotDeckData.thumbAssetFor(name);
 }
 
 class TarotSpreadPosition {

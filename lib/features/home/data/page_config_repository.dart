@@ -24,8 +24,7 @@ class HomePageConfigRepository {
       if (response.statusCode != 200 ||
           decoded['success'] != true ||
           decoded['data'] == null) {
-        final error =
-            decoded['error'] as String? ?? '메인화면 구성을 불러오지 못했습니다.';
+        final error = decoded['error'] as String? ?? '메인화면 구성을 불러오지 못했습니다.';
         debugPrint('[HomePageConfigRepository] [getHomeConfig] 실패 -> $error');
         return ApiResult.fail(error);
       }

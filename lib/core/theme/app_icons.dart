@@ -12,14 +12,11 @@ class AppIcons {
   static const IconData tarot = Icons.style_rounded; // 타로
   static const IconData palm = Icons.back_hand_rounded; // 손금
   static const IconData face = Icons.face_retouching_natural_rounded; // 관상
-  static const IconData compatibility = Icons.favorite_rounded; // 궁합
   static const IconData aiConsultation = Icons.chat_bubble_rounded; // AI상담
   static const IconData aiHighlight = Icons.auto_awesome_rounded; // AI추천/마법 강조
 
   // ── 리워드 ──
   static const IconData luckyBag = Icons.card_giftcard_rounded; // 복주머니
-  static const IconData amulet =
-      Icons.auto_awesome_rounded; // 디지털부적(전용 아이콘 자원 없음, 이모지 병기 권장)
   static const IconData giftcard = Icons.receipt_long_outlined; // 상품권
   static const IconData ranking = Icons.leaderboard_rounded; // 랭킹
   static const IconData attendance = Icons.calendar_month_rounded; // 출석체크

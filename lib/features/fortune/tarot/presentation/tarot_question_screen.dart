@@ -1,10 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/theme/app_unified_style.dart';
-import '../application/tarot_provider.dart';
+import '../application/tarot_session_controller.dart';
+import 'theme/tarot_colors.dart';
+import 'theme/tarot_perf_config.dart';
+import 'theme/tarot_text_styles.dart';
+import 'theme/tarot_theme_scope.dart';
+import 'theme/tarot_tokens.dart';
+import 'widgets/tarot_mystic_background.dart';
 
-/// 03단계 §3.3 / 07단계 - TarotQuestionScreen (입력형 패턴)
-/// 질문 입력 + 스프레드 선택(1카드/3카드)
+/// [타로 섹션 전면 개편 §2 정보구조 ④ / §7 P2] TarotQuestionScreen 다크테마 전환.
+///
+/// 기존(화이트 `UnifiedColors` 입력형 패턴)을 타로 전용 다크 미스틱 톤
+/// ([TarotColors]/[TarotThemeScope])으로 전면 재도장한다. 필드/로직(질문
+/// 입력·스프레드·주제 선택)은 그대로 유지해 회귀를 만들지 않고, 제출
+/// 시점의 목적지만 바꾼다: 기존에는 [TarotProvider.draw]를 직접 호출해
+/// 곧장 로딩 화면으로 넘어갔지만, 이제는 [TarotSessionController
+/// .confirmQuestion]으로 세션 상태를 확정하고 카드 선택 화면(⑤,
+/// `/tarot/card-select`)으로 이동한다 - "질문 → 카드 셀렉션"이라는
+/// 타로 특유의 리추얼 단계를 모든 진입 경로(카테고리 경유든 레거시
+/// 딥링크든)에 공통으로 적용한다.
 class TarotQuestionScreen extends StatefulWidget {
   // [운세 카테고리 확장] 전체보기에서 관리자 카테고리(타로 YES/NO, 감정관계운
   // 등)를 탭했을 때, 이 공용 질문 화면의 스프레드/토픽을 미리 선택해두기
@@ -26,10 +40,6 @@ class TarotQuestionScreen extends StatefulWidget {
 class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
   final _questionController = TextEditingController();
   late String _spreadType;
-
-  /// [운세 카테고리 확장] 감정/관계운(연애 등) 토픽. 기본값 'general'을
-  /// 유지하면 기존 동작(종합 타로)과 완전히 동일하며, 사용자가 '연애'
-  /// 토픽을 선택했을 때만 서버가 tarot_love 도메인으로 라우팅한다.
   late String _topic;
 
   static const _validSpreadTypes = {'one_card', 'three_card', 'yes_no'};
@@ -46,8 +56,6 @@ class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
   @override
   void initState() {
     super.initState();
-    // [운세 카테고리 확장] 딥링크로 전달된 초기값이 유효한 옵션일 때만
-    // 반영하고, 그 외에는 기존 기본값으로 폴백한다.
     _spreadType = _validSpreadTypes.contains(widget.initialSpreadType)
         ? widget.initialSpreadType!
         : 'one_card';
@@ -65,112 +73,229 @@ class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
     final question = _questionController.text.trim().isEmpty
         ? '오늘의 전반적인 운세'
         : _questionController.text.trim();
-    context.read<TarotProvider>().draw(
-      question: question,
+    context.read<TarotSessionController>().confirmQuestion(
       spreadType: _spreadType,
+      question: question,
       topic: _spreadType == 'yes_no' ? 'general' : _topic,
     );
-    Navigator.of(context).pushNamed('/ai-fortune/tarot/loading');
+    Navigator.of(context).pushNamed('/tarot/card-select');
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: UnifiedColors.bg,
-      appBar: AppBar(
-        backgroundColor: UnifiedColors.bg,
-        elevation: 0,
-        title: Text('AI 타로', style: UnifiedText.titleLarge()),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(UnifiedTokens.screenPadding),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('무엇이 궁금하신가요?', style: UnifiedText.title()),
-              SizedBox(height: UnifiedTokens.spaceSm),
-              TextField(
-                controller: _questionController,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  hintText: '궁금한 질문을 자유롭게 적어보세요',
+    return TarotThemeScope(
+      child: Scaffold(
+        backgroundColor: TarotColors.bgVoid,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          title: Text('무엇이 궁금하신가요', style: TarotTextStyles.screenTitle),
+        ),
+        body: Stack(
+          children: [
+            TarotMysticBackground(
+              intensity: TarotPerfConfig.backgroundIntensity(0.6),
+            ),
+            SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(
+                  TarotTokens.spaceLg,
+                  TarotTokens.spaceMd,
+                  TarotTokens.spaceLg,
+                  TarotTokens.spaceXxl,
                 ),
-              ),
-              SizedBox(height: UnifiedTokens.spaceMd),
-              Wrap(
-                spacing: UnifiedTokens.spaceSm,
-                runSpacing: UnifiedTokens.spaceSm,
-                children: _presetQuestions
-                    .map(
-                      (q) => ActionChip(
-                        label: Text(q, style: UnifiedText.chipLabel()),
-                        backgroundColor: UnifiedColors.chipInactiveBg,
-                        side: BorderSide.none,
-                        onPressed: () =>
-                            setState(() => _questionController.text = q),
-                      ),
-                    )
-                    .toList(),
-              ),
-              SizedBox(height: UnifiedTokens.spaceXl),
-              Text('스프레드 선택', style: UnifiedText.title()),
-              SizedBox(height: UnifiedTokens.spaceSm),
-              Row(
-                children: [
-                  Expanded(
-                    child: _SpreadOption(
-                      icon: Icons.filter_1_rounded,
-                      label: '1카드',
-                      desc: '빠른 답변',
-                      selected: _spreadType == 'one_card',
-                      onTap: () => setState(() => _spreadType = 'one_card'),
-                    ),
-                  ),
-                  SizedBox(width: UnifiedTokens.spaceMd),
-                  Expanded(
-                    child: _SpreadOption(
-                      icon: Icons.filter_3_rounded,
-                      label: '3카드',
-                      desc: '과거·현재·미래',
-                      selected: _spreadType == 'three_card',
-                      onTap: () => setState(() => _spreadType = 'three_card'),
-                    ),
-                  ),
-                  SizedBox(width: UnifiedTokens.spaceMd),
-                  // [운세 카테고리 확장] 타로 YES/NO 스프레드(1장 뽑아 방향으로 답변).
-                  Expanded(
-                    child: _SpreadOption(
-                      icon: Icons.rule_rounded,
-                      label: 'YES·NO',
-                      desc: '즉답형',
-                      selected: _spreadType == 'yes_no',
-                      onTap: () => setState(() => _spreadType = 'yes_no'),
-                    ),
-                  ),
-                ],
-              ),
-              if (_spreadType != 'yes_no') ...[
-                SizedBox(height: UnifiedTokens.spaceXl),
-                Text('어떤 주제로 볼까요?', style: UnifiedText.title()),
-                SizedBox(height: UnifiedTokens.spaceSm),
-                Wrap(
-                  spacing: UnifiedTokens.spaceSm,
-                  runSpacing: UnifiedTokens.spaceSm,
-                  children: _topicOptions
-                      .map(
-                        (t) => ChoiceChip(
-                          label: Text(t.$2, style: UnifiedText.chipLabel()),
-                          selected: _topic == t.$1,
-                          onSelected: (_) => setState(() => _topic = t.$1),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text('마음속 질문을 들려주세요', style: TarotTextStyles.sectionHeader),
+                    const SizedBox(height: TarotTokens.spaceSm),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: TarotColors.surfaceCard,
+                        borderRadius: BorderRadius.circular(
+                          TarotTokens.radiusMd,
                         ),
-                      )
-                      .toList(),
+                        border: Border.all(color: TarotColors.borderSoft),
+                      ),
+                      child: TextField(
+                        controller: _questionController,
+                        maxLines: 3,
+                        style: TarotTextStyles.bodyStrong,
+                        cursorColor: TarotColors.pinkGlow,
+                        decoration: InputDecoration(
+                          hintText: '궁금한 질문을 자유롭게 적어보세요',
+                          hintStyle: TarotTextStyles.body.copyWith(
+                            color: TarotColors.textFaint,
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.all(
+                            TarotTokens.spaceLg,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: TarotTokens.spaceMd),
+                    Wrap(
+                      spacing: TarotTokens.spaceSm,
+                      runSpacing: TarotTokens.spaceSm,
+                      children: _presetQuestions
+                          .map(
+                            (q) => _PresetChip(
+                              label: q,
+                              onTap: () =>
+                                  setState(() => _questionController.text = q),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                    const SizedBox(height: TarotTokens.spaceXxl),
+                    Text('스프레드 선택', style: TarotTextStyles.sectionHeader),
+                    const SizedBox(height: TarotTokens.spaceMd),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _SpreadOption(
+                            icon: Icons.filter_1_rounded,
+                            label: '1카드',
+                            desc: '빠른 답변',
+                            selected: _spreadType == 'one_card',
+                            onTap: () =>
+                                setState(() => _spreadType = 'one_card'),
+                          ),
+                        ),
+                        const SizedBox(width: TarotTokens.spaceMd),
+                        Expanded(
+                          child: _SpreadOption(
+                            icon: Icons.filter_3_rounded,
+                            label: '3카드',
+                            desc: '과거·현재·미래',
+                            selected: _spreadType == 'three_card',
+                            onTap: () =>
+                                setState(() => _spreadType = 'three_card'),
+                          ),
+                        ),
+                        const SizedBox(width: TarotTokens.spaceMd),
+                        Expanded(
+                          child: _SpreadOption(
+                            icon: Icons.rule_rounded,
+                            label: 'YES·NO',
+                            desc: '즉답형',
+                            selected: _spreadType == 'yes_no',
+                            onTap: () => setState(() => _spreadType = 'yes_no'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (_spreadType != 'yes_no') ...[
+                      const SizedBox(height: TarotTokens.spaceXxl),
+                      Text('어떤 주제로 볼까요?', style: TarotTextStyles.sectionHeader),
+                      const SizedBox(height: TarotTokens.spaceMd),
+                      Wrap(
+                        spacing: TarotTokens.spaceSm,
+                        runSpacing: TarotTokens.spaceSm,
+                        children: _topicOptions
+                            .map(
+                              (t) => _TopicChip(
+                                label: t.$2,
+                                selected: _topic == t.$1,
+                                onTap: () => setState(() => _topic = t.$1),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ],
+                    const SizedBox(height: TarotTokens.spaceXxl),
+                    SizedBox(
+                      height: 52,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: TarotColors.pinkGlow,
+                          foregroundColor: TarotColors.bgVoid,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              TarotTokens.radiusPill,
+                            ),
+                          ),
+                        ),
+                        onPressed: _submit,
+                        child: Text(
+                          '카드 뽑으러 가기',
+                          style: TarotTextStyles.ctaLabel.copyWith(
+                            color: TarotColors.bgVoid,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-              SizedBox(height: UnifiedTokens.spaceXxl),
-              ElevatedButton(onPressed: _submit, child: const Text('카드 뽑기')),
-            ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PresetChip extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  const _PresetChip({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(TarotTokens.radiusPill),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: TarotTokens.spaceLg,
+          vertical: TarotTokens.spaceSm,
+        ),
+        decoration: BoxDecoration(
+          color: TarotColors.surfaceCard,
+          borderRadius: BorderRadius.circular(TarotTokens.radiusPill),
+          border: Border.all(color: TarotColors.borderSoft),
+        ),
+        child: Text(label, style: TarotTextStyles.chipLabel),
+      ),
+    );
+  }
+}
+
+class _TopicChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _TopicChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(TarotTokens.radiusPill),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: TarotTokens.spaceLg,
+          vertical: TarotTokens.spaceSm,
+        ),
+        decoration: BoxDecoration(
+          color: selected
+              ? TarotColors.pinkGlow.withValues(alpha: 0.22)
+              : TarotColors.surfaceCard,
+          borderRadius: BorderRadius.circular(TarotTokens.radiusPill),
+          border: Border.all(
+            color: selected ? TarotColors.pinkGlow : TarotColors.borderSoft,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TarotTextStyles.chipLabel.copyWith(
+            color: selected ? TarotColors.pinkGlow : TarotColors.textPrimary,
           ),
         ),
       ),
@@ -196,26 +321,36 @@ class _SpreadOption extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
+      borderRadius: BorderRadius.circular(TarotTokens.radiusMd),
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.all(UnifiedTokens.spaceXl),
+        padding: const EdgeInsets.all(TarotTokens.spaceLg),
         decoration: BoxDecoration(
-          color: selected ? UnifiedColors.cardAllMenu : UnifiedColors.bg,
+          color: selected
+              ? TarotColors.pinkGlow.withValues(alpha: 0.16)
+              : TarotColors.surfaceCard,
           border: Border.all(
-            color: selected ? UnifiedColors.black : UnifiedColors.border,
+            color: selected ? TarotColors.pinkGlow : TarotColors.borderSoft,
           ),
-          borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
+          borderRadius: BorderRadius.circular(TarotTokens.radiusMd),
         ),
         child: Column(
           children: [
-            Icon(icon, color: UnifiedColors.textPrimary, size: 28),
-            SizedBox(height: UnifiedTokens.spaceSm),
-            Text(label, style: UnifiedText.bodyStrong()),
-            Text(
-              desc,
-              style: UnifiedText.bodySmall(color: UnifiedColors.textCaption),
+            Icon(
+              icon,
+              color: selected ? TarotColors.pinkGlow : TarotColors.textPrimary,
+              size: 26,
             ),
+            const SizedBox(height: TarotTokens.spaceSm),
+            Text(
+              label,
+              style: TarotTextStyles.bodyStrong.copyWith(
+                color: selected
+                    ? TarotColors.pinkGlow
+                    : TarotColors.textPrimary,
+              ),
+            ),
+            Text(desc, style: TarotTextStyles.caption),
           ],
         ),
       ),

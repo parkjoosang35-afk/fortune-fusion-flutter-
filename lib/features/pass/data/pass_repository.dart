@@ -211,6 +211,40 @@ class PassRepository {
     }
   }
 
+  /// POST /api/public/pass/expire-on-logout — [로그아웃 시 프리패스 서버측 강제 만료]
+  /// 로그아웃하면 이유를 막론하고 현재 활성 프리패스를 서버 DB에서 즉시, 영구적으로
+  /// 만료(status=revoked, expiresAt=now)시킨다. 클라이언트 상태만 지우면 재로그인 시
+  /// 서버가 여전히 유효하다고 판단해 잔여시간이 복원되는 문제를 방지하기 위함이다.
+  /// 반드시 [AuthTokenStore.clear] (토큰 삭제) 이전에 호출해야 userId를 얻을 수 있다.
+  Future<ApiResult<void>> expireOnLogout() async {
+    final userId = await AuthTokenStore.getCurrentUserId();
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/pass/expire-on-logout',
+    );
+    debugPrint('[PassRepository] [expire-on-logout] 요청 -> userId=$userId');
+
+    try {
+      final response = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'userId': userId}),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        final error = decoded['error'] as String? ?? '프리패스 만료 처리에 실패했습니다.';
+        debugPrint('[PassRepository] [expire-on-logout] 실패 -> $error');
+        return ApiResult.fail(error);
+      }
+      return ApiResult.ok(null);
+    } catch (e) {
+      debugPrint('[PassRepository] [expire-on-logout] 예외 -> $e');
+      return ApiResult.fail('프리패스 만료 처리 중 오류가 발생했습니다: $e');
+    }
+  }
+
   /// POST /api/public/pass/consume — 시간제 콘텐츠 열람 직전 게이트 체크
   /// 유효한 열림패스가 없으면 실패(ApiResult.fail)를 반환하며, 화면단에서
   /// 이 실패를 감지해 열림패스 발급 유도 UI를 노출한다.

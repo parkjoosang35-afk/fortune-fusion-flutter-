@@ -45,8 +45,22 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- [프리패스 "쿠팡 방문하기" 버튼 연동] Android 11(API 30)+ 패키지 가시성
+             정책에 따라, url_launcher가 https URL을 처리할 브라우저 앱을 찾으려면
+             이 선언이 필요하다. 선언이 없으면 launchUrl()이 조용히 실패하거나
+             ActivityNotFoundException을 던져 "버튼을 눌러도 반응 없음" 증상이
+             발생할 수 있다. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="http"/>
+        </intent>
     </queries>
 </manifest>
+
 
 
 

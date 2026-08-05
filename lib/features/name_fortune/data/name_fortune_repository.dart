@@ -19,7 +19,9 @@ class NameFortuneRepository {
     String? gender,
   }) async {
     final userId = await AuthTokenStore.getCurrentUserId();
-    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/fortune/name');
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/fortune/name',
+    );
     debugPrint('[NameFortuneRepository] [request] 요청 -> $uri (name=$name)');
 
     try {
@@ -72,7 +74,9 @@ class NameFortuneRepository {
         return ApiResult.ok(List.unmodifiable(_history));
       }
       final list = (decoded['data'] as List<dynamic>)
-          .map((e) => NameFortuneResultModel.fromJson(e as Map<String, dynamic>))
+          .map(
+            (e) => NameFortuneResultModel.fromJson(e as Map<String, dynamic>),
+          )
           .toList();
       return ApiResult.ok(list);
     } catch (e) {

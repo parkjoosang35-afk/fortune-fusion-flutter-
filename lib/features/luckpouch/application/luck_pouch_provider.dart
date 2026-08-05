@@ -69,11 +69,7 @@ class LuckPouchProvider extends ChangeNotifier {
   }
 
   /// 복주머니 소비(응원/강조/부적/상담 등). 잔액 부족 시 false.
-  Future<bool> spend(
-    int amount,
-    String reason, {
-    String sourceType = 'app',
-  }) {
+  Future<bool> spend(int amount, String reason, {String sourceType = 'app'}) {
     return _wallet.spend(amount, reason, sourceType: sourceType);
   }
 

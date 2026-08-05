@@ -100,7 +100,8 @@ class _RewardedAdDialogState extends State<_RewardedAdDialog> {
   bool _autoResolved = false;
 
   bool get _isMock => widget.source.isMock;
-  RewardedAdOutcome? get _mockOutcome => _mockOutcomeFor(widget.source.sourceType);
+  RewardedAdOutcome? get _mockOutcome =>
+      _mockOutcomeFor(widget.source.sourceType);
 
   @override
   void initState() {
@@ -186,9 +187,7 @@ class _RewardedAdDialogState extends State<_RewardedAdDialog> {
                   const SizedBox(height: UnifiedTokens.spaceXs),
                   Text(
                     source.networkName ?? source.sourceName,
-                    style: UnifiedText.caption(
-                      color: const Color(0xFFB8B8B8),
-                    ),
+                    style: UnifiedText.caption(color: const Color(0xFFB8B8B8)),
                   ),
                   const SizedBox(height: UnifiedTokens.spaceLg),
                   if (_isMock) ...[
@@ -217,9 +216,9 @@ class _RewardedAdDialogState extends State<_RewardedAdDialog> {
                     )
                   else
                     ElevatedButton(
-                      onPressed: () => Navigator.of(context).pop(
-                        RewardedAdOutcome.completed,
-                      ),
+                      onPressed: () => Navigator.of(
+                        context,
+                      ).pop(RewardedAdOutcome.completed),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: UnifiedColors.neon,
                         foregroundColor: UnifiedColors.black,
@@ -260,9 +259,8 @@ class _RewardedAdDialogState extends State<_RewardedAdDialog> {
                 right: 0,
                 child: Center(
                   child: TextButton(
-                    onPressed: () => Navigator.of(context).pop(
-                      RewardedAdOutcome.noFill,
-                    ),
+                    onPressed: () =>
+                        Navigator.of(context).pop(RewardedAdOutcome.noFill),
                     child: Text(
                       '[QA] 노필(광고없음) 시뮬레이션',
                       style: UnifiedText.caption(

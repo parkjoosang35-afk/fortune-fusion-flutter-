@@ -339,10 +339,7 @@ class _DailyFortuneInputScreenState extends State<DailyFortuneInputScreen> {
                     onPressed: _canSubmit ? _submit : null,
                   ),
                   const SizedBox(height: UnifiedTokens.spaceSm),
-                  Text(
-                    '입력한 정보는 운세 해석에만 사용돼요',
-                    style: UnifiedText.caption(),
-                  ),
+                  Text('입력한 정보는 운세 해석에만 사용돼요', style: UnifiedText.caption()),
                 ],
               ),
             ),

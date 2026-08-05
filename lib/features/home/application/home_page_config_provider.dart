@@ -61,9 +61,7 @@ class HomePageConfigProvider extends ChangeNotifier {
       _state = LoadState.success(cached);
     } else {
       _usingCache = false;
-      _state = LoadState.error(
-        result.errorMessage ?? '메인화면 구성을 불러오지 못했습니다.',
-      );
+      _state = LoadState.error(result.errorMessage ?? '메인화면 구성을 불러오지 못했습니다.');
     }
     notifyListeners();
   }

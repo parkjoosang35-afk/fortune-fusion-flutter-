@@ -17,13 +17,13 @@ import 'features/fortune/daily/data/daily_fortune_repository.dart';
 import 'features/fortune/saju/application/saju_provider.dart';
 import 'features/fortune/saju/data/saju_repository.dart';
 import 'features/fortune/tarot/application/tarot_provider.dart';
+import 'features/fortune/tarot/application/tarot_session_controller.dart';
+import 'features/fortune/tarot/application/tarot_audio_controller.dart';
 import 'features/fortune/tarot/data/tarot_repository.dart';
 import 'features/fortune/face/application/face_provider.dart';
 import 'features/fortune/face/data/face_repository.dart';
 import 'features/fortune/palm/application/palm_provider.dart';
 import 'features/fortune/palm/data/palm_repository.dart';
-import 'features/compatibility/application/compatibility_provider.dart';
-import 'features/compatibility/data/compatibility_repository.dart';
 import 'features/name_fortune/application/name_fortune_provider.dart';
 import 'features/name_fortune/data/name_fortune_repository.dart';
 import 'features/home/application/fortune_category_provider.dart';
@@ -43,10 +43,6 @@ import 'features/community/application/community_post_provider.dart';
 import 'features/community/data/community_post_repository.dart';
 import 'features/luckybag/application/luckybag_provider.dart';
 import 'features/luckybag/data/luckybag_repository.dart';
-import 'features/amulet/application/amulet_provider.dart';
-import 'features/amulet/data/amulet_repository.dart';
-import 'features/matching/application/matching_provider.dart';
-import 'features/matching/data/matching_repository.dart';
 import 'features/giftcard/application/giftcard_provider.dart';
 import 'features/giftcard/data/giftcard_repository.dart';
 import 'features/subscription/application/subscription_provider.dart';
@@ -62,8 +58,6 @@ import 'features/pass/data/open_pass_repository.dart';
 import 'features/luckpouch/application/luck_pouch_provider.dart';
 import 'core/domain/access/access_checker.dart';
 import 'core/widgets/luck_pouch_toast.dart';
-import 'features/wishroom/application/wish_room_provider.dart';
-import 'features/wishroom/data/wish_room_repository.dart';
 
 /// 07단계 §2.1 앱 루트 - MultiProvider 전역 등록 + MaterialApp 라우팅 연결
 /// 10단계(A안): 모든 Repository는 Mock 구현이며, 향후 실제 API 연동 시
@@ -96,9 +90,6 @@ class App extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (_) => LuckyBagProvider(LuckyBagRepository()),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => AmuletProvider(AmuletRepository()),
         ),
         // CMS 제휴광고 배너 — admin_web `/api/public/banners` 실 API 연동(Mock 아님)
         ChangeNotifierProvider(
@@ -146,26 +137,23 @@ class App extends StatelessWidget {
             passProvider: pass,
           ),
         ),
-        // [소원방 MVP] 소원방 전역 상태. 치성 완료 보상 지급 시
-        // LuckPouchProvider.earn()을 직접 호출해야 하므로, 위에서 이미
-        // 등록된 LuckPouchProvider 인스턴스를 생성 시점에 주입한다(그 이후로
-        // LuckPouchProvider 인스턴스 자체가 교체되지 않으므로 ProxyProvider가
-        // 아닌 일반 ChangeNotifierProvider로 충분하다).
-        ChangeNotifierProvider(
-          create: (context) => WishRoomProvider(
-            WishRoomRepository(),
-            context.read<LuckPouchProvider>(),
-          ),
-        ),
+        // [소원방 공식 전환] 구 WishRoomProvider(무료 일일 치성 →
+        // 복주머니 적립)는 폐기했다. 신규 소원방은 Riverpod 모듈
+        // (features/wish_room/)로 완전히 교체되었고, 복주머니 연동은
+        // WishRoomRiverpodEntry가 진입 시점에 LuckPouchProvider를 직접
+        // 읽어 RealCurrencyWishRoomRepository에 주입하므로 여기서 별도
+        // 전역 등록이 필요 없다.
 
         // ── 기능별 Provider ──
         ChangeNotifierProvider(create: (_) => SajuProvider(SajuRepository())),
         ChangeNotifierProvider(create: (_) => TarotProvider(TarotRepository())),
+        // [타로 리뉴얼] 타로 세션 흐름(카테고리 선택→질문→셔플→카드선택→결과)
+        // 전용 상태머신. 기존 TarotProvider(결과 조회/히스토리)와 책임 분리.
+        ChangeNotifierProvider(create: (_) => TarotSessionController()),
+        // [타로 리뉴얼 §11 P5] 타로 전용 SFX 재생/음소거 상태 관리.
+        ChangeNotifierProvider(create: (_) => TarotAudioController()),
         ChangeNotifierProvider(create: (_) => FaceProvider(FaceRepository())),
         ChangeNotifierProvider(create: (_) => PalmProvider(PalmRepository())),
-        ChangeNotifierProvider(
-          create: (_) => CompatibilityProvider(CompatibilityRepository()),
-        ),
         // [운세 카테고리 확장] 이름 운세(성명학) - 신규 카테고리 Provider.
         ChangeNotifierProvider(
           create: (_) => NameFortuneProvider(NameFortuneRepository()),
@@ -211,9 +199,6 @@ class App extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (_) => CommunityPostProvider(CommunityPostRepository()),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => MatchingProvider(MatchingRepository()),
         ),
         ChangeNotifierProvider(
           create: (_) => GiftcardProvider(GiftcardRepository()),

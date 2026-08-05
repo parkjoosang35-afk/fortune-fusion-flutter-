@@ -17,11 +17,7 @@ import 'pass_time_format.dart';
 /// 활성 상태가 아니면 아무것도 그리지 않는다(SizedBox.shrink) — 화면은 이
 /// 위젯이 사라지는 것 자체로 "프리패스 받기" 화면으로 자연스럽게 복귀한다.
 class PassCountdownBadge extends StatefulWidget {
-  const PassCountdownBadge({
-    super.key,
-    this.onExpired,
-    this.dense = false,
-  });
+  const PassCountdownBadge({super.key, this.onExpired, this.dense = false});
 
   /// 활성 → 비활성(만료) 전환 순간 1회 호출.
   final VoidCallback? onExpired;

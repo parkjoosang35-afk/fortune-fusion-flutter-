@@ -199,7 +199,11 @@ class _ResolvedStyle {
       case 'highlighted':
         border = Border.all(color: AppColors.goldGlowBorder, width: 1.4);
         shadow = const [
-          BoxShadow(color: Color(0x3AFFD700), blurRadius: 18, offset: Offset(0, 6)),
+          BoxShadow(
+            color: Color(0x3AFFD700),
+            blurRadius: 18,
+            offset: Offset(0, 6),
+          ),
         ];
         break;
       case 'compact':
@@ -264,7 +268,8 @@ class _SectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final style = _ResolvedStyle.resolve(section);
     final banner = section.primaryBannerAttachment;
-    final isHero = section.blockType == PageBlockType.heroBanner ||
+    final isHero =
+        section.blockType == PageBlockType.heroBanner ||
         section.blockType == PageBlockType.eventBanner;
 
     return Container(
@@ -277,7 +282,9 @@ class _SectionCard extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: section.buttonLink != null ? () => _handleLink(context, section.buttonLink) : null,
+        onTap: section.buttonLink != null
+            ? () => _handleLink(context, section.buttonLink)
+            : null,
         child: Padding(
           padding: style.padding,
           child: Column(
@@ -300,7 +307,10 @@ class _SectionCard extends StatelessWidget {
               if (section.badgeText != null && section.badgeText!.isNotEmpty)
                 Container(
                   margin: const EdgeInsets.only(bottom: AppSpacing.xs),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: style.foregroundColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(_kRadiusFull),
@@ -330,16 +340,24 @@ class _SectionCard extends StatelessWidget {
                   child: Text(
                     section.subtitle!,
                     textAlign: style.textAlign,
-                    style: TextStyle(fontSize: 14, color: style.secondaryTextColor),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: style.secondaryTextColor,
+                    ),
                   ),
                 ),
-              if (section.description != null && section.description!.isNotEmpty)
+              if (section.description != null &&
+                  section.description!.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 6),
                   child: Text(
                     section.description!,
                     textAlign: style.textAlign,
-                    style: TextStyle(fontSize: 13, color: style.secondaryTextColor, height: 1.4),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: style.secondaryTextColor,
+                      height: 1.4,
+                    ),
                   ),
                 ),
               if (section.buttonText != null && section.buttonText!.isNotEmpty)
@@ -353,7 +371,10 @@ class _SectionCard extends StatelessWidget {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(_kRadiusFull),
                       ),
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
                     ),
                     child: Text(section.buttonText!),
                   ),
@@ -385,7 +406,10 @@ class _PassPromoBar extends StatelessWidget {
         : (section.title ?? '프리패스로 더 많은 운세를 만나보세요');
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.md,
+      ),
       decoration: BoxDecoration(
         color: style.gradient == null ? style.backgroundColor : null,
         gradient: style.gradient,
@@ -399,7 +423,10 @@ class _PassPromoBar extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: TextStyle(fontWeight: FontWeight.w700, color: style.foregroundColor),
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: style.foregroundColor,
+              ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -426,7 +453,10 @@ class _PointStatusBar extends StatelessWidget {
     final style = _ResolvedStyle.resolve(section);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.md,
+      ),
       decoration: BoxDecoration(
         color: style.backgroundColor,
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
@@ -436,19 +466,29 @@ class _PointStatusBar extends StatelessWidget {
         onTap: () => _handleLink(context, section.buttonLink),
         child: Row(
           children: [
-            const Icon(Icons.emoji_events_rounded, color: AppColors.accentGold, size: 20),
+            const Icon(
+              Icons.emoji_events_rounded,
+              color: AppColors.accentGold,
+              size: 20,
+            ),
             const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Text(
                 section.title ?? '복주머니 적립하기',
-                style: TextStyle(fontWeight: FontWeight.w700, color: style.foregroundColor),
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: style.foregroundColor,
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
             Text(
               '${balance.toString()}개',
-              style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.premiumMainPurple),
+              style: const TextStyle(
+                fontWeight: FontWeight.w800,
+                color: AppColors.premiumMainPurple,
+              ),
             ),
           ],
         ),
@@ -467,7 +507,9 @@ class _WishPreviewBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final wishProvider = context.watch<WishPostProvider>();
-    final hot = wishProvider.hotWishes.isNotEmpty ? wishProvider.hotWishes.first : null;
+    final hot = wishProvider.hotWishes.isNotEmpty
+        ? wishProvider.hotWishes.first
+        : null;
     final style = _ResolvedStyle.resolve(section);
 
     return Container(
@@ -479,7 +521,8 @@ class _WishPreviewBlock extends StatelessWidget {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        onTap: () => _handleLink(context, section.buttonLink ?? '/community/wish-room'),
+        onTap: () =>
+            _handleLink(context, section.buttonLink ?? '/community/wish-room'),
         child: Padding(
           padding: style.padding,
           child: Column(
@@ -487,7 +530,11 @@ class _WishPreviewBlock extends StatelessWidget {
             children: [
               Text(
                 section.title ?? '지금 인기 있는 소원',
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: style.foregroundColor),
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                  color: style.foregroundColor,
+                ),
               ),
               if (hot != null)
                 Padding(
@@ -496,7 +543,10 @@ class _WishPreviewBlock extends StatelessWidget {
                     hot.content,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 13, color: style.secondaryTextColor),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: style.secondaryTextColor,
+                    ),
                   ),
                 )
               else if (section.subtitle != null)
@@ -504,7 +554,10 @@ class _WishPreviewBlock extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(
                     section.subtitle!,
-                    style: TextStyle(fontSize: 13, color: style.secondaryTextColor),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: style.secondaryTextColor,
+                    ),
                   ),
                 ),
             ],
@@ -550,10 +603,8 @@ class _HorizontalCardScroll extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         itemCount: sections.length,
         separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.md),
-        itemBuilder: (context, index) => SizedBox(
-          width: 220,
-          child: _SectionCard(section: sections[index]),
-        ),
+        itemBuilder: (context, index) =>
+            SizedBox(width: 220, child: _SectionCard(section: sections[index])),
       ),
     );
   }
@@ -577,7 +628,11 @@ class _CategoryShortcutRow extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: AppSpacing.sm),
             child: Text(
               section.title!,
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: style.foregroundColor),
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 16,
+                color: style.foregroundColor,
+              ),
             ),
           ),
         if (icons.isEmpty)
@@ -596,7 +651,9 @@ class _CategoryShortcutRow extends StatelessWidget {
                   child: Column(
                     children: [
                       ClipRRect(
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                        borderRadius: BorderRadius.circular(
+                          AppSpacing.radiusMd,
+                        ),
                         child: Image.network(
                           icon.attachmentUrl,
                           width: 56,
@@ -606,7 +663,10 @@ class _CategoryShortcutRow extends StatelessWidget {
                             width: 56,
                             height: 56,
                             color: AppColors.premiumInactiveGrey,
-                            child: const Icon(Icons.image_not_supported_outlined, size: 20),
+                            child: const Icon(
+                              Icons.image_not_supported_outlined,
+                              size: 20,
+                            ),
                           ),
                         ),
                       ),

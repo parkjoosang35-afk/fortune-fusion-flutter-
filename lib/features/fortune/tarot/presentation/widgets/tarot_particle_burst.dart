@@ -23,14 +23,19 @@ class TarotParticleBurst extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: CustomPaint(
-        painter: _BurstPainter(
-          progress: progress,
-          count: count,
-          maxDistance: maxDistance,
+    // [§11 P6] 리빌 오버레이 재생 중(약 0.27초, burstProgress 0→1) 매
+    // 프레임 repaint되므로, 형제로 놓이는 카드/텍스트 레이어의 repaint와
+    // 서로 전파되지 않도록 RepaintBoundary로 격리한다.
+    return RepaintBoundary(
+      child: IgnorePointer(
+        child: CustomPaint(
+          painter: _BurstPainter(
+            progress: progress,
+            count: count,
+            maxDistance: maxDistance,
+          ),
+          size: Size.infinite,
         ),
-        size: Size.infinite,
       ),
     );
   }

@@ -26,9 +26,7 @@ class HomeConfigCacheStore {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_key);
       if (raw == null || raw.isEmpty) return null;
-      return PageConfigData.fromJson(
-        jsonDecode(raw) as Map<String, dynamic>,
-      );
+      return PageConfigData.fromJson(jsonDecode(raw) as Map<String, dynamic>);
     } catch (e) {
       debugPrint('[HomeConfigCacheStore] [load] 실패 -> $e');
       return null;

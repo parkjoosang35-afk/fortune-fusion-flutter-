@@ -44,6 +44,12 @@ class PassPolicyModel {
   final String? adScript;
   final int adWaitSeconds;
 
+  // [프리패스 UI 문구 관리자 연동] "?" 도움말 팝업 및 아이콘 바로 아래
+  // 안내 제목/문구를 관리자가 직접 입력한 값. null이면 화면단에서 기본 문구로 폴백한다.
+  final String? adHelpMessage;
+  final String? adGuideTitle;
+  final String? adGuideText;
+
   const PassPolicyModel({
     required this.id,
     required this.name,
@@ -58,6 +64,9 @@ class PassPolicyModel {
     this.adType = 'image',
     this.adScript,
     this.adWaitSeconds = 5,
+    this.adHelpMessage,
+    this.adGuideTitle,
+    this.adGuideText,
   });
 
   factory PassPolicyModel.fromJson(Map<String, dynamic> json) {
@@ -75,6 +84,9 @@ class PassPolicyModel {
       adType: json['adType'] as String? ?? 'image',
       adScript: json['adScript'] as String?,
       adWaitSeconds: json['adWaitSeconds'] as int? ?? 5,
+      adHelpMessage: json['adHelpMessage'] as String?,
+      adGuideTitle: json['adGuideTitle'] as String?,
+      adGuideText: json['adGuideText'] as String?,
     );
   }
 }

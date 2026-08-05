@@ -61,9 +61,7 @@ class FortuneReportBuilder {
     final topAspect = aspectScores.entries.reduce(
       (a, b) => b.value > a.value ? b : a,
     );
-    final statusLabel = overall >= 78
-        ? '상승'
-        : (overall >= 55 ? '보통' : '주의');
+    final statusLabel = overall >= 78 ? '상승' : (overall >= 55 ? '보통' : '주의');
     final keywords = <String>{
       _aspectKeywordPool[topAspect.key]!,
       _pickOne(rng, _heroKeywordPool),

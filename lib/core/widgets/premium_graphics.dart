@@ -90,7 +90,10 @@ class SoftGradientBlob extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           gradient: RadialGradient(
-            colors: [color.withValues(alpha: opacity), color.withValues(alpha: 0)],
+            colors: [
+              color.withValues(alpha: opacity),
+              color.withValues(alpha: 0),
+            ],
           ),
         ),
       ),
@@ -180,9 +183,10 @@ class _SparkleDotState extends State<SparkleDot>
   @override
   Widget build(BuildContext context) {
     return FadeTransition(
-      opacity: Tween<double>(begin: 0.4, end: 1.0).animate(
-        CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-      ),
+      opacity: Tween<double>(
+        begin: 0.4,
+        end: 1.0,
+      ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut)),
       child: Icon(
         Icons.auto_awesome_rounded,
         size: widget.size,
@@ -255,8 +259,12 @@ class TinyStarsOverlay extends StatelessWidget {
     return IgnorePointer(
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final w = constraints.maxWidth.isFinite ? constraints.maxWidth : 200.0;
-          final h = constraints.maxHeight.isFinite ? constraints.maxHeight : 120.0;
+          final w = constraints.maxWidth.isFinite
+              ? constraints.maxWidth
+              : 200.0;
+          final h = constraints.maxHeight.isFinite
+              ? constraints.maxHeight
+              : 120.0;
           return Stack(
             children: List.generate(count, (i) {
               final top = random.nextDouble() * 0.8 * h;

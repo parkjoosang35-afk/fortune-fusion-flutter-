@@ -102,8 +102,6 @@ class _DailyFortuneResultScreenState extends State<DailyFortuneResultScreen> {
     );
   }
 
-
-
   Future<void> _onSave(DailyFortuneModel today) async {
     final report = FortuneReportBuilder.build(today, name: _displayName);
     await MyFortuneRecordStore.save(

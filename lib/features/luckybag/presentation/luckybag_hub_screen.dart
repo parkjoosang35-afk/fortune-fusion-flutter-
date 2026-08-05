@@ -14,12 +14,10 @@ import '../../auth/domain/grade_model.dart';
 import '../application/luckybag_provider.dart';
 import 'luckybag_shop_screen.dart';
 import 'luckybag_history_screen.dart';
-import '../../amulet/presentation/amulet_shop_screen.dart';
 import '../../mission/presentation/mission_screen.dart';
 import '../../subscription/presentation/subscription_plans_screen.dart';
 import '../../community/presentation/community_hub_screen.dart';
 import '../../community/presentation/community_screen.dart';
-import '../../matching/presentation/matching_discover_screen.dart';
 
 /// [Fortune Fusion 서브 디자인 통일 마스터 프롬프트] 복주머니 허브 화면 (v2)
 ///
@@ -175,32 +173,6 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
                 subtitle: '다른 사람의 소원에 복주머니로 응원 보내기',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const CommunityScreen()),
-                ),
-              ),
-            ),
-            const SizedBox(height: UnifiedTokens.spaceMd),
-            FadeSlideIn(
-              delay: const Duration(milliseconds: 240),
-              child: _ShortcutCard(
-                icon: Icons.shield_outlined,
-                title: '디지털 부적 만들기',
-                subtitle: '나를 지켜주는 디지털 부적을 만들어보세요',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const AmuletShopScreen()),
-                ),
-              ),
-            ),
-            const SizedBox(height: UnifiedTokens.spaceMd),
-            FadeSlideIn(
-              delay: const Duration(milliseconds: 280),
-              child: _ShortcutCard(
-                icon: Icons.groups_outlined,
-                title: '운명의 동행',
-                subtitle: '관심표시(좋아요) 1건당 복주머니 소비',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const MatchingDiscoverScreen(),
-                  ),
                 ),
               ),
             ),

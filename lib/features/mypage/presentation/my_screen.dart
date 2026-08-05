@@ -149,7 +149,8 @@ class _MyScreenState extends State<MyScreen> {
               balance: wallet.balance,
               isLoading: wallet.isLoading,
               onTap: () => Navigator.of(context).pushNamed('/reward/wallet'),
-              onChargeTap: () => Navigator.of(context).pushNamed('/reward/wallet'),
+              onChargeTap: () =>
+                  Navigator.of(context).pushNamed('/reward/wallet'),
             ),
             const SizedBox(height: UnifiedTokens.spaceMd),
             _SubscriptionSummaryCard(
@@ -197,13 +198,6 @@ class _MyScreenState extends State<MyScreen> {
                   onTap: () => Navigator.of(
                     context,
                   ).pushNamed('/ai-fortune/palm/history'),
-                ),
-                _ArchiveCard(
-                  icon: Icons.favorite_outline_rounded,
-                  label: '궁합 히스토리',
-                  onTap: () => Navigator.of(
-                    context,
-                  ).pushNamed('/ai-fortune/compatibility/history'),
                 ),
                 // [오늘의 운세 표준 플로우 §6] 저장한 운세 카드 기록 진입점
                 _ArchiveCard(
@@ -272,7 +266,16 @@ class _MyScreenState extends State<MyScreen> {
             const SizedBox(height: UnifiedTokens.spaceXxl),
             OutlinedButton(
               onPressed: () async {
-                await context.read<AuthProvider>().logout();
+                // [로그아웃 시 프리패스 서버측 강제 만료] 반드시 인증 토큰이
+                // 살아있는 동안(= AuthProvider.logout()으로 토큰을 지우기 전에)
+                // PassProvider.resetOnLogout()을 먼저 호출해야 한다. 이 메서드는
+                // 서버 UserPass를 revoked 처리한 뒤 화면 상태도 초기화한다.
+                // 순서를 바꾸면 userId를 얻을 수 없어 서버측 만료가 누락되고,
+                // 재로그인 시 프리패스 잔여시간이 그대로 복원되는 문제가 재발한다.
+                await context.read<PassProvider>().resetOnLogout();
+                if (context.mounted) {
+                  await context.read<AuthProvider>().logout();
+                }
                 if (context.mounted) {
                   Navigator.of(
                     context,
@@ -575,7 +578,9 @@ void _showPurchaseWithLuckPouchSheet(BuildContext context) {
                               ),
                             ),
                           ),
-                          child: Text('${opt.name} · 복주머니 ${opt.luckPouchPrice}개'),
+                          child: Text(
+                            '${opt.name} · 복주머니 ${opt.luckPouchPrice}개',
+                          ),
                         ),
                       ),
                     ),
@@ -926,7 +931,9 @@ class _OpenPassTestPanelState extends State<_OpenPassTestPanel> {
                   ),
                   child: Text(
                     'TEST',
-                    style: UnifiedText.caption(color: UnifiedColors.textPrimary),
+                    style: UnifiedText.caption(
+                      color: UnifiedColors.textPrimary,
+                    ),
                   ),
                 ),
               ],

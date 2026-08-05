@@ -181,6 +181,37 @@ class PassProvider extends ChangeNotifier {
     return true;
   }
 
+  /// [로그아웃 시 프리패스 초기화 — 서버측 강제 만료 반영]
+  /// 로그아웃하면 이유를 막론하고(사용자 명시적 로그아웃/토큰 만료 등) 현재 활성
+  /// 프리패스를 서버 DB에서 즉시, 영구적으로 만료시켜야 한다. 과거에는 클라이언트
+  /// 메모리 상태만 초기화하고 서버 발급 이력은 그대로 두어, 재로그인 시 서버가
+  /// 여전히 유효하다고 판단해 잔여시간이 복원되는 버그가 있었다(사용자 리포트로
+  /// 확인). 이제는 [_repository.expireOnLogout]을 먼저 호출해 서버 DB의
+  /// UserPass.status를 revoked로 전환(expiresAt=now)한 뒤 화면 상태를 지운다.
+  ///
+  /// 이 메서드를 호출하는 쪽(예: 마이페이지 로그아웃 버튼)은 반드시 인증 토큰이
+  /// 아직 살아있는 시점(= AuthProvider.logout()/AuthTokenStore.clear() 호출 이전)에
+  /// 이 메서드를 먼저 실행해야 한다. 그렇지 않으면 userId를 얻을 수 없어 서버측
+  /// 만료 요청이 올바른 사용자에게 적용되지 않는다.
+  ///
+  /// 서버 호출이 실패(네트워크 오류 등)하더라도 로그아웃 자체를 막지는 않는다
+  /// (화면 상태는 항상 초기화한다) — 다만 실패 로그를 남겨 추후 원인 추적이
+  /// 가능하도록 한다.
+  Future<void> resetOnLogout() async {
+    final result = await _repository.expireOnLogout();
+    if (!result.success) {
+      debugPrint(
+        '[PassProvider] [resetOnLogout] 서버측 프리패스 만료 실패(화면 초기화는 계속 진행) -> ${result.errorMessage}',
+      );
+    }
+    _status = PassStatusModel.inactive();
+    _policies = [];
+    _purchaseOptions = [];
+    _lastError = null;
+    _debugOverride = false;
+    notifyListeners();
+  }
+
   /// 시간제 콘텐츠 열람 직전 게이트체크. 유효한 열림패스가 없으면 false를 반환하고
   /// [lastError]에 안내 메시지를 남긴다(화면단에서 발급 유도 UI 노출용).
   Future<bool> consume({required String contentType, dynamic contentId}) async {

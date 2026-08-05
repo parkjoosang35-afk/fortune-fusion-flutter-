@@ -68,6 +68,15 @@ dependencies:
   share_plus: 10.1.4
   path_provider: 2.1.5
 
+  # [타로 섹션 전면 개편 §11 P5 사운드 시스템] 카드 셔플/탭/리빌 임팩트/
+  # 저장완료/UI탭 등 짧은 SFX 재생용. Web/Android 모두 지원.
+  audioplayers: ^6.7.1
+
+  # [소원방 Riverpod 실험판] lib/features/wish_room/ 전용 상태관리.
+  # 기존 앱 전체는 provider(6.1.5+1)를 유지하며, 이 패키지는 해당 기능의
+  # ProviderScope 서브트리 안에서만 사용된다(앱 루트 MultiProvider와 공존).
+  flutter_riverpod: ^2.6.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -93,6 +102,14 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/images/
+    - assets/audio/tarot/
+    - assets/tarot/cards/majors/
+    - assets/tarot/cards/cups/
+    - assets/tarot/cards/wands/
+    - assets/tarot/cards/swords/
+    - assets/tarot/cards/pentacles/
+    - assets/tarot/thumbs/
+    - assets/tarot/backs/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

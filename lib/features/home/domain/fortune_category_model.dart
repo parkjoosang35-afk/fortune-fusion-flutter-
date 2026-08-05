@@ -84,10 +84,9 @@ class FortuneCategoryGroupData {
       label: json['label'] as String,
       description: json['description'] as String?,
       displayOrder: json['displayOrder'] as int? ?? 0,
-      categories:
-          (json['categories'] as List<dynamic>? ?? const [])
-              .map((e) => FortuneCategoryItem.fromJson(e as Map<String, dynamic>))
-              .toList(),
+      categories: (json['categories'] as List<dynamic>? ?? const [])
+          .map((e) => FortuneCategoryItem.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
   }
 }

@@ -22,7 +22,9 @@ Future<bool> showAppConfirmDialog(
         borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
       ),
       title: Text(title, style: UnifiedText.title()),
-      content: message != null ? Text(message, style: UnifiedText.body()) : null,
+      content: message != null
+          ? Text(message, style: UnifiedText.body())
+          : null,
       actionsPadding: const EdgeInsets.fromLTRB(
         AppSpacing.lg,
         0,
@@ -79,7 +81,9 @@ Future<void> showAppInfoDialog(
         borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
       ),
       title: Text(title, style: UnifiedText.title()),
-      content: message != null ? Text(message, style: UnifiedText.body()) : null,
+      content: message != null
+          ? Text(message, style: UnifiedText.body())
+          : null,
       actionsPadding: const EdgeInsets.fromLTRB(
         AppSpacing.lg,
         0,

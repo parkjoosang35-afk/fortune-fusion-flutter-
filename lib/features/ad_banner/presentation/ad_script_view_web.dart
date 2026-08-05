@@ -26,7 +26,12 @@ Widget buildAdScriptView(String html, {required double height}) {
       final container = web.HTMLDivElement()
         ..style.width = '100%'
         ..style.height = '100%'
-        ..style.overflow = 'hidden';
+        ..style.overflow = 'hidden'
+        // 광고 소스(iframe 등)가 자체 고정폭을 가진 경우 기본적으로 좌측 정렬되므로,
+        // flex 중앙 정렬로 감싸 컨테이너 안에서 항상 가운데 표시되도록 한다.
+        ..style.display = 'flex'
+        ..style.alignItems = 'center'
+        ..style.justifyContent = 'center';
 
       final trimmed = html.trim();
       final containsScriptTag = trimmed.toLowerCase().contains('<script');

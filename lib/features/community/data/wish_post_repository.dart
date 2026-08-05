@@ -395,8 +395,9 @@ class WishPostRepository {
   Future<ApiResult<Map<String, dynamic>>> empathizeComment(
     String wishId,
     String commentId,
-  ) =>
-      _postWishAction('/api/public/wishes/$wishId/comments/$commentId/empathize');
+  ) => _postWishAction(
+    '/api/public/wishes/$wishId/comments/$commentId/empathize',
+  );
 
   /// [재화 구조 정리 - 재연결] 글 강조(highlight) - 본인 소원에만 적용 가능(서버가
   /// 403으로 가드). 성공 시 highlightedUntil(만료 시각)을 함께 내려준다.
@@ -412,9 +413,7 @@ class WishPostRepository {
   /// cheer/empathize/highlight/expose-boost 4개 엔드포인트가 공통으로 갖는
   /// "POST + {userId} + success/data 파싱 + 409(잔액부족) 에러메시지" 패턴을
   /// 하나로 묶은 내부 헬퍼(중복 코드 방지).
-  Future<ApiResult<Map<String, dynamic>>> _postWishAction(
-    String path,
-  ) async {
+  Future<ApiResult<Map<String, dynamic>>> _postWishAction(String path) async {
     final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}$path');
     try {
       final userId = await AuthTokenStore.getCurrentUserId();

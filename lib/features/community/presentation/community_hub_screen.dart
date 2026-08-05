@@ -12,11 +12,8 @@ import '../domain/wish_post_model.dart';
 import 'community_screen.dart';
 import 'community_board_list_screen.dart';
 import 'widgets/wish_hall_of_fame_sheet.dart';
-import '../../amulet/presentation/amulet_shop_screen.dart';
-import '../../matching/presentation/matching_discover_screen.dart';
 import '../../ranking/presentation/ranking_screen.dart';
 import '../../consultation/presentation/consultation_type_screen.dart';
-import '../../compatibility/presentation/compatibility_input_screen.dart';
 
 /// [Fortune Fusion 서브 디자인 통일 마스터 프롬프트] 커뮤니티 허브 화면 (v2)
 ///
@@ -136,30 +133,6 @@ class _CommunityHubScreenState extends State<CommunityHubScreen> {
                     buttonLabel: '상담 시작하기',
                     destination: ConsultationTypeScreen(),
                     hint: '상담 메시지 전송 시 복주머니 소비',
-                  ),
-                  _ShortcutTab(
-                    icon: Icons.favorite_outline_rounded,
-                    title: '궁합이야기',
-                    description: '나와 그 사람, 얼마나 잘 맞을까요?',
-                    buttonLabel: '궁합 보러가기',
-                    destination: CompatibilityInputScreen(),
-                    hint: '궁합 결과 확인 시 복주머니 소비',
-                  ),
-                  _ShortcutTab(
-                    icon: Icons.shield_outlined,
-                    title: '부적',
-                    description: '나를 지켜주는 디지털 부적을 만나보세요',
-                    buttonLabel: '부적샵 바로가기',
-                    destination: AmuletShopScreen(),
-                    hint: '부적 만들기 시 복주머니 소비',
-                  ),
-                  _ShortcutTab(
-                    icon: Icons.groups_outlined,
-                    title: '동행',
-                    description: '나와 인연이 될 사람을 찾아보세요',
-                    buttonLabel: 'AI매칭 바로가기',
-                    destination: MatchingDiscoverScreen(),
-                    hint: '관심표시(좋아요) 시 복주머니 소비',
                   ),
                   _ShortcutTab(
                     icon: Icons.emoji_events_outlined,

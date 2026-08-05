@@ -10,8 +10,7 @@ class NameFortuneInputScreen extends StatefulWidget {
   const NameFortuneInputScreen({super.key});
 
   @override
-  State<NameFortuneInputScreen> createState() =>
-      _NameFortuneInputScreenState();
+  State<NameFortuneInputScreen> createState() => _NameFortuneInputScreenState();
 }
 
 class _NameFortuneInputScreenState extends State<NameFortuneInputScreen> {
@@ -105,9 +104,7 @@ class _NameFortuneInputScreenState extends State<NameFortuneInputScreen> {
                   padding: EdgeInsets.all(UnifiedTokens.spaceMd),
                   decoration: BoxDecoration(
                     border: Border.all(color: UnifiedColors.border),
-                    borderRadius: BorderRadius.circular(
-                      UnifiedTokens.radiusMd,
-                    ),
+                    borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
                   ),
                   child: Row(
                     children: [

@@ -143,7 +143,9 @@ class _SendBokjuFormState extends State<_SendBokjuForm> {
               selectedColor: UnifiedColors.cardAllMenu,
               side: BorderSide.none,
               // [재화 구조 정리] 보유 개수를 초과하는 프리셋은 선택 불가로 흐리게 표시.
-              disabledColor: UnifiedColors.chipInactiveBg.withValues(alpha: 0.4),
+              disabledColor: UnifiedColors.chipInactiveBg.withValues(
+                alpha: 0.4,
+              ),
               labelStyle: affordable
                   ? null
                   : UnifiedText.chipLabel().copyWith(

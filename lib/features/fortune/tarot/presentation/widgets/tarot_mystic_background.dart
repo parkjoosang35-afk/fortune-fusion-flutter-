@@ -50,31 +50,39 @@ class _TarotMysticBackgroundState extends State<TarotMysticBackground>
 
   @override
   Widget build(BuildContext context) {
+    // [§11 P6] 매 프레임(20초 반복 애니메이션) 다시 그려지는 이 배경은
+    // 항상 [Stack] 안에서 다른 정적 콘텐츠(카드/텍스트 등)와 형제로
+    // 놓인다. `Positioned.fill`은 [Stack]이 직계 자식에서 직접 인식해야
+    // 하므로 최상위에 유지하고, 그 안쪽을 RepaintBoundary로 감싸 이
+    // 배경의 repaint가 형제 서브트리로 전파되지 않도록 격리한다
+    // (§11 P6 "저사양 degrade" 성능 원칙).
     return Positioned.fill(
-      child: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: RadialGradient(
-            center: Alignment(0, -0.2),
-            radius: 1.3,
-            colors: [
-              AppColors.deepSpaceLight,
-              AppColors.deepSpace,
-              Colors.black,
-            ],
+      child: RepaintBoundary(
+        child: DecoratedBox(
+          decoration: const BoxDecoration(
+            gradient: RadialGradient(
+              center: Alignment(0, -0.2),
+              radius: 1.3,
+              colors: [
+                AppColors.deepSpaceLight,
+                AppColors.deepSpace,
+                Colors.black,
+              ],
+            ),
           ),
-        ),
-        child: AnimatedBuilder(
-          animation: _controller,
-          builder: (context, _) {
-            return CustomPaint(
-              size: Size.infinite,
-              painter: _MysticPainter(
-                stars: _stars,
-                t: _controller.value,
-                intensity: widget.intensity,
-              ),
-            );
-          },
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, _) {
+              return CustomPaint(
+                size: Size.infinite,
+                painter: _MysticPainter(
+                  stars: _stars,
+                  t: _controller.value,
+                  intensity: widget.intensity,
+                ),
+              );
+            },
+          ),
         ),
       ),
     );

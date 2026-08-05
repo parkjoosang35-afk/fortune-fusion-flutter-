@@ -33,8 +33,7 @@ class OpenPassRepository {
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
-        final error =
-            decoded['error'] as String? ?? '프리패스 상품 목록을 불러오지 못했습니다.';
+        final error = decoded['error'] as String? ?? '프리패스 상품 목록을 불러오지 못했습니다.';
         debugPrint('[OpenPassRepository] [products] 실패 -> $error');
         return ApiResult.fail(error);
       }
@@ -58,14 +57,15 @@ class OpenPassRepository {
     bool includeUser = true,
   }) async {
     final userId = includeUser ? await AuthTokenStore.getCurrentUserId() : null;
-    final uri = Uri.parse(
-      '${EnvConfig.adminApiBaseUrl}$_base/products/$policyId',
-    ).replace(
-      queryParameters: {
-        'platform': platform,
-        if (userId != null) 'userId': '$userId',
-      },
-    );
+    final uri =
+        Uri.parse(
+          '${EnvConfig.adminApiBaseUrl}$_base/products/$policyId',
+        ).replace(
+          queryParameters: {
+            'platform': platform,
+            if (userId != null) 'userId': '$userId',
+          },
+        );
     debugPrint('[OpenPassRepository] [products/$policyId] 요청 -> $uri');
 
     try {
@@ -157,9 +157,7 @@ class OpenPassRepository {
     required String idempotencyKey,
   }) async {
     final userId = await AuthTokenStore.getCurrentUserId();
-    final uri = Uri.parse(
-      '${EnvConfig.adminApiBaseUrl}$_base/reward-complete',
-    );
+    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}$_base/reward-complete');
     debugPrint(
       '[OpenPassRepository] [reward-complete] 요청 -> userId=$userId policyId=$policyId adSourceId=$adSourceId',
     );
@@ -182,10 +180,7 @@ class OpenPassRepository {
       if (decoded['success'] != true) {
         final error = decoded['error'] as String? ?? '보상 지급에 실패했습니다.';
         debugPrint('[OpenPassRepository] [reward-complete] 거부 -> $error');
-        return ApiResult.fail(
-          error,
-          code: decoded['reason'] as String?,
-        );
+        return ApiResult.fail(error, code: decoded['reason'] as String?);
       }
       final grant = OpenPassRewardGrantModel.fromJson(
         decoded['data'] as Map<String, dynamic>,

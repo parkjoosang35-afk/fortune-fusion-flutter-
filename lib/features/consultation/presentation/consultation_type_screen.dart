@@ -80,11 +80,11 @@ class _ConsultationTypeScreenState extends State<ConsultationTypeScreen>
         return;
       }
 
-        final spent = await wallet.spend(
-          kConsultationUsageCost,
-          'AI 상담 이용',
-          sourceType: 'ai_consultation_message',
-        );
+      final spent = await wallet.spend(
+        kConsultationUsageCost,
+        'AI 상담 이용',
+        sourceType: 'ai_consultation_message',
+      );
       if (!mounted) return;
       if (!spent) {
         setState(() => _isNavigating = false);

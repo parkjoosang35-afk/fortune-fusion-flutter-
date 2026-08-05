@@ -100,20 +100,62 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
   }
 
   Future<void> _handleVisit(PassPolicyModel policy) async {
-    if (policy.linkUrl == null || policy.linkUrl!.isEmpty) {
+    // [진단용 로그 - 클릭이 실제로 콜백에 도달하는지 확인]
+    debugPrint(
+      '[CoupangPassSheet] [_handleVisit] 진입 -> policyId=${policy.id}, linkUrl=${policy.linkUrl}',
+    );
+    // [쿠팡 방문하기 버튼 ↔ 광고 URL 연결] admin_web `/api/public/pass/policies`가
+    // CMS 배너(positionCode='open_pass')의 linkUrl을 그대로 내려주거나, 관리자가
+    // adType='script'(iframe 임베드 코드)만 등록한 경우에는 서버가 adScript
+    // 안의 URL(iframe src 등)을 자동 추출해 linkUrl로 채워 내려준다. 따라서
+    // 여기서는 정책에 담긴 linkUrl을 신뢰하고 그대로 열기만 하면 된다.
+    final targetUrl = policy.linkUrl;
+    if (targetUrl == null || targetUrl.isEmpty) {
+      debugPrint('[CoupangPassSheet] [_handleVisit] 실패 -> targetUrl이 비어있음');
       AppToast.show(context, '아직 쿠팡 파트너스 광고가 설정되지 않았어요.', isError: true);
       return;
     }
-    final uri = Uri.tryParse(policy.linkUrl!);
+    final uri = Uri.tryParse(targetUrl);
     if (uri == null) {
+      debugPrint(
+        '[CoupangPassSheet] [_handleVisit] 실패 -> URI 파싱 실패: $targetUrl',
+      );
       AppToast.show(context, '광고 링크가 올바르지 않아요.', isError: true);
       return;
     }
+
+    // [쿠팡 페이지가 안 열리는 문제 수정] Custom Tabs 기반 인앱 브라우저
+    // (LaunchMode.inAppWebView)는 기기에 Custom Tabs를 지원하는 브라우저가
+    // 없거나 Flutter Web 프리뷰(iframe 내 팝업 차단) 환경에서 조용히 실패할
+    // 수 있다. 프로젝트 내 다른 모든 외부 링크(홈 배너 등)가 이미 사용 중인
+    // 검증된 방식인 externalApplication(기기 기본 브라우저로 전체 이동)으로
+    // 통일해 안정성을 확보한다.
+    bool launched = false;
+    try {
+      debugPrint('[CoupangPassSheet] [_handleVisit] launchUrl 호출 시작 -> $uri');
+      launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      debugPrint(
+        '[CoupangPassSheet] [_handleVisit] launchUrl 결과 -> launched=$launched',
+      );
+    } catch (e, st) {
+      debugPrint('[CoupangPassSheet] [_handleVisit] launchUrl 예외 -> $e\n$st');
+      launched = false;
+    }
+
+    if (!mounted) return;
+
+    if (!launched) {
+      // 실행 자체가 실패했다면 "대기 중" 상태로 넘어가지 않고 원래 화면으로
+      // 되돌려, 열리지도 않았는데 자동으로 프리패스가 지급되는 문제를 막는다.
+      setState(() => _phase = _Phase.idle);
+      AppToast.show(context, '쿠팡 페이지를 열 수 없어요. 잠시 후 다시 시도해주세요.', isError: true);
+      return;
+    }
+
     setState(() {
       _phase = _Phase.waitingReturn;
       _launchedAd = true;
     });
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   void _startCountdown(PassPolicyModel policy) {
@@ -161,12 +203,19 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
     }
   }
 
-  void _showHelp() {
+  // [프리패스 UI 문구 관리자 연동] 관리자가 값을 입력하지 않았을 때(null) 화면이
+  // 비어 보이지 않도록 하는 기본 문구. admin_web 쪽 기본값과 동일하게 유지한다.
+  static const _defaultHelpMessage =
+      '쿠팡 파트너스 활동을 통해 일정 수수료를 지급받는 제휴 광고예요.\n'
+      '쿠팡 방문 후 앱으로 돌아오면 잠시 후 자동으로 프리패스가 지급됩니다.';
+
+  void _showHelp(PassPolicyModel? policy) {
     showAppInfoDialog(
       context,
       title: '프리패스 안내',
-      message: '쿠팡 파트너스 활동을 통해 일정 수수료를 지급받는 제휴 광고예요.\n'
-          '쿠팡 방문 후 앱으로 돌아오면 잠시 후 자동으로 프리패스가 지급됩니다.',
+      message: policy?.adHelpMessage?.isNotEmpty == true
+          ? policy!.adHelpMessage!
+          : _defaultHelpMessage,
     );
   }
 
@@ -186,19 +235,22 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
           left: UnifiedTokens.spaceXl,
           right: UnifiedTokens.spaceXl,
           top: UnifiedTokens.spaceMd,
-          bottom: UnifiedTokens.spaceXl + MediaQuery.of(context).viewInsets.bottom,
+          bottom:
+              UnifiedTokens.spaceXl + MediaQuery.of(context).viewInsets.bottom,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             _buildHandle(),
-            _buildHeaderRow(),
+            _buildHeaderRow(policy),
             const SizedBox(height: UnifiedTokens.spaceXs),
             if (policy == null)
               _buildEmptyState(pass.isLoading)
             else if (_phase == _Phase.success)
-              _SuccessCelebration(durationLabel: formatPassDuration(policy.durationMin))
+              _SuccessCelebration(
+                durationLabel: formatPassDuration(policy.durationMin),
+              )
             else
               _buildContent(policy),
           ],
@@ -221,12 +273,15 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
     );
   }
 
-  Widget _buildHeaderRow() {
+  Widget _buildHeaderRow(PassPolicyModel? policy) {
     return Row(
       children: [
         IconButton(
-          onPressed: _showHelp,
-          icon: const Icon(Icons.help_outline_rounded, color: UnifiedColors.textCaption),
+          onPressed: () => _showHelp(policy),
+          icon: const Icon(
+            Icons.help_outline_rounded,
+            color: UnifiedColors.textCaption,
+          ),
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(),
           iconSize: UnifiedTokens.iconLg,
@@ -234,7 +289,10 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
         const Spacer(),
         IconButton(
           onPressed: () => Navigator.of(context).pop(),
-          icon: const Icon(Icons.close_rounded, color: UnifiedColors.textCaption),
+          icon: const Icon(
+            Icons.close_rounded,
+            color: UnifiedColors.textCaption,
+          ),
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(),
           iconSize: UnifiedTokens.iconLg,
@@ -248,14 +306,22 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
       padding: const EdgeInsets.symmetric(vertical: UnifiedTokens.spaceXxl),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text('프리패스가 필요해요', style: UnifiedText.title()),
+          Text(
+            '프리패스가 필요해요',
+            style: UnifiedText.title(),
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: UnifiedTokens.spaceSm),
           if (isLoading)
             const Center(child: CircularProgressIndicator())
           else
-            Text('아직 프리패스 광고가 준비되지 않았어요. 잠시 후 다시 시도해주세요.', style: UnifiedText.body()),
+            Text(
+              '아직 프리패스 광고가 준비되지 않았어요. 잠시 후 다시 시도해주세요.',
+              style: UnifiedText.body(),
+              textAlign: TextAlign.center,
+            ),
         ],
       ),
     );
@@ -266,20 +332,27 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
     final isCounting = _phase == _Phase.counting;
     final isWaitingReturn = _phase == _Phase.waitingReturn;
 
+    // [프리패스 UI 문구 관리자 연동] 관리자가 입력한 안내 제목/문구를 우선
+    // 사용하고, 값이 없으면(null/빈 문자열) 기존 하드코딩 문구로 폴백한다.
+    final guideTitle = policy.adGuideTitle?.isNotEmpty == true
+        ? policy.adGuideTitle!
+        : (widget.categoryTitle != null
+              ? '"${widget.categoryTitle}"는 프리패스로 열람할 수 있어요'
+              : '프리패스가 필요해요');
+    final guideText = policy.adGuideText?.isNotEmpty == true
+        ? policy.adGuideText!
+        : '쿠팡 파트너스 광고를 확인하면 $durationLabel 동안\n모든 콘텐츠를 무료로 이용할 수 있어요.';
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(
-          widget.categoryTitle != null
-              ? '"${widget.categoryTitle}"는 프리패스로 열람할 수 있어요'
-              : '프리패스가 필요해요',
+          guideTitle,
           style: UnifiedText.title(),
+          textAlign: TextAlign.center,
         ),
         const SizedBox(height: UnifiedTokens.spaceXs),
-        Text(
-          '쿠팡 파트너스 광고를 확인하면 $durationLabel 동안\n모든 콘텐츠를 무료로 이용할 수 있어요.',
-          style: UnifiedText.body(),
-        ),
+        Text(guideText, style: UnifiedText.body(), textAlign: TextAlign.center),
         const SizedBox(height: UnifiedTokens.spaceLg),
 
         // 광고 이미지/스크립트 영역
@@ -294,17 +367,28 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
           onTap: isCounting || _claiming ? null : () => _handleVisit(policy),
           borderRadius: BorderRadius.circular(UnifiedTokens.radiusSm),
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: UnifiedTokens.spaceSm),
+            padding: const EdgeInsets.symmetric(
+              vertical: UnifiedTokens.spaceSm,
+            ),
             child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.open_in_new_rounded, size: UnifiedTokens.iconMd, color: UnifiedColors.textPrimary),
+                const Icon(
+                  Icons.open_in_new_rounded,
+                  size: UnifiedTokens.iconMd,
+                  color: UnifiedColors.textPrimary,
+                ),
                 const SizedBox(width: UnifiedTokens.spaceSm),
                 Text('쿠팡 방문하기', style: UnifiedText.bodyStrong()),
               ],
             ),
           ),
         ),
-        Text('파트너스 활동을 통해 일정액의 수수료를 지급받을 수 있어요', style: UnifiedText.caption()),
+        Text(
+          '파트너스 활동을 통해 일정액의 수수료를 지급받을 수 있어요',
+          style: UnifiedText.caption(),
+          textAlign: TextAlign.center,
+        ),
         const SizedBox(height: UnifiedTokens.spaceLg),
 
         // 대기/카운트다운 상태 안내
@@ -319,11 +403,11 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
         _buildMainCta(policy, durationLabel),
 
         const SizedBox(height: UnifiedTokens.spaceSm),
-        Center(
-          child: TextButton(
-            onPressed: (isCounting || _claiming) ? null : () => Navigator.of(context).pop(),
-            child: Text('나중에 할게요', style: UnifiedText.caption()),
-          ),
+        TextButton(
+          onPressed: (isCounting || _claiming)
+              ? null
+              : () => Navigator.of(context).pop(),
+          child: Text('나중에 할게요', style: UnifiedText.caption()),
         ),
       ],
     );
@@ -331,8 +415,14 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
 
   Widget _buildAdMedia(PassPolicyModel policy) {
     const height = 150.0;
-    if (policy.adType == 'script' && policy.adScript != null && policy.adScript!.isNotEmpty) {
-      return SizedBox(height: height, width: double.infinity, child: buildAdScriptView(policy.adScript!, height: height));
+    if (policy.adType == 'script' &&
+        policy.adScript != null &&
+        policy.adScript!.isNotEmpty) {
+      return SizedBox(
+        height: height,
+        width: double.infinity,
+        child: buildAdScriptView(policy.adScript!, height: height),
+      );
     }
     if (policy.bannerImageUrl != null && policy.bannerImageUrl!.isNotEmpty) {
       return Image.network(
@@ -352,7 +442,11 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
       width: double.infinity,
       color: UnifiedColors.cardBanner,
       alignment: Alignment.center,
-      child: const Icon(Icons.local_offer_outlined, size: 36, color: UnifiedColors.textCaption),
+      child: const Icon(
+        Icons.local_offer_outlined,
+        size: 36,
+        color: UnifiedColors.textCaption,
+      ),
     );
   }
 
@@ -373,7 +467,11 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
           ),
           const SizedBox(width: UnifiedTokens.spaceSm),
           Expanded(
-            child: Text('쿠팡 페이지 확인 중이에요. 앱으로 돌아오면 자동으로 진행돼요.', style: UnifiedText.bodySmall()),
+            child: Text(
+              '쿠팡 페이지 확인 중이에요. 앱으로 돌아오면 자동으로 진행돼요.',
+              style: UnifiedText.bodySmall(),
+              textAlign: TextAlign.center,
+            ),
           ),
           TextButton(
             onPressed: () => _startCountdown(policy),
@@ -408,6 +506,7 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
             child: Text(
               '쿠팡 광고 확인 중... $_secondsLeft초 후 자동 지급',
               style: UnifiedText.bodySmall(color: Colors.white),
+              textAlign: TextAlign.center,
             ),
           ),
         ],
@@ -417,7 +516,10 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
 
   Widget _buildDurationPill(String durationLabel) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: UnifiedTokens.spaceMd, vertical: 6),
+      padding: const EdgeInsets.symmetric(
+        horizontal: UnifiedTokens.spaceMd,
+        vertical: 6,
+      ),
       decoration: BoxDecoration(
         color: UnifiedColors.cardAllMenu,
         borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
@@ -425,9 +527,16 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.timer_outlined, size: UnifiedTokens.iconSm, color: UnifiedColors.textSecondary),
+          const Icon(
+            Icons.timer_outlined,
+            size: UnifiedTokens.iconSm,
+            color: UnifiedColors.textSecondary,
+          ),
           const SizedBox(width: 4),
-          Text('프리패스 이용시간 · $durationLabel', style: UnifiedText.chipLabel(color: UnifiedColors.textSecondary)),
+          Text(
+            '프리패스 이용시간 · $durationLabel',
+            style: UnifiedText.chipLabel(color: UnifiedColors.textSecondary),
+          ),
         ],
       ),
     );
@@ -546,7 +655,10 @@ class _SuccessCelebrationState extends State<_SuccessCelebration>
 
   @override
   Widget build(BuildContext context) {
-    final scale = CurvedAnimation(parent: _controller, curve: Curves.elasticOut);
+    final scale = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.elasticOut,
+    );
     final fade = CurvedAnimation(
       parent: _controller,
       curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
@@ -594,7 +706,11 @@ class _SuccessCelebrationState extends State<_SuccessCelebration>
                         color: UnifiedColors.black,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.check_rounded, color: UnifiedColors.neon, size: 40),
+                      child: const Icon(
+                        Icons.check_rounded,
+                        color: UnifiedColors.neon,
+                        size: 40,
+                      ),
                     ),
                   ),
                 ),

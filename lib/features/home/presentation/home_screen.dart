@@ -21,7 +21,7 @@ import '../../pass/application/pass_provider.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
 import '../../pass/presentation/pass_time_format.dart';
 import '../../../core/domain/access/access_checker.dart';
-import '../../wishroom/presentation/wish_room_main_screen.dart';
+import '../../wish_room/presentation/screens/wish_room_riverpod_entry.dart';
 import 'home_style_tokens.dart';
 
 /// [Fortune Fusion 서브 디자인 통일 마스터 프롬프트] 홈 화면 - 기준 시안 그대로 구현
@@ -384,15 +384,18 @@ class _TarotStoryHeader extends StatelessWidget {
           size: _Dims.tarotCircleSize,
           bgColor: HomeColors.black,
           fgColor: Colors.white,
-          onTap: () =>
-              Navigator.of(context).pushNamed('/ai-fortune/tarot/question'),
+          // [타로 섹션 전면 개편 §2] 신규 타로 메인 홈(①)으로 진입점을
+          // 변경한다. 기존 /ai-fortune/tarot/question 라우트 자체는 그대로
+          // 유지되며(질문화면 단독 진입 경로는 카테고리 상세→시작하기에서
+          // 계속 사용), 이 버튼만 새로운 "정문"을 가리키도록 갱신한다.
+          onTap: () => Navigator.of(context).pushNamed('/tarot/home'),
         ),
       ],
     );
   }
 }
 
-/// ④ 운세 카테고리 칩(가로 스크롤) - 전체보기/사주/궁합/손금
+/// ④ 운세 카테고리 칩(가로 스크롤) - 전체보기/사주/이름 운세/손금
 class _FortuneCategoryChips extends StatefulWidget {
   const _FortuneCategoryChips();
 
@@ -411,7 +414,7 @@ class _FortuneCategoryChipsState extends State<_FortuneCategoryChips> {
   static const _items = [
     ('전체보기', '/home/all-categories', false),
     ('사주', '/ai-fortune/saju/input', true),
-    ('궁합', '/ai-fortune/compatibility/input', true),
+    ('이름 운세', '/ai-fortune/name/input', true),
     ('손금', '/ai-fortune/palm/capture', true),
   ];
 
@@ -551,7 +554,7 @@ class _WishBoardRoomRow extends StatelessWidget {
               circleIcon: Icons.arrow_drop_down_rounded,
               circleStyle: PremiumCircleButtonStyle.black,
               onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const WishRoomMainScreen()),
+                MaterialPageRoute(builder: (_) => const WishRoomRiverpodEntry()),
               ),
             ),
           ),
@@ -623,7 +626,7 @@ class _LavenderMiniCard extends StatelessWidget {
   }
 }
 
-/// ⑦ 전체보기 - 부적만들기/궁합매칭/커뮤니티 3카드 균등분배 로우.
+/// ⑦ 전체보기 - 이름 운세/손금/커뮤니티 3카드 균등분배 로우.
 ///
 /// [UI 정리 세그먼트] 기존 4번째 "AI 상담" 카드를 제거하면서, 단순히 가로
 /// 스크롤 리스트에서 하나를 뺀 임시 상태가 아니라 처음부터 3개 카드를 위해
@@ -633,8 +636,8 @@ class _AllMenuButtonsRow extends StatelessWidget {
   const _AllMenuButtonsRow();
 
   static const _items = [
-    ('부적만들기', '/reward/amulet/generate'),
-    ('궁합매칭', '/ai-fortune/matching/discover'),
+    ('이름 운세', '/ai-fortune/name/input'),
+    ('손금', '/ai-fortune/palm/capture'),
     ('커뮤니티', null),
   ];
 

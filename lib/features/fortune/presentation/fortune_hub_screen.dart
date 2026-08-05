@@ -48,7 +48,7 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
     super.dispose();
   }
 
-  static const _filters = ['전체', '무료', '사주', '타로', '궁합', '손금'];
+  static const _filters = ['전체', '무료', '사주', '타로', '손금'];
 
   static const _items = [
     (
@@ -74,7 +74,9 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
       '78장의 카드가 전하는 오늘의 메시지',
       Icons.style_outlined,
       '프리패스',
-      '/ai-fortune/tarot/question',
+      // [타로 섹션 전면 개편 §2] 운세 허브의 타로 카드도 신규 타로 메인
+      // 홈(①)으로 진입점을 변경한다.
+      '/tarot/home',
       true,
       '타로',
     ),
@@ -95,15 +97,6 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
       '/ai-fortune/palm/capture',
       true,
       '손금',
-    ),
-    (
-      '궁합',
-      '두 사람의 인연과 케미를 확인해요',
-      Icons.favorite_outline_rounded,
-      '프리패스',
-      '/ai-fortune/compatibility/input',
-      true,
-      '궁합',
     ),
     // [남은 미세조정] 이름 운세(성명학) — AllCategoriesScreen(전체보기)에는
     // 이미 admin 데이터로 연결되어 있었으나, 이 허브(운세 탭)의 정적
@@ -210,9 +203,7 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
               final (title, desc, icon, cost, route, requiresPass, _) =
                   filtered[index];
               final isFree = !requiresPass;
-              final badgeLabel = isFree
-                  ? '무료'
-                  : (isPassActive ? '이용가능' : cost);
+              final badgeLabel = isFree ? '무료' : (isPassActive ? '이용가능' : cost);
               final badgeType = isFree || isPassActive
                   ? PremiumBadgeType.done
                   : PremiumBadgeType.pass;

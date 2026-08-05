@@ -122,9 +122,7 @@ class _FortuneLoadingScreenState<T> extends State<FortuneLoadingScreen<T>>
                   padding: const EdgeInsets.all(UnifiedTokens.spaceMd),
                   decoration: BoxDecoration(
                     color: UnifiedColors.cardBanner,
-                    borderRadius: BorderRadius.circular(
-                      UnifiedTokens.radiusMd,
-                    ),
+                    borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
                   ),
                   child: Text(
                     widget.subCard!,

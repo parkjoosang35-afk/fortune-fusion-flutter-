@@ -65,6 +65,22 @@ class _MyFortuneRecordsScreenState extends State<MyFortuneRecordsScreen> {
                     padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
                     child: Row(
                       children: [
+                        if (r.cardImageAssetPath != null) ...[
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(
+                              UnifiedTokens.radiusMd,
+                            ),
+                            child: Image.asset(
+                              r.cardImageAssetPath!,
+                              width: 48,
+                              height: 72,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) =>
+                                  const SizedBox(width: 48, height: 72),
+                            ),
+                          ),
+                          const SizedBox(width: UnifiedTokens.spaceMd),
+                        ],
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,

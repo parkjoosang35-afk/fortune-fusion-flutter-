@@ -61,7 +61,8 @@ enum PageBlockType {
 
 class PageSectionAttachment {
   final String attachmentUrl;
-  final String usageType; // banner|sub_banner|icon|background|external_link_asset|fallback
+  final String
+  usageType; // banner|sub_banner|icon|background|external_link_asset|fallback
   final bool isPrimary;
   final int displayOrder;
 
