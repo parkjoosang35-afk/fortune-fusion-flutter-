@@ -818,6 +818,29 @@ model LuckyNumberContent {
   @@map("lucky_number_contents")
 }
 
+// [사용자 요청: 홈 "오늘의 운세 이야기" 섹션을 힐링 문구 콘텐츠로 완전 대체]
+// 좋은 글귀/힐링 문구/긍정 명언/응원 한마디 등을 관리자가 등록하면, 앱은 활성 문구
+// 목록을 통째로 받아 1분마다 하나씩 로컬에서 순환 노출한다(운세 기능과 완전히 무관).
+model HealingQuote {
+  id        Int       @id @default(autoincrement())
+  content   String // 실제로 화면에 노출되는 문구 본문
+  author    String? // 출처/저자(선택, 없으면 앱에서 표시하지 않음)
+  category  String    @default("healing") @map("category") // healing/quote/encouragement 등 분류 태그(선택 필터용)
+  sortOrder Int       @default(0) @map("sort_order")
+  isActive  Boolean   @default(true) @map("is_active")
+  startAt   DateTime? @map("start_at")
+  endAt     DateTime? @map("end_at")
+  status    String    @default("active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
+
+  @@index([isActive])
+  @@map("healing_quotes")
+}
+
 // ── 04A D-8: ranking_rewards (※Base 포함) ──
 model RankingReward {
   id             Int       @id @default(autoincrement())
@@ -2525,6 +2548,15 @@ model PassPolicy {
   // 관리자는 4/5/10초 중에서만 선택(드롭다운). 광고 이미지/링크 자체는 더 이상 이
   // 테이블에 직접 두지 않고 Banner(positionCode='open_pass')를 단일 소스로 사용한다.
   adWaitSeconds Int @default(5) @map("ad_wait_seconds")
+
+  // ── [프리패스 UI 문구 관리자 연동] 바텀시트 "?" 도움말 팝업 및 아이콘 바로
+  // 아래 안내 제목/문구를 관리자가 직접 입력해 앱/웹에 실시간 반영한다.
+  // adHelpMessage: "?" 아이콘 탭 시 뜨는 안내 팝업 본문.
+  // adGuideTitle : 팝업 아이콘 바로 아래 표시되는 안내 제목(굵은 글씨).
+  // adGuideText  : 안내 제목 바로 아래 표시되는 부연 설명 문구.
+  adHelpMessage String? @map("ad_help_message")
+  adGuideTitle  String? @map("ad_guide_title")
+  adGuideText   String? @map("ad_guide_text")
 
   userPasses         UserPass[]
   attachmentBindings OpenPassProductAttachment[]
