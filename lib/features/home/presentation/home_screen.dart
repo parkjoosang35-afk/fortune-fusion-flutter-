@@ -510,58 +510,103 @@ class _HealingQuoteCardState extends State<_HealingQuoteCard> {
     final quote = healing.current;
     final textColor = _contrastTextColor(_bgColor);
 
+    // [사용자 요청] "힐링섹션에 그래픽 애니메이션 효과좀 넣어줘 빈공간에" —
+    // 카드 우측 상단~하단의 빈 여백에 은은한 그라디언트 블롭 + 떠다니는 달 +
+    // 반짝이는 별 애니메이션을 배치한다. 배경색이 30분마다 파스텔 팔레트에서
+    // 랜덤 변경되므로, 장식 색상도 고정색이 아니라 [textColor](대비 자동
+    // 계산값) 기반의 낮은 알파값을 써서 어떤 배경에서도 튀지 않고 은은하게
+    // 어울리도록 한다. 실제 문구 텍스트는 Stack의 마지막 레이어(맨 위)에 두어
+    // 장식이 절대 가독성을 해치지 않게 한다.
     return AnimatedContainer(
       duration: const Duration(milliseconds: 600),
       curve: Curves.easeInOut,
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: _bgColor,
         borderRadius: BorderRadius.circular(_Dims.heroCardRadius),
       ),
-      padding: const EdgeInsets.all(_Dims.heroCardPadding),
-      child: SizedBox(
-        height: _Dims.healingCardHeight - _Dims.heroCardPadding * 2,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.self_improvement_rounded,
-                  size: 18,
-                  color: textColor.withValues(alpha: 0.85),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  '오늘의 힐링 한마디',
-                  style: HomeText.body(
-                    color: textColor.withValues(alpha: 0.85),
+      child: Stack(
+        children: [
+          // 배경 장식 레이어 ① - 우측 상단에 카드 밖으로 살짝 번지는 은은한
+          // 그라디언트 블롭(정적, 부드러운 공기감 연출).
+          Positioned(
+            right: -34,
+            top: -34,
+            child: SoftGradientBlob(size: 150, color: textColor, opacity: 0.10),
+          ),
+          // 배경 장식 레이어 ② - 우측 상단 빈 공간에서 위아래로 은은하게
+          // 떠다니는 달 아이콘("힐링/밤의 위안" 테마와 어울림).
+          Positioned(
+            top: 12,
+            right: 16,
+            child: FloatingMoon(size: 30, color: textColor.withValues(alpha: 0.3)),
+          ),
+          // 배경 장식 레이어 ③ - 반짝이는 별 2개(opacity pulse)를 우측/하단
+          // 빈 공간에 흩뿌려 리듬감을 더한다.
+          Positioned(
+            top: 56,
+            right: 44,
+            child: SparkleDot(size: 14, color: textColor.withValues(alpha: 0.35)),
+          ),
+          Positioned(
+            bottom: 18,
+            right: 26,
+            child: SparkleDot(size: 10, color: textColor.withValues(alpha: 0.28)),
+          ),
+          // 실제 콘텐츠 - 기존 패딩/레이아웃을 그대로 유지한 채 장식 레이어
+          // 위(맨 앞)에 배치해 텍스트가 항상 선명하게 보이도록 한다.
+          Padding(
+            padding: const EdgeInsets.all(_Dims.heroCardPadding),
+            child: SizedBox(
+              height: _Dims.healingCardHeight - _Dims.heroCardPadding * 2,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.self_improvement_rounded,
+                        size: 18,
+                        color: textColor.withValues(alpha: 0.85),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '오늘의 힐링 한마디',
+                        style: HomeText.body(
+                          color: textColor.withValues(alpha: 0.85),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 500),
-              child: Text(
-                quote?.content ?? '잠시 마음을 쉬어가도 괜찮아요.\n당신은 충분히 잘하고 있습니다.',
-                key: ValueKey(quote?.id ?? -1),
-                maxLines: 4,
-                overflow: TextOverflow.ellipsis,
-                style: HomeText.title(color: textColor).copyWith(height: 1.35),
+                  const SizedBox(height: 10),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 500),
+                    child: Text(
+                      quote?.content ??
+                          '잠시 마음을 쉬어가도 괜찮아요.\n당신은 충분히 잘하고 있습니다.',
+                      key: ValueKey(quote?.id ?? -1),
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
+                      style: HomeText.title(
+                        color: textColor,
+                      ).copyWith(height: 1.35),
+                    ),
+                  ),
+                  if (quote?.author != null && quote!.author!.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      '- ${quote.author}',
+                      style: HomeText.caption(
+                        color: textColor.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
-            if (quote?.author != null && quote!.author!.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Text(
-                '- ${quote.author}',
-                style: HomeText.caption(
-                  color: textColor.withValues(alpha: 0.7),
-                ),
-              ),
-            ],
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
