@@ -118,84 +118,145 @@ class _TarotCardSelectScreenState extends State<TarotCardSelectScreen>
                     ),
                   ),
                   const SizedBox(height: TarotTokens.spaceLg),
-                  Expanded(
-                    child: Center(
-                      child: state.status == TarotSessionStatus.shuffling
-                          ? AnimatedBuilder(
-                              animation: _shuffleController,
-                              builder: (context, _) => _ShuffleFan(
-                                progress: _shuffleController.value,
+                  // [버그 수정] reveal() API 호출이 실패하면 상태가 error로
+                  // 바뀌는데, 기존에는 이 상태를 화면 어디에서도 처리하지
+                  // 않아 상단 문구는 default로 떨어지고("카드를 준비하고
+                  // 있어요...") 버튼은 disabled인 채 "n/n장 선택 중..."
+                  // 텍스트에 멈춰버려 사용자가 재시도할 방법이 전혀 없는
+                  // "먹통" 상태처럼 보였다. 명확한 에러 메시지 + 재시도
+                  // 버튼을 노출해 흐름을 이어갈 수 있게 한다.
+                  if (state.status == TarotSessionStatus.error)
+                    Expanded(
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: TarotTokens.spaceLg,
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.error_outline_rounded,
+                                size: 40,
+                                color: TarotColors.textFaint,
                               ),
-                            )
-                          : _SelectableFan(
-                              slots: state.deckSlots,
-                              requiredCount: state.requiredCardCount,
-                              interactive:
-                                  state.status ==
-                                  TarotSessionStatus.selectingCards,
-                              onSlotTap: (index) {
-                                context
-                                    .read<TarotAudioController>()
-                                    .playCardTap();
-                                context
-                                    .read<TarotSessionController>()
-                                    .selectSlot(index);
-                              },
-                            ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      TarotTokens.spaceLg,
-                      0,
-                      TarotTokens.spaceLg,
-                      TarotTokens.spaceXl,
-                    ),
-                    child: SizedBox(
-                      height: 52,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              state.status == TarotSessionStatus.cardsChosen
-                              ? TarotColors.pinkGlow
-                              : TarotColors.surfaceCardStrong,
-                          foregroundColor: TarotColors.bgVoid,
-                          disabledBackgroundColor:
-                              TarotColors.surfaceCardStrong,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                              TarotTokens.radiusPill,
-                            ),
+                              const SizedBox(height: TarotTokens.spaceMd),
+                              Text(
+                                state.errorMessage ?? '타로 리딩에 실패했습니다.',
+                                textAlign: TextAlign.center,
+                                style: TarotTextStyles.body,
+                              ),
+                              const SizedBox(height: TarotTokens.spaceLg),
+                              OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: TarotColors.pinkGlow,
+                                  side: BorderSide(color: TarotColors.pinkGlow),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      TarotTokens.radiusPill,
+                                    ),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: TarotTokens.spaceXl,
+                                    vertical: TarotTokens.spaceSm,
+                                  ),
+                                ),
+                                onPressed: () {
+                                  context
+                                      .read<TarotSessionController>()
+                                      .retryReveal(
+                                        context.read<TarotProvider>(),
+                                      );
+                                },
+                                child: const Text('다시 시도하기'),
+                              ),
+                            ],
                           ),
                         ),
-                        onPressed:
-                            state.status == TarotSessionStatus.cardsChosen
-                            ? _onRevealPressed
-                            : null,
-                        child: state.status == TarotSessionStatus.revealing
-                            ? const SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.4,
-                                  color: TarotColors.textPrimary,
+                      ),
+                    )
+                  else
+                    Expanded(
+                      child: Center(
+                        child: state.status == TarotSessionStatus.shuffling
+                            ? AnimatedBuilder(
+                                animation: _shuffleController,
+                                builder: (context, _) => _ShuffleFan(
+                                  progress: _shuffleController.value,
                                 ),
                               )
-                            : Text(
-                                state.status == TarotSessionStatus.cardsChosen
-                                    ? '카드 펼쳐보기'
-                                    : '${state.selectedSlotIndexes.length}/${state.requiredCardCount}장 선택 중...',
-                                style: TarotTextStyles.ctaLabel.copyWith(
-                                  color:
-                                      state.status ==
-                                          TarotSessionStatus.cardsChosen
-                                      ? TarotColors.bgVoid
-                                      : TarotColors.textFaint,
-                                ),
+                            : _SelectableFan(
+                                slots: state.deckSlots,
+                                requiredCount: state.requiredCardCount,
+                                interactive:
+                                    state.status ==
+                                    TarotSessionStatus.selectingCards,
+                                onSlotTap: (index) {
+                                  context
+                                      .read<TarotAudioController>()
+                                      .playCardTap();
+                                  context
+                                      .read<TarotSessionController>()
+                                      .selectSlot(index);
+                                },
                               ),
                       ),
                     ),
-                  ),
+                  // error 상태에서는 위쪽에 이미 "다시 시도하기" 버튼이
+                  // 노출되므로, 하단 CTA는 숨겨 버튼이 중복되지 않게 한다.
+                  if (state.status != TarotSessionStatus.error)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        TarotTokens.spaceLg,
+                        0,
+                        TarotTokens.spaceLg,
+                        TarotTokens.spaceXl,
+                      ),
+                      child: SizedBox(
+                        height: 52,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                state.status == TarotSessionStatus.cardsChosen
+                                ? TarotColors.pinkGlow
+                                : TarotColors.surfaceCardStrong,
+                            foregroundColor: TarotColors.bgVoid,
+                            disabledBackgroundColor:
+                                TarotColors.surfaceCardStrong,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                TarotTokens.radiusPill,
+                              ),
+                            ),
+                          ),
+                          onPressed:
+                              state.status == TarotSessionStatus.cardsChosen
+                              ? _onRevealPressed
+                              : null,
+                          child: state.status == TarotSessionStatus.revealing
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.4,
+                                    color: TarotColors.textPrimary,
+                                  ),
+                                )
+                              : Text(
+                                  state.status == TarotSessionStatus.cardsChosen
+                                      ? '카드 펼쳐보기'
+                                      : '${state.selectedSlotIndexes.length}/${state.requiredCardCount}장 선택 중...',
+                                  style: TarotTextStyles.ctaLabel.copyWith(
+                                    color:
+                                        state.status ==
+                                            TarotSessionStatus.cardsChosen
+                                        ? TarotColors.bgVoid
+                                        : TarotColors.textFaint,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -215,6 +276,8 @@ class _TarotCardSelectScreenState extends State<TarotCardSelectScreen>
         return '카드를 모두 골랐어요. 준비되면 펼쳐보세요';
       case TarotSessionStatus.revealing:
         return '카드의 기운을 읽는 중...';
+      case TarotSessionStatus.error:
+        return '앗, 잠시 문제가 생겼어요';
       default:
         return '카드를 준비하고 있어요...';
     }
