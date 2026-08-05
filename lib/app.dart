@@ -51,6 +51,8 @@ import 'features/ad_banner/application/ad_banner_provider.dart';
 import 'features/ad_banner/data/ad_banner_repository.dart';
 import 'features/lucky_number/application/lucky_number_provider.dart';
 import 'features/lucky_number/data/lucky_number_repository.dart';
+import 'features/healing_quote/application/healing_quote_provider.dart';
+import 'features/healing_quote/data/healing_quote_repository.dart';
 import 'features/pass/application/pass_provider.dart';
 import 'features/pass/application/open_pass_reward_controller.dart';
 import 'features/pass/data/pass_repository.dart';
@@ -99,6 +101,11 @@ class App extends StatelessWidget {
         // admin_web `/api/public/lucky-number` 실 API 연동(AdBannerProvider와 분리)
         ChangeNotifierProvider(
           create: (_) => LuckyNumberProvider(LuckyNumberRepository()),
+        ),
+        // [사용자 요청] "오늘의 운세 이야기"를 완전히 삭제하고 대체한 힐링 문구 기능 —
+        // admin_web `/api/public/healing-quotes` 실 API 연동, 1분마다 자동 순환.
+        ChangeNotifierProvider(
+          create: (_) => HealingQuoteProvider(HealingQuoteRepository()),
         ),
         // [신규] 열림패스(AlarmPass) — admin_web `/api/public/pass/*` 실 API 연동.
         // 홈 화면 상단 상태바 + 열림패스 섹션에서 공유하는 전역 상태.

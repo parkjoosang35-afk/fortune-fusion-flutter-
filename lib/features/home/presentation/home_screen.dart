@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
@@ -8,8 +9,7 @@ import '../../../core/widgets/premium_button.dart';
 import '../../../core/widgets/premium_chip.dart';
 import '../../../core/widgets/premium_circle_button.dart';
 import '../../../core/widgets/premium_graphics.dart';
-import '../../ad_banner/application/ad_banner_provider.dart';
-import '../../ad_banner/presentation/ad_banner_widget.dart';
+import '../../healing_quote/application/healing_quote_provider.dart';
 import '../../wallet/application/wallet_provider.dart';
 import '../../attendance/application/attendance_provider.dart';
 import '../../fortune/daily/application/daily_fortune_provider.dart';
@@ -76,14 +76,18 @@ class _Dims {
   // 헤더 row(아이콘 간격) - 스펙에 명시되지 않은 아이콘 내부 미세 간격이라 유지.
   static const double headerIconGap = 10;
 
-  // 히어로 카드(오늘의 운세 이야기) - 스펙: width358(자동)/height108~116/radius16/padding14
+  // 히어로 카드(→ 힐링 문구 카드) - 스펙: width358(자동)/height108~116/radius16/padding14
   static const double heroCardHeight = 112;
   static const double heroCardRadius = 16;
   static const double heroCardPadding = 14;
   // 메인 카드 → 소원게시판/소원방 2열 gap = 스펙 12
   static const double heroCardBottomGap = 12;
-  // 카드 우상단 원형 CTA 배경 26~28 → 28 선택(내부 아이콘 14로 override)
-  static const double heroCircleSize = 28;
+
+  // [사용자 요청] "오늘의 운세 이야기" 박스를 삭제하고, 쿠팡 광고 배너(AdBannerWidget,
+  // position=home_middle, height=96) 영역까지 포함해 힐링 문구 카드를 아래로 확장한다.
+  // 기존 배너(96) + 배너-히어로 사이 gap이 없었으므로(연속 배치), 순수 배너 높이만큼만
+  // 히어로 카드 높이에 더한다: heroCardHeight(112) + adBannerHeight(96) = 208.
+  static const double healingCardHeight = heroCardHeight + 96;
 
   // 소원게시판/소원방 2열 카드 - 스펙: gap8/각width175(자동)/height96~104/radius16/padding14
   static const double wishCardGap = 8;
@@ -125,7 +129,10 @@ class _HomeScreenState extends State<HomeScreen> {
       context.read<WishPostProvider>().loadFeed();
       context.read<PassProvider>().load();
       context.read<NotificationProvider>().load();
-      context.read<AdBannerProvider>().loadPositions(const ['home_middle']);
+      // [사용자 요청] "오늘의 운세 이야기"를 완전히 삭제하고 데이터베이스 기반 힐링
+      // 문구로 대체 — admin_web `/api/public/healing-quotes`에서 활성 문구 목록을
+      // 불러와 1분마다 자동 순환한다(AdBannerProvider.loadPositions 호출은 제거).
+      context.read<HealingQuoteProvider>().load();
     });
   }
 
@@ -169,16 +176,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: _Dims.chipsBottomGap),
 
-                // [관리자 CMS 배너 슬롯] 운세/타로 카드 바로 위 - 관리자 웹
-                // CMS(`/cms/banners`, position=home_middle)에서 등록/활성화한
-                // 배너를 노출한다. 활성 배너가 없으면(비활성/기간외/오류 등)
-                // 공간을 차지하지 않고 완전히 사라진다(fallback 없음).
-                const AdBannerWidget(position: 'home_middle'),
-
-                // ⑤ 오늘의 운세 이야기 - 보라-블루 그라데이션 히어로 카드
+                // ⑤ [사용자 요청] "오늘의 운세 이야기"(운세 기능) + 쿠팡 광고
+                // 배너(AdBannerWidget, position=home_middle)를 완전히 삭제하고,
+                // 그 자리(광고 영역까지 포함)를 힐링 문구 카드로 크게 확장한다.
+                // 운세와 무관하며, db 기반 문구를 1분마다 자동 순환하고 배경색은
+                // 30분마다 자동 변경된다(대비를 고려해 텍스트 색도 자동 조정).
                 const FadeSlideIn(
                   delay: Duration(milliseconds: 120),
-                  child: _TodayStoryHeroCard(),
+                  child: _HealingQuoteCard(),
                 ),
                 const SizedBox(height: _Dims.heroCardBottomGap),
 
@@ -430,85 +435,132 @@ class _FortuneCategoryChipsState extends State<_FortuneCategoryChips> {
   }
 }
 
-/// ⑤ "오늘의 운세 이야기" 메인 카드 - 보라-블루 그라데이션 + 네온라임 원형 버튼
+/// ⑤ [사용자 요청] "오늘의 운세 이야기"를 완전히 삭제하고 대체한 힐링 문구 카드.
 ///
-/// [첨부 디자인 반영] 사용자가 제공한 목업의 대형 히어로 카드(진한 보라~블루
-/// 그라데이션 배경 + 우하단 은은한 발광 원 장식 + 우상단 네온라임 원형 버튼)를
-/// 그대로 재현한다. 배경이 어두워진 만큼 텍스트는 화이트 계열로 전환해
-/// 대비를 유지하고, 기존 기능(오늘의 운세 상세로 이동)은 그대로 둔다.
-class _TodayStoryHeroCard extends StatelessWidget {
-  const _TodayStoryHeroCard();
+/// - 운세 기능(DailyFortuneProvider 참조, 상세화면 이동)은 완전히 제거했다 —
+///   이 카드는 탭 액션이 없는 순수 콘텐츠 카드다.
+/// - 좋은 글귀/힐링 문구/긍정 명언/응원의 한마디를 admin_web DB에서 불러와
+///   [HealingQuoteProvider]가 1분마다 자동으로 다음 문구로 순환시킨다(24시간 반복).
+/// - 카드 배경색은 30분마다 부드럽고 감성적인 파스텔 팔레트에서 랜덤 선택되어
+///   자동 변경되고, 텍스트 색은 배경 밝기에 따라 항상 잘 보이도록 자동 대비
+///   조정된다(luminance 기반 흑/백 판정).
+/// - 기존 "오늘의 운세 이야기" 히어로카드 + 그 위 쿠팡 광고 배너(96px) 영역을
+///   합친 만큼 높이를 확장했다([_Dims.healingCardHeight]).
+class _HealingQuoteCard extends StatefulWidget {
+  const _HealingQuoteCard();
+
+  @override
+  State<_HealingQuoteCard> createState() => _HealingQuoteCardState();
+}
+
+class _HealingQuoteCardState extends State<_HealingQuoteCard> {
+  static const Duration _bgRotationInterval = Duration(minutes: 30);
+
+  // 부드럽고 감성적인 파스텔 계열 배경색 팔레트. 30분마다 이 중 하나를
+  // 랜덤으로 선택해 카드 배경을 자동 변경한다.
+  static const List<Color> _palette = [
+    Color(0xFFEDE7F6), // 라벤더
+    Color(0xFFE1F5FE), // 스카이블루
+    Color(0xFFFFF3E0), // 피치
+    Color(0xFFE8F5E9), // 민트그린
+    Color(0xFFFCE4EC), // 로즈핑크
+    Color(0xFFFFF9C4), // 크림옐로
+    Color(0xFFE0F2F1), // 아쿠아
+    Color(0xFFF3E5F5), // 라일락
+    Color(0xFFECEFF1), // 그레이블루
+    Color(0xFFFFEBEE), // 소프트코럴
+  ];
+
+  final Random _random = Random();
+  late Color _bgColor;
+  Timer? _bgTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _bgColor = _pickRandomColor();
+    // [사용자 요청] "배경색을 30분마다 자동으로 변경... 부드럽고 감성적인
+    // 색상을 랜덤으로 적용"
+    _bgTimer = Timer.periodic(_bgRotationInterval, (_) {
+      if (!mounted) return;
+      setState(() => _bgColor = _pickRandomColor());
+    });
+  }
+
+  Color _pickRandomColor() => _palette[_random.nextInt(_palette.length)];
+
+  /// 배경색 밝기(luminance)를 기준으로 항상 잘 보이는 텍스트 색을 계산한다.
+  /// 팔레트가 전부 밝은 파스텔이라 기본은 짙은 텍스트지만, 향후 팔레트가
+  /// 어두운 색을 포함하게 되어도 자동으로 대비가 유지되도록 일반화했다.
+  Color _contrastTextColor(Color background) {
+    return background.computeLuminance() > 0.5
+        ? const Color(0xFF1A1A1A)
+        : Colors.white;
+  }
+
+  @override
+  void dispose() {
+    _bgTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final today = context.watch<DailyFortuneProvider>().today;
+    final healing = context.watch<HealingQuoteProvider>();
+    final quote = healing.current;
+    final textColor = _contrastTextColor(_bgColor);
 
-    return PremiumCard(
-      gradient: AppColors.premiumIndigoHeroGradient,
-      borderColor: Colors.transparent,
-      borderRadius: BorderRadius.circular(_Dims.heroCardRadius),
-      showShadow: false,
-      onTap: () =>
-          Navigator.of(context).pushNamed('/home/daily-fortune-detail'),
-      padding: const EdgeInsets.all(_Dims.heroCardPadding),
-      child: ClipRRect(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 600),
+      curve: Curves.easeInOut,
+      decoration: BoxDecoration(
+        color: _bgColor,
         borderRadius: BorderRadius.circular(_Dims.heroCardRadius),
-        child: SizedBox(
-          height: _Dims.heroCardHeight - _Dims.heroCardPadding * 2,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              // 우하단 은은한 발광 원 장식(첨부 디자인의 반원 글로우 그래픽).
-              Positioned(
-                right: -20,
-                bottom: -40,
-                child: SoftGradientBlob(
-                  size: 140,
-                  color: Colors.white,
-                  opacity: 0.16,
+      ),
+      padding: const EdgeInsets.all(_Dims.heroCardPadding),
+      child: SizedBox(
+        height: _Dims.healingCardHeight - _Dims.heroCardPadding * 2,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.self_improvement_rounded,
+                  size: 18,
+                  color: textColor.withValues(alpha: 0.85),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '오늘의 힐링 한마디',
+                  style: HomeText.body(
+                    color: textColor.withValues(alpha: 0.85),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 500),
+              child: Text(
+                quote?.content ?? '잠시 마음을 쉬어가도 괜찮아요.\n당신은 충분히 잘하고 있습니다.',
+                key: ValueKey(quote?.id ?? -1),
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+                style: HomeText.title(color: textColor).copyWith(height: 1.35),
+              ),
+            ),
+            if (quote?.author != null && quote!.author!.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(
+                '- ${quote.author}',
+                style: HomeText.caption(
+                  color: textColor.withValues(alpha: 0.7),
                 ),
               ),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          '오늘의 운세 이야기',
-                          style: HomeText.title(color: Colors.white),
-                        ),
-                        // 제목-본문 gap 6(스펙 고정값).
-                        const SizedBox(height: 6),
-                        Text(
-                          today?.summaryText ?? '오늘은 당신의\n운명은 어떤 이야기가 펼쳐질까요?',
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                          style: HomeText.body(
-                            color: Colors.white.withValues(alpha: 0.85),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // 카드 우상단 원형 CTA 배경 26~28→28, 내부 아이콘 14(28*0.5=14).
-                  // 네온 배경 위 아이콘은 반대색(#111111)으로 override.
-                  PremiumCircleButton(
-                    icon: Icons.arrow_drop_up_rounded,
-                    style: PremiumCircleButtonStyle.neon,
-                    size: _Dims.heroCircleSize,
-                    bgColor: HomeColors.neon,
-                    fgColor: HomeColors.textPrimary,
-                    onTap: () => Navigator.of(
-                      context,
-                    ).pushNamed('/home/daily-fortune-detail'),
-                  ),
-                ],
-              ),
             ],
-          ),
+          ],
         ),
       ),
     );
