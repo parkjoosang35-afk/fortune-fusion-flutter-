@@ -10,7 +10,6 @@ import '../../../core/widgets/premium_circle_button.dart';
 import '../../../core/widgets/premium_graphics.dart';
 import '../../ad_banner/application/ad_banner_provider.dart';
 import '../../ad_banner/presentation/ad_banner_widget.dart';
-import '../../consultation/application/consultation_provider.dart';
 import '../../wallet/application/wallet_provider.dart';
 import '../../attendance/application/attendance_provider.dart';
 import '../../fortune/daily/application/daily_fortune_provider.dart';
@@ -91,48 +90,13 @@ class _Dims {
   static const double wishCardHeight = 100;
   static const double wishCardRadius = 16;
   static const double wishCardPadding = 14;
-  // 소원게시판/소원방 → 전체보기 제목 gap = 스펙 20
-  static const double wishRowBottomGap = 20;
   // 카드 우상단 원형 CTA 배경 26~28 → 27(중앙값), 내부 아이콘 14로 override
   static const double wishCircleSize = 27;
-
-  // 전체보기 타이틀 + 3카드(부적만들기/궁합매칭/커뮤니티) - 처음부터 3개용으로
-  // 설계된 균등분배(Expanded) 레이아웃. 가로 스크롤 없이 한 화면에 고정 배치.
-  // 전체보기 제목 → 3카드 gap = 스펙 12
-  static const double allMenuTitleBottomGap = 12;
-  // 스펙: 각width114(자동, gap8 기준)/height64~72/radius14/padding12
-  static const double allMenuCardHeight = 68;
-  static const double allMenuCardRadius = 14;
-  static const double allMenuCardPadding = 12;
-  static const double allMenuGap = 8;
-  // 3카드 → AI 상담 배너 gap = 스펙 16
-  static const double allMenuBottomGap = 16;
-
-  // 전체보기 아래 프로모 배너("AI 상담" 유도) - CMS 광고배너 없을 때 fallback
-  // 스펙: width358(자동)/height64~72/radius14/padding좌우14·상하12
-  static const double bannerHeight = 68;
-  static const double bannerRadius = 14;
-  static const double bannerPaddingH = 14;
-  static const double bannerPaddingV = 12;
-  // AI 상담 배너 우측 원형 CTA 배경 32 / 내부 아이콘 16(32*0.5=16, override 불필요)
-  static const double bannerCircleSize = 32;
-
-  // AI 상담 배너 아래 보조 진입 카드("고민상담") - 남는 공간을 메우는 가벼운 카드.
-  // 스펙 표에 명시적 항목은 없으나 "카드 간 세로 간격은 12 또는 14" 원칙과
-  // 공통 카드 규칙(radius기본16 이하 계열 중 14, padding좌우14·상하12)을 그대로
-  // 적용해 다른 카드들과 통일감을 맞췄다.
-  static const double worryCardTopGap = 14;
-  static const double worryCardHeight = 68;
-  static const double worryCardRadius = 14;
-  static const double worryCardPaddingH = 14;
-  static const double worryCardPaddingV = 12;
-  static const double worryCircleSize = 26;
 
   // 하단 고정 열림패스 바 - 스펙: width358(자동)/height48/radius24/좌우padding16
   static const double bottomBarHeight = 48;
   static const double bottomBarRadius = 24;
-  // 고민상담 카드 → 열림패스 바 gap = 스펙 "AI배너→열림패스바 14"를 그대로 적용
-  // (고민상담 카드가 AI배너 뒤에 추가된 보조 카드이므로 동일한 카드형 gap 사용)
+  // 소원게시판/소원방 카드 → 열림패스 바 gap = 스펙 "카드→열림패스바 14" 적용
   static const double bottomBarTopGap = 14;
   // 열림패스 바 → 탭바 gap = 스펙 14
   static const double bottomBarBottomGap = 14;
@@ -161,10 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
       context.read<WishPostProvider>().loadFeed();
       context.read<PassProvider>().load();
       context.read<NotificationProvider>().load();
-      context.read<AdBannerProvider>().loadPositions(const [
-        'home_middle',
-        'home_bottom',
-      ]);
+      context.read<AdBannerProvider>().loadPositions(const ['home_middle']);
     });
   }
 
@@ -193,10 +154,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 const FadeSlideIn(child: _TodayFortuneCta()),
                 const SizedBox(height: _Dims.ctaBottomGap),
 
-                // ③ "타로이야기가기" 타이틀 + 우측 블랙 원형 그리드 버튼
+                // ③ [첨부 디자인 반영] "전체보기" 타이틀 + 우측 블랙 원형
+                // 그리드 버튼 - 탭 시 운세 전체보기(카테고리 허브) 화면으로 이동한다.
                 const FadeSlideIn(
                   delay: Duration(milliseconds: 40),
-                  child: _TarotStoryHeader(),
+                  child: _AllCategoriesHeader(),
                 ),
                 const SizedBox(height: _Dims.tarotHeaderBottomGap),
 
@@ -229,41 +191,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: _Dims.heroCardBottomGap),
 
                 // ⑥ 소원게시판 / 소원방 2단 카드(#F5F3FB, 완전 동일)
+                // [첨부 디자인 반영] 목업에는 이 2단 카드까지만 존재하고 그
+                // 아래(전체보기 3버튼/AI상담 배너/고민상담 카드)는 없으므로,
+                // 여기서 화면을 마무리한다("나머지는 안보여도 됨").
                 const FadeSlideIn(
                   delay: Duration(milliseconds: 160),
                   child: _WishBoardRoomRow(),
-                ),
-                const SizedBox(height: _Dims.wishRowBottomGap),
-
-                // ⑦ 전체보기 타이틀 + 3버튼 로우
-                // [칩 이동 세그먼트] 전체보기 카테고리 허브 진입은 상단 칩
-                // 로우(④, 네온라임 강조되는 "전체보기" 칩)로 옮겼으므로, 여기는
-                // 다시 단순 타이틀(터치 액션 없음)로 되돌리고 폰트를 더 작게
-                // (15px) 줄여 상단 칩과 역할이 겹치지 않게 한다.
-                Text('전체보기', style: HomeText.title()),
-                const SizedBox(height: _Dims.allMenuTitleBottomGap),
-                const FadeSlideIn(
-                  delay: Duration(milliseconds: 200),
-                  child: _AllMenuButtonsRow(),
-                ),
-                const SizedBox(height: _Dims.allMenuBottomGap),
-
-                // ⑧ 전체보기 아래 빈 공간 - 기존 AdBannerWidget(CMS 광고배너,
-                // features/ad_banner)을 재사용. CMS에 활성 배너가 없을 때는
-                // 완전히 사라지는 대신(fallback 없던 기존 동작) AI상담 유도
-                // 프로모 카드(_ConsultationPromoBanner)를 대체 표시한다.
-                AdBannerWidget(
-                  position: 'home_bottom',
-                  fallback: const _ConsultationPromoBanner(),
-                ),
-                const SizedBox(height: _Dims.worryCardTopGap),
-
-                // ⑨ AI 상담 배너 아래 남는 공간을 메우는 보조 진입 카드 - "고민상담".
-                // 기능은 기존 일반상담(type='general')을 그대로 재사용하고,
-                // 사용자 노출 명칭만 "고민상담"으로 표시한다(경쟁 구조가 아닌 보조 카드).
-                const FadeSlideIn(
-                  delay: Duration(milliseconds: 220),
-                  child: _WorryConsultationBanner(),
                 ),
               ],
             ),
@@ -387,9 +320,10 @@ class _TodayFortuneCta extends StatelessWidget {
   }
 }
 
-/// ③ "타로이야기가기" 섹션 헤더 + 우측 블랙 원형 그리드 아이콘 버튼
-class _TarotStoryHeader extends StatelessWidget {
-  const _TarotStoryHeader();
+/// ③ [첨부 디자인 반영] "전체보기" 섹션 헤더 + 우측 블랙 원형 그리드 아이콘
+/// 버튼 - 탭 시 운세 전체보기(카테고리 허브, `/home/all-categories`)로 이동한다.
+class _AllCategoriesHeader extends StatelessWidget {
+  const _AllCategoriesHeader();
 
   @override
   Widget build(BuildContext context) {
@@ -409,7 +343,7 @@ class _TarotStoryHeader extends StatelessWidget {
           child: const Icon(Icons.style_rounded, size: 12, color: Colors.white),
         ),
         const SizedBox(width: 8),
-        Text('타로이야기가기', style: HomeText.titleLarge()),
+        Text('전체보기', style: HomeText.titleLarge()),
         const Spacer(),
         // 섹션 우상단 원형 아이콘 배경 28 / 내부 아이콘 14(28*0.5=14).
         // 블랙 CTA 색상을 스펙 정확값(#111111)으로 override.
@@ -419,11 +353,10 @@ class _TarotStoryHeader extends StatelessWidget {
           size: _Dims.tarotCircleSize,
           bgColor: HomeColors.black,
           fgColor: Colors.white,
-          // [타로 섹션 전면 개편 §2] 신규 타로 메인 홈(①)으로 진입점을
-          // 변경한다. 기존 /ai-fortune/tarot/question 라우트 자체는 그대로
-          // 유지되며(질문화면 단독 진입 경로는 카테고리 상세→시작하기에서
-          // 계속 사용), 이 버튼만 새로운 "정문"을 가리키도록 갱신한다.
-          onTap: () => Navigator.of(context).pushNamed('/tarot/home'),
+          // [첨부 디자인 반영] "오늘의 운세보기" CTA 바로 아래 "전체보기"
+          // 섹션은 운세 전체보기(카테고리 허브) 화면으로 이동하는 것이
+          // 사용자 의도이므로, 타로 메인 홈이 아니라 이 라우트로 연결한다.
+          onTap: () => Navigator.of(context).pushNamed('/home/all-categories'),
         ),
       ],
     );
@@ -716,7 +649,9 @@ class _WishBoardRoomRow extends StatelessWidget {
               circleIcon: Icons.arrow_drop_down_rounded,
               circleStyle: PremiumCircleButtonStyle.black,
               onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const WishRoomRiverpodEntry()),
+                MaterialPageRoute(
+                  builder: (_) => const WishRoomRiverpodEntry(),
+                ),
               ),
             ),
           ),
@@ -788,216 +723,7 @@ class _LavenderMiniCard extends StatelessWidget {
   }
 }
 
-/// ⑦ 전체보기 - 이름 운세/손금/커뮤니티 3카드 균등분배 로우.
-///
-/// [UI 정리 세그먼트] 기존 4번째 "AI 상담" 카드를 제거하면서, 단순히 가로
-/// 스크롤 리스트에서 하나를 뺀 임시 상태가 아니라 처음부터 3개 카드를 위해
-/// 설계된 것처럼 보이도록 `ListView`(가로 스크롤) 대신 고정 `Row` + `Expanded`
-/// 균등분배 구조로 전환한다. 3개뿐이라 스크롤이 필요 없어졌기 때문.
-class _AllMenuButtonsRow extends StatelessWidget {
-  const _AllMenuButtonsRow();
-
-  static const _items = [
-    ('이름 운세', '/ai-fortune/name/input'),
-    ('손금', '/ai-fortune/palm/capture'),
-    ('커뮤니티', null),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: _Dims.allMenuCardHeight,
-      child: Row(
-        children: [
-          for (var index = 0; index < _items.length; index++) ...[
-            if (index > 0) const SizedBox(width: _Dims.allMenuGap),
-            Expanded(child: _AllMenuCard(item: _items[index])),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _AllMenuCard extends StatelessWidget {
-  const _AllMenuCard({required this.item});
-
-  final (String, String?) item;
-
-  @override
-  Widget build(BuildContext context) {
-    final (label, route) = item;
-    return GestureDetector(
-      onTap: () {
-        if (route != null) {
-          Navigator.of(context).pushNamed(route);
-        } else {
-          Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: (_) => const CommunityScreen()));
-        }
-      },
-      child: Container(
-        alignment: Alignment.center,
-        padding: const EdgeInsets.all(_Dims.allMenuCardPadding),
-        decoration: BoxDecoration(
-          color: HomeColors.cardAllMenu,
-          borderRadius: BorderRadius.circular(_Dims.allMenuCardRadius),
-        ),
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: HomeText.bodyStrong(),
-        ),
-      ),
-    );
-  }
-}
-
-/// [배너 추가 세그먼트] 전체보기 아래 빈 공간을 메우는 보조 프로모 카드.
-///
-/// CMS 광고배너(`AdBannerWidget`)가 비어 있을 때(비활성/기간외/서버오류 등)
-/// 표시되는 fallback으로, 새 배너 시스템을 만들지 않고 기존 `PremiumCard` +
-/// `PremiumCircleButton` 디자인시스템 컴포넌트만 재사용해 구성한다.
-class _ConsultationPromoBanner extends StatelessWidget {
-  const _ConsultationPromoBanner();
-
-  @override
-  Widget build(BuildContext context) {
-    return PremiumCard(
-      backgroundColor: HomeColors.cardBanner,
-      borderColor: Colors.transparent,
-      borderRadius: BorderRadius.circular(_Dims.bannerRadius),
-      showShadow: false,
-      onTap: () =>
-          Navigator.of(context).pushNamed('/ai-fortune/consultation/type'),
-      padding: const EdgeInsets.symmetric(
-        horizontal: _Dims.bannerPaddingH,
-        vertical: _Dims.bannerPaddingV,
-      ),
-      child: SizedBox(
-        height: _Dims.bannerHeight - _Dims.bannerPaddingV * 2,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'AI 상담으로 더 자세히 보기',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: HomeText.title(),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '오늘 본 운세를 기반으로 상담받아보세요',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: HomeText.caption(),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            // AI 상담 배너 원형 CTA 배경 32 / 내부 아이콘 16(32*0.5=16).
-            PremiumCircleButton(
-              icon: Icons.chevron_right_rounded,
-              style: PremiumCircleButtonStyle.black,
-              size: _Dims.bannerCircleSize,
-              bgColor: HomeColors.black,
-              fgColor: Colors.white,
-              onTap: () => Navigator.of(
-                context,
-              ).pushNamed('/ai-fortune/consultation/type'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// [UI 정리 세그먼트] AI 상담 배너 아래 남는 공간을 메우는 보조 진입 카드.
-///
-/// 기능은 기존 "일반상담"(ConsultationProvider.startSession(type: 'general'))을
-/// 그대로 재사용하되, 사용자에게 노출되는 명칭은 "고민상담"으로만 표시한다.
-/// AI 상담 배너보다 낮은 시각적 무게를 유지하기 위해 배경을 화면 배경에 더
-/// 가까운 톤(카드 팔레트 중 가장 옅은 계열)으로 두고, 낮은 대비를 보완하도록
-/// 얇은 테두리(#ECECEF)를 최소한으로만 사용한다("테두리 사용 최소화, 필요
-/// 시 #ECECEF" 규정에 부합).
-class _WorryConsultationBanner extends StatelessWidget {
-  const _WorryConsultationBanner();
-
-  Future<void> _open(BuildContext context) async {
-    final provider = context.read<ConsultationProvider>();
-    final navigator = Navigator.of(context);
-    await provider.startSession('general');
-    if (!context.mounted) return;
-    navigator.pushNamed('/ai-fortune/consultation/chat');
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return PremiumCard(
-      backgroundColor: HomeColors.bg,
-      borderColor: HomeColors.border,
-      borderRadius: BorderRadius.circular(_Dims.worryCardRadius),
-      showShadow: false,
-      onTap: () => _open(context),
-      padding: const EdgeInsets.symmetric(
-        horizontal: _Dims.worryCardPaddingH,
-        vertical: _Dims.worryCardPaddingV,
-      ),
-      child: SizedBox(
-        height: _Dims.worryCardHeight - _Dims.worryCardPaddingV * 2,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '고민상담',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: HomeText.bodyStrong(),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    '관계, 감정, 선택에 대한 상담 연결',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: HomeText.caption(),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            // 카드 우상단 원형 CTA 배경 26~28→26, 내부 아이콘 14로 override.
-            PremiumCircleButton(
-              icon: Icons.chevron_right_rounded,
-              style: PremiumCircleButtonStyle.lavender,
-              size: _Dims.worryCircleSize,
-              iconSize: 14,
-              bgColor: HomeColors.cardAllMenu,
-              fgColor: HomeColors.textSecondary,
-              onTap: () => _open(context),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// ⑧ 하단 고정 블랙 pill 바 - "열림패스" + 남은시간 + 네온라임 원형 화살표
+/// ⑦ 하단 고정 블랙 pill 바 - "열림패스" + 남은시간 + 네온라임 원형 화살표
 ///
 /// [색상/아이콘 통일] 배경을 정확히 #111111로, 자물쇠 이모지를 라인 아이콘
 /// (lock_outline_rounded/lock_open_rounded, 두께감 있는 rounded 세트)으로
