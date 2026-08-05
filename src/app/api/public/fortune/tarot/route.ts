@@ -18,6 +18,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { completeText, LlmClientError } from "@/lib/llm-client";
+import { isOpenPassActive } from "@/lib/open-pass-service";
 
 export const dynamic = "force-dynamic";
 
@@ -186,6 +187,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // [프리패스 무료이용] 열림패스가 활성 상태면 포인트 차감(및 잔액부족 실패)을
+    // 완전히 건너뛴다 — pass-policies.ts의 DEFAULT_AD_GUIDE_TEXT가 명시하는
+    // "프리패스 이용시간 동안 모든 콘텐츠를 무료로 이용" 설계 의도를 구현한다.
+    const passActive = await isOpenPassActive(userId);
+
     // 3) DB 트랜잭션: 잔액 확인 → 차감 → 환급 → 기록
     const outcome = await prisma.$transaction(async (tx) => {
       const wallet = await tx.wallet.findFirst({
@@ -194,29 +200,31 @@ export async function POST(request: NextRequest) {
       if (!wallet) throw new Error("WALLET_NOT_FOUND");
 
       const policy = await tx.pointPolicy.findUnique({ where: { sourceType: "ai_tarot_request" } });
-      const cost = policy?.isActive ? policy.amount : 80;
+      const cost = passActive ? 0 : policy?.isActive ? policy.amount : 80;
 
-      if (wallet.balance < cost) throw new Error("INSUFFICIENT_BALANCE");
+      if (!passActive && wallet.balance < cost) throw new Error("INSUFFICIENT_BALANCE");
 
       let balance = wallet.balance - cost;
-      await tx.wallet.update({
-        where: { id: wallet.id },
-        data: { balance, balanceSyncedAt: new Date() },
-      });
-      await tx.pointHistory.create({
-        data: {
-          walletId: wallet.id,
-          userId,
-          amount: -cost,
-          type: "spend",
-          sourceType: "ai_tarot_request",
-          balanceAfter: balance,
-          memo: `타로 리딩(${spreadType})`,
-        },
-      });
+      if (cost > 0) {
+        await tx.wallet.update({
+          where: { id: wallet.id },
+          data: { balance, balanceSyncedAt: new Date() },
+        });
+        await tx.pointHistory.create({
+          data: {
+            walletId: wallet.id,
+            userId,
+            amount: -cost,
+            type: "spend",
+            sourceType: "ai_tarot_request",
+            balanceAfter: balance,
+            memo: `타로 리딩(${spreadType})${passActive ? " [프리패스 무료]" : ""}`,
+          },
+        });
+      }
 
       let refundAmount = 0;
-      if (isRefundEligibleSourceType("ai_tarot_request")) {
+      if (cost > 0 && isRefundEligibleSourceType("ai_tarot_request")) {
         const config = await tx.economyConfig.findUnique({ where: { key: "refund_rate" } });
         const refundRate = config?.value ?? 0.5;
         refundAmount = Math.floor(cost * refundRate);

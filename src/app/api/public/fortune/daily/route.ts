@@ -17,6 +17,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { incrementMissionProgress } from "@/lib/mission-progress";
 import { earnLuckPouch } from "@/lib/luck-pouch-engine";
+import { isOpenPassActive } from "@/lib/open-pass-service";
 
 export const dynamic = "force-dynamic";
 
@@ -84,6 +85,10 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // [프리패스 무료이용] 열림패스가 활성 상태면 포인트 차감(및 잔액부족 실패)을
+    // 완전히 건너뛴다 — tarot/route.ts와 동일한 정책(단일 소스: open-pass-service.ts).
+    const passActive = await isOpenPassActive(userId);
+
     const outcome = await prisma.$transaction(async (tx) => {
       const { start, end, key } = todayRangeUtcKST();
 
@@ -129,31 +134,33 @@ export async function GET(request: NextRequest) {
       const policy = await tx.pointPolicy.findUnique({
         where: { sourceType: "ai_daily_request" },
       });
-      const cost = policy?.isActive ? policy.amount : 30;
+      const cost = passActive ? 0 : policy?.isActive ? policy.amount : 30;
 
-      if (wallet.balance < cost) throw new Error("INSUFFICIENT_BALANCE");
+      if (!passActive && wallet.balance < cost) throw new Error("INSUFFICIENT_BALANCE");
 
       // 4) 차감
       let balance = wallet.balance - cost;
-      await tx.wallet.update({
-        where: { id: wallet.id },
-        data: { balance, balanceSyncedAt: new Date() },
-      });
-      await tx.pointHistory.create({
-        data: {
-          walletId: wallet.id,
-          userId,
-          amount: -cost,
-          type: "spend",
-          sourceType: "ai_daily_request",
-          balanceAfter: balance,
-          memo: "오늘의 운세 조회",
-        },
-      });
+      if (cost > 0) {
+        await tx.wallet.update({
+          where: { id: wallet.id },
+          data: { balance, balanceSyncedAt: new Date() },
+        });
+        await tx.pointHistory.create({
+          data: {
+            walletId: wallet.id,
+            userId,
+            amount: -cost,
+            type: "spend",
+            sourceType: "ai_daily_request",
+            balanceAfter: balance,
+            memo: `오늘의 운세 조회${passActive ? " [프리패스 무료]" : ""}`,
+          },
+        });
+      }
 
       // 5) [Phase22 경제철학] 운세 소모 즉시 환급(economy_config.refund_rate)
       let refundAmount = 0;
-      if (isRefundEligibleSourceType("ai_daily_request")) {
+      if (cost > 0 && isRefundEligibleSourceType("ai_daily_request")) {
         const config = await tx.economyConfig.findUnique({
           where: { key: "refund_rate" },
         });

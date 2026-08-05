@@ -21,6 +21,28 @@ export class OpenPassServiceError extends Error {
   }
 }
 
+/**
+ * 특정 사용자의 열림패스(프리패스)가 현재 활성 상태인지 확인한다.
+ *
+ * [배경 - 프리패스 무료이용 버그 수정] /api/public/pass/status가 Flutter
+ * PassProvider/AccessChecker에게 알려주는 "활성 여부" 판정 기준(만료시각만 확인)을
+ * 그대로 재사용한다. 각 AI 운세 API(tarot/daily/saju/name)가 포인트 차감 여부를
+ * 판단하는 데 이 함수를 단일 소스로 사용해야 한다(§15 "관리자/앱 정책 불일치 금지"와
+ * 동일한 이유로, 활성 판정 로직을 라우트마다 다시 구현하면 안 된다).
+ *
+ * pass-policies.ts의 DEFAULT_AD_GUIDE_TEXT("프리패스 이용시간 동안 모든 콘텐츠를
+ * 무료로 이용할 수 있어요")가 명시하는 설계 의도를 실제로 구현하는 지점이다 —
+ * 이 함수가 true를 반환하면 호출측은 포인트 차감(및 잔액부족 실패)을 완전히
+ * 건너뛰어야 한다.
+ */
+export async function isOpenPassActive(userId: number): Promise<boolean> {
+  const now = new Date();
+  const activePass = await prisma.userPass.findFirst({
+    where: { userId, expiresAt: { gt: now } },
+  });
+  return !!activePass;
+}
+
 // [재화 구조 정리 - 재연결, 2026-08] 아래 두 함수는 더 이상 어디서도 호출되지 않는다.
 // LuckPouchWallet은 실제 앱의 어떤 화면도 읽지 않는 죽은 테이블로 확인되어
 // admin-simulation.ts의 §4 "복주머니 테스트"가 실제 원장(Wallet/POINT)을 쓰도록
