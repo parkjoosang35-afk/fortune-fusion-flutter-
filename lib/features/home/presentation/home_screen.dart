@@ -21,6 +21,7 @@ import '../../pass/application/pass_provider.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
 import '../../pass/presentation/pass_time_format.dart';
 import '../../../core/domain/access/access_checker.dart';
+import '../../auth/application/auth_provider.dart';
 import '../../wish_room/presentation/screens/wish_room_riverpod_entry.dart';
 import 'home_style_tokens.dart';
 
@@ -160,7 +161,10 @@ class _HomeScreenState extends State<HomeScreen> {
       context.read<WishPostProvider>().loadFeed();
       context.read<PassProvider>().load();
       context.read<NotificationProvider>().load();
-      context.read<AdBannerProvider>().loadPositions(const ['home_bottom']);
+      context.read<AdBannerProvider>().loadPositions(const [
+        'home_middle',
+        'home_bottom',
+      ]);
     });
   }
 
@@ -203,10 +207,24 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: _Dims.chipsBottomGap),
 
-                // ⑤ 오늘의 운세 이야기 - 플랫 라벤더화이트 메인 카드(#F0EEFB)
+                // [관리자 CMS 배너 슬롯] 운세/타로 카드 바로 위 - 관리자 웹
+                // CMS(`/cms/banners`, position=home_middle)에서 등록/활성화한
+                // 배너를 노출한다. 활성 배너가 없으면(비활성/기간외/오류 등)
+                // 공간을 차지하지 않고 완전히 사라진다(fallback 없음).
+                const AdBannerWidget(position: 'home_middle'),
+
+                // ⑤ 오늘의 운세 이야기 - 보라-블루 그라데이션 히어로 카드
                 const FadeSlideIn(
                   delay: Duration(milliseconds: 120),
                   child: _TodayStoryHeroCard(),
+                ),
+                const SizedBox(height: _Dims.heroCardBottomGap),
+
+                // ⑤-1 [첨부 디자인 반영] "운세"/"타로" 2분할 카드 - 연보라/
+                // 파스텔블루 톤. 각각 오늘의 운세 상세, 타로 메인 홈으로 이동한다.
+                const FadeSlideIn(
+                  delay: Duration(milliseconds: 140),
+                  child: _FortuneTarotRow(),
                 ),
                 const SizedBox(height: _Dims.heroCardBottomGap),
 
@@ -271,6 +289,7 @@ class _TopHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final notif = context.watch<NotificationProvider>();
+    final auth = context.watch<AuthProvider>();
 
     return Row(
       children: [
@@ -289,13 +308,6 @@ class _TopHeader extends StatelessWidget {
           ),
         ),
         const Spacer(),
-        // 클로버(복주머니 마스코트) - 앱 전역에서 쓰이는 브랜드 아이콘이라 이모지를
-        // 유지하되, 스펙 범위(20~22)를 그대로 만족하는 22를 유지한다.
-        GestureDetector(
-          onTap: () => Navigator.of(context).pushNamed('/reward/wallet'),
-          child: const Text('🍀', style: TextStyle(fontSize: 22)),
-        ),
-        const SizedBox(width: _Dims.headerIconGap),
         // 벨 아이콘 - 스펙 "상단 우측 알림/클로버 아이콘: 20~22" 범위 상단값(22),
         // 컬러는 기본 텍스트 아이콘 규칙(#111111) 적용.
         GestureDetector(
@@ -325,6 +337,29 @@ class _TopHeader extends StatelessWidget {
                   ),
                 ),
             ],
+          ),
+        ),
+        const SizedBox(width: _Dims.headerIconGap),
+        // [첨부 디자인 반영] 우측 끝 원형 프로필 아바타 - 로그인 상태면
+        // 마이페이지(설정)로, 비로그인 상태면 로그인 화면으로 이동한다.
+        GestureDetector(
+          onTap: () => Navigator.of(
+            context,
+          ).pushNamed(auth.isLoggedIn ? '/my/settings' : '/login'),
+          child: Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: HomeColors.cardAllMenu,
+              border: Border.all(color: HomeColors.border, width: 1),
+            ),
+            alignment: Alignment.center,
+            child: Icon(
+              Icons.person_rounded,
+              size: 18,
+              color: HomeColors.textSecondary,
+            ),
           ),
         ),
       ],
@@ -404,17 +439,17 @@ class _FortuneCategoryChips extends StatefulWidget {
 }
 
 class _FortuneCategoryChipsState extends State<_FortuneCategoryChips> {
-  int _selected = 0;
+  // [첨부 디자인 반영] 첨부 목업은 "사주" 칩이 기본 선택(네온라임 강조)된
+  // 상태를 보여준다. 목업의 "궁합" 칩은 앱에서 이미 삭제된 기능이라, 실제
+  // 존재하는 기능 중 시각적으로 가장 가까운 "관상"으로 대체했다.
+  int _selected = 1;
   bool _checking = false;
 
   // 기준 시안: 칩에는 아이콘 없이 텍스트만 표시
-  // [칩 이동] 기본 선택(네온라임 강조)되는 첫 칩을 "전체보기"로 변경해, 앱의
-  // 전체 카테고리 허브(AllCategoriesScreen)로 바로 진입하는 대표 진입점으로
-  // 삼는다. 패스 불필요(단순 탐색 페이지이므로 게이트 없이 즉시 이동).
   static const _items = [
     ('전체보기', '/home/all-categories', false),
     ('사주', '/ai-fortune/saju/input', true),
-    ('이름 운세', '/ai-fortune/name/input', true),
+    ('관상', '/ai-fortune/face/capture', true),
     ('손금', '/ai-fortune/palm/capture', true),
   ];
 
@@ -462,13 +497,12 @@ class _FortuneCategoryChipsState extends State<_FortuneCategoryChips> {
   }
 }
 
-/// ⑤ "오늘의 운세 이야기" 메인 카드 - 플랫 라벤더화이트(#F0EEFB) + 네온라임 원형 버튼
+/// ⑤ "오늘의 운세 이야기" 메인 카드 - 보라-블루 그라데이션 + 네온라임 원형 버튼
 ///
-/// [색상 통일] 기존 진한 인디고 그라디언트(premiumIndigoHeroGradient)와 흰색
-/// 글로우 장식 원(SoftGradientBlob)을 제거했다. "카드 배경을 진한 톤으로
-/// 되돌리는 것 금지"/"그라데이션 추가 금지" 원칙에 따라 완전 플랫 컬러로
-/// 전환하고, 배경이 밝아진 만큼 텍스트도 화이트 → 스펙 기본/서브 텍스트색으로
-/// 바꿔 대비를 유지한다.
+/// [첨부 디자인 반영] 사용자가 제공한 목업의 대형 히어로 카드(진한 보라~블루
+/// 그라데이션 배경 + 우하단 은은한 발광 원 장식 + 우상단 네온라임 원형 버튼)를
+/// 그대로 재현한다. 배경이 어두워진 만큼 텍스트는 화이트 계열로 전환해
+/// 대비를 유지하고, 기존 기능(오늘의 운세 상세로 이동)은 그대로 둔다.
 class _TodayStoryHeroCard extends StatelessWidget {
   const _TodayStoryHeroCard();
 
@@ -477,48 +511,176 @@ class _TodayStoryHeroCard extends StatelessWidget {
     final today = context.watch<DailyFortuneProvider>().today;
 
     return PremiumCard(
-      backgroundColor: HomeColors.cardMain,
+      gradient: AppColors.premiumIndigoHeroGradient,
       borderColor: Colors.transparent,
       borderRadius: BorderRadius.circular(_Dims.heroCardRadius),
       showShadow: false,
       onTap: () =>
           Navigator.of(context).pushNamed('/home/daily-fortune-detail'),
       padding: const EdgeInsets.all(_Dims.heroCardPadding),
-      child: SizedBox(
-        height: _Dims.heroCardHeight - _Dims.heroCardPadding * 2,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(_Dims.heroCardRadius),
+        child: SizedBox(
+          height: _Dims.heroCardHeight - _Dims.heroCardPadding * 2,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              // 우하단 은은한 발광 원 장식(첨부 디자인의 반원 글로우 그래픽).
+              Positioned(
+                right: -20,
+                bottom: -40,
+                child: SoftGradientBlob(
+                  size: 140,
+                  color: Colors.white,
+                  opacity: 0.16,
+                ),
+              ),
+              Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('오늘의 운세 이야기', style: HomeText.title()),
-                  // 제목-본문 gap 6(스펙 고정값).
-                  const SizedBox(height: 6),
-                  Text(
-                    today?.summaryText ?? '오늘은 당신의\n운명은 어떤 이야기가 펼쳐질까요?',
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: HomeText.body(),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          '오늘의 운세 이야기',
+                          style: HomeText.title(color: Colors.white),
+                        ),
+                        // 제목-본문 gap 6(스펙 고정값).
+                        const SizedBox(height: 6),
+                        Text(
+                          today?.summaryText ?? '오늘은 당신의\n운명은 어떤 이야기가 펼쳐질까요?',
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: HomeText.body(
+                            color: Colors.white.withValues(alpha: 0.85),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // 카드 우상단 원형 CTA 배경 26~28→28, 내부 아이콘 14(28*0.5=14).
+                  // 네온 배경 위 아이콘은 반대색(#111111)으로 override.
+                  PremiumCircleButton(
+                    icon: Icons.arrow_drop_up_rounded,
+                    style: PremiumCircleButtonStyle.neon,
+                    size: _Dims.heroCircleSize,
+                    bgColor: HomeColors.neon,
+                    fgColor: HomeColors.textPrimary,
+                    onTap: () => Navigator.of(
+                      context,
+                    ).pushNamed('/home/daily-fortune-detail'),
                   ),
                 ],
               ),
-            ),
-            // 카드 우상단 원형 CTA 배경 26~28→28, 내부 아이콘 14(28*0.5=14).
-            // 네온 배경 위 아이콘은 반대색(#111111)으로 override.
-            PremiumCircleButton(
-              icon: Icons.arrow_drop_up_rounded,
-              style: PremiumCircleButtonStyle.neon,
-              size: _Dims.heroCircleSize,
-              bgColor: HomeColors.neon,
-              fgColor: HomeColors.textPrimary,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// ⑤-1 [첨부 디자인 반영] "운세"/"타로" 2분할 카드
+///
+/// 좌측 "운세" 카드는 연보라(#F0EEFB 계열) 배경 + 네온라임 원형(위쪽 화살표)
+/// 버튼으로 오늘의 운세 상세로 이동하고, 우측 "타로" 카드는 더 밝은 파스텔
+/// 블루-라벤더 배경 + 블랙 원형(아래쪽 화살표) 버튼으로 타로 메인 홈으로
+/// 이동한다. 각 카드 하단에는 작은 부제(운세이야기/타로이야기)를 배치해
+/// 첨부 목업의 레이아웃을 그대로 재현한다.
+class _FortuneTarotRow extends StatelessWidget {
+  const _FortuneTarotRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: _Dims.wishCardHeight,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: _FortuneTarotMiniCard(
+              title: '운세',
+              bottomLabel: '운세이야기',
+              backgroundColor: HomeColors.cardMain,
+              circleIcon: Icons.arrow_drop_up_rounded,
+              circleStyle: PremiumCircleButtonStyle.neon,
               onTap: () =>
                   Navigator.of(context).pushNamed('/home/daily-fortune-detail'),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(width: _Dims.wishCardGap),
+          Expanded(
+            child: _FortuneTarotMiniCard(
+              title: '타로',
+              bottomLabel: '타로이야기',
+              backgroundColor: HomeColors.cardWish,
+              circleIcon: Icons.arrow_drop_down_rounded,
+              circleStyle: PremiumCircleButtonStyle.black,
+              onTap: () => Navigator.of(context).pushNamed('/tarot/home'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FortuneTarotMiniCard extends StatelessWidget {
+  const _FortuneTarotMiniCard({
+    required this.title,
+    required this.bottomLabel,
+    required this.backgroundColor,
+    required this.circleIcon,
+    required this.circleStyle,
+    required this.onTap,
+  });
+
+  final String title;
+  final String bottomLabel;
+  final Color backgroundColor;
+  final IconData circleIcon;
+  final PremiumCircleButtonStyle circleStyle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final overrideBg = circleStyle == PremiumCircleButtonStyle.neon
+        ? HomeColors.neon
+        : HomeColors.black;
+    final overrideFg = circleStyle == PremiumCircleButtonStyle.neon
+        ? HomeColors.textPrimary
+        : Colors.white;
+
+    return PremiumCard(
+      backgroundColor: backgroundColor,
+      borderColor: Colors.transparent,
+      borderRadius: BorderRadius.circular(_Dims.wishCardRadius),
+      showShadow: false,
+      onTap: onTap,
+      padding: const EdgeInsets.all(_Dims.wishCardPadding),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: Text(title, style: HomeText.title())),
+              PremiumCircleButton(
+                icon: circleIcon,
+                style: circleStyle,
+                size: _Dims.wishCircleSize,
+                iconSize: 14,
+                bgColor: overrideBg,
+                fgColor: overrideFg,
+                onTap: onTap,
+              ),
+            ],
+          ),
+          Text(bottomLabel, style: HomeText.caption()),
+        ],
       ),
     );
   }
