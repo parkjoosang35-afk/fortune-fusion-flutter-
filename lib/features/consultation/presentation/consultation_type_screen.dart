@@ -2,14 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/widgets/app_toast.dart';
-import '../../wallet/application/wallet_provider.dart';
 import '../application/consultation_provider.dart';
 import 'widgets/consultation_type_style.dart';
 
-/// [재화 구조 정리] 복주머니 사용 구간표 - 상담이용: -10개.
-/// 최초 진입(세션 시작) 시에만 차감하며, 유형 변경 모드에서는 차감하지 않는다.
-const int kConsultationUsageCost = 10;
+/// [무료 광고형 구조 재정비 §3단계] 복주머니는 소원게시판/소원성에서만 쓰는
+/// 유일한 재화로 고정한다. AI 상담은 "운세 열람"과 같은 성격의 콘텐츠라 더
+/// 이상 복주머니를 차감하지 않고 완전 무료로 이용할 수 있다(과거 -10개
+/// 차감 정책은 폐기).
 
 /// 03단계 §3.3 / 07단계 - ConsultationTypeScreen (선택형 패턴)
 /// 상담 유형(사주상담/타로상담/일반상담) 선택 → 채팅 화면으로 이동
@@ -68,30 +67,8 @@ class _ConsultationTypeScreenState extends State<ConsultationTypeScreen>
       if (!mounted) return;
       navigator.pop();
     } else {
-      // [재화 구조 정리] 상담이용-10: 최초 진입(세션 시작) 시 복주머니 차감 후 진행.
-      final wallet = context.read<WalletProvider>();
-      if (wallet.balance < kConsultationUsageCost) {
-        AppToast.show(
-          context,
-          '복주머니가 부족해요. (보유 ${wallet.balance}개)',
-          isError: true,
-        );
-        setState(() => _isNavigating = false);
-        return;
-      }
-
-      final spent = await wallet.spend(
-        kConsultationUsageCost,
-        'AI 상담 이용',
-        sourceType: 'ai_consultation_message',
-      );
-      if (!mounted) return;
-      if (!spent) {
-        setState(() => _isNavigating = false);
-        return;
-      }
-
-      // 최초 진입: 세션 시작 후 채팅 화면으로 push
+      // [무료 광고형 구조 재정비 §3단계] AI 상담은 완전 무료 — 복주머니
+      // 차감 없이 바로 세션을 시작한다.
       await provider.startSession(type);
       if (!mounted) return;
       navigator.pushNamed('/ai-fortune/consultation/chat');

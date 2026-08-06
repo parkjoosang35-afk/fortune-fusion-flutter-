@@ -176,17 +176,6 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: UnifiedTokens.spaceMd),
-            FadeSlideIn(
-              delay: const Duration(milliseconds: 320),
-              child: _ShortcutCard(
-                icon: Icons.confirmation_number_outlined,
-                title: '상품권',
-                subtitle: '복주머니로 상품권을 교환해보세요',
-                onTap: () =>
-                    Navigator.of(context).pushNamed('/reward/giftcard'),
-              ),
-            ),
             const SizedBox(height: UnifiedTokens.spaceXxl),
 
             const PremiumSectionTitle(title: '구독 보너스'),
