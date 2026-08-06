@@ -220,7 +220,6 @@ class App extends StatelessWidget {
             title: 'Fortune Fusion',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.light,
-            darkTheme: AppTheme.dark,
             themeMode: themeProvider.mode,
             initialRoute: '/splash',
             onGenerateRoute: AppRouter.onGenerateRoute,
