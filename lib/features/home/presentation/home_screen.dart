@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/premium_card.dart';
-import '../../../core/widgets/premium_button.dart';
 import '../../../core/widgets/premium_chip.dart';
 import '../../../core/widgets/premium_circle_button.dart';
 import '../../../core/widgets/premium_graphics.dart';
@@ -22,6 +21,7 @@ import '../../pass/presentation/pass_time_format.dart';
 import '../../../core/domain/access/access_checker.dart';
 import '../../auth/application/auth_provider.dart';
 import '../../wish_room/presentation/screens/wish_room_riverpod_entry.dart';
+import '../../../core/widgets/app_toast.dart';
 import 'home_style_tokens.dart';
 
 /// [Fortune Fusion 서브 디자인 통일 마스터 프롬프트] 홈 화면 - 기준 시안 그대로 구현
@@ -52,15 +52,12 @@ class _Dims {
   // 좌우 기준 페이지 패딩(모든 섹션 공통 시작선, x=16 좌우 기준선과 동일)
   static const double pagePadding = 16;
 
-  // 헤더 아래 gap(헤더 로우 → CTA 버튼). 스펙 "SafeArea→헤더 14~18" 범위와
+  // 헤더 아래 gap(헤더 로우 → "전체보기" 섹션). 스펙 "SafeArea→헤더 14~18" 범위와
   // "세로 간격은 12/14/16/20만 사용" 원칙을 함께 만족시키는 값으로 확정.
-  static const double headerBottomGap = 16;
-
-  // CTA 버튼(+오늘의 운세보기) - radius는 PremiumButton이 height/2로 자동 계산(=22).
-  // 이 버튼은 스펙의 카드 크기 표에 명시되지 않은 요소라 크기 자체는 손대지 않았다.
-  static const double ctaHeight = 44;
-  // CTA 버튼 → "타로이야기가기" 헤더 gap.
-  static const double ctaBottomGap = 16;
+  // [사용자 요청] "오늘의 운세보기" 검은색 CTA 버튼을 삭제하면서, 헤더 바로
+  // 아래에 "전체보기" 섹션이 오도록 gap을 그대로 유지한다(버튼이 있던 자리의
+  // 간격 값을 재사용해 레이아웃 흔들림 없이 자연스럽게 붙인다).
+  static const double headerBottomGap = 20;
 
   // "타로이야기가기" 헤더 아래 gap(칩 로우까지) = 스펙 "섹션 제목 → 칩 라인: 12"
   static const double tarotHeaderBottomGap = 12;
@@ -119,6 +116,16 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  // [사용자 요청 - 상단 메뉴 이동(탭) 기능] "전체보기" 타이틀과 "오늘의 운세"
+  // 칩을 누르면 홈 화면에 실제로 존재하는 "오늘의 운세" 섹션(힐링 문구 카드 +
+  // 운세/타로 카드)으로 자동 스크롤 이동한다. Scrollable.ensureVisible로 이
+  // 키가 달린 위젯이 화면에 보이도록 스크롤한다(같은 ListView 안이라 별도
+  // ScrollController offset 계산 없이 안전하게 동작). 사주/관상/손금/정통사주는
+  // 기존처럼 각자의 입력 화면으로 바로 이동하고, 신년운세는 아직 홈에 전용
+  // 섹션/상세화면이 없어 안내 토스트로 대체한다(key=null → _scrollToSection이
+  // 자동으로 토스트 처리).
+  final _todayFortuneSectionKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
@@ -134,6 +141,23 @@ class _HomeScreenState extends State<HomeScreen> {
       // 불러와 1분마다 자동 순환한다(AdBannerProvider.loadPositions 호출은 제거).
       context.read<HealingQuoteProvider>().load();
     });
+  }
+
+  /// [상단 메뉴 이동(탭) 기능] 지정한 [key]가 달린 섹션이 화면에 보이도록
+  /// 부드럽게 스크롤한다. 신년운세처럼 아직 홈 화면에 전용 콘텐츠 섹션이 없는
+  /// 카테고리는 key가 null이라 대신 안내 토스트를 띄운다(전체 카테고리 화면
+  /// 이동 없이 홈에 머무르는 사용자 경험 유지).
+  void _scrollToSection(GlobalKey? key, String label) {
+    if (key?.currentContext == null) {
+      AppToast.show(context, '$label 섹션은 곧 홈에서 만나볼 수 있어요 🙏');
+      return;
+    }
+    Scrollable.ensureVisible(
+      key!.currentContext!,
+      duration: const Duration(milliseconds: 420),
+      curve: Curves.easeInOutCubic,
+      alignment: 0.08,
+    );
   }
 
   @override
@@ -157,41 +181,57 @@ class _HomeScreenState extends State<HomeScreen> {
                 const _TopHeader(),
                 const SizedBox(height: _Dims.headerBottomGap),
 
-                // ② 블랙 pill CTA - "+ 오늘의 운세보기"
-                const FadeSlideIn(child: _TodayFortuneCta()),
-                const SizedBox(height: _Dims.ctaBottomGap),
-
-                // ③ [첨부 디자인 반영] "전체보기" 타이틀 + 우측 블랙 원형
-                // 그리드 버튼 - 탭 시 운세 전체보기(카테고리 허브) 화면으로 이동한다.
-                const FadeSlideIn(
-                  delay: Duration(milliseconds: 40),
-                  child: _AllCategoriesHeader(),
+                // ② [사용자 요청] "전체보기" 타이틀(탭 시 "오늘의 운세" 섹션으로
+                // 스크롤 이동) + 우측 블랙 원형 그리드 버튼(운세 전체보기
+                // 카테고리 허브 화면으로 이동, 기존 동작 유지).
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 40),
+                  child: _AllCategoriesHeader(
+                    onTitleTap: () => _scrollToSection(
+                      _todayFortuneSectionKey,
+                      '오늘의 운세',
+                    ),
+                  ),
                 ),
                 const SizedBox(height: _Dims.tarotHeaderBottomGap),
 
-                // ④ 칩 로우 - 전체보기(선택,네온라임)/사주/궁합/손금
-                const FadeSlideIn(
-                  delay: Duration(milliseconds: 80),
-                  child: _FortuneCategoryChips(),
+                // ③ [사용자 요청] 칩 메뉴 구조 변경 - 오늘의 운세/사주/관상/손금/
+                // 정통사주/신년운세. "오늘의 운세" 칩만 홈 내 섹션으로 스크롤
+                // 이동하고, 사주/관상/손금/정통사주는 기존처럼 열림패스 게이트를
+                // 거쳐 각자의 입력화면으로 바로 이동한다. 신년운세는 아직 상세
+                // 화면이 없어 안내 토스트로 대체한다.
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 80),
+                  child: _FortuneCategoryChips(
+                    onScrollToToday: () => _scrollToSection(
+                      _todayFortuneSectionKey,
+                      '오늘의 운세',
+                    ),
+                  ),
                 ),
                 const SizedBox(height: _Dims.chipsBottomGap),
 
-                // ⑤ [사용자 요청] "오늘의 운세 이야기"(운세 기능) + 쿠팡 광고
-                // 배너(AdBannerWidget, position=home_middle)를 완전히 삭제하고,
-                // 그 자리(광고 영역까지 포함)를 힐링 문구 카드로 크게 확장한다.
-                // 운세와 무관하며, db 기반 문구를 1분마다 자동 순환하고 배경색은
-                // 30분마다 자동 변경된다(대비를 고려해 텍스트 색도 자동 조정).
-                const FadeSlideIn(
-                  delay: Duration(milliseconds: 120),
-                  child: _HealingQuoteCard(),
-                ),
-                const SizedBox(height: _Dims.heroCardBottomGap),
-
-                // ⑤-1 [첨부 디자인 반영] "운세"/"타로" 2분할 카드 - 연보라/
-                // 파스텔블루 톤. 각각 오늘의 운세 상세, 타로 메인 홈으로 이동한다.
-                const FadeSlideIn(
-                  delay: Duration(milliseconds: 140),
-                  child: _FortuneTarotRow(),
+                // ④ [사용자 요청] "오늘의 운세" 섹션 - 힐링 문구 카드 + 운세/타로
+                // 2분할 카드를 하나의 섹션으로 감싸 GlobalKey를 부여한다(상단
+                // 메뉴/칩에서 이 섹션으로 스크롤 이동할 수 있게 하기 위함).
+                // 콘텐츠 자체(힐링 문구 db 기반 자동 순환, 운세/타로 카드 이동
+                // 동작)는 기존과 완전히 동일하게 유지한다.
+                KeyedSubtree(
+                  key: _todayFortuneSectionKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      FadeSlideIn(
+                        delay: const Duration(milliseconds: 120),
+                        child: const _HealingQuoteCard(),
+                      ),
+                      const SizedBox(height: _Dims.heroCardBottomGap),
+                      FadeSlideIn(
+                        delay: const Duration(milliseconds: 140),
+                        child: const _FortuneTarotRow(),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: _Dims.heroCardBottomGap),
 
@@ -231,14 +271,17 @@ class _TopHeader extends StatelessWidget {
 
     return Row(
       children: [
-        // [예외] 브랜드 로고타입은 Type Scale(최대 17px) 범위를 벗어나는
-        // 유일한 예외 요소다(앱 전체에서 1회만 등장하는 워드마크). 크기(22)는
-        // 유지하고 컬러만 스펙 텍스트 기본색(#111111)으로 정확히 맞춘다.
+        // [사용자 요청] 상단 '신통방통' 로고 크기를 '전체보기' 제목 정도의
+        // 크기로 줄인다. 기존 22px(Type Scale 최대치인 titleLarge 17px보다도
+        // 큰 예외값)에서 18px로 축소해, 아래에서 함께 줄인 '전체보기' 제목
+        // (16px)과 비슷한 크기대에서 로고 쪽이 아주 살짝만 더 커 보이도록
+        // 균형을 맞춘다(완전히 동일하면 워드마크로서의 존재감이 사라지므로
+        // 최소한의 위계는 남긴다).
         Text(
           '신통방통',
           style: TextStyle(
             fontFamily: HomeText.family,
-            fontSize: 22,
+            fontSize: 18,
             fontWeight: FontWeight.w800,
             letterSpacing: -0.2,
             height: 1.3,
@@ -305,51 +348,53 @@ class _TopHeader extends StatelessWidget {
   }
 }
 
-/// ② "+ 오늘의 운세보기" 블랙 pill 버튼
+/// ③ [사용자 요청] "전체보기" 섹션 헤더 + 우측 블랙 원형 그리드 아이콘 버튼.
 ///
-/// [범위 외] PremiumButton.black은 CommunityHubScreen/LuckyBagScreen에서도
-/// 그대로 쓰이는 공유 컴포넌트라 색상(#121212, 스펙 #111111과 1px 차이로
-/// 육안상 동일)은 건드리지 않았다. 스펙의 카드 크기 표에도 이 CTA는 명시되지
-/// 않은 요소다.
-class _TodayFortuneCta extends StatelessWidget {
-  const _TodayFortuneCta();
-
-  @override
-  Widget build(BuildContext context) {
-    return PremiumButton.black(
-      label: '오늘의 운세보기',
-      height: _Dims.ctaHeight,
-      onPressed: () =>
-          Navigator.of(context).pushNamed('/home/daily-fortune-detail'),
-    );
-  }
-}
-
-/// ③ [첨부 디자인 반영] "전체보기" 섹션 헤더 + 우측 블랙 원형 그리드 아이콘
-/// 버튼 - 탭 시 운세 전체보기(카테고리 허브, `/home/all-categories`)로 이동한다.
+/// - "전체보기" 텍스트를 누르면 페이지 이동 없이 "오늘의 운세" 섹션으로
+///   스크롤 이동한다([onTitleTap]).
+/// - 우측 원형 그리드 버튼은 기존 그대로 운세 전체보기(카테고리 허브,
+///   `/home/all-categories`)로 이동한다(탭 동작만 텍스트와 분리해서 유지).
+/// - [사용자 요청] "'전체보기' 제목도 현재보다 약간 작게 조정" — 기존
+///   titleLarge(17px)에서 title(15px)로 축소해, 위에서 줄인 로고(18px)와
+///   비슷한 크기대에서 자연스러운 균형을 이루도록 한다.
 class _AllCategoriesHeader extends StatelessWidget {
-  const _AllCategoriesHeader();
+  const _AllCategoriesHeader({required this.onTitleTap});
+
+  final VoidCallback onTitleTap;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        // [범위 외] 이 20x20 블랙 배지는 스펙의 아이콘 크기표(헤더/섹션원형/
-        // 카드CTA/AI배너CTA/열림패스 등)에 명시되지 않은 장식 마커라 크기는
-        // 유지했다. 컬러만 블랙 포인트(#111111)로 통일한다.
-        Container(
-          width: 20,
-          height: 20,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: HomeColors.black,
-            borderRadius: BorderRadius.circular(7),
+        Expanded(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onTitleTap,
+            child: Row(
+              children: [
+                // [범위 외] 이 20x20 블랙 배지는 스펙의 아이콘 크기표(헤더/섹션원형/
+                // 카드CTA/AI배너CTA/열림패스 등)에 명시되지 않은 장식 마커라 크기는
+                // 유지했다. 컬러만 블랙 포인트(#111111)로 통일한다.
+                Container(
+                  width: 20,
+                  height: 20,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: HomeColors.black,
+                    borderRadius: BorderRadius.circular(7),
+                  ),
+                  child: const Icon(
+                    Icons.style_rounded,
+                    size: 12,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text('전체보기', style: HomeText.title()),
+              ],
+            ),
           ),
-          child: const Icon(Icons.style_rounded, size: 12, color: Colors.white),
         ),
-        const SizedBox(width: 8),
-        Text('전체보기', style: HomeText.titleLarge()),
-        const Spacer(),
         // 섹션 우상단 원형 아이콘 배경 28 / 내부 아이콘 14(28*0.5=14).
         // 블랙 CTA 색상을 스펙 정확값(#111111)으로 override.
         PremiumCircleButton(
@@ -358,9 +403,8 @@ class _AllCategoriesHeader extends StatelessWidget {
           size: _Dims.tarotCircleSize,
           bgColor: HomeColors.black,
           fgColor: Colors.white,
-          // [첨부 디자인 반영] "오늘의 운세보기" CTA 바로 아래 "전체보기"
-          // 섹션은 운세 전체보기(카테고리 허브) 화면으로 이동하는 것이
-          // 사용자 의도이므로, 타로 메인 홈이 아니라 이 라우트로 연결한다.
+          // [첨부 디자인 반영] 운세 전체보기(카테고리 허브) 화면으로 이동하는
+          // 기존 동작을 그대로 유지한다(텍스트 탭 동작과는 별개).
           onTap: () => Navigator.of(context).pushNamed('/home/all-categories'),
         ),
       ],
@@ -368,32 +412,61 @@ class _AllCategoriesHeader extends StatelessWidget {
   }
 }
 
-/// ④ 운세 카테고리 칩(가로 스크롤) - 전체보기/사주/이름 운세/손금
+/// ④ [사용자 요청] 운세 카테고리 칩(가로 스크롤) 구조 변경 - 기존
+/// "전체보기/사주/관상/손금" 4개에서 "오늘의 운세/사주/관상/손금/정통사주/
+/// 신년운세" 6개로 확장한다.
+///
+/// - "오늘의 운세" 칩: 페이지 이동 없이 홈의 "오늘의 운세" 섹션(힐링 문구
+///   카드 + 운세/타로 카드)으로 스크롤 이동한다([onScrollToToday]).
+/// - "사주"/"관상"/"손금"/"정통사주": 기존과 동일하게 열림패스 게이트를 거쳐
+///   각자의 입력/촬영 화면으로 바로 이동한다(정통사주는 `all_categories_screen`
+///   과 동일하게 사주 입력 화면 라우트를 재사용).
+/// - "신년운세": 아직 전용 상세화면이 없어(all_categories_screen과 동일하게
+///   route=null) 탭하면 안내 토스트만 표시한다.
 class _FortuneCategoryChips extends StatefulWidget {
-  const _FortuneCategoryChips();
+  const _FortuneCategoryChips({required this.onScrollToToday});
+
+  /// "오늘의 운세" 칩을 눌렀을 때 홈 내 섹션으로 스크롤 이동시키는 콜백.
+  final VoidCallback onScrollToToday;
 
   @override
   State<_FortuneCategoryChips> createState() => _FortuneCategoryChipsState();
 }
 
 class _FortuneCategoryChipsState extends State<_FortuneCategoryChips> {
-  // [첨부 디자인 반영] 첨부 목업은 "사주" 칩이 기본 선택(네온라임 강조)된
-  // 상태를 보여준다. 목업의 "궁합" 칩은 앱에서 이미 삭제된 기능이라, 실제
-  // 존재하는 기능 중 시각적으로 가장 가까운 "관상"으로 대체했다.
-  int _selected = 1;
+  // [사용자 요청] 기본 선택 칩은 "오늘의 운세"(index 0)로 둔다(홈에 진입하면
+  // 바로 아래에 보이는 섹션과 자연스럽게 연결되도록).
+  int _selected = 0;
   bool _checking = false;
 
-  // 기준 시안: 칩에는 아이콘 없이 텍스트만 표시
+  // 기준 시안: 칩에는 아이콘 없이 텍스트만 표시.
+  // route가 null이면 아직 상세화면이 없는 카테고리(신년운세)라는 뜻이다.
   static const _items = [
-    ('전체보기', '/home/all-categories', false),
+    ('오늘의 운세', null, false),
     ('사주', '/ai-fortune/saju/input', true),
     ('관상', '/ai-fortune/face/capture', true),
     ('손금', '/ai-fortune/palm/capture', true),
+    ('정통사주', '/ai-fortune/saju/input', true),
+    ('신년운세', null, false),
   ];
 
   Future<void> _handleTap(int index) async {
     setState(() => _selected = index);
     final (title, route, requiresPass) = _items[index];
+
+    // "오늘의 운세"는 홈 내 섹션 스크롤로 처리한다(페이지 이동 없음).
+    if (index == 0) {
+      widget.onScrollToToday();
+      return;
+    }
+
+    // route가 없는 카테고리(신년운세)는 아직 상세화면이 없으므로 안내
+    // 토스트만 표시한다(all_categories_screen의 "준비중" 패턴과 동일).
+    if (route == null) {
+      AppToast.show(context, '$title · 준비 중이에요! 곧 만나볼 수 있어요 🙏');
+      return;
+    }
+
     if (requiresPass) setState(() => _checking = true);
     await navigateWithPassGate(
       context,
