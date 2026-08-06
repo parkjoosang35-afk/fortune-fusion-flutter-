@@ -1,14 +1,18 @@
 // 공개(비인증) "이름 운세(성명학)" 생성 API — 신규 카테고리.
 //
-// [운세 카테고리 확장] 사주(saju)/타로(tarot) 라우트와 동일한 패턴을 그대로
-// 재사용한다: (1) LLM 호출로 해석 텍스트 생성(DB 트랜잭션 밖) → (2) 짧은
-// 트랜잭션에서 잔액 재확인/차감/환급/fortune_requests·results 기록.
+// [운세 카테고리 확장] 사주(saju)/타로(tarot) 라우트와 동일한 패턴을 재사용한다:
+// (1) LLM 호출로 해석 텍스트 생성(DB 트랜잭션 밖) → (2) 짧은 트랜잭션에서
+// fortune_requests·results 기록.
 // name 도메인은 이미지/생년월일 등 결정론적 계산이 필요 없는 단일 텍스트
 // 생성형 카테고리라 사주보다 더 단순하다(주제 분기 없음, summary 1건만 생성).
+//
+// [무료 광고형 구조 재정비 §신규발견] 이름 운세(성명학) 열람은 복주머니(포인트)를
+// 소비하지 않는다. 과거 point_policies(ai_name_request) 기반 차감→즉시환급 로직은
+// "복주머니는 소원게시판/소원성에서만 쓰는 유일한 재화" 원칙과 충돌하는 레거시
+// 구조였다. 프리패스 상태와도 무관하게 항상 무료로 열람 가능하다.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { completeText, LlmClientError } from "@/lib/llm-client";
-import { isOpenPassActive } from "@/lib/open-pass-service";
 
 export const dynamic = "force-dynamic";
 
@@ -16,10 +20,6 @@ const CORS_HEADERS = { "Access-Control-Allow-Origin": "*" };
 
 const FALLBACK_TEXT =
   "이름에 담긴 기운은 안정과 조화를 함께 갖추고 있습니다. 주어진 강점을 잘 살리고, 부족한 부분은 주변과의 협력으로 채워간다면 이름의 기운을 온전히 활용할 수 있습니다. 스스로를 믿고 나아가는 태도가 앞으로의 흐름에 큰 도움이 됩니다.";
-
-function isRefundEligibleSourceType(sourceType: string): boolean {
-  return sourceType.startsWith("ai_") || sourceType.startsWith("fortune_");
-}
 
 export async function POST(request: NextRequest) {
   let body: {
@@ -80,65 +80,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // [프리패스 무료이용] 열림패스가 활성 상태면 포인트 차감(및 잔액부족 실패)을
-    // 완전히 건너뛴다 — tarot/route.ts와 동일한 정책(단일 소스: open-pass-service.ts).
-    const passActive = await isOpenPassActive(userId);
-
-    // 2) 짧은 DB 트랜잭션: 잔액 재확인 → 차감 → 환급 → 기록
+    // 2) 짧은 DB 트랜잭션: fortune_requests·results 기록(포인트 차감 없음)
     const outcome = await prisma.$transaction(async (tx) => {
       const wallet = await tx.wallet.findFirst({
         where: { userId, currencyType: "POINT", deletedAt: null },
       });
       if (!wallet) throw new Error("WALLET_NOT_FOUND");
 
-      const policy = await tx.pointPolicy.findUnique({ where: { sourceType: "ai_name_request" } });
-      const cost = passActive ? 0 : policy?.isActive ? policy.amount : 80;
-
-      if (!passActive && wallet.balance < cost) throw new Error("INSUFFICIENT_BALANCE");
-
-      let balance = wallet.balance - cost;
-      if (cost > 0) {
-        await tx.wallet.update({
-          where: { id: wallet.id },
-          data: { balance, balanceSyncedAt: new Date() },
-        });
-        await tx.pointHistory.create({
-          data: {
-            walletId: wallet.id,
-            userId,
-            amount: -cost,
-            type: "spend",
-            sourceType: "ai_name_request",
-            balanceAfter: balance,
-            memo: `이름 운세(성명학) 조회(${name})${passActive ? " [프리패스 무료]" : ""}`,
-          },
-        });
-      }
-
-      let refundAmount = 0;
-      if (cost > 0 && isRefundEligibleSourceType("ai_name_request")) {
-        const config = await tx.economyConfig.findUnique({ where: { key: "refund_rate" } });
-        const refundRate = config?.value ?? 0.5;
-        refundAmount = Math.floor(cost * refundRate);
-        if (refundAmount > 0) {
-          balance += refundAmount;
-          await tx.wallet.update({
-            where: { id: wallet.id },
-            data: { balance, balanceSyncedAt: new Date() },
-          });
-          await tx.pointHistory.create({
-            data: {
-              walletId: wallet.id,
-              userId,
-              amount: refundAmount,
-              type: "earn",
-              sourceType: "refund",
-              balanceAfter: balance,
-              memo: `이름 운세 조회 환급 (${Math.round(refundRate * 100)}%)`,
-            },
-          });
-        }
-      }
+      // [무료 광고형 구조 재정비 §신규발견] 이름 운세는 완전 무료 — 차감/환급 없음.
+      const balance = wallet.balance;
+      const cost = 0;
+      const refundAmount = 0;
 
       const fortuneRequest = await tx.fortuneRequest.create({
         data: {
@@ -189,12 +141,6 @@ export async function POST(request: NextRequest) {
     );
   } catch (e) {
     const message = e instanceof Error ? e.message : "UNKNOWN";
-    if (message === "INSUFFICIENT_BALANCE") {
-      return NextResponse.json(
-        { success: false, error: "포인트가 부족합니다." },
-        { status: 400, headers: CORS_HEADERS }
-      );
-    }
     if (message === "WALLET_NOT_FOUND") {
       return NextResponse.json(
         { success: false, error: "지갑을 찾을 수 없습니다." },

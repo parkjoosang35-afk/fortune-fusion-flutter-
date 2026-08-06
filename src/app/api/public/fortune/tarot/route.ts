@@ -15,10 +15,14 @@
 // [운세 카테고리 확장] spreadType === "yes_no"이면 무조건 tarot_yesno 도메인을
 // 사용하고(topic 무관), 카드 1장의 정/역방향으로 answer(YES/NO)를 결정론적으로
 // 계산해 응답에 포함한다. 기존 one_card/three_card 흐름은 완전히 그대로 유지된다.
+//
+// [무료 광고형 구조 재정비 §신규발견] 타로 리딩은 복주머니(포인트)를 소비하지 않는다.
+// 과거 point_policies(ai_tarot_request) 기반 차감→즉시환급 로직은 "복주머니는
+// 소원게시판/소원성에서만 쓰는 유일한 재화" 원칙과 충돌하는 레거시 구조였다.
+// 프리패스 상태와도 무관하게 항상 무료로 이용 가능하다.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { completeText, LlmClientError } from "@/lib/llm-client";
-import { isOpenPassActive } from "@/lib/open-pass-service";
 
 export const dynamic = "force-dynamic";
 
@@ -77,10 +81,6 @@ function drawCards(question: string, count: number) {
 
 const FALLBACK_SUMMARY =
   "카드가 전하는 흐름을 천천히 따라가 보면, 지금의 선택이 앞으로의 방향을 결정짓게 됩니다. 조급해하지 말고 마음의 소리에 귀 기울여 보세요.";
-
-function isRefundEligibleSourceType(sourceType: string): boolean {
-  return sourceType.startsWith("ai_") || sourceType.startsWith("fortune_");
-}
 
 export async function POST(request: NextRequest) {
   let body: {
@@ -187,66 +187,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // [프리패스 무료이용] 열림패스가 활성 상태면 포인트 차감(및 잔액부족 실패)을
-    // 완전히 건너뛴다 — pass-policies.ts의 DEFAULT_AD_GUIDE_TEXT가 명시하는
-    // "프리패스 이용시간 동안 모든 콘텐츠를 무료로 이용" 설계 의도를 구현한다.
-    const passActive = await isOpenPassActive(userId);
-
-    // 3) DB 트랜잭션: 잔액 확인 → 차감 → 환급 → 기록
+    // 3) DB 트랜잭션: fortune_requests/results 기록(포인트 차감 없음)
     const outcome = await prisma.$transaction(async (tx) => {
       const wallet = await tx.wallet.findFirst({
         where: { userId, currencyType: "POINT", deletedAt: null },
       });
       if (!wallet) throw new Error("WALLET_NOT_FOUND");
 
-      const policy = await tx.pointPolicy.findUnique({ where: { sourceType: "ai_tarot_request" } });
-      const cost = passActive ? 0 : policy?.isActive ? policy.amount : 80;
-
-      if (!passActive && wallet.balance < cost) throw new Error("INSUFFICIENT_BALANCE");
-
-      let balance = wallet.balance - cost;
-      if (cost > 0) {
-        await tx.wallet.update({
-          where: { id: wallet.id },
-          data: { balance, balanceSyncedAt: new Date() },
-        });
-        await tx.pointHistory.create({
-          data: {
-            walletId: wallet.id,
-            userId,
-            amount: -cost,
-            type: "spend",
-            sourceType: "ai_tarot_request",
-            balanceAfter: balance,
-            memo: `타로 리딩(${spreadType})${passActive ? " [프리패스 무료]" : ""}`,
-          },
-        });
-      }
-
-      let refundAmount = 0;
-      if (cost > 0 && isRefundEligibleSourceType("ai_tarot_request")) {
-        const config = await tx.economyConfig.findUnique({ where: { key: "refund_rate" } });
-        const refundRate = config?.value ?? 0.5;
-        refundAmount = Math.floor(cost * refundRate);
-        if (refundAmount > 0) {
-          balance += refundAmount;
-          await tx.wallet.update({
-            where: { id: wallet.id },
-            data: { balance, balanceSyncedAt: new Date() },
-          });
-          await tx.pointHistory.create({
-            data: {
-              walletId: wallet.id,
-              userId,
-              amount: refundAmount,
-              type: "earn",
-              sourceType: "refund",
-              balanceAfter: balance,
-              memo: `타로 리딩 환급 (${Math.round(refundRate * 100)}%)`,
-            },
-          });
-        }
-      }
+      // [무료 광고형 구조 재정비 §신규발견] 타로 리딩은 완전 무료 — 차감/환급 없음.
+      const balance = wallet.balance;
+      const cost = 0;
+      const refundAmount = 0;
 
       const fortuneRequest = await tx.fortuneRequest.create({
         data: {
@@ -298,12 +249,6 @@ export async function POST(request: NextRequest) {
     );
   } catch (e) {
     const message = e instanceof Error ? e.message : "UNKNOWN";
-    if (message === "INSUFFICIENT_BALANCE") {
-      return NextResponse.json(
-        { success: false, error: "포인트가 부족합니다." },
-        { status: 400, headers: CORS_HEADERS }
-      );
-    }
     if (message === "WALLET_NOT_FOUND") {
       return NextResponse.json(
         { success: false, error: "지갑을 찾을 수 없습니다." },

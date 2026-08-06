@@ -12,12 +12,15 @@
 // LLM 응답으로 교체하는 것이다(사용자에게 이미 안내한 1차 범위와 일치).
 //
 // [트랜잭션 설계] LLM 호출은 네트워크 왕복이 필요해 DB 트랜잭션 밖에서 먼저
-// 수행하고(포인트 차감 전에 콘텐츠를 확보), 이후 짧은 DB 트랜잭션에서
-// 잔액을 다시 확인하며 차감→환급→fortune_requests/results 기록을 원자적으로 처리한다.
+// 수행하고, 이후 짧은 DB 트랜잭션에서 fortune_requests/results 기록을 처리한다.
+//
+// [무료 광고형 구조 재정비 §신규발견] 사주 운세 열람은 복주머니(포인트)를 소비하지
+// 않는다. 과거 point_policies(ai_saju_request) 기반 차감→즉시환급 로직은 "복주머니는
+// 소원게시판/소원성에서만 쓰는 유일한 재화" 원칙과 충돌하는 레거시 구조였다.
+// 프리패스 상태와도 무관하게 항상 무료로 열람 가능하다.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { completeText, LlmClientError } from "@/lib/llm-client";
-import { isOpenPassActive } from "@/lib/open-pass-service";
 
 export const dynamic = "force-dynamic";
 
@@ -73,10 +76,6 @@ function computeChart(birthDate: string, hasBirthTime: boolean) {
     수: 10 + ((seed >> 4) % 20),
   };
   return { pillars, fiveElements, seed };
-}
-
-function isRefundEligibleSourceType(sourceType: string): boolean {
-  return sourceType.startsWith("ai_") || sourceType.startsWith("fortune_");
 }
 
 export async function POST(request: NextRequest) {
@@ -165,67 +164,17 @@ export async function POST(request: NextRequest) {
 
     const summary = topicResults["종합"] ?? Object.values(topicResults)[0] ?? "";
 
-    // [프리패스 무료이용] 열림패스가 활성 상태면 포인트 차감(및 잔액부족 실패)을
-    // 완전히 건너뛴다 — tarot/route.ts와 동일한 정책(단일 소스: open-pass-service.ts).
-    const passActive = await isOpenPassActive(userId);
-
-    // 3) 짧은 DB 트랜잭션: 잔액 재확인 → 차감 → 환급 → 기록
+    // 3) 짧은 DB 트랜잭션: fortune_requests/results 기록(포인트 차감 없음)
     const outcome = await prisma.$transaction(async (tx) => {
       const wallet = await tx.wallet.findFirst({
         where: { userId, currencyType: "POINT", deletedAt: null },
       });
       if (!wallet) throw new Error("WALLET_NOT_FOUND");
 
-      const policy = await tx.pointPolicy.findUnique({
-        where: { sourceType: "ai_saju_request" },
-      });
-      const cost = passActive ? 0 : policy?.isActive ? policy.amount : 100;
-
-      if (!passActive && wallet.balance < cost) throw new Error("INSUFFICIENT_BALANCE");
-
-      let balance = wallet.balance - cost;
-      if (cost > 0) {
-        await tx.wallet.update({
-          where: { id: wallet.id },
-          data: { balance, balanceSyncedAt: new Date() },
-        });
-        await tx.pointHistory.create({
-          data: {
-            walletId: wallet.id,
-            userId,
-            amount: -cost,
-            type: "spend",
-            sourceType: "ai_saju_request",
-            balanceAfter: balance,
-            memo: `사주 운세 조회(${uniqueTopics.join(",")})${passActive ? " [프리패스 무료]" : ""}`,
-          },
-        });
-      }
-
-      let refundAmount = 0;
-      if (cost > 0 && isRefundEligibleSourceType("ai_saju_request")) {
-        const config = await tx.economyConfig.findUnique({ where: { key: "refund_rate" } });
-        const refundRate = config?.value ?? 0.5;
-        refundAmount = Math.floor(cost * refundRate);
-        if (refundAmount > 0) {
-          balance += refundAmount;
-          await tx.wallet.update({
-            where: { id: wallet.id },
-            data: { balance, balanceSyncedAt: new Date() },
-          });
-          await tx.pointHistory.create({
-            data: {
-              walletId: wallet.id,
-              userId,
-              amount: refundAmount,
-              type: "earn",
-              sourceType: "refund",
-              balanceAfter: balance,
-              memo: `사주 운세 조회 환급 (${Math.round(refundRate * 100)}%)`,
-            },
-          });
-        }
-      }
+      // [무료 광고형 구조 재정비 §신규발견] 사주 운세는 완전 무료 — 차감/환급 없음.
+      const balance = wallet.balance;
+      const cost = 0;
+      const refundAmount = 0;
 
       const fortuneRequest = await tx.fortuneRequest.create({
         data: {
@@ -277,12 +226,6 @@ export async function POST(request: NextRequest) {
     );
   } catch (e) {
     const message = e instanceof Error ? e.message : "UNKNOWN";
-    if (message === "INSUFFICIENT_BALANCE") {
-      return NextResponse.json(
-        { success: false, error: "포인트가 부족합니다." },
-        { status: 400, headers: CORS_HEADERS }
-      );
-    }
     if (message === "WALLET_NOT_FOUND") {
       return NextResponse.json(
         { success: false, error: "지갑을 찾을 수 없습니다." },

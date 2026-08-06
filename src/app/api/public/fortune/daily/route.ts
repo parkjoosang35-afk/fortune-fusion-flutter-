@@ -1,13 +1,18 @@
 // 공개(비인증) "오늘의 운세" 조회/생성 API — Flutter DailyFortuneRepository.getToday() 대응.
 //
 // [Phase22 - Mock→실API 연동] 지금까지 Flutter는 로컬 Mock(날짜 해시 기반 가짜 데이터)으로만
-// 동작했다. 이 라우트를 신설하여 실제 DB(fortune_requests/fortune_results)에 결과를 저장하고,
-// point_policies(ai_daily_request=30P) 기준으로 포인트를 차감하며, Phase22에서 이식한
-// "복주머니 경제철학"(운세/AI서비스 소모 시 즉시 50% 환급, economy_config.refund_rate)을
-// 그대로 적용한다.
+// 동작했다. 이 라우트를 신설하여 실제 DB(fortune_requests/fortune_results)에 결과를 저장한다.
 //
-// [1일 1회 과금 원칙] 같은 날(자정 기준) 이미 조회한 적이 있으면 재차감 없이 기존 결과를
-// 그대로 반환한다(멱등성 보장, 새로고침/화면 재방문 시 중복 차감 방지).
+// [무료 광고형 구조 재정비 §신규발견] "오늘의 운세"는 복주머니(포인트)를 소비하지 않는다.
+// 과거에는 point_policies(ai_daily_request)로 매 조회마다 차감→즉시환급을 반복했으나,
+// 이는 "복주머니는 소원게시판/소원성에서만 쓰는 유일한 재화" 원칙과 충돌하는 레거시
+// 구조였다(차감과 환급이 항상 쌍으로 발생해 실질 순변화가 없었음에도 코드/데이터가
+// 복잡했다). 열람 자체는 완전 무료이며, 프리패스 상태와도 무관하다.
+// 단, "오늘의 운세 첫 열람 보너스"(+5, sourceType=fortune_first_view)와 미션 진행률
+// 갱신(view_daily_fortune)은 "광고/활동으로 복주머니를 적립"하는 정당한 로직이므로 그대로 유지한다.
+//
+// [1일 1회 보너스 원칙] 같은 날(자정 기준) 이미 조회한 적이 있으면 재적립 없이 기존 결과를
+// 그대로 반환한다(멱등성 보장, 새로고침/화면 재방문 시 첫열람보너스 중복 지급 방지).
 //
 // [AI 프롬프트 미연동] 실제 LLM 호출 인프라가 아직 없어(관리자 도구의 ai_prompt_templates는
 // "무엇을 프롬프트로 쓸지"의 템플릿 정의만 존재), 서버가 결정론적 규칙 기반으로 콘텐츠를
@@ -17,7 +22,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { incrementMissionProgress } from "@/lib/mission-progress";
 import { earnLuckPouch } from "@/lib/luck-pouch-engine";
-import { isOpenPassActive } from "@/lib/open-pass-service";
 
 export const dynamic = "force-dynamic";
 
@@ -69,10 +73,6 @@ function todayRangeUtcKST(): { start: Date; end: Date; key: string } {
   return { start, end, key };
 }
 
-function isRefundEligibleSourceType(sourceType: string): boolean {
-  return sourceType.startsWith("ai_") || sourceType.startsWith("fortune_");
-}
-
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const userId = Number(searchParams.get("userId") ?? "1");
@@ -85,10 +85,6 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // [프리패스 무료이용] 열림패스가 활성 상태면 포인트 차감(및 잔액부족 실패)을
-    // 완전히 건너뛴다 — tarot/route.ts와 동일한 정책(단일 소스: open-pass-service.ts).
-    const passActive = await isOpenPassActive(userId);
-
     const outcome = await prisma.$transaction(async (tx) => {
       const { start, end, key } = todayRangeUtcKST();
 
@@ -130,61 +126,12 @@ export async function GET(request: NextRequest) {
       });
       if (!wallet) throw new Error("WALLET_NOT_FOUND");
 
-      // 3) 포인트 정책 조회(ai_daily_request 기본 차감액)
-      const policy = await tx.pointPolicy.findUnique({
-        where: { sourceType: "ai_daily_request" },
-      });
-      const cost = passActive ? 0 : policy?.isActive ? policy.amount : 30;
-
-      if (!passActive && wallet.balance < cost) throw new Error("INSUFFICIENT_BALANCE");
-
-      // 4) 차감
-      let balance = wallet.balance - cost;
-      if (cost > 0) {
-        await tx.wallet.update({
-          where: { id: wallet.id },
-          data: { balance, balanceSyncedAt: new Date() },
-        });
-        await tx.pointHistory.create({
-          data: {
-            walletId: wallet.id,
-            userId,
-            amount: -cost,
-            type: "spend",
-            sourceType: "ai_daily_request",
-            balanceAfter: balance,
-            memo: `오늘의 운세 조회${passActive ? " [프리패스 무료]" : ""}`,
-          },
-        });
-      }
-
-      // 5) [Phase22 경제철학] 운세 소모 즉시 환급(economy_config.refund_rate)
-      let refundAmount = 0;
-      if (cost > 0 && isRefundEligibleSourceType("ai_daily_request")) {
-        const config = await tx.economyConfig.findUnique({
-          where: { key: "refund_rate" },
-        });
-        const refundRate = config?.value ?? 0.5;
-        refundAmount = Math.floor(cost * refundRate);
-        if (refundAmount > 0) {
-          balance += refundAmount;
-          await tx.wallet.update({
-            where: { id: wallet.id },
-            data: { balance, balanceSyncedAt: new Date() },
-          });
-          await tx.pointHistory.create({
-            data: {
-              walletId: wallet.id,
-              userId,
-              amount: refundAmount,
-              type: "earn",
-              sourceType: "refund",
-              balanceAfter: balance,
-              memo: `오늘의 운세 조회 환급 (${Math.round(refundRate * 100)}%)`,
-            },
-          });
-        }
-      }
+      // [무료 광고형 구조 재정비 §신규발견] "오늘의 운세"는 완전 무료 —
+      // 포인트 차감/환급 로직 없음. cost/refundAmount는 응답 스키마 하위호환을
+      // 위해 항상 0으로 유지한다.
+      let balance = wallet.balance;
+      const cost = 0;
+      const refundAmount = 0;
 
       // 6) 활성 daily 프롬프트 템플릿 조회(없으면 실패 처리하지 않고 계속 - fallback)
       const template = await tx.aiPromptTemplate.findFirst({
@@ -282,12 +229,6 @@ export async function GET(request: NextRequest) {
     );
   } catch (e) {
     const message = e instanceof Error ? e.message : "UNKNOWN";
-    if (message === "INSUFFICIENT_BALANCE") {
-      return NextResponse.json(
-        { success: false, error: "포인트가 부족합니다." },
-        { status: 400, headers: CORS_HEADERS }
-      );
-    }
     if (message === "WALLET_NOT_FOUND") {
       return NextResponse.json(
         { success: false, error: "지갑을 찾을 수 없습니다." },
