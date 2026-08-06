@@ -69,35 +69,35 @@ export default async function AdminLoginLogsPage({
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">운영/보안 — 관리자 로그인 이력</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">운영/보안 — 관리자 로그인 이력</h1>
+        <p className="mt-1 text-sm text-slate-500">
           관리자 계정의 로그인 시도 이력(admin_login_logs)을 조회합니다. 성공/실패 모두
           기록되는 Append-only 로그입니다.
         </p>
-        <nav className="mt-4 flex gap-2 border-b border-slate-800 text-sm">
-          <Link href="/admin-users" className="px-3 py-2 text-slate-400 hover:text-white">
+        <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
+          <Link href="/admin-users" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             관리자 계정 관리
           </Link>
-          <Link href="/admin-users/roles" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/admin-users/roles" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             역할/권한 매트릭스
           </Link>
           <Link
             href="/admin-users/login-logs"
-            className="px-3 py-2 font-medium text-white border-b-2 border-indigo-500"
+            className="px-3 py-2 font-medium text-slate-900 border-b-2 border-indigo-500"
           >
             관리자 로그인 이력
           </Link>
-          <Link href="/audit-logs" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/audit-logs" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             감사로그(Audit) 조회
           </Link>
         </nav>
       </div>
 
-      <form className="mb-4 flex flex-wrap gap-3 rounded-xl border border-slate-800 bg-slate-900 p-4">
+      <form className="mb-4 flex flex-wrap gap-3 rounded-xl border border-slate-200 bg-white p-4">
         <select
           name="adminUserId"
           defaultValue={sp.adminUserId ?? ""}
-          className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
         >
           <option value="">전체 관리자</option>
           {adminUsers.map((u) => (
@@ -109,7 +109,7 @@ export default async function AdminLoginLogsPage({
         <select
           name="result"
           defaultValue={sp.result ?? ""}
-          className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
         >
           <option value="">전체 결과</option>
           <option value="success">성공</option>
@@ -124,16 +124,16 @@ export default async function AdminLoginLogsPage({
         {(sp.adminUserId || sp.result) && (
           <Link
             href="/admin-users/login-logs"
-            className="rounded-lg bg-slate-700 px-4 py-2 text-sm text-slate-300 hover:bg-slate-600"
+            className="rounded-lg bg-slate-100 px-4 py-2 text-sm text-slate-600 hover:bg-slate-200"
           >
             초기화
           </Link>
         )}
       </form>
 
-      <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+          <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
             <tr>
               <th className="px-4 py-3">관리자</th>
               <th className="px-4 py-3">IP 주소</th>
@@ -143,19 +143,19 @@ export default async function AdminLoginLogsPage({
           </thead>
           <tbody>
             {logs.map((log) => (
-              <tr key={log.id} className="border-b border-slate-800/60 hover:bg-slate-800/40">
-                <td className="px-4 py-3 text-slate-200">
+              <tr key={log.id} className="border-b border-slate-200/60 hover:bg-slate-100/40">
+                <td className="px-4 py-3 text-slate-700">
                   {log.adminUser.name}
                   <span className="ml-1 text-xs text-slate-500">({log.adminUser.email})</span>
                 </td>
-                <td className="px-4 py-3 text-slate-400">{log.ipAddress}</td>
+                <td className="px-4 py-3 text-slate-500">{log.ipAddress}</td>
                 <td className="px-4 py-3">
                   {log.successFlag ? (
-                    <span className="rounded-full bg-emerald-950/60 px-2 py-0.5 text-xs text-emerald-400">
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">
                       성공
                     </span>
                   ) : (
-                    <span className="rounded-full bg-red-950/60 px-2 py-0.5 text-xs text-red-400">
+                    <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-700">
                       실패
                     </span>
                   )}
@@ -182,7 +182,7 @@ export default async function AdminLoginLogsPage({
           {page > 1 && (
             <Link
               href={buildQuery({ page: String(page - 1) })}
-              className="rounded bg-slate-800 px-3 py-1.5 hover:bg-slate-700"
+              className="rounded bg-white px-3 py-1.5 hover:bg-slate-200"
             >
               이전
             </Link>
@@ -190,7 +190,7 @@ export default async function AdminLoginLogsPage({
           {page < totalPages && (
             <Link
               href={buildQuery({ page: String(page + 1) })}
-              className="rounded bg-slate-800 px-3 py-1.5 hover:bg-slate-700"
+              className="rounded bg-white px-3 py-1.5 hover:bg-slate-200"
             >
               다음
             </Link>

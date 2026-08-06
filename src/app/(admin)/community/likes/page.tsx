@@ -84,55 +84,55 @@ export default async function CommunityLikesPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">커뮤니티 관리 — 좋아요 통계</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">커뮤니티 관리 — 좋아요 통계</h1>
+        <p className="mt-1 text-sm text-slate-500">
           게시글/소원/댓글에 대한 좋아요를 대상별로 집계하여 조회합니다(조회 전용).
           좋아요 수가 많은 상위 대상을 우선 노출하여 어뷰징 패턴 탐지에 활용합니다.
         </p>
-        <nav className="mt-4 flex gap-2 border-b border-slate-800 text-sm">
-          <Link href="/community/boards" className="px-3 py-2 text-slate-400 hover:text-white">
+        <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
+          <Link href="/community/boards" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             게시판
           </Link>
-          <Link href="/community/posts" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/community/posts" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             게시글/소원
           </Link>
-          <Link href="/community/comments" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/community/comments" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             댓글
           </Link>
-          <Link href="/community/reports" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/community/reports" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             신고
           </Link>
-          <span className="border-b-2 border-indigo-500 px-3 py-2 text-white">좋아요 통계</span>
-          <Link href="/community/files" className="px-3 py-2 text-slate-400 hover:text-white">
+          <span className="border-b-2 border-indigo-500 px-3 py-2 text-slate-900">좋아요 통계</span>
+          <Link href="/community/files" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             파일/업로드
           </Link>
-          <Link href="/community/wish-castle" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/community/wish-castle" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             🏰 소원성 설정
           </Link>
         </nav>
       </div>
 
       <section className="mb-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">전체 좋아요 수</p>
-          <p className="mt-1 text-2xl font-bold text-white">{totalLikes.toLocaleString()}</p>
+          <p className="mt-1 text-2xl font-bold text-slate-900">{totalLikes.toLocaleString()}</p>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">좋아요 받은 대상 수</p>
-          <p className="mt-1 text-2xl font-bold text-white">{grouped.length.toLocaleString()}</p>
+          <p className="mt-1 text-2xl font-bold text-slate-900">{grouped.length.toLocaleString()}</p>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">어뷰징 의심 대상(≥{ABUSE_THRESHOLD}건)</p>
-          <p className="mt-1 text-2xl font-bold text-amber-400">
+          <p className="mt-1 text-2xl font-bold text-amber-700">
             {grouped.filter((g) => g._count._all >= ABUSE_THRESHOLD).length.toLocaleString()}
           </p>
         </div>
       </section>
 
       <section>
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">순위</th>
                 <th className="px-4 py-3">대상</th>
@@ -153,21 +153,21 @@ export default async function CommunityLikesPage() {
                 return (
                   <tr
                     key={`${g.targetType}-${g.targetId}`}
-                    className={`border-b border-slate-800/60 hover:bg-slate-800/40 ${
-                      isAbuse ? "bg-amber-950/20" : ""
+                    className={`border-b border-slate-200/60 hover:bg-slate-100/40 ${
+                      isAbuse ? "bg-amber-100" : ""
                     }`}
                   >
                     <td className="px-4 py-3 text-slate-500">{idx + 1}</td>
-                    <td className="px-4 py-3 text-slate-200">
-                      <span className="mr-1 rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-400">
+                    <td className="px-4 py-3 text-slate-700">
+                      <span className="mr-1 rounded bg-white px-1.5 py-0.5 text-[10px] text-slate-500">
                         {TARGET_TYPE_LABEL[g.targetType] ?? g.targetType}
                       </span>
                       {targetLabel(g.targetType, g.targetId)}
                     </td>
-                    <td className="px-4 py-3 font-semibold text-white">{g._count._all}</td>
+                    <td className="px-4 py-3 font-semibold text-slate-900">{g._count._all}</td>
                     <td className="px-4 py-3">
                       {isAbuse ? (
-                        <span className="rounded-full bg-amber-950/60 px-2 py-0.5 text-xs text-amber-400">
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-700">
                           어뷰징 의심
                         </span>
                       ) : (

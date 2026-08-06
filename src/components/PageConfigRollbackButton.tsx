@@ -44,11 +44,11 @@ export default function PageConfigRollbackButton({ versionNumber }: Props) {
         type="button"
         disabled={pending}
         onClick={rollback}
-        className="rounded border border-amber-800 px-2 py-1 text-xs text-amber-300 hover:bg-amber-900/40 disabled:opacity-40"
+        className="rounded border border-amber-300 px-2 py-1 text-xs text-amber-800 hover:bg-amber-100 disabled:opacity-40"
       >
         {pending ? "롤백 중..." : "이 버전으로 롤백"}
       </button>
-      {error && <p className="text-xs text-rose-400">{error}</p>}
+      {error && <p className="text-xs text-rose-700">{error}</p>}
     </div>
   );
 }

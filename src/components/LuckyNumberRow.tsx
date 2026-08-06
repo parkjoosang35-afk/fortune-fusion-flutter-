@@ -70,11 +70,11 @@ export default function LuckyNumberRow({ content, canWrite, canDelete }: LuckyNu
 
   if (editing) {
     return (
-      <tr className="border-b border-slate-800/60 bg-slate-800/30">
+      <tr className="border-b border-slate-200/60 bg-white/30">
         <td colSpan={5} className="px-4 py-3">
           <form action={updateAction} className="flex flex-wrap items-center gap-2">
             <input type="hidden" name="id" value={content.id} />
-            <div className="flex w-full gap-4 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-xs text-slate-300">
+            <div className="flex w-full gap-4 rounded-lg border border-slate-300 bg-white/60 px-3 py-1.5 text-xs text-slate-600">
               <span className="text-slate-500">콘텐츠 유형</span>
               <label className="flex items-center gap-1">
                 <input
@@ -114,21 +114,21 @@ export default function LuckyNumberRow({ content, canWrite, canDelete }: LuckyNu
               type="text"
               name="title"
               defaultValue={content.title}
-              className="w-44 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-purple-500"
+              className="w-44 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-purple-500"
             />
             <input
               type="number"
               name="sortOrder"
               defaultValue={content.sortOrder}
               min={0}
-              className="w-20 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-purple-500"
+              className="w-20 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-purple-500"
             />
             <input
               type="text"
               name="caption"
               defaultValue={content.caption ?? ""}
               placeholder="캡션(선택)"
-              className="w-40 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-purple-500"
+              className="w-40 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-purple-500"
             />
             {contentType === "image" && (
               <MediaUploadField
@@ -154,22 +154,22 @@ export default function LuckyNumberRow({ content, canWrite, canDelete }: LuckyNu
                 defaultValue={content.script ?? ""}
                 rows={3}
                 placeholder="HTML/스크립트 코드"
-                className="w-full rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 font-mono text-xs text-white outline-none focus:border-purple-500"
+                className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1 font-mono text-xs text-slate-900 outline-none focus:border-purple-500"
               />
             )}
             <input
               type="datetime-local"
               name="startAt"
               defaultValue={toLocalInputValue(content.startAt)}
-              className="rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-purple-500"
+              className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-purple-500"
             />
             <input
               type="datetime-local"
               name="endAt"
               defaultValue={toLocalInputValue(content.endAt)}
-              className="rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-purple-500"
+              className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-purple-500"
             />
-            <label className="flex items-center gap-1 text-xs text-slate-300">
+            <label className="flex items-center gap-1 text-xs text-slate-600">
               <input
                 type="checkbox"
                 name="isActive"
@@ -188,11 +188,11 @@ export default function LuckyNumberRow({ content, canWrite, canDelete }: LuckyNu
             <button
               type="button"
               onClick={() => setEditing(false)}
-              className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
+              className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100"
             >
               취소
             </button>
-            {updateState.error && <p className="w-full text-xs text-red-400">{updateState.error}</p>}
+            {updateState.error && <p className="w-full text-xs text-red-700">{updateState.error}</p>}
           </form>
         </td>
       </tr>
@@ -200,16 +200,16 @@ export default function LuckyNumberRow({ content, canWrite, canDelete }: LuckyNu
   }
 
   return (
-    <tr className="border-b border-slate-800/60 hover:bg-slate-800/40">
+    <tr className="border-b border-slate-200/60 hover:bg-slate-100/40">
       <td className="px-4 py-3">
         {content.contentType === "script" ? (
-          <span className="inline-flex h-10 w-20 items-center justify-center rounded-md border border-dashed border-purple-700 bg-purple-950/40 text-[10px] text-purple-300">
+          <span className="inline-flex h-10 w-20 items-center justify-center rounded-md border border-dashed border-purple-300 bg-purple-100 text-[10px] text-purple-800">
             &lt;script&gt;
           </span>
         ) : content.contentType === "video" ? (
           <video
             src={content.videoUrl ?? ""}
-            className="h-10 w-20 rounded-md border border-slate-700 object-cover"
+            className="h-10 w-20 rounded-md border border-slate-300 object-cover"
             muted
           />
         ) : (
@@ -217,13 +217,13 @@ export default function LuckyNumberRow({ content, canWrite, canDelete }: LuckyNu
           <img
             src={content.imageUrl ?? ""}
             alt={content.title}
-            className="h-10 w-20 rounded-md border border-slate-700 object-cover"
+            className="h-10 w-20 rounded-md border border-slate-300 object-cover"
           />
         )}
       </td>
-      <td className="px-4 py-3 text-slate-200">
+      <td className="px-4 py-3 text-slate-700">
         {content.title}
-        <span className="ml-2 rounded-full bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-400">
+        <span className="ml-2 rounded-full bg-white px-1.5 py-0.5 text-[10px] text-slate-500">
           {CONTENT_TYPE_LABEL[content.contentType] ?? content.contentType}
         </span>
         <span className="ml-1 text-xs text-slate-500">#{content.sortOrder}</span>
@@ -240,11 +240,11 @@ export default function LuckyNumberRow({ content, canWrite, canDelete }: LuckyNu
       </td>
       <td className="px-4 py-3">
         {content.isActive ? (
-          <span className="rounded-full bg-emerald-950/60 px-2 py-0.5 text-xs text-emerald-400">
+          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">
             활성
           </span>
         ) : (
-          <span className="rounded-full bg-slate-800 px-2 py-0.5 text-xs text-slate-400">
+          <span className="rounded-full bg-white px-2 py-0.5 text-xs text-slate-500">
             비활성
           </span>
         )}
@@ -258,7 +258,7 @@ export default function LuckyNumberRow({ content, canWrite, canDelete }: LuckyNu
               <button
                 type="submit"
                 disabled={togglePending}
-                className="rounded-lg border border-slate-700 px-3 py-1 text-xs text-slate-300 hover:bg-slate-800 disabled:opacity-50"
+                className="rounded-lg border border-slate-300 px-3 py-1 text-xs text-slate-600 hover:bg-slate-100 disabled:opacity-50"
               >
                 {content.isActive ? "비활성으로" : "활성으로"}
               </button>
@@ -267,7 +267,7 @@ export default function LuckyNumberRow({ content, canWrite, canDelete }: LuckyNu
           {canWrite && (
             <button
               onClick={() => setEditing(true)}
-              className="rounded-lg border border-slate-700 px-3 py-1 text-xs text-slate-300 hover:bg-slate-800"
+              className="rounded-lg border border-slate-300 px-3 py-1 text-xs text-slate-600 hover:bg-slate-100"
             >
               수정
             </button>
@@ -278,15 +278,15 @@ export default function LuckyNumberRow({ content, canWrite, canDelete }: LuckyNu
               <button
                 type="submit"
                 disabled={deletePending}
-                className="rounded-lg border border-red-900 px-3 py-1 text-xs text-red-400 hover:bg-red-950/40 disabled:opacity-50"
+                className="rounded-lg border border-red-300 px-3 py-1 text-xs text-red-700 hover:bg-red-100 disabled:opacity-50"
               >
                 삭제
               </button>
             </form>
           )}
         </div>
-        {toggleState.error && <p className="mt-1 text-xs text-red-400">{toggleState.error}</p>}
-        {deleteState.error && <p className="mt-1 text-xs text-red-400">{deleteState.error}</p>}
+        {toggleState.error && <p className="mt-1 text-xs text-red-700">{toggleState.error}</p>}
+        {deleteState.error && <p className="mt-1 text-xs text-red-700">{deleteState.error}</p>}
       </td>
     </tr>
   );

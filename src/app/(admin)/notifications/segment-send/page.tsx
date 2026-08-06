@@ -34,25 +34,25 @@ export default async function SegmentSendPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">알림 관리 — 세그먼트 발송</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">알림 관리 — 세그먼트 발송</h1>
+        <p className="mt-1 text-sm text-slate-500">
           템플릿을 선택하여 전체 회원 또는 조건(가입일/등급/활동패턴)에 해당하는 회원에게
           알림을 발송합니다.
         </p>
-        <nav className="mt-4 flex gap-2 border-b border-slate-800 text-sm">
-          <Link href="/notifications/templates" className="px-3 py-2 text-slate-400 hover:text-white">
+        <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
+          <Link href="/notifications/templates" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             알림 템플릿 관리
           </Link>
-          <Link href="/notifications/history" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/notifications/history" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             발송 이력 조회
           </Link>
           <Link
             href="/notifications/segment-send"
-            className="px-3 py-2 font-medium text-white border-b-2 border-indigo-500"
+            className="px-3 py-2 font-medium text-slate-900 border-b-2 border-indigo-500"
           >
             세그먼트 발송
           </Link>
-          <Link href="/notifications/settings" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/notifications/settings" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             발송 설정 현황
           </Link>
         </nav>

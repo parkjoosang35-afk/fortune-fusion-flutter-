@@ -50,8 +50,8 @@ export default async function RewardAchievementsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">리워드 관리 — 업적</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">리워드 관리 — 업적</h1>
+        <p className="mt-1 text-sm text-slate-500">
           업적 마스터를 관리하고, 회원의 업적 달성현황을 조회합니다.
         </p>
       </div>
@@ -60,11 +60,11 @@ export default async function RewardAchievementsPage() {
 
       {/* 1) 업적관리 */}
       <section className="mb-8">
-        <h2 className="mb-3 text-lg font-semibold text-white">업적관리</h2>
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">업적관리</h2>
         <AchievementCreateForm canWrite={canWrite} />
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">code</th>
                 <th className="px-4 py-3">제목</th>
@@ -100,10 +100,10 @@ export default async function RewardAchievementsPage() {
 
       {/* 2) 회원 업적 달성현황 (조회 전용) */}
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-white">회원 업적 달성현황 (조회 전용, 최근 50건)</h2>
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">회원 업적 달성현황 (조회 전용, 최근 50건)</h2>
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">회원</th>
                 <th className="px-4 py-3">업적</th>
@@ -120,9 +120,9 @@ export default async function RewardAchievementsPage() {
                 </tr>
               )}
               {userAchievements.map((ua) => (
-                <tr key={ua.id} className="border-b border-slate-800/60 hover:bg-slate-800/40">
-                  <td className="px-4 py-3 text-slate-200">{ua.user.nickname}</td>
-                  <td className="px-4 py-3 text-slate-300">{ua.achievement.title}</td>
+                <tr key={ua.id} className="border-b border-slate-200/60 hover:bg-slate-100/40">
+                  <td className="px-4 py-3 text-slate-700">{ua.user.nickname}</td>
+                  <td className="px-4 py-3 text-slate-600">{ua.achievement.title}</td>
                   <td className="px-4 py-3 font-mono text-slate-500">{ua.achievement.code}</td>
                   <td className="px-4 py-3 text-slate-500">
                     {ua.achievedAt.toISOString().slice(0, 19).replace("T", " ")}

@@ -124,12 +124,12 @@ export default function OpenPassBindingsPanel({
     <div className="space-y-6">
       {/* 상품 선택 (fixedPolicyId 모드에서는 숨김 — 이미 어느 정책인지 확정됨) */}
       {!fixedPolicyId && policies && (
-        <section className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-          <h2 className="mb-3 text-sm font-semibold text-white">1. 열림패스 상품 선택</h2>
+        <section className="rounded-xl border border-slate-200 bg-white p-4">
+          <h2 className="mb-3 text-sm font-semibold text-slate-900">1. 열림패스 상품 선택</h2>
           <select
             value={policyId}
             onChange={(e) => setPolicyId(Number(e.target.value))}
-            className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
           >
             {policies.map((p) => (
               <option key={p.id} value={p.id}>
@@ -140,14 +140,14 @@ export default function OpenPassBindingsPanel({
         </section>
       )}
       {message && (
-        <p className={`rounded-lg px-3 py-2 text-xs ${message.ok ? "bg-emerald-950/60 text-emerald-300" : "bg-red-950/60 text-red-300"}`}>
+        <p className={`rounded-lg px-3 py-2 text-xs ${message.ok ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"}`}>
           {message.text}
         </p>
       )}
 
       {/* 대표 슬롯(hero/promo/fallback) */}
-      <section className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-        <h2 className="mb-3 text-sm font-semibold text-white">2. 대표 소재 슬롯 지정 (PassPolicy 직접 반영)</h2>
+      <section className="rounded-xl border border-slate-200 bg-white p-4">
+        <h2 className="mb-3 text-sm font-semibold text-slate-900">2. 대표 소재 슬롯 지정 (PassPolicy 직접 반영)</h2>
         <p className="mb-3 text-xs text-slate-500">
           앱은 이 3개 슬롯을 최우선으로 읽어 대표 배너 / 광고유도 배너 / 공통 fallback 소재를 노출합니다.
         </p>
@@ -157,8 +157,8 @@ export default function OpenPassBindingsPanel({
             const label = { hero: "대표(hero) 배너", promo: "광고유도(promo) 배너", fallback: "공통 fallback 소재" }[slot];
             const currentId = snapshot?.policy ? snapshot.policy[field] : null;
             return (
-              <div key={slot} className="rounded-lg border border-slate-800 bg-slate-950 p-3">
-                <p className="mb-2 text-xs text-slate-400">{label}</p>
+              <div key={slot} className="rounded-lg border border-slate-200 bg-white p-3">
+                <p className="mb-2 text-xs text-slate-500">{label}</p>
                 <select
                   disabled={isPending}
                   value={currentId ?? ""}
@@ -167,7 +167,7 @@ export default function OpenPassBindingsPanel({
                     if (!policyId) return;
                     run(() => setProductAttachmentSlot({ passPolicyId: policyId, slot, attachmentId }));
                   }}
-                  className="w-full rounded-lg border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-white outline-none focus:border-indigo-500"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 outline-none focus:border-indigo-500"
                 >
                   <option value="">미지정</option>
                   {attachments.map((a) => (
@@ -183,15 +183,15 @@ export default function OpenPassBindingsPanel({
       </section>
 
       {/* 첨부파일 바인딩 */}
-      <section className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-        <h2 className="mb-3 text-sm font-semibold text-white">3. 첨부파일 연결 (usageType별 N:M)</h2>
+      <section className="rounded-xl border border-slate-200 bg-white p-4">
+        <h2 className="mb-3 text-sm font-semibold text-slate-900">3. 첨부파일 연결 (usageType별 N:M)</h2>
         <div className="mb-3 flex flex-wrap items-center gap-2">
-          <select value={newAttachmentId} onChange={(e) => setNewAttachmentId(Number(e.target.value))} className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500">
+          <select value={newAttachmentId} onChange={(e) => setNewAttachmentId(Number(e.target.value))} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500">
             {attachments.map((a) => (
               <option key={a.id} value={a.id}>{a.fileName} ({ATTACHMENT_PURPOSE_LABELS[a.purpose as AttachmentPurpose] ?? a.purpose})</option>
             ))}
           </select>
-          <select value={newUsageType} onChange={(e) => setNewUsageType(e.target.value)} className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500">
+          <select value={newUsageType} onChange={(e) => setNewUsageType(e.target.value)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500">
             {BINDING_USAGE_TYPES.map((u) => (
               <option key={u} value={u}>{u}</option>
             ))}
@@ -219,21 +219,21 @@ export default function OpenPassBindingsPanel({
               </thead>
               <tbody>
                 {snapshot.attachmentBindings.map((b) => (
-                  <tr key={b.id} className="border-t border-slate-800">
-                    <td className="px-2 py-1.5 text-slate-200">{b.attachment.fileName}</td>
-                    <td className="px-2 py-1.5 text-slate-400">{b.usageType}</td>
-                    <td className="px-2 py-1.5">{b.isPrimary ? <span className="text-emerald-400">대표</span> : "-"}</td>
+                  <tr key={b.id} className="border-t border-slate-200">
+                    <td className="px-2 py-1.5 text-slate-700">{b.attachment.fileName}</td>
+                    <td className="px-2 py-1.5 text-slate-500">{b.usageType}</td>
+                    <td className="px-2 py-1.5">{b.isPrimary ? <span className="text-emerald-700">대표</span> : "-"}</td>
                     <td className="px-2 py-1.5">
                       <button
                         disabled={isPending}
                         onClick={() => run(() => toggleProductAttachmentActive(b.id, !b.isActive))}
-                        className={`rounded-full px-2 py-0.5 ${b.isActive ? "bg-emerald-950/60 text-emerald-400" : "bg-slate-800 text-slate-400"}`}
+                        className={`rounded-full px-2 py-0.5 ${b.isActive ? "bg-emerald-100 text-emerald-700" : "bg-white text-slate-500"}`}
                       >
                         {b.isActive ? "활성" : "비활성"}
                       </button>
                     </td>
                     <td className="px-2 py-1.5">
-                      <button disabled={isPending} onClick={() => run(() => unbindAttachmentFromProduct(b.id))} className="rounded-lg border border-red-900 px-2 py-1 text-red-400 hover:bg-red-950/40 disabled:opacity-50">
+                      <button disabled={isPending} onClick={() => run(() => unbindAttachmentFromProduct(b.id))} className="rounded-lg border border-red-300 px-2 py-1 text-red-700 hover:bg-red-100 disabled:opacity-50">
                         해제
                       </button>
                     </td>
@@ -248,15 +248,15 @@ export default function OpenPassBindingsPanel({
       </section>
 
       {/* 광고소스 바인딩 */}
-      <section className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-        <h2 className="mb-3 text-sm font-semibold text-white">4. 광고소스 연결 (platform별 N:M, priority/failover)</h2>
+      <section className="rounded-xl border border-slate-200 bg-white p-4">
+        <h2 className="mb-3 text-sm font-semibold text-slate-900">4. 광고소스 연결 (platform별 N:M, priority/failover)</h2>
         <div className="mb-3 flex flex-wrap items-center gap-2">
-          <select value={newAdSourceId} onChange={(e) => setNewAdSourceId(Number(e.target.value))} className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500">
+          <select value={newAdSourceId} onChange={(e) => setNewAdSourceId(Number(e.target.value))} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500">
             {adSources.map((a) => (
               <option key={a.id} value={a.id}>{a.sourceName} {a.isActive ? "" : "(비활성)"}</option>
             ))}
           </select>
-          <select value={newPlatform} onChange={(e) => setNewPlatform(e.target.value)} className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500">
+          <select value={newPlatform} onChange={(e) => setNewPlatform(e.target.value)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500">
             {AD_SOURCE_PLATFORMS.map((p) => (
               <option key={p} value={p}>{p}</option>
             ))}
@@ -285,12 +285,12 @@ export default function OpenPassBindingsPanel({
               </thead>
               <tbody>
                 {snapshot.adSourceBindings.map((b) => (
-                  <tr key={b.id} className="border-t border-slate-800">
-                    <td className="px-2 py-1.5 text-slate-200">
+                  <tr key={b.id} className="border-t border-slate-200">
+                    <td className="px-2 py-1.5 text-slate-700">
                       {b.adSource.sourceName}
-                      {!b.adSource.isActive && <span className="ml-1 text-red-400">(소스 비활성)</span>}
+                      {!b.adSource.isActive && <span className="ml-1 text-red-700">(소스 비활성)</span>}
                     </td>
-                    <td className="px-2 py-1.5 text-slate-400">{b.platform}</td>
+                    <td className="px-2 py-1.5 text-slate-500">{b.platform}</td>
                     <td className="px-2 py-1.5">
                       <input
                         type="number"
@@ -299,14 +299,14 @@ export default function OpenPassBindingsPanel({
                           const v = Number(e.target.value);
                           if (v !== b.priority) run(() => updateProductAdSourceBinding({ bindingId: b.id, priority: v }));
                         }}
-                        className="w-14 rounded border border-slate-700 bg-slate-800 px-1 py-0.5 text-white"
+                        className="w-14 rounded border border-slate-300 bg-white px-1 py-0.5 text-slate-900"
                       />
                     </td>
                     <td className="px-2 py-1.5">
                       <button
                         disabled={isPending}
                         onClick={() => run(() => updateProductAdSourceBinding({ bindingId: b.id, isPrimary: !b.isPrimary }))}
-                        className={b.isPrimary ? "text-emerald-400" : "text-slate-500 hover:text-slate-300"}
+                        className={b.isPrimary ? "text-emerald-700" : "text-slate-500 hover:text-slate-600"}
                       >
                         {b.isPrimary ? "대표" : "지정"}
                       </button>
@@ -315,13 +315,13 @@ export default function OpenPassBindingsPanel({
                       <button
                         disabled={isPending}
                         onClick={() => run(() => updateProductAdSourceBinding({ bindingId: b.id, isActive: !b.isActive }))}
-                        className={`rounded-full px-2 py-0.5 ${b.isActive ? "bg-emerald-950/60 text-emerald-400" : "bg-slate-800 text-slate-400"}`}
+                        className={`rounded-full px-2 py-0.5 ${b.isActive ? "bg-emerald-100 text-emerald-700" : "bg-white text-slate-500"}`}
                       >
                         {b.isActive ? "활성" : "비활성"}
                       </button>
                     </td>
                     <td className="px-2 py-1.5">
-                      <button disabled={isPending} onClick={() => run(() => unbindAdSourceFromProduct(b.id))} className="rounded-lg border border-red-900 px-2 py-1 text-red-400 hover:bg-red-950/40 disabled:opacity-50">
+                      <button disabled={isPending} onClick={() => run(() => unbindAdSourceFromProduct(b.id))} className="rounded-lg border border-red-300 px-2 py-1 text-red-700 hover:bg-red-100 disabled:opacity-50">
                         해제
                       </button>
                     </td>

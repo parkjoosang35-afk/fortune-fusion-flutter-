@@ -35,16 +35,16 @@ export default function PointPolicyRow({ policy, canWrite, canDelete }: PointPol
   const kind = policyKind(policy.sourceType);
   const kindBadge =
     kind === "earn" ? (
-      <span className="rounded-full bg-emerald-950/60 px-2 py-0.5 text-xs text-emerald-400">적립형</span>
+      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">적립형</span>
     ) : (
-      <span className="rounded-full bg-amber-950/60 px-2 py-0.5 text-xs text-amber-400">
+      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-700">
         차감형(무료/유료)
       </span>
     );
 
   if (editing) {
     return (
-      <tr className="border-b border-slate-800/60 bg-slate-800/30">
+      <tr className="border-b border-slate-200/60 bg-white/30">
         <td colSpan={6} className="px-4 py-3">
           <form action={updateAction} className="flex flex-wrap items-center gap-2">
             <input type="hidden" name="id" value={policy.id} />
@@ -52,14 +52,14 @@ export default function PointPolicyRow({ policy, canWrite, canDelete }: PointPol
               type="text"
               name="sourceType"
               defaultValue={policy.sourceType}
-              className="w-48 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="w-48 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
             <input
               type="number"
               name="amount"
               defaultValue={policy.amount}
               min={0}
-              className="w-28 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="w-28 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
             <input
               type="number"
@@ -67,9 +67,9 @@ export default function PointPolicyRow({ policy, canWrite, canDelete }: PointPol
               defaultValue={policy.dailyLimit ?? ""}
               min={0}
               placeholder="한도(선택)"
-              className="w-28 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="w-28 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
-            <label className="flex items-center gap-1 text-xs text-slate-300">
+            <label className="flex items-center gap-1 text-xs text-slate-600">
               <input type="checkbox" name="isActive" defaultChecked={policy.isActive} className="accent-indigo-500" />
               활성
             </label>
@@ -83,12 +83,12 @@ export default function PointPolicyRow({ policy, canWrite, canDelete }: PointPol
             <button
               type="button"
               onClick={() => setEditing(false)}
-              className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
+              className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100"
             >
               취소
             </button>
             {updateState.error && (
-              <p className="w-full text-xs text-red-400">{updateState.error}</p>
+              <p className="w-full text-xs text-red-700">{updateState.error}</p>
             )}
           </form>
         </td>
@@ -97,18 +97,18 @@ export default function PointPolicyRow({ policy, canWrite, canDelete }: PointPol
   }
 
   return (
-    <tr className="border-b border-slate-800/60 hover:bg-slate-800/40">
-      <td className="px-4 py-3 font-mono text-slate-200">{policy.sourceType}</td>
+    <tr className="border-b border-slate-200/60 hover:bg-slate-100/40">
+      <td className="px-4 py-3 font-mono text-slate-700">{policy.sourceType}</td>
       <td className="px-4 py-3">{kindBadge}</td>
-      <td className="px-4 py-3 text-slate-300">{policy.amount.toLocaleString()}P</td>
-      <td className="px-4 py-3 text-slate-400">
+      <td className="px-4 py-3 text-slate-600">{policy.amount.toLocaleString()}P</td>
+      <td className="px-4 py-3 text-slate-500">
         {policy.dailyLimit != null ? policy.dailyLimit.toLocaleString() : "무제한"}
       </td>
       <td className="px-4 py-3">
         {policy.isActive ? (
-          <span className="rounded-full bg-emerald-950/60 px-2 py-0.5 text-xs text-emerald-400">활성</span>
+          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">활성</span>
         ) : (
-          <span className="rounded-full bg-slate-800 px-2 py-0.5 text-xs text-slate-400">비활성</span>
+          <span className="rounded-full bg-white px-2 py-0.5 text-xs text-slate-500">비활성</span>
         )}
       </td>
       <td className="px-4 py-3">
@@ -116,7 +116,7 @@ export default function PointPolicyRow({ policy, canWrite, canDelete }: PointPol
           {canWrite && (
             <button
               onClick={() => setEditing(true)}
-              className="rounded-lg border border-slate-700 px-3 py-1 text-xs text-slate-300 hover:bg-slate-800"
+              className="rounded-lg border border-slate-300 px-3 py-1 text-xs text-slate-600 hover:bg-slate-100"
             >
               수정
             </button>
@@ -127,14 +127,14 @@ export default function PointPolicyRow({ policy, canWrite, canDelete }: PointPol
               <button
                 type="submit"
                 disabled={deletePending}
-                className="rounded-lg border border-red-900 px-3 py-1 text-xs text-red-400 hover:bg-red-950/40 disabled:opacity-50"
+                className="rounded-lg border border-red-300 px-3 py-1 text-xs text-red-700 hover:bg-red-100 disabled:opacity-50"
               >
                 삭제
               </button>
             </form>
           )}
         </div>
-        {deleteState.error && <p className="mt-1 text-xs text-red-400">{deleteState.error}</p>}
+        {deleteState.error && <p className="mt-1 text-xs text-red-700">{deleteState.error}</p>}
       </td>
     </tr>
   );

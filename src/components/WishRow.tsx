@@ -21,9 +21,9 @@ interface WishRowProps {
 const initialState: CommunityFormState = {};
 
 const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
-  visible: { label: "노출중", cls: "bg-emerald-950/60 text-emerald-400" },
-  blinded: { label: "숨김", cls: "bg-amber-950/60 text-amber-400" },
-  deleted_by_admin: { label: "관리자 삭제", cls: "bg-rose-950/60 text-rose-400" },
+  visible: { label: "노출중", cls: "bg-emerald-100 text-emerald-700" },
+  blinded: { label: "숨김", cls: "bg-amber-100 text-amber-700" },
+  deleted_by_admin: { label: "관리자 삭제", cls: "bg-rose-100 text-rose-700" },
 };
 
 const CATEGORY_LABEL: Record<string, string> = {
@@ -39,15 +39,15 @@ function fmtDate(d: Date): string {
 
 export default function WishRow({ wish, canWrite, canDelete }: WishRowProps) {
   const [state, formAction, pending] = useActionState(setWishStatus, initialState);
-  const st = STATUS_LABEL[wish.status] ?? { label: wish.status, cls: "bg-slate-800 text-slate-400" };
+  const st = STATUS_LABEL[wish.status] ?? { label: wish.status, cls: "bg-white text-slate-500" };
 
   return (
-    <tr className="border-b border-slate-800/60 hover:bg-slate-800/40">
-      <td className="px-4 py-3 text-slate-400">
+    <tr className="border-b border-slate-200/60 hover:bg-slate-100/40">
+      <td className="px-4 py-3 text-slate-500">
         {CATEGORY_LABEL[wish.category] ?? wish.category}
       </td>
-      <td className="max-w-xs px-4 py-3 text-slate-200">{wish.content}</td>
-      <td className="px-4 py-3 text-slate-400">{wish.isAnonymous ? "익명" : wish.userNickname}</td>
+      <td className="max-w-xs px-4 py-3 text-slate-700">{wish.content}</td>
+      <td className="px-4 py-3 text-slate-500">{wish.isAnonymous ? "익명" : wish.userNickname}</td>
       <td className="px-4 py-3 text-slate-500">💛 {wish.supportCount.toLocaleString()}</td>
       <td className="px-4 py-3">
         <span className={`rounded-full px-2 py-0.5 text-xs ${st.cls}`}>{st.label}</span>
@@ -62,7 +62,7 @@ export default function WishRow({ wish, canWrite, canDelete }: WishRowProps) {
               <button
                 type="submit"
                 disabled={pending}
-                className="rounded-lg border border-emerald-900 px-3 py-1 text-xs text-emerald-400 hover:bg-emerald-950/40 disabled:opacity-50"
+                className="rounded-lg border border-emerald-300 px-3 py-1 text-xs text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
               >
                 노출
               </button>
@@ -75,7 +75,7 @@ export default function WishRow({ wish, canWrite, canDelete }: WishRowProps) {
               <button
                 type="submit"
                 disabled={pending}
-                className="rounded-lg border border-amber-900 px-3 py-1 text-xs text-amber-400 hover:bg-amber-950/40 disabled:opacity-50"
+                className="rounded-lg border border-amber-300 px-3 py-1 text-xs text-amber-700 hover:bg-amber-100 disabled:opacity-50"
               >
                 숨김
               </button>
@@ -88,14 +88,14 @@ export default function WishRow({ wish, canWrite, canDelete }: WishRowProps) {
               <button
                 type="submit"
                 disabled={pending}
-                className="rounded-lg border border-red-900 px-3 py-1 text-xs text-red-400 hover:bg-red-950/40 disabled:opacity-50"
+                className="rounded-lg border border-red-300 px-3 py-1 text-xs text-red-700 hover:bg-red-100 disabled:opacity-50"
               >
                 삭제
               </button>
             </form>
           )}
         </div>
-        {state.error && <p className="mt-1 text-xs text-red-400">{state.error}</p>}
+        {state.error && <p className="mt-1 text-xs text-red-700">{state.error}</p>}
       </td>
     </tr>
   );

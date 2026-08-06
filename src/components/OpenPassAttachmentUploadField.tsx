@@ -95,7 +95,7 @@ export default function OpenPassAttachmentUploadField({
           defaultValue={defaultHtmlContent ?? ""}
           rows={3}
           placeholder="안내용 HTML 본문을 입력하세요 (예: <p>이용 안내...</p>)"
-          className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
         />
         {/* rich_text_html은 fileUrl이 없으므로 Server Action이 필수값으로 보지 않도록 빈 값 유지 */}
         <input type="hidden" name="fileUrl" value="" />
@@ -115,11 +115,11 @@ export default function OpenPassAttachmentUploadField({
           onChange={(e) => setUrl(e.target.value)}
           placeholder={isLink ? "https:// 로 시작하는 외부 링크 URL" : "업로드 후 URL이 자동으로 입력됩니다"}
           required
-          className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+          className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
         />
         {!isLink && (
           <label
-            className={`cursor-pointer rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-700 ${
+            className={`cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 ${
               uploading ? "pointer-events-none opacity-50" : ""
             }`}
           >
@@ -136,17 +136,17 @@ export default function OpenPassAttachmentUploadField({
         )}
         {url && isImageKind && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={url} alt="미리보기" className="h-9 w-9 rounded border border-slate-700 object-cover" />
+          <img src={url} alt="미리보기" className="h-9 w-9 rounded border border-slate-300 object-cover" />
         )}
         {url && isVideoKind && (
-          <video src={url} className="h-9 w-16 rounded border border-slate-700 object-cover" muted />
+          <video src={url} className="h-9 w-16 rounded border border-slate-300 object-cover" muted />
         )}
         {url && fileType === "document" && (
           <a
             href={url}
             target="_blank"
             rel="noreferrer"
-            className="rounded border border-slate-700 px-2 py-1 text-xs text-indigo-300 hover:bg-slate-800"
+            className="rounded border border-slate-300 px-2 py-1 text-xs text-indigo-800 hover:bg-slate-100"
           >
             PDF 열기
           </a>
@@ -155,7 +155,7 @@ export default function OpenPassAttachmentUploadField({
       <input type="hidden" name="mimeType" value={mimeType} />
       <input type="hidden" name="fileSize" value={fileSize} />
       <input type="hidden" name="thumbnailUrl" value={thumbnailUrl} />
-      {error && <p className="text-xs text-red-400">{error}</p>}
+      {error && <p className="text-xs text-red-700">{error}</p>}
     </div>
   );
 }

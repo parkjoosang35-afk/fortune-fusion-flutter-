@@ -19,8 +19,8 @@ export default async function PageConfigPublishPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">미리보기 / 발행센터</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">미리보기 / 발행센터</h1>
+        <p className="mt-1 text-sm text-slate-500">
           draft를 iPhone/Android/Web 비율로 미리 확인하고, 현재 발행(published) 버전과의 차이를
           비교한 뒤 발행합니다. 발행은 draft를 새 버전으로 스냅샷 복제하는 방식이라 과거 버전은
           삭제되지 않고 그대로 보관되어 언제든 되돌릴 수 있습니다.

@@ -43,13 +43,13 @@ export default async function PromptDomainPage({ params }: PromptDomainPageProps
   return (
     <div>
       <div className="mb-6 flex items-center gap-3">
-        <Link href="/ai-content/prompts" className="text-sm text-slate-400 hover:text-white">
+        <Link href="/ai-content/prompts" className="text-sm text-slate-500 hover:text-slate-900">
           ← 프롬프트 템플릿 목록
         </Link>
       </div>
 
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">
+        <h1 className="text-2xl font-bold text-slate-900">
           {DOMAIN_LABEL[domain]} 프롬프트 템플릿
         </h1>
         <span className="text-sm text-slate-500">
@@ -60,8 +60,8 @@ export default async function PromptDomainPage({ params }: PromptDomainPageProps
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* 좌측: 새 버전 편집 폼 */}
         <div className="lg:col-span-2">
-          <section className="rounded-xl border border-slate-800 bg-slate-900 p-5">
-            <h2 className="mb-4 text-sm font-semibold text-white">
+          <section className="rounded-xl border border-slate-200 bg-white p-5">
+            <h2 className="mb-4 text-sm font-semibold text-slate-900">
               새 버전 작성 (기준: v{latestVersion?.version ?? 0})
             </h2>
             <PromptVersionForm
@@ -74,8 +74,8 @@ export default async function PromptDomainPage({ params }: PromptDomainPageProps
 
         {/* 우측: 버전 이력 + 배포 */}
         <div>
-          <section className="rounded-xl border border-slate-800 bg-slate-900 p-5">
-            <h2 className="mb-4 text-sm font-semibold text-white">버전 이력</h2>
+          <section className="rounded-xl border border-slate-200 bg-white p-5">
+            <h2 className="mb-4 text-sm font-semibold text-slate-900">버전 이력</h2>
             <div className="space-y-3">
               {versions.length === 0 && (
                 <p className="text-sm text-slate-500">버전 이력이 없습니다.</p>
@@ -83,10 +83,10 @@ export default async function PromptDomainPage({ params }: PromptDomainPageProps
               {versions.map((v) => (
                 <div
                   key={v.id}
-                  className="rounded-lg border border-slate-800 bg-slate-800/40 p-3"
+                  className="rounded-lg border border-slate-200 bg-white/40 p-3"
                 >
                   <div className="mb-1 flex items-center justify-between">
-                    <span className="text-sm font-medium text-white">v{v.version}</span>
+                    <span className="text-sm font-medium text-slate-900">v{v.version}</span>
                     <PromptDeployButton
                       domain={domain}
                       templateId={v.id}

@@ -27,8 +27,8 @@ const OWNER_TYPE_LABEL: Record<string, string> = {
 };
 
 const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
-  active: { label: "정상", cls: "bg-emerald-950/60 text-emerald-400" },
-  deleted_by_admin: { label: "관리자 삭제", cls: "bg-rose-950/60 text-rose-400" },
+  active: { label: "정상", cls: "bg-emerald-100 text-emerald-700" },
+  deleted_by_admin: { label: "관리자 삭제", cls: "bg-rose-100 text-rose-700" },
 };
 
 function fmtDate(d: Date): string {
@@ -44,29 +44,29 @@ function fmtSize(bytes: number | null): string {
 
 export default function FileRow({ file, canDelete }: FileRowProps) {
   const [state, formAction, pending] = useActionState(setFileStatus, initialState);
-  const st = STATUS_LABEL[file.status] ?? { label: file.status, cls: "bg-slate-800 text-slate-400" };
+  const st = STATUS_LABEL[file.status] ?? { label: file.status, cls: "bg-white text-slate-500" };
 
   return (
-    <tr className="border-b border-slate-800/60 hover:bg-slate-800/40">
-      <td className="px-4 py-3 text-slate-400">
-        <span className="mr-1 rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-400">
+    <tr className="border-b border-slate-200/60 hover:bg-slate-100/40">
+      <td className="px-4 py-3 text-slate-500">
+        <span className="mr-1 rounded bg-white px-1.5 py-0.5 text-[10px] text-slate-500">
           {OWNER_TYPE_LABEL[file.ownerType] ?? file.ownerType}
         </span>
         {file.ownerLabel}
       </td>
-      <td className="max-w-xs truncate px-4 py-3 text-slate-200">
+      <td className="max-w-xs truncate px-4 py-3 text-slate-700">
         <a
           href={file.fileUrl}
           target="_blank"
           rel="noreferrer"
-          className="hover:text-indigo-400 hover:underline"
+          className="hover:text-indigo-700 hover:underline"
           title={file.fileUrl}
         >
           {file.fileUrl}
         </a>
       </td>
-      <td className="px-4 py-3 text-slate-400">
-        <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] uppercase text-slate-400">
+      <td className="px-4 py-3 text-slate-500">
+        <span className="rounded bg-white px-1.5 py-0.5 text-[10px] uppercase text-slate-500">
           {file.fileType}
         </span>
       </td>
@@ -84,7 +84,7 @@ export default function FileRow({ file, canDelete }: FileRowProps) {
               <button
                 type="submit"
                 disabled={pending}
-                className="rounded-lg border border-emerald-900 px-3 py-1 text-xs text-emerald-400 hover:bg-emerald-950/40 disabled:opacity-50"
+                className="rounded-lg border border-emerald-300 px-3 py-1 text-xs text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
               >
                 복원
               </button>
@@ -97,14 +97,14 @@ export default function FileRow({ file, canDelete }: FileRowProps) {
               <button
                 type="submit"
                 disabled={pending}
-                className="rounded-lg border border-red-900 px-3 py-1 text-xs text-red-400 hover:bg-red-950/40 disabled:opacity-50"
+                className="rounded-lg border border-red-300 px-3 py-1 text-xs text-red-700 hover:bg-red-100 disabled:opacity-50"
               >
                 삭제
               </button>
             </form>
           )}
         </div>
-        {state.error && <p className="mt-1 text-xs text-red-400">{state.error}</p>}
+        {state.error && <p className="mt-1 text-xs text-red-700">{state.error}</p>}
       </td>
     </tr>
   );

@@ -29,9 +29,9 @@ const ORDER_TYPE_LABEL: Record<string, string> = {
 };
 
 const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
-  paid: { label: "결제완료", cls: "bg-emerald-950/60 text-emerald-400" },
-  failed: { label: "결제실패", cls: "bg-rose-950/60 text-rose-400" },
-  cancelled: { label: "취소됨", cls: "bg-slate-800 text-slate-400" },
+  paid: { label: "결제완료", cls: "bg-emerald-100 text-emerald-700" },
+  failed: { label: "결제실패", cls: "bg-rose-100 text-rose-700" },
+  cancelled: { label: "취소됨", cls: "bg-white text-slate-500" },
 };
 
 const PAGE_SIZE = 20;
@@ -107,36 +107,36 @@ export default async function PaymentsListPage({ searchParams }: PaymentsListPag
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">결제/구독 관리 — 결제 내역 조회</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">결제/구독 관리 — 결제 내역 조회</h1>
+        <p className="mt-1 text-sm text-slate-500">
           회원의 결제 내역을 조회합니다(조회 전용). 04A K도메인 &quot;삭제 절대 금지&quot; 원칙에 따라
           삭제 기능을 제공하지 않습니다.
         </p>
-        <nav className="mt-4 flex gap-2 border-b border-slate-800 text-sm">
-          <span className="border-b-2 border-indigo-500 px-3 py-2 text-white">결제 내역</span>
-          <Link href="/payments/refunds" className="px-3 py-2 text-slate-400 hover:text-white">
+        <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
+          <span className="border-b-2 border-indigo-500 px-3 py-2 text-slate-900">결제 내역</span>
+          <Link href="/payments/refunds" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             환불 처리
           </Link>
-          <Link href="/payments/plans" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/payments/plans" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             구독 플랜 관리
           </Link>
-          <Link href="/payments/subscriptions" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/payments/subscriptions" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             구독 현황
           </Link>
-          <Link href="/payments/revenue-report" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/payments/revenue-report" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             매출 리포트
           </Link>
         </nav>
       </div>
 
       <section className="mb-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">전체 결제 건수</p>
-          <p className="mt-1 text-2xl font-bold text-white">{totalCount.toLocaleString()}</p>
+          <p className="mt-1 text-2xl font-bold text-slate-900">{totalCount.toLocaleString()}</p>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">금일 결제 매출(paid)</p>
-          <p className="mt-1 text-2xl font-bold text-emerald-400">
+          <p className="mt-1 text-2xl font-bold text-emerald-700">
             {todayRevenue.toLocaleString()}원
           </p>
         </div>
@@ -146,7 +146,7 @@ export default async function PaymentsListPage({ searchParams }: PaymentsListPag
         <Link
           href={buildQuery({ orderType: "", page: 1 })}
           className={`rounded-lg px-3 py-1.5 text-xs ${
-            !orderTypeFilter ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-400 hover:text-white"
+            !orderTypeFilter ? "bg-indigo-600 text-white" : "bg-white text-slate-500 hover:text-slate-900"
           }`}
         >
           전체 유형
@@ -156,7 +156,7 @@ export default async function PaymentsListPage({ searchParams }: PaymentsListPag
             key={key}
             href={buildQuery({ orderType: key, page: 1 })}
             className={`rounded-lg px-3 py-1.5 text-xs ${
-              orderTypeFilter === key ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-400 hover:text-white"
+              orderTypeFilter === key ? "bg-indigo-600 text-white" : "bg-white text-slate-500 hover:text-slate-900"
             }`}
           >
             {label}
@@ -166,7 +166,7 @@ export default async function PaymentsListPage({ searchParams }: PaymentsListPag
         <Link
           href={buildQuery({ status: "", page: 1 })}
           className={`rounded-lg px-3 py-1.5 text-xs ${
-            !statusFilter ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-400 hover:text-white"
+            !statusFilter ? "bg-indigo-600 text-white" : "bg-white text-slate-500 hover:text-slate-900"
           }`}
         >
           전체 상태
@@ -176,7 +176,7 @@ export default async function PaymentsListPage({ searchParams }: PaymentsListPag
             key={key}
             href={buildQuery({ status: key, page: 1 })}
             className={`rounded-lg px-3 py-1.5 text-xs ${
-              statusFilter === key ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-400 hover:text-white"
+              statusFilter === key ? "bg-indigo-600 text-white" : "bg-white text-slate-500 hover:text-slate-900"
             }`}
           >
             {label}
@@ -184,9 +184,9 @@ export default async function PaymentsListPage({ searchParams }: PaymentsListPag
         ))}
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+          <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
             <tr>
               <th className="px-4 py-3">회원</th>
               <th className="px-4 py-3">유형</th>
@@ -206,15 +206,15 @@ export default async function PaymentsListPage({ searchParams }: PaymentsListPag
               </tr>
             )}
             {payments.map((p) => {
-              const statusInfo = STATUS_LABEL[p.status] ?? { label: p.status, cls: "bg-slate-800 text-slate-400" };
+              const statusInfo = STATUS_LABEL[p.status] ?? { label: p.status, cls: "bg-white text-slate-500" };
               return (
-                <tr key={p.id} className="border-b border-slate-800/60 hover:bg-slate-800/40">
-                  <td className="px-4 py-3 text-slate-200">{nick(p.userId)}</td>
-                  <td className="px-4 py-3 text-slate-300">{ORDER_TYPE_LABEL[p.orderType] ?? p.orderType}</td>
-                  <td className="px-4 py-3 text-slate-200">
+                <tr key={p.id} className="border-b border-slate-200/60 hover:bg-slate-100/40">
+                  <td className="px-4 py-3 text-slate-700">{nick(p.userId)}</td>
+                  <td className="px-4 py-3 text-slate-600">{ORDER_TYPE_LABEL[p.orderType] ?? p.orderType}</td>
+                  <td className="px-4 py-3 text-slate-700">
                     {p.amount.toLocaleString()} {p.currencyCode}
                   </td>
-                  <td className="px-4 py-3 text-slate-400">{p.pgProvider}</td>
+                  <td className="px-4 py-3 text-slate-500">{p.pgProvider}</td>
                   <td className="px-4 py-3 font-mono text-xs text-slate-500">{p.pgTxId}</td>
                   <td className="px-4 py-3">
                     <span className={`rounded-full px-2 py-0.5 text-xs ${statusInfo.cls}`}>
@@ -236,7 +236,7 @@ export default async function PaymentsListPage({ searchParams }: PaymentsListPag
               key={p}
               href={buildQuery({ page: p })}
               className={`rounded-lg px-3 py-1.5 text-xs ${
-                p === page ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-400 hover:text-white"
+                p === page ? "bg-indigo-600 text-white" : "bg-white text-slate-500 hover:text-slate-900"
               }`}
             >
               {p}

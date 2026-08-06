@@ -19,8 +19,8 @@ interface MatchingProfileRowProps {
 const initialState: MatchingProfileFormState = {};
 
 const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
-  active: { label: "노출중", cls: "bg-emerald-950/60 text-emerald-400" },
-  deactivated_by_admin: { label: "관리자 비활성화", cls: "bg-rose-950/60 text-rose-400" },
+  active: { label: "노출중", cls: "bg-emerald-100 text-emerald-700" },
+  deactivated_by_admin: { label: "관리자 비활성화", cls: "bg-rose-100 text-rose-700" },
 };
 
 function fmtDate(d: Date): string {
@@ -29,19 +29,19 @@ function fmtDate(d: Date): string {
 
 export default function MatchingProfileRow({ profile, canWrite }: MatchingProfileRowProps) {
   const [state, formAction, pending] = useActionState(setMatchingProfileStatus, initialState);
-  const st = STATUS_LABEL[profile.status] ?? { label: profile.status, cls: "bg-slate-800 text-slate-400" };
+  const st = STATUS_LABEL[profile.status] ?? { label: profile.status, cls: "bg-white text-slate-500" };
 
   return (
-    <tr className="border-b border-slate-800/60 hover:bg-slate-800/40">
-      <td className="px-4 py-3 text-slate-200">{profile.userNickname}</td>
-      <td className="px-4 py-3 text-slate-300">
+    <tr className="border-b border-slate-200/60 hover:bg-slate-100/40">
+      <td className="px-4 py-3 text-slate-700">{profile.userNickname}</td>
+      <td className="px-4 py-3 text-slate-600">
         {profile.isPublic ? (
-          <span className="rounded-full bg-indigo-950/60 px-2 py-0.5 text-xs text-indigo-400">공개</span>
+          <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs text-indigo-700">공개</span>
         ) : (
-          <span className="rounded-full bg-slate-800 px-2 py-0.5 text-xs text-slate-400">비공개</span>
+          <span className="rounded-full bg-white px-2 py-0.5 text-xs text-slate-500">비공개</span>
         )}
       </td>
-      <td className="max-w-[220px] truncate px-4 py-3 text-slate-400" title={profile.introText ?? ""}>
+      <td className="max-w-[220px] truncate px-4 py-3 text-slate-500" title={profile.introText ?? ""}>
         {profile.introText ?? <span className="text-slate-600">-</span>}
       </td>
       <td className="max-w-[200px] truncate px-4 py-3 text-xs text-slate-500" title={profile.preferencesSummary}>
@@ -60,7 +60,7 @@ export default function MatchingProfileRow({ profile, canWrite }: MatchingProfil
               <button
                 type="submit"
                 disabled={pending}
-                className="rounded-lg border border-emerald-900 px-3 py-1 text-xs text-emerald-400 hover:bg-emerald-950/40 disabled:opacity-50"
+                className="rounded-lg border border-emerald-300 px-3 py-1 text-xs text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
               >
                 복원
               </button>
@@ -73,14 +73,14 @@ export default function MatchingProfileRow({ profile, canWrite }: MatchingProfil
               <button
                 type="submit"
                 disabled={pending}
-                className="rounded-lg border border-red-900 px-3 py-1 text-xs text-red-400 hover:bg-red-950/40 disabled:opacity-50"
+                className="rounded-lg border border-red-300 px-3 py-1 text-xs text-red-700 hover:bg-red-100 disabled:opacity-50"
               >
                 강제 비활성화
               </button>
             </form>
           )}
         </div>
-        {state.error && <p className="mt-1 text-xs text-red-400">{state.error}</p>}
+        {state.error && <p className="mt-1 text-xs text-red-700">{state.error}</p>}
       </td>
     </tr>
   );

@@ -100,95 +100,95 @@ export default async function MatchingCompatibilityStatsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">매칭/궁합 관리 — 궁합 요청/결과 통계</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">매칭/궁합 관리 — 궁합 요청/결과 통계</h1>
+        <p className="mt-1 text-sm text-slate-500">
           회원의 궁합 요청(compatibility_requests)과 AI 산출 결과(compatibility_results)를
           집계 조회합니다(조회 전용).
         </p>
-        <nav className="mt-4 flex gap-2 border-b border-slate-800 text-sm">
-          <Link href="/matching/profiles" className="px-3 py-2 text-slate-400 hover:text-white">
+        <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
+          <Link href="/matching/profiles" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             매칭 프로필
           </Link>
-          <Link href="/matching/likes-pairs" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/matching/likes-pairs" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             매칭 성사 이력
           </Link>
-          <Link href="/matching/friends-follows" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/matching/friends-follows" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             친구/팔로우
           </Link>
-          <Link href="/matching/chats" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/matching/chats" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             채팅 모니터링
           </Link>
-          <Link href="/matching/compatibility-weights" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/matching/compatibility-weights" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             궁합 요소 가중치
           </Link>
-          <span className="border-b-2 border-indigo-500 px-3 py-2 text-white">궁합 통계</span>
+          <span className="border-b-2 border-indigo-500 px-3 py-2 text-slate-900">궁합 통계</span>
         </nav>
       </div>
 
       <section className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">전체 요청 건수</p>
-          <p className="mt-1 text-2xl font-bold text-white">{requests.length.toLocaleString()}</p>
+          <p className="mt-1 text-2xl font-bold text-slate-900">{requests.length.toLocaleString()}</p>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">결과 생성 완료</p>
-          <p className="mt-1 text-2xl font-bold text-emerald-400">{results.length.toLocaleString()}</p>
+          <p className="mt-1 text-2xl font-bold text-emerald-700">{results.length.toLocaleString()}</p>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">결과 미생성(대기/실패)</p>
-          <p className="mt-1 text-2xl font-bold text-amber-400">{pendingCount.toLocaleString()}</p>
+          <p className="mt-1 text-2xl font-bold text-amber-700">{pendingCount.toLocaleString()}</p>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">평균 궁합 점수</p>
-          <p className="mt-1 text-2xl font-bold text-indigo-400">{avgScore.toFixed(1)}</p>
+          <p className="mt-1 text-2xl font-bold text-indigo-700">{avgScore.toFixed(1)}</p>
         </div>
       </section>
 
       <section className="mb-6 grid gap-4 sm:grid-cols-2">
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-          <h2 className="mb-3 text-sm font-semibold text-slate-300">유형(type)별 요청 건수</h2>
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <h2 className="mb-3 text-sm font-semibold text-slate-600">유형(type)별 요청 건수</h2>
           <div className="space-y-2">
             {typeStats.length === 0 && <p className="text-sm text-slate-500">데이터가 없습니다.</p>}
             {typeStats.map(([type, count]) => (
               <div key={type} className="flex items-center justify-between text-sm">
-                <span className="text-slate-300">{TYPE_LABEL[type] ?? type}</span>
-                <span className="font-semibold text-white">{count}건</span>
+                <span className="text-slate-600">{TYPE_LABEL[type] ?? type}</span>
+                <span className="font-semibold text-slate-900">{count}건</span>
               </div>
             ))}
           </div>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-          <h2 className="mb-3 text-sm font-semibold text-slate-300">상대방 유형 비율</h2>
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <h2 className="mb-3 text-sm font-semibold text-slate-600">상대방 유형 비율</h2>
           <div className="space-y-2 text-sm">
             <div className="flex items-center justify-between">
-              <span className="text-slate-300">회원 상대(target_user_id)</span>
-              <span className="font-semibold text-white">{memberTargetCount}건</span>
+              <span className="text-slate-600">회원 상대(target_user_id)</span>
+              <span className="font-semibold text-slate-900">{memberTargetCount}건</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-slate-300">비회원 상대(target_input)</span>
-              <span className="font-semibold text-white">{nonMemberTargetCount}건</span>
+              <span className="text-slate-600">비회원 상대(target_input)</span>
+              <span className="font-semibold text-slate-900">{nonMemberTargetCount}건</span>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="mb-6 rounded-xl border border-slate-800 bg-slate-900 p-4">
-        <h2 className="mb-3 text-sm font-semibold text-slate-300">궁합 점수(score) 분포</h2>
+      <section className="mb-6 rounded-xl border border-slate-200 bg-white p-4">
+        <h2 className="mb-3 text-sm font-semibold text-slate-600">궁합 점수(score) 분포</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {scoreStats.map(({ band, count }) => (
-            <div key={band} className="rounded-lg border border-slate-800 bg-slate-950/40 p-3 text-center">
+            <div key={band} className="rounded-lg border border-slate-200 bg-white/40 p-3 text-center">
               <p className="text-xs text-slate-500">{band}점</p>
-              <p className="mt-1 text-xl font-bold text-white">{count}건</p>
+              <p className="mt-1 text-xl font-bold text-slate-900">{count}건</p>
             </div>
           ))}
         </div>
       </section>
 
       <section>
-        <h2 className="mb-2 text-sm font-semibold text-slate-300">요청/결과 상세 목록</h2>
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <h2 className="mb-2 text-sm font-semibold text-slate-600">요청/결과 상세 목록</h2>
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">요청자</th>
                 <th className="px-4 py-3">상대</th>
@@ -220,24 +220,24 @@ export default async function MatchingCompatibilityStatsPage() {
                   }
                 }
                 return (
-                  <tr key={r.id} className="border-b border-slate-800/60 hover:bg-slate-800/40">
-                    <td className="px-4 py-3 text-slate-200">{nick(r.requesterUserId)}</td>
-                    <td className="px-4 py-3 text-slate-200">{targetLabel}</td>
-                    <td className="px-4 py-3 text-slate-400">{TYPE_LABEL[r.type] ?? r.type}</td>
+                  <tr key={r.id} className="border-b border-slate-200/60 hover:bg-slate-100/40">
+                    <td className="px-4 py-3 text-slate-700">{nick(r.requesterUserId)}</td>
+                    <td className="px-4 py-3 text-slate-700">{targetLabel}</td>
+                    <td className="px-4 py-3 text-slate-500">{TYPE_LABEL[r.type] ?? r.type}</td>
                     <td className="px-4 py-3">
                       {result ? (
-                        <span className="font-semibold text-indigo-400">{result.score}점</span>
+                        <span className="font-semibold text-indigo-700">{result.score}점</span>
                       ) : (
                         <span className="text-slate-500">-</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
                       {result ? (
-                        <span className="rounded-full bg-emerald-950/60 px-2 py-0.5 text-xs text-emerald-400">
+                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">
                           결과 완료
                         </span>
                       ) : (
-                        <span className="rounded-full bg-amber-950/40 px-2 py-0.5 text-xs text-amber-400">
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-700">
                           결과 대기
                         </span>
                       )}

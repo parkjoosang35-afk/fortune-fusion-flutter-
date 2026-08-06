@@ -21,16 +21,16 @@ export default function AttendanceRuleCreateForm({ canWrite }: { canWrite: boole
         await formAction(formData);
         formRef.current?.reset();
       }}
-      className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-800 bg-slate-900 p-4 md:grid-cols-5"
+      className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-5"
     >
-      <h3 className="col-span-full text-sm font-semibold text-white">새 출석보상규칙 추가</h3>
+      <h3 className="col-span-full text-sm font-semibold text-slate-900">새 출석보상규칙 추가</h3>
       <input
         type="number"
         name="streakDay"
         placeholder="연속 출석일 (예: 7)"
         required
         min={1}
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
       />
       <input
         type="number"
@@ -38,28 +38,28 @@ export default function AttendanceRuleCreateForm({ canWrite }: { canWrite: boole
         placeholder="보상 포인트"
         required
         min={0}
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
       />
       <input
         type="text"
         name="bonusItemType"
         placeholder="보너스 아이템 유형(선택)"
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
       />
       <input
         type="number"
         name="bonusItemId"
         placeholder="보너스 아이템 ID(선택)"
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
       />
 
       {state.error && (
-        <p className="col-span-full rounded-lg bg-red-950/60 px-3 py-2 text-sm text-red-400">
+        <p className="col-span-full rounded-lg bg-red-100 px-3 py-2 text-sm text-red-700">
           {state.error}
         </p>
       )}
       {state.success && (
-        <p className="col-span-full rounded-lg bg-emerald-950/60 px-3 py-2 text-sm text-emerald-400">
+        <p className="col-span-full rounded-lg bg-emerald-100 px-3 py-2 text-sm text-emerald-700">
           규칙이 추가되었습니다.
         </p>
       )}

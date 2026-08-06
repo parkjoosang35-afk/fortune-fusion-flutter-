@@ -35,8 +35,8 @@ export default async function FeatureBindingsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">리워드 관리 — 기능-자산 매핑</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">리워드 관리 — 기능-자산 매핑</h1>
+        <p className="mt-1 text-sm text-slate-500">
           화면(FeatureScope)별로 어떤 자산이 필요한지 정의합니다. 앱은 이 매핑을 정책 캐시로
           내려받아 화면별 하드코딩 없이 접근 권한을 판단합니다. scope 구조 자체는 코드 배포로만
           바뀌며, 관리자는 accessType/보조자산/활성여부만 제한적으로 조정할 수 있습니다.
@@ -47,10 +47,10 @@ export default async function FeatureBindingsPage() {
 
       {Object.entries(grouped).map(([group, items]) => (
         <div key={group} className="mb-6">
-          <h2 className="mb-3 text-sm font-semibold text-white">{FEATURE_GROUP_LABEL[group] ?? group}</h2>
-          <div className="overflow-x-auto rounded-xl border border-slate-800">
+          <h2 className="mb-3 text-sm font-semibold text-slate-900">{FEATURE_GROUP_LABEL[group] ?? group}</h2>
+          <div className="overflow-x-auto rounded-xl border border-slate-200">
             <table className="w-full text-left text-sm">
-              <thead className="border-b border-slate-800 bg-slate-900 text-xs uppercase text-slate-500">
+              <thead className="border-b border-slate-200 bg-white text-xs uppercase text-slate-500">
                 <tr>
                   <th className="px-4 py-3">scope</th>
                   <th className="px-4 py-3">기능군</th>

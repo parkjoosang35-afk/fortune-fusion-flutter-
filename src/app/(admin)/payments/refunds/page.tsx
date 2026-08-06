@@ -79,58 +79,58 @@ export default async function PaymentRefundsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">결제/구독 관리 — 환불 처리</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">결제/구독 관리 — 환불 처리</h1>
+        <p className="mt-1 text-sm text-slate-500">
           환불은 원본 결제를 직접 수정하지 않고, payment_refunds에 별도 이력을 생성하는 방식으로만 처리합니다.
           최종 승인은 super_admin만 가능합니다.
         </p>
-        <nav className="mt-4 flex gap-2 border-b border-slate-800 text-sm">
-          <Link href="/payments/list" className="px-3 py-2 text-slate-400 hover:text-white">
+        <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
+          <Link href="/payments/list" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             결제 내역
           </Link>
-          <span className="border-b-2 border-indigo-500 px-3 py-2 text-white">환불 처리</span>
-          <Link href="/payments/plans" className="px-3 py-2 text-slate-400 hover:text-white">
+          <span className="border-b-2 border-indigo-500 px-3 py-2 text-slate-900">환불 처리</span>
+          <Link href="/payments/plans" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             구독 플랜 관리
           </Link>
-          <Link href="/payments/subscriptions" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/payments/subscriptions" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             구독 현황
           </Link>
-          <Link href="/payments/revenue-report" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/payments/revenue-report" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             매출 리포트
           </Link>
         </nav>
       </div>
 
       <section className="mb-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">승인 대기</p>
-          <p className="mt-1 text-2xl font-bold text-amber-400">{pendingCount}</p>
+          <p className="mt-1 text-2xl font-bold text-amber-700">{pendingCount}</p>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">환불 완료</p>
-          <p className="mt-1 text-2xl font-bold text-emerald-400">{completedCount}</p>
+          <p className="mt-1 text-2xl font-bold text-emerald-700">{completedCount}</p>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">거부됨</p>
-          <p className="mt-1 text-2xl font-bold text-rose-400">{failedCount}</p>
+          <p className="mt-1 text-2xl font-bold text-rose-700">{failedCount}</p>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">총 환불 금액(완료건)</p>
-          <p className="mt-1 text-2xl font-bold text-white">{totalRefundedAmount.toLocaleString()}원</p>
+          <p className="mt-1 text-2xl font-bold text-slate-900">{totalRefundedAmount.toLocaleString()}원</p>
         </div>
       </section>
 
       {canRequest ? (
         <RefundRequestForm eligiblePayments={eligiblePayments} />
       ) : (
-        <p className="mb-6 rounded-xl border border-slate-800 bg-slate-900 p-4 text-sm text-slate-500">
+        <p className="mb-6 rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500">
           환불 요청 생성 권한이 없습니다(조회만 가능).
         </p>
       )}
 
-      <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+          <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
             <tr>
               <th className="px-4 py-3">PG 거래ID</th>
               <th className="px-4 py-3">회원</th>

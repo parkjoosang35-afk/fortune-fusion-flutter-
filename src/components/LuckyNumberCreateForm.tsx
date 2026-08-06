@@ -28,14 +28,14 @@ export default function LuckyNumberCreateForm({ canWrite }: { canWrite: boolean 
         setUploadFieldKey((k) => k + 1);
         setContentType("image");
       }}
-      className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-800 bg-slate-900 p-4 md:grid-cols-4"
+      className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-4"
     >
-      <h3 className="col-span-full text-sm font-semibold text-white">
+      <h3 className="col-span-full text-sm font-semibold text-slate-900">
         새 행운숫자 콘텐츠 추가
       </h3>
 
       {/* 콘텐츠 유형 선택: 이미지 / 영상 / 소스(스크립트) — 광고(banners)와는 무관한 별도 콘텐츠 */}
-      <div className="col-span-full flex gap-4 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-slate-300">
+      <div className="col-span-full flex gap-4 rounded-lg border border-slate-300 bg-white/60 px-3 py-2 text-sm text-slate-600">
         <span className="text-xs text-slate-500">콘텐츠 유형</span>
         <label className="flex items-center gap-1.5">
           <input
@@ -77,7 +77,7 @@ export default function LuckyNumberCreateForm({ canWrite }: { canWrite: boolean 
         name="title"
         placeholder="콘텐츠 제목 (예: 2024년 12월 행운 숫자)"
         required
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-purple-500 md:col-span-2"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-purple-500 md:col-span-2"
       />
       <input
         type="number"
@@ -85,13 +85,13 @@ export default function LuckyNumberCreateForm({ canWrite }: { canWrite: boolean 
         placeholder="노출 순서"
         min={0}
         defaultValue={0}
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-purple-500"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-purple-500"
       />
       <input
         type="text"
         name="caption"
         placeholder="캡션(선택, 이미지/영상 하단 설명)"
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-purple-500"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-purple-500"
       />
 
       {contentType === "image" && (
@@ -120,7 +120,7 @@ export default function LuckyNumberCreateForm({ canWrite }: { canWrite: boolean 
             name="script"
             rows={4}
             placeholder="행운숫자 카드에 그대로 렌더링할 HTML/스크립트 코드를 입력하세요."
-            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 font-mono text-xs text-white outline-none focus:border-purple-500"
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-xs text-slate-900 outline-none focus:border-purple-500"
           />
           <p className="mt-1 text-xs text-slate-500">
             HTML 코드를 그대로 붙여넣으면 앱 내 웹뷰로 렌더링됩니다.
@@ -128,34 +128,34 @@ export default function LuckyNumberCreateForm({ canWrite }: { canWrite: boolean 
         </div>
       )}
 
-      <label className="flex flex-col gap-1 text-xs text-slate-400">
+      <label className="flex flex-col gap-1 text-xs text-slate-500">
         시작일시(선택)
         <input
           type="datetime-local"
           name="startAt"
-          className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-purple-500"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-purple-500"
         />
       </label>
-      <label className="flex flex-col gap-1 text-xs text-slate-400">
+      <label className="flex flex-col gap-1 text-xs text-slate-500">
         종료일시(선택)
         <input
           type="datetime-local"
           name="endAt"
-          className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-purple-500"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-purple-500"
         />
       </label>
-      <label className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300">
+      <label className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-600">
         <input type="checkbox" name="isActive" defaultChecked className="accent-purple-500" />
         활성화(노출)
       </label>
 
       {state.error && (
-        <p className="col-span-full rounded-lg bg-red-950/60 px-3 py-2 text-sm text-red-400">
+        <p className="col-span-full rounded-lg bg-red-100 px-3 py-2 text-sm text-red-700">
           {state.error}
         </p>
       )}
       {state.success && (
-        <p className="col-span-full rounded-lg bg-emerald-950/60 px-3 py-2 text-sm text-emerald-400">
+        <p className="col-span-full rounded-lg bg-emerald-100 px-3 py-2 text-sm text-emerald-700">
           행운숫자 콘텐츠가 추가되었습니다.
         </p>
       )}

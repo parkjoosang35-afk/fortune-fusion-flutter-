@@ -33,13 +33,13 @@ export default async function PageConfigVersionsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">변경로그 / 버전 히스토리</h1>
+        <h1 className="text-2xl font-bold text-slate-900">변경로그 / 버전 히스토리</h1>
         <PageConfigHomeSubNav />
       </div>
 
-      <div className="mb-6 overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+      <div className="mb-6 overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+          <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
             <tr>
               <th className="px-3 py-3">버전</th>
               <th className="px-3 py-3">상태</th>
@@ -51,18 +51,18 @@ export default async function PageConfigVersionsPage() {
           </thead>
           <tbody>
             {versions.map((v) => (
-              <tr key={v.id} className="border-b border-slate-800/60">
-                <td className="px-3 py-3 font-medium text-white">
+              <tr key={v.id} className="border-b border-slate-200/60">
+                <td className="px-3 py-3 font-medium text-slate-900">
                   v{v.versionNumber}
                   {config?.currentPublishedVersionId === v.id && (
-                    <span className="ml-2 rounded bg-emerald-900/60 px-1.5 py-0.5 text-xs text-emerald-300">현재 발행중</span>
+                    <span className="ml-2 rounded bg-emerald-100 px-1.5 py-0.5 text-xs text-emerald-800">현재 발행중</span>
                   )}
                   {config?.currentDraftVersionId === v.id && (
-                    <span className="ml-2 rounded bg-indigo-900/60 px-1.5 py-0.5 text-xs text-indigo-300">현재 draft</span>
+                    <span className="ml-2 rounded bg-indigo-100 px-1.5 py-0.5 text-xs text-indigo-800">현재 draft</span>
                   )}
                 </td>
-                <td className="px-3 py-3 text-slate-300">{v.status}</td>
-                <td className="px-3 py-3 text-slate-300">{v._count.sections}</td>
+                <td className="px-3 py-3 text-slate-600">{v.status}</td>
+                <td className="px-3 py-3 text-slate-600">{v._count.sections}</td>
                 <td className="px-3 py-3 text-xs text-slate-500">
                   {v.createdBy ?? "-"} · {new Date(v.createdAt).toLocaleString("ko-KR")}
                 </td>
@@ -80,14 +80,14 @@ export default async function PageConfigVersionsPage() {
         </table>
       </div>
 
-      <div className="rounded-xl border border-slate-800 bg-slate-900 p-5">
-        <h2 className="mb-3 text-base font-semibold text-white">변경 로그(최근 50건)</h2>
+      <div className="rounded-xl border border-slate-200 bg-white p-5">
+        <h2 className="mb-3 text-base font-semibold text-slate-900">변경 로그(최근 50건)</h2>
         <ul className="space-y-2 text-sm">
           {auditLogs.map((log) => (
-            <li key={log.id} className="flex items-center justify-between border-b border-slate-800/60 pb-2">
+            <li key={log.id} className="flex items-center justify-between border-b border-slate-200/60 pb-2">
               <div>
-                <span className="mr-2 rounded bg-slate-800 px-1.5 py-0.5 text-xs text-slate-300">{log.actionType}</span>
-                <span className="text-slate-300">{log.summary}</span>
+                <span className="mr-2 rounded bg-white px-1.5 py-0.5 text-xs text-slate-600">{log.actionType}</span>
+                <span className="text-slate-600">{log.summary}</span>
               </div>
               <span className="shrink-0 text-xs text-slate-500">
                 {log.adminId ?? "system"} · {new Date(log.createdAt).toLocaleString("ko-KR")}

@@ -104,24 +104,24 @@ export default async function SystemLogsPage({
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">시스템 설정 — 접근/에러 로그 조회</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">시스템 설정 — 접근/에러 로그 조회</h1>
+        <p className="mt-1 text-sm text-slate-500">
           서버 접근 로그(access_logs)와 시스템 에러 로그(error_logs)를 조회합니다. critical
           등급 에러는 운영팀 알림 연계 대상입니다.
         </p>
-        <nav className="mt-4 flex gap-2 border-b border-slate-800 text-sm">
-          <Link href="/system-settings" className="px-3 py-2 text-slate-400 hover:text-white">
+        <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
+          <Link href="/system-settings" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             전역 설정값 관리
           </Link>
           <Link
             href="/system-settings/logs"
-            className="px-3 py-2 font-medium text-white border-b-2 border-indigo-500"
+            className="px-3 py-2 font-medium text-slate-900 border-b-2 border-indigo-500"
           >
             접근/에러 로그 조회
           </Link>
           <Link
             href="/system-settings/statistics"
-            className="px-3 py-2 text-slate-400 hover:text-white"
+            className="px-3 py-2 text-slate-500 hover:text-slate-900"
           >
             통계 스냅샷 관리
           </Link>
@@ -134,7 +134,7 @@ export default async function SystemLogsPage({
           className={`rounded-lg px-4 py-2 ${
             tab === "access"
               ? "bg-indigo-600 text-white"
-              : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+              : "bg-white text-slate-500 hover:bg-slate-200"
           }`}
         >
           접근 로그(access_logs)
@@ -144,7 +144,7 @@ export default async function SystemLogsPage({
           className={`rounded-lg px-4 py-2 ${
             tab === "error"
               ? "bg-indigo-600 text-white"
-              : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+              : "bg-white text-slate-500 hover:bg-slate-200"
           }`}
         >
           에러 로그(error_logs)
@@ -153,12 +153,12 @@ export default async function SystemLogsPage({
 
       {tab === "access" ? (
         <>
-          <form className="mb-4 flex flex-wrap gap-3 rounded-xl border border-slate-800 bg-slate-900 p-4">
+          <form className="mb-4 flex flex-wrap gap-3 rounded-xl border border-slate-200 bg-white p-4">
             <input type="hidden" name="tab" value="access" />
             <select
               name="status"
               defaultValue={sp.status ?? ""}
-              className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white"
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
             >
               <option value="">전체 응답코드</option>
               <option value="200">200 OK</option>
@@ -179,16 +179,16 @@ export default async function SystemLogsPage({
             {sp.status && (
               <Link
                 href="/system-settings/logs?tab=access"
-                className="rounded-lg bg-slate-700 px-4 py-2 text-sm text-slate-300 hover:bg-slate-600"
+                className="rounded-lg bg-slate-100 px-4 py-2 text-sm text-slate-600 hover:bg-slate-200"
               >
                 초기화
               </Link>
             )}
           </form>
 
-          <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
             <table className="w-full text-left text-sm">
-              <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+              <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
                 <tr>
                   <th className="px-4 py-3">경로(path)</th>
                   <th className="px-4 py-3">메서드</th>
@@ -200,17 +200,17 @@ export default async function SystemLogsPage({
               </thead>
               <tbody>
                 {accessLogs.map((log) => (
-                  <tr key={log.id} className="border-b border-slate-800/60 hover:bg-slate-800/40">
-                    <td className="px-4 py-3 font-mono text-xs text-slate-300">{log.path}</td>
-                    <td className="px-4 py-3 text-xs text-slate-400">{log.method}</td>
+                  <tr key={log.id} className="border-b border-slate-200/60 hover:bg-slate-100/40">
+                    <td className="px-4 py-3 font-mono text-xs text-slate-600">{log.path}</td>
+                    <td className="px-4 py-3 text-xs text-slate-500">{log.method}</td>
                     <td className="px-4 py-3">
                       <span
                         className={`rounded-full px-2 py-0.5 text-xs ${
                           log.responseStatus >= 500
-                            ? "bg-red-950/60 text-red-400"
+                            ? "bg-red-100 text-red-700"
                             : log.responseStatus >= 400
-                              ? "bg-amber-950/60 text-amber-400"
-                              : "bg-emerald-950/60 text-emerald-400"
+                              ? "bg-amber-100 text-amber-700"
+                              : "bg-emerald-100 text-emerald-700"
                         }`}
                       >
                         {log.responseStatus}
@@ -238,12 +238,12 @@ export default async function SystemLogsPage({
         </>
       ) : (
         <>
-          <form className="mb-4 flex flex-wrap gap-3 rounded-xl border border-slate-800 bg-slate-900 p-4">
+          <form className="mb-4 flex flex-wrap gap-3 rounded-xl border border-slate-200 bg-white p-4">
             <input type="hidden" name="tab" value="error" />
             <select
               name="severity"
               defaultValue={sp.severity ?? ""}
-              className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white"
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
             >
               <option value="">전체 등급</option>
               <option value="info">정보(info)</option>
@@ -253,7 +253,7 @@ export default async function SystemLogsPage({
             <select
               name="source"
               defaultValue={sp.source ?? ""}
-              className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white"
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
             >
               <option value="">전체 소스</option>
               <option value="api">API</option>
@@ -269,22 +269,22 @@ export default async function SystemLogsPage({
             {(sp.severity || sp.source) && (
               <Link
                 href="/system-settings/logs?tab=error"
-                className="rounded-lg bg-slate-700 px-4 py-2 text-sm text-slate-300 hover:bg-slate-600"
+                className="rounded-lg bg-slate-100 px-4 py-2 text-sm text-slate-600 hover:bg-slate-200"
               >
                 초기화
               </Link>
             )}
             <Link
               href="/system-settings/logs?tab=error&severity=critical"
-              className="rounded-lg border border-red-900 px-4 py-2 text-sm text-red-400 hover:bg-red-950/40"
+              className="rounded-lg border border-red-300 px-4 py-2 text-sm text-red-700 hover:bg-red-100"
             >
               🔴 긴급(critical)만 보기
             </Link>
           </form>
 
-          <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
             <table className="w-full text-left text-sm">
-              <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+              <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
                 <tr>
                   <th className="px-4 py-3">등급</th>
                   <th className="px-4 py-3">소스</th>
@@ -295,27 +295,27 @@ export default async function SystemLogsPage({
               </thead>
               <tbody>
                 {errorLogs.map((log) => (
-                  <tr key={log.id} className="border-b border-slate-800/60 hover:bg-slate-800/40">
+                  <tr key={log.id} className="border-b border-slate-200/60 hover:bg-slate-100/40">
                     <td className="px-4 py-3">
                       <span
                         className={`rounded-full px-2 py-0.5 text-xs ${
                           log.severity === "critical"
-                            ? "bg-red-950/60 text-red-400"
+                            ? "bg-red-100 text-red-700"
                             : log.severity === "warning"
-                              ? "bg-amber-950/60 text-amber-400"
-                              : "bg-slate-800 text-slate-400"
+                              ? "bg-amber-100 text-amber-700"
+                              : "bg-white text-slate-500"
                         }`}
                       >
                         {SEVERITY_LABEL[log.severity] ?? log.severity}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-400">
+                    <td className="px-4 py-3 text-xs text-slate-500">
                       {SOURCE_LABEL[log.source] ?? log.source}
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs text-slate-300">
+                    <td className="px-4 py-3 font-mono text-xs text-slate-600">
                       {log.errorCode ?? "-"}
                     </td>
-                    <td className="px-4 py-3 max-w-md truncate text-xs text-slate-400">
+                    <td className="px-4 py-3 max-w-md truncate text-xs text-slate-500">
                       {log.message}
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-500">
@@ -344,7 +344,7 @@ export default async function SystemLogsPage({
           {page > 1 && (
             <Link
               href={buildQuery({ page: String(page - 1) })}
-              className="rounded bg-slate-800 px-3 py-1.5 hover:bg-slate-700"
+              className="rounded bg-white px-3 py-1.5 hover:bg-slate-200"
             >
               이전
             </Link>
@@ -352,7 +352,7 @@ export default async function SystemLogsPage({
           {page < totalPages && (
             <Link
               href={buildQuery({ page: String(page + 1) })}
-              className="rounded bg-slate-800 px-3 py-1.5 hover:bg-slate-700"
+              className="rounded bg-white px-3 py-1.5 hover:bg-slate-200"
             >
               다음
             </Link>

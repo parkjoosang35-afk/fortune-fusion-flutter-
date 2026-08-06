@@ -311,7 +311,17 @@ export interface OpenPassSettings {
   durationMin: number;
   adWaitSeconds: number;
   isActive: boolean;
+  adHelpMessage: string;
+  adGuideTitle: string;
+  adGuideText: string;
 }
+
+// [프리패스 UI 문구 관리자 연동] 관리자가 아직 값을 입력하지 않았을 때 사용할
+// 기본 문구(기존 하드코딩 값과 동일하게 유지해 첫 배포 시 UI가 비어보이지 않게 함).
+const DEFAULT_AD_HELP_MESSAGE =
+  "쿠팡 파트너스 활동을 통해 일정 수수료를 지급받는 제휴 광고예요.\n쿠팡 방문 후 앱으로 돌아오면 잠시 후 자동으로 프리패스가 지급됩니다.";
+const DEFAULT_AD_GUIDE_TITLE = "프리패스가 필요해요";
+const DEFAULT_AD_GUIDE_TEXT = "쿠팡 파트너스 광고를 확인하면 프리패스 이용시간 동안\n모든 콘텐츠를 무료로 이용할 수 있어요.";
 
 /** 단일 프리패스(쿠팡파트너스) 정책을 조회하고, 없으면 기본값으로 생성한다. */
 export async function getOrCreateOpenPassSettings(): Promise<OpenPassSettings> {
@@ -325,6 +335,9 @@ export async function getOrCreateOpenPassSettings(): Promise<OpenPassSettings> {
       durationMin: existing.durationMin,
       adWaitSeconds: existing.adWaitSeconds,
       isActive: existing.isActive,
+      adHelpMessage: existing.adHelpMessage ?? DEFAULT_AD_HELP_MESSAGE,
+      adGuideTitle: existing.adGuideTitle ?? DEFAULT_AD_GUIDE_TITLE,
+      adGuideText: existing.adGuideText ?? DEFAULT_AD_GUIDE_TEXT,
     };
   }
 
@@ -337,6 +350,9 @@ export async function getOrCreateOpenPassSettings(): Promise<OpenPassSettings> {
       isActive: true,
       ctaText: "쿠팡 방문하기",
       description: "쿠팡 파트너스 광고를 확인하면 지급되는 프리패스",
+      adHelpMessage: DEFAULT_AD_HELP_MESSAGE,
+      adGuideTitle: DEFAULT_AD_GUIDE_TITLE,
+      adGuideText: DEFAULT_AD_GUIDE_TEXT,
     },
   });
   return {
@@ -344,6 +360,9 @@ export async function getOrCreateOpenPassSettings(): Promise<OpenPassSettings> {
     durationMin: created.durationMin,
     adWaitSeconds: created.adWaitSeconds,
     isActive: created.isActive,
+    adHelpMessage: created.adHelpMessage ?? DEFAULT_AD_HELP_MESSAGE,
+    adGuideTitle: created.adGuideTitle ?? DEFAULT_AD_GUIDE_TITLE,
+    adGuideText: created.adGuideText ?? DEFAULT_AD_GUIDE_TEXT,
   };
 }
 
@@ -361,6 +380,9 @@ const OpenPassSettingsSchema = z.object({
       message: "대기시간은 4/5/10초 중 하나여야 합니다.",
     }),
   isActive: z.coerce.boolean().optional().default(true),
+  adHelpMessage: z.string().min(1, "도움말 안내 문구를 입력해주세요."),
+  adGuideTitle: z.string().min(1, "안내 제목을 입력해주세요."),
+  adGuideText: z.string().min(1, "안내 문구를 입력해주세요."),
 });
 
 export interface OpenPassSettingsFormState {
@@ -381,6 +403,9 @@ export async function updateOpenPassSettings(
     durationMin: formData.get("durationMin"),
     adWaitSeconds: formData.get("adWaitSeconds"),
     isActive: formData.get("isActive") === "on" || formData.get("isActive") === "true",
+    adHelpMessage: formData.get("adHelpMessage"),
+    adGuideTitle: formData.get("adGuideTitle"),
+    adGuideText: formData.get("adGuideText"),
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "입력값이 올바르지 않습니다." };
@@ -395,6 +420,9 @@ export async function updateOpenPassSettings(
       durationMin: parsed.data.durationMin,
       adWaitSeconds: parsed.data.adWaitSeconds,
       isActive: parsed.data.isActive,
+      adHelpMessage: parsed.data.adHelpMessage,
+      adGuideTitle: parsed.data.adGuideTitle,
+      adGuideText: parsed.data.adGuideText,
       updatedBy: session.email,
     },
   });

@@ -58,46 +58,46 @@ export default async function MatchingProfilesPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">매칭/궁합 관리 — 매칭 프로필 모니터링</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">매칭/궁합 관리 — 매칭 프로필 모니터링</h1>
+        <p className="mt-1 text-sm text-slate-500">
           회원이 등록한 매칭 프로필을 조회하고, 부적절한 프로필을 강제 비활성화할 수 있습니다.
           공개 여부(is_public)는 회원이 직접 설정하는 값이며 관리자 조치와는 별개입니다.
         </p>
-        <nav className="mt-4 flex gap-2 border-b border-slate-800 text-sm">
-          <span className="border-b-2 border-indigo-500 px-3 py-2 text-white">매칭 프로필</span>
-          <Link href="/matching/likes-pairs" className="px-3 py-2 text-slate-400 hover:text-white">
+        <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
+          <span className="border-b-2 border-indigo-500 px-3 py-2 text-slate-900">매칭 프로필</span>
+          <Link href="/matching/likes-pairs" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             매칭 성사 이력
           </Link>
-          <Link href="/matching/friends-follows" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/matching/friends-follows" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             친구/팔로우
           </Link>
-          <Link href="/matching/chats" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/matching/chats" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             채팅 모니터링
           </Link>
-          <Link href="/matching/compatibility-weights" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/matching/compatibility-weights" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             궁합 요소 가중치
           </Link>
-          <Link href="/matching/compatibility-stats" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/matching/compatibility-stats" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             궁합 통계
           </Link>
         </nav>
       </div>
 
-      <div className="mb-4 flex gap-4 text-sm text-slate-400">
+      <div className="mb-4 flex gap-4 text-sm text-slate-500">
         <span>
-          전체 <span className="text-white">{profiles.length}</span>건
+          전체 <span className="text-slate-900">{profiles.length}</span>건
         </span>
         <span>
-          노출중 <span className="text-emerald-400">{activeCount}</span>건
+          노출중 <span className="text-emerald-700">{activeCount}</span>건
         </span>
         <span>
-          관리자 비활성화 <span className="text-rose-400">{deactivatedCount}</span>건
+          관리자 비활성화 <span className="text-rose-700">{deactivatedCount}</span>건
         </span>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+          <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
             <tr>
               <th className="px-4 py-3">회원</th>
               <th className="px-4 py-3">공개여부</th>

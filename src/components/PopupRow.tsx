@@ -57,7 +57,7 @@ export default function PopupRow({ popup, canWrite, canDelete }: PopupRowProps) 
 
   if (editing) {
     return (
-      <tr className="border-b border-slate-800/60 bg-slate-800/30">
+      <tr className="border-b border-slate-200/60 bg-white/30">
         <td colSpan={6} className="px-4 py-3">
           <form action={updateAction} className="flex flex-wrap items-center gap-2">
             <input type="hidden" name="id" value={popup.id} />
@@ -65,14 +65,14 @@ export default function PopupRow({ popup, canWrite, canDelete }: PopupRowProps) 
               type="text"
               name="title"
               defaultValue={popup.title}
-              className="w-44 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="w-44 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
             <input
               type="text"
               name="segment"
               defaultValue={cond.segment ?? ""}
               placeholder="세그먼트(선택)"
-              className="w-32 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="w-32 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
             <ImageUploadField
               name="imageUrl"
@@ -86,25 +86,25 @@ export default function PopupRow({ popup, canWrite, canDelete }: PopupRowProps) 
               name="linkUrl"
               defaultValue={popup.linkUrl ?? ""}
               placeholder="링크 URL(선택)"
-              className="w-52 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="w-52 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
             <input
               type="datetime-local"
               name="startAt"
               defaultValue={toLocalInputValue(popup.startAt)}
-              className="rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
             <input
               type="datetime-local"
               name="endAt"
               defaultValue={toLocalInputValue(popup.endAt)}
-              className="rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
-            <label className="flex items-center gap-1 text-xs text-slate-300">
+            <label className="flex items-center gap-1 text-xs text-slate-600">
               <input type="checkbox" name="once" defaultChecked={cond.once} className="accent-indigo-500" />
               1회성
             </label>
-            <label className="flex items-center gap-1 text-xs text-slate-300">
+            <label className="flex items-center gap-1 text-xs text-slate-600">
               <input
                 type="checkbox"
                 name="isActive"
@@ -123,11 +123,11 @@ export default function PopupRow({ popup, canWrite, canDelete }: PopupRowProps) 
             <button
               type="button"
               onClick={() => setEditing(false)}
-              className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
+              className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100"
             >
               취소
             </button>
-            {updateState.error && <p className="w-full text-xs text-red-400">{updateState.error}</p>}
+            {updateState.error && <p className="w-full text-xs text-red-700">{updateState.error}</p>}
           </form>
         </td>
       </tr>
@@ -135,8 +135,8 @@ export default function PopupRow({ popup, canWrite, canDelete }: PopupRowProps) 
   }
 
   return (
-    <tr className="border-b border-slate-800/60 hover:bg-slate-800/40">
-      <td className="px-4 py-3 text-slate-200">
+    <tr className="border-b border-slate-200/60 hover:bg-slate-100/40">
+      <td className="px-4 py-3 text-slate-700">
         {popup.title}
         {popup.linkUrl && (
           <>
@@ -145,7 +145,7 @@ export default function PopupRow({ popup, canWrite, canDelete }: PopupRowProps) 
               href={popup.linkUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="max-w-[220px] truncate text-xs text-indigo-400 underline hover:text-indigo-300"
+              className="max-w-[220px] truncate text-xs text-indigo-700 underline hover:text-indigo-800"
               title={popup.linkUrl}
             >
               {popup.linkUrl}
@@ -159,13 +159,13 @@ export default function PopupRow({ popup, canWrite, canDelete }: PopupRowProps) 
           <img
             src={popup.imageUrl}
             alt={popup.title}
-            className="h-10 w-16 rounded-md border border-slate-700 object-cover"
+            className="h-10 w-16 rounded-md border border-slate-300 object-cover"
           />
         ) : (
           <span className="text-xs text-slate-500">텍스트 전용</span>
         )}
       </td>
-      <td className="px-4 py-3 text-xs text-slate-300">
+      <td className="px-4 py-3 text-xs text-slate-600">
         {cond.once ? "1회성" : "반복"}
         {cond.segment && (
           <>
@@ -181,11 +181,11 @@ export default function PopupRow({ popup, canWrite, canDelete }: PopupRowProps) 
       </td>
       <td className="px-4 py-3">
         {popup.isActive ? (
-          <span className="rounded-full bg-emerald-950/60 px-2 py-0.5 text-xs text-emerald-400">
+          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">
             활성
           </span>
         ) : (
-          <span className="rounded-full bg-slate-800 px-2 py-0.5 text-xs text-slate-400">
+          <span className="rounded-full bg-white px-2 py-0.5 text-xs text-slate-500">
             비활성
           </span>
         )}
@@ -199,7 +199,7 @@ export default function PopupRow({ popup, canWrite, canDelete }: PopupRowProps) 
               <button
                 type="submit"
                 disabled={togglePending}
-                className="rounded-lg border border-slate-700 px-3 py-1 text-xs text-slate-300 hover:bg-slate-800 disabled:opacity-50"
+                className="rounded-lg border border-slate-300 px-3 py-1 text-xs text-slate-600 hover:bg-slate-100 disabled:opacity-50"
               >
                 {popup.isActive ? "비활성으로" : "활성으로"}
               </button>
@@ -208,7 +208,7 @@ export default function PopupRow({ popup, canWrite, canDelete }: PopupRowProps) 
           {canWrite && (
             <button
               onClick={() => setEditing(true)}
-              className="rounded-lg border border-slate-700 px-3 py-1 text-xs text-slate-300 hover:bg-slate-800"
+              className="rounded-lg border border-slate-300 px-3 py-1 text-xs text-slate-600 hover:bg-slate-100"
             >
               수정
             </button>
@@ -219,15 +219,15 @@ export default function PopupRow({ popup, canWrite, canDelete }: PopupRowProps) 
               <button
                 type="submit"
                 disabled={deletePending}
-                className="rounded-lg border border-red-900 px-3 py-1 text-xs text-red-400 hover:bg-red-950/40 disabled:opacity-50"
+                className="rounded-lg border border-red-300 px-3 py-1 text-xs text-red-700 hover:bg-red-100 disabled:opacity-50"
               >
                 삭제
               </button>
             </form>
           )}
         </div>
-        {toggleState.error && <p className="mt-1 text-xs text-red-400">{toggleState.error}</p>}
-        {deleteState.error && <p className="mt-1 text-xs text-red-400">{deleteState.error}</p>}
+        {toggleState.error && <p className="mt-1 text-xs text-red-700">{toggleState.error}</p>}
+        {deleteState.error && <p className="mt-1 text-xs text-red-700">{deleteState.error}</p>}
       </td>
     </tr>
   );

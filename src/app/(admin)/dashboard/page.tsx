@@ -157,8 +157,8 @@ export default async function DashboardPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">대시보드</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">대시보드</h1>
+        <p className="mt-1 text-sm text-slate-500">
           {session.name}님, 환영합니다 ({session.roleCode})
         </p>
       </div>
@@ -166,96 +166,96 @@ export default async function DashboardPage() {
       {/* ① 라이브 운영센터 */}
       <section className="mb-10">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">🔴 라이브 운영센터</h2>
+          <h2 className="text-lg font-semibold text-slate-900">🔴 라이브 운영센터</h2>
           <span className="text-xs text-slate-500">페이지 새로고침 시 최신값 조회(폴백: 쿼리 기반, P1)</span>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {/* 준비 중 위젯 1종 — 데이터 소스 부재(신규 실시간 세션 캐시) */}
-          <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900/40 p-4">
+          <div className="rounded-xl border border-dashed border-slate-300 bg-white/40 p-4">
             <p className="text-sm text-slate-500">🔴 현재 접속자 수</p>
-            <p className="mt-2 text-xs text-amber-400">준비 중 — 실시간 세션 캐시 인프라 필요</p>
+            <p className="mt-2 text-xs text-amber-700">준비 중 — 실시간 세션 캐시 인프라 필요</p>
           </div>
 
           {/* 지금 운세 보는 사람 수 — fortune_requests.pending + consultation_sessions(진행중) 합산 */}
-          <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-            <p className="text-sm text-slate-400">🟢 지금 운세 보는 사람 수</p>
-            <p className="mt-2 text-2xl font-bold text-white">{nowViewingFortuneCount.toLocaleString()}명</p>
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <p className="text-sm text-slate-500">🟢 지금 운세 보는 사람 수</p>
+            <p className="mt-2 text-2xl font-bold text-slate-900">{nowViewingFortuneCount.toLocaleString()}명</p>
           </div>
 
           {/* AI 상담 진행 건수 — consultation_sessions WHERE ended_at IS NULL */}
-          <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-            <p className="text-sm text-slate-400">💬 AI 상담 진행 건수</p>
-            <p className="mt-2 text-2xl font-bold text-white">{consultationOngoing.toLocaleString()}건</p>
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <p className="text-sm text-slate-500">💬 AI 상담 진행 건수</p>
+            <p className="mt-2 text-2xl font-bold text-slate-900">{consultationOngoing.toLocaleString()}건</p>
           </div>
 
           {/* 오늘 발급된 디지털 부적 */}
-          <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-            <p className="text-sm text-slate-400">🧧 오늘 발급된 디지털 부적</p>
-            <p className="mt-2 text-2xl font-bold text-white">{amuletToday.toLocaleString()}건</p>
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <p className="text-sm text-slate-500">🧧 오늘 발급된 디지털 부적</p>
+            <p className="mt-2 text-2xl font-bold text-slate-900">{amuletToday.toLocaleString()}건</p>
           </div>
 
           {/* 오늘 지급된 복주머니 */}
-          <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-            <p className="text-sm text-slate-400">🎁 오늘 지급된 복주머니</p>
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <p className="text-sm text-slate-500">🎁 오늘 지급된 복주머니</p>
             {canSeeRevenue ? (
-              <p className="mt-2 text-2xl font-bold text-white">{luckybagToday.toLocaleString()}건</p>
+              <p className="mt-2 text-2xl font-bold text-slate-900">{luckybagToday.toLocaleString()}건</p>
             ) : (
               <p className="mt-2 text-xs text-slate-500">권한 없음(리워드 위젯 비노출)</p>
             )}
           </div>
 
           {/* 오늘 교환된 상품권 */}
-          <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-            <p className="text-sm text-slate-400">🎟 오늘 교환된 상품권</p>
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <p className="text-sm text-slate-500">🎟 오늘 교환된 상품권</p>
             {canSeeRevenue ? (
-              <p className="mt-2 text-2xl font-bold text-white">{giftcardToday.toLocaleString()}건</p>
+              <p className="mt-2 text-2xl font-bold text-slate-900">{giftcardToday.toLocaleString()}건</p>
             ) : (
               <p className="mt-2 text-xs text-slate-500">권한 없음(리워드 위젯 비노출)</p>
             )}
           </div>
 
           {/* 오늘 작성된 소원 */}
-          <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-            <p className="text-sm text-slate-400">❤️ 오늘 작성된 소원</p>
-            <p className="mt-2 text-2xl font-bold text-white">{wishToday.toLocaleString()}건</p>
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <p className="text-sm text-slate-500">❤️ 오늘 작성된 소원</p>
+            <p className="mt-2 text-2xl font-bold text-slate-900">{wishToday.toLocaleString()}건</p>
           </div>
 
           {/* 오늘 성사된 궁합 매칭 */}
-          <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-            <p className="text-sm text-slate-400">🤝 오늘 성사된 궁합 매칭</p>
-            <p className="mt-2 text-2xl font-bold text-white">{matchingToday.toLocaleString()}건</p>
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <p className="text-sm text-slate-500">🤝 오늘 성사된 궁합 매칭</p>
+            <p className="mt-2 text-2xl font-bold text-slate-900">{matchingToday.toLocaleString()}건</p>
           </div>
 
           {/* 신고 및 이상 징후 */}
           <Link
             href="/community/reports"
-            className="rounded-xl border border-slate-800 bg-slate-900 p-4 transition hover:border-rose-800 hover:bg-rose-950/10"
+            className="rounded-xl border border-slate-200 bg-white p-4 transition hover:border-rose-300 hover:bg-rose-100"
           >
-            <p className="text-sm text-slate-400">🚨 신고 및 이상 징후</p>
-            <p className="mt-2 text-2xl font-bold text-white">
+            <p className="text-sm text-slate-500">🚨 신고 및 이상 징후</p>
+            <p className="mt-2 text-2xl font-bold text-slate-900">
               {reportsPending.toLocaleString()}
               <span className="ml-1 text-sm text-slate-500">건 미처리</span>
             </p>
-            <p className="mt-1 text-xs text-rose-400">24시간 내 심각 에러 {errorCritical24h.toLocaleString()}건</p>
+            <p className="mt-1 text-xs text-rose-700">24시간 내 심각 에러 {errorCritical24h.toLocaleString()}건</p>
           </Link>
 
           {/* 실시간 매출 및 리워드 현황 */}
-          <div className="rounded-xl border border-slate-800 bg-slate-900 p-4 sm:col-span-2">
-            <p className="text-sm text-slate-400">📈 실시간 매출 및 리워드 현황</p>
+          <div className="rounded-xl border border-slate-200 bg-white p-4 sm:col-span-2">
+            <p className="text-sm text-slate-500">📈 실시간 매출 및 리워드 현황</p>
             {canSeeRevenue ? (
               <div className="mt-2 flex flex-wrap gap-6">
                 <div>
                   <p className="text-xs text-slate-500">금일 결제 매출</p>
-                  <p className="text-xl font-bold text-white">{revenueToday.toLocaleString()}원</p>
+                  <p className="text-xl font-bold text-slate-900">{revenueToday.toLocaleString()}원</p>
                 </div>
                 <div>
                   <p className="text-xs text-slate-500">금일 포인트 발행</p>
-                  <p className="text-xl font-bold text-emerald-400">+{pointEarnedToday.toLocaleString()}P</p>
+                  <p className="text-xl font-bold text-emerald-700">+{pointEarnedToday.toLocaleString()}P</p>
                 </div>
                 <div>
                   <p className="text-xs text-slate-500">금일 포인트 소진</p>
-                  <p className="text-xl font-bold text-amber-400">-{pointSpentToday.toLocaleString()}P</p>
+                  <p className="text-xl font-bold text-amber-700">-{pointSpentToday.toLocaleString()}P</p>
                 </div>
               </div>
             ) : (
@@ -266,24 +266,24 @@ export default async function DashboardPage() {
           {/* [Phase4] 복 나누기(send_bok) 발행/환급 — "복은 나눌수록 커진다" 경제 철학 지표 */}
           <Link
             href="/reward/policies"
-            className="rounded-xl border border-slate-800 bg-slate-900 p-4 transition hover:border-indigo-800 hover:bg-indigo-950/10 sm:col-span-2"
+            className="rounded-xl border border-slate-200 bg-white p-4 transition hover:border-indigo-300 hover:bg-indigo-100 sm:col-span-2"
           >
-            <p className="text-sm text-slate-400">🔁 금일 복 나누기(발행/환급)</p>
+            <p className="text-sm text-slate-500">🔁 금일 복 나누기(발행/환급)</p>
             {canSeeRevenue ? (
               <div className="mt-2 flex flex-wrap gap-6">
                 <div>
                   <p className="text-xs text-slate-500">보낸 금액(발행)</p>
-                  <p className="text-xl font-bold text-white">{sendBokSentToday.toLocaleString()}P</p>
+                  <p className="text-xl font-bold text-slate-900">{sendBokSentToday.toLocaleString()}P</p>
                 </div>
                 <div>
                   <p className="text-xs text-slate-500">환급(양쪽 증식분)</p>
-                  <p className="text-xl font-bold text-emerald-400">+{sendBokRefundToday.toLocaleString()}P</p>
+                  <p className="text-xl font-bold text-emerald-700">+{sendBokRefundToday.toLocaleString()}P</p>
                 </div>
               </div>
             ) : (
               <p className="mt-2 text-xs text-slate-500">권한 없음(리워드 위젯 비노출)</p>
             )}
-            <p className="mt-1 text-xs text-indigo-400">경제 설정(환급률/한도) 조정하기 →</p>
+            <p className="mt-1 text-xs text-indigo-700">경제 설정(환급률/한도) 조정하기 →</p>
           </Link>
         </div>
       </section>
@@ -291,8 +291,8 @@ export default async function DashboardPage() {
       {/* [운세 앱 개발 프롬프트-Task3] 광고 배너 현황 요약 — CMS 배너 관리로 바로 이동 */}
       <section className="mb-10">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">📢 광고 배너 현황</h2>
-          <Link href="/cms/banners" className="text-xs text-indigo-400 hover:underline">
+          <h2 className="text-lg font-semibold text-slate-900">📢 광고 배너 현황</h2>
+          <Link href="/cms/banners" className="text-xs text-indigo-700 hover:underline">
             배너 관리로 이동 →
           </Link>
         </div>
@@ -310,25 +310,25 @@ export default async function DashboardPage() {
               <Link
                 key={s.positionCode}
                 href="/cms/banners"
-                className="rounded-xl border border-slate-800 bg-slate-900 p-4 transition hover:border-indigo-800 hover:bg-indigo-950/10"
+                className="rounded-xl border border-slate-200 bg-white p-4 transition hover:border-indigo-300 hover:bg-indigo-100"
               >
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-slate-400">{label}</p>
+                  <p className="text-sm text-slate-500">{label}</p>
                   <span
                     className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
                       s.total === 0
-                        ? "bg-slate-800 text-slate-400"
+                        ? "bg-white text-slate-500"
                         : allActive
-                          ? "bg-emerald-950/60 text-emerald-400"
+                          ? "bg-emerald-100 text-emerald-700"
                           : noneActive
-                            ? "bg-slate-800 text-slate-400"
-                            : "bg-amber-950/60 text-amber-400"
+                            ? "bg-white text-slate-500"
+                            : "bg-amber-100 text-amber-700"
                     }`}
                   >
                     {s.total === 0 ? "배너 없음" : allActive ? "노출중" : noneActive ? "비노출" : "일부 노출"}
                   </span>
                 </div>
-                <p className="mt-2 text-xl font-bold text-white">
+                <p className="mt-2 text-xl font-bold text-slate-900">
                   {s.active}
                   <span className="text-sm font-normal text-slate-500"> / {s.total}건 활성</span>
                 </p>
@@ -340,10 +340,10 @@ export default async function DashboardPage() {
 
       {/* ② 통계 대시보드 */}
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-white">📊 통계 대시보드</h2>
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">📊 통계 대시보드</h2>
 
         {errorCritical24h > 0 && (
-          <div className="mb-4 rounded-lg border border-rose-900 bg-rose-950/30 px-4 py-3 text-sm text-rose-300">
+          <div className="mb-4 rounded-lg border border-rose-300 bg-rose-100 px-4 py-3 text-sm text-rose-800">
             ⚠ 최근 24시간 내 심각(critical) 에러 {errorCritical24h}건 발생 —{" "}
             <Link href="/system-settings/logs" className="underline">
               로그 확인하기
@@ -355,19 +355,19 @@ export default async function DashboardPage() {
           {trendByMetric.map(({ code, latest, latestVal, diff }) => {
             if ((code === "revenue_daily" || code === "point_issued_daily") && !canSeeRevenue) {
               return (
-                <div key={code} className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-                  <p className="text-sm text-slate-400">{METRIC_LABEL[code]}</p>
+                <div key={code} className="rounded-xl border border-slate-200 bg-white p-4">
+                  <p className="text-sm text-slate-500">{METRIC_LABEL[code]}</p>
                   <p className="mt-2 text-xs text-slate-500">권한 없음(매출 관련 위젯 비노출)</p>
                 </div>
               );
             }
             return (
-              <div key={code} className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-                <p className="text-sm text-slate-400">{METRIC_LABEL[code]}</p>
-                <p className="mt-2 text-2xl font-bold text-white">
+              <div key={code} className="rounded-xl border border-slate-200 bg-white p-4">
+                <p className="text-sm text-slate-500">{METRIC_LABEL[code]}</p>
+                <p className="mt-2 text-2xl font-bold text-slate-900">
                   {latestVal.toLocaleString()}
                   {diff !== 0 && (
-                    <span className={`ml-2 text-sm font-normal ${diff > 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                    <span className={`ml-2 text-sm font-normal ${diff > 0 ? "text-emerald-700" : "text-rose-700"}`}>
                       {diff > 0 ? "▲" : "▼"}
                       {Math.abs(diff).toLocaleString()}
                     </span>
@@ -382,27 +382,27 @@ export default async function DashboardPage() {
         </div>
 
         {/* AI 호출량(기능별) */}
-        <div className="mt-6 rounded-xl border border-slate-800 bg-slate-900 p-4">
-          <p className="mb-3 text-sm font-medium text-slate-300">금일 AI 호출량(기능별)</p>
+        <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4">
+          <p className="mb-3 text-sm font-medium text-slate-600">금일 AI 호출량(기능별)</p>
           {aiDomainCounts.size === 0 ? (
             <p className="text-sm text-slate-500">금일 AI 호출 로그가 없습니다.</p>
           ) : (
             <div className="flex flex-wrap gap-4">
               {[...aiDomainCounts.entries()].map(([domain, count]) => (
-                <div key={domain} className="rounded-lg bg-slate-800/60 px-3 py-2">
-                  <p className="text-xs text-slate-400">{AI_DOMAIN_LABEL[domain] ?? domain}</p>
-                  <p className="text-lg font-bold text-white">{count.toLocaleString()}회</p>
+                <div key={domain} className="rounded-lg bg-white/60 px-3 py-2">
+                  <p className="text-xs text-slate-500">{AI_DOMAIN_LABEL[domain] ?? domain}</p>
+                  <p className="text-lg font-bold text-slate-900">{count.toLocaleString()}회</p>
                 </div>
               ))}
               {canSeeRevenue && (
-                <div className="rounded-lg bg-slate-800/60 px-3 py-2">
-                  <p className="text-xs text-slate-400">예상 비용 합계</p>
-                  <p className="text-lg font-bold text-indigo-300">${aiCostToday.toFixed(4)}</p>
+                <div className="rounded-lg bg-white/60 px-3 py-2">
+                  <p className="text-xs text-slate-500">예상 비용 합계</p>
+                  <p className="text-lg font-bold text-indigo-800">${aiCostToday.toFixed(4)}</p>
                 </div>
               )}
             </div>
           )}
-          <Link href="/ai-content/logs" className="mt-3 inline-block text-xs text-indigo-400 hover:underline">
+          <Link href="/ai-content/logs" className="mt-3 inline-block text-xs text-indigo-700 hover:underline">
             AI 호출 로그 상세 보기 →
           </Link>
         </div>

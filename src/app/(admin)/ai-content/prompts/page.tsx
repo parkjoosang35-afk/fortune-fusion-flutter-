@@ -30,8 +30,8 @@ export default async function AiPromptsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">프롬프트 템플릿 관리</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">프롬프트 템플릿 관리</h1>
+        <p className="mt-1 text-sm text-slate-500">
           기능(도메인)별 AI 프롬프트 템플릿의 버전 이력을 관리하고 배포합니다. 새 버전은
           기존 내용을 덮어쓰지 않고 항상 새 버전으로 저장됩니다.
         </p>
@@ -46,27 +46,27 @@ export default async function AiPromptsPage() {
             <Link
               key={domain}
               href={`/ai-content/prompts/${domain}`}
-              className="rounded-xl border border-slate-800 bg-slate-900 p-5 transition hover:border-indigo-500/60 hover:bg-slate-800/60"
+              className="rounded-xl border border-slate-200 bg-white p-5 transition hover:border-indigo-500/60 hover:bg-slate-100/60"
             >
               <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-base font-semibold text-white">
+                <h2 className="text-base font-semibold text-slate-900">
                   {DOMAIN_LABEL[domain] ?? domain}
                 </h2>
-                <span className="rounded-full bg-indigo-950/60 px-2 py-1 text-xs font-medium text-indigo-400">
+                <span className="rounded-full bg-indigo-100 px-2 py-1 text-xs font-medium text-indigo-700">
                   v{latest?.version ?? 0}까지 {list.length}개 버전
                 </span>
               </div>
               {active ? (
                 <div>
-                  <p className="text-xs text-emerald-400">
+                  <p className="text-xs text-emerald-700">
                     현재 배포중: v{active.version}
                   </p>
-                  <p className="mt-1 line-clamp-2 text-sm text-slate-400">
+                  <p className="mt-1 line-clamp-2 text-sm text-slate-500">
                     {active.templateBody}
                   </p>
                 </div>
               ) : (
-                <p className="text-sm text-amber-400">
+                <p className="text-sm text-amber-700">
                   배포된(활성) 버전이 없습니다.
                 </p>
               )}

@@ -107,37 +107,37 @@ export default async function AiLogsPage({ searchParams }: AiLogsPageProps) {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">AI 호출 로그 / 비용 대시보드</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">AI 호출 로그 / 비용 대시보드</h1>
+        <p className="mt-1 text-sm text-slate-500">
           최근 14일 기준 AI 호출량, 예상 비용, 실패율을 확인하고 상세 로그를 조회합니다.
         </p>
       </div>
 
       {/* 요약 카드 */}
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-5">
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
           <p className="text-xs text-slate-500">최근 14일 총 호출수</p>
-          <p className="mt-1 text-2xl font-bold text-white">
+          <p className="mt-1 text-2xl font-bold text-slate-900">
             {totalCalls14d.toLocaleString()}
           </p>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-5">
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
           <p className="text-xs text-slate-500">최근 14일 예상 비용 (USD)</p>
-          <p className="mt-1 text-2xl font-bold text-white">
+          <p className="mt-1 text-2xl font-bold text-slate-900">
             ${totalCost14d.toFixed(4)}
           </p>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-5">
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
           <p className="text-xs text-slate-500">실패율 (failed/timeout)</p>
-          <p className="mt-1 text-2xl font-bold text-white">
+          <p className="mt-1 text-2xl font-bold text-slate-900">
             {failRate14d.toFixed(1)}%
           </p>
         </div>
       </div>
 
       {/* 일별 호출량 바 차트(간단 CSS 바) */}
-      <section className="mb-6 rounded-xl border border-slate-800 bg-slate-900 p-5">
-        <h2 className="mb-4 text-sm font-semibold text-white">일별 호출량 추이</h2>
+      <section className="mb-6 rounded-xl border border-slate-200 bg-white p-5">
+        <h2 className="mb-4 text-sm font-semibold text-slate-900">일별 호출량 추이</h2>
         <div className="flex items-end gap-2" style={{ height: 120 }}>
           {dailyStats.map(([day, v]) => (
             <div key={day} className="flex flex-1 flex-col items-center gap-1">
@@ -153,10 +153,10 @@ export default async function AiLogsPage({ searchParams }: AiLogsPageProps) {
       </section>
 
       {/* 도메인별 비용 요약 */}
-      <section className="mb-6 rounded-xl border border-slate-800 bg-slate-900 p-5">
-        <h2 className="mb-4 text-sm font-semibold text-white">도메인별 비용 (최근 14일)</h2>
+      <section className="mb-6 rounded-xl border border-slate-200 bg-white p-5">
+        <h2 className="mb-4 text-sm font-semibold text-slate-900">도메인별 비용 (최근 14일)</h2>
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+          <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
             <tr>
               <th className="py-2 pr-4">도메인</th>
               <th className="py-2 pr-4">호출수</th>
@@ -166,13 +166,13 @@ export default async function AiLogsPage({ searchParams }: AiLogsPageProps) {
           </thead>
           <tbody>
             {domainStats.map(([domain, v]) => (
-              <tr key={domain} className="border-b border-slate-800/60">
-                <td className="py-2 pr-4 text-slate-200">
+              <tr key={domain} className="border-b border-slate-200/60">
+                <td className="py-2 pr-4 text-slate-700">
                   {DOMAIN_LABEL[domain] ?? domain}
                 </td>
-                <td className="py-2 pr-4 text-slate-400">{v.calls.toLocaleString()}</td>
-                <td className="py-2 pr-4 text-slate-400">{v.tokens.toLocaleString()}</td>
-                <td className="py-2 pr-4 text-slate-200">${v.cost.toFixed(4)}</td>
+                <td className="py-2 pr-4 text-slate-500">{v.calls.toLocaleString()}</td>
+                <td className="py-2 pr-4 text-slate-500">{v.tokens.toLocaleString()}</td>
+                <td className="py-2 pr-4 text-slate-700">${v.cost.toFixed(4)}</td>
               </tr>
             ))}
           </tbody>
@@ -182,12 +182,12 @@ export default async function AiLogsPage({ searchParams }: AiLogsPageProps) {
       {/* 상세 로그 필터 + 목록 */}
       <form
         method="GET"
-        className="mb-4 flex flex-wrap gap-3 rounded-xl border border-slate-800 bg-slate-900 p-4"
+        className="mb-4 flex flex-wrap gap-3 rounded-xl border border-slate-200 bg-white p-4"
       >
         <select
           name="domain"
           defaultValue={domainFilter}
-          className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
         >
           <option value="">전체 도메인</option>
           {Object.entries(DOMAIN_LABEL).map(([code, label]) => (
@@ -199,7 +199,7 @@ export default async function AiLogsPage({ searchParams }: AiLogsPageProps) {
         <select
           name="status"
           defaultValue={statusFilter}
-          className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
         >
           <option value="">전체 상태</option>
           <option value="success">성공</option>
@@ -214,9 +214,9 @@ export default async function AiLogsPage({ searchParams }: AiLogsPageProps) {
         </button>
       </form>
 
-      <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+          <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
             <tr>
               <th className="px-4 py-3">일시</th>
               <th className="px-4 py-3">도메인</th>
@@ -236,25 +236,25 @@ export default async function AiLogsPage({ searchParams }: AiLogsPageProps) {
               </tr>
             )}
             {logs.map((log) => (
-              <tr key={log.id} className="border-b border-slate-800/60 hover:bg-slate-800/40">
-                <td className="px-4 py-3 text-slate-400">
+              <tr key={log.id} className="border-b border-slate-200/60 hover:bg-slate-100/40">
+                <td className="px-4 py-3 text-slate-500">
                   {log.createdAt.toISOString().slice(0, 19).replace("T", " ")}
                 </td>
-                <td className="px-4 py-3 text-slate-200">
+                <td className="px-4 py-3 text-slate-700">
                   {DOMAIN_LABEL[log.domain] ?? log.domain}
                 </td>
-                <td className="px-4 py-3 text-slate-400">{log.aiModel}</td>
-                <td className="px-4 py-3 text-slate-400">{log.latencyMs ?? "-"}</td>
-                <td className="px-4 py-3 text-slate-400">{log.tokenUsage ?? "-"}</td>
-                <td className="px-4 py-3 text-slate-400">
+                <td className="px-4 py-3 text-slate-500">{log.aiModel}</td>
+                <td className="px-4 py-3 text-slate-500">{log.latencyMs ?? "-"}</td>
+                <td className="px-4 py-3 text-slate-500">{log.tokenUsage ?? "-"}</td>
+                <td className="px-4 py-3 text-slate-500">
                   {log.costEstimate?.toFixed(6) ?? "-"}
                 </td>
                 <td className="px-4 py-3">
                   <span
                     className={
                       log.status === "success"
-                        ? "rounded-full bg-emerald-950/60 px-2 py-1 text-xs font-medium text-emerald-400"
-                        : "rounded-full bg-red-950/60 px-2 py-1 text-xs font-medium text-red-400"
+                        ? "rounded-full bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-700"
+                        : "rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-700"
                     }
                   >
                     {STATUS_LABEL[log.status] ?? log.status}
@@ -279,7 +279,7 @@ export default async function AiLogsPage({ searchParams }: AiLogsPageProps) {
                 page: String(p),
               }).toString()}`}
               className={`rounded-lg px-3 py-1.5 text-sm ${
-                p === page ? "bg-indigo-600 text-white" : "text-slate-400 hover:bg-slate-800"
+                p === page ? "bg-indigo-600 text-white" : "text-slate-500 hover:bg-slate-100"
               }`}
             >
               {p}

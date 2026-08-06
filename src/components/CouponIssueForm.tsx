@@ -17,7 +17,7 @@ export default function CouponIssueForm({ canWrite, coupons, users }: CouponIssu
 
   if (!canWrite) {
     return (
-      <p className="rounded-xl border border-slate-800 bg-slate-900 p-4 text-sm text-slate-500">
+      <p className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500">
         쿠폰 발급 권한이 없습니다.
       </p>
     );
@@ -30,15 +30,15 @@ export default function CouponIssueForm({ canWrite, coupons, users }: CouponIssu
         await formAction(formData);
         formRef.current?.reset();
       }}
-      className="grid grid-cols-1 gap-3 rounded-xl border border-slate-800 bg-slate-900 p-4 md:grid-cols-4"
+      className="grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-4"
     >
-      <label className="flex flex-col gap-1 text-xs text-slate-400 md:col-span-2">
+      <label className="flex flex-col gap-1 text-xs text-slate-500 md:col-span-2">
         쿠폰 선택
         <select
           name="couponId"
           required
           defaultValue=""
-          className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
         >
           <option value="" disabled>
             쿠폰을 선택해주세요
@@ -51,13 +51,13 @@ export default function CouponIssueForm({ canWrite, coupons, users }: CouponIssu
         </select>
       </label>
 
-      <label className="flex flex-col gap-1 text-xs text-slate-400 md:col-span-2">
+      <label className="flex flex-col gap-1 text-xs text-slate-500 md:col-span-2">
         발급 대상 회원
         <select
           name="userId"
           required
           defaultValue=""
-          className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
         >
           <option value="" disabled>
             회원을 선택해주세요
@@ -71,12 +71,12 @@ export default function CouponIssueForm({ canWrite, coupons, users }: CouponIssu
       </label>
 
       {state.error && (
-        <p className="col-span-full rounded-lg bg-red-950/60 px-3 py-2 text-sm text-red-400">
+        <p className="col-span-full rounded-lg bg-red-100 px-3 py-2 text-sm text-red-700">
           {state.error}
         </p>
       )}
       {state.success && (
-        <p className="col-span-full rounded-lg bg-emerald-950/60 px-3 py-2 text-sm text-emerald-400">
+        <p className="col-span-full rounded-lg bg-emerald-100 px-3 py-2 text-sm text-emerald-700">
           쿠폰이 발급되었습니다.
         </p>
       )}

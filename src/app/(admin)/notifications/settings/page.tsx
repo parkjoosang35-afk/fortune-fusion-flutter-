@@ -63,24 +63,24 @@ export default async function NotificationSettingsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">알림 관리 — 발송 설정 현황</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">알림 관리 — 발송 설정 현황</h1>
+        <p className="mt-1 text-sm text-slate-500">
           회원별 알림 수신동의(카테고리별) 집계와 푸시 토큰(플랫폼별) 유효성 현황을 모니터링합니다.
           (조회 전용 — 회원이 앱에서 직접 설정하는 값입니다)
         </p>
-        <nav className="mt-4 flex gap-2 border-b border-slate-800 text-sm">
-          <Link href="/notifications/templates" className="px-3 py-2 text-slate-400 hover:text-white">
+        <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
+          <Link href="/notifications/templates" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             알림 템플릿 관리
           </Link>
-          <Link href="/notifications/history" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/notifications/history" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             발송 이력 조회
           </Link>
-          <Link href="/notifications/segment-send" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/notifications/segment-send" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             세그먼트 발송
           </Link>
           <Link
             href="/notifications/settings"
-            className="px-3 py-2 font-medium text-white border-b-2 border-indigo-500"
+            className="px-3 py-2 font-medium text-slate-900 border-b-2 border-indigo-500"
           >
             발송 설정 현황
           </Link>
@@ -88,10 +88,10 @@ export default async function NotificationSettingsPage() {
       </div>
 
       <section className="mb-8">
-        <h2 className="mb-3 text-sm font-semibold text-white">카테고리별 수신동의 현황</h2>
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <h2 className="mb-3 text-sm font-semibold text-slate-900">카테고리별 수신동의 현황</h2>
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">카테고리</th>
                 <th className="px-4 py-3">동의</th>
@@ -102,20 +102,20 @@ export default async function NotificationSettingsPage() {
             </thead>
             <tbody>
               {categoryStats.map((s) => (
-                <tr key={s.category} className="border-b border-slate-800/60 hover:bg-slate-800/40">
-                  <td className="px-4 py-3 text-slate-200">{CATEGORY_LABEL[s.category]}</td>
-                  <td className="px-4 py-3 text-emerald-400">{s.enabled}건</td>
+                <tr key={s.category} className="border-b border-slate-200/60 hover:bg-slate-100/40">
+                  <td className="px-4 py-3 text-slate-700">{CATEGORY_LABEL[s.category]}</td>
+                  <td className="px-4 py-3 text-emerald-700">{s.enabled}건</td>
                   <td className="px-4 py-3 text-slate-500">{s.disabled}건</td>
-                  <td className="px-4 py-3 text-slate-400">{s.total}건</td>
+                  <td className="px-4 py-3 text-slate-500">{s.total}건</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <div className="h-1.5 w-24 overflow-hidden rounded-full bg-slate-800">
+                      <div className="h-1.5 w-24 overflow-hidden rounded-full bg-white">
                         <div
                           className="h-full bg-indigo-500"
                           style={{ width: `${s.rate}%` }}
                         />
                       </div>
-                      <span className="text-xs text-slate-400">{s.rate}%</span>
+                      <span className="text-xs text-slate-500">{s.rate}%</span>
                     </div>
                   </td>
                 </tr>
@@ -129,18 +129,18 @@ export default async function NotificationSettingsPage() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold text-white">플랫폼별 푸시 토큰 현황</h2>
-        <div className="mb-3 flex gap-3 text-sm text-slate-400">
-          <span className="rounded-lg border border-slate-800 bg-slate-900 px-3 py-1.5">
+        <h2 className="mb-3 text-sm font-semibold text-slate-900">플랫폼별 푸시 토큰 현황</h2>
+        <div className="mb-3 flex gap-3 text-sm text-slate-500">
+          <span className="rounded-lg border border-slate-200 bg-white px-3 py-1.5">
             전체 토큰 {pushTokens.length}건
           </span>
-          <span className="rounded-lg border border-slate-800 bg-slate-900 px-3 py-1.5">
+          <span className="rounded-lg border border-slate-200 bg-white px-3 py-1.5">
             토큰 보유 회원 {distinctUsersWithToken}명 / 활성 회원 {totalActiveUsers}명
           </span>
         </div>
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">플랫폼</th>
                 <th className="px-4 py-3">토큰 수</th>
@@ -149,9 +149,9 @@ export default async function NotificationSettingsPage() {
             </thead>
             <tbody>
               {platformStats.map((s) => (
-                <tr key={s.platform} className="border-b border-slate-800/60 hover:bg-slate-800/40">
-                  <td className="px-4 py-3 text-slate-200">{PLATFORM_LABEL[s.platform]}</td>
-                  <td className="px-4 py-3 text-slate-300">{s.count}건</td>
+                <tr key={s.platform} className="border-b border-slate-200/60 hover:bg-slate-100/40">
+                  <td className="px-4 py-3 text-slate-700">{PLATFORM_LABEL[s.platform]}</td>
+                  <td className="px-4 py-3 text-slate-600">{s.count}건</td>
                   <td className="px-4 py-3 text-slate-500">
                     {pushTokens.length > 0
                       ? `${Math.round((s.count / pushTokens.length) * 1000) / 10}%`

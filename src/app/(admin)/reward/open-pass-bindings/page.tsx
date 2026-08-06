@@ -43,8 +43,8 @@ export default async function OpenPassBindingsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">리워드 관리 — 프리패스 상품연결</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">리워드 관리 — 프리패스 상품연결</h1>
+        <p className="mt-1 text-sm text-slate-500">
           프리패스 상품 하나에 여러 첨부파일과 여러 광고소스를 N:M으로 연결합니다.
           앱은 usageType/platform별 &quot;대표(isPrimary) 1개&quot;를 우선 사용하며, 이 화면에서 지정한 값이
           그대로 Flutter 앱 노출/광고 요청/보상 흐름에 반영됩니다.

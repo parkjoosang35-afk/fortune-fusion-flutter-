@@ -84,20 +84,20 @@ export default async function StatisticsSnapshotsPage({
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">시스템 설정 — 통계 스냅샷 관리</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">시스템 설정 — 통계 스냅샷 관리</h1>
+        <p className="mt-1 text-sm text-slate-500">
           지표별(metric_code) 배치 집계 결과(statistics_snapshots)와 실행 상태를 확인합니다.
         </p>
-        <nav className="mt-4 flex gap-2 border-b border-slate-800 text-sm">
-          <Link href="/system-settings" className="px-3 py-2 text-slate-400 hover:text-white">
+        <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
+          <Link href="/system-settings" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             전역 설정값 관리
           </Link>
-          <Link href="/system-settings/logs" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/system-settings/logs" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             접근/에러 로그 조회
           </Link>
           <Link
             href="/system-settings/statistics"
-            className="px-3 py-2 font-medium text-white border-b-2 border-indigo-500"
+            className="px-3 py-2 font-medium text-slate-900 border-b-2 border-indigo-500"
           >
             통계 스냅샷 관리
           </Link>
@@ -110,19 +110,19 @@ export default async function StatisticsSnapshotsPage({
           <div
             key={s.code}
             className={`rounded-xl border p-4 ${
-              s.hasToday ? "border-slate-800 bg-slate-900" : "border-amber-900 bg-amber-950/20"
+              s.hasToday ? "border-slate-200 bg-white" : "border-amber-300 bg-amber-100"
             }`}
           >
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-slate-200">
+              <span className="text-sm font-medium text-slate-700">
                 {METRIC_LABEL[s.code] ?? s.code}
               </span>
               {s.hasToday ? (
-                <span className="rounded-full bg-emerald-950/60 px-2 py-0.5 text-xs text-emerald-400">
+                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">
                   정상
                 </span>
               ) : (
-                <span className="rounded-full bg-amber-950/60 px-2 py-0.5 text-xs text-amber-400">
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-700">
                   오늘자 미실행
                 </span>
               )}
@@ -130,7 +130,7 @@ export default async function StatisticsSnapshotsPage({
             <p className="mt-2 font-mono text-xs text-slate-500">{s.code}</p>
             {s.latest && (
               <>
-                <p className="mt-1 text-xs text-slate-400">최근 period: {s.latest.period}</p>
+                <p className="mt-1 text-xs text-slate-500">최근 period: {s.latest.period}</p>
                 <p className="mt-1 text-xs text-slate-500">{formatValue(s.latest.value)}</p>
                 <p className="mt-1 text-xs text-slate-600">
                   마지막 실행: {formatDate(s.latest.createdAt)}
@@ -140,7 +140,7 @@ export default async function StatisticsSnapshotsPage({
             <p className="mt-2 text-xs text-slate-600">누적 {s.count}건</p>
             <Link
               href={`/system-settings/statistics?metric=${s.code}`}
-              className="mt-2 inline-block text-xs text-indigo-400 hover:underline"
+              className="mt-2 inline-block text-xs text-indigo-700 hover:underline"
             >
               상세 이력 보기 →
             </Link>
@@ -159,7 +159,7 @@ export default async function StatisticsSnapshotsPage({
           <select
             name="metric"
             defaultValue={sp.metric ?? ""}
-            className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white"
+            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
           >
             <option value="">전체 지표</option>
             {metricCodes.map((code) => (
@@ -177,7 +177,7 @@ export default async function StatisticsSnapshotsPage({
           {sp.metric && (
             <Link
               href="/system-settings/statistics"
-              className="rounded-lg bg-slate-700 px-4 py-2 text-sm text-slate-300 hover:bg-slate-600"
+              className="rounded-lg bg-slate-100 px-4 py-2 text-sm text-slate-600 hover:bg-slate-200"
             >
               초기화
             </Link>
@@ -185,9 +185,9 @@ export default async function StatisticsSnapshotsPage({
         </form>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+          <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
             <tr>
               <th className="px-4 py-3">지표(metric_code)</th>
               <th className="px-4 py-3">기간(period)</th>
@@ -197,10 +197,10 @@ export default async function StatisticsSnapshotsPage({
           </thead>
           <tbody>
             {paged.map((s) => (
-              <tr key={s.id} className="border-b border-slate-800/60 hover:bg-slate-800/40">
-                <td className="px-4 py-3 text-slate-200">{METRIC_LABEL[s.metricCode] ?? s.metricCode}</td>
-                <td className="px-4 py-3 font-mono text-xs text-slate-400">{s.period}</td>
-                <td className="px-4 py-3 text-xs text-slate-400">{formatValue(s.value)}</td>
+              <tr key={s.id} className="border-b border-slate-200/60 hover:bg-slate-100/40">
+                <td className="px-4 py-3 text-slate-700">{METRIC_LABEL[s.metricCode] ?? s.metricCode}</td>
+                <td className="px-4 py-3 font-mono text-xs text-slate-500">{s.period}</td>
+                <td className="px-4 py-3 text-xs text-slate-500">{formatValue(s.value)}</td>
                 <td className="px-4 py-3 text-xs text-slate-500">{formatDate(s.createdAt)}</td>
               </tr>
             ))}
@@ -223,7 +223,7 @@ export default async function StatisticsSnapshotsPage({
           {page > 1 && (
             <Link
               href={buildQuery({ page: String(page - 1) })}
-              className="rounded bg-slate-800 px-3 py-1.5 hover:bg-slate-700"
+              className="rounded bg-white px-3 py-1.5 hover:bg-slate-200"
             >
               이전
             </Link>
@@ -231,7 +231,7 @@ export default async function StatisticsSnapshotsPage({
           {page < totalPages && (
             <Link
               href={buildQuery({ page: String(page + 1) })}
-              className="rounded bg-slate-800 px-3 py-1.5 hover:bg-slate-700"
+              className="rounded bg-white px-3 py-1.5 hover:bg-slate-200"
             >
               다음
             </Link>

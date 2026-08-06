@@ -30,7 +30,7 @@ export default function RankingRewardRow({ reward, canWrite, canDelete }: Rankin
 
   if (editing) {
     return (
-      <tr className="border-b border-slate-800/60 bg-slate-800/30">
+      <tr className="border-b border-slate-200/60 bg-white/30">
         <td colSpan={5} className="px-4 py-3">
           <form action={updateAction} className="flex flex-wrap items-center gap-2">
             <input type="hidden" name="id" value={reward.id} />
@@ -38,35 +38,35 @@ export default function RankingRewardRow({ reward, canWrite, canDelete }: Rankin
               type="text"
               name="rankingType"
               defaultValue={reward.rankingType}
-              className="w-28 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="w-28 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
             <input
               type="number"
               name="rankRangeMin"
               defaultValue={reward.rankRangeMin}
               min={1}
-              className="w-24 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="w-24 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
             <input
               type="number"
               name="rankRangeMax"
               defaultValue={reward.rankRangeMax}
               min={1}
-              className="w-24 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="w-24 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
             <input
               type="number"
               name="rewardPoint"
               defaultValue={reward.rewardPoint}
               min={0}
-              className="w-24 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="w-24 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
             <input
               type="text"
               name="rewardItemType"
               defaultValue={reward.rewardItemType ?? ""}
               placeholder="보상유형"
-              className="w-28 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="w-28 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
             <button
               type="submit"
@@ -78,11 +78,11 @@ export default function RankingRewardRow({ reward, canWrite, canDelete }: Rankin
             <button
               type="button"
               onClick={() => setEditing(false)}
-              className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
+              className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100"
             >
               취소
             </button>
-            {updateState.error && <p className="w-full text-xs text-red-400">{updateState.error}</p>}
+            {updateState.error && <p className="w-full text-xs text-red-700">{updateState.error}</p>}
           </form>
         </td>
       </tr>
@@ -90,19 +90,19 @@ export default function RankingRewardRow({ reward, canWrite, canDelete }: Rankin
   }
 
   return (
-    <tr className="border-b border-slate-800/60 hover:bg-slate-800/40">
-      <td className="px-4 py-3 font-mono text-slate-200">{reward.rankingType}</td>
-      <td className="px-4 py-3 text-slate-300">
+    <tr className="border-b border-slate-200/60 hover:bg-slate-100/40">
+      <td className="px-4 py-3 font-mono text-slate-700">{reward.rankingType}</td>
+      <td className="px-4 py-3 text-slate-600">
         {reward.rankRangeMin}위 ~ {reward.rankRangeMax}위
       </td>
-      <td className="px-4 py-3 text-slate-300">{reward.rewardPoint.toLocaleString()}P</td>
-      <td className="px-4 py-3 text-slate-400">{reward.rewardItemType ?? "-"}</td>
+      <td className="px-4 py-3 text-slate-600">{reward.rewardPoint.toLocaleString()}P</td>
+      <td className="px-4 py-3 text-slate-500">{reward.rewardItemType ?? "-"}</td>
       <td className="px-4 py-3">
         <div className="flex gap-2">
           {canWrite && (
             <button
               onClick={() => setEditing(true)}
-              className="rounded-lg border border-slate-700 px-3 py-1 text-xs text-slate-300 hover:bg-slate-800"
+              className="rounded-lg border border-slate-300 px-3 py-1 text-xs text-slate-600 hover:bg-slate-100"
             >
               수정
             </button>
@@ -113,14 +113,14 @@ export default function RankingRewardRow({ reward, canWrite, canDelete }: Rankin
               <button
                 type="submit"
                 disabled={deletePending}
-                className="rounded-lg border border-red-900 px-3 py-1 text-xs text-red-400 hover:bg-red-950/40 disabled:opacity-50"
+                className="rounded-lg border border-red-300 px-3 py-1 text-xs text-red-700 hover:bg-red-100 disabled:opacity-50"
               >
                 삭제
               </button>
             </form>
           )}
         </div>
-        {deleteState.error && <p className="mt-1 text-xs text-red-400">{deleteState.error}</p>}
+        {deleteState.error && <p className="mt-1 text-xs text-red-700">{deleteState.error}</p>}
       </td>
     </tr>
   );

@@ -34,11 +34,11 @@ export default async function FortuneCategoryGroupsPage() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">운세 그룹 관리</h1>
-          <p className="mt-1 text-sm text-slate-400">
+          <h1 className="text-2xl font-bold text-slate-900">운세 그룹 관리</h1>
+          <p className="mt-1 text-sm text-slate-500">
             전체보기 화면에 노출되는 그룹의 이름/설명/정렬순서/노출 여부를 관리합니다. 그룹 내
             카테고리 순서 변경은{" "}
-            <Link href="/ai-content/categories" className="text-indigo-400 hover:underline">
+            <Link href="/ai-content/categories" className="text-indigo-700 hover:underline">
               카테고리 관리
             </Link>{" "}
             목록에서 처리합니다.
@@ -46,7 +46,7 @@ export default async function FortuneCategoryGroupsPage() {
         </div>
         <Link
           href="/ai-content/categories"
-          className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800"
+          className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100"
         >
           ← 카테고리 관리로
         </Link>

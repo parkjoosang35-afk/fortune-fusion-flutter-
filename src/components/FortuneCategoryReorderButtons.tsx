@@ -28,7 +28,7 @@ export default function FortuneCategoryReorderButtons({ categoryKey, canWrite }:
         <button
           type="submit"
           disabled={upPending}
-          className="rounded border border-slate-700 px-1.5 py-0.5 text-xs text-slate-400 hover:bg-slate-800 disabled:opacity-50"
+          className="rounded border border-slate-300 px-1.5 py-0.5 text-xs text-slate-500 hover:bg-slate-100 disabled:opacity-50"
           title="위로"
         >
           ↑
@@ -40,14 +40,14 @@ export default function FortuneCategoryReorderButtons({ categoryKey, canWrite }:
         <button
           type="submit"
           disabled={downPending}
-          className="rounded border border-slate-700 px-1.5 py-0.5 text-xs text-slate-400 hover:bg-slate-800 disabled:opacity-50"
+          className="rounded border border-slate-300 px-1.5 py-0.5 text-xs text-slate-500 hover:bg-slate-100 disabled:opacity-50"
           title="아래로"
         >
           ↓
         </button>
       </form>
       {(upState.error || downState.error) && (
-        <span className="text-xs text-red-400">{upState.error || downState.error}</span>
+        <span className="text-xs text-red-700">{upState.error || downState.error}</span>
       )}
     </div>
   );

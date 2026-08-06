@@ -64,10 +64,10 @@ export default function MediaUploadField({
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder={placeholder ?? (kind === "video" ? "영상 URL" : "이미지 URL")}
-          className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 md:col-span-2"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 md:col-span-2"
         />
         <label
-          className={`cursor-pointer rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-700 ${
+          className={`cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 ${
             uploading ? "pointer-events-none opacity-50" : ""
           }`}
         >
@@ -83,13 +83,13 @@ export default function MediaUploadField({
         </label>
         {url && kind === "image" && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={url} alt="미리보기" className="h-9 w-9 rounded border border-slate-700 object-cover" />
+          <img src={url} alt="미리보기" className="h-9 w-9 rounded border border-slate-300 object-cover" />
         )}
         {url && kind === "video" && (
-          <video src={url} className="h-9 w-16 rounded border border-slate-700 object-cover" muted />
+          <video src={url} className="h-9 w-16 rounded border border-slate-300 object-cover" muted />
         )}
       </div>
-      {error && <p className="text-xs text-red-400">{error}</p>}
+      {error && <p className="text-xs text-red-700">{error}</p>}
     </div>
   );
 }

@@ -32,37 +32,37 @@ export default async function SubscriptionPlansPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">결제/구독 관리 — 구독 플랜 관리</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">결제/구독 관리 — 구독 플랜 관리</h1>
+        <p className="mt-1 text-sm text-slate-500">
           구독 플랜(가격/기간/혜택)을 생성, 수정, 삭제(비활성화)합니다.
         </p>
-        <nav className="mt-4 flex gap-2 border-b border-slate-800 text-sm">
-          <Link href="/payments/list" className="px-3 py-2 text-slate-400 hover:text-white">
+        <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
+          <Link href="/payments/list" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             결제 내역
           </Link>
-          <Link href="/payments/refunds" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/payments/refunds" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             환불 처리
           </Link>
-          <span className="border-b-2 border-indigo-500 px-3 py-2 text-white">구독 플랜 관리</span>
-          <Link href="/payments/subscriptions" className="px-3 py-2 text-slate-400 hover:text-white">
+          <span className="border-b-2 border-indigo-500 px-3 py-2 text-slate-900">구독 플랜 관리</span>
+          <Link href="/payments/subscriptions" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             구독 현황
           </Link>
-          <Link href="/payments/revenue-report" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/payments/revenue-report" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             매출 리포트
           </Link>
         </nav>
       </div>
 
       <section className="mb-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">전체 플랜</p>
-          <p className="mt-1 text-2xl font-bold text-white">{plans.length}</p>
+          <p className="mt-1 text-2xl font-bold text-slate-900">{plans.length}</p>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">활성 플랜</p>
-          <p className="mt-1 text-2xl font-bold text-emerald-400">{activeCount}</p>
+          <p className="mt-1 text-2xl font-bold text-emerald-700">{activeCount}</p>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">비활성 플랜</p>
           <p className="mt-1 text-2xl font-bold text-slate-500">{inactiveCount}</p>
         </div>
@@ -70,9 +70,9 @@ export default async function SubscriptionPlansPage() {
 
       <SubscriptionPlanCreateForm canWrite={canWrite} />
 
-      <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+          <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
             <tr>
               <th className="px-4 py-3">플랜명</th>
               <th className="px-4 py-3">가격</th>

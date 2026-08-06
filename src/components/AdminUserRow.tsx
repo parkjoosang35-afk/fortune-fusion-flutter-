@@ -54,10 +54,10 @@ export default function AdminUserRow({ adminUser, roles, isSelf, canWrite, canDe
   const [newRoleId, setNewRoleId] = useState(String(adminUser.roleId));
 
   return (
-    <tr className="border-b border-slate-800/60 hover:bg-slate-800/40 align-top">
-      <td className="px-4 py-3 text-slate-300">
+    <tr className="border-b border-slate-200/60 hover:bg-slate-100/40 align-top">
+      <td className="px-4 py-3 text-slate-600">
         {adminUser.email}
-        {isSelf && <span className="ml-1 text-xs text-indigo-400">(본인)</span>}
+        {isSelf && <span className="ml-1 text-xs text-indigo-700">(본인)</span>}
       </td>
       <td className="px-4 py-3">
         {editing ? (
@@ -74,9 +74,9 @@ export default function AdminUserRow({ adminUser, roles, isSelf, canWrite, canDe
               name="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="rounded border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-white"
+              className="rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-900"
             />
-            <label className="flex items-center gap-1 text-xs text-slate-400">
+            <label className="flex items-center gap-1 text-xs text-slate-500">
               <input
                 type="checkbox"
                 name="is2faEnabled"
@@ -97,26 +97,26 @@ export default function AdminUserRow({ adminUser, roles, isSelf, canWrite, canDe
               <button
                 type="button"
                 onClick={() => setEditing(false)}
-                className="rounded bg-slate-700 px-2 py-1 text-xs text-slate-300 hover:bg-slate-600"
+                className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-600 hover:bg-slate-200"
               >
                 취소
               </button>
             </div>
-            {editState.error && <p className="text-xs text-red-400">{editState.error}</p>}
+            {editState.error && <p className="text-xs text-red-700">{editState.error}</p>}
           </form>
         ) : (
           <div>
-            <div className="text-slate-200">{adminUser.name}</div>
+            <div className="text-slate-700">{adminUser.name}</div>
             <div className="text-xs text-slate-500">2FA: {adminUser.is2faEnabled ? "사용" : "미사용"}</div>
           </div>
         )}
       </td>
-      <td className="px-4 py-3 text-slate-300">{adminUser.roleName}</td>
+      <td className="px-4 py-3 text-slate-600">{adminUser.roleName}</td>
       <td className="px-4 py-3">
         {adminUser.status === "active" ? (
-          <span className="rounded-full bg-emerald-950/60 px-2 py-0.5 text-xs text-emerald-400">활성</span>
+          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">활성</span>
         ) : (
-          <span className="rounded-full bg-red-950/60 px-2 py-0.5 text-xs text-red-400">정지</span>
+          <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-700">정지</span>
         )}
       </td>
       <td className="px-4 py-3 text-xs text-slate-500">{formatDate(adminUser.lastLoginAt)}</td>
@@ -126,7 +126,7 @@ export default function AdminUserRow({ adminUser, roles, isSelf, canWrite, canDe
             {!editing && (
               <button
                 onClick={() => setEditing(true)}
-                className="rounded bg-slate-700 px-2 py-1 text-xs text-slate-300 hover:bg-slate-600"
+                className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-600 hover:bg-slate-200"
               >
                 수정
               </button>
@@ -134,7 +134,7 @@ export default function AdminUserRow({ adminUser, roles, isSelf, canWrite, canDe
             {!isSelf && (
               <button
                 onClick={() => setRoleModalOpen(true)}
-                className="rounded bg-amber-900/60 px-2 py-1 text-xs text-amber-300 hover:bg-amber-900"
+                className="rounded bg-amber-100 px-2 py-1 text-xs text-amber-800 hover:bg-amber-100"
               >
                 역할변경
               </button>
@@ -150,7 +150,7 @@ export default function AdminUserRow({ adminUser, roles, isSelf, canWrite, canDe
                 <button
                   type="submit"
                   disabled={statusPending}
-                  className="rounded bg-slate-700 px-2 py-1 text-xs text-slate-300 hover:bg-slate-600"
+                  className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-600 hover:bg-slate-200"
                 >
                   {adminUser.status === "active" ? "정지" : "활성화"}
                 </button>
@@ -162,7 +162,7 @@ export default function AdminUserRow({ adminUser, roles, isSelf, canWrite, canDe
                 <button
                   type="submit"
                   disabled={deletePending}
-                  className="rounded bg-red-900/60 px-2 py-1 text-xs text-red-300 hover:bg-red-900"
+                  className="rounded bg-red-100 px-2 py-1 text-xs text-red-800 hover:bg-red-100"
                 >
                   삭제
                 </button>
@@ -170,8 +170,8 @@ export default function AdminUserRow({ adminUser, roles, isSelf, canWrite, canDe
             )}
           </div>
         )}
-        {statusState.error && <p className="mt-1 text-xs text-red-400">{statusState.error}</p>}
-        {deleteState.error && <p className="mt-1 text-xs text-red-400">{deleteState.error}</p>}
+        {statusState.error && <p className="mt-1 text-xs text-red-700">{statusState.error}</p>}
+        {deleteState.error && <p className="mt-1 text-xs text-red-700">{deleteState.error}</p>}
 
         {roleModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
@@ -180,23 +180,23 @@ export default function AdminUserRow({ adminUser, roles, isSelf, canWrite, canDe
                 await roleAction(fd);
                 setRoleModalOpen(false);
               }}
-              className="w-full max-w-sm rounded-xl border border-slate-700 bg-slate-900 p-5"
+              className="w-full max-w-sm rounded-xl border border-slate-300 bg-white p-5"
             >
-              <h4 className="mb-3 text-sm font-semibold text-white">
+              <h4 className="mb-3 text-sm font-semibold text-slate-900">
                 역할 변경 — {adminUser.name} ({adminUser.email})
               </h4>
-              <p className="mb-3 text-xs text-amber-400">
+              <p className="mb-3 text-xs text-amber-700">
                 ⚠ 05§4.5 워크플로우: 역할 변경은 2단계 확인이 필수입니다. 사유 입력 및 본인
                 비밀번호 재확인이 필요합니다.
               </p>
               <input type="hidden" name="id" value={adminUser.id} />
-              <div className="mb-2 flex flex-col gap-1 text-xs text-slate-400">
+              <div className="mb-2 flex flex-col gap-1 text-xs text-slate-500">
                 새 역할
                 <select
                   name="newRoleId"
                   value={newRoleId}
                   onChange={(e) => setNewRoleId(e.target.value)}
-                  className="rounded border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white"
+                  className="rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900"
                 >
                   {roles.map((r) => (
                     <option key={r.id} value={r.id}>
@@ -205,26 +205,26 @@ export default function AdminUserRow({ adminUser, roles, isSelf, canWrite, canDe
                   ))}
                 </select>
               </div>
-              <div className="mb-2 flex flex-col gap-1 text-xs text-slate-400">
+              <div className="mb-2 flex flex-col gap-1 text-xs text-slate-500">
                 변경 사유(필수)
                 <input
                   type="text"
                   name="reason"
                   required
-                  className="rounded border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white"
+                  className="rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900"
                 />
               </div>
-              <div className="mb-3 flex flex-col gap-1 text-xs text-slate-400">
+              <div className="mb-3 flex flex-col gap-1 text-xs text-slate-500">
                 본인 비밀번호(2단계 확인)
                 <input
                   type="password"
                   name="confirmPassword"
                   required
-                  className="rounded border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white"
+                  className="rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900"
                 />
               </div>
               {roleState.error && (
-                <p className="mb-2 rounded bg-red-950/60 px-2 py-1 text-xs text-red-400">
+                <p className="mb-2 rounded bg-red-100 px-2 py-1 text-xs text-red-700">
                   {roleState.error}
                 </p>
               )}
@@ -239,7 +239,7 @@ export default function AdminUserRow({ adminUser, roles, isSelf, canWrite, canDe
                 <button
                   type="button"
                   onClick={() => setRoleModalOpen(false)}
-                  className="rounded bg-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-600"
+                  className="rounded bg-slate-100 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-200"
                 >
                   취소
                 </button>

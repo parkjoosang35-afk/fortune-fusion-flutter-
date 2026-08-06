@@ -41,7 +41,7 @@ export default function LuckybagSeasonRow({
 
   if (editing) {
     return (
-      <tr className="border-b border-slate-800/60 bg-slate-800/30">
+      <tr className="border-b border-slate-200/60 bg-white/30">
         <td colSpan={4} className="px-4 py-3">
           <form action={updateAction} className="flex flex-wrap items-center gap-2">
             <input type="hidden" name="id" value={season.id} />
@@ -49,19 +49,19 @@ export default function LuckybagSeasonRow({
               type="text"
               name="name"
               defaultValue={season.name}
-              className="w-56 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="w-56 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
             <input
               type="datetime-local"
               name="startAt"
               defaultValue={toLocalInputValue(season.startAt)}
-              className="rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
             <input
               type="datetime-local"
               name="endAt"
               defaultValue={toLocalInputValue(season.endAt)}
-              className="rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
             <button
               type="submit"
@@ -73,11 +73,11 @@ export default function LuckybagSeasonRow({
             <button
               type="button"
               onClick={() => setEditing(false)}
-              className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
+              className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100"
             >
               취소
             </button>
-            {updateState.error && <p className="w-full text-xs text-red-400">{updateState.error}</p>}
+            {updateState.error && <p className="w-full text-xs text-red-700">{updateState.error}</p>}
           </form>
         </td>
       </tr>
@@ -85,25 +85,25 @@ export default function LuckybagSeasonRow({
   }
 
   return (
-    <tr className="border-b border-slate-800/60 hover:bg-slate-800/40">
-      <td className="px-4 py-3 text-slate-200">
+    <tr className="border-b border-slate-200/60 hover:bg-slate-100/40">
+      <td className="px-4 py-3 text-slate-700">
         {season.name}
         {isOngoing && (
-          <span className="ml-2 rounded-full bg-emerald-950/60 px-2 py-0.5 text-xs text-emerald-400">
+          <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">
             진행중
           </span>
         )}
       </td>
-      <td className="px-4 py-3 text-slate-400">
+      <td className="px-4 py-3 text-slate-500">
         {season.startAt.toISOString().slice(0, 10)} ~ {season.endAt.toISOString().slice(0, 10)}
       </td>
-      <td className="px-4 py-3 text-slate-400">{productCount.toLocaleString()}종</td>
+      <td className="px-4 py-3 text-slate-500">{productCount.toLocaleString()}종</td>
       <td className="px-4 py-3">
         <div className="flex gap-2">
           {canWrite && (
             <button
               onClick={() => setEditing(true)}
-              className="rounded-lg border border-slate-700 px-3 py-1 text-xs text-slate-300 hover:bg-slate-800"
+              className="rounded-lg border border-slate-300 px-3 py-1 text-xs text-slate-600 hover:bg-slate-100"
             >
               수정
             </button>
@@ -114,14 +114,14 @@ export default function LuckybagSeasonRow({
               <button
                 type="submit"
                 disabled={deletePending}
-                className="rounded-lg border border-red-900 px-3 py-1 text-xs text-red-400 hover:bg-red-950/40 disabled:opacity-50"
+                className="rounded-lg border border-red-300 px-3 py-1 text-xs text-red-700 hover:bg-red-100 disabled:opacity-50"
               >
                 삭제
               </button>
             </form>
           )}
         </div>
-        {deleteState.error && <p className="mt-1 text-xs text-red-400">{deleteState.error}</p>}
+        {deleteState.error && <p className="mt-1 text-xs text-red-700">{deleteState.error}</p>}
       </td>
     </tr>
   );

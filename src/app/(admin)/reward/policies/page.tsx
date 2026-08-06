@@ -91,11 +91,11 @@ export default async function RewardPoliciesPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">복주머니관리 — 경제 정책(일일상한)</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">복주머니관리 — 경제 정책(일일상한)</h1>
+        <p className="mt-1 text-sm text-slate-500">
           지갑/포인트 정책, 수동 조정, 만료 배치 모니터링을 관리합니다. 적립/사용
           내역 조회는{" "}
-          <Link href="/reward/operation-logs" className="text-indigo-400 hover:underline">
+          <Link href="/reward/operation-logs" className="text-indigo-700 hover:underline">
             운영로그/내역확인
           </Link>{" "}
           화면을 이용하세요.
@@ -107,19 +107,19 @@ export default async function RewardPoliciesPage() {
       {/* 4) 복(福) 경제 설정 — Phase4(관리자 대시보드, 옵션B) */}
       <section className="mb-8">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">복(福) 경제 설정</h2>
+          <h2 className="text-lg font-semibold text-slate-900">복(福) 경제 설정</h2>
           <p className="text-xs text-slate-500">
             &quot;복은 나눌수록 커진다&quot; 경제 철학의 핀조절 레버(economy_config) — 저장 즉시 API에 반영
           </p>
         </div>
         <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-            <p className="text-sm text-slate-400">🔁 금일 복 나누기 발행(보낸 개수)</p>
-            <p className="mt-2 text-2xl font-bold text-white">{sendBokSentToday.toLocaleString()}개</p>
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <p className="text-sm text-slate-500">🔁 금일 복 나누기 발행(보낸 개수)</p>
+            <p className="mt-2 text-2xl font-bold text-slate-900">{sendBokSentToday.toLocaleString()}개</p>
           </div>
-          <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-            <p className="text-sm text-slate-400">🔁 금일 복 나누기 환급(양쪽 증식분)</p>
-            <p className="mt-2 text-2xl font-bold text-emerald-400">
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <p className="text-sm text-slate-500">🔁 금일 복 나누기 환급(양쪽 증식분)</p>
+            <p className="mt-2 text-2xl font-bold text-emerald-700">
               +{sendBokRefundToday.toLocaleString()}개
             </p>
           </div>
@@ -129,11 +129,11 @@ export default async function RewardPoliciesPage() {
 
       {/* 1) 포인트 정책 설정 */}
       <section className="mb-8">
-        <h2 className="mb-3 text-lg font-semibold text-white">포인트 정책 설정</h2>
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">포인트 정책 설정</h2>
         <PointPolicyCreateForm canWrite={canWrite} />
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">source_type</th>
                 <th className="px-4 py-3">유형</th>
@@ -161,16 +161,16 @@ export default async function RewardPoliciesPage() {
 
       {/* 2) 포인트 조정 (수동 지급/회수) */}
       <section className="mb-8">
-        <h2 className="mb-3 text-lg font-semibold text-white">포인트 조정 (수동 지급/회수)</h2>
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">포인트 조정 (수동 지급/회수)</h2>
         <PointAdjustForm canWrite={canWrite} users={userOptions} />
       </section>
 
       {/* 3) 만료 배치 모니터링 */}
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-white">만료 배치 모니터링</h2>
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">만료 배치 모니터링</h2>
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">처리 대상일</th>
                 <th className="px-4 py-3">총 소멸 개수</th>
@@ -187,14 +187,14 @@ export default async function RewardPoliciesPage() {
                 </tr>
               )}
               {expiryBatches.map((b) => (
-                <tr key={b.id} className="border-b border-slate-800/60 hover:bg-slate-800/40">
-                  <td className="px-4 py-3 text-slate-200">
+                <tr key={b.id} className="border-b border-slate-200/60 hover:bg-slate-100/40">
+                  <td className="px-4 py-3 text-slate-700">
                     {b.targetDate.toISOString().slice(0, 10)}
                   </td>
-                  <td className="px-4 py-3 text-amber-400">
+                  <td className="px-4 py-3 text-amber-700">
                     {b.expiredAmountTotal.toLocaleString()}개
                   </td>
-                  <td className="px-4 py-3 text-slate-300">{b.processedUserCount.toLocaleString()}명</td>
+                  <td className="px-4 py-3 text-slate-600">{b.processedUserCount.toLocaleString()}명</td>
                   <td className="px-4 py-3 text-slate-500">
                     {b.createdAt.toISOString().slice(0, 19).replace("T", " ")}
                   </td>

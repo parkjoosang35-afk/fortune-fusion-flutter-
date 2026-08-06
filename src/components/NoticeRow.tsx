@@ -37,7 +37,7 @@ export default function NoticeRow({ notice, canWrite, canDelete }: NoticeRowProp
 
   if (editing) {
     return (
-      <tr className="border-b border-slate-800/60 bg-slate-800/30">
+      <tr className="border-b border-slate-200/60 bg-white/30">
         <td colSpan={4} className="px-4 py-3">
           <form action={updateAction} className="flex flex-col gap-2">
             <input type="hidden" name="id" value={notice.id} />
@@ -45,16 +45,16 @@ export default function NoticeRow({ notice, canWrite, canDelete }: NoticeRowProp
               type="text"
               name="title"
               defaultValue={notice.title}
-              className="rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
             <textarea
               name="content"
               defaultValue={notice.content}
               rows={3}
-              className="rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
             <div className="flex items-center gap-2">
-              <label className="flex items-center gap-1 text-xs text-slate-300">
+              <label className="flex items-center gap-1 text-xs text-slate-600">
                 <input
                   type="checkbox"
                   name="isPinned"
@@ -73,12 +73,12 @@ export default function NoticeRow({ notice, canWrite, canDelete }: NoticeRowProp
               <button
                 type="button"
                 onClick={() => setEditing(false)}
-                className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100"
               >
                 취소
               </button>
             </div>
-            {updateState.error && <p className="text-xs text-red-400">{updateState.error}</p>}
+            {updateState.error && <p className="text-xs text-red-700">{updateState.error}</p>}
           </form>
         </td>
       </tr>
@@ -86,11 +86,11 @@ export default function NoticeRow({ notice, canWrite, canDelete }: NoticeRowProp
   }
 
   return (
-    <tr className="border-b border-slate-800/60 hover:bg-slate-800/40">
+    <tr className="border-b border-slate-200/60 hover:bg-slate-100/40">
       <td className="px-4 py-3">
-        <div className="font-medium text-slate-200">
+        <div className="font-medium text-slate-700">
           {notice.isPinned && (
-            <span className="mr-1 rounded bg-amber-950/60 px-1.5 py-0.5 text-xs text-amber-400">
+            <span className="mr-1 rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-700">
               고정
             </span>
           )}
@@ -101,11 +101,11 @@ export default function NoticeRow({ notice, canWrite, canDelete }: NoticeRowProp
       <td className="px-4 py-3 text-xs text-slate-500">{formatDate(notice.createdAt)}</td>
       <td className="px-4 py-3">
         {notice.isPinned ? (
-          <span className="rounded-full bg-amber-950/60 px-2 py-0.5 text-xs text-amber-400">
+          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-700">
             고정됨
           </span>
         ) : (
-          <span className="rounded-full bg-slate-800 px-2 py-0.5 text-xs text-slate-400">
+          <span className="rounded-full bg-white px-2 py-0.5 text-xs text-slate-500">
             일반
           </span>
         )}
@@ -119,7 +119,7 @@ export default function NoticeRow({ notice, canWrite, canDelete }: NoticeRowProp
               <button
                 type="submit"
                 disabled={togglePending}
-                className="rounded-lg border border-slate-700 px-3 py-1 text-xs text-slate-300 hover:bg-slate-800 disabled:opacity-50"
+                className="rounded-lg border border-slate-300 px-3 py-1 text-xs text-slate-600 hover:bg-slate-100 disabled:opacity-50"
               >
                 {notice.isPinned ? "고정 해제" : "고정하기"}
               </button>
@@ -128,7 +128,7 @@ export default function NoticeRow({ notice, canWrite, canDelete }: NoticeRowProp
           {canWrite && (
             <button
               onClick={() => setEditing(true)}
-              className="rounded-lg border border-slate-700 px-3 py-1 text-xs text-slate-300 hover:bg-slate-800"
+              className="rounded-lg border border-slate-300 px-3 py-1 text-xs text-slate-600 hover:bg-slate-100"
             >
               수정
             </button>
@@ -139,15 +139,15 @@ export default function NoticeRow({ notice, canWrite, canDelete }: NoticeRowProp
               <button
                 type="submit"
                 disabled={deletePending}
-                className="rounded-lg border border-red-900 px-3 py-1 text-xs text-red-400 hover:bg-red-950/40 disabled:opacity-50"
+                className="rounded-lg border border-red-300 px-3 py-1 text-xs text-red-700 hover:bg-red-100 disabled:opacity-50"
               >
                 삭제
               </button>
             </form>
           )}
         </div>
-        {toggleState.error && <p className="mt-1 text-xs text-red-400">{toggleState.error}</p>}
-        {deleteState.error && <p className="mt-1 text-xs text-red-400">{deleteState.error}</p>}
+        {toggleState.error && <p className="mt-1 text-xs text-red-700">{toggleState.error}</p>}
+        {deleteState.error && <p className="mt-1 text-xs text-red-700">{deleteState.error}</p>}
       </td>
     </tr>
   );

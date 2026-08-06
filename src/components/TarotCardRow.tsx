@@ -37,7 +37,7 @@ export default function TarotCardRow({ card, canWrite, canDelete }: TarotCardRow
 
   if (editing) {
     return (
-      <tr className="border-b border-slate-800/60 bg-slate-800/30">
+      <tr className="border-b border-slate-200/60 bg-white/30">
         <td colSpan={5} className="px-4 py-4">
           <form
             action={async (formData) => {
@@ -52,12 +52,12 @@ export default function TarotCardRow({ card, canWrite, canDelete }: TarotCardRow
               name="name"
               defaultValue={card.name}
               required
-              className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
             <select
               name="arcanaType"
               defaultValue={card.arcanaType}
-              className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
             >
               <option value="major">메이저 아르카나</option>
               <option value="minor">마이너 아르카나</option>
@@ -66,7 +66,7 @@ export default function TarotCardRow({ card, canWrite, canDelete }: TarotCardRow
               type="number"
               name="sortOrder"
               defaultValue={card.sortOrder}
-              className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
             <ImageUploadField
               name="imageUrl"
@@ -78,17 +78,17 @@ export default function TarotCardRow({ card, canWrite, canDelete }: TarotCardRow
               defaultValue={card.uprightMeaning}
               required
               rows={2}
-              className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 md:col-span-2"
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 md:col-span-2"
             />
             <textarea
               name="reversedMeaning"
               defaultValue={card.reversedMeaning}
               required
               rows={2}
-              className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 md:col-span-2"
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 md:col-span-2"
             />
             {updateState.error && (
-              <p className="col-span-full text-sm text-red-400">{updateState.error}</p>
+              <p className="col-span-full text-sm text-red-700">{updateState.error}</p>
             )}
             <div className="col-span-full flex gap-2">
               <button
@@ -101,7 +101,7 @@ export default function TarotCardRow({ card, canWrite, canDelete }: TarotCardRow
               <button
                 type="button"
                 onClick={() => setEditing(false)}
-                className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800"
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600 transition hover:bg-slate-100"
               >
                 취소
               </button>
@@ -113,13 +113,13 @@ export default function TarotCardRow({ card, canWrite, canDelete }: TarotCardRow
   }
 
   return (
-    <tr className="border-b border-slate-800/60 hover:bg-slate-800/40">
-      <td className="px-4 py-3 text-slate-400">{card.sortOrder}</td>
-      <td className="px-4 py-3 font-medium text-white">{card.name}</td>
-      <td className="px-4 py-3 text-slate-300">
+    <tr className="border-b border-slate-200/60 hover:bg-slate-100/40">
+      <td className="px-4 py-3 text-slate-500">{card.sortOrder}</td>
+      <td className="px-4 py-3 font-medium text-slate-900">{card.name}</td>
+      <td className="px-4 py-3 text-slate-600">
         {card.arcanaType === "major" ? "메이저" : "마이너"}
       </td>
-      <td className="px-4 py-3 text-slate-400">
+      <td className="px-4 py-3 text-slate-500">
         <p className="line-clamp-1">정: {card.uprightMeaning}</p>
         <p className="line-clamp-1 text-slate-500">역: {card.reversedMeaning}</p>
       </td>
@@ -128,7 +128,7 @@ export default function TarotCardRow({ card, canWrite, canDelete }: TarotCardRow
           {canWrite && (
             <button
               onClick={() => setEditing(true)}
-              className="rounded-lg border border-slate-700 px-2 py-1 text-xs text-slate-300 transition hover:bg-slate-800"
+              className="rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-600 transition hover:bg-slate-100"
             >
               편집
             </button>
@@ -139,7 +139,7 @@ export default function TarotCardRow({ card, canWrite, canDelete }: TarotCardRow
               <button
                 type="submit"
                 disabled={deletePending}
-                className="rounded-lg border border-red-900/60 px-2 py-1 text-xs text-red-400 transition hover:bg-red-950/40 disabled:opacity-50"
+                className="rounded-lg border border-red-300/60 px-2 py-1 text-xs text-red-700 transition hover:bg-red-100 disabled:opacity-50"
               >
                 {deletePending ? "삭제 중..." : "삭제"}
               </button>
@@ -147,7 +147,7 @@ export default function TarotCardRow({ card, canWrite, canDelete }: TarotCardRow
           )}
         </div>
         {deleteState.error && (
-          <p className="mt-1 text-xs text-red-400">{deleteState.error}</p>
+          <p className="mt-1 text-xs text-red-700">{deleteState.error}</p>
         )}
       </td>
     </tr>

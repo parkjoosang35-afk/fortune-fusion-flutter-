@@ -95,7 +95,7 @@ export default function RewardSubNav() {
 
   return (
     <div className="mb-6">
-      <nav className="flex flex-wrap gap-1 border-b border-slate-800">
+      <nav className="flex flex-wrap gap-1 border-b border-slate-200">
         {GROUPS.map((group) => {
           const active = group.external
             ? pathname.startsWith(group.href)
@@ -106,8 +106,8 @@ export default function RewardSubNav() {
               href={group.href}
               className={`rounded-t-lg px-4 py-2 text-sm font-medium transition ${
                 active
-                  ? "border-b-2 border-indigo-500 text-white"
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "border-b-2 border-indigo-500 text-slate-900"
+                  : "text-slate-500 hover:text-slate-700"
               }`}
             >
               {group.label}
@@ -132,7 +132,7 @@ export default function RewardSubNav() {
                 className={`rounded-full px-3 py-1 text-xs font-medium transition ${
                   active
                     ? "bg-indigo-600 text-white"
-                    : "bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                    : "bg-white text-slate-500 hover:bg-slate-100 hover:text-slate-700"
                 }`}
               >
                 {tab.label}

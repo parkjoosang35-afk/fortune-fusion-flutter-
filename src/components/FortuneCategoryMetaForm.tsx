@@ -41,53 +41,53 @@ export default function FortuneCategoryMetaForm({
       <input type="hidden" name="categoryKey" value={categoryKey} />
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-slate-300">제목</label>
+        <label className="mb-1 block text-sm font-medium text-slate-600">제목</label>
         <input
           name="title"
           defaultValue={title}
           disabled={!canWrite}
-          className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 disabled:opacity-60"
+          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 disabled:opacity-60"
         />
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-slate-300">
+        <label className="mb-1 block text-sm font-medium text-slate-600">
           카드 설명(전체보기 카드에 노출)
         </label>
         <input
           name="shortDescription"
           defaultValue={shortDescription}
           disabled={!canWrite}
-          className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 disabled:opacity-60"
+          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 disabled:opacity-60"
         />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-300">
+          <label className="mb-1 block text-sm font-medium text-slate-600">
             아이콘(Material icon 이름)
           </label>
           <input
             name="icon"
             defaultValue={icon}
             disabled={!canWrite}
-            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 disabled:opacity-60"
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 disabled:opacity-60"
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-300">배지 문구</label>
+          <label className="mb-1 block text-sm font-medium text-slate-600">배지 문구</label>
           <input
             name="badgeLabel"
             defaultValue={badgeLabel}
             placeholder="NEW / 추천 / 대표"
             disabled={!canWrite}
-            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 disabled:opacity-60"
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 disabled:opacity-60"
           />
         </div>
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-slate-300">
+        <label className="mb-1 block text-sm font-medium text-slate-600">
           Flutter 라우트(비워두면 &quot;준비중&quot;으로 노출)
         </label>
         <input
@@ -95,12 +95,12 @@ export default function FortuneCategoryMetaForm({
           defaultValue={route}
           placeholder="/ai-fortune/xxx/input"
           disabled={!canWrite}
-          className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm font-mono text-white outline-none focus:border-indigo-500 disabled:opacity-60"
+          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-mono text-slate-900 outline-none focus:border-indigo-500 disabled:opacity-60"
         />
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-slate-300">
+        <label className="mb-1 block text-sm font-medium text-slate-600">
           결과 길이 안내(관리자용 메모)
         </label>
         <input
@@ -108,17 +108,17 @@ export default function FortuneCategoryMetaForm({
           defaultValue={resultLengthHint}
           placeholder="400~500자"
           disabled={!canWrite}
-          className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 disabled:opacity-60"
+          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 disabled:opacity-60"
         />
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-slate-300">그룹</label>
+        <label className="mb-1 block text-sm font-medium text-slate-600">그룹</label>
         <select
           name="groupId"
           defaultValue={currentGroupId ?? ""}
           disabled={!canWrite}
-          className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 disabled:opacity-60"
+          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 disabled:opacity-60"
         >
           <option value="">(그룹 없음)</option>
           {groups.map((g) => (
@@ -130,10 +130,10 @@ export default function FortuneCategoryMetaForm({
       </div>
 
       {state.error && (
-        <p className="rounded-lg bg-red-950/60 px-3 py-2 text-sm text-red-400">{state.error}</p>
+        <p className="rounded-lg bg-red-100 px-3 py-2 text-sm text-red-700">{state.error}</p>
       )}
       {state.success && (
-        <p className="rounded-lg bg-emerald-950/60 px-3 py-2 text-sm text-emerald-400">
+        <p className="rounded-lg bg-emerald-100 px-3 py-2 text-sm text-emerald-700">
           저장되었습니다.
         </p>
       )}

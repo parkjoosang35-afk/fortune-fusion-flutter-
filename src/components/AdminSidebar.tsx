@@ -50,9 +50,9 @@ export default function AdminSidebar({
   const pathname = usePathname();
 
   return (
-    <aside className="flex h-screen w-60 flex-col border-r border-slate-800 bg-slate-950">
-      <div className="border-b border-slate-800 px-4 py-5">
-        <p className="text-sm font-bold text-white">Fortune Fusion</p>
+    <aside className="flex h-screen w-60 flex-col border-r border-slate-200 bg-white">
+      <div className="border-b border-slate-200 px-4 py-5">
+        <p className="text-sm font-bold text-slate-900">Fortune Fusion</p>
         <p className="text-xs text-slate-500">Admin Console</p>
       </div>
 
@@ -69,7 +69,7 @@ export default function AdminSidebar({
                   className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
                     active
                       ? "bg-indigo-600 text-white"
-                      : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                   }`}
                 >
                   <Icon size={16} />
@@ -81,13 +81,13 @@ export default function AdminSidebar({
         </ul>
       </nav>
 
-      <div className="border-t border-slate-800 px-4 py-4">
-        <p className="truncate text-sm font-medium text-white">{adminName}</p>
+      <div className="border-t border-slate-200 px-4 py-4">
+        <p className="truncate text-sm font-medium text-slate-900">{adminName}</p>
         <p className="mb-3 text-xs text-slate-500">{roleCode}</p>
         <form action={logout}>
           <button
             type="submit"
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 transition hover:bg-slate-800 hover:text-white"
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
           >
             <LogOut size={16} />
             로그아웃

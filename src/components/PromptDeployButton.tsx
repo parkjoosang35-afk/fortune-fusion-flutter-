@@ -29,7 +29,7 @@ export default function PromptDeployButton({
 
   if (!canWrite) {
     return isActive ? (
-      <span className="rounded-full bg-emerald-950/60 px-2 py-1 text-xs font-medium text-emerald-400">
+      <span className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-700">
         배포중
       </span>
     ) : (
@@ -39,7 +39,7 @@ export default function PromptDeployButton({
 
   if (isActive) {
     return (
-      <span className="rounded-full bg-emerald-950/60 px-2 py-1 text-xs font-medium text-emerald-400">
+      <span className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-700">
         배포중
       </span>
     );
@@ -52,12 +52,12 @@ export default function PromptDeployButton({
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg border border-indigo-500/60 px-2 py-1 text-xs font-medium text-indigo-400 transition hover:bg-indigo-950/60 disabled:cursor-not-allowed disabled:opacity-50"
+        className="rounded-lg border border-indigo-500/60 px-2 py-1 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {pending ? "배포 중..." : "이 버전 배포"}
       </button>
       {state.error && (
-        <p className="mt-1 text-xs text-red-400">{state.error}</p>
+        <p className="mt-1 text-xs text-red-700">{state.error}</p>
       )}
     </form>
   );

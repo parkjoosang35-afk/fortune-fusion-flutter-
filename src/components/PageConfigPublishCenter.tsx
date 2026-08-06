@@ -35,10 +35,10 @@ const VIEWPORTS = [
 ] as const;
 
 const DIFF_BADGE: Record<DiffEntry["change"], string> = {
-  added: "bg-emerald-900/60 text-emerald-300",
-  modified: "bg-amber-900/60 text-amber-300",
-  removed: "bg-rose-900/60 text-rose-300",
-  unchanged: "bg-slate-800 text-slate-500",
+  added: "bg-emerald-100 text-emerald-800",
+  modified: "bg-amber-100 text-amber-800",
+  removed: "bg-rose-100 text-rose-800",
+  unchanged: "bg-white text-slate-500",
 };
 const DIFF_LABEL: Record<DiffEntry["change"], string> = {
   added: "추가됨",
@@ -92,7 +92,7 @@ export default function PageConfigPublishCenter({ canWrite }: { canWrite: boolea
   }
 
   if (loading) return <p className="text-sm text-slate-500">불러오는 중...</p>;
-  if (error) return <p className="text-sm text-rose-400">{error}</p>;
+  if (error) return <p className="text-sm text-rose-700">{error}</p>;
   if (!data) return null;
 
   const visibleSections = data.sections.filter((s) => s.status === "visible");
@@ -111,7 +111,7 @@ export default function PageConfigPublishCenter({ canWrite }: { canWrite: boolea
               type="button"
               onClick={() => setViewport(v)}
               className={`rounded-lg px-3 py-1.5 text-sm ${
-                viewport.key === v.key ? "bg-indigo-600 text-white" : "border border-slate-700 text-slate-400 hover:bg-slate-800"
+                viewport.key === v.key ? "bg-indigo-600 text-white" : "border border-slate-300 text-slate-500 hover:bg-slate-100"
               }`}
             >
               {v.label}
@@ -121,12 +121,12 @@ export default function PageConfigPublishCenter({ canWrite }: { canWrite: boolea
         </div>
 
         <div
-          className="mx-auto overflow-hidden rounded-2xl border-4 border-slate-800 bg-white"
+          className="mx-auto overflow-hidden rounded-2xl border-4 border-slate-200 bg-white"
           style={{ width: viewport.width, maxWidth: "100%" }}
         >
           <div className="max-h-[720px] overflow-y-auto bg-slate-50">
             {visibleSections.length === 0 && (
-              <p className="p-6 text-center text-sm text-slate-400">노출 중인 섹션이 없습니다.</p>
+              <p className="p-6 text-center text-sm text-slate-500">노출 중인 섹션이 없습니다.</p>
             )}
             {visibleSections.map((s) => (
               <div key={s.id} className="border-b border-slate-200 bg-white p-3">
@@ -158,8 +158,8 @@ export default function PageConfigPublishCenter({ canWrite }: { canWrite: boolea
       </div>
 
       <div className="space-y-4">
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-          <h3 className="mb-2 text-sm font-semibold text-white">발행 버전과 비교(diff)</h3>
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <h3 className="mb-2 text-sm font-semibold text-slate-900">발행 버전과 비교(diff)</h3>
           <div className="mb-2 flex gap-2 text-xs">
             {(["added", "modified", "removed", "unchanged"] as const).map((c) => (
               <span key={c} className={`rounded px-1.5 py-0.5 ${DIFF_BADGE[c]}`}>
@@ -172,7 +172,7 @@ export default function PageConfigPublishCenter({ canWrite }: { canWrite: boolea
               .filter((d) => d.change !== "unchanged")
               .map((d) => (
                 <li key={d.sectionKey} className="flex items-center justify-between">
-                  <span className="text-slate-300">{d.sectionKey}</span>
+                  <span className="text-slate-600">{d.sectionKey}</span>
                   <span className={`rounded px-1.5 py-0.5 ${DIFF_BADGE[d.change]}`}>{DIFF_LABEL[d.change]}</span>
                 </li>
               ))}
@@ -183,8 +183,8 @@ export default function PageConfigPublishCenter({ canWrite }: { canWrite: boolea
         </div>
 
         {canWrite && (
-          <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-            <h3 className="mb-2 text-sm font-semibold text-white">발행</h3>
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <h3 className="mb-2 text-sm font-semibold text-slate-900">발행</h3>
             <p className="mb-3 text-xs text-slate-500">
               발행 즉시 draft의 스냅샷이 새 published 버전이 되고, 이어서 편집할 수 있는 새 draft가
               자동 생성됩니다.
@@ -197,7 +197,7 @@ export default function PageConfigPublishCenter({ canWrite }: { canWrite: boolea
             >
               {publishing ? "발행 중..." : "지금 발행하기"}
             </button>
-            {publishResult && <p className="mt-2 text-xs text-slate-300">{publishResult}</p>}
+            {publishResult && <p className="mt-2 text-xs text-slate-600">{publishResult}</p>}
           </div>
         )}
       </div>

@@ -37,8 +37,8 @@ export default async function PageConfigSectionsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">섹션 리스트</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">섹션 리스트</h1>
+        <p className="mt-1 text-sm text-slate-500">
           현재 draft {versionNumber ? `(v${versionNumber})` : ""} 기준입니다. 이 화면에서의 변경은
           발행 전까지 실제 앱에 반영되지 않습니다 — &quot;미리보기/발행센터&quot;에서 발행해야
           라이브에 적용됩니다.
@@ -48,9 +48,9 @@ export default async function PageConfigSectionsPage() {
 
       <PageConfigSectionCreateForm canWrite={canWrite} nextSortOrder={sections.length} />
 
-      <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+          <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
             <tr>
               <th className="px-3 py-3">순서</th>
               <th className="px-3 py-3">이름 / sectionKey</th>

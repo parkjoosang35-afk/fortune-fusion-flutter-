@@ -35,49 +35,49 @@ export default async function UserSubscriptionsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">결제/구독 관리 — 구독 현황 조회</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">결제/구독 관리 — 구독 현황 조회</h1>
+        <p className="mt-1 text-sm text-slate-500">
           회원별 구독 현황을 조회하고, 필요 시 강제 해지(사유 필수)합니다.
         </p>
-        <nav className="mt-4 flex gap-2 border-b border-slate-800 text-sm">
-          <Link href="/payments/list" className="px-3 py-2 text-slate-400 hover:text-white">
+        <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
+          <Link href="/payments/list" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             결제 내역
           </Link>
-          <Link href="/payments/refunds" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/payments/refunds" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             환불 처리
           </Link>
-          <Link href="/payments/plans" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/payments/plans" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             구독 플랜 관리
           </Link>
-          <span className="border-b-2 border-indigo-500 px-3 py-2 text-white">구독 현황</span>
-          <Link href="/payments/revenue-report" className="px-3 py-2 text-slate-400 hover:text-white">
+          <span className="border-b-2 border-indigo-500 px-3 py-2 text-slate-900">구독 현황</span>
+          <Link href="/payments/revenue-report" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             매출 리포트
           </Link>
         </nav>
       </div>
 
       <section className="mb-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">구독중</p>
-          <p className="mt-1 text-2xl font-bold text-emerald-400">{statusCount.active}</p>
+          <p className="mt-1 text-2xl font-bold text-emerald-700">{statusCount.active}</p>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">해지됨</p>
-          <p className="mt-1 text-2xl font-bold text-slate-400">{statusCount.cancelled}</p>
+          <p className="mt-1 text-2xl font-bold text-slate-500">{statusCount.cancelled}</p>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">만료됨</p>
           <p className="mt-1 text-2xl font-bold text-slate-500">{statusCount.expired}</p>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">결제연체</p>
-          <p className="mt-1 text-2xl font-bold text-rose-400">{statusCount.past_due}</p>
+          <p className="mt-1 text-2xl font-bold text-rose-700">{statusCount.past_due}</p>
         </div>
       </section>
 
-      <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+          <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
             <tr>
               <th className="px-4 py-3">회원</th>
               <th className="px-4 py-3">플랜</th>

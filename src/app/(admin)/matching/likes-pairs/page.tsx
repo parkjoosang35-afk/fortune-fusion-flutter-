@@ -63,56 +63,56 @@ export default async function MatchingLikesPairsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">매칭/궁합 관리 — 매칭 성사 이력</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">매칭/궁합 관리 — 매칭 성사 이력</h1>
+        <p className="mt-1 text-sm text-slate-500">
           회원 간 매칭 좋아요(matching_likes)와 상호 성사된 매칭 쌍(matching_pairs)을
           조회합니다(조회 전용). 발신 좋아요가 비정상적으로 많은 회원은 어뷰징 의심으로
           표시됩니다.
         </p>
-        <nav className="mt-4 flex gap-2 border-b border-slate-800 text-sm">
-          <Link href="/matching/profiles" className="px-3 py-2 text-slate-400 hover:text-white">
+        <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
+          <Link href="/matching/profiles" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             매칭 프로필
           </Link>
-          <span className="border-b-2 border-indigo-500 px-3 py-2 text-white">매칭 성사 이력</span>
-          <Link href="/matching/friends-follows" className="px-3 py-2 text-slate-400 hover:text-white">
+          <span className="border-b-2 border-indigo-500 px-3 py-2 text-slate-900">매칭 성사 이력</span>
+          <Link href="/matching/friends-follows" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             친구/팔로우
           </Link>
-          <Link href="/matching/chats" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/matching/chats" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             채팅 모니터링
           </Link>
-          <Link href="/matching/compatibility-weights" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/matching/compatibility-weights" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             궁합 요소 가중치
           </Link>
-          <Link href="/matching/compatibility-stats" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/matching/compatibility-stats" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             궁합 통계
           </Link>
         </nav>
       </div>
 
       <section className="mb-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">전체 좋아요 발신</p>
-          <p className="mt-1 text-2xl font-bold text-white">{likes.length.toLocaleString()}</p>
+          <p className="mt-1 text-2xl font-bold text-slate-900">{likes.length.toLocaleString()}</p>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">성사(active) 매칭 쌍</p>
-          <p className="mt-1 text-2xl font-bold text-emerald-400">{activePairCount.toLocaleString()}</p>
+          <p className="mt-1 text-2xl font-bold text-emerald-700">{activePairCount.toLocaleString()}</p>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">해제(unmatched) 매칭 쌍</p>
-          <p className="mt-1 text-2xl font-bold text-slate-400">{unmatchedPairCount.toLocaleString()}</p>
+          <p className="mt-1 text-2xl font-bold text-slate-500">{unmatchedPairCount.toLocaleString()}</p>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">어뷰징 의심 발신자(≥{ABUSE_THRESHOLD}건)</p>
-          <p className="mt-1 text-2xl font-bold text-amber-400">{abuseSenderIds.size.toLocaleString()}</p>
+          <p className="mt-1 text-2xl font-bold text-amber-700">{abuseSenderIds.size.toLocaleString()}</p>
         </div>
       </section>
 
       <section className="mb-6">
-        <h2 className="mb-2 text-sm font-semibold text-slate-300">매칭 좋아요 (matching_likes)</h2>
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <h2 className="mb-2 text-sm font-semibold text-slate-600">매칭 좋아요 (matching_likes)</h2>
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">발신자</th>
                 <th className="px-4 py-3">수신자</th>
@@ -134,15 +134,15 @@ export default async function MatchingLikesPairsPage() {
                 return (
                   <tr
                     key={l.id}
-                    className={`border-b border-slate-800/60 hover:bg-slate-800/40 ${
-                      isAbuse ? "bg-amber-950/20" : ""
+                    className={`border-b border-slate-200/60 hover:bg-slate-100/40 ${
+                      isAbuse ? "bg-amber-100" : ""
                     }`}
                   >
-                    <td className="px-4 py-3 text-slate-200">{nick(l.fromUserId)}</td>
-                    <td className="px-4 py-3 text-slate-200">{nick(l.toUserId)}</td>
+                    <td className="px-4 py-3 text-slate-700">{nick(l.fromUserId)}</td>
+                    <td className="px-4 py-3 text-slate-700">{nick(l.toUserId)}</td>
                     <td className="px-4 py-3">
                       {l.type === "super" ? (
-                        <span className="rounded-full bg-indigo-950/60 px-2 py-0.5 text-xs text-indigo-400">
+                        <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs text-indigo-700">
                           슈퍼 좋아요
                         </span>
                       ) : (
@@ -152,7 +152,7 @@ export default async function MatchingLikesPairsPage() {
                     <td className="px-4 py-3 text-slate-500">{fmtDate(l.createdAt)}</td>
                     <td className="px-4 py-3">
                       {isAbuse ? (
-                        <span className="rounded-full bg-amber-950/60 px-2 py-0.5 text-xs text-amber-400">
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-700">
                           어뷰징 의심(발신 {sentCountMap.get(l.fromUserId)}건)
                         </span>
                       ) : (
@@ -168,10 +168,10 @@ export default async function MatchingLikesPairsPage() {
       </section>
 
       <section>
-        <h2 className="mb-2 text-sm font-semibold text-slate-300">매칭 성사 쌍 (matching_pairs)</h2>
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <h2 className="mb-2 text-sm font-semibold text-slate-600">매칭 성사 쌍 (matching_pairs)</h2>
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">회원 A</th>
                 <th className="px-4 py-3">회원 B</th>
@@ -188,17 +188,17 @@ export default async function MatchingLikesPairsPage() {
                 </tr>
               )}
               {pairs.map((p) => (
-                <tr key={p.id} className="border-b border-slate-800/60 hover:bg-slate-800/40">
-                  <td className="px-4 py-3 text-slate-200">{nick(p.userAId)}</td>
-                  <td className="px-4 py-3 text-slate-200">{nick(p.userBId)}</td>
+                <tr key={p.id} className="border-b border-slate-200/60 hover:bg-slate-100/40">
+                  <td className="px-4 py-3 text-slate-700">{nick(p.userAId)}</td>
+                  <td className="px-4 py-3 text-slate-700">{nick(p.userBId)}</td>
                   <td className="px-4 py-3 text-slate-500">{fmtDate(p.matchedAt)}</td>
                   <td className="px-4 py-3">
                     {p.status === "active" ? (
-                      <span className="rounded-full bg-emerald-950/60 px-2 py-0.5 text-xs text-emerald-400">
+                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">
                         성사중
                       </span>
                     ) : (
-                      <span className="rounded-full bg-slate-800 px-2 py-0.5 text-xs text-slate-400">
+                      <span className="rounded-full bg-white px-2 py-0.5 text-xs text-slate-500">
                         해제됨
                       </span>
                     )}

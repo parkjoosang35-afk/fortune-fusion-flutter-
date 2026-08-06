@@ -28,21 +28,21 @@ export default function AmuletItemCreateForm({ canWrite, grades }: AmuletItemCre
         formRef.current?.reset();
         setUploadFieldKey((k) => k + 1);
       }}
-      className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-800 bg-slate-900 p-4 md:grid-cols-4"
+      className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-4"
     >
-      <h3 className="col-span-full text-sm font-semibold text-white">새 부적 상품 추가</h3>
+      <h3 className="col-span-full text-sm font-semibold text-slate-900">새 부적 상품 추가</h3>
       <input
         type="text"
         name="name"
         placeholder="부적 이름"
         required
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 md:col-span-2"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 md:col-span-2"
       />
       <select
         name="gradeId"
         required
         defaultValue=""
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
       >
         <option value="" disabled>
           등급 선택
@@ -59,14 +59,14 @@ export default function AmuletItemCreateForm({ canWrite, grades }: AmuletItemCre
         placeholder="가격(포인트)"
         min={0}
         required
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
       />
       <textarea
         name="effectDescription"
         placeholder="효과 설명"
         required
         rows={2}
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 md:col-span-2"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 md:col-span-2"
       />
       <ImageUploadField
         key={uploadFieldKey}
@@ -74,22 +74,22 @@ export default function AmuletItemCreateForm({ canWrite, grades }: AmuletItemCre
         category="amulets"
         className="md:col-span-2"
       />
-      <label className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300">
+      <label className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-600">
         <input type="checkbox" name="isAiGenerated" className="accent-indigo-500" />
         AI 생성 이미지
       </label>
-      <label className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300">
+      <label className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-600">
         <input type="checkbox" name="isLimited" className="accent-indigo-500" />
         한정판
       </label>
 
       {state.error && (
-        <p className="col-span-full rounded-lg bg-red-950/60 px-3 py-2 text-sm text-red-400">
+        <p className="col-span-full rounded-lg bg-red-100 px-3 py-2 text-sm text-red-700">
           {state.error}
         </p>
       )}
       {state.success && (
-        <p className="col-span-full rounded-lg bg-emerald-950/60 px-3 py-2 text-sm text-emerald-400">
+        <p className="col-span-full rounded-lg bg-emerald-100 px-3 py-2 text-sm text-emerald-700">
           부적 상품이 추가되었습니다.
         </p>
       )}

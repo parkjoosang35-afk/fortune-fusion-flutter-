@@ -83,38 +83,38 @@ export default async function CommunityFilesPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">커뮤니티 관리 — 파일/업로드 관리</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">커뮤니티 관리 — 파일/업로드 관리</h1>
+        <p className="mt-1 text-sm text-slate-500">
           프로필/게시글/부적/배너에 첨부된 파일을 통합 조회하고, 문제 이미지를 삭제(Soft Delete) 처리합니다.
           업로드 기능은 회원 앱/각 도메인 화면에서만 제공됩니다.
         </p>
-        <nav className="mt-4 flex gap-2 border-b border-slate-800 text-sm">
-          <Link href="/community/boards" className="px-3 py-2 text-slate-400 hover:text-white">
+        <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
+          <Link href="/community/boards" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             게시판
           </Link>
-          <Link href="/community/posts" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/community/posts" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             게시글/소원
           </Link>
-          <Link href="/community/comments" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/community/comments" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             댓글
           </Link>
-          <Link href="/community/reports" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/community/reports" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             신고
           </Link>
-          <Link href="/community/likes" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/community/likes" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             좋아요 통계
           </Link>
-          <span className="border-b-2 border-indigo-500 px-3 py-2 text-white">파일/업로드</span>
-          <Link href="/community/wish-castle" className="px-3 py-2 text-slate-400 hover:text-white">
+          <span className="border-b-2 border-indigo-500 px-3 py-2 text-slate-900">파일/업로드</span>
+          <Link href="/community/wish-castle" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             🏰 소원성 설정
           </Link>
         </nav>
       </div>
 
       <section>
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">대상</th>
                 <th className="px-4 py-3">파일 URL</th>

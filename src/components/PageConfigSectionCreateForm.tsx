@@ -58,30 +58,30 @@ export default function PageConfigSectionCreateForm({ canWrite, nextSortOrder }:
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="rounded-lg border border-indigo-700 bg-indigo-950/40 px-4 py-2 text-sm text-indigo-300 hover:bg-indigo-900/40"
+          className="rounded-lg border border-indigo-300 bg-indigo-100 px-4 py-2 text-sm text-indigo-800 hover:bg-indigo-100"
         >
           + 새 섹션 추가
         </button>
       ) : (
         <form
           onSubmit={submit}
-          className="flex flex-col gap-3 rounded-xl border border-slate-800 bg-slate-900 p-4 sm:flex-row sm:items-end sm:gap-2"
+          className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-end sm:gap-2"
         >
           <div className="flex-1">
-            <label className="mb-1 block text-xs text-slate-400">sectionKey (고유 식별자)</label>
+            <label className="mb-1 block text-xs text-slate-500">sectionKey (고유 식별자)</label>
             <input
               value={sectionKey}
               onChange={(e) => setSectionKey(e.target.value)}
               placeholder="예: new_year_event_banner"
-              className="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white"
+              className="w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
             />
           </div>
           <div className="flex-1">
-            <label className="mb-1 block text-xs text-slate-400">블록 타입</label>
+            <label className="mb-1 block text-xs text-slate-500">블록 타입</label>
             <select
               value={blockType}
               onChange={(e) => setBlockType(e.target.value as BlockType)}
-              className="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white"
+              className="w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
             >
               {BLOCK_TYPES.map((bt) => (
                 <option key={bt} value={bt}>
@@ -91,12 +91,12 @@ export default function PageConfigSectionCreateForm({ canWrite, nextSortOrder }:
             </select>
           </div>
           <div className="flex-1">
-            <label className="mb-1 block text-xs text-slate-400">제목(선택, 최대 18자)</label>
+            <label className="mb-1 block text-xs text-slate-500">제목(선택, 최대 18자)</label>
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               maxLength={18}
-              className="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white"
+              className="w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
             />
           </div>
           <div className="flex gap-2">
@@ -110,12 +110,12 @@ export default function PageConfigSectionCreateForm({ canWrite, nextSortOrder }:
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="rounded border border-slate-700 px-3 py-2 text-sm text-slate-400 hover:bg-slate-800"
+              className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-500 hover:bg-slate-100"
             >
               취소
             </button>
           </div>
-          {error && <p className="w-full text-xs text-rose-400">{error}</p>}
+          {error && <p className="w-full text-xs text-rose-700">{error}</p>}
         </form>
       )}
     </div>

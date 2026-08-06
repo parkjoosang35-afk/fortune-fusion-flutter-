@@ -21,20 +21,20 @@ export default function TarotCardCreateForm({ canWrite }: { canWrite: boolean })
         formRef.current?.reset();
         setUploadFieldKey((k) => k + 1);
       }}
-      className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-800 bg-slate-900 p-4 md:grid-cols-2"
+      className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-2"
     >
-      <h2 className="col-span-full text-sm font-semibold text-white">새 타로카드 추가</h2>
+      <h2 className="col-span-full text-sm font-semibold text-slate-900">새 타로카드 추가</h2>
       <input
         type="text"
         name="name"
         placeholder="카드 이름 (예: The Fool (광대))"
         required
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
       />
       <select
         name="arcanaType"
         defaultValue="major"
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
       >
         <option value="major">메이저 아르카나</option>
         <option value="minor">마이너 아르카나</option>
@@ -44,7 +44,7 @@ export default function TarotCardCreateForm({ canWrite }: { canWrite: boolean })
         name="sortOrder"
         placeholder="정렬 순서"
         defaultValue={0}
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
       />
       <ImageUploadField key={uploadFieldKey} name="imageUrl" category="tarot-cards" />
       <textarea
@@ -52,23 +52,23 @@ export default function TarotCardCreateForm({ canWrite }: { canWrite: boolean })
         placeholder="정방향 의미"
         required
         rows={2}
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 md:col-span-2"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 md:col-span-2"
       />
       <textarea
         name="reversedMeaning"
         placeholder="역방향 의미"
         required
         rows={2}
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 md:col-span-2"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 md:col-span-2"
       />
 
       {state.error && (
-        <p className="col-span-full rounded-lg bg-red-950/60 px-3 py-2 text-sm text-red-400">
+        <p className="col-span-full rounded-lg bg-red-100 px-3 py-2 text-sm text-red-700">
           {state.error}
         </p>
       )}
       {state.success && (
-        <p className="col-span-full rounded-lg bg-emerald-950/60 px-3 py-2 text-sm text-emerald-400">
+        <p className="col-span-full rounded-lg bg-emerald-100 px-3 py-2 text-sm text-emerald-700">
           카드가 추가되었습니다.
         </p>
       )}

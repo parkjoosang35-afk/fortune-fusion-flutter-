@@ -39,13 +39,13 @@ export default function AuditDiffViewer({ before, after }: AuditDiffViewerProps)
           <div key={key} className="flex gap-1">
             <span className="text-slate-500">{key}:</span>
             {beforeObj && (
-              <span className={changed ? "text-red-400 line-through" : "text-slate-400"}>
+              <span className={changed ? "text-red-700 line-through" : "text-slate-500"}>
                 {JSON.stringify(beforeVal)}
               </span>
             )}
             {beforeObj && afterObj && changed && <span className="text-slate-600">→</span>}
             {afterObj && (
-              <span className={changed ? "text-emerald-400" : "text-slate-400"}>
+              <span className={changed ? "text-emerald-700" : "text-slate-500"}>
                 {JSON.stringify(afterVal)}
               </span>
             )}

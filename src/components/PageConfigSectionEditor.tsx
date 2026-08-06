@@ -84,8 +84,8 @@ export default function PageConfigSectionEditor({
 
 function Card({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-xl border border-slate-800 bg-slate-900 p-5">
-      <h2 className="text-base font-semibold text-white">{title}</h2>
+    <section className="rounded-xl border border-slate-200 bg-white p-5">
+      <h2 className="text-base font-semibold text-slate-900">{title}</h2>
       {hint && <p className="mt-1 text-xs text-slate-500">{hint}</p>}
       <div className="mt-4">{children}</div>
     </section>
@@ -95,7 +95,7 @@ function Card({ title, hint, children }: { title: string; hint?: string; childre
 function CharCounter({ value, limit }: { value: string; limit: number }) {
   const over = value.length > limit;
   return (
-    <span className={`text-xs ${over ? "text-rose-400" : "text-slate-500"}`}>
+    <span className={`text-xs ${over ? "text-rose-700" : "text-slate-500"}`}>
       {value.length}/{limit}
     </span>
   );
@@ -151,13 +151,13 @@ function ContentEditCard({ section, canWrite }: { section: SectionData; canWrite
         />
         <Field label="버튼 텍스트" limit={TEXT_LIMITS.buttonText} value={buttonText} onChange={setButtonText} disabled={!canWrite} />
         <div>
-          <label className="mb-1 block text-xs text-slate-400">버튼 링크(CTA/딥링크/외부링크)</label>
+          <label className="mb-1 block text-xs text-slate-500">버튼 링크(CTA/딥링크/외부링크)</label>
           <input
             value={buttonLink}
             onChange={(e) => setButtonLink(e.target.value)}
             disabled={!canWrite}
             placeholder="/fortune/daily 또는 https://..."
-            className="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white disabled:opacity-50"
+            className="w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 disabled:opacity-50"
           />
         </div>
         <Field label="배지 텍스트" limit={TEXT_LIMITS.badgeText} value={badgeText} onChange={setBadgeText} disabled={!canWrite} />
@@ -179,8 +179,8 @@ function ContentEditCard({ section, canWrite }: { section: SectionData; canWrite
           >
             {pending ? "저장 중..." : "텍스트 저장"}
           </button>
-          {saved && <span className="text-xs text-emerald-400">저장되었습니다.</span>}
-          {error && <span className="text-xs text-rose-400">{error}</span>}
+          {saved && <span className="text-xs text-emerald-700">저장되었습니다.</span>}
+          {error && <span className="text-xs text-rose-700">{error}</span>}
         </div>
       )}
     </Card>
@@ -205,7 +205,7 @@ function Field({
   return (
     <div>
       <div className="mb-1 flex items-center justify-between">
-        <label className="text-xs text-slate-400">{label}</label>
+        <label className="text-xs text-slate-500">{label}</label>
         <CharCounter value={value} limit={limit} />
       </div>
       {textarea ? (
@@ -214,14 +214,14 @@ function Field({
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
           rows={2}
-          className="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white disabled:opacity-50"
+          className="w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 disabled:opacity-50"
         />
       ) : (
         <input
           value={value}
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
-          className="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white disabled:opacity-50"
+          className="w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 disabled:opacity-50"
         />
       )}
     </div>
@@ -331,40 +331,40 @@ function StyleAndLinkageCard({ section, canWrite }: { section: SectionData; canW
           ))}
         </SelectField>
         <div>
-          <label className="mb-1 block text-xs text-slate-400">연동 기능 스코프</label>
+          <label className="mb-1 block text-xs text-slate-500">연동 기능 스코프</label>
           <input
             value={linkedFeatureScope}
             onChange={(e) => setLinkedFeatureScope(e.target.value)}
             disabled={!canWrite}
-            className="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white disabled:opacity-50"
+            className="w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 disabled:opacity-50"
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs text-slate-400">캠페인/상품 ID(선택)</label>
+          <label className="mb-1 block text-xs text-slate-500">캠페인/상품 ID(선택)</label>
           <div className="flex gap-1">
             <input
               value={linkedCampaignId}
               onChange={(e) => setLinkedCampaignId(e.target.value)}
               disabled={!canWrite}
               placeholder="campaignId"
-              className="w-1/2 rounded border border-slate-700 bg-slate-950 px-2 py-2 text-sm text-white disabled:opacity-50"
+              className="w-1/2 rounded border border-slate-300 bg-white px-2 py-2 text-sm text-slate-900 disabled:opacity-50"
             />
             <input
               value={linkedProductId}
               onChange={(e) => setLinkedProductId(e.target.value)}
               disabled={!canWrite}
               placeholder="productId"
-              className="w-1/2 rounded border border-slate-700 bg-slate-950 px-2 py-2 text-sm text-white disabled:opacity-50"
+              className="w-1/2 rounded border border-slate-300 bg-white px-2 py-2 text-sm text-slate-900 disabled:opacity-50"
             />
           </div>
         </div>
       </div>
 
       <div className="mt-4">
-        <label className="mb-1 block text-xs text-slate-400">노출 플랫폼(선택하지 않으면 전체 노출)</label>
+        <label className="mb-1 block text-xs text-slate-500">노출 플랫폼(선택하지 않으면 전체 노출)</label>
         <div className="flex gap-3">
           {PLATFORM_TARGETS.map((p) => (
-            <label key={p} className="flex items-center gap-1 text-sm text-slate-300">
+            <label key={p} className="flex items-center gap-1 text-sm text-slate-600">
               <input
                 type="checkbox"
                 checked={platformTargets.includes(p)}
@@ -387,8 +387,8 @@ function StyleAndLinkageCard({ section, canWrite }: { section: SectionData; canW
           >
             {pending ? "저장 중..." : "스타일/연동 저장"}
           </button>
-          {saved && <span className="text-xs text-emerald-400">저장되었습니다.</span>}
-          {error && <span className="text-xs text-rose-400">{error}</span>}
+          {saved && <span className="text-xs text-emerald-700">저장되었습니다.</span>}
+          {error && <span className="text-xs text-rose-700">{error}</span>}
         </div>
       )}
     </Card>
@@ -410,12 +410,12 @@ function SelectField({
 }) {
   return (
     <div>
-      <label className="mb-1 block text-xs text-slate-400">{label}</label>
+      <label className="mb-1 block text-xs text-slate-500">{label}</label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
-        className="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white disabled:opacity-50"
+        className="w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 disabled:opacity-50"
       >
         {children}
       </select>
@@ -460,29 +460,29 @@ function ScheduleCard({ section, canWrite }: { section: SectionData; canWrite: b
 
   return (
     <Card title="예약 노출" hint="시각은 기기(브라우저) 로컬 타임존 기준으로 입력합니다. 서버는 UTC로 저장합니다.">
-      <label className="mb-3 flex items-center gap-2 text-sm text-slate-300">
+      <label className="mb-3 flex items-center gap-2 text-sm text-slate-600">
         <input type="checkbox" checked={scheduleEnabled} onChange={(e) => setScheduleEnabled(e.target.checked)} disabled={!canWrite} />
         예약 노출 사용
       </label>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <label className="mb-1 block text-xs text-slate-400">시작 시각</label>
+          <label className="mb-1 block text-xs text-slate-500">시작 시각</label>
           <input
             type="datetime-local"
             value={startAt}
             onChange={(e) => setStartAt(e.target.value)}
             disabled={!canWrite || !scheduleEnabled}
-            className="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white disabled:opacity-50"
+            className="w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 disabled:opacity-50"
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs text-slate-400">종료 시각</label>
+          <label className="mb-1 block text-xs text-slate-500">종료 시각</label>
           <input
             type="datetime-local"
             value={endAt}
             onChange={(e) => setEndAt(e.target.value)}
             disabled={!canWrite || !scheduleEnabled}
-            className="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white disabled:opacity-50"
+            className="w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 disabled:opacity-50"
           />
         </div>
       </div>
@@ -496,8 +496,8 @@ function ScheduleCard({ section, canWrite }: { section: SectionData; canWrite: b
           >
             {pending ? "저장 중..." : "예약 저장"}
           </button>
-          {saved && <span className="text-xs text-emerald-400">저장되었습니다.</span>}
-          {error && <span className="text-xs text-rose-400">{error}</span>}
+          {saved && <span className="text-xs text-emerald-700">저장되었습니다.</span>}
+          {error && <span className="text-xs text-rose-700">{error}</span>}
         </div>
       )}
     </Card>
@@ -572,17 +572,17 @@ function DisplayRulesCard({ section, canWrite }: { section: SectionData; canWrit
       ) : (
         <ul className="mb-4 space-y-2">
           {rules.map((r) => (
-            <li key={r.id} className="flex items-center justify-between rounded border border-slate-800 px-3 py-2 text-sm">
-              <span className="text-slate-300">
-                <span className="text-indigo-300">{RULE_TYPE_LABELS[r.ruleType as RuleType] ?? r.ruleType}</span>{" "}
-                {r.ruleOperator} <span className="text-slate-400">&quot;{r.ruleValue}&quot;</span>
+            <li key={r.id} className="flex items-center justify-between rounded border border-slate-200 px-3 py-2 text-sm">
+              <span className="text-slate-600">
+                <span className="text-indigo-800">{RULE_TYPE_LABELS[r.ruleType as RuleType] ?? r.ruleType}</span>{" "}
+                {r.ruleOperator} <span className="text-slate-500">&quot;{r.ruleValue}&quot;</span>
               </span>
               {canWrite && (
                 <button
                   type="button"
                   onClick={() => removeRule(r.id)}
                   disabled={pending}
-                  className="rounded border border-rose-900 px-2 py-1 text-xs text-rose-400 hover:bg-rose-950/40 disabled:opacity-40"
+                  className="rounded border border-rose-300 px-2 py-1 text-xs text-rose-700 hover:bg-rose-100 disabled:opacity-40"
                 >
                   삭제
                 </button>
@@ -609,12 +609,12 @@ function DisplayRulesCard({ section, canWrite }: { section: SectionData; canWrit
             ))}
           </SelectField>
           <div className="flex-1">
-            <label className="mb-1 block text-xs text-slate-400">조건 값</label>
+            <label className="mb-1 block text-xs text-slate-500">조건 값</label>
             <input
               value={ruleValue}
               onChange={(e) => setRuleValue(e.target.value)}
               placeholder="예: true / 1000 / ios,android"
-              className="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white"
+              className="w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
             />
           </div>
           <button
@@ -627,7 +627,7 @@ function DisplayRulesCard({ section, canWrite }: { section: SectionData; canWrit
           </button>
         </div>
       )}
-      {error && <p className="mt-2 text-xs text-rose-400">{error}</p>}
+      {error && <p className="mt-2 text-xs text-rose-700">{error}</p>}
     </Card>
   );
 }
@@ -716,21 +716,21 @@ function AttachmentsCard({ section, canWrite }: { section: SectionData; canWrite
         <ul className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {attachments.map((a) => (
             // eslint-disable-next-line @next/next/no-img-element
-            <li key={a.id} className="overflow-hidden rounded-lg border border-slate-800">
+            <li key={a.id} className="overflow-hidden rounded-lg border border-slate-200">
               <img src={a.attachmentUrl} alt={a.usageType} className="h-24 w-full object-cover" />
               <div className="p-2 text-xs">
-                <div className="flex items-center justify-between text-slate-400">
+                <div className="flex items-center justify-between text-slate-500">
                   <span>{a.usageType}</span>
-                  {a.isPrimary && <span className="rounded bg-indigo-900/60 px-1 text-indigo-300">대표</span>}
+                  {a.isPrimary && <span className="rounded bg-indigo-100 px-1 text-indigo-800">대표</span>}
                 </div>
                 {canWrite && (
                   <div className="mt-1 flex gap-1">
                     {!a.isPrimary && (
-                      <button type="button" onClick={() => setPrimary(a.id)} disabled={pending} className="text-indigo-400 hover:underline">
+                      <button type="button" onClick={() => setPrimary(a.id)} disabled={pending} className="text-indigo-700 hover:underline">
                         대표지정
                       </button>
                     )}
-                    <button type="button" onClick={() => unbind(a.id)} disabled={pending} className="text-rose-400 hover:underline">
+                    <button type="button" onClick={() => unbind(a.id)} disabled={pending} className="text-rose-700 hover:underline">
                       해제
                     </button>
                   </div>
@@ -751,12 +751,12 @@ function AttachmentsCard({ section, canWrite }: { section: SectionData; canWrite
             ))}
           </SelectField>
           <div>
-            <label className="mb-1 block text-xs text-slate-400">이미지 업로드</label>
-            <input type="file" accept="image/*" onChange={handleUpload} disabled={pending} className="text-sm text-slate-300" />
+            <label className="mb-1 block text-xs text-slate-500">이미지 업로드</label>
+            <input type="file" accept="image/*" onChange={handleUpload} disabled={pending} className="text-sm text-slate-600" />
           </div>
         </div>
       )}
-      {error && <p className="mt-2 text-xs text-rose-400">{error}</p>}
+      {error && <p className="mt-2 text-xs text-rose-700">{error}</p>}
     </Card>
   );
 }

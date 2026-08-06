@@ -63,8 +63,8 @@ export default async function RewardRankingPage({ searchParams }: RewardRankingP
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">리워드 관리 — 랭킹</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">리워드 관리 — 랭킹</h1>
+        <p className="mt-1 text-sm text-slate-500">
           기간별 랭킹 스냅샷을 조회하고, 순위구간별 보상을 설정합니다.
         </p>
       </div>
@@ -73,15 +73,15 @@ export default async function RewardRankingPage({ searchParams }: RewardRankingP
 
       {/* 1) 랭킹 조회 */}
       <section className="mb-8">
-        <h2 className="mb-3 text-lg font-semibold text-white">랭킹 조회 (조회 전용)</h2>
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">랭킹 조회 (조회 전용)</h2>
         <form
           method="GET"
-          className="mb-4 flex flex-wrap gap-3 rounded-xl border border-slate-800 bg-slate-900 p-4"
+          className="mb-4 flex flex-wrap gap-3 rounded-xl border border-slate-200 bg-white p-4"
         >
           <select
             name="rankingType"
             defaultValue={selectedType}
-            className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
           >
             {rankingTypes.length === 0 && <option value="point">point</option>}
             {rankingTypes.map((t) => (
@@ -93,7 +93,7 @@ export default async function RewardRankingPage({ searchParams }: RewardRankingP
           <select
             name="period"
             defaultValue={selectedPeriod}
-            className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
           >
             {periods.length === 0 && <option value="">시즌 데이터 없음</option>}
             {periods.map((p) => (
@@ -110,9 +110,9 @@ export default async function RewardRankingPage({ searchParams }: RewardRankingP
           </button>
         </form>
 
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">순위</th>
                 <th className="px-4 py-3">회원</th>
@@ -128,10 +128,10 @@ export default async function RewardRankingPage({ searchParams }: RewardRankingP
                 </tr>
               )}
               {leaderboard.map((s) => (
-                <tr key={s.id} className="border-b border-slate-800/60 hover:bg-slate-800/40">
-                  <td className="px-4 py-3 font-semibold text-slate-200">{s.rank}위</td>
-                  <td className="px-4 py-3 text-slate-300">{s.user.nickname}</td>
-                  <td className="px-4 py-3 text-slate-400">{s.score.toLocaleString()}</td>
+                <tr key={s.id} className="border-b border-slate-200/60 hover:bg-slate-100/40">
+                  <td className="px-4 py-3 font-semibold text-slate-700">{s.rank}위</td>
+                  <td className="px-4 py-3 text-slate-600">{s.user.nickname}</td>
+                  <td className="px-4 py-3 text-slate-500">{s.score.toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>
@@ -145,11 +145,11 @@ export default async function RewardRankingPage({ searchParams }: RewardRankingP
 
       {/* 2) 랭킹 보상 설정 */}
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-white">랭킹 보상 설정</h2>
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">랭킹 보상 설정</h2>
         <RankingRewardCreateForm canWrite={canWrite} />
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">ranking_type</th>
                 <th className="px-4 py-3">순위 구간</th>

@@ -50,46 +50,46 @@ export default async function WishCastlePage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">커뮤니티 관리 — 🏰 소원성 설정</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">커뮤니티 관리 — 🏰 소원성 설정</h1>
+        <p className="mt-1 text-sm text-slate-500">
           촛불 성장 시스템의 레벨 임계값, 복주머니 보상, 응원 문구, 애니메이션
           ON/OFF를 관리합니다. 저장 즉시 앱 API에 반영됩니다.
         </p>
-        <nav className="mt-4 flex gap-2 border-b border-slate-800 text-sm">
-          <Link href="/community/boards" className="px-3 py-2 text-slate-400 hover:text-white">
+        <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
+          <Link href="/community/boards" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             게시판
           </Link>
-          <Link href="/community/posts" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/community/posts" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             게시글/소원
           </Link>
-          <Link href="/community/comments" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/community/comments" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             댓글
           </Link>
-          <Link href="/community/reports" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/community/reports" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             신고
           </Link>
-          <Link href="/community/likes" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/community/likes" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             좋아요 통계
           </Link>
-          <Link href="/community/files" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/community/files" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             파일/업로드
           </Link>
-          <span className="border-b-2 border-indigo-500 px-3 py-2 text-white">소원성 설정</span>
+          <span className="border-b-2 border-indigo-500 px-3 py-2 text-slate-900">소원성 설정</span>
         </nav>
       </div>
 
       {/* 촛불 5레벨 안내 */}
       <section className="mb-8">
-        <h2 className="mb-3 text-lg font-semibold text-white">촛불 성장 5단계</h2>
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">촛불 성장 5단계</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
           {WISH_CANDLE_LEVELS.map((lv) => (
             <div
               key={lv.level}
-              className="rounded-xl border border-slate-800 bg-slate-900 p-3 text-center"
+              className="rounded-xl border border-slate-200 bg-white p-3 text-center"
             >
               <p className="text-2xl">{lv.emoji}</p>
-              <p className="mt-1 text-xs text-slate-400">레벨 {lv.level}</p>
-              <p className="text-sm font-medium text-white">{lv.name}</p>
+              <p className="mt-1 text-xs text-slate-500">레벨 {lv.level}</p>
+              <p className="text-sm font-medium text-slate-900">{lv.name}</p>
             </div>
           ))}
         </div>
@@ -97,18 +97,18 @@ export default async function WishCastlePage() {
 
       {/* 관리자 설정 폼 */}
       <section className="mb-8">
-        <h2 className="mb-3 text-lg font-semibold text-white">레벨/보상/문구/애니메이션 설정</h2>
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">레벨/보상/문구/애니메이션 설정</h2>
         <WishConfigForm canWrite={canWrite} rows={configViewRows} />
       </section>
 
       {/* 명예의 전당 수동 선정 — 최종 레벨 도달 소원 목록 */}
       <section className="mb-8">
-        <h2 className="mb-3 text-lg font-semibold text-white">
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">
           🏆 명예의 전당 후보 (최종 레벨 도달 소원)
         </h2>
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">작성자</th>
                 <th className="px-4 py-3">내용</th>
@@ -125,12 +125,12 @@ export default async function WishCastlePage() {
                 </tr>
               )}
               {milestoneWishes.map((w) => (
-                <tr key={w.id} className="border-b border-slate-800/60 hover:bg-slate-800/40">
-                  <td className="px-4 py-3 text-slate-200">
+                <tr key={w.id} className="border-b border-slate-200/60 hover:bg-slate-100/40">
+                  <td className="px-4 py-3 text-slate-700">
                     {w.isAnonymous ? "익명" : w.user.nickname}
                   </td>
-                  <td className="max-w-md truncate px-4 py-3 text-slate-300">{w.content}</td>
-                  <td className="px-4 py-3 text-amber-400">{w.bokjuCount.toLocaleString()}개</td>
+                  <td className="max-w-md truncate px-4 py-3 text-slate-600">{w.content}</td>
+                  <td className="px-4 py-3 text-amber-700">{w.bokjuCount.toLocaleString()}개</td>
                   <td className="px-4 py-3 text-slate-500">
                     {w.achievedAt ? w.achievedAt.toISOString().slice(0, 19).replace("T", " ") : "-"}
                   </td>
@@ -143,10 +143,10 @@ export default async function WishCastlePage() {
 
       {/* 성취 후기 목록 + 명예의 전당 수동 선정(isFeatured) 토글 */}
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-white">성취 후기 — 명예의 전당 선정</h2>
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">성취 후기 — 명예의 전당 선정</h2>
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">작성자</th>
                 <th className="px-4 py-3">후기 내용</th>

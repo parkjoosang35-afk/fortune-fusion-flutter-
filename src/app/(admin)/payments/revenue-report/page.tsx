@@ -109,50 +109,50 @@ export default async function RevenueReportPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">결제/구독 관리 — 매출 리포트</h1>
-        <p className="mt-1 text-sm text-slate-400">기간별/플랜별 매출을 집계하여 보여줍니다(조회 전용).</p>
-        <nav className="mt-4 flex gap-2 border-b border-slate-800 text-sm">
-          <Link href="/payments/list" className="px-3 py-2 text-slate-400 hover:text-white">
+        <h1 className="text-2xl font-bold text-slate-900">결제/구독 관리 — 매출 리포트</h1>
+        <p className="mt-1 text-sm text-slate-500">기간별/플랜별 매출을 집계하여 보여줍니다(조회 전용).</p>
+        <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
+          <Link href="/payments/list" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             결제 내역
           </Link>
-          <Link href="/payments/refunds" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/payments/refunds" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             환불 처리
           </Link>
-          <Link href="/payments/plans" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/payments/plans" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             구독 플랜 관리
           </Link>
-          <Link href="/payments/subscriptions" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/payments/subscriptions" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             구독 현황
           </Link>
-          <span className="border-b-2 border-indigo-500 px-3 py-2 text-white">매출 리포트</span>
+          <span className="border-b-2 border-indigo-500 px-3 py-2 text-slate-900">매출 리포트</span>
         </nav>
       </div>
 
       <section className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">총 매출(paid)</p>
-          <p className="mt-1 text-2xl font-bold text-emerald-400">{totalRevenue.toLocaleString()}원</p>
+          <p className="mt-1 text-2xl font-bold text-emerald-700">{totalRevenue.toLocaleString()}원</p>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">결제 건수(paid)</p>
-          <p className="mt-1 text-2xl font-bold text-white">{paidPayments.length}</p>
+          <p className="mt-1 text-2xl font-bold text-slate-900">{paidPayments.length}</p>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">취소 금액(cancelled)</p>
-          <p className="mt-1 text-2xl font-bold text-slate-400">{cancelledAmount.toLocaleString()}원</p>
+          <p className="mt-1 text-2xl font-bold text-slate-500">{cancelledAmount.toLocaleString()}원</p>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">결제 실패 건수</p>
-          <p className="mt-1 text-2xl font-bold text-rose-400">{failedPayments.length}</p>
+          <p className="mt-1 text-2xl font-bold text-rose-700">{failedPayments.length}</p>
         </div>
       </section>
 
       <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* 주문 유형별 매출 */}
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-          <h2 className="mb-3 text-sm font-semibold text-white">주문 유형별 매출</h2>
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <h2 className="mb-3 text-sm font-semibold text-slate-900">주문 유형별 매출</h2>
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="py-2">유형</th>
                 <th className="py-2">건수</th>
@@ -168,10 +168,10 @@ export default async function RevenueReportPage() {
                 </tr>
               )}
               {orderTypeStats.map((s) => (
-                <tr key={s.orderType} className="border-b border-slate-800/60">
-                  <td className="py-2 text-slate-200">{ORDER_TYPE_LABEL[s.orderType] ?? s.orderType}</td>
-                  <td className="py-2 text-slate-300">{s.count}</td>
-                  <td className="py-2 text-slate-300">{s.amount.toLocaleString()}원</td>
+                <tr key={s.orderType} className="border-b border-slate-200/60">
+                  <td className="py-2 text-slate-700">{ORDER_TYPE_LABEL[s.orderType] ?? s.orderType}</td>
+                  <td className="py-2 text-slate-600">{s.count}</td>
+                  <td className="py-2 text-slate-600">{s.amount.toLocaleString()}원</td>
                 </tr>
               ))}
             </tbody>
@@ -179,10 +179,10 @@ export default async function RevenueReportPage() {
         </div>
 
         {/* 구독 플랜별 매출 */}
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-          <h2 className="mb-3 text-sm font-semibold text-white">구독 플랜별 매출</h2>
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <h2 className="mb-3 text-sm font-semibold text-slate-900">구독 플랜별 매출</h2>
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="py-2">플랜명</th>
                 <th className="py-2">건수</th>
@@ -198,10 +198,10 @@ export default async function RevenueReportPage() {
                 </tr>
               )}
               {planStats.map((s) => (
-                <tr key={s.planId} className="border-b border-slate-800/60">
-                  <td className="py-2 text-slate-200">{s.planName}</td>
-                  <td className="py-2 text-slate-300">{s.count}</td>
-                  <td className="py-2 text-slate-300">{s.amount.toLocaleString()}원</td>
+                <tr key={s.planId} className="border-b border-slate-200/60">
+                  <td className="py-2 text-slate-700">{s.planName}</td>
+                  <td className="py-2 text-slate-600">{s.count}</td>
+                  <td className="py-2 text-slate-600">{s.amount.toLocaleString()}원</td>
                 </tr>
               ))}
             </tbody>
@@ -216,11 +216,11 @@ export default async function RevenueReportPage() {
       </div>
 
       {/* 일별 매출 추이 */}
-      <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-        <h2 className="mb-3 text-sm font-semibold text-white">일별 매출 추이</h2>
+      <div className="rounded-xl border border-slate-200 bg-white p-4">
+        <h2 className="mb-3 text-sm font-semibold text-slate-900">일별 매출 추이</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="py-2">일자</th>
                 <th className="py-2">매출</th>
@@ -235,9 +235,9 @@ export default async function RevenueReportPage() {
                 </tr>
               )}
               {dailyStats.map((s) => (
-                <tr key={s.day} className="border-b border-slate-800/60">
-                  <td className="py-2 text-slate-200">{s.day}</td>
-                  <td className="py-2 text-slate-300">{s.amount.toLocaleString()}원</td>
+                <tr key={s.day} className="border-b border-slate-200/60">
+                  <td className="py-2 text-slate-700">{s.day}</td>
+                  <td className="py-2 text-slate-600">{s.amount.toLocaleString()}원</td>
                 </tr>
               ))}
             </tbody>

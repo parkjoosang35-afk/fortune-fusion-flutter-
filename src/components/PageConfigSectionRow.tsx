@@ -32,9 +32,9 @@ interface Props {
 }
 
 const STATUS_BADGE: Record<string, string> = {
-  visible: "bg-emerald-900/60 text-emerald-300",
-  hidden: "bg-amber-900/60 text-amber-300",
-  archived: "bg-slate-800 text-slate-400",
+  visible: "bg-emerald-100 text-emerald-800",
+  hidden: "bg-amber-100 text-amber-800",
+  archived: "bg-white text-slate-500",
 };
 
 export default function PageConfigSectionRow({
@@ -134,7 +134,7 @@ export default function PageConfigSectionRow({
   }
 
   return (
-    <tr className="border-b border-slate-800/60 align-top">
+    <tr className="border-b border-slate-200/60 align-top">
       <td className="px-3 py-3">
         <div className="flex flex-col items-center gap-1">
           <span className="text-slate-500">{index + 1}</span>
@@ -144,7 +144,7 @@ export default function PageConfigSectionRow({
                 type="button"
                 disabled={isFirst || pending !== null}
                 onClick={() => reorder("up")}
-                className="rounded border border-slate-700 px-1 text-xs text-slate-400 hover:bg-slate-800 disabled:opacity-30"
+                className="rounded border border-slate-300 px-1 text-xs text-slate-500 hover:bg-slate-100 disabled:opacity-30"
                 title="위로"
               >
                 ↑
@@ -153,7 +153,7 @@ export default function PageConfigSectionRow({
                 type="button"
                 disabled={isLast || pending !== null}
                 onClick={() => reorder("down")}
-                className="rounded border border-slate-700 px-1 text-xs text-slate-400 hover:bg-slate-800 disabled:opacity-30"
+                className="rounded border border-slate-300 px-1 text-xs text-slate-500 hover:bg-slate-100 disabled:opacity-30"
                 title="아래로"
               >
                 ↓
@@ -163,13 +163,13 @@ export default function PageConfigSectionRow({
         </div>
       </td>
       <td className="px-3 py-3">
-        <div className="font-medium text-white">
+        <div className="font-medium text-slate-900">
           {section.title ?? <span className="text-slate-500">(제목 없음)</span>}
           {section.isPinned && (
-            <span className="ml-2 rounded bg-indigo-900/60 px-1.5 py-0.5 text-xs text-indigo-300">고정</span>
+            <span className="ml-2 rounded bg-indigo-100 px-1.5 py-0.5 text-xs text-indigo-800">고정</span>
           )}
           {section.isRequired && (
-            <span className="ml-2 rounded bg-rose-900/60 px-1.5 py-0.5 text-xs text-rose-300">필수</span>
+            <span className="ml-2 rounded bg-rose-100 px-1.5 py-0.5 text-xs text-rose-800">필수</span>
           )}
         </div>
         <div className="text-xs text-slate-500">{section.sectionKey}</div>
@@ -177,18 +177,18 @@ export default function PageConfigSectionRow({
           첨부 {section.attachmentCount}개 · 노출조건 {section.ruleCount}개
         </div>
       </td>
-      <td className="px-3 py-3 text-slate-300">
+      <td className="px-3 py-3 text-slate-600">
         {BLOCK_TYPE_LABELS[section.blockType as BlockType] ?? section.blockType}
       </td>
       <td className="px-3 py-3">
-        <span className={`rounded-full px-2 py-0.5 text-xs ${STATUS_BADGE[section.status] ?? "bg-slate-800 text-slate-400"}`}>
+        <span className={`rounded-full px-2 py-0.5 text-xs ${STATUS_BADGE[section.status] ?? "bg-white text-slate-500"}`}>
           {section.status}
         </span>
       </td>
-      <td className="px-3 py-3 text-xs text-slate-400">
+      <td className="px-3 py-3 text-xs text-slate-500">
         {platforms && platforms.length > 0 ? platforms.join(", ") : "전체"}
       </td>
-      <td className="px-3 py-3 text-xs text-slate-400">
+      <td className="px-3 py-3 text-xs text-slate-500">
         {section.scheduleEnabled ? (
           <div>
             <div>시작: {section.startAt ? new Date(section.startAt).toLocaleString("ko-KR") : "-"}</div>
@@ -205,7 +205,7 @@ export default function PageConfigSectionRow({
         <div className="flex flex-wrap gap-1">
           <Link
             href={`/cms/page-configs/home/sections/${section.id}`}
-            className="rounded border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:bg-slate-800"
+            className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
           >
             편집
           </Link>
@@ -216,7 +216,7 @@ export default function PageConfigSectionRow({
                   type="button"
                   disabled={pending !== null}
                   onClick={() => setStatus("visible")}
-                  className="rounded border border-emerald-800 px-2 py-1 text-xs text-emerald-300 hover:bg-emerald-900/40 disabled:opacity-40"
+                  className="rounded border border-emerald-300 px-2 py-1 text-xs text-emerald-800 hover:bg-emerald-100 disabled:opacity-40"
                 >
                   노출
                 </button>
@@ -226,7 +226,7 @@ export default function PageConfigSectionRow({
                   type="button"
                   disabled={pending !== null}
                   onClick={() => setStatus("hidden")}
-                  className="rounded border border-amber-800 px-2 py-1 text-xs text-amber-300 hover:bg-amber-900/40 disabled:opacity-40"
+                  className="rounded border border-amber-300 px-2 py-1 text-xs text-amber-800 hover:bg-amber-100 disabled:opacity-40"
                 >
                   숨김
                 </button>
@@ -236,7 +236,7 @@ export default function PageConfigSectionRow({
                   type="button"
                   disabled={pending !== null}
                   onClick={() => setStatus("archived")}
-                  className="rounded border border-slate-700 px-2 py-1 text-xs text-slate-400 hover:bg-slate-800 disabled:opacity-40"
+                  className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-500 hover:bg-slate-100 disabled:opacity-40"
                 >
                   보관
                 </button>
@@ -245,7 +245,7 @@ export default function PageConfigSectionRow({
                 type="button"
                 disabled={pending !== null}
                 onClick={duplicate}
-                className="rounded border border-indigo-800 px-2 py-1 text-xs text-indigo-300 hover:bg-indigo-900/40 disabled:opacity-40"
+                className="rounded border border-indigo-300 px-2 py-1 text-xs text-indigo-800 hover:bg-indigo-100 disabled:opacity-40"
               >
                 복제
               </button>
@@ -254,7 +254,7 @@ export default function PageConfigSectionRow({
                   type="button"
                   disabled={pending !== null}
                   onClick={remove}
-                  className="rounded border border-rose-900 px-2 py-1 text-xs text-rose-400 hover:bg-rose-950/40 disabled:opacity-40"
+                  className="rounded border border-rose-300 px-2 py-1 text-xs text-rose-700 hover:bg-rose-100 disabled:opacity-40"
                 >
                   삭제
                 </button>
@@ -262,7 +262,7 @@ export default function PageConfigSectionRow({
             </>
           )}
         </div>
-        {error && <p className="mt-1 text-xs text-rose-400">{error}</p>}
+        {error && <p className="mt-1 text-xs text-rose-700">{error}</p>}
       </td>
     </tr>
   );

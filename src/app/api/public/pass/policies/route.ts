@@ -2,6 +2,7 @@
 // 홈 화면 알림패스 섹션에 노출할 CTA 카드 목록(광고/파트너/구독/이벤트) 반환.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { extractLinkFromAdScript } from "@/lib/ad-script-utils";
 
 export const dynamic = "force-dynamic";
 
@@ -44,10 +45,24 @@ export async function GET(_request: NextRequest) {
         // [CMS 배너 연동] ad 타입은 Banner가 있으면 그 값으로 덮어쓰고,
         // 없으면(관리자 미등록) 기존 PassPolicy 컬럼값으로 폴백한다.
         bannerImageUrl: isAd ? (activeAdBanner?.imageUrl ?? p.bannerImageUrl) : p.bannerImageUrl,
-        linkUrl: isAd ? (activeAdBanner?.linkUrl ?? p.linkUrl) : p.linkUrl,
+        // [쿠팡 방문하기 버튼 클릭 이동 URL 자동 연결]
+        // adType='script'로 등록된 배너는 관리자가 linkUrl을 별도 입력하지
+        // 않는 경우가 많으므로(제휴사 임베드 코드 자체에 링크가 내장됨),
+        // linkUrl이 비어있으면 adScript(iframe src 등)에서 URL을 자동
+        // 추출해 폴백으로 사용한다. 관리자는 별도 설정을 추가할 필요가 없다.
+        linkUrl: isAd
+          ? (activeAdBanner?.linkUrl ||
+              extractLinkFromAdScript(activeAdBanner?.adScript) ||
+              p.linkUrl)
+          : p.linkUrl,
         adType: isAd ? (activeAdBanner?.adType ?? "image") : "image",
         adScript: isAd ? (activeAdBanner?.adScript ?? null) : null,
         adWaitSeconds: p.adWaitSeconds,
+        // [프리패스 UI 문구 관리자 연동] "?" 도움말 팝업 + 아이콘 바로 아래
+        // 안내 제목/문구 — 관리자가 입력하지 않았으면 null(Flutter 쪽에서 기본 문구 폴백).
+        adHelpMessage: p.adHelpMessage,
+        adGuideTitle: p.adGuideTitle,
+        adGuideText: p.adGuideText,
         bonusPoint: p.bonusPoint,
         // [열림패스/행복머니/복주머니 통합정책] 신규 필드
         description: p.description,

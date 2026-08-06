@@ -39,29 +39,29 @@ export default async function CommunityBoardsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">커뮤니티 관리 — 게시판</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">커뮤니티 관리 — 게시판</h1>
+        <p className="mt-1 text-sm text-slate-500">
           게시판 종류를 등록/관리하고 공개 여부를 설정합니다. 게시글이 존재하는
           게시판은 삭제할 수 없습니다.
         </p>
-        <nav className="mt-4 flex gap-2 border-b border-slate-800 text-sm">
-          <span className="border-b-2 border-indigo-500 px-3 py-2 text-white">게시판</span>
-          <Link href="/community/posts" className="px-3 py-2 text-slate-400 hover:text-white">
+        <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
+          <span className="border-b-2 border-indigo-500 px-3 py-2 text-slate-900">게시판</span>
+          <Link href="/community/posts" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             게시글/소원
           </Link>
-          <Link href="/community/comments" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/community/comments" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             댓글
           </Link>
-          <Link href="/community/reports" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/community/reports" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             신고
           </Link>
-          <Link href="/community/likes" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/community/likes" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             좋아요 통계
           </Link>
-          <Link href="/community/files" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/community/files" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             파일/업로드
           </Link>
-          <Link href="/community/wish-castle" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/community/wish-castle" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             🏰 소원성 설정
           </Link>
         </nav>
@@ -69,9 +69,9 @@ export default async function CommunityBoardsPage() {
 
       <section>
         <CommunityBoardCreateForm canWrite={canWrite} />
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">코드</th>
                 <th className="px-4 py-3">이름</th>

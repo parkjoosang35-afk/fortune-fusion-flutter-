@@ -41,17 +41,17 @@ export default function FeatureAssetBindingRow({ binding, canWrite }: FeatureAss
 
   if (editing) {
     return (
-      <tr className="border-b border-slate-800/60 bg-slate-800/30">
+      <tr className="border-b border-slate-200/60 bg-white/30">
         <td colSpan={6} className="px-4 py-3">
           <form action={formAction} className="flex flex-wrap items-center gap-2">
             <input type="hidden" name="id" value={binding.id} />
-            <span className="rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-slate-400">
+            <span className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs text-slate-500">
               {binding.scope}
             </span>
             <select
               name="accessType"
               defaultValue={binding.accessType}
-              className="rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             >
               {ACCESS_TYPE_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>
@@ -64,16 +64,16 @@ export default function FeatureAssetBindingRow({ binding, canWrite }: FeatureAss
               name="secondaryAssets"
               defaultValue={binding.secondaryAssets ?? ""}
               placeholder="보조 자산(콤마구분)"
-              className="w-40 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="w-40 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
             <input
               type="text"
               name="notes"
               defaultValue={binding.notes ?? ""}
               placeholder="비고"
-              className="w-56 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="w-56 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
-            <label className="flex items-center gap-1 text-xs text-slate-300">
+            <label className="flex items-center gap-1 text-xs text-slate-600">
               <input type="checkbox" name="isActive" defaultChecked={binding.isActive} className="accent-indigo-500" /> 활성
             </label>
             <button
@@ -86,11 +86,11 @@ export default function FeatureAssetBindingRow({ binding, canWrite }: FeatureAss
             <button
               type="button"
               onClick={() => setEditing(false)}
-              className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
+              className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100"
             >
               취소
             </button>
-            {state.error && <p className="w-full text-xs text-red-400">{state.error}</p>}
+            {state.error && <p className="w-full text-xs text-red-700">{state.error}</p>}
           </form>
         </td>
       </tr>
@@ -98,25 +98,25 @@ export default function FeatureAssetBindingRow({ binding, canWrite }: FeatureAss
   }
 
   return (
-    <tr className="border-b border-slate-800/60 hover:bg-slate-800/40">
-      <td className="px-4 py-3 font-mono text-xs text-slate-300">{binding.scope}</td>
-      <td className="px-4 py-3 text-slate-400">{binding.featureGroup}</td>
-      <td className="px-4 py-3 text-slate-200">{ASSET_LABEL[binding.primaryAsset] ?? binding.primaryAsset}</td>
-      <td className="px-4 py-3 text-slate-400">
+    <tr className="border-b border-slate-200/60 hover:bg-slate-100/40">
+      <td className="px-4 py-3 font-mono text-xs text-slate-600">{binding.scope}</td>
+      <td className="px-4 py-3 text-slate-500">{binding.featureGroup}</td>
+      <td className="px-4 py-3 text-slate-700">{ASSET_LABEL[binding.primaryAsset] ?? binding.primaryAsset}</td>
+      <td className="px-4 py-3 text-slate-500">
         {ACCESS_TYPE_OPTIONS.find((o) => o.value === binding.accessType)?.label ?? binding.accessType}
       </td>
       <td className="px-4 py-3">
         {binding.isActive ? (
-          <span className="rounded-full bg-emerald-950/60 px-2 py-0.5 text-xs text-emerald-400">활성</span>
+          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">활성</span>
         ) : (
-          <span className="rounded-full bg-slate-800 px-2 py-0.5 text-xs text-slate-400">비활성</span>
+          <span className="rounded-full bg-white px-2 py-0.5 text-xs text-slate-500">비활성</span>
         )}
       </td>
       <td className="px-4 py-3">
         {canWrite && binding.editableByAdmin ? (
           <button
             onClick={() => setEditing(true)}
-            className="rounded-lg border border-slate-700 px-3 py-1 text-xs text-slate-300 hover:bg-slate-800"
+            className="rounded-lg border border-slate-300 px-3 py-1 text-xs text-slate-600 hover:bg-slate-100"
           >
             수정
           </button>

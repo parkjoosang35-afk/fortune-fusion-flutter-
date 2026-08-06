@@ -34,10 +34,10 @@ const TARGET_TYPE_LABEL: Record<string, string> = {
 };
 
 const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
-  pending: { label: "접수", cls: "bg-slate-800 text-slate-300" },
-  reviewed: { label: "검토중", cls: "bg-amber-950/60 text-amber-400" },
-  actioned: { label: "조치완료", cls: "bg-emerald-950/60 text-emerald-400" },
-  rejected: { label: "반려", cls: "bg-rose-950/60 text-rose-400" },
+  pending: { label: "접수", cls: "bg-white text-slate-600" },
+  reviewed: { label: "검토중", cls: "bg-amber-100 text-amber-700" },
+  actioned: { label: "조치완료", cls: "bg-emerald-100 text-emerald-700" },
+  rejected: { label: "반려", cls: "bg-rose-100 text-rose-700" },
 };
 
 const ACTION_LABEL: Record<string, string> = {
@@ -56,21 +56,21 @@ export default function ReportRow({ report, canWrite }: ReportRowProps) {
   const [rejectState, rejectAction, rejectPending] = useActionState(rejectReport, initialState);
   const [confirmingSuspend, setConfirmingSuspend] = useState(false);
 
-  const st = STATUS_LABEL[report.status] ?? { label: report.status, cls: "bg-slate-800 text-slate-400" };
+  const st = STATUS_LABEL[report.status] ?? { label: report.status, cls: "bg-white text-slate-500" };
   const isOpen = report.status === "pending" || report.status === "reviewed";
   const canDeleteAction = report.targetType !== "user"; // 회원 신고는 "삭제" 조치 불가(actions/reports.ts와 동일 제약)
 
   return (
-    <tr className="border-b border-slate-800/60 hover:bg-slate-800/40 align-top">
-      <td className="px-4 py-3 text-slate-400">
-        <span className="mr-1 rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-400">
+    <tr className="border-b border-slate-200/60 hover:bg-slate-100/40 align-top">
+      <td className="px-4 py-3 text-slate-500">
+        <span className="mr-1 rounded bg-white px-1.5 py-0.5 text-[10px] text-slate-500">
           {TARGET_TYPE_LABEL[report.targetType] ?? report.targetType}
         </span>
         {report.targetLabel}
       </td>
-      <td className="px-4 py-3 text-slate-200">{report.reason}</td>
-      <td className="px-4 py-3 text-slate-400">{report.reporterNickname}</td>
-      <td className="px-4 py-3 text-slate-400">
+      <td className="px-4 py-3 text-slate-700">{report.reason}</td>
+      <td className="px-4 py-3 text-slate-500">{report.reporterNickname}</td>
+      <td className="px-4 py-3 text-slate-500">
         {report.assignedAdminName ?? <span className="text-slate-600">미배정</span>}
         {report.action && (
           <div className="mt-1 text-[10px] text-slate-500">조치: {ACTION_LABEL[report.action] ?? report.action}</div>
@@ -89,7 +89,7 @@ export default function ReportRow({ report, canWrite }: ReportRowProps) {
                 <button
                   type="submit"
                   disabled={assignPending}
-                  className="rounded-lg border border-indigo-900 px-3 py-1 text-xs text-indigo-400 hover:bg-indigo-950/40 disabled:opacity-50"
+                  className="rounded-lg border border-indigo-300 px-3 py-1 text-xs text-indigo-700 hover:bg-indigo-100 disabled:opacity-50"
                 >
                   담당자 배정(나)
                 </button>
@@ -104,7 +104,7 @@ export default function ReportRow({ report, canWrite }: ReportRowProps) {
                     <button
                       type="submit"
                       disabled={actionPending}
-                      className="rounded-lg border border-red-900 px-3 py-1 text-xs text-red-400 hover:bg-red-950/40 disabled:opacity-50"
+                      className="rounded-lg border border-red-300 px-3 py-1 text-xs text-red-700 hover:bg-red-100 disabled:opacity-50"
                     >
                       삭제 조치
                     </button>
@@ -116,7 +116,7 @@ export default function ReportRow({ report, canWrite }: ReportRowProps) {
                   <button
                     type="submit"
                     disabled={actionPending}
-                    className="rounded-lg border border-amber-900 px-3 py-1 text-xs text-amber-400 hover:bg-amber-950/40 disabled:opacity-50"
+                    className="rounded-lg border border-amber-300 px-3 py-1 text-xs text-amber-700 hover:bg-amber-100 disabled:opacity-50"
                   >
                     경고 조치
                   </button>
@@ -138,13 +138,13 @@ export default function ReportRow({ report, canWrite }: ReportRowProps) {
                     confirming={confirmingSuspend}
                     pending={actionPending}
                     warningText="정말 계정정지 조치하시겠습니까? (다시 누르면 처리됩니다)"
-                    warningClassName="max-w-[220px] rounded-lg border border-rose-900/60 bg-rose-950/20 p-2 text-[11px] font-semibold text-rose-300"
+                    warningClassName="max-w-[220px] rounded-lg border border-rose-300/60 bg-rose-100 p-2 text-[11px] font-semibold text-rose-800"
                     idleLabel="계정정지"
                     confirmLabel="확인(최종 처리)"
                     pendingLabel="처리 중..."
-                    idleButtonClassName="rounded-lg border border-orange-900 px-3 py-1 text-xs text-orange-400 hover:bg-orange-950/40 disabled:opacity-50"
+                    idleButtonClassName="rounded-lg border border-orange-300 px-3 py-1 text-xs text-orange-700 hover:bg-orange-100 disabled:opacity-50"
                     confirmButtonClassName="rounded-lg bg-rose-700 px-3 py-1 text-xs font-medium text-white hover:bg-rose-600 disabled:opacity-50"
-                    cancelButtonClassName="rounded-lg border border-slate-700 px-3 py-1 text-xs text-slate-300 hover:bg-slate-800"
+                    cancelButtonClassName="rounded-lg border border-slate-300 px-3 py-1 text-xs text-slate-600 hover:bg-slate-100"
                     buttonWrapperClassName="flex gap-1"
                     onCancel={() => setConfirmingSuspend(false)}
                   />
@@ -154,7 +154,7 @@ export default function ReportRow({ report, canWrite }: ReportRowProps) {
                   <button
                     type="submit"
                     disabled={rejectPending}
-                    className="rounded-lg border border-slate-700 px-3 py-1 text-xs text-slate-400 hover:bg-slate-800 disabled:opacity-50"
+                    className="rounded-lg border border-slate-300 px-3 py-1 text-xs text-slate-500 hover:bg-slate-100 disabled:opacity-50"
                   >
                     반려
                   </button>
@@ -165,9 +165,9 @@ export default function ReportRow({ report, canWrite }: ReportRowProps) {
         ) : (
           <span className="text-xs text-slate-600">처리 완료</span>
         )}
-        {assignState.error && <p className="mt-1 text-xs text-red-400">{assignState.error}</p>}
-        {actionState.error && <p className="mt-1 text-xs text-red-400">{actionState.error}</p>}
-        {rejectState.error && <p className="mt-1 text-xs text-red-400">{rejectState.error}</p>}
+        {assignState.error && <p className="mt-1 text-xs text-red-700">{assignState.error}</p>}
+        {actionState.error && <p className="mt-1 text-xs text-red-700">{actionState.error}</p>}
+        {rejectState.error && <p className="mt-1 text-xs text-red-700">{rejectState.error}</p>}
       </td>
     </tr>
   );

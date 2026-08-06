@@ -24,22 +24,22 @@ export default function CouponCreateForm({ canWrite }: CouponCreateFormProps) {
         await formAction(formData);
         formRef.current?.reset();
       }}
-      className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-800 bg-slate-900 p-4 md:grid-cols-4"
+      className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-4"
     >
-      <h3 className="col-span-full text-sm font-semibold text-white">새 쿠폰 추가</h3>
+      <h3 className="col-span-full text-sm font-semibold text-slate-900">새 쿠폰 추가</h3>
       <input
         type="text"
         name="code"
         placeholder="쿠폰 코드 (예: WELCOME2026)"
         required
         maxLength={30}
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 md:col-span-2"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 md:col-span-2"
       />
       <select
         name="discountType"
         required
         defaultValue="rate"
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
       >
         <option value="rate">할인율(%)</option>
         <option value="fixed_point">고정 포인트</option>
@@ -51,25 +51,25 @@ export default function CouponCreateForm({ canWrite }: CouponCreateFormProps) {
         min={0}
         step="0.01"
         required
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
       />
-      <label className="flex flex-col gap-1 text-xs text-slate-400">
+      <label className="flex flex-col gap-1 text-xs text-slate-500">
         유효 시작일
         <input
           type="date"
           name="validFrom"
           required
           defaultValue={today}
-          className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
         />
       </label>
-      <label className="flex flex-col gap-1 text-xs text-slate-400">
+      <label className="flex flex-col gap-1 text-xs text-slate-500">
         유효 종료일
         <input
           type="date"
           name="validTo"
           required
-          className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
         />
       </label>
       <input
@@ -77,16 +77,16 @@ export default function CouponCreateForm({ canWrite }: CouponCreateFormProps) {
         name="usageLimit"
         placeholder="발급 한도 (비우면 무제한)"
         min={1}
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
       />
 
       {state.error && (
-        <p className="col-span-full rounded-lg bg-red-950/60 px-3 py-2 text-sm text-red-400">
+        <p className="col-span-full rounded-lg bg-red-100 px-3 py-2 text-sm text-red-700">
           {state.error}
         </p>
       )}
       {state.success && (
-        <p className="col-span-full rounded-lg bg-emerald-950/60 px-3 py-2 text-sm text-emerald-400">
+        <p className="col-span-full rounded-lg bg-emerald-100 px-3 py-2 text-sm text-emerald-700">
           쿠폰이 추가되었습니다.
         </p>
       )}

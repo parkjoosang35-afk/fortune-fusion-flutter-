@@ -29,25 +29,25 @@ export default async function NotificationTemplatesPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">알림 관리 — 알림 템플릿 관리</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">알림 관리 — 알림 템플릿 관리</h1>
+        <p className="mt-1 text-sm text-slate-500">
           푸시/인앱 공용 알림 템플릿을 등록/관리합니다. 코드(code)는 발송 시 참조되는 고유
           식별자입니다.
         </p>
-        <nav className="mt-4 flex gap-2 border-b border-slate-800 text-sm">
+        <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
           <Link
             href="/notifications/templates"
-            className="px-3 py-2 font-medium text-white border-b-2 border-indigo-500"
+            className="px-3 py-2 font-medium text-slate-900 border-b-2 border-indigo-500"
           >
             알림 템플릿 관리
           </Link>
-          <Link href="/notifications/history" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/notifications/history" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             발송 이력 조회
           </Link>
-          <Link href="/notifications/segment-send" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/notifications/segment-send" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             세그먼트 발송
           </Link>
-          <Link href="/notifications/settings" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/notifications/settings" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             발송 설정 현황
           </Link>
         </nav>
@@ -55,9 +55,9 @@ export default async function NotificationTemplatesPage() {
 
       <NotificationTemplateCreateForm canWrite={canWrite} />
 
-      <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+          <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
             <tr>
               <th className="px-4 py-3">코드</th>
               <th className="px-4 py-3">제목/본문</th>

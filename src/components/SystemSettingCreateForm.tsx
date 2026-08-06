@@ -18,28 +18,28 @@ export default function SystemSettingCreateForm({ canWrite }: { canWrite: boolea
         await formAction(formData);
         formRef.current?.reset();
       }}
-      className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-800 bg-slate-900 p-4 md:grid-cols-4"
+      className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-4"
     >
-      <h3 className="col-span-full text-sm font-semibold text-white">새 설정값 추가</h3>
+      <h3 className="col-span-full text-sm font-semibold text-slate-900">새 설정값 추가</h3>
       <input
         type="text"
         name="key"
         placeholder="설정 키 (예: maintenance_mode)"
         required
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
       />
       <input
         type="text"
         name="value"
         placeholder="설정값 (예: false, 1.2.0)"
         required
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
       />
       <input
         type="text"
         name="description"
         placeholder="설명(선택)"
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
       />
       <button
         type="submit"
@@ -50,12 +50,12 @@ export default function SystemSettingCreateForm({ canWrite }: { canWrite: boolea
       </button>
 
       {state.error && (
-        <p className="col-span-full rounded-lg bg-red-950/60 px-3 py-2 text-sm text-red-400">
+        <p className="col-span-full rounded-lg bg-red-100 px-3 py-2 text-sm text-red-700">
           {state.error}
         </p>
       )}
       {state.success && (
-        <p className="col-span-full rounded-lg bg-emerald-950/60 px-3 py-2 text-sm text-emerald-400">
+        <p className="col-span-full rounded-lg bg-emerald-100 px-3 py-2 text-sm text-emerald-700">
           설정값이 추가되었습니다.
         </p>
       )}

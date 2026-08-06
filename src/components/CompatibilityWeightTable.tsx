@@ -20,9 +20,9 @@ interface CompatibilityWeightTableProps {
 // CompatibilityWeightRow 내부에서 자체 처리) 서버 컴포넌트로 유지한다.
 export default function CompatibilityWeightTable({ items, canWrite }: CompatibilityWeightTableProps) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
       <table className="w-full text-left text-sm">
-        <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+        <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
           <tr>
             <th className="px-4 py-3">요소</th>
             <th className="px-4 py-3">가중치</th>

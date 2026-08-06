@@ -31,35 +31,35 @@ export default async function CmsLuckyNumberPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">CMS — 오늘의 행운숫자 관리</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">CMS — 오늘의 행운숫자 관리</h1>
+        <p className="mt-1 text-sm text-slate-500">
           홈 화면 &quot;오늘의 행운 숫자&quot; 카드에 노출할 이미지/영상/소스 콘텐츠를 등록·관리합니다.
           이 기능은 광고(배너)와 무관한 별도 콘텐츠입니다. 활성 콘텐츠 중 노출 순서가 가장 낮은
           1건이 앱에 노출됩니다.
         </p>
-        <nav className="mt-4 flex gap-2 border-b border-slate-800 text-sm">
-          <Link href="/cms/banners" className="px-3 py-2 text-slate-400 hover:text-white">
+        <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
+          <Link href="/cms/banners" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             배너 관리
           </Link>
-          <Link href="/cms/notices" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/cms/notices" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             공지사항 관리
           </Link>
-          <Link href="/cms/faqs" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/cms/faqs" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             FAQ 관리
           </Link>
-          <Link href="/cms/events" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/cms/events" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             이벤트 관리
           </Link>
           <Link
             href="/cms/lucky-number"
-            className="px-3 py-2 font-medium text-white border-b-2 border-purple-500"
+            className="px-3 py-2 font-medium text-slate-900 border-b-2 border-purple-500"
           >
             오늘의 행운숫자
           </Link>
-          <Link href="/cms/healing-quotes" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/cms/healing-quotes" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             힐링 문구
           </Link>
-          <Link href="/cms/page-configs/home" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/cms/page-configs/home" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             메인화면 편집
           </Link>
         </nav>
@@ -67,9 +67,9 @@ export default async function CmsLuckyNumberPage() {
 
       <LuckyNumberCreateForm canWrite={canWrite} />
 
-      <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+          <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
             <tr>
               <th className="px-4 py-3">미디어</th>
               <th className="px-4 py-3">제목</th>

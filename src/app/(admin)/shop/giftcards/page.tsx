@@ -18,17 +18,17 @@ import GiftcardIssueActionCell from "@/components/GiftcardIssueActionCell";
 export const dynamic = "force-dynamic";
 
 const ISSUE_STATUS_LABEL: Record<string, { label: string; cls: string }> = {
-  requested: { label: "요청됨", cls: "bg-slate-800 text-slate-400" },
-  issued: { label: "발급완료", cls: "bg-emerald-950/60 text-emerald-400" },
-  failed: { label: "발급실패", cls: "bg-rose-950/60 text-rose-400" },
-  cancelled: { label: "취소됨", cls: "bg-amber-950/60 text-amber-400" },
-  expired: { label: "만료", cls: "bg-slate-700 text-slate-300" },
+  requested: { label: "요청됨", cls: "bg-white text-slate-500" },
+  issued: { label: "발급완료", cls: "bg-emerald-100 text-emerald-700" },
+  failed: { label: "발급실패", cls: "bg-rose-100 text-rose-700" },
+  cancelled: { label: "취소됨", cls: "bg-amber-100 text-amber-700" },
+  expired: { label: "만료", cls: "bg-slate-100 text-slate-600" },
 };
 
 const REFUND_STATUS_LABEL: Record<string, { label: string; cls: string }> = {
-  pending: { label: "처리중", cls: "bg-slate-800 text-slate-400" },
-  completed: { label: "완료", cls: "bg-emerald-950/60 text-emerald-400" },
-  failed: { label: "실패", cls: "bg-rose-950/60 text-rose-400" },
+  pending: { label: "처리중", cls: "bg-white text-slate-500" },
+  completed: { label: "완료", cls: "bg-emerald-100 text-emerald-700" },
+  failed: { label: "실패", cls: "bg-rose-100 text-rose-700" },
 };
 
 function fmtDate(d: Date | null): string {
@@ -92,8 +92,8 @@ export default async function ShopGiftcardsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">상점 관리 — 상품권</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">상점 관리 — 상품권</h1>
+        <p className="mt-1 text-sm text-slate-500">
           상품권(기프트카드) 상품을 등록/관리하고, 발급/사용/취소/환불/재발급/만료 등 생명주기
           이력을 조회합니다. 발급완료(미사용) 건은 발급 이력 표에서 환불/재발급 처리(2단계 확인
           필수)를 할 수 있습니다.
@@ -101,11 +101,11 @@ export default async function ShopGiftcardsPage() {
       </div>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-white">상품권 상품 관리</h2>
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">상품권 상품 관리</h2>
         <GiftcardProductCreateForm canWrite={canWrite} />
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">이미지</th>
                 <th className="px-4 py-3">상품명</th>
@@ -138,12 +138,12 @@ export default async function ShopGiftcardsPage() {
 
       {/* 상품권 생명주기 조회 (조회 전용) */}
       <section className="mt-8">
-        <h2 className="mb-3 text-lg font-semibold text-white">
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">
           상품권 발급 이력 (최근 50건)
         </h2>
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">회원</th>
                 <th className="px-4 py-3">상품권</th>
@@ -167,19 +167,19 @@ export default async function ShopGiftcardsPage() {
               {issues.map((iss) => {
                 const st = ISSUE_STATUS_LABEL[iss.status] ?? {
                   label: iss.status,
-                  cls: "bg-slate-800 text-slate-400",
+                  cls: "bg-white text-slate-500",
                 };
                 const eligible = iss.status === "issued" && !iss.usage;
                 return (
-                  <tr key={iss.id} className="border-b border-slate-800/60 hover:bg-slate-800/40">
-                    <td className="px-4 py-3 text-slate-200">{iss.user.nickname}</td>
-                    <td className="px-4 py-3 text-slate-300">{iss.product.name}</td>
-                    <td className="px-4 py-3 text-slate-400">{iss.pointSpent.toLocaleString()}P</td>
+                  <tr key={iss.id} className="border-b border-slate-200/60 hover:bg-slate-100/40">
+                    <td className="px-4 py-3 text-slate-700">{iss.user.nickname}</td>
+                    <td className="px-4 py-3 text-slate-600">{iss.product.name}</td>
+                    <td className="px-4 py-3 text-slate-500">{iss.pointSpent.toLocaleString()}P</td>
                     <td className="px-4 py-3 font-mono text-slate-500">{iss.issuedCode ?? "-"}</td>
                     <td className="px-4 py-3">
                       <span className={`rounded-full px-2 py-0.5 text-xs ${st.cls}`}>{st.label}</span>
                     </td>
-                    <td className="px-4 py-3 text-slate-400">
+                    <td className="px-4 py-3 text-slate-500">
                       {iss.usage ? `사용완료(${fmtDate(iss.usage.usedAt)})` : "미사용"}
                     </td>
                     <td className="px-4 py-3 text-slate-500">{fmtDate(iss.issuedAt)}</td>
@@ -207,12 +207,12 @@ export default async function ShopGiftcardsPage() {
       </section>
 
       <section className="mt-8">
-        <h2 className="mb-3 text-lg font-semibold text-white">
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">
           상품권 취소/환불 이력 (조회 전용, 최근 20건)
         </h2>
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">회원</th>
                 <th className="px-4 py-3">상품권</th>
@@ -233,14 +233,14 @@ export default async function ShopGiftcardsPage() {
               {cancels.map((c) => {
                 const refund = c.refunds[0];
                 const rst = refund
-                  ? REFUND_STATUS_LABEL[refund.status] ?? { label: refund.status, cls: "bg-slate-800 text-slate-400" }
+                  ? REFUND_STATUS_LABEL[refund.status] ?? { label: refund.status, cls: "bg-white text-slate-500" }
                   : null;
                 return (
-                  <tr key={c.id} className="border-b border-slate-800/60 hover:bg-slate-800/40">
-                    <td className="px-4 py-3 text-slate-200">{c.issue.user.nickname}</td>
-                    <td className="px-4 py-3 text-slate-300">{c.issue.product.name}</td>
-                    <td className="px-4 py-3 text-slate-400">{c.reason ?? "-"}</td>
-                    <td className="px-4 py-3 text-slate-400">{c.refundedPoint.toLocaleString()}P</td>
+                  <tr key={c.id} className="border-b border-slate-200/60 hover:bg-slate-100/40">
+                    <td className="px-4 py-3 text-slate-700">{c.issue.user.nickname}</td>
+                    <td className="px-4 py-3 text-slate-600">{c.issue.product.name}</td>
+                    <td className="px-4 py-3 text-slate-500">{c.reason ?? "-"}</td>
+                    <td className="px-4 py-3 text-slate-500">{c.refundedPoint.toLocaleString()}P</td>
                     <td className="px-4 py-3">
                       {rst ? (
                         <span className={`rounded-full px-2 py-0.5 text-xs ${rst.cls}`}>{rst.label}</span>
@@ -262,12 +262,12 @@ export default async function ShopGiftcardsPage() {
       </section>
 
       <section className="mt-8">
-        <h2 className="mb-3 text-lg font-semibold text-white">
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">
           상품권 재발급 이력 (조회 전용, 최근 20건)
         </h2>
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">회원</th>
                 <th className="px-4 py-3">상품권</th>
@@ -285,10 +285,10 @@ export default async function ShopGiftcardsPage() {
                 </tr>
               )}
               {reissues.map((r) => (
-                <tr key={r.id} className="border-b border-slate-800/60 hover:bg-slate-800/40">
-                  <td className="px-4 py-3 text-slate-200">{r.originalIssue.user.nickname}</td>
-                  <td className="px-4 py-3 text-slate-300">{r.originalIssue.product.name}</td>
-                  <td className="px-4 py-3 text-slate-400">{r.reason ?? "-"}</td>
+                <tr key={r.id} className="border-b border-slate-200/60 hover:bg-slate-100/40">
+                  <td className="px-4 py-3 text-slate-700">{r.originalIssue.user.nickname}</td>
+                  <td className="px-4 py-3 text-slate-600">{r.originalIssue.product.name}</td>
+                  <td className="px-4 py-3 text-slate-500">{r.reason ?? "-"}</td>
                   <td className="px-4 py-3 font-mono text-slate-500">{r.newIssue.issuedCode ?? "-"}</td>
                   <td className="px-4 py-3 text-slate-500">{fmtDate(r.createdAt)}</td>
                 </tr>
@@ -299,12 +299,12 @@ export default async function ShopGiftcardsPage() {
       </section>
 
       <section className="mt-8">
-        <h2 className="mb-3 text-lg font-semibold text-white">
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">
           상품권 만료 처리 로그 (조회 전용, 최근 20건)
         </h2>
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">회원</th>
                 <th className="px-4 py-3">상품권</th>
@@ -320,9 +320,9 @@ export default async function ShopGiftcardsPage() {
                 </tr>
               )}
               {expiryLogs.map((log) => (
-                <tr key={log.id} className="border-b border-slate-800/60 hover:bg-slate-800/40">
-                  <td className="px-4 py-3 text-slate-200">{log.issue.user.nickname}</td>
-                  <td className="px-4 py-3 text-slate-300">{log.issue.product.name}</td>
+                <tr key={log.id} className="border-b border-slate-200/60 hover:bg-slate-100/40">
+                  <td className="px-4 py-3 text-slate-700">{log.issue.user.nickname}</td>
+                  <td className="px-4 py-3 text-slate-600">{log.issue.product.name}</td>
                   <td className="px-4 py-3 text-slate-500">{fmtDate(log.expiredAt)}</td>
                 </tr>
               ))}

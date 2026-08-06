@@ -44,36 +44,36 @@ export default async function OpenPassAdSourcesPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">리워드 관리 — 프리패스 광고소스</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">리워드 관리 — 프리패스 광고소스</h1>
+        <p className="mt-1 text-sm text-slate-500">
           광고 시청 보상으로 프리패스를 지급할 때 사용할 광고 네트워크/유닛을 관리합니다.
           광고소스는 상품과 독립된 재사용 가능 엔티티이며, &quot;상품연결&quot; 화면에서 프리패스 상품에 바인딩합니다.
-          <b className="text-amber-400"> [테스트] 라벨</b>이 붙은 mock_rewarded_* 유형은 실제 광고 SDK 없이 항상 같은 결과로 동작하는 테스트 전용 소스입니다.
+          <b className="text-amber-700"> [테스트] 라벨</b>이 붙은 mock_rewarded_* 유형은 실제 광고 SDK 없이 항상 같은 결과로 동작하는 테스트 전용 소스입니다.
         </p>
       </div>
 
       <RewardSubNav />
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-          <p className="text-sm text-slate-400">전체 광고소스 수</p>
-          <p className="mt-1 text-2xl font-bold text-white">{adSources.length}</p>
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <p className="text-sm text-slate-500">전체 광고소스 수</p>
+          <p className="mt-1 text-2xl font-bold text-slate-900">{adSources.length}</p>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-          <p className="text-sm text-slate-400">활성 광고소스 수</p>
-          <p className="mt-1 text-2xl font-bold text-emerald-400">{activeCount}</p>
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <p className="text-sm text-slate-500">활성 광고소스 수</p>
+          <p className="mt-1 text-2xl font-bold text-emerald-700">{activeCount}</p>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-          <p className="text-sm text-slate-400">리워드형 광고소스 수</p>
-          <p className="mt-1 text-2xl font-bold text-amber-400">{rewardedCount}</p>
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <p className="text-sm text-slate-500">리워드형 광고소스 수</p>
+          <p className="mt-1 text-2xl font-bold text-amber-700">{rewardedCount}</p>
         </div>
       </div>
 
       <OpenPassAdSourceCreateForm canWrite={canWrite} attachmentOptions={attachments} />
 
-      <div className="overflow-x-auto rounded-xl border border-slate-800">
+      <div className="overflow-x-auto rounded-xl border border-slate-200">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-800 bg-slate-900 text-xs uppercase text-slate-500">
+          <thead className="border-b border-slate-200 bg-white text-xs uppercase text-slate-500">
             <tr>
               <th className="px-4 py-3">광고소스명</th>
               <th className="px-4 py-3">유형</th>

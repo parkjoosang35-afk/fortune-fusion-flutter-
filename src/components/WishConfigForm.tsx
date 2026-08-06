@@ -23,10 +23,10 @@ function ConfigCard({ canWrite, row }: { canWrite: boolean; row: ConfigRow }) {
   if (!meta) return null;
 
   return (
-    <form action={formAction} className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+    <form action={formAction} className="rounded-xl border border-slate-200 bg-white p-4">
       <input type="hidden" name="key" value={meta.key} />
       <div className="mb-2 flex items-baseline justify-between">
-        <p className="text-sm font-semibold text-white">{meta.label}</p>
+        <p className="text-sm font-semibold text-slate-900">{meta.label}</p>
         <p className="text-xs text-slate-500">key: {meta.key}</p>
       </div>
       <p className="mb-3 text-xs text-slate-500">{meta.description}</p>
@@ -41,9 +41,9 @@ function ConfigCard({ canWrite, row }: { canWrite: boolean; row: ConfigRow }) {
             step={meta.step}
             defaultValue={row.value}
             disabled={!canWrite}
-            className="w-32 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1.5 text-right text-sm text-white outline-none focus:border-indigo-500 disabled:opacity-50"
+            className="w-32 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-right text-sm text-slate-900 outline-none focus:border-indigo-500 disabled:opacity-50"
           />
-          <span className="text-xs text-slate-400">{meta.unit}</span>
+          <span className="text-xs text-slate-500">{meta.unit}</span>
         </div>
       )}
 
@@ -52,7 +52,7 @@ function ConfigCard({ canWrite, row }: { canWrite: boolean; row: ConfigRow }) {
           name="value"
           defaultValue={row.value}
           disabled={!canWrite}
-          className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 disabled:opacity-50"
+          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 disabled:opacity-50"
         >
           <option value="true">ON (활성화)</option>
           <option value="false">OFF (비활성화)</option>
@@ -65,7 +65,7 @@ function ConfigCard({ canWrite, row }: { canWrite: boolean; row: ConfigRow }) {
           defaultValue={row.value}
           disabled={!canWrite}
           rows={3}
-          className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 font-mono text-xs text-white outline-none focus:border-indigo-500 disabled:opacity-50"
+          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-xs text-slate-900 outline-none focus:border-indigo-500 disabled:opacity-50"
         />
       )}
 
@@ -87,10 +87,10 @@ function ConfigCard({ canWrite, row }: { canWrite: boolean; row: ConfigRow }) {
       </div>
 
       {state.error && (
-        <p className="mt-2 rounded-lg bg-red-950/60 px-3 py-2 text-xs text-red-400">{state.error}</p>
+        <p className="mt-2 rounded-lg bg-red-100 px-3 py-2 text-xs text-red-700">{state.error}</p>
       )}
       {state.success && (
-        <p className="mt-2 rounded-lg bg-emerald-950/60 px-3 py-2 text-xs text-emerald-400">
+        <p className="mt-2 rounded-lg bg-emerald-100 px-3 py-2 text-xs text-emerald-700">
           저장되었습니다. 이후 API 호출부터 즉시 반영됩니다.
         </p>
       )}

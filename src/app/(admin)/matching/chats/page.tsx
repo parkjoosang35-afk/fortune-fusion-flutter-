@@ -106,12 +106,12 @@ export default async function MatchingChatsPage() {
   const messageTypeBadge = (type: string) => {
     if (type === "image") {
       return (
-        <span className="rounded-full bg-indigo-950/60 px-2 py-0.5 text-xs text-indigo-400">이미지</span>
+        <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs text-indigo-700">이미지</span>
       );
     }
     if (type === "system") {
       return (
-        <span className="rounded-full bg-slate-800 px-2 py-0.5 text-xs text-slate-400">시스템</span>
+        <span className="rounded-full bg-white px-2 py-0.5 text-xs text-slate-500">시스템</span>
       );
     }
     return <span className="text-xs text-slate-500">텍스트</span>;
@@ -120,43 +120,43 @@ export default async function MatchingChatsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">매칭/궁합 관리 — 채팅 모니터링</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">매칭/궁합 관리 — 채팅 모니터링</h1>
+        <p className="mt-1 text-sm text-slate-500">
           신고 처리 목적으로만 대화 내용을 열람합니다(사생활 보호 원칙, 평시 비열람). 회원
           신고(target_type=user)와 연계된 매칭 대화방만 아래에 노출됩니다.
         </p>
-        <nav className="mt-4 flex gap-2 border-b border-slate-800 text-sm">
-          <Link href="/matching/profiles" className="px-3 py-2 text-slate-400 hover:text-white">
+        <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
+          <Link href="/matching/profiles" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             매칭 프로필
           </Link>
-          <Link href="/matching/likes-pairs" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/matching/likes-pairs" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             매칭 성사 이력
           </Link>
-          <Link href="/matching/friends-follows" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/matching/friends-follows" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             친구/팔로우
           </Link>
-          <span className="border-b-2 border-indigo-500 px-3 py-2 text-white">채팅 모니터링</span>
-          <Link href="/matching/compatibility-weights" className="px-3 py-2 text-slate-400 hover:text-white">
+          <span className="border-b-2 border-indigo-500 px-3 py-2 text-slate-900">채팅 모니터링</span>
+          <Link href="/matching/compatibility-weights" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             궁합 요소 가중치
           </Link>
-          <Link href="/matching/compatibility-stats" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/matching/compatibility-stats" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             궁합 통계
           </Link>
         </nav>
       </div>
 
-      <div className="mb-4 rounded-xl border border-amber-900/50 bg-amber-950/20 p-4 text-sm text-amber-300">
+      <div className="mb-4 rounded-xl border border-amber-300/50 bg-amber-100 p-4 text-sm text-amber-800">
         ⚠️ 이 화면은 사생활 보호 원칙에 따라 신고 접수된 회원과 관련된 대화방만 노출합니다.
         신고 없는 일반 대화방은 관리자에게 표시되지 않습니다.
       </div>
 
-      <div className="mb-4 text-sm text-slate-400">
-        신고 관계자 대화방 <span className="text-white">{chatRooms.length}</span>건 (전체 신고 회원{" "}
-        <span className="text-white">{reportedUserIds.size}</span>명 기준)
+      <div className="mb-4 text-sm text-slate-500">
+        신고 관계자 대화방 <span className="text-slate-900">{chatRooms.length}</span>건 (전체 신고 회원{" "}
+        <span className="text-slate-900">{reportedUserIds.size}</span>명 기준)
       </div>
 
       {chatRooms.length === 0 && (
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-10 text-center text-slate-500">
+        <div className="rounded-xl border border-slate-200 bg-white p-10 text-center text-slate-500">
           현재 신고와 연계된 대화방이 없습니다.
         </div>
       )}
@@ -175,30 +175,30 @@ export default async function MatchingChatsPage() {
                 : undefined;
 
           return (
-            <section key={room.id} className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 bg-slate-950/40 px-4 py-3">
+            <section key={room.id} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-white/40 px-4 py-3">
                 <div className="flex items-center gap-3">
-                  <span className="text-sm font-semibold text-white">
+                  <span className="text-sm font-semibold text-slate-900">
                     {participantAId ? nick(participantAId) : "?"} ↔ {participantBId ? nick(participantBId) : "?"}
                   </span>
-                  <span className="rounded-full bg-slate-800 px-2 py-0.5 text-xs text-slate-400">
+                  <span className="rounded-full bg-white px-2 py-0.5 text-xs text-slate-500">
                     {room.type === "matching" ? "매칭 채팅" : "친구 채팅"}
                   </span>
                   {pair?.status === "unmatched" && (
-                    <span className="rounded-full bg-slate-800 px-2 py-0.5 text-xs text-slate-500">
+                    <span className="rounded-full bg-white px-2 py-0.5 text-xs text-slate-500">
                       매칭 해제됨
                     </span>
                   )}
                 </div>
                 {reportedParticipant && (
-                  <span className="rounded-full bg-rose-950/60 px-2 py-0.5 text-xs text-rose-400">
+                  <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs text-rose-700">
                     신고 대상: {nick(reportedParticipant)} — {reasonMap.get(reportedParticipant) ?? ""}
                   </span>
                 )}
               </div>
               <div className="max-h-80 overflow-y-auto p-4">
                 <table className="w-full text-left text-sm">
-                  <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+                  <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
                     <tr>
                       <th className="px-2 py-2">발신자</th>
                       <th className="px-2 py-2">내용</th>
@@ -215,9 +215,9 @@ export default async function MatchingChatsPage() {
                       </tr>
                     )}
                     {roomMessages.map((m) => (
-                      <tr key={m.id} className="border-b border-slate-800/60">
-                        <td className="px-2 py-2 text-slate-200">{nick(m.senderId)}</td>
-                        <td className="px-2 py-2 text-slate-300">{m.content}</td>
+                      <tr key={m.id} className="border-b border-slate-200/60">
+                        <td className="px-2 py-2 text-slate-700">{nick(m.senderId)}</td>
+                        <td className="px-2 py-2 text-slate-600">{m.content}</td>
                         <td className="px-2 py-2">{messageTypeBadge(m.messageType)}</td>
                         <td className="px-2 py-2 text-slate-500">{fmtDate(m.createdAt)}</td>
                       </tr>

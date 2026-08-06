@@ -55,16 +55,16 @@ export default async function RewardMissionsPage() {
   });
 
   const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
-    in_progress: { label: "진행중", cls: "bg-slate-800 text-slate-400" },
-    completed: { label: "완료", cls: "bg-amber-950/60 text-amber-400" },
-    claimed: { label: "지급완료", cls: "bg-emerald-950/60 text-emerald-400" },
+    in_progress: { label: "진행중", cls: "bg-white text-slate-500" },
+    completed: { label: "완료", cls: "bg-amber-100 text-amber-700" },
+    claimed: { label: "지급완료", cls: "bg-emerald-100 text-emerald-700" },
   };
 
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">리워드 관리 — 출석/미션</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">리워드 관리 — 출석/미션</h1>
+        <p className="mt-1 text-sm text-slate-500">
           출석보상규칙 및 미션 마스터를 관리하고, 회원의 출석/미션 진행현황을 조회합니다.
         </p>
       </div>
@@ -73,11 +73,11 @@ export default async function RewardMissionsPage() {
 
       {/* 1) 출석보상규칙설정 */}
       <section className="mb-8">
-        <h2 className="mb-3 text-lg font-semibold text-white">출석보상규칙설정</h2>
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">출석보상규칙설정</h2>
         <AttendanceRuleCreateForm canWrite={canWrite} />
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">연속 출석일</th>
                 <th className="px-4 py-3">보상 포인트</th>
@@ -115,11 +115,11 @@ export default async function RewardMissionsPage() {
 
       {/* 2) 미션관리 */}
       <section className="mb-8">
-        <h2 className="mb-3 text-lg font-semibold text-white">미션관리</h2>
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">미션관리</h2>
         <MissionCreateForm canWrite={canWrite} />
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">제목</th>
                 <th className="px-4 py-3">action_type</th>
@@ -148,10 +148,10 @@ export default async function RewardMissionsPage() {
 
       {/* 3) 회원 미션 진행현황 (조회 전용) */}
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-white">회원 미션 진행현황 (조회 전용, 최근 50건)</h2>
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">회원 미션 진행현황 (조회 전용, 최근 50건)</h2>
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">회원</th>
                 <th className="px-4 py-3">미션</th>
@@ -169,12 +169,12 @@ export default async function RewardMissionsPage() {
                 </tr>
               )}
               {userMissions.map((um) => {
-                const st = STATUS_LABEL[um.status] ?? { label: um.status, cls: "bg-slate-800 text-slate-400" };
+                const st = STATUS_LABEL[um.status] ?? { label: um.status, cls: "bg-white text-slate-500" };
                 return (
-                  <tr key={um.id} className="border-b border-slate-800/60 hover:bg-slate-800/40">
-                    <td className="px-4 py-3 text-slate-200">{um.user.nickname}</td>
-                    <td className="px-4 py-3 text-slate-300">{um.mission.title}</td>
-                    <td className="px-4 py-3 text-slate-400">
+                  <tr key={um.id} className="border-b border-slate-200/60 hover:bg-slate-100/40">
+                    <td className="px-4 py-3 text-slate-700">{um.user.nickname}</td>
+                    <td className="px-4 py-3 text-slate-600">{um.mission.title}</td>
+                    <td className="px-4 py-3 text-slate-500">
                       {um.progressCount}/{um.mission.targetCount}
                     </td>
                     <td className="px-4 py-3">

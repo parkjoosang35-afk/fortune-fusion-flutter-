@@ -26,9 +26,9 @@ const REWARD_TYPE_LABEL: Record<string, string> = {
 };
 
 const OPEN_LOG_STATUS_LABEL: Record<string, { label: string; cls: string }> = {
-  processing: { label: "처리중", cls: "bg-slate-800 text-slate-400" },
-  completed: { label: "완료", cls: "bg-emerald-950/60 text-emerald-400" },
-  failed: { label: "실패", cls: "bg-rose-950/60 text-rose-400" },
+  processing: { label: "처리중", cls: "bg-white text-slate-500" },
+  completed: { label: "완료", cls: "bg-emerald-100 text-emerald-700" },
+  failed: { label: "실패", cls: "bg-rose-100 text-rose-700" },
 };
 
 function fmtDate(d: Date | null): string {
@@ -86,8 +86,8 @@ export default async function ShopLuckybagPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">상점 관리 — 복주머니</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">상점 관리 — 복주머니</h1>
+        <p className="mt-1 text-sm text-slate-500">
           복주머니 등급 마스터, 시즌/이벤트, 상품 및 확률테이블(보상풀)을 관리하고, 개봉 이력을
           조회합니다.
         </p>
@@ -95,11 +95,11 @@ export default async function ShopLuckybagPage() {
 
       {/* 1) 등급 마스터 */}
       <section className="mb-8">
-        <h2 className="mb-3 text-lg font-semibold text-white">복주머니 등급 마스터</h2>
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">복주머니 등급 마스터</h2>
         <LuckybagGradeCreateForm canWrite={canWrite} />
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">코드</th>
                 <th className="px-4 py-3">등급명</th>
@@ -124,11 +124,11 @@ export default async function ShopLuckybagPage() {
 
       {/* 2) 시즌/이벤트 관리 */}
       <section className="mb-8">
-        <h2 className="mb-3 text-lg font-semibold text-white">복주머니 시즌/이벤트 관리</h2>
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">복주머니 시즌/이벤트 관리</h2>
         <LuckybagSeasonCreateForm canWrite={canWrite} />
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">시즌명</th>
                 <th className="px-4 py-3">기간</th>
@@ -164,11 +164,11 @@ export default async function ShopLuckybagPage() {
 
       {/* 3) 복주머니 상품 관리 */}
       <section className="mb-8">
-        <h2 className="mb-3 text-lg font-semibold text-white">복주머니 상품 관리</h2>
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">복주머니 상품 관리</h2>
         <LuckybagProductCreateForm canWrite={canWrite} seasons={seasonOptions} />
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">이미지</th>
                 <th className="px-4 py-3">상품명</th>
@@ -203,7 +203,7 @@ export default async function ShopLuckybagPage() {
 
       {/* 4) 보상풀(확률테이블) 관리 */}
       <section className="mb-8">
-        <h2 className="mb-3 text-lg font-semibold text-white">
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">
           복주머니 보상풀 관리 (확률테이블)
         </h2>
         <LuckybagRewardPoolCreateForm
@@ -212,9 +212,9 @@ export default async function ShopLuckybagPage() {
           grades={gradeOptions}
           probabilitySumByProduct={probabilitySumRecord}
         />
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">상품</th>
                 <th className="px-4 py-3">등급</th>
@@ -254,12 +254,12 @@ export default async function ShopLuckybagPage() {
 
       {/* 5) 복주머니 개봉 이력 (조회 전용, 어뷰징 모니터링) */}
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-white">
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">
           복주머니 개봉 이력 (조회 전용, 최근 30건 — 어뷰징 모니터링)
         </h2>
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">회원</th>
                 <th className="px-4 py-3">복주머니</th>
@@ -279,13 +279,13 @@ export default async function ShopLuckybagPage() {
               {openLogs.map((log) => {
                 const st = OPEN_LOG_STATUS_LABEL[log.status] ?? {
                   label: log.status,
-                  cls: "bg-slate-800 text-slate-400",
+                  cls: "bg-white text-slate-500",
                 };
                 return (
-                  <tr key={log.id} className="border-b border-slate-800/60 hover:bg-slate-800/40">
-                    <td className="px-4 py-3 text-slate-200">{log.user.nickname}</td>
-                    <td className="px-4 py-3 text-slate-300">{log.luckybagProduct.name}</td>
-                    <td className="px-4 py-3 text-slate-400">
+                  <tr key={log.id} className="border-b border-slate-200/60 hover:bg-slate-100/40">
+                    <td className="px-4 py-3 text-slate-700">{log.user.nickname}</td>
+                    <td className="px-4 py-3 text-slate-600">{log.luckybagProduct.name}</td>
+                    <td className="px-4 py-3 text-slate-500">
                       {REWARD_TYPE_LABEL[log.rewardPool.rewardType] ?? log.rewardPool.rewardType}
                       {log.rewardPool.rewardAmount ? ` x${log.rewardPool.rewardAmount}` : ""}
                     </td>

@@ -66,8 +66,8 @@ export default function ConfirmDangerDialog({
       {confirming &&
         (helperText ? (
           <div className={warningClassName}>
-            <p className="text-xs font-semibold text-rose-300">⚠ {warningText}</p>
-            <p className="mt-1 text-xs text-slate-400">{helperText}</p>
+            <p className="text-xs font-semibold text-rose-800">⚠ {warningText}</p>
+            <p className="mt-1 text-xs text-slate-500">{helperText}</p>
           </div>
         ) : (
           <p className={warningClassName}>⚠ {warningText}</p>

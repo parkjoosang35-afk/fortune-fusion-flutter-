@@ -62,7 +62,7 @@ export default function EventRow({
 
   if (editing) {
     return (
-      <tr className="border-b border-slate-800/60 bg-slate-800/30">
+      <tr className="border-b border-slate-200/60 bg-white/30">
         <td colSpan={5} className="px-4 py-3">
           <form action={updateAction} className="flex flex-col gap-2">
             <input type="hidden" name="id" value={event.id} />
@@ -71,18 +71,18 @@ export default function EventRow({
                 type="text"
                 name="title"
                 defaultValue={event.title}
-                className="w-64 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+                className="w-64 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
               />
               <select
                 name="eventType"
                 defaultValue={event.eventType}
-                className="rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+                className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
               >
                 <option value="attendance_bonus">출석 보너스</option>
                 <option value="roulette">룰렛</option>
                 <option value="special_mission">특별 미션</option>
               </select>
-              <label className="flex items-center gap-1 text-xs text-slate-300">
+              <label className="flex items-center gap-1 text-xs text-slate-600">
                 <input
                   type="checkbox"
                   name="isActive"
@@ -104,20 +104,20 @@ export default function EventRow({
                 type="datetime-local"
                 name="startAt"
                 defaultValue={toLocalInputValue(event.startAt)}
-                className="rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+                className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
               />
               <input
                 type="datetime-local"
                 name="endAt"
                 defaultValue={toLocalInputValue(event.endAt)}
-                className="rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+                className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
               />
             </div>
             <textarea
               name="config"
               defaultValue={event.config}
               rows={5}
-              className="rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 font-mono text-xs text-white outline-none focus:border-indigo-500"
+              className="rounded-lg border border-slate-300 bg-white px-2 py-1 font-mono text-xs text-slate-900 outline-none focus:border-indigo-500"
             />
             <div className="flex items-center gap-2">
               <button
@@ -130,12 +130,12 @@ export default function EventRow({
               <button
                 type="button"
                 onClick={() => setEditing(false)}
-                className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100"
               >
                 취소
               </button>
             </div>
-            {updateState.error && <p className="text-xs text-red-400">{updateState.error}</p>}
+            {updateState.error && <p className="text-xs text-red-700">{updateState.error}</p>}
           </form>
         </td>
       </tr>
@@ -143,28 +143,28 @@ export default function EventRow({
   }
 
   return (
-    <tr className="border-b border-slate-800/60 hover:bg-slate-800/40">
+    <tr className="border-b border-slate-200/60 hover:bg-slate-100/40">
       <td className="px-4 py-3">
-        <div className="font-medium text-slate-200">{event.title}</div>
+        <div className="font-medium text-slate-700">{event.title}</div>
         <p className="mt-1 text-xs text-slate-500">
           {formatDate(event.startAt)} ~ {formatDate(event.endAt)}
         </p>
       </td>
       <td className="px-4 py-3">
-        <span className="rounded-full bg-slate-800 px-2 py-0.5 text-xs text-slate-300">
+        <span className="rounded-full bg-white px-2 py-0.5 text-xs text-slate-600">
           {EVENT_TYPE_LABEL[event.eventType] ?? event.eventType}
         </span>
       </td>
       <td className="px-4 py-3 text-xs text-slate-500">
         {event.isActive ? (
-          <span className="rounded-full bg-emerald-950/60 px-2 py-0.5 text-emerald-400">
+          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-700">
             활성
           </span>
         ) : (
-          <span className="rounded-full bg-slate-800 px-2 py-0.5 text-slate-400">비활성</span>
+          <span className="rounded-full bg-white px-2 py-0.5 text-slate-500">비활성</span>
         )}
       </td>
-      <td className="px-4 py-3 text-xs text-slate-400">
+      <td className="px-4 py-3 text-xs text-slate-500">
         참여 {participationCount}명 · 지급완료 {claimedCount}명
       </td>
       <td className="px-4 py-3">
@@ -176,7 +176,7 @@ export default function EventRow({
               <button
                 type="submit"
                 disabled={togglePending}
-                className="rounded-lg border border-slate-700 px-3 py-1 text-xs text-slate-300 hover:bg-slate-800 disabled:opacity-50"
+                className="rounded-lg border border-slate-300 px-3 py-1 text-xs text-slate-600 hover:bg-slate-100 disabled:opacity-50"
               >
                 {event.isActive ? "비활성화" : "활성화"}
               </button>
@@ -185,7 +185,7 @@ export default function EventRow({
           {canWrite && (
             <button
               onClick={() => setEditing(true)}
-              className="rounded-lg border border-slate-700 px-3 py-1 text-xs text-slate-300 hover:bg-slate-800"
+              className="rounded-lg border border-slate-300 px-3 py-1 text-xs text-slate-600 hover:bg-slate-100"
             >
               수정
             </button>
@@ -196,15 +196,15 @@ export default function EventRow({
               <button
                 type="submit"
                 disabled={deletePending}
-                className="rounded-lg border border-red-900 px-3 py-1 text-xs text-red-400 hover:bg-red-950/40 disabled:opacity-50"
+                className="rounded-lg border border-red-300 px-3 py-1 text-xs text-red-700 hover:bg-red-100 disabled:opacity-50"
               >
                 삭제
               </button>
             </form>
           )}
         </div>
-        {toggleState.error && <p className="mt-1 text-xs text-red-400">{toggleState.error}</p>}
-        {deleteState.error && <p className="mt-1 text-xs text-red-400">{deleteState.error}</p>}
+        {toggleState.error && <p className="mt-1 text-xs text-red-700">{toggleState.error}</p>}
+        {deleteState.error && <p className="mt-1 text-xs text-red-700">{deleteState.error}</p>}
       </td>
     </tr>
   );

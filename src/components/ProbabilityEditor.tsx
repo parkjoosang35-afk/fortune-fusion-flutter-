@@ -44,7 +44,7 @@ export default function ProbabilityEditor({
   if (selectedProductId == null) {
     return (
       <p className={wrapperClassName}>
-        <span className="rounded-full bg-slate-800 px-2 py-0.5 text-xs text-slate-500">
+        <span className="rounded-full bg-white px-2 py-0.5 text-xs text-slate-500">
           상품을 선택하면 실시간 확률 합계가 표시됩니다
         </span>
       </p>
@@ -65,10 +65,10 @@ export default function ProbabilityEditor({
   const isOver = liveTotal > 100.0001;
 
   const cls = isOver
-    ? "bg-rose-950/60 text-rose-400"
+    ? "bg-rose-100 text-rose-700"
     : isComplete
-      ? "bg-emerald-950/60 text-emerald-400"
-      : "bg-amber-950/60 text-amber-400";
+      ? "bg-emerald-100 text-emerald-700"
+      : "bg-amber-100 text-amber-700";
 
   return (
     <p className={wrapperClassName}>

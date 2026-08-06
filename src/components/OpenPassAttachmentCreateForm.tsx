@@ -45,13 +45,13 @@ export default function OpenPassAttachmentCreateForm({ canWrite }: { canWrite: b
         setAdvancedOpen(false);
         setFileType("image");
       }}
-      className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-800 bg-slate-900 p-4 md:grid-cols-4"
+      className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-4"
     >
-      <h2 className="col-span-full text-sm font-semibold text-white">새 첨부파일 등록</h2>
+      <h2 className="col-span-full text-sm font-semibold text-slate-900">새 첨부파일 등록</h2>
 
       {/* [사용자 요청] 배너(제휴 광고) 등록 화면과 동일한 형태의 2지선다 광고 유형 선택 */}
       {!advancedOpen && (
-        <div className="col-span-full flex flex-wrap items-center gap-4 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-slate-300">
+        <div className="col-span-full flex flex-wrap items-center gap-4 rounded-lg border border-slate-300 bg-white/60 px-3 py-2 text-sm text-slate-600">
           <span className="text-xs text-slate-500">광고 유형</span>
           <label className="flex items-center gap-1.5">
             <input
@@ -83,7 +83,7 @@ export default function OpenPassAttachmentCreateForm({ canWrite }: { canWrite: b
         name="fileName"
         placeholder="파일명(제목) — 예: 열림패스 대표 배너 v1"
         required
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 md:col-span-2"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 md:col-span-2"
       />
 
       {/* 실제 서버로 전달되는 fileType은 항상 hidden input(effectiveFileType)이 단일 소스다. */}
@@ -92,7 +92,7 @@ export default function OpenPassAttachmentCreateForm({ canWrite }: { canWrite: b
       <select
         name="purpose"
         defaultValue="hero_banner"
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
       >
         {ATTACHMENT_PURPOSES.map((p) => (
           <option key={p} value={p}>
@@ -106,7 +106,7 @@ export default function OpenPassAttachmentCreateForm({ canWrite }: { canWrite: b
           <select
             value={fileType}
             onChange={(e) => setFileType(e.target.value as AttachmentFileType)}
-            className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
           >
             {ATTACHMENT_FILE_TYPES.map((t) => (
               <option key={t} value={t}>
@@ -126,7 +126,7 @@ export default function OpenPassAttachmentCreateForm({ canWrite }: { canWrite: b
             placeholder={
               '제휴사/광고 네트워크가 제공한 원본 광고 태그를 그대로 붙여넣으세요.\n예) <iframe src="https://ads-partners.coupang.com/widgets.html?id=..." width="680" height="140" frameborder="0" scrolling="no"></iframe>'
             }
-            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 font-mono text-xs text-white outline-none focus:border-indigo-500"
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-xs text-slate-900 outline-none focus:border-indigo-500"
           />
           <p className="mt-1 text-xs text-slate-500">
             쿠팡파트너스 위젯, AdMob, 기타 제휴사가 발급한 &lt;iframe&gt;/&lt;script&gt; 코드를 그대로 붙여넣으면
@@ -143,9 +143,9 @@ export default function OpenPassAttachmentCreateForm({ canWrite }: { canWrite: b
         name="displayOrder"
         placeholder="정렬 순서"
         defaultValue={0}
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
       />
-      <label className="flex items-center gap-2 text-sm text-slate-300">
+      <label className="flex items-center gap-2 text-sm text-slate-600">
         <input type="checkbox" name="isActive" defaultChecked className="accent-indigo-500" /> 활성화
       </label>
 
@@ -153,7 +153,7 @@ export default function OpenPassAttachmentCreateForm({ canWrite }: { canWrite: b
         <button
           type="button"
           onClick={() => setAdvancedOpen((v) => !v)}
-          className="text-xs text-slate-500 underline hover:text-slate-300"
+          className="text-xs text-slate-500 underline hover:text-slate-600"
         >
           {advancedOpen
             ? "간단 모드로 돌아가기"
@@ -162,10 +162,10 @@ export default function OpenPassAttachmentCreateForm({ canWrite }: { canWrite: b
       </div>
 
       {state.error && (
-        <p className="col-span-full rounded-lg bg-red-950/60 px-3 py-2 text-sm text-red-400">{state.error}</p>
+        <p className="col-span-full rounded-lg bg-red-100 px-3 py-2 text-sm text-red-700">{state.error}</p>
       )}
       {state.success && (
-        <p className="col-span-full rounded-lg bg-emerald-950/60 px-3 py-2 text-sm text-emerald-400">
+        <p className="col-span-full rounded-lg bg-emerald-100 px-3 py-2 text-sm text-emerald-700">
           첨부파일이 등록되었습니다.
         </p>
       )}

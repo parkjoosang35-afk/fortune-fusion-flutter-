@@ -36,7 +36,7 @@ export default function FortuneCategoryToggleButton({
     return (
       <span
         className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-          value ? "bg-emerald-950/60 text-emerald-400" : "bg-slate-800 text-slate-500"
+          value ? "bg-emerald-100 text-emerald-700" : "bg-white text-slate-500"
         }`}
       >
         {value ? labelOn : labelOff}
@@ -53,14 +53,14 @@ export default function FortuneCategoryToggleButton({
         disabled={pending}
         className={`rounded-full px-2 py-0.5 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${
           value
-            ? "bg-emerald-950/60 text-emerald-400 hover:bg-emerald-900/60"
-            : "bg-slate-800 text-slate-500 hover:bg-slate-700"
+            ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100"
+            : "bg-white text-slate-500 hover:bg-slate-200"
         }`}
         title="클릭하여 토글"
       >
         {pending ? "..." : value ? labelOn : labelOff}
       </button>
-      {state.error && <p className="mt-1 text-xs text-red-400">{state.error}</p>}
+      {state.error && <p className="mt-1 text-xs text-red-700">{state.error}</p>}
     </form>
   );
 }

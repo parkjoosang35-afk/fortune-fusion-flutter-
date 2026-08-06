@@ -44,8 +44,8 @@ export default async function TestLabPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">운영 테스트랩</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">운영 테스트랩</h1>
+        <p className="mt-1 text-sm text-slate-500">
           실결제·실광고 없이 특정 유저 기준으로 열림패스 / 행복머니 / 복주머니의 지급·차감·구매·사용·만료를
           직접 실행하고 결과를 즉시 확인할 수 있는 시뮬레이션 센터입니다.
         </p>

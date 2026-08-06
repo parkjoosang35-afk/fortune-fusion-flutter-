@@ -62,9 +62,9 @@ export default function LuckybagRewardPoolCreateForm({
         setSelectedProductId(null);
         setProbabilityInput("");
       }}
-      className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-800 bg-slate-900 p-4 md:grid-cols-6"
+      className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-6"
     >
-      <h3 className="col-span-full text-sm font-semibold text-white">
+      <h3 className="col-span-full text-sm font-semibold text-slate-900">
         새 보상 항목 추가 (확률테이블)
       </h3>
       <select
@@ -72,7 +72,7 @@ export default function LuckybagRewardPoolCreateForm({
         required
         defaultValue=""
         onChange={(e) => setSelectedProductId(e.target.value ? Number(e.target.value) : null)}
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 md:col-span-2"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 md:col-span-2"
       >
         <option value="" disabled>
           복주머니 상품 선택
@@ -87,7 +87,7 @@ export default function LuckybagRewardPoolCreateForm({
         name="gradeId"
         required
         defaultValue=""
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
       >
         <option value="" disabled>
           등급 선택
@@ -102,7 +102,7 @@ export default function LuckybagRewardPoolCreateForm({
         name="rewardType"
         required
         defaultValue="point"
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
       >
         {REWARD_TYPES.map((rt) => (
           <option key={rt.value} value={rt.value}>
@@ -115,7 +115,7 @@ export default function LuckybagRewardPoolCreateForm({
         name="rewardAmount"
         placeholder="보상 수량/금액 (선택)"
         min={0}
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
       />
       <input
         type="number"
@@ -127,7 +127,7 @@ export default function LuckybagRewardPoolCreateForm({
         required
         value={probabilityInput}
         onChange={(e) => setProbabilityInput(e.target.value)}
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
       />
 
       <ProbabilityEditor
@@ -138,12 +138,12 @@ export default function LuckybagRewardPoolCreateForm({
       />
 
       {state.error && (
-        <p className="col-span-full rounded-lg bg-red-950/60 px-3 py-2 text-sm text-red-400">
+        <p className="col-span-full rounded-lg bg-red-100 px-3 py-2 text-sm text-red-700">
           {state.error}
         </p>
       )}
       {state.success && (
-        <p className="col-span-full rounded-lg bg-emerald-950/60 px-3 py-2 text-sm text-emerald-400">
+        <p className="col-span-full rounded-lg bg-emerald-100 px-3 py-2 text-sm text-emerald-700">
           보상 항목이 추가되었습니다.
         </p>
       )}
@@ -153,13 +153,13 @@ export default function LuckybagRewardPoolCreateForm({
         pending={pending}
         warningText="정말 추가하시겠습니까? 실제 서비스에 즉시 반영됩니다."
         helperText="2단계 확인 — 확인을 누르면 즉시 저장되어 회원의 복주머니 추첨 확률에 반영됩니다."
-        warningClassName="col-span-full rounded-lg border border-rose-900/60 bg-rose-950/20 p-3"
+        warningClassName="col-span-full rounded-lg border border-rose-300/60 bg-rose-100 p-3"
         idleLabel="보상 항목 추가"
         confirmLabel="확인(최종 추가)"
         pendingLabel="추가 중..."
         idleButtonClassName="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
         confirmButtonClassName="rounded-lg bg-rose-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-600 disabled:cursor-not-allowed disabled:opacity-50"
-        cancelButtonClassName="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:bg-slate-800"
+        cancelButtonClassName="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-100"
         buttonWrapperClassName="col-span-full flex gap-2"
         onCancel={() => setConfirming(false)}
       />

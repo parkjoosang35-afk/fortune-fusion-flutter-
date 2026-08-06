@@ -47,7 +47,7 @@ export default function LuckybagProductRow({
 
   if (editing) {
     return (
-      <tr className="border-b border-slate-800/60 bg-slate-800/30">
+      <tr className="border-b border-slate-200/60 bg-white/30">
         <td colSpan={6} className="px-4 py-3">
           <form action={updateAction} className="flex flex-wrap items-center gap-2">
             <input type="hidden" name="id" value={product.id} />
@@ -55,19 +55,19 @@ export default function LuckybagProductRow({
               type="text"
               name="name"
               defaultValue={product.name}
-              className="w-40 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="w-40 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
             <input
               type="number"
               name="pricePoint"
               defaultValue={product.pricePoint}
               min={0}
-              className="w-24 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="w-24 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
             <select
               name="seasonId"
               defaultValue={product.seasonId ?? ""}
-              className="rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             >
               <option value="">(상시 판매)</option>
               {seasons.map((s) => (
@@ -82,7 +82,7 @@ export default function LuckybagProductRow({
               defaultValue={product.imageUrl}
               compact
             />
-            <label className="flex items-center gap-1 text-xs text-slate-300">
+            <label className="flex items-center gap-1 text-xs text-slate-600">
               <input
                 type="checkbox"
                 name="isActive"
@@ -101,11 +101,11 @@ export default function LuckybagProductRow({
             <button
               type="button"
               onClick={() => setEditing(false)}
-              className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
+              className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100"
             >
               취소
             </button>
-            {updateState.error && <p className="w-full text-xs text-red-400">{updateState.error}</p>}
+            {updateState.error && <p className="w-full text-xs text-red-700">{updateState.error}</p>}
           </form>
         </td>
       </tr>
@@ -113,35 +113,35 @@ export default function LuckybagProductRow({
   }
 
   return (
-    <tr className="border-b border-slate-800/60 hover:bg-slate-800/40">
+    <tr className="border-b border-slate-200/60 hover:bg-slate-100/40">
       <td className="px-4 py-3">
         {product.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={product.imageUrl}
             alt={product.name}
-            className="h-12 w-12 rounded-lg border border-slate-700 object-cover"
+            className="h-12 w-12 rounded-lg border border-slate-300 object-cover"
           />
         ) : (
           <span className="text-slate-500">-</span>
         )}
       </td>
-      <td className="px-4 py-3 text-slate-200">
+      <td className="px-4 py-3 text-slate-700">
         {product.name}
         {!product.isActive && (
-          <span className="ml-2 rounded-full bg-slate-800 px-2 py-0.5 text-xs text-slate-500">
+          <span className="ml-2 rounded-full bg-white px-2 py-0.5 text-xs text-slate-500">
             판매중지
           </span>
         )}
       </td>
-      <td className="px-4 py-3 text-slate-300">{product.pricePoint.toLocaleString()}P</td>
-      <td className="px-4 py-3 text-slate-400">{seasonName}</td>
+      <td className="px-4 py-3 text-slate-600">{product.pricePoint.toLocaleString()}P</td>
+      <td className="px-4 py-3 text-slate-500">{seasonName}</td>
       <td className="px-4 py-3">
         <span
           className={`rounded-full px-2 py-0.5 text-xs ${
             isSumComplete
-              ? "bg-emerald-950/60 text-emerald-400"
-              : "bg-amber-950/60 text-amber-400"
+              ? "bg-emerald-100 text-emerald-700"
+              : "bg-amber-100 text-amber-700"
           }`}
         >
           확률 합계 {probabilitySum}%{!isSumComplete && " (미완성)"}
@@ -152,7 +152,7 @@ export default function LuckybagProductRow({
           {canWrite && (
             <button
               onClick={() => setEditing(true)}
-              className="rounded-lg border border-slate-700 px-3 py-1 text-xs text-slate-300 hover:bg-slate-800"
+              className="rounded-lg border border-slate-300 px-3 py-1 text-xs text-slate-600 hover:bg-slate-100"
             >
               수정
             </button>
@@ -163,14 +163,14 @@ export default function LuckybagProductRow({
               <button
                 type="submit"
                 disabled={deletePending}
-                className="rounded-lg border border-red-900 px-3 py-1 text-xs text-red-400 hover:bg-red-950/40 disabled:opacity-50"
+                className="rounded-lg border border-red-300 px-3 py-1 text-xs text-red-700 hover:bg-red-100 disabled:opacity-50"
               >
                 삭제
               </button>
             </form>
           )}
         </div>
-        {deleteState.error && <p className="mt-1 text-xs text-red-400">{deleteState.error}</p>}
+        {deleteState.error && <p className="mt-1 text-xs text-red-700">{deleteState.error}</p>}
       </td>
     </tr>
   );

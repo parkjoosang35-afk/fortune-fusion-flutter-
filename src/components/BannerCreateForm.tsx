@@ -38,14 +38,14 @@ export default function BannerCreateForm({ canWrite, fixedPositionCode, title }:
         setUploadFieldKey((k) => k + 1);
         setAdType("image");
       }}
-      className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-800 bg-slate-900 p-4 md:grid-cols-4"
+      className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-4"
     >
-      <h3 className="col-span-full text-sm font-semibold text-white">
+      <h3 className="col-span-full text-sm font-semibold text-slate-900">
         {title ?? "새 배너(제휴 광고) 추가"}
       </h3>
 
       {/* 광고 유형 선택: 이미지형(기존) vs 광고소스형(제휴사 원본 스크립트/iframe) */}
-      <div className="col-span-full flex gap-4 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-slate-300">
+      <div className="col-span-full flex gap-4 rounded-lg border border-slate-300 bg-white/60 px-3 py-2 text-sm text-slate-600">
         <span className="text-xs text-slate-500">광고 유형</span>
         <label className="flex items-center gap-1.5">
           <input
@@ -76,7 +76,7 @@ export default function BannerCreateForm({ canWrite, fixedPositionCode, title }:
         name="title"
         placeholder="배너 제목 (예: 쿠팡파트너스 - OO 상품)"
         required
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 md:col-span-2"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 md:col-span-2"
       />
       {fixedPositionCode ? (
         <input type="hidden" name="positionCode" value={fixedPositionCode} />
@@ -84,7 +84,7 @@ export default function BannerCreateForm({ canWrite, fixedPositionCode, title }:
         <select
           name="positionCode"
           defaultValue="home_top"
-          className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
         >
           {POSITION_OPTIONS.map((p) => (
             <option key={p.value} value={p.value}>
@@ -99,7 +99,7 @@ export default function BannerCreateForm({ canWrite, fixedPositionCode, title }:
         placeholder="노출 순서"
         min={0}
         defaultValue={0}
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
       />
 
       {adType === "image" ? (
@@ -115,7 +115,7 @@ export default function BannerCreateForm({ canWrite, fixedPositionCode, title }:
             type="text"
             name="linkUrl"
             placeholder="제휴 링크 URL (쿠팡파트너스 등, 선택)"
-            className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 md:col-span-2"
+            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 md:col-span-2"
           />
         </>
       ) : (
@@ -126,7 +126,7 @@ export default function BannerCreateForm({ canWrite, fixedPositionCode, title }:
             placeholder={
               '제휴사가 제공한 원본 광고 태그를 그대로 붙여넣으세요.\n예) <iframe src="https://ads-partners.coupang.com/widgets.html?id=..." width="680" height="140" frameborder="0" scrolling="no"></iframe>'
             }
-            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 font-mono text-xs text-white outline-none focus:border-indigo-500"
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-xs text-slate-900 outline-none focus:border-indigo-500"
           />
           <p className="mt-1 text-xs text-slate-500">
             쿠팡파트너스 위젯, Google AdSense, 기타 제휴사가 발급한 &lt;iframe&gt;/&lt;script&gt; 코드를
@@ -134,34 +134,34 @@ export default function BannerCreateForm({ canWrite, fixedPositionCode, title }:
           </p>
         </div>
       )}
-      <label className="flex flex-col gap-1 text-xs text-slate-400">
+      <label className="flex flex-col gap-1 text-xs text-slate-500">
         시작일시(선택)
         <input
           type="datetime-local"
           name="startAt"
-          className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
         />
       </label>
-      <label className="flex flex-col gap-1 text-xs text-slate-400">
+      <label className="flex flex-col gap-1 text-xs text-slate-500">
         종료일시(선택)
         <input
           type="datetime-local"
           name="endAt"
-          className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
         />
       </label>
-      <label className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300">
+      <label className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-600">
         <input type="checkbox" name="isActive" defaultChecked className="accent-indigo-500" />
         활성화(노출)
       </label>
 
       {state.error && (
-        <p className="col-span-full rounded-lg bg-red-950/60 px-3 py-2 text-sm text-red-400">
+        <p className="col-span-full rounded-lg bg-red-100 px-3 py-2 text-sm text-red-700">
           {state.error}
         </p>
       )}
       {state.success && (
-        <p className="col-span-full rounded-lg bg-emerald-950/60 px-3 py-2 text-sm text-emerald-400">
+        <p className="col-span-full rounded-lg bg-emerald-100 px-3 py-2 text-sm text-emerald-700">
           배너가 추가되었습니다.
         </p>
       )}

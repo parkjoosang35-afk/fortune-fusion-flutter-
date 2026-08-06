@@ -30,9 +30,9 @@ export default function PointAdjustForm({
         await formAction(formData);
         formRef.current?.reset();
       }}
-      className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-800 bg-slate-900 p-4 md:grid-cols-5"
+      className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-5"
     >
-      <h2 className="col-span-full text-sm font-semibold text-white">
+      <h2 className="col-span-full text-sm font-semibold text-slate-900">
         포인트 조정 (수동 지급/회수)
       </h2>
       <p className="col-span-full -mt-1 text-xs text-slate-500">
@@ -43,7 +43,7 @@ export default function PointAdjustForm({
         name="userId"
         required
         defaultValue=""
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 md:col-span-2"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 md:col-span-2"
       >
         <option value="" disabled>
           회원 선택
@@ -57,7 +57,7 @@ export default function PointAdjustForm({
       <select
         name="direction"
         defaultValue="grant"
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
       >
         <option value="grant">지급</option>
         <option value="revoke">회수</option>
@@ -68,23 +68,23 @@ export default function PointAdjustForm({
         placeholder="금액"
         required
         min={1}
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
       />
       <input
         type="text"
         name="memo"
         placeholder="사유 (필수)"
         required
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
       />
 
       {state.error && (
-        <p className="col-span-full rounded-lg bg-red-950/60 px-3 py-2 text-sm text-red-400">
+        <p className="col-span-full rounded-lg bg-red-100 px-3 py-2 text-sm text-red-700">
           {state.error}
         </p>
       )}
       {state.success && (
-        <p className="col-span-full rounded-lg bg-emerald-950/60 px-3 py-2 text-sm text-emerald-400">
+        <p className="col-span-full rounded-lg bg-emerald-100 px-3 py-2 text-sm text-emerald-700">
           포인트 조정이 반영되었습니다.
         </p>
       )}

@@ -21,9 +21,9 @@ interface RefundRowProps {
 const initialState: RefundFormState = {};
 
 const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
-  pending: { label: "승인대기", cls: "bg-amber-950/60 text-amber-400" },
-  completed: { label: "환불완료", cls: "bg-emerald-950/60 text-emerald-400" },
-  failed: { label: "거부됨", cls: "bg-rose-950/60 text-rose-400" },
+  pending: { label: "승인대기", cls: "bg-amber-100 text-amber-700" },
+  completed: { label: "환불완료", cls: "bg-emerald-100 text-emerald-700" },
+  failed: { label: "거부됨", cls: "bg-rose-100 text-rose-700" },
 };
 
 function fmtDate(d: Date | null): string {
@@ -35,14 +35,14 @@ export default function RefundRow({ refund, canApprove }: RefundRowProps) {
   const [approveState, approveAction, approvePending] = useActionState(approveRefund, initialState);
   const [rejectState, rejectAction, rejectPending] = useActionState(rejectRefund, initialState);
 
-  const st = STATUS_LABEL[refund.status] ?? { label: refund.status, cls: "bg-slate-800 text-slate-400" };
+  const st = STATUS_LABEL[refund.status] ?? { label: refund.status, cls: "bg-white text-slate-500" };
 
   return (
-    <tr className="border-b border-slate-800/60 hover:bg-slate-800/40 align-top">
-      <td className="px-4 py-3 text-slate-400 font-mono text-xs">{refund.pgTxId}</td>
-      <td className="px-4 py-3 text-slate-200">{refund.userNickname}</td>
-      <td className="px-4 py-3 text-slate-200">{refund.amount.toLocaleString()}원</td>
-      <td className="px-4 py-3 text-slate-400">{refund.reason ?? "-"}</td>
+    <tr className="border-b border-slate-200/60 hover:bg-slate-100/40 align-top">
+      <td className="px-4 py-3 text-slate-500 font-mono text-xs">{refund.pgTxId}</td>
+      <td className="px-4 py-3 text-slate-700">{refund.userNickname}</td>
+      <td className="px-4 py-3 text-slate-700">{refund.amount.toLocaleString()}원</td>
+      <td className="px-4 py-3 text-slate-500">{refund.reason ?? "-"}</td>
       <td className="px-4 py-3">
         <span className={`rounded-full px-2 py-0.5 text-xs ${st.cls}`}>{st.label}</span>
       </td>
@@ -57,7 +57,7 @@ export default function RefundRow({ refund, canApprove }: RefundRowProps) {
                 <button
                   type="submit"
                   disabled={approvePending}
-                  className="rounded-lg border border-emerald-900 px-3 py-1 text-xs text-emerald-400 hover:bg-emerald-950/40 disabled:opacity-50"
+                  className="rounded-lg border border-emerald-300 px-3 py-1 text-xs text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
                 >
                   승인(환불완료)
                 </button>
@@ -67,7 +67,7 @@ export default function RefundRow({ refund, canApprove }: RefundRowProps) {
                 <button
                   type="submit"
                   disabled={rejectPending}
-                  className="rounded-lg border border-rose-900 px-3 py-1 text-xs text-rose-400 hover:bg-rose-950/40 disabled:opacity-50"
+                  className="rounded-lg border border-rose-300 px-3 py-1 text-xs text-rose-700 hover:bg-rose-100 disabled:opacity-50"
                 >
                   거부
                 </button>
@@ -79,8 +79,8 @@ export default function RefundRow({ refund, canApprove }: RefundRowProps) {
         ) : (
           <span className="text-xs text-slate-600">처리 완료</span>
         )}
-        {approveState.error && <p className="mt-1 text-xs text-red-400">{approveState.error}</p>}
-        {rejectState.error && <p className="mt-1 text-xs text-red-400">{rejectState.error}</p>}
+        {approveState.error && <p className="mt-1 text-xs text-red-700">{approveState.error}</p>}
+        {rejectState.error && <p className="mt-1 text-xs text-red-700">{rejectState.error}</p>}
       </td>
     </tr>
   );

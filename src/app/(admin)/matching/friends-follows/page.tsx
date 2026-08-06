@@ -60,20 +60,20 @@ export default async function MatchingFriendsFollowsPage() {
   const statusBadge = (status: string) => {
     if (status === "accepted") {
       return (
-        <span className="rounded-full bg-emerald-950/60 px-2 py-0.5 text-xs text-emerald-400">
+        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">
           친구 성사
         </span>
       );
     }
     if (status === "blocked") {
       return (
-        <span className="rounded-full bg-rose-950/60 px-2 py-0.5 text-xs text-rose-400">
+        <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs text-rose-700">
           차단
         </span>
       );
     }
     return (
-      <span className="rounded-full bg-slate-800 px-2 py-0.5 text-xs text-slate-400">
+      <span className="rounded-full bg-white px-2 py-0.5 text-xs text-slate-500">
         요청 대기
       </span>
     );
@@ -82,55 +82,55 @@ export default async function MatchingFriendsFollowsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">매칭/궁합 관리 — 친구/팔로우 모니터링</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">매칭/궁합 관리 — 친구/팔로우 모니터링</h1>
+        <p className="mt-1 text-sm text-slate-500">
           회원 간 친구 관계(friends)와 팔로우 관계(follows)를 조회합니다(조회 전용). 친구
           관계의 요청/성사/차단 상태를 확인할 수 있습니다.
         </p>
-        <nav className="mt-4 flex gap-2 border-b border-slate-800 text-sm">
-          <Link href="/matching/profiles" className="px-3 py-2 text-slate-400 hover:text-white">
+        <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
+          <Link href="/matching/profiles" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             매칭 프로필
           </Link>
-          <Link href="/matching/likes-pairs" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/matching/likes-pairs" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             매칭 성사 이력
           </Link>
-          <span className="border-b-2 border-indigo-500 px-3 py-2 text-white">친구/팔로우</span>
-          <Link href="/matching/chats" className="px-3 py-2 text-slate-400 hover:text-white">
+          <span className="border-b-2 border-indigo-500 px-3 py-2 text-slate-900">친구/팔로우</span>
+          <Link href="/matching/chats" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             채팅 모니터링
           </Link>
-          <Link href="/matching/compatibility-weights" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/matching/compatibility-weights" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             궁합 요소 가중치
           </Link>
-          <Link href="/matching/compatibility-stats" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/matching/compatibility-stats" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             궁합 통계
           </Link>
         </nav>
       </div>
 
       <section className="mb-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">친구 요청 대기</p>
-          <p className="mt-1 text-2xl font-bold text-slate-300">{requestedCount.toLocaleString()}</p>
+          <p className="mt-1 text-2xl font-bold text-slate-600">{requestedCount.toLocaleString()}</p>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">친구 성사(accepted)</p>
-          <p className="mt-1 text-2xl font-bold text-emerald-400">{acceptedCount.toLocaleString()}</p>
+          <p className="mt-1 text-2xl font-bold text-emerald-700">{acceptedCount.toLocaleString()}</p>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">차단(blocked)</p>
-          <p className="mt-1 text-2xl font-bold text-rose-400">{blockedCount.toLocaleString()}</p>
+          <p className="mt-1 text-2xl font-bold text-rose-700">{blockedCount.toLocaleString()}</p>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">전체 팔로우 관계</p>
-          <p className="mt-1 text-2xl font-bold text-white">{follows.length.toLocaleString()}</p>
+          <p className="mt-1 text-2xl font-bold text-slate-900">{follows.length.toLocaleString()}</p>
         </div>
       </section>
 
       <section className="mb-6">
-        <h2 className="mb-2 text-sm font-semibold text-slate-300">친구 관계 (friends)</h2>
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <h2 className="mb-2 text-sm font-semibold text-slate-600">친구 관계 (friends)</h2>
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">요청자</th>
                 <th className="px-4 py-3">대상자</th>
@@ -147,9 +147,9 @@ export default async function MatchingFriendsFollowsPage() {
                 </tr>
               )}
               {friends.map((f) => (
-                <tr key={f.id} className="border-b border-slate-800/60 hover:bg-slate-800/40">
-                  <td className="px-4 py-3 text-slate-200">{nick(f.userId)}</td>
-                  <td className="px-4 py-3 text-slate-200">{nick(f.friendUserId)}</td>
+                <tr key={f.id} className="border-b border-slate-200/60 hover:bg-slate-100/40">
+                  <td className="px-4 py-3 text-slate-700">{nick(f.userId)}</td>
+                  <td className="px-4 py-3 text-slate-700">{nick(f.friendUserId)}</td>
                   <td className="px-4 py-3">{statusBadge(f.status)}</td>
                   <td className="px-4 py-3 text-slate-500">{fmtDate(f.createdAt)}</td>
                 </tr>
@@ -160,10 +160,10 @@ export default async function MatchingFriendsFollowsPage() {
       </section>
 
       <section>
-        <h2 className="mb-2 text-sm font-semibold text-slate-300">팔로우 관계 (follows)</h2>
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <h2 className="mb-2 text-sm font-semibold text-slate-600">팔로우 관계 (follows)</h2>
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">팔로워</th>
                 <th className="px-4 py-3">팔로잉 대상</th>
@@ -180,10 +180,10 @@ export default async function MatchingFriendsFollowsPage() {
                 </tr>
               )}
               {follows.map((fo) => (
-                <tr key={fo.id} className="border-b border-slate-800/60 hover:bg-slate-800/40">
-                  <td className="px-4 py-3 text-slate-200">{nick(fo.followerId)}</td>
-                  <td className="px-4 py-3 text-slate-200">{nick(fo.followingId)}</td>
-                  <td className="px-4 py-3 text-slate-400">
+                <tr key={fo.id} className="border-b border-slate-200/60 hover:bg-slate-100/40">
+                  <td className="px-4 py-3 text-slate-700">{nick(fo.followerId)}</td>
+                  <td className="px-4 py-3 text-slate-700">{nick(fo.followingId)}</td>
+                  <td className="px-4 py-3 text-slate-500">
                     {followingCountMap.get(fo.followingId) ?? 0}명
                   </td>
                   <td className="px-4 py-3 text-slate-500">{fmtDate(fo.createdAt)}</td>

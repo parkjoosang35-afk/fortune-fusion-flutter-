@@ -32,28 +32,28 @@ export default async function AdminUsersPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">운영/보안 — 관리자 계정 관리</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">운영/보안 — 관리자 계정 관리</h1>
+        <p className="mt-1 text-sm text-slate-500">
           관리자 계정(admin_users)을 관리하고 역할(role)을 배정합니다. 역할 변경은 사유 입력과
           본인 비밀번호 재확인(2단계 확인)이 필요합니다.
         </p>
-        <nav className="mt-4 flex gap-2 border-b border-slate-800 text-sm">
+        <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
           <Link
             href="/admin-users"
-            className="px-3 py-2 font-medium text-white border-b-2 border-indigo-500"
+            className="px-3 py-2 font-medium text-slate-900 border-b-2 border-indigo-500"
           >
             관리자 계정 관리
           </Link>
-          <Link href="/admin-users/roles" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/admin-users/roles" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             역할/권한 매트릭스
           </Link>
           <Link
             href="/admin-users/login-logs"
-            className="px-3 py-2 text-slate-400 hover:text-white"
+            className="px-3 py-2 text-slate-500 hover:text-slate-900"
           >
             관리자 로그인 이력
           </Link>
-          <Link href="/audit-logs" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/audit-logs" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             감사로그(Audit) 조회
           </Link>
         </nav>
@@ -64,9 +64,9 @@ export default async function AdminUsersPage() {
         canWrite={canWrite}
       />
 
-      <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+          <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
             <tr>
               <th className="px-4 py-3">이메일(로그인 ID)</th>
               <th className="px-4 py-3">이름 / 2FA</th>

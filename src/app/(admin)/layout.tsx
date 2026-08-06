@@ -13,7 +13,7 @@ export default async function DashboardGroupLayout({
   const menus = getVisibleMenusForRole(session.roleCode);
 
   return (
-    <div className="flex min-h-screen bg-slate-900">
+    <div className="flex min-h-screen bg-white">
       <AdminSidebar
         menus={menus}
         adminName={session.name}

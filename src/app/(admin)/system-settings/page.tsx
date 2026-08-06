@@ -28,23 +28,23 @@ export default async function SystemSettingsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">시스템 설정 — 전역 설정값 관리</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">시스템 설정 — 전역 설정값 관리</h1>
+        <p className="mt-1 text-sm text-slate-500">
           서비스 점검모드 on/off, 최소 앱버전 등 전역 설정값(key-value)을 관리합니다.
         </p>
-        <nav className="mt-4 flex gap-2 border-b border-slate-800 text-sm">
+        <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
           <Link
             href="/system-settings"
-            className="px-3 py-2 font-medium text-white border-b-2 border-indigo-500"
+            className="px-3 py-2 font-medium text-slate-900 border-b-2 border-indigo-500"
           >
             전역 설정값 관리
           </Link>
-          <Link href="/system-settings/logs" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/system-settings/logs" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             접근/에러 로그 조회
           </Link>
           <Link
             href="/system-settings/statistics"
-            className="px-3 py-2 text-slate-400 hover:text-white"
+            className="px-3 py-2 text-slate-500 hover:text-slate-900"
           >
             통계 스냅샷 관리
           </Link>
@@ -53,9 +53,9 @@ export default async function SystemSettingsPage() {
 
       <SystemSettingCreateForm canWrite={canWrite} />
 
-      <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+          <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
             <tr>
               <th className="px-4 py-3">키(key)</th>
               <th className="px-4 py-3">값(value)</th>

@@ -41,13 +41,13 @@ export default async function FortuneCategoryDetailPage({ params }: Props) {
   return (
     <div>
       <div className="mb-6 flex items-center gap-3">
-        <Link href="/ai-content/categories" className="text-sm text-slate-400 hover:text-white">
+        <Link href="/ai-content/categories" className="text-sm text-slate-500 hover:text-slate-900">
           ← 운세 카테고리 목록
         </Link>
       </div>
 
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">
+        <h1 className="text-2xl font-bold text-slate-900">
           {category.title}
           <span className="ml-2 text-sm font-normal text-slate-500">
             ({DOMAIN_LABEL[categoryKey] ?? categoryKey})
@@ -55,7 +55,7 @@ export default async function FortuneCategoryDetailPage({ params }: Props) {
         </h1>
         <Link
           href={`/ai-content/prompts/${categoryKey}`}
-          className="rounded-lg border border-indigo-500/60 px-3 py-2 text-sm text-indigo-400 hover:bg-indigo-950/60"
+          className="rounded-lg border border-indigo-500/60 px-3 py-2 text-sm text-indigo-700 hover:bg-indigo-100"
         >
           프롬프트 버전 관리 →
         </Link>
@@ -63,8 +63,8 @@ export default async function FortuneCategoryDetailPage({ params }: Props) {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <section className="rounded-xl border border-slate-800 bg-slate-900 p-5">
-            <h2 className="mb-4 text-sm font-semibold text-white">카테고리 메타 편집</h2>
+          <section className="rounded-xl border border-slate-200 bg-white p-5">
+            <h2 className="mb-4 text-sm font-semibold text-slate-900">카테고리 메타 편집</h2>
             <FortuneCategoryMetaForm
               categoryKey={category.categoryKey}
               title={category.title}
@@ -81,17 +81,17 @@ export default async function FortuneCategoryDetailPage({ params }: Props) {
         </div>
 
         <div>
-          <section className="rounded-xl border border-slate-800 bg-slate-900 p-5">
-            <h2 className="mb-3 text-sm font-semibold text-white">현재 배포 상태</h2>
+          <section className="rounded-xl border border-slate-200 bg-white p-5">
+            <h2 className="mb-3 text-sm font-semibold text-slate-900">현재 배포 상태</h2>
             {activeVersion ? (
               <div>
-                <p className="text-sm text-emerald-400">현재 배포중: v{activeVersion.version}</p>
+                <p className="text-sm text-emerald-700">현재 배포중: v{activeVersion.version}</p>
                 <p className="mt-2 line-clamp-4 text-xs text-slate-500">
                   {activeVersion.templateBody}
                 </p>
               </div>
             ) : (
-              <p className="text-sm text-amber-400">배포된(활성) 버전이 없습니다.</p>
+              <p className="text-sm text-amber-700">배포된(활성) 버전이 없습니다.</p>
             )}
             <p className="mt-3 text-xs text-slate-600">
               버전 이력 총 {versions.length}개 · 새 버전 작성/배포전환/롤백은 프롬프트 템플릿
@@ -99,17 +99,17 @@ export default async function FortuneCategoryDetailPage({ params }: Props) {
             </p>
           </section>
 
-          <section className="mt-4 rounded-xl border border-slate-800 bg-slate-900 p-5 text-xs text-slate-500">
+          <section className="mt-4 rounded-xl border border-slate-200 bg-white p-5 text-xs text-slate-500">
             <p>
-              <strong className="text-slate-300">활성(isActive)</strong>: 전체보기/앱에서 이
+              <strong className="text-slate-600">활성(isActive)</strong>: 전체보기/앱에서 이
               카테고리를 아예 사용 가능한지 여부
             </p>
             <p className="mt-1">
-              <strong className="text-slate-300">노출(isVisible)</strong>: 전체보기 화면에 카드로
+              <strong className="text-slate-600">노출(isVisible)</strong>: 전체보기 화면에 카드로
               보일지 여부(비노출이어도 앱 라우트는 살아있을 수 있음)
             </p>
             <p className="mt-1">
-              <strong className="text-slate-300">추천(isFeatured)</strong>: 대표 카테고리 강조
+              <strong className="text-slate-600">추천(isFeatured)</strong>: 대표 카테고리 강조
               영역에 우선 노출
             </p>
           </section>

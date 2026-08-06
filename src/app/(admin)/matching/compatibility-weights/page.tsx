@@ -41,39 +41,39 @@ export default async function MatchingCompatibilityWeightsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">매칭/궁합 관리 — 궁합 요소 가중치 설정</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">매칭/궁합 관리 — 궁합 요소 가중치 설정</h1>
+        <p className="mt-1 text-sm text-slate-500">
           AI 궁합 계산에 사용되는 사주/MBTI/취미/가치관/활동패턴 요소별 가중치를 조정합니다.
           활성 요소의 가중치 합계는 1.00을 권장합니다(04A F-3 명시, 강제 아님).
         </p>
-        <nav className="mt-4 flex gap-2 border-b border-slate-800 text-sm">
-          <Link href="/matching/profiles" className="px-3 py-2 text-slate-400 hover:text-white">
+        <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
+          <Link href="/matching/profiles" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             매칭 프로필
           </Link>
-          <Link href="/matching/likes-pairs" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/matching/likes-pairs" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             매칭 성사 이력
           </Link>
-          <Link href="/matching/friends-follows" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/matching/friends-follows" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             친구/팔로우
           </Link>
-          <Link href="/matching/chats" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/matching/chats" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             채팅 모니터링
           </Link>
-          <span className="border-b-2 border-indigo-500 px-3 py-2 text-white">궁합 요소 가중치</span>
-          <Link href="/matching/compatibility-stats" className="px-3 py-2 text-slate-400 hover:text-white">
+          <span className="border-b-2 border-indigo-500 px-3 py-2 text-slate-900">궁합 요소 가중치</span>
+          <Link href="/matching/compatibility-stats" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             궁합 통계
           </Link>
         </nav>
       </div>
 
-      <div className="mb-4 flex flex-wrap items-center gap-4 text-sm text-slate-400">
+      <div className="mb-4 flex flex-wrap items-center gap-4 text-sm text-slate-500">
         <span>
-          전체 요소 <span className="text-white">{items.length}</span>개
+          전체 요소 <span className="text-slate-900">{items.length}</span>개
         </span>
         <span>
           활성 요소 가중치 합계{" "}
-          <span className={sumWarning ? "text-amber-400" : "text-emerald-400"}>{activeSum.toFixed(2)}</span>
-          {sumWarning && <span className="ml-1 text-amber-400">(권장값 1.00에서 벗어남)</span>}
+          <span className={sumWarning ? "text-amber-700" : "text-emerald-700"}>{activeSum.toFixed(2)}</span>
+          {sumWarning && <span className="ml-1 text-amber-700">(권장값 1.00에서 벗어남)</span>}
         </span>
       </div>
 

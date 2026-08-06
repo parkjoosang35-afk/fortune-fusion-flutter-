@@ -38,11 +38,11 @@ export default async function PageConfigSectionDetailPage({
     <div>
       <div className="mb-6">
         <div className="flex items-center gap-2">
-          <Link href="/cms/page-configs/home/sections" className="text-sm text-slate-400 hover:text-white">
+          <Link href="/cms/page-configs/home/sections" className="text-sm text-slate-500 hover:text-slate-900">
             ← 섹션 리스트
           </Link>
         </div>
-        <h1 className="mt-2 text-2xl font-bold text-white">
+        <h1 className="mt-2 text-2xl font-bold text-slate-900">
           섹션 편집: {section.title ?? section.sectionKey}
         </h1>
         <PageConfigHomeSubNav />

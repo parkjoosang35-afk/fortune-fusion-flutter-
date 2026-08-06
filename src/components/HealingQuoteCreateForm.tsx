@@ -21,9 +21,9 @@ export default function HealingQuoteCreateForm({ canWrite }: { canWrite: boolean
         await formAction(formData);
         formRef.current?.reset();
       }}
-      className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-800 bg-slate-900 p-4 md:grid-cols-4"
+      className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-4"
     >
-      <h3 className="col-span-full text-sm font-semibold text-white">새 힐링 문구 추가</h3>
+      <h3 className="col-span-full text-sm font-semibold text-slate-900">새 힐링 문구 추가</h3>
 
       <div className="col-span-full">
         <textarea
@@ -31,7 +31,7 @@ export default function HealingQuoteCreateForm({ canWrite }: { canWrite: boolean
           rows={3}
           required
           placeholder="좋은 글귀 / 힐링 문구 / 긍정 명언 / 응원의 한마디를 입력하세요."
-          className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-purple-500"
+          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-purple-500"
         />
       </div>
 
@@ -39,12 +39,12 @@ export default function HealingQuoteCreateForm({ canWrite }: { canWrite: boolean
         type="text"
         name="author"
         placeholder="출처/저자(선택)"
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-purple-500 md:col-span-2"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-purple-500 md:col-span-2"
       />
       <select
         name="category"
         defaultValue="healing"
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-purple-500"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-purple-500"
       >
         <option value="healing">힐링 문구</option>
         <option value="quote">좋은 글귀</option>
@@ -57,37 +57,37 @@ export default function HealingQuoteCreateForm({ canWrite }: { canWrite: boolean
         placeholder="노출 순서"
         min={0}
         defaultValue={0}
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-purple-500"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-purple-500"
       />
 
-      <label className="flex flex-col gap-1 text-xs text-slate-400">
+      <label className="flex flex-col gap-1 text-xs text-slate-500">
         시작일시(선택)
         <input
           type="datetime-local"
           name="startAt"
-          className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-purple-500"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-purple-500"
         />
       </label>
-      <label className="flex flex-col gap-1 text-xs text-slate-400">
+      <label className="flex flex-col gap-1 text-xs text-slate-500">
         종료일시(선택)
         <input
           type="datetime-local"
           name="endAt"
-          className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-purple-500"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-purple-500"
         />
       </label>
-      <label className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300">
+      <label className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-600">
         <input type="checkbox" name="isActive" defaultChecked className="accent-purple-500" />
         활성화(노출)
       </label>
 
       {state.error && (
-        <p className="col-span-full rounded-lg bg-red-950/60 px-3 py-2 text-sm text-red-400">
+        <p className="col-span-full rounded-lg bg-red-100 px-3 py-2 text-sm text-red-700">
           {state.error}
         </p>
       )}
       {state.success && (
-        <p className="col-span-full rounded-lg bg-emerald-950/60 px-3 py-2 text-sm text-emerald-400">
+        <p className="col-span-full rounded-lg bg-emerald-100 px-3 py-2 text-sm text-emerald-700">
           힐링 문구가 추가되었습니다.
         </p>
       )}

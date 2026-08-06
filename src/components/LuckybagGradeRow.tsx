@@ -21,7 +21,7 @@ export default function LuckybagGradeRow({ grade, canWrite }: LuckybagGradeRowPr
 
   if (editing) {
     return (
-      <tr className="border-b border-slate-800/60 bg-slate-800/30">
+      <tr className="border-b border-slate-200/60 bg-white/30">
         <td colSpan={3} className="px-4 py-3">
           <form action={updateAction} className="flex flex-wrap items-center gap-2">
             <input type="hidden" name="id" value={grade.id} />
@@ -29,20 +29,20 @@ export default function LuckybagGradeRow({ grade, canWrite }: LuckybagGradeRowPr
               type="text"
               name="code"
               defaultValue={grade.code}
-              className="w-28 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="w-28 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
             <input
               type="text"
               name="name"
               defaultValue={grade.name}
-              className="w-28 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="w-28 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
             <input
               type="number"
               name="sortOrder"
               defaultValue={grade.sortOrder}
               min={0}
-              className="w-20 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="w-20 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
             <button
               type="submit"
@@ -54,11 +54,11 @@ export default function LuckybagGradeRow({ grade, canWrite }: LuckybagGradeRowPr
             <button
               type="button"
               onClick={() => setEditing(false)}
-              className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
+              className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100"
             >
               취소
             </button>
-            {updateState.error && <p className="w-full text-xs text-red-400">{updateState.error}</p>}
+            {updateState.error && <p className="w-full text-xs text-red-700">{updateState.error}</p>}
           </form>
         </td>
       </tr>
@@ -66,14 +66,14 @@ export default function LuckybagGradeRow({ grade, canWrite }: LuckybagGradeRowPr
   }
 
   return (
-    <tr className="border-b border-slate-800/60 hover:bg-slate-800/40">
-      <td className="px-4 py-3 font-mono text-slate-200">{grade.code}</td>
-      <td className="px-4 py-3 text-slate-300">{grade.name}</td>
+    <tr className="border-b border-slate-200/60 hover:bg-slate-100/40">
+      <td className="px-4 py-3 font-mono text-slate-700">{grade.code}</td>
+      <td className="px-4 py-3 text-slate-600">{grade.name}</td>
       <td className="px-4 py-3">
         {canWrite && (
           <button
             onClick={() => setEditing(true)}
-            className="rounded-lg border border-slate-700 px-3 py-1 text-xs text-slate-300 hover:bg-slate-800"
+            className="rounded-lg border border-slate-300 px-3 py-1 text-xs text-slate-600 hover:bg-slate-100"
           >
             수정
           </button>

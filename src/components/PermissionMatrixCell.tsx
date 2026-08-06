@@ -30,7 +30,7 @@ export default function PermissionMatrixCell({
 
   if (!editable) {
     return (
-      <td className="px-3 py-2 text-center text-xs text-slate-400">
+      <td className="px-3 py-2 text-center text-xs text-slate-500">
         {canRead ? "R" : "-"}
         {canWrite ? "W" : "-"}
         {canDelete ? "D" : "-"}
@@ -43,7 +43,7 @@ export default function PermissionMatrixCell({
       <td className="px-3 py-2 text-center">
         <button
           onClick={() => setEditing(true)}
-          className="rounded px-2 py-1 text-xs font-mono text-slate-300 hover:bg-slate-800"
+          className="rounded px-2 py-1 text-xs font-mono text-slate-600 hover:bg-slate-100"
           title="클릭하여 편집"
         >
           {canRead ? "R" : "-"}
@@ -61,11 +61,11 @@ export default function PermissionMatrixCell({
           await formAction(fd);
           setEditing(false);
         }}
-        className="flex flex-col items-center gap-1 rounded-lg border border-slate-700 bg-slate-800 p-2"
+        className="flex flex-col items-center gap-1 rounded-lg border border-slate-300 bg-white p-2"
       >
         <input type="hidden" name="roleId" value={roleId} />
         <input type="hidden" name="menuCode" value={menuCode} />
-        <div className="flex gap-2 text-xs text-slate-300">
+        <div className="flex gap-2 text-xs text-slate-600">
           <label className="flex items-center gap-1">
             <input
               type="checkbox"
@@ -108,12 +108,12 @@ export default function PermissionMatrixCell({
           <button
             type="button"
             onClick={() => setEditing(false)}
-            className="rounded bg-slate-700 px-2 py-0.5 text-xs text-slate-300 hover:bg-slate-600"
+            className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600 hover:bg-slate-200"
           >
             취소
           </button>
         </div>
-        {state.error && <p className="text-[10px] text-red-400">{state.error}</p>}
+        {state.error && <p className="text-[10px] text-red-700">{state.error}</p>}
       </form>
     </td>
   );

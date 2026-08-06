@@ -14,9 +14,9 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_BADGE_CLASS: Record<string, string> = {
-  active: "bg-emerald-950/60 text-emerald-400",
-  suspended: "bg-amber-950/60 text-amber-400",
-  withdrawn: "bg-slate-800 text-slate-400",
+  active: "bg-emerald-100 text-emerald-700",
+  suspended: "bg-amber-100 text-amber-700",
+  withdrawn: "bg-white text-slate-500",
 };
 
 const PAGE_SIZE = 10;
@@ -97,8 +97,8 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">회원 관리</h1>
-          <p className="mt-1 text-sm text-slate-400">
+          <h1 className="text-2xl font-bold text-slate-900">회원 관리</h1>
+          <p className="mt-1 text-sm text-slate-500">
             총 {total.toLocaleString()}명의 회원이 조회되었습니다.
           </p>
         </div>
@@ -107,19 +107,19 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
       {/* 검색/필터 폼 — 05§3.1: 검색(닉네임/이메일/전화), 필터(상태/가입경로/가입일) */}
       <form
         method="GET"
-        className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-800 bg-slate-900 p-4 md:grid-cols-6"
+        className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-6"
       >
         <input
           type="text"
           name="q"
           defaultValue={q}
           placeholder="닉네임 / 이메일 / 전화번호 검색"
-          className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 md:col-span-2"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 md:col-span-2"
         />
         <select
           name="status"
           defaultValue={status}
-          className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
         >
           <option value="">전체 상태</option>
           <option value="active">정상</option>
@@ -129,7 +129,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
         <select
           name="channel"
           defaultValue={channel}
-          className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
         >
           <option value="">전체 가입경로</option>
           <option value="app">앱</option>
@@ -141,13 +141,13 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
           type="date"
           name="from"
           defaultValue={from}
-          className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
         />
         <input
           type="date"
           name="to"
           defaultValue={to}
-          className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
         />
         <div className="flex gap-2 md:col-span-6">
           <button
@@ -158,7 +158,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
           </button>
           <Link
             href="/users"
-            className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800"
+            className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600 transition hover:bg-slate-100"
           >
             초기화
           </Link>
@@ -166,9 +166,9 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
       </form>
 
       {/* 회원 목록 테이블 */}
-      <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+          <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
             <tr>
               <th className="px-4 py-3">ID</th>
               <th className="px-4 py-3">닉네임</th>
@@ -191,36 +191,36 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
             {users.map((u) => (
               <tr
                 key={u.id}
-                className="border-b border-slate-800/60 hover:bg-slate-800/40"
+                className="border-b border-slate-200/60 hover:bg-slate-100/40"
               >
-                <td className="px-4 py-3 text-slate-400">{u.id}</td>
+                <td className="px-4 py-3 text-slate-500">{u.id}</td>
                 <td className="px-4 py-3">
                   <Link
                     href={`/users/${u.id}`}
-                    className="font-medium text-white hover:text-indigo-400"
+                    className="font-medium text-slate-900 hover:text-indigo-700"
                   >
                     {u.nickname}
                   </Link>
                 </td>
-                <td className="px-4 py-3 text-slate-400">
+                <td className="px-4 py-3 text-slate-500">
                   {u.email ?? "-"}
                   {u.phone ? ` / ${u.phone}` : ""}
                 </td>
-                <td className="px-4 py-3 text-slate-300">
+                <td className="px-4 py-3 text-slate-600">
                   {u.grade?.name ?? "-"}
                 </td>
-                <td className="px-4 py-3 text-slate-300">{u.signupChannel}</td>
+                <td className="px-4 py-3 text-slate-600">{u.signupChannel}</td>
                 <td className="px-4 py-3">
                   <span
-                    className={`rounded-full px-2 py-1 text-xs font-medium ${STATUS_BADGE_CLASS[u.status] ?? "bg-slate-800 text-slate-400"}`}
+                    className={`rounded-full px-2 py-1 text-xs font-medium ${STATUS_BADGE_CLASS[u.status] ?? "bg-white text-slate-500"}`}
                   >
                     {STATUS_LABEL[u.status] ?? u.status}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-slate-400">
+                <td className="px-4 py-3 text-slate-500">
                   {u.createdAt.toISOString().slice(0, 10)}
                 </td>
-                <td className="px-4 py-3 text-slate-400">
+                <td className="px-4 py-3 text-slate-500">
                   {u.lastLoginAt
                     ? u.lastLoginAt.toISOString().slice(0, 10)
                     : "-"}
@@ -240,7 +240,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
             className={`rounded-lg px-3 py-1.5 text-sm ${
               p === page
                 ? "bg-indigo-600 text-white"
-                : "text-slate-400 hover:bg-slate-800"
+                : "text-slate-500 hover:bg-slate-100"
             }`}
           >
             {p}

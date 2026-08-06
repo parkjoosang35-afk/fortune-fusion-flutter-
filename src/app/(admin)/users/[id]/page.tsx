@@ -19,9 +19,9 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_BADGE_CLASS: Record<string, string> = {
-  active: "bg-emerald-950/60 text-emerald-400",
-  suspended: "bg-amber-950/60 text-amber-400",
-  withdrawn: "bg-slate-800 text-slate-400",
+  active: "bg-emerald-100 text-emerald-700",
+  suspended: "bg-amber-100 text-amber-700",
+  withdrawn: "bg-white text-slate-500",
 };
 
 interface UserDetailPageProps {
@@ -61,7 +61,7 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
       <div className="mb-6 flex items-center gap-3">
         <Link
           href="/users"
-          className="text-sm text-slate-400 hover:text-white"
+          className="text-sm text-slate-500 hover:text-slate-900"
         >
           ← 회원 목록
         </Link>
@@ -69,9 +69,9 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
 
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-white">{user.nickname}</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{user.nickname}</h1>
           <span
-            className={`rounded-full px-2 py-1 text-xs font-medium ${STATUS_BADGE_CLASS[user.status] ?? "bg-slate-800 text-slate-400"}`}
+            className={`rounded-full px-2 py-1 text-xs font-medium ${STATUS_BADGE_CLASS[user.status] ?? "bg-white text-slate-500"}`}
           >
             {STATUS_LABEL[user.status] ?? user.status}
           </span>
@@ -83,46 +83,46 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
         {/* 좌측: 프로필 정보 + 로그인이력 */}
         <div className="space-y-6 lg:col-span-2">
           {/* 프로필 정보 — 04A A-1/A-2 */}
-          <section className="rounded-xl border border-slate-800 bg-slate-900 p-5">
-            <h2 className="mb-4 text-sm font-semibold text-white">
+          <section className="rounded-xl border border-slate-200 bg-white p-5">
+            <h2 className="mb-4 text-sm font-semibold text-slate-900">
               프로필 정보
             </h2>
             <dl className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <dt className="text-slate-500">이메일</dt>
-                <dd className="text-slate-200">{user.email ?? "-"}</dd>
+                <dd className="text-slate-700">{user.email ?? "-"}</dd>
               </div>
               <div>
                 <dt className="text-slate-500">전화번호</dt>
-                <dd className="text-slate-200">{user.phone ?? "-"}</dd>
+                <dd className="text-slate-700">{user.phone ?? "-"}</dd>
               </div>
               <div>
                 <dt className="text-slate-500">성별</dt>
-                <dd className="text-slate-200">{user.gender ?? "-"}</dd>
+                <dd className="text-slate-700">{user.gender ?? "-"}</dd>
               </div>
               <div>
                 <dt className="text-slate-500">등급</dt>
-                <dd className="text-slate-200">{user.grade?.name ?? "-"}</dd>
+                <dd className="text-slate-700">{user.grade?.name ?? "-"}</dd>
               </div>
               <div>
                 <dt className="text-slate-500">가입경로</dt>
-                <dd className="text-slate-200">{user.signupChannel}</dd>
+                <dd className="text-slate-700">{user.signupChannel}</dd>
               </div>
               <div>
                 <dt className="text-slate-500">마케팅 수신동의</dt>
-                <dd className="text-slate-200">
+                <dd className="text-slate-700">
                   {user.marketingAgreed ? "동의" : "미동의"}
                 </dd>
               </div>
               <div>
                 <dt className="text-slate-500">가입일</dt>
-                <dd className="text-slate-200">
+                <dd className="text-slate-700">
                   {user.createdAt.toISOString().slice(0, 19).replace("T", " ")}
                 </dd>
               </div>
               <div>
                 <dt className="text-slate-500">최근 로그인</dt>
-                <dd className="text-slate-200">
+                <dd className="text-slate-700">
                   {user.lastLoginAt
                     ? user.lastLoginAt.toISOString().slice(0, 19).replace("T", " ")
                     : "-"}
@@ -130,27 +130,27 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
               </div>
               <div>
                 <dt className="text-slate-500">MBTI</dt>
-                <dd className="text-slate-200">
+                <dd className="text-slate-700">
                   {user.profile?.mbti ?? "-"}
                 </dd>
               </div>
               <div>
                 <dt className="text-slate-500">생년월일</dt>
-                <dd className="text-slate-200">
+                <dd className="text-slate-700">
                   {user.profile?.birthDate ?? "-"}
                   {user.profile?.isLunar ? " (음력)" : ""}
                 </dd>
               </div>
               <div className="col-span-2">
                 <dt className="text-slate-500">자기소개</dt>
-                <dd className="text-slate-200">
+                <dd className="text-slate-700">
                   {user.profile?.introText ?? "-"}
                 </dd>
               </div>
               {user.status === "withdrawn" && (
                 <div className="col-span-2">
                   <dt className="text-slate-500">탈퇴 사유</dt>
-                  <dd className="text-amber-400">
+                  <dd className="text-amber-700">
                     {user.withdrawalReason ?? "-"}
                   </dd>
                 </div>
@@ -159,8 +159,8 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
           </section>
 
           {/* 참조용 안내 — 미구현 도메인 */}
-          <section className="rounded-xl border border-dashed border-slate-700 bg-slate-900/40 p-5">
-            <h2 className="mb-2 text-sm font-semibold text-slate-300">
+          <section className="rounded-xl border border-dashed border-slate-300 bg-white/40 p-5">
+            <h2 className="mb-2 text-sm font-semibold text-slate-600">
               지갑 잔액 · AI 이용 히스토리 · 보유 부적/상품권
             </h2>
             <p className="text-sm text-slate-500">
@@ -171,13 +171,13 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
           </section>
 
           {/* 로그인 이력 — 04A A-4 user_login_logs */}
-          <section className="rounded-xl border border-slate-800 bg-slate-900 p-5">
-            <h2 className="mb-4 text-sm font-semibold text-white">
+          <section className="rounded-xl border border-slate-200 bg-white p-5">
+            <h2 className="mb-4 text-sm font-semibold text-slate-900">
               로그인 이력 (최근 10건)
             </h2>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+                <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
                   <tr>
                     <th className="py-2 pr-4">일시</th>
                     <th className="py-2 pr-4">방식</th>
@@ -197,25 +197,25 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
                     </tr>
                   )}
                   {user.loginLogs.map((log) => (
-                    <tr key={log.id} className="border-b border-slate-800/60">
-                      <td className="py-2 pr-4 text-slate-400">
+                    <tr key={log.id} className="border-b border-slate-200/60">
+                      <td className="py-2 pr-4 text-slate-500">
                         {log.createdAt
                           .toISOString()
                           .slice(0, 19)
                           .replace("T", " ")}
                       </td>
-                      <td className="py-2 pr-4 text-slate-300">
+                      <td className="py-2 pr-4 text-slate-600">
                         {log.loginType}
                       </td>
-                      <td className="py-2 pr-4 text-slate-400">
+                      <td className="py-2 pr-4 text-slate-500">
                         {log.ipAddress}
                       </td>
                       <td className="py-2 pr-4">
                         <span
                           className={
                             log.successFlag
-                              ? "text-emerald-400"
-                              : "text-red-400"
+                              ? "text-emerald-700"
+                              : "text-red-700"
                           }
                         >
                           {log.successFlag ? "성공" : "실패"}
@@ -230,13 +230,13 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
 
           {/* 탈퇴 이력 — 04A A-11 user_withdrawal_logs */}
           {user.withdrawalLogs.length > 0 && (
-            <section className="rounded-xl border border-slate-800 bg-slate-900 p-5">
-              <h2 className="mb-4 text-sm font-semibold text-white">
+            <section className="rounded-xl border border-slate-200 bg-white p-5">
+              <h2 className="mb-4 text-sm font-semibold text-slate-900">
                 탈퇴 이력
               </h2>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
-                  <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+                  <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
                     <tr>
                       <th className="py-2 pr-4">요청일</th>
                       <th className="py-2 pr-4">사유</th>
@@ -246,17 +246,17 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
                   </thead>
                   <tbody>
                     {user.withdrawalLogs.map((log) => (
-                      <tr key={log.id} className="border-b border-slate-800/60">
-                        <td className="py-2 pr-4 text-slate-400">
+                      <tr key={log.id} className="border-b border-slate-200/60">
+                        <td className="py-2 pr-4 text-slate-500">
                           {log.requestedAt.toISOString().slice(0, 10)}
                         </td>
-                        <td className="py-2 pr-4 text-slate-300">
+                        <td className="py-2 pr-4 text-slate-600">
                           {log.reason ?? "-"}
                         </td>
-                        <td className="py-2 pr-4 text-slate-400">
+                        <td className="py-2 pr-4 text-slate-500">
                           {log.dataPurgeScheduledAt.toISOString().slice(0, 10)}
                         </td>
-                        <td className="py-2 pr-4 text-slate-400">
+                        <td className="py-2 pr-4 text-slate-500">
                           {log.dataPurgedAt
                             ? log.dataPurgedAt.toISOString().slice(0, 10)
                             : "-"}
@@ -272,8 +272,8 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
 
         {/* 우측: 상태 변경 */}
         <div>
-          <section className="rounded-xl border border-slate-800 bg-slate-900 p-5">
-            <h2 className="mb-4 text-sm font-semibold text-white">
+          <section className="rounded-xl border border-slate-200 bg-white p-5">
+            <h2 className="mb-4 text-sm font-semibold text-slate-900">
               상태 변경
             </h2>
             <UserStatusChangeForm

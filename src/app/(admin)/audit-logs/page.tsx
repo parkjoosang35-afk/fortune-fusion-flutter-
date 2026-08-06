@@ -102,38 +102,38 @@ export default async function AuditLogsPage({
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">운영/보안 — 감사로그(Audit) 조회</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">운영/보안 — 감사로그(Audit) 조회</h1>
+        <p className="mt-1 text-sm text-slate-500">
           관리자의 모든 생성/수정/삭제 작업 이력(operation_logs)을 before/after 스냅샷과
           함께 조회합니다.
         </p>
-        <nav className="mt-4 flex gap-2 border-b border-slate-800 text-sm">
-          <Link href="/admin-users" className="px-3 py-2 text-slate-400 hover:text-white">
+        <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
+          <Link href="/admin-users" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             관리자 계정 관리
           </Link>
-          <Link href="/admin-users/roles" className="px-3 py-2 text-slate-400 hover:text-white">
+          <Link href="/admin-users/roles" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             역할/권한 매트릭스
           </Link>
           <Link
             href="/admin-users/login-logs"
-            className="px-3 py-2 text-slate-400 hover:text-white"
+            className="px-3 py-2 text-slate-500 hover:text-slate-900"
           >
             관리자 로그인 이력
           </Link>
           <Link
             href="/audit-logs"
-            className="px-3 py-2 font-medium text-white border-b-2 border-indigo-500"
+            className="px-3 py-2 font-medium text-slate-900 border-b-2 border-indigo-500"
           >
             감사로그(Audit) 조회
           </Link>
         </nav>
       </div>
 
-      <form className="mb-4 flex flex-wrap gap-3 rounded-xl border border-slate-800 bg-slate-900 p-4">
+      <form className="mb-4 flex flex-wrap gap-3 rounded-xl border border-slate-200 bg-white p-4">
         <select
           name="actorId"
           defaultValue={sp.actorId ?? ""}
-          className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
         >
           <option value="">전체 관리자</option>
           {adminUsers.map((u) => (
@@ -145,7 +145,7 @@ export default async function AuditLogsPage({
         <select
           name="action"
           defaultValue={sp.action ?? ""}
-          className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
         >
           <option value="">전체 액션</option>
           {distinctActions.map((a) => (
@@ -157,7 +157,7 @@ export default async function AuditLogsPage({
         <select
           name="targetType"
           defaultValue={sp.targetType ?? ""}
-          className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
         >
           <option value="">전체 대상</option>
           {distinctTargetTypes.map((t) => (
@@ -170,14 +170,14 @@ export default async function AuditLogsPage({
           type="date"
           name="startDate"
           defaultValue={sp.startDate ?? ""}
-          className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
         />
         <span className="self-center text-slate-500">~</span>
         <input
           type="date"
           name="endDate"
           defaultValue={sp.endDate ?? ""}
-          className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
         />
         <button
           type="submit"
@@ -188,16 +188,16 @@ export default async function AuditLogsPage({
         {hasFilters && (
           <Link
             href="/audit-logs"
-            className="rounded-lg bg-slate-700 px-4 py-2 text-sm text-slate-300 hover:bg-slate-600"
+            className="rounded-lg bg-slate-100 px-4 py-2 text-sm text-slate-600 hover:bg-slate-200"
           >
             초기화
           </Link>
         )}
       </form>
 
-      <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+          <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
             <tr>
               <th className="px-4 py-3">시각</th>
               <th className="px-4 py-3">관리자(actor)</th>
@@ -210,9 +210,9 @@ export default async function AuditLogsPage({
             {logs.map((log) => {
               const actor = log.actorId ? adminMap.get(log.actorId) : undefined;
               return (
-                <tr key={log.id} className="border-b border-slate-800/60 align-top hover:bg-slate-800/40">
+                <tr key={log.id} className="border-b border-slate-200/60 align-top hover:bg-slate-100/40">
                   <td className="px-4 py-3 text-xs text-slate-500">{formatDate(log.createdAt)}</td>
-                  <td className="px-4 py-3 text-slate-200">
+                  <td className="px-4 py-3 text-slate-700">
                     {actor ? (
                       <>
                         {actor.name}
@@ -225,11 +225,11 @@ export default async function AuditLogsPage({
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <span className="rounded-full bg-indigo-950/60 px-2 py-0.5 text-xs text-indigo-300">
+                    <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs text-indigo-800">
                       {ACTION_LABEL[log.action] ?? log.action}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-slate-400">
+                  <td className="px-4 py-3 text-slate-500">
                     {log.targetType}
                     {log.targetId != null && <span className="text-slate-600"> #{log.targetId}</span>}
                   </td>
@@ -258,7 +258,7 @@ export default async function AuditLogsPage({
           {page > 1 && (
             <Link
               href={buildQuery({ page: String(page - 1) })}
-              className="rounded bg-slate-800 px-3 py-1.5 hover:bg-slate-700"
+              className="rounded bg-white px-3 py-1.5 hover:bg-slate-200"
             >
               이전
             </Link>
@@ -266,7 +266,7 @@ export default async function AuditLogsPage({
           {page < totalPages && (
             <Link
               href={buildQuery({ page: String(page + 1) })}
-              className="rounded bg-slate-800 px-3 py-1.5 hover:bg-slate-700"
+              className="rounded bg-white px-3 py-1.5 hover:bg-slate-200"
             >
               다음
             </Link>

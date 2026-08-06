@@ -30,8 +30,8 @@ export default async function HappyMoneyProductsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">리워드 관리 — 행복머니</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">리워드 관리 — 행복머니</h1>
+        <p className="mt-1 text-sm text-slate-500">
           유료 충전 포인트(행복머니) 상품을 관리합니다. 행복머니는 열림패스 구매, 구독, 상품권 등
           유료 구매 전용 자산이며 커뮤니티 소액 반응 재화로는 사용하지 않습니다.
         </p>
@@ -40,25 +40,25 @@ export default async function HappyMoneyProductsPage() {
       <RewardSubNav />
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-          <p className="text-sm text-slate-400">전체 상품 수</p>
-          <p className="mt-1 text-2xl font-bold text-white">{products.length}</p>
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <p className="text-sm text-slate-500">전체 상품 수</p>
+          <p className="mt-1 text-2xl font-bold text-slate-900">{products.length}</p>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-          <p className="text-sm text-slate-400">활성 상품 수</p>
-          <p className="mt-1 text-2xl font-bold text-emerald-400">{activeCount}</p>
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <p className="text-sm text-slate-500">활성 상품 수</p>
+          <p className="mt-1 text-2xl font-bold text-emerald-700">{activeCount}</p>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-          <p className="text-sm text-slate-400">추천 상품 수</p>
-          <p className="mt-1 text-2xl font-bold text-amber-400">{products.filter((p) => p.isFeatured).length}</p>
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <p className="text-sm text-slate-500">추천 상품 수</p>
+          <p className="mt-1 text-2xl font-bold text-amber-700">{products.filter((p) => p.isFeatured).length}</p>
         </div>
       </div>
 
       <HappyMoneyProductCreateForm canWrite={canWrite} />
 
-      <div className="overflow-x-auto rounded-xl border border-slate-800">
+      <div className="overflow-x-auto rounded-xl border border-slate-200">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-800 bg-slate-900 text-xs uppercase text-slate-500">
+          <thead className="border-b border-slate-200 bg-white text-xs uppercase text-slate-500">
             <tr>
               <th className="px-4 py-3">상품명</th>
               <th className="px-4 py-3">현금 가격</th>

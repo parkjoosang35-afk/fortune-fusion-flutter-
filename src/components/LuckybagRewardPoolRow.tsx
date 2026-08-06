@@ -65,7 +65,7 @@ export default function LuckybagRewardPoolRow({
 
   if (editing) {
     return (
-      <tr className="border-b border-slate-800/60 bg-slate-800/30">
+      <tr className="border-b border-slate-200/60 bg-white/30">
         <td colSpan={6} className="px-4 py-3">
           <form
             onSubmit={(e) => {
@@ -83,7 +83,7 @@ export default function LuckybagRewardPoolRow({
               name="luckybagProductId"
               value={editProductId}
               onChange={(e) => setEditProductId(Number(e.target.value))}
-              className="rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             >
               {products.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -94,7 +94,7 @@ export default function LuckybagRewardPoolRow({
             <select
               name="gradeId"
               defaultValue={pool.gradeId}
-              className="rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             >
               {grades.map((g) => (
                 <option key={g.id} value={g.id}>
@@ -105,7 +105,7 @@ export default function LuckybagRewardPoolRow({
             <select
               name="rewardType"
               defaultValue={pool.rewardType}
-              className="rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             >
               {Object.entries(REWARD_TYPE_LABEL).map(([value, label]) => (
                 <option key={value} value={value}>
@@ -118,7 +118,7 @@ export default function LuckybagRewardPoolRow({
               name="rewardAmount"
               defaultValue={pool.rewardAmount ?? ""}
               min={0}
-              className="w-24 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="w-24 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
             <input
               type="number"
@@ -128,7 +128,7 @@ export default function LuckybagRewardPoolRow({
               min={0.0001}
               max={100}
               step={0.0001}
-              className="w-24 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="w-24 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
             <ProbabilityEditor
               selectedProductId={editProductId}
@@ -142,14 +142,14 @@ export default function LuckybagRewardPoolRow({
               confirming={confirming}
               pending={updatePending}
               warningText="정말 저장하시겠습니까? 실제 서비스에 즉시 반영됩니다. (다시 누르면 저장됩니다)"
-              warningClassName="w-full rounded-lg border border-rose-900/60 bg-rose-950/20 p-2 text-xs font-semibold text-rose-300"
+              warningClassName="w-full rounded-lg border border-rose-300/60 bg-rose-100 p-2 text-xs font-semibold text-rose-800"
               idleLabel="저장"
               confirmLabel="확인(최종 저장)"
               pendingLabel="저장 중..."
               idleButtonClassName="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
               confirmButtonClassName="rounded-lg bg-rose-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-rose-600 disabled:opacity-50"
               showCancelWhenIdle
-              cancelButtonClassName="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
+              cancelButtonClassName="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100"
               buttonWrapperClassName="contents"
               onCancel={() => {
                 setEditing(false);
@@ -158,7 +158,7 @@ export default function LuckybagRewardPoolRow({
                 setEditProbability(String(pool.probability));
               }}
             />
-            {updateState.error && <p className="w-full text-xs text-red-400">{updateState.error}</p>}
+            {updateState.error && <p className="w-full text-xs text-red-700">{updateState.error}</p>}
           </form>
         </td>
       </tr>
@@ -166,18 +166,18 @@ export default function LuckybagRewardPoolRow({
   }
 
   return (
-    <tr className="border-b border-slate-800/60 hover:bg-slate-800/40">
-      <td className="px-4 py-3 text-slate-200">{productName}</td>
-      <td className="px-4 py-3 text-slate-300">{gradeName}</td>
-      <td className="px-4 py-3 text-slate-400">{REWARD_TYPE_LABEL[pool.rewardType] ?? pool.rewardType}</td>
-      <td className="px-4 py-3 text-slate-400">{pool.rewardAmount ?? "-"}</td>
-      <td className="px-4 py-3 text-slate-300">{pool.probability}%</td>
+    <tr className="border-b border-slate-200/60 hover:bg-slate-100/40">
+      <td className="px-4 py-3 text-slate-700">{productName}</td>
+      <td className="px-4 py-3 text-slate-600">{gradeName}</td>
+      <td className="px-4 py-3 text-slate-500">{REWARD_TYPE_LABEL[pool.rewardType] ?? pool.rewardType}</td>
+      <td className="px-4 py-3 text-slate-500">{pool.rewardAmount ?? "-"}</td>
+      <td className="px-4 py-3 text-slate-600">{pool.probability}%</td>
       <td className="px-4 py-3">
         <div className="flex gap-2">
           {canWrite && (
             <button
               onClick={() => setEditing(true)}
-              className="rounded-lg border border-slate-700 px-3 py-1 text-xs text-slate-300 hover:bg-slate-800"
+              className="rounded-lg border border-slate-300 px-3 py-1 text-xs text-slate-600 hover:bg-slate-100"
             >
               수정
             </button>
@@ -188,14 +188,14 @@ export default function LuckybagRewardPoolRow({
               <button
                 type="submit"
                 disabled={deletePending}
-                className="rounded-lg border border-red-900 px-3 py-1 text-xs text-red-400 hover:bg-red-950/40 disabled:opacity-50"
+                className="rounded-lg border border-red-300 px-3 py-1 text-xs text-red-700 hover:bg-red-100 disabled:opacity-50"
               >
                 삭제
               </button>
             </form>
           )}
         </div>
-        {deleteState.error && <p className="mt-1 text-xs text-red-400">{deleteState.error}</p>}
+        {deleteState.error && <p className="mt-1 text-xs text-red-700">{deleteState.error}</p>}
       </td>
     </tr>
   );

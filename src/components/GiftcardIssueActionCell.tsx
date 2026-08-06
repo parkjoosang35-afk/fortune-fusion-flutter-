@@ -59,14 +59,14 @@ export default function GiftcardIssueActionCell({
         <button
           type="button"
           onClick={() => setMode("refund-step1")}
-          className="rounded-lg border border-amber-900 px-2 py-1 text-xs text-amber-400 hover:bg-amber-950/40"
+          className="rounded-lg border border-amber-300 px-2 py-1 text-xs text-amber-700 hover:bg-amber-100"
         >
           환불 처리
         </button>
         <button
           type="button"
           onClick={() => setMode("reissue-step1")}
-          className="rounded-lg border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:bg-slate-800"
+          className="rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
         >
           재발급 처리
         </button>
@@ -78,8 +78,8 @@ export default function GiftcardIssueActionCell({
   if (mode === "refund-step1" || mode === "reissue-step1") {
     const isRefund = mode === "refund-step1";
     return (
-      <div className="min-w-[220px] space-y-1.5 rounded-lg border border-slate-700 bg-slate-800/60 p-2">
-        <p className="text-xs font-medium text-slate-300">
+      <div className="min-w-[220px] space-y-1.5 rounded-lg border border-slate-300 bg-white/60 p-2">
+        <p className="text-xs font-medium text-slate-600">
           {isRefund ? "환불 사유" : "재발급 사유"} (필수)
         </p>
         <textarea
@@ -87,7 +87,7 @@ export default function GiftcardIssueActionCell({
           onChange={(e) => setReason(e.target.value)}
           rows={2}
           placeholder={isRefund ? "예: 회원 요청에 의한 환불" : "예: 코드 유실로 인한 재발급"}
-          className="w-full rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-white outline-none focus:border-indigo-500"
+          className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs text-slate-900 outline-none focus:border-indigo-500"
         />
         <div className="flex gap-2">
           <button
@@ -101,7 +101,7 @@ export default function GiftcardIssueActionCell({
           <button
             type="button"
             onClick={reset}
-            className="rounded-lg border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:bg-slate-800"
+            className="rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
           >
             취소
           </button>
@@ -117,13 +117,13 @@ export default function GiftcardIssueActionCell({
   const action = isRefund ? refundAction : reissueAction;
 
   return (
-    <div className="min-w-[240px] space-y-1.5 rounded-lg border border-rose-900/60 bg-rose-950/20 p-2">
-      <p className="text-xs font-semibold text-rose-300">
+    <div className="min-w-[240px] space-y-1.5 rounded-lg border border-rose-300/60 bg-rose-100 p-2">
+      <p className="text-xs font-semibold text-rose-800">
         {isRefund
           ? `정말 환불 처리하시겠습니까? (${pointSpent.toLocaleString()}P 자동 복원)`
           : "정말 재발급 처리하시겠습니까? (새 코드 발급)"}
       </p>
-      <p className="text-xs text-slate-400">사유: {reason}</p>
+      <p className="text-xs text-slate-500">사유: {reason}</p>
       <form action={action} className="flex gap-2">
         <input type="hidden" name="issueId" value={issueId} />
         <input type="hidden" name="reason" value={reason} />
@@ -137,13 +137,13 @@ export default function GiftcardIssueActionCell({
         <button
           type="button"
           onClick={reset}
-          className="rounded-lg border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:bg-slate-800"
+          className="rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
         >
           취소
         </button>
       </form>
-      {state.error && <p className="text-xs text-red-400">{state.error}</p>}
-      {state.success && <p className="text-xs text-emerald-400">처리가 완료되었습니다.</p>}
+      {state.error && <p className="text-xs text-red-700">{state.error}</p>}
+      {state.success && <p className="text-xs text-emerald-700">처리가 완료되었습니다.</p>}
     </div>
   );
 }

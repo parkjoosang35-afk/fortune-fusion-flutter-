@@ -38,7 +38,7 @@ export default function PromptVersionForm({
     <form action={formAction} className="space-y-3">
       <input type="hidden" name="domain" value={domain} />
       <div>
-        <label className="mb-1 block text-sm font-medium text-slate-300">
+        <label className="mb-1 block text-sm font-medium text-slate-600">
           템플릿 내용 (수정 후 저장 시 새 버전으로 생성됩니다)
         </label>
         <textarea
@@ -46,17 +46,17 @@ export default function PromptVersionForm({
           value={body}
           onChange={(e) => setBody(e.target.value)}
           rows={12}
-          className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 font-mono text-sm text-white outline-none focus:border-indigo-500"
+          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-sm text-slate-900 outline-none focus:border-indigo-500"
         />
       </div>
 
       {state.error && (
-        <p className="rounded-lg bg-red-950/60 px-3 py-2 text-sm text-red-400">
+        <p className="rounded-lg bg-red-100 px-3 py-2 text-sm text-red-700">
           {state.error}
         </p>
       )}
       {state.success && (
-        <p className="rounded-lg bg-emerald-950/60 px-3 py-2 text-sm text-emerald-400">
+        <p className="rounded-lg bg-emerald-100 px-3 py-2 text-sm text-emerald-700">
           새 버전으로 저장되었습니다. 목록에서 배포(활성화)를 진행해주세요.
         </p>
       )}

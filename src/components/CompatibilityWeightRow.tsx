@@ -53,8 +53,8 @@ export default function CompatibilityWeightRow({ item, canWrite }: Compatibility
 
   if (editing) {
     return (
-      <tr className="border-b border-slate-800/60 bg-slate-800/30">
-        <td className="px-4 py-3 text-slate-200">{FACTOR_LABEL[item.factorType] ?? item.factorType}</td>
+      <tr className="border-b border-slate-200/60 bg-white/30">
+        <td className="px-4 py-3 text-slate-700">{FACTOR_LABEL[item.factorType] ?? item.factorType}</td>
         <td colSpan={canWrite ? 4 : 3} className="px-4 py-3">
           <form action={updateAction} className="flex items-center gap-2">
             <input type="hidden" name="id" value={item.id} />
@@ -65,7 +65,7 @@ export default function CompatibilityWeightRow({ item, canWrite }: Compatibility
               min={0}
               max={1}
               defaultValue={item.weight}
-              className="w-24 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="w-24 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
             <button
               type="submit"
@@ -77,11 +77,11 @@ export default function CompatibilityWeightRow({ item, canWrite }: Compatibility
             <button
               type="button"
               onClick={() => setEditing(false)}
-              className="rounded-lg border border-slate-700 px-3 py-1 text-xs text-slate-300 hover:bg-slate-800"
+              className="rounded-lg border border-slate-300 px-3 py-1 text-xs text-slate-600 hover:bg-slate-100"
             >
               취소
             </button>
-            {updateState.error && <span className="text-xs text-rose-400">{updateState.error}</span>}
+            {updateState.error && <span className="text-xs text-rose-700">{updateState.error}</span>}
           </form>
         </td>
       </tr>
@@ -90,14 +90,14 @@ export default function CompatibilityWeightRow({ item, canWrite }: Compatibility
 
   return (
     <>
-      <tr className="border-b border-slate-800/60 hover:bg-slate-800/40">
-        <td className="px-4 py-3 font-medium text-slate-200">{FACTOR_LABEL[item.factorType] ?? item.factorType}</td>
-        <td className="px-4 py-3 text-slate-200">{item.weight.toFixed(2)}</td>
+      <tr className="border-b border-slate-200/60 hover:bg-slate-100/40">
+        <td className="px-4 py-3 font-medium text-slate-700">{FACTOR_LABEL[item.factorType] ?? item.factorType}</td>
+        <td className="px-4 py-3 text-slate-700">{item.weight.toFixed(2)}</td>
         <td className="px-4 py-3">
           {item.isActive ? (
-            <span className="rounded-full bg-emerald-950/60 px-2 py-0.5 text-xs text-emerald-400">활성</span>
+            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">활성</span>
           ) : (
-            <span className="rounded-full bg-slate-800 px-2 py-0.5 text-xs text-slate-500">비활성</span>
+            <span className="rounded-full bg-white px-2 py-0.5 text-xs text-slate-500">비활성</span>
           )}
         </td>
         <td className="px-4 py-3 text-slate-500">{fmtDate(item.updatedAt)}</td>
@@ -106,7 +106,7 @@ export default function CompatibilityWeightRow({ item, canWrite }: Compatibility
             <div className="flex gap-2">
               <button
                 onClick={() => setEditing(true)}
-                className="rounded-lg border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:bg-slate-800"
+                className="rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
               >
                 가중치 수정
               </button>
@@ -116,7 +116,7 @@ export default function CompatibilityWeightRow({ item, canWrite }: Compatibility
                 <button
                   type="submit"
                   disabled={togglePending}
-                  className="rounded-lg border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:bg-slate-800 disabled:opacity-50"
+                  className="rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100 disabled:opacity-50"
                 >
                   {item.isActive ? "비활성화" : "활성화"}
                 </button>
@@ -126,8 +126,8 @@ export default function CompatibilityWeightRow({ item, canWrite }: Compatibility
         )}
       </tr>
       {warning && (
-        <tr className="border-b border-slate-800/60 bg-amber-950/10">
-          <td colSpan={canWrite ? 5 : 4} className="px-4 py-2 text-xs text-amber-400">
+        <tr className="border-b border-slate-200/60 bg-amber-100">
+          <td colSpan={canWrite ? 5 : 4} className="px-4 py-2 text-xs text-amber-700">
             ⚠️ {warning}
           </td>
         </tr>

@@ -17,9 +17,9 @@ import CouponIssueForm from "@/components/CouponIssueForm";
 export const dynamic = "force-dynamic";
 
 const ISSUE_STATUS_LABEL: Record<string, { label: string; cls: string }> = {
-  unused: { label: "미사용", cls: "bg-emerald-950/60 text-emerald-400" },
-  used: { label: "사용완료", cls: "bg-slate-800 text-slate-400" },
-  expired: { label: "만료", cls: "bg-rose-950/60 text-rose-400" },
+  unused: { label: "미사용", cls: "bg-emerald-100 text-emerald-700" },
+  used: { label: "사용완료", cls: "bg-white text-slate-500" },
+  expired: { label: "만료", cls: "bg-rose-100 text-rose-700" },
 };
 
 function fmtDate(d: Date | null): string {
@@ -63,19 +63,19 @@ export default async function ShopCouponsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">상점 관리 — 쿠폰</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">상점 관리 — 쿠폰</h1>
+        <p className="mt-1 text-sm text-slate-500">
           쿠폰(할인율/포인트 고정 할인)을 등록/관리하고, 특정 회원에게 개별 발급합니다.
           발급 한도(usage_limit)를 초과하는 발급은 시스템이 자동으로 차단합니다.
         </p>
       </div>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-white">쿠폰 관리</h2>
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">쿠폰 관리</h2>
         <CouponCreateForm canWrite={canWrite} />
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">코드</th>
                 <th className="px-4 py-3">할인</th>
@@ -121,7 +121,7 @@ export default async function ShopCouponsPage() {
       </section>
 
       <section className="mt-8">
-        <h2 className="mb-3 text-lg font-semibold text-white">쿠폰 발급</h2>
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">쿠폰 발급</h2>
         <CouponIssueForm
           canWrite={canWrite}
           coupons={coupons.map((c) => ({ id: c.id, code: c.code }))}
@@ -130,10 +130,10 @@ export default async function ShopCouponsPage() {
       </section>
 
       <section className="mt-8">
-        <h2 className="mb-3 text-lg font-semibold text-white">쿠폰 발급 이력 (최근 30건)</h2>
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">쿠폰 발급 이력 (최근 30건)</h2>
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">회원</th>
                 <th className="px-4 py-3">쿠폰코드</th>
@@ -153,12 +153,12 @@ export default async function ShopCouponsPage() {
               {issues.map((iss) => {
                 const st = ISSUE_STATUS_LABEL[iss.status] ?? {
                   label: iss.status,
-                  cls: "bg-slate-800 text-slate-400",
+                  cls: "bg-white text-slate-500",
                 };
                 return (
-                  <tr key={iss.id} className="border-b border-slate-800/60 hover:bg-slate-800/40">
-                    <td className="px-4 py-3 text-slate-200">{iss.user.nickname}</td>
-                    <td className="px-4 py-3 font-mono text-slate-300">{iss.coupon.code}</td>
+                  <tr key={iss.id} className="border-b border-slate-200/60 hover:bg-slate-100/40">
+                    <td className="px-4 py-3 text-slate-700">{iss.user.nickname}</td>
+                    <td className="px-4 py-3 font-mono text-slate-600">{iss.coupon.code}</td>
                     <td className="px-4 py-3">
                       <span className={`rounded-full px-2 py-0.5 text-xs ${st.cls}`}>{st.label}</span>
                     </td>

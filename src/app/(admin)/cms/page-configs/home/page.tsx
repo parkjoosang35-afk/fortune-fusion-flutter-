@@ -52,10 +52,10 @@ export default async function PageConfigHomeDashboard() {
     return (
       <div>
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-white">메인화면 관리자 편집기</h1>
+          <h1 className="text-2xl font-bold text-slate-900">메인화면 관리자 편집기</h1>
           <PageConfigHomeSubNav />
         </div>
-        <div className="rounded-xl border border-amber-800 bg-amber-950/40 p-6 text-amber-200">
+        <div className="rounded-xl border border-amber-300 bg-amber-100 p-6 text-amber-200">
           아직 page_configs(&quot;home&quot;)이 초기화되지 않았습니다. 서버에서{" "}
           <code className="rounded bg-black/30 px-1">npx tsx prisma/seed_page_config_home.ts</code>{" "}
           를 먼저 실행해주세요.
@@ -69,8 +69,8 @@ export default async function PageConfigHomeDashboard() {
       <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white">메인화면 관리자 편집기</h1>
-            <p className="mt-1 text-sm text-slate-400">
+            <h1 className="text-2xl font-bold text-slate-900">메인화면 관리자 편집기</h1>
+            <p className="mt-1 text-sm text-slate-500">
               메인화면 텍스트를 바꾸는 CMS가 아니라, 운영자가 홈 화면 섹션을 안정적으로 조정하고
               발행할 수 있는 &quot;관리자 제어형 홈 화면 블록 편집 시스템&quot;입니다.
             </p>
@@ -97,19 +97,19 @@ export default async function PageConfigHomeDashboard() {
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-5 lg:col-span-2">
-          <h2 className="mb-3 text-base font-semibold text-white">최근 변경 로그</h2>
+        <div className="rounded-xl border border-slate-200 bg-white p-5 lg:col-span-2">
+          <h2 className="mb-3 text-base font-semibold text-slate-900">최근 변경 로그</h2>
           {recentLogs.length === 0 ? (
             <p className="text-sm text-slate-500">아직 변경 이력이 없습니다.</p>
           ) : (
             <ul className="space-y-2 text-sm">
               {recentLogs.map((log) => (
-                <li key={log.id} className="flex items-center justify-between border-b border-slate-800/60 pb-2">
+                <li key={log.id} className="flex items-center justify-between border-b border-slate-200/60 pb-2">
                   <div>
-                    <span className="mr-2 rounded bg-slate-800 px-1.5 py-0.5 text-xs text-slate-300">
+                    <span className="mr-2 rounded bg-white px-1.5 py-0.5 text-xs text-slate-600">
                       {log.actionType}
                     </span>
-                    <span className="text-slate-300">{log.summary}</span>
+                    <span className="text-slate-600">{log.summary}</span>
                   </div>
                   <span className="shrink-0 text-xs text-slate-500">
                     {log.adminId ?? "system"} · {new Date(log.createdAt).toLocaleString("ko-KR")}
@@ -123,16 +123,16 @@ export default async function PageConfigHomeDashboard() {
           </p>
         </div>
 
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-5">
-          <h2 className="mb-3 text-base font-semibold text-white">바로가기</h2>
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
+          <h2 className="mb-3 text-base font-semibold text-slate-900">바로가기</h2>
           <div className="flex flex-col gap-2 text-sm">
-            <Link href="/cms/page-configs/home/sections" className="rounded-lg border border-slate-700 px-3 py-2 text-slate-200 hover:bg-slate-800">
+            <Link href="/cms/page-configs/home/sections" className="rounded-lg border border-slate-300 px-3 py-2 text-slate-700 hover:bg-slate-100">
               섹션 순서/노출/내용 편집 →
             </Link>
-            <Link href="/cms/page-configs/home/publish" className="rounded-lg border border-slate-700 px-3 py-2 text-slate-200 hover:bg-slate-800">
+            <Link href="/cms/page-configs/home/publish" className="rounded-lg border border-slate-300 px-3 py-2 text-slate-700 hover:bg-slate-100">
               미리보기 후 발행하기 →
             </Link>
-            <Link href="/cms/page-configs/home/versions" className="rounded-lg border border-slate-700 px-3 py-2 text-slate-200 hover:bg-slate-800">
+            <Link href="/cms/page-configs/home/versions" className="rounded-lg border border-slate-300 px-3 py-2 text-slate-700 hover:bg-slate-100">
               버전 히스토리 / 롤백 →
             </Link>
           </div>
@@ -154,13 +154,13 @@ function StatCard({
   tone: "indigo" | "slate" | "emerald" | "amber";
 }) {
   const toneClass = {
-    indigo: "text-indigo-400",
-    slate: "text-slate-300",
-    emerald: "text-emerald-400",
-    amber: "text-amber-400",
+    indigo: "text-indigo-700",
+    slate: "text-slate-600",
+    emerald: "text-emerald-700",
+    amber: "text-amber-700",
   }[tone];
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 p-5">
+    <div className="rounded-xl border border-slate-200 bg-white p-5">
       <p className="text-xs text-slate-500">{label}</p>
       <p className={`mt-1 text-2xl font-bold ${toneClass}`}>{value}</p>
       <p className="mt-1 text-xs text-slate-500">{hint}</p>

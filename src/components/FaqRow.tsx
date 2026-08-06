@@ -24,7 +24,7 @@ export default function FaqRow({ faq, canWrite, canDelete }: FaqRowProps) {
 
   if (editing) {
     return (
-      <tr className="border-b border-slate-800/60 bg-slate-800/30">
+      <tr className="border-b border-slate-200/60 bg-white/30">
         <td colSpan={4} className="px-4 py-3">
           <form action={updateAction} className="flex flex-col gap-2">
             <input type="hidden" name="id" value={faq.id} />
@@ -33,27 +33,27 @@ export default function FaqRow({ faq, canWrite, canDelete }: FaqRowProps) {
                 type="text"
                 name="category"
                 defaultValue={faq.category}
-                className="w-40 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+                className="w-40 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
               />
               <input
                 type="number"
                 name="sortOrder"
                 defaultValue={faq.sortOrder}
                 min={0}
-                className="w-24 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+                className="w-24 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
               />
             </div>
             <input
               type="text"
               name="question"
               defaultValue={faq.question}
-              className="rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
             <textarea
               name="answer"
               defaultValue={faq.answer}
               rows={3}
-              className="rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-indigo-500"
+              className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
             <div className="flex items-center gap-2">
               <button
@@ -66,12 +66,12 @@ export default function FaqRow({ faq, canWrite, canDelete }: FaqRowProps) {
               <button
                 type="button"
                 onClick={() => setEditing(false)}
-                className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100"
               >
                 취소
               </button>
             </div>
-            {updateState.error && <p className="text-xs text-red-400">{updateState.error}</p>}
+            {updateState.error && <p className="text-xs text-red-700">{updateState.error}</p>}
           </form>
         </td>
       </tr>
@@ -79,14 +79,14 @@ export default function FaqRow({ faq, canWrite, canDelete }: FaqRowProps) {
   }
 
   return (
-    <tr className="border-b border-slate-800/60 hover:bg-slate-800/40">
+    <tr className="border-b border-slate-200/60 hover:bg-slate-100/40">
       <td className="px-4 py-3">
-        <span className="rounded-full bg-slate-800 px-2 py-0.5 text-xs text-slate-300">
+        <span className="rounded-full bg-white px-2 py-0.5 text-xs text-slate-600">
           {faq.category}
         </span>
       </td>
       <td className="px-4 py-3">
-        <div className="font-medium text-slate-200">{faq.question}</div>
+        <div className="font-medium text-slate-700">{faq.question}</div>
         <p className="mt-1 max-w-xl truncate text-xs text-slate-500">{faq.answer}</p>
       </td>
       <td className="px-4 py-3 text-xs text-slate-500">#{faq.sortOrder}</td>
@@ -95,7 +95,7 @@ export default function FaqRow({ faq, canWrite, canDelete }: FaqRowProps) {
           {canWrite && (
             <button
               onClick={() => setEditing(true)}
-              className="rounded-lg border border-slate-700 px-3 py-1 text-xs text-slate-300 hover:bg-slate-800"
+              className="rounded-lg border border-slate-300 px-3 py-1 text-xs text-slate-600 hover:bg-slate-100"
             >
               수정
             </button>
@@ -106,14 +106,14 @@ export default function FaqRow({ faq, canWrite, canDelete }: FaqRowProps) {
               <button
                 type="submit"
                 disabled={deletePending}
-                className="rounded-lg border border-red-900 px-3 py-1 text-xs text-red-400 hover:bg-red-950/40 disabled:opacity-50"
+                className="rounded-lg border border-red-300 px-3 py-1 text-xs text-red-700 hover:bg-red-100 disabled:opacity-50"
               >
                 삭제
               </button>
             </form>
           )}
         </div>
-        {deleteState.error && <p className="mt-1 text-xs text-red-400">{deleteState.error}</p>}
+        {deleteState.error && <p className="mt-1 text-xs text-red-700">{deleteState.error}</p>}
       </td>
     </tr>
   );

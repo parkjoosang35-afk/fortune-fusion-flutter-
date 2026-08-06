@@ -32,7 +32,7 @@ export default function ImageUploadField({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const inputBase =
-    "rounded-lg border border-slate-700 bg-slate-800 text-white outline-none focus:border-indigo-500";
+    "rounded-lg border border-slate-300 bg-white text-slate-900 outline-none focus:border-indigo-500";
   const textInputClass = compact
     ? `w-40 px-2 py-1 text-sm ${inputBase}`
     : `px-3 py-2 text-sm md:col-span-2 ${inputBase}`;
@@ -75,7 +75,7 @@ export default function ImageUploadField({
           className={textInputClass}
         />
         <label
-          className={`cursor-pointer rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-700 ${
+          className={`cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 ${
             uploading ? "pointer-events-none opacity-50" : ""
           }`}
         >
@@ -94,11 +94,11 @@ export default function ImageUploadField({
           <img
             src={url}
             alt="미리보기"
-            className="h-9 w-9 rounded border border-slate-700 object-cover"
+            className="h-9 w-9 rounded border border-slate-300 object-cover"
           />
         )}
       </div>
-      {error && <p className="text-xs text-red-400">{error}</p>}
+      {error && <p className="text-xs text-red-700">{error}</p>}
     </div>
   );
 }

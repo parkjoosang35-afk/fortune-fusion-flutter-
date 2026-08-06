@@ -22,10 +22,10 @@ const SOURCE_TYPE_LABEL: Record<string, string> = {
 };
 
 const AMULET_STATUS_LABEL: Record<string, { label: string; cls: string }> = {
-  held: { label: "보유중", cls: "bg-slate-800 text-slate-400" },
-  used: { label: "사용완료", cls: "bg-emerald-950/60 text-emerald-400" },
-  expired: { label: "만료", cls: "bg-rose-950/60 text-rose-400" },
-  gifted: { label: "선물함", cls: "bg-amber-950/60 text-amber-400" },
+  held: { label: "보유중", cls: "bg-white text-slate-500" },
+  used: { label: "사용완료", cls: "bg-emerald-100 text-emerald-700" },
+  expired: { label: "만료", cls: "bg-rose-100 text-rose-700" },
+  gifted: { label: "선물함", cls: "bg-amber-100 text-amber-700" },
 };
 
 function fmtDate(d: Date | null): string {
@@ -98,19 +98,19 @@ export default async function ShopAmuletsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">상점 관리 — 디지털부적</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">상점 관리 — 디지털부적</h1>
+        <p className="mt-1 text-sm text-slate-500">
           부적 등급 마스터와 부적 상품(종류/등급/효과/이미지/AI생성여부/가격)을 관리합니다.
         </p>
       </div>
 
       {/* 1) 등급 마스터 */}
       <section className="mb-8">
-        <h2 className="mb-3 text-lg font-semibold text-white">부적 등급 마스터</h2>
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">부적 등급 마스터</h2>
         <AmuletGradeCreateForm canWrite={canWrite} />
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">코드</th>
                 <th className="px-4 py-3">등급명</th>
@@ -141,11 +141,11 @@ export default async function ShopAmuletsPage() {
 
       {/* 2) 부적 상품 */}
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-white">부적 상품 관리</h2>
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">부적 상품 관리</h2>
         <AmuletItemCreateForm canWrite={canWrite} grades={gradeOptions} />
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">이미지</th>
                 <th className="px-4 py-3">이름</th>
@@ -180,12 +180,12 @@ export default async function ShopAmuletsPage() {
 
       {/* 3) 부적 지급/보유 이력 조회 (조회 전용) */}
       <section className="mb-8">
-        <h2 className="mb-3 text-lg font-semibold text-white">
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">
           부적 지급/보유 이력 (조회 전용, 최근 50건)
         </h2>
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">회원</th>
                 <th className="px-4 py-3">부적</th>
@@ -206,13 +206,13 @@ export default async function ShopAmuletsPage() {
               {userAmulets.map((ua) => {
                 const st = AMULET_STATUS_LABEL[ua.status] ?? {
                   label: ua.status,
-                  cls: "bg-slate-800 text-slate-400",
+                  cls: "bg-white text-slate-500",
                 };
                 return (
-                  <tr key={ua.id} className="border-b border-slate-800/60 hover:bg-slate-800/40">
-                    <td className="px-4 py-3 text-slate-200">{ua.user.nickname}</td>
-                    <td className="px-4 py-3 text-slate-300">{ua.amuletItem.name}</td>
-                    <td className="px-4 py-3 text-slate-400">
+                  <tr key={ua.id} className="border-b border-slate-200/60 hover:bg-slate-100/40">
+                    <td className="px-4 py-3 text-slate-700">{ua.user.nickname}</td>
+                    <td className="px-4 py-3 text-slate-600">{ua.amuletItem.name}</td>
+                    <td className="px-4 py-3 text-slate-500">
                       {SOURCE_TYPE_LABEL[ua.sourceType] ?? ua.sourceType}
                     </td>
                     <td className="px-4 py-3">
@@ -235,12 +235,12 @@ export default async function ShopAmuletsPage() {
 
       {/* 4) 부적 사용 이력 (조회 전용) */}
       <section className="mb-8">
-        <h2 className="mb-3 text-lg font-semibold text-white">
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">
           부적 사용 이력 (조회 전용, 최근 20건)
         </h2>
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">회원</th>
                 <th className="px-4 py-3">부적</th>
@@ -257,10 +257,10 @@ export default async function ShopAmuletsPage() {
                 </tr>
               )}
               {usageLogs.map((log) => (
-                <tr key={log.id} className="border-b border-slate-800/60 hover:bg-slate-800/40">
-                  <td className="px-4 py-3 text-slate-200">{log.userAmulet.user.nickname}</td>
-                  <td className="px-4 py-3 text-slate-300">{log.userAmulet.amuletItem.name}</td>
-                  <td className="px-4 py-3 text-slate-400">{log.usedContextType ?? "-"}</td>
+                <tr key={log.id} className="border-b border-slate-200/60 hover:bg-slate-100/40">
+                  <td className="px-4 py-3 text-slate-700">{log.userAmulet.user.nickname}</td>
+                  <td className="px-4 py-3 text-slate-600">{log.userAmulet.amuletItem.name}</td>
+                  <td className="px-4 py-3 text-slate-500">{log.usedContextType ?? "-"}</td>
                   <td className="px-4 py-3 text-slate-500">{fmtDate(log.createdAt)}</td>
                 </tr>
               ))}
@@ -271,12 +271,12 @@ export default async function ShopAmuletsPage() {
 
       {/* 5) 부적 선물 이력 (조회 전용) */}
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-white">
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">
           부적 선물 이력 (조회 전용, 최근 20건)
         </h2>
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">보낸 회원</th>
                 <th className="px-4 py-3">받은 회원</th>
@@ -294,11 +294,11 @@ export default async function ShopAmuletsPage() {
                 </tr>
               )}
               {gifts.map((g) => (
-                <tr key={g.id} className="border-b border-slate-800/60 hover:bg-slate-800/40">
-                  <td className="px-4 py-3 text-slate-200">{g.fromUser.nickname}</td>
-                  <td className="px-4 py-3 text-slate-200">{g.toUser.nickname}</td>
-                  <td className="px-4 py-3 text-slate-300">{g.userAmulet.amuletItem.name}</td>
-                  <td className="px-4 py-3 text-slate-400">{g.message ?? "-"}</td>
+                <tr key={g.id} className="border-b border-slate-200/60 hover:bg-slate-100/40">
+                  <td className="px-4 py-3 text-slate-700">{g.fromUser.nickname}</td>
+                  <td className="px-4 py-3 text-slate-700">{g.toUser.nickname}</td>
+                  <td className="px-4 py-3 text-slate-600">{g.userAmulet.amuletItem.name}</td>
+                  <td className="px-4 py-3 text-slate-500">{g.message ?? "-"}</td>
                   <td className="px-4 py-3 text-slate-500">{fmtDate(g.createdAt)}</td>
                 </tr>
               ))}

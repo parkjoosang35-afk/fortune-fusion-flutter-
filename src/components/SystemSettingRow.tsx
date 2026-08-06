@@ -50,25 +50,25 @@ export default function SystemSettingRow({ setting, canWrite, canDelete }: Syste
 
   if (editing) {
     return (
-      <tr className="border-b border-slate-800/60 bg-slate-800/30">
+      <tr className="border-b border-slate-200/60 bg-white/30">
         <td colSpan={5} className="px-4 py-3">
           <form action={updateAction} className="flex flex-wrap items-center gap-2">
             <input type="hidden" name="id" value={setting.id} />
-            <span className="rounded-lg bg-slate-800 px-2 py-1.5 text-sm text-slate-400">
+            <span className="rounded-lg bg-white px-2 py-1.5 text-sm text-slate-500">
               {setting.key}
             </span>
             <input
               type="text"
               name="value"
               defaultValue={displayValue(setting.value)}
-              className="min-w-[160px] rounded-lg border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-white outline-none focus:border-indigo-500"
+              className="min-w-[160px] rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
             <input
               type="text"
               name="description"
               defaultValue={setting.description ?? ""}
               placeholder="설명"
-              className="min-w-[200px] rounded-lg border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-white outline-none focus:border-indigo-500"
+              className="min-w-[200px] rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 outline-none focus:border-indigo-500"
             />
             <button
               type="submit"
@@ -80,11 +80,11 @@ export default function SystemSettingRow({ setting, canWrite, canDelete }: Syste
             <button
               type="button"
               onClick={() => setEditing(false)}
-              className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
+              className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100"
             >
               취소
             </button>
-            {updateState.error && <p className="text-xs text-red-400">{updateState.error}</p>}
+            {updateState.error && <p className="text-xs text-red-700">{updateState.error}</p>}
           </form>
         </td>
       </tr>
@@ -92,10 +92,10 @@ export default function SystemSettingRow({ setting, canWrite, canDelete }: Syste
   }
 
   return (
-    <tr className="border-b border-slate-800/60 hover:bg-slate-800/40">
-      <td className="px-4 py-3 font-mono text-xs text-slate-300">{setting.key}</td>
+    <tr className="border-b border-slate-200/60 hover:bg-slate-100/40">
+      <td className="px-4 py-3 font-mono text-xs text-slate-600">{setting.key}</td>
       <td className="px-4 py-3">
-        <span className="rounded-full bg-indigo-950/60 px-2 py-0.5 text-xs text-indigo-300">
+        <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs text-indigo-800">
           {displayValue(setting.value)}
         </span>
       </td>
@@ -106,7 +106,7 @@ export default function SystemSettingRow({ setting, canWrite, canDelete }: Syste
           {canWrite && (
             <button
               onClick={() => setEditing(true)}
-              className="rounded-lg border border-slate-700 px-3 py-1 text-xs text-slate-300 hover:bg-slate-800"
+              className="rounded-lg border border-slate-300 px-3 py-1 text-xs text-slate-600 hover:bg-slate-100"
             >
               수정
             </button>
@@ -117,14 +117,14 @@ export default function SystemSettingRow({ setting, canWrite, canDelete }: Syste
               <button
                 type="submit"
                 disabled={deletePending}
-                className="rounded-lg border border-red-900 px-3 py-1 text-xs text-red-400 hover:bg-red-950/40 disabled:opacity-50"
+                className="rounded-lg border border-red-300 px-3 py-1 text-xs text-red-700 hover:bg-red-100 disabled:opacity-50"
               >
                 삭제
               </button>
             </form>
           )}
         </div>
-        {deleteState.error && <p className="mt-1 text-xs text-red-400">{deleteState.error}</p>}
+        {deleteState.error && <p className="mt-1 text-xs text-red-700">{deleteState.error}</p>}
       </td>
     </tr>
   );
