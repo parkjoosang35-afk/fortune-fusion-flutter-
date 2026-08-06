@@ -11,12 +11,9 @@ import '../../auth/application/auth_provider.dart';
 import '../../auth/domain/grade_model.dart';
 import '../../pass/application/pass_provider.dart';
 import '../../wallet/application/wallet_provider.dart';
-import '../../subscription/application/subscription_provider.dart';
 import '../../community/presentation/community_hub_screen.dart';
-import '../../pass/domain/pass_model.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
 import '../../pass/presentation/pass_time_format.dart';
-import '../../../core/widgets/luck_pouch_toast.dart';
 
 /// [9단계 - 마이 탭 정리] MyScreen - 마이 탭
 /// 프로필+등급뱃지 + [열림패스/복주머니/구독 요약(3축 정책 한눈에 보기)]
@@ -40,12 +37,12 @@ class _MyScreenState extends State<MyScreen> {
   @override
   void initState() {
     super.initState();
-    // [9단계] 마이 탭 진입 시 열림패스/복주머니/구독 요약을 최신화한다.
+    // [무료 광고형 구조 재정비 §2/§7] 마이 탭 진입 시 프리패스/복주머니만
+    // 최신화한다. 구독(SubscriptionProvider)은 화면에서 off 처리했으므로
+    // 더 이상 여기서 로드하지 않는다(레거시 코드/라우트는 보존).
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<PassProvider>().load();
-      context.read<PassProvider>().loadPurchaseOptions();
       context.read<WalletProvider>().load();
-      context.read<SubscriptionProvider>().loadMySubscription();
     });
   }
 
@@ -55,7 +52,6 @@ class _MyScreenState extends State<MyScreen> {
     final user = auth.currentUser;
     final pass = context.watch<PassProvider>();
     final wallet = context.watch<WalletProvider>();
-    final subscription = context.watch<SubscriptionProvider>();
 
     return Scaffold(
       backgroundColor: UnifiedColors.bg,
@@ -135,6 +131,9 @@ class _MyScreenState extends State<MyScreen> {
 
             // [9단계] §1.5 열림패스/복주머니/구독 요약 - 3축 정책을 한 화면에서
             // 확인할 수 있도록 마이 탭에 요약 카드 3개를 배치한다.
+            // [무료 광고형 구조 재정비 §2/§7] 사용자에게는 "프리패스 + 복주머니"
+            // 2축만 보이게 정리한다. 구독 요약 카드는 삭제하지 않고 렌더링만
+            // 끈다(off — §13 레거시 단계적 처리 원칙: 삭제보다 숨김을 우선).
             const _SectionTitle(title: '내 혜택 요약'),
             const SizedBox(height: UnifiedTokens.spaceMd),
             _PassSummaryCard(
@@ -142,21 +141,12 @@ class _MyScreenState extends State<MyScreen> {
               isLoading: pass.isLoading,
               onAcquireTap: () =>
                   showPassRequiredSheet(context, categoryTitle: '마이페이지'),
-              onPurchaseTap: () => _showPurchaseWithLuckPouchSheet(context),
             ),
             const SizedBox(height: UnifiedTokens.spaceMd),
             _WalletSummaryCard(
               balance: wallet.balance,
               isLoading: wallet.isLoading,
               onTap: () => Navigator.of(context).pushNamed('/reward/wallet'),
-              onChargeTap: () =>
-                  Navigator.of(context).pushNamed('/reward/wallet'),
-            ),
-            const SizedBox(height: UnifiedTokens.spaceMd),
-            _SubscriptionSummaryCard(
-              subscription: subscription,
-              isLoading: subscription.isLoadingSubscription,
-              onTap: () => Navigator.of(context).pushNamed('/my/subscription'),
             ),
             const SizedBox(height: UnifiedTokens.spaceXxl),
 
@@ -236,12 +226,8 @@ class _MyScreenState extends State<MyScreen> {
               padding: EdgeInsets.zero,
               child: Column(
                 children: [
-                  _MenuRow(
-                    icon: Icons.workspace_premium_outlined,
-                    title: '프리미엄 구독',
-                    onTap: () =>
-                        Navigator.of(context).pushNamed('/my/subscription'),
-                  ),
+                  // [무료 광고형 구조 재정비 §7/§13] "프리미엄 구독" 메뉴는
+                  // off 처리(라우트/화면 파일은 보존, 진입점만 제거).
                   _MenuRow(
                     icon: Icons.notifications_none_rounded,
                     title: '알림',
@@ -316,13 +302,11 @@ class _PassSummaryCard extends StatelessWidget {
     required this.pass,
     required this.isLoading,
     required this.onAcquireTap,
-    required this.onPurchaseTap,
   });
 
   final PassProvider pass;
   final bool isLoading;
   final VoidCallback onAcquireTap;
-  final VoidCallback onPurchaseTap;
 
   // [프리패스 단순화 - 쿠팡파트너스 전용] §6 — HH:MM:SS 형식으로 통일.
   String _formatRemaining(int sec) => formatPassHms(Duration(seconds: sec));
@@ -368,46 +352,29 @@ class _PassSummaryCard extends StatelessWidget {
                 : '보유한 프리패스가 없어요',
           ),
           const SizedBox(height: UnifiedTokens.spaceMd),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: onAcquireTap,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: UnifiedColors.textPrimary,
-                    side: const BorderSide(color: UnifiedColors.border),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                        UnifiedTokens.radiusPill,
-                      ),
-                    ),
+          // [무료 광고형 구조 재정비 §2] 프리패스는 "광고 1회 = 1시간"
+          // 단일 획득 경로만 노출한다(복주머니로 구매 버튼은 off).
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: onAcquireTap,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: UnifiedColors.textPrimary,
+                side: const BorderSide(color: UnifiedColors.border),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(
+                    UnifiedTokens.radiusPill,
                   ),
-                  child: const Text('획득방법 · 광고로 열기'),
                 ),
               ),
-              const SizedBox(width: UnifiedTokens.spaceSm),
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: onPurchaseTap,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: UnifiedColors.textPrimary,
-                    side: const BorderSide(color: UnifiedColors.border),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                        UnifiedTokens.radiusPill,
-                      ),
-                    ),
-                  ),
-                  child: const Text('복주머니로 구매'),
-                ),
-              ),
-            ],
+              child: const Text('광고 보고 1시간 열기'),
+            ),
           ),
           const SizedBox(height: UnifiedTokens.spaceSm),
           Text(
             isActive && status.expiresAt != null
                 ? '만료 예정: ${_formatExpiry(status.expiresAt!)}'
-                : '프리패스는 시간제 이용권이에요. 만료 후에는 다시 발급받아야 해요.',
+                : '광고 1회 시청으로 1시간 동안 모든 운세를 볼 수 있어요.',
             style: UnifiedText.caption(),
           ),
         ],
@@ -423,13 +390,11 @@ class _WalletSummaryCard extends StatelessWidget {
     required this.balance,
     required this.isLoading,
     required this.onTap,
-    required this.onChargeTap,
   });
 
   final int balance;
   final bool isLoading;
   final VoidCallback onTap;
-  final VoidCallback onChargeTap;
 
   String _formatBalance(int value) {
     final str = value.toString();
@@ -470,44 +435,27 @@ class _WalletSummaryCard extends StatelessWidget {
                 : '${_formatBalance(balance)}개 보유 중',
           ),
           const SizedBox(height: UnifiedTokens.spaceMd),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: onChargeTap,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: UnifiedColors.textPrimary,
-                    side: const BorderSide(color: UnifiedColors.border),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                        UnifiedTokens.radiusPill,
-                      ),
-                    ),
+          // [무료 광고형 구조 재정비 §4] "충전"(유료 결제) 버튼은 off — 복주머니는
+          // 광고/활동으로만 적립되는 무료 재화이므로 결제 진입점을 남기지 않는다.
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: onTap,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: UnifiedColors.textPrimary,
+                side: const BorderSide(color: UnifiedColors.border),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(
+                    UnifiedTokens.radiusPill,
                   ),
-                  child: const Text('충전'),
                 ),
               ),
-              const SizedBox(width: UnifiedTokens.spaceSm),
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: onTap,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: UnifiedColors.textPrimary,
-                    side: const BorderSide(color: UnifiedColors.border),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                        UnifiedTokens.radiusPill,
-                      ),
-                    ),
-                  ),
-                  child: const Text('내역'),
-                ),
-              ),
-            ],
+              child: const Text('내역 보기'),
+            ),
           ),
           const SizedBox(height: UnifiedTokens.spaceSm),
           Text(
-            '출석, 커뮤니티 활동, 운세 이용 등으로 모을 수 있어요.',
+            '광고 보기, 출석, 커뮤니티 활동으로 모을 수 있어요.',
             style: UnifiedText.caption(),
           ),
         ],
@@ -516,171 +464,11 @@ class _WalletSummaryCard extends StatelessWidget {
   }
 }
 
-/// [재화 구조 정리] "복주머니로 구매" 바텀시트 — 프리패스 구매 옵션 목록을 보여주고
-/// 선택 시 확인 다이얼로그 → 실제 구매 API 호출 → 지갑 갱신 + 토스트까지 처리한다.
-void _showPurchaseWithLuckPouchSheet(BuildContext context) {
-  final pass = context.read<PassProvider>();
-  showModalBottomSheet(
-    context: context,
-    backgroundColor: UnifiedColors.bg,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(
-        top: Radius.circular(UnifiedTokens.radiusLg),
-      ),
-    ),
-    builder: (sheetContext) {
-      return AnimatedBuilder(
-        animation: pass,
-        builder: (context, _) {
-          final options = pass.purchaseOptions;
-          return SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(UnifiedTokens.spaceXl),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('복주머니로 프리패스 구매', style: UnifiedText.bodyStrong()),
-                  const SizedBox(height: UnifiedTokens.spaceMd),
-                  if (pass.isPurchaseLoading)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(
-                        vertical: UnifiedTokens.spaceXl,
-                      ),
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                  else if (options.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: UnifiedTokens.spaceXl,
-                      ),
-                      child: Text(
-                        '지금은 구매 가능한 프리패스 옵션이 없어요.',
-                        style: UnifiedText.caption(),
-                      ),
-                    )
-                  else
-                    ...options.map(
-                      (opt) => Padding(
-                        padding: const EdgeInsets.only(
-                          bottom: UnifiedTokens.spaceSm,
-                        ),
-                        child: OutlinedButton(
-                          onPressed: () =>
-                              _confirmAndPurchasePass(context, opt),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: UnifiedColors.textPrimary,
-                            side: const BorderSide(color: UnifiedColors.border),
-                            minimumSize: const Size.fromHeight(48),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(
-                                UnifiedTokens.radiusMd,
-                              ),
-                            ),
-                          ),
-                          child: Text(
-                            '${opt.name} · 복주머니 ${opt.luckPouchPrice}개',
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          );
-        },
-      );
-    },
-  );
-}
-
-Future<void> _confirmAndPurchasePass(
-  BuildContext context,
-  PassPurchaseOptionModel option,
-) async {
-  final confirmed = await showDialog<bool>(
-    context: context,
-    builder: (dialogContext) => AlertDialog(
-      title: const Text('프리패스 구매'),
-      content: Text('복주머니 ${option.luckPouchPrice}개로 ${option.name}을 구매할까요?'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(dialogContext).pop(false),
-          child: const Text('취소'),
-        ),
-        TextButton(
-          onPressed: () => Navigator.of(dialogContext).pop(true),
-          child: const Text('구매'),
-        ),
-      ],
-    ),
-  );
-  if (confirmed != true) return;
-
-  final pass = context.read<PassProvider>();
-  final wallet = context.read<WalletProvider>();
-  final ok = await pass.purchaseWithLuckPouch(policyId: option.id);
-  if (ok) {
-    await wallet.load();
-    LuckPouchToastController.instance.showSpend(
-      option.luckPouchPrice,
-      '${option.name} 구매',
-    );
-    if (context.mounted) Navigator.of(context).pop();
-  } else {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(pass.lastError ?? '프리패스 구매에 실패했어요.')),
-      );
-    }
-  }
-}
-
-/// [9단계] §1.5 구독 요약 카드 - 구독 활성 여부를 한눈에 보여준다.
-class _SubscriptionSummaryCard extends StatelessWidget {
-  const _SubscriptionSummaryCard({
-    required this.subscription,
-    required this.isLoading,
-    required this.onTap,
-  });
-
-  final SubscriptionProvider subscription;
-  final bool isLoading;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final my = subscription.mySubscription;
-    final isActive = subscription.isPremium;
-    return PremiumCard(
-      backgroundColor: UnifiedColors.cardAllMenu,
-      borderColor: Colors.transparent,
-      showShadow: false,
-      borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
-      padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
-      onTap: onTap,
-      child: AppShortcutRow(
-        emoji: '👑',
-        accentColor: UnifiedColors.textPrimary,
-        icon: Icons.workspace_premium_outlined,
-        iconColor: UnifiedColors.textPrimary,
-        circleColor: UnifiedColors.bg,
-        circleSize: UnifiedTokens.iconCircleLg,
-        spacing: UnifiedTokens.spaceMd,
-        titleStyle: UnifiedText.bodyStrong(),
-        subtitleStyle: UnifiedText.caption(),
-        arrowColor: UnifiedColors.textCaption,
-        arrowSize: UnifiedTokens.iconMd,
-        title: '구독',
-        subtitle: isLoading
-            ? '불러오는 중...'
-            : isActive
-            ? '${my?.plan.name ?? '프리미엄'} 구독 중'
-            : '구독하고 프리패스·복주머니 혜택 받기',
-      ),
-    );
-  }
-}
+// [무료 광고형 구조 재정비 §2/§7/§13] "복주머니로 프리패스 구매" 바텀시트와
+// "구독 요약 카드"는 마이페이지 화면 진입점에서 제거했다(off). 단, 기반 기능
+// 자체(PassProvider.purchaseWithLuckPouch(), SubscriptionProvider, 구독 라우트
+// /my/subscription 등)는 삭제하지 않고 그대로 보존한다 — 필요 시 다시 진입점만
+// 연결하면 복원 가능하다(유지→수정→통합→off→삭제 원칙, 삭제 아님).
 
 class _SectionTitle extends StatelessWidget {
   const _SectionTitle({required this.title});
