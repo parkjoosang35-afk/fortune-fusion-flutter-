@@ -11,6 +11,9 @@ export default async function DashboardGroupLayout({
 }) {
   const session = await verifyAdminSession();
   const menus = getVisibleMenusForRole(session.roleCode);
+  // [9단계 "앱 바로가기"] 사용자 앱(flutter_app) 웹 프리뷰로 이동하는 링크 URL.
+  // 미설정 시(운영 배포 등) 사이드바에서 해당 버튼 자체를 숨긴다.
+  const userAppUrl = process.env.NEXT_PUBLIC_USER_APP_URL || null;
 
   return (
     <div className="flex min-h-screen bg-white">
@@ -18,6 +21,7 @@ export default async function DashboardGroupLayout({
         menus={menus}
         adminName={session.name}
         roleCode={session.roleCode}
+        userAppUrl={userAppUrl}
       />
       <main className="flex-1 overflow-y-auto p-6">{children}</main>
     </div>

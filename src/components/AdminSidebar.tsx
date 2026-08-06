@@ -16,6 +16,7 @@ import {
   ShieldCheck,
   Settings,
   LogOut,
+  ExternalLink,
   type LucideIcon,
 } from "lucide-react";
 import { logout } from "@/app/actions/auth";
@@ -40,12 +41,15 @@ interface AdminSidebarProps {
   menus: AdminMenuGroup[];
   adminName: string;
   roleCode: string;
+  // [9단계 "앱 바로가기"] 사용자 앱(flutter_app) 웹 프리뷰 URL. 미설정 시 버튼 숨김.
+  userAppUrl?: string | null;
 }
 
 export default function AdminSidebar({
   menus,
   adminName,
   roleCode,
+  userAppUrl,
 }: AdminSidebarProps) {
   const pathname = usePathname();
 
@@ -80,6 +84,21 @@ export default function AdminSidebar({
           })}
         </ul>
       </nav>
+
+      {/* [9단계 "앱 바로가기"] 사용자 앱(flutter_app) 새 탭으로 바로 이동 */}
+      {userAppUrl && (
+        <div className="border-t border-slate-200 px-2 py-3">
+          <a
+            href={userAppUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-indigo-600 transition hover:bg-indigo-50"
+          >
+            <ExternalLink size={16} />
+            사용자 앱 바로가기
+          </a>
+        </div>
+      )}
 
       <div className="border-t border-slate-200 px-4 py-4">
         <p className="truncate text-sm font-medium text-slate-900">{adminName}</p>
