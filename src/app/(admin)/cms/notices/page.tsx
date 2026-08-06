@@ -39,9 +39,6 @@ export default async function CmsNoticesPage() {
           <Link href="/cms/banners" className="px-3 py-2 text-slate-400 hover:text-white">
             배너 관리
           </Link>
-          <Link href="/cms/popups" className="px-3 py-2 text-slate-400 hover:text-white">
-            팝업 관리
-          </Link>
           <Link
             href="/cms/notices"
             className="px-3 py-2 font-medium text-white border-b-2 border-indigo-500"

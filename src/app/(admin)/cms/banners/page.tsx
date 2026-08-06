@@ -13,6 +13,10 @@ import BannerPositionMasterSwitch from "@/components/BannerPositionMasterSwitch"
 //   display_condition(JSON 조건편집기, popups 전용)은 배제하고 position_code/sort_order/
 //   start_at/end_at/is_active 만으로 단순 구성. 클릭/노출 통계는 04A banners 스펙에
 //   없어 이번 1차 구현에서는 제외한다.
+// [무료 광고형 구조 재정비 §8단계 - 관리자 축소] CMS 하위 탭에서 "팝업 관리"
+// (/cms/popups) 링크를 제거한다(원칙: 유지→off, 라우트/Prisma Popup 모델은 보존).
+// 사유: Popup에 대응하는 공개 API(/api/public/*popup*)가 전혀 없어 Flutter 앱에서
+// 팝업을 표시할 방법이 없는, 관리자만 존재하고 실제로는 도달 불가능한 죽은 CMS 화면.
 export const dynamic = "force-dynamic";
 
 const POSITION_ORDER = ["home_top", "home_middle", "home_bottom"];
@@ -65,9 +69,6 @@ export default async function CmsBannersPage() {
             className="px-3 py-2 font-medium text-white border-b-2 border-indigo-500"
           >
             배너 관리
-          </Link>
-          <Link href="/cms/popups" className="px-3 py-2 text-slate-400 hover:text-white">
-            팝업 관리
           </Link>
           <Link href="/cms/notices" className="px-3 py-2 text-slate-400 hover:text-white">
             공지사항 관리
