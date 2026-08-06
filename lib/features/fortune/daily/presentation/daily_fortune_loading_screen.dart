@@ -7,9 +7,12 @@ import '../application/daily_fortune_provider.dart';
 import '../domain/fortune_report_model.dart';
 
 /// [버그 수정] 로딩 실패 시 원인과 무관하게 항상 "네트워크 상태를 확인해주세요"로
-/// 보였던 문제 대응. 실제로는 복주머니(포인트) 부족처럼 네트워크와 무관한 사유도
-/// 같은 문구로 뭉뚱그려져 사용자가 원인을 알 수 없었다. Provider의 실제
-/// [lastError] 문구를 우선 노출하고, 포인트 부족 케이스는 지갑 충전으로 안내한다.
+/// 보였던 문제 대응. Provider의 실제 [lastError] 문구를 우선 노출한다.
+///
+/// [무료 광고형 구조 재정비 §신규발견] "오늘의 운세"는 더 이상 복주머니(포인트)를
+/// 소비하지 않는다(백엔드 fortune/daily API에서 차감 로직 제거 완료). 따라서 이
+/// 화면에서도 "포인트 부족" 관련 분기와 "복주머니 충전하기" CTA(→/reward/wallet)를
+/// 제거했다 — 실패는 항상 네트워크/서버 오류로만 처리하고 "다시 시도"로 안내한다.
 
 /// [오늘의 운세 표준 플로우] §3 로딩 화면 — /fortune/today/loading
 ///
@@ -40,9 +43,6 @@ class DailyFortuneLoadingScreen extends StatelessWidget {
   }
 
   void _showRetryDialog(BuildContext context, String? errorMessage) {
-    final isInsufficientBalance =
-        errorMessage != null && errorMessage.contains('포인트가 부족');
-
     showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -51,14 +51,9 @@ class DailyFortuneLoadingScreen extends StatelessWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
         ),
-        title: Text(
-          isInsufficientBalance ? '복주머니가 부족해요' : '결과를 불러오지 못했어요',
-          style: UnifiedText.title(),
-        ),
+        title: Text('결과를 불러오지 못했어요', style: UnifiedText.title()),
         content: Text(
-          isInsufficientBalance
-              ? '오늘의 운세를 보려면 복주머니가 필요해요. 충전 후 다시 시도해주세요.'
-              : (errorMessage ?? '네트워크 상태를 확인한 뒤 다시 시도해주세요.'),
+          errorMessage ?? '네트워크 상태를 확인한 뒤 다시 시도해주세요.',
           style: UnifiedText.body(),
         ),
         actionsPadding: const EdgeInsets.fromLTRB(
@@ -69,18 +64,13 @@ class DailyFortuneLoadingScreen extends StatelessWidget {
         ),
         actions: [
           PrimaryCTA(
-            label: isInsufficientBalance ? '복주머니 충전하기' : '다시 시도',
+            label: '다시 시도',
             height: 44,
             onPressed: () {
               Navigator.of(ctx).pop();
-              if (isInsufficientBalance) {
-                Navigator.of(context).pushReplacementNamed('/reward/wallet');
-              } else {
-                Navigator.of(context).pushReplacementNamed(
-                  '/fortune/today/loading',
-                  arguments: input,
-                );
-              }
+              Navigator.of(
+                context,
+              ).pushReplacementNamed('/fortune/today/loading', arguments: input);
             },
           ),
         ],
