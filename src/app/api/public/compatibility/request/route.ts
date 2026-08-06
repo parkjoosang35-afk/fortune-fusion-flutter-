@@ -5,7 +5,9 @@
 // 규칙 기반으로 점수/토픽결과를 생성한다(ai_model="rule-based-v1").
 // compatibility_factor_weights(saju/mbti/interest/value/activity_pattern)를 조회해
 // 가중치를 실제로 점수 산출에 반영한다(관리자 정책이 실제로 결과에 영향을 주도록).
-// [과금] point_policies에 "ai_compatibility_request" 정책이 있으면 차감, 없으면 무료.
+// [무료 광고형 구조 재정비 §3단계] 복주머니는 소원게시판/소원성에서만 쓰는
+// 유일한 재화로 고정한다. 궁합 보기는 더 이상 복주머니를 차감하지 않는다
+// (과거 point_policies.ai_compatibility_request 기반 과금 로직은 폐기).
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
@@ -68,42 +70,12 @@ export async function POST(request: NextRequest) {
 
   try {
     const outcome = await prisma.$transaction(async (tx) => {
-      // 1) 과금(있으면 차감, 없으면 무료)
-      const policy = await tx.pointPolicy.findUnique({
-        where: { sourceType: "ai_compatibility_request" },
-      });
-      let balanceAfter: number | null = null;
-      if (policy && policy.amount > 0) {
-        const wallet = await tx.wallet.findFirst({
-          where: { userId, currencyType: "POINT", deletedAt: null },
-        });
-        const balance = wallet?.balance ?? 0;
-        if (balance < policy.amount) {
-          throw new Error("INSUFFICIENT_BALANCE");
-        }
-        balanceAfter = balance - policy.amount;
-        const walletRow = wallet
-          ? await tx.wallet.update({
-              where: { id: wallet.id },
-              data: { balance: balanceAfter, balanceSyncedAt: new Date() },
-            })
-          : await tx.wallet.create({
-              data: { userId, currencyType: "POINT", balance: balanceAfter },
-            });
-        await tx.pointHistory.create({
-          data: {
-            walletId: walletRow.id,
-            userId,
-            amount: -policy.amount,
-            type: "spend",
-            sourceType: "ai_compatibility_request",
-            balanceAfter,
-            memo: "궁합 보기 이용",
-          },
-        });
-      }
+      // [무료 광고형 구조 재정비 §3단계] 궁합 보기는 완전 무료 — 복주머니
+      // 차감 로직 없음. balanceAfter는 응답 스키마 하위호환을 위해
+      // 항상 null로 유지한다.
+      const balanceAfter: number | null = null;
 
-      // 2) 요청 레코드 생성
+      // 1) 요청 레코드 생성
       const compatRequest = await tx.compatibilityRequest.create({
         data: {
           requesterUserId: userId,
@@ -117,7 +89,7 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // 3) 가중치 조회 + 결정론적 점수/토픽 산출
+      // 2) 가중치 조회 + 결정론적 점수/토픽 산출
       const weights = await tx.compatibilityFactorWeight.findMany({
         where: { isActive: true, deletedAt: null },
       });
@@ -189,13 +161,6 @@ export async function POST(request: NextRequest) {
       { headers: CORS_HEADERS }
     );
   } catch (e) {
-    const message = e instanceof Error ? e.message : "UNKNOWN";
-    if (message === "INSUFFICIENT_BALANCE") {
-      return NextResponse.json(
-        { success: false, error: "복주머니 잔액이 부족합니다." },
-        { status: 400, headers: CORS_HEADERS }
-      );
-    }
     console.error("[POST /api/public/compatibility/request] 실패:", e);
     return NextResponse.json(
       { success: false, error: "궁합 요청 처리 중 오류가 발생했습니다." },
