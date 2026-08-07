@@ -1,8 +1,11 @@
 "use client";
 
-// [열림패스/행복머니/복주머니 통합정책] §6 운영 테스트랩 / §7-3 화면 구성 / §12 시나리오 1~8.
-// 유저 선택 → 3대 자산 테스트 카드 → 통합 시뮬레이션 → 최근 결과 로그, 전 구간을
-// useTransition + 일반 Server Action 직접 호출 패턴으로 구현한다(FormData 불필요).
+// [프리패스/복주머니 2자산 정책] §6 운영 테스트랩 / §7-3 화면 구성 / §12 시나리오 1~8.
+// 유저 선택 → 2대 자산(프리패스/복주머니) 테스트 카드 → 통합 시뮬레이션 → 최근 결과 로그,
+// 전 구간을 useTransition + 일반 Server Action 직접 호출 패턴으로 구현한다(FormData 불필요).
+// ※ "행복머니"(레거시 3번째 재화)는 서버측에서 이미 공용 복주머니 엔진으로 통합되었고,
+//   이 테스트랩 UI에 남아있던 잔존 시뮬 섹션(수동조정·구매 카탈로그)은 현재 2자산
+//   정책과 맞지 않아 제거했다(admin-simulation.ts의 관련 함수 자체는 유지, dead code화).
 import { useState, useTransition, useCallback } from "react";
 import {
   adminGetUserAssetSnapshot,
@@ -11,12 +14,6 @@ import {
   adminForceExpireOpenPass,
   adminRevokeOpenPass,
   adminSimulateOpenPassSource,
-  adminManualGrantHappyMoney,
-  adminManualDeductHappyMoney,
-  adminSimulatePurchaseHappyMoneyProduct,
-  adminSimulatePurchaseOpenPassViaHappyMoney,
-  adminSimulatePurchaseSubscriptionOrGift,
-  adminSimulateInsufficientBalance,
   adminManualGrantLuckPouch,
   adminManualDeductLuckPouch,
   adminSimulateLuckPouchRule,
@@ -36,14 +33,6 @@ interface PolicyOption {
   id: number;
   name: string;
   durationMin: number;
-  happyMoneyPrice: number | null;
-}
-interface ProductOption {
-  id: number;
-  name: string;
-  cashPrice: number;
-  happyMoneyAmount: number;
-  bonusAmount: number;
 }
 interface RuleOption {
   id: number;
@@ -63,7 +52,6 @@ interface LogEntry {
 
 interface Snapshot {
   user: { id: number; nickname: string; status: string };
-  happyMoneyBalance: number;
   luckPouchBalance: number;
   isOpenPassActive: boolean;
   activeOpenPass: { id: number; policyName: string; expiresAt: string; scope: string } | null;
@@ -81,12 +69,10 @@ interface AdSourceOption {
 
 export default function TestLabPanel({
   policies,
-  products,
   rules,
   adSources = [],
 }: {
   policies: PolicyOption[];
-  products: ProductOption[];
   rules: RuleOption[];
   adSources?: AdSourceOption[];
 }) {
@@ -124,8 +110,6 @@ export default function TestLabPanel({
 
   const firstPolicyId = policies[0]?.id;
   const [selectedPolicyId, setSelectedPolicyId] = useState<number | undefined>(firstPolicyId);
-  const firstProductId = products[0]?.id;
-  const [selectedProductId, setSelectedProductId] = useState<number | undefined>(firstProductId);
   const earnRules = rules.filter((r) => r.ruleType === "earn");
   const spendRules = rules.filter((r) => r.ruleType === "spend");
   const purchaseRules = rules.filter((r) => r.ruleType === "purchase");
@@ -138,12 +122,8 @@ export default function TestLabPanel({
   const [remainingMinutes, setRemainingMinutes] = useState(5);
   const [accumMinutes, setAccumMinutes] = useState(30);
 
-  const [hmAmount, setHmAmount] = useState(1000);
-  const [hmMemo, setHmMemo] = useState("테스트랩 지급");
   const [lpAmount, setLpAmount] = useState(10);
   const [lpMemo, setLpMemo] = useState("테스트랩 지급");
-  const [insufficientAmount, setInsufficientAmount] = useState(999999999);
-  const [subGiftAmount, setSubGiftAmount] = useState(9900);
 
   return (
     <div className="space-y-6">
@@ -218,11 +198,7 @@ export default function TestLabPanel({
               </p>
             </div>
             <div className="rounded-lg border border-slate-200 bg-white p-3">
-              <p className="text-xs text-slate-500">복주머니(§3 수동조정 경로)</p>
-              <p className="text-sm font-medium text-amber-700">{snapshot.happyMoneyBalance.toLocaleString()}개</p>
-            </div>
-            <div className="rounded-lg border border-slate-200 bg-white p-3">
-              <p className="text-xs text-slate-500">복주머니(§4 규칙기반 경로)</p>
+              <p className="text-xs text-slate-500">복주머니</p>
               <p className="text-sm font-medium text-sky-700">{snapshot.luckPouchBalance.toLocaleString()}개</p>
             </div>
           </div>
@@ -295,45 +271,9 @@ export default function TestLabPanel({
         </div>
       </section>
 
-      {/* 3) 복주머니 테스트 - 수동조정 · 레거시 구매 카탈로그 경로 (구 "행복머니 테스트") */}
+      {/* 3) 복주머니 테스트 - 적립/사용/구매 규칙(LuckPouchRule) 기반 시뮬레이션 */}
       <section className="rounded-xl border border-slate-200 bg-white p-4">
-        <h2 className="mb-3 text-sm font-semibold text-slate-900">3. 복주머니 테스트 (수동조정 · 레거시 구매 카탈로그)</h2>
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <input type="number" value={hmAmount} onChange={(e) => setHmAmount(Number(e.target.value))} className="w-28 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500" placeholder="금액" />
-          <input type="text" value={hmMemo} onChange={(e) => setHmMemo(e.target.value)} className="w-40 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500" placeholder="메모" />
-          <button disabled={isPending} onClick={() => run(() => adminManualGrantHappyMoney({ userId, amount: hmAmount, memo: hmMemo }))} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 disabled:opacity-50">수동 지급</button>
-          <button disabled={isPending} onClick={() => run(() => adminManualDeductHappyMoney({ userId, amount: hmAmount, memo: hmMemo }))} className="rounded-lg border border-red-300 px-3 py-1.5 text-xs text-red-700 hover:bg-red-100 disabled:opacity-50">수동 차감</button>
-        </div>
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <span className="text-xs text-slate-500">충전상품:</span>
-          <select value={selectedProductId} onChange={(e) => setSelectedProductId(Number(e.target.value))} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500">
-            {products.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
-          <button disabled={isPending || !selectedProductId} onClick={() => run(() => adminSimulatePurchaseHappyMoneyProduct({ userId, productId: selectedProductId! }))} className="rounded-lg bg-indigo-100 px-3 py-1.5 text-xs text-indigo-800 hover:bg-indigo-100 disabled:opacity-50">충전 구매 시뮬</button>
-        </div>
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <span className="text-xs text-slate-500">열림패스(복주머니 구매):</span>
-          <select value={selectedPolicyId} onChange={(e) => setSelectedPolicyId(Number(e.target.value))} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500">
-            {policies.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}{p.happyMoneyPrice != null ? ` (${p.happyMoneyPrice.toLocaleString()})` : " (구매불가)"}</option>
-            ))}
-          </select>
-          <button disabled={isPending || !selectedPolicyId} onClick={() => run(() => adminSimulatePurchaseOpenPassViaHappyMoney({ userId, policyId: selectedPolicyId! }))} className="rounded-lg bg-indigo-100 px-3 py-1.5 text-xs text-indigo-800 hover:bg-indigo-100 disabled:opacity-50">열림패스 구매 시뮬</button>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <input type="number" value={subGiftAmount} onChange={(e) => setSubGiftAmount(Number(e.target.value))} className="w-28 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500" placeholder="금액" />
-          <button disabled={isPending} onClick={() => run(() => adminSimulatePurchaseSubscriptionOrGift({ userId, kind: "subscription", amount: subGiftAmount }))} className="rounded-lg bg-indigo-100 px-3 py-1.5 text-xs text-indigo-800 hover:bg-indigo-100 disabled:opacity-50">구독 구매 시뮬</button>
-          <button disabled={isPending} onClick={() => run(() => adminSimulatePurchaseSubscriptionOrGift({ userId, kind: "gift", amount: subGiftAmount }))} className="rounded-lg bg-indigo-100 px-3 py-1.5 text-xs text-indigo-800 hover:bg-indigo-100 disabled:opacity-50">상품권 구매 시뮬</button>
-          <input type="number" value={insufficientAmount} onChange={(e) => setInsufficientAmount(Number(e.target.value))} className="w-32 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500" placeholder="초과 금액" />
-          <button disabled={isPending} onClick={() => run(() => adminSimulateInsufficientBalance({ userId, amount: insufficientAmount }), false)} className="rounded-lg border border-amber-300 px-3 py-1.5 text-xs text-amber-700 hover:bg-amber-100 disabled:opacity-50">잔액부족 실패 시뮬</button>
-        </div>
-      </section>
-
-      {/* 4) 복주머니 테스트 - 적립/사용/구매 규칙(LuckPouchRule) 기반 시뮬레이션 */}
-      <section className="rounded-xl border border-slate-200 bg-white p-4">
-        <h2 className="mb-3 text-sm font-semibold text-slate-900">4. 복주머니 테스트 (적립/사용/구매 규칙표)</h2>
+        <h2 className="mb-3 text-sm font-semibold text-slate-900">3. 복주머니 테스트 (적립/사용/구매 규칙표)</h2>
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <input type="number" value={lpAmount} onChange={(e) => setLpAmount(Number(e.target.value))} className="w-24 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500" placeholder="수량" />
           <input type="text" value={lpMemo} onChange={(e) => setLpMemo(e.target.value)} className="w-40 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500" placeholder="메모" />
@@ -363,17 +303,10 @@ export default function TestLabPanel({
         </div>
       </section>
 
-      {/* 5) 통합 시뮬레이션 */}
+      {/* 4) 통합 시뮬레이션 */}
       <section className="rounded-xl border border-slate-200 bg-white p-4">
-        <h2 className="mb-3 text-sm font-semibold text-slate-900">5. 통합 시뮬레이션</h2>
+        <h2 className="mb-3 text-sm font-semibold text-slate-900">4. 통합 시뮬레이션</h2>
         <div className="flex flex-wrap gap-2">
-          <button
-            disabled={isPending || !selectedProductId || !selectedPolicyId}
-            onClick={() => run(() => adminRunIntegratedScenario({ scenarioKey: "purchase_happy_money_then_open_pass", userId, productId: selectedProductId, policyId: selectedPolicyId }))}
-            className="rounded-lg border border-emerald-300 px-3 py-1.5 text-xs text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
-          >
-            충전→열림패스구매→해제확인
-          </button>
           <button
             disabled={isPending || !selectedEarnRuleId || !selectedSpendRuleId}
             onClick={() => run(() => adminRunIntegratedScenario({ scenarioKey: "earn_luck_pouch_then_spend", userId, earnRuleId: selectedEarnRuleId, spendRuleId: selectedSpendRuleId }))}
@@ -405,9 +338,9 @@ export default function TestLabPanel({
         </div>
       </section>
 
-      {/* 7) 프리패스 광고 보상 시뮬레이션 */}
+      {/* 5) 프리패스 광고 보상 시뮬레이션 */}
       <section className="rounded-xl border border-slate-200 bg-white p-4">
-        <h2 className="mb-3 text-sm font-semibold text-slate-900">7. 프리패스 광고 보상 시뮬레이션 (성공/실패/no-fill/취소/타임아웃/설정미리보기)</h2>
+        <h2 className="mb-3 text-sm font-semibold text-slate-900">5. 프리패스 광고 보상 시뮬레이션 (성공/실패/no-fill/취소/타임아웃/설정미리보기)</h2>
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <span className="text-xs text-slate-500">정책:</span>
           <select value={selectedPolicyId} onChange={(e) => setSelectedPolicyId(Number(e.target.value))} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500">

@@ -3088,3 +3088,44 @@ model PageAuditLog {
   @@index([pageKey, createdAt])
   @@map("page_audit_logs")
 }
+
+// ── IntroConfig: 앱 첫 진입 인트로(스플래시+온보딩 카드+시작화면) 관리자 설정 ──
+// [인트로 전면 개편] 싱글턴 row(id=1 고정) 방식의 key-value에 가까운 설정 테이블.
+// "자유 배치/좌표 편집/애니메이션 수치"는 제공하지 않고, 운영에 필요한 최소값
+// (on/off, 문구, 이미지 URL, 보상 수량)만 관리자가 수정하도록 필드를 고정한다.
+// 회원가입 보상 "수량"은 이 테이블이 아니라 PointPolicy(sourceType="signup_reward")가
+// 단일 소스이며(리워드관리 화면에서 이미 편집 가능), 여기 signupRewardAmount 필드는
+// 인트로 화면 문구에 "복주머니 N개 지급" 숫자를 표시하기 위한 캐시성 값이다.
+// PointPolicy와 값이 어긋나지 않도록 관리자 폼 저장 시 두 값을 함께 갱신한다.
+model IntroConfig {
+  id                    Int      @id @default(1)
+  isEnabled             Boolean  @default(true) @map("is_enabled") // 인트로 on/off
+  showOnlyFirstLaunch   Boolean  @default(true) @map("show_only_first_launch")
+  showSkipButton        Boolean  @default(true) @map("show_skip_button")
+  showGuestHint         Boolean  @default(true) @map("show_guest_hint") // "로그인 없이 둘러보기" 문구 on/off
+
+  // 1단계: 브랜드 스플래시
+  splashTitle           String   @default("신통방통") @map("splash_title")
+  splashSubtitle        String?  @map("splash_subtitle") // 짧은 카피(선택, 비워두면 무카피)
+
+  // 2단계: 카드1(프리패스)
+  card1Title            String   @default("광고 한 번으로, 1시간 동안 자유롭게") @map("card1_title")
+  card1Description      String   @default("프리패스를 받으면 오늘의 운세, 타로 등 전체 운세 콘텐츠를 가볍게 볼 수 있어요.") @map("card1_description")
+  card1ImageUrl         String?  @map("card1_image_url")
+
+  // 3단계: 카드2(복주머니)
+  card2Title            String   @default("복주머니는 무료로 모으고, 자유롭게 써요") @map("card2_title")
+  card2Description      String   @default("광고를 보거나 활동하면 복주머니가 쌓이고, 소원게시판과 소원성에서 사용할 수 있어요.") @map("card2_description")
+  card2ImageUrl         String?  @map("card2_image_url")
+
+  // 4단계: 시작 화면(CTA)
+  ctaTitle              String   @default("이제 신통방통을 시작해보세요") @map("cta_title")
+  ctaSubtitle           String   @default("먼저 둘러보고, 원할 때 가입해도 괜찮아요.") @map("cta_subtitle")
+  signupRewardText      String   @default("지금 가입하면 복주머니 100개 지급") @map("signup_reward_text")
+  signupRewardAmount    Int      @default(100) @map("signup_reward_amount")
+
+  updatedAt             DateTime @updatedAt @map("updated_at")
+  updatedBy             String?  @map("updated_by")
+
+  @@map("intro_configs")
+}

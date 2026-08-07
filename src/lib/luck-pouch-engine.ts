@@ -17,8 +17,14 @@ import type { Prisma } from "@/generated/prisma/client";
 
 type Tx = Prisma.TransactionClient;
 
-/** 운영자 수동 지급/차감은 일일 상한 계산에서 항상 제외한다. */
-const CAP_EXEMPT_SOURCE_TYPES = new Set(["admin_adjust", "admin_grant", "manual"]);
+/**
+ * 운영자 수동 지급/차감은 일일 상한 계산에서 항상 제외한다.
+ * [인트로 전면 개편] "signup_reward"(회원가입 보상)도 여기 포함시킨다 — 가입 직후
+ * 다른 적립(출석 등)과 같은 날 겹쳐도 관리자가 설정한 보상 수량(기본 100개)이
+ * 일일 상한(80/120)에 걸려 일부만 지급되는 일이 없도록 하기 위함이다. 어차피
+ * PointPolicy.dailyLimit=1(1회 한정)로 중복 지급 자체가 막혀 있어 남용 위험은 없다.
+ */
+const CAP_EXEMPT_SOURCE_TYPES = new Set(["admin_adjust", "admin_grant", "manual", "signup_reward"]);
 
 /**
  * [복주머니 적립 구간표 §활동 점수] 액션별 활동 점수 가중치.

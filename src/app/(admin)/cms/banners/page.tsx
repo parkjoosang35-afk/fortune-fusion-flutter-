@@ -88,6 +88,9 @@ export default async function CmsBannersPage() {
           <Link href="/cms/page-configs/home" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             메인화면 편집
           </Link>
+          <Link href="/cms/intro-config" className="px-3 py-2 text-slate-500 hover:text-slate-900">
+            인트로 관리
+          </Link>
         </nav>
       </div>
 
