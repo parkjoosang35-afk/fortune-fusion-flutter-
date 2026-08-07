@@ -3,13 +3,13 @@ import '../../../../core/theme/app_unified_style.dart';
 import '../../../../core/widgets/premium_card.dart';
 import '../../domain/fortune_matrix.dart';
 
-/// [운섹션 87 카테고리 통합 - 궁합 신규 구현 완료] 87개 카테고리 전체를
-/// 그룹(13개)별로 펼쳐 보여주는 전체보기 화면 전용 섹션(궁합 C 그룹 포함
+/// [운섹션 37 카테고리 정리 - 미연동 콘텐츠 삭제] 37개 카테고리 전체를
+/// 그룹(5개)별로 펼쳐 보여주는 전체보기 화면 전용 섹션(궁합 C 그룹 포함
 /// - fortune_matrix.dart 헤더 참고).
 ///
 /// 기존 관리자 8그룹 섹션("전체 카테고리")과 별개로, [FortuneMatrix]를 단일
-/// 소스로 삼아 새로 추가된 87개 카테고리(K/V/O/X/G/B/D/R/C 등 타로를 제외한
-/// 전체)를 탐색할 수 있게 한다. 그룹별 카드 안에 하위 카테고리를 칩으로
+/// 소스로 삼아 실제 연동된 카테고리(오늘/사주/이름/궁합/관상·손금)를
+/// 탐색할 수 있게 한다. 그룹별 카드 안에 하위 카테고리를 칩으로
 /// 나열하고, 각 칩에는 게이트 정책을 한눈에 알 수 있는 짧은 배지 라벨을
 /// 붙인다(무료/1회무료/첫무료/프리패스).
 class FortuneMatrixSection extends StatelessWidget {
@@ -21,15 +21,8 @@ class FortuneMatrixSection extends StatelessWidget {
     FortuneGroupCode.t: Icons.wb_sunny_outlined,
     FortuneGroupCode.s: Icons.auto_stories_outlined,
     FortuneGroupCode.n: Icons.badge_outlined,
-    FortuneGroupCode.k: Icons.event_available_outlined,
-    FortuneGroupCode.v: Icons.timeline_outlined,
-    FortuneGroupCode.o: Icons.auto_awesome_outlined,
+    FortuneGroupCode.c: Icons.favorite_outline,
     FortuneGroupCode.f: Icons.face_outlined,
-    FortuneGroupCode.x: Icons.compare_arrows_rounded,
-    FortuneGroupCode.g: Icons.show_chart_rounded,
-    FortuneGroupCode.b: Icons.route_outlined,
-    FortuneGroupCode.d: Icons.nights_stay_outlined,
-    FortuneGroupCode.r: Icons.description_outlined,
   };
 
   @override

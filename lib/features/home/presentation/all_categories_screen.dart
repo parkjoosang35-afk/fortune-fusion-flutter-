@@ -27,7 +27,7 @@ import 'widgets/fortune_matrix_section.dart';
 ///
 /// 점신류 앱의 "카테고리 풍부함"을 벤치마킹하되 그대로 베끼지 않고, 우리 서비스
 /// 구조(열림패스/복주머니/부적/소원게시판·소원방/AI상담/커뮤니티)에 맞춰 재구성한다.
-/// 화면 순서: ①헤더 ②오늘 추천 ③대표카테고리4개 ④전체 8개 그룹 ⑤빠른진입
+/// 화면 순서: ①헤더 ②오늘 추천 ③대표카테고리4개 ④전체 그룹(연동콘텐츠만) ⑤빠른진입
 /// ⑥열림패스 상태 ⑦하단 연결 CTA.
 ///
 /// [주의] 이 페이지는 Presentation 레이어 신규 화면이며, 기존 Provider(Pass/Wallet)
@@ -182,22 +182,16 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
   }
 
   /// [운세 카테고리 확장] 정적 그룹(_categoryGroups)의 [title] ↔ 관리자
-  /// FortuneCategoryGroup.code 매핑. 15개 신규 카테고리는 모두 이 7개 그룹
-  /// 중 하나에 속한다. "테마 운세"에는 이름 운세(성명학, name_theme)를,
-  /// "상담/해석"에는 AI상담(consultation_ext)을 병합한다 — 제목이 기존
-  /// 정적 항목("AI 상담")과 겹치면 [_resolveCategoryGroups]가 중복을 자동
-  /// 제거하므로 안전하다.
-  /// [남은 미세조정] "행운/정화"는 이미 동작하는 화면(부적 상점/부적
-  /// 만들기)이지만 관리자 스키마 밖에 있었다 — 새 화면을 만들지 않고
-  /// `luck_purify` 그룹으로 admin-manageable화했으므로 매핑을 추가한다.
+  /// FortuneCategoryGroup.code 매핑.
+  /// [미연동 콘텐츠 삭제] "테마 운세"(별자리/혈액형/꿈해몽 등 전부
+  /// 미연동)와 "행운/정화"(행운의번호/살풀이 전부 미연동) 그룹은
+  /// _categoryGroups에서 통째로 삭제했으므로 매핑도 함께 제거한다.
   static const Map<String, String> _groupCodeByTitle = {
     '오늘/기간 운세': 'today',
     '사주': 'saju',
     '타로': 'tarot',
     '얼굴/손금': 'face_palm',
-    '테마 운세': 'name_theme',
     '상담/해석': 'consultation_ext',
-    '행운/정화': 'luck_purify',
   };
 
   /// 관리자 데이터를 기존 정적 그룹 구조([_categoryGroups]와 동일한 레코드
@@ -342,8 +336,8 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
             // [CategoryGate]로 판정 후 이동한다.
             FadeSlideIn(
               child: const PremiumSectionTitleLite(
-                title: '87가지 운세 한눈에 보기',
-                subtitle: '오늘·사주·이름·궁합·택일·평생운·추천·관상손금 등 전체',
+                title: '37가지 운세 한눈에 보기',
+                subtitle: '오늘·사주·이름·궁합·관상손금 등 전체',
               ),
             ),
             const SizedBox(height: UnifiedTokens.spaceMd),
@@ -678,8 +672,12 @@ class _FeaturedCard extends StatelessWidget {
   }
 }
 
-/// ④ 전체 카테고리 8개 그룹의 데이터 정의.
-/// route가 null인 하위 항목은 아직 상세 화면이 없는 카테고리 → 탭 시 "준비중" 안내.
+/// ④ 전체 카테고리 그룹의 데이터 정의.
+/// [미연동 콘텐츠 삭제] 상세 화면이 없던(route: null) 하위 항목을 모두
+/// 삭제했다. 그 결과 모든 항목이 미연동이었던 "테마 운세"(별자리/혈액형/
+/// 꿈해몽/포춘쿠키/능력평가)와 "행운/정화"(행운의번호/살풀이) 2개 그룹은
+/// 통째로 삭제했다(기존 8개 → 5개 그룹). 남은 그룹의 항목은 전부 실제
+/// 화면으로 연동되어 있으므로 "준비중" 안내 분기는 더 이상 발생하지 않는다.
 /// requiresPass가 true인 항목은 [navigateWithPassGate]로 열림패스 게이트를 거친다.
 const List<
   ({
@@ -693,15 +691,10 @@ _categoryGroups = [
   (
     icon: Icons.wb_sunny_outlined,
     title: '오늘/기간 운세',
-    desc: '오늘 하루부터 신년까지, 흐름을 확인해보세요',
+    desc: '오늘 하루의 흐름을 확인해보세요',
     items: [
       // [프리패스 전체잠금 통일] 오늘의 운세 전체잠금(과거 무료 노출).
       (label: '오늘의 운세', route: '/home/daily-fortune-detail', pass: true),
-      (label: '시간대별 운세', route: null, pass: false),
-      (label: '내일 운세', route: null, pass: false),
-      (label: '주간 운세', route: null, pass: false),
-      (label: '월간 운세', route: null, pass: false),
-      (label: '신년운세', route: null, pass: false),
     ],
   ),
   (
@@ -711,9 +704,6 @@ _categoryGroups = [
     items: [
       (label: '정통사주', route: '/ai-fortune/saju/input', pass: true),
       (label: '오늘의 사주', route: '/ai-fortune/saju/input', pass: true),
-      (label: '만세력', route: null, pass: false),
-      (label: '오행 흐름', route: null, pass: false),
-      (label: '대운/세운', route: null, pass: false),
     ],
   ),
   (
@@ -735,28 +725,6 @@ _categoryGroups = [
     items: [
       (label: '오늘의 관상', route: '/ai-fortune/face/capture', pass: true),
       (label: '손금', route: '/ai-fortune/palm/capture', pass: true),
-      (label: '성향 해석', route: null, pass: false),
-    ],
-  ),
-  (
-    icon: Icons.nights_stay_outlined,
-    title: '테마 운세',
-    desc: '가볍게 즐기는 오늘의 재미 운세',
-    items: [
-      (label: '별자리 운세', route: null, pass: false),
-      (label: '혈액형 운세', route: null, pass: false),
-      (label: '꿈해몽', route: null, pass: false),
-      (label: '포춘쿠키', route: null, pass: false),
-      (label: '능력평가', route: null, pass: false),
-    ],
-  ),
-  (
-    icon: Icons.auto_awesome_outlined,
-    title: '행운/정화',
-    desc: '나를 지키고 채워주는 행운 아이템',
-    items: [
-      (label: '행운의 번호', route: null, pass: false),
-      (label: '살풀이', route: null, pass: false),
     ],
   ),
   (
@@ -766,7 +734,6 @@ _categoryGroups = [
     items: [
       (label: 'AI 상담', route: '/ai-fortune/consultation/type', pass: true),
       (label: '고민상담', route: '/ai-fortune/consultation/type', pass: true),
-      (label: '전문가 상담(오픈 예정)', route: null, pass: false),
     ],
   ),
 ];
