@@ -15,6 +15,12 @@ import '../domain/user_model.dart';
 class AuthRepository {
   static String get _base => '${EnvConfig.adminApiBaseUrl}/api/public/auth';
 
+  /// [인트로 전면 개편] 직전 emailSignup() 호출이 성공하면서 서버가 함께
+  /// 내려준 회원가입 보상 정보(`{amount, balanceAfter}`). 가입 자체가 없거나
+  /// 정책이 비활성(amount=0)이면 null. SignupRewardHandler가 이 값을 읽어
+  /// 토스트 표시 + WalletProvider 갱신을 트리거한다.
+  Map<String, dynamic>? lastSignupReward;
+
   /// 02번 §1.1 "이메일 가입" — 로그인과 분리된 신규 가입 절차.
   /// 서버 응답이 성공하면 JWT를 [AuthTokenStore]에 저장한다.
   Future<ApiResult<UserModel>> emailSignup(
@@ -51,6 +57,9 @@ class AuthRepository {
       final data = decoded['data'] as Map<String, dynamic>;
       final user = UserModel.fromJson(data['user'] as Map<String, dynamic>);
       await _persistSession(user, data['token'] as String);
+      // [인트로 전면 개편] 서버가 함께 내려준 회원가입 보상 정보를 보관해둔다
+      // (없으면 null — 정책 비활성/amount=0 케이스).
+      lastSignupReward = data['signupReward'] as Map<String, dynamic>?;
       return ApiResult.ok(user);
     } catch (e) {
       debugPrint('[AuthRepository] [emailSignup] 예외 -> $e');

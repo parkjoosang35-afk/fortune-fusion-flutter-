@@ -5,6 +5,8 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../../../core/widgets/luck_pouch_toast.dart';
+import '../../wallet/application/wallet_provider.dart';
 import '../application/auth_provider.dart';
 
 /// 02번 §1.1 "이메일 가입" - 로그인과 분리된 회원가입 화면
@@ -59,6 +61,18 @@ class _SignupScreenState extends State<SignupScreen> {
     setState(() => _isSubmitting = false);
 
     if (ok) {
+      // [인트로 전면 개편 - SignupRewardHandler] 서버가 회원가입 보상을
+      // 지급했으면(amount>0) WalletProvider를 즉시 갱신해 잔액을 최신화하고,
+      // "회원가입 보상 +100 복주머니" 토스트를 띄운다. 정책 비활성 등으로
+      // signupReward가 null이면 조용히 건너뛴다(가입 자체는 그대로 성공 처리).
+      final reward = context.read<AuthProvider>().lastSignupReward;
+      final rewardAmount = reward?['amount'] as int?;
+      if (rewardAmount != null && rewardAmount > 0) {
+        await context.read<WalletProvider>().load();
+        if (!mounted) return;
+        LuckPouchToastController.instance.showSignupReward(rewardAmount);
+      }
+      if (!mounted) return;
       Navigator.of(
         context,
       ).pushNamedAndRemoveUntil('/signup/profile-check', (route) => false);

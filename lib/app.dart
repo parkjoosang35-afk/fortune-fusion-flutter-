@@ -59,6 +59,9 @@ import 'features/pass/application/pass_provider.dart';
 import 'features/pass/application/open_pass_reward_controller.dart';
 import 'features/pass/data/pass_repository.dart';
 import 'features/pass/data/open_pass_repository.dart';
+import 'features/intro/application/intro_state_provider.dart';
+import 'features/intro/application/intro_config_provider.dart';
+import 'features/intro/data/intro_config_repository.dart';
 import 'features/luckpouch/application/luck_pouch_provider.dart';
 import 'core/domain/access/access_checker.dart';
 import 'core/widgets/luck_pouch_toast.dart';
@@ -76,6 +79,14 @@ class App extends StatelessWidget {
         // ── 전역 Provider(앱 전체에서 상시 참조) ──
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider(AuthRepository())),
+        // [인트로 전면 개편] 첫 진입(스플래시→인트로→홈) 흐름의 로컬 완료 상태
+        // (introSeen/skipped/continueAsGuest)와, admin_web에서 발행한 인트로
+        // 문구/보상수량 설정. 둘 다 SplashScreen/IntroPagerScreen에서 즉시
+        // 참조하므로 다른 화면 Provider보다 앞쪽에 등록한다.
+        ChangeNotifierProvider(create: (_) => IntroStateProvider()),
+        ChangeNotifierProvider(
+          create: (_) => IntroConfigProvider(IntroConfigRepository()),
+        ),
         // [자율 정리 - 정책 위반 무력화] 신통방통은 "적립률(등급 배율)" 개념이
         // 없는 무료 광고형 구조다(복주머니는 항상 1:1 지급). 과거 등급 배율을
         // WalletProvider에 주입하던 ProxyProvider 연결을 제거하고 단순

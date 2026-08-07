@@ -25,6 +25,11 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoggedIn => _state.isSuccess && _state.data != null;
   UserModel? get currentUser => _state.data;
 
+  /// [인트로 전면 개편] 직전 signup() 성공 시 서버가 함께 내려준 회원가입
+  /// 보상 정보(`{amount, balanceAfter}` 또는 null). signup_screen.dart의
+  /// SignupRewardHandler가 이 값으로 토스트를 띄우고 WalletProvider를 갱신한다.
+  Map<String, dynamic>? get lastSignupReward => _repository.lastSignupReward;
+
   Future<void> _loadGrade(UserModel user) async {
     _currentGrade = await _gradeRepository.getGradeByCode(user.grade);
   }

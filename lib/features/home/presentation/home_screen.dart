@@ -289,6 +289,39 @@ class _TopHeader extends StatelessWidget {
           ),
         ),
         const Spacer(),
+        // [인트로 전면 개편 - 인트로↔홈 연결] 인트로 2단계(복주머니)에서 소개한
+        // "복주머니는 무료로 모으고, 자유롭게 써요"가 실제로 홈에서 잔액으로
+        // 바로 확인 가능해야 한다는 요구사항 대응. 탭하면 복주머니 상세(적립
+        // 내역/받기)로 이동한다. 마이페이지의 _WalletSummaryCard와는 별개로,
+        // 여기서는 헤더에 붙는 작은 배지 형태로 최소한만 노출한다.
+        GestureDetector(
+          onTap: () => Navigator.of(context).pushNamed('/reward/wallet'),
+          child: Consumer<WalletProvider>(
+            builder: (context, wallet, _) => Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: HomeColors.cardAllMenu,
+                borderRadius: BorderRadius.circular(HomeTokens.radiusPill),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.card_giftcard_rounded,
+                    size: 14,
+                    color: HomeColors.textPrimary,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${wallet.balance}',
+                    style: HomeText.chipLabel(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: _Dims.headerIconGap),
         // 벨 아이콘 - 스펙 "상단 우측 알림/클로버 아이콘: 20~22" 범위 상단값(22),
         // 컬러는 기본 텍스트 아이콘 규칙(#111111) 적용.
         GestureDetector(
