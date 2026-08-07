@@ -32,7 +32,7 @@ class GiftcardDetailScreen extends StatelessWidget {
     final confirmed = await showAppConfirmDialog(
       context,
       title: '${product.name} 교환',
-      message: '${product.requiredPoint}P를 사용하여 교환하시겠습니까?',
+      message: '복주머니 ${product.requiredPoint}개를 사용하여 교환하시겠습니까?',
       confirmLabel: '교환하기',
     );
     if (!confirmed || !context.mounted) return;

@@ -55,9 +55,10 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
       '오늘의 운세',
       '매일 새로운 종합운을 확인해보세요',
       Icons.wb_sunny_outlined,
-      '무료',
+      // [프리패스 전체잠금 통일] 오늘의 운세 전체잠금(과거 '무료'/false).
+      '프리패스',
       '/home/daily-fortune-detail',
-      false,
+      true,
       '전체',
     ),
     (

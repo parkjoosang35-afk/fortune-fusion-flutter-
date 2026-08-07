@@ -9,14 +9,11 @@ import 'package:share_plus/share_plus.dart';
 import '../../../../core/data/my_fortune_record_store.dart';
 import '../../../../core/theme/app_unified_style.dart';
 import '../../../../core/widgets/app_toast.dart';
-import '../../../../core/widgets/premium_card.dart';
 import '../../../../core/widgets/fortune/ai_consult_banner.dart';
 import '../../../../core/widgets/fortune/fortune_share_card.dart';
 import '../../../../core/widgets/fortune/hero_summary_card.dart';
 import '../../../../core/widgets/fortune/list_card.dart';
 import '../../../../core/widgets/fortune/lucky_elements_grid.dart';
-import '../../../../core/widgets/fortune/lock_overlay_badge.dart';
-import '../../../../core/widgets/fortune/primary_cta.dart';
 import '../../../../core/widgets/fortune/result_bottom_actions.dart';
 import '../../../../core/widgets/fortune/section_card.dart';
 import '../../../../core/widgets/fortune/timeline_card.dart';
@@ -24,7 +21,6 @@ import '../../../consultation/application/consultation_provider.dart';
 import '../../../pass/application/pass_provider.dart';
 import '../../../../core/domain/access/access_checker.dart';
 import '../../../pass/presentation/pass_time_format.dart';
-import '../../../pass/presentation/pass_gate_helper.dart';
 import '../application/daily_fortune_provider.dart';
 import '../domain/daily_fortune_model.dart';
 import '../domain/fortune_report_builder.dart';
@@ -91,7 +87,6 @@ class _DailyFortuneResultScreenState extends State<DailyFortuneResultScreen> {
                         today,
                         name: _displayName,
                       ),
-                      passActive: passActive,
                       onSave: () => _onSave(today),
                       onShare: () => _onShare(today),
                     ),
@@ -314,13 +309,11 @@ class _InsufficientDataView extends StatelessWidget {
 class _ResultBody extends StatelessWidget {
   const _ResultBody({
     required this.report,
-    required this.passActive,
     required this.onSave,
     required this.onShare,
   });
 
   final FortuneReport report;
-  final bool passActive;
   final VoidCallback onSave;
   final VoidCallback onShare;
 
@@ -339,14 +332,10 @@ class _ResultBody extends StatelessWidget {
       ),
     ];
 
-    var unlockPromptInserted = passActive; // 이미 활성이면 안내 카드 자체를 넣지 않음
+    // [프리패스 전체잠금 통일] 오늘의 운세는 진입점(navigateWithPassGate)에서
+    // 이미 게이트되므로, 이 화면 내부에는 부분잠금/안내카드 로직을 두지 않는다
+    // (사주/타로/관상/손금과 동일한 "게이트 앳 더 도어" 패턴).
     for (final section in report.sections) {
-      if (!unlockPromptInserted && section.requiresPass) {
-        // [§5/§6-7 열림패스 정책] 잠금 유도 문구를 카드마다 반복하지 않고,
-        // 첫 잠금 구간 바로 앞에 단 하나의 안내 카드로만 노출한다.
-        cards.add(const _UnlockPassPromptCard());
-        unlockPromptInserted = true;
-      }
       cards.add(_buildSection(section));
     }
 
@@ -406,8 +395,6 @@ class _ResultBody extends StatelessWidget {
   }
 
   Widget _buildSection(FortuneSection section) {
-    final isLocked = section.requiresPass && !passActive;
-
     switch (section.type) {
       case FortuneSectionType.overview:
         final s = section as OverviewSection;
@@ -417,7 +404,6 @@ class _ResultBody extends StatelessWidget {
         final s = section as TimelineSection;
         return TimelineCard(
           title: s.title,
-          isLocked: isLocked,
           slots: s.slots
               .map((e) => TimelineCardSlot(label: e.label, body: e.body))
               .toList(),
@@ -428,7 +414,6 @@ class _ResultBody extends StatelessWidget {
         return SectionCard(
           title: s.title,
           body: s.body,
-          isLocked: isLocked,
           icon: _aspectIcon(s.title),
           trailing: _IndexBadge(index: s.index),
         );
@@ -439,7 +424,6 @@ class _ResultBody extends StatelessWidget {
           title: s.title,
           items: s.items,
           icon: Icons.block_rounded,
-          isLocked: isLocked,
         );
 
       case FortuneSectionType.recommend:
@@ -448,7 +432,6 @@ class _ResultBody extends StatelessWidget {
           title: s.title,
           items: s.items,
           icon: Icons.check_circle_outline_rounded,
-          isLocked: isLocked,
         );
 
       case FortuneSectionType.lucky:
@@ -456,13 +439,7 @@ class _ResultBody extends StatelessWidget {
         return LuckElementsGrid(
           title: s.title,
           items: s.items
-              .map(
-                (e) => LuckyGridItem(
-                  label: e.label,
-                  value: e.value,
-                  isLocked: e.requiresPass && !passActive,
-                ),
-              )
+              .map((e) => LuckyGridItem(label: e.label, value: e.value))
               .toList(),
         );
     }
@@ -495,48 +472,6 @@ class _IndexBadge extends StatelessWidget {
         border: Border.all(color: UnifiedColors.border, width: 1),
       ),
       child: Text('$index점', style: UnifiedText.chipLabel()),
-    );
-  }
-}
-
-/// [§5/§6-7 열림패스 정책] 첫 잠금 구간 앞에 딱 한 번만 노출하는 안내 카드.
-///
-/// 카드마다 "열림패스로 상세 보기"를 반복 노출하지 않기 위해, 잠금 섹션들이
-/// 시작되는 지점에 이 카드 하나로 유도 문구를 모은다. 탭하면 기존
-/// [showPassRequiredSheet](광고 시청/파트너 방문/구독)를 그대로 재사용한다
-/// (새 패스 발급 UI를 다시 만들지 않음). 배경은 배너 계열(#F2F0FA)을 사용해
-/// 결과 섹션 카드(#F6F5FA)와 구분되면서도 팔레트 밖 색상은 쓰지 않는다.
-class _UnlockPassPromptCard extends StatelessWidget {
-  const _UnlockPassPromptCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return PremiumCard(
-      backgroundColor: UnifiedColors.cardBanner,
-      borderColor: Colors.transparent,
-      showShadow: false,
-      borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
-      padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const LockOverlayBadge.badge(),
-          const SizedBox(height: UnifiedTokens.spaceSm),
-          Text(
-            '지금 열면 연애운, 금전운, 행운 요소까지\n모두 볼 수 있어요',
-            style: UnifiedText.title(),
-          ),
-          const SizedBox(height: 4),
-          Text('프리패스로 오늘의 운세를 전체 확인해보세요', style: UnifiedText.caption()),
-          const SizedBox(height: UnifiedTokens.spaceMd),
-          PrimaryCTA(
-            label: '프리패스로 전체 보기',
-            height: 40,
-            onPressed: () =>
-                showPassRequiredSheet(context, categoryTitle: '오늘의 운세'),
-          ),
-        ],
-      ),
     );
   }
 }

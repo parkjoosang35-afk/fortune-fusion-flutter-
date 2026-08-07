@@ -137,7 +137,7 @@ class _CommunityScreenState extends State<CommunityScreen>
                   if (rewardPoint == null) return;
                   if (sheetContext.mounted) Navigator.of(sheetContext).pop();
                   if (rewardPoint > 0 && context.mounted) {
-                    AppToast.show(context, '소원 등록 완료! +$rewardPoint P 획득');
+                    AppToast.show(context, '소원 등록 완료! 복주머니 $rewardPoint개 획득');
                   }
                 },
               ),

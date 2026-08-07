@@ -4,9 +4,11 @@ import '../domain/point_history_model.dart';
 import '../../../core/widgets/luck_pouch_toast.dart';
 
 /// 07단계 §2.1 전역 Provider - WalletProvider(잔액 캐시, 최근 트랜잭션)
-/// Phase2-1b: 04A §A-5 등급 배율(point_earn_multiplier)을 earn() 단일 지점에 적용.
-/// app.dart에서 ChangeNotifierProxyProvider로 AuthProvider.pointEarnMultiplier를
-/// 주입받아 [updateMultiplier]를 호출한다 - 각 화면의 earn() 호출부는 무변경.
+/// [자율 정리 - 정책 위반 무력화] 과거 등급 배율(point_earn_multiplier)을 여기서
+/// 적립액에 곱해 지급하던 로직이 있었으나, 신통방통은 "프리패스(시간권) +
+/// 복주머니(유일 화폐)"만 존재하는 무료 광고형 구조라 적립률/배율 개념이
+/// 없어야 한다(정책: 복주머니는 항상 요청 금액 그대로 1:1 지급). 배율 관련
+/// 필드/메서드를 제거해 earn()이 항상 amount 그대로 지급하도록 되돌린다.
 class WalletProvider extends ChangeNotifier {
   final WalletRepository _repository;
   WalletProvider(this._repository);
@@ -14,17 +16,10 @@ class WalletProvider extends ChangeNotifier {
   int _balance = 0;
   List<PointHistoryModel> _history = [];
   bool _isLoading = false;
-  double _multiplier = 1.0;
 
   int get balance => _balance;
   List<PointHistoryModel> get history => _history;
   bool get isLoading => _isLoading;
-
-  /// AuthProvider의 등급 배율을 반영한다(값이 바뀔 때만 갱신하여 불필요한 rebuild 방지).
-  void updateMultiplier(double multiplier) {
-    if (_multiplier == multiplier) return;
-    _multiplier = multiplier;
-  }
 
   Future<void> load() async {
     _isLoading = true;
@@ -39,22 +34,15 @@ class WalletProvider extends ChangeNotifier {
 
   /// 복주머니(및 그 위임체인) 적립. [sourceType]은 백엔드 PointHistory.sourceType과
   /// 동일한 값으로 전달하여 서버측 일일상한/활동점수 엔진이 올바르게 집계하도록 한다.
+  /// [정책] 배율 없이 항상 [amount] 그대로 지급한다.
   Future<void> earn(
     int amount,
     String reason, {
     String sourceType = 'app',
   }) async {
-    final finalAmount = (amount * _multiplier).round();
-    final appliedReason = _multiplier > 1.0
-        ? '$reason (등급 $_multiplier배 적용)'
-        : reason;
-    _balance = await _repository.earn(
-      finalAmount,
-      appliedReason,
-      sourceType: sourceType,
-    );
+    _balance = await _repository.earn(amount, reason, sourceType: sourceType);
     await load();
-    LuckPouchToastController.instance.showEarn(finalAmount, reason);
+    LuckPouchToastController.instance.showEarn(amount, reason);
   }
 
   Future<bool> spend(

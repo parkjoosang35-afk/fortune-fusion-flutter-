@@ -57,7 +57,7 @@ class _CommunityPostDetailScreenState extends State<CommunityPostDetailScreen> {
     if (rewardPoint != null) {
       _commentController.clear();
       if (rewardPoint > 0 && mounted) {
-        AppToast.show(context, '댓글 등록 완료! +$rewardPoint P 획득');
+        AppToast.show(context, '댓글 등록 완료! 복주머니 $rewardPoint개 획득');
       }
     }
   }

@@ -74,13 +74,12 @@ class App extends StatelessWidget {
         // ── 전역 Provider(앱 전체에서 상시 참조) ──
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider(AuthRepository())),
-        // Phase2-1b: AuthProvider의 등급 배율(pointEarnMultiplier)을 WalletProvider에 주입.
-        // AuthProvider가 갱신될 때마다 WalletProvider.updateMultiplier가 호출된다.
-        ChangeNotifierProxyProvider<AuthProvider, WalletProvider>(
-          create: (_) => WalletProvider(WalletRepository()),
-          update: (_, auth, wallet) =>
-              wallet!..updateMultiplier(auth.pointEarnMultiplier),
-        ),
+        // [자율 정리 - 정책 위반 무력화] 신통방통은 "적립률(등급 배율)" 개념이
+        // 없는 무료 광고형 구조다(복주머니는 항상 1:1 지급). 과거 등급 배율을
+        // WalletProvider에 주입하던 ProxyProvider 연결을 제거하고 단순
+        // ChangeNotifierProvider로 되돌린다(WalletProvider.earn()은 배율 없이
+        // 항상 요청한 금액 그대로 지급).
+        ChangeNotifierProvider(create: (_) => WalletProvider(WalletRepository())),
         ChangeNotifierProvider(
           create: (_) => NotificationProvider(NotificationRepository()),
         ),

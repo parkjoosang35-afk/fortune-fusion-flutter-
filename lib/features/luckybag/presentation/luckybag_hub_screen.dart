@@ -2,20 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/premium_card.dart';
-import '../../../core/widgets/premium_button.dart';
 import '../../../core/widgets/premium_section_title.dart';
 import '../../../core/widgets/premium_graphics.dart';
 import '../../../core/widgets/app_dialog.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../wallet/application/wallet_provider.dart';
 import '../../attendance/application/attendance_provider.dart';
-import '../../auth/application/auth_provider.dart';
-import '../../auth/domain/grade_model.dart';
 import '../application/luckybag_provider.dart';
 import 'luckybag_shop_screen.dart';
 import 'luckybag_history_screen.dart';
 import '../../mission/presentation/mission_screen.dart';
-import '../../subscription/presentation/subscription_plans_screen.dart';
 import '../../community/presentation/community_hub_screen.dart';
 import '../../community/presentation/community_screen.dart';
 
@@ -65,7 +61,7 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
     if (earned > 0) {
       await context.read<WalletProvider>().load();
       if (!mounted) return;
-      AppToast.show(context, '출석 완료! +$earned P 지급되었습니다.');
+      AppToast.show(context, '출석 완료! 복주머니 $earned개 지급되었습니다.');
     } else {
       AppToast.show(
         context,
@@ -80,7 +76,6 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
     final wallet = context.watch<WalletProvider>();
     final attendance = context.watch<AttendanceProvider>();
     final luckyBag = context.watch<LuckyBagProvider>();
-    final grade = context.watch<AuthProvider>().currentGrade;
 
     return Scaffold(
       backgroundColor: UnifiedColors.bg,
@@ -173,21 +168,6 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
                 subtitle: '다른 사람의 소원에 복주머니로 응원 보내기',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const CommunityScreen()),
-                ),
-              ),
-            ),
-            const SizedBox(height: UnifiedTokens.spaceXxl),
-
-            const PremiumSectionTitle(title: '구독 보너스'),
-            const SizedBox(height: UnifiedTokens.spaceMd),
-            FadeSlideIn(
-              delay: const Duration(milliseconds: 360),
-              child: _VipCard(
-                grade: grade,
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const SubscriptionPlansScreen(),
-                  ),
                 ),
               ),
             ),
@@ -382,71 +362,4 @@ class _ShortcutCard extends StatelessWidget {
   }
 }
 
-/// §4 VIP 등급 카드 - 블랙 카드 + 네온 원형 아이콘(포인트 컬러는 원형 CTA에만
-/// 사용) + 블랙 CTA 버튼으로 구독 유도. pass_gate_helper의 구독 CTA와 동일 톤.
-class _VipCard extends StatelessWidget {
-  const _VipCard({required this.grade, required this.onTap});
 
-  final GradeModel? grade;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return PremiumCard(
-      backgroundColor: UnifiedColors.black,
-      borderColor: Colors.transparent,
-      showShadow: false,
-      borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
-      padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: UnifiedTokens.iconCircleLg,
-                height: UnifiedTokens.iconCircleLg,
-                decoration: const BoxDecoration(
-                  color: UnifiedColors.neon,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.workspace_premium_outlined,
-                  color: UnifiedColors.black,
-                  size: UnifiedTokens.iconMd,
-                ),
-              ),
-              const SizedBox(width: UnifiedTokens.spaceMd),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      grade != null ? '${grade!.name} 등급' : '등급 정보 없음',
-                      style: UnifiedText.bodyStrong(color: Colors.white),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      grade != null
-                          ? '복주머니 적립 ${grade!.pointEarnMultiplier}배 적용 중'
-                          : '프리미엄 구독으로 등급을 올려보세요',
-                      style: UnifiedText.caption(
-                        color: const Color(0xFFB8B8B8),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: UnifiedTokens.spaceMd),
-          PremiumButton.secondary(
-            label: '구독 플랜 보기',
-            height: 44,
-            onPressed: onTap,
-          ),
-        ],
-      ),
-    );
-  }
-}

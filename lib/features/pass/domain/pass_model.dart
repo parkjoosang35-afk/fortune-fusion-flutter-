@@ -91,34 +91,10 @@ class PassPolicyModel {
   }
 }
 
-/// GET /api/public/pass/purchase-options 대응 — "복주머니로 구매" 가능한 프리패스
-/// 옵션 목록(마이페이지 프리패스 영역에서 사용). [복주머니 사용 구간표]
-/// 프리패스30분-30 / 1시간-50 / 24시간-150.
-class PassPurchaseOptionModel {
-  final int id;
-  final String name;
-  final int durationMin;
-  final int luckPouchPrice;
-  final String? description;
-
-  const PassPurchaseOptionModel({
-    required this.id,
-    required this.name,
-    required this.durationMin,
-    required this.luckPouchPrice,
-    this.description,
-  });
-
-  factory PassPurchaseOptionModel.fromJson(Map<String, dynamic> json) {
-    return PassPurchaseOptionModel(
-      id: json['id'] as int,
-      name: json['name'] as String,
-      durationMin: json['durationMin'] as int? ?? 0,
-      luckPouchPrice: json['happyMoneyPrice'] as int? ?? 0,
-      description: json['description'] as String?,
-    );
-  }
-}
+// [자율 정리 - 죽은 코드 제거] PassPurchaseOptionModel("복주머니로 구매" 가능한
+// 프리패스 옵션)은 PassRepository/PassProvider의 대응 메서드
+// (getPurchaseOptions/purchaseWithLuckPouch)가 UI에서 호출되지 않아 함께
+// 제거되었다. "프리패스는 재화 개념 없음" 정책상 재도입하지 않는다.
 
 /// GET /api/public/pass/status 대응 — 현재 사용자의 열림패스 활성 상태
 class PassStatusModel {

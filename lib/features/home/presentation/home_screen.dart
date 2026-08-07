@@ -709,8 +709,13 @@ class _FortuneTarotRow extends StatelessWidget {
               backgroundColor: HomeColors.cardMain,
               circleIcon: Icons.arrow_drop_up_rounded,
               circleStyle: PremiumCircleButtonStyle.neon,
-              onTap: () =>
-                  Navigator.of(context).pushNamed('/home/daily-fortune-detail'),
+              // [프리패스 전체잠금 통일] 게이트 없이 직접 이동하던 버그 수정.
+              onTap: () => navigateWithPassGate(
+                context,
+                title: '오늘의 운세',
+                route: '/home/daily-fortune-detail',
+                requiresPass: true,
+              ),
             ),
           ),
           const SizedBox(width: _Dims.wishCardGap),
@@ -721,7 +726,13 @@ class _FortuneTarotRow extends StatelessWidget {
               backgroundColor: HomeColors.cardWish,
               circleIcon: Icons.arrow_drop_down_rounded,
               circleStyle: PremiumCircleButtonStyle.black,
-              onTap: () => Navigator.of(context).pushNamed('/tarot/home'),
+              // [프리패스 전체잠금 통일] 게이트 없이 직접 이동하던 버그 수정.
+              onTap: () => navigateWithPassGate(
+                context,
+                title: '타로',
+                route: '/tarot/home',
+                requiresPass: true,
+              ),
             ),
           ),
         ],

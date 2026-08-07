@@ -20,10 +20,6 @@ class PassProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _lastError;
 
-  // [재화 구조 정리] "복주머니로 구매" 가능한 프리패스 옵션 목록(마이페이지 전용).
-  List<PassPurchaseOptionModel> _purchaseOptions = [];
-  bool _isPurchaseLoading = false;
-
   /// true이면 [load]가 실 API 응답으로 [_status]를 덮어쓰지 않는다
   /// (테스트 모드에서 강제 지정한 상태를 유지하기 위함).
   bool _debugOverride = false;
@@ -33,8 +29,6 @@ class PassProvider extends ChangeNotifier {
   bool get isActive => _status.isActive;
   bool get isLoading => _isLoading;
   String? get lastError => _lastError;
-  List<PassPurchaseOptionModel> get purchaseOptions => _purchaseOptions;
-  bool get isPurchaseLoading => _isPurchaseLoading;
 
   /// [OpenPassState](inactive/active/expired + 남은 시간)로 정규화한 값.
   /// 화면/AccessChecker는 이 값 또는 AccessChecker를 통해서만 상태를 본다.
@@ -153,33 +147,12 @@ class PassProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// [재화 구조 정리] 마이페이지 프리패스 영역 "복주머니로 구매" 진입 시 옵션 목록 로드.
-  Future<void> loadPurchaseOptions() async {
-    _isPurchaseLoading = true;
-    notifyListeners();
-
-    final result = await _repository.getPurchaseOptions();
-    if (result.success) _purchaseOptions = result.data!;
-
-    _isPurchaseLoading = false;
-    notifyListeners();
-  }
-
-  /// [재화 구조 정리] 복주머니 차감으로 프리패스 즉시 구매. 성공 시 상태를 즉시
-  /// 갱신한다. 잔액 부족 등의 사유는 [lastError]에 담겨 화면단에서 안내한다.
-  /// (지갑 잔액 갱신은 호출부에서 WalletProvider.load()를 함께 호출해야 한다.)
-  Future<bool> purchaseWithLuckPouch({required int policyId}) async {
-    final result = await _repository.purchaseWithLuckPouch(policyId: policyId);
-    if (!result.success) {
-      _lastError = result.errorMessage;
-      notifyListeners();
-      return false;
-    }
-    _status = result.data!;
-    _lastError = null;
-    notifyListeners();
-    return true;
-  }
+  // [자율 정리 - 죽은 기능 제거] 과거 "복주머니로 프리패스 구매"
+  // (loadPurchaseOptions/purchaseWithLuckPouch)는 백엔드/Repository까지
+  // 구현되었으나 Flutter UI 어디에서도 호출되지 않았다("프리패스는 시간제
+  // 이용권, 복주머니는 재화"라는 정책상 재화로 프리패스를 사는 경로 자체를
+  // 열지 않기로 확정). 실사용자 데이터에 영향이 없는 순수 죽은 코드였으므로
+  // 자율적으로 제거한다(Repository의 대응 메서드도 함께 정리).
 
   /// [로그아웃 시 프리패스 초기화 — 서버측 강제 만료 반영]
   /// 로그아웃하면 이유를 막론하고(사용자 명시적 로그아웃/토큰 만료 등) 현재 활성
@@ -206,7 +179,6 @@ class PassProvider extends ChangeNotifier {
     }
     _status = PassStatusModel.inactive();
     _policies = [];
-    _purchaseOptions = [];
     _lastError = null;
     _debugOverride = false;
     notifyListeners();

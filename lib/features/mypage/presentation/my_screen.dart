@@ -464,11 +464,15 @@ class _WalletSummaryCard extends StatelessWidget {
   }
 }
 
-// [무료 광고형 구조 재정비 §2/§7/§13] "복주머니로 프리패스 구매" 바텀시트와
-// "구독 요약 카드"는 마이페이지 화면 진입점에서 제거했다(off). 단, 기반 기능
-// 자체(PassProvider.purchaseWithLuckPouch(), SubscriptionProvider, 구독 라우트
-// /my/subscription 등)는 삭제하지 않고 그대로 보존한다 — 필요 시 다시 진입점만
-// 연결하면 복원 가능하다(유지→수정→통합→off→삭제 원칙, 삭제 아님).
+// [무료 광고형 구조 재정비 §2/§7/§13 - 자율 정리 갱신] "구독 요약 카드"는
+// 마이페이지 화면 진입점에서 제거했다(off). 기반 기능 자체(SubscriptionProvider,
+// 구독 라우트 /my/subscription 등)는 실사용자 결제 데이터(user_subscriptions)와
+// 연결되어 있어 삭제하지 않고 그대로 보존한다 — 필요 시 다시 진입점만 연결하면
+// 복원 가능하다(유지→수정→통합→off→삭제 원칙, 삭제 아님).
+// [자율 정리] "복주머니로 프리패스 구매" 바텀시트 + 기반 기능
+// (PassProvider.purchaseWithLuckPouch())은 애초에 UI 호출부가 전혀 없던
+// 순수 죽은 코드였으므로(사용자 데이터 영향 없음) Provider/Repository/Model
+// 자체를 완전히 제거했다 — 위 구독과 달리 "off 보존"이 아니라 "삭제" 대상이었다.
 
 class _SectionTitle extends StatelessWidget {
   const _SectionTitle({required this.title});

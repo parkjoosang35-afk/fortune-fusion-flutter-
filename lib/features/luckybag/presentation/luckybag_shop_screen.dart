@@ -51,7 +51,7 @@ class _LuckyBagShopScreenState extends State<LuckyBagShopScreen> {
     final confirmed = await showAppConfirmDialog(
       context,
       title: '${product.name} 열기',
-      message: '${product.pricePoint}P를 사용하여 복주머니를 여시겠습니까?',
+      message: '복주머니 ${product.pricePoint}개를 사용하여 여시겠습니까?',
       confirmLabel: '열기',
     );
     if (!confirmed || !mounted) return;

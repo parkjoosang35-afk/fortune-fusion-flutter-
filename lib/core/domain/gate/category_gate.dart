@@ -6,7 +6,7 @@ import 'category_usage_store.dart';
 ///
 /// 기존 [AccessChecker]/[PassProvider]가 이미 "열림패스가 활성 상태인가"를
 /// 담당하고 있으므로, 이 클래스는 새로운 자산/서버 호출을 추가하지 않고
-/// 그 위에 "87개 카테고리 각각의 무료 정책([GateResult])"만 얹는 얇은
+/// 그 위에 "80개 카테고리 각각의 무료 정책([GateResult])"만 얹는 얇은
 /// 판정 레이어다. 처음부터 새 아키텍처(Riverpod/go_router 등)를 도입하지
 /// 않고, 기존 Provider 기반 구조에 자연스럽게 얹는 것이 목표다.
 ///

@@ -130,86 +130,13 @@ class PassRepository {
     }
   }
 
-  /// GET /api/public/pass/purchase-options — [재화 구조 정리] "복주머니로 구매"
-  /// 가능한 프리패스 옵션 목록(30분/1시간/24시간 등, happyMoneyPrice가 설정된 정책만).
-  Future<ApiResult<List<PassPurchaseOptionModel>>> getPurchaseOptions() async {
-    final uri = Uri.parse(
-      '${EnvConfig.adminApiBaseUrl}/api/public/pass/purchase-options',
-    );
-    debugPrint('[PassRepository] [purchase-options] 요청 -> $uri');
-
-    try {
-      final response = await http
-          .get(uri, headers: {'Accept': 'application/json'})
-          .timeout(const Duration(seconds: 10));
-
-      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
-      if (response.statusCode != 200 || decoded['success'] != true) {
-        final error =
-            decoded['error'] as String? ?? '구매 가능한 프리패스 옵션을 불러오지 못했습니다.';
-        debugPrint('[PassRepository] [purchase-options] 실패 -> $error');
-        return ApiResult.fail(error);
-      }
-
-      final list = (decoded['data'] as List<dynamic>)
-          .map(
-            (e) => PassPurchaseOptionModel.fromJson(e as Map<String, dynamic>),
-          )
-          .toList();
-      return ApiResult.ok(list);
-    } catch (e) {
-      debugPrint('[PassRepository] [purchase-options] 예외 -> $e');
-      return ApiResult.fail('구매 가능한 프리패스 옵션을 불러오지 못했습니다: $e');
-    }
-  }
-
-  /// POST /api/public/pass/purchase-with-luck-pouch — [재화 구조 정리] 복주머니
-  /// 차감으로 프리패스 즉시 구매. 잔액 부족 시 실패(ApiResult.fail)를 반환한다
-  /// (프리패스는 순수 시간제 이용권이므로 구매 시 별도 상시 적립/보너스는 없다).
-  Future<ApiResult<PassStatusModel>> purchaseWithLuckPouch({
-    required int policyId,
-  }) async {
-    final userId = await AuthTokenStore.getCurrentUserId();
-    final uri = Uri.parse(
-      '${EnvConfig.adminApiBaseUrl}/api/public/pass/purchase-with-luck-pouch',
-    );
-    debugPrint(
-      '[PassRepository] [purchase-with-luck-pouch] 요청 -> userId=$userId, policyId=$policyId',
-    );
-
-    try {
-      final response = await http
-          .post(
-            uri,
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'userId': userId, 'policyId': policyId}),
-          )
-          .timeout(const Duration(seconds: 10));
-
-      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
-      if (response.statusCode != 200 || decoded['success'] != true) {
-        final error = decoded['error'] as String? ?? '프리패스 구매에 실패했습니다.';
-        debugPrint('[PassRepository] [purchase-with-luck-pouch] 실패 -> $error');
-        return ApiResult.fail(error);
-      }
-
-      final data = decoded['data'] as Map<String, dynamic>;
-      final expiresAt = DateTime.parse(data['expiresAt'] as String);
-      return ApiResult.ok(
-        PassStatusModel(
-          isActive: true,
-          userPassId: data['userPassId'] as int?,
-          policyId: data['policyId'] as int?,
-          policyName: data['policyName'] as String?,
-          expiresAt: expiresAt,
-          remainingSec: expiresAt.difference(DateTime.now()).inSeconds,
-        ),
-      );
-    } catch (e) {
-      debugPrint('[PassRepository] [purchase-with-luck-pouch] 예외 -> $e');
-      return ApiResult.fail('프리패스 구매 중 오류가 발생했습니다: $e');
-    }
-  }
+  // [자율 정리 - 죽은 기능 제거] getPurchaseOptions()/purchaseWithLuckPouch()
+  // (복주머니로 프리패스 구매)는 admin_web API까지 구현되어 있었으나 Flutter
+  // UI 어디에서도 호출되지 않았다. "프리패스는 시간제 이용권, 복주머니는
+  // 재화"라는 정책상 재화로 프리패스를 사는 경로는 열지 않기로 확정되어,
+  // Provider의 대응 메서드와 함께 자율적으로 제거한다(admin_web 쪽
+  // /api/public/pass/purchase-with-luck-pouch 엔드포인트 자체는 백엔드
+  // 인프라이므로 건드리지 않는다).
 
   /// POST /api/public/pass/expire-on-logout — [로그아웃 시 프리패스 서버측 강제 만료]
   /// 로그아웃하면 이유를 막론하고 현재 활성 프리패스를 서버 DB에서 즉시, 영구적으로

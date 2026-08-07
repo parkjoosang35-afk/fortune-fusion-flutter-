@@ -1,15 +1,24 @@
-/// [운섹션 87 카테고리 통합] Fortune Fusion(신통방통) 운세 섹션 카테고리 매트릭스.
+/// [운섹션 87 카테고리 통합 - 자율 정정] Fortune Fusion(신통방통) 운세 섹션
+/// 카테고리 매트릭스.
 ///
 /// 타로(Ta-001~Ta-015, `/ai-fortune/tarot/*`, `/tarot/*`)는 별도로 이미
 /// 완성되어 있으므로 이 매트릭스에는 절대 포함하지 않는다.
 ///
-/// 그룹 구성(총 87개):
-/// - T(오늘/기간 운세) 21 · S(사주) 5 · C(궁합) 7 · N(이름) 5 · K(택일) 8
+/// [자율 정리 기록] 원 스펙은 궁합(C) 7개를 포함한 87개였으나, 궁합
+/// 카테고리는 실제로 구현된 적이 없다(전용 화면/Provider/매트릭스 엔트리
+/// 전무 - [FortuneGroupCode]에도 `c` 값이 존재하지 않는다). "기존 화면
+/// 재사용 원칙"에서 궁합을 언급한 것도 실현되지 않은 계획성 서술이었다.
+/// 실제 구현·노출되는 카테고리는 80개이며, 이 파일이 그 단일 소스다.
+/// 궁합 신규 구현은 결과 콘텐츠/게이트 정책 설계가 필요한 신규 기능
+/// 범위이므로 이 정정과 별개로 사용자 확인 후 진행한다.
+///
+/// 그룹 구성(총 80개):
+/// - T(오늘/기간 운세) 21 · S(사주) 5 · N(이름) 5 · K(택일) 8
 /// - V(평생운) 3 · O(추천) 5 · F(관상·손금) 5 · X(교차분석) 4 · G(그래프) 2
 /// - B(추천연계) 1 · D(해몽) 18 · R(리포트) 3
 ///
 /// [기존 화면 재사용 원칙] 이미 실제 화면/Provider가 있는 카테고리(오늘의 운세,
-/// 사주, 궁합, 이름, 관상, 손금)는 새 화면을 만들지 않고 기존 라우트를 그대로
+/// 사주, 이름, 관상, 손금)는 새 화면을 만들지 않고 기존 라우트를 그대로
 /// 재사용한다([existingRoute]). 아직 화면이 없는 카테고리는 공용
 /// [GenericFortuneResultScreen](라우트 `/fortune/category`)에서 카테고리
 /// 메타데이터를 시드로 결정론적 콘텐츠를 생성해 실제로 동작하는 결과를
@@ -47,7 +56,7 @@ enum DisclaimerTag {
   dream,
 }
 
-/// 87개 카테고리 그룹 코드.
+/// 80개 카테고리 그룹 코드(궁합 C 그룹은 미구현 - 위 파일 헤더 참고).
 enum FortuneGroupCode { t, s, n, k, v, o, f, x, g, b, d, r }
 
 extension FortuneGroupCodeLabel on FortuneGroupCode {
@@ -82,7 +91,7 @@ extension FortuneGroupCodeLabel on FortuneGroupCode {
   };
 }
 
-/// 87개 카테고리 중 1개 항목의 전체 메타데이터.
+/// 80개 카테고리 중 1개 항목의 전체 메타데이터.
 class FortuneCategoryEntry {
   const FortuneCategoryEntry({
     required this.id,
@@ -128,7 +137,7 @@ class FortuneCategoryGroupEntry {
   final List<FortuneCategoryEntry> items;
 }
 
-/// [FortuneMatrix] — 87개 카테고리 전체 카탈로그(단일 소스).
+/// [FortuneMatrix] — 80개 카테고리 전체 카탈로그(단일 소스).
 class FortuneMatrix {
   FortuneMatrix._();
 
@@ -179,7 +188,8 @@ class FortuneMatrix {
         group: FortuneGroupCode.t,
         title: '오늘의 총운',
         shortDescription: '오늘 하루 전체 흐름을 한눈에',
-        gate: GateResult.openFree,
+        // [프리패스 전체잠금 통일] 오늘의 운세 전체잠금(과거 openFree).
+        gate: GateResult.paidOnlyPassGate,
         existingRoute: dailyIntroRoute,
       ),
       FortuneCategoryEntry(
@@ -287,7 +297,8 @@ class FortuneMatrix {
         group: FortuneGroupCode.t,
         title: '오늘의 행운의 색',
         shortDescription: '오늘 나에게 힘이 되는 색',
-        gate: GateResult.openFree,
+        // [프리패스 전체잠금 통일] 오늘의 운세 세부항목 전체 잠금(과거 openFree).
+        gate: GateResult.paidOnlyPassGate,
         existingRoute: dailyIntroRoute,
       ),
       FortuneCategoryEntry(
@@ -295,7 +306,8 @@ class FortuneMatrix {
         group: FortuneGroupCode.t,
         title: '오늘의 행운의 숫자',
         shortDescription: '오늘의 숫자 한 자리',
-        gate: GateResult.openFree,
+        // [프리패스 전체잠금 통일] 오늘의 운세 세부항목 전체 잠금(과거 openFree).
+        gate: GateResult.paidOnlyPassGate,
         existingRoute: dailyIntroRoute,
       ),
       FortuneCategoryEntry(
