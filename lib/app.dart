@@ -26,6 +26,8 @@ import 'features/fortune/palm/application/palm_provider.dart';
 import 'features/fortune/palm/data/palm_repository.dart';
 import 'features/name_fortune/application/name_fortune_provider.dart';
 import 'features/name_fortune/data/name_fortune_repository.dart';
+import 'features/compatibility/application/compatibility_provider.dart';
+import 'features/compatibility/data/compatibility_repository.dart';
 import 'features/home/application/fortune_category_provider.dart';
 import 'features/home/data/fortune_category_repository.dart';
 import 'features/home/application/home_page_config_provider.dart';
@@ -163,6 +165,11 @@ class App extends StatelessWidget {
         // [운세 카테고리 확장] 이름 운세(성명학) - 신규 카테고리 Provider.
         ChangeNotifierProvider(
           create: (_) => NameFortuneProvider(NameFortuneRepository()),
+        ),
+        // [궁합(C그룹) 신규 구현] admin_web API는 이미 완성되어 있었으나
+        // Flutter 클라이언트가 없던 궁합 기능의 전역 Provider.
+        ChangeNotifierProvider(
+          create: (_) => CompatibilityProvider(CompatibilityRepository()),
         ),
         // [운세 카테고리 확장] 전체보기(all_categories_screen.dart) 화면이
         // 관리자 기준 그룹/정렬/노출/추천 데이터를 로드하는 전역 Provider.

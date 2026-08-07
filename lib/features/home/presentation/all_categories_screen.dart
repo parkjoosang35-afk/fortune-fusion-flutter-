@@ -94,7 +94,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
   /// [운섹션 87 카테고리 통합] [FortuneMatrix] 항목 진입 핸들러.
   ///
   /// 기존 [_open]은 requiresPass(bool) 하나로만 판단해 서버 소진형
-  /// [PassProvider.consume]을 호출하지만, 80개 카테고리는 그보다 세분화된
+  /// [PassProvider.consume]을 호출하지만, 87개 카테고리는 그보다 세분화된
   /// 정책(하루1회/최초1회/항상프리패스)을 가지므로 [CategoryGate.decide]로
   /// 먼저 판정한다. 통과하면 이미 화면이 있는 카테고리는 그 라우트로,
   /// 아직 없는 카테고리는 공용 결과 화면(`/fortune/category`)으로 보낸다.
@@ -335,16 +335,15 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
             }),
             const SizedBox(height: UnifiedTokens.spaceSm),
 
-            // [운섹션 87 카테고리 통합 - 자율 정정] 원 스펙은 궁합(C) 7개를
-            // 포함한 87개였으나, 궁합 카테고리는 실제로 구현된 적이 없다
-            // (fortune_matrix.dart 헤더 참고). 위 "전체 카테고리"(관리자
-            // 8그룹)와는 별개로, 실제 구현된 80개 카테고리(T/S/N/K/V/O/F/X/G/B/D/R)
-            // 전체를 한 화면에서 그룹별로 훑어볼 수 있게 노출한다. 각 항목을
-            // 탭하면 [_openMatrixEntry]가 [CategoryGate]로 판정 후 이동한다.
+            // [운섹션 87 카테고리 통합 - 궁합 신규 구현 완료] 위 "전체
+            // 카테고리"(관리자 8그룹)와는 별개로, 실제 구현된 87개 카테고리
+            // (T/S/N/C/K/V/O/F/X/G/B/D/R)를 한 화면에서 그룹별로 훑어볼 수
+            // 있게 노출한다. 각 항목을 탭하면 [_openMatrixEntry]가
+            // [CategoryGate]로 판정 후 이동한다.
             FadeSlideIn(
               child: const PremiumSectionTitleLite(
-                title: '80가지 운세 한눈에 보기',
-                subtitle: '오늘·사주·이름·택일·평생운·추천·관상손금 등 전체',
+                title: '87가지 운세 한눈에 보기',
+                subtitle: '오늘·사주·이름·궁합·택일·평생운·추천·관상손금 등 전체',
               ),
             ),
             const SizedBox(height: UnifiedTokens.spaceMd),

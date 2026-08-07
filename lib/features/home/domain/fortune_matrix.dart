@@ -4,16 +4,18 @@
 /// 타로(Ta-001~Ta-015, `/ai-fortune/tarot/*`, `/tarot/*`)는 별도로 이미
 /// 완성되어 있으므로 이 매트릭스에는 절대 포함하지 않는다.
 ///
-/// [자율 정리 기록] 원 스펙은 궁합(C) 7개를 포함한 87개였으나, 궁합
-/// 카테고리는 실제로 구현된 적이 없다(전용 화면/Provider/매트릭스 엔트리
-/// 전무 - [FortuneGroupCode]에도 `c` 값이 존재하지 않는다). "기존 화면
-/// 재사용 원칙"에서 궁합을 언급한 것도 실현되지 않은 계획성 서술이었다.
-/// 실제 구현·노출되는 카테고리는 80개이며, 이 파일이 그 단일 소스다.
-/// 궁합 신규 구현은 결과 콘텐츠/게이트 정책 설계가 필요한 신규 기능
-/// 범위이므로 이 정정과 별개로 사용자 확인 후 진행한다.
+/// [자율 정리 기록 → 궁합 신규 구현 완료] 원 스펙은 궁합(C) 7개를 포함한
+/// 87개였으나, 정정 시점에는 궁합 카테고리가 실제로 구현된 적이 없었다
+/// (전용 화면/Provider/매트릭스 엔트리 전무). 이후 조사 결과 admin_web
+/// 백엔드(`/api/public/compatibility/request|result|history`,
+/// CompatibilityRequest/CompatibilityResult 모델)는 이미 완전히 구현되어
+/// 있었고 Flutter 클라이언트만 없던 상태임을 확인, features/compatibility/
+/// 모듈(Model/Repository/Provider/입력·결과 화면)을 신규 구현하고 아래
+/// [FortuneGroupCode.c] 그룹으로 편입했다. 이제 실제 구현·노출되는
+/// 카테고리는 87개이며, 이 파일이 그 단일 소스다.
 ///
-/// 그룹 구성(총 80개):
-/// - T(오늘/기간 운세) 21 · S(사주) 5 · N(이름) 5 · K(택일) 8
+/// 그룹 구성(총 87개):
+/// - T(오늘/기간 운세) 21 · S(사주) 5 · N(이름) 5 · C(궁합) 7 · K(택일) 8
 /// - V(평생운) 3 · O(추천) 5 · F(관상·손금) 5 · X(교차분석) 4 · G(그래프) 2
 /// - B(추천연계) 1 · D(해몽) 18 · R(리포트) 3
 ///
@@ -24,6 +26,8 @@
 /// 메타데이터를 시드로 결정론적 콘텐츠를 생성해 실제로 동작하는 결과를
 /// 보여준다.
 library;
+
+import '../../compatibility/domain/compatibility_model.dart';
 
 /// 게이트 판정 결과 6종.
 ///
@@ -56,14 +60,16 @@ enum DisclaimerTag {
   dream,
 }
 
-/// 80개 카테고리 그룹 코드(궁합 C 그룹은 미구현 - 위 파일 헤더 참고).
-enum FortuneGroupCode { t, s, n, k, v, o, f, x, g, b, d, r }
+/// 87개 카테고리 그룹 코드(궁합 C 그룹은 features/compatibility/ 모듈로
+/// 신규 구현되어 편입되었다 - 위 파일 헤더 참고).
+enum FortuneGroupCode { t, s, n, c, k, v, o, f, x, g, b, d, r }
 
 extension FortuneGroupCodeLabel on FortuneGroupCode {
   String get label => switch (this) {
     FortuneGroupCode.t => '오늘/기간 운세',
     FortuneGroupCode.s => '사주',
     FortuneGroupCode.n => '이름 운세',
+    FortuneGroupCode.c => '궁합',
     FortuneGroupCode.k => '택일',
     FortuneGroupCode.v => '평생운',
     FortuneGroupCode.o => '오늘의 추천',
@@ -79,6 +85,7 @@ extension FortuneGroupCodeLabel on FortuneGroupCode {
     FortuneGroupCode.t => '오늘 하루부터 신년까지, 시간의 흐름을 따라 흐름을 확인해보세요',
     FortuneGroupCode.s => '타고난 사주 기운을 재물·애정·건강·월별로 나눠 깊게 해석해보세요',
     FortuneGroupCode.n => '이름에 담긴 기운과 어울림을 풀이해보세요',
+    FortuneGroupCode.c => '나와 상대방의 인연을 유형별로 풀이해보세요',
     FortuneGroupCode.k => '결혼·이사·개업 등 중요한 날짜를 고를 때 참고해보세요',
     FortuneGroupCode.v => '인생 전체를 관통하는 흐름을 큰 틀에서 살펴보세요',
     FortuneGroupCode.o => '오늘 하루를 가볍게 채워줄 추천 아이템을 만나보세요',
@@ -91,7 +98,7 @@ extension FortuneGroupCodeLabel on FortuneGroupCode {
   };
 }
 
-/// 80개 카테고리 중 1개 항목의 전체 메타데이터.
+/// 87개 카테고리 중 1개 항목의 전체 메타데이터.
 class FortuneCategoryEntry {
   const FortuneCategoryEntry({
     required this.id,
@@ -137,12 +144,13 @@ class FortuneCategoryGroupEntry {
   final List<FortuneCategoryEntry> items;
 }
 
-/// [FortuneMatrix] — 80개 카테고리 전체 카탈로그(단일 소스).
+/// [FortuneMatrix] — 87개 카테고리 전체 카탈로그(단일 소스).
 class FortuneMatrix {
   FortuneMatrix._();
 
   static const String sajuInputRoute = '/ai-fortune/saju/input';
   static const String nameInputRoute = '/ai-fortune/name/input';
+  static const String compatibilityInputRoute = '/compatibility/input';
   static const String faceCaptureRoute = '/ai-fortune/face/capture';
   static const String palmCaptureRoute = '/ai-fortune/palm/capture';
   static const String dailyIntroRoute = '/fortune/today/intro';
@@ -154,6 +162,7 @@ class FortuneMatrix {
     _tGroup,
     _sGroup,
     _nGroup,
+    _cGroup,
     _kGroup,
     _vGroup,
     _oGroup,
@@ -470,6 +479,87 @@ class FortuneMatrix {
         gate: GateResult.paidOnlyPassGate,
         existingRoute: nameInputRoute,
         disclaimers: [DisclaimerTag.finance],
+      ),
+    ],
+  );
+
+  // ── C: 궁합 (7) [궁합(C그룹) 신규 구현] ──
+  // admin_web 백엔드(`/api/public/compatibility/*`, CompatibilityRequest/
+  // CompatibilityResult 모델)는 이미 완전히 구현되어 있었고(무료 정책까지
+  // 반영) Flutter 클라이언트만 없던 상태였다. features/compatibility/
+  // 모듈(입력 화면 `/compatibility/input`)을 신규 구현해 연결한다. 유형별로
+  // routeArguments에 [CompatibilityType]을 전달해 입력 화면 진입 시 해당
+  // 유형이 미리 선택되게 한다.
+  static final _cGroup = FortuneCategoryGroupEntry(
+    code: FortuneGroupCode.c,
+    items: [
+      FortuneCategoryEntry(
+        id: 'C-001',
+        group: FortuneGroupCode.c,
+        title: '연인 궁합',
+        shortDescription: '서로를 향한 마음의 결을 살펴보기',
+        gate: GateResult.freeOncePerDay,
+        existingRoute: compatibilityInputRoute,
+        routeArguments: CompatibilityType.love,
+        disclaimers: [DisclaimerTag.relationship],
+      ),
+      FortuneCategoryEntry(
+        id: 'C-002',
+        group: FortuneGroupCode.c,
+        title: '짝사랑 궁합',
+        shortDescription: '마음에 둔 상대와의 인연 흐름',
+        gate: GateResult.paidOnlyPassGate,
+        existingRoute: compatibilityInputRoute,
+        routeArguments: CompatibilityType.love,
+        disclaimers: [DisclaimerTag.relationship],
+      ),
+      FortuneCategoryEntry(
+        id: 'C-003',
+        group: FortuneGroupCode.c,
+        title: '친구 궁합',
+        shortDescription: '오래갈 인연인지 가볍게 확인',
+        gate: GateResult.freeOncePerDay,
+        existingRoute: compatibilityInputRoute,
+        routeArguments: CompatibilityType.friend,
+      ),
+      FortuneCategoryEntry(
+        id: 'C-004',
+        group: FortuneGroupCode.c,
+        title: '동업·사업 파트너 궁합',
+        shortDescription: '함께 일하기 좋은 상대인지 확인',
+        gate: GateResult.paidOnlyPassGate,
+        existingRoute: compatibilityInputRoute,
+        routeArguments: CompatibilityType.business,
+        disclaimers: [DisclaimerTag.finance],
+      ),
+      FortuneCategoryEntry(
+        id: 'C-005',
+        group: FortuneGroupCode.c,
+        title: '가족·부모자녀 궁합',
+        shortDescription: '가까운 가족과의 관계 흐름',
+        gate: GateResult.paidOnlyPassGate,
+        existingRoute: compatibilityInputRoute,
+        routeArguments: CompatibilityType.family,
+      ),
+      FortuneCategoryEntry(
+        id: 'C-006',
+        group: FortuneGroupCode.c,
+        title: '결혼 궁합',
+        shortDescription: '평생을 함께할 인연인지 깊게 보기',
+        gate: GateResult.paidOnlyPassGate,
+        existingRoute: compatibilityInputRoute,
+        routeArguments: CompatibilityType.love,
+        disclaimers: [DisclaimerTag.relationship],
+      ),
+      FortuneCategoryEntry(
+        id: 'C-007',
+        group: FortuneGroupCode.c,
+        title: '전 연인과의 재회운',
+        shortDescription: '헤어진 인연의 현재 흐름 확인',
+        gate: GateResult.paidOnlyPassGate,
+        existingRoute: compatibilityInputRoute,
+        routeArguments: CompatibilityType.love,
+        disclaimers: [DisclaimerTag.relationship],
       ),
     ],
   );
