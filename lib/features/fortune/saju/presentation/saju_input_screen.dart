@@ -9,6 +9,17 @@ import '../domain/saju_model.dart';
 
 /// 03단계 §3.3 / 07단계 - SajuInputScreen (입력형 패턴)
 /// 생년월일시 확인/수정, 주제 선택(재물/애정/직업/건강 멀티선택)
+///
+/// [사주 입력 화면 UI 개선 - sowoon.kr saju.html 스타일 이식]
+/// 참고 사이트(sowoon.kr/saju.html)의 구성 요소를 앱 공용 디자인 토큰
+/// (UnifiedColors/UnifiedText/UnifiedTokens) 안에서 재해석했다:
+/// - 헤더 아래 "태어난 순간의 우주 지도" 서브타이틀
+/// - 안내 카드(안내 문구 + info 아이콘, 얇은 테두리 카드)
+/// - 양력/음력 선택을 Switch 대신 알약형 라디오칩(pill radio-chip)으로 변경
+/// - 생년월일/출생시간 필드에 원형 아이콘 배경을 추가해 카드 느낌 강화
+/// - CTA 버튼을 더 크고 강조된 pill 버튼(아이콘 포함)으로 변경
+/// 데이터 흐름(생년월일/시간/음력/토픽/프로필 API 연동)은 기존 로직을
+/// 전혀 변경하지 않고 그대로 재사용한다(순수 UI 개선, 회귀 없음).
 class SajuInputScreen extends StatefulWidget {
   // [운세 카테고리 확장] 전체보기(all_categories_screen)에서 관리자 카테고리
   // (오행 재물운/직업운/연애운/건강운/월별운세 등)를 탭했을 때, 이 공용 입력
@@ -292,7 +303,7 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
       appBar: AppBar(
         backgroundColor: UnifiedColors.bg,
         elevation: 0,
-        title: Text('AI 사주', style: UnifiedText.titleLarge()),
+        title: Text('사주', style: UnifiedText.titleLarge()),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -300,9 +311,32 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // [sowoon.kr saju.html 이식] 헤더 아래 서브타이틀 - "태어난 순간의 우주 지도"
+              Text(
+                '태어난 순간의 우주 지도',
+                style: UnifiedText.body(color: UnifiedColors.textCaption),
+              ),
+              SizedBox(height: UnifiedTokens.spaceLg),
+
+              // [sowoon.kr saju.html 이식] 안내 카드 - info 아이콘 + 설명 문구
+              _InfoBanner(
+                text: '타고난 사주팔자로 성격, 재물운, 배우자운 등을 깊이 있게 분석해드립니다.',
+              ),
+              SizedBox(height: UnifiedTokens.spaceXl),
+
               // [웹→앱 이식] saju.html "내 사주함" - 저장된 프로필이 있을 때만 노출
               if (profiles.isNotEmpty) ...[
-                Text('내 사주함', style: UnifiedText.title()),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.folder_open_rounded,
+                      size: UnifiedTokens.iconMd,
+                      color: UnifiedColors.textPrimary,
+                    ),
+                    SizedBox(width: UnifiedTokens.spaceXs),
+                    Text('내 사주함에서 선택', style: UnifiedText.title()),
+                  ],
+                ),
                 SizedBox(height: UnifiedTokens.spaceSm),
                 SizedBox(
                   height: 76,
@@ -347,17 +381,32 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
               _FieldTile(
                 icon: Icons.access_time_rounded,
                 label: _birthTime == null
-                    ? '태어난 시간(선택)'
+                    ? '태어난 시간(모르면 비워두세요)'
                     : _birthTime!.format(context),
                 onTap: _pickTime,
               ),
+              SizedBox(height: UnifiedTokens.spaceMd),
+
+              // [sowoon.kr saju.html 이식] 양력/음력을 Switch 대신 알약형
+              // 라디오칩(radio-chip) 2개로 표현 - 웹 원본의 시각 언어 재현.
+              Text('양력 / 음력', style: UnifiedText.title()),
+              SizedBox(height: UnifiedTokens.spaceSm),
               Row(
                 children: [
-                  Text('음력', style: UnifiedText.body()),
-                  Switch(
-                    value: _isLunar,
-                    onChanged: (v) => setState(() => _isLunar = v),
-                    activeThumbColor: UnifiedColors.black,
+                  Expanded(
+                    child: _RadioChip(
+                      label: '양력',
+                      selected: !_isLunar,
+                      onTap: () => setState(() => _isLunar = false),
+                    ),
+                  ),
+                  SizedBox(width: UnifiedTokens.spaceSm),
+                  Expanded(
+                    child: _RadioChip(
+                      label: '음력',
+                      selected: _isLunar,
+                      onTap: () => setState(() => _isLunar = true),
+                    ),
                   ),
                 ],
               ),
@@ -395,11 +444,110 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
                   contentPadding: EdgeInsets.zero,
                 ),
               SizedBox(height: UnifiedTokens.spaceXxl),
-              ElevatedButton(
-                onPressed: _birthDate == null ? null : _submit,
-                child: const Text('분석하기'),
+
+              // [sowoon.kr saju.html 이식] btn-gold 스타일 - 더 크고 강조된
+              // pill 버튼 + 아이콘. 로직은 기존 _submit()과 완전히 동일.
+              SizedBox(
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: _birthDate == null ? null : _submit,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: UnifiedColors.black,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        UnifiedTokens.radiusPill,
+                      ),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.auto_awesome_rounded, size: 18),
+                      SizedBox(width: UnifiedTokens.spaceSm),
+                      Text(
+                        '사주 분석하기',
+                        style: UnifiedText.bodyStrong(color: Colors.white),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// [sowoon.kr saju.html 이식] 안내 카드 - `<p class="form-hint">` 대응.
+/// 옅은 배경 카드 + info 아이콘 + 안내 문구.
+class _InfoBanner extends StatelessWidget {
+  final String text;
+  const _InfoBanner({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(UnifiedTokens.spaceXl),
+      decoration: BoxDecoration(
+        color: UnifiedColors.cardSection,
+        borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
+        border: Border.all(color: UnifiedColors.border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.info_outline_rounded,
+            size: UnifiedTokens.iconLg,
+            color: UnifiedColors.textPrimary,
+          ),
+          SizedBox(width: UnifiedTokens.spaceMd),
+          Expanded(
+            child: Text(
+              text,
+              style: UnifiedText.bodySmall(color: UnifiedColors.textSecondary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// [sowoon.kr saju.html 이식] 알약형 라디오칩 - `.radio-chip` 대응.
+/// 선택 시 블랙 배경 + 흰 글자, 비선택 시 옅은 배경 + 보더 없음(칩 통일 톤).
+class _RadioChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _RadioChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: EdgeInsets.symmetric(vertical: UnifiedTokens.spaceMd),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected ? UnifiedColors.black : UnifiedColors.chipInactiveBg,
+          borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
+        ),
+        child: Text(
+          label,
+          style: UnifiedText.bodyStrong(
+            color: selected ? Colors.white : UnifiedColors.textSecondary,
           ),
         ),
       ),
@@ -512,6 +660,8 @@ class _ProfileAddChip extends StatelessWidget {
   }
 }
 
+/// [sowoon.kr saju.html 이식] 필드 타일 - 원형 아이콘 배경을 추가해
+/// 웹 원본 폼 그룹(`.form-group` + 아이콘 라벨)의 카드 느낌을 재현.
 class _FieldTile extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -531,18 +681,39 @@ class _FieldTile extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
         child: Container(
-          padding: EdgeInsets.all(UnifiedTokens.spaceXl),
+          padding: EdgeInsets.all(UnifiedTokens.spaceLg),
           decoration: BoxDecoration(
+            color: UnifiedColors.cardSection,
             border: Border.all(color: UnifiedColors.border),
             borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
           ),
           child: Row(
             children: [
-              Icon(icon, color: UnifiedColors.textPrimary),
+              Container(
+                width: UnifiedTokens.iconCircleLg,
+                height: UnifiedTokens.iconCircleLg,
+                decoration: BoxDecoration(
+                  color: UnifiedColors.cardAllMenu,
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  icon,
+                  size: UnifiedTokens.iconMd,
+                  color: UnifiedColors.textPrimary,
+                ),
+              ),
               SizedBox(width: UnifiedTokens.spaceMd),
-              Text(
-                label,
-                style: UnifiedText.body(color: UnifiedColors.textPrimary),
+              Expanded(
+                child: Text(
+                  label,
+                  style: UnifiedText.body(color: UnifiedColors.textPrimary),
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                size: UnifiedTokens.iconMd,
+                color: UnifiedColors.textCaption,
               ),
             ],
           ),
