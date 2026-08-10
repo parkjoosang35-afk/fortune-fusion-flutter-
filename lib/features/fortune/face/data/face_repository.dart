@@ -8,32 +8,35 @@ import '../../../../core/auth/auth_token_store.dart';
 import '../../../../core/config/env_config.dart';
 import '../domain/face_model.dart';
 
-/// [관상 AI프롬프트 실연동] `POST /api/public/fortune/face` 대응 Repository.
+/// [관상 AI프롬프트 실연동 - 실사진 분석 버그 수정] `POST /api/public/fortune/face` 대응 Repository.
 /// name/saju Repository와 동일한 http 호출 패턴을 그대로 재사용한다.
 ///
-/// [범위 결정 - 관상/손금 AI프롬프트 실연동] completeText()는 텍스트 전용 LLM이라
-/// 실제 업로드된 얼굴 사진을 인식/분석할 수 없다. 따라서 "사진 촬영 UI"는 그대로
-/// 유지하되(09단계 §7 개인정보보호 원칙에 따라 이미지는 여전히 서버로 전송되지
-/// 않고 클라이언트에서 즉시 파기됨), 백엔드는 로그인 사용자 프로필(생년월일/성별)
-/// 등 텍스트 정보를 기반으로 실제 LLM 해석 텍스트를 생성해 반환한다.
+/// [버그 수정] 기존에는 촬영/선택된 얼굴 사진(image)이 서버로 전송되지 않아,
+/// 손/사물 등 아무 사진을 올려도 항상 그럴듯한 관상 결과가 나오는 문제가 있었다.
+/// 이제 이미지를 base64로 인코딩해 서버로 전송하고, 백엔드가 Vision 모델로
+/// 실제 사진을 검증/분석한다. 얼굴이 아닌 사진이면 서버가 422로 명확히 거부한다.
 class FaceRepository {
   final List<FaceResultModel> _history = [];
 
   Future<ApiResult<FaceResultModel>> analyze({Uint8List? image}) async {
-    // [범위 결정] image는 현재 백엔드로 전송되지 않는다(텍스트 전용 LLM 제약).
-    // 촬영/선택 UX는 유지하되, 분석 요청 자체는 로그인 사용자 프로필 기반으로 수행된다.
+    if (image == null) {
+      return ApiResult.fail('얼굴 사진을 먼저 촬영하거나 선택해주세요.');
+    }
     final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/fortune/face');
-    debugPrint('[FaceRepository] [analyze] 요청 -> $uri (userId=$userId)');
+    final imageBase64 = base64Encode(image);
+    debugPrint(
+      '[FaceRepository] [analyze] 요청 -> $uri (userId=$userId, imageBytes=${image.length})',
+    );
 
     try {
       final response = await http
           .post(
             uri,
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'userId': userId}),
+            body: jsonEncode({'userId': userId, 'image': imageBase64}),
           )
-          .timeout(const Duration(seconds: 45));
+          .timeout(const Duration(seconds: 50));
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
