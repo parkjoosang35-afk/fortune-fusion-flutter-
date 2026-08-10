@@ -1,71 +1,92 @@
-import 'dart:typed_data';
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 
 import '../../../../core/api/api_result.dart';
-import '../../../../core/utils/mock_delay.dart';
+import '../../../../core/auth/auth_token_store.dart';
+import '../../../../core/config/env_config.dart';
 import '../domain/palm_model.dart';
 
-/// 06단계 §4.3 `POST /v1/fortune/palm/analyze` 대응 Mock Repository
-/// 09단계 §7 개인정보보호 원칙에 따라 이미지는 서버 전송/저장 없이 로컬에서 결과만 시뮬레이션
+/// [손금 AI프롬프트 실연동] `POST /api/public/fortune/palm` 대응 Repository.
+/// face_repository.dart와 완전히 동일한 패턴을 재사용한다.
 ///
-/// 07단계(추가) §3.3 - [analyze]가 선택적으로 [image]를 전달받도록 확장되었으나,
-/// Mock 구현에서는 실제로 파일을 읽거나 전송하지 않는다(향후 실제 API 연동 시
-/// multipart 업로드 로직으로 교체될 지점). 이 시그니처 확장만으로 Provider/Presentation
-/// 레이어는 변경 없이 재사용 가능하도록 10단계(A안) 설계를 따른다.
-///
-/// 07단계(추가, 수정) §3.3 - Flutter Web은 dart:io의 File을 지원하지 않으므로
-/// 웹/Android 공통으로 동작하는 [Uint8List] 기반으로 시그니처를 변경한다.
+/// [범위 결정 - 관상/손금 AI프롬프트 실연동] completeText()는 텍스트 전용 LLM이라
+/// 실제 업로드된 손바닥 사진을 인식/분석할 수 없다. 따라서 "사진 촬영 UI"는 그대로
+/// 유지하되(09단계 §7 개인정보보호 원칙에 따라 이미지는 여전히 서버로 전송되지
+/// 않고 클라이언트에서 즉시 파기됨), 백엔드는 로그인 사용자 프로필(생년월일/성별)
+/// 등 텍스트 정보를 기반으로 실제 LLM 해석 텍스트를 생성해 반환한다.
 class PalmRepository {
   final List<PalmResultModel> _history = [];
 
-  static const _linePool = {
-    '생명선': [
-      '깊고 선명하게 뻗어 있어 강한 생명력과 활력을 나타냅니다',
-      '완만하게 이어져 있어 안정적이고 평온한 삶의 흐름을 보여줍니다',
-    ],
-    '두뇌선': [
-      '뚜렷하고 길게 뻗어 있어 논리적이고 분석적인 사고력을 나타냅니다',
-      '살짝 곡선을 이루어 창의적이고 유연한 사고를 보여줍니다',
-    ],
-    '감정선': ['깊고 곧게 뻗어 있어 감정 표현이 솔직하고 직접적입니다', '부드러운 곡선으로 따뜻하고 공감능력이 높은 성향입니다'],
-    '운명선': [
-      '선명하게 이어져 있어 뚜렷한 목표의식을 갖고 나아가는 흐름입니다',
-      '중간에 변화가 있어 인생의 전환점을 여러 번 맞이하는 흐름입니다',
-    ],
-  };
-
-  static const _topicTexts = {
-    '재물': '운명선과 생명선의 조화가 좋아 꾸준한 재물 축적이 가능한 손금입니다.',
-    '애정': '감정선이 뚜렷하여 진솔한 감정 표현으로 좋은 인연을 만날 가능성이 높습니다.',
-    '직업': '두뇌선의 흐름이 안정적이라 전문성을 쌓아가는 데 유리한 조건입니다.',
-    '건강': '생명선이 깊게 새겨져 있어 전반적인 체력과 회복력이 좋은 편입니다.',
-    '종합': '전체적으로 균형 잡힌 손금으로, 스스로의 강점을 신뢰하고 나아가면 좋은 결실을 맺을 수 있습니다.',
-  };
-
   Future<ApiResult<PalmResultModel>> analyze({Uint8List? image}) async {
-    await mockDelay(ms: 2000);
+    // [범위 결정] image는 현재 백엔드로 전송되지 않는다(텍스트 전용 LLM 제약).
+    // 촬영/선택 UX는 유지하되, 분석 요청 자체는 로그인 사용자 프로필 기반으로 수행된다.
+    final userId = await AuthTokenStore.getCurrentUserId();
+    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/fortune/palm');
+    debugPrint('[PalmRepository] [analyze] 요청 -> $uri (userId=$userId)');
 
-    // 07단계(추가) §3.3 - 실제 API 연동 시 이 지점에서 image를 multipart로 전송한다.
-    // Mock 단계에서는 이미지 유무와 무관하게 동일한 시뮬레이션 결과를 생성한다.
-    final seed = DateTime.now().millisecondsSinceEpoch;
-    final lines = <String, String>{};
-    _linePool.forEach((line, options) {
-      lines[line] = options[seed % options.length];
-    });
+    try {
+      final response = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'userId': userId}),
+          )
+          .timeout(const Duration(seconds: 45));
 
-    final result = PalmResultModel(
-      id: 'palm_$seed',
-      lines: lines,
-      topicResults: Map.of(_topicTexts),
-      summary: _topicTexts['종합']!,
-      createdAt: DateTime.now(),
-    );
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        final error = decoded['error'] as String? ?? '손금 분석에 실패했습니다.';
+        debugPrint('[PalmRepository] [analyze] 실패 -> $error');
+        return ApiResult.fail(error);
+      }
 
-    _history.insert(0, result);
-    return ApiResult.ok(result);
+      final data = decoded['data'] as Map<String, dynamic>;
+      final result = PalmResultModel(
+        id: data['id'] as String,
+        lines: Map<String, String>.from(data['lines'] as Map),
+        topicResults: Map<String, String>.from(data['topicResults'] as Map),
+        summary: data['summary'] as String,
+        createdAt: DateTime.parse(data['createdAt'] as String),
+      );
+      _history.insert(0, result);
+      return ApiResult.ok(result);
+    } catch (e) {
+      debugPrint('[PalmRepository] [analyze] 예외 -> $e');
+      return ApiResult.fail('손금 분석 중 오류가 발생했습니다: $e');
+    }
   }
 
+  /// 서버 영속 이력을 조회한다. 서버 조회에 실패해도(오프라인 등) 이번 세션에서
+  /// 누적된 로컬 결과는 그대로 보여줄 수 있도록 폴백을 유지한다(name_fortune_repository와 동일 패턴).
   Future<ApiResult<List<PalmResultModel>>> getHistory() async {
-    await mockDelay(ms: 300);
-    return ApiResult.ok(List.unmodifiable(_history));
+    try {
+      final userId = await AuthTokenStore.getCurrentUserId();
+      final uri = Uri.parse(
+        '${EnvConfig.adminApiBaseUrl}/api/public/fortune/palm/history?userId=$userId',
+      );
+      final response = await http.get(uri).timeout(const Duration(seconds: 15));
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        debugPrint('[PalmRepository] [getHistory] 서버 조회 실패, 로컬로 폴백');
+        return ApiResult.ok(List.unmodifiable(_history));
+      }
+      final list = (decoded['data'] as List<dynamic>)
+          .map(
+            (e) => PalmResultModel(
+              id: e['id'] as String,
+              lines: Map<String, String>.from(e['lines'] as Map),
+              topicResults: Map<String, String>.from(e['topicResults'] as Map),
+              summary: e['summary'] as String,
+              createdAt: DateTime.parse(e['createdAt'] as String),
+            ),
+          )
+          .toList();
+      return ApiResult.ok(list);
+    } catch (e) {
+      debugPrint('[PalmRepository] [getHistory] 예외 -> $e, 로컬로 폴백');
+      return ApiResult.ok(List.unmodifiable(_history));
+    }
   }
 }
