@@ -98,22 +98,59 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
   /// 정책(하루1회/최초1회/항상프리패스)을 가지므로 [CategoryGate.decide]로
   /// 먼저 판정한다. 통과하면 이미 화면이 있는 카테고리는 그 라우트로,
   /// 아직 없는 카테고리는 공용 결과 화면(`/fortune/category`)으로 보낸다.
+  ///
+  /// [STEP8 - _openMatrixEntry 서버 검증 우회 문제 해결] [CategoryGate.decide]는
+  /// "열림패스가 활성 상태면 정책과 무관하게 항상 허용"이라는 순수 로컬 판정만
+  /// 한다(서버 호출 없음). 그래서 saju/name/face/palm/compatibility처럼 서버가
+  /// "이 패스로 이 카테고리를 이미 2회 이용했는지"를 검증하는 카테고리라도, 이
+  /// 매트릭스 경로(37개 카테고리)로 들어오면 그 검증이 전혀 걸리지 않는 구조적
+  /// 갭이 있었다. 이제 로컬 판정이 통과했고(=열림패스 활성) 진입 라우트가
+  /// [categoryKeyForRoute]에 매핑된 카테고리라면, [navigateWithPassGate]와 동일한
+  /// 방식으로 서버 게이트체크(checkOnly)를 한 번 더 거친다. 매핑되지 않은 라우트
+  /// (타로/오늘의 운세 등, 무료이거나 각 API 자신이 최종 검증)는 기존 동작 그대로
+  /// 유지한다(회귀 없음).
   Future<void> _openMatrixEntry(FortuneCategoryEntry entry) async {
     setState(() => _checking = true);
     final access = context.read<AccessChecker>();
     final decision = await CategoryGate.decide(entry, access);
     if (!mounted) return;
-    setState(() => _checking = false);
 
     if (!decision.allowed) {
+      setState(() => _checking = false);
       await showPassRequiredSheet(context, categoryTitle: entry.title);
       return;
     }
 
-    if (entry.existingRoute != null) {
-      Navigator.of(
-        context,
-      ).pushNamed(entry.existingRoute!, arguments: entry.routeArguments);
+    final route = entry.existingRoute;
+    final categoryKey = route != null ? categoryKeyForRoute(route) : null;
+
+    if (categoryKey != null && access.isOpenPassActive()) {
+      final pass = context.read<PassProvider>();
+      final ok = await pass.consume(
+        contentType: 'fortune_category',
+        contentId: entry.title,
+        categoryKey: categoryKey,
+      );
+      if (!mounted) return;
+      setState(() => _checking = false);
+      if (!ok) {
+        if (pass.lastErrorReason == 'CATEGORY_LIMIT_REACHED') {
+          await showCategoryLimitReachedSheet(
+            context,
+            categoryTitle: entry.title,
+            message: pass.lastError,
+          );
+        } else {
+          await showPassRequiredSheet(context, categoryTitle: entry.title);
+        }
+        return;
+      }
+    } else {
+      setState(() => _checking = false);
+    }
+
+    if (route != null) {
+      Navigator.of(context).pushNamed(route, arguments: entry.routeArguments);
       return;
     }
     Navigator.of(

@@ -29,14 +29,17 @@ Future<void> navigateWithPassGate(
   // [STEP8 - Flutter categoryKey 연동] fortune_categories.category_key와
   // 동일한 값(예: 'saju', 'name', 'face', 'palm', 'compatibility')을 넘기면
   // 서버가 "이 프리패스로 이 카테고리를 이미 2회 이용했는지"도 함께 확인한다.
-  // null이면(기존 모든 호출부) 기존과 동일하게 활성 패스 여부만 확인한다.
+  // null이면 [route]를 기준으로 [_categoryKeyByRoute]에서 자동으로 추론한다
+  // (모든 호출부를 일일이 수정하지 않아도 되도록, 그리고 누락을 방지하기
+  // 위해 이 헬퍼 한 곳에서 매핑을 관리한다). 명시적으로 categoryKey를
+  // 넘기면 그 값이 항상 우선한다.
   //
   // [주의 - 타로] 타로는 topic/spreadType에 따라 서버가 categoryKey를
   // tarot/tarot_yesno/tarot_love 중 하나로 동적 결정하는데, 이 게이트 시점
   // (카드 목록 탭)에는 아직 topic이 확정되지 않은 경우가 많아 여기서 잘못된
   // categoryKey를 넘기면 "정상 이용 가능한데 오탐 차단"이 발생할 수 있다.
-  // 따라서 타로 호출부는 categoryKey를 넘기지 않는다(NO_ACTIVE_PASS만 게이트
-  // 확인, 정확한 카테고리별 2회 제한은 tarot API 자신이 최종 담당).
+  // 따라서 타로 라우트는 [_categoryKeyByRoute]에 포함하지 않는다(NO_ACTIVE_PASS만
+  // 게이트 확인, 정확한 카테고리별 2회 제한은 tarot API 자신이 최종 담당).
   String? categoryKey,
 }) async {
   if (!requiresPass) {
@@ -50,10 +53,12 @@ Future<void> navigateWithPassGate(
     return;
   }
 
+  final resolvedCategoryKey = categoryKey ?? _categoryKeyByRoute[route];
+
   final ok = await pass.consume(
     contentType: 'fortune_category',
     contentId: title,
-    categoryKey: categoryKey,
+    categoryKey: resolvedCategoryKey,
   );
   if (!context.mounted) return;
 
@@ -76,6 +81,50 @@ Future<void> navigateWithPassGate(
 
   await showPassRequiredSheet(context, categoryTitle: title);
 }
+
+/// [STEP8 - Flutter categoryKey 연동] 라우트 문자열 → 서버
+/// fortune_categories.category_key 자동 매핑표.
+///
+/// [navigateWithPassGate]를 호출하는 모든 화면(all_categories_screen.dart,
+/// home_screen.dart, fortune_hub_screen.dart 등)을 일일이 찾아 categoryKey를
+/// 수동으로 넘기게 하면 누락 위험이 크므로, "이 라우트로 들어가면 항상 이
+/// categoryKey"라는 1:1 관계가 성립하는 항목만 여기 한 곳에 모아 관리한다.
+///
+/// - saju/name/face/palm/compatibility는 입력 토픽과 무관하게 서버가 항상
+///   고정된 categoryKey 하나만 사용하므로(각 route.ts 확인됨) 안전하게 매핑.
+/// - 타로(`/tarot/home` 등)와 오늘의 운세(`/home/daily-fortune-detail`,
+///   `/fortune/today/intro`)는 이 표에 포함하지 않는다:
+///   * 타로는 topic/spreadType에 따라 서버가 tarot/tarot_yesno/tarot_love 중
+///     하나로 동적 결정하므로, 게이트 시점에는 아직 확정되지 않아 오탐 차단
+///     위험이 있다(정확한 검증은 tarot API 자신이 최종 담당).
+///   * 오늘의 운세(daily)는 fortune_categories.requires_pass=0(무료
+///     카테고리)이라 서버 개별 API(daily/route.ts)에 categoryKey 검증 로직이
+///     아예 없다 — 게이트에서 categoryKey를 보내도 서버가 무시하지만, 굳이
+///     보낼 필요가 없으므로 매핑을 생략한다.
+const Map<String, String> _categoryKeyByRoute = {
+  '/ai-fortune/saju/input': 'saju',
+  '/ai-fortune/name/input': 'name',
+  '/ai-fortune/face/capture': 'face',
+  '/ai-fortune/palm/capture': 'palm',
+  // [주의] 관리자 DB(fortune_categories.route)에는 '/ai-fortune/compatibility/input'로
+  // 저장되어 있고, 앱 자체 정적 목록/라우터에는 '/compatibility/input'가
+  // 쓰인다(app_router.dart에 등록된 실제 라우트는 후자뿐). 두 값 모두 같은
+  // 서버 categoryKey('compatibility')로 매핑해 어느 경로로 진입해도 정상
+  // 동작하게 한다(라우팅 자체를 바꾸는 작업은 이번 범위 밖이므로 손대지 않음).
+  '/ai-fortune/compatibility/input': 'compatibility',
+  '/compatibility/input': 'compatibility',
+};
+
+/// [운섹션 87 카테고리 통합 - _openMatrixEntry 서버 검증 연동] 라우트 문자열에
+/// 대응하는 서버 categoryKey를 조회한다.
+///
+/// [_categoryKeyByRoute]는 이 파일 내부에서만 쓰이도록 private였지만,
+/// all_categories_screen.dart의 [_openMatrixEntry]가 [CategoryGate.decide]
+/// (순수 로컬 판정)로만 진입을 허용해 서버측 카테고리별 2회 제한 검증을
+/// 완전히 건너뛰는 구조적 갭이 있어, 동일한 라우트→categoryKey 매핑을
+/// 재사용할 수 있도록 공개 함수로 노출한다(매핑표를 두 곳에 중복 관리하지
+/// 않기 위함).
+String? categoryKeyForRoute(String route) => _categoryKeyByRoute[route];
 
 /// 프리패스 발급 유도 바텀시트 — 진입점.
 ///
