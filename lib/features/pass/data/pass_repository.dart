@@ -175,15 +175,30 @@ class PassRepository {
   /// POST /api/public/pass/consume — 시간제 콘텐츠 열람 직전 게이트 체크
   /// 유효한 열림패스가 없으면 실패(ApiResult.fail)를 반환하며, 화면단에서
   /// 이 실패를 감지해 열림패스 발급 유도 UI를 노출한다.
+  ///
+  /// [STEP8 - Flutter categoryKey 연동] [categoryKey]가 전달되면 서버가
+  /// fortune_categories.category_key 기준 "카테고리별 최대 2회" 이용횟수도
+  /// 함께 확인한다(예: 이미 saju를 2회 이용한 상태면 403
+  /// CATEGORY_LIMIT_REACHED). categoryKey가 null이면(기존 모든 호출부) 서버가
+  /// 카테고리 검증을 완전히 건너뛰어 기존 동작과 100% 동일하다.
+  ///
+  /// [이중 차감 방지] checkOnly는 항상 true로 고정 전송한다 — 이 메서드는
+  /// "화면 진입 게이트체크"용이며, 실제 이용횟수 소진(+1)은 게이트를 통과한
+  /// 뒤 호출되는 각 운세 Repository(SajuRepository.requestSaju 등)가 담당한다.
+  /// 만약 여기서도 소진시키면 "게이트 1회 + 실제 API 1회 = 2회 소진"이 되어
+  /// 카테고리당 2회 제한이 실질 1회로 줄어드는 버그가 발생한다.
   Future<ApiResult<void>> consume({
     required String contentType,
     dynamic contentId,
+    String? categoryKey,
   }) async {
     final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/pass/consume',
     );
-    debugPrint('[PassRepository] [consume] 요청 -> contentType=$contentType');
+    debugPrint(
+      '[PassRepository] [consume] 요청 -> contentType=$contentType categoryKey=$categoryKey',
+    );
 
     try {
       final response = await http
@@ -194,6 +209,8 @@ class PassRepository {
               'userId': userId,
               'contentType': contentType,
               if (contentId != null) 'contentId': contentId,
+              if (categoryKey != null) 'categoryKey': categoryKey,
+              'checkOnly': true,
             }),
           )
           .timeout(const Duration(seconds: 10));
@@ -202,7 +219,10 @@ class PassRepository {
       if (response.statusCode != 200 || decoded['success'] != true) {
         final error = decoded['error'] as String? ?? '유효한 프리패스가 없습니다.';
         debugPrint('[PassRepository] [consume] 실패 -> $error');
-        return ApiResult.fail(error);
+        return ApiResult.fail(
+          error,
+          code: decoded['reason'] as String?,
+        );
       }
       return ApiResult.ok(null);
     } catch (e) {

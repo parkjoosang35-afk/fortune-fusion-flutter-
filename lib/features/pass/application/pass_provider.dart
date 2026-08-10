@@ -19,6 +19,10 @@ class PassProvider extends ChangeNotifier {
   PassStatusModel _status = PassStatusModel.inactive();
   bool _isLoading = false;
   String? _lastError;
+  // [STEP8 - Flutter categoryKey 연동] 마지막 consume() 실패의 서버측 reason
+  // ('NO_ACTIVE_PASS' | 'CATEGORY_LIMIT_REACHED'). 화면단에서 카테고리 한도
+  // 초과 안내를 일반 "패스 없음" 안내와 다르게 보여줄 때 사용(선택적).
+  String? _lastErrorReason;
 
   /// true이면 [load]가 실 API 응답으로 [_status]를 덮어쓰지 않는다
   /// (테스트 모드에서 강제 지정한 상태를 유지하기 위함).
@@ -29,6 +33,7 @@ class PassProvider extends ChangeNotifier {
   bool get isActive => _status.isActive;
   bool get isLoading => _isLoading;
   String? get lastError => _lastError;
+  String? get lastErrorReason => _lastErrorReason;
 
   /// [OpenPassState](inactive/active/expired + 남은 시간)로 정규화한 값.
   /// 화면/AccessChecker는 이 값 또는 AccessChecker를 통해서만 상태를 본다.
@@ -186,17 +191,29 @@ class PassProvider extends ChangeNotifier {
 
   /// 시간제 콘텐츠 열람 직전 게이트체크. 유효한 열림패스가 없으면 false를 반환하고
   /// [lastError]에 안내 메시지를 남긴다(화면단에서 발급 유도 UI 노출용).
-  Future<bool> consume({required String contentType, dynamic contentId}) async {
+  ///
+  /// [STEP8 - Flutter categoryKey 연동] [categoryKey]를 넘기면 서버가
+  /// "카테고리별 최대 2회" 제한도 함께 확인한다(초과 시 [lastErrorReason]이
+  /// 'CATEGORY_LIMIT_REACHED'). categoryKey가 null이면(기존 호출부) 기존과
+  /// 동일하게 활성 패스 여부만 확인한다.
+  Future<bool> consume({
+    required String contentType,
+    dynamic contentId,
+    String? categoryKey,
+  }) async {
     final result = await _repository.consume(
       contentType: contentType,
       contentId: contentId,
+      categoryKey: categoryKey,
     );
     if (!result.success) {
       _lastError = result.errorMessage;
+      _lastErrorReason = result.errorCode;
       notifyListeners();
       return false;
     }
     _lastError = null;
+    _lastErrorReason = null;
     return true;
   }
 }
