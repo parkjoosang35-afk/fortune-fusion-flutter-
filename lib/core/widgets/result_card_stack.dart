@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_unified_style.dart';
 import 'premium_button.dart';
 import 'premium_card.dart';
+import 'simple_markdown_text.dart';
 
 /// [서브 디자인 통일 확산 프롬프트] §6 결과 페이지 표준 스켈레톤.
 ///
@@ -105,9 +106,9 @@ class ResultCardStack extends StatelessWidget {
               children: [
                 Text(heroCaption, style: UnifiedText.caption()),
                 const SizedBox(height: UnifiedTokens.spaceSm),
-                Text(
-                  heroSummary,
-                  style: UnifiedText.body(
+                SimpleMarkdownText(
+                  data: heroSummary,
+                  baseStyle: UnifiedText.body(
                     color: UnifiedColors.textPrimary,
                   ).copyWith(fontSize: 15),
                 ),
@@ -193,7 +194,7 @@ class _SectionCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: UnifiedTokens.spaceSm),
-          Text(section.body, style: UnifiedText.body()),
+          SimpleMarkdownText(data: section.body, baseStyle: UnifiedText.body()),
         ],
       ),
     );

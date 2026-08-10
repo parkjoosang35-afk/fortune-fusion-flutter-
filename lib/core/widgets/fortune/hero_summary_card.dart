@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_unified_style.dart';
 import '../premium_card.dart';
+import '../simple_markdown_text.dart';
 
 /// 재사용 위젯 ① HeroSummaryCard — 결과 화면 섹션 1(히어로 요약 카드).
 ///
@@ -66,10 +67,10 @@ class HeroSummaryCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: UnifiedTokens.spaceSm),
-          Text(headline, style: UnifiedText.bodyStrong()),
+          SimpleMarkdownText(data: headline, baseStyle: UnifiedText.bodyStrong()),
           if (subDescription != null) ...[
             const SizedBox(height: 4),
-            Text(subDescription!, style: UnifiedText.body()),
+            SimpleMarkdownText(data: subDescription!, baseStyle: UnifiedText.body()),
           ],
           if (keywords.isNotEmpty) ...[
             const SizedBox(height: UnifiedTokens.spaceSm),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_unified_style.dart';
+import '../simple_markdown_text.dart';
 
 /// [오늘의 운세 표준 플로우] §6 후속연결 — "이미지 공유 카드".
 ///
@@ -63,7 +64,7 @@ class FortuneShareCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: UnifiedTokens.spaceSm),
-                Text(headline, style: UnifiedText.bodyStrong()),
+                SimpleMarkdownText(data: headline, baseStyle: UnifiedText.bodyStrong()),
               ],
             ),
           ),

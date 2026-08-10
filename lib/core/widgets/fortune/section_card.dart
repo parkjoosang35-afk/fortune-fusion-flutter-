@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_unified_style.dart';
 import '../premium_card.dart';
+import '../simple_markdown_text.dart';
 import 'lock_overlay_badge.dart';
 
 /// 재사용 위젯 ② SectionCard — 결과 화면 "전체 흐름" 카드(섹션2) 및
@@ -71,13 +72,15 @@ class SectionCard extends StatelessWidget {
           const SizedBox(height: UnifiedTokens.spaceSm),
           if (!isLocked && child != null)
             child!
-          else
+          else if (isLocked)
             Text(
-              isLocked ? (lockSummary ?? body ?? '') : (body ?? ''),
+              lockSummary ?? body ?? '',
               style: UnifiedText.body(),
-              maxLines: isLocked ? 1 : null,
-              overflow: isLocked ? TextOverflow.ellipsis : TextOverflow.clip,
-            ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            )
+          else
+            SimpleMarkdownText(data: body ?? '', baseStyle: UnifiedText.body()),
         ],
       ),
     );
