@@ -117,32 +117,45 @@ export async function POST(request: NextRequest) {
       select: { id: true, version: true, templateBody: true },
     });
 
+    // [성능 개선 - 병렬화] face/palm 라우트와 동일한 이유로, 토픽 3개(애정/성격/미래)를
+    // 순차 호출하면 최악의 경우 응답시간이 최대 90s까지 늘어날 수 있다.
+    // Promise.allSettled()로 동시에 호출해 전체 응답시간을 "가장 느린 1건의 시간"으로
+    // 단축한다(개별 토픽 실패는 서로 영향 없이 격리되어 해당 토픽만 폴백 처리).
     const topicResults: Record<string, string> = {};
     let usedAi = false;
-    for (const [topic, options] of Object.entries(TOPIC_POOL)) {
-      const fallback = options[seed % options.length];
-      if (!template) {
-        topicResults[topic] = fallback;
-        continue;
+    const topicEntries = Object.entries(TOPIC_POOL);
+
+    if (!template) {
+      for (const [topic, options] of topicEntries) {
+        topicResults[topic] = options[seed % options.length];
       }
-      const userPrompt = [
-        `궁합 유형: ${TYPE_LABEL[type] ?? type}`,
-        `사람A: ${nameA}(생년월일 ${birthDateA})`,
-        `사람B: ${nameB}(생년월일 ${birthDateB})`,
-        `종합 궁합 점수: ${score}점(100점 만점)`,
-        `요청 주제: ${topic}`,
-        "위 [기본 규칙]과 [출력 형식]을 그대로 지켜서 두 사람의 궁합을 주제에 맞춰 해석해주세요.",
-      ].join("\n");
-      try {
-        topicResults[topic] = await completeText({
-          systemPrompt: template.templateBody,
-          userPrompt,
-        });
-        usedAi = true;
-      } catch (e) {
-        console.error(`[POST /api/public/compatibility/request] LLM 호출 실패(topic=${topic}):`, e);
-        topicResults[topic] = fallback;
-      }
+    } else {
+      const settled = await Promise.allSettled(
+        topicEntries.map(([topic]) => {
+          const userPrompt = [
+            `궁합 유형: ${TYPE_LABEL[type] ?? type}`,
+            `사람A: ${nameA}(생년월일 ${birthDateA})`,
+            `사람B: ${nameB}(생년월일 ${birthDateB})`,
+            `종합 궁합 점수: ${score}점(100점 만점)`,
+            `요청 주제: ${topic}`,
+            "위 [기본 규칙]과 [출력 형식]을 그대로 지켜서 두 사람의 궁합을 주제에 맞춰 해석해주세요.",
+          ].join("\n");
+          return completeText({ systemPrompt: template.templateBody, userPrompt });
+        })
+      );
+      settled.forEach((result, index) => {
+        const [topic, options] = topicEntries[index];
+        if (result.status === "fulfilled") {
+          topicResults[topic] = result.value;
+          usedAi = true;
+        } else {
+          console.error(
+            `[POST /api/public/compatibility/request] LLM 호출 실패(topic=${topic}):`,
+            result.reason
+          );
+          topicResults[topic] = options[seed % options.length];
+        }
+      });
     }
 
     const summaryFallback =

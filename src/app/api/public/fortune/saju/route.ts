@@ -122,45 +122,63 @@ export async function POST(request: NextRequest) {
     // 1) 명식/오행은 여전히 결정론적 규칙으로 계산(범위 밖)
     const { pillars, fiveElements } = computeChart(birthDate, !!birthTime);
 
-    // 2) 주제별 활성 프롬프트 템플릿을 조회하고 LLM을 호출(DB 트랜잭션 밖에서 먼저 수행)
+    // 2) 주제별 활성 프롬프트 템플릿을 조회하고 LLM을 호출
+    //    [성능 개선 - 병렬화] saju는 주제마다 서로 다른 도메인(saju/saju_wealth/...)의
+    //    템플릿을 조회해야 하므로, 먼저 템플릿을 모두 병렬로 조회한 뒤(1단계),
+    //    템플릿이 있는 주제에 대해서만 completeText() 호출을 동시에 발사한다(2단계).
+    //    face/palm/compatibility와 동일하게, 순차 호출 시 주제 개수만큼(최대 5개,
+    //    최악 150s) 응답시간이 늘어나는 문제를 "가장 느린 1건의 시간"으로 단축한다.
     const uniqueTopics = Array.from(new Set(topics));
-    const topicResults: Record<string, string> = {};
-    let primaryTemplate: { id: number; version: number } | null = null;
 
-    for (const topic of uniqueTopics) {
-      const domain = TOPIC_DOMAIN[topic] ?? "saju";
-      const template = await prisma.aiPromptTemplate.findFirst({
-        where: { fortuneTypeOrDomain: domain, isActive: true },
-        select: { id: true, version: true, templateBody: true },
-      });
-
-      if (!primaryTemplate || topic === "종합") {
-        if (template) primaryTemplate = { id: template.id, version: template.version };
-      }
-
-      if (!template) {
-        topicResults[topic] = FALLBACK_TEXT_BY_TOPIC[topic] ?? FALLBACK_TEXT_BY_TOPIC["종합"];
-        continue;
-      }
-
-      const userPrompt = [
-        `사용자 정보: 생년월일 ${birthDate}(${isLunar ? "음력" : "양력"})`,
-        birthTime ? `태어난 시간: ${birthTime}` : "태어난 시간: 미상",
-        `요청 주제: ${topic}`,
-        "위 [기본 규칙]과 [출력 형식]을 그대로 지켜서 이 사람의 운세를 작성해주세요.",
-      ].join("\n");
-
-      try {
-        const text = await completeText({
-          systemPrompt: template.templateBody,
-          userPrompt,
+    const templateEntries = await Promise.all(
+      uniqueTopics.map(async (topic) => {
+        const domain = TOPIC_DOMAIN[topic] ?? "saju";
+        const template = await prisma.aiPromptTemplate.findFirst({
+          where: { fortuneTypeOrDomain: domain, isActive: true },
+          select: { id: true, version: true, templateBody: true },
         });
-        topicResults[topic] = text;
-      } catch (e) {
-        console.error(`[POST /api/public/fortune/saju] LLM 호출 실패(topic=${topic}):`, e);
+        return { topic, template };
+      })
+    );
+
+    let primaryTemplate: { id: number; version: number } | null = null;
+    for (const { topic, template } of templateEntries) {
+      if (template && (!primaryTemplate || topic === "종합")) {
+        primaryTemplate = { id: template.id, version: template.version };
+      }
+    }
+
+    const topicResults: Record<string, string> = {};
+    for (const { topic, template } of templateEntries) {
+      if (!template) {
         topicResults[topic] = FALLBACK_TEXT_BY_TOPIC[topic] ?? FALLBACK_TEXT_BY_TOPIC["종합"];
       }
     }
+
+    const withTemplate = templateEntries.filter(
+      (e): e is { topic: string; template: NonNullable<(typeof templateEntries)[number]["template"]> } =>
+        e.template !== null
+    );
+    const settled = await Promise.allSettled(
+      withTemplate.map(({ topic, template }) => {
+        const userPrompt = [
+          `사용자 정보: 생년월일 ${birthDate}(${isLunar ? "음력" : "양력"})`,
+          birthTime ? `태어난 시간: ${birthTime}` : "태어난 시간: 미상",
+          `요청 주제: ${topic}`,
+          "위 [기본 규칙]과 [출력 형식]을 그대로 지켜서 이 사람의 운세를 작성해주세요.",
+        ].join("\n");
+        return completeText({ systemPrompt: template.templateBody, userPrompt });
+      })
+    );
+    settled.forEach((result, index) => {
+      const topic = withTemplate[index].topic;
+      if (result.status === "fulfilled") {
+        topicResults[topic] = result.value;
+      } else {
+        console.error(`[POST /api/public/fortune/saju] LLM 호출 실패(topic=${topic}):`, result.reason);
+        topicResults[topic] = FALLBACK_TEXT_BY_TOPIC[topic] ?? FALLBACK_TEXT_BY_TOPIC["종합"];
+      }
+    });
 
     const summary = topicResults["종합"] ?? Object.values(topicResults)[0] ?? "";
 
