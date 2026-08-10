@@ -10,7 +10,9 @@ import '../../../core/widgets/premium_chip.dart';
 import '../../../core/widgets/premium_badge.dart';
 import '../../../core/widgets/premium_graphics.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../../auth/application/auth_provider.dart';
 import '../../pass/application/pass_provider.dart';
+import '../../pass/domain/pending_pass_request.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
 import '../../wallet/application/wallet_provider.dart';
 import '../../community/presentation/community_screen.dart';
@@ -110,6 +112,12 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
   /// (타로/오늘의 운세 등, 무료이거나 각 API 자신이 최종 검증)는 기존 동작 그대로
   /// 유지한다(회귀 없음).
   Future<void> _openMatrixEntry(FortuneCategoryEntry entry) async {
+    // [STEP8-2 로그인 필수 UI] 무료 카테고리(openFree/freeOncePerDay 등)는
+    // 로그인 없이도 그대로 열람 가능해야 하므로, CategoryGate.decide로 먼저
+    // 로컬 정책을 판정한 "이후"에도 여전히 프리패스가 필요한 경우
+    // (=paidOnlyPassGate이거나 무료 소진으로 차단된 경우)에만 로그인을
+    // 강제한다. 즉 "프리패스 클릭시 로그인 필수" 원칙을 이 매트릭스 경로에도
+    // 동일하게 적용하되, 완전 무료 콘텐츠까지 로그인 장벽을 세우지 않는다.
     setState(() => _checking = true);
     final access = context.read<AccessChecker>();
     final decision = await CategoryGate.decide(entry, access);
@@ -117,6 +125,22 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
 
     if (!decision.allowed) {
       setState(() => _checking = false);
+      if (!context.read<AuthProvider>().isLoggedIn) {
+        PendingPassRequestStore.save(
+          PendingPassRequest(
+            title: entry.title,
+            route: entry.existingRoute ?? FortuneMatrix.genericCategoryRoute,
+            arguments: entry.existingRoute != null
+                ? entry.routeArguments
+                : entry.id,
+            categoryKey: entry.existingRoute != null
+                ? categoryKeyForRoute(entry.existingRoute!)
+                : null,
+          ),
+        );
+        await showLoginRequiredSheet(context, categoryTitle: entry.title);
+        return;
+      }
       await showPassRequiredSheet(context, categoryTitle: entry.title);
       return;
     }

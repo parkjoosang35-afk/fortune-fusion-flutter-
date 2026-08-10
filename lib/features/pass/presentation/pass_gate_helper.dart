@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/domain/access/access_checker.dart';
+import '../../../core/router/app_navigator_key.dart';
+import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/app_dialog.dart';
+import '../../auth/application/auth_provider.dart';
 import '../application/pass_provider.dart';
+import '../domain/pending_pass_request.dart';
 import 'coupang_pass_sheet.dart';
 
 /// [6단계 운세 탭 정리] 열림패스 기반 이용 구조 공통화.
@@ -44,6 +48,23 @@ Future<void> navigateWithPassGate(
 }) async {
   if (!requiresPass) {
     Navigator.of(context).pushNamed(route, arguments: arguments);
+    return;
+  }
+
+  // [STEP8-2 로그인 필수 UI] 프리패스가 필요한 카테고리는 반드시 로그인한
+  // 사용자만 이용할 수 있다("프리패스 클릭시 로그인 필수" 원칙). AuthTokenStore의
+  // fallbackUserId(=1)가 있어 API 호출 자체는 비로그인에서도 되지만, 그것과
+  // 무관하게 이 UI 레이어에서 명시적으로 로그인 여부를 강제한다.
+  if (!context.read<AuthProvider>().isLoggedIn) {
+    PendingPassRequestStore.save(
+      PendingPassRequest(
+        title: title,
+        route: route,
+        arguments: arguments,
+        categoryKey: categoryKey,
+      ),
+    );
+    await showLoginRequiredSheet(context, categoryTitle: title);
     return;
   }
 
@@ -164,4 +185,129 @@ Future<void> showCategoryLimitReachedSheet(
         '$categoryTitle 운세는 이번 프리패스로 이용할 수 있는 횟수를 모두 사용했습니다.',
     confirmLabel: '확인',
   );
+}
+
+/// [STEP8-2 로그인 필수 UI] 비로그인 상태에서 프리패스가 필요한 카테고리를
+/// 탭했을 때 노출하는 로그인 유도 바텀시트.
+///
+/// "🔥 프리패스를 이용하려면 로그인이 필요합니다..." 안내 + "로그인/회원가입"
+/// 버튼을 제공한다. 버튼을 누르면 `/login`으로 이동하고, 로그인이 완료되면
+/// (login_screen.dart → profile_check_screen.dart 흐름을 거쳐 `/home` 도달 시)
+/// [PendingPassRequestStore]에 저장된 요청을 [replayPendingPassRequest]가 자동
+/// 재실행해 사용자가 원래 가려던 화면으로 곧바로 이동시킨다.
+Future<void> showLoginRequiredSheet(
+  BuildContext context, {
+  required String categoryTitle,
+}) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: UnifiedColors.bg,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (ctx) => SafeArea(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: UnifiedTokens.spaceXl,
+          right: UnifiedTokens.spaceXl,
+          top: UnifiedTokens.spaceLg,
+          bottom: UnifiedTokens.spaceXl + MediaQuery.of(ctx).viewInsets.bottom,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: UnifiedTokens.spaceLg),
+                decoration: BoxDecoration(
+                  color: UnifiedColors.border,
+                  borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
+                ),
+              ),
+            ),
+            const Text('🔥', style: TextStyle(fontSize: 32)),
+            const SizedBox(height: UnifiedTokens.spaceMd),
+            Text(
+              '프리패스를 이용하려면\n로그인이 필요합니다',
+              style: UnifiedText.title(),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: UnifiedTokens.spaceSm),
+            Text(
+              '"$categoryTitle" 운세는 로그인 후 프리패스로\n이용할 수 있어요. 로그인하면 자동으로\n이어서 진행됩니다.',
+              style: UnifiedText.body(),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: UnifiedTokens.spaceXl),
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  Navigator.of(context).pushNamed('/login');
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: UnifiedColors.black,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(
+                      UnifiedTokens.radiusPill,
+                    ),
+                  ),
+                ),
+                child: const Text(
+                  '로그인 / 회원가입',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
+            const SizedBox(height: UnifiedTokens.spaceSm),
+            TextButton(
+              onPressed: () {
+                PendingPassRequestStore.clear();
+                Navigator.of(ctx).pop();
+              },
+              child: Text('나중에 할게요', style: UnifiedText.caption()),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+/// [STEP8-2 로그인 필수 UI] 로그인 완료 후 저장된 pending 요청을 재실행한다.
+///
+/// ProfileCheckScreen이 `/home`으로 스택 교체(`pushNamedAndRemoveUntil`)를
+/// 마친 *다음 프레임*에 호출해야 한다(전역 [appNavigatorKey]의 context는 그
+/// 시점에는 아직 이전 화면 트리를 참조할 수 있어, addPostFrameCallback으로
+/// 한 프레임 미뤄 새 라우트(AppShell)가 완전히 빌드된 뒤 안전하게 push한다).
+/// 저장된 요청이 없으면(=일반 로그인, 프리패스 게이트를 거치지 않은 경우)
+/// 아무 동작도 하지 않는다.
+void replayPendingPassRequest() {
+  final request = PendingPassRequestStore.consume();
+  if (request == null) return;
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    final navState = appNavigatorKey.currentState;
+    if (navState == null) return;
+    final context = navState.context;
+
+    // 로그인 직후이므로 이제는 반드시 로그인된 상태이지만, 프리패스 활성
+    // 여부/카테고리 이용횟수는 다시 확인해야 하므로 navigateWithPassGate를
+    // 그대로 재사용한다(로그인 체크는 이미 통과하므로 다시 안내 시트가 뜨지
+    // 않는다).
+    await navigateWithPassGate(
+      context,
+      title: request.title,
+      route: request.route,
+      requiresPass: true,
+      arguments: request.arguments,
+      categoryKey: request.categoryKey,
+    );
+  });
 }

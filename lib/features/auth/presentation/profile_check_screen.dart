@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../pass/presentation/pass_gate_helper.dart';
 import '../application/auth_provider.dart';
 
 /// 03단계 §3.3 SignupProfileStepScreen(단계형) 간소화 버전
@@ -30,6 +31,9 @@ class _ProfileCheckScreenState extends State<ProfileCheckScreen> {
         Navigator.of(
           context,
         ).pushNamedAndRemoveUntil('/home', (route) => false);
+        // [STEP8-2 로그인 필수 UI] 프리패스 게이트 때문에 로그인 화면으로
+        // 왔던 경우, 홈 이동 완료 후 원래 가려던 화면으로 자동 이어간다.
+        replayPendingPassRequest();
       });
     }
   }
@@ -66,8 +70,10 @@ class _ProfileCheckScreenState extends State<ProfileCheckScreen> {
       isLunar: _isLunar,
       gender: _gender,
     );
-    if (mounted)
+    if (mounted) {
       Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+      replayPendingPassRequest();
+    }
   }
 
   @override

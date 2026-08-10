@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'core/router/app_router.dart';
+import 'core/router/app_navigator_key.dart';
 
 import 'features/auth/application/auth_provider.dart';
 import 'features/auth/data/auth_repository.dart';
@@ -234,6 +235,7 @@ class App extends StatelessWidget {
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
           return MaterialApp(
+            navigatorKey: appNavigatorKey,
             title: 'Fortune Fusion',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.light,
