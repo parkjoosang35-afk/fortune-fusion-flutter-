@@ -97,32 +97,44 @@ export async function POST(request: NextRequest) {
       select: { id: true, version: true, templateBody: true },
     });
 
+    // [성능 개선 - 병렬화] 토픽 5개를 순차(각 최대 30s)로 호출하면 최악의 경우
+    // 총 응답시간이 150s까지 늘어날 수 있음이 실측으로 확인됨(56s 관측).
+    // Promise.allSettled()로 5개 요청을 동시에 발사해 전체 응답시간을
+    // "가장 느린 1건의 시간"으로 단축한다(개별 실패는 서로 영향 없이 격리됨).
     const topicResults: Record<string, string> = {};
     let usedAi = false;
-    for (const topic of TOPICS) {
-      const fallback = TOPIC_FALLBACK[topic];
-      if (!template) {
-        topicResults[topic] = fallback;
-        continue;
+    if (!template) {
+      for (const topic of TOPICS) {
+        topicResults[topic] = TOPIC_FALLBACK[topic];
       }
-      const userPrompt = [
-        `사용자 생년월일: ${birthDate ?? "미상"}`,
-        `성별: ${gender ?? "미상"}`,
-        `손금 특징: 생명선(${lines["생명선"]}), 두뇌선(${lines["두뇌선"]}), 감정선(${lines["감정선"]}), 운명선(${lines["운명선"]})`,
-        `요청 주제: ${topic}`,
-        "위 [기본 규칙]과 [출력 형식]을 그대로 지켜서 이 사람의 손금을 주제에 맞춰 해석해주세요.",
-      ].join("\n");
-      try {
-        topicResults[topic] = await completeText({ systemPrompt: template.templateBody, userPrompt });
-        usedAi = true;
-      } catch (e) {
-        if (e instanceof LlmClientError) {
-          console.error(`[POST /api/public/fortune/palm] LLM 호출 실패(topic=${topic}):`, e.message);
+    } else {
+      const settled = await Promise.allSettled(
+        TOPICS.map((topic) => {
+          const userPrompt = [
+            `사용자 생년월일: ${birthDate ?? "미상"}`,
+            `성별: ${gender ?? "미상"}`,
+            `손금 특징: 생명선(${lines["생명선"]}), 두뇌선(${lines["두뇌선"]}), 감정선(${lines["감정선"]}), 운명선(${lines["운명선"]})`,
+            `요청 주제: ${topic}`,
+            "위 [기본 규칙]과 [출력 형식]을 그대로 지켜서 이 사람의 손금을 주제에 맞춰 해석해주세요.",
+          ].join("\n");
+          return completeText({ systemPrompt: template.templateBody, userPrompt });
+        })
+      );
+      settled.forEach((result, index) => {
+        const topic = TOPICS[index];
+        if (result.status === "fulfilled") {
+          topicResults[topic] = result.value;
+          usedAi = true;
         } else {
-          console.error(`[POST /api/public/fortune/palm] LLM 호출 실패(topic=${topic}):`, e);
+          const e = result.reason;
+          if (e instanceof LlmClientError) {
+            console.error(`[POST /api/public/fortune/palm] LLM 호출 실패(topic=${topic}):`, e.message);
+          } else {
+            console.error(`[POST /api/public/fortune/palm] LLM 호출 실패(topic=${topic}):`, e);
+          }
+          topicResults[topic] = TOPIC_FALLBACK[topic];
         }
-        topicResults[topic] = fallback;
-      }
+      });
     }
     const summary = topicResults["종합"] ?? TOPIC_FALLBACK["종합"];
 
