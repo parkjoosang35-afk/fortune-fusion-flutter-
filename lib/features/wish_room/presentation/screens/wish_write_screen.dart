@@ -7,6 +7,7 @@ import '../theme/wish_room_theme.dart';
 import '../widgets/category_chip_group.dart';
 import '../widgets/wish_room_animations.dart';
 import '../widgets/wish_room_background.dart';
+import '../widgets/wish_room_seal.dart';
 
 /// [소원방 Riverpod 실험판] 소원 작성/선택 화면.
 /// 직접 입력 + 추천 카테고리 칩 선택 지원. 저장 시 메인으로 복귀한다.
@@ -21,6 +22,13 @@ class _WishWriteScreenState extends ConsumerState<WishWriteScreen> {
   final _controller = TextEditingController();
   WishCategory? _selectedCategory;
   bool _isSaving = false;
+
+  /// [디자인 핸드오프 — "마법진이 소환되는 신전"] README `3. Compose Wish`의
+  /// "Seal picker"(6개 도장 선택기) 순수 시각 상태. 서버 API/저장 로직에
+  /// 영향을 주지 않는 로컬 UI 프리셋으로, 소원 저장 데이터 모델
+  /// [WishItem]에는 도장 필드가 없으므로 `_save()`에는 전달하지 않는다
+  /// (기존 구현/데이터 모델을 변경하지 않는다는 원칙 유지).
+  WishSeal _selectedSeal = WishSeal.wish;
 
   @override
   void dispose() {
@@ -109,6 +117,39 @@ class _WishWriteScreenState extends ConsumerState<WishWriteScreen> {
                   selected: _selectedCategory,
                   onSelected: (category) =>
                       setState(() => _selectedCategory = category),
+                ),
+                const SizedBox(height: WishRoomSpacing.lg),
+                Text('어떤 도장으로 봉인할까요?', style: WishRoomTextStyles.bodySm),
+                const SizedBox(height: WishRoomSpacing.sm),
+                SizedBox(
+                  height: 56,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: WishSeal.values.length,
+                    separatorBuilder: (_, __) =>
+                        const SizedBox(width: WishRoomSpacing.sm),
+                    itemBuilder: (context, index) {
+                      final seal = WishSeal.values[index];
+                      final isSelected = seal == _selectedSeal;
+                      return GestureDetector(
+                        onTap: () => setState(() => _selectedSeal = seal),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            AnimatedScale(
+                              scale: isSelected ? 1.08 : 1.0,
+                              duration: const Duration(milliseconds: 200),
+                              child: WishRoomSeal(
+                                text: seal.glyph,
+                                size: 36,
+                                selected: isSelected,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                 ),
                 const Spacer(),
                 SizedBox(
