@@ -6,6 +6,12 @@
 // 불가능하다. `flutter test`는 Flutter 엔진의 dart:ui shim을 제공하므로
 // 이 테스트는 위젯 pump 없이도 순수 Dart 로직(JSON 파싱, 표시 규칙 평가,
 // 캐시 라운드트립)을 정상적으로 검증할 수 있다.
+//
+// [버그 수정] 이 픽스처(`/api/public/page-configs/home` 응답 스냅샷)를 예전에는
+// `/tmp/page_config_sample.json`에 저장해 두고 읽었는데, `/tmp`는 샌드박스가
+// 재시작되면 비워지는 휘발성 경로라서 다음 세션에서 "PathNotFoundException"으로
+// setUpAll 자체가 실패했다. 저장소 내부(`test/fixtures/`)에 고정 픽스처로
+// 커밋해 두면 어떤 환경에서도 항상 동일하게 로드된다.
 import 'dart:convert';
 import 'dart:io';
 
@@ -17,7 +23,9 @@ void main() {
   late Map<String, dynamic> decoded;
 
   setUpAll(() {
-    final raw = File('/tmp/page_config_sample.json').readAsStringSync();
+    final raw = File(
+      'test/fixtures/page_config_sample.json',
+    ).readAsStringSync();
     decoded = jsonDecode(raw) as Map<String, dynamic>;
   });
 

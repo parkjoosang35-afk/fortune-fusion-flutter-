@@ -7,6 +7,7 @@ import 'package:flutter_app/features/luckpouch/application/luck_pouch_provider.d
 import 'package:flutter_app/features/wallet/application/wallet_provider.dart';
 import 'package:flutter_app/features/wallet/data/wallet_repository.dart';
 import 'package:flutter_app/features/wish_room/data/local/wish_room_local_store.dart';
+import 'package:flutter_app/features/wish_room/data/mock/mock_wish_room_repository.dart';
 import 'package:flutter_app/features/wish_room/presentation/screens/wish_room_riverpod_entry.dart';
 import 'package:flutter_app/features/wish_room/presentation/widgets/wish_guide_dialog.dart';
 
@@ -68,7 +69,18 @@ void main() {
                 },
               ),
             ],
-            child: const MaterialApp(home: WishRoomRiverpodEntry()),
+            // [버그 수정] WishRoomRiverpodEntry의 기본값은 실 서버 연동
+            // HttpWishRoomRepository이다. `flutter_test`의
+            // TestWidgetsFlutterBinding은 모든 HTTP 요청에 강제로
+            // statusCode 400을 반환하므로, override 없이는
+            // fetchInitialData()가 항상 실패해 WishGuideDialog가 절대
+            // 뜨지 않는다(findsOneWidget 기대가 항상 실패). 위젯에 추가한
+            // `@visibleForTesting` 주입 지점을 통해 Mock 저장소를 사용한다.
+            child: MaterialApp(
+              home: WishRoomRiverpodEntry(
+                debugRepositoryOverride: MockWishRoomRepository(),
+              ),
+            ),
           ),
         );
         await tester.pump();
@@ -99,6 +111,16 @@ void main() {
         // Hive 파일 I/O)가 끝날 만큼 여유 있게 진짜 시간을 흘려보낸다.
         await Future<void>.delayed(const Duration(milliseconds: 700));
         await tester.pump();
+
+        // [버그 수정] fetchInitialData()가 끝나면 ref.listen이 곧바로
+        // WishGuideDialog를 push하는데, 그 다이얼로그는 build() 시점에
+        // guideSlidesProvider(FutureProvider, mock 200ms 실제 지연)를 watch
+        // 하기 시작한다. 이 대기가 없으면 다이얼로그가 loading 상태
+        // (CircularProgressIndicator)에 머물러 '건너뛰기' 버튼을 찾지
+        // 못해 이후 tap()이 실패한다(스모크 테스트와 동일한 원인).
+        await Future<void>.delayed(const Duration(milliseconds: 300));
+        await tester.pump();
+
         // 배경/오브제 애니메이션이 repeat()로 무한 반복되므로 pumpAndSettle
         // 대신 고정 시간만큼 pump한다.
         await tester.pump(const Duration(milliseconds: 400));
@@ -112,7 +134,14 @@ void main() {
       // 동작 중이라는 증거(ProviderScope 밖이었다면 여기서 예외가 났을
       // 것이다).
       expect(find.byType(WishGuideDialog), findsOneWidget);
-      await tester.tap(find.text('시작하기'));
+      // [버그 수정] '시작하기' 버튼은 마지막 슬라이드에서만 노출된다
+      // (wish_guide_dialog.dart `_isLast ? '시작하기' : '다음'`). mock은
+      // 5개 슬라이드를 반환하고 PageView는 index=0에서 시작하므로 이
+      // 시점에는 '다음'만 렌더링되어 있다. 이 테스트는 가이드 내용이
+      // 아니라 진입 플로우 자체를 검증하는 것이 목적이므로, 슬라이드
+      // 인덱스와 무관하게 항상 존재하는 '건너뛰기' 버튼(onSkip: _close)을
+      // 탭한다.
+      await tester.tap(find.text('건너뛰기'));
       // markGuideSeen()의 SharedPreferences I/O 완료까지 진짜 시간을
       // 흘려보낸다(다른 스모크 테스트와 동일한 이유).
       await tester.runAsync(() async {

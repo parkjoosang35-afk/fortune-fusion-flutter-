@@ -49,7 +49,17 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     ]).animate(_controller);
     _controller.forward();
-    _bootstrap();
+    // [버그 수정] initState 안에서 _bootstrap()을 곧바로 호출하면, 그 안의
+    // AuthProvider.restoreSession()이 첫 await 이전에 동기적으로
+    // notifyListeners()를 호출해 "setState() or markNeedsBuild() called
+    // during build" assertion을 유발한다(위젯 트리가 아직 최초 빌드 중인
+    // 시점에 상위 InheritedProvider를 갱신 요청하기 때문). release 빌드는
+    // assert가 제거돼 겉으로 드러나지 않았지만, widget test(debug 모드)에서는
+    // 항상 예외로 잡힌다. addPostFrameCallback으로 첫 프레임이 완전히 끝난
+    // 뒤에 실행하도록 미뤄 근본적으로 해결한다.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _bootstrap();
+    });
   }
 
   @override

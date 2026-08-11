@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:flutter_app/features/wish_room/data/local/wish_room_local_store.dart';
+import 'package:flutter_app/features/wish_room/data/mock/mock_wish_room_repository.dart';
+import 'package:flutter_app/features/wish_room/presentation/providers/wish_room_providers.dart';
 import 'package:flutter_app/features/wish_room/presentation/screens/wish_room_screen.dart';
 import 'package:flutter_app/features/wish_room/presentation/widgets/wish_guide_dialog.dart';
 
@@ -42,15 +44,42 @@ void main() {
     // tester.pump()(프레임 1회 플러시)를 번갈아 사용한다.
     await tester.runAsync(() async {
       await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(home: WishRoomScreen()),
+        ProviderScope(
+          // [버그 수정] wishRoomRepositoryProvider의 기본값이 실 서버 연동
+          // HttpWishRoomRepository로 바뀐 뒤(소원방 HTTP 연동 커밋)
+          // 이 테스트가 override 없이 기본 Provider를 그대로 사용하고
+          // 있었다. 테스트 환경(TestWidgetsFlutterBinding)의 HttpClient는
+          // 모든 요청에 statusCode 400을 강제로 반환하므로, 실제로는
+          // fetchInitialData()가 항상 실패해 isFirstVisit 계산이 깨지고
+          // WishGuideDialog가 뜨지 않았다. 이 파일의 주석/의도(“mock
+          // 데이터로 렌더링 검증”)에 맞춰 MockWishRoomRepository로 명시
+          // override한다.
+          overrides: [
+            wishRoomRepositoryProvider.overrideWithValue(
+              MockWishRoomRepository(),
+            ),
+          ],
+          child: const MaterialApp(home: WishRoomScreen()),
         ),
       );
       await tester.pump();
 
       // mock repository의 fetchInitialData() 지연(400ms) + Hive 파일 I/O가
-      // 모두 끝날 만큼 여유 있게 진짜 시간을 흘려보낸다.
+      // 모두 끝날 만큼 여유 있게 진짜 시간을 흘려보낸다. 데이터가 도착하면
+      // WishRoomScreen의 ref.listen이 곧바로 WishGuideDialog를 push하고,
+      // 그 다이얼로그는 build() 시점에 guideSlidesProvider(FutureProvider,
+      // mock 지연 200ms)를 watch하기 시작한다.
       await Future<void>.delayed(const Duration(milliseconds: 700));
+      await tester.pump();
+
+      // [버그 수정] guideSlidesProvider의 실제(real-time) 200ms 지연이 끝날
+      // 때까지 별도로 real Future.delayed를 더 기다려야 한다 — 아래
+      // tester.pump(fake duration)들은 애니메이션용 FakeAsync 클럭만
+      // 전진시킬 뿐, runAsync 내부에서 시작된 진짜 Future.delayed(dart:io
+      // 타이머)는 앞당기지 못한다. 이 대기가 없으면 다이얼로그가 계속
+      // loading 상태(CircularProgressIndicator)로 남아 "시작하기" 텍스트를
+      // 찾지 못해 tap()이 실패한다.
+      await Future<void>.delayed(const Duration(milliseconds: 300));
       await tester.pump();
 
       // 배경/오브제 애니메이션이 repeat()로 무한 반복되므로(정상 동작)
@@ -60,8 +89,17 @@ void main() {
     });
 
     // 초회 가이드 팝업이 자동으로 뜨므로 먼저 닫는다.
+    //
+    // [버그 수정] '시작하기' 버튼은 wish_guide_dialog.dart의 _SlideBody에서
+    // `_isLast ? '시작하기' : '다음'`으로 마지막 슬라이드에서만 노출된다
+    // (mock repository는 5개 슬라이드를 반환하고 PageView는 index=0에서
+    // 시작하므로, 이 시점에는 '다음'만 렌더링되어 있어 '시작하기'를 찾는
+    // tap()이 항상 실패했다). 이 스모크 테스트는 가이드 내용 자체를
+    // 검증하는 게 목적이 아니라 빠르게 닫고 메인 화면을 확인하는 것이
+    // 목적이므로, 슬라이드 인덱스와 무관하게 항상 존재하는 '건너뛰기'
+    // 버튼(onSkip: _close)을 탭한다.
     expect(find.byType(WishGuideDialog), findsOneWidget);
-    await tester.tap(find.text('시작하기'));
+    await tester.tap(find.text('건너뛰기'));
     // [Sprint 3] 다이얼로그를 닫으면 `.then((_) => markGuideSeen())` 콜백이
     // 실행되는데, markGuideSeen()도 SharedPreferences 비동기 I/O를 거친다.
     // 이 콜백이 테스트 트리 dispose 이후에 완료되면 "Cannot use ref after

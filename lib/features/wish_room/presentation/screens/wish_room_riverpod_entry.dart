@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/http_wish_room_repository.dart';
+import '../../data/repositories/wish_room_repository.dart';
 import '../providers/wish_room_providers.dart';
 import 'wish_room_entry_screen.dart';
 
@@ -35,7 +36,21 @@ import 'wish_room_entry_screen.dart';
 /// 메인 전환을 포함한 모든 내부 화면 전환이 항상 ProviderScope 서브트리
 /// 안에서만 일어나도록 하는 것이다.
 class WishRoomRiverpodEntry extends StatelessWidget {
-  const WishRoomRiverpodEntry({super.key});
+  const WishRoomRiverpodEntry({super.key, this.debugRepositoryOverride});
+
+  /// [테스트 전용 주입 지점] 프로덕션에서는 항상 null이며, 이 경우 아래
+  /// build()가 실 서버 연동 [HttpWishRoomRepository]로 override한다(기존
+  /// 동작 100% 유지 — § "기존 구현 삭제/재작성 금지" 원칙).
+  ///
+  /// [버그 배경] `flutter_test`의 `TestWidgetsFlutterBinding`은 모든 HTTP
+  /// 요청에 강제로 statusCode 400을 반환하므로, 위젯 테스트에서 이 위젯을
+  /// 그대로 pump하면 `HttpWishRoomRepository.fetchInitialData()`가 항상
+  /// 실패해 초회 가이드 다이얼로그가 절대 뜨지 않았다(WishGuideDialog
+  /// findsOneWidget 기대가 항상 findsNothing으로 실패). 프로덕션 기본값을
+  /// 바꾸지 않고, 테스트에서만 `@visibleForTesting`으로 Mock 저장소를
+  /// 주입할 수 있게 하는 것으로 해소한다.
+  @visibleForTesting
+  final WishRoomRepository? debugRepositoryOverride;
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +58,7 @@ class WishRoomRiverpodEntry extends StatelessWidget {
     return ProviderScope(
       overrides: [
         wishRoomRepositoryProvider.overrideWith(
-          (ref) => HttpWishRoomRepository(),
+          (ref) => debugRepositoryOverride ?? HttpWishRoomRepository(),
         ),
       ],
       // 중첩 Navigator: 이 서브트리 안에서 발생하는 모든
