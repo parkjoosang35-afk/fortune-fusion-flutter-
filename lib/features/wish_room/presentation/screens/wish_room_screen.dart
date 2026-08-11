@@ -101,7 +101,10 @@ class WishRoomScreen extends ConsumerWidget {
         Future.microtask(() {
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(message), backgroundColor: WishRoomColors.gold),
+              SnackBar(
+                content: Text(message),
+                backgroundColor: WishRoomColors.gold,
+              ),
             );
           }
         });
@@ -131,7 +134,8 @@ class WishRoomScreen extends ConsumerWidget {
                     Text('잠시 후 다시 시도해주세요', style: WishRoomTextStyles.bodyMd),
                     const SizedBox(height: WishRoomSpacing.md),
                     ElevatedButton(
-                      onPressed: () => ref.invalidate(wishRoomControllerProvider),
+                      onPressed: () =>
+                          ref.invalidate(wishRoomControllerProvider),
                       child: const Text('다시 시도'),
                     ),
                   ],
@@ -145,13 +149,20 @@ class WishRoomScreen extends ConsumerWidget {
           final isEmpty = data.room.wishes.isEmpty;
 
           if (isEmpty) {
-            return _EmptyHome(onCreateTap: () => WishRoomPrayerFlow.openWriteScreen(context, ref));
+            return _EmptyHome(
+              onCreateTap: () =>
+                  WishRoomPrayerFlow.openWriteScreen(context, ref),
+            );
           }
 
           return _HomeContent(
             data: data,
-            onWishTap: (wish) =>
-                WishRoomPrayerFlow.handleWishCardTap(context, ref, controller, wish),
+            onWishTap: (wish) => WishRoomPrayerFlow.handleWishCardTap(
+              context,
+              ref,
+              controller,
+              wish,
+            ),
             // [디자인 핸드오프 — Wish Detail 진입] README 흐름표 "Home wish
             // row tap → Wish Detail"은 짧은 탭을 상세 진입으로 쓰지만, 이
             // 화면의 짧은 탭은 이미 검증된 치성 흐름(handleWishCardTap)이
@@ -182,6 +193,7 @@ class WishRoomScreen extends ConsumerWidget {
 class _HomeContent extends StatelessWidget {
   final WishRoomData data;
   final ValueChanged<WishItem> onWishTap;
+  final ValueChanged<WishItem> onWishLongPress;
   final VoidCallback onSeeAllTap;
   final VoidCallback onHelpTap;
   final VoidCallback onFabTap;
@@ -190,6 +202,7 @@ class _HomeContent extends StatelessWidget {
   const _HomeContent({
     required this.data,
     required this.onWishTap,
+    required this.onWishLongPress,
     required this.onSeeAllTap,
     required this.onHelpTap,
     required this.onFabTap,
@@ -231,7 +244,10 @@ class _HomeContent extends StatelessWidget {
                           children: [
                             Text('나의 소원방', style: WishRoomTextStyles.eyebrow),
                             const SizedBox(height: 4),
-                            Text('오늘도 밝게 켜있어요', style: WishRoomTextStyles.sectionTitle),
+                            Text(
+                              '오늘도 밝게 켜있어요',
+                              style: WishRoomTextStyles.sectionTitle,
+                            ),
                           ],
                         ),
                       ),
@@ -244,9 +260,14 @@ class _HomeContent extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: WishRoomColors.surfaceCard,
                             shape: BoxShape.circle,
-                            border: Border.all(color: WishRoomColors.surfaceCardBorder),
+                            border: Border.all(
+                              color: WishRoomColors.surfaceCardBorder,
+                            ),
                           ),
-                          child: const Text('☾', style: TextStyle(fontSize: 18)),
+                          child: const Text(
+                            '☾',
+                            style: TextStyle(fontSize: 18),
+                          ),
                         ),
                       ),
                     ],
@@ -254,12 +275,16 @@ class _HomeContent extends StatelessWidget {
                 ),
                 // ── Candle altar ──
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: WishRoomSpacing.md),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: WishRoomSpacing.md,
+                  ),
                   child: Container(
                     padding: const EdgeInsets.fromLTRB(16, 32, 16, 16),
                     decoration: BoxDecoration(
                       color: WishRoomColors.surfaceCard,
-                      border: Border.all(color: WishRoomColors.surfaceCardBorder),
+                      border: Border.all(
+                        color: WishRoomColors.surfaceCardBorder,
+                      ),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Column(
@@ -279,17 +304,27 @@ class _HomeContent extends StatelessWidget {
                         ),
                         const SizedBox(height: WishRoomSpacing.sm),
                         Container(
-                          padding: const EdgeInsets.only(top: WishRoomSpacing.sm),
+                          padding: const EdgeInsets.only(
+                            top: WishRoomSpacing.sm,
+                          ),
                           decoration: const BoxDecoration(
                             border: Border(
-                              top: BorderSide(color: WishRoomColors.surfaceCardBorder),
+                              top: BorderSide(
+                                color: WishRoomColors.surfaceCardBorder,
+                              ),
                             ),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text('$wishCount 개의 소원', style: WishRoomTextStyles.metaMono),
-                              Text('$consecutiveDays 일째', style: WishRoomTextStyles.metaMono),
+                              Text(
+                                '$wishCount 개의 소원',
+                                style: WishRoomTextStyles.metaMono,
+                              ),
+                              Text(
+                                '$consecutiveDays 일째',
+                                style: WishRoomTextStyles.metaMono,
+                              ),
                             ],
                           ),
                         ),
@@ -313,62 +348,81 @@ class _HomeContent extends StatelessWidget {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('최근 소원', style: WishRoomTextStyles.wishBodyList),
+                            Text(
+                              '최근 소원',
+                              style: WishRoomTextStyles.wishBodyList,
+                            ),
                             GestureDetector(
                               onTap: onSeeAllTap,
-                              child: Text('전체 보기 →', style: WishRoomTextStyles.caption),
+                              child: Text(
+                                '전체 보기 →',
+                                style: WishRoomTextStyles.caption,
+                              ),
                             ),
                           ],
                         ),
                       ),
                       const SizedBox(height: WishRoomSpacing.sm),
                       ...wishes.map((wish) {
-                        final days = DateTime.now().difference(wish.createdAt).inDays;
+                        final days = DateTime.now()
+                            .difference(wish.createdAt)
+                            .inDays;
                         return Padding(
-                          padding: const EdgeInsets.only(bottom: WishRoomSpacing.sm),
-                          child: TapBounce(
-                            onTap: () => onWishTap(wish),
-                            child: Container(
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                color: WishRoomColors.surfaceCard,
-                                border: Border.all(color: WishRoomColors.surfaceCardBorder),
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Row(
-                                children: [
-                                  SizedBox(
-                                    width: 36,
-                                    height: 50,
-                                    child: Align(
-                                      alignment: Alignment.bottomCenter,
-                                      child: WishRoomCandle(size: 30),
+                          padding: const EdgeInsets.only(
+                            bottom: WishRoomSpacing.sm,
+                          ),
+                          child: GestureDetector(
+                            onLongPress: () => onWishLongPress(wish),
+                            child: TapBounce(
+                              onTap: () => onWishTap(wish),
+                              child: Container(
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  color: WishRoomColors.surfaceCard,
+                                  border: Border.all(
+                                    color: WishRoomColors.surfaceCardBorder,
+                                  ),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Row(
+                                  children: [
+                                    SizedBox(
+                                      width: 36,
+                                      height: 50,
+                                      child: Align(
+                                        alignment: Alignment.bottomCenter,
+                                        child: WishRoomCandle(size: 30),
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(width: WishRoomSpacing.md),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          wish.title,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: WishRoomTextStyles.wishBodyList,
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          '$days일째 밝히는 중',
-                                          style: WishRoomTextStyles.metaMono,
-                                        ),
-                                      ],
+                                    const SizedBox(width: WishRoomSpacing.md),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            wish.title,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style:
+                                                WishRoomTextStyles.wishBodyList,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            '$days일째 밝히는 중',
+                                            style: WishRoomTextStyles.metaMono,
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  WishRoomSeal(
-                                    text: sealForCategory(wish.category).glyph,
-                                    size: 30,
-                                  ),
-                                ],
+                                    WishRoomSeal(
+                                      text: sealForCategory(
+                                        wish.category,
+                                      ).glyph,
+                                      size: 30,
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -481,12 +535,18 @@ class _EmptyHome extends StatelessWidget {
                     child: TapBounce(
                       onTap: onCreateTap,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 15,
+                          horizontal: 20,
+                        ),
                         decoration: BoxDecoration(
                           color: WishRoomColors.glow,
                           borderRadius: BorderRadius.circular(14),
                           boxShadow: [
-                            BoxShadow(color: WishRoomColors.glowShadow, blurRadius: 20),
+                            BoxShadow(
+                              color: WishRoomColors.glowShadow,
+                              blurRadius: 20,
+                            ),
                           ],
                         ),
                         alignment: Alignment.center,

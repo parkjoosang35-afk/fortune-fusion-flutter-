@@ -50,7 +50,8 @@ class _WishDetailScreenState extends ConsumerState<WishDetailScreen> {
   bool _isCompleting = false;
 
   /// growthStage(5단계) → 별점(1~5)으로 그대로 매핑.
-  int get _starCount => WishGrowthStage.values.indexOf(widget.wish.growthStage) + 1;
+  int get _starCount =>
+      WishGrowthStage.values.indexOf(widget.wish.growthStage) + 1;
 
   Future<void> _handleAddIntention() async {
     final controller = ref.read(wishRoomControllerProvider.notifier);
@@ -73,9 +74,9 @@ class _WishDetailScreenState extends ConsumerState<WishDetailScreen> {
     if (!mounted) return;
     setState(() => _isCompleting = false);
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('축하해요! 소원이 이뤄졌어요 ✿')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('축하해요! 소원이 이뤄졌어요 ✿')));
       Navigator.of(context).pop();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -101,7 +102,10 @@ class _WishDetailScreenState extends ConsumerState<WishDetailScreen> {
       body: Stack(
         children: [
           const Positioned.fill(
-            child: WishRoomBackground(mainSigilSize: 420, mainSigilOpacity: 0.28),
+            child: WishRoomBackground(
+              mainSigilSize: 420,
+              mainSigilOpacity: 0.28,
+            ),
           ),
           SafeArea(
             child: DramaticEntrance(
@@ -119,14 +123,25 @@ class _WishDetailScreenState extends ConsumerState<WishDetailScreen> {
                     Row(
                       children: [
                         WishRoomIconButton(
-                          icon: const Icon(Icons.arrow_back, size: 18, color: WishRoomColors.textSecondary),
+                          icon: const Icon(
+                            Icons.arrow_back,
+                            size: 18,
+                            color: WishRoomColors.textSecondary,
+                          ),
                           onPressed: () => Navigator.of(context).pop(),
                         ),
                         const Spacer(),
-                        Text('WISH · N°$eyebrowIndex', style: WishRoomTextStyles.eyebrow),
+                        Text(
+                          'WISH · N°$eyebrowIndex',
+                          style: WishRoomTextStyles.eyebrow,
+                        ),
                         const Spacer(),
                         WishRoomIconButton(
-                          icon: const Icon(Icons.more_horiz, size: 18, color: WishRoomColors.textSecondary),
+                          icon: const Icon(
+                            Icons.more_horiz,
+                            size: 18,
+                            color: WishRoomColors.textSecondary,
+                          ),
                           onPressed: () => _showMoreMenu(context),
                         ),
                       ],
@@ -146,7 +161,9 @@ class _WishDetailScreenState extends ConsumerState<WishDetailScreen> {
                                 shape: BoxShape.circle,
                                 gradient: RadialGradient(
                                   colors: [
-                                    WishRoomColors.glowShadow.withValues(alpha: 0.7),
+                                    WishRoomColors.glowShadow.withValues(
+                                      alpha: 0.7,
+                                    ),
                                     Colors.transparent,
                                   ],
                                   stops: const [0.0, 0.7],
@@ -162,15 +179,23 @@ class _WishDetailScreenState extends ConsumerState<WishDetailScreen> {
                     // ── Wish card ──
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 18,
+                      ),
                       decoration: BoxDecoration(
                         color: WishRoomColors.surfaceCard,
-                        border: Border.all(color: WishRoomColors.surfaceCardBorder),
+                        border: Border.all(
+                          color: WishRoomColors.surfaceCardBorder,
+                        ),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Column(
                         children: [
-                          Text(_sealedDateLabel(wish.createdAt), style: WishRoomTextStyles.eyebrow),
+                          Text(
+                            _sealedDateLabel(wish.createdAt),
+                            style: WishRoomTextStyles.eyebrow,
+                          ),
                           const SizedBox(height: 10),
                           Text(
                             wish.title,
@@ -183,7 +208,10 @@ class _WishDetailScreenState extends ConsumerState<WishDetailScreen> {
                             spacing: 8,
                             runSpacing: 8,
                             children: [
-                              WishRoomPill(label: '${wish.category.emoji} ${wish.category.label}'),
+                              WishRoomPill(
+                                label:
+                                    '${wish.category.emoji} ${wish.category.label}',
+                              ),
                               WishRoomPill(label: '$days일째'),
                             ],
                           ),
@@ -194,10 +222,15 @@ class _WishDetailScreenState extends ConsumerState<WishDetailScreen> {
                     // ── Intention gauge ──
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
                       decoration: BoxDecoration(
                         color: WishRoomColors.surfaceCard,
-                        border: Border.all(color: WishRoomColors.surfaceCardBorder),
+                        border: Border.all(
+                          color: WishRoomColors.surfaceCardBorder,
+                        ),
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: Column(
@@ -206,7 +239,12 @@ class _WishDetailScreenState extends ConsumerState<WishDetailScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text('간절함의 크기', style: WishRoomTextStyles.bodySm.copyWith(fontSize: 12)),
+                              Text(
+                                '간절함의 크기',
+                                style: WishRoomTextStyles.bodySm.copyWith(
+                                  fontSize: 12,
+                                ),
+                              ),
                               Text(
                                 '★' * _starCount + '☆' * (5 - _starCount),
                                 style: const TextStyle(
@@ -225,14 +263,23 @@ class _WishDetailScreenState extends ConsumerState<WishDetailScreen> {
                               color: WishRoomColors.surfaceCardBorder,
                               child: FractionallySizedBox(
                                 alignment: Alignment.centerLeft,
-                                widthFactor: wish.growthProgress.clamp(0.02, 1.0),
+                                widthFactor: wish.growthProgress.clamp(
+                                  0.02,
+                                  1.0,
+                                ),
                                 child: Container(
                                   decoration: BoxDecoration(
                                     gradient: const LinearGradient(
-                                      colors: [WishRoomColors.accent, WishRoomColors.glow],
+                                      colors: [
+                                        WishRoomColors.accent,
+                                        WishRoomColors.glow,
+                                      ],
                                     ),
                                     boxShadow: [
-                                      BoxShadow(color: WishRoomColors.glowShadow, blurRadius: 8),
+                                      BoxShadow(
+                                        color: WishRoomColors.glowShadow,
+                                        blurRadius: 8,
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -265,7 +312,10 @@ class _WishDetailScreenState extends ConsumerState<WishDetailScreen> {
                     // ── Quote footer ──
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
                       decoration: BoxDecoration(
                         color: WishRoomColors.surfaceCard,
                         borderRadius: BorderRadius.circular(12),
@@ -305,7 +355,9 @@ class _WishDetailScreenState extends ConsumerState<WishDetailScreen> {
       context: context,
       backgroundColor: WishRoomColors.backgroundMid,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(WishRoomRadius.lg)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(WishRoomRadius.lg),
+        ),
       ),
       builder: (sheetContext) => SafeArea(
         top: false,
@@ -316,21 +368,32 @@ class _WishDetailScreenState extends ConsumerState<WishDetailScreen> {
             children: [
               ListTile(
                 enabled: !widget.wish.isRepresentative,
-                leading: const Icon(Icons.star_outline, color: WishRoomColors.textPrimary),
+                leading: const Icon(
+                  Icons.star_outline,
+                  color: WishRoomColors.textPrimary,
+                ),
                 title: Text(
                   widget.wish.isRepresentative ? '이미 대표 소원이에요' : '대표 소원으로 설정',
-                  style: WishRoomTextStyles.bodyMd.copyWith(color: WishRoomColors.textPrimary),
+                  style: WishRoomTextStyles.bodyMd.copyWith(
+                    color: WishRoomColors.textPrimary,
+                  ),
                 ),
                 onTap: widget.wish.isRepresentative
                     ? null
                     : () async {
                         Navigator.of(sheetContext).pop();
-                        final controller = ref.read(wishRoomControllerProvider.notifier);
-                        final success = await controller.setRepresentative(widget.wish.id);
+                        final controller = ref.read(
+                          wishRoomControllerProvider.notifier,
+                        );
+                        final success = await controller.setRepresentative(
+                          widget.wish.id,
+                        );
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text(success ? '대표 소원으로 설정했어요' : '설정에 실패했어요'),
+                            content: Text(
+                              success ? '대표 소원으로 설정했어요' : '설정에 실패했어요',
+                            ),
                           ),
                         );
                       },
