@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/wish_room_theme.dart';
+import 'wish_room_animations.dart';
 
 /// [소원방 Riverpod 실험판] 상단 헤더 — 타이틀 + 도움말.
 ///
@@ -12,6 +13,10 @@ import '../theme/wish_room_theme.dart';
 /// 버튼처럼 보였다(사용자를 오도하는 UI). ⑫-② 화면 스펙에도 설정 기능은
 /// 명시되어 있지 않고 MVP 범위에도 소원방 전용 설정 화면이 없으므로,
 /// 실제 기능이 뒷받침되기 전까지는 버튼 자체를 노출하지 않는 것으로 수정.
+///
+/// [UI 전면 개선] 타이틀에 진입 페이드인을 추가하고, 도움말 버튼에 은은한
+/// 펄스 글로우를 줘 "눌러볼 수 있는 도움말이 있다"는 것을 자연스럽게
+/// 인지시킨다.
 class WishRoomHeader extends StatelessWidget {
   final VoidCallback onHelpTap;
 
@@ -28,14 +33,30 @@ class WishRoomHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Expanded(child: Text('소원방', style: WishRoomTextStyles.titleXl)),
-          IconButton(
-            tooltip: '사용 방법',
-            icon: const Icon(
-              Icons.help_outline,
-              color: WishRoomColors.textSecondary,
+          Expanded(
+            child: FadeSlideIn(
+              offsetY: -10,
+              child: Text('소원방', style: WishRoomTextStyles.titleXl),
             ),
-            onPressed: onHelpTap,
+          ),
+          BreathingGlow(
+            glowColor: WishRoomColors.gold,
+            borderRadius: WishRoomRadius.pill,
+            minAlpha: 0.0,
+            maxAlpha: 0.18,
+            blurRadius: 12,
+            child: TapBounce(
+              onTap: onHelpTap,
+              child: Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.help_outline,
+                  color: WishRoomColors.textSecondary,
+                ),
+              ),
+            ),
           ),
         ],
       ),

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/guide_slide_model.dart';
 import '../providers/wish_room_providers.dart';
 import '../theme/wish_room_theme.dart';
+import 'wish_room_animations.dart';
 
 /// [소원방 가이드] 사용 방법 안내 — 풀스크린 슬라이드형.
 ///
@@ -209,29 +210,39 @@ class _SlidePage extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          if (slide.imageUrl != null && slide.imageUrl!.isNotEmpty)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(WishRoomRadius.lg),
-              child: Image.network(
-                slide.imageUrl!,
-                height: 220,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const _SlideIconFallback(),
-              ),
-            )
-          else
-            const _SlideIconFallback(),
+          FadeSlideIn(
+            duration: const Duration(milliseconds: 500),
+            child: slide.imageUrl != null && slide.imageUrl!.isNotEmpty
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(WishRoomRadius.lg),
+                    child: Image.network(
+                      slide.imageUrl!,
+                      height: 220,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const _SlideIconFallback(),
+                    ),
+                  )
+                : const _SlideIconFallback(),
+          ),
           const SizedBox(height: WishRoomSpacing.xl),
-          Text(
-            slide.title,
-            style: WishRoomTextStyles.titleLg,
-            textAlign: TextAlign.center,
+          FadeSlideIn(
+            delay: const Duration(milliseconds: 100),
+            duration: const Duration(milliseconds: 450),
+            child: Text(
+              slide.title,
+              style: WishRoomTextStyles.titleLg,
+              textAlign: TextAlign.center,
+            ),
           ),
           const SizedBox(height: WishRoomSpacing.md),
-          Text(
-            slide.body,
-            style: WishRoomTextStyles.bodyMd,
-            textAlign: TextAlign.center,
+          FadeSlideIn(
+            delay: const Duration(milliseconds: 180),
+            duration: const Duration(milliseconds: 450),
+            child: Text(
+              slide.body,
+              style: WishRoomTextStyles.bodyMd,
+              textAlign: TextAlign.center,
+            ),
           ),
         ],
       ),
@@ -244,17 +255,24 @@ class _SlideIconFallback extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 120,
-      height: 120,
-      decoration: const BoxDecoration(
-        gradient: WishRoomColors.objectGlowGradient,
-        shape: BoxShape.circle,
-      ),
-      child: const Icon(
-        Icons.auto_awesome_rounded,
-        color: WishRoomColors.gold,
-        size: 48,
+    return BreathingGlow(
+      glowColor: WishRoomColors.gold,
+      borderRadius: 60,
+      minAlpha: 0.1,
+      maxAlpha: 0.3,
+      blurRadius: 30,
+      child: Container(
+        width: 120,
+        height: 120,
+        decoration: const BoxDecoration(
+          gradient: WishRoomColors.objectGlowGradient,
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(
+          Icons.auto_awesome_rounded,
+          color: WishRoomColors.gold,
+          size: 48,
+        ),
       ),
     );
   }

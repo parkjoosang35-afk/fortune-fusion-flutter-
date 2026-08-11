@@ -4,6 +4,7 @@ import '../../domain/enums/prayer_type.dart';
 import '../../data/models/fortune_pouch_status_model.dart';
 import '../../data/models/wish_item_model.dart';
 import '../theme/wish_room_theme.dart';
+import 'wish_room_animations.dart';
 
 /// [필수 화면 ④ 치성/정성 담기 화면] 어떤 방식으로 정성을 담을지 고르는
 /// 바텀시트. 오늘의 치성(무료, 하루 1회)/깊은 치성(복주머니1개)/집중
@@ -62,30 +63,44 @@ class PrayerTypeSheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '"${wish.title}"에\n어떻게 정성을 담을까요?',
-              style: WishRoomTextStyles.titleLg,
+            FadeSlideIn(
+              offsetY: -8,
+              duration: const Duration(milliseconds: 320),
+              child: Text(
+                '"${wish.title}"에\n어떻게 정성을 담을까요?',
+                style: WishRoomTextStyles.titleLg,
+              ),
             ),
             const SizedBox(height: WishRoomSpacing.lg),
-            _buildOption(
-              context,
-              type: PrayerType.daily,
-              enabled: !hasPrayedToday,
-              disabledReason: '오늘은 이미 다녀갔어요. 내일 다시 만나요',
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 60),
+              child: _buildOption(
+                context,
+                type: PrayerType.daily,
+                enabled: !hasPrayedToday,
+                disabledReason: '오늘은 이미 다녀갔어요. 내일 다시 만나요',
+              ),
             ),
             const SizedBox(height: WishRoomSpacing.sm),
-            _buildOption(
-              context,
-              type: PrayerType.deep,
-              enabled: pouchStatus.totalCount >= PrayerType.deep.pouchCost,
-              disabledReason: '복주머니가 부족해요',
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 120),
+              child: _buildOption(
+                context,
+                type: PrayerType.deep,
+                enabled: pouchStatus.totalCount >= PrayerType.deep.pouchCost,
+                disabledReason: '복주머니가 부족해요',
+              ),
             ),
             const SizedBox(height: WishRoomSpacing.sm),
-            _buildOption(
-              context,
-              type: PrayerType.focused,
-              enabled: pouchStatus.totalCount >= PrayerType.focused.pouchCost,
-              disabledReason: '복주머니가 부족해요',
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 180),
+              child: _buildOption(
+                context,
+                type: PrayerType.focused,
+                enabled:
+                    pouchStatus.totalCount >= PrayerType.focused.pouchCost,
+                disabledReason: '복주머니가 부족해요',
+              ),
             ),
           ],
         ),
@@ -102,19 +117,21 @@ class PrayerTypeSheet extends StatelessWidget {
     final cost = type.pouchCost;
     final gain = type.growthPointGain;
 
-    return GestureDetector(
-      onTap: enabled ? () => Navigator.of(context).pop(type) : null,
-      child: Opacity(
-        opacity: enabled ? 1.0 : 0.45,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(WishRoomSpacing.md),
-          decoration: BoxDecoration(
-            color: WishRoomColors.surfaceCard,
-            borderRadius: BorderRadius.circular(WishRoomRadius.md),
-            border: Border.all(color: WishRoomColors.surfaceCardBorder),
+    final card = Opacity(
+      opacity: enabled ? 1.0 : 0.45,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(WishRoomSpacing.md),
+        decoration: BoxDecoration(
+          color: WishRoomColors.surfaceCard,
+          borderRadius: BorderRadius.circular(WishRoomRadius.md),
+          border: Border.all(
+            color: enabled
+                ? WishRoomColors.gold.withValues(alpha: 0.35)
+                : WishRoomColors.surfaceCardBorder,
           ),
-          child: Row(
+        ),
+        child: Row(
             children: [
               Expanded(
                 child: Column(
@@ -154,8 +171,23 @@ class PrayerTypeSheet extends StatelessWidget {
                   ],
                 ),
             ],
-          ),
         ),
+      ),
+    );
+
+    if (!enabled) return card;
+
+    // [UI 전면 개선] 선택 가능한 옵션에만 탭 눌림 피드백과 은은한 골드
+    // 글로우를 추가해, 비활성 옵션과의 상호작용 가능 여부를 시각적으로
+    // 더 명확히 구분한다.
+    return TapBounce(
+      onTap: () => Navigator.of(context).pop(type),
+      child: BreathingGlow(
+        glowColor: WishRoomColors.gold,
+        minAlpha: 0.02,
+        maxAlpha: 0.12,
+        blurRadius: 14,
+        child: card,
       ),
     );
   }

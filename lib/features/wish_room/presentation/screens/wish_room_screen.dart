@@ -15,6 +15,7 @@ import '../widgets/prayer_streak_badge.dart';
 import '../widgets/prayer_type_sheet.dart';
 import '../widgets/wish_card_list.dart';
 import '../widgets/wish_guide_dialog.dart';
+import '../widgets/wish_orb_cluster.dart';
 import '../widgets/wish_room_background.dart';
 import '../widgets/wish_room_header.dart';
 import '../widgets/wish_room_object.dart';
@@ -362,17 +363,54 @@ class WishRoomScreen extends ConsumerWidget {
                         ),
                         child: Column(
                           children: [
-                            WishRoomObject(
-                              visualState: data.visualState,
-                              onTap: () => ref
-                                  .read(wishRoomUiProvider.notifier)
-                                  .triggerAnimation(
-                                    WishRoomAnimationEvent.objectTouch,
+                            // [소원구슬 다중배치] 메인 오브제 위 공간에 대표
+                            // 소원을 포함한 최대 3개의 소원을 떠다니는 빛의
+                            // 구슬로 동시에 배치한다. 오브젝트 자체는 그대로
+                            // 유지하고, 그 위쪽 여유 공간에 Stack으로 겹쳐
+                            // 그리므로 기존 WishRoomObject 레이아웃/애니메이션
+                            // 로직에는 영향이 없다. 구슬을 탭하면 기존
+                            // _handleWishCardTap 로직(대표 소원 교체 확인
+                            // 다이얼로그 등)을 그대로 재사용한다.
+                            SizedBox(
+                              height: 190,
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                alignment: Alignment.bottomCenter,
+                                children: [
+                                  Positioned(
+                                    bottom: 0,
+                                    child: WishRoomObject(
+                                      visualState: data.visualState,
+                                      onTap: () => ref
+                                          .read(wishRoomUiProvider.notifier)
+                                          .triggerAnimation(
+                                            WishRoomAnimationEvent.objectTouch,
+                                          ),
+                                      pendingAnimationEvent:
+                                          pendingAnimationEvent,
+                                      onAnimationConsumed: () => ref
+                                          .read(wishRoomUiProvider.notifier)
+                                          .clearAnimation(),
+                                    ),
                                   ),
-                              pendingAnimationEvent: pendingAnimationEvent,
-                              onAnimationConsumed: () => ref
-                                  .read(wishRoomUiProvider.notifier)
-                                  .clearAnimation(),
+                                  if (representativeWishes.isNotEmpty)
+                                    Positioned(
+                                      top: 0,
+                                      left: 0,
+                                      right: 0,
+                                      bottom: 40,
+                                      child: WishOrbCluster(
+                                        wishes: representativeWishes,
+                                        onOrbTap: (wish) => _handleWishCardTap(
+                                          context,
+                                          ref,
+                                          controller,
+                                          wish,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
                             ),
                             const SizedBox(height: WishRoomSpacing.md),
                             DailyMessageCard(message: data.dailyMessage),
