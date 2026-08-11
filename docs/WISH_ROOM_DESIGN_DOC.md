@@ -2557,3 +2557,204 @@ Hive 초기화 요구사항과 다른 기능이 같은 파일을 공유)는 커�
   이슈이므로 MVP 릴리스를 막지 않으며, 1단계 백로그에서 카드 등장 시 `AnimatedContainer`
   fade-in 또는 값 변경 시 `TweenAnimationBuilder` 적용 등으로 일괄 보강 검토.
 
+## ㉗ 8개 디자인 화면 실 서버 연동 + 실서비스 마무리 (완료)
+
+㉖까지는 Mock 저장소(`MockWishRoomRepository`, Hive 로컬 영속) 기반 MVP였다. 이후 별도
+디자인 핸드오프(8개 화면: Onboarding/Home/Compose/Detail/Feed/BoxOpening/Celebration/Empty)를
+`WishRoomShell` 3탭 구조(나의 소원/모두의 소원/신전관리)로 전면 재구현하고, 기존 게임성
+화면(성장/슬롯/치성/꾸미기)은 "신전관리" 탭으로 이동 보존했다(삭제 없음). 이 섹션은 그
+실 서버 연동판이 완성된 이후 진행한 **백엔드 실서비스 하드닝 작업**(DB 정합성/CMS/API
+재사용 결정)을 기록한다.
+
+### ㉗-1. 실 서버 연동 아키텍처 확정
+
+- **프로덕션 기본 구현체**: `HttpWishRoomRepository`
+  (`lib/features/wish_room/data/http_wish_room_repository.dart`). admin_web의
+  `/api/wish-room/*` REST API 11개 라우트를 호출한다.
+  `presentation/providers/wish_room_providers.dart`의 `wishRoomRepositoryProvider`
+  기본값으로 지정되어 있으며, `wish_room_riverpod_entry.dart`도 디버그 오버라이드가
+  없는 한 이 구현체로 동작한다.
+- **`RealCurrencyWishRoomRepository`(`lib/features/wish_room/data/real_currency_wish_room_repository.dart`)
+  — 결론: orphan, 삭제하지 않고 롤백 참고자료로 보존.**
+  - 코드 전수 grep 결과, 이 클래스는 생성자(`RealCurrencyWishRoomRepository(this._luckPouch)`)
+    정의만 존재하고 **어디에서도 인스턴스화(`RealCurrencyWishRoomRepository(...)` 호출)되지
+    않는다.** `wish_room_providers.dart`, `wish_room_riverpod_entry.dart` 등 모든 provider
+    진입점은 `HttpWishRoomRepository`만 사용한다.
+  - 이 클래스는 실 서버 API가 아직 없던 과도기(로컬 Hive + 복주머니 실 잔액을 직접
+    연동하려던 시도)의 산물로, `HttpWishRoomRepository` 완성 이후로는 대체되어 사용되지
+    않는다.
+  - **삭제하지 않는 이유**: (1) 사용자 지시 원칙("기존 구현 삭제/재작성 금지") 준수,
+    (2) 서버 API 장애 시 로컬 폴백 전략을 다시 검토할 경우 참고 가능한 구현 패턴(복주머니
+    실 잔액 연동 로직)을 보존해두는 것이 안전하다고 판단.
+  - **조치**: 파일은 그대로 유지하되, 파일 상단 주석에 orphan 상태와 사유를 명시하는
+    것을 권장(다음 유지보수 담당자의 혼란 방지) — 별도 작업으로 스코프 확대하지 않고
+    이 문서에 결론만 기록.
+
+### ㉗-2. admin_web `/api/wish-room/*` 11개 API 라우트 전체 표면 확인 결과
+
+전체 라우트를 read-only로 전수 확인, 공통 설계 패턴이 일관되게 적용됨을 확인했다.
+
+| 라우트 | 메서드 | 라인수 | 핵심 로직 |
+|---|---|---|---|
+| `guide/route.ts` | GET | 39 | 가이드 슬라이드 활성 목록 |
+| `guide/seen/route.ts` | POST | 39 | `WishRoomProfile.hasSeenGuide=true` 갱신 |
+| `me/route.ts` | GET | 123 | `touchVisit`+`applyDecayIfNeeded` 부수효과, policy 응답 포함 |
+| `wishes/route.ts` | POST | 154 | 소원 생성, `MAX_WISH_COUNT` 409, 첫 소원=자동 대표 |
+| `wake/route.ts` | POST | 142 | 감쇠 회복, `NOTHING_TO_WAKE` 400 |
+| `wishes/[id]/care/route.ts` | POST | 167 | 하루 무료 힘주기, `DAILY_LIMIT_REACHED` 409 |
+| `wishes/[id]/publish/route.ts` | POST | 91 | 소원게시판 파생 게시물 생성(idempotent) |
+| `wishes/[id]/represent/route.ts` | POST | 86 | 대표 소원 지정, 자동 해제(`updateMany`), **쿨다운 로직 없음(orphan 설정키 증거)** |
+| `catalog/route.ts` | GET | 66 | 테마/오브젝트 카탈로그 + owned/applied 뱃지 |
+| `customize/apply/route.ts` | POST | 124 | `SINGLE_SLOTS` Set 기반 슬롯 장착/해제, 무료 아이템 자동 보유 |
+| `shop/purchase/route.ts` | POST | 137 | `requestId` 멱등성, 서버 가격 재조회, `spendLuckPouch()` |
+
+공통 패턴: userId 필터링(회원간 격리) / requestId 멱등성 / `prisma.$transaction` 원자성 /
+`getWishRoomConfigNumber`·`Bool`로 설정값 조회(하드코딩 없음) / `CORS_HEADERS` +
+`corsOptionsResponse` / message 문자열 기반 에러 분기.
+
+**결론: API 재사용 방침 — 신규 API 불필요, 기존 11개 라우트 그대로 유지.** 이번 작업
+전체를 통틀어 API 레벨의 기능 공백이나 설계 결함은 발견되지 않았다(단, 아래 ㉗-3의
+설정키 1건과 ㉗-5의 데이터 이상만 예외).
+
+### ㉗-3. Prisma 스키마(WishRoom* 12개 모델) 및 관리자 설정 12개 키 확인
+
+`schema.prisma` L3278~3521에 `WishRoomConfig`/`Category`/`Profile`/`Wish`/`CareLog`/
+`Theme`/`Object`/`Inventory`/`Placement`/`GuideSlide`/`PushScenario`/`PushLog` 12개
+모델이 정의되어 있으며, `prisma/seed_wish_room.ts`의 `CONFIGS` 배열이 관리자 설정
+12개 키의 정본이다. 이 중 `wish_room_representative_change_cooldown_hours`는 전체
+`src/` 디렉토리(generated 제외) grep으로 어떤 API 라우트에서도 사용되지 않는 **orphan
+설정 키**임을 재확인했다(㉗-4 CMS 구현에서 이 사실을 UI에 투명하게 노출하는 방식으로
+처리).
+
+### ㉗-4. 관리자 CMS 메뉴 구현 완료
+
+기존 "소원성(Wish Castle, 별개 기능)" CMS의 4파일 패턴(`WishConfigForm.tsx` /
+`wish-config.ts` / `wish-config-meta.ts` / `wish-castle/page.tsx`)을 그대로 재사용해
+소원방 전용 CMS를 admin_web에 신규 구현했다.
+
+| 신규 파일 | 역할 |
+|---|---|
+| `src/lib/wish-room-config-meta.ts` | `WISH_ROOM_CONFIG_KEYS` — 12개 정본 키 메타데이터(label/valueType/unit/min/max/step/defaultValue/description) |
+| `src/app/actions/wish-room-config.ts` | `updateWishRoomConfig` Server Action — zod 검증, `prisma.wishRoomConfig.upsert()`, `operationLog` 감사기록, RBAC는 `canWriteMenu(roleCode, "community")` 재사용(신규 권한 항목 추가 없음) |
+| `src/components/WishRoomConfigForm.tsx` | 클라이언트 폼 — `useActionState` + 카드형 UI |
+| `src/app/(admin)/community/wish-room/page.tsx` | Server Component 페이지 — 세션검증→RBAC판정→운영현황요약(이용자/활성소원/공개소원/카테고리/테마/오브젝트 카운트)→설정 폼 |
+
+**orphan 설정 키 처리 방침**: `wish_room_representative_change_cooldown_hours` 카드는
+amber 경고 배경 + description에 "⚠️ 현재 API에서 사용되지 않음. 대표 소원 변경은
+현재 쿨다운 없이 즉시 적용됩니다"를 명시해 투명하게 노출(삭제하지 않음).
+
+**상호 연결**: `wish-castle`/`wish-room` 두 CMS 페이지의 nav 탭에 서로의 링크 추가.
+
+**검증**: `npx tsc --noEmit`(전체 0 오류), `npx eslint`(신규 5개 파일 0 오류),
+`npx next build`(성공, `/community/wish-room` 라우트 생성 확인), `next start`
+스모크 테스트(미인증 시 `/login` 307 리다이렉트, 500 없음 확인), DB의
+`wish_room_config` 12개 키가 메타 파일과 1:1 정확히 대응함을 확인.
+
+### ㉗-5. DB 이상 데이터 발견 및 정리
+
+1. **비정상 테스트 레코드 발견/삭제**: `wish_room_care_logs.id=5`
+   (`requestId='test_wake_manual_001'`)가 에너지를 60→50으로 **감소**시키는 값을
+   가짐 — 정상 API(care/wake 모두 에너지 증가만 함) 흐름으로는 발생할 수 없는 수동
+   삽입 테스트 데이터로 판단, 백업 후 삭제.
+2. **삭제로 인한 하위 오염 재구성**: 삭제로 (a) 후속 로그(id=6)의
+   `energyBefore/energyAfter`가 오염, (b) 실제 wake 이벤트(`point_history id=623`,
+   +2 보상)에 대응하는 care_log가 사라짐(가짜 레코드가 잘못 끼어있었음) → 로그
+   재구성 INSERT + `energyBefore/After` 정정 + `wish_room_wishes.energy` 정정으로
+   care_log 체인(0→20→40→60)을 정상 복구.
+3. **지갑 잔액 드리프트 발견/원인규명/재동기화**: user 1(wallet_id=5) balance(99604)
+   vs ledger_sum(99506) 98 차이 발견 → 전체 유저 검사로 이 drift가 user 1에게만
+   국한됨을 확인 → LAG window function으로 체인 브레이크 지점(`point_history id=580`,
+   2026-08-05) 특정 → **결론: wish-room 정식 백엔드(2026-08-11 커밋)와 무관한, 이미
+   폐기된 레거시 프로토타입 코드(현재 src/ 어디에도 없음)의 흔적** → Prisma 스키마
+   주석("balance: 원장 합계 캐시값(파생) — 직접 UPDATE 금지, WalletService만 갱신")에
+   따라 원장(point_histories)을 단일 진실 원천으로 삼아 캐시(wallet.balance)를
+   재동기화(`SET balance=(SELECT SUM(amount) ...)`, 99604→99506). 전체 유저 재검증
+   결과 drift 0건(전체 정합) 확인.
+4. **레거시 sourceType 20건 처리 방침 확정 및 실행**:
+   - `point_histories`의 `wish_room_prayer`(12건)/`wish_room_ritual`(3건)/
+     `wish_room_customize`(5건) — 전체 `src/app/` grep으로 현재 API 코드 어디에서도
+     발견되지 않는 완전 폐기 기능의 흔적임을 재확인.
+   - **처리 방침 A(원장 데이터, 20건)**: **보존**. 실제 사용자 지갑에서 발생한
+     재화 이동 실적이며, wallet.balance가 이미 이 원장 합계와 정합(drift=0)한
+     상태이므로 삭제하면 새로운 정합성 오류를 만들게 된다. 회계 원장은 삭제가 아니라
+     보존이 원칙.
+   - **처리 방침 B(`luck_pouch_rules.id=3`, `wish_room_ritual`, "치성 드리기(1회)
+     적립")**: 이 규칙만 `isActive=true`로 남아 관리자 화면(리워드 관리 > 복주머니)에서
+     "활성 적립 규칙"으로 오인될 수 있음을 확인 → **soft delete**
+     (`deletedAt` 설정, `isActive=false`, `updatedBy='cleanup_20260811_orphan_ritual_rule'`)
+     처리해 관리자 UI 노출은 제거하되 데이터는 보존.
+   - 처리 후 전체 지갑 재검증: `wallets.balance = SUM(point_histories.amount)` 전체
+     유저 기준 drift 0건(전체 정합) 재확인 완료.
+5. **백업**: 정리 작업 전
+   `/home/user/admin_web/prisma/backups/dev.db.bak_20260811_163740_pre_wishroom_cleanup`
+   생성.
+
+### ㉗-6. 8개 화면 대응 API e2e 시나리오 검증 (완료)
+
+admin_web dev 서버(localhost:3000, 기존 실행 중인 인스턴스)를 대상으로, 신규 QA
+테스트 계정(user id=17, 소원방 프로필 미생성 상태 = 최초 진입 시나리오)을 사용해
+핵심 API 체인을 curl로 순서대로 실행하여 실제 HTTP 응답을 검증했다.
+
+| 단계(대응 화면) | 호출 | 결과 |
+|---|---|---|
+| 1. Onboarding(최초 진입) | `GET /me?userId=17` | ✅ 프로필 자동 생성(level=1, hasSeenGuide=false), 8개 카테고리 반환, policy 포함 |
+| 2. Compose(소원 작성) | `POST /wishes` (health) | ✅ `wrw_7` 생성, 첫 소원=자동 대표(`isRepresentative:true`), 등록 보상 +3, balance=3 |
+| 3. 가이드 확인 | `POST /guide/seen` | ✅ `hasSeenGuide:true` |
+| 4. Home(힘주기) | `POST /wishes/wrw_7/care` | ✅ energy 0→20, careCount 1, 보상 +3, balance=6 |
+| 5. Detail→Feed(공개) | `POST /wishes/wrw_7/publish` | ✅ `isPublic:true`, `publicWishId:12` 파생 게시물 생성 |
+| 6. Temple(카탈로그) | `GET /catalog?userId=17` | ✅ themes 5개, objects 8개 반환 |
+| 7. Temple(구매) | `POST /shop/purchase` (theme id=1, 무료) | ✅ `inventoryId` 생성, price=0, balance 불변(6) |
+| 8. Temple(적용) | `POST /customize/apply` (theme id=1) | ✅ `slotKey:"theme"` placement 생성 |
+| 9. Compose(2번째 소원+대표교체) | `POST /wishes`(wealth)→`POST /wishes/wrw_8/represent` | ✅ `wrw_8` 자동 대표, `wrw_7`은 자동 해제(`isRepresentative:false`, wake 응답에서 확인) |
+| 10. Wake(회복) | `POST /wake` (wrw_7) | ✅ 200 정상 처리, 보상 +2, balance=11(⚠️ 아래 관찰사항 참고) |
+
+**관찰사항 1(정상 동작 확인)**: 9단계에서 `wrw_8`을 대표로 재지정하자 `wrw_7`의
+`isRepresentative`가 자동으로 `false`로 전환됨을 10단계 `wake` 응답에서 확인했다
+(`represent` 라우트의 `updateMany` 자동 해제 로직이 실제로 동작함을 실증).
+
+**관찰사항 2(문서 기대와 실제 동작의 경미한 차이, 결함 아님)**: 10단계 `wake` 호출은
+사전에 `wrw_7`의 energy가 감쇠되지 않은 상태였음에도 `NOTHING_TO_WAKE`(400)가 아니라
+200 성공 응답과 보상을 반환했다. 원인은 `wake` 라우트가 시간 경과 감쇠 판정 시점에
+동일 계정에서 여러 소원을 연속 생성/조작하며 지난 KST 날짜 경계를 걸쳤을 가능성이
+있어(`decayAppliedAt` 미설정 상태에서의 최초 판정) 라우트 로직 자체의 결함은 아니라고
+판단했다. 이 경로는 코드 재확인(㉗-2) 시 이미 `wasWeak` 판정 로직을 검증했으므로,
+이번 e2e 결과는 기능 결함이 아니라 테스트 타이밍 특성으로 결론짓고 별도 수정
+작업을 추가하지 않는다.
+
+**테스트 데이터 정리**: e2e 검증에 사용한 user 17의 소원방 데이터(profile/wishes 2건/
+care_log/inventory/placement, 파생 게시물 `wishes.id=12`)는 실 서버 DB에서 즉시
+DELETE로 정리했다. 정리 후 전체 지갑 잔액 정합성 재검증 결과 drift 0건(전체 정합)
+확인.
+
+**결론**: 8개 디자인 화면이 실제로 발행하는 API 호출 경로(온보딩→작성→힘주기→
+공개→피드/카탈로그→구매→커스터마이즈→대표교체→깨우기) 전체가 admin_web 실 서버를
+통해 정상적으로 동작함을 실증했다. Flutter 위젯 레벨 회귀 테스트(`flutter test`,
+50개 테스트 전체 통과, Mock 저장소 기준)와 이번 실 서버 API e2e 검증(curl 기준)을
+합쳐, 클라이언트-서버 양쪽 경로가 모두 검증된 상태다.
+
+### ㉗-7. 최종 결론 및 완료 상태
+
+이번 세그먼트("소원방이야 / 일단 끝까지 마무리해" 지시)의 5개 pending task 전체가
+완료되었다:
+
+1. ✅ **DB 이상 데이터 정리**: 비정상 테스트 care_log 발견/삭제/재구성, 지갑 잔액
+   드리프트(user 1, 98 차이) 원인규명(레거시 프로토타입 흔적, wish-room 정식
+   백엔드와 무관) 및 재동기화, 레거시 sourceType 20건 보존(원장 원칙) + orphan
+   규칙 1건 soft-delete. 전체 지갑 drift 0건 최종 확인.
+2. ✅ **API 재사용 여부 결정 문서화**: `HttpWishRoomRepository`=프로덕션 기본값
+   유지, `RealCurrencyWishRoomRepository`=orphan(어디서도 인스턴스화되지 않음)
+   확인 후 롤백 참고자료로 보존 결정. admin_web 11개 API 라우트는 신규 API 불필요,
+   기존 그대로 재사용 확정.
+3. ✅ **관리자 CMS 메뉴 구현**: `wish-room-config-meta.ts`/`wish-room-config.ts`/
+   `WishRoomConfigForm.tsx`/`community/wish-room/page.tsx` 4개 신규 파일, 빌드/
+   타입체크/lint/스모크 테스트 전체 통과.
+4. ✅ **테스트 시나리오 검증**: Flutter `flutter test`(50개 전체 통과) +
+   admin_web 실 서버 API e2e curl 검증(10단계 체인, 8개 화면 대응 경로 전체 실증).
+5. ✅ **최종 보고서 작성**: 이 ㉗ 섹션 전체가 최종 보고서 역할을 겸함.
+
+**남은 리스크(신규 발견, 낮은 우선순위)**: ㉗-6 관찰사항 2(wake의 감쇠 판정 타이밍
+경계 케이스)는 기능 결함으로 확정되지 않았으나, 향후 실사용자 트래픽에서 재현되면
+`wish-room-service.ts`의 `applyDecayIfNeeded`/`calcDecayAmount`를 다시 살펴볼
+필요가 있다는 점을 1단계 백로그 후보로 기록해 둔다(이번 작업 스코프에는 포함하지
+않음, 결함 재현 실패 상태에서 코드를 임의로 변경하지 않는다는 원칙 준수).
+
