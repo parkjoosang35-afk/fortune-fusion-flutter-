@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:provider/provider.dart' as legacy_provider;
 
-import '../../../luckpouch/application/luck_pouch_provider.dart';
-import '../../data/real_currency_wish_room_repository.dart';
+import '../../data/http_wish_room_repository.dart';
 import '../providers/wish_room_providers.dart';
 import 'wish_room_entry_screen.dart';
 
@@ -12,13 +10,17 @@ import 'wish_room_entry_screen.dart';
 ///
 /// [Provider ↔ Riverpod 공존] 소원방 화면 서브트리에서만 Riverpod
 /// ProviderScope를 새로 열되, 앱 전역 package:provider 트리(app.dart의
-/// MultiProvider)는 그대로 유지된다. 이 경계 위젯이 `context.read<
-/// LuckPouchProvider>()`(provider 패키지)로 실 재화 Provider 인스턴스를
-/// 얻어 [RealCurrencyWishRoomRepository]에 주입하고,
-/// [wishRoomRepositoryProvider]를 override해 소원방 모듈 전체가 이
-/// Repository를 통해서만 데이터에 접근하게 한다 — Controller/위젯 코드는
-/// 이 사실을 몰라도 되며, mock에서 실 연동으로 바뀐 지금도 코드 변경이
-/// 전혀 필요 없었다(교체 지점 설계가 의도대로 동작한 사례).
+/// MultiProvider)는 그대로 유지된다.
+///
+/// [실 서버 연동 전환] 이 위젯은 [wishRoomRepositoryProvider]를
+/// override해 소원방 모듈 전체가 admin_web `/api/wish-room/*` 실 서버
+/// API를 호출하는 [HttpWishRoomRepository]를 통해서만 데이터에 접근하게
+/// 한다 — Controller/위젯 코드는 이 사실을 몰라도 되며, Mock/로컬 재화
+/// 연동 단계에서 실 서버 연동으로 바뀐 지금도 코드 변경이 전혀 필요
+/// 없었다(교체 지점 설계가 의도대로 동작한 사례). 복주머니 지급/차감은
+/// 이제 클라이언트의 [LuckPouchProvider]가 아니라 서버(§ "서버 확정,
+/// idempotency 적용" 원칙)가 전담하므로, 이 위젯은 더 이상
+/// `LuckPouchProvider`를 읽지 않는다.
 ///
 /// [버그 수정: 인트로 화면 이후 빈 화면] 이 위젯은 원래 ProviderScope로
 /// [WishRoomEntryScreen] 딱 하나만 감쌌다. 인트로 화면이 메인 화면으로
@@ -37,12 +39,11 @@ class WishRoomRiverpodEntry extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final luckPouch = legacy_provider.Provider.of<LuckPouchProvider>(context);
     final navigatorKey = GlobalKey<NavigatorState>();
     return ProviderScope(
       overrides: [
         wishRoomRepositoryProvider.overrideWith(
-          (ref) => RealCurrencyWishRoomRepository(luckPouch),
+          (ref) => HttpWishRoomRepository(),
         ),
       ],
       // 중첩 Navigator: 이 서브트리 안에서 발생하는 모든

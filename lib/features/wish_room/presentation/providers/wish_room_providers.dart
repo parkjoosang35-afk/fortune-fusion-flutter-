@@ -2,18 +2,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/wish_item_model.dart';
 import '../../data/repositories/wish_room_repository.dart';
-import '../../data/mock/mock_wish_room_repository.dart';
+import '../../data/http_wish_room_repository.dart';
 import '../state/wish_room_state.dart';
 import '../state/wish_room_ui_state.dart';
 import '../controllers/wish_room_controller.dart';
 import '../controllers/wish_room_ui_controller.dart';
 
-/// [소원방 Riverpod 실험판] 전역 Provider 정의부.
+/// [소원방 Riverpod Provider 정의부]
 ///
-/// 교체 지점: 실 API 연동 시 이 한 줄만 HttpWishRoomRepository 등으로
-/// 바꾸면 Controller/위젯 코드는 전혀 손댈 필요가 없다.
+/// [실 서버 연동] admin_web `/api/wish-room/*` API를 호출하는
+/// [HttpWishRoomRepository]가 기본값이다. 실제 앱 화면은
+/// `WishRoomRiverpodEntry`가 동일한 Repository로 override하지만(코드
+/// 의도를 명확히 드러내기 위한 명시적 중복), 위젯 테스트 등에서 이
+/// Provider를 직접 사용하는 경로에서도 Mock이 아닌 실 서버 연동이
+/// 기본값이 되도록 여기서도 HttpWishRoomRepository를 사용한다. Mock으로
+/// 되돌리려면 이 한 줄만 `MockWishRoomRepository()`로 바꾸면 되고,
+/// Controller/위젯 코드는 전혀 손댈 필요가 없다.
 final wishRoomRepositoryProvider = Provider<WishRoomRepository>((ref) {
-  return MockWishRoomRepository();
+  return HttpWishRoomRepository();
 });
 
 /// 서버/영속 데이터(WishRoomData) — 로딩/에러/데이터를 AsyncValue로 표현.

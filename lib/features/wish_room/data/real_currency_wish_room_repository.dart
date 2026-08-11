@@ -7,7 +7,18 @@ import 'models/prayer_session_model.dart';
 import 'repositories/wish_room_repository.dart';
 import 'mock/mock_wish_room_repository.dart';
 
-/// [소원방 공식 전환] 소원/스트릭/오늘의 메시지/성장치/꾸미기는 소원방
+/// ⚠️ [사용 중단 - HttpWishRoomRepository로 교체됨] 이 클래스는 소원방이
+/// 실제 서버(admin_web `/api/wish-room/*` API)와 완전히 연동되기 전,
+/// 클라이언트 로컬(Mock 인메모리) 상태 + 실 복주머니 잔액만 연동하던
+/// 중간 단계의 구현체다. `WishRoomRiverpodEntry`의
+/// `wishRoomRepositoryProvider` override 및 `wish_room_providers.dart`의
+/// 기본값이 이제 [HttpWishRoomRepository]를 가리키므로, 이 클래스는 현재
+/// 앱의 어떤 코드에서도 import되지 않는다(orphan). 삭제하지 않고 남겨두는
+/// 이유는 "기존 구현 삭제/재작성 금지" 원칙과, 서버 장애 시 임시 롤백
+/// 참고 자료로서의 가치 때문이다. 신규 기능은 이 파일이 아니라
+/// [HttpWishRoomRepository](`http_wish_room_repository.dart`)에 추가한다.
+///
+/// [원래 설계 배경] 소원/스트릭/오늘의 메시지/성장치/꾸미기는 소원방
 /// 고유 자산이라 [MockWishRoomRepository]의 인메모리 로직을 그대로
 /// 재사용하지만, 복주머니 잔액/차감만은 앱의 실제 재화 원장인
 /// [LuckPouchProvider](→WalletProvider)에 위임한다.
