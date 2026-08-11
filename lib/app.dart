@@ -9,6 +9,8 @@ import 'features/auth/application/auth_provider.dart';
 import 'features/auth/data/auth_repository.dart';
 import 'features/wallet/application/wallet_provider.dart';
 import 'features/wallet/data/wallet_repository.dart';
+import 'features/fortune_ad/application/fortune_ad_provider.dart';
+import 'features/fortune_ad/data/fortune_ad_repository.dart';
 import 'features/notification/notification_provider.dart';
 import 'features/notification/data/notification_repository.dart';
 import 'features/attendance/application/attendance_provider.dart';
@@ -94,6 +96,12 @@ class App extends StatelessWidget {
         // ChangeNotifierProvider로 되돌린다(WalletProvider.earn()은 배율 없이
         // 항상 요청한 금액 그대로 지급).
         ChangeNotifierProvider(create: (_) => WalletProvider(WalletRepository())),
+        // [신통방통 복주머니 광고 적립 시스템] 지갑 화면의 "광고 보고 충전" 카드가
+        // 참조하는 광고 목록 전역 상태. WalletProvider와 별도 원장이지만 지급
+        // 자체는 WalletProvider.load()로 재조회하는 동일한 서버-확정 패턴을 쓴다.
+        ChangeNotifierProvider(
+          create: (_) => FortuneAdProvider(FortuneAdRepository()),
+        ),
         ChangeNotifierProvider(
           create: (_) => NotificationProvider(NotificationRepository()),
         ),
