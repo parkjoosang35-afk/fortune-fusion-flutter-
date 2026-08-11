@@ -105,3 +105,103 @@ export async function completeText({
     clearTimeout(timer);
   }
 }
+
+// [관상/손금 실사진 분석 연동] 이미지(data URL, base64)를 함께 전송해 Vision 모델이
+// 실제 업로드된 사진을 분석하고, 그 결과를 JSON 객체로만 응답하도록 요청하는 헬퍼.
+// completeText()와 달리 멀티모달 메시지(content 배열: text + image_url)를 사용한다.
+// 모델 응답에 마크다운 코드펜스 등이 섞여 있어도 첫 번째 `{...}` 블록만 추출해 파싱한다.
+interface VisionJsonOptions {
+  /** 시스템/역할 프롬프트(검증 기준 + JSON 스키마 지시) */
+  systemPrompt: string;
+  /** 사용자 안내 문구(대부분 "이 사진을 분석해주세요." 정도의 짧은 텍스트) */
+  userPrompt: string;
+  /** data:image/jpeg;base64,... 형태의 이미지 데이터 URL */
+  imageDataUrl: string;
+  model?: string;
+  timeoutMs?: number;
+}
+
+export async function completeVisionJson<T = Record<string, unknown>>({
+  systemPrompt,
+  userPrompt,
+  imageDataUrl,
+  model = DEFAULT_MODEL,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+}: VisionJsonOptions): Promise<T> {
+  if (!LLM_TOKEN) {
+    throw new LlmClientError("GSK_TOKEN 환경변수가 설정되어 있지 않습니다.");
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(`${LLM_BASE_URL}/chat/completions`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LLM_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          {
+            role: "user",
+            content: [
+              { type: "text", text: userPrompt },
+              { type: "image_url", image_url: { url: imageDataUrl } },
+            ],
+          },
+        ],
+      }),
+      signal: controller.signal,
+    });
+
+    const raw = await response.text();
+    if (!response.ok) {
+      throw new LlmClientError(
+        `LLM 비전 호출 실패(HTTP ${response.status}): ${raw.slice(0, 300)}`,
+        response.status
+      );
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      throw new LlmClientError("LLM 응답을 JSON으로 해석할 수 없습니다.");
+    }
+
+    const content = (parsed as { choices?: { message?: { content?: string } }[] })
+      ?.choices?.[0]?.message?.content;
+    if (!content || typeof content !== "string" || content.trim().length === 0) {
+      throw new LlmClientError("LLM 응답에 유효한 content가 없습니다.");
+    }
+
+    // 모델이 코드펜스(```json ... ```)나 설명 문구를 덧붙이는 경우를 대비해
+    // 첫 번째 `{...}` JSON 객체 블록만 추출한다.
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new LlmClientError(
+        `LLM 응답에서 JSON 객체를 찾을 수 없습니다: ${content.slice(0, 200)}`
+      );
+    }
+
+    try {
+      return JSON.parse(jsonMatch[0]) as T;
+    } catch (e) {
+      throw new LlmClientError(
+        `LLM이 반환한 JSON 파싱 실패: ${e instanceof Error ? e.message : String(e)}`
+      );
+    }
+  } catch (e) {
+    if (e instanceof LlmClientError) throw e;
+    if (e instanceof Error && e.name === "AbortError") {
+      throw new LlmClientError(`LLM 비전 호출이 ${timeoutMs}ms 내에 완료되지 않았습니다(타임아웃).`);
+    }
+    throw new LlmClientError(`LLM 비전 호출 중 알 수 없는 오류: ${e instanceof Error ? e.message : String(e)}`);
+  } finally {
+    clearTimeout(timer);
+  }
+}

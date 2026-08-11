@@ -306,6 +306,11 @@ export async function deletePassPolicy(
 const OPEN_PASS_DURATION_OPTIONS = [30, 60, 120, 180, 1440] as const;
 const OPEN_PASS_WAIT_SECONDS_OPTIONS = [4, 5, 10] as const;
 
+// [신통방통 기존시스템유지+프리패스 카테고리별 이용횟수 제한] §6/§27
+// 관리자가 설정하는 "카테고리별 최대 이용횟수"(기본 2회) 선택 옵션. null(무제한)도
+// 허용해 운영 중 필요 시 제한을 완전히 끌 수 있게 한다.
+const CATEGORY_MAX_USAGE_OPTIONS = [1, 2, 3, 5, 10] as const;
+
 export interface OpenPassSettings {
   id: number;
   durationMin: number;
@@ -314,6 +319,7 @@ export interface OpenPassSettings {
   adHelpMessage: string;
   adGuideTitle: string;
   adGuideText: string;
+  categoryMaxUsage: number | null;
 }
 
 // [프리패스 UI 문구 관리자 연동] 관리자가 아직 값을 입력하지 않았을 때 사용할
@@ -338,6 +344,7 @@ export async function getOrCreateOpenPassSettings(): Promise<OpenPassSettings> {
       adHelpMessage: existing.adHelpMessage ?? DEFAULT_AD_HELP_MESSAGE,
       adGuideTitle: existing.adGuideTitle ?? DEFAULT_AD_GUIDE_TITLE,
       adGuideText: existing.adGuideText ?? DEFAULT_AD_GUIDE_TEXT,
+      categoryMaxUsage: existing.categoryMaxUsage ?? null,
     };
   }
 
@@ -363,6 +370,7 @@ export async function getOrCreateOpenPassSettings(): Promise<OpenPassSettings> {
     adHelpMessage: created.adHelpMessage ?? DEFAULT_AD_HELP_MESSAGE,
     adGuideTitle: created.adGuideTitle ?? DEFAULT_AD_GUIDE_TITLE,
     adGuideText: created.adGuideText ?? DEFAULT_AD_GUIDE_TEXT,
+    categoryMaxUsage: created.categoryMaxUsage ?? null,
   };
 }
 
@@ -383,6 +391,14 @@ const OpenPassSettingsSchema = z.object({
   adHelpMessage: z.string().min(1, "도움말 안내 문구를 입력해주세요."),
   adGuideTitle: z.string().min(1, "안내 제목을 입력해주세요."),
   adGuideText: z.string().min(1, "안내 문구를 입력해주세요."),
+  // categoryMaxUsage: "무제한"(빈 값)이면 null, 아니면 옵션 중 하나여야 함.
+  categoryMaxUsage: z
+    .union([z.coerce.number().int(), z.null()])
+    .optional()
+    .refine(
+      (v) => v == null || (CATEGORY_MAX_USAGE_OPTIONS as readonly number[]).includes(v),
+      { message: "카테고리별 최대 이용횟수는 1/2/3/5/10회 또는 무제한 중 하나여야 합니다." }
+    ),
 });
 
 export interface OpenPassSettingsFormState {
@@ -399,6 +415,7 @@ export async function updateOpenPassSettings(
     return { error: "이 작업을 수행할 권한이 없습니다." };
   }
 
+  const categoryMaxUsageRaw = formData.get("categoryMaxUsage");
   const parsed = OpenPassSettingsSchema.safeParse({
     durationMin: formData.get("durationMin"),
     adWaitSeconds: formData.get("adWaitSeconds"),
@@ -406,6 +423,7 @@ export async function updateOpenPassSettings(
     adHelpMessage: formData.get("adHelpMessage"),
     adGuideTitle: formData.get("adGuideTitle"),
     adGuideText: formData.get("adGuideText"),
+    categoryMaxUsage: categoryMaxUsageRaw === "" || categoryMaxUsageRaw == null ? null : categoryMaxUsageRaw,
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "입력값이 올바르지 않습니다." };
@@ -413,7 +431,11 @@ export async function updateOpenPassSettings(
 
   const settings = await getOrCreateOpenPassSettings();
 
-  const before = { durationMin: settings.durationMin, adWaitSeconds: settings.adWaitSeconds };
+  const before = {
+    durationMin: settings.durationMin,
+    adWaitSeconds: settings.adWaitSeconds,
+    categoryMaxUsage: settings.categoryMaxUsage,
+  };
   await prisma.passPolicy.update({
     where: { id: settings.id },
     data: {
@@ -423,6 +445,7 @@ export async function updateOpenPassSettings(
       adHelpMessage: parsed.data.adHelpMessage,
       adGuideTitle: parsed.data.adGuideTitle,
       adGuideText: parsed.data.adGuideText,
+      categoryMaxUsage: parsed.data.categoryMaxUsage ?? null,
       updatedBy: session.email,
     },
   });

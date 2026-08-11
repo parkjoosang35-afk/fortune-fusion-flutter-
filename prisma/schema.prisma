@@ -186,6 +186,8 @@ model User {
   luckPouchWallet               LuckPouchWallet?
   luckPouchHistories            LuckPouchHistory[]
   openPassAdRewardLogs          OpenPassAdRewardLog[]
+  passCategoryUsages            PassCategoryUsage[]
+  fortuneAdWatchLogs            FortuneAdWatchLog[]
 
   @@map("users")
 }
@@ -2558,6 +2560,12 @@ model PassPolicy {
   adGuideTitle  String? @map("ad_guide_title")
   adGuideText   String? @map("ad_guide_text")
 
+  // ── [신통방통 기존시스템유지+프리패스 카테고리별 이용횟수 제한] §7
+  // categoryMaxUsage: 이 정책으로 발급된 패스 1건(활성 기간) 동안, 동일 카테고리
+  // (fortune_categories.category_key 기준, 예: daily/saju/face/palm)를 최대 몇 번
+  // 이용할 수 있는지(기본 2회). null이면 무제한(레거시 정책 호환용, 신규 기본값은 2).
+  categoryMaxUsage Int? @default(2) @map("category_max_usage")
+
   userPasses         UserPass[]
   attachmentBindings OpenPassProductAttachment[]
   adSourceBindings   OpenPassProductAdSource[]
@@ -2586,8 +2594,34 @@ model UserPass {
   user   User       @relation(fields: [userId], references: [id])
   policy PassPolicy @relation(fields: [policyId], references: [id])
 
+  categoryUsages PassCategoryUsage[]
+
   @@index([userId, expiresAt])
   @@map("user_passes")
+}
+
+// ── [신통방통 기존시스템유지+프리패스 카테고리별 이용횟수 제한] §7 신규 테이블 ──
+// 목적: "동일 카테고리(오늘의 운세/사주/관상/손금 등) 최대 N회(기본 2회)" 제한을
+// 활성 프리패스(UserPass) 1건 단위로 추적한다. userPassId 기준으로 묶는 이유:
+// 패스가 만료되고 새로 발급되면(예: 다시 60분 프리패스 획득) 이전 패스의 이용
+// 카운트와 완전히 분리되어 자동으로 0부터 다시 시작되어야 하기 때문이다(패스
+// 재발급마다 리셋). userId를 별도 컬럼으로도 보관해 관리자 화면에서 조인 없이
+// 회원별 조회를 쉽게 한다(운영상 편의, 정합성은 userPassId가 원본).
+model PassCategoryUsage {
+  id          Int      @id @default(autoincrement())
+  userPassId  Int      @map("user_pass_id")
+  userId      Int      @map("user_id")
+  categoryKey String   @map("category_key") // fortune_categories.category_key (daily/saju/face/palm 등)
+  usageCount  Int      @default(0) @map("usage_count")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  userPass UserPass @relation(fields: [userPassId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@unique([userPassId, categoryKey])
+  @@index([userId, categoryKey])
+  @@map("pass_category_usages")
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -3098,34 +3132,121 @@ model PageAuditLog {
 // 인트로 화면 문구에 "복주머니 N개 지급" 숫자를 표시하기 위한 캐시성 값이다.
 // PointPolicy와 값이 어긋나지 않도록 관리자 폼 저장 시 두 값을 함께 갱신한다.
 model IntroConfig {
-  id                    Int      @id @default(1)
-  isEnabled             Boolean  @default(true) @map("is_enabled") // 인트로 on/off
-  showOnlyFirstLaunch   Boolean  @default(true) @map("show_only_first_launch")
-  showSkipButton        Boolean  @default(true) @map("show_skip_button")
-  showGuestHint         Boolean  @default(true) @map("show_guest_hint") // "로그인 없이 둘러보기" 문구 on/off
+  id                  Int     @id @default(1)
+  isEnabled           Boolean @default(true) @map("is_enabled") // 인트로 on/off
+  showOnlyFirstLaunch Boolean @default(true) @map("show_only_first_launch")
+  showSkipButton      Boolean @default(true) @map("show_skip_button")
+  showGuestHint       Boolean @default(true) @map("show_guest_hint") // "로그인 없이 둘러보기" 문구 on/off
 
   // 1단계: 브랜드 스플래시
-  splashTitle           String   @default("신통방통") @map("splash_title")
-  splashSubtitle        String?  @map("splash_subtitle") // 짧은 카피(선택, 비워두면 무카피)
+  splashTitle    String  @default("신통방통") @map("splash_title")
+  splashSubtitle String? @map("splash_subtitle") // 짧은 카피(선택, 비워두면 무카피)
 
   // 2단계: 카드1(프리패스)
-  card1Title            String   @default("광고 한 번으로, 1시간 동안 자유롭게") @map("card1_title")
-  card1Description      String   @default("프리패스를 받으면 오늘의 운세, 타로 등 전체 운세 콘텐츠를 가볍게 볼 수 있어요.") @map("card1_description")
-  card1ImageUrl         String?  @map("card1_image_url")
+  card1Title       String  @default("광고 한 번으로, 1시간 동안 자유롭게") @map("card1_title")
+  card1Description String  @default("프리패스를 받으면 오늘의 운세, 타로 등 전체 운세 콘텐츠를 가볍게 볼 수 있어요.") @map("card1_description")
+  card1ImageUrl    String? @map("card1_image_url")
 
   // 3단계: 카드2(복주머니)
-  card2Title            String   @default("복주머니는 무료로 모으고, 자유롭게 써요") @map("card2_title")
-  card2Description      String   @default("광고를 보거나 활동하면 복주머니가 쌓이고, 소원게시판과 소원성에서 사용할 수 있어요.") @map("card2_description")
-  card2ImageUrl         String?  @map("card2_image_url")
+  card2Title       String  @default("복주머니는 무료로 모으고, 자유롭게 써요") @map("card2_title")
+  card2Description String  @default("광고를 보거나 활동하면 복주머니가 쌓이고, 소원게시판과 소원성에서 사용할 수 있어요.") @map("card2_description")
+  card2ImageUrl    String? @map("card2_image_url")
 
   // 4단계: 시작 화면(CTA)
-  ctaTitle              String   @default("이제 신통방통을 시작해보세요") @map("cta_title")
-  ctaSubtitle           String   @default("먼저 둘러보고, 원할 때 가입해도 괜찮아요.") @map("cta_subtitle")
-  signupRewardText      String   @default("지금 가입하면 복주머니 100개 지급") @map("signup_reward_text")
-  signupRewardAmount    Int      @default(100) @map("signup_reward_amount")
+  ctaTitle           String @default("이제 신통방통을 시작해보세요") @map("cta_title")
+  ctaSubtitle        String @default("먼저 둘러보고, 원할 때 가입해도 괜찮아요.") @map("cta_subtitle")
+  signupRewardText   String @default("지금 가입하면 복주머니 100개 지급") @map("signup_reward_text")
+  signupRewardAmount Int    @default(100) @map("signup_reward_amount")
 
-  updatedAt             DateTime @updatedAt @map("updated_at")
-  updatedBy             String?  @map("updated_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedBy String?  @map("updated_by")
 
   @@map("intro_configs")
+}
+
+// ══════════════════════════════════════════════════════════════════
+// [신통방통 복주머니 광고 적립 시스템] 2026-08
+//
+// 관리자가 광고(이미지/동영상/외부HTML/광고플랫폼)를 등록하고 보상/노출 조건을
+// 설정하면, 앱 사용자가 시청 완료 시 서버 검증을 거쳐 복주머니(Wallet POINT)가
+// 자동 적립되는 시스템. 새 장부를 만들지 않고 기존 luck-pouch-engine.ts의
+// earnLuckPouch()를 그대로 호출해 지급한다(sourceType="AD_WATCH_REWARD").
+//
+// 설계 참고: OpenPassAdSource(광고소스 필드 패턴) + OpenPassAdRewardLog(중복지급
+// 방지 idempotencyKey 패턴)를 그대로 재사용했다. 열림패스(UserPass) 대신
+// 지급 대상이 Wallet(POINT)+PointHistory라는 점만 다르다.
+//
+// [일일상한 설계 결정 - 2026-08] AD_WATCH_REWARD는 luck-pouch-engine.ts의
+// 전역 일일 적립 상한(80/120)에서 면제(CAP_EXEMPT_SOURCE_TYPES에 포함)된다.
+// 광고 전용 일일 제한(perUserDailyLimit/dailyLimitReward)은 이 테이블
+// (FortuneAdWatchLog)의 당일 rewardStatus=COMPLETED 카운트로 별도 체크한다.
+// 활동점수(ACTIVITY_SCORE_WEIGHTS)에는 반영하지 않는다(순수 광고보상만 지급).
+// ══════════════════════════════════════════════════════════════════
+
+// ── FortuneAd: 관리자가 등록하는 광고 콘텐츠 + 보상/노출 설정 ──
+model FortuneAd {
+  id          Int     @id @default(autoincrement())
+  title       String
+  description String?
+
+  // 유형: image/video/external/network(광고플랫폼 연동)
+  adType String @map("ad_type")
+
+  // 유형별 콘텐츠(사용하지 않는 필드는 null)
+  imageUrl     String? @map("image_url")
+  videoUrl     String? @map("video_url")
+  externalUrl  String? @map("external_url")
+  adSourceHtml String? @map("ad_source_html") // 광고플랫폼 연동 스크립트/HTML
+
+  // 보상 설정
+  rewardAmount Int @default(10) @map("reward_amount") // 1회 시청 보상(복주머니 개수)
+  watchSeconds Int @default(15) @map("watch_seconds") // 최소 시청 시간(초), 서버 검증 기준
+
+  // 노출/제한 설정
+  isActive         Boolean   @default(true) @map("is_active")
+  startAt          DateTime? @map("start_at")
+  endAt            DateTime? @map("end_at")
+  priority         Int       @default(0) @map("priority") // 낮을수록 먼저 노출
+  perUserDailyLimit Int      @default(3) @map("per_user_daily_limit") // 회원당 하루 최대 시청 횟수
+  dailyLimitReward Int?      @map("daily_limit_reward") // 광고 1건당 하루 최대 지급 총량(전체 유저 합산, null=무제한)
+
+  status    String    @default("active") @map("status") // active/paused/deleted
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
+
+  watchLogs FortuneAdWatchLog[]
+
+  @@index([isActive, status, priority])
+  @@map("fortune_ads")
+}
+
+// ── FortuneAdWatchLog: 시청 시작~완료 이력 + 지급 상태(중복지급 방지) ──
+model FortuneAdWatchLog {
+  id            Int      @id @default(autoincrement())
+  userId        Int      @map("user_id")
+  adId          Int      @map("ad_id")
+  sessionId     String   @map("session_id") // start 호출 시 서버가 발급
+
+  startedAt     DateTime  @default(now()) @map("started_at")
+  completedAt   DateTime? @map("completed_at")
+  watchSeconds  Int?      @map("watch_seconds") // 클라이언트가 보고한 실제 시청 시간(참고값, 최종판정은 서버)
+
+  rewardAmount  Int      @default(0) @map("reward_amount") // 실제 지급된 금액(0=미지급)
+  rewardStatus  String   @default("PENDING") @map("reward_status") // PENDING/COMPLETED/FAILED
+
+  // 클라이언트가 start 시점에 생성해 매 요청에 동일하게 전달. complete 요청의 중복 처리를
+  // 막는 유일한 근거(§원칙: 서버 최종지급 + 중복지급차단 idempotency).
+  idempotencyKey String? @unique @map("idempotency_key")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User      @relation(fields: [userId], references: [id])
+  ad   FortuneAd @relation(fields: [adId], references: [id])
+
+  @@index([userId, adId, createdAt])
+  @@index([adId, rewardStatus, createdAt])
+  @@map("fortune_ad_watch_logs")
 }

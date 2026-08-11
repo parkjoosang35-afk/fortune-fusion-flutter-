@@ -56,6 +56,7 @@ const GROUPS: NavGroup[] = [
       "/reward/achievements",
       "/reward/ranking",
       "/reward/feature-bindings",
+      "/reward/fortune-ads",
     ],
     children: [
       { href: "/reward/luck-pouch-rules", label: "적립/사용 규칙" },
@@ -64,6 +65,9 @@ const GROUPS: NavGroup[] = [
       { href: "/reward/achievements", label: "업적" },
       { href: "/reward/ranking", label: "랭킹 보상" },
       { href: "/reward/feature-bindings", label: "기능-자산 매핑" },
+      // [복주머니 광고 적립 시스템 - 2026-08] 광고 시청→복주머니 지급 관리 화면.
+      { href: "/reward/fortune-ads", label: "광고관리" },
+      { href: "/reward/fortune-ads/logs", label: "시청내역" },
     ],
   },
   {

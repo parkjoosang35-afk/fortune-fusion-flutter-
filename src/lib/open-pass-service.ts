@@ -43,6 +43,94 @@ export async function isOpenPassActive(userId: number): Promise<boolean> {
   return !!activePass;
 }
 
+/**
+ * 현재 활성 상태인 UserPass(+정책)를 조회한다. isOpenPassActive()와 동일한
+ * "만료시각만 확인" 기준을 재사용하되, 카테고리 이용횟수 검증/증가 등 정책 정보가
+ * 함께 필요한 호출자(예: 아래 checkAndConsumeCategoryUsage, pass/status route)를
+ * 위해 레코드 자체를 반환한다. 단일 판정 소스 원칙(§15)에 따라 이 함수가 반환하는
+ * "활성 패스 없음(null)"이 곧 isOpenPassActive() === false와 항상 일치해야 한다.
+ */
+export async function getActiveUserPass(userId: number) {
+  const now = new Date();
+  return prisma.userPass.findFirst({
+    where: { userId, expiresAt: { gt: now } },
+    orderBy: { expiresAt: "desc" },
+    include: { policy: true },
+  });
+}
+
+export interface CategoryUsageCheckResult {
+  allowed: boolean;
+  reason?: "NO_ACTIVE_PASS" | "CATEGORY_LIMIT_REACHED";
+  usageCount: number;
+  maxUsage: number | null;
+  userPassId: number | null;
+}
+
+/**
+ * [신통방통 기존시스템유지+프리패스 카테고리별 이용횟수 제한] §6/§7/§24/§27
+ *
+ * 현재 활성 프리패스가 있는지 먼저 확인하고(없으면 즉시 차단), 있으면 해당
+ * 패스(userPassId) 기준으로 이 카테고리(categoryKey)의 누적 이용횟수를 조회해
+ * policy.categoryMaxUsage(기본 2회, null=무제한)를 초과했는지 판정한다.
+ *
+ * 이 함수는 "검사만" 하고 카운트를 증가시키지 않는다(consume=false 상태 미리보기용).
+ * 실제 이용 처리(카운트 +1)는 consumeCategoryUsage()가 담당한다 — 두 단계로 나눈
+ * 이유는 pass/consume route가 "검사 실패 시 즉시 403, 성공해야만 +1"을 트랜잭션
+ * 없이도 명확히 표현할 수 있게 하기 위함이다.
+ */
+export async function checkCategoryUsage(
+  userId: number,
+  categoryKey: string
+): Promise<CategoryUsageCheckResult> {
+  const activePass = await getActiveUserPass(userId);
+  if (!activePass) {
+    return { allowed: false, reason: "NO_ACTIVE_PASS", usageCount: 0, maxUsage: null, userPassId: null };
+  }
+
+  const maxUsage = activePass.policy.categoryMaxUsage ?? null;
+  const usage = await prisma.passCategoryUsage.findUnique({
+    where: { userPassId_categoryKey: { userPassId: activePass.id, categoryKey } },
+  });
+  const usageCount = usage?.usageCount ?? 0;
+
+  if (maxUsage != null && usageCount >= maxUsage) {
+    return { allowed: false, reason: "CATEGORY_LIMIT_REACHED", usageCount, maxUsage, userPassId: activePass.id };
+  }
+  return { allowed: true, usageCount, maxUsage, userPassId: activePass.id };
+}
+
+/**
+ * checkCategoryUsage()로 허용된 경우에만 호출해 실제 이용횟수를 +1 한다(upsert).
+ * 동시성 상황에서 정확한 카운트가 필요하면 트랜잭션 내에서 checkCategoryUsage +
+ * consumeCategoryUsage를 함께 호출해야 한다(pass/consume route가 이 패턴을 따른다).
+ */
+export async function consumeCategoryUsage(userPassId: number, userId: number, categoryKey: string) {
+  return prisma.passCategoryUsage.upsert({
+    where: { userPassId_categoryKey: { userPassId, categoryKey } },
+    create: { userPassId, userId, categoryKey, usageCount: 1 },
+    update: { usageCount: { increment: 1 } },
+  });
+}
+
+/**
+ * 관리자 회원 상세 화면(§12/STEP12)에서 "카테고리별 N/2" 형태로 보여줄 수 있도록,
+ * 현재 활성 패스의 전체 카테고리 이용현황을 한 번에 조회한다. 활성 패스가 없으면
+ * null을 반환한다(화면은 "현재 이용 중인 프리패스 없음"으로 표시해야 함).
+ */
+export async function getCategoryUsageSummary(userId: number) {
+  const activePass = await getActiveUserPass(userId);
+  if (!activePass) return null;
+  const usages = await prisma.passCategoryUsage.findMany({
+    where: { userPassId: activePass.id },
+  });
+  return {
+    userPass: activePass,
+    maxUsage: activePass.policy.categoryMaxUsage ?? null,
+    usages: usages.map((u) => ({ categoryKey: u.categoryKey, usageCount: u.usageCount })),
+  };
+}
+
 // [재화 구조 정리 - 재연결, 2026-08] 아래 두 함수는 더 이상 어디서도 호출되지 않는다.
 // LuckPouchWallet은 실제 앱의 어떤 화면도 읽지 않는 죽은 테이블로 확인되어
 // admin-simulation.ts의 §4 "복주머니 테스트"가 실제 원장(Wallet/POINT)을 쓰도록

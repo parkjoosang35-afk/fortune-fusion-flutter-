@@ -24,7 +24,17 @@ type Tx = Prisma.TransactionClient;
  * 일일 상한(80/120)에 걸려 일부만 지급되는 일이 없도록 하기 위함이다. 어차피
  * PointPolicy.dailyLimit=1(1회 한정)로 중복 지급 자체가 막혀 있어 남용 위험은 없다.
  */
-const CAP_EXEMPT_SOURCE_TYPES = new Set(["admin_adjust", "admin_grant", "manual", "signup_reward"]);
+// [복주머니 광고 적립 시스템 - 2026-08] AD_WATCH_REWARD(광고 시청 보상)는 전역 일일
+// 적립 상한(80/120)에서 면제한다(설계 결정: B안). 광고 전용 일일 제한(회원당 하루
+// 시청 횟수 N회 / 광고 1건당 하루 최대 지급량)은 FortuneAdWatchLog 테이블의 당일
+// COMPLETED 카운트로 별도 체크하므로, 전역 상한과 별개로 안전하게 면제할 수 있다.
+const CAP_EXEMPT_SOURCE_TYPES = new Set([
+  "admin_adjust",
+  "admin_grant",
+  "manual",
+  "signup_reward",
+  "AD_WATCH_REWARD",
+]);
 
 /**
  * [복주머니 적립 구간표 §활동 점수] 액션별 활동 점수 가중치.
@@ -52,7 +62,9 @@ export const ACTIVITY_SCORE_TIERS: Array<{ score: number; bonus: number }> = [
 
 const ACTIVITY_TIER_BONUS_SOURCE_TYPE = "activity_tier_bonus";
 
-function todayRangeKst(): { start: Date; end: Date } {
+// [복주머니 광고 적립 시스템] 광고 일일 제한(FortuneAdWatchLog 카운트) 계산도
+// 동일한 KST 기준 "오늘" 판정을 사용해야 하므로 export한다.
+export function todayRangeKst(): { start: Date; end: Date } {
   const now = new Date();
   const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
   const y = kstNow.getUTCFullYear();

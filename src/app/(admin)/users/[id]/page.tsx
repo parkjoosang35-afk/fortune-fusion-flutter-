@@ -44,12 +44,40 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
       profile: true,
       loginLogs: { orderBy: { createdAt: "desc" }, take: 10 },
       withdrawalLogs: { orderBy: { requestedAt: "desc" } },
+      // [STEP12 - 관리자 회원별 프리패스+카테고리 이용현황] 최근 발급된
+      // 프리패스(UserPass) 10건과, 각 패스별 카테고리 이용횟수
+      // (PassCategoryUsage)를 함께 조회한다. categoryUsages는 패스 1건당
+      // 카테고리별 usageCount를 추적하는 구조이므로, 패스 목록에 그대로
+      // 중첩(include)해서 "이 패스로 오늘의운세 2/2회, 관상 1/2회" 형태로
+      // 보여줄 수 있게 한다.
+      passes: {
+        orderBy: { createdAt: "desc" },
+        take: 10,
+        include: { policy: true, categoryUsages: true },
+      },
     },
   });
 
   if (!user) {
     notFound();
   }
+
+  // 카테고리 키 -> 표시용 한글 라벨 매핑(카테고리 마스터 조회로 최신화).
+  const categoryLabelRows = await prisma.fortuneCategory.findMany({
+    select: { categoryKey: true, title: true },
+  });
+  const categoryLabelMap = new Map(
+    categoryLabelRows.map((c) => [c.categoryKey, c.title])
+  );
+  const labelForCategory = (key: string) => categoryLabelMap.get(key) ?? key;
+
+  const now = new Date();
+  const passStatusLabel = (status: string, expiresAt: Date) => {
+    if (status === "revoked") return { text: "회수됨", cls: "text-red-700" };
+    if (status === "expired" || expiresAt < now)
+      return { text: "만료", cls: "text-slate-400" };
+    return { text: "이용중", cls: "text-emerald-700" };
+  };
 
   const canWrite =
     canAccessMenu(session.roleCode, "users") &&
@@ -158,16 +186,76 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
             </dl>
           </section>
 
-          {/* 참조용 안내 — 미구현 도메인 */}
-          <section className="rounded-xl border border-dashed border-slate-300 bg-white/40 p-5">
-            <h2 className="mb-2 text-sm font-semibold text-slate-600">
-              지갑 잔액 · AI 이용 히스토리 · 보유 부적/상품권
+          {/* [STEP12 - 프리패스 & 카테고리 이용현황] user_passes + pass_category_usages */}
+          <section className="rounded-xl border border-slate-200 bg-white p-5">
+            <h2 className="mb-4 text-sm font-semibold text-slate-900">
+              프리패스 &amp; 카테고리 이용현황 (최근 10건)
             </h2>
-            <p className="text-sm text-slate-500">
-              해당 정보는 지갑(C-1) · AI콘텐츠(도메인E) · 상점(도메인H/J)
-              도메인이 아직 구현되지 않아, 각 Phase18-x 단계에서 구현 완료
-              후 이 화면에 순차적으로 연동됩니다.
-            </p>
+            {user.passes.length === 0 && (
+              <p className="py-4 text-center text-sm text-slate-500">
+                발급된 프리패스가 없습니다.
+              </p>
+            )}
+            <div className="space-y-3">
+              {user.passes.map((pass) => {
+                const st = passStatusLabel(pass.status, pass.expiresAt);
+                const maxUsage = pass.policy.categoryMaxUsage;
+                return (
+                  <div
+                    key={pass.id}
+                    className="rounded-lg border border-slate-200/80 p-3"
+                  >
+                    <div className="mb-2 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-slate-800">
+                          {pass.policy.name}
+                        </span>
+                        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-500">
+                          {pass.sourceType}
+                        </span>
+                      </div>
+                      <span className={`text-xs font-medium ${st.cls}`}>
+                        {st.text}
+                      </span>
+                    </div>
+                    <div className="mb-2 text-xs text-slate-500">
+                      발급 {pass.activatedAt
+                        .toISOString()
+                        .slice(0, 16)
+                        .replace("T", " ")}{" "}
+                      → 만료{" "}
+                      {pass.expiresAt.toISOString().slice(0, 16).replace("T", " ")}
+                    </div>
+                    {pass.categoryUsages.length === 0 ? (
+                      <p className="text-xs text-slate-400">
+                        아직 이용한 카테고리가 없습니다.
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {pass.categoryUsages.map((usage) => {
+                          const reached =
+                            maxUsage != null && usage.usageCount >= maxUsage;
+                          return (
+                            <span
+                              key={usage.id}
+                              className={`rounded-full px-2 py-1 text-xs ${
+                                reached
+                                  ? "bg-amber-100 text-amber-700"
+                                  : "bg-slate-100 text-slate-600"
+                              }`}
+                            >
+                              {labelForCategory(usage.categoryKey)}{" "}
+                              {usage.usageCount}
+                              {maxUsage != null ? `/${maxUsage}` : ""}회
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </section>
 
           {/* 로그인 이력 — 04A A-4 user_login_logs */}

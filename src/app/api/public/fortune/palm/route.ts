@@ -1,40 +1,23 @@
-// 공개(비인증) "AI 손금" 분석 API — 신규 구현.
+// 공개(비인증) "AI 손금" 분석 API — 실사진 분석 버전.
 //
-// [범위 결정 - 관상/손금 AI프롬프트 실연동] face/route.ts와 완전히 동일한 원칙을 따른다.
-// completeText()는 텍스트 전용 LLM 호출이라 실제 업로드된 손바닥 사진을 인식/분석할 수
-// 없다. "사진 촬영 UI는 그대로 유지"하되(이미지는 서버로 전송되지 않고 클라이언트에서
-// 즉시 파기됨), 백엔드는 사용자 프로필(생년월일/성별) 등 텍스트 정보를 기반으로 해석
-// 텍스트를 생성한다.
+// [버그 수정 배경] face/route.ts와 동일한 문제. 기존 구현은 completeText()
+// (텍스트 전용 LLM)만 사용해 실제 업로드된 손바닥 사진을 전혀 서버로
+// 전송/분석하지 않고, 로그인 사용자의 생년월일/성별과 결정론적 시드로
+// 고른 하드코딩 문구만 반환했다. 얼굴/사물 등 손바닥이 아닌 사진을 올려도
+// 항상 "그럴듯한" 손금 결과가 나오는 문제가 있었다(사용자 리포트로 발견).
 //
-// [부위별 특징(lines) vs 주제별 해석(topicResults/summary) 분리]
-// - lines(생명선/두뇌선/감정선/운명선): 이미지 인식이 전제된 항목이라 completeText()로
-//   대체할 수 없다. 기존 Flutter Mock과 동일하게 결정론적 시드 기반 하드코딩 풀에서 선택.
-// - topicResults(재물/애정/직업/건강) + summary(종합): saju/face 라우트와 동일한 패턴으로
-//   palm 도메인 활성 프롬프트 템플릿 + completeText()를 호출해 실제 LLM 생성 텍스트로
-//   교체한다. 템플릿이 없거나 LLM 호출이 실패하면 기존 하드코딩 텍스트로 폴백한다.
+// [수정 내용] completeVisionJson()으로 실제 이미지(base64 data URL)를 Vision
+// 모델(claude-haiku-4-5)에 함께 전송해:
+//   1) 사진이 실제로 손바닥인지 먼저 검증하고(valid=false면 즉시 에러 응답),
+//   2) 유효한 경우 사진에서 실제로 관찰되는 손금선을 근거로 해석을 생성한다.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { completeText, LlmClientError } from "@/lib/llm-client";
+import { completeVisionJson, LlmClientError } from "@/lib/llm-client";
+import { checkCategoryUsage, consumeCategoryUsage } from "@/lib/open-pass-service";
 
 export const dynamic = "force-dynamic";
 
 const CORS_HEADERS = { "Access-Control-Allow-Origin": "*" };
-
-const LINE_POOL: Record<string, string[]> = {
-  생명선: [
-    "깊고 선명하게 뻗어 있어 강한 생명력과 활력을 나타냅니다",
-    "완만하게 이어져 있어 안정적이고 평온한 삶의 흐름을 보여줍니다",
-  ],
-  두뇌선: [
-    "뚜렷하고 길게 뻗어 있어 논리적이고 분석적인 사고력을 나타냅니다",
-    "살짝 곡선을 이루어 창의적이고 유연한 사고를 보여줍니다",
-  ],
-  감정선: ["깊고 곧게 뻗어 있어 감정 표현이 솔직하고 직접적입니다", "부드러운 곡선으로 따뜻하고 공감능력이 높은 성향입니다"],
-  운명선: [
-    "선명하게 이어져 있어 뚜렷한 목표의식을 갖고 나아가는 흐름입니다",
-    "중간에 변화가 있어 인생의 전환점을 여러 번 맞이하는 흐름입니다",
-  ],
-};
 
 const TOPIC_FALLBACK: Record<string, string> = {
   재물: "운명선과 생명선의 조화가 좋아 꾸준한 재물 축적이 가능한 손금입니다.",
@@ -44,18 +27,54 @@ const TOPIC_FALLBACK: Record<string, string> = {
   종합: "전체적으로 균형 잡힌 손금으로, 스스로의 강점을 신뢰하고 나아가면 좋은 결실을 맺을 수 있습니다.",
 };
 
-const TOPICS = ["재물", "애정", "직업", "건강", "종합"] as const;
+const LINE_FALLBACK: Record<string, string> = {
+  생명선: "생명선의 흐름이 안정적인 인상입니다.",
+  두뇌선: "두뇌선의 흐름이 안정적인 인상입니다.",
+  감정선: "감정선의 흐름이 안정적인 인상입니다.",
+  운명선: "운명선의 흐름이 안정적인 인상입니다.",
+};
 
-function hashSeed(input: string): number {
-  let h = 0;
-  for (let i = 0; i < input.length; i++) {
-    h = (h * 31 + input.charCodeAt(i)) & 0xffffffff;
-  }
-  return Math.abs(h);
+const SYSTEM_PROMPT = `당신은 AI 손금 분석 전문가입니다. 사용자가 업로드한 이미지를 실제로 확인하고 아래 규칙을 반드시 따르세요.
+
+[1단계 - 사진 검증 (가장 중요)]
+- 이미지에 사람의 손바닥(손금이 보이는 손 안쪽 면)이 명확하게 나와 있는지 먼저 확인하세요.
+- 손바닥 사진이 아니거나(예: 얼굴, 손등, 사물, 풍경, 동물, 음식, 텍스트/스크린샷, 만화/캐릭터 등),
+  손바닥이 너무 작거나 흐릿하거나 가려져서 생명선/두뇌선/감정선/운명선을 확인할 수 없는 경우
+  반드시 "valid"를 false로 설정하고 "invalidReason"에 구체적인 이유를 한국어로 작성하세요.
+- 절대로 손바닥이 아닌 사진에 대해 손금 분석 내용을 만들어내지 마세요. 확실하지 않으면 false로 처리하세요.
+
+[2단계 - 실제 사진 기반 분석 (valid가 true인 경우만)]
+- 사진에서 실제로 관찰되는 손금선(생명선/두뇌선/감정선/운명선)의 굵기, 길이, 곡선 형태 등을 근거로 서술하세요. 추측하지 말고 실제로 보이는 내용만 설명하세요.
+- 부정적으로 단정하는 표현은 피하고, 항상 따뜻하고 긍정적인 어투를 사용하세요.
+- 전통 손금학의 일반적인 해석을 참고용으로 곁들이되, 실제 운명/건강/능력을 사실처럼 단정하지 마세요.
+- 사용자의 생년월일/성별 정보가 주어지면 재물/애정/직업/건강 해석에 자연스럽게 참고하세요.
+
+[출력 형식 - 반드시 아래 JSON 객체만 응답하세요. 다른 설명, 인사말, 마크다운 코드펜스를 절대 포함하지 마세요]
+{
+  "valid": boolean,
+  "invalidReason": string 또는 null,
+  "lines": { "생명선": string, "두뇌선": string, "감정선": string, "운명선": string },
+  "topicResults": { "재물": string, "애정": string, "직업": string, "건강": string, "종합": string }
+}
+
+- valid가 false이면 lines와 topicResults는 빈 객체 {}로 두세요.
+- valid가 true이면 lines/topicResults의 모든 항목을 2~4문장으로 구체적으로 작성하세요.
+- "종합"은 위 모든 분석을 아우르는 3~5문장의 총평으로 작성하세요.`;
+
+function buildDataUrl(image: string): string {
+  if (image.startsWith("data:")) return image;
+  return `data:image/jpeg;base64,${image}`;
+}
+
+interface PalmVisionResponse {
+  valid: boolean;
+  invalidReason?: string | null;
+  lines?: Record<string, string>;
+  topicResults?: Record<string, string>;
 }
 
 export async function POST(request: NextRequest) {
-  let body: { userId?: number };
+  let body: { userId?: number; image?: string };
   try {
     body = await request.json();
   } catch {
@@ -73,8 +92,33 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const image = body.image;
+  if (!image || typeof image !== "string" || image.length < 100) {
+    return NextResponse.json(
+      { success: false, error: "손바닥 사진을 첨부해주세요." },
+      { status: 400, headers: CORS_HEADERS }
+    );
+  }
+
+  // ── [STEP8 - 프리패스 카테고리별 이용횟수 검증] ──
+  const usageCheck = await checkCategoryUsage(userId, "palm");
+  if (!usageCheck.allowed) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          usageCheck.reason === "CATEGORY_LIMIT_REACHED"
+            ? `오늘 이 프리패스로 이용할 수 있는 횟수(${usageCheck.maxUsage}회)를 모두 사용했습니다.`
+            : "유효한 프리패스가 없습니다. 광고 시청, 파트너 방문 또는 구독으로 프리패스를 받아보세요.",
+        reason: usageCheck.reason,
+        usageCount: usageCheck.usageCount,
+        maxUsage: usageCheck.maxUsage,
+      },
+      { status: 403, headers: CORS_HEADERS }
+    );
+  }
+
   try {
-    // 1) 사용자 프로필(생년월일/성별) 조회 -- 실제 이미지 대신 텍스트 기반 해석의 입력으로 사용
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: { profile: true },
@@ -83,90 +127,84 @@ export async function POST(request: NextRequest) {
     const birthDate = user.profile?.birthDate ?? null;
     const gender = user.gender ?? null;
 
-    const seed = hashSeed(`${userId}:${birthDate ?? "unknown"}:${Date.now()}`);
-
-    // 2) 부위별 특징(lines)은 이미지 인식이 전제된 항목이라 결정론적 시뮬레이션 유지
-    const lines: Record<string, string> = {};
-    for (const [part, options] of Object.entries(LINE_POOL)) {
-      lines[part] = options[seed % options.length];
-    }
-
-    // 3) palm 도메인 활성 프롬프트 템플릿 조회 + 주제별 completeText() 호출(트랜잭션 밖)
+    // fortune_results.prompt_template_id는 NOT NULL이라 palm 도메인 활성 템플릿을
+    // 참조 용도로만 가져온다(실제 시스템 프롬프트는 SYSTEM_PROMPT를 사용).
     const template = await prisma.aiPromptTemplate.findFirst({
       where: { fortuneTypeOrDomain: "palm", isActive: true },
-      select: { id: true, version: true, templateBody: true },
+      select: { id: true, version: true },
+    });
+    if (!template) throw new Error("NO_TEMPLATE");
+
+    const userPrompt = [
+      "이 사진이 사람의 손바닥 사진인지 먼저 확인한 뒤, 맞다면 손금을 분석해주세요.",
+      `참고 - 사용자 생년월일: ${birthDate ?? "미상"}`,
+      `참고 - 성별: ${gender ?? "미상"}`,
+    ].join("\n");
+
+    const vision = await completeVisionJson<PalmVisionResponse>({
+      systemPrompt: SYSTEM_PROMPT,
+      userPrompt,
+      imageDataUrl: buildDataUrl(image),
+      timeoutMs: 40_000,
     });
 
-    // [성능 개선 - 병렬화] 토픽 5개를 순차(각 최대 30s)로 호출하면 최악의 경우
-    // 총 응답시간이 150s까지 늘어날 수 있음이 실측으로 확인됨(56s 관측).
-    // Promise.allSettled()로 5개 요청을 동시에 발사해 전체 응답시간을
-    // "가장 느린 1건의 시간"으로 단축한다(개별 실패는 서로 영향 없이 격리됨).
-    const topicResults: Record<string, string> = {};
-    let usedAi = false;
-    if (!template) {
-      for (const topic of TOPICS) {
-        topicResults[topic] = TOPIC_FALLBACK[topic];
-      }
-    } else {
-      const settled = await Promise.allSettled(
-        TOPICS.map((topic) => {
-          const userPrompt = [
-            `사용자 생년월일: ${birthDate ?? "미상"}`,
-            `성별: ${gender ?? "미상"}`,
-            `손금 특징: 생명선(${lines["생명선"]}), 두뇌선(${lines["두뇌선"]}), 감정선(${lines["감정선"]}), 운명선(${lines["운명선"]})`,
-            `요청 주제: ${topic}`,
-            "위 [기본 규칙]과 [출력 형식]을 그대로 지켜서 이 사람의 손금을 주제에 맞춰 해석해주세요.",
-          ].join("\n");
-          return completeText({ systemPrompt: template.templateBody, userPrompt });
-        })
+    // [사진 검증 실패] 손바닥이 아닌 사진 -> 기록 남기지 않고 즉시 에러 응답
+    if (!vision.valid) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: vision.invalidReason || "손바닥이 잘 보이는 사진으로 다시 촬영해주세요.",
+        },
+        { status: 422, headers: CORS_HEADERS }
       );
-      settled.forEach((result, index) => {
-        const topic = TOPICS[index];
-        if (result.status === "fulfilled") {
-          topicResults[topic] = result.value;
-          usedAi = true;
-        } else {
-          const e = result.reason;
-          if (e instanceof LlmClientError) {
-            console.error(`[POST /api/public/fortune/palm] LLM 호출 실패(topic=${topic}):`, e.message);
-          } else {
-            console.error(`[POST /api/public/fortune/palm] LLM 호출 실패(topic=${topic}):`, e);
-          }
-          topicResults[topic] = TOPIC_FALLBACK[topic];
-        }
-      });
     }
-    const summary = topicResults["종합"] ?? TOPIC_FALLBACK["종합"];
 
-    // 4) 짧은 DB 트랜잭션: fortune_requests·results 기록(포인트 차감 없음, name/route.ts와 동일)
+    const lines: Record<string, string> = {
+      생명선: vision.lines?.["생명선"] || LINE_FALLBACK["생명선"],
+      두뇌선: vision.lines?.["두뇌선"] || LINE_FALLBACK["두뇌선"],
+      감정선: vision.lines?.["감정선"] || LINE_FALLBACK["감정선"],
+      운명선: vision.lines?.["운명선"] || LINE_FALLBACK["운명선"],
+    };
+    const topicResults: Record<string, string> = {
+      재물: vision.topicResults?.["재물"] || TOPIC_FALLBACK["재물"],
+      애정: vision.topicResults?.["애정"] || TOPIC_FALLBACK["애정"],
+      직업: vision.topicResults?.["직업"] || TOPIC_FALLBACK["직업"],
+      건강: vision.topicResults?.["건강"] || TOPIC_FALLBACK["건강"],
+      종합: vision.topicResults?.["종합"] || TOPIC_FALLBACK["종합"],
+    };
+    const summary = topicResults["종합"];
+
     const outcome = await prisma.$transaction(async (tx) => {
       const fortuneRequest = await tx.fortuneRequest.create({
         data: {
           userId,
           fortuneType: "palm",
-          inputPayload: JSON.stringify({ birthDate, gender }),
+          inputPayload: JSON.stringify({ birthDate, gender, hasImage: true }),
           sourceType: "ai_generated",
           pointSpent: 0,
           status: "success",
         },
       });
 
-      const fortuneResult = template
-        ? await tx.fortuneResult.create({
-            data: {
-              requestId: fortuneRequest.id,
-              resultText: summary,
-              resultMeta: JSON.stringify({ lines, topicResults, summary }),
-              aiModel: usedAi ? "claude-haiku-4-5" : "rule-based-v1",
-              promptTemplateId: template.id,
-              promptVersion: template.version,
-              status: "active",
-            },
-          })
-        : null;
+      const fortuneResult = await tx.fortuneResult.create({
+        data: {
+          requestId: fortuneRequest.id,
+          resultText: summary,
+          resultMeta: JSON.stringify({ lines, topicResults, summary }),
+          aiModel: "claude-haiku-4-5-vision",
+          promptTemplateId: template.id,
+          promptVersion: template.version,
+          status: "active",
+        },
+      });
 
       return { requestId: fortuneRequest.id, createdAt: fortuneRequest.createdAt, fortuneResult };
     });
+
+    // ── [STEP8] 실제 분석 성공 후에만 카테고리 이용횟수 +1 ──
+    if (usageCheck.userPassId != null) {
+      await consumeCategoryUsage(usageCheck.userPassId, userId, "palm");
+    }
 
     return NextResponse.json(
       {
@@ -189,8 +227,18 @@ export async function POST(request: NextRequest) {
         { status: 404, headers: CORS_HEADERS }
       );
     }
+    if (message === "NO_TEMPLATE") {
+      return NextResponse.json(
+        { success: false, error: "손금 분석 설정이 준비되지 않았습니다. 관리자에게 문의해주세요." },
+        { status: 503, headers: CORS_HEADERS }
+      );
+    }
     if (e instanceof LlmClientError) {
-      console.error("[POST /api/public/fortune/palm] LLM 오류:", e.message);
+      console.error("[POST /api/public/fortune/palm] LLM 비전 오류:", e.message);
+      return NextResponse.json(
+        { success: false, error: "손금 분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요." },
+        { status: 502, headers: CORS_HEADERS }
+      );
     }
     console.error("[POST /api/public/fortune/palm] 실패:", e);
     return NextResponse.json(

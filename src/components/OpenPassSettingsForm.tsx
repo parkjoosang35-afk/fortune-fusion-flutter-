@@ -24,6 +24,17 @@ const WAIT_SECONDS_OPTIONS = [
   { value: 10, label: "10초" },
 ];
 
+// [신통방통 기존시스템유지+프리패스 카테고리별 이용횟수 제한] §6/§27
+// "" 값은 무제한(null)을 의미한다.
+const CATEGORY_MAX_USAGE_OPTIONS = [
+  { value: "1", label: "1회" },
+  { value: "2", label: "2회" },
+  { value: "3", label: "3회" },
+  { value: "5", label: "5회" },
+  { value: "10", label: "10회" },
+  { value: "", label: "무제한" },
+];
+
 interface OpenPassSettingsFormProps {
   canWrite: boolean;
   durationMin: number;
@@ -32,6 +43,7 @@ interface OpenPassSettingsFormProps {
   adHelpMessage: string;
   adGuideTitle: string;
   adGuideText: string;
+  categoryMaxUsage: number | null;
 }
 
 export default function OpenPassSettingsForm({
@@ -42,6 +54,7 @@ export default function OpenPassSettingsForm({
   adHelpMessage,
   adGuideTitle,
   adGuideText,
+  categoryMaxUsage,
 }: OpenPassSettingsFormProps) {
   const [state, formAction, pending] = useActionState(updateOpenPassSettings, initialState);
 
@@ -95,6 +108,31 @@ export default function OpenPassSettingsForm({
             프리패스 기능 활성화
           </label>
         </div>
+      </div>
+
+      {/* [신통방통 기존시스템유지+프리패스 카테고리별 이용횟수 제한] §6/§27
+          "오늘의 운세/사주/관상/손금" 등 카테고리별로 이 프리패스 1건(이용시간) 동안
+          최대 몇 번까지 이용할 수 있는지 설정한다. 무제한 선택 시 제한 없이 이용 가능. */}
+      <div className="grid grid-cols-1 gap-4 border-t border-slate-200 pt-4 sm:grid-cols-3">
+        <label className="flex flex-col gap-1 text-sm text-slate-600">
+          카테고리별 최대 이용횟수
+          <select
+            name="categoryMaxUsage"
+            defaultValue={categoryMaxUsage != null ? String(categoryMaxUsage) : ""}
+            disabled={!canWrite}
+            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 disabled:opacity-50"
+          >
+            {CATEGORY_MAX_USAGE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+          <span className="text-xs text-slate-400">
+            예: 2회 선택 시 &quot;오늘의 운세&quot;, &quot;사주&quot;, &quot;관상&quot; 등
+            각 카테고리를 프리패스 이용시간 동안 최대 2번까지 이용할 수 있습니다.
+          </span>
+        </label>
       </div>
 
       {/* [프리패스 UI 문구 관리자 연동] "?" 도움말 팝업 + 아이콘 바로 아래

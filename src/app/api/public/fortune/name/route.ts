@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { completeText, LlmClientError } from "@/lib/llm-client";
+import { checkCategoryUsage, consumeCategoryUsage } from "@/lib/open-pass-service";
 
 export const dynamic = "force-dynamic";
 
@@ -54,6 +55,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { success: false, error: "name이 필요합니다." },
       { status: 400, headers: CORS_HEADERS }
+    );
+  }
+
+  // ── [STEP8 - 프리패스 카테고리별 이용횟수 검증] ──
+  const usageCheck = await checkCategoryUsage(userId, "name");
+  if (!usageCheck.allowed) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          usageCheck.reason === "CATEGORY_LIMIT_REACHED"
+            ? `오늘 이 프리패스로 이용할 수 있는 횟수(${usageCheck.maxUsage}회)를 모두 사용했습니다.`
+            : "유효한 프리패스가 없습니다. 광고 시청, 파트너 방문 또는 구독으로 프리패스를 받아보세요.",
+        reason: usageCheck.reason,
+        usageCount: usageCheck.usageCount,
+        maxUsage: usageCheck.maxUsage,
+      },
+      { status: 403, headers: CORS_HEADERS }
     );
   }
 
@@ -120,6 +139,11 @@ export async function POST(request: NextRequest) {
 
       return { requestId: fortuneRequest.id, createdAt: fortuneRequest.createdAt, balance, refundAmount, cost, fortuneResult };
     });
+
+    // ── [STEP8] 실제 분석 성공 후에만 카테고리 이용횟수 +1 ──
+    if (usageCheck.userPassId != null) {
+      await consumeCategoryUsage(usageCheck.userPassId, userId, "name");
+    }
 
     return NextResponse.json(
       {

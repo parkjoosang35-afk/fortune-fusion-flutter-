@@ -28,6 +28,8 @@ const ALLOWED_CATEGORIES = new Set([
   "open-pass",
   // [메인화면 관리자 편집기] 섹션별 대표배너/서브배너/아이콘/배경/fallback 이미지 업로드
   "page-configs",
+  // [신통방통 복주머니 광고 적립 시스템] 광고 등록 시 이미지형/동영상형 콘텐츠 업로드
+  "fortune-ads",
 ]);
 
 const ALLOWED_IMAGE_MIME_TYPES: Record<string, string> = {

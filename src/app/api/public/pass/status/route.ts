@@ -1,7 +1,13 @@
 // 공개(비인증) 사용자 알림패스 현재 상태 조회 API — Flutter PassRepository.getStatus() 대응.
 // 현재 유효(만료되지 않은) UserPass가 있으면 반환, 없으면 isActive:false.
+//
+// [신통방통 기존시스템유지+프리패스 카테고리별 이용횟수 제한] §6/§27 categoryUsage
+// 필드를 추가해 "오늘의 운세 1/2, 사주 2/2" 같은 카테고리별 이용현황을 앱이 함께
+// 받을 수 있게 한다(activePass가 있을 때만 채워짐 — 없으면 빈 배열). 기존
+// 필드(isActive/policyName/remainingSec 등)는 그대로 유지해 하위호환을 보장한다.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getCategoryUsageSummary } from "@/lib/open-pass-service";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +39,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const categorySummary = await getCategoryUsageSummary(userId);
+
     return NextResponse.json(
       {
         success: true,
@@ -49,6 +57,8 @@ export async function GET(request: NextRequest) {
             0,
             Math.floor((activePass.expiresAt.getTime() - now.getTime()) / 1000)
           ),
+          categoryMaxUsage: categorySummary?.maxUsage ?? null,
+          categoryUsage: categorySummary?.usages ?? [],
         },
       },
       { headers: CORS_HEADERS }

@@ -23,6 +23,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { completeText, LlmClientError } from "@/lib/llm-client";
+import { checkCategoryUsage, consumeCategoryUsage } from "@/lib/open-pass-service";
 
 export const dynamic = "force-dynamic";
 
@@ -118,6 +119,29 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { success: false, error: "question이 필요합니다." },
       { status: 400, headers: CORS_HEADERS }
+    );
+  }
+
+  // ── [STEP8 - 프리패스 카테고리별 이용횟수 검증] ──
+  // fortune_categories에는 tarot/tarot_yesno/tarot_love 3개 category_key가 별도로
+  // 존재하므로, 아래 domain 산출과 동일한 규칙으로 categoryKey를 미리 결정해
+  // 카테고리별로 독립적으로 카운트한다(예: 종합 타로 2회 소진해도 YES/NO는 별도 2회 이용 가능).
+  const categoryKey =
+    spreadType === "yes_no" ? "tarot_yesno" : LOVE_TOPICS.has(topic) ? "tarot_love" : "tarot";
+  const usageCheck = await checkCategoryUsage(userId, categoryKey);
+  if (!usageCheck.allowed) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          usageCheck.reason === "CATEGORY_LIMIT_REACHED"
+            ? `오늘 이 프리패스로 이용할 수 있는 횟수(${usageCheck.maxUsage}회)를 모두 사용했습니다.`
+            : "유효한 프리패스가 없습니다. 광고 시청, 파트너 방문 또는 구독으로 프리패스를 받아보세요.",
+        reason: usageCheck.reason,
+        usageCount: usageCheck.usageCount,
+        maxUsage: usageCheck.maxUsage,
+      },
+      { status: 403, headers: CORS_HEADERS }
     );
   }
 
@@ -227,6 +251,11 @@ export async function POST(request: NextRequest) {
 
       return { requestId: fortuneRequest.id, createdAt: fortuneRequest.createdAt, balance, refundAmount, cost, fortuneResult };
     });
+
+    // ── [STEP8] 실제 분석 성공 후에만 카테고리 이용횟수 +1 ──
+    if (usageCheck.userPassId != null) {
+      await consumeCategoryUsage(usageCheck.userPassId, userId, categoryKey);
+    }
 
     return NextResponse.json(
       {

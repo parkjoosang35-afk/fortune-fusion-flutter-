@@ -110,6 +110,7 @@ export default async function RewardPassPoliciesPage({ searchParams }: PassPolic
           adHelpMessage={settings.adHelpMessage}
           adGuideTitle={settings.adGuideTitle}
           adGuideText={settings.adGuideText}
+          categoryMaxUsage={settings.categoryMaxUsage}
         />
       </section>
 
