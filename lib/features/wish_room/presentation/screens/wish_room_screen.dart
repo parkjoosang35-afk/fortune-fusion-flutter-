@@ -11,6 +11,7 @@ import '../widgets/wish_room_animations.dart';
 import '../widgets/wish_room_background.dart';
 import '../widgets/wish_room_candle.dart';
 import '../widgets/wish_room_seal.dart';
+import 'wish_box_opening_screen.dart';
 import 'wish_detail_screen.dart';
 import 'wish_history_screen.dart';
 import 'wish_room_prayer_flow.dart';
@@ -83,6 +84,54 @@ class WishRoomScreen extends ConsumerWidget {
           }
         });
       }
+    });
+
+    // [디자인 핸드오프 — Wish Box Opening 트리거] README Navigation:
+    // "When a wish's box unlock date passes → intercept next Home
+    // entrance with Wish Box Opening ceremony → Detail". 첫 데이터 로드
+    // 시점(previous==null)에 소원 목록을 훑어 등록일 기준
+    // [kBoxUnlockDays] 이상 경과했고 이번 세션에서 아직 세리머니를 보여준
+    // 적 없는 소원이 있으면 1건만 골라 세리머니를 띄운다. 순수 UI 연출
+    // 트리거이며 저장 데이터/재화에는 전혀 영향을 주지 않는다(§ "관리자
+    // 설정값 하드코딩 금지"와 무관 — 이 상수는 서버 정책값이 아니라
+    // 클라이언트 전용 연출 조건).
+    ref.listen(wishRoomControllerProvider, (previous, next) {
+      if (previous?.valueOrNull != null) return;
+      final data = next.valueOrNull;
+      if (data == null) return;
+      WishItem? dueWish;
+      for (final w in data.room.wishes) {
+        final isDue =
+            !WishBoxOpeningTracker.hasShown(w.id) &&
+            DateTime.now().difference(w.createdAt).inDays >= kBoxUnlockDays;
+        if (isDue) {
+          dueWish = w;
+          break;
+        }
+      }
+      if (dueWish == null) return;
+      final resolvedDueWish = dueWish;
+      WishBoxOpeningTracker.markShown(resolvedDueWish.id);
+      Future.microtask(() {
+        if (!context.mounted) return;
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => WishBoxOpeningScreen(
+              wish: resolvedDueWish,
+              onConfirm: () {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (_) => WishDetailScreen(
+                      wish: resolvedDueWish,
+                      index: data.room.wishes.indexOf(resolvedDueWish),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      });
     });
 
     // [애니메이션 이벤트 소비] 슬롯 해금 마일스톤 축하는 이 화면 레벨의

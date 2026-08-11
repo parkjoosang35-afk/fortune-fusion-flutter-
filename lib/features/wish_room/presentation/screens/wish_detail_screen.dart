@@ -9,6 +9,7 @@ import '../widgets/wish_room_animations.dart';
 import '../widgets/wish_room_background.dart';
 import '../widgets/wish_room_candle.dart';
 import '../widgets/wish_room_common_buttons.dart';
+import 'wish_celebration_screen.dart';
 import 'wish_room_prayer_flow.dart';
 
 /// [디자인 핸드오프 8개 화면 재구현] 소원 상세 화면 — `ScreenDetail` 스펙.
@@ -30,10 +31,9 @@ import 'wish_room_prayer_flow.dart';
 /// [WishRoomPrayerFlow.startPrayerFlow](치성 종류 선택 바텀시트 →
 /// prayForWish)를 그대로 재사용한다(§ "기존 구현 삭제/재작성 금지").
 /// "✿ 이뤄졌어요"는 [PrayerType.gratitude]로 감사 치성을 실행해 완료
-/// 처리한다(정책표: 복주머니 소비 없이 완료 처리). Celebration 연출
-/// 화면(item 15)은 아직 미착수이므로, 성공 시에는 우선 스낵바 안내 후
-/// 이 화면을 닫는다 — Celebration 화면이 구현되면 이 지점만 교체하면
-/// 된다.
+/// 처리한다(정책표: 복주머니 소비 없이 완료 처리). 성공 시 README
+/// Navigation 스펙("Detail '✿ 이뤄졌어요' → Celebration")대로
+/// [WishCelebrationScreen]으로 이동한다.
 class WishDetailScreen extends ConsumerStatefulWidget {
   final WishItem wish;
 
@@ -74,10 +74,11 @@ class _WishDetailScreenState extends ConsumerState<WishDetailScreen> {
     if (!mounted) return;
     setState(() => _isCompleting = false);
     if (success) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('축하해요! 소원이 이뤄졌어요 ✿')));
-      Navigator.of(context).pop();
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => WishCelebrationScreen(wish: widget.wish),
+        ),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('처리 중 문제가 생겼어요. 잠시 후 다시 시도해주세요.')),
