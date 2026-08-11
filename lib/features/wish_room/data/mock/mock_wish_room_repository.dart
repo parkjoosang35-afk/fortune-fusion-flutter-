@@ -6,6 +6,7 @@ import '../../domain/enums/customize_category.dart';
 import '../../domain/enums/prayer_type.dart';
 import '../local/wish_room_local_store.dart';
 import '../models/customize_item_model.dart';
+import '../models/guide_slide_model.dart';
 import '../models/wish_item_model.dart';
 import '../models/wish_room_model.dart';
 import '../models/prayer_session_model.dart';
@@ -302,5 +303,22 @@ class MockWishRoomRepository implements WishRoomRepository {
     _isFirstVisitCache = false;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_kGuideSeenKey, true);
+  }
+
+  /// [가이드 슬라이드] 서버가 없는 Mock 단계에서는 합리적인 기본 5단계
+  /// 안내를 그대로 반환한다(기존 [WishGuideDialog]가 하드코딩하던 5단계
+  /// 문구를 이 위치로 옮겨온 것 — 실 서버 연동 시에는
+  /// [HttpWishRoomRepository]가 관리자 CMS 원본을 반환하므로 이 목록은
+  /// 쓰이지 않는다).
+  @override
+  Future<List<GuideSlide>> fetchGuideSlides() async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    return const [
+      GuideSlide(title: '1. 입장하기', body: '조용히 문을 열고 당신만의 소원방에 들어와요'),
+      GuideSlide(title: '2. 소원 정하기', body: '직접 적거나, 추천 카테고리 중 하나를 골라보세요'),
+      GuideSlide(title: '3. 정성 담기', body: '복주머니로 소원에 마음을 담아보세요'),
+      GuideSlide(title: '4. 매일 기도하기', body: '하루 한 번, 오늘의 정성을 이어가요'),
+      GuideSlide(title: '5. 소원 확인하기', body: '쌓여가는 기도의 기록을 언제든 돌아볼 수 있어요'),
+    ];
   }
 }

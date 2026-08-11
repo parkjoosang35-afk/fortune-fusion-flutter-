@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_app/features/wish_room/data/local/wish_room_local_store.dart';
 import 'package:flutter_app/features/wish_room/data/mock/mock_wish_room_repository.dart';
 import 'package:flutter_app/features/wish_room/data/models/customize_item_model.dart';
+import 'package:flutter_app/features/wish_room/data/models/guide_slide_model.dart';
 import 'package:flutter_app/features/wish_room/data/models/prayer_session_model.dart';
 import 'package:flutter_app/features/wish_room/data/models/wish_item_model.dart';
 import 'package:flutter_app/features/wish_room/data/models/wish_room_model.dart';
@@ -60,6 +61,9 @@ class _SpyWishRoomRepository implements WishRoomRepository {
   @override
   Future<List<CustomizeItem>> applyCustomizeItem(String itemId) =>
       _inner.applyCustomizeItem(itemId);
+
+  @override
+  Future<List<GuideSlide>> fetchGuideSlides() => _inner.fetchGuideSlides();
 }
 
 void main() {

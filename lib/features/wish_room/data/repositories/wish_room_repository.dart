@@ -5,6 +5,7 @@ import '../models/fortune_pouch_status_model.dart';
 import '../models/daily_message_model.dart';
 import '../models/prayer_session_model.dart';
 import '../models/customize_item_model.dart';
+import '../models/guide_slide_model.dart';
 
 /// 화면이 최초 진입 시 한 번에 받는 데이터 묶음.
 class WishRoomBundle {
@@ -49,6 +50,11 @@ abstract class WishRoomRepository {
   });
 
   Future<void> markGuideSeen();
+
+  /// [가이드 슬라이드] 관리자 CMS가 편집한 "이용 방법" 풀스크린 슬라이드
+  /// 목록을 가져온다. 문구/이미지/노출순서는 전부 서버가 확정한다
+  /// (§ "관리자 설정값 하드코딩 금지" 원칙).
+  Future<List<GuideSlide>> fetchGuideSlides();
 
   /// [슬롯 시스템] 서브 슬롯 1개를 해금한다. [viaPouch]가 true면 복주머니
   /// 결제로 즉시 해금(정책표 ① 참고), false면 스트릭 조건 충족으로 무료 해금.

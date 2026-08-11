@@ -78,3 +78,10 @@ final remainingStreakForNextSlotProvider = Provider<int?>((ref) {
   final remaining = required - data.room.consecutivePrayerDays;
   return remaining > 0 ? remaining : 0;
 });
+
+/// [가이드 슬라이드] 관리자 CMS가 편집한 "이용 방법" 슬라이드 목록.
+/// `WishGuideDialog`가 처음 열릴 때 1회 조회하며, autoDispose로 다이얼로그가
+/// 닫히면 캐시를 비워 다음 오픈 시 최신 CMS 편집 내용을 다시 받아온다.
+final guideSlidesProvider = FutureProvider.autoDispose((ref) {
+  return ref.read(wishRoomRepositoryProvider).fetchGuideSlides();
+});

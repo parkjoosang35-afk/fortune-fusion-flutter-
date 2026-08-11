@@ -10,6 +10,7 @@ import '../domain/enums/prayer_type.dart';
 import 'models/customize_item_model.dart';
 import 'models/daily_message_model.dart';
 import 'models/fortune_pouch_status_model.dart';
+import 'models/guide_slide_model.dart';
 import 'models/prayer_session_model.dart';
 import 'models/wish_item_model.dart';
 import 'models/wish_room_model.dart';
@@ -25,6 +26,14 @@ import 'repositories/wish_room_repository.dart';
 /// 시점에 독립적으로 설계되어 개념 체계가 정확히 일치하지 않는다. 이
 /// 클래스는 그 갭을 해소하는 "어댑터"이며, Controller/위젯 코드는 전혀
 /// 손대지 않고 이 파일 하나로 실 서버 연동을 완결한다.
+///
+/// [인터페이스 확장 메서드] `fetchGuideSlides()`는 [WishRoomRepository]
+/// 정식 인터페이스에 포함됐지만, `wakeWish()`/`publishWish()`/
+/// `removeCustomizeItem()` 3개는 서버 전용 액션(소원 깨우기/게시판 공개/
+/// 꾸미기 해제)이라 기존 인터페이스에 아직 없다 — 이 클래스에만 추가된
+/// 확장 메서드이며, 정식 인터페이스로 승격하려면 Mock 구현체에도 대응
+/// 메서드를 추가해야 한다(§ "기존 구현 삭제/재작성 금지" — 인터페이스를
+/// 성급하게 넓혀 다른 구현체를 깨뜨리지 않기 위해 최소 변경만 반영).
 ///
 /// 1) ID 형식 — 서버는 `wrw_<id>` 문자열을 그대로 소원 ID로 쓴다
 ///    (parseWishRoomWishId가 이 형식과 순수 숫자 둘 다 파싱 가능하도록
@@ -335,15 +344,14 @@ class HttpWishRoomRepository implements WishRoomRepository {
     await _post('/api/wish-room/guide/seen', {'userId': userId});
   }
 
-  /// [가이드 슬라이드] 관리자 CMS가 편집한 슬라이드 목록을 그대로 가져온다
-  /// (§ "관리자 설정값 하드코딩 금지" — 슬라이드 문구를 클라이언트에 박지
-  /// 않는다). 기존 인터페이스에 없는 신규 확장 메서드다.
-  Future<List<({String title, String body, String? imageUrl})>> fetchGuideSlides() async {
+  // ── fetchGuideSlides ─────────────────────────────────────────────
+  @override
+  Future<List<GuideSlide>> fetchGuideSlides() async {
     final decoded = await _get('/api/wish-room/guide');
     final slides = (decoded['data'] as Map<String, dynamic>)['slides'] as List<dynamic>;
     return slides
         .map(
-          (s) => (
+          (s) => GuideSlide(
             title: (s as Map<String, dynamic>)['title'] as String? ?? '',
             body: s['body'] as String? ?? '',
             imageUrl: s['imageUrl'] as String?,

@@ -1,6 +1,7 @@
 import '../../luckpouch/application/luck_pouch_provider.dart';
 import '../domain/enums/prayer_type.dart';
 import 'models/customize_item_model.dart';
+import 'models/guide_slide_model.dart';
 import 'models/wish_item_model.dart';
 import 'models/wish_room_model.dart';
 import 'models/prayer_session_model.dart';
@@ -152,4 +153,7 @@ class RealCurrencyWishRoomRepository implements WishRoomRepository {
 
   @override
   Future<void> markGuideSeen() => _inner.markGuideSeen();
+
+  @override
+  Future<List<GuideSlide>> fetchGuideSlides() => _inner.fetchGuideSlides();
 }
