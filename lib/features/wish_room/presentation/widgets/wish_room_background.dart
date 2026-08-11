@@ -37,10 +37,24 @@ class WishRoomBackground extends StatefulWidget {
   /// [디자인 핸드오프] 마법진 + 먼지 파티클 레이어 노출 여부.
   final bool showSigil;
 
+  /// [디자인 핸드오프 8개 화면 재구현] `BgAtmosphere({sigilSize, sigilOpacity,
+  /// dust})` 스펙 대응 — 화면마다 메인 마법진 크기/불투명도가 다르다
+  /// (Onboarding 520 / Empty 340 / Compose 280 / Home 340 / Detail 420 /
+  /// Feed 200 / BoxOpening 620 / Celebration 640). 기존 호출부(기본값 340/
+  /// 0.22)는 값을 지정하지 않아도 그대로 동작하도록 기본값을 유지한다.
+  final double mainSigilSize;
+  final double mainSigilOpacity;
+
+  /// 상승 먼지 파티클 노출 여부(`dust: false`인 화면 — Empty/Compose 등).
+  final bool showDust;
+
   const WishRoomBackground({
     super.key,
     this.sparkleLevel = 0.3,
     this.showSigil = true,
+    this.mainSigilSize = 340,
+    this.mainSigilOpacity = 0.22,
+    this.showDust = true,
   });
 
   @override
@@ -134,9 +148,9 @@ class _WishRoomBackgroundState extends State<WishRoomBackground>
             RepaintBoundary(
               child: Center(
                 child: WishRoomSigilRing(
-                  size: 340,
+                  size: widget.mainSigilSize,
                   color: WishRoomColors.sigil,
-                  opacity: 0.22,
+                  opacity: widget.mainSigilOpacity,
                 ),
               ),
             ),
@@ -145,14 +159,14 @@ class _WishRoomBackgroundState extends State<WishRoomBackground>
               child: Align(
                 alignment: const Alignment(0.6, -0.5),
                 child: WishRoomSigilRing(
-                  size: 180,
+                  size: widget.mainSigilSize * 180 / 340,
                   color: WishRoomColors.crystal,
                   opacity: 0.16,
                   reverse: true,
                 ),
               ),
             ),
-          if (widget.showSigil)
+          if (widget.showSigil && widget.showDust)
             Positioned.fill(
               child: WishRoomDust(count: 10, color: WishRoomColors.glow),
             ),
