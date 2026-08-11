@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/wish_item_model.dart';
 import '../theme/wish_room_theme.dart';
 import '../widgets/wish_room_common_buttons.dart';
 import '../widgets/wish_room_sigil.dart';
+import 'wish_room_prayer_flow.dart';
 
 /// [디자인 핸드오프 8개 화면 재구현] 소원 성취 화면 — `ScreenCelebration` 스펙.
 ///
@@ -24,18 +26,20 @@ import '../widgets/wish_room_sigil.dart';
 /// — 새 재화/필드를 추가하지 않고 기존 [WishItem] 데이터만으로 완성한다.
 /// "N일 만에 이룬 소원"의 N은 `wish.createdAt` 기준 경과일(파생값, 별도
 /// 저장하지 않음).
-class WishCelebrationScreen extends StatelessWidget {
+///
+/// [CTA 배선] "감사의 소원 남기기"는 이 화면 자체의 `ref`로 기존에 검증된
+/// [WishRoomPrayerFlow.openWriteScreen](슬롯 부족 시 확장 안내까지 포함)을
+/// 그대로 재사용해 새 소원 작성 화면을 연다(§ "기존 구현 삭제/재작성
+/// 금지" — 새 작성 로직을 만들지 않고 이미 있는 흐름을 연결만 한다).
+/// [WishDetailScreen]이 이미 pop된 뒤라 그 context/ref를 넘겨받지 않고,
+/// [ConsumerWidget]으로 이 화면 자신의 살아있는 ref를 사용한다.
+class WishCelebrationScreen extends ConsumerWidget {
   final WishItem wish;
-  final VoidCallback? onWriteGratitudeWish;
 
-  const WishCelebrationScreen({
-    super.key,
-    required this.wish,
-    this.onWriteGratitudeWish,
-  });
+  const WishCelebrationScreen({super.key, required this.wish});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final days = DateTime.now().difference(wish.createdAt).inDays;
 
     return Scaffold(
@@ -159,7 +163,7 @@ class WishCelebrationScreen extends StatelessWidget {
                           border: Border.all(color: WishRoomColors.glow),
                         ),
                         child: Text(
-                          '🕯 ${days}일 만에 이룬 소원',
+                          '🕯 $days일 만에 이룬 소원',
                           style: WishRoomTextStyles.metaMono.copyWith(
                             color: WishRoomColors.glow,
                           ),
@@ -174,7 +178,7 @@ class WishCelebrationScreen extends StatelessWidget {
                         label: '감사의 소원 남기기',
                         onPressed: () {
                           Navigator.of(context).pop();
-                          onWriteGratitudeWish?.call();
+                          WishRoomPrayerFlow.openWriteScreen(context, ref);
                         },
                       ),
                       const SizedBox(height: 10),
