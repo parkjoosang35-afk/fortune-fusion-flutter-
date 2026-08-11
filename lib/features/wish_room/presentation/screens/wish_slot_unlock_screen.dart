@@ -5,12 +5,18 @@ import '../../domain/enums/wish_slot_status.dart';
 import '../providers/wish_room_providers.dart';
 import '../state/wish_room_ui_state.dart';
 import '../theme/wish_room_theme.dart';
+import '../widgets/wish_room_animations.dart';
+import '../widgets/wish_room_background.dart';
 
 /// [필수 화면 ⑨ 슬롯 확장 또는 보상 해금 화면]
 ///
 /// 화면 목적: 대표 슬롯 1개 + 서브 슬롯 2개의 현재 상태(대표/보조/빈자리/
 /// 잠김)를 한눈에 보여주고, 잠긴 서브 슬롯을 스트릭 무료 해금 또는
 /// 복주머니 즉시 해금으로 열 수 있게 한다(정책표 ① 참고).
+///
+/// [디자인 핸드오프 — "마법진이 소환되는 신전"] 다른 화면들과 일관된
+/// 대기(atmosphere) 배경([WishRoomBackground])과 화면 진입 연출
+/// ([DramaticEntrance])을 적용했다. 해금 로직/가드는 그대로 유지.
 class WishSlotUnlockScreen extends ConsumerWidget {
   const WishSlotUnlockScreen({super.key});
 
@@ -55,118 +61,123 @@ class WishSlotUnlockScreen extends ConsumerWidget {
         title: Text('소원 자리 넓히기', style: WishRoomTextStyles.titleLg),
         iconTheme: const IconThemeData(color: WishRoomColors.textPrimary),
       ),
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: WishRoomColors.backgroundGradient,
-        ),
-        child: SafeArea(
-          top: false,
-          child: asyncData.when(
-            loading: () => const Center(
-              child: CircularProgressIndicator(color: WishRoomColors.gold),
-            ),
-            error: (err, st) => Center(
-              child: Text('잠시 후 다시 시도해주세요', style: WishRoomTextStyles.bodyMd),
-            ),
-            data: (data) {
-              final statuses = data.room.slotStatuses;
-              final allUnlocked = data.room.unlockedSubSlotCount >= 2;
-
-              return Padding(
-                padding: const EdgeInsets.all(WishRoomSpacing.lg),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '이 방에는 소원을 담을\n자리가 세 곳 있어요',
-                      style: WishRoomTextStyles.titleLg,
-                    ),
-                    const SizedBox(height: WishRoomSpacing.lg),
-                    Row(
-                      children: statuses
-                          .map(
-                            (status) => Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: WishRoomSpacing.xs,
-                                ),
-                                child: _SlotTile(status: status),
-                              ),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                    const SizedBox(height: WishRoomSpacing.xl),
-                    if (allUnlocked)
-                      Text(
-                        '모든 자리가 열렸어요.\n이제 세 가지 소원을 함께 키워보세요',
-                        style: WishRoomTextStyles.bodyMd,
-                        textAlign: TextAlign.center,
-                      )
-                    else ...[
-                      if (canUnlockByStreak)
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: WishRoomColors.gold,
-                              padding: const EdgeInsets.symmetric(
-                                vertical: WishRoomSpacing.md,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(
-                                  WishRoomRadius.pill,
-                                ),
-                              ),
-                            ),
-                            onPressed: () =>
-                                _unlock(context, ref, viaPouch: false),
-                            child: Text(
-                              '무료로 자리 열기 (연속 방문 보상)',
-                              style: WishRoomTextStyles.ctaLabel,
-                            ),
-                          ),
-                        )
-                      else
-                        Text(
-                          '연속 ${data.room.unlockedSubSlotCount == 0 ? 3 : 7}일 방문하면 '
-                          '무료로 자리가 열려요 (현재 ${data.room.consecutivePrayerDays}일째)',
-                          style: WishRoomTextStyles.caption,
-                        ),
-                      const SizedBox(height: WishRoomSpacing.sm),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(
-                              color: WishRoomColors.surfaceCardBorder,
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              vertical: WishRoomSpacing.md,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(
-                                WishRoomRadius.pill,
-                              ),
-                            ),
-                          ),
-                          onPressed: () =>
-                              _unlock(context, ref, viaPouch: true),
-                          child: Text(
-                            '복주머니 30개로 바로 열기',
-                            style: WishRoomTextStyles.bodyMd.copyWith(
-                              color: WishRoomColors.textPrimary,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
+      body: Stack(
+        children: [
+          const Positioned.fill(child: WishRoomBackground()),
+          SafeArea(
+            top: false,
+            child: DramaticEntrance(
+              child: asyncData.when(
+                loading: () => const Center(
+                  child: CircularProgressIndicator(color: WishRoomColors.gold),
                 ),
-              );
-            },
+                error: (err, st) => Center(
+                  child: Text(
+                    '잠시 후 다시 시도해주세요',
+                    style: WishRoomTextStyles.bodyMd,
+                  ),
+                ),
+                data: (data) {
+                  final statuses = data.room.slotStatuses;
+                  final allUnlocked = data.room.unlockedSubSlotCount >= 2;
+
+                  return Padding(
+                    padding: const EdgeInsets.all(WishRoomSpacing.lg),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '이 방에는 소원을 담을\n자리가 세 곳 있어요',
+                          style: WishRoomTextStyles.titleLg,
+                        ),
+                        const SizedBox(height: WishRoomSpacing.lg),
+                        Row(
+                          children: statuses
+                              .map(
+                                (status) => Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: WishRoomSpacing.xs,
+                                    ),
+                                    child: _SlotTile(status: status),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                        const SizedBox(height: WishRoomSpacing.xl),
+                        if (allUnlocked)
+                          Text(
+                            '모든 자리가 열렸어요.\n이제 세 가지 소원을 함께 키워보세요',
+                            style: WishRoomTextStyles.bodyMd,
+                            textAlign: TextAlign.center,
+                          )
+                        else ...[
+                          if (canUnlockByStreak)
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: WishRoomColors.gold,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: WishRoomSpacing.md,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      WishRoomRadius.pill,
+                                    ),
+                                  ),
+                                ),
+                                onPressed: () =>
+                                    _unlock(context, ref, viaPouch: false),
+                                child: Text(
+                                  '무료로 자리 열기 (연속 방문 보상)',
+                                  style: WishRoomTextStyles.ctaLabel,
+                                ),
+                              ),
+                            )
+                          else
+                            Text(
+                              '연속 ${data.room.unlockedSubSlotCount == 0 ? 3 : 7}일 방문하면 '
+                              '무료로 자리가 열려요 (현재 ${data.room.consecutivePrayerDays}일째)',
+                              style: WishRoomTextStyles.caption,
+                            ),
+                          const SizedBox(height: WishRoomSpacing.sm),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(
+                                  color: WishRoomColors.surfaceCardBorder,
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: WishRoomSpacing.md,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    WishRoomRadius.pill,
+                                  ),
+                                ),
+                              ),
+                              onPressed: () =>
+                                  _unlock(context, ref, viaPouch: true),
+                              child: Text(
+                                '복주머니 30개로 바로 열기',
+                                style: WishRoomTextStyles.bodyMd.copyWith(
+                                  color: WishRoomColors.textPrimary,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

@@ -5,9 +5,15 @@ import '../providers/wish_room_providers.dart';
 import '../theme/wish_room_theme.dart';
 import '../widgets/growth_progress_card.dart';
 import '../widgets/wish_card.dart';
+import '../widgets/wish_room_animations.dart';
+import '../widgets/wish_room_background.dart';
 
 /// [소원방 Riverpod 실험판] 내 소원 기록/히스토리 화면.
 /// 전체 소원 리스트(대표 소원 포함)를 노출한다.
+///
+/// [디자인 핸드오프 — "마법진이 소환되는 신전"] 다른 화면들과 일관된
+/// 대기(atmosphere) 배경([WishRoomBackground])과 화면 진입 연출
+/// ([DramaticEntrance])을 적용했다. 데이터 로딩/조회 로직은 그대로 유지.
 class WishHistoryScreen extends ConsumerWidget {
   const WishHistoryScreen({super.key});
 
@@ -23,52 +29,59 @@ class WishHistoryScreen extends ConsumerWidget {
         title: Text('내 소원 기록', style: WishRoomTextStyles.titleLg),
         iconTheme: const IconThemeData(color: WishRoomColors.textPrimary),
       ),
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: WishRoomColors.backgroundGradient,
-        ),
-        child: SafeArea(
-          top: false,
-          child: asyncData.when(
-            loading: () => const Center(
-              child: CircularProgressIndicator(color: WishRoomColors.gold),
-            ),
-            error: (err, st) => Center(
-              child: Text('잠시 후 다시 시도해주세요', style: WishRoomTextStyles.bodyMd),
-            ),
-            data: (data) {
-              if (data.room.wishes.isEmpty) {
-                return Center(
+      body: Stack(
+        children: [
+          const Positioned.fill(child: WishRoomBackground()),
+          SafeArea(
+            top: false,
+            child: DramaticEntrance(
+              child: asyncData.when(
+                loading: () => const Center(
+                  child: CircularProgressIndicator(color: WishRoomColors.gold),
+                ),
+                error: (err, st) => Center(
                   child: Text(
-                    '지금까지 당신이 품어온 마음들',
+                    '잠시 후 다시 시도해주세요',
                     style: WishRoomTextStyles.bodyMd,
                   ),
-                );
-              }
-              return ListView.builder(
-                padding: const EdgeInsets.all(WishRoomSpacing.md),
-                itemCount: data.room.wishes.length,
-                itemBuilder: (context, index) {
-                  final wish = data.room.wishes[index];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: WishRoomSpacing.md),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(
-                          width: double.infinity,
-                          child: WishCard(wish: wish),
+                ),
+                data: (data) {
+                  if (data.room.wishes.isEmpty) {
+                    return Center(
+                      child: Text(
+                        '지금까지 당신이 품어온 마음들',
+                        style: WishRoomTextStyles.bodyMd,
+                      ),
+                    );
+                  }
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(WishRoomSpacing.md),
+                    itemCount: data.room.wishes.length,
+                    itemBuilder: (context, index) {
+                      final wish = data.room.wishes[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(
+                          bottom: WishRoomSpacing.md,
                         ),
-                        const SizedBox(height: WishRoomSpacing.sm),
-                        GrowthProgressCard(wish: wish),
-                      ],
-                    ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              width: double.infinity,
+                              child: WishCard(wish: wish),
+                            ),
+                            const SizedBox(height: WishRoomSpacing.sm),
+                            GrowthProgressCard(wish: wish),
+                          ],
+                        ),
+                      );
+                    },
                   );
                 },
-              );
-            },
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

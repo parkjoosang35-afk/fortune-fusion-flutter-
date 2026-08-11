@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../theme/wish_room_theme.dart';
+import 'wish_room_dust.dart';
+import 'wish_room_sigil.dart';
 
 /// [소원방 Riverpod 실험판] 별빛/안개 반짝임 배경.
 ///
@@ -19,10 +21,27 @@ import '../theme/wish_room_theme.dart';
 /// 느낌을 강화. 별도의 AnimationController(느린 12초 주기)를 추가로
 /// 두되, 기존 4초 별빛 컨트롤러와 완전히 독립적으로 동작해 기존 로직을
 /// 건드리지 않는다.
+///
+/// [디자인 핸드오프 적용 — "마법진이 소환되는 신전"] 기존 별빛/네뷸라
+/// 레이어는 전혀 건드리지 않고, 그 위에 `design_handoff` V2("달빛
+/// 크리스탈"/`anim-dramatic`) 스펙의 배경 장식 2종을 추가로 얹었다:
+/// - 정/역회전하는 마법진 2개([WishRoomSigilRing], 40s/55s, `BgAtmosphere`
+///   원본 스펙의 "메인 sigil + 역회전 보조 sigil" 레이어 구성을 재현)
+/// - 상승하는 크리스탈 먼지 파티클([WishRoomDust], anim-dramatic 4s)
+///
+/// [showSigil]로 이 신규 레이어 노출 여부를 제어할 수 있어, 기존 화면들의
+/// 시각적 합의 없이 우선 opt-in 방식으로 적용할 수 있게 했다.
 class WishRoomBackground extends StatefulWidget {
   final double sparkleLevel; // 0.0 ~ 1.0
 
-  const WishRoomBackground({super.key, this.sparkleLevel = 0.3});
+  /// [디자인 핸드오프] 마법진 + 먼지 파티클 레이어 노출 여부.
+  final bool showSigil;
+
+  const WishRoomBackground({
+    super.key,
+    this.sparkleLevel = 0.3,
+    this.showSigil = true,
+  });
 
   @override
   State<WishRoomBackground> createState() => _WishRoomBackgroundState();
@@ -106,6 +125,37 @@ class _WishRoomBackgroundState extends State<WishRoomBackground>
               );
             },
           ),
+          // [디자인 핸드오프 — "마법진이 소환되는 신전"] 정/역회전 마법진
+          // 2개 + 상승하는 크리스탈 먼지. 각각 독립된 AnimationController를
+          // 가지므로(WishRoomSigilRing/WishRoomDust 내부) 기존 별빛/네뷸라
+          // 애니메이션과 완전히 분리되어 동작한다. RepaintBoundary로 감싸
+          // 배경 전체 리페인트를 상위 스크롤/리스트 rebuild와 분리한다.
+          if (widget.showSigil)
+            RepaintBoundary(
+              child: Center(
+                child: WishRoomSigilRing(
+                  size: 340,
+                  color: WishRoomColors.sigil,
+                  opacity: 0.22,
+                ),
+              ),
+            ),
+          if (widget.showSigil)
+            RepaintBoundary(
+              child: Align(
+                alignment: const Alignment(0.6, -0.5),
+                child: WishRoomSigilRing(
+                  size: 180,
+                  color: WishRoomColors.crystal,
+                  opacity: 0.16,
+                  reverse: true,
+                ),
+              ),
+            ),
+          if (widget.showSigil)
+            Positioned.fill(
+              child: WishRoomDust(count: 10, color: WishRoomColors.glow),
+            ),
         ],
       ),
     );

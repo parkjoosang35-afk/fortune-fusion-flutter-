@@ -246,6 +246,88 @@ class AnimatedCountText extends StatelessWidget {
   }
 }
 
+/// [디자인 핸드오프 적용 — "마법진이 소환되는 신전"] `anim-dramatic` 화면
+/// 진입 연출(`dramatic-appear`).
+///
+/// README/`wish-animations.css`: opacity 0→1, translateY(20px→0),
+/// scale(0.98→1), 1s, `cubic-bezier(0.34, 1.56, 0.64, 1)`(spring), 1회.
+/// 신규 8개 화면(Onboarding/Compose/Home/Detail/Feed/BoxOpening/
+/// Celebration/Empty)이 처음 마운트될 때 이 래퍼로 콘텐츠를 감싸 "화면이
+/// 살짝 튕기며 나타나는" V2 특유의 드라마틱한 등장감을 낸다.
+class DramaticEntrance extends StatefulWidget {
+  final Widget child;
+  final Duration delay;
+  final Duration duration;
+
+  const DramaticEntrance({
+    super.key,
+    required this.child,
+    this.delay = Duration.zero,
+    this.duration = const Duration(milliseconds: 1000),
+  });
+
+  @override
+  State<DramaticEntrance> createState() => _DramaticEntranceState();
+}
+
+class _DramaticEntranceState extends State<DramaticEntrance>
+    with SingleTickerProviderStateMixin {
+  // CSS cubic-bezier(0.34, 1.56, 0.64, 1) — 오버슈트가 있는 스프링형
+  // easing. Flutter의 Cubic 커브로 동일한 4개 제어점을 그대로 사용해
+  // 1:1로 재현한다.
+  static const Curve _springCurve = Cubic(0.34, 1.56, 0.64, 1.0);
+
+  late final AnimationController _controller;
+  late final Animation<double> _fade;
+  late final Animation<double> _slideY;
+  late final Animation<double> _scale;
+  Timer? _startTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: widget.duration);
+    final curved = CurvedAnimation(parent: _controller, curve: _springCurve);
+    // fade는 spring 오버슈트에 영향받지 않도록 별도의 순수 선형 진행도로
+    // 처리(오버슈트 구간에서 opacity가 1을 넘거나 음수가 되는 것을 방지).
+    _fade = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
+    _slideY = Tween<double>(begin: 20, end: 0).animate(curved);
+    _scale = Tween<double>(begin: 0.98, end: 1.0).animate(curved);
+
+    if (widget.delay == Duration.zero) {
+      _controller.forward();
+    } else {
+      _startTimer = Timer(widget.delay, () {
+        if (mounted) _controller.forward();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _startTimer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Opacity(
+          opacity: _fade.value.clamp(0.0, 1.0),
+          child: Transform.translate(
+            offset: Offset(0, _slideY.value),
+            child: Transform.scale(scale: _scale.value, child: child),
+          ),
+        );
+      },
+      child: widget.child,
+    );
+  }
+}
+
 /// 아이콘/이모지에 은은한 좌우 흔들림(sparkle wiggle)을 반복 재생하는
 /// 공용 래퍼. 딱딱하게 고정된 이모지에 생기를 더하는 용도(예: 오늘의
 /// 메시지 카드의 반짝임 아이콘).

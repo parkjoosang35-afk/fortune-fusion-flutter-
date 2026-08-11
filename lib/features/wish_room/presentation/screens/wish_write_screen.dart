@@ -5,6 +5,8 @@ import '../../data/models/wish_item_model.dart';
 import '../providers/wish_room_providers.dart';
 import '../theme/wish_room_theme.dart';
 import '../widgets/category_chip_group.dart';
+import '../widgets/wish_room_animations.dart';
+import '../widgets/wish_room_background.dart';
 
 /// [소원방 Riverpod 실험판] 소원 작성/선택 화면.
 /// 직접 입력 + 추천 카테고리 칩 선택 지원. 저장 시 메인으로 복귀한다.
@@ -44,11 +46,17 @@ class _WishWriteScreenState extends ConsumerState<WishWriteScreen> {
 
     return Scaffold(
       backgroundColor: WishRoomColors.backgroundDeep,
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: WishRoomColors.backgroundGradient,
-        ),
-        child: SafeArea(
+      // [디자인 핸드오프 — "마법진이 소환되는 신전"] README `3. Compose Wish`
+      // 스펙: 다른 화면들과 동일한 대기(atmosphere) 배경(마법진+먼지 파티클)
+      // 위에 콘텐츠가 놓인다. 기존 단색 그라디언트(DecoratedBox)를
+      // [WishRoomBackground]로 교체하고, 콘텐츠 전체에 화면 진입 연출
+      // [DramaticEntrance]를 적용한다. 내부 로직(TextEditingController,
+      // 카테고리 선택, _save 등)은 전혀 건드리지 않는다.
+      body: Stack(
+        children: [
+          const Positioned.fill(child: WishRoomBackground()),
+          SafeArea(
+          child: DramaticEntrance(
           child: Padding(
             padding: const EdgeInsets.all(WishRoomSpacing.lg),
             child: Column(
@@ -139,7 +147,9 @@ class _WishWriteScreenState extends ConsumerState<WishWriteScreen> {
               ],
             ),
           ),
-        ),
+          ),
+          ),
+        ],
       ),
     );
   }

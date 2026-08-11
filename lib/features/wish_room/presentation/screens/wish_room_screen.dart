@@ -16,6 +16,7 @@ import '../widgets/prayer_type_sheet.dart';
 import '../widgets/wish_card_list.dart';
 import '../widgets/wish_guide_dialog.dart';
 import '../widgets/wish_orb_cluster.dart';
+import '../widgets/wish_room_animations.dart';
 import '../widgets/wish_room_background.dart';
 import '../widgets/wish_room_header.dart';
 import '../widgets/wish_room_object.dart';
@@ -349,7 +350,14 @@ class WishRoomScreen extends ConsumerWidget {
                 final representativeWishes = data.room.representativeWishes;
                 final representativeWish = data.room.representativeWish;
 
-                return CustomScrollView(
+                // [디자인 핸드오프 — "마법진이 소환되는 신전"] README
+                // `Screen entrance (V2 dramatic)` 스펙(opacity 0→1,
+                // translateY 20→0, scale 0.98→1, spring easing, 1회)을
+                // 재구현한 DramaticEntrance로 메인 콘텐츠 전체를 감싼다.
+                // asyncData가 loading→data로 전환될 때 이 서브트리가 처음
+                // 마운트되는 순간에만 1회 재생된다.
+                return DramaticEntrance(
+                  child: CustomScrollView(
                   slivers: [
                     SliverToBoxAdapter(
                       child: WishRoomHeader(
@@ -608,6 +616,7 @@ class WishRoomScreen extends ConsumerWidget {
                       ),
                     ),
                   ],
+                  ),
                 );
               },
             ),
