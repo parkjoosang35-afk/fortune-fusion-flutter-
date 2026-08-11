@@ -188,6 +188,12 @@ model User {
   openPassAdRewardLogs          OpenPassAdRewardLog[]
   passCategoryUsages            PassCategoryUsage[]
   fortuneAdWatchLogs            FortuneAdWatchLog[]
+  wishRoomProfile               WishRoomProfile?
+  wishRoomWishes                WishRoomWish[]
+  wishRoomCareLogs              WishRoomCareLog[]
+  wishRoomInventory             WishRoomInventory[]
+  wishRoomPlacements            WishRoomPlacement[]
+  wishRoomPushLogs              WishRoomPushLog[]
 
   @@map("users")
 }
@@ -3203,12 +3209,12 @@ model FortuneAd {
   watchSeconds Int @default(15) @map("watch_seconds") // 최소 시청 시간(초), 서버 검증 기준
 
   // 노출/제한 설정
-  isActive         Boolean   @default(true) @map("is_active")
-  startAt          DateTime? @map("start_at")
-  endAt            DateTime? @map("end_at")
-  priority         Int       @default(0) @map("priority") // 낮을수록 먼저 노출
-  perUserDailyLimit Int      @default(3) @map("per_user_daily_limit") // 회원당 하루 최대 시청 횟수
-  dailyLimitReward Int?      @map("daily_limit_reward") // 광고 1건당 하루 최대 지급 총량(전체 유저 합산, null=무제한)
+  isActive          Boolean   @default(true) @map("is_active")
+  startAt           DateTime? @map("start_at")
+  endAt             DateTime? @map("end_at")
+  priority          Int       @default(0) @map("priority") // 낮을수록 먼저 노출
+  perUserDailyLimit Int       @default(3) @map("per_user_daily_limit") // 회원당 하루 최대 시청 횟수
+  dailyLimitReward  Int?      @map("daily_limit_reward") // 광고 1건당 하루 최대 지급 총량(전체 유저 합산, null=무제한)
 
   status    String    @default("active") @map("status") // active/paused/deleted
   createdAt DateTime  @default(now()) @map("created_at")
@@ -3225,17 +3231,17 @@ model FortuneAd {
 
 // ── FortuneAdWatchLog: 시청 시작~완료 이력 + 지급 상태(중복지급 방지) ──
 model FortuneAdWatchLog {
-  id            Int      @id @default(autoincrement())
-  userId        Int      @map("user_id")
-  adId          Int      @map("ad_id")
-  sessionId     String   @map("session_id") // start 호출 시 서버가 발급
+  id        Int    @id @default(autoincrement())
+  userId    Int    @map("user_id")
+  adId      Int    @map("ad_id")
+  sessionId String @map("session_id") // start 호출 시 서버가 발급
 
-  startedAt     DateTime  @default(now()) @map("started_at")
-  completedAt   DateTime? @map("completed_at")
-  watchSeconds  Int?      @map("watch_seconds") // 클라이언트가 보고한 실제 시청 시간(참고값, 최종판정은 서버)
+  startedAt    DateTime  @default(now()) @map("started_at")
+  completedAt  DateTime? @map("completed_at")
+  watchSeconds Int?      @map("watch_seconds") // 클라이언트가 보고한 실제 시청 시간(참고값, 최종판정은 서버)
 
-  rewardAmount  Int      @default(0) @map("reward_amount") // 실제 지급된 금액(0=미지급)
-  rewardStatus  String   @default("PENDING") @map("reward_status") // PENDING/COMPLETED/FAILED
+  rewardAmount Int    @default(0) @map("reward_amount") // 실제 지급된 금액(0=미지급)
+  rewardStatus String @default("PENDING") @map("reward_status") // PENDING/COMPLETED/FAILED
 
   // 클라이언트가 start 시점에 생성해 매 요청에 동일하게 전달. complete 요청의 중복 처리를
   // 막는 유일한 근거(§원칙: 서버 최종지급 + 중복지급차단 idempotency).
@@ -3249,4 +3255,267 @@ model FortuneAdWatchLog {
   @@index([userId, adId, createdAt])
   @@index([adId, rewardStatus, createdAt])
   @@map("fortune_ad_watch_logs")
+}
+
+// ══════════════════════════════════════════════════════════════════
+// [신규] 소원방(Wish Room) — 회원 개인 판타지 성장 공간
+//
+// [설계 원칙]
+// 1) 복주머니 재화는 신규 테이블을 만들지 않고 기존 Wallet(currencyType=POINT)
+//    + PointHistory(원장) + luck-pouch-engine.ts(earnLuckPouch/spendLuckPouch)를
+//    그대로 재사용한다. 아래 어떤 소원방 모델도 잔액 컬럼을 갖지 않는다.
+// 2) 지급/차감 규칙(RewardRule/RewardSpendRule 상당)은 기존 LuckPouchRule을
+//    재사용한다(targetScope="wish_room", actionType으로 세분화). 신규
+//    LuckPouchRule 테이블을 새로 만들지 않는다.
+// 3) 소원게시판(커뮤니티 공개본)은 기존 "소원성" Wish/WishBokju 테이블을 그대로
+//    재사용한다. WishRoomWish.publicWishId가 Wish.id를 참조(soft reference)해
+//    공개 시 파생본을 연결한다 — 명명 충돌을 피하기 위해 신규 모델은 모두
+//    "WishRoom" 접두사를 사용한다(기존 Wish 테이블과 절대 겹치지 않음).
+// 4) 모든 신규 모델은 idempotencyKey/requestId 등 중복 처리 방지 컬럼을 갖는다.
+// ══════════════════════════════════════════════════════════════════
+
+// ── 소원방 전역 설정(기본 설정) — EconomyConfig/WishConfig와 동일한 key-value 패턴 ──
+model WishRoomConfig {
+  key         String   @id
+  value       String // 문자열로 저장(숫자/불리언/JSON은 코드에서 파싱, wish-config-meta.ts 패턴과 동일)
+  description String?
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  updatedBy   String?  @map("updated_by")
+
+  @@map("wish_room_config")
+}
+
+// ── 소원 카테고리 마스터(관리자 카테고리 관리) ──
+model WishRoomCategory {
+  id           Int       @id @default(autoincrement())
+  code         String    @unique // Flutter WishCategory enum 값과 1:1 대응(health/wealth/exam/love/family/achievement/healing/custom)
+  label        String
+  emoji        String
+  colorHex     String    @map("color_hex") // 소원구슬 카테고리 색상(예: #FF5C8A)
+  displayOrder Int       @default(0) @map("display_order")
+  isActive     Boolean   @default(true) @map("is_active")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+  updatedBy    String?   @map("updated_by")
+
+  @@map("wish_room_categories")
+}
+
+// ── 회원당 1개, 소원방 자체의 현재 상태(레벨/경험치/테마/방문 통계) ──
+model WishRoomProfile {
+  id                   Int       @id @default(autoincrement())
+  userId               Int       @unique @map("user_id")
+  level                Int       @default(1)
+  exp                  Int       @default(0)
+  currentThemeId       Int?      @map("current_theme_id")
+  representativeWishId Int?      @map("representative_wish_id")
+  totalVisitCount      Int       @default(0) @map("total_visit_count")
+  totalCareCount       Int       @default(0) @map("total_care_count")
+  consecutiveVisitDays Int       @default(0) @map("consecutive_visit_days")
+  roomState            String    @default("normal") @map("room_state") // normal/decayed(감쇠 상태)
+  hasSeenGuide         Boolean   @default(false) @map("has_seen_guide")
+  lastEnteredAt        DateTime? @map("last_entered_at")
+  lastCaredAt          DateTime? @map("last_cared_at")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  user  User           @relation(fields: [userId], references: [id])
+  theme WishRoomTheme? @relation(fields: [currentThemeId], references: [id])
+
+  @@map("wish_room_profiles")
+}
+
+// ── 회원의 개별 소원(소원방 내부 원본) — 소원게시판(Wish) 공개본과는 분리 ──
+model WishRoomWish {
+  id               Int       @id @default(autoincrement())
+  userId           Int       @map("user_id")
+  categoryCode     String    @map("category_code") // WishRoomCategory.code 참조(soft reference)
+  content          String
+  isPublic         Boolean   @default(false) @map("is_public")
+  isRepresentative Boolean   @default(false) @map("is_representative")
+  energy           Int       @default(0)
+  maxEnergy        Int       @default(300) @map("max_energy")
+  careCount        Int       @default(0) @map("care_count")
+  cheerCount       Int       @default(0) @map("cheer_count")
+  // 소원게시판(기존 "소원성" Wish 테이블) 공개본 연결 — soft reference(FK 미설정,
+  // 다른 도메인 테이블이라 참조 무결성은 애플리케이션에서 체크).
+  publicWishId     Int?      @map("public_wish_id")
+  lastCaredAt      DateTime? @map("last_cared_at")
+  decayAppliedAt   DateTime? @map("decay_applied_at")
+  status           String    @default("active") @map("status") // active/deleted
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  user     User              @relation(fields: [userId], references: [id])
+  careLogs WishRoomCareLog[]
+
+  @@index([userId, status])
+  @@map("wish_room_wishes")
+}
+
+// ── 소원 돌보기(힘주기) 실행 기록 — 하루 제한 검증 + 보상 idempotency의 근거 원장 ──
+model WishRoomCareLog {
+  id                  Int      @id @default(autoincrement())
+  userId              Int      @map("user_id")
+  wishId              Int      @map("wish_id")
+  caredAt             DateTime @default(now()) @map("cared_at")
+  energyBefore        Int      @map("energy_before")
+  energyAfter         Int      @map("energy_after")
+  // 지급된 PointHistory.id(soft reference) — 보상이 없었다면 null.
+  rewardTransactionId Int?     @map("reward_transaction_id")
+  rewardAmount        Int      @default(0) @map("reward_amount")
+  // 클라이언트가 생성해 매 요청에 동일하게 전달하는 중복 방지 키(광고 complete API와
+  // 동일한 idempotency 패턴). 동일 request_id 재요청은 첫 처리 결과를 그대로 반환.
+  requestId           String?  @unique @map("request_id")
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  user User         @relation(fields: [userId], references: [id])
+  wish WishRoomWish @relation(fields: [wishId], references: [id])
+
+  @@index([userId, caredAt])
+  @@index([wishId, caredAt])
+  @@map("wish_room_care_logs")
+}
+
+// ── 배경/테마 마스터(꾸미기 상점) ──
+model WishRoomTheme {
+  id                 Int       @id @default(autoincrement())
+  name               String
+  previewImageUrl    String?   @map("preview_image_url")
+  backgroundAssetUrl String?   @map("background_asset_url")
+  animationAssetUrl  String?   @map("animation_asset_url")
+  pouchPrice         Int       @default(0) @map("pouch_price")
+  isPurchasable      Boolean   @default(true) @map("is_purchasable")
+  isEventOnly        Boolean   @default(false) @map("is_event_only")
+  startAt            DateTime? @map("start_at")
+  endAt              DateTime? @map("end_at")
+  isActive           Boolean   @default(true) @map("is_active")
+  displayOrder       Int       @default(0) @map("display_order")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  deletedAt          DateTime? @map("deleted_at")
+  updatedBy          String?   @map("updated_by")
+
+  profiles WishRoomProfile[]
+
+  @@map("wish_room_themes")
+}
+
+// ── 오브젝트/효과 마스터(별효과/달효과/구슬효과/오브젝트/특별애니메이션/에너지충전) ──
+model WishRoomObject {
+  id                Int       @id @default(autoincrement())
+  name              String
+  category          String    @map("category") // star_effect/moon_effect/orb_effect/decoration/special_animation/energy_charge
+  imageUrl          String?   @map("image_url")
+  animationAssetUrl String?   @map("animation_asset_url")
+  pouchPrice        Int       @default(0) @map("pouch_price")
+  unlockType        String    @default("purchase") @map("unlock_type") // purchase/growth_reward/streak_reward/event_limited
+  unlockThreshold   Int?      @map("unlock_threshold")
+  isEventOnly       Boolean   @default(false) @map("is_event_only")
+  startAt           DateTime? @map("start_at")
+  endAt             DateTime? @map("end_at")
+  isActive          Boolean   @default(true) @map("is_active")
+  displayOrder      Int       @default(0) @map("display_order")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  deletedAt         DateTime? @map("deleted_at")
+  updatedBy         String?   @map("updated_by")
+
+  @@map("wish_room_objects")
+}
+
+// ── 사용자가 구매/획득해 보유 중인 꾸미기 아이템(테마/오브젝트 공용) ──
+model WishRoomInventory {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  itemType    String   @map("item_type") // theme/object
+  itemId      Int      @map("item_id") // WishRoomTheme.id 또는 WishRoomObject.id(soft reference, itemType으로 구분)
+  acquiredVia String   @map("acquired_via") // purchase/growth_reward/streak_reward/event/manual
+  // 구매 시 지급 idempotency — 동일 요청 중복 처리 방지.
+  requestId   String?  @unique @map("request_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, itemType, itemId])
+  @@index([userId, itemType])
+  @@map("wish_room_inventory")
+}
+
+// ── 현재 방에 실제로 장착(적용) 중인 아이템 상태 ──
+model WishRoomPlacement {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  slotKey   String   @map("slot_key") // background/theme/star_effect/moon_effect/orb_effect/special_animation/decoration
+  itemType  String   @map("item_type") // theme/object
+  itemId    Int      @map("item_id")
+  appliedAt DateTime @default(now()) @map("applied_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  // decoration 슬롯은 여러 개 동시 장착을 허용하므로 (userId, slotKey)만으로는
+  // unique를 걸 수 없다 — 대신 (userId, slotKey, itemId)로 동일 아이템 중복 장착만
+  // 방지한다. 단일 슬롯(background/theme 등) 교체 시에는 서버 로직에서 기존 행을
+  // 지우고 새로 삽입한다.
+  @@unique([userId, slotKey, itemId])
+  @@index([userId, slotKey])
+  @@map("wish_room_placements")
+}
+
+// ── 이용방법/가이드 슬라이드(관리자 문구/순서/이미지/사용여부 관리) ──
+model WishRoomGuideSlide {
+  id           Int       @id @default(autoincrement())
+  title        String
+  body         String
+  imageUrl     String?   @map("image_url")
+  displayOrder Int       @default(0) @map("display_order")
+  isActive     Boolean   @default(true) @map("is_active")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+  updatedBy    String?   @map("updated_by")
+
+  @@map("wish_room_guide_slides")
+}
+
+// ── 자동 푸시 발송 규칙(감정형 리마인드) ──
+model WishRoomPushScenario {
+  id             Int      @id @default(autoincrement())
+  code           String   @unique // day1_reminder/day2_reminder/day3_reminder/cheer_received/pouch_arrived
+  title          String
+  body           String
+  deepLink       String?  @map("deep_link")
+  triggerDays    Int?     @map("trigger_days") // 미접속 N일 트리거(리마인드류만 사용, 이벤트형은 null)
+  priority       Int      @default(0) @map("priority") // 낮을수록 우선(동시 트리거 시 하나만 발송)
+  quietHourStart Int?     @map("quiet_hour_start") // 야간 발송 제한 시작 시(0~23, null=제한 없음)
+  quietHourEnd   Int?     @map("quiet_hour_end")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  updatedBy      String?  @map("updated_by")
+
+  logs WishRoomPushLog[]
+
+  @@map("wish_room_push_scenarios")
+}
+
+// ── 실제 발송 이력(중복 발송 방지 근거) ──
+model WishRoomPushLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @map("user_id")
+  scenarioId Int      @map("scenario_id")
+  title      String
+  body       String
+  status     String   @default("sent") // sent/skipped_duplicate/skipped_quiet_hours/failed
+  sentAt     DateTime @default(now()) @map("sent_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user     User                 @relation(fields: [userId], references: [id])
+  scenario WishRoomPushScenario @relation(fields: [scenarioId], references: [id])
+
+  @@index([userId, scenarioId, sentAt])
+  @@map("wish_room_push_logs")
 }
