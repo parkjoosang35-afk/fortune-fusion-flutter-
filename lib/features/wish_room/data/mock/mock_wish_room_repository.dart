@@ -305,6 +305,45 @@ class MockWishRoomRepository implements WishRoomRepository {
     await prefs.setBool(_kGuideSeenKey, true);
   }
 
+  /// [소원 깨우기] Mock 환경에는 서버의 실제 감쇠(decay) 스케줄러가 없으므로
+  /// "감쇠가 실제로 발생했는지"를 [WishItem.isWeak](growthPoint가
+  /// maxEnergy의 30% 미만)로 근사 판정한다. 서버 `wish-room/wake` 라우트의
+  /// `NOTHING_TO_WAKE`(감쇠 없음 → null 반환) 계약과 동일한 모양을 맞추기
+  /// 위함 — 대표 소원이 이미 충분히 밝다면(30% 이상) 깨울 필요가 없다고
+  /// 보고 null을 반환하고, 약해진 상태라면 소량 회복시키고 세션을 반환한다.
+  @override
+  Future<PrayerSession?> wakeWish(String wishId) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    WishItem? target;
+    for (final w in _room.wishes) {
+      if (w.id == wishId) target = w;
+    }
+    if (target == null) return null;
+    if (!target.isWeak) return null; // 서버의 NOTHING_TO_WAKE와 동일한 의미.
+
+    const gain = 20; // 서버 wish_room_wake_energy_gain 기본값과 동일.
+    const reward = 2; // 서버 wish_room_wake 보상 기본값과 동일.
+    final now = DateTime.now();
+    _room = _room.copyWith(
+      wishes: _room.wishes
+          .map(
+            (w) => w.id == wishId
+                ? w.copyWith(growthPoint: w.growthPoint + gain)
+                : w,
+          )
+          .toList(),
+    );
+    _pouch = _pouch.copyWith(totalCount: _pouch.totalCount + reward);
+    await _persistRoomAndPouch();
+    return PrayerSession(
+      id: 'wake_${Random().nextInt(99999)}',
+      wishId: wishId,
+      pouchUsed: 0,
+      prayedAt: now,
+      resultMessage: '소원이 다시 밝게 빛나요 (+$reward 복주머니)',
+    );
+  }
+
   /// [가이드 슬라이드] 서버가 없는 Mock 단계에서는 합리적인 기본 5단계
   /// 안내를 그대로 반환한다(기존 [WishGuideDialog]가 하드코딩하던 5단계
   /// 문구를 이 위치로 옮겨온 것 — 실 서버 연동 시에는

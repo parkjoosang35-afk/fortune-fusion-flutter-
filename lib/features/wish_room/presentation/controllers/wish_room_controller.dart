@@ -219,6 +219,38 @@ class WishRoomController extends AsyncNotifier<WishRoomData> {
   /// 서브 슬롯에 있던 소원이어도 그대로 대표 슬롯(0번)으로 승격된다.
   ///
   /// 성공 시 true, 대상 소원을 찾을 수 없거나 통신 실패 시 false.
+  /// [소원 깨우기] care(하루 1회 힘주기)와 별개인 "복귀 회복" 액션. 대상
+  /// 소원이 이미 충분히 밝다면(서버/Mock 모두 `isWeak == false`) Repository가
+  /// null을 반환하므로 이 경우 false를 리턴해 UI가 "깨울 필요 없음"으로
+  /// 처리하게 한다. 성공 시 true — [prayForWish]와 동일하게
+  /// fetchInitialData()로 최신 상태를 다시 받아와 성장치/복주머니 표시를
+  /// 갱신한다.
+  Future<bool> wakeWish(String wishId) async {
+    final current = state.valueOrNull;
+    if (current == null) return false;
+
+    state = const AsyncLoading<WishRoomData>().copyWithPrevious(state);
+    try {
+      final session = await _repo.wakeWish(wishId);
+      if (session == null) {
+        state = AsyncData(current);
+        return false;
+      }
+      final bundle = await _repo.fetchInitialData();
+      state = AsyncData(
+        current.copyWith(
+          room: bundle.room,
+          pouchStatus: bundle.pouchStatus,
+          dailyMessage: bundle.dailyMessage,
+        ),
+      );
+      return true;
+    } catch (e, st) {
+      state = AsyncError<WishRoomData>(e, st).copyWithPrevious(state);
+      return false;
+    }
+  }
+
   Future<bool> setRepresentative(String wishId) async {
     final current = state.valueOrNull;
     if (current == null) return false;

@@ -156,4 +156,15 @@ class RealCurrencyWishRoomRepository implements WishRoomRepository {
 
   @override
   Future<List<GuideSlide>> fetchGuideSlides() => _inner.fetchGuideSlides();
+
+  /// [소원 깨우기] wake는 비용이 없는 무료 회복 액션이므로(서버
+  /// `wish-room/wake` 라우트도 복주머니 소비 없이 오히려 보상을 지급하는
+  /// 구조) 실 잔액 검증/차감 없이 그대로 mock 구현에 위임한다. 보상
+  /// 지급(+2 복주머니)은 [MockWishRoomRepository.wakeWish] 내부에서
+  /// pouch.totalCount에 반영되며, 이는 표시값일 뿐 실제 지갑 원장에는
+  /// 반영되지 않는다 — 이 클래스가 orphan(사용 중단) 상태이므로 실 지갑
+  /// 연동은 [HttpWishRoomRepository] 쪽에서만 이뤄진다(클래스 docstring
+  /// 참고).
+  @override
+  Future<PrayerSession?> wakeWish(String wishId) => _inner.wakeWish(wishId);
 }

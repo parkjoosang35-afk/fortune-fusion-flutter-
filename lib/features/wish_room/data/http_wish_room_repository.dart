@@ -229,6 +229,7 @@ class HttpWishRoomRepository implements WishRoomRepository {
       prayerCount: json['careCount'] as int? ?? 0,
       isRepresentative: json['isRepresentative'] as bool? ?? false,
       growthPoint: json['energy'] as int? ?? 0,
+      maxEnergy: json['maxEnergy'] as int? ?? 300,
     );
   }
 
@@ -289,10 +290,12 @@ class HttpWishRoomRepository implements WishRoomRepository {
     );
   }
 
-  /// [소원 깨우기] 서버 전용 액션(care/wake 2종 중 하나) — 기존
-  /// [WishRoomRepository] 인터페이스에는 없는 신규 확장 메서드다.
-  /// 감쇠(에너지 감소)가 발생한 소원을 회복시키는 전용 API이며, 향후
-  /// UI(예: "🥀 소원의 빛이 조금 약해졌어요" 복귀 CTA)에서 직접 호출한다.
+  /// [소원 깨우기] care(하루 1회 힘주기)와 별개인 복귀 회복 액션. 감쇠가
+  /// 실제로 발생한 소원에서만 유효하며, 서버가 `NOTHING_TO_WAKE`로 판정하면
+  /// null을 반환한다(§ [WishRoomRepository.wakeWish] 계약 참고). 이제
+  /// [WishRoomController.wakeWish] → `wish_room_screen.dart`의 "🥀 소원의
+  /// 빛이 조금 약해졌어요" CTA에서 실제로 호출된다.
+  @override
   Future<PrayerSession?> wakeWish(String wishId) async {
     final userId = await _userId();
     final requestId = _newRequestId();

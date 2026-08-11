@@ -234,6 +234,27 @@ class WishRoomScreen extends ConsumerWidget {
     }
   }
 
+  /// [소원 깨우기 CTA] 대표 소원의 에너지가 약해졌을 때(`isWeak == true`)만
+  /// 노출되는 별도 복귀 액션. care(하루 1회 힘주기)와 달리 언제든 호출
+  /// 가능하지만, 실제로 감쇠가 발생하지 않은 상태라면 Repository/서버가
+  /// "깨울 필요 없음"으로 판단해 컨트롤러가 false를 반환한다 — 이 경우
+  /// 사용자에게 안내만 하고 별도 에러로 취급하지 않는다.
+  Future<void> _handleWakeTap(
+    BuildContext context,
+    WishRoomController controller,
+    WishItem wish,
+  ) async {
+    final success = await controller.wakeWish(wish.id);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success ? '소원이 다시 밝게 빛나요 🌟 (+2 복주머니)' : '아직 깨울 필요가 없어요.',
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncData = ref.watch(wishRoomControllerProvider);
@@ -377,6 +398,51 @@ class WishRoomScreen extends ConsumerWidget {
                             0,
                           ),
                           child: GrowthProgressCard(wish: representativeWish),
+                        ),
+                      ),
+                    if (representativeWish != null && representativeWish.isWeak)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            WishRoomSpacing.md,
+                            WishRoomSpacing.sm,
+                            WishRoomSpacing.md,
+                            0,
+                          ),
+                          child: Material(
+                            color: WishRoomColors.gold.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(
+                              WishRoomRadius.pill,
+                            ),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(
+                                WishRoomRadius.pill,
+                              ),
+                              onTap: () => _handleWakeTap(
+                                context,
+                                controller,
+                                representativeWish,
+                              ),
+                              child: const Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: WishRoomSpacing.md,
+                                  vertical: WishRoomSpacing.sm,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Text('🥀', style: TextStyle(fontSize: 20)),
+                                    SizedBox(width: WishRoomSpacing.sm),
+                                    Expanded(
+                                      child: Text(
+                                        '소원의 빛이 조금 약해졌어요 · 탭해서 깨워주기',
+                                      ),
+                                    ),
+                                    Icon(Icons.chevron_right, size: 18),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     SliverToBoxAdapter(

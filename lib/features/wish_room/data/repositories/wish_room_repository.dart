@@ -49,6 +49,14 @@ abstract class WishRoomRepository {
     required PrayerType type,
   });
 
+  /// [소원 깨우기] care(하루 1회 힘주기)와 별개인 "복귀 회복" 액션.
+  /// 감쇠(미접속으로 에너지가 약해짐)가 실제로 발생한 소원에서만 유효하며,
+  /// 감쇠가 없는 소원(이미 정상 범위)에 호출하면 null을 반환한다(§ 서버
+  /// wish-room/wake 라우트의 NOTHING_TO_WAKE 판정과 동일 — 실패가 아니라
+  /// "할 필요 없음" 상태). 성공 시 회복된 소원 기준의 [PrayerSession]을
+  /// 반환한다.
+  Future<PrayerSession?> wakeWish(String wishId);
+
   Future<void> markGuideSeen();
 
   /// [가이드 슬라이드] 관리자 CMS가 편집한 "이용 방법" 풀스크린 슬라이드

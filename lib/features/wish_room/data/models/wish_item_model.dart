@@ -163,6 +163,13 @@ class WishItem {
   /// 트리거 용도로 재사용 가능하도록 상한을 두지 않는다).
   final int growthPoint;
 
+  /// [소원 감쇠 시스템] 서버 `WishRoomWish.maxEnergy`(관리자 설정,
+  /// 기본 300)와 동일한 상한. `growthPoint`가 이 상한에 근접/도달했는지
+  /// 판단할 때 쓰이며, 감쇠(미접속 시 에너지 감소) 발생 여부를 판단하는
+  /// [isWeak] 게터의 기준값이기도 하다. Mock 구현체는 서버 감쇠 로직이
+  /// 없으므로 기본값(300)을 그대로 사용한다.
+  final int maxEnergy;
+
   const WishItem({
     required this.id,
     required this.title,
@@ -172,7 +179,16 @@ class WishItem {
     this.prayerCount = 0,
     this.isRepresentative = false,
     this.growthPoint = 0,
+    this.maxEnergy = 300,
   });
+
+  /// [소원 깨우기 CTA 노출 조건] 서버 `wish-room/wake` 라우트의 "깨울
+  /// 필요 없음" 판단 기준(`before < maxEnergy * 0.3`)과 동일한 임계값을
+  /// 클라이언트에서도 미리 계산해, 에너지가 약해진 소원에만 "🥀 소원의
+  /// 빛이 조금 약해졌어요" 복귀 CTA를 노출한다(정책표 참고, 서버가 최종
+  /// 판정을 다시 하므로 여기서는 UI 노출 여부만 결정한다 — 실제 회복량/
+  /// 보상은 항상 서버 응답 기준).
+  bool get isWeak => growthPoint < maxEnergy * 0.3;
 
   /// 현재 정성 누적치에 대응하는 성장 단계(파생값, 별도 저장하지 않음).
   WishGrowthStage get growthStage =>
@@ -194,6 +210,7 @@ class WishItem {
     int? prayerCount,
     bool? isRepresentative,
     int? growthPoint,
+    int? maxEnergy,
   }) {
     return WishItem(
       id: id,
@@ -204,6 +221,7 @@ class WishItem {
       prayerCount: prayerCount ?? this.prayerCount,
       isRepresentative: isRepresentative ?? this.isRepresentative,
       growthPoint: growthPoint ?? this.growthPoint,
+      maxEnergy: maxEnergy ?? this.maxEnergy,
     );
   }
 }
