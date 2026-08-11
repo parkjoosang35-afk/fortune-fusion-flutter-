@@ -64,6 +64,9 @@ class _SpyWishRoomRepository implements WishRoomRepository {
 
   @override
   Future<List<GuideSlide>> fetchGuideSlides() => _inner.fetchGuideSlides();
+
+  @override
+  Future<PrayerSession?> wakeWish(String wishId) => _inner.wakeWish(wishId);
 }
 
 void main() {
