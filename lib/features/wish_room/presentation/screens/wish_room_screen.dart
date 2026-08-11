@@ -11,6 +11,7 @@ import '../widgets/wish_room_animations.dart';
 import '../widgets/wish_room_background.dart';
 import '../widgets/wish_room_candle.dart';
 import '../widgets/wish_room_seal.dart';
+import 'wish_detail_screen.dart';
 import 'wish_history_screen.dart';
 import 'wish_room_prayer_flow.dart';
 
@@ -151,6 +152,20 @@ class WishRoomScreen extends ConsumerWidget {
             data: data,
             onWishTap: (wish) =>
                 WishRoomPrayerFlow.handleWishCardTap(context, ref, controller, wish),
+            // [디자인 핸드오프 — Wish Detail 진입] README 흐름표 "Home wish
+            // row tap → Wish Detail"은 짧은 탭을 상세 진입으로 쓰지만, 이
+            // 화면의 짧은 탭은 이미 검증된 치성 흐름(handleWishCardTap)이
+            // 선점하고 있어 그 동작을 바꾸지 않는다(§ "기존 구현
+            // 삭제/재작성 금지"). 대신 롱프레스를 상세 화면 전용 진입점으로
+            // 추가해 두 기능을 충돌 없이 공존시킨다.
+            onWishLongPress: (wish) => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => WishDetailScreen(
+                  wish: wish,
+                  index: data.room.wishes.indexOf(wish),
+                ),
+              ),
+            ),
             onSeeAllTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const WishHistoryScreen()),
             ),
