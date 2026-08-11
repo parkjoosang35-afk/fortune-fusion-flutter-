@@ -16,6 +16,14 @@ import 'package:flutter_app/features/wish_room/presentation/widgets/wish_guide_d
 /// 시작하므로(정책: 첫 진입에도 데모용 대표 소원 1개 존재), 빈 상태 CTA인
 /// "소원 빌기"는 노출되지 않는다 — 대신 치성 CTA 버튼(오늘의 정성 올리기)이
 /// 바로 노출된다.
+///
+/// [대형 작업 — 디자인 핸드오프 8개 화면 재구현] `WishRoomScreen`이 기존
+/// CustomScrollView 기반 화면에서 `design_handoff/wish-screens.jsx`의
+/// `ScreenHome` 스펙(헤더/Candle altar/최근 소원 리스트/FAB)으로
+/// 전면 재구현되면서, 이 화면 자체에는 더 이상 "오늘의 정성 올리기"/
+/// "내 소원 보기"/"방 꾸미기" 버튼이 없다(그 기능들은
+/// `WishRoomTempleManagementScreen`으로 이동). 이 테스트는 새 Home
+/// 화면의 실제 요소(소원 카드 탭 → 치성 흐름)로 검증 내용을 갱신했다.
 void main() {
   // MockWishRoomRepository가 초회 가이드 노출 여부를 shared_preferences로
   // 영속화하므로, 테스트 환경에서도 mock 저장소를 초기화해야 한다.
@@ -116,40 +124,32 @@ void main() {
   testWidgets('WishRoomScreen renders main content with mock data', (tester) async {
     await pumpAndDismissGuide(tester);
 
-    // 메인 화면 핵심 요소 렌더링 확인
-    expect(find.text('소원방'), findsOneWidget);
-    expect(find.text('마음이 향하는 곳에, 빛이 머뭅니다.'), findsOneWidget);
+    // 메인 화면 핵심 요소 렌더링 확인 — 디자인 핸드오프 ScreenHome 스펙
+    // (헤더 eyebrow/타이틀 + 대표 소원 카드 제목이 최근 소원 리스트에
+    // 노출).
+    expect(find.text('나의 소원방'), findsOneWidget);
+    expect(find.text('오늘도 밝게 켜있어요'), findsOneWidget);
     expect(find.text('건강하게 한 해를 보내게 해주세요'), findsOneWidget);
-
-    // CTA 버튼 영역은 스크롤해야 보이는 위치이므로 스크롤 후 확인한다.
-    await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));
-    await tester.pump(const Duration(milliseconds: 300));
-
-    // mock 대표 소원은 아직 오늘 기도하지 않은 상태(lastPrayedDate=어제)로
-    // 시작하므로 "오늘의 정성 올리기" CTA가 노출된다.
-    expect(find.text('오늘의 정성 올리기'), findsOneWidget);
-    expect(find.text('내 소원 보기'), findsOneWidget);
-    expect(find.text('방 꾸미기'), findsOneWidget);
+    // mock 데이터는 소원 3개로 시작하므로 Candle altar 요약 문구도 확인.
+    expect(find.text('3 개의 소원'), findsOneWidget);
   });
 
   testWidgets('Praying via daily prayer type shows prayer complete sheet', (tester) async {
     await pumpAndDismissGuide(tester);
 
-    await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));
-    await tester.pump(const Duration(milliseconds: 300));
-
     // [Sprint 3, 중요] Dart의 async 함수는 "함수가 시작된 시점의 zone"을
     // 캡처해 이후의 모든 await continuation을 그 zone에서 재개한다. 즉
-    // "오늘의 정성 올리기" CTA를 탭해 시작되는 _onPray() 콜백이 FakeAsync
-    // zone(테스트 기본 zone)에서 시작되면, 그 안에서 몇 겹 뒤에 실행되는
+    // 대표 소원 카드를 탭해 시작되는 콜백이 FakeAsync zone(테스트 기본
+    // zone)에서 시작되면, 그 안에서 몇 겹 뒤에 실행되는
     // controller.prayForWish() → Hive 파일 I/O도 여전히 FakeAsync zone에서
     // 재개되어 절대 끝나지 않는다(뒤에서 tester.runAsync로 아무리 감싸도
-    // 이미 시작된 continuation의 zone은 바뀌지 않는다). 따라서 이 CTA
+    // 이미 시작된 continuation의 zone은 바뀌지 않는다). 따라서 이 카드
     // 탭부터 "오늘의 치성" 선택, 그 결과로 열리는 완료 시트까지 이어지는
     // 전체 흐름을 하나의 runAsync 콜백 "안에서" 시작해야 한다.
     await tester.runAsync(() async {
-      // 메인 CTA 탭 → [치성 시스템] 치성 종류 선택 바텀시트(PrayerTypeSheet) 노출.
-      await tester.tap(find.text('오늘의 정성 올리기'));
+      // 대표 소원 카드 탭 → 대표 소원이므로 바로 [치성 시스템] 치성 종류
+      // 선택 바텀시트(PrayerTypeSheet) 노출(handleWishCardTap 분기).
+      await tester.tap(find.text('건강하게 한 해를 보내게 해주세요'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 

@@ -22,6 +22,13 @@ import 'package:flutter_app/features/wish_room/presentation/widgets/wish_guide_d
 /// WishRoomRiverpodEntry 내부에 추가한 중첩 Navigator가 전환을
 /// ProviderScope 서브트리 안에 계속 유지시켜 메인 화면이 정상적으로
 /// 렌더링되는지 확인한다.
+///
+/// [대형 작업 — Shell 재편] 인트로 화면의 전환 목적지가 `WishRoomScreen`
+/// 단독에서 `WishRoomShell`(하단 탭: 나의 소원/모두의 소원/신전관리)로
+/// 바뀌었다. 탭 0번(나의 소원)이 기존 WishRoomScreen을 그대로 담고 있고,
+/// 그 화면도 디자인 핸드오프 `ScreenHome` 스펙으로 재구현되어 문구가
+/// "소원방"/"마음이 향하는 곳에..."에서 "나의 소원방"/"오늘도 밝게
+/// 켜있어요"로 바뀌었으므로, 최종 검증 문구도 이에 맞춰 갱신했다.
 void main() {
   // MockWishRoomRepository가 초회 가이드 노출 여부를 shared_preferences로
   // 영속화하므로, 테스트 환경에서도 mock 저장소를 초기화해야 한다.
@@ -87,7 +94,10 @@ void main() {
 
         // 인트로 화면 렌더링 확인 (같은 runAsync 콜백 내부에서 확인 —
         // 여기서 zone을 빠져나가면 안 된다).
-        expect(find.text('당신의 소원이 머무는 방'), findsOneWidget);
+        // [대형 작업 — 디자인 핸드오프 Onboarding 재구현] 문구가
+        // "당신의 소원이 머무는 방"에서 `ScreenOnboarding` 스펙의
+        // "소원을 담을\n준비가 되셨나요"로 바뀌었다.
+        expect(find.text('소원을 담을\n준비가 되셨나요'), findsOneWidget);
 
         // 인트로 화면의 1400ms 자동 전환 타이머가 fire된 뒤
         // `_enterMainScreen()` → `WishRoomScreen` 빌드 →
@@ -128,7 +138,7 @@ void main() {
 
       // 인트로 화면은 사라지고, 메인 화면(소원방 헤더 텍스트)이 보여야
       // 회색 빈 화면 버그가 없다는 것을 의미한다.
-      expect(find.text('당신의 소원이 머무는 방'), findsNothing);
+      expect(find.text('소원을 담을\n준비가 되셨나요'), findsNothing);
 
       // 초회 가이드 팝업이 자동으로 뜬다 — Riverpod controller가 정상
       // 동작 중이라는 증거(ProviderScope 밖이었다면 여기서 예외가 났을
@@ -153,7 +163,10 @@ void main() {
 
       // 메인 화면 핵심 요소가 실제로 렌더링되는지 확인 — 이게 통과하면
       // "인트로만 뜨고 다음은 빈 화면" 버그가 재발하지 않은 것이다.
-      expect(find.text('소원방'), findsOneWidget);
+      // [대형 작업 — Shell 재편] WishRoomShell의 탭 0번(WishRoomScreen,
+      // ScreenHome 스펙 재구현)이 기본으로 표시된다.
+      expect(find.text('나의 소원방'), findsOneWidget);
+      expect(find.text('오늘도 밝게 켜있어요'), findsOneWidget);
       expect(find.text('건강하게 한 해를 보내게 해주세요'), findsOneWidget);
     },
   );
