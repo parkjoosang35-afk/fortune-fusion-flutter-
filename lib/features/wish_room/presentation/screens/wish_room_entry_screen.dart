@@ -4,7 +4,7 @@ import '../theme/wish_room_theme.dart';
 import '../widgets/wish_room_animations.dart';
 import '../widgets/wish_room_background.dart';
 import '../widgets/wish_room_candle.dart';
-import 'wish_room_screen.dart';
+import 'wish_room_shell.dart';
 
 /// [소원방 Riverpod 실험판] 입장 화면.
 ///
@@ -21,6 +21,12 @@ import 'wish_room_screen.dart';
 /// 로 교체했다. 탭하면 즉시 메인 화면으로 건너뛰는 기존 동작과, 1400ms 후
 /// 자동 전환되는 기존 타이머 로직은 100% 그대로 유지한다(테스트
 /// `wish_room_entry_flow_test.dart`가 검증하는 문구/흐름 불변).
+///
+/// [대형 작업 — Shell 재편] 전환 대상을 [WishRoomScreen] 단독에서
+/// [WishRoomShell](하단 탭: 나의 소원/모두의 소원/신전관리)로 변경했다.
+/// 탭 0번(나의 소원)이 기존 WishRoomScreen을 그대로 담고 있으므로, 이
+/// 전환 자체는 기존 회귀 테스트가 검증하는 문구("소원방",
+/// "건강하게 한 해를 보내게 해주세요" 등)에 영향을 주지 않는다.
 class WishRoomEntryScreen extends StatefulWidget {
   const WishRoomEntryScreen({super.key});
 
@@ -40,7 +46,7 @@ class _WishRoomEntryScreenState extends State<WishRoomEntryScreen> {
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 500),
-        pageBuilder: (_, __, ___) => const WishRoomScreen(),
+        pageBuilder: (_, __, ___) => const WishRoomShell(),
         transitionsBuilder: (_, animation, __, child) {
           return FadeTransition(
             opacity: animation,
