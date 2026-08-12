@@ -47,6 +47,12 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
   // 자연스럽게 연결(입력/결과 화면 구조는 기존 멀티 토픽 선택 방식 그대로 재사용).
   static const _allTopics = ['종합', '재물', '애정', '직업', '건강', '월별'];
 
+  // [어뷰징 방지 개편 §신규 ②] 서버(saju route)가 주제마다 개별 LLM 호출을
+  // Promise.allSettled로 동시에 발사하므로, 1회 요청당 최대 선택 개수를 제한해
+  // "1회 이용 카운트당 최대 N번 AI 호출"의 실질 배수를 낮춘다. 서버(admin_web
+  // saju/route.ts의 MAX_TOPICS_PER_REQUEST)도 동일한 값(3)으로 방어한다.
+  static const _maxTopicSelection = 3;
+
   @override
   void initState() {
     super.initState();
@@ -56,9 +62,11 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
     final validInitial = widget.initialTopics
         ?.where((t) => _allTopics.contains(t))
         .toSet();
+    // [어뷰징 방지 개편 §신규 ②] 딥링크로 전달된 초기값도 최대 선택 개수를 넘지
+    // 않도록 앞에서부터 잘라낸다.
     _topics = (validInitial == null || validInitial.isEmpty)
         ? {'종합'}
-        : validInitial;
+        : validInitial.take(_maxTopicSelection).toSet();
     final user = context.read<AuthProvider>().currentUser;
     if (user?.birthDate != null) {
       final parts = user!.birthDate!.split('-');
@@ -411,13 +419,20 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
                 ],
               ),
               SizedBox(height: UnifiedTokens.spaceXl),
-              Text('관심 주제 (다중 선택 가능)', style: UnifiedText.title()),
+              Text(
+                '관심 주제 (최대 $_maxTopicSelection개 선택 가능)',
+                style: UnifiedText.title(),
+              ),
               SizedBox(height: UnifiedTokens.spaceSm),
               Wrap(
                 spacing: UnifiedTokens.spaceSm,
                 runSpacing: UnifiedTokens.spaceSm,
                 children: _allTopics.map((t) {
                   final selected = _topics.contains(t);
+                  // [어뷰징 방지 개편 §신규 ②] 이미 최대 개수를 선택한 상태에서
+                  // 선택되지 않은 칩은 비활성화(탭 무시)해 추가 선택을 막는다.
+                  final atMax = _topics.length >= _maxTopicSelection;
+                  final disabled = !selected && atMax;
                   return FilterChip(
                     label: Text(t, style: UnifiedText.chipLabel()),
                     selected: selected,
@@ -425,13 +440,15 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
                     selectedColor: UnifiedColors.cardAllMenu,
                     checkmarkColor: UnifiedColors.black,
                     side: BorderSide.none,
-                    onSelected: (v) => setState(() {
-                      if (v) {
-                        _topics.add(t);
-                      } else if (_topics.length > 1) {
-                        _topics.remove(t);
-                      }
-                    }),
+                    onSelected: disabled
+                        ? null
+                        : (v) => setState(() {
+                            if (v && _topics.length < _maxTopicSelection) {
+                              _topics.add(t);
+                            } else if (!v && _topics.length > 1) {
+                              _topics.remove(t);
+                            }
+                          }),
                   );
                 }).toList(),
               ),
