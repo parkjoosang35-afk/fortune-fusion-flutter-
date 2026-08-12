@@ -12,7 +12,7 @@ import '../application/luckybag_provider.dart';
 import 'luckybag_shop_screen.dart';
 import 'luckybag_history_screen.dart';
 import '../../mission/presentation/mission_screen.dart';
-import '../../wish_room/presentation/wish_wall_screen.dart';
+import '../../wish_wall_board/presentation/wish_wall_board_screen.dart';
 
 /// [Fortune Fusion 서브 디자인 통일 마스터 프롬프트] 복주머니 허브 화면 (v2)
 ///
@@ -136,7 +136,7 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
                 title: '소원벽 다녀오기',
                 subtitle: '소원 작성 · 함께 빌기 시 복주머니 적립',
                 onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const WishWallScreen()),
+                  MaterialPageRoute(builder: (_) => const WishWallBoardScreen()),
                 ),
               ),
             ),

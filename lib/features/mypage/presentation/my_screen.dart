@@ -11,7 +11,7 @@ import '../../auth/application/auth_provider.dart';
 import '../../auth/domain/grade_model.dart';
 import '../../pass/application/pass_provider.dart';
 import '../../wallet/application/wallet_provider.dart';
-import '../../wish_room/presentation/wish_wall_screen.dart';
+import '../../wish_wall_board/presentation/wish_wall_board_screen.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
 import '../../pass/presentation/pass_time_format.dart';
 
@@ -208,7 +208,7 @@ class _MyScreenState extends State<MyScreen> {
               icon: Icons.local_fire_department_outlined,
               title: '소원벽 보러가기',
               onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const WishWallScreen()),
+                MaterialPageRoute(builder: (_) => const WishWallBoardScreen()),
               ),
             ),
             const SizedBox(height: UnifiedTokens.spaceMd),

@@ -64,6 +64,9 @@ import 'features/luckpouch/application/luck_pouch_provider.dart';
 import 'core/domain/access/access_checker.dart';
 import 'core/widgets/luck_pouch_toast.dart';
 import 'features/wish_room/application/wish_room_provider.dart';
+import 'features/wish_wall_board/data/wish_wall_repository.dart';
+import 'features/wish_wall_board/application/blessing_bag_policy_adapter.dart';
+import 'features/wish_wall_board/application/wish_wall_provider.dart';
 
 /// 07단계 §2.1 앱 루트 - MultiProvider 전역 등록 + MaterialApp 라우팅 연결
 /// 10단계(A안): 모든 Repository는 Mock 구현이며, 향후 실제 API 연동 시
@@ -223,6 +226,25 @@ class App extends StatelessWidget {
         // init()은 Hive box를 열어야 하므로 비동기이며, WishRoomShell 진입
         // 시점(FutureBuilder)에서 최초 1회 호출한다.
         ChangeNotifierProvider(create: (_) => WishRoomProvider()),
+        // [소원벽게시판 신규 구축] "소원 하나 = 유리병 하나" 컨셉의 소원벽게시판
+        // 전역 상태. 복주머니 적립/차감은 새 화폐를 만들지 않고 반드시
+        // BlessingBagPolicyAdapter → LuckPouchProvider(실제 신통방통 재화)를
+        // 거치도록 ProxyProvider로 연결한다.
+        Provider<WishWallRepository>(
+          create: (_) => MockWishWallRepository.instance,
+        ),
+        ProxyProvider<LuckPouchProvider, BlessingBagPolicyAdapter>(
+          update: (_, pouch, __) => BlessingBagPolicyAdapter(pouch),
+        ),
+        ChangeNotifierProxyProvider<BlessingBagPolicyAdapter, WishWallProvider>(
+          create: (context) => WishWallProvider(
+            context.read<WishWallRepository>(),
+            context.read<BlessingBagPolicyAdapter>(),
+          ),
+          update: (context, policy, previous) =>
+              previous ??
+              WishWallProvider(context.read<WishWallRepository>(), policy),
+        ),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
