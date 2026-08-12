@@ -67,6 +67,8 @@ import 'features/wish_room/application/wish_room_provider.dart';
 import 'features/wish_wall_board/data/wish_wall_repository.dart';
 import 'features/wish_wall_board/application/blessing_bag_policy_adapter.dart';
 import 'features/wish_wall_board/application/wish_wall_provider.dart';
+import 'features/wish_counsel/data/wish_counsel_repository.dart';
+import 'features/wish_counsel/application/wish_counsel_provider.dart';
 
 /// 07단계 §2.1 앱 루트 - MultiProvider 전역 등록 + MaterialApp 라우팅 연결
 /// 10단계(A안): 모든 Repository는 Mock 구현이며, 향후 실제 API 연동 시
@@ -244,6 +246,11 @@ class App extends StatelessWidget {
           update: (context, policy, previous) =>
               previous ??
               WishWallProvider(context.read<WishWallRepository>(), policy),
+        ),
+        // [상담(Midnight Comfort)] 신통방통소원방 옆 신규 섹션 — 완전 Mock,
+        // 무료 광고형 구조(코인 차감 없음) 정책을 따른다.
+        ChangeNotifierProvider(
+          create: (_) => WishCounselProvider(WishCounselRepository()),
         ),
       ],
       child: Consumer<ThemeProvider>(

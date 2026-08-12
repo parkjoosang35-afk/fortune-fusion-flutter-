@@ -828,6 +828,10 @@ class _FortuneTarotMiniCard extends StatelessWidget {
 }
 
 /// ⑥ 소원방 카드 - #F5F3FB [소원게시판 완전 삭제 → 신통방통 소원방으로 대체]
+///
+/// [상담 섹션 신규 추가] 신통방통 소원방 카드 옆에 "상담"(Midnight Comfort,
+/// 9명의 AI 상담사) 진입 카드를 나란히 배치한다. `_FortuneTarotRow`와
+/// 동일한 2분할 Row 패턴을 재사용해 기존 단독 카드를 Row로 감쌌다.
 class _WishBoardRoomRow extends StatelessWidget {
   const _WishBoardRoomRow();
 
@@ -835,12 +839,30 @@ class _WishBoardRoomRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       height: _Dims.wishCardHeight,
-      child: _LavenderMiniCard(
-        title: '신통방통 소원방',
-        bottomLabel: '참여해보세요',
-        circleIcon: Icons.arrow_drop_up_rounded,
-        circleStyle: PremiumCircleButtonStyle.neon,
-        onTap: () => Navigator.of(context).pushNamed('/wish-room'),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: _LavenderMiniCard(
+              title: '신통방통 소원방',
+              bottomLabel: '참여해보세요',
+              circleIcon: Icons.arrow_drop_up_rounded,
+              circleStyle: PremiumCircleButtonStyle.neon,
+              onTap: () => Navigator.of(context).pushNamed('/wish-room'),
+            ),
+          ),
+          const SizedBox(width: _Dims.wishCardGap),
+          Expanded(
+            child: _LavenderMiniCard(
+              title: '상담',
+              bottomLabel: '마음을 나눠요',
+              circleIcon: Icons.arrow_drop_up_rounded,
+              circleStyle: PremiumCircleButtonStyle.black,
+              onTap: () =>
+                  Navigator.of(context).pushNamed('/wish-counsel/home'),
+            ),
+          ),
+        ],
       ),
     );
   }
