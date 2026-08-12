@@ -68,7 +68,7 @@ export default async function CommunityCommentsPage() {
             게시판
           </Link>
           <Link href="/community/posts" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            게시글/소원
+            게시글
           </Link>
           <span className="border-b-2 border-indigo-500 px-3 py-2 text-slate-900">댓글</span>
           <Link href="/community/reports" className="px-3 py-2 text-slate-500 hover:text-slate-900">
@@ -79,9 +79,6 @@ export default async function CommunityCommentsPage() {
           </Link>
           <Link href="/community/files" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             파일/업로드
-          </Link>
-          <Link href="/community/wish-castle" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            🏰 소원성 설정
           </Link>
         </nav>
       </div>

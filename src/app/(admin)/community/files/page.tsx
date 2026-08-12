@@ -93,7 +93,7 @@ export default async function CommunityFilesPage() {
             게시판
           </Link>
           <Link href="/community/posts" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            게시글/소원
+            게시글
           </Link>
           <Link href="/community/comments" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             댓글
@@ -105,9 +105,6 @@ export default async function CommunityFilesPage() {
             좋아요 통계
           </Link>
           <span className="border-b-2 border-indigo-500 px-3 py-2 text-slate-900">파일/업로드</span>
-          <Link href="/community/wish-castle" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            🏰 소원성 설정
-          </Link>
         </nav>
       </div>
 

@@ -4,7 +4,6 @@ import { canAccessMenu, RBAC_MATRIX } from "@/lib/rbac";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import CommunityPostRow from "@/components/CommunityPostRow";
-import WishRow from "@/components/WishRow";
 
 // 05_Admin_System_Design.md §3.5 "커뮤니티 관리" — 1차 소단위(도메인 L 1단계): 게시글/소원 관리
 // 04A L-2 community_posts + L-3 wishes 목록/숨김/삭제(Soft Delete).
@@ -37,25 +36,19 @@ export default async function CommunityPostsPage() {
     },
   });
 
-  const wishes = await prisma.wish.findMany({
-    orderBy: { createdAt: "desc" },
-    take: 50,
-    include: { user: { select: { nickname: true } } },
-  });
-
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">커뮤니티 관리 — 게시글/소원</h1>
+        <h1 className="text-2xl font-bold text-slate-900">커뮤니티 관리 — 게시글</h1>
         <p className="mt-1 text-sm text-slate-500">
-          게시글과 소원을 조회하고 노출/숨김/삭제(Soft Delete) 처리를 합니다.
+          게시글을 조회하고 노출/숨김/삭제(Soft Delete) 처리를 합니다.
           작성 기능은 회원 앱에서만 제공됩니다.
         </p>
         <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
           <Link href="/community/boards" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             게시판
           </Link>
-          <span className="border-b-2 border-indigo-500 px-3 py-2 text-slate-900">게시글/소원</span>
+          <span className="border-b-2 border-indigo-500 px-3 py-2 text-slate-900">게시글</span>
           <Link href="/community/comments" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             댓글
           </Link>
@@ -67,9 +60,6 @@ export default async function CommunityPostsPage() {
           </Link>
           <Link href="/community/files" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             파일/업로드
-          </Link>
-          <Link href="/community/wish-castle" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            🏰 소원성 설정
           </Link>
         </nav>
       </div>
@@ -120,54 +110,6 @@ export default async function CommunityPostsPage() {
         </div>
       </section>
 
-      <section className="mt-8">
-        <h2 className="mb-3 text-lg font-semibold text-slate-900">소원 (최근 50건)</h2>
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
-              <tr>
-                <th className="px-4 py-3">분류</th>
-                <th className="px-4 py-3">내용</th>
-                <th className="px-4 py-3">작성자</th>
-                <th className="px-4 py-3">응원</th>
-                <th className="px-4 py-3">상태</th>
-                <th className="px-4 py-3">작성일</th>
-                <th className="px-4 py-3">관리</th>
-              </tr>
-            </thead>
-            <tbody>
-              {wishes.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-slate-500">
-                    등록된 소원이 없습니다.
-                  </td>
-                </tr>
-              )}
-              {wishes.map((w) => (
-                <WishRow
-                  key={w.id}
-                  wish={{
-                    id: w.id,
-                    userNickname: w.user.nickname,
-                    content: w.content,
-                    category: w.category,
-                    isAnonymous: w.isAnonymous,
-                    status: w.status,
-                    supportCount: w.supportCount,
-                    createdAt: w.createdAt,
-                  }}
-                  canWrite={canWrite}
-                  canDelete={canDelete}
-                />
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <p className="mt-2 text-xs text-slate-500">
-          익명(is_anonymous) 소원은 작성자 닉네임 대신 &ldquo;익명&rdquo;으로 표시됩니다
-          (관리자 조치 시에는 내부적으로 작성자 정보가 유지됩니다).
-        </p>
-      </section>
     </div>
   );
 }
