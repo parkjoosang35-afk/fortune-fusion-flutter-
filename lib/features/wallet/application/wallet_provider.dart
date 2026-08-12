@@ -17,6 +17,10 @@ class WalletProvider extends ChangeNotifier {
   List<PointHistoryModel> _history = [];
   bool _isLoading = false;
 
+  /// [복주머니 정책표 §5 예외처리] 마지막 earn() 호출이 서버 정책상 차단되었을 때
+  /// (이미 오늘/평생 지급됨) 그 사유 코드를 보관한다. 성공 시 null로 초기화된다.
+  String? lastEarnBlockedReason;
+
   int get balance => _balance;
   List<PointHistoryModel> get history => _history;
   bool get isLoading => _isLoading;
@@ -34,15 +38,32 @@ class WalletProvider extends ChangeNotifier {
 
   /// 복주머니(및 그 위임체인) 적립. [sourceType]은 백엔드 PointHistory.sourceType과
   /// 동일한 값으로 전달하여 서버측 일일상한/활동점수 엔진이 올바르게 집계하도록 한다.
-  /// [정책] 배율 없이 항상 [amount] 그대로 지급한다.
-  Future<void> earn(
+  /// [sourceId]/[scope]는 §3/§5 정책표의 "건당 1회"/"1일 N회"/"평생 1회" 판정을
+  /// 서버(checkPolicyEligibility)에 그대로 전달한다.
+  ///
+  /// 반환값: 실제로 지급된 금액(0이면 이미 지급되어 막힌 경우 — [lastEarnBlockedReason]
+  /// 확인). [정책] 배율 없이 항상 요청한 [amount] 그대로(막히지 않는 한) 지급한다.
+  Future<int> earn(
     int amount,
     String reason, {
     String sourceType = 'app',
+    int? sourceId,
+    String? scope,
   }) async {
-    _balance = await _repository.earn(amount, reason, sourceType: sourceType);
+    final result = await _repository.earn(
+      amount,
+      reason,
+      sourceType: sourceType,
+      sourceId: sourceId,
+      scope: scope,
+    );
+    _balance = result.balance;
+    lastEarnBlockedReason = result.blockedReason;
     await load();
-    LuckPouchToastController.instance.showEarn(amount, reason);
+    if (result.grantedAmount > 0) {
+      LuckPouchToastController.instance.showEarn(result.grantedAmount, reason);
+    }
+    return result.grantedAmount;
   }
 
   Future<bool> spend(
@@ -50,14 +71,18 @@ class WalletProvider extends ChangeNotifier {
     String reason, {
     String sourceType = 'app',
   }) async {
-    final ok = await _repository.spend(amount, reason, sourceType: sourceType);
-    if (ok) {
+    final result = await _repository.spend(
+      amount,
+      reason,
+      sourceType: sourceType,
+    );
+    if (result.ok) {
       await load();
       LuckPouchToastController.instance.showSpend(amount, reason);
     } else {
       LuckPouchToastController.instance.showInsufficient(reason: reason);
     }
-    return ok;
+    return result.ok;
   }
 
   /// [Phase22 - 복주머니 경제철학 이식] "복 나누기" — 성공 시 (환급액, 오늘 남은 송금가능액)을

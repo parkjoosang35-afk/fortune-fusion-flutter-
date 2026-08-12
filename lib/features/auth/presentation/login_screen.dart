@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../../../core/widgets/luck_pouch_toast.dart';
+import '../../wallet/application/wallet_provider.dart';
 import '../application/auth_provider.dart';
 
 /// 03단계 §3.3 공통/온보딩 - LoginScreen
@@ -27,6 +29,19 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isSubmitting = false);
     if (!mounted) return;
     if (ok) {
+      // [복주머니 정책표 §3 - 첫로그인10(1회)] signup_screen.dart의
+      // SignupRewardHandler와 동일한 패턴: 서버가 첫 로그인 보상을 지급했으면
+      // (amount>0) WalletProvider를 갱신하고 전용 토스트를 띄운다. 이미
+      // 로그인한 적 있거나 정책 비활성이면 firstLoginReward가 null이라
+      // 조용히 건너뛴다(로그인 자체는 그대로 성공 처리).
+      final reward = context.read<AuthProvider>().lastFirstLoginReward;
+      final rewardAmount = reward?['amount'] as int?;
+      if (rewardAmount != null && rewardAmount > 0) {
+        await context.read<WalletProvider>().load();
+        if (!mounted) return;
+        LuckPouchToastController.instance.showFirstLoginReward(rewardAmount);
+      }
+      if (!mounted) return;
       Navigator.of(
         context,
       ).pushNamedAndRemoveUntil('/signup/profile-check', (route) => false);

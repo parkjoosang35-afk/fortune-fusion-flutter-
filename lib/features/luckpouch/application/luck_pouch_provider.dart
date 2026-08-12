@@ -64,10 +64,27 @@ class LuckPouchProvider extends ChangeNotifier {
 
   /// 복주머니 적립. [sourceType]은 백엔드 PointHistory.sourceType 값과 맞춰
   /// 전달해야 서버측 일일상한/활동점수 엔진(luck-pouch-engine.ts)이 올바르게
-  /// 동작한다(기본값 'app'은 분류 미지정 적립).
-  Future<void> earn(int amount, String reason, {String sourceType = 'app'}) {
-    return _wallet.earn(amount, reason, sourceType: sourceType);
+  /// 동작한다(기본값 'app'은 분류 미지정 적립). [sourceId]/[scope]는 §3/§5
+  /// 정책표의 "건당 1회"/"1일 N회"/"평생 1회" 판정을 서버에 전달한다.
+  /// 반환값: 실제 지급된 금액(0이면 이미 지급되어 막힌 경우).
+  Future<int> earn(
+    int amount,
+    String reason, {
+    String sourceType = 'app',
+    int? sourceId,
+    String? scope,
+  }) {
+    return _wallet.earn(
+      amount,
+      reason,
+      sourceType: sourceType,
+      sourceId: sourceId,
+      scope: scope,
+    );
   }
+
+  /// [복주머니 정책표 §5] 마지막 earn() 호출이 정책상 차단됐을 때의 사유.
+  String? get lastEarnBlockedReason => _wallet.lastEarnBlockedReason;
 
   /// 복주머니 소비(응원/강조/부적/상담 등). 잔액 부족 시 false.
   Future<bool> spend(int amount, String reason, {String sourceType = 'app'}) {

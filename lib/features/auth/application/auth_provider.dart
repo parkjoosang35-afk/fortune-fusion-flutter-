@@ -30,6 +30,12 @@ class AuthProvider extends ChangeNotifier {
   /// SignupRewardHandler가 이 값으로 토스트를 띄우고 WalletProvider를 갱신한다.
   Map<String, dynamic>? get lastSignupReward => _repository.lastSignupReward;
 
+  /// [복주머니 정책표 §3] 직전 login() 성공 시 서버가 함께 내려준 첫 로그인
+  /// 보상 정보(`{amount, balanceAfter}` 또는 null). login_screen.dart가 이 값으로
+  /// 토스트를 띄우고 WalletProvider를 갱신한다(signup 패턴과 동일).
+  Map<String, dynamic>? get lastFirstLoginReward =>
+      _repository.lastFirstLoginReward;
+
   Future<void> _loadGrade(UserModel user) async {
     _currentGrade = await _gradeRepository.getGradeByCode(user.grade);
   }

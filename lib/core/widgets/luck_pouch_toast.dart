@@ -99,6 +99,15 @@ class LuckPouchToastController extends ChangeNotifier {
       '지금 바로 소원게시판과 소원성에서 사용할 수 있어요',
     );
   }
+
+  /// [복주머니 정책표 §3 - 첫로그인10(1회)] 첫 로그인 보상 전용 토스트.
+  void showFirstLoginReward(int amount) {
+    _enqueue(
+      LuckPouchToastType.earn,
+      '첫 로그인 완료! 복주머니 $amount개가 적립되었어요',
+      '오늘부터 다양한 활동으로 복주머니를 모아보세요',
+    );
+  }
 }
 
 /// [디자인 규격] bg #F6F5FA, accent #C6F24E, 메인텍스트 #111111,

@@ -97,19 +97,31 @@ class WalletRepository {
   }
 
   /// WalletService.earn (02번 §1.2 Ledger 패턴 - 잔액은 파생값, 이력이 원본)
-  /// 반환값: 적립 후 최신 잔액. 실패 시 예외를 던진다(기존 Mock 시그니처와 동일하게
-  /// int를 반환하되, 통신 실패는 Provider 쪽에서 try/catch로 처리하도록 위임).
-  Future<int> earn(
+  ///
+  /// [복주머니 정책표 §3/§5 반영] [sourceId]는 "건당 1회" 중복지급 차단(예: 상담후기,
+  /// 특정 세션 보상)을 위한 원본 레코드 식별자이며, [scope]는 서버측 판정 범위를
+  /// 강제 지정할 때 사용한다('daily' | 'lifetime'). 둘 다 생략하면 서버가
+  /// sourceType 기준으로 자동 판정한다(LIFETIME_SCOPE_SOURCE_TYPES 참고).
+  ///
+  /// 반환값: (적립 후 최신 잔액, 실제 지급된 금액, 이미 지급되어 막힌 사유).
+  /// 서버가 정책상 차단(blockedReason != null)하면 grantedAmount=0, balance는
+  /// 차감 없이 그대로 유지된다(§5 예외처리: "지급 없음"은 실패가 아니다).
+  /// 통신 실패 시 예외 없이 [_fetchWalletOrThrow]로 서버 최종 잔액을 재조회해
+  /// grantedAmount=0으로 반환한다(기존 Provider 쪽 try/catch 위임 패턴 유지).
+  Future<({int balance, int grantedAmount, String? blockedReason})> earn(
     int amount,
     String reason, {
     String sourceType = 'app',
+    int? sourceId,
+    String? scope,
   }) async {
     final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/wallet/earn',
     );
     debugPrint(
-      '[WalletRepository] [earn] 요청 시작 -> amount=$amount, reason=$reason, sourceType=$sourceType',
+      '[WalletRepository] [earn] 요청 시작 -> amount=$amount, reason=$reason, '
+      'sourceType=$sourceType, sourceId=$sourceId, scope=$scope',
     );
 
     try {
@@ -122,6 +134,8 @@ class WalletRepository {
               'amount': amount,
               'reason': reason,
               'sourceType': sourceType,
+              if (sourceId != null) 'sourceId': sourceId,
+              if (scope != null) 'scope': scope,
             }),
           )
           .timeout(const Duration(seconds: 10));
@@ -130,17 +144,30 @@ class WalletRepository {
       if (response.statusCode != 200 || decoded['success'] != true) {
         debugPrint('[WalletRepository] [earn] 실패 -> ${decoded['error']}');
         final current = await _fetchWalletOrThrow();
-        return current.balance;
+        return (
+          balance: current.balance,
+          grantedAmount: 0,
+          blockedReason: decoded['error'] as String?,
+        );
       }
 
-      final balance =
-          (decoded['data'] as Map<String, dynamic>)['balance'] as int;
-      debugPrint('[WalletRepository] [earn] 성공 -> balance=$balance');
-      return balance;
+      final data = decoded['data'] as Map<String, dynamic>;
+      final balance = data['balance'] as int;
+      final grantedAmount = data['grantedAmount'] as int? ?? amount;
+      final blockedReason = data['blockedReason'] as String?;
+      debugPrint(
+        '[WalletRepository] [earn] 성공 -> balance=$balance, '
+        'grantedAmount=$grantedAmount, blockedReason=$blockedReason',
+      );
+      return (
+        balance: balance,
+        grantedAmount: grantedAmount,
+        blockedReason: blockedReason,
+      );
     } catch (e) {
       debugPrint('[WalletRepository] [earn] 예외 -> $e');
       final current = await _fetchWalletOrThrow();
-      return current.balance;
+      return (balance: current.balance, grantedAmount: 0, blockedReason: null);
     }
   }
 
@@ -232,8 +259,11 @@ class WalletRepository {
     }
   }
 
-  /// WalletService.spend — 성공 시 true, 잔액 부족/오류 시 false.
-  Future<bool> spend(
+  /// WalletService.spend — 성공 시 (true, 차감후잔액, 환급액), 잔액 부족/오류 시
+  /// (false, 0, 0). [정책표 §4 환급] 서버가 ai_/fortune_ 접두 sourceType에
+  /// economyConfig.refund_rate(기본 50%)만큼 즉시 환급하며, 그 금액을
+  /// [refundAmount]로 그대로 노출한다(토스트 등에서 "환급 N개" 안내에 사용 가능).
+  Future<({bool ok, int balance, int refundAmount})> spend(
     int amount,
     String reason, {
     String sourceType = 'app',
@@ -263,14 +293,19 @@ class WalletRepository {
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
         debugPrint('[WalletRepository] [spend] 실패 -> ${decoded['error']}');
-        return false;
+        return (ok: false, balance: 0, refundAmount: 0);
       }
 
-      debugPrint('[WalletRepository] [spend] 성공');
-      return true;
+      final data = decoded['data'] as Map<String, dynamic>;
+      final balance = data['balance'] as int;
+      final refundAmount = data['refundAmount'] as int? ?? 0;
+      debugPrint(
+        '[WalletRepository] [spend] 성공 -> balance=$balance, refundAmount=$refundAmount',
+      );
+      return (ok: true, balance: balance, refundAmount: refundAmount);
     } catch (e) {
       debugPrint('[WalletRepository] [spend] 예외 -> $e');
-      return false;
+      return (ok: false, balance: 0, refundAmount: 0);
     }
   }
 }

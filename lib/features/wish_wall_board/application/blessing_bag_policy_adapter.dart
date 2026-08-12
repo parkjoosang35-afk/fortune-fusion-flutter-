@@ -58,19 +58,22 @@ class BlessingBagPolicyAdapter {
     );
   }
 
-  /// 소원 담기(새 병 봉인) 완료 보너스 — 기획안 §3.3/§4.1
-  /// wish_created_bonus(+5)를 지급한다.
-  Future<void> earnWishCreatedBonus() {
+  /// 소원 담기(새 병 봉인) 완료 보너스 — 기획안 §3.3/§4.1, 정책표 §3 기준
+  /// wish_created_bonus(+2, 1일 1회)를 지급한다. [정책표 §3] "1일 1회" 제한은
+  /// 서버(checkPolicyEligibility)가 scope='daily'로 자동 판정한다.
+  /// 반환값: 실제 지급 금액(0이면 오늘 이미 지급됨).
+  Future<int> earnWishCreatedBonus() {
     return _pouch.earn(
       BlessingBagEarnReason.wishCreatedBonus.defaultAmount,
       '소원 봉인 완료',
       sourceType: BlessingBagEarnReason.wishCreatedBonus.code,
+      scope: 'daily',
     );
   }
 
   /// 오늘의 기도 참여 보너스 — daily_prayer(+1, 최대 3회/일 정책은 서버측
   /// 일일상한 엔진이 판단하며, 여기서는 항상 적립을 요청만 한다).
-  Future<void> earnDailyPrayerBonus() {
+  Future<int> earnDailyPrayerBonus() {
     return _pouch.earn(
       BlessingBagEarnReason.dailyPrayer.defaultAmount,
       '오늘의 기도',

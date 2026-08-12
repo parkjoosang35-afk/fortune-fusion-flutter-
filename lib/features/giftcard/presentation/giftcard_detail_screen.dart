@@ -43,6 +43,7 @@ class GiftcardDetailScreen extends StatelessWidget {
     final spent = await wallet.spend(
       product.requiredPoint,
       '상품권 교환 - ${product.name}',
+      sourceType: 'giftcard',
     );
     if (!spent) {
       if (!context.mounted) return;
@@ -58,6 +59,7 @@ class GiftcardDetailScreen extends StatelessWidget {
       await wallet.earn(
         product.requiredPoint,
         '상품권 발급 실패 환불 - ${product.name}',
+        sourceType: 'refund',
       );
       if (!context.mounted) return;
       await giftcard.loadProducts();

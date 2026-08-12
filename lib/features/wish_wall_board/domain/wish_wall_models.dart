@@ -255,12 +255,14 @@ extension BlessingBagEarnReasonX on BlessingBagEarnReason {
     }
   }
 
+  /// [복주머니 정책표 §3] wishCreatedBonus(소원벽 첫 작성)는 1일 1회 +2로
+  /// 확정되었다(기존 +5에서 하향 조정 — 정책표 최종안 반영).
   int get defaultAmount {
     switch (this) {
       case BlessingBagEarnReason.dailyLogin:
         return 1;
       case BlessingBagEarnReason.wishCreatedBonus:
-        return 5;
+        return 2;
       case BlessingBagEarnReason.dailyPrayer:
         return 1;
       case BlessingBagEarnReason.eventParticipation:
