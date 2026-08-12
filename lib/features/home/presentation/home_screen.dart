@@ -554,7 +554,8 @@ class _HealingQuoteCard extends StatefulWidget {
   State<_HealingQuoteCard> createState() => _HealingQuoteCardState();
 }
 
-class _HealingQuoteCardState extends State<_HealingQuoteCard> {
+class _HealingQuoteCardState extends State<_HealingQuoteCard>
+    with SingleTickerProviderStateMixin {
   static const Duration _bgRotationInterval = Duration(minutes: 30);
 
   // 부드럽고 감성적인 파스텔 계열 배경색 팔레트. 30분마다 이 중 하나를
@@ -576,6 +577,11 @@ class _HealingQuoteCardState extends State<_HealingQuoteCard> {
   late Color _bgColor;
   Timer? _bgTimer;
 
+  // [사용자 요청] "힐링페이지에 애니메이션 색깔을 넣어주고" — 카드 배경 위에
+  // 은은한 색조(hue)가 8초 주기로 천천히 흘러 순환하는 그라디언트 레이어를
+  // 추가한다. 알파값을 낮게 유지해 텍스트 가독성은 그대로 보존한다.
+  late final AnimationController _colorAnimController;
+
   @override
   void initState() {
     super.initState();
@@ -586,6 +592,10 @@ class _HealingQuoteCardState extends State<_HealingQuoteCard> {
       if (!mounted) return;
       setState(() => _bgColor = _pickRandomColor());
     });
+    _colorAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 10),
+    )..repeat();
   }
 
   Color _pickRandomColor() => _palette[_random.nextInt(_palette.length)];
@@ -602,7 +612,17 @@ class _HealingQuoteCardState extends State<_HealingQuoteCard> {
   @override
   void dispose() {
     _bgTimer?.cancel();
+    _colorAnimController.dispose();
     super.dispose();
+  }
+
+  /// [사용자 요청] 힐링페이지 애니메이션 색깔 — [progress](0~1)에 맞춰
+  /// 배경색 색조(hue)를 카드 배경색을 기반으로 부드럽게 순환시켜, 반투명
+  /// 낮은 알파값으로 은은하게 불어가는 장식임을 눈에 거슬리지 않게 표현한다.
+  Color _animatedAccentColor(double progress) {
+    final baseHue = HSLColor.fromColor(_bgColor).hue;
+    final hue = (baseHue + progress * 360) % 360;
+    return HSLColor.fromAHSL(1, hue, 0.55, 0.72).toColor();
   }
 
   @override
@@ -611,6 +631,14 @@ class _HealingQuoteCardState extends State<_HealingQuoteCard> {
     final quote = healing.current;
     final textColor = _contrastTextColor(_bgColor);
 
+    // [사용자 요청] "오늘에 힐링한마디 섹션 로그인시 이름이 나오게해주고
+    // 이성우님 이런식으로" — 로그인 상태면 카드 타이틀에 "{닉네임}님, "을
+    // 붙여 개인화된 인사말을 보여준다. 비로그인/닉네임 없음이면 기존 그대로.
+    final auth = context.watch<AuthProvider>();
+    final nickname = auth.isLoggedIn ? auth.currentUser?.nickname : null;
+    final hasNickname = nickname != null && nickname.trim().isNotEmpty;
+    final titleText = hasNickname ? '$nickname님, 오늘의 힐링 한마디' : '오늘의 힐링 한마디';
+
     // [사용자 요청] "힐링섹션에 그래픽 애니메이션 효과좀 넣어줘 빈공간에" —
     // 카드 우측 상단~하단의 빈 여백에 은은한 그라디언트 블롭 + 떠다니는 달 +
     // 반짝이는 별 애니메이션을 배치한다. 배경색이 30분마다 파스텔 팔레트에서
@@ -618,6 +646,10 @@ class _HealingQuoteCardState extends State<_HealingQuoteCard> {
     // 계산값) 기반의 낮은 알파값을 써서 어떤 배경에서도 튀지 않고 은은하게
     // 어울리도록 한다. 실제 문구 텍스트는 Stack의 마지막 레이어(맨 위)에 두어
     // 장식이 절대 가독성을 해치지 않게 한다.
+    //
+    // [사용자 요청] "힐링페이지에 애니메이션 색깔을 넣어주고" — 그라디언트
+    // 블롭의 색상이 8초 주기로 무지개처럼 은은하게 순환하는 애니메이션을
+    // 추가한다(_colorAnimController, alpha는 낮게 유지해 가독성 보존).
     return AnimatedContainer(
       duration: const Duration(milliseconds: 600),
       curve: Curves.easeInOut,
@@ -628,12 +660,34 @@ class _HealingQuoteCardState extends State<_HealingQuoteCard> {
       ),
       child: Stack(
         children: [
-          // 배경 장식 레이어 ① - 우측 상단에 카드 밖으로 살짝 번지는 은은한
-          // 그라디언트 블롭(정적, 부드러운 공기감 연출).
+          // 배경 장식 레이어 ① - 우측 상단에 카드 밖으로 살짝 번지는
+          // 그라디언트 블롭. 색상이 서서히 무지개처럼 순환하는 애니메이션을
+          // 적용해 카드에 살아있는 색감을 더한다.
           Positioned(
             right: -34,
             top: -34,
-            child: SoftGradientBlob(size: 150, color: textColor, opacity: 0.10),
+            child: AnimatedBuilder(
+              animation: _colorAnimController,
+              builder: (context, _) => SoftGradientBlob(
+                size: 150,
+                color: _animatedAccentColor(_colorAnimController.value),
+                opacity: 0.16,
+              ),
+            ),
+          ),
+          // 배경 장식 레이어 ①-2 - 좌측 하단에도 반대 위상으로 순환하는
+          // 두 번째 컬러 블롭을 배치해 카드 전체에 은은한 색 흐름을 준다.
+          Positioned(
+            left: -30,
+            bottom: -30,
+            child: AnimatedBuilder(
+              animation: _colorAnimController,
+              builder: (context, _) => SoftGradientBlob(
+                size: 120,
+                color: _animatedAccentColor((_colorAnimController.value + 0.5) % 1.0),
+                opacity: 0.14,
+              ),
+            ),
           ),
           // 배경 장식 레이어 ② - 우측 상단 빈 공간에서 위아래로 은은하게
           // 떠다니는 달 아이콘("힐링/밤의 위안" 테마와 어울림).
@@ -643,16 +697,30 @@ class _HealingQuoteCardState extends State<_HealingQuoteCard> {
             child: FloatingMoon(size: 30, color: textColor.withValues(alpha: 0.3)),
           ),
           // 배경 장식 레이어 ③ - 반짝이는 별 2개(opacity pulse)를 우측/하단
-          // 빈 공간에 흩뿌려 리듬감을 더한다.
+          // 빈 공간에 흩뿌려 리듬감을 더하며, 색상도 함께 순환 애니메이션된다.
           Positioned(
             top: 56,
             right: 44,
-            child: SparkleDot(size: 14, color: textColor.withValues(alpha: 0.35)),
+            child: AnimatedBuilder(
+              animation: _colorAnimController,
+              builder: (context, _) => SparkleDot(
+                size: 14,
+                color: _animatedAccentColor(_colorAnimController.value)
+                    .withValues(alpha: 0.55),
+              ),
+            ),
           ),
           Positioned(
             bottom: 18,
             right: 26,
-            child: SparkleDot(size: 10, color: textColor.withValues(alpha: 0.28)),
+            child: AnimatedBuilder(
+              animation: _colorAnimController,
+              builder: (context, _) => SparkleDot(
+                size: 10,
+                color: _animatedAccentColor((_colorAnimController.value + 0.5) % 1.0)
+                    .withValues(alpha: 0.45),
+              ),
+            ),
           ),
           // 실제 콘텐츠 - 기존 패딩/레이아웃을 그대로 유지한 채 장식 레이어
           // 위(맨 앞)에 배치해 텍스트가 항상 선명하게 보이도록 한다.
@@ -672,10 +740,14 @@ class _HealingQuoteCardState extends State<_HealingQuoteCard> {
                         color: textColor.withValues(alpha: 0.85),
                       ),
                       const SizedBox(width: 6),
-                      Text(
-                        '오늘의 힐링 한마디',
-                        style: HomeText.body(
-                          color: textColor.withValues(alpha: 0.85),
+                      Expanded(
+                        child: Text(
+                          titleText,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: HomeText.body(
+                            color: textColor.withValues(alpha: 0.85),
+                          ),
                         ),
                       ),
                     ],
