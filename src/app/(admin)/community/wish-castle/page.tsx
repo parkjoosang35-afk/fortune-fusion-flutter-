@@ -75,9 +75,6 @@ export default async function WishCastlePage() {
             파일/업로드
           </Link>
           <span className="border-b-2 border-indigo-500 px-3 py-2 text-slate-900">소원성 설정</span>
-          <Link href="/community/wish-room" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            소원방 설정
-          </Link>
         </nav>
       </div>
 

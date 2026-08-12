@@ -2,7 +2,7 @@
 
 // 기능-자산 매핑(FeatureAssetBinding) 관리 Server Actions
 // [열림패스/행복머니/복주머니 통합정책] §5-4/§9-4
-// scope(예: fortune_today/wish_room/community 등)는 신규 생성하지 않고
+// scope(예: fortune_today/community 등)는 신규 생성하지 않고
 // "제한된 범위"에서만 수정 가능하게 한다(§금지 원칙: 3대 자산 간 스코프 침범 방지).
 // 즉 accessType/secondaryAssets/notes/isActive만 수정 허용, scope/featureGroup/primaryAsset은
 // 화면에서 읽기 전용으로 노출(구조적 변경은 코드 배포를 통해서만 가능하도록 강제).
