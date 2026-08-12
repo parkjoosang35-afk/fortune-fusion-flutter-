@@ -68,6 +68,7 @@ import 'features/intro/data/intro_config_repository.dart';
 import 'features/luckpouch/application/luck_pouch_provider.dart';
 import 'core/domain/access/access_checker.dart';
 import 'core/widgets/luck_pouch_toast.dart';
+import 'features/wish_room/application/wish_room_provider.dart';
 
 /// 07단계 §2.1 앱 루트 - MultiProvider 전역 등록 + MaterialApp 라우팅 연결
 /// 10단계(A안): 모든 Repository는 Mock 구현이며, 향후 실제 API 연동 시
@@ -232,6 +233,12 @@ class App extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => SubscriptionProvider(SubscriptionRepository()),
         ),
+        // [신통방통 소원방 재개발] 신규 소원방 모듈(복주머니/달빛 조각 경제)
+        // 전역 상태. 기존 LuckPouchProvider(실화폐 "복주머니")와는 이름은
+        // 같지만 완전히 별개 시스템이며, wish_room 모듈 내부에서만 참조한다.
+        // init()은 Hive box를 열어야 하므로 비동기이며, WishRoomShell 진입
+        // 시점(FutureBuilder)에서 최초 1회 호출한다.
+        ChangeNotifierProvider(create: (_) => WishRoomProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
