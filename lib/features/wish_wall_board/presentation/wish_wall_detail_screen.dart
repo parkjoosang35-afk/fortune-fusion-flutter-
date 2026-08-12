@@ -4,13 +4,19 @@ import 'package:provider/provider.dart';
 import '../application/wish_wall_provider.dart';
 import '../domain/wish_wall_models.dart';
 import '../theme/wish_wall_theme.dart';
-import '../widgets/bottle_widget.dart';
 import '../widgets/blessing_bag_bottom_sheet.dart';
+import '../widgets/wish_wall_candle.dart';
+import '../widgets/wish_wall_seal.dart';
+import '../widgets/wish_wall_sigil.dart';
 
-/// 02. 병 상세 화면.
+/// 02. 소원 상세 화면.
 ///
-/// [handoff.zip] design/wb3-detail.jsx `BottleDetail`을 Flutter로 이식.
-/// 큰 병 히어로 + 큰 타이포 본문 + 응원/기도/복주머니 3버튼 + 댓글 목록.
+/// [디자인 히스토리] 옛 "신통방통 소원방"(wish_room) `WishRoomDetailScreen`의
+/// 화면 구성(상단 마법진 + 촛불 연소 시각화 + 인장 + 두루마리풍 본문 카드 +
+/// 간절함 별점 + 3분할 통계 타일 + 큰 액션 버튼들)을 그대로 재현한다.
+/// 옛 화면의 "얹힌 조각"(화폐) 통계와 "복 나눔"(화폐 소비) 버튼은 지금
+/// 시스템의 복주머니 언어("복주머니" 통계 + 복주머니 보내기 버튼)로
+/// 대체했고, 화폐를 만들지 않는 응원/오늘의기도 액션은 그대로 유지한다.
 class WishWallDetailScreen extends StatefulWidget {
   const WishWallDetailScreen({super.key, required this.wishId});
   final String wishId;
@@ -87,6 +93,13 @@ class _WishWallDetailScreenState extends State<WishWallDetailScreen> {
     setState(() => _comments = [comment, ..._comments]);
   }
 
+  int get _daysLit {
+    final wish = _wish;
+    if (wish == null) return 0;
+    final days = DateTime.now().difference(wish.createdAt).inDays;
+    return days < 1 ? 1 : days;
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -103,242 +116,254 @@ class _WishWallDetailScreenState extends State<WishWallDetailScreen> {
         backgroundColor: WishWallColors.bg,
         appBar: AppBar(backgroundColor: WishWallColors.bg, elevation: 0),
         body: Center(
-          child: Text('소원을 찾을 수 없어요', style: WishWallText.body()),
+          child: Text('이 소원은 더 이상 없어요', style: WishWallText.body()),
         ),
       );
     }
 
-    final cork = wish.categoryId.corkColor;
-    final glass = wish.categoryId.glassColor;
+    final intensity = (wish.glassLevel * 5).round().clamp(0, 5);
 
     return Scaffold(
       backgroundColor: WishWallColors.bg,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(4, 8, 12, 4),
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(
-                      Icons.arrow_back_ios_new,
-                      size: 18,
-                      color: WishWallColors.ink,
-                    ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    onPressed: () => _showMoreSheet(context, wish),
-                    icon: const Icon(Icons.more_horiz, color: WishWallColors.ink),
-                  ),
-                ],
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Align(
+              alignment: const Alignment(0, -0.5),
+              child: WishWallSigil(
+                size: 340,
+                color: WishWallColors.accent,
+                opacity: 0.2,
               ),
             ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.only(bottom: 96),
-                children: [
-                  Container(
-                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
-                    decoration: BoxDecoration(
-                      gradient: RadialGradient(
-                        center: const Alignment(0, -0.2),
-                        radius: 0.8,
-                        colors: [
-                          glass.withValues(alpha: 0.53),
-                          Colors.transparent,
-                        ],
+          ),
+          SafeArea(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 8, 12, 4),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(
+                          Icons.arrow_back_ios_new,
+                          size: 18,
+                          color: WishWallColors.ink,
+                        ),
                       ),
-                    ),
-                    child: Column(
-                      children: [
-                        Stack(
-                          clipBehavior: Clip.none,
-                          alignment: Alignment.topCenter,
+                      Expanded(
+                        child: Text(
+                          'WISH · 소원 상세',
+                          textAlign: TextAlign.center,
+                          style: WishWallText.mono(),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => _showMoreSheet(context, wish),
+                        icon: const Icon(Icons.more_horiz, color: WishWallColors.ink),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 96),
+                    children: [
+                      const SizedBox(height: 8),
+                      // 옛 상세 화면의 촛불 연소 시각화 — 감사(이룸) 표시가
+                      // 아니면 불이 켜지고, 밝힌 일수에 비례해 촛농이 흐른다.
+                      Center(
+                        child: WishWallCandle(
+                          size: 84,
+                          lit: !wish.isGratitude,
+                          melted: wish.isGratitude
+                              ? 0
+                              : (_daysLit.clamp(0, 30) / 2),
+                          color: wish.categoryId.lightColor,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Center(
+                        child: WishWallSeal(
+                          text: wish.categoryId.sealChar,
+                          color: wish.categoryId.lightColor,
+                          size: 48,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Center(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            BottleWidget(
-                              category: wish.categoryId,
-                              size: 180,
-                              glow: wish.glow,
+                            Container(
+                              width: 28,
+                              height: 28,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: wish.isAnonymous
+                                    ? WishWallColors.bg3
+                                    : WishWallColors.accentSoft,
+                                border: Border.all(color: WishWallColors.line),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                wish.isAnonymous ? '?' : wish.authorAvatarEmoji,
+                                style: const TextStyle(fontSize: 13),
+                              ),
                             ),
-                            BottleRibbons(count: wish.ribbonCount, color: cork),
-                            BottleLeaves(count: wish.leafCount),
-                            BottleLeaves(
-                              count: (wish.prayerCount / 300).floor().clamp(0, 3),
-                              rightSide: false,
+                            const SizedBox(width: 8),
+                            Text(
+                              wish.displayName,
+                              style: WishWallText.body().copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              '· ${_timeAgo(wish.createdAt)} 전',
+                              style: WishWallText.caption(),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: WishWallColors.bg2,
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(color: WishWallColors.line),
-                          ),
-                          child: Text(
-                            '#${wish.categoryId.label}',
-                            style: WishWallText.caption().copyWith(
-                              fontWeight: FontWeight.w600,
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          color: WishWallColors.bg2,
+                          border: Border.all(color: WishWallColors.line),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '"${wish.text}"',
+                              style: WishWallText.bodyLarge().copyWith(height: 1.5),
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: List.generate(5, (i) {
+                                final on = i < intensity;
+                                return Icon(
+                                  on ? Icons.star_rounded : Icons.star_border_rounded,
+                                  size: 16,
+                                  color: on
+                                      ? WishWallColors.accent
+                                      : WishWallColors.muted,
+                                );
+                              }),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _StatTile(
+                              label: wish.isGratitude ? '이루어짐' : '밝힌 지',
+                              value: wish.isGratitude ? '成' : '${_daysLit}일',
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: wish.isAnonymous
-                                ? WishWallColors.bg3
-                                : WishWallColors.accentSoft,
-                            border: Border.all(color: WishWallColors.line),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _StatTile(
+                              label: '응원',
+                              value: _fmtCount(wish.supportCount),
+                            ),
                           ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            wish.isAnonymous ? '?' : wish.authorAvatarEmoji,
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          wish.displayName,
-                          style: WishWallText.body().copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '· ${_timeAgo(wish.createdAt)} 전',
-                          style: WishWallText.caption(),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 4, 24, 22),
-                    child: Text(
-                      wish.text,
-                      textAlign: TextAlign.center,
-                      style: WishWallText.bodyLarge(),
-                    ),
-                  ),
-                  Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 16),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                    decoration: BoxDecoration(
-                      color: WishWallColors.bg2,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _StatBlock(label: '응원', value: wish.supportCount),
-                        Container(width: 1, height: 26, color: WishWallColors.line),
-                        _StatBlock(label: '기도', value: wish.prayerCount),
-                        Container(width: 1, height: 26, color: WishWallColors.line),
-                        _StatBlock(label: '복주머니', value: wish.pouchCount),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: _BigAction(
-                            active: wish.hasSupportedByMe,
-                            onTap: _doSupport,
-                            icon: '♥',
-                            label: wish.hasSupportedByMe ? '응원했어요' : '응원',
-                            color: WishWallColors.red,
-                            showBurst: _burst,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _BigAction(
-                            active: wish.hasPrayedToday,
-                            onTap: _doPray,
-                            icon: '✧',
-                            label: wish.hasPrayedToday ? '오늘 기도함' : '오늘의 기도',
-                            color: WishWallColors.accent,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _BigAction(
-                            onTap: _doPouch,
-                            icon: '✨',
-                            label: '복주머니',
-                            color: WishWallColors.accent2,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Container(
-                    padding: const EdgeInsets.fromLTRB(20, 18, 20, 10),
-                    decoration: const BoxDecoration(
-                      border: Border(top: BorderSide(color: WishWallColors.line)),
-                    ),
-                    child: Row(
-                      children: [
-                        Text(
-                          '응원 댓글',
-                          style: WishWallText.body().copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text('${_comments.length}', style: WishWallText.caption()),
-                      ],
-                    ),
-                  ),
-                  if (_comments.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
-                      child: Column(
-                        children: [
-                          Text(
-                            '첫 응원을 남겨보세요',
-                            textAlign: TextAlign.center,
-                            style: WishWallText.caption(color: WishWallColors.muted),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '마음의 촛불이 하나 더 켜져요',
-                            textAlign: TextAlign.center,
-                            style: WishWallText.caption(color: WishWallColors.dim),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _StatTile(
+                              label: '복주머니',
+                              value: _fmtCount(wish.pouchCount),
+                            ),
                           ),
                         ],
                       ),
-                    )
-                  else
-                    ..._comments.map((c) => _CommentRow(comment: c)),
-                ],
-              ),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _BigAction(
+                              active: wish.hasSupportedByMe,
+                              onTap: _doSupport,
+                              icon: '♥',
+                              label: wish.hasSupportedByMe ? '함께 빌었어요' : '🕯 함께 빌기',
+                              color: WishWallColors.red,
+                              showBurst: _burst,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _BigAction(
+                              active: wish.hasPrayedToday,
+                              onTap: _doPray,
+                              icon: '✧',
+                              label: wish.hasPrayedToday ? '오늘 기도함' : '오늘의 기도',
+                              color: WishWallColors.accent,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _BigAction(
+                              onTap: _doPouch,
+                              icon: '✨',
+                              label: '❖ 복 나눔',
+                              color: WishWallColors.accent2,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(4, 18, 4, 10),
+                        decoration: const BoxDecoration(
+                          border: Border(top: BorderSide(color: WishWallColors.line)),
+                        ),
+                        child: Row(
+                          children: [
+                            Text(
+                              '응원 댓글',
+                              style: WishWallText.body().copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text('${_comments.length}', style: WishWallText.caption()),
+                          ],
+                        ),
+                      ),
+                      if (_comments.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 30),
+                          child: Column(
+                            children: [
+                              Text(
+                                '첫 응원을 남겨보세요',
+                                textAlign: TextAlign.center,
+                                style: WishWallText.caption(color: WishWallColors.muted),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '마음의 촛불이 하나 더 켜져요',
+                                textAlign: TextAlign.center,
+                                style: WishWallText.caption(color: WishWallColors.dim),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        ..._comments.map((c) => _CommentRow(comment: c)),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
       bottomSheet: Container(
         padding: EdgeInsets.fromLTRB(
@@ -493,21 +518,29 @@ class _WishWallDetailScreenState extends State<WishWallDetailScreen> {
   }
 }
 
-class _StatBlock extends StatelessWidget {
-  const _StatBlock({required this.label, required this.value});
+class _StatTile extends StatelessWidget {
+  const _StatTile({required this.label, required this.value});
   final String label;
-  final int value;
+  final String value;
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: WishWallColors.bg2,
+        border: Border.all(color: WishWallColors.line),
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            _fmtCount(value),
-            style: WishWallText.title2().copyWith(fontSize: 20),
+            value,
+            style: WishWallText.title2().copyWith(fontSize: 18),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(label, style: WishWallText.caption()),
         ],
       ),
@@ -538,7 +571,7 @@ class _BigAction extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
         decoration: BoxDecoration(
           color: active ? color.withValues(alpha: 0.094) : WishWallColors.bg2,
           borderRadius: BorderRadius.circular(14),
@@ -555,7 +588,7 @@ class _BigAction extends StatelessWidget {
                 Text(
                   icon,
                   style: TextStyle(
-                    fontSize: 22,
+                    fontSize: 20,
                     color: active ? color : WishWallColors.ink,
                   ),
                 ),
@@ -566,9 +599,10 @@ class _BigAction extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               label,
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: WishWallText.family,
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.2,
                 color: active ? color : WishWallColors.ink,
@@ -632,7 +666,7 @@ class _CommentRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.fromLTRB(0, 12, 0, 0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

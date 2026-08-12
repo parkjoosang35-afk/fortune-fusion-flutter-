@@ -4,17 +4,20 @@ import 'package:provider/provider.dart';
 import '../application/wish_wall_provider.dart';
 import '../domain/wish_wall_models.dart';
 import '../theme/wish_wall_theme.dart';
-import '../widgets/bottle_widget.dart';
-import '../widgets/wish_wall_ambient_fx.dart';
+import '../widgets/wish_wall_seal.dart';
+import '../widgets/wish_wall_sigil.dart';
+import '../widgets/wish_wall_wish_card.dart';
 import 'wish_wall_compose_screen.dart';
 import 'wish_wall_detail_screen.dart';
 import 'wish_wall_my_screen.dart';
 
-/// 01. 신통방통 소원방(소원벽게시판) — 병 벽(피드) 화면.
+/// 01. 신통방통 소원방 — 모두의 소원(피드) 화면.
 ///
-/// [handoff.zip] design/wb3-wall.jsx `BottleWall`을 Flutter로 이식.
-/// Instagram/Threads 감성의 큰 카드 피드 + 세그먼트 탭(전체/인기/최신) +
-/// 카테고리 칩 + "오늘의 공동소원" 스토리 로우로 구성된다.
+/// [디자인 히스토리] 옛 "신통방통 소원방"(wish_room) `WishRoomFeedScreen`의
+/// 화면 구성(상단 마법진 배경 + 중앙 큰 인장(合) + "모두의 소원" 타이틀 +
+/// 응원 많은 순 정렬 + 익명 소원 카드 목록)을 그대로 재현한다. 데이터는
+/// 지금의 [WishWallProvider.feed](WishPost)를 그대로 사용한다. 카테고리
+/// 필터/작성 FAB는 지금 시스템에 필요한 기능이라 유지했다.
 class WishWallBoardScreen extends StatefulWidget {
   const WishWallBoardScreen({super.key});
 
@@ -22,10 +25,7 @@ class WishWallBoardScreen extends StatefulWidget {
   State<WishWallBoardScreen> createState() => _WishWallBoardScreenState();
 }
 
-enum _FeedTab { all, popular, latest }
-
 class _WishWallBoardScreenState extends State<WishWallBoardScreen> {
-  _FeedTab _tab = _FeedTab.all;
   WishCategory? _category;
 
   @override
@@ -42,16 +42,7 @@ class _WishWallBoardScreenState extends State<WishWallBoardScreen> {
     if (_category != null) {
       list = list.where((w) => w.categoryId == _category).toList();
     }
-    switch (_tab) {
-      case _FeedTab.all:
-        break;
-      case _FeedTab.popular:
-        list.sort((a, b) => b.supportCount.compareTo(a.supportCount));
-        break;
-      case _FeedTab.latest:
-        list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-        break;
-    }
+    list.sort((a, b) => b.supportCount.compareTo(a.supportCount));
     return list;
   }
 
@@ -80,283 +71,109 @@ class _WishWallBoardScreenState extends State<WishWallBoardScreen> {
 
     return Scaffold(
       backgroundColor: WishWallColors.bg,
-      body: SafeArea(
-        bottom: false,
-        child: Stack(
-          children: [
-            const Positioned.fill(child: WishWallAmbientBackground()),
-            CustomScrollView(
-              slivers: [
-                SliverPersistentHeader(
-                  pinned: true,
-                  delegate: _WallHeaderDelegate(
-                    tab: _tab,
-                    onTabChanged: (t) => setState(() => _tab = t),
-                    onOpenMy: _openMy,
-                  ),
-                ),
-                SliverToBoxAdapter(child: _TodayCollectiveRow()),
-                SliverToBoxAdapter(
-                  child: _CategoryChipRow(
-                    selected: _category,
-                    onSelect: (c) => setState(() => _category = c),
-                  ),
-                ),
-                if (provider.isLoading && list.isEmpty)
-                  const SliverFillRemaining(
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        color: WishWallColors.accent,
+      body: Stack(
+        children: [
+          // 옛 피드 화면의 상단 마법진 배경.
+          Positioned(
+            top: -60,
+            right: -40,
+            child: WishWallSigil(
+              size: 300,
+              color: WishWallColors.accent,
+              opacity: 0.16,
+            ),
+          ),
+          SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text('FEED · 모두의 소원', style: WishWallText.mono()),
                       ),
-                    ),
-                  )
-                else if (list.isEmpty)
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 60),
-                      child: Center(
-                        child: Text(
-                          '이 카테고리엔 아직 병이 없어요',
-                          style: WishWallText.body(color: WishWallColors.muted),
+                      IconButton(
+                        onPressed: _openMy,
+                        icon: const Icon(
+                          Icons.person_outline_rounded,
+                          color: WishWallColors.ink,
                         ),
                       ),
-                    ),
-                  )
-                else
-                  SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) => _BottlePostCard(
-                        wish: list[index],
-                        showBorderTop: index > 0,
-                        onOpen: () => _openDetail(list[index]),
-                      ),
-                      childCount: list.length,
-                    ),
-                  ),
-                const SliverToBoxAdapter(child: SizedBox(height: 110)),
-              ],
-            ),
-            Positioned(
-              right: 20,
-              bottom: 24,
-              child: _ComposeFab(onPressed: _openCompose),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _WallHeaderDelegate extends SliverPersistentHeaderDelegate {
-  _WallHeaderDelegate({
-    required this.tab,
-    required this.onTabChanged,
-    required this.onOpenMy,
-  });
-
-  final _FeedTab tab;
-  final ValueChanged<_FeedTab> onTabChanged;
-  final VoidCallback onOpenMy;
-
-  static const double _height = 96;
-
-  @override
-  double get minExtent => _height;
-  @override
-  double get maxExtent => _height;
-
-  @override
-  Widget build(
-    BuildContext context,
-    double shrinkOffset,
-    bool overlapsContent,
-  ) {
-    return Container(
-      color: WishWallColors.bg.withValues(alpha: 0.94),
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text('신통방통 소원방', style: WishWallText.title2()),
-              ),
-              IconButton(
-                onPressed: onOpenMy,
-                icon: const Icon(
-                  Icons.person_outline_rounded,
-                  color: WishWallColors.ink,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              _SegTab(
-                label: '전체',
-                active: tab == _FeedTab.all,
-                onTap: () => onTabChanged(_FeedTab.all),
-              ),
-              const SizedBox(width: 20),
-              _SegTab(
-                label: '인기',
-                active: tab == _FeedTab.popular,
-                onTap: () => onTabChanged(_FeedTab.popular),
-              ),
-              const SizedBox(width: 20),
-              _SegTab(
-                label: '최신',
-                active: tab == _FeedTab.latest,
-                onTap: () => onTabChanged(_FeedTab.latest),
-              ),
-            ],
-          ),
-          Container(height: 1, color: WishWallColors.line),
-        ],
-      ),
-    );
-  }
-
-  @override
-  bool shouldRebuild(covariant _WallHeaderDelegate oldDelegate) {
-    return oldDelegate.tab != tab;
-  }
-}
-
-class _SegTab extends StatelessWidget {
-  const _SegTab({required this.label, required this.active, required this.onTap});
-  final String label;
-  final bool active;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 10, top: 4),
-        child: Column(
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontFamily: WishWallText.family,
-                fontSize: 15,
-                fontWeight: active ? FontWeight.w800 : FontWeight.w500,
-                letterSpacing: -0.3,
-                color: active ? WishWallColors.ink : WishWallColors.muted,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Container(
-              width: 24,
-              height: 3,
-              decoration: BoxDecoration(
-                color: active ? WishWallColors.accent : Colors.transparent,
-                borderRadius: BorderRadius.circular(3),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TodayCollectiveRow extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: WishWallColors.line)),
-      ),
-      child: Row(
-        children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      WishWallColors.accentSoft,
-                      WishWallColors.bg,
                     ],
                   ),
-                  border: Border.all(color: WishWallColors.accent, width: 2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: WishWallColors.accent.withValues(alpha: 0.28),
-                      blurRadius: 20,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
                 ),
-                child: Center(
-                  child: Transform.scale(
-                    scale: 0.35,
-                    child: BottleWidget(
-                      category: WishCategory.exam,
-                      size: 100,
-                      glow: 1,
-                      sealed: false,
-                    ),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 110),
+                    children: [
+                      const Center(
+                        child: WishWallSeal(
+                          text: '合',
+                          color: WishWallColors.accent,
+                          size: 52,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        '모두의 소원',
+                        textAlign: TextAlign.center,
+                        style: WishWallText.title1(),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '익명의 소원들이 모이는 자리입니다\n마음이 가는 곳에 함께 빌어주세요',
+                        textAlign: TextAlign.center,
+                        style: WishWallText.body(
+                          color: WishWallColors.muted,
+                        ).copyWith(height: 1.7),
+                      ),
+                      const SizedBox(height: 20),
+                      _CategoryChipRow(
+                        selected: _category,
+                        onSelect: (c) => setState(() => _category = c),
+                      ),
+                      const SizedBox(height: 16),
+                      if (provider.isLoading && list.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 60),
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              color: WishWallColors.accent,
+                            ),
+                          ),
+                        )
+                      else if (list.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 40),
+                          child: Text(
+                            '아직 모인 소원이 없어요\n나의 소원을 먼저 밝혀보세요',
+                            textAlign: TextAlign.center,
+                            style: WishWallText.body(color: WishWallColors.muted),
+                          ),
+                        )
+                      else
+                        ...list.map(
+                          (w) => Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: WishWallWishCard(
+                              wish: w,
+                              anonymous: true,
+                              onTap: () => _openDetail(w),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-                ),
-              ),
-              Positioned(
-                top: -2,
-                right: -2,
-                child: Container(
-                  width: 14,
-                  height: 14,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: WishWallColors.accent,
-                    border: Border.all(color: WishWallColors.bg, width: 2),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('TODAY', style: WishWallText.mono()),
-                const SizedBox(height: 2),
-                Text(
-                  '오늘은 모두의 건강을 빌어요',
-                  style: WishWallText.body().copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  '1,284 명이 함께 담고 있어요',
-                  style: WishWallText.caption(),
                 ),
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-            decoration: BoxDecoration(
-              color: WishWallColors.ink,
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              '함께',
-              style: WishWallText.label(color: WishWallColors.bg),
-            ),
+          Positioned(
+            right: 20,
+            bottom: 24,
+            child: _ComposeFab(onPressed: _openCompose),
           ),
         ],
       ),
@@ -372,10 +189,9 @@ class _CategoryChipRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 46,
+      height: 40,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
         children: [
           _CategoryChip(
             label: '전체',
@@ -432,288 +248,6 @@ class _CategoryChip extends StatelessWidget {
   }
 }
 
-class _BottlePostCard extends StatefulWidget {
-  const _BottlePostCard({
-    required this.wish,
-    required this.showBorderTop,
-    required this.onOpen,
-  });
-  final WishPost wish;
-  final bool showBorderTop;
-  final VoidCallback onOpen;
-
-  @override
-  State<_BottlePostCard> createState() => _BottlePostCardState();
-}
-
-class _BottlePostCardState extends State<_BottlePostCard> {
-  bool _burst = false;
-
-  Future<void> _doSupport() async {
-    final wish = widget.wish;
-    if (wish.hasSupportedByMe) return;
-    setState(() => _burst = true);
-    await context.read<WishWallProvider>().support(wish.id);
-    if (mounted) setState(() {});
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final wish = widget.wish;
-    final cork = wish.categoryId.corkColor;
-
-    return InkWell(
-      onTap: widget.onOpen,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-        decoration: BoxDecoration(
-          border: widget.showBorderTop
-              ? const Border(top: BorderSide(color: WishWallColors.line))
-              : null,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: wish.isAnonymous
-                        ? WishWallColors.bg3
-                        : WishWallColors.accentSoft,
-                    border: Border.all(color: WishWallColors.line),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    wish.isAnonymous ? '?' : wish.authorAvatarEmoji,
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            wish.displayName,
-                            style: WishWallText.body().copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            '· ${_timeAgo(wish.createdAt)}',
-                            style: WishWallText.caption(),
-                          ),
-                        ],
-                      ),
-                      Text(
-                        '#${wish.categoryId.label}',
-                        style: WishWallText.caption(),
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(
-                  Icons.more_horiz,
-                  color: WishWallColors.ink.withValues(alpha: 0.6),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: 76,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    alignment: Alignment.topCenter,
-                    children: [
-                      BottleWidget(
-                        category: wish.categoryId,
-                        size: 76,
-                        glow: wish.glow,
-                      ),
-                      BottleRibbons(count: wish.ribbonCount, color: cork),
-                      BottleLeaves(count: wish.leafCount),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Text(
-                    wish.text,
-                    maxLines: 4,
-                    overflow: TextOverflow.ellipsis,
-                    style: WishWallText.body().copyWith(height: 1.55),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                _ActionPill(
-                  active: wish.hasSupportedByMe,
-                  onTap: _doSupport,
-                  icon: wish.hasSupportedByMe
-                      ? Icons.favorite
-                      : Icons.favorite_border,
-                  label: _fmtCount(wish.supportCount),
-                  color: WishWallColors.red,
-                  showBurst: _burst,
-                ),
-                _ActionPill(
-                  icon: Icons.chat_bubble_outline,
-                  label: _fmtCount(0),
-                ),
-                _ActionPill(
-                  icon: Icons.auto_awesome,
-                  label: _fmtCount(wish.prayerCount),
-                ),
-                const Spacer(),
-                InkWell(
-                  onTap: widget.onOpen,
-                  borderRadius: BorderRadius.circular(17),
-                  child: Container(
-                    height: 34,
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    decoration: BoxDecoration(
-                      color: WishWallColors.accentSoft,
-                      borderRadius: BorderRadius.circular(17),
-                      border: Border.all(color: WishWallColors.accent),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      '✨ 복주머니',
-                      style: WishWallText.label(color: WishWallColors.accent2),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ActionPill extends StatelessWidget {
-  const _ActionPill({
-    required this.icon,
-    required this.label,
-    this.active = false,
-    this.onTap,
-    this.color,
-    this.showBurst = false,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool active;
-  final VoidCallback? onTap;
-  final Color? color;
-  final bool showBurst;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(17),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            height: 34,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Row(
-              children: [
-                Icon(
-                  icon,
-                  size: 20,
-                  color: active ? color : WishWallColors.ink,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontFamily: WishWallText.family,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: -0.2,
-                    color: active ? color : WishWallColors.ink,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (showBurst)
-            Positioned(
-              left: 10,
-              top: 2,
-              child: _FloatHeart(color: color ?? WishWallColors.red),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FloatHeart extends StatefulWidget {
-  const _FloatHeart({required this.color});
-  final Color color;
-
-  @override
-  State<_FloatHeart> createState() => _FloatHeartState();
-}
-
-class _FloatHeartState extends State<_FloatHeart>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    )..forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        final t = _controller.value;
-        return Opacity(
-          opacity: (1 - t).clamp(0.0, 1.0),
-          child: Transform.translate(
-            offset: Offset(6 * t, -26 * t),
-            child: Transform.scale(
-              scale: 1 + 0.5 * t,
-              child: Icon(Icons.favorite, size: 14, color: widget.color),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
 class _ComposeFab extends StatelessWidget {
   const _ComposeFab({required this.onPressed});
   final VoidCallback onPressed;
@@ -748,19 +282,4 @@ class _ComposeFab extends StatelessWidget {
       ),
     );
   }
-}
-
-String _fmtCount(int n) {
-  if (n < 1000) return '$n';
-  if (n < 10000) return '${(n / 1000).toStringAsFixed(1)}k';
-  return '${(n / 1000).round()}k';
-}
-
-String _timeAgo(DateTime time) {
-  final diff = DateTime.now().difference(time);
-  final mins = diff.inMinutes;
-  if (mins < 1) return '방금';
-  if (mins < 60) return '${mins}분';
-  if (mins < 60 * 24) return '${diff.inHours}시간';
-  return '${diff.inDays}일';
 }
