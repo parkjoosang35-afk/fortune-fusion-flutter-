@@ -75,8 +75,13 @@ class _SajuResultScreenState extends State<SajuResultScreen> {
   Widget _buildResult(BuildContext context, SajuResultModel result) {
     final topics = result.topicResults.keys.toList();
 
+    // [사주정보 이름 필드 보완] 입력 화면에서 받은 이름을 결과 히어로 캡션에
+    // 반영해 "OOO님의 사주 명식"처럼 개인화한다.
+    final heroCaption = result.name.trim().isEmpty
+        ? '나의 사주 명식'
+        : '${result.name}님의 사주 명식';
     return ResultCardStack(
-      heroCaption: '나의 사주 명식',
+      heroCaption: heroCaption,
       heroSummary: result.summary,
       heroExtra: _SajuChartExtra(result: result),
       sectionTitle: '세부 리포트',

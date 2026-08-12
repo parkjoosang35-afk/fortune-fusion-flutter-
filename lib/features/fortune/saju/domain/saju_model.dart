@@ -94,6 +94,11 @@ class SajuPillars {
 
 class SajuResultModel {
   final String id;
+
+  /// [사주정보 이름 필드 보완] 이번 분석을 요청한 사람의 이름(입력 화면에서
+  /// 사용자가 직접 입력한 값, 또는 미입력 시 '게스트'). 결과 화면에서
+  /// "OOO님의 사주 결과"처럼 개인화 표시에 사용할 수 있다.
+  final String name;
   final SajuPillars pillars;
   final Map<String, int> fiveElements; // 목화토금수
   final Map<String, String> topicResults; // 재물/애정/직업/건강
@@ -107,6 +112,7 @@ class SajuResultModel {
 
   const SajuResultModel({
     required this.id,
+    required this.name,
     required this.pillars,
     required this.fiveElements,
     required this.topicResults,

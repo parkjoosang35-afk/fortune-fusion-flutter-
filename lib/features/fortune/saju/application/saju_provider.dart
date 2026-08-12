@@ -14,6 +14,9 @@ class SajuProvider extends ChangeNotifier {
   List<SajuResultModel> _history = [];
   List<SajuResultModel> get history => _history;
 
+  // [사주정보 이름 필드 보완] 결과/재시도(retry)에도 이름이 그대로 유지되도록
+  // 요청 시 전달받은 이름을 상태로 보관한다.
+  String? _name;
   String? _birthDate;
   String? _birthTime;
   bool _isLunar = false;
@@ -28,6 +31,7 @@ class SajuProvider extends ChangeNotifier {
   bool get profilesLoading => _profilesLoading;
 
   Future<void> requestSaju({
+    required String name,
     required String birthDate,
     String? birthTime,
     required bool isLunar,
@@ -35,6 +39,7 @@ class SajuProvider extends ChangeNotifier {
     String? profileId,
     String? profileName,
   }) async {
+    _name = name;
     _birthDate = birthDate;
     _birthTime = birthTime;
     _isLunar = isLunar;
@@ -46,6 +51,7 @@ class SajuProvider extends ChangeNotifier {
     notifyListeners();
 
     final result = await _repository.requestSaju(
+      name: name,
       birthDate: birthDate,
       birthTime: birthTime,
       isLunar: isLunar,
@@ -65,6 +71,7 @@ class SajuProvider extends ChangeNotifier {
   Future<void> retry() async {
     if (_birthDate == null) return;
     await requestSaju(
+      name: _name ?? '게스트',
       birthDate: _birthDate!,
       birthTime: _birthTime,
       isLunar: _isLunar,
@@ -154,6 +161,7 @@ class SajuProvider extends ChangeNotifier {
     List<String> topics = const ['종합'],
   }) {
     return requestSaju(
+      name: profile.name,
       birthDate: profile.birthDate,
       birthTime: profile.birthTime,
       isLunar: profile.isLunar,

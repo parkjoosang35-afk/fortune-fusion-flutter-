@@ -359,6 +359,11 @@ class ConsultationProvider extends ChangeNotifier {
         : birthTimeRaw;
 
     await saju.requestSaju(
+      // [사주정보 이름 필드 보완] AI 상담 채팅 흐름은 이미 대화 중에 이름을
+      // 수집해두므로(_userInfo['name']) 그대로 전달한다.
+      name: (_userInfo['name'] == null || _userInfo['name']!.trim().isEmpty)
+          ? '게스트'
+          : _userInfo['name']!.trim(),
       birthDate: _userInfo['birthDate'] ?? '',
       birthTime: birthTime,
       isLunar: false,

@@ -35,6 +35,10 @@ class SajuInputScreen extends StatefulWidget {
 }
 
 class _SajuInputScreenState extends State<SajuInputScreen> {
+  // [사주정보 이름 필드 보완] 메인 입력 폼에 이름 입력이 없던 문제를 해결하기
+  // 위한 컨트롤러. 로그인 사용자는 닉네임으로 자동 채워지고, "내 사주함" 프로필을
+  // 선택하면 해당 프로필의 실제 이름으로 갱신된다(둘 다 사용자가 직접 수정 가능).
+  final TextEditingController _nameController = TextEditingController();
   DateTime? _birthDate;
   TimeOfDay? _birthTime;
   bool _isLunar = false;
@@ -81,10 +85,22 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
         _birthTime = TimeOfDay(hour: int.parse(t[0]), minute: int.parse(t[1]));
       }
     }
+    // [사주정보 이름 필드 보완] 로그인 사용자의 닉네임으로 이름 입력을 자동
+    // 프리필한다(다른 운세 입력 화면들과 동일한 패턴). 비로그인 상태이거나
+    // 닉네임이 없으면 빈 값으로 두어 사용자가 직접 입력하게 한다.
+    if (user?.nickname != null && user!.nickname.trim().isNotEmpty) {
+      _nameController.text = user.nickname;
+    }
     // [웹→앱 이식] saju.html "내 사주함" - 화면 진입 시 저장된 프로필 목록 로드
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<SajuProvider>().loadProfiles();
     });
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
   }
 
   void _applyProfile(SajuProfileModel p) {
@@ -92,6 +108,9 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
     setState(() {
       _selectedProfileId = p.id;
       _selectedProfileName = p.profileName;
+      // [사주정보 이름 필드 보완] "내 사주함" 프로필을 선택하면 해당 프로필의
+      // 실제 이름(p.name)으로 이름 입력을 갱신한다.
+      _nameController.text = p.name;
       _birthDate = DateTime(
         int.parse(parts[0]),
         int.parse(parts[1]),
@@ -281,8 +300,14 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
     final birthTimeStr = _birthTime != null
         ? '${_birthTime!.hour.toString().padLeft(2, '0')}:${_birthTime!.minute.toString().padLeft(2, '0')}'
         : null;
+    // [사주정보 이름 필드 보완] 이름 입력이 비어있으면 '게스트'로 폴백해
+    // 서버/결과 화면에서 항상 유효한 이름 값을 사용할 수 있게 한다.
+    final nameStr = _nameController.text.trim().isEmpty
+        ? '게스트'
+        : _nameController.text.trim();
 
     context.read<SajuProvider>().requestSaju(
+      name: nameStr,
       birthDate: birthDateStr,
       birthTime: birthTimeStr,
       isLunar: _isLunar,
@@ -293,7 +318,7 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
     if (_saveAsProfile && _selectedProfileId == null) {
       context.read<SajuProvider>().createProfile(
         profileName: '나',
-        name: context.read<AuthProvider>().currentUser?.nickname ?? '나',
+        name: nameStr,
         gender: '남',
         birthDate: birthDateStr,
         birthTime: birthTimeStr,
@@ -376,6 +401,35 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
                     label: const Text('내 사주함에 추가'),
                   ),
                 ),
+              // [사주정보 이름 필드 보완] 다른 운세 입력 화면(오늘의 운세 등)과
+              // 동일하게 메인 폼에도 이름 입력을 노출한다. "내 사주함" 프로필의
+              // 실제 이름과는 별개로, 이번 1회 분석에 사용할 이름을 명시적으로
+              // 입력/수정할 수 있게 한다.
+              Text('이름', style: UnifiedText.title()),
+              SizedBox(height: UnifiedTokens.spaceSm),
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: UnifiedTokens.spaceLg,
+                ),
+                decoration: BoxDecoration(
+                  color: UnifiedColors.cardSection,
+                  border: Border.all(color: UnifiedColors.border),
+                  borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
+                ),
+                child: TextField(
+                  controller: _nameController,
+                  style: UnifiedText.body(color: UnifiedColors.textPrimary),
+                  decoration: InputDecoration(
+                    hintText: '이름을 입력해주세요',
+                    hintStyle: UnifiedText.body(
+                      color: UnifiedColors.textCaption,
+                    ),
+                    border: InputBorder.none,
+                    isCollapsed: false,
+                  ),
+                ),
+              ),
+              SizedBox(height: UnifiedTokens.spaceXl),
               Text('생년월일시', style: UnifiedText.title()),
               SizedBox(height: UnifiedTokens.spaceSm),
               _FieldTile(

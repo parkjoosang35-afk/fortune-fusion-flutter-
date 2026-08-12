@@ -29,6 +29,7 @@ class SajuRepository {
   final List<SajuProfileModel> _profiles = [];
 
   Future<ApiResult<SajuResultModel>> requestSaju({
+    required String name,
     required String birthDate,
     String? birthTime,
     required bool isLunar,
@@ -49,6 +50,7 @@ class SajuRepository {
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
               'userId': userId,
+              'name': name,
               'birthDate': birthDate,
               'birthTime': birthTime,
               'isLunar': isLunar,
@@ -91,6 +93,10 @@ class SajuRepository {
 
       final result = SajuResultModel(
         id: data['id'] as String,
+        // [사주정보 이름 필드 보완] 서버가 응답에 name을 포함하려는
+        // 경우만 사용하고, 없으면 이본 요얰에 전달한 이릅(name 인자)으로
+        // 폴백해 결과 화상이 무조건 유효한 이릅을 가질 수 있다.
+        name: data['name'] as String? ?? name,
         pillars: pillars,
         fiveElements: fiveElements,
         topicResults: topicResults,
