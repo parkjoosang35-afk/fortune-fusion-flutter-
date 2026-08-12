@@ -63,7 +63,6 @@ import 'features/intro/data/intro_config_repository.dart';
 import 'features/luckpouch/application/luck_pouch_provider.dart';
 import 'core/domain/access/access_checker.dart';
 import 'core/widgets/luck_pouch_toast.dart';
-import 'features/wish_room/application/wish_room_provider.dart';
 import 'features/wish_wall_board/data/wish_wall_repository.dart';
 import 'features/wish_wall_board/application/blessing_bag_policy_adapter.dart';
 import 'features/wish_wall_board/application/wish_wall_provider.dart';
@@ -136,8 +135,8 @@ class App extends StatelessWidget {
         // 원장) 위에 얹힌 얇은 위임 래퍼로 재구성했다(§8 금지 원칙은 "자산을 뒤섞지
         // 않는다"는 원래 의미로, 복주머니가 곧 유일한 실사용자 재화가 된 지금은
         // 프리패스와 복주머니가 섞이지 않도록 하는 데 적용된다). LuckPouchProvider
-        // 인스턴스 자체의 identity는 WishRoomProvider 등이 생성 시점에 한 번만
-        // 참조를 들고 있으므로 update에서 새로 만들지 않고 in-place로 갱신한다.
+        // 인스턴스 자체의 identity는 화면들이 생성 시점에 한 번만 참조를
+        // 들고 있으므로 update에서 새로 만들지 않고 in-place로 갱신한다.
         ChangeNotifierProxyProvider<WalletProvider, LuckPouchProvider>(
           create: (context) =>
               LuckPouchProvider(context.read<WalletProvider>()),
@@ -222,12 +221,9 @@ class App extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => SubscriptionProvider(SubscriptionRepository()),
         ),
-        // [신통방통 소원방 재개발] 신규 소원방 모듈(복주머니/달빛 조각 경제)
-        // 전역 상태. 기존 LuckPouchProvider(실화폐 "복주머니")와는 이름은
-        // 같지만 완전히 별개 시스템이며, wish_room 모듈 내부에서만 참조한다.
-        // init()은 Hive box를 열어야 하므로 비동기이며, WishRoomShell 진입
-        // 시점(FutureBuilder)에서 최초 1회 호출한다.
-        ChangeNotifierProvider(create: (_) => WishRoomProvider()),
+        // [코인/포인트 잔재 제거] 과거 "신통방통 소원방"(wish_room) 모듈이 쓰던
+        // 복주머니와 별개인 자체 화폐("조각"/달빛 크리스탈) 경제는 완전히
+        // 삭제했다. 이 앱의 유일한 재화는 복주머니(LuckPouchProvider)뿐이다.
         // [소원벽게시판 신규 구축] "소원 하나 = 유리병 하나" 컨셉의 소원벽게시판
         // 전역 상태. 복주머니 적립/차감은 새 화폐를 만들지 않고 반드시
         // BlessingBagPolicyAdapter → LuckPouchProvider(실제 신통방통 재화)를

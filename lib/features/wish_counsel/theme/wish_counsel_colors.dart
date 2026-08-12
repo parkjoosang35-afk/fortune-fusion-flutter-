@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 ///
 /// 주의: 이 파일의 색상 상수는 오직 `lib/features/wish_counsel/` 내부에서만
 /// 참조한다. 앱 전역 `UnifiedColors`(홈 화면 라이트 테마)와 절대 혼용하지
-/// 않는다(디자인 시스템 격리 — wish_room/wish_wall_board와 동일 관행).
+/// 않는다(디자인 시스템 격리 — wish_wall_board와 동일 관행).
 enum CounselCategory { saju, tarot, counsel }
 
 class CounselCategoryTokens {

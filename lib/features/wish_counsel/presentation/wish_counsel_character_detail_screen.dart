@@ -225,7 +225,7 @@ class WishCounselCharacterDetailScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '첫 5분 무료 · 이후 코인 1개/분',
+                    '완전 무료 · 복주머니 소비 없음',
                     style: WishCounselText.caption(),
                   ),
                 ],

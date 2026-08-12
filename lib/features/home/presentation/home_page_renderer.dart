@@ -516,7 +516,7 @@ class _WishPreviewBlock extends StatelessWidget {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        onTap: () => _handleLink(context, section.buttonLink ?? '/wish-room'),
+        onTap: () => _handleLink(context, section.buttonLink ?? '/wish-wall'),
         child: Padding(
           padding: style.padding,
           child: Column(

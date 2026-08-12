@@ -4,11 +4,10 @@ import 'wish_counsel_colors.dart';
 /// 상담(Midnight Comfort) · 타이포그래피 토큰
 ///
 /// 출처: `handoff/04_DESIGN_TOKENS.md` §2. Noto Serif KR/Gowun Batang/
-/// IBM Plex Mono 폰트는 이미 `wish_room` 모듈이 pubspec.yaml에 등록해 둔
-/// 전역 폰트 패밀리(`NotoSerifKRWish`/`GowunBatangWish`/`IBMPlexMonoWish`)를
-/// 그대로 재사용한다(중복 등록 방지, 폰트 패밀리명은 앱 전역에서 유일하면
-/// 어느 feature에서든 참조 가능). UI 크롬(버튼/칩/라벨)은 앱 전역
-/// `Pretendard`를 사용한다.
+/// IBM Plex Mono 폰트는 pubspec.yaml에 등록된 전역 폰트 패밀리
+/// (`NotoSerifKRWish`/`GowunBatangWish`/`IBMPlexMonoWish`)를 그대로
+/// 재사용한다(폰트 패밀리명은 앱 전역에서 유일하면 어느 feature에서든
+/// 참조 가능). UI 크롬(버튼/칩/라벨)은 앱 전역 `Pretendard`를 사용한다.
 class WishCounselText {
   WishCounselText._();
 

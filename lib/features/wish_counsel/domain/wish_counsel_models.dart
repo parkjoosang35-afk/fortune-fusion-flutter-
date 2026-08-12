@@ -32,12 +32,14 @@ class CounselEmotion {
 }
 
 /// 상담 모드 3종(일반/깊은/빠른)
+///
+/// [코인/포인트 잔재 제거] 과거 "코인/분" 과금 개념(coinPerMin)이 남아있었으나,
+/// 이 앱의 유일한 재화는 복주머니뿐이며 AI 상담은 완전 무료 정책이므로 제거함.
 class CounselMode {
   const CounselMode({
     required this.key,
     required this.label,
     required this.glyph,
-    required this.coinPerMin,
     required this.maxTokens,
     this.pro = false,
   });
@@ -45,33 +47,19 @@ class CounselMode {
   final String key;
   final String label;
   final String glyph;
-  final double coinPerMin;
   final int maxTokens;
   final bool pro;
 
   static const List<CounselMode> all = [
-    CounselMode(
-      key: 'normal',
-      label: '일반 상담',
-      glyph: '○',
-      coinPerMin: 1,
-      maxTokens: 500,
-    ),
+    CounselMode(key: 'normal', label: '일반 상담', glyph: '○', maxTokens: 500),
     CounselMode(
       key: 'deep',
       label: '깊은 상담',
       glyph: '◐',
-      coinPerMin: 3,
       maxTokens: 1200,
       pro: true,
     ),
-    CounselMode(
-      key: 'quick',
-      label: '빠른 한마디',
-      glyph: '◦',
-      coinPerMin: 0.5,
-      maxTokens: 200,
-    ),
+    CounselMode(key: 'quick', label: '빠른 한마디', glyph: '◦', maxTokens: 200),
   ];
 }
 

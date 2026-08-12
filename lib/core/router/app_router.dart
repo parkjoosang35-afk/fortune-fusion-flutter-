@@ -61,8 +61,7 @@ import '../../features/giftcard/presentation/my_giftcards_screen.dart';
 import '../../features/giftcard/domain/giftcard_model.dart';
 import '../../features/subscription/presentation/subscription_plans_screen.dart';
 import '../../features/subscription/presentation/my_subscription_screen.dart';
-import '../../features/wish_room/presentation/wish_room_intro_screen.dart';
-import '../../features/wish_room/presentation/wish_room_shell.dart';
+import '../../features/wish_wall_board/presentation/wish_wall_board_screen.dart';
 
 /// 07단계 §3.2 라우팅 테이블 - Navigator 1.0(onGenerateRoute) 구현
 /// 10단계(A안): AI 6대 기능(사주/타로/관상/손금/궁합/AI상담) + 리워드(미션/랭킹)까지
@@ -315,11 +314,12 @@ class AppRouter {
       case '/my/subscription':
         return _page(const MySubscriptionScreen());
 
-      // ── 신통방통 소원방(재개발) ──
+      // ── 소원벽 [코인/포인트 잔재 정리] 신통방통 소원방(wish_room,
+      // 복주머니와 별개인 직구 자체 화폐)는 사용자 지시로 완전히 삭제되고,
+      // 유일한 재화인 복주머니만 쓰는 소원벽으로 통합한다 ──
       case '/wish-room':
-        return _page(const WishRoomIntroScreen());
-      case '/wish-room/shell':
-        return _page(const WishRoomShell());
+      case '/wish-wall':
+        return _page(const WishWallBoardScreen());
 
       default:
         // [P3 legacy 제거] 미사용 legacy HomeScreen(home_screen.dart) 대신

@@ -944,8 +944,10 @@ class _QuickEntryRow extends StatelessWidget {
             default:
               return _QuickEntryCard(
                 icon: Icons.star_border_rounded,
-                label: '신통방통 소원방',
-                onTap: () => Navigator.of(context).pushNamed('/wish-room'),
+                label: '소원벽',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const WishWallBoardScreen()),
+                ),
               );
           }
         },

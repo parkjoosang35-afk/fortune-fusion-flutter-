@@ -19,6 +19,7 @@ import '../../pass/presentation/pass_time_format.dart';
 import '../../../core/domain/access/access_checker.dart';
 import '../../auth/application/auth_provider.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../../wish_wall_board/presentation/wish_wall_board_screen.dart';
 import 'home_style_tokens.dart';
 
 /// [Fortune Fusion 서브 디자인 통일 마스터 프롬프트] 홈 화면 - 기준 시안 그대로 구현
@@ -827,11 +828,12 @@ class _FortuneTarotMiniCard extends StatelessWidget {
   }
 }
 
-/// ⑥ 소원방 카드 - #F5F3FB [소원게시판 완전 삭제 → 신통방통 소원방으로 대체]
+/// ⑥ 소원벽 · 상담 카드 - #F5F3FB
 ///
-/// [상담 섹션 신규 추가] 신통방통 소원방 카드 옆에 "상담"(Midnight Comfort,
-/// 9명의 AI 상담사) 진입 카드를 나란히 배치한다. `_FortuneTarotRow`와
-/// 동일한 2분할 Row 패턴을 재사용해 기존 단독 카드를 Row로 감쌌다.
+/// [코인/포인트 잔재 정리] 복주머니와 별개인 자체 화폐("조각") 경제를 쓰던
+/// "신통방통 소원방"(wish_room) 모듈은 완전히 삭제했다. 이 자리는 이미
+/// 복주머니 정책으로 통합되어 있는 "소원벽"(wish_wall_board)으로 대체하고,
+/// "상담"(Midnight Comfort, 9명의 AI 상담사, 완전 무료) 카드는 그대로 유지한다.
 class _WishBoardRoomRow extends StatelessWidget {
   const _WishBoardRoomRow();
 
@@ -844,11 +846,13 @@ class _WishBoardRoomRow extends StatelessWidget {
         children: [
           Expanded(
             child: _LavenderMiniCard(
-              title: '신통방통 소원방',
-              bottomLabel: '참여해보세요',
+              title: '소원벽',
+              bottomLabel: '소원을 밝혀보세요',
               circleIcon: Icons.arrow_drop_up_rounded,
               circleStyle: PremiumCircleButtonStyle.neon,
-              onTap: () => Navigator.of(context).pushNamed('/wish-room'),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const WishWallBoardScreen()),
+              ),
             ),
           ),
           const SizedBox(width: _Dims.wishCardGap),

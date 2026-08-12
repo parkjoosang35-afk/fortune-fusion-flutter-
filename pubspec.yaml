@@ -130,9 +130,8 @@ flutter:
           weight: 700
         - asset: assets/fonts/Pretendard-ExtraBold.ttf
           weight: 800
-    # [소원방 "마법진이 소환되는 신전" 디자인 핸드오프 V2] 달빛 크리스탈 팔레트 +
-    # 판타지 신전 테마 전용 폰트 3종. wish_room 모듈 내부에서만 참조하며
-    # (WishRoomTextStyles), 앱 전역 Pretendard 체계와는 별도로 둔다.
+    # [상담(Midnight Comfort) 전용 폰트 3종] wish_counsel 모듈 내부에서만
+    # 참조하며(WishCounselText), 앱 전역 Pretendard 체계와는 별도로 둔다.
     - family: NotoSerifKRWish
       fonts:
         - asset: assets/fonts/wish_room/NotoSerifKR-Bold.ttf
