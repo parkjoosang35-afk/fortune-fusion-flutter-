@@ -5,6 +5,7 @@ import '../application/wish_wall_provider.dart';
 import '../domain/wish_wall_models.dart';
 import '../theme/wish_wall_theme.dart';
 import '../widgets/bottle_widget.dart';
+import '../widgets/wish_wall_ambient_fx.dart';
 import 'wish_wall_compose_screen.dart';
 import 'wish_wall_detail_screen.dart';
 import 'wish_wall_my_screen.dart';
@@ -83,6 +84,7 @@ class _WishWallBoardScreenState extends State<WishWallBoardScreen> {
         bottom: false,
         child: Stack(
           children: [
+            const Positioned.fill(child: WishWallAmbientBackground()),
             CustomScrollView(
               slivers: [
                 SliverPersistentHeader(
