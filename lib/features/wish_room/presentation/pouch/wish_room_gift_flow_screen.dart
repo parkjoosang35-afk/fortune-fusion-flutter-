@@ -9,11 +9,15 @@ import '../../widgets/wish_room_sigils.dart';
 import '../../widgets/wish_room_pouch_widgets.dart';
 import '../wish_room_shortage_dialog.dart';
 
-/// 13. 복 나눔 · 조각 선물 — 출처: PouchScreens.jsx `ScreenGiftFlow`
+/// 08. 복 나눔 · 조각 선물 — 출처: PouchScreens.jsx `ScreenGiftFlow`
+///
+/// [targetWish]가 주어지면 해당 소원에 조각을 얹고, 없으면 provider가 가진
+/// 소원 중 첫 번째(없으면 예시 카드만 보여주고 담기 버튼은 비활성화)를 사용한다.
+/// (모두의 소원 피드가 아직 재제작되지 않아 임시로 자기 소원 목록을 활용함)
 class WishRoomGiftFlowScreen extends StatefulWidget {
-  const WishRoomGiftFlowScreen({super.key, required this.wish});
+  const WishRoomGiftFlowScreen({super.key, this.targetWish});
 
-  final WishRoomWish wish;
+  final WishRoomWish? targetWish;
 
   @override
   State<WishRoomGiftFlowScreen> createState() => _WishRoomGiftFlowScreenState();
@@ -21,8 +25,8 @@ class WishRoomGiftFlowScreen extends StatefulWidget {
 
 class _WishRoomGiftFlowScreenState extends State<WishRoomGiftFlowScreen> {
   static const _amounts = [10, 30, 50, 100];
-  int _selectedIndex = 1;
-  final _messageCtrl = TextEditingController();
+  int _selectedIndex = 1; // 기본 30
+  final _messageCtrl = TextEditingController(text: '어머니께서 편안하시기를');
 
   @override
   void dispose() {
@@ -34,6 +38,7 @@ class _WishRoomGiftFlowScreenState extends State<WishRoomGiftFlowScreen> {
   Widget build(BuildContext context) {
     final palette = WishRoomColors.crystal;
     final provider = context.watch<WishRoomProvider>();
+    final wish = widget.targetWish ?? (provider.wishes.isNotEmpty ? provider.wishes.first : null);
     final amount = _amounts[_selectedIndex];
 
     return WishRoomPouchBg(
@@ -52,7 +57,6 @@ class _WishRoomGiftFlowScreenState extends State<WishRoomGiftFlowScreen> {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 2, 20, 20),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -67,37 +71,16 @@ class _WishRoomGiftFlowScreenState extends State<WishRoomGiftFlowScreen> {
                       ],
                     ),
                     const SizedBox(height: 14),
-                    Text('누구의 소원에\n조각을 얹으시겠어요', style: WishRoomText.h1(palette.fg).copyWith(fontSize: 22)),
-                    const SizedBox(height: 14),
                     Expanded(
                       child: ListView(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: palette.card,
-                              border: Border.all(color: palette.line),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  '◇ ${widget.wish.region ?? '지역 비공개'} · ${widget.wish.ageGroup ?? ''}',
-                                  style: WishRoomText.monoSm(palette.muted),
-                                ),
-                                const SizedBox(height: 6),
-                                Text('"${widget.wish.text}"', style: WishRoomText.h3(palette.fg).copyWith(height: 1.5)),
-                                const SizedBox(height: 8),
-                                Text(
-                                  '🕯 ${widget.wish.cheersReceived}명이 함께 빌었어요',
-                                  style: WishRoomText.monoSm(palette.muted),
-                                ),
-                              ],
-                            ),
+                          Text(
+                            '누구의 소원에\n조각을 얹으시겠어요',
+                            style: WishRoomText.h1(palette.fg).copyWith(fontSize: 22, height: 1.25),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 14),
+                          _TargetWishCard(wish: wish, palette: palette),
+                          const SizedBox(height: 18),
                           Text('얹을 조각', style: WishRoomText.body(palette.muted).copyWith(fontSize: 12)),
                           const SizedBox(height: 8),
                           Row(
@@ -106,30 +89,34 @@ class _WishRoomGiftFlowScreenState extends State<WishRoomGiftFlowScreen> {
                               return Expanded(
                                 child: Padding(
                                   padding: EdgeInsets.only(right: i == _amounts.length - 1 ? 0 : 8),
-                                  child: GestureDetector(
-                                    onTap: () => setState(() => _selectedIndex = i),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(vertical: 12),
-                                      decoration: BoxDecoration(
-                                        color: selected ? palette.glowShadow : palette.card,
-                                        border: Border.all(color: selected ? palette.glow : palette.line),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const WishRoomShard(size: 16),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            '${_amounts[i]}',
-                                            style: TextStyle(
-                                              fontFamily: WishRoomText.fontDisplay,
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 15,
-                                              color: selected ? palette.glow : palette.fg,
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      onTap: () => setState(() => _selectedIndex = i),
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+                                        decoration: BoxDecoration(
+                                          color: selected ? palette.glowShadow : palette.card,
+                                          border: Border.all(color: selected ? palette.glow : palette.line),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const WishRoomShard(size: 16),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              '${_amounts[i]}',
+                                              style: TextStyle(
+                                                fontFamily: WishRoomText.fontDisplay,
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 15,
+                                                color: selected ? palette.glow : palette.fg,
+                                              ),
                                             ),
-                                          ),
-                                        ],
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -137,8 +124,11 @@ class _WishRoomGiftFlowScreenState extends State<WishRoomGiftFlowScreen> {
                               );
                             }),
                           ),
-                          const SizedBox(height: 16),
-                          Text('짧은 마음 한 마디 (선택)', style: WishRoomText.body(palette.muted).copyWith(fontSize: 12)),
+                          const SizedBox(height: 18),
+                          Text(
+                            '짧은 마음 한 마디 (선택)',
+                            style: WishRoomText.body(palette.muted).copyWith(fontSize: 12),
+                          ),
                           const SizedBox(height: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -149,13 +139,13 @@ class _WishRoomGiftFlowScreenState extends State<WishRoomGiftFlowScreen> {
                             ),
                             child: TextField(
                               controller: _messageCtrl,
+                              maxLength: 60,
                               maxLines: 2,
                               style: WishRoomText.body(palette.fg).copyWith(fontSize: 13),
-                              decoration: InputDecoration(
-                                hintText: '어머니께서 편안하시기를',
-                                hintStyle: WishRoomText.body(palette.muted).copyWith(fontSize: 13),
+                              decoration: const InputDecoration(
                                 border: InputBorder.none,
                                 isDense: true,
+                                counterText: '',
                               ),
                             ),
                           ),
@@ -167,7 +157,7 @@ class _WishRoomGiftFlowScreenState extends State<WishRoomGiftFlowScreen> {
                       primary: true,
                       palette: palette,
                       expand: true,
-                      onPressed: () => _handleGift(context, provider, amount),
+                      onPressed: wish == null ? null : () => _handleGift(context, provider, wish, amount),
                     ),
                   ],
                 ),
@@ -179,10 +169,15 @@ class _WishRoomGiftFlowScreenState extends State<WishRoomGiftFlowScreen> {
     );
   }
 
-  Future<void> _handleGift(BuildContext context, WishRoomProvider provider, int amount) async {
+  Future<void> _handleGift(
+    BuildContext context,
+    WishRoomProvider provider,
+    WishRoomWish wish,
+    int amount,
+  ) async {
     try {
       await provider.giftShards(
-        wishId: widget.wish.id,
+        wishId: wish.id,
         amount: amount,
         message: _messageCtrl.text.trim().isEmpty ? null : _messageCtrl.text.trim(),
       );
@@ -191,7 +186,7 @@ class _WishRoomGiftFlowScreenState extends State<WishRoomGiftFlowScreen> {
       if (!context.mounted) return;
       await showWishRoomShortageDialog(
         context,
-        itemName: '조각 나눔',
+        itemName: e.itemName,
         itemIcon: const Icon(Icons.favorite, size: 22),
         need: e.need,
         have: e.have,
@@ -199,5 +194,54 @@ class _WishRoomGiftFlowScreenState extends State<WishRoomGiftFlowScreen> {
         onWatchAd: () => Navigator.of(context).maybePop(),
       );
     }
+  }
+}
+
+class _TargetWishCard extends StatelessWidget {
+  const _TargetWishCard({required this.wish, required this.palette});
+
+  final WishRoomWish? wish;
+  final WishRoomPaletteTokens palette;
+
+  @override
+  Widget build(BuildContext context) {
+    final region = wish?.region ?? '대구';
+    final ageGroup = wish?.ageGroup ?? '20대';
+    final text = wish?.text ?? '아직 소원방에 밝힌 소원이 없어요';
+    final cheers = wish?.cheersReceived ?? 0;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: palette.card,
+        border: Border.all(color: palette.line),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            top: -18,
+            right: -18,
+            child: Opacity(
+              opacity: 0.4,
+              child: WishRoomSigil(size: 80, color: palette.sigil, opacity: 0.5),
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('◇ $region · $ageGroup', style: WishRoomText.monoSm(palette.muted)),
+              const SizedBox(height: 6),
+              Text('"$text"', style: WishRoomText.h3(palette.fg).copyWith(height: 1.5)),
+              const SizedBox(height: 8),
+              Text('🕯 $cheers명이 함께 빌었어요', style: WishRoomText.monoSm(palette.muted)),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }

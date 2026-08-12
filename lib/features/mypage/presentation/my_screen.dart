@@ -213,6 +213,15 @@ class _MyScreenState extends State<MyScreen> {
                 MaterialPageRoute(builder: (_) => const CommunityHubScreen()),
               ),
             ),
+            const SizedBox(height: UnifiedTokens.spaceMd),
+            // [신통방통 소원방 재개발] 별도 격리 디자인 시스템(Midnight
+            // Temple/Moonlit Crystal)을 쓰는 소원방 진입점. 라우트만 연결하고
+            // 이 화면 자체의 톤(라벤더 UnifiedColors)은 그대로 유지한다.
+            _MenuTile(
+              icon: Icons.auto_awesome_outlined,
+              title: '신통방통 소원방',
+              onTap: () => Navigator.of(context).pushNamed('/wish-room'),
+            ),
             const SizedBox(height: UnifiedTokens.spaceXxl),
 
             // §3 설정 섹션

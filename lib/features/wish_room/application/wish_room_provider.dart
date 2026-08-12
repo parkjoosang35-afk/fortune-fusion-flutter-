@@ -180,6 +180,14 @@ class WishRoomProvider extends ChangeNotifier {
     return _applyEarn(amount * _multiplier(), '광고를 조용히 지켜보다', '광고 시청');
   }
 
+  /// 만월의 밤(月 1회) — 오늘의 조각을 ×2로 받는 보너스.
+  /// dev-spec README "만월×2월1회"에 대응. 하루 1회만 수령 가능.
+  Future<WishRoomEarnResult?> earnFullMoonBonus() async {
+    if (todayLimits.fullMoonClaimed) return null;
+    todayLimits.fullMoonClaimed = true;
+    return _applyEarn(12, '만월의 밤 ×2', 'FULL MOON');
+  }
+
   Future<WishRoomEarnResult> _applyEarn(int amount, String label, String sub) async {
     balance += amount;
     todayEarned += amount;

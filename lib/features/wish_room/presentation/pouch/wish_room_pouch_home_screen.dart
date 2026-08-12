@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../application/wish_room_provider.dart';
+import '../../application/wish_room_tab_controller.dart';
 import '../../theme/wish_room_colors.dart';
 import '../../theme/wish_room_text_styles.dart';
 import '../../widgets/wish_room_sigils.dart';
@@ -177,7 +178,7 @@ class WishRoomPouchHomeScreen extends StatelessWidget {
               child: WishRoomBottomNav(
                 active: 'pouch',
                 palette: palette,
-                onSelect: (id) => Navigator.of(context).pop(id),
+                onSelect: (id) => context.read<WishRoomTabController>().go(id),
               ),
             ),
           ],

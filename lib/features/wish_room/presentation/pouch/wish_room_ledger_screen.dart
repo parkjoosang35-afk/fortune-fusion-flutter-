@@ -2,13 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../application/wish_room_provider.dart';
+import '../../application/wish_room_tab_controller.dart';
 import '../../domain/wish_room_models.dart';
 import '../../theme/wish_room_colors.dart';
 import '../../theme/wish_room_text_styles.dart';
-import '../../widgets/wish_room_sigils.dart';
 import '../../widgets/wish_room_pouch_widgets.dart';
 
-/// 14. 담긴/나눈 내역(장부) — 출처: PouchScreens.jsx `ScreenLedger`
+/// 13. 담긴/나눈 내역(조용한 장부) — 출처: PouchScreens.jsx `ScreenLedger`
+///
+/// 하단 네비게이션 '기록' 탭의 실제 화면. [WishRoomShell]의 IndexedStack에서
+/// 탭 루트로 쓰이는 동시에, [WishRoomPouchHomeScreen]의 "전체 →"에서
+/// push로도 접근 가능(그 경우 상단 뒤로가기 버튼으로 복귀).
 class WishRoomLedgerScreen extends StatefulWidget {
   const WishRoomLedgerScreen({super.key});
 
@@ -16,26 +20,30 @@ class WishRoomLedgerScreen extends StatefulWidget {
   State<WishRoomLedgerScreen> createState() => _WishRoomLedgerScreenState();
 }
 
+enum _LedgerFilter { all, earn, spend }
+
 class _WishRoomLedgerScreenState extends State<WishRoomLedgerScreen> {
-  int _filter = 0; // 0=전체, 1=담김, 2=나눔
+  _LedgerFilter _filter = _LedgerFilter.all;
 
   @override
   Widget build(BuildContext context) {
     final palette = WishRoomColors.crystal;
     final provider = context.watch<WishRoomProvider>();
-    final now = DateTime.now();
 
-    final monthEarned = provider.ledger
-        .where((e) => e.amount > 0 && e.date.year == now.year && e.date.month == now.month)
-        .fold<int>(0, (sum, e) => sum + e.amount);
-    final monthSpent = provider.ledger
-        .where((e) => e.amount < 0 && e.date.year == now.year && e.date.month == now.month)
-        .fold<int>(0, (sum, e) => sum - e.amount);
+    final now = DateTime.now();
+    final monthEntries = provider.ledger.where((e) => e.date.year == now.year && e.date.month == now.month);
+    final monthEarned = monthEntries.where((e) => e.amount > 0).fold<int>(0, (s, e) => s + e.amount);
+    final monthSpent = monthEntries.where((e) => e.amount < 0).fold<int>(0, (s, e) => s - e.amount);
 
     final filtered = provider.ledger.where((e) {
-      if (_filter == 1) return e.amount > 0;
-      if (_filter == 2) return e.amount < 0;
-      return true;
+      switch (_filter) {
+        case _LedgerFilter.earn:
+          return e.amount > 0;
+        case _LedgerFilter.spend:
+          return e.amount < 0;
+        case _LedgerFilter.all:
+          return true;
+      }
     }).toList();
 
     return WishRoomPouchBg(
@@ -44,17 +52,10 @@ class _WishRoomLedgerScreenState extends State<WishRoomLedgerScreen> {
         backgroundColor: Colors.transparent,
         body: Stack(
           children: [
-            Positioned.fill(
-              child: Align(
-                alignment: const Alignment(0, -0.5),
-                child: WishRoomSigil(size: 220, color: palette.sigil, opacity: 0.13),
-              ),
-            ),
             SafeArea(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 2, 20, 20),
+                padding: const EdgeInsets.fromLTRB(20, 2, 20, 0),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -69,15 +70,21 @@ class _WishRoomLedgerScreenState extends State<WishRoomLedgerScreen> {
                       ],
                     ),
                     const SizedBox(height: 14),
-                    Text('담긴 것과\n나눈 것', style: WishRoomText.h1(palette.fg).copyWith(fontSize: 22)),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '담긴 것과\n나눈 것',
+                        style: WishRoomText.h1(palette.fg).copyWith(fontSize: 22),
+                      ),
+                    ),
                     const SizedBox(height: 14),
                     Row(
                       children: [
                         Expanded(
                           child: _StatCard(
                             label: '이번 달 담긴',
-                            value: '+$monthEarned',
-                            color: palette.glow,
+                            amount: monthEarned,
+                            positive: true,
                             palette: palette,
                           ),
                         ),
@@ -85,51 +92,49 @@ class _WishRoomLedgerScreenState extends State<WishRoomLedgerScreen> {
                         Expanded(
                           child: _StatCard(
                             label: '이번 달 나눈',
-                            value: '−$monthSpent',
-                            color: palette.fg,
+                            amount: monthSpent,
+                            positive: false,
                             palette: palette,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 14),
                     Row(
-                      children: ['전체', '담김', '나눔'].asMap().entries.map((entry) {
-                        final i = entry.key;
-                        final label = entry.value;
-                        final selected = i == _filter;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 6),
-                          child: GestureDetector(
-                            onTap: () => setState(() => _filter = i),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                              decoration: BoxDecoration(
-                                color: selected ? palette.glow : Colors.transparent,
-                                border: Border.all(color: palette.line),
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: Text(
-                                label,
-                                style: TextStyle(
-                                  fontFamily: WishRoomText.fontBody,
-                                  fontSize: 11,
-                                  fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
-                                  color: selected ? WishRoomColors.onGlowText : palette.muted,
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
+                      children: [
+                        _FilterChip(
+                          label: '전체',
+                          selected: _filter == _LedgerFilter.all,
+                          palette: palette,
+                          onTap: () => setState(() => _filter = _LedgerFilter.all),
+                        ),
+                        const SizedBox(width: 6),
+                        _FilterChip(
+                          label: '담김',
+                          selected: _filter == _LedgerFilter.earn,
+                          palette: palette,
+                          onTap: () => setState(() => _filter = _LedgerFilter.earn),
+                        ),
+                        const SizedBox(width: 6),
+                        _FilterChip(
+                          label: '나눔',
+                          selected: _filter == _LedgerFilter.spend,
+                          palette: palette,
+                          onTap: () => setState(() => _filter = _LedgerFilter.spend),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 8),
                     Expanded(
                       child: filtered.isEmpty
                           ? Center(
-                              child: Text('아직 기록이 없어요', style: WishRoomText.body(palette.muted)),
+                              child: Text(
+                                '아직 흔적이 없어요',
+                                style: WishRoomText.body(palette.muted),
+                              ),
                             )
                           : ListView.builder(
+                              padding: const EdgeInsets.only(bottom: 100),
                               itemCount: filtered.length,
                               itemBuilder: (context, i) {
                                 final e = filtered[i];
@@ -137,7 +142,7 @@ class _WishRoomLedgerScreenState extends State<WishRoomLedgerScreen> {
                                   label: e.label,
                                   sub: e.sub,
                                   amount: e.amount,
-                                  date: _formatDate(e.date),
+                                  date: WishRoomLedgerEntry.formatDate(e.date),
                                   palette: palette,
                                 );
                               },
@@ -147,28 +152,34 @@ class _WishRoomLedgerScreenState extends State<WishRoomLedgerScreen> {
                 ),
               ),
             ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: WishRoomBottomNav(
+                active: 'me',
+                palette: palette,
+                onSelect: (id) => context.read<WishRoomTabController>().go(id),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
-
-  static String _formatDate(DateTime d) {
-    final now = DateTime.now();
-    final diff = now.difference(d).inDays;
-    if (diff == 0) return '오늘 ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
-    if (diff == 1) return '어제';
-    if (diff < 7) return '$diff일 전';
-    return WishRoomLedgerEntry.formatDate(d);
-  }
 }
 
 class _StatCard extends StatelessWidget {
-  const _StatCard({required this.label, required this.value, required this.color, required this.palette});
+  const _StatCard({
+    required this.label,
+    required this.amount,
+    required this.positive,
+    required this.palette,
+  });
 
   final String label;
-  final String value;
-  final Color color;
+  final int amount;
+  final bool positive;
   final WishRoomPaletteTokens palette;
 
   @override
@@ -184,24 +195,67 @@ class _StatCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label, style: WishRoomText.monoSm(palette.muted)),
+          Text(label.toUpperCase(), style: WishRoomText.monoSm(palette.muted)),
           const SizedBox(height: 6),
           Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               const WishRoomShard(size: 18),
               const SizedBox(width: 6),
               Text(
-                value,
+                '${positive ? '+' : '−'}$amount',
                 style: TextStyle(
                   fontFamily: WishRoomText.fontDisplay,
                   fontWeight: FontWeight.w900,
                   fontSize: 22,
-                  color: color,
+                  color: positive ? palette.glow : palette.fg,
                 ),
               ),
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  const _FilterChip({
+    required this.label,
+    required this.selected,
+    required this.palette,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final WishRoomPaletteTokens palette;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: selected ? palette.glow : Colors.transparent,
+            border: Border.all(color: palette.line),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontFamily: WishRoomText.fontBody,
+              fontSize: 11,
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+              color: selected ? WishRoomColors.onGlowText : palette.muted,
+            ),
+          ),
+        ),
       ),
     );
   }

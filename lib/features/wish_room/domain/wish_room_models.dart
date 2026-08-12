@@ -91,6 +91,7 @@ class WishRoomTodayLimits {
     this.meditation = false,
     this.cheerCount = 0,
     this.adCount = 0,
+    this.fullMoonClaimed = false,
     required this.resetDateKey,
   });
 
@@ -98,6 +99,7 @@ class WishRoomTodayLimits {
   bool meditation;
   int cheerCount;
   int adCount;
+  bool fullMoonClaimed;
 
   /// yyyy-MM-dd — 이 값이 오늘과 다르면 자정 리셋 대상
   String resetDateKey;
@@ -110,6 +112,7 @@ class WishRoomTodayLimits {
         'meditation': meditation,
         'cheerCount': cheerCount,
         'adCount': adCount,
+        'fullMoonClaimed': fullMoonClaimed,
         'resetDateKey': resetDateKey,
       };
 
@@ -122,6 +125,7 @@ class WishRoomTodayLimits {
       meditation: map['meditation'] as bool? ?? false,
       cheerCount: (map['cheerCount'] as num?)?.toInt() ?? 0,
       adCount: (map['adCount'] as num?)?.toInt() ?? 0,
+      fullMoonClaimed: map['fullMoonClaimed'] as bool? ?? false,
       resetDateKey: map['resetDateKey'] as String? ?? todayKey,
     );
   }

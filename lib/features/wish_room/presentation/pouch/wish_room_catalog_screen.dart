@@ -9,6 +9,7 @@ import '../../widgets/wish_room_pouch_widgets.dart';
 import 'wish_room_seal_shop_screen.dart';
 import 'wish_room_candle_shop_screen.dart';
 import 'wish_room_theme_shop_screen.dart';
+import 'wish_room_gift_flow_screen.dart';
 
 /// 09. 사용처 카탈로그 — 출처: PouchScreens.jsx `ScreenCatalog`
 class WishRoomCatalogScreen extends StatelessWidget {
@@ -26,7 +27,8 @@ class WishRoomCatalogScreen extends StatelessWidget {
           MaterialPageRoute(builder: (_) => const WishRoomCandleShopScreen()))),
       _CategorySpec('空', '소원방 테마', '2가지 · 50', () => Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const WishRoomThemeShopScreen()))),
-      _CategorySpec('贈', '복 나눔', '자유', null),
+      _CategorySpec('贈', '복 나눔', '자유', () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const WishRoomGiftFlowScreen()))),
       _CategorySpec('符', '부적', '2가지 · 60~100', null),
     ];
 

@@ -63,6 +63,8 @@ import '../../features/giftcard/presentation/my_giftcards_screen.dart';
 import '../../features/giftcard/domain/giftcard_model.dart';
 import '../../features/subscription/presentation/subscription_plans_screen.dart';
 import '../../features/subscription/presentation/my_subscription_screen.dart';
+import '../../features/wish_room/presentation/wish_room_intro_screen.dart';
+import '../../features/wish_room/presentation/wish_room_shell.dart';
 
 /// 07단계 §3.2 라우팅 테이블 - Navigator 1.0(onGenerateRoute) 구현
 /// 10단계(A안): AI 6대 기능(사주/타로/관상/손금/궁합/AI상담) + 리워드(미션/랭킹)까지
@@ -318,6 +320,12 @@ class AppRouter {
         return _page(const SubscriptionPlansScreen());
       case '/my/subscription':
         return _page(const MySubscriptionScreen());
+
+      // ── 신통방통 소원방(재개발) ──
+      case '/wish-room':
+        return _page(const WishRoomIntroScreen());
+      case '/wish-room/shell':
+        return _page(const WishRoomShell());
 
       default:
         // [P3 legacy 제거] 미사용 legacy HomeScreen(home_screen.dart) 대신
