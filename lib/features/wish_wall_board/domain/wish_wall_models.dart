@@ -247,7 +247,10 @@ extension BlessingBagEarnReasonX on BlessingBagEarnReason {
       case BlessingBagEarnReason.dailyLogin:
         return 'daily_login';
       case BlessingBagEarnReason.wishCreatedBonus:
-        return 'wish_created_bonus';
+        // [복주머니 정책표 §3] 서버 point_policies 테이블의 sourceType은
+        // 'wish_reward'(금액2/1일1회)로 등록되어 있다 — 반드시 이 값과
+        // 일치해야 서버측 일일상한(checkPolicyEligibility)이 실제로 적용된다.
+        return 'wish_reward';
       case BlessingBagEarnReason.dailyPrayer:
         return 'daily_prayer';
       case BlessingBagEarnReason.eventParticipation:
