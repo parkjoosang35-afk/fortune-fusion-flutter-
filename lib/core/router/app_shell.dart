@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/fortune/presentation/fortune_hub_screen.dart';
-import '../../features/community/presentation/community_hub_screen.dart';
+import '../../features/wish_room/presentation/wish_wall_screen.dart';
 import '../../features/luckybag/presentation/luckybag_hub_screen.dart';
 import '../../features/mypage/presentation/my_screen.dart';
 
@@ -27,7 +27,7 @@ class _AppShellState extends State<AppShell> {
   static const _tabs = [
     HomeScreen(), // 🏠 홈 - 화이트 프리미엄 9섹션 리디자인
     FortuneHubScreen(), // 🔮 운세 - 7개 카테고리+비용뱃지
-    CommunityHubScreen(), // 💬 커뮤니티 - 8개 서브탭(소원/자유/후기/고민상담/궁합이야기/부적/동행/랭킹)
+    WishWallScreen(), // 🕯 소원벽 - 익명 소원들이 모이는 신통방통 소원방 피드
     LuckyBagScreen(), // 🍀 복주머니 - 잔액 히어로+커뮤니티엔진 배너+적립방법/사용처/구독보너스/히스토리
     MyScreen(), // 👤 마이 - 프로필+등급뱃지+아카이브+설정
   ];
@@ -35,7 +35,7 @@ class _AppShellState extends State<AppShell> {
   static const _navItems = [
     (Icons.home_outlined, Icons.home_rounded, '홈'),
     (Icons.auto_awesome_outlined, Icons.auto_awesome, '운세'),
-    (Icons.forum_outlined, Icons.forum_rounded, '커뮤니티'),
+    (Icons.local_fire_department_outlined, Icons.local_fire_department_rounded, '소원벽'),
     (Icons.card_giftcard_outlined, Icons.card_giftcard_rounded, '복주머니'),
     (Icons.person_outline_rounded, Icons.person_rounded, '마이'),
   ];

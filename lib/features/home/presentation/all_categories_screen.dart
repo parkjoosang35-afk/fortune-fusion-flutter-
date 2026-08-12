@@ -15,7 +15,7 @@ import '../../pass/application/pass_provider.dart';
 import '../../pass/domain/pending_pass_request.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
 import '../../wallet/application/wallet_provider.dart';
-import '../../community/presentation/community_hub_screen.dart';
+import '../../wish_room/presentation/wish_wall_screen.dart';
 import '../application/fortune_category_provider.dart';
 import '../domain/fortune_category_model.dart';
 import '../domain/fortune_matrix.dart';
@@ -1116,10 +1116,10 @@ class _BottomConnectRow extends StatelessWidget {
       children: [
         Expanded(
           child: _ConnectTile(
-            icon: Icons.forum_rounded,
-            label: '커뮤니티 가기',
+            icon: Icons.local_fire_department_rounded,
+            label: '소원벽 가기',
             onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const CommunityHubScreen()),
+              MaterialPageRoute(builder: (_) => const WishWallScreen()),
             ),
           ),
         ),

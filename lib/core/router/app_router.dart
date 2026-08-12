@@ -53,7 +53,6 @@ import '../../features/luckybag/presentation/luckybag_shop_screen.dart';
 import '../../features/luckybag/presentation/luckybag_open_animation_screen.dart';
 import '../../features/luckybag/presentation/luckybag_result_screen.dart';
 import '../../features/luckybag/presentation/luckybag_history_screen.dart';
-import '../../features/community/presentation/community_board_list_screen.dart';
 import '../../features/giftcard/presentation/giftcard_catalog_screen.dart';
 import '../../features/giftcard/presentation/giftcard_detail_screen.dart';
 import '../../features/giftcard/presentation/giftcard_result_screen.dart';
@@ -300,10 +299,6 @@ class AppRouter {
         );
       case '/reward/giftcard/my':
         return _page(const MyGiftcardsScreen());
-
-      // ── 커뮤니티 ──
-      case '/community/board/list':
-        return _page(const CommunityBoardListScreen());
 
       // ── 마이 ──
       case '/my/notifications':

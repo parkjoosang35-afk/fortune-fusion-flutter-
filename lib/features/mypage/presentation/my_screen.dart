@@ -11,7 +11,7 @@ import '../../auth/application/auth_provider.dart';
 import '../../auth/domain/grade_model.dart';
 import '../../pass/application/pass_provider.dart';
 import '../../wallet/application/wallet_provider.dart';
-import '../../community/presentation/community_hub_screen.dart';
+import '../../wish_room/presentation/wish_wall_screen.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
 import '../../pass/presentation/pass_time_format.dart';
 
@@ -200,17 +200,15 @@ class _MyScreenState extends State<MyScreen> {
             ),
             const SizedBox(height: UnifiedTokens.spaceXxl),
 
-            // [9단계] §2.5 커뮤니티(내 글·내 소원) - 전용 "내 글 목록" API는
-            // 아직 백엔드에 없으므로(mock 상태), 커뮤니티 허브로 진입시켜
-            // 소원/게시판에서 직접 확인하도록 연결한다. 다음 턴에 "내 활동만
-            // 필터링하는" 전용 API/화면으로 고도화할 수 있다.
-            const _SectionTitle(title: '나의 커뮤니티'),
+            // [커뮤니티 완전 삭제 + 소원벽 신설] 구 커뮤니티 허브(자유게시판 등)는
+            // 완전히 삭제되었고, 소원방 생태계의 "소원벽"이 그 자리를 대신한다.
+            const _SectionTitle(title: '나의 소원'),
             const SizedBox(height: UnifiedTokens.spaceMd),
             _MenuTile(
-              icon: Icons.forum_outlined,
-              title: '내 글 · 내 소원 보러가기',
+              icon: Icons.local_fire_department_outlined,
+              title: '소원벽 보러가기',
               onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const CommunityHubScreen()),
+                MaterialPageRoute(builder: (_) => const WishWallScreen()),
               ),
             ),
             const SizedBox(height: UnifiedTokens.spaceMd),

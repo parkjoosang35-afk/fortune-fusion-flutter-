@@ -12,7 +12,7 @@ import '../application/luckybag_provider.dart';
 import 'luckybag_shop_screen.dart';
 import 'luckybag_history_screen.dart';
 import '../../mission/presentation/mission_screen.dart';
-import '../../community/presentation/community_hub_screen.dart';
+import '../../wish_room/presentation/wish_wall_screen.dart';
 
 /// [Fortune Fusion 서브 디자인 통일 마스터 프롬프트] 복주머니 허브 화면 (v2)
 ///
@@ -132,11 +132,11 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
             FadeSlideIn(
               delay: const Duration(milliseconds: 120),
               child: _ShortcutCard(
-                icon: Icons.edit_outlined,
-                title: '커뮤니티 활동',
-                subtitle: '소원/게시글 작성 · 댓글 작성 시 복주머니 적립',
+                icon: Icons.local_fire_department_outlined,
+                title: '소원벽 다녀오기',
+                subtitle: '소원 작성 · 함께 빌기 시 복주머니 적립',
                 onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const CommunityHubScreen()),
+                  MaterialPageRoute(builder: (_) => const WishWallScreen()),
                 ),
               ),
             ),

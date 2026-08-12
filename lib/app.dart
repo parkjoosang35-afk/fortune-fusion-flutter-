@@ -41,8 +41,6 @@ import 'features/mission/application/mission_provider.dart';
 import 'features/mission/data/mission_repository.dart';
 import 'features/ranking/application/ranking_provider.dart';
 import 'features/ranking/data/ranking_repository.dart';
-import 'features/community/application/community_post_provider.dart';
-import 'features/community/data/community_post_repository.dart';
 import 'features/luckybag/application/luckybag_provider.dart';
 import 'features/luckybag/data/luckybag_repository.dart';
 import 'features/giftcard/application/giftcard_provider.dart';
@@ -212,9 +210,6 @@ class App extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (_) => RankingProvider(RankingRepository()),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => CommunityPostProvider(CommunityPostRepository()),
         ),
         ChangeNotifierProvider(
           create: (_) => GiftcardProvider(GiftcardRepository()),
