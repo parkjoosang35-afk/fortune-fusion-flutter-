@@ -104,7 +104,11 @@ class _WishWallComposeScreenState extends State<WishWallComposeScreen> {
                 children: [
                   IconButton(
                     onPressed: _back,
-                    icon: const Icon(Icons.arrow_back_ios_new, size: 18),
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new,
+                      size: 18,
+                      color: WishWallColors.ink,
+                    ),
                   ),
                   Expanded(
                     child: Row(
@@ -301,7 +305,7 @@ class _Step1 extends StatelessWidget {
                           fontFamily: WishWallText.family,
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: active ? Colors.white : WishWallColors.ink2,
+                          color: active ? WishWallColors.bg : WishWallColors.ink2,
                         ),
                       ),
                     ],
@@ -473,9 +477,9 @@ class _Step4 extends StatelessWidget {
           ...WishVisibility.values.map((v) {
             final active = value == v;
             final desc = switch (v) {
-              WishVisibility.anonymous => '이름 없이 소원벽에 공개돼요',
-              WishVisibility.public => '내 이름과 함께 소원벽에 공개돼요',
-              WishVisibility.private => '나만 볼 수 있어요 (소원벽에는 안 보여요)',
+              WishVisibility.anonymous => '이름 없이 소원방에 공개돼요',
+              WishVisibility.public => '내 이름과 함께 소원방에 공개돼요',
+              WishVisibility.private => '나만 볼 수 있어요 (소원방에는 안 보여요)',
             };
             return Padding(
               padding: const EdgeInsets.only(bottom: 10),

@@ -126,7 +126,7 @@ class _WishWallSuccessScreenState extends State<WishWallSuccessScreen>
                   onPressed: _openMy,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: WishWallColors.ink,
-                    foregroundColor: Colors.white,
+                    foregroundColor: WishWallColors.bg,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -134,7 +134,7 @@ class _WishWallSuccessScreenState extends State<WishWallSuccessScreen>
                   ),
                   child: Text(
                     '내 소원병 보기',
-                    style: WishWallText.label(color: Colors.white).copyWith(fontSize: 15),
+                    style: WishWallText.label(color: WishWallColors.bg).copyWith(fontSize: 15),
                   ),
                 ),
               ),
@@ -152,7 +152,7 @@ class _WishWallSuccessScreenState extends State<WishWallSuccessScreen>
                     ),
                   ),
                   child: Text(
-                    '소원벽으로',
+                    '소원방으로',
                     style: WishWallText.label().copyWith(fontSize: 15),
                   ),
                 ),

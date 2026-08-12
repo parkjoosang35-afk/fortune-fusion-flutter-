@@ -105,7 +105,7 @@ class _BlessingBagSheetState extends State<_BlessingBagSheet> {
         top: false,
         child: Container(
           decoration: const BoxDecoration(
-            color: Colors.white,
+            color: WishWallColors.bg2,
             borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
           ),
           padding: const EdgeInsets.fromLTRB(20, 10, 20, 22),
@@ -141,7 +141,11 @@ class _BlessingBagSheetState extends State<_BlessingBagSheet> {
                           ),
                           IconButton(
                             onPressed: () => Navigator.of(context).pop(false),
-                            icon: const Icon(Icons.close, size: 20),
+                            icon: const Icon(
+                              Icons.close,
+                              size: 20,
+                              color: WishWallColors.ink,
+                            ),
                           ),
                         ],
                       ),
@@ -240,7 +244,7 @@ class _BlessingBagSheetState extends State<_BlessingBagSheet> {
                                       fontFamily: WishWallText.family,
                                       fontSize: 14,
                                       fontWeight: FontWeight.w700,
-                                      color: active ? Colors.white : WishWallColors.ink2,
+                                      color: active ? WishWallColors.bg : WishWallColors.ink2,
                                     ),
                                   ),
                                 ),

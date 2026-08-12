@@ -122,12 +122,16 @@ class _WishWallDetailScreenState extends State<WishWallDetailScreen> {
                 children: [
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.arrow_back_ios_new, size: 18),
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new,
+                      size: 18,
+                      color: WishWallColors.ink,
+                    ),
                   ),
                   const Spacer(),
                   IconButton(
                     onPressed: () => _showMoreSheet(context, wish),
-                    icon: const Icon(Icons.more_horiz),
+                    icon: const Icon(Icons.more_horiz, color: WishWallColors.ink),
                   ),
                 ],
               ),
@@ -344,7 +348,7 @@ class _WishWallDetailScreenState extends State<WishWallDetailScreen> {
           10 + MediaQuery.of(context).padding.bottom,
         ),
         decoration: const BoxDecoration(
-          color: Colors.white,
+          color: WishWallColors.bg2,
           border: Border(top: BorderSide(color: WishWallColors.line)),
         ),
         child: Row(
@@ -361,9 +365,10 @@ class _WishWallDetailScreenState extends State<WishWallDetailScreen> {
                   controller: _commentController,
                   onSubmitted: (_) => _doComment(),
                   style: WishWallText.body(),
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     border: InputBorder.none,
                     hintText: '따뜻한 응원을 남겨보세요',
+                    hintStyle: WishWallText.body(color: WishWallColors.dim),
                   ),
                 ),
               ),
@@ -401,7 +406,7 @@ class _WishWallDetailScreenState extends State<WishWallDetailScreen> {
   void _showMoreSheet(BuildContext context, WishPost wish) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: WishWallColors.bg2,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
       ),
@@ -411,16 +416,19 @@ class _WishWallDetailScreenState extends State<WishWallDetailScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.flag_outlined),
-                title: const Text('신고하기'),
+                leading: const Icon(Icons.flag_outlined, color: WishWallColors.ink),
+                title: Text('신고하기', style: WishWallText.body()),
                 onTap: () {
                   Navigator.pop(ctx);
                   _showReportSheet(context, wish);
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.visibility_off_outlined),
-                title: const Text('이 소원 숨기기'),
+                leading: const Icon(
+                  Icons.visibility_off_outlined,
+                  color: WishWallColors.ink,
+                ),
+                title: Text('이 소원 숨기기', style: WishWallText.body()),
                 onTap: () async {
                   Navigator.pop(ctx);
                   await context.read<WishWallProvider>().hideWish(wish.id);
@@ -428,8 +436,8 @@ class _WishWallDetailScreenState extends State<WishWallDetailScreen> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.block),
-                title: const Text('작성자 차단하기'),
+                leading: const Icon(Icons.block, color: WishWallColors.ink),
+                title: Text('작성자 차단하기', style: WishWallText.body()),
                 onTap: () async {
                   Navigator.pop(ctx);
                   await context.read<WishWallProvider>().blockUser(wish.authorId);
@@ -447,7 +455,7 @@ class _WishWallDetailScreenState extends State<WishWallDetailScreen> {
   void _showReportSheet(BuildContext context, WishPost wish) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: WishWallColors.bg2,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
       ),

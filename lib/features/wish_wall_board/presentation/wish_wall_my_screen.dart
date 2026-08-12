@@ -81,7 +81,11 @@ class _WishWallMyScreenState extends State<WishWallMyScreen> {
                 children: [
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.arrow_back_ios_new, size: 18),
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new,
+                      size: 18,
+                      color: WishWallColors.ink,
+                    ),
                   ),
                   Expanded(
                     child: Text(
@@ -257,7 +261,7 @@ class _FilterChip extends StatelessWidget {
             fontFamily: WishWallText.family,
             fontSize: 13,
             fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-            color: active ? Colors.white : WishWallColors.ink2,
+            color: active ? WishWallColors.bg : WishWallColors.ink2,
           ),
         ),
       ),

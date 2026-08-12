@@ -10,7 +10,7 @@ import 'wish_wall_compose_screen.dart';
 import 'wish_wall_detail_screen.dart';
 import 'wish_wall_my_screen.dart';
 
-/// 01. 소원벽게시판 — 병 벽(피드) 화면.
+/// 01. 신통방통 소원방(소원벽게시판) — 병 벽(피드) 화면.
 ///
 /// [handoff.zip] design/wb3-wall.jsx `BottleWall`을 Flutter로 이식.
 /// Instagram/Threads 감성의 큰 카드 피드 + 세그먼트 탭(전체/인기/최신) +
@@ -181,7 +181,7 @@ class _WallHeaderDelegate extends SliverPersistentHeaderDelegate {
           Row(
             children: [
               Expanded(
-                child: Text('소원벽게시판', style: WishWallText.title2()),
+                child: Text('신통방통 소원방', style: WishWallText.title2()),
               ),
               IconButton(
                 onPressed: onOpenMy,
@@ -320,7 +320,7 @@ class _TodayCollectiveRow extends StatelessWidget {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: WishWallColors.accent,
-                    border: Border.all(color: Colors.white, width: 2),
+                    border: Border.all(color: WishWallColors.bg, width: 2),
                   ),
                 ),
               ),
@@ -355,7 +355,7 @@ class _TodayCollectiveRow extends StatelessWidget {
             ),
             child: Text(
               '함께',
-              style: WishWallText.label(color: Colors.white),
+              style: WishWallText.label(color: WishWallColors.bg),
             ),
           ),
         ],
@@ -424,7 +424,7 @@ class _CategoryChip extends StatelessWidget {
             fontSize: 13,
             fontWeight: active ? FontWeight.w700 : FontWeight.w500,
             letterSpacing: -0.2,
-            color: active ? Colors.white : WishWallColors.ink2,
+            color: active ? WishWallColors.bg : WishWallColors.ink2,
           ),
         ),
       ),

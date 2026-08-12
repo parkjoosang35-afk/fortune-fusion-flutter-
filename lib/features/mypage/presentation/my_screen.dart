@@ -206,7 +206,7 @@ class _MyScreenState extends State<MyScreen> {
             const SizedBox(height: UnifiedTokens.spaceMd),
             _MenuTile(
               icon: Icons.local_fire_department_outlined,
-              title: '소원벽 보러가기',
+              title: '소원방 보러가기',
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const WishWallBoardScreen()),
               ),

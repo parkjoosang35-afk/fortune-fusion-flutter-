@@ -846,7 +846,7 @@ class _WishBoardRoomRow extends StatelessWidget {
         children: [
           Expanded(
             child: _LavenderMiniCard(
-              title: '소원벽',
+              title: '소원방',
               bottomLabel: '소원을 밝혀보세요',
               circleIcon: Icons.arrow_drop_up_rounded,
               circleStyle: PremiumCircleButtonStyle.neon,

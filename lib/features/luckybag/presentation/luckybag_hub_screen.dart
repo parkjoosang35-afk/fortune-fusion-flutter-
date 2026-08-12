@@ -133,7 +133,7 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
               delay: const Duration(milliseconds: 120),
               child: _ShortcutCard(
                 icon: Icons.local_fire_department_outlined,
-                title: '소원벽 다녀오기',
+                title: '소원방 다녀오기',
                 subtitle: '소원 작성 · 함께 빌기 시 복주머니 적립',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const WishWallBoardScreen()),
@@ -163,7 +163,7 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
               delay: const Duration(milliseconds: 200),
               child: _ShortcutCard(
                 icon: Icons.volunteer_activism_outlined,
-                title: '소원벽',
+                title: '소원방',
                 subtitle: '나만의 소원을 밝히고 복주머니를 모아보세요',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const WishWallBoardScreen()),

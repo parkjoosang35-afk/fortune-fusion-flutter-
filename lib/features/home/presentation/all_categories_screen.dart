@@ -944,7 +944,7 @@ class _QuickEntryRow extends StatelessWidget {
             default:
               return _QuickEntryCard(
                 icon: Icons.star_border_rounded,
-                label: '소원벽',
+                label: '소원방',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const WishWallBoardScreen()),
                 ),
@@ -1119,7 +1119,7 @@ class _BottomConnectRow extends StatelessWidget {
         Expanded(
           child: _ConnectTile(
             icon: Icons.local_fire_department_rounded,
-            label: '소원벽 가기',
+            label: '소원방 가기',
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const WishWallBoardScreen()),
             ),

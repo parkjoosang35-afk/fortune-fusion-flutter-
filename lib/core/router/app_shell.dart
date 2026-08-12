@@ -27,7 +27,7 @@ class _AppShellState extends State<AppShell> {
   static const _tabs = [
     HomeScreen(), // 🏠 홈 - 화이트 프리미엄 9섹션 리디자인
     FortuneHubScreen(), // 🔮 운세 - 7개 카테고리+비용뱃지
-    WishWallBoardScreen(), // 🕯 소원벽게시판 - 유리병(Bottle) 소원 게시판
+    WishWallBoardScreen(), // 🕯 신통방통 소원방 - 유리병(Bottle) 소원 게시판
     LuckyBagScreen(), // 🍀 복주머니 - 잔액 히어로+커뮤니티엔진 배너+적립방법/사용처/구독보너스/히스토리
     MyScreen(), // 👤 마이 - 프로필+등급뱃지+아카이브+설정
   ];
@@ -35,7 +35,7 @@ class _AppShellState extends State<AppShell> {
   static const _navItems = [
     (Icons.home_outlined, Icons.home_rounded, '홈'),
     (Icons.auto_awesome_outlined, Icons.auto_awesome, '운세'),
-    (Icons.local_fire_department_outlined, Icons.local_fire_department_rounded, '소원벽게시판'),
+    (Icons.local_fire_department_outlined, Icons.local_fire_department_rounded, '소원방'),
     (Icons.card_giftcard_outlined, Icons.card_giftcard_rounded, '복주머니'),
     (Icons.person_outline_rounded, Icons.person_rounded, '마이'),
   ];
