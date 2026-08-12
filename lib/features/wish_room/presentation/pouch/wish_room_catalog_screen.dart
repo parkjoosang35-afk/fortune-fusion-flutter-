@@ -53,7 +53,9 @@ class WishRoomCatalogScreen extends StatelessWidget {
           MaterialPageRoute(builder: (_) => const WishRoomGiftFlowScreen()),
         ),
       ),
-      _CategorySpec('符', '부적', '2가지 · 60~100', null),
+      // [주의] 符(부적) 상점은 dev-spec/JSX 원본 어디에도 실제 화면 정의가
+      // 없어(디자인 목업 부재) 목록에서 제거했다. 추후 부적 상점이 필요해지면
+      // dev-spec에 화면 스펙을 먼저 추가한 뒤 여기에 카테고리를 되살릴 것.
     ];
 
     return WishRoomPouchBg(

@@ -167,7 +167,7 @@ class _WishTab extends StatelessWidget {
             UnifiedTokens.screenPadding,
             0,
             UnifiedTokens.screenPadding,
-            UnifiedTokens.spaceMd,
+            UnifiedTokens.spaceSm,
           ),
           child: FadeSlideIn(
             child: PremiumCard(
@@ -188,6 +188,49 @@ class _WishTab extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           '전체 소원 보기 · 나도 소원 남기기',
+                          style: UnifiedText.caption(),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: UnifiedTokens.iconSm,
+                    color: UnifiedColors.textCaption,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        // 신통방통 소원방 진입 카드 — 소원게시판 바로 아래(같은 "소원" 탭)에
+        // 배치해 익명 게시판과 개인 소원방(복주머니 포함)을 한 화면에서
+        // 오갈 수 있게 한다. 별도 라우트(/wish-room)로 물리적으로 분리되어
+        // 있으므로 기존 5탭 앱쉘과 내비게이션이 충돌하지 않는다.
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            UnifiedTokens.screenPadding,
+            0,
+            UnifiedTokens.screenPadding,
+            UnifiedTokens.spaceMd,
+          ),
+          child: FadeSlideIn(
+            child: PremiumCard(
+              backgroundColor: UnifiedColors.cardWish,
+              borderColor: Colors.transparent,
+              showShadow: false,
+              borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
+              onTap: () => Navigator.of(context).pushNamed('/wish-room'),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('신통방통 소원방', style: UnifiedText.bodyStrong()),
+                        const SizedBox(height: 2),
+                        Text(
+                          '나만의 소원을 밝히고 복주머니를 모아보세요',
                           style: UnifiedText.caption(),
                         ),
                       ],
