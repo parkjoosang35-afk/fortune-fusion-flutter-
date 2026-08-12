@@ -177,6 +177,38 @@ class _ConsultationChatScreenState extends State<ConsultationChatScreen>
           ],
         ),
         actions: [
+          // [AI 상담 채팅 실연동] 세션당 20턴 한도(§어뷰징 방지)를 사용자가
+          // 미리 인지할 수 있도록 "n/20" 뱃지를 상시 노출한다. 서버 응답을
+          // 그대로 미러링한 값이므로(provider.turnCount/maxTurns), 화면단
+          // 별도 계산 없이 그대로 표시한다.
+          if (provider.sessionId != null)
+            Padding(
+              padding: const EdgeInsets.only(right: AppSpacing.sm),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: provider.isSessionExhausted
+                        ? AppColors.error.withValues(alpha: 0.12)
+                        : typeStyle.primaryColor.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    '${provider.turnCount}/${provider.maxTurns}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: provider.isSessionExhausted
+                          ? AppColors.error
+                          : typeStyle.primaryColor,
+                    ),
+                  ),
+                ),
+              ),
+            ),
           // 07단계(추가) §3.5 - 사주/타로 정보 수집 도중(이름/생년월일/출생시간/
           // 성별/타로질문 단계)에는 "취소" 버튼을 노출해 흐름을 중단하고
           // 자유 대화 상태로 되돌릴 수 있게 한다(요구사항: 입력 취소 처리 방안).
@@ -314,11 +346,18 @@ class _ConsultationChatScreenState extends State<ConsultationChatScreen>
       case ConsultationStep.inputTarotQuestion:
       case ConsultationStep.chatting:
         // 이름 입력 / 타로 질문 입력 / 자유대화는 모두 기본 텍스트 입력창을 사용한다.
+        // [AI 상담 채팅 실연동] 세션당 20턴을 모두 사용했으면(chatting 단계에서만
+        // 의미 있음) 입력창을 비활성화하고 안내 힌트로 대체한다. 이름/타로질문
+        // 입력 단계는 아직 첫 턴 이전이므로 isSessionExhausted 영향을 받지 않는다.
+        final exhausted =
+            provider.currentStep == ConsultationStep.chatting &&
+            provider.isSessionExhausted;
         return InputBar(
           controller: _inputController,
-          enabled: !provider.isLoading,
+          enabled: !provider.isLoading && !exhausted,
           onSend: () => _send(provider),
           typeStyle: typeStyle,
+          hintText: exhausted ? '오늘 상담 대화 횟수를 모두 사용했어요' : null,
         );
     }
   }
