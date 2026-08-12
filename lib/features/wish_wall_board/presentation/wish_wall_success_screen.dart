@@ -2,16 +2,14 @@ import 'package:flutter/material.dart';
 
 import '../domain/wish_wall_models.dart';
 import '../theme/wish_wall_theme.dart';
-import '../widgets/wish_wall_seal.dart';
+import '../widgets/bottle_widget.dart';
 import 'wish_wall_my_screen.dart';
 
 /// 04. 소원 봉인완료 화면.
 ///
-/// [디자인 히스토리] 옛 "신통방통 소원방"(wish_room)은 작성 완료 시 별도의
-/// 풀스크린 성공 화면 없이 곧장 이동했지만, 지금 시스템은 복주머니 적립을
-/// 알려야 해서 이 화면을 유지한다. 다만 시각 모티프는 유리병(BottleWidget)
-/// 대신 옛 소원방의 인장(Seal) 봉인 서사로 교체해 "인장으로 봉인되었다"는
-/// 느낌을 살렸다.
+/// [handoff.zip] design/wb3-compose.jsx `BottleSuccess`를 Flutter로 이식.
+/// 0.9초 드롭인 애니메이션 + halo pulse, 복주머니 +5 적립 배너,
+/// "내 소원병 보기"/"소원벽으로" 두 버튼으로 구성된다.
 class WishWallSuccessScreen extends StatefulWidget {
   const WishWallSuccessScreen({super.key, required this.wish});
   final WishPost wish;
@@ -74,14 +72,11 @@ class _WishWallSuccessScreenState extends State<WishWallSuccessScreen>
                         alignment: Alignment.center,
                         clipBehavior: Clip.none,
                         children: [
-                          _PulseHalo(
-                            controller: _controller,
-                            color: wish.categoryId.lightColor,
-                          ),
-                          WishWallSeal(
-                            text: wish.categoryId.sealChar,
-                            color: wish.categoryId.lightColor,
-                            size: 88,
+                          _PulseHalo(controller: _controller, color: wish.categoryId.lightColor),
+                          BottleWidget(
+                            category: wish.categoryId,
+                            size: 150,
+                            glow: 0.9,
                           ),
                         ],
                       ),
@@ -91,7 +86,7 @@ class _WishWallSuccessScreenState extends State<WishWallSuccessScreen>
               ),
               const SizedBox(height: 28),
               Text(
-                '소원이 인장으로 봉인되었어요',
+                '소원이 병 속에 봉인되었어요',
                 textAlign: TextAlign.center,
                 style: WishWallText.title1().copyWith(fontSize: 22),
               ),
@@ -117,7 +112,7 @@ class _WishWallSuccessScreenState extends State<WishWallSuccessScreen>
                     const Text('✨', style: TextStyle(fontSize: 16)),
                     const SizedBox(width: 8),
                     Text(
-                      '복주머니 +2 적립되었어요',
+                      '복주머니 +5 적립되었어요',
                       style: WishWallText.label(color: WishWallColors.accent2),
                     ),
                   ],
@@ -138,7 +133,7 @@ class _WishWallSuccessScreenState extends State<WishWallSuccessScreen>
                     ),
                   ),
                   child: Text(
-                    '내 소원방 보기',
+                    '내 소원병 보기',
                     style: WishWallText.label(color: WishWallColors.bg).copyWith(fontSize: 15),
                   ),
                 ),
