@@ -13,8 +13,6 @@ import '../../wallet/application/wallet_provider.dart';
 import '../../attendance/application/attendance_provider.dart';
 import '../../fortune/daily/application/daily_fortune_provider.dart';
 import '../../notification/notification_provider.dart';
-import '../../community/application/wish_post_provider.dart';
-import '../../community/presentation/community_screen.dart';
 import '../../pass/application/pass_provider.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
 import '../../pass/presentation/pass_time_format.dart';
@@ -132,7 +130,6 @@ class _HomeScreenState extends State<HomeScreen> {
       context.read<WalletProvider>().load();
       context.read<AttendanceProvider>().load();
       context.read<DailyFortuneProvider>().loadToday();
-      context.read<WishPostProvider>().loadFeed();
       context.read<PassProvider>().load();
       context.read<NotificationProvider>().load();
       // [사용자 요청] "오늘의 운세 이야기"를 완전히 삭제하고 데이터베이스 기반 힐링
@@ -830,7 +827,7 @@ class _FortuneTarotMiniCard extends StatelessWidget {
   }
 }
 
-/// ⑥ 소원게시판 카드 - #F5F3FB
+/// ⑥ 소원방 카드 - #F5F3FB [소원게시판 완전 삭제 → 신통방통 소원방으로 대체]
 class _WishBoardRoomRow extends StatelessWidget {
   const _WishBoardRoomRow();
 
@@ -839,13 +836,11 @@ class _WishBoardRoomRow extends StatelessWidget {
     return SizedBox(
       height: _Dims.wishCardHeight,
       child: _LavenderMiniCard(
-        title: '소원게시판',
+        title: '신통방통 소원방',
         bottomLabel: '참여해보세요',
         circleIcon: Icons.arrow_drop_up_rounded,
         circleStyle: PremiumCircleButtonStyle.neon,
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const CommunityScreen()),
-        ),
+        onTap: () => Navigator.of(context).pushNamed('/wish-room'),
       ),
     );
   }

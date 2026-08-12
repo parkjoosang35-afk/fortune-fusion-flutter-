@@ -41,9 +41,6 @@ import 'features/mission/application/mission_provider.dart';
 import 'features/mission/data/mission_repository.dart';
 import 'features/ranking/application/ranking_provider.dart';
 import 'features/ranking/data/ranking_repository.dart';
-import 'features/community/application/wish_post_provider.dart';
-import 'features/community/application/wish_castle_config_provider.dart';
-import 'features/community/data/wish_post_repository.dart';
 import 'features/community/application/community_post_provider.dart';
 import 'features/community/data/community_post_repository.dart';
 import 'features/luckybag/application/luckybag_provider.dart';
@@ -215,14 +212,6 @@ class App extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (_) => RankingProvider(RankingRepository()),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => WishPostProvider(WishPostRepository()),
-        ),
-        // [소원성(Wish Castle) 확장] 촛불 레벨 임계값/복주머니 단위/AI 응원문구 등
-        // admin_web CMS 설정을 전역에서 1회 로드해 보관(community_screen 진입 시 로드).
-        ChangeNotifierProvider(
-          create: (_) => WishCastleConfigProvider(WishPostRepository()),
         ),
         ChangeNotifierProvider(
           create: (_) => CommunityPostProvider(CommunityPostRepository()),

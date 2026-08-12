@@ -4,7 +4,6 @@ import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../application/community_post_provider.dart';
 import '../domain/community_post_model.dart';
-import '../domain/wish_post_model.dart' show ReportTargetType;
 import 'widgets/community_report_sheet.dart';
 
 /// 02§12/06§4.12 리워드 커뮤니티 - PostDetailScreen(상세+좋아요+댓글+신고)

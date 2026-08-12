@@ -6,7 +6,6 @@ import '../../../core/api/api_result.dart';
 import '../../../core/auth/auth_token_store.dart';
 import '../../../core/config/env_config.dart';
 import '../domain/community_post_model.dart';
-import '../domain/wish_post_model.dart' show ReportTargetType;
 
 /// 06단계 §4.12(리워드 커뮤니티) `/v1/community/*` 대응 Repository (Mock→실API 전환)
 ///

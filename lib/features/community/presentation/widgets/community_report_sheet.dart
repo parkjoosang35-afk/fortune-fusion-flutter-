@@ -5,7 +5,7 @@ import '../../../../core/widgets/app_bottom_sheet.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../application/community_post_provider.dart';
-import '../../domain/wish_post_model.dart' show ReportTargetType;
+import '../../domain/community_post_model.dart' show ReportTargetType;
 
 const _reportReasons = ['스팸/광고', '욕설/비방', '음란물', '거짓정보', '기타'];
 

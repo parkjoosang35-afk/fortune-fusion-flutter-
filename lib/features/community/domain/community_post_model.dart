@@ -91,3 +91,11 @@ class CommunityCommentModel {
     required this.createdAt,
   });
 }
+
+/// 04A 도메인L `reports`(L-6, 폴리모픽) 대응 - 신고 대상 유형
+/// - 06§4.12 `POST /{targetType}/:id/report` 공용 신고 API에 대응
+/// [소원게시판 완전 삭제] 원래 wish_post_model.dart에 있던 enum을 이곳으로
+/// 이동했다. `wish` 값은 더 이상 실제 신고 대상으로 쓰이지 않지만(구 소원게시판
+/// 삭제로 인해), 과거 서버 응답/enum 인덱스 호환을 깨지 않기 위해 값 자체는
+/// 그대로 보존한다.
+enum ReportTargetType { wish, communityPost, comment }

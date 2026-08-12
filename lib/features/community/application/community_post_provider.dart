@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
 import '../data/community_post_repository.dart';
 import '../domain/community_post_model.dart';
-import '../domain/wish_post_model.dart' show ReportTargetType;
 
 /// 02§12/06§4.12 리워드 커뮤니티(자유게시판형) 상태관리
-/// 소원게시판(WishPostProvider)과 별개 Provider로 두어 서로 결합되지 않도록 한다.
+/// [소원게시판 완전 삭제] 과거 소원게시판(WishPostProvider)과 별개 Provider로
+/// 두어 서로 결합되지 않게 했던 구조를 그대로 유지한다(소원게시판 자체는 삭제됨).
 class CommunityPostProvider extends ChangeNotifier {
   final CommunityPostRepository _repository;
   CommunityPostProvider(this._repository);

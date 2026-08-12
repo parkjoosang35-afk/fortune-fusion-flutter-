@@ -15,9 +15,7 @@ import '../../pass/application/pass_provider.dart';
 import '../../pass/domain/pending_pass_request.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
 import '../../wallet/application/wallet_provider.dart';
-import '../../community/presentation/community_screen.dart';
 import '../../community/presentation/community_hub_screen.dart';
-import '../../community/presentation/widgets/wish_hall_of_fame_sheet.dart';
 import '../application/fortune_category_provider.dart';
 import '../domain/fortune_category_model.dart';
 import '../domain/fortune_matrix.dart';
@@ -946,10 +944,8 @@ class _QuickEntryRow extends StatelessWidget {
             default:
               return _QuickEntryCard(
                 icon: Icons.star_border_rounded,
-                label: '소원게시판',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const CommunityScreen()),
-                ),
+                label: '신통방통 소원방',
+                onTap: () => Navigator.of(context).pushNamed('/wish-room'),
               );
           }
         },
@@ -1125,14 +1121,6 @@ class _BottomConnectRow extends StatelessWidget {
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const CommunityHubScreen()),
             ),
-          ),
-        ),
-        const SizedBox(width: UnifiedTokens.spaceSm),
-        Expanded(
-          child: _ConnectTile(
-            icon: Icons.emoji_events_rounded,
-            label: '후기 보기',
-            onTap: () => showWishHallOfFameSheet(context),
           ),
         ),
         const SizedBox(width: UnifiedTokens.spaceSm),

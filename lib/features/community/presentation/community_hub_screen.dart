@@ -1,17 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/premium_card.dart';
 import '../../../core/widgets/premium_button.dart';
 import '../../../core/widgets/premium_chip.dart';
 import '../../../core/widgets/premium_badge.dart';
-import '../../../core/widgets/premium_empty_state.dart';
 import '../../../core/widgets/premium_graphics.dart';
-import '../application/wish_post_provider.dart';
-import '../domain/wish_post_model.dart';
-import 'community_screen.dart';
 import 'community_board_list_screen.dart';
-import 'widgets/wish_hall_of_fame_sheet.dart';
 import '../../ranking/presentation/ranking_screen.dart';
 import '../../consultation/presentation/consultation_type_screen.dart';
 
@@ -21,8 +15,12 @@ import '../../consultation/presentation/consultation_type_screen.dart';
 /// 그대로 유지하되, 상단 탭바를 칩형 필터로 교체하고 전체를 화이트 프리미엄
 /// 카드형 톤으로 통일한다. 정보량이 많아도 카드 분할로 산만하지 않게 정리.
 ///
-/// [주의] 각 서브탭의 실제 기능(WishPostProvider, 게시판, 명예의 전당, 상담,
-/// 궁합, 부적샵, 매칭, 랭킹)은 기존 화면/Provider를 그대로 재사용한다.
+/// [소원게시판 완전 삭제] 구 소원게시판(WishPostProvider 기반 커뮤니티)은
+/// 완전히 제거되었다. "소원" 탭은 이제 신통방통 소원방(/wish-room)으로만
+/// 진입하는 단일 진입점 카드만 노출한다.
+///
+/// [주의] 각 서브탭의 실제 기능(게시판, 상담, 궁합, 부적샵, 매칭, 랭킹)은
+/// 기존 화면/Provider를 그대로 재사용한다.
 class CommunityHubScreen extends StatefulWidget {
   const CommunityHubScreen({super.key});
 
@@ -43,14 +41,6 @@ class _CommunityHubScreenState extends State<CommunityHubScreen> {
     '동행',
     '랭킹',
   ];
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<WishPostProvider>().loadFeed();
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -151,195 +141,50 @@ class _CommunityHubScreenState extends State<CommunityHubScreen> {
   }
 }
 
-/// "소원" 탭 - 홈과 톤을 맞춘 카드 리스트로 WishPostProvider 피드를 직접 노출.
+/// "소원" 탭 - [소원게시판 완전 삭제] 구 소원게시판(WishPostProvider 피드)은
+/// 제거되었고, 신통방통 소원방(/wish-room)으로 진입하는 단일 카드만 노출한다.
 class _WishTab extends StatelessWidget {
   const _WishTab();
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<WishPostProvider>();
-    final posts = provider.posts;
-
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            UnifiedTokens.screenPadding,
-            0,
-            UnifiedTokens.screenPadding,
-            UnifiedTokens.spaceSm,
-          ),
-          child: FadeSlideIn(
-            child: PremiumCard(
-              backgroundColor: UnifiedColors.cardWish,
-              borderColor: Colors.transparent,
-              showShadow: false,
-              borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const CommunityScreen()),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('소원게시판', style: UnifiedText.bodyStrong()),
-                        const SizedBox(height: 2),
-                        Text(
-                          '전체 소원 보기 · 나도 소원 남기기',
-                          style: UnifiedText.caption(),
-                        ),
-                      ],
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        UnifiedTokens.screenPadding,
+        0,
+        UnifiedTokens.screenPadding,
+        UnifiedTokens.screenPadding,
+      ),
+      child: FadeSlideIn(
+        child: PremiumCard(
+          backgroundColor: UnifiedColors.cardWish,
+          borderColor: Colors.transparent,
+          showShadow: false,
+          borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
+          onTap: () => Navigator.of(context).pushNamed('/wish-room'),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('신통방통 소원방', style: UnifiedText.bodyStrong()),
+                    const SizedBox(height: 2),
+                    Text(
+                      '나만의 소원을 밝히고 복주머니를 모아보세요',
+                      style: UnifiedText.caption(),
                     ),
-                  ),
-                  Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    size: UnifiedTokens.iconSm,
-                    color: UnifiedColors.textCaption,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        // 신통방통 소원방 진입 카드 — 소원게시판 바로 아래(같은 "소원" 탭)에
-        // 배치해 익명 게시판과 개인 소원방(복주머니 포함)을 한 화면에서
-        // 오갈 수 있게 한다. 별도 라우트(/wish-room)로 물리적으로 분리되어
-        // 있으므로 기존 5탭 앱쉘과 내비게이션이 충돌하지 않는다.
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            UnifiedTokens.screenPadding,
-            0,
-            UnifiedTokens.screenPadding,
-            UnifiedTokens.spaceMd,
-          ),
-          child: FadeSlideIn(
-            child: PremiumCard(
-              backgroundColor: UnifiedColors.cardWish,
-              borderColor: Colors.transparent,
-              showShadow: false,
-              borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
-              onTap: () => Navigator.of(context).pushNamed('/wish-room'),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('신통방통 소원방', style: UnifiedText.bodyStrong()),
-                        const SizedBox(height: 2),
-                        Text(
-                          '나만의 소원을 밝히고 복주머니를 모아보세요',
-                          style: UnifiedText.caption(),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    size: UnifiedTokens.iconSm,
-                    color: UnifiedColors.textCaption,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        Expanded(
-          child: provider.isLoading && posts.isEmpty
-              ? const Center(
-                  child: CircularProgressIndicator(color: UnifiedColors.black),
-                )
-              : posts.isEmpty
-              ? Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: UnifiedTokens.screenPadding,
-                  ),
-                  child: const PremiumEmptyState(
-                    icon: Icons.nights_stay_outlined,
-                    title: '아직 등록된 소원이 없어요',
-                    subtitle: '첫 번째 소원을 남겨보세요',
-                  ),
-                )
-              : ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(
-                    UnifiedTokens.screenPadding,
-                    0,
-                    UnifiedTokens.screenPadding,
-                    UnifiedTokens.screenPadding,
-                  ),
-                  itemCount: posts.length,
-                  separatorBuilder: (_, __) =>
-                      const SizedBox(height: UnifiedTokens.spaceMd),
-                  itemBuilder: (context, index) => FadeSlideIn(
-                    delay: Duration(milliseconds: 30 * index),
-                    child: _WishCard(post: posts[index]),
-                  ),
+                  ],
                 ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: UnifiedTokens.iconSm,
+                color: UnifiedColors.textCaption,
+              ),
+            ],
+          ),
         ),
-      ],
-    );
-  }
-}
-
-class _WishCard extends StatelessWidget {
-  const _WishCard({required this.post});
-
-  final WishPostModel post;
-
-  @override
-  Widget build(BuildContext context) {
-    return PremiumCard(
-      onTap: () => Navigator.of(
-        context,
-      ).pushNamed('/community/wish/detail', arguments: post),
-      backgroundColor: UnifiedColors.cardSection,
-      borderColor: Colors.transparent,
-      showShadow: false,
-      borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
-      padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              PremiumBadge(label: post.category, type: PremiumBadgeType.pass),
-              const Spacer(),
-              Text(
-                post.isAnonymous ? '익명' : post.authorNickname,
-                style: UnifiedText.caption(),
-              ),
-            ],
-          ),
-          const SizedBox(height: UnifiedTokens.spaceSm),
-          Text(
-            post.content,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: UnifiedText.body(color: UnifiedColors.textPrimary),
-          ),
-          const SizedBox(height: UnifiedTokens.spaceSm),
-          Row(
-            children: [
-              Icon(
-                Icons.favorite_rounded,
-                size: UnifiedTokens.iconSm,
-                color: UnifiedColors.textCaption,
-              ),
-              const SizedBox(width: 4),
-              Text('${post.supportCount}', style: UnifiedText.caption()),
-              const SizedBox(width: UnifiedTokens.spaceMd),
-              Icon(
-                Icons.mode_comment_outlined,
-                size: UnifiedTokens.iconSm,
-                color: UnifiedColors.textCaption,
-              ),
-              const SizedBox(width: 4),
-              Text('${post.commentCount}', style: UnifiedText.caption()),
-            ],
-          ),
-        ],
       ),
     );
   }
@@ -367,7 +212,11 @@ class _ShortcutTab extends StatelessWidget {
 
   void _handleTap(BuildContext context) {
     if (destination == null) {
-      showWishHallOfFameSheet(context);
+      // [소원게시판 완전 삭제] 명예의 전당 바텀시트(showWishHallOfFameSheet)는
+      // 구 소원게시판과 함께 삭제되었다. 재구현 전까지는 준비 중 안내만 노출.
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('곧 새로운 모습으로 다시 만나요!')),
+      );
       return;
     }
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => destination!));

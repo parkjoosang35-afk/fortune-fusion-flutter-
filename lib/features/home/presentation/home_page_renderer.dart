@@ -5,7 +5,6 @@ import '../../../core/domain/access/access_checker.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../wallet/application/wallet_provider.dart';
-import '../../community/application/wish_post_provider.dart';
 import '../domain/page_config_model.dart';
 
 /// [메인화면 관리자 편집기] §14/§16 HomePageRenderer
@@ -506,10 +505,6 @@ class _WishPreviewBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final wishProvider = context.watch<WishPostProvider>();
-    final hot = wishProvider.hotWishes.isNotEmpty
-        ? wishProvider.hotWishes.first
-        : null;
     final style = _ResolvedStyle.resolve(section);
 
     return Container(
@@ -521,35 +516,21 @@ class _WishPreviewBlock extends StatelessWidget {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        onTap: () =>
-            _handleLink(context, section.buttonLink ?? '/community/wish-room'),
+        onTap: () => _handleLink(context, section.buttonLink ?? '/wish-room'),
         child: Padding(
           padding: style.padding,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                section.title ?? '지금 인기 있는 소원',
+                section.title ?? '신통방통 소원방',
                 style: TextStyle(
                   fontWeight: FontWeight.w800,
                   fontSize: 16,
                   color: style.foregroundColor,
                 ),
               ),
-              if (hot != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(
-                    hot.content,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: style.secondaryTextColor,
-                    ),
-                  ),
-                )
-              else if (section.subtitle != null)
+              if (section.subtitle != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(

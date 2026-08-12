@@ -13,7 +13,6 @@ import 'luckybag_shop_screen.dart';
 import 'luckybag_history_screen.dart';
 import '../../mission/presentation/mission_screen.dart';
 import '../../community/presentation/community_hub_screen.dart';
-import '../../community/presentation/community_screen.dart';
 
 /// [Fortune Fusion 서브 디자인 통일 마스터 프롬프트] 복주머니 허브 화면 (v2)
 ///
@@ -164,11 +163,9 @@ class _LuckyBagScreenState extends State<LuckyBagScreen> {
               delay: const Duration(milliseconds: 200),
               child: _ShortcutCard(
                 icon: Icons.volunteer_activism_outlined,
-                title: '소원 응원하기',
-                subtitle: '다른 사람의 소원에 복주머니로 응원 보내기',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const CommunityScreen()),
-                ),
+                title: '신통방통 소원방',
+                subtitle: '나만의 소원을 밝히고 복주머니를 모아보세요',
+                onTap: () => Navigator.of(context).pushNamed('/wish-room'),
               ),
             ),
             const SizedBox(height: UnifiedTokens.spaceXxl),

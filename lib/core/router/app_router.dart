@@ -53,8 +53,6 @@ import '../../features/luckybag/presentation/luckybag_shop_screen.dart';
 import '../../features/luckybag/presentation/luckybag_open_animation_screen.dart';
 import '../../features/luckybag/presentation/luckybag_result_screen.dart';
 import '../../features/luckybag/presentation/luckybag_history_screen.dart';
-import '../../features/community/domain/wish_post_model.dart';
-import '../../features/community/presentation/wish_detail_screen.dart';
 import '../../features/community/presentation/community_board_list_screen.dart';
 import '../../features/giftcard/presentation/giftcard_catalog_screen.dart';
 import '../../features/giftcard/presentation/giftcard_detail_screen.dart';
@@ -304,10 +302,6 @@ class AppRouter {
         return _page(const MyGiftcardsScreen());
 
       // ── 커뮤니티 ──
-      case '/community/wish/detail':
-        return _page(
-          WishDetailScreen(post: settings.arguments as WishPostModel),
-        );
       case '/community/board/list':
         return _page(const CommunityBoardListScreen());
 
