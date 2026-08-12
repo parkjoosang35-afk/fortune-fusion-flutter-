@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../application/consultation_provider.dart';
+import 'consultation_ad_gate.dart';
 import 'widgets/consultation_type_style.dart';
 
 /// [무료 광고형 구조 재정비 §3단계] 복주머니는 소원게시판/소원성에서만 쓰는
@@ -60,17 +61,32 @@ class _ConsultationTypeScreenState extends State<ConsultationTypeScreen>
     final provider = context.read<ConsultationProvider>();
     final navigator = Navigator.of(context);
     final changeMode = _isChangeMode;
+
+    // [AI 상담 채팅 실연동] 오늘 첫 세션인데 광고 시청 완료 기록이 없으면
+    // 서버가 거부(needsAdReward)한다 — runConsultationAdGateAndStart가
+    // 광고 시청 게이트를 띄우고 시청 완료 시 세션 생성을 재시도한다.
+    final started = await runConsultationAdGateAndStart(
+      context,
+      provider,
+      type,
+      changeMode: changeMode,
+    );
+
+    if (!mounted) {
+      return;
+    }
+    if (!started) {
+      setState(() => _isNavigating = false);
+      return;
+    }
+
     if (changeMode) {
       // 07단계(추가) §3.4 - 유형 변경 모드: 새 웰컴 메시지로 재시작 후 채팅 화면으로 복귀
       // (이미 이용 중인 세션의 유형만 바꾸는 것이므로 복주머니 재차감 없음)
-      await provider.changeType(type);
-      if (!mounted) return;
       navigator.pop();
     } else {
       // [무료 광고형 구조 재정비 §3단계] AI 상담은 완전 무료 — 복주머니
       // 차감 없이 바로 세션을 시작한다.
-      await provider.startSession(type);
-      if (!mounted) return;
       navigator.pushNamed('/ai-fortune/consultation/chat');
     }
   }

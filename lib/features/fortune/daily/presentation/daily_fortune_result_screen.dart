@@ -18,6 +18,7 @@ import '../../../../core/widgets/fortune/result_bottom_actions.dart';
 import '../../../../core/widgets/fortune/section_card.dart';
 import '../../../../core/widgets/fortune/timeline_card.dart';
 import '../../../consultation/application/consultation_provider.dart';
+import '../../../consultation/presentation/consultation_ad_gate.dart';
 import '../../../pass/application/pass_provider.dart';
 import '../../../../core/domain/access/access_checker.dart';
 import '../../../pass/presentation/pass_time_format.dart';
@@ -482,7 +483,14 @@ class _IndexBadge extends StatelessWidget {
 Future<void> _openWorryConsultation(BuildContext context) async {
   final provider = context.read<ConsultationProvider>();
   final navigator = Navigator.of(context);
-  await provider.startSession('general');
-  if (!context.mounted) return;
+  // [AI 상담 채팅 실연동] 오늘 첫 세션이면 광고 시청 게이트가 필요할 수 있다 —
+  // runConsultationAdGateAndStart가 needsAdReward를 감지해 광고를 띄우고
+  // 시청 완료 시 세션 생성을 재시도한다.
+  final started = await runConsultationAdGateAndStart(
+    context,
+    provider,
+    'general',
+  );
+  if (!context.mounted || !started) return;
   navigator.pushNamed('/ai-fortune/consultation/chat');
 }

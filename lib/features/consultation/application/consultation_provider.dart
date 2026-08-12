@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../data/consultation_repository.dart';
+import '../domain/consultation_ad_source_model.dart';
 import '../domain/consultation_model.dart';
 import '../../fortune/saju/application/saju_provider.dart';
 import '../../fortune/saju/domain/saju_model.dart';
@@ -29,6 +30,16 @@ enum ConsultationStep {
   drawingTarot,
 }
 
+/// [AI 상담 채팅 실연동] `POST /api/public/consultation/session` 호출 결과를
+/// 화면단이 분기 처리할 수 있도록 하는 결과값.
+///
+/// - [started]: 세션이 정상 시작됨(신규 생성 또는 오늘 세션 재사용) — 즉시 채팅 화면으로 진입 가능.
+/// - [needsAdReward]: 오늘 첫 세션인데 광고 시청 완료 기록이 없어 서버가 거부함
+///   (`reason: AD_REWARD_REQUIRED`) — 화면이 `runConsultationAdGateAndStart()`로
+///   광고 시청 게이트를 띄운 뒤 [ConsultationProvider.startSession]을 재호출해야 한다.
+/// - [error]: 그 외 오류(네트워크/서버 오류 등) — [ConsultationProvider.lastErrorMessage] 참고.
+enum ConsultationStartOutcome { started, needsAdReward, error }
+
 /// 07단계 §2.1 화면 단위 지역 Provider - ConsultationProvider
 /// 09단계 §1.2 스트리밍 응답을 메시지 리스트의 마지막 AI 메시지에 누적 반영한다.
 ///
@@ -39,9 +50,13 @@ enum ConsultationStep {
 /// 07단계(추가) §3.5 - 사주상담/타로상담을 별도 결과 화면으로 이동하지 않고
 /// 채팅 흐름 안에서 완결시키기 위해 [currentStep] 기반의 단계형 정보 수집
 /// ([userInfo]/[pendingQuestion])과 [SajuProvider]/[TarotProvider] 연동
-/// ([_calculateSaju]/[_drawTarotCards])을 추가한다. 기존 [startSession]/[sendMessage]의
-/// 시그니처와 스트리밍 로직(`Stream<String>`)은 그대로 유지하며, [sendMessage]는
-/// [currentStep]에 따라 내부적으로 분기(자유 대화 vs 단계별 정보 수집)한다.
+/// ([_calculateSaju]/[_drawTarotCards])을 추가한다.
+///
+/// [AI 상담 채팅 실연동] 실제 서버(`ConsultationRepository`)와 통신하도록 교체하며,
+/// 어뷰징 방지 3요소(세션당 20턴 한도, 유저당 하루 1세션 + 광고게이트, 메시지 500자
+/// 제한)를 UI 상태([sessionId]/[turnCount]/[maxTurns]/[isSessionExhausted])로
+/// 노출해 화면이 즉시 반응할 수 있게 한다. 최종 판정은 항상 서버가 내리며,
+/// 이 상태들은 서버 응답을 그대로 미러링한 값이다(클라이언트 임의 재판단 없음).
 class ConsultationProvider extends ChangeNotifier {
   final ConsultationRepository _repository;
   ConsultationProvider(this._repository);
@@ -61,6 +76,24 @@ class ConsultationProvider extends ChangeNotifier {
 
   String? _type;
   String get type => _type ?? 'general';
+
+  // [AI 상담 채팅 실연동] 서버가 발급한 세션 식별자. null이면 아직 세션이
+  // 시작되지 않은 상태(자유 대화 전송 자체가 불가능해야 함).
+  int? _sessionId;
+  int? get sessionId => _sessionId;
+
+  int _turnCount = 0;
+  int get turnCount => _turnCount;
+
+  int _maxTurns = ConsultationLimits.defaultMaxTurns;
+  int get maxTurns => _maxTurns;
+
+  /// 오늘 이 세션에서 이용 가능한 대화 횟수(20턴)를 모두 사용했는지 여부.
+  /// true면 자유 대화 전송을 막고 안내 메시지만 노출한다.
+  bool get isSessionExhausted => _turnCount >= _maxTurns;
+
+  String? _lastErrorMessage;
+  String? get lastErrorMessage => _lastErrorMessage;
 
   List<ConsultationMessage> _messages = [];
   List<ConsultationMessage> get messages => _messages;
@@ -105,34 +138,95 @@ class ConsultationProvider extends ChangeNotifier {
   String _nextId(String prefix) =>
       '${prefix}_${DateTime.now().millisecondsSinceEpoch}_${_msgSeq++}';
 
-  Future<void> startSession(String type) async {
-    _type = type;
+  /// [AI 상담 채팅 실연동] 상담 세션을 시작한다.
+  ///
+  /// 1) [adRewardLogId] 없이 먼저 시도한다 — 오늘 이미 세션이 있으면 서버가
+  ///    광고 재검증 없이 그대로 재사용해 반환한다(idempotent).
+  /// 2) 오늘 첫 세션인데 [adRewardLogId]가 없으면 서버가 403 +
+  ///    `reason: AD_REWARD_REQUIRED`로 거부하며, 이 메서드는
+  ///    [ConsultationStartOutcome.needsAdReward]를 반환한다 — 화면이
+  ///    `runConsultationAdGateAndStart()`로 광고를 시청시킨 뒤 발급받은
+  ///    adRewardLogId로 이 메서드를 다시 호출해야 한다.
+  Future<ConsultationStartOutcome> startSession(
+    String type, {
+    int? adRewardLogId,
+  }) async {
     _isStarting = true;
     _messages = [];
     _userInfo = {};
     _pendingQuestion = null;
     _currentStep = ConsultationStep.chatting;
+    _lastErrorMessage = null;
     notifyListeners();
 
-    final result = await _repository.createSession(type: type);
-    if (result.success && result.data != null) {
-      _messages = List.of(result.data!.messages);
+    final result = await _repository.createSession(
+      type: type,
+      adRewardLogId: adRewardLogId,
+    );
+
+    if (!result.success || result.data == null) {
+      _isStarting = false;
+      _lastErrorMessage = result.errorMessage;
+      notifyListeners();
+      if (result.errorCode == 'AD_REWARD_REQUIRED') {
+        return ConsultationStartOutcome.needsAdReward;
+      }
+      return ConsultationStartOutcome.error;
     }
 
+    final session = result.data!;
+    // 오늘 세션을 재사용한 경우 서버가 실제 세션의 type을 내려준다(요청한
+    // type과 다를 수 있음 — 예: 오늘 이미 saju 세션이 있는데 general로 재진입).
+    _type = session.type;
+    _sessionId = session.sessionId;
+    _turnCount = session.turnCount;
+    _maxTurns = session.maxTurns;
+    _messages = List.of(session.messages);
+
     // 07단계(추가) §3.5 - 유형별 최초 안내 메시지 + 첫 입력 단계 지정.
-    // 사주/타로는 웰컴 메시지 직후 곧바로 정보 수집 흐름으로 진입한다.
-    if (type == 'saju') {
-      _currentStep = ConsultationStep.inputName;
-      _appendAiMessage('먼저 몇 가지 정보를 알려주시면 정확한 사주를 봐드릴게요. 성함을 알려주세요.');
-    } else if (type == 'tarot') {
-      _currentStep = ConsultationStep.inputTarotQuestion;
-      _appendAiMessage('마음에 담고 있는 고민을 편하게 말씀해주세요.');
+    // [AI 상담 채팅 실연동] 오늘 처음 생성된 세션(isNew=true)일 때만 사주/타로
+    // 정보 수집 흐름으로 진입한다. 기존 세션을 재사용한 경우(isNew=false)에는
+    // 이미 오간 대화 히스토리를 그대로 보여주고 자유 대화 상태로 이어간다.
+    if (session.isNew) {
+      if (session.type == 'saju') {
+        _currentStep = ConsultationStep.inputName;
+        _appendAiMessage('먼저 몇 가지 정보를 알려주시면 정확한 사주를 봐드릴게요. 성함을 알려주세요.');
+      } else if (session.type == 'tarot') {
+        _currentStep = ConsultationStep.inputTarotQuestion;
+        _appendAiMessage('마음에 담고 있는 고민을 편하게 말씀해주세요.');
+      } else {
+        _currentStep = ConsultationStep.chatting;
+      }
     } else {
       _currentStep = ConsultationStep.chatting;
     }
 
     _isStarting = false;
     notifyListeners();
+    return ConsultationStartOutcome.started;
+  }
+
+  /// [AI 상담 채팅 실연동] 세션 시작 전 광고게이트에 노출할 리워드 광고소스
+  /// 목록을 조회한다. 실패 시 빈 목록을 반환하며 [lastErrorMessage]에 사유를 남긴다.
+  Future<List<ConsultationAdSourceModel>> fetchAdSources() async {
+    final result = await _repository.getAdSources();
+    if (!result.success || result.data == null) {
+      _lastErrorMessage = result.errorMessage;
+      return const [];
+    }
+    return result.data!;
+  }
+
+  /// [AI 상담 채팅 실연동] 광고 시청 완료 후 시청기록(OpenPassAdRewardLog)만
+  /// 생성한다(PassPolicy/UserPass는 발급하지 않음). 성공 시 이 값을
+  /// [startSession]의 `adRewardLogId`로 전달해 세션 생성을 재시도해야 한다.
+  Future<int?> completeAdReward(int adSourceId) async {
+    final result = await _repository.completeAdReward(adSourceId: adSourceId);
+    if (!result.success || result.data == null) {
+      _lastErrorMessage = result.errorMessage;
+      return null;
+    }
+    return result.data;
   }
 
   /// 07단계(추가) §3.4 - 현재 대화 내용을 모두 비운다.
@@ -149,10 +243,15 @@ class ConsultationProvider extends ChangeNotifier {
   /// 07단계(추가) §3.4 - 상담 유형을 [newType]으로 변경하고, 해당 유형의
   /// 새 웰컴 메시지로 세션을 재시작한다. 내부적으로 [clearMessages] 후
   /// [startSession]과 동일한 흐름(Repository.createSession 호출)을 재사용한다.
-  Future<void> changeType(String newType) async {
-    if (isLoading) return; // 응답 스트리밍/계산 중에는 유형 변경을 막는다.
+  ///
+  /// [AI 상담 채팅 실연동] 유형 변경은 "오늘 이미 있는 세션"에 대한 재진입이므로
+  /// 대부분 광고 재게이트가 필요 없지만(서버가 idempotent 재사용으로 응답),
+  /// 이론상 세션이 만료/삭제된 경합 상태 대비 [ConsultationStartOutcome]을
+  /// 그대로 반환해 호출부가 [ConsultationStartOutcome.needsAdReward]도 처리할 수 있게 한다.
+  Future<ConsultationStartOutcome> changeType(String newType) async {
+    if (isLoading) return ConsultationStartOutcome.error;
     clearMessages();
-    await startSession(newType);
+    return startSession(newType);
   }
 
   /// 07단계(추가) §3.5 - 사주/타로 정보 수집 도중 사용자가 흐름을 취소하면
@@ -454,9 +553,33 @@ class ConsultationProvider extends ChangeNotifier {
     }
   }
 
-  /// 07단계 §2.1 / 09단계 §1.2 기존 일반 자유대화 스트리밍 로직(동작 변경 없음,
-  /// [sendMessage]에서 단계 분기를 위해 메서드명만 분리했다).
+  /// 07단계 §2.1 / 09단계 §1.2 기존 일반 자유대화 스트리밍 로직.
+  /// [AI 상담 채팅 실연동] admin_web 실LLM API(`POST /message`)와 통신하도록
+  /// 교체하며, 전송 전 클라이언트 측에서도 500자 제한/20턴 한도를 먼저 확인해
+  /// 불필요한 네트워크 호출과 지연 없이 즉시 안내한다(최종 판정은 서버가 내림).
   Future<void> _sendFreeChat(String trimmed) async {
+    if (trimmed.length > ConsultationLimits.maxMessageLength) {
+      _addUserMessage(trimmed);
+      _appendAiMessage(
+        '메시지는 최대 ${ConsultationLimits.maxMessageLength}자까지 입력할 수 있어요. '
+        '조금 줄여서 다시 보내주시겠어요? (현재 ${trimmed.length}자)',
+      );
+      return;
+    }
+    if (isSessionExhausted) {
+      _addUserMessage(trimmed);
+      _appendAiMessage(
+        '오늘 상담 세션에서 이용 가능한 대화 횟수($_maxTurns회)를 모두 사용했어요. 내일 새 세션으로 다시 만나요.',
+      );
+      return;
+    }
+    final sessionId = _sessionId;
+    if (sessionId == null) {
+      _addUserMessage(trimmed);
+      _appendAiMessage('상담 세션이 아직 준비되지 않았어요. 화면을 다시 열어 다시 시도해주세요.');
+      return;
+    }
+
     _addUserMessage(trimmed);
 
     _isStreaming = true;
@@ -475,7 +598,7 @@ class ConsultationProvider extends ChangeNotifier {
     final buffer = StringBuffer();
     try {
       await for (final chunk in _repository.streamReply(
-        type: type,
+        sessionId: sessionId,
         userMessage: trimmed,
       )) {
         buffer.write(chunk);
@@ -485,6 +608,19 @@ class ConsultationProvider extends ChangeNotifier {
           notifyListeners();
         }
       }
+      final turn = _repository.lastTurnResult;
+      if (turn != null) {
+        _turnCount = turn.turnCount;
+        _maxTurns = turn.maxTurns;
+      }
+    } on ConsultationRequestException catch (e) {
+      final idx = _messages.indexWhere((m) => m.id == aiId);
+      if (idx != -1) {
+        _messages[idx] = _messages[idx].copyWith(text: e.message);
+      }
+      if (e.turnCount != null) _turnCount = e.turnCount!;
+      if (e.maxTurns != null) _maxTurns = e.maxTurns!;
+      _lastErrorMessage = e.message;
     } finally {
       _isStreaming = false;
       notifyListeners();
