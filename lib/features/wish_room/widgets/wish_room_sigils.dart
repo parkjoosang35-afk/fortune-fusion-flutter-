@@ -27,7 +27,9 @@ class WishRoomSigil extends StatelessWidget {
     return SizedBox(
       width: size,
       height: size,
-      child: CustomPaint(painter: _SigilPainter(color: color, opacity: opacity)),
+      child: CustomPaint(
+        painter: _SigilPainter(color: color, opacity: opacity),
+      ),
     );
   }
 }
@@ -38,7 +40,18 @@ class _SigilPainter extends CustomPainter {
   final double opacity;
 
   static const _runes = [
-    '✧', '✦', '☾', '❋', '◈', '✵', '❈', '✺', '✶', '☆', '◇', '⟡',
+    '✧',
+    '✦',
+    '☾',
+    '❋',
+    '◈',
+    '✵',
+    '❈',
+    '✺',
+    '✶',
+    '☆',
+    '◇',
+    '⟡',
   ];
 
   @override
@@ -100,8 +113,12 @@ class _SigilPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.6;
     _drawPolygon(canvas, const [
-      Offset(0, -52), Offset(45, -26), Offset(45, 26),
-      Offset(0, 52), Offset(-45, 26), Offset(-45, -26),
+      Offset(0, -52),
+      Offset(45, -26),
+      Offset(45, 26),
+      Offset(0, 52),
+      Offset(-45, 26),
+      Offset(-45, -26),
     ], hexPaint1);
 
     final hexPaint2 = Paint()
@@ -109,10 +126,14 @@ class _SigilPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.5;
     _drawPolygon(canvas, const [
-      Offset(0, 52), Offset(-45, -26), Offset(45, -26),
+      Offset(0, 52),
+      Offset(-45, -26),
+      Offset(45, -26),
     ], hexPaint2);
     _drawPolygon(canvas, const [
-      Offset(0, -52), Offset(-45, 26), Offset(45, 26),
+      Offset(0, -52),
+      Offset(-45, 26),
+      Offset(45, 26),
     ], hexPaint2);
 
     // inner circle
@@ -274,13 +295,18 @@ class _FlamePainter extends CustomPainter {
       ..cubicTo(4, 16, 6, 10, 10, 2)
       ..close();
     canvas.drawPath(path, paint);
-    final corePaint = Paint()..color = const Color(0xFF4A2B8A).withValues(alpha: 0.5);
-    canvas.drawOval(Rect.fromCenter(center: const Offset(10, 22), width: 6, height: 8), corePaint);
+    final corePaint = Paint()
+      ..color = const Color(0xFF4A2B8A).withValues(alpha: 0.5);
+    canvas.drawOval(
+      Rect.fromCenter(center: const Offset(10, 22), width: 6, height: 8),
+      corePaint,
+    );
     canvas.restore();
   }
 
   @override
-  bool shouldRepaint(covariant _FlamePainter oldDelegate) => oldDelegate.color != color;
+  bool shouldRepaint(covariant _FlamePainter oldDelegate) =>
+      oldDelegate.color != color;
 }
 
 /// ─────────────────────────────────────────────────────────
@@ -353,14 +379,19 @@ class _CrystalPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _CrystalPainter oldDelegate) => oldDelegate.color != color;
+  bool shouldRepaint(covariant _CrystalPainter oldDelegate) =>
+      oldDelegate.color != color;
 }
 
 /// ─────────────────────────────────────────────────────────
 /// <Dust> — 상승하는 먼지 입자(배경 앰비언스)
 /// ─────────────────────────────────────────────────────────
 class WishRoomDust extends StatefulWidget {
-  const WishRoomDust({super.key, this.count = 8, this.color = const Color(0xFFF5D97A)});
+  const WishRoomDust({
+    super.key,
+    this.count = 8,
+    this.color = const Color(0xFFF5D97A),
+  });
 
   final int count;
   final Color color;
@@ -369,7 +400,8 @@ class WishRoomDust extends StatefulWidget {
   State<WishRoomDust> createState() => _WishRoomDustState();
 }
 
-class _WishRoomDustState extends State<WishRoomDust> with TickerProviderStateMixin {
+class _WishRoomDustState extends State<WishRoomDust>
+    with TickerProviderStateMixin {
   late List<AnimationController> _controllers;
 
   @override
@@ -411,8 +443,8 @@ class _WishRoomDustState extends State<WishRoomDust> with TickerProviderStateMix
               final opacity = adjT < 0.1
                   ? adjT / 0.1
                   : adjT > 0.8
-                      ? (1 - adjT) / 0.2
-                      : 1.0;
+                  ? (1 - adjT) / 0.2
+                  : 1.0;
               return Positioned(
                 left: 0,
                 right: 0,
@@ -427,7 +459,10 @@ class _WishRoomDustState extends State<WishRoomDust> with TickerProviderStateMix
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         gradient: RadialGradient(
-                          colors: [widget.color, widget.color.withValues(alpha: 0)],
+                          colors: [
+                            widget.color,
+                            widget.color.withValues(alpha: 0),
+                          ],
                           stops: const [0.0, 0.6],
                         ),
                       ),
@@ -464,11 +499,18 @@ class WishRoomScroll extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(4),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 4)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: DefaultTextStyle.merge(
-        style: const TextStyle(fontFamily: 'GowunBatangWish', color: Color(0xFF3A2515)),
+        style: const TextStyle(
+          fontFamily: 'GowunBatangWish',
+          color: Color(0xFF3A2515),
+        ),
         child: child,
       ),
     );
@@ -503,7 +545,11 @@ class WishRoomSeal extends StatelessWidget {
           borderRadius: BorderRadius.circular(6),
           border: Border.all(color: Colors.black.withValues(alpha: 0.15)),
           boxShadow: [
-            BoxShadow(color: color.withValues(alpha: 0.53), blurRadius: 8, offset: const Offset(0, 2)),
+            BoxShadow(
+              color: color.withValues(alpha: 0.53),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
           ],
         ),
         child: Text(
@@ -513,7 +559,13 @@ class WishRoomSeal extends StatelessWidget {
             fontWeight: FontWeight.w900,
             fontSize: size * 0.55,
             color: const Color(0xFFFFF9E8),
-            shadows: [Shadow(color: Colors.black.withValues(alpha: 0.3), offset: const Offset(0, 1), blurRadius: 2)],
+            shadows: [
+              Shadow(
+                color: Colors.black.withValues(alpha: 0.3),
+                offset: const Offset(0, 1),
+                blurRadius: 2,
+              ),
+            ],
           ),
         ),
       ),

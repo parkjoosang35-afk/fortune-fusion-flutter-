@@ -15,7 +15,11 @@ import '../domain/wish_room_models.dart';
 ///
 /// 로컬 영속성은 Hive box 'wish_room'(Map 기반, 코드생성 어댑터 불필요)를 사용한다.
 class WishRoomShortageException implements Exception {
-  WishRoomShortageException({required this.need, required this.have, required this.itemName});
+  WishRoomShortageException({
+    required this.need,
+    required this.have,
+    required this.itemName,
+  });
   final int need;
   final int have;
   final String itemName;
@@ -146,7 +150,8 @@ class WishRoomProvider extends ChangeNotifier {
   }
 
   Future<WishRoomEarnResult?> earnCheer(String wishId) async {
-    if (todayLimits.cheerCount >= WishRoomTodayLimits.cheerDailyLimit) return null;
+    if (todayLimits.cheerCount >= WishRoomTodayLimits.cheerDailyLimit)
+      return null;
     todayLimits.cheerCount += 1;
     final wish = _findWish(wishId);
     wish?.cheersReceived += 1;
@@ -188,7 +193,11 @@ class WishRoomProvider extends ChangeNotifier {
     return _applyEarn(12, '만월의 밤 ×2', 'FULL MOON');
   }
 
-  Future<WishRoomEarnResult> _applyEarn(int amount, String label, String sub) async {
+  Future<WishRoomEarnResult> _applyEarn(
+    int amount,
+    String label,
+    String sub,
+  ) async {
     balance += amount;
     todayEarned += amount;
     final entry = WishRoomLedgerEntry(
@@ -199,7 +208,11 @@ class WishRoomProvider extends ChangeNotifier {
       date: DateTime.now(),
     );
     ledger.insert(0, entry);
-    final result = WishRoomEarnResult(amount: amount, newBalance: balance, label: label);
+    final result = WishRoomEarnResult(
+      amount: amount,
+      newBalance: balance,
+      label: label,
+    );
     lastEarnResult = result;
     await _persist();
     notifyListeners();
@@ -211,35 +224,46 @@ class WishRoomProvider extends ChangeNotifier {
   // 잔액 부족 시 결제 유도 없이 WishRoomShortageException을 던진다.
   // ─────────────────────────────────────────────────────────
   Future<void> buySeal(String sealId) => _spendCatalog(
-        WishRoomCatalog.seals,
-        sealId,
-        (id) => inventory.seals.add(id),
-        '인장을 봉인하다',
-      );
+    WishRoomCatalog.seals,
+    sealId,
+    (id) => inventory.seals.add(id),
+    '인장을 봉인하다',
+  );
 
   Future<void> buyCandle(String candleId) => _spendCatalog(
-        WishRoomCatalog.candles,
-        candleId,
-        (id) => inventory.candles.add(id),
-        '촛불을 밝히다',
-      );
+    WishRoomCatalog.candles,
+    candleId,
+    (id) => inventory.candles.add(id),
+    '촛불을 밝히다',
+  );
 
   Future<void> buyTheme(String themeId) => _spendCatalog(
-        WishRoomCatalog.themes,
-        themeId,
-        (id) => inventory.themes.add(id),
-        '테마를 담다',
-      );
+    WishRoomCatalog.themes,
+    themeId,
+    (id) => inventory.themes.add(id),
+    '테마를 담다',
+  );
 
-  Future<void> buyTalisman(String talismanId, {required Duration validFor}) async {
-    final item = WishRoomCatalog.talismans.firstWhere((e) => e.id == talismanId);
+  Future<void> buyTalisman(
+    String talismanId, {
+    required Duration validFor,
+  }) async {
+    final item = WishRoomCatalog.talismans.firstWhere(
+      (e) => e.id == talismanId,
+    );
     _ensureBalance(item.cost, item.name);
     balance -= item.cost;
-    inventory.talismans.add(WishRoomTalisman(id: talismanId, expiresAt: DateTime.now().add(validFor)));
+    inventory.talismans.add(
+      WishRoomTalisman(id: talismanId, expiresAt: DateTime.now().add(validFor)),
+    );
     await _recordSpend(item.cost, '부적을 지니다', item.name);
   }
 
-  Future<void> giftShards({required String wishId, required int amount, String? message}) async {
+  Future<void> giftShards({
+    required String wishId,
+    required int amount,
+    String? message,
+  }) async {
     _ensureBalance(amount, '조각 나눔');
     balance -= amount;
     final wish = _findWish(wishId);
@@ -263,7 +287,11 @@ class WishRoomProvider extends ChangeNotifier {
 
   void _ensureBalance(int cost, String itemName) {
     if (balance < cost) {
-      throw WishRoomShortageException(need: cost, have: balance, itemName: itemName);
+      throw WishRoomShortageException(
+        need: cost,
+        have: balance,
+        itemName: itemName,
+      );
     }
   }
 
@@ -329,35 +357,38 @@ class WishRoomProvider extends ChangeNotifier {
 
   // 오늘의 미션 뷰 모델(EarnList 화면에서 그대로 사용)
   List<WishRoomMissionViewData> get todayMissions => [
-        WishRoomMissionViewData(
-          label: '오늘도 촛불을 밝히다',
-          sub: '출석',
-          reward: 1 * _multiplier(),
-          done: todayLimits.attendance,
-          onClaim: earnAttendance,
-        ),
-        WishRoomMissionViewData(
-          label: '60초 명상 · 심호흡',
-          sub: '명상',
-          reward: 2 * _multiplier(),
-          done: todayLimits.meditation,
-          onClaim: earnMeditation,
-        ),
-        WishRoomMissionViewData(
-          label: '다른 이 소원에 함께 빌다',
-          sub: '함께 빌기 · ${todayLimits.cheerCount}/${WishRoomTodayLimits.cheerDailyLimit}',
-          reward: 1 * _multiplier(),
-          done: todayLimits.cheerCount >= WishRoomTodayLimits.cheerDailyLimit,
-          onClaim: null, // 개별 소원 화면에서 wishId와 함께 호출
-        ),
-        WishRoomMissionViewData(
-          label: '광고를 조용히 지켜보다',
-          sub: '광고 시청 · ${todayLimits.adCount}/${WishRoomTodayLimits.adDailyLimit}',
-          reward: 5 * _multiplier(),
-          done: todayLimits.adCount >= WishRoomTodayLimits.adDailyLimit,
-          onClaim: () => earnAdWatched(),
-        ),
-      ];
+    WishRoomMissionViewData(
+      label: '오늘도 촛불을 밝히다',
+      sub: '출석',
+      reward: 1 * _multiplier(),
+      done: todayLimits.attendance,
+      onClaim: earnAttendance,
+    ),
+    WishRoomMissionViewData(
+      label: '60초 명상 · 심호흡',
+      sub: '명상',
+      reward: 2 * _multiplier(),
+      done: todayLimits.meditation,
+      onClaim: earnMeditation,
+    ),
+    WishRoomMissionViewData(
+      label: '다른 이 소원에 함께 빌다',
+      sub:
+          '함께 빌기 · ${todayLimits.cheerCount}/${WishRoomTodayLimits.cheerDailyLimit}',
+      reward: 1 * _multiplier(),
+      done: todayLimits.cheerCount >= WishRoomTodayLimits.cheerDailyLimit,
+      onClaim: null, // 개별 소원 화면에서 wishId와 함께 호출
+    ),
+    WishRoomMissionViewData(
+      label: '광고를 조용히 지켜보다',
+      sub: '광고 시청 · ${todayLimits.adCount}/${WishRoomTodayLimits.adDailyLimit}',
+      reward: 5 * _multiplier(),
+      done: todayLimits.adCount >= WishRoomTodayLimits.adDailyLimit,
+      // dev-spec §7.1: 광고 시청은 즉시 지급이 아니라 AdWatch 화면(재생 → 시청 완료)을
+      // 거쳐야 하므로 onClaim 대신 isAdWatch로 표시해 화면단에서 라우팅한다.
+      isAdWatch: true,
+    ),
+  ];
 }
 
 class WishRoomMissionViewData {
@@ -367,6 +398,7 @@ class WishRoomMissionViewData {
     required this.reward,
     required this.done,
     this.onClaim,
+    this.isAdWatch = false,
   });
 
   final String label;
@@ -374,4 +406,8 @@ class WishRoomMissionViewData {
   final int reward;
   final bool done;
   final Future<WishRoomEarnResult?> Function()? onClaim;
+
+  /// dev-spec §7.1: true이면 EarnList 화면에서 즉시 지급하지 않고
+  /// WishRoomAdWatchScreen으로 이동시켜야 한다.
+  final bool isAdWatch;
 }

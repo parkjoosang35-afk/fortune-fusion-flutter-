@@ -93,7 +93,10 @@ class _ShardPainter extends CustomPainter {
         ],
       ).createShader(const Rect.fromLTWH(20, 3, 13, 30))
       ..color = _sideTop.withValues(alpha: 0.5);
-    canvas.drawPath(sidePath, sidePaint..color = sidePaint.color.withValues(alpha: 1));
+    canvas.drawPath(
+      sidePath,
+      sidePaint..color = sidePaint.color.withValues(alpha: 1),
+    );
 
     // body outline
     canvas.drawPath(
@@ -128,7 +131,10 @@ class _ShardPainter extends CustomPainter {
         Offset(20, 13),
         Offset(13, 8),
       ], true);
-    canvas.drawPath(topHighlight, Paint()..color = Colors.white.withValues(alpha: 0.35));
+    canvas.drawPath(
+      topHighlight,
+      Paint()..color = Colors.white.withValues(alpha: 0.35),
+    );
 
     canvas.restore();
   }
@@ -158,7 +164,9 @@ class WishRoomPouch extends StatelessWidget {
     return SizedBox(
       width: size,
       height: size * 1.1,
-      child: CustomPaint(painter: _PouchPainter(color: color, accentColor: accentColor)),
+      child: CustomPaint(
+        painter: _PouchPainter(color: color, accentColor: accentColor),
+      ),
     );
   }
 }
@@ -177,7 +185,10 @@ class _PouchPainter extends CustomPainter {
     // halo
     final glowPaint = Paint()
       ..shader = RadialGradient(
-        colors: [accentColor.withValues(alpha: 0.35), accentColor.withValues(alpha: 0)],
+        colors: [
+          accentColor.withValues(alpha: 0.35),
+          accentColor.withValues(alpha: 0),
+        ],
       ).createShader(const Rect.fromLTWH(0, 10, 100, 100));
     canvas.drawCircle(const Offset(50, 60), 50, glowPaint);
 
@@ -222,7 +233,10 @@ class _PouchPainter extends CustomPainter {
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: [strokeColor.withValues(alpha: 0.7), strokeColor.withValues(alpha: 0.85)],
+        colors: [
+          strokeColor.withValues(alpha: 0.7),
+          strokeColor.withValues(alpha: 0.85),
+        ],
       ).createShader(const Rect.fromLTWH(28, 26, 44, 14));
     canvas.drawPath(neckPath, neckPaint);
     canvas.drawPath(
@@ -305,7 +319,11 @@ class _PouchPainter extends CustomPainter {
         ..strokeWidth = 1.2
         ..color = accentColor.withValues(alpha: 0.9),
     );
-    canvas.drawCircle(const Offset(50, 108), 2, Paint()..color = accentColor.withValues(alpha: 0.9));
+    canvas.drawCircle(
+      const Offset(50, 108),
+      2,
+      Paint()..color = accentColor.withValues(alpha: 0.9),
+    );
 
     canvas.restore();
   }
@@ -353,12 +371,7 @@ class WishRoomShardCounter extends StatelessWidget {
         height: 1.0,
         color: color,
         shadows: glow
-            ? [
-                Shadow(
-                  color: WishRoomColors.crystal.glowShadow,
-                  blurRadius: 20,
-                ),
-              ]
+            ? [Shadow(color: WishRoomColors.crystal.glowShadow, blurRadius: 20)]
             : null,
       ),
     );
@@ -444,22 +457,32 @@ class WishRoomMissionRow extends StatelessWidget {
                       Text(
                         label,
                         style: WishRoomText.h3(palette.fg).copyWith(
-                          decoration: done ? TextDecoration.lineThrough : TextDecoration.none,
+                          decoration: done
+                              ? TextDecoration.lineThrough
+                              : TextDecoration.none,
                           decorationColor: palette.muted,
                         ),
                       ),
                       if (sub != null) ...[
                         const SizedBox(height: 2),
-                        Text(sub!.toUpperCase(), style: WishRoomText.monoSm(palette.muted)),
+                        Text(
+                          sub!.toUpperCase(),
+                          style: WishRoomText.monoSm(palette.muted),
+                        ),
                       ],
                     ],
                   ),
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
-                    color: done ? Colors.transparent : palette.glow.withValues(alpha: 0.15),
+                    color: done
+                        ? Colors.transparent
+                        : palette.glow.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(999),
                     border: Border.all(
                       color: done ? palette.line : palette.glow,
@@ -521,7 +544,8 @@ class _HollowHexPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _HollowHexPainter oldDelegate) => oldDelegate.color != color;
+  bool shouldRepaint(covariant _HollowHexPainter oldDelegate) =>
+      oldDelegate.color != color;
 }
 
 /// ─────────────────────────────────────────────────────────
@@ -589,7 +613,12 @@ class WishRoomRewardTile extends StatelessWidget {
                     ],
                     const SizedBox(height: 6),
                     owned
-                        ? Text('담겨있음', style: WishRoomText.body(palette.glow).copyWith(fontSize: 11))
+                        ? Text(
+                            '담겨있음',
+                            style: WishRoomText.body(
+                              palette.glow,
+                            ).copyWith(fontSize: 11),
+                          )
                         : Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -613,7 +642,10 @@ class WishRoomRewardTile extends StatelessWidget {
                     top: -2,
                     right: -2,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: palette.glow,
                         borderRadius: BorderRadius.circular(999),
@@ -673,7 +705,9 @@ class WishRoomLedgerRow extends StatelessWidget {
             height: 30,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: gain ? palette.glow.withValues(alpha: 0.15) : palette.crystal.withValues(alpha: 0.15),
+              color: gain
+                  ? palette.glow.withValues(alpha: 0.15)
+                  : palette.crystal.withValues(alpha: 0.15),
               border: Border.all(color: palette.line),
               borderRadius: BorderRadius.circular(8),
             ),
@@ -728,7 +762,11 @@ class WishRoomLedgerRow extends StatelessWidget {
 /// (이모지는 아이콘 자리에만 사용 — 절대원칙 준수)
 /// ─────────────────────────────────────────────────────────
 class WishRoomBottomNavItem {
-  const WishRoomBottomNavItem({required this.id, required this.label, required this.icon});
+  const WishRoomBottomNavItem({
+    required this.id,
+    required this.label,
+    required this.icon,
+  });
   final String id;
   final String label;
   final String icon;
@@ -775,7 +813,13 @@ class WishRoomBottomNav extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(it.icon, style: TextStyle(fontSize: 18, color: on ? palette.glow : palette.muted)),
+                Text(
+                  it.icon,
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: on ? palette.glow : palette.muted,
+                  ),
+                ),
                 const SizedBox(height: 3),
                 Text(
                   it.label,
@@ -824,7 +868,13 @@ class WishRoomPouchButton extends StatelessWidget {
         border: primary ? null : Border.all(color: palette.line),
         borderRadius: BorderRadius.circular(999),
         boxShadow: primary
-            ? [BoxShadow(color: palette.glowShadow, blurRadius: 16, offset: const Offset(0, 4))]
+            ? [
+                BoxShadow(
+                  color: palette.glowShadow,
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ]
             : null,
       ),
       child: Text(

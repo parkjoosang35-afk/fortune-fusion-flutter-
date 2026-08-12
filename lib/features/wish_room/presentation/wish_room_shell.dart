@@ -72,7 +72,11 @@ class _WishRoomHomePlaceholder extends StatelessWidget {
             Positioned.fill(
               child: Align(
                 alignment: const Alignment(0, -0.4),
-                child: WishRoomSigil(size: 320, color: palette.sigil, opacity: 0.2),
+                child: WishRoomSigil(
+                  size: 320,
+                  color: palette.sigil,
+                  opacity: 0.2,
+                ),
               ),
             ),
             SafeArea(
@@ -94,7 +98,9 @@ class _WishRoomHomePlaceholder extends StatelessWidget {
                           ? '아직 밝힌 소원이 없어요\n곧 이 자리에서 소원을 적어볼 수 있어요'
                           : '${provider.wishes.length}개의 소원을 밝히고 있어요',
                       textAlign: TextAlign.center,
-                      style: WishRoomText.body(palette.muted).copyWith(height: 1.7),
+                      style: WishRoomText.body(
+                        palette.muted,
+                      ).copyWith(height: 1.7),
                     ),
                   ],
                 ),
@@ -132,7 +138,11 @@ class _WishRoomFeedPlaceholder extends StatelessWidget {
             Positioned.fill(
               child: Align(
                 alignment: const Alignment(0, -0.4),
-                child: WishRoomSigil(size: 320, color: palette.sigil, opacity: 0.2),
+                child: WishRoomSigil(
+                  size: 320,
+                  color: palette.sigil,
+                  opacity: 0.2,
+                ),
               ),
             ),
             SafeArea(
@@ -152,7 +162,9 @@ class _WishRoomFeedPlaceholder extends StatelessWidget {
                     Text(
                       '익명의 소원들이 모이는 자리입니다\n곧 이곳에서 함께 빌어줄 수 있어요',
                       textAlign: TextAlign.center,
-                      style: WishRoomText.body(palette.muted).copyWith(height: 1.7),
+                      style: WishRoomText.body(
+                        palette.muted,
+                      ).copyWith(height: 1.7),
                     ),
                   ],
                 ),

@@ -23,7 +23,8 @@ class WishRoomIntroScreen extends StatefulWidget {
   State<WishRoomIntroScreen> createState() => _WishRoomIntroScreenState();
 }
 
-class _WishRoomIntroScreenState extends State<WishRoomIntroScreen> with TickerProviderStateMixin {
+class _WishRoomIntroScreenState extends State<WishRoomIntroScreen>
+    with TickerProviderStateMixin {
   late final AnimationController _floatCtrl;
   late final AnimationController _haloCtrl;
   late final AnimationController _orbit1;
@@ -34,12 +35,30 @@ class _WishRoomIntroScreenState extends State<WishRoomIntroScreen> with TickerPr
   @override
   void initState() {
     super.initState();
-    _floatCtrl = AnimationController(vsync: this, duration: const Duration(seconds: 6))..repeat(reverse: true);
-    _haloCtrl = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat(reverse: true);
-    _orbit1 = AnimationController(vsync: this, duration: const Duration(milliseconds: 5000))..repeat(reverse: true);
-    _orbit2 = AnimationController(vsync: this, duration: const Duration(milliseconds: 6400))..repeat(reverse: true);
-    _orbit3 = AnimationController(vsync: this, duration: const Duration(milliseconds: 4400))..repeat(reverse: true);
-    _entrance = AnimationController(vsync: this, duration: const Duration(milliseconds: 1600))..forward();
+    _floatCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 6),
+    )..repeat(reverse: true);
+    _haloCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..repeat(reverse: true);
+    _orbit1 = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 5000),
+    )..repeat(reverse: true);
+    _orbit2 = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 6400),
+    )..repeat(reverse: true);
+    _orbit3 = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 4400),
+    )..repeat(reverse: true);
+    _entrance = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1600),
+    )..forward();
 
     // Hive 기반 상태 초기화(최초 1회) — 이후 온보딩 여부에 따라 홈으로 스킵 가능.
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -60,9 +79,9 @@ class _WishRoomIntroScreenState extends State<WishRoomIntroScreen> with TickerPr
   }
 
   void _enterWishRoom() {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const WishRoomShell()),
-    );
+    Navigator.of(
+      context,
+    ).pushReplacement(MaterialPageRoute(builder: (_) => const WishRoomShell()));
   }
 
   @override
@@ -94,7 +113,11 @@ class _WishRoomIntroScreenState extends State<WishRoomIntroScreen> with TickerPr
           Center(
             child: Transform.translate(
               offset: const Offset(0, -20),
-              child: WishRoomSigil(size: 340, color: palette.glow, opacity: 0.42),
+              child: WishRoomSigil(
+                size: 340,
+                color: palette.glow,
+                opacity: 0.42,
+              ),
             ),
           ),
           Center(
@@ -118,9 +141,9 @@ class _WishRoomIntroScreenState extends State<WishRoomIntroScreen> with TickerPr
                   children: [
                     Text(
                       '神通萬通 · SINTONG',
-                      style: WishRoomText.monoSm(palette.muted.withValues(alpha: 0.85)).copyWith(
-                        letterSpacing: 0.4 * 10,
-                      ),
+                      style: WishRoomText.monoSm(
+                        palette.muted.withValues(alpha: 0.85),
+                      ).copyWith(letterSpacing: 0.4 * 10),
                     ),
                     _buildCenter(palette),
                     _buildCtas(palette),
@@ -159,7 +182,10 @@ class _WishRoomIntroScreenState extends State<WishRoomIntroScreen> with TickerPr
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           gradient: RadialGradient(
-                            colors: [palette.glowShadow, palette.glowShadow.withValues(alpha: 0)],
+                            colors: [
+                              palette.glowShadow,
+                              palette.glowShadow.withValues(alpha: 0),
+                            ],
                             stops: const [0.0, 0.65],
                           ),
                         ),
@@ -234,7 +260,9 @@ class _WishRoomIntroScreenState extends State<WishRoomIntroScreen> with TickerPr
           child: Text(
             '촛불로 켜두고, 마법진으로 봉인하고,\n이루어질 때까지 함께 밝힙니다.',
             textAlign: TextAlign.center,
-            style: WishRoomText.body(palette.muted.withValues(alpha: 0.9)).copyWith(height: 1.75),
+            style: WishRoomText.body(
+              palette.muted.withValues(alpha: 0.9),
+            ).copyWith(height: 1.75),
           ),
         ),
       ],
@@ -257,12 +285,18 @@ class _WishRoomIntroScreenState extends State<WishRoomIntroScreen> with TickerPr
           primary: false,
           palette: palette,
           expand: true,
-          onPressed: () => showWishRoomGuideModal(context, onFinished: _enterWishRoom),
+          onPressed: () =>
+              showWishRoomGuideModal(context, onFinished: _enterWishRoom),
         ),
         const SizedBox(height: 4),
         TextButton(
           onPressed: _enterWishRoom,
-          child: Text('이미 계정이 있어요', style: WishRoomText.body(palette.muted.withValues(alpha: 0.7)).copyWith(fontSize: 12)),
+          child: Text(
+            '이미 계정이 있어요',
+            style: WishRoomText.body(
+              palette.muted.withValues(alpha: 0.7),
+            ).copyWith(fontSize: 12),
+          ),
         ),
       ],
     );
@@ -313,13 +347,17 @@ class _Sparkle extends StatefulWidget {
   State<_Sparkle> createState() => _SparkleState();
 }
 
-class _SparkleState extends State<_Sparkle> with SingleTickerProviderStateMixin {
+class _SparkleState extends State<_Sparkle>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl;
 
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 3600));
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3600),
+    );
     Future.delayed(Duration(milliseconds: widget.delayMs), () {
       if (mounted) _ctrl.repeat();
     });
@@ -335,8 +373,12 @@ class _SparkleState extends State<_Sparkle> with SingleTickerProviderStateMixin 
   Widget build(BuildContext context) {
     return Positioned(
       top: MediaQuery.of(context).size.height * widget.top,
-      left: widget.left != null ? MediaQuery.of(context).size.width * widget.left! : null,
-      right: widget.right != null ? MediaQuery.of(context).size.width * widget.right! : null,
+      left: widget.left != null
+          ? MediaQuery.of(context).size.width * widget.left!
+          : null,
+      right: widget.right != null
+          ? MediaQuery.of(context).size.width * widget.right!
+          : null,
       child: AnimatedBuilder(
         animation: _ctrl,
         builder: (context, _) {

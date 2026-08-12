@@ -21,14 +21,38 @@ class WishRoomCatalogScreen extends StatelessWidget {
     final provider = context.watch<WishRoomProvider>();
 
     final categories = [
-      _CategorySpec('印', '봉인 인장', '5가지 · 30~60', () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const WishRoomSealShopScreen()))),
-      _CategorySpec('燭', '특별한 촛불', '4가지 · 40~100', () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const WishRoomCandleShopScreen()))),
-      _CategorySpec('空', '소원방 테마', '2가지 · 50', () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const WishRoomThemeShopScreen()))),
-      _CategorySpec('贈', '복 나눔', '자유', () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const WishRoomGiftFlowScreen()))),
+      _CategorySpec(
+        '印',
+        '봉인 인장',
+        '5가지 · 30~60',
+        () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const WishRoomSealShopScreen()),
+        ),
+      ),
+      _CategorySpec(
+        '燭',
+        '특별한 촛불',
+        '4가지 · 40~100',
+        () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const WishRoomCandleShopScreen()),
+        ),
+      ),
+      _CategorySpec(
+        '空',
+        '소원방 테마',
+        '2가지 · 50',
+        () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const WishRoomThemeShopScreen()),
+        ),
+      ),
+      _CategorySpec(
+        '贈',
+        '복 나눔',
+        '자유',
+        () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const WishRoomGiftFlowScreen()),
+        ),
+      ),
       _CategorySpec('符', '부적', '2가지 · 60~100', null),
     ];
 
@@ -41,7 +65,11 @@ class WishRoomCatalogScreen extends StatelessWidget {
             Positioned.fill(
               child: Align(
                 alignment: const Alignment(0, -0.5),
-                child: WishRoomSigil(size: 260, color: palette.sigil, opacity: 0.15),
+                child: WishRoomSigil(
+                  size: 260,
+                  color: palette.sigil,
+                  opacity: 0.15,
+                ),
               ),
             ),
             SafeArea(
@@ -57,7 +85,10 @@ class WishRoomCatalogScreen extends StatelessWidget {
                           palette: palette,
                           onPressed: () => Navigator.of(context).maybePop(),
                         ),
-                        WishRoomPouchMonoLabel(text: 'CATALOG · 나눠 담기', palette: palette),
+                        WishRoomPouchMonoLabel(
+                          text: 'CATALOG · 나눠 담기',
+                          palette: palette,
+                        ),
                         const SizedBox(width: 34),
                       ],
                     ),
@@ -69,11 +100,16 @@ class WishRoomCatalogScreen extends StatelessWidget {
                         children: [
                           Text(
                             '복을 어디에\n나눠 담으시겠어요',
-                            style: WishRoomText.h1(palette.fg).copyWith(fontSize: 22),
+                            style: WishRoomText.h1(
+                              palette.fg,
+                            ).copyWith(fontSize: 22),
                           ),
                           const SizedBox(height: 10),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
                             decoration: BoxDecoration(
                               color: palette.card,
                               border: Border.all(color: palette.line),
@@ -82,7 +118,12 @@ class WishRoomCatalogScreen extends StatelessWidget {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text('지금 담긴', style: WishRoomText.body(palette.muted).copyWith(fontSize: 11)),
+                                Text(
+                                  '지금 담긴',
+                                  style: WishRoomText.body(
+                                    palette.muted,
+                                  ).copyWith(fontSize: 11),
+                                ),
                                 const SizedBox(width: 8),
                                 WishRoomShardCounter(
                                   count: provider.balance,
@@ -121,7 +162,9 @@ class WishRoomCatalogScreen extends StatelessWidget {
                                       height: 44,
                                       alignment: Alignment.center,
                                       decoration: BoxDecoration(
-                                        color: palette.glow.withValues(alpha: 0.12),
+                                        color: palette.glow.withValues(
+                                          alpha: 0.12,
+                                        ),
                                         border: Border.all(color: palette.line),
                                         borderRadius: BorderRadius.circular(10),
                                       ),
@@ -138,16 +181,31 @@ class WishRoomCatalogScreen extends StatelessWidget {
                                     const SizedBox(width: 12),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Text(c.name, style: WishRoomText.h3(palette.fg)),
+                                          Text(
+                                            c.name,
+                                            style: WishRoomText.h3(palette.fg),
+                                          ),
                                           const SizedBox(height: 2),
-                                          Text(c.sub, style: WishRoomText.monoSm(palette.muted)),
+                                          Text(
+                                            c.sub,
+                                            style: WishRoomText.monoSm(
+                                              palette.muted,
+                                            ),
+                                          ),
                                         ],
                                       ),
                                     ),
-                                    Text('→', style: TextStyle(color: palette.muted, fontSize: 16)),
+                                    Text(
+                                      '→',
+                                      style: TextStyle(
+                                        color: palette.muted,
+                                        fontSize: 16,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),

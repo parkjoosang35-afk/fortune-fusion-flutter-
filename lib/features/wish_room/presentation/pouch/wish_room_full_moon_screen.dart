@@ -29,9 +29,18 @@ class _WishRoomFullMoonScreenState extends State<WishRoomFullMoonScreen>
   @override
   void initState() {
     super.initState();
-    _orbit1 = AnimationController(vsync: this, duration: const Duration(milliseconds: 3000))..repeat(reverse: true);
-    _orbit2 = AnimationController(vsync: this, duration: const Duration(milliseconds: 4000))..repeat(reverse: true);
-    _orbit3 = AnimationController(vsync: this, duration: const Duration(milliseconds: 3400))..repeat(reverse: true);
+    _orbit1 = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3000),
+    )..repeat(reverse: true);
+    _orbit2 = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 4000),
+    )..repeat(reverse: true);
+    _orbit3 = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3400),
+    )..repeat(reverse: true);
   }
 
   @override
@@ -58,13 +67,19 @@ class _WishRoomFullMoonScreenState extends State<WishRoomFullMoonScreen>
                 gradient: RadialGradient(
                   center: const Alignment(0, -0.4),
                   radius: 1.0,
-                  colors: [palette.glow.withValues(alpha: 0.5), palette.bg1, palette.bg2],
+                  colors: [
+                    palette.glow.withValues(alpha: 0.5),
+                    palette.bg1,
+                    palette.bg2,
+                  ],
                   stops: const [0.0, 0.45, 1.0],
                 ),
               ),
             ),
           ),
-          Center(child: WishRoomSigil(size: 480, color: palette.glow, opacity: 0.5)),
+          Center(
+            child: WishRoomSigil(size: 480, color: palette.glow, opacity: 0.5),
+          ),
           Positioned.fill(child: WishRoomDust(count: 18, color: palette.glow)),
           SafeArea(
             child: Padding(
@@ -72,7 +87,10 @@ class _WishRoomFullMoonScreenState extends State<WishRoomFullMoonScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('FULL MOON · 만월의 밤', style: WishRoomText.monoSm(palette.muted)),
+                  Text(
+                    'FULL MOON · 만월의 밤',
+                    style: WishRoomText.monoSm(palette.muted),
+                  ),
                   _buildMoon(palette),
                   Column(
                     mainAxisSize: MainAxisSize.min,
@@ -82,18 +100,25 @@ class _WishRoomFullMoonScreenState extends State<WishRoomFullMoonScreen>
                         textAlign: TextAlign.center,
                         style: WishRoomText.display1(palette.fg).copyWith(
                           fontSize: 26,
-                          shadows: [Shadow(color: palette.glowShadow, blurRadius: 24)],
+                          shadows: [
+                            Shadow(color: palette.glowShadow, blurRadius: 24),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 12),
                       Text(
                         '자정까지 모든 조각이\n두 배로 담깁니다',
                         textAlign: TextAlign.center,
-                        style: WishRoomText.body(palette.muted).copyWith(height: 1.7),
+                        style: WishRoomText.body(
+                          palette.muted,
+                        ).copyWith(height: 1.7),
                       ),
                       const SizedBox(height: 16),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 10,
+                        ),
                         decoration: BoxDecoration(
                           color: palette.card,
                           border: Border.all(color: palette.glow),
@@ -120,7 +145,9 @@ class _WishRoomFullMoonScreenState extends State<WishRoomFullMoonScreen>
                         primary: true,
                         palette: palette,
                         expand: true,
-                        onPressed: claimed ? null : () => _claim(context, provider),
+                        onPressed: claimed
+                            ? null
+                            : () => _claim(context, provider),
                       ),
                       const SizedBox(height: 10),
                       WishRoomPouchButton(
@@ -166,7 +193,10 @@ class _WishRoomFullMoonScreenState extends State<WishRoomFullMoonScreen>
               ),
               boxShadow: [
                 BoxShadow(color: palette.glowShadow, blurRadius: 60),
-                BoxShadow(color: palette.glowShadow.withValues(alpha: 0.5), blurRadius: 120),
+                BoxShadow(
+                  color: palette.glowShadow.withValues(alpha: 0.5),
+                  blurRadius: 120,
+                ),
               ],
             ),
             child: Stack(
@@ -228,19 +258,21 @@ class _WishRoomFullMoonScreenState extends State<WishRoomFullMoonScreen>
   }
 
   Widget _crater(double w, {double? h}) => Container(
-        width: w,
-        height: h ?? w,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.black.withValues(alpha: 0.08),
-        ),
-      );
+    width: w,
+    height: h ?? w,
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      color: Colors.black.withValues(alpha: 0.08),
+    ),
+  );
 
   Future<void> _claim(BuildContext context, WishRoomProvider provider) async {
     final result = await provider.earnFullMoonBonus();
     if (result != null && context.mounted) {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => WishRoomEarnMomentScreen(result: result)),
+        MaterialPageRoute(
+          builder: (_) => WishRoomEarnMomentScreen(result: result),
+        ),
       );
     }
   }

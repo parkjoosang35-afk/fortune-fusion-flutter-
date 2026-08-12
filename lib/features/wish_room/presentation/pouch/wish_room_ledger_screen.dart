@@ -31,9 +31,15 @@ class _WishRoomLedgerScreenState extends State<WishRoomLedgerScreen> {
     final provider = context.watch<WishRoomProvider>();
 
     final now = DateTime.now();
-    final monthEntries = provider.ledger.where((e) => e.date.year == now.year && e.date.month == now.month);
-    final monthEarned = monthEntries.where((e) => e.amount > 0).fold<int>(0, (s, e) => s + e.amount);
-    final monthSpent = monthEntries.where((e) => e.amount < 0).fold<int>(0, (s, e) => s - e.amount);
+    final monthEntries = provider.ledger.where(
+      (e) => e.date.year == now.year && e.date.month == now.month,
+    );
+    final monthEarned = monthEntries
+        .where((e) => e.amount > 0)
+        .fold<int>(0, (s, e) => s + e.amount);
+    final monthSpent = monthEntries
+        .where((e) => e.amount < 0)
+        .fold<int>(0, (s, e) => s - e.amount);
 
     final filtered = provider.ledger.where((e) {
       switch (_filter) {
@@ -65,7 +71,10 @@ class _WishRoomLedgerScreenState extends State<WishRoomLedgerScreen> {
                           palette: palette,
                           onPressed: () => Navigator.of(context).maybePop(),
                         ),
-                        WishRoomPouchMonoLabel(text: 'LEDGER · 조용한 장부', palette: palette),
+                        WishRoomPouchMonoLabel(
+                          text: 'LEDGER · 조용한 장부',
+                          palette: palette,
+                        ),
                         const SizedBox(width: 34),
                       ],
                     ),
@@ -74,7 +83,9 @@ class _WishRoomLedgerScreenState extends State<WishRoomLedgerScreen> {
                       alignment: Alignment.centerLeft,
                       child: Text(
                         '담긴 것과\n나눈 것',
-                        style: WishRoomText.h1(palette.fg).copyWith(fontSize: 22),
+                        style: WishRoomText.h1(
+                          palette.fg,
+                        ).copyWith(fontSize: 22),
                       ),
                     ),
                     const SizedBox(height: 14),
@@ -106,21 +117,24 @@ class _WishRoomLedgerScreenState extends State<WishRoomLedgerScreen> {
                           label: '전체',
                           selected: _filter == _LedgerFilter.all,
                           palette: palette,
-                          onTap: () => setState(() => _filter = _LedgerFilter.all),
+                          onTap: () =>
+                              setState(() => _filter = _LedgerFilter.all),
                         ),
                         const SizedBox(width: 6),
                         _FilterChip(
                           label: '담김',
                           selected: _filter == _LedgerFilter.earn,
                           palette: palette,
-                          onTap: () => setState(() => _filter = _LedgerFilter.earn),
+                          onTap: () =>
+                              setState(() => _filter = _LedgerFilter.earn),
                         ),
                         const SizedBox(width: 6),
                         _FilterChip(
                           label: '나눔',
                           selected: _filter == _LedgerFilter.spend,
                           palette: palette,
-                          onTap: () => setState(() => _filter = _LedgerFilter.spend),
+                          onTap: () =>
+                              setState(() => _filter = _LedgerFilter.spend),
                         ),
                       ],
                     ),

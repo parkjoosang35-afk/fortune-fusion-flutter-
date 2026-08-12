@@ -80,7 +80,10 @@ class _WishRoomGuideModalState extends State<WishRoomGuideModal> {
         gradient: const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [WishRoomColors.sheetGradientTop, WishRoomColors.sheetGradientBottom],
+          colors: [
+            WishRoomColors.sheetGradientTop,
+            WishRoomColors.sheetGradientBottom,
+          ],
         ),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         border: Border.all(color: WishRoomColors.sheetBorder),
@@ -123,24 +126,36 @@ class _WishRoomGuideModalState extends State<WishRoomGuideModal> {
                     cur.title,
                     textAlign: TextAlign.center,
                     style: WishRoomText.h1(palette.fg).copyWith(
-                      shadows: [Shadow(color: palette.glowShadow, blurRadius: 20)],
+                      shadows: [
+                        Shadow(color: palette.glowShadow, blurRadius: 20),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 14),
                   Text(
                     cur.body,
                     textAlign: TextAlign.center,
-                    style: WishRoomText.body(palette.muted).copyWith(height: 1.75),
+                    style: WishRoomText.body(
+                      palette.muted,
+                    ).copyWith(height: 1.75),
                   ),
                   const SizedBox(height: 20),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 7,
+                    ),
                     decoration: BoxDecoration(
                       color: palette.glow.withValues(alpha: 0.10),
-                      border: Border.all(color: palette.glow.withValues(alpha: 0.35)),
+                      border: Border.all(
+                        color: palette.glow.withValues(alpha: 0.35),
+                      ),
                       borderRadius: BorderRadius.circular(999),
                     ),
-                    child: Text(cur.highlight, style: WishRoomText.mono(palette.glow)),
+                    child: Text(
+                      cur.highlight,
+                      style: WishRoomText.mono(palette.glow),
+                    ),
                   ),
                 ],
               ),
@@ -232,7 +247,9 @@ class _GuideIcon extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: palette.glow,
                       shape: BoxShape.circle,
-                      boxShadow: [BoxShadow(color: palette.glowShadow, blurRadius: 12)],
+                      boxShadow: [
+                        BoxShadow(color: palette.glowShadow, blurRadius: 12),
+                      ],
                     ),
                     child: Text(
                       '無',
@@ -269,8 +286,16 @@ class _GuideIcon extends StatelessWidget {
             alignment: Alignment.center,
             children: [
               _halo(palette),
-              const Positioned(bottom: 6, left: 14, child: WishRoomShard(size: 22)),
-              const Positioned(bottom: 8, right: 14, child: WishRoomShard(size: 18)),
+              const Positioned(
+                bottom: 6,
+                left: 14,
+                child: WishRoomShard(size: 22),
+              ),
+              const Positioned(
+                bottom: 8,
+                right: 14,
+                child: WishRoomShard(size: 18),
+              ),
               const WishRoomShard(size: 80),
             ],
           ),
@@ -290,15 +315,24 @@ class _GuideIcon extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: palette.glow,
                   shape: BoxShape.circle,
-                  boxShadow: [BoxShadow(color: palette.glowShadow, blurRadius: 20)],
+                  boxShadow: [
+                    BoxShadow(color: palette.glowShadow, blurRadius: 20),
+                  ],
                 ),
-                child: Icon(Icons.play_arrow, color: WishRoomColors.onGlowText, size: 26),
+                child: Icon(
+                  Icons.play_arrow,
+                  color: WishRoomColors.onGlowText,
+                  size: 26,
+                ),
               ),
               Positioned(
                 top: 4,
                 right: 4,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: palette.glow.withValues(alpha: 0.15),
                     border: Border.all(color: palette.glow),
@@ -323,17 +357,20 @@ class _GuideIcon extends StatelessWidget {
   }
 
   Widget _halo(WishRoomPaletteTokens palette) => Container(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(
-            colors: [palette.glowShadow, palette.glowShadow.withValues(alpha: 0)],
-          ),
-        ),
-      );
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      gradient: RadialGradient(
+        colors: [palette.glowShadow, palette.glowShadow.withValues(alpha: 0)],
+      ),
+    ),
+  );
 }
 
 /// 바텀시트로 GuideModal을 띄운다.
-Future<void> showWishRoomGuideModal(BuildContext context, {VoidCallback? onFinished}) {
+Future<void> showWishRoomGuideModal(
+  BuildContext context, {
+  VoidCallback? onFinished,
+}) {
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,

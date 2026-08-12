@@ -109,7 +109,9 @@ class WishRoomColors {
 
   /// 인장(Seal) 텍스트 색 — 항상 흰빛 크림톤 고정(팔레트 무관)
   static const sealTextColor = Color(0xFFFFF9E8);
-  static const sealBg = Color(0xFFC94A3B); // seal red (accent, midnight 기준 고정 사용처 많음)
+  static const sealBg = Color(
+    0xFFC94A3B,
+  ); // seal red (accent, midnight 기준 고정 사용처 많음)
 
   /// 버튼 primary 텍스트(글로우 배경 위) 색 — 항상 진보라 고정
   static const onGlowText = Color(0xFF2A1A3A);

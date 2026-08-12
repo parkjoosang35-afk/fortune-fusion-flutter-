@@ -13,16 +13,16 @@ enum WishRoomThemeId { midnight, hanji, crystal }
 
 extension WishRoomThemeIdX on WishRoomThemeId {
   String get key => switch (this) {
-        WishRoomThemeId.midnight => 'midnight',
-        WishRoomThemeId.hanji => 'hanji',
-        WishRoomThemeId.crystal => 'crystal',
-      };
+    WishRoomThemeId.midnight => 'midnight',
+    WishRoomThemeId.hanji => 'hanji',
+    WishRoomThemeId.crystal => 'crystal',
+  };
 
   static WishRoomThemeId fromKey(String? key) => switch (key) {
-        'hanji' => WishRoomThemeId.hanji,
-        'crystal' => WishRoomThemeId.crystal,
-        _ => WishRoomThemeId.midnight,
-      };
+    'hanji' => WishRoomThemeId.hanji,
+    'crystal' => WishRoomThemeId.crystal,
+    _ => WishRoomThemeId.midnight,
+  };
 }
 
 /// ─────────────────────────────────────────────────────────
@@ -55,21 +55,66 @@ class WishRoomCatalog {
   ];
 
   static const candles = [
-    WishRoomCatalogItem(id: 'candle_lotus', name: '연꽃초', sub: '자비 · 이별한 사람을 위해', cost: 40),
-    WishRoomCatalogItem(id: 'candle_star', name: '별초', sub: '밤하늘로 소원이 흩어짐', cost: 80),
-    WishRoomCatalogItem(id: 'candle_sandal', name: '향초', sub: '명상 시간 배수 획득', cost: 60),
-    WishRoomCatalogItem(id: 'candle_wax_star', name: '촛농이 별이 되는 초', sub: '이뤄진 소원의 촛농이 별로', cost: 100),
+    WishRoomCatalogItem(
+      id: 'candle_lotus',
+      name: '연꽃초',
+      sub: '자비 · 이별한 사람을 위해',
+      cost: 40,
+    ),
+    WishRoomCatalogItem(
+      id: 'candle_star',
+      name: '별초',
+      sub: '밤하늘로 소원이 흩어짐',
+      cost: 80,
+    ),
+    WishRoomCatalogItem(
+      id: 'candle_sandal',
+      name: '향초',
+      sub: '명상 시간 배수 획득',
+      cost: 60,
+    ),
+    WishRoomCatalogItem(
+      id: 'candle_wax_star',
+      name: '촛농이 별이 되는 초',
+      sub: '이뤄진 소원의 촛농이 별로',
+      cost: 100,
+    ),
   ];
 
   static const themes = [
-    WishRoomCatalogItem(id: 'theme_midnight', name: '심야의 신전', sub: '기본 · 자주 보랏빛', cost: 0),
-    WishRoomCatalogItem(id: 'theme_hanji', name: '새벽 한지', sub: '따뜻한 라이트 톤', cost: 50),
-    WishRoomCatalogItem(id: 'theme_crystal', name: '달빛 크리스탈', sub: '복주머니 기본 팔레트', cost: 0),
+    WishRoomCatalogItem(
+      id: 'theme_midnight',
+      name: '심야의 신전',
+      sub: '기본 · 자주 보랏빛',
+      cost: 0,
+    ),
+    WishRoomCatalogItem(
+      id: 'theme_hanji',
+      name: '새벽 한지',
+      sub: '따뜻한 라이트 톤',
+      cost: 50,
+    ),
+    WishRoomCatalogItem(
+      id: 'theme_crystal',
+      name: '달빛 크리스탈',
+      sub: '복주머니 기본 팔레트',
+      cost: 0,
+    ),
   ];
 
   static const talismans = [
-    WishRoomCatalogItem(id: 'talisman_100day', name: '소원 부적', sub: '매일 자동 촛불 켜기 · 100일', cost: 100),
-    WishRoomCatalogItem(id: 'talisman_fullmoon', name: '만월 부적', sub: '다음 보름달까지 항상 ×2', cost: 60),
+    WishRoomCatalogItem(
+      id: 'talisman_100day',
+      name: '소원 부적',
+      sub: '매일 자동 촛불 켜기 · 100일',
+      cost: 100,
+    ),
+    WishRoomCatalogItem(
+      id: 'talisman_fullmoon',
+      name: '만월 부적',
+      sub: '다음 보름달까지 항상 ×2',
+      cost: 60,
+    ),
   ];
 
   static WishRoomCatalogItem? find(String id) {
@@ -108,15 +153,18 @@ class WishRoomTodayLimits {
   static const adDailyLimit = 5;
 
   Map<String, dynamic> toMap() => {
-        'attendance': attendance,
-        'meditation': meditation,
-        'cheerCount': cheerCount,
-        'adCount': adCount,
-        'fullMoonClaimed': fullMoonClaimed,
-        'resetDateKey': resetDateKey,
-      };
+    'attendance': attendance,
+    'meditation': meditation,
+    'cheerCount': cheerCount,
+    'adCount': adCount,
+    'fullMoonClaimed': fullMoonClaimed,
+    'resetDateKey': resetDateKey,
+  };
 
-  factory WishRoomTodayLimits.fromMap(Map<dynamic, dynamic>? map, String todayKey) {
+  factory WishRoomTodayLimits.fromMap(
+    Map<dynamic, dynamic>? map,
+    String todayKey,
+  ) {
     if (map == null) {
       return WishRoomTodayLimits(resetDateKey: todayKey);
     }
@@ -130,7 +178,8 @@ class WishRoomTodayLimits {
     );
   }
 
-  factory WishRoomTodayLimits.empty(String todayKey) => WishRoomTodayLimits(resetDateKey: todayKey);
+  factory WishRoomTodayLimits.empty(String todayKey) =>
+      WishRoomTodayLimits(resetDateKey: todayKey);
 }
 
 /// ─────────────────────────────────────────────────────────
@@ -142,10 +191,10 @@ class WishRoomInventory {
     List<String>? candles,
     List<String>? themes,
     List<WishRoomTalisman>? talismans,
-  })  : seals = seals ?? <String>[],
-        candles = candles ?? <String>[],
-        themes = themes ?? <String>['theme_midnight', 'theme_crystal'],
-        talismans = talismans ?? <WishRoomTalisman>[];
+  }) : seals = seals ?? <String>[],
+       candles = candles ?? <String>[],
+       themes = themes ?? <String>['theme_midnight', 'theme_crystal'],
+       talismans = talismans ?? <WishRoomTalisman>[];
 
   final List<String> seals;
   final List<String> candles;
@@ -159,20 +208,23 @@ class WishRoomInventory {
       talismans.any((t) => t.id == catalogId);
 
   Map<String, dynamic> toMap() => {
-        'seals': seals,
-        'candles': candles,
-        'themes': themes,
-        'talismans': talismans.map((t) => t.toMap()).toList(),
-      };
+    'seals': seals,
+    'candles': candles,
+    'themes': themes,
+    'talismans': talismans.map((t) => t.toMap()).toList(),
+  };
 
   factory WishRoomInventory.fromMap(Map<dynamic, dynamic>? map) {
     if (map == null) return WishRoomInventory();
     return WishRoomInventory(
       seals: (map['seals'] as List?)?.map((e) => e.toString()).toList() ?? [],
-      candles: (map['candles'] as List?)?.map((e) => e.toString()).toList() ?? [],
-      themes: (map['themes'] as List?)?.map((e) => e.toString()).toList() ??
+      candles:
+          (map['candles'] as List?)?.map((e) => e.toString()).toList() ?? [],
+      themes:
+          (map['themes'] as List?)?.map((e) => e.toString()).toList() ??
           ['theme_midnight', 'theme_crystal'],
-      talismans: (map['talismans'] as List?)
+      talismans:
+          (map['talismans'] as List?)
               ?.map((e) => WishRoomTalisman.fromMap(e as Map))
               .toList() ??
           [],
@@ -188,14 +240,14 @@ class WishRoomTalisman {
   bool get isActive => DateTime.now().isBefore(expiresAt);
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'expiresAt': expiresAt.toIso8601String(),
-      };
+    'id': id,
+    'expiresAt': expiresAt.toIso8601String(),
+  };
 
   factory WishRoomTalisman.fromMap(Map map) => WishRoomTalisman(
-        id: map['id'] as String,
-        expiresAt: DateTime.parse(map['expiresAt'] as String),
-      );
+    id: map['id'] as String,
+    expiresAt: DateTime.parse(map['expiresAt'] as String),
+  );
 }
 
 /// ─────────────────────────────────────────────────────────
@@ -235,34 +287,36 @@ class WishRoomWish {
   bool get isFulfilled => fulfilledAt != null;
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'ownerId': ownerId,
-        'text': text,
-        'seal': seal,
-        'createdAt': createdAt.toIso8601String(),
-        'intensity': intensity,
-        'cheersReceived': cheersReceived,
-        'shardsPledged': shardsPledged,
-        'fulfilledAt': fulfilledAt?.toIso8601String(),
-        'region': region,
-        'ageGroup': ageGroup,
-        'day100Rewarded': day100Rewarded,
-      };
+    'id': id,
+    'ownerId': ownerId,
+    'text': text,
+    'seal': seal,
+    'createdAt': createdAt.toIso8601String(),
+    'intensity': intensity,
+    'cheersReceived': cheersReceived,
+    'shardsPledged': shardsPledged,
+    'fulfilledAt': fulfilledAt?.toIso8601String(),
+    'region': region,
+    'ageGroup': ageGroup,
+    'day100Rewarded': day100Rewarded,
+  };
 
   factory WishRoomWish.fromMap(Map<dynamic, dynamic> map) => WishRoomWish(
-        id: map['id'] as String,
-        ownerId: map['ownerId'] as String,
-        text: map['text'] as String? ?? '',
-        seal: map['seal'] as String? ?? '願',
-        createdAt: DateTime.parse(map['createdAt'] as String),
-        intensity: (map['intensity'] as num?)?.toInt() ?? 3,
-        cheersReceived: (map['cheersReceived'] as num?)?.toInt() ?? 0,
-        shardsPledged: (map['shardsPledged'] as num?)?.toInt() ?? 0,
-        fulfilledAt: map['fulfilledAt'] != null ? DateTime.parse(map['fulfilledAt'] as String) : null,
-        region: map['region'] as String?,
-        ageGroup: map['ageGroup'] as String?,
-        day100Rewarded: map['day100Rewarded'] as bool? ?? false,
-      );
+    id: map['id'] as String,
+    ownerId: map['ownerId'] as String,
+    text: map['text'] as String? ?? '',
+    seal: map['seal'] as String? ?? '願',
+    createdAt: DateTime.parse(map['createdAt'] as String),
+    intensity: (map['intensity'] as num?)?.toInt() ?? 3,
+    cheersReceived: (map['cheersReceived'] as num?)?.toInt() ?? 0,
+    shardsPledged: (map['shardsPledged'] as num?)?.toInt() ?? 0,
+    fulfilledAt: map['fulfilledAt'] != null
+        ? DateTime.parse(map['fulfilledAt'] as String)
+        : null,
+    region: map['region'] as String?,
+    ageGroup: map['ageGroup'] as String?,
+    day100Rewarded: map['day100Rewarded'] as bool? ?? false,
+  );
 }
 
 /// ─────────────────────────────────────────────────────────
@@ -300,14 +354,15 @@ class WishRoomLedgerEntry {
   final DateTime date;
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'label': label,
-        'sub': sub,
-        'amount': amount,
-        'date': date.toIso8601String(),
-      };
+    'id': id,
+    'label': label,
+    'sub': sub,
+    'amount': amount,
+    'date': date.toIso8601String(),
+  };
 
-  factory WishRoomLedgerEntry.fromMap(Map<dynamic, dynamic> map) => WishRoomLedgerEntry(
+  factory WishRoomLedgerEntry.fromMap(Map<dynamic, dynamic> map) =>
+      WishRoomLedgerEntry(
         id: map['id'] as String,
         label: map['label'] as String,
         sub: map['sub'] as String? ?? '',
@@ -321,7 +376,11 @@ class WishRoomLedgerEntry {
 
 @immutable
 class WishRoomEarnResult {
-  const WishRoomEarnResult({required this.amount, required this.newBalance, required this.label});
+  const WishRoomEarnResult({
+    required this.amount,
+    required this.newBalance,
+    required this.label,
+  });
   final int amount;
   final int newBalance;
   final String label;

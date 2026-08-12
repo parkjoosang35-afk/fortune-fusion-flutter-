@@ -36,7 +36,11 @@ class WishRoomPouchHomeScreen extends StatelessWidget {
             Positioned.fill(
               child: Align(
                 alignment: const Alignment(0, -0.6),
-                child: WishRoomSigil(size: 480, color: palette.sigil, opacity: 0.28),
+                child: WishRoomSigil(
+                  size: 480,
+                  color: palette.sigil,
+                  opacity: 0.28,
+                ),
               ),
             ),
             SafeArea(
@@ -52,7 +56,10 @@ class WishRoomPouchHomeScreen extends StatelessWidget {
                           palette: palette,
                           onPressed: () => Navigator.of(context).maybePop(),
                         ),
-                        WishRoomPouchMonoLabel(text: 'POUCH · 福袋', palette: palette),
+                        WishRoomPouchMonoLabel(
+                          text: 'POUCH · 福袋',
+                          palette: palette,
+                        ),
                         WishRoomPouchIconButton(
                           icon: Icons.more_horiz,
                           palette: palette,
@@ -74,15 +81,32 @@ class WishRoomPouchHomeScreen extends StatelessWidget {
                               alignment: Alignment.center,
                               children: [
                                 const WishRoomPouch(size: 116),
-                                const Positioned(top: -6, left: -14, child: WishRoomShard(size: 16)),
-                                const Positioned(top: 18, right: -18, child: WishRoomShard(size: 12)),
-                                const Positioned(top: -14, right: 4, child: WishRoomShard(size: 10)),
+                                const Positioned(
+                                  top: -6,
+                                  left: -14,
+                                  child: WishRoomShard(size: 16),
+                                ),
+                                const Positioned(
+                                  top: 18,
+                                  right: -18,
+                                  child: WishRoomShard(size: 12),
+                                ),
+                                const Positioned(
+                                  top: -14,
+                                  right: 4,
+                                  child: WishRoomShard(size: 10),
+                                ),
                               ],
                             ),
                           ),
                         ),
                         const SizedBox(height: 12),
-                        Center(child: WishRoomPouchMonoLabel(text: '지금 담긴 조각', palette: palette)),
+                        Center(
+                          child: WishRoomPouchMonoLabel(
+                            text: '지금 담긴 조각',
+                            palette: palette,
+                          ),
+                        ),
                         const SizedBox(height: 6),
                         Center(
                           child: WishRoomShardCounter(
@@ -97,7 +121,9 @@ class WishRoomPouchHomeScreen extends StatelessWidget {
                           child: Text(
                             '이번 달 · +$monthEarned 담김  ·  $monthSpent 나눔',
                             textAlign: TextAlign.center,
-                            style: WishRoomText.body(palette.muted).copyWith(fontSize: 12),
+                            style: WishRoomText.body(
+                              palette.muted,
+                            ).copyWith(fontSize: 12),
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -110,7 +136,10 @@ class WishRoomPouchHomeScreen extends StatelessWidget {
                                 primary: true,
                                 palette: palette,
                                 onTap: () => Navigator.of(context).push(
-                                  MaterialPageRoute(builder: (_) => const WishRoomEarnListScreen()),
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const WishRoomEarnListScreen(),
+                                  ),
                                 ),
                               ),
                             ),
@@ -122,7 +151,10 @@ class WishRoomPouchHomeScreen extends StatelessWidget {
                                 primary: false,
                                 palette: palette,
                                 onTap: () => Navigator.of(context).push(
-                                  MaterialPageRoute(builder: (_) => const WishRoomCatalogScreen()),
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const WishRoomCatalogScreen(),
+                                  ),
                                 ),
                               ),
                             ),
@@ -135,7 +167,9 @@ class WishRoomPouchHomeScreen extends StatelessWidget {
                             Text('최근에', style: WishRoomText.h3(palette.fg)),
                             GestureDetector(
                               onTap: () => Navigator.of(context).push(
-                                MaterialPageRoute(builder: (_) => const WishRoomLedgerScreen()),
+                                MaterialPageRoute(
+                                  builder: (_) => const WishRoomLedgerScreen(),
+                                ),
                               ),
                               child: Text(
                                 '전체 →',
@@ -155,7 +189,9 @@ class WishRoomPouchHomeScreen extends StatelessWidget {
                             ),
                           )
                         else
-                          ...provider.ledger.take(4).map(
+                          ...provider.ledger
+                              .take(4)
+                              .map(
                                 (e) => WishRoomLedgerRow(
                                   label: e.label,
                                   sub: e.sub,

@@ -37,7 +37,10 @@ class WishRoomShortageDialog extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [WishRoomColors.sheetGradientTop, WishRoomColors.sheetGradientBottom],
+          colors: [
+            WishRoomColors.sheetGradientTop,
+            WishRoomColors.sheetGradientBottom,
+          ],
         ),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         border: Border.all(color: WishRoomColors.sheetBorder),
@@ -59,7 +62,10 @@ class WishRoomShortageDialog extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('NEED MORE · 조각 부족', style: WishRoomText.monoSm(palette.muted)),
+                Text(
+                  'NEED MORE · 조각 부족',
+                  style: WishRoomText.monoSm(palette.muted),
+                ),
                 WishRoomPouchIconButton(
                   icon: Icons.close,
                   palette: palette,
@@ -104,7 +110,13 @@ class WishRoomShortageDialog extends StatelessWidget {
                               shape: BoxShape.circle,
                               border: Border.all(color: palette.line),
                             ),
-                            child: Text('♢', style: TextStyle(fontSize: 11, color: palette.muted)),
+                            child: Text(
+                              '♢',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: palette.muted,
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -116,9 +128,17 @@ class WishRoomShortageDialog extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text('담고 싶은 것', style: WishRoomText.monoSm(palette.muted)),
+                        Text(
+                          '담고 싶은 것',
+                          style: WishRoomText.monoSm(palette.muted),
+                        ),
                         const SizedBox(height: 3),
-                        Text(itemName, style: WishRoomText.h3(palette.fg).copyWith(fontSize: 15)),
+                        Text(
+                          itemName,
+                          style: WishRoomText.h3(
+                            palette.fg,
+                          ).copyWith(fontSize: 15),
+                        ),
                         const SizedBox(height: 6),
                         Row(
                           mainAxisSize: MainAxisSize.min,
@@ -135,7 +155,12 @@ class WishRoomShortageDialog extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 4),
-                            Text('필요', style: WishRoomText.body(palette.muted).copyWith(fontSize: 11)),
+                            Text(
+                              '필요',
+                              style: WishRoomText.body(
+                                palette.muted,
+                              ).copyWith(fontSize: 11),
+                            ),
                           ],
                         ),
                       ],
@@ -161,9 +186,19 @@ class WishRoomShortageDialog extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 4),
-                  Text('지금', style: WishRoomText.body(palette.muted).copyWith(fontSize: 13)),
+                  Text(
+                    '지금',
+                    style: WishRoomText.body(
+                      palette.muted,
+                    ).copyWith(fontSize: 13),
+                  ),
                   const SizedBox(width: 12),
-                  Text('·', style: TextStyle(color: palette.muted.withValues(alpha: 0.4))),
+                  Text(
+                    '·',
+                    style: TextStyle(
+                      color: palette.muted.withValues(alpha: 0.4),
+                    ),
+                  ),
                   const SizedBox(width: 12),
                   const WishRoomShard(size: 12),
                   const SizedBox(width: 4),
@@ -173,11 +208,18 @@ class WishRoomShortageDialog extends StatelessWidget {
                       fontFamily: WishRoomText.fontDisplay,
                       fontWeight: FontWeight.w700,
                       color: palette.glow,
-                      shadows: [Shadow(color: palette.glowShadow, blurRadius: 10)],
+                      shadows: [
+                        Shadow(color: palette.glowShadow, blurRadius: 10),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 4),
-                  Text('더 담으면 돼요', style: WishRoomText.body(palette.muted).copyWith(fontSize: 13)),
+                  Text(
+                    '더 담으면 돼요',
+                    style: WishRoomText.body(
+                      palette.muted,
+                    ).copyWith(fontSize: 13),
+                  ),
                 ],
               ),
             ),
@@ -187,17 +229,25 @@ class WishRoomShortageDialog extends StatelessWidget {
               margin: const EdgeInsets.symmetric(vertical: 10),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
-                border: Border.all(color: palette.line, style: BorderStyle.solid),
+                border: Border.all(
+                  color: palette.line,
+                  style: BorderStyle.solid,
+                ),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: RichText(
                 textAlign: TextAlign.center,
                 text: TextSpan(
-                  style: WishRoomText.body(palette.muted.withValues(alpha: 0.9)).copyWith(height: 1.75),
+                  style: WishRoomText.body(
+                    palette.muted.withValues(alpha: 0.9),
+                  ).copyWith(height: 1.75),
                   children: [
                     const TextSpan(text: '이 앱은 결제가 없어요.\n'),
                     const TextSpan(text: '오늘의 촛불을 밝히거나, 짧은 광고를 조용히 보시면\n'),
-                    TextSpan(text: '조각이 조금씩 담깁니다.', style: TextStyle(color: palette.glow)),
+                    TextSpan(
+                      text: '조각이 조금씩 담깁니다.',
+                      style: TextStyle(color: palette.glow),
+                    ),
                   ],
                 ),
               ),
@@ -228,7 +278,12 @@ class WishRoomShortageDialog extends StatelessWidget {
             ],
             TextButton(
               onPressed: () => Navigator.of(context).maybePop(),
-              child: Text('다음에 담을래요', style: WishRoomText.body(palette.muted.withValues(alpha: 0.7)).copyWith(fontSize: 12)),
+              child: Text(
+                '다음에 담을래요',
+                style: WishRoomText.body(
+                  palette.muted.withValues(alpha: 0.7),
+                ).copyWith(fontSize: 12),
+              ),
             ),
           ],
         ),

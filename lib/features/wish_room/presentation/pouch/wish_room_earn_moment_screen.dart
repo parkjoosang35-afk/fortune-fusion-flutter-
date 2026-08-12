@@ -15,7 +15,8 @@ class WishRoomEarnMomentScreen extends StatefulWidget {
   final WishRoomEarnResult result;
 
   @override
-  State<WishRoomEarnMomentScreen> createState() => _WishRoomEarnMomentScreenState();
+  State<WishRoomEarnMomentScreen> createState() =>
+      _WishRoomEarnMomentScreenState();
 }
 
 class _WishRoomEarnMomentScreenState extends State<WishRoomEarnMomentScreen>
@@ -25,8 +26,10 @@ class _WishRoomEarnMomentScreenState extends State<WishRoomEarnMomentScreen>
   @override
   void initState() {
     super.initState();
-    _pulseCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 2400))
-      ..repeat(reverse: true);
+    _pulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2400),
+    )..repeat(reverse: true);
   }
 
   @override
@@ -50,13 +53,19 @@ class _WishRoomEarnMomentScreenState extends State<WishRoomEarnMomentScreen>
                 gradient: RadialGradient(
                   center: const Alignment(0, -0.2),
                   radius: 1.0,
-                  colors: [palette.glow.withValues(alpha: 0.55), palette.bg1, palette.bg2],
+                  colors: [
+                    palette.glow.withValues(alpha: 0.55),
+                    palette.bg1,
+                    palette.bg2,
+                  ],
                   stops: const [0.0, 0.4, 1.0],
                 ),
               ),
             ),
           ),
-          Center(child: WishRoomSigil(size: 340, color: palette.glow, opacity: 0.55)),
+          Center(
+            child: WishRoomSigil(size: 340, color: palette.glow, opacity: 0.55),
+          ),
           Positioned.fill(child: WishRoomDust(count: 20, color: palette.glow)),
           SafeArea(
             child: Padding(
@@ -64,7 +73,10 @@ class _WishRoomEarnMomentScreenState extends State<WishRoomEarnMomentScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('+ $amount · SEALED', style: WishRoomText.monoSm(palette.muted)),
+                  Text(
+                    '+ $amount · SEALED',
+                    style: WishRoomText.monoSm(palette.muted),
+                  ),
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -84,7 +96,11 @@ class _WishRoomEarnMomentScreenState extends State<WishRoomEarnMomentScreen>
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     gradient: RadialGradient(
-                                      colors: [palette.glow, palette.glowShadow, palette.glow.withValues(alpha: 0)],
+                                      colors: [
+                                        palette.glow,
+                                        palette.glowShadow,
+                                        palette.glow.withValues(alpha: 0),
+                                      ],
                                       stops: const [0.0, 0.3, 0.65],
                                     ),
                                   ),
@@ -105,18 +121,25 @@ class _WishRoomEarnMomentScreenState extends State<WishRoomEarnMomentScreen>
                         textAlign: TextAlign.center,
                         style: WishRoomText.h1(palette.fg).copyWith(
                           fontSize: 26,
-                          shadows: [Shadow(color: palette.glowShadow, blurRadius: 24)],
+                          shadows: [
+                            Shadow(color: palette.glowShadow, blurRadius: 24),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 12),
                       Text(
                         '${widget.result.label}\n고맙습니다',
                         textAlign: TextAlign.center,
-                        style: WishRoomText.body(palette.muted).copyWith(height: 1.6),
+                        style: WishRoomText.body(
+                          palette.muted,
+                        ).copyWith(height: 1.6),
                       ),
                       const SizedBox(height: 16),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           color: palette.card,
                           border: Border.all(color: palette.glow),
@@ -125,7 +148,12 @@ class _WishRoomEarnMomentScreenState extends State<WishRoomEarnMomentScreen>
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text('지금 담긴', style: WishRoomText.body(palette.muted).copyWith(fontSize: 11)),
+                            Text(
+                              '지금 담긴',
+                              style: WishRoomText.body(
+                                palette.muted,
+                              ).copyWith(fontSize: 11),
+                            ),
                             const SizedBox(width: 8),
                             WishRoomShardCounter(
                               count: widget.result.newBalance,
@@ -181,5 +209,6 @@ class _RayPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _RayPainter oldDelegate) => oldDelegate.color != color;
+  bool shouldRepaint(covariant _RayPainter oldDelegate) =>
+      oldDelegate.color != color;
 }

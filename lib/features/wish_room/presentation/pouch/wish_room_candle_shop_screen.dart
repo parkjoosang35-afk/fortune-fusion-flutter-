@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../application/wish_room_provider.dart';
+import '../../application/wish_room_shortage_policy.dart';
 import '../../domain/wish_room_models.dart';
 import '../../theme/wish_room_colors.dart';
 import '../../theme/wish_room_text_styles.dart';
 import '../../widgets/wish_room_sigils.dart';
 import '../../widgets/wish_room_pouch_widgets.dart';
 import '../wish_room_shortage_dialog.dart';
+import 'wish_room_ad_watch_screen.dart';
+import 'wish_room_earn_list_screen.dart';
 
 /// 11. 촛불 상점 — 출처: PouchScreens.jsx `ScreenCandleShop`
 class WishRoomCandleShopScreen extends StatelessWidget {
@@ -35,7 +38,11 @@ class WishRoomCandleShopScreen extends StatelessWidget {
             Positioned.fill(
               child: Align(
                 alignment: const Alignment(0, -0.5),
-                child: WishRoomSigil(size: 280, color: palette.sigil, opacity: 0.16),
+                child: WishRoomSigil(
+                  size: 280,
+                  color: palette.sigil,
+                  opacity: 0.16,
+                ),
               ),
             ),
             Positioned.fill(child: WishRoomDust(count: 8, color: palette.glow)),
@@ -52,7 +59,10 @@ class WishRoomCandleShopScreen extends StatelessWidget {
                           palette: palette,
                           onPressed: () => Navigator.of(context).maybePop(),
                         ),
-                        WishRoomPouchMonoLabel(text: 'CANDLE · 촛불', palette: palette),
+                        WishRoomPouchMonoLabel(
+                          text: 'CANDLE · 촛불',
+                          palette: palette,
+                        ),
                         WishRoomShardCounter(
                           count: provider.balance,
                           sizeVariant: WishRoomShardCounterSize.sm,
@@ -63,21 +73,29 @@ class WishRoomCandleShopScreen extends StatelessWidget {
                     const SizedBox(height: 14),
                     Align(
                       alignment: Alignment.centerLeft,
-                      child: Text('어떤 촛불로\n밝히시겠어요', style: WishRoomText.h1(palette.fg).copyWith(fontSize: 22)),
+                      child: Text(
+                        '어떤 촛불로\n밝히시겠어요',
+                        style: WishRoomText.h1(
+                          palette.fg,
+                        ).copyWith(fontSize: 22),
+                      ),
                     ),
                     const SizedBox(height: 14),
                     Expanded(
                       child: GridView.builder(
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          mainAxisSpacing: 8,
-                          crossAxisSpacing: 8,
-                          childAspectRatio: 0.82,
-                        ),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 3,
+                              mainAxisSpacing: 8,
+                              crossAxisSpacing: 8,
+                              childAspectRatio: 0.82,
+                            ),
                         itemCount: candles.length,
                         itemBuilder: (context, i) {
                           final c = candles[i];
-                          final owned = provider.inventory.candles.contains(c.id);
+                          final owned = provider.inventory.candles.contains(
+                            c.id,
+                          );
                           final color = _candleColors[i % _candleColors.length];
                           return WishRoomRewardTile(
                             icon: SizedBox(
@@ -93,10 +111,19 @@ class WishRoomCandleShopScreen extends StatelessWidget {
                                       height: 16,
                                       decoration: BoxDecoration(
                                         gradient: RadialGradient(
-                                          colors: [const Color(0xFFFFF8DD), const Color(0xFFFFD47A), color.withValues(alpha: 0.3)],
+                                          colors: [
+                                            const Color(0xFFFFF8DD),
+                                            const Color(0xFFFFD47A),
+                                            color.withValues(alpha: 0.3),
+                                          ],
                                         ),
                                         borderRadius: BorderRadius.circular(8),
-                                        boxShadow: [BoxShadow(color: color, blurRadius: 8)],
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: color,
+                                            blurRadius: 8,
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ),
@@ -107,11 +134,23 @@ class WishRoomCandleShopScreen extends StatelessWidget {
                                       height: 26,
                                       decoration: BoxDecoration(
                                         gradient: LinearGradient(
-                                          colors: [Colors.white.withValues(alpha: 0.15), color, color, Colors.black.withValues(alpha: 0.2)],
+                                          colors: [
+                                            Colors.white.withValues(
+                                              alpha: 0.15,
+                                            ),
+                                            color,
+                                            color,
+                                            Colors.black.withValues(alpha: 0.2),
+                                          ],
                                           stops: const [0.0, 0.3, 0.7, 1.0],
                                         ),
                                         borderRadius: BorderRadius.circular(3),
-                                        boxShadow: [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 10)],
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: color.withValues(alpha: 0.5),
+                                            blurRadius: 10,
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ),
@@ -138,20 +177,37 @@ class WishRoomCandleShopScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _handleBuy(BuildContext context, WishRoomProvider provider, WishRoomCatalogItem c) async {
+  Future<void> _handleBuy(
+    BuildContext context,
+    WishRoomProvider provider,
+    WishRoomCatalogItem c,
+  ) async {
     if (provider.inventory.candles.contains(c.id)) return;
     try {
       await provider.buyCandle(c.id);
     } on WishRoomShortageException catch (e) {
       if (!context.mounted) return;
+      final offerAd = wishRoomShouldOfferAdShortcut(
+        provider,
+        shortage: e.need - e.have,
+        itemCost: e.need,
+      );
       await showWishRoomShortageDialog(
         context,
         itemName: e.itemName,
         itemIcon: const Icon(Icons.local_fire_department, size: 22),
         need: e.need,
         have: e.have,
-        onGoEarn: () => Navigator.of(context).maybePop(),
-        onWatchAd: () => Navigator.of(context).maybePop(),
+        onGoEarn: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const WishRoomEarnListScreen()),
+        ),
+        onWatchAd: offerAd
+            ? () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const WishRoomAdWatchScreen(),
+                ),
+              )
+            : null,
       );
     }
   }

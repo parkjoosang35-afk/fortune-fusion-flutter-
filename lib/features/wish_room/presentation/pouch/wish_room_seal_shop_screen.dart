@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../application/wish_room_provider.dart';
+import '../../application/wish_room_shortage_policy.dart';
 import '../../domain/wish_room_models.dart';
 import '../../theme/wish_room_colors.dart';
 import '../../theme/wish_room_text_styles.dart';
 import '../../widgets/wish_room_sigils.dart';
 import '../../widgets/wish_room_pouch_widgets.dart';
 import '../wish_room_shortage_dialog.dart';
+import 'wish_room_ad_watch_screen.dart';
+import 'wish_room_earn_list_screen.dart';
 
 /// 10. 인장 상점 — 출처: PouchScreens.jsx `ScreenSealShop`
 class WishRoomSealShopScreen extends StatelessWidget {
@@ -28,7 +31,11 @@ class WishRoomSealShopScreen extends StatelessWidget {
             Positioned.fill(
               child: Align(
                 alignment: const Alignment(0, -0.5),
-                child: WishRoomSigil(size: 280, color: palette.sigil, opacity: 0.18),
+                child: WishRoomSigil(
+                  size: 280,
+                  color: palette.sigil,
+                  opacity: 0.18,
+                ),
               ),
             ),
             SafeArea(
@@ -44,7 +51,10 @@ class WishRoomSealShopScreen extends StatelessWidget {
                           palette: palette,
                           onPressed: () => Navigator.of(context).maybePop(),
                         ),
-                        WishRoomPouchMonoLabel(text: 'SEAL SHOP · 봉인 인장', palette: palette),
+                        WishRoomPouchMonoLabel(
+                          text: 'SEAL SHOP · 봉인 인장',
+                          palette: palette,
+                        ),
                         WishRoomShardCounter(
                           count: provider.balance,
                           sizeVariant: WishRoomShardCounterSize.sm,
@@ -58,22 +68,32 @@ class WishRoomSealShopScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('더 귀한 인장으로\n봉인하기', style: WishRoomText.h1(palette.fg).copyWith(fontSize: 22)),
+                          Text(
+                            '더 귀한 인장으로\n봉인하기',
+                            style: WishRoomText.h1(
+                              palette.fg,
+                            ).copyWith(fontSize: 22),
+                          ),
                           const SizedBox(height: 8),
-                          Text('소원마다 다른 인장을 골라 담아 두세요.',
-                              style: WishRoomText.body(palette.muted).copyWith(fontSize: 12)),
+                          Text(
+                            '소원마다 다른 인장을 골라 담아 두세요.',
+                            style: WishRoomText.body(
+                              palette.muted,
+                            ).copyWith(fontSize: 12),
+                          ),
                         ],
                       ),
                     ),
                     const SizedBox(height: 14),
                     Expanded(
                       child: GridView.builder(
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          mainAxisSpacing: 8,
-                          crossAxisSpacing: 8,
-                          childAspectRatio: 0.82,
-                        ),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 3,
+                              mainAxisSpacing: 8,
+                              crossAxisSpacing: 8,
+                              childAspectRatio: 0.82,
+                            ),
                         itemCount: seals.length,
                         itemBuilder: (context, i) {
                           final s = seals[i];
@@ -88,9 +108,16 @@ class WishRoomSealShopScreen extends StatelessWidget {
                                 decoration: BoxDecoration(
                                   color: palette.accent,
                                   borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: Colors.black.withValues(alpha: 0.2)),
+                                  border: Border.all(
+                                    color: Colors.black.withValues(alpha: 0.2),
+                                  ),
                                   boxShadow: [
-                                    BoxShadow(color: palette.accent.withValues(alpha: 0.5), blurRadius: 8),
+                                    BoxShadow(
+                                      color: palette.accent.withValues(
+                                        alpha: 0.5,
+                                      ),
+                                      blurRadius: 8,
+                                    ),
                                   ],
                                 ),
                                 child: Text(
@@ -124,20 +151,37 @@ class WishRoomSealShopScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _handleBuy(BuildContext context, WishRoomProvider provider, WishRoomCatalogItem s) async {
+  Future<void> _handleBuy(
+    BuildContext context,
+    WishRoomProvider provider,
+    WishRoomCatalogItem s,
+  ) async {
     if (provider.inventory.seals.contains(s.id)) return;
     try {
       await provider.buySeal(s.id);
     } on WishRoomShortageException catch (e) {
       if (!context.mounted) return;
+      final offerAd = wishRoomShouldOfferAdShortcut(
+        provider,
+        shortage: e.need - e.have,
+        itemCost: e.need,
+      );
       await showWishRoomShortageDialog(
         context,
         itemName: e.itemName,
         itemIcon: Text(s.name, style: const TextStyle(fontSize: 22)),
         need: e.need,
         have: e.have,
-        onGoEarn: () => Navigator.of(context).maybePop(),
-        onWatchAd: () => Navigator.of(context).maybePop(),
+        onGoEarn: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const WishRoomEarnListScreen()),
+        ),
+        onWatchAd: offerAd
+            ? () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const WishRoomAdWatchScreen(),
+                ),
+              )
+            : null,
       );
     }
   }
