@@ -20,7 +20,6 @@ import '../../pass/presentation/pass_gate_helper.dart';
 import '../../pass/presentation/pass_time_format.dart';
 import '../../../core/domain/access/access_checker.dart';
 import '../../auth/application/auth_provider.dart';
-import '../../wish_room/presentation/screens/wish_room_riverpod_entry.dart';
 import '../../../core/widgets/app_toast.dart';
 import 'home_style_tokens.dart';
 
@@ -28,7 +27,7 @@ import 'home_style_tokens.dart';
 ///
 /// 사용자가 제공한 홈 화면 목업(화이트 배경, 상단 로고+아이콘, 블랙 pill
 /// "오늘의 운세보기" 버튼, "타로이야기가기" 섹션, 전체보기/사주/궁합/손금 칩,
-/// 인디고 그라디언트 히어로카드, 소원게시판/소원방 2단 라벤더 카드, 전체보기
+/// 인디고 그라디언트 히어로카드, 소원게시판 라벤더 카드, 전체보기
 /// 3카드 로우, 하단 블랙 "열림패스" 바)를 기준 디자인으로 그대로 재구현한다.
 ///
 /// [UI 정리 세그먼트] 상단 CTA는 "+" 아이콘 없이 텍스트만 정중앙 정렬하고,
@@ -77,7 +76,7 @@ class _Dims {
   static const double heroCardHeight = 112;
   static const double heroCardRadius = 16;
   static const double heroCardPadding = 14;
-  // 메인 카드 → 소원게시판/소원방 2열 gap = 스펙 12
+  // 메인 카드 → 소원게시판 카드 gap = 스펙 12
   static const double heroCardBottomGap = 12;
 
   // [사용자 요청] "오늘의 운세 이야기" 박스를 삭제하고, 쿠팡 광고 배너(AdBannerWidget,
@@ -86,7 +85,7 @@ class _Dims {
   // 히어로 카드 높이에 더한다: heroCardHeight(112) + adBannerHeight(96) = 208.
   static const double healingCardHeight = heroCardHeight + 96;
 
-  // 소원게시판/소원방 2열 카드 - 스펙: gap8/각width175(자동)/height96~104/radius16/padding14
+  // 소원게시판 카드 - 스펙: gap8/height96~104/radius16/padding14
   static const double wishCardGap = 8;
   static const double wishCardHeight = 100;
   static const double wishCardRadius = 16;
@@ -97,7 +96,7 @@ class _Dims {
   // 하단 고정 열림패스 바 - 스펙: width358(자동)/height48/radius24/좌우padding16
   static const double bottomBarHeight = 48;
   static const double bottomBarRadius = 24;
-  // 소원게시판/소원방 카드 → 열림패스 바 gap = 스펙 "카드→열림패스바 14" 적용
+  // 소원게시판 카드 → 열림패스 바 gap = 스펙 "카드→열림패스바 14" 적용
   static const double bottomBarTopGap = 14;
   // 열림패스 바 → 탭바 gap = 스펙 14
   static const double bottomBarBottomGap = 14;
@@ -235,7 +234,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: _Dims.heroCardBottomGap),
 
-                // ⑥ 소원게시판 / 소원방 2단 카드(#F5F3FB, 완전 동일)
+                // ⑥ 소원게시판 카드(#F5F3FB)
                 // [첨부 디자인 반영] 목업에는 이 2단 카드까지만 존재하고 그
                 // 아래(전체보기 3버튼/AI상담 배너/고민상담 카드)는 없으므로,
                 // 여기서 화면을 마무리한다("나머지는 안보여도 됨").
@@ -831,7 +830,7 @@ class _FortuneTarotMiniCard extends StatelessWidget {
   }
 }
 
-/// ⑥ 소원게시판 / 소원방 2단 카드 - #F5F3FB 완전 동일 배경/크기/구조
+/// ⑥ 소원게시판 카드 - #F5F3FB
 class _WishBoardRoomRow extends StatelessWidget {
   const _WishBoardRoomRow();
 
@@ -839,35 +838,14 @@ class _WishBoardRoomRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       height: _Dims.wishCardHeight,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: _LavenderMiniCard(
-              title: '소원게시판',
-              bottomLabel: '참여해보세요',
-              circleIcon: Icons.arrow_drop_up_rounded,
-              circleStyle: PremiumCircleButtonStyle.neon,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const CommunityScreen()),
-              ),
-            ),
-          ),
-          const SizedBox(width: _Dims.wishCardGap),
-          Expanded(
-            child: _LavenderMiniCard(
-              title: '소원방',
-              bottomLabel: '개인소원방',
-              circleIcon: Icons.arrow_drop_down_rounded,
-              circleStyle: PremiumCircleButtonStyle.black,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const WishRoomRiverpodEntry(),
-                ),
-              ),
-            ),
-          ),
-        ],
+      child: _LavenderMiniCard(
+        title: '소원게시판',
+        bottomLabel: '참여해보세요',
+        circleIcon: Icons.arrow_drop_up_rounded,
+        circleStyle: PremiumCircleButtonStyle.neon,
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const CommunityScreen()),
+        ),
       ),
     );
   }
@@ -891,7 +869,7 @@ class _LavenderMiniCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // 네온 스타일 CTA만 정확한 스펙 hex(#C6F24E/#111111)로 override. 블랙
-    // 스타일(소원방)은 기존 premiumBlackCta(#121212)를 유지해도 스펙 #111111과
+    // 블랙 스타일은 기존 premiumBlackCta(#121212)를 유지해도 스펙 #111111과
     // 시각적으로 동일하지만, 완전한 hex 일치를 위해 이 화면에서는 두 카드 모두
     // override로 정확히 맞춘다(두 카드 완전 대칭 유지가 최우선이기 때문).
     final overrideBg = circleStyle == PremiumCircleButtonStyle.neon

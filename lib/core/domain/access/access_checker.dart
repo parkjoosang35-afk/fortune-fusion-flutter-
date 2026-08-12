@@ -55,12 +55,4 @@ class AccessChecker {
         return true;
     }
   }
-
-  // ── 소원방(커뮤니티군) 전용 편의 함수 ──
-
-  /// [소원방 MVP 정책] "소원방 진입은 너무 무겁게 막지 않는다"는 원칙에 따라
-  /// [FeatureScope.community] 기준으로만 판단한다(열림패스는 진입 조건으로
-  /// 절대 쓰지 않는다 — §8 금지 원칙). 화면은 이 함수를 통해서만 진입 가능
-  /// 여부를 판단하고, 자체적으로 판정 로직을 만들지 않는다.
-  bool canEnterWishRoom() => canEnter(FeatureScope.community);
 }

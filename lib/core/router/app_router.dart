@@ -63,7 +63,6 @@ import '../../features/giftcard/presentation/my_giftcards_screen.dart';
 import '../../features/giftcard/domain/giftcard_model.dart';
 import '../../features/subscription/presentation/subscription_plans_screen.dart';
 import '../../features/subscription/presentation/my_subscription_screen.dart';
-import '../../features/wish_room/presentation/screens/wish_room_riverpod_entry.dart';
 
 /// 07단계 §3.2 라우팅 테이블 - Navigator 1.0(onGenerateRoute) 구현
 /// 10단계(A안): AI 6대 기능(사주/타로/관상/손금/궁합/AI상담) + 리워드(미션/랭킹)까지
@@ -303,11 +302,6 @@ class AppRouter {
         return _page(const MyGiftcardsScreen());
 
       // ── 커뮤니티 ──
-      // [소원방 공식 전환] Riverpod 기반 신규 설계로 교체(구 WishRoomMainScreen
-      // 폐기). WishRoomRiverpodEntry가 ProviderScope 경계를 열고, 복주머니는
-      // LuckPouchProvider(실 Wallet 원장)에 위임한다.
-      case '/community/wish-room':
-        return _page(const WishRoomRiverpodEntry());
       case '/community/wish/detail':
         return _page(
           WishDetailScreen(post: settings.arguments as WishPostModel),

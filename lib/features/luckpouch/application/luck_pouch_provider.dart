@@ -15,8 +15,9 @@ import '../domain/luck_pouch_model.dart';
 /// - app.dart의 `ChangeNotifierProxyProvider<WalletProvider, LuckPouchProvider>`가
 /// WalletProvider가 갱신될 때마다 [updateWallet]을 호출해 내부 참조를 최신
 /// 인스턴스로 교체한다(단, LuckPouchProvider 자기 자신의 identity는 유지되어야
-/// 하므로 새 인스턴스를 만들지 않고 in-place로 갱신한다 — WishRoomProvider 등이
-/// 생성 시점에 한 번만 `context.read<LuckPouchProvider>()`로 참조를 들고 있기 때문).
+/// 하므로 새 인스턴스를 만들지 않고 in-place로 갱신한다 — 다른 화면/Provider가
+/// 생성 시점에 한 번만 `context.read<LuckPouchProvider>()`로 참조를 들고 있을
+/// 수 있기 때문).
 class LuckPouchProvider extends ChangeNotifier {
   WalletProvider _wallet;
   LuckPouchProvider(this._wallet) {

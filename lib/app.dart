@@ -165,13 +165,6 @@ class App extends StatelessWidget {
             passProvider: pass,
           ),
         ),
-        // [소원방 공식 전환] 구 WishRoomProvider(무료 일일 치성 →
-        // 복주머니 적립)는 폐기했다. 신규 소원방은 Riverpod 모듈
-        // (features/wish_room/)로 완전히 교체되었고, 복주머니 연동은
-        // WishRoomRiverpodEntry가 진입 시점에 LuckPouchProvider를 직접
-        // 읽어 RealCurrencyWishRoomRepository에 주입하므로 여기서 별도
-        // 전역 등록이 필요 없다.
-
         // ── 기능별 Provider ──
         ChangeNotifierProvider(create: (_) => SajuProvider(SajuRepository())),
         ChangeNotifierProvider(create: (_) => TarotProvider(TarotRepository())),

@@ -18,7 +18,6 @@ import '../../wallet/application/wallet_provider.dart';
 import '../../community/presentation/community_screen.dart';
 import '../../community/presentation/community_hub_screen.dart';
 import '../../community/presentation/widgets/wish_hall_of_fame_sheet.dart';
-import '../../wish_room/presentation/screens/wish_room_riverpod_entry.dart';
 import '../application/fortune_category_provider.dart';
 import '../domain/fortune_category_model.dart';
 import '../domain/fortune_matrix.dart';
@@ -903,7 +902,7 @@ class _QuickEntryRow extends StatelessWidget {
       height: 96,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount: 5,
+        itemCount: 4,
         separatorBuilder: (_, __) =>
             const SizedBox(width: UnifiedTokens.spaceSm),
         itemBuilder: (context, i) {
@@ -944,20 +943,12 @@ class _QuickEntryRow extends StatelessWidget {
                 onTap: () =>
                     AppToast.show(context, '오늘의 행운숫자는 홈 화면에서 곧 만나볼 수 있어요 ✨'),
               );
-            case 3:
+            default:
               return _QuickEntryCard(
                 icon: Icons.star_border_rounded,
                 label: '소원게시판',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const CommunityScreen()),
-                ),
-              );
-            default:
-              return _QuickEntryCard(
-                icon: Icons.nights_stay_outlined,
-                label: '소원방',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const WishRoomRiverpodEntry()),
                 ),
               );
           }

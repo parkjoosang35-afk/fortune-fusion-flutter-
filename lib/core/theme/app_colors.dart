@@ -58,15 +58,6 @@ class AppColors {
   static const Color hcBackground = Color(0xFFFFFFFF); // 전체 배경(순백색)
   static const Color hcAmber = Color(0xFFFF9500); // "인기" 배지(별도 강조 색상)
   static const Color hcTextSecondary = Color(0xFF666666); // 보조/설명 텍스트
-  static const Color hcBrownStart = Color(0xFF472D1E); // 소원방 배너 그라디언트 시작
-  static const Color hcBrownEnd = Color(0xFF2C1A10); // 소원방 배너 그라디언트 끝
-
-  static const LinearGradient hcWishRoomGradient = LinearGradient(
-    colors: [hcBrownStart, hcBrownEnd],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-
   /// 운세 메뉴 그리드 아이콘 원형(화이트) 안에 들어가는 아이콘 색상(카테고리별 소프트 틴트)
   /// - 카드 배경 자체는 통일된 라이트 그레이(hcCardBg2)를 사용하고, 아이콘만 복주머니 컬러로.
   static const Map<String, Color> hcCategoryIconColor = {
