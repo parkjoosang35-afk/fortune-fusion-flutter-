@@ -23,7 +23,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { completeText, LlmClientError } from "@/lib/llm-client";
-import { checkCategoryUsage, consumeCategoryUsage } from "@/lib/open-pass-service";
+import { checkCategoryUsage, checkDailyAbsoluteLimit, consumeCategoryUsage } from "@/lib/open-pass-service";
 
 export const dynamic = "force-dynamic";
 
@@ -119,6 +119,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { success: false, error: "question이 필요합니다." },
       { status: 400, headers: CORS_HEADERS }
+    );
+  }
+
+  // ── [어뷰징 방지 개편 §신규 ①] 유저별 절대 일일 AI 호출 상한(5회) 검사 ──
+  // 프리패스 카테고리별 제한(아래)과 완전히 독립적인 2중 방어선. 프리패스를 재발급받아도
+  // 이 상한은 우회되지 않는다(하루 전체 fortuneRequest 성공 건수 기준).
+  const dailyLimitCheck = await checkDailyAbsoluteLimit(userId);
+  if (!dailyLimitCheck.allowed) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: `하루 이용 가능한 AI 운세 횟수(${dailyLimitCheck.maxUsage}회)를 모두 사용했습니다. 내일 다시 이용해주세요.`,
+        reason: "DAILY_ABSOLUTE_LIMIT_REACHED",
+        usageCount: dailyLimitCheck.usageCount,
+        maxUsage: dailyLimitCheck.maxUsage,
+      },
+      { status: 403, headers: CORS_HEADERS }
     );
   }
 

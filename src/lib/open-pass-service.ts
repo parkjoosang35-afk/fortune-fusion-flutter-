@@ -68,11 +68,87 @@ export interface CategoryUsageCheckResult {
 }
 
 /**
+ * [어뷰징 방지 개편, 2026-08] KST(UTC+9) 기준 "오늘"의 날짜키("YYYY-MM-DD")를 반환한다.
+ * pass_category_usages.dateKey와 아래 checkDailyAbsoluteLimit()의 fortuneRequest 조회 범위
+ * 계산에 공통으로 사용한다 — daily route의 todayRangeUtcKST()/luck-pouch-engine.ts의
+ * todayRangeKst()와 동일한 KST 절단 규칙을 재사용해야 한다(§15 판정 기준 불일치 금지).
+ */
+function todayKstKey(): string {
+  const now = new Date();
+  const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  const y = kstNow.getUTCFullYear();
+  const m = kstNow.getUTCMonth();
+  const d = kstNow.getUTCDate();
+  return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
+
+/** KST 기준 "오늘" 하루의 시작/끝을 UTC Date로 반환한다(fortuneRequest.createdAt 범위 조회용). */
+function todayRangeKst(): { start: Date; end: Date } {
+  const now = new Date();
+  const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  const y = kstNow.getUTCFullYear();
+  const m = kstNow.getUTCMonth();
+  const d = kstNow.getUTCDate();
+  const startKst = new Date(Date.UTC(y, m, d, 0, 0, 0));
+  const endKst = new Date(Date.UTC(y, m, d + 1, 0, 0, 0));
+  return {
+    start: new Date(startKst.getTime() - 9 * 60 * 60 * 1000),
+    end: new Date(endKst.getTime() - 9 * 60 * 60 * 1000),
+  };
+}
+
+/** 유저별 절대 일일 AI 호출 상한(프리패스 보유 여부와 무관하게 항상 적용). */
+export const DAILY_ABSOLUTE_AI_CALL_LIMIT = 5;
+
+export interface DailyAbsoluteLimitResult {
+  allowed: boolean;
+  usageCount: number;
+  maxUsage: number;
+}
+
+/**
+ * [어뷰징 방지 개편, 2026-08 — §신규 ①] 유저별 "오늘 하루 AI 운세 호출 총합"의 절대 상한을
+ * 검사한다. 프리패스의 카테고리별 이용횟수 제한(checkCategoryUsage, 패스 1건당 카테고리당
+ * 기본 2회)과는 완전히 독립적인 2중 방어선이다 — 프리패스를 아무리 자주 재발급받아도
+ * (광고 재시청 쿨다운 30초 + 일일 5회 한도로 재발급 자체는 가능했음) 이 절대 상한은
+ * userId 기준으로 하루 전체를 통틀어 딱 DAILY_ABSOLUTE_AI_CALL_LIMIT(5)회로 못박는다.
+ *
+ * [집계 기준] fortuneRequest 테이블에서 오늘(KST) 생성된 status="success" 레코드 수를
+ * 그대로 센다. saju는 다중 주제를 한 번에 요청해도 fortuneRequest 레코드는 1건만 생성되므로
+ * (Promise.allSettled로 LLM은 여러 번 호출되지만 "1회 이용"으로 집계되는 기존 동작을
+ * 그대로 유지) 이 카운트도 "라우트 호출 1회 = 1"로 집계된다. daily route처럼
+ * checkCategoryUsage를 쓰지 않는 라우트도 이 절대 상한 검사는 동일하게 받아야 한다.
+ */
+export async function checkDailyAbsoluteLimit(userId: number): Promise<DailyAbsoluteLimitResult> {
+  const { start, end } = todayRangeKst();
+  const usageCount = await prisma.fortuneRequest.count({
+    where: {
+      userId,
+      status: "success",
+      deletedAt: null,
+      createdAt: { gte: start, lt: end },
+    },
+  });
+  return {
+    allowed: usageCount < DAILY_ABSOLUTE_AI_CALL_LIMIT,
+    usageCount,
+    maxUsage: DAILY_ABSOLUTE_AI_CALL_LIMIT,
+  };
+}
+
+/**
  * [신통방통 기존시스템유지+프리패스 카테고리별 이용횟수 제한] §6/§7/§24/§27
  *
- * 현재 활성 프리패스가 있는지 먼저 확인하고(없으면 즉시 차단), 있으면 해당
- * 패스(userPassId) 기준으로 이 카테고리(categoryKey)의 누적 이용횟수를 조회해
+ * 현재 활성 프리패스가 있는지 먼저 확인하고(없으면 즉시 차단), 있으면 이 카테고리
+ * (categoryKey)의 "userId + 오늘(KST) 날짜" 기준 누적 이용횟수를 조회해
  * policy.categoryMaxUsage(기본 2회, null=무제한)를 초과했는지 판정한다.
+ *
+ * [어뷰징 방지 개편, 2026-08] 과거에는 userPassId 기준으로 카운트해서 패스를
+ * 재발급받으면(광고 재시청) 카운터가 0으로 리셋되는 구멍이 있었다. 이제는 userId +
+ * categoryKey + dateKey(오늘 KST 날짜) 기준으로 카운트하므로, 패스가 몇 번
+ * 재발급되더라도 같은 날에는 카운트가 누적되어 절대 리셋되지 않는다. 활성 패스가
+ * 있어야 이용 자체는 가능하지만(NO_ACTIVE_PASS 판정은 그대로 유지), 카운트 자체는
+ * 패스 인스턴스가 아니라 유저+날짜에 귀속된다.
  *
  * 이 함수는 "검사만" 하고 카운트를 증가시키지 않는다(consume=false 상태 미리보기용).
  * 실제 이용 처리(카운트 +1)는 consumeCategoryUsage()가 담당한다 — 두 단계로 나눈
@@ -89,8 +165,9 @@ export async function checkCategoryUsage(
   }
 
   const maxUsage = activePass.policy.categoryMaxUsage ?? null;
+  const dateKey = todayKstKey();
   const usage = await prisma.passCategoryUsage.findUnique({
-    where: { userPassId_categoryKey: { userPassId: activePass.id, categoryKey } },
+    where: { userId_categoryKey_dateKey: { userId, categoryKey, dateKey } },
   });
   const usageCount = usage?.usageCount ?? 0;
 
@@ -102,27 +179,36 @@ export async function checkCategoryUsage(
 
 /**
  * checkCategoryUsage()로 허용된 경우에만 호출해 실제 이용횟수를 +1 한다(upsert).
+ * [어뷰징 방지 개편, 2026-08] upsert 키를 userId+categoryKey+dateKey(오늘 KST 날짜)로
+ * 변경했다 — userPassId는 "가장 최근에 이 카운트를 소비한 패스"를 남겨두는 참고값으로만
+ * 갱신한다(카운트 판정에는 사용하지 않음, 관리자 화면 감사용).
  * 동시성 상황에서 정확한 카운트가 필요하면 트랜잭션 내에서 checkCategoryUsage +
  * consumeCategoryUsage를 함께 호출해야 한다(pass/consume route가 이 패턴을 따른다).
  */
 export async function consumeCategoryUsage(userPassId: number, userId: number, categoryKey: string) {
+  const dateKey = todayKstKey();
   return prisma.passCategoryUsage.upsert({
-    where: { userPassId_categoryKey: { userPassId, categoryKey } },
-    create: { userPassId, userId, categoryKey, usageCount: 1 },
-    update: { usageCount: { increment: 1 } },
+    where: { userId_categoryKey_dateKey: { userId, categoryKey, dateKey } },
+    create: { userPassId, userId, categoryKey, dateKey, usageCount: 1 },
+    update: { usageCount: { increment: 1 }, userPassId },
   });
 }
 
 /**
  * 관리자 회원 상세 화면(§12/STEP12)에서 "카테고리별 N/2" 형태로 보여줄 수 있도록,
- * 현재 활성 패스의 전체 카테고리 이용현황을 한 번에 조회한다. 활성 패스가 없으면
+ * 오늘(KST) 하루의 전체 카테고리 이용현황을 한 번에 조회한다. 활성 패스가 없으면
  * null을 반환한다(화면은 "현재 이용 중인 프리패스 없음"으로 표시해야 함).
+ *
+ * [어뷰징 방지 개편, 2026-08] 조회 기준이 userPassId → userId+dateKey(오늘)로 바뀌었다 —
+ * 오늘 하루 동안 패스가 여러 번 재발급되었어도 카운트는 유저+날짜 단위로 이미 합산되어
+ * 있으므로, 이 함수는 activePass.id로 필터링하지 않고 오늘 날짜의 userId 레코드를 그대로 반환한다.
  */
 export async function getCategoryUsageSummary(userId: number) {
   const activePass = await getActiveUserPass(userId);
   if (!activePass) return null;
+  const dateKey = todayKstKey();
   const usages = await prisma.passCategoryUsage.findMany({
-    where: { userPassId: activePass.id },
+    where: { userId, dateKey },
   });
   return {
     userPass: activePass,

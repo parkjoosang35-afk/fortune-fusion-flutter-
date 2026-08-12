@@ -25,6 +25,7 @@ import { prisma } from "@/lib/db";
 import { incrementMissionProgress } from "@/lib/mission-progress";
 import { earnLuckPouch } from "@/lib/luck-pouch-engine";
 import { completeText, LlmClientError } from "@/lib/llm-client";
+import { checkDailyAbsoluteLimit } from "@/lib/open-pass-service";
 
 export const dynamic = "force-dynamic";
 
@@ -128,6 +129,24 @@ export async function GET(request: NextRequest) {
         firstViewBonus: 0,
       };
     } else {
+      // ── [어뷰징 방지 개편 §신규 ①] 유저별 절대 일일 AI 호출 상한(5회) 검사 ──
+      // 캐시 히트(existingRequest 존재)는 이미 위에서 걸러졌으므로, 여기 도달했다는 것은
+      // "오늘 이 daily 라우트로 실제 새 LLM 호출이 발생한다"는 뜻이다. 다른 라우트들과
+      // 동일하게 이 절대 상한 검사를 통과해야만 실제 생성으로 진행한다.
+      const dailyLimitCheck = await checkDailyAbsoluteLimit(userId);
+      if (!dailyLimitCheck.allowed) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `하루 이용 가능한 AI 운세 횟수(${dailyLimitCheck.maxUsage}회)를 모두 사용했습니다. 내일 다시 이용해주세요.`,
+            reason: "DAILY_ABSOLUTE_LIMIT_REACHED",
+            usageCount: dailyLimitCheck.usageCount,
+            maxUsage: dailyLimitCheck.maxUsage,
+          },
+          { status: 403, headers: CORS_HEADERS }
+        );
+      }
+
       // 2) 사용자/지갑 확인 (birthDate는 UserProfile에 별도 보관)
       const user = await prisma.user.findUnique({
         where: { id: userId },

@@ -15,7 +15,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { completeVisionJson, LlmClientError } from "@/lib/llm-client";
-import { checkCategoryUsage, consumeCategoryUsage } from "@/lib/open-pass-service";
+import { checkCategoryUsage, checkDailyAbsoluteLimit, consumeCategoryUsage } from "@/lib/open-pass-service";
 
 export const dynamic = "force-dynamic";
 
@@ -100,6 +100,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { success: false, error: "얼굴 사진을 첨부해주세요." },
       { status: 400, headers: CORS_HEADERS }
+    );
+  }
+
+  // ── [어뷰징 방지 개편 §신규 ①] 유저별 절대 일일 AI 호출 상한(5회) 검사 ──
+  // Vision API 호출(고비용) 이전에 가장 먼저 검사해 불필요한 사진 전송/LLM 호출을 막는다.
+  const dailyLimitCheck = await checkDailyAbsoluteLimit(userId);
+  if (!dailyLimitCheck.allowed) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: `하루 이용 가능한 AI 운세 횟수(${dailyLimitCheck.maxUsage}회)를 모두 사용했습니다. 내일 다시 이용해주세요.`,
+        reason: "DAILY_ABSOLUTE_LIMIT_REACHED",
+        usageCount: dailyLimitCheck.usageCount,
+        maxUsage: dailyLimitCheck.maxUsage,
+      },
+      { status: 403, headers: CORS_HEADERS }
     );
   }
 

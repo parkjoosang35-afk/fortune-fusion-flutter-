@@ -21,7 +21,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { completeText, LlmClientError } from "@/lib/llm-client";
-import { checkCategoryUsage, consumeCategoryUsage } from "@/lib/open-pass-service";
+import { checkCategoryUsage, checkDailyAbsoluteLimit, consumeCategoryUsage } from "@/lib/open-pass-service";
+
+// [어뷰징 방지 개편 §신규 ②] saju는 uniqueTopics 각각에 대해 LLM을 병렬 호출하므로
+// (Promise.allSettled), 클라이언트가 몇 개를 보내든 서버가 최종 방어선으로 최대
+// 개수를 강제한다. Flutter saju_input_screen.dart도 동일 상수(3개)로 제한하지만,
+// 클라이언트 검증을 우회한 직접 호출에도 서버가 동일하게 방어해야 한다(§8 원칙).
+const MAX_TOPICS_PER_REQUEST = 3;
 
 export const dynamic = "force-dynamic";
 
@@ -102,7 +108,10 @@ export async function POST(request: NextRequest) {
   const birthDate = body.birthDate;
   const birthTime = body.birthTime ?? null;
   const isLunar = Boolean(body.isLunar);
-  const topics = body.topics && body.topics.length > 0 ? body.topics : ["종합"];
+  const requestedTopics = body.topics && body.topics.length > 0 ? body.topics : ["종합"];
+  // [어뷰징 방지 개편 §신규 ②] 클라이언트가 몇 개를 보내든 앞에서부터 최대
+  // MAX_TOPICS_PER_REQUEST(3)개까지만 처리한다(1회 호출당 LLM 병렬 호출 수 제한).
+  const topics = requestedTopics.slice(0, MAX_TOPICS_PER_REQUEST);
   const profileId = body.profileId ?? null;
   const profileName = body.profileName ?? null;
 
@@ -116,6 +125,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { success: false, error: "birthDate가 필요합니다." },
       { status: 400, headers: CORS_HEADERS }
+    );
+  }
+
+  // ── [어뷰징 방지 개편 §신규 ①] 유저별 절대 일일 AI 호출 상한(5회) 검사 ──
+  const dailyLimitCheck = await checkDailyAbsoluteLimit(userId);
+  if (!dailyLimitCheck.allowed) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: `하루 이용 가능한 AI 운세 횟수(${dailyLimitCheck.maxUsage}회)를 모두 사용했습니다. 내일 다시 이용해주세요.`,
+        reason: "DAILY_ABSOLUTE_LIMIT_REACHED",
+        usageCount: dailyLimitCheck.usageCount,
+        maxUsage: dailyLimitCheck.maxUsage,
+      },
+      { status: 403, headers: CORS_HEADERS }
     );
   }
 

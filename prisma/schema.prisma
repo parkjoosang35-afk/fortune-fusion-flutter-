@@ -185,6 +185,7 @@ model User {
   passes                        UserPass[]
   luckPouchWallet               LuckPouchWallet?
   luckPouchHistories            LuckPouchHistory[]
+  consultationReviews           ConsultationReview[]
   openPassAdRewardLogs          OpenPassAdRewardLog[]
   passCategoryUsages            PassCategoryUsage[]
   fortuneAdWatchLogs            FortuneAdWatchLog[]
@@ -403,9 +404,28 @@ model ConsultationSession {
 
   user     User                  @relation(fields: [userId], references: [id])
   messages ConsultationMessage[]
+  review   ConsultationReview?
 
   @@index([userId, createdAt])
   @@map("consultation_sessions")
+}
+
+// ── 신규(복주머니 정책 §3): 상담 완료 후기 작성 이력 ──
+// [설계] "상담 완료 후기 작성 5개, 상담 1건당 1회" 원칙을 sessionId unique로 강제한다.
+// WishReview(소원성 최종레벨 후기)와는 완전히 다른 도메인이므로 재사용하지 않고 신규 테이블로 분리한다.
+model ConsultationReview {
+  id            Int      @id @default(autoincrement())
+  sessionId     Int      @unique @map("session_id")
+  userId        Int      @map("user_id")
+  content       String
+  rewardGranted Boolean  @default(false) @map("reward_granted")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  session ConsultationSession @relation(fields: [sessionId], references: [id])
+  user    User                @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@map("consultation_reviews")
 }
 
 // ── 04A G-2: consultation_messages (※Base 포함, 파티션 대상) ──
@@ -2601,17 +2621,18 @@ model UserPass {
 }
 
 // ── [신통방통 기존시스템유지+프리패스 카테고리별 이용횟수 제한] §7 신규 테이블 ──
-// 목적: "동일 카테고리(오늘의 운세/사주/관상/손금 등) 최대 N회(기본 2회)" 제한을
-// 활성 프리패스(UserPass) 1건 단위로 추적한다. userPassId 기준으로 묶는 이유:
-// 패스가 만료되고 새로 발급되면(예: 다시 60분 프리패스 획득) 이전 패스의 이용
-// 카운트와 완전히 분리되어 자동으로 0부터 다시 시작되어야 하기 때문이다(패스
-// 재발급마다 리셋). userId를 별도 컬럼으로도 보관해 관리자 화면에서 조인 없이
-// 회원별 조회를 쉽게 한다(운영상 편의, 정합성은 userPassId가 원본).
+// [어뷰징 방지 개편, 2026-08] 과거에는 userPassId 기준(@@unique([userPassId, categoryKey]))으로
+// 카운트해서, 유저가 프리패스를 재발급받을 때마다(광고 재시청 30초 쿨다운 + 일일 5회 한도)
+// 카운터가 0으로 리셋되는 구조적 어뷰징 구멍이 있었다. 이제는 "userId + categoryKey +
+// dateKey(KST 날짜)" 기준으로 카운트를 묶어, 패스가 몇 번 재발급되더라도 같은 날에는
+// 카운트가 절대 리셋되지 않도록 변경한다. userPassId는 "가장 최근에 이 카운트를 소비한
+// 패스"를 추적하는 참고 컬럼으로만 남긴다(감사/관리자 화면용, 카운트 판정에는 사용하지 않음).
 model PassCategoryUsage {
   id          Int      @id @default(autoincrement())
   userPassId  Int      @map("user_pass_id")
   userId      Int      @map("user_id")
   categoryKey String   @map("category_key") // fortune_categories.category_key (daily/saju/face/palm 등)
+  dateKey     String   @map("date_key") // KST 기준 "YYYY-MM-DD" — 하루 단위로 카운트를 묶는 기준
   usageCount  Int      @default(0) @map("usage_count")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -2619,7 +2640,7 @@ model PassCategoryUsage {
   userPass UserPass @relation(fields: [userPassId], references: [id])
   user     User     @relation(fields: [userId], references: [id])
 
-  @@unique([userPassId, categoryKey])
+  @@unique([userId, categoryKey, dateKey])
   @@index([userId, categoryKey])
   @@map("pass_category_usages")
 }
