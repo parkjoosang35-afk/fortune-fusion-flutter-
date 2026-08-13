@@ -62,6 +62,9 @@ import '../../features/giftcard/domain/giftcard_model.dart';
 import '../../features/subscription/presentation/subscription_plans_screen.dart';
 import '../../features/subscription/presentation/my_subscription_screen.dart';
 import '../../features/wish_wall_board/presentation/wish_wall_board_screen.dart';
+import '../../features/categories/presentation/categories_grid_screen.dart';
+import '../../features/lucky/presentation/lucky_items_screen.dart';
+import '../../features/pass/presentation/free_pass_gate_screen.dart';
 
 /// 07단계 §3.2 라우팅 테이블 - Navigator 1.0(onGenerateRoute) 구현
 /// 10단계(A안): AI 6대 기능(사주/타로/관상/손금/궁합/AI상담) + 리워드(미션/랭킹)까지
@@ -120,6 +123,16 @@ class AppRouter {
         );
       case '/home/all-categories':
         return _page(const AllCategoriesScreen());
+
+      // ── [신규 화면 3개] 80종 전체 보기 / 개운 아이템 / 프리패스 안내 ──
+      // 기존 55개 case는 순서·내용 변경 없이 그대로 두고, 이 3개만 삽입한다.
+      case '/categories-grid':
+        return _page(const CategoriesGridScreen());
+      case '/lucky-items':
+        return _page(const LuckyItemsScreen());
+      case '/free-pass-gate':
+        return _page(const FreePassGateScreen());
+
       case '/my/fortune-records':
         return _page(const MyFortuneRecordsScreen());
 

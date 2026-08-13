@@ -403,6 +403,18 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
               delay: const Duration(milliseconds: 40),
               child: FortuneMatrixSection(onTapEntry: _openMatrixEntry),
             ),
+            const SizedBox(height: UnifiedTokens.spaceMd),
+            // [신규 화면 진입점] 80종 전체 보기(카드 그리드 전용 화면)로 이동
+            // 하는 텍스트 버튼 한 줄만 추가한다(다른 위젯/State/메서드는
+            // 그대로 유지).
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () =>
+                    Navigator.of(context).pushNamed('/categories-grid'),
+                child: Text('80종 전체 보기 →', style: UnifiedText.bodyStrong()),
+              ),
+            ),
             const SizedBox(height: UnifiedTokens.spaceXxl),
 
             FadeSlideIn(
