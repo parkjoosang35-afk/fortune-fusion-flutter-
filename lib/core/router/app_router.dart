@@ -65,6 +65,9 @@ import '../../features/wish_wall_board/presentation/wish_wall_board_screen.dart'
 import '../../features/categories/presentation/categories_grid_screen.dart';
 import '../../features/lucky/presentation/lucky_items_screen.dart';
 import '../../features/pass/presentation/free_pass_gate_screen.dart';
+import '../../features/home/presentation/jeontong_eighty_screen.dart';
+import '../../features/home/presentation/jeontong_eighty_result_screen.dart';
+import '../../features/home/domain/jeontong_eighty_matrix.dart';
 
 /// 07단계 §3.2 라우팅 테이블 - Navigator 1.0(onGenerateRoute) 구현
 /// 10단계(A안): AI 6대 기능(사주/타로/관상/손금/궁합/AI상담) + 리워드(미션/랭킹)까지
@@ -132,6 +135,16 @@ class AppRouter {
         return _page(const LuckyItemsScreen());
       case '/free-pass-gate':
         return _page(const FreePassGateScreen());
+
+      // ── [정통사주 80종 개편] 홈 "운세" 카드 진입점 - 대카테고리/소카테고리
+      // 진열 화면 + 전용 결과 화면. AI 타로/관상/손금/상담 라우트는 이 작업과
+      // 무관하며 아래에 그대로 유지된다(변경 없음). ──
+      case JeontongEightyMatrix.browseRoute:
+        return _page(const JeontongEightyScreen());
+      case JeontongEightyMatrix.resultRoute:
+        return _page(
+          JeontongEightyResultScreen(categoryId: settings.arguments as String?),
+        );
 
       case '/my/fortune-records':
         return _page(const MyFortuneRecordsScreen());

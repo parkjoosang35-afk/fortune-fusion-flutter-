@@ -21,7 +21,7 @@ import '../../auth/application/auth_provider.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../wish_wall_board/presentation/wish_wall_board_screen.dart';
 import 'home_style_tokens.dart';
-import 'jeontong_saju_section.dart';
+import '../domain/jeontong_eighty_matrix.dart';
 
 /// [Fortune Fusion 서브 디자인 통일 마스터 프롬프트] 홈 화면 - 기준 시안 그대로 구현
 ///
@@ -788,13 +788,15 @@ class _HealingQuoteCardState extends State<_HealingQuoteCard>
 /// ⑤-1 [첨부 디자인 반영] "운세"/"타로" 2분할 카드
 ///
 /// 좌측 "운세" 카드는 연보라(#F0EEFB 계열) 배경 + 네온라임 원형(위쪽 화살표)
-/// 버튼으로 [사용자 요청 - 정통사주 8종 서브 카테고리] 탭하면 페이지 이동
-/// 없이 "정통사주" 8종 카테고리 바텀시트를 연다(평생 총운/재물운/직업운/
-/// 애정운/건강운/오늘의 운세/이달 운세/올해 운세 — jeontong_saju_section.dart).
+/// 버튼으로, [정통사주 80종 개편] 탭하면 정통사주 80종을 대카테고리(A~H)·
+/// 소카테고리(각 10개)로 나눠 진열하는 전용 화면(`/jeontong/eighty`,
+/// jeontong_eighty_screen.dart)으로 이동한다. 과거 8종 고정 바텀시트
+/// (jeontong_saju_section.dart)는 더 이상 이 카드에서 호출하지 않지만
+/// 파일/라우팅 자체는 보존한다(갈아엎지 않는다 원칙).
 /// 우측 "타로" 카드는 더 밝은 파스텔 블루-라벤더 배경 + 블랙 원형(아래쪽
-/// 화살표) 버튼으로 타로 메인 홈으로 이동한다(원상복구, 변경 없음). 각 카드
-/// 하단에는 작은 부제(운세이야기/타로이야기)를 배치해 첨부 목업의 레이아웃을
-/// 그대로 재현한다.
+/// 화살표) 버튼으로 타로 메인 홈으로 이동한다(원상복구, 변경 없음 — AI
+/// 타로는 이번 작업 범위에서 전혀 건드리지 않는다). 각 카드 하단에는 작은
+/// 부제(운세이야기/타로이야기)를 배치해 첨부 목업의 레이아웃을 그대로 재현한다.
 class _FortuneTarotRow extends StatelessWidget {
   const _FortuneTarotRow();
 
@@ -812,11 +814,14 @@ class _FortuneTarotRow extends StatelessWidget {
               backgroundColor: HomeColors.cardMain,
               circleIcon: Icons.arrow_drop_up_rounded,
               circleStyle: PremiumCircleButtonStyle.neon,
-              // [사용자 요청] "운세" 카드를 누르면 페이지 이동 대신 정통사주
-              // 8종 서브 카테고리 바텀시트를 연다(게이트체크는 시트 안에서
-              // 개별 카테고리를 선택했을 때만 수행 — all_categories_screen과
-              // 동일한 패턴, 시트를 여는 것 자체는 항상 가능).
-              onTap: () => showJeontongSajuCategoriesSheet(context),
+              // [정통사주 80종 개편] "운세" 카드를 누르면 정통사주 80종을
+              // 대/소카테고리로 나눠 보여주는 전용 화면으로 이동한다(게이트
+              // 체크는 그 화면 안에서 개별 소카테고리를 선택했을 때만 수행 —
+              // 화면을 여는 것 자체는 항상 가능, 기존 8종 바텀시트와 동일한
+              // 원칙).
+              onTap: () => Navigator.of(
+                context,
+              ).pushNamed(JeontongEightyMatrix.browseRoute),
             ),
           ),
           const SizedBox(width: _Dims.wishCardGap),
