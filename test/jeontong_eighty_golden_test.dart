@@ -3,14 +3,16 @@
 // [STEP 0 raw 로 확정한 실제 이름/시그니처 — 미션 템플릿의 가상 이름과 다름]
 //   · 카탈로그: JeontongEightyMatrix.all (List<JeontongCategoryEntry>) —
 //     `JeontongCategory` enum 은 존재하지 않음.
-//   · 빌더: JeontongReportBuilder.build(JeontongCategoryEntry entry, {DateTime? date})
-//     — `JeontongEightyReportBuilder` 클래스는 존재하지 않고, 시그니처도
-//     categoryCode/userId/birthDateTimeUtc/isLunar/gender 를 받지 않음.
-//     결정론 시드는 (date, entry.id) 만의 함수 — userId/gender/isLunar 는
-//     결과에 전혀 영향을 주지 않는다(이 사실을 숨기지 않고 표1에 명시).
+//   · 빌더: JeontongReportBuilder.build(JeontongCategoryEntry entry, {DateTime? date, ...})
+//     — `JeontongEightyReportBuilder` 클래스는 존재하지 않고, 첫 인자도
+//     categoryCode(String)가 아니라 entry(JeontongCategoryEntry)임.
 //   · 결과 모델: FortuneReport/FortuneHero/FortuneSection 계열은 toJson()이
 //     없으므로, 이 파일 내부에서 공개 필드를 직접 걷는 수동 직렬화 함수를
 //     사용한다.
+//   · [2026-08-13 개인화 배선] build() 가 userId/birthDateTimeUtc/gender/
+//     isLunar 4축을 named+default null 로 받도록 확장되어, 이 4축을 모두
+//     전달하면 결과의 keywords/list/lucky 슬롯 순서와 aspect index가
+//     사용자별로 결정론적으로 달라진다(문구 콘텐츠는 불변).
 import 'dart:convert';
 import 'dart:io';
 
@@ -35,10 +37,17 @@ void main() {
     for (final input in kJeontongTestInputs) {
       final perUser = <String, dynamic>{};
       for (final entry in JeontongEightyMatrix.all) {
-        // NOTE: JeontongReportBuilder.build() 는 userId/isLunar/gender/
-        // birthDateTimeUtc 를 받지 않으므로 input 의 해당 필드들은 결과에
-        // 반영되지 않는다(카테고리 id + date 만이 결정 인자).
-        final report = JeontongReportBuilder.build(entry, date: kFixedDate);
+        // [2026-08-13 개인화 배선] build() 가 4축(userId/birthDateTimeUtc/
+        // gender/isLunar)을 받아 결정론적으로 반영하도록 확장되었으므로,
+        // fixture 의 각 seed 유저 값을 실제로 전달해 개인화 계약을 검증한다.
+        final report = JeontongReportBuilder.build(
+          entry,
+          date: kFixedDate,
+          userId: input.userId,
+          birthDateTimeUtc: input.birthDateTimeUtc,
+          gender: input.gender,
+          isLunar: input.isLunar,
+        );
         perUser[entry.id] = _reportToJson(report);
       }
       all[input.userId] = perUser;

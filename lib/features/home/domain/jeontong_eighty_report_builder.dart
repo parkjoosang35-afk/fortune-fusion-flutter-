@@ -20,10 +20,54 @@ import 'jeontong_eighty_matrix.dart';
 /// 고쳐야 해 기존 37종 시스템에 회귀 위험을 만든다. 대신 동일한 "패턴"만
 /// 재사용하고 입력 타입을 [JeontongCategoryEntry]로 분리해 완전히 독립적으로
 /// 동작하게 한다(기존 코드 無변경).
+///
+/// [2026-08-13 개인화 배선] 기존 build() 는 (오늘 날짜 + 카테고리 id) 만으로
+/// 결과가 결정되어, 같은 카테고리라면 어떤 사용자가 조회하든 항상 동일한
+/// 결과를 반환했다. 아래 4개의 named 인자(userId/birthDateTimeUtc/gender/
+/// isLunar)를 모두 default null 로 추가해 하위호환을 유지하면서, non-null
+/// 값이 들어오면 결과의 "선택된 슬롯"(순서/인덱스)만 사용자별로 결정론적으로
+/// 달라지게 한다. 문구·풀(pool) 데이터 자체는 이 변경에서 한 글자도
+/// 수정하지 않는다 — [_buildBaseReport]가 곧 원래의 build() 본문 그대로다.
 class JeontongReportBuilder {
   JeontongReportBuilder._();
 
-  static FortuneReport build(JeontongCategoryEntry entry, {DateTime? date}) {
+  /// 기존 build() 시그니처를 유지하면서 개인화 4축을 추가한 공개 진입점.
+  /// 4축이 모두 null 이면 [_buildBaseReport]의 결과를 그대로 반환한다(완전
+  /// 하위호환). 하나라도 non-null 이면, base 결과의 텍스트 콘텐츠는 그대로
+  /// 두고 "이미 base 가 골라둔 값들의 순서/인덱스"만 사용자별 seed로 회전한다.
+  static FortuneReport build(
+    JeontongCategoryEntry entry, {
+    DateTime? date,
+    String? userId,
+    DateTime? birthDateTimeUtc,
+    String? gender,
+    bool? isLunar,
+  }) {
+    final base = _buildBaseReport(entry, date: date);
+
+    if (userId == null &&
+        birthDateTimeUtc == null &&
+        gender == null &&
+        isLunar == null) {
+      return base;
+    }
+
+    final seed = _jeontongPersonalizationSeed(
+      categoryCode: entry.id,
+      userId: userId,
+      birthDateTimeUtc: birthDateTimeUtc,
+      gender: gender,
+      isLunar: isLunar,
+    );
+
+    return _applyPersonalization(base, seed: seed);
+  }
+
+  /// [기존 build() 본문 그대로 — 한 글자도 수정하지 않았다. 이름만 옮겼다.]
+  static FortuneReport _buildBaseReport(
+    JeontongCategoryEntry entry, {
+    DateTime? date,
+  }) {
     final today = date ?? DateTime.now();
     final seed =
         today.year * 10000 +
@@ -176,4 +220,94 @@ class JeontongReportBuilder {
     '골드',
   ];
   static const _luckyDirectionPool = ['동쪽', '남동쪽', '남쪽', '서쪽', '북서쪽', '북쪽'];
+}
+
+/// 정통사주 개인화 seed.
+/// 같은 입력 → 같은 int. 다른 입력 → 다른 int (99.99% 이상 회피).
+/// FNV-1a 64bit (dart:core 만 사용, 새 import 금지).
+int _jeontongPersonalizationSeed({
+  required String categoryCode,
+  String? userId,
+  DateTime? birthDateTimeUtc,
+  String? gender,
+  bool? isLunar,
+}) {
+  const int fnvPrime = 0x100000001b3;
+  int hash = 0xcbf29ce484222325;
+  void mix(String s) {
+    for (final code in s.codeUnits) {
+      hash ^= code;
+      hash = (hash * fnvPrime) & 0xFFFFFFFFFFFFFFFF;
+    }
+    hash ^= 0x5c;
+    hash = (hash * fnvPrime) & 0xFFFFFFFFFFFFFFFF;
+  }
+  mix('cat:$categoryCode');
+  mix('uid:${userId ?? ""}');
+  mix('bdt:${birthDateTimeUtc?.toIso8601String() ?? ""}');
+  mix('gen:${gender ?? ""}');
+  mix('lun:${isLunar == null ? "" : (isLunar ? "1" : "0")}');
+  return hash & 0x7fffffffffffffff; // non-negative int64
+}
+
+/// base 결과의 문구(String) 콘텐츠는 한 글자도 바꾸지 않는다. base 가 이미
+/// 골라둔 값들의 "순서"(keywords/list/lucky 아이템 회전)와 "인덱스"(aspect
+/// index 소폭 이동, 기존 클램프 범위 50~96 유지)만 seed 로 결정론적으로
+/// 다시 배열한다. 새 문자열 풀은 만들지 않는다 — copyWith 가 모델에 없으므로
+/// (STEP 0-D 확인) 각 섹션의 기존 public 생성자로 새 인스턴스를 조립한다.
+FortuneReport _applyPersonalization(FortuneReport base, {required int seed}) {
+  final keywordShift = seed & 0xFF;
+  final luckyShift = (seed >> 8) & 0xFF;
+  final listShift = (seed >> 16) & 0xFF;
+  final aspectOffset = ((seed >> 24) & 0xFF) % 11 - 5; // -5..5
+
+  final oldHero = base.hero;
+  final newHero = FortuneHero(
+    score: oldHero.score,
+    headline: oldHero.headline,
+    name: oldHero.name,
+    date: oldHero.date,
+    statusLabel: oldHero.statusLabel,
+    keywords: _rotateList(oldHero.keywords, keywordShift),
+    subDescription: oldHero.subDescription,
+  );
+
+  final newSections = base.sections.map<FortuneSection>((section) {
+    if (section is AspectSection) {
+      return AspectSection(
+        title: section.title,
+        index: JeontongReportBuilder._clamp(
+          section.index + aspectOffset,
+          50,
+          96,
+        ),
+        body: section.body,
+      );
+    }
+    if (section is ListSection) {
+      return ListSection(
+        title: section.title,
+        items: _rotateList(section.items, listShift),
+        listType: section.type,
+      );
+    }
+    if (section is LuckySection) {
+      return LuckySection(
+        title: section.title,
+        items: _rotateList(section.items, luckyShift),
+      );
+    }
+    // OverviewSection/TimelineSection 등 회전 대상이 없는 섹션은 그대로 둔다.
+    return section;
+  }).toList();
+
+  return FortuneReport(hero: newHero, sections: newSections);
+}
+
+/// 리스트 원소를 새로 만들지 않고 순서만 회전한다(문구 무손상).
+List<T> _rotateList<T>(List<T> list, int amount) {
+  if (list.length < 2) return list;
+  final k = amount % list.length;
+  if (k == 0) return list;
+  return [...list.sublist(k), ...list.sublist(0, k)];
 }
