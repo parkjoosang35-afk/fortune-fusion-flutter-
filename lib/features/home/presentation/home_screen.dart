@@ -21,6 +21,7 @@ import '../../auth/application/auth_provider.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../wish_wall_board/presentation/wish_wall_board_screen.dart';
 import 'home_style_tokens.dart';
+import 'jeontong_saju_section.dart';
 
 /// [Fortune Fusion 서브 디자인 통일 마스터 프롬프트] 홈 화면 - 기준 시안 그대로 구현
 ///
@@ -184,10 +185,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 FadeSlideIn(
                   delay: const Duration(milliseconds: 40),
                   child: _AllCategoriesHeader(
-                    onTitleTap: () => _scrollToSection(
-                      _todayFortuneSectionKey,
-                      '오늘의 운세',
-                    ),
+                    onTitleTap: () =>
+                        _scrollToSection(_todayFortuneSectionKey, '오늘의 운세'),
                   ),
                 ),
                 const SizedBox(height: _Dims.tarotHeaderBottomGap),
@@ -200,10 +199,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 FadeSlideIn(
                   delay: const Duration(milliseconds: 80),
                   child: _FortuneCategoryChips(
-                    onScrollToToday: () => _scrollToSection(
-                      _todayFortuneSectionKey,
-                      '오늘의 운세',
-                    ),
+                    onScrollToToday: () =>
+                        _scrollToSection(_todayFortuneSectionKey, '오늘의 운세'),
                   ),
                 ),
                 const SizedBox(height: _Dims.chipsBottomGap),
@@ -225,7 +222,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: _Dims.heroCardBottomGap),
                       FadeSlideIn(
                         delay: const Duration(milliseconds: 140),
-                        child: const _FortuneTarotRow(),
+                        child: const JeontongSajuSection(),
                       ),
                     ],
                   ),
@@ -309,10 +306,7 @@ class _TopHeader extends StatelessWidget {
                     color: HomeColors.textPrimary,
                   ),
                   const SizedBox(width: 4),
-                  Text(
-                    '${wallet.balance}',
-                    style: HomeText.chipLabel(),
-                  ),
+                  Text('${wallet.balance}', style: HomeText.chipLabel()),
                 ],
               ),
             ),
@@ -684,7 +678,9 @@ class _HealingQuoteCardState extends State<_HealingQuoteCard>
               animation: _colorAnimController,
               builder: (context, _) => SoftGradientBlob(
                 size: 120,
-                color: _animatedAccentColor((_colorAnimController.value + 0.5) % 1.0),
+                color: _animatedAccentColor(
+                  (_colorAnimController.value + 0.5) % 1.0,
+                ),
                 opacity: 0.14,
               ),
             ),
@@ -694,7 +690,10 @@ class _HealingQuoteCardState extends State<_HealingQuoteCard>
           Positioned(
             top: 12,
             right: 16,
-            child: FloatingMoon(size: 30, color: textColor.withValues(alpha: 0.3)),
+            child: FloatingMoon(
+              size: 30,
+              color: textColor.withValues(alpha: 0.3),
+            ),
           ),
           // 배경 장식 레이어 ③ - 반짝이는 별 2개(opacity pulse)를 우측/하단
           // 빈 공간에 흩뿌려 리듬감을 더하며, 색상도 함께 순환 애니메이션된다.
@@ -705,8 +704,9 @@ class _HealingQuoteCardState extends State<_HealingQuoteCard>
               animation: _colorAnimController,
               builder: (context, _) => SparkleDot(
                 size: 14,
-                color: _animatedAccentColor(_colorAnimController.value)
-                    .withValues(alpha: 0.55),
+                color: _animatedAccentColor(
+                  _colorAnimController.value,
+                ).withValues(alpha: 0.55),
               ),
             ),
           ),
@@ -717,8 +717,9 @@ class _HealingQuoteCardState extends State<_HealingQuoteCard>
               animation: _colorAnimController,
               builder: (context, _) => SparkleDot(
                 size: 10,
-                color: _animatedAccentColor((_colorAnimController.value + 0.5) % 1.0)
-                    .withValues(alpha: 0.45),
+                color: _animatedAccentColor(
+                  (_colorAnimController.value + 0.5) % 1.0,
+                ).withValues(alpha: 0.45),
               ),
             ),
           ),
@@ -756,8 +757,7 @@ class _HealingQuoteCardState extends State<_HealingQuoteCard>
                   AnimatedSwitcher(
                     duration: const Duration(milliseconds: 500),
                     child: Text(
-                      quote?.content ??
-                          '잠시 마음을 쉬어가도 괜찮아요.\n당신은 충분히 잘하고 있습니다.',
+                      quote?.content ?? '잠시 마음을 쉬어가도 괜찮아요.\n당신은 충분히 잘하고 있습니다.',
                       key: ValueKey(quote?.id ?? -1),
                       maxLines: 4,
                       overflow: TextOverflow.ellipsis,
@@ -779,121 +779,6 @@ class _HealingQuoteCardState extends State<_HealingQuoteCard>
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-/// ⑤-1 [첨부 디자인 반영] "운세"/"타로" 2분할 카드
-///
-/// 좌측 "운세" 카드는 연보라(#F0EEFB 계열) 배경 + 네온라임 원형(위쪽 화살표)
-/// 버튼으로 오늘의 운세 상세로 이동하고, 우측 "타로" 카드는 더 밝은 파스텔
-/// 블루-라벤더 배경 + 블랙 원형(아래쪽 화살표) 버튼으로 타로 메인 홈으로
-/// 이동한다. 각 카드 하단에는 작은 부제(운세이야기/타로이야기)를 배치해
-/// 첨부 목업의 레이아웃을 그대로 재현한다.
-class _FortuneTarotRow extends StatelessWidget {
-  const _FortuneTarotRow();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: _Dims.wishCardHeight,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: _FortuneTarotMiniCard(
-              title: '운세',
-              bottomLabel: '운세이야기',
-              backgroundColor: HomeColors.cardMain,
-              circleIcon: Icons.arrow_drop_up_rounded,
-              circleStyle: PremiumCircleButtonStyle.neon,
-              // [프리패스 전체잠금 통일] 게이트 없이 직접 이동하던 버그 수정.
-              onTap: () => navigateWithPassGate(
-                context,
-                title: '오늘의 운세',
-                route: '/home/daily-fortune-detail',
-                requiresPass: true,
-              ),
-            ),
-          ),
-          const SizedBox(width: _Dims.wishCardGap),
-          Expanded(
-            child: _FortuneTarotMiniCard(
-              title: '타로',
-              bottomLabel: '타로이야기',
-              backgroundColor: HomeColors.cardWish,
-              circleIcon: Icons.arrow_drop_down_rounded,
-              circleStyle: PremiumCircleButtonStyle.black,
-              // [프리패스 전체잠금 통일] 게이트 없이 직접 이동하던 버그 수정.
-              onTap: () => navigateWithPassGate(
-                context,
-                title: '타로',
-                route: '/tarot/home',
-                requiresPass: true,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FortuneTarotMiniCard extends StatelessWidget {
-  const _FortuneTarotMiniCard({
-    required this.title,
-    required this.bottomLabel,
-    required this.backgroundColor,
-    required this.circleIcon,
-    required this.circleStyle,
-    required this.onTap,
-  });
-
-  final String title;
-  final String bottomLabel;
-  final Color backgroundColor;
-  final IconData circleIcon;
-  final PremiumCircleButtonStyle circleStyle;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final overrideBg = circleStyle == PremiumCircleButtonStyle.neon
-        ? HomeColors.neon
-        : HomeColors.black;
-    final overrideFg = circleStyle == PremiumCircleButtonStyle.neon
-        ? HomeColors.textPrimary
-        : Colors.white;
-
-    return PremiumCard(
-      backgroundColor: backgroundColor,
-      borderColor: Colors.transparent,
-      borderRadius: BorderRadius.circular(_Dims.wishCardRadius),
-      showShadow: false,
-      onTap: onTap,
-      padding: const EdgeInsets.all(_Dims.wishCardPadding),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: Text(title, style: HomeText.title())),
-              PremiumCircleButton(
-                icon: circleIcon,
-                style: circleStyle,
-                size: _Dims.wishCircleSize,
-                iconSize: 14,
-                bgColor: overrideBg,
-                fgColor: overrideFg,
-                onTap: onTap,
-              ),
-            ],
-          ),
-          Text(bottomLabel, style: HomeText.caption()),
         ],
       ),
     );

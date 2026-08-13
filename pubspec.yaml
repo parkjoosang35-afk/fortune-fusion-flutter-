@@ -72,6 +72,11 @@ dependencies:
   # 저장완료/UI탭 등 짧은 SFX 재생용. Web/Android 모두 지원.
   audioplayers: ^6.7.1
 
+  # [정통사주 섹션 - 신통방통 테마] design_system.md 타이포그래피 규격
+  # (Noto Serif KR 제목/한자, Noto Sans KR 본문) 적용용. 이 섹션 전용으로만
+  # 사용하며 앱 전역 Pretendard 체계는 그대로 유지한다.
+  google_fonts: 6.2.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
