@@ -11,7 +11,6 @@ import '../../../core/widgets/premium_graphics.dart';
 import '../../healing_quote/application/healing_quote_provider.dart';
 import '../../wallet/application/wallet_provider.dart';
 import '../../attendance/application/attendance_provider.dart';
-import '../../fortune/daily/application/daily_fortune_provider.dart';
 import '../../notification/notification_provider.dart';
 import '../../pass/application/pass_provider.dart';
 import '../../pass/presentation/pass_gate_helper.dart';

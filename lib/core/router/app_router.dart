@@ -6,18 +6,10 @@ import '../../features/intro/presentation/intro_pager_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/signup_screen.dart';
 import '../../features/auth/presentation/profile_check_screen.dart';
-import '../../features/fortune/daily/presentation/daily_fortune_intro_screen.dart';
-import '../../features/fortune/daily/presentation/daily_fortune_input_screen.dart';
-import '../../features/fortune/daily/presentation/daily_fortune_loading_screen.dart';
-import '../../features/fortune/daily/presentation/daily_fortune_result_screen.dart';
 import '../../features/fortune/daily/presentation/_removed_daily_fortune_stub.dart';
-import '../../features/fortune/daily/domain/fortune_report_model.dart';
 import '../../features/mypage/presentation/my_fortune_records_screen.dart';
 import '../../features/home/presentation/all_categories_screen.dart';
 import '../../features/fortune/generic/presentation/generic_fortune_result_screen.dart';
-import '../../features/compatibility/presentation/compatibility_input_screen.dart';
-import '../../features/compatibility/presentation/compatibility_result_screen.dart';
-import '../../features/compatibility/domain/compatibility_model.dart';
 import '../../features/fortune/saju/presentation/saju_input_screen.dart';
 import '../../features/fortune/saju/presentation/saju_loading_screen.dart';
 import '../../features/fortune/saju/presentation/saju_result_screen.dart';
@@ -156,15 +148,9 @@ class AppRouter {
       // C그룹(7개) 항목이 여기로 딥링크된다. arguments로 CompatibilityType을
       // 전달하면 해당 유형이 미리 선택된다(없으면 기본 love).
       case '/compatibility/input':
-        return _page(
-          CompatibilityInputScreen(
-            initialType: settings.arguments is CompatibilityType
-                ? settings.arguments as CompatibilityType
-                : null,
-          ),
-        );
+        return _page(const RemovedDailyFortuneStub());
       case '/compatibility/result':
-        return _page(const CompatibilityResultScreen());
+        return _page(const RemovedDailyFortuneStub());
 
       // ── AI 사주 ──
       case '/ai-fortune/saju/input':
