@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -5,6 +6,7 @@ import 'package:http/http.dart' as http;
 import '../../../../core/api/api_result.dart';
 import '../../../../core/auth/auth_token_store.dart';
 import '../../../../core/config/env_config.dart';
+import '../../../../core/telemetry/ai_call_counter.dart';
 import '../../../../core/utils/mock_delay.dart';
 import '../domain/saju_model.dart';
 
@@ -40,6 +42,9 @@ class SajuRepository {
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/fortune/saju',
     );
+    // [AI 사주 호출 점진 전환 - 카운터 부착] 이 메서드 자체는 삭제/시그니처
+    // 변경 없이 그대로 두고, 호출 시도 관측용 카운터 한 줄만 추가한다.
+    unawaited(AiCallCounter.recordRequestSajuCalled());
     debugPrint('[SajuRepository] [requestSaju] 요청 시작 -> $uri');
 
     try {
