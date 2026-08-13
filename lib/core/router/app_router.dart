@@ -10,6 +10,7 @@ import '../../features/fortune/daily/presentation/daily_fortune_intro_screen.dar
 import '../../features/fortune/daily/presentation/daily_fortune_input_screen.dart';
 import '../../features/fortune/daily/presentation/daily_fortune_loading_screen.dart';
 import '../../features/fortune/daily/presentation/daily_fortune_result_screen.dart';
+import '../../features/fortune/daily/presentation/_removed_daily_fortune_stub.dart';
 import '../../features/fortune/daily/domain/fortune_report_model.dart';
 import '../../features/mypage/presentation/my_fortune_records_screen.dart';
 import '../../features/home/presentation/all_categories_screen.dart';
@@ -109,21 +110,13 @@ class AppRouter {
       // 두고, 새 4단계 플로우의 진입 화면(intro)으로 라우팅한다.
       case '/home/daily-fortune-detail':
       case '/fortune/today/intro':
-        return _page(const DailyFortuneIntroScreen());
+        return _page(const RemovedDailyFortuneStub());
       case '/fortune/today/input':
-        return _page(const DailyFortuneInputScreen());
+        return _page(const RemovedDailyFortuneStub());
       case '/fortune/today/loading':
-        return _page(
-          DailyFortuneLoadingScreen(
-            input: settings.arguments as FortuneInputModel,
-          ),
-        );
+        return _page(const RemovedDailyFortuneStub());
       case '/fortune/today/result':
-        return _page(
-          DailyFortuneResultScreen(
-            input: settings.arguments as FortuneInputModel?,
-          ),
-        );
+        return _page(const RemovedDailyFortuneStub());
       case '/home/all-categories':
         return _page(const AllCategoriesScreen());
 

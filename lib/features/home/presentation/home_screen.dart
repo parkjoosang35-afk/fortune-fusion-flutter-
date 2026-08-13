@@ -131,7 +131,8 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<WalletProvider>().load();
       context.read<AttendanceProvider>().load();
-      context.read<DailyFortuneProvider>().loadToday();
+      // 2026-08-13 결정: 일간 운세는 정통사주 80항목으로 통합되었다.
+      // 원 호출: context.read<DailyFortuneProvider>().loadToday();
       context.read<PassProvider>().load();
       context.read<NotificationProvider>().load();
       // [사용자 요청] "오늘의 운세 이야기"를 완전히 삭제하고 데이터베이스 기반 힐링
@@ -530,6 +531,7 @@ class _FortuneCategoryChipsState extends State<_FortuneCategoryChips> {
   }
 }
 
+// DailyFortune home card is hidden by 2026-08-13 decision
 /// ⑤ [사용자 요청] "오늘의 운세 이야기"를 완전히 삭제하고 대체한 힐링 문구 카드.
 ///
 /// - 운세 기능(DailyFortuneProvider 참조, 상세화면 이동)은 완전히 제거했다 —
