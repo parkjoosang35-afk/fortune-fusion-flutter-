@@ -61,6 +61,7 @@ import '../../features/pass/presentation/free_pass_gate_screen.dart';
 import '../../features/home/presentation/jeontong_eighty_screen.dart';
 import '../../features/home/presentation/jeontong_eighty_result_screen.dart';
 import '../../features/home/domain/jeontong_eighty_matrix.dart';
+import '../../features/history/presentation/history_readonly_screen.dart';
 
 /// 07단계 §3.2 라우팅 테이블 - Navigator 1.0(onGenerateRoute) 구현
 /// 10단계(A안): AI 6대 기능(사주/타로/관상/손금/궁합/AI상담) + 리워드(미션/랭킹)까지
@@ -325,6 +326,9 @@ class AppRouter {
       case '/wish-room':
       case '/wish-wall':
         return _page(const WishWallBoardScreen());
+
+      case '/history/readonly':
+        return _page(const HistoryReadOnlyScreen());
 
       default:
         // [P3 legacy 제거] 미사용 legacy HomeScreen(home_screen.dart) 대신
