@@ -28,6 +28,10 @@ class JeontongReportCache {
   // LinkedHashMap = 삽입 순서 유지 → LRU 로 안전.
   final LinkedHashMap<String, _Entry> _entries = LinkedHashMap<String, _Entry>();
 
+  int _hits = 0;
+  int _misses = 0;
+  int _evictions = 0;
+
   /// 캐시 히트면 그대로, 미스면 [JeontongReportBuilder.build] 를 1회 호출한 뒤
   /// 저장하고 반환한다.
   FortuneReport getOrBuild({
@@ -44,8 +48,10 @@ class JeontongReportCache {
     final hit = _entries.remove(key);
     if (hit != null && t.isBefore(hit.expiresAt)) {
       _entries[key] = hit; // touch: 삽입 순서 재정렬 = LRU 갱신
+      _hits++;
       return hit.value;
     }
+    _misses++;
 
     final built = JeontongReportBuilder.build(
       entry,
@@ -59,13 +65,30 @@ class JeontongReportCache {
     _entries[key] = _Entry(built, t.add(ttl));
     while (_entries.length > capacity) {
       _entries.remove(_entries.keys.first); // 가장 오래된 것부터 제거
+      _evictions++;
     }
     return built;
   }
 
   int get size => _entries.length;
 
-  void clear() => _entries.clear();
+  void clear() {
+    _entries.clear();
+    _hits = 0;
+    _misses = 0;
+    _evictions = 0;
+  }
+
+  int get hits => _hits;
+  int get misses => _misses;
+  int get evictions => _evictions;
+
+  /// 카운터만 0 으로 되돌린다. 캐시 엔트리는 유지 (테스트/관측 재시작용).
+  void resetCounters() {
+    _hits = 0;
+    _misses = 0;
+    _evictions = 0;
+  }
 
   String _key(
     String catId,

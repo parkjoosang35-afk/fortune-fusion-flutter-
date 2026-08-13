@@ -74,4 +74,72 @@ void main() {
       expect(cache.size, 0);
     });
   });
+
+  group('JeontongReportCache counters', () {
+    test('초기값은 모두 0', () {
+      final cache = JeontongReportCache();
+      expect(cache.hits, 0);
+      expect(cache.misses, 0);
+      expect(cache.evictions, 0);
+    });
+
+    test('miss → hit 시퀀스가 카운터에 반영', () {
+      final cache = JeontongReportCache();
+      final a01 = JeontongEightyMatrix.byId('A01')!;
+      final a02 = JeontongEightyMatrix.byId('A02')!;
+      cache.getOrBuild(entry: a01, userId: 'u1');
+      expect(cache.hits, 0);
+      expect(cache.misses, 1);
+      cache.getOrBuild(entry: a01, userId: 'u1');
+      expect(cache.hits, 1);
+      expect(cache.misses, 1);
+      cache.getOrBuild(entry: a02, userId: 'u1');
+      expect(cache.hits, 1);
+      expect(cache.misses, 2);
+    });
+
+    test('LRU eviction 발생 시 evictions 증가', () {
+      final cache = JeontongReportCache(capacity: 2);
+      final a01 = JeontongEightyMatrix.byId('A01')!;
+      final a02 = JeontongEightyMatrix.byId('A02')!;
+      final a03 = JeontongEightyMatrix.byId('A03')!;
+      final a04 = JeontongEightyMatrix.byId('A04')!;
+      cache.getOrBuild(entry: a01, userId: 'u1');
+      cache.getOrBuild(entry: a02, userId: 'u1');
+      expect(cache.evictions, 0);
+      cache.getOrBuild(entry: a03, userId: 'u1'); // a01 evict
+      expect(cache.evictions, 1);
+      cache.getOrBuild(entry: a04, userId: 'u1'); // a02 evict
+      expect(cache.evictions, 2);
+    });
+
+    test('resetCounters 는 엔트리는 유지, 카운터만 0', () {
+      final cache = JeontongReportCache();
+      final a01 = JeontongEightyMatrix.byId('A01')!;
+      cache.getOrBuild(entry: a01, userId: 'u1'); // miss
+      cache.getOrBuild(entry: a01, userId: 'u1'); // hit
+      final sizeBefore = cache.size;
+      cache.resetCounters();
+      expect(cache.hits, 0);
+      expect(cache.misses, 0);
+      expect(cache.evictions, 0);
+      expect(cache.size, sizeBefore); // 엔트리는 유지
+      // 리셋 후에도 같은 키는 여전히 hit
+      cache.getOrBuild(entry: a01, userId: 'u1');
+      expect(cache.hits, 1);
+      expect(cache.misses, 0);
+    });
+
+    test('clear 는 엔트리와 카운터 모두 0', () {
+      final cache = JeontongReportCache();
+      final a01 = JeontongEightyMatrix.byId('A01')!;
+      cache.getOrBuild(entry: a01, userId: 'u1');
+      cache.getOrBuild(entry: a01, userId: 'u1');
+      cache.clear();
+      expect(cache.size, 0);
+      expect(cache.hits, 0);
+      expect(cache.misses, 0);
+      expect(cache.evictions, 0);
+    });
+  });
 }
