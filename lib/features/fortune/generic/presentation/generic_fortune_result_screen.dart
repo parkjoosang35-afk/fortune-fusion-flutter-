@@ -16,7 +16,7 @@ import '../../../../core/widgets/fortune/result_bottom_actions.dart';
 import '../../../../core/widgets/fortune/section_card.dart';
 import '../../../home/domain/fortune_matrix.dart';
 import '../../../pass/presentation/pass_gate_helper.dart';
-import '../../daily/domain/fortune_report_model.dart';
+import '../../shared/domain/fortune_report_model.dart';
 import '../domain/generic_fortune_report_builder.dart';
 
 /// [운섹션 87 카테고리 통합] 공용 결과 화면 — 라우트 `/fortune/category`.

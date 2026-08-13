@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import '../../fortune/daily/domain/fortune_report_model.dart';
+import '../../fortune/shared/domain/fortune_report_model.dart';
 import 'jeontong_eighty_matrix.dart';
 
 /// [정통사주 80종 개편] 정통사주 80종 전용 결정론적 콘텐츠 생성기.

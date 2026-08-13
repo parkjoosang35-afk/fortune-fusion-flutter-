@@ -6,7 +6,7 @@ import '../../features/intro/presentation/intro_pager_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/signup_screen.dart';
 import '../../features/auth/presentation/profile_check_screen.dart';
-import '../../features/fortune/daily/presentation/_removed_daily_fortune_stub.dart';
+import '../../features/fortune/shared/presentation/removed_daily_fortune_stub.dart';
 import '../../features/mypage/presentation/my_fortune_records_screen.dart';
 import '../../features/home/presentation/all_categories_screen.dart';
 import '../../features/fortune/generic/presentation/generic_fortune_result_screen.dart';

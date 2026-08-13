@@ -1,6 +1,6 @@
 import 'dart:math';
 import '../../../home/domain/fortune_matrix.dart';
-import '../../daily/domain/fortune_report_model.dart';
+import '../../shared/domain/fortune_report_model.dart';
 
 /// [운섹션 87 카테고리 통합] 공용 결과 화면(GenericFortuneResultScreen)을 위한
 /// 결정론적 콘텐츠 생성기.

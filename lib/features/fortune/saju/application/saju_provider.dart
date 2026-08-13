@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import '../../../../core/telemetry/ai_call_counter.dart';
 import '../../../../core/utils/load_state.dart';
 import '../../../home/domain/fortune_matrix.dart';
-import '../../daily/domain/fortune_report_model.dart';
+import '../../shared/domain/fortune_report_model.dart';
 import '../../generic/domain/generic_fortune_report_builder.dart';
 import '../data/saju_repository.dart';
 import '../domain/saju_model.dart';

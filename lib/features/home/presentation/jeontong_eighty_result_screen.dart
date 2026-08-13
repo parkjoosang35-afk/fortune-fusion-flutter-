@@ -10,7 +10,7 @@ import '../../../core/widgets/fortune/result_bottom_actions.dart';
 import '../../../core/widgets/fortune/section_card.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../../core/data/my_fortune_record_store.dart';
-import '../../fortune/daily/domain/fortune_report_model.dart';
+import '../../fortune/shared/domain/fortune_report_model.dart';
 import '../domain/jeontong_eighty_matrix.dart';
 import '../domain/jeontong_eighty_report_builder.dart';
 
