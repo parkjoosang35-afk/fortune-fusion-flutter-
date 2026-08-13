@@ -222,7 +222,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: _Dims.heroCardBottomGap),
                       FadeSlideIn(
                         delay: const Duration(milliseconds: 140),
-                        child: const JeontongSajuSection(),
+                        child: const _FortuneTarotRow(),
                       ),
                     ],
                   ),
@@ -779,6 +779,122 @@ class _HealingQuoteCardState extends State<_HealingQuoteCard>
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// ⑤-1 [첨부 디자인 반영] "운세"/"타로" 2분할 카드
+///
+/// 좌측 "운세" 카드는 연보라(#F0EEFB 계열) 배경 + 네온라임 원형(위쪽 화살표)
+/// 버튼으로 [사용자 요청 - 정통사주 8종 서브 카테고리] 탭하면 페이지 이동
+/// 없이 "정통사주" 8종 카테고리 바텀시트를 연다(평생 총운/재물운/직업운/
+/// 애정운/건강운/오늘의 운세/이달 운세/올해 운세 — jeontong_saju_section.dart).
+/// 우측 "타로" 카드는 더 밝은 파스텔 블루-라벤더 배경 + 블랙 원형(아래쪽
+/// 화살표) 버튼으로 타로 메인 홈으로 이동한다(원상복구, 변경 없음). 각 카드
+/// 하단에는 작은 부제(운세이야기/타로이야기)를 배치해 첨부 목업의 레이아웃을
+/// 그대로 재현한다.
+class _FortuneTarotRow extends StatelessWidget {
+  const _FortuneTarotRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: _Dims.wishCardHeight,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: _FortuneTarotMiniCard(
+              title: '운세',
+              bottomLabel: '운세이야기',
+              backgroundColor: HomeColors.cardMain,
+              circleIcon: Icons.arrow_drop_up_rounded,
+              circleStyle: PremiumCircleButtonStyle.neon,
+              // [사용자 요청] "운세" 카드를 누르면 페이지 이동 대신 정통사주
+              // 8종 서브 카테고리 바텀시트를 연다(게이트체크는 시트 안에서
+              // 개별 카테고리를 선택했을 때만 수행 — all_categories_screen과
+              // 동일한 패턴, 시트를 여는 것 자체는 항상 가능).
+              onTap: () => showJeontongSajuCategoriesSheet(context),
+            ),
+          ),
+          const SizedBox(width: _Dims.wishCardGap),
+          Expanded(
+            child: _FortuneTarotMiniCard(
+              title: '타로',
+              bottomLabel: '타로이야기',
+              backgroundColor: HomeColors.cardWish,
+              circleIcon: Icons.arrow_drop_down_rounded,
+              circleStyle: PremiumCircleButtonStyle.black,
+              // [프리패스 전체잠금 통일] 게이트 없이 직접 이동하던 버그 수정.
+              onTap: () => navigateWithPassGate(
+                context,
+                title: '타로',
+                route: '/tarot/home',
+                requiresPass: true,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FortuneTarotMiniCard extends StatelessWidget {
+  const _FortuneTarotMiniCard({
+    required this.title,
+    required this.bottomLabel,
+    required this.backgroundColor,
+    required this.circleIcon,
+    required this.circleStyle,
+    required this.onTap,
+  });
+
+  final String title;
+  final String bottomLabel;
+  final Color backgroundColor;
+  final IconData circleIcon;
+  final PremiumCircleButtonStyle circleStyle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final overrideBg = circleStyle == PremiumCircleButtonStyle.neon
+        ? HomeColors.neon
+        : HomeColors.black;
+    final overrideFg = circleStyle == PremiumCircleButtonStyle.neon
+        ? HomeColors.textPrimary
+        : Colors.white;
+
+    return PremiumCard(
+      backgroundColor: backgroundColor,
+      borderColor: Colors.transparent,
+      borderRadius: BorderRadius.circular(_Dims.wishCardRadius),
+      showShadow: false,
+      onTap: onTap,
+      padding: const EdgeInsets.all(_Dims.wishCardPadding),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: Text(title, style: HomeText.title())),
+              PremiumCircleButton(
+                icon: circleIcon,
+                style: circleStyle,
+                size: _Dims.wishCircleSize,
+                iconSize: 14,
+                bgColor: overrideBg,
+                fgColor: overrideFg,
+                onTap: onTap,
+              ),
+            ],
+          ),
+          Text(bottomLabel, style: HomeText.caption()),
         ],
       ),
     );

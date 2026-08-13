@@ -5,8 +5,15 @@ import 'package:provider/provider.dart';
 import '../../../core/domain/access/access_checker.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
 
-/// [신통방통 정통사주 섹션] 힐링한마디 카드 아래, 기존 "운세/타로" 2분할
-/// 카드(`_FortuneTarotRow`)를 대체하는 신규 섹션.
+/// [신통방통 정통사주 서브 카테고리] 홈 화면 "운세/타로" 2분할 카드에서
+/// "운세" 카드를 탭했을 때 열리는 바텀시트 — 8종 정통사주 카테고리를
+/// 서브 카테고리 그리드로 보여준다.
+///
+/// [사용자 요청 반영] "운세섹션에 8종을 서브 카테고리로 운세를 클릭시 8종이
+/// 보여야 하는 구조" — 홈 본문에 항상 노출되는 고정 섹션이 아니라, 기존
+/// "운세" 카드를 탭했을 때 이 8종 그리드가 뜨는 구조로 변경한다. "타로"
+/// 카드/기존 운세·타로 2분할 카드 레이아웃 자체는 완전히 원상복구한다
+/// (home_screen.dart의 `_FortuneTarotRow`/`_FortuneTarotMiniCard` 참고).
 ///
 /// 참고 자료(사용자 첨부 "정통사주1.zip"):
 /// - flutter_integration/design_prompts/01_home.md (레이아웃/모션/자물쇠 규칙)
@@ -18,11 +25,10 @@ import '../../pass/presentation/pass_gate_helper.dart';
 /// [아키텍처 결정] 템플릿은 신규 `FreePassProvider`/`/free-pass-gate` 전용
 /// 라우트를 전제로 하지만, 이 앱은 이미 동등한 프리패스 게이트 체계
 /// (`AccessChecker`/`PassProvider`/`navigateWithPassGate`)가 있으므로 새
-/// Provider/라우트를 추가하지 않고 기존 것을 그대로 재사용한다(회귀 없음,
-/// "기존 Application/Data/Domain 레이어는 그대로 재사용" 원칙 준수).
-/// 잠금 카드 탭 → shake(300ms) → 기존 `navigateWithPassGate`가 호출하는
-/// 프리패스 안내 바텀시트(`showPassRequiredSheet`)로 연결된다(신규
-/// `/free-pass-gate` 화면을 만들지 않는 대신, 기존 앱의 동등 기능으로 대체).
+/// Provider/라우트를 추가하지 않고 기존 것을 그대로 재사용한다(회귀 없음).
+/// 시트를 여는 것 자체(카테고리 탐색)는 게이트 없이 항상 가능하고, 각
+/// 카테고리를 실제로 선택했을 때만 `navigateWithPassGate`로 게이트체크한다
+/// (all_categories_screen 등 기존 화면들과 동일한 패턴).
 ///
 /// 카테고리 8종(01_home.md 지정): 평생 총운/재물운/직업운/애정운/건강운/
 /// 오늘의 운세/이달 운세/올해 운세. 상세 화면은 기존 SajuInputScreen(토픽
@@ -128,12 +134,34 @@ class _JStyle {
   static const moonSilver = Color(0xFFC0C0C8);
 }
 
-class JeontongSajuSection extends StatelessWidget {
-  const JeontongSajuSection({super.key});
+/// 홈 화면 "운세" 카드에서 호출하는 진입점 — 8종 서브 카테고리 바텀시트를 연다.
+///
+/// [STEP8-2 로그인 필수 UI 패턴과 동일] 시트를 닫은(pop) 뒤에는 시트 내부
+/// context가 unmount되므로, 게이트체크+라우팅에는 시트를 연 "바깥쪽"(홈 화면)
+/// [context]를 그대로 클로저로 캡처해 사용한다(pass_gate_helper.dart의
+/// showLoginRequiredSheet와 동일한 패턴).
+Future<void> showJeontongSajuCategoriesSheet(BuildContext context) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (sheetCtx) => _JeontongCategoriesSheet(homeContext: context),
+  );
+}
 
-  Future<void> _onTap(BuildContext context, _JeontongCat cat) async {
+class _JeontongCategoriesSheet extends StatelessWidget {
+  const _JeontongCategoriesSheet({required this.homeContext});
+
+  /// 시트를 연 홈 화면의 context(시트가 닫혀도 계속 유효하게 살아있음).
+  final BuildContext homeContext;
+
+  Future<void> _onTap(BuildContext sheetCtx, _JeontongCat cat) async {
+    // 시트(sheetCtx)를 먼저 닫고, 여전히 mounted 상태인 홈 화면 context로
+    // 게이트체크 + 라우팅한다.
+    Navigator.of(sheetCtx).pop();
+    if (!homeContext.mounted) return;
     await navigateWithPassGate(
-      context,
+      homeContext,
       title: cat.name,
       route: cat.route,
       requiresPass: true,
@@ -145,93 +173,105 @@ class JeontongSajuSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasPass = context.watch<AccessChecker>().isOpenPassActive();
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
-      decoration: BoxDecoration(
-        color: _JStyle.inkBlack,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: _JStyle.royalGold.withValues(alpha: 0.20),
-          width: 1,
+    return SafeArea(
+      child: Container(
+        margin: const EdgeInsets.only(top: 60),
+        decoration: const BoxDecoration(
+          color: _JStyle.inkBlack,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Section title — design_prompts/01_home.md: gold serif 20sp
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '정통사주',
-                style: GoogleFonts.nanumMyeongjo(
-                  textStyle: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: _JStyle.royalGold,
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: _JStyle.royalGold.withValues(alpha: 0.35),
+                    borderRadius: BorderRadius.circular(999),
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              // Section title — design_prompts/01_home.md: gold serif 20sp
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '정통사주',
+                    style: GoogleFonts.nanumMyeongjo(
+                      textStyle: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: _JStyle.royalGold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    hasPass ? '자유 이용' : '프리패스 필요',
+                    style: GoogleFonts.notoSansKr(
+                      textStyle: const TextStyle(
+                        fontSize: 11,
+                        color: _JStyle.moonSilver,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
               Text(
-                hasPass ? '자유 이용' : '프리패스 필요',
+                '80가지 운세 · 프리패스 하나로 무제한',
                 style: GoogleFonts.notoSansKr(
                   textStyle: const TextStyle(
-                    fontSize: 11,
+                    fontSize: 12,
                     color: _JStyle.moonSilver,
                   ),
                 ),
               ),
+              const SizedBox(height: 16),
+              GridView.builder(
+                padding: EdgeInsets.zero,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _jeontongCategories.length,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                  childAspectRatio: 1.0,
+                ),
+                itemBuilder: (ctx, i) {
+                  final cat = _jeontongCategories[i];
+                  // design_system.md §모션: 카드 등장 fade+slide-up 400ms
+                  // cubic ease-out (여기서는 stagger 40ms×idx로 순차 적용).
+                  return TweenAnimationBuilder<double>(
+                    key: ValueKey('${cat.code}_$i'),
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    duration: Duration(milliseconds: 240 + i * 40),
+                    curve: Curves.easeOut,
+                    builder: (ctx, t, child) => Opacity(
+                      opacity: t,
+                      child: Transform.translate(
+                        offset: Offset(0, (1 - t) * 16),
+                        child: child,
+                      ),
+                    ),
+                    child: _JeontongCard(
+                      cat: cat,
+                      locked: !hasPass,
+                      onTap: () => _onTap(context, cat),
+                    ),
+                  );
+                },
+              ),
             ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            '80가지 운세 · 프리패스 하나로 무제한',
-            style: GoogleFonts.notoSansKr(
-              textStyle: const TextStyle(
-                fontSize: 12,
-                color: _JStyle.moonSilver,
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          GridView.builder(
-            padding: EdgeInsets.zero,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _jeontongCategories.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 1.0,
-            ),
-            itemBuilder: (ctx, i) {
-              final cat = _jeontongCategories[i];
-              // design_system.md §모션: 카드 등장 fade+slide-up 400ms
-              // cubic ease-out (여기서는 stagger 40ms×idx로 순차 적용).
-              return TweenAnimationBuilder<double>(
-                key: ValueKey('${cat.code}_$i'),
-                tween: Tween(begin: 0.0, end: 1.0),
-                duration: Duration(milliseconds: 240 + i * 40),
-                curve: Curves.easeOut,
-                builder: (ctx, t, child) => Opacity(
-                  opacity: t,
-                  child: Transform.translate(
-                    offset: Offset(0, (1 - t) * 16),
-                    child: child,
-                  ),
-                ),
-                child: _JeontongCard(
-                  cat: cat,
-                  locked: !hasPass,
-                  onTap: () => _onTap(ctx, cat),
-                ),
-              );
-            },
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -286,6 +326,8 @@ class _JeontongCardState extends State<_JeontongCard>
       onTap: () async {
         if (widget.locked) {
           _shakeCtrl.forward(from: 0);
+          // shake 모션이 보이도록 살짝 지연 후 게이트 흐름으로 진행한다.
+          await Future.delayed(const Duration(milliseconds: 300));
         }
         await widget.onTap();
       },
