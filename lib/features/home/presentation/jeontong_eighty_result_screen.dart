@@ -149,6 +149,15 @@ class _ResultBody extends StatelessWidget {
     return Column(
       children: [
         _Header(title: entry.title),
+        _jeontongPersonalizationBadge(context,
+          _jeontongSignatureFromInputs(
+            categoryCode: entry.id,
+            userId: null,
+            birthDateTimeUtc: null,
+            gender: null,
+            isLunar: null,
+          ),
+        ),
         Expanded(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(
@@ -246,6 +255,70 @@ class _ResultBody extends StatelessWidget {
         return const SizedBox.shrink();
     }
   }
+}
+
+/// 2026-08-13 결정. 화면 진입 시점에 이미 갖고 있는 4축을 그대로 해싱해
+/// 8자 hex 서명 생성. 어떤 축이라도 null 이면 null 반환 → 뱃지는
+/// "샘플 결과" 로 노출된다. 모델(fortune_report_model.dart) 무손상 —
+/// signature 필드에 의존하지 않는다.
+String? _jeontongSignatureFromInputs({
+  required String categoryCode,
+  String? userId,
+  DateTime? birthDateTimeUtc,
+  String? gender,
+  bool? isLunar,
+}) {
+  if (userId == null &&
+      birthDateTimeUtc == null &&
+      gender == null &&
+      isLunar == null) {
+    return null;
+  }
+  // FNV-1a 64bit — dart:core 만.
+  const int fnvPrime = 0x100000001b3;
+  int hash = 0xcbf29ce484222325;
+  void mix(String s) {
+    for (final code in s.codeUnits) {
+      hash ^= code;
+      hash = (hash * fnvPrime) & 0xFFFFFFFFFFFFFFFF;
+    }
+    hash ^= 0x5c;
+    hash = (hash * fnvPrime) & 0xFFFFFFFFFFFFFFFF;
+  }
+  mix('cat:$categoryCode');
+  mix('uid:${userId ?? ""}');
+  mix('bdt:${birthDateTimeUtc?.toIso8601String() ?? ""}');
+  mix('gen:${gender ?? ""}');
+  mix('lun:${isLunar == null ? "" : (isLunar ? "1" : "0")}');
+  final s = (hash & 0x7fffffffffffffff).toRadixString(16).padLeft(16, '0');
+  return s.substring(s.length - 8);
+}
+
+Widget _jeontongPersonalizationBadge(BuildContext context, String? signature) {
+  final cs = Theme.of(context).colorScheme;
+  final has = signature != null && signature.isNotEmpty;
+  final text = has ? '내 사주 반영 · #$signature' : '샘플 결과';
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    child: Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: has ? cs.primaryContainer : cs.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: cs.outlineVariant, width: 0.5),
+          ),
+          child: Text(
+            text,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: has ? cs.onPrimaryContainer : cs.onSurfaceVariant,
+                ),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _IndexBadge extends StatelessWidget {
