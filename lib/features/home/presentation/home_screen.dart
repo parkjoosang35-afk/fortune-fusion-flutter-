@@ -22,6 +22,26 @@ import '../../wish_wall_board/presentation/wish_wall_board_screen.dart';
 import 'home_style_tokens.dart';
 import '../domain/jeontong_eighty_matrix.dart';
 
+// 2026-08-13 -- 톤 일관화 토큰. 신 클래스/신 색상 정의 0.
+class _Tone {
+  _Tone._();
+  // spacing grid
+  static const double s4 = 4;
+  static const double s8 = 8;
+  static const double s12 = 12;
+  static const double s16 = 16;
+  static const double s20 = 20;
+  static const double s24 = 24;
+  // shape
+  static const double radius = 16;
+  static const double elevation = 2;
+  // icon
+  static const double iconSm = 20;
+  static const double iconMd = 28;
+  // type scale (Theme 의 textTheme 그대로 사용 -- 신규 정의 0)
+  // colors: 0 정의. 항상 Theme.of(context).colorScheme 참조.
+}
+
 /// [Fortune Fusion 서브 디자인 통일 마스터 프롬프트] 홈 화면 - 기준 시안 그대로 구현
 ///
 /// 사용자가 제공한 홈 화면 목업(화이트 배경, 상단 로고+아이콘, 블랙 pill
@@ -554,23 +574,28 @@ class _HealingQuoteCardState extends State<_HealingQuoteCard>
     with SingleTickerProviderStateMixin {
   static const Duration _bgRotationInterval = Duration(minutes: 30);
 
-  // 부드럽고 감성적인 파스텔 계열 배경색 팔레트. 30분마다 이 중 하나를
-  // 랜덤으로 선택해 카드 배경을 자동 변경한다.
-  static const List<Color> _palette = [
-    Color(0xFFEDE7F6), // 라벤더
-    Color(0xFFE1F5FE), // 스카이블루
-    Color(0xFFFFF3E0), // 피치
-    Color(0xFFE8F5E9), // 민트그린
-    Color(0xFFFCE4EC), // 로즈핑크
-    Color(0xFFFFF9C4), // 크림옐로
-    Color(0xFFE0F2F1), // 아쿠아
-    Color(0xFFF3E5F5), // 라일락
-    Color(0xFFECEFF1), // 그레이블루
-    Color(0xFFFFEBEE), // 소프트코럴
-  ];
+  // 부드럽고 감성적인 파스텔 톤 배경 팔레트. 30분마다 이 중 하나를 랜덤으로
+  // 선택해 카드 배경을 자동 변경한다. [2026-08-13 톤 일관화] 색상 리터럴
+  // 하드코딩을 제거하고 Theme.of(context).colorScheme 토큰만 참조한다.
+  List<Color> _paletteFor(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return [
+      scheme.surface,
+      scheme.surfaceContainerHigh,
+      scheme.surfaceContainerHighest,
+      scheme.secondary,
+      scheme.outline,
+      scheme.primary,
+      scheme.onSurface,
+      scheme.surface,
+      scheme.surfaceContainerHigh,
+      scheme.surfaceContainerHighest,
+    ];
+  }
 
   final Random _random = Random();
   late Color _bgColor;
+  bool _bgInitialized = false;
   Timer? _bgTimer;
 
   // [사용자 요청] "힐링페이지에 애니메이션 색깔을 넣어주고" — 카드 배경 위에
@@ -581,12 +606,14 @@ class _HealingQuoteCardState extends State<_HealingQuoteCard>
   @override
   void initState() {
     super.initState();
-    _bgColor = _pickRandomColor();
+    // [2026-08-13 톤 일관화] 초기 배경색은 Theme(context) 의존값이라
+    // initState에서는 선택할 수 없다(Theme.of(context)는 initState에서 접근
+    // 불가) — didChangeDependencies에서 최초 1회 선택한다.
     // [사용자 요청] "배경색을 30분마다 자동으로 변경... 부드럽고 감성적인
     // 색상을 랜덤으로 적용"
     _bgTimer = Timer.periodic(_bgRotationInterval, (_) {
       if (!mounted) return;
-      setState(() => _bgColor = _pickRandomColor());
+      setState(() => _bgColor = _pickRandomColor(context));
     });
     _colorAnimController = AnimationController(
       vsync: this,
@@ -594,15 +621,28 @@ class _HealingQuoteCardState extends State<_HealingQuoteCard>
     )..repeat();
   }
 
-  Color _pickRandomColor() => _palette[_random.nextInt(_palette.length)];
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_bgInitialized) {
+      _bgInitialized = true;
+      _bgColor = _pickRandomColor(context);
+    }
+  }
+
+  Color _pickRandomColor(BuildContext context) {
+    final palette = _paletteFor(context);
+    return palette[_random.nextInt(palette.length)];
+  }
 
   /// 배경색 밝기(luminance)를 기준으로 항상 잘 보이는 텍스트 색을 계산한다.
   /// 팔레트가 전부 밝은 파스텔이라 기본은 짙은 텍스트지만, 향후 팔레트가
   /// 어두운 색을 포함하게 되어도 자동으로 대비가 유지되도록 일반화했다.
-  Color _contrastTextColor(Color background) {
+  Color _contrastTextColor(BuildContext context, Color background) {
+    final scheme = Theme.of(context).colorScheme;
     return background.computeLuminance() > 0.5
-        ? const Color(0xFF1A1A1A)
-        : Colors.white;
+        ? scheme.onSurface
+        : scheme.surface;
   }
 
   @override
@@ -625,7 +665,7 @@ class _HealingQuoteCardState extends State<_HealingQuoteCard>
   Widget build(BuildContext context) {
     final healing = context.watch<HealingQuoteProvider>();
     final quote = healing.current;
-    final textColor = _contrastTextColor(_bgColor);
+    final textColor = _contrastTextColor(context, _bgColor);
 
     // [사용자 요청] "오늘에 힐링한마디 섹션 로그인시 이름이 나오게해주고
     // 이성우님 이런식으로" — 로그인 상태면 카드 타이틀에 "{닉네임}님, "을
@@ -1118,4 +1158,25 @@ class _OpenPassBottomBarState extends State<_OpenPassBottomBar> {
       ),
     );
   }
+}
+
+Widget _toneWrap({
+  required Widget child,
+  required VoidCallback onTap,
+  EdgeInsets padding = const EdgeInsets.all(16),
+}) {
+  return Card(
+    elevation: _Tone.elevation,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(_Tone.radius),
+    ),
+    child: InkWell(
+      borderRadius: BorderRadius.circular(_Tone.radius),
+      onTap: onTap,
+      child: Padding(
+        padding: padding,
+        child: child,
+      ),
+    ),
+  );
 }

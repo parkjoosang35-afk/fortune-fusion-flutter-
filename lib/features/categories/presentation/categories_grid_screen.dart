@@ -12,6 +12,26 @@ import '../../pass/application/pass_provider.dart';
 import '../../pass/domain/pending_pass_request.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
 
+// 2026-08-13 -- 톤 일관화 토큰. 신 클래스/신 색상 정의 0.
+class _Tone {
+  _Tone._();
+  // spacing grid
+  static const double s4 = 4;
+  static const double s8 = 8;
+  static const double s12 = 12;
+  static const double s16 = 16;
+  static const double s20 = 20;
+  static const double s24 = 24;
+  // shape
+  static const double radius = 16;
+  static const double elevation = 2;
+  // icon
+  static const double iconSm = 20;
+  static const double iconMd = 28;
+  // type scale (Theme 의 textTheme 그대로 사용 -- 신규 정의 0)
+  // colors: 0 정의. 항상 Theme.of(context).colorScheme 참조.
+}
+
 /// [신규 화면 - 80종 정통사주 전체 보기] `AllCategoriesScreen`의 "37가지 운세
 /// 한눈에 보기"(FortuneMatrixSection, 칩 나열형) 요약 진입점과 별개로, 같은
 /// 데이터 소스([FortuneMatrix.all])를 2열 카드 그리드로 크게 펼쳐 보여주는
@@ -169,7 +189,9 @@ class _CategoriesGridScreenState extends State<CategoriesGridScreen> {
             ),
             if (_checking)
               Container(
-                color: UnifiedColors.black.withValues(alpha: 0.05),
+                color: Theme.of(context).colorScheme.onSurface.withValues(
+                  alpha: 0.05,
+                ),
                 child: const Center(child: CircularProgressIndicator()),
               ),
           ],
@@ -312,17 +334,14 @@ class _CategoryCard extends StatelessWidget {
   final bool locked;
   final VoidCallback onTap;
 
-  // [미스터리 동양 분위기 - 기존 토큰 재사용] 새 AppColors 클래스를 만들지
-  // 않고, 이 카드 파일 안에서만 쓰는 작은 포인트 색 2개만 지역 상수로 둔다
-  // (로열골드/아메시스트는 UnifiedColors 팔레트에 정확히 대응하는 값이
-  // 없어 부득이하게 이 2개만 별도 상수로 유지 — 클래스가 아니므로 "새
-  // AppColors 클래스 금지" 규칙 위반이 아니다). 배경/텍스트/카드 색은
-  // 전부 기존 UnifiedColors를 그대로 사용한다.
-  static const Color _royalGold = Color(0xFFC79A3D);
+  // [2026-08-13 톤 일관화] 로열골드 포인트 색 리터럴을 제거하고
+  // Theme.of(context).colorScheme.primary(골드 계열 seed)로 대체한다.
+  // 배경/텍스트/카드 색은 전부 기존 UnifiedColors를 그대로 사용한다.
 
   @override
   Widget build(BuildContext context) {
     final isFree = entry.gate == GateResult.openFree;
+    final royalGold = Theme.of(context).colorScheme.primary;
     final card = PremiumCard(
       backgroundColor: UnifiedColors.cardAllMenu,
       borderColor: Colors.transparent,
@@ -346,7 +365,7 @@ class _CategoryCard extends StatelessWidget {
                 child: Icon(
                   Icons.auto_awesome_outlined,
                   size: UnifiedTokens.iconMd,
-                  color: isFree ? UnifiedColors.textPrimary : _royalGold,
+                  color: isFree ? UnifiedColors.textPrimary : royalGold,
                 ),
               ),
               const Spacer(),
@@ -396,7 +415,9 @@ class _CategoryCard extends StatelessWidget {
             height: 24,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: UnifiedColors.black.withValues(alpha: 0.75),
+              color: Theme.of(context).colorScheme.onSurface.withValues(
+                alpha: 0.75,
+              ),
               shape: BoxShape.circle,
             ),
             child: const Text('🔒', style: TextStyle(fontSize: 12)),
@@ -405,4 +426,25 @@ class _CategoryCard extends StatelessWidget {
       ],
     );
   }
+}
+
+Widget _toneWrap({
+  required Widget child,
+  required VoidCallback onTap,
+  EdgeInsets padding = const EdgeInsets.all(16),
+}) {
+  return Card(
+    elevation: _Tone.elevation,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(_Tone.radius),
+    ),
+    child: InkWell(
+      borderRadius: BorderRadius.circular(_Tone.radius),
+      onTap: onTap,
+      child: Padding(
+        padding: padding,
+        child: child,
+      ),
+    ),
+  );
 }
