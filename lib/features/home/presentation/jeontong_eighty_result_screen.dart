@@ -13,6 +13,7 @@ import '../../../core/data/my_fortune_record_store.dart';
 import '../../fortune/shared/domain/fortune_report_model.dart';
 import '../domain/jeontong_eighty_matrix.dart';
 import '../domain/jeontong_eighty_report_builder.dart';
+import '../domain/jeontong_report_cache.dart';
 
 /// [정통사주 80종 개편] 80종 전용 결과 화면 — 라우트 `/jeontong/eighty/result`.
 ///
@@ -60,7 +61,7 @@ class _JeontongEightyResultScreenState
   }
 
   Future<void> _onSave(JeontongCategoryEntry entry) async {
-    final report = JeontongReportBuilder.build(entry);
+    final report = jeontongReportCache.getOrBuild(entry: entry);
     await MyFortuneRecordStore.save(
       SavedFortuneRecord(
         id: 'jeontong80_${entry.id}_${DateTime.now().toIso8601String().substring(0, 10)}',
@@ -145,7 +146,7 @@ class _ResultBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final report = JeontongReportBuilder.build(entry);
+    final report = jeontongReportCache.getOrBuild(entry: entry);
     return Column(
       children: [
         _Header(title: entry.title),
