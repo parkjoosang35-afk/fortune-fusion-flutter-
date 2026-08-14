@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/auth/auth_token_store.dart';
 import '../domain/history_readonly_adapter.dart';
+import 'history_jeontong_sectioned_view.dart';
 
 /// 2026‑08‑13 결정.
 /// 사용자 히스토리(타로·상담·관상·손금·정통사주 80)를 한 화면에서 Read‑Only 로
@@ -91,11 +92,10 @@ class _HistoryReadOnlyScreenState extends State<HistoryReadOnlyScreen> {
               ),
             );
           }
-          final list = snap.data;
-          if (snap.hasError || list == null || list.isEmpty) {
-            return _emptyTab(index);
-          }
-          return _cardList(list);
+          return HistoryJeontongSectionedView(
+            entries: snap.data ?? const [],
+            userId: _currentUserId(),
+          );
         },
       );
     }
