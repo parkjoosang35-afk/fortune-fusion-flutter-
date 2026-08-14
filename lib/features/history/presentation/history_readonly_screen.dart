@@ -80,23 +80,47 @@ class _HistoryReadOnlyScreenState extends State<HistoryReadOnlyScreen> {
     // 정통사주(4번) 탭만 실데이터 vertical slice — 어댑터가 Future 를
     // 반환하도록 갱신됐으므로 FutureBuilder 로 소비한다.
     if (index == 4) {
-      return FutureBuilder<List<HistoryReadOnlyEntry>>(
-        future: historyReadOnlyAdapter.readJeontong(_currentUserId()),
-        builder: (context, snap) {
-          if (snap.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(strokeWidth: 2),
+      return Column(
+        children: [
+          // [정통사주 한눈에 미리보기 진입] STEP 1-C 단일 수정 위치. 기존
+          // FutureBuilder+HistoryJeontongSectionedView 호출은 그대로 두고
+          // 그 위에 진입 버튼 1개만 추가한다(다른 4탭 case/_emptyTab/
+          // _tabBody/_readTab/_currentUserId 로직 무수정).
+          Align(
+            alignment: Alignment.centerRight,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+              child: TextButton.icon(
+                icon: const Icon(Icons.grid_view_rounded, size: 18),
+                label: const Text('한눈에 미리보기'),
+                onPressed: () => Navigator.of(context).pushNamed(
+                  '/jeontong/overview',
+                  arguments: {'userId': _currentUserId()},
+                ),
               ),
-            );
-          }
-          return HistoryJeontongSectionedView(
-            entries: snap.data ?? const [],
-            userId: _currentUserId(),
-          );
-        },
+            ),
+          ),
+          Expanded(
+            child: FutureBuilder<List<HistoryReadOnlyEntry>>(
+              future: historyReadOnlyAdapter.readJeontong(_currentUserId()),
+              builder: (context, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  );
+                }
+                return HistoryJeontongSectionedView(
+                  entries: snap.data ?? const [],
+                  userId: _currentUserId(),
+                );
+              },
+            ),
+          ),
+        ],
       );
     }
     // 나머지 4탭(타로·상담·관상·손금)은 이전 미션 상태 그대로 —

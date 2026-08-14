@@ -63,6 +63,7 @@ import '../../features/home/presentation/jeontong_eighty_result_screen.dart';
 import '../../features/home/presentation/jeontong_eighty_grid_screen.dart';
 import '../../features/home/domain/jeontong_eighty_matrix.dart';
 import '../../features/history/presentation/history_readonly_screen.dart';
+import '../../features/history/presentation/history_jeontong_overview_screen.dart';
 import '../auth/auth_token_store.dart';
 
 /// 07단계 §3.2 라우팅 테이블 - Navigator 1.0(onGenerateRoute) 구현
@@ -144,6 +145,15 @@ class AppRouter {
                 (AuthTokenStore.cachedUserIdOrNull ??
                         AuthTokenStore.fallbackUserId)
                     .toString(),
+          ),
+        );
+
+      // [정통사주 한눈에 미리보기] 히스토리 정통사주 탭에서 진입하는
+      // read-only 조망 화면 1개만 추가(다른 라우트/순서/provider 무수정).
+      case '/jeontong/overview':
+        return _page(
+          HistoryJeontongOverviewScreen(
+            userId: (settings.arguments as Map)['userId'] as String,
           ),
         );
 
