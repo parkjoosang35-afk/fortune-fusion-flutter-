@@ -376,6 +376,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.1.1"
+  lunar:
+    dependency: "direct main"
+    description:
+      name: lunar
+      sha256: c82efc7c2bc2474de6b3805bd75b4e5eb2430390ae37bdded47e902631188acf
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.7.7"
   matcher:
     dependency: transitive
     description:
