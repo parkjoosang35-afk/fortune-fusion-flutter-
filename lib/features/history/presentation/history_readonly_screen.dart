@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../domain/history_readonly_adapter.dart';
+
 /// 2026‑08‑13 결정.
 /// 사용자 히스토리(타로·상담·관상·손금·정통사주 80)를 한 화면에서 Read‑Only 로
 /// 모아 보여준다.
@@ -33,7 +35,7 @@ class _HistoryReadOnlyScreenState extends State<HistoryReadOnlyScreen> {
           _tabsBar(),
           const Divider(height: 1),
           Expanded(
-            child: _emptyTab(_tab),
+            child: _tabBody(_tab),
           ),
         ],
       ),
@@ -70,5 +72,39 @@ class _HistoryReadOnlyScreenState extends State<HistoryReadOnlyScreen> {
         ),
       ),
     );
+  }
+
+  Widget _tabBody(int index) {
+    final entries = _readTab(index);
+    if (entries.isEmpty) return _emptyTab(index);
+    return ListView.separated(
+      itemCount: entries.length,
+      separatorBuilder: (_, __) => const Divider(height: 1),
+      itemBuilder: (context, i) {
+        final e = entries[i];
+        return ListTile(
+          title: Text(e.title),
+          subtitle: Text('${e.subtitle}\n${e.createdAt.toIso8601String()}'),
+          isThreeLine: true,
+          // 편집/삭제/재생성 액션 0. onTap 도 없음.
+        );
+      },
+    );
+  }
+
+  List<HistoryReadOnlyEntry> _readTab(int index) {
+    switch (index) {
+      case 0:
+        return historyReadOnlyAdapter.readTarot();
+      case 1:
+        return historyReadOnlyAdapter.readCounsel();
+      case 2:
+        return historyReadOnlyAdapter.readFace();
+      case 3:
+        return historyReadOnlyAdapter.readPalm();
+      case 4:
+        return historyReadOnlyAdapter.readJeontong();
+    }
+    return const <HistoryReadOnlyEntry>[];
   }
 }
