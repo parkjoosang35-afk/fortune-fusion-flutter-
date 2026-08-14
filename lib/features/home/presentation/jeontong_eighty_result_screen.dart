@@ -16,6 +16,7 @@ import '../data/jeontong_history_store.dart';
 import '../domain/jeontong_eighty_matrix.dart';
 import '../domain/jeontong_eighty_report_builder.dart';
 import '../domain/jeontong_report_cache.dart';
+import 'widgets/jeontong_easy_term_toggle.dart';
 
 /// [정통사주 80종 개편] 80종 전용 결과 화면 — 라우트 `/jeontong/eighty/result`.
 ///
@@ -45,6 +46,11 @@ class _JeontongEightyResultScreenState
   @override
   void initState() {
     super.initState();
+    // [정통사주 쉬운 설명 토글] 전문 용어 → 쉬운말 룰 JSON을 fire-and-forget
+    // 으로 미리 로드해둔다. 실패해도 예외를 삼키고 토글은 폴백 문구를
+    // 보여주므로(위젯 자체 문서 참고) await 하지 않는다 — 프레임 예산
+    // (frame bench 계약, never-touch)에 영향을 주지 않기 위함.
+    JeontongEasyTermToggle.preload();
     // [STEP 1-D] 결과 열람 이력 1회 기록. 결정론 골든/체크섬과는 무관한
     // 별도 부수효과이므로 build()가 아닌 initState()에서 1회만 실행한다.
     // dart:core 전용 in-memory store — HTTP/AI 호출 없음.
@@ -211,6 +217,19 @@ class _ResultBody extends StatelessWidget {
                 _buildSection(section),
                 const SizedBox(height: UnifiedTokens.spaceMd),
               ],
+              // [정통사주 쉬운 설명 토글] report.sections 본문은 순수 한글
+              // 프로즈로 구성돼 있어(jeontong_eighty_report_builder.dart
+              // 확인 완료) "일간/신강/신약/식신" 같은 한자 전문 용어가 문장
+              // 안에 리터럴 토큰으로 등장하지 않는다. 대신 사주에서 자주
+              // 쓰이는 대표 용어 4개를 고정 목록으로 두고, 결과 하단에
+              // "이런 용어, 쉽게 알아보기" 보충 섹션으로 노출한다. 탭하면
+              // 같은 자리에서 펼쳐지고, 다시 탭하면 접힌다(요구사항 그대로).
+              SectionCard(title: '이런 용어, 쉽게 알아보기', body: '탭하면 쉬운 설명이 펼쳐져요'),
+              const JeontongEasyTermToggle(token: '일간'),
+              const JeontongEasyTermToggle(token: '신강'),
+              const JeontongEasyTermToggle(token: '신약'),
+              const JeontongEasyTermToggle(token: '식신'),
+              const SizedBox(height: UnifiedTokens.spaceMd),
               ResultBottomActions(
                 actions: [
                   ResultActionItem(
