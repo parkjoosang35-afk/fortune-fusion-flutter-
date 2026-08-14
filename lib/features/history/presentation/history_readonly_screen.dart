@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/auth/auth_token_store.dart';
 import '../domain/history_readonly_adapter.dart';
 
 /// 2026‑08‑13 결정.
@@ -75,8 +76,37 @@ class _HistoryReadOnlyScreenState extends State<HistoryReadOnlyScreen> {
   }
 
   Widget _tabBody(int index) {
+    // 정통사주(4번) 탭만 실데이터 vertical slice — 어댑터가 Future 를
+    // 반환하도록 갱신됐으므로 FutureBuilder 로 소비한다.
+    if (index == 4) {
+      return FutureBuilder<List<HistoryReadOnlyEntry>>(
+        future: historyReadOnlyAdapter.readJeontong(_currentUserId()),
+        builder: (context, snap) {
+          if (snap.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            );
+          }
+          final list = snap.data;
+          if (snap.hasError || list == null || list.isEmpty) {
+            return _emptyTab(index);
+          }
+          return _cardList(list);
+        },
+      );
+    }
+    // 나머지 4탭(타로·상담·관상·손금)은 이전 미션 상태 그대로 —
+    // 어댑터가 항상 빈 리스트를 반환하므로 결과적으로 기존 "준비 중" 그대로.
     final entries = _readTab(index);
     if (entries.isEmpty) return _emptyTab(index);
+    return _cardList(entries);
+  }
+
+  Widget _cardList(List<HistoryReadOnlyEntry> entries) {
     return ListView.separated(
       itemCount: entries.length,
       separatorBuilder: (_, __) => const Divider(height: 1),
@@ -102,9 +132,15 @@ class _HistoryReadOnlyScreenState extends State<HistoryReadOnlyScreen> {
         return historyReadOnlyAdapter.readFace();
       case 3:
         return historyReadOnlyAdapter.readPalm();
-      case 4:
-        return historyReadOnlyAdapter.readJeontong();
     }
     return const <HistoryReadOnlyEntry>[];
   }
+
+  /// [STEP 0-C 실측] 앱 전역에 사용자별 히스토리를 구분할 로그인 사용자 ID
+  /// 개념은 AuthTokenStore.cachedUserIdOrNull(SharedPreferences 기반, HTTP
+  /// 없음)뿐이다. 비로그인 시 기존 12개 Repository와 동일한 폴백 규칙
+  /// (fallbackUserId)을 그대로 따른다.
+  String _currentUserId() =>
+      (AuthTokenStore.cachedUserIdOrNull ?? AuthTokenStore.fallbackUserId)
+          .toString();
 }

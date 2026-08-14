@@ -18,6 +18,14 @@
 //
 // 미션 원칙 "존재하지 않는 클래스는 해당 섹션을 빈 리스트 반환으로 폴백"에
 // 따라, 5개 섹션 모두 원본을 새로 손대지 않고 빈 리스트로 폴백한다.
+//
+// [2026-08-14 추가] 정통사주 vertical slice: JeontongHistoryStore
+// (lib/features/home/data/jeontong_history_store.dart, dart:core 전용
+// in-memory singleton)가 신설되어 readJeontong() 1개 메서드만 실제 데이터를
+// 반환하도록 갱신한다. 나머지 4개 메서드(readTarot/readCounsel/readFace/
+// readPalm)는 이전 미션 상태(빈 리스트 폴백) 그대로 무수정.
+
+import '../../home/data/jeontong_history_store.dart' as jeontong_store;
 
 /// 화면 전용 read-only 카드 표시 값. 원본 스키마와 무관하게 최소 필드만.
 class HistoryReadOnlyEntry {
@@ -56,10 +64,22 @@ class HistoryReadOnlyAdapter {
     return const <HistoryReadOnlyEntry>[];
   }
 
-  // 실측 결과 JeontongHistoryStore 미존재(MyFortuneRecordStore는 비동기
-  // Future 이며 이 미션의 동기 시그니처와 불일치) → 폴백.
-  List<HistoryReadOnlyEntry> readJeontong() {
-    return const <HistoryReadOnlyEntry>[];
+  // [2026-08-14 갱신] JeontongHistoryStore(in-memory, dart:core 전용)가
+  // 신설됨. 실제 조회 자체는 동기(Map 스냅샷)이지만, 미션 STEP 1-B/1-C 요구에
+  // 따라 화면이 FutureBuilder 로 소비할 수 있도록 Future 시그니처를 유지한다
+  // (await 는 없음 — 값은 이미 준비돼 있고 Future.value 로만 감쌈).
+  Future<List<HistoryReadOnlyEntry>> readJeontong(String userId) async {
+    return jeontong_store.JeontongHistoryStore.instance
+        .list(userId)
+        .map(
+          (e) => HistoryReadOnlyEntry(
+            id: e.id,
+            title: e.title,
+            subtitle: e.subtitle,
+            createdAt: e.createdAtUtc,
+          ),
+        )
+        .toList();
   }
 }
 

@@ -9,8 +9,10 @@ import '../../../core/widgets/fortune/lucky_elements_grid.dart';
 import '../../../core/widgets/fortune/result_bottom_actions.dart';
 import '../../../core/widgets/fortune/section_card.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../../../core/auth/auth_token_store.dart';
 import '../../../core/data/my_fortune_record_store.dart';
 import '../../fortune/shared/domain/fortune_report_model.dart';
+import '../data/jeontong_history_store.dart';
 import '../domain/jeontong_eighty_matrix.dart';
 import '../domain/jeontong_eighty_report_builder.dart';
 import '../domain/jeontong_report_cache.dart';
@@ -39,6 +41,27 @@ class JeontongEightyResultScreen extends StatefulWidget {
 class _JeontongEightyResultScreenState
     extends State<JeontongEightyResultScreen> {
   bool _saved = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // [STEP 1-D] 결과 열람 이력 1회 기록. 결정론 골든/체크섬과는 무관한
+    // 별도 부수효과이므로 build()가 아닌 initState()에서 1회만 실행한다.
+    // dart:core 전용 in-memory store — HTTP/AI 호출 없음.
+    final entry = JeontongEightyMatrix.byId(widget.categoryId ?? '');
+    if (entry != null) {
+      final report = jeontongReportCache.getOrBuild(entry: entry);
+      JeontongHistoryStore.instance.record(
+        userId:
+            (AuthTokenStore.cachedUserIdOrNull ?? AuthTokenStore.fallbackUserId)
+                .toString(),
+        categoryId: entry.id,
+        title: report.hero.headline,
+        subtitle: report.hero.subDescription ?? report.hero.headline,
+        createdAtUtc: DateTime.now().toUtc(),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
