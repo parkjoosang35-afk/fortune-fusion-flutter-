@@ -16,9 +16,12 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_app/features/fortune/shared/domain/fortune_report_model.dart';
 import 'package:flutter_app/features/home/domain/jeontong_eighty_matrix.dart';
 import 'package:flutter_app/features/home/domain/jeontong_eighty_report_builder.dart';
+import 'package:flutter_app/features/home/domain/saju_fortune_rules.dart';
+import 'package:flutter_app/features/home/domain/saju_interpreter.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'fixtures/jeontong_inputs.dart';
@@ -30,6 +33,19 @@ final DateTime kFixedDate = DateTime.utc(2026, 8, 13);
 
 void main() {
   const goldenPath = 'test/goldens/jeontong_eighty.json';
+
+  // [2026-08-14 실계산 배선] build() 가 birthDateTimeUtc 를 받으면 실계산
+  // 경로(SajuEngine → SajuInterpreter.fullInterpretation → 80종 매핑)를
+  // 타므로, 이 골든이 그 경로까지 검증하도록 rules 를 1회 프리로드한다.
+  // (SajuRules.preload()는 saju_interpreter.dart, SajuFortuneRules.preload()
+  // 는 saju_fortune_rules.dart 참고 — 둘 다 fire-and-forget 정적 캐시 패턴)
+  setUpAll(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    SajuRules.resetForTest();
+    SajuFortuneRules.resetForTest();
+    await SajuRules.preload();
+    await SajuFortuneRules.preload();
+  });
 
   test('jeontong 80 x 3 seeds is deterministic (golden)', () async {
     final all = <String, Map<String, dynamic>>{};

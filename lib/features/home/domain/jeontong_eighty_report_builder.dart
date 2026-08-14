@@ -1,7 +1,11 @@
 import 'dart:math';
 
 import '../../fortune/shared/domain/fortune_report_model.dart';
+import 'jeontong_eighty_calculator.dart';
 import 'jeontong_eighty_matrix.dart';
+import 'saju_engine.dart';
+import 'saju_fortune_rules.dart';
+import 'saju_interpreter.dart';
 
 /// [정통사주 80종 개편] 정통사주 80종 전용 결정론적 콘텐츠 생성기.
 ///
@@ -32,9 +36,23 @@ class JeontongReportBuilder {
   JeontongReportBuilder._();
 
   /// 기존 build() 시그니처를 유지하면서 개인화 4축을 추가한 공개 진입점.
+  ///
+  /// [2026-08-14 실계산 배선] `birthDateTimeUtc`가 주어지고, [SajuRules]/
+  /// [SajuFortuneRules]의 프리로드가 이미 완료돼 있으면(둘 다
+  /// `cachedOrNull`이 non-null) 실제 만세력 계산(`SajuEngine` →
+  /// `SajuInterpreter.fullInterpretation` → `runJeontongCategory`)을 거쳐
+  /// 실계산 기반 [FortuneReport]를 반환한다. 아래 경우에는 안전하게 기존
+  /// 폴백 경로(같은 입력이면 같은 결과인 결정론적 랜덤 콘텐츠)로 떨어진다:
+  ///   - `birthDateTimeUtc`가 null (아직 생년월일시를 모름)
+  ///   - rules 프리로드가 아직 완료되지 않음(비동기 로딩 중)
+  ///   - 해당 카테고리가 아직 플레이스홀더(원본 파이썬도 미구현)이거나
+  ///     상대 사주가 필요한 궁합 카테고리(E01~E07)
+  ///   - 계산 도중 예외 발생(방어적 안전망 — 결과 화면이 절대 깨지지 않게)
+  ///
   /// 4축이 모두 null 이면 [_buildBaseReport]의 결과를 그대로 반환한다(완전
-  /// 하위호환). 하나라도 non-null 이면, base 결과의 텍스트 콘텐츠는 그대로
-  /// 두고 "이미 base 가 골라둔 값들의 순서/인덱스"만 사용자별 seed로 회전한다.
+  /// 하위호환). 실계산도, personalization 도 적용되지 않는 경우 하나라도
+  /// non-null 이면, base 결과의 텍스트 콘텐츠는 그대로 두고 "이미 base 가
+  /// 골라둔 값들의 순서/인덱스"만 사용자별 seed로 회전한다.
   static FortuneReport build(
     JeontongCategoryEntry entry, {
     DateTime? date,
@@ -44,6 +62,18 @@ class JeontongReportBuilder {
     bool? isLunar,
   }) {
     final base = _buildBaseReport(entry, date: date);
+
+    if (birthDateTimeUtc != null) {
+      final real = _tryBuildRealReport(
+        entry,
+        base: base,
+        date: date,
+        birthDateTimeUtc: birthDateTimeUtc,
+        gender: gender,
+        isLunar: isLunar,
+      );
+      if (real != null) return real;
+    }
 
     if (userId == null &&
         birthDateTimeUtc == null &&
@@ -61,6 +91,256 @@ class JeontongReportBuilder {
     );
 
     return _applyPersonalization(base, seed: seed);
+  }
+
+  /// 실계산 시도. 준비가 안 됐거나(rules 미로드) 실패하면 null을 반환해
+  /// 호출부가 기존 폴백 경로를 타도록 한다 — 절대 throw 하지 않는다.
+  static FortuneReport? _tryBuildRealReport(
+    JeontongCategoryEntry entry, {
+    required FortuneReport base,
+    DateTime? date,
+    required DateTime birthDateTimeUtc,
+    String? gender,
+    bool? isLunar,
+  }) {
+    try {
+      final rules = SajuRules.cachedOrNull;
+      final fortuneRules = SajuFortuneRules.cachedOrNull;
+      if (rules == null || fortuneRules == null) return null;
+
+      // birthDateTimeUtc 는 UTC 저장값이므로, KST(UTC+9) 벽시계 시각으로
+      // 변환해 SajuEngine 에 넘긴다(테스트 픽스처 주석과 동일한 규약 —
+      // 예: 1972-02-12 17:00Z == 1972-02-13 02:00 KST).
+      final kst = birthDateTimeUtc.add(const Duration(hours: 9));
+      final sajuGender = gender == 'F' || gender == 'female' ? 'female' : 'male';
+      final referenceDate = date ?? DateTime.now();
+
+      final saju = SajuEngine.calculate(
+        year: kst.year,
+        month: kst.month,
+        day: kst.day,
+        hour: kst.hour,
+        minute: kst.minute,
+        gender: sajuGender,
+        isLunar: isLunar ?? false,
+        referenceDate: referenceDate,
+      );
+
+      final interp = SajuInterpreter.fullInterpretation(saju);
+      final ctx = JeontongCalcContext(
+        saju: saju,
+        interp: interp,
+        rules: fortuneRules,
+        referenceDate: referenceDate,
+      );
+
+      final result = runJeontongCategory(entry.id, ctx);
+      if (_isPlaceholderResult(result)) return null;
+
+      return _mapCalculatedResultToReport(entry, result, base);
+    } catch (_) {
+      // 방어적 안전망 — 어떤 이유로든 실계산이 실패하면 폴백.
+      return null;
+    }
+  }
+
+  /// 플레이스홀더/상대 사주 필요 결과 판정. 원본 파이썬도 이 경우
+  /// `{"message": ...}` 또는 `{"note": "상대 사주 필요"}` 형태만 반환했다.
+  static bool _isPlaceholderResult(JeontongCategoryResult result) {
+    final keys = result.data.keys.toSet();
+    if (keys.length == 1 && (keys.single == 'message' || keys.single == 'note')) {
+      return true;
+    }
+    return false;
+  }
+
+  // ==========================================================
+  // [2026-08-14 실계산 배선] JeontongCategoryResult → FortuneReport 매퍼.
+  // ==========================================================
+
+  static const Map<String, String> _aspectFieldLabels = {
+    'overall': '총운',
+    'work': '업무·직장운',
+    'wealth': '재물운',
+    'career': '직업운',
+    'love': '애정운',
+    'health': '건강운',
+    'mood': '오늘의 기분',
+  };
+
+  static const Map<String, String> _listFieldLabels = {
+    'recommended_jobs': '추천 직업',
+    'activities': '추천 활동',
+    'items': '추천 아이템',
+    'food': '추천 음식',
+    'strengths': '핵심 강점',
+    'core_organs': '주요 관리 장기',
+    'lifetime_warnings': '평생 건강 주의 신호',
+    'weaknesses': '보완하면 좋은 점',
+    'advice_food': '추천 음식',
+  };
+
+  static const List<String> _overviewFieldOrder = [
+    'headline',
+    'core_nature',
+    'nature',
+    'personality',
+    'verdict',
+    'structure',
+    'style',
+    'message',
+    'summary',
+    'year_theme',
+    'title',
+    'overall',
+    'mood',
+    'advice',
+    'lifestyle',
+    'marriage_timing',
+    'growth_path',
+    'peak_period',
+  ];
+
+  static FortuneReport _mapCalculatedResultToReport(
+    JeontongCategoryEntry entry,
+    JeontongCategoryResult result,
+    FortuneReport base,
+  ) {
+    final data = result.data;
+
+    String? asStr(String key) {
+      final v = data[key];
+      return v is String && v.trim().isNotEmpty ? v.trim() : null;
+    }
+
+    List<String> asStrList(String key) {
+      final v = data[key];
+      if (v is List) {
+        return v.map((e) => e.toString()).where((e) => e.trim().isNotEmpty).toList();
+      }
+      return const [];
+    }
+
+    // --- Hero: headline/subDescription 은 실계산 텍스트로 교체.
+    // score/statusLabel/keywords 는 base(결정론적 시드) 값을 그대로 재사용
+    // 한다 — 원본 파이썬도 0~100 숫자 점수를 산출하지 않으므로, 기존
+    // 뷰(HeroSummaryCard)가 요구하는 숫자 스코어 표현은 base 로직을
+        // 그대로 빌린다(콘텐츠는 실계산, 스코어 연출은 기존 결정론 유지).
+    final headline = asStr('title') ??
+        asStr('headline') ??
+        asStr('verdict') ??
+        asStr('structure') ??
+        asStr('style') ??
+        entry.title;
+    final subDescription = asStr('message') ??
+        asStr('overall') ??
+        asStr('mood') ??
+        asStr('summary') ??
+        base.hero.subDescription;
+
+    final hero = FortuneHero(
+      score: base.hero.score,
+      headline: headline,
+      name: entry.title,
+      date: base.hero.date,
+      statusLabel: base.hero.statusLabel,
+      keywords: base.hero.keywords,
+      subDescription: subDescription,
+    );
+
+    // --- Overview 섹션: 서술형 필드를 순서대로 이어붙인다.
+    final overviewParts = <String>[];
+    for (final key in _overviewFieldOrder) {
+      final v = asStr(key);
+      if (v == null) continue;
+      if (overviewParts.contains(v)) continue;
+      overviewParts.add(v);
+    }
+    final overviewBody = overviewParts.isNotEmpty
+        ? overviewParts.join(' ')
+        : (base.sectionsOfType<OverviewSection>().firstOrNull?.body ?? '');
+
+    // --- Aspect 섹션: wealth/career/love/health/work/overall/mood 등.
+    final aspectSections = <AspectSection>[];
+    for (final key in _aspectFieldLabels.keys) {
+      final v = asStr(key);
+      if (v == null) continue;
+      // 이미 overview 첫머리에 흡수된 문자열(overall/mood)과 중복이면
+      // 스킵하지 않는다 — 세부 카드로도 다시 보여주는 편이 사용자에게
+      // 더 유용하다(원본 텍스트 무손상 원칙 유지).
+      aspectSections.add(
+        AspectSection(
+          title: _aspectFieldLabels[key]!,
+          index: _aspectIndexFor(key, base.hero.score),
+          body: v,
+        ),
+      );
+    }
+
+    // --- List 섹션: 추천/강점/주의 등 목록형 필드 중 첫 번째로 존재하는 것.
+    ListSection? listSection;
+    final advice = asStr('advice');
+    for (final key in _listFieldLabels.keys) {
+      final items = asStrList(key);
+      if (items.isEmpty) continue;
+      final combined = <String>[
+        if (advice != null && key == _listFieldLabels.keys.first) '조언: $advice',
+        ...items,
+      ];
+      listSection = ListSection(
+        title: _listFieldLabels[key]!,
+        items: combined.take(5).toList(),
+        listType: FortuneSectionType.recommend,
+      );
+      break;
+    }
+    listSection ??= advice != null
+        ? ListSection(
+            title: '오늘의 조언',
+            items: [advice],
+            listType: FortuneSectionType.recommend,
+          )
+        : base.sectionsOfType<ListSection>().firstOrNull;
+
+    // --- Lucky 섹션: colors/directions/numbers (lucky_* 접두 포함).
+    final colors = asStrList('colors').isNotEmpty
+        ? asStrList('colors')
+        : asStrList('lucky_color');
+    final directions = asStrList('directions').isNotEmpty
+        ? asStrList('directions')
+        : asStrList('lucky_direction');
+    final numbersRaw = data['numbers'] ?? data['lucky_number'];
+    final numbers = numbersRaw is List
+        ? numbersRaw.map((e) => e.toString()).toList()
+        : const <String>[];
+
+    LuckySection? luckySection;
+    if (colors.isNotEmpty || directions.isNotEmpty || numbers.isNotEmpty) {
+      luckySection = LuckySection(
+        title: '함께 보면 좋은 행운 요소',
+        items: [
+          if (colors.isNotEmpty) LuckyItem(label: '색', value: colors.join(', ')),
+          if (directions.isNotEmpty)
+            LuckyItem(label: '방향', value: directions.join(', ')),
+          if (numbers.isNotEmpty) LuckyItem(label: '숫자', value: numbers.join(', ')),
+        ],
+      );
+    }
+    luckySection ??= base.sectionsOfType<LuckySection>().firstOrNull;
+
+    final sections = <FortuneSection>[
+      OverviewSection(title: '핵심 해석', body: overviewBody),
+      ...aspectSections,
+      if (listSection != null) listSection,
+      if (luckySection != null) luckySection,
+    ];
+
+    return FortuneReport(hero: hero, sections: sections);
+  }
+
+  static int _aspectIndexFor(String key, int baseScore) {
+    final offset = (key.hashCode % 11) - 5; // -5..5, 결정론적
+    return _clamp(baseScore + offset, 50, 96);
   }
 
   /// [기존 build() 본문 그대로 — 한 글자도 수정하지 않았다. 이름만 옮겼다.]
