@@ -74,5 +74,23 @@ void main() {
 
       JeontongHistoryStore.instance.clearForTest();
     });
+
+    test('readJeontong returns recorded entries', () async {
+      final adapter = const HistoryReadOnlyAdapter();
+      final userId = 'user-${DateTime.now().microsecondsSinceEpoch}';
+      expect((await adapter.readJeontong(userId)).isEmpty, true);
+      JeontongHistoryStore.instance.record(
+        userId: userId,
+        categoryId: 'A01',
+        title: '평생 총운',
+        subtitle: '테스트',
+        createdAtUtc: DateTime.now().toUtc(),
+      );
+      final list = await adapter.readJeontong(userId);
+      expect(list.length, 1);
+      expect(list.first.id, contains('A01'));
+      expect(list.first.createdAt.isUtc, true);
+      JeontongHistoryStore.instance.clearForTest();
+    });
   });
 }
