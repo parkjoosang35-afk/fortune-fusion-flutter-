@@ -17,6 +17,7 @@ import '../domain/jeontong_eighty_matrix.dart';
 import '../domain/jeontong_eighty_report_builder.dart';
 import '../domain/jeontong_report_cache.dart';
 import 'widgets/jeontong_easy_term_toggle.dart';
+import 'widgets/jeontong_result_text_extractor.dart';
 
 /// [정통사주 80종 개편] 80종 전용 결과 화면 — 라우트 `/jeontong/eighty/result`.
 ///
@@ -217,6 +218,39 @@ class _ResultBody extends StatelessWidget {
                 _buildSection(section),
                 const SizedBox(height: UnifiedTokens.spaceMd),
               ],
+              // [정통사주 결과 콘텐츠 안전 추출] report(FortuneReport, 강타입)
+              // 필드들을 JeontongResultTextExtractor 가 이해하는 어댑터
+              // dict 로 얇게 변환해, 스키마가 무엇이든(카테고리별로 섹션
+              // 구성이 비어 있어도) title ≥1줄 + body ≥2줄 + 쉬운 설명 힌트
+              // 1줄을 항상 보장하는 안전망 카드를 추가한다(never-touch:
+              // 위 report.sections 렌더링/HeroSummaryCard/아래 고정 4개
+              // JeontongEasyTermToggle 토글 섹션은 그대로 둔다).
+              Builder(
+                builder: (context) {
+                  final overviewBody = report
+                      .sectionsOfType<OverviewSection>()
+                      .map((s) => s.body)
+                      .firstOrNull;
+                  final aspectBodies = report
+                      .sectionsOfType<AspectSection>()
+                      .map((s) => s.body)
+                      .toList(growable: false);
+                  final ext = JeontongResultTextExtractor({
+                    'category': entry.title,
+                    'headline': report.hero.headline,
+                    'summary': report.hero.subDescription,
+                    'overall': overviewBody,
+                    'analysis': aspectBodies,
+                  });
+                  final hints = ext.easyTermHints();
+                  final lines = [
+                    ...ext.body(),
+                    if (hints.isNotEmpty) '쉬운 설명 가능 키워드: ${hints.join(', ')}',
+                  ];
+                  return SectionCard(title: ext.title(), body: lines.join('\n'));
+                },
+              ),
+              const SizedBox(height: UnifiedTokens.spaceMd),
               // [정통사주 쉬운 설명 토글] report.sections 본문은 순수 한글
               // 프로즈로 구성돼 있어(jeontong_eighty_report_builder.dart
               // 확인 완료) "일간/신강/신약/식신" 같은 한자 전문 용어가 문장
