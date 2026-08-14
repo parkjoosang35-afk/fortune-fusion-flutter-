@@ -1,7 +1,26 @@
 import 'package:flutter/material.dart';
 
 import '../../home/data/jeontong_history_store.dart';
+import 'widgets/jeontong_keyword_search_bar.dart';
 import 'widgets/jeontong_section_filter_chips.dart';
+
+/// [정통사주 키워드 검색] id/title/subtitle/생성시각(ISO) substring
+/// (대소문자 무시) 매칭. regex 0건 — String.contains() 단순 패턴만 사용.
+/// 빈 입력(trim 후 empty)은 전체 반환.
+List<HistoryEntry> _simpleSearch(List<HistoryEntry> all, String query) {
+  final q = query.trim().toLowerCase();
+  if (q.isEmpty) return all;
+  return all.where((e) {
+    if (e.id.toLowerCase().contains(q)) return true;
+    if (e.categoryId.toLowerCase().contains(q)) return true;
+    if (e.title.toLowerCase().contains(q)) return true;
+    if (e.subtitle.toLowerCase().contains(q)) return true;
+    if (e.createdAtUtc.toIso8601String().toLowerCase().contains(q)) {
+      return true;
+    }
+    return false;
+  }).toList(growable: false);
+}
 
 /// [정통사주 80종 한눈에 미리보기] 사용자가 누적한 결과를 8개 섹션(A~H)
 /// GridView + 섹션 필터 칩으로 한 화면에서 조망하는 read-only 화면.
@@ -46,6 +65,7 @@ class HistoryJeontongOverviewScreen extends StatefulWidget {
 class _HistoryJeontongOverviewScreenState
     extends State<HistoryJeontongOverviewScreen> {
   String _activeLetter = '전체';
+  String _query = '';
   List<HistoryEntry> _entries = const [];
 
   static const _letters = <String>['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
@@ -66,9 +86,10 @@ class _HistoryJeontongOverviewScreenState
 
   @override
   Widget build(BuildContext context) {
+    final searched = _simpleSearch(_entries, _query);
     final filtered = _activeLetter == '전체'
-        ? _entries
-        : _entries
+        ? searched
+        : searched
               .where((e) => e.categoryId.startsWith(_activeLetter))
               .toList(growable: false);
 
@@ -105,13 +126,23 @@ class _HistoryJeontongOverviewScreenState
           ? const Center(child: Text('아직 열람한 결과가 없습니다'))
           : Column(
               children: [
+                JeontongKeywordSearchBar(
+                  initialQuery: _query,
+                  onChanged: (q) => setState(() => _query = q),
+                ),
                 JeontongSectionFilterChips(
                   activeLetter: _activeLetter,
                   onChanged: (l) => setState(() => _activeLetter = l),
                 ),
                 Expanded(
                   child: sectionsWithData.isEmpty
-                      ? const Center(child: Text('해당 섹션 결과가 없습니다'))
+                      ? Center(
+                          child: Text(
+                            _query.trim().isNotEmpty
+                                ? '검색 결과 없음'
+                                : '해당 섹션 결과가 없습니다',
+                          ),
+                        )
                       // [수정: ListView.builder → SingleChildScrollView+Column]
                       // ListView.builder는 뷰포트 밖 섹션(예: H)을 지연
                       // 빌드하지 않아 "80개 전체 한눈에 조망"이라는 미션
