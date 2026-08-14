@@ -36,7 +36,10 @@ class JeontongHistoryStore {
 
   final Map<String, List<HistoryEntry>> _byUser = <String, List<HistoryEntry>>{};
 
-  /// 결과 화면 진입 시 1회 호출. 같은 userId 아래 리스트 끝에 추가한다.
+  /// 결과 화면 진입 시 1회 호출. 같은 (userId, categoryId) 조합이 이미
+  /// 있으면 새로 push 하지 않고 기존 1건을 최신 값으로 갱신한다(dedup).
+  /// 이에 따라 사용자당 categoryId 1건 = 최대 80건(A01~H10)으로 자연
+  /// 상한된다.
   void record({
     required String userId,
     required String categoryId,
@@ -44,7 +47,21 @@ class JeontongHistoryStore {
     required String subtitle,
     required DateTime createdAtUtc,
   }) {
-    final list = _byUser.putIfAbsent(userId, () => <HistoryEntry>[]);
+    _byUser.putIfAbsent(userId, () => <HistoryEntry>[]);
+    final list = _byUser[userId]!;
+    // dedup: 같은 categoryId 가 이미 있으면 1건으로 갱신
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id.startsWith('$categoryId-$userId-')) {
+        list[i] = HistoryEntry(
+          id: '$categoryId-$userId-${createdAtUtc.microsecondsSinceEpoch}',
+          categoryId: categoryId,
+          title: title,
+          subtitle: subtitle,
+          createdAtUtc: createdAtUtc,
+        );
+        return;
+      }
+    }
     list.add(
       HistoryEntry(
         id: '$categoryId-$userId-${createdAtUtc.microsecondsSinceEpoch}',
