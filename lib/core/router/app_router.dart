@@ -60,8 +60,10 @@ import '../../features/lucky/presentation/lucky_items_screen.dart';
 import '../../features/pass/presentation/free_pass_gate_screen.dart';
 import '../../features/home/presentation/jeontong_eighty_screen.dart';
 import '../../features/home/presentation/jeontong_eighty_result_screen.dart';
+import '../../features/home/presentation/jeontong_eighty_grid_screen.dart';
 import '../../features/home/domain/jeontong_eighty_matrix.dart';
 import '../../features/history/presentation/history_readonly_screen.dart';
+import '../auth/auth_token_store.dart';
 
 /// 07단계 §3.2 라우팅 테이블 - Navigator 1.0(onGenerateRoute) 구현
 /// 10단계(A안): AI 6대 기능(사주/타로/관상/손금/궁합/AI상담) + 리워드(미션/랭킹)까지
@@ -130,6 +132,19 @@ class AppRouter {
       case JeontongEightyMatrix.resultRoute:
         return _page(
           JeontongEightyResultScreen(categoryId: settings.arguments as String?),
+        );
+      // [정통사주 80종 그리드 신설] 8개 섹션 카드가 항상 펼쳐진 상태로
+      // 80종 전체를 한 화면에서 훑어보는 신규 라우트. 기존 `/jeontong/eighty`
+      // (아코디언 방식, 홈 "운세" 카드가 이미 사용 중)와는 별개이며 그
+      // 라우트/화면은 무수정으로 그대로 둔다(회귀 방지).
+      case '/jeontong/eighty/grid':
+        return _page(
+          JeontongEightyGridScreen(
+            userId:
+                (AuthTokenStore.cachedUserIdOrNull ??
+                        AuthTokenStore.fallbackUserId)
+                    .toString(),
+          ),
         );
 
       case '/my/fortune-records':
