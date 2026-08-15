@@ -613,7 +613,7 @@
     "B02": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "대운별 재물 흐름, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "대운별 재물 흐름",
         "keywords": [
           "대운",
           "용기"
@@ -621,42 +621,35 @@
         "name": "대운별 재물 흐름",
         "score": 86,
         "statusLabel": "상승",
-        "subDescription": "작은 신호에도 귀 기울이면 좋은 힌트를 얻을 수 있어요."
+        "subDescription": "18세(1989년, 갑진), 48세(2019년, 정미), 58세(2029년, 무신), 68세(2039년, 기유), 78세(2049년, 경술) 시기에 재성이 발동해 재물 활동이 활발해질 수 있어요."
       },
       "sections": [
         {
-          "body": "대운 관점에서 본 「대운별 재물 흐름」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 지금 가진 것을 잘 지키는 데 집중하면 좋겠어요.",
+          "body": "18세(1989년, 갑진), 48세(2019년, 정미), 58세(2029년, 무신), 68세(2039년, 기유), 78세(2049년, 경술) 시기에 재성이 발동해 재물 활동이 활발해질 수 있어요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 80,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 83,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "오늘 할 일의 우선순위를 다시 점검해보기",
-            "중요한 결정은 하루 정도 더 생각해보기",
-            "짧은 산책이나 스트레칭으로 몸 풀기"
+            "8세(1979년, 계묘) — 재성 미발동: 안정적 관리가 중요한 시기",
+            "18세(1989년, 갑진) — 편재 발동: 재물 활동이 활발해지는 흐름",
+            "28세(1999년, 을사) — 재성 미발동: 안정적 관리가 중요한 시기",
+            "38세(2009년, 병오) — 재성 미발동: 안정적 관리가 중요한 시기",
+            "48세(2019년, 정미) — 정재 발동: 재물 활동이 활발해지는 흐름"
           ],
           "requiresPass": true,
-          "title": "이렇게 해보면 좋아요",
+          "title": "대운별 흐름",
           "type": "FortuneSectionType.recommend"
         },
         {
           "items": [
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "연그린"
+            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -666,11 +659,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "여유"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "연그린"
             }
           ],
           "requiresPass": false,
@@ -682,55 +670,38 @@
     "B03": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "대운별 직업 변화, 무난하게 안정적으로 흘러가는 흐름이에요",
+        "headline": "대운별 직업 변화",
         "keywords": [
-          "정리",
-          "대운"
+          "대운",
+          "정리"
         ],
         "name": "대운별 직업 변화",
         "score": 71,
         "statusLabel": "보통",
-        "subDescription": "서두르지 않고 하나씩 정리해가면 좋아요."
+        "subDescription": "58세(2029년, 무신), 68세(2039년, 기유), 78세(2049년, 경술), 88세(2059년, 신해) 시기에 관성이 발동해 직업·직책 변화 가능성이 커질 수 있어요."
       },
       "sections": [
         {
-          "body": "대운 관점에서 본 「대운별 직업 변화」이에요. 무난한 흐름 속에서 노력한 만큼 결과가 따라오는 시기예요. 멀리 보고 천천히 쌓아가는 태도가 특히 중요한 시기예요.",
+          "body": "58세(2029년, 무신), 68세(2039년, 기유), 78세(2049년, 경술), 88세(2059년, 신해) 시기에 관성이 발동해 직업·직책 변화 가능성이 커질 수 있어요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "작은 변화가 감지되는 시점이에요. 평소와 다른 선택을 해봐도 나쁘지 않아요.",
-          "index": 69,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "가까운 사람과 이야기를 나누면 생각보다 좋은 힌트를 얻을 수 있어요.",
-          "index": 64,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "작은 목표 하나를 정해 실천해보기",
-            "오늘 할 일의 우선순위를 다시 점검해보기",
-            "평소 미뤄둔 정리 해보기"
+            "8세(1979년, 계묘) — 관성 미발동: 현재 자리에서 안정적으로 다지는 시기",
+            "18세(1989년, 갑진) — 관성 미발동: 현재 자리에서 안정적으로 다지는 시기",
+            "28세(1999년, 을사) — 관성 미발동: 현재 자리에서 안정적으로 다지는 시기",
+            "38세(2009년, 병오) — 관성 미발동: 현재 자리에서 안정적으로 다지는 시기",
+            "48세(2019년, 정미) — 관성 미발동: 현재 자리에서 안정적으로 다지는 시기"
           ],
           "requiresPass": true,
-          "title": "이렇게 해보면 좋아요",
+          "title": "대운별 흐름",
           "type": "FortuneSectionType.recommend"
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "안정"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -740,6 +711,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "북쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "안정"
             }
           ],
           "requiresPass": false,
@@ -751,7 +727,7 @@
     "B04": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "대운별 건강 변화, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "대운별 건강 변화",
         "keywords": [
           "대운",
           "집중"
@@ -759,47 +735,30 @@
         "name": "대운별 건강 변화",
         "score": 91,
         "statusLabel": "상승",
-        "subDescription": "작은 신호에도 귀 기울이면 좋은 힌트를 얻을 수 있어요."
+        "subDescription": "8세(1979년, 계묘), 18세(1989년, 갑진), 28세(1999년, 을사), 88세(2059년, 신해) 시기에는 이미 원국에 많은 오행이 더욱 강해지는 흐름이에요. 이 시기에는 평소보다 생활 관리(휴식·규칙적인 생활)에 조금 더 신경 쓰면 좋아요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)"
       },
       "sections": [
         {
-          "body": "대운 관점에서 본 「대운별 건강 변화」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 주변과의 교류에서 의외의 힌트를 얻을 수 있어요.",
+          "body": "8세(1979년, 계묘), 18세(1989년, 갑진), 28세(1999년, 을사), 88세(2059년, 신해) 시기에는 이미 원국에 많은 오행이 더욱 강해지는 흐름이에요. 이 시기에는 평소보다 생활 관리(휴식·규칙적인 생활)에 조금 더 신경 쓰면 좋아요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 88,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 81,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "가까운 사람에게 먼저 안부 전하기",
-            "오늘 할 일의 우선순위를 다시 점검해보기"
+            "8세(1979년, 계묘) — 수·목 기운이 더해져 원국의 오행 편중이 더 강해질 수 있는 시기",
+            "18세(1989년, 갑진) — 목 기운이 더해져 원국의 오행 편중이 더 강해질 수 있는 시기",
+            "28세(1999년, 을사) — 목 기운이 더해져 원국의 오행 편중이 더 강해질 수 있는 시기",
+            "38세(2009년, 병오) — 원국의 오행 균형에 큰 영향을 주지 않는 시기",
+            "48세(2019년, 정미) — 원국의 오행 균형에 큰 영향을 주지 않는 시기"
           ],
           "requiresPass": true,
-          "title": "이렇게 해보면 좋아요",
+          "title": "대운별 흐름",
           "type": "FortuneSectionType.recommend"
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "정리"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -809,6 +768,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "북쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "정리"
             }
           ],
           "requiresPass": false,
@@ -820,55 +784,38 @@
     "B05": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "대운별 애정 변화, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "대운별 애정 변화",
         "keywords": [
-          "시작",
-          "대운"
+          "대운",
+          "시작"
         ],
         "name": "대운별 애정 변화",
         "score": 94,
         "statusLabel": "상승",
-        "subDescription": "평소보다 조금 더 여유를 갖고 움직이면 좋겠어요."
+        "subDescription": "18세(1989년, 갑진), 48세(2019년, 정미), 58세(2029년, 무신), 68세(2039년, 기유), 78세(2049년, 경술) 시기에 재성(배우자성)이 발동해 인연·관계에 변화가 생길 수 있어요."
       },
       "sections": [
         {
-          "body": "대운 관점에서 본 「대운별 애정 변화」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 작은 선택 하나가 전체 분위기를 좌우할 수 있으니 신중하게 움직여보세요.",
+          "body": "18세(1989년, 갑진), 48세(2019년, 정미), 58세(2029년, 무신), 68세(2039년, 기유), 78세(2049년, 경술) 시기에 재성(배우자성)이 발동해 인연·관계에 변화가 생길 수 있어요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 94,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 93,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "오늘 할 일의 우선순위를 다시 점검해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "가까운 사람에게 먼저 안부 전하기"
+            "8세(1979년, 계묘) — 재성(배우자성) 미발동: 기존 관계가 안정적으로 이어지는 시기",
+            "18세(1989년, 갑진) — 재성(배우자성) 발동: 이성 인연·관계 변화가 활발해질 수 있는 흐름",
+            "28세(1999년, 을사) — 재성(배우자성) 미발동: 기존 관계가 안정적으로 이어지는 시기",
+            "38세(2009년, 병오) — 재성(배우자성) 미발동: 기존 관계가 안정적으로 이어지는 시기",
+            "48세(2019년, 정미) — 재성(배우자성) 발동: 이성 인연·관계 변화가 활발해질 수 있는 흐름"
           ],
           "requiresPass": true,
-          "title": "이렇게 해보면 좋아요",
+          "title": "대운별 흐름",
           "type": "FortuneSectionType.recommend"
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "여유"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -878,6 +825,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "동쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "여유"
             }
           ],
           "requiresPass": false,
@@ -889,7 +841,7 @@
     "B06": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "대운 전환기 주의사항, 무난하게 안정적으로 흘러가는 흐름이에요",
+        "headline": "대운 전환기 주의사항",
         "keywords": [
           "대운",
           "경청"
@@ -897,42 +849,35 @@
         "name": "대운 전환기 주의사항",
         "score": 69,
         "statusLabel": "보통",
-        "subDescription": "서두르지 않고 하나씩 정리해가면 좋아요."
+        "subDescription": "18세(1989년, 갑진) 전후 3년, 88세(2059년, 신해) 전후 3년는 오행 기운이 크게 바뀌는 전환기예요. 이 시기 전후로는 큰 결정보다 안정적인 관리에 집중하면 좋아요."
       },
       "sections": [
         {
-          "body": "대운 관점에서 본 「대운 전환기 주의사항」이에요. 무난한 흐름 속에서 노력한 만큼 결과가 따라오는 시기예요. 지금 가진 것을 잘 지키는 데 집중하면 좋겠어요.",
+          "body": "18세(1989년, 갑진) 전후 3년, 88세(2059년, 신해) 전후 3년는 오행 기운이 크게 바뀌는 전환기예요. 이 시기 전후로는 큰 결정보다 안정적인 관리에 집중하면 좋아요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 61,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "중요한 판단은 하루 정도 더 생각해보고 결정해도 늦지 않아요.",
-          "index": 67,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "가까운 사람에게 먼저 안부 전하기",
-            "중요한 결정은 하루 정도 더 생각해보기",
-            "짧은 산책이나 스트레칭으로 몸 풀기"
+            "8세(1979년, 계묘) — 직전 흐름과 오행이 같아 비교적 완만한 전환",
+            "18세(1989년, 갑진) — 직전 흐름과 오행이 상극(剋) 관계 — 전환기 전후 3년은 변화 체감이 클 수 있음",
+            "28세(1999년, 을사) — 직전 흐름과 오행이 상생(生) 관계 — 비교적 순조로운 전환",
+            "38세(2009년, 병오) — 직전 흐름과 오행이 같아 비교적 완만한 전환",
+            "48세(2019년, 정미) — 직전 흐름과 오행이 상생(生) 관계 — 비교적 순조로운 전환"
           ],
           "requiresPass": true,
-          "title": "이렇게 해보면 좋아요",
+          "title": "대운별 흐름",
           "type": "FortuneSectionType.recommend"
         },
         {
           "items": [
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "네이비"
+            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -942,11 +887,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "균형"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "네이비"
             }
           ],
           "requiresPass": false,
@@ -958,50 +898,40 @@
     "B07": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "다음 대운 미리보기, 무난하게 안정적으로 흘러가는 흐름이에요",
+        "headline": "다음 대운 미리보기",
         "keywords": [
-          "여유",
-          "대운"
+          "대운",
+          "여유"
         ],
         "name": "다음 대운 미리보기",
         "score": 69,
         "statusLabel": "보통",
-        "subDescription": "지금까지 쌓아온 흐름이 서서히 드러나는 시기예요."
+        "subDescription": "58세(2029년)부터 무신 대운이 시작돼요. 이 대운의 십신은 편재/편관이에요."
       },
       "sections": [
         {
-          "body": "대운 관점에서 본 「다음 대운 미리보기」이에요. 무난한 흐름 속에서 노력한 만큼 결과가 따라오는 시기예요. 주변과의 교류에서 의외의 힌트를 얻을 수 있어요.",
+          "body": "58세(2029년)부터 무신 대운이 시작돼요. 이 대운의 십신은 편재/편관이에요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 68,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 65,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "중요한 결정은 하루 정도 더 생각해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "평소 미뤄둔 정리 해보기"
+            "편재",
+            "편관"
           ],
           "requiresPass": true,
-          "title": "이렇게 해보면 좋아요",
+          "title": "이 대운의 십신",
           "type": "FortuneSectionType.recommend"
         },
         {
           "items": [
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "화이트"
+            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -1011,11 +941,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "시작"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "화이트"
             }
           ],
           "requiresPass": false,
@@ -1027,7 +952,7 @@
     "B08": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "인생 최고 대운 시기, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "인생 최고 대운 시기",
         "keywords": [
           "대운",
           "집중"
@@ -1035,47 +960,30 @@
         "name": "인생 최고 대운 시기",
         "score": 90,
         "statusLabel": "상승",
-        "subDescription": "무리하지 않고 흐름을 읽는 것이 중요해요."
+        "subDescription": "18세(1989년, 갑진), 48세(2019년, 정미), 58세(2029년, 무신), 68세(2039년, 기유), 78세(2049년, 경술) 시기는 용신(토) 기운이 들어와 전반적으로 순조로운 흐름을 기대할 수 있는 대운이에요."
       },
       "sections": [
         {
-          "body": "대운 관점에서 본 「인생 최고 대운 시기」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 멀리 보고 천천히 쌓아가는 태도가 특히 중요한 시기예요.",
+          "body": "18세(1989년, 갑진), 48세(2019년, 정미), 58세(2029년, 무신), 68세(2039년, 기유), 78세(2049년, 경술) 시기는 용신(토) 기운이 들어와 전반적으로 순조로운 흐름을 기대할 수 있는 대운이에요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 87,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 93,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "평소 미뤄둔 정리 해보기",
-            "가까운 사람에게 먼저 안부 전하기"
+            "18세(1989년, 갑진)",
+            "48세(2019년, 정미)",
+            "58세(2029년, 무신)",
+            "68세(2039년, 기유)",
+            "78세(2049년, 경술)"
           ],
           "requiresPass": true,
-          "title": "이렇게 해보면 좋아요",
+          "title": "해당 시기",
           "type": "FortuneSectionType.recommend"
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "안정"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -1085,6 +993,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "북쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "안정"
             }
           ],
           "requiresPass": false,
@@ -1096,50 +1009,41 @@
     "B09": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "인생 최악 대운 시기, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "인생 최악 대운 시기",
         "keywords": [
-          "집중",
-          "대운"
+          "대운",
+          "집중"
         ],
         "name": "인생 최악 대운 시기",
         "score": 88,
         "statusLabel": "상승",
-        "subDescription": "지금까지 쌓아온 흐름이 서서히 드러나는 시기예요."
+        "subDescription": "8세(1979년, 계묘), 18세(1989년, 갑진), 28세(1999년, 을사) 시기는 기신(목) 기운이 들어와 다소 신중한 관리가 필요한 대운이에요. 큰 결정보다는 안정에 무게를 두면 좋아요."
       },
       "sections": [
         {
-          "body": "대운 관점에서 본 「인생 최악 대운 시기」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 큰 욕심을 내지 않는다면 안정적으로 흘러갈 가능성이 높아요.",
+          "body": "8세(1979년, 계묘), 18세(1989년, 갑진), 28세(1999년, 을사) 시기는 기신(목) 기운이 들어와 다소 신중한 관리가 필요한 대운이에요. 큰 결정보다는 안정에 무게를 두면 좋아요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "겉으로 드러나는 변화보다 내면의 준비가 더 중요한 흐름이에요.",
-          "index": 88,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 89,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "평소 미뤄둔 정리 해보기",
-            "중요한 결정은 하루 정도 더 생각해보기"
+            "8세(1979년, 계묘)",
+            "18세(1989년, 갑진)",
+            "28세(1999년, 을사)"
           ],
           "requiresPass": true,
-          "title": "이렇게 해보면 좋아요",
+          "title": "해당 시기",
           "type": "FortuneSectionType.recommend"
         },
         {
           "items": [
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "옐로우"
+            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -1149,11 +1053,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "시작"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "옐로우"
             }
           ],
           "requiresPass": false,
@@ -1165,36 +1064,22 @@
     "B10": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "대운 vs 세운 조합, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "대운 vs 세운 조합",
         "keywords": [
-          "인내",
-          "대운"
+          "대운",
+          "인내"
         ],
         "name": "대운 vs 세운 조합",
         "score": 80,
         "statusLabel": "상승",
-        "subDescription": "무리하지 않고 흐름을 읽는 것이 중요해요."
+        "subDescription": "올해는 현재 대운(상관/정재)과는 다른 기운(식신/식신)이 함께 작용해, 다채로운 변화가 있을 수 있는 해예요."
       },
       "sections": [
         {
-          "body": "대운 관점에서 본 「대운 vs 세운 조합」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 멀리 보고 천천히 쌓아가는 태도가 특히 중요한 시기예요.",
+          "body": "올해는 현재 대운(상관/정재)과는 다른 기운(식신/식신)이 함께 작용해, 다채로운 변화가 있을 수 있는 해예요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
-        },
-        {
-          "body": "작은 변화가 감지되는 시점이에요. 평소와 다른 선택을 해봐도 나쁘지 않아요.",
-          "index": 86,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 79,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
         },
         {
           "isAvoid": false,
@@ -6057,7 +5942,7 @@
     "B02": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "대운별 재물 흐름, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "대운별 재물 흐름",
         "keywords": [
           "대운",
           "용기"
@@ -6065,47 +5950,30 @@
         "name": "대운별 재물 흐름",
         "score": 86,
         "statusLabel": "상승",
-        "subDescription": "작은 신호에도 귀 기울이면 좋은 힌트를 얻을 수 있어요."
+        "subDescription": "24세(2013년, 기묘), 34세(2023년, 무인), 64세(2053년, 을해), 74세(2063년, 갑술) 시기에 재성이 발동해 재물 활동이 활발해질 수 있어요."
       },
       "sections": [
         {
-          "body": "대운 관점에서 본 「대운별 재물 흐름」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 지금 가진 것을 잘 지키는 데 집중하면 좋겠어요.",
+          "body": "24세(2013년, 기묘), 34세(2023년, 무인), 64세(2053년, 을해), 74세(2063년, 갑술) 시기에 재성이 발동해 재물 활동이 활발해질 수 있어요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 88,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 91,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "중요한 결정은 하루 정도 더 생각해보기",
-            "짧은 산책이나 스트레칭으로 몸 풀기",
-            "오늘 할 일의 우선순위를 다시 점검해보기"
+            "4세(1993년, 신사) — 재성 미발동: 안정적 관리가 중요한 시기",
+            "14세(2003년, 경진) — 재성 미발동: 안정적 관리가 중요한 시기",
+            "24세(2013년, 기묘) — 편재 발동: 재물 활동이 활발해지는 흐름",
+            "34세(2023년, 무인) — 정재 발동: 재물 활동이 활발해지는 흐름",
+            "44세(2033년, 정축) — 재성 미발동: 안정적 관리가 중요한 시기"
           ],
           "requiresPass": true,
-          "title": "이렇게 해보면 좋아요",
+          "title": "대운별 흐름",
           "type": "FortuneSectionType.recommend"
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "여유"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -6115,6 +5983,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "서쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "여유"
             }
           ],
           "requiresPass": false,
@@ -6126,55 +5999,38 @@
     "B03": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "대운별 직업 변화, 무난하게 안정적으로 흘러가는 흐름이에요",
+        "headline": "대운별 직업 변화",
         "keywords": [
-          "정리",
-          "대운"
+          "대운",
+          "정리"
         ],
         "name": "대운별 직업 변화",
         "score": 71,
         "statusLabel": "보통",
-        "subDescription": "서두르지 않고 하나씩 정리해가면 좋아요."
+        "subDescription": "4세(1993년, 신사), 44세(2033년, 정축), 54세(2043년, 병자) 시기에 관성이 발동해 직업·직책 변화 가능성이 커질 수 있어요."
       },
       "sections": [
         {
-          "body": "대운 관점에서 본 「대운별 직업 변화」이에요. 무난한 흐름 속에서 노력한 만큼 결과가 따라오는 시기예요. 멀리 보고 천천히 쌓아가는 태도가 특히 중요한 시기예요.",
+          "body": "4세(1993년, 신사), 44세(2033년, 정축), 54세(2043년, 병자) 시기에 관성이 발동해 직업·직책 변화 가능성이 커질 수 있어요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "작은 변화가 감지되는 시점이에요. 평소와 다른 선택을 해봐도 나쁘지 않아요.",
-          "index": 74,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "가까운 사람과 이야기를 나누면 생각보다 좋은 힌트를 얻을 수 있어요.",
-          "index": 69,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "작은 목표 하나를 정해 실천해보기",
-            "오늘 할 일의 우선순위를 다시 점검해보기",
-            "평소 미뤄둔 정리 해보기"
+            "4세(1993년, 신사) — 편관 발동: 승진·이직·책임 확대 등 직업적 변화 가능성이 커지는 흐름",
+            "14세(2003년, 경진) — 관성 미발동: 현재 자리에서 안정적으로 다지는 시기",
+            "24세(2013년, 기묘) — 관성 미발동: 현재 자리에서 안정적으로 다지는 시기",
+            "34세(2023년, 무인) — 관성 미발동: 현재 자리에서 안정적으로 다지는 시기",
+            "44세(2033년, 정축) — 편관 발동: 승진·이직·책임 확대 등 직업적 변화 가능성이 커지는 흐름"
           ],
           "requiresPass": true,
-          "title": "이렇게 해보면 좋아요",
+          "title": "대운별 흐름",
           "type": "FortuneSectionType.recommend"
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "안정"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -6184,6 +6040,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "북쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "안정"
             }
           ],
           "requiresPass": false,
@@ -6195,7 +6056,7 @@
     "B04": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "대운별 건강 변화, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "대운별 건강 변화",
         "keywords": [
           "대운",
           "집중"
@@ -6203,47 +6064,30 @@
         "name": "대운별 건강 변화",
         "score": 91,
         "statusLabel": "상승",
-        "subDescription": "작은 신호에도 귀 기울이면 좋은 힌트를 얻을 수 있어요."
+        "subDescription": "4세(1993년, 신사), 44세(2033년, 정축), 54세(2043년, 병자) 시기에는 이미 원국에 많은 오행이 더욱 강해지는 흐름이에요. 이 시기에는 평소보다 생활 관리(휴식·규칙적인 생활)에 조금 더 신경 쓰면 좋아요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)"
       },
       "sections": [
         {
-          "body": "대운 관점에서 본 「대운별 건강 변화」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 주변과의 교류에서 의외의 힌트를 얻을 수 있어요.",
+          "body": "4세(1993년, 신사), 44세(2033년, 정축), 54세(2043년, 병자) 시기에는 이미 원국에 많은 오행이 더욱 강해지는 흐름이에요. 이 시기에는 평소보다 생활 관리(휴식·규칙적인 생활)에 조금 더 신경 쓰면 좋아요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 94,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 87,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "가까운 사람에게 먼저 안부 전하기",
-            "오늘 할 일의 우선순위를 다시 점검해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "4세(1993년, 신사) — 화 기운이 더해져 원국의 오행 편중이 더 강해질 수 있는 시기",
+            "14세(2003년, 경진) — 원국의 오행 균형에 큰 영향을 주지 않는 시기",
+            "24세(2013년, 기묘) — 원국의 오행 균형에 큰 영향을 주지 않는 시기",
+            "34세(2023년, 무인) — 원국의 오행 균형에 큰 영향을 주지 않는 시기",
+            "44세(2033년, 정축) — 화 기운이 더해져 원국의 오행 편중이 더 강해질 수 있는 시기"
           ],
           "requiresPass": true,
-          "title": "이렇게 해보면 좋아요",
+          "title": "대운별 흐름",
           "type": "FortuneSectionType.recommend"
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "정리"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -6253,6 +6097,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "북쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "정리"
             }
           ],
           "requiresPass": false,
@@ -6264,50 +6113,43 @@
     "B05": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "대운별 애정 변화, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "대운별 애정 변화",
         "keywords": [
-          "시작",
-          "대운"
+          "대운",
+          "시작"
         ],
         "name": "대운별 애정 변화",
         "score": 94,
         "statusLabel": "상승",
-        "subDescription": "평소보다 조금 더 여유를 갖고 움직이면 좋겠어요."
+        "subDescription": "4세(1993년, 신사), 44세(2033년, 정축), 54세(2043년, 병자) 시기에 관성(배우자성)이 발동해 인연·관계에 변화가 생길 수 있어요."
       },
       "sections": [
         {
-          "body": "대운 관점에서 본 「대운별 애정 변화」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 작은 선택 하나가 전체 분위기를 좌우할 수 있으니 신중하게 움직여보세요.",
+          "body": "4세(1993년, 신사), 44세(2033년, 정축), 54세(2043년, 병자) 시기에 관성(배우자성)이 발동해 인연·관계에 변화가 생길 수 있어요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 96,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 96,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "가까운 사람에게 먼저 안부 전하기",
-            "오늘 할 일의 우선순위를 다시 점검해보기"
+            "4세(1993년, 신사) — 관성(배우자성) 발동: 이성 인연·관계 변화가 활발해질 수 있는 흐름",
+            "14세(2003년, 경진) — 관성(배우자성) 미발동: 기존 관계가 안정적으로 이어지는 시기",
+            "24세(2013년, 기묘) — 관성(배우자성) 미발동: 기존 관계가 안정적으로 이어지는 시기",
+            "34세(2023년, 무인) — 관성(배우자성) 미발동: 기존 관계가 안정적으로 이어지는 시기",
+            "44세(2033년, 정축) — 관성(배우자성) 발동: 이성 인연·관계 변화가 활발해질 수 있는 흐름"
           ],
           "requiresPass": true,
-          "title": "이렇게 해보면 좋아요",
+          "title": "대운별 흐름",
           "type": "FortuneSectionType.recommend"
         },
         {
           "items": [
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "라벤더"
+            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -6317,11 +6159,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "여유"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "라벤더"
             }
           ],
           "requiresPass": false,
@@ -6333,7 +6170,7 @@
     "B06": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "대운 전환기 주의사항, 무난하게 안정적으로 흘러가는 흐름이에요",
+        "headline": "대운 전환기 주의사항",
         "keywords": [
           "대운",
           "경청"
@@ -6341,38 +6178,26 @@
         "name": "대운 전환기 주의사항",
         "score": 69,
         "statusLabel": "보통",
-        "subDescription": "서두르지 않고 하나씩 정리해가면 좋아요."
+        "subDescription": "4세(1993년, 신사) 전후 3년, 24세(2013년, 기묘) 전후 3년, 44세(2033년, 정축) 전후 3년, 54세(2043년, 병자) 전후 3년, 74세(2063년, 갑술) 전후 3년는 오행 기운이 크게 바뀌는 전환기예요. 이 시기 전후로는 큰 결정보다 안정적인 관리에 집중하면 좋아요."
       },
       "sections": [
         {
-          "body": "대운 관점에서 본 「대운 전환기 주의사항」이에요. 무난한 흐름 속에서 노력한 만큼 결과가 따라오는 시기예요. 지금 가진 것을 잘 지키는 데 집중하면 좋겠어요.",
+          "body": "4세(1993년, 신사) 전후 3년, 24세(2013년, 기묘) 전후 3년, 44세(2033년, 정축) 전후 3년, 54세(2043년, 병자) 전후 3년, 74세(2063년, 갑술) 전후 3년는 오행 기운이 크게 바뀌는 전환기예요. 이 시기 전후로는 큰 결정보다 안정적인 관리에 집중하면 좋아요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 60,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "중요한 판단은 하루 정도 더 생각해보고 결정해도 늦지 않아요.",
-          "index": 66,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "가까운 사람에게 먼저 안부 전하기",
-            "중요한 결정은 하루 정도 더 생각해보기",
-            "짧은 산책이나 스트레칭으로 몸 풀기"
+            "4세(1993년, 신사) — 직전 흐름과 오행이 상극(剋) 관계 — 전환기 전후 3년은 변화 체감이 클 수 있음",
+            "14세(2003년, 경진) — 직전 흐름과 오행이 상생(生) 관계 — 비교적 순조로운 전환",
+            "24세(2013년, 기묘) — 직전 흐름과 오행이 상극(剋) 관계 — 전환기 전후 3년은 변화 체감이 클 수 있음",
+            "34세(2023년, 무인) — 직전 흐름과 오행이 같아 비교적 완만한 전환",
+            "44세(2033년, 정축) — 직전 흐름과 오행이 상극(剋) 관계 — 전환기 전후 3년은 변화 체감이 클 수 있음"
           ],
           "requiresPass": true,
-          "title": "이렇게 해보면 좋아요",
+          "title": "대운별 흐름",
           "type": "FortuneSectionType.recommend"
         },
         {
@@ -6402,46 +6227,31 @@
     "B07": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "다음 대운 미리보기, 무난하게 안정적으로 흘러가는 흐름이에요",
+        "headline": "다음 대운 미리보기",
         "keywords": [
-          "여유",
-          "대운"
+          "대운",
+          "여유"
         ],
         "name": "다음 대운 미리보기",
         "score": 69,
         "statusLabel": "보통",
-        "subDescription": "지금까지 쌓아온 흐름이 서서히 드러나는 시기예요."
+        "subDescription": "44세(2033년)부터 정축 대운이 시작돼요. 이 대운의 십신은 편관/편인이에요."
       },
       "sections": [
         {
-          "body": "대운 관점에서 본 「다음 대운 미리보기」이에요. 무난한 흐름 속에서 노력한 만큼 결과가 따라오는 시기예요. 주변과의 교류에서 의외의 힌트를 얻을 수 있어요.",
+          "body": "44세(2033년)부터 정축 대운이 시작돼요. 이 대운의 십신은 편관/편인이에요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 67,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 64,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "중요한 결정은 하루 정도 더 생각해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "평소 미뤄둔 정리 해보기"
+            "편관",
+            "편인"
           ],
           "requiresPass": true,
-          "title": "이렇게 해보면 좋아요",
+          "title": "이 대운의 십신",
           "type": "FortuneSectionType.recommend"
         },
         {
@@ -6471,7 +6281,7 @@
     "B08": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "인생 최고 대운 시기, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "인생 최고 대운 시기",
         "keywords": [
           "대운",
           "집중"
@@ -6479,38 +6289,24 @@
         "name": "인생 최고 대운 시기",
         "score": 90,
         "statusLabel": "상승",
-        "subDescription": "무리하지 않고 흐름을 읽는 것이 중요해요."
+        "subDescription": "54세(2043년, 병자), 64세(2053년, 을해), 84세(2073년, 계유) 시기는 용신(수) 기운이 들어와 전반적으로 순조로운 흐름을 기대할 수 있는 대운이에요."
       },
       "sections": [
         {
-          "body": "대운 관점에서 본 「인생 최고 대운 시기」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 멀리 보고 천천히 쌓아가는 태도가 특히 중요한 시기예요.",
+          "body": "54세(2043년, 병자), 64세(2053년, 을해), 84세(2073년, 계유) 시기는 용신(수) 기운이 들어와 전반적으로 순조로운 흐름을 기대할 수 있는 대운이에요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 85,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 91,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "평소 미뤄둔 정리 해보기",
-            "가까운 사람에게 먼저 안부 전하기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "54세(2043년, 병자)",
+            "64세(2053년, 을해)",
+            "84세(2073년, 계유)"
           ],
           "requiresPass": true,
-          "title": "이렇게 해보면 좋아요",
+          "title": "해당 시기",
           "type": "FortuneSectionType.recommend"
         },
         {
@@ -6540,55 +6336,38 @@
     "B09": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "인생 최악 대운 시기, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "인생 최악 대운 시기",
         "keywords": [
-          "집중",
-          "대운"
+          "대운",
+          "집중"
         ],
         "name": "인생 최악 대운 시기",
         "score": 88,
         "statusLabel": "상승",
-        "subDescription": "지금까지 쌓아온 흐름이 서서히 드러나는 시기예요."
+        "subDescription": "14세(2003년, 경진), 24세(2013년, 기묘), 34세(2023년, 무인), 44세(2033년, 정축), 74세(2063년, 갑술) 시기는 기신(토) 기운이 들어와 다소 신중한 관리가 필요한 대운이에요. 큰 결정보다는 안정에 무게를 두면 좋아요."
       },
       "sections": [
         {
-          "body": "대운 관점에서 본 「인생 최악 대운 시기」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 큰 욕심을 내지 않는다면 안정적으로 흘러갈 가능성이 높아요.",
+          "body": "14세(2003년, 경진), 24세(2013년, 기묘), 34세(2023년, 무인), 44세(2033년, 정축), 74세(2063년, 갑술) 시기는 기신(토) 기운이 들어와 다소 신중한 관리가 필요한 대운이에요. 큰 결정보다는 안정에 무게를 두면 좋아요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "겉으로 드러나는 변화보다 내면의 준비가 더 중요한 흐름이에요.",
-          "index": 92,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 93,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "중요한 결정은 하루 정도 더 생각해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "평소 미뤄둔 정리 해보기"
+            "14세(2003년, 경진)",
+            "24세(2013년, 기묘)",
+            "34세(2023년, 무인)",
+            "44세(2033년, 정축)",
+            "74세(2063년, 갑술)"
           ],
           "requiresPass": true,
-          "title": "이렇게 해보면 좋아요",
+          "title": "해당 시기",
           "type": "FortuneSectionType.recommend"
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "시작"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -6598,6 +6377,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "북서쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "시작"
             }
           ],
           "requiresPass": false,
@@ -6609,43 +6393,29 @@
     "B10": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "대운 vs 세운 조합, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "대운 vs 세운 조합",
         "keywords": [
-          "인내",
-          "대운"
+          "대운",
+          "인내"
         ],
         "name": "대운 vs 세운 조합",
         "score": 80,
         "statusLabel": "상승",
-        "subDescription": "무리하지 않고 흐름을 읽는 것이 중요해요."
+        "subDescription": "올해는 현재 대운(정인/정재)과는 다른 기운(정관/정관)이 함께 작용해, 다채로운 변화가 있을 수 있는 해예요."
       },
       "sections": [
         {
-          "body": "대운 관점에서 본 「대운 vs 세운 조합」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 멀리 보고 천천히 쌓아가는 태도가 특히 중요한 시기예요.",
+          "body": "올해는 현재 대운(정인/정재)과는 다른 기운(정관/정관)이 함께 작용해, 다채로운 변화가 있을 수 있는 해예요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "작은 변화가 감지되는 시점이에요. 평소와 다른 선택을 해봐도 나쁘지 않아요.",
-          "index": 88,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 81,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
+            "오늘 할 일의 우선순위를 다시 점검해보기",
             "짧은 산책이나 스트레칭으로 몸 풀기",
-            "평소 미뤄둔 정리 해보기",
-            "오늘 할 일의 우선순위를 다시 점검해보기"
+            "평소 미뤄둔 정리 해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -6653,11 +6423,6 @@
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "시작"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -6667,6 +6432,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "남쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "시작"
             }
           ],
           "requiresPass": false,
@@ -11501,7 +11271,7 @@
     "B02": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "대운별 재물 흐름, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "대운별 재물 흐름",
         "keywords": [
           "대운",
           "용기"
@@ -11509,42 +11279,35 @@
         "name": "대운별 재물 흐름",
         "score": 86,
         "statusLabel": "상승",
-        "subDescription": "작은 신호에도 귀 기울이면 좋은 힌트를 얻을 수 있어요."
+        "subDescription": "3세(2007년, 무자), 43세(2047년, 임진), 53세(2057년, 계사) 시기에 재성이 발동해 재물 활동이 활발해질 수 있어요."
       },
       "sections": [
         {
-          "body": "대운 관점에서 본 「대운별 재물 흐름」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 지금 가진 것을 잘 지키는 데 집중하면 좋겠어요.",
+          "body": "3세(2007년, 무자), 43세(2047년, 임진), 53세(2057년, 계사) 시기에 재성이 발동해 재물 활동이 활발해질 수 있어요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 81,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 84,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "오늘 할 일의 우선순위를 다시 점검해보기",
-            "중요한 결정은 하루 정도 더 생각해보기",
-            "짧은 산책이나 스트레칭으로 몸 풀기"
+            "3세(2007년, 무자) — 정재 발동: 재물 활동이 활발해지는 흐름",
+            "13세(2017년, 기축) — 재성 미발동: 안정적 관리가 중요한 시기",
+            "23세(2027년, 경인) — 재성 미발동: 안정적 관리가 중요한 시기",
+            "33세(2037년, 신묘) — 재성 미발동: 안정적 관리가 중요한 시기",
+            "43세(2047년, 임진) — 정재 발동: 재물 활동이 활발해지는 흐름"
           ],
           "requiresPass": true,
-          "title": "이렇게 해보면 좋아요",
+          "title": "대운별 흐름",
           "type": "FortuneSectionType.recommend"
         },
         {
           "items": [
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "연그린"
+            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -11554,11 +11317,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "여유"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "연그린"
             }
           ],
           "requiresPass": false,
@@ -11570,55 +11328,38 @@
     "B03": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "대운별 직업 변화, 무난하게 안정적으로 흘러가는 흐름이에요",
+        "headline": "대운별 직업 변화",
         "keywords": [
-          "정리",
-          "대운"
+          "대운",
+          "정리"
         ],
         "name": "대운별 직업 변화",
         "score": 71,
         "statusLabel": "보통",
-        "subDescription": "서두르지 않고 하나씩 정리해가면 좋아요."
+        "subDescription": "23세(2027년, 경인), 33세(2037년, 신묘), 63세(2067년, 갑오), 73세(2077년, 을미) 시기에 관성이 발동해 직업·직책 변화 가능성이 커질 수 있어요."
       },
       "sections": [
         {
-          "body": "대운 관점에서 본 「대운별 직업 변화」이에요. 무난한 흐름 속에서 노력한 만큼 결과가 따라오는 시기예요. 멀리 보고 천천히 쌓아가는 태도가 특히 중요한 시기예요.",
+          "body": "23세(2027년, 경인), 33세(2037년, 신묘), 63세(2067년, 갑오), 73세(2077년, 을미) 시기에 관성이 발동해 직업·직책 변화 가능성이 커질 수 있어요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "작은 변화가 감지되는 시점이에요. 평소와 다른 선택을 해봐도 나쁘지 않아요.",
-          "index": 75,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "가까운 사람과 이야기를 나누면 생각보다 좋은 힌트를 얻을 수 있어요.",
-          "index": 70,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "오늘 할 일의 우선순위를 다시 점검해보기",
-            "평소 미뤄둔 정리 해보기",
-            "작은 목표 하나를 정해 실천해보기"
+            "3세(2007년, 무자) — 관성 미발동: 현재 자리에서 안정적으로 다지는 시기",
+            "13세(2017년, 기축) — 관성 미발동: 현재 자리에서 안정적으로 다지는 시기",
+            "23세(2027년, 경인) — 정관 발동: 승진·이직·책임 확대 등 직업적 변화 가능성이 커지는 흐름",
+            "33세(2037년, 신묘) — 편관 발동: 승진·이직·책임 확대 등 직업적 변화 가능성이 커지는 흐름",
+            "43세(2047년, 임진) — 관성 미발동: 현재 자리에서 안정적으로 다지는 시기"
           ],
           "requiresPass": true,
-          "title": "이렇게 해보면 좋아요",
+          "title": "대운별 흐름",
           "type": "FortuneSectionType.recommend"
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "안정"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -11628,6 +11369,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "북쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "안정"
             }
           ],
           "requiresPass": false,
@@ -11639,7 +11385,7 @@
     "B04": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "대운별 건강 변화, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "대운별 건강 변화",
         "keywords": [
           "대운",
           "집중"
@@ -11647,38 +11393,26 @@
         "name": "대운별 건강 변화",
         "score": 91,
         "statusLabel": "상승",
-        "subDescription": "작은 신호에도 귀 기울이면 좋은 힌트를 얻을 수 있어요."
+        "subDescription": "계산된 대운 범위 안에서는 원국의 오행 편중을 더 강화하는 시기가 보이지 않아요. 전반적으로 무난한 생활 관리가 가능한 흐름이에요."
       },
       "sections": [
         {
-          "body": "대운 관점에서 본 「대운별 건강 변화」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 주변과의 교류에서 의외의 힌트를 얻을 수 있어요.",
+          "body": "계산된 대운 범위 안에서는 원국의 오행 편중을 더 강화하는 시기가 보이지 않아요. 전반적으로 무난한 생활 관리가 가능한 흐름이에요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 89,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 82,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "가까운 사람에게 먼저 안부 전하기",
-            "오늘 할 일의 우선순위를 다시 점검해보기"
+            "3세(2007년, 무자) — 원국의 오행 균형에 큰 영향을 주지 않는 시기",
+            "13세(2017년, 기축) — 원국의 오행 균형에 큰 영향을 주지 않는 시기",
+            "23세(2027년, 경인) — 원국의 오행 균형에 큰 영향을 주지 않는 시기",
+            "33세(2037년, 신묘) — 원국의 오행 균형에 큰 영향을 주지 않는 시기",
+            "43세(2047년, 임진) — 원국의 오행 균형에 큰 영향을 주지 않는 시기"
           ],
           "requiresPass": true,
-          "title": "이렇게 해보면 좋아요",
+          "title": "대운별 흐름",
           "type": "FortuneSectionType.recommend"
         },
         {
@@ -11708,46 +11442,34 @@
     "B05": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "대운별 애정 변화, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "대운별 애정 변화",
         "keywords": [
-          "시작",
-          "대운"
+          "대운",
+          "시작"
         ],
         "name": "대운별 애정 변화",
         "score": 94,
         "statusLabel": "상승",
-        "subDescription": "평소보다 조금 더 여유를 갖고 움직이면 좋겠어요."
+        "subDescription": "23세(2027년, 경인), 33세(2037년, 신묘), 63세(2067년, 갑오), 73세(2077년, 을미) 시기에 관성(배우자성)이 발동해 인연·관계에 변화가 생길 수 있어요."
       },
       "sections": [
         {
-          "body": "대운 관점에서 본 「대운별 애정 변화」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 작은 선택 하나가 전체 분위기를 좌우할 수 있으니 신중하게 움직여보세요.",
+          "body": "23세(2027년, 경인), 33세(2037년, 신묘), 63세(2067년, 갑오), 73세(2077년, 을미) 시기에 관성(배우자성)이 발동해 인연·관계에 변화가 생길 수 있어요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 94,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 93,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "가까운 사람에게 먼저 안부 전하기",
-            "오늘 할 일의 우선순위를 다시 점검해보기"
+            "3세(2007년, 무자) — 관성(배우자성) 미발동: 기존 관계가 안정적으로 이어지는 시기",
+            "13세(2017년, 기축) — 관성(배우자성) 미발동: 기존 관계가 안정적으로 이어지는 시기",
+            "23세(2027년, 경인) — 관성(배우자성) 발동: 이성 인연·관계 변화가 활발해질 수 있는 흐름",
+            "33세(2037년, 신묘) — 관성(배우자성) 발동: 이성 인연·관계 변화가 활발해질 수 있는 흐름",
+            "43세(2047년, 임진) — 관성(배우자성) 미발동: 기존 관계가 안정적으로 이어지는 시기"
           ],
           "requiresPass": true,
-          "title": "이렇게 해보면 좋아요",
+          "title": "대운별 흐름",
           "type": "FortuneSectionType.recommend"
         },
         {
@@ -11777,7 +11499,7 @@
     "B06": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "대운 전환기 주의사항, 무난하게 안정적으로 흘러가는 흐름이에요",
+        "headline": "대운 전환기 주의사항",
         "keywords": [
           "대운",
           "경청"
@@ -11785,42 +11507,35 @@
         "name": "대운 전환기 주의사항",
         "score": 69,
         "statusLabel": "보통",
-        "subDescription": "서두르지 않고 하나씩 정리해가면 좋아요."
+        "subDescription": "3세(2007년, 무자) 전후 3년, 13세(2017년, 기축) 전후 3년, 23세(2027년, 경인) 전후 3년, 43세(2047년, 임진) 전후 3년는 오행 기운이 크게 바뀌는 전환기예요. 이 시기 전후로는 큰 결정보다 안정적인 관리에 집중하면 좋아요."
       },
       "sections": [
         {
-          "body": "대운 관점에서 본 「대운 전환기 주의사항」이에요. 무난한 흐름 속에서 노력한 만큼 결과가 따라오는 시기예요. 지금 가진 것을 잘 지키는 데 집중하면 좋겠어요.",
+          "body": "3세(2007년, 무자) 전후 3년, 13세(2017년, 기축) 전후 3년, 23세(2027년, 경인) 전후 3년, 43세(2047년, 임진) 전후 3년는 오행 기운이 크게 바뀌는 전환기예요. 이 시기 전후로는 큰 결정보다 안정적인 관리에 집중하면 좋아요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 70,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "중요한 판단은 하루 정도 더 생각해보고 결정해도 늦지 않아요.",
-          "index": 76,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "중요한 결정은 하루 정도 더 생각해보기",
-            "짧은 산책이나 스트레칭으로 몸 풀기",
-            "가까운 사람에게 먼저 안부 전하기"
+            "3세(2007년, 무자) — 직전 흐름과 오행이 상극(剋) 관계 — 전환기 전후 3년은 변화 체감이 클 수 있음",
+            "13세(2017년, 기축) — 직전 흐름과 오행이 상극(剋) 관계 — 전환기 전후 3년은 변화 체감이 클 수 있음",
+            "23세(2027년, 경인) — 직전 흐름과 오행이 상극(剋) 관계 — 전환기 전후 3년은 변화 체감이 클 수 있음",
+            "33세(2037년, 신묘) — 직전 흐름과 오행이 같아 비교적 완만한 전환",
+            "43세(2047년, 임진) — 직전 흐름과 오행이 상극(剋) 관계 — 전환기 전후 3년은 변화 체감이 클 수 있음"
           ],
           "requiresPass": true,
-          "title": "이렇게 해보면 좋아요",
+          "title": "대운별 흐름",
           "type": "FortuneSectionType.recommend"
         },
         {
           "items": [
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "네이비"
+            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -11830,11 +11545,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "균형"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "네이비"
             }
           ],
           "requiresPass": false,
@@ -11846,55 +11556,35 @@
     "B07": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "다음 대운 미리보기, 무난하게 안정적으로 흘러가는 흐름이에요",
+        "headline": "다음 대운 미리보기",
         "keywords": [
-          "여유",
-          "대운"
+          "대운",
+          "여유"
         ],
         "name": "다음 대운 미리보기",
         "score": 69,
         "statusLabel": "보통",
-        "subDescription": "지금까지 쌓아온 흐름이 서서히 드러나는 시기예요."
+        "subDescription": "23세(2027년)부터 경인 대운이 시작돼요. 이 대운의 십신은 상관/정관이에요."
       },
       "sections": [
         {
-          "body": "대운 관점에서 본 「다음 대운 미리보기」이에요. 무난한 흐름 속에서 노력한 만큼 결과가 따라오는 시기예요. 주변과의 교류에서 의외의 힌트를 얻을 수 있어요.",
+          "body": "23세(2027년)부터 경인 대운이 시작돼요. 이 대운의 십신은 상관/정관이에요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 69,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 66,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "중요한 결정은 하루 정도 더 생각해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "평소 미뤄둔 정리 해보기"
+            "상관",
+            "정관"
           ],
           "requiresPass": true,
-          "title": "이렇게 해보면 좋아요",
+          "title": "이 대운의 십신",
           "type": "FortuneSectionType.recommend"
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "시작"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -11904,6 +11594,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "서쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "시작"
             }
           ],
           "requiresPass": false,
@@ -11915,7 +11610,7 @@
     "B08": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "인생 최고 대운 시기, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "인생 최고 대운 시기",
         "keywords": [
           "대운",
           "집중"
@@ -11923,38 +11618,24 @@
         "name": "인생 최고 대운 시기",
         "score": 90,
         "statusLabel": "상승",
-        "subDescription": "무리하지 않고 흐름을 읽는 것이 중요해요."
+        "subDescription": "53세(2057년, 계사), 63세(2067년, 갑오), 83세(2087년, 병신) 시기는 용신(화) 기운이 들어와 전반적으로 순조로운 흐름을 기대할 수 있는 대운이에요."
       },
       "sections": [
         {
-          "body": "대운 관점에서 본 「인생 최고 대운 시기」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 멀리 보고 천천히 쌓아가는 태도가 특히 중요한 시기예요.",
+          "body": "53세(2057년, 계사), 63세(2067년, 갑오), 83세(2087년, 병신) 시기는 용신(화) 기운이 들어와 전반적으로 순조로운 흐름을 기대할 수 있는 대운이에요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 91,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 96,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "평소 미뤄둔 정리 해보기",
-            "가까운 사람에게 먼저 안부 전하기"
+            "53세(2057년, 계사)",
+            "63세(2067년, 갑오)",
+            "83세(2087년, 병신)"
           ],
           "requiresPass": true,
-          "title": "이렇게 해보면 좋아요",
+          "title": "해당 시기",
           "type": "FortuneSectionType.recommend"
         },
         {
@@ -11984,55 +11665,36 @@
     "B09": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "인생 최악 대운 시기, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "인생 최악 대운 시기",
         "keywords": [
-          "집중",
-          "대운"
+          "대운",
+          "집중"
         ],
         "name": "인생 최악 대운 시기",
         "score": 88,
         "statusLabel": "상승",
-        "subDescription": "지금까지 쌓아온 흐름이 서서히 드러나는 시기예요."
+        "subDescription": "3세(2007년, 무자), 43세(2047년, 임진), 53세(2057년, 계사) 시기는 기신(수) 기운이 들어와 다소 신중한 관리가 필요한 대운이에요. 큰 결정보다는 안정에 무게를 두면 좋아요."
       },
       "sections": [
         {
-          "body": "대운 관점에서 본 「인생 최악 대운 시기」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 큰 욕심을 내지 않는다면 안정적으로 흘러갈 가능성이 높아요.",
+          "body": "3세(2007년, 무자), 43세(2047년, 임진), 53세(2057년, 계사) 시기는 기신(수) 기운이 들어와 다소 신중한 관리가 필요한 대운이에요. 큰 결정보다는 안정에 무게를 두면 좋아요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "겉으로 드러나는 변화보다 내면의 준비가 더 중요한 흐름이에요.",
-          "index": 89,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 90,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "중요한 결정은 하루 정도 더 생각해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "평소 미뤄둔 정리 해보기"
+            "3세(2007년, 무자)",
+            "43세(2047년, 임진)",
+            "53세(2057년, 계사)"
           ],
           "requiresPass": true,
-          "title": "이렇게 해보면 좋아요",
+          "title": "해당 시기",
           "type": "FortuneSectionType.recommend"
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "시작"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -12042,6 +11704,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "북서쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "시작"
             }
           ],
           "requiresPass": false,
@@ -12053,36 +11720,22 @@
     "B10": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "대운 vs 세운 조합, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "대운 vs 세운 조합",
         "keywords": [
-          "인내",
-          "대운"
+          "대운",
+          "인내"
         ],
         "name": "대운 vs 세운 조합",
         "score": 80,
         "statusLabel": "상승",
-        "subDescription": "무리하지 않고 흐름을 읽는 것이 중요해요."
+        "subDescription": "올해는 현재 대운(비견/비견)과는 다른 기운(정인/정인)이 함께 작용해, 다채로운 변화가 있을 수 있는 해예요."
       },
       "sections": [
         {
-          "body": "대운 관점에서 본 「대운 vs 세운 조합」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 멀리 보고 천천히 쌓아가는 태도가 특히 중요한 시기예요.",
+          "body": "올해는 현재 대운(비견/비견)과는 다른 기운(정인/정인)이 함께 작용해, 다채로운 변화가 있을 수 있는 해예요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
-        },
-        {
-          "body": "작은 변화가 감지되는 시점이에요. 평소와 다른 선택을 해봐도 나쁘지 않아요.",
-          "index": 89,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 82,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
         },
         {
           "isAvoid": false,
@@ -12098,6 +11751,11 @@
         {
           "items": [
             {
+              "label": "색",
+              "requiresPass": false,
+              "value": "네이비"
+            },
+            {
               "label": "방향",
               "requiresPass": false,
               "value": "남쪽"
@@ -12106,11 +11764,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "시작"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "네이비"
             }
           ],
           "requiresPass": false,

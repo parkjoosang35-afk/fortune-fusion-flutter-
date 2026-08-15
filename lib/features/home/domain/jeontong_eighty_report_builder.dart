@@ -8,6 +8,7 @@ import 'manseryeok/manseryeok_policy.dart';
 import 'manseryeok/phase2_analysis_engine.dart';
 import 'manseryeok/phase3_analysis_engine.dart';
 import 'manseryeok/phase4_analysis_engine.dart';
+import 'manseryeok/saju_profile.dart' show SajuProfile;
 import 'manseryeok/saju_result_adapter.dart';
 import 'saju_engine.dart';
 import 'saju_fortune_rules.dart';
@@ -180,24 +181,43 @@ class JeontongReportBuilder {
         'H05',
         'H07',
         'H10',
+        // [2026-08-15 B02~B10 실계산 배선] PHASE4 대운 데이터를 이용한
+        // 대운별 재물/직업/건강/애정/전환기/다음대운/최고·최악대운/
+        // 대운×세운 조합 — 사용자 확정 지시 §3.
+        'B02',
+        'B03',
+        'B04',
+        'B05',
+        'B06',
+        'B07',
+        'B08',
+        'B09',
+        'B10',
       };
-      final SajuResult saju = migratedCategoryIds.contains(entry.id)
-          ? _buildSajuResultViaPhase1to4(
-              kst: kst,
-              gender: sajuGender,
-              isLunar: isLunar ?? false,
-              referenceDate: referenceDate,
-            )
-          : SajuEngine.calculate(
-              year: kst.year,
-              month: kst.month,
-              day: kst.day,
-              hour: kst.hour,
-              minute: kst.minute,
-              gender: sajuGender,
-              isLunar: isLunar ?? false,
-              referenceDate: referenceDate,
-            );
+      final bool useNewEngine = migratedCategoryIds.contains(entry.id);
+      SajuProfile? profile;
+      final SajuResult saju;
+      if (useNewEngine) {
+        final built = _buildProfileAndSajuResultViaPhase1to4(
+          kst: kst,
+          gender: sajuGender,
+          isLunar: isLunar ?? false,
+          referenceDate: referenceDate,
+        );
+        profile = built.profile;
+        saju = built.saju;
+      } else {
+        saju = SajuEngine.calculate(
+          year: kst.year,
+          month: kst.month,
+          day: kst.day,
+          hour: kst.hour,
+          minute: kst.minute,
+          gender: sajuGender,
+          isLunar: isLunar ?? false,
+          referenceDate: referenceDate,
+        );
+      }
 
       final interp = SajuInterpreter.fullInterpretation(saju);
       final ctx = JeontongCalcContext(
@@ -205,6 +225,7 @@ class JeontongReportBuilder {
         interp: interp,
         rules: fortuneRules,
         referenceDate: referenceDate,
+        profile: profile,
       );
 
       final result = runJeontongCategory(entry.id, ctx);
@@ -226,7 +247,14 @@ class JeontongReportBuilder {
   ///
   /// [kst]는 이미 KST(UTC+9) 벽시계 시각으로 변환된 값(호출부에서 변환
   /// 완료). [isLunar]가 true 이면 [kst]를 음력 생년월일시로 해석한다.
-  static SajuResult _buildSajuResultViaPhase1to4({
+  ///
+  /// [2026-08-15 B08/B09 배선] 기존에는 PHASE4 완료 [SajuProfile](p4,
+  /// 용신/기신 포함)을 [sajuResultFromProfile] 어댑터에만 넘기고 그 자리에서
+  /// 버렸다. B08(최고 대운)/B09(최악 대운)는 PHASE3가 계산한 용신/기신을
+  /// 그대로 조회해야 하므로, 이제 profile도 함께 반환해
+  /// [JeontongCalcContext.profile]로 전달한다 — 새로 계산하지 않고 이미
+  /// 계산된 값을 노출하기만 한다(§2/§7 원칙).
+  static ({SajuResult saju, SajuProfile profile}) _buildProfileAndSajuResultViaPhase1to4({
     required DateTime kst,
     required String gender,
     required bool isLunar,
@@ -251,7 +279,8 @@ class JeontongReportBuilder {
       core: withCore.core,
       referenceDate: referenceDate,
     );
-    return sajuResultFromProfile(p4, referenceDate: referenceDate);
+    final saju = sajuResultFromProfile(p4, referenceDate: referenceDate);
+    return (saju: saju, profile: p4);
   }
 
   /// 플레이스홀더/상대 사주 필요 결과 판정. 원본 파이썬도 이 경우
@@ -279,6 +308,11 @@ class JeontongReportBuilder {
   };
 
   static const Map<String, String> _listFieldLabels = {
+    // [2026-08-15 B02~B10] 대운 타임라인/발동 시기 — B그룹 핵심 콘텐츠라
+    // 다른 필드보다 우선 노출(맵 순서 = 탐색 우선순위).
+    'timeline': '대운별 흐름',
+    'periods': '해당 시기',
+    'ten_gods': '이 대운의 십신',
     'recommended_jobs': '추천 직업',
     'activities': '추천 활동',
     'items': '추천 아이템',

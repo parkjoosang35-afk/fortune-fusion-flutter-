@@ -13,6 +13,8 @@
 library;
 
 import 'jeontong_eighty_matrix.dart';
+import 'manseryeok/saju_profile.dart' show SajuProfile;
+import 'saju_daewoon_modules.dart';
 import 'saju_engine.dart';
 import 'saju_fortune_modules.dart';
 import 'saju_fortune_rules.dart';
@@ -54,6 +56,7 @@ class JeontongCalcContext {
     required this.interp,
     required this.rules,
     DateTime? referenceDate,
+    this.profile,
   }) : referenceDate = referenceDate ?? DateTime.now(),
        year = (referenceDate ?? DateTime.now()).year,
        month = (referenceDate ?? DateTime.now()).month;
@@ -68,6 +71,13 @@ class JeontongCalcContext {
   /// C그룹(세운)·D01(월운) 대표 연/월 — [referenceDate]에서 유도.
   final int year;
   final int month;
+
+  /// [B08/B09 전용] PHASE1~4가 이미 계산한 [SajuProfile](용신/기신 포함).
+  /// PHASE1~4 신규 엔진 경로(`migratedCategoryIds`)를 탈 때만 non-null로
+  /// 채워진다 — 레거시 `SajuEngine.calculate()` 경로에서는 null이며, 이
+  /// 경우 [getBestDaewoonPeriods]/[getWorstDaewoonPeriods]가 "판단 불가"로
+  /// 안전하게 처리한다(새로 용신을 계산하지 않는다).
+  final SajuProfile? profile;
 }
 
 JeontongCategoryResult _placeholder(String category, String message) =>
@@ -240,6 +250,118 @@ JeontongCategoryResult _b01(JeontongCalcContext ctx) {
   );
 }
 
+JeontongCategoryResult _b02(JeontongCalcContext ctx) {
+  final r = getDaewoonWealthFlow(ctx.saju);
+  return JeontongCategoryResult(
+    category: '대운별 재물 흐름',
+    data: {
+      'timeline': r.timeline,
+      'peak_periods': r.peakPeriods,
+      'summary': r.summary,
+    },
+  );
+}
+
+JeontongCategoryResult _b03(JeontongCalcContext ctx) {
+  final r = getDaewoonCareerFlow(ctx.saju);
+  return JeontongCategoryResult(
+    category: '대운별 직업 변화',
+    data: {
+      'timeline': r.timeline,
+      'shift_periods': r.shiftPeriods,
+      'summary': r.summary,
+    },
+  );
+}
+
+JeontongCategoryResult _b04(JeontongCalcContext ctx) {
+  final r = getDaewoonHealthFlow(ctx.saju);
+  return JeontongCategoryResult(
+    category: '대운별 건강 변화',
+    data: {
+      'timeline': r.timeline,
+      'caution_periods': r.cautionPeriods,
+      'summary': r.summary,
+    },
+  );
+}
+
+JeontongCategoryResult _b05(JeontongCalcContext ctx) {
+  final r = getDaewoonLoveFlow(ctx.saju);
+  return JeontongCategoryResult(
+    category: '대운별 애정 변화',
+    data: {
+      'timeline': r.timeline,
+      'active_periods': r.activePeriods,
+      'summary': r.summary,
+    },
+  );
+}
+
+JeontongCategoryResult _b06(JeontongCalcContext ctx) {
+  final r = getDaewoonTransitionCautions(ctx.saju);
+  return JeontongCategoryResult(
+    category: '대운 전환기 주의사항',
+    data: {
+      'timeline': r.timeline,
+      'caution_windows': r.cautionWindows,
+      'summary': r.summary,
+    },
+  );
+}
+
+JeontongCategoryResult _b07(JeontongCalcContext ctx) {
+  final r = getNextDaewoonPreview(ctx.saju);
+  return JeontongCategoryResult(
+    category: '다음 대운 미리보기',
+    data: {
+      'has_next': r.hasNext,
+      'start_age': r.startAge,
+      'start_year': r.startYear,
+      'gan_zhi_kr': r.ganZhiKr,
+      'ten_gods': r.tenGods,
+      'message': r.message,
+    },
+  );
+}
+
+JeontongCategoryResult _b08(JeontongCalcContext ctx) {
+  final r = getBestDaewoonPeriods(ctx.saju, ctx.profile);
+  return JeontongCategoryResult(
+    category: '인생 최고 대운 시기',
+    data: {
+      'periods': r.periods,
+      'summary': r.summary,
+    },
+  );
+}
+
+JeontongCategoryResult _b09(JeontongCalcContext ctx) {
+  final r = getWorstDaewoonPeriods(ctx.saju, ctx.profile);
+  return JeontongCategoryResult(
+    category: '인생 최악 대운 시기',
+    data: {
+      'periods': r.periods,
+      'summary': r.summary,
+    },
+  );
+}
+
+JeontongCategoryResult _b10(JeontongCalcContext ctx) {
+  final r = getDaewoonSewoonCombo(ctx.saju, year: ctx.year);
+  return JeontongCategoryResult(
+    category: '대운×세운 조합',
+    data: {
+      'daewoon_gan_zhi_kr': r.daewoonGanZhiKr,
+      'daewoon_ten_gods': r.daewoonTenGods,
+      'sewoon_gan_zhi_kr': r.sewoonGanZhiKr,
+      'sewoon_ten_gods': r.sewoonTenGods,
+      'synergy': r.synergy,
+      'message': r.message,
+    },
+  );
+}
+
 // ============================================================
 // C. 세운(올해) (10)
 // ============================================================
@@ -365,15 +487,15 @@ final Map<String, _CategoryFn> _categoryIndex = {
 
   // B. 대운 (10)
   'B01': _b01,
-  'B02': (ctx) => _placeholder('대운별 재물', '각 대운의 재성 관계'),
-  'B03': (ctx) => _placeholder('대운별 직업', '각 대운의 관성 관계'),
-  'B04': (ctx) => _placeholder('대운별 건강', '각 대운의 오행 편중'),
-  'B05': (ctx) => _placeholder('대운별 애정', '각 대운의 재/관성 관계'),
-  'B06': (ctx) => _placeholder('대운 전환기', '대운 변경 3년 전후 격동'),
-  'B07': (ctx) => _placeholder('다음 대운', '현재+10년 대운'),
-  'B08': (ctx) => _placeholder('최고 대운', '용신 대운 탐색'),
-  'B09': (ctx) => _placeholder('최악 대운', '기신 대운 탐색'),
-  'B10': (ctx) => _placeholder('대운×세운', '현재 대운·세운 시너지'),
+  'B02': _b02,
+  'B03': _b03,
+  'B04': _b04,
+  'B05': _b05,
+  'B06': _b06,
+  'B07': _b07,
+  'B08': _b08,
+  'B09': _b09,
+  'B10': _b10,
 
   // C. 세운(올해) (10)
   'C01': (ctx) => _yearFortuneToResult(ctx, '${ctx.year}년 운세'),
@@ -498,9 +620,13 @@ JeontongCategoryResult runJeontongCategory(
   return fn(ctx);
 }
 
-/// [미션 3 · 44종 플레이스홀더 UX 안전장치] 위 `_categoryIndex`에서
+/// [미션 3 · 35종 플레이스홀더 UX 안전장치] 위 `_categoryIndex`에서
 /// `_placeholder(...)` 또는 `_needsPartner(...)`를 그대로 반환하는(=실제
-/// 만세력 계산 없이 안내 메시지만 담는) 카테고리 id 44개의 정적 목록.
+/// 만세력 계산 없이 안내 메시지만 담는) 카테고리 id 35개의 정적 목록.
+///
+/// [2026-08-15 B02~B10 실계산 전환] B그룹(대운) 9종은 PHASE4 대운 데이터
+/// 기반 실계산으로 전환되어 이 목록에서 제외되었다(44 → 35, 사용자 확정
+/// 지시 §3/§4).
 ///
 /// [왜 정적 목록인가] `_categoryIndex`는 함수 매핑이라 런타임에 "이 id가
 /// placeholder인지"를 알려면 [JeontongCalcContext](실제 사주 계산 결과)를
@@ -511,13 +637,11 @@ JeontongCategoryResult runJeontongCategory(
 /// `runJeontongCategory()` 실행 결과의 일치를 회귀 검증한다 — 목록이
 /// `_categoryIndex`와 어긋나면 테스트가 즉시 실패한다).
 ///
-/// [UX 정책] 이 44종은 "계산이 안 된 결과"가 아니라 "아직 상세 만세력
+/// [UX 정책] 이 35종은 "계산이 안 된 결과"가 아니라 "아직 상세 만세력
 /// 계산 대신 일반적인 명리 해설을 담은 카테고리"다. 차단하거나 숨기지
 /// 않고, 결과 화면에 정직한 톤다운 안내만 추가한다(사용자 확정 지시 —
 /// "일반 풀이 참고용 톤으로 정직하게 표시").
 const Set<String> kJeontongPlaceholderCategoryIds = {
-  // B. 대운
-  'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B09', 'B10',
   // C. 세운(올해)
   'C06', 'C07', 'C08', 'C09', 'C10',
   // D. 이달·오늘
