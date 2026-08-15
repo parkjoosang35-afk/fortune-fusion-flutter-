@@ -3,6 +3,12 @@ import 'dart:math';
 import '../../fortune/shared/domain/fortune_report_model.dart';
 import 'jeontong_eighty_calculator.dart';
 import 'jeontong_eighty_matrix.dart';
+import 'manseryeok/manseryeok_core_engine.dart';
+import 'manseryeok/manseryeok_policy.dart';
+import 'manseryeok/phase2_analysis_engine.dart';
+import 'manseryeok/phase3_analysis_engine.dart';
+import 'manseryeok/phase4_analysis_engine.dart';
+import 'manseryeok/saju_result_adapter.dart';
 import 'saju_engine.dart';
 import 'saju_fortune_rules.dart';
 import 'saju_interpreter.dart';
@@ -115,16 +121,31 @@ class JeontongReportBuilder {
       final sajuGender = gender == 'F' || gender == 'female' ? 'female' : 'male';
       final referenceDate = date ?? DateTime.now();
 
-      final saju = SajuEngine.calculate(
-        year: kst.year,
-        month: kst.month,
-        day: kst.day,
-        hour: kst.hour,
-        minute: kst.minute,
-        gender: sajuGender,
-        isLunar: isLunar ?? false,
-        referenceDate: referenceDate,
-      );
+      // [j7 · A01 신규 엔진 이전 — entry.id 기준 분기]
+      // A01(평생 총운)만 PHASE1~4(검증 완료된 만세력 단일 기준 엔진) →
+      // SajuProfile → sajuResultFromProfile() 어댑터 → 기존 해석 계층
+      // 경로를 탄다. 나머지 31개 실계산 카테고리는 이번 단계에서 동작을
+      // 변경하지 않기 위해 기존 `SajuEngine.calculate()` 경로를 그대로
+      // 유지한다(사용자 지시 §1 "A01 외 31개 카테고리의 동작은 이번
+      // 단계에서 변경하지 마세요"). 카테고리가 하나씩 검증될 때마다 이
+      // 분기에 id를 추가해 나가는 방식으로 32개 전체를 순차 이전한다.
+      final SajuResult saju = entry.id == 'A01'
+          ? _buildSajuResultViaPhase1to4(
+              kst: kst,
+              gender: sajuGender,
+              isLunar: isLunar ?? false,
+              referenceDate: referenceDate,
+            )
+          : SajuEngine.calculate(
+              year: kst.year,
+              month: kst.month,
+              day: kst.day,
+              hour: kst.hour,
+              minute: kst.minute,
+              gender: sajuGender,
+              isLunar: isLunar ?? false,
+              referenceDate: referenceDate,
+            );
 
       final interp = SajuInterpreter.fullInterpretation(saju);
       final ctx = JeontongCalcContext(
@@ -142,6 +163,43 @@ class JeontongReportBuilder {
       // 방어적 안전망 — 어떤 이유로든 실계산이 실패하면 폴백.
       return null;
     }
+  }
+
+  /// [j7 · A01 신규 엔진 경로] PHASE1(만세력 원국) → PHASE2(오행/십신/
+  /// 지장간/십이운성/합충형파해/신살) → PHASE3(신강신약/용신희신기신구신)
+  /// → PHASE4(대운/세운/월운) 순서로 검증 완료된 신규 엔진을 실행하고,
+  /// [sajuResultFromProfile] 어댑터로 레거시 [SajuResult] 형태로 변환한다.
+  /// 이 함수는 만세력 계산을 다시 하지 않는다 — PHASE1~4가 유일한 계산
+  /// 기준이며, 어댑터는 이미 계산된 값을 옮기기만 한다(§2/§3/§7 원칙).
+  ///
+  /// [kst]는 이미 KST(UTC+9) 벽시계 시각으로 변환된 값(호출부에서 변환
+  /// 완료). [isLunar]가 true 이면 [kst]를 음력 생년월일시로 해석한다.
+  static SajuResult _buildSajuResultViaPhase1to4({
+    required DateTime kst,
+    required String gender,
+    required bool isLunar,
+    required DateTime referenceDate,
+  }) {
+    final withCore = ManseryeokCoreEngine.buildProfileWithCore(
+      year: kst.year,
+      month: kst.month,
+      day: kst.day,
+      hour: kst.hour,
+      minute: kst.minute,
+      gender: gender,
+      calendarType: isLunar ? CalendarInputType.lunar : CalendarInputType.solar,
+    );
+    final p2 = Phase2AnalysisEngine.analyze(
+      baseProfile: withCore.profile,
+      core: withCore.core,
+    );
+    final p3 = Phase3AnalysisEngine.analyze(baseProfile: p2);
+    final p4 = Phase4AnalysisEngine.analyze(
+      baseProfile: p3,
+      core: withCore.core,
+      referenceDate: referenceDate,
+    );
+    return sajuResultFromProfile(p4, referenceDate: referenceDate);
   }
 
   /// 플레이스홀더/상대 사주 필요 결과 판정. 원본 파이썬도 이 경우
