@@ -6,15 +6,19 @@
 /// [Map<String, dynamic>]을 반환한다. 이 Map은
 /// [jeontong_eighty_report_builder.dart]에서 [FortuneReport]로 변환된다.
 ///
-/// [플레이스홀더 정책] 원본 파이썬도 B02~B10, C06~C10, D04/D10, E01~E07(상대
-/// 사주 필요) 등 다수를 `{"category":..., "message":...}` 형태의 안내
-/// 플레이스홀더로 남겨두었다. 이 이식본도 동일하게 플레이스홀더를 그대로
-/// 옮긴다(새 로직을 추가로 만들지 않음 — 원본과 1:1 대응 유지).
+/// [플레이스홀더 정책] 원본 파이썬은 B02~B10, C06~C10, D04/D10,
+/// E01~E07(상대 사주 필요) 등 다수를 `{"category":..., "message":...}`
+/// 형태의 안내 플레이스홀더로 남겨두었으나, 이후 사용자 확정 지시에 따라
+/// B02~B10/C06~C10/D04/D10은 순차적으로 PHASE1~4 기반 실계산으로 전환
+/// 완료되었다(아래 [kJeontongPlaceholderCategoryIds] 갱신 이력 참고).
+/// 남은 플레이스홀더(E~H 일부)는 구현 가능 여부를 재검토해 유지 또는
+/// 삭제한다(80종 숫자에 집착하지 않음 — 사용자 확정 지시 §4/§7).
 library;
 
 import 'jeontong_eighty_matrix.dart';
 import 'manseryeok/saju_profile.dart' show SajuProfile;
 import 'saju_c_group_modules.dart';
+import 'saju_d_group_modules.dart';
 import 'saju_daewoon_modules.dart';
 import 'saju_engine.dart';
 import 'saju_fortune_modules.dart';
@@ -526,6 +530,35 @@ JeontongCategoryResult _luckyItemsToResult(
   );
 }
 
+/// [2026-08-15 D04 실계산 배선] D02/D03/D05~D09가 이미 사용하는
+/// [getDailyFortune]을 오늘부터 7일간 반복 호출한다(C10이 [getMonthlyFortune]
+/// 을 12회 반복 호출한 것과 동일 패턴, 사용자 확정 지시 §3 "D04/D10 진행").
+JeontongCategoryResult _d04(JeontongCalcContext ctx) {
+  final r = getWeeklyFortune(ctx.saju, ctx.rules, startDate: ctx.referenceDate);
+  return JeontongCategoryResult(
+    category: '이번 주 운세',
+    data: {
+      'overall': r.overall,
+      'daily_summary': r.dailySummary,
+    },
+  );
+}
+
+/// [2026-08-15 D10 실계산 배선 · §5 공통 엔진화] C08(세운 버전)과 동일한
+/// [RelationshipsEngine.analyzeExternal]을 오늘 일진 간지로 호출한다.
+/// 개별 임시 코드 없이 공통 엔진을 재사용(사용자 확정 지시 §5).
+JeontongCategoryResult _d10(JeontongCalcContext ctx) {
+  final r = getTodayAvoidFortune(ctx.saju, date: ctx.referenceDate);
+  return JeontongCategoryResult(
+    category: '오늘 피해야 할 일',
+    data: {
+      'title': r.title,
+      'overall': r.overall,
+      'advice': r.advice,
+    },
+  );
+}
+
 // ============================================================
 // 80종 CATEGORY_INDEX 매핑 — eighty_categories.py 이식
 // ============================================================
@@ -586,7 +619,7 @@ final Map<String, _CategoryFn> _categoryIndex = {
       day: tomorrow.day,
     );
   },
-  'D04': (ctx) => _placeholder('이번 주', '7일 일진 조합'),
+  'D04': (ctx) => _d04(ctx),
   'D05': (ctx) => _dailyFortuneToResult(
     ctx,
     year: ctx.referenceDate.year,
@@ -616,7 +649,7 @@ final Map<String, _CategoryFn> _categoryIndex = {
     focusTag: '시간',
   ),
   'D09': (ctx) => _luckyItemsToResult(ctx),
-  'D10': (ctx) => _placeholder('오늘 금기', '일진 충·형 발동 확인'),
+  'D10': (ctx) => _d10(ctx),
 
   // E. 궁합 (10) — 상대 사주 필요(원본과 동일하게 플레이스홀더)
   'E01': (ctx) => _needsPartner('부부 궁합'),
@@ -695,6 +728,12 @@ JeontongCategoryResult runJeontongCategory(
 /// `RelationshipsEngine.analyzeExternal()`(원국+세운 교차 비교 공용
 /// 메서드)을 사용한다.
 ///
+/// [2026-08-15 D04/D10 실계산 전환] D그룹(이달·오늘) 나머지 2종(이번 주
+/// 운세/오늘 피해야 할 일)도 실계산으로 전환되어 이 목록에서 제외되었다
+/// (30 → 28, 사용자 확정 지시 §3 "D04/D10 진행"). D04는 [getDailyFortune]
+/// 을 7일 반복 호출하고, D10은 §5 지시에 따라 C08과 동일한
+/// `RelationshipsEngine.analyzeExternal()`을 오늘 일진 간지로 호출한다.
+///
 /// [왜 정적 목록인가] `_categoryIndex`는 함수 매핑이라 런타임에 "이 id가
 /// placeholder인지"를 알려면 [JeontongCalcContext](실제 사주 계산 결과)를
 /// 먼저 만들어야 한다. 하지만 결과 화면은 프로필이 없는 방문자에게도
@@ -709,8 +748,6 @@ JeontongCategoryResult runJeontongCategory(
 /// 않고, 결과 화면에 정직한 톤다운 안내만 추가한다(사용자 확정 지시 —
 /// "일반 풀이 참고용 톤으로 정직하게 표시").
 const Set<String> kJeontongPlaceholderCategoryIds = {
-  // D. 이달·오늘
-  'D04', 'D10',
   // E. 궁합 (전부 상대 사주 필요)
   'E01', 'E02', 'E03', 'E04', 'E05', 'E06', 'E07', 'E08', 'E09', 'E10',
   // F. 특수 주제

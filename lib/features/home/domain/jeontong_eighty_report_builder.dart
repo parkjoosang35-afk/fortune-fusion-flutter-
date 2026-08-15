@@ -201,6 +201,12 @@ class JeontongReportBuilder {
         'C08',
         'C09',
         'C10',
+        // [2026-08-15 D04/D10 실계산 배선] D04(이번 주 운세)는
+        // getDailyFortune 7일 반복 호출, D10(오늘 피해야 할 일)은 C08과
+        // 동일한 §5 공통 엔진(analyzeExternal)을 오늘 일진 간지로 호출
+        // — 사용자 확정 지시 §3 "D04/D10 진행".
+        'D04',
+        'D10',
       };
       final bool useNewEngine = migratedCategoryIds.contains(entry.id);
       SajuProfile? profile;
@@ -321,6 +327,8 @@ class JeontongReportBuilder {
     'timeline': '대운별 흐름',
     // [2026-08-15 C10] 12개월 월별 요약 — C10 핵심 콘텐츠.
     'monthly_summary': '월별 흐름',
+    // [2026-08-15 D04] 7일 일진 요약 — D04 핵심 콘텐츠.
+    'daily_summary': '일별 흐름',
     'periods': '해당 시기',
     'ten_gods': '이 대운의 십신',
     'recommended_jobs': '추천 직업',

@@ -2131,7 +2131,7 @@
     "D04": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "이번 주 운세, 무난하게 안정적으로 흘러가는 흐름이에요",
+        "headline": "이번 주 운세",
         "keywords": [
           "이달·오늘",
           "경청"
@@ -2139,38 +2139,33 @@
         "name": "이번 주 운세",
         "score": 69,
         "statusLabel": "보통",
-        "subDescription": "서두르지 않고 하나씩 정리해가면 좋아요."
+        "subDescription": "8월 13일부터 7일간의 흐름을 일진 십신 기준으로 정리했어요."
       },
       "sections": [
         {
-          "body": "이달·오늘 관점에서 본 「이번 주 운세」이에요. 무난한 흐름 속에서 노력한 만큼 결과가 따라오는 시기예요. 지금 가진 것을 잘 지키는 데 집중하면 좋겠어요.",
+          "body": "8월 13일부터 7일간의 흐름을 일진 십신 기준으로 정리했어요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 68,
+          "body": "8월 13일부터 7일간의 흐름을 일진 십신 기준으로 정리했어요.",
+          "index": 67,
           "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "중요한 판단은 하루 정도 더 생각해보고 결정해도 늦지 않아요.",
-          "index": 74,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
+          "title": "총운",
           "type": "FortuneSectionType.aspect"
         },
         {
           "isAvoid": false,
           "items": [
-            "짧은 산책이나 스트레칭으로 몸 풀기",
-            "가까운 사람에게 먼저 안부 전하기",
-            "중요한 결정은 하루 정도 더 생각해보기"
+            "8/13(목, 己未 (기미)) — 안정의 날",
+            "8/14(금, 庚申 (경신)) — 압박의 날",
+            "8/15(토, 辛酉 (신유)) — 명예의 날",
+            "8/16(일, 壬戌 (임술)) — 직관의 날",
+            "8/17(월, 癸亥 (계해)) — 학문·인복의 날"
           ],
           "requiresPass": true,
-          "title": "이렇게 해보면 좋아요",
+          "title": "일별 흐름",
           "type": "FortuneSectionType.recommend"
         },
         {
@@ -2616,50 +2611,46 @@
     "D10": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "오늘 피해야 할 일, 무난하게 안정적으로 흘러가는 흐름이에요",
+        "headline": "오늘은 신중함이 필요한 날",
         "keywords": [
-          "정리",
-          "이달·오늘"
+          "이달·오늘",
+          "정리"
         ],
         "name": "오늘 피해야 할 일",
         "score": 71,
         "statusLabel": "보통",
-        "subDescription": "서두르지 않고 하나씩 정리해가면 좋아요."
+        "subDescription": "2026-08-13 己未 (기미) 일진이 원국과 지지충·해·파·원진·귀문·삼형 관계를 이뤄, 다툼·실수·감정 기복이 평소보다 커지기 쉬운 날이에요."
       },
       "sections": [
         {
-          "body": "이달·오늘 관점에서 본 「오늘 피해야 할 일」이에요. 무난한 흐름 속에서 노력한 만큼 결과가 따라오는 시기예요. 멀리 보고 천천히 쌓아가는 태도가 특히 중요한 시기예요.",
+          "body": "오늘은 신중함이 필요한 날 2026-08-13 己未 (기미) 일진이 원국과 지지충·해·파·원진·귀문·삼형 관계를 이뤄, 다툼·실수·감정 기복이 평소보다 커지기 쉬운 날이에요. 중요한 계약이나 큰 결정은 다음으로 미루고, 감정적인 대응은 자제하면 좋아요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "작은 변화가 감지되는 시점이에요. 평소와 다른 선택을 해봐도 나쁘지 않아요.",
-          "index": 73,
+          "body": "2026-08-13 己未 (기미) 일진이 원국과 지지충·해·파·원진·귀문·삼형 관계를 이뤄, 다툼·실수·감정 기복이 평소보다 커지기 쉬운 날이에요.",
+          "index": 69,
           "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "가까운 사람과 이야기를 나누면 생각보다 좋은 힌트를 얻을 수 있어요.",
-          "index": 68,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
+          "title": "총운",
           "type": "FortuneSectionType.aspect"
         },
         {
           "isAvoid": false,
           "items": [
-            "평소 미뤄둔 정리 해보기",
-            "작은 목표 하나를 정해 실천해보기",
-            "오늘 할 일의 우선순위를 다시 점검해보기"
+            "중요한 계약이나 큰 결정은 다음으로 미루고, 감정적인 대응은 자제하면 좋아요."
           ],
           "requiresPass": true,
-          "title": "이렇게 해보면 좋아요",
+          "title": "오늘의 조언",
           "type": "FortuneSectionType.recommend"
         },
         {
           "items": [
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "네이비"
+            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -2669,11 +2660,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "안정"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "네이비"
             }
           ],
           "requiresPass": false,
@@ -7419,7 +7405,7 @@
     "D04": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "이번 주 운세, 무난하게 안정적으로 흘러가는 흐름이에요",
+        "headline": "이번 주 운세",
         "keywords": [
           "이달·오늘",
           "경청"
@@ -7427,38 +7413,33 @@
         "name": "이번 주 운세",
         "score": 69,
         "statusLabel": "보통",
-        "subDescription": "서두르지 않고 하나씩 정리해가면 좋아요."
+        "subDescription": "8월 13일부터 7일간의 흐름을 일진 십신 기준으로 정리했어요."
       },
       "sections": [
         {
-          "body": "이달·오늘 관점에서 본 「이번 주 운세」이에요. 무난한 흐름 속에서 노력한 만큼 결과가 따라오는 시기예요. 지금 가진 것을 잘 지키는 데 집중하면 좋겠어요.",
+          "body": "8월 13일부터 7일간의 흐름을 일진 십신 기준으로 정리했어요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 70,
+          "body": "8월 13일부터 7일간의 흐름을 일진 십신 기준으로 정리했어요.",
+          "index": 67,
           "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "중요한 판단은 하루 정도 더 생각해보고 결정해도 늦지 않아요.",
-          "index": 76,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
+          "title": "총운",
           "type": "FortuneSectionType.aspect"
         },
         {
           "isAvoid": false,
           "items": [
-            "중요한 결정은 하루 정도 더 생각해보기",
-            "짧은 산책이나 스트레칭으로 몸 풀기",
-            "가까운 사람에게 먼저 안부 전하기"
+            "8/13(목, 己未 (기미)) — 직관의 날",
+            "8/14(금, 庚申 (경신)) — 경쟁의 날",
+            "8/15(토, 辛酉 (신유)) — 동료의 날",
+            "8/16(일, 壬戌 (임술)) — 돌파의 날",
+            "8/17(월, 癸亥 (계해)) — 표현의 날"
           ],
           "requiresPass": true,
-          "title": "이렇게 해보면 좋아요",
+          "title": "일별 흐름",
           "type": "FortuneSectionType.recommend"
         },
         {
@@ -7904,46 +7885,37 @@
     "D10": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "오늘 피해야 할 일, 무난하게 안정적으로 흘러가는 흐름이에요",
+        "headline": "오늘은 무난하게 지나가는 날",
         "keywords": [
-          "정리",
-          "이달·오늘"
+          "이달·오늘",
+          "정리"
         ],
         "name": "오늘 피해야 할 일",
         "score": 71,
         "statusLabel": "보통",
-        "subDescription": "서두르지 않고 하나씩 정리해가면 좋아요."
+        "subDescription": "2026-08-13 己未 (기미) 일진에서는 원국과 형충파해 관계가 뚜렷하게 발동하지 않아, 비교적 평온하게 지나갈 가능성이 높은 날이에요."
       },
       "sections": [
         {
-          "body": "이달·오늘 관점에서 본 「오늘 피해야 할 일」이에요. 무난한 흐름 속에서 노력한 만큼 결과가 따라오는 시기예요. 멀리 보고 천천히 쌓아가는 태도가 특히 중요한 시기예요.",
+          "body": "오늘은 무난하게 지나가는 날 2026-08-13 己未 (기미) 일진에서는 원국과 형충파해 관계가 뚜렷하게 발동하지 않아, 비교적 평온하게 지나갈 가능성이 높은 날이에요. 특별히 피해야 할 일은 없지만, 평소 하던 대로 차분하게 지내면 좋아요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "작은 변화가 감지되는 시점이에요. 평소와 다른 선택을 해봐도 나쁘지 않아요.",
-          "index": 71,
+          "body": "2026-08-13 己未 (기미) 일진에서는 원국과 형충파해 관계가 뚜렷하게 발동하지 않아, 비교적 평온하게 지나갈 가능성이 높은 날이에요.",
+          "index": 69,
           "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "가까운 사람과 이야기를 나누면 생각보다 좋은 힌트를 얻을 수 있어요.",
-          "index": 66,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
+          "title": "총운",
           "type": "FortuneSectionType.aspect"
         },
         {
           "isAvoid": false,
           "items": [
-            "작은 목표 하나를 정해 실천해보기",
-            "오늘 할 일의 우선순위를 다시 점검해보기",
-            "평소 미뤄둔 정리 해보기"
+            "특별히 피해야 할 일은 없지만, 평소 하던 대로 차분하게 지내면 좋아요."
           ],
           "requiresPass": true,
-          "title": "이렇게 해보면 좋아요",
+          "title": "오늘의 조언",
           "type": "FortuneSectionType.recommend"
         },
         {
@@ -12705,7 +12677,7 @@
     "D04": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "이번 주 운세, 무난하게 안정적으로 흘러가는 흐름이에요",
+        "headline": "이번 주 운세",
         "keywords": [
           "이달·오늘",
           "경청"
@@ -12713,38 +12685,33 @@
         "name": "이번 주 운세",
         "score": 69,
         "statusLabel": "보통",
-        "subDescription": "서두르지 않고 하나씩 정리해가면 좋아요."
+        "subDescription": "8월 13일부터 7일간의 흐름을 일진 십신 기준으로 정리했어요."
       },
       "sections": [
         {
-          "body": "이달·오늘 관점에서 본 「이번 주 운세」이에요. 무난한 흐름 속에서 노력한 만큼 결과가 따라오는 시기예요. 지금 가진 것을 잘 지키는 데 집중하면 좋겠어요.",
+          "body": "8월 13일부터 7일간의 흐름을 일진 십신 기준으로 정리했어요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 70,
+          "body": "8월 13일부터 7일간의 흐름을 일진 십신 기준으로 정리했어요.",
+          "index": 67,
           "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "중요한 판단은 하루 정도 더 생각해보고 결정해도 늦지 않아요.",
-          "index": 76,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
+          "title": "총운",
           "type": "FortuneSectionType.aspect"
         },
         {
           "isAvoid": false,
           "items": [
-            "중요한 결정은 하루 정도 더 생각해보기",
-            "짧은 산책이나 스트레칭으로 몸 풀기",
-            "가까운 사람에게 먼저 안부 전하기"
+            "8/13(목, 己未 (기미)) — 동료의 날",
+            "8/14(금, 庚申 (경신)) — 돌파의 날",
+            "8/15(토, 辛酉 (신유)) — 표현의 날",
+            "8/16(일, 壬戌 (임술)) — 안정의 날",
+            "8/17(월, 癸亥 (계해)) — 재물·활동의 날"
           ],
           "requiresPass": true,
-          "title": "이렇게 해보면 좋아요",
+          "title": "일별 흐름",
           "type": "FortuneSectionType.recommend"
         },
         {
@@ -13189,46 +13156,37 @@
     "D10": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "오늘 피해야 할 일, 무난하게 안정적으로 흘러가는 흐름이에요",
+        "headline": "오늘은 무난하게 지나가는 날",
         "keywords": [
-          "정리",
-          "이달·오늘"
+          "이달·오늘",
+          "정리"
         ],
         "name": "오늘 피해야 할 일",
         "score": 71,
         "statusLabel": "보통",
-        "subDescription": "서두르지 않고 하나씩 정리해가면 좋아요."
+        "subDescription": "2026-08-13 己未 (기미) 일진에서는 원국과 형충파해 관계가 뚜렷하게 발동하지 않아, 비교적 평온하게 지나갈 가능성이 높은 날이에요."
       },
       "sections": [
         {
-          "body": "이달·오늘 관점에서 본 「오늘 피해야 할 일」이에요. 무난한 흐름 속에서 노력한 만큼 결과가 따라오는 시기예요. 멀리 보고 천천히 쌓아가는 태도가 특히 중요한 시기예요.",
+          "body": "오늘은 무난하게 지나가는 날 2026-08-13 己未 (기미) 일진에서는 원국과 형충파해 관계가 뚜렷하게 발동하지 않아, 비교적 평온하게 지나갈 가능성이 높은 날이에요. 특별히 피해야 할 일은 없지만, 평소 하던 대로 차분하게 지내면 좋아요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "작은 변화가 감지되는 시점이에요. 평소와 다른 선택을 해봐도 나쁘지 않아요.",
-          "index": 76,
+          "body": "2026-08-13 己未 (기미) 일진에서는 원국과 형충파해 관계가 뚜렷하게 발동하지 않아, 비교적 평온하게 지나갈 가능성이 높은 날이에요.",
+          "index": 69,
           "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "가까운 사람과 이야기를 나누면 생각보다 좋은 힌트를 얻을 수 있어요.",
-          "index": 71,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
+          "title": "총운",
           "type": "FortuneSectionType.aspect"
         },
         {
           "isAvoid": false,
           "items": [
-            "작은 목표 하나를 정해 실천해보기",
-            "오늘 할 일의 우선순위를 다시 점검해보기",
-            "평소 미뤄둔 정리 해보기"
+            "특별히 피해야 할 일은 없지만, 평소 하던 대로 차분하게 지내면 좋아요."
           ],
           "requiresPass": true,
-          "title": "이렇게 해보면 좋아요",
+          "title": "오늘의 조언",
           "type": "FortuneSectionType.recommend"
         },
         {
