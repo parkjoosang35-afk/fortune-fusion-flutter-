@@ -1,11 +1,17 @@
-/// [정통사주 80종 · F03~F08/F10 특수 주제 그룹] 사업 아이템/창업·직장/
-/// 이직 타이밍/부동산 매매 타이밍/투자 성향/결혼 적령기/유학·해외
-/// 진출운 계산 모듈.
+/// [정통사주 80종 · F03~F09/F10 특수 주제 그룹] 사업 아이템/창업·직장/
+/// 이직 타이밍/부동산 매매 타이밍/투자 성향/결혼 적령기/자녀 출산 좋은
+/// 해/유학·해외 진출운 계산 모듈.
 ///
 /// B/C/D그룹과 마찬가지로 "원본 파이썬 이식"이 아니라 이번 세션에서
 /// 신규 설계한 계산이다(사용자 최종 지시 §3 "F03~F08/F10 진행", 사용자
-/// 승인 "응"). F01/F02는 이미 A03/A04([getLifeWealth]/[getLifeCareer])를
-/// 재사용 중이며, F09는 이번 라운드 구현 대상이 아니다(별도 재검토 대상).
+/// 승인 "응"; F09는 이후 재검토 라운드에서 추가 구현). F01/F02는 이미
+/// A03/A04([getLifeWealth]/[getLifeCareer])를 재사용 중이다.
+///
+/// [F09 재검토 결론] "자녀 출산 좋은 해"는 A07([getLifeChildren])이 이미
+/// 채택한 자녀성 배정(남=관성/여=식상, 자평명리 표준 관행)을 B05
+/// ([getDaewoonLoveFlow] — 배우자성 대운 발동 타임라인)와 동일한 방식으로
+/// 대운에 적용하면 새 판정 공식 없이 구현 가능하다고 판단해 구현
+/// 대상으로 전환한다(§4 "구현 불가능하면 즉시 삭제, 가능하면 구현").
 ///
 /// [절대 원칙] 새로운 명리 판정 공식을 만들지 않는다. 여기서 쓰는 모든
 /// 판정은 이미 검증된 순수 함수/고정 테이블([getTenGod], [getGongmang],
@@ -470,5 +476,64 @@ OverseasFortuneResult getOverseasFortune(
     score: score,
     style: style,
     message: message,
+  );
+}
+
+// ============================================================
+// F09 — 자녀 출산 좋은 해 (자녀성 대운 발동 확인)
+// ============================================================
+
+const Set<String> _childGodsMale = {'정관', '편관'};
+const Set<String> _childGodsFemale = {'식신', '상관'};
+
+class GoodChildbirthTimingResult {
+  const GoodChildbirthTimingResult({
+    required this.childGodLabel,
+    required this.timeline,
+    required this.activePeriods,
+    required this.summary,
+  });
+
+  final String childGodLabel;
+  final List<String> timeline;
+  final List<String> activePeriods;
+  final String summary;
+}
+
+/// A07([getLifeChildren])이 이미 채택한 자녀성 배정(남=관성/여=식상)을
+/// B05([getDaewoonLoveFlow])와 동일한 방식으로 대운 목록에 적용해, 자녀성이
+/// 발동하는 대운 시기를 조회한다. 새 판정 공식이 아니라 이미 검증된
+/// [getTenGod] 재호출 결과([daewoonsWithTenGod])에 A07의 자녀성 집합만
+/// 대입해 조합하는 것뿐이다.
+GoodChildbirthTimingResult getGoodChildbirthTiming(SajuResult saju) {
+  final list = daewoonsWithTenGod(saju);
+  final targetGods = saju.gender == 'male' ? _childGodsMale : _childGodsFemale;
+  final godLabel = saju.gender == 'male' ? '관성(자녀성)' : '식상(자녀성)';
+
+  final timeline = <String>[];
+  final active = <String>[];
+  for (final d in list) {
+    final label = '${d.luck.startAge}세(${d.luck.startYear}년, ${d.luck.ganZhiKr})';
+    final stemHit = targetGods.contains(d.stemTenGod);
+    final branchHit = targetGods.contains(d.branchTenGod);
+    if (stemHit || branchHit) {
+      timeline.add('$label — $godLabel 발동: 자녀 인연·출산 관련 경사가 두드러질 수 있는 흐름');
+      active.add(label);
+    } else {
+      timeline.add('$label — $godLabel 미발동: 특별한 변화 없이 안정적으로 이어지는 시기');
+    }
+  }
+
+  final summary = active.isEmpty
+      ? '계산된 대운 범위 안에서는 $godLabel이 뚜렷하게 발동하는 시기가 보이지 않아요. '
+          '자녀 계획은 시기보다 개인 상황에 맞춰 결정하는 것이 좋아요.'
+      : '${active.join(', ')} 시기에 $godLabel이 발동해 자녀 인연·출산 관련 흐름이 '
+          '좋아질 수 있어요.';
+
+  return GoodChildbirthTimingResult(
+    childGodLabel: godLabel,
+    timeline: timeline,
+    activePeriods: active,
+    summary: summary,
   );
 }

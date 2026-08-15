@@ -1,16 +1,19 @@
-// [j12 · F03~F08/F10 신규 구현] 레거시(SajuEngine.calculate) vs 신규(PHASE1~4 →
-// sajuResultFromProfile 어댑터) 경로에서 F03~F08/F10(사업 아이템/창업vs직장/
-// 이직 타이밍/부동산 매매 타이밍/투자 성향/결혼 적령기/유학·해외 진출운)
-// 결과를 비교한다.
+// [j12 · F03~F09/F10 신규 구현] 레거시(SajuEngine.calculate) vs 신규(PHASE1~4 →
+// sajuResultFromProfile 어댑터) 경로에서 F03~F09/F10(사업 아이템/창업vs직장/
+// 이직 타이밍/부동산 매매 타이밍/투자 성향/결혼 적령기/자녀 출산 좋은 해/
+// 유학·해외 진출운) 결과를 비교한다.
 //
 // F03~F08/F10은 B02~B10/C06~C10/D04/D10과 마찬가지로 "원본 파이썬 이식"이
 // 아니라 이번 세션에서 saju_f_group_modules.dart에 신규로 설계한 계산이다
-// (사용자 최종 지시 §3 "F03~F08/F10 진행", 사용자 승인 "응"). 모든 계산은
-// 이미 검증된 순수 함수/고정 테이블(getTenGod/getGongmang/findSinsal) 및
-// B02~B10이 이미 구현한 대운×십신 복원 헬퍼(daewoonsWithTenGod,
-// getDaewoonCareerFlow, getDaewoonLoveFlow)를 재사용할 뿐이라, 원국
-// 4주(saju.pillars)+대운(luckPillars)만 legacy/new가 일치하면 두 경로의
-// 결과도 완전히 동일해야 한다.
+// (사용자 최종 지시 §3 "F03~F08/F10 진행", 사용자 승인 "응"). F09(자녀 출산
+// 좋은 해)는 이후 재검토 라운드에서 A07([getLifeChildren])의 자녀성 배정
+// (남=관성/여=식상)과 B05([getDaewoonLoveFlow])의 대운 타임라인 패턴을
+// 조합해 추가 구현되었다(§4 "구현 불가능하면 즉시 삭제, 가능하면 구현").
+// 모든 계산은 이미 검증된 순수 함수/고정 테이블(getTenGod/getGongmang/
+// findSinsal) 및 B02~B10이 이미 구현한 대운×십신 복원 헬퍼
+// (daewoonsWithTenGod, getDaewoonCareerFlow, getDaewoonLoveFlow)를
+// 재사용할 뿐이라, 원국 4주(saju.pillars)+대운(luckPillars)만 legacy/new가
+// 일치하면 두 경로의 결과도 완전히 동일해야 한다.
 import 'package:flutter_app/features/home/domain/jeontong_eighty_calculator.dart';
 import 'package:flutter_app/features/home/domain/manseryeok/manseryeok_core_engine.dart';
 import 'package:flutter_app/features/home/domain/manseryeok/manseryeok_policy.dart';
@@ -64,7 +67,7 @@ DateTime _toKst(DateTime utc) => utc.add(const Duration(hours: 9));
 
 String _legacyGender(String mf) => mf == 'F' ? 'female' : 'male';
 
-const _fIds = ['F03', 'F04', 'F05', 'F06', 'F07', 'F08', 'F10'];
+const _fIds = ['F03', 'F04', 'F05', 'F06', 'F07', 'F08', 'F09', 'F10'];
 
 class _Bundle {
   _Bundle(this.saju, this.interp, this.profile, this.results);
@@ -144,8 +147,8 @@ void main() {
     await SajuFortuneRules.preload();
   });
 
-  group('[j12·F03~F08/F10] 카테고리 등록/제외 상태 확인', () {
-    test('kJeontongPlaceholderCategoryIds에 F03~F08/F10이 더 이상 없어야 함', () {
+  group('[j12·F03~F09/F10] 카테고리 등록/제외 상태 확인', () {
+    test('kJeontongPlaceholderCategoryIds에 F03~F09/F10이 더 이상 없어야 함', () {
       for (final id in _fIds) {
         expect(
           kJeontongPlaceholderCategoryIds.contains(id),
@@ -153,10 +156,6 @@ void main() {
           reason: '$id는 실계산으로 전환되어 플레이스홀더 목록에서 빠져야 함',
         );
       }
-    });
-
-    test('F09는 여전히 플레이스홀더 목록에 남아 있어야 함(이번 라운드 구현 대상 아님)', () {
-      expect(kJeontongPlaceholderCategoryIds.contains('F09'), isTrue);
     });
   });
 
@@ -202,9 +201,9 @@ void main() {
   // 동일하게 결론). 따라서 이 3개 카테고리는 리스트 필드에 대해 "공통
   // 접두사(legacy 길이만큼) 일치"만 검증하고, 대운 개수에 무관한
   // 불리언/문자열 필드는 완전 일치를 검증한다.
-  group('[j12·F05/F06/F08] 레거시 vs 신규 — 대운 목록 의존 필드는 공통 접두사 비교', () {
+  group('[j12·F05/F06/F08/F09] 레거시 vs 신규 — 대운 목록 의존 필드는 공통 접두사 비교', () {
     for (final u in _seedUsers) {
-      test('${u.userId}: F05/F06/F08 — 대운 개수 무관 필드는 완전 일치, 리스트 필드는 공통 접두사 일치', () {
+      test('${u.userId}: F05/F06/F08/F09 — 대운 개수 무관 필드는 완전 일치, 리스트 필드는 공통 접두사 일치', () {
         final legacyF = _runLegacy(u, _kFixedDate);
         final newF = _runNew(u, _kFixedDate);
 
@@ -273,6 +272,35 @@ void main() {
           legacyActive,
           reason: '${u.userId}: F08 active_periods 공통 접두사는 legacy/new 동일해야 함',
         );
+
+        // F09 — child_god_label(성별 기반, 대운 무관)은 완전 일치해야
+        // 한다. active_periods(리스트)는 공통 접두사 비교로 완화한다.
+        final legacyF09 = legacyF.results['F09']!.data;
+        final newF09 = newF.results['F09']!.data;
+        // ignore: avoid_print
+        print('[F09] legacy=$legacyF09');
+        // ignore: avoid_print
+        print('[F09] new   =$newF09');
+        expect(newF09['child_god_label'], legacyF09['child_god_label']);
+        final legacyChildActive = legacyF09['active_periods'] as List;
+        final newChildActive = newF09['active_periods'] as List;
+        expect(
+          newChildActive.take(legacyChildActive.length).toList(),
+          legacyChildActive,
+          reason: '${u.userId}: F09 active_periods 공통 접두사는 legacy/new 동일해야 함',
+        );
+      });
+    }
+  });
+
+  group('[j12·F09] 자녀 출산 좋은 해 — 자녀성 대운 발동 확인', () {
+    for (final u in _seedUsers) {
+      test('${u.userId}: F09 결과에 자녀성 라벨/타임라인/요약이 채워짐', () {
+        final newF = _runNew(u, _kFixedDate);
+        final data = newF.results['F09']!.data;
+        expect(data['child_god_label'], isNotEmpty);
+        expect((data['timeline'] as List), isNotEmpty);
+        expect(data['summary'], isNotEmpty);
       });
     }
   });

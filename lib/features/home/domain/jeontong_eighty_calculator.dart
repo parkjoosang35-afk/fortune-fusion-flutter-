@@ -714,6 +714,19 @@ JeontongCategoryResult _f08(JeontongCalcContext ctx) {
   );
 }
 
+JeontongCategoryResult _f09(JeontongCalcContext ctx) {
+  final r = getGoodChildbirthTiming(ctx.saju);
+  return JeontongCategoryResult(
+    category: '자녀 출산 좋은 해',
+    data: {
+      'child_god_label': r.childGodLabel,
+      'timeline': r.timeline,
+      'active_periods': r.activePeriods,
+      'summary': r.summary,
+    },
+  );
+}
+
 JeontongCategoryResult _f10(JeontongCalcContext ctx) {
   final r = getOverseasFortune(ctx.saju, ctx.interp);
   return JeontongCategoryResult(
@@ -842,7 +855,7 @@ final Map<String, _CategoryFn> _categoryIndex = {
   'F06': (ctx) => _f06(ctx),
   'F07': (ctx) => _f07(ctx),
   'F08': (ctx) => _f08(ctx),
-  'F09': (ctx) => _placeholder('출산 시기', '식신 세운 확인'),
+  'F09': (ctx) => _f09(ctx),
   'F10': (ctx) => _f10(ctx),
 
   // G. 건강 (10)
@@ -908,8 +921,14 @@ JeontongCategoryResult runJeontongCategory(
 /// 아이템/창업vs직장/이직 타이밍/부동산 매매 타이밍/투자 성향/결혼
 /// 적령기/유학·해외 진출운)도 PHASE1~4 기반 실계산으로 전환되어 이
 /// 목록에서 제외되었다(28 → 21, 사용자 확정 지시 §3 "F03~F08/F10 진행",
-/// 사용자 승인 "응"). F09(자녀 출산 좋은 해)만 별도 재검토 대상으로
-/// 플레이스홀더에 남는다. `saju_f_group_modules.dart` 참고.
+/// 사용자 승인 "응").
+///
+/// [2026-08-15 F09 실계산 전환] F09(자녀 출산 좋은 해)도 A07
+/// ([getLifeChildren])의 자녀성 배정(남=관성/여=식상)과 B05
+/// ([getDaewoonLoveFlow])의 대운 타임라인 발동 패턴을 조합해 실계산으로
+/// 전환되었다(21 → 20, §4 "구현 불가능하면 즉시 삭제" 원칙에 따라 재검토
+/// 후 구현 가능 판정). `saju_f_group_modules.dart`의
+/// [getGoodChildbirthTiming] 참고.
 ///
 /// [왜 정적 목록인가] `_categoryIndex`는 함수 매핑이라 런타임에 "이 id가
 /// placeholder인지"를 알려면 [JeontongCalcContext](실제 사주 계산 결과)를
@@ -920,16 +939,14 @@ JeontongCategoryResult runJeontongCategory(
 /// `runJeontongCategory()` 실행 결과의 일치를 회귀 검증한다 — 목록이
 /// `_categoryIndex`와 어긋나면 테스트가 즉시 실패한다).
 ///
-/// [UX 정책] 이 35종은 "계산이 안 된 결과"가 아니라 "아직 상세 만세력
+/// [UX 정책] 이 15종은 "계산이 안 된 결과"가 아니라 "아직 상세 만세력
 /// 계산 대신 일반적인 명리 해설을 담은 카테고리"다. 차단하거나 숨기지
 /// 않고, 결과 화면에 정직한 톤다운 안내만 추가한다(사용자 확정 지시 —
 /// "일반 풀이 참고용 톤으로 정직하게 표시").
 const Set<String> kJeontongPlaceholderCategoryIds = {
   // E. 궁합 (전부 상대 사주 필요)
   'E01', 'E02', 'E03', 'E04', 'E05', 'E06', 'E07', 'E08', 'E09', 'E10',
-  // F. 특수 주제 — F09(출산 시기)만 남음(별도 재검토 대상, 이번 라운드
-  // 구현 대상 아님). F03~F08/F10은 아래 실계산으로 전환 완료(28 → 21).
-  'F09',
+  // F. 특수 주제 — F03~F09/F10 모두 실계산으로 전환 완료(28 → 20).
   // G. 건강 — G07(정신 건강)/G09(장수)만 남음(2026-08-15 G03/G05/G06/
   // G08/G10 실계산 전환 완료).
   'G07', 'G09',

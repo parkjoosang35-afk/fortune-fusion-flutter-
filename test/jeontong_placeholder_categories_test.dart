@@ -5,6 +5,8 @@
 // (2026-08-15 갱신: F03~F08/F10이 실계산으로 전환되어 28→21, F09만 잔류)
 // (2026-08-15 갱신: G03/G05/G06/G08/G10이 실계산으로 전환되어 21→16,
 //  G07/G09만 잔류)
+// (2026-08-15 갱신: F09가 A07 자녀성 배정 + B05 대운 타임라인 패턴으로
+//  실계산 전환되어 16→15)
 //
 // `kJeontongPlaceholderCategoryIds`(jeontong_eighty_calculator.dart)는
 // `_categoryIndex` 매핑을 사람이 직접 대조해서 만든 정적 Set이므로, 향후
@@ -39,8 +41,8 @@ void main() {
     await SajuFortuneRules.preload();
   });
 
-  test('kJeontongPlaceholderCategoryIds는 정확히 16개', () {
-    expect(kJeontongPlaceholderCategoryIds.length, 16);
+  test('kJeontongPlaceholderCategoryIds는 정확히 15개', () {
+    expect(kJeontongPlaceholderCategoryIds.length, 15);
   });
 
   test('kJeontongPlaceholderCategoryIds는 JeontongEightyMatrix의 유효한 id만 포함', () {
