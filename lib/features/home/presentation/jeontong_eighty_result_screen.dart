@@ -14,7 +14,9 @@ import '../../../core/data/my_fortune_record_store.dart';
 import '../../fortune/shared/domain/fortune_report_model.dart';
 import '../data/jeontong_bookmark_store.dart';
 import '../data/jeontong_history_store.dart';
+import '../data/jeontong_profile_store.dart';
 import '../domain/jeontong_eighty_matrix.dart';
+import '../domain/jeontong_input.dart';
 import '../domain/jeontong_report_cache.dart';
 import 'widgets/jeontong_easy_term_toggle.dart';
 import 'widgets/jeontong_result_text_extractor.dart';
@@ -50,6 +52,16 @@ class _JeontongEightyResultScreenState
   final JeontongBookmarkStore _bookmarks = JeontongBookmarkStore();
   bool _isBookmarked = false;
 
+  // [미션 2 · 4축 관통 배선 + 사주 로딩] 입력 화면(JeontongInputScreen)에서
+  // 저장한 프로필을 비동기로 조회해 실제 계산(4축: userId/birthDateTimeUtc/
+  // gender/isLunar)에 그대로 전달한다. 조회가 끝나기 전까지는 로딩 화면을
+  // 보여준다("사주 로딩" — 사용자 명시 요구사항). 프로필이 아예 없으면(아직
+  // 입력 전) 4축을 전부 null로 두어 기존 폴백(결정론적 샘플) 경로를 그대로
+  // 탄다 — 이 화면 자체가 입력을 강제하지는 않는다(입력 유도는
+  // openJeontongEntry()가 이미 분기 처리).
+  bool _profileLoading = true;
+  JeontongInput? _profile;
+
   String get _userId =>
       (AuthTokenStore.cachedUserIdOrNull ?? AuthTokenStore.fallbackUserId)
           .toString();
@@ -59,15 +71,32 @@ class _JeontongEightyResultScreenState
     super.initState();
     // [정통사주 쉬운 설명 토글] 전문 용어 → 쉬운말 룰 JSON을 fire-and-forget
     // 으로 미리 로드해둔다. 실패해도 예외를 삼키고 토글은 폴백 문구를
-    // 보여주므로(위젯 자체 문서 참고) await 하지 않는다 — 프레임 예산
-    // (frame bench 계약, never-touch)에 영향을 주지 않기 위함.
+    // 보여주므로(위젯 자체 문서 참고) await 하지 않는다.
     JeontongEasyTermToggle.preload();
+    _loadProfileAndRecord();
+  }
+
+  Future<void> _loadProfileAndRecord() async {
+    final profile = await jeontongProfileStore.get(_userId);
+    if (!mounted) return;
+    setState(() {
+      _profile = profile;
+      _profileLoading = false;
+    });
+
     // [STEP 1-D] 결과 열람 이력 1회 기록. 결정론 골든/체크섬과는 무관한
-    // 별도 부수효과이므로 build()가 아닌 initState()에서 1회만 실행한다.
+    // 별도 부수효과이므로 build()가 아닌 여기서 1회만 실행한다.
     // dart:core 전용 in-memory store — HTTP/AI 호출 없음.
     final entry = JeontongEightyMatrix.byId(widget.categoryId ?? '');
     if (entry != null) {
-      final report = jeontongReportCache.getOrBuild(entry: entry);
+      final hasProfile = profile != null;
+      final report = jeontongReportCache.getOrBuild(
+        entry: entry,
+        userId: hasProfile ? _userId : null,
+        birthDateTimeUtc: profile?.birthDateTimeUtc,
+        gender: profile?.gender,
+        isLunar: profile?.isLunar,
+      );
       JeontongHistoryStore.instance.record(
         userId: _userId,
         categoryId: entry.id,
@@ -111,22 +140,33 @@ class _JeontongEightyResultScreenState
       body: SafeArea(
         child: entry == null
             ? const _NotFoundView()
-            : _ResultBody(
-                entry: entry,
-                saved: _saved,
-                isBookmarked: _isBookmarked,
-                onSave: () => _onSave(entry),
-                onToggleBookmark: () => _onTapBookmark(entry.id),
-                onOpenAiConsult: () => Navigator.of(
-                  context,
-                ).pushNamed('/ai-fortune/consultation/type'),
-              ),
+            : _profileLoading
+                ? const _JeontongLoadingView()
+                : _ResultBody(
+                    entry: entry,
+                    profile: _profile,
+                    userId: _userId,
+                    saved: _saved,
+                    isBookmarked: _isBookmarked,
+                    onSave: () => _onSave(entry),
+                    onToggleBookmark: () => _onTapBookmark(entry.id),
+                    onOpenAiConsult: () => Navigator.of(
+                      context,
+                    ).pushNamed('/ai-fortune/consultation/type'),
+                  ),
       ),
     );
   }
 
   Future<void> _onSave(JeontongCategoryEntry entry) async {
-    final report = jeontongReportCache.getOrBuild(entry: entry);
+    final hasProfile = _profile != null;
+    final report = jeontongReportCache.getOrBuild(
+      entry: entry,
+      userId: hasProfile ? _userId : null,
+      birthDateTimeUtc: _profile?.birthDateTimeUtc,
+      gender: _profile?.gender,
+      isLunar: _profile?.isLunar,
+    );
     await MyFortuneRecordStore.save(
       SavedFortuneRecord(
         id: 'jeontong80_${entry.id}_${DateTime.now().toIso8601String().substring(0, 10)}',
@@ -141,6 +181,38 @@ class _JeontongEightyResultScreenState
     if (!mounted) return;
     setState(() => _saved = true);
     AppToast.show(context, '마이 > 내 운세 기록에 저장되었어요');
+  }
+}
+
+/// [미션 2 · 사주 로딩] 저장된 프로필(생년월일시 등) 조회가 끝날 때까지
+/// 보여주는 로딩 화면. 실제 계산은 대부분 마이크로초 단위로 끝나지만,
+/// SharedPreferences 접근이 비동기이므로 그 사이 빈 화면 대신 명시적인
+/// 로딩 상태를 보여줘 "서비스답게" 만든다(사용자 명시 요구사항).
+class _JeontongLoadingView extends StatelessWidget {
+  const _JeontongLoadingView();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const _Header(title: '정통사주'),
+        Expanded(
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(height: UnifiedTokens.spaceMd),
+                Text(
+                  '사주를 풀이하고 있어요...',
+                  style: UnifiedText.body(color: UnifiedColors.textCaption),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -204,6 +276,8 @@ class _NotFoundView extends StatelessWidget {
 class _ResultBody extends StatelessWidget {
   const _ResultBody({
     required this.entry,
+    required this.profile,
+    required this.userId,
     required this.saved,
     required this.isBookmarked,
     required this.onSave,
@@ -212,6 +286,10 @@ class _ResultBody extends StatelessWidget {
   });
 
   final JeontongCategoryEntry entry;
+  // [미션 2 · 4축 관통 배선] 저장된 프로필. null이면(아직 입력 전) 4축을
+  // 전부 null로 두어 기존 폴백(결정론적 샘플) 경로를 그대로 탄다.
+  final JeontongInput? profile;
+  final String userId;
   final bool saved;
   final bool isBookmarked;
   final VoidCallback onSave;
@@ -220,7 +298,14 @@ class _ResultBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final report = jeontongReportCache.getOrBuild(entry: entry);
+    final hasProfile = profile != null;
+    final report = jeontongReportCache.getOrBuild(
+      entry: entry,
+      userId: hasProfile ? userId : null,
+      birthDateTimeUtc: profile?.birthDateTimeUtc,
+      gender: profile?.gender,
+      isLunar: profile?.isLunar,
+    );
     return Column(
       children: [
         _Header(
@@ -238,10 +323,10 @@ class _ResultBody extends StatelessWidget {
         _jeontongPersonalizationBadge(context,
           _jeontongSignatureFromInputs(
             categoryCode: entry.id,
-            userId: null,
-            birthDateTimeUtc: null,
-            gender: null,
-            isLunar: null,
+            userId: hasProfile ? userId : null,
+            birthDateTimeUtc: profile?.birthDateTimeUtc,
+            gender: profile?.gender,
+            isLunar: profile?.isLunar,
           ),
         ),
         Expanded(
