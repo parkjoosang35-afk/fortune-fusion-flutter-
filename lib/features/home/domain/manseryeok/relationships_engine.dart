@@ -327,4 +327,200 @@ class RelationshipsEngine {
 
     return result;
   }
+
+  /// [C08/D10 공통 엔진 — 사용자 확정 지시 §5 "C08/D10 공통 엔진화"]
+  /// 원국 4주와 **외부 1주**(세운 간지 또는 일진 간지)를 교차 비교해
+  /// 합충형파해원진귀문 관계를 찾는다.
+  ///
+  /// [analyze]와의 차이: [analyze]는 원국 4주끼리의 내부 관계만 찾지만,
+  /// 이 메서드는 원국 내부는 비교하지 않고(그건 이미 [analyze]가 담당),
+  /// [externalPillar] 1개를 원국의 년/월/일/시 각각과 1:1로 대조한다.
+  /// 사용하는 고정표는 위에서 선언한 것과 완전히 동일하다(신규 판정
+  /// 공식을 만들지 않는다 — §2 절대 금지 원칙 준수).
+  ///
+  /// [externalLabel]은 결과 위치 라벨의 접두어(예: '세운' | '일진')다.
+  /// 삼합/방합처럼 3글자가 모두 있어야 완전성립하는 관계는, 원국에서
+  /// 나머지 2글자를 찾아 [externalPillar]의 지지와 함께 3글자 완전성립
+  /// 여부를 판정한다([analyze]의 3글자 완전성립 원칙과 동일).
+  static List<SajuRelationship> analyzeExternal({
+    required Pillar yearPillar,
+    required Pillar monthPillar,
+    required Pillar dayPillar,
+    required Pillar hourPillar,
+    required Pillar externalPillar,
+    required String externalLabel,
+  }) {
+    final natalStems = [
+      yearPillar.stemHanja,
+      monthPillar.stemHanja,
+      dayPillar.stemHanja,
+      hourPillar.stemHanja,
+    ];
+    final natalBranches = [
+      yearPillar.branchHanja,
+      monthPillar.branchHanja,
+      dayPillar.branchHanja,
+      hourPillar.branchHanja,
+    ];
+    const natalStemLabel = ['년간', '월간', '일간', '시간'];
+    const natalBranchLabel = ['년지', '월지', '일지', '시지'];
+    final extStem = externalPillar.stemHanja;
+    final extBranch = externalPillar.branchHanja;
+    final extStemLabel = '$externalLabel간';
+    final extBranchLabel = '$externalLabel지';
+
+    final result = <SajuRelationship>[];
+
+    // ── 천간합/천간충 — 외부 천간 vs 원국 4천간 ──
+    for (var i = 0; i < 4; i++) {
+      for (final (a, b, el) in _tianGanHePairs) {
+        if ((extStem == a && natalStems[i] == b) ||
+            (extStem == b && natalStems[i] == a)) {
+          result.add(SajuRelationship(
+            type: '천간합',
+            characters: [extStem, natalStems[i]],
+            positions: [extStemLabel, natalStemLabel[i]],
+            resultElement: el,
+          ));
+        }
+      }
+      for (final (a, b) in _tianGanChongPairs) {
+        if ((extStem == a && natalStems[i] == b) ||
+            (extStem == b && natalStems[i] == a)) {
+          result.add(SajuRelationship(
+            type: '천간충',
+            characters: [extStem, natalStems[i]],
+            positions: [extStemLabel, natalStemLabel[i]],
+            resultElement: '',
+          ));
+        }
+      }
+    }
+
+    void addExternalBranchPair(
+      String type,
+      List<(String, String)> pairs, {
+      Map<(String, String), String>? elementOf,
+    }) {
+      for (var i = 0; i < 4; i++) {
+        for (final (a, b) in pairs) {
+          if ((extBranch == a && natalBranches[i] == b) ||
+              (extBranch == b && natalBranches[i] == a)) {
+            result.add(SajuRelationship(
+              type: type,
+              characters: [extBranch, natalBranches[i]],
+              positions: [extBranchLabel, natalBranchLabel[i]],
+              resultElement: elementOf?[(a, b)] ?? '',
+            ));
+          }
+        }
+      }
+    }
+
+    final liuHeElementMap = {
+      for (final (a, b, el) in _liuHePairs) (a, b): el,
+    };
+    addExternalBranchPair(
+      '육합',
+      [for (final (a, b, _) in _liuHePairs) (a, b)],
+      elementOf: liuHeElementMap,
+    );
+    addExternalBranchPair('지지충', _liuChongPairs);
+    addExternalBranchPair('해', _liuHaiPairs);
+    addExternalBranchPair('파', _liuPoPairs);
+    addExternalBranchPair('원진', _yuanChenPairs);
+    addExternalBranchPair('귀문', _guiMenPairs);
+    addExternalBranchPair('형', _xiangXingPairs);
+
+    // ── 자형 — 외부 지지가 원국의 같은 지지와 겹치는 경우 ──
+    if (_ziXingBranches.contains(extBranch)) {
+      for (var i = 0; i < 4; i++) {
+        if (natalBranches[i] == extBranch) {
+          result.add(SajuRelationship(
+            type: '자형',
+            characters: [extBranch, natalBranches[i]],
+            positions: [extBranchLabel, natalBranchLabel[i]],
+            resultElement: '',
+          ));
+        }
+      }
+    }
+
+    // ── 삼합(3글자 완전성립만) — 외부 지지 + 원국 지지 2개로 완성 ──
+    for (final (group, el) in _sanHeGroups) {
+      if (!group.contains(extBranch)) continue;
+      final remaining = [...group]..remove(extBranch);
+      final matchedPositions = <String>[];
+      final usedIdx = <int>{};
+      for (final g in remaining) {
+        for (var i = 0; i < 4; i++) {
+          if (natalBranches[i] == g && !usedIdx.contains(i)) {
+            matchedPositions.add(natalBranchLabel[i]);
+            usedIdx.add(i);
+            break;
+          }
+        }
+      }
+      if (matchedPositions.length == remaining.length) {
+        result.add(SajuRelationship(
+          type: '삼합',
+          characters: [extBranch, ...remaining],
+          positions: [extBranchLabel, ...matchedPositions],
+          resultElement: el,
+        ));
+      }
+    }
+
+    // ── 방합(3글자 완전성립만) — 외부 지지 + 원국 지지 2개로 완성 ──
+    for (final (group, el) in _fangHeGroups) {
+      if (!group.contains(extBranch)) continue;
+      final remaining = [...group]..remove(extBranch);
+      final matchedPositions = <String>[];
+      final usedIdx = <int>{};
+      for (final g in remaining) {
+        for (var i = 0; i < 4; i++) {
+          if (natalBranches[i] == g && !usedIdx.contains(i)) {
+            matchedPositions.add(natalBranchLabel[i]);
+            usedIdx.add(i);
+            break;
+          }
+        }
+      }
+      if (matchedPositions.length == remaining.length) {
+        result.add(SajuRelationship(
+          type: '방합',
+          characters: [extBranch, ...remaining],
+          positions: [extBranchLabel, ...matchedPositions],
+          resultElement: el,
+        ));
+      }
+    }
+
+    // ── 삼형(3글자 완전성립만: 寅巳申/丑戌未) — 외부 지지 + 원국 2개 ──
+    for (final group in _sanXingGroups) {
+      if (!group.contains(extBranch)) continue;
+      final remaining = [...group]..remove(extBranch);
+      final matchedPositions = <String>[];
+      final usedIdx = <int>{};
+      for (final g in remaining) {
+        for (var i = 0; i < 4; i++) {
+          if (natalBranches[i] == g && !usedIdx.contains(i)) {
+            matchedPositions.add(natalBranchLabel[i]);
+            usedIdx.add(i);
+            break;
+          }
+        }
+      }
+      if (matchedPositions.length == remaining.length) {
+        result.add(SajuRelationship(
+          type: '삼형',
+          characters: [extBranch, ...remaining],
+          positions: [extBranchLabel, ...matchedPositions],
+          resultElement: '',
+        ));
+      }
+    }
+
+    return result;
+  }
 }

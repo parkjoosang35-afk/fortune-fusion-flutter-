@@ -1,5 +1,6 @@
-// [미션 3 · 35종 플레이스홀더 UX 안전장치] 회귀 검증 테스트.
+// [미션 3 · 30종 플레이스홀더 UX 안전장치] 회귀 검증 테스트.
 // (2026-08-15 갱신: B02~B10이 PHASE1~4 기반 실계산으로 전환되어 44→35)
+// (2026-08-15 갱신: C06~C10이 세운 간지 기반 실계산으로 전환되어 35→30)
 //
 // `kJeontongPlaceholderCategoryIds`(jeontong_eighty_calculator.dart)는
 // `_categoryIndex` 매핑을 사람이 직접 대조해서 만든 정적 Set이므로, 향후
@@ -34,8 +35,8 @@ void main() {
     await SajuFortuneRules.preload();
   });
 
-  test('kJeontongPlaceholderCategoryIds는 정확히 35개', () {
-    expect(kJeontongPlaceholderCategoryIds.length, 35);
+  test('kJeontongPlaceholderCategoryIds는 정확히 30개', () {
+    expect(kJeontongPlaceholderCategoryIds.length, 30);
   });
 
   test('kJeontongPlaceholderCategoryIds는 JeontongEightyMatrix의 유효한 id만 포함', () {

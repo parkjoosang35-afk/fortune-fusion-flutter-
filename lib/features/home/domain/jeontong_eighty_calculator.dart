@@ -14,6 +14,7 @@ library;
 
 import 'jeontong_eighty_matrix.dart';
 import 'manseryeok/saju_profile.dart' show SajuProfile;
+import 'saju_c_group_modules.dart';
 import 'saju_daewoon_modules.dart';
 import 'saju_engine.dart';
 import 'saju_fortune_modules.dart';
@@ -389,6 +390,65 @@ JeontongCategoryResult _yearFortuneToResult(
   );
 }
 
+JeontongCategoryResult _c06(JeontongCalcContext ctx) {
+  final r = getYearlyMovementFortune(ctx.saju, year: ctx.year);
+  return JeontongCategoryResult(
+    category: '올해 이사·이동수',
+    data: {
+      'title': r.title,
+      'overall': r.overall,
+      'advice': r.advice,
+    },
+  );
+}
+
+JeontongCategoryResult _c07(JeontongCalcContext ctx) {
+  final r = getYearlyExamFortune(ctx.saju, year: ctx.year);
+  return JeontongCategoryResult(
+    category: '올해 시험·자격운',
+    data: {
+      'title': r.title,
+      'overall': r.overall,
+      'advice': r.advice,
+    },
+  );
+}
+
+JeontongCategoryResult _c08(JeontongCalcContext ctx) {
+  final r = getYearlyLegalRiskFortune(ctx.saju, year: ctx.year);
+  return JeontongCategoryResult(
+    category: '올해 소송·관재수',
+    data: {
+      'title': r.title,
+      'overall': r.overall,
+      'advice': r.advice,
+    },
+  );
+}
+
+JeontongCategoryResult _c09(JeontongCalcContext ctx) {
+  final r = getYearlyRelationshipFortune(ctx.saju, year: ctx.year);
+  return JeontongCategoryResult(
+    category: '올해 인간관계',
+    data: {
+      'title': r.title,
+      'overall': r.overall,
+      'advice': r.advice,
+    },
+  );
+}
+
+JeontongCategoryResult _c10(JeontongCalcContext ctx) {
+  final r = getYearlyMonthlyOverview(ctx.saju, ctx.rules, year: ctx.year);
+  return JeontongCategoryResult(
+    category: '올해 12개월 월별',
+    data: {
+      'overall': r.overall,
+      'monthly_summary': r.monthlySummary,
+    },
+  );
+}
+
 // ============================================================
 // D. 이달·오늘 (10)
 // ============================================================
@@ -503,11 +563,11 @@ final Map<String, _CategoryFn> _categoryIndex = {
   'C03': (ctx) => _yearFortuneToResult(ctx, '올해 직업운'),
   'C04': (ctx) => _yearFortuneToResult(ctx, '올해 애정운'),
   'C05': (ctx) => _yearFortuneToResult(ctx, '올해 건강운'),
-  'C06': (ctx) => _placeholder('이동수', '세운 역마 발동 확인'),
-  'C07': (ctx) => _placeholder('시험운', '세운 인성·문창 확인'),
-  'C08': (ctx) => _placeholder('관재수', '세운 상관견관·형충 확인'),
-  'C09': (ctx) => _placeholder('인간관계', '세운 비겁·인성 관계'),
-  'C10': (ctx) => _placeholder('12개월', '매월 월운 참조'),
+  'C06': (ctx) => _c06(ctx),
+  'C07': (ctx) => _c07(ctx),
+  'C08': (ctx) => _c08(ctx),
+  'C09': (ctx) => _c09(ctx),
+  'C10': (ctx) => _c10(ctx),
 
   // D. 이달·오늘 (10)
   'D01': (ctx) => _monthlyFortuneToResult(ctx),
@@ -628,6 +688,13 @@ JeontongCategoryResult runJeontongCategory(
 /// 기반 실계산으로 전환되어 이 목록에서 제외되었다(44 → 35, 사용자 확정
 /// 지시 §3/§4).
 ///
+/// [2026-08-15 C06~C10 실계산 전환] C그룹(세운) 나머지 5종(이동수/시험운/
+/// 관재수/인간관계/12개월)도 세운 간지 기반 실계산으로 전환되어 이
+/// 목록에서 제외되었다(35 → 30, 사용자 확정 지시 §3 "C06~C10 진행").
+/// C08(관재수)은 §5 "C08/D10 공통 엔진화" 지시에 따라
+/// `RelationshipsEngine.analyzeExternal()`(원국+세운 교차 비교 공용
+/// 메서드)을 사용한다.
+///
 /// [왜 정적 목록인가] `_categoryIndex`는 함수 매핑이라 런타임에 "이 id가
 /// placeholder인지"를 알려면 [JeontongCalcContext](실제 사주 계산 결과)를
 /// 먼저 만들어야 한다. 하지만 결과 화면은 프로필이 없는 방문자에게도
@@ -642,8 +709,6 @@ JeontongCategoryResult runJeontongCategory(
 /// 않고, 결과 화면에 정직한 톤다운 안내만 추가한다(사용자 확정 지시 —
 /// "일반 풀이 참고용 톤으로 정직하게 표시").
 const Set<String> kJeontongPlaceholderCategoryIds = {
-  // C. 세운(올해)
-  'C06', 'C07', 'C08', 'C09', 'C10',
   // D. 이달·오늘
   'D04', 'D10',
   // E. 궁합 (전부 상대 사주 필요)

@@ -193,6 +193,14 @@ class JeontongReportBuilder {
         'B08',
         'B09',
         'B10',
+        // [2026-08-15 C06~C10 실계산 배선] 세운 간지 기반 이동수/시험운/
+        // 관재수/인간관계/12개월 월별 — 사용자 확정 지시 §3 "C06~C10
+        // 진행". C08은 §5 공통 관계 비교 엔진(analyzeExternal)을 사용.
+        'C06',
+        'C07',
+        'C08',
+        'C09',
+        'C10',
       };
       final bool useNewEngine = migratedCategoryIds.contains(entry.id);
       SajuProfile? profile;
@@ -311,6 +319,8 @@ class JeontongReportBuilder {
     // [2026-08-15 B02~B10] 대운 타임라인/발동 시기 — B그룹 핵심 콘텐츠라
     // 다른 필드보다 우선 노출(맵 순서 = 탐색 우선순위).
     'timeline': '대운별 흐름',
+    // [2026-08-15 C10] 12개월 월별 요약 — C10 핵심 콘텐츠.
+    'monthly_summary': '월별 흐름',
     'periods': '해당 시기',
     'ten_gods': '이 대운의 십신',
     'recommended_jobs': '추천 직업',
