@@ -121,9 +121,9 @@ class JeontongReportBuilder {
       final sajuGender = gender == 'F' || gender == 'female' ? 'female' : 'male';
       final referenceDate = date ?? DateTime.now();
 
-      // [j7 · A01→B01→C01→D01→A02→A03→A04→A05→A06 신규 엔진 순차 이전 —
+      // [j7 · A01→B01→C01→D01→A02→A03→A04→A05→A06→C02 신규 엔진 순차 이전 —
       // entry.id 기준 분기] 검증 완료된 카테고리(A01, B01, C01, D01, A02,
-      // A03, A04, A05, A06)만 PHASE1~4(만세력 단일 기준 엔진) →
+      // A03, A04, A05, A06, C02)만 PHASE1~4(만세력 단일 기준 엔진) →
       // SajuProfile → sajuResultFromProfile() 어댑터 → 기존 해석 계층
       // 경로를 탄다. 아직 검증하지 않은 나머지 카테고리는 이번 단계에서
       // 동작을 변경하지 않기 위해 기존 `SajuEngine.calculate()` 경로를
@@ -140,6 +140,7 @@ class JeontongReportBuilder {
         'A04',
         'A05',
         'A06',
+        'C02',
       };
       final SajuResult saju = migratedCategoryIds.contains(entry.id)
           ? _buildSajuResultViaPhase1to4(
