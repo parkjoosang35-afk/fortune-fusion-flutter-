@@ -21,6 +21,7 @@ import '../../../core/widgets/app_toast.dart';
 import '../../wish_wall_board/presentation/wish_wall_board_screen.dart';
 import 'home_style_tokens.dart';
 import '../domain/jeontong_eighty_matrix.dart';
+import 'jeontong_input_screen.dart' show openJeontongEntry;
 
 // 2026-08-13 -- 톤 일관화 토큰. 신 클래스/신 색상 정의 0.
 class _Tone {
@@ -245,6 +246,21 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: const _FortuneTarotRow(),
                       ),
                     ],
+                  ),
+                ),
+                const SizedBox(height: _Dims.heroCardBottomGap),
+
+                // ⑤-1 [정통사주 80종 · MVP 라스트 마일 - Mission 1] 정통사주
+                // 입력/정보 화면 진입 배너. 기존 "운세" 카드(_FortuneTarotRow,
+                // `/jeontong/eighty` 아코디언 화면 진입)는 절대 수정하지 않고,
+                // 그 아래에 신규 카드 1개만 추가한다 — 사용자가 자신의
+                // 생년월일시를 입력해 실제 개인화된 정통사주 80종 결과를 받는
+                // 새 진입점(`openJeontongEntry`: 저장된 프로필이 있으면 바로
+                // 그리드로, 없으면 입력화면으로).
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 150),
+                  child: _JeontongProfileBanner(
+                    onTap: () => openJeontongEntry(context),
                   ),
                 ),
                 const SizedBox(height: _Dims.heroCardBottomGap),
@@ -942,6 +958,59 @@ class _FortuneTarotMiniCard extends StatelessWidget {
             ],
           ),
           Text(bottomLabel, style: HomeText.caption()),
+        ],
+      ),
+    );
+  }
+}
+
+/// ⑤-1 [정통사주 80종 · MVP 라스트 마일 - Mission 1] 정통사주 입력/정보 진입
+/// 배너.
+///
+/// [목적] 계산 엔진과 결과 그리드는 이미 있었지만 사용자가 자신의 생년월일시를
+/// 입력할 UI가 없어 "서비스가 아니라 계산 라이브러리"에 머물러 있던 문제를
+/// 해소하는 새 진입점. 저장된 프로필이 있으면 그리드로 바로, 없으면 입력
+/// 화면으로 보낸다([openJeontongEntry]).
+///
+/// [갈아엎지 않는다 원칙] 기존 "운세" 카드(_FortuneTarotRow, `/jeontong/eighty`
+/// 아코디언 화면 진입)는 이 배너 신설과 무관하게 그대로 둔다 — 완전히 별개의
+/// 신규 카드 1개만 그 아래에 추가한다.
+class _JeontongProfileBanner extends StatelessWidget {
+  const _JeontongProfileBanner({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return PremiumCard(
+      backgroundColor: HomeColors.cardMain,
+      borderColor: Colors.transparent,
+      borderRadius: BorderRadius.circular(_Dims.wishCardRadius),
+      showShadow: false,
+      onTap: onTap,
+      padding: const EdgeInsets.all(_Dims.wishCardPadding),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('내 생년월일시로 정통사주 보기', style: HomeText.title()),
+                const SizedBox(height: 4),
+                Text('태어난 날짜·시각을 입력하면 나만의 사주 풀이가 시작돼요',
+                    style: HomeText.caption()),
+              ],
+            ),
+          ),
+          PremiumCircleButton(
+            icon: Icons.arrow_forward_rounded,
+            style: PremiumCircleButtonStyle.neon,
+            size: _Dims.wishCircleSize,
+            iconSize: 14,
+            bgColor: HomeColors.neon,
+            fgColor: HomeColors.textPrimary,
+            onTap: onTap,
+          ),
         ],
       ),
     );

@@ -504,7 +504,16 @@ class JeontongReportBuilder {
 
 /// 정통사주 개인화 seed.
 /// 같은 입력 → 같은 int. 다른 입력 → 다른 int (99.99% 이상 회피).
-/// FNV-1a 64bit (dart:core 만 사용, 새 import 금지).
+///
+/// [웹 빌드 호환성 수정] 원래 FNV-1a 64bit 구현은 `0xcbf29ce484222325`,
+/// `0xFFFFFFFFFFFFFFFF` 등 JavaScript가 정확히 표현할 수 없는(53bit 안전
+/// 정수 범위 초과) 정수 리터럴을 사용해 `flutter build web`(dart2js)이
+/// "The integer literal ... can't be represented exactly in JavaScript"
+/// 오류로 컴파일 자체를 실패시켰다(Dart VM 기반 `flutter test`에서는 문제가
+/// 드러나지 않아 지금까지 미발견 상태였음). 동일한 "같은 입력 → 같은 값,
+/// 다른 입력 → 다른 값" 결정론 성질은 유지한 채, FNV-1a **32bit**(offset
+/// basis 0x811c9dc5, prime 0x01000193, mask 0xFFFFFFFF — 전부 JS 안전 정수
+/// 범위 내)로 교체한다. dart:core만 사용, 새 import 없음.
 int _jeontongPersonalizationSeed({
   required String categoryCode,
   String? userId,
@@ -512,22 +521,22 @@ int _jeontongPersonalizationSeed({
   String? gender,
   bool? isLunar,
 }) {
-  const int fnvPrime = 0x100000001b3;
-  int hash = 0xcbf29ce484222325;
+  const int fnvPrime32 = 0x01000193;
+  int hash = 0x811c9dc5;
   void mix(String s) {
     for (final code in s.codeUnits) {
       hash ^= code;
-      hash = (hash * fnvPrime) & 0xFFFFFFFFFFFFFFFF;
+      hash = (hash * fnvPrime32) & 0xFFFFFFFF;
     }
     hash ^= 0x5c;
-    hash = (hash * fnvPrime) & 0xFFFFFFFFFFFFFFFF;
+    hash = (hash * fnvPrime32) & 0xFFFFFFFF;
   }
   mix('cat:$categoryCode');
   mix('uid:${userId ?? ""}');
   mix('bdt:${birthDateTimeUtc?.toIso8601String() ?? ""}');
   mix('gen:${gender ?? ""}');
   mix('lun:${isLunar == null ? "" : (isLunar ? "1" : "0")}');
-  return hash & 0x7fffffffffffffff; // non-negative int64
+  return hash; // 0 ~ 0xFFFFFFFF, non-negative
 }
 
 /// base 결과의 문구(String) 콘텐츠는 한 글자도 바꾸지 않는다. base 가 이미

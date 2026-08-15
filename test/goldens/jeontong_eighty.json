@@ -357,14 +357,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 68,
+          "index": 65,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "중요한 판단은 하루 정도 더 생각해보고 결정해도 늦지 않아요.",
-          "index": 74,
+          "index": 71,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -372,9 +372,9 @@
         {
           "isAvoid": false,
           "items": [
-            "짧은 산책이나 스트레칭으로 몸 풀기",
             "가까운 사람에게 먼저 안부 전하기",
-            "중요한 결정은 하루 정도 더 생각해보기"
+            "중요한 결정은 하루 정도 더 생각해보기",
+            "짧은 산책이나 스트레칭으로 몸 풀기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -382,6 +382,11 @@
         },
         {
           "items": [
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "균형"
+            },
             {
               "label": "색",
               "requiresPass": false,
@@ -391,11 +396,6 @@
               "label": "방향",
               "requiresPass": false,
               "value": "북서쪽"
-            },
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "균형"
             }
           ],
           "requiresPass": false,
@@ -426,14 +426,14 @@
         },
         {
           "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 64,
+          "index": 67,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 61,
+          "index": 64,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -441,9 +441,9 @@
         {
           "isAvoid": false,
           "items": [
+            "오늘 하루 감사한 일 한 가지 떠올려보기",
             "평소 미뤄둔 정리 해보기",
-            "중요한 결정은 하루 정도 더 생각해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "중요한 결정은 하루 정도 더 생각해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -495,14 +495,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 89,
+          "index": 83,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 95,
+          "index": 89,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -510,9 +510,9 @@
         {
           "isAvoid": false,
           "items": [
-            "평소 미뤄둔 정리 해보기",
             "가까운 사람에게 먼저 안부 전하기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "오늘 하루 감사한 일 한 가지 떠올려보기",
+            "평소 미뤄둔 정리 해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -520,11 +520,6 @@
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "안정"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -534,6 +529,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "북쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "안정"
             }
           ],
           "requiresPass": false,
@@ -564,14 +564,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 91,
+          "index": 87,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 96,
+          "index": 95,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -688,14 +688,14 @@
         },
         {
           "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 79,
+          "index": 80,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 82,
+          "index": 83,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -703,9 +703,9 @@
         {
           "isAvoid": false,
           "items": [
-            "짧은 산책이나 스트레칭으로 몸 풀기",
             "오늘 할 일의 우선순위를 다시 점검해보기",
-            "중요한 결정은 하루 정도 더 생각해보기"
+            "중요한 결정은 하루 정도 더 생각해보기",
+            "짧은 산책이나 스트레칭으로 몸 풀기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -713,6 +713,11 @@
         },
         {
           "items": [
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "서쪽"
+            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -722,11 +727,6 @@
               "label": "색",
               "requiresPass": false,
               "value": "연그린"
-            },
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "서쪽"
             }
           ],
           "requiresPass": false,
@@ -757,14 +757,14 @@
         },
         {
           "body": "작은 변화가 감지되는 시점이에요. 평소와 다른 선택을 해봐도 나쁘지 않아요.",
-          "index": 68,
+          "index": 69,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "가까운 사람과 이야기를 나누면 생각보다 좋은 힌트를 얻을 수 있어요.",
-          "index": 63,
+          "index": 64,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -772,9 +772,9 @@
         {
           "isAvoid": false,
           "items": [
+            "작은 목표 하나를 정해 실천해보기",
             "오늘 할 일의 우선순위를 다시 점검해보기",
-            "평소 미뤄둔 정리 해보기",
-            "작은 목표 하나를 정해 실천해보기"
+            "평소 미뤄둔 정리 해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -782,11 +782,6 @@
         },
         {
           "items": [
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "북쪽"
-            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -796,6 +791,11 @@
               "label": "색",
               "requiresPass": false,
               "value": "네이비"
+            },
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "북쪽"
             }
           ],
           "requiresPass": false,
@@ -826,14 +826,14 @@
         },
         {
           "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 89,
+          "index": 88,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 82,
+          "index": 81,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -841,9 +841,9 @@
         {
           "isAvoid": false,
           "items": [
-            "오늘 할 일의 우선순위를 다시 점검해보기",
             "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "가까운 사람에게 먼저 안부 전하기"
+            "가까운 사람에게 먼저 안부 전하기",
+            "오늘 할 일의 우선순위를 다시 점검해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -851,11 +851,6 @@
         },
         {
           "items": [
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "북쪽"
-            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -865,6 +860,11 @@
               "label": "색",
               "requiresPass": false,
               "value": "라벤더"
+            },
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "북쪽"
             }
           ],
           "requiresPass": false,
@@ -895,14 +895,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 96,
+          "index": 94,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 96,
+          "index": 93,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -921,6 +921,11 @@
         {
           "items": [
             {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "여유"
+            },
+            {
               "label": "색",
               "requiresPass": false,
               "value": "라벤더"
@@ -929,11 +934,6 @@
               "label": "방향",
               "requiresPass": false,
               "value": "동쪽"
-            },
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "여유"
             }
           ],
           "requiresPass": false,
@@ -964,14 +964,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 65,
+          "index": 61,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "중요한 판단은 하루 정도 더 생각해보고 결정해도 늦지 않아요.",
-          "index": 71,
+          "index": 67,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -979,9 +979,9 @@
         {
           "isAvoid": false,
           "items": [
+            "가까운 사람에게 먼저 안부 전하기",
             "중요한 결정은 하루 정도 더 생각해보기",
-            "짧은 산책이나 스트레칭으로 몸 풀기",
-            "가까운 사람에게 먼저 안부 전하기"
+            "짧은 산책이나 스트레칭으로 몸 풀기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -989,11 +989,6 @@
         },
         {
           "items": [
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "네이비"
-            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -1003,6 +998,11 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "균형"
+            },
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "네이비"
             }
           ],
           "requiresPass": false,
@@ -1033,14 +1033,14 @@
         },
         {
           "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 70,
+          "index": 68,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 67,
+          "index": 65,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -1048,9 +1048,9 @@
         {
           "isAvoid": false,
           "items": [
+            "중요한 결정은 하루 정도 더 생각해보기",
             "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "평소 미뤄둔 정리 해보기",
-            "중요한 결정은 하루 정도 더 생각해보기"
+            "평소 미뤄둔 정리 해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -1058,11 +1058,6 @@
         },
         {
           "items": [
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "화이트"
-            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -1072,6 +1067,11 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "시작"
+            },
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "화이트"
             }
           ],
           "requiresPass": false,
@@ -1102,14 +1102,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 84,
+          "index": 87,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 90,
+          "index": 93,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -1117,9 +1117,9 @@
         {
           "isAvoid": false,
           "items": [
-            "가까운 사람에게 먼저 안부 전하기",
             "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "평소 미뤄둔 정리 해보기"
+            "평소 미뤄둔 정리 해보기",
+            "가까운 사람에게 먼저 안부 전하기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -1171,14 +1171,14 @@
         },
         {
           "body": "겉으로 드러나는 변화보다 내면의 준비가 더 중요한 흐름이에요.",
-          "index": 82,
+          "index": 88,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 83,
+          "index": 89,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -1240,14 +1240,14 @@
         },
         {
           "body": "작은 변화가 감지되는 시점이에요. 평소와 다른 선택을 해봐도 나쁘지 않아요.",
-          "index": 80,
+          "index": 86,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 73,
+          "index": 79,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -1255,9 +1255,9 @@
         {
           "isAvoid": false,
           "items": [
-            "평소 미뤄둔 정리 해보기",
             "오늘 할 일의 우선순위를 다시 점검해보기",
-            "짧은 산책이나 스트레칭으로 몸 풀기"
+            "짧은 산책이나 스트레칭으로 몸 풀기",
+            "평소 미뤄둔 정리 해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -1749,14 +1749,14 @@
         },
         {
           "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 67,
+          "index": 69,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 64,
+          "index": 66,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -1764,9 +1764,9 @@
         {
           "isAvoid": false,
           "items": [
-            "중요한 결정은 하루 정도 더 생각해보기",
             "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "평소 미뤄둔 정리 해보기"
+            "평소 미뤄둔 정리 해보기",
+            "중요한 결정은 하루 정도 더 생각해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -1774,11 +1774,6 @@
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "시작"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -1788,6 +1783,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "서쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "시작"
             }
           ],
           "requiresPass": false,
@@ -1818,14 +1818,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 82,
+          "index": 84,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 88,
+          "index": 90,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -1844,11 +1844,6 @@
         {
           "items": [
             {
-              "label": "색",
-              "requiresPass": false,
-              "value": "네이비"
-            },
-            {
               "label": "방향",
               "requiresPass": false,
               "value": "북쪽"
@@ -1857,6 +1852,11 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "안정"
+            },
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "네이비"
             }
           ],
           "requiresPass": false,
@@ -1887,14 +1887,14 @@
         },
         {
           "body": "겉으로 드러나는 변화보다 내면의 준비가 더 중요한 흐름이에요.",
-          "index": 83,
+          "index": 84,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 84,
+          "index": 85,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -1902,9 +1902,9 @@
         {
           "isAvoid": false,
           "items": [
-            "중요한 결정은 하루 정도 더 생각해보기",
             "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "평소 미뤄둔 정리 해보기"
+            "평소 미뤄둔 정리 해보기",
+            "중요한 결정은 하루 정도 더 생각해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -1912,6 +1912,11 @@
         },
         {
           "items": [
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "옐로우"
+            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -1921,11 +1926,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "시작"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "옐로우"
             }
           ],
           "requiresPass": false,
@@ -1956,14 +1956,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 75,
+          "index": 77,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 74,
+          "index": 76,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -1971,9 +1971,9 @@
         {
           "isAvoid": false,
           "items": [
+            "오늘 하루 감사한 일 한 가지 떠올려보기",
             "작은 목표 하나를 정해 실천해보기",
-            "중요한 결정은 하루 정도 더 생각해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "중요한 결정은 하루 정도 더 생각해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -1981,6 +1981,11 @@
         },
         {
           "items": [
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "네이비"
+            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -1990,11 +1995,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "균형"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "네이비"
             }
           ],
           "requiresPass": false,
@@ -2025,14 +2025,14 @@
         },
         {
           "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 83,
+          "index": 86,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 86,
+          "index": 89,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -2040,9 +2040,9 @@
         {
           "isAvoid": false,
           "items": [
+            "짧은 산책이나 스트레칭으로 몸 풀기",
             "오늘 할 일의 우선순위를 다시 점검해보기",
-            "중요한 결정은 하루 정도 더 생각해보기",
-            "짧은 산책이나 스트레칭으로 몸 풀기"
+            "중요한 결정은 하루 정도 더 생각해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -2362,14 +2362,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 65,
+          "index": 68,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "중요한 판단은 하루 정도 더 생각해보고 결정해도 늦지 않아요.",
-          "index": 71,
+          "index": 74,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -2847,14 +2847,14 @@
         },
         {
           "body": "작은 변화가 감지되는 시점이에요. 평소와 다른 선택을 해봐도 나쁘지 않아요.",
-          "index": 74,
+          "index": 73,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "가까운 사람과 이야기를 나누면 생각보다 좋은 힌트를 얻을 수 있어요.",
-          "index": 69,
+          "index": 68,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -2862,9 +2862,9 @@
         {
           "isAvoid": false,
           "items": [
+            "평소 미뤄둔 정리 해보기",
             "작은 목표 하나를 정해 실천해보기",
-            "오늘 할 일의 우선순위를 다시 점검해보기",
-            "평소 미뤄둔 정리 해보기"
+            "오늘 할 일의 우선순위를 다시 점검해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -2916,14 +2916,14 @@
         },
         {
           "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 96,
+          "index": 90,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 91,
+          "index": 83,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -2931,9 +2931,9 @@
         {
           "isAvoid": false,
           "items": [
+            "오늘 할 일의 우선순위를 다시 점검해보기",
             "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "가까운 사람에게 먼저 안부 전하기",
-            "오늘 할 일의 우선순위를 다시 점검해보기"
+            "가까운 사람에게 먼저 안부 전하기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -2941,6 +2941,11 @@
         },
         {
           "items": [
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "북쪽"
+            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -2950,11 +2955,6 @@
               "label": "색",
               "requiresPass": false,
               "value": "라벤더"
-            },
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "북쪽"
             }
           ],
           "requiresPass": false,
@@ -2985,14 +2985,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 96,
+          "index": 93,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 96,
+          "index": 92,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -3000,9 +3000,9 @@
         {
           "isAvoid": false,
           "items": [
+            "오늘 하루 감사한 일 한 가지 떠올려보기",
             "가까운 사람에게 먼저 안부 전하기",
-            "오늘 할 일의 우선순위를 다시 점검해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "오늘 할 일의 우선순위를 다시 점검해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -3010,11 +3010,6 @@
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "여유"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -3024,6 +3019,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "동쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "여유"
             }
           ],
           "requiresPass": false,
@@ -3054,14 +3054,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 62,
+          "index": 66,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "중요한 판단은 하루 정도 더 생각해보고 결정해도 늦지 않아요.",
-          "index": 68,
+          "index": 72,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -3069,9 +3069,9 @@
         {
           "isAvoid": false,
           "items": [
+            "짧은 산책이나 스트레칭으로 몸 풀기",
             "가까운 사람에게 먼저 안부 전하기",
-            "중요한 결정은 하루 정도 더 생각해보기",
-            "짧은 산책이나 스트레칭으로 몸 풀기"
+            "중요한 결정은 하루 정도 더 생각해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -3079,11 +3079,6 @@
         },
         {
           "items": [
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "네이비"
-            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -3093,6 +3088,11 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "균형"
+            },
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "네이비"
             }
           ],
           "requiresPass": false,
@@ -3123,14 +3123,14 @@
         },
         {
           "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 70,
+          "index": 71,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 67,
+          "index": 68,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -3138,9 +3138,9 @@
         {
           "isAvoid": false,
           "items": [
-            "평소 미뤄둔 정리 해보기",
             "중요한 결정은 하루 정도 더 생각해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "오늘 하루 감사한 일 한 가지 떠올려보기",
+            "평소 미뤄둔 정리 해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -3148,6 +3148,11 @@
         },
         {
           "items": [
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "시작"
+            },
             {
               "label": "색",
               "requiresPass": false,
@@ -3157,11 +3162,6 @@
               "label": "방향",
               "requiresPass": false,
               "value": "서쪽"
-            },
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "시작"
             }
           ],
           "requiresPass": false,
@@ -3192,14 +3192,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 86,
+          "index": 82,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 92,
+          "index": 88,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -3207,9 +3207,9 @@
         {
           "isAvoid": false,
           "items": [
-            "평소 미뤄둔 정리 해보기",
             "가까운 사람에게 먼저 안부 전하기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "오늘 하루 감사한 일 한 가지 떠올려보기",
+            "평소 미뤄둔 정리 해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -3261,14 +3261,14 @@
         },
         {
           "body": "겉으로 드러나는 변화보다 내면의 준비가 더 중요한 흐름이에요.",
-          "index": 88,
+          "index": 91,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 89,
+          "index": 92,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -3287,11 +3287,6 @@
         {
           "items": [
             {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "시작"
-            },
-            {
               "label": "색",
               "requiresPass": false,
               "value": "옐로우"
@@ -3300,6 +3295,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "북서쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "시작"
             }
           ],
           "requiresPass": false,
@@ -3345,9 +3345,9 @@
         {
           "isAvoid": false,
           "items": [
+            "오늘 하루 감사한 일 한 가지 떠올려보기",
             "작은 목표 하나를 정해 실천해보기",
-            "중요한 결정은 하루 정도 더 생각해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "중요한 결정은 하루 정도 더 생각해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -3355,6 +3355,11 @@
         },
         {
           "items": [
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "남쪽"
+            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -3364,11 +3369,6 @@
               "label": "색",
               "requiresPass": false,
               "value": "네이비"
-            },
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "남쪽"
             }
           ],
           "requiresPass": false,
@@ -3399,14 +3399,14 @@
         },
         {
           "body": "작은 변화가 감지되는 시점이에요. 평소와 다른 선택을 해봐도 나쁘지 않아요.",
-          "index": 60,
+          "index": 61,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 67,
+          "index": 68,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -3414,9 +3414,9 @@
         {
           "isAvoid": false,
           "items": [
+            "오늘 할 일의 우선순위를 다시 점검해보기",
             "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "중요한 결정은 하루 정도 더 생각해보기",
-            "오늘 할 일의 우선순위를 다시 점검해보기"
+            "중요한 결정은 하루 정도 더 생각해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -3424,11 +3424,6 @@
         },
         {
           "items": [
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "네이비"
-            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -3438,6 +3433,11 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "시작"
+            },
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "네이비"
             }
           ],
           "requiresPass": false,
@@ -3468,14 +3468,14 @@
         },
         {
           "body": "지금까지 쌓아온 흐름이 서서히 결과로 드러나는 시기예요. 조급해하지 않아도 괜찮아요.",
-          "index": 96,
+          "index": 91,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 90,
+          "index": 83,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -3483,9 +3483,9 @@
         {
           "isAvoid": false,
           "items": [
-            "중요한 결정은 하루 정도 더 생각해보기",
             "작은 목표 하나를 정해 실천해보기",
-            "가까운 사람에게 먼저 안부 전하기"
+            "가까운 사람에게 먼저 안부 전하기",
+            "중요한 결정은 하루 정도 더 생각해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -3493,11 +3493,6 @@
         },
         {
           "items": [
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "남쪽"
-            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -3507,6 +3502,11 @@
               "label": "색",
               "requiresPass": false,
               "value": "네이비"
+            },
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "남쪽"
             }
           ],
           "requiresPass": false,
@@ -3537,14 +3537,14 @@
         },
         {
           "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 92,
+          "index": 90,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 85,
+          "index": 83,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -3552,9 +3552,9 @@
         {
           "isAvoid": false,
           "items": [
-            "가까운 사람에게 먼저 안부 전하기",
             "오늘 할 일의 우선순위를 다시 점검해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "오늘 하루 감사한 일 한 가지 떠올려보기",
+            "가까운 사람에게 먼저 안부 전하기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -3562,6 +3562,11 @@
         },
         {
           "items": [
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "북쪽"
+            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -3571,11 +3576,6 @@
               "label": "색",
               "requiresPass": false,
               "value": "라벤더"
-            },
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "북쪽"
             }
           ],
           "requiresPass": false,
@@ -3718,14 +3718,14 @@
         },
         {
           "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 73,
+          "index": 70,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 70,
+          "index": 67,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -3733,9 +3733,9 @@
         {
           "isAvoid": false,
           "items": [
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
             "평소 미뤄둔 정리 해보기",
-            "중요한 결정은 하루 정도 더 생각해보기"
+            "중요한 결정은 하루 정도 더 생각해보기",
+            "오늘 하루 감사한 일 한 가지 떠올려보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -3743,11 +3743,6 @@
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "시작"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -3757,6 +3752,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "서쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "시작"
             }
           ],
           "requiresPass": false,
@@ -3787,14 +3787,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 87,
+          "index": 89,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 93,
+          "index": 95,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -3802,9 +3802,9 @@
         {
           "isAvoid": false,
           "items": [
+            "평소 미뤄둔 정리 해보기",
             "가까운 사람에게 먼저 안부 전하기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "평소 미뤄둔 정리 해보기"
+            "오늘 하루 감사한 일 한 가지 떠올려보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -3812,11 +3812,6 @@
         },
         {
           "items": [
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "북쪽"
-            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -3826,6 +3821,11 @@
               "label": "색",
               "requiresPass": false,
               "value": "네이비"
+            },
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "북쪽"
             }
           ],
           "requiresPass": false,
@@ -3882,6 +3882,11 @@
         {
           "items": [
             {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "시작"
+            },
+            {
               "label": "색",
               "requiresPass": false,
               "value": "옐로우"
@@ -3890,11 +3895,6 @@
               "label": "방향",
               "requiresPass": false,
               "value": "북서쪽"
-            },
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "시작"
             }
           ],
           "requiresPass": false,
@@ -3925,14 +3925,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 77,
+          "index": 79,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 76,
+          "index": 78,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -3940,9 +3940,9 @@
         {
           "isAvoid": false,
           "items": [
+            "중요한 결정은 하루 정도 더 생각해보기",
             "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "작은 목표 하나를 정해 실천해보기",
-            "중요한 결정은 하루 정도 더 생각해보기"
+            "작은 목표 하나를 정해 실천해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -3994,14 +3994,14 @@
         },
         {
           "body": "작은 변화가 감지되는 시점이에요. 평소와 다른 선택을 해봐도 나쁘지 않아요.",
-          "index": 66,
+          "index": 62,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 73,
+          "index": 69,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -4070,7 +4070,7 @@
         },
         {
           "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 92,
+          "index": 93,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -4078,9 +4078,9 @@
         {
           "isAvoid": false,
           "items": [
-            "중요한 결정은 하루 정도 더 생각해보기",
             "작은 목표 하나를 정해 실천해보기",
-            "가까운 사람에게 먼저 안부 전하기"
+            "가까운 사람에게 먼저 안부 전하기",
+            "중요한 결정은 하루 정도 더 생각해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -4088,6 +4088,11 @@
         },
         {
           "items": [
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "남쪽"
+            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -4097,11 +4102,6 @@
               "label": "색",
               "requiresPass": false,
               "value": "네이비"
-            },
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "남쪽"
             }
           ],
           "requiresPass": false,
@@ -4132,14 +4132,14 @@
         },
         {
           "body": "지금까지 쌓아온 흐름이 서서히 결과로 드러나는 시기예요. 조급해하지 않아도 괜찮아요.",
-          "index": 87,
+          "index": 86,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 92,
+          "index": 91,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -4147,9 +4147,9 @@
         {
           "isAvoid": false,
           "items": [
-            "오늘 할 일의 우선순위를 다시 점검해보기",
             "평소 미뤄둔 정리 해보기",
-            "가까운 사람에게 먼저 안부 전하기"
+            "가까운 사람에게 먼저 안부 전하기",
+            "오늘 할 일의 우선순위를 다시 점검해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -4157,11 +4157,6 @@
         },
         {
           "items": [
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "북서쪽"
-            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -4171,6 +4166,11 @@
               "label": "색",
               "requiresPass": false,
               "value": "베이지"
+            },
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "북서쪽"
             }
           ],
           "requiresPass": false,
@@ -4201,14 +4201,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 91,
+          "index": 96,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 90,
+          "index": 96,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -4216,9 +4216,9 @@
         {
           "isAvoid": false,
           "items": [
-            "오늘 할 일의 우선순위를 다시 점검해보기",
             "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "가까운 사람에게 먼저 안부 전하기"
+            "가까운 사람에게 먼저 안부 전하기",
+            "오늘 할 일의 우선순위를 다시 점검해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -4226,11 +4226,6 @@
         },
         {
           "items": [
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "라벤더"
-            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -4240,6 +4235,11 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "여유"
+            },
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "라벤더"
             }
           ],
           "requiresPass": false,
@@ -4382,14 +4382,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 89,
+          "index": 82,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 95,
+          "index": 88,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -4397,9 +4397,9 @@
         {
           "isAvoid": false,
           "items": [
-            "가까운 사람에게 먼저 안부 전하기",
             "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "평소 미뤄둔 정리 해보기"
+            "평소 미뤄둔 정리 해보기",
+            "가까운 사람에게 먼저 안부 전하기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -4407,11 +4407,6 @@
         },
         {
           "items": [
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "북쪽"
-            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -4421,6 +4416,11 @@
               "label": "색",
               "requiresPass": false,
               "value": "네이비"
+            },
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "북쪽"
             }
           ],
           "requiresPass": false,
@@ -4507,14 +4507,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 83,
+          "index": 78,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 82,
+          "index": 77,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -4522,9 +4522,9 @@
         {
           "isAvoid": false,
           "items": [
-            "중요한 결정은 하루 정도 더 생각해보기",
             "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "작은 목표 하나를 정해 실천해보기"
+            "작은 목표 하나를 정해 실천해보기",
+            "중요한 결정은 하루 정도 더 생각해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -4532,6 +4532,11 @@
         },
         {
           "items": [
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "남쪽"
+            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -4541,11 +4546,6 @@
               "label": "색",
               "requiresPass": false,
               "value": "네이비"
-            },
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "남쪽"
             }
           ],
           "requiresPass": false,
@@ -4576,14 +4576,14 @@
         },
         {
           "body": "작은 변화가 감지되는 시점이에요. 평소와 다른 선택을 해봐도 나쁘지 않아요.",
-          "index": 59,
+          "index": 60,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 66,
+          "index": 67,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -4645,14 +4645,14 @@
         },
         {
           "body": "지금까지 쌓아온 흐름이 서서히 결과로 드러나는 시기예요. 조급해하지 않아도 괜찮아요.",
-          "index": 95,
+          "index": 94,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 87,
+          "index": 86,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -4671,11 +4671,6 @@
         {
           "items": [
             {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "균형"
-            },
-            {
               "label": "색",
               "requiresPass": false,
               "value": "네이비"
@@ -4684,6 +4679,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "남쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "균형"
             }
           ],
           "requiresPass": false,
@@ -4714,14 +4714,14 @@
         },
         {
           "body": "지금까지 쌓아온 흐름이 서서히 결과로 드러나는 시기예요. 조급해하지 않아도 괜찮아요.",
-          "index": 86,
+          "index": 95,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 91,
+          "index": 96,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -4729,9 +4729,9 @@
         {
           "isAvoid": false,
           "items": [
+            "가까운 사람에게 먼저 안부 전하기",
             "오늘 할 일의 우선순위를 다시 점검해보기",
-            "평소 미뤄둔 정리 해보기",
-            "가까운 사람에게 먼저 안부 전하기"
+            "평소 미뤄둔 정리 해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -4739,11 +4739,6 @@
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "시작"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -4753,6 +4748,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "북서쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "시작"
             }
           ],
           "requiresPass": false,
@@ -4783,14 +4783,14 @@
         },
         {
           "body": "지금까지 쌓아온 흐름이 서서히 결과로 드러나는 시기예요. 조급해하지 않아도 괜찮아요.",
-          "index": 79,
+          "index": 84,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 75,
+          "index": 80,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -4798,9 +4798,9 @@
         {
           "isAvoid": false,
           "items": [
-            "짧은 산책이나 스트레칭으로 몸 풀기",
             "평소 미뤄둔 정리 해보기",
-            "중요한 결정은 하루 정도 더 생각해보기"
+            "중요한 결정은 하루 정도 더 생각해보기",
+            "짧은 산책이나 스트레칭으로 몸 풀기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -4808,6 +4808,11 @@
         },
         {
           "items": [
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "남동쪽"
+            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -4817,11 +4822,6 @@
               "label": "색",
               "requiresPass": false,
               "value": "베이지"
-            },
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "남동쪽"
             }
           ],
           "requiresPass": false,
@@ -4852,14 +4852,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 67,
+          "index": 60,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "중요한 판단은 하루 정도 더 생각해보고 결정해도 늦지 않아요.",
-          "index": 73,
+          "index": 66,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -4867,9 +4867,9 @@
         {
           "isAvoid": false,
           "items": [
-            "가까운 사람에게 먼저 안부 전하기",
             "중요한 결정은 하루 정도 더 생각해보기",
-            "짧은 산책이나 스트레칭으로 몸 풀기"
+            "짧은 산책이나 스트레칭으로 몸 풀기",
+            "가까운 사람에게 먼저 안부 전하기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -5201,14 +5201,14 @@
         },
         {
           "body": "지금까지 쌓아온 흐름이 서서히 결과로 드러나는 시기예요. 조급해하지 않아도 괜찮아요.",
-          "index": 96,
+          "index": 92,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 91,
+          "index": 84,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -5227,6 +5227,11 @@
         {
           "items": [
             {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "균형"
+            },
+            {
               "label": "색",
               "requiresPass": false,
               "value": "네이비"
@@ -5235,11 +5240,6 @@
               "label": "방향",
               "requiresPass": false,
               "value": "남쪽"
-            },
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "균형"
             }
           ],
           "requiresPass": false,
@@ -5326,14 +5326,14 @@
         },
         {
           "body": "지금까지 쌓아온 흐름이 서서히 결과로 드러나는 시기예요. 조급해하지 않아도 괜찮아요.",
-          "index": 81,
+          "index": 83,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 77,
+          "index": 79,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -5341,9 +5341,9 @@
         {
           "isAvoid": false,
           "items": [
-            "짧은 산책이나 스트레칭으로 몸 풀기",
             "평소 미뤄둔 정리 해보기",
-            "중요한 결정은 하루 정도 더 생각해보기"
+            "중요한 결정은 하루 정도 더 생각해보기",
+            "짧은 산책이나 스트레칭으로 몸 풀기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -5351,11 +5351,6 @@
         },
         {
           "items": [
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "베이지"
-            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -5365,6 +5360,11 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "인내"
+            },
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "베이지"
             }
           ],
           "requiresPass": false,
@@ -5395,14 +5395,14 @@
         },
         {
           "body": "작은 변화가 감지되는 시점이에요. 평소와 다른 선택을 해봐도 나쁘지 않아요.",
-          "index": 77,
+          "index": 68,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 74,
+          "index": 65,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -5421,11 +5421,6 @@
         {
           "items": [
             {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "경청"
-            },
-            {
               "label": "색",
               "requiresPass": false,
               "value": "옐로우"
@@ -5434,6 +5429,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "북쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "경청"
             }
           ],
           "requiresPass": false,
@@ -5857,14 +5857,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 65,
+          "index": 68,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "중요한 판단은 하루 정도 더 생각해보고 결정해도 늦지 않아요.",
-          "index": 71,
+          "index": 74,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -5872,9 +5872,9 @@
         {
           "isAvoid": false,
           "items": [
+            "짧은 산책이나 스트레칭으로 몸 풀기",
             "가까운 사람에게 먼저 안부 전하기",
-            "중요한 결정은 하루 정도 더 생각해보기",
-            "짧은 산책이나 스트레칭으로 몸 풀기"
+            "중요한 결정은 하루 정도 더 생각해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -5882,11 +5882,6 @@
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "균형"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -5896,6 +5891,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "북서쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "균형"
             }
           ],
           "requiresPass": false,
@@ -5926,14 +5926,14 @@
         },
         {
           "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 71,
+          "index": 73,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 68,
+          "index": 70,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -5952,6 +5952,11 @@
         {
           "items": [
             {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "시작"
+            },
+            {
               "label": "색",
               "requiresPass": false,
               "value": "화이트"
@@ -5960,11 +5965,6 @@
               "label": "방향",
               "requiresPass": false,
               "value": "서쪽"
-            },
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "시작"
             }
           ],
           "requiresPass": false,
@@ -5995,14 +5995,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 89,
+          "index": 82,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 95,
+          "index": 88,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -6010,9 +6010,9 @@
         {
           "isAvoid": false,
           "items": [
+            "오늘 하루 감사한 일 한 가지 떠올려보기",
             "평소 미뤄둔 정리 해보기",
-            "가까운 사람에게 먼저 안부 전하기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "가까운 사람에게 먼저 안부 전하기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -6079,9 +6079,9 @@
         {
           "isAvoid": false,
           "items": [
+            "평소 미뤄둔 정리 해보기",
             "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "작은 목표 하나를 정해 실천해보기",
-            "평소 미뤄둔 정리 해보기"
+            "작은 목표 하나를 정해 실천해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -6089,6 +6089,11 @@
         },
         {
           "items": [
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "연그린"
+            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -6098,11 +6103,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "여유"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "연그린"
             }
           ],
           "requiresPass": false,
@@ -6188,14 +6188,14 @@
         },
         {
           "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 83,
+          "index": 88,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 86,
+          "index": 91,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -6257,14 +6257,14 @@
         },
         {
           "body": "작은 변화가 감지되는 시점이에요. 평소와 다른 선택을 해봐도 나쁘지 않아요.",
-          "index": 76,
+          "index": 74,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "가까운 사람과 이야기를 나누면 생각보다 좋은 힌트를 얻을 수 있어요.",
-          "index": 71,
+          "index": 69,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -6272,9 +6272,9 @@
         {
           "isAvoid": false,
           "items": [
+            "작은 목표 하나를 정해 실천해보기",
             "오늘 할 일의 우선순위를 다시 점검해보기",
-            "평소 미뤄둔 정리 해보기",
-            "작은 목표 하나를 정해 실천해보기"
+            "평소 미뤄둔 정리 해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -6282,11 +6282,6 @@
         },
         {
           "items": [
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "북쪽"
-            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -6296,6 +6291,11 @@
               "label": "색",
               "requiresPass": false,
               "value": "네이비"
+            },
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "북쪽"
             }
           ],
           "requiresPass": false,
@@ -6326,14 +6326,14 @@
         },
         {
           "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 96,
+          "index": 94,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 90,
+          "index": 87,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -6341,9 +6341,9 @@
         {
           "isAvoid": false,
           "items": [
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
             "가까운 사람에게 먼저 안부 전하기",
-            "오늘 할 일의 우선순위를 다시 점검해보기"
+            "오늘 할 일의 우선순위를 다시 점검해보기",
+            "오늘 하루 감사한 일 한 가지 떠올려보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -6351,11 +6351,6 @@
         },
         {
           "items": [
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "북쪽"
-            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -6365,6 +6360,11 @@
               "label": "색",
               "requiresPass": false,
               "value": "라벤더"
+            },
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "북쪽"
             }
           ],
           "requiresPass": false,
@@ -6410,9 +6410,9 @@
         {
           "isAvoid": false,
           "items": [
+            "오늘 하루 감사한 일 한 가지 떠올려보기",
             "가까운 사람에게 먼저 안부 전하기",
-            "오늘 할 일의 우선순위를 다시 점검해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "오늘 할 일의 우선순위를 다시 점검해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -6420,11 +6420,6 @@
         },
         {
           "items": [
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "라벤더"
-            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -6434,6 +6429,11 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "여유"
+            },
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "라벤더"
             }
           ],
           "requiresPass": false,
@@ -6464,14 +6464,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 63,
+          "index": 60,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "중요한 판단은 하루 정도 더 생각해보고 결정해도 늦지 않아요.",
-          "index": 69,
+          "index": 66,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -6490,6 +6490,11 @@
         {
           "items": [
             {
+              "label": "색",
+              "requiresPass": false,
+              "value": "네이비"
+            },
+            {
               "label": "방향",
               "requiresPass": false,
               "value": "북서쪽"
@@ -6498,11 +6503,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "균형"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "네이비"
             }
           ],
           "requiresPass": false,
@@ -6533,14 +6533,14 @@
         },
         {
           "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 72,
+          "index": 67,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 69,
+          "index": 64,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -6548,9 +6548,9 @@
         {
           "isAvoid": false,
           "items": [
-            "평소 미뤄둔 정리 해보기",
             "중요한 결정은 하루 정도 더 생각해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "오늘 하루 감사한 일 한 가지 떠올려보기",
+            "평소 미뤄둔 정리 해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -6558,6 +6558,11 @@
         },
         {
           "items": [
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "화이트"
+            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -6567,11 +6572,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "시작"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "화이트"
             }
           ],
           "requiresPass": false,
@@ -6617,9 +6617,9 @@
         {
           "isAvoid": false,
           "items": [
+            "평소 미뤄둔 정리 해보기",
             "가까운 사람에게 먼저 안부 전하기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "평소 미뤄둔 정리 해보기"
+            "오늘 하루 감사한 일 한 가지 떠올려보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -6627,11 +6627,6 @@
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "안정"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -6641,6 +6636,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "북쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "안정"
             }
           ],
           "requiresPass": false,
@@ -6671,14 +6671,14 @@
         },
         {
           "body": "겉으로 드러나는 변화보다 내면의 준비가 더 중요한 흐름이에요.",
-          "index": 87,
+          "index": 92,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 88,
+          "index": 93,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -6686,9 +6686,9 @@
         {
           "isAvoid": false,
           "items": [
+            "중요한 결정은 하루 정도 더 생각해보기",
             "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "평소 미뤄둔 정리 해보기",
-            "중요한 결정은 하루 정도 더 생각해보기"
+            "평소 미뤄둔 정리 해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -6740,14 +6740,14 @@
         },
         {
           "body": "작은 변화가 감지되는 시점이에요. 평소와 다른 선택을 해봐도 나쁘지 않아요.",
-          "index": 89,
+          "index": 88,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 82,
+          "index": 81,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -6755,9 +6755,9 @@
         {
           "isAvoid": false,
           "items": [
-            "오늘 할 일의 우선순위를 다시 점검해보기",
             "짧은 산책이나 스트레칭으로 몸 풀기",
-            "평소 미뤄둔 정리 해보기"
+            "평소 미뤄둔 정리 해보기",
+            "오늘 할 일의 우선순위를 다시 점검해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -6765,11 +6765,6 @@
         },
         {
           "items": [
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "남쪽"
-            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -6779,6 +6774,11 @@
               "label": "색",
               "requiresPass": false,
               "value": "네이비"
+            },
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "남쪽"
             }
           ],
           "requiresPass": false,
@@ -7318,14 +7318,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 86,
+          "index": 89,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 92,
+          "index": 95,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -7333,9 +7333,9 @@
         {
           "isAvoid": false,
           "items": [
+            "오늘 하루 감사한 일 한 가지 떠올려보기",
             "평소 미뤄둔 정리 해보기",
-            "가까운 사람에게 먼저 안부 전하기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "가까운 사람에게 먼저 안부 전하기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -7343,11 +7343,6 @@
         },
         {
           "items": [
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "북쪽"
-            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -7357,6 +7352,11 @@
               "label": "색",
               "requiresPass": false,
               "value": "네이비"
+            },
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "북쪽"
             }
           ],
           "requiresPass": false,
@@ -7387,14 +7387,14 @@
         },
         {
           "body": "겉으로 드러나는 변화보다 내면의 준비가 더 중요한 흐름이에요.",
-          "index": 89,
+          "index": 86,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 90,
+          "index": 87,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -7413,6 +7413,11 @@
         {
           "items": [
             {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "북서쪽"
+            },
+            {
               "label": "키워드",
               "requiresPass": false,
               "value": "시작"
@@ -7421,11 +7426,6 @@
               "label": "색",
               "requiresPass": false,
               "value": "옐로우"
-            },
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "북서쪽"
             }
           ],
           "requiresPass": false,
@@ -7456,14 +7456,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 83,
+          "index": 74,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 82,
+          "index": 73,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -7471,9 +7471,9 @@
         {
           "isAvoid": false,
           "items": [
-            "중요한 결정은 하루 정도 더 생각해보기",
             "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "작은 목표 하나를 정해 실천해보기"
+            "작은 목표 하나를 정해 실천해보기",
+            "중요한 결정은 하루 정도 더 생각해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -7481,6 +7481,11 @@
         },
         {
           "items": [
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "균형"
+            },
             {
               "label": "색",
               "requiresPass": false,
@@ -7490,11 +7495,6 @@
               "label": "방향",
               "requiresPass": false,
               "value": "남쪽"
-            },
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "균형"
             }
           ],
           "requiresPass": false,
@@ -7525,14 +7525,14 @@
         },
         {
           "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 86,
+          "index": 83,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 89,
+          "index": 86,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -7540,9 +7540,9 @@
         {
           "isAvoid": false,
           "items": [
-            "중요한 결정은 하루 정도 더 생각해보기",
             "짧은 산책이나 스트레칭으로 몸 풀기",
-            "오늘 할 일의 우선순위를 다시 점검해보기"
+            "오늘 할 일의 우선순위를 다시 점검해보기",
+            "중요한 결정은 하루 정도 더 생각해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -7550,6 +7550,11 @@
         },
         {
           "items": [
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "연그린"
+            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -7559,11 +7564,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "여유"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "연그린"
             }
           ],
           "requiresPass": false,
@@ -7862,14 +7862,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 68,
+          "index": 70,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "중요한 판단은 하루 정도 더 생각해보고 결정해도 늦지 않아요.",
-          "index": 74,
+          "index": 76,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -7888,6 +7888,11 @@
         {
           "items": [
             {
+              "label": "색",
+              "requiresPass": false,
+              "value": "네이비"
+            },
+            {
               "label": "방향",
               "requiresPass": false,
               "value": "북서쪽"
@@ -7896,11 +7901,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "균형"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "네이비"
             }
           ],
           "requiresPass": false,
@@ -8362,9 +8362,9 @@
         {
           "isAvoid": false,
           "items": [
+            "작은 목표 하나를 정해 실천해보기",
             "오늘 할 일의 우선순위를 다시 점검해보기",
-            "평소 미뤄둔 정리 해보기",
-            "작은 목표 하나를 정해 실천해보기"
+            "평소 미뤄둔 정리 해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -8416,14 +8416,14 @@
         },
         {
           "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 96,
+          "index": 94,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 90,
+          "index": 87,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -8431,9 +8431,9 @@
         {
           "isAvoid": false,
           "items": [
-            "가까운 사람에게 먼저 안부 전하기",
             "오늘 할 일의 우선순위를 다시 점검해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "오늘 하루 감사한 일 한 가지 떠올려보기",
+            "가까운 사람에게 먼저 안부 전하기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -8441,11 +8441,6 @@
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "정리"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -8455,6 +8450,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "북쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "정리"
             }
           ],
           "requiresPass": false,
@@ -8485,14 +8485,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 96,
+          "index": 93,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 95,
+          "index": 92,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -8500,9 +8500,9 @@
         {
           "isAvoid": false,
           "items": [
+            "오늘 할 일의 우선순위를 다시 점검해보기",
             "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "가까운 사람에게 먼저 안부 전하기",
-            "오늘 할 일의 우선순위를 다시 점검해보기"
+            "가까운 사람에게 먼저 안부 전하기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -8510,6 +8510,11 @@
         },
         {
           "items": [
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "라벤더"
+            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -8519,11 +8524,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "여유"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "라벤더"
             }
           ],
           "requiresPass": false,
@@ -8554,14 +8554,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 60,
+          "index": 70,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "중요한 판단은 하루 정도 더 생각해보고 결정해도 늦지 않아요.",
-          "index": 66,
+          "index": 76,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -8569,9 +8569,9 @@
         {
           "isAvoid": false,
           "items": [
-            "가까운 사람에게 먼저 안부 전하기",
             "중요한 결정은 하루 정도 더 생각해보기",
-            "짧은 산책이나 스트레칭으로 몸 풀기"
+            "짧은 산책이나 스트레칭으로 몸 풀기",
+            "가까운 사람에게 먼저 안부 전하기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -8579,11 +8579,6 @@
         },
         {
           "items": [
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "네이비"
-            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -8593,6 +8588,11 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "균형"
+            },
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "네이비"
             }
           ],
           "requiresPass": false,
@@ -8623,14 +8623,14 @@
         },
         {
           "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 69,
+          "index": 66,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 66,
+          "index": 63,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -8638,9 +8638,9 @@
         {
           "isAvoid": false,
           "items": [
+            "평소 미뤄둔 정리 해보기",
             "중요한 결정은 하루 정도 더 생각해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "평소 미뤄둔 정리 해보기"
+            "오늘 하루 감사한 일 한 가지 떠올려보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -8692,14 +8692,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 87,
+          "index": 85,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 93,
+          "index": 91,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -8707,9 +8707,9 @@
         {
           "isAvoid": false,
           "items": [
-            "평소 미뤄둔 정리 해보기",
             "가까운 사람에게 먼저 안부 전하기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "오늘 하루 감사한 일 한 가지 떠올려보기",
+            "평소 미뤄둔 정리 해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -8717,6 +8717,11 @@
         },
         {
           "items": [
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "북쪽"
+            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -8726,11 +8731,6 @@
               "label": "색",
               "requiresPass": false,
               "value": "네이비"
-            },
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "북쪽"
             }
           ],
           "requiresPass": false,
@@ -8761,14 +8761,14 @@
         },
         {
           "body": "겉으로 드러나는 변화보다 내면의 준비가 더 중요한 흐름이에요.",
-          "index": 86,
+          "index": 87,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 87,
+          "index": 88,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -8776,9 +8776,9 @@
         {
           "isAvoid": false,
           "items": [
+            "오늘 하루 감사한 일 한 가지 떠올려보기",
             "평소 미뤄둔 정리 해보기",
-            "중요한 결정은 하루 정도 더 생각해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "중요한 결정은 하루 정도 더 생각해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -8786,6 +8786,11 @@
         },
         {
           "items": [
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "옐로우"
+            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -8795,11 +8800,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "시작"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "옐로우"
             }
           ],
           "requiresPass": false,
@@ -8830,14 +8830,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 77,
+          "index": 74,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 76,
+          "index": 73,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -8845,9 +8845,9 @@
         {
           "isAvoid": false,
           "items": [
+            "오늘 하루 감사한 일 한 가지 떠올려보기",
             "작은 목표 하나를 정해 실천해보기",
-            "중요한 결정은 하루 정도 더 생각해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "중요한 결정은 하루 정도 더 생각해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -8899,14 +8899,14 @@
         },
         {
           "body": "작은 변화가 감지되는 시점이에요. 평소와 다른 선택을 해봐도 나쁘지 않아요.",
-          "index": 64,
+          "index": 66,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 71,
+          "index": 73,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -8968,14 +8968,14 @@
         },
         {
           "body": "지금까지 쌓아온 흐름이 서서히 결과로 드러나는 시기예요. 조급해하지 않아도 괜찮아요.",
-          "index": 94,
+          "index": 96,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 86,
+          "index": 90,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -8983,9 +8983,9 @@
         {
           "isAvoid": false,
           "items": [
-            "가까운 사람에게 먼저 안부 전하기",
             "중요한 결정은 하루 정도 더 생각해보기",
-            "작은 목표 하나를 정해 실천해보기"
+            "작은 목표 하나를 정해 실천해보기",
+            "가까운 사람에게 먼저 안부 전하기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -8993,11 +8993,6 @@
         },
         {
           "items": [
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "남쪽"
-            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -9007,6 +9002,11 @@
               "label": "색",
               "requiresPass": false,
               "value": "네이비"
+            },
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "남쪽"
             }
           ],
           "requiresPass": false,
@@ -9037,14 +9037,14 @@
         },
         {
           "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 89,
+          "index": 88,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 82,
+          "index": 81,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -9052,9 +9052,9 @@
         {
           "isAvoid": false,
           "items": [
+            "오늘 하루 감사한 일 한 가지 떠올려보기",
             "가까운 사람에게 먼저 안부 전하기",
-            "오늘 할 일의 우선순위를 다시 점검해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "오늘 할 일의 우선순위를 다시 점검해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -9218,14 +9218,14 @@
         },
         {
           "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 67,
+          "index": 68,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 64,
+          "index": 65,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -9244,6 +9244,11 @@
         {
           "items": [
             {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "서쪽"
+            },
+            {
               "label": "키워드",
               "requiresPass": false,
               "value": "시작"
@@ -9252,11 +9257,6 @@
               "label": "색",
               "requiresPass": false,
               "value": "화이트"
-            },
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "서쪽"
             }
           ],
           "requiresPass": false,
@@ -9356,14 +9356,14 @@
         },
         {
           "body": "겉으로 드러나는 변화보다 내면의 준비가 더 중요한 흐름이에요.",
-          "index": 90,
+          "index": 91,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 91,
+          "index": 92,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -9371,9 +9371,9 @@
         {
           "isAvoid": false,
           "items": [
-            "중요한 결정은 하루 정도 더 생각해보기",
             "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "평소 미뤄둔 정리 해보기"
+            "평소 미뤄둔 정리 해보기",
+            "중요한 결정은 하루 정도 더 생각해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -9381,6 +9381,11 @@
         },
         {
           "items": [
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "옐로우"
+            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -9390,11 +9395,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "시작"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "옐로우"
             }
           ],
           "requiresPass": false,
@@ -9425,14 +9425,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 81,
+          "index": 84,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 80,
+          "index": 83,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -9440,9 +9440,9 @@
         {
           "isAvoid": false,
           "items": [
+            "오늘 하루 감사한 일 한 가지 떠올려보기",
             "작은 목표 하나를 정해 실천해보기",
-            "중요한 결정은 하루 정도 더 생각해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "중요한 결정은 하루 정도 더 생각해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -9450,6 +9450,11 @@
         },
         {
           "items": [
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "균형"
+            },
             {
               "label": "색",
               "requiresPass": false,
@@ -9459,11 +9464,6 @@
               "label": "방향",
               "requiresPass": false,
               "value": "남쪽"
-            },
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "균형"
             }
           ],
           "requiresPass": false,
@@ -9494,14 +9494,14 @@
         },
         {
           "body": "작은 변화가 감지되는 시점이에요. 평소와 다른 선택을 해봐도 나쁘지 않아요.",
-          "index": 67,
+          "index": 64,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 74,
+          "index": 71,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -9509,9 +9509,9 @@
         {
           "isAvoid": false,
           "items": [
-            "오늘 할 일의 우선순위를 다시 점검해보기",
             "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "중요한 결정은 하루 정도 더 생각해보기"
+            "중요한 결정은 하루 정도 더 생각해보기",
+            "오늘 할 일의 우선순위를 다시 점검해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -9519,11 +9519,6 @@
         },
         {
           "items": [
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "북서쪽"
-            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -9533,6 +9528,11 @@
               "label": "색",
               "requiresPass": false,
               "value": "네이비"
+            },
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "북서쪽"
             }
           ],
           "requiresPass": false,
@@ -9578,9 +9578,9 @@
         {
           "isAvoid": false,
           "items": [
+            "중요한 결정은 하루 정도 더 생각해보기",
             "작은 목표 하나를 정해 실천해보기",
-            "가까운 사람에게 먼저 안부 전하기",
-            "중요한 결정은 하루 정도 더 생각해보기"
+            "가까운 사람에게 먼저 안부 전하기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -9588,11 +9588,6 @@
         },
         {
           "items": [
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "남쪽"
-            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -9602,6 +9597,11 @@
               "label": "색",
               "requiresPass": false,
               "value": "네이비"
+            },
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "남쪽"
             }
           ],
           "requiresPass": false,
@@ -9632,14 +9632,14 @@
         },
         {
           "body": "지금까지 쌓아온 흐름이 서서히 결과로 드러나는 시기예요. 조급해하지 않아도 괜찮아요.",
-          "index": 92,
+          "index": 90,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 96,
+          "index": 95,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -9647,9 +9647,9 @@
         {
           "isAvoid": false,
           "items": [
+            "오늘 할 일의 우선순위를 다시 점검해보기",
             "평소 미뤄둔 정리 해보기",
-            "가까운 사람에게 먼저 안부 전하기",
-            "오늘 할 일의 우선순위를 다시 점검해보기"
+            "가까운 사람에게 먼저 안부 전하기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -9657,6 +9657,11 @@
         },
         {
           "items": [
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "북서쪽"
+            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -9666,11 +9671,6 @@
               "label": "색",
               "requiresPass": false,
               "value": "베이지"
-            },
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "북서쪽"
             }
           ],
           "requiresPass": false,
@@ -9701,14 +9701,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 96,
+          "index": 95,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 96,
+          "index": 94,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -9716,9 +9716,9 @@
         {
           "isAvoid": false,
           "items": [
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
             "가까운 사람에게 먼저 안부 전하기",
-            "오늘 할 일의 우선순위를 다시 점검해보기"
+            "오늘 할 일의 우선순위를 다시 점검해보기",
+            "오늘 하루 감사한 일 한 가지 떠올려보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -9726,11 +9726,6 @@
         },
         {
           "items": [
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "동쪽"
-            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -9740,6 +9735,11 @@
               "label": "색",
               "requiresPass": false,
               "value": "라벤더"
+            },
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "동쪽"
             }
           ],
           "requiresPass": false,
@@ -9882,7 +9882,7 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 92,
+          "index": 90,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
@@ -9908,6 +9908,11 @@
         {
           "items": [
             {
+              "label": "색",
+              "requiresPass": false,
+              "value": "네이비"
+            },
+            {
               "label": "방향",
               "requiresPass": false,
               "value": "북쪽"
@@ -9916,11 +9921,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "안정"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "네이비"
             }
           ],
           "requiresPass": false,
@@ -10007,14 +10007,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 74,
+          "index": 75,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 73,
+          "index": 74,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -10033,6 +10033,11 @@
         {
           "items": [
             {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "남쪽"
+            },
+            {
               "label": "키워드",
               "requiresPass": false,
               "value": "균형"
@@ -10041,11 +10046,6 @@
               "label": "색",
               "requiresPass": false,
               "value": "네이비"
-            },
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "남쪽"
             }
           ],
           "requiresPass": false,
@@ -10076,14 +10076,14 @@
         },
         {
           "body": "작은 변화가 감지되는 시점이에요. 평소와 다른 선택을 해봐도 나쁘지 않아요.",
-          "index": 58,
+          "index": 63,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 65,
+          "index": 70,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -10091,9 +10091,9 @@
         {
           "isAvoid": false,
           "items": [
+            "중요한 결정은 하루 정도 더 생각해보기",
             "오늘 할 일의 우선순위를 다시 점검해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "중요한 결정은 하루 정도 더 생각해보기"
+            "오늘 하루 감사한 일 한 가지 떠올려보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -10101,6 +10101,11 @@
         },
         {
           "items": [
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "네이비"
+            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -10110,11 +10115,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "시작"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "네이비"
             }
           ],
           "requiresPass": false,
@@ -10145,14 +10145,14 @@
         },
         {
           "body": "지금까지 쌓아온 흐름이 서서히 결과로 드러나는 시기예요. 조급해하지 않아도 괜찮아요.",
-          "index": 91,
+          "index": 95,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 83,
+          "index": 87,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -10160,9 +10160,9 @@
         {
           "isAvoid": false,
           "items": [
+            "작은 목표 하나를 정해 실천해보기",
             "가까운 사람에게 먼저 안부 전하기",
-            "중요한 결정은 하루 정도 더 생각해보기",
-            "작은 목표 하나를 정해 실천해보기"
+            "중요한 결정은 하루 정도 더 생각해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -10170,11 +10170,6 @@
         },
         {
           "items": [
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "네이비"
-            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -10184,6 +10179,11 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "균형"
+            },
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "네이비"
             }
           ],
           "requiresPass": false,
@@ -10229,9 +10229,9 @@
         {
           "isAvoid": false,
           "items": [
-            "가까운 사람에게 먼저 안부 전하기",
             "오늘 할 일의 우선순위를 다시 점검해보기",
-            "평소 미뤄둔 정리 해보기"
+            "평소 미뤄둔 정리 해보기",
+            "가까운 사람에게 먼저 안부 전하기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -10283,14 +10283,14 @@
         },
         {
           "body": "지금까지 쌓아온 흐름이 서서히 결과로 드러나는 시기예요. 조급해하지 않아도 괜찮아요.",
-          "index": 76,
+          "index": 75,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 72,
+          "index": 71,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -10298,9 +10298,9 @@
         {
           "isAvoid": false,
           "items": [
+            "평소 미뤄둔 정리 해보기",
             "중요한 결정은 하루 정도 더 생각해보기",
-            "짧은 산책이나 스트레칭으로 몸 풀기",
-            "평소 미뤄둔 정리 해보기"
+            "짧은 산책이나 스트레칭으로 몸 풀기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -10308,11 +10308,6 @@
         },
         {
           "items": [
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "남동쪽"
-            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -10322,6 +10317,11 @@
               "label": "색",
               "requiresPass": false,
               "value": "베이지"
+            },
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "남동쪽"
             }
           ],
           "requiresPass": false,
@@ -10352,14 +10352,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 65,
+          "index": 63,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "중요한 판단은 하루 정도 더 생각해보고 결정해도 늦지 않아요.",
-          "index": 71,
+          "index": 69,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -10367,9 +10367,9 @@
         {
           "isAvoid": false,
           "items": [
+            "짧은 산책이나 스트레칭으로 몸 풀기",
             "가까운 사람에게 먼저 안부 전하기",
-            "중요한 결정은 하루 정도 더 생각해보기",
-            "짧은 산책이나 스트레칭으로 몸 풀기"
+            "중요한 결정은 하루 정도 더 생각해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -10377,11 +10377,6 @@
         },
         {
           "items": [
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "네이비"
-            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -10391,6 +10386,11 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "균형"
+            },
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "네이비"
             }
           ],
           "requiresPass": false,
@@ -10701,14 +10701,14 @@
         },
         {
           "body": "지금까지 쌓아온 흐름이 서서히 결과로 드러나는 시기예요. 조급해하지 않아도 괜찮아요.",
-          "index": 93,
+          "index": 91,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 85,
+          "index": 83,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -10727,6 +10727,11 @@
         {
           "items": [
             {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "균형"
+            },
+            {
               "label": "색",
               "requiresPass": false,
               "value": "네이비"
@@ -10735,11 +10740,6 @@
               "label": "방향",
               "requiresPass": false,
               "value": "남쪽"
-            },
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "균형"
             }
           ],
           "requiresPass": false,
@@ -10826,14 +10826,14 @@
         },
         {
           "body": "지금까지 쌓아온 흐름이 서서히 결과로 드러나는 시기예요. 조급해하지 않아도 괜찮아요.",
-          "index": 76,
+          "index": 81,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 72,
+          "index": 77,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -10841,9 +10841,9 @@
         {
           "isAvoid": false,
           "items": [
+            "짧은 산책이나 스트레칭으로 몸 풀기",
             "평소 미뤄둔 정리 해보기",
-            "중요한 결정은 하루 정도 더 생각해보기",
-            "짧은 산책이나 스트레칭으로 몸 풀기"
+            "중요한 결정은 하루 정도 더 생각해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -10851,11 +10851,6 @@
         },
         {
           "items": [
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "베이지"
-            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -10865,6 +10860,11 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "인내"
+            },
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "베이지"
             }
           ],
           "requiresPass": false,
@@ -10895,14 +10895,14 @@
         },
         {
           "body": "작은 변화가 감지되는 시점이에요. 평소와 다른 선택을 해봐도 나쁘지 않아요.",
-          "index": 78,
+          "index": 71,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 75,
+          "index": 68,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -10910,9 +10910,9 @@
         {
           "isAvoid": false,
           "items": [
+            "오늘 할 일의 우선순위를 다시 점검해보기",
             "중요한 결정은 하루 정도 더 생각해보기",
-            "평소 미뤄둔 정리 해보기",
-            "오늘 할 일의 우선순위를 다시 점검해보기"
+            "평소 미뤄둔 정리 해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -10920,6 +10920,11 @@
         },
         {
           "items": [
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "경청"
+            },
             {
               "label": "색",
               "requiresPass": false,
@@ -10929,11 +10934,6 @@
               "label": "방향",
               "requiresPass": false,
               "value": "북쪽"
-            },
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "경청"
             }
           ],
           "requiresPass": false,
@@ -11357,14 +11357,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 61,
+          "index": 60,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "중요한 판단은 하루 정도 더 생각해보고 결정해도 늦지 않아요.",
-          "index": 67,
+          "index": 66,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -11383,6 +11383,11 @@
         {
           "items": [
             {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "북서쪽"
+            },
+            {
               "label": "키워드",
               "requiresPass": false,
               "value": "균형"
@@ -11391,11 +11396,6 @@
               "label": "색",
               "requiresPass": false,
               "value": "네이비"
-            },
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "북서쪽"
             }
           ],
           "requiresPass": false,
@@ -11426,14 +11426,14 @@
         },
         {
           "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 63,
+          "index": 64,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 60,
+          "index": 61,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -11441,9 +11441,9 @@
         {
           "isAvoid": false,
           "items": [
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
             "평소 미뤄둔 정리 해보기",
-            "중요한 결정은 하루 정도 더 생각해보기"
+            "중요한 결정은 하루 정도 더 생각해보기",
+            "오늘 하루 감사한 일 한 가지 떠올려보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -11451,11 +11451,6 @@
         },
         {
           "items": [
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "서쪽"
-            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -11465,6 +11460,11 @@
               "label": "색",
               "requiresPass": false,
               "value": "화이트"
+            },
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "서쪽"
             }
           ],
           "requiresPass": false,
@@ -11495,14 +11495,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 83,
+          "index": 86,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 89,
+          "index": 92,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -11510,9 +11510,9 @@
         {
           "isAvoid": false,
           "items": [
-            "평소 미뤄둔 정리 해보기",
             "가까운 사람에게 먼저 안부 전하기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "오늘 하루 감사한 일 한 가지 떠올려보기",
+            "평소 미뤄둔 정리 해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -11520,11 +11520,6 @@
         },
         {
           "items": [
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "북쪽"
-            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -11534,6 +11529,11 @@
               "label": "색",
               "requiresPass": false,
               "value": "네이비"
+            },
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "북쪽"
             }
           ],
           "requiresPass": false,
@@ -11590,11 +11590,6 @@
         {
           "items": [
             {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "동쪽"
-            },
-            {
               "label": "키워드",
               "requiresPass": false,
               "value": "여유"
@@ -11603,6 +11598,11 @@
               "label": "색",
               "requiresPass": false,
               "value": "연그린"
+            },
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "동쪽"
             }
           ],
           "requiresPass": false,
@@ -11688,14 +11688,14 @@
         },
         {
           "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 79,
+          "index": 81,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 82,
+          "index": 84,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -11714,6 +11714,11 @@
         {
           "items": [
             {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "서쪽"
+            },
+            {
               "label": "키워드",
               "requiresPass": false,
               "value": "여유"
@@ -11722,11 +11727,6 @@
               "label": "색",
               "requiresPass": false,
               "value": "연그린"
-            },
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "서쪽"
             }
           ],
           "requiresPass": false,
@@ -11757,14 +11757,14 @@
         },
         {
           "body": "작은 변화가 감지되는 시점이에요. 평소와 다른 선택을 해봐도 나쁘지 않아요.",
-          "index": 74,
+          "index": 75,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "가까운 사람과 이야기를 나누면 생각보다 좋은 힌트를 얻을 수 있어요.",
-          "index": 69,
+          "index": 70,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -11783,11 +11783,6 @@
         {
           "items": [
             {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "북쪽"
-            },
-            {
               "label": "키워드",
               "requiresPass": false,
               "value": "안정"
@@ -11796,6 +11791,11 @@
               "label": "색",
               "requiresPass": false,
               "value": "네이비"
+            },
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "북쪽"
             }
           ],
           "requiresPass": false,
@@ -11841,9 +11841,9 @@
         {
           "isAvoid": false,
           "items": [
+            "오늘 하루 감사한 일 한 가지 떠올려보기",
             "가까운 사람에게 먼저 안부 전하기",
-            "오늘 할 일의 우선순위를 다시 점검해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "오늘 할 일의 우선순위를 다시 점검해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -11851,11 +11851,6 @@
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "정리"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -11865,6 +11860,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "북쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "정리"
             }
           ],
           "requiresPass": false,
@@ -11895,14 +11895,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 96,
+          "index": 94,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 96,
+          "index": 93,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -11910,9 +11910,9 @@
         {
           "isAvoid": false,
           "items": [
+            "오늘 하루 감사한 일 한 가지 떠올려보기",
             "가까운 사람에게 먼저 안부 전하기",
-            "오늘 할 일의 우선순위를 다시 점검해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "오늘 할 일의 우선순위를 다시 점검해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -11990,6 +11990,11 @@
         {
           "items": [
             {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "북서쪽"
+            },
+            {
               "label": "키워드",
               "requiresPass": false,
               "value": "균형"
@@ -11998,11 +12003,6 @@
               "label": "색",
               "requiresPass": false,
               "value": "네이비"
-            },
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "북서쪽"
             }
           ],
           "requiresPass": false,
@@ -12059,11 +12059,6 @@
         {
           "items": [
             {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "서쪽"
-            },
-            {
               "label": "키워드",
               "requiresPass": false,
               "value": "시작"
@@ -12072,6 +12067,11 @@
               "label": "색",
               "requiresPass": false,
               "value": "화이트"
+            },
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "서쪽"
             }
           ],
           "requiresPass": false,
@@ -12102,7 +12102,7 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 92,
+          "index": 91,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
@@ -12117,9 +12117,9 @@
         {
           "isAvoid": false,
           "items": [
+            "오늘 하루 감사한 일 한 가지 떠올려보기",
             "평소 미뤄둔 정리 해보기",
-            "가까운 사람에게 먼저 안부 전하기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "가까운 사람에게 먼저 안부 전하기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -12127,11 +12127,6 @@
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "안정"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -12141,6 +12136,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "북쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "안정"
             }
           ],
           "requiresPass": false,
@@ -12171,14 +12171,14 @@
         },
         {
           "body": "겉으로 드러나는 변화보다 내면의 준비가 더 중요한 흐름이에요.",
-          "index": 82,
+          "index": 89,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 83,
+          "index": 90,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -12186,9 +12186,9 @@
         {
           "isAvoid": false,
           "items": [
-            "평소 미뤄둔 정리 해보기",
             "중요한 결정은 하루 정도 더 생각해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "오늘 하루 감사한 일 한 가지 떠올려보기",
+            "평소 미뤄둔 정리 해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -12749,14 +12749,14 @@
         },
         {
           "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 63,
+          "index": 69,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 60,
+          "index": 66,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -12764,9 +12764,9 @@
         {
           "isAvoid": false,
           "items": [
+            "중요한 결정은 하루 정도 더 생각해보기",
             "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "평소 미뤄둔 정리 해보기",
-            "중요한 결정은 하루 정도 더 생각해보기"
+            "평소 미뤄둔 정리 해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -12774,11 +12774,6 @@
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "시작"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -12788,6 +12783,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "서쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "시작"
             }
           ],
           "requiresPass": false,
@@ -12818,14 +12818,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 83,
+          "index": 88,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 89,
+          "index": 94,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -12833,9 +12833,9 @@
         {
           "isAvoid": false,
           "items": [
+            "평소 미뤄둔 정리 해보기",
             "가까운 사람에게 먼저 안부 전하기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "평소 미뤄둔 정리 해보기"
+            "오늘 하루 감사한 일 한 가지 떠올려보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -12843,11 +12843,6 @@
         },
         {
           "items": [
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "북쪽"
-            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -12857,6 +12852,11 @@
               "label": "색",
               "requiresPass": false,
               "value": "네이비"
+            },
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "북쪽"
             }
           ],
           "requiresPass": false,
@@ -12887,14 +12887,14 @@
         },
         {
           "body": "겉으로 드러나는 변화보다 내면의 준비가 더 중요한 흐름이에요.",
-          "index": 83,
+          "index": 86,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 84,
+          "index": 87,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -12902,9 +12902,9 @@
         {
           "isAvoid": false,
           "items": [
+            "오늘 하루 감사한 일 한 가지 떠올려보기",
             "평소 미뤄둔 정리 해보기",
-            "중요한 결정은 하루 정도 더 생각해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "중요한 결정은 하루 정도 더 생각해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -12912,11 +12912,6 @@
         },
         {
           "items": [
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "북서쪽"
-            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -12926,6 +12921,11 @@
               "label": "색",
               "requiresPass": false,
               "value": "옐로우"
+            },
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "북서쪽"
             }
           ],
           "requiresPass": false,
@@ -12956,14 +12956,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 81,
+          "index": 78,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 80,
+          "index": 77,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -12971,9 +12971,9 @@
         {
           "isAvoid": false,
           "items": [
+            "오늘 하루 감사한 일 한 가지 떠올려보기",
             "작은 목표 하나를 정해 실천해보기",
-            "중요한 결정은 하루 정도 더 생각해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "중요한 결정은 하루 정도 더 생각해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -13025,14 +13025,14 @@
         },
         {
           "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 81,
+          "index": 86,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 84,
+          "index": 89,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -13040,9 +13040,9 @@
         {
           "isAvoid": false,
           "items": [
-            "오늘 할 일의 우선순위를 다시 점검해보기",
             "중요한 결정은 하루 정도 더 생각해보기",
-            "짧은 산책이나 스트레칭으로 몸 풀기"
+            "짧은 산책이나 스트레칭으로 몸 풀기",
+            "오늘 할 일의 우선순위를 다시 점검해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -13050,11 +13050,6 @@
         },
         {
           "items": [
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "서쪽"
-            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -13064,6 +13059,11 @@
               "label": "색",
               "requiresPass": false,
               "value": "연그린"
+            },
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "서쪽"
             }
           ],
           "requiresPass": false,
@@ -13362,14 +13362,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 69,
+          "index": 70,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "중요한 판단은 하루 정도 더 생각해보고 결정해도 늦지 않아요.",
-          "index": 75,
+          "index": 76,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -13846,14 +13846,14 @@
         },
         {
           "body": "작은 변화가 감지되는 시점이에요. 평소와 다른 선택을 해봐도 나쁘지 않아요.",
-          "index": 73,
+          "index": 76,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "가까운 사람과 이야기를 나누면 생각보다 좋은 힌트를 얻을 수 있어요.",
-          "index": 68,
+          "index": 71,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -13861,9 +13861,9 @@
         {
           "isAvoid": false,
           "items": [
-            "평소 미뤄둔 정리 해보기",
             "작은 목표 하나를 정해 실천해보기",
-            "오늘 할 일의 우선순위를 다시 점검해보기"
+            "오늘 할 일의 우선순위를 다시 점검해보기",
+            "평소 미뤄둔 정리 해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -13915,14 +13915,14 @@
         },
         {
           "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 92,
+          "index": 93,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 85,
+          "index": 86,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -13930,9 +13930,9 @@
         {
           "isAvoid": false,
           "items": [
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
             "가까운 사람에게 먼저 안부 전하기",
-            "오늘 할 일의 우선순위를 다시 점검해보기"
+            "오늘 할 일의 우선순위를 다시 점검해보기",
+            "오늘 하루 감사한 일 한 가지 떠올려보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -13984,14 +13984,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 95,
+          "index": 96,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 94,
+          "index": 96,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -13999,9 +13999,9 @@
         {
           "isAvoid": false,
           "items": [
+            "가까운 사람에게 먼저 안부 전하기",
             "오늘 할 일의 우선순위를 다시 점검해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "가까운 사람에게 먼저 안부 전하기"
+            "오늘 하루 감사한 일 한 가지 떠올려보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -14009,6 +14009,11 @@
         },
         {
           "items": [
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "동쪽"
+            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -14018,11 +14023,6 @@
               "label": "색",
               "requiresPass": false,
               "value": "라벤더"
-            },
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "동쪽"
             }
           ],
           "requiresPass": false,
@@ -14053,14 +14053,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 65,
+          "index": 63,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "중요한 판단은 하루 정도 더 생각해보고 결정해도 늦지 않아요.",
-          "index": 71,
+          "index": 69,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -14068,9 +14068,9 @@
         {
           "isAvoid": false,
           "items": [
-            "중요한 결정은 하루 정도 더 생각해보기",
             "짧은 산책이나 스트레칭으로 몸 풀기",
-            "가까운 사람에게 먼저 안부 전하기"
+            "가까운 사람에게 먼저 안부 전하기",
+            "중요한 결정은 하루 정도 더 생각해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -14137,9 +14137,9 @@
         {
           "isAvoid": false,
           "items": [
-            "중요한 결정은 하루 정도 더 생각해보기",
             "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "평소 미뤄둔 정리 해보기"
+            "평소 미뤄둔 정리 해보기",
+            "중요한 결정은 하루 정도 더 생각해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -14147,11 +14147,6 @@
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "시작"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -14161,6 +14156,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "서쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "시작"
             }
           ],
           "requiresPass": false,
@@ -14191,14 +14191,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 82,
+          "index": 84,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 88,
+          "index": 90,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -14206,9 +14206,9 @@
         {
           "isAvoid": false,
           "items": [
-            "가까운 사람에게 먼저 안부 전하기",
             "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "평소 미뤄둔 정리 해보기"
+            "평소 미뤄둔 정리 해보기",
+            "가까운 사람에게 먼저 안부 전하기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -14216,11 +14216,6 @@
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "안정"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -14230,6 +14225,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "북쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "안정"
             }
           ],
           "requiresPass": false,
@@ -14260,14 +14260,14 @@
         },
         {
           "body": "겉으로 드러나는 변화보다 내면의 준비가 더 중요한 흐름이에요.",
-          "index": 84,
+          "index": 90,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 85,
+          "index": 91,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -14275,9 +14275,9 @@
         {
           "isAvoid": false,
           "items": [
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
             "평소 미뤄둔 정리 해보기",
-            "중요한 결정은 하루 정도 더 생각해보기"
+            "중요한 결정은 하루 정도 더 생각해보기",
+            "오늘 하루 감사한 일 한 가지 떠올려보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -14285,11 +14285,6 @@
         },
         {
           "items": [
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "옐로우"
-            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -14299,6 +14294,11 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "시작"
+            },
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "옐로우"
             }
           ],
           "requiresPass": false,
@@ -14329,14 +14329,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 83,
+          "index": 84,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 82,
+          "index": 83,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -14355,11 +14355,6 @@
         {
           "items": [
             {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "남쪽"
-            },
-            {
               "label": "키워드",
               "requiresPass": false,
               "value": "균형"
@@ -14368,6 +14363,11 @@
               "label": "색",
               "requiresPass": false,
               "value": "네이비"
+            },
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "남쪽"
             }
           ],
           "requiresPass": false,
@@ -14398,14 +14398,14 @@
         },
         {
           "body": "작은 변화가 감지되는 시점이에요. 평소와 다른 선택을 해봐도 나쁘지 않아요.",
-          "index": 61,
+          "index": 67,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 68,
+          "index": 74,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -14424,11 +14424,6 @@
         {
           "items": [
             {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "시작"
-            },
-            {
               "label": "색",
               "requiresPass": false,
               "value": "네이비"
@@ -14437,6 +14432,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "북서쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "시작"
             }
           ],
           "requiresPass": false,
@@ -14467,14 +14467,14 @@
         },
         {
           "body": "지금까지 쌓아온 흐름이 서서히 결과로 드러나는 시기예요. 조급해하지 않아도 괜찮아요.",
-          "index": 93,
+          "index": 96,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 85,
+          "index": 92,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -14482,9 +14482,9 @@
         {
           "isAvoid": false,
           "items": [
+            "가까운 사람에게 먼저 안부 전하기",
             "중요한 결정은 하루 정도 더 생각해보기",
-            "작은 목표 하나를 정해 실천해보기",
-            "가까운 사람에게 먼저 안부 전하기"
+            "작은 목표 하나를 정해 실천해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -14492,11 +14492,6 @@
         },
         {
           "items": [
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "네이비"
-            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -14506,6 +14501,11 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "균형"
+            },
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "네이비"
             }
           ],
           "requiresPass": false,
@@ -14536,14 +14536,14 @@
         },
         {
           "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 96,
+          "index": 94,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 89,
+          "index": 87,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -14551,9 +14551,9 @@
         {
           "isAvoid": false,
           "items": [
-            "가까운 사람에게 먼저 안부 전하기",
             "오늘 할 일의 우선순위를 다시 점검해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "오늘 하루 감사한 일 한 가지 떠올려보기",
+            "가까운 사람에게 먼저 안부 전하기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -14561,11 +14561,6 @@
         },
         {
           "items": [
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "북쪽"
-            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -14575,6 +14570,11 @@
               "label": "색",
               "requiresPass": false,
               "value": "라벤더"
+            },
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "북쪽"
             }
           ],
           "requiresPass": false,
@@ -14717,14 +14717,14 @@
         },
         {
           "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 66,
+          "index": 63,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 63,
+          "index": 60,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -14786,14 +14786,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 87,
+          "index": 92,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 93,
+          "index": 96,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -14812,6 +14812,11 @@
         {
           "items": [
             {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "안정"
+            },
+            {
               "label": "색",
               "requiresPass": false,
               "value": "네이비"
@@ -14820,11 +14825,6 @@
               "label": "방향",
               "requiresPass": false,
               "value": "북쪽"
-            },
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "안정"
             }
           ],
           "requiresPass": false,
@@ -14870,9 +14870,9 @@
         {
           "isAvoid": false,
           "items": [
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
             "평소 미뤄둔 정리 해보기",
-            "중요한 결정은 하루 정도 더 생각해보기"
+            "중요한 결정은 하루 정도 더 생각해보기",
+            "오늘 하루 감사한 일 한 가지 떠올려보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -14880,11 +14880,6 @@
         },
         {
           "items": [
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "북서쪽"
-            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -14894,6 +14889,11 @@
               "label": "색",
               "requiresPass": false,
               "value": "옐로우"
+            },
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "북서쪽"
             }
           ],
           "requiresPass": false,
@@ -14924,14 +14924,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 78,
+          "index": 80,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 77,
+          "index": 79,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -14950,6 +14950,11 @@
         {
           "items": [
             {
+              "label": "색",
+              "requiresPass": false,
+              "value": "네이비"
+            },
+            {
               "label": "방향",
               "requiresPass": false,
               "value": "남쪽"
@@ -14958,11 +14963,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "균형"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "네이비"
             }
           ],
           "requiresPass": false,
@@ -14993,14 +14993,14 @@
         },
         {
           "body": "작은 변화가 감지되는 시점이에요. 평소와 다른 선택을 해봐도 나쁘지 않아요.",
-          "index": 60,
+          "index": 65,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 67,
+          "index": 72,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -15008,9 +15008,9 @@
         {
           "isAvoid": false,
           "items": [
-            "오늘 할 일의 우선순위를 다시 점검해보기",
             "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "중요한 결정은 하루 정도 더 생각해보기"
+            "중요한 결정은 하루 정도 더 생각해보기",
+            "오늘 할 일의 우선순위를 다시 점검해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -15018,6 +15018,11 @@
         },
         {
           "items": [
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "북서쪽"
+            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -15027,11 +15032,6 @@
               "label": "색",
               "requiresPass": false,
               "value": "네이비"
-            },
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "북서쪽"
             }
           ],
           "requiresPass": false,
@@ -15062,14 +15062,14 @@
         },
         {
           "body": "지금까지 쌓아온 흐름이 서서히 결과로 드러나는 시기예요. 조급해하지 않아도 괜찮아요.",
-          "index": 96,
+          "index": 95,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 89,
+          "index": 87,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -15077,9 +15077,9 @@
         {
           "isAvoid": false,
           "items": [
-            "가까운 사람에게 먼저 안부 전하기",
             "중요한 결정은 하루 정도 더 생각해보기",
-            "작은 목표 하나를 정해 실천해보기"
+            "작은 목표 하나를 정해 실천해보기",
+            "가까운 사람에게 먼저 안부 전하기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -15087,6 +15087,11 @@
         },
         {
           "items": [
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "네이비"
+            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -15096,11 +15101,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "균형"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "네이비"
             }
           ],
           "requiresPass": false,
@@ -15131,14 +15131,14 @@
         },
         {
           "body": "지금까지 쌓아온 흐름이 서서히 결과로 드러나는 시기예요. 조급해하지 않아도 괜찮아요.",
-          "index": 90,
+          "index": 94,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 95,
+          "index": 96,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -15157,11 +15157,6 @@
         {
           "items": [
             {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "북서쪽"
-            },
-            {
               "label": "키워드",
               "requiresPass": false,
               "value": "시작"
@@ -15170,6 +15165,11 @@
               "label": "색",
               "requiresPass": false,
               "value": "베이지"
+            },
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "북서쪽"
             }
           ],
           "requiresPass": false,
@@ -15200,14 +15200,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 96,
+          "index": 92,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 96,
+          "index": 91,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -15226,6 +15226,11 @@
         {
           "items": [
             {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "동쪽"
+            },
+            {
               "label": "키워드",
               "requiresPass": false,
               "value": "여유"
@@ -15234,11 +15239,6 @@
               "label": "색",
               "requiresPass": false,
               "value": "라벤더"
-            },
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "동쪽"
             }
           ],
           "requiresPass": false,
@@ -15381,14 +15381,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 85,
+          "index": 82,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 91,
+          "index": 88,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -15396,9 +15396,9 @@
         {
           "isAvoid": false,
           "items": [
+            "오늘 하루 감사한 일 한 가지 떠올려보기",
             "평소 미뤄둔 정리 해보기",
-            "가까운 사람에게 먼저 안부 전하기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "가까운 사람에게 먼저 안부 전하기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -15406,6 +15406,11 @@
         },
         {
           "items": [
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "북쪽"
+            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -15415,11 +15420,6 @@
               "label": "색",
               "requiresPass": false,
               "value": "네이비"
-            },
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "북쪽"
             }
           ],
           "requiresPass": false,
@@ -15505,14 +15505,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 80,
+          "index": 83,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 79,
+          "index": 82,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -15520,9 +15520,9 @@
         {
           "isAvoid": false,
           "items": [
+            "작은 목표 하나를 정해 실천해보기",
             "중요한 결정은 하루 정도 더 생각해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "작은 목표 하나를 정해 실천해보기"
+            "오늘 하루 감사한 일 한 가지 떠올려보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -15530,6 +15530,11 @@
         },
         {
           "items": [
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "남쪽"
+            },
             {
               "label": "키워드",
               "requiresPass": false,
@@ -15539,11 +15544,6 @@
               "label": "색",
               "requiresPass": false,
               "value": "네이비"
-            },
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "남쪽"
             }
           ],
           "requiresPass": false,
@@ -15574,14 +15574,14 @@
         },
         {
           "body": "작은 변화가 감지되는 시점이에요. 평소와 다른 선택을 해봐도 나쁘지 않아요.",
-          "index": 67,
+          "index": 60,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 74,
+          "index": 67,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -15589,9 +15589,9 @@
         {
           "isAvoid": false,
           "items": [
-            "중요한 결정은 하루 정도 더 생각해보기",
             "오늘 할 일의 우선순위를 다시 점검해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "오늘 하루 감사한 일 한 가지 떠올려보기",
+            "중요한 결정은 하루 정도 더 생각해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -15599,11 +15599,6 @@
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "시작"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -15613,6 +15608,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "북서쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "시작"
             }
           ],
           "requiresPass": false,
@@ -15643,14 +15643,14 @@
         },
         {
           "body": "지금까지 쌓아온 흐름이 서서히 결과로 드러나는 시기예요. 조급해하지 않아도 괜찮아요.",
-          "index": 93,
+          "index": 96,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 85,
+          "index": 92,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -15669,6 +15669,11 @@
         {
           "items": [
             {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "균형"
+            },
+            {
               "label": "색",
               "requiresPass": false,
               "value": "네이비"
@@ -15677,11 +15682,6 @@
               "label": "방향",
               "requiresPass": false,
               "value": "남쪽"
-            },
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "균형"
             }
           ],
           "requiresPass": false,
@@ -15712,14 +15712,14 @@
         },
         {
           "body": "지금까지 쌓아온 흐름이 서서히 결과로 드러나는 시기예요. 조급해하지 않아도 괜찮아요.",
-          "index": 90,
+          "index": 89,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 95,
+          "index": 94,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -15738,6 +15738,11 @@
         {
           "items": [
             {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "북서쪽"
+            },
+            {
               "label": "키워드",
               "requiresPass": false,
               "value": "시작"
@@ -15746,11 +15751,6 @@
               "label": "색",
               "requiresPass": false,
               "value": "베이지"
-            },
-            {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "북서쪽"
             }
           ],
           "requiresPass": false,
@@ -15781,14 +15781,14 @@
         },
         {
           "body": "지금까지 쌓아온 흐름이 서서히 결과로 드러나는 시기예요. 조급해하지 않아도 괜찮아요.",
-          "index": 82,
+          "index": 80,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 78,
+          "index": 76,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -15807,6 +15807,11 @@
         {
           "items": [
             {
+              "label": "색",
+              "requiresPass": false,
+              "value": "베이지"
+            },
+            {
               "label": "방향",
               "requiresPass": false,
               "value": "남동쪽"
@@ -15815,11 +15820,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "인내"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "베이지"
             }
           ],
           "requiresPass": false,
@@ -15850,14 +15850,14 @@
         },
         {
           "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 66,
+          "index": 62,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "중요한 판단은 하루 정도 더 생각해보고 결정해도 늦지 않아요.",
-          "index": 72,
+          "index": 68,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -15865,9 +15865,9 @@
         {
           "isAvoid": false,
           "items": [
+            "중요한 결정은 하루 정도 더 생각해보기",
             "짧은 산책이나 스트레칭으로 몸 풀기",
-            "가까운 사람에게 먼저 안부 전하기",
-            "중요한 결정은 하루 정도 더 생각해보기"
+            "가까운 사람에게 먼저 안부 전하기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -15875,11 +15875,6 @@
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "균형"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -15889,6 +15884,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "북서쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "균형"
             }
           ],
           "requiresPass": false,
@@ -16194,14 +16194,14 @@
         },
         {
           "body": "지금까지 쌓아온 흐름이 서서히 결과로 드러나는 시기예요. 조급해하지 않아도 괜찮아요.",
-          "index": 96,
+          "index": 95,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 90,
+          "index": 87,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -16209,9 +16209,9 @@
         {
           "isAvoid": false,
           "items": [
-            "중요한 결정은 하루 정도 더 생각해보기",
             "작은 목표 하나를 정해 실천해보기",
-            "가까운 사람에게 먼저 안부 전하기"
+            "가까운 사람에게 먼저 안부 전하기",
+            "중요한 결정은 하루 정도 더 생각해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -16219,6 +16219,11 @@
         },
         {
           "items": [
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "균형"
+            },
             {
               "label": "색",
               "requiresPass": false,
@@ -16228,11 +16233,6 @@
               "label": "방향",
               "requiresPass": false,
               "value": "남쪽"
-            },
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "균형"
             }
           ],
           "requiresPass": false,
@@ -16318,14 +16318,14 @@
         },
         {
           "body": "지금까지 쌓아온 흐름이 서서히 결과로 드러나는 시기예요. 조급해하지 않아도 괜찮아요.",
-          "index": 74,
+          "index": 84,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 70,
+          "index": 80,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -16333,9 +16333,9 @@
         {
           "isAvoid": false,
           "items": [
-            "평소 미뤄둔 정리 해보기",
             "중요한 결정은 하루 정도 더 생각해보기",
-            "짧은 산책이나 스트레칭으로 몸 풀기"
+            "짧은 산책이나 스트레칭으로 몸 풀기",
+            "평소 미뤄둔 정리 해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -16343,11 +16343,6 @@
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "인내"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -16357,6 +16352,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "남동쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "인내"
             }
           ],
           "requiresPass": false,
@@ -16387,14 +16387,14 @@
         },
         {
           "body": "작은 변화가 감지되는 시점이에요. 평소와 다른 선택을 해봐도 나쁘지 않아요.",
-          "index": 77,
+          "index": 68,
           "requiresPass": true,
           "title": "자세히 보면",
           "type": "FortuneSectionType.aspect"
         },
         {
           "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 74,
+          "index": 65,
           "requiresPass": true,
           "title": "참고하면 좋을 점",
           "type": "FortuneSectionType.aspect"
@@ -16413,11 +16413,6 @@
         {
           "items": [
             {
-              "label": "방향",
-              "requiresPass": false,
-              "value": "북쪽"
-            },
-            {
               "label": "키워드",
               "requiresPass": false,
               "value": "경청"
@@ -16426,6 +16421,11 @@
               "label": "색",
               "requiresPass": false,
               "value": "옐로우"
+            },
+            {
+              "label": "방향",
+              "requiresPass": false,
+              "value": "북쪽"
             }
           ],
           "requiresPass": false,

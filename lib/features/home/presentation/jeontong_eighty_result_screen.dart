@@ -406,24 +406,27 @@ String? _jeontongSignatureFromInputs({
       isLunar == null) {
     return null;
   }
-  // FNV-1a 64bit — dart:core 만.
-  const int fnvPrime = 0x100000001b3;
-  int hash = 0xcbf29ce484222325;
+  // [웹 빌드 호환성 수정] 원래 FNV-1a 64bit 구현은 JavaScript가 정확히
+  // 표현할 수 없는 정수 리터럴(0xcbf29ce484222325 등, 53bit 안전 정수 범위
+  // 초과)을 사용해 `flutter build web`(dart2js) 컴파일 자체를 실패시켰다
+  // (jeontong_eighty_report_builder.dart의 _jeontongPersonalizationSeed와
+  // 동일 문제 — 그쪽과 동일하게 FNV-1a 32bit로 교체). dart:core만 사용.
+  const int fnvPrime32 = 0x01000193;
+  int hash = 0x811c9dc5;
   void mix(String s) {
     for (final code in s.codeUnits) {
       hash ^= code;
-      hash = (hash * fnvPrime) & 0xFFFFFFFFFFFFFFFF;
+      hash = (hash * fnvPrime32) & 0xFFFFFFFF;
     }
     hash ^= 0x5c;
-    hash = (hash * fnvPrime) & 0xFFFFFFFFFFFFFFFF;
+    hash = (hash * fnvPrime32) & 0xFFFFFFFF;
   }
   mix('cat:$categoryCode');
   mix('uid:${userId ?? ""}');
   mix('bdt:${birthDateTimeUtc?.toIso8601String() ?? ""}');
   mix('gen:${gender ?? ""}');
   mix('lun:${isLunar == null ? "" : (isLunar ? "1" : "0")}');
-  final s = (hash & 0x7fffffffffffffff).toRadixString(16).padLeft(16, '0');
-  return s.substring(s.length - 8);
+  return hash.toRadixString(16).padLeft(8, '0');
 }
 
 Widget _jeontongPersonalizationBadge(BuildContext context, String? signature) {

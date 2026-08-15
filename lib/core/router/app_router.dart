@@ -61,6 +61,7 @@ import '../../features/pass/presentation/free_pass_gate_screen.dart';
 import '../../features/home/presentation/jeontong_eighty_screen.dart';
 import '../../features/home/presentation/jeontong_eighty_result_screen.dart';
 import '../../features/home/presentation/jeontong_eighty_grid_screen.dart';
+import '../../features/home/presentation/jeontong_input_screen.dart';
 import '../../features/home/domain/jeontong_eighty_matrix.dart';
 import '../../features/history/presentation/history_readonly_screen.dart';
 import '../../features/history/presentation/history_jeontong_overview_screen.dart';
@@ -134,6 +135,14 @@ class AppRouter {
         return _page(
           JeontongEightyResultScreen(categoryId: settings.arguments as String?),
         );
+      // [정통사주 80종 · MVP 라스트 마일 - Mission 1] 정통사주 전용 생년월일시
+      // 입력 화면. 이 라우트가 신설되기 전까지는 사용자가 자신의 생년월일시를
+      // 입력할 UI 자체가 없어 계산 엔진(SajuEngine)과 그리드 화면이 있어도
+      // "서비스"로 기능하지 못했다. 기존 `/jeontong/eighty`(browseRoute,
+      // 아코디언) 라우트/화면은 이 신설과 무관하게 그대로 둔다(회귀 방지).
+      case '/jeontong/input':
+        return _page(const JeontongInputScreen());
+
       // [정통사주 80종 그리드 신설] 8개 섹션 카드가 항상 펼쳐진 상태로
       // 80종 전체를 한 화면에서 훑어보는 신규 라우트. 기존 `/jeontong/eighty`
       // (아코디언 방식, 홈 "운세" 카드가 이미 사용 중)와는 별개이며 그
