@@ -25,6 +25,7 @@ import 'saju_engine.dart';
 import 'saju_f_group_modules.dart';
 import 'saju_fortune_modules.dart';
 import 'saju_fortune_rules.dart';
+import 'saju_g_group_modules.dart';
 import 'saju_interpreter.dart';
 import 'saju_life_modules.dart';
 
@@ -327,6 +328,76 @@ JeontongCategoryResult _b07(JeontongCalcContext ctx) {
       'start_year': r.startYear,
       'gan_zhi_kr': r.ganZhiKr,
       'ten_gods': r.tenGods,
+      'message': r.message,
+    },
+  );
+}
+
+// ============================================================
+// G03/G05/G06/G08/G10 — 2026-08-15 실계산 배선(사용자 확정 지시 §3)
+// ============================================================
+
+JeontongCategoryResult _g03(JeontongCalcContext ctx) {
+  final r = getDaewoonHealthCaution(ctx.saju, ctx.profile);
+  return JeontongCategoryResult(
+    category: '대운별 건강 주의',
+    data: {
+      'timeline': r.timeline,
+      'caution_periods': r.cautionPeriods,
+      'summary': r.summary,
+    },
+  );
+}
+
+JeontongCategoryResult _g05(JeontongCalcContext ctx) {
+  final rules = SajuRules.cachedOrNull!;
+  final r = getBadFood(ctx.saju, rules);
+  return JeontongCategoryResult(
+    category: '나에게 나쁜 음식',
+    data: {
+      'excess_elements': r.excessElements,
+      'foods_to_limit': r.foodsToLimit,
+      'message': r.message,
+    },
+  );
+}
+
+JeontongCategoryResult _g06(JeontongCalcContext ctx) {
+  final rules = SajuRules.cachedOrNull!;
+  final r = getConstitution(ctx.saju, rules);
+  return JeontongCategoryResult(
+    category: '사주 체질',
+    data: {
+      'element': r.element,
+      'season': r.season,
+      'personality': r.personality,
+      'organs': r.organs,
+      'message': r.message,
+    },
+  );
+}
+
+JeontongCategoryResult _g08(JeontongCalcContext ctx) {
+  final r = getInjurySurgeryRisk(ctx.profile);
+  return JeontongCategoryResult(
+    category: '사고·수술수',
+    data: {
+      'special_stars': r.specialStars,
+      'clash_types': r.clashTypes,
+      'verdict': r.verdict,
+      'message': r.message,
+    },
+  );
+}
+
+JeontongCategoryResult _g10(JeontongCalcContext ctx) {
+  final r = getImmunity(ctx.saju);
+  return JeontongCategoryResult(
+    category: '회복력·면역',
+    data: {
+      'strength': r.strength,
+      'water_count': r.waterCount,
+      'verdict': r.verdict,
       'message': r.message,
     },
   );
@@ -777,14 +848,14 @@ final Map<String, _CategoryFn> _categoryIndex = {
   // G. 건강 (10)
   'G01': (ctx) => _a05(ctx),
   'G02': (ctx) => _a05(ctx),
-  'G03': (ctx) => _placeholder('대운별 건강', '각 대운 오행 편중'),
+  'G03': (ctx) => _g03(ctx),
   'G04': (ctx) => _luckyItemsToResult(ctx, category: '나에게 좋은 음식'),
-  'G05': (ctx) => _placeholder('금기 음식', '과다 오행 강화 음식 피하기'),
-  'G06': (ctx) => _placeholder('체질', '일간 오행+계절 기반'),
+  'G05': (ctx) => _g05(ctx),
+  'G06': (ctx) => _g06(ctx),
   'G07': (ctx) => _placeholder('정신 건강', '수·화 균형 확인'),
-  'G08': (ctx) => _placeholder('사고수', '양인·백호·형충 확인'),
+  'G08': (ctx) => _g08(ctx),
   'G09': (ctx) => _placeholder('장수', '오행 균형·인성 확인'),
-  'G10': (ctx) => _placeholder('면역', '일간 강도·수 오행 확인'),
+  'G10': (ctx) => _g10(ctx),
 
   // H. 개운·풍수 (10)
   'H01': (ctx) => _luckyItemsToResult(ctx, category: '행운의 색'),
@@ -859,8 +930,9 @@ const Set<String> kJeontongPlaceholderCategoryIds = {
   // F. 특수 주제 — F09(출산 시기)만 남음(별도 재검토 대상, 이번 라운드
   // 구현 대상 아님). F03~F08/F10은 아래 실계산으로 전환 완료(28 → 21).
   'F09',
-  // G. 건강
-  'G03', 'G05', 'G06', 'G07', 'G08', 'G09', 'G10',
+  // G. 건강 — G07(정신 건강)/G09(장수)만 남음(2026-08-15 G03/G05/G06/
+  // G08/G10 실계산 전환 완료).
+  'G07', 'G09',
   // H. 개운·풍수
   'H06', 'H08', 'H09',
 };

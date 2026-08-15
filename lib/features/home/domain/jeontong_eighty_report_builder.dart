@@ -218,6 +218,15 @@ class JeontongReportBuilder {
         'F07',
         'F08',
         'F10',
+        // [2026-08-15 G03/G05/G06/G08/G10 실계산 배선] 대운별 건강 주의/
+        // 나에게 나쁜 음식/사주 체질/사고·수술수/회복력·면역 — 사용자
+        // 확정 지시 §3 "G03/G05/G06/G08/G10 진행". G07/G09는 이번 라운드
+        // 구현 대상이 아니므로 플레이스홀더 유지.
+        'G03',
+        'G05',
+        'G06',
+        'G08',
+        'G10',
       };
       final bool useNewEngine = migratedCategoryIds.contains(entry.id);
       SajuProfile? profile;
