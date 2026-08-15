@@ -4046,7 +4046,7 @@
     "G03": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "대운별 건강 주의, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "대운별 건강 주의",
         "keywords": [
           "건강",
           "집중"
@@ -4054,47 +4054,30 @@
         "name": "대운별 건강 주의",
         "score": 90,
         "statusLabel": "상승",
-        "subDescription": "무리하지 않고 흐름을 읽는 것이 중요해요."
+        "subDescription": "8세(1979년, 계묘), 18세(1989년, 갑진), 28세(1999년, 을사) 시기에는 기신(목) 기운이 들어와요. 이 시기에는 평소보다 휴식·규칙적인 생활에 조금 더 신경 쓰면 좋아요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)"
       },
       "sections": [
         {
-          "body": "건강 관점에서 본 「대운별 건강 주의」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 멀리 보고 천천히 쌓아가는 태도가 특히 중요한 시기예요.",
+          "body": "8세(1979년, 계묘), 18세(1989년, 갑진), 28세(1999년, 을사) 시기에는 기신(목) 기운이 들어와요. 이 시기에는 평소보다 휴식·규칙적인 생활에 조금 더 신경 쓰면 좋아요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 82,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 88,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "평소 미뤄둔 정리 해보기",
-            "가까운 사람에게 먼저 안부 전하기"
+            "8세(1979년, 계묘) — 기신(목) 기운이 들어와 컨디션 관리에 조금 더 신경 쓰면 좋은 시기",
+            "18세(1989년, 갑진) — 기신(목) 기운이 들어와 컨디션 관리에 조금 더 신경 쓰면 좋은 시기",
+            "28세(1999년, 을사) — 기신(목) 기운이 들어와 컨디션 관리에 조금 더 신경 쓰면 좋은 시기",
+            "38세(2009년, 병오) — 기신 기운이 뚜렷하지 않아 비교적 무난한 시기",
+            "48세(2019년, 정미) — 기신 기운이 뚜렷하지 않아 비교적 무난한 시기"
           ],
           "requiresPass": true,
-          "title": "이렇게 해보면 좋아요",
+          "title": "대운별 흐름",
           "type": "FortuneSectionType.recommend"
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "안정"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -4104,6 +4087,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "북쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "안정"
             }
           ],
           "requiresPass": false,
@@ -4171,7 +4159,7 @@
     "G05": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "나에게 나쁜 음식, 무난하게 안정적으로 흘러가는 흐름이에요",
+        "headline": "나에게 나쁜 음식",
         "keywords": [
           "건강",
           "성장"
@@ -4179,35 +4167,21 @@
         "name": "나에게 나쁜 음식",
         "score": 76,
         "statusLabel": "보통",
-        "subDescription": "지금까지 쌓아온 흐름이 서서히 드러나는 시기예요."
+        "subDescription": "목, 수 기운이 원국에 이미 넘치는 편이에요(3개 이상). 녹색 채소, 신맛 과일, 매실, 레몬, 검은콩, 미역, 김, 굴, 돼지고기처럼 그 기운을 더 강하게 하는 음식은 과하게 섭취하지 않는 것이 좋아요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)"
       },
       "sections": [
         {
-          "body": "건강 관점에서 본 「나에게 나쁜 음식」이에요. 무난한 흐름 속에서 노력한 만큼 결과가 따라오는 시기예요. 멀리 보고 천천히 쌓아가는 태도가 특히 중요한 시기예요.",
+          "body": "목, 수 기운이 원국에 이미 넘치는 편이에요(3개 이상). 녹색 채소, 신맛 과일, 매실, 레몬, 검은콩, 미역, 김, 굴, 돼지고기처럼 그 기운을 더 강하게 하는 음식은 과하게 섭취하지 않는 것이 좋아요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 78,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 77,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
             "작은 목표 하나를 정해 실천해보기",
-            "중요한 결정은 하루 정도 더 생각해보기"
+            "중요한 결정은 하루 정도 더 생각해보기",
+            "오늘 하루 감사한 일 한 가지 떠올려보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -4215,6 +4189,11 @@
         },
         {
           "items": [
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "네이비"
+            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -4224,11 +4203,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "균형"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "네이비"
             }
           ],
           "requiresPass": false,
@@ -4240,43 +4214,29 @@
     "G06": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "사주 체질, 무난하게 안정적으로 흘러가는 흐름이에요",
+        "headline": "사주 체질",
         "keywords": [
-          "안정",
-          "건강"
+          "건강",
+          "안정"
         ],
         "name": "사주 체질",
         "score": 65,
         "statusLabel": "보통",
-        "subDescription": "서두르지 않고 하나씩 정리해가면 좋아요."
+        "subDescription": "일간 오행이 목(이)라 \"목 체질\"에 가까워요. 봄철에 태어나 그 계절 기운의 영향도 함께 받아요. 평소 성향은 성장 지향, 인정 많음, 유연·직진 쪽에 가깝고, 몸에서는 간, 담, 눈, 근육 계통을 챙기면 좋은 편이에요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 체질 진단이 아니에요.)"
       },
       "sections": [
         {
-          "body": "건강 관점에서 본 「사주 체질」이에요. 무난한 흐름 속에서 노력한 만큼 결과가 따라오는 시기예요. 큰 욕심을 내지 않는다면 안정적으로 흘러갈 가능성이 높아요.",
+          "body": "성장 지향, 인정 많음, 유연·직진 일간 오행이 목(이)라 \"목 체질\"에 가까워요. 봄철에 태어나 그 계절 기운의 영향도 함께 받아요. 평소 성향은 성장 지향, 인정 많음, 유연·직진 쪽에 가깝고, 몸에서는 간, 담, 눈, 근육 계통을 챙기면 좋은 편이에요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 체질 진단이 아니에요.)",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "작은 변화가 감지되는 시점이에요. 평소와 다른 선택을 해봐도 나쁘지 않아요.",
-          "index": 60,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 67,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "중요한 결정은 하루 정도 더 생각해보기",
             "오늘 할 일의 우선순위를 다시 점검해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "오늘 하루 감사한 일 한 가지 떠올려보기",
+            "중요한 결정은 하루 정도 더 생각해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -4284,6 +4244,11 @@
         },
         {
           "items": [
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "네이비"
+            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -4293,11 +4258,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "시작"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "네이비"
             }
           ],
           "requiresPass": false,
@@ -4378,36 +4338,22 @@
     "G08": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "사고·수술수, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "가벼운 주의형",
         "keywords": [
-          "성장",
-          "건강"
+          "건강",
+          "성장"
         ],
         "name": "사고·수술수",
         "score": 91,
         "statusLabel": "상승",
-        "subDescription": "작은 신호에도 귀 기울이면 좋은 힌트를 얻을 수 있어요."
+        "subDescription": "양인살이 있어, 급하게 움직이는 상황(운동·운전 등)에서 조금 더 조심하면 좋아요. (※ 사주 명리학적 참고 정보이며, 의학적 진단이 아니에요.)"
       },
       "sections": [
         {
-          "body": "건강 관점에서 본 「사고·수술수」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 작은 선택 하나가 전체 분위기를 좌우할 수 있으니 신중하게 움직여보세요.",
+          "body": "가벼운 주의형 양인살이 있어, 급하게 움직이는 상황(운동·운전 등)에서 조금 더 조심하면 좋아요. (※ 사주 명리학적 참고 정보이며, 의학적 진단이 아니에요.)",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
-        },
-        {
-          "body": "지금까지 쌓아온 흐름이 서서히 결과로 드러나는 시기예요. 조급해하지 않아도 괜찮아요.",
-          "index": 95,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 96,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
         },
         {
           "isAvoid": false,
@@ -4516,7 +4462,7 @@
     "G10": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "회복력·면역, 무난하게 안정적으로 흘러가는 흐름이에요",
+        "headline": "회복력 우수형",
         "keywords": [
           "건강",
           "경청"
@@ -4524,35 +4470,21 @@
         "name": "회복력·면역",
         "score": 69,
         "statusLabel": "보통",
-        "subDescription": "서두르지 않고 하나씩 정리해가면 좋아요."
+        "subDescription": "일간이 신강하고 수(水, 3) 기운도 충분해, 몸의 회복력과 기초 체력이 좋은 편이에요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)"
       },
       "sections": [
         {
-          "body": "건강 관점에서 본 「회복력·면역」이에요. 무난한 흐름 속에서 노력한 만큼 결과가 따라오는 시기예요. 지금 가진 것을 잘 지키는 데 집중하면 좋겠어요.",
+          "body": "회복력 우수형 일간이 신강하고 수(水, 3) 기운도 충분해, 몸의 회복력과 기초 체력이 좋은 편이에요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 60,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "중요한 판단은 하루 정도 더 생각해보고 결정해도 늦지 않아요.",
-          "index": 66,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
+            "가까운 사람에게 먼저 안부 전하기",
             "중요한 결정은 하루 정도 더 생각해보기",
-            "짧은 산책이나 스트레칭으로 몸 풀기",
-            "가까운 사람에게 먼저 안부 전하기"
+            "짧은 산책이나 스트레칭으로 몸 풀기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -9225,7 +9157,7 @@
     "G03": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "대운별 건강 주의, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "대운별 건강 주의",
         "keywords": [
           "건강",
           "집중"
@@ -9233,38 +9165,26 @@
         "name": "대운별 건강 주의",
         "score": 90,
         "statusLabel": "상승",
-        "subDescription": "무리하지 않고 흐름을 읽는 것이 중요해요."
+        "subDescription": "14세(2003년, 경진), 24세(2013년, 기묘), 34세(2023년, 무인), 44세(2033년, 정축), 74세(2063년, 갑술) 시기에는 기신(토) 기운이 들어와요. 이 시기에는 평소보다 휴식·규칙적인 생활에 조금 더 신경 쓰면 좋아요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)"
       },
       "sections": [
         {
-          "body": "건강 관점에서 본 「대운별 건강 주의」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 멀리 보고 천천히 쌓아가는 태도가 특히 중요한 시기예요.",
+          "body": "14세(2003년, 경진), 24세(2013년, 기묘), 34세(2023년, 무인), 44세(2033년, 정축), 74세(2063년, 갑술) 시기에는 기신(토) 기운이 들어와요. 이 시기에는 평소보다 휴식·규칙적인 생활에 조금 더 신경 쓰면 좋아요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 90,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 96,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "평소 미뤄둔 정리 해보기",
-            "가까운 사람에게 먼저 안부 전하기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "4세(1993년, 신사) — 기신 기운이 뚜렷하지 않아 비교적 무난한 시기",
+            "14세(2003년, 경진) — 기신(토) 기운이 들어와 컨디션 관리에 조금 더 신경 쓰면 좋은 시기",
+            "24세(2013년, 기묘) — 기신(토) 기운이 들어와 컨디션 관리에 조금 더 신경 쓰면 좋은 시기",
+            "34세(2023년, 무인) — 기신(토) 기운이 들어와 컨디션 관리에 조금 더 신경 쓰면 좋은 시기",
+            "44세(2033년, 정축) — 기신(토) 기운이 들어와 컨디션 관리에 조금 더 신경 쓰면 좋은 시기"
           ],
           "requiresPass": true,
-          "title": "이렇게 해보면 좋아요",
+          "title": "대운별 흐름",
           "type": "FortuneSectionType.recommend"
         },
         {
@@ -9350,7 +9270,7 @@
     "G05": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "나에게 나쁜 음식, 무난하게 안정적으로 흘러가는 흐름이에요",
+        "headline": "나에게 나쁜 음식",
         "keywords": [
           "건강",
           "성장"
@@ -9358,35 +9278,21 @@
         "name": "나에게 나쁜 음식",
         "score": 76,
         "statusLabel": "보통",
-        "subDescription": "지금까지 쌓아온 흐름이 서서히 드러나는 시기예요."
+        "subDescription": "화 기운이 원국에 이미 넘치는 편이에요(3개 이상). 쓴 채소, 커피(적당량), 붉은 과일, 토마토처럼 그 기운을 더 강하게 하는 음식은 과하게 섭취하지 않는 것이 좋아요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)"
       },
       "sections": [
         {
-          "body": "건강 관점에서 본 「나에게 나쁜 음식」이에요. 무난한 흐름 속에서 노력한 만큼 결과가 따라오는 시기예요. 멀리 보고 천천히 쌓아가는 태도가 특히 중요한 시기예요.",
+          "body": "화 기운이 원국에 이미 넘치는 편이에요(3개 이상). 쓴 채소, 커피(적당량), 붉은 과일, 토마토처럼 그 기운을 더 강하게 하는 음식은 과하게 섭취하지 않는 것이 좋아요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 75,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 74,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
+            "작은 목표 하나를 정해 실천해보기",
             "중요한 결정은 하루 정도 더 생각해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "작은 목표 하나를 정해 실천해보기"
+            "오늘 하루 감사한 일 한 가지 떠올려보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -9394,6 +9300,11 @@
         },
         {
           "items": [
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "네이비"
+            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -9403,11 +9314,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "균형"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "네이비"
             }
           ],
           "requiresPass": false,
@@ -9419,43 +9325,29 @@
     "G06": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "사주 체질, 무난하게 안정적으로 흘러가는 흐름이에요",
+        "headline": "사주 체질",
         "keywords": [
-          "안정",
-          "건강"
+          "건강",
+          "안정"
         ],
         "name": "사주 체질",
         "score": 65,
         "statusLabel": "보통",
-        "subDescription": "서두르지 않고 하나씩 정리해가면 좋아요."
+        "subDescription": "일간 오행이 금(이)라 \"금 체질\"에 가까워요. 여름철에 태어나 그 계절 기운의 영향도 함께 받아요. 평소 성향은 결단, 의리, 정의감, 예리함 쪽에 가깝고, 몸에서는 폐, 대장, 코, 피부 계통을 챙기면 좋은 편이에요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 체질 진단이 아니에요.)"
       },
       "sections": [
         {
-          "body": "건강 관점에서 본 「사주 체질」이에요. 무난한 흐름 속에서 노력한 만큼 결과가 따라오는 시기예요. 큰 욕심을 내지 않는다면 안정적으로 흘러갈 가능성이 높아요.",
+          "body": "결단, 의리, 정의감, 예리함 일간 오행이 금(이)라 \"금 체질\"에 가까워요. 여름철에 태어나 그 계절 기운의 영향도 함께 받아요. 평소 성향은 결단, 의리, 정의감, 예리함 쪽에 가깝고, 몸에서는 폐, 대장, 코, 피부 계통을 챙기면 좋은 편이에요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 체질 진단이 아니에요.)",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "작은 변화가 감지되는 시점이에요. 평소와 다른 선택을 해봐도 나쁘지 않아요.",
-          "index": 63,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 70,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "중요한 결정은 하루 정도 더 생각해보기",
             "오늘 할 일의 우선순위를 다시 점검해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "오늘 하루 감사한 일 한 가지 떠올려보기",
+            "중요한 결정은 하루 정도 더 생각해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -9557,43 +9449,29 @@
     "G08": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "사고·수술수, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "가벼운 주의형",
         "keywords": [
-          "성장",
-          "건강"
+          "건강",
+          "성장"
         ],
         "name": "사고·수술수",
         "score": 91,
         "statusLabel": "상승",
-        "subDescription": "작은 신호에도 귀 기울이면 좋은 힌트를 얻을 수 있어요."
+        "subDescription": "원국 내 자형 관계가 있어, 사고·부상 등에 평소보다 유의하면 좋아요. (※ 사주 명리학적 참고 정보이며, 의학적 진단이 아니에요.)"
       },
       "sections": [
         {
-          "body": "건강 관점에서 본 「사고·수술수」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 작은 선택 하나가 전체 분위기를 좌우할 수 있으니 신중하게 움직여보세요.",
+          "body": "가벼운 주의형 원국 내 자형 관계가 있어, 사고·부상 등에 평소보다 유의하면 좋아요. (※ 사주 명리학적 참고 정보이며, 의학적 진단이 아니에요.)",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "지금까지 쌓아온 흐름이 서서히 결과로 드러나는 시기예요. 조급해하지 않아도 괜찮아요.",
-          "index": 96,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 96,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
+            "가까운 사람에게 먼저 안부 전하기",
             "오늘 할 일의 우선순위를 다시 점검해보기",
-            "평소 미뤄둔 정리 해보기",
-            "가까운 사람에게 먼저 안부 전하기"
+            "평소 미뤄둔 정리 해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -9601,11 +9479,6 @@
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "시작"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -9615,6 +9488,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "북서쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "시작"
             }
           ],
           "requiresPass": false,
@@ -9695,7 +9573,7 @@
     "G10": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "회복력·면역, 무난하게 안정적으로 흘러가는 흐름이에요",
+        "headline": "꾸준한 관리 필요형",
         "keywords": [
           "건강",
           "경청"
@@ -9703,35 +9581,21 @@
         "name": "회복력·면역",
         "score": 69,
         "statusLabel": "보통",
-        "subDescription": "서두르지 않고 하나씩 정리해가면 좋아요."
+        "subDescription": "수(水, 2) 기운은 있지만 일간이 신약한 편이라, 무리하지 않는 선에서 꾸준히 체력을 관리하면 좋아요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)"
       },
       "sections": [
         {
-          "body": "건강 관점에서 본 「회복력·면역」이에요. 무난한 흐름 속에서 노력한 만큼 결과가 따라오는 시기예요. 지금 가진 것을 잘 지키는 데 집중하면 좋겠어요.",
+          "body": "꾸준한 관리 필요형 수(水, 2) 기운은 있지만 일간이 신약한 편이라, 무리하지 않는 선에서 꾸준히 체력을 관리하면 좋아요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 63,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "중요한 판단은 하루 정도 더 생각해보고 결정해도 늦지 않아요.",
-          "index": 69,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "짧은 산책이나 스트레칭으로 몸 풀기",
             "가까운 사람에게 먼저 안부 전하기",
-            "중요한 결정은 하루 정도 더 생각해보기"
+            "중요한 결정은 하루 정도 더 생각해보기",
+            "짧은 산책이나 스트레칭으로 몸 풀기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -9739,6 +9603,11 @@
         },
         {
           "items": [
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "네이비"
+            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -9748,11 +9617,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "균형"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "네이비"
             }
           ],
           "requiresPass": false,
@@ -14404,7 +14268,7 @@
     "G03": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "대운별 건강 주의, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "대운별 건강 주의",
         "keywords": [
           "건강",
           "집중"
@@ -14412,42 +14276,35 @@
         "name": "대운별 건강 주의",
         "score": 90,
         "statusLabel": "상승",
-        "subDescription": "무리하지 않고 흐름을 읽는 것이 중요해요."
+        "subDescription": "3세(2007년, 무자), 43세(2047년, 임진), 53세(2057년, 계사) 시기에는 기신(수) 기운이 들어와요. 이 시기에는 평소보다 휴식·규칙적인 생활에 조금 더 신경 쓰면 좋아요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)"
       },
       "sections": [
         {
-          "body": "건강 관점에서 본 「대운별 건강 주의」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 멀리 보고 천천히 쌓아가는 태도가 특히 중요한 시기예요.",
+          "body": "3세(2007년, 무자), 43세(2047년, 임진), 53세(2057년, 계사) 시기에는 기신(수) 기운이 들어와요. 이 시기에는 평소보다 휴식·규칙적인 생활에 조금 더 신경 쓰면 좋아요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 82,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 88,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "평소 미뤄둔 정리 해보기",
-            "가까운 사람에게 먼저 안부 전하기"
+            "3세(2007년, 무자) — 기신(수) 기운이 들어와 컨디션 관리에 조금 더 신경 쓰면 좋은 시기",
+            "13세(2017년, 기축) — 기신 기운이 뚜렷하지 않아 비교적 무난한 시기",
+            "23세(2027년, 경인) — 기신 기운이 뚜렷하지 않아 비교적 무난한 시기",
+            "33세(2037년, 신묘) — 기신 기운이 뚜렷하지 않아 비교적 무난한 시기",
+            "43세(2047년, 임진) — 기신(수) 기운이 들어와 컨디션 관리에 조금 더 신경 쓰면 좋은 시기"
           ],
           "requiresPass": true,
-          "title": "이렇게 해보면 좋아요",
+          "title": "대운별 흐름",
           "type": "FortuneSectionType.recommend"
         },
         {
           "items": [
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "네이비"
+            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -14457,11 +14314,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "안정"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "네이비"
             }
           ],
           "requiresPass": false,
@@ -14528,7 +14380,7 @@
     "G05": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "나에게 나쁜 음식, 무난하게 안정적으로 흘러가는 흐름이에요",
+        "headline": "나에게 나쁜 음식",
         "keywords": [
           "건강",
           "성장"
@@ -14536,28 +14388,14 @@
         "name": "나에게 나쁜 음식",
         "score": 76,
         "statusLabel": "보통",
-        "subDescription": "지금까지 쌓아온 흐름이 서서히 드러나는 시기예요."
+        "subDescription": "오행이 비교적 고르게 분포되어 있어, 특별히 줄여야 할 음식은 뚜렷하지 않아요. 평소처럼 균형 잡힌 식사를 유지하면 충분해요."
       },
       "sections": [
         {
-          "body": "건강 관점에서 본 「나에게 나쁜 음식」이에요. 무난한 흐름 속에서 노력한 만큼 결과가 따라오는 시기예요. 멀리 보고 천천히 쌓아가는 태도가 특히 중요한 시기예요.",
+          "body": "오행이 비교적 고르게 분포되어 있어, 특별히 줄여야 할 음식은 뚜렷하지 않아요. 평소처럼 균형 잡힌 식사를 유지하면 충분해요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
-        },
-        {
-          "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 83,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 82,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
         },
         {
           "isAvoid": false,
@@ -14573,6 +14411,11 @@
         {
           "items": [
             {
+              "label": "색",
+              "requiresPass": false,
+              "value": "네이비"
+            },
+            {
               "label": "방향",
               "requiresPass": false,
               "value": "남쪽"
@@ -14581,11 +14424,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "균형"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "네이비"
             }
           ],
           "requiresPass": false,
@@ -14597,36 +14435,22 @@
     "G06": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "사주 체질, 무난하게 안정적으로 흘러가는 흐름이에요",
+        "headline": "사주 체질",
         "keywords": [
-          "안정",
-          "건강"
+          "건강",
+          "안정"
         ],
         "name": "사주 체질",
         "score": 65,
         "statusLabel": "보통",
-        "subDescription": "서두르지 않고 하나씩 정리해가면 좋아요."
+        "subDescription": "일간 오행이 토(이)라 \"토 체질\"에 가까워요. 겨울철에 태어나 그 계절 기운의 영향도 함께 받아요. 평소 성향은 신뢰, 포용, 중재, 실용 쪽에 가깝고, 몸에서는 비장, 위, 입, 살 계통을 챙기면 좋은 편이에요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 체질 진단이 아니에요.)"
       },
       "sections": [
         {
-          "body": "건강 관점에서 본 「사주 체질」이에요. 무난한 흐름 속에서 노력한 만큼 결과가 따라오는 시기예요. 큰 욕심을 내지 않는다면 안정적으로 흘러갈 가능성이 높아요.",
+          "body": "신뢰, 포용, 중재, 실용 일간 오행이 토(이)라 \"토 체질\"에 가까워요. 겨울철에 태어나 그 계절 기운의 영향도 함께 받아요. 평소 성향은 신뢰, 포용, 중재, 실용 쪽에 가깝고, 몸에서는 비장, 위, 입, 살 계통을 챙기면 좋은 편이에요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 체질 진단이 아니에요.)",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
-        },
-        {
-          "body": "작은 변화가 감지되는 시점이에요. 평소와 다른 선택을 해봐도 나쁘지 않아요.",
-          "index": 60,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 67,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
         },
         {
           "isAvoid": false,
@@ -14735,36 +14559,22 @@
     "G08": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "사고·수술수, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "가벼운 주의형",
         "keywords": [
-          "성장",
-          "건강"
+          "건강",
+          "성장"
         ],
         "name": "사고·수술수",
         "score": 91,
         "statusLabel": "상승",
-        "subDescription": "작은 신호에도 귀 기울이면 좋은 힌트를 얻을 수 있어요."
+        "subDescription": "원국 내 지지충 관계가 있어, 사고·부상 등에 평소보다 유의하면 좋아요. (※ 사주 명리학적 참고 정보이며, 의학적 진단이 아니에요.)"
       },
       "sections": [
         {
-          "body": "건강 관점에서 본 「사고·수술수」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 작은 선택 하나가 전체 분위기를 좌우할 수 있으니 신중하게 움직여보세요.",
+          "body": "가벼운 주의형 원국 내 지지충 관계가 있어, 사고·부상 등에 평소보다 유의하면 좋아요. (※ 사주 명리학적 참고 정보이며, 의학적 진단이 아니에요.)",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
-        },
-        {
-          "body": "지금까지 쌓아온 흐름이 서서히 결과로 드러나는 시기예요. 조급해하지 않아도 괜찮아요.",
-          "index": 89,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 94,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
         },
         {
           "isAvoid": false,
@@ -14780,6 +14590,11 @@
         {
           "items": [
             {
+              "label": "색",
+              "requiresPass": false,
+              "value": "베이지"
+            },
+            {
               "label": "방향",
               "requiresPass": false,
               "value": "북서쪽"
@@ -14788,11 +14603,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "시작"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "베이지"
             }
           ],
           "requiresPass": false,
@@ -14873,7 +14683,7 @@
     "G10": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "회복력·면역, 무난하게 안정적으로 흘러가는 흐름이에요",
+        "headline": "컨디션 관리 신경 써야 하는 편",
         "keywords": [
           "건강",
           "경청"
@@ -14881,35 +14691,21 @@
         "name": "회복력·면역",
         "score": 69,
         "statusLabel": "보통",
-        "subDescription": "서두르지 않고 하나씩 정리해가면 좋아요."
+        "subDescription": "일간이 중화에 가깝고 수(水, 1) 기운도 부족한 편이라, 평소보다 휴식·수면·규칙적인 생활에 신경 쓰면 좋아요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)"
       },
       "sections": [
         {
-          "body": "건강 관점에서 본 「회복력·면역」이에요. 무난한 흐름 속에서 노력한 만큼 결과가 따라오는 시기예요. 지금 가진 것을 잘 지키는 데 집중하면 좋겠어요.",
+          "body": "컨디션 관리 신경 써야 하는 편 일간이 중화에 가깝고 수(水, 1) 기운도 부족한 편이라, 평소보다 휴식·수면·규칙적인 생활에 신경 쓰면 좋아요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 62,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "중요한 판단은 하루 정도 더 생각해보고 결정해도 늦지 않아요.",
-          "index": 68,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
+            "가까운 사람에게 먼저 안부 전하기",
             "중요한 결정은 하루 정도 더 생각해보기",
-            "짧은 산책이나 스트레칭으로 몸 풀기",
-            "가까운 사람에게 먼저 안부 전하기"
+            "짧은 산책이나 스트레칭으로 몸 풀기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
