@@ -9,10 +9,11 @@
 /// [플레이스홀더 정책] 원본 파이썬은 B02~B10, C06~C10, D04/D10,
 /// E01~E07(상대 사주 필요) 등 다수를 `{"category":..., "message":...}`
 /// 형태의 안내 플레이스홀더로 남겨두었으나, 이후 사용자 확정 지시에 따라
-/// B02~B10/C06~C10/D04/D10은 순차적으로 PHASE1~4 기반 실계산으로 전환
-/// 완료되었다(아래 [kJeontongPlaceholderCategoryIds] 갱신 이력 참고).
-/// 남은 플레이스홀더(E~H 일부)는 구현 가능 여부를 재검토해 유지 또는
-/// 삭제한다(80종 숫자에 집착하지 않음 — 사용자 확정 지시 §4/§7).
+/// B02~B10/C06~C10/D04/D10/F03~F08/F10은 순차적으로 PHASE1~4 기반
+/// 실계산으로 전환 완료되었다(아래 [kJeontongPlaceholderCategoryIds]
+/// 갱신 이력 참고). 남은 플레이스홀더(E/F09/G~H 일부)는 구현 가능 여부를
+/// 재검토해 유지 또는 삭제한다(80종 숫자에 집착하지 않음 — 사용자 확정
+/// 지시 §4/§7).
 library;
 
 import 'jeontong_eighty_matrix.dart';
@@ -21,6 +22,7 @@ import 'saju_c_group_modules.dart';
 import 'saju_d_group_modules.dart';
 import 'saju_daewoon_modules.dart';
 import 'saju_engine.dart';
+import 'saju_f_group_modules.dart';
 import 'saju_fortune_modules.dart';
 import 'saju_fortune_rules.dart';
 import 'saju_interpreter.dart';
@@ -560,6 +562,103 @@ JeontongCategoryResult _d10(JeontongCalcContext ctx) {
 }
 
 // ============================================================
+// F. 특수 주제 (10) — F03~F08/F10 실계산
+// ============================================================
+
+JeontongCategoryResult _f03(JeontongCalcContext ctx) {
+  final r = getBusinessItemFit(ctx.saju, ctx.interp);
+  return JeontongCategoryResult(
+    category: '맞는 사업 아이템',
+    data: {
+      'element': r.element,
+      'items': r.items,
+      'style': r.style,
+      'message': r.message,
+    },
+  );
+}
+
+JeontongCategoryResult _f04(JeontongCalcContext ctx) {
+  final r = getCareerVsBusinessFit(ctx.saju, ctx.interp);
+  return JeontongCategoryResult(
+    category: '창업 vs 직장',
+    data: {
+      'officer_count': r.officerCount,
+      'gongmang_hits_officer': r.gongmangHitsOfficer,
+      'verdict': r.verdict,
+      'message': r.message,
+    },
+  );
+}
+
+JeontongCategoryResult _f05(JeontongCalcContext ctx) {
+  final r = getJobChangeTiming(ctx.saju, year: ctx.year);
+  return JeontongCategoryResult(
+    category: '이직 타이밍',
+    data: {
+      'current_daewoon_hit': r.currentDaewoonHit,
+      'current_year_hit': r.currentYearHit,
+      'upcoming_periods': r.upcomingPeriods,
+      'verdict': r.verdict,
+      'message': r.message,
+    },
+  );
+}
+
+JeontongCategoryResult _f06(JeontongCalcContext ctx) {
+  final r = getRealEstateTiming(ctx.saju);
+  return JeontongCategoryResult(
+    category: '부동산 매매 타이밍',
+    data: {
+      'timeline': r.timeline,
+      'peak_periods': r.peakPeriods,
+      'summary': r.summary,
+    },
+  );
+}
+
+JeontongCategoryResult _f07(JeontongCalcContext ctx) {
+  final r = getInvestmentStyle(ctx.interp);
+  return JeontongCategoryResult(
+    category: '투자 성향 분석',
+    data: {
+      'aggressive_count': r.aggressiveCount,
+      'defensive_count': r.defensiveCount,
+      'style': r.style,
+      'message': r.message,
+    },
+  );
+}
+
+JeontongCategoryResult _f08(JeontongCalcContext ctx) {
+  final r = getMarriageTiming(ctx.saju);
+  return JeontongCategoryResult(
+    category: '결혼 적령기',
+    data: {
+      'spouse_god_label': r.spouseGodLabel,
+      'active_periods': r.activePeriods,
+      'nearest_period': r.nearestPeriod,
+      'message': r.message,
+    },
+  );
+}
+
+JeontongCategoryResult _f10(JeontongCalcContext ctx) {
+  final r = getOverseasFortune(ctx.saju, ctx.interp);
+  return JeontongCategoryResult(
+    category: '유학·해외 진출운',
+    data: {
+      'has_yeokma': r.hasYeokma,
+      'wealth_count': r.wealthCount,
+      'water_count': r.waterCount,
+      'score': r.score,
+      'style': r.style,
+      'message': r.message,
+    },
+  );
+}
+
+// ============================================================
 // 80종 CATEGORY_INDEX 매핑 — eighty_categories.py 이식
 // ============================================================
 
@@ -666,14 +765,14 @@ final Map<String, _CategoryFn> _categoryIndex = {
   // F. 특수 주제 (10)
   'F01': (ctx) => _a03(ctx),
   'F02': (ctx) => _a04(ctx),
-  'F03': (ctx) => _placeholder('사업 아이템', '일간 오행 기반 업종 추천'),
-  'F04': (ctx) => _placeholder('창업 vs 직장', '관성 유무·공망 확인'),
-  'F05': (ctx) => _placeholder('이직 타이밍', '관성 대운·세운 확인'),
-  'F06': (ctx) => _placeholder('부동산', '토·재성 대운 확인'),
-  'F07': (ctx) => _placeholder('투자 성향', '편재(공격)/정재(방어) 비율'),
-  'F08': (ctx) => _placeholder('결혼 적령기', '재/관성 대운 확인'),
+  'F03': (ctx) => _f03(ctx),
+  'F04': (ctx) => _f04(ctx),
+  'F05': (ctx) => _f05(ctx),
+  'F06': (ctx) => _f06(ctx),
+  'F07': (ctx) => _f07(ctx),
+  'F08': (ctx) => _f08(ctx),
   'F09': (ctx) => _placeholder('출산 시기', '식신 세운 확인'),
-  'F10': (ctx) => _placeholder('해외운', '역마·편재·수 오행 확인'),
+  'F10': (ctx) => _f10(ctx),
 
   // G. 건강 (10)
   'G01': (ctx) => _a05(ctx),
@@ -734,6 +833,13 @@ JeontongCategoryResult runJeontongCategory(
 /// 을 7일 반복 호출하고, D10은 §5 지시에 따라 C08과 동일한
 /// `RelationshipsEngine.analyzeExternal()`을 오늘 일진 간지로 호출한다.
 ///
+/// [2026-08-15 F03~F08/F10 실계산 전환] F그룹(특수 주제) 7종(사업
+/// 아이템/창업vs직장/이직 타이밍/부동산 매매 타이밍/투자 성향/결혼
+/// 적령기/유학·해외 진출운)도 PHASE1~4 기반 실계산으로 전환되어 이
+/// 목록에서 제외되었다(28 → 21, 사용자 확정 지시 §3 "F03~F08/F10 진행",
+/// 사용자 승인 "응"). F09(자녀 출산 좋은 해)만 별도 재검토 대상으로
+/// 플레이스홀더에 남는다. `saju_f_group_modules.dart` 참고.
+///
 /// [왜 정적 목록인가] `_categoryIndex`는 함수 매핑이라 런타임에 "이 id가
 /// placeholder인지"를 알려면 [JeontongCalcContext](실제 사주 계산 결과)를
 /// 먼저 만들어야 한다. 하지만 결과 화면은 프로필이 없는 방문자에게도
@@ -750,8 +856,9 @@ JeontongCategoryResult runJeontongCategory(
 const Set<String> kJeontongPlaceholderCategoryIds = {
   // E. 궁합 (전부 상대 사주 필요)
   'E01', 'E02', 'E03', 'E04', 'E05', 'E06', 'E07', 'E08', 'E09', 'E10',
-  // F. 특수 주제
-  'F03', 'F04', 'F05', 'F06', 'F07', 'F08', 'F09', 'F10',
+  // F. 특수 주제 — F09(출산 시기)만 남음(별도 재검토 대상, 이번 라운드
+  // 구현 대상 아님). F03~F08/F10은 아래 실계산으로 전환 완료(28 → 21).
+  'F09',
   // G. 건강
   'G03', 'G05', 'G06', 'G07', 'G08', 'G09', 'G10',
   // H. 개운·풍수

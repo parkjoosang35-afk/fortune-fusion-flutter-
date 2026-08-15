@@ -207,6 +207,17 @@ class JeontongReportBuilder {
         // — 사용자 확정 지시 §3 "D04/D10 진행".
         'D04',
         'D10',
+        // [2026-08-15 F03~F08/F10 실계산 배선] 사업 아이템/창업vs직장/
+        // 이직 타이밍/부동산 매매 타이밍/투자 성향/결혼 적령기/유학·해외
+        // 진출운 — 사용자 확정 지시 §3 "F03~F08/F10 진행", 사용자 승인
+        // "응". F09는 별도 재검토 대상으로 제외.
+        'F03',
+        'F04',
+        'F05',
+        'F06',
+        'F07',
+        'F08',
+        'F10',
       };
       final bool useNewEngine = migratedCategoryIds.contains(entry.id);
       SajuProfile? profile;
@@ -330,6 +341,9 @@ class JeontongReportBuilder {
     // [2026-08-15 D04] 7일 일진 요약 — D04 핵심 콘텐츠.
     'daily_summary': '일별 흐름',
     'periods': '해당 시기',
+    // [2026-08-15 F05/F08] 이직 유망 시기 / 결혼 적령기 발동 대운 목록.
+    'upcoming_periods': '유망 시기',
+    'active_periods': '해당 시기',
     'ten_gods': '이 대운의 십신',
     'recommended_jobs': '추천 직업',
     'activities': '추천 활동',
