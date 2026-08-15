@@ -182,6 +182,41 @@ class ManseryeokCoreEngine {
     DaewoonStartPrecision daewoonStartPrecision =
         DaewoonStartPrecision.traditionalApprox,
   }) {
+    return buildProfileWithCore(
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      gender: gender,
+      calendarType: calendarType,
+      isLeapMonth: isLeapMonth,
+      birthPlace: birthPlace,
+      utcOffsetMinutes: utcOffsetMinutes,
+      ziHourPolicy: ziHourPolicy,
+      daewoonStartPrecision: daewoonStartPrecision,
+    ).profile;
+  }
+
+  /// [buildProfile]과 동일하게 계산하되, Phase 2 이후 엔진들이 필요로
+  /// 하는 [ManseryeokCoreResult](특히 `eightChar` — 십이운성 계산에
+  /// 필요)까지 함께 반환한다. Phase 2 이후 재계산(이중 계산) 없이 같은
+  /// 인스턴스를 그대로 전달해 회귀를 방지하기 위한 진입점이다.
+  static ({SajuProfile profile, ManseryeokCoreResult core}) buildProfileWithCore({
+    required int year,
+    required int month,
+    required int day,
+    required int hour,
+    int minute = 0,
+    required String gender,
+    required CalendarInputType calendarType,
+    bool isLeapMonth = false,
+    String? birthPlace,
+    int utcOffsetMinutes = kstUtcOffsetMinutes,
+    ZiHourPolicy ziHourPolicy = ZiHourPolicy.lateZiSameDay,
+    DaewoonStartPrecision daewoonStartPrecision =
+        DaewoonStartPrecision.traditionalApprox,
+  }) {
     // 해외 출생 등 시간대가 다르면 KST 벽시계 시각으로 정규화한다.
     final kst = normalizeToKst(
       DateTime(year, month, day, hour, minute),
@@ -212,7 +247,7 @@ class ManseryeokCoreEngine {
       utcOffsetMinutes: utcOffsetMinutes,
     );
 
-    return SajuProfile(
+    final profile = SajuProfile(
       engineVersion: kJeontongSajuEngineVersion,
       birthInfo: birthInfo,
       solarDate:
@@ -228,5 +263,7 @@ class ManseryeokCoreEngine {
       dayPillar: core.dayPillar,
       hourPillar: core.hourPillar,
     );
+
+    return (profile: profile, core: core);
   }
 }
