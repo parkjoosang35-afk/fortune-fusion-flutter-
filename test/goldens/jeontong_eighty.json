@@ -338,7 +338,7 @@
     "A07": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "평생 자녀운, 무난하게 안정적으로 흘러가는 흐름이에요",
+        "headline": "만연형 — 자녀 인연이 늦거나 특별한 노력이 필요한 흐름",
         "keywords": [
           "평생운",
           "경청"
@@ -346,28 +346,14 @@
         "name": "평생 자녀운",
         "score": 69,
         "statusLabel": "보통",
-        "subDescription": "서두르지 않고 하나씩 정리해가면 좋아요."
+        "subDescription": "관성(자녀성) 부재. 자녀 인연이 다소 늦게 찾아오거나, 관성(자녀성)이 들어오는 대운·세운에서 인연이 뚜렷해질 수 있어요."
       },
       "sections": [
         {
-          "body": "평생운 관점에서 본 「평생 자녀운」이에요. 무난한 흐름 속에서 노력한 만큼 결과가 따라오는 시기예요. 지금 가진 것을 잘 지키는 데 집중하면 좋겠어요.",
+          "body": "만연형 — 자녀 인연이 늦거나 특별한 노력이 필요한 흐름 관성(자녀성) 부재. 자녀 인연이 다소 늦게 찾아오거나, 관성(자녀성)이 들어오는 대운·세운에서 인연이 뚜렷해질 수 있어요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
-        },
-        {
-          "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 65,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "중요한 판단은 하루 정도 더 생각해보고 결정해도 늦지 않아요.",
-          "index": 71,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
         },
         {
           "isAvoid": false,
@@ -383,11 +369,6 @@
         {
           "items": [
             {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "균형"
-            },
-            {
               "label": "색",
               "requiresPass": false,
               "value": "네이비"
@@ -396,6 +377,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "북서쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "균형"
             }
           ],
           "requiresPass": false,
@@ -407,10 +393,10 @@
     "A08": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "평생 부모·형제운, 무난하게 안정적으로 흘러가는 흐름이에요",
+        "headline": "평생 부모·형제운",
         "keywords": [
-          "여유",
-          "평생운"
+          "평생운",
+          "여유"
         ],
         "name": "평생 부모·형제운",
         "score": 69,
@@ -423,20 +409,6 @@
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
-        },
-        {
-          "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 67,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 64,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
         },
         {
           "isAvoid": false,
@@ -476,7 +448,7 @@
     "A09": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "평생 학업·시험운, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "학구형 — 인성이 두터운 사주",
         "keywords": [
           "평생운",
           "집중"
@@ -484,35 +456,21 @@
         "name": "평생 학업·시험운",
         "score": 90,
         "statusLabel": "상승",
-        "subDescription": "무리하지 않고 흐름을 읽는 것이 중요해요."
+        "subDescription": "인성(학업성) 3개. 배움과 탐구를 즐기는 성향이 강하고, 꾸준한 공부로 실력을 쌓는 타입이에요."
       },
       "sections": [
         {
-          "body": "평생운 관점에서 본 「평생 학업·시험운」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 멀리 보고 천천히 쌓아가는 태도가 특히 중요한 시기예요.",
+          "body": "학구형 — 인성이 두터운 사주 인성(학업성) 3개. 배움과 탐구를 즐기는 성향이 강하고, 꾸준한 공부로 실력을 쌓는 타입이에요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 83,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 89,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
+            "평소 미뤄둔 정리 해보기",
             "가까운 사람에게 먼저 안부 전하기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "평소 미뤄둔 정리 해보기"
+            "오늘 하루 감사한 일 한 가지 떠올려보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -545,7 +503,7 @@
     "A10": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "인생 5대 전환점, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "인생 5대 전환점",
         "keywords": [
           "평생운",
           "집중"
@@ -553,35 +511,21 @@
         "name": "인생 5대 전환점",
         "score": 93,
         "statusLabel": "상승",
-        "subDescription": "무리하지 않고 흐름을 읽는 것이 중요해요."
+        "subDescription": "만 8세(1979년), 18세(1989년), 28세(1999년), 38세(2009년), 48세(2019년)에 새로운 대운(10년 단위 큰 흐름)이 시작돼요. 이 시점마다 인생의 방향이 크게 바뀔 수 있어요."
       },
       "sections": [
         {
-          "body": "평생운 관점에서 본 「인생 5대 전환점」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 작은 선택 하나가 전체 분위기를 좌우할 수 있으니 신중하게 움직여보세요.",
+          "body": "만 8세(1979년), 18세(1989년), 28세(1999년), 38세(2009년), 48세(2019년)에 새로운 대운(10년 단위 큰 흐름)이 시작돼요. 이 시점마다 인생의 방향이 크게 바뀔 수 있어요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 87,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 95,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
+            "오늘 하루 감사한 일 한 가지 떠올려보기",
             "작은 목표 하나를 정해 실천해보기",
-            "평소 미뤄둔 정리 해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "평소 미뤄둔 정리 해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -5838,7 +5782,7 @@
     "A07": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "평생 자녀운, 무난하게 안정적으로 흘러가는 흐름이에요",
+        "headline": "풍요형 — 자녀복이 두터운 흐름",
         "keywords": [
           "평생운",
           "경청"
@@ -5846,35 +5790,21 @@
         "name": "평생 자녀운",
         "score": 69,
         "statusLabel": "보통",
-        "subDescription": "서두르지 않고 하나씩 정리해가면 좋아요."
+        "subDescription": "식상(자녀성) 2개. 자녀 인연이 풍부하고 다복한 흐름이에요."
       },
       "sections": [
         {
-          "body": "평생운 관점에서 본 「평생 자녀운」이에요. 무난한 흐름 속에서 노력한 만큼 결과가 따라오는 시기예요. 지금 가진 것을 잘 지키는 데 집중하면 좋겠어요.",
+          "body": "풍요형 — 자녀복이 두터운 흐름 식상(자녀성) 2개. 자녀 인연이 풍부하고 다복한 흐름이에요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 68,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "중요한 판단은 하루 정도 더 생각해보고 결정해도 늦지 않아요.",
-          "index": 74,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "짧은 산책이나 스트레칭으로 몸 풀기",
             "가까운 사람에게 먼저 안부 전하기",
-            "중요한 결정은 하루 정도 더 생각해보기"
+            "중요한 결정은 하루 정도 더 생각해보기",
+            "짧은 산책이나 스트레칭으로 몸 풀기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -5907,10 +5837,10 @@
     "A08": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "평생 부모·형제운, 무난하게 안정적으로 흘러가는 흐름이에요",
+        "headline": "평생 부모·형제운",
         "keywords": [
-          "여유",
-          "평생운"
+          "평생운",
+          "여유"
         ],
         "name": "평생 부모·형제운",
         "score": 69,
@@ -5925,25 +5855,11 @@
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 73,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 70,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "중요한 결정은 하루 정도 더 생각해보기",
             "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "평소 미뤄둔 정리 해보기"
+            "평소 미뤄둔 정리 해보기",
+            "중요한 결정은 하루 정도 더 생각해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -5951,11 +5867,6 @@
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "시작"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -5965,6 +5876,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "서쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "시작"
             }
           ],
           "requiresPass": false,
@@ -5976,7 +5892,7 @@
     "A09": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "평생 학업·시험운, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "실전형 — 이론보다 경험 중심",
         "keywords": [
           "평생운",
           "집중"
@@ -5984,35 +5900,21 @@
         "name": "평생 학업·시험운",
         "score": 90,
         "statusLabel": "상승",
-        "subDescription": "무리하지 않고 흐름을 읽는 것이 중요해요."
+        "subDescription": "인성(학업성)이 약한 사주예요. 이론 공부보다 실전 경험과 몸으로 익히는 학습 방식이 더 잘 맞을 수 있어요."
       },
       "sections": [
         {
-          "body": "평생운 관점에서 본 「평생 학업·시험운」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 멀리 보고 천천히 쌓아가는 태도가 특히 중요한 시기예요.",
+          "body": "실전형 — 이론보다 경험 중심 인성(학업성)이 약한 사주예요. 이론 공부보다 실전 경험과 몸으로 익히는 학습 방식이 더 잘 맞을 수 있어요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 82,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 88,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
             "평소 미뤄둔 정리 해보기",
-            "가까운 사람에게 먼저 안부 전하기"
+            "가까운 사람에게 먼저 안부 전하기",
+            "오늘 하루 감사한 일 한 가지 떠올려보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -6020,11 +5922,6 @@
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "안정"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -6034,6 +5931,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "북쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "안정"
             }
           ],
           "requiresPass": false,
@@ -6045,7 +5947,7 @@
     "A10": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "인생 5대 전환점, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "인생 5대 전환점",
         "keywords": [
           "평생운",
           "집중"
@@ -6053,35 +5955,21 @@
         "name": "인생 5대 전환점",
         "score": 93,
         "statusLabel": "상승",
-        "subDescription": "무리하지 않고 흐름을 읽는 것이 중요해요."
+        "subDescription": "만 4세(1993년), 14세(2003년), 24세(2013년), 34세(2023년), 44세(2033년)에 새로운 대운(10년 단위 큰 흐름)이 시작돼요. 이 시점마다 인생의 방향이 크게 바뀔 수 있어요."
       },
       "sections": [
         {
-          "body": "평생운 관점에서 본 「인생 5대 전환점」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 작은 선택 하나가 전체 분위기를 좌우할 수 있으니 신중하게 움직여보세요.",
+          "body": "만 4세(1993년), 14세(2003년), 24세(2013년), 34세(2023년), 44세(2033년)에 새로운 대운(10년 단위 큰 흐름)이 시작돼요. 이 시점마다 인생의 방향이 크게 바뀔 수 있어요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 88,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 96,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "평소 미뤄둔 정리 해보기",
             "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "작은 목표 하나를 정해 실천해보기"
+            "작은 목표 하나를 정해 실천해보기",
+            "평소 미뤄둔 정리 해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -11338,7 +11226,7 @@
     "A07": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "평생 자녀운, 무난하게 안정적으로 흘러가는 흐름이에요",
+        "headline": "안정형 — 자녀와의 관계가 정착되는 흐름",
         "keywords": [
           "평생운",
           "경청"
@@ -11346,35 +11234,21 @@
         "name": "평생 자녀운",
         "score": 69,
         "statusLabel": "보통",
-        "subDescription": "서두르지 않고 하나씩 정리해가면 좋아요."
+        "subDescription": "식상(자녀성) 1개. 자녀와 깊고 안정적인 인연을 맺는 흐름이에요."
       },
       "sections": [
         {
-          "body": "평생운 관점에서 본 「평생 자녀운」이에요. 무난한 흐름 속에서 노력한 만큼 결과가 따라오는 시기예요. 지금 가진 것을 잘 지키는 데 집중하면 좋겠어요.",
+          "body": "안정형 — 자녀와의 관계가 정착되는 흐름 식상(자녀성) 1개. 자녀와 깊고 안정적인 인연을 맺는 흐름이에요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 60,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "중요한 판단은 하루 정도 더 생각해보고 결정해도 늦지 않아요.",
-          "index": 66,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
+            "가까운 사람에게 먼저 안부 전하기",
             "중요한 결정은 하루 정도 더 생각해보기",
-            "짧은 산책이나 스트레칭으로 몸 풀기",
-            "가까운 사람에게 먼저 안부 전하기"
+            "짧은 산책이나 스트레칭으로 몸 풀기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -11382,6 +11256,11 @@
         },
         {
           "items": [
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "네이비"
+            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -11391,11 +11270,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "균형"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "네이비"
             }
           ],
           "requiresPass": false,
@@ -11407,10 +11281,10 @@
     "A08": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "평생 부모·형제운, 무난하게 안정적으로 흘러가는 흐름이에요",
+        "headline": "평생 부모·형제운",
         "keywords": [
-          "여유",
-          "평생운"
+          "평생운",
+          "여유"
         ],
         "name": "평생 부모·형제운",
         "score": 69,
@@ -11425,25 +11299,11 @@
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 64,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 61,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
+            "오늘 하루 감사한 일 한 가지 떠올려보기",
             "평소 미뤄둔 정리 해보기",
-            "중요한 결정은 하루 정도 더 생각해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "중요한 결정은 하루 정도 더 생각해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -11451,11 +11311,6 @@
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "시작"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -11465,6 +11320,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "서쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "시작"
             }
           ],
           "requiresPass": false,
@@ -11476,7 +11336,7 @@
     "A09": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "평생 학업·시험운, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "학업 최상형 — 인성과 문창귀인이 함께 발동",
         "keywords": [
           "평생운",
           "집중"
@@ -11484,35 +11344,21 @@
         "name": "평생 학업·시험운",
         "score": 90,
         "statusLabel": "상승",
-        "subDescription": "무리하지 않고 흐름을 읽는 것이 중요해요."
+        "subDescription": "인성(학업성) 2개 + 문창귀인 보유. 집중력과 학습 이해력이 뛰어나고, 시험·자격증운이 특히 강한 사주예요."
       },
       "sections": [
         {
-          "body": "평생운 관점에서 본 「평생 학업·시험운」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 멀리 보고 천천히 쌓아가는 태도가 특히 중요한 시기예요.",
+          "body": "학업 최상형 — 인성과 문창귀인이 함께 발동 인성(학업성) 2개 + 문창귀인 보유. 집중력과 학습 이해력이 뛰어나고, 시험·자격증운이 특히 강한 사주예요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 86,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 92,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
+            "평소 미뤄둔 정리 해보기",
             "가까운 사람에게 먼저 안부 전하기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "평소 미뤄둔 정리 해보기"
+            "오늘 하루 감사한 일 한 가지 떠올려보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -11520,11 +11366,6 @@
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "안정"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -11534,6 +11375,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "북쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "안정"
             }
           ],
           "requiresPass": false,
@@ -11545,7 +11391,7 @@
     "A10": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "인생 5대 전환점, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "인생 5대 전환점",
         "keywords": [
           "평생운",
           "집중"
@@ -11553,35 +11399,21 @@
         "name": "인생 5대 전환점",
         "score": 93,
         "statusLabel": "상승",
-        "subDescription": "무리하지 않고 흐름을 읽는 것이 중요해요."
+        "subDescription": "만 3세(2007년), 13세(2017년), 23세(2027년), 33세(2037년), 43세(2047년)에 새로운 대운(10년 단위 큰 흐름)이 시작돼요. 이 시점마다 인생의 방향이 크게 바뀔 수 있어요."
       },
       "sections": [
         {
-          "body": "평생운 관점에서 본 「인생 5대 전환점」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 작은 선택 하나가 전체 분위기를 좌우할 수 있으니 신중하게 움직여보세요.",
+          "body": "만 3세(2007년), 13세(2017년), 23세(2027년), 33세(2037년), 43세(2047년)에 새로운 대운(10년 단위 큰 흐름)이 시작돼요. 이 시점마다 인생의 방향이 크게 바뀔 수 있어요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "주변의 도움이나 조언이 의외로 큰 힘이 되는 시기예요. 귀를 기울여보세요.",
-          "index": 83,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 91,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
+            "오늘 하루 감사한 일 한 가지 떠올려보기",
             "작은 목표 하나를 정해 실천해보기",
-            "평소 미뤄둔 정리 해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "평소 미뤄둔 정리 해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -11589,11 +11421,6 @@
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "여유"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -11603,6 +11430,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "동쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "여유"
             }
           ],
           "requiresPass": false,

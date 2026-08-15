@@ -158,6 +158,66 @@ JeontongCategoryResult _a06(JeontongCalcContext ctx) {
   );
 }
 
+JeontongCategoryResult _a07(JeontongCalcContext ctx) {
+  final r = getLifeChildren(ctx.saju, ctx.interp);
+  return JeontongCategoryResult(
+    category: '평생 자녀운',
+    data: {
+      'child_god': r.childGod,
+      'count': r.count,
+      'style': r.style,
+      'message': r.message,
+      'timing_hint': r.timingHint,
+    },
+  );
+}
+
+JeontongCategoryResult _a08(JeontongCalcContext ctx) {
+  final r = getLifeParentsSiblings(ctx.interp);
+  return JeontongCategoryResult(
+    category: '평생 부모·형제운',
+    data: {
+      'parent_god': r.parentGod,
+      'parent_count': r.parentCount,
+      'parent_message': r.parentMessage,
+      'sibling_god': r.siblingGod,
+      'sibling_count': r.siblingCount,
+      'sibling_message': r.siblingMessage,
+    },
+  );
+}
+
+JeontongCategoryResult _a09(JeontongCalcContext ctx) {
+  final r = getLifeStudy(ctx.saju, ctx.interp);
+  return JeontongCategoryResult(
+    category: '평생 학업·시험운',
+    data: {
+      'study_god_count': r.studyGodCount,
+      'has_munchang': r.hasMunchang,
+      'style': r.style,
+      'message': r.message,
+    },
+  );
+}
+
+JeontongCategoryResult _a10(JeontongCalcContext ctx) {
+  final r = getLifeTransitionPoints(ctx.saju);
+  return JeontongCategoryResult(
+    category: '인생 5대 전환점',
+    data: {
+      'points': [
+        for (final p in r.points)
+          {
+            'start_age': p.startAge,
+            'start_year': p.startYear,
+            'gan_zhi_kr': p.ganZhiKr,
+          },
+      ],
+      'summary': r.summary,
+    },
+  );
+}
+
 // ============================================================
 // B. 대운 (10)
 // ============================================================
@@ -298,10 +358,10 @@ final Map<String, _CategoryFn> _categoryIndex = {
   'A04': _a04,
   'A05': _a05,
   'A06': _a06,
-  'A07': (ctx) => _placeholder('자녀운', '식신·상관(남)/관성(여) 자녀성 분석'),
-  'A08': (ctx) => _placeholder('부모·형제운', '인성(부모)·비겁(형제) 분석'),
-  'A09': (ctx) => _placeholder('학업운', '인성·문창귀인 분석'),
-  'A10': (ctx) => _placeholder('전환점', '대운 변경 시점 5개'),
+  'A07': _a07,
+  'A08': _a08,
+  'A09': _a09,
+  'A10': _a10,
 
   // B. 대운 (10)
   'B01': _b01,
@@ -438,9 +498,9 @@ JeontongCategoryResult runJeontongCategory(
   return fn(ctx);
 }
 
-/// [미션 3 · 48종 플레이스홀더 UX 안전장치] 위 `_categoryIndex`에서
+/// [미션 3 · 44종 플레이스홀더 UX 안전장치] 위 `_categoryIndex`에서
 /// `_placeholder(...)` 또는 `_needsPartner(...)`를 그대로 반환하는(=실제
-/// 만세력 계산 없이 안내 메시지만 담는) 카테고리 id 48개의 정적 목록.
+/// 만세력 계산 없이 안내 메시지만 담는) 카테고리 id 44개의 정적 목록.
 ///
 /// [왜 정적 목록인가] `_categoryIndex`는 함수 매핑이라 런타임에 "이 id가
 /// placeholder인지"를 알려면 [JeontongCalcContext](실제 사주 계산 결과)를
@@ -451,13 +511,11 @@ JeontongCategoryResult runJeontongCategory(
 /// `runJeontongCategory()` 실행 결과의 일치를 회귀 검증한다 — 목록이
 /// `_categoryIndex`와 어긋나면 테스트가 즉시 실패한다).
 ///
-/// [UX 정책] 이 48종은 "계산이 안 된 결과"가 아니라 "아직 상세 만세력
+/// [UX 정책] 이 44종은 "계산이 안 된 결과"가 아니라 "아직 상세 만세력
 /// 계산 대신 일반적인 명리 해설을 담은 카테고리"다. 차단하거나 숨기지
 /// 않고, 결과 화면에 정직한 톤다운 안내만 추가한다(사용자 확정 지시 —
 /// "일반 풀이 참고용 톤으로 정직하게 표시").
 const Set<String> kJeontongPlaceholderCategoryIds = {
-  // A. 평생운
-  'A07', 'A08', 'A09', 'A10',
   // B. 대운
   'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B09', 'B10',
   // C. 세운(올해)

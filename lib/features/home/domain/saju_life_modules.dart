@@ -266,3 +266,241 @@ LifeHealthResult getLifeHealth(SajuResult saju, SajuFullInterpretation interp) {
     lifestyle: '규칙적 수면·유산소 운동·수분 섭취가 최고의 보약',
   );
 }
+
+// ============================================================
+// A07 — 평생 자녀운 — 신규(사용자 확정 지시 §7 A그룹) 구현.
+//
+// [십신 배정 근거] 자평명리(子平命理) 표준 관행 — 여명(女命)의 자녀성은
+// 식상(食傷, 내가 생하는 오행), 남명(男命)의 자녀성은 관성(官星, 나를
+// 극하는 오행 — 처(재성)가 관성을 낳는다는 재생관(財生官) 논리로 남편
+// 입장에서 자식을 관성으로 봄)이다. [getLifeLove]가 이미 채택한
+// "남=재성(처)/여=관성(부)" 배우자성 배정과 짝을 이루는 표준 조합.
+// ============================================================
+
+class LifeChildrenResult {
+  const LifeChildrenResult({
+    required this.childGod,
+    required this.count,
+    required this.style,
+    required this.message,
+    required this.timingHint,
+  });
+
+  final String childGod;
+  final int count;
+  final String style;
+  final String message;
+  final String timingHint;
+}
+
+LifeChildrenResult getLifeChildren(
+  SajuResult saju,
+  SajuFullInterpretation interp,
+) {
+  final dist = interp.tenGodsAnalysis.distribution;
+  final String childGod;
+  final int count;
+  if (saju.gender == 'male') {
+    childGod = '관성(자녀성)';
+    count = (dist['정관'] ?? 0) + (dist['편관'] ?? 0);
+  } else {
+    childGod = '식상(자녀성)';
+    count = (dist['식신'] ?? 0) + (dist['상관'] ?? 0);
+  }
+
+  final String style;
+  final String message;
+  if (count == 0) {
+    style = '만연형 — 자녀 인연이 늦거나 특별한 노력이 필요한 흐름';
+    message =
+        '$childGod 부재. 자녀 인연이 다소 늦게 찾아오거나, $childGod이 들어오는 '
+        '대운·세운에서 인연이 뚜렷해질 수 있어요.';
+  } else if (count == 1) {
+    style = '안정형 — 자녀와의 관계가 정착되는 흐름';
+    message = '$childGod 1개. 자녀와 깊고 안정적인 인연을 맺는 흐름이에요.';
+  } else if (count == 2) {
+    style = '풍요형 — 자녀복이 두터운 흐름';
+    message = '$childGod 2개. 자녀 인연이 풍부하고 다복한 흐름이에요.';
+  } else {
+    style = '다자녀형 — 자녀 관련 에너지가 강한 흐름';
+    message =
+        '$childGod 3개 이상. 자녀와 관련된 에너지가 강하게 흐르는 사주예요. '
+        '자녀 각자의 개성을 존중하는 육아 방식이 잘 맞아요.';
+  }
+
+  return LifeChildrenResult(
+    childGod: childGod,
+    count: count,
+    style: style,
+    message: message,
+    timingHint: '$childGod 대운·세운에서 자녀 관련 인연·경사가 두드러질 수 있어요.',
+  );
+}
+
+// ============================================================
+// A08 — 평생 부모·형제운 — 신규(§7 A그룹) 구현.
+//
+// [십신 배정 근거] 인성(정인·편인, 生我者)=부모(특히 모친), 비겁(비견·
+// 겁재, 同五行者)=형제자매·동료. 성별 구분 없이 공통 적용되는 표준
+// 배정(재성=부친으로 보는 학파도 있으나, 모친 중심의 인성 배정이 가장
+// 보편적이라 이 원칙을 채택).
+// ============================================================
+
+class LifeParentsSiblingsResult {
+  const LifeParentsSiblingsResult({
+    required this.parentGod,
+    required this.parentCount,
+    required this.parentMessage,
+    required this.siblingGod,
+    required this.siblingCount,
+    required this.siblingMessage,
+  });
+
+  final String parentGod;
+  final int parentCount;
+  final String parentMessage;
+  final String siblingGod;
+  final int siblingCount;
+  final String siblingMessage;
+}
+
+LifeParentsSiblingsResult getLifeParentsSiblings(
+  SajuFullInterpretation interp,
+) {
+  final dist = interp.tenGodsAnalysis.distribution;
+  final parentCount = (dist['정인'] ?? 0) + (dist['편인'] ?? 0);
+  final siblingCount = (dist['비견'] ?? 0) + (dist['겁재'] ?? 0);
+
+  final String parentMessage;
+  if (parentCount == 0) {
+    parentMessage = '인성(부모성) 부재. 부모의 도움보다 스스로 개척하는 힘이 강한 사주예요.';
+  } else if (parentCount <= 2) {
+    parentMessage = '인성(부모성) $parentCount개. 부모·윗사람의 도움과 인복이 안정적으로 따르는 흐름이에요.';
+  } else {
+    parentMessage = '인성(부모성) $parentCount개. 인복은 넘치지만 의존적인 성향은 주의하면 좋아요.';
+  }
+
+  final String siblingMessage;
+  if (siblingCount == 0) {
+    siblingMessage = '비겁(형제성) 부재. 형제·동료보다 혼자 힘으로 해내는 성향이 강해요.';
+  } else if (siblingCount <= 2) {
+    siblingMessage = '비겁(형제성) $siblingCount개. 형제·동료와 협력하며 함께 성장하는 흐름이에요.';
+  } else {
+    siblingMessage = '비겁(형제성) $siblingCount개. 경쟁·독립심이 강하니 동업·금전 거래는 신중해야 해요.';
+  }
+
+  return LifeParentsSiblingsResult(
+    parentGod: '인성(정인·편인)',
+    parentCount: parentCount,
+    parentMessage: parentMessage,
+    siblingGod: '비겁(비견·겁재)',
+    siblingCount: siblingCount,
+    siblingMessage: siblingMessage,
+  );
+}
+
+// ============================================================
+// A09 — 평생 학업·시험운 — 신규(§7 A그룹) 구현.
+//
+// [근거] 인성(정인·편인)=학문·문서·수용력, 문창귀인(文昌貴人)=전통
+// 명리학의 대표적 시험·학문 신살(SinsalEngine이 이미 계산해 레거시
+// [SajuResult.sinsal]에 '文昌貴人(문창귀인)' 형태로 포함). 새 판정
+// 로직을 만들지 않고 이미 계산된 두 값을 조합만 한다.
+// ============================================================
+
+class LifeStudyResult {
+  const LifeStudyResult({
+    required this.studyGodCount,
+    required this.hasMunchang,
+    required this.style,
+    required this.message,
+  });
+
+  final int studyGodCount;
+  final bool hasMunchang;
+  final String style;
+  final String message;
+}
+
+LifeStudyResult getLifeStudy(SajuResult saju, SajuFullInterpretation interp) {
+  final dist = interp.tenGodsAnalysis.distribution;
+  final studyGodCount = (dist['정인'] ?? 0) + (dist['편인'] ?? 0);
+  final hasMunchang = saju.sinsal.any((s) => s.startsWith('文昌貴人'));
+
+  final String style;
+  final String message;
+  if (studyGodCount >= 2 && hasMunchang) {
+    style = '학업 최상형 — 인성과 문창귀인이 함께 발동';
+    message =
+        '인성(학업성) $studyGodCount개 + 문창귀인 보유. 집중력과 학습 이해력이 뛰어나고, '
+        '시험·자격증운이 특히 강한 사주예요.';
+  } else if (hasMunchang) {
+    style = '시험운 발동형 — 문창귀인 보유';
+    message = '문창귀인을 갖추어 시험·문서·자격증 운이 좋은 사주예요. 꾸준히 준비하면 좋은 결과로 이어질 가능성이 높아요.';
+  } else if (studyGodCount >= 2) {
+    style = '학구형 — 인성이 두터운 사주';
+    message = '인성(학업성) $studyGodCount개. 배움과 탐구를 즐기는 성향이 강하고, 꾸준한 공부로 실력을 쌓는 타입이에요.';
+  } else if (studyGodCount == 1) {
+    style = '안정형 — 인성이 무난한 사주';
+    message = '인성(학업성) 1개. 무난하게 학업을 이어가는 흐름이에요. 인성 대운·세운에서 학업운이 더 강해질 수 있어요.';
+  } else {
+    style = '실전형 — 이론보다 경험 중심';
+    message = '인성(학업성)이 약한 사주예요. 이론 공부보다 실전 경험과 몸으로 익히는 학습 방식이 더 잘 맞을 수 있어요.';
+  }
+
+  return LifeStudyResult(
+    studyGodCount: studyGodCount,
+    hasMunchang: hasMunchang,
+    style: style,
+    message: message,
+  );
+}
+
+// ============================================================
+// A10 — 인생 5대 전환점 — 신규(§7 A그룹) 구현.
+//
+// [근거] DaewoonEngine이 이미 계산한 대운 목록(레거시 어댑터를 거치면
+// [SajuResult.luckPillars])의 앞 5개 시작연령/연도를 그대로 나열한다 —
+// 새 계산 없음, 순수 조회.
+// ============================================================
+
+class LifeTransitionPoint {
+  const LifeTransitionPoint({
+    required this.startAge,
+    required this.startYear,
+    required this.ganZhiKr,
+  });
+
+  final int startAge;
+  final int startYear;
+  final String ganZhiKr;
+}
+
+class LifeTransitionPointsResult {
+  const LifeTransitionPointsResult({
+    required this.points,
+    required this.summary,
+  });
+
+  final List<LifeTransitionPoint> points;
+  final String summary;
+}
+
+LifeTransitionPointsResult getLifeTransitionPoints(SajuResult saju) {
+  final top5 = saju.luckPillars.take(5).toList();
+  final points = [
+    for (final lp in top5)
+      LifeTransitionPoint(
+        startAge: lp.startAge,
+        startYear: lp.startYear,
+        ganZhiKr: lp.ganZhiKr,
+      ),
+  ];
+
+  final summary = points.isEmpty
+      ? '대운 정보가 부족해 전환점을 계산할 수 없어요.'
+      : '만 ${points.map((p) => '${p.startAge}세(${p.startYear}년)').join(', ')}에 '
+            '새로운 대운(10년 단위 큰 흐름)이 시작돼요. 이 시점마다 인생의 방향이 크게 바뀔 수 있어요.';
+
+  return LifeTransitionPointsResult(points: points, summary: summary);
+}
