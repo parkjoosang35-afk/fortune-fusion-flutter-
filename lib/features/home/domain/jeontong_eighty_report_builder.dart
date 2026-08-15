@@ -121,16 +121,28 @@ class JeontongReportBuilder {
       final sajuGender = gender == 'F' || gender == 'female' ? 'female' : 'male';
       final referenceDate = date ?? DateTime.now();
 
-      // [j7 · A01→B01→C01→D01→A02→A03→A04→A05→A06→C02→C03→C04→C05 신규
-      // 엔진 순차 이전 — entry.id 기준 분기] 검증 완료된 카테고리(A01,
-      // B01, C01, D01, A02, A03, A04, A05, A06, C02, C03, C04, C05 —
-      // C그룹 전체 완료)만 PHASE1~4(만세력 단일 기준 엔진) →
-      // SajuProfile → sajuResultFromProfile() 어댑터 → 기존 해석 계층
-      // 경로를 탄다. 아직 검증하지 않은 나머지 카테고리는 이번 단계에서
-      // 동작을 변경하지 않기 위해 기존 `SajuEngine.calculate()` 경로를
-      // 그대로 유지한다(사용자 지시 §1 "검증되지 않은 카테고리의 동작은
-      // 이번 단계에서 변경하지 마세요"). 카테고리가 하나씩 검증될 때마다
-      // 이 분기에 id를 추가해 나가는 방식으로 32개 전체를 순차 이전한다.
+      // [j7 · A01~H10 신규 엔진 순차 이전 — entry.id 기준 분기] 검증
+      // 완료된 카테고리만 PHASE1~4(만세력 단일 기준 엔진) → SajuProfile
+      // → sajuResultFromProfile() 어댑터 → 기존 해석 계층 경로를 탄다.
+      // 아직 검증하지 않은 나머지 카테고리는 이번 단계에서 동작을
+      // 변경하지 않기 위해 기존 `SajuEngine.calculate()` 경로를 그대로
+      // 유지한다(사용자 지시 §1 "검증되지 않은 카테고리의 동작은 이번
+      // 단계에서 변경하지 마세요"). 카테고리가 하나씩 검증될 때마다 이
+      // 분기에 id를 추가해 나가는 방식으로 실계산 32개 전체를 순차
+      // 이전한다.
+      //
+      // [2026-08-14 D/F/G/H 19개 배치 이전 완료] D02/D03/D05~D09(
+      // getDailyFortune/getLuckyItems 사용, dayMasterStrength 완전
+      // 미참조 — C그룹/A05와 동일 Type 1 패턴), G01/G02(기존 검증
+      // 완료된 A05를 그대로 재사용), G04/H01~H05/H07/H10(getLuckyItems
+      // 사용, Type 1), F01/F02(기존 검증 완료된 A03[Type 3]/A04[Type 4]
+      // 를 그대로 재사용) — 각각 비교 테스트
+      // (d_lucky_batch_legacy_vs_phase1to4_comparison_test.dart,
+      // f01_legacy_vs_phase1to4_comparison_test.dart,
+      // f02_legacy_vs_phase1to4_comparison_test.dart)로 seed 유저 3명
+      // 전원 검증 완료. 이로써 실계산 32개 카테고리 전부(A01~A06, B01,
+      // C01~C05, D01~D03/D05~D09, F01/F02, G01/G02/G04,
+      // H01~H05/H07/H10) 신규 엔진 이전이 완료된다.
       const migratedCategoryIds = {
         'A01',
         'B01',
@@ -145,6 +157,25 @@ class JeontongReportBuilder {
         'C03',
         'C04',
         'C05',
+        'D02',
+        'D03',
+        'D05',
+        'D06',
+        'D07',
+        'D08',
+        'D09',
+        'F01',
+        'F02',
+        'G01',
+        'G02',
+        'G04',
+        'H01',
+        'H02',
+        'H03',
+        'H04',
+        'H05',
+        'H07',
+        'H10',
       };
       final SajuResult saju = migratedCategoryIds.contains(entry.id)
           ? _buildSajuResultViaPhase1to4(
