@@ -163,7 +163,7 @@ void main() {
   // F03(일간 오행+재성 카운트)/F04(관성 카운트+공망)/F07(편재·정재 카운트)/
   // F10(역마+편재+수 오행 카운트)은 대운 목록([saju.luckPillars])을 전혀
   // 순회하지 않으므로 legacy/new가 완전히 동일해야 한다.
-  const _fIdsFullEqual = ['F03', 'F04', 'F07', 'F10'];
+  const fIdsFullEqual = ['F03', 'F04', 'F07', 'F10'];
 
   group('[j12·F03/F04/F07/F10] 레거시 vs 신규(PHASE1~4+어댑터) 결과 완전 일치 — seed 유저 3명', () {
     for (final u in _seedUsers) {
@@ -171,7 +171,7 @@ void main() {
         final legacyF = _runLegacy(u, _kFixedDate);
         final newF = _runNew(u, _kFixedDate);
 
-        for (final id in _fIdsFullEqual) {
+        for (final id in fIdsFullEqual) {
           final legacyData = legacyF.results[id]!.data;
           final newData = newF.results[id]!.data;
           // ignore: avoid_print
