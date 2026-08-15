@@ -4215,7 +4215,7 @@
     "G07": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "정신 건강 취약도, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "가벼운 예민형",
         "keywords": [
           "건강",
           "정리"
@@ -4223,28 +4223,14 @@
         "name": "정신 건강 취약도",
         "score": 92,
         "statusLabel": "상승",
-        "subDescription": "지금까지 쌓아온 흐름이 서서히 드러나는 시기예요."
+        "subDescription": "수(우울, 공포, 신장 질환, 냉증) 성향이 있어, 감정 기복에 조금 더 신경 쓰면 좋아요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)"
       },
       "sections": [
         {
-          "body": "건강 관점에서 본 「정신 건강 취약도」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 지금 가진 것을 잘 지키는 데 집중하면 좋겠어요.",
+          "body": "가벼운 예민형 수(우울, 공포, 신장 질환, 냉증) 성향이 있어, 감정 기복에 조금 더 신경 쓰면 좋아요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
-        },
-        {
-          "body": "지금까지 쌓아온 흐름이 서서히 결과로 드러나는 시기예요. 조급해하지 않아도 괜찮아요.",
-          "index": 94,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 86,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
         },
         {
           "isAvoid": false,
@@ -9272,7 +9258,7 @@
     "G07": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "정신 건강 취약도, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "가벼운 예민형",
         "keywords": [
           "건강",
           "정리"
@@ -9280,35 +9266,21 @@
         "name": "정신 건강 취약도",
         "score": 92,
         "statusLabel": "상승",
-        "subDescription": "지금까지 쌓아온 흐름이 서서히 드러나는 시기예요."
+        "subDescription": "화(다혈질, 성급함, 심혈관 질환, 불면) 성향이 있어, 감정 기복에 조금 더 신경 쓰면 좋아요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)"
       },
       "sections": [
         {
-          "body": "건강 관점에서 본 「정신 건강 취약도」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 지금 가진 것을 잘 지키는 데 집중하면 좋겠어요.",
+          "body": "가벼운 예민형 화(다혈질, 성급함, 심혈관 질환, 불면) 성향이 있어, 감정 기복에 조금 더 신경 쓰면 좋아요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "지금까지 쌓아온 흐름이 서서히 결과로 드러나는 시기예요. 조급해하지 않아도 괜찮아요.",
-          "index": 95,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 87,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
+            "중요한 결정은 하루 정도 더 생각해보기",
             "작은 목표 하나를 정해 실천해보기",
-            "가까운 사람에게 먼저 안부 전하기",
-            "중요한 결정은 하루 정도 더 생각해보기"
+            "가까운 사람에게 먼저 안부 전하기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -9316,6 +9288,11 @@
         },
         {
           "items": [
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "네이비"
+            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -9325,11 +9302,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "균형"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "네이비"
             }
           ],
           "requiresPass": false,
@@ -14328,7 +14300,7 @@
     "G07": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "정신 건강 취약도, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "비교적 안정적",
         "keywords": [
           "건강",
           "정리"
@@ -14336,35 +14308,21 @@
         "name": "정신 건강 취약도",
         "score": 92,
         "statusLabel": "상승",
-        "subDescription": "지금까지 쌓아온 흐름이 서서히 드러나는 시기예요."
+        "subDescription": "원국에 정신적 예민함과 관련된 원진·귀문 관계나 화·수 과다 성향이 뚜렷하지 않아, 비교적 안정적인 편이에요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)"
       },
       "sections": [
         {
-          "body": "건강 관점에서 본 「정신 건강 취약도」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 지금 가진 것을 잘 지키는 데 집중하면 좋겠어요.",
+          "body": "비교적 안정적 원국에 정신적 예민함과 관련된 원진·귀문 관계나 화·수 과다 성향이 뚜렷하지 않아, 비교적 안정적인 편이에요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "지금까지 쌓아온 흐름이 서서히 결과로 드러나는 시기예요. 조급해하지 않아도 괜찮아요.",
-          "index": 96,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 92,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "가까운 사람에게 먼저 안부 전하기",
             "중요한 결정은 하루 정도 더 생각해보기",
-            "작은 목표 하나를 정해 실천해보기"
+            "작은 목표 하나를 정해 실천해보기",
+            "가까운 사람에게 먼저 안부 전하기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -14372,11 +14330,6 @@
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "균형"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -14386,6 +14339,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "남쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "균형"
             }
           ],
           "requiresPass": false,

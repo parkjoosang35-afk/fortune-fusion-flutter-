@@ -378,6 +378,20 @@ JeontongCategoryResult _g06(JeontongCalcContext ctx) {
   );
 }
 
+JeontongCategoryResult _g07(JeontongCalcContext ctx) {
+  final rules = SajuRules.cachedOrNull!;
+  final r = getMentalHealthSensitivity(ctx.saju, ctx.profile, rules);
+  return JeontongCategoryResult(
+    category: '정신 건강 취약도',
+    data: {
+      'relation_types': r.relationTypes,
+      'excess_elements': r.excessElements,
+      'verdict': r.verdict,
+      'message': r.message,
+    },
+  );
+}
+
 JeontongCategoryResult _g08(JeontongCalcContext ctx) {
   final r = getInjurySurgeryRisk(ctx.profile);
   return JeontongCategoryResult(
@@ -914,7 +928,7 @@ final Map<String, _CategoryFn> _categoryIndex = {
   'G04': (ctx) => _luckyItemsToResult(ctx, category: '나에게 좋은 음식'),
   'G05': (ctx) => _g05(ctx),
   'G06': (ctx) => _g06(ctx),
-  'G07': (ctx) => _placeholder('정신 건강', '수·화 균형 확인'),
+  'G07': (ctx) => _g07(ctx),
   'G08': (ctx) => _g08(ctx),
   'G09': (ctx) => _placeholder('장수', '오행 균형·인성 확인'),
   'G10': (ctx) => _g10(ctx),
@@ -1007,9 +1021,11 @@ const Set<String> kJeontongPlaceholderCategoryIds = {
   // E08~E10은 자기참조형으로 실계산 전환 완료(2026-08-15).
   'E01', 'E02', 'E03', 'E04', 'E05', 'E06', 'E07',
   // F. 특수 주제 — F03~F09/F10 모두 실계산으로 전환 완료(28 → 20).
-  // G. 건강 — G07(정신 건강)/G09(장수)만 남음(2026-08-15 G03/G05/G06/
-  // G08/G10 실계산 전환 완료).
-  'G07', 'G09',
+  // G. 건강 — G09(장수)만 남음(2026-08-15 G03/G05/G06/G08/G10 실계산
+  // 전환 완료. G07(정신 건강 취약도)도 재검토 결과 PHASE2의 원진·귀문
+  // 관계 + 화·수 과다 오행 심리 성향 조합으로 실계산 전환 완료 —
+  // saju_g_group_modules.dart의 [getMentalHealthSensitivity] 참고).
+  'G09',
   // H. 개운·풍수
   'H06', 'H08', 'H09',
 };

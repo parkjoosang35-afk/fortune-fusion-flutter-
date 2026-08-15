@@ -11,6 +11,8 @@
 //  계산으로 실계산 전환되어 15→12 — 상대방 사주 없이 본인 사주만으로
 //  계산 가능하다고 재검토 판정됨. E01~E07은 여전히 상대 사주 필요로
 //  플레이스홀더 유지)
+// (2026-08-15 갱신: G07(정신 건강 취약도)이 PHASE2의 원진·귀문 관계 +
+//  화·수 과다 오행 심리 성향 조합으로 실계산 전환되어 12→11 — G09만 잔류)
 //
 // `kJeontongPlaceholderCategoryIds`(jeontong_eighty_calculator.dart)는
 // `_categoryIndex` 매핑을 사람이 직접 대조해서 만든 정적 Set이므로, 향후
@@ -45,8 +47,8 @@ void main() {
     await SajuFortuneRules.preload();
   });
 
-  test('kJeontongPlaceholderCategoryIds는 정확히 12개', () {
-    expect(kJeontongPlaceholderCategoryIds.length, 12);
+  test('kJeontongPlaceholderCategoryIds는 정확히 11개', () {
+    expect(kJeontongPlaceholderCategoryIds.length, 11);
   });
 
   test('kJeontongPlaceholderCategoryIds는 JeontongEightyMatrix의 유효한 id만 포함', () {

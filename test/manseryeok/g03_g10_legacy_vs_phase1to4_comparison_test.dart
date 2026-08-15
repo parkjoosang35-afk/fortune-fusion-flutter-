@@ -159,8 +159,11 @@ void main() {
       }
     });
 
-    test('G07/G09는 여전히 플레이스홀더 목록에 남아 있어야 함(이번 라운드 구현 대상 아님)', () {
-      expect(kJeontongPlaceholderCategoryIds.contains('G07'), isTrue);
+    // (2026-08-15 갱신: G07은 재검토 결과 실계산으로 전환되어 이 목록에서
+    // 빠졌다 — 별도 비교 테스트는
+    // g07_legacy_vs_phase1to4_comparison_test.dart 참고. G09만 여전히
+    // 플레이스홀더로 남아 있다.)
+    test('G09는 여전히 플레이스홀더 목록에 남아 있어야 함(이번 라운드 구현 대상 아님)', () {
       expect(kJeontongPlaceholderCategoryIds.contains('G09'), isTrue);
     });
   });

@@ -1,12 +1,23 @@
 /// [정통사주 80종 · G그룹(건강) 실계산 전환] G03(대운별 건강 주의)/
-/// G05(나에게 나쁜 음식)/G06(사주 체질)/G08(사고·수술수)/G10(회복력·면역)
-/// 계산 모듈.
+/// G05(나에게 나쁜 음식)/G06(사주 체질)/G07(정신 건강 취약도)/G08(사고·
+/// 수술수)/G10(회복력·면역) 계산 모듈.
 ///
 /// B~F그룹과 마찬가지로 "원본 파이썬 이식"이 아니라 이번 세션에서 신규
 /// 설계한 계산이다(사용자 최종 지시 §3 "G03/G05/G06/G08/G10 진행").
 /// G01/G02(getLifeHealth 재사용)/G04(getLuckyItems 재사용)는 이미 배선되어
-/// 있어 이 파일의 대상이 아니다. G07(정신 건강 취약도)/G09(장수 가능성)는
-/// 이번 라운드 구현 대상이 아니다(별도 재검토 대상).
+/// 있어 이 파일의 대상이 아니다.
+///
+/// [2026-08-15 G07 재검토 → 실계산 전환] G07(정신 건강 취약도)은 원래
+/// "정신 건강은 명리학적으로 판정 근거가 약하다"는 이유로 placeholder로
+/// 남아 있었으나, 재검토 결과 PHASE2([RelationshipsEngine.analyze])가 이미
+/// 계산한 원진(怨嗔)·귀문(鬼門關殺) 관계(전통 명리학에서 심리적 예민함·
+/// 신경성 증상과 연관 짓는 대표적 신살)와 `five_elements_rules.json`의
+/// 화(火)/수(水) 오행 `excess` 필드(화 과다="다혈질·성급함·불면",
+/// 수 과다="우울·공포·냉증" — 이미 원문에 명시된 심리적 성향 서술)를
+/// 조합하면 새 판정 공식 없이 계산 가능함이 밝혀져 실계산으로 전환했다
+/// (E08/E09/E10·F09와 동일한 재검토 패턴). G09(장수 가능성)는 여전히
+/// 이번 라운드 구현 대상이 아니다(전통 명리학에 수명 판정 공식 자체가
+/// 없어 삭제 대상으로 재검토 중).
 ///
 /// [절대 원칙] 새로운 명리 판정 공식을 만들지 않는다. 여기서 쓰는 모든
 /// 판정은 이미 검증된 순수 함수/고정 테이블/PHASE1~4 결과([daewoonsWithTenGod],
@@ -14,14 +25,15 @@
 /// [SajuResult.dayMasterStrength], [SajuResult.fiveElementsCount],
 /// `five_elements_rules.json`)를 조회·조합하는 것뿐이다.
 ///
-/// [건강 카테고리 표현 원칙 — 사용자 확정 지시 §6] G03/G05/G06/G08/G10은
-/// 의학적 진단처럼 표현하지 않는다. "사주 오행의 균형을 기준으로 한 생활
-/// 참고 정보"로만 표현한다(B04에서 이미 확립된 원칙 재사용).
+/// [건강 카테고리 표현 원칙 — 사용자 확정 지시 §6] G03/G05/G06/G07/G08/
+/// G10은 의학적 진단처럼 표현하지 않는다. "사주 오행의 균형을 기준으로 한
+/// 생활 참고 정보"로만 표현한다(B04에서 이미 확립된 원칙 재사용).
 ///
-/// [profile 의존 카테고리의 안전 처리] G03(용신/기신)·G08(신살/관계)은
-/// PHASE1~4가 계산한 [SajuProfile]에만 존재하는 데이터를 조회한다.
-/// [profile]이 null이면(레거시 `SajuEngine.calculate()` 경로) 새로 계산하지
-/// 않고 "판단 불가"로 안전하게 처리한다(B08/B09가 이미 확립한 패턴과 동일).
+/// [profile 의존 카테고리의 안전 처리] G03(용신/기신)·G07(원진/귀문
+/// 신살·관계)·G08(신살/관계)은 PHASE1~4가 계산한 [SajuProfile]에만
+/// 존재하는 데이터를 조회한다. [profile]이 null이면(레거시
+/// `SajuEngine.calculate()` 경로) 새로 계산하지 않고 "판단 불가"로
+/// 안전하게 처리한다(B08/B09가 이미 확립한 패턴과 동일).
 library;
 
 import 'manseryeok/five_elements_engine.dart' show monthBranchToSeason;
@@ -195,6 +207,99 @@ ConstitutionResult getConstitution(SajuResult saju, SajuRules rules) {
         '기운의 영향도 함께 받아요. 평소 성향은 $personality 쪽에 가깝고, 몸에서는 '
         '${organs.join(', ')} 계통을 챙기면 좋은 편이에요. (※ 사주 오행의 균형을 기준으로 한 '
         '생활 참고 정보이며, 의학적 체질 진단이 아니에요.)',
+  );
+}
+
+// ============================================================
+// G07 — 정신 건강 취약도 (원진·귀문 관계 + 화·수 과다 오행 심리 성향)
+// ============================================================
+
+class MentalHealthSensitivityResult {
+  const MentalHealthSensitivityResult({
+    required this.relationTypes,
+    required this.excessElements,
+    required this.verdict,
+    required this.message,
+  });
+
+  final List<String> relationTypes;
+  final List<String> excessElements;
+  final String verdict;
+  final String message;
+}
+
+/// 원진(怨嗔)/귀문(鬼門關殺) 관계 종류(전통 명리학에서 심리적 예민함·
+/// 신경성 증상과 연관 짓는 대표적 신살).
+const Set<String> _mentalRelationTypes = {'원진', '귀문'};
+
+/// 화(火, 다혈질·성급함·불면)/수(水, 우울·공포·냉증) 과다(≥3개) 여부 —
+/// `five_elements_rules.json`의 `excess` 필드에 이미 명시된 심리적 성향을
+/// 그대로 조회한다(A05/G05와 동일한 "과다(≥3개)" 임계값 재사용).
+const Set<String> _mentalElements = {'화', '수'};
+
+/// [SajuProfile.relationships](원진/귀문, PHASE2·[RelationshipsEngine]이
+/// 이미 계산)와 [SajuResult.fiveElementsCount](화·수 과다)를 조회해
+/// 조합한다. 새로 신살·관계를 계산하지 않는다 — [profile]이 없으면(레거시
+/// 경로, 레거시 `SajuResult.relationships`에는 원진/귀문이 없음) "판단
+/// 불가"로 안전하게 처리한다(G08과 동일 패턴).
+MentalHealthSensitivityResult getMentalHealthSensitivity(
+  SajuResult saju,
+  SajuProfile? profile,
+  SajuRules rules,
+) {
+  final relations = profile?.relationships;
+  if (relations == null) {
+    return const MentalHealthSensitivityResult(
+      relationTypes: [],
+      excessElements: [],
+      verdict: '판단 불가',
+      message: '원국의 원진·귀문 관계 정보를 확인할 수 없어 정신 건강 취약도를 판단하기 어려워요.',
+    );
+  }
+
+  final relTypes = relations
+      .where((r) => _mentalRelationTypes.contains(r.type))
+      .map((r) => r.type)
+      .toSet()
+      .toList();
+
+  final counts = saju.fiveElementsCount;
+  final excess = _mentalElements.where((el) => (counts[el] ?? 0) >= 3).toList();
+
+  final String verdict;
+  final String message;
+  if (relTypes.isNotEmpty && excess.isNotEmpty) {
+    verdict = '예민한 편 — 마음 관리 신경 쓰면 좋음';
+    final elDesc = excess
+        .map((el) => '$el(${(rules.fiveElements[el] as Map<String, dynamic>)['excess']})')
+        .join(', ');
+    message = '원국에 ${relTypes.join('·')} 관계가 있고 $elDesc 성향도 함께 있어, 스트레스에 '
+        '평소보다 예민하게 반응할 수 있어요. 규칙적인 휴식과 감정 표현 습관이 도움이 돼요. '
+        '(※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)';
+  } else if (relTypes.isNotEmpty) {
+    verdict = '가벼운 예민형';
+    message = '원국에 ${relTypes.join('·')} 관계가 있어, 신경 쓰이는 일에 예민하게 반응할 수 '
+        '있어요. 스트레스 해소 루틴을 만들어두면 좋아요. (※ 사주 오행의 균형을 기준으로 한 '
+        '생활 참고 정보이며, 의학적 진단이 아니에요.)';
+  } else if (excess.isNotEmpty) {
+    final elDesc = excess
+        .map((el) => '$el(${(rules.fiveElements[el] as Map<String, dynamic>)['excess']})')
+        .join(', ');
+    verdict = '가벼운 예민형';
+    message = '$elDesc 성향이 있어, 감정 기복에 조금 더 신경 쓰면 좋아요. (※ 사주 오행의 '
+        '균형을 기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)';
+  } else {
+    verdict = '비교적 안정적';
+    message = '원국에 정신적 예민함과 관련된 원진·귀문 관계나 화·수 과다 성향이 뚜렷하지 '
+        '않아, 비교적 안정적인 편이에요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 '
+        '정보이며, 의학적 진단이 아니에요.)';
+  }
+
+  return MentalHealthSensitivityResult(
+    relationTypes: relTypes,
+    excessElements: excess,
+    verdict: verdict,
+    message: message,
   );
 }
 
