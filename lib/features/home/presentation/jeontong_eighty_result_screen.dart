@@ -15,6 +15,7 @@ import '../../fortune/shared/domain/fortune_report_model.dart';
 import '../data/jeontong_bookmark_store.dart';
 import '../data/jeontong_history_store.dart';
 import '../data/jeontong_profile_store.dart';
+import '../domain/jeontong_eighty_calculator.dart' show kJeontongPlaceholderCategoryIds;
 import '../domain/jeontong_eighty_matrix.dart';
 import '../domain/jeontong_input.dart';
 import '../domain/jeontong_report_cache.dart';
@@ -273,6 +274,45 @@ class _NotFoundView extends StatelessWidget {
   }
 }
 
+/// [미션 3 · 48종 플레이스홀더 UX 안전장치] "일반 풀이 참고용" 톤다운 배너.
+///
+/// [DisclaimerBanner]와 시각적으로 구분하기 위해(면책 문구와는 성격이
+/// 다른 "콘텐츠 상태 고지"이므로) 별도의 옅은 카드로 둔다. 차단·잠금 없이
+/// 결과는 그대로 보여주고, 상단에 이 안내만 얹는다.
+class _JeontongPlaceholderNotice extends StatelessWidget {
+  const _JeontongPlaceholderNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(UnifiedTokens.spaceMd),
+      decoration: BoxDecoration(
+        color: UnifiedColors.cardBanner,
+        borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
+        border: Border.all(color: UnifiedColors.border, width: 1),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.auto_stories_rounded,
+            size: UnifiedTokens.iconMd,
+            color: UnifiedColors.textCaption,
+          ),
+          const SizedBox(width: UnifiedTokens.spaceSm),
+          Expanded(
+            child: Text(
+              '이 항목은 아직 상세 만세력 계산 대신 일반적인 명리 풀이를 참고용으로 담고 있어요. '
+              '더 정확한 내 사주 반영은 순차적으로 추가될 예정이에요.',
+              style: UnifiedText.caption(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ResultBody extends StatelessWidget {
   const _ResultBody({
     required this.entry,
@@ -338,6 +378,15 @@ class _ResultBody extends StatelessWidget {
               UnifiedTokens.spaceXl,
             ),
             children: [
+              // [미션 3 · 48종 플레이스홀더 UX 안전장치] 이 카테고리가 아직
+              // 상세 만세력 계산 대신 일반 명리 해설을 담고 있으면, 차단하지
+              // 않고 정직한 톤다운 안내만 추가로 보여준다("일반 풀이 참고용"
+              // — 사용자 확정 지시). 32종 실계산 카테고리는 아무것도
+              // 렌더링하지 않는다(회귀 없음).
+              if (kJeontongPlaceholderCategoryIds.contains(entry.id)) ...[
+                const _JeontongPlaceholderNotice(),
+                const SizedBox(height: UnifiedTokens.spaceMd),
+              ],
               const DisclaimerBanner.common(),
               const SizedBox(height: UnifiedTokens.spaceMd),
               if (entry.disclaimers.isNotEmpty) ...[

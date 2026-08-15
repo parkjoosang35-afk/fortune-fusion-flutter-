@@ -438,6 +438,42 @@ JeontongCategoryResult runJeontongCategory(
   return fn(ctx);
 }
 
+/// [미션 3 · 48종 플레이스홀더 UX 안전장치] 위 `_categoryIndex`에서
+/// `_placeholder(...)` 또는 `_needsPartner(...)`를 그대로 반환하는(=실제
+/// 만세력 계산 없이 안내 메시지만 담는) 카테고리 id 48개의 정적 목록.
+///
+/// [왜 정적 목록인가] `_categoryIndex`는 함수 매핑이라 런타임에 "이 id가
+/// placeholder인지"를 알려면 [JeontongCalcContext](실제 사주 계산 결과)를
+/// 먼저 만들어야 한다. 하지만 결과 화면은 프로필이 없는 방문자에게도
+/// 즉시(계산 없이) 톤다운 배지를 보여줘야 하므로, 위 매핑 정의와 1:1로
+/// 대조해 만든 고정 Set을 별도로 둔다(테스트
+/// `jeontong_placeholder_categories_test.dart`가 이 목록과 실제
+/// `runJeontongCategory()` 실행 결과의 일치를 회귀 검증한다 — 목록이
+/// `_categoryIndex`와 어긋나면 테스트가 즉시 실패한다).
+///
+/// [UX 정책] 이 48종은 "계산이 안 된 결과"가 아니라 "아직 상세 만세력
+/// 계산 대신 일반적인 명리 해설을 담은 카테고리"다. 차단하거나 숨기지
+/// 않고, 결과 화면에 정직한 톤다운 안내만 추가한다(사용자 확정 지시 —
+/// "일반 풀이 참고용 톤으로 정직하게 표시").
+const Set<String> kJeontongPlaceholderCategoryIds = {
+  // A. 평생운
+  'A07', 'A08', 'A09', 'A10',
+  // B. 대운
+  'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B09', 'B10',
+  // C. 세운(올해)
+  'C06', 'C07', 'C08', 'C09', 'C10',
+  // D. 이달·오늘
+  'D04', 'D10',
+  // E. 궁합 (전부 상대 사주 필요)
+  'E01', 'E02', 'E03', 'E04', 'E05', 'E06', 'E07', 'E08', 'E09', 'E10',
+  // F. 특수 주제
+  'F03', 'F04', 'F05', 'F06', 'F07', 'F08', 'F09', 'F10',
+  // G. 건강
+  'G03', 'G05', 'G06', 'G07', 'G08', 'G09', 'G10',
+  // H. 개운·풍수
+  'H06', 'H08', 'H09',
+};
+
 /// 80종 전체 실행 — run_all_categories() 이식.
 Map<String, JeontongCategoryResult> runAllJeontongCategories(
   JeontongCalcContext ctx,
