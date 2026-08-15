@@ -412,7 +412,10 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
               child: TextButton(
                 onPressed: () =>
                     Navigator.of(context).pushNamed('/categories-grid'),
-                child: Text('80종 전체 보기 →', style: UnifiedText.bodyStrong()),
+                child: Text(
+                  '${FortuneMatrix.all.length}종 전체 보기 →',
+                  style: UnifiedText.bodyStrong(),
+                ),
               ),
             ),
             const SizedBox(height: UnifiedTokens.spaceXxl),

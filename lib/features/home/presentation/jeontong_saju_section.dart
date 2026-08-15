@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/domain/access/access_checker.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
+import '../domain/jeontong_eighty_matrix.dart';
 
 /// [신통방통 정통사주 서브 카테고리] 홈 화면 "운세/타로" 2분할 카드에서
 /// "운세" 카드를 탭했을 때 열리는 바텀시트 — 8종 정통사주 카테고리를
@@ -225,7 +226,7 @@ class _JeontongCategoriesSheet extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                '80가지 운세 · 프리패스 하나로 무제한',
+                '${JeontongEightyMatrix.all.length}가지 운세 · 프리패스 하나로 무제한',
                 style: GoogleFonts.notoSansKr(
                   textStyle: const TextStyle(
                     fontSize: 12,

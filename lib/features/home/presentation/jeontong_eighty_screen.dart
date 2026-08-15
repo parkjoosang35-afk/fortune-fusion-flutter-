@@ -135,7 +135,7 @@ class _Header extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '정통사주 80종',
+                  '정통사주 ${JeontongEightyMatrix.all.length}종',
                   style: GoogleFonts.nanumMyeongjo(
                     textStyle: const TextStyle(
                       fontSize: 20,
@@ -146,7 +146,9 @@ class _Header extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  hasPass ? '프리패스로 자유 이용 중' : '프리패스 하나로 80가지 전부 무제한',
+                  hasPass
+                      ? '프리패스로 자유 이용 중'
+                      : '프리패스 하나로 ${JeontongEightyMatrix.all.length}가지 전부 무제한',
                   style: GoogleFonts.notoSansKr(
                     textStyle: const TextStyle(
                       fontSize: 12,

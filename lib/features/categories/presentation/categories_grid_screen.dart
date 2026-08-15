@@ -235,7 +235,10 @@ class _Header extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('80종 정통사주 전체 보기', style: UnifiedText.titleLarge()),
+              Text(
+                '$totalCount종 정통사주 전체 보기',
+                style: UnifiedText.titleLarge(),
+              ),
               const SizedBox(height: 4),
               Text(
                 '오늘·사주·이름·궁합·관상손금까지 총 $totalCount개 항목을 모아봤어요',

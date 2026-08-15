@@ -29,7 +29,11 @@ void main() {
     );
   });
 
-  test('distinct categoryIds keep distinct entries (max 80 per user)', () {
+  test('distinct categoryIds keep distinct entries (dedup by categoryId)', () {
+    // [2026-08-16] 이 테스트는 JeontongEightyMatrix 카탈로그 개수(현재 69종)와
+    // 무관하게, JeontongHistoryStore의 categoryId별 dedup 동작 자체를
+    // 검증하기 위해 임의로 80개의 합성 categoryId(A01~H10 형식)를 사용한다.
+    // 80이라는 숫자는 카탈로그 크기를 의미하지 않으며 단순 테스트 픽스처다.
     final s = JeontongHistoryStore.instance;
     final userId = 'u-${DateTime.now().microsecondsSinceEpoch}';
     for (var i = 0; i < 80; i++) {
