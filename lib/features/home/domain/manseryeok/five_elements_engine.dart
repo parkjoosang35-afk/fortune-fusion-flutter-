@@ -142,6 +142,13 @@ List<String> zhiHideGanOf(String branchHanja) {
   return _zhiHideGan[branchHanja]!;
 }
 
+/// [strength_engine.dart](PHASE 3 §12 통근 계산) 등에서 지장간 가중치를
+/// 중복 정의 없이 재사용하기 위한 공개 접근자 — [_hiddenStemWeightsByCount]
+/// 와 동일한 값을 그대로 노출한다(재구현 아님).
+List<double> hiddenStemWeightsForCount(int count) {
+  return _hiddenStemWeightsByCount[count]!;
+}
+
 /// `lunar` 패키지 `LunarUtil.ZHI_HIDE_GAN`과 100% 동일한 값(패키지 내부
 /// private 접근 대신 여기 재선언 — 패키지가 이미 계산한 값을 그대로
 /// 복사한 것으로, 재구현이 아니라 "노출"이다). 순서는 [정기, 여기, 중기]
