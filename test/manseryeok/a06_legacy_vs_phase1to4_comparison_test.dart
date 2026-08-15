@@ -1,0 +1,330 @@
+// [j7 · A06 신규 엔진 이전] 레거시(SajuEngine.calculate) vs 신규
+// (PHASE1~4 → sajuResultFromProfile 어댑터) A06(평생 배우자·결혼운) 결과
+// 비교 테스트.
+//
+// A01/B01/A05와 동일한 원칙(§2/§3) — 단순 "테스트 통과 여부"가 아니라 다음
+// 전부를 나란히 출력/비교한다:
+//   1) 사주 8글자(년/월/일/시주)
+//   2) 일간
+//   3) 오행(개수)
+//   4) 십신(7키)
+//   5) 대운(간지/시작연령/시작연도)
+//   6) 신강신약(dayMasterStrength) — A06은 사용하지 않지만 회귀 확인용
+//   7) 용신/희신/기신/구신 (신규 전용 — 참고용 로그)
+//   8) A06 판단에 실제 쓰이는 계산값(tenGodsAnalysis.distribution의
+//      배우자성 개수, loveFortune.message)
+//   9) 최종 A06 결과(JeontongCategoryResult: spouse_god/style/message/
+//      marriage_timing/advice)
+//  10) 결과 문구 전체
+//
+// [A06의 계산 의존성 — B01/A05와 동일한 Type 1 패턴] `getLifeLove(saju,
+// interp)`는 `interp.tenGodsAnalysis.distribution`(십신 분포, =
+// `saju.tenGods` 7키 집계)과 `saju.gender`만 사용해 배우자성(남: 재성,
+// 여: 관성) 개수를 세고 style을 4분기(정통형/다연형/만혼형/혼합형)한다.
+// `interp.loveFortune`(=`interpretLove()`)도 동일하게 `saju.tenGods`만
+// 사용한다. `dayMasterStrength`(신강신약)는 어디에도 참조되지 않는다.
+// 십신 7키가 legacy/신규 완전 일치함은 이미 A01~A05 테스트에서 반복
+// 확인되었으므로, A06은 seed-user-A/B/C 전원 완전 일치해야 한다 — 만약
+// 다르다면 십신 분포 집계(interpretTenGods) 또는 gender 전달 로직에
+// 회귀가 있다는 뜻이므로 반드시 원인을 밝혀야 한다.
+import 'package:flutter_app/features/home/domain/jeontong_eighty_calculator.dart';
+import 'package:flutter_app/features/home/domain/manseryeok/manseryeok_core_engine.dart';
+import 'package:flutter_app/features/home/domain/manseryeok/manseryeok_policy.dart';
+import 'package:flutter_app/features/home/domain/manseryeok/phase2_analysis_engine.dart';
+import 'package:flutter_app/features/home/domain/manseryeok/phase3_analysis_engine.dart';
+import 'package:flutter_app/features/home/domain/manseryeok/phase4_analysis_engine.dart';
+import 'package:flutter_app/features/home/domain/manseryeok/saju_profile.dart';
+import 'package:flutter_app/features/home/domain/manseryeok/saju_result_adapter.dart';
+import 'package:flutter_app/features/home/domain/saju_engine.dart' as legacy;
+import 'package:flutter_app/features/home/domain/saju_fortune_rules.dart';
+import 'package:flutter_app/features/home/domain/saju_interpreter.dart';
+import 'package:flutter_app/features/home/domain/saju_life_modules.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+/// 골든 테스트와 동일한 기준일(kFixedDate).
+final _kFixedDate = DateTime.utc(2026, 8, 13);
+
+/// test/fixtures/jeontong_inputs.dart 의 3개 seed 유저를 이 테스트 파일
+/// 안에서 그대로 재현한다(값 자체는 jeontong_inputs.dart와 100% 동일).
+class _SeedUser {
+  const _SeedUser({
+    required this.userId,
+    required this.birthDateTimeUtc,
+    required this.isLunar,
+    required this.gender,
+  });
+  final String userId;
+  final DateTime birthDateTimeUtc;
+  final bool isLunar;
+  final String gender; // 'M' | 'F'
+}
+
+final _seedUsers = <_SeedUser>[
+  _SeedUser(
+    userId: 'seed-user-A',
+    birthDateTimeUtc: DateTime.utc(1972, 2, 12, 17, 0, 0),
+    isLunar: false,
+    gender: 'M',
+  ),
+  _SeedUser(
+    userId: 'seed-user-B',
+    birthDateTimeUtc: DateTime.utc(1990, 6, 15, 3, 0, 0),
+    isLunar: false,
+    gender: 'F',
+  ),
+  _SeedUser(
+    userId: 'seed-user-C',
+    birthDateTimeUtc: DateTime.utc(2005, 11, 30, 21, 0, 0),
+    isLunar: false,
+    gender: 'F',
+  ),
+];
+
+/// report_builder.dart의 `_tryBuildRealReport()`와 동일한 규약 —
+/// birthDateTimeUtc(UTC 저장값) + 9시간 = KST 벽시계 시각.
+DateTime _toKst(DateTime utc) => utc.add(const Duration(hours: 9));
+
+String _legacyGender(String mf) => mf == 'F' ? 'female' : 'male';
+
+/// 레거시 경로 전체 실행 결과 묶음.
+class _LegacyBundle {
+  _LegacyBundle(this.saju, this.interp, this.a06);
+  final legacy.SajuResult saju;
+  final SajuFullInterpretation interp;
+  final LifeLoveResult a06;
+}
+
+/// 신규(PHASE1~4 + 어댑터) 경로 전체 실행 결과 묶음.
+class _NewBundle {
+  _NewBundle(this.profile, this.saju, this.interp, this.a06);
+  final SajuProfile profile;
+  final legacy.SajuResult saju;
+  final SajuFullInterpretation interp;
+  final LifeLoveResult a06;
+}
+
+_LegacyBundle _runLegacy(_SeedUser u, DateTime referenceDate) {
+  final kst = _toKst(u.birthDateTimeUtc);
+  final saju = legacy.SajuEngine.calculate(
+    year: kst.year,
+    month: kst.month,
+    day: kst.day,
+    hour: kst.hour,
+    minute: kst.minute,
+    gender: _legacyGender(u.gender),
+    isLunar: u.isLunar,
+    referenceDate: referenceDate,
+  );
+  final interp = SajuInterpreter.fullInterpretation(saju);
+  final a06 = getLifeLove(saju, interp);
+  return _LegacyBundle(saju, interp, a06);
+}
+
+_NewBundle _runNew(_SeedUser u, DateTime referenceDate) {
+  final kst = _toKst(u.birthDateTimeUtc);
+  final withCore = ManseryeokCoreEngine.buildProfileWithCore(
+    year: kst.year,
+    month: kst.month,
+    day: kst.day,
+    hour: kst.hour,
+    minute: kst.minute,
+    gender: _legacyGender(u.gender),
+    calendarType: u.isLunar ? CalendarInputType.lunar : CalendarInputType.solar,
+  );
+  final p2 = Phase2AnalysisEngine.analyze(
+    baseProfile: withCore.profile,
+    core: withCore.core,
+  );
+  final p3 = Phase3AnalysisEngine.analyze(baseProfile: p2);
+  final p4 = Phase4AnalysisEngine.analyze(
+    baseProfile: p3,
+    core: withCore.core,
+    referenceDate: referenceDate,
+  );
+  final saju = sajuResultFromProfile(p4, referenceDate: referenceDate);
+  final interp = SajuInterpreter.fullInterpretation(saju);
+  final a06 = getLifeLove(saju, interp);
+  return _NewBundle(p4, saju, interp, a06);
+}
+
+String _pillarsStr(Map<String, legacy.SajuPillar> pillars) =>
+    '${pillars['year']!.kr}년 ${pillars['month']!.kr}월 '
+    '${pillars['day']!.kr}일 ${pillars['hour']!.kr}시';
+
+void main() {
+  setUpAll(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    SajuRules.resetForTest();
+    SajuFortuneRules.resetForTest();
+    await SajuRules.preload();
+    await SajuFortuneRules.preload();
+  });
+
+  group('[j7·A06] 레거시 vs 신규(PHASE1~4+어댑터) 전체 비교 — seed 유저 3명', () {
+    for (final u in _seedUsers) {
+      test('${u.userId}: 8글자/일간/오행/십신/대운/신강신약/용희기구/A06 전체 비교', () {
+        final legacyB = _runLegacy(u, _kFixedDate);
+        final newB = _runNew(u, _kFixedDate);
+
+        // ignore: avoid_print
+        print('\n========== ${u.userId} ==========');
+
+        // ── 1) 사주 8글자 ──
+        final legacyPillars = _pillarsStr(legacyB.saju.pillars);
+        final newPillars = _pillarsStr(newB.saju.pillars);
+        // ignore: avoid_print
+        print('[8글자] legacy=$legacyPillars');
+        // ignore: avoid_print
+        print('[8글자] new   =$newPillars');
+        expect(newPillars, legacyPillars, reason: '${u.userId} 8글자는 100% 동일해야 함');
+
+        // ── 2) 일간 ──
+        // ignore: avoid_print
+        print('[일간] legacy=${legacyB.saju.dayMaster.gan}(${legacyB.saju.dayMaster.kr})');
+        // ignore: avoid_print
+        print('[일간] new   =${newB.saju.dayMaster.gan}(${newB.saju.dayMaster.kr})');
+        expect(newB.saju.dayMaster.gan, legacyB.saju.dayMaster.gan, reason: '${u.userId} 일간 불일치');
+
+        // ── 3) 오행 ──
+        // ignore: avoid_print
+        print('[오행] legacy=${legacyB.saju.fiveElementsCount}');
+        // ignore: avoid_print
+        print('[오행] new   =${newB.saju.fiveElementsCount}');
+        expect(newB.saju.fiveElementsCount, legacyB.saju.fiveElementsCount, reason: '${u.userId} 오행 총량 불일치');
+
+        // ── 4) 십신(7키) — A06의 핵심 입력값 ──
+        // ignore: avoid_print
+        print('[십신] legacy=${legacyB.saju.tenGods}');
+        // ignore: avoid_print
+        print('[십신] new   =${newB.saju.tenGods}');
+        expect(newB.saju.tenGods, legacyB.saju.tenGods, reason: '${u.userId} 십신 불일치');
+
+        // ── 5) 대운 ──
+        final legacyReal = legacyB.saju.luckPillars.where((lp) => lp.ganZhi.isNotEmpty).toList();
+        // ignore: avoid_print
+        print('[대운] legacy(${legacyReal.length}개)=${legacyReal.map((e) => '${e.ganZhiKr}(${e.startAge}세~)').join(', ')}');
+        // ignore: avoid_print
+        print('[대운] new(${newB.saju.luckPillars.length}개)=${newB.saju.luckPillars.map((e) => '${e.ganZhiKr}(${e.startAge}세~)').join(', ')}');
+        for (var i = 0; i < legacyReal.length; i++) {
+          expect(newB.saju.luckPillars[i].ganZhi, legacyReal[i].ganZhi, reason: '${u.userId} 대운[$i] 간지 불일치');
+        }
+
+        // ── 6) 신강신약(dayMasterStrength) — A06엔 미사용, 회귀 확인용 ──
+        final strengthSame = newB.saju.dayMasterStrength == legacyB.saju.dayMasterStrength;
+        // ignore: avoid_print
+        print('[신강신약] legacy=${legacyB.saju.dayMasterStrength}');
+        // ignore: avoid_print
+        print('[신강신약] new   =${newB.saju.dayMasterStrength}  (${strengthSame ? "동일" : "★ 다름(A01/A04/A05와 동일한 seed-user-C 패턴 - A06엔 영향 없음) ★"})');
+        if (newB.profile.strength != null) {
+          final s = newB.profile.strength!;
+          // ignore: avoid_print
+          print('[신강신약·PHASE3 상세] score=${s.score.toStringAsFixed(3)} '
+              'monthOrder=${s.monthOrderScore} root=${s.rootScore} '
+              'support=${s.supportScore} control=${s.controlScore} drain=${s.drainScore}');
+        }
+
+        // ── 7) 용신/희신/기신/구신 (신규 전용, A06엔 미사용 — 참고 로그) ──
+        if (newB.profile.yongsin != null) {
+          final y = newB.profile.yongsin!;
+          // ignore: avoid_print
+          print('[용희기구·신규전용] method=${y.method} 용신=${y.yongsin} 희신=${y.heesin} '
+              '기신=${y.gisin} 구신=${y.gusin}');
+        }
+
+        // ── 8) A06 판단에 실제 사용되는 계산값(배우자성 개수/loveFortune) ──
+        final lDist = legacyB.interp.tenGodsAnalysis.distribution;
+        final nDist = newB.interp.tenGodsAnalysis.distribution;
+        // ignore: avoid_print
+        print('[십신분포] legacy=$lDist');
+        // ignore: avoid_print
+        print('[십신분포] new   =$nDist');
+        expect(nDist, lDist, reason: '${u.userId} 십신 분포(distribution) 불일치');
+
+        final lLove = legacyB.interp.loveFortune;
+        final nLove = newB.interp.loveFortune;
+        // ignore: avoid_print
+        print('[A06계산값·loveFortune.spouseGod] legacy=${lLove.spouseGod}  new=${nLove.spouseGod}');
+        // ignore: avoid_print
+        print('[A06계산값·loveFortune.count] legacy=${lLove.count}  new=${nLove.count}');
+        // ignore: avoid_print
+        print('[A06계산값·loveFortune.message] legacy=${lLove.message}');
+        // ignore: avoid_print
+        print('[A06계산값·loveFortune.message] new   =${nLove.message}');
+        expect(nLove.spouseGod, lLove.spouseGod, reason: '${u.userId} loveFortune.spouseGod 불일치');
+        expect(nLove.count, lLove.count, reason: '${u.userId} loveFortune.count 불일치');
+        expect(nLove.message, lLove.message, reason: '${u.userId} loveFortune.message 불일치');
+
+        // ── 9) 최종 A06 결과(LifeLoveResult) 전체 필드 ──
+        // ignore: avoid_print
+        print('[A06·spouseGod] legacy=${legacyB.a06.spouseGod}  new=${newB.a06.spouseGod}');
+        // ignore: avoid_print
+        print('[A06·style] legacy=${legacyB.a06.style}');
+        // ignore: avoid_print
+        print('[A06·style] new   =${newB.a06.style}');
+        // ignore: avoid_print
+        print('[A06·message] legacy=${legacyB.a06.message}');
+        // ignore: avoid_print
+        print('[A06·message] new   =${newB.a06.message}');
+        // ignore: avoid_print
+        print('[A06·marriageTiming] legacy=${legacyB.a06.marriageTiming}');
+        // ignore: avoid_print
+        print('[A06·marriageTiming] new   =${newB.a06.marriageTiming}');
+        // ignore: avoid_print
+        print('[A06·advice] legacy=${legacyB.a06.advice}');
+        // ignore: avoid_print
+        print('[A06·advice] new   =${newB.a06.advice}');
+
+        final a06Same = legacyB.a06.spouseGod == newB.a06.spouseGod &&
+            legacyB.a06.style == newB.a06.style &&
+            legacyB.a06.message == newB.a06.message &&
+            legacyB.a06.marriageTiming == newB.a06.marriageTiming &&
+            legacyB.a06.advice == newB.a06.advice;
+        // ignore: avoid_print
+        print('[결론] A06 전체 데이터 동일여부=$a06Same '
+            '(dayMasterStrength동일=$strengthSame — A06은 신강신약을 사용하지 않으므로 '
+            'strength 차이와 무관하게 십신 분포가 일치하는 한 항상 동일해야 함)');
+
+        // ── A06은 dayMasterStrength에 의존하지 않으므로, 십신 7키가 이미
+        // 완전 일치함을 확인했다면(위 4번) legacy/신규 A06 결과는 100%
+        // 동일해야 한다 — 이것이 A06의 정상 기대값이다(B01/A05와 동일한
+        // Type 1).
+        expect(newB.a06.spouseGod, legacyB.a06.spouseGod,
+            reason: '${u.userId}: spouseGod 불일치 — gender 전달 로직 회귀 가능성.');
+        expect(newB.a06.style, legacyB.a06.style,
+            reason: '${u.userId}: style 불일치 — 배우자성 개수 임계값(0/1/2+) 로직 회귀 가능성.');
+        expect(newB.a06.message, legacyB.a06.message,
+            reason: '${u.userId}: message는 loveFortune.message를 그대로 사용하므로 항상 동일해야 함.');
+        expect(newB.a06.marriageTiming, legacyB.a06.marriageTiming,
+            reason: '${u.userId}: marriageTiming은 고정 문구이므로 항상 동일해야 함.');
+        expect(newB.a06.advice, legacyB.a06.advice,
+            reason: '${u.userId}: advice는 고정 문구이므로 항상 동일해야 함.');
+      });
+    }
+  });
+
+  group('[j7·A06] runJeontongCategory("A06", ctx) 경로 자체도 정상 동작 확인', () {
+    for (final u in _seedUsers) {
+      test('${u.userId}: JeontongCalcContext + runJeontongCategory("A06") 예외 없이 동작', () {
+        final newB = _runNew(u, _kFixedDate);
+        final rules = SajuFortuneRules.cachedOrNull;
+        expect(rules, isNotNull, reason: 'SajuFortuneRules.preload()가 setUpAll에서 완료되어야 함');
+
+        final ctx = JeontongCalcContext(
+          saju: newB.saju,
+          interp: newB.interp,
+          rules: rules!,
+          referenceDate: _kFixedDate,
+        );
+
+        late final JeontongCategoryResult result;
+        expect(() => result = runJeontongCategory('A06', ctx), returnsNormally);
+        expect(result.category, '평생 애정운');
+        expect(result.data['spouse_god'], newB.a06.spouseGod);
+        expect(result.data['style'], newB.a06.style);
+        expect(result.data['message'], newB.a06.message);
+        expect(result.data['marriage_timing'], newB.a06.marriageTiming);
+        expect(result.data['advice'], newB.a06.advice);
+      });
+    }
+  });
+}
