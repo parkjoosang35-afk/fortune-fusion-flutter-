@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../home/data/jeontong_bookmark_store.dart';
 import '../../home/data/jeontong_history_store.dart';
 import 'widgets/jeontong_keyword_search_bar.dart';
 import 'widgets/jeontong_section_filter_chips.dart';
@@ -68,6 +69,14 @@ class _HistoryJeontongOverviewScreenState
   String _query = '';
   List<HistoryEntry> _entries = const [];
 
+  // [정통사주 즐겨찾기 필터] 새 Provider/Repository/Service 를 만들지 않고
+  // 기존 JeontongBookmarkStore(SharedPreferences 기반, in-memory 폴백)를
+  // 그대로 재사용한다. 이 화면은 read-only 이력 조회 화면이므로 즐겨찾기
+  // 데이터도 조회만 하고 store 자체를 수정하지 않는다.
+  final JeontongBookmarkStore _bookmarks = JeontongBookmarkStore();
+  bool _onlyBookmarks = false;
+  Set<String> _bookmarkedCodes = <String>{};
+
   static const _letters = <String>['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 
   @override
@@ -75,6 +84,12 @@ class _HistoryJeontongOverviewScreenState
     super.initState();
     // 동기 스냅샷 1회 조회 — 위 클래스 문서 2)번 참고(폴백 record 없음).
     _entries = JeontongHistoryStore.instance.list(widget.userId);
+    _reloadBookmarks();
+  }
+
+  Future<void> _reloadBookmarks() async {
+    final codes = await _bookmarks.get(widget.userId);
+    if (mounted) setState(() => _bookmarkedCodes = codes);
   }
 
   String _nextSection(String current) {
@@ -87,11 +102,18 @@ class _HistoryJeontongOverviewScreenState
   @override
   Widget build(BuildContext context) {
     final searched = _simpleSearch(_entries, _query);
-    final filtered = _activeLetter == '전체'
+    final letterFiltered = _activeLetter == '전체'
         ? searched
         : searched
               .where((e) => e.categoryId.startsWith(_activeLetter))
               .toList(growable: false);
+    // [정통사주 즐겨찾기 필터] "즐겨찾기만 보기" 스위치가 켜져 있으면
+    // _bookmarkedCodes 에 포함된 categoryId 만 남긴다(다른 필터와 AND 조합).
+    final filtered = _onlyBookmarks
+        ? letterFiltered
+              .where((e) => _bookmarkedCodes.contains(e.categoryId))
+              .toList(growable: false)
+        : letterFiltered;
 
     final Map<String, List<HistoryEntry>> bySection = {
       for (final l in _letters) l: <HistoryEntry>[],
@@ -133,6 +155,16 @@ class _HistoryJeontongOverviewScreenState
                 JeontongSectionFilterChips(
                   activeLetter: _activeLetter,
                   onChanged: (l) => setState(() => _activeLetter = l),
+                ),
+                SwitchListTile(
+                  key: const ValueKey('jeontong_only_bookmarks_switch'),
+                  dense: true,
+                  title: const Text('⭐ 즐겨찾기만 보기'),
+                  value: _onlyBookmarks,
+                  onChanged: (v) async {
+                    await _reloadBookmarks();
+                    if (mounted) setState(() => _onlyBookmarks = v);
+                  },
                 ),
                 Expanded(
                   child: sectionsWithData.isEmpty

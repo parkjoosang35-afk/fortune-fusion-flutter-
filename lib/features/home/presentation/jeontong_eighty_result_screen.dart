@@ -12,9 +12,9 @@ import '../../../core/widgets/app_toast.dart';
 import '../../../core/auth/auth_token_store.dart';
 import '../../../core/data/my_fortune_record_store.dart';
 import '../../fortune/shared/domain/fortune_report_model.dart';
+import '../data/jeontong_bookmark_store.dart';
 import '../data/jeontong_history_store.dart';
 import '../domain/jeontong_eighty_matrix.dart';
-import '../domain/jeontong_eighty_report_builder.dart';
 import '../domain/jeontong_report_cache.dart';
 import 'widgets/jeontong_easy_term_toggle.dart';
 import 'widgets/jeontong_result_text_extractor.dart';
@@ -44,6 +44,16 @@ class _JeontongEightyResultScreenState
     extends State<JeontongEightyResultScreen> {
   bool _saved = false;
 
+  // [정통사주 즐겨찾기] 새 Provider/Repository/Service 를 만들지 않고, 기존
+  // JeontongHistoryStore.record() 호출부와 동일한 패턴으로
+  // AuthTokenStore.cachedUserIdOrNull ?? fallbackUserId 를 userId 로 사용한다.
+  final JeontongBookmarkStore _bookmarks = JeontongBookmarkStore();
+  bool _isBookmarked = false;
+
+  String get _userId =>
+      (AuthTokenStore.cachedUserIdOrNull ?? AuthTokenStore.fallbackUserId)
+          .toString();
+
   @override
   void initState() {
     super.initState();
@@ -59,15 +69,38 @@ class _JeontongEightyResultScreenState
     if (entry != null) {
       final report = jeontongReportCache.getOrBuild(entry: entry);
       JeontongHistoryStore.instance.record(
-        userId:
-            (AuthTokenStore.cachedUserIdOrNull ?? AuthTokenStore.fallbackUserId)
-                .toString(),
+        userId: _userId,
         categoryId: entry.id,
         title: report.hero.headline,
         subtitle: report.hero.subDescription ?? report.hero.headline,
         createdAtUtc: DateTime.now().toUtc(),
       );
+      // [정통사주 즐겨찾기] 화면 진입 시 현재 즐겨찾기 상태를 비동기로
+      // 1회 조회한다. SharedPreferences 접근 실패 시에도 store 내부에서
+      // in-memory 폴백으로 처리되므로 여기서는 결과만 반영한다.
+      _refreshBookmarkFlag(entry.id);
     }
+  }
+
+  Future<void> _refreshBookmarkFlag(String categoryId) async {
+    final has = await _bookmarks.contains(_userId, categoryId);
+    if (mounted) setState(() => _isBookmarked = has);
+  }
+
+  Future<void> _onTapBookmark(String categoryId) async {
+    final r = await _bookmarks.toggle(_userId, categoryId);
+    if (!mounted) return;
+    if (r == null) {
+      AppToast.show(context, JeontongBookmarkStore.kSnackFullMessage, isError: true);
+      return;
+    }
+    setState(() => _isBookmarked = r);
+    AppToast.show(
+      context,
+      r
+          ? JeontongBookmarkStore.kSnackAddedMessage
+          : JeontongBookmarkStore.kSnackRemovedMessage,
+    );
   }
 
   @override
@@ -81,7 +114,9 @@ class _JeontongEightyResultScreenState
             : _ResultBody(
                 entry: entry,
                 saved: _saved,
+                isBookmarked: _isBookmarked,
                 onSave: () => _onSave(entry),
+                onToggleBookmark: () => _onTapBookmark(entry.id),
                 onOpenAiConsult: () => Navigator.of(
                   context,
                 ).pushNamed('/ai-fortune/consultation/type'),
@@ -110,8 +145,12 @@ class _JeontongEightyResultScreenState
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.title});
+  const _Header({required this.title, this.trailing});
   final String title;
+  // [정통사주 즐겨찾기] 결과 화면 헤더 우측에 별 아이콘을 얹기 위한 선택적
+  // 슬롯. null 이면 기존과 완전히 동일(회귀 없음) — _NotFoundView 등 다른
+  // 호출부는 이 인자를 넘기지 않는다.
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -137,6 +176,7 @@ class _Header extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
+          if (trailing != null) trailing!,
         ],
       ),
     );
@@ -165,13 +205,17 @@ class _ResultBody extends StatelessWidget {
   const _ResultBody({
     required this.entry,
     required this.saved,
+    required this.isBookmarked,
     required this.onSave,
+    required this.onToggleBookmark,
     required this.onOpenAiConsult,
   });
 
   final JeontongCategoryEntry entry;
   final bool saved;
+  final bool isBookmarked;
   final VoidCallback onSave;
+  final VoidCallback onToggleBookmark;
   final VoidCallback onOpenAiConsult;
 
   @override
@@ -179,7 +223,18 @@ class _ResultBody extends StatelessWidget {
     final report = jeontongReportCache.getOrBuild(entry: entry);
     return Column(
       children: [
-        _Header(title: entry.title),
+        _Header(
+          title: entry.title,
+          trailing: IconButton(
+            key: const ValueKey('jeontong_bookmark_toggle'),
+            icon: Icon(
+              isBookmarked ? Icons.star_rounded : Icons.star_border_rounded,
+              color: isBookmarked ? UnifiedColors.textPrimary : null,
+            ),
+            tooltip: isBookmarked ? '즐겨찾기 해제' : '즐겨찾기 추가',
+            onPressed: onToggleBookmark,
+          ),
+        ),
         _jeontongPersonalizationBadge(context,
           _jeontongSignatureFromInputs(
             categoryCode: entry.id,
