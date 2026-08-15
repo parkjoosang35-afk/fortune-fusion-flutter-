@@ -7,6 +7,10 @@
 //  G07/G09만 잔류)
 // (2026-08-15 갱신: F09가 A07 자녀성 배정 + B05 대운 타임라인 패턴으로
 //  실계산 전환되어 16→15)
+// (2026-08-15 갱신: E08/E09/E10(띠 궁합/오행 궁합/겉속궁합)이 자기참조형
+//  계산으로 실계산 전환되어 15→12 — 상대방 사주 없이 본인 사주만으로
+//  계산 가능하다고 재검토 판정됨. E01~E07은 여전히 상대 사주 필요로
+//  플레이스홀더 유지)
 //
 // `kJeontongPlaceholderCategoryIds`(jeontong_eighty_calculator.dart)는
 // `_categoryIndex` 매핑을 사람이 직접 대조해서 만든 정적 Set이므로, 향후
@@ -41,8 +45,8 @@ void main() {
     await SajuFortuneRules.preload();
   });
 
-  test('kJeontongPlaceholderCategoryIds는 정확히 15개', () {
-    expect(kJeontongPlaceholderCategoryIds.length, 15);
+  test('kJeontongPlaceholderCategoryIds는 정확히 12개', () {
+    expect(kJeontongPlaceholderCategoryIds.length, 12);
   });
 
   test('kJeontongPlaceholderCategoryIds는 JeontongEightyMatrix의 유효한 id만 포함', () {

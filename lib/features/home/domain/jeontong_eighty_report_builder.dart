@@ -231,6 +231,12 @@ class JeontongReportBuilder {
         'G06',
         'G08',
         'G10',
+        // [2026-08-15 E08/E09/E10 실계산 배선] 띠 궁합/오행 궁합/겉속궁합
+        // — 상대방 사주 없이 본인 사주만으로 계산 가능한 자기참조형
+        // 궁합 3종으로 재검토 후 구현 전환(F09와 동일 패턴).
+        'E08',
+        'E09',
+        'E10',
       };
       final bool useNewEngine = migratedCategoryIds.contains(entry.id);
       SajuProfile? profile;

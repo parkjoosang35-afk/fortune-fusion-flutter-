@@ -21,6 +21,7 @@ import 'manseryeok/saju_profile.dart' show SajuProfile;
 import 'saju_c_group_modules.dart';
 import 'saju_d_group_modules.dart';
 import 'saju_daewoon_modules.dart';
+import 'saju_e_group_modules.dart';
 import 'saju_engine.dart';
 import 'saju_f_group_modules.dart';
 import 'saju_fortune_modules.dart';
@@ -633,6 +634,52 @@ JeontongCategoryResult _d10(JeontongCalcContext ctx) {
 }
 
 // ============================================================
+// E. 궁합 (10) — E08/E09/E10 실계산 (본인 사주만으로 계산 가능한
+// 자기참조형 궁합 3종, 2026-08-15 재검토 후 구현 전환)
+// ============================================================
+
+JeontongCategoryResult _e08(JeontongCalcContext ctx) {
+  final r = getZodiacAnimalCompatibility(ctx.saju, ctx.rules);
+  return JeontongCategoryResult(
+    category: '띠 궁합',
+    data: {
+      'my_animal': r.myAnimal,
+      'best_matches': r.bestMatches,
+      'worst_matches': r.worstMatches,
+      'summary': r.summary,
+    },
+  );
+}
+
+JeontongCategoryResult _e09(JeontongCalcContext ctx) {
+  final r = getFiveElementCompatibility(ctx.saju);
+  return JeontongCategoryResult(
+    category: '오행 궁합',
+    data: {
+      'my_element': r.myElement,
+      'supportive_element': r.supportiveElement,
+      'supported_element': r.supportedElement,
+      'clashing_element': r.clashingElement,
+      'clashed_by_element': r.clashedByElement,
+      'summary': r.summary,
+    },
+  );
+}
+
+JeontongCategoryResult _e10(JeontongCalcContext ctx) {
+  final r = getOuterInnerCompatibility(ctx.saju);
+  return JeontongCategoryResult(
+    category: '겉궁합 vs 속궁합',
+    data: {
+      'outer_element': r.outerElement,
+      'inner_element': r.innerElement,
+      'relation': r.relation,
+      'summary': r.summary,
+    },
+  );
+}
+
+// ============================================================
 // F. 특수 주제 (10) — F03~F08/F10 실계산
 // ============================================================
 
@@ -834,7 +881,9 @@ final Map<String, _CategoryFn> _categoryIndex = {
   'D09': (ctx) => _luckyItemsToResult(ctx),
   'D10': (ctx) => _d10(ctx),
 
-  // E. 궁합 (10) — 상대 사주 필요(원본과 동일하게 플레이스홀더)
+  // E. 궁합 (10) — E01~E07은 상대 사주가 반드시 필요해 구현 불가(원본과
+  // 동일하게 플레이스홀더). E08~E10은 재검토 결과 본인 사주만으로 계산
+  // 가능한 자기참조형 카테고리로 판정되어 실계산 전환(2026-08-15).
   'E01': (ctx) => _needsPartner('부부 궁합'),
   'E02': (ctx) => _needsPartner('연인 궁합'),
   'E03': (ctx) => _needsPartner('결혼 궁합'),
@@ -842,9 +891,9 @@ final Map<String, _CategoryFn> _categoryIndex = {
   'E05': (ctx) => _needsPartner('직장 궁합'),
   'E06': (ctx) => _needsPartner('가족 궁합'),
   'E07': (ctx) => _needsPartner('친구 궁합'),
-  'E08': (ctx) => _placeholder('띠 궁합', '연지 기준 12띠 대조'),
-  'E09': (ctx) => _placeholder('오행 궁합', '오행 상보성 대조'),
-  'E10': (ctx) => _placeholder('겉속궁합', '연주(겉)·일주(속) 분리 대조'),
+  'E08': (ctx) => _e08(ctx),
+  'E09': (ctx) => _e09(ctx),
+  'E10': (ctx) => _e10(ctx),
 
   // F. 특수 주제 (10)
   'F01': (ctx) => _a03(ctx),
@@ -930,6 +979,16 @@ JeontongCategoryResult runJeontongCategory(
 /// 후 구현 가능 판정). `saju_f_group_modules.dart`의
 /// [getGoodChildbirthTiming] 참고.
 ///
+/// [2026-08-15 E08/E09/E10 실계산 전환] E08(띠 궁합)/E09(오행
+/// 궁합)/E10(겉속궁합)은 원래 `_needsPartner`가 아니라 `_placeholder`로
+/// 배선되어 있었고, 그 안내 문구 자체가 "연지 기준 12띠 대조"/"오행
+/// 상보성 대조"/"연주(겉)·일주(속) 분리 대조"로 바본 사주만으로 계산
+/// 가능함을 이미 암시하고 있었다 — F09와 동일한 재검토 패턴으로 실계산
+/// 전환(20 → 17). E01~E07은 진짜 상대방 사주가 필요해 구현 불가로
+/// 남고(삭제 후보), E08/E09/E10만 자기참조형으로 분리된다.
+/// `saju_e_group_modules.dart`의 [getZodiacAnimalCompatibility]/
+/// [getFiveElementCompatibility]/[getOuterInnerCompatibility] 참고.
+///
 /// [왜 정적 목록인가] `_categoryIndex`는 함수 매핑이라 런타임에 "이 id가
 /// placeholder인지"를 알려면 [JeontongCalcContext](실제 사주 계산 결과)를
 /// 먼저 만들어야 한다. 하지만 결과 화면은 프로필이 없는 방문자에게도
@@ -944,8 +1003,9 @@ JeontongCategoryResult runJeontongCategory(
 /// 않고, 결과 화면에 정직한 톤다운 안내만 추가한다(사용자 확정 지시 —
 /// "일반 풀이 참고용 톤으로 정직하게 표시").
 const Set<String> kJeontongPlaceholderCategoryIds = {
-  // E. 궁합 (전부 상대 사주 필요)
-  'E01', 'E02', 'E03', 'E04', 'E05', 'E06', 'E07', 'E08', 'E09', 'E10',
+  // E. 궁합 — E01~E07은 진짜 상대 사주가 필요해 구현 불가(삭제 후보).
+  // E08~E10은 자기참조형으로 실계산 전환 완료(2026-08-15).
+  'E01', 'E02', 'E03', 'E04', 'E05', 'E06', 'E07',
   // F. 특수 주제 — F03~F09/F10 모두 실계산으로 전환 완료(28 → 20).
   // G. 건강 — G07(정신 건강)/G09(장수)만 남음(2026-08-15 G03/G05/G06/
   // G08/G10 실계산 전환 완료).

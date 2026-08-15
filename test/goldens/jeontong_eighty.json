@@ -3154,36 +3154,22 @@
     "E08": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "띠 궁합, 무난하게 안정적으로 흘러가는 흐름이에요",
+        "headline": "띠 궁합",
         "keywords": [
-          "안정",
-          "궁합"
+          "궁합",
+          "안정"
         ],
         "name": "띠 궁합",
         "score": 65,
         "statusLabel": "보통",
-        "subDescription": "서두르지 않고 하나씩 정리해가면 좋아요."
+        "subDescription": "쥐띠 기준으로 볼 때, 소띠, 용띠, 원숭이띠와는 합이 좋은 편이에요. 토끼띠, 말띠와는 부딪히는 기운이 있어 서로 배려가 필요해요."
       },
       "sections": [
         {
-          "body": "궁합 관점에서 본 「띠 궁합」이에요. 무난한 흐름 속에서 노력한 만큼 결과가 따라오는 시기예요. 큰 욕심을 내지 않는다면 안정적으로 흘러갈 가능성이 높아요.",
+          "body": "쥐띠 기준으로 볼 때, 소띠, 용띠, 원숭이띠와는 합이 좋은 편이에요. 토끼띠, 말띠와는 부딪히는 기운이 있어 서로 배려가 필요해요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
-        },
-        {
-          "body": "작은 변화가 감지되는 시점이에요. 평소와 다른 선택을 해봐도 나쁘지 않아요.",
-          "index": 61,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 68,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
         },
         {
           "isAvoid": false,
@@ -3199,6 +3185,11 @@
         {
           "items": [
             {
+              "label": "색",
+              "requiresPass": false,
+              "value": "네이비"
+            },
+            {
               "label": "방향",
               "requiresPass": false,
               "value": "북서쪽"
@@ -3207,11 +3198,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "시작"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "네이비"
             }
           ],
           "requiresPass": false,
@@ -3223,7 +3209,7 @@
     "E09": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "오행 궁합, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "오행 궁합",
         "keywords": [
           "궁합",
           "정리"
@@ -3231,35 +3217,21 @@
         "name": "오행 궁합",
         "score": 92,
         "statusLabel": "상승",
-        "subDescription": "지금까지 쌓아온 흐름이 서서히 드러나는 시기예요."
+        "subDescription": "일간 오행이 목(이)라, 수 기운은 나를 든든하게 채워주고 화 기운은 내가 아끼며 챙기는 관계예요. 반면 토 기운과는 내가 주도권을 쥐는 팽팽한 관계, 금 기운과는 내가 눌리기 쉬운 관계라 조금 더 배려가 필요해요."
       },
       "sections": [
         {
-          "body": "궁합 관점에서 본 「오행 궁합」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 지금 가진 것을 잘 지키는 데 집중하면 좋겠어요.",
+          "body": "일간 오행이 목(이)라, 수 기운은 나를 든든하게 채워주고 화 기운은 내가 아끼며 챙기는 관계예요. 반면 토 기운과는 내가 주도권을 쥐는 팽팽한 관계, 금 기운과는 내가 눌리기 쉬운 관계라 조금 더 배려가 필요해요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "지금까지 쌓아온 흐름이 서서히 결과로 드러나는 시기예요. 조급해하지 않아도 괜찮아요.",
-          "index": 91,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 83,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
+            "중요한 결정은 하루 정도 더 생각해보기",
             "작은 목표 하나를 정해 실천해보기",
-            "가까운 사람에게 먼저 안부 전하기",
-            "중요한 결정은 하루 정도 더 생각해보기"
+            "가까운 사람에게 먼저 안부 전하기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -3267,11 +3239,6 @@
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "균형"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -3281,6 +3248,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "남쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "균형"
             }
           ],
           "requiresPass": false,
@@ -3292,7 +3264,7 @@
     "E10": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "겉궁합 vs 속궁합, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "겉궁합 vs 속궁합",
         "keywords": [
           "궁합",
           "집중"
@@ -3300,35 +3272,21 @@
         "name": "겉궁합 vs 속궁합",
         "score": 91,
         "statusLabel": "상승",
-        "subDescription": "작은 신호에도 귀 기울이면 좋은 힌트를 얻을 수 있어요."
+        "subDescription": "겉으로 보이는 이미지(수)가 속마음의 본질(목)을 북돋아주는 관계라, 사회적 이미지가 내면의 성향을 자연스럽게 살려주는 편이에요."
       },
       "sections": [
         {
-          "body": "궁합 관점에서 본 「겉궁합 vs 속궁합」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 주변과의 교류에서 의외의 힌트를 얻을 수 있어요.",
+          "body": "겉으로 보이는 이미지(수)가 속마음의 본질(목)을 북돋아주는 관계라, 사회적 이미지가 내면의 성향을 자연스럽게 살려주는 편이에요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 90,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 83,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
+            "가까운 사람에게 먼저 안부 전하기",
             "오늘 할 일의 우선순위를 다시 점검해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "가까운 사람에게 먼저 안부 전하기"
+            "오늘 하루 감사한 일 한 가지 떠올려보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -3336,6 +3294,11 @@
         },
         {
           "items": [
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "라벤더"
+            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -3345,11 +3308,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "정리"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "라벤더"
             }
           ],
           "requiresPass": false,
@@ -8257,43 +8215,29 @@
     "E08": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "띠 궁합, 무난하게 안정적으로 흘러가는 흐름이에요",
+        "headline": "띠 궁합",
         "keywords": [
-          "안정",
-          "궁합"
+          "궁합",
+          "안정"
         ],
         "name": "띠 궁합",
         "score": 65,
         "statusLabel": "보통",
-        "subDescription": "서두르지 않고 하나씩 정리해가면 좋아요."
+        "subDescription": "말띠 기준으로 볼 때, 호랑이띠, 양띠, 개띠와는 합이 좋은 편이에요. 쥐띠와는 부딪히는 기운이 있어 서로 배려가 필요해요."
       },
       "sections": [
         {
-          "body": "궁합 관점에서 본 「띠 궁합」이에요. 무난한 흐름 속에서 노력한 만큼 결과가 따라오는 시기예요. 큰 욕심을 내지 않는다면 안정적으로 흘러갈 가능성이 높아요.",
+          "body": "말띠 기준으로 볼 때, 호랑이띠, 양띠, 개띠와는 합이 좋은 편이에요. 쥐띠와는 부딪히는 기운이 있어 서로 배려가 필요해요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "작은 변화가 감지되는 시점이에요. 평소와 다른 선택을 해봐도 나쁘지 않아요.",
-          "index": 66,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 73,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
+            "오늘 할 일의 우선순위를 다시 점검해보기",
             "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "중요한 결정은 하루 정도 더 생각해보기",
-            "오늘 할 일의 우선순위를 다시 점검해보기"
+            "중요한 결정은 하루 정도 더 생각해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -8326,7 +8270,7 @@
     "E09": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "오행 궁합, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "오행 궁합",
         "keywords": [
           "궁합",
           "정리"
@@ -8334,28 +8278,14 @@
         "name": "오행 궁합",
         "score": 92,
         "statusLabel": "상승",
-        "subDescription": "지금까지 쌓아온 흐름이 서서히 드러나는 시기예요."
+        "subDescription": "일간 오행이 금(이)라, 토 기운은 나를 든든하게 채워주고 수 기운은 내가 아끼며 챙기는 관계예요. 반면 목 기운과는 내가 주도권을 쥐는 팽팽한 관계, 화 기운과는 내가 눌리기 쉬운 관계라 조금 더 배려가 필요해요."
       },
       "sections": [
         {
-          "body": "궁합 관점에서 본 「오행 궁합」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 지금 가진 것을 잘 지키는 데 집중하면 좋겠어요.",
+          "body": "일간 오행이 금(이)라, 토 기운은 나를 든든하게 채워주고 수 기운은 내가 아끼며 챙기는 관계예요. 반면 목 기운과는 내가 주도권을 쥐는 팽팽한 관계, 화 기운과는 내가 눌리기 쉬운 관계라 조금 더 배려가 필요해요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
-        },
-        {
-          "body": "지금까지 쌓아온 흐름이 서서히 결과로 드러나는 시기예요. 조급해하지 않아도 괜찮아요.",
-          "index": 96,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 90,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
         },
         {
           "isAvoid": false,
@@ -8371,11 +8301,6 @@
         {
           "items": [
             {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "균형"
-            },
-            {
               "label": "색",
               "requiresPass": false,
               "value": "네이비"
@@ -8384,6 +8309,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "남쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "균형"
             }
           ],
           "requiresPass": false,
@@ -8395,7 +8325,7 @@
     "E10": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "겉궁합 vs 속궁합, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "겉궁합 vs 속궁합",
         "keywords": [
           "궁합",
           "집중"
@@ -8403,35 +8333,21 @@
         "name": "겉궁합 vs 속궁합",
         "score": 91,
         "statusLabel": "상승",
-        "subDescription": "작은 신호에도 귀 기울이면 좋은 힌트를 얻을 수 있어요."
+        "subDescription": "겉으로 보이는 이미지(화)와 속마음의 본질(금)이 부딪히는 관계라, 남들이 보는 모습과 실제 성향 사이에 간극을 느낄 수 있어요."
       },
       "sections": [
         {
-          "body": "궁합 관점에서 본 「겉궁합 vs 속궁합」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 주변과의 교류에서 의외의 힌트를 얻을 수 있어요.",
+          "body": "겉으로 보이는 이미지(화)와 속마음의 본질(금)이 부딪히는 관계라, 남들이 보는 모습과 실제 성향 사이에 간극을 느낄 수 있어요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 88,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 81,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
             "가까운 사람에게 먼저 안부 전하기",
-            "오늘 할 일의 우선순위를 다시 점검해보기"
+            "오늘 할 일의 우선순위를 다시 점검해보기",
+            "오늘 하루 감사한 일 한 가지 떠올려보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -8439,11 +8355,6 @@
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "정리"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -8453,6 +8364,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "북쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "정리"
             }
           ],
           "requiresPass": false,
@@ -13353,43 +13269,29 @@
     "E08": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "띠 궁합, 무난하게 안정적으로 흘러가는 흐름이에요",
+        "headline": "띠 궁합",
         "keywords": [
-          "안정",
-          "궁합"
+          "궁합",
+          "안정"
         ],
         "name": "띠 궁합",
         "score": 65,
         "statusLabel": "보통",
-        "subDescription": "서두르지 않고 하나씩 정리해가면 좋아요."
+        "subDescription": "닭띠 기준으로 볼 때, 소띠, 용띠, 뱀띠와는 합이 좋은 편이에요. 토끼띠와는 부딪히는 기운이 있어 서로 배려가 필요해요."
       },
       "sections": [
         {
-          "body": "궁합 관점에서 본 「띠 궁합」이에요. 무난한 흐름 속에서 노력한 만큼 결과가 따라오는 시기예요. 큰 욕심을 내지 않는다면 안정적으로 흘러갈 가능성이 높아요.",
+          "body": "닭띠 기준으로 볼 때, 소띠, 용띠, 뱀띠와는 합이 좋은 편이에요. 토끼띠와는 부딪히는 기운이 있어 서로 배려가 필요해요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "작은 변화가 감지되는 시점이에요. 평소와 다른 선택을 해봐도 나쁘지 않아요.",
-          "index": 67,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "평소보다 여유 있는 일정을 잡아보는 것도 좋은 방법이에요.",
-          "index": 74,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "중요한 결정은 하루 정도 더 생각해보기",
             "오늘 할 일의 우선순위를 다시 점검해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기"
+            "오늘 하루 감사한 일 한 가지 떠올려보기",
+            "중요한 결정은 하루 정도 더 생각해보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -13422,7 +13324,7 @@
     "E09": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "오행 궁합, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "오행 궁합",
         "keywords": [
           "궁합",
           "정리"
@@ -13430,35 +13332,21 @@
         "name": "오행 궁합",
         "score": 92,
         "statusLabel": "상승",
-        "subDescription": "지금까지 쌓아온 흐름이 서서히 드러나는 시기예요."
+        "subDescription": "일간 오행이 토(이)라, 화 기운은 나를 든든하게 채워주고 금 기운은 내가 아끼며 챙기는 관계예요. 반면 수 기운과는 내가 주도권을 쥐는 팽팽한 관계, 목 기운과는 내가 눌리기 쉬운 관계라 조금 더 배려가 필요해요."
       },
       "sections": [
         {
-          "body": "궁합 관점에서 본 「오행 궁합」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 지금 가진 것을 잘 지키는 데 집중하면 좋겠어요.",
+          "body": "일간 오행이 토(이)라, 화 기운은 나를 든든하게 채워주고 금 기운은 내가 아끼며 챙기는 관계예요. 반면 수 기운과는 내가 주도권을 쥐는 팽팽한 관계, 목 기운과는 내가 눌리기 쉬운 관계라 조금 더 배려가 필요해요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "지금까지 쌓아온 흐름이 서서히 결과로 드러나는 시기예요. 조급해하지 않아도 괜찮아요.",
-          "index": 96,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "작은 것부터 하나씩 실천하면 전체 흐름이 자연스럽게 좋아져요.",
-          "index": 92,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
-            "가까운 사람에게 먼저 안부 전하기",
             "중요한 결정은 하루 정도 더 생각해보기",
-            "작은 목표 하나를 정해 실천해보기"
+            "작은 목표 하나를 정해 실천해보기",
+            "가까운 사람에게 먼저 안부 전하기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -13466,6 +13354,11 @@
         },
         {
           "items": [
+            {
+              "label": "색",
+              "requiresPass": false,
+              "value": "네이비"
+            },
             {
               "label": "방향",
               "requiresPass": false,
@@ -13475,11 +13368,6 @@
               "label": "키워드",
               "requiresPass": false,
               "value": "균형"
-            },
-            {
-              "label": "색",
-              "requiresPass": false,
-              "value": "네이비"
             }
           ],
           "requiresPass": false,
@@ -13491,7 +13379,7 @@
     "E10": {
       "hero": {
         "date": "2026-08-13T00:00:00.000Z",
-        "headline": "겉궁합 vs 속궁합, 흐름이 뚜렷하게 좋아지는 시기예요",
+        "headline": "겉궁합 vs 속궁합",
         "keywords": [
           "궁합",
           "집중"
@@ -13499,35 +13387,21 @@
         "name": "겉궁합 vs 속궁합",
         "score": 91,
         "statusLabel": "상승",
-        "subDescription": "작은 신호에도 귀 기울이면 좋은 힌트를 얻을 수 있어요."
+        "subDescription": "속마음의 본질(토)이 겉으로 보이는 이미지(금)를 뒷받침해주는 관계라, 내면의 힘이 겉모습으로 잘 드러나는 편이에요."
       },
       "sections": [
         {
-          "body": "궁합 관점에서 본 「겉궁합 vs 속궁합」이에요. 사주 전체의 기운이 맑고 순조로운 흐름을 보이고 있어요. 주변과의 교류에서 의외의 힌트를 얻을 수 있어요.",
+          "body": "속마음의 본질(토)이 겉으로 보이는 이미지(금)를 뒷받침해주는 관계라, 내면의 힘이 겉모습으로 잘 드러나는 편이에요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "스스로 정한 기준을 지키는 것이 무엇보다 중요한 시기예요.",
-          "index": 94,
-          "requiresPass": true,
-          "title": "자세히 보면",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "무리한 결정은 잠시 미뤄두고, 지금 가진 정보를 다시 점검해보세요.",
-          "index": 87,
-          "requiresPass": true,
-          "title": "참고하면 좋을 점",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
+            "가까운 사람에게 먼저 안부 전하기",
             "오늘 할 일의 우선순위를 다시 점검해보기",
-            "오늘 하루 감사한 일 한 가지 떠올려보기",
-            "가까운 사람에게 먼저 안부 전하기"
+            "오늘 하루 감사한 일 한 가지 떠올려보기"
           ],
           "requiresPass": true,
           "title": "이렇게 해보면 좋아요",
@@ -13535,11 +13409,6 @@
         },
         {
           "items": [
-            {
-              "label": "키워드",
-              "requiresPass": false,
-              "value": "정리"
-            },
             {
               "label": "색",
               "requiresPass": false,
@@ -13549,6 +13418,11 @@
               "label": "방향",
               "requiresPass": false,
               "value": "북쪽"
+            },
+            {
+              "label": "키워드",
+              "requiresPass": false,
+              "value": "정리"
             }
           ],
           "requiresPass": false,
