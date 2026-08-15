@@ -1,4 +1,6 @@
-// [미션 3 · 21종 플레이스홀더 UX 안전장치] 회귀 검증 테스트.
+// [미션 3 · 플레이스홀더 UX 안전장치] 회귀 검증 테스트.
+// (2026-08-16 최종: 남은 플레이스홀더가 전부 삭제되어 현재 0종 — 아래는
+//  갱신 이력 전체.)
 // (2026-08-15 갱신: B02~B10이 PHASE1~4 기반 실계산으로 전환되어 44→35)
 // (2026-08-15 갱신: C06~C10이 세운 간지 기반 실계산으로 전환되어 35→30)
 // (2026-08-15 갱신: D04/D10이 실계산으로 전환되어 30→28)
@@ -13,6 +15,11 @@
 //  플레이스홀더 유지)
 // (2026-08-15 갱신: G07(정신 건강 취약도)이 PHASE2의 원진·귀문 관계 +
 //  화·수 과다 오행 심리 성향 조합으로 실계산 전환되어 12→11 — G09만 잔류)
+// (2026-08-16 최종 삭제: 끝까지 구현 불가로 확정된 마지막 11종
+//  (E01~E07/G09/H06/H08/H09)이 카탈로그(JeontongEightyMatrix)에서
+//  완전히 삭제되었다(11→0). 카탈로그 전체 개수도 80→69로 줄었다.
+//  "구현 불가능하면 즉시 삭제" 원칙(사용자 확정 지시 §4)에 따른 최종
+//  조치이며, 이 Set은 이제 빈 Set이 정상 상태다.)
 //
 // `kJeontongPlaceholderCategoryIds`(jeontong_eighty_calculator.dart)는
 // `_categoryIndex` 매핑을 사람이 직접 대조해서 만든 정적 Set이므로, 향후
@@ -47,8 +54,8 @@ void main() {
     await SajuFortuneRules.preload();
   });
 
-  test('kJeontongPlaceholderCategoryIds는 정확히 11개', () {
-    expect(kJeontongPlaceholderCategoryIds.length, 11);
+  test('kJeontongPlaceholderCategoryIds는 정확히 0개(모두 삭제 완료)', () {
+    expect(kJeontongPlaceholderCategoryIds.length, 0);
   });
 
   test('kJeontongPlaceholderCategoryIds는 JeontongEightyMatrix의 유효한 id만 포함', () {
@@ -58,7 +65,7 @@ void main() {
     }
   });
 
-  test('80종 전체: 플레이스홀더 판정 결과가 kJeontongPlaceholderCategoryIds와 정확히 일치', () {
+  test('69종 전체: 플레이스홀더 판정 결과가 kJeontongPlaceholderCategoryIds와 정확히 일치', () {
     final saju = SajuEngine.calculate(
       year: 1972,
       month: 2,

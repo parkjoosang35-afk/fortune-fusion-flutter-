@@ -1,5 +1,12 @@
-/// [정통사주 80종 개편] 홈 화면 "운세" 카드를 탭했을 때 보여주는 정통사주
-/// 80종 카테고리 카탈로그(대카테고리 A~H × 소카테고리 10개).
+/// [정통사주 개편] 홈 화면 "운세" 카드를 탭했을 때 보여주는 정통사주
+/// 카테고리 카탈로그(대카테고리 A~H).
+///
+/// [2026-08-16 최종 삭제 반영] 원래 80종(대카테고리 A~H × 소카테고리 10개)
+/// 중 실계산이 불가능하거나 완전 중복인 11종(E01~E07, G09, H06, H08, H09)을
+/// "구현 불가능하면 즉시 삭제" 원칙에 따라 카탈로그에서 완전히 제거했다.
+/// 남은 실제 개수는 [JeontongEightyMatrix.all]의 길이로 동적으로 계산되며,
+/// UI(`jeontong_eighty_grid_screen.dart` 등)는 이 목록을 동적으로 순회하므로
+/// 고정된 "80"이라는 숫자에 의존하지 않는다.
 ///
 /// [배경] 기존 `jeontong_saju_section.dart`는 8종만 고정 노출하는 바텀시트였다.
 /// 사용자 최종 확정 요구사항 — "ai관상 ai손금 ai타로 ai상담은 그대로 두고
@@ -376,49 +383,17 @@ class JeontongEightyMatrix {
     ],
   );
 
-  // ── E. 궁합 (10) ──
+  // ── E. 궁합 (3) ──
+  // [2026-08-16 최종 삭제] E01~E07(부부/연인/결혼/사업/상사부하/부모자녀/
+  // 형제친구 궁합)은 반드시 "상대방의 생년월일시"가 필요한 관계형 궁합이며,
+  // 본 앱은 사용자 본인의 사주만 입력받는 구조라 상대방 명식을 계산할 방법이
+  // 없어 실계산이 불가능하다(레거시도 `_needsPartner()` 안내 플레이스홀더
+  // 였음). "구현 불가능하면 즉시 삭제" 원칙에 따라 카탈로그에서 완전
+  // 제거한다. E08~E10(띠/오행/겉궁합-속궁합)은 본인 사주만으로 판단 가능한
+  // 자기참조형 궁합으로 실계산 전환되어 유지된다.
   static final _e = JeontongMajorGroup(
     code: JeontongMajorCode.e,
     items: const [
-      JeontongCategoryEntry(
-        id: 'E01',
-        major: JeontongMajorCode.e,
-        title: '부부 궁합',
-        disclaimers: [DisclaimerTag.relationship],
-      ),
-      JeontongCategoryEntry(
-        id: 'E02',
-        major: JeontongMajorCode.e,
-        title: '연인 궁합',
-        disclaimers: [DisclaimerTag.relationship],
-      ),
-      JeontongCategoryEntry(
-        id: 'E03',
-        major: JeontongMajorCode.e,
-        title: '결혼 궁합',
-        disclaimers: [DisclaimerTag.relationship],
-      ),
-      JeontongCategoryEntry(
-        id: 'E04',
-        major: JeontongMajorCode.e,
-        title: '사업 파트너 궁합',
-        disclaimers: [DisclaimerTag.finance],
-      ),
-      JeontongCategoryEntry(
-        id: 'E05',
-        major: JeontongMajorCode.e,
-        title: '상사·부하 궁합',
-      ),
-      JeontongCategoryEntry(
-        id: 'E06',
-        major: JeontongMajorCode.e,
-        title: '부모·자녀 궁합',
-      ),
-      JeontongCategoryEntry(
-        id: 'E07',
-        major: JeontongMajorCode.e,
-        title: '형제·친구 궁합',
-      ),
       JeontongCategoryEntry(
         id: 'E08',
         major: JeontongMajorCode.e,
@@ -498,7 +473,10 @@ class JeontongEightyMatrix {
     ],
   );
 
-  // ── G. 건강 (10) ──
+  // ── G. 건강 (9) ──
+  // [2026-08-16 최종 삭제] G09(장수 가능성)는 `sinsal_engine.dart`의 실제
+  // 계산 신살 목록(空亡/12신살/羊刃/魁罡/白虎/元辰)에 "장수"를 판정할 근거
+  // 데이터(예: 天德貴人)가 존재하지 않아 계산 불가로 확정되어 삭제되었다.
   static final _g = JeontongMajorGroup(
     code: JeontongMajorCode.g,
     items: const [
@@ -549,11 +527,6 @@ class JeontongEightyMatrix {
         disclaimers: [DisclaimerTag.medical],
       ),
       JeontongCategoryEntry(
-        id: 'G09',
-        major: JeontongMajorCode.g,
-        title: '장수 가능성',
-      ),
-      JeontongCategoryEntry(
         id: 'G10',
         major: JeontongMajorCode.g,
         title: '회복력·면역',
@@ -561,7 +534,14 @@ class JeontongEightyMatrix {
     ],
   );
 
-  // ── H. 개운·풍수 (10) ──
+  // ── H. 개운·풍수 (7) ──
+  // [2026-08-16 최종 삭제] H06(작명)은 성명학(획수·자음모음 오행) 판정
+  // 데이터가 프로젝트 rules 자산 어디에도 존재하지 않아 계산 불가로 확정.
+  // H08(침대·책상 배치)은 `getLuckyItems().directions`가 H02(행운의 방향)/
+  // H07(집·사무실 방향)과 완전히 동일한 데이터를 반환해 고유 판정 근거가
+  // 없는 완전 중복으로 확정. H09(반려동물 궁합)는 "사람-반려동물 띠 궁합"
+  // 이라는 명리학 이론 자체가 존재하지 않아, 구현 시 신규 판정 공식을
+  // 창조하게 되므로(원칙 위배) 삭제되었다.
   static final _h = JeontongMajorGroup(
     code: JeontongMajorCode.h,
     items: const [
@@ -591,24 +571,9 @@ class JeontongEightyMatrix {
         title: '부적·개운 아이템',
       ),
       JeontongCategoryEntry(
-        id: 'H06',
-        major: JeontongMajorCode.h,
-        title: '좋은 이름(작명)',
-      ),
-      JeontongCategoryEntry(
         id: 'H07',
         major: JeontongMajorCode.h,
         title: '집·사무실 방향',
-      ),
-      JeontongCategoryEntry(
-        id: 'H08',
-        major: JeontongMajorCode.h,
-        title: '침대·책상 배치',
-      ),
-      JeontongCategoryEntry(
-        id: 'H09',
-        major: JeontongMajorCode.h,
-        title: '반려동물 궁합',
       ),
       JeontongCategoryEntry(
         id: 'H10',

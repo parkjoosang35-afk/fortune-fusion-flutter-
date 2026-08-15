@@ -33,8 +33,8 @@ void main() {
 
     expect(
       JeontongHistoryStore.instance.list(userId).length,
-      greaterThanOrEqualTo(80),
-      reason: '진입 시 80종 일괄 record 가 수행되지 않음',
+      greaterThanOrEqualTo(JeontongEightyMatrix.all.length),
+      reason: '진입 시 전체 카테고리 일괄 record 가 수행되지 않음',
     );
 
     JeontongHistoryStore.instance.clearForTest();

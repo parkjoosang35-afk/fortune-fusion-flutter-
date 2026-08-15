@@ -13,6 +13,7 @@
 // 와 고정 룰표(zhi_combos/sheng/ke)만 조회하므로, G05/G06과 동일하게
 // legacy/new 결과가 완전히 동일해야 한다.
 import 'package:flutter_app/features/home/domain/jeontong_eighty_calculator.dart';
+import 'package:flutter_app/features/home/domain/jeontong_eighty_matrix.dart';
 import 'package:flutter_app/features/home/domain/manseryeok/manseryeok_core_engine.dart';
 import 'package:flutter_app/features/home/domain/manseryeok/manseryeok_policy.dart';
 import 'package:flutter_app/features/home/domain/manseryeok/phase2_analysis_engine.dart';
@@ -156,13 +157,17 @@ void main() {
       }
     });
 
-    test('E01~E07은 여전히 플레이스홀더 목록에 남아 있어야 함(상대방 사주 필요, 삭제 대상)', () {
+    // (2026-08-16 최종 삭제) E01~E07은 진짜 상대방 사주가 필요해 구현
+    // 불가로 최종 확정되어, 플레이스홀더로 남는 대신 카탈로그
+    // (JeontongEightyMatrix)에서 완전히 삭제되었다.
+    test('E01~E07은 카탈로그에서 완전히 삭제되어 더 이상 존재하지 않아야 함', () {
       for (final id in ['E01', 'E02', 'E03', 'E04', 'E05', 'E06', 'E07']) {
         expect(
-          kJeontongPlaceholderCategoryIds.contains(id),
-          isTrue,
-          reason: '$id는 진짜 상대방 사주가 필요해 구현 불가 상태를 유지해야 함',
+          JeontongEightyMatrix.byId(id),
+          isNull,
+          reason: '$id는 상대방 사주가 필요해 구현 불가로 카탈로그에서 삭제되었어야 함',
         );
+        expect(kJeontongPlaceholderCategoryIds.contains(id), isFalse);
       }
     });
   });

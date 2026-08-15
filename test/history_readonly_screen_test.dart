@@ -134,7 +134,10 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  test('JeontongEightyMatrix 유효성 sanity — id 80개(회귀 안전장치)', () {
-    expect(JeontongEightyMatrix.all.length, 80);
+  test('JeontongEightyMatrix 유효성 sanity — id 개수(회귀 안전장치, 2026-08-16 69종으로 확정)', () {
+    // [2026-08-16] E01~E07/G09/H06/H08/H09 11종이 "구현 불가능하면 즉시
+    // 삭제" 원칙에 따라 카탈로그에서 완전히 제거되어 80종에서 69종으로
+    // 축소되었다. 80이라는 숫자에 집착하지 않는다(사용자 확정 지시 §4/§7).
+    expect(JeontongEightyMatrix.all.length, 69);
   });
 }

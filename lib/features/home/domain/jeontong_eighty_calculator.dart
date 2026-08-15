@@ -9,10 +9,11 @@
 /// [플레이스홀더 정책] 원본 파이썬은 B02~B10, C06~C10, D04/D10,
 /// E01~E07(상대 사주 필요) 등 다수를 `{"category":..., "message":...}`
 /// 형태의 안내 플레이스홀더로 남겨두었으나, 이후 사용자 확정 지시에 따라
-/// B02~B10/C06~C10/D04/D10/F03~F08/F10은 순차적으로 PHASE1~4 기반
-/// 실계산으로 전환 완료되었다(아래 [kJeontongPlaceholderCategoryIds]
-/// 갱신 이력 참고). 남은 플레이스홀더(E/F09/G~H 일부)는 구현 가능 여부를
-/// 재검토해 유지 또는 삭제한다(80종 숫자에 집착하지 않음 — 사용자 확정
+/// B02~B10/C06~C10/D04/D10/F03~F08/F10/F09/E08~E10/G03~G08/G10은 순차적으로
+/// PHASE1~4 기반 실계산으로 전환 완료되었다(아래 [kJeontongPlaceholderCategoryIds]
+/// 갱신 이력 참고). 끝까지 구현 불가로 판정된 나머지 11종(E01~E07/G09/
+/// H06/H08/H09)은 카탈로그([JeontongEightyMatrix])에서 완전히 삭제되어
+/// 현재 총 카테고리 수는 69종이다(80종 숫자에 집착하지 않음 — 사용자 확정
 /// 지시 §4/§7).
 library;
 
@@ -91,9 +92,6 @@ class JeontongCalcContext {
 
 JeontongCategoryResult _placeholder(String category, String message) =>
     JeontongCategoryResult(category: category, data: {'message': message});
-
-JeontongCategoryResult _needsPartner(String category) =>
-    JeontongCategoryResult(category: category, data: {'note': '상대 사주 필요'});
 
 // ============================================================
 // A. 평생운 (10)
@@ -895,16 +893,9 @@ final Map<String, _CategoryFn> _categoryIndex = {
   'D09': (ctx) => _luckyItemsToResult(ctx),
   'D10': (ctx) => _d10(ctx),
 
-  // E. 궁합 (10) — E01~E07은 상대 사주가 반드시 필요해 구현 불가(원본과
-  // 동일하게 플레이스홀더). E08~E10은 재검토 결과 본인 사주만으로 계산
-  // 가능한 자기참조형 카테고리로 판정되어 실계산 전환(2026-08-15).
-  'E01': (ctx) => _needsPartner('부부 궁합'),
-  'E02': (ctx) => _needsPartner('연인 궁합'),
-  'E03': (ctx) => _needsPartner('결혼 궁합'),
-  'E04': (ctx) => _needsPartner('사업 궁합'),
-  'E05': (ctx) => _needsPartner('직장 궁합'),
-  'E06': (ctx) => _needsPartner('가족 궁합'),
-  'E07': (ctx) => _needsPartner('친구 궁합'),
+  // E. 궁합 (3) — E01~E07(상대 사주 필요 궁합)은 2026-08-16 카탈로그에서
+  // 완전 삭제됨(구현 불가 확정). E08~E10은 재검토 결과 본인 사주만으로
+  // 계산 가능한 자기참조형 카테고리로 판정되어 실계산 전환(2026-08-15).
   'E08': (ctx) => _e08(ctx),
   'E09': (ctx) => _e09(ctx),
   'E10': (ctx) => _e10(ctx),
@@ -921,7 +912,8 @@ final Map<String, _CategoryFn> _categoryIndex = {
   'F09': (ctx) => _f09(ctx),
   'F10': (ctx) => _f10(ctx),
 
-  // G. 건강 (10)
+  // G. 건강 (9) — G09(장수)는 2026-08-16 카탈로그에서 완전 삭제됨(계산
+  // 불가 확정: sinsal_engine.dart에 관련 신살 계산 근거 없음).
   'G01': (ctx) => _a05(ctx),
   'G02': (ctx) => _a05(ctx),
   'G03': (ctx) => _g03(ctx),
@@ -930,19 +922,17 @@ final Map<String, _CategoryFn> _categoryIndex = {
   'G06': (ctx) => _g06(ctx),
   'G07': (ctx) => _g07(ctx),
   'G08': (ctx) => _g08(ctx),
-  'G09': (ctx) => _placeholder('장수', '오행 균형·인성 확인'),
   'G10': (ctx) => _g10(ctx),
 
-  // H. 개운·풍수 (10)
+  // H. 개운·풍수 (7) — H06(작명)/H08(배치)/H09(반려동물)는 2026-08-16
+  // 카탈로그에서 완전 삭제됨(H06: 성명학 데이터 부재, H08: H02/H07과 완전
+  // 중복, H09: 명리학적 근거 부재).
   'H01': (ctx) => _luckyItemsToResult(ctx, category: '행운의 색'),
   'H02': (ctx) => _luckyItemsToResult(ctx, category: '행운의 방향'),
   'H03': (ctx) => _luckyItemsToResult(ctx, category: '행운의 숫자'),
   'H04': (ctx) => _luckyItemsToResult(ctx, category: '행운의 보석'),
   'H05': (ctx) => _luckyItemsToResult(ctx, category: '부적·개운 아이템'),
-  'H06': (ctx) => _placeholder('작명', '부족 오행 보완 자음/모음'),
   'H07': (ctx) => _luckyItemsToResult(ctx, category: '집·사무실 방향'),
-  'H08': (ctx) => _placeholder('배치', '길방+오행 색조합'),
-  'H09': (ctx) => _placeholder('반려동물', '띠·오행 대조'),
   'H10': (ctx) => _luckyItemsToResult(ctx, category: '개운 습관'),
 };
 
@@ -959,9 +949,13 @@ JeontongCategoryResult runJeontongCategory(
   return fn(ctx);
 }
 
-/// [미션 3 · 35종 플레이스홀더 UX 안전장치] 위 `_categoryIndex`에서
-/// `_placeholder(...)` 또는 `_needsPartner(...)`를 그대로 반환하는(=실제
-/// 만세력 계산 없이 안내 메시지만 담는) 카테고리 id 35개의 정적 목록.
+/// [미션 3 · 플레이스홀더 UX 안전장치] 위 `_categoryIndex`에서
+/// `_placeholder(...)`를 그대로 반환하는(=실제 만세력 계산 없이 안내
+/// 메시지만 담는) 카테고리 id의 정적 목록. 원래 35개였으나, 아래 이력을
+/// 거쳐 현재는 **빈 Set**이다 — 남은 모든 카테고리가 PHASE1~4 기반
+/// 실계산으로 전환되었거나(구현 가능 판정), 계산 불가/완전 중복으로
+/// 확정된 항목은 카탈로그([JeontongEightyMatrix])에서 완전히 삭제되었기
+/// 때문이다(사용자 확정 지시 §4 "구현 불가능하면 즉시 삭제").
 ///
 /// [2026-08-15 B02~B10 실계산 전환] B그룹(대운) 9종은 PHASE4 대운 데이터
 /// 기반 실계산으로 전환되어 이 목록에서 제외되었다(44 → 35, 사용자 확정
@@ -1003,6 +997,33 @@ JeontongCategoryResult runJeontongCategory(
 /// `saju_e_group_modules.dart`의 [getZodiacAnimalCompatibility]/
 /// [getFiveElementCompatibility]/[getOuterInnerCompatibility] 참고.
 ///
+/// [2026-08-16 최종 삭제 — E01~E07/G09/H06/H08/H09] 남아있던 마지막
+/// 플레이스홀더 11종을 카탈로그에서 완전히 삭제했다(20 → 9 → 0, §3
+/// "구현 불가능 카테고리 최종 삭제" 단계).
+/// - E01~E07(부부/연인/결혼/사업/상사부하/부모자녀/형제친구 궁합): 상대방의
+///   생년월일시가 반드시 필요한 관계형 궁합이나, 본 앱은 사용자 본인
+///   사주만 입력받으므로 상대 명식을 계산할 방법이 없어 구현 불가 확정.
+/// - G09(장수 가능성): `sinsal_engine.dart`가 실제로 계산하는 신살
+///   id(空亡/12신살/羊刃/魁罡/白虎/元辰)에 "장수"를 판정할 근거 데이터가
+///   없어(天德貴人은 자산 텍스트에만 있고 계산 엔진에는 없음) 구현 불가
+///   확정.
+/// - H06(작명): 성명학(획수·자음모음 오행 판정) 데이터가 `assets/jeontong/
+///   rules/*.json`에 전혀 존재하지 않아 구현 불가 확정.
+/// - H08(침대·책상 배치): `getLuckyItems().directions`가 H02(행운의
+///   방향)/H07(집·사무실 방향)과 완전히 동일한 데이터를 반환해, 고유 판정
+///   근거가 없는 완전 중복으로 확정.
+/// - H09(반려동물 궁합): "사람-반려동물 띠 궁합"이라는 명리학 이론 자체가
+///   존재하지 않아, 구현 시 신규 판정 공식을 창조하게 되므로(원칙 §2/§7
+///   위배) 삭제 확정.
+///
+/// 위 11종은 [JeontongEightyMatrix]에서도 함께 제거되었으므로 더 이상
+/// `_categoryIndex`나 결과 화면에 등장하지 않는다. 따라서 이 Set은 현재
+/// **빈 Set**이다 — 향후 새로운 플레이스홀더가 추가되지 않는 한 계속 비어
+/// 있어야 정상이다. 완전히 제거하지 않고 빈 Set으로 남겨두는 이유는, 이
+/// 안전장치 메커니즘 자체(및 이를 검증하는
+/// `jeontong_placeholder_categories_test.dart`)를 향후 다른 카테고리가
+/// 계산 불가로 판정될 경우 재사용할 수 있도록 하기 위함이다.
+///
 /// [왜 정적 목록인가] `_categoryIndex`는 함수 매핑이라 런타임에 "이 id가
 /// placeholder인지"를 알려면 [JeontongCalcContext](실제 사주 계산 결과)를
 /// 먼저 만들어야 한다. 하지만 결과 화면은 프로필이 없는 방문자에게도
@@ -1011,24 +1032,7 @@ JeontongCategoryResult runJeontongCategory(
 /// `jeontong_placeholder_categories_test.dart`가 이 목록과 실제
 /// `runJeontongCategory()` 실행 결과의 일치를 회귀 검증한다 — 목록이
 /// `_categoryIndex`와 어긋나면 테스트가 즉시 실패한다).
-///
-/// [UX 정책] 이 15종은 "계산이 안 된 결과"가 아니라 "아직 상세 만세력
-/// 계산 대신 일반적인 명리 해설을 담은 카테고리"다. 차단하거나 숨기지
-/// 않고, 결과 화면에 정직한 톤다운 안내만 추가한다(사용자 확정 지시 —
-/// "일반 풀이 참고용 톤으로 정직하게 표시").
-const Set<String> kJeontongPlaceholderCategoryIds = {
-  // E. 궁합 — E01~E07은 진짜 상대 사주가 필요해 구현 불가(삭제 후보).
-  // E08~E10은 자기참조형으로 실계산 전환 완료(2026-08-15).
-  'E01', 'E02', 'E03', 'E04', 'E05', 'E06', 'E07',
-  // F. 특수 주제 — F03~F09/F10 모두 실계산으로 전환 완료(28 → 20).
-  // G. 건강 — G09(장수)만 남음(2026-08-15 G03/G05/G06/G08/G10 실계산
-  // 전환 완료. G07(정신 건강 취약도)도 재검토 결과 PHASE2의 원진·귀문
-  // 관계 + 화·수 과다 오행 심리 성향 조합으로 실계산 전환 완료 —
-  // saju_g_group_modules.dart의 [getMentalHealthSensitivity] 참고).
-  'G09',
-  // H. 개운·풍수
-  'H06', 'H08', 'H09',
-};
+const Set<String> kJeontongPlaceholderCategoryIds = {};
 
 /// 80종 전체 실행 — run_all_categories() 이식.
 Map<String, JeontongCategoryResult> runAllJeontongCategories(

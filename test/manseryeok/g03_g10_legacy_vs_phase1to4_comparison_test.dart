@@ -16,6 +16,7 @@
 // dayMaster/dayMasterStrength)만 조회하므로 legacy/new가 완전히 동일해야
 // 한다(사전 진단 실행으로 확인 완료).
 import 'package:flutter_app/features/home/domain/jeontong_eighty_calculator.dart';
+import 'package:flutter_app/features/home/domain/jeontong_eighty_matrix.dart';
 import 'package:flutter_app/features/home/domain/manseryeok/manseryeok_core_engine.dart';
 import 'package:flutter_app/features/home/domain/manseryeok/manseryeok_policy.dart';
 import 'package:flutter_app/features/home/domain/manseryeok/phase2_analysis_engine.dart';
@@ -161,10 +162,13 @@ void main() {
 
     // (2026-08-15 갱신: G07은 재검토 결과 실계산으로 전환되어 이 목록에서
     // 빠졌다 — 별도 비교 테스트는
-    // g07_legacy_vs_phase1to4_comparison_test.dart 참고. G09만 여전히
-    // 플레이스홀더로 남아 있다.)
-    test('G09는 여전히 플레이스홀더 목록에 남아 있어야 함(이번 라운드 구현 대상 아님)', () {
-      expect(kJeontongPlaceholderCategoryIds.contains('G09'), isTrue);
+    // g07_legacy_vs_phase1to4_comparison_test.dart 참고.)
+    // (2026-08-16 최종 삭제: G09(장수 가능성)는 `sinsal_engine.dart`에
+    // 계산 근거 데이터가 없어 구현 불가로 최종 확정되어, 플레이스홀더로
+    // 남는 대신 카탈로그(JeontongEightyMatrix)에서 완전히 삭제되었다.)
+    test('G09는 카탈로그에서 완전히 삭제되어 더 이상 존재하지 않아야 함', () {
+      expect(JeontongEightyMatrix.byId('G09'), isNull);
+      expect(kJeontongPlaceholderCategoryIds.contains('G09'), isFalse);
     });
   });
 

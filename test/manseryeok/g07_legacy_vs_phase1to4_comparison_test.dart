@@ -14,6 +14,7 @@
 // "판단 불가"로 안전 처리되고, new 경로(profile 有)에서는 실제 판정을
 // 반환한다 — 완전 일치가 아니라 "전환 동작 자체"의 정확성을 검증한다.
 import 'package:flutter_app/features/home/domain/jeontong_eighty_calculator.dart';
+import 'package:flutter_app/features/home/domain/jeontong_eighty_matrix.dart';
 import 'package:flutter_app/features/home/domain/manseryeok/manseryeok_core_engine.dart';
 import 'package:flutter_app/features/home/domain/manseryeok/manseryeok_policy.dart';
 import 'package:flutter_app/features/home/domain/manseryeok/phase2_analysis_engine.dart';
@@ -153,8 +154,12 @@ void main() {
       );
     });
 
-    test('G09는 여전히 플레이스홀더 목록에 남아 있어야 함', () {
-      expect(kJeontongPlaceholderCategoryIds.contains('G09'), isTrue);
+    // (2026-08-16 최종 삭제) G09(장수 가능성)는 계산 불가로 최종 확정되어
+    // 플레이스홀더로 남는 대신 카탈로그(JeontongEightyMatrix)에서 완전히
+    // 삭제되었다.
+    test('G09는 카탈로그에서 완전히 삭제되어 더 이상 존재하지 않아야 함', () {
+      expect(JeontongEightyMatrix.byId('G09'), isNull);
+      expect(kJeontongPlaceholderCategoryIds.contains('G09'), isFalse);
     });
   });
 
