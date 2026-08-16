@@ -18,12 +18,14 @@ library;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_app/features/home/domain/interpretation/analyzers/life_overall_analyzer.dart';
 import 'package:flutter_app/features/home/domain/interpretation/analyzers/wealth_analyzer.dart';
+import 'package:flutter_app/features/home/domain/interpretation/analyzers/career_analyzer.dart';
 import 'package:flutter_app/features/home/domain/jeontong_eighty_report_builder.dart';
 import '../fixtures/jeontong_sample_120.dart';
 
 void main() {
   final lifeAnalyzer = const LifeOverallAnalyzer();
   final wealthAnalyzer = const WealthAnalyzer();
+  final careerAnalyzer = const CareerAnalyzer();
   final refDate = DateTime.utc(2026, 8, 13);
 
   group('TEST2 개인화 — (a) SajuProfile 원본 데이터 층 다양성(120명)', () {
@@ -245,6 +247,72 @@ void main() {
     });
     test('wealthPeakDaewoonLabel(재물 정점 대운)이 다양하다', () {
       expect(wealthPeakDaewoonSet.length, greaterThan(1));
+    });
+    test('favorableConditions(좋은 흐름)이 다양하다', () {
+      expect(favorableSet.length, greaterThan(1));
+    });
+    test('cautionConditions(주의 흐름)이 다양하다', () {
+      expect(cautionSet.length, greaterThan(1));
+    });
+  });
+
+  group('TEST2 개인화 — (b) A04 CareerAnalysis 출력 필드 다양성(120명)', () {
+    final careerPatternSet = <String>{};
+    final careerStrengthSet = <String>{};
+    final workStyleSet = <String>{};
+    final suitableFieldsSet = <String>{};
+    final careerRiskPatternSet = <String>{};
+    final careerPeakDaewoonSet = <String>{};
+    final favorableSet = <String>{};
+    final cautionSet = <String>{};
+
+    setUpAll(() {
+      for (final input in kJeontongSample120) {
+        final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
+        final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
+          kst: kst,
+          gender: input.gender,
+          isLunar: input.isLunar,
+          referenceDate: refDate,
+        );
+        final a = careerAnalyzer.analyze(built.profile, referenceDate: refDate);
+        careerPatternSet.add(a.careerPattern);
+        careerStrengthSet.add(a.careerStrength);
+        workStyleSet.add(a.workStyle);
+        suitableFieldsSet.add(a.suitableFields.join(','));
+        careerRiskPatternSet.add(a.careerRiskPattern);
+        careerPeakDaewoonSet.add(a.careerPeakDaewoonLabel);
+        favorableSet.add(a.favorableConditions.join(','));
+        cautionSet.add(a.cautionConditions.join(','));
+      }
+    });
+
+    test('careerPattern(직업 구조)이 다양하다', () {
+      // ignore: avoid_print
+      print('A04 careerPattern 종류=$careerPatternSet');
+      expect(careerPatternSet.length, greaterThan(1));
+    });
+    test('careerStrength(그릇의 크기)가 다양하다', () {
+      // ignore: avoid_print
+      print('A04 careerStrength 종류=$careerStrengthSet');
+      expect(careerStrengthSet.length, greaterThan(1));
+    });
+    test('workStyle(일하는 방식)이 다양하다', () {
+      expect(workStyleSet.length, greaterThan(1));
+    });
+    test('suitableFields(어울리는 분야, 일간 고정표)가 10천간 고정표 기반이라 10종 이하로 반복 허용', () {
+      // day_master_rules.json의 career_fit은 10천간 고정표이므로 완전
+      // 동일 반복이 정상이다(§14 "명리학 용어 자체 반복은 허용"과 동일 논리).
+      // ignore: avoid_print
+      print('A04 suitableFields 종류=${suitableFieldsSet.length} (10종 고정표 기반, 초과 시 이상)');
+      expect(suitableFieldsSet.length, lessThanOrEqualTo(10));
+      expect(suitableFieldsSet.length, greaterThan(1));
+    });
+    test('careerRiskPattern(직업 리스크)이 다양하다', () {
+      expect(careerRiskPatternSet.length, greaterThan(1));
+    });
+    test('careerPeakDaewoonLabel(직업 정점 대운)이 다양하다', () {
+      expect(careerPeakDaewoonSet.length, greaterThan(1));
     });
     test('favorableConditions(좋은 흐름)이 다양하다', () {
       expect(favorableSet.length, greaterThan(1));
