@@ -119,7 +119,7 @@ strengths, wealthPattern, wealthStrength, coreEvidence judgment 결합문)를 "�
 
 ## 11. Git Commit ID
 
-이 보고서 작성 직후 커밋 예정. 커밋 해시는 커밋 완료 후 별도 업데이트한다.
+`453fe34` — test(jeontong-interpretation): A01/A03 구조확장 + 120명 검증 스위트 (§1~§20)
 (선행 커밋: `97e26c9` 3단계 A03 WealthAnalyzer + §24 30명 샘플 검증)
 
 ## 12. 다음 단계
