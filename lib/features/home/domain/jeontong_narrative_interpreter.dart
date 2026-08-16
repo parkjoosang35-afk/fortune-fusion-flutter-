@@ -45,18 +45,28 @@ class JeontongNarrativeInterpreter {
   /// [interp]와 카테고리 [entry], 사용자 [name](없으면 null)을 받아
   /// 4~6개 문단으로 구성된 이야기체 해석을 반환한다.
   ///
+  /// [data]는 [runJeontongCategory](jeontong_eighty_calculator.dart)가 이미
+  /// 계산해둔 이 소카테고리 전용 결과 맵(예: A07이면 child_god/count,
+  /// G05면 foods_to_limit)이다. 이 값이 있으면 [_categoryParagraph]가
+  /// `entry.id` 단위로 실제 계산된 값을 문장에 반영해, 같은 대카테고리
+  /// (major) 안의 여러 소카테고리가 서로 다른 진짜 내용을 이야기하게
+  /// 한다("올해 건강운을 보면 건강 얘기가 나와야지, 다른 것도 마찬가지"
+  /// 사용자 지시). [data]가 없으면(예: 방어적 호출) 기존 major 단위
+  /// 공통 문단으로 안전하게 폴백한다 — 새로 계산하지 않는다.
+  ///
   /// 각 문단은 이미 줄바꿈 없는 하나의 문자열(여러 문장)이며, 위젯
   /// 레이어(JeontongNarrativeCard)가 문단 사이에 시각적 여백을 넣는다.
   static List<String> paragraphs(
     SajuFullInterpretation interp,
     JeontongCategoryEntry entry, {
     String? name,
+    Map<String, dynamic>? data,
   }) {
     final honorific = _honorific(name);
     return [
       _openingParagraph(interp, honorific),
       _traitsParagraph(interp, honorific),
-      _categoryParagraph(interp, entry, honorific),
+      _categoryParagraph(interp, entry, honorific, data),
       _luckParagraph(interp, honorific),
       _closingParagraph(interp, entry.major, honorific),
     ].where((p) => p.trim().isNotEmpty).toList(growable: false);
@@ -179,40 +189,131 @@ class JeontongNarrativeInterpreter {
   // ------------------------------------------------------------
   // 문단 3 — 카테고리 관점(평생/대운/세운/오늘/궁합/특수주제/건강/개운)에
   // 맞춰 재물/직업/애정/건강 중 관련 있는 것을 자연스럽게 녹인 핵심 문단.
+  //
+  // [2026-08-18 A/B/E/F/G/H 소카테고리 차별화] 사용자가 "올해 건강운을
+  // 봐도 재물 얘기만 나온다"를 C/D그룹에서 이미 한 차례 지적했고(2026-08-17
+  // 수정 완료), 이번엔 A05(평생 건강운)에서 동일 패턴이 재발했다고
+  // 스크린샷으로 재차 지적했다("모가 틀리다는거야" 원문). 원인은 A/B/E/F/G/
+  // H 6개 대카테고리가 여전히 `entry.major` 단위로만 뭉뚱그려져 있었기
+  // 때문 — [data]([runJeontongCategory]가 이미 계산해둔 이 소카테고리
+  // 전용 결과)가 주어지면 `entry.id` 단위로 실제 값을 반영한다. [data]가
+  // 없는 방어적 호출에서는 기존 major 단위 공통 문단으로 안전하게
+  // 폴백한다(새로 계산하지 않음, 회귀 없음).
   // ------------------------------------------------------------
   static String _categoryParagraph(
     SajuFullInterpretation interp,
     JeontongCategoryEntry entry,
     String honorific,
+    Map<String, dynamic>? data,
   ) {
     switch (entry.major) {
       case JeontongMajorCode.a:
-        return _lifetimeParagraph(interp, honorific);
+        return _lifetimeParagraphById(interp, entry.id, honorific, data);
       case JeontongMajorCode.b:
-        return _daewoonParagraph(interp, honorific);
+        return _daewoonParagraphById(interp, entry.id, honorific, data);
       case JeontongMajorCode.c:
         // [2026-08-17] C01~C05는 "올해 재물/직업/애정/건강운"처럼 서로
         // 다른 주제인데도 기존엔 전부 재물 이야기(_thisYearParagraph)만
         // 나왔다("건강운을 봐도 재물 얘기가 나온다"는 사용자 지적과 동일
         // 패턴). entry.id로 소카테고리 주제를 가려 그에 맞는 문단을 쓴다.
-        return _thisYearParagraph(interp, entry.id, honorific);
+        return _thisYearParagraph(interp, entry.id, honorific, data);
       case JeontongMajorCode.d:
-        return _todayParagraph(interp, entry.id, honorific);
+        return _todayParagraph(interp, entry.id, honorific, data);
       case JeontongMajorCode.e:
-        return _loveParagraph(interp, honorific);
+        return _loveParagraphById(interp, entry.id, honorific, data);
       case JeontongMajorCode.f:
-        return _topicParagraph(interp, honorific);
+        return _topicParagraphById(interp, entry.id, honorific, data);
       case JeontongMajorCode.g:
-        return _healthParagraph(interp, honorific);
+        return _healthParagraphById(interp, entry.id, honorific, data);
       case JeontongMajorCode.h:
-        return _luckyCharmParagraph(interp, honorific);
+        return _luckyCharmParagraphById(interp, entry.id, honorific, data);
     }
   }
 
-  static String _lifetimeParagraph(
+  /// A그룹(평생운, A01~A10) 이야기체 — [data]가 있으면 `runJeontongCategory`가
+  /// 계산해둔 해당 소카테고리 전용 값(예: A07의 child_god/count, A08의
+  /// parent_message/sibling_message)을 문장에 직접 반영한다.
+  static String _lifetimeParagraphById(
     SajuFullInterpretation interp,
+    String categoryId,
     String honorific,
+    Map<String, dynamic>? data,
   ) {
+    switch (categoryId) {
+      case 'A03':
+        final assetStyle = data?['asset_style'] as String?;
+        if (assetStyle != null) {
+          return '평생 재물운이라는 주제로 좁혀서 보면, $honorific의 사주는 ${_soften(_wealthNarrative(interp.wealthFortune, honorific))} '
+              '자산을 굴리는 방식으로는 $assetStyle 흐름이 잘 맞아요. '
+              '평생에 걸쳐 이 흐름을 이해하고 있으면, 큰돈이 오갈 때마다 훨씬 침착하게 판단할 수 있을 거예요.';
+        }
+        break;
+      case 'A04':
+        final career = interp.careerFortune;
+        final jobs = (data?['recommended_jobs'] as List?)
+            ?.map((e) => e.toString())
+            .toList();
+        final growthPath = data?['growth_path'] as String?;
+        if (jobs != null) {
+          return '평생 직업·명예운이라는 주제로 보면, $honorific은 ${career.structure} 성향이 뚜렷해서 ${_soften(career.message)} '
+              '${jobs.isNotEmpty ? '특히 ${_joinKo(jobs)} 같은 분야에서 두각을 나타낼 가능성이 높아요. ' : ''}'
+              '${growthPath != null ? '$growthPath 흐름을 알아두면 진로를 정할 때 큰 힌트가 될 거예요.' : ''}';
+        }
+        break;
+      case 'A05':
+        return _healthNarrativeFromLifeData(interp, honorific, data);
+      case 'A06':
+        final message = data?['message'] as String?;
+        if (message != null) {
+          final style = data?['style'] as String?;
+          final marriageTiming = data?['marriage_timing'] as String?;
+          return '평생 배우자·결혼운으로 보면, ${_soften(message)} '
+              '${style != null ? '전체적인 결로는 $style 성향이 뚜렷해요. ' : ''}'
+              '${marriageTiming != null ? _soften(marriageTiming) : ''}';
+        }
+        break;
+      case 'A07':
+        final childGod = data?['child_god'] as String?;
+        final message = data?['message'] as String?;
+        if (childGod != null && message != null) {
+          final timingHint = data?['timing_hint'] as String?;
+          return '평생 자녀운으로 살펴보면, $honorific의 사주에서 자녀를 뜻하는 기운은 $childGod이에요. '
+              '${_soften(message)} '
+              '${timingHint != null ? _soften(timingHint) : ''}';
+        }
+        break;
+      case 'A08':
+        final parentMessage = data?['parent_message'] as String?;
+        final siblingMessage = data?['sibling_message'] as String?;
+        if (parentMessage != null && siblingMessage != null) {
+          return '평생 부모·형제운으로 보면, 부모님과의 인연은 ${_soften(parentMessage)} '
+              '형제·자매나 동료와의 인연은 ${_soften(siblingMessage)} '
+              '가족이라는 울타리 안에서 $honorific이 서 있는 자리를 이해하면, 관계를 대하는 마음이 한결 편안해질 거예요.';
+        }
+        break;
+      case 'A09':
+        final message = data?['message'] as String?;
+        if (message != null) {
+          final style = data?['style'] as String?;
+          return '평생 학업·시험운으로 보면, $honorific은 ${style ?? ''} 성향이 뚜렷해요. '
+              '${_soften(message)} '
+              '이 성향을 미리 알고 자신에게 맞는 공부 방식을 택하면, 훨씬 적은 노력으로도 좋은 결과를 얻을 수 있어요.';
+        }
+        break;
+      case 'A10':
+        final summary = data?['summary'] as String?;
+        if (summary != null) {
+          return '인생의 큰 전환점이라는 주제로 보면, ${_soften(summary)} '
+              '이런 전환점은 위기가 아니라 $honorific이 새로운 국면으로 들어서는 문이라고 생각하면, 그 시기를 훨씬 여유롭게 맞이할 수 있어요.';
+        }
+        break;
+      case 'A01':
+      case 'A02':
+      default:
+        break;
+    }
+    // A01/A02(총운·성격) 및 위에서 data가 없어 break한 경우의 공통 폴백 —
+    // 기존에 검증된 "평생 재물·직업·애정" 3축 총론 문단을 그대로 유지한다.
     final wealth = interp.wealthFortune;
     final career = interp.careerFortune;
     final love = interp.loveFortune;
@@ -222,10 +323,87 @@ class JeontongNarrativeInterpreter {
         '이 세 가지 흐름이 서로 맞물리며 $honorific만의 고유한 인생 그림을 그려가고 있는 거예요.';
   }
 
-  static String _daewoonParagraph(
+  /// B그룹(대운, B01~B10) 이야기체 — 대운은 10년 단위 흐름이므로 각
+  /// 소카테고리(재물/직업/건강/애정/전환기/미리보기/최고·최악 시기/세운
+  /// 조합)가 서로 다른 시계열 계산 결과([data])를 갖고 있다.
+  static String _daewoonParagraphById(
     SajuFullInterpretation interp,
+    String categoryId,
     String honorific,
+    Map<String, dynamic>? data,
   ) {
+    switch (categoryId) {
+      case 'B02':
+        final summary = data?['summary'] as String?;
+        if (summary != null) {
+          return '대운별 재물 흐름이라는 주제로 보면, ${_soften(summary)} '
+              '10년 단위로 찾아오는 이 흐름을 미리 알아두면, 큰 재물 결정을 내릴 때 훨씬 좋은 타이밍을 잡을 수 있어요.';
+        }
+        break;
+      case 'B03':
+        final summary = data?['summary'] as String?;
+        if (summary != null) {
+          return '대운별 직업 변화라는 주제로 보면, ${_soften(summary)} '
+              '이직·승진 같은 큰 결정을 앞두고 있다면, 지금이 어떤 흐름의 대운인지 함께 참고하면 도움이 될 거예요.';
+        }
+        break;
+      case 'B04':
+        final summary = data?['summary'] as String?;
+        if (summary != null) {
+          return '대운별 건강 변화라는 주제로 보면, ${_soften(summary)} '
+              '이건 의학적 진단이 아니라 사주 오행의 흐름을 기준으로 한 생활 참고 정보이니, 해당 시기에는 평소보다 조금 더 컨디션을 챙기는 정도로 편안하게 받아들이면 좋아요.';
+        }
+        break;
+      case 'B05':
+        final summary = data?['summary'] as String?;
+        if (summary != null) {
+          return '대운별 애정 변화라는 주제로 보면, ${_soften(summary)} '
+              '인연의 흐름도 계절처럼 오가니, 지금 이 시기의 결을 알아두면 관계를 대하는 마음가짐에 도움이 될 거예요.';
+        }
+        break;
+      case 'B06':
+        final summary = data?['summary'] as String?;
+        if (summary != null) {
+          return '대운 전환기 주의사항이라는 주제로 보면, ${_soften(summary)} '
+              '전환기는 흐름이 한 번 크게 바뀌는 시점이라, 그 앞뒤로는 서두르기보다 차분히 상황을 지켜보는 편이 좋아요.';
+        }
+        break;
+      case 'B07':
+        final message = data?['message'] as String?;
+        if (message != null) {
+          final ganZhiKr = data?['gan_zhi_kr'] as String?;
+          return '다음 대운 미리보기로 보면, ${ganZhiKr != null ? '다음으로 다가올 대운은 $ganZhiKr예요. ' : ''}'
+              '${_soften(message)} '
+              '미리 알고 준비하는 것만으로도 새로운 흐름을 훨씬 여유롭게 맞이할 수 있어요.';
+        }
+        break;
+      case 'B08':
+        final summary = data?['summary'] as String?;
+        if (summary != null) {
+          return '인생 최고 대운 시기라는 주제로 보면, ${_soften(summary)} '
+              '이 시기가 오면 평소보다 조금 더 적극적으로 기회를 잡아봐도 좋은 흐름이에요.';
+        }
+        break;
+      case 'B09':
+        final summary = data?['summary'] as String?;
+        if (summary != null) {
+          return '인생에서 조금 더 신중해야 할 대운 시기로 보면, ${_soften(summary)} '
+              '이런 시기는 피할 수 없는 위기가 아니라, 평소보다 한 박자 천천히 움직이면 충분히 잘 지나갈 수 있는 흐름이에요.';
+        }
+        break;
+      case 'B10':
+        final message = data?['message'] as String?;
+        if (message != null) {
+          final synergy = data?['synergy'] as String?;
+          return '지금의 대운과 올해 세운이 만나는 조합으로 보면, ${synergy != null ? '두 흐름은 $synergy 관계예요. ' : ''}'
+              '${_soften(message)}';
+        }
+        break;
+      case 'B01':
+      default:
+        break;
+    }
+    // B01(현재 대운 총평) 및 data 미확보 시 공통 폴백.
     final luck = interp.currentLuckAnalysis;
     if (luck.message == null) {
       return '지금 이 시기에 해당하는 대운 정보는 조금 더 정밀한 계산이 필요해서, 우선은 타고난 사주의 결을 중심으로 풀이해 드렸어요.';
@@ -235,18 +413,100 @@ class JeontongNarrativeInterpreter {
         '대운은 계절이 바뀌듯 자연스럽게 찾아오는 흐름이라, 지금 이 시기의 기운을 미리 알고 준비하는 것만으로도 훨씬 여유롭게 지나갈 수 있어요.';
   }
 
-  /// [2026-08-17 C01~C05 이야기체 차별화] `entry.id`(C01~C05)로 이 해의
-  /// 어느 영역(총운/재물/직업/애정/건강)을 이야기할지 가른다. 이전엔
-  /// C01~C05 전부가 이 함수 하나를 공유하며 항상 재물 이야기만 했다.
+  /// A05/G01/G02가 공유하는 [LifeHealthResult] 데이터(core_organs/
+  /// lifetime_warnings/advice_food/lifestyle)를 재료로 건강 문단을 만든다.
+  /// [emphasis]가 'warnings'이면 G02(평생 조심할 병)처럼 lifetime_warnings에
+  /// 방점을, 기본값(organs)이면 A05/G01(취약장기)처럼 core_organs에
+  /// 방점을 찍어 같은 원본 데이터라도 서로 다른 강조점으로 서술한다.
+  static String _healthNarrativeFromLifeData(
+    SajuFullInterpretation interp,
+    String honorific,
+    Map<String, dynamic>? data, {
+    String emphasis = 'organs',
+  }) {
+    final coreOrgans = (data?['core_organs'] as List?)
+        ?.map((e) => e.toString())
+        .toList();
+    final warnings = (data?['lifetime_warnings'] as List?)
+        ?.map((e) => e.toString())
+        .toList();
+    final adviceFood = (data?['advice_food'] as List?)
+        ?.map((e) => e.toString())
+        .toList();
+    final lifestyle = data?['lifestyle'] as String?;
+    if (coreOrgans == null) {
+      // data 미확보 — 기존 인터프리터 재료만으로 안전 폴백.
+      final health = interp.healthFortune;
+      final organs = health.coreOrgans.isNotEmpty
+          ? _joinKo(health.coreOrgans)
+          : '몸 전반';
+      return '평생 건강운으로 보면, $honorific의 사주는 타고난 기운상 $organs 쪽과 특히 인연이 깊어요. '
+          '이건 의학적 진단이 아니라 명리 체질론에 근거한 생활 속 참고이니 가볍게 받아들이면 돼요. '
+          '몸을 아끼는 마음으로 평소 컨디션을 살피는 습관만 들여도 한결 편안해질 거예요.';
+    }
+    final organsText = coreOrgans.isNotEmpty ? _joinKo(coreOrgans) : '몸 전반';
+    if (emphasis == 'warnings' && warnings != null && warnings.isNotEmpty) {
+      return '평생 조심하면 좋은 부분으로 보면, $honorific의 사주는 $organsText 쪽 흐름과 인연이 깊어서 이 부분을 평소에 잘 챙기면 좋아요. '
+          '${_joinKo(warnings)} 쪽에 특히 신경을 쓰면 도움이 될 거예요. '
+          '이건 의학적 진단이 아니라 명리 체질론에 근거한 생활 속 참고일 뿐이니 너무 무겁게 받아들이지 않아도 돼요. '
+          '${adviceFood != null && adviceFood.isNotEmpty ? '${_joinKo(adviceFood)} 같은 음식을 가까이하면 도움이 될 거예요. ' : ''}'
+          '${lifestyle ?? ''}';
+    }
+    return '평생 건강운의 핵심 장기로 보면, $honorific의 사주는 $organsText 쪽과 특히 인연이 깊어요. '
+        '${warnings != null && warnings.isNotEmpty ? '평소 ${_joinKo(warnings)} 쪽을 챙기면 도움이 돼요. ' : ''}'
+        '이건 의학적 진단이 아니라 명리 체질론에 근거한 생활 속 참고이니 가볍게 받아들이면 돼요. '
+        '${adviceFood != null && adviceFood.isNotEmpty ? '${_joinKo(adviceFood)} 같은 음식이 잘 맞아요. ' : ''}'
+        '${lifestyle ?? '몸을 아끼는 마음으로 평소 컨디션을 살피는 습관만 들여도 한결 편안해질 거예요.'}';
+  }
+
+  /// [2026-08-17 C01~C10 이야기체 차별화] `entry.id`로 이 해의 어느 영역을
+  /// 이야기할지 가른다. C02~C05는 총운 계산 안의 focusField를,
+  /// C06~C10은 각자의 실계산(이사·시험·소송·인간관계·월별개관) [data]를 쓴다.
   static String _thisYearParagraph(
     SajuFullInterpretation interp,
     String categoryId,
     String honorific,
+    Map<String, dynamic>? data,
   ) {
     final luck = interp.currentLuckAnalysis;
     final base = luck.message != null
         ? '올해는 ${luck.title}의 큰 흐름 안에 놓여 있는 해예요. ${_soften(luck.message!)} '
         : '올해는 타고난 사주 본연의 기운이 비교적 뚜렷하게 드러나는 시기예요. ';
+
+    switch (categoryId) {
+      case 'C06':
+      case 'C07':
+      case 'C08':
+      case 'C09':
+        final overall = data?['overall'] as String?;
+        if (overall != null) {
+          final topicWord = switch (categoryId) {
+            'C06' => '이사·이동수',
+            'C07' => '시험·자격운',
+            'C08' => '소송·관재수',
+            _ => '인간관계',
+          };
+          final advice = data?['advice'] as String?;
+          return '$base'
+              '특히 올해 $topicWord 쪽 흐름을 함께 짚어보면, ${_soften(overall)} '
+              '${advice != null ? _soften(advice) : ''}';
+        }
+        break;
+      case 'C10':
+        final overall = data?['overall'] as String?;
+        if (overall != null) {
+          final monthlySummary = (data?['monthly_summary'] as List?)
+              ?.map((e) => e.toString())
+              .toList();
+          return '$base'
+              '한 해를 열두 달로 나누어 짚어보면, ${_soften(overall)} '
+              '${monthlySummary != null && monthlySummary.isNotEmpty ? '${_joinKo(monthlySummary.take(3).toList())} 같은 흐름이 달마다 이어져요. ' : ''}'
+              '달마다 결이 조금씩 달라지니, 큰 계획을 세울 때는 이 흐름을 참고하면 도움이 될 거예요.';
+        }
+        break;
+      default:
+        break;
+    }
 
     final String focusLine;
     switch (categoryId) {
@@ -281,14 +541,74 @@ class JeontongNarrativeInterpreter {
         '한 해를 통째로 보면 잔잔한 흐름 속에서도 분명 변화의 순간들이 있을 텐데, 그 순간마다 $honorific이 원래 갖고 있던 기질대로 차분히 대응하면 좋은 결과로 이어질 가능성이 높아요.';
   }
 
-  /// [2026-08-17 D02/D03/D05~D08 이야기체 차별화] `categoryId`로 오늘/
-  /// 이 시점의 어느 영역(총운/재물/애정/건강/시간대)을 이야기할지 가른다.
+  /// [2026-08-17 D01~D10 이야기체 차별화] `categoryId`로 오늘/이달/이번 주
+  /// 등 어느 시점·영역(월운/총운/재물/애정/건강/시간대/주간/개운아이템/
+  /// 피할일)을 이야기할지 가른다.
   static String _todayParagraph(
     SajuFullInterpretation interp,
     String categoryId,
     String honorific,
+    Map<String, dynamic>? data,
   ) {
     final dm = interp.dayMasterAnalysis;
+
+    // D01(이달의 운세), D04(이번 주 운세), D09(개운 아이템), D10(피해야
+    // 할 일)은 각각 고유한 data 구조를 가져 전용 문단이 필요하다.
+    switch (categoryId) {
+      case 'D01':
+        final overall = data?['overall'] as String?;
+        if (overall != null) {
+          final work = data?['work'] as String?;
+          final advice = data?['advice'] as String?;
+          return '이달의 흐름으로 보면, ${_soften(overall)} '
+              '${work != null ? _soften(work) : ''} '
+              '${advice != null ? _soften(advice) : ''}';
+        }
+        break;
+      case 'D04':
+        final overall = data?['overall'] as String?;
+        if (overall != null) {
+          final dailySummary = (data?['daily_summary'] as List?)
+              ?.map((e) => e.toString())
+              .toList();
+          return '이번 주의 흐름으로 보면, ${_soften(overall)} '
+              '${dailySummary != null && dailySummary.isNotEmpty ? '${_joinKo(dailySummary.take(3).toList())} 같은 흐름이 요일마다 이어져요. ' : ''}'
+              '한 주 전체의 흐름을 미리 알아두면, 일정을 짜는 데도 큰 도움이 될 거예요.';
+        }
+        break;
+      case 'D09':
+        final colors = (data?['colors'] as List?)
+            ?.map((e) => e.toString())
+            .toList();
+        if (colors != null) {
+          final items = (data?['items'] as List?)
+              ?.map((e) => e.toString())
+              .toList();
+          final food = (data?['food'] as List?)
+              ?.map((e) => e.toString())
+              .toList();
+          final activities = (data?['activities'] as List?)
+              ?.map((e) => e.toString())
+              .toList();
+          return '지금 $honorific의 기운을 보충해줄 개운 아이템으로 보면, '
+              '${colors.isNotEmpty ? '${_joinKo(colors)} 계열 색을 가까이하면 좋아요. ' : ''}'
+              '${items != null && items.isNotEmpty ? '${_joinKo(items)} 같은 소품을 곁에 두면 도움이 돼요. ' : ''}'
+              '${food != null && food.isNotEmpty ? '${_joinKo(food)} 같은 음식을 가끔씩 챙겨보세요. ' : ''}'
+              '${activities != null && activities.isNotEmpty ? '${_joinKo(activities)} 같은 활동도 기운을 밝혀줄 거예요.' : ''}';
+        }
+        break;
+      case 'D10':
+        final overall = data?['overall'] as String?;
+        if (overall != null) {
+          final advice = data?['advice'] as String?;
+          return '오늘 하루, 피하면 좋은 일이라는 주제로 보면, ${_soften(overall)} '
+              '${advice != null ? _soften(advice) : ''}';
+        }
+        break;
+      default:
+        break;
+    }
+
     final String focusLine;
     switch (categoryId) {
       case 'D05':
@@ -322,10 +642,58 @@ class JeontongNarrativeInterpreter {
         '이런 날에는 큰 결정을 서두르기보다, $honorific 본연의 리듬에 맞춰 하루하루를 채워가는 편이 오히려 더 좋은 흐름을 만들어줘요. 작은 선택 하나가 며칠 뒤 뜻밖의 좋은 결과로 이어질 수 있으니, 지금 이 순간의 감각을 믿어봐도 좋아요.';
   }
 
-  static String _loveParagraph(
+  /// E그룹(궁합, E08~E10) 이야기체 — E08(띠궁합)/E09(오행궁합)/E10(겉속궁합)은
+  /// 서로 다른 계산 결과([data])를 가진 별개 주제라, 실계산이 없는 경우에만
+  /// 기존 애정운 총론으로 폴백한다.
+  static String _loveParagraphById(
     SajuFullInterpretation interp,
+    String categoryId,
     String honorific,
+    Map<String, dynamic>? data,
   ) {
+    switch (categoryId) {
+      case 'E08':
+        final myAnimal = data?['my_animal'] as String?;
+        final summary = data?['summary'] as String?;
+        if (myAnimal != null && summary != null) {
+          final best = (data?['best_matches'] as List?)
+              ?.map((e) => e.toString())
+              .toList();
+          final worst = (data?['worst_matches'] as List?)
+              ?.map((e) => e.toString())
+              .toList();
+          return '띠 궁합이라는 주제로 보면, $honorific의 띠는 $myAnimal예요. '
+              '${_soften(summary)} '
+              '${best != null && best.isNotEmpty ? '특히 ${_joinKo(best)}띠와는 서로 편안하게 어우러지는 결이 있어요. ' : ''}'
+              '${worst != null && worst.isNotEmpty ? '반대로 ${_joinKo(worst)}띠와는 서로 다른 결이라 조금 더 배려하는 마음이 필요할 수 있어요.' : ''}';
+        }
+        break;
+      case 'E09':
+        final myElement = data?['my_element'] as String?;
+        final summary = data?['summary'] as String?;
+        if (myElement != null && summary != null) {
+          final supportive = data?['supportive_element'] as String?;
+          final clashing = data?['clashing_element'] as String?;
+          return '오행 궁합이라는 주제로 보면, $honorific의 타고난 기운은 $myElement예요. '
+              '${_soften(summary)} '
+              '${supportive != null ? '$supportive 기운을 가진 상대와는 서로 도와주는 관계가 되기 쉬워요. ' : ''}'
+              '${clashing != null ? '$clashing 기운을 가진 상대와는 부딪히는 지점이 있을 수 있으니, 서로 다름을 이해하는 자세가 관계를 더 단단하게 만들어줘요.' : ''}';
+        }
+        break;
+      case 'E10':
+        final relation = data?['relation'] as String?;
+        final summary = data?['summary'] as String?;
+        if (relation != null && summary != null) {
+          final outer = data?['outer_element'] as String?;
+          final inner = data?['inner_element'] as String?;
+          return '겉궁합과 속궁합이라는 주제로 보면, $honorific은 겉으로 드러나는 결과 마음속 진짜 결이 '
+              '${outer != null && inner != null ? '($outer과(와) $inner)' : ''} $relation 관계에 있어요. '
+              '${_soften(summary)}';
+        }
+        break;
+      default:
+        break;
+    }
     final love = interp.loveFortune;
     final tg = interp.tenGodsAnalysis;
     return '인연이라는 주제로 $honorific의 사주를 들여다보면, ${_soften(_loveNarrative(love))} '
@@ -333,10 +701,90 @@ class JeontongNarrativeInterpreter {
         '결국 좋은 인연은 억지로 맞추는 것이 아니라, $honorific 고유의 기운을 편안하게 받아줄 수 있는 상대를 만났을 때 가장 자연스럽게 이어진답니다.';
   }
 
-  static String _topicParagraph(
+  /// F그룹(특수 주제, F01~F10) 이야기체 — 재물/직업/투자/결혼/출산/해외 등
+  /// 서로 다른 실전 주제이므로 각 [data] 구조를 그대로 반영한다. F01/F02는
+  /// A03/A04를 그대로 재사용하는 카테고리라 `_lifetimeParagraphById`에
+  /// 위임한다.
+  static String _topicParagraphById(
     SajuFullInterpretation interp,
+    String categoryId,
     String honorific,
+    Map<String, dynamic>? data,
   ) {
+    switch (categoryId) {
+      case 'F01':
+        return _lifetimeParagraphById(interp, 'A03', honorific, data);
+      case 'F02':
+        return _lifetimeParagraphById(interp, 'A04', honorific, data);
+      case 'F03':
+        final message = data?['message'] as String?;
+        if (message != null) {
+          final items = (data?['items'] as List?)
+              ?.map((e) => e.toString())
+              .toList();
+          final style = data?['style'] as String?;
+          return '$honorific에게 맞는 사업 아이템이라는 주제로 보면, ${_soften(message)} '
+              '${style != null ? '전체적으로는 $style 방식이 잘 맞아요. ' : ''}'
+              '${items != null && items.isNotEmpty ? '구체적으로는 ${_joinKo(items)} 같은 분야를 살펴보면 좋아요.' : ''}';
+        }
+        break;
+      case 'F04':
+        final message = data?['message'] as String?;
+        if (message != null) {
+          final verdict = data?['verdict'] as String?;
+          return '창업이냐 직장이냐 하는 고민으로 보면, ${verdict != null ? '$honorific의 사주는 $verdict 쪽에 조금 더 무게가 실려요. ' : ''}'
+              '${_soften(message)}';
+        }
+        break;
+      case 'F05':
+        final message = data?['message'] as String?;
+        if (message != null) {
+          final verdict = data?['verdict'] as String?;
+          return '이직 타이밍이라는 주제로 보면, ${verdict != null ? '$honorific의 지금 흐름은 $verdict예요. ' : ''}'
+              '${_soften(message)}';
+        }
+        break;
+      case 'F06':
+        final summary = data?['summary'] as String?;
+        if (summary != null) {
+          return '부동산 매매 타이밍이라는 주제로 보면, ${_soften(summary)} '
+              '큰 자산이 오가는 결정인 만큼, 이 흐름을 참고해 서두르지 않고 움직이면 좋은 결과로 이어질 가능성이 높아요.';
+        }
+        break;
+      case 'F07':
+        final message = data?['message'] as String?;
+        if (message != null) {
+          final style = data?['style'] as String?;
+          return '투자 성향이라는 주제로 보면, $honorific은 ${style ?? ''} 성향이 뚜렷해요. '
+              '${_soften(message)}';
+        }
+        break;
+      case 'F08':
+        final message = data?['message'] as String?;
+        if (message != null) {
+          final nearestPeriod = data?['nearest_period'] as String?;
+          return '결혼 적령기라는 주제로 보면, ${_soften(message)} '
+              '${nearestPeriod != null ? '가까운 시기로는 $nearestPeriod 무렵이 특히 눈에 띄어요.' : ''}';
+        }
+        break;
+      case 'F09':
+        final summary = data?['summary'] as String?;
+        if (summary != null) {
+          return '자녀를 갖기 좋은 해라는 주제로 보면, ${_soften(summary)} '
+              '이 흐름은 절대적인 기준이 아니라 참고할 만한 하나의 결이니, 부부가 함께 상의하며 편안한 때를 찾아가면 좋아요.';
+        }
+        break;
+      case 'F10':
+        final message = data?['message'] as String?;
+        if (message != null) {
+          final style = data?['style'] as String?;
+          return '유학·해외 진출운이라는 주제로 보면, $honorific은 ${style ?? ''} 흐름을 갖고 있어요. '
+              '${_soften(message)}';
+        }
+        break;
+      default:
+        break;
+    }
     final wealth = interp.wealthFortune;
     final career = interp.careerFortune;
     return '구체적인 주제로 들어가 보면, 재물 쪽으로는 ${_soften(_wealthNarrative(wealth, honorific))} '
@@ -344,83 +792,165 @@ class JeontongNarrativeInterpreter {
         '${career.recommended.isNotEmpty ? '특히 ${_joinKo(career.recommended)} 같은 분야가 $honorific의 타고난 결과 잘 맞아떨어질 가능성이 높아요.' : ''}';
   }
 
-  static String _healthParagraph(
+  /// G그룹(건강, G01~G10) 이야기체 — G01/G02는 A05와 완전히 같은 원본
+  /// 데이터([LifeHealthResult])를 공유하므로 `_healthNarrativeFromLifeData`의
+  /// emphasis 파라미터로만 서로 다르게 서술한다. 나머지(G03~G10)는 각자
+  /// 고유한 계산 결과를 반영한다.
+  static String _healthParagraphById(
     SajuFullInterpretation interp,
+    String categoryId,
     String honorific,
+    Map<String, dynamic>? data,
   ) {
-    final health = interp.healthFortune;
-    final fe = interp.fiveElementsAnalysis;
-    final organs = health.coreOrgans.isNotEmpty
-        ? _joinKo(health.coreOrgans)
-        : '몸 전반';
-    // [오행 문단(_traitsParagraph)과 동일한 원칙] health.warnings는
-    // "~계통 주의" 같은 기계적인 원본 조합 문구라 이야기체 흐름과
-    // 어울리지 않는다. 대신 fe.excess/fe.lack(오행 이름만)을 받아
-    // 완전히 새로 쓴 생활 관리 톤의 자연어 문장으로 교체한다.
-    final careLines = <String>[
-      for (final el in fe.excess) _elementHealthCareNote(el, isExcess: true),
-      for (final el in fe.lack) _elementHealthCareNote(el, isExcess: false),
-    ]..removeWhere((s) => s.isEmpty);
-    final careNote = careLines.isNotEmpty ? '${_joinKo(careLines)}. ' : '';
-    final foodNote = health.recommendedFood.isNotEmpty
-        ? '${_joinKo(health.recommendedFood)} 같은 음식을 가까이하면 몸의 균형을 잡는 데 도움이 될 거예요. '
-        : '';
-    return '체질과 건강이라는 주제에서는, $honorific의 사주가 타고난 기운상 $organs 쪽 흐름과 특히 인연이 깊어요. '
-        '$careNote'
-        '이건 의학적인 진단이 아니라, 오래전부터 전해온 명리 체질론에 근거한 생활 속 참고일 뿐이니 너무 무겁게 받아들이지 않아도 돼요. '
-        '$foodNote'
-        '몸을 아끼는 마음으로 평소 컨디션을 살피는 습관만 들여도, 타고난 체질의 균형이 한결 편안해질 거예요.';
+    switch (categoryId) {
+      case 'G01':
+        return _healthNarrativeFromLifeData(
+          interp,
+          honorific,
+          data,
+          emphasis: 'organs',
+        );
+      case 'G02':
+        return _healthNarrativeFromLifeData(
+          interp,
+          honorific,
+          data,
+          emphasis: 'warnings',
+        );
+      case 'G03':
+        final summary = data?['summary'] as String?;
+        if (summary != null) {
+          return '대운별로 건강을 챙기면 좋은 시기라는 주제로 보면, ${_soften(summary)} '
+              '이건 의학적 진단이 아니라 사주 오행 흐름에 근거한 생활 참고이니, 해당 시기엔 평소보다 조금 더 컨디션을 돌보는 정도로 편안하게 받아들이면 돼요.';
+        }
+        break;
+      case 'G04':
+        final food = (data?['food'] as List?)
+            ?.map((e) => e.toString())
+            .toList();
+        if (food != null) {
+          final advice = data?['advice'] as String?;
+          return '$honorific에게 좋은 음식이라는 주제로 보면, '
+              '${food.isNotEmpty ? '${_joinKo(food)} 같은 음식을 가까이하면 몸의 균형을 잡는 데 도움이 돼요. ' : ''}'
+              '${advice != null ? _soften(advice) : ''}';
+        }
+        break;
+      case 'G05':
+        final message = data?['message'] as String?;
+        if (message != null) {
+          final foodsToLimit = (data?['foods_to_limit'] as List?)
+              ?.map((e) => e.toString())
+              .toList();
+          return '$honorific에게 조금 덜어내면 좋은 음식이라는 주제로 보면, ${_soften(message)} '
+              '${foodsToLimit != null && foodsToLimit.isNotEmpty ? '${_joinKo(foodsToLimit)} 같은 음식은 평소보다 양을 줄여보면 몸이 한결 가벼워질 거예요.' : ''}';
+        }
+        break;
+      case 'G06':
+        final message = data?['message'] as String?;
+        if (message != null) {
+          final organs = (data?['organs'] as List?)
+              ?.map((e) => e.toString())
+              .toList();
+          final personality = data?['personality'] as String?;
+          return '사주 체질이라는 주제로 보면, $honorific은 ${personality ?? ''} 체질에 가까워요. '
+              '${organs != null && organs.isNotEmpty ? '${_joinKo(organs)} 쪽과 특히 인연이 깊고요. ' : ''}'
+              '${_soften(message)}';
+        }
+        break;
+      case 'G07':
+        final message = data?['message'] as String?;
+        if (message != null) {
+          final verdict = data?['verdict'] as String?;
+          return '마음 건강이라는 주제로 보면, ${verdict != null ? '$honorific은 $verdict 편이에요. ' : ''}'
+              '${_soften(message)} '
+              '이건 진단이 아니라 참고이니, 마음이 힘든 날엔 주변에 기대는 것도 좋은 선택이에요.';
+        }
+        break;
+      case 'G08':
+        final message = data?['message'] as String?;
+        if (message != null) {
+          final verdict = data?['verdict'] as String?;
+          return '사고·수술 조심이라는 주제로 보면, ${verdict != null ? '$honorific의 사주는 $verdict예요. ' : ''}'
+              '${_soften(message)} '
+              '평소보다 조금만 더 안전에 신경 쓰면 충분히 편안하게 지나갈 수 있어요.';
+        }
+        break;
+      case 'G10':
+        final message = data?['message'] as String?;
+        if (message != null) {
+          final verdict = data?['verdict'] as String?;
+          return '회복력과 면역이라는 주제로 보면, ${verdict != null ? '$honorific은 $verdict 편이에요. ' : ''}'
+              '${_soften(message)}';
+        }
+        break;
+      default:
+        break;
+    }
+    return _healthNarrativeFromLifeData(interp, honorific, data);
   }
 
-  /// 오행별로 "과다(isExcess=true)" 또는 "여백(isExcess=false)"일 때의
-  /// 건강 관리 조언을 완전히 새로 쓴 문장으로 돌려준다. rules JSON의
-  /// excess/lack 필드(질환·부정 감정 나열)는 절대 참조하지 않는다.
-  static String _elementHealthCareNote(
-    String element, {
-    required bool isExcess,
-  }) {
-    if (isExcess) {
-      switch (element) {
-        case '목':
-          return '목(木)의 기운이 두드러진 편이라 간과 눈 쪽에 피로가 쌓이기 쉬우니, 틈틈이 눈을 쉬어주고 가볍게 몸을 풀어주면 한결 편안해져요';
-        case '화':
-          return '화(火)의 기운이 활발한 편이라 심장과 혈액 순환에 신경을 쓰면 좋은데, 카페인을 조금 줄이고 충분한 수면을 챙기는 것만으로도 큰 도움이 돼요';
-        case '토':
-          return '토(土)의 기운이 두터운 편이라 소화기 쪽 컨디션을 살피면 좋고, 규칙적인 식사 시간을 지키는 습관이 몸의 균형을 잡아줘요';
-        case '금':
-          return '금(金)의 기운이 강한 편이라 호흡기와 피부 건강을 틈틈이 챙기면 좋고, 건조한 계절에는 수분 보충에 조금 더 신경 쓰면 편안해져요';
-        case '수':
-          return '수(水)의 기운이 깊은 편이라 신장과 방광 쪽 컨디션을 살피면 좋고, 몸을 따뜻하게 유지하는 습관이 활력을 지켜줘요';
+  /// H그룹(개운·풍수, H01~H10) 이야기체 — H01/H02/H03/H04/H05/H07/H10은
+  /// 계산 레이어에서 전부 동일한 [LuckyItemsResult]를 재사용하므로("행운의
+  /// 색"/"행운의 방향"/"행운의 숫자"/"행운의 보석"/"부적" 등 category
+  /// 라벨만 다름), narrative 레이어에서 categoryId별로 그 데이터의 서로
+  /// 다른 필드(colors/directions/numbers/items/activities)를 강조해야만
+  /// 실제로 다른 문장이 나온다.
+  static String _luckyCharmParagraphById(
+    SajuFullInterpretation interp,
+    String categoryId,
+    String honorific,
+    Map<String, dynamic>? data,
+  ) {
+    final colors = (data?['colors'] as List?)?.map((e) => e.toString()).toList();
+    final directions = (data?['directions'] as List?)
+        ?.map((e) => e.toString())
+        .toList();
+    final numbers = (data?['numbers'] as List?)
+        ?.map((e) => e.toString())
+        .toList();
+    final items = (data?['items'] as List?)?.map((e) => e.toString()).toList();
+    final activities = (data?['activities'] as List?)
+        ?.map((e) => e.toString())
+        .toList();
+    final advice = data?['advice'] as String?;
+
+    if (colors != null) {
+      switch (categoryId) {
+        case 'H01':
+          return '$honorific의 개운색이라는 주제로 보면, 타고난 기운을 가장 잘 북돋아 주는 색은 '
+              '${colors.isNotEmpty ? '${_joinKo(colors)} 계열이에요. ' : ''}'
+              '거창하게 바꿀 필요 없이, 즐겨 입는 옷이나 자주 쓰는 소품 하나를 이 색으로 골라보는 것만으로도 기운이 한결 편안하게 흐를 거예요.';
+        case 'H02':
+        case 'H07':
+          final label = categoryId == 'H07' ? '집·사무실 방향' : '행운의 방향';
+          return '$honorific에게 맞는 $label이라는 주제로 보면, '
+              '${directions != null && directions.isNotEmpty ? '${_joinKo(directions)} 방향의 기운이 특히 잘 맞아요. ' : ''}'
+              '${categoryId == 'H07' ? '책상이나 침대 머리를 이 방향으로 두면, 공간의 기운이 훨씬 안정적으로 자리 잡을 거예요.' : '중요한 자리에 앉거나 이동할 때 이 방향을 살짝 의식해보면 도움이 돼요.'}';
+        case 'H03':
+          return '$honorific에게 맞는 행운의 숫자라는 주제로 보면, '
+              '${numbers != null && numbers.isNotEmpty ? '${_joinKo(numbers)} 같은 숫자와 인연이 깊어요. ' : ''}'
+              '중요한 날짜를 고르거나 비밀번호, 좌석 번호를 정할 때 이 숫자를 살짝 참고해보면 마음이 한결 편안해질 거예요.';
+        case 'H04':
+          return '$honorific에게 맞는 보석이라는 주제로 보면, '
+              '${items != null && items.isNotEmpty ? '${_joinKo(items)} 같은 보석이 기운을 잘 북돋아 줘요. ' : ''}'
+              '몸에 지니는 작은 장신구 하나로도 타고난 기운이 한결 안정적으로 흐르는 걸 느낄 수 있을 거예요.';
+        case 'H05':
+          return '$honorific에게 맞는 부적·개운 아이템이라는 주제로 보면, '
+              '${items != null && items.isNotEmpty ? '${_joinKo(items)} 같은 물건이 기운을 지켜주는 역할을 해줘요. ' : ''}'
+              '${advice != null ? _soften(advice) : '이런 물건을 가까이 두는 것 자체가 스스로에게 안정감을 주는 좋은 습관이 될 거예요.'}';
+        case 'H10':
+          return '$honorific에게 맞는 개운 습관이라는 주제로 보면, '
+              '${activities != null && activities.isNotEmpty ? '${_joinKo(activities)} 같은 활동을 꾸준히 실천하면 좋아요. ' : ''}'
+              '작은 습관 하나를 매일 반복하는 것만으로도, 타고난 좋은 기운이 삶 속에 훨씬 자연스럽게 스며들 거예요.';
         default:
-          return '';
-      }
-    } else {
-      switch (element) {
-        case '목':
-          return '목(木)의 기운이 다소 여백이 있는 편이라 근육과 관절이 뻣뻣해지기 쉬우니, 가벼운 산책이나 스트레칭을 꾸준히 하면 몸이 한결 가벼워져요';
-        case '화':
-          return '화(火)의 기운이 다소 여백이 있는 편이라 손발이 차거나 기운이 처지기 쉬우니, 따뜻한 차 한 잔과 햇볕을 쬐는 시간이 활력을 북돋아 줘요';
-        case '토':
-          return '토(土)의 기운이 다소 여백이 있는 편이라 소화 기능이 예민할 수 있으니, 자극적인 음식을 조금 줄이고 천천히 식사하는 습관이 도움이 돼요';
-        case '금':
-          return '금(金)의 기운이 다소 여백이 있는 편이라 호흡기가 예민할 수 있으니, 실내 환기를 자주 하고 미세먼지 관리에 신경 쓰면 좋아요';
-        case '수':
-          return '수(水)의 기운이 다소 여백이 있는 편이라 체력이 쉽게 떨어질 수 있으니, 무리하지 않는 선에서 꾸준히 체력을 기르는 습관이 큰 힘이 돼요';
-        default:
-          return '';
+          break;
       }
     }
-  }
-
-  static String _luckyCharmParagraph(
-    SajuFullInterpretation interp,
-    String honorific,
-  ) {
     final fe = interp.fiveElementsAnalysis;
-    final colors = fe.recommendedColor.isNotEmpty
+    final fallbackColors = fe.recommendedColor.isNotEmpty
         ? _joinKo(fe.recommendedColor)
         : '차분한 색';
-    return '개운이라는 관점에서 보면, $honorific의 타고난 기운을 가장 잘 북돋아 주는 색은 $colors 계열이고, 방향으로는 ${fe.recommendedDirection} 쪽 기운이 잘 맞아요. '
+    return '개운이라는 관점에서 보면, $honorific의 타고난 기운을 가장 잘 북돋아 주는 색은 $fallbackColors 계열이고, 방향으로는 ${fe.recommendedDirection} 쪽 기운이 잘 맞아요. '
         '거창한 것이 아니어도, 즐겨 입는 옷이나 방 안의 작은 소품 하나를 이 기운에 맞춰보는 것만으로도 마음이 한결 편안해지는 걸 느낄 수 있을 거예요. '
         '결국 개운이라는 건 없던 복을 억지로 만드는 게 아니라, $honorific이 원래 갖고 있던 좋은 기운이 더 잘 흐르도록 살짝 물꼬를 터주는 일이에요.';
   }

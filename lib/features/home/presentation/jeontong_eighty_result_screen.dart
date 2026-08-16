@@ -16,13 +16,17 @@ import '../data/jeontong_bookmark_store.dart';
 import '../data/jeontong_history_store.dart';
 import '../data/jeontong_profile_store.dart';
 import '../domain/jeontong_eighty_calculator.dart'
-    show kJeontongPlaceholderCategoryIds;
+    show
+        JeontongCalcContext,
+        kJeontongPlaceholderCategoryIds,
+        runJeontongCategory;
 import '../domain/jeontong_eighty_matrix.dart';
 import '../domain/jeontong_eighty_report_builder.dart'
     show JeontongReportBuilder;
 import '../domain/jeontong_input.dart';
 import '../domain/jeontong_narrative_interpreter.dart';
 import '../domain/jeontong_report_cache.dart';
+import '../domain/saju_fortune_rules.dart' show SajuFortuneRules;
 import '../domain/saju_interpreter.dart' show SajuInterpreter, SajuRules;
 import 'jeontong_design/hanji_background.dart';
 import 'jeontong_design/hanji_design_tokens.dart';
@@ -572,6 +576,15 @@ class _ResultBody extends StatelessWidget {
   /// → SajuInterpreter.fullInterpretation() 결과만 조회해 문단을 조합하는
   /// JeontongSajuDetailSection._tryBuild()와 동일한 방어적 패턴을 그대로
   /// 따른다 — 재계산 없음, 실패 시 SizedBox.shrink().
+  ///
+  /// [모가 틀리다는거야 — 사용자 재지적 대응] 기존엔 interp(9종 공통
+  /// 데이터)만 넘겨 A/B/E/F/G/H 대카테고리가 major 단위로 문단을 공유해
+  /// "건강운을 봐도 건강 얘기가 없다"는 문제가 재발했다. `runJeontongCategory`
+  /// (이미 각 소카테고리 전용 실계산을 담당하는 검증된 함수 — 위
+  /// report.sections 렌더링이 쓰는 것과 동일 함수)를 한 번 더 호출해, 그
+  /// 결과 data map을 [JeontongNarrativeInterpreter.paragraphs]에 함께
+  /// 전달한다. 재계산이 아니라 이미 존재하는 계산 경로를 그대로 재사용하는
+  /// 것뿐이다(§2/§7 원칙).
   Widget _buildNarrativeSection(
     JeontongCategoryEntry entry,
     JeontongInput? profile,
@@ -591,10 +604,23 @@ class _ResultBody extends StatelessWidget {
         referenceDate: DateTime.now(),
       );
       final interp = SajuInterpreter.fullInterpretation(built.saju);
+      Map<String, dynamic>? categoryData;
+      final fortuneRules = SajuFortuneRules.cachedOrNull;
+      if (fortuneRules != null) {
+        final ctx = JeontongCalcContext(
+          saju: built.saju,
+          interp: interp,
+          rules: fortuneRules,
+          referenceDate: DateTime.now(),
+          profile: built.profile,
+        );
+        categoryData = runJeontongCategory(entry.id, ctx).data;
+      }
       final paragraphs = JeontongNarrativeInterpreter.paragraphs(
         interp,
         entry,
         name: profile.normalizedName,
+        data: categoryData,
       );
       return JeontongNarrativeCard(paragraphs: paragraphs);
     } catch (_) {
