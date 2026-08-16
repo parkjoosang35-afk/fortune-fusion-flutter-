@@ -256,7 +256,7 @@ class JeontongReportBuilder {
       SajuProfile? profile;
       final SajuResult saju;
       if (useNewEngine) {
-        final built = _buildProfileAndSajuResultViaPhase1to4(
+        final built = buildProfileAndSajuResultViaPhase1to4(
           kst: kst,
           gender: sajuGender,
           isLunar: isLunar ?? false,
@@ -312,7 +312,14 @@ class JeontongReportBuilder {
   /// 그대로 조회해야 하므로, 이제 profile도 함께 반환해
   /// [JeontongCalcContext.profile]로 전달한다 — 새로 계산하지 않고 이미
   /// 계산된 값을 노출하기만 한다(§2/§7 원칙).
-  static ({SajuResult saju, SajuProfile profile}) _buildProfileAndSajuResultViaPhase1to4({
+  ///
+  /// [2026-08-16 정통사주 신규 디자인 연동] 새 결과 화면(Dawn Hanji 디자인,
+  /// [jeontong_result_profile_view_model.dart])이 원국/오행/십신/대운 등
+  /// 구조화된 [SajuProfile] 필드를 직접 그려야 하므로, 기존에 이 클래스
+  /// 내부(private)에서만 쓰이던 함수를 public으로 승격한다. 계산 로직은
+  /// 한 글자도 바뀌지 않았다 — 오직 접근 범위만 넓혔다(§ "재계산 금지,
+  /// 이미 검증된 PHASE1~4 파이프라인 재사용" 원칙).
+  static ({SajuResult saju, SajuProfile profile}) buildProfileAndSajuResultViaPhase1to4({
     required DateTime kst,
     required String gender,
     required bool isLunar,
