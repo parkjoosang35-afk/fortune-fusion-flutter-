@@ -17,7 +17,10 @@
 /// 지시 §4/§7).
 library;
 
+import 'interpretation/analyzers/career_analyzer.dart';
 import 'interpretation/analyzers/health_analyzer.dart';
+import 'interpretation/analyzers/life_overall_analyzer.dart';
+import 'interpretation/analyzers/wealth_analyzer.dart';
 import 'jeontong_eighty_matrix.dart';
 import 'manseryeok/saju_profile.dart' show SajuProfile;
 import 'saju_c_group_modules.dart';
@@ -98,7 +101,66 @@ JeontongCategoryResult _placeholder(String category, String message) =>
 // A. 평생운 (10)
 // ============================================================
 
+/// [j7 · A01 해석 로직 마이그레이션 — 사용자 지시 §21 13단계 "실제 화면
+/// 연결(wiring)", A05(HealthAnalyzer) wiring과 동일한 패턴] 레거시
+/// `getLifeTotal()`(지배 십신 이름 하나로 `_lifeThemeByDominant` 10개짜리
+/// 고정 테이블을 룩업하는 단순 방식)을 폐기하고, [LifeOverallAnalyzer]
+/// (SajuProfile의 십신 5대범주 집계·신강신약·용신/기신·오행 편중·신살을
+/// 직접 조회해 매번 새로 판정)의 결과를 사용한다.
+///
+/// [키 이름 유지 이유] `JeontongCategoryResult.data`의 8개 키(headline/
+/// core_nature/personality/strengths/weaknesses/five_elements/life_theme/
+/// summary)는 그대로 유지한다 — 소비자 코드
+/// ([JeontongReportBuilder._mapCalculatedResultToReport]의
+/// `_overviewFieldOrder`/`_listFieldLabels`, [JeontongResultTextExtractor]의
+/// `_titlePriority`/`_bodyPriority`)가 이미 이 키들을 소비하도록 되어
+/// 있으므로, 키 이름은 유지한 채 "값의 출처"만 레거시→LifeOverallAnalyzer로
+/// 교체한다(§7 "필드 삭제 금지"와 같은 정신).
+///
+/// [five_elements 예외] 레거시 `five_elements` 키는 `Map<String,int>`
+/// 타입 계약(오행별 개수)이라, [LifeOverallAnalysis]의 dominant/deficient
+/// (List<String>) 로는 동일 타입을 만들 수 없다. 이 값은 이미 PHASE1~4가
+/// 계산해둔 [SajuProfile.fiveElements.totalCount]를 그대로 재사용한다
+/// (§0 "PHASE1~4 재계산 금지" — 새 오행 카운트를 계산하지 않고 이미 계산된
+/// 값을 조회만 한다).
+///
+/// 신규 고유 필드(dominantTenGodCategory 등) 원본도 향후 이야기체 고도화를
+/// 위해 함께 data에 보존한다(§7 "확장 시 기존 필드 삭제 금지"와 대칭 원칙).
+///
+/// [방어적 폴백] `ctx.profile`이 null이면 레거시 `getLifeTotal()` 경로로
+/// 안전하게 폴백한다(§0과 동일한 안전 원칙).
 JeontongCategoryResult _a01(JeontongCalcContext ctx) {
+  final profile = ctx.profile;
+  if (profile != null) {
+    final analysis = const LifeOverallAnalyzer().analyze(
+      profile,
+      referenceDate: ctx.referenceDate,
+    );
+    final dayElement = analysis.interpretationContext['dayElement'] ?? '';
+    return JeontongCategoryResult(
+      category: '평생 총운',
+      data: {
+        'headline': '$dayElement 기운 · ${analysis.dominantTenGodCategory} 중심 · ${analysis.strengthVerdict}',
+        'core_nature': analysis.coreNatureDescription,
+        'personality': analysis.strengths.join(', '),
+        'strengths': analysis.strengths,
+        'weaknesses': analysis.weaknesses,
+        'five_elements': profile.fiveElements?.totalCount ?? const <String, int>{},
+        'life_theme': analysis.lifeTheme,
+        'summary':
+            '${analysis.dominantTenGodCategory} 기운이 두드러지는 구조이며, ${analysis.lifeTheme}',
+        // 신규 고유 필드 보존(향후 이야기체 고도화용, §7 필드 삭제 금지).
+        'dominantTenGodCategory': analysis.dominantTenGodCategory,
+        'coreNatureDescription': analysis.coreNatureDescription,
+        'notableSinsal': analysis.notableSinsal,
+        'strengthVerdict': analysis.strengthVerdict,
+        'yongsinElement': analysis.yongsinElement,
+        'gisinElement': analysis.gisinElement,
+        'favorableConditions': analysis.favorableConditions,
+        'cautionConditions': analysis.cautionConditions,
+      },
+    );
+  }
   final r = getLifeTotal(ctx.interp);
   return JeontongCategoryResult(
     category: '평생 총운',
@@ -121,7 +183,48 @@ JeontongCategoryResult _a02(JeontongCalcContext ctx) {
   return JeontongCategoryResult(category: '성격·기질', data: base.data);
 }
 
+/// [j7 · A03 해석 로직 마이그레이션 — A05 wiring과 동일 패턴] 레거시
+/// `getLifeWealth()`(재성/관성/인성 개수로 4분류 + verdict 문자열 하나로
+/// `_assetStyleByVerdict` 5개짜리 고정 테이블을 룩업하는 방식)를 폐기하고,
+/// [WealthAnalyzer](SajuProfile의 재성/비겁/인성 분포·신강신약·용신/기신·
+/// 대운을 직접 조회해 매번 새로 판정)의 결과를 사용한다.
+///
+/// [키 이름 유지 이유] `JeontongCategoryResult.data`의 5개 키(verdict/
+/// structure/message/asset_style/peak_period)는 그대로 유지한다 —
+/// F01이 `_a03(ctx)`를 그대로 재사용하므로(dispatch map), 이 함수 하나만
+/// 고치면 A03/F01 두 카테고리 모두에 자동 반영된다.
+///
+/// [방어적 폴백] `ctx.profile`이 null이면 레거시 `getLifeWealth()` 경로로
+/// 안전하게 폴백한다.
 JeontongCategoryResult _a03(JeontongCalcContext ctx) {
+  final profile = ctx.profile;
+  if (profile != null) {
+    final analysis = const WealthAnalyzer().analyze(
+      profile,
+      referenceDate: ctx.referenceDate,
+    );
+    return JeontongCategoryResult(
+      category: '평생 재물운',
+      data: {
+        'verdict': analysis.wealthStrength,
+        'structure': analysis.wealthPattern,
+        'message': '${analysis.incomePattern}. ${analysis.riskPattern}',
+        'asset_style': analysis.assetManagementStyle,
+        'peak_period': analysis.wealthPeakDaewoonLabel.isNotEmpty
+            ? analysis.wealthPeakDaewoonLabel
+            : '현재·다음 대운 참조 (재성 대운이 재물 정점)',
+        // 신규 고유 필드 보존(향후 이야기체 고도화용, §7 필드 삭제 금지).
+        'wealthPattern': analysis.wealthPattern,
+        'wealthStrength': analysis.wealthStrength,
+        'incomePattern': analysis.incomePattern,
+        'riskPattern': analysis.riskPattern,
+        'assetManagementStyle': analysis.assetManagementStyle,
+        'wealthPeakDaewoonLabel': analysis.wealthPeakDaewoonLabel,
+        'favorableConditions': analysis.favorableConditions,
+        'cautionConditions': analysis.cautionConditions,
+      },
+    );
+  }
   final r = getLifeWealth(ctx.interp);
   return JeontongCategoryResult(
     category: '평생 재물운',
@@ -135,7 +238,49 @@ JeontongCategoryResult _a03(JeontongCalcContext ctx) {
   );
 }
 
+/// [j7 · A04 해석 로직 마이그레이션 — A05 wiring과 동일 패턴] 레거시
+/// `getLifeCareer()`(`SajuInterpreter.interpretCareer()`의 4분류 고정
+/// 문장 + 일간 title 문자열 포함 여부만 보는 `_workStyleByTitle`)를
+/// 폐기하고, [CareerAnalyzer](SajuProfile의 관살/인성/식상/비겁 분포·
+/// 신강신약·용신/기신·대운·일간을 직접 조회해 매번 새로 판정)의 결과를
+/// 사용한다.
+///
+/// [키 이름 유지 이유] `JeontongCategoryResult.data`의 5개 키(structure/
+/// message/recommended_jobs/work_style/growth_path)는 그대로 유지한다 —
+/// F02가 `_a04(ctx)`를 그대로 재사용하므로(dispatch map), 이 함수 하나만
+/// 고치면 A04/F02 두 카테고리 모두에 자동 반영된다.
+///
+/// [방어적 폴백] `ctx.profile`이 null이면 레거시 `getLifeCareer()` 경로로
+/// 안전하게 폴백한다.
 JeontongCategoryResult _a04(JeontongCalcContext ctx) {
+  final profile = ctx.profile;
+  if (profile != null) {
+    final analysis = const CareerAnalyzer().analyze(
+      profile,
+      referenceDate: ctx.referenceDate,
+    );
+    return JeontongCategoryResult(
+      category: '평생 직업·명예운',
+      data: {
+        'structure': analysis.careerPattern,
+        'message': '${analysis.careerStrength}. ${analysis.careerRiskPattern}',
+        'recommended_jobs': analysis.suitableFields,
+        'work_style': analysis.workStyle,
+        'growth_path': analysis.careerPeakDaewoonLabel.isNotEmpty
+            ? '${analysis.careerPeakDaewoonLabel} 시기에 직업·명예 성장 흐름이 강해짐'
+            : '정인·정관 대운에서 안정, 식상·재성 대운에서 확장',
+        // 신규 고유 필드 보존(향후 이야기체 고도화용, §7 필드 삭제 금지).
+        'careerPattern': analysis.careerPattern,
+        'careerStrength': analysis.careerStrength,
+        'workStyle': analysis.workStyle,
+        'suitableFields': analysis.suitableFields,
+        'careerRiskPattern': analysis.careerRiskPattern,
+        'careerPeakDaewoonLabel': analysis.careerPeakDaewoonLabel,
+        'favorableConditions': analysis.favorableConditions,
+        'cautionConditions': analysis.cautionConditions,
+      },
+    );
+  }
   final r = getLifeCareer(ctx.interp);
   return JeontongCategoryResult(
     category: '평생 직업·명예운',

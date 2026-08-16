@@ -264,6 +264,20 @@ class JeontongNarrativeInterpreter {
       case 'A03':
         final assetStyle = data?['asset_style'] as String?;
         if (assetStyle != null) {
+          // [j7 WealthAnalyzer 신규 필드 반영] wealthPattern/riskPattern이
+          // 있으면(신규 엔진 경로) 재물 "구조"와 리스크까지 함께 서술해
+          // 같은 A03/F01이라도 사람마다 다른 근거(§5)가 문장에 드러나게
+          // 한다. 없으면(레거시 폴백) 기존 문장을 그대로 유지한다.
+          final wealthPattern = data?['wealthPattern'] as String?;
+          final riskPattern = data?['riskPattern'] as String?;
+          final peakDaewoon = data?['wealthPeakDaewoonLabel'] as String?;
+          if (wealthPattern != null) {
+            return '평생 재물운이라는 주제로 좁혀서 보면, $honorific의 사주는 $wealthPattern 구조예요. '
+                '자산을 굴리는 방식으로는 $assetStyle 흐름이 잘 맞아요. '
+                '${riskPattern != null && riskPattern.isNotEmpty && riskPattern != '두드러진 재물 리스크 신호는 확인되지 않음' ? '${_soften(riskPattern)} ' : ''}'
+                '${peakDaewoon != null && peakDaewoon.isNotEmpty ? '$peakDaewoon 시기에 재물운이 특히 활발해질 가능성이 높으니 참고해 두면 좋아요. ' : ''}'
+                '평생에 걸쳐 이 흐름을 이해하고 있으면, 큰돈이 오갈 때마다 훨씬 침착하게 판단할 수 있을 거예요.';
+          }
           return '평생 재물운이라는 주제로 좁혀서 보면, $honorific의 사주는 ${_soften(_wealthNarrative(interp.wealthFortune, honorific))} '
               '자산을 굴리는 방식으로는 $assetStyle 흐름이 잘 맞아요. '
               '평생에 걸쳐 이 흐름을 이해하고 있으면, 큰돈이 오갈 때마다 훨씬 침착하게 판단할 수 있을 거예요.';
@@ -276,6 +290,20 @@ class JeontongNarrativeInterpreter {
             .toList();
         final growthPath = data?['growth_path'] as String?;
         if (jobs != null) {
+          // [j7 CareerAnalyzer 신규 필드 반영] careerPattern/workStyle이
+          // 있으면(신규 엔진 경로) 직업 "구조"와 일하는 방식까지 함께
+          // 서술해 같은 A04/F02라도 사람마다 다른 근거(§5)가 문장에
+          // 드러나게 한다. 없으면(레거시 폴백) 기존 문장을 그대로 유지.
+          final careerPattern = data?['careerPattern'] as String?;
+          final workStyle = data?['workStyle'] as String?;
+          final riskPattern = data?['careerRiskPattern'] as String?;
+          if (careerPattern != null) {
+            return '평생 직업·명예운이라는 주제로 보면, $honorific은 $careerPattern 구조라서 '
+                '${workStyle != null ? '$workStyle 방식이 잘 맞아요. ' : ''}'
+                '${jobs.isNotEmpty ? '특히 ${_joinKo(jobs)} 같은 분야에서 두각을 나타낼 가능성이 높아요. ' : ''}'
+                '${riskPattern != null && riskPattern.isNotEmpty && riskPattern != '두드러진 직업상 리스크 신호는 확인되지 않음' ? '${_soften(riskPattern)} ' : ''}'
+                '${growthPath != null ? '$growthPath 흐름을 알아두면 진로를 정할 때 큰 힌트가 될 거예요.' : ''}';
+          }
           return '평생 직업·명예운이라는 주제로 보면, $honorific은 ${career.structure} 성향이 뚜렷해서 ${_soften(career.message)} '
               '${jobs.isNotEmpty ? '특히 ${_joinKo(jobs)} 같은 분야에서 두각을 나타낼 가능성이 높아요. ' : ''}'
               '${growthPath != null ? '$growthPath 흐름을 알아두면 진로를 정할 때 큰 힌트가 될 거예요.' : ''}';
@@ -330,6 +358,33 @@ class JeontongNarrativeInterpreter {
         break;
       case 'A01':
       case 'A02':
+        // [j7 LifeOverallAnalyzer 신규 필드 반영] dominantTenGodCategory가
+        // 있으면(신규 엔진 경로) 중심 기운·인생 테마·타고난 성향을 직접
+        // 서술해, 같은 A01이라도 사람마다 다른 근거(§5)가 드러나는 문장을
+        // 만든다. A02(성격·기질)는 data를 그대로 재사용하지만
+        // categoryTitle이 다르므로 강조점만 살짝 다르게 서술한다.
+        final dominantCategory = data?['dominantTenGodCategory'] as String?;
+        final lifeTheme = data?['life_theme'] as String?;
+        if (dominantCategory != null && lifeTheme != null) {
+          final coreNature = data?['coreNatureDescription'] as String?;
+          final strengthVerdict = data?['strengthVerdict'] as String?;
+          final notableSinsal = (data?['notableSinsal'] as List?)
+              ?.map((e) => e.toString())
+              .toList();
+          if (categoryId == 'A02') {
+            return '타고난 성격·기질이라는 주제로 좁혀서 보면, ${coreNature != null ? '$honorific은 $coreNature. ' : ''}'
+                '${strengthVerdict != null ? '기운의 세기로는 $strengthVerdict 편이라 ' : ''}'
+                '$dominantCategory 기운이 두드러지게 성격에 묻어나요. '
+                '${notableSinsal != null && notableSinsal.isNotEmpty ? '특히 ${_joinKo(notableSinsal)}(이)가 성격의 특이한 색깔을 더해줘요. ' : ''}'
+                '이런 기질을 미리 알고 있으면, 스스로를 이해하고 다스리는 데 큰 도움이 될 거예요.';
+          }
+          return '평생 총운이라는 주제로 보면, $honorific의 삶은 $lifeTheme 쪽으로 흘러가는 경우가 많아요. '
+              '${coreNature != null ? '타고난 바탕을 보면 $coreNature. ' : ''}'
+              '$dominantCategory 기운이 인생 전반에서 가장 자주 반복되는 중심 기운이에요. '
+              '${notableSinsal != null && notableSinsal.isNotEmpty ? '${_joinKo(notableSinsal)}(이)가 특이한 기운으로 함께 작용하고요. ' : ''}'
+              '이 흐름을 이해하고 있으면, 인생의 크고 작은 선택 앞에서 훨씬 자기다운 결정을 내릴 수 있을 거예요.';
+        }
+        break;
       default:
         break;
     }
