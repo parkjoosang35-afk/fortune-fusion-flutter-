@@ -133,7 +133,8 @@ A03.wealthPattern의 재관쌍미 80% 편중과 동일한 성격의 문제다. �
 
 ## 11. Git Commit ID
 
-(본 보고서 작성 직후 커밋 예정 — 커밋 완료 후 아래에 해시를 반영한다)
+`a77b125` — feat(jeontong-interpretation): A04 평생 직업·명예운 CareerAnalyzer 신규 구현 + 120명 검증 스위트 (§1~§20)
+(선행 커밋: `1d18e78` docs 보고서 커밋ID반영, `453fe34` A01/A03 구조확장 + 120명 검증 스위트)
 
 ## 12. 다음 단계
 
