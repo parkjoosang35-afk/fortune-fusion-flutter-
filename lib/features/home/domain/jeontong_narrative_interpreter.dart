@@ -72,10 +72,20 @@ class JeontongNarrativeInterpreter {
     // 옮겨, 화면을 여는 즉시 그 카테고리만의 이야기가 먼저 보이게 한다.
     // 오프닝/오행성향 문단은 "왜 이런 결과가 나왔는지"의 배경 설명으로
     // 뒤에 남긴다(내용 자체는 그대로, 순서만 변경 — 재계산 아님).
+    //
+    // [2026-08-19 맥락 단절 수정 — 사용자 재지적: "자녀운인데 왜 리더십·
+    // 창업 얘기가 나오냐"] 오프닝/오행성향 두 공통 문단은 여전히 일간·
+    // 오행이라는 "사주 전체 기초 체질"만 다뤄, 카테고리 고유 문단(자녀운
+    // 등) 바로 다음에 이어지면 마치 전혀 다른 주제로 화제가 갑자기
+    // 바뀐 것처럼 읽혔다. 계산 로직/문장 내용은 절대 바꾸지 않고
+    // (§2/§7), 두 문단의 "시작 문구"와 "마무리 문구"에만 categoryTitle을
+    // 엮은 짧은 연결어를 덧붙여 "왜 이 카테고리 결과가 이렇게 나왔는지의
+    // 배경 설명"이라는 맥락을 문장으로 명시한다.
+    final categoryTitle = entry.title;
     return [
       _categoryParagraph(interp, entry, honorific, data),
-      _openingParagraph(interp, honorific),
-      _traitsParagraph(interp, honorific),
+      _openingParagraph(interp, honorific, categoryTitle),
+      _traitsParagraph(interp, honorific, categoryTitle),
       _luckParagraph(interp, honorific),
       _closingParagraph(interp, entry.major, honorific),
     ].where((p) => p.trim().isNotEmpty).toList(growable: false);
@@ -95,6 +105,7 @@ class JeontongNarrativeInterpreter {
   static String _openingParagraph(
     SajuFullInterpretation interp,
     String honorific,
+    String categoryTitle,
   ) {
     final dm = interp.dayMasterAnalysis;
     final image = interp.saju.dayMaster.image;
@@ -110,10 +121,10 @@ class JeontongNarrativeInterpreter {
         ? ' 다만 ${_joinKo(dm.weaknesses)} 같은 부분은 스스로 잘 알아채고 다스릴 줄 알면, 오히려 그것이 $honorific만의 균형 감각이 되어줄 거예요.'
         : '';
 
-    return '$honorific의 사주를 열어보면, 그 뿌리에는 $gan($image)의 기운이 자리하고 있어요. '
-        '${dm.nature} '
+    return '[$categoryTitle] 이야기를 좀 더 깊이 이해하려면, 먼저 $honorific의 사주 뿌리부터 짚어볼 필요가 있어요. '
+        '그 뿌리에는 $gan($image)의 기운이 자리하고 있는데, ${dm.nature} '
         '만세력으로 짚어본 이 사주는 $strengthWord 흐름을 타고났고, ${dm.personality} '
-        '이런 타고난 성정은 하루아침에 만들어진 것이 아니라, 태어난 그 순간의 하늘과 땅의 기운이 $honorific 안에 그대로 새겨진 것이에요.$weaknessNote';
+        '이런 타고난 성정은 하루아침에 만들어진 것이 아니라, 태어난 그 순간의 하늘과 땅의 기운이 $honorific 안에 그대로 새겨진 것이고, 지금 살펴보는 $categoryTitle 역시 바로 이 바탕 위에서 흘러나오는 이야기예요.$weaknessNote';
   }
 
   // ------------------------------------------------------------
@@ -122,6 +133,7 @@ class JeontongNarrativeInterpreter {
   static String _traitsParagraph(
     SajuFullInterpretation interp,
     String honorific,
+    String categoryTitle,
   ) {
     final fe = interp.fiveElementsAnalysis;
     final tg = interp.tenGodsAnalysis;
@@ -148,7 +160,7 @@ class JeontongNarrativeInterpreter {
       buf.write(
         '사주 안에서 특히 도드라지는 기운은 십신 중 ${tg.dominantEasy}(${tg.dominantName})이에요. '
         '이는 ${dominantDetail.meaning} — 그래서 평소 ${dominantDetail.positive} 모습으로 자주 드러나곤 하죠. '
-        '이 기운이 $honorific의 인생 곳곳에서, 사람을 대하는 태도부터 중요한 결정을 내리는 순간까지 은은하게 영향을 미치고 있을 거예요.',
+        '이 기운이 $honorific의 인생 곳곳에서, 사람을 대하는 태도부터 중요한 결정을 내리는 순간까지 은은하게 영향을 미치고 있는데, $categoryTitle에서 나타나는 흐름에도 이 바탕이 함께 깔려 있다고 보면 돼요.',
       );
     }
 
