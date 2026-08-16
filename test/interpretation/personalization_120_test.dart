@@ -19,6 +19,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_app/features/home/domain/interpretation/analyzers/life_overall_analyzer.dart';
 import 'package:flutter_app/features/home/domain/interpretation/analyzers/wealth_analyzer.dart';
 import 'package:flutter_app/features/home/domain/interpretation/analyzers/career_analyzer.dart';
+import 'package:flutter_app/features/home/domain/interpretation/analyzers/health_analyzer.dart';
 import 'package:flutter_app/features/home/domain/jeontong_eighty_report_builder.dart';
 import '../fixtures/jeontong_sample_120.dart';
 
@@ -26,6 +27,7 @@ void main() {
   final lifeAnalyzer = const LifeOverallAnalyzer();
   final wealthAnalyzer = const WealthAnalyzer();
   final careerAnalyzer = const CareerAnalyzer();
+  final healthAnalyzer = const HealthAnalyzer();
   final refDate = DateTime.utc(2026, 8, 13);
 
   group('TEST2 개인화 — (a) SajuProfile 원본 데이터 층 다양성(120명)', () {
@@ -313,6 +315,72 @@ void main() {
     });
     test('careerPeakDaewoonLabel(직업 정점 대운)이 다양하다', () {
       expect(careerPeakDaewoonSet.length, greaterThan(1));
+    });
+    test('favorableConditions(좋은 흐름)이 다양하다', () {
+      expect(favorableSet.length, greaterThan(1));
+    });
+    test('cautionConditions(주의 흐름)이 다양하다', () {
+      expect(cautionSet.length, greaterThan(1));
+    });
+  });
+
+  group('TEST2 개인화 — (c) A05 HealthAnalysis 출력 필드 다양성(120명)', () {
+    final healthConstitutionPatternSet = <String>{};
+    final healthVitalitySet = <String>{};
+    final vulnerableOrgansSet = <String>{};
+    final healthRiskPatternSet = <String>{};
+    final recommendedCareSet = <String>{};
+    final healthCautionDaewoonSet = <String>{};
+    final favorableSet = <String>{};
+    final cautionSet = <String>{};
+
+    setUpAll(() {
+      for (final input in kJeontongSample120) {
+        final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
+        final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
+          kst: kst,
+          gender: input.gender,
+          isLunar: input.isLunar,
+          referenceDate: refDate,
+        );
+        final a = healthAnalyzer.analyze(built.profile, referenceDate: refDate);
+        healthConstitutionPatternSet.add(a.healthConstitutionPattern);
+        healthVitalitySet.add(a.healthVitality);
+        vulnerableOrgansSet.add(a.vulnerableOrgans.join(','));
+        healthRiskPatternSet.add(a.healthRiskPattern);
+        recommendedCareSet.add(a.recommendedCare.join(','));
+        healthCautionDaewoonSet.add(a.healthCautionDaewoonLabel);
+        favorableSet.add(a.favorableConditions.join(','));
+        cautionSet.add(a.cautionConditions.join(','));
+      }
+    });
+
+    test('healthConstitutionPattern(체질 편중 구조)이 다양하다', () {
+      // ignore: avoid_print
+      print('A05 healthConstitutionPattern 종류=$healthConstitutionPatternSet');
+      expect(healthConstitutionPatternSet.length, greaterThan(1));
+    });
+    test('healthVitality(체력·회복력)가 다양하다', () {
+      // ignore: avoid_print
+      print('A05 healthVitality 종류=$healthVitalitySet');
+      expect(healthVitalitySet.length, greaterThan(1));
+    });
+    test('vulnerableOrgans(취약 장기)가 다양하다', () {
+      expect(vulnerableOrgansSet.length, greaterThan(1));
+    });
+    test('healthRiskPattern(건강 리스크)이 다양하다', () {
+      expect(healthRiskPatternSet.length, greaterThan(1));
+    });
+    test('recommendedCare(보양법)가 5종 오행 고정표 기반이라 5종 이하로 반복 허용', () {
+      // five_elements_rules.json의 food_good은 5오행 고정표이므로 완전
+      // 동일 반복이 정상이다(§14 "명리학 용어 자체 반복은 허용"과 동일 논리).
+      // ignore: avoid_print
+      print('A05 recommendedCare 종류=${recommendedCareSet.length} (5종 고정표 기반, 초과 시 이상)');
+      expect(recommendedCareSet.length, lessThanOrEqualTo(5));
+      expect(recommendedCareSet.length, greaterThan(1));
+    });
+    test('healthCautionDaewoonLabel(건강 주의 대운)이 다양하다', () {
+      expect(healthCautionDaewoonSet.length, greaterThan(1));
     });
     test('favorableConditions(좋은 흐름)이 다양하다', () {
       expect(favorableSet.length, greaterThan(1));
