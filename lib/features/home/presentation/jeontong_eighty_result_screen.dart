@@ -19,6 +19,7 @@ import '../domain/jeontong_eighty_calculator.dart' show kJeontongPlaceholderCate
 import '../domain/jeontong_eighty_matrix.dart';
 import '../domain/jeontong_input.dart';
 import '../domain/jeontong_report_cache.dart';
+import 'jeontong_design/jeontong_saju_detail_section.dart';
 import 'widgets/jeontong_easy_term_toggle.dart';
 import 'widgets/jeontong_result_text_extractor.dart';
 
@@ -402,6 +403,21 @@ class _ResultBody extends StatelessWidget {
                 keywords: report.hero.keywords,
                 subDescription: report.hero.subDescription,
               ),
+              const SizedBox(height: UnifiedTokens.spaceMd),
+              // [정통사주 69종 · Dawn Hanji 디자인 연동] 프로필이 있을 때만
+              // PHASE1~4 실계산 원국(사주판/일간/오행/십신/대운/월운/조언)을
+              // 추가로 렌더링한다. 재계산 없음 — 이미 검증된 파이프라인을
+              // 호출해 결과만 그린다. 프로필이 없거나 계산 실패 시
+              // SizedBox.shrink()로 방어되어 기존 report.sections 렌더링만
+              // 그대로 보인다(회귀 없음).
+              if (profile != null)
+                JeontongSajuDetailSection(
+                  categoryLabel: entry.title,
+                  birthDateTimeUtc: profile!.birthDateTimeUtc,
+                  gender: profile!.gender,
+                  isLunar: profile!.isLunar,
+                  referenceDate: DateTime.now(),
+                ),
               const SizedBox(height: UnifiedTokens.spaceMd),
               for (final section in report.sections) ...[
                 _buildSection(section),
