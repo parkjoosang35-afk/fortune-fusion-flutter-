@@ -188,59 +188,96 @@ void main() {
         print('[8글자] legacy=$legacyPillars');
         // ignore: avoid_print
         print('[8글자] new   =$newPillars');
-        expect(newPillars, legacyPillars, reason: '${u.userId} 8글자는 100% 동일해야 함');
+        expect(
+          newPillars,
+          legacyPillars,
+          reason: '${u.userId} 8글자는 100% 동일해야 함',
+        );
 
         // ── 2) 일간 ──
         // ignore: avoid_print
-        print('[일간] legacy=${legacyB.saju.dayMaster.gan}(${legacyB.saju.dayMaster.kr})');
+        print(
+          '[일간] legacy=${legacyB.saju.dayMaster.gan}(${legacyB.saju.dayMaster.kr})',
+        );
         // ignore: avoid_print
-        print('[일간] new   =${newB.saju.dayMaster.gan}(${newB.saju.dayMaster.kr})');
-        expect(newB.saju.dayMaster.gan, legacyB.saju.dayMaster.gan, reason: '${u.userId} 일간 불일치');
+        print(
+          '[일간] new   =${newB.saju.dayMaster.gan}(${newB.saju.dayMaster.kr})',
+        );
+        expect(
+          newB.saju.dayMaster.gan,
+          legacyB.saju.dayMaster.gan,
+          reason: '${u.userId} 일간 불일치',
+        );
 
         // ── 3) 오행 ──
         // ignore: avoid_print
         print('[오행] legacy=${legacyB.saju.fiveElementsCount}');
         // ignore: avoid_print
         print('[오행] new   =${newB.saju.fiveElementsCount}');
-        expect(newB.saju.fiveElementsCount, legacyB.saju.fiveElementsCount, reason: '${u.userId} 오행 총량 불일치');
+        expect(
+          newB.saju.fiveElementsCount,
+          legacyB.saju.fiveElementsCount,
+          reason: '${u.userId} 오행 총량 불일치',
+        );
 
         // ── 4) 십신(7키) ──
         // ignore: avoid_print
         print('[십신] legacy=${legacyB.saju.tenGods}');
         // ignore: avoid_print
         print('[십신] new   =${newB.saju.tenGods}');
-        expect(newB.saju.tenGods, legacyB.saju.tenGods, reason: '${u.userId} 십신 불일치');
+        expect(
+          newB.saju.tenGods,
+          legacyB.saju.tenGods,
+          reason: '${u.userId} 십신 불일치',
+        );
 
         // ── 5) 대운(회귀 확인용, A04는 대운 자체는 사용하지 않음) ──
-        final legacyReal = legacyB.saju.luckPillars.where((lp) => lp.ganZhi.isNotEmpty).toList();
+        final legacyReal = legacyB.saju.luckPillars
+            .where((lp) => lp.ganZhi.isNotEmpty)
+            .toList();
         // ignore: avoid_print
-        print('[대운] legacy(${legacyReal.length}개)=${legacyReal.map((e) => '${e.ganZhiKr}(${e.startAge}세~)').join(', ')}');
+        print(
+          '[대운] legacy(${legacyReal.length}개)=${legacyReal.map((e) => '${e.ganZhiKr}(${e.startAge}세~)').join(', ')}',
+        );
         // ignore: avoid_print
-        print('[대운] new(${newB.saju.luckPillars.length}개)=${newB.saju.luckPillars.map((e) => '${e.ganZhiKr}(${e.startAge}세~)').join(', ')}');
+        print(
+          '[대운] new(${newB.saju.luckPillars.length}개)=${newB.saju.luckPillars.map((e) => '${e.ganZhiKr}(${e.startAge}세~)').join(', ')}',
+        );
         for (var i = 0; i < legacyReal.length; i++) {
-          expect(newB.saju.luckPillars[i].ganZhi, legacyReal[i].ganZhi, reason: '${u.userId} 대운[$i] 간지 불일치');
+          expect(
+            newB.saju.luckPillars[i].ganZhi,
+            legacyReal[i].ganZhi,
+            reason: '${u.userId} 대운[$i] 간지 불일치',
+          );
         }
 
         // ── 6) 신강신약(dayMasterStrength) — A04의 work_style 필드에만 영향 ──
-        final strengthSame = newB.saju.dayMasterStrength == legacyB.saju.dayMasterStrength;
+        final strengthSame =
+            newB.saju.dayMasterStrength == legacyB.saju.dayMasterStrength;
         // ignore: avoid_print
         print('[신강신약] legacy=${legacyB.saju.dayMasterStrength}');
         // ignore: avoid_print
-        print('[신강신약] new   =${newB.saju.dayMasterStrength}  (${strengthSame ? "동일" : "★ 다름 — A04 work_style 필드에만 영향 ★"})');
+        print(
+          '[신강신약] new   =${newB.saju.dayMasterStrength}  (${strengthSame ? "동일" : "★ 다름 — A04 work_style 필드에만 영향 ★"})',
+        );
         if (newB.profile.strength != null) {
           final s = newB.profile.strength!;
           // ignore: avoid_print
-          print('[신강신약·PHASE3 상세] score=${s.score.toStringAsFixed(3)} '
-              'monthOrder=${s.monthOrderScore} root=${s.rootScore} '
-              'support=${s.supportScore} control=${s.controlScore} drain=${s.drainScore}');
+          print(
+            '[신강신약·PHASE3 상세] score=${s.score.toStringAsFixed(3)} '
+            'monthOrder=${s.monthOrderScore} root=${s.rootScore} '
+            'support=${s.supportScore} control=${s.controlScore} drain=${s.drainScore}',
+          );
         }
 
         // ── 7) 용신/희신/기신/구신 (신규 전용, A04엔 미사용 — 참고 로그) ──
         if (newB.profile.yongsin != null) {
           final y = newB.profile.yongsin!;
           // ignore: avoid_print
-          print('[용희기구·신규전용] method=${y.method} 용신=${y.yongsin} 희신=${y.heesin} '
-              '기신=${y.gisin} 구신=${y.gusin}');
+          print(
+            '[용희기구·신규전용] method=${y.method} 용신=${y.yongsin} 희신=${y.heesin} '
+            '기신=${y.gisin} 구신=${y.gusin}',
+          );
         }
 
         // ── 8) A04 판단에 실제 사용되는 계산값(officer/printer/output 개수) ──
@@ -255,16 +292,36 @@ void main() {
         final legacyOutput = countOf(legacyTg, ['식신', '상관']);
         final newOutput = countOf(newTg, ['식신', '상관']);
         // ignore: avoid_print
-        print('[A04계산값] legacy officer=$legacyOfficer printer=$legacyPrinter output=$legacyOutput');
+        print(
+          '[A04계산값] legacy officer=$legacyOfficer printer=$legacyPrinter output=$legacyOutput',
+        );
         // ignore: avoid_print
-        print('[A04계산값] new    officer=$newOfficer printer=$newPrinter output=$newOutput');
-        expect(newOfficer, legacyOfficer, reason: '${u.userId} 관성 개수는 십신이 일치하므로 동일해야 함');
-        expect(newPrinter, legacyPrinter, reason: '${u.userId} 인성 개수는 십신이 일치하므로 동일해야 함');
-        expect(newOutput, legacyOutput, reason: '${u.userId} 식상 개수는 십신이 일치하므로 동일해야 함');
+        print(
+          '[A04계산값] new    officer=$newOfficer printer=$newPrinter output=$newOutput',
+        );
+        expect(
+          newOfficer,
+          legacyOfficer,
+          reason: '${u.userId} 관성 개수는 십신이 일치하므로 동일해야 함',
+        );
+        expect(
+          newPrinter,
+          legacyPrinter,
+          reason: '${u.userId} 인성 개수는 십신이 일치하므로 동일해야 함',
+        );
+        expect(
+          newOutput,
+          legacyOutput,
+          reason: '${u.userId} 식상 개수는 십신이 일치하므로 동일해야 함',
+        );
         // ignore: avoid_print
-        print('[A04계산값] legacy dayMasterAnalysis.title=${legacyB.interp.dayMasterAnalysis.title}');
+        print(
+          '[A04계산값] legacy dayMasterAnalysis.title=${legacyB.interp.dayMasterAnalysis.title}',
+        );
         // ignore: avoid_print
-        print('[A04계산값] new    dayMasterAnalysis.title=${newB.interp.dayMasterAnalysis.title}');
+        print(
+          '[A04계산값] new    dayMasterAnalysis.title=${newB.interp.dayMasterAnalysis.title}',
+        );
 
         // ── 9) A04 판단에 실제 사용되는 계산값(JeontongCategoryResult 필드) ──
         for (final key in [
@@ -284,30 +341,49 @@ void main() {
 
         // ── 10) 최종 A04 결과 전체 동일성 ──
         // ignore: avoid_print
-        print('[A04·category] legacy=${legacyB.a04.category}  new=${newB.a04.category}');
+        print(
+          '[A04·category] legacy=${legacyB.a04.category}  new=${newB.a04.category}',
+        );
         expect(legacyB.a04.category, '평생 직업·명예운');
         expect(newB.a04.category, '평생 직업·명예운');
 
-        final structureSame = legacyB.a04.data['structure'] == newB.a04.data['structure'];
-        final workStyleSame = legacyB.a04.data['work_style'] == newB.a04.data['work_style'];
+        final structureSame =
+            legacyB.a04.data['structure'] == newB.a04.data['structure'];
+        final workStyleSame =
+            legacyB.a04.data['work_style'] == newB.a04.data['work_style'];
         final a04Same = legacyB.a04.data.toString() == newB.a04.data.toString();
         // ignore: avoid_print
-        print('[결론] structure동일=$structureSame work_style동일=$workStyleSame '
-            'A04 전체 데이터 동일여부=$a04Same (dayMasterStrength동일=$strengthSame) → '
-            '${!strengthSame && !workStyleSame ? "dayMasterStrength 차이가 work_style 문구에만 영향을 줌(A01/A02와 동일한 정상 패턴, structure/message/jobs는 무관)" : (strengthSame && a04Same ? "완전 일치" : "다른 원인으로 차이 발생 - 확인 필요")}');
+        print(
+          '[결론] structure동일=$structureSame work_style동일=$workStyleSame '
+          'A04 전체 데이터 동일여부=$a04Same (dayMasterStrength동일=$strengthSame) → '
+          '${!strengthSame && !workStyleSame ? "dayMasterStrength 차이가 work_style 문구에만 영향을 줌(A01/A02와 동일한 정상 패턴, structure/message/jobs는 무관)" : (strengthSame && a04Same ? "완전 일치" : "다른 원인으로 차이 발생 - 확인 필요")}',
+        );
         // structure/message/recommended_jobs는 dayMasterStrength와
         // 무관하므로(interpretCareer는 officer/printer/output만 사용),
         // 위에서 이미 확인한 관성/인성/식상 개수가 legacy와 100% 일치하는
         // 한 반드시 동일해야 한다 — 이건 strength 차이와 무관한 진짜 회귀
         // 검증이다.
-        expect(newB.a04.data['structure'], legacyB.a04.data['structure'],
-            reason: '${u.userId}: structure는 dayMasterStrength와 무관하므로 항상 동일해야 함');
-        expect(newB.a04.data['message'], legacyB.a04.data['message'],
-            reason: '${u.userId}: message는 dayMasterStrength와 무관하므로 항상 동일해야 함');
-        expect(newB.a04.data['recommended_jobs'], legacyB.a04.data['recommended_jobs'],
-            reason: '${u.userId}: recommended_jobs는 dayMasterStrength와 무관하므로 항상 동일해야 함');
-        expect(newB.a04.data['growth_path'], legacyB.a04.data['growth_path'],
-            reason: '${u.userId}: growth_path는 고정 문구이므로 항상 동일해야 함');
+        expect(
+          newB.a04.data['structure'],
+          legacyB.a04.data['structure'],
+          reason: '${u.userId}: structure는 dayMasterStrength와 무관하므로 항상 동일해야 함',
+        );
+        expect(
+          newB.a04.data['message'],
+          legacyB.a04.data['message'],
+          reason: '${u.userId}: message는 dayMasterStrength와 무관하므로 항상 동일해야 함',
+        );
+        expect(
+          newB.a04.data['recommended_jobs'],
+          legacyB.a04.data['recommended_jobs'],
+          reason:
+              '${u.userId}: recommended_jobs는 dayMasterStrength와 무관하므로 항상 동일해야 함',
+        );
+        expect(
+          newB.a04.data['growth_path'],
+          legacyB.a04.data['growth_path'],
+          reason: '${u.userId}: growth_path는 고정 문구이므로 항상 동일해야 함',
+        );
 
         // ── work_style만 dayMasterStrength에 간접 의존(soft assertion) ──
         expect(newB.a04.data['work_style'], isNotEmpty);
@@ -336,24 +412,34 @@ void main() {
 
   group('[j7·A04] runJeontongCategory("A04", ctx) 경로 자체도 정상 동작 확인', () {
     for (final u in _seedUsers) {
-      test('${u.userId}: JeontongCalcContext + runJeontongCategory("A04") 예외 없이 동작', () {
-        final newB = _runNew(u, _kFixedDate);
-        final rules = SajuFortuneRules.cachedOrNull;
-        expect(rules, isNotNull, reason: 'SajuFortuneRules.preload()가 setUpAll에서 완료되어야 함');
+      test(
+        '${u.userId}: JeontongCalcContext + runJeontongCategory("A04") 예외 없이 동작',
+        () {
+          final newB = _runNew(u, _kFixedDate);
+          final rules = SajuFortuneRules.cachedOrNull;
+          expect(
+            rules,
+            isNotNull,
+            reason: 'SajuFortuneRules.preload()가 setUpAll에서 완료되어야 함',
+          );
 
-        final ctx = JeontongCalcContext(
-          saju: newB.saju,
-          interp: newB.interp,
-          rules: rules!,
-          referenceDate: _kFixedDate,
-        );
+          final ctx = JeontongCalcContext(
+            saju: newB.saju,
+            interp: newB.interp,
+            rules: rules!,
+            referenceDate: _kFixedDate,
+          );
 
-        late final JeontongCategoryResult result;
-        expect(() => result = runJeontongCategory('A04', ctx), returnsNormally);
-        expect(result.category, '평생 직업·명예운');
-        expect(result.data['structure'], newB.a04.data['structure']);
-        expect(result.data['work_style'], newB.a04.data['work_style']);
-      });
+          late final JeontongCategoryResult result;
+          expect(
+            () => result = runJeontongCategory('A04', ctx),
+            returnsNormally,
+          );
+          expect(result.category, '평생 직업·명예운');
+          expect(result.data['structure'], newB.a04.data['structure']);
+          expect(result.data['work_style'], newB.a04.data['work_style']);
+        },
+      );
     }
   });
 }

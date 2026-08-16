@@ -189,9 +189,9 @@ class _CategoriesGridScreenState extends State<CategoriesGridScreen> {
             ),
             if (_checking)
               Container(
-                color: Theme.of(context).colorScheme.onSurface.withValues(
-                  alpha: 0.05,
-                ),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.05),
                 child: const Center(child: CircularProgressIndicator()),
               ),
           ],
@@ -235,10 +235,7 @@ class _Header extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '$totalCount종 정통사주 전체 보기',
-                style: UnifiedText.titleLarge(),
-              ),
+              Text('$totalCount종 정통사주 전체 보기', style: UnifiedText.titleLarge()),
               const SizedBox(height: 4),
               Text(
                 '오늘·사주·이름·궁합·관상손금까지 총 $totalCount개 항목을 모아봤어요',
@@ -277,7 +274,11 @@ class _GroupSection extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(icon, size: UnifiedTokens.iconMd, color: UnifiedColors.textPrimary),
+            Icon(
+              icon,
+              size: UnifiedTokens.iconMd,
+              color: UnifiedColors.textPrimary,
+            ),
             const SizedBox(width: 6),
             Expanded(child: Text(title, style: UnifiedText.title())),
             Text('${items.length}개', style: UnifiedText.caption()),
@@ -418,9 +419,9 @@ class _CategoryCard extends StatelessWidget {
             height: 24,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.onSurface.withValues(
-                alpha: 0.75,
-              ),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.75),
               shape: BoxShape.circle,
             ),
             child: const Text('🔒', style: TextStyle(fontSize: 12)),
@@ -444,10 +445,7 @@ Widget _toneWrap({
     child: InkWell(
       borderRadius: BorderRadius.circular(_Tone.radius),
       onTap: onTap,
-      child: Padding(
-        padding: padding,
-        child: child,
-      ),
+      child: Padding(padding: padding, child: child),
     ),
   );
 }

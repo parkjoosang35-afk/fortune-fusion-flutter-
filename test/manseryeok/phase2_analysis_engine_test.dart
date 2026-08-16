@@ -47,8 +47,7 @@ import 'package:flutter_test/flutter_test.dart';
     hour: hour,
     minute: minute,
     gender: gender,
-    calendarType:
-        isLunar ? CalendarInputType.lunar : CalendarInputType.solar,
+    calendarType: isLunar ? CalendarInputType.lunar : CalendarInputType.solar,
   );
 
   final profile = Phase2AnalysisEngine.analyze(
@@ -100,10 +99,10 @@ void main() {
 
       // ④ 공망 — 신살 목록에 '공망' 항목이 존재하고, 그 지지 2글자가
       //    기존 getGongmang() 결과 문자열에 포함되는지 확인.
-      final legacyGongmangChars =
-          legacyResult.gongmang.split(' ').first; // 예: '戌亥'
-      final gongmangEntry =
-          profile.sinsal!.firstWhere((s) => s.id == '空亡');
+      final legacyGongmangChars = legacyResult.gongmang
+          .split(' ')
+          .first; // 예: '戌亥'
+      final gongmangEntry = profile.sinsal!.firstWhere((s) => s.id == '空亡');
       // gongmangEntry.foundOn 은 실제 원국에 나타난 위치만 기록하므로,
       // 나타나지 않았을 수도 있다 — 대신 계산 자체가 같은 2글자를
       // 사용하는지는 SinsalEngine 내부에서 getGongmang()을 그대로
@@ -254,7 +253,18 @@ void main() {
         core: withCore.core,
       );
       const validStages = [
-        '장생', '목욕', '관대', '건록', '제왕', '쇠', '병', '사', '묘', '절', '태', '양',
+        '장생',
+        '목욕',
+        '관대',
+        '건록',
+        '제왕',
+        '쇠',
+        '병',
+        '사',
+        '묘',
+        '절',
+        '태',
+        '양',
       ];
       final stages = profile.twelveStages!;
       expect(validStages.contains(stages.year), isTrue);
@@ -266,16 +276,16 @@ void main() {
 
   group('PHASE 2 합충형파해 — 고정표 대조 검증(수동 계산 사례)', () {
     Pillar p(String stem, String branch) => Pillar(
-          stemHanja: stem,
-          branchHanja: branch,
-          stemKr: legacy.ganKr[stem] ?? '',
-          branchKr: legacy.zhiKr[branch] ?? '',
-          stemElement: legacy.ganElement[stem]!.$1,
-          stemYinYang: legacy.ganElement[stem]!.$2,
-          branchElement: legacy.zhiElement[branch]!.$1,
-          branchYinYang: legacy.zhiElement[branch]!.$2,
-          jiaZiIndex: 0,
-        );
+      stemHanja: stem,
+      branchHanja: branch,
+      stemKr: legacy.ganKr[stem] ?? '',
+      branchKr: legacy.zhiKr[branch] ?? '',
+      stemElement: legacy.ganElement[stem]!.$1,
+      stemYinYang: legacy.ganElement[stem]!.$2,
+      branchElement: legacy.zhiElement[branch]!.$1,
+      branchYinYang: legacy.zhiElement[branch]!.$2,
+      jiaZiIndex: 0,
+    );
 
     test('년지 子 + 월지 丑 → 육합(子丑合土) 검출', () {
       final rels = RelationshipsEngine.analyze(
@@ -423,8 +433,18 @@ void main() {
       final table = SinsalEngine.computeTwelveSinsalTable('子');
       expect(table.length, 12);
       const expectedNames = [
-        '겁살', '재살', '천살', '지살', '년살', '월살',
-        '망신살', '장성살', '반안살', '역마살', '육해살', '화개살',
+        '겁살',
+        '재살',
+        '천살',
+        '지살',
+        '년살',
+        '월살',
+        '망신살',
+        '장성살',
+        '반안살',
+        '역마살',
+        '육해살',
+        '화개살',
       ];
       for (final name in expectedNames) {
         expect(table.containsKey(name), isTrue, reason: '$name 누락');
@@ -491,16 +511,16 @@ void main() {
 
     test('일주 庚辰 → 괴강살 검출', () {
       Pillar p(String stem, String branch) => Pillar(
-            stemHanja: stem,
-            branchHanja: branch,
-            stemKr: legacy.ganKr[stem] ?? '',
-            branchKr: legacy.zhiKr[branch] ?? '',
-            stemElement: legacy.ganElement[stem]!.$1,
-            stemYinYang: legacy.ganElement[stem]!.$2,
-            branchElement: legacy.zhiElement[branch]!.$1,
-            branchYinYang: legacy.zhiElement[branch]!.$2,
-            jiaZiIndex: 0,
-          );
+        stemHanja: stem,
+        branchHanja: branch,
+        stemKr: legacy.ganKr[stem] ?? '',
+        branchKr: legacy.zhiKr[branch] ?? '',
+        stemElement: legacy.ganElement[stem]!.$1,
+        stemYinYang: legacy.ganElement[stem]!.$2,
+        branchElement: legacy.zhiElement[branch]!.$1,
+        branchYinYang: legacy.zhiElement[branch]!.$2,
+        jiaZiIndex: 0,
+      );
       final rels = SinsalEngine.analyze(
         yearPillar: p('甲', '子'),
         monthPillar: p('乙', '丑'),
@@ -514,16 +534,16 @@ void main() {
 
     test('일주 甲辰 → 백호대살 검출', () {
       Pillar p(String stem, String branch) => Pillar(
-            stemHanja: stem,
-            branchHanja: branch,
-            stemKr: legacy.ganKr[stem] ?? '',
-            branchKr: legacy.zhiKr[branch] ?? '',
-            stemElement: legacy.ganElement[stem]!.$1,
-            stemYinYang: legacy.ganElement[stem]!.$2,
-            branchElement: legacy.zhiElement[branch]!.$1,
-            branchYinYang: legacy.zhiElement[branch]!.$2,
-            jiaZiIndex: 0,
-          );
+        stemHanja: stem,
+        branchHanja: branch,
+        stemKr: legacy.ganKr[stem] ?? '',
+        branchKr: legacy.zhiKr[branch] ?? '',
+        stemElement: legacy.ganElement[stem]!.$1,
+        stemYinYang: legacy.ganElement[stem]!.$2,
+        branchElement: legacy.zhiElement[branch]!.$1,
+        branchYinYang: legacy.zhiElement[branch]!.$2,
+        jiaZiIndex: 0,
+      );
       final rels = SinsalEngine.analyze(
         yearPillar: p('丙', '子'),
         monthPillar: p('丁', '丑'),

@@ -41,13 +41,19 @@ class HistoryJeontongSectionedView extends StatelessWidget {
   final String userId;
 
   static const _sectionLetters = <String>[
-    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+    'A',
+    'B',
+    'C',
+    'D',
+    'E',
+    'F',
+    'G',
+    'H',
   ];
 
   /// entry.id(`'$categoryId-$userId-$epoch'`)에서 categoryId만 역산.
   /// categoryId 자체에는 하이픈이 없으므로(예: 'A01') 안전하다.
-  String _categoryIdOf(HistoryReadOnlyEntry entry) =>
-      entry.id.split('-').first;
+  String _categoryIdOf(HistoryReadOnlyEntry entry) => entry.id.split('-').first;
 
   @override
   Widget build(BuildContext context) {

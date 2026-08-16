@@ -64,7 +64,8 @@ List<DaewoonWithTenGod> daewoonsWithTenGod(SajuResult saju) {
   ];
 }
 
-String _label(SajuLuckPillar lp) => '${lp.startAge}세(${lp.startYear}년, ${lp.ganZhiKr})';
+String _label(SajuLuckPillar lp) =>
+    '${lp.startAge}세(${lp.startYear}년, ${lp.ganZhiKr})';
 
 // ============================================================
 // B02 — 대운별 재물 흐름
@@ -104,7 +105,11 @@ DaewoonWealthFlowResult getDaewoonWealthFlow(SajuResult saju) {
   final summary = peaks.isEmpty
       ? '계산된 대운 범위 안에서는 재성이 뚜렷하게 발동하는 시기가 보이지 않아요. 꾸준한 저축과 관리가 핵심이에요.'
       : '${peaks.join(', ')} 시기에 재성이 발동해 재물 활동이 활발해질 수 있어요.';
-  return DaewoonWealthFlowResult(timeline: timeline, peakPeriods: peaks, summary: summary);
+  return DaewoonWealthFlowResult(
+    timeline: timeline,
+    peakPeriods: peaks,
+    summary: summary,
+  );
 }
 
 // ============================================================
@@ -145,7 +150,11 @@ DaewoonCareerFlowResult getDaewoonCareerFlow(SajuResult saju) {
   final summary = shifts.isEmpty
       ? '계산된 대운 범위 안에서는 관성이 뚜렷하게 발동하는 시기가 보이지 않아요. 큰 변화보다 내실을 다지는 흐름이에요.'
       : '${shifts.join(', ')} 시기에 관성이 발동해 직업·직책 변화 가능성이 커질 수 있어요.';
-  return DaewoonCareerFlowResult(timeline: timeline, shiftPeriods: shifts, summary: summary);
+  return DaewoonCareerFlowResult(
+    timeline: timeline,
+    shiftPeriods: shifts,
+    summary: summary,
+  );
 }
 
 // ============================================================
@@ -183,7 +192,9 @@ DaewoonHealthFlowResult getDaewoonHealthFlow(SajuResult saju) {
     final elements = {d.stemElement, d.branchElement};
     final hit = elements.intersection(dominant);
     if (hit.isNotEmpty) {
-      timeline.add('$label — ${hit.join('·')} 기운이 더해져 원국의 오행 편중이 더 강해질 수 있는 시기');
+      timeline.add(
+        '$label — ${hit.join('·')} 기운이 더해져 원국의 오행 편중이 더 강해질 수 있는 시기',
+      );
       cautions.add(label);
     } else {
       timeline.add('$label — 원국의 오행 균형에 큰 영향을 주지 않는 시기');
@@ -192,11 +203,15 @@ DaewoonHealthFlowResult getDaewoonHealthFlow(SajuResult saju) {
 
   final summary = cautions.isEmpty
       ? '계산된 대운 범위 안에서는 원국의 오행 편중을 더 강화하는 시기가 보이지 않아요. '
-          '전반적으로 무난한 생활 관리가 가능한 흐름이에요.'
+            '전반적으로 무난한 생활 관리가 가능한 흐름이에요.'
       : '${cautions.join(', ')} 시기에는 이미 원국에 많은 오행이 더욱 강해지는 흐름이에요. '
-          '이 시기에는 평소보다 생활 관리(휴식·규칙적인 생활)에 조금 더 신경 쓰면 좋아요. '
-          '(※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)';
-  return DaewoonHealthFlowResult(timeline: timeline, cautionPeriods: cautions, summary: summary);
+            '이 시기에는 평소보다 생활 관리(휴식·규칙적인 생활)에 조금 더 신경 쓰면 좋아요. '
+            '(※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)';
+  return DaewoonHealthFlowResult(
+    timeline: timeline,
+    cautionPeriods: cautions,
+    summary: summary,
+  );
 }
 
 // ============================================================
@@ -239,7 +254,11 @@ DaewoonLoveFlowResult getDaewoonLoveFlow(SajuResult saju) {
   final summary = active.isEmpty
       ? '계산된 대운 범위 안에서는 $godLabel이 뚜렷하게 발동하는 시기가 보이지 않아요.'
       : '${active.join(', ')} 시기에 $godLabel이 발동해 인연·관계에 변화가 생길 수 있어요.';
-  return DaewoonLoveFlowResult(timeline: timeline, activePeriods: active, summary: summary);
+  return DaewoonLoveFlowResult(
+    timeline: timeline,
+    activePeriods: active,
+    summary: summary,
+  );
 }
 
 // ============================================================
@@ -273,7 +292,8 @@ DaewoonTransitionResult getDaewoonTransitionCautions(SajuResult saju) {
     final String relation;
     if (prevElement == nextElement) {
       relation = '직전 흐름과 오행이 같아 비교적 완만한 전환';
-    } else if (ke[prevElement] == nextElement || ke[nextElement] == prevElement) {
+    } else if (ke[prevElement] == nextElement ||
+        ke[nextElement] == prevElement) {
       relation = '직전 흐름과 오행이 상극(剋) 관계 — 전환기 전후 3년은 변화 체감이 클 수 있음';
       cautions.add('$label 전후 3년');
     } else {
@@ -286,8 +306,12 @@ DaewoonTransitionResult getDaewoonTransitionCautions(SajuResult saju) {
   final summary = cautions.isEmpty
       ? '대운 전환이 전반적으로 완만하게 이어지는 흐름이에요.'
       : '${cautions.join(', ')}는 오행 기운이 크게 바뀌는 전환기예요. 이 시기 전후로는 '
-          '큰 결정보다 안정적인 관리에 집중하면 좋아요.';
-  return DaewoonTransitionResult(timeline: timeline, cautionWindows: cautions, summary: summary);
+            '큰 결정보다 안정적인 관리에 집중하면 좋아요.';
+  return DaewoonTransitionResult(
+    timeline: timeline,
+    cautionWindows: cautions,
+    summary: summary,
+  );
 }
 
 // ============================================================
@@ -339,7 +363,8 @@ DaewoonNextPreviewResult getNextDaewoonPreview(SajuResult saju) {
     startYear: next.luck.startYear,
     ganZhiKr: next.luck.ganZhiKr,
     tenGods: tags,
-    message: '${next.luck.startAge}세(${next.luck.startYear}년)부터 ${next.luck.ganZhiKr} 대운이 시작돼요. '
+    message:
+        '${next.luck.startAge}세(${next.luck.startYear}년)부터 ${next.luck.ganZhiKr} 대운이 시작돼요. '
         '이 대운의 십신은 ${tags.join('/')}이에요.',
   );
 }
@@ -358,7 +383,10 @@ class DaewoonBestWorstResult {
 /// [profile]은 PHASE3([Phase3AnalysisEngine])가 이미 계산한 용신/기신을
 /// 그대로 조회하기 위한 참조([JeontongCalcContext.profile]). 여기서 새로
 /// 용신을 계산하지 않는다 — null이면(레거시 경로 등) 판단 불가로 안내한다.
-DaewoonBestWorstResult getBestDaewoonPeriods(SajuResult saju, SajuProfile? profile) {
+DaewoonBestWorstResult getBestDaewoonPeriods(
+  SajuResult saju,
+  SajuProfile? profile,
+) {
   final yongsinEl = profile?.yongsin?.yongsin;
   if (yongsinEl == null || yongsinEl.isEmpty) {
     return const DaewoonBestWorstResult(
@@ -374,11 +402,14 @@ DaewoonBestWorstResult getBestDaewoonPeriods(SajuResult saju, SajuProfile? profi
   final summary = periods.isEmpty
       ? '계산된 대운 범위 안에서는 용신($yongsinEl) 기운이 뚜렷하게 들어오는 시기가 보이지 않아요.'
       : '${periods.join(', ')} 시기는 용신($yongsinEl) 기운이 들어와 전반적으로 순조로운 흐름을 '
-          '기대할 수 있는 대운이에요.';
+            '기대할 수 있는 대운이에요.';
   return DaewoonBestWorstResult(periods: periods, summary: summary);
 }
 
-DaewoonBestWorstResult getWorstDaewoonPeriods(SajuResult saju, SajuProfile? profile) {
+DaewoonBestWorstResult getWorstDaewoonPeriods(
+  SajuResult saju,
+  SajuProfile? profile,
+) {
   final gisinEl = profile?.yongsin?.gisin;
   if (gisinEl == null || gisinEl.isEmpty) {
     return const DaewoonBestWorstResult(
@@ -394,7 +425,7 @@ DaewoonBestWorstResult getWorstDaewoonPeriods(SajuResult saju, SajuProfile? prof
   final summary = periods.isEmpty
       ? '계산된 대운 범위 안에서는 기신($gisinEl) 기운이 뚜렷하게 들어오는 시기가 보이지 않아요.'
       : '${periods.join(', ')} 시기는 기신($gisinEl) 기운이 들어와 다소 신중한 관리가 필요한 대운이에요. '
-          '큰 결정보다는 안정에 무게를 두면 좋아요.';
+            '큰 결정보다는 안정에 무게를 두면 좋아요.';
   return DaewoonBestWorstResult(periods: periods, summary: summary);
 }
 
@@ -423,7 +454,10 @@ class DaewoonSewoonComboResult {
 /// 현재 대운([saju.currentLuck])과 [year] 세운의 십신을 대조해 시너지를
 /// 판정한다. 세운 간지는 `saju_fortune_modules.dart`의 `getYearFortune()`과
 /// 동일한 방식(대표일 6/15 기준)으로 구한다 — 새 계산 방식 도입 아님.
-DaewoonSewoonComboResult getDaewoonSewoonCombo(SajuResult saju, {required int year}) {
+DaewoonSewoonComboResult getDaewoonSewoonCombo(
+  SajuResult saju, {
+  required int year,
+}) {
   final dayGan = saju.dayMaster.gan;
   final solar = Solar.fromYmd(year, 6, 15);
   final lunar = solar.getLunar();
@@ -450,17 +484,21 @@ DaewoonSewoonComboResult getDaewoonSewoonCombo(SajuResult saju, {required int ye
   final daewoonStemGod = getTenGod(dayGan, dStem);
   final daewoonBranchGod = getTenGod(dayGan, dBranch);
 
-  final overlap =
-      {daewoonStemGod, daewoonBranchGod}.intersection({sewoonStemGod, sewoonBranchGod});
+  final overlap = {
+    daewoonStemGod,
+    daewoonBranchGod,
+  }.intersection({sewoonStemGod, sewoonBranchGod});
   final String synergy;
   final String message;
   if (overlap.isNotEmpty) {
     synergy = '십신 중첩(${overlap.join(', ')}) — 같은 기운이 두 배로 강조되는 해';
-    message = '올해는 현재 대운의 기운과 같은 십신(${overlap.join(', ')})이 겹쳐서, '
+    message =
+        '올해는 현재 대운의 기운과 같은 십신(${overlap.join(', ')})이 겹쳐서, '
         '대운이 상징하는 흐름이 더욱 뚜렷하게 나타날 수 있는 해예요.';
   } else {
     synergy = '십신 분산 — 대운과 세운이 서로 다른 기운을 더하는 해';
-    message = '올해는 현재 대운($daewoonStemGod/$daewoonBranchGod)과는 다른 기운'
+    message =
+        '올해는 현재 대운($daewoonStemGod/$daewoonBranchGod)과는 다른 기운'
         '($sewoonStemGod/$sewoonBranchGod)이 함께 작용해, 다채로운 변화가 있을 수 있는 해예요.';
   }
 

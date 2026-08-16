@@ -439,7 +439,8 @@ LifeStudyResult getLifeStudy(SajuResult saju, SajuFullInterpretation interp) {
     message = '문창귀인을 갖추어 시험·문서·자격증 운이 좋은 사주예요. 꾸준히 준비하면 좋은 결과로 이어질 가능성이 높아요.';
   } else if (studyGodCount >= 2) {
     style = '학구형 — 인성이 두터운 사주';
-    message = '인성(학업성) $studyGodCount개. 배움과 탐구를 즐기는 성향이 강하고, 꾸준한 공부로 실력을 쌓는 타입이에요.';
+    message =
+        '인성(학업성) $studyGodCount개. 배움과 탐구를 즐기는 성향이 강하고, 꾸준한 공부로 실력을 쌓는 타입이에요.';
   } else if (studyGodCount == 1) {
     style = '안정형 — 인성이 무난한 사주';
     message = '인성(학업성) 1개. 무난하게 학업을 이어가는 흐름이에요. 인성 대운·세운에서 학업운이 더 강해질 수 있어요.';

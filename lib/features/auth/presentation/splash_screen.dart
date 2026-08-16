@@ -39,12 +39,18 @@ class _SplashScreenState extends State<SplashScreen>
     // fade-in(0~40%) -> hold -> fade-out(80~100%), 전체 1.3초 내에서 처리.
     _fade = TweenSequence<double>([
       TweenSequenceItem(
-        tween: Tween(begin: 0.0, end: 1.0).chain(CurveTween(curve: Curves.easeOut)),
+        tween: Tween(
+          begin: 0.0,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.easeOut)),
         weight: 40,
       ),
       TweenSequenceItem(tween: ConstantTween(1.0), weight: 40),
       TweenSequenceItem(
-        tween: Tween(begin: 1.0, end: 0.0).chain(CurveTween(curve: Curves.easeIn)),
+        tween: Tween(
+          begin: 1.0,
+          end: 0.0,
+        ).chain(CurveTween(curve: Curves.easeIn)),
         weight: 20,
       ),
     ]).animate(_controller);
@@ -133,7 +139,10 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                 ),
                 const SizedBox(height: UnifiedTokens.spaceXxl),
-                Text('신통방통', style: UnifiedText.titleLarge().copyWith(fontSize: 22)),
+                Text(
+                  '신통방통',
+                  style: UnifiedText.titleLarge().copyWith(fontSize: 22),
+                ),
               ],
             ),
           ),

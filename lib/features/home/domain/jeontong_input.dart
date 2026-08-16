@@ -42,14 +42,13 @@ class JeontongInput {
   /// [birthDateTimeLocal]을 UTC로 변환한 값.
   /// KST는 UTC+9 고정 오프셋이므로, 로컬 벽시계 시각에서 9시간을 빼면
   /// 그 벽시계 시각을 나타내는 UTC 순간을 얻는다.
-  DateTime get birthDateTimeUtc =>
-      DateTime.utc(
-        birthDateTimeLocal.year,
-        birthDateTimeLocal.month,
-        birthDateTimeLocal.day,
-        birthDateTimeLocal.hour,
-        birthDateTimeLocal.minute,
-      ).subtract(const Duration(hours: 9));
+  DateTime get birthDateTimeUtc => DateTime.utc(
+    birthDateTimeLocal.year,
+    birthDateTimeLocal.month,
+    birthDateTimeLocal.day,
+    birthDateTimeLocal.hour,
+    birthDateTimeLocal.minute,
+  ).subtract(const Duration(hours: 9));
 
   /// 정규화된 이름 — 앞뒤 공백 제거 후 빈 문자열이면 null.
   String? get normalizedName {
@@ -82,8 +81,7 @@ class JeontongInput {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(birthDateTimeLocal, gender, isLunar, name);
+  int get hashCode => Object.hash(birthDateTimeLocal, gender, isLunar, name);
 
   @override
   String toString() =>

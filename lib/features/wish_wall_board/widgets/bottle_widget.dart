@@ -67,7 +67,8 @@ class _BottlePainter extends CustomPainter {
   double _sx(Size size) => size.width / 100;
   double _sy(Size size) => size.height / 155;
 
-  Offset _p(Size size, double x, double y) => Offset(x * _sx(size), y * _sy(size));
+  Offset _p(Size size, double x, double y) =>
+      Offset(x * _sx(size), y * _sy(size));
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -122,20 +123,21 @@ class _BottlePainter extends CustomPainter {
     if (glow > 0) {
       final haloCenter = _p(size, 50, 100);
       final haloPaint = Paint()
-        ..shader = RadialGradient(
-          colors: [
-            light.withValues(alpha: (glow * 0.85).clamp(0.0, 1.0)),
-            light.withValues(alpha: (glow * 0.30).clamp(0.0, 1.0)),
-            light.withValues(alpha: 0),
-          ],
-          stops: const [0.0, 0.6, 1.0],
-        ).createShader(
-          Rect.fromCenter(
-            center: haloCenter,
-            width: 60 * sx,
-            height: 90 * sy,
-          ),
-        );
+        ..shader =
+            RadialGradient(
+              colors: [
+                light.withValues(alpha: (glow * 0.85).clamp(0.0, 1.0)),
+                light.withValues(alpha: (glow * 0.30).clamp(0.0, 1.0)),
+                light.withValues(alpha: 0),
+              ],
+              stops: const [0.0, 0.6, 1.0],
+            ).createShader(
+              Rect.fromCenter(
+                center: haloCenter,
+                width: 60 * sx,
+                height: 90 * sy,
+              ),
+            );
       canvas.save();
       canvas.clipPath(path);
       canvas.drawOval(
@@ -197,7 +199,10 @@ class _BottlePainter extends CustomPainter {
 
     // Cork (lid).
     final corkRect = Rect.fromLTWH(38 * sx, 0, 24 * sx, 10 * sy);
-    final corkRRect = RRect.fromRectAndRadius(corkRect, Radius.circular(1.5 * sx));
+    final corkRRect = RRect.fromRectAndRadius(
+      corkRect,
+      Radius.circular(1.5 * sx),
+    );
     canvas.drawRRect(corkRRect, Paint()..color = cork.withValues(alpha: 0.85));
     canvas.drawRRect(
       RRect.fromRectAndRadius(
@@ -217,7 +222,10 @@ class _BottlePainter extends CustomPainter {
       ..strokeWidth = 3 * sx
       ..strokeCap = StrokeCap.round
       ..shader = LinearGradient(
-        colors: [Colors.white.withValues(alpha: 0.7), Colors.white.withValues(alpha: 0)],
+        colors: [
+          Colors.white.withValues(alpha: 0.7),
+          Colors.white.withValues(alpha: 0),
+        ],
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
     canvas.drawPath(shinePath, shinePaint);
     canvas.drawOval(
@@ -227,7 +235,11 @@ class _BottlePainter extends CustomPainter {
 
     // Bottom shadow.
     canvas.drawOval(
-      Rect.fromCenter(center: _p(size, 50, 150), width: 40 * sx, height: 3 * sy),
+      Rect.fromCenter(
+        center: _p(size, 50, 150),
+        width: 40 * sx,
+        height: 3 * sy,
+      ),
       Paint()..color = cork.withValues(alpha: 0.15),
     );
 
@@ -334,7 +346,8 @@ class BottleLeaves extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: List.generate(n, (i) {
-          final angle = (rightSide ? 20 - i * 4 : -20 + i * 4) * 3.1415926535 / 180;
+          final angle =
+              (rightSide ? 20 - i * 4 : -20 + i * 4) * 3.1415926535 / 180;
           return Padding(
             padding: const EdgeInsets.only(bottom: 2),
             child: Transform.rotate(
@@ -360,7 +373,10 @@ class _LeafPainter extends CustomPainter {
       ..cubicTo(4, 1, 10, 1, 13, 5)
       ..cubicTo(10, 9, 4, 9, 1, 5)
       ..close();
-    canvas.drawPath(path, Paint()..color = const Color(0xFF10B981).withValues(alpha: 0.75));
+    canvas.drawPath(
+      path,
+      Paint()..color = const Color(0xFF10B981).withValues(alpha: 0.75),
+    );
     canvas.drawLine(
       const Offset(1, 5),
       const Offset(13, 5),

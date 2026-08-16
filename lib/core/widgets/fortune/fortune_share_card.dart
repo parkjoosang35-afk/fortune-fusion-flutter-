@@ -64,7 +64,10 @@ class FortuneShareCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: UnifiedTokens.spaceSm),
-                SimpleMarkdownText(data: headline, baseStyle: UnifiedText.bodyStrong()),
+                SimpleMarkdownText(
+                  data: headline,
+                  baseStyle: UnifiedText.bodyStrong(),
+                ),
               ],
             ),
           ),

@@ -371,7 +371,14 @@ class _TopHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(width: _Dims.headerIconGap),
-        GestureDetector(onTap: () => Navigator.of(context).pushNamed('/history/readonly'), child: const Icon(Icons.history_rounded, size: HomeTokens.iconXl, color: HomeColors.textPrimary)),
+        GestureDetector(
+          onTap: () => Navigator.of(context).pushNamed('/history/readonly'),
+          child: const Icon(
+            Icons.history_rounded,
+            size: HomeTokens.iconXl,
+            color: HomeColors.textPrimary,
+          ),
+        ),
         // [첨부 디자인 반영] 우측 끝 원형 프로필 아바타 - 로그인 상태면
         // 마이페이지(설정)로, 비로그인 상태면 로그인 화면으로 이동한다.
         GestureDetector(
@@ -1179,10 +1186,7 @@ Widget _toneWrap({
     child: InkWell(
       borderRadius: BorderRadius.circular(_Tone.radius),
       onTap: onTap,
-      child: Padding(
-        padding: padding,
-        child: child,
-      ),
+      child: Padding(padding: padding, child: child),
     ),
   );
 }

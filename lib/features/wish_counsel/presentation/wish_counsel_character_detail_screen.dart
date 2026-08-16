@@ -40,18 +40,14 @@ class WishCounselCharacterDetailScreen extends StatelessWidget {
                       Image.asset(
                         character.avatarAsset,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) =>
-                            Container(color: t.bg2),
+                        errorBuilder: (_, __, ___) => Container(color: t.bg2),
                       ),
                       DecoratedBox(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.transparent,
-                              WishCounselColors.bg1,
-                            ],
+                            colors: [Colors.transparent, WishCounselColors.bg1],
                             stops: const [0.55, 1.0],
                           ),
                         ),
@@ -87,10 +83,7 @@ class WishCounselCharacterDetailScreen extends StatelessWidget {
                       const SizedBox(height: 18),
                       Row(
                         children: [
-                          _StatCol(
-                            value: '★ ${character.rating}',
-                            label: '평점',
-                          ),
+                          _StatCol(value: '★ ${character.rating}', label: '평점'),
                           _StatCol(
                             value: _formatCount(character.sessions),
                             label: '누적 상담',
@@ -116,7 +109,9 @@ class WishCounselCharacterDetailScreen extends StatelessWidget {
                                 ),
                                 child: Text(
                                   tag,
-                                  style: WishCounselText.caption(color: t.accent),
+                                  style: WishCounselText.caption(
+                                    color: t.accent,
+                                  ),
                                 ),
                               ),
                             )
@@ -142,8 +137,9 @@ class WishCounselCharacterDetailScreen extends StatelessWidget {
                                 decoration: BoxDecoration(
                                   color: WishCounselColors.card,
                                   borderRadius: BorderRadius.circular(12),
-                                  border:
-                                      Border.all(color: WishCounselColors.line),
+                                  border: Border.all(
+                                    color: WishCounselColors.line,
+                                  ),
                                 ),
                                 child: Text(
                                   s,
@@ -224,10 +220,7 @@ class WishCounselCharacterDetailScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    '완전 무료 · 복주머니 소비 없음',
-                    style: WishCounselText.caption(),
-                  ),
+                  Text('완전 무료 · 복주머니 소비 없음', style: WishCounselText.caption()),
                 ],
               ),
             ),

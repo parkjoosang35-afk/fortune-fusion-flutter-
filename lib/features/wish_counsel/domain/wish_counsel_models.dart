@@ -120,16 +120,20 @@ class CounselCharacter {
       nameSub: json['name_sub'] as String? ?? '',
       avatarAsset: json['avatar'] as String,
       role: json['role'] as String? ?? '',
-      tags: (json['tags'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      tags:
+          (json['tags'] as List?)?.map((e) => e.toString()).toList() ??
+          const [],
       styleTags:
           (json['style_tags'] as List?)?.map((e) => e.toString()).toList() ??
-              const [],
+          const [],
       specialties:
           (json['specialties'] as List?)?.map((e) => e.toString()).toList() ??
-              const [],
+          const [],
       sampleQuestions:
-          (json['sample_questions'] as List?)?.map((e) => e.toString()).toList() ??
-              const [],
+          (json['sample_questions'] as List?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const [],
       voiceGreeting: json['voice_greeting'] as String? ?? '',
       intro: json['intro'] as String? ?? '',
       rating: (json['rating'] as num?)?.toDouble() ?? 4.8,
@@ -158,12 +162,12 @@ class CounselMessage {
   final bool crisis;
 
   CounselMessage copyWith({String? text, bool? crisis}) => CounselMessage(
-        id: id,
-        role: role,
-        text: text ?? this.text,
-        createdAt: createdAt,
-        crisis: crisis ?? this.crisis,
-      );
+    id: id,
+    role: role,
+    text: text ?? this.text,
+    createdAt: createdAt,
+    crisis: crisis ?? this.crisis,
+  );
 }
 
 /// 세션 요약(SUMMARY 화면용)

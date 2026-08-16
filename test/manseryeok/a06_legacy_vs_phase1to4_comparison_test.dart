@@ -176,59 +176,96 @@ void main() {
         print('[8글자] legacy=$legacyPillars');
         // ignore: avoid_print
         print('[8글자] new   =$newPillars');
-        expect(newPillars, legacyPillars, reason: '${u.userId} 8글자는 100% 동일해야 함');
+        expect(
+          newPillars,
+          legacyPillars,
+          reason: '${u.userId} 8글자는 100% 동일해야 함',
+        );
 
         // ── 2) 일간 ──
         // ignore: avoid_print
-        print('[일간] legacy=${legacyB.saju.dayMaster.gan}(${legacyB.saju.dayMaster.kr})');
+        print(
+          '[일간] legacy=${legacyB.saju.dayMaster.gan}(${legacyB.saju.dayMaster.kr})',
+        );
         // ignore: avoid_print
-        print('[일간] new   =${newB.saju.dayMaster.gan}(${newB.saju.dayMaster.kr})');
-        expect(newB.saju.dayMaster.gan, legacyB.saju.dayMaster.gan, reason: '${u.userId} 일간 불일치');
+        print(
+          '[일간] new   =${newB.saju.dayMaster.gan}(${newB.saju.dayMaster.kr})',
+        );
+        expect(
+          newB.saju.dayMaster.gan,
+          legacyB.saju.dayMaster.gan,
+          reason: '${u.userId} 일간 불일치',
+        );
 
         // ── 3) 오행 ──
         // ignore: avoid_print
         print('[오행] legacy=${legacyB.saju.fiveElementsCount}');
         // ignore: avoid_print
         print('[오행] new   =${newB.saju.fiveElementsCount}');
-        expect(newB.saju.fiveElementsCount, legacyB.saju.fiveElementsCount, reason: '${u.userId} 오행 총량 불일치');
+        expect(
+          newB.saju.fiveElementsCount,
+          legacyB.saju.fiveElementsCount,
+          reason: '${u.userId} 오행 총량 불일치',
+        );
 
         // ── 4) 십신(7키) — A06의 핵심 입력값 ──
         // ignore: avoid_print
         print('[십신] legacy=${legacyB.saju.tenGods}');
         // ignore: avoid_print
         print('[십신] new   =${newB.saju.tenGods}');
-        expect(newB.saju.tenGods, legacyB.saju.tenGods, reason: '${u.userId} 십신 불일치');
+        expect(
+          newB.saju.tenGods,
+          legacyB.saju.tenGods,
+          reason: '${u.userId} 십신 불일치',
+        );
 
         // ── 5) 대운 ──
-        final legacyReal = legacyB.saju.luckPillars.where((lp) => lp.ganZhi.isNotEmpty).toList();
+        final legacyReal = legacyB.saju.luckPillars
+            .where((lp) => lp.ganZhi.isNotEmpty)
+            .toList();
         // ignore: avoid_print
-        print('[대운] legacy(${legacyReal.length}개)=${legacyReal.map((e) => '${e.ganZhiKr}(${e.startAge}세~)').join(', ')}');
+        print(
+          '[대운] legacy(${legacyReal.length}개)=${legacyReal.map((e) => '${e.ganZhiKr}(${e.startAge}세~)').join(', ')}',
+        );
         // ignore: avoid_print
-        print('[대운] new(${newB.saju.luckPillars.length}개)=${newB.saju.luckPillars.map((e) => '${e.ganZhiKr}(${e.startAge}세~)').join(', ')}');
+        print(
+          '[대운] new(${newB.saju.luckPillars.length}개)=${newB.saju.luckPillars.map((e) => '${e.ganZhiKr}(${e.startAge}세~)').join(', ')}',
+        );
         for (var i = 0; i < legacyReal.length; i++) {
-          expect(newB.saju.luckPillars[i].ganZhi, legacyReal[i].ganZhi, reason: '${u.userId} 대운[$i] 간지 불일치');
+          expect(
+            newB.saju.luckPillars[i].ganZhi,
+            legacyReal[i].ganZhi,
+            reason: '${u.userId} 대운[$i] 간지 불일치',
+          );
         }
 
         // ── 6) 신강신약(dayMasterStrength) — A06엔 미사용, 회귀 확인용 ──
-        final strengthSame = newB.saju.dayMasterStrength == legacyB.saju.dayMasterStrength;
+        final strengthSame =
+            newB.saju.dayMasterStrength == legacyB.saju.dayMasterStrength;
         // ignore: avoid_print
         print('[신강신약] legacy=${legacyB.saju.dayMasterStrength}');
         // ignore: avoid_print
-        print('[신강신약] new   =${newB.saju.dayMasterStrength}  (${strengthSame ? "동일" : "★ 다름(A01/A04/A05와 동일한 seed-user-C 패턴 - A06엔 영향 없음) ★"})');
+        print(
+          '[신강신약] new   =${newB.saju.dayMasterStrength}  (${strengthSame ? "동일" : "★ 다름(A01/A04/A05와 동일한 seed-user-C 패턴 - A06엔 영향 없음) ★"})',
+        );
         if (newB.profile.strength != null) {
           final s = newB.profile.strength!;
           // ignore: avoid_print
-          print('[신강신약·PHASE3 상세] score=${s.score.toStringAsFixed(3)} '
-              'monthOrder=${s.monthOrderScore} root=${s.rootScore} '
-              'support=${s.supportScore} control=${s.controlScore} drain=${s.drainScore}');
+          print(
+            '[신강신약·PHASE3 상세] score=${s.score.toStringAsFixed(3)} '
+            'monthOrder=${s.monthOrderScore} root=${s.rootScore} '
+            'support=${s.supportScore} control=${s.controlScore} drain=${s.drainScore}',
+          );
         }
 
         // ── 7) 용신/희신/기신/구신 (신규 전용, A06엔 미사용 — 참고 로그) ──
         if (newB.profile.yongsin != null) {
           final y = newB.profile.yongsin!;
           // ignore: avoid_print
-          print('[용희기구·신규전용] method=${y.method} 용신=${y.yongsin} 희신=${y.heesin} '
-              '기신=${y.gisin} 구신=${y.gusin}');
+          print(
+            '[용희기구·신규전용] method=${y.method} 용신=${y.yongsin} 희신=${y.heesin} '
+            '기신=${y.gisin} 구신=${y.gusin}',
+          );
         }
 
         // ── 8) A06 판단에 실제 사용되는 계산값(배우자성 개수/loveFortune) ──
@@ -243,20 +280,38 @@ void main() {
         final lLove = legacyB.interp.loveFortune;
         final nLove = newB.interp.loveFortune;
         // ignore: avoid_print
-        print('[A06계산값·loveFortune.spouseGod] legacy=${lLove.spouseGod}  new=${nLove.spouseGod}');
+        print(
+          '[A06계산값·loveFortune.spouseGod] legacy=${lLove.spouseGod}  new=${nLove.spouseGod}',
+        );
         // ignore: avoid_print
-        print('[A06계산값·loveFortune.count] legacy=${lLove.count}  new=${nLove.count}');
+        print(
+          '[A06계산값·loveFortune.count] legacy=${lLove.count}  new=${nLove.count}',
+        );
         // ignore: avoid_print
         print('[A06계산값·loveFortune.message] legacy=${lLove.message}');
         // ignore: avoid_print
         print('[A06계산값·loveFortune.message] new   =${nLove.message}');
-        expect(nLove.spouseGod, lLove.spouseGod, reason: '${u.userId} loveFortune.spouseGod 불일치');
-        expect(nLove.count, lLove.count, reason: '${u.userId} loveFortune.count 불일치');
-        expect(nLove.message, lLove.message, reason: '${u.userId} loveFortune.message 불일치');
+        expect(
+          nLove.spouseGod,
+          lLove.spouseGod,
+          reason: '${u.userId} loveFortune.spouseGod 불일치',
+        );
+        expect(
+          nLove.count,
+          lLove.count,
+          reason: '${u.userId} loveFortune.count 불일치',
+        );
+        expect(
+          nLove.message,
+          lLove.message,
+          reason: '${u.userId} loveFortune.message 불일치',
+        );
 
         // ── 9) 최종 A06 결과(LifeLoveResult) 전체 필드 ──
         // ignore: avoid_print
-        print('[A06·spouseGod] legacy=${legacyB.a06.spouseGod}  new=${newB.a06.spouseGod}');
+        print(
+          '[A06·spouseGod] legacy=${legacyB.a06.spouseGod}  new=${newB.a06.spouseGod}',
+        );
         // ignore: avoid_print
         print('[A06·style] legacy=${legacyB.a06.style}');
         // ignore: avoid_print
@@ -274,57 +329,86 @@ void main() {
         // ignore: avoid_print
         print('[A06·advice] new   =${newB.a06.advice}');
 
-        final a06Same = legacyB.a06.spouseGod == newB.a06.spouseGod &&
+        final a06Same =
+            legacyB.a06.spouseGod == newB.a06.spouseGod &&
             legacyB.a06.style == newB.a06.style &&
             legacyB.a06.message == newB.a06.message &&
             legacyB.a06.marriageTiming == newB.a06.marriageTiming &&
             legacyB.a06.advice == newB.a06.advice;
         // ignore: avoid_print
-        print('[결론] A06 전체 데이터 동일여부=$a06Same '
-            '(dayMasterStrength동일=$strengthSame — A06은 신강신약을 사용하지 않으므로 '
-            'strength 차이와 무관하게 십신 분포가 일치하는 한 항상 동일해야 함)');
+        print(
+          '[결론] A06 전체 데이터 동일여부=$a06Same '
+          '(dayMasterStrength동일=$strengthSame — A06은 신강신약을 사용하지 않으므로 '
+          'strength 차이와 무관하게 십신 분포가 일치하는 한 항상 동일해야 함)',
+        );
 
         // ── A06은 dayMasterStrength에 의존하지 않으므로, 십신 7키가 이미
         // 완전 일치함을 확인했다면(위 4번) legacy/신규 A06 결과는 100%
         // 동일해야 한다 — 이것이 A06의 정상 기대값이다(B01/A05와 동일한
         // Type 1).
-        expect(newB.a06.spouseGod, legacyB.a06.spouseGod,
-            reason: '${u.userId}: spouseGod 불일치 — gender 전달 로직 회귀 가능성.');
-        expect(newB.a06.style, legacyB.a06.style,
-            reason: '${u.userId}: style 불일치 — 배우자성 개수 임계값(0/1/2+) 로직 회귀 가능성.');
-        expect(newB.a06.message, legacyB.a06.message,
-            reason: '${u.userId}: message는 loveFortune.message를 그대로 사용하므로 항상 동일해야 함.');
-        expect(newB.a06.marriageTiming, legacyB.a06.marriageTiming,
-            reason: '${u.userId}: marriageTiming은 고정 문구이므로 항상 동일해야 함.');
-        expect(newB.a06.advice, legacyB.a06.advice,
-            reason: '${u.userId}: advice는 고정 문구이므로 항상 동일해야 함.');
+        expect(
+          newB.a06.spouseGod,
+          legacyB.a06.spouseGod,
+          reason: '${u.userId}: spouseGod 불일치 — gender 전달 로직 회귀 가능성.',
+        );
+        expect(
+          newB.a06.style,
+          legacyB.a06.style,
+          reason: '${u.userId}: style 불일치 — 배우자성 개수 임계값(0/1/2+) 로직 회귀 가능성.',
+        );
+        expect(
+          newB.a06.message,
+          legacyB.a06.message,
+          reason:
+              '${u.userId}: message는 loveFortune.message를 그대로 사용하므로 항상 동일해야 함.',
+        );
+        expect(
+          newB.a06.marriageTiming,
+          legacyB.a06.marriageTiming,
+          reason: '${u.userId}: marriageTiming은 고정 문구이므로 항상 동일해야 함.',
+        );
+        expect(
+          newB.a06.advice,
+          legacyB.a06.advice,
+          reason: '${u.userId}: advice는 고정 문구이므로 항상 동일해야 함.',
+        );
       });
     }
   });
 
   group('[j7·A06] runJeontongCategory("A06", ctx) 경로 자체도 정상 동작 확인', () {
     for (final u in _seedUsers) {
-      test('${u.userId}: JeontongCalcContext + runJeontongCategory("A06") 예외 없이 동작', () {
-        final newB = _runNew(u, _kFixedDate);
-        final rules = SajuFortuneRules.cachedOrNull;
-        expect(rules, isNotNull, reason: 'SajuFortuneRules.preload()가 setUpAll에서 완료되어야 함');
+      test(
+        '${u.userId}: JeontongCalcContext + runJeontongCategory("A06") 예외 없이 동작',
+        () {
+          final newB = _runNew(u, _kFixedDate);
+          final rules = SajuFortuneRules.cachedOrNull;
+          expect(
+            rules,
+            isNotNull,
+            reason: 'SajuFortuneRules.preload()가 setUpAll에서 완료되어야 함',
+          );
 
-        final ctx = JeontongCalcContext(
-          saju: newB.saju,
-          interp: newB.interp,
-          rules: rules!,
-          referenceDate: _kFixedDate,
-        );
+          final ctx = JeontongCalcContext(
+            saju: newB.saju,
+            interp: newB.interp,
+            rules: rules!,
+            referenceDate: _kFixedDate,
+          );
 
-        late final JeontongCategoryResult result;
-        expect(() => result = runJeontongCategory('A06', ctx), returnsNormally);
-        expect(result.category, '평생 애정운');
-        expect(result.data['spouse_god'], newB.a06.spouseGod);
-        expect(result.data['style'], newB.a06.style);
-        expect(result.data['message'], newB.a06.message);
-        expect(result.data['marriage_timing'], newB.a06.marriageTiming);
-        expect(result.data['advice'], newB.a06.advice);
-      });
+          late final JeontongCategoryResult result;
+          expect(
+            () => result = runJeontongCategory('A06', ctx),
+            returnsNormally,
+          );
+          expect(result.category, '평생 애정운');
+          expect(result.data['spouse_god'], newB.a06.spouseGod);
+          expect(result.data['style'], newB.a06.style);
+          expect(result.data['message'], newB.a06.message);
+          expect(result.data['marriage_timing'], newB.a06.marriageTiming);
+          expect(result.data['advice'], newB.a06.advice);
+        },
+      );
     }
   });
 }

@@ -103,8 +103,16 @@ void main() {
           .where((lp) => lp.ganZhi.isNotEmpty)
           .toList();
 
-      expect(daewoon.length, 9, reason: '신규 엔진은 항상 count(기본 9)개의 실제 대운을 반환해야 함');
-      expect(legacyReal.length, 8, reason: '레거시는 take(9) 중 소운기 1개를 제외한 8개가 실제 대운');
+      expect(
+        daewoon.length,
+        9,
+        reason: '신규 엔진은 항상 count(기본 9)개의 실제 대운을 반환해야 함',
+      );
+      expect(
+        legacyReal.length,
+        8,
+        reason: '레거시는 take(9) 중 소운기 1개를 제외한 8개가 실제 대운',
+      );
       for (var i = 0; i < legacyReal.length; i++) {
         expect(
           daewoon[i].pillar.hanja,
@@ -252,7 +260,8 @@ void main() {
       expect(
         reverseDiff > 0 && reverseDiff < 60,
         isTrue,
-        reason: '역행 대운은 월주 인덱스보다 감소하는 방향으로 진행해야 함 '
+        reason:
+            '역행 대운은 월주 인덱스보다 감소하는 방향으로 진행해야 함 '
             '(diff=$diff, reverseDiff=$reverseDiff)',
       );
     });
@@ -333,12 +342,32 @@ void main() {
 
       expect(wolwoon.length, 12);
       const expectedJieQi = [
-        '입춘', '경칩', '청명', '입하', '망종', '소서',
-        '입추', '백로', '한로', '입동', '대설', '소한',
+        '입춘',
+        '경칩',
+        '청명',
+        '입하',
+        '망종',
+        '소서',
+        '입추',
+        '백로',
+        '한로',
+        '입동',
+        '대설',
+        '소한',
       ];
       const expectedBranch = [
-        '寅', '卯', '辰', '巳', '午', '未',
-        '申', '酉', '戌', '亥', '子', '丑',
+        '寅',
+        '卯',
+        '辰',
+        '巳',
+        '午',
+        '未',
+        '申',
+        '酉',
+        '戌',
+        '亥',
+        '子',
+        '丑',
       ];
       for (var i = 0; i < 12; i++) {
         expect(wolwoon[i].month, i + 1, reason: 'month 인덱스 불일치');
@@ -413,7 +442,16 @@ void main() {
 
         // 각 대운 항목의 십신이 유효한 10개 십신 중 하나인지 확인.
         const validTenGods = {
-          '비견', '겁재', '식신', '상관', '편재', '정재', '편관', '정관', '편인', '정인',
+          '비견',
+          '겁재',
+          '식신',
+          '상관',
+          '편재',
+          '정재',
+          '편관',
+          '정관',
+          '편인',
+          '정인',
         };
         for (final d in profile.daewoon!) {
           expect(validTenGods.contains(d.tenGodStem), isTrue);
@@ -440,10 +478,8 @@ void main() {
         core: withCore.core,
       );
       expect(
-        () => Phase4AnalysisEngine.analyze(
-          baseProfile: p2,
-          core: withCore.core,
-        ),
+        () =>
+            Phase4AnalysisEngine.analyze(baseProfile: p2, core: withCore.core),
         throwsStateError,
       );
     });

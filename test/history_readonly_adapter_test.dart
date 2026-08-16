@@ -11,7 +11,10 @@ void main() {
       expect(a.readCounsel(), isA<List<HistoryReadOnlyEntry>>());
       expect(a.readFace(), isA<List<HistoryReadOnlyEntry>>());
       expect(a.readPalm(), isA<List<HistoryReadOnlyEntry>>());
-      expect(await a.readJeontong('test_user'), isA<List<HistoryReadOnlyEntry>>());
+      expect(
+        await a.readJeontong('test_user'),
+        isA<List<HistoryReadOnlyEntry>>(),
+      );
     });
 
     test('반환값의 모든 필드가 null-safe / non-null', () async {
@@ -49,31 +52,34 @@ void main() {
       // (설령 존재해도 이 미션의 원칙 위반 — 그 경우 STEP 1 을 정정하라)
     });
 
-    test('readJeontong() reflects JeontongHistoryStore.record() 직전/직후', () async {
-      const userId = 'vslice_test_user';
-      JeontongHistoryStore.instance.clearForTest();
+    test(
+      'readJeontong() reflects JeontongHistoryStore.record() 직전/직후',
+      () async {
+        const userId = 'vslice_test_user';
+        JeontongHistoryStore.instance.clearForTest();
 
-      final before = await historyReadOnlyAdapter.readJeontong(userId);
-      expect(before, isEmpty);
+        final before = await historyReadOnlyAdapter.readJeontong(userId);
+        expect(before, isEmpty);
 
-      final now = DateTime.now().toUtc();
-      JeontongHistoryStore.instance.record(
-        userId: userId,
-        categoryId: 'A01',
-        title: '테스트 헤드라인',
-        subtitle: '테스트 서브라인',
-        createdAtUtc: now,
-      );
+        final now = DateTime.now().toUtc();
+        JeontongHistoryStore.instance.record(
+          userId: userId,
+          categoryId: 'A01',
+          title: '테스트 헤드라인',
+          subtitle: '테스트 서브라인',
+          createdAtUtc: now,
+        );
 
-      final after = await historyReadOnlyAdapter.readJeontong(userId);
-      expect(after.length, 1);
-      expect(after.first.id.isNotEmpty, isTrue);
-      expect(after.first.title.isNotEmpty, isTrue);
-      expect(after.first.subtitle.isNotEmpty, isTrue);
-      expect(after.first.createdAt.isUtc, isTrue);
+        final after = await historyReadOnlyAdapter.readJeontong(userId);
+        expect(after.length, 1);
+        expect(after.first.id.isNotEmpty, isTrue);
+        expect(after.first.title.isNotEmpty, isTrue);
+        expect(after.first.subtitle.isNotEmpty, isTrue);
+        expect(after.first.createdAt.isUtc, isTrue);
 
-      JeontongHistoryStore.instance.clearForTest();
-    });
+        JeontongHistoryStore.instance.clearForTest();
+      },
+    );
 
     test('readJeontong returns recorded entries', () async {
       final adapter = const HistoryReadOnlyAdapter();

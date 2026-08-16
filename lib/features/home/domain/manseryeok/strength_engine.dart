@@ -28,12 +28,20 @@ import 'saju_profile.dart';
 /// `saju_engine.dart`의 [sheng] 맵을 그대로 뒤집은 고정 테이블이며,
 /// 재구현이 아니라 역방향 조회를 위한 노출이다.
 const Map<String, String> _invSheng = {
-  '화': '목', '토': '화', '금': '토', '수': '금', '목': '수',
+  '화': '목',
+  '토': '화',
+  '금': '토',
+  '수': '금',
+  '목': '수',
 };
 
 /// [ke]의 역함수 — "누가 나(Y)를 극하는가"(Y를 극하는 X를 찾는다).
 const Map<String, String> _invKe = {
-  '토': '목', '수': '토', '화': '수', '금': '화', '목': '금',
+  '토': '목',
+  '수': '토',
+  '화': '수',
+  '금': '화',
+  '목': '금',
 };
 
 /// 일간 오행([dayElement]) 대비 임의의 오행([targetElement])이 어떤
@@ -53,11 +61,16 @@ String relationCategoryOf(String dayElement, String targetElement) {
 /// 5대 범주(비겁/식상/재성/관살/인성) 축약.
 String tenGodCategoryOf(String tenGod) {
   const map = {
-    '비견': '비겁', '겁재': '비겁',
-    '식신': '식상', '상관': '식상',
-    '편재': '재성', '정재': '재성',
-    '편관': '관살', '정관': '관살',
-    '편인': '인성', '정인': '인성',
+    '비견': '비겁',
+    '겁재': '비겁',
+    '식신': '식상',
+    '상관': '식상',
+    '편재': '재성',
+    '정재': '재성',
+    '편관': '관살',
+    '정관': '관살',
+    '편인': '인성',
+    '정인': '인성',
   };
   return map[tenGod] ?? tenGod;
 }
@@ -159,11 +172,16 @@ class StrengthEngine {
     }
 
     // ── 종합 점수화 ──
-    final positiveMonth = monthOrderScore > 0 ? monthOrderScore * _monthWeight : 0.0;
-    final negativeMonth = monthOrderScore < 0 ? -monthOrderScore * _monthWeight : 0.0;
+    final positiveMonth = monthOrderScore > 0
+        ? monthOrderScore * _monthWeight
+        : 0.0;
+    final negativeMonth = monthOrderScore < 0
+        ? -monthOrderScore * _monthWeight
+        : 0.0;
 
     final totalPositive = supportScore + rootScore + positiveMonth;
-    final totalNegative = controlScore + drainScore * _drainDamping + negativeMonth;
+    final totalNegative =
+        controlScore + drainScore * _drainDamping + negativeMonth;
 
     final score = (totalPositive + totalNegative) == 0
         ? 0.5

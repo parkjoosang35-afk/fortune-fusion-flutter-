@@ -352,9 +352,7 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
               SizedBox(height: UnifiedTokens.spaceLg),
 
               // [sowoon.kr saju.html 이식] 안내 카드 - info 아이콘 + 설명 문구
-              _InfoBanner(
-                text: '타고난 사주팔자로 성격, 재물운, 배우자운 등을 깊이 있게 분석해드립니다.',
-              ),
+              _InfoBanner(text: '타고난 사주팔자로 성격, 재물운, 배우자운 등을 깊이 있게 분석해드립니다.'),
               SizedBox(height: UnifiedTokens.spaceXl),
 
               // [웹→앱 이식] saju.html "내 사주함" - 저장된 프로필이 있을 때만 노출

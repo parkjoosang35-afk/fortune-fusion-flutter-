@@ -238,12 +238,16 @@ class _PalmScanCard extends StatelessWidget {
             child: Container(
               decoration: BoxDecoration(
                 border: Border.all(
-                  color: UnifiedColors.neon.withValues(alpha: glowOpacity + 0.4),
+                  color: UnifiedColors.neon.withValues(
+                    alpha: glowOpacity + 0.4,
+                  ),
                   width: 2,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: UnifiedColors.neon.withValues(alpha: glowOpacity * 0.5),
+                    color: UnifiedColors.neon.withValues(
+                      alpha: glowOpacity * 0.5,
+                    ),
                     blurRadius: 14,
                     spreadRadius: 1,
                   ),
@@ -296,9 +300,7 @@ class _PalmScanCard extends StatelessWidget {
                     height: 12,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation(
-                        UnifiedColors.neon,
-                      ),
+                      valueColor: AlwaysStoppedAnimation(UnifiedColors.neon),
                     ),
                   ),
                   const SizedBox(width: 6),
@@ -360,9 +362,7 @@ class _LineStepIndicator extends StatelessWidget {
                     height: isActive ? 10 : 7,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: isDone || isActive
-                          ? color
-                          : Colors.transparent,
+                      color: isDone || isActive ? color : Colors.transparent,
                       border: Border.all(color: color, width: 1.5),
                     ),
                   ),

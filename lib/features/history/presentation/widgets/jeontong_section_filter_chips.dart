@@ -26,7 +26,15 @@ class JeontongSectionFilterChips extends StatelessWidget {
   final String activeLetter;
 
   static const List<String> _letters = [
-    '전체', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+    '전체',
+    'A',
+    'B',
+    'C',
+    'D',
+    'E',
+    'F',
+    'G',
+    'H',
   ];
 
   @override

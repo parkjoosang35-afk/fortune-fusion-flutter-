@@ -32,12 +32,20 @@ export 'strength_engine.dart' show relationCategoryOf, tenGodCategoryOf;
 /// 동일 테이블을 중복 정의하지 않기 위해 여기서도 그대로 재선언(고정
 /// 오행 상생표를 뒤집은 것으로, 재구현이 아니라 노출이다).
 const Map<String, String> _invSheng = {
-  '화': '목', '토': '화', '금': '토', '수': '금', '목': '수',
+  '화': '목',
+  '토': '화',
+  '금': '토',
+  '수': '금',
+  '목': '수',
 };
 
 /// [ke]의 역함수 — "누가 나를 극하는가".
 const Map<String, String> _invKe = {
-  '토': '목', '수': '토', '화': '수', '금': '화', '목': '금',
+  '토': '목',
+  '수': '토',
+  '화': '수',
+  '금': '화',
+  '목': '금',
 };
 
 /// 월지(月支) → 조후법 상 "특별히 보강이 필요한 오행"(간이 조후법).
@@ -79,8 +87,10 @@ class YongsinEngine {
   }) {
     final dayElement = ganElement[dayPillar.stemHanja]!.$1;
     final reasoning = StringBuffer();
-    reasoning.write('억부법: 일간=${dayPillar.stemHanja}($dayElement), '
-        '판정=${strength.verdict}(score=${strength.score.toStringAsFixed(2)}). ');
+    reasoning.write(
+      '억부법: 일간=${dayPillar.stemHanja}($dayElement), '
+      '판정=${strength.verdict}(score=${strength.score.toStringAsFixed(2)}). ',
+    );
 
     // 범주 → 오행 변환.
     String elementOfCategory(String category) {
@@ -218,7 +228,8 @@ class YongsinEngine {
         heesin: eokbu.heesin,
         gisin: eokbu.gisin,
         gusin: eokbu.gusin,
-        reasoning: '${eokbu.reasoning} / ${johu.reasoning} → '
+        reasoning:
+            '${eokbu.reasoning} / ${johu.reasoning} → '
             '조후 불요 계절이므로 억부법 결과를 채택.',
       );
     }
@@ -230,7 +241,8 @@ class YongsinEngine {
         heesin: eokbu.heesin,
         gisin: eokbu.gisin,
         gusin: eokbu.gusin,
-        reasoning: '${eokbu.reasoning} / ${johu.reasoning} → '
+        reasoning:
+            '${eokbu.reasoning} / ${johu.reasoning} → '
             '억부법과 조후법의 용신이 일치(${eokbu.yongsin})하여 신뢰도 높음.',
       );
     }
@@ -241,7 +253,8 @@ class YongsinEngine {
       heesin: johu.heesin,
       gisin: johu.gisin,
       gusin: johu.gusin,
-      reasoning: '${eokbu.reasoning} / ${johu.reasoning} → '
+      reasoning:
+          '${eokbu.reasoning} / ${johu.reasoning} → '
           '억부법(${eokbu.yongsin})과 조후법(${johu.yongsin})이 불일치, '
           '전통 명리학의 "조후 우선 원칙"(극단적 계절 출생은 조후가 '
           '억부보다 시급)에 따라 조후법 결과(${johu.yongsin})를 채택.',

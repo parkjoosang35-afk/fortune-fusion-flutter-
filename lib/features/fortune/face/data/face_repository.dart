@@ -23,7 +23,9 @@ class FaceRepository {
       return ApiResult.fail('얼굴 사진을 먼저 촬영하거나 선택해주세요.');
     }
     final userId = await AuthTokenStore.getCurrentUserId();
-    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/fortune/face');
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/fortune/face',
+    );
     final imageBase64 = base64Encode(image);
     debugPrint(
       '[FaceRepository] [analyze] 요청 -> $uri (userId=$userId, imageBytes=${image.length})',

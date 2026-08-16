@@ -144,10 +144,7 @@ class FiveElementsProfile {
 
 /// 지지 하나에 대한 지장간 + 각 지장간의 십신을 함께 담는다(Phase 2 §8).
 class HiddenStemEntry {
-  const HiddenStemEntry({
-    required this.branch,
-    required this.stems,
-  });
+  const HiddenStemEntry({required this.branch, required this.stems});
 
   /// 이 지장간이 속한 지지(년/월/일/시 중 어디인지는 상위 Map 키로 구분).
   final String branch;
@@ -193,11 +190,11 @@ class TwelveStagesProfile {
   final String hour;
 
   Map<String, String> toMap() => {
-        'year': year,
-        'month': month,
-        'day': day,
-        'hour': hour,
-      };
+    'year': year,
+    'month': month,
+    'day': day,
+    'hour': hour,
+  };
 }
 
 /// 합충형파해 관계 1건 — "어떤 글자 + 어떤 글자 + 어떤 관계 + 어느 위치"
@@ -463,11 +460,11 @@ class SajuProfile {
   /// 사주 8글자를 년/월/일/시 순서로 반환(합충형파해/신살 계산 시
   /// 위치 라벨링에 사용).
   Map<String, Pillar> get pillarsByPosition => {
-        'year': yearPillar,
-        'month': monthPillar,
-        'day': dayPillar,
-        'hour': hourPillar,
-      };
+    'year': yearPillar,
+    'month': monthPillar,
+    'day': dayPillar,
+    'hour': hourPillar,
+  };
 
   /// 일간(日干) — 십신/신강신약/용희기구 판정의 기준.
   String get dayStemHanja => dayPillar.stemHanja;

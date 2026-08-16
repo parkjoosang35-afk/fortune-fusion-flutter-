@@ -172,76 +172,122 @@ void main() {
         print('[8글자] legacy=$legacyPillars');
         // ignore: avoid_print
         print('[8글자] new   =$newPillars');
-        expect(newPillars, legacyPillars, reason: '${u.userId} 8글자는 100% 동일해야 함(만세력 계산 자체는 동일 기준)');
+        expect(
+          newPillars,
+          legacyPillars,
+          reason: '${u.userId} 8글자는 100% 동일해야 함(만세력 계산 자체는 동일 기준)',
+        );
 
         // ── 2) 일간 ──
         // ignore: avoid_print
-        print('[일간] legacy=${legacyB.saju.dayMaster.gan}(${legacyB.saju.dayMaster.kr}, ${legacyB.saju.dayMaster.element}/${legacyB.saju.dayMaster.yinYang})');
+        print(
+          '[일간] legacy=${legacyB.saju.dayMaster.gan}(${legacyB.saju.dayMaster.kr}, ${legacyB.saju.dayMaster.element}/${legacyB.saju.dayMaster.yinYang})',
+        );
         // ignore: avoid_print
-        print('[일간] new   =${newB.saju.dayMaster.gan}(${newB.saju.dayMaster.kr}, ${newB.saju.dayMaster.element}/${newB.saju.dayMaster.yinYang})');
-        expect(newB.saju.dayMaster.gan, legacyB.saju.dayMaster.gan, reason: '${u.userId} 일간 불일치');
+        print(
+          '[일간] new   =${newB.saju.dayMaster.gan}(${newB.saju.dayMaster.kr}, ${newB.saju.dayMaster.element}/${newB.saju.dayMaster.yinYang})',
+        );
+        expect(
+          newB.saju.dayMaster.gan,
+          legacyB.saju.dayMaster.gan,
+          reason: '${u.userId} 일간 불일치',
+        );
 
         // ── 3) 오행 ──
         // ignore: avoid_print
         print('[오행] legacy=${legacyB.saju.fiveElementsCount}');
         // ignore: avoid_print
         print('[오행] new   =${newB.saju.fiveElementsCount}');
-        expect(newB.saju.fiveElementsCount, legacyB.saju.fiveElementsCount, reason: '${u.userId} 오행 총량 불일치');
+        expect(
+          newB.saju.fiveElementsCount,
+          legacyB.saju.fiveElementsCount,
+          reason: '${u.userId} 오행 총량 불일치',
+        );
 
         // ── 4) 십신(7키) ──
         // ignore: avoid_print
         print('[십신] legacy=${legacyB.saju.tenGods}');
         // ignore: avoid_print
         print('[십신] new   =${newB.saju.tenGods}');
-        expect(newB.saju.tenGods, legacyB.saju.tenGods, reason: '${u.userId} 십신 불일치');
+        expect(
+          newB.saju.tenGods,
+          legacyB.saju.tenGods,
+          reason: '${u.userId} 십신 불일치',
+        );
 
         // ── 5) 대운 ──
-        final legacyReal = legacyB.saju.luckPillars.where((lp) => lp.ganZhi.isNotEmpty).toList();
+        final legacyReal = legacyB.saju.luckPillars
+            .where((lp) => lp.ganZhi.isNotEmpty)
+            .toList();
         // ignore: avoid_print
-        print('[대운] legacy(${legacyReal.length}개)=${legacyReal.map((e) => '${e.ganZhiKr}(${e.startAge}세~)').join(', ')}');
+        print(
+          '[대운] legacy(${legacyReal.length}개)=${legacyReal.map((e) => '${e.ganZhiKr}(${e.startAge}세~)').join(', ')}',
+        );
         // ignore: avoid_print
-        print('[대운] new(${newB.saju.luckPillars.length}개)=${newB.saju.luckPillars.map((e) => '${e.ganZhiKr}(${e.startAge}세~)').join(', ')}');
+        print(
+          '[대운] new(${newB.saju.luckPillars.length}개)=${newB.saju.luckPillars.map((e) => '${e.ganZhiKr}(${e.startAge}세~)').join(', ')}',
+        );
         for (var i = 0; i < legacyReal.length; i++) {
-          expect(newB.saju.luckPillars[i].ganZhi, legacyReal[i].ganZhi, reason: '${u.userId} 대운[$i] 간지 불일치');
+          expect(
+            newB.saju.luckPillars[i].ganZhi,
+            legacyReal[i].ganZhi,
+            reason: '${u.userId} 대운[$i] 간지 불일치',
+          );
         }
 
         // ── 6) 신강신약(dayMasterStrength) — 핵심 비교 포인트 ──
-        final strengthSame = newB.saju.dayMasterStrength == legacyB.saju.dayMasterStrength;
+        final strengthSame =
+            newB.saju.dayMasterStrength == legacyB.saju.dayMasterStrength;
         // ignore: avoid_print
         print('[신강신약] legacy=${legacyB.saju.dayMasterStrength}');
         // ignore: avoid_print
-        print('[신강신약] new   =${newB.saju.dayMasterStrength}  (${strengthSame ? "동일" : "★ 다름 ★"})');
+        print(
+          '[신강신약] new   =${newB.saju.dayMasterStrength}  (${strengthSame ? "동일" : "★ 다름 ★"})',
+        );
         if (newB.profile.strength != null) {
           final s = newB.profile.strength!;
           // ignore: avoid_print
-          print('[신강신약·PHASE3 상세] score=${s.score.toStringAsFixed(3)} '
-              'monthOrder=${s.monthOrderScore} root=${s.rootScore} '
-              'support=${s.supportScore} control=${s.controlScore} drain=${s.drainScore}');
+          print(
+            '[신강신약·PHASE3 상세] score=${s.score.toStringAsFixed(3)} '
+            'monthOrder=${s.monthOrderScore} root=${s.rootScore} '
+            'support=${s.supportScore} control=${s.controlScore} drain=${s.drainScore}',
+          );
         }
 
         // ── 7) 용신/희신/기신/구신 (신규 전용) ──
         if (newB.profile.yongsin != null) {
           final y = newB.profile.yongsin!;
           // ignore: avoid_print
-          print('[용희기구·신규전용] method=${y.method} 용신=${y.yongsin} 희신=${y.heesin} '
-              '기신=${y.gisin} 구신=${y.gusin}');
+          print(
+            '[용희기구·신규전용] method=${y.method} 용신=${y.yongsin} 희신=${y.heesin} '
+            '기신=${y.gisin} 구신=${y.gusin}',
+          );
           // ignore: avoid_print
           print('[용희기구·근거] ${y.reasoning}');
         }
 
         // ── 8) A01 판단에 실제 사용되는 계산값 ──
         // ignore: avoid_print
-        print('[A01계산값] legacy dayMasterAnalysis.title=${legacyB.interp.dayMasterAnalysis.title}');
+        print(
+          '[A01계산값] legacy dayMasterAnalysis.title=${legacyB.interp.dayMasterAnalysis.title}',
+        );
         // ignore: avoid_print
-        print('[A01계산값] new    dayMasterAnalysis.title=${newB.interp.dayMasterAnalysis.title}');
+        print(
+          '[A01계산값] new    dayMasterAnalysis.title=${newB.interp.dayMasterAnalysis.title}',
+        );
         // ignore: avoid_print
-        print('[A01계산값] legacy dominant십신=${legacyB.interp.tenGodsAnalysis.dominantName}'
-            '(${legacyB.interp.tenGodsAnalysis.dominantCount}개)');
+        print(
+          '[A01계산값] legacy dominant십신=${legacyB.interp.tenGodsAnalysis.dominantName}'
+          '(${legacyB.interp.tenGodsAnalysis.dominantCount}개)',
+        );
         // ignore: avoid_print
-        print('[A01계산값] new    dominant십신=${newB.interp.tenGodsAnalysis.dominantName}'
-            '(${newB.interp.tenGodsAnalysis.dominantCount}개)');
+        print(
+          '[A01계산값] new    dominant십신=${newB.interp.tenGodsAnalysis.dominantName}'
+          '(${newB.interp.tenGodsAnalysis.dominantCount}개)',
+        );
         final dominantSame =
-            newB.interp.tenGodsAnalysis.dominantName == legacyB.interp.tenGodsAnalysis.dominantName;
+            newB.interp.tenGodsAnalysis.dominantName ==
+            legacyB.interp.tenGodsAnalysis.dominantName;
         // 십신 7키가 100% 동일함을 이미 확인했으므로(위 4번), dominant 십신도
         // 같아야 정상이다 — 만약 다르면 tenGodsAnalysis 집계 로직 자체의
         // 문제이지 PHASE1~4 계산값의 문제가 아니므로 반드시 표시한다.
@@ -279,9 +325,11 @@ void main() {
         final headlineSame = newB.a01.headline == legacyB.a01.headline;
         final summarySame = newB.a01.summary == legacyB.a01.summary;
         // ignore: avoid_print
-        print('[결론] headline동일=$headlineSame summary동일=$summarySame '
-            '(dayMasterStrength동일=$strengthSame) → '
-            '${!strengthSame && (!headlineSame || !summarySame) ? "dayMasterStrength 차이가 A01 문구에 실제 영향을 줌" : (strengthSame && headlineSame && summarySame ? "완전 일치" : "다른 원인으로 차이 발생 - 확인 필요")}');
+        print(
+          '[결론] headline동일=$headlineSame summary동일=$summarySame '
+          '(dayMasterStrength동일=$strengthSame) → '
+          '${!strengthSame && (!headlineSame || !summarySame) ? "dayMasterStrength 차이가 A01 문구에 실제 영향을 줌" : (strengthSame && headlineSame && summarySame ? "완전 일치" : "다른 원인으로 차이 발생 - 확인 필요")}',
+        );
 
         // ── 구조적 안전성만 강제(문구 1:1 동일성은 요구하지 않음 — §3 원칙) ──
         expect(newB.a01.headline, isNotEmpty);
@@ -300,24 +348,34 @@ void main() {
 
   group('[j7·A01] runJeontongCategory("A01", ctx) 경로 자체도 정상 동작 확인', () {
     for (final u in _seedUsers) {
-      test('${u.userId}: JeontongCalcContext + runJeontongCategory("A01") 예외 없이 동작', () {
-        final newB = _runNew(u, _kFixedDate);
-        final rules = SajuFortuneRules.cachedOrNull;
-        expect(rules, isNotNull, reason: 'SajuFortuneRules.preload()가 setUpAll에서 완료되어야 함');
+      test(
+        '${u.userId}: JeontongCalcContext + runJeontongCategory("A01") 예외 없이 동작',
+        () {
+          final newB = _runNew(u, _kFixedDate);
+          final rules = SajuFortuneRules.cachedOrNull;
+          expect(
+            rules,
+            isNotNull,
+            reason: 'SajuFortuneRules.preload()가 setUpAll에서 완료되어야 함',
+          );
 
-        final ctx = JeontongCalcContext(
-          saju: newB.saju,
-          interp: newB.interp,
-          rules: rules!,
-          referenceDate: _kFixedDate,
-        );
+          final ctx = JeontongCalcContext(
+            saju: newB.saju,
+            interp: newB.interp,
+            rules: rules!,
+            referenceDate: _kFixedDate,
+          );
 
-        late final JeontongCategoryResult result;
-        expect(() => result = runJeontongCategory('A01', ctx), returnsNormally);
-        expect(result.category, '평생 총운');
-        expect(result.data['headline'], newB.a01.headline);
-        expect(result.data['summary'], newB.a01.summary);
-      });
+          late final JeontongCategoryResult result;
+          expect(
+            () => result = runJeontongCategory('A01', ctx),
+            returnsNormally,
+          );
+          expect(result.category, '평생 총운');
+          expect(result.data['headline'], newB.a01.headline);
+          expect(result.data['summary'], newB.a01.summary);
+        },
+      );
     }
   });
 }

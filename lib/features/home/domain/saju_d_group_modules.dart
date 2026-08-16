@@ -52,13 +52,22 @@ WeeklyFortuneResult getWeeklyFortune(
   final lines = <String>[];
   for (var i = 0; i < 7; i++) {
     final d = startDate.add(Duration(days: i));
-    final r = getDailyFortune(saju, rules, year: d.year, month: d.month, day: d.day);
-    final headline = r.title.isNotEmpty ? r.title : (r.overall.isNotEmpty ? r.overall : '흐름 정리 중');
+    final r = getDailyFortune(
+      saju,
+      rules,
+      year: d.year,
+      month: d.month,
+      day: d.day,
+    );
+    final headline = r.title.isNotEmpty
+        ? r.title
+        : (r.overall.isNotEmpty ? r.overall : '흐름 정리 중');
     final wd = weekdayKr[(d.weekday - 1) % 7];
     lines.add('${d.month}/${d.day}($wd, ${r.dayGanZhi}) — $headline');
   }
   return WeeklyFortuneResult(
-    overall: '${startDate.month}월 ${startDate.day}일부터 7일간의 흐름을 일진 십신 기준으로 정리했어요.',
+    overall:
+        '${startDate.month}월 ${startDate.day}일부터 7일간의 흐름을 일진 십신 기준으로 정리했어요.',
     dailySummary: lines,
   );
 }
@@ -94,10 +103,22 @@ TodayAvoidResult getTodayAvoidFortune(
   final dGan = lunar.getDayGan();
   final dZhi = lunar.getDayZhi();
 
-  final yearPillar = buildLuckPillar(saju.pillars['year']!.gan, saju.pillars['year']!.zhi);
-  final monthPillar = buildLuckPillar(saju.pillars['month']!.gan, saju.pillars['month']!.zhi);
-  final dayPillar = buildLuckPillar(saju.pillars['day']!.gan, saju.pillars['day']!.zhi);
-  final hourPillar = buildLuckPillar(saju.pillars['hour']!.gan, saju.pillars['hour']!.zhi);
+  final yearPillar = buildLuckPillar(
+    saju.pillars['year']!.gan,
+    saju.pillars['year']!.zhi,
+  );
+  final monthPillar = buildLuckPillar(
+    saju.pillars['month']!.gan,
+    saju.pillars['month']!.zhi,
+  );
+  final dayPillar = buildLuckPillar(
+    saju.pillars['day']!.gan,
+    saju.pillars['day']!.zhi,
+  );
+  final hourPillar = buildLuckPillar(
+    saju.pillars['hour']!.gan,
+    saju.pillars['hour']!.zhi,
+  );
   final iljinPillar = buildLuckPillar(dGan, dZhi);
 
   final relations = RelationshipsEngine.analyzeExternal(
@@ -109,24 +130,29 @@ TodayAvoidResult getTodayAvoidFortune(
     externalLabel: '일진',
   );
   const cautionTypes = {'지지충', '형', '자형', '삼형', '파', '해', '원진', '귀문', '천간충'};
-  final cautionHits = relations.where((r) => cautionTypes.contains(r.type)).toList();
+  final cautionHits = relations
+      .where((r) => cautionTypes.contains(r.type))
+      .toList();
 
   final mm = date.month.toString().padLeft(2, '0');
   final dd = date.day.toString().padLeft(2, '0');
-  final label = '${date.year}-$mm-$dd $dGan$dZhi (${ganKr[dGan]}${zhiKr[dZhi]})';
+  final label =
+      '${date.year}-$mm-$dd $dGan$dZhi (${ganKr[dGan]}${zhiKr[dZhi]})';
 
   if (cautionHits.isNotEmpty) {
     final types = cautionHits.map((r) => r.type).toSet().join('·');
     return TodayAvoidResult(
       title: '오늘은 신중함이 필요한 날',
-      overall: '$label 일진이 원국과 $types 관계를 이뤄, 다툼·실수·감정 기복이 '
+      overall:
+          '$label 일진이 원국과 $types 관계를 이뤄, 다툼·실수·감정 기복이 '
           '평소보다 커지기 쉬운 날이에요.',
       advice: '중요한 계약이나 큰 결정은 다음으로 미루고, 감정적인 대응은 자제하면 좋아요.',
     );
   }
   return TodayAvoidResult(
     title: '오늘은 무난하게 지나가는 날',
-    overall: '$label 일진에서는 원국과 형충파해 관계가 뚜렷하게 발동하지 않아, '
+    overall:
+        '$label 일진에서는 원국과 형충파해 관계가 뚜렷하게 발동하지 않아, '
         '비교적 평온하게 지나갈 가능성이 높은 날이에요.',
     advice: '특별히 피해야 할 일은 없지만, 평소 하던 대로 차분하게 지내면 좋아요.',
   );

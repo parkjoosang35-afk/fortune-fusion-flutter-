@@ -123,9 +123,7 @@ void main() {
   // 검증한다. 스토어 레벨 로직(add/toggle/dedup 등)은 이미
   // jeontong_bookmark_store_test.dart에서 충분히 검증됐으므로, 여기서는
   // "화면이 스토어를 올바르게 소비하는가"라는 UI 통합 레벨만 확인한다.
-  testWidgets('즐겨찾기 없음 상태에서 스위치 ON → 전체 목록이 사라진다', (
-    tester,
-  ) async {
+  testWidgets('즐겨찾기 없음 상태에서 스위치 ON → 전체 목록이 사라진다', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
         home: HistoryJeontongOverviewScreen(userId: _testUserId),
@@ -148,9 +146,7 @@ void main() {
     expect(find.text('해당 섹션 결과가 없습니다'), findsOneWidget);
   });
 
-  testWidgets('A01만 즐겨찾기된 상태에서 스위치 ON → A01만 남고 나머지는 사라진다', (
-    tester,
-  ) async {
+  testWidgets('A01만 즐겨찾기된 상태에서 스위치 ON → A01만 남고 나머지는 사라진다', (tester) async {
     final bookmarks = JeontongBookmarkStore();
     await bookmarks.add(_testUserId, 'A01');
 

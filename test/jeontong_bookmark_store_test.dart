@@ -47,7 +47,11 @@ void main() {
     final s = JeontongBookmarkStore();
     for (var i = 1; i <= 20; i++) {
       final code = 'C${i.toString().padLeft(2, '0')}';
-      expect(await s.add('pj', code), true, reason: '20건 이내 add 성공해야 함 ($code)');
+      expect(
+        await s.add('pj', code),
+        true,
+        reason: '20건 이내 add 성공해야 함 ($code)',
+      );
     }
     expect(await s.count('pj'), 20);
 

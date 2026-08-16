@@ -18,8 +18,12 @@ DateTime _dt(int y, int m, int d, int h) => DateTime.utc(y, m, d, h, 0, 0);
 final kJeontongTestInputs = <JeontongInput>[
   JeontongInput(
     userId: 'seed-user-A',
-    birthDateTimeUtc: /*1972-02-12 17:00Z = 1972-02-13 02:00 KST*/
-        _dt(1972, 2, 12, 17),
+    birthDateTimeUtc: /*1972-02-12 17:00Z = 1972-02-13 02:00 KST*/ _dt(
+      1972,
+      2,
+      12,
+      17,
+    ),
     isLunar: false,
     gender: 'M',
   ),

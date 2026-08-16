@@ -171,26 +171,33 @@ void main() {
   // 자체"가 올바른지 검증한다.
   group('[j14·G07] 원진·귀문 관계 + 화·수 과다 오행 기반 판정 — profile 유무에 따른 동작 확인', () {
     for (final u in _seedUsers) {
-      test('${u.userId}: legacy(profile=null)는 판단 불가, new(profile 有)는 실제 판정', () {
-        final legacyB = _runLegacy(u, _kFixedDate);
-        final newB = _runNew(u, _kFixedDate);
+      test(
+        '${u.userId}: legacy(profile=null)는 판단 불가, new(profile 有)는 실제 판정',
+        () {
+          final legacyB = _runLegacy(u, _kFixedDate);
+          final newB = _runNew(u, _kFixedDate);
 
-        // ignore: avoid_print
-        print('[G07] legacy=${legacyB.result.data}');
-        // ignore: avoid_print
-        print('[G07] new   =${newB.result.data}');
+          // ignore: avoid_print
+          print('[G07] legacy=${legacyB.result.data}');
+          // ignore: avoid_print
+          print('[G07] new   =${newB.result.data}');
 
-        expect(legacyB.result.data['relation_types'], isEmpty);
-        expect(legacyB.result.data['excess_elements'], isEmpty);
-        expect(legacyB.result.data['verdict'], '판단 불가');
-        expect(legacyB.result.data['message'], contains('판단하기 어려워요'));
+          expect(legacyB.result.data['relation_types'], isEmpty);
+          expect(legacyB.result.data['excess_elements'], isEmpty);
+          expect(legacyB.result.data['verdict'], '판단 불가');
+          expect(legacyB.result.data['message'], contains('판단하기 어려워요'));
 
-        final relations = newB.profile?.relationships;
-        expect(relations, isNotNull, reason: '${u.userId}: PHASE2가 계산한 원국 관계가 있어야 함');
-        expect(newB.result.data['verdict'], isNot('판단 불가'));
-        expect(newB.result.data['message'], isNot(contains('판단하기 어려워요')));
-        expect(newB.result.data['excess_elements'], isA<List>());
-      });
+          final relations = newB.profile?.relationships;
+          expect(
+            relations,
+            isNotNull,
+            reason: '${u.userId}: PHASE2가 계산한 원국 관계가 있어야 함',
+          );
+          expect(newB.result.data['verdict'], isNot('판단 불가'));
+          expect(newB.result.data['message'], isNot(contains('판단하기 어려워요')));
+          expect(newB.result.data['excess_elements'], isA<List>());
+        },
+      );
     }
   });
 
@@ -246,7 +253,10 @@ void main() {
           );
 
           late final JeontongCategoryResult result;
-          expect(() => result = runJeontongCategory('G07', ctx), returnsNormally);
+          expect(
+            () => result = runJeontongCategory('G07', ctx),
+            returnsNormally,
+          );
           expect(result.category, isNotEmpty);
           expect(result.data.length, greaterThan(1));
         },

@@ -102,10 +102,10 @@ DaewoonHealthCautionResult getDaewoonHealthCaution(
 
   final summary = cautions.isEmpty
       ? '계산된 대운 범위 안에서는 기신($gisinEl) 기운이 뚜렷하게 들어오는 시기가 보이지 않아요. '
-          '전반적으로 무난한 생활 관리가 가능한 흐름이에요.'
+            '전반적으로 무난한 생활 관리가 가능한 흐름이에요.'
       : '${cautions.join(', ')} 시기에는 기신($gisinEl) 기운이 들어와요. 이 시기에는 평소보다 '
-          '휴식·규칙적인 생활에 조금 더 신경 쓰면 좋아요. (※ 사주 오행의 균형을 기준으로 한 '
-          '생활 참고 정보이며, 의학적 진단이 아니에요.)';
+            '휴식·규칙적인 생활에 조금 더 신경 쓰면 좋아요. (※ 사주 오행의 균형을 기준으로 한 '
+            '생활 참고 정보이며, 의학적 진단이 아니에요.)';
 
   return DaewoonHealthCautionResult(
     timeline: timeline,
@@ -139,13 +139,17 @@ class BadFoodResult {
 /// 명리 판정 공식이 아니다).
 BadFoodResult getBadFood(SajuResult saju, SajuRules rules) {
   final counts = saju.fiveElementsCount;
-  final excess = counts.entries.where((e) => e.value >= 3).map((e) => e.key).toList();
+  final excess = counts.entries
+      .where((e) => e.value >= 3)
+      .map((e) => e.key)
+      .toList();
 
   if (excess.isEmpty) {
     return const BadFoodResult(
       excessElements: [],
       foodsToLimit: [],
-      message: '오행이 비교적 고르게 분포되어 있어, 특별히 줄여야 할 음식은 뚜렷하지 않아요. '
+      message:
+          '오행이 비교적 고르게 분포되어 있어, 특별히 줄여야 할 음식은 뚜렷하지 않아요. '
           '평소처럼 균형 잡힌 식사를 유지하면 충분해요.',
     );
   }
@@ -160,7 +164,8 @@ BadFoodResult getBadFood(SajuResult saju, SajuRules rules) {
   return BadFoodResult(
     excessElements: excess,
     foodsToLimit: foodsList,
-    message: '${excess.join(', ')} 기운이 원국에 이미 넘치는 편이에요(3개 이상). '
+    message:
+        '${excess.join(', ')} 기운이 원국에 이미 넘치는 편이에요(3개 이상). '
         '${foodsList.join(', ')}처럼 그 기운을 더 강하게 하는 음식은 과하게 섭취하지 않는 것이 '
         '좋아요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)',
   );
@@ -203,7 +208,8 @@ ConstitutionResult getConstitution(SajuResult saju, SajuRules rules) {
     season: season,
     personality: personality,
     organs: organs,
-    message: '일간 오행이 $element(이)라 "$element 체질"에 가까워요. $season철에 태어나 그 계절 '
+    message:
+        '일간 오행이 $element(이)라 "$element 체질"에 가까워요. $season철에 태어나 그 계절 '
         '기운의 영향도 함께 받아요. 평소 성향은 $personality 쪽에 가깝고, 몸에서는 '
         '${organs.join(', ')} 계통을 챙기면 좋은 편이에요. (※ 사주 오행의 균형을 기준으로 한 '
         '생활 참고 정보이며, 의학적 체질 진단이 아니에요.)',
@@ -271,26 +277,36 @@ MentalHealthSensitivityResult getMentalHealthSensitivity(
   if (relTypes.isNotEmpty && excess.isNotEmpty) {
     verdict = '예민한 편 — 마음 관리 신경 쓰면 좋음';
     final elDesc = excess
-        .map((el) => '$el(${(rules.fiveElements[el] as Map<String, dynamic>)['excess']})')
+        .map(
+          (el) =>
+              '$el(${(rules.fiveElements[el] as Map<String, dynamic>)['excess']})',
+        )
         .join(', ');
-    message = '원국에 ${relTypes.join('·')} 관계가 있고 $elDesc 성향도 함께 있어, 스트레스에 '
+    message =
+        '원국에 ${relTypes.join('·')} 관계가 있고 $elDesc 성향도 함께 있어, 스트레스에 '
         '평소보다 예민하게 반응할 수 있어요. 규칙적인 휴식과 감정 표현 습관이 도움이 돼요. '
         '(※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)';
   } else if (relTypes.isNotEmpty) {
     verdict = '가벼운 예민형';
-    message = '원국에 ${relTypes.join('·')} 관계가 있어, 신경 쓰이는 일에 예민하게 반응할 수 '
+    message =
+        '원국에 ${relTypes.join('·')} 관계가 있어, 신경 쓰이는 일에 예민하게 반응할 수 '
         '있어요. 스트레스 해소 루틴을 만들어두면 좋아요. (※ 사주 오행의 균형을 기준으로 한 '
         '생활 참고 정보이며, 의학적 진단이 아니에요.)';
   } else if (excess.isNotEmpty) {
     final elDesc = excess
-        .map((el) => '$el(${(rules.fiveElements[el] as Map<String, dynamic>)['excess']})')
+        .map(
+          (el) =>
+              '$el(${(rules.fiveElements[el] as Map<String, dynamic>)['excess']})',
+        )
         .join(', ');
     verdict = '가벼운 예민형';
-    message = '$elDesc 성향이 있어, 감정 기복에 조금 더 신경 쓰면 좋아요. (※ 사주 오행의 '
+    message =
+        '$elDesc 성향이 있어, 감정 기복에 조금 더 신경 쓰면 좋아요. (※ 사주 오행의 '
         '균형을 기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)';
   } else {
     verdict = '비교적 안정적';
-    message = '원국에 정신적 예민함과 관련된 원진·귀문 관계나 화·수 과다 성향이 뚜렷하지 '
+    message =
+        '원국에 정신적 예민함과 관련된 원진·귀문 관계나 화·수 과다 성향이 뚜렷하지 '
         '않아, 비교적 안정적인 편이에요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 '
         '정보이며, 의학적 진단이 아니에요.)';
   }
@@ -345,7 +361,10 @@ InjurySurgeryRiskResult getInjurySurgeryRisk(SajuProfile? profile) {
     );
   }
 
-  final stars = sinsal.where((s) => _riskSinsalIds.contains(s.id)).map((s) => s.nameKr).toList();
+  final stars = sinsal
+      .where((s) => _riskSinsalIds.contains(s.id))
+      .map((s) => s.nameKr)
+      .toList();
   final clashes = relations
       .where((r) => _riskRelationTypes.contains(r.type))
       .map((r) => r.type)
@@ -356,20 +375,24 @@ InjurySurgeryRiskResult getInjurySurgeryRisk(SajuProfile? profile) {
   final String message;
   if (stars.isNotEmpty && clashes.isNotEmpty) {
     verdict = '주의가 필요한 편';
-    message = '${stars.join('·')}과 원국 내 ${clashes.join('·')} 관계가 함께 있어, 평소보다 '
+    message =
+        '${stars.join('·')}과 원국 내 ${clashes.join('·')} 관계가 함께 있어, 평소보다 '
         '안전·건강 관리에 조금 더 신경 쓰면 좋아요. (※ 사주 명리학적 참고 정보이며, 의학적 '
         '진단이 아니에요.)';
   } else if (stars.isNotEmpty) {
     verdict = '가벼운 주의형';
-    message = '${stars.join('·')}이 있어, 급하게 움직이는 상황(운동·운전 등)에서 조금 더 '
+    message =
+        '${stars.join('·')}이 있어, 급하게 움직이는 상황(운동·운전 등)에서 조금 더 '
         '조심하면 좋아요. (※ 사주 명리학적 참고 정보이며, 의학적 진단이 아니에요.)';
   } else if (clashes.isNotEmpty) {
     verdict = '가벼운 주의형';
-    message = '원국 내 ${clashes.join('·')} 관계가 있어, 사고·부상 등에 평소보다 유의하면 '
+    message =
+        '원국 내 ${clashes.join('·')} 관계가 있어, 사고·부상 등에 평소보다 유의하면 '
         '좋아요. (※ 사주 명리학적 참고 정보이며, 의학적 진단이 아니에요.)';
   } else {
     verdict = '비교적 안정적';
-    message = '원국에 사고·수술과 관련된 신살(양인·백호·괴강)이나 형충 관계가 뚜렷하지 않아, '
+    message =
+        '원국에 사고·수술과 관련된 신살(양인·백호·괴강)이나 형충 관계가 뚜렷하지 않아, '
         '비교적 평온한 흐름이에요. (※ 사주 명리학적 참고 정보이며, 의학적 진단이 아니에요.)';
   }
 
@@ -415,21 +438,25 @@ ImmunityResult getImmunity(SajuResult saju) {
   final String message;
   if (isStrong && waterCount >= 2) {
     verdict = '회복력 우수형';
-    message = '일간이 신강하고 수(水, $waterCount) 기운도 충분해, 몸의 회복력과 기초 체력이 좋은 '
+    message =
+        '일간이 신강하고 수(水, $waterCount) 기운도 충분해, 몸의 회복력과 기초 체력이 좋은 '
         '편이에요. (※ 사주 오행의 균형을 기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)';
   } else if (isStrong) {
     verdict = '기본 체력 양호형';
-    message = '일간이 신강해 기본 체력은 좋은 편이지만, 수(水, $waterCount) 기운이 부족한 편이라 '
+    message =
+        '일간이 신강해 기본 체력은 좋은 편이지만, 수(水, $waterCount) 기운이 부족한 편이라 '
         '평소 수분 섭취와 휴식을 챙기면 회복력을 더 높일 수 있어요. (※ 사주 오행의 균형을 '
         '기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)';
   } else if (waterCount >= 2) {
     verdict = '꾸준한 관리 필요형';
-    message = '수(水, $waterCount) 기운은 있지만 일간이 ${isWeak ? '신약한' : '중화에 가까운'} 편이라, '
+    message =
+        '수(水, $waterCount) 기운은 있지만 일간이 ${isWeak ? '신약한' : '중화에 가까운'} 편이라, '
         '무리하지 않는 선에서 꾸준히 체력을 관리하면 좋아요. (※ 사주 오행의 균형을 기준으로 한 '
         '생활 참고 정보이며, 의학적 진단이 아니에요.)';
   } else {
     verdict = '컨디션 관리 신경 써야 하는 편';
-    message = '일간이 ${isWeak ? '신약하고' : '중화에 가깝고'} 수(水, $waterCount) 기운도 부족한 '
+    message =
+        '일간이 ${isWeak ? '신약하고' : '중화에 가깝고'} 수(水, $waterCount) 기운도 부족한 '
         '편이라, 평소보다 휴식·수면·규칙적인 생활에 신경 쓰면 좋아요. (※ 사주 오행의 균형을 '
         '기준으로 한 생활 참고 정보이며, 의학적 진단이 아니에요.)';
   }

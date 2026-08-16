@@ -156,25 +156,29 @@ void main() {
 
   group('[j10·C06~C10] 레거시 vs 신규(PHASE1~4+어댑터) 결과 완전 일치 — seed 유저 3명', () {
     for (final u in _seedUsers) {
-      test('${u.userId}: C06/C07/C08/C09/C10 — legacy와 new의 결과 데이터가 완전히 동일해야 함', () {
-        final legacyC = _runLegacy(u, _kFixedDate);
-        final newC = _runNew(u, _kFixedDate);
+      test(
+        '${u.userId}: C06/C07/C08/C09/C10 — legacy와 new의 결과 데이터가 완전히 동일해야 함',
+        () {
+          final legacyC = _runLegacy(u, _kFixedDate);
+          final newC = _runNew(u, _kFixedDate);
 
-        for (final id in _cIds) {
-          final legacyData = legacyC.results[id]!.data;
-          final newData = newC.results[id]!.data;
-          // ignore: avoid_print
-          print('[$id] legacy=$legacyData');
-          // ignore: avoid_print
-          print('[$id] new   =$newData');
-          expect(
-            newData,
-            legacyData,
-            reason: '${u.userId}: $id는 세운 간지(대표일 6/15) + 원국 4주만으로 계산되므로 '
-                'legacy/new 결과가 완전히 동일해야 함',
-          );
-        }
-      });
+          for (final id in _cIds) {
+            final legacyData = legacyC.results[id]!.data;
+            final newData = newC.results[id]!.data;
+            // ignore: avoid_print
+            print('[$id] legacy=$legacyData');
+            // ignore: avoid_print
+            print('[$id] new   =$newData');
+            expect(
+              newData,
+              legacyData,
+              reason:
+                  '${u.userId}: $id는 세운 간지(대표일 6/15) + 원국 4주만으로 계산되므로 '
+                  'legacy/new 결과가 완전히 동일해야 함',
+            );
+          }
+        },
+      );
     }
   });
 
@@ -205,26 +209,32 @@ void main() {
 
   group('[j10·C06~C10] runJeontongCategory 경로 자체도 정상 동작 확인', () {
     for (final u in _seedUsers) {
-      test('${u.userId}: JeontongCalcContext(profile 포함) + runJeontongCategory("C06"~"C10") 예외 없이 동작', () {
-        final newC = _runNew(u, _kFixedDate);
-        final rules = SajuFortuneRules.cachedOrNull;
-        expect(rules, isNotNull);
+      test(
+        '${u.userId}: JeontongCalcContext(profile 포함) + runJeontongCategory("C06"~"C10") 예외 없이 동작',
+        () {
+          final newC = _runNew(u, _kFixedDate);
+          final rules = SajuFortuneRules.cachedOrNull;
+          expect(rules, isNotNull);
 
-        final ctx = JeontongCalcContext(
-          saju: newC.saju,
-          interp: newC.interp,
-          rules: rules!,
-          referenceDate: _kFixedDate,
-          profile: newC.profile,
-        );
+          final ctx = JeontongCalcContext(
+            saju: newC.saju,
+            interp: newC.interp,
+            rules: rules!,
+            referenceDate: _kFixedDate,
+            profile: newC.profile,
+          );
 
-        for (final id in _cIds) {
-          late final JeontongCategoryResult result;
-          expect(() => result = runJeontongCategory(id, ctx), returnsNormally);
-          expect(result.category, isNotEmpty);
-          expect(result.data.length, greaterThan(1));
-        }
-      });
+          for (final id in _cIds) {
+            late final JeontongCategoryResult result;
+            expect(
+              () => result = runJeontongCategory(id, ctx),
+              returnsNormally,
+            );
+            expect(result.category, isNotEmpty);
+            expect(result.data.length, greaterThan(1));
+          }
+        },
+      );
     }
   });
 }

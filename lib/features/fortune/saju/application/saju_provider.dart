@@ -122,7 +122,10 @@ class SajuProvider extends ChangeNotifier {
 
     final summaryEntry = FortuneMatrix.byId('S-001');
     final summaryHeadline = summaryEntry != null
-        ? GenericFortuneReportBuilder.build(summaryEntry, date: now).hero.headline
+        ? GenericFortuneReportBuilder.build(
+            summaryEntry,
+            date: now,
+          ).hero.headline
         : '$name님의 사주 흐름을 정리했어요.';
 
     return SajuResultModel(

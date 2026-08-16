@@ -34,7 +34,8 @@ class JeontongHistoryStore {
 
   static final JeontongHistoryStore instance = JeontongHistoryStore._();
 
-  final Map<String, List<HistoryEntry>> _byUser = <String, List<HistoryEntry>>{};
+  final Map<String, List<HistoryEntry>> _byUser =
+      <String, List<HistoryEntry>>{};
 
   /// 결과 화면 진입 시 1회 호출. 같은 (userId, categoryId) 조합이 이미
   /// 있으면 새로 push 하지 않고 기존 1건을 최신 값으로 갱신한다(dedup).

@@ -72,7 +72,10 @@ class _WishWallSuccessScreenState extends State<WishWallSuccessScreen>
                         alignment: Alignment.center,
                         clipBehavior: Clip.none,
                         children: [
-                          _PulseHalo(controller: _controller, color: wish.categoryId.lightColor),
+                          _PulseHalo(
+                            controller: _controller,
+                            color: wish.categoryId.lightColor,
+                          ),
                           BottleWidget(
                             category: wish.categoryId,
                             size: 150,
@@ -98,7 +101,10 @@ class _WishWallSuccessScreenState extends State<WishWallSuccessScreen>
               ),
               const SizedBox(height: 22),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: WishWallColors.accentSoft,
                   borderRadius: BorderRadius.circular(999),
@@ -134,7 +140,9 @@ class _WishWallSuccessScreenState extends State<WishWallSuccessScreen>
                   ),
                   child: Text(
                     '내 소원병 보기',
-                    style: WishWallText.label(color: WishWallColors.bg).copyWith(fontSize: 15),
+                    style: WishWallText.label(
+                      color: WishWallColors.bg,
+                    ).copyWith(fontSize: 15),
                   ),
                 ),
               ),

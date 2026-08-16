@@ -18,8 +18,7 @@ import 'package:flutter_app/features/home/presentation/jeontong_design/jeontong_
 import 'package:flutter_app/features/home/presentation/jeontong_design/pillar_board.dart';
 
 void main() {
-  testWidgets(
-      '[회귀] PillarBoard는 ListView 안에서도 레이아웃 예외 없이 '
+  testWidgets('[회귀] PillarBoard는 ListView 안에서도 레이아웃 예외 없이 '
       '천간/지지 한자를 실제로 렌더링한다', (tester) async {
     await tester.runAsync(() async {
       await SajuRules.preload();
@@ -35,21 +34,23 @@ void main() {
 
     // 실제 결과 화면(_ResultBody)과 동일한 조건: ListView 안에 배치 —
     // 버그 재현의 핵심 조건이었으므로 그대로 유지한다.
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(
-        body: ListView(
-          children: [
-            JeontongSajuDetailSection(
-              categoryLabel: '평생 총운',
-              birthDateTimeUtc: kst.subtract(const Duration(hours: 9)),
-              gender: 'male',
-              isLunar: false,
-              referenceDate: DateTime.now(),
-            ),
-          ],
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ListView(
+            children: [
+              JeontongSajuDetailSection(
+                categoryLabel: '평생 총운',
+                birthDateTimeUtc: kst.subtract(const Duration(hours: 9)),
+                gender: 'male',
+                isLunar: false,
+                referenceDate: DateTime.now(),
+              ),
+            ],
+          ),
         ),
       ),
-    ));
+    );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 

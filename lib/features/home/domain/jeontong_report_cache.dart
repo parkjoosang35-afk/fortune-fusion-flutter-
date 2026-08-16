@@ -26,7 +26,8 @@ class JeontongReportCache {
   final DateTime Function() _now;
 
   // LinkedHashMap = 삽입 순서 유지 → LRU 로 안전.
-  final LinkedHashMap<String, _Entry> _entries = LinkedHashMap<String, _Entry>();
+  final LinkedHashMap<String, _Entry> _entries =
+      LinkedHashMap<String, _Entry>();
 
   int _hits = 0;
   int _misses = 0;

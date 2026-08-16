@@ -44,16 +44,17 @@ class SajuSeal extends StatelessWidget {
         alignment: Alignment.center,
         child: Text(
           glyph,
-          style: HanjiTextStyles.display2(color: const Color(0xFFFFF9E8)).copyWith(
-            fontSize: size * 0.5,
-            shadows: [
-              Shadow(
-                color: Colors.black.withValues(alpha: 0.25),
-                offset: const Offset(0, 1),
-                blurRadius: 2,
+          style: HanjiTextStyles.display2(color: const Color(0xFFFFF9E8))
+              .copyWith(
+                fontSize: size * 0.5,
+                shadows: [
+                  Shadow(
+                    color: Colors.black.withValues(alpha: 0.25),
+                    offset: const Offset(0, 1),
+                    blurRadius: 2,
+                  ),
+                ],
               ),
-            ],
-          ),
         ),
       ),
     );
@@ -94,7 +95,11 @@ class SajuCtxBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-          HanjiSpacing.xl, HanjiSpacing.md, HanjiSpacing.xl, HanjiSpacing.md),
+        HanjiSpacing.xl,
+        HanjiSpacing.md,
+        HanjiSpacing.xl,
+        HanjiSpacing.md,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -114,12 +119,15 @@ class SajuCtxBar extends StatelessWidget {
                     children: [
                       TextSpan(
                         text: '$code  ',
-                        style: HanjiTextStyles.bodyTitle(color: HanjiColors.muted)
-                            .copyWith(fontSize: 13),
+                        style: HanjiTextStyles.bodyTitle(
+                          color: HanjiColors.muted,
+                        ).copyWith(fontSize: 13),
                       ),
                       TextSpan(
                         text: title,
-                        style: HanjiTextStyles.bodyTitle().copyWith(fontSize: 13),
+                        style: HanjiTextStyles.bodyTitle().copyWith(
+                          fontSize: 13,
+                        ),
                       ),
                     ],
                   ),
@@ -154,8 +162,12 @@ class _RoundIconBtn extends StatelessWidget {
           border: Border.all(color: HanjiColors.line),
         ),
         alignment: Alignment.center,
-        child: Text(icon,
-            style: HanjiTextStyles.ui(color: HanjiColors.fg).copyWith(fontSize: 14)),
+        child: Text(
+          icon,
+          style: HanjiTextStyles.ui(
+            color: HanjiColors.fg,
+          ).copyWith(fontSize: 14),
+        ),
       ),
     );
   }

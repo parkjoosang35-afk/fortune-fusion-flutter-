@@ -24,6 +24,7 @@ abstract class WishWallRepository {
   Future<void> reportWish(String wishId, String reason);
   Future<void> hideWish(String wishId);
   Future<void> blockUser(String authorId);
+
   /// support/pouch 후 병 목의 매듭 카운트를 올리기 위한 헬퍼(=복주머니 보냄).
   Future<WishPost> incrementPouch(String wishId, int amount);
 }
@@ -143,9 +144,7 @@ class MockWishWallRepository implements WishWallRepository {
       _c('w0230', '푸른달', '가족이 아프면 마음이 많이 무겁죠. 응원합니다', 480),
       _c('w0230', '연한바람', '기도할게요', 720),
     ];
-    _comments['w0229'] = [
-      _c('w0229', '푸른달', '좋은 인연이 곧 찾아올 거예요', 30),
-    ];
+    _comments['w0229'] = [_c('w0229', '푸른달', '좋은 인연이 곧 찾아올 거예요', 30)];
 
     _myWishes.addAll([
       WishPost(
@@ -223,9 +222,7 @@ class MockWishWallRepository implements WishWallRepository {
     if (categoryFilter == null || categoryFilter == 'all') {
       return List.of(_wishes);
     }
-    return _wishes
-        .where((w) => w.categoryId.name == categoryFilter)
-        .toList();
+    return _wishes.where((w) => w.categoryId.name == categoryFilter).toList();
   }
 
   @override

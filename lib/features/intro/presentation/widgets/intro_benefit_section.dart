@@ -24,7 +24,10 @@ class IntroBenefitSection extends StatelessWidget {
           style: UnifiedText.titleLarge().copyWith(fontSize: 20, height: 1.35),
         ),
         const SizedBox(height: UnifiedTokens.spaceMd),
-        Text(description, style: UnifiedText.body().copyWith(fontSize: 15, height: 1.5)),
+        Text(
+          description,
+          style: UnifiedText.body().copyWith(fontSize: 15, height: 1.5),
+        ),
       ],
     );
   }

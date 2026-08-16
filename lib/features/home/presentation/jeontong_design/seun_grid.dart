@@ -64,10 +64,7 @@ class SeunGrid extends StatelessWidget {
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              MonoLabel('MONTH · N°01 - 12'),
-              MonoLabel('$year년 월운'),
-            ],
+            children: [MonoLabel('MONTH · N°01 - 12'), MonoLabel('$year년 월운')],
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -76,7 +73,8 @@ class SeunGrid extends StatelessWidget {
             children: wolwoon.map((entry) {
               final tone = toneForPillar(entry.pillar, yongsin);
               return SizedBox(
-                width: (MediaQuery.of(context).size.width -
+                width:
+                    (MediaQuery.of(context).size.width -
                         HanjiSpacing.xl * 2 -
                         HanjiSpacing.lg * 2 -
                         6 * 5) /
@@ -110,20 +108,20 @@ class _MonthCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final (bg, bd, color) = switch (tone) {
       HanjiTone.best => (
-          HanjiColors.glow.withValues(alpha: 0.18),
-          HanjiColors.glow,
-          const Color(0xFF8B5A2B),
-        ),
+        HanjiColors.glow.withValues(alpha: 0.18),
+        HanjiColors.glow,
+        const Color(0xFF8B5A2B),
+      ),
       HanjiTone.warn => (
-          HanjiColors.accent.withValues(alpha: 0.1),
-          HanjiColors.accent.withValues(alpha: 0.4),
-          HanjiColors.accent,
-        ),
+        HanjiColors.accent.withValues(alpha: 0.1),
+        HanjiColors.accent.withValues(alpha: 0.4),
+        HanjiColors.accent,
+      ),
       HanjiTone.ok => (
-          HanjiColors.su.withValues(alpha: 0.1),
-          HanjiColors.su.withValues(alpha: 0.4),
-          HanjiColors.su,
-        ),
+        HanjiColors.su.withValues(alpha: 0.1),
+        HanjiColors.su.withValues(alpha: 0.4),
+        HanjiColors.su,
+      ),
     };
     // 그레고리력 달력 월이 아니라 전통 월건 순서(1=寅월 ...)이므로,
     // 절기 이름을 함께 보여줘 혼동을 방지한다.
@@ -140,7 +138,9 @@ class _MonthCell extends StatelessWidget {
           children: [
             Text(
               entry.jieQiName,
-              style: HanjiTextStyles.bodyTitle(color: color).copyWith(fontSize: 11),
+              style: HanjiTextStyles.bodyTitle(
+                color: color,
+              ).copyWith(fontSize: 11),
             ),
             const SizedBox(height: 2),
             Text(
@@ -169,7 +169,10 @@ class _Legend extends StatelessWidget {
         Container(
           width: 8,
           height: 8,
-          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2)),
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
         ),
         const SizedBox(width: 4),
         Text(label, style: HanjiTextStyles.bodySmall().copyWith(fontSize: 10)),

@@ -66,9 +66,7 @@ class _JeontongEightyGridScreenState extends State<JeontongEightyGridScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('정통사주 ${JeontongEightyMatrix.all.length}종'),
-      ),
+      appBar: AppBar(title: Text('정통사주 ${JeontongEightyMatrix.all.length}종')),
       body: ListView.builder(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         itemCount: JeontongEightyMatrix.groups.length,

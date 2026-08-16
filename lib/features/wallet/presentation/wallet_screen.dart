@@ -204,9 +204,7 @@ class _FortuneAdEarnCard extends StatelessWidget {
           ),
           const SizedBox(width: UnifiedTokens.spaceMd),
           ElevatedButton(
-            onPressed: ad.watchable
-                ? () => _watchAd(context, ad)
-                : null,
+            onPressed: ad.watchable ? () => _watchAd(context, ad) : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: ad.watchable
                   ? UnifiedColors.black

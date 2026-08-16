@@ -117,10 +117,7 @@ class ManseryeokCoreEngine {
       eightChar.getMonthGan(),
       eightChar.getMonthZhi(),
     );
-    final dayPillar = buildPillar(
-      eightChar.getDayGan(),
-      eightChar.getDayZhi(),
-    );
+    final dayPillar = buildPillar(eightChar.getDayGan(), eightChar.getDayZhi());
     final hourPillar = buildPillar(
       eightChar.getTimeGan(),
       eightChar.getTimeZhi(),
@@ -202,7 +199,8 @@ class ManseryeokCoreEngine {
   /// 하는 [ManseryeokCoreResult](특히 `eightChar` — 십이운성 계산에
   /// 필요)까지 함께 반환한다. Phase 2 이후 재계산(이중 계산) 없이 같은
   /// 인스턴스를 그대로 전달해 회귀를 방지하기 위한 진입점이다.
-  static ({SajuProfile profile, ManseryeokCoreResult core}) buildProfileWithCore({
+  static ({SajuProfile profile, ManseryeokCoreResult core})
+  buildProfileWithCore({
     required int year,
     required int month,
     required int day,

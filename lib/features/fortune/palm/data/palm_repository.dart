@@ -23,7 +23,9 @@ class PalmRepository {
       return ApiResult.fail('손바닥 사진을 먼저 촬영하거나 선택해주세요.');
     }
     final userId = await AuthTokenStore.getCurrentUserId();
-    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/fortune/palm');
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/fortune/palm',
+    );
     final imageBase64 = base64Encode(image);
     debugPrint(
       '[PalmRepository] [analyze] 요청 -> $uri (userId=$userId, imageBytes=${image.length})',

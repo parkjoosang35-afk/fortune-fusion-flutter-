@@ -83,8 +83,7 @@ class JeontongEasyTermToggle extends StatefulWidget {
   static Future<void> preload() => EasyTerms.preload();
 
   @override
-  State<JeontongEasyTermToggle> createState() =>
-      _JeontongEasyTermToggleState();
+  State<JeontongEasyTermToggle> createState() => _JeontongEasyTermToggleState();
 }
 
 class _JeontongEasyTermToggleState extends State<JeontongEasyTermToggle> {

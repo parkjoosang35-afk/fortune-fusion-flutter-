@@ -155,8 +155,7 @@ class _FreePassGateScreenState extends State<FreePassGateScreen> {
                     else
                       PremiumButton.secondary(
                         label: '홈으로 돌아가기',
-                        onPressed: () =>
-                            Navigator.of(context).maybePop(),
+                        onPressed: () => Navigator.of(context).maybePop(),
                       ),
                     const SizedBox(height: UnifiedTokens.spaceSm),
                     TextButton(

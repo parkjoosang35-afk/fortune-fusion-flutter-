@@ -31,7 +31,8 @@ import 'package:flutter_app/features/home/domain/manseryeok/phase3_analysis_engi
 import 'package:flutter_app/features/home/domain/manseryeok/saju_profile.dart';
 import 'package:flutter_app/features/home/domain/manseryeok/strength_engine.dart';
 import 'package:flutter_app/features/home/domain/manseryeok/yongsin_engine.dart';
-import 'package:flutter_app/features/home/domain/saju_engine.dart' show sheng, ke;
+import 'package:flutter_app/features/home/domain/saju_engine.dart'
+    show sheng, ke;
 import 'package:flutter_test/flutter_test.dart';
 
 /// 최소 필드만 채운 테스트 전용 [Pillar] 생성기 — strength/yongsin
@@ -39,14 +40,30 @@ import 'package:flutter_test/flutter_test.dart';
 /// 임의 유효값으로 채운다.
 Pillar fakePillar(String stemHanja, String branchHanja) {
   const ganInfo = {
-    '甲': ('목', '양'), '乙': ('목', '음'), '丙': ('화', '양'), '丁': ('화', '음'),
-    '戊': ('토', '양'), '己': ('토', '음'), '庚': ('금', '양'), '辛': ('금', '음'),
-    '壬': ('수', '양'), '癸': ('수', '음'),
+    '甲': ('목', '양'),
+    '乙': ('목', '음'),
+    '丙': ('화', '양'),
+    '丁': ('화', '음'),
+    '戊': ('토', '양'),
+    '己': ('토', '음'),
+    '庚': ('금', '양'),
+    '辛': ('금', '음'),
+    '壬': ('수', '양'),
+    '癸': ('수', '음'),
   };
   const zhiInfo = {
-    '子': ('수', '양'), '丑': ('토', '음'), '寅': ('목', '양'), '卯': ('목', '음'),
-    '辰': ('토', '양'), '巳': ('화', '음'), '午': ('화', '양'), '未': ('토', '음'),
-    '申': ('금', '양'), '酉': ('금', '음'), '戌': ('토', '양'), '亥': ('수', '음'),
+    '子': ('수', '양'),
+    '丑': ('토', '음'),
+    '寅': ('목', '양'),
+    '卯': ('목', '음'),
+    '辰': ('토', '양'),
+    '巳': ('화', '음'),
+    '午': ('화', '양'),
+    '未': ('토', '음'),
+    '申': ('금', '양'),
+    '酉': ('금', '음'),
+    '戌': ('토', '양'),
+    '亥': ('수', '음'),
   };
   final (se, sy) = ganInfo[stemHanja]!;
   final (be, by) = zhiInfo[branchHanja]!;
@@ -99,12 +116,21 @@ void main() {
   group('PHASE 3 구조적 정합성 — 희신/기신/구신 오행 관계 불변식', () {
     void expectYongsinRelationsConsistent(YongsinProfile p) {
       if (p.yongsin.isEmpty) return; // 조후 불요('') 케이스는 관계 검증 제외.
-      expect(sheng[p.heesin], p.yongsin,
-          reason: '희신(${p.heesin})은 반드시 용신(${p.yongsin})을 생해야 한다');
-      expect(ke[p.gisin], p.yongsin,
-          reason: '기신(${p.gisin})은 반드시 용신(${p.yongsin})을 극해야 한다');
-      expect(sheng[p.gusin], p.gisin,
-          reason: '구신(${p.gusin})은 반드시 기신(${p.gisin})을 생해야 한다');
+      expect(
+        sheng[p.heesin],
+        p.yongsin,
+        reason: '희신(${p.heesin})은 반드시 용신(${p.yongsin})을 생해야 한다',
+      );
+      expect(
+        ke[p.gisin],
+        p.yongsin,
+        reason: '기신(${p.gisin})은 반드시 용신(${p.yongsin})을 극해야 한다',
+      );
+      expect(
+        sheng[p.gusin],
+        p.gisin,
+        reason: '구신(${p.gusin})은 반드시 기신(${p.gisin})을 생해야 한다',
+      );
     }
 
     test('억부법(신강) 결과의 희신/기신/구신 관계가 일관된다', () {
@@ -160,8 +186,12 @@ void main() {
   group('PHASE 3 신강/신약 — 방향성(극단 사례) 검증', () {
     test('비겁+인성만 극단적으로 많으면 반드시 신강으로 판정된다', () {
       final tenGods = {
-        'year_gan': '비견', 'month_gan': '비견', 'hour_gan': '정인',
-        'year_zhi': '비견', 'month_zhi': '정인', 'day_zhi': '비견',
+        'year_gan': '비견',
+        'month_gan': '비견',
+        'hour_gan': '정인',
+        'year_zhi': '비견',
+        'month_zhi': '정인',
+        'day_zhi': '비견',
         'hour_zhi': '비견',
       };
       final hiddenStems = {
@@ -182,8 +212,12 @@ void main() {
 
     test('관살+식상+재성만 극단적으로 많으면 반드시 신약으로 판정된다', () {
       final tenGods = {
-        'year_gan': '정관', 'month_gan': '편관', 'hour_gan': '상관',
-        'year_zhi': '정재', 'month_zhi': '편관', 'day_zhi': '식신',
+        'year_gan': '정관',
+        'month_gan': '편관',
+        'hour_gan': '상관',
+        'year_zhi': '정재',
+        'month_zhi': '편관',
+        'day_zhi': '식신',
         'hour_zhi': '편재',
       };
       final hiddenStems = {
@@ -314,11 +348,16 @@ void main() {
   group('PHASE 3 십신 범주/오행 관계 매핑 — 전수 검증', () {
     test('tenGodCategoryOf: 10개 십신이 5대 범주로 정확히 매핑된다', () {
       const expected = {
-        '비견': '비겁', '겁재': '비겁',
-        '식신': '식상', '상관': '식상',
-        '편재': '재성', '정재': '재성',
-        '편관': '관살', '정관': '관살',
-        '편인': '인성', '정인': '인성',
+        '비견': '비겁',
+        '겁재': '비겁',
+        '식신': '식상',
+        '상관': '식상',
+        '편재': '재성',
+        '정재': '재성',
+        '편관': '관살',
+        '정관': '관살',
+        '편인': '인성',
+        '정인': '인성',
       };
       for (final e in expected.entries) {
         expect(tenGodCategoryOf(e.key), e.value, reason: e.key);
@@ -384,10 +423,7 @@ void main() {
         expect(['신강', '중화', '신약'], contains(strength.verdict));
         expect(strength.score, inInclusiveRange(0.0, 1.0));
         expect(yongsin.method, '억부+조후');
-        expect(
-          ['목', '화', '토', '금', '수', ''],
-          contains(yongsin.yongsin),
-        );
+        expect(['목', '화', '토', '금', '수', ''], contains(yongsin.yongsin));
         if (yongsin.yongsin.isNotEmpty) {
           expect(sheng[yongsin.heesin], yongsin.yongsin);
           expect(ke[yongsin.gisin], yongsin.yongsin);

@@ -67,7 +67,9 @@ class WuxingBalance extends StatelessWidget {
     final entries = c.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     if (entries.isNotEmpty && entries.first.value >= 3) {
-      chips.add(_Chip('${entries.first.key} 과다 · ${entries.first.value}', tone: 'warn'));
+      chips.add(
+        _Chip('${entries.first.key} 과다 · ${entries.first.value}', tone: 'warn'),
+      );
     }
     if (entries.isNotEmpty && entries.last.value == 0) {
       chips.add(_Chip('${entries.last.key} 부재 · 0', tone: 'muted'));
@@ -106,7 +108,12 @@ class _WuxingBar extends StatelessWidget {
             borderRadius: BorderRadius.circular(6),
           ),
           alignment: Alignment.center,
-          child: Text(el, style: HanjiTextStyles.display1(color: color).copyWith(fontSize: 13)),
+          child: Text(
+            el,
+            style: HanjiTextStyles.display1(
+              color: color,
+            ).copyWith(fontSize: 13),
+          ),
         ),
         const SizedBox(width: 8),
         Expanded(
@@ -116,8 +123,14 @@ class _WuxingBar extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(label, style: HanjiTextStyles.bodyTitle().copyWith(fontSize: 10)),
-                  Text('$count개', style: HanjiTextStyles.bodySmall().copyWith(fontSize: 10)),
+                  Text(
+                    label,
+                    style: HanjiTextStyles.bodyTitle().copyWith(fontSize: 10),
+                  ),
+                  Text(
+                    '$count개',
+                    style: HanjiTextStyles.bodySmall().copyWith(fontSize: 10),
+                  ),
                 ],
               ),
               const SizedBox(height: 2),
@@ -126,7 +139,9 @@ class _WuxingBar extends StatelessWidget {
                 child: LinearProgressIndicator(
                   value: count / max,
                   minHeight: 4,
-                  backgroundColor: const Color(0xFF8B5A2B).withValues(alpha: 0.12),
+                  backgroundColor: const Color(
+                    0xFF8B5A2B,
+                  ).withValues(alpha: 0.12),
                   valueColor: AlwaysStoppedAnimation(color),
                 ),
               ),
@@ -193,7 +208,10 @@ class _PentagonPainter extends CustomPainter {
       }
     }
     path.close();
-    canvas.drawPath(path, Paint()..color = HanjiColors.glow.withValues(alpha: 0.25));
+    canvas.drawPath(
+      path,
+      Paint()..color = HanjiColors.glow.withValues(alpha: 0.25),
+    );
     canvas.drawPath(
       path,
       Paint()
@@ -254,7 +272,10 @@ class _Chip extends StatelessWidget {
         border: Border.all(color: border),
         borderRadius: BorderRadius.circular(999),
       ),
-      child: Text(text, style: HanjiTextStyles.bodyTitle(color: color).copyWith(fontSize: 10)),
+      child: Text(
+        text,
+        style: HanjiTextStyles.bodyTitle(color: color).copyWith(fontSize: 10),
+      ),
     );
   }
 }

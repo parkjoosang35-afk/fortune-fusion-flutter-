@@ -46,10 +46,7 @@ void main() {
       MaterialApp(
         onGenerateRoute: AppRouter.onGenerateRoute,
         home: Scaffold(
-          body: HistoryJeontongSectionedView(
-            entries: eighty,
-            userId: 'u-test',
-          ),
+          body: HistoryJeontongSectionedView(entries: eighty, userId: 'u-test'),
         ),
       ),
     );
@@ -61,9 +58,7 @@ void main() {
     expect(find.byType(ListTile), findsAtLeastNWidgets(10));
   });
 
-  testWidgets('카드 탭 시 정통사주 결과 라우트로 categoryId(String) 단독 전달', (
-    tester,
-  ) async {
+  testWidgets('카드 탭 시 정통사주 결과 라우트로 categoryId(String) 단독 전달', (tester) async {
     final eighty = buildEighty();
     String? capturedRouteName;
     Object? capturedArguments;
@@ -81,10 +76,7 @@ void main() {
           return AppRouter.onGenerateRoute(settings);
         },
         home: Scaffold(
-          body: HistoryJeontongSectionedView(
-            entries: eighty,
-            userId: 'u-test',
-          ),
+          body: HistoryJeontongSectionedView(entries: eighty, userId: 'u-test'),
         ),
       ),
     );

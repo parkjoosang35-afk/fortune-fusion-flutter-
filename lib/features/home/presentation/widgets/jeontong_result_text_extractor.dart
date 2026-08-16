@@ -114,7 +114,10 @@ class JeontongResultTextExtractor {
       // 빈약 폴백 — 메시지만 있는 케이스도 2줄 보장.
       final msg = _raw['message'];
       if (msg is String && msg.trim().isNotEmpty) {
-        final parts = msg.split('\n').where((l) => l.trim().isNotEmpty).toList();
+        final parts = msg
+            .split('\n')
+            .where((l) => l.trim().isNotEmpty)
+            .toList();
         if (parts.length >= 2) {
           out.addAll(parts.take(2));
         } else if (parts.isNotEmpty) {
@@ -135,9 +138,7 @@ class JeontongResultTextExtractor {
   List<String> easyTermHints() {
     final joined = body().join(' ');
     final tokens = <String>[];
-    final regex = RegExp(
-      r'[一-龥]{2,4}|신강|신약|식신|상관|편재|정재|정관|편관|정인|편인|비견|겁재',
-    );
+    final regex = RegExp(r'[一-龥]{2,4}|신강|신약|식신|상관|편재|정재|정관|편관|정인|편인|비견|겁재');
     for (final m in regex.allMatches(joined)) {
       final t = m.group(0);
       if (t != null && !tokens.contains(t)) tokens.add(t);

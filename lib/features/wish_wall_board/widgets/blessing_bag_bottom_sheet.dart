@@ -42,8 +42,7 @@ class _BlessingBagSheetState extends State<_BlessingBagSheet> {
 
   static const int _perSendMax = 5;
 
-  int get _balance =>
-      context.read<WishWallProvider>().policy.balance;
+  int get _balance => context.read<WishWallProvider>().policy.balance;
 
   void _setAmount(int v) {
     setState(() {
@@ -60,9 +59,10 @@ class _BlessingBagSheetState extends State<_BlessingBagSheet> {
       return;
     }
     setState(() => _state = _SheetState.sending);
-    final ok = await context
-        .read<WishWallProvider>()
-        .sendPouch(widget.wish.id, _amount);
+    final ok = await context.read<WishWallProvider>().sendPouch(
+      widget.wish.id,
+      _amount,
+    );
     if (!mounted) return;
     if (ok) {
       setState(() => _state = _SheetState.success);
@@ -136,7 +136,9 @@ class _BlessingBagSheetState extends State<_BlessingBagSheet> {
                           Expanded(
                             child: Text(
                               '복주머니 보내기',
-                              style: WishWallText.title2().copyWith(fontSize: 18),
+                              style: WishWallText.title2().copyWith(
+                                fontSize: 18,
+                              ),
                             ),
                           ),
                           IconButton(
@@ -165,7 +167,9 @@ class _BlessingBagSheetState extends State<_BlessingBagSheet> {
                           color: WishWallColors.accentSoft,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
-                            color: WishWallColors.accent.withValues(alpha: 0.35),
+                            color: WishWallColors.accent.withValues(
+                              alpha: 0.35,
+                            ),
                           ),
                         ),
                         child: Row(
@@ -195,14 +199,18 @@ class _BlessingBagSheetState extends State<_BlessingBagSheet> {
                         children: [
                           _StepperButton(
                             icon: Icons.remove,
-                            onTap: _amount > 1 ? () => _setAmount(_amount - 1) : null,
+                            onTap: _amount > 1
+                                ? () => _setAmount(_amount - 1)
+                                : null,
                           ),
                           Container(
                             width: 72,
                             alignment: Alignment.center,
                             child: Text(
                               '$_amount',
-                              style: WishWallText.display().copyWith(fontSize: 32),
+                              style: WishWallText.display().copyWith(
+                                fontSize: 32,
+                              ),
                             ),
                           ),
                           _StepperButton(
@@ -220,12 +228,16 @@ class _BlessingBagSheetState extends State<_BlessingBagSheet> {
                           final active = _amount == v;
                           return Expanded(
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
                               child: InkWell(
                                 onTap: () => _setAmount(v),
                                 borderRadius: BorderRadius.circular(12),
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 10,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: active
                                         ? WishWallColors.ink
@@ -244,7 +256,9 @@ class _BlessingBagSheetState extends State<_BlessingBagSheet> {
                                       fontFamily: WishWallText.family,
                                       fontSize: 14,
                                       fontWeight: FontWeight.w700,
-                                      color: active ? WishWallColors.bg : WishWallColors.ink2,
+                                      color: active
+                                          ? WishWallColors.bg
+                                          : WishWallColors.ink2,
                                     ),
                                   ),
                                 ),
@@ -311,8 +325,9 @@ class _BlessingBagSheetState extends State<_BlessingBagSheet> {
                                 )
                               : Text(
                                   '$_amount개 보내기',
-                                  style: WishWallText.label(color: Colors.white)
-                                      .copyWith(fontSize: 15),
+                                  style: WishWallText.label(
+                                    color: Colors.white,
+                                  ).copyWith(fontSize: 15),
                                 ),
                         ),
                       ),
@@ -392,7 +407,10 @@ class _SuccessViewState extends State<_SuccessView>
         mainAxisSize: MainAxisSize.min,
         children: [
           ScaleTransition(
-            scale: CurvedAnimation(parent: _controller, curve: Curves.elasticOut),
+            scale: CurvedAnimation(
+              parent: _controller,
+              curve: Curves.elasticOut,
+            ),
             child: Container(
               width: 64,
               height: 64,
@@ -410,10 +428,7 @@ class _SuccessViewState extends State<_SuccessView>
             style: WishWallText.title2().copyWith(fontSize: 17),
           ),
           const SizedBox(height: 6),
-          Text(
-            '따뜻한 마음이 잘 전해졌어요',
-            style: WishWallText.caption(),
-          ),
+          Text('따뜻한 마음이 잘 전해졌어요', style: WishWallText.caption()),
         ],
       ),
     );

@@ -126,7 +126,9 @@ class _IntroPagerScreenState extends State<IntroPagerScreen> {
                       color: _index == i
                           ? UnifiedColors.black
                           : UnifiedColors.border,
-                      borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
+                      borderRadius: BorderRadius.circular(
+                        UnifiedTokens.radiusPill,
+                      ),
                     ),
                   ),
                 ),
@@ -146,8 +148,9 @@ class _IntroPagerScreenState extends State<IntroPagerScreen> {
                       foregroundColor: Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(UnifiedTokens.radiusPill),
+                        borderRadius: BorderRadius.circular(
+                          UnifiedTokens.radiusPill,
+                        ),
                       ),
                     ),
                     child: Text(

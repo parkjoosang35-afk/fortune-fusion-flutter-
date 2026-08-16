@@ -52,8 +52,12 @@ class TodayCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isWarn = tone == HanjiTone.warn;
     return HanjiCard(
-      borderColor: isWarn ? HanjiColors.accent.withValues(alpha: 0.35) : HanjiColors.line,
-      backgroundColor: isWarn ? HanjiColors.accent.withValues(alpha: 0.05) : HanjiColors.card,
+      borderColor: isWarn
+          ? HanjiColors.accent.withValues(alpha: 0.35)
+          : HanjiColors.line,
+      backgroundColor: isWarn
+          ? HanjiColors.accent.withValues(alpha: 0.05)
+          : HanjiColors.card,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -62,13 +66,22 @@ class TodayCard extends StatelessWidget {
             textBaseline: TextBaseline.alphabetic,
             children: [
               Expanded(
-                child: Text(period, style: HanjiTextStyles.bodyTitle().copyWith(fontSize: 13)),
+                child: Text(
+                  period,
+                  style: HanjiTextStyles.bodyTitle().copyWith(fontSize: 13),
+                ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: isWarn ? HanjiColors.accent : HanjiColors.su.withValues(alpha: 0.15),
-                  border: isWarn ? null : Border.all(color: HanjiColors.su.withValues(alpha: 0.3)),
+                  color: isWarn
+                      ? HanjiColors.accent
+                      : HanjiColors.su.withValues(alpha: 0.15),
+                  border: isWarn
+                      ? null
+                      : Border.all(
+                          color: HanjiColors.su.withValues(alpha: 0.3),
+                        ),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
@@ -83,7 +96,9 @@ class TodayCard extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             text,
-            style: HanjiTextStyles.body(color: HanjiColors.muted).copyWith(fontSize: 13, height: 1.65),
+            style: HanjiTextStyles.body(
+              color: HanjiColors.muted,
+            ).copyWith(fontSize: 13, height: 1.65),
           ),
         ],
       ),

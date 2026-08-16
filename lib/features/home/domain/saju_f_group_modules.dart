@@ -32,7 +32,12 @@ library;
 
 import 'package:lunar/lunar.dart' show Solar;
 
-import 'saju_daewoon_modules.dart' show DaewoonWithTenGod, daewoonsWithTenGod, getDaewoonCareerFlow, getDaewoonLoveFlow;
+import 'saju_daewoon_modules.dart'
+    show
+        DaewoonWithTenGod,
+        daewoonsWithTenGod,
+        getDaewoonCareerFlow,
+        getDaewoonLoveFlow;
 import 'saju_engine.dart';
 import 'saju_interpreter.dart';
 
@@ -142,19 +147,23 @@ CareerVsBusinessResult getCareerVsBusinessFit(
   final String message;
   if (officerCount == 0) {
     verdict = '창업·독립 적합형';
-    message = '관성(조직·상사를 뜻하는 십신)이 원국에 없어, 조직에 얽매이기보다 '
+    message =
+        '관성(조직·상사를 뜻하는 십신)이 원국에 없어, 조직에 얽매이기보다 '
         '스스로 결정하고 책임지는 창업·독립 사업이 잘 맞는 구조예요.';
   } else if (officerOnGongmang) {
     verdict = '창업·독립 고려형';
-    message = '관성은 있지만 공망(空亡, ${saju.gongmang})에 걸려 있어, '
+    message =
+        '관성은 있지만 공망(空亡, ${saju.gongmang})에 걸려 있어, '
         '조직 소속의 안정감보다는 독립적인 활동에서 더 좋은 결과를 낼 수 있어요.';
   } else if (officerCount >= 2) {
     verdict = '조직·직장 적합형';
-    message = '관성 $officerCount개가 힘 있게 자리 잡아, 조직 안에서 승진·안정적인 '
+    message =
+        '관성 $officerCount개가 힘 있게 자리 잡아, 조직 안에서 승진·안정적인 '
         '커리어를 쌓는 흐름이 유리한 구조예요.';
   } else {
     verdict = '균형형 — 상황에 따라 유연하게';
-    message = '관성 $officerCount개로 무난한 수준이에요. 대운·세운의 흐름에 따라 '
+    message =
+        '관성 $officerCount개로 무난한 수준이에요. 대운·세운의 흐름에 따라 '
         '조직 생활과 독립 사업 모두 고려해볼 수 있어요.';
   }
 
@@ -201,16 +210,15 @@ class JobChangeTimingResult {
 /// 재사용하고, [year] 세운의 관성 발동 여부를 추가로 조회해 조합한다.
 /// 새 판정 공식이 아니라 이미 검증된 [getTenGod] 결과를 대운·세운 각각에
 /// 대해 조회하는 것뿐이다.
-JobChangeTimingResult getJobChangeTiming(
-  SajuResult saju, {
-  required int year,
-}) {
+JobChangeTimingResult getJobChangeTiming(SajuResult saju, {required int year}) {
   final flow = getDaewoonCareerFlow(saju);
   final list = daewoonsWithTenGod(saju);
   final currentStart = saju.currentLuck?.startAge;
   final currentDaewoon = list.where((d) => d.luck.startAge == currentStart);
   final currentDaewoonHit = currentDaewoon.any(
-    (d) => _officerGodsF5.contains(d.stemTenGod) || _officerGodsF5.contains(d.branchTenGod),
+    (d) =>
+        _officerGodsF5.contains(d.stemTenGod) ||
+        _officerGodsF5.contains(d.branchTenGod),
   );
 
   final dayGan = saju.dayMaster.gan;
@@ -228,19 +236,23 @@ JobChangeTimingResult getJobChangeTiming(
   final String message;
   if (currentDaewoonHit && currentYearHit) {
     verdict = '지금이 이직 적기';
-    message = '현재 대운과 올해 세운이 모두 관성을 발동시켜, 지금이 이직·전직을 '
+    message =
+        '현재 대운과 올해 세운이 모두 관성을 발동시켜, 지금이 이직·전직을 '
         '실행하기에 좋은 흐름이에요.';
   } else if (currentDaewoonHit) {
     verdict = '대운상 이직 흐름은 있음, 시기 조율 필요';
-    message = '현재 대운은 관성이 발동하는 흐름이지만 올해 세운은 그렇지 않아요. '
+    message =
+        '현재 대운은 관성이 발동하는 흐름이지만 올해 세운은 그렇지 않아요. '
         '조급하게 서두르기보다 조건이 맞는 해를 기다려도 좋아요.';
   } else if (upcoming.isNotEmpty) {
     verdict = '${upcoming.first} 전후가 유력';
-    message = '현재 대운에서는 관성이 뚜렷하지 않지만, ${upcoming.join(', ')} 시기에 '
+    message =
+        '현재 대운에서는 관성이 뚜렷하지 않지만, ${upcoming.join(', ')} 시기에 '
         '관성이 발동해 이직·전직 기회가 열릴 수 있어요.';
   } else {
     verdict = '큰 변화보다 현재 자리에서 내실 다지기';
-    message = '계산된 대운 범위 안에서는 관성이 뚜렷하게 발동하는 시기가 보이지 않아요. '
+    message =
+        '계산된 대운 범위 안에서는 관성이 뚜렷하게 발동하는 시기가 보이지 않아요. '
         '지금 자리에서 경력을 다지는 것이 더 유리할 수 있어요.';
   }
 
@@ -282,7 +294,8 @@ RealEstateTimingResult getRealEstateTiming(SajuResult saju) {
     final label = _f06Label(d);
     final earthHit = d.stemElement == '토' || d.branchElement == '토';
     final wealthHit =
-        _wealthGodsF6.contains(d.stemTenGod) || _wealthGodsF6.contains(d.branchTenGod);
+        _wealthGodsF6.contains(d.stemTenGod) ||
+        _wealthGodsF6.contains(d.branchTenGod);
     if (earthHit && wealthHit) {
       timeline.add('$label — 토(土) 기운 + 재성 동시 발동: 부동산 관련 거래에 유리한 흐름');
       peaks.add(label);
@@ -294,10 +307,14 @@ RealEstateTimingResult getRealEstateTiming(SajuResult saju) {
   }
   final summary = peaks.isEmpty
       ? '계산된 대운 범위 안에서는 토 기운과 재성이 함께 발동하는 시기가 뚜렷하지 않아요. '
-          '큰 거래보다 시장 상황을 지켜보며 신중하게 접근하면 좋아요.'
+            '큰 거래보다 시장 상황을 지켜보며 신중하게 접근하면 좋아요.'
       : '${peaks.join(', ')} 시기에 토 기운과 재성이 함께 발동해, 부동산 매매·투자에 '
-          '비교적 유리한 흐름이 만들어질 수 있어요.';
-  return RealEstateTimingResult(timeline: timeline, peakPeriods: peaks, summary: summary);
+            '비교적 유리한 흐름이 만들어질 수 있어요.';
+  return RealEstateTimingResult(
+    timeline: timeline,
+    peakPeriods: peaks,
+    summary: summary,
+  );
 }
 
 String _f06Label(DaewoonWithTenGod d) =>
@@ -333,19 +350,23 @@ InvestmentStyleResult getInvestmentStyle(SajuFullInterpretation interp) {
   final String message;
   if (aggressive == 0 && defensive == 0) {
     style = '재성 미발현형 — 투자보다 안정 소득 중심';
-    message = '편재·정재가 모두 없어, 투자보다는 안정적인 소득 관리에 집중하는 편이 잘 맞아요. '
+    message =
+        '편재·정재가 모두 없어, 투자보다는 안정적인 소득 관리에 집중하는 편이 잘 맞아요. '
         '투자를 하더라도 소액·분산 위주로 접근하는 것이 좋아요.';
   } else if (aggressive > defensive) {
     style = '공격형 투자자 — 편재 우세';
-    message = '편재($aggressive) > 정재($defensive) — 기회를 빠르게 포착하는 공격적 투자 '
+    message =
+        '편재($aggressive) > 정재($defensive) — 기회를 빠르게 포착하는 공격적 투자 '
         '성향이에요. 주식·사업성 투자에 강점이 있지만, 리스크 관리 습관을 함께 갖추면 좋아요.';
   } else if (defensive > aggressive) {
     style = '방어형 투자자 — 정재 우세';
-    message = '정재($defensive) > 편재($aggressive) — 꾸준하고 안정적인 재테크를 선호하는 '
+    message =
+        '정재($defensive) > 편재($aggressive) — 꾸준하고 안정적인 재테크를 선호하는 '
         '성향이에요. 예적금·우량자산 중심의 장기 투자가 잘 맞아요.';
   } else {
     style = '균형형 투자자 — 편재·정재 균형';
-    message = '편재·정재가 $aggressive:$defensive로 균형을 이뤄, 안정 자산과 공격적 투자를 '
+    message =
+        '편재·정재가 $aggressive:$defensive로 균형을 이뤄, 안정 자산과 공격적 투자를 '
         '적절히 배분하는 포트폴리오 전략이 잘 맞아요.';
   }
 
@@ -392,12 +413,14 @@ MarriageTimingResult getMarriageTiming(SajuResult saju) {
   final godLabel = saju.gender == 'male' ? '재성(배우자성)' : '관성(배우자성)';
   final String message;
   if (nearest == null) {
-    message = '계산된 대운 범위 안에서는 $godLabel이 뚜렷하게 발동하는 시기가 보이지 않아요. '
+    message =
+        '계산된 대운 범위 안에서는 $godLabel이 뚜렷하게 발동하는 시기가 보이지 않아요. '
         '조급해하기보다 자연스러운 인연의 흐름을 기다려도 좋아요.';
   } else if (future.isNotEmpty) {
     message = '$nearest 시기에 $godLabel이 발동해, 결혼 인연이 무르익기 좋은 흐름이에요.';
   } else {
-    message = '$godLabel 발동 시기($nearest)는 이미 지났어요. 앞으로는 대운·세운의 흐름을 '
+    message =
+        '$godLabel 발동 시기($nearest)는 이미 지났어요. 앞으로는 대운·세운의 흐름을 '
         '함께 참고하며 인연을 준비하면 좋아요.';
   }
 
@@ -453,19 +476,23 @@ OverseasFortuneResult getOverseasFortune(
   final String message;
   if (score >= 3) {
     style = '해외 진출 최적형';
-    message = '역마(驛馬)를 갖추고, 편재($wealthCount)와 수(水, $waterCount) 기운까지 '
+    message =
+        '역마(驛馬)를 갖추고, 편재($wealthCount)와 수(水, $waterCount) 기운까지 '
         '고르게 있어, 유학·해외 진출에 매우 유리한 흐름이에요.';
   } else if (score == 2) {
     style = '해외 인연 있음형';
-    message = '역마·편재·수 오행 중 2가지 조건을 갖춰, 기회가 주어지면 해외 활동에서도 '
+    message =
+        '역마·편재·수 오행 중 2가지 조건을 갖춰, 기회가 주어지면 해외 활동에서도 '
         '좋은 성과를 낼 수 있는 흐름이에요.';
   } else if (score == 1) {
     style = '국내외 병행형';
-    message = '해외 진출 관련 기운이 일부 있어, 무리하지 않는 선에서 해외 경험을 '
+    message =
+        '해외 진출 관련 기운이 일부 있어, 무리하지 않는 선에서 해외 경험을 '
         '시도해보는 것도 좋은 선택이 될 수 있어요.';
   } else {
     style = '국내 활동 중심형';
-    message = '역마·편재·수 오행 조건이 뚜렷하지 않아, 해외보다는 국내에서 기반을 '
+    message =
+        '역마·편재·수 오행 조건이 뚜렷하지 않아, 해외보다는 국내에서 기반을 '
         '다지는 흐름이 더 잘 맞을 수 있어요.';
   }
 
@@ -513,7 +540,8 @@ GoodChildbirthTimingResult getGoodChildbirthTiming(SajuResult saju) {
   final timeline = <String>[];
   final active = <String>[];
   for (final d in list) {
-    final label = '${d.luck.startAge}세(${d.luck.startYear}년, ${d.luck.ganZhiKr})';
+    final label =
+        '${d.luck.startAge}세(${d.luck.startYear}년, ${d.luck.ganZhiKr})';
     final stemHit = targetGods.contains(d.stemTenGod);
     final branchHit = targetGods.contains(d.branchTenGod);
     if (stemHit || branchHit) {
@@ -526,9 +554,9 @@ GoodChildbirthTimingResult getGoodChildbirthTiming(SajuResult saju) {
 
   final summary = active.isEmpty
       ? '계산된 대운 범위 안에서는 $godLabel이 뚜렷하게 발동하는 시기가 보이지 않아요. '
-          '자녀 계획은 시기보다 개인 상황에 맞춰 결정하는 것이 좋아요.'
+            '자녀 계획은 시기보다 개인 상황에 맞춰 결정하는 것이 좋아요.'
       : '${active.join(', ')} 시기에 $godLabel이 발동해 자녀 인연·출산 관련 흐름이 '
-          '좋아질 수 있어요.';
+            '좋아질 수 있어요.';
 
   return GoodChildbirthTimingResult(
     childGodLabel: godLabel,

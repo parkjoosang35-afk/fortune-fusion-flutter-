@@ -132,7 +132,9 @@ class _FaceAnalyzingScreenState extends State<FaceAnalyzingScreen>
               AnimatedBuilder(
                 animation: _scanController,
                 builder: (context, _) {
-                  final regionIndex = _currentRegionIndex(_scanController.value);
+                  final regionIndex = _currentRegionIndex(
+                    _scanController.value,
+                  );
                   return AnimatedSwitcher(
                     duration: const Duration(milliseconds: 300),
                     switchInCurve: Curves.easeInOutCubic,
@@ -235,16 +237,21 @@ class _FaceScanCard extends StatelessWidget {
             left: 0,
             right: 0,
             top: _cardHeight * activeRegion.rangeStart,
-            height: _cardHeight * (activeRegion.rangeEnd - activeRegion.rangeStart),
+            height:
+                _cardHeight * (activeRegion.rangeEnd - activeRegion.rangeStart),
             child: Container(
               decoration: BoxDecoration(
                 border: Border.all(
-                  color: UnifiedColors.neon.withValues(alpha: glowOpacity + 0.4),
+                  color: UnifiedColors.neon.withValues(
+                    alpha: glowOpacity + 0.4,
+                  ),
                   width: 2,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: UnifiedColors.neon.withValues(alpha: glowOpacity * 0.5),
+                    color: UnifiedColors.neon.withValues(
+                      alpha: glowOpacity * 0.5,
+                    ),
                     blurRadius: 14,
                     spreadRadius: 1,
                   ),
@@ -297,9 +304,7 @@ class _FaceScanCard extends StatelessWidget {
                     height: 12,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation(
-                        UnifiedColors.neon,
-                      ),
+                      valueColor: AlwaysStoppedAnimation(UnifiedColors.neon),
                     ),
                   ),
                   const SizedBox(width: 6),
@@ -360,9 +365,7 @@ class _RegionStepIndicator extends StatelessWidget {
                     height: isActive ? 10 : 7,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: isDone || isActive
-                          ? color
-                          : Colors.transparent,
+                      color: isDone || isActive ? color : Colors.transparent,
                       border: Border.all(color: color, width: 1.5),
                     ),
                   ),

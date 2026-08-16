@@ -35,7 +35,11 @@ class _AppShellState extends State<AppShell> {
   static const _navItems = [
     (Icons.home_outlined, Icons.home_rounded, '홈'),
     (Icons.auto_awesome_outlined, Icons.auto_awesome, '운세'),
-    (Icons.local_fire_department_outlined, Icons.local_fire_department_rounded, '소원방'),
+    (
+      Icons.local_fire_department_outlined,
+      Icons.local_fire_department_rounded,
+      '소원방',
+    ),
     (Icons.card_giftcard_outlined, Icons.card_giftcard_rounded, '복주머니'),
     (Icons.person_outline_rounded, Icons.person_rounded, '마이'),
   ];

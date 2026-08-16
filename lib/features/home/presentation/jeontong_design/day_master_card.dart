@@ -41,13 +41,18 @@ class DayMasterCard extends StatelessWidget {
             height: 66,
             decoration: BoxDecoration(
               color: wxColor.withValues(alpha: 0.15),
-              border: Border.all(color: wxColor.withValues(alpha: 0.4), width: 1.5),
+              border: Border.all(
+                color: wxColor.withValues(alpha: 0.4),
+                width: 1.5,
+              ),
               borderRadius: BorderRadius.circular(8),
             ),
             alignment: Alignment.center,
             child: Text(
               dayMaster.kr,
-              style: HanjiTextStyles.display1(color: wxColor).copyWith(fontSize: 20),
+              style: HanjiTextStyles.display1(
+                color: wxColor,
+              ).copyWith(fontSize: 20),
             ),
           ),
           const SizedBox(width: 12),
@@ -64,8 +69,9 @@ class DayMasterCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   analysis.personality,
-                  style: HanjiTextStyles.body(color: HanjiColors.muted)
-                      .copyWith(fontSize: 13, height: 1.6),
+                  style: HanjiTextStyles.body(
+                    color: HanjiColors.muted,
+                  ).copyWith(fontSize: 13, height: 1.6),
                 ),
               ],
             ),

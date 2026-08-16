@@ -116,10 +116,13 @@ ZodiacAnimalCompatibilityResult getZodiacAnimalCompatibility(
 
   final String summary;
   if (bestList.isEmpty && worstList.isEmpty) {
-    summary = '$myAnimal는 12지지 합충표 안에서 뚜렷하게 부딪히거나 강하게 끌리는 띠가 '
+    summary =
+        '$myAnimal는 12지지 합충표 안에서 뚜렷하게 부딪히거나 강하게 끌리는 띠가 '
         '없는 편이라, 띠보다는 다른 요소(오행·일간 궁합)를 함께 참고하는 것이 좋아요.';
   } else {
-    final bestText = bestList.isEmpty ? '' : '${bestList.join(', ')}와는 합이 좋은 편이에요. ';
+    final bestText = bestList.isEmpty
+        ? ''
+        : '${bestList.join(', ')}와는 합이 좋은 편이에요. ';
     final worstText = worstList.isEmpty
         ? ''
         : '${worstList.join(', ')}와는 부딪히는 기운이 있어 서로 배려가 필요해요.';
@@ -234,27 +237,33 @@ OuterInnerCompatibilityResult getOuterInnerCompatibility(SajuResult saju) {
   final String summary;
   if (outerElement == innerElement) {
     relation = '동일';
-    summary = '겉으로 보이는 이미지($outerElement)와 속마음의 본질($innerElement)이 같은 '
+    summary =
+        '겉으로 보이는 이미지($outerElement)와 속마음의 본질($innerElement)이 같은 '
         '오행이라, 겉과 속이 일치하는 사람이에요. 꾸밈없이 진솔하게 보이는 편이에요.';
   } else if (sheng[outerElement] == innerElement) {
     relation = '상생(겉→속)';
-    summary = '겉으로 보이는 이미지($outerElement)가 속마음의 본질($innerElement)을 북돋아주는 '
+    summary =
+        '겉으로 보이는 이미지($outerElement)가 속마음의 본질($innerElement)을 북돋아주는 '
         '관계라, 사회적 이미지가 내면의 성향을 자연스럽게 살려주는 편이에요.';
   } else if (sheng[innerElement] == outerElement) {
     relation = '상생(속→겉)';
-    summary = '속마음의 본질($innerElement)이 겉으로 보이는 이미지($outerElement)를 '
+    summary =
+        '속마음의 본질($innerElement)이 겉으로 보이는 이미지($outerElement)를 '
         '뒷받침해주는 관계라, 내면의 힘이 겉모습으로 잘 드러나는 편이에요.';
   } else if (ke[outerElement] == innerElement) {
     relation = '상극(겉→속)';
-    summary = '겉으로 보이는 이미지($outerElement)와 속마음의 본질($innerElement)이 부딪히는 '
+    summary =
+        '겉으로 보이는 이미지($outerElement)와 속마음의 본질($innerElement)이 부딪히는 '
         '관계라, 남들이 보는 모습과 실제 성향 사이에 간극을 느낄 수 있어요.';
   } else if (ke[innerElement] == outerElement) {
     relation = '상극(속→겉)';
-    summary = '속마음의 본질($innerElement)이 겉으로 보이는 이미지($outerElement)를 억누르는 '
+    summary =
+        '속마음의 본질($innerElement)이 겉으로 보이는 이미지($outerElement)를 억누르는 '
         '관계라, 내면의 진짜 모습을 겉으로 잘 드러내지 못할 수 있어요.';
   } else {
     relation = '무관';
-    summary = '겉으로 보이는 이미지($outerElement)와 속마음의 본질($innerElement)이 직접적인 '
+    summary =
+        '겉으로 보이는 이미지($outerElement)와 속마음의 본질($innerElement)이 직접적인 '
         '상생상극 관계는 아니라, 비교적 독립적으로 각자의 색을 유지하는 편이에요.';
   }
 

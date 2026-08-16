@@ -87,18 +87,21 @@ class _JeontongEightyLoadingScreenState
     super.initState();
     _progressCtrl = AnimationController(vsync: this, duration: _totalDuration)
       ..forward();
-    _pageFlipCtrl =
-        AnimationController(vsync: this, duration: const Duration(seconds: 3))
-          ..repeat();
-    _streamCtrl =
-        AnimationController(vsync: this, duration: HanjiMotion.ganjiStream)
-          ..repeat();
+    _pageFlipCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat();
+    _streamCtrl = AnimationController(
+      vsync: this,
+      duration: HanjiMotion.ganjiStream,
+    )..repeat();
 
     _progressCtrl.addListener(() {
       final t = _progressCtrl.value;
-      final newStep = (t * _kCalcSteps.length)
-          .floor()
-          .clamp(0, _kCalcSteps.length - 1);
+      final newStep = (t * _kCalcSteps.length).floor().clamp(
+        0,
+        _kCalcSteps.length - 1,
+      );
       if (newStep != _stepIndex) {
         setState(() => _stepIndex = newStep);
       }
@@ -166,7 +169,10 @@ class _JeontongEightyLoadingScreenState
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 8),
-              const MonoLabel('◈ CALCULATING · 03 / 04', color: HanjiColors.accent),
+              const MonoLabel(
+                '◈ CALCULATING · 03 / 04',
+                color: HanjiColors.accent,
+              ),
               const SizedBox(height: 8),
               Text(
                 '만세력을 펼치고\n사주를 세우는 중',
@@ -319,10 +325,7 @@ class _MansaeryeokBook extends StatelessWidget {
             right: 12,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                MonoLabel('MANSAERYEOK'),
-                MonoLabel('萬歲曆'),
-              ],
+              children: const [MonoLabel('MANSAERYEOK'), MonoLabel('萬歲曆')],
             ),
           ),
           Positioned(
@@ -331,10 +334,7 @@ class _MansaeryeokBook extends StatelessWidget {
             right: 12,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                MonoLabel(birthLabel),
-                const MonoLabel('p. 214'),
-              ],
+              children: [MonoLabel(birthLabel), const MonoLabel('p. 214')],
             ),
           ),
         ],
@@ -387,8 +387,7 @@ class _BookPage extends StatelessWidget {
           return Column(
             mainAxisAlignment: MainAxisAlignment.start,
             children: col.map((ch) {
-              final isMarker =
-                  ch == '年' || ch == '月' || ch == '日' || ch == '時';
+              final isMarker = ch == '年' || ch == '月' || ch == '日' || ch == '時';
               final isDiamond = ch == '◇';
               return Container(
                 width: 18,
@@ -413,7 +412,9 @@ class _BookPage extends StatelessWidget {
                                   : const Color(0xFF2A1F14)),
                       ).copyWith(
                         fontSize: isMarker ? 11 : 16,
-                        fontWeight: isMarker ? FontWeight.w400 : FontWeight.w900,
+                        fontWeight: isMarker
+                            ? FontWeight.w400
+                            : FontWeight.w900,
                       ),
                 ),
               );

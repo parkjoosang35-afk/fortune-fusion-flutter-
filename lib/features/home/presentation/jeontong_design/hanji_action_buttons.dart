@@ -29,9 +29,9 @@ class HanjiActionButtons extends StatelessWidget {
   Future<void> _onSave(BuildContext context) async {
     await MyFortuneRecordStore.save(buildRecord());
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('내 운세 기록에 저장되었습니다')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('내 운세 기록에 저장되었습니다')));
   }
 
   Future<void> _onShare(BuildContext context) async {
@@ -69,7 +69,11 @@ class _ActionBtn extends StatelessWidget {
   final String icon;
   final String label;
   final VoidCallback onTap;
-  const _ActionBtn({required this.icon, required this.label, required this.onTap});
+  const _ActionBtn({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -89,7 +93,10 @@ class _ActionBtn extends StatelessWidget {
           children: [
             Text(icon, style: const TextStyle(color: HanjiColors.accent)),
             const SizedBox(width: 8),
-            Text(label, style: HanjiTextStyles.bodyTitle().copyWith(fontSize: 13)),
+            Text(
+              label,
+              style: HanjiTextStyles.bodyTitle().copyWith(fontSize: 13),
+            ),
           ],
         ),
       ),

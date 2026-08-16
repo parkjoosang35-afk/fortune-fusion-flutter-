@@ -22,23 +22,17 @@ class HistoryReadOnlyScreen extends StatefulWidget {
 class _HistoryReadOnlyScreenState extends State<HistoryReadOnlyScreen> {
   int _tab = 0;
 
-  static const _tabs = <String>[
-    '타로', '상담', '관상', '손금', '정통사주',
-  ];
+  static const _tabs = <String>['타로', '상담', '관상', '손금', '정통사주'];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('내 기록 (읽기 전용)'),
-      ),
+      appBar: AppBar(title: const Text('내 기록 (읽기 전용)')),
       body: Column(
         children: [
           _tabsBar(),
           const Divider(height: 1),
-          Expanded(
-            child: _tabBody(_tab),
-          ),
+          Expanded(child: _tabBody(_tab)),
         ],
       ),
     );

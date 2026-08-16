@@ -149,7 +149,14 @@ extension WishVisibilityX on WishVisibility {
 
 /// 모더레이션 상태 흐름 (기획안 §9): normal → pendingReview → approved/removed,
 /// limited(사용자 제한), hiddenBySystem(자동필터 즉시 숨김).
-enum ModerationStatus { normal, pendingReview, approved, removed, limited, hiddenBySystem }
+enum ModerationStatus {
+  normal,
+  pendingReview,
+  approved,
+  removed,
+  limited,
+  hiddenBySystem,
+}
 
 /// 소원 게시물(=유리병) 하나.
 class WishPost {
@@ -160,6 +167,7 @@ class WishPost {
   final bool isAnonymous;
   final WishCategory categoryId;
   final String text;
+
   /// 병 안의 밝기(0.0~1.0) — compose Step2에서 사용자가 정한 값.
   final double glassLevel;
   final WishVisibility visibility;
@@ -239,7 +247,12 @@ class WishComment {
 }
 
 /// 복주머니 적립 사유 (기획안 §4.1 4채널).
-enum BlessingBagEarnReason { dailyLogin, wishCreatedBonus, dailyPrayer, eventParticipation }
+enum BlessingBagEarnReason {
+  dailyLogin,
+  wishCreatedBonus,
+  dailyPrayer,
+  eventParticipation,
+}
 
 extension BlessingBagEarnReasonX on BlessingBagEarnReason {
   String get code {

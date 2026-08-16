@@ -85,11 +85,7 @@ class JeontongSajuDetailSection extends StatelessWidget {
         : null;
 
     final children = <Widget>[
-      Row(
-        children: [
-          MonoLabel('◈ 사주 원국 · 실계산 상세', color: HanjiColors.accent),
-        ],
-      ),
+      Row(children: [MonoLabel('◈ 사주 원국 · 실계산 상세', color: HanjiColors.accent)]),
       const SizedBox(height: HanjiSpacing.md),
       PillarBoard(pillarsByPosition: profile.pillarsByPosition),
       const SizedBox(height: HanjiSpacing.lg),
@@ -108,10 +104,7 @@ class JeontongSajuDetailSection extends StatelessWidget {
       children.addAll([
         MonoLabel('◈ 대운 · DAEWOON TIMELINE', color: HanjiColors.accent),
         const SizedBox(height: HanjiSpacing.sm),
-        DaewoonTimeline(
-          daewoon: saju.luckPillars,
-          currentAge: saju.currentAge,
-        ),
+        DaewoonTimeline(daewoon: saju.luckPillars, currentAge: saju.currentAge),
         const SizedBox(height: HanjiSpacing.md),
         if (saju.currentLuck != null) ...[
           CurrentDaewoonCard(d: saju.currentLuck!),
@@ -124,11 +117,7 @@ class JeontongSajuDetailSection extends StatelessWidget {
     final wolwoon = profile.wolwoon;
     if (yongsin != null && wolwoon != null && wolwoon.isNotEmpty) {
       children.addAll([
-        SeunGrid(
-          wolwoon: wolwoon,
-          yongsin: yongsin,
-          year: wolwoon.first.year,
-        ),
+        SeunGrid(wolwoon: wolwoon, yongsin: yongsin, year: wolwoon.first.year),
         const SizedBox(height: HanjiSpacing.lg),
       ]);
 
@@ -189,7 +178,10 @@ class JeontongSajuDetailSection extends StatelessWidget {
       ),
     );
 
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: children,
+    );
   }
 
   (SajuResult, SajuProfile, SajuFullInterpretation)? _tryBuild() {
@@ -199,7 +191,9 @@ class JeontongSajuDetailSection extends StatelessWidget {
       final rules = SajuRules.cachedOrNull;
       if (rules == null) return null;
       final kst = utc.add(const Duration(hours: 9));
-      final sajuGender = gender == 'F' || gender == 'female' ? 'female' : 'male';
+      final sajuGender = gender == 'F' || gender == 'female'
+          ? 'female'
+          : 'male';
       final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
         kst: kst,
         gender: sajuGender,

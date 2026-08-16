@@ -58,8 +58,7 @@ class IntroConfigModel {
     splashTitle: '신통방통',
     splashSubtitle: null,
     card1Title: '광고 한 번으로, 1시간 동안 자유롭게',
-    card1Description:
-        '프리패스를 받으면 오늘의 운세, 타로 등 전체 운세 콘텐츠를 가볍게 볼 수 있어요.',
+    card1Description: '프리패스를 받으면 오늘의 운세, 타로 등 전체 운세 콘텐츠를 가볍게 볼 수 있어요.',
     card1ImageUrl: null,
     card2Title: '복주머니는 무료로 모으고, 자유롭게 써요',
     card2Description: '광고를 보거나 활동하면 복주머니가 쌓이고, 소원게시판과 소원성에서 사용할 수 있어요.',
@@ -76,7 +75,8 @@ class IntroConfigModel {
       isEnabled: json['isEnabled'] as bool? ?? fallback.isEnabled,
       showOnlyFirstLaunch:
           json['showOnlyFirstLaunch'] as bool? ?? fallback.showOnlyFirstLaunch,
-      showSkipButton: json['showSkipButton'] as bool? ?? fallback.showSkipButton,
+      showSkipButton:
+          json['showSkipButton'] as bool? ?? fallback.showSkipButton,
       showGuestHint: json['showGuestHint'] as bool? ?? fallback.showGuestHint,
       splashTitle: json['splashTitle'] as String? ?? fallback.splashTitle,
       splashSubtitle: json['splashSubtitle'] as String?,

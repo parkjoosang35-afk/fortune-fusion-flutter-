@@ -38,8 +38,7 @@ void main() {
     expect(loaded.name, '홍길동');
   });
 
-  test('영속화 라운드트립 — 새 인스턴스에서도 동일 데이터 로드(KST 왕복 보존)',
-      () async {
+  test('영속화 라운드트립 — 새 인스턴스에서도 동일 데이터 로드(KST 왕복 보존)', () async {
     final s1 = JeontongProfileStore();
     final input = JeontongInput(
       birthDateTimeLocal: DateTime(1988, 12, 25, 23, 45),
@@ -119,8 +118,7 @@ void main() {
     expect(await s.get('pj'), null);
   });
 
-  test('getSync — get() 호출 전에는 캐시 미스로 null, get() 이후에는 동기 조회 가능',
-      () async {
+  test('getSync — get() 호출 전에는 캐시 미스로 null, get() 이후에는 동기 조회 가능', () async {
     final s = JeontongProfileStore();
     expect(s.getSync('pj'), null);
 

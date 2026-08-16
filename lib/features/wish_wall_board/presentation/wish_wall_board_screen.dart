@@ -62,15 +62,15 @@ class _WishWallBoardScreenState extends State<WishWallBoardScreen> {
   }
 
   void _openCompose() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const WishWallComposeScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const WishWallComposeScreen()));
   }
 
   void _openMy() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const WishWallMyScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const WishWallMyScreen()));
   }
 
   @override
@@ -180,9 +180,7 @@ class _WallHeaderDelegate extends SliverPersistentHeaderDelegate {
         children: [
           Row(
             children: [
-              Expanded(
-                child: Text('신통방통 소원방', style: WishWallText.title2()),
-              ),
+              Expanded(child: Text('신통방통 소원방', style: WishWallText.title2())),
               IconButton(
                 onPressed: onOpenMy,
                 icon: const Icon(
@@ -227,7 +225,11 @@ class _WallHeaderDelegate extends SliverPersistentHeaderDelegate {
 }
 
 class _SegTab extends StatelessWidget {
-  const _SegTab({required this.label, required this.active, required this.onTap});
+  const _SegTab({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
   final String label;
   final bool active;
   final VoidCallback onTap;
@@ -285,10 +287,7 @@ class _TodayCollectiveRow extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
-                    colors: [
-                      WishWallColors.accentSoft,
-                      WishWallColors.bg,
-                    ],
+                    colors: [WishWallColors.accentSoft, WishWallColors.bg],
                   ),
                   border: Border.all(color: WishWallColors.accent, width: 2),
                   boxShadow: [
@@ -340,10 +339,7 @@ class _TodayCollectiveRow extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 3),
-                Text(
-                  '1,284 명이 함께 담고 있어요',
-                  style: WishWallText.caption(),
-                ),
+                Text('1,284 명이 함께 담고 있어요', style: WishWallText.caption()),
               ],
             ),
           ),
@@ -383,14 +379,16 @@ class _CategoryChipRow extends StatelessWidget {
             onTap: () => onSelect(null),
           ),
           const SizedBox(width: 6),
-          ...WishCategory.values.expand((c) => [
-                _CategoryChip(
-                  label: c.label,
-                  active: selected == c,
-                  onTap: () => onSelect(c),
-                ),
-                const SizedBox(width: 6),
-              ]),
+          ...WishCategory.values.expand(
+            (c) => [
+              _CategoryChip(
+                label: c.label,
+                active: selected == c,
+                onTap: () => onSelect(c),
+              ),
+              const SizedBox(width: 6),
+            ],
+          ),
         ],
       ),
     );
@@ -398,7 +396,11 @@ class _CategoryChipRow extends StatelessWidget {
 }
 
 class _CategoryChip extends StatelessWidget {
-  const _CategoryChip({required this.label, required this.active, required this.onTap});
+  const _CategoryChip({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
   final String label;
   final bool active;
   final VoidCallback onTap;

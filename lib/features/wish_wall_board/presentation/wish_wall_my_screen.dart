@@ -116,14 +116,18 @@ class _WishWallMyScreenState extends State<WishWallMyScreen> {
                           children: [
                             Text(
                               '${all.length}',
-                              style: WishWallText.display().copyWith(fontSize: 34),
+                              style: WishWallText.display().copyWith(
+                                fontSize: 34,
+                              ),
                             ),
                             const SizedBox(width: 8),
                             Padding(
                               padding: const EdgeInsets.only(bottom: 6),
                               child: Text(
                                 '개의 소원병을 담았어요',
-                                style: WishWallText.body(color: WishWallColors.muted),
+                                style: WishWallText.body(
+                                  color: WishWallColors.muted,
+                                ),
                               ),
                             ),
                           ],
@@ -131,11 +135,31 @@ class _WishWallMyScreenState extends State<WishWallMyScreen> {
                         const SizedBox(height: 14),
                         Row(
                           children: [
-                            _MiniSummary(icon: '♥', label: '응원', value: totalSupport),
-                            Container(width: 1, height: 30, color: WishWallColors.line),
-                            _MiniSummary(icon: '✧', label: '기도', value: totalPrayer),
-                            Container(width: 1, height: 30, color: WishWallColors.line),
-                            _MiniSummary(icon: '✨', label: '복주머니', value: totalPouch),
+                            _MiniSummary(
+                              icon: '♥',
+                              label: '응원',
+                              value: totalSupport,
+                            ),
+                            Container(
+                              width: 1,
+                              height: 30,
+                              color: WishWallColors.line,
+                            ),
+                            _MiniSummary(
+                              icon: '✧',
+                              label: '기도',
+                              value: totalPrayer,
+                            ),
+                            Container(
+                              width: 1,
+                              height: 30,
+                              color: WishWallColors.line,
+                            ),
+                            _MiniSummary(
+                              icon: '✨',
+                              label: '복주머니',
+                              value: totalPouch,
+                            ),
                           ],
                         ),
                       ],
@@ -160,13 +184,15 @@ class _WishWallMyScreenState extends State<WishWallMyScreen> {
                       _FilterChip(
                         label: '감사',
                         active: _filter == _MyFilter.gratitude,
-                        onTap: () => setState(() => _filter = _MyFilter.gratitude),
+                        onTap: () =>
+                            setState(() => _filter = _MyFilter.gratitude),
                       ),
                       const SizedBox(width: 8),
                       _FilterChip(
                         label: '나만보기',
                         active: _filter == _MyFilter.private,
-                        onTap: () => setState(() => _filter = _MyFilter.private),
+                        onTap: () =>
+                            setState(() => _filter = _MyFilter.private),
                       ),
                     ],
                   ),
@@ -211,7 +237,11 @@ class _WishWallMyScreenState extends State<WishWallMyScreen> {
 }
 
 class _MiniSummary extends StatelessWidget {
-  const _MiniSummary({required this.icon, required this.label, required this.value});
+  const _MiniSummary({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
   final String icon;
   final String label;
   final int value;
@@ -223,10 +253,7 @@ class _MiniSummary extends StatelessWidget {
         children: [
           Text(icon, style: const TextStyle(fontSize: 15)),
           const SizedBox(height: 4),
-          Text(
-            '$value',
-            style: WishWallText.title2().copyWith(fontSize: 17),
-          ),
+          Text('$value', style: WishWallText.title2().copyWith(fontSize: 17)),
           const SizedBox(height: 2),
           Text(label, style: WishWallText.caption()),
         ],
@@ -236,7 +263,11 @@ class _MiniSummary extends StatelessWidget {
 }
 
 class _FilterChip extends StatelessWidget {
-  const _FilterChip({required this.label, required this.active, required this.onTap});
+  const _FilterChip({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
   final String label;
   final bool active;
   final VoidCallback onTap;
@@ -301,7 +332,10 @@ class _ShelfBottle extends StatelessWidget {
                       top: 0,
                       right: 6,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: WishWallColors.red,
                           borderRadius: BorderRadius.circular(999),
@@ -328,7 +362,9 @@ class _ShelfBottle extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               wish.categoryId.label,
-              style: WishWallText.caption().copyWith(fontWeight: FontWeight.w600),
+              style: WishWallText.caption().copyWith(
+                fontWeight: FontWeight.w600,
+              ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),

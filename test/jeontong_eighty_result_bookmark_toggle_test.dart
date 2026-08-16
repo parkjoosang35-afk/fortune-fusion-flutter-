@@ -37,12 +37,12 @@ void main() {
   });
 
   Widget harness({required String categoryId}) {
-    return MaterialApp(home: JeontongEightyResultScreen(categoryId: categoryId));
+    return MaterialApp(
+      home: JeontongEightyResultScreen(categoryId: categoryId),
+    );
   }
 
-  testWidgets('초기 진입 시 별 아이콘은 미즐겨찾기(테두리) 상태로 보인다', (
-    tester,
-  ) async {
+  testWidgets('초기 진입 시 별 아이콘은 미즐겨찾기(테두리) 상태로 보인다', (tester) async {
     await tester.pumpWidget(harness(categoryId: 'A01'));
     await _pumpUntilLoaded(tester);
     await tester.pumpAndSettle();
@@ -54,9 +54,7 @@ void main() {
     expect(icon.icon, Icons.star_border_rounded);
   });
 
-  testWidgets('별 아이콘 탭 → 즐겨찾기 추가(채워진 별) + 추가 토스트 노출', (
-    tester,
-  ) async {
+  testWidgets('별 아이콘 탭 → 즐겨찾기 추가(채워진 별) + 추가 토스트 노출', (tester) async {
     await tester.pumpWidget(harness(categoryId: 'A01'));
     await _pumpUntilLoaded(tester);
     await tester.pumpAndSettle();
@@ -75,9 +73,7 @@ void main() {
     expect(await store.contains('1', 'A01'), true);
   });
 
-  testWidgets('별 아이콘 두 번 탭 → 추가 후 다시 해제(빈 별) + 해제 토스트', (
-    tester,
-  ) async {
+  testWidgets('별 아이콘 두 번 탭 → 추가 후 다시 해제(빈 별) + 해제 토스트', (tester) async {
     await tester.pumpWidget(harness(categoryId: 'A02'));
     await _pumpUntilLoaded(tester);
     await tester.pumpAndSettle();
@@ -91,7 +87,10 @@ void main() {
       find.descendant(of: find.byKey(bookmarkKey), matching: find.byType(Icon)),
     );
     expect(icon.icon, Icons.star_border_rounded);
-    expect(find.text(JeontongBookmarkStore.kSnackRemovedMessage), findsOneWidget);
+    expect(
+      find.text(JeontongBookmarkStore.kSnackRemovedMessage),
+      findsOneWidget,
+    );
 
     final store = JeontongBookmarkStore();
     expect(await store.contains('1', 'A02'), false);

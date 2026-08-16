@@ -281,7 +281,8 @@ class SajuInterpreter {
       levelKr = '신약';
     }
 
-    final personality = (rule['personality'] as Map<String, dynamic>)[level] as String;
+    final personality =
+        (rule['personality'] as Map<String, dynamic>)[level] as String;
 
     return DayMasterInterpretation(
       title: '일간: ${rule['kr']} (${dm.image}) · $levelKr',
@@ -301,8 +302,14 @@ class SajuInterpreter {
     final counts = saju.fiveElementsCount;
     final dayEl = saju.dayMaster.element;
 
-    final excess = counts.entries.where((e) => e.value >= 3).map((e) => e.key).toList();
-    final lack = counts.entries.where((e) => e.value == 0).map((e) => e.key).toList();
+    final excess = counts.entries
+        .where((e) => e.value >= 3)
+        .map((e) => e.key)
+        .toList();
+    final lack = counts.entries
+        .where((e) => e.value == 0)
+        .map((e) => e.key)
+        .toList();
 
     final lines = <String>[];
     for (final el in excess) {
@@ -381,7 +388,8 @@ class SajuInterpreter {
     final String msg;
     if (wealthCount >= 3 && strength.contains('弱')) {
       verdict = '재다신약';
-      msg = '돈복은 많은데 내 그릇이 작음. 큰돈 기회 자주 오나 관리 어려움. 동업·투자·보증 주의. 배우자에게 재물 관리 위임 유리.';
+      msg =
+          '돈복은 많은데 내 그릇이 작음. 큰돈 기회 자주 오나 관리 어려움. 동업·투자·보증 주의. 배우자에게 재물 관리 위임 유리.';
     } else if (wealthCount >= 3 && strength.contains('强')) {
       verdict = '재왕신강';
       msg = '재물운 최상. 사업·투자·유통에서 큰 성공 가능. 활동력·야망 발휘하는 시기 유리.';
@@ -433,7 +441,11 @@ class SajuInterpreter {
       msg = '다방면 커리어 가능. 시기별 대운에 따라 조직·독립 조합 활용.';
     }
 
-    return CareerInterpretation(structure: style, message: msg, recommended: fits);
+    return CareerInterpretation(
+      structure: style,
+      message: msg,
+      recommended: fits,
+    );
   }
 
   /// interpret_love() 이식
@@ -464,7 +476,11 @@ class SajuInterpreter {
       msg = '$spouseName 3개 이상. 이성 인연 과다. 삼각관계·재혼 가능성 있어 신중한 선택 권장.';
     }
 
-    return LoveInterpretation(spouseGod: spouseName, count: spouseCount, message: msg);
+    return LoveInterpretation(
+      spouseGod: spouseName,
+      count: spouseCount,
+      message: msg,
+    );
   }
 
   /// interpret_health() 이식
@@ -515,12 +531,18 @@ class SajuInterpreter {
   ) {
     final luck = saju.currentLuck;
     if (luck == null) {
-      return const CurrentLuckInterpretation(title: '현재 대운', message: '대운 정보 없음');
+      return const CurrentLuckInterpretation(
+        title: '현재 대운',
+        message: '대운 정보 없음',
+      );
     }
 
     final ganZhi = luck.ganZhi;
     if (ganZhi.length < 2) {
-      return const CurrentLuckInterpretation(title: '현재 대운', message: '대운 정보 부족');
+      return const CurrentLuckInterpretation(
+        title: '현재 대운',
+        message: '대운 정보 부족',
+      );
     }
 
     final gan = ganZhi.substring(0, 1);
@@ -534,7 +556,8 @@ class SajuInterpreter {
     final zhiRule = rules.tenGods[zhiGod] as Map<String, dynamic>;
 
     return CurrentLuckInterpretation(
-      title: '현재 대운: ${luck.ganZhiKr} (${luck.startYear}~${luck.startYear + 9})',
+      title:
+          '현재 대운: ${luck.ganZhiKr} (${luck.startYear}~${luck.startYear + 9})',
       ageRange: '${luck.startAge}~${luck.startAge + 9}세',
       ganGodName: ganRule['kr'] as String,
       ganGodEasy: ganRule['easy'] as String,

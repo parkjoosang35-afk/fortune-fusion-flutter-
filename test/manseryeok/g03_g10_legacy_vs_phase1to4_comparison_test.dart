@@ -150,15 +150,18 @@ void main() {
   });
 
   group('[j13·G03/G05/G06/G08/G10] 카테고리 등록/제외 상태 확인', () {
-    test('kJeontongPlaceholderCategoryIds에 G03/G05/G06/G08/G10이 더 이상 없어야 함', () {
-      for (final id in _gIds) {
-        expect(
-          kJeontongPlaceholderCategoryIds.contains(id),
-          isFalse,
-          reason: '$id는 실계산으로 전환되어 플레이스홀더 목록에서 빠져야 함',
-        );
-      }
-    });
+    test(
+      'kJeontongPlaceholderCategoryIds에 G03/G05/G06/G08/G10이 더 이상 없어야 함',
+      () {
+        for (final id in _gIds) {
+          expect(
+            kJeontongPlaceholderCategoryIds.contains(id),
+            isFalse,
+            reason: '$id는 실계산으로 전환되어 플레이스홀더 목록에서 빠져야 함',
+          );
+        }
+      },
+    );
 
     // (2026-08-15 갱신: G07은 재검토 결과 실계산으로 전환되어 이 목록에서
     // 빠졌다 — 별도 비교 테스트는
@@ -195,7 +198,8 @@ void main() {
           expect(
             newData,
             legacyData,
-            reason: '${u.userId}: $id는 원국 4주(fiveElementsCount/dayMaster)'
+            reason:
+                '${u.userId}: $id는 원국 4주(fiveElementsCount/dayMaster)'
                 '만으로 계산되며 [SajuProfile]에 의존하지 않으므로 '
                 'legacy/new 결과가 완전히 동일해야 함',
           );
@@ -213,40 +217,53 @@ void main() {
   // legacy에 맞추지 않는다. 따라서 dayMasterStrength가 legacy와 동일한
   // seed에서만 완전 일치를 강제하고(strict), 모든 seed에서는 구조적
   // 안전성(필드 채워짐/verdict가 정의된 값 중 하나)만 검증한다.
-  group('[j13·G10] 레거시 vs 신규(PHASE1~4+어댑터) — dayMasterStrength 동일 seed에서만 완전 일치', () {
-    for (final u in _seedUsers) {
-      test('${u.userId}: G10 — strength 판정이 legacy와 같으면 완전 일치, 다르면 구조적 안전성만 확인', () {
-        final legacyG = _runLegacy(u, _kFixedDate);
-        final newG = _runNew(u, _kFixedDate);
+  group(
+    '[j13·G10] 레거시 vs 신규(PHASE1~4+어댑터) — dayMasterStrength 동일 seed에서만 완전 일치',
+    () {
+      for (final u in _seedUsers) {
+        test(
+          '${u.userId}: G10 — strength 판정이 legacy와 같으면 완전 일치, 다르면 구조적 안전성만 확인',
+          () {
+            final legacyG = _runLegacy(u, _kFixedDate);
+            final newG = _runNew(u, _kFixedDate);
 
-        final legacyData = legacyG.results['G10']!.data;
-        final newData = newG.results['G10']!.data;
-        final strengthSame = legacyData['strength'] == newData['strength'];
-        // ignore: avoid_print
-        print('[G10] legacy=$legacyData');
-        // ignore: avoid_print
-        print('[G10] new   =$newData  (strength동일=$strengthSame)');
+            final legacyData = legacyG.results['G10']!.data;
+            final newData = newG.results['G10']!.data;
+            final strengthSame = legacyData['strength'] == newData['strength'];
+            // ignore: avoid_print
+            print('[G10] legacy=$legacyData');
+            // ignore: avoid_print
+            print('[G10] new   =$newData  (strength동일=$strengthSame)');
 
-        if (strengthSame) {
-          expect(
-            newData,
-            legacyData,
-            reason: '${u.userId}: dayMasterStrength가 legacy와 동일하므로 '
-                'G10 결과도 완전히 동일해야 함',
-          );
-        } else {
-          expect(
-            newData['verdict'],
-            anyOf(['회복력 우수형', '기본 체력 양호형', '꾸준한 관리 필요형', '컨디션 관리 신경 써야 하는 편']),
-            reason: '${u.userId}: dayMasterStrength 판정 차이(PHASE3 기준 정상)로 '
-                'verdict가 달라질 수 있으나 4가지 정의된 값 중 하나여야 함',
-          );
-        }
-        expect(newData['water_count'], isA<int>());
-        expect(newData['message'], isNotEmpty);
-      });
-    }
-  });
+            if (strengthSame) {
+              expect(
+                newData,
+                legacyData,
+                reason:
+                    '${u.userId}: dayMasterStrength가 legacy와 동일하므로 '
+                    'G10 결과도 완전히 동일해야 함',
+              );
+            } else {
+              expect(
+                newData['verdict'],
+                anyOf([
+                  '회복력 우수형',
+                  '기본 체력 양호형',
+                  '꾸준한 관리 필요형',
+                  '컨디션 관리 신경 써야 하는 편',
+                ]),
+                reason:
+                    '${u.userId}: dayMasterStrength 판정 차이(PHASE3 기준 정상)로 '
+                    'verdict가 달라질 수 있으나 4가지 정의된 값 중 하나여야 함',
+              );
+            }
+            expect(newData['water_count'], isA<int>());
+            expect(newData['message'], isNotEmpty);
+          },
+        );
+      }
+    },
+  );
 
   // [B08/B09 선례와 동일 원리] G03(용신/기신)·G08(신살/관계)은
   // [SajuProfile]에만 존재하는 데이터를 조회한다. legacy 경로
@@ -256,39 +273,66 @@ void main() {
   // 올바른지 검증한다.
   group('[j13·G03/G08] 용신·기신/신살·관계 기반 판정 — profile 유무에 따른 동작 확인', () {
     for (final u in _seedUsers) {
-      test('${u.userId}: legacy(profile=null)는 판단 불가, new(profile 有)는 실제 판정', () {
-        final legacyG = _runLegacy(u, _kFixedDate);
-        final newG = _runNew(u, _kFixedDate);
+      test(
+        '${u.userId}: legacy(profile=null)는 판단 불가, new(profile 有)는 실제 판정',
+        () {
+          final legacyG = _runLegacy(u, _kFixedDate);
+          final newG = _runNew(u, _kFixedDate);
 
-        // ignore: avoid_print
-        print('[G03] legacy=${legacyG.results['G03']!.data}');
-        // ignore: avoid_print
-        print('[G03] new   =${newG.results['G03']!.data}');
-        expect(legacyG.results['G03']!.data['timeline'], isEmpty);
-        expect(legacyG.results['G03']!.data['caution_periods'], isEmpty);
-        expect(legacyG.results['G03']!.data['summary'], contains('판단하기 어려워요'));
+          // ignore: avoid_print
+          print('[G03] legacy=${legacyG.results['G03']!.data}');
+          // ignore: avoid_print
+          print('[G03] new   =${newG.results['G03']!.data}');
+          expect(legacyG.results['G03']!.data['timeline'], isEmpty);
+          expect(legacyG.results['G03']!.data['caution_periods'], isEmpty);
+          expect(
+            legacyG.results['G03']!.data['summary'],
+            contains('판단하기 어려워요'),
+          );
 
-        // ignore: avoid_print
-        print('[G08] legacy=${legacyG.results['G08']!.data}');
-        // ignore: avoid_print
-        print('[G08] new   =${newG.results['G08']!.data}');
-        expect(legacyG.results['G08']!.data['special_stars'], isEmpty);
-        expect(legacyG.results['G08']!.data['clash_types'], isEmpty);
-        expect(legacyG.results['G08']!.data['verdict'], '판단 불가');
-        expect(legacyG.results['G08']!.data['message'], contains('판단하기 어려워요'));
+          // ignore: avoid_print
+          print('[G08] legacy=${legacyG.results['G08']!.data}');
+          // ignore: avoid_print
+          print('[G08] new   =${newG.results['G08']!.data}');
+          expect(legacyG.results['G08']!.data['special_stars'], isEmpty);
+          expect(legacyG.results['G08']!.data['clash_types'], isEmpty);
+          expect(legacyG.results['G08']!.data['verdict'], '판단 불가');
+          expect(
+            legacyG.results['G08']!.data['message'],
+            contains('판단하기 어려워요'),
+          );
 
-        final yongsin = newG.profile?.yongsin;
-        expect(yongsin, isNotNull, reason: '${u.userId}: PHASE3가 계산한 용신/기신이 있어야 함');
-        expect((newG.results['G03']!.data['timeline'] as List), isNotEmpty);
-        expect(newG.results['G03']!.data['summary'], isNot(contains('판단하기 어려워요')));
+          final yongsin = newG.profile?.yongsin;
+          expect(
+            yongsin,
+            isNotNull,
+            reason: '${u.userId}: PHASE3가 계산한 용신/기신이 있어야 함',
+          );
+          expect((newG.results['G03']!.data['timeline'] as List), isNotEmpty);
+          expect(
+            newG.results['G03']!.data['summary'],
+            isNot(contains('판단하기 어려워요')),
+          );
 
-        final sinsal = newG.profile?.sinsal;
-        final relations = newG.profile?.relationships;
-        expect(sinsal, isNotNull, reason: '${u.userId}: PHASE2가 계산한 신살이 있어야 함');
-        expect(relations, isNotNull, reason: '${u.userId}: PHASE2가 계산한 원국 관계가 있어야 함');
-        expect(newG.results['G08']!.data['verdict'], isNot('판단 불가'));
-        expect(newG.results['G08']!.data['message'], isNot(contains('판단하기 어려워요')));
-      });
+          final sinsal = newG.profile?.sinsal;
+          final relations = newG.profile?.relationships;
+          expect(
+            sinsal,
+            isNotNull,
+            reason: '${u.userId}: PHASE2가 계산한 신살이 있어야 함',
+          );
+          expect(
+            relations,
+            isNotNull,
+            reason: '${u.userId}: PHASE2가 계산한 원국 관계가 있어야 함',
+          );
+          expect(newG.results['G08']!.data['verdict'], isNot('판단 불가'));
+          expect(
+            newG.results['G08']!.data['message'],
+            isNot(contains('판단하기 어려워요')),
+          );
+        },
+      );
     }
   });
 
@@ -367,26 +411,29 @@ void main() {
   // 표현 금지는 이 경우에도 동일하게 검증).
   group('[j13·G03/G05/G06/G08/G10] 건강 카테고리 표현 원칙(§6) 확인 — 의학적 진단 아님 명시', () {
     for (final u in _seedUsers) {
-      test('${u.userId}: 메시지에 단정적 진단 표현이 없고, 주의사항이 있는 경우 "의학적 ... 아니에요" 문구 포함', () {
-        final newG = _runNew(u, _kFixedDate);
-        for (final id in _gIds) {
-          final data = newG.results[id]!.data;
-          final message = (data['message'] ?? data['summary']) as String;
-          expect(message, isNot(contains('반드시')));
-          expect(message, isNot(contains('진단됩니다')));
+      test(
+        '${u.userId}: 메시지에 단정적 진단 표현이 없고, 주의사항이 있는 경우 "의학적 ... 아니에요" 문구 포함',
+        () {
+          final newG = _runNew(u, _kFixedDate);
+          for (final id in _gIds) {
+            final data = newG.results[id]!.data;
+            final message = (data['message'] ?? data['summary']) as String;
+            expect(message, isNot(contains('반드시')));
+            expect(message, isNot(contains('진단됩니다')));
 
-          final noCautionCase =
-              (id == 'G03' && (data['caution_periods'] as List).isEmpty) ||
-              (id == 'G05' && (data['excess_elements'] as List).isEmpty);
-          if (!noCautionCase) {
-            expect(
-              message,
-              contains('의학적'),
-              reason: '$id 메시지(주의사항 있음)는 의학적 진단이 아님을 명시해야 함(§6)',
-            );
+            final noCautionCase =
+                (id == 'G03' && (data['caution_periods'] as List).isEmpty) ||
+                (id == 'G05' && (data['excess_elements'] as List).isEmpty);
+            if (!noCautionCase) {
+              expect(
+                message,
+                contains('의학적'),
+                reason: '$id 메시지(주의사항 있음)는 의학적 진단이 아님을 명시해야 함(§6)',
+              );
+            }
           }
-        }
-      });
+        },
+      );
     }
   });
 
@@ -409,7 +456,10 @@ void main() {
 
           for (final id in _gIds) {
             late final JeontongCategoryResult result;
-            expect(() => result = runJeontongCategory(id, ctx), returnsNormally);
+            expect(
+              () => result = runJeontongCategory(id, ctx),
+              returnsNormally,
+            );
             expect(result.category, isNotEmpty);
             expect(result.data.length, greaterThan(1));
           }

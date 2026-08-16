@@ -72,8 +72,9 @@ class _WishWallDetailScreenState extends State<WishWallDetailScreen> {
     if (wish == null) return;
     final sent = await showBlessingBagBottomSheet(context, wish: wish);
     if (sent == true) {
-      final refreshed =
-          await context.read<WishWallProvider>().fetchDetail(wish.id);
+      final refreshed = await context.read<WishWallProvider>().fetchDetail(
+        wish.id,
+      );
       if (mounted) setState(() => _wish = refreshed);
     }
   }
@@ -81,8 +82,10 @@ class _WishWallDetailScreenState extends State<WishWallDetailScreen> {
   Future<void> _doComment() async {
     final text = _commentController.text.trim();
     if (text.isEmpty || _wish == null) return;
-    final comment =
-        await context.read<WishWallProvider>().addComment(_wish!.id, text);
+    final comment = await context.read<WishWallProvider>().addComment(
+      _wish!.id,
+      text,
+    );
     _commentController.clear();
     setState(() => _comments = [comment, ..._comments]);
   }
@@ -102,9 +105,7 @@ class _WishWallDetailScreenState extends State<WishWallDetailScreen> {
       return Scaffold(
         backgroundColor: WishWallColors.bg,
         appBar: AppBar(backgroundColor: WishWallColors.bg, elevation: 0),
-        body: Center(
-          child: Text('소원을 찾을 수 없어요', style: WishWallText.body()),
-        ),
+        body: Center(child: Text('소원을 찾을 수 없어요', style: WishWallText.body())),
       );
     }
 
@@ -131,7 +132,10 @@ class _WishWallDetailScreenState extends State<WishWallDetailScreen> {
                   const Spacer(),
                   IconButton(
                     onPressed: () => _showMoreSheet(context, wish),
-                    icon: const Icon(Icons.more_horiz, color: WishWallColors.ink),
+                    icon: const Icon(
+                      Icons.more_horiz,
+                      color: WishWallColors.ink,
+                    ),
                   ),
                 ],
               ),
@@ -166,7 +170,10 @@ class _WishWallDetailScreenState extends State<WishWallDetailScreen> {
                             BottleRibbons(count: wish.ribbonCount, color: cork),
                             BottleLeaves(count: wish.leafCount),
                             BottleLeaves(
-                              count: (wish.prayerCount / 300).floor().clamp(0, 3),
+                              count: (wish.prayerCount / 300).floor().clamp(
+                                0,
+                                3,
+                              ),
                               rightSide: false,
                             ),
                           ],
@@ -250,9 +257,17 @@ class _WishWallDetailScreenState extends State<WishWallDetailScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
                         _StatBlock(label: '응원', value: wish.supportCount),
-                        Container(width: 1, height: 26, color: WishWallColors.line),
+                        Container(
+                          width: 1,
+                          height: 26,
+                          color: WishWallColors.line,
+                        ),
                         _StatBlock(label: '기도', value: wish.prayerCount),
-                        Container(width: 1, height: 26, color: WishWallColors.line),
+                        Container(
+                          width: 1,
+                          height: 26,
+                          color: WishWallColors.line,
+                        ),
                         _StatBlock(label: '복주머니', value: wish.pouchCount),
                       ],
                     ),
@@ -298,7 +313,9 @@ class _WishWallDetailScreenState extends State<WishWallDetailScreen> {
                   Container(
                     padding: const EdgeInsets.fromLTRB(20, 18, 20, 10),
                     decoration: const BoxDecoration(
-                      border: Border(top: BorderSide(color: WishWallColors.line)),
+                      border: Border(
+                        top: BorderSide(color: WishWallColors.line),
+                      ),
                     ),
                     child: Row(
                       children: [
@@ -309,25 +326,35 @@ class _WishWallDetailScreenState extends State<WishWallDetailScreen> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Text('${_comments.length}', style: WishWallText.caption()),
+                        Text(
+                          '${_comments.length}',
+                          style: WishWallText.caption(),
+                        ),
                       ],
                     ),
                   ),
                   if (_comments.isEmpty)
                     Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 30,
+                        horizontal: 20,
+                      ),
                       child: Column(
                         children: [
                           Text(
                             '첫 응원을 남겨보세요',
                             textAlign: TextAlign.center,
-                            style: WishWallText.caption(color: WishWallColors.muted),
+                            style: WishWallText.caption(
+                              color: WishWallColors.muted,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             '마음의 촛불이 하나 더 켜져요',
                             textAlign: TextAlign.center,
-                            style: WishWallText.caption(color: WishWallColors.dim),
+                            style: WishWallText.caption(
+                              color: WishWallColors.dim,
+                            ),
                           ),
                         ],
                       ),
@@ -385,7 +412,9 @@ class _WishWallDetailScreenState extends State<WishWallDetailScreen> {
                     height: 34,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(
-                      color: enabled ? WishWallColors.accent : WishWallColors.line2,
+                      color: enabled
+                          ? WishWallColors.accent
+                          : WishWallColors.line2,
                       borderRadius: BorderRadius.circular(17),
                     ),
                     alignment: Alignment.center,
@@ -416,7 +445,10 @@ class _WishWallDetailScreenState extends State<WishWallDetailScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.flag_outlined, color: WishWallColors.ink),
+                leading: const Icon(
+                  Icons.flag_outlined,
+                  color: WishWallColors.ink,
+                ),
                 title: Text('신고하기', style: WishWallText.body()),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -440,7 +472,9 @@ class _WishWallDetailScreenState extends State<WishWallDetailScreen> {
                 title: Text('작성자 차단하기', style: WishWallText.body()),
                 onTap: () async {
                   Navigator.pop(ctx);
-                  await context.read<WishWallProvider>().blockUser(wish.authorId);
+                  await context.read<WishWallProvider>().blockUser(
+                    wish.authorId,
+                  );
                   if (context.mounted) Navigator.of(context).pop();
                 },
               ),
@@ -474,9 +508,10 @@ class _WishWallDetailScreenState extends State<WishWallDetailScreen> {
                   title: Text(reason, style: WishWallText.body()),
                   onTap: () async {
                     Navigator.pop(ctx);
-                    await context
-                        .read<WishWallProvider>()
-                        .reportWish(wish.id, reason);
+                    await context.read<WishWallProvider>().reportWish(
+                      wish.id,
+                      reason,
+                    );
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('신고가 접수되었습니다')),
@@ -589,7 +624,8 @@ class _RiseHeart extends StatefulWidget {
   State<_RiseHeart> createState() => _RiseHeartState();
 }
 
-class _RiseHeartState extends State<_RiseHeart> with SingleTickerProviderStateMixin {
+class _RiseHeartState extends State<_RiseHeart>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
 
   @override
@@ -683,7 +719,10 @@ class _CommentRow extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   comment.text,
-                  style: WishWallText.body().copyWith(fontSize: 14, height: 1.5),
+                  style: WishWallText.body().copyWith(
+                    fontSize: 14,
+                    height: 1.5,
+                  ),
                 ),
               ],
             ),

@@ -219,10 +219,7 @@ class PassRepository {
       if (response.statusCode != 200 || decoded['success'] != true) {
         final error = decoded['error'] as String? ?? '유효한 프리패스가 없습니다.';
         debugPrint('[PassRepository] [consume] 실패 -> $error');
-        return ApiResult.fail(
-          error,
-          code: decoded['reason'] as String?,
-        );
+        return ApiResult.fail(error, code: decoded['reason'] as String?);
       }
       return ApiResult.ok(null);
     } catch (e) {

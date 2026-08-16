@@ -59,10 +59,7 @@ class WishCounselSummaryScreen extends StatelessWidget {
                   ),
                   border: Border.all(color: t.glow, width: 1.4),
                 ),
-                child: Text(
-                  '◈',
-                  style: TextStyle(fontSize: 24, color: t.glow),
-                ),
+                child: Text('◈', style: TextStyle(fontSize: 24, color: t.glow)),
               ),
             ),
             const SizedBox(height: 10),
@@ -294,7 +291,11 @@ class _EmotionArcPainter extends CustomPainter {
 
     canvas.drawPath(path, paint);
 
-    canvas.drawCircle(Offset(w * 0.02, h * 0.7), 5, Paint()..color = startColor);
+    canvas.drawCircle(
+      Offset(w * 0.02, h * 0.7),
+      5,
+      Paint()..color = startColor,
+    );
     canvas.drawCircle(Offset(w * 0.98, h * 0.2), 5, Paint()..color = endColor);
   }
 

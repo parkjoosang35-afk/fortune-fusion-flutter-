@@ -48,34 +48,54 @@ const List<(List<String>, String)> _fangHeGroups = [
 /// 지지충(六沖) — 정반대 위치의 지지끼리 충돌.
 /// 子午沖, 丑未沖, 寅申沖, 卯酉沖, 辰戌沖, 巳亥沖.
 const List<(String, String)> _liuChongPairs = [
-  ('子', '午'), ('丑', '未'), ('寅', '申'),
-  ('卯', '酉'), ('辰', '戌'), ('巳', '亥'),
+  ('子', '午'),
+  ('丑', '未'),
+  ('寅', '申'),
+  ('卯', '酉'),
+  ('辰', '戌'),
+  ('巳', '亥'),
 ];
 
 /// 육해(六害) — 육합을 충으로 방해하는 관계.
 /// 子未害, 丑午害, 寅巳害, 卯辰害, 申亥害, 酉戌害.
 const List<(String, String)> _liuHaiPairs = [
-  ('子', '未'), ('丑', '午'), ('寅', '巳'),
-  ('卯', '辰'), ('申', '亥'), ('酉', '戌'),
+  ('子', '未'),
+  ('丑', '午'),
+  ('寅', '巳'),
+  ('卯', '辰'),
+  ('申', '亥'),
+  ('酉', '戌'),
 ];
 
 /// 육파(六破) — 삼합/방합의 기세를 깨뜨리는 관계.
 /// 子酉破, 丑辰破, 寅亥破, 卯午破, 巳申破, 未戌破.
 const List<(String, String)> _liuPoPairs = [
-  ('子', '酉'), ('丑', '辰'), ('寅', '亥'),
-  ('卯', '午'), ('巳', '申'), ('未', '戌'),
+  ('子', '酉'),
+  ('丑', '辰'),
+  ('寅', '亥'),
+  ('卯', '午'),
+  ('巳', '申'),
+  ('未', '戌'),
 ];
 
 /// 원진(怨嗔) — 子未, 丑午, 寅酉, 卯申, 辰亥, 巳戌.
 const List<(String, String)> _yuanChenPairs = [
-  ('子', '未'), ('丑', '午'), ('寅', '酉'),
-  ('卯', '申'), ('辰', '亥'), ('巳', '戌'),
+  ('子', '未'),
+  ('丑', '午'),
+  ('寅', '酉'),
+  ('卯', '申'),
+  ('辰', '亥'),
+  ('巳', '戌'),
 ];
 
 /// 귀문관살(鬼門關殺) — 子酉, 丑午, 寅未, 卯申, 辰亥, 巳戌.
 const List<(String, String)> _guiMenPairs = [
-  ('子', '酉'), ('丑', '午'), ('寅', '未'),
-  ('卯', '申'), ('辰', '亥'), ('巳', '戌'),
+  ('子', '酉'),
+  ('丑', '午'),
+  ('寅', '未'),
+  ('卯', '申'),
+  ('辰', '亥'),
+  ('巳', '戌'),
 ];
 
 /// 삼형(三刑)/상형(相刑) 그룹 — 寅巳申(지세지형)·丑戌未(무은지형)는
@@ -88,9 +108,7 @@ const List<List<String>> _sanXingGroups = [
 ];
 
 /// 상형(相刑) — 子卯(무례지형), 2글자만으로 성립.
-const List<(String, String)> _xiangXingPairs = [
-  ('子', '卯'),
-];
+const List<(String, String)> _xiangXingPairs = [('子', '卯')];
 
 /// 자형(自刑) — 같은 지지 두 글자(辰辰/午午/酉酉/亥亥)가 만나면 성립.
 const List<String> _ziXingBranches = ['辰', '午', '酉', '亥'];
@@ -107,7 +125,10 @@ const List<(String, String, String)> _tianGanHePairs = [
 /// 천간충(天干沖, 四沖) — 甲庚沖, 乙辛沖, 丙壬沖, 丁癸沖(戊己는 중앙토라
 /// 충이 없음).
 const List<(String, String)> _tianGanChongPairs = [
-  ('甲', '庚'), ('乙', '辛'), ('丙', '壬'), ('丁', '癸'),
+  ('甲', '庚'),
+  ('乙', '辛'),
+  ('丙', '壬'),
+  ('丁', '癸'),
 ];
 
 class RelationshipsEngine {
@@ -146,12 +167,14 @@ class RelationshipsEngine {
         for (var j = i + 1; j < 4; j++) {
           if ((stems[i] == a && stems[j] == b) ||
               (stems[i] == b && stems[j] == a)) {
-            result.add(SajuRelationship(
-              type: '천간합',
-              characters: [stems[i], stems[j]],
-              positions: [stemPosLabel[i], stemPosLabel[j]],
-              resultElement: el,
-            ));
+            result.add(
+              SajuRelationship(
+                type: '천간합',
+                characters: [stems[i], stems[j]],
+                positions: [stemPosLabel[i], stemPosLabel[j]],
+                resultElement: el,
+              ),
+            );
           }
         }
       }
@@ -163,12 +186,14 @@ class RelationshipsEngine {
         for (var j = i + 1; j < 4; j++) {
           if ((stems[i] == a && stems[j] == b) ||
               (stems[i] == b && stems[j] == a)) {
-            result.add(SajuRelationship(
-              type: '천간충',
-              characters: [stems[i], stems[j]],
-              positions: [stemPosLabel[i], stemPosLabel[j]],
-              resultElement: '',
-            ));
+            result.add(
+              SajuRelationship(
+                type: '천간충',
+                characters: [stems[i], stems[j]],
+                positions: [stemPosLabel[i], stemPosLabel[j]],
+                resultElement: '',
+              ),
+            );
           }
         }
       }
@@ -184,12 +209,14 @@ class RelationshipsEngine {
           for (var j = i + 1; j < 4; j++) {
             if ((branches[i] == a && branches[j] == b) ||
                 (branches[i] == b && branches[j] == a)) {
-              result.add(SajuRelationship(
-                type: type,
-                characters: [branches[i], branches[j]],
-                positions: [branchPosLabel[i], branchPosLabel[j]],
-                resultElement: elementOf?[(a, b)] ?? '',
-              ));
+              result.add(
+                SajuRelationship(
+                  type: type,
+                  characters: [branches[i], branches[j]],
+                  positions: [branchPosLabel[i], branchPosLabel[j]],
+                  resultElement: elementOf?[(a, b)] ?? '',
+                ),
+              );
             }
           }
         }
@@ -197,14 +224,10 @@ class RelationshipsEngine {
     }
 
     // ── 육합 ──
-    final liuHeElementMap = {
-      for (final (a, b, el) in _liuHePairs) (a, b): el,
-    };
-    addBranchPairRelation(
-      '육합',
-      [for (final (a, b, _) in _liuHePairs) (a, b)],
-      elementOf: liuHeElementMap,
-    );
+    final liuHeElementMap = {for (final (a, b, el) in _liuHePairs) (a, b): el};
+    addBranchPairRelation('육합', [
+      for (final (a, b, _) in _liuHePairs) (a, b),
+    ], elementOf: liuHeElementMap);
 
     // ── 지지충 ──
     addBranchPairRelation('지지충', _liuChongPairs);
@@ -229,12 +252,14 @@ class RelationshipsEngine {
       for (var i = 0; i < 4; i++) {
         for (var j = i + 1; j < 4; j++) {
           if (branches[i] == b && branches[j] == b) {
-            result.add(SajuRelationship(
-              type: '자형',
-              characters: [branches[i], branches[j]],
-              positions: [branchPosLabel[i], branchPosLabel[j]],
-              resultElement: '',
-            ));
+            result.add(
+              SajuRelationship(
+                type: '자형',
+                characters: [branches[i], branches[j]],
+                positions: [branchPosLabel[i], branchPosLabel[j]],
+                resultElement: '',
+              ),
+            );
           }
         }
       }
@@ -266,12 +291,14 @@ class RelationshipsEngine {
         }
       }
       if (matchedChars.length == 3) {
-        result.add(SajuRelationship(
-          type: '삼합',
-          characters: matchedChars,
-          positions: matchedPositions,
-          resultElement: el,
-        ));
+        result.add(
+          SajuRelationship(
+            type: '삼합',
+            characters: matchedChars,
+            positions: matchedPositions,
+            resultElement: el,
+          ),
+        );
       }
     }
 
@@ -291,12 +318,14 @@ class RelationshipsEngine {
         }
       }
       if (matchedChars.length == 3) {
-        result.add(SajuRelationship(
-          type: '방합',
-          characters: matchedChars,
-          positions: matchedPositions,
-          resultElement: el,
-        ));
+        result.add(
+          SajuRelationship(
+            type: '방합',
+            characters: matchedChars,
+            positions: matchedPositions,
+            resultElement: el,
+          ),
+        );
       }
     }
 
@@ -316,12 +345,14 @@ class RelationshipsEngine {
         }
       }
       if (matchedChars.length == 3) {
-        result.add(SajuRelationship(
-          type: '삼형',
-          characters: matchedChars,
-          positions: matchedPositions,
-          resultElement: '',
-        ));
+        result.add(
+          SajuRelationship(
+            type: '삼형',
+            characters: matchedChars,
+            positions: matchedPositions,
+            resultElement: '',
+          ),
+        );
       }
     }
 
@@ -376,23 +407,27 @@ class RelationshipsEngine {
       for (final (a, b, el) in _tianGanHePairs) {
         if ((extStem == a && natalStems[i] == b) ||
             (extStem == b && natalStems[i] == a)) {
-          result.add(SajuRelationship(
-            type: '천간합',
-            characters: [extStem, natalStems[i]],
-            positions: [extStemLabel, natalStemLabel[i]],
-            resultElement: el,
-          ));
+          result.add(
+            SajuRelationship(
+              type: '천간합',
+              characters: [extStem, natalStems[i]],
+              positions: [extStemLabel, natalStemLabel[i]],
+              resultElement: el,
+            ),
+          );
         }
       }
       for (final (a, b) in _tianGanChongPairs) {
         if ((extStem == a && natalStems[i] == b) ||
             (extStem == b && natalStems[i] == a)) {
-          result.add(SajuRelationship(
-            type: '천간충',
-            characters: [extStem, natalStems[i]],
-            positions: [extStemLabel, natalStemLabel[i]],
-            resultElement: '',
-          ));
+          result.add(
+            SajuRelationship(
+              type: '천간충',
+              characters: [extStem, natalStems[i]],
+              positions: [extStemLabel, natalStemLabel[i]],
+              resultElement: '',
+            ),
+          );
         }
       }
     }
@@ -406,25 +441,23 @@ class RelationshipsEngine {
         for (final (a, b) in pairs) {
           if ((extBranch == a && natalBranches[i] == b) ||
               (extBranch == b && natalBranches[i] == a)) {
-            result.add(SajuRelationship(
-              type: type,
-              characters: [extBranch, natalBranches[i]],
-              positions: [extBranchLabel, natalBranchLabel[i]],
-              resultElement: elementOf?[(a, b)] ?? '',
-            ));
+            result.add(
+              SajuRelationship(
+                type: type,
+                characters: [extBranch, natalBranches[i]],
+                positions: [extBranchLabel, natalBranchLabel[i]],
+                resultElement: elementOf?[(a, b)] ?? '',
+              ),
+            );
           }
         }
       }
     }
 
-    final liuHeElementMap = {
-      for (final (a, b, el) in _liuHePairs) (a, b): el,
-    };
-    addExternalBranchPair(
-      '육합',
-      [for (final (a, b, _) in _liuHePairs) (a, b)],
-      elementOf: liuHeElementMap,
-    );
+    final liuHeElementMap = {for (final (a, b, el) in _liuHePairs) (a, b): el};
+    addExternalBranchPair('육합', [
+      for (final (a, b, _) in _liuHePairs) (a, b),
+    ], elementOf: liuHeElementMap);
     addExternalBranchPair('지지충', _liuChongPairs);
     addExternalBranchPair('해', _liuHaiPairs);
     addExternalBranchPair('파', _liuPoPairs);
@@ -436,12 +469,14 @@ class RelationshipsEngine {
     if (_ziXingBranches.contains(extBranch)) {
       for (var i = 0; i < 4; i++) {
         if (natalBranches[i] == extBranch) {
-          result.add(SajuRelationship(
-            type: '자형',
-            characters: [extBranch, natalBranches[i]],
-            positions: [extBranchLabel, natalBranchLabel[i]],
-            resultElement: '',
-          ));
+          result.add(
+            SajuRelationship(
+              type: '자형',
+              characters: [extBranch, natalBranches[i]],
+              positions: [extBranchLabel, natalBranchLabel[i]],
+              resultElement: '',
+            ),
+          );
         }
       }
     }
@@ -462,12 +497,14 @@ class RelationshipsEngine {
         }
       }
       if (matchedPositions.length == remaining.length) {
-        result.add(SajuRelationship(
-          type: '삼합',
-          characters: [extBranch, ...remaining],
-          positions: [extBranchLabel, ...matchedPositions],
-          resultElement: el,
-        ));
+        result.add(
+          SajuRelationship(
+            type: '삼합',
+            characters: [extBranch, ...remaining],
+            positions: [extBranchLabel, ...matchedPositions],
+            resultElement: el,
+          ),
+        );
       }
     }
 
@@ -487,12 +524,14 @@ class RelationshipsEngine {
         }
       }
       if (matchedPositions.length == remaining.length) {
-        result.add(SajuRelationship(
-          type: '방합',
-          characters: [extBranch, ...remaining],
-          positions: [extBranchLabel, ...matchedPositions],
-          resultElement: el,
-        ));
+        result.add(
+          SajuRelationship(
+            type: '방합',
+            characters: [extBranch, ...remaining],
+            positions: [extBranchLabel, ...matchedPositions],
+            resultElement: el,
+          ),
+        );
       }
     }
 
@@ -512,12 +551,14 @@ class RelationshipsEngine {
         }
       }
       if (matchedPositions.length == remaining.length) {
-        result.add(SajuRelationship(
-          type: '삼형',
-          characters: [extBranch, ...remaining],
-          positions: [extBranchLabel, ...matchedPositions],
-          resultElement: '',
-        ));
+        result.add(
+          SajuRelationship(
+            type: '삼형',
+            characters: [extBranch, ...remaining],
+            positions: [extBranchLabel, ...matchedPositions],
+            resultElement: '',
+          ),
+        );
       }
     }
 

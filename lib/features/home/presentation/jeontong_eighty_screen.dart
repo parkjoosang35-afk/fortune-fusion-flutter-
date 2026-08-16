@@ -251,9 +251,7 @@ class _MajorGroupSection extends StatelessWidget {
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: HanjiColors.glow.withValues(
-                                  alpha: 0.15,
-                                ),
+                                color: HanjiColors.glow.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(
                                   HanjiRadii.pill,
                                 ),

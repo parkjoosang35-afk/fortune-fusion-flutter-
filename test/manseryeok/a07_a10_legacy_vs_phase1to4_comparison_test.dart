@@ -174,7 +174,11 @@ void main() {
         print('[십신분포] legacy=$legacyDist');
         // ignore: avoid_print
         print('[십신분포] new   =$newDist');
-        expect(newDist, legacyDist, reason: '${u.userId} 십신 분포는 8글자가 동일하므로 완전히 일치해야 함');
+        expect(
+          newDist,
+          legacyDist,
+          reason: '${u.userId} 십신 분포는 8글자가 동일하므로 완전히 일치해야 함',
+        );
 
         // ── A07(자녀운) ──
         // ignore: avoid_print
@@ -188,7 +192,11 @@ void main() {
         expect(newB.a07.data['style'], isNotEmpty);
         expect(newB.a07.data['message'], isNotEmpty);
         expect(newB.a07.data['timing_hint'], isNotEmpty);
-        expect(newB.a07.data, legacyB.a07.data, reason: '${u.userId}: A07은 십신 분포만으로 결정되므로 완전 동일해야 함');
+        expect(
+          newB.a07.data,
+          legacyB.a07.data,
+          reason: '${u.userId}: A07은 십신 분포만으로 결정되므로 완전 동일해야 함',
+        );
 
         // ── A08(부모·형제운) ──
         // ignore: avoid_print
@@ -200,7 +208,11 @@ void main() {
         expect(newB.a08.data['sibling_god'], '비겁(비견·겁재)');
         expect(newB.a08.data['parent_count'], isA<int>());
         expect(newB.a08.data['sibling_count'], isA<int>());
-        expect(newB.a08.data, legacyB.a08.data, reason: '${u.userId}: A08은 십신 분포만으로 결정되므로 완전 동일해야 함');
+        expect(
+          newB.a08.data,
+          legacyB.a08.data,
+          reason: '${u.userId}: A08은 십신 분포만으로 결정되므로 완전 동일해야 함',
+        );
 
         // ── A09(학업·시험운) ──
         // ignore: avoid_print
@@ -241,17 +253,20 @@ void main() {
         final legacyRealPoints = legacyB.saju.luckPillars
             .where((lp) => lp.ganZhiKr.isNotEmpty)
             .take(5)
-            .map((lp) => {
-                  'start_age': lp.startAge,
-                  'start_year': lp.startYear,
-                  'gan_zhi_kr': lp.ganZhiKr,
-                })
+            .map(
+              (lp) => {
+                'start_age': lp.startAge,
+                'start_year': lp.startYear,
+                'gan_zhi_kr': lp.ganZhiKr,
+              },
+            )
             .toList();
         if (legacyRealPoints.isNotEmpty) {
           expect(
             newPoints,
             legacyRealPoints,
-            reason: '${u.userId}: 빈 간지 플레이스홀더를 제외한 "실제 대운" 앞 5개는 legacy/new가 완전히 동일해야 함',
+            reason:
+                '${u.userId}: 빈 간지 플레이스홀더를 제외한 "실제 대운" 앞 5개는 legacy/new가 완전히 동일해야 함',
           );
         }
       });
@@ -260,27 +275,33 @@ void main() {
 
   group('[j8·A07~A10] runJeontongCategory 경로 자체도 정상 동작 확인', () {
     for (final u in _seedUsers) {
-      test('${u.userId}: JeontongCalcContext + runJeontongCategory("A07"~"A10") 예외 없이 동작', () {
-        final newB = _runNew(u, _kFixedDate);
-        final rules = SajuFortuneRules.cachedOrNull;
-        expect(rules, isNotNull);
+      test(
+        '${u.userId}: JeontongCalcContext + runJeontongCategory("A07"~"A10") 예외 없이 동작',
+        () {
+          final newB = _runNew(u, _kFixedDate);
+          final rules = SajuFortuneRules.cachedOrNull;
+          expect(rules, isNotNull);
 
-        final ctx = JeontongCalcContext(
-          saju: newB.saju,
-          interp: newB.interp,
-          rules: rules!,
-          referenceDate: _kFixedDate,
-        );
+          final ctx = JeontongCalcContext(
+            saju: newB.saju,
+            interp: newB.interp,
+            rules: rules!,
+            referenceDate: _kFixedDate,
+          );
 
-        for (final id in ['A07', 'A08', 'A09', 'A10']) {
-          late final JeontongCategoryResult result;
-          expect(() => result = runJeontongCategory(id, ctx), returnsNormally);
-          expect(result.category, isNotEmpty);
-          // 플레이스홀더가 아니라 실계산 결과여야 하므로, 단일 키
-          // {'message':...}/{'note':...} 형태가 아니라 여러 키를 가져야 한다.
-          expect(result.data.length, greaterThan(1));
-        }
-      });
+          for (final id in ['A07', 'A08', 'A09', 'A10']) {
+            late final JeontongCategoryResult result;
+            expect(
+              () => result = runJeontongCategory(id, ctx),
+              returnsNormally,
+            );
+            expect(result.category, isNotEmpty);
+            // 플레이스홀더가 아니라 실계산 결과여야 하므로, 단일 키
+            // {'message':...}/{'note':...} 형태가 아니라 여러 키를 가져야 한다.
+            expect(result.data.length, greaterThan(1));
+          }
+        },
+      );
     }
   });
 }

@@ -57,9 +57,7 @@ class PillarBoard extends StatelessWidget {
             children: [
               const SizedBox(width: 48),
               for (final e in ordered)
-                Expanded(
-                  child: Center(child: MonoLabel(posMap[e.key]![1])),
-                ),
+                Expanded(child: Center(child: MonoLabel(posMap[e.key]![1]))),
             ],
           ),
           const SizedBox(height: 8),
@@ -67,11 +65,13 @@ class PillarBoard extends StatelessWidget {
             label: '천간',
             hanja: '天干',
             cells: ordered
-                .map((e) => _Cell(
-                      ch: e.value.stemHanja,
-                      wuxing: e.value.stemElement,
-                      me: e.key == 'day',
-                    ))
+                .map(
+                  (e) => _Cell(
+                    ch: e.value.stemHanja,
+                    wuxing: e.value.stemElement,
+                    me: e.key == 'day',
+                  ),
+                )
                 .toList(),
           ),
           const Divider(color: HanjiColors.line, height: 16),
@@ -79,10 +79,12 @@ class PillarBoard extends StatelessWidget {
             label: '지지',
             hanja: '地支',
             cells: ordered
-                .map((e) => _Cell(
-                      ch: e.value.branchHanja,
-                      wuxing: e.value.branchElement,
-                    ))
+                .map(
+                  (e) => _Cell(
+                    ch: e.value.branchHanja,
+                    wuxing: e.value.branchElement,
+                  ),
+                )
                 .toList(),
           ),
           const SizedBox(height: 10),
@@ -151,12 +153,20 @@ class _Row extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(label,
-                    style: HanjiTextStyles.bodyTitle(color: HanjiColors.muted)
-                        .copyWith(fontSize: 11)),
-                Text(hanja,
-                    style: const TextStyle(
-                        color: HanjiColors.muted, fontSize: 10, letterSpacing: 2)),
+                Text(
+                  label,
+                  style: HanjiTextStyles.bodyTitle(
+                    color: HanjiColors.muted,
+                  ).copyWith(fontSize: 11),
+                ),
+                Text(
+                  hanja,
+                  style: const TextStyle(
+                    color: HanjiColors.muted,
+                    fontSize: 10,
+                    letterSpacing: 2,
+                  ),
+                ),
                 const SizedBox(width: 4),
               ],
             ),
@@ -204,8 +214,12 @@ class _Cell extends StatelessWidget {
           clipBehavior: Clip.none,
           alignment: Alignment.center,
           children: [
-            Text(ch,
-                style: HanjiTextStyles.display1(color: color).copyWith(fontSize: 26)),
+            Text(
+              ch,
+              style: HanjiTextStyles.display1(
+                color: color,
+              ).copyWith(fontSize: 26),
+            ),
             if (me)
               Positioned(
                 top: -6,
@@ -213,17 +227,23 @@ class _Cell extends StatelessWidget {
                 child: Transform.rotate(
                   angle: 0.1,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 5,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: HanjiColors.accent,
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: const Text('ME',
-                        style: TextStyle(
-                            color: Color(0xFFFFF9E8),
-                            fontSize: 9,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1)),
+                    child: const Text(
+                      'ME',
+                      style: TextStyle(
+                        color: Color(0xFFFFF9E8),
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1,
+                      ),
+                    ),
                   ),
                 ),
               ),

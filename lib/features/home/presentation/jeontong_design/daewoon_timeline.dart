@@ -20,10 +20,14 @@ import 'saju_seal.dart';
 
 /// [SajuLuckPillar.ganZhi]는 한자 2글자('임자' 아닌 '壬子' 형태) —
 /// 첫 글자가 천간, 둘째 글자가 지지.
-String _ganOf(SajuLuckPillar p) => p.ganZhi.isNotEmpty ? p.ganZhi.substring(0, 1) : '';
-String _zhiOf(SajuLuckPillar p) => p.ganZhi.length >= 2 ? p.ganZhi.substring(1, 2) : '';
-String _ganKrOf(SajuLuckPillar p) => p.ganZhiKr.isNotEmpty ? p.ganZhiKr.substring(0, 1) : '';
-String _zhiKrOf(SajuLuckPillar p) => p.ganZhiKr.length >= 2 ? p.ganZhiKr.substring(1, 2) : '';
+String _ganOf(SajuLuckPillar p) =>
+    p.ganZhi.isNotEmpty ? p.ganZhi.substring(0, 1) : '';
+String _zhiOf(SajuLuckPillar p) =>
+    p.ganZhi.length >= 2 ? p.ganZhi.substring(1, 2) : '';
+String _ganKrOf(SajuLuckPillar p) =>
+    p.ganZhiKr.isNotEmpty ? p.ganZhiKr.substring(0, 1) : '';
+String _zhiKrOf(SajuLuckPillar p) =>
+    p.ganZhiKr.length >= 2 ? p.ganZhiKr.substring(1, 2) : '';
 
 class DaewoonTimeline extends StatelessWidget {
   final List<SajuLuckPillar> daewoon;
@@ -79,7 +83,9 @@ class _DaewoonCell extends StatelessWidget {
                     ? HanjiColors.glow.withValues(alpha: 0.18)
                     : wxColor.withValues(alpha: 0.14),
                 border: Border.all(
-                  color: isNow ? HanjiColors.glow : wxColor.withValues(alpha: 0.35),
+                  color: isNow
+                      ? HanjiColors.glow
+                      : wxColor.withValues(alpha: 0.35),
                   width: isNow ? 1.5 : 1,
                 ),
                 borderRadius: BorderRadius.circular(HanjiRadii.chip),
@@ -94,12 +100,24 @@ class _DaewoonCell extends StatelessWidget {
                   Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(_ganKrOf(d),
-                          style: HanjiTextStyles.display1(color: ganColor).copyWith(fontSize: 18)),
-                      Container(width: 20, height: 0.5, color: const Color(0x4C8B5A2B)),
+                      Text(
+                        _ganKrOf(d),
+                        style: HanjiTextStyles.display1(
+                          color: ganColor,
+                        ).copyWith(fontSize: 18),
+                      ),
+                      Container(
+                        width: 20,
+                        height: 0.5,
+                        color: const Color(0x4C8B5A2B),
+                      ),
                       const SizedBox(height: 1),
-                      Text(_zhiKrOf(d),
-                          style: HanjiTextStyles.display1(color: wxColor).copyWith(fontSize: 15)),
+                      Text(
+                        _zhiKrOf(d),
+                        style: HanjiTextStyles.display1(
+                          color: wxColor,
+                        ).copyWith(fontSize: 15),
+                      ),
                     ],
                   ),
                   if (isNow)
@@ -109,7 +127,10 @@ class _DaewoonCell extends StatelessWidget {
                       child: Transform.rotate(
                         angle: 0.1,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: HanjiColors.accent,
                             borderRadius: BorderRadius.circular(4),
@@ -132,10 +153,14 @@ class _DaewoonCell extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               '${d.startAge}세~',
-              style: HanjiTextStyles.bodyTitle(color: isNow ? HanjiColors.fg : HanjiColors.muted)
-                  .copyWith(fontSize: 11),
+              style: HanjiTextStyles.bodyTitle(
+                color: isNow ? HanjiColors.fg : HanjiColors.muted,
+              ).copyWith(fontSize: 11),
             ),
-            Text(d.ganZhiKr, style: HanjiTextStyles.bodySmall().copyWith(fontSize: 9)),
+            Text(
+              d.ganZhiKr,
+              style: HanjiTextStyles.bodySmall().copyWith(fontSize: 9),
+            ),
           ],
         ),
       ),
@@ -162,15 +187,28 @@ class CurrentDaewoonCard extends StatelessWidget {
             height: 66,
             decoration: BoxDecoration(
               color: zhiColor.withValues(alpha: 0.15),
-              border: Border.all(color: zhiColor.withValues(alpha: 0.4), width: 1.5),
+              border: Border.all(
+                color: zhiColor.withValues(alpha: 0.4),
+                width: 1.5,
+              ),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(_ganKrOf(d), style: HanjiTextStyles.display1(color: ganColor).copyWith(fontSize: 20)),
+                Text(
+                  _ganKrOf(d),
+                  style: HanjiTextStyles.display1(
+                    color: ganColor,
+                  ).copyWith(fontSize: 20),
+                ),
                 Container(width: 20, height: 1, color: const Color(0x408B5A2B)),
-                Text(_zhiKrOf(d), style: HanjiTextStyles.display1(color: zhiColor).copyWith(fontSize: 16)),
+                Text(
+                  _zhiKrOf(d),
+                  style: HanjiTextStyles.display1(
+                    color: zhiColor,
+                  ).copyWith(fontSize: 16),
+                ),
               ],
             ),
           ),
@@ -179,15 +217,22 @@ class CurrentDaewoonCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                MonoLabel('◈ 현재 대운 · ${d.startAge} ~ ${d.startAge + 9}세',
-                    color: HanjiColors.accent),
+                MonoLabel(
+                  '◈ 현재 대운 · ${d.startAge} ~ ${d.startAge + 9}세',
+                  color: HanjiColors.accent,
+                ),
                 const SizedBox(height: 4),
-                Text('${d.ganZhiKr} 대운',
-                    style: HanjiTextStyles.bodyTitle().copyWith(fontSize: 15)),
+                Text(
+                  '${d.ganZhiKr} 대운',
+                  style: HanjiTextStyles.bodyTitle().copyWith(fontSize: 15),
+                ),
                 const SizedBox(height: 6),
                 Text(
                   '이 10년의 흐름을 잘 살펴 주세요.',
-                  style: HanjiTextStyles.bodySmall().copyWith(fontSize: 12, height: 1.6),
+                  style: HanjiTextStyles.bodySmall().copyWith(
+                    fontSize: 12,
+                    height: 1.6,
+                  ),
                 ),
               ],
             ),

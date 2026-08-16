@@ -80,7 +80,10 @@ void main() {
         gender: 'male',
         referenceDate: referenceDate,
       );
-      final adapted = sajuResultFromProfile(profile, referenceDate: referenceDate);
+      final adapted = sajuResultFromProfile(
+        profile,
+        referenceDate: referenceDate,
+      );
       final legacyResult = legacy.SajuEngine.calculate(
         year: 1972,
         month: 2,
@@ -118,7 +121,10 @@ void main() {
         gender: 'male',
         referenceDate: referenceDate,
       );
-      final adapted = sajuResultFromProfile(profile, referenceDate: referenceDate);
+      final adapted = sajuResultFromProfile(
+        profile,
+        referenceDate: referenceDate,
+      );
       final legacyResult = legacy.SajuEngine.calculate(
         year: 1972,
         month: 2,
@@ -148,7 +154,10 @@ void main() {
         gender: 'male',
         referenceDate: referenceDate,
       );
-      final adapted = sajuResultFromProfile(profile, referenceDate: referenceDate);
+      final adapted = sajuResultFromProfile(
+        profile,
+        referenceDate: referenceDate,
+      );
       final legacyResult = legacy.SajuEngine.calculate(
         year: 1972,
         month: 2,
@@ -176,7 +185,10 @@ void main() {
         gender: 'male',
         referenceDate: referenceDate,
       );
-      final adapted = sajuResultFromProfile(profile, referenceDate: referenceDate);
+      final adapted = sajuResultFromProfile(
+        profile,
+        referenceDate: referenceDate,
+      );
       final legacyResult = legacy.SajuEngine.calculate(
         year: 1972,
         month: 2,
@@ -204,7 +216,10 @@ void main() {
         gender: 'male',
         referenceDate: referenceDate,
       );
-      final adapted = sajuResultFromProfile(profile, referenceDate: referenceDate);
+      final adapted = sajuResultFromProfile(
+        profile,
+        referenceDate: referenceDate,
+      );
       final legacyResult = legacy.SajuEngine.calculate(
         year: 1972,
         month: 2,
@@ -226,7 +241,10 @@ void main() {
         gender: 'male',
         referenceDate: referenceDate,
       );
-      final adapted = sajuResultFromProfile(profile, referenceDate: referenceDate);
+      final adapted = sajuResultFromProfile(
+        profile,
+        referenceDate: referenceDate,
+      );
       final legacyResult = legacy.SajuEngine.calculate(
         year: 1972,
         month: 2,
@@ -255,7 +273,10 @@ void main() {
         gender: 'male',
         referenceDate: referenceDate,
       );
-      final adapted = sajuResultFromProfile(profile, referenceDate: referenceDate);
+      final adapted = sajuResultFromProfile(
+        profile,
+        referenceDate: referenceDate,
+      );
       final legacyResult = legacy.SajuEngine.calculate(
         year: 1972,
         month: 2,
@@ -270,11 +291,16 @@ void main() {
       // (phase4_analysis_engine_test.dart와 동일한 이유). 겹치는 8개
       // 구간만 대조한다.
       expect(adapted.luckPillars.length, 9);
-      final legacyReal =
-          legacyResult.luckPillars.where((lp) => lp.ganZhi.isNotEmpty).toList();
+      final legacyReal = legacyResult.luckPillars
+          .where((lp) => lp.ganZhi.isNotEmpty)
+          .toList();
       expect(legacyReal.length, 8);
       for (var i = 0; i < legacyReal.length; i++) {
-        expect(adapted.luckPillars[i].ganZhi, legacyReal[i].ganZhi, reason: '대운[$i] 간지');
+        expect(
+          adapted.luckPillars[i].ganZhi,
+          legacyReal[i].ganZhi,
+          reason: '대운[$i] 간지',
+        );
         expect(
           adapted.luckPillars[i].startAge,
           legacyReal[i].startAge,
@@ -297,7 +323,10 @@ void main() {
         gender: 'male',
         referenceDate: referenceDate,
       );
-      final adapted = sajuResultFromProfile(profile, referenceDate: referenceDate);
+      final adapted = sajuResultFromProfile(
+        profile,
+        referenceDate: referenceDate,
+      );
       final legacyResult = legacy.SajuEngine.calculate(
         year: 1972,
         month: 2,
@@ -312,45 +341,45 @@ void main() {
       expect(adapted.currentLuck?.startAge, legacyResult.currentLuck?.startAge);
     });
 
-    test(
-      '[의도된 차이 — 참고용] dayMasterStrength 포맷은 레거시와 텍스트가 다를 수 있다 '
-      '(레거시=간이 비율판정, PHASE3=억부/조후 정밀판정 — §8: 다르면 PHASE1~4가 기준)',
-      () {
-        final profile = buildFullProfile(
-          year: 1972,
-          month: 2,
-          day: 13,
-          hour: 2,
-          gender: 'male',
-          referenceDate: referenceDate,
-        );
-        final adapted = sajuResultFromProfile(profile, referenceDate: referenceDate);
-        final legacyResult = legacy.SajuEngine.calculate(
-          year: 1972,
-          month: 2,
-          day: 13,
-          hour: 2,
-          gender: 'male',
-          referenceDate: referenceDate,
-        );
+    test('[의도된 차이 — 참고용] dayMasterStrength 포맷은 레거시와 텍스트가 다를 수 있다 '
+        '(레거시=간이 비율판정, PHASE3=억부/조후 정밀판정 — §8: 다르면 PHASE1~4가 기준)', () {
+      final profile = buildFullProfile(
+        year: 1972,
+        month: 2,
+        day: 13,
+        hour: 2,
+        gender: 'male',
+        referenceDate: referenceDate,
+      );
+      final adapted = sajuResultFromProfile(
+        profile,
+        referenceDate: referenceDate,
+      );
+      final legacyResult = legacy.SajuEngine.calculate(
+        year: 1972,
+        month: 2,
+        day: 13,
+        hour: 2,
+        gender: 'male',
+        referenceDate: referenceDate,
+      );
 
-        // 포맷(한자 표기 형태)이 레거시 3종 중 하나와 정확히 일치하는지만
-        // 확인한다 — 판정값 자체(신강/중화/신약)가 레거시와 같은지는
-        // 검증하지 않는다(다른 알고리즘이므로 다를 수 있음, §8 원칙).
-        expect(
-          ['身强(신강)', '中和(중화)', '身弱(신약)'].contains(adapted.dayMasterStrength),
-          isTrue,
-          reason: '어댑터 출력 포맷은 레거시가 이해하는 3종 문자열 중 하나여야 함',
-        );
-        // 참고용 출력 — 실패 조건 아님, 판정 알고리즘 차이를 문서화.
-        // ignore: avoid_print
-        print(
-          '[참고] dayMasterStrength: adapted=${adapted.dayMasterStrength} '
-          'legacy=${legacyResult.dayMasterStrength} '
-          '(다를 수 있음 — PHASE3 억부/조후 기준이 새 표준)',
-        );
-      },
-    );
+      // 포맷(한자 표기 형태)이 레거시 3종 중 하나와 정확히 일치하는지만
+      // 확인한다 — 판정값 자체(신강/중화/신약)가 레거시와 같은지는
+      // 검증하지 않는다(다른 알고리즘이므로 다를 수 있음, §8 원칙).
+      expect(
+        ['身强(신강)', '中和(중화)', '身弱(신약)'].contains(adapted.dayMasterStrength),
+        isTrue,
+        reason: '어댑터 출력 포맷은 레거시가 이해하는 3종 문자열 중 하나여야 함',
+      );
+      // 참고용 출력 — 실패 조건 아님, 판정 알고리즘 차이를 문서화.
+      // ignore: avoid_print
+      print(
+        '[참고] dayMasterStrength: adapted=${adapted.dayMasterStrength} '
+        'legacy=${legacyResult.dayMasterStrength} '
+        '(다를 수 있음 — PHASE3 억부/조후 기준이 새 표준)',
+      );
+    });
 
     test('여러 샘플(순행/역행, 양력, 남/녀)에서 8글자·오행·십신·공망·3종신살·대운이 모두 일치', () {
       final samples = [
@@ -382,18 +411,35 @@ void main() {
         );
 
         for (final pos in ['year', 'month', 'day', 'hour']) {
-          expect(adapted.pillars[pos]!.gan, legacyResult.pillars[pos]!.gan, reason: '$s $pos gan');
-          expect(adapted.pillars[pos]!.zhi, legacyResult.pillars[pos]!.zhi, reason: '$s $pos zhi');
+          expect(
+            adapted.pillars[pos]!.gan,
+            legacyResult.pillars[pos]!.gan,
+            reason: '$s $pos gan',
+          );
+          expect(
+            adapted.pillars[pos]!.zhi,
+            legacyResult.pillars[pos]!.zhi,
+            reason: '$s $pos zhi',
+          );
         }
-        expect(adapted.fiveElementsCount, legacyResult.fiveElementsCount, reason: '$s fiveElements');
+        expect(
+          adapted.fiveElementsCount,
+          legacyResult.fiveElementsCount,
+          reason: '$s fiveElements',
+        );
         expect(adapted.tenGods, legacyResult.tenGods, reason: '$s tenGods');
         expect(adapted.gongmang, legacyResult.gongmang, reason: '$s gongmang');
         expect(adapted.sinsal, legacyResult.sinsal, reason: '$s sinsal(3종)');
 
-        final legacyReal =
-            legacyResult.luckPillars.where((lp) => lp.ganZhi.isNotEmpty).toList();
+        final legacyReal = legacyResult.luckPillars
+            .where((lp) => lp.ganZhi.isNotEmpty)
+            .toList();
         for (var i = 0; i < legacyReal.length; i++) {
-          expect(adapted.luckPillars[i].ganZhi, legacyReal[i].ganZhi, reason: '$s 대운[$i]');
+          expect(
+            adapted.luckPillars[i].ganZhi,
+            legacyReal[i].ganZhi,
+            reason: '$s 대운[$i]',
+          );
         }
       }
     });
@@ -504,10 +550,7 @@ void main() {
       );
       // PHASE1만 완료된 프로필(fiveElements/tenGods/sinsal/strength/daewoon
       // 전부 null) — 이중 계산 대신 명시적 실패를 요구.
-      expect(
-        () => sajuResultFromProfile(withCore.profile),
-        throwsStateError,
-      );
+      expect(() => sajuResultFromProfile(withCore.profile), throwsStateError);
     });
   });
 }

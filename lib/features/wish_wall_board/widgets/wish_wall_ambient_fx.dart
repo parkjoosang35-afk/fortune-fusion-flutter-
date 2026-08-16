@@ -197,8 +197,8 @@ class _RisingDustState extends State<_RisingDust>
                 final opacity = adjT < 0.12
                     ? adjT / 0.12
                     : adjT > 0.82
-                        ? (1 - adjT) / 0.18
-                        : 1.0;
+                    ? (1 - adjT) / 0.18
+                    : 1.0;
                 return Positioned(
                   left: leftFrac * constraints.maxWidth,
                   bottom: -10 + adjT * (h + 20),

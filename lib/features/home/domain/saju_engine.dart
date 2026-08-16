@@ -100,15 +100,28 @@ const Map<(String, bool), String> tenGodsTable = {
 };
 
 /// 오행 상생 관계 (내가 생하는 것)
-const Map<String, String> sheng = {'목': '화', '화': '토', '토': '금', '금': '수', '수': '목'};
+const Map<String, String> sheng = {
+  '목': '화',
+  '화': '토',
+  '토': '금',
+  '금': '수',
+  '수': '목',
+};
 
 /// 오행 상극 관계 (내가 극하는 것)
-const Map<String, String> ke = {'목': '토', '토': '수', '수': '화', '화': '금', '금': '목'};
+const Map<String, String> ke = {
+  '목': '토',
+  '토': '수',
+  '수': '화',
+  '화': '금',
+  '금': '목',
+};
 
 /// 일간 대비 십신 계산 — get_ten_god() 이식
 String getTenGod(String dayGan, String targetGanOrZhi) {
   final (dayEl, dayYy) = ganElement[dayGan]!;
-  final (tgtEl, tgtYy) = ganElement[targetGanOrZhi] ?? zhiElement[targetGanOrZhi]!;
+  final (tgtEl, tgtYy) =
+      ganElement[targetGanOrZhi] ?? zhiElement[targetGanOrZhi]!;
 
   final sameYy = dayYy == tgtYy;
 
@@ -161,10 +174,18 @@ const Map<String, String> munchangGwiin = {
 };
 
 const Map<String, String> yeokma = {
-  '寅': '申', '午': '申', '戌': '申',
-  '申': '寅', '子': '寅', '辰': '寅',
-  '巳': '亥', '酉': '亥', '丑': '亥',
-  '亥': '巳', '卯': '巳', '未': '巳',
+  '寅': '申',
+  '午': '申',
+  '戌': '申',
+  '申': '寅',
+  '子': '寅',
+  '辰': '寅',
+  '巳': '亥',
+  '酉': '亥',
+  '丑': '亥',
+  '亥': '巳',
+  '卯': '巳',
+  '未': '巳',
 };
 
 /// 대표 신살 검출 — find_sinsal() 이식
@@ -215,7 +236,8 @@ String judgeStrength(String dayGan, Map<String, int> elementsCount) {
     }
   }
   final helperCount =
-      (elementsCount[dayEl] ?? 0) + (helperEl != null ? (elementsCount[helperEl] ?? 0) : 0);
+      (elementsCount[dayEl] ?? 0) +
+      (helperEl != null ? (elementsCount[helperEl] ?? 0) : 0);
   final total = elementsCount.values.fold<int>(0, (a, b) => a + b);
   final ratio = total == 0 ? 0.0 : helperCount / total;
 

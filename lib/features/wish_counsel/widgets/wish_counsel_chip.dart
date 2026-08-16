@@ -44,7 +44,10 @@ class WishCounselChip extends StatelessWidget {
             if (glyph != null) ...[
               Text(
                 glyph!,
-                style: TextStyle(fontSize: 13, color: active ? glow : WishCounselColors.fg2),
+                style: TextStyle(
+                  fontSize: 13,
+                  color: active ? glow : WishCounselColors.fg2,
+                ),
               ),
               const SizedBox(width: 5),
             ],

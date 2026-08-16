@@ -30,31 +30,63 @@ import 'relationships_engine.dart' show RelationshipsEngine;
 import 'saju_profile.dart';
 
 const List<String> _zhiOrder = [
-  '子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥',
+  '子',
+  '丑',
+  '寅',
+  '卯',
+  '辰',
+  '巳',
+  '午',
+  '未',
+  '申',
+  '酉',
+  '戌',
+  '亥',
 ];
 
 /// 지지 → 그 지지가 속한 삼합 그룹의 생지(生地, 삼합 그룹의 첫 글자).
 /// 申子辰(생신)/巳酉丑(생사)/寅午戌(생인)/亥卯未(생해).
 const Map<String, String> _branchToGroupSaengJi = {
-  '申': '申', '子': '申', '辰': '申',
-  '巳': '巳', '酉': '巳', '丑': '巳',
-  '寅': '寅', '午': '寅', '戌': '寅',
-  '亥': '亥', '卯': '亥', '未': '亥',
+  '申': '申',
+  '子': '申',
+  '辰': '申',
+  '巳': '巳',
+  '酉': '巳',
+  '丑': '巳',
+  '寅': '寅',
+  '午': '寅',
+  '戌': '寅',
+  '亥': '亥',
+  '卯': '亥',
+  '未': '亥',
 };
 
 /// 지살(오프셋 0) 기준 12신살 순서 오프셋(§11 조사로 4개 삼합 그룹 전수
 /// 대조 검증됨 — 申子辰: 겁巳재午천未지申년酉월戌망亥장子반丑역寅육卯화辰).
 const List<(int, String)> _twelveSinsalOffsets = [
-  (-3, '겁살'), (-2, '재살'), (-1, '천살'), (0, '지살'),
-  (1, '년살'), (2, '월살'), (3, '망신살'), (4, '장성살'),
-  (5, '반안살'), (6, '역마살'), (7, '육해살'), (8, '화개살'),
+  (-3, '겁살'),
+  (-2, '재살'),
+  (-1, '천살'),
+  (0, '지살'),
+  (1, '년살'),
+  (2, '월살'),
+  (3, '망신살'),
+  (4, '장성살'),
+  (5, '반안살'),
+  (6, '역마살'),
+  (7, '육해살'),
+  (8, '화개살'),
 ];
 
 /// 양인살(羊刃殺) — 일간(양간만) 기준 지지 고정표. 甲→卯, 丙→午, 戊→午,
 /// 庚→酉, 壬→子(§11 조사, 다수 문헌 공통 인용 — 음간 양인은 학파 차이가
 /// 커서 Phase 2에서는 제외).
 const Map<String, String> _yangInByDayGan = {
-  '甲': '卯', '丙': '午', '戊': '午', '庚': '酉', '壬': '子',
+  '甲': '卯',
+  '丙': '午',
+  '戊': '午',
+  '庚': '酉',
+  '壬': '子',
 };
 
 /// 괴강살(魁罡殺) — 일주(day pillar) 고정표. 庚辰/庚戌/壬辰/戊戌(§11 조사,
@@ -64,7 +96,13 @@ const List<String> _goeGangDayPillars = ['庚辰', '庚戌', '壬辰', '戊戌']
 /// 백호대살(白虎大殺) — 일주(day pillar) 고정표. 甲辰/乙未/丙戌/丁丑/
 /// 戊辰/壬戌/癸丑(§11 조사, 7주 전 문헌 공통 인용).
 const List<String> _baekhoDaeSalPillars = [
-  '甲辰', '乙未', '丙戌', '丁丑', '戊辰', '壬戌', '癸丑',
+  '甲辰',
+  '乙未',
+  '丙戌',
+  '丁丑',
+  '戊辰',
+  '壬戌',
+  '癸丑',
 ];
 
 class SinsalEngine {
@@ -96,9 +134,7 @@ class SinsalEngine {
       'day': dayPillar,
       'hour': hourPillar,
     };
-    const posLabel = {
-      'year': '년지', 'month': '월지', 'day': '일지', 'hour': '시지',
-    };
+    const posLabel = {'year': '년지', 'month': '월지', 'day': '일지', 'hour': '시지'};
     final branches = positions.map((k, v) => MapEntry(k, v.branchHanja));
     final dayGan = dayPillar.stemHanja;
     final entries = <SinsalEntry>[];
@@ -119,13 +155,17 @@ class SinsalEngine {
           if (_matchesLegacySinsal(name, dayGan, dayZhi, e.value))
             posLabel[e.key]!,
       ];
-      entries.add(SinsalEntry(
-        id: name,
-        nameKr: f.contains('(') ? f.split('(').last.replaceAll(')', '') : name,
-        nameHanja: name,
-        basis: '일간',
-        foundOn: foundOn,
-      ));
+      entries.add(
+        SinsalEntry(
+          id: name,
+          nameKr: f.contains('(')
+              ? f.split('(').last.replaceAll(')', '')
+              : name,
+          nameHanja: name,
+          basis: '일간',
+          foundOn: foundOn,
+        ),
+      );
     }
 
     // ── ② 공망(空亡) — 기존 getGongmang() 재사용 ──
@@ -135,13 +175,15 @@ class SinsalEngine {
       for (final e in branches.entries)
         if (gongmangBranches.contains(e.value)) posLabel[e.key]!,
     ];
-    entries.add(SinsalEntry(
-      id: '空亡',
-      nameKr: '공망',
-      nameHanja: '空亡',
-      basis: '일주',
-      foundOn: gongmangFoundOn,
-    ));
+    entries.add(
+      SinsalEntry(
+        id: '空亡',
+        nameKr: '공망',
+        nameHanja: '空亡',
+        basis: '일주',
+        foundOn: gongmangFoundOn,
+      ),
+    );
 
     // ── ③ 12신살(일지 기준) — 겁살/재살/천살/지살/년살(도화)/월살/
     //     망신살/장성살/반안살/역마살/육해살/화개살 (12종) ──
@@ -153,13 +195,15 @@ class SinsalEngine {
         for (final e in branches.entries)
           if (e.value == branch) posLabel[e.key]!,
       ];
-      entries.add(SinsalEntry(
-        id: '12신살_$name',
-        nameKr: name,
-        nameHanja: branch,
-        basis: '일지',
-        foundOn: foundOn,
-      ));
+      entries.add(
+        SinsalEntry(
+          id: '12신살_$name',
+          nameKr: name,
+          nameHanja: branch,
+          basis: '일지',
+          foundOn: foundOn,
+        ),
+      );
     }
 
     // ── ④ 양인살(羊刃殺) — 일간 기준 ──
@@ -169,13 +213,15 @@ class SinsalEngine {
         for (final e in branches.entries)
           if (e.value == yangIn) posLabel[e.key]!,
       ];
-      entries.add(SinsalEntry(
-        id: '羊刃',
-        nameKr: '양인살',
-        nameHanja: yangIn,
-        basis: '일간',
-        foundOn: foundOn,
-      ));
+      entries.add(
+        SinsalEntry(
+          id: '羊刃',
+          nameKr: '양인살',
+          nameHanja: yangIn,
+          basis: '일간',
+          foundOn: foundOn,
+        ),
+      );
     }
 
     // ── ⑤ 괴강살(魁罡殺) — 4주(년/월/일/시) 전체에서 일주 조합 검사 ──
@@ -184,13 +230,15 @@ class SinsalEngine {
         if (_goeGangDayPillars.contains(e.value.hanja)) posLabel[e.key]!,
     ];
     if (goeGangFoundOn.isNotEmpty) {
-      entries.add(SinsalEntry(
-        id: '魁罡',
-        nameKr: '괴강살',
-        nameHanja: '魁罡',
-        basis: '주(柱) 전체',
-        foundOn: goeGangFoundOn,
-      ));
+      entries.add(
+        SinsalEntry(
+          id: '魁罡',
+          nameKr: '괴강살',
+          nameHanja: '魁罡',
+          basis: '주(柱) 전체',
+          foundOn: goeGangFoundOn,
+        ),
+      );
     }
 
     // ── ⑥ 백호대살(白虎大殺) — 4주 전체에서 검사 ──
@@ -199,13 +247,15 @@ class SinsalEngine {
         if (_baekhoDaeSalPillars.contains(e.value.hanja)) posLabel[e.key]!,
     ];
     if (baekhoFoundOn.isNotEmpty) {
-      entries.add(SinsalEntry(
-        id: '白虎',
-        nameKr: '백호대살',
-        nameHanja: '白虎',
-        basis: '주(柱) 전체',
-        foundOn: baekhoFoundOn,
-      ));
+      entries.add(
+        SinsalEntry(
+          id: '白虎',
+          nameKr: '백호대살',
+          nameHanja: '白虎',
+          basis: '주(柱) 전체',
+          foundOn: baekhoFoundOn,
+        ),
+      );
     }
 
     // ── ⑦ 원진(元辰) — relationships_engine에서 이미 계산된 결과를
@@ -216,19 +266,22 @@ class SinsalEngine {
       dayPillar: dayPillar,
       hourPillar: hourPillar,
     );
-    final yuanChenRelations =
-        relationships.where((r) => r.type == '원진').toList();
+    final yuanChenRelations = relationships
+        .where((r) => r.type == '원진')
+        .toList();
     if (yuanChenRelations.isNotEmpty) {
       final foundOn = <String>{
         for (final r in yuanChenRelations) ...r.positions,
       }.toList();
-      entries.add(SinsalEntry(
-        id: '元辰',
-        nameKr: '원진살',
-        nameHanja: '元辰',
-        basis: '지지 조합',
-        foundOn: foundOn,
-      ));
+      entries.add(
+        SinsalEntry(
+          id: '元辰',
+          nameKr: '원진살',
+          nameHanja: '元辰',
+          basis: '지지 조합',
+          foundOn: foundOn,
+        ),
+      );
     }
 
     return entries;
@@ -262,23 +315,44 @@ class SinsalEngine {
 // saju_engine.dart의 yeokma 고정표와 동일한 값(위치 역추적 전용 재선언 —
 // 계산 로직 재구현이 아니라 동일 고정표를 참조용으로 노출).
 const Map<String, String> _yeokma = {
-  '寅': '申', '午': '申', '戌': '申',
-  '申': '寅', '子': '寅', '辰': '寅',
-  '巳': '亥', '酉': '亥', '丑': '亥',
-  '亥': '巳', '卯': '巳', '未': '巳',
+  '寅': '申',
+  '午': '申',
+  '戌': '申',
+  '申': '寅',
+  '子': '寅',
+  '辰': '寅',
+  '巳': '亥',
+  '酉': '亥',
+  '丑': '亥',
+  '亥': '巳',
+  '卯': '巳',
+  '未': '巳',
 };
 
 // saju_engine.dart 내부 private 상수와 동일한 값(위치 역추적 전용 재선언 —
 // 계산 로직 재구현이 아니라 동일 고정표를 참조용으로 노출).
 const Map<String, List<String>> _cheoneulGwiin = {
-  '甲': ['丑', '未'], '戊': ['丑', '未'], '庚': ['丑', '未'],
-  '乙': ['子', '申'], '己': ['子', '申'],
-  '丙': ['亥', '酉'], '丁': ['亥', '酉'],
-  '壬': ['卯', '巳'], '癸': ['卯', '巳'],
+  '甲': ['丑', '未'],
+  '戊': ['丑', '未'],
+  '庚': ['丑', '未'],
+  '乙': ['子', '申'],
+  '己': ['子', '申'],
+  '丙': ['亥', '酉'],
+  '丁': ['亥', '酉'],
+  '壬': ['卯', '巳'],
+  '癸': ['卯', '巳'],
   '辛': ['寅', '午'],
 };
 
 const Map<String, String> _munchangGwiin = {
-  '甲': '巳', '乙': '午', '丙': '申', '丁': '酉', '戊': '申',
-  '己': '酉', '庚': '亥', '辛': '子', '壬': '寅', '癸': '卯',
+  '甲': '巳',
+  '乙': '午',
+  '丙': '申',
+  '丁': '酉',
+  '戊': '申',
+  '己': '酉',
+  '庚': '亥',
+  '辛': '子',
+  '壬': '寅',
+  '癸': '卯',
 };

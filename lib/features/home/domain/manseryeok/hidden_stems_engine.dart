@@ -24,8 +24,16 @@ import 'five_elements_engine.dart' show zhiHideGanOf;
 import 'saju_profile.dart';
 
 const Map<String, String> _ganKrLocal = {
-  '甲': '갑', '乙': '을', '丙': '병', '丁': '정', '戊': '무',
-  '己': '기', '庚': '경', '辛': '신', '壬': '임', '癸': '계',
+  '甲': '갑',
+  '乙': '을',
+  '丙': '병',
+  '丁': '정',
+  '戊': '무',
+  '己': '기',
+  '庚': '경',
+  '辛': '신',
+  '壬': '임',
+  '癸': '계',
 };
 
 const Map<int, List<String>> _roleLabelsByCount = {

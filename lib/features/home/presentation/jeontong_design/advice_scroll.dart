@@ -17,7 +17,11 @@ class AdviceItem {
   final String num; // '一' '二' '三' 인장 라벨
   final String title;
   final String text;
-  const AdviceItem({required this.num, required this.title, required this.text});
+  const AdviceItem({
+    required this.num,
+    required this.title,
+    required this.text,
+  });
 }
 
 /// [interp]에서 재물/커리어/건강 3개 해석의 message(문장)을 그대로 뽑아
@@ -66,7 +70,11 @@ class AdviceScroll extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SajuSeal(glyph: advice.num, size: 40, color: HanjiColors.accent),
+                SajuSeal(
+                  glyph: advice.num,
+                  size: 40,
+                  color: HanjiColors.accent,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -74,13 +82,17 @@ class AdviceScroll extends StatelessWidget {
                     children: [
                       Text(
                         advice.title,
-                        style: HanjiTextStyles.display2().copyWith(fontSize: 15, height: 1.3),
+                        style: HanjiTextStyles.display2().copyWith(
+                          fontSize: 15,
+                          height: 1.3,
+                        ),
                       ),
                       const SizedBox(height: 6),
                       Text(
                         advice.text,
-                        style: HanjiTextStyles.body(color: const Color(0xD12A1F14))
-                            .copyWith(fontSize: 12.5, height: 1.7),
+                        style: HanjiTextStyles.body(
+                          color: const Color(0xD12A1F14),
+                        ).copyWith(fontSize: 12.5, height: 1.7),
                       ),
                     ],
                   ),

@@ -58,8 +58,10 @@ class FortuneAdRepository {
       final data = decoded['data'] as Map<String, dynamic>;
       return ApiResult.ok(
         ad.copyWith(
-          todayWatchedCount: data['todayWatchedCount'] as int? ?? ad.todayWatchedCount,
-          todayRemainingCount: data['todayRemainingCount'] as int? ?? ad.todayRemainingCount,
+          todayWatchedCount:
+              data['todayWatchedCount'] as int? ?? ad.todayWatchedCount,
+          todayRemainingCount:
+              data['todayRemainingCount'] as int? ?? ad.todayRemainingCount,
           watchable: data['watchable'] as bool? ?? ad.watchable,
         ),
       );
@@ -73,7 +75,9 @@ class FortuneAdRepository {
   Future<ApiResult<FortuneAdWatchSession>> start(int adId) async {
     final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/ads/$adId/start');
-    debugPrint('[FortuneAdRepository] [start] 요청 -> adId=$adId, userId=$userId');
+    debugPrint(
+      '[FortuneAdRepository] [start] 요청 -> adId=$adId, userId=$userId',
+    );
 
     try {
       final response = await http
@@ -107,7 +111,9 @@ class FortuneAdRepository {
     int? watchSeconds,
   }) async {
     final userId = await AuthTokenStore.getCurrentUserId();
-    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/ads/$adId/complete');
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/ads/$adId/complete',
+    );
     debugPrint(
       '[FortuneAdRepository] [complete] 요청 -> adId=$adId, sessionId=$sessionId',
     );

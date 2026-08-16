@@ -22,7 +22,13 @@
 library;
 
 import '../saju_engine.dart'
-    show SajuResult, SajuPillar, SajuDayMaster, SajuLuckPillar, ganImage, getGongmang;
+    show
+        SajuResult,
+        SajuPillar,
+        SajuDayMaster,
+        SajuLuckPillar,
+        ganImage,
+        getGongmang;
 import 'saju_profile.dart';
 
 /// [Pillar](신규) → [SajuPillar](레거시) 순수 필드 매핑.

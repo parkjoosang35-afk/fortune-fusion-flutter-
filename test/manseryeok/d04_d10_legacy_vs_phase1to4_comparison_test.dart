@@ -170,7 +170,8 @@ void main() {
           expect(
             newData,
             legacyData,
-            reason: '${u.userId}: $id는 원국 4주 + 오늘(referenceDate) 기준 일진만으로 '
+            reason:
+                '${u.userId}: $id는 원국 4주 + 오늘(referenceDate) 기준 일진만으로 '
                 '계산되므로 legacy/new 결과가 완전히 동일해야 함',
           );
         }
@@ -206,26 +207,32 @@ void main() {
 
   group('[j11·D04/D10] runJeontongCategory 경로 자체도 정상 동작 확인', () {
     for (final u in _seedUsers) {
-      test('${u.userId}: JeontongCalcContext(profile 포함) + runJeontongCategory("D04"/"D10") 예외 없이 동작', () {
-        final newD = _runNew(u, _kFixedDate);
-        final rules = SajuFortuneRules.cachedOrNull;
-        expect(rules, isNotNull);
+      test(
+        '${u.userId}: JeontongCalcContext(profile 포함) + runJeontongCategory("D04"/"D10") 예외 없이 동작',
+        () {
+          final newD = _runNew(u, _kFixedDate);
+          final rules = SajuFortuneRules.cachedOrNull;
+          expect(rules, isNotNull);
 
-        final ctx = JeontongCalcContext(
-          saju: newD.saju,
-          interp: newD.interp,
-          rules: rules!,
-          referenceDate: _kFixedDate,
-          profile: newD.profile,
-        );
+          final ctx = JeontongCalcContext(
+            saju: newD.saju,
+            interp: newD.interp,
+            rules: rules!,
+            referenceDate: _kFixedDate,
+            profile: newD.profile,
+          );
 
-        for (final id in _dIds) {
-          late final JeontongCategoryResult result;
-          expect(() => result = runJeontongCategory(id, ctx), returnsNormally);
-          expect(result.category, isNotEmpty);
-          expect(result.data.length, greaterThan(1));
-        }
-      });
+          for (final id in _dIds) {
+            late final JeontongCategoryResult result;
+            expect(
+              () => result = runJeontongCategory(id, ctx),
+              returnsNormally,
+            );
+            expect(result.category, isNotEmpty);
+            expect(result.data.length, greaterThan(1));
+          }
+        },
+      );
     }
   });
 }

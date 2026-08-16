@@ -99,8 +99,7 @@ class AuthRepository {
       await _persistSession(user, data['token'] as String);
       // [복주머니 정책표 §3] 서버가 함께 내려준 첫 로그인 보상 정보를 보관해둔다
       // (없으면 null — 이미 로그인한 적 있음/정책 비활성 케이스).
-      lastFirstLoginReward =
-          data['firstLoginReward'] as Map<String, dynamic>?;
+      lastFirstLoginReward = data['firstLoginReward'] as Map<String, dynamic>?;
       return ApiResult.ok(user);
     } catch (e) {
       debugPrint('[AuthRepository] [emailLogin] 예외 -> $e');

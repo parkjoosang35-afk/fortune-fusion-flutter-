@@ -16,51 +16,51 @@ class WishCounselText {
   static const String ui = 'Pretendard';
   static const String mono = 'IBMPlexMonoWish';
 
-  static TextStyle display1({Color color = WishCounselColors.fg}) =>
-      TextStyle(
-        fontFamily: display,
-        fontWeight: FontWeight.w700,
-        fontSize: 28,
-        height: 1.3,
-        letterSpacing: -0.4,
-        color: color,
-      );
+  static TextStyle display1({Color color = WishCounselColors.fg}) => TextStyle(
+    fontFamily: display,
+    fontWeight: FontWeight.w700,
+    fontSize: 28,
+    height: 1.3,
+    letterSpacing: -0.4,
+    color: color,
+  );
 
-  static TextStyle display2({Color color = WishCounselColors.fg}) =>
-      TextStyle(
-        fontFamily: display,
-        fontWeight: FontWeight.w700,
-        fontSize: 22,
-        height: 1.35,
-        letterSpacing: -0.4,
-        color: color,
-      );
+  static TextStyle display2({Color color = WishCounselColors.fg}) => TextStyle(
+    fontFamily: display,
+    fontWeight: FontWeight.w700,
+    fontSize: 22,
+    height: 1.35,
+    letterSpacing: -0.4,
+    color: color,
+  );
 
   static TextStyle title({Color color = WishCounselColors.fg}) => TextStyle(
-        fontFamily: ui,
-        fontWeight: FontWeight.w700,
-        fontSize: 20,
-        height: 1.3,
-        color: color,
-      );
+    fontFamily: ui,
+    fontWeight: FontWeight.w700,
+    fontSize: 20,
+    height: 1.3,
+    color: color,
+  );
 
   static TextStyle heading({Color color = WishCounselColors.fg}) => TextStyle(
-        fontFamily: ui,
-        fontWeight: FontWeight.w700,
-        fontSize: 18,
-        height: 1.4,
-        color: color,
-      );
+    fontFamily: ui,
+    fontWeight: FontWeight.w700,
+    fontSize: 18,
+    height: 1.4,
+    color: color,
+  );
 
-  static TextStyle bodyText({Color color = WishCounselColors.fg, double size = 14}) =>
-      TextStyle(
-        fontFamily: body,
-        fontWeight: FontWeight.w400,
-        fontSize: size,
-        height: 1.7,
-        letterSpacing: -0.2,
-        color: color,
-      );
+  static TextStyle bodyText({
+    Color color = WishCounselColors.fg,
+    double size = 14,
+  }) => TextStyle(
+    fontFamily: body,
+    fontWeight: FontWeight.w400,
+    fontSize: size,
+    height: 1.7,
+    letterSpacing: -0.2,
+    color: color,
+  );
 
   static TextStyle bodySmall({Color color = WishCounselColors.fg2}) =>
       TextStyle(
@@ -71,23 +71,24 @@ class WishCounselText {
         color: color,
       );
 
-  static TextStyle caption({Color color = WishCounselColors.fg2}) =>
-      TextStyle(
-        fontFamily: ui,
-        fontWeight: FontWeight.w500,
-        fontSize: 12,
-        height: 1.5,
-        color: color,
-      );
+  static TextStyle caption({Color color = WishCounselColors.fg2}) => TextStyle(
+    fontFamily: ui,
+    fontWeight: FontWeight.w500,
+    fontSize: 12,
+    height: 1.5,
+    color: color,
+  );
 
-  static TextStyle uiLabel({Color color = WishCounselColors.fg, double size = 14}) =>
-      TextStyle(
-        fontFamily: ui,
-        fontWeight: FontWeight.w600,
-        fontSize: size,
-        letterSpacing: -0.2,
-        color: color,
-      );
+  static TextStyle uiLabel({
+    Color color = WishCounselColors.fg,
+    double size = 14,
+  }) => TextStyle(
+    fontFamily: ui,
+    fontWeight: FontWeight.w600,
+    fontSize: size,
+    letterSpacing: -0.2,
+    color: color,
+  );
 
   static TextStyle monoLabel({Color color = WishCounselColors.fg2}) =>
       TextStyle(

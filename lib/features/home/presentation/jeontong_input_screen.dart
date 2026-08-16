@@ -251,10 +251,7 @@ class _JeontongInputScreenState extends State<JeontongInputScreen> {
                             _Field(
                               label: '성별',
                               child: _SegmentGroup(
-                                options: const [
-                                  ('M', '남 · 乾'),
-                                  ('F', '여 · 坤'),
-                                ],
+                                options: const [('M', '남 · 乾'), ('F', '여 · 坤')],
                                 value: _gender,
                                 onChanged: (v) => setState(() => _gender = v),
                                 keyPrefix: 'jeontong_input_gender',
@@ -265,10 +262,7 @@ class _JeontongInputScreenState extends State<JeontongInputScreen> {
                             _Field(
                               label: '달력',
                               child: _SegmentGroup(
-                                options: const [
-                                  ('S', '양력'),
-                                  ('L', '음력'),
-                                ],
+                                options: const [('S', '양력'), ('L', '음력')],
                                 value: _isLunar ? 'L' : 'S',
                                 onChanged: (v) =>
                                     setState(() => _isLunar = v == 'L'),
@@ -405,9 +399,7 @@ class _SegmentGroup extends StatelessWidget {
                   right: v == options.first.$1 ? HanjiSpacing.sm : 0,
                 ),
                 decoration: BoxDecoration(
-                  color: value == v
-                      ? HanjiColors.accent
-                      : HanjiColors.card,
+                  color: value == v ? HanjiColors.accent : HanjiColors.card,
                   border: Border.all(
                     color: value == v ? HanjiColors.accent : HanjiColors.line,
                   ),
@@ -456,10 +448,7 @@ class _PickerTile extends StatelessWidget {
             Icon(icon, size: 20, color: HanjiColors.accent),
             const SizedBox(width: HanjiSpacing.sm),
             Expanded(child: Text(label, style: HanjiTextStyles.body())),
-            const Icon(
-              Icons.chevron_right_rounded,
-              color: HanjiColors.muted,
-            ),
+            const Icon(Icons.chevron_right_rounded, color: HanjiColors.muted),
           ],
         ),
       ),

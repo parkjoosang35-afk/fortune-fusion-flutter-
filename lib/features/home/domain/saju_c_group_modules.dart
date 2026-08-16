@@ -77,7 +77,8 @@ YearlyMovementFortuneResult getYearlyMovementFortune(
   if (triggered) {
     return YearlyMovementFortuneResult(
       title: '이동수가 들어오는 해',
-      overall: '$label 세운이 역마(驛馬)를 발동시켜, 이사·이직·출장·여행처럼 '
+      overall:
+          '$label 세운이 역마(驛馬)를 발동시켜, 이사·이직·출장·여행처럼 '
           '움직임과 관련된 변화가 생기기 쉬운 흐름이에요.',
       advice: '미리 일정을 여유 있게 잡아두면 갑작스러운 이동도 순조롭게 넘길 수 있어요.',
       triggered: true,
@@ -85,7 +86,8 @@ YearlyMovementFortuneResult getYearlyMovementFortune(
   }
   return YearlyMovementFortuneResult(
     title: '이동수가 뚜렷하지 않은 해',
-    overall: '$label 세운에서는 역마(驛馬)가 뚜렷하게 발동하지 않아, '
+    overall:
+        '$label 세운에서는 역마(驛馬)가 뚜렷하게 발동하지 않아, '
         '생활 반경이 비교적 안정적으로 유지될 가능성이 높아요.',
     advice: '변화를 원한다면 스스로 계획을 세워 움직여보는 것도 좋은 방법이에요.',
     triggered: false,
@@ -124,13 +126,15 @@ YearlyExamFortuneResult getYearlyExamFortune(
   final munchangTriggered = targetMunchang != null && targetMunchang == yZhi;
   final ganGod = getTenGod(dayGan, yGan);
   final zhiGod = getTenGod(dayGan, yZhi);
-  final studyGodHit = _studyGods.contains(ganGod) || _studyGods.contains(zhiGod);
+  final studyGodHit =
+      _studyGods.contains(ganGod) || _studyGods.contains(zhiGod);
   final label = _yearLabel(year, yGan, yZhi);
 
   if (munchangTriggered) {
     return YearlyExamFortuneResult(
       title: '문창귀인이 들어오는 해',
-      overall: '$label 세운이 문창귀인(文昌貴人)을 발동시켜, 시험·자격증·학업 성과에 '
+      overall:
+          '$label 세운이 문창귀인(文昌貴人)을 발동시켜, 시험·자격증·학업 성과에 '
           '유리한 기운이 들어오는 해예요.',
       advice: '평소 미뤄뒀던 시험이나 자격증 준비를 시작하기 좋은 시기예요.',
       triggered: true,
@@ -139,7 +143,8 @@ YearlyExamFortuneResult getYearlyExamFortune(
   if (studyGodHit) {
     return YearlyExamFortuneResult(
       title: '학습운이 양호한 해',
-      overall: '$label 세운에 인성($ganGod/$zhiGod 중 인성) 기운이 들어와, '
+      overall:
+          '$label 세운에 인성($ganGod/$zhiGod 중 인성) 기운이 들어와, '
           '차분히 공부하고 배우는 흐름이 뒷받침되는 해예요.',
       advice: '꾸준한 학습 루틴을 유지하면 좋은 결과로 이어지기 쉬워요.',
       triggered: false,
@@ -147,7 +152,8 @@ YearlyExamFortuneResult getYearlyExamFortune(
   }
   return YearlyExamFortuneResult(
     title: '평소 페이스를 유지하면 좋은 해',
-    overall: '$label 세운에서는 문창귀인·인성이 뚜렷하게 발동하지 않아, '
+    overall:
+        '$label 세운에서는 문창귀인·인성이 뚜렷하게 발동하지 않아, '
         '급격한 학습운 상승보다는 꾸준함이 중요한 해예요.',
     advice: '단기간의 벼락치기보다 장기 계획을 세워 준비하면 좋아요.',
     triggered: false,
@@ -185,13 +191,26 @@ YearlyLegalRiskFortuneResult getYearlyLegalRiskFortune(
 }) {
   final (yGan, yZhi) = _sewoonGanZhi(year);
   final dayGan = saju.dayMaster.gan;
-  final officerHit = _officerGodsC.contains(getTenGod(dayGan, yGan)) ||
+  final officerHit =
+      _officerGodsC.contains(getTenGod(dayGan, yGan)) ||
       _officerGodsC.contains(getTenGod(dayGan, yZhi));
 
-  final yearPillar = buildLuckPillar(saju.pillars['year']!.gan, saju.pillars['year']!.zhi);
-  final monthPillar = buildLuckPillar(saju.pillars['month']!.gan, saju.pillars['month']!.zhi);
-  final dayPillar = buildLuckPillar(saju.pillars['day']!.gan, saju.pillars['day']!.zhi);
-  final hourPillar = buildLuckPillar(saju.pillars['hour']!.gan, saju.pillars['hour']!.zhi);
+  final yearPillar = buildLuckPillar(
+    saju.pillars['year']!.gan,
+    saju.pillars['year']!.zhi,
+  );
+  final monthPillar = buildLuckPillar(
+    saju.pillars['month']!.gan,
+    saju.pillars['month']!.zhi,
+  );
+  final dayPillar = buildLuckPillar(
+    saju.pillars['day']!.gan,
+    saju.pillars['day']!.zhi,
+  );
+  final hourPillar = buildLuckPillar(
+    saju.pillars['hour']!.gan,
+    saju.pillars['hour']!.zhi,
+  );
   final sewoonPillar = buildLuckPillar(yGan, yZhi);
 
   final relations = RelationshipsEngine.analyzeExternal(
@@ -203,16 +222,20 @@ YearlyLegalRiskFortuneResult getYearlyLegalRiskFortune(
     externalLabel: '세운',
   );
   const cautionTypes = {'지지충', '형', '자형', '삼형', '파', '해', '원진', '귀문', '천간충'};
-  final cautionHits = relations.where((r) => cautionTypes.contains(r.type)).toList();
+  final cautionHits = relations
+      .where((r) => cautionTypes.contains(r.type))
+      .toList();
   final label = _yearLabel(year, yGan, yZhi);
 
   if (officerHit && cautionHits.isNotEmpty) {
     final types = cautionHits.map((r) => r.type).toSet().join('·');
     return YearlyLegalRiskFortuneResult(
       title: '계약·문서 관련 주의가 필요한 해',
-      overall: '$label 세운이 관성을 발동시키면서 동시에 원국과 $types 관계를 이뤄, '
+      overall:
+          '$label 세운이 관성을 발동시키면서 동시에 원국과 $types 관계를 이뤄, '
           '계약·문서·분쟁과 관련된 사안에서 평소보다 신중함이 필요한 시기예요.',
-      advice: '중요한 계약서는 서명 전 꼼꼼히 검토하고, 다툼이 될 만한 사안은 '
+      advice:
+          '중요한 계약서는 서명 전 꼼꼼히 검토하고, 다툼이 될 만한 사안은 '
           '전문가(변호사·법무사)의 자문을 받아보는 것을 권해요. '
           '(※ 사주 명리학적 참고 정보이며, 실제 법적 결과를 예측하는 것은 아니에요.)',
     );
@@ -221,7 +244,8 @@ YearlyLegalRiskFortuneResult getYearlyLegalRiskFortune(
     final types = cautionHits.map((r) => r.type).toSet().join('·');
     return YearlyLegalRiskFortuneResult(
       title: '주변과의 갈등에 유의하면 좋은 해',
-      overall: '$label 세운이 원국과 $types 관계를 이뤄, 사람들과의 마찰이나 '
+      overall:
+          '$label 세운이 원국과 $types 관계를 이뤄, 사람들과의 마찰이나 '
           '오해가 생기기 쉬운 흐름이에요.',
       advice: '감정적인 대응보다 차분한 대화로 풀어가면 큰 갈등으로 번지는 것을 막을 수 있어요.',
     );
@@ -235,7 +259,8 @@ YearlyLegalRiskFortuneResult getYearlyLegalRiskFortune(
   }
   return YearlyLegalRiskFortuneResult(
     title: '법적 분쟁 위험이 낮은 해',
-    overall: '$label 세운에서는 관성이나 형충 관계가 뚜렷하게 발동하지 않아, '
+    overall:
+        '$label 세운에서는 관성이나 형충 관계가 뚜렷하게 발동하지 않아, '
         '계약·분쟁 관련해 비교적 평온하게 지나갈 가능성이 높은 해예요.',
     advice: '평소처럼 기본적인 서류 관리 습관만 유지해도 충분해요.',
   );
@@ -272,7 +297,8 @@ YearlyRelationshipFortuneResult getYearlyRelationshipFortune(
   if (gods.intersection({'비견', '겁재'}).isNotEmpty) {
     return YearlyRelationshipFortuneResult(
       title: '동료·또래와의 교류가 활발해지는 해',
-      overall: '$label 세운에 비겁 기운이 들어와, 동료·친구·경쟁자 같은 또래 관계의 '
+      overall:
+          '$label 세운에 비겁 기운이 들어와, 동료·친구·경쟁자 같은 또래 관계의 '
           '교류가 활발해질 수 있는 해예요.',
       advice: '함께 일할 땐 역할을 분명히 나누면 불필요한 마찰을 줄일 수 있어요.',
     );
@@ -280,7 +306,8 @@ YearlyRelationshipFortuneResult getYearlyRelationshipFortune(
   if (gods.intersection({'정인', '편인'}).isNotEmpty) {
     return YearlyRelationshipFortuneResult(
       title: '도움을 주고받는 인연이 이어지는 해',
-      overall: '$label 세운에 인성 기운이 들어와, 스승·선배·후원자처럼 도움을 주는 '
+      overall:
+          '$label 세운에 인성 기운이 들어와, 스승·선배·후원자처럼 도움을 주는 '
           '인연을 만나기 좋은 해예요.',
       advice: '먼저 조언을 구하는 데 주저하지 않으면 좋은 인연으로 이어질 수 있어요.',
     );
@@ -288,7 +315,8 @@ YearlyRelationshipFortuneResult getYearlyRelationshipFortune(
   if (gods.intersection({'편재', '정재'}).isNotEmpty) {
     return YearlyRelationshipFortuneResult(
       title: '실속 있는 관계가 두드러지는 해',
-      overall: '$label 세운에 재성 기운이 들어와, 거래·이성 관계 등 실질적인 이익이 '
+      overall:
+          '$label 세운에 재성 기운이 들어와, 거래·이성 관계 등 실질적인 이익이 '
           '오가는 관계가 두드러질 수 있는 해예요.',
       advice: '관계에서 주고받는 균형을 신경 쓰면 오래가는 인연으로 이어져요.',
     );
@@ -296,7 +324,8 @@ YearlyRelationshipFortuneResult getYearlyRelationshipFortune(
   if (gods.intersection({'편관', '정관'}).isNotEmpty) {
     return YearlyRelationshipFortuneResult(
       title: '윗사람·조직과의 관계가 중요한 해',
-      overall: '$label 세운에 관성 기운이 들어와, 상사·기관 등 위계 관계에서 '
+      overall:
+          '$label 세운에 관성 기운이 들어와, 상사·기관 등 위계 관계에서 '
           '영향을 받기 쉬운 해예요.',
       advice: '예의와 기본을 지키면 윗사람의 신뢰를 얻기 좋은 시기예요.',
     );
@@ -333,7 +362,9 @@ YearlyMonthlyOverviewResult getYearlyMonthlyOverview(
   final lines = <String>[];
   for (var month = 1; month <= 12; month++) {
     final r = getMonthlyFortune(saju, rules, year: year, month: month);
-    final headline = r.title.isNotEmpty ? r.title : (r.overall.isNotEmpty ? r.overall : '흐름 정리 중');
+    final headline = r.title.isNotEmpty
+        ? r.title
+        : (r.overall.isNotEmpty ? r.overall : '흐름 정리 중');
     lines.add('$month월 (${r.monthGanZhi}) — $headline');
   }
   return YearlyMonthlyOverviewResult(

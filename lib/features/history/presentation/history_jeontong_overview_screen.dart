@@ -11,16 +11,18 @@ import 'widgets/jeontong_section_filter_chips.dart';
 List<HistoryEntry> _simpleSearch(List<HistoryEntry> all, String query) {
   final q = query.trim().toLowerCase();
   if (q.isEmpty) return all;
-  return all.where((e) {
-    if (e.id.toLowerCase().contains(q)) return true;
-    if (e.categoryId.toLowerCase().contains(q)) return true;
-    if (e.title.toLowerCase().contains(q)) return true;
-    if (e.subtitle.toLowerCase().contains(q)) return true;
-    if (e.createdAtUtc.toIso8601String().toLowerCase().contains(q)) {
-      return true;
-    }
-    return false;
-  }).toList(growable: false);
+  return all
+      .where((e) {
+        if (e.id.toLowerCase().contains(q)) return true;
+        if (e.categoryId.toLowerCase().contains(q)) return true;
+        if (e.title.toLowerCase().contains(q)) return true;
+        if (e.subtitle.toLowerCase().contains(q)) return true;
+        if (e.createdAtUtc.toIso8601String().toLowerCase().contains(q)) {
+          return true;
+        }
+        return false;
+      })
+      .toList(growable: false);
 }
 
 /// [정통사주 80종 한눈에 미리보기] 사용자가 누적한 결과를 8개 섹션(A~H)

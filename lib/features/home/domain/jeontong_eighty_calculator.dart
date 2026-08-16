@@ -420,10 +420,7 @@ JeontongCategoryResult _b08(JeontongCalcContext ctx) {
   final r = getBestDaewoonPeriods(ctx.saju, ctx.profile);
   return JeontongCategoryResult(
     category: '인생 최고 대운 시기',
-    data: {
-      'periods': r.periods,
-      'summary': r.summary,
-    },
+    data: {'periods': r.periods, 'summary': r.summary},
   );
 }
 
@@ -431,10 +428,7 @@ JeontongCategoryResult _b09(JeontongCalcContext ctx) {
   final r = getWorstDaewoonPeriods(ctx.saju, ctx.profile);
   return JeontongCategoryResult(
     category: '인생 최악 대운 시기',
-    data: {
-      'periods': r.periods,
-      'summary': r.summary,
-    },
+    data: {'periods': r.periods, 'summary': r.summary},
   );
 }
 
@@ -457,11 +451,29 @@ JeontongCategoryResult _b10(JeontongCalcContext ctx) {
 // C. 세운(올해) (10)
 // ============================================================
 
+/// [2026-08-17 C01~C05 소카테고리 차별화] `getYearFortune()`은 총운/재물/
+/// 직업/애정/건강 5개 영역을 한 번에 계산해 반환하지만, 각 소카테고리는
+/// 자신의 주제에 해당하는 영역만 노출해야 한다("올해 건강운을 보면
+/// 건강운만 나와야지, 재물·직업·애정까지 다 섞여 나오면 안 된다" — 사용자
+/// 지적 원문). [focusField]가 'overall'이면 C01(총운)처럼 전체 총평만,
+/// 그 외(wealth/career/love/health)면 해당 영역 텍스트만 `data`에 담는다.
+/// 이렇게 하면 `_mapCalculatedResultToReport`의 `_aspectFieldLabels` 순회가
+/// 데이터에 실제로 존재하는 키만 카드로 만들기 때문에, 다른 영역의 문구가
+/// 함께 나오는 일이 원천적으로 사라진다.
 JeontongCategoryResult _yearFortuneToResult(
   JeontongCalcContext ctx,
-  String category,
-) {
+  String category, {
+  required String focusField,
+}) {
   final r = getYearFortune(ctx.saju, ctx.rules, year: ctx.year);
+  final byField = <String, String>{
+    'overall': r.overall,
+    'wealth': r.wealth,
+    'career': r.career,
+    'love': r.love,
+    'health': r.health,
+  };
+  final focusText = byField[focusField] ?? r.overall;
   return JeontongCategoryResult(
     category: category,
     data: {
@@ -470,11 +482,9 @@ JeontongCategoryResult _yearFortuneToResult(
       'gan_god': r.ganGod,
       'zhi_god': r.zhiGod,
       'title': r.title,
-      'overall': r.overall,
-      'wealth': r.wealth,
-      'career': r.career,
-      'love': r.love,
-      'health': r.health,
+      // focusField 키 하나만 담는다 — 예: C02(재물운)이면 'wealth' 키만
+      // 존재하므로 다른 영역(직업/애정/건강) 문구는 이 결과에 아예 없다.
+      focusField: focusText,
       'advice': r.advice,
     },
   );
@@ -484,11 +494,7 @@ JeontongCategoryResult _c06(JeontongCalcContext ctx) {
   final r = getYearlyMovementFortune(ctx.saju, year: ctx.year);
   return JeontongCategoryResult(
     category: '올해 이사·이동수',
-    data: {
-      'title': r.title,
-      'overall': r.overall,
-      'advice': r.advice,
-    },
+    data: {'title': r.title, 'overall': r.overall, 'advice': r.advice},
   );
 }
 
@@ -496,11 +502,7 @@ JeontongCategoryResult _c07(JeontongCalcContext ctx) {
   final r = getYearlyExamFortune(ctx.saju, year: ctx.year);
   return JeontongCategoryResult(
     category: '올해 시험·자격운',
-    data: {
-      'title': r.title,
-      'overall': r.overall,
-      'advice': r.advice,
-    },
+    data: {'title': r.title, 'overall': r.overall, 'advice': r.advice},
   );
 }
 
@@ -508,11 +510,7 @@ JeontongCategoryResult _c08(JeontongCalcContext ctx) {
   final r = getYearlyLegalRiskFortune(ctx.saju, year: ctx.year);
   return JeontongCategoryResult(
     category: '올해 소송·관재수',
-    data: {
-      'title': r.title,
-      'overall': r.overall,
-      'advice': r.advice,
-    },
+    data: {'title': r.title, 'overall': r.overall, 'advice': r.advice},
   );
 }
 
@@ -520,11 +518,7 @@ JeontongCategoryResult _c09(JeontongCalcContext ctx) {
   final r = getYearlyRelationshipFortune(ctx.saju, year: ctx.year);
   return JeontongCategoryResult(
     category: '올해 인간관계',
-    data: {
-      'title': r.title,
-      'overall': r.overall,
-      'advice': r.advice,
-    },
+    data: {'title': r.title, 'overall': r.overall, 'advice': r.advice},
   );
 }
 
@@ -532,10 +526,7 @@ JeontongCategoryResult _c10(JeontongCalcContext ctx) {
   final r = getYearlyMonthlyOverview(ctx.saju, ctx.rules, year: ctx.year);
   return JeontongCategoryResult(
     category: '올해 12개월 월별',
-    data: {
-      'overall': r.overall,
-      'monthly_summary': r.monthlySummary,
-    },
+    data: {'overall': r.overall, 'monthly_summary': r.monthlySummary},
   );
 }
 
@@ -544,7 +535,12 @@ JeontongCategoryResult _c10(JeontongCalcContext ctx) {
 // ============================================================
 
 JeontongCategoryResult _monthlyFortuneToResult(JeontongCalcContext ctx) {
-  final r = getMonthlyFortune(ctx.saju, ctx.rules, year: ctx.year, month: ctx.month);
+  final r = getMonthlyFortune(
+    ctx.saju,
+    ctx.rules,
+    year: ctx.year,
+    month: ctx.month,
+  );
   return JeontongCategoryResult(
     category: r.category,
     data: {
@@ -562,16 +558,13 @@ JeontongCategoryResult _monthlyFortuneToResult(JeontongCalcContext ctx) {
   );
 }
 
-Map<String, dynamic> _dailyFortuneToMap(DailyFortuneResult r) => {
+/// 공통 부가 정보(간지/십신/시간대 등)만 담는다 — 카테고리별 본문 필드는
+/// [_dailyFortuneToResult]가 [focusField]에 맞춰 별도로 추가한다.
+Map<String, dynamic> _dailyFortuneCommonMap(DailyFortuneResult r) => {
   'day_gan_zhi': r.dayGanZhi,
   'gan_god': r.ganGod,
   'zhi_god': r.zhiGod,
   'title': r.title,
-  'mood': r.mood,
-  'overall': r.overall,
-  'work': r.work,
-  'wealth': r.wealth,
-  'love': r.love,
   'lucky_time': r.luckyTime,
   'avoid_time': r.avoidTime,
   'lucky_color': r.luckyColor,
@@ -579,17 +572,55 @@ Map<String, dynamic> _dailyFortuneToMap(DailyFortuneResult r) => {
   'lucky_number': r.luckyNumber,
 };
 
+/// [2026-08-17 D02/D03/D05~D08 소카테고리 차별화] C그룹과 동일한 원칙 —
+/// D02(오늘의 운세)는 총운(overall+mood)을, D05(오늘의 재물운)는 wealth만,
+/// D06(오늘의 애정운)은 love만, D07(오늘의 건강운)은 health만, D08(오늘의
+/// 길흉 시간대)은 시간대 정보 중심으로 노출한다. 과거의 `focusTag`는
+/// `data['focus']`에 저장만 되고 리포트 빌더가 전혀 읽지 않아 실질적으로
+/// 무의미했다 — [focusField]를 실제 데이터 키 선택에 사용하도록 바꿨다.
 JeontongCategoryResult _dailyFortuneToResult(
   JeontongCalcContext ctx, {
   int? year,
   int? month,
   int? day,
-  String? focusTag,
+  required String focusField,
   String? categoryOverride,
 }) {
-  final r = getDailyFortune(ctx.saju, ctx.rules, year: year, month: month, day: day);
-  final data = _dailyFortuneToMap(r);
-  if (focusTag != null) data['focus'] = focusTag;
+  final r = getDailyFortune(
+    ctx.saju,
+    ctx.rules,
+    year: year,
+    month: month,
+    day: day,
+  );
+  final data = _dailyFortuneCommonMap(r);
+  switch (focusField) {
+    case 'wealth':
+      data['wealth'] = r.wealth;
+      break;
+    case 'love':
+      data['love'] = r.love;
+      break;
+    case 'health':
+      data['health'] = r.health;
+      break;
+    case 'time':
+      // D08(길흉 시간대) — lucky_time/avoid_time은 실계산값이지만 그 자체는
+      // 짧은 단어(예: '오전 9~11시')라 리포트 본문(overview/subDescription)
+      // 자리를 채우지 못한다. 두 실계산값을 그대로 조합한 문장을
+      // 'overall'에 담아, 랜덤 플레이스홀더로 폴백되지 않고 이 카테고리
+      // 고유의 실계산 결과가 본문에 노출되게 한다.
+      data['overall'] =
+          '오늘 움직이기 좋은 시간대는 ${r.luckyTime}. '
+          '반대로 ${r.avoidTime}은(는) 피하는 게 좋은 흐름이에요.';
+      break;
+    case 'overall':
+    default:
+      data['overall'] = r.overall;
+      data['mood'] = r.mood;
+      data['work'] = r.work;
+      break;
+  }
   return JeontongCategoryResult(
     category: categoryOverride ?? r.category,
     data: data,
@@ -623,10 +654,7 @@ JeontongCategoryResult _d04(JeontongCalcContext ctx) {
   final r = getWeeklyFortune(ctx.saju, ctx.rules, startDate: ctx.referenceDate);
   return JeontongCategoryResult(
     category: '이번 주 운세',
-    data: {
-      'overall': r.overall,
-      'daily_summary': r.dailySummary,
-    },
+    data: {'overall': r.overall, 'daily_summary': r.dailySummary},
   );
 }
 
@@ -637,11 +665,7 @@ JeontongCategoryResult _d10(JeontongCalcContext ctx) {
   final r = getTodayAvoidFortune(ctx.saju, date: ctx.referenceDate);
   return JeontongCategoryResult(
     category: '오늘 피해야 할 일',
-    data: {
-      'title': r.title,
-      'overall': r.overall,
-      'advice': r.advice,
-    },
+    data: {'title': r.title, 'overall': r.overall, 'advice': r.advice},
   );
 }
 
@@ -833,11 +857,14 @@ final Map<String, _CategoryFn> _categoryIndex = {
   'B10': _b10,
 
   // C. 세운(올해) (10)
-  'C01': (ctx) => _yearFortuneToResult(ctx, '${ctx.year}년 운세'),
-  'C02': (ctx) => _yearFortuneToResult(ctx, '올해 재물운'),
-  'C03': (ctx) => _yearFortuneToResult(ctx, '올해 직업운'),
-  'C04': (ctx) => _yearFortuneToResult(ctx, '올해 애정운'),
-  'C05': (ctx) => _yearFortuneToResult(ctx, '올해 건강운'),
+  // [2026-08-17] 각 소카테고리는 반드시 자신의 주제(focusField)에 해당하는
+  // 영역만 결과에 담는다 — C02(재물운)엔 wealth만, C05(건강운)엔 health만.
+  'C01': (ctx) =>
+      _yearFortuneToResult(ctx, '${ctx.year}년 운세', focusField: 'overall'),
+  'C02': (ctx) => _yearFortuneToResult(ctx, '올해 재물운', focusField: 'wealth'),
+  'C03': (ctx) => _yearFortuneToResult(ctx, '올해 직업운', focusField: 'career'),
+  'C04': (ctx) => _yearFortuneToResult(ctx, '올해 애정운', focusField: 'love'),
+  'C05': (ctx) => _yearFortuneToResult(ctx, '올해 건강운', focusField: 'health'),
   'C06': (ctx) => _c06(ctx),
   'C07': (ctx) => _c07(ctx),
   'C08': (ctx) => _c08(ctx),
@@ -845,12 +872,15 @@ final Map<String, _CategoryFn> _categoryIndex = {
   'C10': (ctx) => _c10(ctx),
 
   // D. 이달·오늘 (10)
+  // [2026-08-17] D02(오늘 총운)/D03(내일 총운)은 focusField: 'overall',
+  // D05~D08은 각자의 주제(재물/애정/건강/시간) 필드만 노출한다.
   'D01': (ctx) => _monthlyFortuneToResult(ctx),
   'D02': (ctx) => _dailyFortuneToResult(
     ctx,
     year: ctx.referenceDate.year,
     month: ctx.referenceDate.month,
     day: ctx.referenceDate.day,
+    focusField: 'overall',
   ),
   'D03': (ctx) {
     final tomorrow = ctx.referenceDate.add(const Duration(days: 1));
@@ -859,6 +889,7 @@ final Map<String, _CategoryFn> _categoryIndex = {
       year: tomorrow.year,
       month: tomorrow.month,
       day: tomorrow.day,
+      focusField: 'overall',
     );
   },
   'D04': (ctx) => _d04(ctx),
@@ -867,28 +898,28 @@ final Map<String, _CategoryFn> _categoryIndex = {
     year: ctx.referenceDate.year,
     month: ctx.referenceDate.month,
     day: ctx.referenceDate.day,
-    focusTag: '재물',
+    focusField: 'wealth',
   ),
   'D06': (ctx) => _dailyFortuneToResult(
     ctx,
     year: ctx.referenceDate.year,
     month: ctx.referenceDate.month,
     day: ctx.referenceDate.day,
-    focusTag: '애정',
+    focusField: 'love',
   ),
   'D07': (ctx) => _dailyFortuneToResult(
     ctx,
     year: ctx.referenceDate.year,
     month: ctx.referenceDate.month,
     day: ctx.referenceDate.day,
-    focusTag: '건강',
+    focusField: 'health',
   ),
   'D08': (ctx) => _dailyFortuneToResult(
     ctx,
     year: ctx.referenceDate.year,
     month: ctx.referenceDate.month,
     day: ctx.referenceDate.day,
-    focusTag: '시간',
+    focusField: 'time',
   ),
   'D09': (ctx) => _luckyItemsToResult(ctx),
   'D10': (ctx) => _d10(ctx),

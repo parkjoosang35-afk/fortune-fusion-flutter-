@@ -360,9 +360,7 @@ class _PassSummaryCard extends StatelessWidget {
                 foregroundColor: UnifiedColors.textPrimary,
                 side: const BorderSide(color: UnifiedColors.border),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(
-                    UnifiedTokens.radiusPill,
-                  ),
+                  borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
                 ),
               ),
               child: const Text('광고 보고 1시간 열기'),
@@ -443,19 +441,14 @@ class _WalletSummaryCard extends StatelessWidget {
                 foregroundColor: UnifiedColors.textPrimary,
                 side: const BorderSide(color: UnifiedColors.border),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(
-                    UnifiedTokens.radiusPill,
-                  ),
+                  borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
                 ),
               ),
               child: const Text('내역 보기'),
             ),
           ),
           const SizedBox(height: UnifiedTokens.spaceSm),
-          Text(
-            '광고 보기, 출석, 커뮤니티 활동으로 모을 수 있어요.',
-            style: UnifiedText.caption(),
-          ),
+          Text('광고 보기, 출석, 커뮤니티 활동으로 모을 수 있어요.', style: UnifiedText.caption()),
         ],
       ),
     );

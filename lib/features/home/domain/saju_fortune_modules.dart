@@ -69,7 +69,8 @@ YearFortuneResult getYearFortune(
 
   final byTenGod = _asMap(rules.yearFortune['by_ten_god']);
   final rule = _asMap(byTenGod[ganGod]);
-  final theme = (_asMap(rules.luckPillar['yearly_theme_by_stem'])[yGan] as String?) ?? '';
+  final theme =
+      (_asMap(rules.luckPillar['yearly_theme_by_stem'])[yGan] as String?) ?? '';
 
   return YearFortuneResult(
     category: '$year년 운세',
@@ -169,6 +170,7 @@ class DailyFortuneResult {
     required this.work,
     required this.wealth,
     required this.love,
+    required this.health,
     required this.luckyTime,
     required this.avoidTime,
     required this.luckyColor,
@@ -186,6 +188,7 @@ class DailyFortuneResult {
   final String work;
   final String wealth;
   final String love;
+  final String health;
   final String luckyTime;
   final String avoidTime;
   final List<String> luckyColor;
@@ -251,6 +254,7 @@ DailyFortuneResult getDailyFortune(
     work: (rule['work'] as String?) ?? '',
     wealth: (rule['wealth'] as String?) ?? '',
     love: (rule['love'] as String?) ?? '',
+    health: (rule['health'] as String?) ?? '',
     luckyTime: (rule['lucky_time'] as String?) ?? '',
     avoidTime: (rule['avoid_time'] as String?) ?? '',
     luckyColor: _asList<String>(lucky['colors']),
@@ -416,7 +420,8 @@ CompatibilityResult getCompatibility(
       break;
     }
   }
-  final bandDesc = (rules.compatibility['score_bands'] as Map?)?[band] as String? ?? '';
+  final bandDesc =
+      (rules.compatibility['score_bands'] as Map?)?[band] as String? ?? '';
 
   return CompatibilityResult(
     personADayMaster: '$aGan(${ganKr[aGan]})',

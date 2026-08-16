@@ -193,7 +193,8 @@ void main() {
           expect(
             newData,
             legacyData,
-            reason: '${u.userId}: $id는 원국 연지/일간 오행만으로 계산되며 '
+            reason:
+                '${u.userId}: $id는 원국 연지/일간 오행만으로 계산되며 '
                 '[SajuProfile]에 의존하지 않으므로 legacy/new 결과가 '
                 '완전히 동일해야 함',
           );
@@ -262,7 +263,10 @@ void main() {
 
           for (final id in _eIds) {
             late final JeontongCategoryResult result;
-            expect(() => result = runJeontongCategory(id, ctx), returnsNormally);
+            expect(
+              () => result = runJeontongCategory(id, ctx),
+              returnsNormally,
+            );
             expect(result.category, isNotEmpty);
             expect(result.data.length, greaterThan(1));
           }

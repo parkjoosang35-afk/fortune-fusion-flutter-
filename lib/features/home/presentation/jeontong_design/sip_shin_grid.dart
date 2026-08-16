@@ -65,11 +65,16 @@ class SipShinGrid extends StatelessWidget {
           children: items.map((it) {
             final color = _sipShinGroupColor(it.god);
             final hanja = _kSipShinHanja[it.god] ?? '';
-            final code = hanja.isNotEmpty ? hanja.substring(0, 1) : it.god.substring(0, 1);
+            final code = hanja.isNotEmpty
+                ? hanja.substring(0, 1)
+                : it.god.substring(0, 1);
             return SizedBox(
               width: w,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: HanjiColors.card,
                   border: Border.all(color: HanjiColors.line),
@@ -82,13 +87,17 @@ class SipShinGrid extends StatelessWidget {
                       height: 32,
                       decoration: BoxDecoration(
                         color: color.withValues(alpha: 0.13),
-                        border: Border.all(color: color.withValues(alpha: 0.35)),
+                        border: Border.all(
+                          color: color.withValues(alpha: 0.35),
+                        ),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       alignment: Alignment.center,
                       child: Text(
                         code,
-                        style: HanjiTextStyles.display1(color: color).copyWith(fontSize: 15),
+                        style: HanjiTextStyles.display1(
+                          color: color,
+                        ).copyWith(fontSize: 15),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -102,20 +111,25 @@ class SipShinGrid extends StatelessWidget {
                             children: [
                               Text(
                                 '${it.god}${it.count > 1 ? ' ×${it.count}' : ''}',
-                                style: HanjiTextStyles.bodyTitle().copyWith(fontSize: 12),
+                                style: HanjiTextStyles.bodyTitle().copyWith(
+                                  fontSize: 12,
+                                ),
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 hanja,
-                                style: HanjiTextStyles.body(color: HanjiColors.muted)
-                                    .copyWith(fontSize: 9),
+                                style: HanjiTextStyles.body(
+                                  color: HanjiColors.muted,
+                                ).copyWith(fontSize: 9),
                               ),
                             ],
                           ),
                           const SizedBox(height: 2),
                           Text(
                             it.easy,
-                            style: HanjiTextStyles.bodySmall().copyWith(fontSize: 10),
+                            style: HanjiTextStyles.bodySmall().copyWith(
+                              fontSize: 10,
+                            ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),

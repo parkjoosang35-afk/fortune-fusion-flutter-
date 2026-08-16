@@ -42,7 +42,8 @@ import 'package:flutter_app/features/home/domain/saju_interpreter.dart';
 
 bool _isPlaceholderResult(JeontongCategoryResult result) {
   final keys = result.data.keys.toSet();
-  return keys.length == 1 && (keys.single == 'message' || keys.single == 'note');
+  return keys.length == 1 &&
+      (keys.single == 'message' || keys.single == 'note');
 }
 
 void main() {
@@ -95,7 +96,8 @@ void main() {
     expect(
       actualPlaceholders,
       kJeontongPlaceholderCategoryIds,
-      reason: '실제 계산 결과의 플레이스홀더 집합과 kJeontongPlaceholderCategoryIds 목록이 어긋남 — '
+      reason:
+          '실제 계산 결과의 플레이스홀더 집합과 kJeontongPlaceholderCategoryIds 목록이 어긋남 — '
           '_categoryIndex가 수정됐다면 이 목록도 함께 갱신해야 함.',
     );
   });

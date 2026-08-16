@@ -145,7 +145,11 @@ class _WeakestElementBanner extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         children: [
-          Icon(Icons.auto_awesome_rounded, color: Colors.white, size: UnifiedTokens.iconMd),
+          Icon(
+            Icons.auto_awesome_rounded,
+            color: Colors.white,
+            size: UnifiedTokens.iconMd,
+          ),
           const SizedBox(width: UnifiedTokens.spaceSm),
           Expanded(
             child: Column(

@@ -56,9 +56,7 @@ class _JeontongKeywordSearchBarState extends State<JeontongKeywordSearchBar> {
             onPressed: _clear,
           ),
           hintText: '카테고리·키워드 검색 (예: 재물, A01, 정재)',
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
           contentPadding: const EdgeInsets.symmetric(vertical: 10),
         ),
       ),

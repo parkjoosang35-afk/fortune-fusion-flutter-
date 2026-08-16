@@ -39,8 +39,10 @@ class FortuneAdWatchResult {
       );
   factory FortuneAdWatchResult.cancelled() =>
       const FortuneAdWatchResult._(FortuneAdWatchOutcome.cancelled);
-  factory FortuneAdWatchResult.failed(String message) =>
-      FortuneAdWatchResult._(FortuneAdWatchOutcome.failed, errorMessage: message);
+  factory FortuneAdWatchResult.failed(String message) => FortuneAdWatchResult._(
+    FortuneAdWatchOutcome.failed,
+    errorMessage: message,
+  );
 }
 
 /// [신통방통 복주머니 광고 적립 시스템] 광고 시청 팝업 —
@@ -113,14 +115,13 @@ class _FortuneAdWatchDialogState extends State<FortuneAdWatchDialog> {
     _totalSeconds = session.watchSeconds;
     _remaining = _totalSeconds;
 
-    if (widget.ad.adType == 'video' &&
-        (widget.ad.videoUrl ?? '').isNotEmpty) {
-      _videoController = VideoPlayerController.networkUrl(
-        Uri.parse(widget.ad.videoUrl!),
-      )..initialize().then((_) {
-          if (!mounted) return;
-          _videoController!.play();
-        });
+    if (widget.ad.adType == 'video' && (widget.ad.videoUrl ?? '').isNotEmpty) {
+      _videoController =
+          VideoPlayerController.networkUrl(Uri.parse(widget.ad.videoUrl!))
+            ..initialize().then((_) {
+              if (!mounted) return;
+              _videoController!.play();
+            });
     }
 
     setState(() => _stage = _Stage.watching);
@@ -177,17 +178,17 @@ class _FortuneAdWatchDialogState extends State<FortuneAdWatchDialog> {
   void _closeAsGranted() {
     if (_closed) return;
     _closed = true;
-    Navigator.of(context).pop(
-      FortuneAdWatchResult.granted(_grantedAmount ?? 0, _balanceAfter),
-    );
+    Navigator.of(
+      context,
+    ).pop(FortuneAdWatchResult.granted(_grantedAmount ?? 0, _balanceAfter));
   }
 
   void _closeAsFailed() {
     if (_closed) return;
     _closed = true;
-    Navigator.of(context).pop(
-      FortuneAdWatchResult.failed(_errorMessage ?? '처리 중 오류가 발생했습니다.'),
-    );
+    Navigator.of(
+      context,
+    ).pop(FortuneAdWatchResult.failed(_errorMessage ?? '처리 중 오류가 발생했습니다.'));
   }
 
   @override
@@ -269,11 +270,7 @@ class _WatchingView extends StatelessWidget {
       children: [
         Column(
           children: [
-            Expanded(
-              child: Center(
-                child: _buildContent(),
-              ),
-            ),
+            Expanded(child: Center(child: _buildContent())),
             Padding(
               padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
               child: Column(
@@ -285,7 +282,9 @@ class _WatchingView extends StatelessWidget {
                   ),
                   const SizedBox(height: UnifiedTokens.spaceSm),
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
+                    borderRadius: BorderRadius.circular(
+                      UnifiedTokens.radiusPill,
+                    ),
                     child: LinearProgressIndicator(
                       value: progress,
                       minHeight: 6,
@@ -410,7 +409,11 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 48),
+            const Icon(
+              Icons.error_outline_rounded,
+              color: Colors.redAccent,
+              size: 48,
+            ),
             const SizedBox(height: UnifiedTokens.spaceMd),
             Text(
               message,
@@ -426,7 +429,10 @@ class _ErrorView extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 12,
+                ),
               ),
               child: const Text('확인'),
             ),

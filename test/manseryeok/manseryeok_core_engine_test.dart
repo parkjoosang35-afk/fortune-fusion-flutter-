@@ -19,307 +19,311 @@ import 'package:flutter_app/features/home/domain/saju_engine.dart' as legacy;
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('PHASE 1 회귀 검증 — SajuEngine(레거시 jeontong 엔진) vs ManseryeokCoreEngine', () {
-    void expectSamePillars({
-      required int year,
-      required int month,
-      required int day,
-      required int hour,
-      int minute = 0,
-      String gender = 'male',
-      bool isLunar = false,
-      bool isLeapMonth = false,
-      String label = '',
-    }) {
-      final legacyResult = legacy.SajuEngine.calculate(
-        year: year,
-        month: month,
-        day: day,
-        hour: hour,
-        minute: minute,
-        gender: gender,
-        isLunar: isLunar,
-      );
+  group(
+    'PHASE 1 회귀 검증 — SajuEngine(레거시 jeontong 엔진) vs ManseryeokCoreEngine',
+    () {
+      void expectSamePillars({
+        required int year,
+        required int month,
+        required int day,
+        required int hour,
+        int minute = 0,
+        String gender = 'male',
+        bool isLunar = false,
+        bool isLeapMonth = false,
+        String label = '',
+      }) {
+        final legacyResult = legacy.SajuEngine.calculate(
+          year: year,
+          month: month,
+          day: day,
+          hour: hour,
+          minute: minute,
+          gender: gender,
+          isLunar: isLunar,
+        );
 
-      final newProfile = ManseryeokCoreEngine.buildProfile(
-        year: year,
-        month: month,
-        day: day,
-        hour: hour,
-        minute: minute,
-        gender: gender,
-        calendarType:
-            isLunar ? CalendarInputType.lunar : CalendarInputType.solar,
-        isLeapMonth: isLeapMonth,
-      );
+        final newProfile = ManseryeokCoreEngine.buildProfile(
+          year: year,
+          month: month,
+          day: day,
+          hour: hour,
+          minute: minute,
+          gender: gender,
+          calendarType: isLunar
+              ? CalendarInputType.lunar
+              : CalendarInputType.solar,
+          isLeapMonth: isLeapMonth,
+        );
 
-      expect(
-        newProfile.yearPillar.stemHanja,
-        legacyResult.pillars['year']!.gan,
-        reason: '[$label] 년간 불일치',
-      );
-      expect(
-        newProfile.yearPillar.branchHanja,
-        legacyResult.pillars['year']!.zhi,
-        reason: '[$label] 년지 불일치',
-      );
-      expect(
-        newProfile.monthPillar.stemHanja,
-        legacyResult.pillars['month']!.gan,
-        reason: '[$label] 월간 불일치',
-      );
-      expect(
-        newProfile.monthPillar.branchHanja,
-        legacyResult.pillars['month']!.zhi,
-        reason: '[$label] 월지 불일치',
-      );
-      expect(
-        newProfile.dayPillar.stemHanja,
-        legacyResult.pillars['day']!.gan,
-        reason: '[$label] 일간 불일치',
-      );
-      expect(
-        newProfile.dayPillar.branchHanja,
-        legacyResult.pillars['day']!.zhi,
-        reason: '[$label] 일지 불일치',
-      );
-      expect(
-        newProfile.hourPillar.stemHanja,
-        legacyResult.pillars['hour']!.gan,
-        reason: '[$label] 시간 불일치',
-      );
-      expect(
-        newProfile.hourPillar.branchHanja,
-        legacyResult.pillars['hour']!.zhi,
-        reason: '[$label] 시지 불일치',
-      );
+        expect(
+          newProfile.yearPillar.stemHanja,
+          legacyResult.pillars['year']!.gan,
+          reason: '[$label] 년간 불일치',
+        );
+        expect(
+          newProfile.yearPillar.branchHanja,
+          legacyResult.pillars['year']!.zhi,
+          reason: '[$label] 년지 불일치',
+        );
+        expect(
+          newProfile.monthPillar.stemHanja,
+          legacyResult.pillars['month']!.gan,
+          reason: '[$label] 월간 불일치',
+        );
+        expect(
+          newProfile.monthPillar.branchHanja,
+          legacyResult.pillars['month']!.zhi,
+          reason: '[$label] 월지 불일치',
+        );
+        expect(
+          newProfile.dayPillar.stemHanja,
+          legacyResult.pillars['day']!.gan,
+          reason: '[$label] 일간 불일치',
+        );
+        expect(
+          newProfile.dayPillar.branchHanja,
+          legacyResult.pillars['day']!.zhi,
+          reason: '[$label] 일지 불일치',
+        );
+        expect(
+          newProfile.hourPillar.stemHanja,
+          legacyResult.pillars['hour']!.gan,
+          reason: '[$label] 시간 불일치',
+        );
+        expect(
+          newProfile.hourPillar.branchHanja,
+          legacyResult.pillars['hour']!.zhi,
+          reason: '[$label] 시지 불일치',
+        );
 
-      // 한글/오행/음양 파생값도 기존 매핑 테이블 재사용이므로 함께 대조.
-      expect(newProfile.dayPillar.kr, legacyResult.pillars['day']!.kr);
-    }
+        // 한글/오행/음양 파생값도 기존 매핑 테이블 재사용이므로 함께 대조.
+        expect(newProfile.dayPillar.kr, legacyResult.pillars['day']!.kr);
+      }
 
-    test('seed-user-A: 1972-02-13 02:00 KST 남 (박주상님 샘플, 입춘 직후)', () {
-      // test/fixtures/jeontong_inputs.dart 의 seed-user-A 와 동일 입력
-      // (1972-02-12 17:00Z == 1972-02-13 02:00 KST).
-      expectSamePillars(
-        year: 1972,
-        month: 2,
-        day: 13,
-        hour: 2,
-        minute: 0,
-        gender: 'male',
-        label: 'seed-user-A',
-      );
-    });
+      test('seed-user-A: 1972-02-13 02:00 KST 남 (박주상님 샘플, 입춘 직후)', () {
+        // test/fixtures/jeontong_inputs.dart 의 seed-user-A 와 동일 입력
+        // (1972-02-12 17:00Z == 1972-02-13 02:00 KST).
+        expectSamePillars(
+          year: 1972,
+          month: 2,
+          day: 13,
+          hour: 2,
+          minute: 0,
+          gender: 'male',
+          label: 'seed-user-A',
+        );
+      });
 
-    test('seed-user-B: 1990-06-15 12:00 KST 여', () {
-      // fixtures: _dt(1990, 6, 15, 3) UTC == 1990-06-15 12:00 KST.
-      expectSamePillars(
-        year: 1990,
-        month: 6,
-        day: 15,
-        hour: 12,
-        minute: 0,
-        gender: 'female',
-        label: 'seed-user-B',
-      );
-    });
+      test('seed-user-B: 1990-06-15 12:00 KST 여', () {
+        // fixtures: _dt(1990, 6, 15, 3) UTC == 1990-06-15 12:00 KST.
+        expectSamePillars(
+          year: 1990,
+          month: 6,
+          day: 15,
+          hour: 12,
+          minute: 0,
+          gender: 'female',
+          label: 'seed-user-B',
+        );
+      });
 
-    test('seed-user-C: 2005-12-01 06:00 KST 여', () {
-      // fixtures: _dt(2005, 11, 30, 21) UTC == 2005-12-01 06:00 KST.
-      expectSamePillars(
-        year: 2005,
-        month: 12,
-        day: 1,
-        hour: 6,
-        minute: 0,
-        gender: 'female',
-        label: 'seed-user-C',
-      );
-    });
+      test('seed-user-C: 2005-12-01 06:00 KST 여', () {
+        // fixtures: _dt(2005, 11, 30, 21) UTC == 2005-12-01 06:00 KST.
+        expectSamePillars(
+          year: 2005,
+          month: 12,
+          day: 1,
+          hour: 6,
+          minute: 0,
+          gender: 'female',
+          label: 'seed-user-C',
+        );
+      });
 
-    test('입춘 직전(절입 이전) 경계 — 1972-02-04 오전(연/월주 절기 경계)', () {
-      expectSamePillars(
-        year: 1972,
-        month: 2,
-        day: 4,
-        hour: 0,
-        minute: 0,
-        gender: 'male',
-        label: '입춘 직전 00:00',
-      );
-    });
+      test('입춘 직전(절입 이전) 경계 — 1972-02-04 오전(연/월주 절기 경계)', () {
+        expectSamePillars(
+          year: 1972,
+          month: 2,
+          day: 4,
+          hour: 0,
+          minute: 0,
+          gender: 'male',
+          label: '입춘 직전 00:00',
+        );
+      });
 
-    test('입춘 직후 경계 — 1972-02-05 오후', () {
-      expectSamePillars(
-        year: 1972,
-        month: 2,
-        day: 5,
-        hour: 12,
-        minute: 0,
-        gender: 'male',
-        label: '입춘 직후',
-      );
-    });
+      test('입춘 직후 경계 — 1972-02-05 오후', () {
+        expectSamePillars(
+          year: 1972,
+          month: 2,
+          day: 5,
+          hour: 12,
+          minute: 0,
+          gender: 'male',
+          label: '입춘 직후',
+        );
+      });
 
-    test('절기 경계 — 2024-03-05 경칩 근처', () {
-      expectSamePillars(
-        year: 2024,
-        month: 3,
-        day: 5,
-        hour: 10,
-        minute: 0,
-        gender: 'female',
-        label: '경칩 근처',
-      );
-    });
+      test('절기 경계 — 2024-03-05 경칩 근처', () {
+        expectSamePillars(
+          year: 2024,
+          month: 3,
+          day: 5,
+          hour: 10,
+          minute: 0,
+          gender: 'female',
+          label: '경칩 근처',
+        );
+      });
 
-    test('자시 경계 — 23:30 (야자시, ZiHourPolicy 기본값=lateZiSameDay)', () {
-      expectSamePillars(
-        year: 2000,
-        month: 5,
-        day: 10,
-        hour: 23,
-        minute: 30,
-        gender: 'male',
-        label: '야자시 23:30',
-      );
-    });
+      test('자시 경계 — 23:30 (야자시, ZiHourPolicy 기본값=lateZiSameDay)', () {
+        expectSamePillars(
+          year: 2000,
+          month: 5,
+          day: 10,
+          hour: 23,
+          minute: 30,
+          gender: 'male',
+          label: '야자시 23:30',
+        );
+      });
 
-    test('자시 경계 — 00:30 (조자시)', () {
-      expectSamePillars(
-        year: 2000,
-        month: 5,
-        day: 10,
-        hour: 0,
-        minute: 30,
-        gender: 'male',
-        label: '조자시 00:30',
-      );
-    });
+      test('자시 경계 — 00:30 (조자시)', () {
+        expectSamePillars(
+          year: 2000,
+          month: 5,
+          day: 10,
+          hour: 0,
+          minute: 30,
+          gender: 'male',
+          label: '조자시 00:30',
+        );
+      });
 
-    test('자시 경계 — 정확히 00:00', () {
-      expectSamePillars(
-        year: 1999,
-        month: 1,
-        day: 1,
-        hour: 0,
-        minute: 0,
-        gender: 'female',
-        label: '자정 00:00',
-      );
-    });
+      test('자시 경계 — 정확히 00:00', () {
+        expectSamePillars(
+          year: 1999,
+          month: 1,
+          day: 1,
+          hour: 0,
+          minute: 0,
+          gender: 'female',
+          label: '자정 00:00',
+        );
+      });
 
-    test('윤년 — 2000-02-29 (100의배수이자 400의배수인 윤년)', () {
-      expectSamePillars(
-        year: 2000,
-        month: 2,
-        day: 29,
-        hour: 8,
-        minute: 0,
-        gender: 'male',
-        label: '2000-02-29 윤년',
-      );
-    });
+      test('윤년 — 2000-02-29 (100의배수이자 400의배수인 윤년)', () {
+        expectSamePillars(
+          year: 2000,
+          month: 2,
+          day: 29,
+          hour: 8,
+          minute: 0,
+          gender: 'male',
+          label: '2000-02-29 윤년',
+        );
+      });
 
-    test('윤년 — 2024-02-29', () {
-      expectSamePillars(
-        year: 2024,
-        month: 2,
-        day: 29,
-        hour: 15,
-        minute: 0,
-        gender: 'female',
-        label: '2024-02-29 윤년',
-      );
-    });
+      test('윤년 — 2024-02-29', () {
+        expectSamePillars(
+          year: 2024,
+          month: 2,
+          day: 29,
+          hour: 15,
+          minute: 0,
+          gender: 'female',
+          label: '2024-02-29 윤년',
+        );
+      });
 
-    test('음력 입력 — 1972년 음력 1월 1일', () {
-      expectSamePillars(
-        year: 1972,
-        month: 1,
-        day: 1,
-        hour: 10,
-        minute: 0,
-        gender: 'male',
-        isLunar: true,
-        label: '음력 1972-01-01',
-      );
-    });
+      test('음력 입력 — 1972년 음력 1월 1일', () {
+        expectSamePillars(
+          year: 1972,
+          month: 1,
+          day: 1,
+          hour: 10,
+          minute: 0,
+          gender: 'male',
+          isLunar: true,
+          label: '음력 1972-01-01',
+        );
+      });
 
-    test('음력 입력 — 1990년 음력 5월 15일', () {
-      expectSamePillars(
-        year: 1990,
-        month: 5,
-        day: 15,
-        hour: 14,
-        minute: 0,
-        gender: 'female',
-        isLunar: true,
-        label: '음력 1990-05-15',
-      );
-    });
+      test('음력 입력 — 1990년 음력 5월 15일', () {
+        expectSamePillars(
+          year: 1990,
+          month: 5,
+          day: 15,
+          hour: 14,
+          minute: 0,
+          gender: 'female',
+          isLunar: true,
+          label: '음력 1990-05-15',
+        );
+      });
 
-    test('다양한 출생시간 — 정오(12:00)', () {
-      expectSamePillars(
-        year: 1985,
-        month: 8,
-        day: 20,
-        hour: 12,
-        minute: 0,
-        gender: 'male',
-        label: '정오',
-      );
-    });
+      test('다양한 출생시간 — 정오(12:00)', () {
+        expectSamePillars(
+          year: 1985,
+          month: 8,
+          day: 20,
+          hour: 12,
+          minute: 0,
+          gender: 'male',
+          label: '정오',
+        );
+      });
 
-    test('다양한 출생시간 — 새벽(04:15)', () {
-      expectSamePillars(
-        year: 1985,
-        month: 8,
-        day: 20,
-        hour: 4,
-        minute: 15,
-        gender: 'female',
-        label: '새벽',
-      );
-    });
+      test('다양한 출생시간 — 새벽(04:15)', () {
+        expectSamePillars(
+          year: 1985,
+          month: 8,
+          day: 20,
+          hour: 4,
+          minute: 15,
+          gender: 'female',
+          label: '새벽',
+        );
+      });
 
-    test('과거 날짜 — 1950-01-01', () {
-      expectSamePillars(
-        year: 1950,
-        month: 1,
-        day: 1,
-        hour: 9,
-        minute: 0,
-        gender: 'male',
-        label: '과거 1950',
-      );
-    });
+      test('과거 날짜 — 1950-01-01', () {
+        expectSamePillars(
+          year: 1950,
+          month: 1,
+          day: 1,
+          hour: 9,
+          minute: 0,
+          gender: 'male',
+          label: '과거 1950',
+        );
+      });
 
-    test('미래 날짜 — 2035-12-31', () {
-      expectSamePillars(
-        year: 2035,
-        month: 12,
-        day: 31,
-        hour: 18,
-        minute: 0,
-        gender: 'female',
-        label: '미래 2035',
-      );
-    });
+      test('미래 날짜 — 2035-12-31', () {
+        expectSamePillars(
+          year: 2035,
+          month: 12,
+          day: 31,
+          hour: 18,
+          minute: 0,
+          gender: 'female',
+          label: '미래 2035',
+        );
+      });
 
-    test('현재 근접 날짜 — 2026-08-13(골든 기준일)', () {
-      expectSamePillars(
-        year: 2026,
-        month: 8,
-        day: 13,
-        hour: 10,
-        minute: 0,
-        gender: 'male',
-        label: '골든 기준일',
-      );
-    });
-  });
+      test('현재 근접 날짜 — 2026-08-13(골든 기준일)', () {
+        expectSamePillars(
+          year: 2026,
+          month: 8,
+          day: 13,
+          hour: 10,
+          minute: 0,
+          gender: 'male',
+          label: '골든 기준일',
+        );
+      });
+    },
+  );
 
   group('PHASE 1 — 윤달(leap month) 지원 검증', () {
     test('윤달 지정 시 lunar.getMonth() 가 음수(윤달) 로 계산된다', () {

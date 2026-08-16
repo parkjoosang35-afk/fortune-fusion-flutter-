@@ -121,7 +121,9 @@ class JeontongReportBuilder {
       // 변환해 SajuEngine 에 넘긴다(테스트 픽스처 주석과 동일한 규약 —
       // 예: 1972-02-12 17:00Z == 1972-02-13 02:00 KST).
       final kst = birthDateTimeUtc.add(const Duration(hours: 9));
-      final sajuGender = gender == 'F' || gender == 'female' ? 'female' : 'male';
+      final sajuGender = gender == 'F' || gender == 'female'
+          ? 'female'
+          : 'male';
       final referenceDate = date ?? DateTime.now();
 
       // [j7 · A01~H10 신규 엔진 순차 이전 — entry.id 기준 분기] 검증
@@ -319,7 +321,8 @@ class JeontongReportBuilder {
   /// 내부(private)에서만 쓰이던 함수를 public으로 승격한다. 계산 로직은
   /// 한 글자도 바뀌지 않았다 — 오직 접근 범위만 넓혔다(§ "재계산 금지,
   /// 이미 검증된 PHASE1~4 파이프라인 재사용" 원칙).
-  static ({SajuResult saju, SajuProfile profile}) buildProfileAndSajuResultViaPhase1to4({
+  static ({SajuResult saju, SajuProfile profile})
+  buildProfileAndSajuResultViaPhase1to4({
     required DateTime kst,
     required String gender,
     required bool isLunar,
@@ -352,7 +355,8 @@ class JeontongReportBuilder {
   /// `{"message": ...}` 또는 `{"note": "상대 사주 필요"}` 형태만 반환했다.
   static bool _isPlaceholderResult(JeontongCategoryResult result) {
     final keys = result.data.keys.toSet();
-    if (keys.length == 1 && (keys.single == 'message' || keys.single == 'note')) {
+    if (keys.length == 1 &&
+        (keys.single == 'message' || keys.single == 'note')) {
       return true;
     }
     return false;
@@ -408,6 +412,13 @@ class JeontongReportBuilder {
     'summary',
     'year_theme',
     'title',
+    // [2026-08-17] C02~C05/D05~D08 focus 필드 — 카테고리 고유 주제
+    // (재물/직업/애정/건강)가 overview 본문 맨 앞에 오도록 'overall'보다
+    // 먼저 배치한다.
+    'wealth',
+    'career',
+    'love',
+    'health',
     'overall',
     'mood',
     'advice',
@@ -432,7 +443,10 @@ class JeontongReportBuilder {
     List<String> asStrList(String key) {
       final v = data[key];
       if (v is List) {
-        return v.map((e) => e.toString()).where((e) => e.trim().isNotEmpty).toList();
+        return v
+            .map((e) => e.toString())
+            .where((e) => e.trim().isNotEmpty)
+            .toList();
       }
       return const [];
     }
@@ -441,15 +455,24 @@ class JeontongReportBuilder {
     // score/statusLabel/keywords 는 base(결정론적 시드) 값을 그대로 재사용
     // 한다 — 원본 파이썬도 0~100 숫자 점수를 산출하지 않으므로, 기존
     // 뷰(HeroSummaryCard)가 요구하는 숫자 스코어 표현은 base 로직을
-        // 그대로 빌린다(콘텐츠는 실계산, 스코어 연출은 기존 결정론 유지).
-    final headline = asStr('title') ??
+    // 그대로 빌린다(콘텐츠는 실계산, 스코어 연출은 기존 결정론 유지).
+    final headline =
+        asStr('title') ??
         asStr('headline') ??
         asStr('verdict') ??
         asStr('structure') ??
         asStr('style') ??
         entry.title;
-    final subDescription = asStr('message') ??
+    // [2026-08-17] C02~C05처럼 'overall' 대신 focus 필드(wealth/career/
+    // love/health) 하나만 담긴 결과도 subDescription에 그 내용이 곧바로
+    // 보이도록 폴백 체인에 4개 영역 필드를 추가한다.
+    final subDescription =
+        asStr('message') ??
         asStr('overall') ??
+        asStr('wealth') ??
+        asStr('career') ??
+        asStr('love') ??
+        asStr('health') ??
         asStr('mood') ??
         asStr('summary') ??
         base.hero.subDescription;
@@ -535,10 +558,12 @@ class JeontongReportBuilder {
       luckySection = LuckySection(
         title: '함께 보면 좋은 행운 요소',
         items: [
-          if (colors.isNotEmpty) LuckyItem(label: '색', value: colors.join(', ')),
+          if (colors.isNotEmpty)
+            LuckyItem(label: '색', value: colors.join(', ')),
           if (directions.isNotEmpty)
             LuckyItem(label: '방향', value: directions.join(', ')),
-          if (numbers.isNotEmpty) LuckyItem(label: '숫자', value: numbers.join(', ')),
+          if (numbers.isNotEmpty)
+            LuckyItem(label: '숫자', value: numbers.join(', ')),
         ],
       );
     }
@@ -747,6 +772,7 @@ int _jeontongPersonalizationSeed({
     hash ^= 0x5c;
     hash = (hash * fnvPrime32) & 0xFFFFFFFF;
   }
+
   mix('cat:$categoryCode');
   mix('uid:${userId ?? ""}');
   mix('bdt:${birthDateTimeUtc?.toIso8601String() ?? ""}');

@@ -57,10 +57,7 @@ class _WishCounselHomeScreenState extends State<WishCounselHomeScreen> {
           icon: const Icon(Icons.arrow_back, color: WishCounselColors.fg),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
-        title: Text(
-          'MIDNIGHT COMFORT',
-          style: WishCounselText.monoLabel(),
-        ),
+        title: Text('MIDNIGHT COMFORT', style: WishCounselText.monoLabel()),
         centerTitle: false,
       ),
       body: SafeArea(
@@ -71,10 +68,7 @@ class _WishCounselHomeScreenState extends State<WishCounselHomeScreen> {
             const SizedBox(height: 10),
             Text('오늘 어떤 마음이\n가장 무겁나요', style: WishCounselText.display1()),
             const SizedBox(height: 8),
-            Text(
-              '천천히 골라도 돼요. 밤은 길어요.',
-              style: WishCounselText.bodySmall(),
-            ),
+            Text('천천히 골라도 돼요. 밤은 길어요.', style: WishCounselText.bodySmall()),
             const SizedBox(height: 20),
             ..._categoryCards(context),
             const SizedBox(height: 28),
@@ -234,10 +228,7 @@ class _FeaturedCard extends StatelessWidget {
               style: WishCounselText.caption(color: t.accent),
             ),
             const Spacer(),
-            Text(
-              '★ ${character.rating}',
-              style: WishCounselText.caption(),
-            ),
+            Text('★ ${character.rating}', style: WishCounselText.caption()),
           ],
         ),
       ),

@@ -39,66 +39,66 @@ class WishWallText {
   static const String family = 'Pretendard';
 
   static TextStyle display() => const TextStyle(
-        fontFamily: family,
-        fontWeight: FontWeight.w800,
-        fontSize: 40,
-        letterSpacing: -0.8,
-        color: WishWallColors.ink,
-      );
+    fontFamily: family,
+    fontWeight: FontWeight.w800,
+    fontSize: 40,
+    letterSpacing: -0.8,
+    color: WishWallColors.ink,
+  );
 
   static TextStyle title1() => const TextStyle(
-        fontFamily: family,
-        fontWeight: FontWeight.w800,
-        fontSize: 26,
-        letterSpacing: -0.6,
-        color: WishWallColors.ink,
-      );
+    fontFamily: family,
+    fontWeight: FontWeight.w800,
+    fontSize: 26,
+    letterSpacing: -0.6,
+    color: WishWallColors.ink,
+  );
 
   static TextStyle title2() => const TextStyle(
-        fontFamily: family,
-        fontWeight: FontWeight.w800,
-        fontSize: 22,
-        letterSpacing: -0.4,
-        color: WishWallColors.ink,
-      );
+    fontFamily: family,
+    fontWeight: FontWeight.w800,
+    fontSize: 22,
+    letterSpacing: -0.4,
+    color: WishWallColors.ink,
+  );
 
   static TextStyle bodyLarge({Color? color}) => TextStyle(
-        fontFamily: family,
-        fontWeight: FontWeight.w500,
-        fontSize: 20,
-        letterSpacing: -0.4,
-        color: color ?? WishWallColors.ink,
-        height: 1.5,
-      );
+    fontFamily: family,
+    fontWeight: FontWeight.w500,
+    fontSize: 20,
+    letterSpacing: -0.4,
+    color: color ?? WishWallColors.ink,
+    height: 1.5,
+  );
 
   static TextStyle body({Color? color}) => TextStyle(
-        fontFamily: family,
-        fontWeight: FontWeight.w500,
-        fontSize: 15,
-        letterSpacing: -0.2,
-        color: color ?? WishWallColors.ink,
-      );
+    fontFamily: family,
+    fontWeight: FontWeight.w500,
+    fontSize: 15,
+    letterSpacing: -0.2,
+    color: color ?? WishWallColors.ink,
+  );
 
   static TextStyle label({Color? color}) => TextStyle(
-        fontFamily: family,
-        fontWeight: FontWeight.w700,
-        fontSize: 13,
-        letterSpacing: -0.2,
-        color: color ?? WishWallColors.ink,
-      );
+    fontFamily: family,
+    fontWeight: FontWeight.w700,
+    fontSize: 13,
+    letterSpacing: -0.2,
+    color: color ?? WishWallColors.ink,
+  );
 
   static TextStyle caption({Color? color}) => TextStyle(
-        fontFamily: family,
-        fontWeight: FontWeight.w500,
-        fontSize: 12,
-        color: color ?? WishWallColors.muted,
-      );
+    fontFamily: family,
+    fontWeight: FontWeight.w500,
+    fontSize: 12,
+    color: color ?? WishWallColors.muted,
+  );
 
   static TextStyle mono({Color? color}) => TextStyle(
-        fontFamily: 'JetBrains Mono',
-        fontWeight: FontWeight.w700,
-        fontSize: 10,
-        letterSpacing: 1,
-        color: color ?? WishWallColors.accent2,
-      );
+    fontFamily: 'JetBrains Mono',
+    fontWeight: FontWeight.w700,
+    fontSize: 10,
+    letterSpacing: 1,
+    color: color ?? WishWallColors.accent2,
+  );
 }

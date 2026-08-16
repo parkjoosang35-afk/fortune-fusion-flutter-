@@ -92,7 +92,10 @@ class _WishCounselChatScreenState extends State<WishCounselChatScreen> {
               children: [
                 Row(
                   children: [
-                    Text(widget.character.name, style: WishCounselText.uiLabel(size: 14)),
+                    Text(
+                      widget.character.name,
+                      style: WishCounselText.uiLabel(size: 14),
+                    ),
                     const SizedBox(width: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -112,10 +115,7 @@ class _WishCounselChatScreenState extends State<WishCounselChatScreen> {
                   children: [
                     const Icon(Icons.circle, size: 6, color: Color(0xFF6FE3A0)),
                     const SizedBox(width: 4),
-                    Text(
-                      'LISTENING',
-                      style: WishCounselText.monoLabel(),
-                    ),
+                    Text('LISTENING', style: WishCounselText.monoLabel()),
                   ],
                 ),
               ],
@@ -148,7 +148,10 @@ class _WishCounselChatScreenState extends State<WishCounselChatScreen> {
               child: ListView.builder(
                 controller: _scrollController,
                 reverse: true,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 itemCount: messages.length,
                 itemBuilder: (context, i) {
                   final msg = messages[messages.length - 1 - i];
@@ -160,9 +163,12 @@ class _WishCounselChatScreenState extends State<WishCounselChatScreen> {
                 },
               ),
             ),
-            _QuickChips(character: widget.character, onPick: (q) {
-              _controller.text = q;
-            }),
+            _QuickChips(
+              character: widget.character,
+              onPick: (q) {
+                _controller.text = q;
+              },
+            ),
             _InputBar(controller: _controller, onSend: _send, glow: t.glow),
           ],
         ),
@@ -208,14 +214,18 @@ class _ModeStrip extends StatelessWidget {
                             m.glyph,
                             style: TextStyle(
                               fontSize: 12,
-                              color: active ? theme.glow : WishCounselColors.fg2,
+                              color: active
+                                  ? theme.glow
+                                  : WishCounselColors.fg2,
                             ),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             m.label,
                             style: WishCounselText.caption(
-                              color: active ? theme.glow : WishCounselColors.fg2,
+                              color: active
+                                  ? theme.glow
+                                  : WishCounselColors.fg2,
                             ),
                           ),
                         ],
@@ -263,9 +273,13 @@ class _EmotionRow extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: active ? color.withValues(alpha: 0.16) : WishCounselColors.card,
+                color: active
+                    ? color.withValues(alpha: 0.16)
+                    : WishCounselColors.card,
                 borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: active ? color : WishCounselColors.line),
+                border: Border.all(
+                  color: active ? color : WishCounselColors.line,
+                ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,

@@ -79,11 +79,11 @@ class _WishWallComposeScreenState extends State<WishWallComposeScreen> {
     if (_categoryId == null || _submitting) return;
     setState(() => _submitting = true);
     final wish = await context.read<WishWallProvider>().createWish(
-          categoryId: _categoryId!,
-          glassLevel: _glassLevel,
-          text: _textController.text.trim(),
-          visibility: _visibility,
-        );
+      categoryId: _categoryId!,
+      glassLevel: _glassLevel,
+      text: _textController.text.trim(),
+      visibility: _visibility,
+    );
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => WishWallSuccessScreen(wish: wish)),
@@ -167,8 +167,9 @@ class _WishWallComposeScreenState extends State<WishWallComposeScreen> {
                         )
                       : Text(
                           _step < 5 ? '다음' : '소원 봉인하기',
-                          style: WishWallText.label(color: Colors.white)
-                              .copyWith(fontSize: 15),
+                          style: WishWallText.label(
+                            color: Colors.white,
+                          ).copyWith(fontSize: 15),
                         ),
                 ),
               ),
@@ -305,7 +306,9 @@ class _Step1 extends StatelessWidget {
                           fontFamily: WishWallText.family,
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: active ? WishWallColors.bg : WishWallColors.ink2,
+                          color: active
+                              ? WishWallColors.bg
+                              : WishWallColors.ink2,
                         ),
                       ),
                     ],
@@ -349,11 +352,7 @@ class _Step2 extends StatelessWidget {
           ),
           const SizedBox(height: 28),
           Center(
-            child: BottleWidget(
-              category: category,
-              size: 130,
-              glow: value,
-            ),
+            child: BottleWidget(category: category, size: 130, glow: value),
           ),
           const SizedBox(height: 24),
           SliderTheme(
@@ -364,12 +363,7 @@ class _Step2 extends StatelessWidget {
               overlayColor: WishWallColors.accent.withValues(alpha: 0.15),
               trackHeight: 4,
             ),
-            child: Slider(
-              value: value,
-              onChanged: onChanged,
-              min: 0,
-              max: 1,
-            ),
+            child: Slider(value: value, onChanged: onChanged, min: 0, max: 1),
           ),
           Center(
             child: Text(
@@ -439,7 +433,11 @@ class _Step3 extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.shield_outlined, size: 15, color: WishWallColors.dim),
+                Icon(
+                  Icons.shield_outlined,
+                  size: 15,
+                  color: WishWallColors.dim,
+                ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
@@ -469,10 +467,7 @@ class _Step4 extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _StepPrompt(
-            eyebrow: 'STEP 4',
-            title: '누구에게 보여줄까요?',
-          ),
+          const _StepPrompt(eyebrow: 'STEP 4', title: '누구에게 보여줄까요?'),
           const SizedBox(height: 20),
           ...WishVisibility.values.map((v) {
             final active = value == v;
@@ -489,10 +484,14 @@ class _Step4 extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: active ? WishWallColors.accentSoft : WishWallColors.bg2,
+                    color: active
+                        ? WishWallColors.accentSoft
+                        : WishWallColors.bg2,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: active ? WishWallColors.accent : WishWallColors.line,
+                      color: active
+                          ? WishWallColors.accent
+                          : WishWallColors.line,
                     ),
                   ),
                   child: Row(
@@ -501,7 +500,9 @@ class _Step4 extends StatelessWidget {
                         active
                             ? Icons.radio_button_checked
                             : Icons.radio_button_unchecked,
-                        color: active ? WishWallColors.accent2 : WishWallColors.dim,
+                        color: active
+                            ? WishWallColors.accent2
+                            : WishWallColors.dim,
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -552,10 +553,7 @@ class _Step5 extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _StepPrompt(
-            eyebrow: 'STEP 5',
-            title: '이대로 병을 봉인할까요?',
-          ),
+          const _StepPrompt(eyebrow: 'STEP 5', title: '이대로 병을 봉인할까요?'),
           const SizedBox(height: 20),
           Container(
             padding: const EdgeInsets.symmetric(vertical: 20),
@@ -568,7 +566,10 @@ class _Step5 extends StatelessWidget {
                 BottleWidget(category: category, size: 130, glow: glassLevel),
                 const SizedBox(height: 14),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: WishWallColors.bg,
                     borderRadius: BorderRadius.circular(999),
@@ -576,7 +577,9 @@ class _Step5 extends StatelessWidget {
                   ),
                   child: Text(
                     '#${category.label}',
-                    style: WishWallText.caption().copyWith(fontWeight: FontWeight.w600),
+                    style: WishWallText.caption().copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 14),

@@ -23,10 +23,7 @@ void main() {
     );
     expect(s.list(userId).length, 1); // ★ 핵심: 여전히 1건
     expect(s.list(userId).single.title, '평생 총운 v2');
-    expect(
-      s.list(userId).single.createdAtUtc,
-      DateTime.utc(2026, 8, 14, 9, 0),
-    );
+    expect(s.list(userId).single.createdAtUtc, DateTime.utc(2026, 8, 14, 9, 0));
   });
 
   test('distinct categoryIds keep distinct entries (dedup by categoryId)', () {

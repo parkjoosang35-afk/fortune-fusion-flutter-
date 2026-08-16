@@ -85,50 +85,51 @@ class HanjiTextStyles {
   HanjiTextStyles._();
 
   static TextStyle display1({Color? color}) => GoogleFonts.notoSansKr(
-        fontSize: 34,
-        height: 1.15,
-        fontWeight: FontWeight.w900,
-        letterSpacing: -0.68,
-        color: color ?? HanjiColors.fg,
-      );
+    fontSize: 34,
+    height: 1.15,
+    fontWeight: FontWeight.w900,
+    letterSpacing: -0.68,
+    color: color ?? HanjiColors.fg,
+  );
 
   static TextStyle display2({Color? color}) => GoogleFonts.notoSansKr(
-        fontSize: 26,
-        height: 1.2,
-        fontWeight: FontWeight.w700,
-        letterSpacing: -0.52,
-        color: color ?? HanjiColors.fg,
-      );
+    fontSize: 26,
+    height: 1.2,
+    fontWeight: FontWeight.w700,
+    letterSpacing: -0.52,
+    color: color ?? HanjiColors.fg,
+  );
 
   static TextStyle h1({Color? color}) => GoogleFonts.notoSansKr(
-        fontSize: 22,
-        height: 1.3,
-        fontWeight: FontWeight.w700,
-        color: color ?? HanjiColors.fg,
-      );
+    fontSize: 22,
+    height: 1.3,
+    fontWeight: FontWeight.w700,
+    color: color ?? HanjiColors.fg,
+  );
 
   static TextStyle bodyTitle({Color? color}) => GoogleFonts.gowunBatang(
-        fontSize: 15,
-        height: 1.4,
-        fontWeight: FontWeight.w700,
-        color: color ?? HanjiColors.fg,
-      );
+    fontSize: 15,
+    height: 1.4,
+    fontWeight: FontWeight.w700,
+    color: color ?? HanjiColors.fg,
+  );
 
   static TextStyle body({Color? color}) => GoogleFonts.gowunBatang(
-        fontSize: 15,
-        height: 1.6,
-        fontWeight: FontWeight.w400,
-        color: color ?? HanjiColors.fg,
-      );
+    fontSize: 15,
+    height: 1.6,
+    fontWeight: FontWeight.w400,
+    color: color ?? HanjiColors.fg,
+  );
 
   static TextStyle bodySmall({Color? color}) => GoogleFonts.gowunBatang(
-        fontSize: 12,
-        height: 1.5,
-        fontWeight: FontWeight.w400,
-        color: color ?? HanjiColors.muted,
-      );
+    fontSize: 12,
+    height: 1.5,
+    fontWeight: FontWeight.w400,
+    color: color ?? HanjiColors.muted,
+  );
 
-  static TextStyle ui({Color? color, FontWeight? weight}) => GoogleFonts.notoSans(
+  static TextStyle ui({Color? color, FontWeight? weight}) =>
+      GoogleFonts.notoSans(
         fontSize: 14,
         height: 1.5,
         fontWeight: weight ?? FontWeight.w500,
@@ -136,27 +137,27 @@ class HanjiTextStyles {
       );
 
   static TextStyle button({Color? color}) => GoogleFonts.gowunBatang(
-        fontSize: 15,
-        fontWeight: FontWeight.w700,
-        letterSpacing: -0.15,
-        color: color ?? HanjiColors.fg,
-      );
+    fontSize: 15,
+    fontWeight: FontWeight.w700,
+    letterSpacing: -0.15,
+    color: color ?? HanjiColors.fg,
+  );
 
   static TextStyle monoSmall({Color? color}) => GoogleFonts.ibmPlexMono(
-        fontSize: 10,
-        height: 1.4,
-        fontWeight: FontWeight.w500,
-        letterSpacing: 3.0,
-        color: color ?? HanjiColors.muted,
-      );
+    fontSize: 10,
+    height: 1.4,
+    fontWeight: FontWeight.w500,
+    letterSpacing: 3.0,
+    color: color ?? HanjiColors.muted,
+  );
 
   static TextStyle mono({Color? color}) => GoogleFonts.ibmPlexMono(
-        fontSize: 11,
-        height: 1.4,
-        fontWeight: FontWeight.w500,
-        letterSpacing: 3.3,
-        color: color ?? HanjiColors.muted,
-      );
+    fontSize: 11,
+    height: 1.4,
+    fontWeight: FontWeight.w500,
+    letterSpacing: 3.3,
+    color: color ?? HanjiColors.muted,
+  );
 }
 
 class HanjiMotion {

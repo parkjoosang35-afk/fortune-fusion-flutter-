@@ -56,7 +56,7 @@ class JeontongNarrativeInterpreter {
     return [
       _openingParagraph(interp, honorific),
       _traitsParagraph(interp, honorific),
-      _categoryParagraph(interp, entry.major, honorific),
+      _categoryParagraph(interp, entry, honorific),
       _luckParagraph(interp, honorific),
       _closingParagraph(interp, entry.major, honorific),
     ].where((p) => p.trim().isNotEmpty).toList(growable: false);
@@ -182,18 +182,22 @@ class JeontongNarrativeInterpreter {
   // ------------------------------------------------------------
   static String _categoryParagraph(
     SajuFullInterpretation interp,
-    JeontongMajorCode major,
+    JeontongCategoryEntry entry,
     String honorific,
   ) {
-    switch (major) {
+    switch (entry.major) {
       case JeontongMajorCode.a:
         return _lifetimeParagraph(interp, honorific);
       case JeontongMajorCode.b:
         return _daewoonParagraph(interp, honorific);
       case JeontongMajorCode.c:
-        return _thisYearParagraph(interp, honorific);
+        // [2026-08-17] C01~C05는 "올해 재물/직업/애정/건강운"처럼 서로
+        // 다른 주제인데도 기존엔 전부 재물 이야기(_thisYearParagraph)만
+        // 나왔다("건강운을 봐도 재물 얘기가 나온다"는 사용자 지적과 동일
+        // 패턴). entry.id로 소카테고리 주제를 가려 그에 맞는 문단을 쓴다.
+        return _thisYearParagraph(interp, entry.id, honorific);
       case JeontongMajorCode.d:
-        return _todayParagraph(interp, honorific);
+        return _todayParagraph(interp, entry.id, honorific);
       case JeontongMajorCode.e:
         return _loveParagraph(interp, honorific);
       case JeontongMajorCode.f:
@@ -231,27 +235,90 @@ class JeontongNarrativeInterpreter {
         '대운은 계절이 바뀌듯 자연스럽게 찾아오는 흐름이라, 지금 이 시기의 기운을 미리 알고 준비하는 것만으로도 훨씬 여유롭게 지나갈 수 있어요.';
   }
 
+  /// [2026-08-17 C01~C05 이야기체 차별화] `entry.id`(C01~C05)로 이 해의
+  /// 어느 영역(총운/재물/직업/애정/건강)을 이야기할지 가른다. 이전엔
+  /// C01~C05 전부가 이 함수 하나를 공유하며 항상 재물 이야기만 했다.
   static String _thisYearParagraph(
     SajuFullInterpretation interp,
+    String categoryId,
     String honorific,
   ) {
     final luck = interp.currentLuckAnalysis;
-    final wealth = interp.wealthFortune;
     final base = luck.message != null
         ? '올해는 ${luck.title}의 큰 흐름 안에 놓여 있는 해예요. ${_soften(luck.message!)} '
         : '올해는 타고난 사주 본연의 기운이 비교적 뚜렷하게 드러나는 시기예요. ';
+
+    final String focusLine;
+    switch (categoryId) {
+      case 'C02':
+        focusLine =
+            '특히 올해 재물 쪽 흐름을 함께 짚어보면, ${_soften(_wealthNarrative(interp.wealthFortune, honorific))} ';
+        break;
+      case 'C03':
+        final career = interp.careerFortune;
+        focusLine =
+            '특히 올해 직업·진로 쪽 흐름을 함께 짚어보면, ${career.structure} 성향이 이 시기에 더 뚜렷하게 드러나요. ${_soften(career.message)} ';
+        break;
+      case 'C04':
+        focusLine =
+            '특히 올해 애정·인연 쪽 흐름을 함께 짚어보면, ${_soften(_loveNarrative(interp.loveFortune))} ';
+        break;
+      case 'C05':
+        final health = interp.healthFortune;
+        final organs = health.coreOrgans.isNotEmpty
+            ? _joinKo(health.coreOrgans)
+            : '몸 전반';
+        focusLine =
+            '특히 올해 건강 쪽 흐름을 함께 짚어보면, 타고난 기운상 $organs 쪽을 평소보다 조금 더 챙기면 좋은 해예요. 무리하지 않는 선에서 꾸준히 컨디션을 관리하면 한 해가 훨씬 편안해질 거예요. ';
+        break;
+      case 'C01':
+      default:
+        focusLine = '한 해 전체를 아우르는 총운으로 보면, 재물·일·인연 여러 흐름이 골고루 맞물려 흘러가는 해예요. ';
+    }
+
     return '$base'
-        '특히 재물 쪽 흐름을 함께 짚어보면, ${_soften(_wealthNarrative(wealth, honorific))} '
+        '$focusLine'
         '한 해를 통째로 보면 잔잔한 흐름 속에서도 분명 변화의 순간들이 있을 텐데, 그 순간마다 $honorific이 원래 갖고 있던 기질대로 차분히 대응하면 좋은 결과로 이어질 가능성이 높아요.';
   }
 
+  /// [2026-08-17 D02/D03/D05~D08 이야기체 차별화] `categoryId`로 오늘/
+  /// 이 시점의 어느 영역(총운/재물/애정/건강/시간대)을 이야기할지 가른다.
   static String _todayParagraph(
     SajuFullInterpretation interp,
+    String categoryId,
     String honorific,
   ) {
     final dm = interp.dayMasterAnalysis;
+    final String focusLine;
+    switch (categoryId) {
+      case 'D05':
+        focusLine =
+            '오늘은 특히 재물 흐름을 살펴보면 좋은 날이에요. ${_soften(_wealthNarrative(interp.wealthFortune, honorific))} ';
+        break;
+      case 'D06':
+        focusLine =
+            '오늘은 특히 인연·애정 흐름을 살펴보면 좋은 날이에요. ${_soften(_loveNarrative(interp.loveFortune))} ';
+        break;
+      case 'D07':
+        final health = interp.healthFortune;
+        final organs = health.coreOrgans.isNotEmpty
+            ? _joinKo(health.coreOrgans)
+            : '몸 전반';
+        focusLine =
+            '오늘은 특히 컨디션을 살펴보면 좋은 날이에요. 타고난 기운상 $organs 쪽에 평소보다 조금 더 신경을 쓰면, 하루를 훨씬 가뿐하게 보낼 수 있어요. ';
+        break;
+      case 'D08':
+        focusLine =
+            '오늘 하루 중에서도 유독 흐름이 잘 맞는 시간대와, 반대로 조금 조심하면 좋은 시간대가 나뉘어 있어요. ';
+        break;
+      case 'D02':
+      case 'D03':
+      default:
+        focusLine = '';
+    }
     return '가까운 오늘과 이달의 흐름은 타고난 일간의 기질이 특히 도드라지는 시점이에요. '
         '${_soften(dm.personality)} '
+        '$focusLine'
         '이런 날에는 큰 결정을 서두르기보다, $honorific 본연의 리듬에 맞춰 하루하루를 채워가는 편이 오히려 더 좋은 흐름을 만들어줘요. 작은 선택 하나가 며칠 뒤 뜻밖의 좋은 결과로 이어질 수 있으니, 지금 이 순간의 감각을 믿어봐도 좋아요.';
   }
 

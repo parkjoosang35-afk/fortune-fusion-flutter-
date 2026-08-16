@@ -45,9 +45,6 @@ class Phase3AnalysisEngine {
       fiveElements: fiveElements,
     );
 
-    return baseProfile.copyWith(
-      strength: strength,
-      yongsin: yongsin,
-    );
+    return baseProfile.copyWith(strength: strength, yongsin: yongsin);
   }
 }

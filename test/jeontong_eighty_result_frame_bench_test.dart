@@ -61,7 +61,8 @@ void main() {
       expect(
         frames,
         lessThanOrEqualTo(3),
-        reason: '캐시 웜 상태에서 안정화까지 프레임이 3 초과. '
+        reason:
+            '캐시 웜 상태에서 안정화까지 프레임이 3 초과. '
             'build() 안에 무거운 동기 작업이 들어갔을 가능성.',
       );
       expect(find.byType(JeontongEightyResultScreen), findsOneWidget);
@@ -79,7 +80,8 @@ void main() {
       expect(
         frames,
         lessThanOrEqualTo(6),
-        reason: '캐시 콜드 상태에서 안정화까지 프레임이 6 초과. '
+        reason:
+            '캐시 콜드 상태에서 안정화까지 프레임이 6 초과. '
             '룰 계산이 build() 내부에서 반복 실행되거나 setState 폭주 가능성.',
       );
       // 최초 진입은 miss 1건.

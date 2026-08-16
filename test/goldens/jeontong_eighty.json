@@ -1144,34 +1144,6 @@
           "type": "FortuneSectionType.aspect"
         },
         {
-          "body": "재능으로 돈 버는 구조. 안정적 수익.",
-          "index": 81,
-          "requiresPass": true,
-          "title": "재물운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "창작·강의·기획 유리. 자녀·부하 인연 좋음.",
-          "index": 88,
-          "requiresPass": true,
-          "title": "직업운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "다정한 연애, 임신·출산에 좋은 해.",
-          "index": 83,
-          "requiresPass": true,
-          "title": "애정운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "체중 증가 주의. 소화기 관리.",
-          "index": 82,
-          "requiresPass": true,
-          "title": "건강운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
             "재능을 상품화하는 시도가 결실 맺음."
@@ -1215,48 +1187,20 @@
         "name": "올해 재물운",
         "score": 71,
         "statusLabel": "보통",
-        "subDescription": "재능·표현력 발휘 최적. 먹을 복 좋고 여유로운 해."
+        "subDescription": "재능으로 돈 버는 구조. 안정적 수익."
       },
       "sections": [
         {
-          "body": "표출의 해 — 명예·발표·홍보 활발 표현·풍요의 해 재능·표현력 발휘 최적. 먹을 복 좋고 여유로운 해. 재능을 상품화하는 시도가 결실 맺음.",
+          "body": "표출의 해 — 명예·발표·홍보 활발 표현·풍요의 해 재능으로 돈 버는 구조. 안정적 수익. 재능을 상품화하는 시도가 결실 맺음.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
-        },
-        {
-          "body": "재능·표현력 발휘 최적. 먹을 복 좋고 여유로운 해.",
-          "index": 69,
-          "requiresPass": true,
-          "title": "총운",
-          "type": "FortuneSectionType.aspect"
         },
         {
           "body": "재능으로 돈 버는 구조. 안정적 수익.",
           "index": 66,
           "requiresPass": true,
           "title": "재물운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "창작·강의·기획 유리. 자녀·부하 인연 좋음.",
-          "index": 73,
-          "requiresPass": true,
-          "title": "직업운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "다정한 연애, 임신·출산에 좋은 해.",
-          "index": 68,
-          "requiresPass": true,
-          "title": "애정운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "체중 증가 주의. 소화기 관리.",
-          "index": 67,
-          "requiresPass": true,
-          "title": "건강운",
           "type": "FortuneSectionType.aspect"
         },
         {
@@ -1303,48 +1247,20 @@
         "name": "올해 직업운",
         "score": 91,
         "statusLabel": "상승",
-        "subDescription": "재능·표현력 발휘 최적. 먹을 복 좋고 여유로운 해."
+        "subDescription": "창작·강의·기획 유리. 자녀·부하 인연 좋음."
       },
       "sections": [
         {
-          "body": "표출의 해 — 명예·발표·홍보 활발 표현·풍요의 해 재능·표현력 발휘 최적. 먹을 복 좋고 여유로운 해. 재능을 상품화하는 시도가 결실 맺음.",
+          "body": "표출의 해 — 명예·발표·홍보 활발 표현·풍요의 해 창작·강의·기획 유리. 자녀·부하 인연 좋음. 재능을 상품화하는 시도가 결실 맺음.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
-        },
-        {
-          "body": "재능·표현력 발휘 최적. 먹을 복 좋고 여유로운 해.",
-          "index": 89,
-          "requiresPass": true,
-          "title": "총운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "재능으로 돈 버는 구조. 안정적 수익.",
-          "index": 86,
-          "requiresPass": true,
-          "title": "재물운",
-          "type": "FortuneSectionType.aspect"
         },
         {
           "body": "창작·강의·기획 유리. 자녀·부하 인연 좋음.",
           "index": 93,
           "requiresPass": true,
           "title": "직업운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "다정한 연애, 임신·출산에 좋은 해.",
-          "index": 88,
-          "requiresPass": true,
-          "title": "애정운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "체중 증가 주의. 소화기 관리.",
-          "index": 87,
-          "requiresPass": true,
-          "title": "건강운",
           "type": "FortuneSectionType.aspect"
         },
         {
@@ -1391,48 +1307,20 @@
         "name": "올해 애정운",
         "score": 94,
         "statusLabel": "상승",
-        "subDescription": "재능·표현력 발휘 최적. 먹을 복 좋고 여유로운 해."
+        "subDescription": "다정한 연애, 임신·출산에 좋은 해."
       },
       "sections": [
         {
-          "body": "표출의 해 — 명예·발표·홍보 활발 표현·풍요의 해 재능·표현력 발휘 최적. 먹을 복 좋고 여유로운 해. 재능을 상품화하는 시도가 결실 맺음.",
+          "body": "표출의 해 — 명예·발표·홍보 활발 표현·풍요의 해 다정한 연애, 임신·출산에 좋은 해. 재능을 상품화하는 시도가 결실 맺음.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
-        },
-        {
-          "body": "재능·표현력 발휘 최적. 먹을 복 좋고 여유로운 해.",
-          "index": 92,
-          "requiresPass": true,
-          "title": "총운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "재능으로 돈 버는 구조. 안정적 수익.",
-          "index": 89,
-          "requiresPass": true,
-          "title": "재물운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "창작·강의·기획 유리. 자녀·부하 인연 좋음.",
-          "index": 96,
-          "requiresPass": true,
-          "title": "직업운",
-          "type": "FortuneSectionType.aspect"
         },
         {
           "body": "다정한 연애, 임신·출산에 좋은 해.",
           "index": 91,
           "requiresPass": true,
           "title": "애정운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "체중 증가 주의. 소화기 관리.",
-          "index": 90,
-          "requiresPass": true,
-          "title": "건강운",
           "type": "FortuneSectionType.aspect"
         },
         {
@@ -1479,42 +1367,14 @@
         "name": "올해 건강운",
         "score": 69,
         "statusLabel": "보통",
-        "subDescription": "재능·표현력 발휘 최적. 먹을 복 좋고 여유로운 해."
+        "subDescription": "체중 증가 주의. 소화기 관리."
       },
       "sections": [
         {
-          "body": "표출의 해 — 명예·발표·홍보 활발 표현·풍요의 해 재능·표현력 발휘 최적. 먹을 복 좋고 여유로운 해. 재능을 상품화하는 시도가 결실 맺음.",
+          "body": "표출의 해 — 명예·발표·홍보 활발 표현·풍요의 해 체중 증가 주의. 소화기 관리. 재능을 상품화하는 시도가 결실 맺음.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
-        },
-        {
-          "body": "재능·표현력 발휘 최적. 먹을 복 좋고 여유로운 해.",
-          "index": 67,
-          "requiresPass": true,
-          "title": "총운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "재능으로 돈 버는 구조. 안정적 수익.",
-          "index": 64,
-          "requiresPass": true,
-          "title": "재물운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "창작·강의·기획 유리. 자녀·부하 인연 좋음.",
-          "index": 71,
-          "requiresPass": true,
-          "title": "직업운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "다정한 연애, 임신·출산에 좋은 해.",
-          "index": 66,
-          "requiresPass": true,
-          "title": "애정운",
-          "type": "FortuneSectionType.aspect"
         },
         {
           "body": "체중 증가 주의. 소화기 관리.",
@@ -1875,7 +1735,7 @@
       },
       "sections": [
         {
-          "body": "풍요의 달 표현·창작·먹을 복 활발. 재능을 상품화",
+          "body": "풍요의 달 부수입 기회 다정한 시기 체중 증가 표현·창작·먹을 복 활발. 재능을 상품화",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
@@ -1983,20 +1843,6 @@
           "type": "FortuneSectionType.aspect"
         },
         {
-          "body": "저축·부동산 결정 유리.",
-          "index": 86,
-          "requiresPass": true,
-          "title": "재물운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "안정된 관계 심화, 프러포즈 좋음.",
-          "index": 88,
-          "requiresPass": true,
-          "title": "애정운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "body": "차분, 실속",
           "index": 88,
           "requiresPass": true,
@@ -2070,20 +1916,6 @@
           "index": 93,
           "requiresPass": true,
           "title": "업무·직장운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "큰 결정은 신중히.",
-          "index": 89,
-          "requiresPass": true,
-          "title": "재물운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "격정적 만남. 다툼 주의.",
-          "index": 91,
-          "requiresPass": true,
-          "title": "애정운",
           "type": "FortuneSectionType.aspect"
         },
         {
@@ -2203,48 +2035,20 @@
         "name": "오늘의 재물운",
         "score": 69,
         "statusLabel": "보통",
-        "subDescription": "정식 업무·계약·저축에 유리."
+        "subDescription": "저축·부동산 결정 유리."
       },
       "sections": [
         {
-          "body": "안정의 날 정식 업무·계약·저축에 유리. 차분, 실속",
+          "body": "안정의 날 저축·부동산 결정 유리.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
-        },
-        {
-          "body": "정식 업무·계약·저축에 유리.",
-          "index": 67,
-          "requiresPass": true,
-          "title": "총운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "회계·문서·계약 처리 최적.",
-          "index": 68,
-          "requiresPass": true,
-          "title": "업무·직장운",
-          "type": "FortuneSectionType.aspect"
         },
         {
           "body": "저축·부동산 결정 유리.",
           "index": 64,
           "requiresPass": true,
           "title": "재물운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "안정된 관계 심화, 프러포즈 좋음.",
-          "index": 66,
-          "requiresPass": true,
-          "title": "애정운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "차분, 실속",
-          "index": 66,
-          "requiresPass": true,
-          "title": "오늘의 기분",
           "type": "FortuneSectionType.aspect"
         },
         {
@@ -2293,48 +2097,20 @@
         "name": "오늘의 애정운",
         "score": 90,
         "statusLabel": "상승",
-        "subDescription": "정식 업무·계약·저축에 유리."
+        "subDescription": "안정된 관계 심화, 프러포즈 좋음."
       },
       "sections": [
         {
-          "body": "안정의 날 정식 업무·계약·저축에 유리. 차분, 실속",
+          "body": "안정의 날 안정된 관계 심화, 프러포즈 좋음.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
-        },
-        {
-          "body": "정식 업무·계약·저축에 유리.",
-          "index": 88,
-          "requiresPass": true,
-          "title": "총운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "회계·문서·계약 처리 최적.",
-          "index": 89,
-          "requiresPass": true,
-          "title": "업무·직장운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "저축·부동산 결정 유리.",
-          "index": 85,
-          "requiresPass": true,
-          "title": "재물운",
-          "type": "FortuneSectionType.aspect"
         },
         {
           "body": "안정된 관계 심화, 프러포즈 좋음.",
           "index": 87,
           "requiresPass": true,
           "title": "애정운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "차분, 실속",
-          "index": 87,
-          "requiresPass": true,
-          "title": "오늘의 기분",
           "type": "FortuneSectionType.aspect"
         },
         {
@@ -2383,48 +2159,20 @@
         "name": "오늘의 건강운",
         "score": 88,
         "statusLabel": "상승",
-        "subDescription": "정식 업무·계약·저축에 유리."
+        "subDescription": "몸과 마음이 비교적 안정된 날. 컨디션 관리하기 좋은 흐름이니 평소 루틴(수면·식사 시간)을 꾸준히 지키면 더 좋은 페이스를 이어갈 수 있다."
       },
       "sections": [
         {
-          "body": "안정의 날 정식 업무·계약·저축에 유리. 차분, 실속",
+          "body": "안정의 날 몸과 마음이 비교적 안정된 날. 컨디션 관리하기 좋은 흐름이니 평소 루틴(수면·식사 시간)을 꾸준히 지키면 더 좋은 페이스를 이어갈 수 있다.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "정식 업무·계약·저축에 유리.",
-          "index": 86,
+          "body": "몸과 마음이 비교적 안정된 날. 컨디션 관리하기 좋은 흐름이니 평소 루틴(수면·식사 시간)을 꾸준히 지키면 더 좋은 페이스를 이어갈 수 있다.",
+          "index": 84,
           "requiresPass": true,
-          "title": "총운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "회계·문서·계약 처리 최적.",
-          "index": 87,
-          "requiresPass": true,
-          "title": "업무·직장운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "저축·부동산 결정 유리.",
-          "index": 83,
-          "requiresPass": true,
-          "title": "재물운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "안정된 관계 심화, 프러포즈 좋음.",
-          "index": 85,
-          "requiresPass": true,
-          "title": "애정운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "차분, 실속",
-          "index": 85,
-          "requiresPass": true,
-          "title": "오늘의 기분",
+          "title": "건강운",
           "type": "FortuneSectionType.aspect"
         },
         {
@@ -2473,48 +2221,20 @@
         "name": "오늘의 길흉 시간대",
         "score": 76,
         "statusLabel": "보통",
-        "subDescription": "정식 업무·계약·저축에 유리."
+        "subDescription": "오늘 움직이기 좋은 시간대는 오전 9~11시. 반대로 밤 충동 결정은(는) 피하는 게 좋은 흐름이에요."
       },
       "sections": [
         {
-          "body": "안정의 날 정식 업무·계약·저축에 유리. 차분, 실속",
+          "body": "안정의 날 오늘 움직이기 좋은 시간대는 오전 9~11시. 반대로 밤 충동 결정은(는) 피하는 게 좋은 흐름이에요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "정식 업무·계약·저축에 유리.",
+          "body": "오늘 움직이기 좋은 시간대는 오전 9~11시. 반대로 밤 충동 결정은(는) 피하는 게 좋은 흐름이에요.",
           "index": 74,
           "requiresPass": true,
           "title": "총운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "회계·문서·계약 처리 최적.",
-          "index": 75,
-          "requiresPass": true,
-          "title": "업무·직장운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "저축·부동산 결정 유리.",
-          "index": 71,
-          "requiresPass": true,
-          "title": "재물운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "안정된 관계 심화, 프러포즈 좋음.",
-          "index": 73,
-          "requiresPass": true,
-          "title": "애정운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "차분, 실속",
-          "index": 73,
-          "requiresPass": true,
-          "title": "오늘의 기분",
           "type": "FortuneSectionType.aspect"
         },
         {
@@ -5432,34 +5152,6 @@
           "type": "FortuneSectionType.aspect"
         },
         {
-          "body": "명예로 얻는 재물. 정도(正道)로 성공.",
-          "index": 81,
-          "requiresPass": true,
-          "title": "재물운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "공직·대기업 승진, 자격증 취득.",
-          "index": 88,
-          "requiresPass": true,
-          "title": "직업운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "정식 결혼·프러포즈 유리.",
-          "index": 83,
-          "requiresPass": true,
-          "title": "애정운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "규칙적 생활로 안정.",
-          "index": 82,
-          "requiresPass": true,
-          "title": "건강운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
             "원칙과 규범을 지키는 것이 최고의 전략."
@@ -5503,48 +5195,20 @@
         "name": "올해 재물운",
         "score": 71,
         "statusLabel": "보통",
-        "subDescription": "명예·직장·자격증에 매우 유리. 사회적 지위 상승."
+        "subDescription": "명예로 얻는 재물. 정도(正道)로 성공."
       },
       "sections": [
         {
-          "body": "표출의 해 — 명예·발표·홍보 활발 명예·질서의 해 명예·직장·자격증에 매우 유리. 사회적 지위 상승. 원칙과 규범을 지키는 것이 최고의 전략.",
+          "body": "표출의 해 — 명예·발표·홍보 활발 명예·질서의 해 명예로 얻는 재물. 정도(正道)로 성공. 원칙과 규범을 지키는 것이 최고의 전략.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
-        },
-        {
-          "body": "명예·직장·자격증에 매우 유리. 사회적 지위 상승.",
-          "index": 69,
-          "requiresPass": true,
-          "title": "총운",
-          "type": "FortuneSectionType.aspect"
         },
         {
           "body": "명예로 얻는 재물. 정도(正道)로 성공.",
           "index": 66,
           "requiresPass": true,
           "title": "재물운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "공직·대기업 승진, 자격증 취득.",
-          "index": 73,
-          "requiresPass": true,
-          "title": "직업운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "정식 결혼·프러포즈 유리.",
-          "index": 68,
-          "requiresPass": true,
-          "title": "애정운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "규칙적 생활로 안정.",
-          "index": 67,
-          "requiresPass": true,
-          "title": "건강운",
           "type": "FortuneSectionType.aspect"
         },
         {
@@ -5591,48 +5255,20 @@
         "name": "올해 직업운",
         "score": 91,
         "statusLabel": "상승",
-        "subDescription": "명예·직장·자격증에 매우 유리. 사회적 지위 상승."
+        "subDescription": "공직·대기업 승진, 자격증 취득."
       },
       "sections": [
         {
-          "body": "표출의 해 — 명예·발표·홍보 활발 명예·질서의 해 명예·직장·자격증에 매우 유리. 사회적 지위 상승. 원칙과 규범을 지키는 것이 최고의 전략.",
+          "body": "표출의 해 — 명예·발표·홍보 활발 명예·질서의 해 공직·대기업 승진, 자격증 취득. 원칙과 규범을 지키는 것이 최고의 전략.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
-        },
-        {
-          "body": "명예·직장·자격증에 매우 유리. 사회적 지위 상승.",
-          "index": 89,
-          "requiresPass": true,
-          "title": "총운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "명예로 얻는 재물. 정도(正道)로 성공.",
-          "index": 86,
-          "requiresPass": true,
-          "title": "재물운",
-          "type": "FortuneSectionType.aspect"
         },
         {
           "body": "공직·대기업 승진, 자격증 취득.",
           "index": 93,
           "requiresPass": true,
           "title": "직업운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "정식 결혼·프러포즈 유리.",
-          "index": 88,
-          "requiresPass": true,
-          "title": "애정운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "규칙적 생활로 안정.",
-          "index": 87,
-          "requiresPass": true,
-          "title": "건강운",
           "type": "FortuneSectionType.aspect"
         },
         {
@@ -5679,48 +5315,20 @@
         "name": "올해 애정운",
         "score": 94,
         "statusLabel": "상승",
-        "subDescription": "명예·직장·자격증에 매우 유리. 사회적 지위 상승."
+        "subDescription": "정식 결혼·프러포즈 유리."
       },
       "sections": [
         {
-          "body": "표출의 해 — 명예·발표·홍보 활발 명예·질서의 해 명예·직장·자격증에 매우 유리. 사회적 지위 상승. 원칙과 규범을 지키는 것이 최고의 전략.",
+          "body": "표출의 해 — 명예·발표·홍보 활발 명예·질서의 해 정식 결혼·프러포즈 유리. 원칙과 규범을 지키는 것이 최고의 전략.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
-        },
-        {
-          "body": "명예·직장·자격증에 매우 유리. 사회적 지위 상승.",
-          "index": 92,
-          "requiresPass": true,
-          "title": "총운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "명예로 얻는 재물. 정도(正道)로 성공.",
-          "index": 89,
-          "requiresPass": true,
-          "title": "재물운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "공직·대기업 승진, 자격증 취득.",
-          "index": 96,
-          "requiresPass": true,
-          "title": "직업운",
-          "type": "FortuneSectionType.aspect"
         },
         {
           "body": "정식 결혼·프러포즈 유리.",
           "index": 91,
           "requiresPass": true,
           "title": "애정운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "규칙적 생활로 안정.",
-          "index": 90,
-          "requiresPass": true,
-          "title": "건강운",
           "type": "FortuneSectionType.aspect"
         },
         {
@@ -5767,42 +5375,14 @@
         "name": "올해 건강운",
         "score": 69,
         "statusLabel": "보통",
-        "subDescription": "명예·직장·자격증에 매우 유리. 사회적 지위 상승."
+        "subDescription": "규칙적 생활로 안정."
       },
       "sections": [
         {
-          "body": "표출의 해 — 명예·발표·홍보 활발 명예·질서의 해 명예·직장·자격증에 매우 유리. 사회적 지위 상승. 원칙과 규범을 지키는 것이 최고의 전략.",
+          "body": "표출의 해 — 명예·발표·홍보 활발 명예·질서의 해 규칙적 생활로 안정. 원칙과 규범을 지키는 것이 최고의 전략.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
-        },
-        {
-          "body": "명예·직장·자격증에 매우 유리. 사회적 지위 상승.",
-          "index": 67,
-          "requiresPass": true,
-          "title": "총운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "명예로 얻는 재물. 정도(正道)로 성공.",
-          "index": 64,
-          "requiresPass": true,
-          "title": "재물운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "공직·대기업 승진, 자격증 취득.",
-          "index": 71,
-          "requiresPass": true,
-          "title": "직업운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "정식 결혼·프러포즈 유리.",
-          "index": 66,
-          "requiresPass": true,
-          "title": "애정운",
-          "type": "FortuneSectionType.aspect"
         },
         {
           "body": "규칙적 생활로 안정.",
@@ -6163,7 +5743,7 @@
       },
       "sections": [
         {
-          "body": "명예의 달 자격증·승진·공적 업무 유리. 원칙 준수",
+          "body": "명예의 달 정도 수익 정식 관계 진전 규칙적 자격증·승진·공적 업무 유리. 원칙 준수",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
@@ -6271,20 +5851,6 @@
           "type": "FortuneSectionType.aspect"
         },
         {
-          "body": "결정 미루기. 새 투자 금물.",
-          "index": 86,
-          "requiresPass": true,
-          "title": "재물운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "혼자만의 시간이 편함.",
-          "index": 88,
-          "requiresPass": true,
-          "title": "애정운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "body": "사색, 고독",
           "index": 88,
           "requiresPass": true,
@@ -6358,20 +5924,6 @@
           "index": 93,
           "requiresPass": true,
           "title": "업무·직장운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "예상외 지출. 카드 사용 자제.",
-          "index": 89,
-          "requiresPass": true,
-          "title": "재물운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "질투·삼각관계 주의.",
-          "index": 91,
-          "requiresPass": true,
-          "title": "애정운",
           "type": "FortuneSectionType.aspect"
         },
         {
@@ -6491,48 +6043,20 @@
         "name": "오늘의 재물운",
         "score": 69,
         "statusLabel": "보통",
-        "subDescription": "혼자 사색·연구·창작에 유리. 결정은 지연."
+        "subDescription": "결정 미루기. 새 투자 금물."
       },
       "sections": [
         {
-          "body": "직관의 날 혼자 사색·연구·창작에 유리. 결정은 지연. 사색, 고독",
+          "body": "직관의 날 결정 미루기. 새 투자 금물.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
-        },
-        {
-          "body": "혼자 사색·연구·창작에 유리. 결정은 지연.",
-          "index": 67,
-          "requiresPass": true,
-          "title": "총운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "리서치·기획서 작성 최적.",
-          "index": 68,
-          "requiresPass": true,
-          "title": "업무·직장운",
-          "type": "FortuneSectionType.aspect"
         },
         {
           "body": "결정 미루기. 새 투자 금물.",
           "index": 64,
           "requiresPass": true,
           "title": "재물운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "혼자만의 시간이 편함.",
-          "index": 66,
-          "requiresPass": true,
-          "title": "애정운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "사색, 고독",
-          "index": 66,
-          "requiresPass": true,
-          "title": "오늘의 기분",
           "type": "FortuneSectionType.aspect"
         },
         {
@@ -6581,48 +6105,20 @@
         "name": "오늘의 애정운",
         "score": 90,
         "statusLabel": "상승",
-        "subDescription": "혼자 사색·연구·창작에 유리. 결정은 지연."
+        "subDescription": "혼자만의 시간이 편함."
       },
       "sections": [
         {
-          "body": "직관의 날 혼자 사색·연구·창작에 유리. 결정은 지연. 사색, 고독",
+          "body": "직관의 날 혼자만의 시간이 편함.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
-        },
-        {
-          "body": "혼자 사색·연구·창작에 유리. 결정은 지연.",
-          "index": 88,
-          "requiresPass": true,
-          "title": "총운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "리서치·기획서 작성 최적.",
-          "index": 89,
-          "requiresPass": true,
-          "title": "업무·직장운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "결정 미루기. 새 투자 금물.",
-          "index": 85,
-          "requiresPass": true,
-          "title": "재물운",
-          "type": "FortuneSectionType.aspect"
         },
         {
           "body": "혼자만의 시간이 편함.",
           "index": 87,
           "requiresPass": true,
           "title": "애정운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "사색, 고독",
-          "index": 87,
-          "requiresPass": true,
-          "title": "오늘의 기분",
           "type": "FortuneSectionType.aspect"
         },
         {
@@ -6671,48 +6167,20 @@
         "name": "오늘의 건강운",
         "score": 88,
         "statusLabel": "상승",
-        "subDescription": "혼자 사색·연구·창작에 유리. 결정은 지연."
+        "subDescription": "생각이 많아지며 정신적 피로가 쌓이기 쉬운 날. 몸보다 마음이 지치는 유형이니 잠깐 산책하거나 눈을 감고 쉬는 시간을 가지면 회복에 도움이 된다."
       },
       "sections": [
         {
-          "body": "직관의 날 혼자 사색·연구·창작에 유리. 결정은 지연. 사색, 고독",
+          "body": "직관의 날 생각이 많아지며 정신적 피로가 쌓이기 쉬운 날. 몸보다 마음이 지치는 유형이니 잠깐 산책하거나 눈을 감고 쉬는 시간을 가지면 회복에 도움이 된다.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "혼자 사색·연구·창작에 유리. 결정은 지연.",
-          "index": 86,
+          "body": "생각이 많아지며 정신적 피로가 쌓이기 쉬운 날. 몸보다 마음이 지치는 유형이니 잠깐 산책하거나 눈을 감고 쉬는 시간을 가지면 회복에 도움이 된다.",
+          "index": 84,
           "requiresPass": true,
-          "title": "총운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "리서치·기획서 작성 최적.",
-          "index": 87,
-          "requiresPass": true,
-          "title": "업무·직장운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "결정 미루기. 새 투자 금물.",
-          "index": 83,
-          "requiresPass": true,
-          "title": "재물운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "혼자만의 시간이 편함.",
-          "index": 85,
-          "requiresPass": true,
-          "title": "애정운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "사색, 고독",
-          "index": 85,
-          "requiresPass": true,
-          "title": "오늘의 기분",
+          "title": "건강운",
           "type": "FortuneSectionType.aspect"
         },
         {
@@ -6761,48 +6229,20 @@
         "name": "오늘의 길흉 시간대",
         "score": 76,
         "statusLabel": "보통",
-        "subDescription": "혼자 사색·연구·창작에 유리. 결정은 지연."
+        "subDescription": "오늘 움직이기 좋은 시간대는 저녁 7~9시. 반대로 즉흥적 결정은(는) 피하는 게 좋은 흐름이에요."
       },
       "sections": [
         {
-          "body": "직관의 날 혼자 사색·연구·창작에 유리. 결정은 지연. 사색, 고독",
+          "body": "직관의 날 오늘 움직이기 좋은 시간대는 저녁 7~9시. 반대로 즉흥적 결정은(는) 피하는 게 좋은 흐름이에요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "혼자 사색·연구·창작에 유리. 결정은 지연.",
+          "body": "오늘 움직이기 좋은 시간대는 저녁 7~9시. 반대로 즉흥적 결정은(는) 피하는 게 좋은 흐름이에요.",
           "index": 74,
           "requiresPass": true,
           "title": "총운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "리서치·기획서 작성 최적.",
-          "index": 75,
-          "requiresPass": true,
-          "title": "업무·직장운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "결정 미루기. 새 투자 금물.",
-          "index": 71,
-          "requiresPass": true,
-          "title": "재물운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "혼자만의 시간이 편함.",
-          "index": 73,
-          "requiresPass": true,
-          "title": "애정운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "사색, 고독",
-          "index": 73,
-          "requiresPass": true,
-          "title": "오늘의 기분",
           "type": "FortuneSectionType.aspect"
         },
         {
@@ -9714,34 +9154,6 @@
           "type": "FortuneSectionType.aspect"
         },
         {
-          "body": "부동산·문서·자격증 재물.",
-          "index": 81,
-          "requiresPass": true,
-          "title": "재물운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "교육·연구·공직 안정. 새 자격증 유리.",
-          "index": 88,
-          "requiresPass": true,
-          "title": "직업운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "따뜻한 배우자·안정 관계.",
-          "index": 83,
-          "requiresPass": true,
-          "title": "애정운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "안정된 컨디션.",
-          "index": 82,
-          "requiresPass": true,
-          "title": "건강운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "isAvoid": false,
           "items": [
             "배움에 투자하라. 자격증·학위·인맥 확장의 해."
@@ -9785,48 +9197,20 @@
         "name": "올해 재물운",
         "score": 71,
         "statusLabel": "보통",
-        "subDescription": "공부·자격증·문서·인복 최상. 어머니·윗사람 도움."
+        "subDescription": "부동산·문서·자격증 재물."
       },
       "sections": [
         {
-          "body": "표출의 해 — 명예·발표·홍보 활발 학문·인복의 해 공부·자격증·문서·인복 최상. 어머니·윗사람 도움. 배움에 투자하라. 자격증·학위·인맥 확장의 해.",
+          "body": "표출의 해 — 명예·발표·홍보 활발 학문·인복의 해 부동산·문서·자격증 재물. 배움에 투자하라. 자격증·학위·인맥 확장의 해.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
-        },
-        {
-          "body": "공부·자격증·문서·인복 최상. 어머니·윗사람 도움.",
-          "index": 69,
-          "requiresPass": true,
-          "title": "총운",
-          "type": "FortuneSectionType.aspect"
         },
         {
           "body": "부동산·문서·자격증 재물.",
           "index": 66,
           "requiresPass": true,
           "title": "재물운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "교육·연구·공직 안정. 새 자격증 유리.",
-          "index": 73,
-          "requiresPass": true,
-          "title": "직업운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "따뜻한 배우자·안정 관계.",
-          "index": 68,
-          "requiresPass": true,
-          "title": "애정운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "안정된 컨디션.",
-          "index": 67,
-          "requiresPass": true,
-          "title": "건강운",
           "type": "FortuneSectionType.aspect"
         },
         {
@@ -9873,48 +9257,20 @@
         "name": "올해 직업운",
         "score": 91,
         "statusLabel": "상승",
-        "subDescription": "공부·자격증·문서·인복 최상. 어머니·윗사람 도움."
+        "subDescription": "교육·연구·공직 안정. 새 자격증 유리."
       },
       "sections": [
         {
-          "body": "표출의 해 — 명예·발표·홍보 활발 학문·인복의 해 공부·자격증·문서·인복 최상. 어머니·윗사람 도움. 배움에 투자하라. 자격증·학위·인맥 확장의 해.",
+          "body": "표출의 해 — 명예·발표·홍보 활발 학문·인복의 해 교육·연구·공직 안정. 새 자격증 유리. 배움에 투자하라. 자격증·학위·인맥 확장의 해.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
-        },
-        {
-          "body": "공부·자격증·문서·인복 최상. 어머니·윗사람 도움.",
-          "index": 89,
-          "requiresPass": true,
-          "title": "총운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "부동산·문서·자격증 재물.",
-          "index": 86,
-          "requiresPass": true,
-          "title": "재물운",
-          "type": "FortuneSectionType.aspect"
         },
         {
           "body": "교육·연구·공직 안정. 새 자격증 유리.",
           "index": 93,
           "requiresPass": true,
           "title": "직업운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "따뜻한 배우자·안정 관계.",
-          "index": 88,
-          "requiresPass": true,
-          "title": "애정운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "안정된 컨디션.",
-          "index": 87,
-          "requiresPass": true,
-          "title": "건강운",
           "type": "FortuneSectionType.aspect"
         },
         {
@@ -9961,48 +9317,20 @@
         "name": "올해 애정운",
         "score": 94,
         "statusLabel": "상승",
-        "subDescription": "공부·자격증·문서·인복 최상. 어머니·윗사람 도움."
+        "subDescription": "따뜻한 배우자·안정 관계."
       },
       "sections": [
         {
-          "body": "표출의 해 — 명예·발표·홍보 활발 학문·인복의 해 공부·자격증·문서·인복 최상. 어머니·윗사람 도움. 배움에 투자하라. 자격증·학위·인맥 확장의 해.",
+          "body": "표출의 해 — 명예·발표·홍보 활발 학문·인복의 해 따뜻한 배우자·안정 관계. 배움에 투자하라. 자격증·학위·인맥 확장의 해.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
-        },
-        {
-          "body": "공부·자격증·문서·인복 최상. 어머니·윗사람 도움.",
-          "index": 92,
-          "requiresPass": true,
-          "title": "총운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "부동산·문서·자격증 재물.",
-          "index": 89,
-          "requiresPass": true,
-          "title": "재물운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "교육·연구·공직 안정. 새 자격증 유리.",
-          "index": 96,
-          "requiresPass": true,
-          "title": "직업운",
-          "type": "FortuneSectionType.aspect"
         },
         {
           "body": "따뜻한 배우자·안정 관계.",
           "index": 91,
           "requiresPass": true,
           "title": "애정운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "안정된 컨디션.",
-          "index": 90,
-          "requiresPass": true,
-          "title": "건강운",
           "type": "FortuneSectionType.aspect"
         },
         {
@@ -10049,42 +9377,14 @@
         "name": "올해 건강운",
         "score": 69,
         "statusLabel": "보통",
-        "subDescription": "공부·자격증·문서·인복 최상. 어머니·윗사람 도움."
+        "subDescription": "안정된 컨디션."
       },
       "sections": [
         {
-          "body": "표출의 해 — 명예·발표·홍보 활발 학문·인복의 해 공부·자격증·문서·인복 최상. 어머니·윗사람 도움. 배움에 투자하라. 자격증·학위·인맥 확장의 해.",
+          "body": "표출의 해 — 명예·발표·홍보 활발 학문·인복의 해 안정된 컨디션. 배움에 투자하라. 자격증·학위·인맥 확장의 해.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
-        },
-        {
-          "body": "공부·자격증·문서·인복 최상. 어머니·윗사람 도움.",
-          "index": 67,
-          "requiresPass": true,
-          "title": "총운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "부동산·문서·자격증 재물.",
-          "index": 64,
-          "requiresPass": true,
-          "title": "재물운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "교육·연구·공직 안정. 새 자격증 유리.",
-          "index": 71,
-          "requiresPass": true,
-          "title": "직업운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "따뜻한 배우자·안정 관계.",
-          "index": 66,
-          "requiresPass": true,
-          "title": "애정운",
-          "type": "FortuneSectionType.aspect"
         },
         {
           "body": "안정된 컨디션.",
@@ -10445,7 +9745,7 @@
       },
       "sections": [
         {
-          "body": "인복의 달 공부·문서·인복 최상. 배움에 투자",
+          "body": "인복의 달 부동산·문서 따뜻한 관계 안정 공부·문서·인복 최상. 배움에 투자",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
@@ -10553,20 +9853,6 @@
           "type": "FortuneSectionType.aspect"
         },
         {
-          "body": "지출 주의. 친구가 부르는 자리 조심.",
-          "index": 86,
-          "requiresPass": true,
-          "title": "재물운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "친구 같은 편안한 만남.",
-          "index": 88,
-          "requiresPass": true,
-          "title": "애정운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
           "body": "활기, 자립",
           "index": 88,
           "requiresPass": true,
@@ -10640,20 +9926,6 @@
           "index": 93,
           "requiresPass": true,
           "title": "업무·직장운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "재능 발휘로 수익 기회.",
-          "index": 89,
-          "requiresPass": true,
-          "title": "재물운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "매력 발산되나 파트너 배려 필요.",
-          "index": 91,
-          "requiresPass": true,
-          "title": "애정운",
           "type": "FortuneSectionType.aspect"
         },
         {
@@ -10773,48 +10045,20 @@
         "name": "오늘의 재물운",
         "score": 69,
         "statusLabel": "보통",
-        "subDescription": "같은 편에게서 에너지 받는 날. 협업·팀 미팅 유리."
+        "subDescription": "지출 주의. 친구가 부르는 자리 조심."
       },
       "sections": [
         {
-          "body": "동료의 날 같은 편에게서 에너지 받는 날. 협업·팀 미팅 유리. 활기, 자립",
+          "body": "동료의 날 지출 주의. 친구가 부르는 자리 조심.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
-        },
-        {
-          "body": "같은 편에게서 에너지 받는 날. 협업·팀 미팅 유리.",
-          "index": 67,
-          "requiresPass": true,
-          "title": "총운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "혼자보다 함께. 회의·브레인스토밍 적기.",
-          "index": 68,
-          "requiresPass": true,
-          "title": "업무·직장운",
-          "type": "FortuneSectionType.aspect"
         },
         {
           "body": "지출 주의. 친구가 부르는 자리 조심.",
           "index": 64,
           "requiresPass": true,
           "title": "재물운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "친구 같은 편안한 만남.",
-          "index": 66,
-          "requiresPass": true,
-          "title": "애정운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "활기, 자립",
-          "index": 66,
-          "requiresPass": true,
-          "title": "오늘의 기분",
           "type": "FortuneSectionType.aspect"
         },
         {
@@ -10863,48 +10107,20 @@
         "name": "오늘의 애정운",
         "score": 90,
         "statusLabel": "상승",
-        "subDescription": "같은 편에게서 에너지 받는 날. 협업·팀 미팅 유리."
+        "subDescription": "친구 같은 편안한 만남."
       },
       "sections": [
         {
-          "body": "동료의 날 같은 편에게서 에너지 받는 날. 협업·팀 미팅 유리. 활기, 자립",
+          "body": "동료의 날 친구 같은 편안한 만남.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
-        },
-        {
-          "body": "같은 편에게서 에너지 받는 날. 협업·팀 미팅 유리.",
-          "index": 88,
-          "requiresPass": true,
-          "title": "총운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "혼자보다 함께. 회의·브레인스토밍 적기.",
-          "index": 89,
-          "requiresPass": true,
-          "title": "업무·직장운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "지출 주의. 친구가 부르는 자리 조심.",
-          "index": 85,
-          "requiresPass": true,
-          "title": "재물운",
-          "type": "FortuneSectionType.aspect"
         },
         {
           "body": "친구 같은 편안한 만남.",
           "index": 87,
           "requiresPass": true,
           "title": "애정운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "활기, 자립",
-          "index": 87,
-          "requiresPass": true,
-          "title": "오늘의 기분",
           "type": "FortuneSectionType.aspect"
         },
         {
@@ -10953,48 +10169,20 @@
         "name": "오늘의 건강운",
         "score": 88,
         "statusLabel": "상승",
-        "subDescription": "같은 편에게서 에너지 받는 날. 협업·팀 미팅 유리."
+        "subDescription": "체력은 좋은 편이나 사람 만나는 자리가 늘어 과음·과식으로 이어지기 쉬운 날. 적당한 선에서 즐기면 무리 없다."
       },
       "sections": [
         {
-          "body": "동료의 날 같은 편에게서 에너지 받는 날. 협업·팀 미팅 유리. 활기, 자립",
+          "body": "동료의 날 체력은 좋은 편이나 사람 만나는 자리가 늘어 과음·과식으로 이어지기 쉬운 날. 적당한 선에서 즐기면 무리 없다.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "같은 편에게서 에너지 받는 날. 협업·팀 미팅 유리.",
-          "index": 86,
+          "body": "체력은 좋은 편이나 사람 만나는 자리가 늘어 과음·과식으로 이어지기 쉬운 날. 적당한 선에서 즐기면 무리 없다.",
+          "index": 84,
           "requiresPass": true,
-          "title": "총운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "혼자보다 함께. 회의·브레인스토밍 적기.",
-          "index": 87,
-          "requiresPass": true,
-          "title": "업무·직장운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "지출 주의. 친구가 부르는 자리 조심.",
-          "index": 83,
-          "requiresPass": true,
-          "title": "재물운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "친구 같은 편안한 만남.",
-          "index": 85,
-          "requiresPass": true,
-          "title": "애정운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "활기, 자립",
-          "index": 85,
-          "requiresPass": true,
-          "title": "오늘의 기분",
+          "title": "건강운",
           "type": "FortuneSectionType.aspect"
         },
         {
@@ -11043,48 +10231,20 @@
         "name": "오늘의 길흉 시간대",
         "score": 76,
         "statusLabel": "보통",
-        "subDescription": "같은 편에게서 에너지 받는 날. 협업·팀 미팅 유리."
+        "subDescription": "오늘 움직이기 좋은 시간대는 오전 9~11시. 반대로 밤 늦은 술자리은(는) 피하는 게 좋은 흐름이에요."
       },
       "sections": [
         {
-          "body": "동료의 날 같은 편에게서 에너지 받는 날. 협업·팀 미팅 유리. 활기, 자립",
+          "body": "동료의 날 오늘 움직이기 좋은 시간대는 오전 9~11시. 반대로 밤 늦은 술자리은(는) 피하는 게 좋은 흐름이에요.",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
         },
         {
-          "body": "같은 편에게서 에너지 받는 날. 협업·팀 미팅 유리.",
+          "body": "오늘 움직이기 좋은 시간대는 오전 9~11시. 반대로 밤 늦은 술자리은(는) 피하는 게 좋은 흐름이에요.",
           "index": 74,
           "requiresPass": true,
           "title": "총운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "혼자보다 함께. 회의·브레인스토밍 적기.",
-          "index": 75,
-          "requiresPass": true,
-          "title": "업무·직장운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "지출 주의. 친구가 부르는 자리 조심.",
-          "index": 71,
-          "requiresPass": true,
-          "title": "재물운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "친구 같은 편안한 만남.",
-          "index": 73,
-          "requiresPass": true,
-          "title": "애정운",
-          "type": "FortuneSectionType.aspect"
-        },
-        {
-          "body": "활기, 자립",
-          "index": 73,
-          "requiresPass": true,
-          "title": "오늘의 기분",
           "type": "FortuneSectionType.aspect"
         },
         {

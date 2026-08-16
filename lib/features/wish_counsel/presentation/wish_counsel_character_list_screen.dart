@@ -29,7 +29,10 @@ class _WishCounselCharacterListScreenState
     final t = WishCounselColors.of(widget.category);
     final provider = context.watch<WishCounselProvider>();
     final all = provider.byCategory(widget.category);
-    final filters = ['전체', ...{for (final c in all) ...c.styleTags}.take(3)];
+    final filters = [
+      '전체',
+      ...{for (final c in all) ...c.styleTags}.take(3),
+    ];
     final list = _filter == '전체'
         ? all
         : all.where((c) => c.styleTags.contains(_filter)).toList();
@@ -126,8 +129,7 @@ class _CharacterCard extends StatelessWidget {
                       character.avatarAsset,
                       fit: BoxFit.cover,
                       alignment: const Alignment(0, -0.5),
-                      errorBuilder: (_, __, ___) =>
-                          Container(color: t.bg2),
+                      errorBuilder: (_, __, ___) => Container(color: t.bg2),
                     ),
                   ),
                   Positioned.fill(
@@ -228,10 +230,7 @@ class _CharacterCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(999),
                               border: Border.all(color: WishCounselColors.line),
                             ),
-                            child: Text(
-                              tag,
-                              style: WishCounselText.caption(),
-                            ),
+                            child: Text(tag, style: WishCounselText.caption()),
                           ),
                         )
                         .toList(),
@@ -255,9 +254,7 @@ class _CharacterCard extends StatelessWidget {
                           vertical: 9,
                         ),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [t.glow, t.accent],
-                          ),
+                          gradient: LinearGradient(colors: [t.glow, t.accent]),
                           borderRadius: BorderRadius.circular(999),
                         ),
                         child: Text(

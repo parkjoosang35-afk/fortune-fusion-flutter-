@@ -181,8 +181,7 @@ Future<void> showCategoryLimitReachedSheet(
   return showAppInfoDialog(
     context,
     title: '이용 횟수 초과',
-    message: message ??
-        '$categoryTitle 운세는 이번 프리패스로 이용할 수 있는 횟수를 모두 사용했습니다.',
+    message: message ?? '$categoryTitle 운세는 이번 프리패스로 이용할 수 있는 횟수를 모두 사용했습니다.',
     confirmLabel: '확인',
   );
 }

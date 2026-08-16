@@ -80,11 +80,7 @@ void main() {
     }
 
     final expected = file.readAsStringSync();
-    expect(
-      actual,
-      expected,
-      reason: '정통사주 결정론 스냅샷 불일치 — 시드/문자열/룰 변경이 있는지 확인.',
-    );
+    expect(actual, expected, reason: '정통사주 결정론 스냅샷 불일치 — 시드/문자열/룰 변경이 있는지 확인.');
   });
 }
 

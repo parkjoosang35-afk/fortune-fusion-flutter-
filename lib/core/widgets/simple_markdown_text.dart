@@ -12,11 +12,7 @@ import '../theme/app_unified_style.dart';
 /// [ResultCardStack]의 히어로 요약/세부 리포트 본문 등 AI 텍스트를 표시하는 모든
 /// 곳에서 공통으로 재사용한다.
 class SimpleMarkdownText extends StatelessWidget {
-  const SimpleMarkdownText({
-    super.key,
-    required this.data,
-    this.baseStyle,
-  });
+  const SimpleMarkdownText({super.key, required this.data, this.baseStyle});
 
   /// 렌더링할 원본 텍스트(마크다운 문법 포함 가능)
   final String data;
@@ -46,7 +42,9 @@ class SimpleMarkdownText extends StatelessWidget {
       final trimmed = line.trim();
 
       // 표 행(| a | b |) 감지 — 연속된 표 행을 모아 하나의 테이블로 렌더링.
-      if (trimmed.startsWith('|') && trimmed.endsWith('|') && trimmed.length > 1) {
+      if (trimmed.startsWith('|') &&
+          trimmed.endsWith('|') &&
+          trimmed.length > 1) {
         final cells = trimmed
             .substring(1, trimmed.length - 1)
             .split('|')
@@ -88,7 +86,9 @@ class SimpleMarkdownText extends StatelessWidget {
         final content = headerMatch.group(2)!.trim();
         final headerStyle = level <= 2
             ? UnifiedText.title(color: style.color ?? UnifiedColors.textPrimary)
-            : UnifiedText.bodyStrong(color: style.color ?? UnifiedColors.textPrimary);
+            : UnifiedText.bodyStrong(
+                color: style.color ?? UnifiedColors.textPrimary,
+              );
         widgets.add(
           Padding(
             padding: const EdgeInsets.only(top: 4, bottom: 4),
@@ -109,7 +109,9 @@ class SimpleMarkdownText extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('•  ', style: style),
-                Expanded(child: _InlineRichText(text: content, baseStyle: style)),
+                Expanded(
+                  child: _InlineRichText(text: content, baseStyle: style),
+                ),
               ],
             ),
           ),
@@ -129,7 +131,9 @@ class SimpleMarkdownText extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('$number. ', style: style),
-                Expanded(child: _InlineRichText(text: content, baseStyle: style)),
+                Expanded(
+                  child: _InlineRichText(text: content, baseStyle: style),
+                ),
               ],
             ),
           ),
@@ -200,7 +204,9 @@ class _InlineRichText extends StatelessWidget {
     int start = 0;
     for (final match in pattern.allMatches(input)) {
       if (match.start > start) {
-        spans.add(TextSpan(text: input.substring(start, match.start), style: base));
+        spans.add(
+          TextSpan(text: input.substring(start, match.start), style: base),
+        );
       }
       final token = match.group(0)!;
       if (token.startsWith('**') || token.startsWith('__')) {
@@ -248,7 +254,9 @@ class _MarkdownTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (rows.isEmpty) return const SizedBox.shrink();
-    final columnCount = rows.map((r) => r.length).reduce((a, b) => a > b ? a : b);
+    final columnCount = rows
+        .map((r) => r.length)
+        .reduce((a, b) => a > b ? a : b);
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6),

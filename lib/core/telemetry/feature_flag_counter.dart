@@ -46,9 +46,7 @@ class FeatureFlagCounter {
     // [관측용 콘솔 로그] 운영 디버그 메뉴가 없는 환경에서도 콘솔에서 바로
     // 누적/일자별 카운트를 확인할 수 있게 한다(디버그 빌드에서만 출력).
     if (kDebugMode) {
-      debugPrint(
-        '[FeatureFlagCounter] $flagKey -> total=$total, today=$daily',
-      );
+      debugPrint('[FeatureFlagCounter] $flagKey -> total=$total, today=$daily');
     }
   }
 

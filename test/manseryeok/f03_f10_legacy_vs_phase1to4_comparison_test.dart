@@ -164,30 +164,37 @@ void main() {
   // 순회하지 않으므로 legacy/new가 완전히 동일해야 한다.
   const fIdsFullEqual = ['F03', 'F04', 'F07', 'F10'];
 
-  group('[j12·F03/F04/F07/F10] 레거시 vs 신규(PHASE1~4+어댑터) 결과 완전 일치 — seed 유저 3명', () {
-    for (final u in _seedUsers) {
-      test('${u.userId}: F03/F04/F07/F10 — legacy와 new의 결과 데이터가 완전히 동일해야 함', () {
-        final legacyF = _runLegacy(u, _kFixedDate);
-        final newF = _runNew(u, _kFixedDate);
+  group(
+    '[j12·F03/F04/F07/F10] 레거시 vs 신규(PHASE1~4+어댑터) 결과 완전 일치 — seed 유저 3명',
+    () {
+      for (final u in _seedUsers) {
+        test(
+          '${u.userId}: F03/F04/F07/F10 — legacy와 new의 결과 데이터가 완전히 동일해야 함',
+          () {
+            final legacyF = _runLegacy(u, _kFixedDate);
+            final newF = _runNew(u, _kFixedDate);
 
-        for (final id in fIdsFullEqual) {
-          final legacyData = legacyF.results[id]!.data;
-          final newData = newF.results[id]!.data;
-          // ignore: avoid_print
-          print('[$id] legacy=$legacyData');
-          // ignore: avoid_print
-          print('[$id] new   =$newData');
-          expect(
-            newData,
-            legacyData,
-            reason: '${u.userId}: $id는 원국 4주(distribution/gongmang/sinsal/'
-                'fiveElementsCount)만으로 계산되며 대운 목록을 순회하지 않으므로 '
-                'legacy/new 결과가 완전히 동일해야 함',
-          );
-        }
-      });
-    }
-  });
+            for (final id in fIdsFullEqual) {
+              final legacyData = legacyF.results[id]!.data;
+              final newData = newF.results[id]!.data;
+              // ignore: avoid_print
+              print('[$id] legacy=$legacyData');
+              // ignore: avoid_print
+              print('[$id] new   =$newData');
+              expect(
+                newData,
+                legacyData,
+                reason:
+                    '${u.userId}: $id는 원국 4주(distribution/gongmang/sinsal/'
+                    'fiveElementsCount)만으로 계산되며 대운 목록을 순회하지 않으므로 '
+                    'legacy/new 결과가 완전히 동일해야 함',
+              );
+            }
+          },
+        );
+      }
+    },
+  );
 
   // [알려진 차이 — B02~B10 선례와 동일 원리, §8/§11 "신규 엔진이 맞으면
   // 유지"] F05/F06/F08은 daewoonsWithTenGod(saju.luckPillars 순회)를
@@ -203,93 +210,102 @@ void main() {
   // 불리언/문자열 필드는 완전 일치를 검증한다.
   group('[j12·F05/F06/F08/F09] 레거시 vs 신규 — 대운 목록 의존 필드는 공통 접두사 비교', () {
     for (final u in _seedUsers) {
-      test('${u.userId}: F05/F06/F08/F09 — 대운 개수 무관 필드는 완전 일치, 리스트 필드는 공통 접두사 일치', () {
-        final legacyF = _runLegacy(u, _kFixedDate);
-        final newF = _runNew(u, _kFixedDate);
+      test(
+        '${u.userId}: F05/F06/F08/F09 — 대운 개수 무관 필드는 완전 일치, 리스트 필드는 공통 접두사 일치',
+        () {
+          final legacyF = _runLegacy(u, _kFixedDate);
+          final newF = _runNew(u, _kFixedDate);
 
-        // F05 — current_daewoon_hit/current_year_hit/verdict는 대운
-        // "개수"가 아니라 saju.currentLuck(공통 접두사 안에 항상 존재)과
-        // upcoming.first(가장 이른 시기 — 공통 접두사 안에서 결정)에만
-        // 의존하므로 완전 일치해야 한다. upcoming_periods(리스트)만
-        // 공통 접두사 비교로 완화한다.
-        final legacyF05 = legacyF.results['F05']!.data;
-        final newF05 = newF.results['F05']!.data;
-        // ignore: avoid_print
-        print('[F05] legacy=$legacyF05');
-        // ignore: avoid_print
-        print('[F05] new   =$newF05');
-        expect(newF05['current_daewoon_hit'], legacyF05['current_daewoon_hit']);
-        expect(newF05['current_year_hit'], legacyF05['current_year_hit']);
-        expect(newF05['verdict'], legacyF05['verdict']);
-        final legacyUpcoming = legacyF05['upcoming_periods'] as List;
-        final newUpcoming = newF05['upcoming_periods'] as List;
-        expect(
-          newUpcoming.take(legacyUpcoming.length).toList(),
-          legacyUpcoming,
-          reason: '${u.userId}: F05 upcoming_periods 공통 접두사(legacy 길이만큼)는 legacy/new 동일해야 함',
-        );
+          // F05 — current_daewoon_hit/current_year_hit/verdict는 대운
+          // "개수"가 아니라 saju.currentLuck(공통 접두사 안에 항상 존재)과
+          // upcoming.first(가장 이른 시기 — 공통 접두사 안에서 결정)에만
+          // 의존하므로 완전 일치해야 한다. upcoming_periods(리스트)만
+          // 공통 접두사 비교로 완화한다.
+          final legacyF05 = legacyF.results['F05']!.data;
+          final newF05 = newF.results['F05']!.data;
+          // ignore: avoid_print
+          print('[F05] legacy=$legacyF05');
+          // ignore: avoid_print
+          print('[F05] new   =$newF05');
+          expect(
+            newF05['current_daewoon_hit'],
+            legacyF05['current_daewoon_hit'],
+          );
+          expect(newF05['current_year_hit'], legacyF05['current_year_hit']);
+          expect(newF05['verdict'], legacyF05['verdict']);
+          final legacyUpcoming = legacyF05['upcoming_periods'] as List;
+          final newUpcoming = newF05['upcoming_periods'] as List;
+          expect(
+            newUpcoming.take(legacyUpcoming.length).toList(),
+            legacyUpcoming,
+            reason:
+                '${u.userId}: F05 upcoming_periods 공통 접두사(legacy 길이만큼)는 legacy/new 동일해야 함',
+          );
 
-        // F06 — timeline은 daewoonsWithTenGod 전체를 그대로 순회하므로
-        // 공통 접두사만 비교한다. peak_periods/summary는 새로 추가된
-        // 9번째 대운이 우연히 peak 조건(토+재성)을 만족하지 않는 한
-        // legacy와 동일하게 나오지만, 조건 만족 여부는 사주마다 다를 수
-        // 있으므로 완전 일치를 강제하지 않고 legacy의 peak가 new의
-        // peak에 순서대로 포함(prefix)되는지만 확인한다.
-        final legacyF06 = legacyF.results['F06']!.data;
-        final newF06 = newF.results['F06']!.data;
-        // ignore: avoid_print
-        print('[F06] legacy=$legacyF06');
-        // ignore: avoid_print
-        print('[F06] new   =$newF06');
-        final legacyTimeline = legacyF06['timeline'] as List;
-        final newTimeline = newF06['timeline'] as List;
-        expect(
-          newTimeline.take(legacyTimeline.length).toList(),
-          legacyTimeline,
-          reason: '${u.userId}: F06 timeline 공통 접두사(legacy 길이만큼)는 legacy/new 동일해야 함',
-        );
-        final legacyPeaks = legacyF06['peak_periods'] as List;
-        final newPeaks = newF06['peak_periods'] as List;
-        expect(
-          newPeaks.take(legacyPeaks.length).toList(),
-          legacyPeaks,
-          reason: '${u.userId}: F06 peak_periods 공통 접두사는 legacy/new 동일해야 함(신규 9번째 대운이 추가로 peak일 수만 있음)',
-        );
+          // F06 — timeline은 daewoonsWithTenGod 전체를 그대로 순회하므로
+          // 공통 접두사만 비교한다. peak_periods/summary는 새로 추가된
+          // 9번째 대운이 우연히 peak 조건(토+재성)을 만족하지 않는 한
+          // legacy와 동일하게 나오지만, 조건 만족 여부는 사주마다 다를 수
+          // 있으므로 완전 일치를 강제하지 않고 legacy의 peak가 new의
+          // peak에 순서대로 포함(prefix)되는지만 확인한다.
+          final legacyF06 = legacyF.results['F06']!.data;
+          final newF06 = newF.results['F06']!.data;
+          // ignore: avoid_print
+          print('[F06] legacy=$legacyF06');
+          // ignore: avoid_print
+          print('[F06] new   =$newF06');
+          final legacyTimeline = legacyF06['timeline'] as List;
+          final newTimeline = newF06['timeline'] as List;
+          expect(
+            newTimeline.take(legacyTimeline.length).toList(),
+            legacyTimeline,
+            reason:
+                '${u.userId}: F06 timeline 공통 접두사(legacy 길이만큼)는 legacy/new 동일해야 함',
+          );
+          final legacyPeaks = legacyF06['peak_periods'] as List;
+          final newPeaks = newF06['peak_periods'] as List;
+          expect(
+            newPeaks.take(legacyPeaks.length).toList(),
+            legacyPeaks,
+            reason:
+                '${u.userId}: F06 peak_periods 공통 접두사는 legacy/new 동일해야 함(신규 9번째 대운이 추가로 peak일 수만 있음)',
+          );
 
-        // F08 — spouse_god_label(성별 기반, 대운 무관)은 완전 일치해야
-        // 한다. active_periods(리스트)는 공통 접두사 비교로 완화한다.
-        final legacyF08 = legacyF.results['F08']!.data;
-        final newF08 = newF.results['F08']!.data;
-        // ignore: avoid_print
-        print('[F08] legacy=$legacyF08');
-        // ignore: avoid_print
-        print('[F08] new   =$newF08');
-        expect(newF08['spouse_god_label'], legacyF08['spouse_god_label']);
-        final legacyActive = legacyF08['active_periods'] as List;
-        final newActive = newF08['active_periods'] as List;
-        expect(
-          newActive.take(legacyActive.length).toList(),
-          legacyActive,
-          reason: '${u.userId}: F08 active_periods 공통 접두사는 legacy/new 동일해야 함',
-        );
+          // F08 — spouse_god_label(성별 기반, 대운 무관)은 완전 일치해야
+          // 한다. active_periods(리스트)는 공통 접두사 비교로 완화한다.
+          final legacyF08 = legacyF.results['F08']!.data;
+          final newF08 = newF.results['F08']!.data;
+          // ignore: avoid_print
+          print('[F08] legacy=$legacyF08');
+          // ignore: avoid_print
+          print('[F08] new   =$newF08');
+          expect(newF08['spouse_god_label'], legacyF08['spouse_god_label']);
+          final legacyActive = legacyF08['active_periods'] as List;
+          final newActive = newF08['active_periods'] as List;
+          expect(
+            newActive.take(legacyActive.length).toList(),
+            legacyActive,
+            reason: '${u.userId}: F08 active_periods 공통 접두사는 legacy/new 동일해야 함',
+          );
 
-        // F09 — child_god_label(성별 기반, 대운 무관)은 완전 일치해야
-        // 한다. active_periods(리스트)는 공통 접두사 비교로 완화한다.
-        final legacyF09 = legacyF.results['F09']!.data;
-        final newF09 = newF.results['F09']!.data;
-        // ignore: avoid_print
-        print('[F09] legacy=$legacyF09');
-        // ignore: avoid_print
-        print('[F09] new   =$newF09');
-        expect(newF09['child_god_label'], legacyF09['child_god_label']);
-        final legacyChildActive = legacyF09['active_periods'] as List;
-        final newChildActive = newF09['active_periods'] as List;
-        expect(
-          newChildActive.take(legacyChildActive.length).toList(),
-          legacyChildActive,
-          reason: '${u.userId}: F09 active_periods 공통 접두사는 legacy/new 동일해야 함',
-        );
-      });
+          // F09 — child_god_label(성별 기반, 대운 무관)은 완전 일치해야
+          // 한다. active_periods(리스트)는 공통 접두사 비교로 완화한다.
+          final legacyF09 = legacyF.results['F09']!.data;
+          final newF09 = newF.results['F09']!.data;
+          // ignore: avoid_print
+          print('[F09] legacy=$legacyF09');
+          // ignore: avoid_print
+          print('[F09] new   =$newF09');
+          expect(newF09['child_god_label'], legacyF09['child_god_label']);
+          final legacyChildActive = legacyF09['active_periods'] as List;
+          final newChildActive = newF09['active_periods'] as List;
+          expect(
+            newChildActive.take(legacyChildActive.length).toList(),
+            legacyChildActive,
+            reason: '${u.userId}: F09 active_periods 공통 접두사는 legacy/new 동일해야 함',
+          );
+        },
+      );
     }
   });
 
@@ -424,7 +440,10 @@ void main() {
 
           for (final id in _fIds) {
             late final JeontongCategoryResult result;
-            expect(() => result = runJeontongCategory(id, ctx), returnsNormally);
+            expect(
+              () => result = runJeontongCategory(id, ctx),
+              returnsNormally,
+            );
             expect(result.category, isNotEmpty);
             expect(result.data.length, greaterThan(1));
           }
