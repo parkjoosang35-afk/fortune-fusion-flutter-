@@ -63,10 +63,19 @@ class JeontongNarrativeInterpreter {
     Map<String, dynamic>? data,
   }) {
     final honorific = _honorific(name);
+    // [2026-08-17 문단 순서 재배치] 기존엔 "오프닝(일간)+오행성향" 두 공통
+    // 문단이 항상 맨 앞에 나오고, 그 카테고리만의 실제 내용
+    // (_categoryParagraph)은 3번째 문단이라 스크롤을 한참 내려야 보였다.
+    // 그 결과 "재물 축적 방법을 봐도, 건강운을 봐도 화면을 열자마자
+    // 보이는 첫 내용이 항상 똑같다"는 정당한 지적으로 이어졌다(사용자
+    // 스크린샷 3장에서 재확인된 문제). 카테고리 고유 문단을 맨 앞으로
+    // 옮겨, 화면을 여는 즉시 그 카테고리만의 이야기가 먼저 보이게 한다.
+    // 오프닝/오행성향 문단은 "왜 이런 결과가 나왔는지"의 배경 설명으로
+    // 뒤에 남긴다(내용 자체는 그대로, 순서만 변경 — 재계산 아님).
     return [
+      _categoryParagraph(interp, entry, honorific, data),
       _openingParagraph(interp, honorific),
       _traitsParagraph(interp, honorific),
-      _categoryParagraph(interp, entry, honorific, data),
       _luckParagraph(interp, honorific),
       _closingParagraph(interp, entry.major, honorific),
     ].where((p) => p.trim().isNotEmpty).toList(growable: false);
