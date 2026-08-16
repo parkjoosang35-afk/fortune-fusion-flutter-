@@ -133,33 +133,43 @@ class _Row extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SizedBox(
-          width: 48,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(label,
-                  style: HanjiTextStyles.bodyTitle(color: HanjiColors.muted)
-                      .copyWith(fontSize: 11)),
-              Text(hanja,
-                  style: const TextStyle(
-                      color: HanjiColors.muted, fontSize: 10, letterSpacing: 2)),
-              const SizedBox(width: 4),
-            ],
-          ),
-        ),
-        for (final c in cells)
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: c,
+    // [버그 수정 - 정식 오픈 전 긴급] 이 위젯이 결과 화면의 ListView 안에
+    // 직접 들어가면서 부모로부터 무한대(Infinity) 높이 제약을 받는다.
+    // CrossAxisAlignment.stretch는 유한한 높이가 있어야 자식을 늘려
+    // 채울 수 있는데, 무한 높이가 들어오면 Flutter가
+    // "BoxConstraints forces an infinite height" 렌더링 예외를 던지고
+    // 그 결과 천간/지지 칸 전체가 렌더링되지 않고 빈 공간만 남는다
+    // (실제 사주 계산 데이터 자체는 정상 — 계산 로직 문제 아님).
+    // IntrinsicHeight로 감싸 Row에 유한한 높이를 제공해 해결한다.
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            width: 48,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(label,
+                    style: HanjiTextStyles.bodyTitle(color: HanjiColors.muted)
+                        .copyWith(fontSize: 11)),
+                Text(hanja,
+                    style: const TextStyle(
+                        color: HanjiColors.muted, fontSize: 10, letterSpacing: 2)),
+                const SizedBox(width: 4),
+              ],
             ),
           ),
-      ],
+          for (final c in cells)
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: c,
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
