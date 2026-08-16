@@ -59,6 +59,8 @@ class WealthAnalyzer extends CategoryAnalyzer<WealthAnalysis> {
         sourceValue: categoryCounts.toString(),
         rule: '재성=$wealthCount, 관살=$officerCount, 인성=$printerCount, 비겁=$biCount',
         judgment: '재성 개수를 기준으로 재물 구조 1차 판정',
+        interpretationRole: InterpretationRole.primary,
+        weight: 0.7,
       ),
     );
 
@@ -81,6 +83,8 @@ class WealthAnalyzer extends CategoryAnalyzer<WealthAnalysis> {
         sourceValue: '재성=$wealthCount, 관살=$officerCount, 인성=$printerCount',
         rule: '재성≥2&관살≥1→재관쌍미 / 재성≥2&인성=0→재성편중 / 재성=0&인성≥2→인다무재 / 재성=0→무재격 / 그외→균형형',
         judgment: wealthPattern,
+        interpretationRole: InterpretationRole.primary,
+        weight: 1.0,
       ),
     );
 
@@ -105,6 +109,8 @@ class WealthAnalyzer extends CategoryAnalyzer<WealthAnalysis> {
           sourceValue: '$strengthVerdict, 재성=$wealthCount',
           rule: '신강+재성많음→재왕신강 / 신강+재성적음→신강용재 / 신약+재성많음→재다신약 / 신약→재약신약 / 중화→중화용재',
           judgment: wealthStrength,
+          interpretationRole: InterpretationRole.strength,
+          weight: 0.95,
         ),
       );
     }
@@ -134,8 +140,26 @@ class WealthAnalyzer extends CategoryAnalyzer<WealthAnalysis> {
         sourceValue: '정재=$jeongjaeCount, 편재=$pyeonjaeCount',
         rule: '정재>편재→정재우세 / 편재>정재→편재우세 / 둘다0→재성부재 / 동률→균형',
         judgment: incomePattern,
+        interpretationRole: InterpretationRole.secondary,
+        weight: 0.6,
       ),
     );
+
+    // ── §5 개인화 강화: 재관쌍미 등 같은 wealthPattern으로 묶이더라도
+    // 사람마다 실제 정재/편재/관성/인성/비겁 조성 비율이 다르다는 것을
+    // supportingEvidence로 별도 기록한다(핵심 판단에는 영향을 주지 않지만
+    // NarrativeGenerator가 "20명의 재관쌍미"를 서로 다르게 서술할 때 쓸
+    // 세부 근거) ──
+    final supportingEvidence = <AnalysisEvidence>[
+      AnalysisEvidence(
+        sourceField: '정재/편재/관살/인성/비겁 세부 개수',
+        sourceValue: '정재=$jeongjaeCount, 편재=$pyeonjaeCount, 관살=$officerCount, 인성=$printerCount, 비겁=$biCount',
+        rule: '같은 wealthPattern이라도 세부 조성 비율은 사람마다 다름(§5)',
+        judgment: '정재:편재 비율 $jeongjaeCount:$pyeonjaeCount, 비겁 $biCount개',
+        interpretationRole: InterpretationRole.supporting,
+        weight: 0.4,
+      ),
+    ];
 
     // ── ⑤ 리스크(riskPattern): 겁재 개수 + 기신=재성 여부 ──
     final gyeopjaeCount = q
@@ -162,9 +186,23 @@ class WealthAnalyzer extends CategoryAnalyzer<WealthAnalysis> {
           sourceValue: '겁재=$gyeopjaeCount, 기신=$gisin, 재성오행=$wealthElement',
           rule: '겁재≥2 또는 기신=재성오행이면 리스크 서술 추가',
           judgment: riskPattern,
+          interpretationRole: InterpretationRole.caution,
+          weight: 0.7,
         ),
       );
     }
+    // 겁재 개수 자체는 리스크 문장 유무와 무관하게 항상 세부 근거로 남긴다
+    // (§5 "비겁 개수"도 같은 패턴 내부 차별화 재료).
+    supportingEvidence.add(
+      AnalysisEvidence(
+        sourceField: '겁재 개수(비겁 중 세부)',
+        sourceValue: '$gyeopjaeCount',
+        rule: '겁재 개수는 리스크 판단과 별개로 항상 추적',
+        judgment: gyeopjaeCount > 0 ? '겁재 $gyeopjaeCount개 보유' : '겁재 없음',
+        interpretationRole: InterpretationRole.supporting,
+        weight: 0.3,
+      ),
+    );
 
     // ── ⑥ 자산 운용 스타일(assetManagementStyle) ──
     final assetManagementStyle = _buildAssetStyle(
@@ -193,8 +231,30 @@ class WealthAnalyzer extends CategoryAnalyzer<WealthAnalysis> {
           sourceValue: wealthPeakDaewoonLabel,
           rule: '대운의 천간/지지 십신이 재성 범주이거나 용신 오행을 포함하는 첫 대운 채택',
           judgment: '$wealthPeakDaewoonLabel 시기에 재물운이 가장 활발해질 가능성',
+          interpretationRole: InterpretationRole.timing,
+          weight: 0.8,
         ),
       );
+    }
+
+    // 현재 대운(§5 "현재 대운/다음 대운")도 항상 supportingEvidence로 남겨
+    // 같은 wealthPattern이라도 "지금 어느 대운을 지나는 중인지"가 다름을
+    // 추적 가능하게 한다.
+    if (referenceDate != null) {
+      final current = q.currentDaewoon(referenceDate);
+      if (current != null) {
+        supportingEvidence.add(
+          AnalysisEvidence(
+            sourceField: 'currentDaewoon(PHASE4 실계산)',
+            sourceValue:
+                '${current.startAge}세 ${current.pillar.stemKr}${current.pillar.branchKr}(${current.pillar.stemHanja}${current.pillar.branchHanja})',
+            rule: '기준일이 속한 대운을 조회(재계산 아님, PHASE4 목록 조회)',
+            judgment: '현재 ${current.pillar.stemKr}${current.pillar.branchKr} 대운을 지나는 중',
+            interpretationRole: InterpretationRole.timing,
+            weight: 0.5,
+          ),
+        );
+      }
     }
 
     // ── 좋은 흐름 / 주의 흐름 ──
@@ -217,10 +277,30 @@ class WealthAnalyzer extends CategoryAnalyzer<WealthAnalysis> {
         ? AnalysisConfidence.medium
         : AnalysisConfidence.high;
 
+    // ── §16 결과 추적성: 최종 판정에 실제로 쓰인 원시 수치 전체를
+    // 개발자 검증용으로 남긴다 ──
+    final interpretationContext = <String, String>{
+      'wealthCount': '$wealthCount',
+      'officerCount': '$officerCount',
+      'printerCount': '$printerCount',
+      'biCount': '$biCount',
+      'jeongjaeCount': '$jeongjaeCount',
+      'pyeonjaeCount': '$pyeonjaeCount',
+      'gyeopjaeCount': '$gyeopjaeCount',
+      'strengthVerdict': strengthVerdict,
+      'yongsinElement': yongsinElement,
+      'gisinElement': gisin,
+      'wealthElement': wealthElement,
+      'gisinIsWealth': '$gisinIsWealth',
+      'wealthPeakDaewoonLabel': wealthPeakDaewoonLabel,
+    };
+
     return WealthAnalysis(
       categoryId: metadata.categoryId,
       categoryName: '평생 재물운',
       coreEvidence: evidence,
+      supportingEvidence: supportingEvidence,
+      interpretationContext: interpretationContext,
       favorableConditions: favorable,
       cautionConditions: caution,
       timing: null,

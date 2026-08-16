@@ -76,6 +76,8 @@ class LifeOverallAnalyzer extends CategoryAnalyzer<LifeOverallAnalysis> {
         sourceValue: '$dayGan(${profile.dayPillar.stemKr})',
         rule: '일간 오행/음양 고정표 조회',
         judgment: '$dayElement 기운, $dayYinYang의 성질',
+        interpretationRole: InterpretationRole.primary,
+        weight: 0.9,
       ),
     );
 
@@ -111,6 +113,8 @@ class LifeOverallAnalyzer extends CategoryAnalyzer<LifeOverallAnalysis> {
         sourceValue: categoryCount.toString(),
         rule: '십신을 5대 범주로 집계해 최다 범주를 중심 기운으로 판정',
         judgment: dominantCount > 0 ? '$dominantCategory 중심 ($dominantCount회)' : '특정 기운으로 치우치지 않은 균형형',
+        interpretationRole: InterpretationRole.primary,
+        weight: 1.0,
       ),
     );
 
@@ -128,6 +132,8 @@ class LifeOverallAnalyzer extends CategoryAnalyzer<LifeOverallAnalysis> {
               : strengthVerdict == '신약'
               ? '주변 환경·사람의 도움을 받을 때 힘이 커짐'
               : '상황에 따라 유연하게 대응하는 균형감',
+          interpretationRole: InterpretationRole.strength,
+          weight: 0.85,
         ),
       );
     }
@@ -143,6 +149,8 @@ class LifeOverallAnalyzer extends CategoryAnalyzer<LifeOverallAnalysis> {
           sourceValue: '용신=$yongsinElement, 기신=$gisinElement',
           rule: yongsin.reasoning,
           judgment: '$yongsinElement 기운이 살아날 때 삶이 편해지고, $gisinElement 기운이 강해질 때 힘들어짐',
+          interpretationRole: InterpretationRole.primary,
+          weight: 0.95,
         ),
       );
     }
@@ -162,6 +170,8 @@ class LifeOverallAnalyzer extends CategoryAnalyzer<LifeOverallAnalysis> {
               : dominantElements.isNotEmpty
               ? '$dominantElements 기운이 두드러지게 강한 구조'
               : '$deficientElements 기운이 원국에 없는 구조',
+          interpretationRole: InterpretationRole.supporting,
+          weight: 0.6,
         ),
       );
     }
@@ -180,6 +190,8 @@ class LifeOverallAnalyzer extends CategoryAnalyzer<LifeOverallAnalysis> {
           sourceValue: notableSinsal.join(', '),
           rule: '원국에 실제로 발견된 신살만 채택(전통 고정표 대조)',
           judgment: '${notableSinsal.join(', ')}(이)가 인생의 특이 기운으로 작용',
+          interpretationRole: InterpretationRole.supporting,
+          weight: 0.5,
         ),
       );
     }
@@ -231,10 +243,30 @@ class LifeOverallAnalyzer extends CategoryAnalyzer<LifeOverallAnalysis> {
         ? AnalysisConfidence.medium
         : AnalysisConfidence.high;
 
+    // ── §16 결과 추적성: "왜 이런 결과가 나왔는가"를 개발자가 즉시
+    // 확인할 수 있도록 이 판정에 실제로 쓰인 원시 수치를 남긴다(사용자
+    // 노출용이 아니라 100명 검증 테스트가 "같은 dominantCategory라도
+    // 내부 수치가 다른지"를 비교할 근거) ──
+    final interpretationContext = <String, String>{
+      'dayGan': dayGan,
+      'dayElement': dayElement,
+      'categoryCount': categoryCount.toString(),
+      'dominantCategory': dominantCategory,
+      'dominantCount': '$dominantCount',
+      'strengthVerdict': strengthVerdict,
+      'strengthScore': strength?.score.toStringAsFixed(3) ?? '',
+      'yongsinElement': yongsinElement,
+      'gisinElement': gisinElement,
+      'dominantElements': dominantElements.join(','),
+      'deficientElements': deficientElements.join(','),
+      'notableSinsal': notableSinsal.join(','),
+    };
+
     return LifeOverallAnalysis(
       categoryId: metadata.categoryId,
       categoryName: '평생 총운',
       coreEvidence: evidence,
+      interpretationContext: interpretationContext,
       favorableConditions: favorable,
       cautionConditions: caution,
       timing: null, // A01은 세운/월운 무관 카테고리(§10 excludedData).

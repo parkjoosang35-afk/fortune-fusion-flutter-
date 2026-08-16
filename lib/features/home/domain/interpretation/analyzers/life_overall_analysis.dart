@@ -17,6 +17,8 @@ class LifeOverallAnalysis extends CategoryAnalysis {
     required super.cautionConditions,
     super.timing,
     super.confidence = AnalysisConfidence.medium,
+    super.supportingEvidence = const [],
+    super.interpretationContext = const {},
     required this.dominantTenGodCategory,
     required this.lifeTheme,
     required this.coreNatureDescription,

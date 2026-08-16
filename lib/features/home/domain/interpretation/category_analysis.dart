@@ -62,6 +62,8 @@ abstract class CategoryAnalysis {
     required this.cautionConditions,
     this.timing,
     this.confidence = AnalysisConfidence.medium,
+    this.supportingEvidence = const [],
+    this.interpretationContext = const {},
   });
 
   /// 카테고리 ID(예: 'A03').
@@ -70,8 +72,19 @@ abstract class CategoryAnalysis {
   /// 카테고리 표시 이름(예: '평생재물운').
   final String categoryName;
 
-  /// 이 분석에 실제로 사용된 판단 근거 전체(추적성 확보 — §7).
+  /// 이 분석의 핵심 판단 근거 전체(추적성 확보 — §7). 사용자 지시(§9)의
+  /// `coreEvidence`에 대응 — interpretationRole이 primary/strength/
+  /// weakness/timing 등 "결론에 직접 쓰인" 근거를 담는다.
   final List<AnalysisEvidence> coreEvidence;
+
+  /// [optional, 신규 — 사용자 지시 §9 `supportingEvidence`] 같은 패턴/
+  /// 결론이라도 사람마다 달라지는 세부 근거(예: 재관쌍미로 동일 판정된
+  /// 두 사람이라도 "정재 3·편재 1" vs "정재 1·편재 3"처럼 세부 조성이
+  /// 다름을 기록). §5 "같은 패턴 내부에서도 개인화" 요구를 지원하기 위한
+  /// 필드로, coreEvidence처럼 최종 판정을 좌우하진 않지만 문장을 개인화할
+  /// 때 참고하는 세부 수치 근거를 담는다. 기본값은 빈 리스트라 기존
+  /// 서브클래스는 값을 주지 않아도 그대로 동작한다.
+  final List<AnalysisEvidence> supportingEvidence;
 
   /// 좋은 흐름이 살아나는 조건 목록(결과 페이지 ④).
   final List<String> favorableConditions;
@@ -85,6 +98,14 @@ abstract class CategoryAnalysis {
   /// 이 분석의 신뢰도(원국에 핵심 근거 글자가 없으면 low로 낮아짐).
   final AnalysisConfidence confidence;
 
+  /// [optional, 신규 — 사용자 지시 §9 `interpretationContext`] "왜 이런
+  /// 결과가 나왔는가"를 개발자가 추적할 수 있도록, 이 분석에서 실제로
+  /// 조회한 원시 수치(정재 개수, 신강신약 점수, 현재 대운 라벨 등)를
+  /// key-value로 남긴다. 사용자에게 노출할 필요는 없으나(§16), 100명
+  /// 검증 테스트가 "같은 패턴이라도 내부 수치가 다른지"를 이 맵으로 직접
+  /// 비교할 수 있다. 문자열 값만 담아 toJson() 직렬화를 단순하게 유지한다.
+  final Map<String, String> interpretationContext;
+
   /// 하위 클래스가 자신의 고유 필드를 함께 직렬화하도록 구현한다
   /// (자동 검증 테스트 §14가 이 JSON을 비교해 카테고리 차별성을 검사한다).
   Map<String, dynamic> toJson();
@@ -95,9 +116,13 @@ abstract class CategoryAnalysis {
     'categoryId': categoryId,
     'categoryName': categoryName,
     'coreEvidence': coreEvidence.map((e) => e.toJson()).toList(),
+    if (supportingEvidence.isNotEmpty)
+      'supportingEvidence': supportingEvidence.map((e) => e.toJson()).toList(),
     'favorableConditions': favorableConditions,
     'cautionConditions': cautionConditions,
     'timing': timing?.toJson(),
     'confidence': confidence.label,
+    if (interpretationContext.isNotEmpty)
+      'interpretationContext': interpretationContext,
   };
 }

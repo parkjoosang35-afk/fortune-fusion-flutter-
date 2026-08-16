@@ -17,6 +17,8 @@ class WealthAnalysis extends CategoryAnalysis {
     required super.cautionConditions,
     super.timing,
     super.confidence = AnalysisConfidence.medium,
+    super.supportingEvidence = const [],
+    super.interpretationContext = const {},
     required this.wealthPattern,
     required this.wealthStrength,
     required this.incomePattern,
