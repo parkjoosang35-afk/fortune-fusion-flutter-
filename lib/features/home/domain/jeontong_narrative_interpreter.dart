@@ -316,6 +316,22 @@ class JeontongNarrativeInterpreter {
         if (message != null) {
           final style = data?['style'] as String?;
           final marriageTiming = data?['marriage_timing'] as String?;
+          // [j7 LoveAnalyzer 신규 필드 반영] spousePalaceCondition/
+          // romanceRiskPattern이 있으면(신규 엔진 경로) 배우자궁 상태와
+          // 리스크까지 함께 서술해 같은 A06이라도 사람마다 다른 근거
+          // (§5)가 문장에 드러나게 한다. 없으면(레거시 폴백) 기존 문장을
+          // 그대로 유지한다.
+          final spousePalaceCondition = data?['spousePalaceCondition'] as String?;
+          final romanceRiskPattern = data?['romanceRiskPattern'] as String?;
+          final advice = data?['advice'] as String?;
+          if (spousePalaceCondition != null) {
+            return '평생 배우자·결혼운으로 보면, $honorific의 사주는 ${style != null ? '$style 성향이 뚜렷해요. ' : ''}'
+                '${_soften(message)} '
+                '${_soften(spousePalaceCondition)} '
+                '${romanceRiskPattern != null && romanceRiskPattern.isNotEmpty && romanceRiskPattern != '두드러진 애정상 리스크 신호는 확인되지 않음' ? '${_soften(romanceRiskPattern)} ' : ''}'
+                '${marriageTiming != null ? '${_soften(marriageTiming)} ' : ''}'
+                '${advice != null ? _soften(advice) : ''}';
+          }
           return '평생 배우자·결혼운으로 보면, ${_soften(message)} '
               '${style != null ? '전체적인 결로는 $style 성향이 뚜렷해요. ' : ''}'
               '${marriageTiming != null ? _soften(marriageTiming) : ''}';

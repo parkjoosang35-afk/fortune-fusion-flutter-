@@ -20,6 +20,7 @@ library;
 import 'interpretation/analyzers/career_analyzer.dart';
 import 'interpretation/analyzers/health_analyzer.dart';
 import 'interpretation/analyzers/life_overall_analyzer.dart';
+import 'interpretation/analyzers/love_analyzer.dart';
 import 'interpretation/analyzers/wealth_analyzer.dart';
 import 'jeontong_eighty_matrix.dart';
 import 'manseryeok/saju_profile.dart' show SajuProfile;
@@ -353,7 +354,52 @@ JeontongCategoryResult _a05(JeontongCalcContext ctx) {
   );
 }
 
+/// [j7 · A06 해석 로직 마이그레이션 — A05 wiring과 동일 패턴] 레거시
+/// `getLifeLove()`(배우자성(남=재성/여=관성) 정편 개수만으로 정통형/
+/// 다연형/만혼형/혼합형 4분류하는 단순 룩업)를 폐기하고,
+/// [LoveAnalyzer](SajuProfile의 십신 분포·신강신약·배우자궁(일지) 관계·
+/// 신살(년살/육해살)·용신/기신·대운을 직접 조회해 매번 새로 판정)의
+/// 결과를 사용한다.
+///
+/// [키 이름 유지 이유] `JeontongCategoryResult.data`의 5개 키(spouse_god/
+/// style/message/marriage_timing/advice)는 그대로 유지한다 —
+/// [JeontongNarrativeInterpreter]의 A06 case와
+/// [JeontongReportBuilder]의 필드명 매핑 체인이 이미 이 5개 키를
+/// 소비하도록 되어 있으므로, 키 이름은 유지한 채 "값의 출처"만
+/// 레거시→LoveAnalyzer로 교체한다(§7과 대칭되는 원칙 — 새 필드를
+/// 추가할 뿐 기존 키를 없애지 않는다).
+///
+/// [방어적 폴백] `ctx.profile`이 null이면 레거시 `getLifeLove()` 경로로
+/// 안전하게 폴백한다.
 JeontongCategoryResult _a06(JeontongCalcContext ctx) {
+  final profile = ctx.profile;
+  if (profile != null) {
+    final analysis = const LoveAnalyzer().analyze(
+      profile,
+      referenceDate: ctx.referenceDate,
+    );
+    final spouseGod = profile.birthInfo.gender == 'male' ? '재성(처성)' : '관성(부성)';
+    return JeontongCategoryResult(
+      category: '평생 애정운',
+      data: {
+        'spouse_god': spouseGod,
+        'style': analysis.spousePattern,
+        'message': '${analysis.spouseBondStrength}. ${analysis.spousePalaceCondition}',
+        'marriage_timing': analysis.marriagePeakDaewoonLabel.isNotEmpty
+            ? '${analysis.marriagePeakDaewoonLabel} 시기에 혼인·인연운이 가장 활발해질 가능성'
+            : '배우자성·용신 대운에서 결혼 인연이 활성화됨',
+        'advice': analysis.recommendedApproach,
+        // 신규 고유 필드 보존(향후 이야기체 고도화용, §7 필드 삭제 금지).
+        'spousePattern': analysis.spousePattern,
+        'spouseBondStrength': analysis.spouseBondStrength,
+        'spousePalaceCondition': analysis.spousePalaceCondition,
+        'romanceRiskPattern': analysis.romanceRiskPattern,
+        'marriagePeakDaewoonLabel': analysis.marriagePeakDaewoonLabel,
+        'favorableConditions': analysis.favorableConditions,
+        'cautionConditions': analysis.cautionConditions,
+      },
+    );
+  }
   final r = getLifeLove(ctx.saju, ctx.interp);
   return JeontongCategoryResult(
     category: '평생 애정운',
