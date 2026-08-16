@@ -422,11 +422,21 @@ class JeontongNarrativeInterpreter {
         '대운은 계절이 바뀌듯 자연스럽게 찾아오는 흐름이라, 지금 이 시기의 기운을 미리 알고 준비하는 것만으로도 훨씬 여유롭게 지나갈 수 있어요.';
   }
 
-  /// A05/G01/G02가 공유하는 [LifeHealthResult] 데이터(core_organs/
-  /// lifetime_warnings/advice_food/lifestyle)를 재료로 건강 문단을 만든다.
+  /// A05/G01/G02가 공유하는 건강 데이터(core_organs/lifetime_warnings/
+  /// advice_food/lifestyle)를 재료로 건강 문단을 만든다.
   /// [emphasis]가 'warnings'이면 G02(평생 조심할 병)처럼 lifetime_warnings에
   /// 방점을, 기본값(organs)이면 A05/G01(취약장기)처럼 core_organs에
   /// 방점을 찍어 같은 원본 데이터라도 서로 다른 강조점으로 서술한다.
+  ///
+  /// [2026-08 A05 HealthAnalyzer 전환] `_a05()`가 이제 [HealthAnalyzer]
+  /// 결과를 소비하면서 `data`에 `healthConstitutionPattern`/
+  /// `healthVitality`/`healthRiskPattern`(사람마다 달라지는 체질 편중
+  /// 구조·체력 그릇·리스크 서술) 원본을 함께 보존해 둔다(§7 필드 삭제
+  /// 금지 원칙과 대칭 — 새 필드 추가는 항상 허용). 이 필드들이 존재하면
+  /// (신규 엔진 경로) 기존 4개 필드만 쓰던 것보다 한층 더 개인화된 문단을
+  /// 만든다 — 같은 core_organs를 가진 두 사람이라도 healthConstitutionPattern/
+  /// healthVitality/healthRiskPattern은 오행 편중·신강신약·신살·기신 조합에
+  /// 따라 사람마다 달라진다(§4/§15 "완전 동일 문장 금지").
   static String _healthNarrativeFromLifeData(
     SajuFullInterpretation interp,
     String honorific,
@@ -443,6 +453,28 @@ class JeontongNarrativeInterpreter {
         ?.map((e) => e.toString())
         .toList();
     final lifestyle = data?['lifestyle'] as String?;
+    final constitutionPattern = data?['healthConstitutionPattern'] as String?;
+    final vitality = data?['healthVitality'] as String?;
+    final riskPattern = data?['healthRiskPattern'] as String?;
+
+    if (coreOrgans != null && constitutionPattern != null) {
+      // ── HealthAnalyzer 신규 경로(§4/§15 개인화 강화) ──
+      final organsText = coreOrgans.isNotEmpty ? _joinKo(coreOrgans) : '몸 전반';
+      final constitutionSentence = '$honorific의 체질을 살펴보면 $constitutionPattern에 가까워요.';
+      final vitalitySentence = vitality != null ? ' 타고난 체력 면에서는 $vitality 흐름이에요.' : '';
+      if (emphasis == 'warnings' && warnings != null && warnings.isNotEmpty) {
+        return '평생 조심하면 좋은 부분으로 보면, $constitutionSentence$vitalitySentence '
+            '특히 ${_joinKo(warnings)} 쪽에 신경을 쓰면 도움이 될 거예요. '
+            '${riskPattern != null && riskPattern.isNotEmpty && riskPattern != '두드러진 건강상 리스크 신호는 확인되지 않음' ? '${_soften(riskPattern)} ' : ''}'
+            '이건 의학적 진단이 아니라 명리 체질론에 근거한 생활 속 참고일 뿐이니 너무 무겁게 받아들이지 않아도 돼요. '
+            '${adviceFood != null && adviceFood.isNotEmpty ? '${_joinKo(adviceFood)} 같은 음식을 가까이하면 도움이 될 거예요. ' : ''}';
+      }
+      return '평생 건강운의 핵심 장기로 보면, $constitutionSentence$vitalitySentence '
+          '$organsText 쪽과 특히 인연이 깊은 편이에요. '
+          '${warnings != null && warnings.isNotEmpty ? '평소 ${_joinKo(warnings)} 쪽을 챙기면 도움이 돼요. ' : ''}'
+          '이건 의학적 진단이 아니라 명리 체질론에 근거한 생활 속 참고이니 가볍게 받아들이면 돼요. '
+          '${adviceFood != null && adviceFood.isNotEmpty ? '${_joinKo(adviceFood)} 같은 음식이 잘 맞아요. ' : ''}';
+    }
     if (coreOrgans == null) {
       // data 미확보 — 기존 인터프리터 재료만으로 안전 폴백.
       final health = interp.healthFortune;

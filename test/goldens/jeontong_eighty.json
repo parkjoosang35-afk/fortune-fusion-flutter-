@@ -241,7 +241,7 @@
       },
       "sections": [
         {
-          "body": "규칙적 수면·유산소 운동·수분 섭취가 최고의 보약",
+          "body": "복합편중형 — 여러 오행이 과다·결핍으로 동시에 치우쳐 몸의 균형 관리가 특히 중요한 구조 · 신강편중(身强偏重) — 힘은 좋으나 특정 기운에 쏠려 있어 한쪽 계통에 무리가 가기 쉬움",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
@@ -252,7 +252,8 @@
             "간",
             "담",
             "눈",
-            "근육"
+            "근육",
+            "신장"
           ],
           "requiresPass": true,
           "title": "주요 관리 장기",
@@ -3129,7 +3130,7 @@
       },
       "sections": [
         {
-          "body": "규칙적 수면·유산소 운동·수분 섭취가 최고의 보약",
+          "body": "복합편중형 — 여러 오행이 과다·결핍으로 동시에 치우쳐 몸의 균형 관리가 특히 중요한 구조 · 신강편중(身强偏重) — 힘은 좋으나 특정 기운에 쏠려 있어 한쪽 계통에 무리가 가기 쉬움",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
@@ -3140,7 +3141,8 @@
             "간",
             "담",
             "눈",
-            "근육"
+            "근육",
+            "신장"
           ],
           "requiresPass": true,
           "title": "주요 관리 장기",
@@ -3185,7 +3187,7 @@
       },
       "sections": [
         {
-          "body": "규칙적 수면·유산소 운동·수분 섭취가 최고의 보약",
+          "body": "복합편중형 — 여러 오행이 과다·결핍으로 동시에 치우쳐 몸의 균형 관리가 특히 중요한 구조 · 신강편중(身强偏重) — 힘은 좋으나 특정 기운에 쏠려 있어 한쪽 계통에 무리가 가기 쉬움",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
@@ -3196,7 +3198,8 @@
             "간",
             "담",
             "눈",
-            "근육"
+            "근육",
+            "신장"
           ],
           "requiresPass": true,
           "title": "주요 관리 장기",
@@ -4249,7 +4252,7 @@
       },
       "sections": [
         {
-          "body": "규칙적 수면·유산소 운동·수분 섭취가 최고의 보약",
+          "body": "단일편중형 — 특정 기운은 넘치고 다른 기운은 부족해 대비되는 두 계통을 함께 살펴야 하는 구조 · 신약편중(身弱偏重) — 체력 그릇 자체가 작은 데다 오행까지 치우쳐 있어 꾸준한 관리가 필요",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
@@ -4257,10 +4260,11 @@
         {
           "isAvoid": false,
           "items": [
-            "폐",
-            "대장",
-            "코",
-            "피부"
+            "심장",
+            "소장",
+            "혀",
+            "혈액",
+            "비장"
           ],
           "requiresPass": true,
           "title": "주요 관리 장기",
@@ -7133,7 +7137,7 @@
       },
       "sections": [
         {
-          "body": "규칙적 수면·유산소 운동·수분 섭취가 최고의 보약",
+          "body": "단일편중형 — 특정 기운은 넘치고 다른 기운은 부족해 대비되는 두 계통을 함께 살펴야 하는 구조 · 신약편중(身弱偏重) — 체력 그릇 자체가 작은 데다 오행까지 치우쳐 있어 꾸준한 관리가 필요",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
@@ -7141,10 +7145,11 @@
         {
           "isAvoid": false,
           "items": [
-            "폐",
-            "대장",
-            "코",
-            "피부"
+            "심장",
+            "소장",
+            "혀",
+            "혈액",
+            "비장"
           ],
           "requiresPass": true,
           "title": "주요 관리 장기",
@@ -7189,7 +7194,7 @@
       },
       "sections": [
         {
-          "body": "규칙적 수면·유산소 운동·수분 섭취가 최고의 보약",
+          "body": "단일편중형 — 특정 기운은 넘치고 다른 기운은 부족해 대비되는 두 계통을 함께 살펴야 하는 구조 · 신약편중(身弱偏重) — 체력 그릇 자체가 작은 데다 오행까지 치우쳐 있어 꾸준한 관리가 필요",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
@@ -7197,10 +7202,11 @@
         {
           "isAvoid": false,
           "items": [
-            "폐",
-            "대장",
-            "코",
-            "피부"
+            "심장",
+            "소장",
+            "혀",
+            "혈액",
+            "비장"
           ],
           "requiresPass": true,
           "title": "주요 관리 장기",
@@ -8253,7 +8259,7 @@
       },
       "sections": [
         {
-          "body": "규칙적 수면·유산소 운동·수분 섭취가 최고의 보약",
+          "body": "오행균형형 — 다섯 기운이 고르게 갖춰져 있어 전반적으로 안정적인 구조 · 중화안정(中和安定) — 체력과 오행 모두 큰 치우침 없이 안정적인 편",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
@@ -8261,13 +8267,10 @@
         {
           "isAvoid": false,
           "items": [
-            "비장",
-            "위",
-            "입",
-            "살"
+            "3세(2007년)부터 시작된 무자(戊子) 대운 시기의 건강검진·컨디션 관리"
           ],
           "requiresPass": true,
-          "title": "주요 관리 장기",
+          "title": "평생 건강 주의 신호",
           "type": "FortuneSectionType.recommend"
         },
         {
@@ -11137,7 +11140,7 @@
       },
       "sections": [
         {
-          "body": "규칙적 수면·유산소 운동·수분 섭취가 최고의 보약",
+          "body": "오행균형형 — 다섯 기운이 고르게 갖춰져 있어 전반적으로 안정적인 구조 · 중화안정(中和安定) — 체력과 오행 모두 큰 치우침 없이 안정적인 편",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
@@ -11145,13 +11148,10 @@
         {
           "isAvoid": false,
           "items": [
-            "비장",
-            "위",
-            "입",
-            "살"
+            "3세(2007년)부터 시작된 무자(戊子) 대운 시기의 건강검진·컨디션 관리"
           ],
           "requiresPass": true,
-          "title": "주요 관리 장기",
+          "title": "평생 건강 주의 신호",
           "type": "FortuneSectionType.recommend"
         },
         {
@@ -11193,7 +11193,7 @@
       },
       "sections": [
         {
-          "body": "규칙적 수면·유산소 운동·수분 섭취가 최고의 보약",
+          "body": "오행균형형 — 다섯 기운이 고르게 갖춰져 있어 전반적으로 안정적인 구조 · 중화안정(中和安定) — 체력과 오행 모두 큰 치우침 없이 안정적인 편",
           "requiresPass": false,
           "title": "핵심 해석",
           "type": "FortuneSectionType.overview"
@@ -11201,13 +11201,10 @@
         {
           "isAvoid": false,
           "items": [
-            "비장",
-            "위",
-            "입",
-            "살"
+            "3세(2007년)부터 시작된 무자(戊子) 대운 시기의 건강검진·컨디션 관리"
           ],
           "requiresPass": true,
-          "title": "주요 관리 장기",
+          "title": "평생 건강 주의 신호",
           "type": "FortuneSectionType.recommend"
         },
         {

@@ -17,6 +17,7 @@
 /// 지시 §4/§7).
 library;
 
+import 'interpretation/analyzers/health_analyzer.dart';
 import 'jeontong_eighty_matrix.dart';
 import 'manseryeok/saju_profile.dart' show SajuProfile;
 import 'saju_c_group_modules.dart';
@@ -148,7 +149,53 @@ JeontongCategoryResult _a04(JeontongCalcContext ctx) {
   );
 }
 
+/// [j7 · A05 해석 로직 마이그레이션 — 사용자 지시 §21 13단계 "실제 화면
+/// 연결(wiring)"] 레거시 `getLifeHealth()`(오행 개수≥3/=0만 보는 단순
+/// 룩업)를 폐기하고, [HealthAnalyzer](SajuProfile의 오행 편중·신강신약·
+/// 신살·용신/기신·대운을 직접 조회해 매번 새로 판정)의 결과를 사용한다.
+///
+/// [키 이름 유지 이유] `JeontongCategoryResult.data`의 4개 키
+/// (core_organs/lifetime_warnings/advice_food/lifestyle)는 그대로
+/// 유지한다 — [JeontongNarrativeInterpreter._healthNarrativeFromLifeData]
+/// (A05/G01/G02 공유)와 [JeontongReportBuilder._mapCalculatedResultToReport]
+/// 의 필드명 매핑 체인이 이미 이 4개 키를 소비하도록 되어 있으므로, 키
+/// 이름은 유지한 채 "값의 출처"만 레거시→HealthAnalyzer로 교체하면 두
+/// 소비자 코드를 건드리지 않고도 개인화된 신규 분석 결과가 그대로
+/// 화면에 반영된다(§7 "필드 삭제 금지"와 같은 정신 — 기존 소비자를
+/// 깨지 않으면서 내부 산출 로직만 근본적으로 교체).
+/// 다만 향후 이야기체를 더 정교하게 다듬을 수 있도록,
+/// [HealthAnalysis] 고유 필드(healthConstitutionPattern 등) 원본도
+/// 함께 data에 보존해 둔다(§7 "확장 시 기존 필드 삭제 금지"와 대칭되는
+/// 원칙 — 새 필드를 추가할 뿐 기존 키를 없애지 않는다).
+///
+/// [방어적 폴백] `ctx.profile`이 null이면(A05가 `migratedCategoryIds`
+/// 밖에서 호출되는 경우는 실제로는 없지만, 테스트 등에서 profile 없이
+/// [JeontongCalcContext]를 구성하는 경우를 대비) PHASE1~4 값을 새로
+/// 계산하지 않고, 레거시 `getLifeHealth()` 경로로 안전하게 폴백한다
+/// (§0 "PHASE1~4 재계산 금지"와 동일한 안전 원칙).
 JeontongCategoryResult _a05(JeontongCalcContext ctx) {
+  final profile = ctx.profile;
+  if (profile != null) {
+    final analysis = const HealthAnalyzer().analyze(
+      profile,
+      referenceDate: ctx.referenceDate,
+    );
+    return JeontongCategoryResult(
+      category: '평생 건강운',
+      data: {
+        'core_organs': analysis.vulnerableOrgans,
+        'lifetime_warnings': analysis.cautionConditions,
+        'advice_food': analysis.recommendedCare,
+        'lifestyle': '${analysis.healthConstitutionPattern} · ${analysis.healthVitality}',
+        // 신규 고유 필드 보존(향후 이야기체 고도화용, §7 필드 삭제 금지).
+        'healthConstitutionPattern': analysis.healthConstitutionPattern,
+        'healthVitality': analysis.healthVitality,
+        'healthRiskPattern': analysis.healthRiskPattern,
+        'healthCautionDaewoonLabel': analysis.healthCautionDaewoonLabel,
+        'favorableConditions': analysis.favorableConditions,
+      },
+    );
+  }
   final r = getLifeHealth(ctx.saju, ctx.interp);
   return JeontongCategoryResult(
     category: '평생 건강운',

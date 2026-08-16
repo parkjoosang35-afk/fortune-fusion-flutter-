@@ -23,9 +23,20 @@
 // `dayMasterStrength`(신강신약)는 전혀 참조하지 않는다. `getLifeHealth()`가
 // 추가로 계산하는 `lifetimeWarnings`(경고 문구)도 동일하게 오행 개수만
 // 사용한다. 오행 총량이 legacy/신규 완전 일치함은 이미 A01~A04 테스트에서
-// 반복 확인되었으므로, A05는 seed-user-A/B/C 전원 완전 일치해야 한다 — 만약
-// 다르다면 오행 계산 자체나 rules(오행별 장기/음식 매핑)에 회귀가 있다는
-// 뜻이므로 반드시 원인을 밝혀야 한다.
+// 반복 확인되었으므로, 이 계산값 동등성(위 1~8번 섹션)은 seed-user-A/B/C
+// 전원 완전 일치해야 한다 — 만약 다르다면 오행 계산 자체나 rules(오행별
+// 장기/음식 매핑)에 회귀가 있다는 뜻이므로 반드시 원인을 밝혀야 한다.
+//
+// [2026-08 A05 실제 화면 연결(wiring) — §21 13단계] `runJeontongCategory
+// ('A05', ctx)`는 더 이상 레거시 `getLifeHealth()`를 그대로 노출하지
+// 않는다. `ctx.profile`(PHASE1~4 SajuProfile, A05는 migratedCategoryIds에
+// 포함되어 항상 non-null)이 있으면 [HealthAnalyzer]의 개인화된 분석
+// 결과(오행 편중·신강신약·신살·용신/기신·대운을 직접 조회)를 사용한다.
+// 따라서 아래 마지막 그룹은 더 이상 "legacy와 100% 동일"을 검증하지
+// 않고, 대신 (a) HealthAnalyzer가 직접 계산한 값과 runJeontongCategory
+// 결과가 일치하는지, (b) 레거시 getLifeHealth와 달라도(=개인화 강화가
+// 실제로 적용됐음을) 되는지를 함께 확인한다.
+import 'package:flutter_app/features/home/domain/interpretation/analyzers/health_analyzer.dart';
 import 'package:flutter_app/features/home/domain/jeontong_eighty_calculator.dart';
 import 'package:flutter_app/features/home/domain/manseryeok/manseryeok_core_engine.dart';
 import 'package:flutter_app/features/home/domain/manseryeok/manseryeok_policy.dart';
@@ -367,38 +378,115 @@ void main() {
     }
   });
 
-  group('[j7·A05] runJeontongCategory("A05", ctx) 경로 자체도 정상 동작 확인', () {
-    for (final u in _seedUsers) {
-      test(
-        '${u.userId}: JeontongCalcContext + runJeontongCategory("A05") 예외 없이 동작',
-        () {
-          final newB = _runNew(u, _kFixedDate);
-          final rules = SajuFortuneRules.cachedOrNull;
-          expect(
-            rules,
-            isNotNull,
-            reason: 'SajuFortuneRules.preload()가 setUpAll에서 완료되어야 함',
-          );
+  group(
+    '[j7·A05] runJeontongCategory("A05", ctx) 경로 — HealthAnalyzer 기반 '
+    '개인화 결과로 wiring 완료 확인(§21 13단계)',
+    () {
+      for (final u in _seedUsers) {
+        test(
+          '${u.userId}: profile 전달 시 HealthAnalyzer 결과를 그대로 노출',
+          () {
+            final newB = _runNew(u, _kFixedDate);
+            final rules = SajuFortuneRules.cachedOrNull;
+            expect(
+              rules,
+              isNotNull,
+              reason: 'SajuFortuneRules.preload()가 setUpAll에서 완료되어야 함',
+            );
 
+            // profile을 함께 전달 — 실제 화면(report_builder)이
+            // migratedCategoryIds 경로에서 항상 이렇게 호출하는 것과 동일.
+            final ctx = JeontongCalcContext(
+              saju: newB.saju,
+              interp: newB.interp,
+              rules: rules!,
+              referenceDate: _kFixedDate,
+              profile: newB.profile,
+            );
+
+            late final JeontongCategoryResult result;
+            expect(
+              () => result = runJeontongCategory('A05', ctx),
+              returnsNormally,
+            );
+            expect(result.category, '평생 건강운');
+
+            // HealthAnalyzer를 직접 실행한 결과와 완전히 동일해야 한다
+            // (재계산 아님 — 동일 profile로 동일 analyzer를 두 번 호출해도
+            // §2 결정론에 의해 완전히 같은 값이 나와야 함).
+            final directAnalysis = const HealthAnalyzer().analyze(
+              newB.profile,
+              referenceDate: _kFixedDate,
+            );
+            expect(result.data['core_organs'], directAnalysis.vulnerableOrgans);
+            expect(
+              result.data['lifetime_warnings'],
+              directAnalysis.cautionConditions,
+            );
+            expect(result.data['advice_food'], directAnalysis.recommendedCare);
+            expect(
+              result.data['lifestyle'],
+              '${directAnalysis.healthConstitutionPattern} · ${directAnalysis.healthVitality}',
+            );
+            expect(
+              result.data['healthConstitutionPattern'],
+              directAnalysis.healthConstitutionPattern,
+            );
+            expect(
+              result.data['healthVitality'],
+              directAnalysis.healthVitality,
+            );
+            expect(
+              result.data['healthRiskPattern'],
+              directAnalysis.healthRiskPattern,
+            );
+            expect(
+              result.data['healthCautionDaewoonLabel'],
+              directAnalysis.healthCautionDaewoonLabel,
+            );
+
+            // ignore: avoid_print
+            print(
+              '[A05·신규] ${u.userId} healthConstitutionPattern='
+              '${directAnalysis.healthConstitutionPattern}',
+            );
+            // ignore: avoid_print
+            print('[A05·신규] ${u.userId} healthVitality=${directAnalysis.healthVitality}');
+            // ignore: avoid_print
+            print(
+              '[A05·신규] ${u.userId} vulnerableOrgans=${directAnalysis.vulnerableOrgans} '
+              '(참고 · 레거시 coreOrgans=${newB.a05.coreOrgans})',
+            );
+          },
+        );
+      }
+
+      test(
+        'profile이 null이면(방어적 폴백) 레거시 getLifeHealth 경로로 안전하게 동작',
+        () {
+          final u = _seedUsers.first;
+          final newB = _runNew(u, _kFixedDate);
+          final rules = SajuFortuneRules.cachedOrNull!;
+
+          // profile을 일부러 전달하지 않음 — migratedCategoryIds 밖에서
+          // 호출되는 방어적 시나리오를 재현.
           final ctx = JeontongCalcContext(
             saju: newB.saju,
             interp: newB.interp,
-            rules: rules!,
+            rules: rules,
             referenceDate: _kFixedDate,
           );
 
-          late final JeontongCategoryResult result;
-          expect(
-            () => result = runJeontongCategory('A05', ctx),
-            returnsNormally,
-          );
+          final result = runJeontongCategory('A05', ctx);
           expect(result.category, '평생 건강운');
           expect(result.data['core_organs'], newB.a05.coreOrgans);
           expect(result.data['lifetime_warnings'], newB.a05.lifetimeWarnings);
           expect(result.data['advice_food'], newB.a05.adviceFood);
           expect(result.data['lifestyle'], newB.a05.lifestyle);
+          // 폴백 경로는 HealthAnalyzer 고유 필드를 채우지 않는다.
+          expect(result.data.containsKey('healthConstitutionPattern'), isFalse);
         },
       );
-    }
-  });
+    },
+  );
 }
