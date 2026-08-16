@@ -15,12 +15,18 @@ import '../../fortune/shared/domain/fortune_report_model.dart';
 import '../data/jeontong_bookmark_store.dart';
 import '../data/jeontong_history_store.dart';
 import '../data/jeontong_profile_store.dart';
-import '../domain/jeontong_eighty_calculator.dart' show kJeontongPlaceholderCategoryIds;
+import '../domain/jeontong_eighty_calculator.dart'
+    show kJeontongPlaceholderCategoryIds;
 import '../domain/jeontong_eighty_matrix.dart';
+import '../domain/jeontong_eighty_report_builder.dart'
+    show JeontongReportBuilder;
 import '../domain/jeontong_input.dart';
+import '../domain/jeontong_narrative_interpreter.dart';
 import '../domain/jeontong_report_cache.dart';
+import '../domain/saju_interpreter.dart' show SajuInterpreter, SajuRules;
 import 'jeontong_design/hanji_background.dart';
 import 'jeontong_design/hanji_design_tokens.dart';
+import 'jeontong_design/jeontong_narrative_card.dart';
 import 'jeontong_design/jeontong_saju_detail_section.dart';
 import 'jeontong_design/saju_seal.dart';
 import 'widgets/jeontong_easy_term_toggle.dart';
@@ -125,7 +131,11 @@ class _JeontongEightyResultScreenState
     final r = await _bookmarks.toggle(_userId, categoryId);
     if (!mounted) return;
     if (r == null) {
-      AppToast.show(context, JeontongBookmarkStore.kSnackFullMessage, isError: true);
+      AppToast.show(
+        context,
+        JeontongBookmarkStore.kSnackFullMessage,
+        isError: true,
+      );
       return;
     }
     setState(() => _isBookmarked = r);
@@ -147,19 +157,19 @@ class _JeontongEightyResultScreenState
           child: entry == null
               ? const _NotFoundView()
               : _profileLoading
-                  ? const _JeontongLoadingView()
-                  : _ResultBody(
-                      entry: entry,
-                      profile: _profile,
-                      userId: _userId,
-                      saved: _saved,
-                      isBookmarked: _isBookmarked,
-                      onSave: () => _onSave(entry),
-                      onToggleBookmark: () => _onTapBookmark(entry.id),
-                      onOpenAiConsult: () => Navigator.of(
-                        context,
-                      ).pushNamed('/ai-fortune/consultation/type'),
-                    ),
+              ? const _JeontongLoadingView()
+              : _ResultBody(
+                  entry: entry,
+                  profile: _profile,
+                  userId: _userId,
+                  saved: _saved,
+                  isBookmarked: _isBookmarked,
+                  onSave: () => _onSave(entry),
+                  onToggleBookmark: () => _onTapBookmark(entry.id),
+                  onOpenAiConsult: () => Navigator.of(
+                    context,
+                  ).pushNamed('/ai-fortune/consultation/type'),
+                ),
         ),
       ),
     );
@@ -364,7 +374,8 @@ class _ResultBody extends StatelessWidget {
             onPressed: onToggleBookmark,
           ),
         ),
-        _jeontongPersonalizationBadge(context,
+        _jeontongPersonalizationBadge(
+          context,
           _jeontongSignatureFromInputs(
             categoryCode: entry.id,
             userId: hasProfile ? userId : null,
@@ -407,20 +418,32 @@ class _ResultBody extends StatelessWidget {
                 subDescription: report.hero.subDescription,
               ),
               const SizedBox(height: UnifiedTokens.spaceMd),
+              // [사용자 요청 · 2026 결과 화면 개편] "결과 화면이 너무
+              // 어지러워 사주를 알아볼 수 없다"는 지적에 따라, 전문
+              // 원국판보다 먼저 소비자용 "진솔한 이야기체" 해석을 최상단에
+              // 배치한다. 재계산 없음 — PHASE1~4 실계산 결과(SajuFullInterpretation)를
+              // JeontongNarrativeInterpreter가 문단으로 조합만 한다.
+              // 프로필이 없거나 계산 실패 시 SizedBox.shrink()로 방어되어
+              // 기존 report.sections 렌더링만 그대로 보인다(회귀 없음).
+              _buildNarrativeSection(entry, profile),
+              const SizedBox(height: UnifiedTokens.spaceMd),
               // [정통사주 69종 · Dawn Hanji 디자인 연동] 프로필이 있을 때만
               // PHASE1~4 실계산 원국(사주판/일간/오행/십신/대운/월운/조언)을
               // 추가로 렌더링한다. 재계산 없음 — 이미 검증된 파이프라인을
               // 호출해 결과만 그린다. 프로필이 없거나 계산 실패 시
               // SizedBox.shrink()로 방어되어 기존 report.sections 렌더링만
               // 그대로 보인다(회귀 없음).
+              //
+              // [사용자 요청 · 2026 결과 화면 개편] 전문 용어·한자 위주의
+              // 원국판은 소비자에게 첫인상부터 "어지럽다"는 지적을 받아,
+              // 접이식(ExpansionTile) 섹션으로 감싸 화면 하단으로 내린다.
+              // 내부 렌더링 로직(JeontongSajuDetailSection)은 절대 변경하지
+              // 않는다 — jeontong_pillar_board_layout_regression_test.dart의
+              // "ListView 안에서도 레이아웃 예외 없이 렌더링" 계약이 그대로
+              // 유지되는지는 ExpansionTile.children 안에서도 PillarBoard가
+              // 동일하게 IntrinsicHeight로 보호되므로 영향 없다.
               if (profile != null)
-                JeontongSajuDetailSection(
-                  categoryLabel: entry.title,
-                  birthDateTimeUtc: profile!.birthDateTimeUtc,
-                  gender: profile!.gender,
-                  isLunar: profile!.isLunar,
-                  referenceDate: DateTime.now(),
-                ),
+                _JeontongDetailExpansion(entry: entry, profile: profile!),
               const SizedBox(height: UnifiedTokens.spaceMd),
               for (final section in report.sections) ...[
                 _buildSection(section),
@@ -455,7 +478,10 @@ class _ResultBody extends StatelessWidget {
                     ...ext.body(),
                     if (hints.isNotEmpty) '쉬운 설명 가능 키워드: ${hints.join(', ')}',
                   ];
-                  return SectionCard(title: ext.title(), body: lines.join('\n'));
+                  return SectionCard(
+                    title: ext.title(),
+                    body: lines.join('\n'),
+                  );
                 },
               ),
               const SizedBox(height: UnifiedTokens.spaceMd),
@@ -540,6 +566,93 @@ class _ResultBody extends StatelessWidget {
         return const SizedBox.shrink();
     }
   }
+
+  /// [사용자 요청 · 2026 결과 화면 개편] 소비자용 이야기체 해석 카드를
+  /// 만든다. PHASE1~4 실계산(JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4)
+  /// → SajuInterpreter.fullInterpretation() 결과만 조회해 문단을 조합하는
+  /// JeontongSajuDetailSection._tryBuild()와 동일한 방어적 패턴을 그대로
+  /// 따른다 — 재계산 없음, 실패 시 SizedBox.shrink().
+  Widget _buildNarrativeSection(
+    JeontongCategoryEntry entry,
+    JeontongInput? profile,
+  ) {
+    if (profile == null) return const SizedBox.shrink();
+    try {
+      final rules = SajuRules.cachedOrNull;
+      if (rules == null) return const SizedBox.shrink();
+      final kst = profile.birthDateTimeUtc.add(const Duration(hours: 9));
+      final sajuGender = profile.gender == 'F' || profile.gender == 'female'
+          ? 'female'
+          : 'male';
+      final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
+        kst: kst,
+        gender: sajuGender,
+        isLunar: profile.isLunar,
+        referenceDate: DateTime.now(),
+      );
+      final interp = SajuInterpreter.fullInterpretation(built.saju);
+      final paragraphs = JeontongNarrativeInterpreter.paragraphs(
+        interp,
+        entry,
+        name: profile.normalizedName,
+      );
+      return JeontongNarrativeCard(paragraphs: paragraphs);
+    } catch (_) {
+      return const SizedBox.shrink();
+    }
+  }
+}
+
+/// [사용자 요청 · 2026 결과 화면 개편] 전문 원국판(PillarBoard 등)을
+/// 접이식 섹션으로 감싸는 위젯. `jeontong_easy_term_toggle.dart`의
+/// ExpansionTile 패턴을 그대로 재사용한다(프로젝트 관례).
+///
+/// [프레임 예산 보호] 이 위젯은 StatelessWidget이며 자체 setState가
+/// 전혀 없다 — ExpansionTile 자체의 펼침/접힘 애니메이션은 사용자가
+/// 실제로 탭했을 때만 발생하므로, 화면 최초 진입 시의 안정화 프레임
+/// 수(jeontong_eighty_result_frame_bench_test.dart 계약)에는 영향을
+/// 주지 않는다(닫힌 상태로 시작 — initiallyExpanded: false).
+class _JeontongDetailExpansion extends StatelessWidget {
+  const _JeontongDetailExpansion({required this.entry, required this.profile});
+
+  final JeontongCategoryEntry entry;
+  final JeontongInput profile;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: EdgeInsets.zero,
+      color: HanjiColors.card,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(HanjiRadii.card),
+        side: const BorderSide(color: HanjiColors.line),
+      ),
+      child: ExpansionTile(
+        key: const PageStorageKey<String>('jeontong_saju_detail_expansion'),
+        initiallyExpanded: false,
+        title: Text('◈ 사주 원국 · 실계산 상세 보기', style: HanjiTextStyles.bodyTitle()),
+        subtitle: Text(
+          '천간·지지·오행·십신·대운 등 전문 계산 결과를 직접 확인해보세요',
+          style: HanjiTextStyles.bodySmall(),
+        ),
+        childrenPadding: const EdgeInsets.fromLTRB(
+          HanjiSpacing.lg,
+          0,
+          HanjiSpacing.lg,
+          HanjiSpacing.lg,
+        ),
+        children: [
+          JeontongSajuDetailSection(
+            categoryLabel: entry.title,
+            birthDateTimeUtc: profile.birthDateTimeUtc,
+            gender: profile.gender,
+            isLunar: profile.isLunar,
+            referenceDate: DateTime.now(),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// 2026-08-13 결정. 화면 진입 시점에 이미 갖고 있는 4축을 그대로 해싱해
@@ -574,6 +687,7 @@ String? _jeontongSignatureFromInputs({
     hash ^= 0x5c;
     hash = (hash * fnvPrime32) & 0xFFFFFFFF;
   }
+
   mix('cat:$categoryCode');
   mix('uid:${userId ?? ""}');
   mix('bdt:${birthDateTimeUtc?.toIso8601String() ?? ""}');
@@ -600,8 +714,8 @@ Widget _jeontongPersonalizationBadge(BuildContext context, String? signature) {
           child: Text(
             text,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: has ? cs.onPrimaryContainer : cs.onSurfaceVariant,
-                ),
+              color: has ? cs.onPrimaryContainer : cs.onSurfaceVariant,
+            ),
           ),
         ),
       ],
