@@ -155,10 +155,14 @@ class _JeontongInputScreenState extends State<JeontongInputScreen> {
     if (categoryId != null) {
       final entry = JeontongEightyMatrix.byId(categoryId);
       if (entry != null) {
+        // [운세 섹션 4단계 흐름 - 화면3 로딩] "만세력으로 사주 뽑기" 제출
+        // 직후 결과로 곧장 가지 않고, 반드시 로딩 화면을 먼저 보여준다
+        // (handoff 원본 saju_input_screen.dart `_submit()`이 결과가 아닌
+        // '/saju/$code/loading'으로 이동하던 것과 동일한 설계 의도).
         await navigateWithPassGate(
           context,
           title: entry.title,
-          route: JeontongEightyMatrix.resultRoute,
+          route: JeontongEightyMatrix.loadingRoute,
           requiresPass: true,
           arguments: entry.id,
         );

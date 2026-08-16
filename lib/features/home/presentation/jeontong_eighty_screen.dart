@@ -70,10 +70,15 @@ class _JeontongEightyScreenState extends State<JeontongEightyScreen> {
       ).pushNamed('/jeontong/input', arguments: entry.id);
       return;
     }
+    // [운세 섹션 4단계 흐름 - 화면3 로딩] 게이트 체크를 통과한 뒤 결과로
+    // 곧장 가지 않고, 반드시 로딩 화면(JeontongEightyLoadingScreen)을 먼저
+    // 보여준다. 로딩 화면이 애니메이션 완료 후 스스로 결과 화면으로
+    // `pushReplacementNamed`한다(navigateWithPassGate 로직 자체는 무변경 —
+    // 목적지 라우트만 resultRoute → loadingRoute로 교체).
     await navigateWithPassGate(
       context,
       title: entry.title,
-      route: JeontongEightyMatrix.resultRoute,
+      route: JeontongEightyMatrix.loadingRoute,
       requiresPass: true,
       arguments: entry.id,
     );

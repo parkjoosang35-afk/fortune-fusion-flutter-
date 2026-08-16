@@ -118,6 +118,13 @@ class JeontongEightyMatrix {
   /// 신규 80종 전용 결과 화면 라우트.
   static const String resultRoute = '/jeontong/eighty/result';
 
+  /// [운세 섹션 4단계 흐름 - 화면3 로딩] 결과 계산 중 보여주는 로딩 화면
+  /// 라우트. 게이트 체크(`navigateWithPassGate`)를 통과한 뒤 곧장 결과로
+  /// 가는 대신 먼저 이 라우트로 진입하고, 로딩 화면 자체가 애니메이션
+  /// 완료 후 [resultRoute]로 `pushReplacementNamed`한다(뒤로가기 시 로딩
+  /// 화면을 건너뛰기 위함). arguments로 categoryId(String)를 그대로 받는다.
+  static const String loadingRoute = '/jeontong/eighty/loading';
+
   /// 신규 80종 대/소카테고리 진열 화면 라우트.
   static const String browseRoute = '/jeontong/eighty';
 

@@ -61,6 +61,7 @@ import '../../features/pass/presentation/free_pass_gate_screen.dart';
 import '../../features/home/presentation/jeontong_eighty_screen.dart';
 import '../../features/home/presentation/jeontong_eighty_result_screen.dart';
 import '../../features/home/presentation/jeontong_eighty_grid_screen.dart';
+import '../../features/home/presentation/jeontong_eighty_loading_screen.dart';
 import '../../features/home/presentation/jeontong_input_screen.dart';
 import '../../features/home/domain/jeontong_eighty_matrix.dart';
 import '../../features/history/presentation/history_readonly_screen.dart';
@@ -131,6 +132,16 @@ class AppRouter {
       // 무관하며 아래에 그대로 유지된다(변경 없음). ──
       case JeontongEightyMatrix.browseRoute:
         return _page(const JeontongEightyScreen());
+      // [운세 섹션 4단계 흐름 - 화면3 로딩] "사주보기" 제출 직후 결과로
+      // 곧장 가지 않고 반드시 이 로딩 화면을 먼저 거친다(handoff 원본
+      // saju_loading_screen.dart 디자인 재현). arguments로 categoryId
+      // (String?)를 그대로 받아 결과 화면 이동 시 다시 전달한다.
+      case JeontongEightyMatrix.loadingRoute:
+        return _page(
+          JeontongEightyLoadingScreen(
+            categoryId: settings.arguments as String?,
+          ),
+        );
       case JeontongEightyMatrix.resultRoute:
         return _page(
           JeontongEightyResultScreen(categoryId: settings.arguments as String?),
