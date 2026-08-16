@@ -141,7 +141,9 @@ class AppRouter {
       // "서비스"로 기능하지 못했다. 기존 `/jeontong/eighty`(browseRoute,
       // 아코디언) 라우트/화면은 이 신설과 무관하게 그대로 둔다(회귀 방지).
       case '/jeontong/input':
-        return _page(const JeontongInputScreen());
+        return _page(
+          JeontongInputScreen(categoryId: settings.arguments as String?),
+        );
 
       // [정통사주 80종 그리드 신설] 8개 섹션 카드가 항상 펼쳐진 상태로
       // 80종 전체를 한 화면에서 훑어보는 신규 라우트. 기존 `/jeontong/eighty`

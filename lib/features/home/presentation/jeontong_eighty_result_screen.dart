@@ -19,7 +19,10 @@ import '../domain/jeontong_eighty_calculator.dart' show kJeontongPlaceholderCate
 import '../domain/jeontong_eighty_matrix.dart';
 import '../domain/jeontong_input.dart';
 import '../domain/jeontong_report_cache.dart';
+import 'jeontong_design/hanji_background.dart';
+import 'jeontong_design/hanji_design_tokens.dart';
 import 'jeontong_design/jeontong_saju_detail_section.dart';
+import 'jeontong_design/saju_seal.dart';
 import 'widgets/jeontong_easy_term_toggle.dart';
 import 'widgets/jeontong_result_text_extractor.dart';
 
@@ -138,24 +141,26 @@ class _JeontongEightyResultScreenState
   Widget build(BuildContext context) {
     final entry = JeontongEightyMatrix.byId(widget.categoryId ?? '');
     return Scaffold(
-      backgroundColor: UnifiedColors.bg,
-      body: SafeArea(
-        child: entry == null
-            ? const _NotFoundView()
-            : _profileLoading
-                ? const _JeontongLoadingView()
-                : _ResultBody(
-                    entry: entry,
-                    profile: _profile,
-                    userId: _userId,
-                    saved: _saved,
-                    isBookmarked: _isBookmarked,
-                    onSave: () => _onSave(entry),
-                    onToggleBookmark: () => _onTapBookmark(entry.id),
-                    onOpenAiConsult: () => Navigator.of(
-                      context,
-                    ).pushNamed('/ai-fortune/consultation/type'),
-                  ),
+      body: HanjiBackground(
+        sigilOpacity: 0.12,
+        child: SafeArea(
+          child: entry == null
+              ? const _NotFoundView()
+              : _profileLoading
+                  ? const _JeontongLoadingView()
+                  : _ResultBody(
+                      entry: entry,
+                      profile: _profile,
+                      userId: _userId,
+                      saved: _saved,
+                      isBookmarked: _isBookmarked,
+                      onSave: () => _onSave(entry),
+                      onToggleBookmark: () => _onTapBookmark(entry.id),
+                      onOpenAiConsult: () => Navigator.of(
+                        context,
+                      ).pushNamed('/ai-fortune/consultation/type'),
+                    ),
+        ),
       ),
     );
   }
@@ -203,11 +208,11 @@ class _JeontongLoadingView extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const CircularProgressIndicator(),
-                const SizedBox(height: UnifiedTokens.spaceMd),
+                const CircularProgressIndicator(color: HanjiColors.accent),
+                const SizedBox(height: HanjiSpacing.md),
                 Text(
                   '사주를 풀이하고 있어요...',
-                  style: UnifiedText.body(color: UnifiedColors.textCaption),
+                  style: HanjiTextStyles.body(color: HanjiColors.muted),
                 ),
               ],
             ),
@@ -218,6 +223,11 @@ class _JeontongLoadingView extends StatelessWidget {
   }
 }
 
+/// [정통사주 · Dawn Hanji 디자인 통합] 결과 화면 상단 헤더 —
+/// [SajuCtxBar]를 감싸되, 즐겨찾기 별 아이콘 같은 우측 액션 슬롯
+/// (`trailing`)을 그대로 지원한다. `ValueKey('jeontong_bookmark_toggle')`
+/// 계약(테스트: jeontong_eighty_result_bookmark_toggle_test.dart)은
+/// 호출부(_ResultBody)에서 그대로 유지된다 — 이 위젯은 배치만 담당.
 class _Header extends StatelessWidget {
   const _Header({required this.title, this.trailing});
   final String title;
@@ -228,31 +238,24 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: UnifiedTokens.spaceMd,
-        vertical: UnifiedTokens.spaceXs,
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            icon: const Icon(
-              Icons.arrow_back_ios_new_rounded,
-              size: UnifiedTokens.iconLg,
-              color: UnifiedColors.textPrimary,
-            ),
-            onPressed: () => Navigator.of(context).pop(),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: SajuCtxBar(
+            tag: 'SAJU · 결과',
+            code: '解',
+            title: title,
+            onBack: () => Navigator.of(context).pop(),
           ),
-          Expanded(
-            child: Text(
-              title,
-              style: UnifiedText.titleLarge(),
-              overflow: TextOverflow.ellipsis,
-            ),
+        ),
+        if (trailing != null) ...[
+          Padding(
+            padding: const EdgeInsets.only(right: HanjiSpacing.xl),
+            child: trailing!,
           ),
-          if (trailing != null) trailing!,
         ],
-      ),
+      ],
     );
   }
 }
@@ -355,7 +358,7 @@ class _ResultBody extends StatelessWidget {
             key: const ValueKey('jeontong_bookmark_toggle'),
             icon: Icon(
               isBookmarked ? Icons.star_rounded : Icons.star_border_rounded,
-              color: isBookmarked ? UnifiedColors.textPrimary : null,
+              color: isBookmarked ? HanjiColors.accent : HanjiColors.muted,
             ),
             tooltip: isBookmarked ? '즐겨찾기 해제' : '즐겨찾기 추가',
             onPressed: onToggleBookmark,
