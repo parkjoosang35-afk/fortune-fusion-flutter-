@@ -508,14 +508,22 @@ class _WishWallDetailScreenState extends State<WishWallDetailScreen> {
                   title: Text(reason, style: WishWallText.body()),
                   onTap: () async {
                     Navigator.pop(ctx);
-                    await context.read<WishWallProvider>().reportWish(
-                      wish.id,
-                      reason,
-                    );
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('신고가 접수되었습니다')),
-                      );
+                    final provider = context.read<WishWallProvider>();
+                    try {
+                      await provider.reportWish(wish.id, reason);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('신고가 접수되었습니다.')),
+                        );
+                      }
+                    } catch (_) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('신고 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.'),
+                          ),
+                        );
+                      }
                     }
                   },
                 ),
