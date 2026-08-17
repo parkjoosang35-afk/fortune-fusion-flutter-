@@ -35,6 +35,11 @@ class JeontongReportCache {
 
   /// 캐시 히트면 그대로, 미스면 [JeontongReportBuilder.build] 를 1회 호출한 뒤
   /// 저장하고 반환한다.
+  ///
+  /// [신통방통 2단계] [isLeapMonth] default false — 음력일 때만 실제 계산에
+  /// 영향을 주는 값이라 캐시 키에도 포함해야 한다(윤달 여부가 다르면 다른
+  /// 결과일 수 있음). 이 파라미터를 생략하는 기존 모든 호출부는 캐시 키가
+  /// 이전과 동일하게 생성되므로 회귀가 없다.
   FortuneReport getOrBuild({
     required JeontongCategoryEntry entry,
     DateTime? date,
@@ -42,8 +47,16 @@ class JeontongReportCache {
     DateTime? birthDateTimeUtc,
     String? gender,
     bool? isLunar,
+    bool isLeapMonth = false,
   }) {
-    final key = _key(entry.id, userId, birthDateTimeUtc, gender, isLunar);
+    final key = _key(
+      entry.id,
+      userId,
+      birthDateTimeUtc,
+      gender,
+      isLunar,
+      isLeapMonth,
+    );
     final t = _now();
 
     final hit = _entries.remove(key);
@@ -61,6 +74,7 @@ class JeontongReportCache {
       birthDateTimeUtc: birthDateTimeUtc,
       gender: gender,
       isLunar: isLunar,
+      isLeapMonth: isLeapMonth,
     );
 
     _entries[key] = _Entry(built, t.add(ttl));
@@ -97,6 +111,7 @@ class JeontongReportCache {
     DateTime? bdt,
     String? gen,
     bool? lun,
+    bool leap,
   ) {
     return [
       catId,
@@ -104,6 +119,10 @@ class JeontongReportCache {
       bdt?.toIso8601String() ?? '',
       gen ?? '',
       lun == null ? '' : (lun ? '1' : '0'),
+      // [신통방통 2단계] 윤달 여부도 캐시 키에 포함(음력일 때만 실제 계산에
+      // 영향을 주는 값이므로, 같은 생일이라도 윤달 여부가 다르면 다른 결과일
+      // 수 있다). false가 default이므로 기존 호출부는 항상 '0'이 붙는다.
+      leap ? '1' : '0',
     ].join('|');
   }
 }

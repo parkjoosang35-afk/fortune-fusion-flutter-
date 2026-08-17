@@ -18,12 +18,23 @@ import 'package:flutter/foundation.dart' show immutable;
 /// - [isLunar]는 기본값 false(양력)다.
 /// - [name]은 선택 입력이며 비어 있으면 null로 정규화한다(빈 문자열 저장
 ///   방지 — 다운스트림에서 "이름 없음"과 "빈 문자열"을 혼동하지 않도록).
+///
+/// [신통방통 2단계 - 회원/운세 프로필 통합] [isLeapMonth]/[birthTimeUnknown]
+/// 2개 필드를 추가한다. PHASE1~4 계산엔진 자체는 수정하지 않았으며, 이
+/// 값 객체가 [JeontongReportBuilder.build]/[buildProfileAndSajuResultViaPhase1to4]
+/// 에 이미 존재하던 파라미터를 그대로 통과시키는 역할만 한다.
+/// - [isLeapMonth]: 음력([isLunar]=true)일 때만 실제 계산에 반영된다.
+///   양력이면 항상 false로 취급(계산엔진에도 항상 false로 강제 전달).
+/// - [birthTimeUnknown]: 계산에는 영향이 없다(관례값 12:00 그대로 사용).
+///   결과 화면에서 "정확도가 낮을 수 있습니다" 안내 배지 노출 여부에만 쓴다.
 @immutable
 class JeontongInput {
   const JeontongInput({
     required this.birthDateTimeLocal,
     required this.gender,
     this.isLunar = false,
+    this.isLeapMonth = false,
+    this.birthTimeUnknown = false,
     this.name,
   });
 
@@ -35,6 +46,13 @@ class JeontongInput {
 
   /// 음력 여부 — 기본 false(양력).
   final bool isLunar;
+
+  /// 윤달(음력) 여부 — 음력일 때만 의미가 있다. 기본 false.
+  final bool isLeapMonth;
+
+  /// 출생시간을 모른다고 표시한 상태 — 계산에는 영향 없음(관례값 12:00),
+  /// 결과 화면 안내 문구 노출 판단에만 사용. 기본 false.
+  final bool birthTimeUnknown;
 
   /// 선택 입력 이름. 빈 문자열/공백만 있으면 null로 취급한다.
   final String? name;
@@ -56,16 +74,25 @@ class JeontongInput {
     return (trimmed == null || trimmed.isEmpty) ? null : trimmed;
   }
 
+  /// 양력이면 윤달 개념 자체가 없으므로 항상 false를 반환한다. 계산엔진에
+  /// 전달할 때는 이 값을 사용해야 한다(원본 [isLeapMonth] 그대로 쓰면
+  /// 양력인데 true인 잘못된 상태가 섞여 전달될 수 있음).
+  bool get effectiveIsLeapMonth => isLunar ? isLeapMonth : false;
+
   JeontongInput copyWith({
     DateTime? birthDateTimeLocal,
     String? gender,
     bool? isLunar,
+    bool? isLeapMonth,
+    bool? birthTimeUnknown,
     String? name,
   }) {
     return JeontongInput(
       birthDateTimeLocal: birthDateTimeLocal ?? this.birthDateTimeLocal,
       gender: gender ?? this.gender,
       isLunar: isLunar ?? this.isLunar,
+      isLeapMonth: isLeapMonth ?? this.isLeapMonth,
+      birthTimeUnknown: birthTimeUnknown ?? this.birthTimeUnknown,
       name: name ?? this.name,
     );
   }
@@ -77,14 +104,24 @@ class JeontongInput {
         other.birthDateTimeLocal == birthDateTimeLocal &&
         other.gender == gender &&
         other.isLunar == isLunar &&
+        other.isLeapMonth == isLeapMonth &&
+        other.birthTimeUnknown == birthTimeUnknown &&
         other.name == name;
   }
 
   @override
-  int get hashCode => Object.hash(birthDateTimeLocal, gender, isLunar, name);
+  int get hashCode => Object.hash(
+    birthDateTimeLocal,
+    gender,
+    isLunar,
+    isLeapMonth,
+    birthTimeUnknown,
+    name,
+  );
 
   @override
   String toString() =>
       'JeontongInput(birthDateTimeLocal: $birthDateTimeLocal, gender: $gender, '
-      'isLunar: $isLunar, name: $name)';
+      'isLunar: $isLunar, isLeapMonth: $isLeapMonth, '
+      'birthTimeUnknown: $birthTimeUnknown, name: $name)';
 }

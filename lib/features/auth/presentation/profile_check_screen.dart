@@ -18,8 +18,18 @@ class _ProfileCheckScreenState extends State<ProfileCheckScreen> {
   DateTime? _birthDate;
   TimeOfDay? _birthTime;
   bool _isLunar = false;
+  // [신통방통 2단계] 윤달 여부 — 음력(_isLunar=true)일 때만 UI에 노출되고
+  // 값이 의미를 가진다. 양력에서는 항상 false로 서버 전송한다.
+  bool _isLeapMonth = false;
   String _gender = 'F';
   bool _skipTime = false;
+  final TextEditingController _birthPlaceController = TextEditingController();
+
+  @override
+  void dispose() {
+    _birthPlaceController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -68,6 +78,14 @@ class _ProfileCheckScreenState extends State<ProfileCheckScreen> {
       birthDate: birthDateStr,
       birthTime: birthTimeStr,
       isLunar: _isLunar,
+      // 음력 선택 시에만 윤달 값을 의미 있게 전달(양력이면 항상 false).
+      isLeapMonth: _isLunar ? _isLeapMonth : false,
+      // 계산엔진에는 기존과 동일하게 관례값(12:00)이 전달되지만, 사용자가
+      // "시간 모름"을 선택했다는 상태 자체는 서버에도 별도로 보존한다.
+      birthTimeUnknown: _skipTime,
+      birthPlace: _birthPlaceController.text.trim().isEmpty
+          ? null
+          : _birthPlaceController.text.trim(),
       gender: _gender,
     );
     if (mounted) {
@@ -104,7 +122,11 @@ class _ProfileCheckScreenState extends State<ProfileCheckScreen> {
                   const Text('음력'),
                   Switch(
                     value: _isLunar,
-                    onChanged: (v) => setState(() => _isLunar = v),
+                    onChanged: (v) => setState(() {
+                      _isLunar = v;
+                      // 양력으로 되돌아가면 윤달 값은 의미가 없으므로 초기화.
+                      if (!v) _isLeapMonth = false;
+                    }),
                     activeThumbColor: AppColors.primary,
                   ),
                   const Spacer(),
@@ -116,6 +138,30 @@ class _ProfileCheckScreenState extends State<ProfileCheckScreen> {
                   ),
                 ],
               ),
+              // [신통방통 2단계] 윤달 여부 — 음력 선택 시에만 노출(양력에서는
+              // 사용하지 않음). 계산엔진의 BirthInfo.isLeapMonth와 그대로 연결된다.
+              if (_isLunar) ...[
+                const SizedBox(height: AppSpacing.sm),
+                Row(
+                  children: [
+                    const Text('윤달(음력)'),
+                    Switch(
+                      value: _isLeapMonth,
+                      onChanged: (v) => setState(() => _isLeapMonth = v),
+                      activeThumbColor: AppColors.primary,
+                    ),
+                  ],
+                ),
+              ],
+              if (_skipTime) ...[
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  '출생시간을 모르면 정오(12:00) 기준으로 계산되며,\n결과 화면에서 정확도가 낮을 수 있다는 안내가 함께 표시됩니다.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
               if (!_skipTime) ...[
                 const SizedBox(height: AppSpacing.md),
                 _FieldTile(
@@ -126,6 +172,16 @@ class _ProfileCheckScreenState extends State<ProfileCheckScreen> {
                   onTap: _pickTime,
                 ),
               ],
+              const SizedBox(height: AppSpacing.md),
+              TextField(
+                controller: _birthPlaceController,
+                decoration: const InputDecoration(
+                  labelText: '출생지역 (선택)',
+                  hintText: '예: 서울특별시',
+                  prefixIcon: Icon(Icons.location_on_outlined),
+                  border: OutlineInputBorder(),
+                ),
+              ),
               const SizedBox(height: AppSpacing.md),
               SegmentedButton<String>(
                 segments: const [

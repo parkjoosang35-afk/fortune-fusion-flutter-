@@ -62,6 +62,12 @@ class JeontongReportBuilder {
   /// 하위호환). 실계산도, personalization 도 적용되지 않는 경우 하나라도
   /// non-null 이면, base 결과의 텍스트 콘텐츠는 그대로 두고 "이미 base 가
   /// 골라둔 값들의 순서/인덱스"만 사용자별 seed로 회전한다.
+  /// [2026-08-XX 신통방통 2단계 - 회원/운세 프로필 통합] [isLeapMonth]는
+  /// 음력(isLunar=true)일 때만 실제 계산에 반영되는 윤달 여부다. 계산
+  /// 로직은 이미 [ManseryeokCoreEngine.buildProfileWithCore]가 지원하던
+  /// 값을 그대로 통과시킬 뿐, PHASE1~4 계산 로직 자체는 한 글자도
+  /// 수정하지 않았다. default false 이므로 이 파라미터를 전달하지 않는
+  /// 기존 모든 호출부(656개 테스트 포함)의 동작은 완전히 동일하다.
   static FortuneReport build(
     JeontongCategoryEntry entry, {
     DateTime? date,
@@ -69,6 +75,7 @@ class JeontongReportBuilder {
     DateTime? birthDateTimeUtc,
     String? gender,
     bool? isLunar,
+    bool isLeapMonth = false,
   }) {
     final base = _buildBaseReport(entry, date: date);
 
@@ -80,6 +87,7 @@ class JeontongReportBuilder {
         birthDateTimeUtc: birthDateTimeUtc,
         gender: gender,
         isLunar: isLunar,
+        isLeapMonth: isLeapMonth,
       );
       if (real != null) return real;
     }
@@ -111,6 +119,7 @@ class JeontongReportBuilder {
     required DateTime birthDateTimeUtc,
     String? gender,
     bool? isLunar,
+    bool isLeapMonth = false,
   }) {
     try {
       final rules = SajuRules.cachedOrNull;
@@ -262,6 +271,9 @@ class JeontongReportBuilder {
           kst: kst,
           gender: sajuGender,
           isLunar: isLunar ?? false,
+          // 음력이 아니면 윤달 개념을 사용하지 않으므로 항상 false로
+          // 강제한다(반영사항2 "양력에서는 사용하지 않도록 처리").
+          isLeapMonth: (isLunar ?? false) ? isLeapMonth : false,
           referenceDate: referenceDate,
         );
         profile = built.profile;
@@ -321,12 +333,18 @@ class JeontongReportBuilder {
   /// 내부(private)에서만 쓰이던 함수를 public으로 승격한다. 계산 로직은
   /// 한 글자도 바뀌지 않았다 — 오직 접근 범위만 넓혔다(§ "재계산 금지,
   /// 이미 검증된 PHASE1~4 파이프라인 재사용" 원칙).
+  /// [신통방통 2단계] [isLeapMonth] default false — 기존 모든 호출부(656개
+  /// 테스트 포함)는 이 파라미터를 생략하므로 동작이 완전히 동일하다.
+  /// [ManseryeokCoreEngine.buildProfileWithCore]가 이미 지원하던
+  /// isLeapMonth 파라미터를 그대로 통과시킬 뿐, PHASE1~4 계산 로직
+  /// 자체는 수정하지 않았다(§ "재계산 금지, 값 통과만" 원칙).
   static ({SajuResult saju, SajuProfile profile})
   buildProfileAndSajuResultViaPhase1to4({
     required DateTime kst,
     required String gender,
     required bool isLunar,
     required DateTime referenceDate,
+    bool isLeapMonth = false,
   }) {
     final withCore = ManseryeokCoreEngine.buildProfileWithCore(
       year: kst.year,
@@ -336,6 +354,8 @@ class JeontongReportBuilder {
       minute: kst.minute,
       gender: gender,
       calendarType: isLunar ? CalendarInputType.lunar : CalendarInputType.solar,
+      // 양력이면 윤달 개념 자체가 없으므로 항상 false로 강제한다.
+      isLeapMonth: isLunar ? isLeapMonth : false,
     );
     final p2 = Phase2AnalysisEngine.analyze(
       baseProfile: withCore.profile,

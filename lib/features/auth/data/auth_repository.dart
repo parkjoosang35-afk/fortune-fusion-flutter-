@@ -154,6 +154,11 @@ class AuthRepository {
               'birth_date': updated.birthDate,
               'birth_time': updated.birthTime,
               'is_lunar': updated.isLunar,
+              // [신통방통 2단계] 음력이 아니면 항상 false로 전송(양력에서는
+              // 윤달 개념을 사용하지 않는다는 원칙을 서버 전송 시점에도 지킨다).
+              'is_leap_month': updated.isLunar ? updated.isLeapMonth : false,
+              'birth_time_unknown': updated.birthTimeUnknown,
+              'birth_place': updated.birthPlace,
               'gender': updated.gender,
             }),
           )

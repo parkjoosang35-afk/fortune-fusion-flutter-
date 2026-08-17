@@ -103,6 +103,9 @@ class AuthProvider extends ChangeNotifier {
     String? birthDate,
     String? birthTime,
     bool? isLunar,
+    bool? isLeapMonth,
+    bool? birthTimeUnknown,
+    String? birthPlace,
     String? gender,
     String? nickname,
   }) async {
@@ -112,6 +115,9 @@ class AuthProvider extends ChangeNotifier {
       birthDate: birthDate,
       birthTime: birthTime,
       isLunar: isLunar,
+      isLeapMonth: isLeapMonth,
+      birthTimeUnknown: birthTimeUnknown,
+      birthPlace: birthPlace,
       gender: gender,
       nickname: nickname,
     );

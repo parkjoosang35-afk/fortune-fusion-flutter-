@@ -38,6 +38,9 @@ import '../domain/jeontong_narrative_interpreter.dart';
 import '../domain/jeontong_report_cache.dart';
 import '../domain/saju_fortune_rules.dart' show SajuFortuneRules;
 import '../domain/saju_interpreter.dart' show SajuInterpreter, SajuRules;
+import '../domain/user_profile_to_jeontong_adapter.dart';
+import '../../auth/application/auth_provider.dart';
+import 'package:provider/provider.dart';
 import 'jeontong_design/hanji_background.dart';
 import 'jeontong_design/hanji_design_tokens.dart';
 import 'jeontong_design/jeontong_narrative_card.dart';
@@ -101,8 +104,17 @@ class _JeontongEightyResultScreenState
     _loadProfileAndRecord();
   }
 
+  // [신통방통 2단계] 로그인 회원은 서버 UserProfile을 기준으로 사용한다.
+  // 로그인 상태면 AuthProvider.currentUser를 우선 사용하고(어댑터로 변환),
+  // 비로그인이거나 서버 프로필에 생년월일이 없으면 기존 로컬
+  // JeontongProfileStore 폴백 경로를 그대로 탄다(회귀 없음).
   Future<void> _loadProfileAndRecord() async {
-    final profile = await jeontongProfileStore.get(_userId);
+    JeontongInput? profile;
+    final user = mounted ? context.read<AuthProvider>().currentUser : null;
+    if (user != null) {
+      profile = userModelToJeontongInput(user);
+    }
+    profile ??= await jeontongProfileStore.get(_userId);
     if (!mounted) return;
     setState(() {
       _profile = profile;
@@ -121,6 +133,7 @@ class _JeontongEightyResultScreenState
         birthDateTimeUtc: profile?.birthDateTimeUtc,
         gender: profile?.gender,
         isLunar: profile?.isLunar,
+        isLeapMonth: profile?.effectiveIsLeapMonth ?? false,
       );
       JeontongHistoryStore.instance.record(
         userId: _userId,
@@ -197,6 +210,7 @@ class _JeontongEightyResultScreenState
       birthDateTimeUtc: _profile?.birthDateTimeUtc,
       gender: _profile?.gender,
       isLunar: _profile?.isLunar,
+      isLeapMonth: _profile?.effectiveIsLeapMonth ?? false,
     );
     await MyFortuneRecordStore.save(
       SavedFortuneRecord(
@@ -341,6 +355,43 @@ class _JeontongPlaceholderNotice extends StatelessWidget {
   }
 }
 
+/// [신통방통 2단계 · 반영사항 1] 출생시간을 모른다고 표시한 회원/로컬
+/// 프로필에게만 노출되는 안내 배지. 계산 자체는 기존과 동일하게 12:00
+/// 관례값을 사용하지만, 정확도가 낮을 수 있음을 사용자에게 알려준다.
+class _BirthTimeUnknownNotice extends StatelessWidget {
+  const _BirthTimeUnknownNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(UnifiedTokens.spaceMd),
+      decoration: BoxDecoration(
+        color: UnifiedColors.cardBanner,
+        borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
+        border: Border.all(color: UnifiedColors.border, width: 1),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.access_time_rounded,
+            size: UnifiedTokens.iconMd,
+            color: UnifiedColors.textCaption,
+          ),
+          const SizedBox(width: UnifiedTokens.spaceSm),
+          Expanded(
+            child: Text(
+              '정확한 출생시간 미입력으로 사주 관련 해석의 정확도가 낮을 수 있습니다. '
+              '(현재 정오 12:00 기준으로 계산되고 있어요)',
+              style: UnifiedText.caption(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ResultBody extends StatelessWidget {
   const _ResultBody({
     required this.entry,
@@ -373,6 +424,7 @@ class _ResultBody extends StatelessWidget {
       birthDateTimeUtc: profile?.birthDateTimeUtc,
       gender: profile?.gender,
       isLunar: profile?.isLunar,
+      isLeapMonth: profile?.effectiveIsLeapMonth ?? false,
     );
     return Column(
       children: [
@@ -420,6 +472,13 @@ class _ResultBody extends StatelessWidget {
               const SizedBox(height: UnifiedTokens.spaceMd),
               if (entry.disclaimers.isNotEmpty) ...[
                 DisclaimerBanner.forTags(entry.disclaimers),
+                const SizedBox(height: UnifiedTokens.spaceMd),
+              ],
+              // [신통방통 2단계 · 반영사항 1] 출생시간을 모른다고 표시한
+              // 회원/로컬 프로필은 계산엔진에 관례값(12:00)을 전달하지만,
+              // 결과 화면에는 정확도 저하 가능성을 별도로 안내한다.
+              if (profile?.birthTimeUnknown ?? false) ...[
+                const _BirthTimeUnknownNotice(),
                 const SizedBox(height: UnifiedTokens.spaceMd),
               ],
               HeroSummaryCard(
