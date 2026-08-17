@@ -198,6 +198,26 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
     'tarot_love': (spreadType: null, topic: 'love'),
   };
 
+  /// [작업5 - 타로 신규 정문 통합] AllCategoriesScreen 타로 그룹 세부 항목
+  /// label → TarotCategoryData(tarot_category_model.dart) categoryId 매핑.
+  ///
+  /// 이 5개 id는 실제 TarotCategoryData.all에 존재함을 코드로 확인했다
+  /// (파일: features/fortune/tarot/domain/tarot_category_model.dart):
+  ///   - daily_today_tarot   (group=daily,   label='오늘의 타로', topic='today')
+  ///   - love_fortune        (group=love,    label='연애운',      topic='love')
+  ///   - wealth_fortune      (group=wealth,  label='재물운',      topic='wealth')
+  ///   - daily_direction_of_choice (group=daily, label='선택의 방향', topic='choice')
+  ///   - emotion_current_heart     (group=emotion, label='지금 내 마음', topic='general')
+  /// 각 topic/group이 AllCategoriesScreen 라벨(오늘의 타로/연애타로/재물타로/
+  /// 선택타로/속마음 타로)의 의도와 부합함을 확인했다.
+  static const Map<String, String> _tarotCategoryIdByLabel = {
+    '오늘의 타로': 'daily_today_tarot',
+    '연애타로': 'love_fortune',
+    '재물타로': 'wealth_fortune',
+    '선택타로': 'daily_direction_of_choice',
+    '속마음 타로': 'emotion_current_heart',
+  };
+
   /// 탭한 항목의 [label]을 관리자(FortuneCategoryProvider) 카테고리 목록에서
   /// 역매칭해 categoryKey를 찾고, saju/tarot 입력화면에 전달할 초기값 Map을
   /// 만든다. 정적 placeholder 항목(관리자 데이터에 없는 label)이거나 대상
@@ -207,6 +227,19 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
     required String label,
     required String route,
   }) {
+    // [작업5 - 타로 신규 정문 통합] AllCategoriesScreen의 타로 그룹 세부
+    // 항목(오늘의 타로/연애타로/재물타로/선택타로/속마음 타로)을 신규
+    // 카테고리 상세 화면(TarotCategoryDetailScreen, route='/tarot/category')
+    // 으로 연결할 때는 관리자 카테고리 매칭과 무관하게 TarotCategoryData의
+    // categoryId(String)를 그대로 arguments로 전달해야 한다
+    // (AppRouter의 tarotCategoryDetailRoute case가
+    // `settings.arguments as String?`로 받는다). label별 categoryId는
+    // [_tarotCategoryIdByLabel]에서 조회하며, 매핑에 없는 label(예: 대표
+    // "타로" → '/tarot/home')이면 null을 반환해 인자 없이 이동한다.
+    if (route == '/tarot/category') {
+      return _tarotCategoryIdByLabel[label];
+    }
+
     if (route != '/ai-fortune/saju/input' &&
         route != '/ai-fortune/tarot/question') {
       return null;
@@ -555,7 +588,10 @@ class _TrendingRow extends StatelessWidget {
   static const _items = [
     // [프리패스 전체잠금 통일] 오늘의 운세 전체잠금(과거 무료 노출).
     (Icons.wb_sunny_outlined, '오늘의 운세', '/home/daily-fortune-detail', true),
-    (Icons.style_outlined, '타로', '/ai-fortune/tarot/question', true),
+    // [작업5 - 타로 신규 정문 통합] 구 진입점(/ai-fortune/tarot/question)
+    // 직행을 신규 정문(TarotHomeScreen, '/tarot/home')으로 교체한다.
+    // 이제 Home/FortuneHub/AllCategories 모두 동일한 타로 정문을 사용한다.
+    (Icons.style_outlined, '타로', '/tarot/home', true),
     (
       Icons.chat_bubble_outline_rounded,
       'AI 상담',
@@ -637,7 +673,9 @@ class _FeaturedGrid extends StatelessWidget {
       '타로',
       '지금 마음과 선택의 해석',
       Icons.style_outlined,
-      '/ai-fortune/tarot/question',
+      // [작업5 - 타로 신규 정문 통합] 대표 카테고리 "타로" 카드도 신규
+      // 정문(TarotHomeScreen)으로 연결한다.
+      '/tarot/home',
       true,
     ),
   ];
@@ -799,12 +837,19 @@ _categoryGroups = [
     icon: Icons.style_outlined,
     title: '타로',
     desc: '지금 마음이 궁금할 때, 카드에게 물어보세요',
+    // [작업5 - 타로 신규 정문 통합] 세부 항목 5개를 구 질문화면
+    // (/ai-fortune/tarot/question) 직행에서 신규 카테고리 상세 화면
+    // (TarotCategoryDetailScreen, route='/tarot/category')으로 교체한다.
+    // 실제 arguments(categoryId)는 _resolveDeepLinkArguments()가
+    // _tarotCategoryIdByLabel 매핑을 통해 label별로 채워준다. 이렇게 하면
+    // 사용자가 "오늘의 타로" 등을 눌러도 카테고리 상세 → 질문 → 카드선택 →
+    // 결과의 동일한 신규 플로우로 들어가게 된다(구 화면 직행 금지).
     items: [
-      (label: '오늘의 타로', route: '/ai-fortune/tarot/question', pass: true),
-      (label: '연애타로', route: '/ai-fortune/tarot/question', pass: true),
-      (label: '재물타로', route: '/ai-fortune/tarot/question', pass: true),
-      (label: '선택타로', route: '/ai-fortune/tarot/question', pass: true),
-      (label: '속마음 타로', route: '/ai-fortune/tarot/question', pass: true),
+      (label: '오늘의 타로', route: '/tarot/category', pass: true),
+      (label: '연애타로', route: '/tarot/category', pass: true),
+      (label: '재물타로', route: '/tarot/category', pass: true),
+      (label: '선택타로', route: '/tarot/category', pass: true),
+      (label: '속마음 타로', route: '/tarot/category', pass: true),
     ],
   ),
   (
