@@ -15,6 +15,15 @@
 /// 필드값(wealthPattern 이름, 재성/관살/인성 개수, 일간, 대운 라벨 등)이
 /// 문장 안에 구체적으로 드러나야 한다 — 같은 wealthPattern이라도
 /// interpretationContext 수치가 다르면 문장의 구체적 근거 설명이 달라진다.
+///
+/// [2026-08-2x 확장 — "정통사주 결과 해석 방식 최종 수정 지시"] 명리학
+/// 전문용어(재성/관살/인성/정재/편재/겁재/신강신약)는 삭제하지 않고
+/// 그대로 유지하되, 이 Narrative 안에서 처음 등장할 때만
+/// term_translation_layer.dart의 [TermTracker]/tenGodGroupPhrase/
+/// tenGodPhrase/strengthPhrase 헬퍼로 "용어(쉬운 의미)"를 함께 풀어
+/// 쓰고, 같은 용어가 다시 등장하면 축약형만 사용한다(§7 용어 반복
+/// 금지). 계산/개인화 로직 자체는 전혀 바뀌지 않는다 — [WealthAnalysis]가
+/// 이미 내린 판단을 "어떻게 설명하는가"만 바뀌다.
 library;
 
 import '../../manseryeok/saju_profile.dart';
@@ -44,6 +53,8 @@ class WealthNarrativeGenerator implements NarrativeGenerator<WealthAnalysis> {
     final strengthVerdict = ctx['strengthVerdict'] ?? '';
     final dayGanKr = profile.dayPillar.stemKr;
     final dayGanHanja = profile.dayPillar.stemHanja;
+    // [신규] 이 Narrative 생성 과정 전체에서 공유하는 용어 추적기(§7).
+    final terms = TermTracker();
 
     // ── ① 핵심 결과(coreResult) ──
     final coreResultAll = <String>[
@@ -53,45 +64,50 @@ class WealthNarrativeGenerator implements NarrativeGenerator<WealthAnalysis> {
     final coreResult = coreResultAll.take(rules.maxCoreResultSentences).toList();
 
     // ── ② 왜 이런 결과가 나왔는가(whyThisResult) — coreEvidence를
-    // sourceField 기준으로 하나씩 자연어로 풀어낸다(§7 근거 추적성) ──
+    // sourceField 기준으로 하나씩 자연어로 풀어낸다(§7 근거 추적성).
+    // [명리학 용어 서술 방식 개선] 재성/관살/인성 5대 그룹 용어와
+    // 신강신약 판정어는 각각 tenGodGroupPhrase/strengthPhrase로 감싸, 이
+    // Narrative 안에서 처음 등장할 때만 "용어(쉬운 의미)" 형태로 풀어 쓰고
+    // 재등장 시 축약형만 쓴다(§7/§8) ──
     final whyThisResult = <String>[];
     for (final e in analysis.coreEvidence) {
       switch (e.sourceField) {
         case 'tenGods+hiddenStems(5대범주 집계)':
           whyThisResult.add(
-            '원국과 지장간을 함께 보면 재성 $wealthCount개, 관살 $officerCount개, '
-            '인성 $printerCount개가 나타나요.',
+            '원국과 지장간을 함께 보면 ${tenGodGroupPhrase(terms, '재성')} $wealthCount개, '
+            '${tenGodGroupPhrase(terms, '관살')} $officerCount개, '
+            '${tenGodGroupPhrase(terms, '인성')} $printerCount개가 나타나요.',
           );
         case 'wealthCount/officerCount/printerCount 조합':
           whyThisResult.add(
-            '재성·관살·인성 개수의 조합을 기준으로 판단했을 때, '
+            '${tenGodGroupPhrase(terms, '재성')}·${tenGodGroupPhrase(terms, '관살')}·'
+            '${tenGodGroupPhrase(terms, '인성')} 개수의 조합을 기준으로 판단했을 때, '
             '이 사주는 ${analysis.wealthPattern.split(' — ').first} 쪽으로 기울어요.',
           );
         case 'strength.verdict + 재성 개수':
-          final strengthPlain = strengthMeanings[strengthVerdict]?.plainKorean ?? '';
           whyThisResult.add(
-            '신강신약으로는 $strengthVerdict으로 판정되는데, $strengthPlain '
-            '이 힘이 재성 $wealthCount개를 감당하는 정도를 결정해요.',
+            '${strengthPhrase(terms, strengthVerdict)}으로 판정되는데, '
+            '이 힘이 ${tenGodGroupPhrase(terms, '재성')} $wealthCount개를 감당하는 정도를 결정해요.',
           );
         case '정재/편재 occurrence 개수':
           whyThisResult.add(
-            '정재 $jeongjaeCount개와 편재 $pyeonjaeCount개 중 어느 쪽이 우세한지에 따라 '
-            '고정 수입인지 유동 수입인지가 갈리는데, ${analysis.incomePattern}.',
+            '${tenGodPhrase(terms, '정재')} $jeongjaeCount개와 ${tenGodPhrase(terms, '편재')} $pyeonjaeCount개 '
+            '중 어느 쪽이 우세한지에 따라 고정 수입인지 유동 수입인지가 갈리는데, '
+            '${analysis.incomePattern}.',
           );
         case '겁재 개수 + yongsin.gisin vs 재성오행':
-          whyThisResult.add('겁재 $gyeopjaeCount개와 기신 여부를 함께 보면, ${analysis.riskPattern}.');
+          whyThisResult.add(
+            '${tenGodPhrase(terms, '겁재')} $gyeopjaeCount개와 기신 여부를 함께 보면, ${analysis.riskPattern}.',
+          );
       }
     }
     if (jeongjaeCount > 0 || pyeonjaeCount > 0) {
-      final wealthFlavor = jeongjaeCount > pyeonjaeCount
-          ? (tenGodMeaningOf('정재')?.practicalMeaningFor('wealth') ?? '')
-          : pyeonjaeCount > jeongjaeCount
-          ? (tenGodMeaningOf('편재')?.practicalMeaningFor('wealth') ?? '')
-          : '';
+      final dominantJae = jeongjaeCount > pyeonjaeCount ? '정재' : '편재';
+      final wealthFlavor = tenGodMeaningOf(dominantJae)?.practicalMeaningFor('wealth') ?? '';
       if (wealthFlavor.isNotEmpty) {
         whyThisResult.add(
-          '정재 $jeongjaeCount개, 편재 $pyeonjaeCount개 중 '
-          '${jeongjaeCount > pyeonjaeCount ? '정재' : '편재'} 쪽이 우세해서, $wealthFlavor',
+          '${tenGodPhrase(terms, '정재')} $jeongjaeCount개, ${tenGodPhrase(terms, '편재')} $pyeonjaeCount개 중 '
+          '$dominantJae 쪽이 우세해서, $wealthFlavor',
         );
       }
     }
@@ -130,8 +146,14 @@ class WealthNarrativeGenerator implements NarrativeGenerator<WealthAnalysis> {
         : cautionFlows;
 
     // ── ⑥ 실전 가이드(practicalGuidance, 신규 필드) ──
+    final yongsinElement = ctx['yongsinElement'] ?? '';
+    final gisinElement = ctx['gisinElement'] ?? '';
     final practicalGuidance = <String>[
       '${analysis.assetManagementStyle.split('—').first.trim()} 방식으로 자산을 배분해 보세요.',
+      if (yongsinElement.isNotEmpty)
+        '${yongsinPhrase(terms, yongsinElement)}와 관련된 수입·투자 기회를 우선적으로 살펴보세요.',
+      if (gisinElement.isNotEmpty)
+        '${gisinPhrase(terms, gisinElement)}이 강해지는 시기에는 큰 지출·투자를 미루는 것이 좋아요.',
       if (analysis.riskPattern != '두드러진 재물 리스크 신호는 확인되지 않음')
         '${analysis.riskPattern.split(' / ').first}에 대비해, 큰 지출·투자 전에 한 번 더 확인하는 습관을 들이면 좋아요.',
       if (analysis.wealthPeakDaewoonLabel.isNotEmpty)

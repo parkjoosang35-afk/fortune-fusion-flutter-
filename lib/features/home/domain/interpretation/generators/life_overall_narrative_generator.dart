@@ -19,6 +19,16 @@
 /// (analyzer의 §10 excludedData). 따라서 이 Generator가 만드는
 /// [FortuneNarrative.timingSection]은 항상 null이다 — 이것은 버그가 아니라
 /// §18 "가짜 시기 금지" 원칙의 정상 동작이다.
+///
+/// [2026-08-2x 확장 — "정통사주 결과 해석 방식 최종 수정 지시"] 명리학
+/// 전문용어(십신 5대 그룹/신강신약/용신·기신/신살)는 삭제하지 않고
+/// 그대로 유지하되, 이 Narrative 안에서 처음 등장할 때만
+/// term_translation_layer.dart의 [TermTracker]/tenGodGroupPhrase/
+/// strengthPhrase/yongsinPhrase/gisinPhrase/sinsalPhrase 헬퍼로
+/// "용어(쉬운 의미)"를 함께 풀어 쓰고, 같은 용어가 다시 등장하면
+/// 축약형만 사용한다(§7 용어 반복 금지). 계산/개인화 로직 자체는 전혀
+/// 바뀌지 않는다 — [LifeOverallAnalysis]가 이미 내린 판단을 "어떻게
+/// 설명하는가"만 바뀌다.
 library;
 
 import '../../manseryeok/saju_profile.dart';
@@ -28,6 +38,11 @@ import '../fortune_narrative.dart';
 import '../interpretation_rules.dart';
 import '../narrative_generator.dart';
 import '../term_translation_layer.dart';
+
+/// 이 파일이 사용하는 십신 5대 그룹명 집합(dominantTenGodCategory가
+/// '균형'이 아니면 반드시 이 중 하나) — [tenGodGroupPhrase] 호출
+/// 대상 여부를 판단하기 위한 방어적 상수.
+const Set<String> _tenGodGroupNames = {'비겁', '식상', '재성', '관살', '인성'};
 
 class LifeOverallNarrativeGenerator implements NarrativeGenerator<LifeOverallAnalysis> {
   const LifeOverallNarrativeGenerator();
@@ -47,17 +62,29 @@ class LifeOverallNarrativeGenerator implements NarrativeGenerator<LifeOverallAna
     final gisinElement = analysis.gisinElement;
     final dayGanKr = profile.dayPillar.stemKr;
     final dayGanHanja = profile.dayPillar.stemHanja;
+    // [신규] 이 Narrative 생성 과정 전체에서 공유하는 용어 추적기(§7).
+    final terms = TermTracker();
+    // dominantCategory가 십신 5대 그룹(비겁/식상/재성/관살/인성) 중 하나이므로
+    // 문장 안에서 이 값을 사용할 때는 항상 tenGodGroupPhrase를 거친다.
+    String dominantCategoryPhrase() =>
+        _tenGodGroupNames.contains(dominantCategory)
+        ? tenGodGroupPhrase(terms, dominantCategory)
+        : dominantCategory;
 
     // ── ① 핵심 결과(coreResult) ──
     final coreResultAll = <String>[
       '$dayGanKr($dayGanHanja) 일간의 이 사주는 ${analysis.lifeTheme}.',
       if (dominantCategory != '균형')
-        '특히 $dominantCategory 기운이 원국·지장간 전체에서 $dominantCount회로 가장 많이 반복돼요.',
+        '특히 ${dominantCategoryPhrase()} 기운이 원국·지장간 전체에서 $dominantCount회로 가장 많이 반복돼요.',
     ];
     final coreResult = coreResultAll.take(rules.maxCoreResultSentences).toList();
 
     // ── ② 왜 이런 결과가 나왔는가(whyThisResult) — coreEvidence를
-    // sourceField 기준으로 하나씩 자연어로 풀어낸다(§7 근거 추적성) ──
+    // sourceField 기준으로 하나씩 자연어로 풀어낸다(§7 근거 추적성).
+    // [명리학 용어 서술 방식 개선] 십신 5대 그룹/신강신약/용신·기신/신살
+    // 용어는 각각 tenGodGroupPhrase/strengthPhrase/yongsinPhrase/
+    // gisinPhrase/sinsalPhrase로 감싸, 이 Narrative 안에서 처음 등장할
+    // 때만 "용어(쉬운 의미)"로 풀어 쓰고 재등장 시 축약형만 쓴다(§7/§8) ──
     final whyThisResult = <String>[];
     for (final e in analysis.coreEvidence) {
       switch (e.sourceField) {
@@ -68,15 +95,14 @@ class LifeOverallNarrativeGenerator implements NarrativeGenerator<LifeOverallAna
         case 'tenGods + hiddenStems(십신 7위치+지장간)':
           whyThisResult.add(
             '원국과 지장간을 종합하면 $categoryCount 분포가 나타나고, '
-            '그중 $dominantCategory 기운이 가장 많이 반복돼요.',
+            '그중 ${dominantCategoryPhrase()} 기운이 가장 많이 반복돼요.',
           );
         case 'strength.verdict/score':
-          final strengthPlain = strengthMeanings[strengthVerdict]?.plainKorean ?? '';
-          whyThisResult.add('신강신약으로는 $strengthVerdict으로 판정되는데, $strengthPlain');
+          whyThisResult.add('${strengthPhrase(terms, strengthVerdict)}으로 판정돼요.');
         case 'yongsin.yongsin/gisin':
           if (yongsinElement.isNotEmpty) {
             whyThisResult.add(
-              '용신은 $yongsinElement, 기신은 $gisinElement로 판정되어, '
+              '${yongsinPhrase(terms, yongsinElement)}, ${gisinPhrase(terms, gisinElement)}로 판정되어, '
               '$yongsinElement 기운이 살아날 때 삶이 편해지고 $gisinElement 기운이 강해질 때 힘들어져요.',
             );
           }
@@ -93,9 +119,9 @@ class LifeOverallNarrativeGenerator implements NarrativeGenerator<LifeOverallAna
           }
         case 'sinsal':
           if (analysis.notableSinsal.isNotEmpty) {
+            final phrases = analysis.notableSinsal.map((s) => sinsalPhrase(terms, s)).join(' ');
             whyThisResult.add(
-              '원국에 ${analysis.notableSinsal.join(', ')}(이)가 실제로 발견되어, '
-              '이 기운이 평생에 걸쳐 특이하게 작용해요.',
+              '원국에 $phrases 이 기운이 평생에 걸쳐 특이하게 작용해요.',
             );
           }
       }
@@ -104,7 +130,7 @@ class LifeOverallNarrativeGenerator implements NarrativeGenerator<LifeOverallAna
     // ── ③ 나에게 나타나는 특징(characteristics) — strengths/weaknesses를
     // "실제 생활 모습"으로 풀어낸다 ──
     final characteristics = <String>[
-      for (final s in analysis.strengths) '$dominantCategory 기운과 관련해, $s.',
+      for (final s in analysis.strengths) '${dominantCategoryPhrase()} 기운과 관련해, $s.',
       if (analysis.dominantElements.length >= 2)
         '${analysis.dominantElements.join(', ')} 기운이 겹쳐 있어, 특정 방향으로 힘이 몰리는 편이에요.',
     ].where((s) => s.trim().isNotEmpty).toList();
@@ -138,9 +164,10 @@ class LifeOverallNarrativeGenerator implements NarrativeGenerator<LifeOverallAna
     // 생활 태도 제안으로 채운다 ──
     final practicalGuidance = <String>[
       if (yongsinElement.isNotEmpty)
-        '$yongsinElement 기운이 강해지는 환경(직업·관계·취미 등)을 의식적으로 가까이해 보세요.',
-      if (gisinElement.isNotEmpty) '$gisinElement 기운이 지나치게 강해지는 상황은 미리 알아채고 거리를 두는 것이 좋아요.',
-      if (dominantCategory != '균형') '$dominantCategory 기운을 살릴 수 있는 역할이나 활동을 적극적으로 찾아보세요.',
+        '${yongsinPhrase(terms, yongsinElement)}가 강해지는 환경(직업·관계·취미 등)을 의식적으로 가까이해 보세요.',
+      if (gisinElement.isNotEmpty)
+        '${gisinPhrase(terms, gisinElement)}가 지나치게 강해지는 상황은 미리 알아채고 거리를 두는 것이 좋아요.',
+      if (dominantCategory != '균형') '${dominantCategoryPhrase()} 기운을 살릴 수 있는 역할이나 활동을 적극적으로 찾아보세요.',
       if (analysis.notableSinsal.isNotEmpty)
         '${analysis.notableSinsal.join(', ')} 기운이 발현되는 순간을 놓치지 않고 활용해 보세요.',
     ].where((s) => s.trim().isNotEmpty).toList();

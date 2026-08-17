@@ -14,6 +14,15 @@
 /// (careerPattern 이름, 관살/인성/식상 개수, 일간, 대운 라벨 등)이 문장
 /// 안에 구체적으로 드러나야 한다 — 같은 careerPattern이라도
 /// interpretationContext 수치가 다르면 문장의 구체적 근거 설명이 달라진다.
+///
+/// [2026-08-2x 확장 — "정통사주 결과 해석 방식 최종 수정 지시"] 명리학
+/// 전문용어(관살/인성/식상/비겁/정관/편관/신강신약 등)는 삭제하지 않고
+/// 그대로 유지하되, 이 Narrative 안에서 처음 등장할 때만
+/// term_translation_layer.dart의 [TermTracker]/tenGodGroupPhrase/
+/// tenGodPhrase/strengthPhrase 헬퍼로 "용어(쉬운 의미)"를 함께 풀어 쓰고,
+/// 같은 용어가 다시 등장하면 축약형("관살의 힘" 등)만 사용한다(§7 용어
+/// 반복 금지). 계산/개인화 로직 자체는 전혀 바뀌지 않는다 — [CareerAnalysis]
+/// 가 이미 내린 판단을 "어떻게 설명하는가"만 바뀐다.
 library;
 
 import '../../manseryeok/saju_profile.dart';
@@ -54,8 +63,15 @@ class CareerNarrativeGenerator implements NarrativeGenerator<CareerAnalysis> {
     final jeongGwanCount = int.tryParse(ctx['jeongGwanCount'] ?? '0') ?? 0;
     final pyeonGwanCount = int.tryParse(ctx['pyeonGwanCount'] ?? '0') ?? 0;
     final strengthVerdict = ctx['strengthVerdict'] ?? '';
+    final yongsinElement = ctx['yongsinElement'] ?? '';
+    final gisinElement = ctx['gisinElement'] ?? '';
     final dayGanKr = profile.dayPillar.stemKr;
     final dayGanHanja = profile.dayPillar.stemHanja;
+    // [신규] 이 Narrative 안에서 "용어 첫 등장 추적"을 위한 tracker.
+    // 같은 인스턴스를 whyThisResult/characteristics/practicalGuidance
+    // 전체에 걸쳐 재사용해, 동일 용어가 두 번째 등장할 때부터는 축약형만
+    // 쓰이도록 한다(§7 용어 반복 금지).
+    final terms = TermTracker();
 
     // ── ① 핵심 결과(coreResult) ──
     final coreResultAll = <String>[
@@ -65,29 +81,38 @@ class CareerNarrativeGenerator implements NarrativeGenerator<CareerAnalysis> {
     final coreResult = coreResultAll.take(rules.maxCoreResultSentences).toList();
 
     // ── ② 왜 이런 결과가 나왔는가(whyThisResult) — coreEvidence를
-    // sourceField 기준으로 하나씩 자연어로 풀어낸다(§7 근거 추적성) ──
+    // sourceField 기준으로 하나씩 자연어로 풀어낸다(§7 근거 추적성).
+    // [명리학 용어 서술 방식 개선] 관살/인성/식상/비겁 같은 5대 그룹
+    // 용어와 신강신약 판정어는 [tenGodGroupPhrase]/[strengthPhrase]로
+    // 감싸, 이 Narrative 안에서 처음 등장할 때만 "용어(쉬운 의미)" 형태로
+    // 풀어 쓰고 재등장 시 축약형만 쓰도록 한다(§7/§8) ──
     final whyThisResult = <String>[];
     for (final e in analysis.coreEvidence) {
       switch (e.sourceField) {
         case 'tenGods+hiddenStems(5대범주 집계)':
           whyThisResult.add(
-            '원국과 지장간을 함께 보면 관살 $officerCount개, 인성 $printerCount개, '
-            '식상 $outputCount개, 비겁 $biCount개가 나타나요.',
+            '원국과 지장간을 함께 보면 ${tenGodGroupPhrase(terms, '관살')} $officerCount개, '
+            '${tenGodGroupPhrase(terms, '인성')} $printerCount개, '
+            '${tenGodGroupPhrase(terms, '식상')} $outputCount개, '
+            '${tenGodGroupPhrase(terms, '비겁')} $biCount개가 나타나요. '
+            '이 숫자들이 $dayGanKr($dayGanHanja) 일간인 이 사주에서 직업 구조를 가르는 1차 근거예요.',
           );
         case 'officerCount/printerCount/outputCount/wealthCount 조합':
           whyThisResult.add(
-            '이 조합을 기준으로 판단했을 때 관살·인성·식상 중 어느 쪽 힘이 더 센지가 '
-            '직업 구조를 가르는 기준이 되고, 이 사주는 그 기준에서 $patternName 쪽으로 기울어요.',
+            '이 조합을 기준으로 판단했을 때 ${tenGodGroupPhrase(terms, '관살')}·'
+            '${tenGodGroupPhrase(terms, '인성')}·${tenGodGroupPhrase(terms, '식상')} 중 '
+            '어느 쪽 힘이 더 센지가 직업 구조를 가르는 기준이 되고, '
+            '이 사주는 그 기준에서 $patternName 쪽으로 기울어요.',
           );
         case 'strength.verdict + 관살 개수':
-          final strengthPlain = strengthMeanings[strengthVerdict]?.plainKorean ?? '';
           whyThisResult.add(
-            '신강신약으로는 $strengthVerdict으로 판정되는데, $strengthPlain '
-            '이 힘이 관살 $officerCount개를 감당하는 정도를 결정해요.',
+            '${strengthPhrase(terms, strengthVerdict)}으로 판정되는데, '
+            '이 힘이 ${tenGodGroupPhrase(terms, '관살')} $officerCount개를 감당하는 정도를 결정해요.',
           );
         case '인성/식상/관살 조합':
           whyThisResult.add(
-            '인성 $printerCount개와 식상 $outputCount개 중 어느 쪽이 우세한지에 따라 '
+            '${tenGodGroupPhrase(terms, '인성')} $printerCount개와 '
+            '${tenGodGroupPhrase(terms, '식상')} $outputCount개 중 어느 쪽이 우세한지에 따라 '
             '조직에 기대는 방식인지 스스로 만들어가는 방식인지가 갈리는데, $workStyleDesc.',
           );
         case 'dayPillar.stemHanja → career_fit 고정표':
@@ -100,15 +125,12 @@ class CareerNarrativeGenerator implements NarrativeGenerator<CareerAnalysis> {
       }
     }
     if (jeongGwanCount > 0 || pyeonGwanCount > 0) {
-      final officerFlavor = jeongGwanCount > pyeonGwanCount
-          ? (tenGodMeaningOf('정관')?.practicalMeaningFor('career') ?? '')
-          : pyeonGwanCount > jeongGwanCount
-          ? (tenGodMeaningOf('편관')?.practicalMeaningFor('career') ?? '')
-          : '';
+      final dominantGwan = jeongGwanCount > pyeonGwanCount ? '정관' : '편관';
+      final officerFlavor = tenGodMeaningOf(dominantGwan)?.practicalMeaningFor('career') ?? '';
       if (officerFlavor.isNotEmpty) {
         whyThisResult.add(
-          '정관 $jeongGwanCount개, 편관 $pyeonGwanCount개 중 '
-          '${jeongGwanCount > pyeonGwanCount ? '정관' : '편관'} 쪽이 우세해서, $officerFlavor.',
+          '${tenGodPhrase(terms, '정관')} $jeongGwanCount개, ${tenGodPhrase(terms, '편관')} $pyeonGwanCount개 중 '
+          '$dominantGwan 쪽이 우세해서, $officerFlavor.',
         );
       }
     }
@@ -154,12 +176,17 @@ class CareerNarrativeGenerator implements NarrativeGenerator<CareerAnalysis> {
         ? cautionFlows.sublist(0, rules.maxCautionItems)
         : cautionFlows;
 
-    // ── ⑥ 실전 가이드(practicalGuidance, 신규 필드) ──
+    // ── ⑥ 실전 가이드(practicalGuidance, 신규 필드) — 용신/기신도 여기서
+    // "활용/주의 방법" 관점으로 언급한다 ──
     final practicalGuidance = <String>[
       if (analysis.suitableFields.isNotEmpty)
         '${analysis.suitableFields.take(2).join('·')} 쪽 채용 공고나 프로젝트를 '
             '우선적으로 살펴보는 것이 유리해요.',
       _strengthGuidance(strengthName),
+      if (yongsinElement.isNotEmpty)
+        '${yongsinPhrase(terms, yongsinElement)}가 활발한 조직·역할을 우선적으로 고려해 보세요.',
+      if (gisinElement.isNotEmpty)
+        '${gisinPhrase(terms, gisinElement)}가 지나치게 강해지는 업무 환경은 미리 파악해 거리를 두는 것이 좋아요.',
       if (analysis.careerRiskPattern != '두드러진 직업상 리스크 신호는 확인되지 않음')
         '${analysis.careerRiskPattern.split(' / ').first}에 대비해, 중요한 결정 전에 '
             '한 번 더 확인하는 습관을 들이면 좋아요.',
