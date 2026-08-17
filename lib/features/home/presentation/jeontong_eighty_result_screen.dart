@@ -16,7 +16,11 @@ import '../data/jeontong_bookmark_store.dart';
 import '../data/jeontong_history_store.dart';
 import '../data/jeontong_profile_store.dart';
 import '../domain/interpretation/analyzers/career_analyzer.dart';
+import '../domain/interpretation/analyzers/life_overall_analyzer.dart';
+import '../domain/interpretation/analyzers/wealth_analyzer.dart';
 import '../domain/interpretation/generators/career_narrative_generator.dart';
+import '../domain/interpretation/generators/life_overall_narrative_generator.dart';
+import '../domain/interpretation/generators/wealth_narrative_generator.dart';
 import '../domain/jeontong_eighty_calculator.dart'
     show
         JeontongCalcContext,
@@ -606,14 +610,39 @@ class _ResultBody extends StatelessWidget {
         referenceDate: DateTime.now(),
       );
 
-      // [2026-08-17 A04 독립 Narrative Pipeline — §12/§21] A04(평생
-      // 직업·명예운)만 우선 신규 CategoryAnalyzer → NarrativeGenerator →
-      // FortuneNarrative 경로로 분기한다. 다른 카테고리(A01~A03/A05/A06
-      // 등)는 기존 JeontongNarrativeInterpreter 경로를 그대로 사용한다
-      // (§18 "기존 카테고리는 삭제하지 않는다" — A05/A06은 별도 STEP에서
-      // 동일한 방식으로 전환 예정). FortuneNarrative.toParagraphs()는
-      // 기존 JeontongNarrativeCard가 요구하는 List<String> 그대로이므로
-      // 새 위젯 없이 재사용한다.
+      // [2026-08-17 A01/A03/A04 독립 Narrative Pipeline — §12/§21/분기점A]
+      // A01/A03/A04는 신규 CategoryAnalyzer → NarrativeGenerator →
+      // FortuneNarrative 경로로 분기한다(A04가 먼저 완성·검증되었고, 이번
+      // 단계에서 A01/A03도 동일 구조로 통일했다 — 사용자 최종 지시
+      // "A01/A03도 신규 구조에 맞춰 동일한 독립 Narrative Generator
+      // 구조로 정리"). 다른 카테고리(A02/A05/A06 등)는 기존
+      // JeontongNarrativeInterpreter 경로를 그대로 사용한다(§18 "기존
+      // 카테고리는 삭제하지 않는다" — A05/A06은 별도 STEP에서 동일한
+      // 방식으로 전환 예정). FortuneNarrative.toParagraphs()는 기존
+      // JeontongNarrativeCard가 요구하는 List<String> 그대로이므로 새
+      // 위젯 없이 재사용한다.
+      if (entry.id == 'A01') {
+        final analysis = const LifeOverallAnalyzer().analyze(
+          built.profile,
+          referenceDate: DateTime.now(),
+        );
+        final narrative = const LifeOverallNarrativeGenerator().generate(
+          built.profile,
+          analysis,
+        );
+        return JeontongNarrativeCard(paragraphs: narrative.toParagraphs());
+      }
+      if (entry.id == 'A03') {
+        final analysis = const WealthAnalyzer().analyze(
+          built.profile,
+          referenceDate: DateTime.now(),
+        );
+        final narrative = const WealthNarrativeGenerator().generate(
+          built.profile,
+          analysis,
+        );
+        return JeontongNarrativeCard(paragraphs: narrative.toParagraphs());
+      }
       if (entry.id == 'A04') {
         final analysis = const CareerAnalyzer().analyze(
           built.profile,
