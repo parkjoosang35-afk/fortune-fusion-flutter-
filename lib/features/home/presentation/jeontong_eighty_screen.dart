@@ -38,9 +38,14 @@ import 'jeontong_design/saju_seal.dart';
 ///
 /// [영향 범위 안전망] AI 타로/관상/손금/상담, 결제/구독/지갑/광고,
 /// 사용자 기록/프로필/북마크 데이터는 이 화면에서 전혀 참조하지 않는다.
-/// 기존 "정통사주" 진입점 2곳(all_categories_screen의 2x2 그리드,
-/// home_screen 칩 로우의 '정통사주' 칩)은 계속 `/ai-fortune/saju/input`으로만
-/// 이동하며 이 화면과 무관하다(별도 진입점 유지, 변경 없음).
+///
+/// [3단계 2차 실제 구조 정리 - 작업2/3, 2026 갱신] 위 문단(구버전 주석)은
+/// 더 이상 사실과 다르다 — all_categories_screen의 2x2 그리드/그룹카드,
+/// home_screen 칩 로우의 "정통사주" 항목은 모두 이번 정리 작업에서
+/// [JeontongEightyMatrix.browseRoute](`/jeontong/eighty`, 이 화면)로
+/// 배선을 수정해, "정통사주"라는 이름이 실제로 PHASE1~4 엔진 기반 이
+/// 화면으로 연결되도록 통일했다. AI(LLM) 사주는 이제 모든 진입점에서
+/// "AI 사주"로 명칭을 분리해 `/ai-fortune/saju/input`으로만 안내한다.
 class JeontongEightyScreen extends StatefulWidget {
   const JeontongEightyScreen({super.key});
 

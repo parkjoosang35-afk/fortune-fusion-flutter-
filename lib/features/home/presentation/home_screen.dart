@@ -470,17 +470,25 @@ class _AllCategoriesHeader extends StatelessWidget {
   }
 }
 
-/// ④ [사용자 요청] 운세 카테고리 칩(가로 스크롤) 구조. "오늘의 운세/사주/
+/// ④ [사용자 요청] 운세 카테고리 칩(가로 스크롤) 구조. "오늘의 운세/AI 사주/
 /// 관상/손금/정통사주" 5개로 구성한다.
 ///
 /// [미연동 콘텐츠 삭제] 전용 상세화면이 없어 안내 토스트만 띄우던 "신년운세"
 /// 칩은 삭제했다.
 ///
+/// [3단계 2차 실제 구조 정리 - 작업2 - 명칭/배선 수정] 기존에는 이 칩 목록의
+/// "정통사주" 라벨이 실제로는 AI(LLM) 사주 라우트(`/ai-fortune/saju/input`)로
+/// 연결되어 있어, PHASE1~4 정통사주 엔진과 완전히 무관한 화면을 "정통사주"로
+/// 잘못 안내하고 있었다. 아래와 같이 수정한다.
+///   - "사주" → "AI 사주"로 라벨 변경(라우트는 그대로 `/ai-fortune/saju/
+///     input` 유지 — 실제로 AI 해석 화면이 맞으므로 라벨만 정정).
+///   - "정통사주" → 라우트를 [JeontongEightyMatrix.browseRoute]
+///     (`/jeontong/eighty`)로 수정해, 아래 "오늘의 운세" 섹션의 "운세" 카드와
+///     동일한 실제 정통사주 69종 화면으로 연결되도록 배선을 바로잡는다.
 /// - "오늘의 운세" 칩: 페이지 이동 없이 홈의 "오늘의 운세" 섹션(힐링 문구
 ///   카드 + 운세/타로 카드)으로 스크롤 이동한다([onScrollToToday]).
-/// - "사주"/"관상"/"손금"/"정통사주": 기존과 동일하게 열림패스 게이트를 거쳐
-///   각자의 입력/촬영 화면으로 바로 이동한다(정통사주는 `all_categories_screen`
-///   과 동일하게 사주 입력 화면 라우트를 재사용).
+/// - "AI 사주"/"관상"/"손금"/"정통사주": 기존과 동일하게 열림패스 게이트를
+///   거쳐 각자의 입력/촬영/조회 화면으로 바로 이동한다.
 class _FortuneCategoryChips extends StatefulWidget {
   const _FortuneCategoryChips({required this.onScrollToToday});
 
@@ -498,12 +506,14 @@ class _FortuneCategoryChipsState extends State<_FortuneCategoryChips> {
   bool _checking = false;
 
   // 기준 시안: 칩에는 아이콘 없이 텍스트만 표시.
+  // [3단계 2차 실제 구조 정리 - 작업2] "정통사주" 라벨이 AI사주 라우트로
+  // 잘못 연결되어 있던 배선을 [JeontongEightyMatrix.browseRoute]로 수정.
   static const _items = [
     ('오늘의 운세', null, false),
-    ('사주', '/ai-fortune/saju/input', true),
+    ('AI 사주', '/ai-fortune/saju/input', true),
     ('관상', '/ai-fortune/face/capture', true),
     ('손금', '/ai-fortune/palm/capture', true),
-    ('정통사주', '/ai-fortune/saju/input', true),
+    ('정통사주', JeontongEightyMatrix.browseRoute, true),
   ];
 
   Future<void> _handleTap(int index) async {

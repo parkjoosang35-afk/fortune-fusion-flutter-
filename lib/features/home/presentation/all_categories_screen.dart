@@ -19,6 +19,7 @@ import '../../wish_wall_board/presentation/wish_wall_board_screen.dart';
 import '../application/fortune_category_provider.dart';
 import '../domain/fortune_category_model.dart';
 import '../domain/fortune_matrix.dart';
+import '../domain/jeontong_eighty_matrix.dart';
 import 'widgets/fortune_matrix_section.dart';
 
 /// [전체보기 카테고리 허브] Fortune Fusion(신통방통) 앱 전체 카테고리를 한 화면에서
@@ -604,6 +605,11 @@ class _FeaturedGrid extends StatelessWidget {
   final bool busy;
   final void Function(String label, String route, bool requiresPass) onTap;
 
+  // [3단계 2차 실제 구조 정리 - 작업3 - 명칭/배선 수정] "정통사주" 카드가
+  // 실제로는 AI(LLM) 사주 라우트(`/ai-fortune/saju/input`)로 연결되어 있어
+  // PHASE1~4 엔진과 무관한 화면을 "정통사주"라고 잘못 안내하던 문제를 바로
+  // 잡는다. 라우트를 [JeontongEightyMatrix.browseRoute]로 교체해 실제
+  // 정통사주 69종 화면(JeontongEightyScreen)으로 연결한다.
   static const _items = [
     (
       '오늘의 운세',
@@ -617,7 +623,7 @@ class _FeaturedGrid extends StatelessWidget {
       '정통사주',
       '타고난 기운과 인생의 방향',
       Icons.auto_stories_outlined,
-      '/ai-fortune/saju/input',
+      JeontongEightyMatrix.browseRoute,
       true,
     ),
     (
@@ -770,13 +776,23 @@ _categoryGroups = [
       (label: '오늘의 운세', route: '/home/daily-fortune-detail', pass: true),
     ],
   ),
+  // [3단계 2차 실제 구조 정리 - 작업3] 기존에는 "정통사주"/"오늘의 사주" 두
+  // 라벨이 모두 동일한 AI(LLM) 사주 라우트를 가리키는 사실상 중복 항목이었고,
+  // 그마저 "정통사주"라는 이름이 실제 정통사주(PHASE1~4) 엔진과 무관해
+  // 명칭 혼선을 일으켰다. "정통사주"는 실제 PHASE1~4 화면으로, 나머지 하나는
+  // "AI 사주"로 이름을 정정해 두 항목이 서로 다른 실제 화면을 가리키도록
+  // 정리한다(라우트/화면 자체는 기존 것을 그대로 재사용, 신규 개발 없음).
   (
     icon: Icons.auto_stories_outlined,
     title: '사주',
     desc: '타고난 기운과 흐름을 깊게 해석해보세요',
     items: [
-      (label: '정통사주', route: '/ai-fortune/saju/input', pass: true),
-      (label: '오늘의 사주', route: '/ai-fortune/saju/input', pass: true),
+      (
+        label: '정통사주',
+        route: JeontongEightyMatrix.browseRoute,
+        pass: true,
+      ),
+      (label: 'AI 사주', route: '/ai-fortune/saju/input', pass: true),
     ],
   ),
   (
