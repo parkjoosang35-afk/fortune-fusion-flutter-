@@ -301,3 +301,63 @@ export async function getSpendRuleAmount(tx: Tx, actionType: string, fallback: n
   });
   return rule && rule.amount > 0 ? rule.amount : fallback;
 }
+
+// ══════════════════════════════════════════════════════════════════
+// [복주머니 정책표 재정리 - 2026] 정책 기반 지급 횟수 강제(checkPolicyEligibility)
+//
+// [배경] PointPolicy.dailyLimit 필드는 스키마에 존재하지만, 지금까지 attendance
+// API의 "규칙 없을 때 폴백 금액 조회" 용도로만 읽혔을 뿐, 실제로 "오늘 이미 N회
+// 지급했으므로 더 이상 지급하지 않는다"를 강제하는 공용 로직이 없었다(신규
+// sourceType: first_login_reward — 평생 1회, wish_reward — 1일 1회, review_reward
+// — 상담 세션당 1회 등을 구현하려면 이 강제 로직이 반드시 필요).
+//
+// [원칙] 이 함수는 "판정만" 한다(부수효과 없음, 지급 자체는 하지 않음).
+// 호출부(각 API route)가 이 함수로 eligible을 먼저 확인한 뒤, true일 때만
+// earnLuckPouch()/applyDailyCapAndEarn()을 호출하는 흐름을 따른다.
+//
+// scope="daily": 오늘(KST 00:00~24:00) 동안 해당 sourceType으로 지급된 PointHistory
+//   행 개수가 PointPolicy.dailyLimit 이상이면 거부한다.
+// scope="lifetime": 가입 이후 전체 기간 동안 해당 sourceType으로 지급된 행 개수가
+//   dailyLimit(이 경우 "평생 허용 횟수"로 의미 재해석) 이상이면 거부한다.
+//   (signup_reward=1회, first_login_reward=1회 등에 사용)
+//
+// sourceId가 주어지면(예: 상담 세션 id) "해당 sourceType+sourceId 조합"으로 이미
+// 지급된 이력이 있는지를 우선 확인한다(review_reward의 "상담 1건당 1회" 원칙).
+// dailyLimit 설정 여부와 무관하게 sourceId 중복은 항상 차단한다.
+// ══════════════════════════════════════════════════════════════════
+export async function checkPolicyEligibility(
+  tx: Tx,
+  userId: number,
+  sourceType: string,
+  opts: { scope: "daily" | "lifetime"; sourceId?: number }
+): Promise<{ eligible: boolean; reason?: "DAILY_LIMIT_REACHED" | "ALREADY_GRANTED"; dailyLimit?: number | null }> {
+  if (opts.sourceId != null) {
+    const existing = await tx.pointHistory.findFirst({
+      where: { userId, sourceType, sourceId: opts.sourceId },
+    });
+    if (existing) {
+      return { eligible: false, reason: "ALREADY_GRANTED" };
+    }
+  }
+
+  const policy = await tx.pointPolicy.findUnique({ where: { sourceType } });
+  const dailyLimit = policy?.dailyLimit ?? null;
+  if (dailyLimit == null) {
+    return { eligible: true, dailyLimit: null };
+  }
+
+  if (opts.scope === "lifetime") {
+    const count = await tx.pointHistory.count({ where: { userId, sourceType } });
+    return count >= dailyLimit
+      ? { eligible: false, reason: "DAILY_LIMIT_REACHED", dailyLimit }
+      : { eligible: true, dailyLimit };
+  }
+
+  const { start, end } = todayRangeKst();
+  const count = await tx.pointHistory.count({
+    where: { userId, sourceType, createdAt: { gte: start, lt: end } },
+  });
+  return count >= dailyLimit
+    ? { eligible: false, reason: "DAILY_LIMIT_REACHED", dailyLimit }
+    : { eligible: true, dailyLimit };
+}
