@@ -78,16 +78,30 @@ class _WishWallComposeScreenState extends State<WishWallComposeScreen> {
   Future<void> _submit() async {
     if (_categoryId == null || _submitting) return;
     setState(() => _submitting = true);
-    final wish = await context.read<WishWallProvider>().createWish(
-      categoryId: _categoryId!,
-      glassLevel: _glassLevel,
-      text: _textController.text.trim(),
-      visibility: _visibility,
-    );
-    if (!mounted) return;
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => WishWallSuccessScreen(wish: wish)),
-    );
+    try {
+      final result = await context.read<WishWallProvider>().createWish(
+        categoryId: _categoryId!,
+        glassLevel: _glassLevel,
+        text: _textController.text.trim(),
+        visibility: _visibility,
+      );
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => WishWallSuccessScreen(
+            wish: result.wish,
+            grantedAmount: result.grantedAmount,
+          ),
+        ),
+      );
+    } catch (e) {
+      // [6-1-F 원칙] API 실패 시 Mock으로 몰래 대체하지 않고 오류를 그대로 알린다.
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('소원 작성에 실패했어요. 다시 시도해 주세요. ($e)')),
+      );
+    }
   }
 
   @override

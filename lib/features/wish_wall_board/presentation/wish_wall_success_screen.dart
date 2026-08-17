@@ -11,8 +11,16 @@ import 'wish_wall_my_screen.dart';
 /// 0.9초 드롭인 애니메이션 + halo pulse, 복주머니 +5 적립 배너,
 /// "내 소원병 보기"/"소원벽으로" 두 버튼으로 구성된다.
 class WishWallSuccessScreen extends StatefulWidget {
-  const WishWallSuccessScreen({super.key, required this.wish});
+  const WishWallSuccessScreen({
+    super.key,
+    required this.wish,
+    this.grantedAmount = 0,
+  });
   final WishPost wish;
+
+  /// [6-1-F] 서버 wish_reward 정책이 실제로 지급한 금액. 0이면(이미 오늘
+  /// 지급받은 경우) 적립 배너 자체를 표시하지 않는다 — 하드코딩 금지.
+  final int grantedAmount;
 
   @override
   State<WishWallSuccessScreen> createState() => _WishWallSuccessScreenState();
@@ -100,30 +108,33 @@ class _WishWallSuccessScreenState extends State<WishWallSuccessScreen>
                 style: WishWallText.body(color: WishWallColors.muted),
               ),
               const SizedBox(height: 22),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  color: WishWallColors.accentSoft,
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: WishWallColors.accent.withValues(alpha: 0.4),
+              if (widget.grantedAmount > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: WishWallColors.accentSoft,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: WishWallColors.accent.withValues(alpha: 0.4),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('✨', style: TextStyle(fontSize: 16)),
+                      const SizedBox(width: 8),
+                      Text(
+                        '복주머니 +${widget.grantedAmount} 적립되었어요',
+                        style: WishWallText.label(
+                          color: WishWallColors.accent2,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text('✨', style: TextStyle(fontSize: 16)),
-                    const SizedBox(width: 8),
-                    Text(
-                      '복주머니 +5 적립되었어요',
-                      style: WishWallText.label(color: WishWallColors.accent2),
-                    ),
-                  ],
-                ),
-              ),
               const Spacer(),
               SizedBox(
                 width: double.infinity,

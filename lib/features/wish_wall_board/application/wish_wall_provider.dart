@@ -65,48 +65,69 @@ class WishWallProvider extends ChangeNotifier {
     return updated;
   }
 
-  /// 오늘의 기도(✧) — 무료, 하루 1회. 성공 시 복주머니 +1 지급.
+  /// 오늘의 기도(✧) — 무료, 하루 1회.
+  ///
+  /// [6-1-F 최종 결정] 기도는 이번 단계에서 DB/API로 저장하지 않고 daily_prayer
+  /// 복주머니 정책도 사용하지 않는다. [_repository.submitDailyPrayer]가
+  /// (ApiWishWallRepository에서) 서버 호출 없이 로컬 상태만 토글해 UI 피드백을
+  /// 제공하며, 여기서 [_policy.earnDailyPrayerBonus]를 호출해 Wallet을
+  /// 적립하지 않는다(daily_prayer PointPolicy 미등록 상태 유지).
   Future<WishPost> pray(String wishId) async {
     final updated = await _repository.submitDailyPrayer(wishId);
-    await _policy.earnDailyPrayerBonus();
     _syncInLists(updated);
     notifyListeners();
     return updated;
   }
 
   /// 복주머니(✨) 보내기 — 실제 재화 소비를 거쳐야 하는 유일한 액션.
-  /// 성공 시에만 서버(mock)측 pouchCount를 올린다.
+  ///
+  /// [6-1-F 최종 결정 - 이중차감 방지] 서버 `/wishes/:id/bokju` API가
+  /// `spendLuckPouch()`로 Wallet 차감 + WishBokju 기록 + Wish.bokjuCount 증가를
+  /// 하나의 트랜잭션으로 이미 원자 처리하므로, 여기서는 [_repository.incrementPouch]
+  /// (=bokju API) 단 한 번만 호출한다. 과거에는 [_policy.sendPouch]가 먼저
+  /// `WalletRepository.spend()`(`/wallet/spend`)를 직접 호출해 이중 차감이
+  /// 발생했으므로 그 호출을 제거했다. [_policy.validateSend]는 UI 버튼
+  /// 활성화/에러 표시 판단용으로만 계속 사용된다(blessing_bag_bottom_sheet.dart).
+  /// 실패(예: 잔액 부족 400) 시 서버 응답 그대로 실패를 반환하며, Mock으로
+  /// 몰래 대체하지 않는다.
   Future<bool> sendPouch(String wishId, int amount) async {
-    final wish = await _repository.fetchDetail(wishId);
-    if (wish == null) return false;
-    final ok = await _policy.sendPouch(target: wish, amount: amount);
-    if (!ok) return false;
-    final updated = await _repository.incrementPouch(wishId, amount);
-    _syncInLists(updated);
-    notifyListeners();
-    return true;
+    try {
+      final updated = await _repository.incrementPouch(wishId, amount);
+      _syncInLists(updated);
+      notifyListeners();
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
-  /// 새 소원 작성(5-step compose 완료) — 성공 시 복주머니 +5 자동 지급.
-  Future<WishPost> createWish({
+  /// 새 소원 작성(5-step compose 완료) — 성공 시 서버 정책(wish_reward,
+  /// 1일 1회 +2)에 따라 실제 지급된 금액만큼 복주머니가 이미 적립된다.
+  ///
+  /// [6-1-F] 적립 자체는 서버 `/wishes` POST 트랜잭션 안에서 `earnLuckPouch()`로
+  /// 완료되므로(ApiWishWallRepository.createWish가 grantedAmount를 반환),
+  /// 여기서 클라이언트가 별도로 [_policy.earnWishCreatedBonus]를 호출해 중복
+  /// 지급을 요청하지 않는다. 반환값은 화면(WishWallSuccessScreen)에서
+  /// grantedAmount를 동적으로 표시할 수 있도록 (WishPost, grantedAmount) 튜플로
+  /// 감싼다.
+  Future<({WishPost wish, int grantedAmount})> createWish({
     required WishCategory categoryId,
     required double glassLevel,
     required String text,
     required WishVisibility visibility,
   }) async {
-    final wish = await _repository.createWish(
+    final result = await _repository.createWishWithReward(
       categoryId: categoryId,
       glassLevel: glassLevel,
       text: text,
       visibility: visibility,
     );
-    await _policy.earnWishCreatedBonus();
     if (visibility != WishVisibility.private) {
-      _feed = [wish, ..._feed];
+      _feed = [result.wish, ..._feed];
     }
-    _myWishes = [wish, ..._myWishes];
+    _myWishes = [result.wish, ..._myWishes];
     notifyListeners();
-    return wish;
+    return result;
   }
 
   Future<void> reportWish(String wishId, String reason) {

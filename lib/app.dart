@@ -60,6 +60,7 @@ import 'features/luckpouch/application/luck_pouch_provider.dart';
 import 'core/domain/access/access_checker.dart';
 import 'core/widgets/luck_pouch_toast.dart';
 import 'features/wish_wall_board/data/wish_wall_repository.dart';
+import 'features/wish_wall_board/data/wish_wall_api_repository.dart';
 import 'features/wish_wall_board/application/blessing_bag_policy_adapter.dart';
 import 'features/wish_wall_board/application/wish_wall_provider.dart';
 import 'features/wish_counsel/data/wish_counsel_repository.dart';
@@ -222,8 +223,10 @@ class App extends StatelessWidget {
         // 전역 상태. 복주머니 적립/차감은 새 화폐를 만들지 않고 반드시
         // BlessingBagPolicyAdapter → LuckPouchProvider(실제 신통방통 재화)를
         // 거치도록 ProxyProvider로 연결한다.
+        // [6-1-F/G] Mock → 실서비스 API 전환. MockWishWallRepository는 삭제하지
+        // 않고 테스트용으로 보존한다(사용자 지시).
         Provider<WishWallRepository>(
-          create: (_) => MockWishWallRepository.instance,
+          create: (_) => ApiWishWallRepository(),
         ),
         ProxyProvider<LuckPouchProvider, BlessingBagPolicyAdapter>(
           update: (_, pouch, __) => BlessingBagPolicyAdapter(pouch),

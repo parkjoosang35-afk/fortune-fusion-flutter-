@@ -14,6 +14,27 @@ abstract class WishWallRepository {
     required String text,
     required WishVisibility visibility,
   });
+
+  /// [6-1-F] 서버 `/wishes` POST가 트랜잭션 안에서 실제 지급한 복주머니 금액을
+  /// 함께 반환한다(wish_reward 정책, 1일 1회 +2 — 이미 지급된 경우 0).
+  /// WishWallSuccessScreen이 이 값을 그대로 표시해야 하며, 클라이언트가
+  /// 하드코딩한 금액을 표시해서는 안 된다. 기본 구현은 [createWish]를 호출한
+  /// 뒤 grantedAmount=0으로 감싸(MockWishWallRepository 등 기존 구현체 호환용).
+  Future<({WishPost wish, int grantedAmount})> createWishWithReward({
+    required WishCategory categoryId,
+    required double glassLevel,
+    required String text,
+    required WishVisibility visibility,
+  }) async {
+    final wish = await createWish(
+      categoryId: categoryId,
+      glassLevel: glassLevel,
+      text: text,
+      visibility: visibility,
+    );
+    return (wish: wish, grantedAmount: 0);
+  }
+
   Future<void> updateWishStatus(String wishId, {bool? isGratitude});
   Future<void> deleteWish(String wishId);
   Future<WishPost> support(String wishId);
@@ -264,6 +285,25 @@ class MockWishWallRepository implements WishWallRepository {
       _wishes.insert(0, wish);
     }
     return wish;
+  }
+
+  // [6-1-F] `implements`는 abstract class의 concrete 메서드 본문을 상속하지
+  // 않으므로(= extends와 달리 재사용 불가) Mock에서도 명시적으로 override해야
+  // 한다. grantedAmount=0 고정(Mock에는 wish_reward 지급 정책이 없음).
+  @override
+  Future<({WishPost wish, int grantedAmount})> createWishWithReward({
+    required WishCategory categoryId,
+    required double glassLevel,
+    required String text,
+    required WishVisibility visibility,
+  }) async {
+    final wish = await createWish(
+      categoryId: categoryId,
+      glassLevel: glassLevel,
+      text: text,
+      visibility: visibility,
+    );
+    return (wish: wish, grantedAmount: 0);
   }
 
   @override
