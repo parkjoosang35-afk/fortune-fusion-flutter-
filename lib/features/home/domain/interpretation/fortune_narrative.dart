@@ -10,6 +10,14 @@
 library;
 
 /// 결과 페이지 7단 구조 그대로.
+///
+/// [2026-08-17 확장 — A04/A05/A06 독립 파이프라인 지시서 §8/§14]
+/// 기존 7개 필드(categoryId~finalSummary)는 절대 삭제/변경하지 않는다
+/// (backward compatibility 유지 — 지시서 "기존 FortuneNarrative 무조건
+/// 삭제 금지"). §5/§6/§7이 요구하는 8단계 구조의 "잘 맞는
+/// 직업·조직환경·성과방식"(A04)/"생활관리 방법"(A05)/"잘 맞는 관계
+/// 방식"(A06)에 대응하는 필드가 기존 구조에 없어 `practicalGuidance`
+/// 하나만 최소 추가한다(분기점 B 승인 — 대규모 필드 교체 금지).
 class FortuneNarrative {
   const FortuneNarrative({
     required this.categoryId,
@@ -21,6 +29,7 @@ class FortuneNarrative {
     required this.cautionFlows,
     this.timingSection,
     required this.finalSummary,
+    this.practicalGuidance,
   });
 
   /// 카테고리 ID(예: 'A03') — [CategoryAnalysis.categoryId]와 반드시 일치.
@@ -54,6 +63,12 @@ class FortuneNarrative {
   /// ⑦ 최종 정리(§12: 3~5문장).
   final List<String> finalSummary;
 
+  /// [신규, optional] ⑧ 실전 가이드 — "잘 맞는 직업/조직환경/성과방식"
+  /// (A04), "생활관리 방법"(A05), "잘 맞는 관계 방식"(A06) 등 카테고리별
+  /// 8단계 구조의 6번째 항목에 대응. 기존 7단 구조를 쓰는 카테고리는 이
+  /// 필드를 채우지 않아도(null) 그대로 동작한다.
+  final List<String>? practicalGuidance;
+
   Map<String, dynamic> toJson() => {
     'categoryId': categoryId,
     'categoryName': categoryName,
@@ -64,6 +79,7 @@ class FortuneNarrative {
     'cautionFlows': cautionFlows,
     'timingSection': timingSection,
     'finalSummary': finalSummary,
+    if (practicalGuidance != null) 'practicalGuidance': practicalGuidance,
   };
 
   /// 기존 jeontong_eighty_report_builder.dart의 `_mapCalculatedResultToReport`
@@ -79,5 +95,25 @@ class FortuneNarrative {
     if (timingSection != null && timingSection!.isNotEmpty)
       'periods': timingSection,
     'characteristics': characteristics,
+    if (practicalGuidance != null && practicalGuidance!.isNotEmpty)
+      'practical_guidance': practicalGuidance,
   };
+
+  /// [신규] 8단계 전체를 하나의 문단 리스트로 펼친다 — 화면단이
+  /// `JeontongNarrativeCard(paragraphs: ...)`처럼 단순 문단 렌더링
+  /// 위젯을 그대로 재사용할 수 있도록, 각 섹션을 문단 하나로 합쳐
+  /// 순서대로 나열한다(빈 섹션은 건너뜀). 계산은 하지 않고 이미
+  /// 완성된 문장들을 이어붙이기만 한다.
+  List<String> toParagraphs() => [
+    if (coreResult.isNotEmpty) coreResult.join(' '),
+    if (whyThisResult.isNotEmpty) whyThisResult.join(' '),
+    if (characteristics.isNotEmpty) characteristics.join(' '),
+    if (favorableFlows.isNotEmpty) favorableFlows.join(' '),
+    if (cautionFlows.isNotEmpty) cautionFlows.join(' '),
+    if (practicalGuidance != null && practicalGuidance!.isNotEmpty)
+      practicalGuidance!.join(' '),
+    if (timingSection != null && timingSection!.isNotEmpty)
+      timingSection!.join(' '),
+    if (finalSummary.isNotEmpty) finalSummary.join(' '),
+  ];
 }
