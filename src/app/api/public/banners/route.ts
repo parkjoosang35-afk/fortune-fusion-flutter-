@@ -77,7 +77,11 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const position = searchParams.get("position"); // home_top | home_middle | home_bottom (optional)
   const now = new Date();
-  const origin = new URL(request.url).origin;
+  // [6-2-C] request.url 기반 origin은 샌드박스 환경에서 항상 http://localhost:3000으로
+  // 잡혀 외부(Flutter 앱)에서 접근 불가능한 스크립트 URL이 응답에 주입되는 문제가 있었다.
+  // upload/route.ts에서 이미 검증된 것과 동일한 패턴으로, 공개 접속 가능한 PUBLIC_BASE_URL
+  // 환경변수를 우선 사용하고 없을 경우에만 기존 방식(origin)으로 폴백한다.
+  const origin = process.env.PUBLIC_BASE_URL || new URL(request.url).origin;
 
   console.log("========== [GET /api/public/banners] 배너 조회 시작 ==========");
   console.log(`[1] 요청 파라미터: position=${position ?? "(전체)"} , 현재시각(UTC)=${now.toISOString()}`);
