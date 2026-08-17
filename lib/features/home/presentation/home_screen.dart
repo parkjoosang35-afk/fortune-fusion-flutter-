@@ -19,6 +19,8 @@ import '../../../core/domain/access/access_checker.dart';
 import '../../auth/application/auth_provider.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../wish_wall_board/presentation/wish_wall_board_screen.dart';
+import '../../ad_banner/application/ad_banner_provider.dart';
+import '../../ad_banner/presentation/ad_banner_widget.dart';
 import 'home_style_tokens.dart';
 import '../domain/jeontong_eighty_matrix.dart';
 
@@ -156,7 +158,11 @@ class _HomeScreenState extends State<HomeScreen> {
       context.read<NotificationProvider>().load();
       // [사용자 요청] "오늘의 운세 이야기"를 완전히 삭제하고 데이터베이스 기반 힐링
       // 문구로 대체 — admin_web `/api/public/healing-quotes`에서 활성 문구 목록을
-      // 불러와 1분마다 자동 순환한다(AdBannerProvider.loadPositions 호출은 제거).
+      // 불러와 1분마다 자동 순환한다.
+      // [6-2-A 광고 배너 재연결] home_middle 슬롯 광고 로드는
+      // `_HomeMiddleAdSlot` 내부의 `AdBannerWidget`이 자체 initState에서
+      // 담당하므로(AdBannerProvider.load 기존 로직 그대로), 여기서 별도로
+      // 다시 호출하지 않는다(중복 네트워크 요청 방지).
       context.read<HealingQuoteProvider>().load();
     });
   }
@@ -239,7 +245,18 @@ class _HomeScreenState extends State<HomeScreen> {
                         delay: const Duration(milliseconds: 120),
                         child: const _HealingQuoteCard(),
                       ),
+                      // 힐링 카드 → (광고 또는 운세/타로) 사이 간격은 광고
+                      // 유무와 무관하게 항상 기존 스펙(heroCardBottomGap)을
+                      // 그대로 유지한다(레이아웃 흔들림 방지).
                       const SizedBox(height: _Dims.heroCardBottomGap),
+                      // [6-2-A 광고 배너 재연결] 힐링 문구 카드와 운세/타로
+                      // 카드 사이에 home_middle 슬롯 광고를 노출한다. 이미
+                      // 완성되어 있는 AdBannerProvider/Repository/Widget을
+                      // 그대로 재사용하며(신규 로직 없음). 활성 배너가 없으면
+                      // (광고 자신 + 광고 뒤 추가 gap)까지 포함해 완전히
+                      // 사라지므로, 광고가 없을 때는 위 gap 바로 뒤에
+                      // 운세/타로 카드가 붙어 기존과 동일한 레이아웃이 된다.
+                      const _HomeMiddleAdSlot(),
                       FadeSlideIn(
                         delay: const Duration(milliseconds: 140),
                         child: const _FortuneTarotRow(),
@@ -570,6 +587,48 @@ class _FortuneCategoryChipsState extends State<_FortuneCategoryChips> {
           );
         },
       ),
+    );
+  }
+}
+
+/// ④-1 [6-2-A 광고 배너 재연결] 힐링 문구 카드와 운세/타로 카드 사이의
+/// `home_middle` 슬롯 광고.
+///
+/// [배경] admin_web CMS에서 이미 등록·관리 가능한 광고 배너 시스템
+/// (`AdBannerProvider`/`AdBannerRepository`/`/api/public/banners`)이 완성되어
+/// 있었으나, 실제 홈 화면에는 `AdBannerWidget`을 호출하는 코드가 전혀 없어
+/// 광고가 노출되지 않는 상태였다(6-2 사전조사에서 확인). 이번 작업은 신규
+/// 광고 로직을 만들지 않고, 기존 `AdBannerWidget(position: 'home_middle')`을
+/// 그대로 호출해 화면에 연결하는 것이 유일한 변경 사항이다.
+///
+/// [레이아웃 원칙] `AdBannerProvider.hasActiveBanner('home_middle')`이 아직
+/// 로드 전(hasLoaded == false)이면 스켈레톤이 잠깐 보일 수 있으므로 그대로
+/// `AdBannerWidget`을 렌더링하고, 로드가 완료됐는데도 활성 배너가 없으면
+/// 위아래 여백(SizedBox)까지 포함해 `SizedBox.shrink()`로 완전히 접어
+/// 기존 힐링 카드 → 운세/타로 카드 간격(spec 12px, [_Dims.heroCardBottomGap])이
+/// 광고 유무와 무관하게 항상 동일하게 유지되도록 한다(레이아웃이 벌어지지 않음).
+class _HomeMiddleAdSlot extends StatelessWidget {
+  const _HomeMiddleAdSlot();
+
+  static const String _position = 'home_middle';
+
+  @override
+  Widget build(BuildContext context) {
+    final adProvider = context.watch<AdBannerProvider>();
+    final loaded = adProvider.hasLoaded(_position);
+    final hasActive = adProvider.hasActiveBanner(_position);
+
+    // 로드가 이미 완료됐는데 활성 배너가 없으면(비활성/기간외/서버오류 등)
+    // 완전히 사라진다 — 바로 위(힐링 카드 뒤)의 고정 gap 하나만 남고,
+    // 광고 자신과 광고 전용 하단 gap은 추가되지 않아 기존 레이아웃과
+    // 동일하게 운세/타로 카드가 바로 이어진다.
+    if (loaded && !hasActive) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: _Dims.heroCardBottomGap),
+      child: AdBannerWidget(position: _position),
     );
   }
 }
