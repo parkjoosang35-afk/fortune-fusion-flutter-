@@ -51,6 +51,9 @@ class JeontongSajuDetailSection extends StatelessWidget {
     required this.gender,
     required this.isLunar,
     required this.referenceDate,
+    // [신통방통 2단계] default false — 기존 모든 호출부는 이 파라미터를
+    // 생략하므로 동작이 완전히 동일하다(회귀 없음).
+    this.isLeapMonth = false,
   });
 
   final String categoryLabel;
@@ -58,6 +61,7 @@ class JeontongSajuDetailSection extends StatelessWidget {
   final String? gender;
   final bool? isLunar;
   final DateTime referenceDate;
+  final bool isLeapMonth;
 
   @override
   Widget build(BuildContext context) {
@@ -198,6 +202,8 @@ class JeontongSajuDetailSection extends StatelessWidget {
         kst: kst,
         gender: sajuGender,
         isLunar: isLunar ?? false,
+        // [신통방통 2단계] 양력이면 항상 false로 강제(윤달 개념 없음).
+        isLeapMonth: (isLunar ?? false) ? isLeapMonth : false,
         referenceDate: referenceDate,
       );
       final interp = SajuInterpreter.fullInterpretation(built.saju);

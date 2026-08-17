@@ -5,6 +5,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/luck_pouch_toast.dart';
 import '../../wallet/application/wallet_provider.dart';
+import '../../home/domain/jeontong_local_to_server_migration.dart';
 import '../application/auth_provider.dart';
 
 /// 03단계 §3.3 공통/온보딩 - LoginScreen
@@ -29,6 +30,13 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isSubmitting = false);
     if (!mounted) return;
     if (ok) {
+      // [신통방통 2단계 - 로컬 → 서버 1회성 마이그레이션] 로그인이 방금
+      // 성공해 로그인 상태가 확정된 시점에도(스플래시의 세션 복원 경로와
+      // 별개로 앱을 켜둔 채 로그인만 새로 하는 경우) 동일하게 1회 시도한다.
+      // 함수 내부에서 이미 서버 데이터가 있으면 스킵하므로 중복 호출에도
+      // 안전하다.
+      await migrateLocalJeontongProfileToServer(context.read<AuthProvider>());
+      if (!mounted) return;
       // [복주머니 정책표 §3 - 첫로그인10(1회)] signup_screen.dart의
       // SignupRewardHandler와 동일한 패턴: 서버가 첫 로그인 보상을 지급했으면
       // (amount>0) WalletProvider를 갱신하고 전용 토스트를 띄운다. 이미

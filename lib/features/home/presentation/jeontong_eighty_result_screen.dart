@@ -40,6 +40,7 @@ import '../domain/saju_fortune_rules.dart' show SajuFortuneRules;
 import '../domain/saju_interpreter.dart' show SajuInterpreter, SajuRules;
 import '../domain/user_profile_to_jeontong_adapter.dart';
 import '../../auth/application/auth_provider.dart';
+import '../../auth/domain/user_model.dart';
 import 'package:provider/provider.dart';
 import 'jeontong_design/hanji_background.dart';
 import 'jeontong_design/hanji_design_tokens.dart';
@@ -108,9 +109,22 @@ class _JeontongEightyResultScreenState
   // 로그인 상태면 AuthProvider.currentUser를 우선 사용하고(어댑터로 변환),
   // 비로그인이거나 서버 프로필에 생년월일이 없으면 기존 로컬
   // JeontongProfileStore 폴백 경로를 그대로 탄다(회귀 없음).
+  //
+  // [회귀 방지] 이 화면을 단독으로(AuthProvider 없이) pump하는 기존 위젯
+  // 테스트들이 있으므로, Provider가 트리에 없는 환경에서도 예외 없이 기존
+  // 로컬 폴백 경로로 안전하게 넘어가야 한다 — context.read가 던지는
+  // ProviderNotFoundException을 흡수한다.
+  UserModel? _currentUserOrNull() {
+    try {
+      return context.read<AuthProvider>().currentUser;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _loadProfileAndRecord() async {
     JeontongInput? profile;
-    final user = mounted ? context.read<AuthProvider>().currentUser : null;
+    final user = mounted ? _currentUserOrNull() : null;
     if (user != null) {
       profile = userModelToJeontongInput(user);
     }
@@ -670,6 +684,8 @@ class _ResultBody extends StatelessWidget {
         kst: kst,
         gender: sajuGender,
         isLunar: profile.isLunar,
+        // [신통방통 2단계] 서버/로컬 프로필의 윤달 정보를 실제로 반영한다.
+        isLeapMonth: profile.effectiveIsLeapMonth,
         referenceDate: DateTime.now(),
       );
 
@@ -809,6 +825,8 @@ class _JeontongDetailExpansion extends StatelessWidget {
             birthDateTimeUtc: profile.birthDateTimeUtc,
             gender: profile.gender,
             isLunar: profile.isLunar,
+            // [신통방통 2단계] 서버/로컬 프로필의 윤달 정보를 실제로 반영한다.
+            isLeapMonth: profile.effectiveIsLeapMonth,
             referenceDate: DateTime.now(),
           ),
         ],

@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_unified_style.dart';
 import '../../intro/application/intro_state_provider.dart';
 import '../../intro/application/intro_config_provider.dart';
+import '../../home/domain/jeontong_local_to_server_migration.dart';
 import '../application/auth_provider.dart';
 
 /// [인트로 전면 개편 - 1단계 브랜드 스플래시]
@@ -88,6 +90,24 @@ class _SplashScreenState extends State<SplashScreen>
       introConfig.load(),
       Future.delayed(const Duration(milliseconds: 1300)),
     ]);
+
+    if (!mounted) return;
+
+    // [신통방통 2단계 - 로컬 → 서버 1회성 마이그레이션] 세션 복원(=로그인
+    // 상태 확정) 직후, 로그인 사용자에 한해 로컬 JeontongProfileStore 값을
+    // 서버 UserProfile로 1회 옮긴다. 조건은 함수 내부에서 전부 판단하므로
+    // (비로그인/이미 서버 데이터 있음/로컬 데이터 없음이면 아무 것도 하지
+    // 않음) 매 부팅마다 안전하게 호출할 수 있다(멱등). 실패해도 스플래시
+    // 화면 전환(아래 라우팅)을 막지 않는다 — fire-and-forget이 아니라 await로
+    // 순서를 보장하되, 결과와 무관하게 계속 진행한다.
+    if (authProvider.isLoggedIn) {
+      final migration = await migrateLocalJeontongProfileToServer(
+        authProvider,
+      );
+      if (kDebugMode) {
+        debugPrint('[신통방통 2단계 마이그레이션] $migration');
+      }
+    }
 
     if (!mounted) return;
 
