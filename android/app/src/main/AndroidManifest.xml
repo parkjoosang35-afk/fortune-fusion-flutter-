@@ -1,4 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- [6-7-1 Critical 수정] Release 빌드에서 http 패키지를 통한 백엔드 API
+         통신(로그인/사주/타로/소원방/지갑/프리패스 등 핵심 기능 전체)이 가능하도록
+         INTERNET 권한을 명시적으로 선언한다. 기존에는 Flutter가 자동 생성하는
+         debug/profile AndroidManifest.xml에만 이 권한이 있어(개발용), Release
+         APK/AAB에는 누락되어 네트워크가 전면 차단되는 문제가 있었다. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <!-- 07단계(추가) §3.3 - AI 손금 카메라 촬영 기능용 런타임 권한 선언 -->
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
