@@ -180,7 +180,12 @@ class WishCounselCharacterDetailScreen extends StatelessWidget {
             right: 0,
             bottom: 0,
             child: Container(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+              padding: EdgeInsets.fromLTRB(
+                20,
+                14,
+                20,
+                24 + MediaQuery.of(context).padding.bottom,
+              ),
               decoration: BoxDecoration(
                 color: WishCounselColors.bg1.withValues(alpha: 0.96),
                 border: const Border(
