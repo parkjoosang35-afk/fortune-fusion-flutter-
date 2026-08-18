@@ -43,7 +43,6 @@ import '../../features/notification/notifications_screen.dart';
 import '../../features/mypage/presentation/settings_screen.dart';
 import '../../features/luckybag/domain/luckybag_product_model.dart';
 import '../../features/luckybag/domain/luckybag_reward_model.dart';
-import '../../features/luckybag/presentation/luckybag_shop_screen.dart';
 import '../../features/luckybag/presentation/luckybag_open_animation_screen.dart';
 import '../../features/luckybag/presentation/luckybag_result_screen.dart';
 import '../../features/luckybag/presentation/luckybag_history_screen.dart';
@@ -324,8 +323,6 @@ class AppRouter {
         return _page(const MissionScreen());
       case '/reward/ranking':
         return _page(const RankingScreen());
-      case '/reward/luckybag':
-        return _page(const LuckyBagShopScreen());
       case '/reward/luckybag/open':
         return _page(
           LuckyBagOpenAnimationScreen(
