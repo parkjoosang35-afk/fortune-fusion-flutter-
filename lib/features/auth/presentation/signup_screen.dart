@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../core/config/env_config.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_button.dart';
@@ -26,6 +28,26 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _isSubmitting = false;
   String? _passwordError;
 
+  // [6-7-4-B-4] 이용약관/개인정보처리방침 동의는 회원가입의 필수 요건이다.
+  // 개별 동의 항목 + "전체 동의"를 함께 제공한다.
+  bool _termsAgreed = false;
+  bool _privacyAgreed = false;
+
+  bool get _allAgreed => _termsAgreed && _privacyAgreed;
+
+  void _setAllAgreed(bool value) {
+    setState(() {
+      _termsAgreed = value;
+      _privacyAgreed = value;
+    });
+  }
+
+  Future<void> _openPolicyLink(String path) async {
+    final uri = Uri.tryParse('${EnvConfig.adminApiBaseUrl}$path');
+    if (uri == null) return;
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -46,6 +68,10 @@ class _SignupScreenState extends State<SignupScreen> {
       setState(() => _passwordError = '비밀번호가 일치하지 않습니다.');
       return;
     }
+    if (!_termsAgreed || !_privacyAgreed) {
+      AppToast.show(context, '이용약관 및 개인정보처리방침에 동의해 주세요.', isError: true);
+      return;
+    }
     setState(() {
       _passwordError = null;
       _isSubmitting = true;
@@ -55,6 +81,8 @@ class _SignupScreenState extends State<SignupScreen> {
       _emailController.text.trim(),
       _passwordController.text,
       _nicknameController.text.trim(),
+      termsAgreed: _termsAgreed,
+      privacyAgreed: _privacyAgreed,
     );
 
     if (!mounted) return;
@@ -128,6 +156,17 @@ class _SignupScreenState extends State<SignupScreen> {
                 errorText: _passwordError,
               ),
               const SizedBox(height: AppSpacing.xl),
+              _TermsAgreementSection(
+                allAgreed: _allAgreed,
+                termsAgreed: _termsAgreed,
+                privacyAgreed: _privacyAgreed,
+                onAllChanged: _setAllAgreed,
+                onTermsChanged: (v) => setState(() => _termsAgreed = v),
+                onPrivacyChanged: (v) => setState(() => _privacyAgreed = v),
+                onOpenTerms: () => _openPolicyLink('/terms'),
+                onOpenPrivacy: () => _openPolicyLink('/privacy-policy'),
+              ),
+              const SizedBox(height: AppSpacing.lg),
               AppButton(
                 label: '회원가입',
                 isLoading: _isSubmitting,
@@ -143,6 +182,132 @@ class _SignupScreenState extends State<SignupScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// [6-7-4-B-4] 회원가입 필수 약관 동의 섹션.
+/// 전체동의 체크박스 1개 + 이용약관/개인정보처리방침 개별 체크박스 2개로 구성하며,
+/// 각 항목의 "보기" 텍스트를 탭하면 admin_web의 공개 페이지(/terms, /privacy-policy)를
+/// 외부 브라우저로 연다.
+class _TermsAgreementSection extends StatelessWidget {
+  const _TermsAgreementSection({
+    required this.allAgreed,
+    required this.termsAgreed,
+    required this.privacyAgreed,
+    required this.onAllChanged,
+    required this.onTermsChanged,
+    required this.onPrivacyChanged,
+    required this.onOpenTerms,
+    required this.onOpenPrivacy,
+  });
+
+  final bool allAgreed;
+  final bool termsAgreed;
+  final bool privacyAgreed;
+  final ValueChanged<bool> onAllChanged;
+  final ValueChanged<bool> onTermsChanged;
+  final ValueChanged<bool> onPrivacyChanged;
+  final VoidCallback onOpenTerms;
+  final VoidCallback onOpenPrivacy;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.divider),
+        borderRadius: BorderRadius.circular(AppRadius.buttonSmall),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _AgreementRow(
+            value: allAgreed,
+            label: '전체 동의',
+            emphasize: true,
+            onChanged: onAllChanged,
+          ),
+          const Divider(height: AppSpacing.md),
+          _AgreementRow(
+            value: termsAgreed,
+            label: '[필수] 이용약관 동의',
+            onChanged: onTermsChanged,
+            onViewDetail: onOpenTerms,
+          ),
+          _AgreementRow(
+            value: privacyAgreed,
+            label: '[필수] 개인정보처리방침 동의',
+            onChanged: onPrivacyChanged,
+            onViewDetail: onOpenPrivacy,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AgreementRow extends StatelessWidget {
+  const _AgreementRow({
+    required this.value,
+    required this.label,
+    required this.onChanged,
+    this.onViewDetail,
+    this.emphasize = false,
+  });
+
+  final bool value;
+  final String label;
+  final ValueChanged<bool> onChanged;
+  final VoidCallback? onViewDetail;
+  final bool emphasize;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => onChanged(!value),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          children: [
+            Checkbox(
+              value: value,
+              onChanged: (v) => onChanged(v ?? false),
+              activeColor: AppColors.primary,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: emphasize ? FontWeight.bold : FontWeight.normal,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ),
+            if (onViewDetail != null)
+              TextButton(
+                onPressed: onViewDetail,
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: const Size(48, 32),
+                ),
+                child: const Text(
+                  '보기',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );

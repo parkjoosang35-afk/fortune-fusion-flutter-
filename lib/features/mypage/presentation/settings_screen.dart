@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../core/config/env_config.dart';
 import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/app_dialog.dart';
 import '../../../core/widgets/app_toast.dart';
@@ -54,10 +56,56 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
             ),
+            const SizedBox(height: UnifiedTokens.spaceXxl),
+
+            // [6-7-4-B-4] 약관 및 정책 섹션 - admin_web 공개 페이지(이용약관/
+            // 개인정보처리방침/계정삭제 안내)를 외부 브라우저로 연결한다.
+            // 계정삭제는 이미 위 "회원탈퇴"로 앱 내에서 처리 가능하나, Google Play
+            // 정책상 앱 설치 없이도 확인 가능한 계정삭제 안내 경로를 함께 제공한다.
+            Text('약관 및 정책', style: UnifiedText.title()),
+            const SizedBox(height: UnifiedTokens.spaceSm),
+            Container(
+              decoration: BoxDecoration(
+                color: UnifiedColors.bg,
+                border: Border.all(color: UnifiedColors.border),
+                borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
+              ),
+              child: Column(
+                children: [
+                  _PolicyLinkRow(
+                    icon: Icons.description_outlined,
+                    title: '이용약관',
+                    onTap: () => _openPolicyLink(context, '/terms'),
+                  ),
+                  _PolicyLinkRow(
+                    icon: Icons.privacy_tip_outlined,
+                    title: '개인정보처리방침',
+                    onTap: () => _openPolicyLink(context, '/privacy-policy'),
+                  ),
+                  _PolicyLinkRow(
+                    icon: Icons.no_accounts_outlined,
+                    title: '계정삭제 안내',
+                    onTap: () => _openPolicyLink(context, '/account-deletion'),
+                    showDivider: false,
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  /// [6-7-4-B-4] admin_web 공개 페이지(이용약관/개인정보처리방침/계정삭제 안내)를
+  /// 외부 브라우저로 연다.
+  Future<void> _openPolicyLink(BuildContext context, String path) async {
+    final uri = Uri.tryParse('${EnvConfig.adminApiBaseUrl}$path');
+    if (uri == null) return;
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched && context.mounted) {
+      AppToast.show(context, '페이지를 열 수 없습니다.', isError: true);
+    }
   }
 
   /// Phase2-3: 02번 §1.1 회원탈퇴(소프트삭제) - 확인 다이얼로그 → 탈퇴 처리 → 로그인화면 이동
@@ -87,5 +135,58 @@ class SettingsScreen extends StatelessWidget {
     } else {
       AppToast.show(context, '탈퇴 처리에 실패했습니다.', isError: true);
     }
+  }
+}
+
+/// [6-7-4-B-4] 약관/정책 섹션 전용 메뉴 행. 기존 "회원탈퇴" 행과 동일한
+/// 시각 스타일(Icon+Text+chevron)을 유지하되, 외부 브라우저로 연결됨을 알리기
+/// 위해 화살표 아이콘을 open_in_new로 표시한다.
+class _PolicyLinkRow extends StatelessWidget {
+  const _PolicyLinkRow({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+    this.showDivider = true,
+  });
+
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+  final bool showDivider;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: UnifiedTokens.spaceLg,
+          vertical: UnifiedTokens.spaceMd,
+        ),
+        decoration: BoxDecoration(
+          border: showDivider
+              ? const Border(
+                  bottom: BorderSide(color: UnifiedColors.border, width: 1),
+                )
+              : null,
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color: UnifiedColors.textSecondary,
+              size: UnifiedTokens.iconLg,
+            ),
+            const SizedBox(width: UnifiedTokens.spaceMd),
+            Expanded(child: Text(title, style: UnifiedText.bodyStrong())),
+            Icon(
+              Icons.open_in_new_rounded,
+              color: UnifiedColors.textCaption,
+              size: UnifiedTokens.iconMd,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

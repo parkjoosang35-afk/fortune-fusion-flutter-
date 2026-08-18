@@ -30,16 +30,29 @@ class AuthRepository {
 
   /// 02번 §1.1 "이메일 가입" — 로그인과 분리된 신규 가입 절차.
   /// 서버 응답이 성공하면 JWT를 [AuthTokenStore]에 저장한다.
+  ///
+  /// [6-7-4-B-4] admin_web `/api/public/auth/signup`이 이용약관/개인정보처리방침
+  /// 동의를 필수 요건으로 검증하도록 변경됨에 따라(미동의 시 400/TERMS_NOT_AGREED),
+  /// 클라이언트도 이 두 값을 함께 전송한다. 상위 레이어(AuthProvider/SignupScreen)가
+  /// 체크박스 상태를 그대로 전달하므로 여기서는 값 검증만 하고 통과시킨다.
   Future<ApiResult<UserModel>> emailSignup(
     String email,
     String password,
-    String nickname,
-  ) async {
+    String nickname, {
+    required bool termsAgreed,
+    required bool privacyAgreed,
+  }) async {
     if (email.isEmpty || password.isEmpty || nickname.isEmpty) {
       return ApiResult.fail('필수 정보를 모두 입력해 주세요.');
     }
     if (password.length < 8) {
       return ApiResult.fail('비밀번호는 8자 이상이어야 합니다.');
+    }
+    if (!termsAgreed || !privacyAgreed) {
+      return ApiResult.fail(
+        '이용약관 및 개인정보처리방침에 동의해야 가입할 수 있습니다.',
+        code: 'TERMS_NOT_AGREED',
+      );
     }
     final uri = Uri.parse('$_base/signup');
     try {
@@ -51,6 +64,8 @@ class AuthRepository {
               'email': email,
               'password': password,
               'nickname': nickname,
+              'termsAgreed': termsAgreed,
+              'privacyAgreed': privacyAgreed,
             }),
           )
           .timeout(const Duration(seconds: 10));

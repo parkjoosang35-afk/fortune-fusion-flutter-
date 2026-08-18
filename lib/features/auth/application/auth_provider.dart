@@ -54,10 +54,24 @@ class AuthProvider extends ChangeNotifier {
   }
 
   /// Phase2-2: 이메일 회원가입(로그인과 분리된 절차)
-  Future<bool> signup(String email, String password, String nickname) async {
+  /// [6-7-4-B-4] 이용약관/개인정보처리방침 동의는 회원가입의 필수 요건이므로
+  /// SignupScreen의 체크박스 상태를 그대로 전달받아 Repository로 넘긴다.
+  Future<bool> signup(
+    String email,
+    String password,
+    String nickname, {
+    required bool termsAgreed,
+    required bool privacyAgreed,
+  }) async {
     _state = const LoadState.loading();
     notifyListeners();
-    final result = await _repository.emailSignup(email, password, nickname);
+    final result = await _repository.emailSignup(
+      email,
+      password,
+      nickname,
+      termsAgreed: termsAgreed,
+      privacyAgreed: privacyAgreed,
+    );
     if (result.success && result.data != null) {
       await _loadGrade(result.data!);
       _state = LoadState.success(result.data!);
