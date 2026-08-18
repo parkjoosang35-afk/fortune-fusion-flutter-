@@ -27,7 +27,13 @@ export const dynamic = "force-dynamic";
 const CORS_HEADERS = { "Access-Control-Allow-Origin": "*" };
 
 export async function POST(request: NextRequest) {
-  let body: { email?: string; password?: string; nickname?: string };
+  let body: {
+    email?: string;
+    password?: string;
+    nickname?: string;
+    termsAgreed?: boolean;
+    privacyAgreed?: boolean;
+  };
   try {
     body = await request.json();
   } catch {
@@ -40,6 +46,10 @@ export async function POST(request: NextRequest) {
   const email = body.email?.trim();
   const password = body.password;
   const nickname = body.nickname?.trim();
+  // [6-7-4-B-4] 이용약관/개인정보처리방침 동의는 회원가입의 필수 요건이다
+  // (Google Play 정책 및 개인정보보호법상 고지·동의 원칙 준수).
+  const termsAgreed = body.termsAgreed === true;
+  const privacyAgreed = body.privacyAgreed === true;
 
   if (!email || !password || !nickname) {
     return NextResponse.json(
@@ -50,6 +60,16 @@ export async function POST(request: NextRequest) {
   if (password.length < 8) {
     return NextResponse.json(
       { success: false, error: "비밀번호는 8자 이상이어야 합니다." },
+      { status: 400, headers: CORS_HEADERS }
+    );
+  }
+  if (!termsAgreed || !privacyAgreed) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "이용약관 및 개인정보처리방침에 동의해야 가입할 수 있습니다.",
+        code: "TERMS_NOT_AGREED",
+      },
       { status: 400, headers: CORS_HEADERS }
     );
   }
@@ -68,6 +88,7 @@ export async function POST(request: NextRequest) {
       signupRewardPolicy?.isActive === false ? 0 : signupRewardPolicy?.amount ?? 100;
 
     const { created, walletBalanceAfter } = await prisma.$transaction(async (tx) => {
+      const now = new Date();
       const user = await tx.user.create({
         data: {
           email,
@@ -75,6 +96,8 @@ export async function POST(request: NextRequest) {
           passwordHash,
           signupChannel: "app",
           gradeId: bronzeGrade?.id ?? null,
+          termsAgreedAt: now,
+          privacyAgreedAt: now,
         },
         include: { grade: true, profile: true },
       });

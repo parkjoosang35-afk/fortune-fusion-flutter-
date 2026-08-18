@@ -133,6 +133,12 @@ model User {
   lastLoginAt      DateTime? @map("last_login_at")
   signupChannel    String    @default("app") @map("signup_channel")
   marketingAgreed  Boolean   @default(false) @map("marketing_agreed")
+  // [6-7-4-B-4] 회원가입 시 필수 약관(이용약관/개인정보처리방침) 동의 시각.
+  // 기존 회원(가입 당시 약관동의 UI가 없었던 계정)은 NULL로 남으며, 이는
+  // "구법 하 가입 회원"임을 나타내는 정상적인 상태다(소급 강제 동의 처리를
+  // 하지 않음 — 데이터 임의 수정 금지 원칙).
+  termsAgreedAt    DateTime? @map("terms_agreed_at")
+  privacyAgreedAt  DateTime? @map("privacy_agreed_at")
   gradeId          Int?      @map("grade_id")
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
