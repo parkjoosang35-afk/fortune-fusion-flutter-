@@ -2,6 +2,15 @@
 import java.util.Properties
 import java.io.FileInputStream
 
+// [6-7-3] Release 서명 연결: android/key.properties를 읽어와
+// signingConfigs.release 에서 사용한다. (기존 key.properties/release-key.jks를
+// 그대로 사용하며, 새 keystore는 생성하지 않는다.)
+val keystorePropertiesFile = rootProject.file("key.properties")
+val keystoreProperties = Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+}
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -34,11 +43,22 @@ android {
         versionName = flutter.versionName
     }
 
+    // [6-7-3] Release 서명 연결: 기존 android/key.properties + android/release-key.jks 를 사용.
+    signingConfigs {
+        create("release") {
+            if (keystorePropertiesFile.exists()) {
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = keystoreProperties["storeFile"]?.let { file(it) }
+                storePassword = keystoreProperties["storePassword"] as String
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // [6-7-3] 기존 debug 서명 대신 정식 release 서명 키를 사용한다.
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }
