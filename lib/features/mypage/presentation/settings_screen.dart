@@ -4,6 +4,7 @@ import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/app_dialog.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../auth/application/auth_provider.dart';
+import '../../pass/application/pass_provider.dart';
 
 /// [Sowoon.kr 리디자인 프롬프트] 다크모드 토글 UI 완전 제거.
 /// 앱은 항상 화이트/골드 라이트 테마로만 동작한다(ThemeProvider는 ThemeMode.light 고정).
@@ -69,6 +70,14 @@ class SettingsScreen extends StatelessWidget {
       isDanger: true,
     );
     if (!confirmed || !context.mounted) return;
+
+    // [6-6 QA Low#5 최소 수정] 로그아웃 흐름(my_screen.dart)과 동일하게,
+    // 인증 토큰이 아직 살아있는 동안(AuthProvider.withdraw()가 토큰을 지우기 전)
+    // PassProvider.resetOnLogout()을 먼저 호출해 서버측 프리패스를 만료시키고
+    // 화면 상태를 초기화한다. 순서를 바꾸면 userId를 얻을 수 없어 로그아웃과
+    // 동일하게 서버측 만료가 누락되는 문제가 재발한다.
+    await context.read<PassProvider>().resetOnLogout();
+    if (!context.mounted) return;
 
     final ok = await context.read<AuthProvider>().withdraw();
     if (!context.mounted) return;

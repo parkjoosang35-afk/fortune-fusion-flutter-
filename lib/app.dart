@@ -238,7 +238,7 @@ class App extends StatelessWidget {
         builder: (context, themeProvider, _) {
           return MaterialApp(
             navigatorKey: appNavigatorKey,
-            title: 'Fortune Fusion',
+            title: '신통방통',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.light,
             themeMode: themeProvider.mode,
