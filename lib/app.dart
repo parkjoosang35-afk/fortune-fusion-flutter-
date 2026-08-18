@@ -50,9 +50,7 @@ import 'features/lucky_number/data/lucky_number_repository.dart';
 import 'features/healing_quote/application/healing_quote_provider.dart';
 import 'features/healing_quote/data/healing_quote_repository.dart';
 import 'features/pass/application/pass_provider.dart';
-import 'features/pass/application/open_pass_reward_controller.dart';
 import 'features/pass/data/pass_repository.dart';
-import 'features/pass/data/open_pass_repository.dart';
 import 'features/intro/application/intro_state_provider.dart';
 import 'features/intro/application/intro_config_provider.dart';
 import 'features/intro/data/intro_config_repository.dart';
@@ -152,16 +150,6 @@ class App extends StatelessWidget {
         // 접근한다.
         ProxyProvider<PassProvider, AccessChecker>(
           update: (_, pass, __) => AccessChecker(pass: pass),
-        ),
-        // [열림패스 첨부/광고소스 연동] admin_web에 등록된 첨부파일/광고소스가
-        // 실제 광고 시청→지급/실패 플로우를 그대로 이끌어가도록 하는 오케스트레이터.
-        // 상태 없는 서비스(ChangeNotifier 아님)이므로 Provider로 등록하며,
-        // PassProvider가 교체될 때마다 최신 인스턴스로 갈아끼운다.
-        ProxyProvider<PassProvider, OpenPassRewardController>(
-          update: (_, pass, __) => OpenPassRewardController(
-            repository: OpenPassRepository(),
-            passProvider: pass,
-          ),
         ),
         // ── 기능별 Provider ──
         ChangeNotifierProvider(create: (_) => SajuProvider(SajuRepository())),
