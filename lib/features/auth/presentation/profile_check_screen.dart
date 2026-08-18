@@ -197,9 +197,15 @@ class _ProfileCheckScreenState extends State<ProfileCheckScreen> {
                 child: const Text('완료'),
               ),
               TextButton(
-                onPressed: () => Navigator.of(
-                  context,
-                ).pushNamedAndRemoveUntil('/home', (route) => false),
+                onPressed: () {
+                  Navigator.of(
+                    context,
+                  ).pushNamedAndRemoveUntil('/home', (route) => false);
+                  // [6-5-A 발견사항 수정] 정상 제출(_submit)과 동일하게, 스킵을
+                  // 선택한 경우에도 프리패스 게이트로 인해 대기 중이던 원래
+                  // 요청을 재실행한다(로그인 흐름 정합성 - 편향 없이 두 경로 모두 처리).
+                  replayPendingPassRequest();
+                },
                 child: const Text('나중에 하기'),
               ),
             ],

@@ -96,7 +96,7 @@ class _SignupScreenState extends State<SignupScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Fortune Fusion과 함께\n운명을 탐험해 보세요',
+                '신통방통과 함께\n운명을 탐험해 보세요',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: AppSpacing.xl),

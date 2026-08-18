@@ -238,10 +238,13 @@ class _MyScreenState extends State<MyScreen> {
                     onTap: () =>
                         Navigator.of(context).pushNamed('/my/settings'),
                   ),
+                  // [6-5-A 발견사항 수정] 아직 실제 기능(버전/약관 등)이
+                  // 없으므로 클릭 가능한 것처럼 보이지 않도록 비활성 표시로
+                  // 전환한다(신규 앱 정보 기능 개발은 범위 밖).
                   _MenuRow(
                     icon: Icons.info_outline_rounded,
                     title: '앱 정보',
-                    onTap: () {},
+                    onTap: null,
                     showDivider: false,
                   ),
                 ],
@@ -602,11 +605,15 @@ class _MenuRow extends StatelessWidget {
 
   final IconData icon;
   final String title;
-  final VoidCallback onTap;
+  // [6-5-A 발견사항 수정] null이면 아직 기능이 없는 메뉴로 간주해 비활성
+  // 표시(회색톤 + 화살표 숨김)로 렌더링한다. 기존 알림/설정 메뉴는 그대로
+  // VoidCallback을 전달하므로 동작에 변화가 없다.
+  final VoidCallback? onTap;
   final bool showDivider;
 
   @override
   Widget build(BuildContext context) {
+    final isEnabled = onTap != null;
     return InkWell(
       onTap: onTap,
       child: Container(
@@ -623,16 +630,26 @@ class _MenuRow extends StatelessWidget {
           children: [
             Icon(
               icon,
-              color: UnifiedColors.textPrimary,
+              color: isEnabled
+                  ? UnifiedColors.textPrimary
+                  : UnifiedColors.textCaption,
               size: UnifiedTokens.iconLg,
             ),
             const SizedBox(width: UnifiedTokens.spaceMd),
-            Expanded(child: Text(title, style: UnifiedText.bodyStrong())),
-            Icon(
-              Icons.chevron_right_rounded,
-              color: UnifiedColors.textCaption,
-              size: UnifiedTokens.iconMd,
+            Expanded(
+              child: Text(
+                title,
+                style: isEnabled
+                    ? UnifiedText.bodyStrong()
+                    : UnifiedText.bodyStrong(color: UnifiedColors.textCaption),
+              ),
             ),
+            if (isEnabled)
+              Icon(
+                Icons.chevron_right_rounded,
+                color: UnifiedColors.textCaption,
+                size: UnifiedTokens.iconMd,
+              ),
           ],
         ),
       ),

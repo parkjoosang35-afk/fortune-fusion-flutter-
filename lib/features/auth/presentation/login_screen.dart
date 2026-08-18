@@ -103,7 +103,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: AppSpacing.md),
               Text(
-                'Fortune Fusion',
+                '신통방통',
                 style: Theme.of(context).textTheme.headlineMedium,
                 textAlign: TextAlign.center,
               ),
@@ -153,16 +153,19 @@ class _LoginScreenState extends State<LoginScreen> {
                 ],
               ),
               const SizedBox(height: AppSpacing.lg),
+              // [6-5-A 발견사항 수정] 실제 소셜 로그인 연동 전까지, 클릭 전에도
+              // 준비 중 상태임을 알 수 있도록 라벨을 명확히 표기한다(인증
+              // 구조/서버 501 응답은 변경하지 않음 - _socialLogin 로직 그대로 유지).
               OutlinedButton.icon(
                 onPressed: _isSubmitting ? null : () => _socialLogin('카카오'),
                 icon: const Icon(Icons.chat_bubble_rounded, size: 18),
-                label: const Text('카카오로 계속하기'),
+                label: const Text('카카오로 계속하기 (준비 중)'),
               ),
               const SizedBox(height: AppSpacing.sm),
               OutlinedButton.icon(
                 onPressed: _isSubmitting ? null : () => _socialLogin('구글'),
                 icon: const Icon(Icons.g_mobiledata_rounded, size: 22),
-                label: const Text('구글로 계속하기'),
+                label: const Text('구글로 계속하기 (준비 중)'),
               ),
               const SizedBox(height: AppSpacing.lg),
               TextButton(
