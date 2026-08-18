@@ -23,6 +23,8 @@ import '../../ad_banner/application/ad_banner_provider.dart';
 import '../../ad_banner/presentation/ad_banner_widget.dart';
 import 'home_style_tokens.dart';
 import '../domain/jeontong_eighty_matrix.dart';
+import '../application/home_page_config_provider.dart';
+import '../application/section_visibility_evaluator.dart';
 
 // 2026-08-13 -- 톤 일관화 토큰. 신 클래스/신 색상 정의 0.
 class _Tone {
@@ -164,7 +166,53 @@ class _HomeScreenState extends State<HomeScreen> {
       // 담당하므로(AdBannerProvider.load 기존 로직 그대로), 여기서 별도로
       // 다시 호출하지 않는다(중복 네트워크 요청 방지).
       context.read<HealingQuoteProvider>().load();
+
+      // [6-4-B CMS 홈 안전 연결 - 선행 배선] admin_web `/cms/page-configs/home`
+      // 발행 데이터를 실제로 로드해두되(HomePageConfigProvider.load()), 그
+      // 결과는 이번 단계에서 어떤 위젯 렌더링에도 사용하지 않는다(§4 "Renderer
+      // → 실제 HomeScreen 연결은 다음 단계로 분리" 원칙). 여기서는 오직
+      // "API → Provider → Evaluator" 흐름이 실제로 끊김 없이 동작하는지만
+      // 검증하고, 결과는 디버그 로그로만 남긴다. 로드 시점은 다른 홈 전용
+      // Provider들(Wallet/Attendance/Pass/Notification/HealingQuote)과 동일하게
+      // HomeScreen의 첫 프레임 이후로 맞춰, 앱 시작 시점(app.dart)에 무조건
+      // 실행하는 방식보다 "홈 화면에 실제로 진입했을 때만" 불필요한 네트워크
+      // 요청이 발생하도록 최소화했다(다른 탭만 쓰는 사용자는 이 호출이 아예
+      // 발생하지 않음).
+      _loadHomePageConfigAndVerify();
     });
+  }
+
+  /// [6-4-B] HomePageConfigProvider.load() 완료 후, 실제 AuthProvider/
+  /// AccessChecker/WalletProvider 값으로 [HomeVisibilityContext]를 구성해
+  /// [SectionVisibilityEvaluator.filterVisible]까지 정상 동작하는지만 검증한다.
+  /// 이 메서드의 결과(visible 섹션 목록)는 화면에 전혀 반영되지 않는다 —
+  /// 순수하게 "배선이 끊기지 않았는지" 확인하는 디버그 전용 경로다.
+  Future<void> _loadHomePageConfigAndVerify() async {
+    final configProvider = context.read<HomePageConfigProvider>();
+    await configProvider.load();
+    if (!mounted) return;
+
+    // isLoggedIn은 절대 고정값(true/false)을 넣지 않고 실제 AuthProvider
+    // 상태를 그대로 읽는다([사용자 지시] §3 "임의로 고정하지 마세요").
+    final auth = context.read<AuthProvider>();
+    final access = context.read<AccessChecker>();
+    final wallet = context.read<WalletProvider>();
+
+    final ctx = HomeVisibilityContext(
+      isLoggedIn: auth.isLoggedIn,
+      now: DateTime.now(),
+      openPassActive: access.openPassState.isActive,
+      luckPouchBalance: wallet.balance,
+      platform: HomeVisibilityContext.currentPlatformKey(),
+    );
+
+    final visible = configProvider.visibleSections(ctx);
+    debugPrint(
+      '[6-4-B 검증] HomePageConfig load 상태=${configProvider.state.isSuccess}, '
+      'usingCache=${configProvider.usingCache}, '
+      '전체 섹션=${configProvider.rawSections.length}, '
+      'visible 섹션=${visible.length} (아직 화면에는 미반영)',
+    );
   }
 
   /// [상단 메뉴 이동(탭) 기능] 지정한 [key]가 달린 섹션이 화면에 보이도록
