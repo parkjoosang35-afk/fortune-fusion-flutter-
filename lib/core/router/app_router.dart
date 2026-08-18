@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'app_shell.dart';
 import '../../features/auth/presentation/splash_screen.dart';
-import '../../features/auth/presentation/onboarding_screen.dart';
 import '../../features/intro/presentation/intro_pager_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/signup_screen.dart';
@@ -88,12 +87,10 @@ class AppRouter {
       // introSeen=false인 첫 실행 사용자에게만 노출된다.
       case '/intro':
         return _page(const IntroPagerScreen());
-      // [인트로 전면 개편] 구 3페이지 온보딩은 더 이상 진입 흐름에서 쓰이지
-      // 않지만("갈아엎지 말고 유지" 원칙에 따라 파일/라우트 자체는 보존),
-      // 로그인 강제 로직이 있던 구 진입점이라 스플래시는 더 이상 이 라우트로
-      // 보내지 않는다(신규 IntroPagerScreen이 대체).
-      case '/onboarding':
-        return _page(const OnboardingScreen());
+      // [6-5-D] 구 3페이지 온보딩(OnboardingScreen)은 신규 IntroPagerScreen이
+      // 완전히 대체했고, 이 named route를 호출하는 코드가 앱 전체(딥링크 포함)
+      // 어디에도 없음을 확인해 죽은 라우트만 제거한다. 화면 파일 자체
+      // (onboarding_screen.dart)는 향후 참조 가능성을 배제할 수 없어 보존한다.
       case '/login':
         return _page(const LoginScreen());
       case '/signup':
