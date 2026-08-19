@@ -44,6 +44,7 @@ import '../../auth/domain/user_model.dart';
 import 'package:provider/provider.dart';
 import 'jeontong_design/hanji_background.dart';
 import 'jeontong_design/hanji_design_tokens.dart';
+import 'jeontong_design/jeontong_deep_report_card.dart';
 import 'jeontong_design/jeontong_narrative_card.dart';
 import 'jeontong_design/jeontong_saju_detail_section.dart';
 import 'jeontong_design/saju_seal.dart';
@@ -708,7 +709,21 @@ class _ResultBody extends StatelessWidget {
           built.profile,
           analysis,
         );
-        return JeontongNarrativeCard(paragraphs: narrative.toParagraphs());
+        return JeontongDeepReportCard(
+          profile: built.profile,
+          data: JeontongDeepReportData(
+            oneLineSummary: narrative.coreResult.join(' '),
+            characteristicsTitle: '② 타고난 성격',
+            personalitySentences: [
+              analysis.coreNatureDescription,
+              ...narrative.characteristics,
+            ],
+            strengths: analysis.strengths,
+            cautions: analysis.weaknesses,
+            generalGuidance: narrative.practicalGuidance ?? const [],
+            finalSummary: narrative.finalSummary,
+          ),
+        );
       }
       if (entry.id == 'A03') {
         final analysis = const WealthAnalyzer().analyze(
@@ -719,7 +734,20 @@ class _ResultBody extends StatelessWidget {
           built.profile,
           analysis,
         );
-        return JeontongNarrativeCard(paragraphs: narrative.toParagraphs());
+        return JeontongDeepReportCard(
+          profile: built.profile,
+          data: JeontongDeepReportData(
+            oneLineSummary: narrative.coreResult.join(' '),
+            characteristicsTitle: '② 재물 스타일',
+            personalitySentences: narrative.characteristics,
+            strengths: narrative.favorableFlows,
+            cautions: narrative.cautionFlows,
+            practicalAdvice: {'돈': analysis.assetManagementStyle},
+            generalGuidance: narrative.practicalGuidance ?? const [],
+            daewoonFlow: narrative.timingSection ?? const [],
+            finalSummary: narrative.finalSummary,
+          ),
+        );
       }
       if (entry.id == 'A04') {
         final analysis = const CareerAnalyzer().analyze(
@@ -730,7 +758,20 @@ class _ResultBody extends StatelessWidget {
           built.profile,
           analysis,
         );
-        return JeontongNarrativeCard(paragraphs: narrative.toParagraphs());
+        return JeontongDeepReportCard(
+          profile: built.profile,
+          data: JeontongDeepReportData(
+            oneLineSummary: narrative.coreResult.join(' '),
+            characteristicsTitle: '② 일하는 방식',
+            personalitySentences: narrative.characteristics,
+            strengths: narrative.favorableFlows,
+            cautions: narrative.cautionFlows,
+            practicalAdvice: {'일': analysis.workStyle},
+            generalGuidance: narrative.practicalGuidance ?? const [],
+            daewoonFlow: narrative.timingSection ?? const [],
+            finalSummary: narrative.finalSummary,
+          ),
+        );
       }
       if (entry.id == 'A05') {
         final analysis = const HealthAnalyzer().analyze(
@@ -741,7 +782,20 @@ class _ResultBody extends StatelessWidget {
           built.profile,
           analysis,
         );
-        return JeontongNarrativeCard(paragraphs: narrative.toParagraphs());
+        return JeontongDeepReportCard(
+          profile: built.profile,
+          data: JeontongDeepReportData(
+            oneLineSummary: narrative.coreResult.join(' '),
+            characteristicsTitle: '② 타고난 체질',
+            personalitySentences: narrative.characteristics,
+            strengths: narrative.favorableFlows,
+            cautions: narrative.cautionFlows,
+            practicalAdvice: {'건강': analysis.healthVitality},
+            generalGuidance: narrative.practicalGuidance ?? const [],
+            daewoonFlow: narrative.timingSection ?? const [],
+            finalSummary: narrative.finalSummary,
+          ),
+        );
       }
       if (entry.id == 'A06') {
         final analysis = const LoveAnalyzer().analyze(
@@ -752,7 +806,20 @@ class _ResultBody extends StatelessWidget {
           built.profile,
           analysis,
         );
-        return JeontongNarrativeCard(paragraphs: narrative.toParagraphs());
+        return JeontongDeepReportCard(
+          profile: built.profile,
+          data: JeontongDeepReportData(
+            oneLineSummary: narrative.coreResult.join(' '),
+            characteristicsTitle: '② 연애·결혼 성향',
+            personalitySentences: narrative.characteristics,
+            strengths: narrative.favorableFlows,
+            cautions: narrative.cautionFlows,
+            practicalAdvice: {'관계': analysis.recommendedApproach},
+            generalGuidance: narrative.practicalGuidance ?? const [],
+            daewoonFlow: narrative.timingSection ?? const [],
+            finalSummary: narrative.finalSummary,
+          ),
+        );
       }
 
       final interp = SajuInterpreter.fullInterpretation(built.saju);
