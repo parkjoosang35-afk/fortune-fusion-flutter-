@@ -76,13 +76,22 @@ const Set<String> kJeontongGroup1BinaryCategoryIds = {
 
 /// [2026 무당식 단정 확장 — 그룹②(타이밍형) 사용자 승인 "선택지 B"]
 /// "이미 좋은 시기다/아직 때가 아니다"를 단정할 수 있는 카테고리
-/// ([buildTimingVerdict] 사용). B03/B07/B10/F10은 재검토 필요(대운 변화
-/// 시프트 판정 기준 불명확, 다음 대운 미리보기는 좋다/나쁘다가 아닌
-/// 정보 전달형, 대운×세운 조합은 synergy 필드의 판정 기준 재확인 필요,
-/// 해외진출운은 점수제라 그룹③에 더 가까움)이므로 이번 1차 구현에서는
-/// 제외한다.
+/// ([buildTimingVerdict] 사용).
+///
+/// [재검토 완료 — B03/B07/B10/F10]
+/// - B03(대운별 직업 변화): `shift_periods`(관성 발동 대운 목록)가 B02
+///   (`peak_periods`)/B05(`active_periods`)와 완전히 동일한
+///   "리스트 존재 여부로 발동 시기를 판정"하는 구조라, 그룹②에 편입한다.
+/// - B07(다음 대운 미리보기): `hasNext`는 좋다/나쁘다가 아니라 "다음 대운
+///   정보가 있는지"만 알려주는 순수 정보 전달형이라 그룹③(줄글 유지)으로
+///   남긴다.
+/// - B10(대운×세운 조합): `synergy`가 "십신 중첩/분산" 2가지 유형
+///   분류일 뿐 좋음/나쁨 판정이 아니라 그룹③으로 남긴다.
+/// - F10(유학·해외 진출운): `score`(0~3) 4단계는 "지금이 적기인지"가
+///   아니라 "해외 진출에 얼마나 유리한 성향인지"를 나타내는 정도·유형
+///   분류에 가까워 그룹③으로 남긴다.
 const Set<String> kJeontongGroup2TimingCategoryIds = {
-  'B02', 'B05',
+  'B02', 'B03', 'B05',
   'C06', 'C07',
   'F05', 'F06', 'F08', 'F09',
 };
@@ -1202,9 +1211,9 @@ DeclarativeVerdict? _buildGroup1Verdict(
   return null;
 }
 
-/// [2026 무당식 단정 확장 — 그룹②(타이밍형) 11종 중 B03/B07/B10/F10
-/// 재검토 제외 8종] [kJeontongGroup2TimingCategoryIds]에 속한 카테고리
-/// 각각의 `JeontongCategoryResult.data`에서 isActiveNow/reasonSentence/
+/// [2026 무당식 단정 확장 — 그룹②(타이밍형) 재검토 완료 9종, B07/B10/F10
+/// 제외] [kJeontongGroup2TimingCategoryIds]에 속한 카테고리 각각의
+/// `JeontongCategoryResult.data`에서 isActiveNow/reasonSentence/
 /// actionSentence를 뽑아 [buildTimingVerdict]를 호출한다. [_buildGroup1Verdict]
 /// 와 동일한 원칙(새 판단 없음, 방어적 null 폴백).
 DeclarativeVerdict? _buildGroup2Verdict(
@@ -1235,6 +1244,23 @@ DeclarativeVerdict? _buildGroup2Verdict(
           return buildTimingVerdict(
             categoryLabel: categoryLabel,
             isActiveNow: active.isNotEmpty,
+            reasonSentence: parts.isNotEmpty ? parts.first : summary,
+            actionSentence:
+                parts.length > 1 ? parts.sublist(1).join(' ') : null,
+          );
+        }
+      case 'B03':
+        {
+          // [재검토 완료 — 그룹②편입] B02/B05와 동일 패턴: shift_periods
+          // (관성 발동 대운 목록) 존재 여부로 "지금 직업 변화 흐름이
+          // 활성화됐는지"를 판정한다 — jeontong_eighty_calculator.dart
+          // `_b03()`/saju_daewoon_modules.dart `getDaewoonCareerFlow()` 참조.
+          final shiftPeriods = (data['shift_periods'] as List?) ?? const [];
+          final summary = data['summary'] as String? ?? '';
+          final parts = _jeontongSentenceSplit(summary);
+          return buildTimingVerdict(
+            categoryLabel: categoryLabel,
+            isActiveNow: shiftPeriods.isNotEmpty,
             reasonSentence: parts.isNotEmpty ? parts.first : summary,
             actionSentence:
                 parts.length > 1 ? parts.sublist(1).join(' ') : null,
