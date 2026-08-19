@@ -709,10 +709,30 @@ class _ResultBody extends StatelessWidget {
           built.profile,
           analysis,
         );
+        // [2026 무당식 단정 총평] A01은 별도 riskPattern 필드가 없어
+        // weaknesses 리스트의 고정 문구("특별히 두드러진 위험 신호는
+        // 확인되지 않음") 존재 여부로 판정한다(새 계산 없음, 이미 산출된
+        // weaknesses/strengths 재사용).
+        const noRiskFixed = '특별히 두드러진 위험 신호는 확인되지 않음';
+        final a01HasRisk = !(analysis.weaknesses.length == 1 &&
+            analysis.weaknesses.first == noRiskFixed);
+        final a01Verdict = buildDeclarativeVerdict(
+          categoryLabel: '전체적인 삶',
+          hasRisk: a01HasRisk,
+          reasonSentence: a01HasRisk
+              ? analysis.weaknesses.first
+              : analysis.strengths.isNotEmpty
+                  ? analysis.strengths.first
+                  : analysis.lifeTheme,
+          actionSentence: narrative.practicalGuidance?.isNotEmpty == true
+              ? narrative.practicalGuidance!.first
+              : null,
+        );
         return JeontongDeepReportCard(
           profile: built.profile,
           data: JeontongDeepReportData(
-            oneLineSummary: narrative.coreResult.join(' '),
+            oneLineSummary: a01Verdict.summary,
+            isFortunate: a01Verdict.isFortunate,
             characteristicsTitle: '② 타고난 성격',
             personalitySentences: [
               analysis.coreNatureDescription,
@@ -734,10 +754,29 @@ class _ResultBody extends StatelessWidget {
           built.profile,
           analysis,
         );
+        // [2026 무당식 단정 총평] riskPattern이 고정 "확인되지 않음" 문구가
+        // 아니면 실제 계산된 리스크가 있다는 뜻(겁재 개수·기신=재성 여부 등
+        // 사람마다 다른 수치로 이미 산출됨) — 이 유무로만 좋음/주의를
+        // 판정한다(새 계산 없음).
+        const noRiskFixed = '두드러진 재물 리스크 신호는 확인되지 않음';
+        final a03HasRisk = analysis.riskPattern != noRiskFixed;
+        final a03Verdict = buildDeclarativeVerdict(
+          categoryLabel: '재물',
+          hasRisk: a03HasRisk,
+          reasonSentence: a03HasRisk
+              ? analysis.riskPattern.split(' / ').first
+              : (narrative.favorableFlows.isNotEmpty
+                  ? narrative.favorableFlows.first
+                  : analysis.wealthPattern),
+          actionSentence: narrative.practicalGuidance?.isNotEmpty == true
+              ? narrative.practicalGuidance!.first
+              : null,
+        );
         return JeontongDeepReportCard(
           profile: built.profile,
           data: JeontongDeepReportData(
-            oneLineSummary: narrative.coreResult.join(' '),
+            oneLineSummary: a03Verdict.summary,
+            isFortunate: a03Verdict.isFortunate,
             characteristicsTitle: '② 재물 스타일',
             personalitySentences: narrative.characteristics,
             strengths: narrative.favorableFlows,
@@ -758,10 +797,25 @@ class _ResultBody extends StatelessWidget {
           built.profile,
           analysis,
         );
+        const noRiskFixed = '두드러진 직업상 리스크 신호는 확인되지 않음';
+        final a04HasRisk = analysis.careerRiskPattern != noRiskFixed;
+        final a04Verdict = buildDeclarativeVerdict(
+          categoryLabel: '직업·일',
+          hasRisk: a04HasRisk,
+          reasonSentence: a04HasRisk
+              ? analysis.careerRiskPattern.split(' / ').first
+              : (narrative.favorableFlows.isNotEmpty
+                  ? narrative.favorableFlows.first
+                  : analysis.careerPattern),
+          actionSentence: narrative.practicalGuidance?.isNotEmpty == true
+              ? narrative.practicalGuidance!.first
+              : null,
+        );
         return JeontongDeepReportCard(
           profile: built.profile,
           data: JeontongDeepReportData(
-            oneLineSummary: narrative.coreResult.join(' '),
+            oneLineSummary: a04Verdict.summary,
+            isFortunate: a04Verdict.isFortunate,
             characteristicsTitle: '② 일하는 방식',
             personalitySentences: narrative.characteristics,
             strengths: narrative.favorableFlows,
@@ -782,10 +836,25 @@ class _ResultBody extends StatelessWidget {
           built.profile,
           analysis,
         );
+        const noRiskFixed = '두드러진 건강상 리스크 신호는 확인되지 않음';
+        final a05HasRisk = analysis.healthRiskPattern != noRiskFixed;
+        final a05Verdict = buildDeclarativeVerdict(
+          categoryLabel: '건강',
+          hasRisk: a05HasRisk,
+          reasonSentence: a05HasRisk
+              ? analysis.healthRiskPattern.split(' / ').first
+              : (narrative.favorableFlows.isNotEmpty
+                  ? narrative.favorableFlows.first
+                  : analysis.healthConstitutionPattern),
+          actionSentence: narrative.practicalGuidance?.isNotEmpty == true
+              ? narrative.practicalGuidance!.first
+              : null,
+        );
         return JeontongDeepReportCard(
           profile: built.profile,
           data: JeontongDeepReportData(
-            oneLineSummary: narrative.coreResult.join(' '),
+            oneLineSummary: a05Verdict.summary,
+            isFortunate: a05Verdict.isFortunate,
             characteristicsTitle: '② 타고난 체질',
             personalitySentences: narrative.characteristics,
             strengths: narrative.favorableFlows,
@@ -806,10 +875,25 @@ class _ResultBody extends StatelessWidget {
           built.profile,
           analysis,
         );
+        const noRiskFixed = '두드러진 애정상 리스크 신호는 확인되지 않음';
+        final a06HasRisk = analysis.romanceRiskPattern != noRiskFixed;
+        final a06Verdict = buildDeclarativeVerdict(
+          categoryLabel: '애정·인연',
+          hasRisk: a06HasRisk,
+          reasonSentence: a06HasRisk
+              ? analysis.romanceRiskPattern.split(' / ').first
+              : (narrative.favorableFlows.isNotEmpty
+                  ? narrative.favorableFlows.first
+                  : analysis.spousePattern),
+          actionSentence: narrative.practicalGuidance?.isNotEmpty == true
+              ? narrative.practicalGuidance!.first
+              : null,
+        );
         return JeontongDeepReportCard(
           profile: built.profile,
           data: JeontongDeepReportData(
-            oneLineSummary: narrative.coreResult.join(' '),
+            oneLineSummary: a06Verdict.summary,
+            isFortunate: a06Verdict.isFortunate,
             characteristicsTitle: '② 연애·결혼 성향',
             personalitySentences: narrative.characteristics,
             strengths: narrative.favorableFlows,

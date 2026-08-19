@@ -45,10 +45,24 @@ class JeontongDeepReportData {
     this.daewoonFlow = const [],
     this.finalSummary = const [],
     this.characteristicsTitle = '② 타고난 성격',
+    this.isFortunate = true,
   });
 
   /// ① 한마디 요약 (헤드라인 한 문장).
+  ///
+  /// [2026 무당식 단정 총평 개편] 대표님 요청 — "사주가 안좋으면 안좋아서
+  /// 어떻게 해나가야 한다, 좋으면 좋아서 좋은 일이 있을 것이다"처럼 애매한
+  /// 헤지 표현 없이 좋다/나쁘다를 먼저 단정적으로 선언하고 행동지침으로
+  /// 맺어야 한다는 요청에 따라, 호출부가 [buildDeclarativeVerdict]로 조합한
+  /// 문장을 여기에 채운다(새 판단 없음 — 이미 계산된 riskPattern/
+  /// favorableConditions/practicalGuidance 문자열만 재배열).
   final String oneLineSummary;
+
+  /// [2026 무당식 단정 총평 개편, 신규] 이 카테고리가 "좋은 구조(길)"인지
+  /// "주의가 필요한 구조"인지 — [buildDeclarativeVerdict]가 리스크 유무로
+  /// 판정한 결과를 그대로 받아, 한마디요약 카드의 배지 색상(crystal=좋음,
+  /// accent=주의)을 결정하는 데만 사용한다(새 판단 없음, 표시 전용).
+  final bool isFortunate;
 
   /// ③ 성격/타고난 성향 서술 문장들.
   final List<String> personalitySentences;
@@ -167,24 +181,48 @@ class JeontongDeepReportCard extends StatelessWidget {
   }
 
   Widget _oneLineSummaryCard() {
+    // [2026 무당식 단정 총평 개편] 좋음(길)은 옥색 crystal, 주의(주의필요)는
+    // 잉크 레드-브라운 accent로 색상을 구분해 "확실하게 맺고 끊는" 느낌을
+    // 시각적으로도 보강한다(표시 전용 — 판정 자체는 호출부의
+    // buildDeclarativeVerdict가 이미 계산된 riskPattern 유무로 정함).
+    final tone = data.isFortunate ? HanjiColors.crystal : HanjiColors.accent;
+    final badgeLabel = data.isFortunate ? '길(吉)' : '주의(注意)';
+    final glyph = data.isFortunate ? '吉' : '注';
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(HanjiSpacing.lg),
       decoration: BoxDecoration(
-        color: HanjiColors.accent.withValues(alpha: 0.08),
+        color: tone.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(HanjiRadii.card),
-        border: Border.all(color: HanjiColors.accent.withValues(alpha: 0.25)),
+        border: Border.all(color: tone.withValues(alpha: 0.25)),
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SajuSeal(glyph: '解', size: 32),
-          const SizedBox(width: HanjiSpacing.md),
-          Expanded(
-            child: Text(
-              data.oneLineSummary,
-              style: HanjiTextStyles.bodyTitle(color: HanjiColors.accent),
-            ),
+          Row(
+            children: [
+              SajuSeal(glyph: glyph, size: 32, color: tone),
+              const SizedBox(width: HanjiSpacing.md),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: HanjiSpacing.sm,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: tone.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(HanjiRadii.pill),
+                ),
+                child: Text(
+                  badgeLabel,
+                  style: HanjiTextStyles.monoSmall(color: tone),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: HanjiSpacing.md),
+          Text(
+            data.oneLineSummary,
+            style: HanjiTextStyles.bodyTitle(color: tone),
           ),
         ],
       ),
@@ -464,6 +502,60 @@ class _PracticalAdviceGrid extends StatelessWidget {
       ],
     );
   }
+}
+
+/// [2026 무당식 단정 총평 개편] 판정 결과 — 요약 문장과 함께, 카드 배지
+/// 색상을 결정할 좋음/주의 여부를 담는다.
+class DeclarativeVerdict {
+  const DeclarativeVerdict({required this.summary, required this.isFortunate});
+
+  /// "선언 → 이유 → 행동지침" 3단 구조로 이미 조합된 완성 문장.
+  final String summary;
+
+  /// 이 카테고리가 좋은 구조(길)인지 주의가 필요한 구조인지.
+  final bool isFortunate;
+}
+
+/// [2026 무당식 단정 총평 개편 — 대표님 요청]
+/// "사주가 안좋으면 안좋아서 어떻게 해나가야 한다, 사주가 좋으면 좋아서
+/// 조만간 좋은 일이 있을 수도 있다 등등 무당이 얘기하듯 맺고 끊는 게
+/// 확실하게" — 애매한 헤지 표현 대신 좋다/나쁘다를 먼저 단정적으로
+/// 선언하고, 이유를 붙이고, 행동지침으로 맺는 문장을 만든다.
+///
+/// [절대 원칙 — 새 판단 없음] 이 함수는 어떤 명리학적 판단도 새로 하지
+/// 않는다. `hasRisk`/`reasonSentence`/`actionSentence`는 모두 호출부(각
+/// 카테고리 결과 화면 배선 코드)가 이미 각 Analyzer/NarrativeGenerator가
+/// 계산해 둔 riskPattern·favorableConditions·practicalGuidance 문자열을
+/// 그대로 넘겨준 것이다. 이 함수는 그 문자열들을 정해진 어순으로
+/// 조합("문장 접합")만 한다 — 사람마다 겁재 개수·기신 여부·오행 편중이
+/// 다르므로 reasonSentence/actionSentence 자체가 이미 개인화되어 있고,
+/// 이 함수는 그것을 무당식 어조로 감싸는 역할만 한다.
+DeclarativeVerdict buildDeclarativeVerdict({
+  required String categoryLabel,
+  required bool hasRisk,
+  required String reasonSentence,
+  String? actionSentence,
+}) {
+  final reason = reasonSentence.trim().replaceAll(RegExp(r'[./!?]+$'), '');
+  final action = (actionSentence ?? '').trim();
+  if (hasRisk) {
+    return DeclarativeVerdict(
+      summary: action.isNotEmpty
+          ? '이 사주는 $categoryLabel 흐름에서 지금은 주의가 필요한 구조입니다 — $reason. '
+                '그러니 $action'
+          : '이 사주는 $categoryLabel 흐름에서 지금은 주의가 필요한 구조입니다 — $reason. '
+                '서두르지 않고 하나씩 다잡아가면 분명히 풀리는 사주입니다.',
+      isFortunate: false,
+    );
+  }
+  return DeclarativeVerdict(
+    summary: action.isNotEmpty
+        ? '이 사주는 $categoryLabel 흐름이 좋은 구조입니다 — $reason. '
+              '$action 이 흐름을 타면 조만간 좋은 소식이 따라올 사주입니다.'
+        : '이 사주는 $categoryLabel 흐름이 좋은 구조입니다 — $reason. '
+              '지금처럼만 이어가면 조만간 좋은 소식이 따라올 사주입니다.',
+    isFortunate: true,
+  );
 }
 
 /// [보조 유틸] 신살 이름 목록을 [sinsalPhrase]가 쓰는 사전을 그대로 참조해
