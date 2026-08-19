@@ -87,7 +87,7 @@ class JeontongNarrativeInterpreter {
       _openingParagraph(interp, honorific, categoryTitle),
       _traitsParagraph(interp, honorific, categoryTitle),
       _luckParagraph(interp, honorific),
-      _closingParagraph(interp, entry.major, honorific),
+      _closingParagraph(interp, entry.major, honorific, data),
     ].where((p) => p.trim().isNotEmpty).toList(growable: false);
   }
 
@@ -1107,12 +1107,24 @@ class JeontongNarrativeInterpreter {
   }
 
   // ------------------------------------------------------------
-  // 문단 5 — 마무리: 카테고리 성격에 맞춘 다정한 격려
+  // 문단 5 — 마무리: 카테고리 성격에 맞춘 다정한 격려 + 확실한 행동지침
   // ------------------------------------------------------------
+  //
+  // [2026 그룹③(유형분류/정보성) "확실한 행동지침으로 끝맺기" 보강 —
+  // 사용자 확정 지시 · 선택지 A] 기존 3문장(나침반 비유) 마무리는
+  // major(A~H) 8종 단위로만 뭉뚱그려져 있어 어떤 카테고리를 봐도 항상
+  // 같은 격려 문구로 끝났다. 계산 로직은 절대 바꾸지 않고(§0/§2), 이미
+  // 각 카테고리 계산 함수가 산출해 둔 `data['advice']`(구체적 조언
+  // 문장, 이미 여러 카테고리에서 존재)를 재료로 마지막에 "그러니 지금은
+  // 이렇게 해보세요" 식 행동지침 문장 하나를 추가로 붙인다.
+  // `advice`가 없으면 `data['message']`의 마지막 문장(조언 성격을 띄는
+  // 경우가 많음)으로 폴백하고, 둘 다 없으면 기존 동작(추가 없음)을
+  // 그대로 유지한다 — 새 판단 없음, 문자열 조합만.
   static String _closingParagraph(
     SajuFullInterpretation interp,
     JeontongMajorCode major,
     String honorific,
+    Map<String, dynamic>? data,
   ) {
     final periodWord = switch (major) {
       JeontongMajorCode.a => '평생이라는 긴 여정',
@@ -1124,9 +1136,104 @@ class JeontongNarrativeInterpreter {
       JeontongMajorCode.g => '앞으로의 몸과 마음',
       JeontongMajorCode.h => '앞으로 채워갈 하루하루',
     };
-    return '사주는 정해진 운명을 통보하는 것이 아니라, $honorific이 타고난 결을 미리 알고 $periodWord을 더 지혜롭게 채워가라는 하나의 나침반이에요. '
+    final base =
+        '사주는 정해진 운명을 통보하는 것이 아니라, $honorific이 타고난 결을 미리 알고 $periodWord을 더 지혜롭게 채워가라는 하나의 나침반이에요. '
         '오늘 이 풀이에 담긴 이야기들을 마음 한쪽에 잘 담아두었다가, 중요한 갈림길에 설 때마다 슬쩍 꺼내 보세요. '
         '만세력이 짚어준 $honorific의 사주는 이미 좋은 가능성을 충분히 품고 있으니, 그 가능성을 믿고 한 걸음씩 나아가면 분명 원하는 방향으로 흘러갈 거예요.';
+    final actionSentence = _closingActionSentence(data);
+    if (actionSentence == null) return base;
+    return '$base $actionSentence';
+  }
+
+  /// [data]의 `advice`(우선) 또는 `message`의 마지막 문장(조언 성격이
+  /// 뚜렷할 때만)을 골라, 마무리 문단에 붙일 완결된 행동지침 문장을
+  /// 반환한다. 적절한 값이 없으면 null(폴백은 호출부에서 처리).
+  ///
+  /// [2026 그룹③ 마무리 보강 · 2차 수정] 1차 구현("advice 있으면 그대로
+  /// '그러니 지금은 ~' 뒤에 붙인다")을 실제 69종 전체에 대해 샘플 출력
+  /// 해보니, advice/message의 원본 스타일이 소스 JSON/모듈마다 완전히
+  /// 달라 그대로 이어붙이면 부자연스러운 문장이 나오는 경우가 있었다:
+  ///   - `monthly_fortune_rules.json`(D01 등): "방어적 태세" 같은 2~6자
+  ///     짧은 키워드 → "그러니 지금은 방어적 태세."는 문장이 안 됨.
+  ///   - `lucky_items_rules.json`(D09/G04/H01~H10 등): "물 많이 마시기,
+  ///     목욕·사우나, 조용한 시간 확보" 같은 쉼표 나열형 활동 리스트 →
+  ///     "그러니 지금은 [나열]."은 다소 어색함.
+  ///   - `getNextDaewoonPreview`(B07): message의 마지막 문장이 "이
+  ///     대운의 십신은 ~이에요." 같은 순수 정보 전달문이라, 조언이 아닌
+  ///     내용이 "그러니 지금은 ~"에 붙어버림.
+  /// 계산 로직은 그대로 두고([_wrapAdviceForClosing] 참고, 문자열
+  /// 구조만으로 판별), advice/message 원문은 그대로 재료로 쓰되 이어
+  /// 붙이는 연결어만 원문 형태(완결문/나열형/키워드형)에 맞게 고른다.
+  /// message 폴백은 "조언 의도"가 뚜렷한 마커가 있을 때만 사용해, B07
+  /// 같은 순수 정보문이 조언인 것처럼 붙는 것을 막는다.
+  static String? _closingActionSentence(Map<String, dynamic>? data) {
+    final advice = data?['advice'] as String?;
+    if (advice != null && advice.trim().isNotEmpty) {
+      return _wrapAdviceForClosing(advice.trim());
+    }
+    final message = data?['message'] as String?;
+    if (message != null && message.trim().isNotEmpty) {
+      final sentences = message
+          .split(RegExp(r'(?<=[.!?])\s+'))
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
+      if (sentences.length > 1) {
+        final last = sentences.last;
+        // message의 마지막 문장은 advice와 달리 "조언"이 아니라 그냥
+        // 정보 전달로 끝나는 경우가 많다(예: B07 "이 대운의 십신은
+        // ~이에요."). 아래 마커 중 하나라도 포함되어 있을 때만 조언성
+        // 문장으로 판단해 채택하고, 그렇지 않으면 추가하지 않는다.
+        const adviceMarkers = [
+          '좋아요',
+          '좋을',
+          '해보세요',
+          '해보면',
+          '하세요',
+          '권해요',
+          '추천',
+          '도움이',
+          '챙기',
+          '신경 쓰면',
+          '살펴보면',
+          '필요해요',
+          '유리해요',
+          '나아가',
+          '준비하면',
+          '가꿔가면',
+          '다지면',
+        ];
+        if (adviceMarkers.any((m) => last.contains(m))) {
+          return _wrapAdviceForClosing(last);
+        }
+      }
+    }
+    return null;
+  }
+
+  /// advice/message 소스별로 다른 원문 스타일(완결된 조언 문장 / 쉼표
+  /// 나열형 활동 리스트 / 짧은 키워드)을 구분해, 마무리 문단에 자연스럽게
+  /// 이어붙일 수 있는 완결된 문장으로 감싼다. 원문 내용(판단·조언)은
+  /// 손대지 않고 앞뒤에 붙이는 연결어만 고른다(문자열 조합만, 새 판단
+  /// 없음).
+  static String _wrapAdviceForClosing(String raw) {
+    final s = _soften(raw);
+    // 흔한 한국어 문장 종결 어미(요/다/것/함/음, 마침표 유무 무관)로
+    // 끝나면 이미 완결된 문장으로 보고 그대로 이어붙인다.
+    final endsAsSentence = RegExp(r'(요|다|것|함|음)[.!?]?$').hasMatch(s);
+    if (endsAsSentence) {
+      final ending = (s.endsWith('.') || s.endsWith('!') || s.endsWith('?'))
+          ? s
+          : '$s.';
+      return '그러니 지금은 $ending';
+    }
+    if (s.contains(',')) {
+      // 쉼표로 나열된 활동/항목 리스트 — "그러니 지금은 ~" 대신 나열임을
+      // 알려주는 연결어로 감싼다.
+      return '오늘은 이 중 하나라도 챙겨보면 좋아요 — $s.';
+    }
+    // 짧은 키워드형 — "오늘의 키워드는 '~'" 형태로 감싼다.
+    return "오늘의 키워드는 '$s'예요. 이 마음가짐으로 하루를 보내보면 좋아요.";
   }
 
   // ------------------------------------------------------------
