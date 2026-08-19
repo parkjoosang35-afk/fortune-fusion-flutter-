@@ -558,6 +558,45 @@ DeclarativeVerdict buildDeclarativeVerdict({
   );
 }
 
+/// [2026 무당식 단정 확장 — 그룹②(타이밍형) 11종] "좋다/나쁘다"가 아니라
+/// "지금 발동하는가(이미 좋은 시기다) / 아직 발동 전인가(때를 기다려라)"가
+/// 핵심인 카테고리(대운별 재물·직업·애정 흐름, 결혼·출산 적령기, 이사·시험
+/// 세운, 이직 타이밍 등)를 위한 단정 문장 조합 함수. 대표님 최종 지시
+/// (선택지 A) — "이미 좋은 시기다 / 아직 때가 아니니 기다려라"는 단정형.
+///
+/// [절대 원칙 — 새 판단 없음] [buildDeclarativeVerdict]와 완전히 동일한
+/// 원칙 — `isActiveNow`/`reasonSentence`/`actionSentence`는 모두 호출부가
+/// 이미 계산해 둔 peakPeriods/activePeriods/verdict/synergy 등의 값에서
+/// 뽑아낸 것이다. 이 함수는 그 값들을 "선언→이유→행동지침" 어순으로
+/// 조합("문장 접합")만 한다.
+DeclarativeVerdict buildTimingVerdict({
+  required String categoryLabel,
+  required bool isActiveNow,
+  required String reasonSentence,
+  String? actionSentence,
+}) {
+  final reason = reasonSentence.trim().replaceAll(RegExp(r'[./!?]+$'), '');
+  final action = (actionSentence ?? '').trim();
+  if (isActiveNow) {
+    return DeclarativeVerdict(
+      summary: action.isNotEmpty
+          ? '이 사주는 지금이 $categoryLabel 흐름이 무르익은 시기입니다 — $reason. '
+                '$action'
+          : '이 사주는 지금이 $categoryLabel 흐름이 무르익은 시기입니다 — $reason. '
+                '이 흐름을 놓치지 말고 적극적으로 움직여도 좋은 때입니다.',
+      isFortunate: true,
+    );
+  }
+  return DeclarativeVerdict(
+    summary: action.isNotEmpty
+        ? '이 사주는 아직 $categoryLabel 때가 무르익지 않았습니다 — $reason. '
+              '$action'
+        : '이 사주는 아직 $categoryLabel 때가 무르익지 않았습니다 — $reason. '
+              '서두르지 말고 좋은 시기를 기다리면 반드시 흐름이 옵니다.',
+    isFortunate: false,
+  );
+}
+
 /// [보조 유틸] 신살 이름 목록을 [sinsalPhrase]가 쓰는 사전을 그대로 참조해
 /// "이름(한자, 쉬운의미)" 형태의 짧은 라벨로 변환한다(강점/조심점 문장을
 /// 만들 때 호출부가 재사용). 재계산 없음 — 사전 조회만.

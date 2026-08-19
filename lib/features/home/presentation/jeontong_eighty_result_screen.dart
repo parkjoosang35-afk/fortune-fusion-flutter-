@@ -62,6 +62,31 @@ import 'widgets/jeontong_result_text_extractor.dart';
 /// 기존 [GenericFortuneResultScreen]과 동일한 공용 위젯(HeroSummaryCard/
 /// SectionCard/ListCard/LuckElementsGrid/ResultBottomActions/AIConsultBanner)을
 /// 그대로 재사용해 새 UI 컴포넌트를 만들지 않는다.
+/// [2026 무당식 단정 확장 — 그룹①(이진판정형) 사용자 승인 "선택지 B"]
+/// "좋다/주의"를 단정할 수 있는 15종(카드 UI는 강행하지 않고, 기존
+/// [JeontongNarrativeCard] 줄글 앞에 [buildDeclarativeVerdict] 문장만
+/// prepend). F04(창업 vs 직장)는 유형분류에 가까워 이번 1차 구현에서는
+/// 제외하고(그룹③ 취급), 나머지는 재검토 없이 확정된 15종 중 F04를 뺀
+/// 14종만 포함한다.
+const Set<String> kJeontongGroup1BinaryCategoryIds = {
+  'A02', 'B04', 'B06', 'B08', 'B09',
+  'C08', 'D10',
+  'G01', 'G02', 'G03', 'G05', 'G07', 'G08', 'G10',
+};
+
+/// [2026 무당식 단정 확장 — 그룹②(타이밍형) 사용자 승인 "선택지 B"]
+/// "이미 좋은 시기다/아직 때가 아니다"를 단정할 수 있는 카테고리
+/// ([buildTimingVerdict] 사용). B03/B07/B10/F10은 재검토 필요(대운 변화
+/// 시프트 판정 기준 불명확, 다음 대운 미리보기는 좋다/나쁘다가 아닌
+/// 정보 전달형, 대운×세운 조합은 synergy 필드의 판정 기준 재확인 필요,
+/// 해외진출운은 점수제라 그룹③에 더 가까움)이므로 이번 1차 구현에서는
+/// 제외한다.
+const Set<String> kJeontongGroup2TimingCategoryIds = {
+  'B02', 'B05',
+  'C06', 'C07',
+  'F05', 'F06', 'F08', 'F09',
+};
+
 class JeontongEightyResultScreen extends StatefulWidget {
   const JeontongEightyResultScreen({super.key, required this.categoryId});
 
@@ -925,11 +950,388 @@ class _ResultBody extends StatelessWidget {
         name: profile.normalizedName,
         data: categoryData,
       );
+
+      // [2026 무당식 단정 확장 — 그룹①(이진판정형)/②(타이밍형) · 사용자
+      // 승인 "선택지 B"] 5종(A01/A03~A06)처럼 카드 UI(JeontongDeepReportCard)
+      // 를 강행 적용하지 않고, 기존 JeontongNarrativeCard(줄글) 그대로
+      // 유지하면서 paragraphs 리스트 맨 앞에 [buildDeclarativeVerdict]
+      // (그룹①) 또는 [buildTimingVerdict](그룹②)로 조합한 단정 문장 1문단만
+      // prepend한다. verdict 생성이 실패하면(방어적으로 null 반환, 예:
+      // categoryData가 예상 키를 갖지 않는 경우) 기존 동작(줄글만 표시)으로
+      // 안전하게 폴백한다 — 새 판단 없음, 이미 계산된 값의 문장 조합만.
+      if (categoryData != null) {
+        DeclarativeVerdict? verdict;
+        if (kJeontongGroup1BinaryCategoryIds.contains(entry.id)) {
+          verdict = _buildGroup1Verdict(entry.id, categoryData, entry.title);
+        } else if (kJeontongGroup2TimingCategoryIds.contains(entry.id)) {
+          verdict = _buildGroup2Verdict(entry.id, categoryData, entry.title);
+        }
+        if (verdict != null) {
+          return JeontongNarrativeCard(
+            paragraphs: [verdict.summary, ...paragraphs],
+          );
+        }
+      }
       return JeontongNarrativeCard(paragraphs: paragraphs);
     } catch (_) {
       return const SizedBox.shrink();
     }
   }
+}
+
+/// [2026 무당식 단정 확장 — 그룹①(이진판정형) 15종 중 F04 제외 14종]
+/// [kJeontongGroup1BinaryCategoryIds]에 속한 카테고리 각각의
+/// `JeontongCategoryResult.data`(이미 [runJeontongCategory]가 계산해 둔
+/// 값)에서 hasRisk/reasonSentence/actionSentence를 뽑아
+/// [buildDeclarativeVerdict]를 호출한다. 새 판단 없음 — 각 case는 이미
+/// `jeontong_eighty_calculator.dart`/`saju_*_group_modules.dart`가 계산해
+/// 둔 verdict·periods·excess 등의 필드를 조회해 문장을 재배열할 뿐이다.
+/// 예상 키가 없거나 타입이 다르면(방어적 상황) null을 반환해 호출부가
+/// 기존 줄글만 표시하도록 안전하게 폴백한다.
+DeclarativeVerdict? _buildGroup1Verdict(
+  String id,
+  Map<String, dynamic> data,
+  String categoryLabel,
+) {
+  try {
+    switch (id) {
+      case 'A02':
+        {
+          // A02는 A01과 완전히 동일한 data(_a01 재사용)를 쓴다 —
+          // jeontong_eighty_calculator.dart `_a02()` 참조.
+          final weaknesses =
+              (data['weaknesses'] as List?)?.cast<String>() ?? const [];
+          final strengths =
+              (data['strengths'] as List?)?.cast<String>() ?? const [];
+          final lifeTheme = data['life_theme'] as String? ?? '';
+          const noRiskFixed = '특별히 두드러진 위험 신호는 확인되지 않음';
+          final hasRisk = !(weaknesses.length == 1 &&
+              weaknesses.first == noRiskFixed);
+          return buildDeclarativeVerdict(
+            categoryLabel: categoryLabel,
+            hasRisk: hasRisk,
+            reasonSentence: hasRisk
+                ? weaknesses.first
+                : (strengths.isNotEmpty ? strengths.first : lifeTheme),
+          );
+        }
+      case 'B04':
+        {
+          final cautionPeriods =
+              (data['caution_periods'] as List?) ?? const [];
+          final summary = data['summary'] as String? ?? '';
+          final parts = _jeontongSentenceSplit(summary);
+          return buildDeclarativeVerdict(
+            categoryLabel: categoryLabel,
+            hasRisk: cautionPeriods.isNotEmpty,
+            reasonSentence: parts.isNotEmpty ? parts.first : summary,
+            actionSentence:
+                parts.length > 1 ? parts.sublist(1).join(' ') : null,
+          );
+        }
+      case 'B06':
+        {
+          final cautionWindows =
+              (data['caution_windows'] as List?) ?? const [];
+          final summary = data['summary'] as String? ?? '';
+          final parts = _jeontongSentenceSplit(summary);
+          return buildDeclarativeVerdict(
+            categoryLabel: categoryLabel,
+            hasRisk: cautionWindows.isNotEmpty,
+            reasonSentence: parts.isNotEmpty ? parts.first : summary,
+            actionSentence:
+                parts.length > 1 ? parts.sublist(1).join(' ') : null,
+          );
+        }
+      case 'B08':
+        {
+          // [인생 최고 대운 시기] periods가 비어있으면(용신 미확정 포함)
+          // 뚜렷한 황금기를 짚어줄 수 없다는 뜻이라 주의 쪽으로 처리한다
+          // — B09(최악 시기, 아래)와 정반대 극성.
+          final periods = (data['periods'] as List?) ?? const [];
+          final summary = data['summary'] as String? ?? '';
+          final parts = _jeontongSentenceSplit(summary);
+          return buildDeclarativeVerdict(
+            categoryLabel: categoryLabel,
+            hasRisk: periods.isEmpty,
+            reasonSentence: parts.isNotEmpty ? parts.first : summary,
+            actionSentence:
+                parts.length > 1 ? parts.sublist(1).join(' ') : null,
+          );
+        }
+      case 'B09':
+        {
+          // [인생 최악 대운 시기] periods가 존재해야(기신 발동 시기 발견)
+          // 주의가 필요하다는 뜻 — B08과 정반대 극성.
+          final periods = (data['periods'] as List?) ?? const [];
+          final summary = data['summary'] as String? ?? '';
+          final parts = _jeontongSentenceSplit(summary);
+          return buildDeclarativeVerdict(
+            categoryLabel: categoryLabel,
+            hasRisk: periods.isNotEmpty,
+            reasonSentence: parts.isNotEmpty ? parts.first : summary,
+            actionSentence:
+                parts.length > 1 ? parts.sublist(1).join(' ') : null,
+          );
+        }
+      case 'C08':
+        {
+          final title = data['title'] as String? ?? '';
+          final overall = data['overall'] as String? ?? '';
+          final advice = data['advice'] as String? ?? '';
+          final hasRisk = title != '법적 분쟁 위험이 낮은 해';
+          return buildDeclarativeVerdict(
+            categoryLabel: categoryLabel,
+            hasRisk: hasRisk,
+            reasonSentence: overall,
+            actionSentence: advice.isNotEmpty ? advice : null,
+          );
+        }
+      case 'D10':
+        {
+          final title = data['title'] as String? ?? '';
+          final overall = data['overall'] as String? ?? '';
+          final advice = data['advice'] as String? ?? '';
+          final hasRisk = title == '오늘은 신중함이 필요한 날';
+          return buildDeclarativeVerdict(
+            categoryLabel: categoryLabel,
+            hasRisk: hasRisk,
+            reasonSentence: overall,
+            actionSentence: advice.isNotEmpty ? advice : null,
+          );
+        }
+      case 'G01':
+      case 'G02':
+        {
+          // G01/G02는 A05와 완전히 동일한 data(_a05 재사용)를 쓴다 —
+          // jeontong_eighty_calculator.dart `_categoryIndex['G01'/'G02']`
+          // 참조.
+          const noRiskFixed = '두드러진 건강상 리스크 신호는 확인되지 않음';
+          final riskPattern = data['healthRiskPattern'] as String? ?? '';
+          final favorable =
+              (data['favorableConditions'] as List?)?.cast<String>() ??
+                  const [];
+          final constitution =
+              data['healthConstitutionPattern'] as String? ?? '';
+          final adviceFood =
+              (data['advice_food'] as List?)?.cast<String>() ?? const [];
+          final hasRisk = riskPattern.isNotEmpty && riskPattern != noRiskFixed;
+          return buildDeclarativeVerdict(
+            categoryLabel: categoryLabel,
+            hasRisk: hasRisk,
+            reasonSentence: hasRisk
+                ? riskPattern.split(' / ').first
+                : (favorable.isNotEmpty ? favorable.first : constitution),
+            actionSentence: adviceFood.isNotEmpty ? adviceFood.first : null,
+          );
+        }
+      case 'G03':
+        {
+          final cautionPeriods =
+              (data['caution_periods'] as List?) ?? const [];
+          final summary = data['summary'] as String? ?? '';
+          final parts = _jeontongSentenceSplit(summary);
+          return buildDeclarativeVerdict(
+            categoryLabel: categoryLabel,
+            hasRisk: cautionPeriods.isNotEmpty,
+            reasonSentence: parts.isNotEmpty ? parts.first : summary,
+            actionSentence:
+                parts.length > 1 ? parts.sublist(1).join(' ') : null,
+          );
+        }
+      case 'G05':
+        {
+          final excess = (data['excess_elements'] as List?) ?? const [];
+          final message = data['message'] as String? ?? '';
+          final parts = _jeontongSentenceSplit(message);
+          return buildDeclarativeVerdict(
+            categoryLabel: categoryLabel,
+            hasRisk: excess.isNotEmpty,
+            reasonSentence: parts.isNotEmpty ? parts.first : message,
+            actionSentence:
+                parts.length > 1 ? parts.sublist(1).join(' ') : null,
+          );
+        }
+      case 'G07':
+        {
+          final verdict = data['verdict'] as String? ?? '';
+          final message = data['message'] as String? ?? '';
+          final parts = _jeontongSentenceSplit(message);
+          final hasRisk = verdict.contains('예민');
+          return buildDeclarativeVerdict(
+            categoryLabel: categoryLabel,
+            hasRisk: hasRisk,
+            reasonSentence: parts.isNotEmpty ? parts.first : message,
+            actionSentence:
+                parts.length > 1 ? parts.sublist(1).join(' ') : null,
+          );
+        }
+      case 'G08':
+        {
+          final verdict = data['verdict'] as String? ?? '';
+          final message = data['message'] as String? ?? '';
+          final parts = _jeontongSentenceSplit(message);
+          final hasRisk = verdict.contains('주의');
+          return buildDeclarativeVerdict(
+            categoryLabel: categoryLabel,
+            hasRisk: hasRisk,
+            reasonSentence: parts.isNotEmpty ? parts.first : message,
+            actionSentence:
+                parts.length > 1 ? parts.sublist(1).join(' ') : null,
+          );
+        }
+      case 'G10':
+        {
+          final verdict = data['verdict'] as String? ?? '';
+          final message = data['message'] as String? ?? '';
+          final parts = _jeontongSentenceSplit(message);
+          final hasRisk = verdict == '꾸준한 관리 필요형' ||
+              verdict == '컨디션 관리 신경 써야 하는 편';
+          return buildDeclarativeVerdict(
+            categoryLabel: categoryLabel,
+            hasRisk: hasRisk,
+            reasonSentence: parts.isNotEmpty ? parts.first : message,
+            actionSentence:
+                parts.length > 1 ? parts.sublist(1).join(' ') : null,
+          );
+        }
+    }
+  } catch (_) {
+    return null;
+  }
+  return null;
+}
+
+/// [2026 무당식 단정 확장 — 그룹②(타이밍형) 11종 중 B03/B07/B10/F10
+/// 재검토 제외 8종] [kJeontongGroup2TimingCategoryIds]에 속한 카테고리
+/// 각각의 `JeontongCategoryResult.data`에서 isActiveNow/reasonSentence/
+/// actionSentence를 뽑아 [buildTimingVerdict]를 호출한다. [_buildGroup1Verdict]
+/// 와 동일한 원칙(새 판단 없음, 방어적 null 폴백).
+DeclarativeVerdict? _buildGroup2Verdict(
+  String id,
+  Map<String, dynamic> data,
+  String categoryLabel,
+) {
+  try {
+    switch (id) {
+      case 'B02':
+        {
+          final peaks = (data['peak_periods'] as List?) ?? const [];
+          final summary = data['summary'] as String? ?? '';
+          final parts = _jeontongSentenceSplit(summary);
+          return buildTimingVerdict(
+            categoryLabel: categoryLabel,
+            isActiveNow: peaks.isNotEmpty,
+            reasonSentence: parts.isNotEmpty ? parts.first : summary,
+            actionSentence:
+                parts.length > 1 ? parts.sublist(1).join(' ') : null,
+          );
+        }
+      case 'B05':
+        {
+          final active = (data['active_periods'] as List?) ?? const [];
+          final summary = data['summary'] as String? ?? '';
+          final parts = _jeontongSentenceSplit(summary);
+          return buildTimingVerdict(
+            categoryLabel: categoryLabel,
+            isActiveNow: active.isNotEmpty,
+            reasonSentence: parts.isNotEmpty ? parts.first : summary,
+            actionSentence:
+                parts.length > 1 ? parts.sublist(1).join(' ') : null,
+          );
+        }
+      case 'C06':
+        {
+          final title = data['title'] as String? ?? '';
+          final overall = data['overall'] as String? ?? '';
+          final advice = data['advice'] as String? ?? '';
+          return buildTimingVerdict(
+            categoryLabel: categoryLabel,
+            isActiveNow: title == '이동수가 들어오는 해',
+            reasonSentence: overall,
+            actionSentence: advice.isNotEmpty ? advice : null,
+          );
+        }
+      case 'C07':
+        {
+          final title = data['title'] as String? ?? '';
+          final overall = data['overall'] as String? ?? '';
+          final advice = data['advice'] as String? ?? '';
+          final isActiveNow = title == '문창귀인이 들어오는 해' ||
+              title == '학습운이 양호한 해';
+          return buildTimingVerdict(
+            categoryLabel: categoryLabel,
+            isActiveNow: isActiveNow,
+            reasonSentence: overall,
+            actionSentence: advice.isNotEmpty ? advice : null,
+          );
+        }
+      case 'F05':
+        {
+          final daewoonHit = data['current_daewoon_hit'] as bool? ?? false;
+          final yearHit = data['current_year_hit'] as bool? ?? false;
+          final message = data['message'] as String? ?? '';
+          final parts = _jeontongSentenceSplit(message);
+          return buildTimingVerdict(
+            categoryLabel: categoryLabel,
+            isActiveNow: daewoonHit && yearHit,
+            reasonSentence: parts.isNotEmpty ? parts.first : message,
+            actionSentence:
+                parts.length > 1 ? parts.sublist(1).join(' ') : null,
+          );
+        }
+      case 'F06':
+        {
+          final peaks = (data['peak_periods'] as List?) ?? const [];
+          final summary = data['summary'] as String? ?? '';
+          final parts = _jeontongSentenceSplit(summary);
+          return buildTimingVerdict(
+            categoryLabel: categoryLabel,
+            isActiveNow: peaks.isNotEmpty,
+            reasonSentence: parts.isNotEmpty ? parts.first : summary,
+            actionSentence:
+                parts.length > 1 ? parts.sublist(1).join(' ') : null,
+          );
+        }
+      case 'F08':
+        {
+          final message = data['message'] as String? ?? '';
+          final isActiveNow = message.contains('무르익기 좋은 흐름');
+          return buildTimingVerdict(
+            categoryLabel: categoryLabel,
+            isActiveNow: isActiveNow,
+            reasonSentence: message,
+          );
+        }
+      case 'F09':
+        {
+          final active = (data['active_periods'] as List?) ?? const [];
+          final summary = data['summary'] as String? ?? '';
+          final parts = _jeontongSentenceSplit(summary);
+          return buildTimingVerdict(
+            categoryLabel: categoryLabel,
+            isActiveNow: active.isNotEmpty,
+            reasonSentence: parts.isNotEmpty ? parts.first : summary,
+            actionSentence:
+                parts.length > 1 ? parts.sublist(1).join(' ') : null,
+          );
+        }
+    }
+  } catch (_) {
+    return null;
+  }
+  return null;
+}
+
+/// [보조 유틸] "요약+행동지침"이 한 문자열(summary/message 등)에 함께
+/// 담긴 카테고리를 위해, 문장 종결부호(.!?) 뒤 공백 기준으로 문단을
+/// 나눈다. 첫 문장을 reasonSentence로, 나머지를 actionSentence로 쓰기
+/// 위한 것뿐이며 새로운 텍스트를 생성하지 않는다(원문 그대로 분할).
+List<String> _jeontongSentenceSplit(String text) {
+  final trimmed = text.trim();
+  if (trimmed.isEmpty) return const [];
+  final parts = trimmed.split(RegExp(r'(?<=[.!?])\s+'));
+  return parts.where((p) => p.trim().isNotEmpty).toList();
 }
 
 /// [사용자 요청 · 2026 결과 화면 개편] 전문 원국판(PillarBoard 등)을
