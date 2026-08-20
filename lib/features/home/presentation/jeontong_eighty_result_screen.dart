@@ -17,6 +17,7 @@ import '../data/jeontong_history_store.dart';
 import '../data/jeontong_profile_store.dart';
 import '../domain/interpretation/analyzers/career_analyzer.dart';
 import '../domain/interpretation/analyzers/children_analyzer.dart';
+import '../domain/interpretation/analyzers/parents_siblings_analyzer.dart';
 import '../domain/interpretation/analyzers/health_analyzer.dart';
 import '../domain/interpretation/analyzers/life_overall_analyzer.dart';
 import '../domain/interpretation/analyzers/love_analyzer.dart';
@@ -26,6 +27,7 @@ import '../domain/interpretation/generators/children_narrative_generator.dart';
 import '../domain/interpretation/generators/health_narrative_generator.dart';
 import '../domain/interpretation/generators/life_overall_narrative_generator.dart';
 import '../domain/interpretation/generators/love_narrative_generator.dart';
+import '../domain/interpretation/generators/parents_siblings_narrative_generator.dart';
 import '../domain/interpretation/generators/wealth_narrative_generator.dart';
 import '../domain/jeontong_eighty_calculator.dart'
     show
@@ -974,6 +976,45 @@ class _ResultBody extends StatelessWidget {
             strengths: narrative.favorableFlows,
             cautions: narrative.cautionFlows,
             practicalAdvice: {'관계': analysis.childRearingApproach},
+            generalGuidance: narrative.practicalGuidance ?? const [],
+            daewoonFlow: narrative.timingSection ?? const [],
+            finalSummary: narrative.finalSummary,
+          ),
+        );
+      }
+      if (entry.id == 'A08') {
+        final analysis = const ParentsSiblingsAnalyzer().analyze(
+          built.profile,
+          referenceDate: DateTime.now(),
+        );
+        final narrative = const ParentsSiblingsNarrativeGenerator().generate(
+          built.profile,
+          analysis,
+        );
+        const noRiskFixed = '두드러진 부모·형제운 리스크 신호는 확인되지 않음';
+        final a08HasRisk = analysis.familyRiskPattern != noRiskFixed;
+        final a08Verdict = buildDeclarativeVerdict(
+          categoryLabel: '부모·형제운',
+          hasRisk: a08HasRisk,
+          reasonSentence: a08HasRisk
+              ? analysis.familyRiskPattern.split(' / ').first
+              : (narrative.favorableFlows.isNotEmpty
+                  ? narrative.favorableFlows.first
+                  : analysis.parentPattern),
+          actionSentence: narrative.practicalGuidance?.isNotEmpty == true
+              ? narrative.practicalGuidance!.first
+              : null,
+        );
+        return JeontongDeepReportCard(
+          profile: built.profile,
+          data: JeontongDeepReportData(
+            oneLineSummary: a08Verdict.summary,
+            isFortunate: a08Verdict.isFortunate,
+            characteristicsTitle: '② 부모·형제 인연 성향',
+            personalitySentences: narrative.characteristics,
+            strengths: narrative.favorableFlows,
+            cautions: narrative.cautionFlows,
+            practicalAdvice: {'관계': analysis.familyRelationApproach},
             generalGuidance: narrative.practicalGuidance ?? const [],
             daewoonFlow: narrative.timingSection ?? const [],
             finalSummary: narrative.finalSummary,
