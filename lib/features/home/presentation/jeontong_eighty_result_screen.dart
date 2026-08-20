@@ -20,6 +20,7 @@ import '../domain/interpretation/analyzers/children_analyzer.dart';
 import '../domain/interpretation/analyzers/parents_siblings_analyzer.dart';
 import '../domain/interpretation/analyzers/health_analyzer.dart';
 import '../domain/interpretation/analyzers/life_overall_analyzer.dart';
+import '../domain/interpretation/analyzers/life_transitions_analyzer.dart';
 import '../domain/interpretation/analyzers/love_analyzer.dart';
 import '../domain/interpretation/analyzers/study_analyzer.dart';
 import '../domain/interpretation/analyzers/wealth_analyzer.dart';
@@ -27,6 +28,7 @@ import '../domain/interpretation/generators/career_narrative_generator.dart';
 import '../domain/interpretation/generators/children_narrative_generator.dart';
 import '../domain/interpretation/generators/health_narrative_generator.dart';
 import '../domain/interpretation/generators/life_overall_narrative_generator.dart';
+import '../domain/interpretation/generators/life_transitions_narrative_generator.dart';
 import '../domain/interpretation/generators/love_narrative_generator.dart';
 import '../domain/interpretation/generators/parents_siblings_narrative_generator.dart';
 import '../domain/interpretation/generators/study_narrative_generator.dart';
@@ -1056,6 +1058,45 @@ class _ResultBody extends StatelessWidget {
             strengths: narrative.favorableFlows,
             cautions: narrative.cautionFlows,
             practicalAdvice: {'학업': analysis.studyApproach},
+            generalGuidance: narrative.practicalGuidance ?? const [],
+            daewoonFlow: narrative.timingSection ?? const [],
+            finalSummary: narrative.finalSummary,
+          ),
+        );
+      }
+      if (entry.id == 'A10') {
+        final analysis = const LifeTransitionsAnalyzer().analyze(
+          built.profile,
+          referenceDate: DateTime.now(),
+        );
+        final narrative = const LifeTransitionsNarrativeGenerator().generate(
+          built.profile,
+          analysis,
+        );
+        const noRiskFixed = '두드러진 전환점 리스크 신호는 확인되지 않음';
+        final a10HasRisk = analysis.transitionRiskPattern != noRiskFixed;
+        final a10Verdict = buildDeclarativeVerdict(
+          categoryLabel: '인생 5대 전환점',
+          hasRisk: a10HasRisk,
+          reasonSentence: a10HasRisk
+              ? analysis.transitionRiskPattern.split(' / ').first
+              : (narrative.favorableFlows.isNotEmpty
+                  ? narrative.favorableFlows.first
+                  : analysis.transitionPattern),
+          actionSentence: narrative.practicalGuidance?.isNotEmpty == true
+              ? narrative.practicalGuidance!.first
+              : null,
+        );
+        return JeontongDeepReportCard(
+          profile: built.profile,
+          data: JeontongDeepReportData(
+            oneLineSummary: a10Verdict.summary,
+            isFortunate: a10Verdict.isFortunate,
+            characteristicsTitle: '② 전환점 성향',
+            personalitySentences: narrative.characteristics,
+            strengths: narrative.favorableFlows,
+            cautions: narrative.cautionFlows,
+            practicalAdvice: {'전환기 대응': analysis.transitionApproach},
             generalGuidance: narrative.practicalGuidance ?? const [],
             daewoonFlow: narrative.timingSection ?? const [],
             finalSummary: narrative.finalSummary,
