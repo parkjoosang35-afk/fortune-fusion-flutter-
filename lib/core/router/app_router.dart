@@ -60,6 +60,7 @@ import '../../features/home/presentation/jeontong_eighty_screen.dart';
 import '../../features/home/presentation/jeontong_eighty_result_screen.dart';
 import '../../features/home/presentation/jeontong_eighty_grid_screen.dart';
 import '../../features/home/presentation/jeontong_eighty_loading_screen.dart';
+import '../../features/home/presentation/jeontong_talisman_gate_screen.dart';
 import '../../features/home/presentation/jeontong_input_screen.dart';
 import '../../features/home/domain/jeontong_eighty_matrix.dart';
 import '../../features/history/presentation/history_readonly_screen.dart';
@@ -137,6 +138,15 @@ class AppRouter {
           JeontongEightyLoadingScreen(
             categoryId: settings.arguments as String?,
           ),
+        );
+      // [부적게이트] 만세력 로딩 완료 후 결과 화면 진입 직전에 표시하는
+      // 인터랙티브 게이트. 로딩 화면이 애니메이션 완료 후 이 라우트로
+      // `pushReplacementNamed`하고, 이 화면이 다시 [resultRoute]로
+      // `pushReplacementNamed`한다(뒤로가기 시 게이트/로딩을 모두 건너뛰기
+      // 위함).
+      case JeontongEightyMatrix.gateRoute:
+        return _page(
+          JeontongTalismanGateScreen(categoryId: settings.arguments as String?),
         );
       case JeontongEightyMatrix.resultRoute:
         return _page(

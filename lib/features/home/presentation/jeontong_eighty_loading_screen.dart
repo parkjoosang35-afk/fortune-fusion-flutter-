@@ -19,6 +19,14 @@
 // LRU+TTL 캐시가 같은 입력에 대해 항상 같은 결과를 반환하는 순수 함수
 // 호출이므로 여러 번 호출해도 부작용이 없다).
 //
+// [부적게이트 도입 - 총 대기시간 유지] 사용자 확정 답변(Q1)에 따라 이
+// 로딩 화면의 총 시간을 8초 → 5초로 줄이고, 애니메이션 완료 후에는
+// 결과 화면이 아니라 부적게이트([JeontongEightyMatrix.gateRoute])로
+// 넘어간다. 부적게이트가 3초(세션 2번째부터 1.5초)를 추가로 소비하므로
+// "만세력 5초(계산 신뢰감) + 게이트 3초(능동 인터랙션) = 총 8초"로 기존과
+// 총 대기시간이 동일하게 유지된다. 계산 자체([_startCalculation])는
+// 변경하지 않는다 — 이미 이 5초 안에 완료된다.
+//
 // [게이트 재검증 없음] 이 화면에 도달하는 시점에는 이미
 // `navigateWithPassGate()`가 게이트 체크(로그인/프리패스 소비)를 마친
 // 상태다. 따라서 이 화면에서 결과 화면으로 넘어갈 때는 게이트를 다시
@@ -68,7 +76,9 @@ class JeontongEightyLoadingScreen extends StatefulWidget {
 class _JeontongEightyLoadingScreenState
     extends State<JeontongEightyLoadingScreen>
     with TickerProviderStateMixin {
-  static const _totalDuration = Duration(seconds: 8);
+  // [부적게이트 도입] 8초 → 5초로 축소(뒤이어 부적게이트 3초가 순차
+  // 추가되어 총 8초 유지 — 상단 헤더 주석 참고).
+  static const _totalDuration = Duration(seconds: 5);
 
   late final AnimationController _progressCtrl;
   late final AnimationController _pageFlipCtrl;
@@ -139,8 +149,10 @@ class _JeontongEightyLoadingScreenState
     await _progressCtrl.forward().orCancel;
     if (!mounted || _navigated) return;
     _navigated = true;
+    // [부적게이트 도입] 결과 화면으로 곧장 가지 않고 부적게이트를 먼저
+    // 거친다 — 게이트가 자체적으로 [resultRoute]로 이어간다.
     Navigator.of(context).pushReplacementNamed(
-      JeontongEightyMatrix.resultRoute,
+      JeontongEightyMatrix.gateRoute,
       arguments: widget.categoryId,
     );
   }

@@ -121,9 +121,21 @@ class JeontongEightyMatrix {
   /// [운세 섹션 4단계 흐름 - 화면3 로딩] 결과 계산 중 보여주는 로딩 화면
   /// 라우트. 게이트 체크(`navigateWithPassGate`)를 통과한 뒤 곧장 결과로
   /// 가는 대신 먼저 이 라우트로 진입하고, 로딩 화면 자체가 애니메이션
-  /// 완료 후 [resultRoute]로 `pushReplacementNamed`한다(뒤로가기 시 로딩
-  /// 화면을 건너뛰기 위함). arguments로 categoryId(String)를 그대로 받는다.
+  /// 완료 후 [gateRoute](부적게이트)로 `pushReplacementNamed`한다(뒤로가기
+  /// 시 로딩 화면을 건너뛰기 위함). arguments로 categoryId(String)를 그대로
+  /// 받는다.
+  ///
+  /// [만세력 로딩 5초 고정 이유] 실제 계산이 이 5초 안에 끝나야 하는
+  /// "신뢰감" 구간이므로 부적게이트 도입 이후에도 단축 대상이 아니다.
   static const String loadingRoute = '/jeontong/eighty/loading';
+
+  /// [부적게이트] 만세력 로딩 완료 후, 결과 화면 진입 직전에 표시하는
+  /// 인터랙티브 게이트(부적을 탭하면 축복 문구가 뜨는 3초~1.5초 애니메이션).
+  /// 원본: 사용자 업로드 `부적게이트_핸드오프.zip`(TalismanGate.jsx)을
+  /// Flutter로 포팅. 애니메이션 완료 후 [resultRoute]로
+  /// `pushReplacementNamed`한다. arguments로 categoryId(String?)를 그대로
+  /// 전달한다.
+  static const String gateRoute = '/jeontong/eighty/gate';
 
   /// 신규 80종 대/소카테고리 진열 화면 라우트.
   static const String browseRoute = '/jeontong/eighty';
