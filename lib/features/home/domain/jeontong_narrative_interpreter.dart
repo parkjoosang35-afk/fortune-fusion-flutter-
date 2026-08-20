@@ -43,7 +43,8 @@ class JeontongNarrativeInterpreter {
   JeontongNarrativeInterpreter._();
 
   /// [interp]와 카테고리 [entry], 사용자 [name](없으면 null)을 받아
-  /// 4~6개 문단으로 구성된 이야기체 해석을 반환한다.
+  /// "핵심해석" 1개 문단(+ 행동지침이 있을 때만 1개 문단 추가, 총 1~2개
+  /// 문단)으로 구성된 이야기체 해석을 반환한다.
   ///
   /// [data]는 [runJeontongCategory](jeontong_eighty_calculator.dart)가 이미
   /// 계산해둔 이 소카테고리 전용 결과 맵(예: A07이면 child_god/count,
@@ -54,8 +55,22 @@ class JeontongNarrativeInterpreter {
   /// 사용자 지시). [data]가 없으면(예: 방어적 호출) 기존 major 단위
   /// 공통 문단으로 안전하게 폴백한다 — 새로 계산하지 않는다.
   ///
-  /// 각 문단은 이미 줄바꿈 없는 하나의 문자열(여러 문장)이며, 위젯
-  /// 레이어(JeontongNarrativeCard)가 문단 사이에 시각적 여백을 넣는다.
+  /// [2026-08-21 공통 문단 3종 제거 — 사용자 재지적: "b그룹부터 전체 다
+  /// 나오는 얘기 같은데 이렇게 하면 소비자가 뭐라고 하겠어" · 확정
+  /// 지시(선택지 1) "B~H그룹 70종 전체에 한 번에 적용"] 기존엔 이 문단
+  /// 뒤에 오프닝(일간, `_openingParagraph`)·성향(오행/십신,
+  /// `_traitsParagraph`)·신살(`_luckParagraph`) 3개 문단이 항상 따라붙었다.
+  /// 이 3개는 카테고리와 무관하게 "같은 사주 주인공"이라는 이유만으로
+  /// 70종 어디서나 거의 동일한 문구(§9 금지 문구 "사주 뿌리부터"/
+  /// "오행의 흐름을"/"여기에 더해" 포함)를 반복 생성해, 재물운을 봐도
+  /// 전환점운을 봐도 직업운을 봐도 "다 같은 말"로 읽히는 근본 원인이었다.
+  /// 계산 로직은 전혀 바꾸지 않고(§2/§7), 카테고리마다 실제로 달라지는
+  /// 유일한 문단인 [_categoryParagraph]("핵심해석")만 남기고, 그 아래에는
+  /// 이미 각 카테고리 계산이 산출해 둔 advice/message를 재료로 하는 짧은
+  /// 행동지침 한 줄([_closingActionSentence], §9 금지 문구 없는 기존
+  /// 로직 재사용)만 있을 때만 덧붙인다. 행동지침 재료가 없으면 핵심해석
+  /// 한 문단만 보여준다 — 모든 카테고리에서 항상 똑같이 뜨던 3개 문단은
+  /// 완전히 제거한다.
   static List<String> paragraphs(
     SajuFullInterpretation interp,
     JeontongCategoryEntry entry, {
@@ -63,31 +78,11 @@ class JeontongNarrativeInterpreter {
     Map<String, dynamic>? data,
   }) {
     final honorific = _honorific(name);
-    // [2026-08-17 문단 순서 재배치] 기존엔 "오프닝(일간)+오행성향" 두 공통
-    // 문단이 항상 맨 앞에 나오고, 그 카테고리만의 실제 내용
-    // (_categoryParagraph)은 3번째 문단이라 스크롤을 한참 내려야 보였다.
-    // 그 결과 "재물 축적 방법을 봐도, 건강운을 봐도 화면을 열자마자
-    // 보이는 첫 내용이 항상 똑같다"는 정당한 지적으로 이어졌다(사용자
-    // 스크린샷 3장에서 재확인된 문제). 카테고리 고유 문단을 맨 앞으로
-    // 옮겨, 화면을 여는 즉시 그 카테고리만의 이야기가 먼저 보이게 한다.
-    // 오프닝/오행성향 문단은 "왜 이런 결과가 나왔는지"의 배경 설명으로
-    // 뒤에 남긴다(내용 자체는 그대로, 순서만 변경 — 재계산 아님).
-    //
-    // [2026-08-19 맥락 단절 수정 — 사용자 재지적: "자녀운인데 왜 리더십·
-    // 창업 얘기가 나오냐"] 오프닝/오행성향 두 공통 문단은 여전히 일간·
-    // 오행이라는 "사주 전체 기초 체질"만 다뤄, 카테고리 고유 문단(자녀운
-    // 등) 바로 다음에 이어지면 마치 전혀 다른 주제로 화제가 갑자기
-    // 바뀐 것처럼 읽혔다. 계산 로직/문장 내용은 절대 바꾸지 않고
-    // (§2/§7), 두 문단의 "시작 문구"와 "마무리 문구"에만 categoryTitle을
-    // 엮은 짧은 연결어를 덧붙여 "왜 이 카테고리 결과가 이렇게 나왔는지의
-    // 배경 설명"이라는 맥락을 문장으로 명시한다.
-    final categoryTitle = entry.title;
+    final core = _categoryParagraph(interp, entry, honorific, data);
+    final action = _closingActionSentence(data);
     return [
-      _categoryParagraph(interp, entry, honorific, data),
-      _openingParagraph(interp, honorific, categoryTitle),
-      _traitsParagraph(interp, honorific, categoryTitle),
-      _luckParagraph(interp, honorific),
-      _closingParagraph(interp, entry.major, honorific, data),
+      core,
+      if (action != null) action,
     ].where((p) => p.trim().isNotEmpty).toList(growable: false);
   }
 
@@ -100,115 +95,17 @@ class JeontongNarrativeInterpreter {
   }
 
   // ------------------------------------------------------------
-  // 문단 1 — 오프닝: 일간(日干)을 이야기로 풀어 소개
+  // [2026-08-21 삭제됨] 기존 오프닝(일간)/성향(오행·십신) 공통 문단 —
+  // `_openingParagraph`/`_traitsParagraph`/`_elementExcessPositive`/
+  // `_elementLackPositive`. B~H그룹 70종 전체가 카테고리와 무관하게
+  // 거의 동일한 문구("사주 뿌리부터"/"오행의 흐름을")를 반복 노출하는
+  // 근본 원인이었기에, 사용자 지적에 따라 완전히 제거했다(§9 금지
+  // 문구 정리 포함, 계산 로직 변경 없음 — 애초에 이 함수들은 순수
+  // 서술용이었을 뿐 어떤 카테고리 계산에도 관여하지 않았다).
   // ------------------------------------------------------------
-  static String _openingParagraph(
-    SajuFullInterpretation interp,
-    String honorific,
-    String categoryTitle,
-  ) {
-    final dm = interp.dayMasterAnalysis;
-    final image = interp.saju.dayMaster.image;
-    final gan = interp.saju.dayMaster.kr;
-    final strength = interp.saju.dayMasterStrength;
-    final strengthWord = strength.contains('强')
-        ? '기운이 단단하고 힘이 넘치는'
-        : strength.contains('中')
-        ? '균형이 잘 잡힌'
-        : '섬세하고 유연한';
-
-    final weaknessNote = dm.weaknesses.isNotEmpty
-        ? ' 다만 ${_joinKo(dm.weaknesses)} 같은 부분은 스스로 잘 알아채고 다스릴 줄 알면, 오히려 그것이 $honorific만의 균형 감각이 되어줄 거예요.'
-        : '';
-
-    return '[$categoryTitle] 이야기를 좀 더 깊이 이해하려면, 먼저 $honorific의 사주 뿌리부터 짚어볼 필요가 있어요. '
-        '그 뿌리에는 $gan($image)의 기운이 자리하고 있는데, ${dm.nature} '
-        '만세력으로 짚어본 이 사주는 $strengthWord 흐름을 타고났고, ${dm.personality} '
-        '이런 타고난 성정은 하루아침에 만들어진 것이 아니라, 태어난 그 순간의 하늘과 땅의 기운이 $honorific 안에 그대로 새겨진 것이고, 지금 살펴보는 $categoryTitle 역시 바로 이 바탕 위에서 흘러나오는 이야기예요.$weaknessNote';
-  }
 
   // ------------------------------------------------------------
-  // 문단 2 — 성향: 오행 과다/부족 + 십신 우세 성향을 인생 이야기로
-  // ------------------------------------------------------------
-  static String _traitsParagraph(
-    SajuFullInterpretation interp,
-    String honorific,
-    String categoryTitle,
-  ) {
-    final fe = interp.fiveElementsAnalysis;
-    final tg = interp.tenGodsAnalysis;
-
-    final buf = StringBuffer();
-
-    if (fe.excess.isNotEmpty || fe.lack.isNotEmpty) {
-      final lines = <String>[
-        for (final el in fe.excess) _elementExcessPositive(el),
-        for (final el in fe.lack) _elementLackPositive(el),
-      ];
-      buf.write(
-        '오행의 흐름을 살펴보면 ${_joinKo(lines)} '
-        '이런 기운의 쏠림은 좋고 나쁨을 가르는 잣대가 아니라, $honorific이 세상을 살아가는 고유한 리듬이라고 보면 돼요. ',
-      );
-    } else {
-      buf.write(
-        '오행 다섯 가지 기운이 사주 안에 비교적 고르게 자리 잡고 있어서, $honorific은 어느 한쪽으로 치우치지 않고 상황에 맞게 유연하게 대처하는 힘을 갖고 있어요. ',
-      );
-    }
-
-    final dominantDetail = tg.details.isNotEmpty ? tg.details.first : null;
-    if (dominantDetail != null) {
-      buf.write(
-        '사주 안에서 특히 도드라지는 기운은 십신 중 ${tg.dominantEasy}(${tg.dominantName})이에요. '
-        '이는 ${dominantDetail.meaning} — 그래서 평소 ${dominantDetail.positive} 모습으로 자주 드러나곤 하죠. '
-        '이 기운이 $honorific의 인생 곳곳에서, 사람을 대하는 태도부터 중요한 결정을 내리는 순간까지 은은하게 영향을 미치고 있는데, $categoryTitle에서 나타나는 흐름에도 이 바탕이 함께 깔려 있다고 보면 돼요.',
-      );
-    }
-
-    return buf.toString().trim();
-  }
-
-  /// 오행별 이름(예: '목'/'화'/'토'/'금'/'수')만 받아, 원본 rules JSON의
-  /// "excess" 필드(질환·부정 감정 나열)를 그대로 노출하지 않고, 같은
-  /// 오행이 과다할 때 나타나는 "장점이 두드러지는 방향"으로 톤을
-  /// 순화해 직접 작성한 문장을 돌려준다(사용자 지시: 좋은 결과가 나오게
-  /// 조심스럽게 풀이). 원본 rules JSON의 값에 의존하지 않으므로 룰 파일이
-  /// 바뀌어도 항상 긍정적인 톤을 유지한다.
-  static String _elementExcessPositive(String element) {
-    switch (element) {
-      case '목':
-        return '목(木)의 기운이 풍부해서 성장하고 뻗어나가려는 힘이 강한 편이에요. 그 힘을 밖으로 잘 풀어낼 때 훨씬 편안해져요';
-      case '화':
-        return '화(火)의 기운이 넘쳐서 열정과 표현력이 남다른 편이에요. 다만 가끔은 속도를 늦추고 숨을 고르는 시간도 함께 가지면 좋아요';
-      case '토':
-        return '토(土)의 기운이 든든해서 무엇이든 품고 중심을 잡는 힘이 큰 편이에요. 가끔은 스스로를 위한 여유도 챙겨주면 더 좋아요';
-      case '금':
-        return '금(金)의 기운이 강해서 결단력과 원칙이 뚜렷한 편이에요. 그 예리함을 부드러운 말투로 감싸면 관계가 한결 편안해져요';
-      case '수':
-        return '수(水)의 기운이 깊어서 지혜롭고 사색적인 면이 두드러지는 편이에요. 생각이 많아질 때는 가까운 사람과 나누는 대화가 큰 힘이 돼요';
-      default:
-        return '';
-    }
-  }
-
-  static String _elementLackPositive(String element) {
-    switch (element) {
-      case '목':
-        return '목(木)의 기운은 조금 여백이 있는 편이라, 계획을 세울 때 주변 사람의 의견을 들으면 더 든든한 결정을 내릴 수 있어요';
-      case '화':
-        return '화(火)의 기운은 여백이 있는 편이라, 스스로를 표현하는 연습을 조금씩 해보면 관계가 한결 풍성해질 수 있어요';
-      case '토':
-        return '토(土)의 기운은 여백이 있는 편이라, 규칙적인 생활 리듬을 만들어가면 마음이 훨씬 안정될 수 있어요';
-      case '금':
-        return '금(金)의 기운은 여백이 있는 편이라, 중요한 결정을 내릴 때 조금 더 시간을 갖고 정리하면 후회가 줄어들 수 있어요';
-      case '수':
-        return '수(水)의 기운은 여백이 있는 편이라, 충분한 휴식과 수분 섭취처럼 몸을 아끼는 작은 습관이 큰 도움이 될 수 있어요';
-      default:
-        return '';
-    }
-  }
-
-  // ------------------------------------------------------------
-  // 문단 3 — 카테고리 관점(평생/대운/세운/오늘/궁합/특수주제/건강/개운)에
+  // 핵심해석 — 카테고리 관점(평생/대운/세운/오늘/궁합/특수주제/건강/개운)에
   // 맞춰 재물/직업/애정/건강 중 관련 있는 것을 자연스럽게 녹인 핵심 문단.
   //
   // [2026-08-18 A/B/E/F/G/H 소카테고리 차별화] 사용자가 "올해 건강운을
@@ -1080,70 +977,20 @@ class JeontongNarrativeInterpreter {
   }
 
   // ------------------------------------------------------------
-  // 문단 4 — 신살 + 현재 대운을 인생 이야기로 녹인 조언 문단
-  // ------------------------------------------------------------
-  static String _luckParagraph(
-    SajuFullInterpretation interp,
-    String honorific,
-  ) {
-    final sinsal = interp.sinsalAnalysis.list;
-    if (sinsal.isEmpty) return '';
-    final lines = sinsal
-        .map((s) => '${_sinsalEasyName(s.name)}의 기운도 함께 갖고 계셔서, ${s.meaning}')
-        .toList();
-    return '여기에 더해 $honorific의 사주에는 특별한 기운도 함께 자리하고 있어요. ${_joinKo(lines)} '
-        '이런 기운들은 평소에는 잘 드러나지 않다가도, 정말 중요한 순간에 $honorific을 슬며시 도와주는 힘으로 작용하곤 해요.';
-  }
-
-  static String _sinsalEasyName(String raw) {
-    // "天乙貴人(천을귀인)" → "천을귀인" 처럼 괄호 안 한글만 뽑아 우선
-    // 노출하고, 원어는 자연스럽게 뒤에 남겨둔다.
-    final start = raw.indexOf('(');
-    final end = raw.indexOf(')');
-    if (start != -1 && end != -1 && end > start) {
-      return raw.substring(start + 1, end);
-    }
-    return raw;
-  }
-
-  // ------------------------------------------------------------
-  // 문단 5 — 마무리: 카테고리 성격에 맞춘 다정한 격려 + 확실한 행동지침
-  // ------------------------------------------------------------
+  // [2026-08-21 삭제됨] 기존 신살 문단(`_luckParagraph`/`_sinsalEasyName`)
+  // — §9 금지 문구 "여기에 더해"로 시작하며 B~H그룹 전체에서 신살
+  // 유무만으로 거의 동일하게 반복되던 문단. 카테고리 고유 정보가 아니라
+  // 완전히 제거했다(계산 로직 변경 없음 — 순수 서술용이었을 뿐이다).
   //
-  // [2026 그룹③(유형분류/정보성) "확실한 행동지침으로 끝맺기" 보강 —
-  // 사용자 확정 지시 · 선택지 A] 기존 3문장(나침반 비유) 마무리는
-  // major(A~H) 8종 단위로만 뭉뚱그려져 있어 어떤 카테고리를 봐도 항상
-  // 같은 격려 문구로 끝났다. 계산 로직은 절대 바꾸지 않고(§0/§2), 이미
-  // 각 카테고리 계산 함수가 산출해 둔 `data['advice']`(구체적 조언
-  // 문장, 이미 여러 카테고리에서 존재)를 재료로 마지막에 "그러니 지금은
-  // 이렇게 해보세요" 식 행동지침 문장 하나를 추가로 붙인다.
-  // `advice`가 없으면 `data['message']`의 마지막 문장(조언 성격을 띄는
-  // 경우가 많음)으로 폴백하고, 둘 다 없으면 기존 동작(추가 없음)을
-  // 그대로 유지한다 — 새 판단 없음, 문자열 조합만.
-  static String _closingParagraph(
-    SajuFullInterpretation interp,
-    JeontongMajorCode major,
-    String honorific,
-    Map<String, dynamic>? data,
-  ) {
-    final periodWord = switch (major) {
-      JeontongMajorCode.a => '평생이라는 긴 여정',
-      JeontongMajorCode.b => '앞으로의 10년',
-      JeontongMajorCode.c => '올 한 해',
-      JeontongMajorCode.d => '오늘과 이달',
-      JeontongMajorCode.e => '앞으로 맺어갈 인연',
-      JeontongMajorCode.f => '지금 마주한 이 고민',
-      JeontongMajorCode.g => '앞으로의 몸과 마음',
-      JeontongMajorCode.h => '앞으로 채워갈 하루하루',
-    };
-    final base =
-        '사주는 정해진 운명을 통보하는 것이 아니라, $honorific이 타고난 결을 미리 알고 $periodWord을 더 지혜롭게 채워가라는 하나의 나침반이에요. '
-        '오늘 이 풀이에 담긴 이야기들을 마음 한쪽에 잘 담아두었다가, 중요한 갈림길에 설 때마다 슬쩍 꺼내 보세요. '
-        '만세력이 짚어준 $honorific의 사주는 이미 좋은 가능성을 충분히 품고 있으니, 그 가능성을 믿고 한 걸음씩 나아가면 분명 원하는 방향으로 흘러갈 거예요.';
-    final actionSentence = _closingActionSentence(data);
-    if (actionSentence == null) return base;
-    return '$base $actionSentence';
-  }
+  // [2026-08-21 마무리 문단 축소] 기존 `_closingParagraph`는 major(A~H)
+  // 8종 단위로만 문구가 갈리는 "나침반" 비유(§9 금지 문구 "사주는
+  // 정해진 운명"으로 시작)를 항상 붙였는데, 이 역시 카테고리 고유
+  // 정보가 아니라 8종류로만 돌려쓰는 고정 문구였다. 이제
+  // [_closingActionSentence]가 만들어내는, 각 카테고리 계산이 실제로
+  // 산출한 advice/message 기반 "짧은 행동지침 한 줄"만 (있을 때만)
+  // 핵심해석 문단 아래에 덧붙인다 — 고정 나침반 비유 문구는 완전히
+  // 제거했다.
+  // ------------------------------------------------------------
 
   /// [data]의 `advice`(우선) 또는 `message`의 마지막 문장(조언 성격이
   /// 뚜렷할 때만)을 골라, 마무리 문단에 붙일 완결된 행동지침 문장을
