@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
 import '../application/ad_banner_provider.dart';
 import '../domain/ad_banner_model.dart';
 import 'ad_script_view.dart';
@@ -72,20 +71,23 @@ class _AdBannerWidgetState extends State<AdBannerWidget> {
       return widget.fallback ?? const SizedBox.shrink();
     }
 
+    // [사용자 요청] "힐링박스 밑에 쿠팡파트너스 박스가 힐링박스랑 가로 간격이
+    // 일치했으면 좋겠어" — 활성 배너가 2개 이상이면 기존에는
+    // PageController(viewportFraction: 0.94) + padEnds:false + 우측 peek용
+    // padding 때문에 현재 보이는 배너 카드가 컨테이너 전체 폭의 94%만 차지하고
+    // 오른쪽에 다음 카드가 살짝 미리보기(peek)되어, 위쪽 힐링 카드(항상 전체
+    // 폭을 꽉 채움)와 좌우 여백이 달라 보이는 문제가 있었다. viewportFraction을
+    // 1.0으로, padEnds를 true로 바꾸고 peek용 우측 padding을 제거해 배너 개수와
+    // 무관하게 항상 힐링 카드와 동일하게 전체 폭을 꽉 채우도록 통일한다.
     return SizedBox(
       height: 96,
       child: banners.length == 1
           ? _BannerCard(banner: banners.first, onTap: _openLink)
           : PageView.builder(
               itemCount: banners.length,
-              padEnds: false,
-              controller: PageController(viewportFraction: 0.94),
               itemBuilder: (context, index) {
                 final banner = banners[index];
-                return Padding(
-                  padding: const EdgeInsets.only(right: AppSpacing.sm),
-                  child: _BannerCard(banner: banner, onTap: _openLink),
-                );
+                return _BannerCard(banner: banner, onTap: _openLink);
               },
             ),
     );
