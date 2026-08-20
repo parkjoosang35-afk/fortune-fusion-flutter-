@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_unified_style.dart';
+import '../intro_palette.dart';
 
 /// [인트로 전면 개편] 4단계 시작화면 - 타이틀/서브카피/가입보상 배지 +
 /// 메인버튼(바로시작하기)/보조버튼(가입하고 복주머니 받기)/로그인 링크/
@@ -7,6 +8,10 @@ import '../../../../core/theme/app_unified_style.dart';
 ///
 /// [UX 금지사항 준수] 강제 모달 없음, 긴 약관 없음, 유료/포인트/구독 느낌의
 /// 문구 없음 — 오직 사용자가 지정한 정확한 카피만 노출한다.
+///
+/// [2026-08-21 인트로 3종 색상 정리] 로고 원/가입보상 배지/메인버튼을
+/// 브랜드 컬러 #90035C(IntroPalette) 톤으로 교체했다. 보조버튼(아웃라인)과
+/// 로그인 링크는 테두리·텍스트 색만 브랜드 톤으로 바꾸고 구조는 유지한다.
 class IntroCTASection extends StatelessWidget {
   final String title;
   final String subtitle;
@@ -42,13 +47,17 @@ class IntroCTASection extends StatelessWidget {
             height: 88,
             alignment: Alignment.center,
             decoration: const BoxDecoration(
-              color: UnifiedColors.cardMain,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [IntroPalette.primary, IntroPalette.primaryDark],
+              ),
               shape: BoxShape.circle,
             ),
             child: const Icon(
               Icons.auto_awesome_rounded,
               size: 40,
-              color: UnifiedColors.black,
+              color: IntroPalette.onPrimary,
             ),
           ),
           const SizedBox(height: UnifiedTokens.spaceXxl),
@@ -71,7 +80,7 @@ class IntroCTASection extends StatelessWidget {
               vertical: UnifiedTokens.spaceMd,
             ),
             decoration: BoxDecoration(
-              color: UnifiedColors.cardMain,
+              color: IntroPalette.primaryLight,
               borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
             ),
             child: Row(
@@ -81,13 +90,15 @@ class IntroCTASection extends StatelessWidget {
                 const Icon(
                   Icons.card_giftcard_rounded,
                   size: UnifiedTokens.iconMd,
-                  color: UnifiedColors.black,
+                  color: IntroPalette.primaryDark,
                 ),
                 const SizedBox(width: UnifiedTokens.spaceSm),
                 Flexible(
                   child: Text(
                     signupRewardText,
-                    style: UnifiedText.bodyStrong(),
+                    style: UnifiedText.bodyStrong(
+                      color: IntroPalette.primaryDark,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -101,8 +112,8 @@ class IntroCTASection extends StatelessWidget {
             child: ElevatedButton(
               onPressed: onStartAsGuest,
               style: ElevatedButton.styleFrom(
-                backgroundColor: UnifiedColors.black,
-                foregroundColor: Colors.white,
+                backgroundColor: IntroPalette.primary,
+                foregroundColor: IntroPalette.onPrimary,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
@@ -110,7 +121,7 @@ class IntroCTASection extends StatelessWidget {
               ),
               child: Text(
                 '바로 시작하기',
-                style: UnifiedText.bodyStrong(color: Colors.white),
+                style: UnifiedText.bodyStrong(color: IntroPalette.onPrimary),
               ),
             ),
           ),
@@ -121,13 +132,16 @@ class IntroCTASection extends StatelessWidget {
             child: OutlinedButton(
               onPressed: onSignup,
               style: OutlinedButton.styleFrom(
-                foregroundColor: UnifiedColors.black,
-                side: const BorderSide(color: UnifiedColors.border),
+                foregroundColor: IntroPalette.primaryDark,
+                side: const BorderSide(color: IntroPalette.primary),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
                 ),
               ),
-              child: Text('가입하고 복주머니 100개 받기', style: UnifiedText.bodyStrong()),
+              child: Text(
+                '가입하고 복주머니 100개 받기',
+                style: UnifiedText.bodyStrong(color: IntroPalette.primaryDark),
+              ),
             ),
           ),
           const SizedBox(height: UnifiedTokens.spaceLg),

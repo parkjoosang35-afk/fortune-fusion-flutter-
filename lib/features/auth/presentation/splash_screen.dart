@@ -4,15 +4,21 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_unified_style.dart';
 import '../../intro/application/intro_state_provider.dart';
 import '../../intro/application/intro_config_provider.dart';
+import '../../intro/presentation/intro_palette.dart';
 import '../../home/domain/jeontong_local_to_server_migration.dart';
 import '../application/auth_provider.dart';
 
 /// [인트로 전면 개편 - 1단계 브랜드 스플래시]
-/// 중앙 로고 + "신통방통" + (선택)짧은 카피, fade-in/out, 1.0~1.5초, 화이트+연보라.
+/// 중앙 로고 + "신통방통" + (선택)짧은 카피, fade-in/out, 1.0~1.5초.
+///
+/// [2026-08-21 인트로 3종 색상 정리] 배경/로고 톤을 브랜드 컬러
+/// #90035C(IntroPalette) 기준으로 교체했다. 부트스트랩 로직과 진입 정책은
+/// 절대 손대지 않고 시각적 톤만 바꾼다(§7 계산/로직 불변 원칙과 동일한
+/// 정신 — 여기서는 "부트스트랩 로직 불변").
 ///
 /// [기존 구조 재사용 원칙] 부트스트랩 로직(AuthProvider.restoreSession() 호출,
 /// introSeen 여부에 따른 분기)은 기존 SplashScreen 구조를 그대로 유지하고,
-/// 시각적 톤(다크 mysticGradient → 화이트+연보라)과 진입 정책만 개선한다.
+/// 시각적 톤과 진입 정책만 개선한다.
 ///
 /// [진입 정책 변경 — 로그인 강제 제거] 기존에는 "온보딩 완료 + 비로그인"이면
 /// 무조건 /login으로 보냈으나, 이는 "회원가입 강제 없이 체험 가능"이라는 인트로
@@ -123,13 +129,13 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: UnifiedColors.bg,
+      backgroundColor: IntroPalette.backgroundSoft,
       body: DecoratedBox(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [UnifiedColors.bg, UnifiedColors.cardMain],
+            colors: [IntroPalette.backgroundSoft, IntroPalette.primaryLight],
           ),
         ),
         child: Center(
@@ -142,26 +148,35 @@ class _SplashScreenState extends State<SplashScreen>
                   width: 88,
                   height: 88,
                   decoration: BoxDecoration(
-                    color: UnifiedColors.bg,
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        IntroPalette.primary,
+                        IntroPalette.primaryDark,
+                      ],
+                    ),
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: UnifiedColors.cardMain.withValues(alpha: 0.8),
-                        blurRadius: 24,
-                        spreadRadius: 4,
+                        color: IntroPalette.primary.withValues(alpha: 0.35),
+                        blurRadius: 28,
+                        spreadRadius: 2,
                       ),
                     ],
                   ),
                   child: const Icon(
                     Icons.auto_awesome_rounded,
-                    color: UnifiedColors.black,
+                    color: IntroPalette.onPrimary,
                     size: 40,
                   ),
                 ),
                 const SizedBox(height: UnifiedTokens.spaceXxl),
                 Text(
                   '신통방통',
-                  style: UnifiedText.titleLarge().copyWith(fontSize: 22),
+                  style: UnifiedText.titleLarge(
+                    color: IntroPalette.primaryDark,
+                  ).copyWith(fontSize: 22),
                 ),
               ],
             ),

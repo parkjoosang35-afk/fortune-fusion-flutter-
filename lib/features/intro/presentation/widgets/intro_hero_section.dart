@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_unified_style.dart';
+import '../intro_palette.dart';
 
 /// [인트로 전면 개편] 2~3단계 카드 상단의 "미니 비주얼" 영역.
 ///
@@ -7,6 +8,10 @@ import '../../../../core/theme/app_unified_style.dart';
 /// 복잡한 일러스트 대신 아이콘 + 옅은 카드 배경 + (선택)배지만으로 구성한다.
 /// - 카드1(프리패스): 잠금 해제 아이콘 + "1시간" 배지
 /// - 카드2(복주머니): 복주머니 아이콘 + 개수가 올라가는 카운터 애니메이션
+///
+/// [2026-08-21 인트로 3종 색상 정리] 카드 배경을 브랜드 컬러 #90035C
+/// (IntroPalette.primaryLight) 톤으로, 중앙 원과 배지는 브랜드 그라데이션으로
+/// 교체했다. 레이아웃/구조/애니메이션은 그대로 유지한다.
 class IntroHeroSection extends StatelessWidget {
   final IconData icon;
   final String? badgeText;
@@ -22,7 +27,7 @@ class IntroHeroSection extends StatelessWidget {
     super.key,
     required this.icon,
     this.badgeText,
-    this.cardColor = UnifiedColors.cardMain,
+    this.cardColor = IntroPalette.primaryLight,
     this.showCounter = false,
     this.counterTarget = 12,
     this.counterSuffix = '개',
@@ -47,10 +52,17 @@ class IntroHeroSection extends StatelessWidget {
                   width: 84,
                   height: 84,
                   decoration: const BoxDecoration(
-                    color: UnifiedColors.bg,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        IntroPalette.primary,
+                        IntroPalette.primaryDark,
+                      ],
+                    ),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(icon, size: 40, color: UnifiedColors.black),
+                  child: Icon(icon, size: 40, color: IntroPalette.onPrimary),
                 ),
                 if (showCounter) ...[
                   const SizedBox(height: UnifiedTokens.spaceLg),
@@ -60,10 +72,9 @@ class IntroHeroSection extends StatelessWidget {
                     curve: Curves.easeOutCubic,
                     builder: (context, value, _) => Text(
                       '+$value$counterSuffix',
-                      style: UnifiedText.titleLarge().copyWith(
-                        fontSize: 26,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: UnifiedText.titleLarge(
+                        color: IntroPalette.primaryDark,
+                      ).copyWith(fontSize: 26, fontWeight: FontWeight.w700),
                     ),
                   ),
                 ],
@@ -80,12 +91,12 @@ class IntroHeroSection extends StatelessWidget {
                   vertical: UnifiedTokens.spaceXs,
                 ),
                 decoration: BoxDecoration(
-                  color: UnifiedColors.black,
+                  color: IntroPalette.primary,
                   borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
                 ),
                 child: Text(
                   badgeText!,
-                  style: UnifiedText.chipLabel(color: Colors.white),
+                  style: UnifiedText.chipLabel(color: IntroPalette.onPrimary),
                 ),
               ),
             ),

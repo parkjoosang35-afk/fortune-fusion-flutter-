@@ -4,6 +4,7 @@ import '../../../core/theme/app_unified_style.dart';
 import '../application/intro_config_provider.dart';
 import '../application/intro_state_provider.dart';
 import '../domain/intro_config_model.dart';
+import 'intro_palette.dart';
 import 'widgets/intro_card_widget.dart';
 import 'widgets/intro_cta_section.dart';
 import 'widgets/intro_skip_action.dart';
@@ -19,6 +20,10 @@ import 'widgets/intro_skip_action.dart';
 /// 기존 onboarding_screen.dart의 "onboarding_completed 저장 후 이동" 패턴을
 /// 그대로 계승하되, 로그인 강제 없이 "바로 시작하기(비회원)"를 기본 동선으로
 /// 추가한다.
+///
+/// [2026-08-21 인트로 3종 색상 정리] 배경/다음버튼/페이지 인디케이터를
+/// 브랜드 컬러 #90035C(IntroPalette) 톤으로 교체했다. 페이지 구성·전환
+/// 로직·완료 처리는 그대로 유지한다.
 class IntroPagerScreen extends StatefulWidget {
   const IntroPagerScreen({super.key});
 
@@ -85,7 +90,7 @@ class _IntroPagerScreenState extends State<IntroPagerScreen> {
     final showSkip = config.showSkipButton && _index < _pageCount - 1;
 
     return Scaffold(
-      backgroundColor: UnifiedColors.bg,
+      backgroundColor: IntroPalette.backgroundSoft,
       body: SafeArea(
         child: Column(
           children: [
@@ -124,8 +129,8 @@ class _IntroPagerScreenState extends State<IntroPagerScreen> {
                     height: 6,
                     decoration: BoxDecoration(
                       color: _index == i
-                          ? UnifiedColors.black
-                          : UnifiedColors.border,
+                          ? IntroPalette.primary
+                          : IntroPalette.primaryLight,
                       borderRadius: BorderRadius.circular(
                         UnifiedTokens.radiusPill,
                       ),
@@ -144,8 +149,8 @@ class _IntroPagerScreenState extends State<IntroPagerScreen> {
                   child: ElevatedButton(
                     onPressed: _next,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: UnifiedColors.black,
-                      foregroundColor: Colors.white,
+                      backgroundColor: IntroPalette.primary,
+                      foregroundColor: IntroPalette.onPrimary,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(
