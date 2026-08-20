@@ -79,11 +79,34 @@ class JeontongNarrativeInterpreter {
   }) {
     final honorific = _honorific(name);
     final core = _categoryParagraph(interp, entry, honorific, data);
-    final action = _closingActionSentence(data);
+    // [2026-08-21 추가 수정 — 대표 카테고리 출력 검증 중 재발견] C01~C05
+    // (`_yearFortuneToResult`가 focusField와 무관하게 항상 같은
+    // `getYearFortune().advice`를 담음)와 D09/G04/H01~H05/H07/H10
+    // (`_luckyItemsToResult`가 전부 같은 `getLuckyItems().advice`를 공유)는
+    // advice 재료 자체가 카테고리와 무관하게 같은 사용자에게 항상 동일한
+    // 값이라, 행동지침 문단을 그대로 붙이면 5~9개 카테고리가 다시
+    // 완전히 같은 문장을 반복하게 된다(사용자가 지적한 "다 같은 말"
+    // 문제의 축소 재발). 이런 "공유 재료" 카테고리는 행동지침 문단을
+    // 붙이지 않고 핵심해석 1문단만 노출한다.
+    final action = _sharesAdviceAcrossCategories(entry.id)
+        ? null
+        : _closingActionSentence(data);
     return [
       core,
       if (action != null) action,
     ].where((p) => p.trim().isNotEmpty).toList(growable: false);
+  }
+
+  /// [entry.id]가 카테고리와 무관하게 동일한 advice 재료를 공유하는
+  /// 그룹(연간 총운 4분야 C01~C05, 개운 아이템 계열 D09/G04/H01~H05/
+  /// H07/H10)에 속하는지 판별한다. 이 그룹은 행동지침 문단을 생략해
+  /// 카테고리 간 문구 중복을 막는다.
+  static bool _sharesAdviceAcrossCategories(String categoryId) {
+    const sharedAdviceIds = {
+      'C01', 'C02', 'C03', 'C04', 'C05',
+      'D09', 'G04', 'H01', 'H02', 'H03', 'H04', 'H05', 'H07', 'H10',
+    };
+    return sharedAdviceIds.contains(categoryId);
   }
 
   /// 이름이 있으면 "○○님", 없으면 "이 사주의 주인공"으로 호칭한다.
