@@ -121,23 +121,25 @@ class JeontongEightyMatrix {
   /// [운세 섹션 4단계 흐름 - 화면3 로딩] 결과 계산 중 보여주는 로딩 화면
   /// 라우트. 게이트 체크(`navigateWithPassGate`)를 통과한 뒤 곧장 결과로
   /// 가는 대신 먼저 이 라우트로 진입하고, 로딩 화면 자체가 애니메이션
-  /// 완료 후 [gateRoute](부적게이트)로 `pushReplacementNamed`한다(뒤로가기
-  /// 시 로딩 화면을 건너뛰기 위함). arguments로 categoryId(String)를 그대로
-  /// 받는다.
-  ///
-  /// [만세력 로딩 5초 고정 이유] 실제 계산이 이 5초 안에 끝나야 하는
-  /// "신뢰감" 구간이므로 부적게이트 도입 이후에도 단축 대상이 아니다.
+  /// 완료 후 [resultRoute]로 `pushReplacementNamed`한다(뒤로가기 시 로딩
+  /// 화면을 건너뛰기 위함). arguments로 categoryId(String)를 그대로 받는다.
   static const String loadingRoute = '/jeontong/eighty/loading';
 
-  /// [부적게이트] 만세력 로딩 완료 후, 결과 화면 진입 직전에 표시하는
-  /// 인터랙티브 게이트(부적을 탭하면 축복 문구가 뜨는 3초~1.5초 애니메이션).
-  /// 원본: 사용자 업로드 `부적게이트_핸드오프.zip`(TalismanGate.jsx)을
-  /// Flutter로 포팅. 애니메이션 완료 후 [resultRoute]로
-  /// `pushReplacementNamed`한다. arguments로 categoryId(String?)를 그대로
-  /// 전달한다.
+  /// [부적게이트] "운세" 섹션 진입 직후, 69종 목록([browseRoute])을 보여주기
+  /// 전에 표시하는 인터랙티브 인트로 게이트(부적을 탭하면 축복 문구가 뜨는
+  /// 애니메이션). 원본: 사용자 업로드 `부적게이트_핸드오프.zip`
+  /// (TalismanGate.jsx)을 Flutter로 포팅.
+  ///
+  /// [진입 위치 - 중요] 이 게이트는 카테고리 선택 후 결과 계산 로딩
+  /// ([loadingRoute]/[resultRoute]) 흐름과는 완전히 별개다 — "운세" 카드/칩을
+  /// 눌러 69종 목록으로 들어가는 시점 1회에만 등장하고, 애니메이션 완료 후
+  /// [browseRoute]로 `pushReplacementNamed`한다(뒤로가기 시 게이트를
+  /// 다시 보지 않고 곧장 이전 화면으로 돌아가게 하기 위함).
   static const String gateRoute = '/jeontong/eighty/gate';
 
-  /// 신규 80종 대/소카테고리 진열 화면 라우트.
+  /// 신규 80종 대/소카테고리 진열 화면 라우트. [gateRoute]를 거친 뒤 도달하는
+  /// 목적지 — 이 라우트로 직접 진입하는 곳은 [gateRoute] 단 한 곳으로 통일
+  /// 한다(§22 원칙: 진입점 중복 방지).
   static const String browseRoute = '/jeontong/eighty';
 
   static final List<JeontongMajorGroup> groups = [

@@ -573,12 +573,14 @@ class _FortuneCategoryChipsState extends State<_FortuneCategoryChips> {
   // 기준 시안: 칩에는 아이콘 없이 텍스트만 표시.
   // [3단계 2차 실제 구조 정리 - 작업2] "정통사주" 라벨이 AI사주 라우트로
   // 잘못 연결되어 있던 배선을 [JeontongEightyMatrix.browseRoute]로 수정.
+  // [부적게이트 재배치] "운세" 섹션 진입점이므로 목록 화면(browseRoute)
+  // 직행 대신 부적게이트([JeontongEightyMatrix.gateRoute])를 먼저 거친다.
   static const _items = [
     ('오늘의 운세', null, false),
     ('AI 사주', '/ai-fortune/saju/input', true),
     ('관상', '/ai-fortune/face/capture', true),
     ('손금', '/ai-fortune/palm/capture', true),
-    ('정통사주', JeontongEightyMatrix.browseRoute, true),
+    ('정통사주', JeontongEightyMatrix.gateRoute, true),
   ];
 
   Future<void> _handleTap(int index) async {
@@ -986,14 +988,14 @@ class _FortuneTarotRow extends StatelessWidget {
               backgroundColor: HomeColors.cardMain,
               circleIcon: Icons.arrow_drop_up_rounded,
               circleStyle: PremiumCircleButtonStyle.neon,
-              // [정통사주 80종 개편] "운세" 카드를 누르면 정통사주 80종을
-              // 대/소카테고리로 나눠 보여주는 전용 화면으로 이동한다(게이트
-              // 체크는 그 화면 안에서 개별 소카테고리를 선택했을 때만 수행 —
-              // 화면을 여는 것 자체는 항상 가능, 기존 8종 바텀시트와 동일한
-              // 원칙).
+              // [부적게이트 재배치] "운세" 카드를 누르면 곧장 목록 화면으로
+              // 가지 않고, 먼저 부적게이트(인트로)를 보여준 뒤 게이트가
+              // 끝나면 게이트 화면이 자체적으로 정통사주 80종 목록
+              // (browseRoute)으로 이동한다. 소카테고리 선택 시의 게이트
+              // 체크는 그대로 그 화면 안에서 개별 수행된다(변경 없음).
               onTap: () => Navigator.of(
                 context,
-              ).pushNamed(JeontongEightyMatrix.browseRoute),
+              ).pushNamed(JeontongEightyMatrix.gateRoute),
             ),
           ),
           const SizedBox(width: _Dims.wishCardGap),

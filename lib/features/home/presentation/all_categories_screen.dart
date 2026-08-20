@@ -646,6 +646,8 @@ class _FeaturedGrid extends StatelessWidget {
   // PHASE1~4 엔진과 무관한 화면을 "정통사주"라고 잘못 안내하던 문제를 바로
   // 잡는다. 라우트를 [JeontongEightyMatrix.browseRoute]로 교체해 실제
   // 정통사주 69종 화면(JeontongEightyScreen)으로 연결한다.
+  // [부적게이트 재배치] "운세" 섹션 진입점이므로 목록 화면(browseRoute) 직행
+  // 대신 부적게이트([JeontongEightyMatrix.gateRoute])를 먼저 거친다.
   static const _items = [
     (
       '오늘의 운세',
@@ -659,7 +661,7 @@ class _FeaturedGrid extends StatelessWidget {
       '정통사주',
       '타고난 기운과 인생의 방향',
       Icons.auto_stories_outlined,
-      JeontongEightyMatrix.browseRoute,
+      JeontongEightyMatrix.gateRoute,
       true,
     ),
     (
@@ -825,11 +827,9 @@ _categoryGroups = [
     title: '사주',
     desc: '타고난 기운과 흐름을 깊게 해석해보세요',
     items: [
-      (
-        label: '정통사주',
-        route: JeontongEightyMatrix.browseRoute,
-        pass: true,
-      ),
+      // [부적게이트 재배치] "운세" 섹션 진입점 — 목록 화면 직행 대신
+      // 부적게이트를 먼저 거친다.
+      (label: '정통사주', route: JeontongEightyMatrix.gateRoute, pass: true),
       (label: 'AI 사주', route: '/ai-fortune/saju/input', pass: true),
     ],
   ),

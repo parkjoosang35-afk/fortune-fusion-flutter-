@@ -129,24 +129,23 @@ class AppRouter {
       // 무관하며 아래에 그대로 유지된다(변경 없음). ──
       case JeontongEightyMatrix.browseRoute:
         return _page(const JeontongEightyScreen());
+      // [부적게이트] "운세" 섹션 진입점(홈 카드/전체보기/운세허브)에서
+      // [browseRoute](69종 목록)로 가기 직전에 표시하는 인터랙티브 게이트.
+      // 카테고리 선택 이전 단계이므로 categoryId를 받지 않는다. 애니메이션
+      // 완료 후 이 화면이 [browseRoute]로 `pushReplacementNamed`한다(뒤로가기
+      // 시 게이트를 다시 보지 않고 곧장 이전 화면으로 돌아가게 하기 위함).
+      case JeontongEightyMatrix.gateRoute:
+        return _page(const JeontongTalismanGateScreen());
       // [운세 섹션 4단계 흐름 - 화면3 로딩] "사주보기" 제출 직후 결과로
       // 곧장 가지 않고 반드시 이 로딩 화면을 먼저 거친다(handoff 원본
       // saju_loading_screen.dart 디자인 재현). arguments로 categoryId
-      // (String?)를 그대로 받아 결과 화면 이동 시 다시 전달한다.
+      // (String?)를 그대로 받아 결과 화면 이동 시 다시 전달한다. 이 화면은
+      // 부적게이트와 무관 — 애니메이션 완료 후 곧장 [resultRoute]로 이동한다.
       case JeontongEightyMatrix.loadingRoute:
         return _page(
           JeontongEightyLoadingScreen(
             categoryId: settings.arguments as String?,
           ),
-        );
-      // [부적게이트] 만세력 로딩 완료 후 결과 화면 진입 직전에 표시하는
-      // 인터랙티브 게이트. 로딩 화면이 애니메이션 완료 후 이 라우트로
-      // `pushReplacementNamed`하고, 이 화면이 다시 [resultRoute]로
-      // `pushReplacementNamed`한다(뒤로가기 시 게이트/로딩을 모두 건너뛰기
-      // 위함).
-      case JeontongEightyMatrix.gateRoute:
-        return _page(
-          JeontongTalismanGateScreen(categoryId: settings.arguments as String?),
         );
       case JeontongEightyMatrix.resultRoute:
         return _page(

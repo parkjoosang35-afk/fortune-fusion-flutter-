@@ -1,16 +1,24 @@
 // ============================================================
-// [부적게이트 · TalismanGate] — 정통사주 69종 전용 게이트 화면
+// [부적게이트 · TalismanGate] — "운세" 섹션 진입 게이트 화면
 //
 // 원본: 사용자 업로드 `부적게이트_핸드오프.zip`(React `TalismanGate.jsx`,
 // 573줄 + README.md 169줄)을 Flutter/Dart로 포팅. "운세(사주) 화면 진입
 // 직전에 표시되는 인터랙티브 게이트 — 부적을 탭하면 축복 문구가 뜨는
-// 애니메이션"이라는 원본 목적을 그대로 유지하되, 이 프로젝트에서는
-// [JeontongEightyLoadingScreen](만세력 로딩, 5초) 바로 다음 단계로만
-// 사용한다 — 정통사주 69종(A~H그룹) 결과 화면 진입 직전 전용 게이트다.
-// AI 타로/관상/손금/상담 등 다른 기능과는 무관하다.
+// 애니메이션"이라는 원본 목적 그대로: 홈/전체보기/운세허브의 "운세"
+// 진입점을 탭한 "직후", 정통사주 69종 목록([JeontongEightyMatrix.
+// browseRoute] → [JeontongEightyScreen])을 보여주기 "직전"에만 표시된다.
+//
+// [원상복구 - 중요] 카테고리를 이미 선택한 뒤의 결과 계산 로딩
+// ([JeontongEightyLoadingScreen], 8초, 만세력 계산)과는 완전히 별개의
+// 위치다. 이 게이트는 categoryId를 전혀 알지 못하며(아직 사용자가
+// 카테고리를 고르기 전 시점), 종료 후에는 항상 목록 화면
+// ([JeontongEightyMatrix.browseRoute])으로만 이동한다. 결과 화면
+// ([resultRoute])으로 직접 이동하지 않는다.
 //
 // [사용자 확정 답변 반영]
-// Q1: 로딩 5초(불변) + 이 화면 3초(첫 노출)/1.5초(세션 재진입) = 총 8초.
+// Q1: (원안 폐기) 만세력 로딩(8초)과는 순서상 무관 — 이 게이트는 그보다
+//     앞선 "운세 진입" 시점 1회에만 등장한다. 첫 노출 3초/세션 재진입
+//     1.5초.
 // Q2: 세션(30분) 내 재진입 시 단축 — [JeontongGateSession] 참고.
 // Q3: 축복 문구 12종은 §9 정책에 맞춰 재작성된
 //     [kJeontongGateBlessings]를 그대로 사용(범용 문구 없음).
@@ -63,9 +71,7 @@ class _GatePalette {
 const List<String> _kBaguaGlyphs = ['乾', '兌', '離', '震', '巽', '坎', '艮', '坤'];
 
 class JeontongTalismanGateScreen extends StatefulWidget {
-  const JeontongTalismanGateScreen({super.key, required this.categoryId});
-
-  final String? categoryId;
+  const JeontongTalismanGateScreen({super.key});
 
   @override
   State<JeontongTalismanGateScreen> createState() =>
@@ -191,16 +197,16 @@ class _JeontongTalismanGateScreenState extends State<JeontongTalismanGateScreen>
     if (_navigated) return;
     _navigated = true;
     _countdownTimer?.cancel();
-    // [화면 전환] 0.6초 정도의 짧은 페이드 후 결과 화면으로 교체 이동.
-    // 부적게이트는 게이트 재검증을 하지 않는다 — 이미
-    // JeontongEightyLoadingScreen 이전 단계에서 navigateWithPassGate가
-    // 게이트를 통과시켰으므로 여기서는 곧장 결과로 넘어간다.
+    // [화면 전환] 0.6초 정도의 짧은 페이드 후 정통사주 69종 목록 화면으로
+    // 교체 이동. 이 게이트는 "운세" 진입 직후 1회만 등장하는 인트로이며,
+    // categoryId는 아직 선택되지 않았으므로 목록 화면([browseRoute])으로만
+    // 이동한다(뒤로가기 시 게이트를 다시 보지 않고 곧장 이전 화면으로
+    // 돌아가도록 pushReplacementNamed 사용).
     Future.delayed(const Duration(milliseconds: 600), () {
       if (!mounted) return;
-      Navigator.of(context).pushReplacementNamed(
-        JeontongEightyMatrix.resultRoute,
-        arguments: widget.categoryId,
-      );
+      Navigator.of(
+        context,
+      ).pushReplacementNamed(JeontongEightyMatrix.browseRoute);
     });
   }
 
@@ -562,7 +568,7 @@ class _GateFooter extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         Text(
-          '$secondsLeft초 후 결과로 이동합니다',
+          '$secondsLeft초 후 정통사주 목록으로 이동합니다',
           style: TextStyle(
             fontSize: 12,
             color: _GatePalette.goldPale.withValues(alpha: 0.7),

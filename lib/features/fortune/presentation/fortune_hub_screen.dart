@@ -108,6 +108,8 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
   /// browseRoute](`/jeontong/eighty`, JeontongEightyScreen)를 그대로
   /// 재사용한다. `JeontongEightyGridScreen`과의 최종 통합 여부는 작업4에서
   /// 별도로 검토하며, 이번 작업에서는 화면을 새로 만들거나 교체하지 않는다.
+  /// [부적게이트 재배치] "운세" 섹션 진입점이므로 목록 화면(browseRoute)
+  /// 직행 대신 부적게이트([JeontongEightyMatrix.gateRoute])를 먼저 거친다.
   static const _traditionalSection = _FortuneSection(
     title: '정통운세',
     subtitle: 'PHASE1~4 정통사주 69종 · 태어난 시간으로 보는 정통 명리',
@@ -117,7 +119,7 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
         title: '정통사주 69종',
         desc: '연월일시 명식으로 정통 이론에 따라 풀이하는 69가지 운세',
         icon: Icons.auto_stories_outlined,
-        route: JeontongEightyMatrix.browseRoute,
+        route: JeontongEightyMatrix.gateRoute,
         requiresPass: true,
       ),
     ],
