@@ -55,6 +55,17 @@ class OzCategoryIllustrations {
   /// 카드 뒷면(셔플/드로우 화면 공용).
   static const String cardBack = '$_base/card-back.png';
 
+  /// 6개 그룹 → 대표 글리프(화면02 테마 히어로 아이콘용, oz-data.jsx의
+  /// `theme.icon`에 대응하는 값이 실제 앱에는 없어 그룹 성격에 맞춰 보강).
+  static const Map<TarotCategoryGroup, String> groupIcon = {
+    TarotCategoryGroup.love: '💞',
+    TarotCategoryGroup.career: '💼',
+    TarotCategoryGroup.wealth: '💰',
+    TarotCategoryGroup.daily: '🌙',
+    TarotCategoryGroup.emotion: '🌊',
+    TarotCategoryGroup.special: '✨',
+  };
+
   /// 홈 히어로 캐러셀(3장, 자동 스와이프).
   static const List<OzHeroSlide> heroSlides = [
     OzHeroSlide(
