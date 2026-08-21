@@ -1,42 +1,13 @@
 // ============================================================
-// [부적게이트 · TalismanGate] — "운세" 섹션 진입 게이트 화면
+// [부적게이트 · TalismanGate] — "정통사주" 섹션 진입 게이트 화면
 //
-// 원본: 사용자 업로드 `부적게이트_핸드오프.zip`(React `TalismanGate.jsx`,
-// 573줄 + README.md 169줄)을 Flutter/Dart로 포팅. "운세(사주) 화면 진입
-// 직전에 표시되는 인터랙티브 게이트 — 부적을 탭하면 축복 문구가 뜨는
-// 애니메이션"이라는 원본 목적 그대로: 홈/전체보기/운세허브의 "운세"
-// 진입점을 탭한 "직후", 정통사주 69종 목록([JeontongEightyMatrix.
-// browseRoute] → [JeontongEightyScreen])을 보여주기 "직전"에만 표시된다.
+// mode="tapToEnter": 부적을 [JeontongGateSession.tapsRequired]번(5번) 탭하면
+// [JeontongGateSession.revealDelayMs] 뒤 onEnter가 발화되어 정통사주 69종
+// 목록([JeontongEightyMatrix.browseRoute])으로 이동한다. 카운트다운/자동
+// 진입 로직은 쓰지 않는다 — 오직 탭 횟수로만 진입한다.
 //
-// [원상복구 - 중요] 카테고리를 이미 선택한 뒤의 결과 계산 로딩
-// ([JeontongEightyLoadingScreen], 8초, 만세력 계산)과는 완전히 별개의
-// 위치다. 이 게이트는 categoryId를 전혀 알지 못하며(아직 사용자가
-// 카테고리를 고르기 전 시점), 종료 후에는 항상 목록 화면
-// ([JeontongEightyMatrix.browseRoute])으로만 이동한다. 결과 화면
-// ([resultRoute])으로 직접 이동하지 않는다.
-//
-// [사용자 확정 답변 반영]
-// Q1: (원안 폐기) 만세력 로딩(8초, 별개 화면)과는 합산하지 않는다 — 이
-//     게이트는 그보다 앞선 "운세 진입" 시점 1회에만 등장한다. 첫 노출 5초/
-//     세션 재진입 2.5초.
-// Q2: 세션(30분) 내 재진입 시 단축 — [JeontongGateSession] 참고.
-// Q3: 축복 문구 12종은 §9 정책에 맞춰 재작성된
-//     [kJeontongGateBlessings]를 그대로 사용(범용 문구 없음).
-// Q4: SKIP 버튼 없음(showSkip=false 상당) — 대신 탭 1회당 남은 시간을
-//     [JeontongGateSession.tapAccelerationMs](300ms)만큼 앞당긴다.
-//
-// [디자인 격리] README 시각 스펙(먹색 배경/홍색 부적/금색 글로우)을 그대로
-// 재현하되, 팔레트는 이 화면 전용 [_GatePalette]로 완전히 격리한다 —
-// 앱 전역 UnifiedColors/HanjiColors는 건드리지 않는다(§ naming collision
-// 회피 원칙과 동일한 이유). 폰트는 신규 의존성을 추가하지 않고 이미
-// pubspec.yaml에 있는 google_fonts(notoSansKr/ibmPlexMono)를 재사용한다
-// (README가 지정한 Noto Serif KR + IBM Plex Mono와 동일 계열 — notoSansKr는
-// 이미 이 프로젝트의 HanjiTextStyles가 한자 인장을 렌더링하는 데 검증된
-// 폰트다).
-//
-// [미구현 명시 - README 원본과 동일하게 이관] prefers-reduced-motion 대응,
-// 스크린리더 라벨(Semantics), 키보드 접근은 원본 README에도 "향후 과제"로
-// 명시되어 있고, 이 포팅에서도 동일하게 범위 밖으로 둔다.
+// 이 게이트는 categoryId를 전혀 알지 못하며(아직 사용자가 카테고리를 고르기
+// 전 시점), 종료 후에는 항상 목록 화면([browseRoute])으로만 이동한다.
 // ============================================================
 
 import 'dart:async';
@@ -67,7 +38,7 @@ class _GatePalette {
   static const Color goldPale = Color(0xFFF5E6B8);
 }
 
-/// 팔괘(八卦) — 카운트다운 진행률에 비례해 회전하는 배경 한자.
+/// 팔괘(八卦) — 배경 장식용 회전 한자.
 const List<String> _kBaguaGlyphs = ['乾', '兌', '離', '震', '巽', '坎', '艮', '坤'];
 
 class JeontongTalismanGateScreen extends StatefulWidget {
@@ -80,19 +51,15 @@ class JeontongTalismanGateScreen extends StatefulWidget {
 
 class _JeontongTalismanGateScreenState extends State<JeontongTalismanGateScreen>
     with TickerProviderStateMixin {
-  static const _tickInterval = Duration(milliseconds: 50);
   static const Size _talismanSize = Size(220, 300);
 
   late final AnimationController _baguaCtrl;
   late final math.Random _random;
 
-  int _totalMs = JeontongGateSession.firstShowDurationMs;
-  int _remainingMs = JeontongGateSession.firstShowDurationMs;
-  Timer? _countdownTimer;
-
   int _tapCount = 0;
   String? _currentBlessing;
   Timer? _blessingTimer;
+  Timer? _revealTimer;
   final List<String> _recentBlessings = [];
 
   double _tiltX = 0; // -1..1
@@ -106,48 +73,34 @@ class _JeontongTalismanGateScreenState extends State<JeontongTalismanGateScreen>
   void initState() {
     super.initState();
     _random = math.Random();
-    _totalMs = JeontongGateSession.markShownAndGetDurationMs();
-    _remainingMs = _totalMs;
 
-    // 팔괘 회전 배경 — 장식용 연속 회전(카운트다운과 별개, 가볍게 반복).
+    // 팔괘 회전 배경 — 장식용 연속 회전.
     _baguaCtrl = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 16),
     )..repeat();
-
-    _countdownTimer = Timer.periodic(_tickInterval, _onTick);
-  }
-
-  void _onTick(Timer timer) {
-    if (!mounted) return;
-    setState(() {
-      _remainingMs -= _tickInterval.inMilliseconds;
-      if (_remainingMs <= 0) {
-        _remainingMs = 0;
-        _finish();
-      }
-    });
   }
 
   void _onTapTalisman(TapUpDetails details, Size localSize) {
     if (_navigated) return;
-    _tapCount += 1;
-
-    // [Q4] SKIP 대신 탭 가속 — 남은 시간을 앞당긴다(0 밑으로는 내려가지
-    // 않게 clamp, 이번 tick에서 바로 종료되지 않도록 최소 1틱은 남긴다).
-    setState(() {
-      _remainingMs = (_remainingMs - JeontongGateSession.tapAccelerationMs)
-          .clamp(_tickInterval.inMilliseconds, _totalMs);
-    });
+    final nextCount = _tapCount + 1;
+    setState(() => _tapCount = nextCount);
 
     final blessing = _pickBlessing();
     _showBlessing(blessing);
     _spawnBurst(details.localPosition, localSize);
+
+    // [tapToEnter] tapsRequired번 모두 탭하면 revealDelayMs 뒤 진입.
+    if (nextCount >= JeontongGateSession.tapsRequired) {
+      _revealTimer?.cancel();
+      _revealTimer = Timer(
+        const Duration(milliseconds: JeontongGateSession.revealDelayMs),
+        _finish,
+      );
+    }
   }
 
   String _pickBlessing() {
-    // 원본 pickBlessing() — 최근 노출된 문구는 가능하면 피해 반복 체감을
-    // 줄인다(문구 전체를 다 썼으면 초기화).
     final pool = kJeontongGateBlessings
         .where((b) => !_recentBlessings.contains(b))
         .toList();
@@ -196,12 +149,9 @@ class _JeontongTalismanGateScreenState extends State<JeontongTalismanGateScreen>
   void _finish() {
     if (_navigated) return;
     _navigated = true;
-    _countdownTimer?.cancel();
     // [화면 전환] 0.6초 정도의 짧은 페이드 후 정통사주 69종 목록 화면으로
-    // 교체 이동. 이 게이트는 "운세" 진입 직후 1회만 등장하는 인트로이며,
-    // categoryId는 아직 선택되지 않았으므로 목록 화면([browseRoute])으로만
-    // 이동한다(뒤로가기 시 게이트를 다시 보지 않고 곧장 이전 화면으로
-    // 돌아가도록 pushReplacementNamed 사용).
+    // 교체 이동(뒤로가기 시 게이트를 다시 보지 않도록 pushReplacementNamed).
+    setState(() {});
     Future.delayed(const Duration(milliseconds: 600), () {
       if (!mounted) return;
       Navigator.of(
@@ -212,8 +162,8 @@ class _JeontongTalismanGateScreenState extends State<JeontongTalismanGateScreen>
 
   @override
   void dispose() {
-    _countdownTimer?.cancel();
     _blessingTimer?.cancel();
+    _revealTimer?.cancel();
     _baguaCtrl.dispose();
     for (final b in _bursts) {
       b.controller.dispose();
@@ -223,8 +173,9 @@ class _JeontongTalismanGateScreenState extends State<JeontongTalismanGateScreen>
 
   @override
   Widget build(BuildContext context) {
-    final progress = _totalMs == 0 ? 0.0 : 1 - (_remainingMs / _totalMs);
-    final secondsLeft = (_remainingMs / 1000).ceil().clamp(0, 99);
+    final tapsRequired = JeontongGateSession.tapsRequired;
+    final progress = (_tapCount / tapsRequired).clamp(0.0, 1.0);
+    final reachedGoal = _tapCount >= tapsRequired;
 
     return Scaffold(
       backgroundColor: _GatePalette.bgInner,
@@ -236,7 +187,7 @@ class _JeontongTalismanGateScreenState extends State<JeontongTalismanGateScreen>
           children: [
             // 1. 배경 (먹색 방사 그라데이션)
             const _GateBackground(),
-            // 2. 팔괘 회전 배경 (진행률에 비례)
+            // 2. 팔괘 회전 배경 (탭 진행도에 비례해 살짝 더 회전)
             AnimatedBuilder(
               animation: _baguaCtrl,
               builder: (context, _) =>
@@ -302,10 +253,11 @@ class _JeontongTalismanGateScreenState extends State<JeontongTalismanGateScreen>
                           ),
                   ),
                   const Spacer(),
+                  // [tapToEnter] 카운트다운 대신 안내문 + 탭 진행 도트.
                   _GateFooter(
-                    progress: progress,
-                    secondsLeft: secondsLeft,
                     tapCount: _tapCount,
+                    tapsRequired: tapsRequired,
+                    reachedGoal: reachedGoal,
                   ),
                   const SizedBox(height: 20),
                 ],
@@ -527,55 +479,64 @@ class _BlessingBadge extends StatelessWidget {
   }
 }
 
-// ─── 하단 UI (카운트다운 + 안내 + 탭 카운트) ────────────────
+// ─── 하단 UI (안내문 + 탭 진행 도트, tapToEnter 전용) ────────
 class _GateFooter extends StatelessWidget {
   const _GateFooter({
-    required this.progress,
-    required this.secondsLeft,
     required this.tapCount,
+    required this.tapsRequired,
+    required this.reachedGoal,
   });
 
-  final double progress;
-  final int secondsLeft;
   final int tapCount;
+  final int tapsRequired;
+  final bool reachedGoal;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        SizedBox(
-          width: 44,
-          height: 44,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              CircularProgressIndicator(
-                value: progress.clamp(0, 1),
-                strokeWidth: 2.6,
-                backgroundColor: _GatePalette.goldDeep.withValues(alpha: 0.18),
-                valueColor: const AlwaysStoppedAnimation(_GatePalette.gold),
-              ),
-              Text(
-                '$secondsLeft',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: _GatePalette.goldPale,
-                ),
-              ),
-            ],
+        Text(
+          reachedGoal ? '정통사주 목록으로 이동합니다' : '부적을 탭하면 좋은 기운이 찾아와요 ✨',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: _GatePalette.goldPale.withValues(alpha: 0.9),
           ),
         ),
-        const SizedBox(height: 10),
-        Text(
-          '$secondsLeft초 후 정통사주 목록으로 이동합니다',
-          style: TextStyle(
-            fontSize: 12,
-            color: _GatePalette.goldPale.withValues(alpha: 0.7),
-          ),
+        const SizedBox(height: 14),
+        // 진행 도트 N/tapsRequired
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(tapsRequired, (i) {
+            final active = i < tapCount;
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutCubic,
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              width: active ? 9 : 7,
+              height: active ? 9 : 7,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: active ? _GatePalette.gold : Colors.transparent,
+                border: active
+                    ? null
+                    : Border.all(
+                        color: _GatePalette.goldDeep.withValues(alpha: 0.4),
+                      ),
+                boxShadow: active
+                    ? [
+                        BoxShadow(
+                          color: _GatePalette.gold.withValues(alpha: 0.9),
+                          blurRadius: 12,
+                        ),
+                      ]
+                    : null,
+              ),
+            );
+          }),
         ),
         if (tapCount > 0) ...[
-          const SizedBox(height: 4),
+          const SizedBox(height: 12),
           Text(
             '福 · 축복 $tapCount회 받음',
             style: const TextStyle(

@@ -125,14 +125,14 @@ class JeontongEightyMatrix {
   /// 화면을 건너뛰기 위함). arguments로 categoryId(String)를 그대로 받는다.
   static const String loadingRoute = '/jeontong/eighty/loading';
 
-  /// [부적게이트] "운세" 섹션 진입 직후, 69종 목록([browseRoute])을 보여주기
-  /// 전에 표시하는 인터랙티브 인트로 게이트(부적을 탭하면 축복 문구가 뜨는
-  /// 애니메이션). 원본: 사용자 업로드 `부적게이트_핸드오프.zip`
-  /// (TalismanGate.jsx)을 Flutter로 포팅.
+  /// [부적게이트] "정통사주" 섹션 진입 직후, 69종 목록([browseRoute])을
+  /// 보여주기 전에 표시하는 인터랙티브 인트로 게이트. mode="tapToEnter" —
+  /// 부적을 5번(JeontongGateSession.tapsRequired) 탭하면 onEnter가 발화되어
+  /// 목록 화면으로 이동한다(카운트다운/자동진입 없음).
   ///
   /// [진입 위치 - 중요] 이 게이트는 카테고리 선택 후 결과 계산 로딩
-  /// ([loadingRoute]/[resultRoute]) 흐름과는 완전히 별개다 — "운세" 카드/칩을
-  /// 눌러 69종 목록으로 들어가는 시점 1회에만 등장하고, 애니메이션 완료 후
+  /// ([loadingRoute]/[resultRoute]) 흐름과는 완전히 별개다 — "정통사주" 카드/
+  /// 칩을 눌러 69종 목록으로 들어가는 시점 1회에만 등장하고, 탭 5회 완료 후
   /// [browseRoute]로 `pushReplacementNamed`한다(뒤로가기 시 게이트를
   /// 다시 보지 않고 곧장 이전 화면으로 돌아가게 하기 위함).
   static const String gateRoute = '/jeontong/eighty/gate';
