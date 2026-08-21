@@ -1,16 +1,16 @@
-// [타로 인트로 핸드오프 이식] "메인 타로섹션" 진입 시 표시되는 5초(+2.6초
-// 사전연출) 로딩 인트로. 원본 스펙: uploaded_files/handoff3_extracted/
-// (README.md / TarotIntro.jsx / tarot-intro.css). 이 화면은 다음의 텍스트/
-// 색상/구조/타이밍을 "임의로 바꾸지 않고" 그대로 재현한다(부적게이트 사건의
-// 교훈 반영):
+// [타로 인트로 핸드오프 이식] "메인 타로섹션" 진입 시 표시되는 인트로 연출.
+// 원본 스펙: uploaded_files/handoff3_extracted/(README.md / TarotIntro.jsx /
+// tarot-intro.css)의 텍스트/색상/구조는 그대로 유지하되, 사용자 피드백에 따라
+// 다음과 같이 조정한다:
 //   - 워드마크: "신통방통" 4글자 순차 등장 + 크롬(금색) 스윕
 //   - 라벨: "TAROT · 神通萬通"
 //   - 카피: "신통방통 타로, 보이지 않는 마음의 흐름을 읽다."
 //   - 힌트: "잠시, 카드를 섞는 중"
-//   - 타이밍: 2.6s 시점부터 5→1 카운트다운 시작, 총 7.6초 후 타로 메인 진입
+//   - 타이밍: 탭(마운트) 즉시 시작, 사전대기 없이 정확히 5초 후 타로 메인 진입
+//   - 로더: 숫자 카운트다운 대신 일반적인 회전 스피너 인디케이터 사용
 //
-// 진입 흐름(README §동작 요약): 사용자가 "타로" 진입점을 탭 → 이 화면이
-// 마운트 → 애니메이션 재생 → 카운트다운 완료 → 타로 메인(TarotHomeScreen,
+// 진입 흐름: 사용자가 "타로" 진입점을 탭 → 이 화면이 마운트되는 즉시 타이머
+// 시작 → 애니메이션 재생 → 5초 경과 → 타로 메인(TarotHomeScreen,
 // AppRouter.tarotHomeRoute)으로 pushReplacementNamed.
 import 'dart:async';
 import 'dart:math' as math;
@@ -31,8 +31,6 @@ class _TI {
   static const Color cool = Color(0xFF8BDCDC); // mystic aqua
 }
 
-const int _kRingStartDelayMs = 2600; // README: ring fill / countdown 시작 시점
-
 class TarotIntroScreen extends StatefulWidget {
   const TarotIntroScreen({
     super.key,
@@ -44,7 +42,7 @@ class TarotIntroScreen extends StatefulWidget {
     this.hint = '잠시, 카드를 섞는 중',
   });
 
-  /// 카운트다운 시간(초). 기본 5 — README 기본값과 동일.
+  /// 인트로 전체 노출 시간(초). 탭 즉시 시작해 이 시간 후 타로 메인으로 이동.
   final int duration;
 
   /// 카운트다운 완료 시 이동할 라우트. 기본값은 타로 메인 정문.
@@ -62,26 +60,15 @@ class _TarotIntroScreenState extends State<TarotIntroScreen>
     with SingleTickerProviderStateMixin {
   late final Ticker _ticker;
   double _ms = 0;
-  late int _count;
-  Timer? _countdownTimer;
+  Timer? _finishTimer;
   bool _finished = false;
 
   @override
   void initState() {
     super.initState();
-    _count = widget.duration;
     _ticker = createTicker(_onTick)..start();
-    Future.delayed(const Duration(milliseconds: _kRingStartDelayMs), () {
-      if (!mounted) return;
-      _countdownTimer = Timer.periodic(const Duration(seconds: 1), (t) {
-        if (!mounted) return;
-        setState(() => _count -= 1);
-        if (_count <= 0) {
-          t.cancel();
-          _finish();
-        }
-      });
-    });
+    // 탭(마운트) 즉시부터 카운트 시작 — 사전대기 없이 정확히 duration초 후 이동.
+    _finishTimer = Timer(Duration(seconds: widget.duration), _finish);
   }
 
   void _onTick(Duration elapsed) {
@@ -98,7 +85,7 @@ class _TarotIntroScreenState extends State<TarotIntroScreen>
   @override
   void dispose() {
     _ticker.dispose();
-    _countdownTimer?.cancel();
+    _finishTimer?.cancel();
     super.dispose();
   }
 
@@ -125,7 +112,7 @@ class _TarotIntroScreenState extends State<TarotIntroScreen>
               copyBrand: widget.copyBrand,
               copyRest: widget.copyRest,
             ),
-            _Loader(ms: ms, count: _count, hint: widget.hint),
+            _Loader(ms: ms, hint: widget.hint),
           ],
         ),
       ),
@@ -237,8 +224,8 @@ class _StarField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fadeIn = _progress(ms, 200, 1600);
-    final twinkle = ms >= 2000 ? _pulseDown(_loopPhase(ms, 2000, 4400), 0.55, 1.0) : 1.0;
+    final fadeIn = _progress(ms, 130, 1050);
+    final twinkle = ms >= 1300 ? _pulseDown(_loopPhase(ms, 1300, 2900), 0.55, 1.0) : 1.0;
     final opacity = fadeIn * twinkle;
     return IgnorePointer(
       child: CustomPaint(
@@ -275,9 +262,9 @@ class _CentralGlow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fadeIn = _progress(ms, 900, 2200);
-    final pulseOpacity = ms >= 3100 ? _pulseDown(_loopPhase(ms, 3100, 5000), 0.75, 1.0) : 1.0;
-    final pulseScale = ms >= 3100 ? _pulseUp(_loopPhase(ms, 3100, 5000), 1.0, 1.08) : 1.0;
+    final fadeIn = _progress(ms, 600, 1450);
+    final pulseOpacity = ms >= 2050 ? _pulseDown(_loopPhase(ms, 2050, 3300), 0.75, 1.0) : 1.0;
+    final pulseScale = ms >= 2050 ? _pulseUp(_loopPhase(ms, 2050, 3300), 1.0, 1.08) : 1.0;
     return IgnorePointer(
       child: Center(
         child: Opacity(
@@ -314,11 +301,11 @@ class _OuterSigil extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final entrance = _progress(ms, 400, 2400);
+    final entrance = _progress(ms, 260, 1580);
     final opacity = _lerp(0, 0.5, entrance);
     final scale = _lerp(0.7, 1.0, entrance);
     final entranceRotationDeg = _lerp(-30, 0, entrance);
-    final spinDeg = ms >= 2400 ? (ms - 2400) / 90000 * 360 : 0.0;
+    final spinDeg = ms >= 1580 ? (ms - 1580) / 90000 * 360 : 0.0;
     final rotationRad = (entranceRotationDeg + spinDeg) * math.pi / 180;
     return IgnorePointer(
       child: Center(
@@ -407,11 +394,11 @@ class _InnerSigil extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final entrance = _progress(ms, 700, 2000);
+    final entrance = _progress(ms, 460, 1320);
     final opacity = _lerp(0, 0.32, entrance);
     final scale = _lerp(0.5, 1.0, entrance);
     final entranceRotationDeg = _lerp(30, 0, entrance);
-    final spinDeg = ms >= 2700 ? (ms - 2700) / 120000 * 360 : 0.0;
+    final spinDeg = ms >= 1780 ? (ms - 1780) / 120000 * 360 : 0.0;
     // reverse 방향(시계 반대)
     final rotationRad = (entranceRotationDeg - spinDeg) * math.pi / 180;
     return IgnorePointer(
@@ -563,37 +550,37 @@ class _CardFan extends StatelessWidget {
             children: [
               _FanCard(
                 ms: ms,
-                startMs: 900,
+                startMs: 590,
                 targetDx: -72,
                 targetDy: -14,
                 targetRotateDeg: -14,
                 targetScale: 1.0,
                 targetOpacity: 0.85,
-                floatStart: 2500,
+                floatStart: 1650,
                 glyph: '☾',
                 zIndexAbove: false,
               ),
               _FanCard(
                 ms: ms,
-                startMs: 1300,
+                startMs: 860,
                 targetDx: 72,
                 targetDy: -14,
                 targetRotateDeg: 14,
                 targetScale: 1.0,
                 targetOpacity: 0.85,
-                floatStart: 2900,
+                floatStart: 1900,
                 glyph: '✧',
                 zIndexAbove: false,
               ),
               _FanCard(
                 ms: ms,
-                startMs: 1100,
+                startMs: 720,
                 targetDx: 0,
                 targetDy: -28,
                 targetRotateDeg: 0,
                 targetScale: 1.05,
                 targetOpacity: 1.0,
-                floatStart: 2700,
+                floatStart: 1780,
                 glyph: '✦',
                 zIndexAbove: true,
               ),
@@ -632,7 +619,7 @@ class _FanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = _progress(ms, startMs, 1600);
+    final t = _progress(ms, startMs, 1050);
     final opacity = _lerp(0, targetOpacity, t);
     final dx = _lerp(0, targetDx, t);
     final dy = _lerp(-20, targetDy, t);
@@ -706,17 +693,17 @@ class _DustLayer extends StatelessWidget {
   // (leftPercent, delayMs, durationMs)
   static const List<(double, double, double)> _particles = [
     (0.07, 0, 9000),
-    (0.18, 1400, 11000),
-    (0.27, 700, 8000),
-    (0.39, 2600, 12000),
-    (0.52, 3200, 9000),
-    (0.64, 1100, 10000),
-    (0.73, 4000, 11000),
-    (0.84, 2000, 9000),
-    (0.91, 5200, 12000),
-    (0.46, 6000, 8000),
-    (0.33, 4600, 10000),
-    (0.60, 5800, 11000),
+    (0.18, 920, 11000),
+    (0.27, 460, 8000),
+    (0.39, 1710, 12000),
+    (0.52, 2100, 9000),
+    (0.64, 720, 10000),
+    (0.73, 2630, 11000),
+    (0.84, 1320, 9000),
+    (0.91, 3420, 12000),
+    (0.46, 3950, 8000),
+    (0.33, 3030, 10000),
+    (0.60, 3820, 11000),
   ];
 
   @override
@@ -813,7 +800,7 @@ class _Arc extends StatelessWidget {
   final double ms;
   @override
   Widget build(BuildContext context) {
-    final progress = _progress(ms, 400, 1400);
+    final progress = _progress(ms, 260, 920);
     return SizedBox(
       width: 130,
       height: 40,
@@ -856,14 +843,14 @@ class _Wordmark extends StatelessWidget {
   final double ms;
 
   static const List<String> _chars = ['신', '통', '방', '통'];
-  static const List<double> _delays = [600, 750, 900, 1050];
+  static const List<double> _delays = [400, 490, 590, 690];
 
   @override
   Widget build(BuildContext context) {
     // 크롬 스윕: 0% pos100% → 60% pos-50% → 100% pos-50%(유지), 3.2s 루프, 0.6s 지연.
     double sweepT = 0;
-    if (ms >= 600) {
-      final phase = _loopPhase(ms, 600, 3200);
+    if (ms >= 400) {
+      final phase = _loopPhase(ms, 400, 2100);
       sweepT = phase < 0.6 ? Curves.easeOutCubic.transform(phase / 0.6) : 1.0;
     }
     final shiftX = _lerp(1.0, -0.5, sweepT); // 100% -> -50% (배경 위치 비율)
@@ -894,7 +881,7 @@ class _Wordmark extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.baseline,
           textBaseline: TextBaseline.alphabetic,
           children: List.generate(_chars.length, (i) {
-            final t = _progress(ms, _delays[i], 1000);
+            final t = _progress(ms, _delays[i], 660);
             return Opacity(
               opacity: _clamp01(t),
               child: Transform.translate(
@@ -925,7 +912,7 @@ class _LabelRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = _progress(ms, 1700, 1000);
+    final t = _progress(ms, 1120, 660);
     return Opacity(
       opacity: _clamp01(t),
       child: Transform.translate(
@@ -961,7 +948,7 @@ class _CopyText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = _progress(ms, 2100, 1400);
+    final t = _progress(ms, 1380, 920);
     return Opacity(
       opacity: _clamp01(t),
       child: Transform.translate(
@@ -999,18 +986,23 @@ class _CopyText extends StatelessWidget {
   }
 }
 
-// ---------------- 하단 카운트다운 링 로더 ----------------
+// ---------------- 하단 로딩 인디케이터(숫자 없는 회전 스피너) ----------------
+//
+// [2024-XX 사용자 피드백 반영] 원래 숫자(5→1) 카운트다운 링이었으나 "로딩을
+// 숫자로 하는 사람들이 어디있냐"는 지적에 따라 일반적인 회전 스피너 형태로
+// 교체. 링은 채워지는 진행률(fillProgress) 대신 끊임없이 회전하는 호(arc)로
+// 표현해 "로딩 중"임을 직관적으로 전달한다.
 
 class _Loader extends StatelessWidget {
-  const _Loader({required this.ms, required this.count, required this.hint});
+  const _Loader({required this.ms, required this.hint});
   final double ms;
-  final int count;
   final String hint;
 
   @override
   Widget build(BuildContext context) {
-    final fadeT = _progress(ms, 2400, 800);
-    final fillProgress = _clamp01((ms - _kRingStartDelayMs) / 5000);
+    final fadeT = _progress(ms, 900, 500);
+    // 850ms 주기로 계속 회전하는 스피너(진행률 표시가 아닌 순수 로딩 표시).
+    final spinT = (ms % 850) / 850;
     return IgnorePointer(
       child: Align(
         alignment: const Alignment(0, 0.82),
@@ -1022,25 +1014,11 @@ class _Loader extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 SizedBox(
-                  width: 44,
-                  height: 44,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      CustomPaint(
-                        size: const Size(44, 44),
-                        painter: _RingPainter(fillProgress: fillProgress),
-                      ),
-                      Text(
-                        '$count',
-                        style: GoogleFonts.ibmPlexMono(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.3,
-                          color: _TI.glow,
-                        ),
-                      ),
-                    ],
+                  width: 32,
+                  height: 32,
+                  child: CustomPaint(
+                    size: const Size(32, 32),
+                    painter: _SpinnerPainter(spinT: spinT),
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -1062,9 +1040,9 @@ class _Loader extends StatelessWidget {
   }
 }
 
-class _RingPainter extends CustomPainter {
-  _RingPainter({required this.fillProgress});
-  final double fillProgress;
+class _SpinnerPainter extends CustomPainter {
+  _SpinnerPainter({required this.spinT});
+  final double spinT;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1076,7 +1054,8 @@ class _RingPainter extends CustomPainter {
       ..color = _TI.fg.withValues(alpha: 0.15);
     canvas.drawCircle(center, radius, trackPaint);
 
-    if (fillProgress <= 0) return;
+    final startAngle = -math.pi / 2 + spinT * 2 * math.pi;
+    const sweepAngle = math.pi * 0.75; // 270도 호가 계속 회전
     final fillPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.5
@@ -1084,14 +1063,14 @@ class _RingPainter extends CustomPainter {
       ..color = _TI.glow;
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
-      -math.pi / 2,
-      2 * math.pi * fillProgress,
+      startAngle,
+      sweepAngle,
       false,
       fillPaint,
     );
   }
 
   @override
-  bool shouldRepaint(covariant _RingPainter oldDelegate) =>
-      oldDelegate.fillProgress != fillProgress;
+  bool shouldRepaint(covariant _SpinnerPainter oldDelegate) =>
+      oldDelegate.spinT != spinT;
 }
