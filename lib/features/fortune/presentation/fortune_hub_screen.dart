@@ -10,6 +10,7 @@ import '../../../core/widgets/app_toast.dart';
 import '../../home/domain/jeontong_eighty_matrix.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
 import '../../pass/presentation/pass_time_format.dart';
+import '../../../core/router/app_router.dart' show AppRouter;
 
 /// [3단계 2차 실제 구조 정리 - 작업1] 운세탭(FortuneHubScreen) 4분류 개편.
 ///
@@ -152,6 +153,8 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
   /// `/tarot/home`)이 기존 질문/결과/히스토리 화면을 내부적으로 재사용하도록
   /// 이미 설계되어 있으므로, 사용자에게 노출되는 진입점은 이 하나로 통일한다
   /// (기존에도 이 화면은 이미 `/tarot/home`을 쓰고 있었음 — 변경 없음).
+  /// [타로 인트로 핸드오프 이식] 타로 메인 직행 대신 인트로 스플래시
+  /// (AppRouter.tarotIntroRoute)를 먼저 거치도록 라우트만 교체한다.
   static const _tarotSection = _FortuneSection(
     title: '카드운세',
     subtitle: '78장의 카드가 전하는 지금 이 순간의 메시지',
@@ -161,7 +164,7 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
         title: '타로',
         desc: '연애·재물·선택 등 원하는 주제로 카드를 뽑아보세요',
         icon: Icons.style_outlined,
-        route: '/tarot/home',
+        route: AppRouter.tarotIntroRoute,
         requiresPass: true,
       ),
     ],

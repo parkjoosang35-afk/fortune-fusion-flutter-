@@ -21,6 +21,7 @@ import '../domain/fortune_category_model.dart';
 import '../domain/fortune_matrix.dart';
 import '../domain/jeontong_eighty_matrix.dart';
 import 'widgets/fortune_matrix_section.dart';
+import '../../../core/router/app_router.dart' show AppRouter;
 
 /// [전체보기 카테고리 허브] Fortune Fusion(신통방통) 앱 전체 카테고리를 한 화면에서
 /// 파악·탐색할 수 있게 만드는 허브 페이지.
@@ -591,7 +592,9 @@ class _TrendingRow extends StatelessWidget {
     // [작업5 - 타로 신규 정문 통합] 구 진입점(/ai-fortune/tarot/question)
     // 직행을 신규 정문(TarotHomeScreen, '/tarot/home')으로 교체한다.
     // 이제 Home/FortuneHub/AllCategories 모두 동일한 타로 정문을 사용한다.
-    (Icons.style_outlined, '타로', '/tarot/home', true),
+    // [타로 인트로 핸드오프 이식] 타로 메인 직행 대신 인트로 스플래시를
+    // 먼저 거친다.
+    (Icons.style_outlined, '타로', AppRouter.tarotIntroRoute, true),
     (
       Icons.chat_bubble_outline_rounded,
       'AI 상담',
@@ -677,7 +680,9 @@ class _FeaturedGrid extends StatelessWidget {
       Icons.style_outlined,
       // [작업5 - 타로 신규 정문 통합] 대표 카테고리 "타로" 카드도 신규
       // 정문(TarotHomeScreen)으로 연결한다.
-      '/tarot/home',
+      // [타로 인트로 핸드오프 이식] 대표 카테고리 "타로" 카드도 인트로
+      // 스플래시를 먼저 거치도록 변경한다.
+      AppRouter.tarotIntroRoute,
       true,
     ),
   ];

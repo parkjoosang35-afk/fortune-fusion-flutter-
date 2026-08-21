@@ -23,6 +23,7 @@ import '../../ad_banner/application/ad_banner_provider.dart';
 import '../../ad_banner/presentation/ad_banner_widget.dart';
 import 'home_style_tokens.dart';
 import '../domain/jeontong_eighty_matrix.dart';
+import '../../../core/router/app_router.dart' show AppRouter;
 import '../application/home_page_config_provider.dart';
 import '../application/section_visibility_evaluator.dart';
 
@@ -1007,10 +1008,12 @@ class _FortuneTarotRow extends StatelessWidget {
               circleIcon: Icons.arrow_drop_down_rounded,
               circleStyle: PremiumCircleButtonStyle.black,
               // [프리패스 전체잠금 통일] 게이트 없이 직접 이동하던 버그 수정.
+              // [타로 인트로 핸드오프 이식] 타로 메인 직행 대신 인트로
+              // 스플래시(tarotIntroRoute)를 먼저 거친다.
               onTap: () => navigateWithPassGate(
                 context,
                 title: '타로',
-                route: '/tarot/home',
+                route: AppRouter.tarotIntroRoute,
                 requiresPass: true,
               ),
             ),

@@ -20,6 +20,7 @@ import '../../features/fortune/tarot/presentation/tarot_result_screen.dart';
 import '../../features/fortune/tarot/presentation/tarot_history_screen.dart';
 import '../../features/fortune/tarot/presentation/tarot_home_screen.dart';
 import '../../features/fortune/tarot/presentation/tarot_hub_screen.dart';
+import '../../features/fortune/tarot/presentation/tarot_intro_screen.dart';
 import '../../features/fortune/tarot/presentation/tarot_category_detail_screen.dart';
 import '../../features/fortune/tarot/domain/tarot_category_model.dart';
 import '../../features/fortune/face/presentation/face_capture_screen.dart';
@@ -79,6 +80,14 @@ class AppRouter {
   static const String tarotHubRoute = '/tarot/hub';
   static const String tarotCategoryDetailRoute = '/tarot/category';
   static const String tarotCardSelectRoute = '/tarot/card-select';
+  // [타로 인트로 핸드오프 이식] "메인 타로섹션" 진입 시 타로 메인
+  // (tarotHomeRoute) 직행 대신 먼저 거치는 5초(+2.6초 사전연출) 로딩 인트로.
+  // 기존에 '/tarot/home'을 직접 가리키던 4개 진입점(홈 미니카드, 운세허브
+  // 카드운세, 전체보기 트렌딩칩/대표카드)을 전부 이 라우트로 교체하고,
+  // 이 화면 자신이 카운트다운 완료 시 tarotHomeRoute로 pushReplacementNamed
+  // 한다(원본 README §동작요약 그대로: 인트로 → 타로 메인, replace로 뒤로가기
+  // 시 인트로 재노출 방지).
+  static const String tarotIntroRoute = '/tarot/intro';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -235,6 +244,10 @@ class AppRouter {
       // 기존 진입점들을 이 라우트로 전환할 예정).
       case tarotHomeRoute:
         return _page(const TarotHomeScreen());
+      // [타로 인트로 핸드오프 이식] 타로 메인 진입 직전 표시하는 스플래시.
+      // 카운트다운 완료 시 이 화면 자신이 [tarotHomeRoute]로 이동한다.
+      case tarotIntroRoute:
+        return _page(const TarotIntroScreen());
       // ②서브 카테고리 허브. arguments로 TarotCategoryGroup을 받으면 해당
       // 그룹 칩이 선택된 상태로 시작하고, 없으면(직접 진입) 전체를 보여준다.
       case tarotHubRoute:
