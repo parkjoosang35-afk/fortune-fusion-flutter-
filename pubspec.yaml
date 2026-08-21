@@ -112,6 +112,7 @@ flutter:
     - assets/tarot/cards/pentacles/
     - assets/tarot/thumbs/
     - assets/tarot/backs/
+    - assets/tarot/oz/
     - assets/jeontong/easy_terms.json
     - assets/jeontong/rules/
 
