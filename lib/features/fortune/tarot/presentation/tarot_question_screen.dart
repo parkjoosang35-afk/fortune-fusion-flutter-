@@ -1,29 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../application/tarot_session_controller.dart';
-import 'theme/tarot_colors.dart';
-import 'theme/tarot_perf_config.dart';
-import 'theme/tarot_text_styles.dart';
-import 'theme/tarot_theme_scope.dart';
-import 'theme/tarot_tokens.dart';
-import 'widgets/tarot_mystic_background.dart';
+import 'oz/oz_theme.dart';
+import 'oz/widgets/oz_background.dart';
+import 'oz/widgets/oz_chip.dart';
+import 'oz/widgets/oz_primary_button.dart';
+import 'oz/widgets/oz_spread_option.dart';
+import 'oz/widgets/oz_topbar.dart';
 
-/// [타로 섹션 전면 개편 §2 정보구조 ④ / §7 P2] TarotQuestionScreen 다크테마 전환.
+/// [타로 오즈 리스킨 · 화면04 ASK] 질문 입력 화면.
 ///
-/// 기존(화이트 `UnifiedColors` 입력형 패턴)을 타로 전용 다크 미스틱 톤
-/// ([TarotColors]/[TarotThemeScope])으로 전면 재도장한다. 필드/로직(질문
-/// 입력·스프레드·주제 선택)은 그대로 유지해 회귀를 만들지 않고, 제출
-/// 시점의 목적지만 바꾼다: 기존에는 [TarotProvider.draw]를 직접 호출해
-/// 곧장 로딩 화면으로 넘어갔지만, 이제는 [TarotSessionController
-/// .confirmQuestion]으로 세션 상태를 확정하고 카드 선택 화면(⑤,
-/// `/tarot/card-select`)으로 이동한다 - "질문 → 카드 셀렉션"이라는
-/// 타로 특유의 리추얼 단계를 모든 진입 경로(카테고리 경유든 레거시
-/// 딥링크든)에 공통으로 적용한다.
+/// 순수 리스킨: 필드/로직(질문 입력·스프레드·주제 선택, [_submit] 전체
+/// 로직, `_validSpreadTypes`/`_topicOptions`/`_presetQuestions` 데이터,
+/// initState의 fallback 로직)은 그대로 유지하고 위젯 트리만 오즈 스타일로
+/// 교체한다.
 class TarotQuestionScreen extends StatefulWidget {
-  // [운세 카테고리 확장] 전체보기에서 관리자 카테고리(타로 YES/NO, 감정관계운
-  // 등)를 탭했을 때, 이 공용 질문 화면의 스프레드/토픽을 미리 선택해두기
-  // 위한 선택적 인자. null(기존 모든 진입 경로)이면 기존 기본값
-  // (one_card / general)과 완전히 동일하다(회귀 없음).
   const TarotQuestionScreen({
     super.key,
     this.initialSpreadType,
@@ -83,155 +74,141 @@ class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return TarotThemeScope(
-      child: Scaffold(
-        backgroundColor: TarotColors.bgVoid,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          title: Text('무엇이 궁금하신가요', style: TarotTextStyles.screenTitle),
-        ),
-        body: Stack(
-          children: [
-            TarotMysticBackground(
-              intensity: TarotPerfConfig.backgroundIntensity(0.6),
-            ),
-            SafeArea(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(
-                  TarotTokens.spaceLg,
-                  TarotTokens.spaceMd,
-                  TarotTokens.spaceLg,
-                  TarotTokens.spaceXxl,
+    return Scaffold(
+      backgroundColor: OzColors.bgDeep,
+      body: Stack(
+        children: [
+          const OzBackground(),
+          SafeArea(
+            child: Column(
+              children: [
+                OzTopbar(
+                  title: '무엇이 궁금하신가요',
+                  onBack: () => Navigator.of(context).pop(),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text('마음속 질문을 들려주세요', style: TarotTextStyles.sectionHeader),
-                    const SizedBox(height: TarotTokens.spaceSm),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: TarotColors.surfaceCard,
-                        borderRadius: BorderRadius.circular(
-                          TarotTokens.radiusMd,
-                        ),
-                        border: Border.all(color: TarotColors.borderSoft),
-                      ),
-                      child: TextField(
-                        controller: _questionController,
-                        maxLines: 3,
-                        style: TarotTextStyles.bodyStrong,
-                        cursorColor: TarotColors.pinkGlow,
-                        decoration: InputDecoration(
-                          hintText: '궁금한 질문을 자유롭게 적어보세요',
-                          hintStyle: TarotTextStyles.body.copyWith(
-                            color: TarotColors.textFaint,
-                          ),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.all(
-                            TarotTokens.spaceLg,
-                          ),
-                        ),
-                      ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(
+                      OzTokens.spaceLg,
+                      OzTokens.spaceSm,
+                      OzTokens.spaceLg,
+                      OzTokens.spaceXxl,
                     ),
-                    const SizedBox(height: TarotTokens.spaceMd),
-                    Wrap(
-                      spacing: TarotTokens.spaceSm,
-                      runSpacing: TarotTokens.spaceSm,
-                      children: _presetQuestions
-                          .map(
-                            (q) => _PresetChip(
-                              label: q,
-                              onTap: () =>
-                                  setState(() => _questionController.text = q),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                    const SizedBox(height: TarotTokens.spaceXxl),
-                    Text('스프레드 선택', style: TarotTextStyles.sectionHeader),
-                    const SizedBox(height: TarotTokens.spaceMd),
-                    Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Expanded(
-                          child: _SpreadOption(
-                            icon: Icons.filter_1_rounded,
-                            label: '1카드',
-                            desc: '빠른 답변',
-                            selected: _spreadType == 'one_card',
-                            onTap: () =>
-                                setState(() => _spreadType = 'one_card'),
+                        Text(
+                          '마음속 질문을\n들려주세요',
+                          style: OzTypography.hero(fontSize: 24),
+                        ),
+                        const SizedBox(height: OzTokens.spaceLg),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: OzColors.cardSoft,
+                            borderRadius: BorderRadius.circular(OzTokens.radiusMd),
+                            border: Border.all(color: OzColors.borderSoft),
+                          ),
+                          child: TextField(
+                            controller: _questionController,
+                            maxLines: 3,
+                            style: OzTypography.body(fontSize: 14, color: OzColors.fg),
+                            cursorColor: OzColors.gold,
+                            decoration: InputDecoration(
+                              hintText: '궁금한 질문을 자유롭게 적어보세요',
+                              hintStyle: OzTypography.body(fontSize: 13, color: OzColors.faint),
+                              border: InputBorder.none,
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(OzTokens.radiusMd),
+                                borderSide: BorderSide(color: OzColors.gold.withValues(alpha: 0.5)),
+                              ),
+                              contentPadding: const EdgeInsets.all(OzTokens.spaceLg),
+                            ),
                           ),
                         ),
-                        const SizedBox(width: TarotTokens.spaceMd),
-                        Expanded(
-                          child: _SpreadOption(
-                            icon: Icons.filter_3_rounded,
-                            label: '3카드',
-                            desc: '과거·현재·미래',
-                            selected: _spreadType == 'three_card',
-                            onTap: () =>
-                                setState(() => _spreadType = 'three_card'),
-                          ),
+                        const SizedBox(height: OzTokens.spaceMd),
+                        Wrap(
+                          spacing: OzTokens.spaceSm,
+                          runSpacing: OzTokens.spaceSm,
+                          children: _presetQuestions
+                              .map(
+                                (q) => _PresetChip(
+                                  label: q,
+                                  onTap: () =>
+                                      setState(() => _questionController.text = q),
+                                ),
+                              )
+                              .toList(),
                         ),
-                        const SizedBox(width: TarotTokens.spaceMd),
-                        Expanded(
-                          child: _SpreadOption(
-                            icon: Icons.rule_rounded,
-                            label: 'YES·NO',
-                            desc: '즉답형',
-                            selected: _spreadType == 'yes_no',
-                            onTap: () => setState(() => _spreadType = 'yes_no'),
+                        const SizedBox(height: OzTokens.spaceXxl),
+                        Text('스프레드 선택', style: OzTypography.sectionTitle(fontSize: 17)),
+                        const SizedBox(height: OzTokens.spaceMd),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OzSpreadOption(
+                                label: '1카드',
+                                desc: '빠른 답변',
+                                cardCount: 1,
+                                active: _spreadType == 'one_card',
+                                onTap: () =>
+                                    setState(() => _spreadType = 'one_card'),
+                              ),
+                            ),
+                            const SizedBox(width: OzTokens.spaceSm),
+                            Expanded(
+                              child: OzSpreadOption(
+                                label: '3카드',
+                                desc: '과거·현재·미래',
+                                cardCount: 3,
+                                active: _spreadType == 'three_card',
+                                onTap: () =>
+                                    setState(() => _spreadType = 'three_card'),
+                              ),
+                            ),
+                            const SizedBox(width: OzTokens.spaceSm),
+                            Expanded(
+                              child: OzSpreadOption(
+                                label: 'YES·NO',
+                                desc: '즉답형',
+                                ynLabel: 'Y/N',
+                                active: _spreadType == 'yes_no',
+                                onTap: () => setState(() => _spreadType = 'yes_no'),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (_spreadType != 'yes_no') ...[
+                          const SizedBox(height: OzTokens.spaceXxl),
+                          Text('어떤 주제로 볼까요?', style: OzTypography.sectionTitle(fontSize: 17)),
+                          const SizedBox(height: OzTokens.spaceMd),
+                          Wrap(
+                            spacing: OzTokens.spaceSm,
+                            runSpacing: OzTokens.spaceSm,
+                            children: _topicOptions
+                                .map(
+                                  (t) => OzChip(
+                                    label: t.$2,
+                                    selected: _topic == t.$1,
+                                    onTap: () => setState(() => _topic = t.$1),
+                                  ),
+                                )
+                                .toList(),
                           ),
+                        ],
+                        const SizedBox(height: OzTokens.spaceXxl),
+                        OzPrimaryButton(
+                          label: '카드 뽑으러 가기',
+                          onPressed: _submit,
+                          trailingIcon: Icons.arrow_forward_rounded,
                         ),
                       ],
                     ),
-                    if (_spreadType != 'yes_no') ...[
-                      const SizedBox(height: TarotTokens.spaceXxl),
-                      Text('어떤 주제로 볼까요?', style: TarotTextStyles.sectionHeader),
-                      const SizedBox(height: TarotTokens.spaceMd),
-                      Wrap(
-                        spacing: TarotTokens.spaceSm,
-                        runSpacing: TarotTokens.spaceSm,
-                        children: _topicOptions
-                            .map(
-                              (t) => _TopicChip(
-                                label: t.$2,
-                                selected: _topic == t.$1,
-                                onTap: () => setState(() => _topic = t.$1),
-                              ),
-                            )
-                            .toList(),
-                      ),
-                    ],
-                    const SizedBox(height: TarotTokens.spaceXxl),
-                    SizedBox(
-                      height: 52,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: TarotColors.pinkGlow,
-                          foregroundColor: TarotColors.bgVoid,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                              TarotTokens.radiusPill,
-                            ),
-                          ),
-                        ),
-                        onPressed: _submit,
-                        child: Text(
-                          '카드 뽑으러 가기',
-                          style: TarotTextStyles.ctaLabel.copyWith(
-                            color: TarotColors.bgVoid,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -246,112 +223,20 @@ class _PresetChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(TarotTokens.radiusPill),
+      borderRadius: BorderRadius.circular(OzTokens.radiusPill),
       child: Container(
         padding: const EdgeInsets.symmetric(
-          horizontal: TarotTokens.spaceLg,
-          vertical: TarotTokens.spaceSm,
+          horizontal: 14,
+          vertical: 8,
         ),
         decoration: BoxDecoration(
-          color: TarotColors.surfaceCard,
-          borderRadius: BorderRadius.circular(TarotTokens.radiusPill),
-          border: Border.all(color: TarotColors.borderSoft),
-        ),
-        child: Text(label, style: TarotTextStyles.chipLabel),
-      ),
-    );
-  }
-}
-
-class _TopicChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  const _TopicChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(TarotTokens.radiusPill),
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: TarotTokens.spaceLg,
-          vertical: TarotTokens.spaceSm,
-        ),
-        decoration: BoxDecoration(
-          color: selected
-              ? TarotColors.pinkGlow.withValues(alpha: 0.22)
-              : TarotColors.surfaceCard,
-          borderRadius: BorderRadius.circular(TarotTokens.radiusPill),
-          border: Border.all(
-            color: selected ? TarotColors.pinkGlow : TarotColors.borderSoft,
-          ),
+          color: OzColors.card,
+          borderRadius: BorderRadius.circular(OzTokens.radiusPill),
+          border: Border.all(color: OzColors.borderSoft),
         ),
         child: Text(
           label,
-          style: TarotTextStyles.chipLabel.copyWith(
-            color: selected ? TarotColors.pinkGlow : TarotColors.textPrimary,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SpreadOption extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String desc;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _SpreadOption({
-    required this.icon,
-    required this.label,
-    required this.desc,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(TarotTokens.radiusMd),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(TarotTokens.spaceLg),
-        decoration: BoxDecoration(
-          color: selected
-              ? TarotColors.pinkGlow.withValues(alpha: 0.16)
-              : TarotColors.surfaceCard,
-          border: Border.all(
-            color: selected ? TarotColors.pinkGlow : TarotColors.borderSoft,
-          ),
-          borderRadius: BorderRadius.circular(TarotTokens.radiusMd),
-        ),
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              color: selected ? TarotColors.pinkGlow : TarotColors.textPrimary,
-              size: 26,
-            ),
-            const SizedBox(height: TarotTokens.spaceSm),
-            Text(
-              label,
-              style: TarotTextStyles.bodyStrong.copyWith(
-                color: selected
-                    ? TarotColors.pinkGlow
-                    : TarotColors.textPrimary,
-              ),
-            ),
-            Text(desc, style: TarotTextStyles.caption),
-          ],
+          style: OzTypography.body(fontSize: 12, color: OzColors.fg.withValues(alpha: 0.85)),
         ),
       ),
     );

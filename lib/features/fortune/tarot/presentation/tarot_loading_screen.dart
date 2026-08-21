@@ -2,26 +2,22 @@ import 'dart:math';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../application/tarot_provider.dart';
 import '../application/tarot_session_controller.dart';
-import 'theme/tarot_perf_config.dart';
+import 'oz/oz_theme.dart';
+import 'oz/widgets/oz_background.dart';
 import 'theme/tarot_perf_monitor.dart';
-import 'widgets/tarot_mystic_background.dart';
 
-/// [AI 타로 리딩 UX/UI 개선] TarotLoadingScreen 전면 재구성.
+/// [타로 오즈 리스킨 · 화면06 LOADING] AI 리딩 로딩 화면.
 ///
-/// §1 "리딩 시작 애니메이션"(카드 리비테이션 + 빛 확산 + 회전 + 마법진) →
-/// §2/§3 "AI가 실제로 분석하는 느낌"(랜덤 단계 문구 + 살아있는 배경)의 2단계
-/// 시네마틱 로딩을 구현한다. 실제 카드 정체(어떤 카드가 나왔는지)는 이 단계
-/// 시점에는 아직 서버 응답이 도착하지 않았을 수 있으므로(비동기), 여기서는
-/// "정체를 알 수 없는 신비로운 카드 뒷면"만 보여주고 실제 카드 공개는 결과
-/// 화면(§4~6)의 전용 리빌 연출로 넘긴다 - 화면 간 역할을 명확히 분리해
-/// 로딩 화면 로직이 결과 화면 로직과 뒤섞이지 않게 한다.
-///
-/// [체감 리추얼 보장] API가 즉시 응답하더라도 최소 [_minRitualDuration]만큼은
-/// 반드시 연출을 재생한다("바로 결과를 보여주지 않습니다" 원칙, §1). API가
-/// 느리면 문구 로테이션이 계속 이어지며 자연스럽게 대기 시간을 채운다.
+/// 순수 리스킨: [_tryNavigate] 로직, `_minRitualDuration`(4400ms)/
+/// `_messageInterval`(1700ms) 타이밍, `cardCount` 계산 로직,
+/// [TarotPerfMonitor.enter]/[exit] 호출은 그대로 유지하고, 배경/카드/
+/// 마법진의 색상 팔레트만 오즈 톤(딥퍼플+골드)으로 교체한다. 이 화면은
+/// 기존에도 [TarotMysticBackground]를 직접 썼을 뿐 다른 화면과 달리
+/// [TarotThemeScope]를 사용하지 않는 특수성이 있었는데, 오즈 리스킨에서는
+/// 다른 6화면과 시각적 일관성을 위해 [OzBackground]를 사용한다(로직
+/// 특수성은 변경하지 않되, 배경 위젯 자체는 리스킨 대상이므로 교체).
 class TarotLoadingScreen extends StatefulWidget {
   const TarotLoadingScreen({super.key});
 
@@ -57,9 +53,6 @@ class _TarotLoadingScreenState extends State<TarotLoadingScreen>
   @override
   void initState() {
     super.initState();
-    // [§11 P6] 이 화면은 [TarotThemeScope]를 사용하지 않는 유일한 타로
-    // 화면(기존 라이트 Scaffold + AppColors.deepSpace 유지)이므로,
-    // 프레임 성능 관측 진입/이탈을 여기서 직접 연결한다.
     TarotPerfMonitor.enter();
     _riseController = AnimationController(vsync: this, duration: _riseDuration)
       ..forward();
@@ -121,24 +114,23 @@ class _TarotLoadingScreenState extends State<TarotLoadingScreen>
     _tryNavigate(provider);
 
     final isRising = _riseController.value < 1.0;
-    // [타로 섹션 전면 개편 §7 P2] 카드선택 화면(⑤)에서 확정된 스프레드에
-    // 맞춰 리비테이션 카드 매수를 맞춘다(1카드/YES·NO는 1장, 3카드는
-    // 3장). 세션이 없는 레거시 경로(콘솔 진입 등)에서는 기존처럼 1장.
     final session = context.watch<TarotSessionController>();
     final cardCount = session.state.requiredCardCount.clamp(1, 3);
 
     return Scaffold(
-      backgroundColor: AppColors.deepSpace,
+      backgroundColor: OzColors.bgDeep,
       body: Stack(
         children: [
-          TarotMysticBackground(
-            intensity: TarotPerfConfig.backgroundIntensity(1.0),
-          ),
+          const OzBackground(),
           SafeArea(
             child: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  const Text(
+                    '☽',
+                    style: TextStyle(color: OzColors.gold, fontSize: 1),
+                  ), // (레이아웃 안정용, 실제 달 장식은 하단 Stack에서 그림)
                   SizedBox(
                     width: cardCount > 1 ? 300 : 220,
                     height: 260,
@@ -162,7 +154,7 @@ class _TarotLoadingScreenState extends State<TarotLoadingScreen>
                         return Stack(
                           alignment: Alignment.center,
                           children: [
-                            // 빛이 퍼짐(§1) - 카드가 떠오르며 함께 확산되는 후광
+                            // 은은한 골드 후광(§1 빛이 퍼짐)
                             Opacity(
                               opacity: (rise * 0.9).clamp(0.0, 0.9),
                               child: Container(
@@ -172,23 +164,21 @@ class _TarotLoadingScreenState extends State<TarotLoadingScreen>
                                   shape: BoxShape.circle,
                                   gradient: RadialGradient(
                                     colors: [
-                                      AppColors.secondary.withValues(
-                                        alpha: 0.35,
-                                      ),
+                                      OzColors.gold.withValues(alpha: 0.32),
                                       Colors.transparent,
                                     ],
                                   ),
                                 ),
                               ),
                             ),
-                            // 은빛/골드 마법진(§1 "빛나는 원형 마법진")
+                            // 골드 마법진
                             Opacity(
                               opacity: rise.clamp(0.0, 1.0),
                               child: Transform.rotate(
                                 angle: _circleController.value * 2 * pi,
                                 child: CustomPaint(
                                   size: const Size(200, 200),
-                                  painter: _MagicCirclePainter(),
+                                  painter: _OzMagicCirclePainter(),
                                 ),
                               ),
                             ),
@@ -198,14 +188,10 @@ class _TarotLoadingScreenState extends State<TarotLoadingScreen>
                                 opacity: (rise * 0.7).clamp(0.0, 0.7),
                                 child: CustomPaint(
                                   size: const Size(150, 150),
-                                  painter: _MagicCirclePainter(dashCount: 18),
+                                  painter: _OzMagicCirclePainter(dashCount: 18),
                                 ),
                               ),
                             ),
-                            // 떠오르는 카드(§1 "카드가 천천히 떠오릅니다" +
-                            // "카드가 살짝 회전합니다") - 3카드 스프레드는
-                            // 카드 3장이 살짝 시차(stagger)를 두고 함께
-                            // 떠오른다(등장 후 §3 "미세하게 흔들림" 유지).
                             for (var i = 0; i < cardCount; i++)
                               () {
                                 final stagger = cardCount > 1 ? i * 0.12 : 0.0;
@@ -230,7 +216,7 @@ class _TarotLoadingScreenState extends State<TarotLoadingScreen>
                                         : sin((breathe + i * 0.3) * pi) * 0.02,
                                     child: Opacity(
                                       opacity: localRise.clamp(0.0, 1.0),
-                                      child: _CardBack(
+                                      child: _OzMoonCard(
                                         width: cardCount > 1 ? 92 : 118,
                                         height: cardCount > 1 ? 140 : 178,
                                       ),
@@ -243,7 +229,12 @@ class _TarotLoadingScreenState extends State<TarotLoadingScreen>
                       },
                     ),
                   ),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 8),
+                  Text(
+                    'AI TAROT READING',
+                    style: OzTypography.monoLabel(fontSize: 10, letterSpacing: 4),
+                  ),
+                  const SizedBox(height: 32),
                   AnimatedSwitcher(
                     duration: const Duration(milliseconds: 400),
                     transitionBuilder: (child, animation) => FadeTransition(
@@ -262,15 +253,12 @@ class _TarotLoadingScreenState extends State<TarotLoadingScreen>
                       child: Text(
                         '${_messages[_messageIndex].$1} ${_messages[_messageIndex].$2}',
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                          height: 1.5,
-                        ),
+                        style: OzTypography.body(fontSize: 14, color: OzColors.fg),
                       ),
                     ),
                   ),
+                  const SizedBox(height: 24),
+                  _OzLoadingDots(controller: _breatheController),
                 ],
               ),
             ),
@@ -281,13 +269,11 @@ class _TarotLoadingScreenState extends State<TarotLoadingScreen>
   }
 }
 
-/// 정체를 알 수 없는 신비로운 카드 뒷면(§1) - 실제 카드는 결과 화면에서 공개.
-/// [width]/[height]는 3카드 스프레드에서 카드 3장이 나란히 들어갈 수
-/// 있도록 축소된 크기를 전달받는다(1카드는 기존 크기 그대로 유지).
-class _CardBack extends StatelessWidget {
+/// 신비로운 카드 뒷면(오즈 골드 톤). 실제 카드는 결과 화면에서 공개된다.
+class _OzMoonCard extends StatelessWidget {
   final double width;
   final double height;
-  const _CardBack({this.width = 118, this.height = 178});
+  const _OzMoonCard({this.width = 118, this.height = 178});
 
   @override
   Widget build(BuildContext context) {
@@ -295,19 +281,17 @@ class _CardBack extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        gradient: AppColors.mysticGradient,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF3D2A6B), Color(0xFF1A0F3D)],
+        ),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: AppColors.secondary.withValues(alpha: 0.7),
+          color: OzColors.gold.withValues(alpha: 0.7),
           width: 1.5,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.secondary.withValues(alpha: 0.35),
-            blurRadius: 24,
-            spreadRadius: 2,
-          ),
-        ],
+        boxShadow: OzColors.goldGlow(alpha: 0.35, blur: 26),
       ),
       child: Center(
         child: Container(
@@ -315,35 +299,32 @@ class _CardBack extends StatelessWidget {
           height: height * 0.775,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: AppColors.secondaryLight.withValues(alpha: 0.6),
-            ),
+            border: Border.all(color: OzColors.gold.withValues(alpha: 0.45)),
           ),
           alignment: Alignment.center,
-          child: Text('✨', style: TextStyle(fontSize: width * 0.29)),
+          child: Text('✨', style: TextStyle(fontSize: width * 0.29, color: OzColors.gold)),
         ),
       ),
     );
   }
 }
 
-/// 회전하는 마법진 - 원형 테두리 + 방사형 점(§1 "빛나는 원형 마법진").
-class _MagicCirclePainter extends CustomPainter {
+/// 회전하는 골드 마법진.
+class _OzMagicCirclePainter extends CustomPainter {
   final int dashCount;
-  _MagicCirclePainter({this.dashCount = 24});
+  _OzMagicCirclePainter({this.dashCount = 24});
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2;
     final ringPaint = Paint()
-      ..color = AppColors.secondaryLight.withValues(alpha: 0.55)
+      ..color = OzColors.gold.withValues(alpha: 0.5)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.2;
     canvas.drawCircle(center, radius, ringPaint);
 
-    final dotPaint = Paint()
-      ..color = AppColors.secondaryLight.withValues(alpha: 0.8);
+    final dotPaint = Paint()..color = OzColors.gold.withValues(alpha: 0.85);
     for (var i = 0; i < dashCount; i++) {
       final angle = (i / dashCount) * 2 * pi;
       final dotRadius = i % 3 == 0 ? 2.4 : 1.3;
@@ -359,5 +340,38 @@ class _MagicCirclePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _MagicCirclePainter oldDelegate) => false;
+  bool shouldRepaint(covariant _OzMagicCirclePainter oldDelegate) => false;
+}
+
+/// 하단 로딩 점 3개(순차 반짝임). CSS 대응: .oz-loading-dots / .oz-loading-dot.
+class _OzLoadingDots extends StatelessWidget {
+  final AnimationController controller;
+  const _OzLoadingDots({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(3, (i) {
+            final phase = (controller.value + i * 0.33) % 1.0;
+            final opacity = 0.3 + (sin(phase * pi) * 0.6).abs();
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: OzColors.gold.withValues(alpha: opacity.clamp(0.3, 0.95)),
+                ),
+              ),
+            );
+          }),
+        );
+      },
+    );
+  }
 }

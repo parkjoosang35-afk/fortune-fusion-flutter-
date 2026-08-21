@@ -15,40 +15,21 @@ import '../application/tarot_provider.dart';
 import '../application/tarot_session_controller.dart';
 import '../domain/tarot_model.dart';
 import '../domain/tarot_result_view_model.dart';
+import 'oz/oz_theme.dart';
+import 'oz/widgets/oz_background.dart';
 import 'tarot_deep_dive_screen.dart';
-import 'theme/tarot_colors.dart';
 import 'theme/tarot_perf_config.dart';
-import 'theme/tarot_text_styles.dart';
-import 'theme/tarot_theme_scope.dart';
-import 'theme/tarot_tokens.dart';
-import 'widgets/tarot_mystic_background.dart';
 import 'widgets/tarot_particle_burst.dart';
 import 'widgets/tarot_share_card.dart';
 
-/// [타로 섹션 전면 개편 §8/§10 P3] TarotResultScreen 전면 재구성.
+/// [타로 오즈 리스킨 · 화면07 RESULT] 결과 화면.
 ///
-/// 기존(단순 ListView + Fade In)을 대체해 "결과가 등장하는 순간"을 한 편의
-/// 짧은 영화처럼 연출한다. 두 개의 독립된 타임라인으로 구성한다:
-///
-/// 1) [_HeroRevealOverlay] - §4의 암전→빛수렴→카드확대→플립→강한빛→
-///    별가루폭발→카드이름 시퀀스를 화면 전체를 덮는 오버레이로 한 번만 재생한다.
-/// 2) [_ResultContent] - 오버레이가 끝나는 순간 시작되는 §8(①~⑦) 순차 등장
-///    콘텐츠 목록. 두 타임라인은 오버레이의 `overlayFade`(0.93~1.0 구간)와
-///    콘텐츠의 첫 항목 등장(0.0~ 구간)이 겹치도록 설계해 부드럽게 크로스페이드된다.
-///
-/// [P3 변경점] 화면 전체가 [TarotThemeScope]+[TarotColors]로 전환되어 §7
-/// 신규 화면들(질문/카드선택/로딩)과 다크 미스틱 톤이 일관된다. 콘텐츠 값
-/// (한줄운세/조언/행운색/행운숫자/AI한마디)은 더 이상 이 화면에서 직접
-/// [TarotReadingExtras]를 호출하지 않고, [TarotResultView.fromResult]로
-/// 한 번에 캡슐화된 뷰모델을 사용한다(§11 P4 공유카드/심화해석 화면과의
-/// 재사용을 위한 선행 작업). 하단 액션 바도 §8 "5액션"(히스토리/다시뽑기/
-/// 저장하기/공유하기/심화해석) 전부를 [TarotResultAction]으로 데이터 기반
-/// 렌더링한다(기존 2액션에서 확장).
-///
-/// [재생 1회 보장] `_TarotResultCinematic`을 `ValueKey(result.id)`로 감싸,
-/// 같은 결과 화면 내에서 Provider가 notifyListeners()로 리빌드되어도(저장/
-/// 공유 버튼 클릭 등) State가 재사용되어 애니메이션이 처음부터 다시 재생되지
-/// 않는다 - 오직 "새로운" 결과(id 변경)일 때만 새로 재생된다.
+/// 순수 리스킨: [_handleAction]/[_onSave]/[_onShare]/[_captureAndShare]
+/// 전체 로직, [_TarotResultCinematic]의 애니메이션 타이밍 구조(모든
+/// `_lerpRange` start/end 값은 절대 변경하지 않음), [TarotResultView
+/// .fromResult], [TarotResultAction] 5개 액션은 100% 그대로 유지하고,
+/// 오직 각 하위 위젯의 시각적 스타일(색상/타이포/배경)만 오즈 톤으로
+/// 교체한다.
 class TarotResultScreen extends StatefulWidget {
   final String? resultId;
   const TarotResultScreen({super.key, this.resultId});
@@ -80,8 +61,6 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
       case TarotResultAction.history:
         Navigator.of(context).pushNamed('/ai-fortune/tarot/history');
       case TarotResultAction.redraw:
-        // 새 세션으로 다시 시작 - 이전 카드선택/셔플 상태가 남아있지 않도록
-        // 질문화면 재진입 전에 세션을 초기화한다.
         session.reset();
         Navigator.of(context).pushNamed('/ai-fortune/tarot/question');
       case TarotResultAction.save:
@@ -97,13 +76,7 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
     }
   }
 
-  /// [§11 P4] "저장하기" - 세션 상태 피드백(markSaved)에 더해 앱 전역
-  /// 공용 저장소([MyFortuneRecordStore])에 실제로 영속화한다. 오늘의
-  /// 운세 화면과 동일한 저장소를 재사용하므로, 마이페이지 "내 운세 기록"
-  /// 에서 타로 결과도 함께 조회된다(§1-3 신규 자산 최소화).
   Future<void> _onSave(TarotResultView view) async {
-    // 히스토리에서 바로 진입한 경우(세션이 이 결과를 모름) 등에도
-    // markSaved()는 상태 가드로 조용히 no-op되므로 안전하다.
     context.read<TarotSessionController>().markSaved();
     context.read<TarotAudioController>().playSaveConfirm();
     await MyFortuneRecordStore.save(
@@ -126,68 +99,59 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
     });
   }
 
-  /// [§11 P4] "공유하기" - 앱 전역 공유카드 캡처 패턴([FortuneShareCard]/
-  /// [DailyFortuneResultScreen._captureAndShare]와 동일한 구조)을 그대로
-  /// 재사용해 [TarotShareCard]를 이미지로 캡처 후 공유한다.
   Future<void> _onShare(TarotResultView view) async {
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: TarotColors.bgIndigo,
+      backgroundColor: OzColors.bgMid,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => TarotThemeScope(
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(TarotTokens.spaceXl),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('타로 결과 공유하기', style: TarotTextStyles.screenTitle),
-                const SizedBox(height: TarotTokens.spaceLg),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(TarotTokens.radiusLg),
-                  child: RepaintBoundary(
-                    key: _shareCardKey,
-                    child: TarotShareCard(
-                      cardIcon: view.heroCard.icon,
-                      cardImagePath: view.heroCard.imageAssetPath,
-                      cardName: view.heroCard.nameKr,
-                      isReversed: view.heroCard.isReversed,
-                      oneLiner: view.oneLiner,
-                      luckyColorName: view.luckyColorName,
-                      luckyColor: view.luckyColor,
-                      luckyNumber: view.luckyNumber,
-                    ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(OzTokens.spaceXl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('타로 결과 공유하기', style: OzTypography.sectionTitle(fontSize: 18)),
+              const SizedBox(height: OzTokens.spaceLg),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(OzTokens.radiusLg),
+                child: RepaintBoundary(
+                  key: _shareCardKey,
+                  child: TarotShareCard(
+                    cardIcon: view.heroCard.icon,
+                    cardImagePath: view.heroCard.imageAssetPath,
+                    cardName: view.heroCard.nameKr,
+                    isReversed: view.heroCard.isReversed,
+                    oneLiner: view.oneLiner,
+                    luckyColorName: view.luckyColorName,
+                    luckyColor: view.luckyColor,
+                    luckyNumber: view.luckyNumber,
                   ),
                 ),
-                const SizedBox(height: TarotTokens.spaceLg),
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: FilledButton(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: TarotColors.pinkGlow,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(
-                          TarotTokens.radiusPill,
-                        ),
-                      ),
-                    ),
-                    onPressed: () async {
-                      Navigator.of(ctx).pop();
-                      await _captureAndShare();
-                    },
-                    child: Text(
-                      '이미지로 공유하기',
-                      style: TarotTextStyles.ctaLabel.copyWith(
-                        color: TarotColors.bgVoid,
-                      ),
+              ),
+              const SizedBox(height: OzTokens.spaceLg),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: OzColors.gold,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(OzTokens.radiusPill),
                     ),
                   ),
+                  onPressed: () async {
+                    Navigator.of(ctx).pop();
+                    await _captureAndShare();
+                  },
+                  child: Text(
+                    '이미지로 공유하기',
+                    style: OzTypography.ctaLabel(),
+                  ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -225,77 +189,76 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
     final provider = context.watch<TarotProvider>();
     final state = provider.state;
 
-    return TarotThemeScope(
-      child: Scaffold(
-        backgroundColor: TarotColors.bgVoid,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          title: Text('타로 결과', style: TarotTextStyles.screenTitle),
-        ),
-        body: switch (state.status) {
-          LoadStatus.loading => const Center(
-            child: CircularProgressIndicator(),
+    return Scaffold(
+      backgroundColor: OzColors.bgDeep,
+      extendBody: true,
+      body: Stack(
+        children: [
+          const OzBackground(),
+          SafeArea(
+            bottom: false,
+            child: switch (state.status) {
+              LoadStatus.loading => const Center(
+                child: CircularProgressIndicator(color: OzColors.gold),
+              ),
+              LoadStatus.error => AppErrorState(
+                message: state.errorMessage ?? '타로 리딩에 실패했습니다.',
+                onRetry: () => provider.retry(),
+              ),
+              LoadStatus.success => _TarotResultCinematic(
+                key: ValueKey(state.data!.id),
+                result: state.data!,
+              ),
+              LoadStatus.initial => const AppErrorState(message: '입력 정보가 없습니다.'),
+            },
           ),
-          LoadStatus.error => SafeArea(
-            child: AppErrorState(
-              message: state.errorMessage ?? '타로 리딩에 실패했습니다.',
-              onRetry: () => provider.retry(),
-            ),
-          ),
-          LoadStatus.success => _TarotResultCinematic(
-            key: ValueKey(state.data!.id),
-            result: state.data!,
-          ),
-          LoadStatus.initial => const SafeArea(
-            child: AppErrorState(message: '입력 정보가 없습니다.'),
-          ),
-        },
-        bottomNavigationBar: state.isSuccess
-            ? SafeArea(
-                top: false,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: TarotTokens.spaceSm,
-                    vertical: TarotTokens.spaceSm,
+        ],
+      ),
+      bottomNavigationBar: state.isSuccess
+          ? SafeArea(
+              top: false,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: OzTokens.spaceSm,
+                  vertical: OzTokens.spaceSm,
+                ),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      OzColors.bgDeep.withValues(alpha: 0.7),
+                      OzColors.bgDeep.withValues(alpha: 0.97),
+                    ],
                   ),
-                  decoration: BoxDecoration(
-                    color: TarotColors.bgIndigo.withValues(alpha: 0.92),
-                    border: const Border(
-                      top: BorderSide(color: TarotColors.borderSoft),
-                    ),
-                  ),
-                  child: Row(
-                    children: TarotResultAction.values
-                        .map(
-                          (action) => Expanded(
-                            child: _ResultActionButton(
-                              action: action,
-                              saved:
-                                  action == TarotResultAction.save &&
-                                  _justSaved,
-                              onTap: () => _handleAction(
-                                action,
-                                TarotResultView.fromResult(state.data!),
-                              ),
+                  border: Border(top: BorderSide(color: OzColors.borderSoft)),
+                ),
+                child: Row(
+                  children: TarotResultAction.values
+                      .map(
+                        (action) => Expanded(
+                          child: _ResultActionButton(
+                            action: action,
+                            saved:
+                                action == TarotResultAction.save && _justSaved,
+                            onTap: () => _handleAction(
+                              action,
+                              TarotResultView.fromResult(state.data!),
                             ),
                           ),
-                        )
-                        .toList(),
-                  ),
+                        ),
+                      )
+                      .toList(),
                 ),
-              )
-            : null,
-      ),
+              ),
+            )
+          : null,
     );
   }
 }
 
-/// §8 "5액션" 바의 버튼 1개. [TarotResultAction.redraw]는 이 세션의
-/// 다음 행동을 유도하는 주 액션이라 핑크글로우로 강조하고, 나머지는
-/// 문라이트실버 계열로 통일한다(§5-1 금색 절제 규칙 - 이 바에는 금색을
-/// 전혀 사용하지 않는다). [saved]가 true인 동안(저장 직후) "저장하기"
-/// 아이콘만 잠깐 별빛 골드로 강조해 "완료됐다"는 확실한 피드백을 준다.
+/// §8 "5액션" 바의 버튼 1개. redraw는 골드로 강조, 나머지는 fg 계열로 통일.
+/// 저장 직후([saved])에는 저장 아이콘만 골드로 강조.
 class _ResultActionButton extends StatelessWidget {
   final TarotResultAction action;
   final bool saved;
@@ -310,15 +273,15 @@ class _ResultActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final isPrimary = action == TarotResultAction.redraw;
     final color = saved
-        ? TarotColors.starlightGold
+        ? OzColors.gold
         : isPrimary
-        ? TarotColors.pinkGlow
-        : TarotColors.textSecondary;
+        ? OzColors.gold
+        : OzColors.fg.withValues(alpha: 0.7);
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(TarotTokens.radiusSm),
+      borderRadius: BorderRadius.circular(OzTokens.radiusSm),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: TarotTokens.spaceSm),
+        padding: const EdgeInsets.symmetric(vertical: OzTokens.spaceSm),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -330,9 +293,10 @@ class _ResultActionButton extends StatelessWidget {
             const SizedBox(height: 3),
             Text(
               saved ? '저장됨' : action.label,
-              style: TarotTextStyles.caption.copyWith(
+              style: OzTypography.monoLabel(
+                fontSize: 9.5,
                 color: color,
-                fontWeight: isPrimary ? FontWeight.w700 : FontWeight.w500,
+                letterSpacing: 0.3,
               ),
             ),
           ],
@@ -343,7 +307,7 @@ class _ResultActionButton extends StatelessWidget {
 }
 
 /// [t]가 [start]~[end] 구간을 지나는 동안 [from]~[to]로 보간하는 헬퍼.
-/// 구간 이전이면 [from], 이후면 [to]를 반환한다(값 유출 방지를 위한 클램프 포함).
+/// (기존과 완전히 동일, 절대 변경하지 않음)
 double _lerpRange(
   double t,
   double start,
@@ -360,6 +324,7 @@ double _lerpRange(
 }
 
 /// 결과 화면의 시네마틱 두 타임라인(리빌 오버레이 + 콘텐츠 순차 등장)을 관리한다.
+/// (타이밍/컨트롤러 구조는 기존과 완전히 동일)
 class _TarotResultCinematic extends StatefulWidget {
   final TarotResultModel result;
   const _TarotResultCinematic({super.key, required this.result});
@@ -378,18 +343,12 @@ class _TarotResultCinematicState extends State<_TarotResultCinematic>
   late final TarotResultView _view;
 
   bool _contentStarted = false;
-  // [§11 P5] _HeroRevealOverlay의 "강한 빛"(flashOpacity, t≈0.66~)과
-  // "별가루 폭발"(burstProgress, t≈0.68~) 구간에 맞춰 SFX를 정확히 한 번씩만
-  // 재생하기 위한 가드 플래그. AnimatedBuilder는 매 프레임 리빌드되므로
-  // 이 플래그 없이는 같은 사운드가 수십 번 재생된다.
   bool _revealImpactPlayed = false;
   bool _stardustChimePlayed = false;
 
   @override
   void initState() {
     super.initState();
-    // §11 P4에서 공유카드/심화해석 화면이 동일한 뷰모델을 재사용할 수
-    // 있도록, 결과 콘텐츠 계산을 이 지점에서 한 번만 수행한다.
     _view = TarotResultView.fromResult(widget.result);
     _revealController = AnimationController(
       vsync: this,
@@ -430,23 +389,16 @@ class _TarotResultCinematicState extends State<_TarotResultCinematic>
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // §7 "배경 애니메이션(결과화면)" - 살아있지만 "너무 화려하지 않게".
-        TarotMysticBackground(
-          intensity: TarotPerfConfig.backgroundIntensity(0.55),
+        AnimatedBuilder(
+          animation: _contentController,
+          builder: (context, _) {
+            return _ResultContent(
+              view: _view,
+              progress: _contentController.value,
+              started: _contentStarted,
+            );
+          },
         ),
-        SafeArea(
-          child: AnimatedBuilder(
-            animation: _contentController,
-            builder: (context, _) {
-              return _ResultContent(
-                view: _view,
-                progress: _contentController.value,
-                started: _contentStarted,
-              );
-            },
-          ),
-        ),
-        // §4 "결과 등장 연출" - 화면 전체를 덮는 1회성 시네마틱 오버레이.
         AnimatedBuilder(
           animation: _revealController,
           builder: (context, _) {
@@ -462,8 +414,8 @@ class _TarotResultCinematicState extends State<_TarotResultCinematic>
 
 /// §4의 전체 시퀀스(암전→빛수렴→카드확대→플립→강한빛→별가루폭발→카드이름)를
 /// 단일 진행값 [t](0.0~1.0)에서 구간별로 파생시켜 그리는 오버레이.
-/// §5 "카드 등장 방식"(확대→회전→빛→튕김→멈춤)도 이 안에서 함께 구현된다
-/// (카드 확대에 [Curves.elasticOut]을 사용해 "살짝 튕김" 효과를 낸다).
+/// 모든 _lerpRange 구간 값은 기존과 완전히 동일하게 유지된다 - 오직 색상
+/// 팔레트(수렴 원형/플래시/텍스트 스타일)만 오즈 톤으로 교체.
 class _HeroRevealOverlay extends StatelessWidget {
   final TarotCard card;
   final double t;
@@ -471,11 +423,9 @@ class _HeroRevealOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 1) 화면이 잠시 어두워짐
     final darkOpacity = t < 0.16
         ? _lerpRange(t, 0.0, 0.08, 0.0, 0.85)
         : _lerpRange(t, 0.16, 0.32, 0.85, 0.0);
-    // 2) 빛이 화면 중앙으로 모임
     final convergeScale = _lerpRange(
       t,
       0.06,
@@ -485,20 +435,15 @@ class _HeroRevealOverlay extends StatelessWidget {
       Curves.easeInOut,
     );
     final convergeOpacity = _lerpRange(t, 0.06, 0.30, 0.0, 0.9, Curves.easeIn);
-    // 3) 카드가 크게 등장(확대 + 살짝 튕김) + 4) 카드가 뒤집힘
     final cardOpacity = _lerpRange(t, 0.28, 0.36, 0.0, 1.0);
     final cardScale = _lerpRange(t, 0.28, 0.54, 0.3, 1.0, Curves.elasticOut);
     final flipAngle = _lerpRange(t, 0.50, 0.70, 0.0, pi, Curves.easeInOut);
-    // 5) 강한 빛
     final flashOpacity = t < 0.72
         ? _lerpRange(t, 0.66, 0.72, 0.0, 1.0)
         : _lerpRange(t, 0.72, 0.80, 1.0, 0.0);
-    // 6) 별가루 폭발
     final burstProgress = _lerpRange(t, 0.68, 0.95, 0.0, 1.0);
-    // 7) 카드 이름 등장
     final nameOpacity = _lerpRange(t, 0.80, 0.94, 0.0, 1.0);
     final nameSlide = _lerpRange(t, 0.80, 0.94, 14, 0);
-    // 오버레이 전체 페이드아웃(콘텐츠 타임라인과 크로스페이드되도록)
     final overlayFade = _lerpRange(t, 0.93, 1.0, 1.0, 0.0);
 
     final isFront = flipAngle > pi / 2;
@@ -525,8 +470,8 @@ class _HeroRevealOverlay extends StatelessWidget {
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        Color(0xE6FF9EC4),
-                        Color(0x66C9D3EC),
+                        Color(0xE6F5D97A),
+                        Color(0x668B6EC8),
                         Colors.transparent,
                       ],
                     ),
@@ -554,11 +499,6 @@ class _HeroRevealOverlay extends StatelessWidget {
                 ),
               ),
             ),
-          // [§11 P6] low 티어에서는 별가루 폭발을 완전히 생략한다
-          // (TarotPerfConfig.particleCount가 low에서 0을 반환하므로
-          // TarotParticleBurst 내부에서도 아무것도 그리지 않지만,
-          // 위젯 생성/애니메이션 리스닝 자체를 건너뛰어 한 단계 더
-          // 절약한다).
           if (burstProgress > 0 && TarotPerfConfig.showSymbolLayer)
             TarotParticleBurst(
               progress: burstProgress,
@@ -579,7 +519,7 @@ class _HeroRevealOverlay extends StatelessWidget {
                 offset: Offset(0, nameSlide),
                 child: Text(
                   '${card.nameKr}${card.isReversed ? " (역방향)" : ""}',
-                  style: TarotTextStyles.categoryTitle,
+                  style: OzTypography.hero(fontSize: 22, color: Colors.white),
                 ),
               ),
             ),
@@ -590,7 +530,7 @@ class _HeroRevealOverlay extends StatelessWidget {
   }
 }
 
-/// 리빌 전(뒤집히기 전) 카드 뒷면 - 카드선택/로딩 화면의 카드 뒷면과 톤을 맞춘다.
+/// 리빌 전(뒤집히기 전) 카드 뒷면.
 class _HeroCardBackFace extends StatelessWidget {
   const _HeroCardBackFace();
 
@@ -600,28 +540,26 @@ class _HeroCardBackFace extends StatelessWidget {
       width: 160,
       height: 240,
       decoration: BoxDecoration(
-        gradient: TarotColors.cardBackGradient,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF3D2A6B), Color(0xFF1A0F3D)],
+        ),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: TarotColors.moonSilver.withValues(alpha: 0.8),
+          color: OzColors.gold.withValues(alpha: 0.8),
           width: 2,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: TarotColors.pinkGlow.withValues(alpha: 0.4),
-            blurRadius: 36,
-            spreadRadius: 4,
-          ),
-        ],
+        boxShadow: OzColors.goldGlow(alpha: 0.4, blur: 36),
       ),
-      child: const Center(child: Text('✨', style: TextStyle(fontSize: 44))),
+      child: Center(
+        child: Text('✨', style: TextStyle(fontSize: 44, color: OzColors.gold)),
+      ),
     );
   }
 }
 
-/// 뒤집힌 후 실제로 공개되는 카드 앞면. §5-1 금색 절제 규칙 - "히어로 전체
-/// 배경에는 금색을 사용하지 않는다"에 따라 배경은 핑크글로우 그라디언트를
-/// 쓰고, 금색은 테두리/글로우 악센트로만 국소 사용한다.
+/// 뒤집힌 후 공개되는 카드 앞면.
 class _HeroCardFront extends StatelessWidget {
   final TarotCard card;
   const _HeroCardFront({required this.card});
@@ -632,16 +570,14 @@ class _HeroCardFront extends StatelessWidget {
       width: 160,
       height: 240,
       decoration: BoxDecoration(
-        gradient: TarotColors.pinkGlowGradient,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF4A3378), Color(0xFF2A1A5C)],
+        ),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: TarotColors.starlightGold, width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: TarotColors.starlightGold.withValues(alpha: 0.55),
-            blurRadius: 40,
-            spreadRadius: 6,
-          ),
-        ],
+        border: Border.all(color: OzColors.gold, width: 2),
+        boxShadow: OzColors.goldGlow(alpha: 0.55, blur: 40),
       ),
       alignment: Alignment.center,
       child: ClipRRect(
@@ -662,10 +598,9 @@ class _HeroCardFront extends StatelessWidget {
   }
 }
 
-/// §8 "결과보기" 7섹션(①카드이름 ②한줄운세 [총평] ③상세리딩 ④오늘의조언
-/// ⑤행운의색 ⑥행운의숫자 ⑦AI한마디)을 [_contentController]의 진행값에
-/// 따라 순차적으로 등장시키는 콘텐츠 목록. §9 "마지막 감동"은 ⑦AI한마디
-/// 카드로 구현된다. 콘텐츠 값은 모두 [TarotResultView]에서 가져온다.
+/// §8 "결과보기" 7섹션을 [_contentController]의 진행값에 따라 순차적으로
+/// 등장시키는 콘텐츠 목록. start/fadeSpan 등 모든 등장 타이밍 값은 기존과
+/// 완전히 동일하게 유지된다.
 class _ResultContent extends StatelessWidget {
   final TarotResultView view;
   final double progress;
@@ -684,10 +619,10 @@ class _ResultContent extends StatelessWidget {
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(
-        TarotTokens.spaceLg,
-        TarotTokens.spaceMd,
-        TarotTokens.spaceLg,
-        TarotTokens.spaceXxl,
+        OzTokens.spaceLg,
+        OzTokens.spaceMd,
+        OzTokens.spaceLg,
+        110,
       ),
       children: [
         _Reveal(
@@ -695,18 +630,15 @@ class _ResultContent extends StatelessWidget {
           start: 0.0,
           child: _QuestionBanner(question: result.question),
         ),
-        // [운세 카테고리 확장] 타로 YES/NO 스프레드 전용 배지(추가 전용,
-        // 기존 카드 등장 애니메이션/레이아웃에는 영향 없음). answer가 없는
-        // 기존 one_card/three_card 결과에서는 아무것도 렌더링하지 않는다.
         if (result.answer != null) ...[
-          const SizedBox(height: TarotTokens.spaceMd),
+          const SizedBox(height: OzTokens.spaceMd),
           _Reveal(
             t: t,
             start: 0.04,
             child: _YesNoBadge(answer: result.answer!),
           ),
         ],
-        const SizedBox(height: TarotTokens.spaceXl),
+        const SizedBox(height: OzTokens.spaceXl),
         // ① 카드 이름
         _Reveal(
           t: t,
@@ -716,44 +648,47 @@ class _ResultContent extends StatelessWidget {
             multi: result.positions.length > 1,
           ),
         ),
-        const SizedBox(height: TarotTokens.spaceLg),
+        const SizedBox(height: OzTokens.spaceLg),
         // ② 한 줄 운세
         _Reveal(
           t: t,
           start: 0.20,
           child: _OneLinerCard(text: view.oneLiner),
         ),
-        const SizedBox(height: TarotTokens.spaceLg),
-        // AI 리딩 텍스트(§4 "AI 리딩 텍스트 등장") - 서버가 생성한 총평 전문.
+        const SizedBox(height: OzTokens.spaceLg),
+        // AI 리딩 텍스트(총평)
         _Reveal(
           t: t,
           start: 0.27,
           child: _AiReadingCard(text: result.summary),
         ),
-        const SizedBox(height: TarotTokens.spaceLg),
+        const SizedBox(height: OzTokens.spaceLg),
         // ③ 상세 리딩
         Column(
           children: [
             for (var i = 0; i < result.positions.length; i++)
               Padding(
-                padding: const EdgeInsets.only(bottom: TarotTokens.spaceMd),
+                padding: const EdgeInsets.only(bottom: OzTokens.spaceMd),
                 child: _Reveal(
                   t: t,
                   start: 0.34 + i * 0.04,
                   fadeSpan: 0.14,
-                  child: _PositionCard(position: result.positions[i]),
+                  child: _PositionCard(
+                    position: result.positions[i],
+                    index: i,
+                  ),
                 ),
               ),
           ],
         ),
-        const SizedBox(height: TarotTokens.spaceMd),
+        const SizedBox(height: OzTokens.spaceMd),
         // ④ 오늘의 조언
         _Reveal(
           t: t,
           start: 0.58,
           child: _InfoTile(icon: '🧭', label: '오늘의 조언', content: view.advice),
         ),
-        const SizedBox(height: TarotTokens.spaceMd),
+        const SizedBox(height: OzTokens.spaceMd),
         // ⑤ 행운의 색 / ⑥ 행운의 숫자
         _Reveal(
           t: t,
@@ -766,13 +701,13 @@ class _ResultContent extends StatelessWidget {
                   color: view.luckyColor,
                 ),
               ),
-              const SizedBox(width: TarotTokens.spaceMd),
+              const SizedBox(width: OzTokens.spaceMd),
               Expanded(child: _LuckyNumberTile(number: view.luckyNumber)),
             ],
           ),
         ),
-        const SizedBox(height: TarotTokens.spaceXl),
-        // ⑦ AI 한마디(§9 "마지막 감동")
+        const SizedBox(height: OzTokens.spaceXl),
+        // ⑦ AI 한마디
         _Reveal(
           t: t,
           start: 0.84,
@@ -784,8 +719,8 @@ class _ResultContent extends StatelessWidget {
   }
 }
 
-/// [t]가 [start]~[start]+[fadeSpan] 구간을 지나는 동안 [child]를 페이드인 +
-/// 위로 슬라이드 등장시키는 공용 헬퍼(§8 "순차적으로 등장"을 위한 최소 단위).
+/// [t]가 [start]~[start]+[fadeSpan] 구간을 지나는 동안 페이드인 + 슬라이드
+/// 등장시키는 공용 헬퍼(기존과 완전히 동일).
 class _Reveal extends StatelessWidget {
   final double t;
   final double start;
@@ -831,26 +766,25 @@ class _QuestionBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(TarotTokens.spaceLg),
+      padding: const EdgeInsets.all(OzTokens.spaceLg),
       decoration: BoxDecoration(
-        gradient: TarotColors.nightGradient,
-        borderRadius: BorderRadius.circular(TarotTokens.radiusMd),
-        border: Border.all(color: TarotColors.borderSoft),
+        color: OzColors.cardSoft,
+        borderRadius: BorderRadius.circular(OzTokens.radiusMd),
+        border: Border.all(color: OzColors.borderSoft),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('질문', style: TarotTextStyles.caption),
+          Text('질문', style: OzTypography.monoLabel(fontSize: 10, letterSpacing: 2.4)),
           const SizedBox(height: 6),
-          Text(question, style: TarotTextStyles.bodyStrong),
+          Text(question, style: OzTypography.cardName(fontSize: 14)),
         ],
       ),
     );
   }
 }
 
-/// [운세 카테고리 확장] 타로 YES/NO 스프레드의 답변 방향(YES/NO)을 강조해
-/// 보여주는 배지. 신규 위젯이며 기존 위젯을 대체하지 않는다(추가 전용).
+/// 타로 YES/NO 스프레드의 답변 방향(YES/NO) 배지.
 class _YesNoBadge extends StatelessWidget {
   final String answer;
   const _YesNoBadge({required this.answer});
@@ -858,35 +792,28 @@ class _YesNoBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isYes = answer.toUpperCase() == 'YES';
-    final color = isYes ? const Color(0xFF2ECC71) : const Color(0xFFE74C3C);
+    final color = isYes ? OzColors.gold : OzColors.rose;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(
-        vertical: TarotTokens.spaceLg,
-        horizontal: TarotTokens.spaceLg,
+        vertical: OzTokens.spaceLg,
+        horizontal: OzTokens.spaceLg,
       ),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(TarotTokens.radiusMd),
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(OzTokens.radiusMd),
         border: Border.all(color: color, width: 1.5),
       ),
       child: Column(
         children: [
           Text(
             isYes ? '🔮 YES' : '🔮 NO',
-            style: TextStyle(
-              color: color,
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.0,
-            ),
+            style: OzTypography.hero(fontSize: 22, color: color),
           ),
           const SizedBox(height: 4),
           Text(
             '카드가 가리키는 방향입니다',
-            style: TarotTextStyles.caption.copyWith(
-              color: color.withValues(alpha: 0.85),
-            ),
+            style: OzTypography.body(fontSize: 11.5, color: color.withValues(alpha: 0.85)),
           ),
         ],
       ),
@@ -904,13 +831,20 @@ class _SectionHeaderCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(
-        vertical: TarotTokens.spaceXl,
-        horizontal: TarotTokens.spaceLg,
+        vertical: OzTokens.spaceXl,
+        horizontal: OzTokens.spaceLg,
       ),
       decoration: BoxDecoration(
-        gradient: TarotColors.nightGradient,
-        borderRadius: BorderRadius.circular(TarotTokens.radiusMd),
-        border: Border.all(color: TarotColors.borderGlow),
+        gradient: RadialGradient(
+          center: Alignment.topCenter,
+          radius: 1.2,
+          colors: [
+            const Color(0xFF3D2A6B).withValues(alpha: 0.5),
+            OzColors.bgMid.withValues(alpha: 0.3),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(OzTokens.radiusXl),
+        border: Border.all(color: OzColors.gold.withValues(alpha: 0.2)),
       ),
       child: Column(
         children: [
@@ -918,21 +852,21 @@ class _SectionHeaderCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             child: Image.asset(
               heroCard.thumbAssetPath,
-              width: 56,
-              height: 84,
+              width: 64,
+              height: 96,
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) =>
                   Text(heroCard.icon, style: const TextStyle(fontSize: 40)),
             ),
           ),
-          const SizedBox(height: TarotTokens.spaceSm),
+          const SizedBox(height: OzTokens.spaceMd),
           Text(
             '${heroCard.nameKr}${heroCard.isReversed ? " (역방향)" : ""}',
-            style: TarotTextStyles.categoryTitle,
+            style: OzTypography.hero(fontSize: 20),
           ),
           if (multi) ...[
             const SizedBox(height: 4),
-            Text('카드들이 이야기를 전하고 있어요', style: TarotTextStyles.caption),
+            Text('카드들이 이야기를 전하고 있어요', style: OzTypography.body(fontSize: 12)),
           ],
         ],
       ),
@@ -948,19 +882,16 @@ class _OneLinerCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(TarotTokens.spaceLg),
+      padding: const EdgeInsets.all(OzTokens.spaceLg),
       decoration: BoxDecoration(
-        color: TarotColors.surfaceCard,
-        borderRadius: BorderRadius.circular(TarotTokens.radiusMd),
-        border: Border.all(color: TarotColors.borderGlow),
+        color: OzColors.card,
+        borderRadius: BorderRadius.circular(OzTokens.radiusMd),
+        border: Border.all(color: OzColors.borderStrong),
       ),
       child: Text(
         '"$text"',
         textAlign: TextAlign.center,
-        style: TarotTextStyles.bodyStrong.copyWith(
-          color: TarotColors.pinkGlow,
-          fontStyle: FontStyle.italic,
-        ),
+        style: OzTypography.italicBody(fontSize: 14.5, color: OzColors.gold),
       ),
     );
   }
@@ -974,32 +905,41 @@ class _AiReadingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(TarotTokens.spaceLg),
+      padding: const EdgeInsets.all(OzTokens.spaceLg),
       decoration: BoxDecoration(
-        color: TarotColors.surfaceCard,
-        borderRadius: BorderRadius.circular(TarotTokens.radiusMd),
-        border: Border.all(color: TarotColors.borderSoft),
+        color: OzColors.cardSoft,
+        borderRadius: BorderRadius.circular(OzTokens.radiusMd),
+        border: Border.all(color: OzColors.borderSoft),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Text('🔮', style: TextStyle(fontSize: 16)),
-              const SizedBox(width: 6),
-              Text(
-                'AI 리딩',
-                style: TarotTextStyles.caption.copyWith(
-                  color: TarotColors.moonSilver,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: TarotTokens.spaceSm),
-          Text(text, style: TarotTextStyles.body),
+          _SectionLabel(icon: '🔮', label: 'AI 리딩'),
+          const SizedBox(height: OzTokens.spaceSm),
+          Text(text, style: OzTypography.body(fontSize: 13.5, color: OzColors.fg.withValues(alpha: 0.85))),
         ],
       ),
+    );
+  }
+}
+
+/// 중앙정렬 구분선 포함 라벨. CSS 대응: .oz-reading-section-label.
+class _SectionLabel extends StatelessWidget {
+  final String icon;
+  final String label;
+  const _SectionLabel({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text(icon, style: const TextStyle(fontSize: 15)),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: OzTypography.monoLabel(fontSize: 10.5, letterSpacing: 1.6),
+        ),
+      ],
     );
   }
 }
@@ -1018,29 +958,27 @@ class _InfoTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(TarotTokens.spaceLg),
+      padding: const EdgeInsets.all(OzTokens.spaceLg),
       decoration: BoxDecoration(
-        color: TarotColors.surfaceCard,
-        borderRadius: BorderRadius.circular(TarotTokens.radiusMd),
+        color: OzColors.cardSoft,
+        borderRadius: BorderRadius.circular(OzTokens.radiusMd),
+        border: Border(left: BorderSide(color: OzColors.gold, width: 3)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(icon, style: const TextStyle(fontSize: 20)),
-          const SizedBox(width: TarotTokens.spaceSm),
+          const SizedBox(width: OzTokens.spaceSm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   label,
-                  style: TarotTextStyles.caption.copyWith(
-                    color: TarotColors.moonSilver,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: OzTypography.monoLabel(fontSize: 10, letterSpacing: 1.6),
                 ),
                 const SizedBox(height: 4),
-                Text(content, style: TarotTextStyles.body),
+                Text(content, style: OzTypography.body(fontSize: 13, color: OzColors.fg.withValues(alpha: 0.85))),
               ],
             ),
           ),
@@ -1050,8 +988,7 @@ class _InfoTile extends StatelessWidget {
   }
 }
 
-/// §5-1 금색 절제 규칙의 명시적 예외 지점(3) - "행운의 색/숫자 타일" 등
-/// 국소 강조. 이 타일들에서만 별빛 골드를 자유롭게 사용한다.
+/// 행운의 색/숫자 타일 - 골드 국소 강조.
 class _LuckyColorTile extends StatelessWidget {
   final String name;
   final Color color;
@@ -1060,10 +997,11 @@ class _LuckyColorTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(TarotTokens.spaceLg),
+      padding: const EdgeInsets.all(OzTokens.spaceLg),
       decoration: BoxDecoration(
-        color: TarotColors.surfaceCard,
-        borderRadius: BorderRadius.circular(TarotTokens.radiusMd),
+        color: OzColors.cardSoft,
+        borderRadius: BorderRadius.circular(OzTokens.radiusMd),
+        border: Border.all(color: OzColors.borderSoft),
       ),
       child: Column(
         children: [
@@ -1074,18 +1012,14 @@ class _LuckyColorTile extends StatelessWidget {
               color: color,
               shape: BoxShape.circle,
               boxShadow: [
-                BoxShadow(
-                  color: color.withValues(alpha: 0.6),
-                  blurRadius: 12,
-                  spreadRadius: 2,
-                ),
+                BoxShadow(color: color.withValues(alpha: 0.6), blurRadius: 12, spreadRadius: 2),
               ],
             ),
           ),
-          const SizedBox(height: TarotTokens.spaceSm),
-          Text('행운의 색', style: TarotTextStyles.caption),
+          const SizedBox(height: OzTokens.spaceSm),
+          Text('행운의 색', style: OzTypography.monoLabel(fontSize: 9.5, letterSpacing: 1.4)),
           const SizedBox(height: 2),
-          Text(name, style: TarotTextStyles.bodyStrong),
+          Text(name, style: OzTypography.cardName(fontSize: 13)),
         ],
       ),
     );
@@ -1099,31 +1033,27 @@ class _LuckyNumberTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(TarotTokens.spaceLg),
+      padding: const EdgeInsets.all(OzTokens.spaceLg),
       decoration: BoxDecoration(
-        color: TarotColors.surfaceCard,
-        borderRadius: BorderRadius.circular(TarotTokens.radiusMd),
+        color: OzColors.cardSoft,
+        borderRadius: BorderRadius.circular(OzTokens.radiusMd),
+        border: Border.all(color: OzColors.borderSoft),
       ),
       child: Column(
         children: [
           Text(
             '$number',
-            style: const TextStyle(
-              color: TarotColors.starlightGold,
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-            ),
+            style: OzTypography.hero(fontSize: 22, color: OzColors.gold),
           ),
           const SizedBox(height: 4),
-          Text('행운의 숫자', style: TarotTextStyles.caption),
+          Text('행운의 숫자', style: OzTypography.monoLabel(fontSize: 9.5, letterSpacing: 1.4)),
         ],
       ),
     );
   }
 }
 
-/// §9 "마지막 감동" - AI 한마디 카드. §5-1 규칙(카드 전체 배경에 금색 금지)에
-/// 따라 배경은 나이트 그라디언트를 쓰고, 금색은 테두리 글로우로만 국소 사용.
+/// §9 "마지막 감동" - AI 한마디 카드. 골드 테두리+글로우로 국소 강조.
 class _AiClosingCard extends StatelessWidget {
   final String text;
   const _AiClosingCard({required this.text});
@@ -1132,29 +1062,28 @@ class _AiClosingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(TarotTokens.spaceXl),
+      padding: const EdgeInsets.all(OzTokens.spaceXl),
       decoration: BoxDecoration(
-        gradient: TarotColors.nightGradient,
-        borderRadius: BorderRadius.circular(TarotTokens.radiusMd),
-        border: Border.all(
-          color: TarotColors.starlightGold.withValues(alpha: 0.55),
+        gradient: RadialGradient(
+          center: Alignment.topCenter,
+          radius: 1.3,
+          colors: [
+            OzColors.gold.withValues(alpha: 0.10),
+            OzColors.bgMid.withValues(alpha: 0.4),
+          ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: TarotColors.starlightGold.withValues(alpha: 0.22),
-            blurRadius: 24,
-            spreadRadius: 2,
-          ),
-        ],
+        borderRadius: BorderRadius.circular(OzTokens.radiusLg),
+        border: Border.all(color: OzColors.gold.withValues(alpha: 0.4)),
+        boxShadow: OzColors.goldGlow(alpha: 0.18, blur: 24),
       ),
       child: Column(
         children: [
           const Text('🌙', style: TextStyle(fontSize: 22)),
-          const SizedBox(height: TarotTokens.spaceSm),
+          const SizedBox(height: OzTokens.spaceSm),
           Text(
             text,
             textAlign: TextAlign.center,
-            style: TarotTextStyles.bodyStrong,
+            style: OzTypography.italicBody(fontSize: 14, color: OzColors.fg),
           ),
         ],
       ),
@@ -1162,19 +1091,34 @@ class _AiClosingCard extends StatelessWidget {
   }
 }
 
+/// 카드별 리딩(상세 리딩). CSS 대응: .oz-card-reading(.past/.present/.future
+/// 색상 차등 → past:teal, present:gold, future:rose로 재현).
 class _PositionCard extends StatelessWidget {
   final TarotSpreadPosition position;
-  const _PositionCard({required this.position});
+  final int index;
+  const _PositionCard({required this.position, required this.index});
+
+  Color get _glow {
+    switch (index) {
+      case 0:
+        return OzColors.teal;
+      case 2:
+        return OzColors.rose;
+      default:
+        return OzColors.gold;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final card = position.card;
+    final glow = _glow;
     return Container(
-      padding: const EdgeInsets.all(TarotTokens.spaceLg),
+      padding: const EdgeInsets.all(OzTokens.spaceLg),
       decoration: BoxDecoration(
-        color: TarotColors.surfaceCard,
-        borderRadius: BorderRadius.circular(TarotTokens.radiusMd),
-        border: Border.all(color: TarotColors.borderSoft),
+        color: OzColors.cardSoft,
+        borderRadius: BorderRadius.circular(OzTokens.radiusLg),
+        border: Border.all(color: OzColors.borderSoft),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1183,12 +1127,17 @@ class _PositionCard extends StatelessWidget {
             width: 56,
             height: 84,
             decoration: BoxDecoration(
-              gradient: TarotColors.cardBackGradient,
-              borderRadius: BorderRadius.circular(TarotTokens.radiusSm),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF4A3378), Color(0xFF2A1A5C)],
+              ),
+              borderRadius: BorderRadius.circular(OzTokens.radiusSm),
+              border: Border.all(color: glow.withValues(alpha: 0.5)),
             ),
             alignment: Alignment.center,
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(TarotTokens.radiusSm),
+              borderRadius: BorderRadius.circular(OzTokens.radiusSm),
               child: Transform.rotate(
                 angle: card.isReversed ? pi : 0,
                 child: Image.asset(
@@ -1202,34 +1151,39 @@ class _PositionCard extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: TarotTokens.spaceMd),
+          const SizedBox(width: OzTokens.spaceMd),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: TarotTokens.spaceSm,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: TarotColors.pinkGlow.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(TarotTokens.radiusPill),
-                  ),
-                  child: Text(
-                    position.label,
-                    style: TarotTextStyles.chipLabel.copyWith(
-                      color: TarotColors.pinkGlow,
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: OzTokens.spaceSm,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: glow.withValues(alpha: 0.16),
+                        borderRadius: BorderRadius.circular(OzTokens.radiusPill),
+                      ),
+                      child: Text(
+                        position.label,
+                        style: OzTypography.monoLabel(fontSize: 9.5, color: glow, letterSpacing: 1.2),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
                 const SizedBox(height: 6),
                 Text(
                   '${card.nameKr}${card.isReversed ? ' (역방향)' : ''}',
-                  style: TarotTextStyles.bodyStrong,
+                  style: OzTypography.cardName(fontSize: 15),
                 ),
                 const SizedBox(height: 4),
-                Text(position.interpretation, style: TarotTextStyles.body),
+                Text(
+                  position.interpretation,
+                  style: OzTypography.body(fontSize: 12.5, color: OzColors.fg.withValues(alpha: 0.8)),
+                ),
               ],
             ),
           ),
