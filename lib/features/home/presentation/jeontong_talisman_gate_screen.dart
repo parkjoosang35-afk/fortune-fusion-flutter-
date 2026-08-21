@@ -203,14 +203,7 @@ class _JeontongTalismanGateScreenState extends State<JeontongTalismanGateScreen>
                     style: _monoStyle(color: _GatePalette.goldDeep, size: 11),
                   ),
                   const SizedBox(height: 6),
-                  Text(
-                    '결과를 여는 부적',
-                    style: _seriflikeStyle(
-                      color: _GatePalette.goldPale,
-                      size: 18,
-                      weight: FontWeight.w700,
-                    ),
-                  ),
+                  const _GateHintText(),
                   const Spacer(),
                   Listener(
                     onPointerMove: (event) =>
@@ -287,19 +280,6 @@ TextStyle _monoStyle({required Color color, required double size}) {
     letterSpacing: 3.0,
     fontWeight: FontWeight.w500,
     color: color,
-  );
-}
-
-TextStyle _seriflikeStyle({
-  required Color color,
-  required double size,
-  FontWeight weight = FontWeight.w600,
-}) {
-  return TextStyle(
-    fontSize: size,
-    fontWeight: weight,
-    color: color,
-    letterSpacing: 0.2,
   );
 }
 
@@ -436,7 +416,13 @@ class _Talisman extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: 118,
+              height: 150,
+              child: CustomPaint(painter: _TalismanSymbolPainter()),
+            ),
+            const SizedBox(height: 10),
             Text(
               '萬事亨通',
               style: TextStyle(
@@ -451,6 +437,106 @@ class _Talisman extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 상단 힌트 문구 — README/원본 JSX 스펙: "부적을 만지면 좋은 일이 생깁니다"
+/// ("좋은 일" 부분만 금색으로 강조).
+class _GateHintText extends StatelessWidget {
+  const _GateHintText();
+
+  static const String _full = '부적을 만지면 좋은 일이 생깁니다';
+  static const String _highlight = '좋은 일';
+
+  @override
+  Widget build(BuildContext context) {
+    final idx = _full.indexOf(_highlight);
+    final before = idx >= 0 ? _full.substring(0, idx) : _full;
+    final after = idx >= 0 ? _full.substring(idx + _highlight.length) : '';
+    return Text.rich(
+      TextSpan(
+        style: TextStyle(
+          fontSize: 16,
+          letterSpacing: 1,
+          fontWeight: FontWeight.w400,
+          color: _GatePalette.goldPale,
+        ),
+        children: [
+          TextSpan(text: before),
+          if (idx >= 0)
+            TextSpan(
+              text: _highlight,
+              style: TextStyle(
+                color: _GatePalette.gold,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          if (idx >= 0) TextSpan(text: after),
+        ],
+      ),
+      textAlign: TextAlign.center,
+    );
+  }
+}
+
+/// 부적 중앙 라인아트 심볼 — 원본 JSX의 SVG(viewBox 0 0 140 180)를 그대로
+/// CustomPainter로 재현. 획 색상은 goldPale(#F5E6B8), 둥근 캡.
+class _TalismanSymbolPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final sx = size.width / 140;
+    final sy = size.height / 180;
+    Offset p(double x, double y) => Offset(x * sx, y * sy);
+
+    final stroke = Paint()
+      ..color = _GatePalette.goldPale
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    final fill = Paint()
+      ..color = _GatePalette.goldPale
+      ..style = PaintingStyle.fill;
+
+    void line(double x1, double y1, double x2, double y2, double w) {
+      stroke.strokeWidth = w * ((sx + sy) / 2);
+      canvas.drawLine(p(x1, y1), p(x2, y2), stroke);
+    }
+
+    // M70 5 L70 60
+    line(70, 5, 70, 60, 4);
+    // circle cx70 cy40 r7 filled
+    canvas.drawCircle(p(70, 40), 7 * ((sx + sy) / 2), fill);
+    // M35 55 L105 55
+    line(35, 55, 105, 55, 3);
+    // M30 65 L110 65
+    line(30, 65, 110, 65, 2);
+    // M70 55 L70 170
+    line(70, 55, 70, 170, 4);
+    // M45 85 L95 85
+    line(45, 85, 95, 85, 2.5);
+    // M45 85 Q45 105 55 110  &  M95 85 Q95 105 85 110
+    stroke.strokeWidth = 2 * ((sx + sy) / 2);
+    final path1 = Path()
+      ..moveTo(p(45, 85).dx, p(45, 85).dy)
+      ..quadraticBezierTo(p(45, 105).dx, p(45, 105).dy, p(55, 110).dx, p(55, 110).dy);
+    canvas.drawPath(path1, stroke);
+    final path2 = Path()
+      ..moveTo(p(95, 85).dx, p(95, 85).dy)
+      ..quadraticBezierTo(p(95, 105).dx, p(95, 105).dy, p(85, 110).dx, p(85, 110).dy);
+    canvas.drawPath(path2, stroke);
+    // M55 110 L85 110
+    line(55, 110, 85, 110, 2);
+    // M50 130 L90 130
+    line(50, 130, 90, 130, 2);
+    // M50 130 L50 160 & M90 130 L90 160
+    line(50, 130, 50, 160, 2);
+    line(90, 130, 90, 160, 2);
+    // M50 160 L90 160
+    line(50, 160, 90, 160, 2);
+    // circle cx70 cy145 r4 filled
+    canvas.drawCircle(p(70, 145), 4 * ((sx + sy) / 2), fill);
+  }
+
+  @override
+  bool shouldRepaint(covariant _TalismanSymbolPainter oldDelegate) => false;
 }
 
 // ─── 축복 명패 ───────────────────────────────────────────
