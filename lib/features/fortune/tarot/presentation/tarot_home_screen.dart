@@ -5,112 +5,99 @@ import '../../../../core/router/app_router.dart' show AppRouter;
 import '../application/tarot_audio_controller.dart';
 import '../application/tarot_session_controller.dart';
 import '../domain/tarot_category_model.dart';
-import 'theme/tarot_colors.dart';
-import 'theme/tarot_perf_config.dart';
-import 'theme/tarot_text_styles.dart';
-import 'theme/tarot_theme_scope.dart';
-import 'theme/tarot_tokens.dart';
-import 'widgets/tarot_category_card.dart';
-import 'widgets/tarot_mystic_background.dart';
+import 'oz/oz_theme.dart';
+import 'oz/widgets/oz_background.dart';
+import 'oz/widgets/oz_category_card.dart';
+import 'oz/widgets/oz_hero_carousel.dart';
+import 'oz/widgets/oz_theme_card.dart';
+import 'oz/widgets/oz_topbar.dart';
 
-/// [타로 섹션 전면 개편 §2 정보구조 ①] 타로 메인 홈.
+/// [타로 섹션 전면 개편 §2 정보구조 ①] 타로 메인 홈 — 오즈의 타로 리스킨.
 ///
 /// "단순 운세 메뉴"가 아니라 "타로 세계의 정문"으로 기능하는 화면. 상단
-/// 히어로(오늘의 타로 원카드 바로가기) → 인기 카테고리 가로 스크롤 →
-/// 신규 카테고리 가로 스크롤 → 6개 그룹 진입 그리드(②서브카테고리허브로 이동)
-/// 순서로 구성한다. 기존 `/ai-fortune/tarot/question`(질문화면)과
-/// `/ai-fortune/tarot/history`(히스토리)는 그대로 재사용하며 이 화면이
-/// 새로운 진입점 역할을 한다.
+/// 히어로 캐러셀(5초 자동 스와이프) → 인기 카테고리 그리드 → 신규
+/// 카테고리 그리드 → 6개 그룹 진입 그리드(②서브카테고리허브로 이동)
+/// 순서로 구성한다.
+///
+/// ⚠️ 순수 UI 리스킨: 데이터/라우팅/상태관리 로직은 기존과 완전히
+/// 동일하다 - 바뀐 것은 오직 위젯 트리(비주얼)뿐이다.
+/// - [TarotCategoryData.popular]/[TarotCategoryData.newest]/[byGroup] 그대로 사용
+/// - [enterTarotCategory] 공용 함수 시그니처/로직 그대로 유지(맨 아래 정의)
+/// - `/ai-fortune/tarot/history`, [AppRouter.tarotHubRoute] 라우팅 그대로 유지
 class TarotHomeScreen extends StatelessWidget {
   const TarotHomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return TarotThemeScope(
-      child: Scaffold(
-        backgroundColor: TarotColors.bgVoid,
-        body: Stack(
-          children: [
-            TarotMysticBackground(
-              intensity: TarotPerfConfig.backgroundIntensity(0.85),
-            ),
-            SafeArea(
-              child: CustomScrollView(
-                slivers: [
-                  SliverToBoxAdapter(child: _AppBarRow()),
-                  SliverToBoxAdapter(child: _HeroBanner()),
-                  const SliverToBoxAdapter(
-                    child: SizedBox(height: TarotTokens.spaceXl),
-                  ),
-                  SliverToBoxAdapter(
-                    child: _HorizontalSection(
-                      title: '지금 가장 많이 보는 카테고리',
-                      categories: TarotCategoryData.popular(take: 8),
-                    ),
-                  ),
-                  const SliverToBoxAdapter(
-                    child: SizedBox(height: TarotTokens.spaceXl),
-                  ),
-                  SliverToBoxAdapter(
-                    child: _HorizontalSection(
-                      title: '새로 생긴 카테고리',
-                      categories: TarotCategoryData.newest(take: 8),
-                    ),
-                  ),
-                  const SliverToBoxAdapter(
-                    child: SizedBox(height: TarotTokens.spaceXl),
-                  ),
-                  SliverToBoxAdapter(child: _GroupGrid()),
-                  const SliverToBoxAdapter(
-                    child: SizedBox(height: TarotTokens.spaceXxl),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _AppBarRow extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
     final audio = context.watch<TarotAudioController>();
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        TarotTokens.spaceLg,
-        TarotTokens.spaceMd,
-        TarotTokens.spaceLg,
-        0,
-      ),
-      child: Row(
+    return Scaffold(
+      backgroundColor: OzColors.bgDeep,
+      body: Stack(
         children: [
-          Text('타로', style: TarotTextStyles.heroTitle),
-          const Spacer(),
-          // [§11 P5] 사운드 음소거 토글 - 타로 섹션 전용 SFX만 제어한다.
-          IconButton(
-            icon: Icon(
-              audio.muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
-              color: TarotColors.textPrimary,
+          const OzBackground(),
+          SafeArea(
+            child: CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: OzTopbar(
+                    title: '타로',
+                    actions: [
+                      OzTopbarIconButton(
+                        icon: audio.muted
+                            ? Icons.volume_off_rounded
+                            : Icons.volume_up_rounded,
+                        tooltip: audio.muted ? '타로 소리 켜기' : '타로 소리 끄기',
+                        onTap: () => audio.toggleMute(),
+                      ),
+                      const SizedBox(width: 4),
+                      OzTopbarIconButton(
+                        icon: Icons.history_rounded,
+                        tooltip: '타로 히스토리 보기',
+                        onTap: () {
+                          audio.playUiTap();
+                          Navigator.of(
+                            context,
+                          ).pushNamed('/ai-fortune/tarot/history');
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: OzHeroCarousel(
+                    onSlideTap: (categoryId) {
+                      final c = TarotCategoryData.byId(categoryId);
+                      if (c != null) enterTarotCategory(context, c);
+                    },
+                  ),
+                ),
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: OzTokens.spaceXxl),
+                ),
+                SliverToBoxAdapter(
+                  child: _CategorySection(
+                    title: '◆ 지금 가장 많이 보는 카테고리',
+                    categories: TarotCategoryData.popular(take: 8),
+                  ),
+                ),
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: OzTokens.spaceXxl),
+                ),
+                SliverToBoxAdapter(
+                  child: _CategorySection(
+                    title: '◆ 새로 생긴 카테고리',
+                    categories: TarotCategoryData.newest(take: 8),
+                  ),
+                ),
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: OzTokens.spaceXxl),
+                ),
+                const SliverToBoxAdapter(child: _ThemeGridSection()),
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: OzTokens.spaceXxl),
+                ),
+              ],
             ),
-            tooltip: audio.muted ? '타로 소리 켜기' : '타로 소리 끄기',
-            onPressed: () => audio.toggleMute(),
-          ),
-          IconButton(
-            icon: const Icon(
-              Icons.history_rounded,
-              color: TarotColors.textPrimary,
-            ),
-            // [접근성] 아이콘 전용 버튼에는 tooltip을 달아 스크린리더가
-            // 읽을 시맨틱 라벨을 제공한다(IconButton은 tooltip을 자동으로
-            // Semantics label로도 사용한다).
-            tooltip: '타로 히스토리 보기',
-            onPressed: () {
-              audio.playUiTap();
-              Navigator.of(context).pushNamed('/ai-fortune/tarot/history');
-            },
           ),
         ],
       ),
@@ -118,182 +105,82 @@ class _AppBarRow extends StatelessWidget {
   }
 }
 
-/// 히어로 배너 - "오늘의 타로"(가장 인기 있는 원카드) 바로가기 CTA.
-class _HeroBanner extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final daily = TarotCategoryData.byId('daily_today_tarot');
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        TarotTokens.spaceLg,
-        TarotTokens.spaceLg,
-        TarotTokens.spaceLg,
-        0,
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(TarotTokens.radiusXl),
-        onTap: daily == null ? null : () => enterTarotCategory(context, daily),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(TarotTokens.spaceXl),
-          decoration: BoxDecoration(
-            gradient: TarotColors.nightGradient,
-            borderRadius: BorderRadius.circular(TarotTokens.radiusXl),
-            border: Border.all(color: TarotColors.borderGlow),
-            boxShadow: [
-              BoxShadow(
-                color: TarotColors.pinkGlow.withValues(alpha: 0.22),
-                blurRadius: 28,
-                spreadRadius: -6,
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('공들여 만든 하나의 타로 세계', style: TarotTextStyles.moodCopy),
-                    const SizedBox(height: 6),
-                    Text('오늘, 카드가 건네는 한마디', style: TarotTextStyles.screenTitle),
-                    const SizedBox(height: TarotTokens.spaceMd),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: TarotTokens.spaceLg,
-                        vertical: TarotTokens.spaceSm,
-                      ),
-                      decoration: BoxDecoration(
-                        gradient: TarotColors.pinkGlowGradient,
-                        borderRadius: BorderRadius.circular(
-                          TarotTokens.radiusPill,
-                        ),
-                      ),
-                      child: Text(
-                        '오늘의 타로 뽑기',
-                        style: TarotTextStyles.ctaLabel.copyWith(
-                          color: TarotColors.bgVoid,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: TarotTokens.spaceMd),
-              const Text('🔮', style: TextStyle(fontSize: 44)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _HorizontalSection extends StatelessWidget {
+/// 인기/신규 카테고리 4열 그리드 섹션. CSS 대응: .oz-cat-grid.
+class _CategorySection extends StatelessWidget {
   final String title;
   final List<TarotCategoryMeta> categories;
-  const _HorizontalSection({required this.title, required this.categories});
+  const _CategorySection({required this.title, required this.categories});
 
   @override
   Widget build(BuildContext context) {
     if (categories.isEmpty) return const SizedBox.shrink();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: TarotTokens.spaceLg),
-          child: Text(title, style: TarotTextStyles.sectionHeader),
-        ),
-        const SizedBox(height: TarotTokens.spaceMd),
-        SizedBox(
-          height: 132,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(
-              horizontal: TarotTokens.spaceLg,
-            ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: OzTokens.spaceLg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: OzTypography.sectionTitle(fontSize: 16)),
+          const SizedBox(height: OzTokens.spaceMd),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
             itemCount: categories.length,
-            separatorBuilder: (_, __) =>
-                const SizedBox(width: TarotTokens.spaceMd),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 4,
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              childAspectRatio: 0.72,
+            ),
             itemBuilder: (context, i) {
               final c = categories[i];
-              return TarotCategoryCard(
+              return OzCategoryCard(
                 category: c,
-                compact: true,
                 onTap: () => enterTarotCategory(context, c),
               );
             },
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
 
 /// 6개 그룹 진입 그리드 - 탭하면 서브 카테고리 허브(②)로 이동.
-class _GroupGrid extends StatelessWidget {
+/// CSS 대응: .oz-theme-grid.
+class _ThemeGridSection extends StatelessWidget {
+  const _ThemeGridSection();
+
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: TarotTokens.spaceLg),
+      padding: const EdgeInsets.symmetric(horizontal: OzTokens.spaceLg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('테마별로 둘러보기', style: TarotTextStyles.sectionHeader),
-          const SizedBox(height: TarotTokens.spaceMd),
-          GridView.count(
-            crossAxisCount: 2,
+          Text('◆ 테마별로 둘러보기', style: OzTypography.sectionTitle(fontSize: 16)),
+          const SizedBox(height: OzTokens.spaceMd),
+          GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: TarotTokens.spaceMd,
-            crossAxisSpacing: TarotTokens.spaceMd,
-            childAspectRatio: 2.4,
-            children: TarotCategoryGroup.values.map((group) {
-              return _GroupTile(group: group);
-            }).toList(),
+            itemCount: TarotCategoryGroup.values.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              childAspectRatio: 1.35,
+            ),
+            itemBuilder: (context, i) {
+              final group = TarotCategoryGroup.values[i];
+              return OzThemeCard(
+                group: group,
+                count: TarotCategoryData.byGroup(group).length,
+                onTap: () => Navigator.of(
+                  context,
+                ).pushNamed(AppRouter.tarotHubRoute, arguments: group),
+              );
+            },
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _GroupTile extends StatelessWidget {
-  final TarotCategoryGroup group;
-  const _GroupTile({required this.group});
-
-  @override
-  Widget build(BuildContext context) {
-    final count = TarotCategoryData.byGroup(group).length;
-    return InkWell(
-      borderRadius: BorderRadius.circular(TarotTokens.radiusLg),
-      onTap: () => Navigator.of(
-        context,
-      ).pushNamed(AppRouter.tarotHubRoute, arguments: group),
-      child: Container(
-        padding: const EdgeInsets.all(TarotTokens.spaceLg),
-        decoration: BoxDecoration(
-          color: TarotColors.surfaceCard,
-          borderRadius: BorderRadius.circular(TarotTokens.radiusLg),
-          border: Border.all(color: group.accentColor.withValues(alpha: 0.35)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              group.label,
-              style: TarotTextStyles.bodyStrong,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 3),
-            Text(
-              '$count개 카테고리',
-              style: TarotTextStyles.caption.copyWith(color: group.accentColor),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -304,6 +191,8 @@ class _GroupTile extends StatelessWidget {
 /// 65개 카테고리 어디서든(홈/허브) 동일하게 사용한다. 카테고리 상세
 /// 진입 화면(③)으로 이동하며, [TarotSessionController.selectCategory]를
 /// 먼저 호출해 세션 상태머신에 선택된 카테고리를 기록한다.
+///
+/// ⚠️ 오즈 리스킨 대상 외 로직 - 절대 변경하지 않음.
 void enterTarotCategory(BuildContext context, TarotCategoryMeta category) {
   context.read<TarotSessionController>().selectCategory(category);
   Navigator.of(
