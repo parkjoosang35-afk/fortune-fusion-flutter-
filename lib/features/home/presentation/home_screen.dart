@@ -983,8 +983,8 @@ class _FortuneTarotRow extends StatelessWidget {
         children: [
           Expanded(
             child: _FortuneTarotMiniCard(
-              title: '운세',
-              bottomLabel: '운세이야기',
+              title: '정통사주',
+              bottomLabel: '정통사주이야기',
               backgroundColor: HomeColors.cardMain,
               circleIcon: Icons.arrow_drop_up_rounded,
               circleStyle: PremiumCircleButtonStyle.neon,
