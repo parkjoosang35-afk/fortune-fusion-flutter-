@@ -9,9 +9,9 @@ import '../widgets/wish_room_candle.dart';
 import '../widgets/wish_room_dust.dart';
 import '../widgets/wish_room_seal.dart';
 import '../widgets/wish_room_sigil.dart';
-import 'wish_wall_board_screen.dart';
-import 'wish_wall_compose_screen.dart';
-import 'wish_wall_detail_screen.dart';
+import 'wish_room_compose_screen.dart';
+import 'wish_room_detail_screen.dart';
+import 'wish_room_feed_screen.dart';
 import 'wish_wall_my_screen.dart';
 
 /// 소원방(Wish Room) — "나의 소원방" 홈 화면.
@@ -93,16 +93,27 @@ class _WishRoomHomeScreenState extends State<WishRoomHomeScreen> {
     });
   }
 
+  // [라우팅 정리 — V2 8화면 전체 교체] 04 Home에서 push되는 4개 목적지를
+  // 신규 V2 화면(01/03/05/06)으로 교체한다. "기록" 탭([_openMy])만은
+  // dev-spec.md의 8화면 목록에 포함되지 않는 별도 화면이므로 기존
+  // [WishWallMyScreen]을 그대로 유지한다(문서 §미결정 사항, 의도적 유지).
   void _openDetail(WishPost wish) {
+    final provider = context.read<WishWallProvider>();
+    final index = provider.myWishes.indexWhere((w) => w.id == wish.id);
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => WishWallDetailScreen(wishId: wish.id)),
+      MaterialPageRoute(
+        builder: (_) => WishRoomDetailScreen(
+          wishId: wish.id,
+          index: index >= 0 ? index + 1 : 1,
+        ),
+      ),
     );
   }
 
   void _openCompose() {
     Navigator.of(
       context,
-    ).push(MaterialPageRoute(builder: (_) => const WishWallComposeScreen()));
+    ).push(MaterialPageRoute(builder: (_) => const WishRoomComposeScreen()));
   }
 
   void _openMy() {
@@ -114,7 +125,7 @@ class _WishRoomHomeScreenState extends State<WishRoomHomeScreen> {
   void _openFullBoard() {
     Navigator.of(
       context,
-    ).push(MaterialPageRoute(builder: (_) => const WishWallBoardScreen()));
+    ).push(MaterialPageRoute(builder: (_) => const WishRoomFeedScreen()));
   }
 
   /// 복주머니 허브 팝업 — "받기" 탭으로 열기(잔액 칩 탭).
