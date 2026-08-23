@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/fortune/presentation/fortune_hub_screen.dart';
-import '../../features/wish_wall_board/presentation/wish_room_home_screen.dart';
+import '../../features/wish_wall_board/presentation/wish_wall_board_screen.dart';
 import '../../features/luckybag/presentation/luckybag_hub_screen.dart';
 import '../../features/mypage/presentation/my_screen.dart';
 
@@ -27,7 +27,7 @@ class _AppShellState extends State<AppShell> {
   static const _tabs = [
     HomeScreen(), // 🏠 홈 - 화이트 프리미엄 9섹션 리디자인
     FortuneHubScreen(), // 🔮 운세 - 7개 카테고리+비용뱃지
-    WishRoomHomeScreen(), // 🕯 신통방통 소원방 - "마법진이 소환되는 신전" 제단 홈
+    WishWallBoardScreen(), // 🕯 신통방통 소원방 - 유리병(Bottle) 소원 게시판 (하단바는 기존 유지)
     LuckyBagScreen(), // 🍀 복주머니 - 잔액 히어로+커뮤니티엔진 배너+적립방법/사용처/구독보너스/히스토리
     MyScreen(), // 👤 마이 - 프로필+등급뱃지+아카이브+설정
   ];
