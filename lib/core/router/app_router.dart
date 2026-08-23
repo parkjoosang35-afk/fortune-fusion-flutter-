@@ -18,7 +18,7 @@ import '../../features/fortune/tarot/presentation/tarot_card_select_screen.dart'
 import '../../features/fortune/tarot/presentation/tarot_loading_screen.dart';
 import '../../features/fortune/tarot/presentation/tarot_result_screen.dart';
 import '../../features/fortune/tarot/presentation/tarot_history_screen.dart';
-import '../../features/fortune/tarot/presentation/tarot_home_screen.dart';
+import '../../features/fortune/tarot/presentation/oz_home/oz_tarot_home_screen.dart';
 import '../../features/fortune/tarot/presentation/tarot_hub_screen.dart';
 import '../../features/fortune/tarot/presentation/tarot_intro_screen.dart';
 import '../../features/fortune/tarot/presentation/tarot_category_detail_screen.dart';
@@ -243,7 +243,11 @@ class AppRouter {
       // 그대로 두고, 이 라우트가 새로운 "정문" 역할을 한다(P2 단계에서
       // 기존 진입점들을 이 라우트로 전환할 예정).
       case tarotHomeRoute:
-        return _page(const TarotHomeScreen());
+        // [handoff-home 이식] 타로 메인 홈만 새 디자인(OzTarotHomeScreen)으로
+        // 교체한다. 기존 [TarotHomeScreen] 위젯 자체는 [enterTarotCategory]
+        // 공용 함수(화면02 TarotHubScreen이 참조)를 여전히 정의하고 있어
+        // 파일을 삭제하지 않고 그대로 보존한다(다른 화면 영향 없음).
+        return _page(const OzTarotHomeScreen());
       // [타로 인트로 핸드오프 이식] 타로 메인 진입 직전 표시하는 스플래시.
       // 카운트다운 완료 시 이 화면 자신이 [tarotHomeRoute]로 이동한다.
       case tarotIntroRoute:
