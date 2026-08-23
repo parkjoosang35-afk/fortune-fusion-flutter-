@@ -594,7 +594,10 @@ class _TrendingRow extends StatelessWidget {
     // 이제 Home/FortuneHub/AllCategories 모두 동일한 타로 정문을 사용한다.
     // [타로 인트로 핸드오프 이식] 타로 메인 직행 대신 인트로 스플래시를
     // 먼저 거친다.
-    (Icons.style_outlined, '타로', AppRouter.tarotIntroRoute, true),
+    // [둘러보기 우선 원칙 - 타로도 정통사주와 동일하게] 메인 진입 시 게이트
+    // 없이 둘러볼 수 있어야 하므로 false로 변경. 실제 게이트는
+    // tarot_category_detail_screen.dart의 "시작하기"(다음 액션)로 옮겼다.
+    (Icons.style_outlined, '타로', AppRouter.tarotIntroRoute, false),
     (
       Icons.chat_bubble_outline_rounded,
       'AI 상담',
@@ -682,8 +685,11 @@ class _FeaturedGrid extends StatelessWidget {
       // 정문(TarotHomeScreen)으로 연결한다.
       // [타로 인트로 핸드오프 이식] 대표 카테고리 "타로" 카드도 인트로
       // 스플래시를 먼저 거치도록 변경한다.
+      // [둘러보기 우선 원칙 - 타로도 정통사주와 동일하게] 메인 진입 시
+      // 게이트 없이 둘러볼 수 있어야 하므로 false로 변경. 실제 게이트는
+      // tarot_category_detail_screen.dart의 "시작하기"(다음 액션)로 옮겼다.
       AppRouter.tarotIntroRoute,
-      true,
+      false,
     ),
   ];
 
@@ -849,12 +855,15 @@ _categoryGroups = [
     // _tarotCategoryIdByLabel 매핑을 통해 label별로 채워준다. 이렇게 하면
     // 사용자가 "오늘의 타로" 등을 눌러도 카테고리 상세 → 질문 → 카드선택 →
     // 결과의 동일한 신규 플로우로 들어가게 된다(구 화면 직행 금지).
+    // [둘러보기 우선 원칙 - 타로도 정통사주와 동일하게] 카테고리 상세
+    // (스프레드 선택) 화면은 게이트 없이 둘러볼 수 있어야 하므로 pass:false로
+    // 변경. 실제 게이트는 그 화면의 "시작하기"(다음 액션)로 옮겼다.
     items: [
-      (label: '오늘의 타로', route: '/tarot/category', pass: true),
-      (label: '연애타로', route: '/tarot/category', pass: true),
-      (label: '재물타로', route: '/tarot/category', pass: true),
-      (label: '선택타로', route: '/tarot/category', pass: true),
-      (label: '속마음 타로', route: '/tarot/category', pass: true),
+      (label: '오늘의 타로', route: '/tarot/category', pass: false),
+      (label: '연애타로', route: '/tarot/category', pass: false),
+      (label: '재물타로', route: '/tarot/category', pass: false),
+      (label: '선택타로', route: '/tarot/category', pass: false),
+      (label: '속마음 타로', route: '/tarot/category', pass: false),
     ],
   ),
   (

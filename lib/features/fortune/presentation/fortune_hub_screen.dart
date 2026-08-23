@@ -155,6 +155,12 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
   /// (기존에도 이 화면은 이미 `/tarot/home`을 쓰고 있었음 — 변경 없음).
   /// [타로 인트로 핸드오프 이식] 타로 메인 직행 대신 인트로 스플래시
   /// (AppRouter.tarotIntroRoute)를 먼저 거치도록 라우트만 교체한다.
+  /// [둘러보기 우선 원칙 - 타로도 정통사주와 동일하게] 다른 기능(정통사주 등)은
+  /// 메인 진입 시 게이트 없이 먼저 "둘러보기"가 가능하고, 실제 "다음 액션"에서만
+  /// 프리패스가 발동하는 반면 타로만 메인 진입 즉시 프리패스가 떠서 둘러볼
+  /// 수조차 없었다. requiresPass:false로 바꿔 게이트 없이 인트로로 직행시키고,
+  /// 실제 게이트는 tarot_category_detail_screen.dart의 "시작하기"(다음 액션)로
+  /// 옮긴다.
   static const _tarotSection = _FortuneSection(
     title: '카드운세',
     subtitle: '78장의 카드가 전하는 지금 이 순간의 메시지',
@@ -165,7 +171,7 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
         desc: '연애·재물·선택 등 원하는 주제로 카드를 뽑아보세요',
         icon: Icons.style_outlined,
         route: AppRouter.tarotIntroRoute,
-        requiresPass: true,
+        requiresPass: false,
       ),
     ],
   );

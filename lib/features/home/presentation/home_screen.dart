@@ -1007,15 +1007,16 @@ class _FortuneTarotRow extends StatelessWidget {
               backgroundColor: HomeColors.cardWish,
               circleIcon: Icons.arrow_drop_down_rounded,
               circleStyle: PremiumCircleButtonStyle.black,
-              // [프리패스 전체잠금 통일] 게이트 없이 직접 이동하던 버그 수정.
-              // [타로 인트로 핸드오프 이식] 타로 메인 직행 대신 인트로
-              // 스플래시(tarotIntroRoute)를 먼저 거친다.
-              onTap: () => navigateWithPassGate(
-                context,
-                title: '타로',
-                route: AppRouter.tarotIntroRoute,
-                requiresPass: true,
-              ),
+              // [둘러보기 우선 원칙 - 타로도 정통사주와 동일하게] 다른 모든
+              // 기능(정통사주 등)은 메인 진입 시 게이트 없이 먼저 "둘러보기"가
+              // 가능하고, 실제로 결과를 만들어내는 "다음 액션"(카테고리+
+              // 스프레드 선택 후 "시작하기")에서만 프리패스가 발동한다. 타로만
+              // 유독 메인 진입 즉시 프리패스가 떠서 둘러볼 수조차 없던 버그를
+              // 수정한다 — 게이트 없이 인트로 스플래시(tarotIntroRoute)로 직행
+              // 시키고, 실제 게이트는 tarot_category_detail_screen.dart의
+              // "시작하기" 버튼(다음 액션)에서 수행한다.
+              onTap: () =>
+                  Navigator.of(context).pushNamed(AppRouter.tarotIntroRoute),
             ),
           ),
         ],

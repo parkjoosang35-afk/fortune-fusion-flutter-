@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../pass/presentation/pass_gate_helper.dart';
 import '../application/tarot_session_controller.dart';
 import '../domain/tarot_category_model.dart';
 import 'oz/oz_theme.dart';
@@ -15,6 +16,12 @@ import 'oz/widgets/oz_topbar.dart';
 /// 순수 리스킨: 위젯 트리만 "오즈의 타로" 감성으로 교체하고, 기존 로직
 /// (카테고리 조회, `_spreadOptions` 데이터, 진입 애니메이션 타이밍,
 /// [_StartButton]의 selectCategory+pushNamed 로직)은 100% 그대로 유지한다.
+///
+/// [둘러보기 우선 원칙 - 타로 프리패스 타이밍 수정] 다른 기능(정통사주 등)과
+/// 동일하게 "메인 진입 → 게이트 없이 둘러보기 → 다음 액션에서 프리패스"
+/// 흐름을 맞추기 위해, 이 화면(카테고리+스프레드 선택)까지는 게이트 없이
+/// 자유롭게 둘러볼 수 있게 하고, [_StartButton]("시작하기" = 다음 액션)을
+/// 누르는 순간에만 [navigateWithPassGate]로 프리패스 게이트를 수행한다.
 class TarotCategoryDetailScreen extends StatefulWidget {
   final String? categoryId;
   const TarotCategoryDetailScreen({super.key, this.categoryId});
@@ -201,13 +208,20 @@ class _StartButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return OzPrimaryButton(
       label: '${category.label} 시작하기',
-      onPressed: () {
+      onPressed: () async {
         // [타로 리뉴얼] 세션 상태머신에 카테고리를 재확인해 기록한다
         // (타로 홈에서 이미 selectCategory가 호출됐어도, 직접 딥링크로
         // 진입했을 경우를 대비해 이 화면에서도 한 번 더 보장한다).
         context.read<TarotSessionController>().selectCategory(category);
-        Navigator.of(context).pushNamed(
-          '/ai-fortune/tarot/question',
+        // [둘러보기 우선 원칙 - 타로 프리패스 타이밍 수정] 카테고리+스프레드
+        // 선택까지는 게이트 없이 자유롭게 둘러볼 수 있게 하고, 실제로 질문
+        // 입력(다음 액션)으로 넘어가는 이 "시작하기" 시점에만 프리패스
+        // 게이트를 수행한다(정통사주의 "소카테고리 탭" 시점과 동일한 위치).
+        await navigateWithPassGate(
+          context,
+          title: '${category.label} 타로',
+          route: '/ai-fortune/tarot/question',
+          requiresPass: true,
           arguments: {
             'initialSpreadType': spreadType,
             'initialTopic': category.topicKey,
