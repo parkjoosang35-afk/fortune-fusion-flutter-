@@ -61,23 +61,35 @@ class _WishRoomHomeScreenState extends State<WishRoomHomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final provider = context.read<WishWallProvider>();
-      await provider.loadMyWishes();
+      // [비로그인/네트워크 실패 방어] 미로그인 상태에서는 fetchMyWishes가
+      // 401("로그인이 필요합니다")을 던진다. 이 경우에도 화면은 빈 소원
+      // 목록으로 정상 표시되어야 하며, 아래 제단 참배 보너스 로직이
+      // 통째로 스킵되거나 미처리 예외가 남아서는 안 된다.
+      try {
+        await provider.loadMyWishes();
+      } catch (_) {
+        // 비로그인/네트워크 실패는 조용히 무시 - 빈 소원 목록으로 계속 진행.
+      }
       if (!mounted) return;
-      final granted = await provider.policy.earnAltarVisitBonus();
-      if (!mounted || granted <= 0) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: WishRoomColors.backgroundMid,
-          content: Text(
-            '🕯 제단 참배 보너스로 복주머니 $granted개를 받았어요',
-            style: const TextStyle(
-              fontSize: 13,
-              color: WishRoomColors.textPrimary,
+      try {
+        final granted = await provider.policy.earnAltarVisitBonus();
+        if (!mounted || granted <= 0) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: WishRoomColors.backgroundMid,
+            content: Text(
+              '🕯 제단 참배 보너스로 복주머니 $granted개를 받았어요',
+              style: const TextStyle(
+                fontSize: 13,
+                color: WishRoomColors.textPrimary,
+              ),
             ),
           ),
-        ),
-      );
+        );
+      } catch (_) {
+        // 보너스 적립 실패(비로그인 등)도 화면을 깨뜨리지 않고 조용히 무시.
+      }
     });
   }
 
