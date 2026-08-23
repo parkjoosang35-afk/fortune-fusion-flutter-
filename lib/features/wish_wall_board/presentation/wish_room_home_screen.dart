@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../application/wish_wall_provider.dart';
 import '../domain/wish_wall_models.dart';
 import '../theme/wish_room_theme.dart';
+import '../widgets/blessing_bag_bottom_sheet.dart';
 import '../widgets/wish_room_candle.dart';
 import '../widgets/wish_room_dust.dart';
 import '../widgets/wish_room_seal.dart';
@@ -15,24 +16,37 @@ import 'wish_wall_my_screen.dart';
 
 /// 소원방(Wish Room) — "나의 소원방" 홈 화면.
 ///
-/// [디자인 핸드오프 — pixel-perfect 재현] `design_handoff_wish_room.zip`의
-/// `wish-screens.jsx`에 정의된 `ScreenHome` 컴포넌트(V2 "마법진이 소환되는
-/// 신전" 팔레트, anim-dramatic)를 **발명 없이 그대로** Flutter로 재구현한다.
+/// [디자인 핸드오프 — pixel-perfect 재현] `design_handoff_v2_dramatic.zip`
+/// (V2 단일 프로덕션 핸드오프 패키지, dev-spec.md 기준)의
+/// `design_files/wish-screens.jsx`에 정의된 `ScreenHome` 컴포넌트(V2
+/// "마법진이 소환되는 신전" · Moonlit Crystal 팔레트, dramatic 애니메이션)를
+/// **발명 없이 그대로** Flutter로 재구현한다. 이 zip의 wish-screens.jsx는
+/// 이전 `design_handoff_wish_room.zip`과 바이트 단위로 동일함을 diff로
+/// 확인했으므로 레이아웃 자체는 이미 이 파일에 pixel-perfect로 구현되어
+/// 있다(재작성 불필요, 복주머니 통합만 추가).
 ///
 /// 절대 하지 말 것(과거 세션에서 사용자가 강하게 거부한 실수):
 /// - 기존 소원벽(bottle-feed)의 "정성지수 랭킹", "공개 피드 기준 정렬",
-///   "잔액칩이 있는 상단바", "이중 마법진 배경" 등을 이 화면에 섞어 넣는 것.
+///   "이중 마법진 배경" 등을 이 화면에 섞어 넣는 것.
 /// 이 화면은 디자인 문서의 구조를 그대로 따른다:
-///   헤더(eyebrow+title, ☾버튼) → 제단 카드(고정 4촛불 행 + meta strip)
-///   → "최근 소원" 리스트(촛불+텍스트+Seal) → 자체 BottomNav(3탭) → FAB(+)
+///   헤더(eyebrow+title, [복주머니 잔액 칩]+☾버튼) → 제단 카드(고정 4촛불
+///   행 + meta strip) → "최근 소원" 리스트(촛불+텍스트+[탭 가능한]Seal)
+///   → 자체 BottomNav(3탭) → FAB(+)
 ///
 /// [데이터] 디자인 원본은 정적 샘플(4개)이지만, 실제 앱에서는 사용자 자신의
 /// 소원 목록([WishWallProvider.myWishes])을 그대로 바인딩한다("나의
 /// 소원방"이므로 공개 피드가 아니라 내 소원 목록을 사용해야 의미가 맞다).
 ///
-/// [재화 정책] 이 화면은 새 화폐를 만들지 않는다. 제단 참배 보너스는
-/// [BlessingBagPolicyAdapter.earnAltarVisitBonus] → [LuckPouchProvider] →
-/// [WalletProvider] 경로로만 처리된다.
+/// [복주머니 시스템 통합 — 사용자 명시적 위임] dev-spec.md는 결제/화폐
+/// 관련 요소를 스코프에서 제외하지만, 사용자가 "요디자인에 복주머니
+/// 시스템을 니가 잘 만들어봐"라고 직접 위임했다. 새 화폐를 만들지 않고
+/// 기존 경로만 사용한다:
+/// [BlessingBagPolicyAdapter] → [LuckPouchProvider] → [WalletProvider].
+/// 통합 지점 2곳(디자인 레이아웃을 깨지 않는 최소 침습):
+/// 1) 헤더의 ☾ 버튼 왼쪽에 잔액 칩(🎁 N) — 탭하면 "받기" 탭 팝업
+///    ([showBlessingBagBottomSheet], 제단참배/기도/소원함/성취 4채널).
+/// 2) 각 소원 행의 Seal(원래도 있던 도장 요소)을 탭하면 그 소원에
+///    "보내기" 팝업.
 class WishRoomHomeScreen extends StatefulWidget {
   const WishRoomHomeScreen({super.key});
 
@@ -91,10 +105,36 @@ class _WishRoomHomeScreenState extends State<WishRoomHomeScreen> {
     ).push(MaterialPageRoute(builder: (_) => const WishWallBoardScreen()));
   }
 
+  /// 복주머니 허브 팝업 — "받기" 탭으로 열기(잔액 칩 탭).
+  ///
+  /// [복주머니 시스템 통합 — 사용자 위임] V2 디자인 원본(dev-spec 스코프
+  /// 제외 항목: "결제·정기구독·인앱스토어·광고·조각 시스템")에는 잔액 UI가
+  /// 없었지만, 사용자가 "요디자인에 복주머니 시스템을 니가 잘 만들어봐"라고
+  /// 명시적으로 위임했다. 새 화폐를 만들지 않고 기존
+  /// BlessingBagPolicyAdapter → LuckPouchProvider 경로만 사용하며, 디자인의
+  /// 헤어라인/카드 톤(surfaceCard/surfaceCardBorder/glow)에 맞춰 헤더에
+  /// 아주 작은 칩 하나만 얹는 방식으로 시각적 통일성을 지킨다.
+  Future<void> _openBlessingBagReceive() async {
+    await showBlessingBagBottomSheet(
+      context,
+      initialTab: BlessingBagSheetTab.receive,
+    );
+  }
+
+  /// 리스트 행의 Seal(도장)을 탭하면 그 소원에 복주머니를 "보내기".
+  Future<void> _openBlessingBagSend(WishPost wish) async {
+    await showBlessingBagBottomSheet(
+      context,
+      wish: wish,
+      initialTab: BlessingBagSheetTab.send,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<WishWallProvider>();
     final wishes = provider.myWishes;
+    final balance = provider.policy.balance;
 
     final wishCount = wishes.length;
     int totalDays = 0;
@@ -145,7 +185,11 @@ class _WishRoomHomeScreenState extends State<WishRoomHomeScreen> {
               padding: const EdgeInsets.only(top: 14, bottom: 0),
               child: Column(
                 children: [
-                  _HomeHeader(onOpenMoon: _openFullBoard),
+                  _HomeHeader(
+                    balance: balance,
+                    onOpenMoon: _openFullBoard,
+                    onOpenPouch: _openBlessingBagReceive,
+                  ),
                   _CandleAltar(wishCount: wishCount, totalDays: totalDays),
                   const SizedBox(height: 20),
                   Expanded(
@@ -154,6 +198,7 @@ class _WishRoomHomeScreenState extends State<WishRoomHomeScreen> {
                       isLoading: provider.isLoading,
                       onSeeAll: _openMy,
                       onTapWish: _openDetail,
+                      onTapSeal: _openBlessingBagSend,
                     ),
                   ),
                   _WishRoomBottomNav(
@@ -178,10 +223,23 @@ class _WishRoomHomeScreenState extends State<WishRoomHomeScreen> {
   }
 }
 
-/// 헤더 row: eyebrow "나의 소원방" + title "오늘도 밝게 켜있어요", 우측 ☾ 버튼.
+/// 헤더 row: eyebrow "나의 소원방" + title "오늘도 밝게 켜있어요",
+/// 우측 [복주머니 잔액 칩] + ☾ 버튼.
+///
+/// [복주머니 시스템 통합] 디자인 원본에는 잔액 UI가 없었으나, 사용자가
+/// 명시적으로 위임한 항목이다. ☾ 버튼과 같은 40px 높이의 캡슐 칩을 그
+/// 왼쪽에 붙여, 원본 헤더 레이아웃(줄바꿈 없이 한 행)을 깨지 않는
+/// 범위에서만 추가한다. 새 화폐 없음 — [WishWallProvider.policy.balance]
+/// (→ LuckPouchProvider → WalletProvider)를 그대로 표시할 뿐이다.
 class _HomeHeader extends StatelessWidget {
-  const _HomeHeader({required this.onOpenMoon});
+  const _HomeHeader({
+    required this.balance,
+    required this.onOpenMoon,
+    required this.onOpenPouch,
+  });
+  final int balance;
   final VoidCallback onOpenMoon;
+  final VoidCallback onOpenPouch;
 
   @override
   Widget build(BuildContext context) {
@@ -216,6 +274,8 @@ class _HomeHeader extends StatelessWidget {
               ],
             ),
           ),
+          _PouchBalanceChip(balance: balance, onTap: onOpenPouch),
+          const SizedBox(width: 8),
           InkWell(
             onTap: onOpenMoon,
             borderRadius: BorderRadius.circular(20),
@@ -232,6 +292,48 @@ class _HomeHeader extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// 복주머니 잔액 칩 — 40px 높이 캡슐, 디자인 헤어라인/카드 톤 그대로 사용.
+/// 탭하면 "받기" 탭(제단참배/기도/소원함/성취 4채널)이 열린다.
+class _PouchBalanceChip extends StatelessWidget {
+  const _PouchBalanceChip({required this.balance, required this.onTap});
+  final int balance;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        height: 40,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: WishRoomColors.surfaceCard,
+          border: Border.all(color: WishRoomColors.surfaceCardBorder),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        alignment: Alignment.center,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('🎁', style: TextStyle(fontSize: 14)),
+            const SizedBox(width: 6),
+            Text(
+              '$balance',
+              style: const TextStyle(
+                fontFamily: 'IBMPlexMonoWish',
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: WishRoomColors.glow,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -358,12 +460,14 @@ class _WishListSection extends StatelessWidget {
     required this.isLoading,
     required this.onSeeAll,
     required this.onTapWish,
+    required this.onTapSeal,
   });
 
   final List<WishPost> wishes;
   final bool isLoading;
   final VoidCallback onSeeAll;
   final ValueChanged<WishPost> onTapWish;
+  final ValueChanged<WishPost> onTapSeal;
 
   @override
   Widget build(BuildContext context) {
@@ -455,6 +559,7 @@ class _WishListSection extends StatelessWidget {
                       return _WishListRow(
                         wish: wish,
                         onTap: () => onTapWish(wish),
+                        onTapSeal: () => onTapSeal(wish),
                       );
                     },
                   ),
@@ -486,10 +591,22 @@ WishSeal _sealForCategory(WishCategory c) {
 
 /// 리스트 행: gap14, padding14, card+line, radius14.
 /// 좌측 36x50 촛불(size30) / 중앙 텍스트+"N일째 밝히는 중" / 우측 Seal(size30).
+///
+/// [복주머니 시스템 통합] 우측 Seal(디자인 원본에 이미 존재하는 도장
+/// 요소)을 탭하면 이 소원에 복주머니를 "보내기"(응원) 팝업이 열린다.
+/// 새 시각 요소를 추가하지 않고 기존 요소에 인터랙션만 얹는 방식으로
+/// 디자인의 통일성을 유지한다. 행 전체 탭(onTap)은 여전히 상세 화면으로
+/// 이동하며, Seal은 별도의 작은 히트영역으로 분리해 두 동작이 충돌하지
+/// 않게 한다.
 class _WishListRow extends StatelessWidget {
-  const _WishListRow({required this.wish, required this.onTap});
+  const _WishListRow({
+    required this.wish,
+    required this.onTap,
+    required this.onTapSeal,
+  });
   final WishPost wish;
   final VoidCallback onTap;
+  final VoidCallback onTapSeal;
 
   @override
   Widget build(BuildContext context) {
@@ -546,10 +663,17 @@ class _WishListRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            WishRoomSeal(
-              text: seal.glyph,
-              color: WishRoomColors.accent,
-              size: 30,
+            InkWell(
+              onTap: onTapSeal,
+              borderRadius: BorderRadius.circular(15),
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: WishRoomSeal(
+                  text: seal.glyph,
+                  color: WishRoomColors.accent,
+                  size: 30,
+                ),
+              ),
             ),
           ],
         ),
