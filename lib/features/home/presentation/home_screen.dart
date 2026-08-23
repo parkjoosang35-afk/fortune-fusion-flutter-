@@ -18,7 +18,7 @@ import '../../pass/presentation/pass_time_format.dart';
 import '../../../core/domain/access/access_checker.dart';
 import '../../auth/application/auth_provider.dart';
 import '../../../core/widgets/app_toast.dart';
-import '../../wish_wall_board/presentation/wish_wall_board_screen.dart';
+import '../../wish_wall_board/presentation/wish_room_home_screen.dart';
 import '../../ad_banner/application/ad_banner_provider.dart';
 import '../../ad_banner/presentation/ad_banner_widget.dart';
 import 'home_style_tokens.dart';
@@ -1083,11 +1083,14 @@ class _FortuneTarotMiniCard extends StatelessWidget {
   }
 }
 
-/// ⑥ 소원벽 · 상담 카드 - #F5F3FB
+/// ⑥ 소원방 · 상담 카드 - #F5F3FB
 ///
-/// [코인/포인트 잔재 정리] 복주머니와 별개인 자체 화폐("조각") 경제를 쓰던
-/// "신통방통 소원방"(wish_room) 모듈은 완전히 삭제했다. 이 자리는 이미
-/// 복주머니 정책으로 통합되어 있는 "소원벽"(wish_wall_board)으로 대체하고,
+/// [소원방 리스킨] 복주머니와 별개인 자체 화폐("조각") 경제를 쓰던 구
+/// "신통방통 소원방"(wish_room) 모듈은 완전히 삭제되었고, 그 대체품인
+/// "소원벽"(wish_wall_board)이 복주머니 정책으로 통합되어 있었다. 이번
+/// 리스킨에서는 `design_handoff_wish_room.zip`(V2 "마법진이 소환되는
+/// 신전" 팔레트)을 적용한 [WishRoomHomeScreen](제단 홈)으로 다시 교체한다.
+/// 이 화면은 하단 탭바의 "소원방" 탭과 완전히 동일한 화면이다(단일 진입점).
 /// "상담"(Midnight Comfort, 9명의 AI 상담사, 완전 무료) 카드는 그대로 유지한다.
 class _WishBoardRoomRow extends StatelessWidget {
   const _WishBoardRoomRow();
@@ -1106,7 +1109,7 @@ class _WishBoardRoomRow extends StatelessWidget {
               circleIcon: Icons.arrow_drop_up_rounded,
               circleStyle: PremiumCircleButtonStyle.neon,
               onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const WishWallBoardScreen()),
+                MaterialPageRoute(builder: (_) => const WishRoomHomeScreen()),
               ),
             ),
           ),

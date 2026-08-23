@@ -80,4 +80,53 @@ class BlessingBagPolicyAdapter {
       sourceType: BlessingBagEarnReason.dailyPrayer.code,
     );
   }
+
+  // ── [소원방 리스킨 — "받기" 확장 채널] ──────────────────────────
+  // 아래 3개는 새 소원방 홈(제단)/팝업 "받기" 탭을 위해 추가된 적립 채널.
+  // 전부 scope='daily' 또는 'weekly'로 서버측 일일/주간 상한 판정에 맞춰
+  // 요청하며, 실제 지급 여부(중복 방지)는 서버가 결정한다(반환값 0=이미 지급).
+
+  /// 제단 참배 보너스 — 오늘 소원방(제단 홈)에 처음 들어오면 1일 1회 지급.
+  Future<int> earnAltarVisitBonus() {
+    return _pouch.earn(
+      BlessingBagEarnReason.altarVisit.defaultAmount,
+      BlessingBagEarnReason.altarVisit.label,
+      sourceType: BlessingBagEarnReason.altarVisit.code,
+      scope: 'daily',
+    );
+  }
+
+  /// 주간 소원함 개봉 보너스 — 이번 주 소원함(box-opening)을 열면 7일 1회 지급.
+  Future<int> earnWeeklyBoxOpeningBonus() {
+    return _pouch.earn(
+      BlessingBagEarnReason.weeklyBoxOpening.defaultAmount,
+      BlessingBagEarnReason.weeklyBoxOpening.label,
+      sourceType: BlessingBagEarnReason.weeklyBoxOpening.code,
+      scope: 'weekly',
+    );
+  }
+
+  /// 소원 성취(축하) 보너스 — 내 소원을 "이뤄졌어요"로 표시할 때 지급.
+  /// [sourceId]에 해당 소원의 고유 번호를 넘기면 서버가 소원 1건당 1회로
+  /// 제한할 수 있다(건당 1회 정책 판정용, 옵션).
+  Future<int> earnWishFulfilledBonus({int? wishSourceId}) {
+    return _pouch.earn(
+      BlessingBagEarnReason.wishFulfilled.defaultAmount,
+      BlessingBagEarnReason.wishFulfilled.label,
+      sourceType: BlessingBagEarnReason.wishFulfilled.code,
+      sourceId: wishSourceId,
+    );
+  }
+
+  // ── [소원방 리스킨 — "보내기" 확장 채널] ──────────────────────────
+
+  /// 감사 도장(Seal) 보내기 — sendPouch보다 가벼운 소액 소비로, 감사의
+  /// 마음을 도장 하나로 표현할 때 사용(기본 1개).
+  Future<bool> giftSeal({int amount = 1}) {
+    return _pouch.spend(
+      amount,
+      BlessingBagSpendReason.giftSeal.label,
+      sourceType: BlessingBagSpendReason.giftSeal.code,
+    );
+  }
 }

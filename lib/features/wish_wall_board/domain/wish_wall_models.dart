@@ -247,11 +247,19 @@ class WishComment {
 }
 
 /// 복주머니 적립 사유 (기획안 §4.1 4채널).
+///
+/// [소원방 리스킨 — 적립/사용 확장] `altarVisit`/`weeklyBoxOpening`/
+/// `wishFulfilled` 3개는 새 소원방 "받기" 탭(복주머니 큰 팝업)을 위해
+/// 추가된 채널이다. 전부 기존 [BlessingBagPolicyAdapter] → [LuckPouchProvider]
+/// → [WalletProvider] 경로만 사용하며 새 화폐를 만들지 않는다.
 enum BlessingBagEarnReason {
   dailyLogin,
   wishCreatedBonus,
   dailyPrayer,
   eventParticipation,
+  altarVisit,
+  weeklyBoxOpening,
+  wishFulfilled,
 }
 
 extension BlessingBagEarnReasonX on BlessingBagEarnReason {
@@ -268,6 +276,50 @@ extension BlessingBagEarnReasonX on BlessingBagEarnReason {
         return 'daily_prayer';
       case BlessingBagEarnReason.eventParticipation:
         return 'event_participation';
+      case BlessingBagEarnReason.altarVisit:
+        return 'altar_visit';
+      case BlessingBagEarnReason.weeklyBoxOpening:
+        return 'weekly_box_opening';
+      case BlessingBagEarnReason.wishFulfilled:
+        return 'wish_fulfilled';
+    }
+  }
+
+  String get label {
+    switch (this) {
+      case BlessingBagEarnReason.dailyLogin:
+        return '매일 접속';
+      case BlessingBagEarnReason.wishCreatedBonus:
+        return '소원 봉인 완료';
+      case BlessingBagEarnReason.dailyPrayer:
+        return '오늘의 기도';
+      case BlessingBagEarnReason.eventParticipation:
+        return '이벤트 참여';
+      case BlessingBagEarnReason.altarVisit:
+        return '제단 참배';
+      case BlessingBagEarnReason.weeklyBoxOpening:
+        return '주간 소원함 개봉';
+      case BlessingBagEarnReason.wishFulfilled:
+        return '소원 성취 축하';
+    }
+  }
+
+  String get description {
+    switch (this) {
+      case BlessingBagEarnReason.altarVisit:
+        return '오늘 소원방 제단에 처음 들어오면 받아요 (1일 1회)';
+      case BlessingBagEarnReason.weeklyBoxOpening:
+        return '이번 주 소원함을 열어보면 받아요 (7일 1회)';
+      case BlessingBagEarnReason.wishFulfilled:
+        return '내 소원이 이루어졌을 때 받아요';
+      case BlessingBagEarnReason.dailyLogin:
+        return '오늘 처음 접속하면 받아요 (1일 1회)';
+      case BlessingBagEarnReason.wishCreatedBonus:
+        return '새 소원을 봉인하면 받아요 (1일 1회)';
+      case BlessingBagEarnReason.dailyPrayer:
+        return '누군가의 소원에 오늘의 기도를 올리면 받아요';
+      case BlessingBagEarnReason.eventParticipation:
+        return '진행 중인 이벤트에 참여하면 받아요';
     }
   }
 
@@ -283,12 +335,21 @@ extension BlessingBagEarnReasonX on BlessingBagEarnReason {
         return 1;
       case BlessingBagEarnReason.eventParticipation:
         return 3;
+      case BlessingBagEarnReason.altarVisit:
+        return 1;
+      case BlessingBagEarnReason.weeklyBoxOpening:
+        return 2;
+      case BlessingBagEarnReason.wishFulfilled:
+        return 3;
     }
   }
 }
 
 /// 복주머니 사용 사유 (기획안 §4.2 3채널).
-enum BlessingBagSpendReason { sendPouch, boostBottle, promoteWish }
+///
+/// [소원방 리스킨 — 적립/사용 확장] `giftSeal`은 새 소원방 팝업 "보내기" 탭에
+/// 추가된 장식용 소액 소비 채널이다(감사 도장을 함께 보내는 응원 표현).
+enum BlessingBagSpendReason { sendPouch, boostBottle, promoteWish, giftSeal }
 
 extension BlessingBagSpendReasonX on BlessingBagSpendReason {
   String get code {
@@ -299,6 +360,8 @@ extension BlessingBagSpendReasonX on BlessingBagSpendReason {
         return 'boost_bottle';
       case BlessingBagSpendReason.promoteWish:
         return 'promote_wish';
+      case BlessingBagSpendReason.giftSeal:
+        return 'gift_seal';
     }
   }
 
@@ -310,6 +373,8 @@ extension BlessingBagSpendReasonX on BlessingBagSpendReason {
         return '병 밝히기';
       case BlessingBagSpendReason.promoteWish:
         return '소원 홍보';
+      case BlessingBagSpendReason.giftSeal:
+        return '감사 도장 보내기';
     }
   }
 }
