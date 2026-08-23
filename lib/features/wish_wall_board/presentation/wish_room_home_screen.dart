@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../application/wish_wall_provider.dart';
 import '../domain/wish_wall_models.dart';
 import '../theme/wish_room_theme.dart';
-import '../widgets/blessing_bag_bottom_sheet.dart';
 import '../widgets/wish_room_candle.dart';
 import '../widgets/wish_room_dust.dart';
 import '../widgets/wish_room_seal.dart';
@@ -14,21 +13,26 @@ import 'wish_wall_compose_screen.dart';
 import 'wish_wall_detail_screen.dart';
 import 'wish_wall_my_screen.dart';
 
-/// 00. 소원방(Wish Room) — "마법진이 소환되는 신전" 제단 홈 화면.
+/// 소원방(Wish Room) — "나의 소원방" 홈 화면.
 ///
-/// [소원방 리스킨] `design_handoff_wish_room.zip`의 V2(달빛크리스탈,
-/// anim-dramatic) 디자인을 적용한 새 소원방 대표 화면. 메인화면의 "소원방"
-/// 카드와 하단 탭바의 "소원방" 탭이 모두 이 화면으로 연결된다(완전히
-/// 동일한 화면 = 하나의 진입점).
+/// [디자인 핸드오프 — pixel-perfect 재현] `design_handoff_wish_room.zip`의
+/// `wish-screens.jsx`에 정의된 `ScreenHome` 컴포넌트(V2 "마법진이 소환되는
+/// 신전" 팔레트, anim-dramatic)를 **발명 없이 그대로** Flutter로 재구현한다.
 ///
-/// [재화 정책] 이 화면은 새 화폐를 만들지 않는다. 복주머니 잔액/적립/차감은
-/// 전부 [WishWallProvider.policy]([BlessingBagPolicyAdapter]) →
-/// [LuckPouchProvider] → [WalletProvider] 경로로만 처리된다.
+/// 절대 하지 말 것(과거 세션에서 사용자가 강하게 거부한 실수):
+/// - 기존 소원벽(bottle-feed)의 "정성지수 랭킹", "공개 피드 기준 정렬",
+///   "잔액칩이 있는 상단바", "이중 마법진 배경" 등을 이 화면에 섞어 넣는 것.
+/// 이 화면은 디자인 문서의 구조를 그대로 따른다:
+///   헤더(eyebrow+title, ☾버튼) → 제단 카드(고정 4촛불 행 + meta strip)
+///   → "최근 소원" 리스트(촛불+텍스트+Seal) → 자체 BottomNav(3탭) → FAB(+)
 ///
-/// 기존에 이미 완성되어 있던 소원벽 피드(카테고리/세그먼트/댓글 등 전체
-/// 기능)는 [WishWallBoardScreen]으로 그대로 보존하고, 이 제단 화면 하단의
-/// "전체 소원 게시판 보러가기"에서 계속 접근할 수 있게 유지한다(기존 기능을
-/// 삭제하지 않는다는 원칙).
+/// [데이터] 디자인 원본은 정적 샘플(4개)이지만, 실제 앱에서는 사용자 자신의
+/// 소원 목록([WishWallProvider.myWishes])을 그대로 바인딩한다("나의
+/// 소원방"이므로 공개 피드가 아니라 내 소원 목록을 사용해야 의미가 맞다).
+///
+/// [재화 정책] 이 화면은 새 화폐를 만들지 않는다. 제단 참배 보너스는
+/// [BlessingBagPolicyAdapter.earnAltarVisitBonus] → [LuckPouchProvider] →
+/// [WalletProvider] 경로로만 처리된다.
 class WishRoomHomeScreen extends StatefulWidget {
   const WishRoomHomeScreen({super.key});
 
@@ -43,7 +47,7 @@ class _WishRoomHomeScreenState extends State<WishRoomHomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final provider = context.read<WishWallProvider>();
-      await provider.ensureLoaded();
+      await provider.loadMyWishes();
       if (!mounted) return;
       final granted = await provider.policy.earnAltarVisitBonus();
       if (!mounted || granted <= 0) return;
@@ -53,7 +57,8 @@ class _WishRoomHomeScreenState extends State<WishRoomHomeScreen> {
           backgroundColor: WishRoomColors.backgroundMid,
           content: Text(
             '🕯 제단 참배 보너스로 복주머니 $granted개를 받았어요',
-            style: WishRoomTextStyles.bodySm.copyWith(
+            style: const TextStyle(
+              fontSize: 13,
               color: WishRoomColors.textPrimary,
             ),
           ),
@@ -86,230 +91,144 @@ class _WishRoomHomeScreenState extends State<WishRoomHomeScreen> {
     ).push(MaterialPageRoute(builder: (_) => const WishWallBoardScreen()));
   }
 
-  Future<void> _openPouchHub({WishPost? wish, required bool receive}) async {
-    await showBlessingBagBottomSheet(
-      context,
-      wish: wish,
-      initialTab: receive ? BlessingBagSheetTab.receive : BlessingBagSheetTab.send,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<WishWallProvider>();
-    final feed = provider.feed;
-    final altarWishes = List<WishPost>.of(feed)
-      ..sort((a, b) => b.sincerityScore.compareTo(a.sincerityScore));
-    final topAltar = altarWishes.take(5).toList();
-    final recent = List<WishPost>.of(feed)
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final wishes = provider.myWishes;
+
+    final wishCount = wishes.length;
+    int totalDays = 0;
+    if (wishes.isNotEmpty) {
+      final earliest = wishes
+          .map((w) => w.createdAt)
+          .reduce((a, b) => a.isBefore(b) ? a : b);
+      totalDays = DateTime.now().difference(earliest).inDays;
+      if (totalDays < 0) totalDays = 0;
+    }
 
     return Scaffold(
       backgroundColor: WishRoomColors.backgroundDeep,
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: WishRoomColors.backgroundGradient,
-        ),
-        child: Stack(
-          children: [
-            // 배경 마법진 이중 링(정회전 40s / 역회전 55s) — 배경 장식이므로
-            // RepaintBoundary로 감싸 전경 리스트 리페인트와 분리한다.
-            Positioned(
-              top: -80,
-              left: -60,
-              child: RepaintBoundary(
-                child: Opacity(
-                  opacity: 0.5,
-                  child: WishRoomSigilRing(size: 340, opacity: 0.35),
+      body: Stack(
+        children: [
+          // ── BgAtmosphere: radial gradient(120% 80% at 50% 20%) + 중앙
+          //    고정 마법진(단일, 회전 40s) + Dust(10개). 원본 그대로 — 좌상단/
+          //    우하단에 이중 링을 겹쳐 그리던 과거 실수를 여기서 제거했다.
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: const BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment(0, -0.6),
+                  radius: 1.3,
+                  colors: [
+                    WishRoomColors.backgroundSoft,
+                    WishRoomColors.backgroundDeep,
+                  ],
                 ),
               ),
             ),
-            Positioned(
-              bottom: -100,
-              right: -80,
-              child: RepaintBoundary(
+          ),
+          Positioned.fill(
+            child: RepaintBoundary(
+              child: Center(
                 child: Opacity(
-                  opacity: 0.4,
-                  child: WishRoomSigilRing(
-                    size: 300,
-                    opacity: 0.3,
-                    reverse: true,
-                    color: WishRoomColors.crystal,
-                  ),
+                  opacity: 0.9,
+                  child: WishRoomSigilRing(size: 340, opacity: 0.22),
                 ),
               ),
             ),
-            const Positioned.fill(child: WishRoomDust(count: 12)),
-            SafeArea(
+          ),
+          const Positioned.fill(child: WishRoomDust(count: 10)),
+
+          // ── screen-inner: padding 62px 0 40px, flex column ──
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 14, bottom: 0),
               child: Column(
                 children: [
-                  _TopBar(
-                    balance: provider.policy.balance,
-                    onOpenMy: _openMy,
-                    onOpenPouch: () => _openPouchHub(receive: true),
-                  ),
+                  _HomeHeader(onOpenMoon: _openFullBoard),
+                  _CandleAltar(wishCount: wishCount, totalDays: totalDays),
+                  const SizedBox(height: 20),
                   Expanded(
-                    child: RefreshIndicator(
-                      color: WishRoomColors.accent,
-                      backgroundColor: WishRoomColors.backgroundMid,
-                      onRefresh: provider.loadFeed,
-                      child: ListView(
-                        padding: const EdgeInsets.fromLTRB(
-                          WishRoomSpacing.md,
-                          WishRoomSpacing.sm,
-                          WishRoomSpacing.md,
-                          140,
-                        ),
-                        children: [
-                          Text('오늘의 제단', style: WishRoomTextStyles.sectionTitle),
-                          const SizedBox(height: 4),
-                          Text(
-                            '가장 정성이 모인 소원에 촛불이 켜져요',
-                            style: WishRoomTextStyles.bodySm,
-                          ),
-                          const SizedBox(height: WishRoomSpacing.md),
-                          if (provider.isLoading && topAltar.isEmpty)
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 40),
-                              child: Center(
-                                child: CircularProgressIndicator(
-                                  color: WishRoomColors.accent,
-                                ),
-                              ),
-                            )
-                          else
-                            _AltarRow(wishes: topAltar, onTap: _openDetail),
-                          const SizedBox(height: WishRoomSpacing.xl),
-                          Row(
-                            children: [
-                              Text(
-                                '오늘 밝혀진 소원들',
-                                style: WishRoomTextStyles.sectionTitle,
-                              ),
-                              const Spacer(),
-                              _GhostButton(
-                                label: '전체 보기',
-                                onTap: _openFullBoard,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: WishRoomSpacing.sm),
-                          ...recent
-                              .take(8)
-                              .map(
-                                (w) => _WishSealCard(
-                                  wish: w,
-                                  onTap: () => _openDetail(w),
-                                  onSendPouch: () =>
-                                      _openPouchHub(wish: w, receive: false),
-                                ),
-                              ),
-                          if (recent.isEmpty && !provider.isLoading)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 40),
-                              child: Center(
-                                child: Text(
-                                  '아직 밝혀진 소원이 없어요',
-                                  style: WishRoomTextStyles.bodySm,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
+                    child: _WishListSection(
+                      wishes: wishes,
+                      isLoading: provider.isLoading,
+                      onSeeAll: _openMy,
+                      onTapWish: _openDetail,
                     ),
+                  ),
+                  _WishRoomBottomNav(
+                    onHome: () {},
+                    onFeed: _openFullBoard,
+                    onRecord: _openMy,
                   ),
                 ],
               ),
             ),
-            Positioned(
-              right: WishRoomSpacing.lg,
-              bottom: WishRoomSpacing.lg,
-              child: _ComposeFab(onPressed: _openCompose),
-            ),
-          ],
-        ),
+          ),
+
+          // ── FAB: bottom:100 right:20, 58x58 원, glow bg, + ──
+          Positioned(
+            right: 20,
+            bottom: 100,
+            child: _ComposeFab(onPressed: _openCompose),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _TopBar extends StatelessWidget {
-  const _TopBar({
-    required this.balance,
-    required this.onOpenMy,
-    required this.onOpenPouch,
-  });
-
-  final int balance;
-  final VoidCallback onOpenMy;
-  final VoidCallback onOpenPouch;
+/// 헤더 row: eyebrow "나의 소원방" + title "오늘도 밝게 켜있어요", 우측 ☾ 버튼.
+class _HomeHeader extends StatelessWidget {
+  const _HomeHeader({required this.onOpenMoon});
+  final VoidCallback onOpenMoon;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        WishRoomSpacing.md,
-        WishRoomSpacing.sm,
-        WishRoomSpacing.md,
-        WishRoomSpacing.sm,
-      ),
+      padding: const EdgeInsets.fromLTRB(24, 4, 24, 20),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('THE ALTAR', style: WishRoomTextStyles.eyebrow),
-                const SizedBox(height: 2),
-                Text('소원방', style: WishRoomTextStyles.screenTitle),
+                Text(
+                  '나의 소원방',
+                  style: TextStyle(
+                    fontFamily: 'IBMPlexMonoWish',
+                    fontSize: 10,
+                    letterSpacing: 3.0,
+                    color: WishRoomColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  '오늘도 밝게 켜있어요',
+                  style: TextStyle(
+                    fontFamily: 'NotoSerifKRWish',
+                    fontWeight: FontWeight.w700,
+                    fontSize: 22,
+                    color: WishRoomColors.textPrimary,
+                  ),
+                ),
               ],
             ),
           ),
           InkWell(
-            borderRadius: BorderRadius.circular(WishRoomRadius.pill),
-            onTap: onOpenPouch,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-              decoration: BoxDecoration(
-                color: WishRoomColors.surfaceCard,
-                borderRadius: BorderRadius.circular(WishRoomRadius.pill),
-                border: Border.all(color: WishRoomColors.surfaceCardBorder),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('✨', style: TextStyle(fontSize: 14)),
-                  const SizedBox(width: 6),
-                  Text(
-                    '$balance',
-                    style: WishRoomTextStyles.pillLabel.copyWith(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: WishRoomColors.textPrimary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          InkWell(
+            onTap: onOpenMoon,
             borderRadius: BorderRadius.circular(20),
-            onTap: onOpenMy,
             child: Container(
-              width: 38,
-              height: 38,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: WishRoomColors.surfaceCard,
                 border: Border.all(color: WishRoomColors.surfaceCardBorder),
               ),
               alignment: Alignment.center,
-              child: const Icon(
-                Icons.person_outline_rounded,
-                size: 19,
-                color: WishRoomColors.textPrimary,
-              ),
+              child: const Text('☾', style: TextStyle(fontSize: 18)),
             ),
           ),
         ],
@@ -318,74 +237,230 @@ class _TopBar extends StatelessWidget {
   }
 }
 
-class _AltarRow extends StatelessWidget {
-  const _AltarRow({required this.wishes, required this.onTap});
-  final List<WishPost> wishes;
-  final ValueChanged<WishPost> onTap;
+/// 제단 카드: margin 0 20, padding 32/16/16, radius20, card+line,
+/// 상단 radial glow(height80,opacity0.5) + 4촛불(54/62/50/58) + meta strip.
+class _CandleAltar extends StatelessWidget {
+  const _CandleAltar({required this.wishCount, required this.totalDays});
+  final int wishCount;
+  final int totalDays;
+
+  static const List<double> _sizes = [54, 62, 50, 58];
+  static const List<double> _bottomOffsets = [0, -4, 0, 0];
 
   @override
   Widget build(BuildContext context) {
-    if (wishes.isEmpty) {
-      return SizedBox(
-        height: 150,
-        child: Center(
-          child: Text('아직 켜진 촛불이 없어요', style: WishRoomTextStyles.bodySm),
-        ),
-      );
-    }
-    return WishRoomSigilSummon(
-      builder: (context, drawProgress) {
-        return SizedBox(
-          height: 168,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: wishes.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 14),
-            itemBuilder: (context, index) {
-              final wish = wishes[index];
-              final stage = wish.glow.toGrowthStage;
-              return GestureDetector(
-                onTap: () => onTap(wish),
-                child: Opacity(
-                  opacity: drawProgress,
-                  child: Container(
-                    width: 108,
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    decoration: BoxDecoration(
-                      color: WishRoomColors.surfaceCard,
-                      borderRadius: BorderRadius.circular(WishRoomRadius.md),
-                      border: Border.all(
-                        color: WishRoomColors.surfaceCardBorder,
+    final shown = wishCount.clamp(0, 4);
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.fromLTRB(16, 32, 16, 16),
+      decoration: BoxDecoration(
+        color: WishRoomColors.surfaceCard,
+        border: Border.all(color: WishRoomColors.surfaceCardBorder),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          // 상단 안쪽 radial glow.
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 80,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: const Alignment(0, 1),
+                  radius: 1.2,
+                  colors: [
+                    WishRoomColors.glowShadow.withValues(alpha: 0.5),
+                    Colors.transparent,
+                  ],
+                  stops: const [0.0, 0.7],
+                ),
+              ),
+            ),
+          ),
+          Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: List.generate(
+                    shown == 0 ? 0 : 4,
+                    (i) => shown > 0
+                        ? Transform.translate(
+                            offset: Offset(0, -_bottomOffsets[i]),
+                            child: (i < shown)
+                                ? WishRoomCandle(
+                                    size: _sizes[i],
+                                    color: WishRoomColors.glow,
+                                  )
+                                : Opacity(
+                                    opacity: 0.25,
+                                    child: WishRoomCandle(
+                                      size: _sizes[i],
+                                      color: WishRoomColors.textTertiary,
+                                      lit: false,
+                                    ),
+                                  ),
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+                ),
+              ),
+              Container(
+                margin: const EdgeInsets.only(top: 8),
+                padding: const EdgeInsets.only(top: 12),
+                decoration: const BoxDecoration(
+                  border: Border(
+                    top: BorderSide(color: WishRoomColors.surfaceCardBorder),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '$wishCount 개의 소원',
+                      style: TextStyle(
+                        fontFamily: 'IBMPlexMonoWish',
+                        fontSize: 10,
+                        letterSpacing: 2.0,
+                        color: WishRoomColors.textSecondary,
                       ),
                     ),
-                    child: Column(
-                      children: [
-                        WishRoomCandle(
-                          size: 42,
-                          color: WishRoomColors.forGrowthStage(stage),
-                          flickerDuration: const Duration(
-                            milliseconds: 1800,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: Text(
-                            wish.categoryId.label,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: WishRoomTextStyles.caption,
-                          ),
-                        ),
-                      ],
+                    Text(
+                      '$totalDays 일째',
+                      style: TextStyle(
+                        fontFamily: 'IBMPlexMonoWish',
+                        fontSize: 10,
+                        letterSpacing: 2.0,
+                        color: WishRoomColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// "최근 소원" 타이틀 + "전체 보기 →" + 리스트(촛불/텍스트/Seal 행).
+class _WishListSection extends StatelessWidget {
+  const _WishListSection({
+    required this.wishes,
+    required this.isLoading,
+    required this.onSeeAll,
+    required this.onTapWish,
+  });
+
+  final List<WishPost> wishes;
+  final bool isLoading;
+  final VoidCallback onSeeAll;
+  final ValueChanged<WishPost> onTapWish;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                const Text(
+                  '최근 소원',
+                  style: TextStyle(
+                    fontFamily: 'GowunBatangWish',
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: WishRoomColors.textPrimary,
+                  ),
+                ),
+                InkWell(
+                  onTap: onSeeAll,
+                  child: Text(
+                    '전체 보기 →',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: WishRoomColors.textSecondary,
                     ),
                   ),
                 ),
-              );
-            },
+              ],
+            ),
           ),
-        );
-      },
+          const SizedBox(height: 12),
+          Expanded(
+            child: isLoading && wishes.isEmpty
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: WishRoomColors.accent,
+                    ),
+                  )
+                : wishes.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Opacity(
+                            opacity: 0.4,
+                            child: WishRoomCandle(
+                              size: 60,
+                              color: WishRoomColors.textTertiary,
+                              lit: false,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            '아직 소원이 담기지 않았어요',
+                            style: TextStyle(
+                              fontFamily: 'NotoSerifKRWish',
+                              fontWeight: FontWeight.w900,
+                              fontSize: 16,
+                              color: WishRoomColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '첫 촛불을 켜보세요',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: WishRoomColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    itemCount: wishes.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final wish = wishes[index];
+                      return _WishListRow(
+                        wish: wish,
+                        onTap: () => onTapWish(wish),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -409,119 +484,72 @@ WishSeal _sealForCategory(WishCategory c) {
   }
 }
 
-class _WishSealCard extends StatelessWidget {
-  const _WishSealCard({
-    required this.wish,
-    required this.onTap,
-    required this.onSendPouch,
-  });
-
+/// 리스트 행: gap14, padding14, card+line, radius14.
+/// 좌측 36x50 촛불(size30) / 중앙 텍스트+"N일째 밝히는 중" / 우측 Seal(size30).
+class _WishListRow extends StatelessWidget {
+  const _WishListRow({required this.wish, required this.onTap});
   final WishPost wish;
   final VoidCallback onTap;
-  final VoidCallback onSendPouch;
 
   @override
   Widget build(BuildContext context) {
+    final days = DateTime.now().difference(wish.createdAt).inDays;
     final seal = _sealForCategory(wish.categoryId);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: WishRoomSpacing.sm),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(WishRoomRadius.md),
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: WishRoomColors.surfaceCard,
-            borderRadius: BorderRadius.circular(WishRoomRadius.md),
-            border: Border.all(color: WishRoomColors.surfaceCardBorder),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              WishRoomSeal(text: seal.glyph, size: 40),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            wish.displayName,
-                            style: WishRoomTextStyles.bodySm.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: WishRoomColors.textPrimary,
-                            ),
-                          ),
-                        ),
-                        Text(
-                          wish.categoryId.label,
-                          style: WishRoomTextStyles.caption,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      wish.text,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: WishRoomTextStyles.wishBodyList,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              InkWell(
-                onTap: onSendPouch,
-                borderRadius: BorderRadius.circular(WishRoomRadius.pill),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: WishRoomColors.accent.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(WishRoomRadius.pill),
-                  ),
-                  child: const Text('✨', style: TextStyle(fontSize: 15)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _GhostButton extends StatelessWidget {
-  const _GhostButton({required this.label, required this.onTap});
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(WishRoomRadius.pill),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: WishRoomColors.surfaceCard,
+          border: Border.all(color: WishRoomColors.surfaceCardBorder),
+          borderRadius: BorderRadius.circular(14),
+        ),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(
-              label,
-              style: WishRoomTextStyles.bodySm.copyWith(
-                color: WishRoomColors.accent,
-                fontWeight: FontWeight.w600,
+            SizedBox(
+              width: 36,
+              height: 50,
+              child: Center(
+                child: WishRoomCandle(size: 30, color: WishRoomColors.glow),
               ),
             ),
-            const SizedBox(width: 2),
-            const Icon(
-              Icons.chevron_right_rounded,
-              size: 16,
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    wish.text,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontFamily: 'GowunBatangWish',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: WishRoomColors.textPrimary,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${days < 0 ? 0 : days}일째 밝히는 중',
+                    style: TextStyle(
+                      fontFamily: 'IBMPlexMonoWish',
+                      fontSize: 10,
+                      letterSpacing: 1.5,
+                      color: WishRoomColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            WishRoomSeal(
+              text: seal.glyph,
               color: WishRoomColors.accent,
+              size: 30,
             ),
           ],
         ),
@@ -530,6 +558,80 @@ class _GhostButton extends StatelessWidget {
   }
 }
 
+/// 디자인 자체 BottomNav(3탭: 🕯나의소원/☾모두의소원/◈기록).
+///
+/// [하단바 원칙] 앱 전역 AppShell 5탭 바(과거 사용자가 명시적으로
+/// "건드리지 말라"고 지시한 대상)와는 완전히 별개다. 이 화면은 메인화면
+/// "소원방" 카드를 탭해 push되는 독립된 전체 화면이므로 AppShell 탭바는
+/// 이 화면에 표시되지 않으며, 여기 그려지는 것은 디자인 원본에 포함된
+/// 이 화면 "자체"의 장식/네비게이션 바다(디자인 그대로 재현).
+class _WishRoomBottomNav extends StatelessWidget {
+  const _WishRoomBottomNav({
+    required this.onHome,
+    required this.onFeed,
+    required this.onRecord,
+  });
+
+  final VoidCallback onHome;
+  final VoidCallback onFeed;
+  final VoidCallback onRecord;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = <(String icon, String label, VoidCallback onTap, bool active)>[
+      ('🕯', '나의 소원', onHome, true),
+      ('☾', '모두의 소원', onFeed, false),
+      ('◈', '기록', onRecord, false),
+    ];
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 18),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.transparent,
+            WishRoomColors.backgroundDeep.withValues(alpha: 0.9),
+          ],
+          stops: const [0.0, 0.4],
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: items.map((it) {
+          final color = it.$4
+              ? WishRoomColors.glow
+              : WishRoomColors.textSecondary;
+          return InkWell(
+            onTap: it.$3,
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(it.$1, style: TextStyle(fontSize: 18, color: color)),
+                  const SizedBox(height: 4),
+                  Text(
+                    it.$2,
+                    style: TextStyle(
+                      fontFamily: 'GowunBatangWish',
+                      fontSize: 10,
+                      fontWeight: it.$4 ? FontWeight.w700 : FontWeight.w400,
+                      color: color,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+/// FAB: 58x58 원, glow bg, '+' (Noto Serif KR 900 26px, #3a2515).
 class _ComposeFab extends StatelessWidget {
   const _ComposeFab({required this.onPressed});
   final VoidCallback onPressed;
@@ -538,31 +640,36 @@ class _ComposeFab extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onPressed,
-      borderRadius: BorderRadius.circular(28),
+      borderRadius: BorderRadius.circular(29),
       child: Container(
-        height: 56,
-        padding: const EdgeInsets.symmetric(horizontal: 22),
+        width: 58,
+        height: 58,
         decoration: BoxDecoration(
-          color: WishRoomColors.accent,
-          borderRadius: BorderRadius.circular(28),
+          color: WishRoomColors.glow,
+          shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
               color: WishRoomColors.glowShadow,
-              blurRadius: 28,
-              offset: const Offset(0, 10),
+              blurRadius: 20,
+              offset: const Offset(0, 4),
+            ),
+            BoxShadow(
+              color: Colors.white.withValues(alpha: 0.08),
+              blurRadius: 0,
+              spreadRadius: 4,
             ),
           ],
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.local_fire_department_rounded, color: Colors.white, size: 20),
-            const SizedBox(width: 8),
-            Text(
-              '새 소원 담기',
-              style: WishRoomTextStyles.buttonLabel.copyWith(color: Colors.white),
-            ),
-          ],
+        alignment: Alignment.center,
+        child: const Text(
+          '+',
+          style: TextStyle(
+            fontFamily: 'NotoSerifKRWish',
+            fontWeight: FontWeight.w900,
+            fontSize: 26,
+            color: Color(0xFF3A2515),
+            height: 1.0,
+          ),
         ),
       ),
     );
