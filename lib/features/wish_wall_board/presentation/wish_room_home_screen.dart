@@ -63,33 +63,21 @@ class _WishRoomHomeScreenState extends State<WishRoomHomeScreen> {
       final provider = context.read<WishWallProvider>();
       // [비로그인/네트워크 실패 방어] 미로그인 상태에서는 fetchMyWishes가
       // 401("로그인이 필요합니다")을 던진다. 이 경우에도 화면은 빈 소원
-      // 목록으로 정상 표시되어야 하며, 아래 제단 참배 보너스 로직이
-      // 통째로 스킵되거나 미처리 예외가 남아서는 안 된다.
+      // 목록으로 정상 표시되어야 한다.
       try {
         await provider.loadMyWishes();
       } catch (_) {
         // 비로그인/네트워크 실패는 조용히 무시 - 빈 소원 목록으로 계속 진행.
       }
-      if (!mounted) return;
-      try {
-        final granted = await provider.policy.earnAltarVisitBonus();
-        if (!mounted || granted <= 0) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: WishRoomColors.backgroundMid,
-            content: Text(
-              '🕯 제단 참배 보너스로 복주머니 $granted개를 받았어요',
-              style: const TextStyle(
-                fontSize: 13,
-                color: WishRoomColors.textPrimary,
-              ),
-            ),
-          ),
-        );
-      } catch (_) {
-        // 보너스 적립 실패(비로그인 등)도 화면을 깨뜨리지 않고 조용히 무시.
-      }
+      // [버그 수정 — 2026 세션] "제단 참배 보너스" 자동 지급 로직을 제거했다.
+      // 이 화면은 (1) 앱 시작 시 IndexedStack이 5탭을 전부 미리 만들면서
+      // 자동 실행되고, (2) 홈 카드에서 push로 진입할 때도 새 인스턴스가
+      // 생성되며 다시 실행되어, 사용자가 아무 액션도 하지 않았는데
+      // "제단 참배 보너스" 스낵바가 반복적으로 뜨는 버그가 있었다.
+      // "제단 참배" 보상은 사용자가 복주머니 받기 팝업(_ReceivePanel)에서
+      // 명시적으로 눌렀을 때만 지급되어야 하며, 그 흐름은
+      // showBlessingBagBottomSheet(initialTab: receive)에 이미 구현되어
+      // 있으므로 여기서는 화면 진입만으로 아무것도 자동 지급하지 않는다.
     });
   }
 
