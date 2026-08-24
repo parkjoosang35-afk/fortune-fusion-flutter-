@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../domain/wish_wall_models.dart';
-import '../theme/wish_wall_theme.dart';
-import '../widgets/bottle_widget.dart';
-import 'wish_wall_my_screen.dart';
+import '../../../wish_room/domain/wish_wall_models.dart';
+import '../../../wish_room/theme/wish_wall_theme.dart';
+import '../../../wish_room/widgets/bottle_widget.dart';
+import '../../../wish_room/presentation/wish_wall_my_screen.dart';
 
 /// 04. 소원 봉인완료 화면.
 ///

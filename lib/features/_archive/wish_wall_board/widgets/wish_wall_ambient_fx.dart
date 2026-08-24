@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
-import '../theme/wish_wall_theme.dart';
+import '../../../wish_room/theme/wish_wall_theme.dart';
 
 /// 소원벽게시판 · 배경 앰비언스 애니메이션(순수 장식용).
 ///

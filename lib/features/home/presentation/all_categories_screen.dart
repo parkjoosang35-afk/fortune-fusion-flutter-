@@ -15,7 +15,7 @@ import '../../pass/application/pass_provider.dart';
 import '../../pass/domain/pending_pass_request.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
 import '../../wallet/application/wallet_provider.dart';
-import '../../wish_wall_board/presentation/wish_wall_board_screen.dart';
+import '../../wish_room/presentation/wish_room_home_screen.dart';
 import '../application/fortune_category_provider.dart';
 import '../domain/fortune_category_model.dart';
 import '../domain/fortune_matrix.dart';
@@ -1037,7 +1037,7 @@ class _QuickEntryRow extends StatelessWidget {
                 label: '소원방',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => const WishWallBoardScreen(),
+                    builder: (_) => const WishRoomHomeScreen(),
                   ),
                 ),
               );
@@ -1213,7 +1213,7 @@ class _BottomConnectRow extends StatelessWidget {
             icon: Icons.local_fire_department_rounded,
             label: '소원방 가기',
             onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const WishWallBoardScreen()),
+              MaterialPageRoute(builder: (_) => const WishRoomHomeScreen()),
             ),
           ),
         ),

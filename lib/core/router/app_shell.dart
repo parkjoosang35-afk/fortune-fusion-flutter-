@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/fortune/presentation/fortune_hub_screen.dart';
-import '../../features/wish_wall_board/presentation/wish_room_home_screen.dart';
+import '../../features/wish_room/presentation/wish_room_home_screen.dart';
 import '../../features/luckybag/presentation/luckybag_hub_screen.dart';
 import '../../features/mypage/presentation/my_screen.dart';
 

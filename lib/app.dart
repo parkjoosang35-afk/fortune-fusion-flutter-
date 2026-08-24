@@ -57,10 +57,10 @@ import 'features/intro/data/intro_config_repository.dart';
 import 'features/luckpouch/application/luck_pouch_provider.dart';
 import 'core/domain/access/access_checker.dart';
 import 'core/widgets/luck_pouch_toast.dart';
-import 'features/wish_wall_board/data/wish_wall_repository.dart';
-import 'features/wish_wall_board/data/wish_wall_api_repository.dart';
-import 'features/wish_wall_board/application/blessing_bag_policy_adapter.dart';
-import 'features/wish_wall_board/application/wish_wall_provider.dart';
+import 'features/wish_room/data/wish_wall_repository.dart';
+import 'features/wish_room/data/wish_wall_api_repository.dart';
+import 'features/wish_room/application/blessing_bag_policy_adapter.dart';
+import 'features/wish_room/application/wish_wall_provider.dart';
 import 'features/wish_counsel/data/wish_counsel_repository.dart';
 import 'features/wish_counsel/application/wish_counsel_provider.dart';
 

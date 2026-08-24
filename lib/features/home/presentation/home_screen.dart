@@ -18,7 +18,7 @@ import '../../pass/presentation/pass_time_format.dart';
 import '../../../core/domain/access/access_checker.dart';
 import '../../auth/application/auth_provider.dart';
 import '../../../core/widgets/app_toast.dart';
-import '../../wish_wall_board/presentation/wish_room_home_screen.dart';
+import '../../wish_room/presentation/wish_room_home_screen.dart';
 import '../../ad_banner/application/ad_banner_provider.dart';
 import '../../ad_banner/presentation/ad_banner_widget.dart';
 import 'home_style_tokens.dart';

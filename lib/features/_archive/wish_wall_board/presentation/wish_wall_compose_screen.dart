@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../application/wish_wall_provider.dart';
-import '../domain/wish_wall_models.dart';
-import '../theme/wish_wall_theme.dart';
-import '../widgets/bottle_widget.dart';
+import '../../../wish_room/application/wish_wall_provider.dart';
+import '../../../wish_room/domain/wish_wall_models.dart';
+import '../../../wish_room/theme/wish_wall_theme.dart';
+import '../../../wish_room/widgets/bottle_widget.dart';
 import 'wish_wall_success_screen.dart';
 
 /// 03. 소원 담기 — 5-step 작성 플로우.

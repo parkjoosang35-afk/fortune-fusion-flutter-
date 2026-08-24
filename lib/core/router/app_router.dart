@@ -53,7 +53,8 @@ import '../../features/giftcard/presentation/my_giftcards_screen.dart';
 import '../../features/giftcard/domain/giftcard_model.dart';
 import '../../features/subscription/presentation/subscription_plans_screen.dart';
 import '../../features/subscription/presentation/my_subscription_screen.dart';
-import '../../features/wish_wall_board/presentation/wish_wall_board_screen.dart';
+import '../../features/wish_room/presentation/wish_room_home_screen.dart';
+import '../../features/wish_room/presentation/wish_room_onboarding_screen.dart';
 import '../../features/categories/presentation/categories_grid_screen.dart';
 import '../../features/lucky/presentation/lucky_items_screen.dart';
 import '../../features/pass/presentation/free_pass_gate_screen.dart';
@@ -67,6 +68,7 @@ import '../../features/home/domain/jeontong_eighty_matrix.dart';
 import '../../features/history/presentation/history_readonly_screen.dart';
 import '../../features/history/presentation/history_jeontong_overview_screen.dart';
 import '../auth/auth_token_store.dart';
+import 'app_navigator_key.dart';
 
 /// 07단계 §3.2 라우팅 테이블 - Navigator 1.0(onGenerateRoute) 구현
 /// 10단계(A안): AI 6대 기능(사주/타로/관상/손금/궁합/AI상담) + 리워드(미션/랭킹)까지
@@ -387,12 +389,20 @@ class AppRouter {
       case '/my/subscription':
         return _page(const MySubscriptionScreen());
 
-      // ── 소원벽 [코인/포인트 잔재 정리] 신통방통 소원방(wish_room,
-      // 복주머니와 별개인 직구 자체 화폐)는 사용자 지시로 완전히 삭제되고,
-      // 유일한 재화인 복주머니만 쓰는 소원벽으로 통합한다 ──
+      // ── 소원방 [Phase01 뼈대 정리] 구버전 소원벽(wish_wall_board_screen,
+      // 진짜 죽은 화면)은 lib/features/_archive/wish_wall_board/로 아카이브
+      // 되었다. '/wish-room'과 '/wish-wall' 모두 신규 V2 소원방 홈
+      // (WishRoomHomeScreen, 하단 탭의 "소원방"과 동일 화면)으로 연결한다.
       case '/wish-room':
       case '/wish-wall':
-        return _page(const WishWallBoardScreen());
+        return _page(const WishRoomHomeScreen());
+      case '/onboarding':
+        return _page(
+          WishRoomOnboardingScreen(
+            onEnter: () => appNavigatorKey.currentState
+                ?.pushReplacementNamed('/wish-room'),
+          ),
+        );
 
       case '/history/readonly':
         return _page(const HistoryReadOnlyScreen());

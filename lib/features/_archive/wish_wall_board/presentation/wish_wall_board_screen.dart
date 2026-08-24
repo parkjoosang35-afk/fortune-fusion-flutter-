@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../application/wish_wall_provider.dart';
-import '../domain/wish_wall_models.dart';
-import '../theme/wish_wall_theme.dart';
-import '../widgets/bottle_widget.dart';
+import '../../../wish_room/application/wish_wall_provider.dart';
+import '../../../wish_room/domain/wish_wall_models.dart';
+import '../../../wish_room/theme/wish_wall_theme.dart';
+import '../../../wish_room/widgets/bottle_widget.dart';
 import '../widgets/wish_wall_ambient_fx.dart';
 import 'wish_wall_compose_screen.dart';
-import 'wish_wall_detail_screen.dart';
-import 'wish_wall_my_screen.dart';
+import '../../../wish_room/presentation/wish_wall_detail_screen.dart';
+import '../../../wish_room/presentation/wish_wall_my_screen.dart';
 
 /// 01. 신통방통 소원방(소원벽게시판) — 병 벽(피드) 화면.
 ///
