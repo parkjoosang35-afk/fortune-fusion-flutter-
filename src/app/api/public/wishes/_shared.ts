@@ -80,6 +80,27 @@ export interface WishRow {
   updatedAt: Date;
   deletedAt: Date | null;
   user: { nickname: string };
+  // [복주머니 확장 Phase02-A] 봉인→밝히기→이루어짐 상태 머신 필드. 기존
+  // status(가시성 판정용, visible/gratitude/private_only)와는 별개 축이다.
+  wishState: string;
+  sealedAt: Date;
+  unlockAt: Date | null;
+  fulfilledAt: Date | null;
+  openedBoxAt: Date | null;
+}
+
+/** [복주머니 확장 Phase02-A] wishState 기본 봉인 기간(일). unlockAt이 null인
+ * (마이그레이션 이전) 레코드는 항상 이 값으로 sealedAt + 100일을 계산해서
+ * 사용한다(schema.prisma 주석과 동일한 하위호환 원칙). */
+export const WISH_DEFAULT_UNLOCK_DAYS = 100;
+
+/** unlockAt이 명시적으로 저장되어 있으면 그 값을, 없으면 sealedAt + 100일을
+ * 계산해서 반환한다 — "개봉 가능 시각"을 구하는 유일한 소스. */
+export function resolveWishUnlockAt(w: Pick<WishRow, "sealedAt" | "unlockAt">): Date {
+  if (w.unlockAt) return w.unlockAt;
+  const d = new Date(w.sealedAt);
+  d.setDate(d.getDate() + WISH_DEFAULT_UNLOCK_DAYS);
+  return d;
 }
 
 /**
@@ -117,6 +138,12 @@ export function toWishDto(w: WishRow, currentUserId: number | null) {
     pouchCount: w.bokjuCount,
     isMine: currentUserId != null && w.userId === currentUserId,
     goalTag: w.goalTag,
+    // [복주머니 확장 Phase02-A] 봉인→밝히기→이루어짐 상태 머신 노출.
+    wishState: w.wishState,
+    sealedAt: w.sealedAt.toISOString(),
+    unlockAt: resolveWishUnlockAt(w).toISOString(),
+    fulfilledAt: w.fulfilledAt ? w.fulfilledAt.toISOString() : null,
+    openedBoxAt: w.openedBoxAt ? w.openedBoxAt.toISOString() : null,
   };
 }
 
