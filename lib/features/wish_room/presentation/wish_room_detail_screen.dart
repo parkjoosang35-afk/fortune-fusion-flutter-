@@ -9,6 +9,7 @@ import '../widgets/wish_room_buttons.dart';
 import '../widgets/wish_room_candle.dart';
 import '../widgets/wish_room_seal.dart';
 import '../widgets/wish_room_seal_mapping.dart';
+import 'wish_room_celebration_screen.dart';
 
 /// 소원방(Wish Room) — 05. 소원 상세(Detail) 화면.
 ///
@@ -24,13 +25,13 @@ import '../widgets/wish_room_seal_mapping.dart';
 ///   유사한 무료 액션(응원=소원의 정성을 더함)에 대응시켰다(발명 최소화).
 /// - "✿ 이뤄졌어요" → [WishPost]/[WishWallRepository] 모두 실제 "성취"
 ///   상태 필드가 없음(`updateWishStatus`는 no-op 스텁, 문서 §데이터 갭 참고).
-///   따라서 이 화면은 로컬 확인 다이얼로그 → [BlessingBagPolicyAdapter
-///   .earnWishFulfilledBonus] 적립 → 완료 스낵바로 자기완결적으로 처리한다
-///   (03 Compose가 존재하지 않는 파일을 import해 컴파일 오류를 냈던 것과
-///   동일한 실수를 피하기 위해, 아직 만들어지지 않은 08 Celebration 화면을
-///   여기서 import/참조하지 않는다). 08 Celebration이 완성되면 라우팅
-///   정리 단계(#10)에서 이 확인 다이얼로그의 "네, 이루었어요" 분기를
-///   Celebration 화면으로 push하도록 교체할 수 있다.
+///   [Phase 01 · 2단계 · orphan 화면 연결] 로컬 확인 다이얼로그 →
+///   [BlessingBagPolicyAdapter.earnWishFulfilledBonus] 적립 → 08
+///   [WishRoomCelebrationScreen]으로 push한다. 서버에 실제 fulfilled 상태
+///   필드가 아직 없으므로(Phase02+ 스키마 확장 몫) "성취 기록"은 서버에
+///   저장되지 않고 이 화면의 로컬 연출로만 완결되지만, 하드코딩됐던
+///   `daysToFulfill=89`는 제거하고 [WishPost.createdAt] 기준 실제 경과일
+///   ([_daysSince])을 그대로 넘겨준다.
 /// - 간절함의 크기(★/progress) → [WishPost.glow](0.0~1.0, supportCount 기반
 ///   기존 계산식)를 그대로 재사용해 5단계 별점/게이지로 환산한다(새 필드
 ///   추가 없이 기존 데이터로 표현).
@@ -138,23 +139,19 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
       ),
     );
     if (confirmed != true || !mounted) return;
-    final granted = await context
-        .read<WishWallProvider>()
-        .policy
-        .earnWishFulfilledBonus();
+    await context.read<WishWallProvider>().policy.earnWishFulfilledBonus();
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: WishRoomColors.backgroundMid,
-        content: Text(
-          granted > 0
-              ? '✿ 소원이 이루어졌어요 · 복주머니 +$granted개'
-              : '✿ 소원이 이루어졌어요',
-          style: const TextStyle(
-            fontSize: 13,
-            color: WishRoomColors.textPrimary,
-          ),
+    // [Phase 01 · 2단계 · orphan 화면 연결] 지급된 복주머니 개수는
+    // 08 Celebration 화면이 아니라 이 push 이전에 별도로 안내하지 않는다
+    // — Celebration 화면 자체가 "성취"라는 큰 순간을 축하하는 전체화면
+    // 연출이므로, 적립 안내를 위한 별도 스낵바를 겹쳐 띄우지 않는다
+    // (기존 [_ReceivePanel._claim] 등 팝업형 흐름과 달리 이 흐름은 이미
+    // 확인 다이얼로그를 거쳤으므로 추가 확인 UI가 필요 없다).
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => WishRoomCelebrationScreen(
+          wishText: wish.text,
+          daysToFulfill: _daysSince,
         ),
       ),
     );

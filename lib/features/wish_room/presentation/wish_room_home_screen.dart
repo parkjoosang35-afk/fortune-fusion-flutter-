@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../application/wish_room_box_opening_trigger.dart';
 import '../application/wish_wall_provider.dart';
 import '../domain/wish_wall_models.dart';
 import '../theme/wish_room_theme.dart';
@@ -9,8 +10,11 @@ import '../widgets/wish_room_candle.dart';
 import '../widgets/wish_room_dust.dart';
 import '../widgets/wish_room_seal.dart';
 import '../widgets/wish_room_sigil.dart';
+import 'wish_room_box_opening_screen.dart';
+import 'wish_room_celebration_screen.dart';
 import 'wish_room_compose_screen.dart';
 import 'wish_room_detail_screen.dart';
+import 'wish_room_empty_screen.dart';
 import 'wish_room_feed_screen.dart';
 import 'wish_wall_my_screen.dart';
 
@@ -48,7 +52,34 @@ import 'wish_wall_my_screen.dart';
 /// 2) 각 소원 행의 Seal(원래도 있던 도장 요소)을 탭하면 그 소원에
 ///    "보내기" 팝업.
 class WishRoomHomeScreen extends StatefulWidget {
-  const WishRoomHomeScreen({super.key});
+  const WishRoomHomeScreen({
+    super.key,
+    this.showEmptyScreenIfEmpty = false,
+    this.checkBoxOpening = false,
+  });
+
+  /// [Phase 01 · 2단계 · orphan 화면 연결] true면 로딩 완료 후 소원이
+  /// 0개일 때 이 화면 대신 전체화면 [WishRoomEmptyScreen]을 보여준다.
+  /// [WishRoomEntryGate]가 "온보딩을 방금 처음 통과한 경우"에만 true를
+  /// 넘긴다 — 그 외(이미 온보딩을 봤던 기존 사용자)는 지금까지처럼
+  /// 아래 [_WishListSection]의 축소된 인라인 빈 상태를 그대로 사용한다.
+  final bool showEmptyScreenIfEmpty;
+
+  /// [Phase 01 · 2단계 · orphan 화면 연결] true면 [initState]에서
+  /// [findPendingBoxOpeningWishId]로 100일 지난 소원이 있는지 확인하고,
+  /// 있으면 07 [WishRoomBoxOpeningScreen]을 자동으로 push한다(완료 후
+  /// 08 Celebration으로 체이닝).
+  ///
+  /// [기본값 false — 과거 버그 재발 방지] `AppShell`의 `IndexedStack`은
+  /// 5탭을 앱 시작 시점에 전부 미리 생성한다. 만약 이 체크가 기본으로
+  /// 켜져 있었다면, 사용자가 "소원방" 탭을 누르지도 않았는데 다른 탭을
+  /// 보고 있는 상태에서 전체화면 개봉 연출이 `Navigator.push`로 갑자기
+  /// 튀어나오는 — 과거에 고쳤던 "자동 복주머니 지급" 버그와 동일한 종류의
+  /// 문제가 재발한다. 그래서 기본값은 false로 두고, [WishRoomEntryGate]가
+  /// (사용자가 실제로 소원방 카드/라우트를 눌러 이 화면을 push로 생성한
+  /// 경우에만) true로 명시적으로 켠다. `AppShell`의 탭 인스턴스는 지금까지
+  /// 처럼 플래그 없이(false) 그대로 둔다.
+  final bool checkBoxOpening;
 
   @override
   State<WishRoomHomeScreen> createState() => _WishRoomHomeScreenState();
@@ -78,6 +109,38 @@ class _WishRoomHomeScreenState extends State<WishRoomHomeScreen> {
       // 명시적으로 눌렀을 때만 지급되어야 하며, 그 흐름은
       // showBlessingBagBottomSheet(initialTab: receive)에 이미 구현되어
       // 있으므로 여기서는 화면 진입만으로 아무것도 자동 지급하지 않는다.
+
+      // [Phase 01 · 2단계 · orphan 화면 연결] checkBoxOpening이 true일
+      // 때만(=WishRoomEntryGate를 통해 실제로 진입했을 때만) 100일 지난
+      // 소원이 있는지 확인해 07 개봉 화면을 자동으로 띄운다. widget.key가
+      // 바뀌지 않는 한 이 initState는 이 화면 인스턴스당 1회만 실행된다.
+      if (widget.checkBoxOpening) {
+        final pendingId = await findPendingBoxOpeningWishId(
+          provider.myWishes,
+        );
+        if (pendingId != null && mounted) {
+          final wish = provider.myWishes.firstWhere((w) => w.id == pendingId);
+          final ageDays = DateTime.now().difference(wish.createdAt).inDays;
+          await markWishBoxOpened(pendingId);
+          if (!mounted) return;
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => WishRoomBoxOpeningScreen(wishAgeDays: ageDays),
+            ),
+          );
+          if (!mounted) return;
+          // 완료 후 08 Celebration으로 체이닝(문서 §2단계 표: "완료 후
+          // Celebration으로 chain").
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => WishRoomCelebrationScreen(
+                wishText: wish.text,
+                daysToFulfill: ageDays,
+              ),
+            ),
+          );
+        }
+      }
     });
   }
 
@@ -146,6 +209,15 @@ class _WishRoomHomeScreenState extends State<WishRoomHomeScreen> {
     final provider = context.watch<WishWallProvider>();
     final wishes = provider.myWishes;
     final balance = provider.policy.balance;
+
+    // [Phase 01 · 2단계 · orphan 화면 연결] 온보딩 직후 첫 진입인데(=
+    // showEmptyScreenIfEmpty) 로딩이 끝났고 소원이 정말 0개라면, 축소된
+    // 인라인 빈 상태 대신 02 Empty 전체화면을 강조해서 보여준다.
+    if (widget.showEmptyScreenIfEmpty &&
+        !provider.isLoading &&
+        wishes.isEmpty) {
+      return WishRoomEmptyScreen(onCompose: _openCompose);
+    }
 
     final wishCount = wishes.length;
     int totalDays = 0;

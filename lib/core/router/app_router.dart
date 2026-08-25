@@ -53,7 +53,7 @@ import '../../features/giftcard/presentation/my_giftcards_screen.dart';
 import '../../features/giftcard/domain/giftcard_model.dart';
 import '../../features/subscription/presentation/subscription_plans_screen.dart';
 import '../../features/subscription/presentation/my_subscription_screen.dart';
-import '../../features/wish_room/presentation/wish_room_home_screen.dart';
+import '../../features/wish_room/presentation/wish_room_entry_gate.dart';
 import '../../features/wish_room/presentation/wish_room_onboarding_screen.dart';
 import '../../features/categories/presentation/categories_grid_screen.dart';
 import '../../features/lucky/presentation/lucky_items_screen.dart';
@@ -391,16 +391,25 @@ class AppRouter {
 
       // ── 소원방 [Phase01 뼈대 정리] 구버전 소원벽(wish_wall_board_screen,
       // 진짜 죽은 화면)은 lib/features/_archive/wish_wall_board/로 아카이브
-      // 되었다. '/wish-room'과 '/wish-wall' 모두 신규 V2 소원방 홈
-      // (WishRoomHomeScreen, 하단 탭의 "소원방"과 동일 화면)으로 연결한다.
+      // 되었다. '/wish-room'과 '/wish-wall' 모두 신규 V2 소원방
+      // 게이트([WishRoomEntryGate] — 온보딩 미완료 시 01 온보딩 화면을
+      // 먼저 보여주고, 완료했으면 [WishRoomHomeScreen])로 연결한다.
       case '/wish-room':
       case '/wish-wall':
-        return _page(const WishRoomHomeScreen());
+        return _page(const WishRoomEntryGate());
       case '/onboarding':
+        // [Phase 01 · 2단계 · orphan 화면 연결] 딥링크 등으로 이 라우트에
+        // 직접 진입하는 경우를 위한 독립 경로. [WishRoomEntryGate]와 동일한
+        // [markWishRoomOnboardingSeen] 플래그를 공유해야 게이트와 상태가
+        // 어긋나지 않는다.
         return _page(
           WishRoomOnboardingScreen(
-            onEnter: () => appNavigatorKey.currentState
-                ?.pushReplacementNamed('/wish-room'),
+            onEnter: () async {
+              await markWishRoomOnboardingSeen();
+              appNavigatorKey.currentState?.pushReplacementNamed(
+                '/wish-room',
+              );
+            },
           ),
         );
 
