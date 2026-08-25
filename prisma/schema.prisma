@@ -195,6 +195,10 @@ model User {
   openPassAdRewardLogs          OpenPassAdRewardLog[]
   passCategoryUsages            PassCategoryUsage[]
   fortuneAdWatchLogs            FortuneAdWatchLog[]
+  // [복주머니 확장 Phase02-A]
+  inventoryItems                UserInventoryItem[]
+  gratitudeSealsSent            GratitudeSeal[]           @relation("GratitudeSealSender")
+  gratitudeSealsReceived        GratitudeSeal[]           @relation("GratitudeSealRecipient")
 
   @@map("users")
 }
@@ -206,6 +210,16 @@ model UserProfile {
   birthDate  String?   @map("birth_date") // 민감정보(암호화 대상), 로컬 개발단계에서는 평문 문자열로 보관
   birthTime  String?   @map("birth_time")
   isLunar    Boolean   @default(false) @map("is_lunar")
+  // [신통방통 2단계 - 회원/운세 프로필 통합] 계산엔진(ManseryeokCoreEngine.
+  // buildProfileWithCore)이 이미 지원하는 BirthInfo.isLeapMonth를 그대로
+  // 연결하는 신규 컬럼. 음력 선택 시에만 의미가 있으며, 양력이면 항상 false로
+  // 취급한다(계산엔진/입력모델 어느 쪽도 수정하지 않음 — API/UI 연결만 추가).
+  isLeapMonth Boolean  @default(false) @map("is_leap_month")
+  // [신통방통 2단계] 사용자가 출생시간을 모른다고 표시한 상태를 서버에도
+  // 보존한다. true인 경우에도 계산엔진에는 관례값(12:00)이 그대로 전달되며,
+  // 이 플래그는 결과 화면 안내 문구("정확도가 낮을 수 있습니다") 노출에만
+  // 사용한다 — 계산 로직/결과에는 영향을 주지 않는다.
+  birthTimeUnknown Boolean @default(false) @map("birth_time_unknown")
   birthPlace String?   @map("birth_place")
   mbti       String?
   introText  String?   @map("intro_text")
@@ -393,10 +407,21 @@ model AiRequestLog {
 // ════════════════════════════════════════════════════════════════════
 
 // ── 04A G-1: consultation_sessions (※Base 포함) ──
+// [어뷰징 방지 개편, 2026-08 AI 상담 실연동] 상담은 "1회 호출"이 아니라 "세션당
+// 다수 턴"으로 이루어져 기존 카테고리별/절대상한 카운팅 방식(호출 횟수 기준)과
+// 비용 패턴이 근본적으로 다르다(매 턴 전체 히스토리를 재전송하므로 턴수^2로
+// 비용이 늘어날 수 있음). 그래서 사주/타로 등과 완전히 분리된 별도 예산으로
+// 관리한다: dateKey(KST) 기준 유저당 "하루 1세션"만 허용(@@unique)하고, 세션
+// 내부는 turnCount로 "세션당 최대 20턴"을 강제한다. 세션 생성 자체는 무료가
+// 아니라 리워드 광고 시청 완료(OpenPassAdRewardLog)를 선결 조건으로 요구해
+// 비용 일부를 상쇄하고 매크로성 세션 생성을 억제한다(adRewardLogId로 감사 추적).
 model ConsultationSession {
   id                Int       @id @default(autoincrement())
   userId            Int       @map("user_id")
   type              String // love/career/general/(향후)human_expert
+  dateKey           String    @default("") @map("date_key") // KST "YYYY-MM-DD" — 유저당 하루 1세션 강제 기준
+  turnCount         Int       @default(0) @map("turn_count") // 유저 발화 턴 수(세션당 최대 20)
+  adRewardLogId     Int?      @map("ad_reward_log_id") // 세션 생성을 게이트한 광고시청 로그(OpenPassAdRewardLog.id) 참조, 감사용
   startedAt         DateTime  @default(now()) @map("started_at")
   endedAt           DateTime? @map("ended_at")
   satisfactionScore Int?      @map("satisfaction_score") // 1~5
@@ -412,6 +437,7 @@ model ConsultationSession {
   messages ConsultationMessage[]
   review   ConsultationReview?
 
+  @@unique([userId, dateKey])
   @@index([userId, createdAt])
   @@map("consultation_sessions")
 }
@@ -1442,6 +1468,23 @@ model Wish {
   // 프리미엄 자기개선 액션. null이면 미적용.
   highlightedUntil DateTime? @map("highlighted_until") // 글 강조(필드 강조+배지) 만료 시각
   boostedAt        DateTime? @map("boosted_at") // 노출 강화(피드 상단 재노출) 적용 시각
+  // [복주머니 확장 Phase02 — bokjumeoni-plan §02 PRISMA] 봉인→밝히기→이루어짐
+  // 상태 머신. SQLite는 Prisma 네이티브 enum을 지원하지 않으므로(PostgreSQL/MySQL
+  // 전용 기능) 이 프로젝트의 기존 관례(status/ruleType 등 String 컬럼 + 주석으로
+  // 값 도메인 문서화)를 그대로 따른다. 값 도메인: "sealed"(봉인, 기본) |
+  // "fulfilled"(이루어짐) | "archived"(100일 경과, 사용자 확인 대기).
+  // 기존 status(visible/gratitude/private_only 등, 노출 가시성 판정용)와는
+  // 별개 축이므로 필드를 분리한다 — 혼용 금지.
+  wishState   String    @default("sealed") @map("wish_state")
+  sealedAt    DateTime  @default(now()) @map("sealed_at")
+  // [기본값 100일] DECISION-002(봉인 기간) 미확정 상태이므로 기획안 제안값(100일
+  // 고정)을 기본으로 적용한다. 인장별 오버라이드는 인장 상점(Phase02-B) 구현 시
+  // 이 필드에 직접 다른 날짜를 대입하는 방식으로 확장 가능(스키마 변경 불필요).
+  // nullable인 이유: 기존(마이그레이션 이전) 소원 레코드에는 값이 없으므로,
+  // null이면 서버 로직이 항상 sealedAt + 100일로 계산해서 사용한다(하위호환).
+  unlockAt    DateTime? @map("unlock_at")
+  fulfilledAt DateTime? @map("fulfilled_at")
+  openedBoxAt DateTime? @map("opened_box_at") // Box Opening 화면 완료 시각
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
   deletedAt        DateTime? @map("deleted_at")
@@ -1453,7 +1496,93 @@ model Wish {
   reviews      WishReview[]
 
   @@index([category, createdAt])
+  @@index([userId, wishState, openedBoxAt])
   @@map("wishes")
+}
+
+// ══════════════════════════════════════════════════════════════════
+// [복주머니 확장 Phase02-A — bokjumeoni-plan §03 사용처 1·2·4번(인장/촛불/부적)]
+//
+// 기획서 §02 PRISMA 섹션에는 GratitudeSeal(감사 도장)만 명시적으로 정의되어
+// 있고, 상점 카탈로그/인벤토리 모델은 §03 SERVER API의 "POST /shop/purchase
+// body {itemType, itemCode} · 원자적 처리: 잔액 차감 + 인벤토리 추가"라는
+// 서술로만 암시되어 있다(구체 스키마 없음). 아래 2개 모델은 그 서술을
+// 구현하기 위해 이번 단계에서 신규 설계한 것이다:
+//   - ShopCatalogItem: 판매 카탈로그(관리자가 가격/활성여부를 조정하는 마스터
+//     데이터) — 기존 LuckPouchRule과 동일한 "관리자는 값만 조정, 구조는 고정"
+//     원칙을 따른다.
+//   - UserInventoryItem: 사용자가 실제로 구매/보유한 품목(보물함 화면의
+//     데이터 소스). itemType별로 "영구 보관형"(인장/촛불)과 "기간제 소모형"
+//     (부적)을 expiresAt(nullable)로 함께 표현한다.
+// ══════════════════════════════════════════════════════════════════
+
+// ── 상점 판매 카탈로그(인장·촛불·부적 공용) ──
+model ShopCatalogItem {
+  id              Int       @id @default(autoincrement())
+  // 값 도메인: "seal"(인장) | "candle"(특별 촛불) | "talisman"(부적)
+  itemType        String    @map("item_type")
+  // 인장: seal_ok/seal_eun/seal_geobuk/seal_hak/seal_geumbak
+  // 촛불: candle_lotus/candle_incense/candle_star/candle_yuchok
+  // 부적: talisman_guardian/talisman_fullmoon/talisman_friend
+  itemCode        String    @unique @map("item_code")
+  nameKo          String    @map("name_ko")
+  descriptionKo   String    @map("description_ko")
+  price           Int // 복주머니 가격
+  // 부적(talisman) 전용 — 효과 지속 일수. 인장/촛불은 영구 보관이므로 null.
+  durationDays    Int?      @map("duration_days")
+  displayPriority Int       @default(0) @map("display_priority")
+  isActive        Boolean   @default(true) @map("is_active")
+  status          String    @default("active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+  createdBy       String?   @map("created_by")
+  updatedBy       String?   @map("updated_by")
+
+  inventoryItems UserInventoryItem[]
+
+  @@index([itemType, isActive])
+  @@map("shop_catalog_items")
+}
+
+// ── 사용자 보유 인벤토리(보물함) ──
+model UserInventoryItem {
+  id            Int       @id @default(autoincrement())
+  userId        Int       @map("user_id")
+  catalogItemId Int       @map("catalog_item_id")
+  // ShopCatalogItem 구매 시점 스냅샷(카탈로그 가격이 나중에 바뀌어도 구매 이력은
+  // 불변으로 유지하기 위함 — PointHistory.amount와 동일한 append-only 철학).
+  purchasePrice Int       @map("purchase_price")
+  // 부적(talisman)류의 만료 시각. durationDays가 있는 품목만 값이 들어가고,
+  // 인장/촛불(영구 보관)은 null.
+  expiresAt     DateTime? @map("expires_at")
+  // 촛불(candle)은 "소원 하나에 하나 선택"이라 활성 슬롯 개념이 필요하다.
+  // 어떤 소원에 적용 중인지는 이 필드가 아니라 추후 Wish.activeCandleItemId
+  // (Phase02-B, UI 확정 후) 확장 시점에 연결한다. 현재는 소유 여부만 관리.
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  user        User            @relation(fields: [userId], references: [id])
+  catalogItem ShopCatalogItem @relation(fields: [catalogItemId], references: [id])
+
+  @@index([userId, createdAt])
+  @@map("user_inventory_items")
+}
+
+// ── 감사 도장(感謝印) — sendPouch 답례 1회용 ──
+model GratitudeSeal {
+  id            Int      @id @default(autoincrement())
+  senderId      Int      @map("sender_id") // 도장을 찍는 사람(=원래 sendPouch를 "받은" 사람)
+  recipientId   Int      @map("recipient_id") // 도장을 받는 사람(=원래 sendPouch를 "보낸" 사람)
+  sourcePouchId Int      @map("source_pouch_id") // 원래 sendPouch에 해당하는 PointHistory.id
+  wishId        Int      @map("wish_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  sender    User @relation("GratitudeSealSender", fields: [senderId], references: [id])
+  recipient User @relation("GratitudeSealRecipient", fields: [recipientId], references: [id])
+
+  @@unique([sourcePouchId]) // sendPouch 1건당 감사 도장 1회 제약
+  @@index([recipientId, createdAt])
+  @@map("gratitude_seals")
 }
 
 // ══════════════════════════════════════════════════════════════════
