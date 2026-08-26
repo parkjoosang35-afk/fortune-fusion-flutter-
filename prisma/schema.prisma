@@ -1485,6 +1485,14 @@ model Wish {
   unlockAt    DateTime? @map("unlock_at")
   fulfilledAt DateTime? @map("fulfilled_at")
   openedBoxAt DateTime? @map("opened_box_at") // Box Opening 화면 완료 시각
+  // [복주머니 확장 Phase03 — 인장/촛불 "실사용" 연결] 소원 작성 시 사용자가
+  // 보유한(UserInventoryItem) 특별 인장/촛불 중 선택한 itemCode 스냅샷.
+  // ShopCatalogItem.itemCode 값을 문자열로 그대로 저장한다(느슨한 참조 —
+  // 카탈로그 품목이 삭제/비활성화되어도 이미 봉인된 소원의 표시는 깨지지
+  // 않아야 하므로 FK 대신 문자열 스냅샷 방식을 택했다. PurchasePrice와 동일한
+  // "구매 시점 스냅샷" 철학). null이면 미선택(기본 인장/촛불 표시).
+  sealItemCode   String? @map("seal_item_code")
+  candleItemCode String? @map("candle_item_code")
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
   deletedAt        DateTime? @map("deleted_at")

@@ -105,6 +105,11 @@ export async function POST(request: NextRequest) {
     goalTag?: string | null;
     glassLevel?: number;
     visibility?: "anonymous" | "public" | "private";
+    // [복주머니 확장 Phase03 — 인장/촛불 "실사용"] 사용자가 보유한
+    // ShopCatalogItem(itemType=seal|candle)의 itemCode. 소유하지 않은
+    // itemCode를 보내면 403으로 거부한다(서버가 최종 판단).
+    sealItemCode?: string | null;
+    candleItemCode?: string | null;
   };
   try {
     body = await request.json();
@@ -135,11 +140,47 @@ export async function POST(request: NextRequest) {
   // visibility='private'인 경우는 status='private_only'로 별도 표시(신규 필드 없음).
   const isAnonymous = visibility === "anonymous";
   const candleLevel = glassLevelToCandleLevel(body.glassLevel ?? 0);
+  // [입력 정규화] 빈 문자열은 "미선택"으로 취급한다(null과 동일).
+  const requestedSealCode = body.sealItemCode?.trim() || null;
+  const requestedCandleCode = body.candleItemCode?.trim() || null;
 
   try {
     const result = await prisma.$transaction(async (tx) => {
       const user = await tx.user.findUnique({ where: { id: auth.userId } });
       if (!user) throw new Error("USER_NOT_FOUND");
+
+      // [절대 원칙 — 서버 최종 판단] 클라이언트가 보낸 itemCode를 그대로
+      // 믿지 않는다. 반드시 UserInventoryItem(구매 이력)에 해당 itemCode를
+      // 소유하고 있는지, 그리고 카탈로그의 itemType이 seal/candle과
+      // 일치하는지 트랜잭션 안에서 재검증한다.
+      const codesToVerify = [requestedSealCode, requestedCandleCode].filter(
+        (c): c is string => c != null
+      );
+      if (codesToVerify.length > 0) {
+        const owned = await tx.userInventoryItem.findMany({
+          where: {
+            userId: auth.userId,
+            catalogItem: { itemCode: { in: codesToVerify } },
+          },
+          include: { catalogItem: true },
+        });
+        const ownedByCode = new Map(
+          owned.map((o) => [o.catalogItem.itemCode, o.catalogItem])
+        );
+
+        if (requestedSealCode) {
+          const item = ownedByCode.get(requestedSealCode);
+          if (!item || item.itemType !== "seal") {
+            throw new Error("SEAL_NOT_OWNED");
+          }
+        }
+        if (requestedCandleCode) {
+          const item = ownedByCode.get(requestedCandleCode);
+          if (!item || item.itemType !== "candle") {
+            throw new Error("CANDLE_NOT_OWNED");
+          }
+        }
+      }
 
       const wish = await tx.wish.create({
         data: {
@@ -150,6 +191,8 @@ export async function POST(request: NextRequest) {
           goalTag: body.goalTag ?? null,
           candleLevel,
           status: visibility === "private" ? "private_only" : "visible",
+          sealItemCode: requestedSealCode,
+          candleItemCode: requestedCandleCode,
         },
         include: { user: { select: { nickname: true } } },
       });
@@ -193,6 +236,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { success: false, error: "사용자를 찾을 수 없습니다." },
         { status: 404, headers: CORS_HEADERS }
+      );
+    }
+    if (message === "SEAL_NOT_OWNED") {
+      return NextResponse.json(
+        { success: false, error: "보유하지 않은 인장입니다." },
+        { status: 403, headers: CORS_HEADERS }
+      );
+    }
+    if (message === "CANDLE_NOT_OWNED") {
+      return NextResponse.json(
+        { success: false, error: "보유하지 않은 촛불입니다." },
+        { status: 403, headers: CORS_HEADERS }
       );
     }
     console.error("[POST /api/public/wishes] 실패:", e);

@@ -87,6 +87,10 @@ export interface WishRow {
   unlockAt: Date | null;
   fulfilledAt: Date | null;
   openedBoxAt: Date | null;
+  // [복주머니 확장 Phase03 — 인장/촛불 "실사용" 연결] 작성 시 선택한
+  // ShopCatalogItem.itemCode 스냅샷(문자열 참조, FK 아님). null이면 미선택.
+  sealItemCode: string | null;
+  candleItemCode: string | null;
 }
 
 /** [복주머니 확장 Phase02-A] wishState 기본 봉인 기간(일). unlockAt이 null인
@@ -144,6 +148,9 @@ export function toWishDto(w: WishRow, currentUserId: number | null) {
     unlockAt: resolveWishUnlockAt(w).toISOString(),
     fulfilledAt: w.fulfilledAt ? w.fulfilledAt.toISOString() : null,
     openedBoxAt: w.openedBoxAt ? w.openedBoxAt.toISOString() : null,
+    // [복주머니 확장 Phase03] 인장/촛불 실사용 — 작성 시 선택한 itemCode.
+    sealItemCode: w.sealItemCode ?? null,
+    candleItemCode: w.candleItemCode ?? null,
   };
 }
 
