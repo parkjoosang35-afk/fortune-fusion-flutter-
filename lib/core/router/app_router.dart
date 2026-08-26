@@ -55,6 +55,10 @@ import '../../features/subscription/presentation/subscription_plans_screen.dart'
 import '../../features/subscription/presentation/my_subscription_screen.dart';
 import '../../features/wish_room/presentation/wish_room_entry_gate.dart';
 import '../../features/wish_room/presentation/wish_room_onboarding_screen.dart';
+import '../../features/shop/presentation/seal_shop_screen.dart';
+import '../../features/shop/presentation/candle_shop_screen.dart';
+import '../../features/shop/presentation/talisman_shop_screen.dart';
+import '../../features/shop/presentation/treasure_box_screen.dart';
 import '../../features/categories/presentation/categories_grid_screen.dart';
 import '../../features/lucky/presentation/lucky_items_screen.dart';
 import '../../features/pass/presentation/free_pass_gate_screen.dart';
@@ -412,6 +416,20 @@ class AppRouter {
             },
           ),
         );
+
+      // ── 상점(복주머니 확장 Phase02-B) [인장/촛불/부적 3개 상점 + 보물함]
+      // admin_web `/api/public/shop/*`, `/api/public/inventory` 실 API 연동.
+      // dev-spec.html이 제시한 `/luckybag/seal-shop` 등 경로는 실제
+      // 앱에 존재하지 않는 레거시 기획문서 네이밍이어서, 기존
+      // 라우팅 컨벤션(`/shop/...`)을 따라 신규 정의한다.
+      case '/shop/seals':
+        return _page(const SealShopScreen());
+      case '/shop/candles':
+        return _page(const CandleShopScreen());
+      case '/shop/talismans':
+        return _page(const TalismanShopScreen());
+      case '/shop/treasure':
+        return _page(const TreasureBoxScreen());
 
       case '/history/readonly':
         return _page(const HistoryReadOnlyScreen());

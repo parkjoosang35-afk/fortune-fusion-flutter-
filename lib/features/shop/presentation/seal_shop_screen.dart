@@ -1,0 +1,195 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../luckpouch/application/luck_pouch_provider.dart';
+import '../../wish_room/theme/wish_room_theme.dart';
+import '../../wish_room/widgets/wish_room_bg_atmosphere.dart';
+import '../../wish_room/widgets/wish_room_seal.dart';
+import '../application/shop_provider.dart';
+import '../domain/shop_item_visuals.dart';
+import '../domain/shop_models.dart';
+import '../widgets/shop_widgets.dart';
+
+/// 인장 상점 — bokjumeoni-plan `03-dev-spec.html` `SealShopScreen` 코드
+/// 스펙 및 `new-screens.jsx`의 `ScreenSealShop` 픽셀 디자인을 그대로
+/// Flutter로 재구현한다. 2열 그리드, 옥/은/거북/학/금박 5종.
+class SealShopScreen extends StatefulWidget {
+  const SealShopScreen({super.key});
+
+  @override
+  State<SealShopScreen> createState() => _SealShopScreenState();
+}
+
+class _SealShopScreenState extends State<SealShopScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<ShopProvider>().loadAll();
+    });
+  }
+
+  Future<void> _handlePurchase(ShopCatalogItem item) async {
+    final pouch = context.read<LuckPouchProvider>();
+    if (pouch.balance < item.price) {
+      await ShortageDialog.show(
+        context,
+        item: item,
+        need: item.price,
+        have: pouch.balance,
+      );
+      return;
+    }
+    final ok = await PurchaseConfirmSheet.show(context, item: item);
+    if (ok != true || !mounted) return;
+    final shop = context.read<ShopProvider>();
+    final success = await shop.purchase(item);
+    if (!mounted) return;
+    if (!success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(shop.lastPurchaseError ?? '구매에 실패했습니다.')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${item.nameKo}을(를) 얻었어요.')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final shop = context.watch<ShopProvider>();
+    final pouch = context.watch<LuckPouchProvider>();
+
+    return Scaffold(
+      backgroundColor: WishRoomColors.backgroundDeep,
+      body: Stack(
+        children: [
+          const Positioned.fill(
+            child: WishRoomBgAtmosphere(sigilSize: 340, sigilOpacity: 0.18),
+          ),
+          SafeArea(
+            child: Column(
+              children: [
+                const SizedBox(height: 10),
+                ShopHeader(title: 'SEAL SHOP · 印章', balance: pouch.balance),
+                const ShopIntro(
+                  title: '소원을 봉인할\n새 인장을 만나보세요',
+                  sub: '한 번 사면 영원히 사용할 수 있어요.',
+                ),
+                Expanded(
+                  child: shop.isLoading && shop.seals.isEmpty
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                            color: WishRoomColors.glow,
+                          ),
+                        )
+                      : shop.seals.isEmpty
+                      ? Center(
+                          child: Text(
+                            '판매 중인 인장이 없어요',
+                            style: WishRoomTextStyles.bodySm,
+                          ),
+                        )
+                      : GridView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                mainAxisSpacing: 12,
+                                crossAxisSpacing: 12,
+                                childAspectRatio: 0.9,
+                              ),
+                          itemCount: shop.seals.length,
+                          itemBuilder: (_, i) {
+                            final item = shop.seals[i];
+                            return _SealTile(
+                              item: item,
+                              isPurchasing: shop.isPurchasing(item.itemCode),
+                              onTap: () => _handlePurchase(item),
+                            );
+                          },
+                        ),
+                ),
+                const ShopSubNav(active: 'seal'),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SealTile extends StatelessWidget {
+  const _SealTile({
+    required this.item,
+    required this.isPurchasing,
+    required this.onTap,
+  });
+
+  final ShopCatalogItem item;
+  final bool isPurchasing;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final visual = sealVisualFor(item.itemCode);
+    return InkWell(
+      onTap: item.owned || isPurchasing ? null : onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(12, 16, 12, 12),
+        decoration: BoxDecoration(
+          color: WishRoomColors.surfaceCard,
+          border: Border.all(
+            color: visual.rare
+                ? WishRoomColors.glow
+                : WishRoomColors.surfaceCardBorder,
+          ),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            WishRoomSeal(
+              text: visual.glyph,
+              color: visual.rare ? const Color(0xFFD4AF37) : WishRoomColors.accent,
+              size: 44,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              item.nameKo,
+              style: const TextStyle(
+                fontFamily: 'GowunBatangWish',
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+                color: WishRoomColors.textPrimary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              item.descriptionKo,
+              style: const TextStyle(
+                fontSize: 10,
+                color: WishRoomColors.textSecondary,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            ShopPriceBadge(
+              owned: item.owned,
+              price: item.price,
+              isPurchasing: isPurchasing,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

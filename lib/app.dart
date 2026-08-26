@@ -63,6 +63,9 @@ import 'features/wish_room/application/blessing_bag_policy_adapter.dart';
 import 'features/wish_room/application/wish_wall_provider.dart';
 import 'features/wish_counsel/data/wish_counsel_repository.dart';
 import 'features/wish_counsel/application/wish_counsel_provider.dart';
+import 'features/shop/data/shop_repository.dart';
+import 'features/shop/data/shop_api_repository.dart';
+import 'features/shop/application/shop_provider.dart';
 
 /// 07단계 §2.1 앱 루트 - MultiProvider 전역 등록 + MaterialApp 라우팅 연결
 /// 10단계(A안): 모든 Repository는 Mock 구현이며, 향후 실제 API 연동 시
@@ -232,6 +235,20 @@ class App extends StatelessWidget {
         // 무료 광고형 구조(코인 차감 없음) 정책을 따른다.
         ChangeNotifierProvider(
           create: (_) => WishCounselProvider(WishCounselRepository()),
+        ),
+        // [복주머니 확장 Phase02-B] 상점(인장/촛불/부적) + 보물함 —
+        // admin_web `/api/public/shop/*`, `/api/public/inventory` 실 API 연동.
+        // ShopProvider도 위 BlessingBagPolicyAdapter/WishWallProvider와 동일한
+        // 원칙으로 새 화폐를 만들지 않고 LuckPouchProvider를 참조만 하며,
+        // 구매 성공 시 LuckPouchProvider.load()로 서버 원장을 재조회한다.
+        Provider<ShopRepository>(create: (_) => ApiShopRepository()),
+        ChangeNotifierProxyProvider<LuckPouchProvider, ShopProvider>(
+          create: (context) => ShopProvider(
+            context.read<ShopRepository>(),
+            context.read<LuckPouchProvider>(),
+          ),
+          update: (context, pouch, previous) =>
+              previous ?? ShopProvider(context.read<ShopRepository>(), pouch),
         ),
       ],
       child: Consumer<ThemeProvider>(

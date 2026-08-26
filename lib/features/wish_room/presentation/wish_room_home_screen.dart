@@ -181,6 +181,16 @@ class _WishRoomHomeScreenState extends State<WishRoomHomeScreen> {
     ).push(MaterialPageRoute(builder: (_) => const WishRoomFeedScreen()));
   }
 
+  /// [상점(Shop) 진입점 — Phase02-B 최소 침습 통합] bokjumeoni-plan §03
+  /// 상점(인장/촛불/부적) + 보물함 신설. 디자인 원본에는 상점 진입 버튼이
+  /// 없었으나, 복주머니 시스템과 마찬가지로 헤더의 ☾ 버튼과 동일한 40px
+  /// 원형 아이콘 버튼 스타일로 그 왼쪽에 하나만 추가한다(레이아웃을 깨지
+  /// 않는 범위). 4개 상점 화면 중 첫 화면(인장 상점)으로 진입하며, 나머지
+  /// 3화면은 [ShopSubNav]로 서로 전환한다.
+  void _openShop() {
+    Navigator.of(context).pushNamed('/shop/seals');
+  }
+
   /// 복주머니 허브 팝업 — "받기" 탭으로 열기(잔액 칩 탭).
   ///
   /// [복주머니 시스템 통합 — 사용자 위임] V2 디자인 원본(dev-spec 스코프
@@ -274,6 +284,7 @@ class _WishRoomHomeScreenState extends State<WishRoomHomeScreen> {
                     balance: balance,
                     onOpenMoon: _openFullBoard,
                     onOpenPouch: _openBlessingBagReceive,
+                    onOpenShop: _openShop,
                   ),
                   _CandleAltar(wishCount: wishCount, totalDays: totalDays),
                   const SizedBox(height: 20),
@@ -321,10 +332,12 @@ class _HomeHeader extends StatelessWidget {
     required this.balance,
     required this.onOpenMoon,
     required this.onOpenPouch,
+    required this.onOpenShop,
   });
   final int balance;
   final VoidCallback onOpenMoon;
   final VoidCallback onOpenPouch;
+  final VoidCallback onOpenShop;
 
   @override
   Widget build(BuildContext context) {
@@ -360,6 +373,22 @@ class _HomeHeader extends StatelessWidget {
             ),
           ),
           _PouchBalanceChip(balance: balance, onTap: onOpenPouch),
+          const SizedBox(width: 8),
+          InkWell(
+            onTap: onOpenShop,
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: WishRoomColors.surfaceCard,
+                border: Border.all(color: WishRoomColors.surfaceCardBorder),
+              ),
+              alignment: Alignment.center,
+              child: const Text('🎐', style: TextStyle(fontSize: 16)),
+            ),
+          ),
           const SizedBox(width: 8),
           InkWell(
             onTap: onOpenMoon,
