@@ -108,6 +108,9 @@ class ApiWishWallRepository implements WishWallRepository {
       unlockAt: DateTime.tryParse(json['unlockAt'] as String? ?? ''),
       fulfilledAt: DateTime.tryParse(json['fulfilledAt'] as String? ?? ''),
       openedBoxAt: DateTime.tryParse(json['openedBoxAt'] as String? ?? ''),
+      // [복주머니 확장 Phase03] 인장/촛불 실사용 — 서버가 내려주는 itemCode.
+      sealItemCode: json['sealItemCode'] as String?,
+      candleItemCode: json['candleItemCode'] as String?,
     );
   }
 
@@ -163,12 +166,16 @@ class ApiWishWallRepository implements WishWallRepository {
     required double glassLevel,
     required String text,
     required WishVisibility visibility,
+    String? sealItemCode,
+    String? candleItemCode,
   }) async {
     final result = await createWishWithReward(
       categoryId: categoryId,
       glassLevel: glassLevel,
       text: text,
       visibility: visibility,
+      sealItemCode: sealItemCode,
+      candleItemCode: candleItemCode,
     );
     return result.wish;
   }
@@ -179,6 +186,8 @@ class ApiWishWallRepository implements WishWallRepository {
     required double glassLevel,
     required String text,
     required WishVisibility visibility,
+    String? sealItemCode,
+    String? candleItemCode,
   }) async {
     final uri = Uri.parse(_base);
     try {
@@ -192,6 +201,8 @@ class ApiWishWallRepository implements WishWallRepository {
               'content': text,
               'glassLevel': glassLevel,
               'visibility': visibility.name,
+              if (sealItemCode != null) 'sealItemCode': sealItemCode,
+              if (candleItemCode != null) 'candleItemCode': candleItemCode,
             }),
           )
           .timeout(const Duration(seconds: 10));

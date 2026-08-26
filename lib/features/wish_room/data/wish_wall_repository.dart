@@ -8,11 +8,19 @@ import '../domain/wish_wall_models.dart';
 abstract class WishWallRepository {
   Future<List<WishPost>> fetchFeed({String? categoryFilter});
   Future<WishPost?> fetchDetail(String wishId);
+  ///
+  /// [복주머니 확장 Phase03 — 인장/촛불 "실사용"] [sealItemCode]/
+  /// [candleItemCode]는 사용자가 보유한(구매한) 상점 인장/촛불 중 이번
+  /// 소원에 적용할 itemCode(선택 사항, null이면 미선택=기본 표시). 서버가
+  /// UserInventoryItem 소유 여부를 최종 검증한다(클라이언트 값을 신뢰하지
+  /// 않음).
   Future<WishPost> createWish({
     required WishCategory categoryId,
     required double glassLevel,
     required String text,
     required WishVisibility visibility,
+    String? sealItemCode,
+    String? candleItemCode,
   });
 
   /// [6-1-F] 서버 `/wishes` POST가 트랜잭션 안에서 실제 지급한 복주머니 금액을
@@ -25,12 +33,16 @@ abstract class WishWallRepository {
     required double glassLevel,
     required String text,
     required WishVisibility visibility,
+    String? sealItemCode,
+    String? candleItemCode,
   }) async {
     final wish = await createWish(
       categoryId: categoryId,
       glassLevel: glassLevel,
       text: text,
       visibility: visibility,
+      sealItemCode: sealItemCode,
+      candleItemCode: candleItemCode,
     );
     return (wish: wish, grantedAmount: 0);
   }
@@ -291,6 +303,8 @@ class MockWishWallRepository implements WishWallRepository {
     required double glassLevel,
     required String text,
     required WishVisibility visibility,
+    String? sealItemCode,
+    String? candleItemCode,
   }) async {
     await Future.delayed(const Duration(milliseconds: 300));
     final wish = WishPost(
@@ -304,6 +318,8 @@ class MockWishWallRepository implements WishWallRepository {
       glassLevel: glassLevel,
       visibility: visibility,
       createdAt: DateTime.now(),
+      sealItemCode: sealItemCode,
+      candleItemCode: candleItemCode,
     );
     _myWishes.insert(0, wish);
     if (visibility != WishVisibility.private) {
@@ -321,12 +337,16 @@ class MockWishWallRepository implements WishWallRepository {
     required double glassLevel,
     required String text,
     required WishVisibility visibility,
+    String? sealItemCode,
+    String? candleItemCode,
   }) async {
     final wish = await createWish(
       categoryId: categoryId,
       glassLevel: glassLevel,
       text: text,
       visibility: visibility,
+      sealItemCode: sealItemCode,
+      candleItemCode: candleItemCode,
     );
     return (wish: wish, grantedAmount: 0);
   }

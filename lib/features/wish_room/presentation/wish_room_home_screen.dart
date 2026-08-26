@@ -5,6 +5,7 @@ import '../application/wish_wall_provider.dart';
 import '../domain/wish_wall_models.dart';
 import '../theme/wish_room_theme.dart';
 import '../widgets/blessing_bag_bottom_sheet.dart';
+import '../../shop/domain/shop_item_visuals.dart';
 import '../widgets/wish_room_candle.dart';
 import '../widgets/wish_room_dust.dart';
 import '../widgets/wish_room_seal.dart';
@@ -726,6 +727,14 @@ class _WishListRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final days = DateTime.now().difference(wish.createdAt).inDays;
     final seal = _sealForCategory(wish.categoryId);
+    // [복주머니 확장 Phase03 - 인장/촛불 실사용 연결] 실제 구매해 선택한
+    // 인장/촛불이 있으면 그 시각을 쓰고, 없으면 기존 카테고리 기본값을 쓴다.
+    final sealGlyph = wish.sealItemCode != null
+        ? sealVisualFor(wish.sealItemCode!).glyph
+        : seal.glyph;
+    final candleColor = wish.candleItemCode != null
+        ? candleColorFor(wish.candleItemCode!)
+        : WishRoomColors.glow;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
@@ -743,7 +752,7 @@ class _WishListRow extends StatelessWidget {
               width: 36,
               height: 50,
               child: Center(
-                child: WishRoomCandle(size: 30, color: WishRoomColors.glow),
+                child: WishRoomCandle(size: 30, color: candleColor),
               ),
             ),
             const SizedBox(width: 14),
@@ -783,7 +792,7 @@ class _WishListRow extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(4),
                 child: WishRoomSeal(
-                  text: seal.glyph,
+                  text: sealGlyph,
                   color: WishRoomColors.accent,
                   size: 30,
                 ),

@@ -115,12 +115,16 @@ class WishWallProvider extends ChangeNotifier {
     required double glassLevel,
     required String text,
     required WishVisibility visibility,
+    String? sealItemCode,
+    String? candleItemCode,
   }) async {
     final result = await _repository.createWishWithReward(
       categoryId: categoryId,
       glassLevel: glassLevel,
       text: text,
       visibility: visibility,
+      sealItemCode: sealItemCode,
+      candleItemCode: candleItemCode,
     );
     if (visibility != WishVisibility.private) {
       _feed = [result.wish, ..._feed];

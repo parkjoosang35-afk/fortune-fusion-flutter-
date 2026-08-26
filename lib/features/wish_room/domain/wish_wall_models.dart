@@ -204,6 +204,13 @@ class WishPost {
   /// 07 개봉 화면을 이미 보여준(서버에 기록된) 시각. null이면 미개봉.
   DateTime? openedBoxAt;
 
+  // [복주머니 확장 Phase03 — 인장/촛불 "실사용" 연결] 작성 시 사용자가
+  // 보유한 상점 인장/촛불 중 선택한 [ShopCatalogItem.itemCode] 스냅샷.
+  // null이면 미선택(기본 인장/촛불 표시). 서버 `toWishDto()`가 그대로
+  // 내려주는 값이며, Mock 데이터는 세팅하지 않아도 되도록 nullable로 둔다.
+  String? sealItemCode;
+  String? candleItemCode;
+
   WishPost({
     required this.id,
     required this.authorId,
@@ -228,6 +235,8 @@ class WishPost {
     this.unlockAt,
     this.fulfilledAt,
     this.openedBoxAt,
+    this.sealItemCode,
+    this.candleItemCode,
   });
 
   bool get isPrivate => visibility == WishVisibility.private;

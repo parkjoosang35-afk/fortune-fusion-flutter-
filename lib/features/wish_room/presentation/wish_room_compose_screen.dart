@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../shop/application/shop_provider.dart';
+import '../../shop/domain/shop_item_visuals.dart';
+import '../../shop/domain/shop_models.dart';
 import '../application/wish_wall_provider.dart';
 import '../domain/wish_wall_models.dart';
 import '../theme/wish_room_theme.dart';
 import '../widgets/wish_room_bg_atmosphere.dart';
 import '../widgets/wish_room_buttons.dart';
+import '../widgets/wish_room_candle.dart';
 import '../widgets/wish_room_scroll.dart';
 import '../widgets/wish_room_seal.dart';
 import '../widgets/wish_room_seal_mapping.dart';
@@ -56,6 +60,13 @@ class _WishRoomComposeScreenState extends State<WishRoomComposeScreen>
   bool _submitting = false;
   late final AnimationController _cursorBlink;
 
+  // [복주머니 확장 Phase03 — 인장/촛불 "실사용"] 보유한 특별 인장/촛불 중
+  // 이번 소원에 적용할 itemCode 선택 상태. null이면 "기본"(미선택) 유지.
+  // 6개 카테고리 씰 피커(願/合/康/福/緣/財)와는 별개 개념이므로 여기서는
+  // ShopProvider의 인벤토리 데이터만 사용한다.
+  String? _selectedSealItemCode;
+  String? _selectedCandleItemCode;
+
   @override
   void initState() {
     super.initState();
@@ -64,6 +75,13 @@ class _WishRoomComposeScreenState extends State<WishRoomComposeScreen>
       duration: const Duration(seconds: 1),
     )..repeat();
     _textController.addListener(() => setState(() {}));
+    // 보유 인장/촛불 표시를 위해 최신 인벤토리를 불러온다(이미 로드된
+    // 경우에도 화면 진입 시점 최신값을 보장 — 상점에서 방금 구매하고
+    // 돌아온 경우를 포함).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<ShopProvider>().loadInventory();
+    });
   }
 
   @override
@@ -97,6 +115,8 @@ class _WishRoomComposeScreenState extends State<WishRoomComposeScreen>
         visibility: _anonymous
             ? WishVisibility.anonymous
             : WishVisibility.public,
+        sealItemCode: _selectedSealItemCode,
+        candleItemCode: _selectedCandleItemCode,
       );
       if (!mounted) return;
       // [흐름] 봉인 완료 → 기존 "작성완료" 화면(WishWallSuccessScreen, 별도
@@ -348,6 +368,24 @@ class _WishRoomComposeScreenState extends State<WishRoomComposeScreen>
                               },
                             ),
                           ),
+                          const SizedBox(height: 22),
+                          _OwnedItemPicker(
+                            itemType: ShopItemType.seal,
+                            title: '보유한 특별 인장',
+                            emptyHint: '상점에서 인장을 구매하면 여기서 선택할 수 있어요',
+                            selectedCode: _selectedSealItemCode,
+                            onSelect: (code) =>
+                                setState(() => _selectedSealItemCode = code),
+                          ),
+                          const SizedBox(height: 18),
+                          _OwnedItemPicker(
+                            itemType: ShopItemType.candle,
+                            title: '보유한 특별 촛불',
+                            emptyHint: '상점에서 촛불을 구매하면 여기서 선택할 수 있어요',
+                            selectedCode: _selectedCandleItemCode,
+                            onSelect: (code) =>
+                                setState(() => _selectedCandleItemCode = code),
+                          ),
                         ],
                       ),
                     ),
@@ -363,6 +401,182 @@ class _WishRoomComposeScreenState extends State<WishRoomComposeScreen>
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// [복주머니 확장 Phase03 — 인장/촛불 "실사용" 연결] 보유한(구매한) 상점
+/// 인장/촛불 중 이번 소원에 적용할 1개를 선택하는 가로 스크롤 피커.
+///
+/// [디자인 원칙] 상단 6개 카테고리 씰 피커(願/合/康/福/緣/財, 색은 항상
+/// [WishRoomColors.accent] 고정)와 시각적으로 구분되도록, 여기서는 상점
+/// 카탈로그의 실제 색/글리프([sealVisualFor]/[candleColorFor])를 그대로
+/// 사용한다. 보유 품목이 없으면 안내 문구만 표시하고(상점 유도), "선택
+/// 안 함" 칩을 항상 첫 번째에 두어 언제든 미선택으로 되돌릴 수 있게 한다.
+class _OwnedItemPicker extends StatelessWidget {
+  const _OwnedItemPicker({
+    required this.itemType,
+    required this.title,
+    required this.emptyHint,
+    required this.selectedCode,
+    required this.onSelect,
+  });
+
+  final ShopItemType itemType;
+  final String title;
+  final String emptyHint;
+  final String? selectedCode;
+  final ValueChanged<String?> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final shop = context.watch<ShopProvider>();
+    final owned = shop.inventory
+        .where((i) => i.itemType == itemType)
+        .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 12,
+              letterSpacing: 0.5,
+              color: WishRoomColors.textSecondary,
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        if (owned.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              emptyHint,
+              style: const TextStyle(
+                fontSize: 11,
+                color: WishRoomColors.textTertiary,
+              ),
+            ),
+          )
+        else
+          SizedBox(
+            height: 78,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: owned.length + 1,
+              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              itemBuilder: (context, i) {
+                if (i == 0) {
+                  return _OwnedItemChip(
+                    selected: selectedCode == null,
+                    label: '기본',
+                    onTap: () => onSelect(null),
+                    child: const _DefaultGlyph(),
+                  );
+                }
+                final item = owned[i - 1];
+                final selected = item.itemCode == selectedCode;
+                return _OwnedItemChip(
+                  selected: selected,
+                  label: item.nameKo,
+                  onTap: () => onSelect(item.itemCode),
+                  child: itemType == ShopItemType.seal
+                      ? WishRoomSeal(
+                          text: sealVisualFor(item.itemCode).glyph,
+                          color: WishRoomColors.accent,
+                          size: 36,
+                        )
+                      : WishRoomCandle(
+                          size: 30,
+                          color: candleColorFor(item.itemCode),
+                        ),
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _DefaultGlyph extends StatelessWidget {
+  const _DefaultGlyph();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 36,
+      height: 36,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: WishRoomColors.surfaceCardBorder),
+      ),
+      child: const Text(
+        '−',
+        style: TextStyle(fontSize: 16, color: WishRoomColors.textSecondary),
+      ),
+    );
+  }
+}
+
+class _OwnedItemChip extends StatelessWidget {
+  const _OwnedItemChip({
+    required this.selected,
+    required this.label,
+    required this.onTap,
+    required this.child,
+  });
+
+  final bool selected;
+  final String label;
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: SizedBox(
+        width: 56,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                color: selected
+                    ? WishRoomColors.glowShadow
+                    : Colors.transparent,
+                border: Border.all(
+                  color: selected
+                      ? WishRoomColors.glow
+                      : WishRoomColors.surfaceCardBorder,
+                  width: selected ? 2 : 1,
+                ),
+              ),
+              child: child,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: 'GowunBatangWish',
+                fontSize: 9,
+                color: selected
+                    ? WishRoomColors.textPrimary
+                    : WishRoomColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

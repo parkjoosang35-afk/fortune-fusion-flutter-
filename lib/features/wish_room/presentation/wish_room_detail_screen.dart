@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../shop/domain/shop_item_visuals.dart';
 import '../application/wish_wall_provider.dart';
 import '../domain/wish_wall_models.dart';
 import '../theme/wish_room_theme.dart';
@@ -270,6 +271,18 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
     final glow = wish.glow;
     final stars = (glow * 5).round().clamp(0, 5);
 
+    // [복주머니 확장 Phase03 — 인장/촛불 "실사용" 연결] 작성 시 선택한
+    // sealItemCode/candleItemCode가 있으면 상점 카탈로그의 실제 글리프/색을
+    // 사용하고, 없으면(미선택) 기존 카테고리 기반 기본값을 그대로 쓴다.
+    final sealCode = wish.sealItemCode;
+    final candleCode = wish.candleItemCode;
+    final sealGlyph = sealCode != null
+        ? sealVisualFor(sealCode).glyph
+        : seal.glyph;
+    final candleColor = candleCode != null
+        ? candleColorFor(candleCode)
+        : WishRoomColors.glow;
+
     return Scaffold(
       backgroundColor: WishRoomColors.backgroundDeep,
       body: Stack(
@@ -329,7 +342,7 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
                                     ),
                                   ),
                                 ),
-                                const WishRoomCandle(size: 90),
+                                WishRoomCandle(size: 90, color: candleColor),
                               ],
                             ),
                           ),
@@ -375,7 +388,11 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
                                   spacing: 8,
                                   alignment: WrapAlignment.center,
                                   children: [
-                                    WishRoomPill(label: seal.label),
+                                    WishRoomPill(
+                                      label: sealCode != null
+                                          ? '$sealGlyph 인장'
+                                          : seal.label,
+                                    ),
                                     WishRoomPill(label: wish.categoryId.label),
                                     WishRoomPill(label: '$_daysSince일째'),
                                   ],
