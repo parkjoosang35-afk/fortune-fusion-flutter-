@@ -131,6 +131,19 @@ class BlessingBagPolicyAdapter {
     );
   }
 
+  /// 60초 명상 보너스 — bokjumeoni-plan §02 EARN "매일의 발자국" 4종 중
+  /// 하나(daily_meditation, +2, 1일 1회). 실제 60초 타이머를 끝까지 마쳐야
+  /// 호출되는 채널이며(UI가 트리거 시점을 통제), 서버는 여전히 최종 판단
+  /// (scope='daily' 1일 1회)만 담당한다.
+  Future<int> earnDailyMeditationBonus() {
+    return _pouch.earn(
+      BlessingBagEarnReason.dailyMeditation.defaultAmount,
+      BlessingBagEarnReason.dailyMeditation.label,
+      sourceType: BlessingBagEarnReason.dailyMeditation.code,
+      scope: 'daily',
+    );
+  }
+
   // ── [소원방 리스킨 — "보내기" 확장 채널] ──────────────────────────
 
   /// 감사 도장(Seal) 보내기 — sendPouch보다 가벼운 소액 소비로, 감사의

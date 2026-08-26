@@ -7,6 +7,7 @@ import '../application/wish_wall_provider.dart';
 import '../domain/gratitude_models.dart';
 import '../domain/wish_wall_models.dart';
 import '../theme/wish_wall_theme.dart';
+import 'wish_room_meditation_dialog.dart';
 
 /// 복주머니 허브 팝업 — "보내기" / "받기" 탭.
 ///
@@ -721,6 +722,18 @@ class _ReceivePanelState extends State<_ReceivePanel> {
 
   Future<void> _claim(BlessingBagEarnReason reason) async {
     if (_claiming.contains(reason) || _claimed.containsKey(reason)) return;
+
+    // [복주머니 확장 Phase02 항목4 — 2/3] daily_meditation은 다른 채널과
+    // 달리 즉시 지급을 요청하지 않는다. 60초 명상 다이얼로그를 먼저 열고,
+    // 그 안에서 타이머가 실제로 완료된 시점에만 지급을 요청한다(다이얼로그
+    // 내부에서 이미 서버 호출까지 마치고 지급된 금액을 반환).
+    if (reason == BlessingBagEarnReason.dailyMeditation) {
+      final granted = await showMeditationDialog(context);
+      if (!mounted || granted == null) return; // 도중 취소 - 아무것도 안 함
+      setState(() => _claimed[reason] = granted);
+      return;
+    }
+
     setState(() => _claiming.add(reason));
     final policy = context.read<WishWallProvider>().policy;
     int granted;
@@ -772,6 +785,7 @@ class _ReceivePanelState extends State<_ReceivePanel> {
     const reasons = [
       BlessingBagEarnReason.altarVisit,
       BlessingBagEarnReason.dailyCandle,
+      BlessingBagEarnReason.dailyMeditation,
       BlessingBagEarnReason.dailyPrayer,
       BlessingBagEarnReason.weeklyBoxOpening,
       BlessingBagEarnReason.wishFulfilled,
@@ -993,6 +1007,8 @@ class _EarnChannelCard extends StatelessWidget {
         return Icons.celebration_rounded;
       case BlessingBagEarnReason.dailyCandle:
         return Icons.local_fire_department_outlined;
+      case BlessingBagEarnReason.dailyMeditation:
+        return Icons.self_improvement_rounded;
       default:
         return Icons.card_giftcard_rounded;
     }
