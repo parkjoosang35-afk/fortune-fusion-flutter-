@@ -83,27 +83,24 @@ class _Dims {
   // 섹션 우상단 원형 아이콘 배경 28 / 내부 아이콘 14(28*0.5=14, override 불필요)
   static const double tarotCircleSize = 28;
 
-  // 카테고리 칩 - 스펙: height30 / 좌우padding12 / radius15 / gap8
-  static const double chipHeight = 30;
-  static const double chipGap = 8;
-  // 칩 라인 → 메인 카드 gap = 스펙 14
-  static const double chipsBottomGap = 14;
+  // [메인 UI 리디자인 - design_handoff_home_redesign, README.md Todo①]
+  // 카테고리 칩 행이 삭제되어 chipHeight/chipGap/chipsBottomGap 상수는
+  // 더 이상 쓰이지 않아 제거했다.
 
   // 헤더 row(아이콘 간격) - 스펙에 명시되지 않은 아이콘 내부 미세 간격이라 유지.
   static const double headerIconGap = 10;
 
-  // 히어로 카드(→ 힐링 문구 카드) - 스펙: width358(자동)/height108~116/radius16/padding14
-  static const double heroCardHeight = 112;
-  static const double heroCardRadius = 16;
-  static const double heroCardPadding = 14;
-  // 메인 카드 → 소원게시판 카드 gap = 스펙 12
+  // [메인 UI 리디자인 - README.md Todo②] 힐링 카드가 큰 카드에서 슬림
+  // 텍스트 바(_HealingQuoteCard)로 축소되면서 heroCardHeight/heroCardRadius/
+  // heroCardPadding/healingCardHeight(큰 카드 전용 치수) 상수는 더 이상 쓰이지
+  // 않아 제거했다. 슬림 바 자체의 margin/padding은 README.md "A. 힐링 슬림 바"
+  // 스펙값(margin 0 4px 12px, padding 10px 12px)을 위젯 내부에 직접 반영했다.
+  //
+  // 힐링 슬림 바 → 캐러셀 → 운세/타로 카드 사이 gap. 슬림 바 자체가 이미
+  // CSS 스펙대로 하단 margin 12px을 내부에 포함하고 있어([_HealingQuoteCard]
+  // 참조), 이 상수는 캐러셀 → 운세/타로 카드, 그리고 오늘의 운세 섹션 →
+  // 소원게시판 카드 사이 gap(스펙 12)에만 사용한다.
   static const double heroCardBottomGap = 12;
-
-  // [사용자 요청] "오늘의 운세 이야기" 박스를 삭제하고, 쿠팡 광고 배너(AdBannerWidget,
-  // position=home_middle, height=96) 영역까지 포함해 힐링 문구 카드를 아래로 확장한다.
-  // 기존 배너(96) + 배너-히어로 사이 gap이 없었으므로(연속 배치), 순수 배너 높이만큼만
-  // 히어로 카드 높이에 더한다: heroCardHeight(112) + adBannerHeight(96) = 208.
-  static const double healingCardHeight = heroCardHeight + 96;
 
   // 소원게시판 카드 - 스펙: gap8/height96~104/radius16/padding14
   static const double wishCardGap = 8;
@@ -289,7 +286,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         delay: const Duration(milliseconds: 120),
                         child: const _HealingQuoteCard(),
                       ),
-                      const SizedBox(height: _Dims.heroCardBottomGap),
                       const FadeSlideIn(
                         delay: Duration(milliseconds: 130),
                         child: HomeBannerCarousel(),
@@ -537,276 +533,88 @@ class _AllCategoriesHeader extends StatelessWidget {
 // 교체되어 완전히 삭제되었다.
 
 // DailyFortune home card is hidden by 2026-08-13 decision
-/// ⑤ [사용자 요청] "오늘의 운세 이야기"를 완전히 삭제하고 대체한 힐링 문구 카드.
+/// ⑤ [메인 UI 리디자인 - design_handoff_home_redesign, README.md "A. 힐링
+/// 슬림 바(Healing Slim Bar)"] 큰 카드형 힐링 문구 카드를 배경/테두리/그림자
+/// 없는 순수 텍스트 블록(슬림 바)으로 축소했다.
 ///
-/// - 운세 기능(DailyFortuneProvider 참조, 상세화면 이동)은 완전히 제거했다 —
-///   이 카드는 탭 액션이 없는 순수 콘텐츠 카드다.
-/// - 좋은 글귀/힐링 문구/긍정 명언/응원의 한마디를 admin_web DB에서 불러와
-///   [HealingQuoteProvider]가 1분마다 자동으로 다음 문구로 순환시킨다(24시간 반복).
-/// - 카드 배경색은 30분마다 부드럽고 감성적인 파스텔 팔레트에서 랜덤 선택되어
-///   자동 변경되고, 텍스트 색은 배경 밝기에 따라 항상 잘 보이도록 자동 대비
-///   조정된다(luminance 기반 흑/백 판정).
-/// - 기존 "오늘의 운세 이야기" 히어로카드 + 그 위 쿠팡 광고 배너(96px) 영역을
-///   합친 만큼 높이를 확장했다([_Dims.healingCardHeight]).
-class _HealingQuoteCard extends StatefulWidget {
+/// - **기능·데이터는 완전히 동일하게 유지**한다 — admin_web DB에서 불러온
+///   힐링 문구를 [HealingQuoteProvider]가 1분마다 자동으로 순환시키는 로직,
+///   로그인 시 닉네임 개인화 라벨("{닉네임}님, 오늘의 힐링 한마디")은 모두
+///   기존 그대로다. 변경된 것은 오직 시각 스타일(큰 카드 → 슬림 텍스트 바)
+///   뿐이다(README.md "2. 힐링 한마디 섹션 위치·스타일 변경 — 기능은 그대로").
+/// - 배경색 30분 랜덤 순환, 8초 색상 애니메이션, SoftGradientBlob/FloatingMoon/
+///   SparkleDot 장식 레이어는 큰 카드 전용 효과였으므로 슬림 바에는 제거했다
+///   (README.md 스펙: "배경·테두리·그림자 모두 제거").
+/// - 레이아웃/타이포는 `Sintong Home.html`의 `.healing-bar`/`.healing-bar-head`/
+///   `.healing-bar-text` CSS 스펙을 그대로 이식했다: margin 0/0/12/4(좌우4,
+///   상0, 하12), padding 10/12, flex column gap4, 아이콘🌿+라벨(11px #8b8b94),
+///   본문(500 12.5px #1f1f24, 한 줄 말줄임).
+class _HealingQuoteCard extends StatelessWidget {
   const _HealingQuoteCard();
-
-  @override
-  State<_HealingQuoteCard> createState() => _HealingQuoteCardState();
-}
-
-class _HealingQuoteCardState extends State<_HealingQuoteCard>
-    with SingleTickerProviderStateMixin {
-  static const Duration _bgRotationInterval = Duration(minutes: 30);
-
-  // 부드럽고 감성적인 파스텔 톤 배경 팔레트. 30분마다 이 중 하나를 랜덤으로
-  // 선택해 카드 배경을 자동 변경한다. [2026-08-13 톤 일관화] 색상 리터럴
-  // 하드코딩을 제거하고 Theme.of(context).colorScheme 토큰만 참조한다.
-  List<Color> _paletteFor(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return [
-      scheme.surface,
-      scheme.surfaceContainerHigh,
-      scheme.surfaceContainerHighest,
-      scheme.secondary,
-      scheme.outline,
-      scheme.primary,
-      scheme.onSurface,
-      scheme.surface,
-      scheme.surfaceContainerHigh,
-      scheme.surfaceContainerHighest,
-    ];
-  }
-
-  final Random _random = Random();
-  late Color _bgColor;
-  bool _bgInitialized = false;
-  Timer? _bgTimer;
-
-  // [사용자 요청] "힐링페이지에 애니메이션 색깔을 넣어주고" — 카드 배경 위에
-  // 은은한 색조(hue)가 8초 주기로 천천히 흘러 순환하는 그라디언트 레이어를
-  // 추가한다. 알파값을 낮게 유지해 텍스트 가독성은 그대로 보존한다.
-  late final AnimationController _colorAnimController;
-
-  @override
-  void initState() {
-    super.initState();
-    // [2026-08-13 톤 일관화] 초기 배경색은 Theme(context) 의존값이라
-    // initState에서는 선택할 수 없다(Theme.of(context)는 initState에서 접근
-    // 불가) — didChangeDependencies에서 최초 1회 선택한다.
-    // [사용자 요청] "배경색을 30분마다 자동으로 변경... 부드럽고 감성적인
-    // 색상을 랜덤으로 적용"
-    _bgTimer = Timer.periodic(_bgRotationInterval, (_) {
-      if (!mounted) return;
-      setState(() => _bgColor = _pickRandomColor(context));
-    });
-    _colorAnimController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 10),
-    )..repeat();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_bgInitialized) {
-      _bgInitialized = true;
-      _bgColor = _pickRandomColor(context);
-    }
-  }
-
-  Color _pickRandomColor(BuildContext context) {
-    final palette = _paletteFor(context);
-    return palette[_random.nextInt(palette.length)];
-  }
-
-  /// 배경색 밝기(luminance)를 기준으로 항상 잘 보이는 텍스트 색을 계산한다.
-  /// 팔레트가 전부 밝은 파스텔이라 기본은 짙은 텍스트지만, 향후 팔레트가
-  /// 어두운 색을 포함하게 되어도 자동으로 대비가 유지되도록 일반화했다.
-  Color _contrastTextColor(BuildContext context, Color background) {
-    final scheme = Theme.of(context).colorScheme;
-    return background.computeLuminance() > 0.5
-        ? scheme.onSurface
-        : scheme.surface;
-  }
-
-  @override
-  void dispose() {
-    _bgTimer?.cancel();
-    _colorAnimController.dispose();
-    super.dispose();
-  }
-
-  /// [사용자 요청] 힐링페이지 애니메이션 색깔 — [progress](0~1)에 맞춰
-  /// 배경색 색조(hue)를 카드 배경색을 기반으로 부드럽게 순환시켜, 반투명
-  /// 낮은 알파값으로 은은하게 불어가는 장식임을 눈에 거슬리지 않게 표현한다.
-  Color _animatedAccentColor(double progress) {
-    final baseHue = HSLColor.fromColor(_bgColor).hue;
-    final hue = (baseHue + progress * 360) % 360;
-    return HSLColor.fromAHSL(1, hue, 0.55, 0.72).toColor();
-  }
 
   @override
   Widget build(BuildContext context) {
     final healing = context.watch<HealingQuoteProvider>();
     final quote = healing.current;
-    final textColor = _contrastTextColor(context, _bgColor);
 
     // [사용자 요청] "오늘에 힐링한마디 섹션 로그인시 이름이 나오게해주고
-    // 이성우님 이런식으로" — 로그인 상태면 카드 타이틀에 "{닉네임}님, "을
-    // 붙여 개인화된 인사말을 보여준다. 비로그인/닉네임 없음이면 기존 그대로.
+    // 이성우님 이런식으로" — 로그인 상태면 라벨에 "{닉네임}님, "을 붙여
+    // 개인화된 인사말을 보여준다. 비로그인/닉네임 없음이면 기존 그대로.
     final auth = context.watch<AuthProvider>();
     final nickname = auth.isLoggedIn ? auth.currentUser?.nickname : null;
     final hasNickname = nickname != null && nickname.trim().isNotEmpty;
-    final titleText = hasNickname ? '$nickname님, 오늘의 힐링 한마디' : '오늘의 힐링 한마디';
+    final labelText = hasNickname ? '$nickname님, 오늘의 힐링 한마디' : '오늘의 힐링 한마디';
+    final quoteText = quote?.content ?? '잠시 마음을 쉬어가도 괜찮아요. 당신은 충분히 잘하고 있습니다.';
 
-    // [사용자 요청] "힐링섹션에 그래픽 애니메이션 효과좀 넣어줘 빈공간에" —
-    // 카드 우측 상단~하단의 빈 여백에 은은한 그라디언트 블롭 + 떠다니는 달 +
-    // 반짝이는 별 애니메이션을 배치한다. 배경색이 30분마다 파스텔 팔레트에서
-    // 랜덤 변경되므로, 장식 색상도 고정색이 아니라 [textColor](대비 자동
-    // 계산값) 기반의 낮은 알파값을 써서 어떤 배경에서도 튀지 않고 은은하게
-    // 어울리도록 한다. 실제 문구 텍스트는 Stack의 마지막 레이어(맨 위)에 두어
-    // 장식이 절대 가독성을 해치지 않게 한다.
-    //
-    // [사용자 요청] "힐링페이지에 애니메이션 색깔을 넣어주고" — 그라디언트
-    // 블롭의 색상이 8초 주기로 무지개처럼 은은하게 순환하는 애니메이션을
-    // 추가한다(_colorAnimController, alpha는 낮게 유지해 가독성 보존).
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 600),
-      curve: Curves.easeInOut,
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: _bgColor,
-        borderRadius: BorderRadius.circular(_Dims.heroCardRadius),
-      ),
-      child: Stack(
-        children: [
-          // 배경 장식 레이어 ① - 우측 상단에 카드 밖으로 살짝 번지는
-          // 그라디언트 블롭. 색상이 서서히 무지개처럼 순환하는 애니메이션을
-          // 적용해 카드에 살아있는 색감을 더한다.
-          Positioned(
-            right: -34,
-            top: -34,
-            child: AnimatedBuilder(
-              animation: _colorAnimController,
-              builder: (context, _) => SoftGradientBlob(
-                size: 150,
-                color: _animatedAccentColor(_colorAnimController.value),
-                opacity: 0.16,
-              ),
-            ),
-          ),
-          // 배경 장식 레이어 ①-2 - 좌측 하단에도 반대 위상으로 순환하는
-          // 두 번째 컬러 블롭을 배치해 카드 전체에 은은한 색 흐름을 준다.
-          Positioned(
-            left: -30,
-            bottom: -30,
-            child: AnimatedBuilder(
-              animation: _colorAnimController,
-              builder: (context, _) => SoftGradientBlob(
-                size: 120,
-                color: _animatedAccentColor(
-                  (_colorAnimController.value + 0.5) % 1.0,
+    // README.md 스펙: 좌우 마진 4px, 상단 마진 0, 하단 마진 12px(배너와의 간격).
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 0, 4, 12),
+      child: Padding(
+        // 컨테이너 패딩: 10px 12px, 배경/테두리/그림자 없음.
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 타이틀(헤드): 🌿 아이콘 + 라벨, gap 4px.
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('🌿', style: TextStyle(fontSize: 11)),
+                const SizedBox(width: 4),
+                Text(
+                  labelText,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    height: 1,
+                    letterSpacing: -0.11,
+                    color: Color(0xFF8B8B94),
+                  ),
                 ),
-                opacity: 0.14,
+              ],
+            ),
+            const SizedBox(height: 4),
+            // 본문: 500 12.5px #1f1f24, 한 줄 말줄임(nowrap+ellipsis).
+            Text(
+              quoteText,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              softWrap: false,
+              style: const TextStyle(
+                fontFamily: 'Pretendard',
+                fontSize: 12.5,
+                fontWeight: FontWeight.w500,
+                height: 1.5,
+                letterSpacing: -0.25,
+                color: Color(0xFF1F1F24),
               ),
             ),
-          ),
-          // 배경 장식 레이어 ② - 우측 상단 빈 공간에서 위아래로 은은하게
-          // 떠다니는 달 아이콘("힐링/밤의 위안" 테마와 어울림).
-          Positioned(
-            top: 12,
-            right: 16,
-            child: FloatingMoon(
-              size: 30,
-              color: textColor.withValues(alpha: 0.3),
-            ),
-          ),
-          // 배경 장식 레이어 ③ - 반짝이는 별 2개(opacity pulse)를 우측/하단
-          // 빈 공간에 흩뿌려 리듬감을 더하며, 색상도 함께 순환 애니메이션된다.
-          Positioned(
-            top: 56,
-            right: 44,
-            child: AnimatedBuilder(
-              animation: _colorAnimController,
-              builder: (context, _) => SparkleDot(
-                size: 14,
-                color: _animatedAccentColor(
-                  _colorAnimController.value,
-                ).withValues(alpha: 0.55),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 18,
-            right: 26,
-            child: AnimatedBuilder(
-              animation: _colorAnimController,
-              builder: (context, _) => SparkleDot(
-                size: 10,
-                color: _animatedAccentColor(
-                  (_colorAnimController.value + 0.5) % 1.0,
-                ).withValues(alpha: 0.45),
-              ),
-            ),
-          ),
-          // 실제 콘텐츠 - 기존 패딩/레이아웃을 그대로 유지한 채 장식 레이어
-          // 위(맨 앞)에 배치해 텍스트가 항상 선명하게 보이도록 한다.
-          Padding(
-            padding: const EdgeInsets.all(_Dims.heroCardPadding),
-            child: SizedBox(
-              height: _Dims.healingCardHeight - _Dims.heroCardPadding * 2,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.self_improvement_rounded,
-                        size: 18,
-                        color: textColor.withValues(alpha: 0.85),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          titleText,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: HomeText.body(
-                            color: textColor.withValues(alpha: 0.85),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 500),
-                    child: Text(
-                      quote?.content ?? '잠시 마음을 쉬어가도 괜찮아요.\n당신은 충분히 잘하고 있습니다.',
-                      key: ValueKey(quote?.id ?? -1),
-                      maxLines: 4,
-                      overflow: TextOverflow.ellipsis,
-                      style: HomeText.title(
-                        color: textColor,
-                      ).copyWith(height: 1.35),
-                    ),
-                  ),
-                  if (quote?.author != null && quote!.author!.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      '- ${quote.author}',
-                      style: HomeText.caption(
-                        color: textColor.withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

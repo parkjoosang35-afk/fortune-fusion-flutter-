@@ -359,10 +359,38 @@ class _BannerSlideState extends State<_BannerSlide>
     });
 
     _sparkles = const [
-      _SparkleSpec(right: 30, top: 22, bottom: null, size: 14, durationMs: 2200, delayMs: 0),
-      _SparkleSpec(right: 140, top: 44, bottom: null, size: 10, durationMs: 3000, delayMs: 700),
-      _SparkleSpec(right: 6, top: null, bottom: 30, size: 12, durationMs: 2600, delayMs: 1300),
-      _SparkleSpec(right: 100, top: null, bottom: 22, size: 9, durationMs: 3000, delayMs: 300),
+      _SparkleSpec(
+        right: 30,
+        top: 22,
+        bottom: null,
+        size: 14,
+        durationMs: 2200,
+        delayMs: 0,
+      ),
+      _SparkleSpec(
+        right: 140,
+        top: 44,
+        bottom: null,
+        size: 10,
+        durationMs: 3000,
+        delayMs: 700,
+      ),
+      _SparkleSpec(
+        right: 6,
+        top: null,
+        bottom: 30,
+        size: 12,
+        durationMs: 2600,
+        delayMs: 1300,
+      ),
+      _SparkleSpec(
+        right: 100,
+        top: null,
+        bottom: 22,
+        size: 9,
+        durationMs: 3000,
+        delayMs: 300,
+      ),
     ];
 
     _clock = AnimationController(
@@ -432,7 +460,11 @@ class _BannerSlideState extends State<_BannerSlide>
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [data.gradientTop, data.gradientMid, data.gradientBottom],
+                colors: [
+                  data.gradientTop,
+                  data.gradientMid,
+                  data.gradientBottom,
+                ],
                 stops: const [0, 0.62, 1],
               ),
             ),
@@ -566,11 +598,13 @@ class _BannerSlideState extends State<_BannerSlide>
           ),
 
           // 스파클(pop)
-          ..._sparkles.map((s) => _SparkleWidget(
-                spec: s,
-                shape: data.sparkleShape,
-                colors: data.sparkleColors,
-              )),
+          ..._sparkles.map(
+            (s) => _SparkleWidget(
+              spec: s,
+              shape: data.sparkleShape,
+              colors: data.sparkleColors,
+            ),
+          ),
 
           // NEW/TODAY/HOT 배지(pulse)
           Positioned(
@@ -635,8 +669,7 @@ class _BannerSlideState extends State<_BannerSlide>
                 ConstrainedBox(
                   constraints: BoxConstraints(
                     maxWidth:
-                        (MediaQuery.of(context).size.width - 4 * 2 - 40) *
-                            0.55,
+                        (MediaQuery.of(context).size.width - 4 * 2 - 40) * 0.55,
                   ),
                   child: Text(
                     data.sub,
@@ -676,10 +709,7 @@ class _BannerSlideState extends State<_BannerSlide>
                           children: [
                             Text(
                               data.ctaIcon,
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: data.ctaFg,
-                              ),
+                              style: TextStyle(fontSize: 10, color: data.ctaFg),
                             ),
                             const SizedBox(width: 5),
                             Text(
@@ -712,7 +742,11 @@ class _BannerSlideState extends State<_BannerSlide>
     final accentText = match?.group(1) ?? '';
     final after = match == null ? '' : line2.substring(match.end);
 
-    final baseStyle = GoogleFonts.notoSerifKr(
+    // [google_fonts 6.2.1 고정 버전] 이 버전에는 'Noto Serif KR' 전용 메서드가
+    // 없어(패키지 내 검증됨: notoSerifKr 미정의), README.md 스펙의 "900 Noto
+    // Serif KR" 타이틀 느낌을 가장 가깝게 재현하는 한글 세리프 `nanumMyeongjo`로
+    // 대체한다(무게감 있는 명조체 헤드라인, fontWeight로 최대한 굵게 보정).
+    final baseStyle = GoogleFonts.nanumMyeongjo(
       fontSize: 20,
       height: 1.15,
       fontWeight: FontWeight.w900,
@@ -840,7 +874,9 @@ class _SigilPainter extends CustomPainter {
           [-50, -29],
         ];
         for (int i = 0; i < pts.length; i++) {
-          final p = center + Offset(pts[i][0].toDouble(), pts[i][1].toDouble()) * scale;
+          final p =
+              center +
+              Offset(pts[i][0].toDouble(), pts[i][1].toDouble()) * scale;
           if (i == 0) {
             path.moveTo(p.dx, p.dy);
           } else {
@@ -882,14 +918,18 @@ class _SigilPainter extends CustomPainter {
             ..strokeWidth = 0.3 * scale
             ..color = color.withValues(alpha: 0.25),
         );
-        _drawStar(canvas, center, scale, color.withValues(alpha: 0.55), big: true);
+        _drawStar(
+          canvas,
+          center,
+          scale,
+          color.withValues(alpha: 0.55),
+          big: true,
+        );
         break;
       case _SigilShape.heart:
         final path = Path();
-        void moveTo(double x, double y) => path.moveTo(
-              center.dx + x * scale,
-              center.dy + y * scale,
-            );
+        void moveTo(double x, double y) =>
+            path.moveTo(center.dx + x * scale, center.dy + y * scale);
         void curveTo(
           double x1,
           double y1,
@@ -897,15 +937,14 @@ class _SigilPainter extends CustomPainter {
           double y2,
           double x3,
           double y3,
-        ) =>
-            path.cubicTo(
-              center.dx + x1 * scale,
-              center.dy + y1 * scale,
-              center.dx + x2 * scale,
-              center.dy + y2 * scale,
-              center.dx + x3 * scale,
-              center.dy + y3 * scale,
-            );
+        ) => path.cubicTo(
+          center.dx + x1 * scale,
+          center.dy + y1 * scale,
+          center.dx + x2 * scale,
+          center.dy + y2 * scale,
+          center.dx + x3 * scale,
+          center.dy + y3 * scale,
+        );
         moveTo(0, 20);
         curveTo(-20, -10, -50, -10, -50, -30);
         curveTo(-50, -50, -20, -50, 0, -25);
@@ -923,7 +962,13 @@ class _SigilPainter extends CustomPainter {
     }
   }
 
-  void _drawStar(Canvas canvas, Offset center, double scale, Color color, {bool big = false}) {
+  void _drawStar(
+    Canvas canvas,
+    Offset center,
+    double scale,
+    Color color, {
+    bool big = false,
+  }) {
     final path = Path();
     final pts = big
         ? const [
@@ -951,7 +996,8 @@ class _SigilPainter extends CustomPainter {
             [-3, -3],
           ];
     for (int i = 0; i < pts.length; i++) {
-      final p = center + Offset(pts[i][0].toDouble(), pts[i][1].toDouble()) * scale;
+      final p =
+          center + Offset(pts[i][0].toDouble(), pts[i][1].toDouble()) * scale;
       if (i == 0) {
         path.moveTo(p.dx, p.dy);
       } else {
@@ -1027,8 +1073,8 @@ class _SparkleWidgetState extends State<_SparkleWidget>
   @override
   Widget build(BuildContext context) {
     final spec = widget.spec;
-    final color = widget.colors[
-        (spec.delayMs + spec.durationMs) % widget.colors.length];
+    final color =
+        widget.colors[(spec.delayMs + spec.durationMs) % widget.colors.length];
     return Positioned(
       left: spec.left,
       right: spec.right,
@@ -1065,10 +1111,7 @@ class _SparkleWidgetState extends State<_SparkleWidget>
                 scale: scale,
                 child: CustomPaint(
                   size: Size(spec.size, spec.size),
-                  painter: _SparklePainter(
-                    color: color,
-                    shape: widget.shape,
-                  ),
+                  painter: _SparklePainter(color: color, shape: widget.shape),
                 ),
               ),
             ),
@@ -1119,15 +1162,14 @@ class _SparklePainter extends CustomPainter {
         double y2,
         double x3,
         double y3,
-      ) =>
-          path.cubicTo(
-            x1 * scale,
-            y1 * scale,
-            x2 * scale,
-            y2 * scale,
-            x3 * scale,
-            y3 * scale,
-          );
+      ) => path.cubicTo(
+        x1 * scale,
+        y1 * scale,
+        x2 * scale,
+        y2 * scale,
+        x3 * scale,
+        y3 * scale,
+      );
       moveTo(12, 21);
       curveTo(8, 17, 4, 15, 4, 10);
       curveTo(4, 7, 6.5, 5, 9, 5);
