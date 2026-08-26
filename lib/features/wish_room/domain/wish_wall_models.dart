@@ -315,6 +315,10 @@ enum BlessingBagEarnReason {
   altarVisit,
   weeklyBoxOpening,
   wishFulfilled,
+  // [복주머니 확장 Phase02 항목4 — 일일 적립 이벤트 1/3] bokjumeoni-plan
+  // §02 EARN "매일의 발자국" 4종 중 서버 정책(daily_candle, +1, 1일1회)이
+  // 이미 등록되어 있던 항목. "받기" 탭에 5번째 채널로 노출한다.
+  dailyCandle,
 }
 
 extension BlessingBagEarnReasonX on BlessingBagEarnReason {
@@ -337,6 +341,8 @@ extension BlessingBagEarnReasonX on BlessingBagEarnReason {
         return 'weekly_box_opening';
       case BlessingBagEarnReason.wishFulfilled:
         return 'wish_fulfilled';
+      case BlessingBagEarnReason.dailyCandle:
+        return 'daily_candle';
     }
   }
 
@@ -356,6 +362,8 @@ extension BlessingBagEarnReasonX on BlessingBagEarnReason {
         return '주간 소원함 개봉';
       case BlessingBagEarnReason.wishFulfilled:
         return '소원 성취 축하';
+      case BlessingBagEarnReason.dailyCandle:
+        return '오늘의 촛불';
     }
   }
 
@@ -373,6 +381,8 @@ extension BlessingBagEarnReasonX on BlessingBagEarnReason {
         return '새 소원을 봉인하면 받아요 (1일 1회)';
       case BlessingBagEarnReason.dailyPrayer:
         return '누군가의 소원에 오늘의 기도를 올리면 받아요';
+      case BlessingBagEarnReason.dailyCandle:
+        return '오늘 촛불을 한 번 켜면 받아요 (1일 1회)';
       case BlessingBagEarnReason.eventParticipation:
         return '진행 중인 이벤트에 참여하면 받아요';
     }
@@ -396,6 +406,8 @@ extension BlessingBagEarnReasonX on BlessingBagEarnReason {
         return 2;
       case BlessingBagEarnReason.wishFulfilled:
         return 3;
+      case BlessingBagEarnReason.dailyCandle:
+        return 1;
     }
   }
 }

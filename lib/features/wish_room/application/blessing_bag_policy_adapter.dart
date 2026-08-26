@@ -118,6 +118,19 @@ class BlessingBagPolicyAdapter {
     );
   }
 
+  /// 오늘의 촛불 보너스 — bokjumeoni-plan §02 EARN "매일의 발자국" 4종 중
+  /// 하나(daily_candle, +1, 1일 1회). PointPolicy는 이미 Phase02 시딩으로
+  /// 등록되어 있으므로(서버 신규 라우트 불필요) 기존 altarVisit 등과 동일한
+  /// scope='daily' earn 패턴을 그대로 사용한다.
+  Future<int> earnDailyCandleBonus() {
+    return _pouch.earn(
+      BlessingBagEarnReason.dailyCandle.defaultAmount,
+      BlessingBagEarnReason.dailyCandle.label,
+      sourceType: BlessingBagEarnReason.dailyCandle.code,
+      scope: 'daily',
+    );
+  }
+
   // ── [소원방 리스킨 — "보내기" 확장 채널] ──────────────────────────
 
   /// 감사 도장(Seal) 보내기 — sendPouch보다 가벼운 소액 소비로, 감사의

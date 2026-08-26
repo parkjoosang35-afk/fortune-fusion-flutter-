@@ -740,6 +740,9 @@ class _ReceivePanelState extends State<_ReceivePanel> {
       case BlessingBagEarnReason.wishFulfilled:
         granted = await policy.earnWishFulfilledBonus();
         break;
+      case BlessingBagEarnReason.dailyCandle:
+        granted = await policy.earnDailyCandleBonus();
+        break;
       default:
         granted = 0;
     }
@@ -768,6 +771,7 @@ class _ReceivePanelState extends State<_ReceivePanel> {
     // 중복 지급을 막고 0을 반환한다(안전).
     const reasons = [
       BlessingBagEarnReason.altarVisit,
+      BlessingBagEarnReason.dailyCandle,
       BlessingBagEarnReason.dailyPrayer,
       BlessingBagEarnReason.weeklyBoxOpening,
       BlessingBagEarnReason.wishFulfilled,
@@ -987,6 +991,8 @@ class _EarnChannelCard extends StatelessWidget {
         return Icons.inventory_2_rounded;
       case BlessingBagEarnReason.wishFulfilled:
         return Icons.celebration_rounded;
+      case BlessingBagEarnReason.dailyCandle:
+        return Icons.local_fire_department_outlined;
       default:
         return Icons.card_giftcard_rounded;
     }
