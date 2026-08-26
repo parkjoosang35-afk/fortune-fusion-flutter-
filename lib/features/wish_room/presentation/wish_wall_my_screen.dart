@@ -102,6 +102,18 @@ class _WishWallMyScreenState extends State<WishWallMyScreen> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 40),
                 children: [
+                  // [보물함 진입 경로 — Phase02-B 후속] bokjumeoni-plan §03
+                  // TreasureBoxScreen(인장/촛불/부적 보유 현황)은 지금까지
+                  // 상점(ShopSubNav)을 통해서만 도달 가능했다. "기록"(내
+                  // 소원병) 화면은 사용자가 자신이 모은 것을 확인하러 오는
+                  // 화면이라는 성격이 보물함과 가장 자연스럽게 맞아, 여기
+                  // Summary 카드 위에 직접 진입 버튼을 하나 추가한다(디자인
+                  // 원본에 없던 요소이므로 최소 침습 — 얇은 pill 버튼 하나).
+                  _TreasureBoxEntry(
+                    onTap: () =>
+                        Navigator.of(context).pushNamed('/shop/treasure'),
+                  ),
+                  const SizedBox(height: 14),
                   // Summary 카드
                   Container(
                     padding: const EdgeInsets.all(18),
@@ -227,6 +239,47 @@ class _WishWallMyScreenState extends State<WishWallMyScreen> {
                       ),
                     ),
                 ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// "보물함으로" 진입 pill — [_TreasureBoxEntry]. 인장/촛불/부적 보유
+/// 현황([TreasureBoxScreen])으로 바로 이동한다.
+class _TreasureBoxEntry extends StatelessWidget {
+  const _TreasureBoxEntry({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: WishWallColors.bg2,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: WishWallColors.line),
+        ),
+        child: Row(
+          children: [
+            const Text('◈', style: TextStyle(fontSize: 16)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                '나의 보물함 — 모아둔 인장·촛불·부적',
+                style: WishWallText.body().copyWith(fontWeight: FontWeight.w600),
+              ),
+            ),
+            Text(
+              '보기 →',
+              style: WishWallText.caption().copyWith(
+                color: WishWallColors.muted,
               ),
             ),
           ],
