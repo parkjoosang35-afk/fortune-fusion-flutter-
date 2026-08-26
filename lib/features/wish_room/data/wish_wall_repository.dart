@@ -48,6 +48,31 @@ abstract class WishWallRepository {
 
   /// support/pouch 후 병 목의 매듭 카운트를 올리기 위한 헬퍼(=복주머니 보냄).
   Future<WishPost> incrementPouch(String wishId, int amount);
+
+  // ── [복주머니 확장 Phase02-A 클라이언트 연동] 소원함 상태머신 API ──────
+  // 서버 `GET /wishes/pending-openings` / `PATCH /wishes/:id/opened` /
+  // `PATCH /wishes/:id/fulfilled` 3개 엔드포인트에 대응한다. 기본 구현은
+  // 빈 목록/no-op으로 두어 [MockWishWallRepository]가 별도 override 없이도
+  // 안전하게 컴파일되도록 한다(서버 상태머신이 없는 로컬 목데이터에서는
+  // "개봉 대기 소원 없음"으로 간주).
+
+  /// unlockAt이 지났고 아직 개봉 화면을 보여준 적 없는 내 소원 목록.
+  Future<List<WishPost>> fetchPendingBoxOpenings() async => const [];
+
+  /// [wishId] 소원의 07 개봉 화면을 봤음을 서버에 기록한다(idempotent).
+  Future<WishPost?> markBoxOpened(String wishId) async => null;
+
+  /// [wishId] 소원을 "이뤄졌어요"로 표시한다. 서버가 실제 지급한 복주머니
+  /// 금액을 grantedAmount로 함께 반환한다(idempotent — 이미 fulfilled면 0).
+  Future<({WishPost wish, int grantedAmount})> markWishFulfilled(
+    String wishId,
+  ) async {
+    final wish = await fetchDetail(wishId);
+    if (wish == null) {
+      throw Exception('소원을 찾을 수 없습니다');
+    }
+    return (wish: wish, grantedAmount: 0);
+  }
 }
 
 /// 인메모리 Mock 구현. [handoff.zip] design/wb3-data.jsx의 WISHES/COMMENTS/
@@ -395,5 +420,24 @@ class MockWishWallRepository implements WishWallRepository {
   Future<void> blockUser(String authorId) async {
     await Future.delayed(const Duration(milliseconds: 100));
     _wishes.removeWhere((w) => w.authorId == authorId);
+  }
+
+  // [6-1-F 최종 결정과 동일한 이유] `implements`는 abstract class의 concrete
+  // 메서드 본문을 상속하지 않으므로 Mock에서도 명시적으로 override해야
+  // 한다. Mock에는 서버 상태머신이 없으므로 항상 "개봉 대기 없음"/no-op으로
+  // 안전하게 처리한다.
+  @override
+  Future<List<WishPost>> fetchPendingBoxOpenings() async => const [];
+
+  @override
+  Future<WishPost?> markBoxOpened(String wishId) async => null;
+
+  @override
+  Future<({WishPost wish, int grantedAmount})> markWishFulfilled(
+    String wishId,
+  ) async {
+    final wish = await fetchDetail(wishId);
+    if (wish == null) throw Exception('소원을 찾을 수 없습니다');
+    return (wish: wish, grantedAmount: 0);
   }
 }

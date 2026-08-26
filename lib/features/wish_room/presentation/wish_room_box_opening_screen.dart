@@ -28,6 +28,13 @@ import '../widgets/wish_room_dust.dart';
 ///   grantedAmount=0 반환). 팝업(blessing_bag_bottom_sheet)의 "받기" 탭에도
 ///   같은 채널이 있으나 이 화면은 "소원함을 실제로 열었다"는 행위 자체가
 ///   트리거이므로 진입 시 자동 청구가 자연스럽다.
+///
+/// [Phase02-A 클라이언트 연동] 호출부(wish_room_home_screen)가 이미
+/// `WishWallProvider.markBoxOpened(wishId)`를 push 직전에 호출해 서버
+/// openedBoxAt을 기록하므로, 이 화면 자체는 별도로 opened API를 다시
+/// 호출하지 않는다(idempotent 서버 API라 중복 호출해도 안전은 하지만,
+/// "07 화면을 실제로 봤음"을 기록하는 책임은 호출부 1곳에만 두어
+/// 책임 소재를 명확히 한다).
 class WishRoomBoxOpeningScreen extends StatefulWidget {
   const WishRoomBoxOpeningScreen({super.key, this.wishAgeDays = 7});
 
@@ -101,7 +108,8 @@ class _WishRoomBoxOpeningScreenState extends State<WishRoomBoxOpeningScreen>
                         child: AnimatedBuilder(
                           animation: _pulse,
                           builder: (context, _) {
-                            final t = _pulse.value; // 0~1 (ease via curve below)
+                            final t =
+                                _pulse.value; // 0~1 (ease via curve below)
                             final glowOpacity = 0.6 + 0.3 * t;
                             return Stack(
                               alignment: Alignment.center,
@@ -276,10 +284,7 @@ class _WoodenBox extends StatelessWidget {
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
-                          colors: [
-                            WishRoomColors.accent,
-                            Color(0xFF8B3A2B),
-                          ],
+                          colors: [WishRoomColors.accent, Color(0xFF8B3A2B)],
                         ),
                         boxShadow: [
                           BoxShadow(

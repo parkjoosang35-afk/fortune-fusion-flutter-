@@ -23,15 +23,16 @@ import 'wish_room_celebration_screen.dart';
 /// - "🔥 소원 더하기" → 기존 무료 응원([WishWallProvider.support])에 매핑한다.
 ///   V2 원본에는 응원/기도/복주머니 3버튼이 없고 이 2버튼뿐이므로, 가장
 ///   유사한 무료 액션(응원=소원의 정성을 더함)에 대응시켰다(발명 최소화).
-/// - "✿ 이뤄졌어요" → [WishPost]/[WishWallRepository] 모두 실제 "성취"
-///   상태 필드가 없음(`updateWishStatus`는 no-op 스텁, 문서 §데이터 갭 참고).
-///   [Phase 01 · 2단계 · orphan 화면 연결] 로컬 확인 다이얼로그 →
-///   [BlessingBagPolicyAdapter.earnWishFulfilledBonus] 적립 → 08
-///   [WishRoomCelebrationScreen]으로 push한다. 서버에 실제 fulfilled 상태
-///   필드가 아직 없으므로(Phase02+ 스키마 확장 몫) "성취 기록"은 서버에
-///   저장되지 않고 이 화면의 로컬 연출로만 완결되지만, 하드코딩됐던
-///   `daysToFulfill=89`는 제거하고 [WishPost.createdAt] 기준 실제 경과일
-///   ([_daysSince])을 그대로 넘겨준다.
+/// - "✿ 이뤄졌어요" → [Phase02-A 클라이언트 연동] 서버에 실제 wishState/
+///   fulfilledAt 필드가 생겼으므로, 로컬 확인 다이얼로그 →
+///   [WishWallProvider.markWishFulfilled](서버 `PATCH /wishes/:id/fulfilled`,
+///   지급+상태갱신을 하나의 트랜잭션으로 처리) → 08
+///   [WishRoomCelebrationScreen]으로 push한다. 서버가 실제 지급한
+///   grantedAmount를 반환하므로 더 이상 클라이언트가
+///   [BlessingBagPolicyAdapter.earnWishFulfilledBonus]를 직접 호출하지
+///   않는다(중복 지급 방지 — 서버 트랜잭션 안에서 이미 checkPolicyEligibility
+///   로 건당 1회를 판정·지급함). 하드코딩됐던 `daysToFulfill=89`는 제거하고
+///   [WishPost.createdAt] 기준 실제 경과일([_daysSince])을 그대로 넘겨준다.
 /// - 간절함의 크기(★/progress) → [WishPost.glow](0.0~1.0, supportCount 기반
 ///   기존 계산식)를 그대로 재사용해 5단계 별점/게이지로 환산한다(새 필드
 ///   추가 없이 기존 데이터로 표현).
@@ -88,9 +89,9 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
     final wish = _wish;
     if (wish == null || _busy) return;
     if (wish.hasSupportedByMe) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('오늘은 이미 이 소원에 정성을 더했어요')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('오늘은 이미 이 소원에 정성을 더했어요')));
       return;
     }
     setState(() => _busy = true);
@@ -139,7 +140,19 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
       ),
     );
     if (confirmed != true || !mounted) return;
-    await context.read<WishWallProvider>().policy.earnWishFulfilledBonus();
+    try {
+      final result = await context.read<WishWallProvider>().markWishFulfilled(
+        wish.id,
+      );
+      if (!mounted) return;
+      setState(() => _wish = result.wish);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('성취 처리에 실패했습니다. 다시 시도해주세요.')),
+      );
+      return;
+    }
     if (!mounted) return;
     // [Phase 01 · 2단계 · orphan 화면 연결] 지급된 복주머니 개수는
     // 08 Celebration 화면이 아니라 이 push 이전에 별도로 안내하지 않는다
@@ -286,10 +299,7 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
                           color: WishRoomColors.textSecondary,
                         ),
                       ),
-                      WishRoomIconButton(
-                        icon: '⋯',
-                        onPressed: _showMoreSheet,
-                      ),
+                      WishRoomIconButton(icon: '⋯', onPressed: _showMoreSheet),
                     ],
                   ),
                   Expanded(
@@ -366,9 +376,7 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
                                   alignment: WrapAlignment.center,
                                   children: [
                                     WishRoomPill(label: seal.label),
-                                    WishRoomPill(
-                                      label: wish.categoryId.label,
-                                    ),
+                                    WishRoomPill(label: wish.categoryId.label),
                                     WishRoomPill(label: '$_daysSince일째'),
                                   ],
                                 ),
@@ -434,8 +442,7 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
                                           ),
                                           boxShadow: [
                                             BoxShadow(
-                                              color:
-                                                  WishRoomColors.glowShadow,
+                                              color: WishRoomColors.glowShadow,
                                               blurRadius: 8,
                                             ),
                                           ],

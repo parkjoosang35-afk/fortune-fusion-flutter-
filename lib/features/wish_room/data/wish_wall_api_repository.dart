@@ -88,9 +88,12 @@ class ApiWishWallRepository implements WishWallRepository {
       categoryId: _parseCategory(json['categoryId'] as String? ?? 'etc'),
       text: json['text'] as String? ?? '',
       glassLevel: (json['glassLevel'] as num?)?.toDouble() ?? 0.0,
-      visibility: _parseVisibility(json['visibility'] as String? ?? 'anonymous'),
+      visibility: _parseVisibility(
+        json['visibility'] as String? ?? 'anonymous',
+      ),
       isGratitude: json['isGratitude'] as bool? ?? false,
-      createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ??
+      createdAt:
+          DateTime.tryParse(json['createdAt'] as String? ?? '') ??
           DateTime.now(),
       supportCount: json['supportCount'] as int? ?? 0,
       prayerCount: json['prayerCount'] as int? ?? 0,
@@ -98,6 +101,13 @@ class ApiWishWallRepository implements WishWallRepository {
       hasSupportedByMe: false,
       hasPrayedToday: false,
       hasNewReaction: false,
+      // [Phase02-A 클라이언트 연동] 서버 toWishDto()가 내려주는 상태머신
+      // 필드. wishState가 없으면(구버전 응답 등) 'sealed'로 안전하게 대체.
+      wishState: json['wishState'] as String? ?? 'sealed',
+      sealedAt: DateTime.tryParse(json['sealedAt'] as String? ?? ''),
+      unlockAt: DateTime.tryParse(json['unlockAt'] as String? ?? ''),
+      fulfilledAt: DateTime.tryParse(json['fulfilledAt'] as String? ?? ''),
+      openedBoxAt: DateTime.tryParse(json['openedBoxAt'] as String? ?? ''),
     );
   }
 
@@ -107,7 +117,9 @@ class ApiWishWallRepository implements WishWallRepository {
     if (categoryFilter != null && categoryFilter != 'all') {
       query['category'] = categoryFilter;
     }
-    final uri = Uri.parse(_base).replace(queryParameters: query.isEmpty ? null : query);
+    final uri = Uri.parse(
+      _base,
+    ).replace(queryParameters: query.isEmpty ? null : query);
     try {
       final headers = await _authHeaders();
       final response = await http
@@ -252,7 +264,10 @@ class ApiWishWallRepository implements WishWallRepository {
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
-        _fail('fetchMyWishes', decoded['error'] ?? 'HTTP ${response.statusCode}');
+        _fail(
+          'fetchMyWishes',
+          decoded['error'] ?? 'HTTP ${response.statusCode}',
+        );
       }
       return (decoded['data'] as List<dynamic>)
           .map((e) => _fromJson(e as Map<String, dynamic>))
@@ -272,7 +287,10 @@ class ApiWishWallRepository implements WishWallRepository {
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
-        _fail('fetchComments', decoded['error'] ?? 'HTTP ${response.statusCode}');
+        _fail(
+          'fetchComments',
+          decoded['error'] ?? 'HTTP ${response.statusCode}',
+        );
       }
       return (decoded['data'] as List<dynamic>).map((e) {
         final map = e as Map<String, dynamic>;
@@ -281,7 +299,8 @@ class ApiWishWallRepository implements WishWallRepository {
           wishId: map['wishId'] as String? ?? wishId,
           authorName: map['authorName'] as String? ?? '',
           text: map['text'] as String? ?? '',
-          createdAt: DateTime.tryParse(map['createdAt'] as String? ?? '') ??
+          createdAt:
+              DateTime.tryParse(map['createdAt'] as String? ?? '') ??
               DateTime.now(),
           isMine: map['isMine'] as bool? ?? false,
         );
@@ -301,7 +320,10 @@ class ApiWishWallRepository implements WishWallRepository {
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
-        _fail('createComment', decoded['error'] ?? 'HTTP ${response.statusCode}');
+        _fail(
+          'createComment',
+          decoded['error'] ?? 'HTTP ${response.statusCode}',
+        );
       }
       final map = decoded['data'] as Map<String, dynamic>;
       return WishComment(
@@ -309,7 +331,8 @@ class ApiWishWallRepository implements WishWallRepository {
         wishId: map['wishId'] as String? ?? wishId,
         authorName: map['authorName'] as String? ?? '',
         text: map['text'] as String? ?? '',
-        createdAt: DateTime.tryParse(map['createdAt'] as String? ?? '') ??
+        createdAt:
+            DateTime.tryParse(map['createdAt'] as String? ?? '') ??
             DateTime.now(),
         isMine: map['isMine'] as bool? ?? true,
       );
@@ -320,9 +343,7 @@ class ApiWishWallRepository implements WishWallRepository {
 
   @override
   Future<void> reportWish(String wishId, String reason) async {
-    final uri = Uri.parse(
-      '${EnvConfig.adminApiBaseUrl}/api/public/reports',
-    );
+    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/reports');
     try {
       final userId = await AuthTokenStore.getCurrentUserId();
       final headers = await _authHeaders(json: true);
@@ -376,13 +397,88 @@ class ApiWishWallRepository implements WishWallRepository {
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
-        _fail('incrementPouch', decoded['error'] ?? 'HTTP ${response.statusCode}');
+        _fail(
+          'incrementPouch',
+          decoded['error'] ?? 'HTTP ${response.statusCode}',
+        );
       }
       final wish = _fromJson(decoded['data'] as Map<String, dynamic>);
       wish.hasNewReaction = true;
       return wish;
     } catch (e) {
       _fail('incrementPouch', e);
+    }
+  }
+
+  // ── [복주머니 확장 Phase02-A 클라이언트 연동] 소원함 상태머신 API ──────
+
+  @override
+  Future<List<WishPost>> fetchPendingBoxOpenings() async {
+    final uri = Uri.parse('$_base/pending-openings');
+    try {
+      final headers = await _authHeaders();
+      final response = await http
+          .get(uri, headers: headers)
+          .timeout(const Duration(seconds: 10));
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        _fail(
+          'fetchPendingBoxOpenings',
+          decoded['error'] ?? 'HTTP ${response.statusCode}',
+        );
+      }
+      return (decoded['data'] as List<dynamic>)
+          .map((e) => _fromJson(e as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      _fail('fetchPendingBoxOpenings', e);
+    }
+  }
+
+  @override
+  Future<WishPost?> markBoxOpened(String wishId) async {
+    final uri = Uri.parse('$_base/$wishId/opened');
+    try {
+      final headers = await _authHeaders(json: true);
+      final response = await http
+          .patch(uri, headers: headers)
+          .timeout(const Duration(seconds: 10));
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        _fail(
+          'markBoxOpened',
+          decoded['error'] ?? 'HTTP ${response.statusCode}',
+        );
+      }
+      return _fromJson(decoded['data'] as Map<String, dynamic>);
+    } catch (e) {
+      _fail('markBoxOpened', e);
+    }
+  }
+
+  @override
+  Future<({WishPost wish, int grantedAmount})> markWishFulfilled(
+    String wishId,
+  ) async {
+    final uri = Uri.parse('$_base/$wishId/fulfilled');
+    try {
+      final headers = await _authHeaders(json: true);
+      final response = await http
+          .patch(uri, headers: headers)
+          .timeout(const Duration(seconds: 10));
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        _fail(
+          'markWishFulfilled',
+          decoded['error'] ?? 'HTTP ${response.statusCode}',
+        );
+      }
+      final data = decoded['data'] as Map<String, dynamic>;
+      final wish = _fromJson(data);
+      final grantedAmount = data['grantedAmount'] as int? ?? 0;
+      return (wish: wish, grantedAmount: grantedAmount);
+    } catch (e) {
+      _fail('markWishFulfilled', e);
     }
   }
 }

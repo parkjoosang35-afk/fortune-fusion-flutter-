@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../application/wish_room_box_opening_trigger.dart';
 import '../application/wish_wall_provider.dart';
 import '../domain/wish_wall_models.dart';
 import '../theme/wish_room_theme.dart';
@@ -110,18 +109,21 @@ class _WishRoomHomeScreenState extends State<WishRoomHomeScreen> {
       // showBlessingBagBottomSheet(initialTab: receive)에 이미 구현되어
       // 있으므로 여기서는 화면 진입만으로 아무것도 자동 지급하지 않는다.
 
-      // [Phase 01 · 2단계 · orphan 화면 연결] checkBoxOpening이 true일
-      // 때만(=WishRoomEntryGate를 통해 실제로 진입했을 때만) 100일 지난
-      // 소원이 있는지 확인해 07 개봉 화면을 자동으로 띄운다. widget.key가
-      // 바뀌지 않는 한 이 initState는 이 화면 인스턴스당 1회만 실행된다.
+      // [Phase02-A 클라이언트 연동] checkBoxOpening이 true일 때만
+      // (=WishRoomEntryGate를 통해 실제로 진입했을 때만) 서버
+      // `GET /wishes/pending-openings`를 조회해 07 개봉 화면을 자동으로
+      // 띄운다. 이전에는 createdAt+100일 로컬 근사치(SharedPreferences
+      // 기록)로 판정했으나, Phase02-A에서 서버 unlockAt/openedBoxAt 필드가
+      // 생겼으므로 서버 판정을 그대로 신뢰한다(기기를 바꿔도 유지되고,
+      // 관리자가 원장을 확인할 수 있음). widget.key가 바뀌지 않는 한 이
+      // initState는 이 화면 인스턴스당 1회만 실행된다.
       if (widget.checkBoxOpening) {
-        final pendingId = await findPendingBoxOpeningWishId(
-          provider.myWishes,
-        );
-        if (pendingId != null && mounted) {
-          final wish = provider.myWishes.firstWhere((w) => w.id == pendingId);
+        final pending = await provider.fetchPendingBoxOpenings();
+        if (pending.isNotEmpty && mounted) {
+          // 서버가 sealedAt asc 정렬로 내려주므로 첫 항목이 가장 오래된 것.
+          final wish = pending.first;
           final ageDays = DateTime.now().difference(wish.createdAt).inDays;
-          await markWishBoxOpened(pendingId);
+          await provider.markBoxOpened(wish.id);
           if (!mounted) return;
           await Navigator.of(context).push(
             MaterialPageRoute(
@@ -785,11 +787,12 @@ class _WishRoomBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = <(String icon, String label, VoidCallback onTap, bool active)>[
-      ('🕯', '나의 소원', onHome, true),
-      ('☾', '모두의 소원', onFeed, false),
-      ('◈', '기록', onRecord, false),
-    ];
+    final items =
+        <(String icon, String label, VoidCallback onTap, bool active)>[
+          ('🕯', '나의 소원', onHome, true),
+          ('☾', '모두의 소원', onFeed, false),
+          ('◈', '기록', onRecord, false),
+        ];
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 18),
       decoration: BoxDecoration(

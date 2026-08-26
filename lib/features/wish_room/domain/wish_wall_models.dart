@@ -182,6 +182,28 @@ class WishPost {
   bool hasPrayedToday;
   bool hasNewReaction;
 
+  // [복주머니 확장 Phase02-A 클라이언트 연동] 서버 `toWishDto()`가 내려주는
+  // 봉인→밝히기→이루어짐 상태 머신 필드. MockWishWallRepository(서버 API가
+  // 없는 로컬 목데이터)는 이 필드들을 세팅하지 않을 수 있으므로 전부
+  // nullable(또는 sealedAt만 createdAt으로 안전한 기본값 대체)로 둔다 —
+  // 기존 8개 생성자 호출부(Mock 시드 데이터 등)를 깨지 않기 위함.
+  /// 'sealed'(봉인)/'fulfilled'(이루어짐) 등 서버 상태 문자열. 서버 응답이
+  /// 없는 경우(Mock) 'sealed'로 간주한다.
+  String wishState;
+
+  /// 소원이 봉인된 시각. 서버 응답이 없는 경우 [createdAt]과 동일하게 취급.
+  DateTime? sealedAt;
+
+  /// 소원함이 열릴 수 있는 시각(서버가 sealedAt+100일로 계산해 내려줌).
+  /// null이면 아직 알 수 없음(Mock 등).
+  DateTime? unlockAt;
+
+  /// 실제로 "이뤄졌어요"로 표시된 시각. null이면 아직 미성취.
+  DateTime? fulfilledAt;
+
+  /// 07 개봉 화면을 이미 보여준(서버에 기록된) 시각. null이면 미개봉.
+  DateTime? openedBoxAt;
+
   WishPost({
     required this.id,
     required this.authorId,
@@ -201,6 +223,11 @@ class WishPost {
     this.hasSupportedByMe = false,
     this.hasPrayedToday = false,
     this.hasNewReaction = false,
+    this.wishState = 'sealed',
+    this.sealedAt,
+    this.unlockAt,
+    this.fulfilledAt,
+    this.openedBoxAt,
   });
 
   bool get isPrivate => visibility == WishVisibility.private;
@@ -223,6 +250,18 @@ class WishPost {
 
   /// 정성지수(총합 스코어) — 화면에는 노출하지 않지만 정렬(인기)에 사용.
   int get sincerityScore => supportCount + prayerCount * 2 + pouchCount * 3;
+
+  /// 서버 wishState 기준 성취 여부(로컬 [isGratitude] 플래그와는 별개 축이나
+  /// Phase02-A부터는 서버가 achievedAt도 함께 채워 항상 일치하도록 보장한다).
+  bool get isFulfilled => wishState == 'fulfilled';
+
+  /// unlockAt이 지났고 아직 개봉 화면을 보여준 적 없는(openedBoxAt이 null)
+  /// 소원인지 여부 — [unlockAt]이 없으면(Mock 등) 판단 불가하므로 false.
+  bool get isPendingBoxOpening {
+    final u = unlockAt;
+    if (u == null || openedBoxAt != null) return false;
+    return !DateTime.now().isBefore(u);
+  }
 }
 
 /// 응원 댓글.

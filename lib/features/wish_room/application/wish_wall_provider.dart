@@ -152,4 +152,46 @@ class WishWallProvider extends ChangeNotifier {
     final myIdx = _myWishes.indexWhere((w) => w.id == updated.id);
     if (myIdx != -1) _myWishes[myIdx] = updated;
   }
+
+  // ── [복주머니 확장 Phase02-A 클라이언트 연동] 소원함 상태머신 ──────────
+  // 화면(wish_room_home_screen/wish_room_box_opening_screen/
+  // wish_room_detail_screen)은 Repository를 직접 호출하지 않고 반드시 이
+  // Provider 계층을 거친다(기존 다른 메서드들과 동일한 아키텍처 패턴).
+
+  /// unlockAt이 지났고 아직 개봉 화면을 보여준 적 없는 내 소원 목록을
+  /// 서버에서 조회한다. 실패(비로그인 등) 시 빈 목록을 반환한다 —
+  /// 호출부(홈 화면 initState)가 예외로 전체 로딩을 막지 않도록.
+  Future<List<WishPost>> fetchPendingBoxOpenings() async {
+    try {
+      return await _repository.fetchPendingBoxOpenings();
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  /// [wishId]의 07 개봉 화면을 봤음을 서버에 기록한다(idempotent).
+  Future<void> markBoxOpened(String wishId) async {
+    try {
+      final updated = await _repository.markBoxOpened(wishId);
+      if (updated != null) {
+        _syncInLists(updated);
+        notifyListeners();
+      }
+    } catch (_) {
+      // 기록 실패는 조용히 무시 — 다음 방문에 pending-openings가 다시
+      // 후보로 돌려주는 정도는 허용 가능한 실패(findPendingBoxOpeningWishId
+      // 로컬 근사치의 기존 실패 허용 정책과 동일).
+    }
+  }
+
+  /// [wishId] 소원을 "이뤄졌어요"로 표시하고, 실제 지급된 복주머니 금액을
+  /// 함께 반환한다(idempotent — 이미 fulfilled면 grantedAmount=0).
+  Future<({WishPost wish, int grantedAmount})> markWishFulfilled(
+    String wishId,
+  ) async {
+    final result = await _repository.markWishFulfilled(wishId);
+    _syncInLists(result.wish);
+    notifyListeners();
+    return result;
+  }
 }
