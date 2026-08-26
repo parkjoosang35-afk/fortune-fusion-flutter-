@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../application/blessing_bag_policy_adapter.dart';
+import '../application/gratitude_provider.dart';
 import '../application/wish_wall_provider.dart';
+import '../domain/gratitude_models.dart';
 import '../domain/wish_wall_models.dart';
 import '../theme/wish_wall_theme.dart';
 
@@ -706,6 +708,17 @@ class _ReceivePanelState extends State<_ReceivePanel> {
   final Set<BlessingBagEarnReason> _claiming = {};
   final Map<BlessingBagEarnReason, int> _claimed = {};
 
+  @override
+  void initState() {
+    super.initState();
+    // [복주머니 확장 Phase02 항목3] 답례 도장(GratitudeSeal) 후보 목록을
+    // "받기" 탭 진입 시 로드한다. 로그인/데이터 없음은 Provider 내부에서
+    // 조용히 빈 목록으로 처리되므로 별도 에러 UI가 필요 없다.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<GratitudeProvider>().loadAll();
+    });
+  }
+
   Future<void> _claim(BlessingBagEarnReason reason) async {
     if (_claiming.contains(reason) || _claimed.containsKey(reason)) return;
     setState(() => _claiming.add(reason));
@@ -802,7 +815,151 @@ class _ReceivePanelState extends State<_ReceivePanel> {
               claimedAmount: _claimed[r],
               onTap: () => _claim(r),
             )),
+        // [복주머니 확장 Phase02 항목3] 답례 도장(GratitudeSeal) 섹션.
+        // 기존 giftSeal("감사 도장 보내기")과 혼동을 피하기 위해 "답례 도장"
+        // 문구를 사용한다. 내 소원에 복주머니를 보내준 사람에게 24시간 이내
+        // 답례하면 나(+2)/상대(+5) 모두 복주머니를 받는다.
+        const _GratitudeSealSection(),
       ],
+    );
+  }
+}
+
+// ============================================================
+// 답례 도장(GratitudeSeal) 섹션 — [복주머니 확장 Phase02 항목3]
+// ============================================================
+
+class _GratitudeSealSection extends StatelessWidget {
+  const _GratitudeSealSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final gp = context.watch<GratitudeProvider>();
+    if (gp.isLoading && gp.sealable.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    if (gp.sealable.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('답례 도장을 찍어보세요', style: WishWallText.caption()),
+          const SizedBox(height: 4),
+          Text(
+            '내 소원에 복주머니를 보내준 분에게 24시간 안에 답례하면 서로 복주머니를 받아요',
+            style: WishWallText.caption(color: WishWallColors.dim),
+          ),
+          const SizedBox(height: 10),
+          ...gp.sealable.map(
+            (c) => _GratitudeSealCard(candidate: c, provider: gp),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GratitudeSealCard extends StatelessWidget {
+  const _GratitudeSealCard({required this.candidate, required this.provider});
+  final GratitudeSealableCandidate candidate;
+  final GratitudeProvider provider;
+
+  String _remainingLabel() {
+    final r = candidate.remaining;
+    if (r.isNegative) return '만료됨';
+    if (r.inHours >= 1) return '${r.inHours}시간 남음';
+    final minutes = r.inMinutes;
+    return minutes > 0 ? '$minutes분 남음' : '곧 만료';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sealing = provider.isSealing(candidate.sourcePouchId);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: WishWallColors.bg2,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: WishWallColors.line),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: WishWallColors.accentSoft,
+              ),
+              alignment: Alignment.center,
+              child: const Text('🙏', style: TextStyle(fontSize: 18)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '복주머니 ${candidate.amount}개를 받았어요',
+                    style: WishWallText.body().copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(_remainingLabel(), style: WishWallText.caption()),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            sealing
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.2,
+                      color: WishWallColors.accent,
+                    ),
+                  )
+                : InkWell(
+                    onTap: () async {
+                      final ok = await provider.seal(candidate.sourcePouchId);
+                      if (!ok && context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            behavior: SnackBarBehavior.floating,
+                            content: Text(
+                              provider.lastSealError ?? '답례 도장 찍기에 실패했어요',
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(999),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 7,
+                      ),
+                      decoration: BoxDecoration(
+                        color: WishWallColors.ink,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        '답례 도장',
+                        style: WishWallText.label(
+                          color: WishWallColors.bg,
+                        ).copyWith(fontSize: 12),
+                      ),
+                    ),
+                  ),
+          ],
+        ),
+      ),
     );
   }
 }

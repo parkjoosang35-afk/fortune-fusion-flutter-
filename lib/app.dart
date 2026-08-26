@@ -66,6 +66,9 @@ import 'features/wish_counsel/application/wish_counsel_provider.dart';
 import 'features/shop/data/shop_repository.dart';
 import 'features/shop/data/shop_api_repository.dart';
 import 'features/shop/application/shop_provider.dart';
+import 'features/wish_room/data/gratitude_repository.dart';
+import 'features/wish_room/data/gratitude_api_repository.dart';
+import 'features/wish_room/application/gratitude_provider.dart';
 
 /// 07단계 §2.1 앱 루트 - MultiProvider 전역 등록 + MaterialApp 라우팅 연결
 /// 10단계(A안): 모든 Repository는 Mock 구현이며, 향후 실제 API 연동 시
@@ -249,6 +252,23 @@ class App extends StatelessWidget {
           ),
           update: (context, pouch, previous) =>
               previous ?? ShopProvider(context.read<ShopRepository>(), pouch),
+        ),
+        // [복주머니 확장 Phase02 항목3] 감사 도장(GratitudeSeal, "답례 도장") —
+        // admin_web `/api/public/gratitude/{sealable,seal,received}` 실 API
+        // 연동. ShopProvider와 동일한 원칙으로 새 화폐를 만들지 않고
+        // LuckPouchProvider를 참조만 하며, 답례 성공 시 LuckPouchProvider.load()
+        // 로 서버 원장을 재조회한다.
+        Provider<GratitudeRepository>(
+          create: (_) => ApiGratitudeRepository(),
+        ),
+        ChangeNotifierProxyProvider<LuckPouchProvider, GratitudeProvider>(
+          create: (context) => GratitudeProvider(
+            context.read<GratitudeRepository>(),
+            context.read<LuckPouchProvider>(),
+          ),
+          update: (context, pouch, previous) =>
+              previous ??
+              GratitudeProvider(context.read<GratitudeRepository>(), pouch),
         ),
       ],
       child: Consumer<ThemeProvider>(
