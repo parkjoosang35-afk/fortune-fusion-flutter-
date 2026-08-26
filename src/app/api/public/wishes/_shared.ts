@@ -91,6 +91,9 @@ export interface WishRow {
   // ShopCatalogItem.itemCode 스냅샷(문자열 참조, FK 아님). null이면 미선택.
   sealItemCode: string | null;
   candleItemCode: string | null;
+  // [복주머니 확장 Phase03 — 부적 "실사용", DECISION-004 합리적 판단] 작성 시
+  // 선택한 talisman itemCode 스냅샷. null이면 미선택.
+  talismanItemCode: string | null;
 }
 
 /** [복주머니 확장 Phase02-A] wishState 기본 봉인 기간(일). unlockAt이 null인
@@ -151,6 +154,7 @@ export function toWishDto(w: WishRow, currentUserId: number | null) {
     // [복주머니 확장 Phase03] 인장/촛불 실사용 — 작성 시 선택한 itemCode.
     sealItemCode: w.sealItemCode ?? null,
     candleItemCode: w.candleItemCode ?? null,
+    talismanItemCode: w.talismanItemCode ?? null,
   };
 }
 

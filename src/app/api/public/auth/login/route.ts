@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { verifyPassword, signUserToken, toUserDto, clientIp } from "@/lib/user-auth";
+import { earnLuckPouch } from "@/lib/luck-pouch-engine";
 
 export const dynamic = "force-dynamic";
 
@@ -91,6 +92,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // [복주머니 정책표 §3 "첫 로그인/첫 진입 보상: 10개, 1회"]
+    // "첫 로그인"의 유일한 서버측 판별 근거는 User.lastLoginAt이 지금까지 null이었는지 여부다.
+    // (가입 시점에는 lastLoginAt을 채우지 않으므로, 가입 후 최초 로그인이 이 조건에 해당한다.)
+    // 이 update 이전에 값을 읽어 판별해야 하므로, 반드시 아래 update보다 먼저 캡처한다.
+    const isFirstLogin = user.lastLoginAt == null;
+
     await prisma.user.update({
       where: { id: user.id },
       data: { lastLoginAt: new Date() },
@@ -104,10 +111,29 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    let firstLoginReward: { amount: number; balanceAfter: number | null } | null = null;
+    if (isFirstLogin) {
+      const policy = await prisma.pointPolicy.findUnique({
+        where: { sourceType: "first_login_reward" },
+      });
+      const amount = policy?.isActive === false ? 0 : policy?.amount ?? 10;
+      if (amount > 0) {
+        const result = await prisma.$transaction(async (tx) => {
+          return earnLuckPouch(tx, {
+            userId: user.id,
+            amount,
+            sourceType: "first_login_reward",
+            memo: `첫 로그인 보상 +${amount} 복주머니`,
+          });
+        });
+        firstLoginReward = { amount, balanceAfter: result.balanceAfter };
+      }
+    }
+
     const token = await signUserToken({ userId: user.id, nickname: user.nickname });
 
     return NextResponse.json(
-      { success: true, data: { user: toUserDto(user), token } },
+      { success: true, data: { user: toUserDto(user), token, firstLoginReward } },
       { headers: CORS_HEADERS }
     );
   } catch (e) {

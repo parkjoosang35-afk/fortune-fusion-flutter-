@@ -78,14 +78,14 @@ export async function POST(request: NextRequest) {
     const passwordHash = await hashPassword(password);
     const bronzeGrade = await prisma.userGrade.findUnique({ where: { code: "bronze" } });
 
-    // [인트로 전면 개편] 회원가입 보상 지급액은 point_policies에서 조회한다
+    // [복주머니 정책표 재정리 - 2026] 회원가입 보상 지급액은 point_policies에서 조회한다
     // (관리자가 /cms/intro-config에서 바꾸면 즉시 반영, 코드 재배포 불필요).
-    // 정책이 없거나 비활성화된 경우에도 회원가입 자체는 막지 않고 100개로 폴백한다.
+    // 정책이 없거나 비활성화된 경우에도 회원가입 자체는 막지 않고 정책표 기준값(20개)으로 폴백한다.
     const signupRewardPolicy = await prisma.pointPolicy.findUnique({
       where: { sourceType: "signup_reward" },
     });
     const signupRewardAmount =
-      signupRewardPolicy?.isActive === false ? 0 : signupRewardPolicy?.amount ?? 100;
+      signupRewardPolicy?.isActive === false ? 0 : signupRewardPolicy?.amount ?? 20;
 
     const { created, walletBalanceAfter } = await prisma.$transaction(async (tx) => {
       const now = new Date();
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
           userId: user.id,
           amount: signupRewardAmount,
           sourceType: "signup_reward",
-          memo: "회원가입 보상 +100 복주머니".replace("100", String(signupRewardAmount)),
+          memo: `회원가입 보상 +${signupRewardAmount} 복주머니`,
         });
         balanceAfter = rewardResult.balanceAfter;
       }

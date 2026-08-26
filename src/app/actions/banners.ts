@@ -76,9 +76,20 @@ export interface BannerFormState {
   success?: boolean;
 }
 
+// [타임존 버그 수정] <input type="datetime-local">은 타임존 정보가 없는 문자열
+// (예: "2026-08-21T11:38")을 그대로 보낸다. 이 문자열을 그냥 new Date(v)로 넘기면
+// Node.js가 "서버 프로세스의 타임존"(이 샌드박스는 UTC) 기준으로 해석해버려,
+// 관리자가 한국시간(KST)으로 입력한 시각이 실제로는 9시간 늦게(UTC로 오인) 저장되는
+// 문제가 있었다. 이 서비스는 한국 사용자 대상이므로, 타임존이 없는 입력값은 항상
+// KST(+09:00)로 명시 해석해 저장한다 — 관리자가 입력한 시각 그대로 노출이 시작/종료된다.
 function toDate(v: string | null | undefined): Date | null {
   if (!v) return null;
-  const d = new Date(v);
+  // 이미 타임존/Z가 포함된 문자열(예: ISO 8601 with offset)이면 그대로 파싱.
+  const hasTimezone = /Z$|[+-]\d{2}:?\d{2}$/.test(v);
+  // datetime-local 값은 "YYYY-MM-DDTHH:mm" 또는 "YYYY-MM-DDTHH:mm:ss" 형태 —
+  // 초가 없으면 보충한 뒤 KST(+09:00) 오프셋을 붙인다.
+  const withSeconds = /T\d{2}:\d{2}$/.test(v) ? `${v}:00` : v;
+  const d = new Date(hasTimezone ? v : `${withSeconds}+09:00`);
   return Number.isNaN(d.getTime()) ? null : d;
 }
 

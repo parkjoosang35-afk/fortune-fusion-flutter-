@@ -110,6 +110,12 @@ export async function POST(request: NextRequest) {
     // itemCode를 보내면 403으로 거부한다(서버가 최종 판단).
     sealItemCode?: string | null;
     candleItemCode?: string | null;
+    // [복주머니 확장 Phase03 — 부적 "실사용", DECISION-004 합리적 판단]
+    // itemType=talisman인 보유 품목의 itemCode. talisman_guardian(지킴)은
+    // 보호 배지 표시용, talisman_full_moon(만월)은 luck-pouch-engine의
+    // 적립 ×2 배수 판정에 실제로 쓰인다. talisman_friend(벗)는 초대
+    // 시스템 부재로 저장까지만 지원(효과 로직 없음).
+    talismanItemCode?: string | null;
   };
   try {
     body = await request.json();
@@ -143,6 +149,7 @@ export async function POST(request: NextRequest) {
   // [입력 정규화] 빈 문자열은 "미선택"으로 취급한다(null과 동일).
   const requestedSealCode = body.sealItemCode?.trim() || null;
   const requestedCandleCode = body.candleItemCode?.trim() || null;
+  const requestedTalismanCode = body.talismanItemCode?.trim() || null;
 
   try {
     const result = await prisma.$transaction(async (tx) => {
@@ -153,7 +160,7 @@ export async function POST(request: NextRequest) {
       // 믿지 않는다. 반드시 UserInventoryItem(구매 이력)에 해당 itemCode를
       // 소유하고 있는지, 그리고 카탈로그의 itemType이 seal/candle과
       // 일치하는지 트랜잭션 안에서 재검증한다.
-      const codesToVerify = [requestedSealCode, requestedCandleCode].filter(
+      const codesToVerify = [requestedSealCode, requestedCandleCode, requestedTalismanCode].filter(
         (c): c is string => c != null
       );
       if (codesToVerify.length > 0) {
@@ -180,6 +187,12 @@ export async function POST(request: NextRequest) {
             throw new Error("CANDLE_NOT_OWNED");
           }
         }
+        if (requestedTalismanCode) {
+          const item = ownedByCode.get(requestedTalismanCode);
+          if (!item || item.itemType !== "talisman") {
+            throw new Error("TALISMAN_NOT_OWNED");
+          }
+        }
       }
 
       const wish = await tx.wish.create({
@@ -193,6 +206,7 @@ export async function POST(request: NextRequest) {
           status: visibility === "private" ? "private_only" : "visible",
           sealItemCode: requestedSealCode,
           candleItemCode: requestedCandleCode,
+          talismanItemCode: requestedTalismanCode,
         },
         include: { user: { select: { nickname: true } } },
       });
@@ -247,6 +261,12 @@ export async function POST(request: NextRequest) {
     if (message === "CANDLE_NOT_OWNED") {
       return NextResponse.json(
         { success: false, error: "보유하지 않은 촛불입니다." },
+        { status: 403, headers: CORS_HEADERS }
+      );
+    }
+    if (message === "TALISMAN_NOT_OWNED") {
+      return NextResponse.json(
+        { success: false, error: "보유하지 않은 부적입니다." },
         { status: 403, headers: CORS_HEADERS }
       );
     }

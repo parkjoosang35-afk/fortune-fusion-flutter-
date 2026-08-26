@@ -65,14 +65,28 @@ export async function authenticateRequest(
   return verifyUserToken(token);
 }
 
-/** UserModel(Flutter) DTO 변환 — users + user_profiles(1:1) + user_grades(마스터) 매핑 */
+/**
+ * UserModel(Flutter) DTO 변환 — users + user_profiles(1:1) + user_grades(마스터) 매핑
+ *
+ * [신통방통 2단계 - 회원/운세 프로필 통합] isLeapMonth(윤달)/birthTimeUnknown
+ * (출생시간 모름 여부)/birthPlace(출생지역) 3개 필드를 추가 노출한다. 계산엔진
+ * (ManseryeokCoreEngine)이 이미 지원하는 필드만 연결했으며, DTO 변환 로직
+ * 외에는 어떤 계산도 수행하지 않는다.
+ */
 export function toUserDto(user: {
   id: number;
   nickname: string;
   email: string | null;
   gender: string | null;
   grade: { code: string } | null;
-  profile: { birthDate: string | null; birthTime: string | null; isLunar: boolean } | null;
+  profile: {
+    birthDate: string | null;
+    birthTime: string | null;
+    isLunar: boolean;
+    isLeapMonth: boolean;
+    birthTimeUnknown: boolean;
+    birthPlace: string | null;
+  } | null;
 }) {
   return {
     id: String(user.id),
@@ -81,6 +95,9 @@ export function toUserDto(user: {
     birth_date: user.profile?.birthDate ?? null,
     birth_time: user.profile?.birthTime ?? null,
     is_lunar: user.profile?.isLunar ?? false,
+    is_leap_month: user.profile?.isLeapMonth ?? false,
+    birth_time_unknown: user.profile?.birthTimeUnknown ?? false,
+    birth_place: user.profile?.birthPlace ?? null,
     gender: user.gender,
     grade: user.grade?.code ?? "bronze",
   };

@@ -88,6 +88,7 @@ function computeChart(birthDate: string, hasBirthTime: boolean) {
 export async function POST(request: NextRequest) {
   let body: {
     userId?: number;
+    name?: string;
     birthDate?: string;
     birthTime?: string;
     isLunar?: boolean;
@@ -105,6 +106,9 @@ export async function POST(request: NextRequest) {
   }
 
   const userId = Number(body.userId ?? 1);
+  // [사주정보 이름 필드 보완] Flutter 입럅 화상이 이뙔 모니토링 없는 버전을
+  // 호출해넄 무효가 도지 압땄 없도록, 버전 목러가 모니토링 없으면 '게스트'로 폴백한다.
+  const name = body.name && body.name.trim().length > 0 ? body.name.trim() : "게스트";
   const birthDate = body.birthDate;
   const birthTime = body.birthTime ?? null;
   const isLunar = Boolean(body.isLunar);
@@ -209,7 +213,7 @@ export async function POST(request: NextRequest) {
     const settled = await Promise.allSettled(
       withTemplate.map(({ topic, template }) => {
         const userPrompt = [
-          `사용자 정보: 생년월일 ${birthDate}(${isLunar ? "음력" : "양력"})`,
+          `사용자 정보: ${name}, 생년월일 ${birthDate}(${isLunar ? "음력" : "양력"})`,
           birthTime ? `태어난 시간: ${birthTime}` : "태어난 시간: 미상",
           `요청 주제: ${topic}`,
           "위 [기본 규칙]과 [출력 형식]을 그대로 지켜서 이 사람의 운세를 작성해주세요.",
@@ -245,7 +249,7 @@ export async function POST(request: NextRequest) {
         data: {
           userId,
           fortuneType: "saju",
-          inputPayload: JSON.stringify({ birthDate, birthTime, isLunar, topics: uniqueTopics, profileId, profileName }),
+          inputPayload: JSON.stringify({ name, birthDate, birthTime, isLunar, topics: uniqueTopics, profileId, profileName }),
           sourceType: "ai_generated",
           pointSpent: cost,
           status: "success",
@@ -280,6 +284,7 @@ export async function POST(request: NextRequest) {
         success: true,
         data: {
           id: `saju_${outcome.requestId}`,
+          name,
           pillars,
           fiveElements,
           topicResults,

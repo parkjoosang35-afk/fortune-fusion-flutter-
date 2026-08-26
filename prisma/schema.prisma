@@ -1493,6 +1493,17 @@ model Wish {
   // "구매 시점 스냅샷" 철학). null이면 미선택(기본 인장/촛불 표시).
   sealItemCode   String? @map("seal_item_code")
   candleItemCode String? @map("candle_item_code")
+  // [복주머니 확장 Phase03 — 부적 "실사용" 연결, DECISION-004 합리적 판단]
+  // 사용자가 보유한(UserInventoryItem) 부적 중 선택해 이 소원에 적용한
+  // itemCode 스냅샷(sealItemCode/candleItemCode와 동일한 느슨한 참조 철학).
+  // - talisman_guardian(지킴 부적): "완전 자동 촛불 지급"은 DECISION-004의
+  //   우려(매일 의식 약화)를 그대로 실현하므로 배제 — 이 필드는 오직
+  //   "보호 배지 표시"용으로만 사용한다(자동 지급 로직 없음).
+  // - talisman_full_moon(만월 부적): 적립 ×2 배수는 luck-pouch-engine.ts에서
+  //   이 필드를 조회해 실제 배수 로직으로 적용한다(완전 실사용).
+  // - talisman_friend(벗 부적): 초대(referral) 시스템 자체가 없어 이번
+  //   스코프에서 제외 — 필드 자체는 선택/저장까지만 지원.
+  talismanItemCode String? @map("talisman_item_code")
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
   deletedAt        DateTime? @map("deleted_at")

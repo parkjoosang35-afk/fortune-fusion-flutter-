@@ -24,6 +24,12 @@ export async function PATCH(request: NextRequest) {
     birth_time?: string | null;
     is_lunar?: boolean;
     gender?: string | null;
+    // [신통방통 2단계 - 회원/운세 프로필 통합]
+    // is_leap_month: 음력 선택 시에만 의미 있음(양력이면 false로 취급, 계산엔진 미변경).
+    // birth_time_unknown: 계산에는 영향 없음(관례값 12:00 그대로 사용), 결과 화면 안내 문구 노출용으로만 저장.
+    is_leap_month?: boolean;
+    birth_time_unknown?: boolean;
+    birth_place?: string | null;
   };
   try {
     body = await request.json();
@@ -64,11 +70,19 @@ export async function PATCH(request: NextRequest) {
               birthDate: body.birth_date ?? null,
               birthTime: body.birth_time ?? null,
               isLunar: body.is_lunar ?? false,
+              isLeapMonth: body.is_leap_month ?? false,
+              birthTimeUnknown: body.birth_time_unknown ?? false,
+              birthPlace: body.birth_place ?? null,
             },
             update: {
               ...(body.birth_date !== undefined ? { birthDate: body.birth_date } : {}),
               ...(body.birth_time !== undefined ? { birthTime: body.birth_time } : {}),
               ...(body.is_lunar !== undefined ? { isLunar: body.is_lunar } : {}),
+              ...(body.is_leap_month !== undefined ? { isLeapMonth: body.is_leap_month } : {}),
+              ...(body.birth_time_unknown !== undefined
+                ? { birthTimeUnknown: body.birth_time_unknown }
+                : {}),
+              ...(body.birth_place !== undefined ? { birthPlace: body.birth_place } : {}),
             },
           },
         },

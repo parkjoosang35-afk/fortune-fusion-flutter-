@@ -84,7 +84,8 @@ export async function POST(request: NextRequest) {
         const fallbackPolicy = await tx.pointPolicy.findUnique({
           where: { sourceType: "attendance" },
         });
-        rewardPoint = fallbackPolicy?.amount ?? 10;
+        // [복주머니 정책표 재정리 - 2026] 정책표 §3 "출석 체크 3개/1일 1회" 기준 폴백값.
+        rewardPoint = fallbackPolicy?.amount ?? 3;
       }
 
       const attendance = await tx.attendance.create({

@@ -37,6 +37,43 @@ const CAP_EXEMPT_SOURCE_TYPES = new Set([
 ]);
 
 /**
+ * [복주머니 확장 Phase03 — 만월 부적(talisman_full_moon) 적립 ×2 배수, DECISION-004
+ * 합리적 판단] bokjumeoni-plan §4는 만월 부적을 "다음 보름달까지 모든 적립×2"로
+ * 정의한다. DECISION-004의 우려(지킴 부적의 완전 자동 촛불이 매일 의식을 약화시킬
+ * 수 있음)는 이 부적과 무관하다 — 배수는 사용자가 직접 수행하는 행위(출석/커뮤니티/
+ * 운세 등)의 "보상을 키울 뿐" 행위 자체를 대체하지 않으므로 완전 실사용(자동 배수)으로
+ * 구현한다. 운영자 수동 지급/조정/가입보상은 배수 대상에서 제외한다(운영자가 명시한
+ * 정확한 수량을 항상 그대로 보장해야 하므로).
+ */
+const MULTIPLIER_EXEMPT_SOURCE_TYPES = new Set([
+  "admin_adjust",
+  "admin_grant",
+  "manual",
+  "signup_reward",
+]);
+
+const FULL_MOON_TALISMAN_ITEM_CODE = "talisman_full_moon";
+const FULL_MOON_MULTIPLIER = 2;
+
+/**
+ * 사용자가 현재 유효한(만료되지 않은) 만월 부적을 보유 중인지 확인해 배수를
+ * 반환한다(보유 중이면 2, 아니면 1). sourceType이 배수 면제 목록에 있으면
+ * DB 조회 없이 항상 1을 반환한다.
+ */
+export async function getFullMoonMultiplier(tx: Tx, userId: number, sourceType: string): Promise<number> {
+  if (MULTIPLIER_EXEMPT_SOURCE_TYPES.has(sourceType)) return 1;
+  const active = await tx.userInventoryItem.findFirst({
+    where: {
+      userId,
+      expiresAt: { gt: new Date() },
+      catalogItem: { itemCode: FULL_MOON_TALISMAN_ITEM_CODE },
+    },
+    select: { id: true },
+  });
+  return active ? FULL_MOON_MULTIPLIER : 1;
+}
+
+/**
  * [복주머니 적립 구간표 §활동 점수] 액션별 활동 점수 가중치.
  * sourceType(=PointHistory.sourceType)을 기준으로 오늘 하루 누적된 "활동 점수"를
  * 계산하는 데 사용한다. 목록에 없는 sourceType은 활동 점수에 반영하지 않는다.
@@ -155,11 +192,18 @@ export async function clipToDailyCap(
 export async function applyDailyCapAndEarn(
   tx: Tx,
   params: { userId: number; amount: number; sourceType: string; sourceId?: number; memo: string }
-): Promise<{ grantedAmount: number; balanceAfter: number | null; capped: boolean }> {
-  const { grantedAmount, cap } = await clipToDailyCap(tx, params.userId, params.amount, params.sourceType);
+): Promise<{ grantedAmount: number; balanceAfter: number | null; capped: boolean; fullMoonApplied: boolean }> {
+  // [복주머니 확장 Phase03 — 만월 부적 ×2] 일일 상한 클리핑 "이전"에 배수를 적용한다.
+  // 즉 배수는 원래 지급되었어야 할 금액을 키우는 것이고, 그 커진 금액이 남은
+  // 상한을 넘으면 여전히 클리핑된다(상한 자체를 우회하지 않음).
+  const multiplier = await getFullMoonMultiplier(tx, params.userId, params.sourceType);
+  const baseAmount = params.amount;
+  const requestedAmount = baseAmount * multiplier;
+
+  const { grantedAmount, cap } = await clipToDailyCap(tx, params.userId, requestedAmount, params.sourceType);
   if (grantedAmount <= 0) {
     const wallet = await tx.wallet.findFirst({ where: { userId: params.userId, currencyType: "POINT", deletedAt: null } });
-    return { grantedAmount: 0, balanceAfter: wallet?.balance ?? null, capped: cap !== Infinity };
+    return { grantedAmount: 0, balanceAfter: wallet?.balance ?? null, capped: cap !== Infinity, fullMoonApplied: multiplier > 1 };
   }
 
   const wallet = await getWalletOrCreate(tx, params.userId);
@@ -174,11 +218,11 @@ export async function applyDailyCapAndEarn(
       sourceType: params.sourceType,
       sourceId: params.sourceId ?? null,
       balanceAfter,
-      memo: params.memo,
+      memo: multiplier > 1 ? `${params.memo} (만월 부적 ×${multiplier})` : params.memo,
     },
   });
 
-  return { grantedAmount, balanceAfter, capped: grantedAmount < params.amount };
+  return { grantedAmount, balanceAfter, capped: grantedAmount < requestedAmount, fullMoonApplied: multiplier > 1 };
 }
 
 /**
@@ -207,22 +251,30 @@ export async function maybeGrantActivityTierBonus(
   });
   const grantedScores = new Set(alreadyGranted.map((h) => h.sourceId));
 
+  // [복주머니 확장 Phase03 — 만월 부적 ×2] "모든 적립"에 배수를 적용한다는 기획
+  // 원칙에 따라 활동 점수 구간 보너스도 배수 대상에 포함한다.
+  const tierMultiplier = await getFullMoonMultiplier(tx, userId, ACTIVITY_TIER_BONUS_SOURCE_TYPE);
+
   const newlyGrantedTiers: number[] = [];
   for (const tier of ACTIVITY_SCORE_TIERS) {
     if (todayScore >= tier.score && !grantedScores.has(tier.score)) {
+      const bonusAmount = tier.bonus * tierMultiplier;
       const wallet = await getWalletOrCreate(tx, userId);
-      const balanceAfter = wallet.balance + tier.bonus;
+      const balanceAfter = wallet.balance + bonusAmount;
       await tx.wallet.update({ where: { id: wallet.id }, data: { balance: balanceAfter, balanceSyncedAt: new Date() } });
       await tx.pointHistory.create({
         data: {
           walletId: wallet.id,
           userId,
-          amount: tier.bonus,
+          amount: bonusAmount,
           type: "earn",
           sourceType: ACTIVITY_TIER_BONUS_SOURCE_TYPE,
           sourceId: tier.score,
           balanceAfter,
-          memo: `활동 점수 ${tier.score}점 달성 보너스`,
+          memo:
+            tierMultiplier > 1
+              ? `활동 점수 ${tier.score}점 달성 보너스 (만월 부적 ×${tierMultiplier})`
+              : `활동 점수 ${tier.score}점 달성 보너스`,
         },
       });
       newlyGrantedTiers.push(tier.score);
