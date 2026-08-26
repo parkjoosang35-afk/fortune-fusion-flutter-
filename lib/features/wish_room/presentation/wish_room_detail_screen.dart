@@ -395,6 +395,13 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
                                     ),
                                     WishRoomPill(label: wish.categoryId.label),
                                     WishRoomPill(label: '$_daysSince일째'),
+                                    // [복주머니 확장 Phase03 — 지킴 부적 보호
+                                    // 배지, DECISION-004 합리적 판단] 자동
+                                    // 지급 로직 없이 "적용 중" 표시로만
+                                    // 실사용 의미를 부여한다.
+                                    if (wish.talismanItemCode ==
+                                        'talisman_guardian')
+                                      const WishRoomPill(label: '🛡️ 지킴 보호 중'),
                                   ],
                                 ),
                               ],

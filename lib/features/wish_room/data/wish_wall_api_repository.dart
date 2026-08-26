@@ -111,6 +111,7 @@ class ApiWishWallRepository implements WishWallRepository {
       // [복주머니 확장 Phase03] 인장/촛불 실사용 — 서버가 내려주는 itemCode.
       sealItemCode: json['sealItemCode'] as String?,
       candleItemCode: json['candleItemCode'] as String?,
+      talismanItemCode: json['talismanItemCode'] as String?,
     );
   }
 
@@ -168,6 +169,7 @@ class ApiWishWallRepository implements WishWallRepository {
     required WishVisibility visibility,
     String? sealItemCode,
     String? candleItemCode,
+    String? talismanItemCode,
   }) async {
     final result = await createWishWithReward(
       categoryId: categoryId,
@@ -176,6 +178,7 @@ class ApiWishWallRepository implements WishWallRepository {
       visibility: visibility,
       sealItemCode: sealItemCode,
       candleItemCode: candleItemCode,
+      talismanItemCode: talismanItemCode,
     );
     return result.wish;
   }
@@ -188,6 +191,7 @@ class ApiWishWallRepository implements WishWallRepository {
     required WishVisibility visibility,
     String? sealItemCode,
     String? candleItemCode,
+    String? talismanItemCode,
   }) async {
     final uri = Uri.parse(_base);
     try {
@@ -203,6 +207,7 @@ class ApiWishWallRepository implements WishWallRepository {
               'visibility': visibility.name,
               if (sealItemCode != null) 'sealItemCode': sealItemCode,
               if (candleItemCode != null) 'candleItemCode': candleItemCode,
+              if (talismanItemCode != null) 'talismanItemCode': talismanItemCode,
             }),
           )
           .timeout(const Duration(seconds: 10));

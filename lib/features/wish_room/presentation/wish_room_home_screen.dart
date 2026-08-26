@@ -773,14 +773,25 @@ class _WishListRow extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    '${days < 0 ? 0 : days}일째 밝히는 중',
-                    style: TextStyle(
-                      fontFamily: 'IBMPlexMonoWish',
-                      fontSize: 10,
-                      letterSpacing: 1.5,
-                      color: WishRoomColors.textSecondary,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        '${days < 0 ? 0 : days}일째 밝히는 중',
+                        style: const TextStyle(
+                          fontFamily: 'IBMPlexMonoWish',
+                          fontSize: 10,
+                          letterSpacing: 1.5,
+                          color: WishRoomColors.textSecondary,
+                        ),
+                      ),
+                      // [복주머니 확장 Phase03 — 지킴 부적 보호 배지,
+                      // DECISION-004 합리적 판단] 자동 지급 없이 "적용 중"
+                      // 표시로만 실사용 의미를 부여한다.
+                      if (wish.talismanItemCode == 'talisman_guardian') ...[
+                        const SizedBox(width: 6),
+                        const Text('🛡️', style: TextStyle(fontSize: 11)),
+                      ],
+                    ],
                   ),
                 ],
               ),

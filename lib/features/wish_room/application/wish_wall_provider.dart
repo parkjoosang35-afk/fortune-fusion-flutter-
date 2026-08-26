@@ -117,6 +117,7 @@ class WishWallProvider extends ChangeNotifier {
     required WishVisibility visibility,
     String? sealItemCode,
     String? candleItemCode,
+    String? talismanItemCode,
   }) async {
     final result = await _repository.createWishWithReward(
       categoryId: categoryId,
@@ -125,6 +126,7 @@ class WishWallProvider extends ChangeNotifier {
       visibility: visibility,
       sealItemCode: sealItemCode,
       candleItemCode: candleItemCode,
+      talismanItemCode: talismanItemCode,
     );
     if (visibility != WishVisibility.private) {
       _feed = [result.wish, ..._feed];

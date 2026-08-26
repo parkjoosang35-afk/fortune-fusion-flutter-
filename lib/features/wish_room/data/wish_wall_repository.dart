@@ -21,6 +21,7 @@ abstract class WishWallRepository {
     required WishVisibility visibility,
     String? sealItemCode,
     String? candleItemCode,
+    String? talismanItemCode,
   });
 
   /// [6-1-F] 서버 `/wishes` POST가 트랜잭션 안에서 실제 지급한 복주머니 금액을
@@ -35,6 +36,7 @@ abstract class WishWallRepository {
     required WishVisibility visibility,
     String? sealItemCode,
     String? candleItemCode,
+    String? talismanItemCode,
   }) async {
     final wish = await createWish(
       categoryId: categoryId,
@@ -43,6 +45,7 @@ abstract class WishWallRepository {
       visibility: visibility,
       sealItemCode: sealItemCode,
       candleItemCode: candleItemCode,
+      talismanItemCode: talismanItemCode,
     );
     return (wish: wish, grantedAmount: 0);
   }
@@ -305,6 +308,7 @@ class MockWishWallRepository implements WishWallRepository {
     required WishVisibility visibility,
     String? sealItemCode,
     String? candleItemCode,
+    String? talismanItemCode,
   }) async {
     await Future.delayed(const Duration(milliseconds: 300));
     final wish = WishPost(
@@ -320,6 +324,7 @@ class MockWishWallRepository implements WishWallRepository {
       createdAt: DateTime.now(),
       sealItemCode: sealItemCode,
       candleItemCode: candleItemCode,
+      talismanItemCode: talismanItemCode,
     );
     _myWishes.insert(0, wish);
     if (visibility != WishVisibility.private) {
@@ -339,6 +344,7 @@ class MockWishWallRepository implements WishWallRepository {
     required WishVisibility visibility,
     String? sealItemCode,
     String? candleItemCode,
+    String? talismanItemCode,
   }) async {
     final wish = await createWish(
       categoryId: categoryId,
@@ -347,6 +353,7 @@ class MockWishWallRepository implements WishWallRepository {
       visibility: visibility,
       sealItemCode: sealItemCode,
       candleItemCode: candleItemCode,
+      talismanItemCode: talismanItemCode,
     );
     return (wish: wish, grantedAmount: 0);
   }

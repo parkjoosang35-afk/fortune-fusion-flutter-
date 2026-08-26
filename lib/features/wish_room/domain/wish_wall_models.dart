@@ -211,6 +211,12 @@ class WishPost {
   String? sealItemCode;
   String? candleItemCode;
 
+  // [복주머니 확장 Phase03 — 부적 "실사용" 연결, DECISION-004 합리적 판단]
+  // 작성 시 사용자가 보유한 부적(ShopCatalogItem.itemType=talisman) 중 선택한
+  // itemCode 스냅샷. talisman_guardian(지킴)은 "보호 배지" 표시용, null이면
+  // 미선택. sealItemCode/candleItemCode와 동일한 nullable 패턴.
+  String? talismanItemCode;
+
   WishPost({
     required this.id,
     required this.authorId,
@@ -237,6 +243,7 @@ class WishPost {
     this.openedBoxAt,
     this.sealItemCode,
     this.candleItemCode,
+    this.talismanItemCode,
   });
 
   bool get isPrivate => visibility == WishVisibility.private;

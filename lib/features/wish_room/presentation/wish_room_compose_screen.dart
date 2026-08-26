@@ -67,6 +67,10 @@ class _WishRoomComposeScreenState extends State<WishRoomComposeScreen>
   String? _selectedSealItemCode;
   String? _selectedCandleItemCode;
 
+  // [복주머니 확장 Phase03 — 부적 "실사용", DECISION-004 합리적 판단] 보유한
+  // 부적(talisman) 중 이번 소원에 적용할 1건을 선택(인장/춛불과 동일한 패턴).
+  String? _selectedTalismanItemCode;
+
   @override
   void initState() {
     super.initState();
@@ -117,6 +121,7 @@ class _WishRoomComposeScreenState extends State<WishRoomComposeScreen>
             : WishVisibility.public,
         sealItemCode: _selectedSealItemCode,
         candleItemCode: _selectedCandleItemCode,
+        talismanItemCode: _selectedTalismanItemCode,
       );
       if (!mounted) return;
       // [흐름] 봉인 완료 → 기존 "작성완료" 화면(WishWallSuccessScreen, 별도
@@ -386,6 +391,15 @@ class _WishRoomComposeScreenState extends State<WishRoomComposeScreen>
                             onSelect: (code) =>
                                 setState(() => _selectedCandleItemCode = code),
                           ),
+                          const SizedBox(height: 18),
+                          _OwnedItemPicker(
+                            itemType: ShopItemType.talisman,
+                            title: '보유한 부적',
+                            emptyHint: '상점에서 부적을 구매하면 여기서 선택할 수 있어요',
+                            selectedCode: _selectedTalismanItemCode,
+                            onSelect: (code) =>
+                                setState(() => _selectedTalismanItemCode = code),
+                          ),
                         ],
                       ),
                     ),
@@ -432,8 +446,11 @@ class _OwnedItemPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final shop = context.watch<ShopProvider>();
+    // [복주머니 확장 Phase03 — 부적 실사용] 만료된 부적(isExpired=true)은
+    // 이미 효과가 끝난 것이므로 선택 목록에서 제외한다(인장/촛불은 영구
+    // 보관이라 isExpired가 항상 false).
     final owned = shop.inventory
-        .where((i) => i.itemType == itemType)
+        .where((i) => i.itemType == itemType && !i.isExpired)
         .toList();
 
     return Column(
@@ -484,22 +501,34 @@ class _OwnedItemPicker extends StatelessWidget {
                   selected: selected,
                   label: item.nameKo,
                   onTap: () => onSelect(item.itemCode),
-                  child: itemType == ShopItemType.seal
-                      ? WishRoomSeal(
-                          text: sealVisualFor(item.itemCode).glyph,
-                          color: WishRoomColors.accent,
-                          size: 36,
-                        )
-                      : WishRoomCandle(
-                          size: 30,
-                          color: candleColorFor(item.itemCode),
-                        ),
+                  child: _buildItemGlyph(itemType, item.itemCode),
                 );
               },
             ),
           ),
       ],
     );
+  }
+
+  /// [복주머니 확장 Phase03 — 부적 실사용] talisman은 이모지 글리프를 그대로
+  /// 사용한다(인장/촛불처럼 별도 도형 위젯이 없음 — talismanVisualFor는
+  /// 상점 목록 화면 용도이나 여기서도 동일하게 재사용).
+  Widget _buildItemGlyph(ShopItemType type, String itemCode) {
+    switch (type) {
+      case ShopItemType.seal:
+        return WishRoomSeal(
+          text: sealVisualFor(itemCode).glyph,
+          color: WishRoomColors.accent,
+          size: 36,
+        );
+      case ShopItemType.candle:
+        return WishRoomCandle(size: 30, color: candleColorFor(itemCode));
+      case ShopItemType.talisman:
+        return Text(
+          talismanVisualFor(itemCode).icon,
+          style: const TextStyle(fontSize: 28),
+        );
+    }
   }
 }
 
