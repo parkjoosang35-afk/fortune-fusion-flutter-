@@ -1,31 +1,27 @@
 import 'dart:async';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/premium_card.dart';
-import '../../../core/widgets/premium_chip.dart';
 import '../../../core/widgets/premium_circle_button.dart';
-import '../../../core/widgets/premium_graphics.dart';
 import '../../healing_quote/application/healing_quote_provider.dart';
 import '../../wallet/application/wallet_provider.dart';
 import '../../attendance/application/attendance_provider.dart';
 import '../../notification/notification_provider.dart';
 import '../../pass/application/pass_provider.dart';
-import '../../pass/presentation/pass_gate_helper.dart';
 import '../../pass/presentation/pass_time_format.dart';
 import '../../../core/domain/access/access_checker.dart';
 import '../../auth/application/auth_provider.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../wish_room/presentation/wish_room_entry_gate.dart';
-import '../../ad_banner/application/ad_banner_provider.dart';
-import '../../ad_banner/presentation/ad_banner_widget.dart';
 import 'home_style_tokens.dart';
+import 'home_banner_carousel.dart';
 import '../domain/jeontong_eighty_matrix.dart';
 import '../../../core/router/app_router.dart' show AppRouter;
 import '../application/home_page_config_provider.dart';
 import '../application/section_visibility_evaluator.dart';
+import '../../../core/widgets/premium_graphics.dart' show FadeSlideIn;
 
 // 2026-08-13 -- 톤 일관화 토큰. 신 클래스/신 색상 정의 0.
 class _Tone {
@@ -266,25 +262,24 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: _Dims.tarotHeaderBottomGap),
 
-                // ③ [사용자 요청] 칩 메뉴 구조 변경 - 오늘의 운세/사주/관상/손금/
-                // 정통사주/신년운세. "오늘의 운세" 칩만 홈 내 섹션으로 스크롤
-                // 이동하고, 사주/관상/손금/정통사주는 기존처럼 열림패스 게이트를
-                // 거쳐 각자의 입력화면으로 바로 이동한다. 신년운세는 아직 상세
-                // 화면이 없어 안내 토스트로 대체한다.
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 80),
-                  child: _FortuneCategoryChips(
-                    onScrollToToday: () =>
-                        _scrollToSection(_todayFortuneSectionKey, '오늘의 운세'),
-                  ),
-                ),
-                const SizedBox(height: _Dims.chipsBottomGap),
+                // [메인 UI 리디자인 - design_handoff_home_redesign] 카테고리
+                // 칩 행(오늘의 운세/AI 사주/관상/손금/정통사주)을 완전히
+                // 삭제했다(README.md Todo①). "오늘의 운세" 칩이 담당하던
+                // 스크롤 이동 기능은 위 "전체보기" 타이틀 탭에 이미 동일하게
+                // 연결되어 있어 기능 손실이 없다.
 
-                // ④ [사용자 요청] "오늘의 운세" 섹션 - 힐링 문구 카드 + 운세/타로
+                // ④ [메인 UI 리디자인] "오늘의 운세" 섹션 - 힐링 슬림 바 +
+                // 귀인지도/오늘의 운세/인연·궁합 3장 롤링 캐러셀 + 운세/타로
                 // 2분할 카드를 하나의 섹션으로 감싸 GlobalKey를 부여한다(상단
-                // 메뉴/칩에서 이 섹션으로 스크롤 이동할 수 있게 하기 위함).
-                // 콘텐츠 자체(힐링 문구 db 기반 자동 순환, 운세/타로 카드 이동
-                // 동작)는 기존과 완전히 동일하게 유지한다.
+                // "전체보기" 타이틀 탭에서 이 섹션으로 스크롤 이동할 수 있게
+                // 하기 위함).
+                // - 힐링 문구: db 기반 자동 순환 데이터/API/인터랙션은 완전히
+                //   동일하게 유지하고 스타일(큰 카드 → 슬림 텍스트 블록)만
+                //   변경했다(README.md Todo②).
+                // - 광고 배너(home_middle 슬롯)는 3장 롤링 캐러셀
+                //   ([HomeBannerCarousel] · 귀인지도/오늘의 운세/인연·궁합)로
+                //   교체했다(README.md Todo③ + BANNER_CAROUSEL.md 확장 스펙).
+                // - 운세/타로 카드 이동 동작은 기존과 완전히 동일하게 유지한다.
                 KeyedSubtree(
                   key: _todayFortuneSectionKey,
                   child: Column(
@@ -294,18 +289,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         delay: const Duration(milliseconds: 120),
                         child: const _HealingQuoteCard(),
                       ),
-                      // 힐링 카드 → (광고 또는 운세/타로) 사이 간격은 광고
-                      // 유무와 무관하게 항상 기존 스펙(heroCardBottomGap)을
-                      // 그대로 유지한다(레이아웃 흔들림 방지).
                       const SizedBox(height: _Dims.heroCardBottomGap),
-                      // [6-2-A 광고 배너 재연결] 힐링 문구 카드와 운세/타로
-                      // 카드 사이에 home_middle 슬롯 광고를 노출한다. 이미
-                      // 완성되어 있는 AdBannerProvider/Repository/Widget을
-                      // 그대로 재사용하며(신규 로직 없음). 활성 배너가 없으면
-                      // (광고 자신 + 광고 뒤 추가 gap)까지 포함해 완전히
-                      // 사라지므로, 광고가 없을 때는 위 gap 바로 뒤에
-                      // 운세/타로 카드가 붙어 기존과 동일한 레이아웃이 된다.
-                      const _HomeMiddleAdSlot(),
+                      const FadeSlideIn(
+                        delay: Duration(milliseconds: 130),
+                        child: HomeBannerCarousel(),
+                      ),
                       FadeSlideIn(
                         delay: const Duration(milliseconds: 140),
                         child: const _FortuneTarotRow(),
@@ -536,153 +524,17 @@ class _AllCategoriesHeader extends StatelessWidget {
   }
 }
 
-/// ④ [사용자 요청] 운세 카테고리 칩(가로 스크롤) 구조. "오늘의 운세/AI 사주/
-/// 관상/손금/정통사주" 5개로 구성한다.
-///
-/// [미연동 콘텐츠 삭제] 전용 상세화면이 없어 안내 토스트만 띄우던 "신년운세"
-/// 칩은 삭제했다.
-///
-/// [3단계 2차 실제 구조 정리 - 작업2 - 명칭/배선 수정] 기존에는 이 칩 목록의
-/// "정통사주" 라벨이 실제로는 AI(LLM) 사주 라우트(`/ai-fortune/saju/input`)로
-/// 연결되어 있어, PHASE1~4 정통사주 엔진과 완전히 무관한 화면을 "정통사주"로
-/// 잘못 안내하고 있었다. 아래와 같이 수정한다.
-///   - "사주" → "AI 사주"로 라벨 변경(라우트는 그대로 `/ai-fortune/saju/
-///     input` 유지 — 실제로 AI 해석 화면이 맞으므로 라벨만 정정).
-///   - "정통사주" → 라우트를 [JeontongEightyMatrix.browseRoute]
-///     (`/jeontong/eighty`)로 수정해, 아래 "오늘의 운세" 섹션의 "운세" 카드와
-///     동일한 실제 정통사주 69종 화면으로 연결되도록 배선을 바로잡는다.
-/// - "오늘의 운세" 칩: 페이지 이동 없이 홈의 "오늘의 운세" 섹션(힐링 문구
-///   카드 + 운세/타로 카드)으로 스크롤 이동한다([onScrollToToday]).
-/// - "AI 사주"/"관상"/"손금"/"정통사주": 기존과 동일하게 열림패스 게이트를
-///   거쳐 각자의 입력/촬영/조회 화면으로 바로 이동한다.
-class _FortuneCategoryChips extends StatefulWidget {
-  const _FortuneCategoryChips({required this.onScrollToToday});
+// [메인 UI 리디자인 - design_handoff_home_redesign, README.md Todo①]
+// 운세 카테고리 칩 행(_FortuneCategoryChips, "오늘의 운세/AI 사주/관상/손금/
+// 정통사주" 5개)은 완전히 삭제되었다. "오늘의 운세" 스크롤 이동 기능은
+// 위 "전체보기" 타이틀 탭(_AllCategoriesHeader.onTitleTap)이 계속 동일하게
+// 담당하고, "AI 사주"/"관상"/"손금"/"정통사주" 진입점은 `/home/all-categories`
+// (전체보기 그리드 버튼)에서 계속 접근 가능하므로 기능 손실이 없다.
 
-  /// "오늘의 운세" 칩을 눌렀을 때 홈 내 섹션으로 스크롤 이동시키는 콜백.
-  final VoidCallback onScrollToToday;
-
-  @override
-  State<_FortuneCategoryChips> createState() => _FortuneCategoryChipsState();
-}
-
-class _FortuneCategoryChipsState extends State<_FortuneCategoryChips> {
-  // [사용자 요청] 기본 선택 칩은 "오늘의 운세"(index 0)로 둔다(홈에 진입하면
-  // 바로 아래에 보이는 섹션과 자연스럽게 연결되도록).
-  int _selected = 0;
-  bool _checking = false;
-
-  // 기준 시안: 칩에는 아이콘 없이 텍스트만 표시.
-  // [3단계 2차 실제 구조 정리 - 작업2] "정통사주" 라벨이 AI사주 라우트로
-  // 잘못 연결되어 있던 배선을 [JeontongEightyMatrix.browseRoute]로 수정.
-  // [부적게이트 재배치] "운세" 섹션 진입점이므로 목록 화면(browseRoute)
-  // 직행 대신 부적게이트([JeontongEightyMatrix.gateRoute])를 먼저 거친다.
-  static const _items = [
-    ('오늘의 운세', null, false),
-    ('AI 사주', '/ai-fortune/saju/input', true),
-    ('관상', '/ai-fortune/face/capture', true),
-    ('손금', '/ai-fortune/palm/capture', true),
-    ('정통사주', JeontongEightyMatrix.gateRoute, true),
-  ];
-
-  Future<void> _handleTap(int index) async {
-    setState(() => _selected = index);
-    final (title, route, requiresPass) = _items[index];
-
-    // "오늘의 운세"는 홈 내 섹션 스크롤로 처리한다(페이지 이동 없음).
-    if (index == 0) {
-      widget.onScrollToToday();
-      return;
-    }
-
-    // route가 없는 경우(현재는 "오늘의 운세"만 해당, index==0에서 이미 처리됨)
-    // 안전망으로 안내 토스트만 표시한다.
-    if (route == null) {
-      AppToast.show(context, '$title · 준비 중이에요! 곧 만나볼 수 있어요 🙏');
-      return;
-    }
-
-    if (requiresPass) setState(() => _checking = true);
-    await navigateWithPassGate(
-      context,
-      title: title,
-      route: route,
-      requiresPass: requiresPass,
-    );
-    if (mounted && requiresPass) setState(() => _checking = false);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: _Dims.chipHeight,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: _items.length,
-        separatorBuilder: (_, __) => const SizedBox(width: _Dims.chipGap),
-        itemBuilder: (context, index) {
-          final (label, _, _) = _items[index];
-          final selected = _selected == index;
-          // 스펙: height30/좌우padding12/radius15/활성 칩만 형광(#C6F24E) 배경.
-          return PremiumChip(
-            label: label,
-            selected: selected,
-            onTap: _checking ? () {} : () => _handleTap(index),
-            height: _Dims.chipHeight,
-            horizontalPadding: 12,
-            radius: 15,
-            activeBg: HomeColors.neon,
-            activeFg: HomeColors.textPrimary,
-            inactiveBg: HomeColors.chipInactiveBg,
-            inactiveFg: HomeColors.textSecondary,
-            labelStyle: HomeText.chipLabel(),
-          );
-        },
-      ),
-    );
-  }
-}
-
-/// ④-1 [6-2-A 광고 배너 재연결] 힐링 문구 카드와 운세/타로 카드 사이의
-/// `home_middle` 슬롯 광고.
-///
-/// [배경] admin_web CMS에서 이미 등록·관리 가능한 광고 배너 시스템
-/// (`AdBannerProvider`/`AdBannerRepository`/`/api/public/banners`)이 완성되어
-/// 있었으나, 실제 홈 화면에는 `AdBannerWidget`을 호출하는 코드가 전혀 없어
-/// 광고가 노출되지 않는 상태였다(6-2 사전조사에서 확인). 이번 작업은 신규
-/// 광고 로직을 만들지 않고, 기존 `AdBannerWidget(position: 'home_middle')`을
-/// 그대로 호출해 화면에 연결하는 것이 유일한 변경 사항이다.
-///
-/// [레이아웃 원칙] `AdBannerProvider.hasActiveBanner('home_middle')`이 아직
-/// 로드 전(hasLoaded == false)이면 스켈레톤이 잠깐 보일 수 있으므로 그대로
-/// `AdBannerWidget`을 렌더링하고, 로드가 완료됐는데도 활성 배너가 없으면
-/// 위아래 여백(SizedBox)까지 포함해 `SizedBox.shrink()`로 완전히 접어
-/// 기존 힐링 카드 → 운세/타로 카드 간격(spec 12px, [_Dims.heroCardBottomGap])이
-/// 광고 유무와 무관하게 항상 동일하게 유지되도록 한다(레이아웃이 벌어지지 않음).
-class _HomeMiddleAdSlot extends StatelessWidget {
-  const _HomeMiddleAdSlot();
-
-  static const String _position = 'home_middle';
-
-  @override
-  Widget build(BuildContext context) {
-    final adProvider = context.watch<AdBannerProvider>();
-    final loaded = adProvider.hasLoaded(_position);
-    final hasActive = adProvider.hasActiveBanner(_position);
-
-    // 로드가 이미 완료됐는데 활성 배너가 없으면(비활성/기간외/서버오류 등)
-    // 완전히 사라진다 — 바로 위(힐링 카드 뒤)의 고정 gap 하나만 남고,
-    // 광고 자신과 광고 전용 하단 gap은 추가되지 않아 기존 레이아웃과
-    // 동일하게 운세/타로 카드가 바로 이어진다.
-    if (loaded && !hasActive) {
-      return const SizedBox.shrink();
-    }
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: _Dims.heroCardBottomGap),
-      child: AdBannerWidget(position: _position),
-    );
-  }
-}
+// [메인 UI 리디자인 - README.md Todo③] 힐링 문구 카드와 운세/타로 카드
+// 사이의 `home_middle` 슬롯 광고(_HomeMiddleAdSlot, AdBannerWidget)는
+// 3장 롤링 캐러셀([HomeBannerCarousel] · 귀인지도/오늘의 운세/인연·궁합)로
+// 교체되어 완전히 삭제되었다.
 
 // DailyFortune home card is hidden by 2026-08-13 decision
 /// ⑤ [사용자 요청] "오늘의 운세 이야기"를 완전히 삭제하고 대체한 힐링 문구 카드.

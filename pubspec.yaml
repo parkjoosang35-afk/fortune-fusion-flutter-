@@ -104,6 +104,7 @@ flutter:
   assets:
     - assets/images/
     - assets/images/wish_counsel/characters/
+    - assets/images/home/doryeong/
     - assets/audio/tarot/
     - assets/tarot/cards/majors/
     - assets/tarot/cards/cups/
