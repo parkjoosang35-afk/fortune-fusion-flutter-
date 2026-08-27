@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/widgets/app_toast.dart';
 import '../domain/guinji_person.dart';
 import '../domain/guinji_relation_meta.dart';
 import '../theme/guinji_theme.dart';
@@ -8,6 +7,7 @@ import '../widgets/guinji_bg_atmosphere.dart';
 import '../widgets/guinji_chemistry_candle.dart';
 import '../widgets/guinji_orbit_map.dart';
 import 'guinji_relation_detail_screen.dart';
+import 'guinji_result_card_screen.dart';
 
 /// 귀인지도(Guinji Map) — 07. 랭킹 화면.
 ///
@@ -15,9 +15,9 @@ import 'guinji_relation_detail_screen.dart';
 /// `GuinjiScreens.jsx` → `RankingScreen`): 케미 점수 순위 리스트 + "1등
 /// 귀인" 강조 + Top3 촛불 포디움 + 전체 리스트 + 결과카드 공유 CTA.
 ///
-/// [Phase G-5 범위] "결과 카드로 공유하기"(S10 결과카드 → S8 공유)는
-/// 아직 구현되어 있지 않아 토스트로 대체한다. 리스트 항목 탭 시
-/// 관계상세(S6)로는 실제 이동한다(기존 지도메인과 동일 패턴).
+/// [Phase G-8] "결과 카드로 공유하기"는 결과카드(S10) 화면이 완성되어
+/// 실제로 이동한다. 리스트 항목 탭 시 관계상세(S6)로도 실제 이동한다
+/// (기존 지도메인과 동일 패턴).
 class GuinjiRankingScreen extends StatelessWidget {
   const GuinjiRankingScreen({super.key, this.people = guinjiSamplePeople});
 
@@ -120,8 +120,11 @@ class GuinjiRankingScreen extends StatelessWidget {
                   const SizedBox(height: 10),
                   _PrimaryCta(
                     label: '결과 카드로 공유하기',
-                    onPressed: () =>
-                        AppToast.show(context, '곧 만나볼 수 있어요! 준비 중이에요 🙏'),
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => GuinjiResultCardScreen(people: people),
+                      ),
+                    ),
                   ),
                 ],
               ),

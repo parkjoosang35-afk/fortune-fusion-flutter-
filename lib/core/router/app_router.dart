@@ -73,6 +73,7 @@ import '../../features/history/presentation/history_readonly_screen.dart';
 import '../../features/history/presentation/history_jeontong_overview_screen.dart';
 import '../../features/guinji/presentation/guinji_map_screen.dart';
 import '../../features/guinji/presentation/guinji_join_screen.dart';
+import '../../features/guinji/presentation/guinji_result_card_screen.dart';
 import '../../features/guinji/presentation/guinji_share_screen.dart';
 import '../../features/guinji/presentation/guinji_onboarding_screen.dart';
 import '../auth/auth_token_store.dart';
@@ -143,6 +144,10 @@ class AppRouter {
       // 백엔드 §5 완성 후 연결한다.
       case '/guinji/join':
         return _page(const GuinjiJoinScreen());
+      // [Phase G-8] 결과 카드(S10) — 랭킹(S7)의 "결과 카드로 공유하기"
+      // CTA에서 이동한다. 10화면 로드맵의 마지막 화면.
+      case '/guinji/result-card':
+        return _page(const GuinjiResultCardScreen());
       // [오늘의 운세 표준 플로우] 기존 진입점(홈 카드/전체보기 등)은 그대로
       // 두고, 새 4단계 플로우의 진입 화면(intro)으로 라우팅한다.
       case '/home/daily-fortune-detail':
