@@ -21,6 +21,7 @@ class GuinjiProvider extends ChangeNotifier {
 
   bool _isLoading = false;
   String? _error;
+  String? _errorCode;
 
   /// 서버가 확정한 지도 메타(mapId/name/token/createdAt). 지도가 없으면 null.
   Map<String, dynamic>? _map;
@@ -35,6 +36,9 @@ class GuinjiProvider extends ChangeNotifier {
 
   bool get isLoading => _isLoading;
   String? get error => _error;
+  /// 마지막 실패의 서버 에러 코드('UNAUTHORIZED'|'NOT_FOUND'|'EXPIRED' 등).
+  /// [GuinjiJoinScreen]이 'UNAUTHORIZED'일 때만 로그인 유도로 분기하는 데 사용.
+  String? get errorCode => _errorCode;
   Map<String, dynamic>? get map => _map;
   bool get hasMap => _map != null;
   String? get mapId => _map?['mapId'] as String?;
@@ -220,12 +224,14 @@ class GuinjiProvider extends ChangeNotifier {
   Future<Map<String, dynamic>?> fetchInvite(String token) async {
     _isLoading = true;
     _error = null;
+    _errorCode = null;
     notifyListeners();
 
     final result = await _repository.fetchInvite(token);
     _isLoading = false;
     if (!result.success) {
       _error = result.errorMessage ?? '초대 링크를 확인할 수 없습니다.';
+      _errorCode = result.errorCode;
       notifyListeners();
       return null;
     }
@@ -248,6 +254,7 @@ class GuinjiProvider extends ChangeNotifier {
 
   void clearError() {
     _error = null;
+    _errorCode = null;
     notifyListeners();
   }
 }

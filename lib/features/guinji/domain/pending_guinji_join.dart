@@ -1,0 +1,33 @@
+/// [귀인지도 딥링크 비로그인 진입 버그 수정] 카톡 등으로 공유 링크를 받은
+/// 지인이 앱에 로그인하지 않은 상태로 `/g/{token}` 딥링크에 진입하면,
+/// 서버(`_shared.ts` requireUser)가 모든 귀인지도 API에 로그인을 강제하므로
+/// `fetchInvite`가 401을 반환한다. 이 저장소는 그 시점의 토큰을 잠시
+/// 보관했다가, 로그인 완료 후 원래 진입하려던 참여 화면으로 자동 복귀시키는
+/// 용도로 쓰인다.
+///
+/// [PendingPassRequestStore와 분리하는 이유] `pending_pass_request.dart`의
+/// 저장소는 `replayPendingPassRequest()`가 항상 `navigateWithPassGate(...,
+/// requiresPass: true)`로 재생하도록 고정되어 있어, 재생 시 열림패스
+/// 소비(PassProvider.consume) 로직을 함께 태운다. 귀인지도 참여는 결제도
+/// 패스 소비도 없는 완전 별개 플로우이므로(절대 원칙: 결제없음), 그 로직에
+/// 얹지 않고 전용의 가벼운 저장소를 따로 둔다.
+class PendingGuinjiJoinStore {
+  PendingGuinjiJoinStore._();
+
+  static String? _token;
+
+  static void save(String token) {
+    _token = token;
+  }
+
+  /// 저장된 토큰을 꺼내면서 동시에 비운다(1회성 소비 — 중복 재실행 방지).
+  static String? consume() {
+    final token = _token;
+    _token = null;
+    return token;
+  }
+
+  static void clear() {
+    _token = null;
+  }
+}

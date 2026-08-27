@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../guinji/presentation/guinji_join_screen.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
 import '../application/auth_provider.dart';
 
@@ -44,6 +45,9 @@ class _ProfileCheckScreenState extends State<ProfileCheckScreen> {
         // [STEP8-2 로그인 필수 UI] 프리패스 게이트 때문에 로그인 화면으로
         // 왔던 경우, 홈 이동 완료 후 원래 가려던 화면으로 자동 이어간다.
         replayPendingPassRequest();
+        // [버그 수정 — 딥링크 비로그인 진입] 귀인지도 초대 링크 때문에
+        // 로그인 화면으로 왔던 경우, 원래 참여하려던 화면으로 자동 복귀한다.
+        replayPendingGuinjiJoin();
       });
     }
   }
@@ -91,6 +95,7 @@ class _ProfileCheckScreenState extends State<ProfileCheckScreen> {
     if (mounted) {
       Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
       replayPendingPassRequest();
+      replayPendingGuinjiJoin();
     }
   }
 
@@ -205,6 +210,9 @@ class _ProfileCheckScreenState extends State<ProfileCheckScreen> {
                   // 선택한 경우에도 프리패스 게이트로 인해 대기 중이던 원래
                   // 요청을 재실행한다(로그인 흐름 정합성 - 편향 없이 두 경로 모두 처리).
                   replayPendingPassRequest();
+                  // [버그 수정 — 딥링크 비로그인 진입] 귀인지도 참여도 동일하게
+                  // 스킵 경로에서도 재실행한다.
+                  replayPendingGuinjiJoin();
                 },
                 child: const Text('나중에 하기'),
               ),

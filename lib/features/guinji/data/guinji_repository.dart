@@ -133,6 +133,16 @@ class GuinjiRepository {
   /// 반환: {mapId, ownerName, joined, expired}
   /// [주의] 404 응답도 body에 `code`(NOT_FOUND|EXPIRED)가 담겨 있으므로
   /// statusCode만으로 판단하지 않고 항상 body를 파싱해 errorCode로 넘긴다.
+  ///
+  /// [버그 수정 — 딥링크 비로그인 진입] 백엔드(`_shared.ts` requireUser)는
+  /// 귀인지도 전 API에 로그인을 강제하므로, 카톡 등으로 공유 링크를 받은
+  /// 지인이 앱에 로그인하지 않은 상태로 딥링크에 진입하면 이 API가 401을
+  /// 반환한다. 이전에는 이 401도 다른 에러(NOT_FOUND/EXPIRED)와 동일하게
+  /// "초대 링크를 확인할 수 없습니다"로 뭉뚱그려져, 정작 가장 흔한 진입
+  /// 경로(비로그인 지인의 최초 클릭)에서 사용자가 로그인 화면으로 안내받지
+  /// 못하고 막다른 길에 갇히는 문제가 있었다. statusCode==401을 명시적으로
+  /// `UNAUTHORIZED` 코드로 구분해 반환하고, 호출부(GuinjiJoinScreen)가 이
+  /// 코드를 보고 로그인 유도 흐름으로 분기하도록 한다.
   Future<ApiResult<Map<String, dynamic>>> fetchInvite(String token) async {
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/guinji/g/$token',
@@ -144,6 +154,11 @@ class GuinjiRepository {
       final response = await http
           .get(uri, headers: {'Accept': 'application/json', ...authHeader})
           .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 401) {
+        debugPrint('[GuinjiRepository] [fetchInvite] 401 -> 로그인 필요');
+        return ApiResult.fail('로그인이 필요합니다.', code: 'UNAUTHORIZED');
+      }
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode >= 400 || decoded['success'] != true) {

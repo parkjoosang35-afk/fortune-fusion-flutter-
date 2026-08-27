@@ -1,11 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/router/app_navigator_key.dart';
+import '../../auth/application/auth_provider.dart';
 import '../application/guinji_provider.dart';
 import '../domain/guinji_relation_meta.dart';
+import '../domain/pending_guinji_join.dart';
 import '../theme/guinji_theme.dart';
 import '../widgets/guinji_bg_atmosphere.dart';
 import 'guinji_onboarding_screen.dart';
+
+/// [버그 수정 — 딥링크 비로그인 진입] 로그인 완료 후 저장된 귀인지도 참여
+/// 요청(공유 링크 토큰)이 있으면, 원래 열려던 참여 화면([GuinjiJoinScreen])
+/// 으로 자동 복귀시킨다.
+///
+/// `pass_gate_helper.dart`의 `replayPendingPassRequest()`와 동일한 타이밍
+/// 전략(홈으로의 스택 교체가 끝난 *다음 프레임*에 전역 [appNavigatorKey]로
+/// push)을 따르되, 귀인지도 참여는 결제도 패스 소비도 없는 완전 별개
+/// 플로우이므로(절대 원칙: 결제없음) `navigateWithPassGate` 같은 패스 게이트
+/// 로직 없이 단순히 [GuinjiJoinScreen]을 push하기만 한다. 저장된 요청이
+/// 없으면(=귀인지도와 무관한 일반 로그인) 아무 동작도 하지 않는다.
+void replayPendingGuinjiJoin() {
+  final token = PendingGuinjiJoinStore.consume();
+  if (token == null) return;
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    final navState = appNavigatorKey.currentState;
+    if (navState == null) return;
+    navState.push(
+      MaterialPageRoute(builder: (_) => GuinjiJoinScreen(inviteToken: token)),
+    );
+  });
+}
 
 /// 귀인지도(Guinji Map) — 09. 지인 참여(Guest Join) 화면.
 ///
@@ -36,6 +61,12 @@ class _GuinjiJoinScreenState extends State<GuinjiJoinScreen> {
 
   bool _loadingInvite = false;
   bool _inviteInvalid = false;
+  // [버그 수정 — 딥링크 비로그인 진입] 카톡 등으로 공유받은 초대 링크를
+  // 로그인하지 않은 상태로 열었을 때(가장 흔한 실제 진입 경로) 표시하는
+  // 전용 상태. `_inviteInvalid`(NOT_FOUND/EXPIRED)와 분리해, "링크가
+  // 잘못됐다"는 오해 대신 정확히 "로그인이 필요하다"는 안내와 로그인
+  // 버튼을 보여준다.
+  bool _needsLogin = false;
   bool _submitting = false;
   String? _mapId;
   String _ownerName = '지인';
@@ -44,23 +75,49 @@ class _GuinjiJoinScreenState extends State<GuinjiJoinScreen> {
   void initState() {
     super.initState();
     final token = widget.inviteToken;
-    if (token != null) {
-      _loadingInvite = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        final provider = context.read<GuinjiProvider>();
-        final data = await provider.fetchInvite(token);
-        if (!mounted) return;
-        setState(() {
-          _loadingInvite = false;
-          if (data == null) {
-            _inviteInvalid = true;
-          } else {
-            _mapId = data['mapId'] as String?;
-            _ownerName = data['ownerName'] as String? ?? '지인';
-          }
-        });
-      });
+    if (token == null) return;
+
+    // 비로그인 상태면 서버 호출(항상 401) 자체를 생략하고 즉시 로그인 유도
+    // UI를 보여준다 — 불필요한 왕복 요청을 피하고, 에러 코드 매핑에 의존하지
+    // 않는 더 확실한 1차 방어선이다.
+    if (!context.read<AuthProvider>().isLoggedIn) {
+      _needsLogin = true;
+      return;
     }
+
+    _loadingInvite = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final provider = context.read<GuinjiProvider>();
+      final data = await provider.fetchInvite(token);
+      if (!mounted) return;
+      setState(() {
+        _loadingInvite = false;
+        if (data == null) {
+          // [2차 방어선] initState 시점엔 로그인 상태였지만 그 사이 세션이
+          // 만료되는 등 경합 상황을 대비해, 서버가 실제로 401을 반환한
+          // 경우에도 동일하게 로그인 유도 UI로 분기한다.
+          if (provider.errorCode == 'UNAUTHORIZED') {
+            _needsLogin = true;
+          } else {
+            _inviteInvalid = true;
+          }
+        } else {
+          _mapId = data['mapId'] as String?;
+          _ownerName = data['ownerName'] as String? ?? '지인';
+        }
+      });
+    });
+  }
+
+  void _goToLogin() {
+    final token = widget.inviteToken;
+    if (token != null) {
+      // 로그인 완료 후 스플래시가 다시 홈으로 넘어가더라도(splash_screen.dart
+      // 콜드 부팅 경로) 이 값을 참조해 원래 참여하려던 딥링크로 자동
+      // 복귀시킨다(app_router.dart 딥링크 분기가 그대로 재사용 가능).
+      PendingGuinjiJoinStore.save(token);
+    }
+    Navigator.of(context).pushNamed('/login');
   }
 
   @override
@@ -184,7 +241,14 @@ class _GuinjiJoinScreenState extends State<GuinjiJoinScreen> {
                       ),
                     ],
                   ),
-                  Expanded(
+                  // [버그 수정 — 딥링크 비로그인 진입] 로그인이 필요한 경우
+                  // 초대 정보 카드/입력 폼 전체를 로그인 유도 카드로 대체한다
+                  // (참여 폼을 채워도 결국 제출 시점에 401로 실패하는 것보다,
+                  // 처음부터 정확한 다음 행동을 안내하는 편이 낫다).
+                  if (_needsLogin)
+                    Expanded(child: _LoginRequiredCard(onLogin: _goToLogin))
+                  else
+                    Expanded(
                     child: SingleChildScrollView(
                       child: Column(
                         children: [
@@ -253,61 +317,137 @@ class _GuinjiJoinScreenState extends State<GuinjiJoinScreen> {
                       ),
                     ),
                   ),
-                  if (_loadingInvite)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8),
-                      child: Center(
-                        child: SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: GuinjiColors.lavender,
+                  // [버그 수정 — 딥링크 비로그인 진입] 로그인 유도 카드가
+                  // 이미 안내와 CTA(로그인/회원가입)를 모두 담당하므로,
+                  // _needsLogin일 때는 기존 하단 CTA(관계 확인하기/나도 내
+                  // 지도 만들기)와 하단 고지 문구를 노출하지 않는다.
+                  if (!_needsLogin) ...[
+                    if (_loadingInvite)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: Center(
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: GuinjiColors.lavender,
+                            ),
+                          ),
+                        ),
+                      )
+                    else if (_inviteInvalid)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: Text(
+                          '초대 링크를 확인할 수 없습니다. 링크가 만료되었거나 잘못되었을 수 있어요.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: GuinjiFonts.ui,
+                            fontSize: 11,
+                            color: GuinjiColors.textSecondary,
                           ),
                         ),
                       ),
-                    )
-                  else if (_inviteInvalid)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8),
-                      child: Text(
-                        '초대 링크를 확인할 수 없습니다. 링크가 만료되었거나 잘못되었을 수 있어요.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontFamily: GuinjiFonts.ui,
-                          fontSize: 11,
-                          color: GuinjiColors.textSecondary,
+                    _PrimaryCta(
+                      label: _submitting ? '확인하는 중' : '관계 확인하기',
+                      onPressed: _submitting ? () {} : _handleSubmit,
+                    ),
+                    const SizedBox(height: 6),
+                    _GhostCta(
+                      label: '나도 내 지도 만들기',
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const GuinjiOnboardingScreen(),
                         ),
                       ),
                     ),
-                  _PrimaryCta(
-                    label: _submitting ? '확인하는 중' : '관계 확인하기',
-                    onPressed: _submitting ? () {} : _handleSubmit,
-                  ),
-                  const SizedBox(height: 6),
-                  _GhostCta(
-                    label: '나도 내 지도 만들기',
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const GuinjiOnboardingScreen(),
+                    const SizedBox(height: 10),
+                    const Text(
+                      '입력한 정보는 지도 소유자에게만 공유돼요.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: GuinjiFonts.ui,
+                        fontSize: 10,
+                        color: GuinjiColors.textSecondary,
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  const Text(
-                    '입력한 정보는 지도 소유자에게만 공유돼요.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontFamily: GuinjiFonts.ui,
-                      fontSize: 10,
-                      color: GuinjiColors.textSecondary,
-                    ),
-                  ),
+                  ],
                 ],
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// [버그 수정 — 딥링크 비로그인 진입] 카톡 등으로 공유받은 초대 링크를
+/// 비로그인 상태로 열었을 때 보여주는 안내 카드. 기존 프리패스 게이트
+/// (`showLoginRequiredSheet`)와 톤은 다르지만 동일한 목적(로그인 유도 후
+/// 원래 하려던 동작으로 자동 복귀)을 수행한다 — 이 화면은 바텀시트가 아닌
+/// 상시 노출 카드로 구현해, "링크가 잘못됐다"는 오해 없이 다음 행동이
+/// 항상 눈에 보이도록 한다.
+class _LoginRequiredCard extends StatelessWidget {
+  const _LoginRequiredCard({required this.onLogin});
+
+  final VoidCallback onLogin;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              'assets/images/home/doryeong/greeting.png',
+              width: 96,
+              height: 96,
+              fit: BoxFit.contain,
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 18,
+              ),
+              decoration: BoxDecoration(
+                color: GuinjiColors.surfaceCard,
+                border: Border.all(color: GuinjiColors.surfaceCardBorder),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Column(
+                children: [
+                  const Text(
+                    '로그인하고\n귀인지도에 참여해요',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: GuinjiFonts.body,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                      color: GuinjiColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    '초대장을 확인하려면 로그인이 필요해요.\n로그인 후 이 초대로 자동으로 돌아와요.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: GuinjiFonts.body,
+                      fontSize: 12,
+                      height: 1.5,
+                      color: GuinjiColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _PrimaryCta(label: '로그인 / 회원가입', onPressed: onLogin),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
