@@ -1,4 +1,10 @@
+import 'dart:io';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../core/widgets/app_toast.dart';
 import '../../wish_room/widgets/wish_room_sigil.dart';
@@ -13,19 +19,66 @@ import '../widgets/guinji_bg_atmosphere.dart';
 /// 3:4 스크린샷 카드. 랭킹(S7)의 "결과 카드로 공유하기" CTA에서 진입한다.
 ///
 /// [비식별 원칙] 원본 스펙 그대로 카드에는 이름을 노출하지 않고 관계
-/// 유형별 인원수(귀인/오른팔/호랑이 선생)만 표시한다.
+/// 유형별 인원수(귀인/오른팔/호랑이 선생)만 표시한다. "귀인 N명"은
+/// 전체 참여자 수가 아니라 관계유형이 정확히 'guin'(貴)인 인원수만
+/// 세는 것이 원본 설계 의도다(GUINJI_SCREENS.md §10, §84 관계유형 5종
+/// 표 참고 — 지도 메인 화면 필터 chips·랭킹 화면도 동일 원칙으로 유형별
+/// 카운트를 표시한다).
 ///
-/// [Phase G-8 범위 — 절대 원칙 준수] "이미지 저장"·"공유하기" 버튼은
-/// 실제 스크린샷 캡처(RepaintBoundary→PNG)·네이티브 공유 시트 연동이
-/// 필요한 영역이라, 이 Phase에서는 UI만 완성하고 토스트로 대체한다.
-/// 어떤 재화 지급도 이 화면에서는 발생하지 않는다.
-class GuinjiResultCardScreen extends StatelessWidget {
+/// [귀인지도 실구현] "이미지 저장"·"공유하기" 버튼은 `tarot_result_screen`
+/// 의 검증된 패턴(RepaintBoundary → PNG → path_provider 임시 파일 →
+/// share_plus 네이티브 공유 시트)을 그대로 재사용해 실제로 동작한다.
+/// 어떤 재화 지급도 이 화면에서는 발생하지 않는다(캡처·공유는 순수
+/// 클라이언트 로컬 동작).
+class GuinjiResultCardScreen extends StatefulWidget {
   const GuinjiResultCardScreen({super.key, this.people = guinjiSamplePeople});
 
   final List<GuinjiPerson> people;
 
   @override
+  State<GuinjiResultCardScreen> createState() =>
+      _GuinjiResultCardScreenState();
+}
+
+class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
+  final _cardKey = GlobalKey();
+  bool _capturing = false;
+
+  Future<void> _captureAndShare() async {
+    if (_capturing) return;
+    setState(() => _capturing = true);
+    try {
+      final boundary =
+          _cardKey.currentContext?.findRenderObject()
+              as RenderRepaintBoundary?;
+      if (boundary == null) {
+        if (!mounted) return;
+        AppToast.show(context, '카드를 준비하는 중입니다. 잠시 후 다시 시도해 주세요.');
+        return;
+      }
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      final bytes = byteData!.buffer.asUint8List();
+
+      final dir = await getTemporaryDirectory();
+      final file = await File(
+        '${dir.path}/guinji_result_${DateTime.now().millisecondsSinceEpoch}.png',
+      ).writeAsBytes(bytes);
+
+      await Share.shareXFiles([
+        XFile(file.path),
+      ], text: '나의 귀인지도 · 신통방통');
+    } catch (_) {
+      if (!mounted) return;
+      await Share.share('나의 귀인지도 · 신통방통');
+    } finally {
+      if (mounted) setState(() => _capturing = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final people = widget.people;
     final guin = people.where((p) => p.relation == 'guin').length;
     final oreunpal = people.where((p) => p.relation == 'oreunpal').length;
     final horang = people.where((p) => p.relation == 'horang').length;
@@ -57,10 +110,13 @@ class GuinjiResultCardScreen extends StatelessWidget {
                   ),
                   Expanded(
                     child: Center(
-                      child: _TheCard(
-                        guin: guin,
-                        oreunpal: oreunpal,
-                        horang: horang,
+                      child: RepaintBoundary(
+                        key: _cardKey,
+                        child: _TheCard(
+                          guin: guin,
+                          oreunpal: oreunpal,
+                          horang: horang,
+                        ),
                       ),
                     ),
                   ),
@@ -68,17 +124,15 @@ class GuinjiResultCardScreen extends StatelessWidget {
                     children: [
                       Expanded(
                         child: _GhostButton(
-                          label: '이미지 저장',
-                          onPressed: () =>
-                              AppToast.show(context, '곧 만나볼 수 있어요! 준비 중이에요 🙏'),
+                          label: _capturing ? '준비하는 중' : '이미지 저장',
+                          onPressed: _capturing ? () {} : _captureAndShare,
                         ),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: _PrimaryButton(
-                          label: '공유하기',
-                          onPressed: () =>
-                              AppToast.show(context, '곧 만나볼 수 있어요! 준비 중이에요 🙏'),
+                          label: _capturing ? '준비하는 중' : '공유하기',
+                          onPressed: _capturing ? () {} : _captureAndShare,
                         ),
                       ),
                     ],

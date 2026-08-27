@@ -73,9 +73,12 @@ import '../../features/history/presentation/history_readonly_screen.dart';
 import '../../features/history/presentation/history_jeontong_overview_screen.dart';
 import '../../features/guinji/presentation/guinji_map_screen.dart';
 import '../../features/guinji/presentation/guinji_join_screen.dart';
+import '../../features/guinji/presentation/guinji_ranking_screen.dart';
 import '../../features/guinji/presentation/guinji_result_card_screen.dart';
 import '../../features/guinji/presentation/guinji_share_screen.dart';
 import '../../features/guinji/presentation/guinji_onboarding_screen.dart';
+import '../../features/guinji/application/guinji_provider.dart';
+import 'package:provider/provider.dart';
 import '../auth/auth_token_store.dart';
 import 'app_navigator_key.dart';
 
@@ -101,6 +104,23 @@ class AppRouter {
   static const String tarotIntroRoute = '/tarot/intro';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
+    // [귀인지도 딥링크] 공유 링크(`sintong.app/g/{token}`)로 앱이 열렸을 때
+    // 웹/딥링크 핸들러가 경로를 그대로 named route 이름으로 전달하는
+    // 경우를 대비해, 고정 케이스로 매칭되지 않는 '/g/{token}' 형태를
+    // switch 진입 전에 먼저 검사한다(Dart switch는 와일드카드 패턴을
+    // 지원하지 않으므로 별도 분기 필요). 토큰이 없는 '/g' 또는 '/g/'만
+    // 들어오면 온보딩으로 안전 폴백한다.
+    final name = settings.name ?? '';
+    if (name == '/g' || name == '/g/') {
+      return _page(const GuinjiOnboardingScreen());
+    }
+    if (name.startsWith('/g/')) {
+      final token = name.substring('/g/'.length);
+      if (token.isNotEmpty) {
+        return _page(GuinjiJoinScreen(inviteToken: token));
+      }
+    }
+
     switch (settings.name) {
       case '/splash':
         return _page(const SplashScreen());
@@ -148,6 +168,21 @@ class AppRouter {
       // CTA에서 이동한다. 10화면 로드맵의 마지막 화면.
       case '/guinji/result-card':
         return _page(const GuinjiResultCardScreen());
+      // [귀인지도 실구현 — 딥링크/랭킹 라우트 등록] 이전까지 랭킹(S7)은
+      // 지도메인(S5) 내부에서 `people`을 직접 전달받는 MaterialPageRoute로만
+      // push 가능해 named route(`/guinji/ranking`)가 없었다. 딥링크나 다른
+      // 진입 경로에서도 접근할 수 있도록 전역 [GuinjiProvider]에서 people을
+      // 직접 읽어오는 named route를 추가한다(지도메인 내부 push는 계속
+      // 인자를 넘기는 기존 방식을 유지 — 회귀 없음, 이 라우트는 추가 진입점).
+      case '/guinji/ranking':
+        return _page(
+          Builder(
+            builder: (context) {
+              final people = context.watch<GuinjiProvider>().people;
+              return GuinjiRankingScreen(people: people);
+            },
+          ),
+        );
       // [오늘의 운세 표준 플로우] 기존 진입점(홈 카드/전체보기 등)은 그대로
       // 두고, 새 4단계 플로우의 진입 화면(intro)으로 라우팅한다.
       case '/home/daily-fortune-detail':
