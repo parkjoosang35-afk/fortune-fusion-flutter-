@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -21,11 +22,17 @@ import '../widgets/guinji_bg_atmosphere.dart';
 /// [SNS 공유 그리드 실연동] 앱 라우터(`AppRouter.onGenerateRoute`)가 이미
 /// `/g/{token}` 딥링크를 `GuinjiJoinScreen`으로 직접 파싱하도록 완성되어
 /// 있으므로(카톡 등에서 링크를 열면 바로 참여 화면으로 진입), 카톡/인스타/
-/// 스레드/더보기 4개 버튼은 모두 `tarot_result_screen`·`guinji_result_card_screen`
-/// 에서 이미 검증된 `share_plus` 네이티브 공유 시트 패턴을 그대로 재사용해
-/// 실제 공유 텍스트(초대 링크 포함)를 전달한다. 특정 앱(카톡 전용 SDK 등)으로
-/// 직행하는 딥링크 스킴은 지원하지 않고, OS 표준 공유 시트를 띄워 사용자가
-/// 원하는 앱을 선택하게 한다(다른 화면들과 동일한 원칙).
+/// 스레드/더보기 4개 버튼은 플랫폼별로 분기한다.
+///
+/// - **Android(네이티브)**: `share_plus`의 `Share.share()`가
+///   `Intent.ACTION_SEND`(OS 표준 공유 시트)를 호출한다.
+/// - **Web**: `navigator.share` Web Share API는 브라우저·OS·설정에 따라
+///   지원 여부가 제각각이고, 미지원 시 `share_plus`가 내부적으로
+///   `mailto:` 링크로 폴백하는데 기본 메일 클라이언트가 없는 환경에서는
+///   **아무 반응도 없이 조용히 실패**하는 심각한 UX 결함이 있었다(2026-08
+///   실사용자 리포트로 발견·수정). 따라서 웹에서는 신뢰할 수 없는
+///   `Share.share()`를 시도하지 않고, 항상 클립보드 복사 + 명확한 안내
+///   토스트로 확실하게 완료되는 동작을 제공한다.
 ///
 /// [절대 원칙] "1명 참여 = 복주머니 20P" 안내 문구는 원본 디자인 스펙을 그대로
 /// 옮긴 **안내 텍스트**일 뿐이며, 실제 지급은 서버(`guinji/maps/{id}/members`
@@ -36,15 +43,35 @@ class GuinjiShareScreen extends StatelessWidget {
   Future<void> _shareInvite(BuildContext context, String? token) async {
     if (token == null) return;
     final link = 'sintong.app/g/$token';
-    try {
-      await Share.share(
+    final message =
         '별빛나그네님이 귀인지도에 당신을 초대했어요!\n'
-        '링크를 열면 생일만 입력해도 관계가 채워져요.\n$link',
-        subject: '귀인지도 초대 · 신통방통',
-      );
+        '링크를 열면 생일만 입력해도 관계가 채워져요.\n$link';
+
+    // [웹 결함 수정] navigator.share 미지원/설정 부재 환경에서
+    // Share.share()가 아무 피드백 없이 실패하는 문제가 있어, 웹에서는
+    // 항상 클립보드 복사로 확실하게 동작을 보장한다.
+    if (kIsWeb) {
+      await Clipboard.setData(ClipboardData(text: message));
+      if (!context.mounted) return;
+      AppToast.show(context, '초대 메시지를 복사했어요. 원하는 앱에 붙여넣어 전달해 주세요.');
+      return;
+    }
+
+    try {
+      final result = await Share.share(message, subject: '귀인지도 초대 · 신통방통');
+      // 사용자가 공유 시트를 그냥 닫은 경우(dismissed)는 실패가 아니므로
+      // 별도 안내 없이 넘어간다.
+      if (result.status == ShareResultStatus.unavailable) {
+        if (!context.mounted) return;
+        await Clipboard.setData(ClipboardData(text: message));
+        if (!context.mounted) return;
+        AppToast.show(context, '공유 시트를 열 수 없어 링크를 복사했어요.');
+      }
     } catch (_) {
       if (!context.mounted) return;
-      AppToast.show(context, '공유 시트를 열 수 없어요. 링크를 복사해 전달해 주세요.');
+      await Clipboard.setData(ClipboardData(text: message));
+      if (!context.mounted) return;
+      AppToast.show(context, '공유 시트를 열 수 없어 링크를 복사했어요.');
     }
   }
 
