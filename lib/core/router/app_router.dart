@@ -71,6 +71,7 @@ import '../../features/home/presentation/jeontong_input_screen.dart';
 import '../../features/home/domain/jeontong_eighty_matrix.dart';
 import '../../features/history/presentation/history_readonly_screen.dart';
 import '../../features/history/presentation/history_jeontong_overview_screen.dart';
+import '../../features/guinji/presentation/guinji_onboarding_screen.dart';
 import '../auth/auth_token_store.dart';
 import 'app_navigator_key.dart';
 
@@ -116,6 +117,15 @@ class AppRouter {
 
       case '/home':
         return _page(const AppShell());
+
+      // [귀인지도 Phase G-1: 라우트 스캐폴딩] 홈 배너 캐러셀 Slide 1
+      // ("귀인지도") CTA의 진입점. 신통방통_귀인지도_최종_개발계획서_v2.0.md
+      // §1은 `/guinji`(첫 진입 시 온보딩, 재방문 시 지도)를 요구하지만, 이
+      // Phase에서는 온보딩 화면 1개만 우선 연결한다(재방문 분기·지도 화면은
+      // 후속 Phase). go_router가 아닌 기존 Navigator(onGenerateRoute) 관례를
+      // 그대로 따른다.
+      case '/guinji':
+        return _page(const GuinjiOnboardingScreen());
       // [오늘의 운세 표준 플로우] 기존 진입점(홈 카드/전체보기 등)은 그대로
       // 두고, 새 4단계 플로우의 진입 화면(intro)으로 라우팅한다.
       case '/home/daily-fortune-detail':
@@ -410,9 +420,7 @@ class AppRouter {
           WishRoomOnboardingScreen(
             onEnter: () async {
               await markWishRoomOnboardingSeen();
-              appNavigatorKey.currentState?.pushReplacementNamed(
-                '/wish-room',
-              );
+              appNavigatorKey.currentState?.pushReplacementNamed('/wish-room');
             },
           ),
         );

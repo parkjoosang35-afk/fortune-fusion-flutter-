@@ -247,11 +247,14 @@ class _HomeBannerCarouselState extends State<HomeBannerCarousel> {
   }
 
   void _handleTap(BuildContext context, _BannerSlideData data) {
-    // [지금 단계] 귀인지도/오늘의 운세(별자리)/인연·궁합 상세 화면과 백엔드
-    // 라우팅(`/guinji`, `/fortune/today`, `/fortune/compatibility`)은 아직
-    // 앱에 구현되어 있지 않다. 기존 앱 관례(오늘의 운세 칩 등)를 따라 안내
-    // 토스트로 대체하고, 화면/라우트가 준비되면 Navigator.pushNamed로
-    // 교체한다.
+    // [귀인지도 Phase G-1] Slide 1(guinji)만 `/guinji` 온보딩 화면으로 연결한다
+    // (AppRouter에 신규 등록). 오늘의 운세(별자리)/인연·궁합 상세 화면과
+    // 백엔드 라우팅(`/fortune/today`, `/fortune/compatibility`)은 아직 앱에
+    // 구현되어 있지 않으므로 기존 관례대로 안내 토스트를 유지한다.
+    if (data.route == '/guinji') {
+      Navigator.of(context).pushNamed('/guinji');
+      return;
+    }
     AppToast.show(context, '곧 만나볼 수 있어요! 준비 중이에요 🙏');
   }
 }
