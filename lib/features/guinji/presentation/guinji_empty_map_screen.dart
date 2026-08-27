@@ -125,7 +125,7 @@ class GuinjiEmptyMapScreen extends StatelessWidget {
                         return;
                       }
                       Clipboard.setData(
-                        ClipboardData(text: 'sintong.app/g/$token'),
+                        ClipboardData(text: buildGuinjiInviteLink(token)),
                       );
                       AppToast.show(context, '링크를 복사했어요.');
                     },

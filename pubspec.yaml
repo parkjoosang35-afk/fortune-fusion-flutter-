@@ -78,6 +78,13 @@ dependencies:
   # 사용하며 앱 전역 Pretendard 체계는 그대로 유지한다.
   google_fonts: 6.2.1
 
+  # [귀인지도 딥링크 버그수정] 카톡 등으로 공유한 초대 링크를 열었을 때
+  # 실제로 앱을 여는(Android App Links/커스텀 스킴 수신) 데 사용한다.
+  # 지금까지는 이 패키지 자체가 없어 링크를 눌러도 앱이 열리지 않고
+  # 카톡 인앱 브라우저가 존재하지 않는 도메인에 접속을 시도해 404가
+  # 발생했다(실사용자 리포트로 발견). Android/iOS/Web 모두 지원.
+  app_links: 6.4.1              # Dart 3.9.2 고정 환경 호환 최신판(7.x는 Dart 3.10+ 요구)
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

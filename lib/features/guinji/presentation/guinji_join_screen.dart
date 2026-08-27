@@ -44,7 +44,7 @@ void replayPendingGuinjiJoin() {
 class GuinjiJoinScreen extends StatefulWidget {
   const GuinjiJoinScreen({super.key, this.inviteToken});
 
-  /// 공유 링크의 토큰(`sintong.app/g/{token}`의 마지막 세그먼트). null이면
+  /// 공유 링크의 토큰(초대 랜딩페이지 `/g/{token}`의 마지막 세그먼트). null이면
   /// (라우터 직접 진입 등) 초대 정보를 확인할 수 없어 제출 시 안내만 표시한다.
   final String? inviteToken;
 

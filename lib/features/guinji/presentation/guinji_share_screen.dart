@@ -4,10 +4,29 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../core/config/env_config.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../application/guinji_provider.dart';
 import '../theme/guinji_theme.dart';
 import '../widgets/guinji_bg_atmosphere.dart';
+
+/// [귀인지도 딥링크 버그수정 — Phase A] 초대 링크 생성 헬퍼.
+///
+/// [배경] 지금까지 하드코딩돼 있던 `sintong.app/g/{token}`은 실존하지 않는
+/// (미등록) 도메인이라, 카톡 등에서 이 링크를 열면 카카오톡 인앱 브라우저가
+/// DNS 조회부터 실패해 "해당 페이지를 찾을 수 없습니다" 404를 표시했다
+/// (2026-08 실사용자 리포트로 발견). 실제로 요청·응답이 가능한
+/// `EnvConfig.adminApiBaseUrl`(admin_web 서버) 아래에 신설한 웹 랜딩페이지
+/// (`/g/{token}`, admin_web `src/app/g/[token]/page.tsx`)로 교체한다 — 이
+/// 페이지는 초대 내용을 보여주고 "앱에서 열기" 버튼으로 커스텀 스킴
+/// (`fortunefusion://g/{token}`)을 호출해 앱을 실행시킨다.
+///
+/// [주의] 이 base URL은 샌드박스 프리뷰마다 바뀌는 임시 도메인이다. 실제
+/// 운영 배포 시에는 `EnvConfig.adminApiBaseUrl`을 진짜 도메인으로 교체하는
+/// 것만으로 이 함수가 자동으로 올바른 링크를 생성한다(Phase B, 아직 미착수).
+String buildGuinjiInviteLink(String token) {
+  return '${EnvConfig.adminApiBaseUrl}/g/$token';
+}
 
 /// 귀인지도(Guinji Map) — 08. 공유 화면.
 ///
@@ -42,7 +61,7 @@ class GuinjiShareScreen extends StatelessWidget {
 
   Future<void> _shareInvite(BuildContext context, String? token) async {
     if (token == null) return;
-    final link = 'sintong.app/g/$token';
+    final link = buildGuinjiInviteLink(token);
     final message =
         '별빛나그네님이 귀인지도에 당신을 초대했어요!\n'
         '링크를 열면 생일만 입력해도 관계가 채워져요.\n$link';
@@ -79,7 +98,7 @@ class GuinjiShareScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final provider = context.watch<GuinjiProvider>();
     final token = provider.mapToken;
-    final link = token != null ? 'sintong.app/g/$token' : '지도를 여는 중…';
+    final link = token != null ? buildGuinjiInviteLink(token) : '지도를 여는 중…';
     final joinedCount = provider.people.length;
 
     return Scaffold(

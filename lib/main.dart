@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'app.dart';
+import 'core/router/guinji_deep_link_handler.dart';
 import 'features/home/domain/saju_fortune_rules.dart';
 import 'features/home/domain/saju_interpreter.dart';
 
@@ -23,5 +24,11 @@ Future<void> main() async {
   // 실계산 경로로 전환된다(jeontong_eighty_report_builder.dart 참고).
   SajuRules.preload();
   SajuFortuneRules.preload();
+  // [귀인지도 딥링크 버그수정 — Phase A] `fortunefusion://g/{token}` 커스텀
+  // 스킴 딥링크 수신을 앱 부팅 시점에 등록한다. await 하지 않는 이유: 이
+  // 초기화가 runApp보다 늦게 끝나도(콜드 스타트 초기 링크 처리) 문제없이
+  // 동작하도록 설계되어 있고(GuinjiDeepLinkHandler.init 내부에서 프레임 콜백
+  // 사용), 앱 시작 자체를 블로킹할 필요는 없다.
+  GuinjiDeepLinkHandler.init();
   runApp(const App());
 }

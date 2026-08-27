@@ -104,12 +104,17 @@ class AppRouter {
   static const String tarotIntroRoute = '/tarot/intro';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
-    // [귀인지도 딥링크] 공유 링크(`sintong.app/g/{token}`)로 앱이 열렸을 때
-    // 웹/딥링크 핸들러가 경로를 그대로 named route 이름으로 전달하는
-    // 경우를 대비해, 고정 케이스로 매칭되지 않는 '/g/{token}' 형태를
-    // switch 진입 전에 먼저 검사한다(Dart switch는 와일드카드 패턴을
-    // 지원하지 않으므로 별도 분기 필요). 토큰이 없는 '/g' 또는 '/g/'만
-    // 들어오면 온보딩으로 안전 폴백한다.
+    // [귀인지도 딥링크] named route 이름이 '/g/{token}' 형태로 직접 전달되는
+    // 경우(예: 웹에서 URL 해시로 진입하는 향후 확장 등)를 대비한 보조 경로.
+    // [중요] 이 분기 자체는 OS 레벨 딥링크(카톡에서 링크 클릭 시 앱을 여는
+    // 것)와는 무관하다 — 그 처리는 `GuinjiDeepLinkHandler`(app_links 패키지,
+    // `fortunefusion://g/{token}` 커스텀 스킴 수신)가 전담하며, 이 핸들러는
+    // 토큰을 꺼내 `GuinjiJoinScreen`을 직접 push한다(이 onGenerateRoute를
+    // 거치지 않음). 아래 분기는 앱이 이미 실행 중인 상태에서 코드가 직접
+    // `Navigator.pushNamed('/g/xxx')`를 호출하는 경우에만 동작한다.
+    // 고정 케이스로 매칭되지 않는 '/g/{token}' 형태를 switch 진입 전에 먼저
+    // 검사한다(Dart switch는 와일드카드 패턴을 지원하지 않으므로 별도 분기
+    // 필요). 토큰이 없는 '/g' 또는 '/g/'만 들어오면 온보딩으로 안전 폴백한다.
     final name = settings.name ?? '';
     if (name == '/g' || name == '/g/') {
       return _page(const GuinjiOnboardingScreen());
