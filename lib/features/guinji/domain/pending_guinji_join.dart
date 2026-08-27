@@ -31,3 +31,30 @@ class PendingGuinjiJoinStore {
     _token = null;
   }
 }
+
+/// [버그 수정 — 온보딩 비로그인/프로필 미완성 진입] 위 [PendingGuinjiJoinStore]와
+/// 동일한 목적(로그인/프로필 완성 후 원래 하려던 화면으로 자동 복귀)이지만,
+/// "지인 초대 참여(토큰 필요)"가 아니라 "본인이 직접 지도 만들기(온보딩,
+/// 토큰 없음)"를 시도했던 경우를 위한 전용 저장소다. 토큰 대신 단순 플래그만
+/// 저장한다 — 온보딩 재진입은 어떤 파라미터도 필요 없이 `/guinji`로 돌아가기만
+/// 하면 되기 때문이다.
+class PendingGuinjiOnboardingStore {
+  PendingGuinjiOnboardingStore._();
+
+  static bool _pending = false;
+
+  static void save() {
+    _pending = true;
+  }
+
+  /// 저장된 플래그를 소비하면서 동시에 비운다(1회성 소비 — 중복 재실행 방지).
+  static bool consume() {
+    final pending = _pending;
+    _pending = false;
+    return pending;
+  }
+
+  static void clear() {
+    _pending = false;
+  }
+}

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../guinji/presentation/guinji_join_screen.dart';
+import '../../guinji/presentation/guinji_onboarding_screen.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
 import '../application/auth_provider.dart';
 
@@ -48,6 +49,9 @@ class _ProfileCheckScreenState extends State<ProfileCheckScreen> {
         // [버그 수정 — 딥링크 비로그인 진입] 귀인지도 초대 링크 때문에
         // 로그인 화면으로 왔던 경우, 원래 참여하려던 화면으로 자동 복귀한다.
         replayPendingGuinjiJoin();
+        // [버그 수정 — 온보딩 비로그인 진입] 귀인지도 "지도 만들기"(온보딩)
+        // 때문에 로그인 화면으로 왔던 경우, 원래 화면으로 자동 복귀한다.
+        replayPendingGuinjiOnboarding();
       });
     }
   }
@@ -96,6 +100,10 @@ class _ProfileCheckScreenState extends State<ProfileCheckScreen> {
       Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
       replayPendingPassRequest();
       replayPendingGuinjiJoin();
+      // [버그 수정 — 온보딩 비로그인 진입] 프로필을 방금 완성했으므로,
+      // 대기 중이던 온보딩 재진입 요청도 함께 재생한다(생년월일이 이제
+      // 채워졌으니 이번에는 게이트를 통과해 정상적으로 지도 만들기로 진행).
+      replayPendingGuinjiOnboarding();
     }
   }
 
