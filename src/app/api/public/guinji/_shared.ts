@@ -65,3 +65,31 @@ export function parseGuinjiMapDbId(publicId: string): number | null {
 export function generateGuinjiToken(): string {
   return randomBytes(12).toString("base64url");
 }
+
+/**
+ * KST 기준 "오늘" 날짜 키("YYYY-MM-DD") — open-pass-service.ts의 todayKstKey()와
+ * 동일한 절단 규칙(절대원칙: KST 자정 기준). unlock_record.dateKey(일 5회 한도
+ * 집계 기준)에 사용한다.
+ */
+export function todayKstDateKey(): string {
+  const now = new Date();
+  const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  const y = kstNow.getUTCFullYear();
+  const m = kstNow.getUTCMonth();
+  const d = kstNow.getUTCDate();
+  return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
+
+/**
+ * [M6 확정] 초대 링크(GuinjiMap.token) 만료 조건 — 개발계획서 §15 M6 "초대 링크
+ * 만료 조건(시간/횟수)"에 대한 보완 결정: 지도 생성 후 7일이 지나면 만료로
+ * 판정한다(§우측 로드맵 노트 "M6(7일 만료 또는 지도삭제시)"). 지도 자체가
+ * 삭제(status!=active 또는 deletedAt)된 경우는 이 함수와 별개로 NOT_FOUND로
+ * 처리한다(호출부에서 status/deletedAt을 먼저 확인).
+ */
+export const GUINJI_INVITE_EXPIRY_DAYS = 7;
+
+export function isGuinjiInviteExpired(mapCreatedAt: Date): boolean {
+  const expiresAt = new Date(mapCreatedAt.getTime() + GUINJI_INVITE_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
+  return new Date() > expiresAt;
+}
