@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../core/widgets/app_toast.dart';
 import '../application/guinji_provider.dart';
 import '../theme/guinji_theme.dart';
 import '../widgets/guinji_bg_atmosphere.dart';
-import 'guinji_join_screen.dart';
 
 /// 귀인지도(Guinji Map) — 08. 공유 화면.
 ///
@@ -16,16 +16,37 @@ import 'guinji_join_screen.dart';
 ///
 /// [귀인지도 실구현] 초대 링크는 `GuinjiProvider.mapToken`(서버가
 /// `POST /guinji/maps`에서 발급한 실제 토큰)을 그대로 사용한다. "복사" 버튼은
-/// 실제 `Clipboard.setData`로 클립보드에 복사한다. SNS 공유(카톡/인스타/
-/// 스레드/더보기)는 네이티브 공유 시트 연동이 아직 없어 준비 중 토스트를
-/// 유지한다(딥링크 랜딩 페이지가 없어 외부 앱에서 열었을 때의 동작을 아직
-/// 보장할 수 없음 — 후속 Phase에서 `share_plus` 연동).
+/// 실제 `Clipboard.setData`로 클립보드에 복사한다.
+///
+/// [SNS 공유 그리드 실연동] 앱 라우터(`AppRouter.onGenerateRoute`)가 이미
+/// `/g/{token}` 딥링크를 `GuinjiJoinScreen`으로 직접 파싱하도록 완성되어
+/// 있으므로(카톡 등에서 링크를 열면 바로 참여 화면으로 진입), 카톡/인스타/
+/// 스레드/더보기 4개 버튼은 모두 `tarot_result_screen`·`guinji_result_card_screen`
+/// 에서 이미 검증된 `share_plus` 네이티브 공유 시트 패턴을 그대로 재사용해
+/// 실제 공유 텍스트(초대 링크 포함)를 전달한다. 특정 앱(카톡 전용 SDK 등)으로
+/// 직행하는 딥링크 스킴은 지원하지 않고, OS 표준 공유 시트를 띄워 사용자가
+/// 원하는 앱을 선택하게 한다(다른 화면들과 동일한 원칙).
 ///
 /// [절대 원칙] "1명 참여 = 복주머니 20P" 안내 문구는 원본 디자인 스펙을 그대로
 /// 옮긴 **안내 텍스트**일 뿐이며, 실제 지급은 서버(`guinji/maps/{id}/members`
 /// 트랜잭션 내부, PointPolicy 등록됨)에서만 발생한다.
 class GuinjiShareScreen extends StatelessWidget {
   const GuinjiShareScreen({super.key});
+
+  Future<void> _shareInvite(BuildContext context, String? token) async {
+    if (token == null) return;
+    final link = 'sintong.app/g/$token';
+    try {
+      await Share.share(
+        '별빛나그네님이 귀인지도에 당신을 초대했어요!\n'
+        '링크를 열면 생일만 입력해도 관계가 채워져요.\n$link',
+        subject: '귀인지도 초대 · 신통방통',
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      AppToast.show(context, '공유 시트를 열 수 없어요. 링크를 복사해 전달해 주세요.');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -117,8 +138,7 @@ class GuinjiShareScreen extends StatelessWidget {
                           label: '카톡',
                           icon: Icons.chat_bubble,
                           color: const Color(0xFFFEE500),
-                          onTap: () =>
-                              AppToast.show(context, '곧 만나볼 수 있어요! 준비 중이에요 🙏'),
+                          onTap: () => _shareInvite(context, token),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -127,8 +147,7 @@ class GuinjiShareScreen extends StatelessWidget {
                           label: '인스타',
                           icon: Icons.camera_alt,
                           color: const Color(0xFFE4405F),
-                          onTap: () =>
-                              AppToast.show(context, '곧 만나볼 수 있어요! 준비 중이에요 🙏'),
+                          onTap: () => _shareInvite(context, token),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -137,8 +156,7 @@ class GuinjiShareScreen extends StatelessWidget {
                           label: '스레드',
                           icon: Icons.alternate_email,
                           color: GuinjiColors.textPrimary,
-                          onTap: () =>
-                              AppToast.show(context, '곧 만나볼 수 있어요! 준비 중이에요 🙏'),
+                          onTap: () => _shareInvite(context, token),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -147,8 +165,7 @@ class GuinjiShareScreen extends StatelessWidget {
                           label: '더보기',
                           icon: Icons.more_horiz,
                           color: GuinjiColors.textPrimary,
-                          onTap: () =>
-                              AppToast.show(context, '곧 만나볼 수 있어요! 준비 중이에요 🙏'),
+                          onTap: () => _shareInvite(context, token),
                         ),
                       ),
                     ],
@@ -165,32 +182,6 @@ class GuinjiShareScreen extends StatelessWidget {
                       color: GuinjiColors.textSecondary,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  // [귀인지도 실구현 — 임시 경로] 아직 앱이 `/g/{token}`
-                  // 형태의 외부 딥링크를 파싱해 지인참여(S9) 화면으로 직접
-                  // 라우팅하는 기능이 없다(딥링크 패키지 미도입). 링크를 받은
-                  // 지인은 실제로는 해당 URL을 웹/앱에서 열어 진입해야 하므로,
-                  // 딥링크 라우팅이 완성되기 전까지 이 진입 버튼을 유지해
-                  // 참여 폼을 검토·사용할 수 있게 한다(mapId는 실제 값 전달).
-                  if (token != null)
-                    Center(
-                      child: TextButton(
-                        onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => GuinjiJoinScreen(inviteToken: token),
-                          ),
-                        ),
-                        child: const Text(
-                          '지인 참여 화면 열기 (링크 대신 임시 진입) →',
-                          style: TextStyle(
-                            fontFamily: GuinjiFonts.mono,
-                            fontSize: 10,
-                            letterSpacing: 1.0,
-                            color: GuinjiColors.textSecondary,
-                          ),
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ),
