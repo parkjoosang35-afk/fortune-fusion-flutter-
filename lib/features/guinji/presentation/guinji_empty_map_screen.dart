@@ -4,6 +4,7 @@ import '../../../core/widgets/app_toast.dart';
 import '../theme/guinji_theme.dart';
 import '../widgets/guinji_bg_atmosphere.dart';
 import 'guinji_map_screen.dart';
+import 'guinji_share_screen.dart';
 
 /// 귀인지도(Guinji Map) — 04. 빈 지도 화면(🔴 바이럴의 첫 화면).
 ///
@@ -103,9 +104,12 @@ class GuinjiEmptyMapScreen extends StatelessWidget {
                   _PrimaryCta(
                     label: '첫 지인 초대하기',
                     onPressed: () {
-                      // [Phase G-2 범위] 초대 링크 생성(§공유 S8)은 후속
-                      // Phase에서 구현한다.
-                      AppToast.show(context, '곧 만나볼 수 있어요! 준비 중이에요 🙏');
+                      // [Phase G-6] 공유(S8) 화면이 완성되어 실제로 연결한다.
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const GuinjiShareScreen(),
+                        ),
+                      );
                     },
                   ),
                   const SizedBox(height: 8),

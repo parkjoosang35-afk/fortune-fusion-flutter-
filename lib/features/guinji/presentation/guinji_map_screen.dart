@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/widgets/app_toast.dart';
 import '../../wish_room/widgets/wish_room_sigil.dart';
 import '../domain/guinji_person.dart';
 import '../domain/guinji_relation_meta.dart';
@@ -9,6 +8,7 @@ import '../widgets/guinji_bg_atmosphere.dart';
 import '../widgets/guinji_orbit_map.dart';
 import 'guinji_ranking_screen.dart';
 import 'guinji_relation_detail_screen.dart';
+import 'guinji_share_screen.dart';
 
 /// 귀인지도(Guinji Map) — 05. 지도 메인 화면.
 ///
@@ -61,8 +61,11 @@ class _GuinjiMapScreenState extends State<GuinjiMapScreen> {
                       const _MonoLabel('MY GUINJI · N°01'),
                       _IconButton(
                         icon: Icons.ios_share,
-                        onPressed: () =>
-                            AppToast.show(context, '곧 만나볼 수 있어요! 준비 중이에요 🙏'),
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const GuinjiShareScreen(),
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -178,8 +181,11 @@ class _GuinjiMapScreenState extends State<GuinjiMapScreen> {
                       Expanded(
                         child: _PrimaryActionButton(
                           label: '+ 지인 초대하기',
-                          onPressed: () =>
-                              AppToast.show(context, '곧 만나볼 수 있어요! 준비 중이에요 🙏'),
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const GuinjiShareScreen(),
+                            ),
+                          ),
                         ),
                       ),
                     ],
