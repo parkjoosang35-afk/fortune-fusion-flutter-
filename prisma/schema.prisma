@@ -199,6 +199,12 @@ model User {
   inventoryItems                UserInventoryItem[]
   gratitudeSealsSent            GratitudeSeal[]           @relation("GratitudeSealSender")
   gratitudeSealsReceived        GratitudeSeal[]           @relation("GratitudeSealRecipient")
+  // [귀인지도 Phase B-1]
+  guinjiMapsOwned                GuinjiMap[]
+  guinjiRelationshipsAsOwner      GuinjiRelationship[]
+  guinjiShareEventsFrom           GuinjiShareEvent[]
+  guinjiUnlockRecords             GuinjiUnlockRecord[]
+  guinjiMapMembersJoined          GuinjiMapMember[]    @relation("GuinjiMapMemberJoinedUser")
 
   @@map("users")
 }
@@ -3424,4 +3430,132 @@ model FortuneAdWatchLog {
   @@index([userId, adId, createdAt])
   @@index([adId, rewardStatus, createdAt])
   @@map("fortune_ad_watch_logs")
+}
+
+// ════════════════════════════════════════════════════════════════
+// Phase B-1: 귀인지도(Guinji Map) — 신통방통_귀인지도_최종_개발계획서_v2.0.md §5
+// [범위 결정] 개발계획서 §5가 정의한 신규 5테이블을 그대로 구현한다(임의 필드
+// 추가 없음). 복주머니 잔액/적립이력은 기존 Wallet/PointHistory 원장을
+// 그대로 재사용하고(§2 R5), PointPolicy.sourceType에 'guinji_join' 등을
+// 신규 등록해 지급한다(절대원칙: 모든 지급은 PointPolicy 등록).
+//
+// [M1~M12 확정 사항 반영 — 사용자 승인 완료]
+//  - M3(방향성): owner→member 단방향 저장. relationship에 memberUserId를 두지
+//    않고 ownerId+memberId(맵 내부 멤버 PK)만 저장 — 양방향 확장 여지는 열어둠.
+//  - M4(동의/노출): birthTime은 저장은 하되 API 응답 직렬화 단계에서 소유자만
+//    조회 가능하도록 필터링(스키마 자체는 필드를 감추지 않음, 서버 로직 책임).
+//  - M5(탈퇴/철회): GuinjiMapMember.status(active/removed) soft-delete,
+//    relationship 이력은 삭제하지 않고 보존.
+//  - M9(재계산): relationship은 캐시 테이블 — 멤버 프로필 수정 시 UPSERT.
+//  - M12(멱등키): PointHistory.sourceType='guinji_join' + sourceId=GuinjiMapMember.id
+//    조합으로 멱등 판정(기존 attendance/luckybag 패턴과 동일).
+// [사주 계산 아키텍처 — B안 확정] 정통사주엔진은 Flutter(Dart) 클라이언트에만
+// 구현되어 있다(admin_web 서버에는 없음, compatibility 라우트도 해시 기반
+// 가짜 점수로 확인됨). 1차 구현은 클라이언트가 계산한 sajuParsed(4기둥·오행·
+// 십성·신살 JSON)를 API 요청 바디로 전달받아 서버가 그대로 신뢰하고 저장한다
+// (서버는 RelationJudger 판정 로직만 순수 함수로 수행 — "서버최종판단"은
+// 판정/지급 단계에 적용, 사주 산출 자체는 결제가 없는 서비스 특성상 1차
+// 범위 제외. 추후 필요 시 서버 이식으로 승격 가능).
+// ════════════════════════════════════════════════════════════════
+
+// ── guinji_map: 귀인지도 1개(소유자 1인당 1개) ──────────────────
+model GuinjiMap {
+  id        Int       @id @default(autoincrement())
+  ownerId   Int       @map("owner_id")
+  name      String // 소유자 닉네임 기반 지도명(예: "지민의 지도")
+  token     String    @unique // 공유용 고유 토큰(초대 링크 sintong.app/g/{token})
+  status    String    @default("active") // active/removed
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  owner         User                 @relation(fields: [ownerId], references: [id])
+  members       GuinjiMapMember[]
+  relationships GuinjiRelationship[]
+  shareEvents   GuinjiShareEvent[]
+
+  @@unique([ownerId]) // 소유자당 지도 1개(개발계획서 §1 "온보딩→지도" 1:1 흐름)
+  @@map("guinji_map")
+}
+
+// ── map_member: 지도에 초대되어 합류한 지인 1명 ──────────────────
+model GuinjiMapMember {
+  id               Int       @id @default(autoincrement())
+  mapId            Int       @map("map_id")
+  joinedUserId     Int?      @map("joined_user_id") // 실제 회원으로 참여했다면 User.id(비회원 초대 단계에서는 null)
+  name             String // 닉네임(비식별 원칙 — 결과카드에는 노출 안 함)
+  solarLunar       String    @default("solar") // solar/lunar
+  birthDate        String    @map("birth_date") // YYYY-MM-DD
+  birthTime        String?   @map("birth_time") // HH:mm, null=미입력
+  birthTimeMissing Boolean   @default(false) @map("birth_time_missing")
+  sajuParsed       String    @map("saju_parsed") // JSON: 4기둥·오행·십성·신살(B안 — 클라이언트 산출값 그대로 저장)
+  status           String    @default("active") // active/removed(M5 탈퇴·철회)
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+
+  map          GuinjiMap            @relation(fields: [mapId], references: [id])
+  joinedUser   User?                @relation("GuinjiMapMemberJoinedUser", fields: [joinedUserId], references: [id])
+  relationship GuinjiRelationship?
+  unlockRecords GuinjiUnlockRecord[]
+
+  @@index([mapId, status])
+  @@map("map_member")
+}
+
+// ── relationship: owner→member 단방향 관계 판정 결과(캐시) ───────
+model GuinjiRelationship {
+  id               Int       @id @default(autoincrement())
+  mapId            Int       @map("map_id")
+  ownerId          Int       @map("owner_id")
+  memberId         Int       @unique @map("member_id") // GuinjiMapMember.id, 1:1(멤버당 관계 1건)
+  relationType     String    @map("relation_type") // guin/oreunpal/inyeon/salrim/horang
+  chemistryScore   Int       @map("chemistry_score") // 0~100 (M2: 오행50+신살30+합20)
+  ohaengEvidence   String    @map("ohaeng_evidence") // JSON: {mine:{...}, other:{...}, reason}
+  calculatedAt     DateTime  @default(now()) @map("calculated_at") // M9 재계산 시각(UPSERT마다 갱신)
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  map    GuinjiMap       @relation(fields: [mapId], references: [id])
+  owner  User            @relation(fields: [ownerId], references: [id])
+  member GuinjiMapMember @relation(fields: [memberId], references: [id])
+
+  @@index([mapId, relationType])
+  @@map("relationship")
+}
+
+// ── share_event: 초대 토큰 오픈·참여 이력(바이럴 K-factor 추적) ──
+model GuinjiShareEvent {
+  id            Int       @id @default(autoincrement())
+  mapId         Int       @map("map_id")
+  token         String    @map("token")
+  fromUserId    Int       @map("from_user_id")
+  openedAt      DateTime? @map("opened_at")
+  joinedAt      DateTime? @map("joined_at")
+  reSharedFrom  Int?      @map("re_shared_from") // 재공유 체인 추적(GuinjiShareEvent.id)
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  map      GuinjiMap @relation(fields: [mapId], references: [id])
+  fromUser User      @relation(fields: [fromUserId], references: [id])
+
+  @@index([token])
+  @@index([mapId, createdAt])
+  @@map("share_event")
+}
+
+// ── unlock_record: 스페셜 해설 해금(광고/포인트), 일 5회 한도 ────
+model GuinjiUnlockRecord {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  memberId  Int      @map("member_id")
+  dateKey   String   @map("date_key") // KST "YYYY-MM-DD" — 일 5회 한도 집계 기준
+  method    String // ad/point
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user   User            @relation(fields: [userId], references: [id])
+  member GuinjiMapMember @relation(fields: [memberId], references: [id])
+
+  @@unique([userId, memberId]) // 멤버당 1회만 해금(중복 해금 방지 — E3 대응)
+  @@index([userId, dateKey])
+  @@map("unlock_record")
 }
