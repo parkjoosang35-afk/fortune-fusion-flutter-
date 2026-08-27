@@ -3465,6 +3465,13 @@ model GuinjiMap {
   name      String // 소유자 닉네임 기반 지도명(예: "지민의 지도")
   token     String    @unique // 공유용 고유 토큰(초대 링크 sintong.app/g/{token})
   status    String    @default("active") // active/removed
+  // [API §6 구현 - 사주 아키텍처 B안 보완] 지도 생성 시 클라이언트가 계산해
+  // 전달한 owner 본인의 사주 JSON 캐시. 멤버 추가(POST .../members)마다
+  // RelationJudger가 owner↔member를 즉시 대조 판정해야 하므로, 매 요청마다
+  // owner 사주를 재전송받지 않고 여기 캐시해 재사용한다(M9: 프로필 수정 시
+  // 이 필드를 갱신하면 이후 신규 멤버 판정부터 반영됨 — 기존 관계 재계산은
+  // 별도 트리거 필요, 이번 Phase 범위 밖).
+  ownerSajuParsed String? @map("owner_saju_parsed")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
