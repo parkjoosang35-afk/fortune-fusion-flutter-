@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../../auth/domain/user_model.dart';
 import '../../wish_room/widgets/wish_room_dust.dart';
 import '../../wish_room/widgets/wish_room_sigil.dart';
+import '../application/guinji_provider.dart';
 import '../theme/guinji_theme.dart';
 import '../widgets/guinji_bg_atmosphere.dart';
 import 'guinji_empty_map_screen.dart';
+import 'guinji_map_screen.dart';
 
 /// 귀인지도(Guinji Map) — 03. 로딩 화면.
 ///
@@ -21,7 +25,11 @@ import 'guinji_empty_map_screen.dart';
 /// 원본 스펙의 "전면 광고 전환"(인터스티셜)은 백엔드/광고 정책 협의가
 /// 필요하므로 이 Phase에서는 구현하지 않는다.
 class GuinjiLoadingScreen extends StatefulWidget {
-  const GuinjiLoadingScreen({super.key});
+  const GuinjiLoadingScreen({super.key, required this.user});
+
+  /// [귀인지도 실구현] 로그인 회원 프로필 — 이 화면 진입 시 실제
+  /// `POST /guinji/maps` 호출(사주 계산 + API 연동)에 사용한다.
+  final UserModel user;
 
   @override
   State<GuinjiLoadingScreen> createState() => _GuinjiLoadingScreenState();
@@ -38,6 +46,10 @@ class _GuinjiLoadingScreenState extends State<GuinjiLoadingScreen>
   ];
 
   late final AnimationController _controller;
+  bool _animDone = false;
+  bool _apiDone = false;
+  bool _apiFailed = false;
+  String? _apiErrorMessage;
 
   @override
   void initState() {
@@ -45,15 +57,47 @@ class _GuinjiLoadingScreenState extends State<GuinjiLoadingScreen>
     _controller = AnimationController(vsync: this, duration: _total)
       ..addStatusListener((status) {
         if (status == AnimationStatus.completed) {
-          Future.delayed(const Duration(milliseconds: 400), () {
-            if (!mounted) return;
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => const GuinjiEmptyMapScreen()),
-            );
-          });
+          _animDone = true;
+          _maybeNavigate();
         }
       })
       ..forward();
+
+    // [귀인지도 실구현] 애니메이션과 동시에 실제 POST /guinji/maps 호출을
+    // 진행한다. 애니메이션(4.2초)과 API 호출 중 더 늦게 끝나는 쪽을
+    // 기다린 뒤에만 다음 화면으로 이동한다(로딩 연출과 실제 네트워크
+    // 지연을 자연스럽게 흡수).
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final provider = context.read<GuinjiProvider>();
+      final ok = await provider.createMapForUser(widget.user);
+      if (!mounted) return;
+      _apiDone = true;
+      _apiFailed = !ok;
+      _apiErrorMessage = provider.error;
+      _maybeNavigate();
+    });
+  }
+
+  void _maybeNavigate() {
+    if (!_animDone || !_apiDone || !mounted) return;
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      if (_apiFailed) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_apiErrorMessage ?? '지도 생성에 실패했습니다.')),
+        );
+        Navigator.of(context).pop();
+        return;
+      }
+      final provider = context.read<GuinjiProvider>();
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => provider.isEmpty
+              ? const GuinjiEmptyMapScreen()
+              : GuinjiMapScreen(people: provider.people),
+        ),
+      );
+    });
   }
 
   @override

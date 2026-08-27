@@ -69,6 +69,8 @@ import 'features/shop/application/shop_provider.dart';
 import 'features/wish_room/data/gratitude_repository.dart';
 import 'features/wish_room/data/gratitude_api_repository.dart';
 import 'features/wish_room/application/gratitude_provider.dart';
+import 'features/guinji/data/guinji_repository.dart';
+import 'features/guinji/application/guinji_provider.dart';
 
 /// 07단계 §2.1 앱 루트 - MultiProvider 전역 등록 + MaterialApp 라우팅 연결
 /// 10단계(A안): 모든 Repository는 Mock 구현이며, 향후 실제 API 연동 시
@@ -269,6 +271,12 @@ class App extends StatelessWidget {
           update: (context, pouch, previous) =>
               previous ??
               GratitudeProvider(context.read<GratitudeRepository>(), pouch),
+        ),
+        // [귀인지도 실구현] admin_web `/api/public/guinji/*` 실 API 연동.
+        // 결제 없음 — 지급(guinji_join/guinji_daily_visit)은 전부 서버
+        // 트랜잭션 내부에서만 발생하며, 이 Provider는 조회/요청만 수행한다.
+        ChangeNotifierProvider(
+          create: (_) => GuinjiProvider(GuinjiRepository()),
         ),
       ],
       child: Consumer<ThemeProvider>(

@@ -33,6 +33,66 @@ class GuinjiPerson {
 
   /// 명리학적 근거 짧은 메모(예: "천을귀인 · 인성").
   final String note;
+
+  /// [귀인지도 실구현] 서버 응답(GET /guinji/maps/me의 members+relationships)을
+  /// [GuinjiPerson]으로 매핑한다.
+  ///
+  /// - [member]: `{memberId, name, solarLunar, birthDate, birthTime,
+  ///   birthTimeMissing, joined}` — `birthDate`('YYYY-MM-DD')를 표시용
+  ///   "YYYY·MM·DD" 형식으로 변환한다.
+  /// - [relation]: `{relationType, chemistryScore, ohaengEvidence:{mine,
+  ///   other, reason}}` (없으면 아직 판정 전 — 이론상 발생하지 않지만
+  ///   방어적으로 'inyeon'/0/''로 폴백한다).
+  /// - [ohaeng]은 서버 응답에 직접 없으므로, `ohaengEvidence.other`(상대
+  ///   본인의 오행 카운트, 한글 목/화/토/금/수 키)에서 최댓값 오행을 찾아
+  ///   화면 표시용 영문 키(mok/hwa/to/geum/su)로 변환한다.
+  factory GuinjiPerson.fromServerJson({
+    required Map<String, dynamic> member,
+    Map<String, dynamic>? relation,
+  }) {
+    final memberId = member['memberId'] as String? ?? '';
+    final name = member['name'] as String? ?? '이름 없음';
+    final birthDate = member['birthDate'] as String? ?? '';
+    final birthParts = birthDate.split('-');
+    final birthLabel = birthParts.length == 3
+        ? '${birthParts[0]}·${birthParts[1]}·${birthParts[2]}'
+        : birthDate;
+
+    final relationType = relation?['relationType'] as String? ?? 'inyeon';
+    final chemistryScore = (relation?['chemistryScore'] as num?)?.toInt() ?? 0;
+    final ohaengEvidence =
+        relation?['ohaengEvidence'] as Map<String, dynamic>? ?? const {};
+    final reason = ohaengEvidence['reason'] as String? ?? '';
+    final otherElements =
+        ohaengEvidence['other'] as Map<String, dynamic>? ?? const {};
+
+    return GuinjiPerson(
+      id: memberId,
+      name: name,
+      birth: birthLabel,
+      ohaeng: _dominantOhaengKey(otherElements),
+      relation: relationType,
+      score: chemistryScore,
+      note: reason,
+    );
+  }
+
+  /// 한글 오행 카운트 맵(예: {'목': 2, '화': 1, ...})에서 최댓값 오행을 찾아
+  /// 화면 표시용 영문 키(mok/hwa/to/geum/su)로 변환한다. 값이 모두 0이거나
+  /// 비어 있으면 기본값 'to'(토)로 폴백한다.
+  static String _dominantOhaengKey(Map<String, dynamic> koreanCounts) {
+    const koreanToKey = {'목': 'mok', '화': 'hwa', '토': 'to', '금': 'geum', '수': 'su'};
+    String bestKr = '토';
+    int bestCount = -1;
+    for (final entry in koreanToKey.keys) {
+      final count = (koreanCounts[entry] as num?)?.toInt() ?? 0;
+      if (count > bestCount) {
+        bestCount = count;
+        bestKr = entry;
+      }
+    }
+    return koreanToKey[bestKr]!;
+  }
 }
 
 /// 관계 유형 순서(안쪽 궤도 → 바깥쪽 궤도): 貴 → 同 → 緣 → 養 → 師.

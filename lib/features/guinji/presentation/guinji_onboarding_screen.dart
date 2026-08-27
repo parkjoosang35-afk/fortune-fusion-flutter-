@@ -100,12 +100,24 @@ class GuinjiOnboardingScreen extends StatelessWidget {
                     ),
                   ),
                   _PrimaryCta(
-                    onPressed: () {
-                      // [Phase G-2] 로딩 화면(S3)으로 이동. 실제 지도 생성
-                      // API 호출·DB 저장은 후속 Phase(백엔드 §5)에서 연결.
+                    onPressed: () async {
+                      // [귀인지도 실구현] 사주 계산 + POST /guinji/maps 호출을
+                      // 로딩 화면(S3)에서 수행한다. 여기서는 사용자 프로필이
+                      // 없으면(생년월일 미입력) 즉시 안내만 하고, 있으면
+                      // 로딩 화면으로 넘겨 실제 API 호출을 진행한다.
+                      final currentUser = auth.currentUser;
+                      if (currentUser == null || currentUser.birthDate == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('생년월일 정보가 없어 지도를 만들 수 없습니다. 프로필을 먼저 완성해 주세요.'),
+                          ),
+                        );
+                        return;
+                      }
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) => const GuinjiLoadingScreen(),
+                          builder: (_) =>
+                              GuinjiLoadingScreen(user: currentUser),
                         ),
                       );
                     },
