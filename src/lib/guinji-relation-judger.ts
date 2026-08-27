@@ -260,3 +260,63 @@ export function judgeGuinjiRelation(
     },
   };
 }
+
+// ── [Phase A-2 — 카톡 공유 바이럴 개선, 웹 미리보기] ──────────────────
+//
+// [배경] 초대 링크(`/g/{token}`)를 카톡에서 열었을 때 지금까지는 "앱에서
+// 열기" 버튼만 있어, 앱이 없는 사람은 아무것도 체험하지 못하고 이탈했다
+// (2026-08 실사용자 리포트로 발견). 레퍼런스 앱(경쟁 서비스)은 앱 없이도
+// 웹에서 곧바로 생년월일을 넣고 관계 결과를 볼 수 있어 훨씬 강한 바이럴
+// 루프를 만든다. 이 함수는 그 첫 체험(웹 미리보기)을 위한 것이다.
+//
+// [정직성 원칙 — 반드시 지킬 것] 이것은 정통사주 만세력(60갑자·절기·
+// 진태양시·지장간 등)을 실제로 계산하는 것이 아니다. 이미 이 코드베이스가
+// 채택한 전제(`fortune/saju/route.ts`의 `computeChart()` 주석 참고 —
+// "사주 명식은 실제 역학 계산이 아니라 결정론적 규칙(생년월일 해시) 기반
+// 으로 생성한다")를 그대로 따르는 **간이 계산**이다. 앱 내부
+// `ManseryeokCoreEngine`(정통 만세력, 클라이언트 단일 소스)로 로그인 후
+// 정식 참여했을 때 나오는 실제 결과와 다를 수 있다 — 호출부(웹 페이지)는
+// 이 결과를 항상 "간이 미리보기"로 명시하고, 실제 지도(DB)에는 저장하지
+// 않아야 한다.
+//
+// [신살 항상 빈 배열] 신살(특히 천을귀인)은 정밀 계산 신뢰도가 낮은
+// 간이 버전에서 실제보다 좋게 보이는 결과를 만들어낼 위험이 있어, 이
+// 함수는 신살 가중치를 절대 부여하지 않는다(sinsalIds: [] 고정).
+const PREVIEW_HANJA_STEMS = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"];
+const PREVIEW_HANJA_BRANCHES = [
+  "子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥",
+];
+
+function hashSeedFromBirthDate(birthDate: string): number {
+  let h = 0;
+  for (let i = 0; i < birthDate.length; i++) {
+    h = (h * 31 + birthDate.charCodeAt(i)) & 0xffffffff;
+  }
+  return Math.abs(h);
+}
+
+/** 생년월일("YYYY-MM-DD") 문자열만으로 즉시 만들어내는 간이 [GuinjiSajuInput]. */
+export function buildPreviewSajuInput(birthDate: string): GuinjiSajuInput {
+  const seed = hashSeedFromBirthDate(birthDate);
+  const stemAt = (offset: number) => PREVIEW_HANJA_STEMS[(seed + offset) % 10];
+  const branchAt = (offset: number) => PREVIEW_HANJA_BRANCHES[(seed + offset * 3) % 12];
+  const dayStem = stemAt(3);
+  return {
+    dayStemHanja: dayStem,
+    stems: { year: stemAt(1), month: stemAt(2), day: dayStem, hour: stemAt(4) },
+    branches: {
+      year: branchAt(1),
+      month: branchAt(2),
+      day: branchAt(3),
+      hour: branchAt(4),
+    },
+    fiveElementsCount: {
+      목: 1 + (seed % 4),
+      화: 1 + ((seed >> 1) % 4),
+      토: 1 + ((seed >> 2) % 4),
+      금: 1 + ((seed >> 3) % 4),
+      수: 1 + ((seed >> 4) % 4),
+    },
+    sinsalIds: [],
+  };
+}
