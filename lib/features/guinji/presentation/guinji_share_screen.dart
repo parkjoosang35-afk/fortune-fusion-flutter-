@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../theme/guinji_theme.dart';
 import '../widgets/guinji_bg_atmosphere.dart';
+import 'guinji_join_screen.dart';
 
 /// 귀인지도(Guinji Map) — 08. 공유 화면.
 ///
@@ -153,6 +154,30 @@ class GuinjiShareScreen extends StatelessWidget {
                       fontFamily: GuinjiFonts.ui,
                       fontSize: 10,
                       color: GuinjiColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // [Phase G-7 임시] 실제 초대 링크 발송 → 지인이 링크로
+                  // 들어오는 흐름(§공유 S8 → 지인참여 S9) 완성 전까지, 지인
+                  // 참여(S9) 화면을 검토할 수 있는 개발용 진입 링크. 후속
+                  // Phase에서 실제 딥링크 라우팅으로 대체하고 이 버튼은
+                  // 제거한다.
+                  Center(
+                    child: TextButton(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const GuinjiJoinScreen(),
+                        ),
+                      ),
+                      child: const Text(
+                        '(개발용) 지인 참여 화면 미리보기 →',
+                        style: TextStyle(
+                          fontFamily: GuinjiFonts.mono,
+                          fontSize: 10,
+                          letterSpacing: 1.0,
+                          color: GuinjiColors.textSecondary,
+                        ),
+                      ),
                     ),
                   ),
                 ],

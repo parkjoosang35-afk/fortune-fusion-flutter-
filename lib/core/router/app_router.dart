@@ -72,6 +72,7 @@ import '../../features/home/domain/jeontong_eighty_matrix.dart';
 import '../../features/history/presentation/history_readonly_screen.dart';
 import '../../features/history/presentation/history_jeontong_overview_screen.dart';
 import '../../features/guinji/presentation/guinji_map_screen.dart';
+import '../../features/guinji/presentation/guinji_join_screen.dart';
 import '../../features/guinji/presentation/guinji_share_screen.dart';
 import '../../features/guinji/presentation/guinji_onboarding_screen.dart';
 import '../auth/auth_token_store.dart';
@@ -137,6 +138,11 @@ class AppRouter {
       // [Phase G-6] 공유(S8) — 지도메인/빈지도의 초대 CTA에서 이동한다.
       case '/guinji/share':
         return _page(const GuinjiShareScreen());
+      // [Phase G-7] 지인 참여(S9) — 지인이 초대 링크로 들어와 자신의
+      // 사주를 입력하는 화면. 실제 딥링크 파라미터(초대자 ID 등)는
+      // 백엔드 §5 완성 후 연결한다.
+      case '/guinji/join':
+        return _page(const GuinjiJoinScreen());
       // [오늘의 운세 표준 플로우] 기존 진입점(홈 카드/전체보기 등)은 그대로
       // 두고, 새 4단계 플로우의 진입 화면(intro)으로 라우팅한다.
       case '/home/daily-fortune-detail':
