@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/widgets/app_toast.dart';
+import '../application/guinji_provider.dart';
 import '../theme/guinji_theme.dart';
 import '../widgets/guinji_bg_atmosphere.dart';
-import 'guinji_map_screen.dart';
 import 'guinji_share_screen.dart';
 
 /// 귀인지도(Guinji Map) — 04. 빈 지도 화면(🔴 바이럴의 첫 화면).
 ///
-/// [Phase G-2] `GUINJI_SCREENS.md` "04 · 빈 지도" 스펙 재구현(원본
-/// `GuinjiScreens.jsx` → `EmptyMapScreen`): 아직 아무도 참여하지 않은
-/// 상태의 빈 궤도(5개 관계유형 링) + 신통도령 안내 + 초대 CTA 2단.
-///
-/// [Phase G-2 범위] 실제 "초대 링크 생성"·"카톡 공유" 기능(§공유 S8,
-/// share_event 테이블)은 아직 구현하지 않는다 — 이 Phase에서는 화면
-/// 뼈대와 정적 배치만 확정하고, CTA는 준비 중 토스트로 대체한다.
+/// [귀인지도 실구현] 아직 아무도 참여하지 않은 상태(서버 `GET
+/// /guinji/maps/me`의 members가 비어있음)의 빈 궤도(5개 관계유형 링) +
+/// 신통도령 안내 + 초대 CTA 2단. "첫 지인 초대하기"는 공유(S8) 화면으로
+/// 이동하고, "링크 복사해서 보내기" Ghost CTA는 [GuinjiProvider.mapToken]을
+/// 직접 클립보드에 복사한다(공유화면의 복사 로직과 동일).
 class GuinjiEmptyMapScreen extends StatelessWidget {
   const GuinjiEmptyMapScreen({super.key});
 
@@ -116,28 +116,19 @@ class GuinjiEmptyMapScreen extends StatelessWidget {
                   _GhostCta(
                     label: '링크 복사해서 카톡으로 보내기',
                     onPressed: () {
-                      AppToast.show(context, '곧 만나볼 수 있어요! 준비 중이에요 🙏');
+                      final token = context.read<GuinjiProvider>().mapToken;
+                      if (token == null) {
+                        AppToast.show(
+                          context,
+                          '지도를 불러오는 중입니다. 잠시 후 다시 시도해 주세요.',
+                        );
+                        return;
+                      }
+                      Clipboard.setData(
+                        ClipboardData(text: 'sintong.app/g/$token'),
+                      );
+                      AppToast.show(context, '링크를 복사했어요.');
                     },
-                  ),
-                  // [Phase G-3 임시] 실제 참여 플로우(§공유 S8 → 지인참여
-                  // S9) 완성 전까지, 목데이터 기반 지도(S5) 화면을 검토할
-                  // 수 있는 개발용 진입 링크. 후속 Phase에서 실제 참여
-                  // 발생 시 자동 전환 로직으로 대체하고 이 버튼은 제거한다.
-                  TextButton(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const GuinjiMapScreen(),
-                      ),
-                    ),
-                    child: const Text(
-                      '(개발용) 채워진 지도 미리보기 →',
-                      style: TextStyle(
-                        fontFamily: GuinjiFonts.mono,
-                        fontSize: 10,
-                        letterSpacing: 1.0,
-                        color: GuinjiColors.textSecondary,
-                      ),
-                    ),
                   ),
                 ],
               ),

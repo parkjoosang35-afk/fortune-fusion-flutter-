@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/widgets/app_toast.dart';
+import '../application/guinji_provider.dart';
 import '../theme/guinji_theme.dart';
 import '../widgets/guinji_bg_atmosphere.dart';
 import 'guinji_join_screen.dart';
@@ -9,23 +12,28 @@ import 'guinji_join_screen.dart';
 ///
 /// [Phase G-6] `GUINJI_SCREENS.md` "08 · 공유" 스펙 재구현(원본
 /// `GuinjiScreens.jsx` → `ShareScreen`): 초대 링크 복사 + SNS 공유 그리드 +
-/// "아직 안 들어온 친구 N명" 리마인더 카드.
+/// 참여 현황 카드.
 ///
-/// [Phase G-6 범위 — 절대 원칙 준수] 서브카피에 노출되는 "1명 참여 = 복주머니
-/// 20P" 문구는 원본 디자인 스펙을 그대로 옮긴 **안내 텍스트**일 뿐이며, 실제
-/// 지급 로직은 아직 만들지 않는다. 실제 참여 이벤트 발생 시점의 재화 지급은
-/// 반드시 서버 최종판단 + PointPolicy 등록 + Wallet/PointHistory 원장
-/// 트랜잭션을 거쳐야 하므로(절대 원칙), 이 화면의 "복사"/SNS 공유 버튼은
-/// 실제 초대 링크 생성·전송 없이 토스트로 대체한다. 링크 텍스트도 아직
-/// share_event 테이블/API가 없어 정적 placeholder를 표시한다.
+/// [귀인지도 실구현] 초대 링크는 `GuinjiProvider.mapToken`(서버가
+/// `POST /guinji/maps`에서 발급한 실제 토큰)을 그대로 사용한다. "복사" 버튼은
+/// 실제 `Clipboard.setData`로 클립보드에 복사한다. SNS 공유(카톡/인스타/
+/// 스레드/더보기)는 네이티브 공유 시트 연동이 아직 없어 준비 중 토스트를
+/// 유지한다(딥링크 랜딩 페이지가 없어 외부 앱에서 열었을 때의 동작을 아직
+/// 보장할 수 없음 — 후속 Phase에서 `share_plus` 연동).
+///
+/// [절대 원칙] "1명 참여 = 복주머니 20P" 안내 문구는 원본 디자인 스펙을 그대로
+/// 옮긴 **안내 텍스트**일 뿐이며, 실제 지급은 서버(`guinji/maps/{id}/members`
+/// 트랜잭션 내부, PointPolicy 등록됨)에서만 발생한다.
 class GuinjiShareScreen extends StatelessWidget {
   const GuinjiShareScreen({super.key});
 
-  static const int _notYet = 4;
-  static const String _placeholderLink = 'sintong.app/g/jm-92kf3';
-
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<GuinjiProvider>();
+    final token = provider.mapToken;
+    final link = token != null ? 'sintong.app/g/$token' : '지도를 여는 중…';
+    final joinedCount = provider.people.length;
+
     return Scaffold(
       backgroundColor: GuinjiColors.backgroundDeep,
       body: Stack(
@@ -93,12 +101,13 @@ class GuinjiShareScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   _LinkBox(
-                    link: _placeholderLink,
-                    onCopy: () {
-                      // [Phase G-6 범위] 실제 초대 링크 생성/클립보드 복사
-                      // 로직은 백엔드 share_event API 완성 후 연결한다.
-                      AppToast.show(context, '곧 만나볼 수 있어요! 준비 중이에요 🙏');
-                    },
+                    link: link,
+                    onCopy: token == null
+                        ? () {}
+                        : () {
+                            Clipboard.setData(ClipboardData(text: link));
+                            AppToast.show(context, '링크를 복사했어요.');
+                          },
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -145,7 +154,7 @@ class GuinjiShareScreen extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 14),
-                  const _ReminderCard(notYet: _notYet),
+                  _ReminderCard(joinedCount: joinedCount),
                   const SizedBox(height: 20),
                   const Text(
                     '상대방의 개인정보는 동의 없이 입력하지 말아 주세요.',
@@ -157,29 +166,31 @@ class GuinjiShareScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  // [Phase G-7 임시] 실제 초대 링크 발송 → 지인이 링크로
-                  // 들어오는 흐름(§공유 S8 → 지인참여 S9) 완성 전까지, 지인
-                  // 참여(S9) 화면을 검토할 수 있는 개발용 진입 링크. 후속
-                  // Phase에서 실제 딥링크 라우팅으로 대체하고 이 버튼은
-                  // 제거한다.
-                  Center(
-                    child: TextButton(
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const GuinjiJoinScreen(),
+                  // [귀인지도 실구현 — 임시 경로] 아직 앱이 `/g/{token}`
+                  // 형태의 외부 딥링크를 파싱해 지인참여(S9) 화면으로 직접
+                  // 라우팅하는 기능이 없다(딥링크 패키지 미도입). 링크를 받은
+                  // 지인은 실제로는 해당 URL을 웹/앱에서 열어 진입해야 하므로,
+                  // 딥링크 라우팅이 완성되기 전까지 이 진입 버튼을 유지해
+                  // 참여 폼을 검토·사용할 수 있게 한다(mapId는 실제 값 전달).
+                  if (token != null)
+                    Center(
+                      child: TextButton(
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => GuinjiJoinScreen(inviteToken: token),
+                          ),
                         ),
-                      ),
-                      child: const Text(
-                        '(개발용) 지인 참여 화면 미리보기 →',
-                        style: TextStyle(
-                          fontFamily: GuinjiFonts.mono,
-                          fontSize: 10,
-                          letterSpacing: 1.0,
-                          color: GuinjiColors.textSecondary,
+                        child: const Text(
+                          '지인 참여 화면 열기 (링크 대신 임시 진입) →',
+                          style: TextStyle(
+                            fontFamily: GuinjiFonts.mono,
+                            fontSize: 10,
+                            letterSpacing: 1.0,
+                            color: GuinjiColors.textSecondary,
+                          ),
                         ),
                       ),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -357,11 +368,16 @@ class _ShareOption extends StatelessWidget {
   }
 }
 
-/// 리마인더 카드 — accent glow + 스택된 물음표 아바타.
+/// 참여 현황 카드 — accent glow + 지금까지 실제로 참여한 지인 수.
+///
+/// [귀인지도 실구현] 서버에는 "초대 발송" 자체를 추적하는 테이블이 없어
+/// "아직 안 들어온 친구 N명" 같은 예측 수치는 만들어낼 수 없다(허위 데이터
+/// 표시 금지). 대신 [GuinjiProvider.people]에서 얻은 **실제로 참여를
+/// 완료한 지인 수**만 정직하게 보여준다.
 class _ReminderCard extends StatelessWidget {
-  const _ReminderCard({required this.notYet});
+  const _ReminderCard({required this.joinedCount});
 
-  final int notYet;
+  final int joinedCount;
 
   @override
   Widget build(BuildContext context) {
@@ -384,10 +400,10 @@ class _ReminderCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _MonoLabel('REMINDER', color: GuinjiColors.aqua),
+          const _MonoLabel('STATUS', color: GuinjiColors.aqua),
           const SizedBox(height: 4),
           Text(
-            '아직 안 들어온 친구 $notYet명',
+            joinedCount == 0 ? '아직 참여한 지인이 없어요' : '지금까지 $joinedCount명이 참여했어요',
             style: const TextStyle(
               fontFamily: GuinjiFonts.body,
               fontWeight: FontWeight.w700,
@@ -395,55 +411,15 @@ class _ReminderCard extends StatelessWidget {
               color: GuinjiColors.textPrimary,
             ),
           ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              SizedBox(
-                width: 28.0 + (notYet - 1) * 20.0,
-                height: 28,
-                child: Stack(
-                  children: [
-                    for (var i = 0; i < notYet; i++)
-                      Positioned(
-                        left: i * 20.0,
-                        child: Container(
-                          width: 28,
-                          height: 28,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: GuinjiColors.backgroundDeep,
-                            border: Border.all(
-                              color: GuinjiColors.surfaceCardBorder,
-                              style: BorderStyle.solid,
-                            ),
-                          ),
-                          child: const Text(
-                            '?',
-                            style: TextStyle(
-                              fontFamily: GuinjiFonts.body,
-                              fontSize: 12,
-                              color: GuinjiColors.textSecondary,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              const Expanded(
-                child: Text(
-                  '초대한 지인이 참여하면 여기에 표시돼요.',
-                  style: TextStyle(
-                    fontFamily: GuinjiFonts.ui,
-                    fontSize: 11,
-                    height: 1.4,
-                    color: GuinjiColors.textSecondary,
-                  ),
-                ),
-              ),
-            ],
+          const SizedBox(height: 6),
+          const Text(
+            '초대한 지인이 링크로 들어와 참여하면 여기 숫자가 올라가요.',
+            style: TextStyle(
+              fontFamily: GuinjiFonts.ui,
+              fontSize: 11,
+              height: 1.4,
+              color: GuinjiColors.textSecondary,
+            ),
           ),
         ],
       ),

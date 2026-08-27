@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import '../../../core/widgets/app_toast.dart';
+import '../application/guinji_provider.dart';
 import '../domain/guinji_person.dart';
 import '../domain/guinji_relation_meta.dart';
 import '../theme/guinji_theme.dart';
@@ -32,6 +33,26 @@ class GuinjiRelationDetailScreen extends StatefulWidget {
 class _GuinjiRelationDetailScreenState
     extends State<GuinjiRelationDetailScreen> {
   bool _specialUnlocked = false;
+  bool _unlocking = false;
+
+  Future<void> _handleUnlock(String method) async {
+    if (_unlocking) return;
+    setState(() => _unlocking = true);
+    final provider = context.read<GuinjiProvider>();
+    final ok = await provider.unlock(
+      memberId: widget.person.id,
+      method: method,
+    );
+    if (!mounted) return;
+    setState(() => _unlocking = false);
+    if (ok) {
+      setState(() => _specialUnlocked = true);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(provider.error ?? '해금에 실패했습니다.')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,16 +90,9 @@ class _GuinjiRelationDetailScreenState
                   const SizedBox(height: 8),
                   if (!_specialUnlocked)
                     _SpecialLockedCard(
-                      onUnlockAd: () {
-                        // [Phase G-4 범위] 실제 광고 SDK 연동 없음 - UI만
-                        // 잠금 해제 처리한다. 재화 지급 없음.
-                        setState(() => _specialUnlocked = true);
-                      },
-                      onUnlockPouch: () {
-                        // [절대 원칙] 실제 포인트 차감(Wallet/PointHistory)
-                        // 은 백엔드 PointPolicy 확정 전까지 하지 않는다.
-                        AppToast.show(context, '곧 만나볼 수 있어요! 준비 중이에요 🙏');
-                      },
+                      unlocking: _unlocking,
+                      onUnlockAd: () => _handleUnlock('ad'),
+                      onUnlockPouch: () => _handleUnlock('point'),
                     )
                   else
                     _SpecialUnlockedCard(
@@ -474,10 +488,12 @@ class _SpecialLockedCard extends StatelessWidget {
   const _SpecialLockedCard({
     required this.onUnlockAd,
     required this.onUnlockPouch,
+    this.unlocking = false,
   });
 
   final VoidCallback onUnlockAd;
   final VoidCallback onUnlockPouch;
+  final bool unlocking;
 
   @override
   Widget build(BuildContext context) {
@@ -523,25 +539,40 @@ class _SpecialLockedCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: _SmallCta(
-                  label: '광고 보고\n지금 열기',
-                  primary: true,
-                  onPressed: onUnlockAd,
+          if (unlocking)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 6),
+              child: Center(
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: GuinjiColors.lavender,
+                  ),
                 ),
               ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: _SmallCta(
-                  label: '복주머니\n50P로 열기',
-                  primary: false,
-                  onPressed: onUnlockPouch,
+            )
+          else
+            Row(
+              children: [
+                Expanded(
+                  child: _SmallCta(
+                    label: '광고 보고\n지금 열기',
+                    primary: true,
+                    onPressed: onUnlockAd,
+                  ),
                 ),
-              ),
-            ],
-          ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: _SmallCta(
+                    label: '복주머니\n50P로 열기',
+                    primary: false,
+                    onPressed: onUnlockPouch,
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
     );

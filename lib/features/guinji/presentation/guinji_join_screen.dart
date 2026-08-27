@@ -1,27 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import '../../../core/widgets/app_toast.dart';
+import '../application/guinji_provider.dart';
+import '../domain/guinji_relation_meta.dart';
 import '../theme/guinji_theme.dart';
 import '../widgets/guinji_bg_atmosphere.dart';
 import 'guinji_onboarding_screen.dart';
 
 /// 귀인지도(Guinji Map) — 09. 지인 참여(Guest Join) 화면.
 ///
-/// [Phase G-7] `GUINJI_SCREENS.md` "09 · 지인 참여" 스펙 재구현(원본
-/// `GuinjiScreens.jsx` → `JoinScreen`): 공유(S8)에서 받은 링크로 들어온
-/// 지인이 이름·생년월일을 입력해 관계를 확인하는 폼 화면.
-///
-/// [Phase G-7 범위 — 절대 원칙 준수] 실제 "관계 확인" 로직(사주 계산 →
-/// 5유형 판정 → 지도에 반영)은 백엔드 신규 테이블(guinji_map_member 등,
-/// §5)이 아직 없어 구현하지 않는다. "✧ 관계 확인하기" 버튼은 입력값을
-/// 받기만 하고 토스트로 대체하며, 어떤 재화 지급(초대자 20P 등)도 이
-/// 화면에서는 발생하지 않는다(참여 이벤트 판정은 서버 최종판단 몫).
-/// "나도 내 지도 만들기" Ghost 버튼은 이미 존재하는 온보딩(S2) 화면으로
-/// 실제 이동한다(회원가입 유도 목적, 신규 로직 불필요).
+/// [귀인지도 실구현] 공유(S8)에서 받은 초대 토큰([inviteToken])으로
+/// `GET /guinji/g/{token}`을 호출해 mapId·초대자 이름을 확인한 뒤, 지인이
+/// 이름·생년월일을 입력하면 `POST /guinji/maps/{mapId}/members`로 실제 참여
+/// 처리한다(RelationJudger 판정 결과를 곧바로 받아 화면에 표시). 어떤
+/// 재화 지급(초대자 20P 등)도 이 화면 코드에서는 직접 다루지 않는다
+/// (실제 지급은 서버 트랜잭션 내부에서만 발생 — 절대 원칙). "나도 내
+/// 지도 만들기" Ghost 버튼은 온보딩(S2) 화면으로 실제 이동한다.
 class GuinjiJoinScreen extends StatefulWidget {
-  const GuinjiJoinScreen({super.key, this.inviterName = '지민'});
+  const GuinjiJoinScreen({super.key, this.inviteToken});
 
-  final String inviterName;
+  /// 공유 링크의 토큰(`sintong.app/g/{token}`의 마지막 세그먼트). null이면
+  /// (라우터 직접 진입 등) 초대 정보를 확인할 수 없어 제출 시 안내만 표시한다.
+  final String? inviteToken;
 
   @override
   State<GuinjiJoinScreen> createState() => _GuinjiJoinScreenState();
@@ -34,6 +34,35 @@ class _GuinjiJoinScreenState extends State<GuinjiJoinScreen> {
   final _dayController = TextEditingController();
   bool _noTime = false;
 
+  bool _loadingInvite = false;
+  bool _inviteInvalid = false;
+  bool _submitting = false;
+  String? _mapId;
+  String _ownerName = '지인';
+
+  @override
+  void initState() {
+    super.initState();
+    final token = widget.inviteToken;
+    if (token != null) {
+      _loadingInvite = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        final provider = context.read<GuinjiProvider>();
+        final data = await provider.fetchInvite(token);
+        if (!mounted) return;
+        setState(() {
+          _loadingInvite = false;
+          if (data == null) {
+            _inviteInvalid = true;
+          } else {
+            _mapId = data['mapId'] as String?;
+            _ownerName = data['ownerName'] as String? ?? '지인';
+          }
+        });
+      });
+    }
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -43,10 +72,91 @@ class _GuinjiJoinScreenState extends State<GuinjiJoinScreen> {
     super.dispose();
   }
 
-  void _handleSubmit() {
-    // [Phase G-7 범위] 실제 사주 계산·관계 판정·guinji_map_member 저장은
-    // 백엔드 §5 완성 후 연결한다. 현재는 입력 여부만 안내한다.
-    AppToast.show(context, '곧 만나볼 수 있어요! 준비 중이에요 🙏');
+  Future<void> _handleSubmit() async {
+    final name = _nameController.text.trim();
+    final year = int.tryParse(_yearController.text.trim());
+    final month = int.tryParse(_monthController.text.trim());
+    final day = int.tryParse(_dayController.text.trim());
+
+    if (name.isEmpty || year == null || month == null || day == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('이름과 생년월일을 모두 입력해 주세요.')),
+      );
+      return;
+    }
+    if (_mapId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('초대 링크 정보를 확인할 수 없습니다. 링크를 다시 확인해 주세요.')),
+      );
+      return;
+    }
+
+    DateTime birthDate;
+    try {
+      birthDate = DateTime(year, month, day);
+    } catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('생년월일을 다시 확인해 주세요.')),
+      );
+      return;
+    }
+
+    setState(() => _submitting = true);
+    final provider = context.read<GuinjiProvider>();
+    final result = await provider.joinMap(
+      mapId: _mapId!,
+      name: name,
+      isLunar: false,
+      birthDate: birthDate,
+      birthTime: _noTime ? null : null,
+    );
+    if (!mounted) return;
+    setState(() => _submitting = false);
+
+    if (result == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(provider.error ?? '참여에 실패했습니다.')),
+      );
+      return;
+    }
+
+    final relationship = result['relationship'] as Map<String, dynamic>?;
+    final relationType = relationship?['relationType'] as String? ?? 'inyeon';
+    final chemistryScore =
+        (relationship?['chemistryScore'] as num?)?.toInt() ?? 0;
+    final meta = guinjiRelationTypes[relationType];
+
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: GuinjiColors.surfaceCard,
+        title: const Text(
+          '참여 완료',
+          style: TextStyle(
+            fontFamily: GuinjiFonts.body,
+            color: GuinjiColors.textPrimary,
+          ),
+        ),
+        content: Text(
+          meta == null
+              ? '관계 판정이 완료되었습니다.'
+              : '$_ownerName님과 당신은 ${meta.hanja} ${meta.label}의 결이에요.\n케미 점수 $chemistryScore점',
+          style: const TextStyle(
+            fontFamily: GuinjiFonts.body,
+            color: GuinjiColors.textSecondary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('확인'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    Navigator.of(context).maybePop();
   }
 
   @override
@@ -102,7 +212,7 @@ class _GuinjiJoinScreenState extends State<GuinjiJoinScreen> {
                               TextSpan(
                                 children: [
                                   TextSpan(
-                                    text: widget.inviterName,
+                                    text: _ownerName,
                                     style: const TextStyle(
                                       color: GuinjiColors.lavender,
                                       fontWeight: FontWeight.w700,
@@ -143,7 +253,37 @@ class _GuinjiJoinScreenState extends State<GuinjiJoinScreen> {
                       ),
                     ),
                   ),
-                  _PrimaryCta(label: '관계 확인하기', onPressed: _handleSubmit),
+                  if (_loadingInvite)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Center(
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: GuinjiColors.lavender,
+                          ),
+                        ),
+                      ),
+                    )
+                  else if (_inviteInvalid)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        '초대 링크를 확인할 수 없습니다. 링크가 만료되었거나 잘못되었을 수 있어요.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: GuinjiFonts.ui,
+                          fontSize: 11,
+                          color: GuinjiColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  _PrimaryCta(
+                    label: _submitting ? '확인하는 중' : '관계 확인하기',
+                    onPressed: _submitting ? () {} : _handleSubmit,
+                  ),
                   const SizedBox(height: 6),
                   _GhostCta(
                     label: '나도 내 지도 만들기',
