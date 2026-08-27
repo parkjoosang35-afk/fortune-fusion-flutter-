@@ -71,6 +71,7 @@ import '../../features/home/presentation/jeontong_input_screen.dart';
 import '../../features/home/domain/jeontong_eighty_matrix.dart';
 import '../../features/history/presentation/history_readonly_screen.dart';
 import '../../features/history/presentation/history_jeontong_overview_screen.dart';
+import '../../features/guinji/presentation/guinji_map_screen.dart';
 import '../../features/guinji/presentation/guinji_onboarding_screen.dart';
 import '../auth/auth_token_store.dart';
 import 'app_navigator_key.dart';
@@ -126,6 +127,12 @@ class AppRouter {
       // 그대로 따른다.
       case '/guinji':
         return _page(const GuinjiOnboardingScreen());
+      // [Phase G-3] 지도 메인(S5) — 참여자가 1명 이상 생겼을 때의 코어
+      // 화면. 백엔드 API가 아직 없어 실제 진입 흐름(참여 발생 시 자동
+      // 전환)은 연결되어 있지 않고, 현재는 빈지도(S4) 화면의 임시 데모
+      // 링크로만 접근 가능하다(§검토용, 후속 Phase에서 실데이터 연동).
+      case '/guinji/map':
+        return _page(const GuinjiMapScreen());
       // [오늘의 운세 표준 플로우] 기존 진입점(홈 카드/전체보기 등)은 그대로
       // 두고, 새 4단계 플로우의 진입 화면(intro)으로 라우팅한다.
       case '/home/daily-fortune-detail':

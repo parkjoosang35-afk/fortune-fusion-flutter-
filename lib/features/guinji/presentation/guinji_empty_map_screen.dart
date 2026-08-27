@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../theme/guinji_theme.dart';
 import '../widgets/guinji_bg_atmosphere.dart';
+import 'guinji_map_screen.dart';
 
 /// 귀인지도(Guinji Map) — 04. 빈 지도 화면(🔴 바이럴의 첫 화면).
 ///
@@ -113,6 +114,26 @@ class GuinjiEmptyMapScreen extends StatelessWidget {
                     onPressed: () {
                       AppToast.show(context, '곧 만나볼 수 있어요! 준비 중이에요 🙏');
                     },
+                  ),
+                  // [Phase G-3 임시] 실제 참여 플로우(§공유 S8 → 지인참여
+                  // S9) 완성 전까지, 목데이터 기반 지도(S5) 화면을 검토할
+                  // 수 있는 개발용 진입 링크. 후속 Phase에서 실제 참여
+                  // 발생 시 자동 전환 로직으로 대체하고 이 버튼은 제거한다.
+                  TextButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const GuinjiMapScreen(),
+                      ),
+                    ),
+                    child: const Text(
+                      '(개발용) 채워진 지도 미리보기 →',
+                      style: TextStyle(
+                        fontFamily: GuinjiFonts.mono,
+                        fontSize: 10,
+                        letterSpacing: 1.0,
+                        color: GuinjiColors.textSecondary,
+                      ),
+                    ),
                   ),
                 ],
               ),
