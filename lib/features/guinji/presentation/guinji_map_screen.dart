@@ -7,6 +7,7 @@ import '../domain/guinji_relation_meta.dart';
 import '../theme/guinji_theme.dart';
 import '../widgets/guinji_bg_atmosphere.dart';
 import '../widgets/guinji_orbit_map.dart';
+import 'guinji_relation_detail_screen.dart';
 
 /// 귀인지도(Guinji Map) — 05. 지도 메인 화면.
 ///
@@ -98,9 +99,11 @@ class _GuinjiMapScreenState extends State<GuinjiMapScreen> {
                                 people: _filtered,
                                 size: 300,
                                 onSelect: (p) {
-                                  AppToast.show(
-                                    context,
-                                    '곧 만나볼 수 있어요! 준비 중이에요 🙏',
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          GuinjiRelationDetailScreen(person: p),
+                                    ),
                                   );
                                 },
                               ),
