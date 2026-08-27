@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/widgets/app_toast.dart';
 import '../../auth/application/auth_provider.dart';
 import '../theme/guinji_theme.dart';
 import '../widgets/guinji_bg_atmosphere.dart';
+import 'guinji_loading_screen.dart';
 
 /// 귀인지도(Guinji Map) — 02. 온보딩 화면.
 ///
@@ -101,10 +101,13 @@ class GuinjiOnboardingScreen extends StatelessWidget {
                   ),
                   _PrimaryCta(
                     onPressed: () {
-                      // [Phase G-1 범위] 지도 생성(S3 로딩 → S4/S5)은 아직
-                      // 구현되어 있지 않다. 후속 Phase에서
-                      // Navigator.pushNamed('/guinji/loading')로 교체한다.
-                      AppToast.show(context, '곧 만나볼 수 있어요! 준비 중이에요 🙏');
+                      // [Phase G-2] 로딩 화면(S3)으로 이동. 실제 지도 생성
+                      // API 호출·DB 저장은 후속 Phase(백엔드 §5)에서 연결.
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const GuinjiLoadingScreen(),
+                        ),
+                      );
                     },
                   ),
                   const SizedBox(height: 10),
