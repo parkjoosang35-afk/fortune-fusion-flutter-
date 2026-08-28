@@ -323,6 +323,10 @@ enum BlessingBagEarnReason {
   // (+2, 1일1회) — 60초 명상 타이머를 실제로 완료해야만 지급 요청을
   // 보낸다(단순 버튼 탭이 아닌 "행위" 완료가 트리거).
   dailyMeditation,
+  // [소원방 마무리 - Phase A] wish_comment(+2, 1일 3회 · 같은 소원엔 1회) —
+  // bokjumeoni-plan §06 COMMENTS + §02 EARN. sourceId=wishId를 함께 넘겨
+  // "같은 소원엔 1회"까지 서버가 함께 판정한다.
+  wishComment,
 }
 
 extension BlessingBagEarnReasonX on BlessingBagEarnReason {
@@ -349,6 +353,8 @@ extension BlessingBagEarnReasonX on BlessingBagEarnReason {
         return 'daily_candle';
       case BlessingBagEarnReason.dailyMeditation:
         return 'daily_meditation';
+      case BlessingBagEarnReason.wishComment:
+        return 'wish_comment';
     }
   }
 
@@ -372,6 +378,8 @@ extension BlessingBagEarnReasonX on BlessingBagEarnReason {
         return '오늘의 촛불';
       case BlessingBagEarnReason.dailyMeditation:
         return '60초 명상';
+      case BlessingBagEarnReason.wishComment:
+        return '응원 한 마디';
     }
   }
 
@@ -395,6 +403,8 @@ extension BlessingBagEarnReasonX on BlessingBagEarnReason {
         return '60초 동안 마음을 가라앉히면 받아요 (1일 1회)';
       case BlessingBagEarnReason.eventParticipation:
         return '진행 중인 이벤트에 참여하면 받아요';
+      case BlessingBagEarnReason.wishComment:
+        return '누군가의 소원에 응원 한 마디를 남기면 받아요 (15자 이상 · 1일 3회 · 같은 소원엔 1회)';
     }
   }
 
@@ -419,6 +429,8 @@ extension BlessingBagEarnReasonX on BlessingBagEarnReason {
       case BlessingBagEarnReason.dailyCandle:
         return 1;
       case BlessingBagEarnReason.dailyMeditation:
+        return 2;
+      case BlessingBagEarnReason.wishComment:
         return 2;
     }
   }

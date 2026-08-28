@@ -57,6 +57,20 @@ class WishWallProvider extends ChangeNotifier {
     return _repository.createComment(wishId, text);
   }
 
+  /// [소원방 마무리 - Phase A] 응원 작성 + 서버가 실제 지급한 wish_comment
+  /// 복주머니 금액을 함께 반환한다(markWishFulfilled와 동일한 패턴 — 서버
+  /// 트랜잭션이 이미 지급을 확정했으므로 호출부는 이 값만 표시하면 된다).
+  Future<({WishComment comment, int grantedAmount})> addCommentWithReward(
+    String wishId,
+    String text,
+  ) {
+    return _repository.createCommentWithReward(wishId, text);
+  }
+
+  Future<void> reportComment(String commentId, String reason) {
+    return _repository.reportComment(commentId, reason);
+  }
+
   /// 응원(♥) — 무료, 즉시 반영.
   Future<WishPost> support(String wishId) async {
     final updated = await _repository.support(wishId);

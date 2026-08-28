@@ -11,6 +11,7 @@ import '../widgets/wish_room_candle.dart';
 import '../widgets/wish_room_seal.dart';
 import '../widgets/wish_room_seal_mapping.dart';
 import 'wish_room_celebration_screen.dart';
+import 'wish_room_comments_screen.dart';
 
 /// 소원방(Wish Room) — 05. 소원 상세(Detail) 화면.
 ///
@@ -54,11 +55,13 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
   WishPost? _wish;
   bool _loading = true;
   bool _busy = false;
+  List<WishComment> _comments = [];
 
   @override
   void initState() {
     super.initState();
     _load();
+    _loadComments();
   }
 
   Future<void> _load() async {
@@ -70,6 +73,17 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
       _wish = wish;
       _loading = false;
     });
+  }
+
+  /// [소원방 마무리 - Phase A] 응원 3개 미리보기용. 상세 화면 진입 시
+  /// 병렬로 불러오고, 전체 목록은 [WishRoomCommentsScreen]에서 다시
+  /// 페이징 조회한다(이 화면은 미리보기 용도라 3개만 자르면 됨).
+  Future<void> _loadComments() async {
+    final comments = await context.read<WishWallProvider>().fetchComments(
+      widget.wishId,
+    );
+    if (!mounted) return;
+    setState(() => _comments = comments);
   }
 
   String get _dateLabel {
@@ -496,6 +510,105 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
                                 ),
                               ),
                             ],
+                          ),
+                          const SizedBox(height: 14),
+                          // [소원방 마무리 - Phase A] 응원 미리보기 (최대 3개)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                            decoration: BoxDecoration(
+                              color: WishRoomColors.surfaceCard,
+                              border: Border.all(
+                                color: WishRoomColors.surfaceCardBorder,
+                              ),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      '응원 ${_comments.length}개',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: WishRoomColors.textSecondary,
+                                      ),
+                                    ),
+                                    GestureDetector(
+                                      onTap: () => Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              WishRoomCommentsScreen(
+                                                wishId: wish.id,
+                                                wishText: wish.text,
+                                              ),
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        '전체보기 →',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: WishRoomColors.glow,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (_comments.isEmpty) ...[
+                                  const SizedBox(height: 10),
+                                  const Text(
+                                    '아직 응원이 없어요. 첫 응원을 남겨보세요.',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: WishRoomColors.textTertiary,
+                                    ),
+                                  ),
+                                ] else ...[
+                                  for (final c in _comments.take(3)) ...[
+                                    const SizedBox(height: 10),
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                c.authorName,
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: WishRoomColors
+                                                      .textSecondary,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                c.text,
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                  height: 1.4,
+                                                  color: WishRoomColors
+                                                      .textPrimary,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ],
+                              ],
+                            ),
                           ),
                           const SizedBox(height: 24),
                           // Quote footer (dashed border)

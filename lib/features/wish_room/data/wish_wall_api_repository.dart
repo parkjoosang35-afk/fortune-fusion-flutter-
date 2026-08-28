@@ -326,8 +326,13 @@ class ApiWishWallRepository implements WishWallRepository {
     }
   }
 
-  @override
-  Future<WishComment> createComment(String wishId, String text) async {
+  /// [소원방 마무리 - Phase A] createComment/createCommentWithReward 공용
+  /// 내부 구현. 서버가 응답 data.grantedAmount로 실제 지급액(+2, 미지급 시 0)을
+  /// 함께 반환한다(comments/route.ts $transaction 참고).
+  Future<({WishComment comment, int grantedAmount})> _createCommentImpl(
+    String wishId,
+    String text,
+  ) async {
     final uri = Uri.parse('$_base/$wishId/comments');
     try {
       final headers = await _authHeaders(json: true);
@@ -342,7 +347,7 @@ class ApiWishWallRepository implements WishWallRepository {
         );
       }
       final map = decoded['data'] as Map<String, dynamic>;
-      return WishComment(
+      final comment = WishComment(
         id: map['id'] as String,
         wishId: map['wishId'] as String? ?? wishId,
         authorName: map['authorName'] as String? ?? '',
@@ -352,9 +357,25 @@ class ApiWishWallRepository implements WishWallRepository {
             DateTime.now(),
         isMine: map['isMine'] as bool? ?? true,
       );
+      final grantedAmount = (map['grantedAmount'] as num?)?.toInt() ?? 0;
+      return (comment: comment, grantedAmount: grantedAmount);
     } catch (e) {
       _fail('createComment', e);
     }
+  }
+
+  @override
+  Future<WishComment> createComment(String wishId, String text) async {
+    final result = await _createCommentImpl(wishId, text);
+    return result.comment;
+  }
+
+  @override
+  Future<({WishComment comment, int grantedAmount})> createCommentWithReward(
+    String wishId,
+    String text,
+  ) {
+    return _createCommentImpl(wishId, text);
   }
 
   @override
@@ -381,6 +402,36 @@ class ApiWishWallRepository implements WishWallRepository {
       }
     } catch (e) {
       _fail('reportWish', e);
+    }
+  }
+
+  @override
+  Future<void> reportComment(String commentId, String reason) async {
+    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/reports');
+    try {
+      final userId = await AuthTokenStore.getCurrentUserId();
+      final headers = await _authHeaders(json: true);
+      final response = await http
+          .post(
+            uri,
+            headers: headers,
+            body: jsonEncode({
+              'userId': userId,
+              'targetType': 'comment',
+              'targetId': commentId,
+              'reason': reason,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        _fail(
+          'reportComment',
+          decoded['error'] ?? 'HTTP ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      _fail('reportComment', e);
     }
   }
 

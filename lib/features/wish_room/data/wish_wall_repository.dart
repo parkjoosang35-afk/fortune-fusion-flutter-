@@ -57,7 +57,30 @@ abstract class WishWallRepository {
   Future<List<WishPost>> fetchMyWishes();
   Future<List<WishComment>> fetchComments(String wishId);
   Future<WishComment> createComment(String wishId, String text);
+
+  /// [소원방 마무리 - Phase A] 서버 `POST /wishes/:id/comments`가 트랜잭션 안에서
+  /// 실제 지급한 wish_comment 복주머니 금액(+2, 1일 3회·같은 소원엔 1회 —
+  /// 미지급 시 0)을 함께 반환한다. createWishWithReward와 동일한 패턴 —
+  /// 클라이언트는 이 값을 그대로 표시하고, 별도로 earn()을 다시 호출하지
+  /// 않는다(이중 지급 방지). 기본 구현은 [createComment]를 호출한 뒤
+  /// grantedAmount=0으로 감싼다(MockWishWallRepository 등 기존 구현체 호환용).
+  Future<({WishComment comment, int grantedAmount})> createCommentWithReward(
+    String wishId,
+    String text,
+  ) async {
+    final comment = await createComment(wishId, text);
+    return (comment: comment, grantedAmount: 0);
+  }
   Future<void> reportWish(String wishId, String reason);
+
+  /// [소원방 마무리 - Phase A] 댓글(응원) 신고 — admin_web
+  /// `/api/public/reports`가 targetType='comment'를 이미 화이트리스트로
+  /// 지원한다(TARGET_TYPE_MAP). [commentId]는 서버가 반환한 `wc_<id>` 형태
+  /// 그대로 전달한다(parseTargetId가 접두사를 파싱). 기본 구현은
+  /// [reportWish]를 targetType='wish'로 잘못 위임하지 않고 그대로 no-op으로
+  /// 두어(MockWishWallRepository 등), 실제 신고는 [ApiWishWallRepository]가
+  /// override로만 처리한다.
+  Future<void> reportComment(String commentId, String reason) async {}
   Future<void> hideWish(String wishId);
   Future<void> blockUser(String authorId);
 
@@ -431,6 +454,18 @@ class MockWishWallRepository implements WishWallRepository {
     _comments.putIfAbsent(wishId, () => []).insert(0, comment);
     return comment;
   }
+
+  @override
+  Future<({WishComment comment, int grantedAmount})> createCommentWithReward(
+    String wishId,
+    String text,
+  ) async {
+    final comment = await createComment(wishId, text);
+    return (comment: comment, grantedAmount: text.length >= 15 ? 2 : 0);
+  }
+
+  @override
+  Future<void> reportComment(String commentId, String reason) async {}
 
   @override
   Future<void> reportWish(String wishId, String reason) async {

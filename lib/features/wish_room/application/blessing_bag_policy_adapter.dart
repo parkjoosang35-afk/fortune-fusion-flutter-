@@ -20,6 +20,11 @@ class BlessingBagPolicyAdapter {
 
   int get balance => _pouch.balance;
 
+  /// [소원방 마무리 - Phase A] 서버가 이미 트랜잭션 안에서 지급을 확정한
+  /// 뒤(예: 댓글 작성, 소원 성취), 잔액 표시만 최신화하고 싶을 때 사용한다.
+  /// gratitude_provider.seal()과 동일한 "서버 확정만 신뢰" 패턴.
+  Future<void> refreshBalance() => _pouch.load();
+
   /// [handoff.zip] §4.6: 서버 검증 확정만 신뢰하고 클라이언트에서 잔액을
   /// 미리 낙관적으로 차감하지 않는다. 여기서는 UI 버튼 활성화 판단용으로만
   /// 간단한 검증 결과를 미리 계산해서 반환한다(실제 차감은 spend에서).
@@ -117,6 +122,13 @@ class BlessingBagPolicyAdapter {
       sourceId: wishSourceId,
     );
   }
+
+  /// [소원방 마무리 - Phase A] 응원 한 마디(wish_comment, +2)는 소원 성취
+  /// (wishFulfilled)와 마찬가지로 서버가 POST /wishes/:id/comments 트랜잭션
+  /// 안에서 이미 지급을 완료한다(comments/route.ts 참고). 클라이언트가 여기서
+  /// 다시 [_pouch.earn]을 호출하면 이중 지급 요청이 되므로, 그런 메서드는
+  /// 만들지 않는다 — 서버 응답의 grantedAmount만 신뢰하고, 잔액은
+  /// [LuckPouchProvider.load]로 재조회한다(호출부: 신규 응원 목록 화면).
 
   /// 오늘의 촛불 보너스 — bokjumeoni-plan §02 EARN "매일의 발자국" 4종 중
   /// 하나(daily_candle, +1, 1일 1회). PointPolicy는 이미 Phase02 시딩으로
