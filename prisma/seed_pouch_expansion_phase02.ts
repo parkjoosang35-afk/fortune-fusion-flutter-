@@ -99,6 +99,13 @@ async function seedPointPolicies() {
 // ── 상점 카탈로그(ShopCatalogItem) — bokjumeoni-plan §02 "사용처 다섯 갈래" 1·2·4번 ──
 // 인장(1) 5종 / 촛불(2) 4종 / 부적(4) 3종. 관리자가 나중에 price/isActive만
 // 조정할 수 있도록(구조는 고정, 값만 조정 원칙) 여기서는 최초 1회만 시딩한다.
+//
+// [수정 - 기획 결함 시정] 기존 시드는 인장/촛불의 durationDays를 전부 null로
+// 넣어 "영원히 보유"로 만들어놨었다. 사용자 지적대로 상점의 모든 품목은
+// "소원을 빌 때 쓰는" 기간제 효과여야 하므로, 인장/촛불에도 부적과 동일하게
+// durationDays(기간제)를 부여한다. 가격이 높을수록 더 오래 지속되도록
+// 설계했다(금박 도장 60원 = 30일, 유촉 100원 = 45일 등). description에도
+// "N일간 보유 효과"를 명시해 구매 전에 사용법을 알 수 있게 한다.
 const SHOP_ITEMS: Array<{
   itemType: "seal" | "candle" | "talisman";
   itemCode: string;
@@ -108,17 +115,17 @@ const SHOP_ITEMS: Array<{
   durationDays: number | null;
   displayPriority: number;
 }> = [
-  // ── 인장(seal) 5종 — 옥30/은40/거북50/학50/금박60 ──
-  { itemType: "seal", itemCode: "seal_jade", nameKo: "옥 도장", descriptionKo: "맑고 단단한 옥으로 새긴 감사의 도장", price: 30, durationDays: null, displayPriority: 1 },
-  { itemType: "seal", itemCode: "seal_silver", nameKo: "은 도장", descriptionKo: "은은하게 빛나는 은으로 새긴 감사의 도장", price: 40, durationDays: null, displayPriority: 2 },
-  { itemType: "seal", itemCode: "seal_turtle", nameKo: "거북 도장", descriptionKo: "장수와 안정을 상징하는 거북 문양 도장", price: 50, durationDays: null, displayPriority: 3 },
-  { itemType: "seal", itemCode: "seal_crane", nameKo: "학 도장", descriptionKo: "고고한 학의 모습을 새긴 길상 도장", price: 50, durationDays: null, displayPriority: 4 },
-  { itemType: "seal", itemCode: "seal_gold_leaf", nameKo: "금박 도장", descriptionKo: "화려한 금박으로 마감한 귀한 도장", price: 60, durationDays: null, displayPriority: 5 },
-  // ── 촛불(candle) 4종 — 연꽃40/향초60/별초80/유촉100 ──
-  { itemType: "candle", itemCode: "candle_lotus", nameKo: "연꽃 초", descriptionKo: "은은한 연꽃 향이 감도는 초", price: 40, durationDays: null, displayPriority: 1 },
-  { itemType: "candle", itemCode: "candle_incense", nameKo: "향초", descriptionKo: "마음을 가라앉히는 은은한 향을 지닌 초", price: 60, durationDays: null, displayPriority: 2 },
-  { itemType: "candle", itemCode: "candle_star", nameKo: "별초", descriptionKo: "밤하늘의 별처럼 반짝이는 초", price: 80, durationDays: null, displayPriority: 3 },
-  { itemType: "candle", itemCode: "candle_jade_wax", nameKo: "유촉", descriptionKo: "귀한 재료로 빚은 오래 타는 초", price: 100, durationDays: null, displayPriority: 4 },
+  // ── 인장(seal) 5종 — 옥30/은40/거북50/학50/금박60, 전부 기간제 ──
+  { itemType: "seal", itemCode: "seal_jade", nameKo: "옥 도장", descriptionKo: "맑고 단단한 옥으로 새긴 감사의 도장 · 14일간 보유 효과", price: 30, durationDays: 14, displayPriority: 1 },
+  { itemType: "seal", itemCode: "seal_silver", nameKo: "은 도장", descriptionKo: "은은하게 빛나는 은으로 새긴 감사의 도장 · 21일간 보유 효과", price: 40, durationDays: 21, displayPriority: 2 },
+  { itemType: "seal", itemCode: "seal_turtle", nameKo: "거북 도장", descriptionKo: "장수와 안정을 상징하는 거북 문양 도장 · 30일간 보유 효과", price: 50, durationDays: 30, displayPriority: 3 },
+  { itemType: "seal", itemCode: "seal_crane", nameKo: "학 도장", descriptionKo: "고고한 학의 모습을 새긴 길상 도장 · 30일간 보유 효과", price: 50, durationDays: 30, displayPriority: 4 },
+  { itemType: "seal", itemCode: "seal_gold_leaf", nameKo: "금박 도장", descriptionKo: "화려한 금박으로 마감한 귀한 도장 · 30일간 보유 효과", price: 60, durationDays: 30, displayPriority: 5 },
+  // ── 촛불(candle) 4종 — 연꽃40/향초60/별초80/유촉100, 전부 기간제 ──
+  { itemType: "candle", itemCode: "candle_lotus", nameKo: "연꽃 초", descriptionKo: "은은한 연꽃 향이 감도는 초 · 14일간 보유 효과", price: 40, durationDays: 14, displayPriority: 1 },
+  { itemType: "candle", itemCode: "candle_incense", nameKo: "향초", descriptionKo: "마음을 가라앉히는 은은한 향을 지닌 초 · 21일간 보유 효과", price: 60, durationDays: 21, displayPriority: 2 },
+  { itemType: "candle", itemCode: "candle_star", nameKo: "별초", descriptionKo: "밤하늘의 별처럼 반짝이는 초 · 30일간 보유 효과", price: 80, durationDays: 30, displayPriority: 3 },
+  { itemType: "candle", itemCode: "candle_jade_wax", nameKo: "유촉", descriptionKo: "귀한 재료로 빚은 오래 타는 초 · 45일간 보유 효과", price: 100, durationDays: 45, displayPriority: 4 },
   // ── 부적(talisman) 3종 — 지킴100·100일 / 만월60·14일 / 벗20·30일 ──
   { itemType: "talisman", itemCode: "talisman_guardian", nameKo: "지킴 부적", descriptionKo: "100일 동안 소원을 든든히 지켜주는 부적", price: 100, durationDays: 100, displayPriority: 1 },
   { itemType: "talisman", itemCode: "talisman_full_moon", nameKo: "만월 부적", descriptionKo: "14일 동안 보름달의 기운을 담아주는 부적", price: 60, durationDays: 14, displayPriority: 2 },
