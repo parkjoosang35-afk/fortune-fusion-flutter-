@@ -8,6 +8,7 @@ import '../../wish_room/widgets/wish_room_candle.dart';
 import '../application/shop_provider.dart';
 import '../domain/shop_item_visuals.dart';
 import '../domain/shop_models.dart';
+import '../widgets/shop_purchase_effect.dart';
 import '../widgets/shop_widgets.dart';
 
 /// 촛불 상점 — `new-screens.jsx`의 `ScreenCandleShop` 픽셀 디자인을 그대로
@@ -50,8 +51,14 @@ class _CandleShopScreenState extends State<CandleShopScreen> {
         SnackBar(content: Text(shop.lastPurchaseError ?? '구매에 실패했습니다.')),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${item.nameKo}을(를) 얻었어요.')),
+      final color = candleColorFor(item.itemCode);
+      await showShopPurchaseEffect(
+        context,
+        glyph: WishRoomCandle(size: 60, color: color, lit: true),
+        label: '${item.nameKo}, 손으로 짤예요',
+        sublabel: item.durationDays != null
+            ? '${item.durationDays}일간 보유돼요'
+            : null,
       );
     }
   }
@@ -100,6 +107,9 @@ class _CandleShopScreenState extends State<CandleShopScreen> {
                             final item = shop.candles[i];
                             return _CandleTile(
                               item: item,
+                              remainingDays: item.owned
+                                  ? _remainingDaysFor(shop, item.itemCode)
+                                  : null,
                               isPurchasing: shop.isPurchasing(item.itemCode),
                               onTap: () => _handlePurchase(item),
                             );
@@ -115,16 +125,34 @@ class _CandleShopScreenState extends State<CandleShopScreen> {
       ),
     );
   }
+
+  /// 보유 중인 촛불의 인벤토리 항목을 찾아 남은 기간(일)을 계산한다.
+  int? _remainingDaysFor(ShopProvider shop, String itemCode) {
+    final matches = shop.inventory.where(
+      (e) => e.itemCode == itemCode && !e.isExpired,
+    );
+    if (matches.isEmpty) return null;
+    InventoryItem latest = matches.first;
+    for (final m in matches) {
+      if ((m.expiresAt?.millisecondsSinceEpoch ?? 0) >
+          (latest.expiresAt?.millisecondsSinceEpoch ?? 0)) {
+        latest = m;
+      }
+    }
+    return latest.remainingDays;
+  }
 }
 
 class _CandleTile extends StatelessWidget {
   const _CandleTile({
     required this.item,
+    required this.remainingDays,
     required this.isPurchasing,
     required this.onTap,
   });
 
   final ShopCatalogItem item;
+  final int? remainingDays;
   final bool isPurchasing;
   final VoidCallback onTap;
 
@@ -169,7 +197,11 @@ class _CandleTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    item.descriptionKo,
+                    item.owned && remainingDays != null
+                        ? '${item.descriptionKo} · $remainingDays일 남음'
+                        : item.durationDays != null
+                        ? '${item.descriptionKo} · ${item.durationDays}일간 보유'
+                        : item.descriptionKo,
                     style: const TextStyle(
                       fontSize: 11,
                       color: WishRoomColors.textSecondary,
@@ -185,6 +217,7 @@ class _CandleTile extends StatelessWidget {
               owned: item.owned,
               price: item.price,
               isPurchasing: isPurchasing,
+              ownedLabel: '보유중',
             ),
           ],
         ),

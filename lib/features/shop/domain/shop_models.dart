@@ -134,7 +134,8 @@ class InventoryItem {
     );
   }
 
-  /// 남은 기간(일). 만료 없는 품목(인장/촛불)은 null.
+  /// 남은 기간(일). durationDays가 없는 품목(현재는 없음, 향후 영구 품목
+  /// 추가 시를 위해 nullable 유지)은 null.
   int? get remainingDays {
     if (expiresAt == null) return null;
     final diff = expiresAt!.difference(DateTime.now()).inHours;

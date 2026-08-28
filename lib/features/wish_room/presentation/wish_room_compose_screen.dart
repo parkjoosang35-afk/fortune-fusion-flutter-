@@ -13,6 +13,7 @@ import '../widgets/wish_room_candle.dart';
 import '../widgets/wish_room_scroll.dart';
 import '../widgets/wish_room_seal.dart';
 import '../widgets/wish_room_seal_mapping.dart';
+import '../widgets/wish_room_sealing_ceremony.dart';
 
 /// 소원방(Wish Room) — 03. 소원 작성(Compose) 화면.
 ///
@@ -124,26 +125,22 @@ class _WishRoomComposeScreenState extends State<WishRoomComposeScreen>
         talismanItemCode: _selectedTalismanItemCode,
       );
       if (!mounted) return;
-      // [흐름] 봉인 완료 → 기존 "작성완료" 화면(WishWallSuccessScreen, 별도
-      // 트리거·별도 화면임을 문서 §8에서 이미 확인)이 아니라, 이 세션에서
-      // 이 화면과 짝을 이루는 확인 스낵바만 띄우고 소원방 홈으로 되돌아간다
-      // — 07 Box Opening/08 Celebration은 각각 "개봉"/"성취" 전용 트리거이므로
-      // 작성 직후에는 표시하지 않는다(설계 원칙 §7 혼동 방지 그대로 유지).
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: WishRoomColors.backgroundMid,
-          content: Text(
-            result.grantedAmount > 0
-                ? '🕯 소원이 봉인되었어요 · 복주머니 +${result.grantedAmount}개'
-                : '🕯 소원이 봉인되었어요',
-            style: const TextStyle(
-              fontSize: 13,
-              color: WishRoomColors.textPrimary,
-            ),
-          ),
-        ),
+      // [사용자 지적사항 반영 — "봉인 애니메이션 부재" 수정] 기존에는
+      // 서버 호출 성공 직후 텍스트 한 줄짜리 스낵바만 띄우고 바로 화면을
+      // 닫아, 실제로 촛불을 켜고 인장을 찍고 부적으로 감싸는 "의식감"이
+      // 전혀 느껴지지 않았다. 이제는 선택한 촛불/인장/부적이 실제로
+      // 결합되는 전면 시퀀스 애니메이션([showWishSealingCeremony])을
+      // 먼저 재생하고, 그 애니메이션이 스스로 화면을 닫은 뒤에만 이
+      // compose 화면을 pop한다 — 07 Box Opening/08 Celebration과는 별개의
+      // "봉인" 전용 트리거이므로 혼동되지 않는다(설계 원칙 §7 유지).
+      await showWishSealingCeremony(
+        context,
+        candleItemCode: _selectedCandleItemCode,
+        sealItemCode: _selectedSealItemCode,
+        talismanItemCode: _selectedTalismanItemCode,
+        grantedAmount: result.grantedAmount,
       );
+      if (!mounted) return;
       Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
@@ -446,9 +443,9 @@ class _OwnedItemPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final shop = context.watch<ShopProvider>();
-    // [복주머니 확장 Phase03 — 부적 실사용] 만료된 부적(isExpired=true)은
-    // 이미 효과가 끝난 것이므로 선택 목록에서 제외한다(인장/촛불은 영구
-    // 보관이라 isExpired가 항상 false).
+    // [상점 기획 결함 수정] 인장/촛불/부적 전부 기간제(durationDays)로
+    // 통일되었으므로, 만료된 항목(isExpired=true)은 이미 효과가 끝난
+    // 것이므로 선택 목록에서 제외한다.
     final owned = shop.inventory
         .where((i) => i.itemType == itemType && !i.isExpired)
         .toList();

@@ -1,8 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../wallet/application/wallet_provider.dart';
 import '../application/luckybag_provider.dart';
@@ -11,6 +10,11 @@ import '../domain/luckybag_product_model.dart';
 /// 03단계 §10.2 "복주머니 열기" 애니메이션 - 흔들림→확대→반짝임 파티클(1.5~2초).
 /// 06§4.9 `POST /v1/luckybags/:id/open` 대응 화면. 개봉(구매+추첨)이 완료되면
 /// LuckyBagResultScreen으로 결과를 전달하며 pushReplacement한다.
+///
+/// [복주머니 디자인 정합성 수정] 옛 다크 "신비로운 밤하늘" 그라디언트
+/// (AppColors.mysticGradient)를 걷어내고, 허브/상점과 같은 화이트+라벤더
+/// 톤([UnifiedColors])으로 통일한다. 애니메이션 로직(흔들림/확대/반짝임,
+/// 서버 개봉 트랜잭션 호출)은 그대로 유지 — 색만 교체.
 class LuckyBagOpenAnimationScreen extends StatefulWidget {
   final LuckyBagProductModel product;
 
@@ -85,62 +89,64 @@ class _LuckyBagOpenAnimationScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        decoration: const BoxDecoration(gradient: AppColors.mysticGradient),
-        child: SafeArea(
-          child: Center(
-            child: AnimatedBuilder(
-              animation: _controller,
-              builder: (context, _) {
-                final t = _controller.value;
-                // 0~0.4: 흔들림, 0.4~0.7: 확대, 0.7~1.0: 반짝임
-                final shakeT = (t / 0.4).clamp(0.0, 1.0);
-                final scaleT = ((t - 0.4) / 0.3).clamp(0.0, 1.0);
-                final sparkleT = ((t - 0.7) / 0.3).clamp(0.0, 1.0);
+      backgroundColor: UnifiedColors.bg,
+      body: SafeArea(
+        child: Center(
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, _) {
+              final t = _controller.value;
+              // 0~0.4: 흔들림, 0.4~0.7: 확대, 0.7~1.0: 반짝임
+              final shakeT = (t / 0.4).clamp(0.0, 1.0);
+              final scaleT = ((t - 0.4) / 0.3).clamp(0.0, 1.0);
+              final sparkleT = ((t - 0.7) / 0.3).clamp(0.0, 1.0);
 
-                final shakeOffset = shakeT < 1.0
-                    ? sin(shakeT * pi * 8) * (1 - shakeT) * 10
-                    : 0.0;
-                final scale = 1.0 + Curves.easeOutBack.transform(scaleT) * 0.4;
+              final shakeOffset = shakeT < 1.0
+                  ? sin(shakeT * pi * 8) * (1 - shakeT) * 10
+                  : 0.0;
+              final scale = 1.0 + Curves.easeOutBack.transform(scaleT) * 0.4;
 
-                return Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 180,
-                      height: 180,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          if (sparkleT > 0) ..._buildSparkles(sparkleT),
-                          Transform.translate(
-                            offset: Offset(shakeOffset, 0),
-                            child: Transform.scale(
-                              scale: scale,
-                              child: Text(
-                                widget.product.iconEmoji,
-                                style: const TextStyle(fontSize: 88),
-                              ),
+              return Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 180,
+                    height: 180,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Container(
+                          width: 160,
+                          height: 160,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: UnifiedColors.cardMain,
+                          ),
+                        ),
+                        if (sparkleT > 0) ..._buildSparkles(sparkleT),
+                        Transform.translate(
+                          offset: Offset(shakeOffset, 0),
+                          child: Transform.scale(
+                            scale: scale,
+                            child: Text(
+                              widget.product.iconEmoji,
+                              style: const TextStyle(fontSize: 88),
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: AppSpacing.xl),
-                    Text(
-                      '${widget.product.name}을 열고 있어요...',
-                      style: const TextStyle(color: Colors.white, fontSize: 15),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    const Text(
-                      '두근두근, 어떤 행운이 담겨있을까요?',
-                      style: TextStyle(color: Colors.white70, fontSize: 12),
-                    ),
-                  ],
-                );
-              },
-            ),
+                  ),
+                  const SizedBox(height: UnifiedTokens.spaceXxl),
+                  Text(
+                    '${widget.product.name}을 열고 있어요...',
+                    style: UnifiedText.bodyStrong(),
+                  ),
+                  const SizedBox(height: UnifiedTokens.spaceSm),
+                  Text('두근두근, 어떤 행운이 담겨있을까요?', style: UnifiedText.caption()),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -162,7 +168,7 @@ class _LuckyBagOpenAnimationScreenState
           child: Icon(
             Icons.star_rounded,
             size: 14 + (i % 3) * 4,
-            color: AppColors.secondary,
+            color: UnifiedColors.black,
           ),
         ),
       );

@@ -7,6 +7,7 @@ import '../../wish_room/widgets/wish_room_bg_atmosphere.dart';
 import '../application/shop_provider.dart';
 import '../domain/shop_item_visuals.dart';
 import '../domain/shop_models.dart';
+import '../widgets/shop_purchase_effect.dart';
 import '../widgets/shop_widgets.dart';
 
 /// 부적 상점 — bokjumeoni-plan `01-planning.html`에 "부적(지킴/만월/벗)"으로만
@@ -51,8 +52,24 @@ class _TalismanShopScreenState extends State<TalismanShopScreen> {
         SnackBar(content: Text(shop.lastPurchaseError ?? '구매에 실패했습니다.')),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${item.nameKo}을(를) 얻었어요.')),
+      final visual = talismanVisualFor(item.itemCode);
+      await showShopPurchaseEffect(
+        context,
+        glyph: Container(
+          width: 84,
+          height: 84,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: visual.color.withValues(alpha: 0.22),
+            border: Border.all(color: visual.color, width: 2),
+          ),
+          child: Text(visual.icon, style: const TextStyle(fontSize: 40)),
+        ),
+        label: '${item.nameKo}, 지켜주니 안심해요',
+        sublabel: item.durationDays != null
+            ? '${item.durationDays}일간 효력이 지속돼요'
+            : null,
       );
     }
   }

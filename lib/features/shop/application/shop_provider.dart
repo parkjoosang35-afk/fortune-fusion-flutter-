@@ -51,7 +51,12 @@ class ShopProvider extends ChangeNotifier {
         _repo.fetchTalismans(),
         _fetchInventorySafely(),
       ]);
+      // [상점 기획 결함 수정] 인장/촛불도 기간제로 바뀌었으므로, 만료된
+      // 항목(isExpired=true)은 "보유 중"으로 치지 않는다 — 그래야 기간이
+      // 끝난 뒤 같은 품목을 다시 구매(재사용)할 수 있다. 인벤토리 자체는
+      // 이력으로 남지만(append-only), owned 판정에는 유효한 것만 반영.
       final ownedCodes = (results[3] as List<InventoryItem>)
+          .where((e) => !e.isExpired)
           .map((e) => e.itemCode)
           .toSet();
       _seals = (results[0] as List<ShopCatalogItem>)

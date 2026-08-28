@@ -1,13 +1,16 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
-import '../../../core/widgets/app_button.dart';
+import '../../../core/theme/app_unified_style.dart';
 import '../domain/luckybag_product_model.dart';
 import '../domain/luckybag_reward_model.dart';
 
 /// 03단계 §10.2 "복주머니 열기" 결과화면 - 결과 카드 페이드인.
 /// 등급별 반짝임 강도 차등(best > rare > common > none, 03§10.2 가이드).
+///
+/// [복주머니 디자인 정합성 수정] 옛 다크 "신비로운 밤하늘" 그라디언트 배경
+/// (AppColors.mysticGradient/goldGradient)와 화이트 텍스트를 걷어내고,
+/// 허브/상점과 같은 화이트+라벤더 톤([UnifiedColors])으로 통일한다.
+/// 애니메이션(스케일/페이드/스파클) 로직은 그대로 유지 — 색과 배경만 교체.
 class LuckyBagResultScreen extends StatefulWidget {
   final LuckyBagOpenResult result;
   final LuckyBagProductModel product;
@@ -42,13 +45,13 @@ class _LuckyBagResultScreenState extends State<LuckyBagResultScreen>
   Color get _gradeColor {
     switch (widget.result.grade.code) {
       case 'best':
-        return AppColors.secondaryDark;
+        return const Color(0xFFA9772F);
       case 'rare':
-        return AppColors.info;
+        return const Color(0xFF4DA8FF);
       case 'common':
-        return AppColors.success;
+        return const Color(0xFF5FE3B3);
       default:
-        return AppColors.textSecondary;
+        return UnifiedColors.textSecondary;
     }
   }
 
@@ -85,123 +88,130 @@ class _LuckyBagResultScreenState extends State<LuckyBagResultScreen>
     final isWin = widget.result.grade.code != 'none';
 
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        decoration: const BoxDecoration(gradient: AppColors.mysticGradient),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.xl),
-              child: AnimatedBuilder(
-                animation: _controller,
-                builder: (context, _) {
-                  final fade = CurvedAnimation(
-                    parent: _controller,
-                    curve: const Interval(0.3, 1.0, curve: Curves.easeOut),
-                  ).value.clamp(0.0, 1.0);
-                  final scale = CurvedAnimation(
-                    parent: _controller,
-                    curve: const Interval(0.0, 0.7, curve: Curves.elasticOut),
-                  ).value.clamp(0.0, 1.3);
-                  final sparkleT = _controller.value;
+      backgroundColor: UnifiedColors.bg,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(UnifiedTokens.spaceXxl),
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, _) {
+                final fade = CurvedAnimation(
+                  parent: _controller,
+                  curve: const Interval(0.3, 1.0, curve: Curves.easeOut),
+                ).value.clamp(0.0, 1.0);
+                final scale = CurvedAnimation(
+                  parent: _controller,
+                  curve: const Interval(0.0, 0.7, curve: Curves.elasticOut),
+                ).value.clamp(0.0, 1.3);
+                final sparkleT = _controller.value;
 
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(
-                        width: 160,
-                        height: 160,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            if (_sparkleCount > 0) ..._buildSparkles(sparkleT),
-                            Transform.scale(
-                              scale: scale,
-                              child: Container(
-                                width: 120,
-                                height: 120,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  gradient: isWin
-                                      ? AppColors.goldGradient
-                                      : null,
-                                  color: isWin
-                                      ? null
-                                      : Colors.white.withValues(alpha: 0.12),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Text(
-                                  _resultEmoji,
-                                  style: const TextStyle(fontSize: 52),
-                                ),
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 160,
+                      height: 160,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          if (_sparkleCount > 0) ..._buildSparkles(sparkleT),
+                          Transform.scale(
+                            scale: scale,
+                            child: Container(
+                              width: 120,
+                              height: 120,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: isWin
+                                    ? UnifiedColors.cardMain
+                                    : UnifiedColors.chipInactiveBg,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Text(
+                                _resultEmoji,
+                                style: const TextStyle(fontSize: 52),
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: AppSpacing.xl),
-                      Opacity(
-                        opacity: fade,
-                        child: Column(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 4,
+                    ),
+                    const SizedBox(height: UnifiedTokens.spaceXxl),
+                    Opacity(
+                      opacity: fade,
+                      child: Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _gradeColor.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(
+                                UnifiedTokens.radiusPill,
                               ),
-                              decoration: BoxDecoration(
-                                color: _gradeColor.withValues(alpha: 0.18),
-                                borderRadius: BorderRadius.circular(
-                                  AppRadius.full,
+                            ),
+                            child: Text(
+                              widget.result.grade.name,
+                              style: UnifiedText.chipLabel(
+                                color: _gradeColor,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: UnifiedTokens.spaceMd),
+                          Text(
+                            isWin ? '축하해요! 좋은 행운을 발견했어요' : '다음 기회에 만나요',
+                            style: UnifiedText.titleLarge(),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: UnifiedTokens.spaceSm),
+                          Text(
+                            widget.result.rewardLabel,
+                            style: UnifiedText.title(
+                              color: UnifiedColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: UnifiedTokens.spaceSm),
+                          Text(
+                            '남은 복주머니 ${widget.result.remainingBalance}개',
+                            style: UnifiedText.caption(),
+                          ),
+                          const SizedBox(height: UnifiedTokens.spaceXxl),
+                          SizedBox(
+                            width: 200,
+                            child: ElevatedButton(
+                              onPressed: () => Navigator.of(context).popUntil(
+                                (r) => r.settings.name == '/home',
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: UnifiedColors.black,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    UnifiedTokens.radiusPill,
+                                  ),
                                 ),
                               ),
                               child: Text(
-                                widget.result.grade.name,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  color: _gradeColor,
-                                  fontSize: 12,
+                                '확인',
+                                style: UnifiedText.chipLabel(
+                                  color: Colors.white,
                                 ),
                               ),
                             ),
-                            const SizedBox(height: AppSpacing.md),
-                            Text(
-                              isWin ? '축하해요! 좋은 행운을 발견했어요' : '다음 기회에 만나요',
-                              style: Theme.of(context).textTheme.titleLarge
-                                  ?.copyWith(color: Colors.white),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: AppSpacing.sm),
-                            Text(
-                              widget.result.rewardLabel,
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(color: AppColors.secondary),
-                            ),
-                            const SizedBox(height: AppSpacing.sm),
-                            Text(
-                              '남은 복주머니 ${widget.result.remainingBalance}개',
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                              ),
-                            ),
-                            const SizedBox(height: AppSpacing.xxl),
-                            SizedBox(
-                              width: 200,
-                              child: AppButton(
-                                label: '확인',
-                                onPressed: () => Navigator.of(
-                                  context,
-                                ).popUntil((r) => r.settings.name == '/home'),
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ],
-                  );
-                },
-              ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ),
