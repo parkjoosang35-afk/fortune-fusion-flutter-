@@ -7,11 +7,49 @@ import '../../../core/widgets/app_dialog.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../auth/application/auth_provider.dart';
 import '../../pass/application/pass_provider.dart';
+import '../../wish_room/domain/evening_bell_notification_service.dart';
 
 /// [Sowoon.kr 리디자인 프롬프트] 다크모드 토글 UI 완전 제거.
 /// 앱은 항상 화이트/골드 라이트 테마로만 동작한다(ThemeProvider는 ThemeMode.light 고정).
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  bool? _bellEnabled; // null = 로딩 중
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBellState();
+  }
+
+  Future<void> _loadBellState() async {
+    final enabled = await EveningBellNotificationService.isEnabled();
+    if (!mounted) return;
+    setState(() => _bellEnabled = enabled);
+  }
+
+  Future<void> _onBellToggled(bool value) async {
+    setState(() => _bellEnabled = value);
+    if (value) {
+      final granted = await EveningBellNotificationService.enable();
+      if (!mounted) return;
+      if (!granted) {
+        setState(() => _bellEnabled = false);
+        AppToast.show(
+          context,
+          '알림 권한이 허용되지 않아 종소리를 보내드릴 수 없어요.',
+          isError: true,
+        );
+      }
+    } else {
+      await EveningBellNotificationService.disable();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,6 +64,40 @@ class SettingsScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(UnifiedTokens.screenPadding),
           children: [
+            Text('알림', style: UnifiedText.title()),
+            const SizedBox(height: UnifiedTokens.spaceSm),
+            Container(
+              decoration: BoxDecoration(
+                color: UnifiedColors.bg,
+                border: Border.all(color: UnifiedColors.border),
+                borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: UnifiedTokens.spaceLg,
+                  vertical: UnifiedTokens.spaceSm,
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.notifications_none_rounded,
+                      color: UnifiedColors.textSecondary,
+                      size: UnifiedTokens.iconLg,
+                    ),
+                    const SizedBox(width: UnifiedTokens.spaceMd),
+                    Expanded(
+                      child: Text('소원방 저녁 종소리', style: UnifiedText.bodyStrong()),
+                    ),
+                    Switch(
+                      value: _bellEnabled ?? false,
+                      onChanged: _bellEnabled == null ? null : _onBellToggled,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: UnifiedTokens.spaceXxl),
+
             Text('계정', style: UnifiedText.title()),
             const SizedBox(height: UnifiedTokens.spaceSm),
             Container(

@@ -4,6 +4,7 @@ import '../theme/wish_room_theme.dart';
 import '../widgets/wish_room_bg_atmosphere.dart';
 import '../widgets/wish_room_buttons.dart';
 import '../widgets/wish_room_candle.dart';
+import '../widgets/wish_room_evening_bell_dialog.dart';
 
 /// 소원방(Wish Room) — 01. 온보딩 화면.
 ///
@@ -135,12 +136,15 @@ class WishRoomOnboardingScreen extends StatelessWidget {
                     children: [
                       WishRoomPrimaryButton(
                         label: '소원방 들어가기',
-                        onPressed: onEnter,
+                        onPressed: () => _enterWithBellOptIn(context),
                       ),
                       const SizedBox(height: 10),
                       WishRoomGhostButton(
                         label: '이미 계정이 있어요',
-                        onPressed: onHaveAccount ?? onEnter,
+                        onPressed: () => _enterWithBellOptIn(
+                          context,
+                          isHaveAccount: true,
+                        ),
                       ),
                     ],
                   ),
@@ -151,5 +155,21 @@ class WishRoomOnboardingScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// [Phase C-1] 온보딩 마지막 단계 — CTA를 누르면 곧바로 진입시키지 않고,
+  /// 저녁 종소리 알림 옵트인 다이얼로그를 먼저 보여준 뒤(수락/거부 무관하게)
+  /// 원래의 진입 콜백을 호출한다. 다이얼로그는 항상 정상적으로 닫히므로
+  /// 온보딩 흐름 자체를 막지 않는다.
+  Future<void> _enterWithBellOptIn(
+    BuildContext context, {
+    bool isHaveAccount = false,
+  }) async {
+    await showEveningBellOptInDialog(context);
+    if (isHaveAccount) {
+      (onHaveAccount ?? onEnter)();
+    } else {
+      onEnter();
+    }
   }
 }

@@ -4,6 +4,7 @@ import 'app.dart';
 import 'core/router/guinji_deep_link_handler.dart';
 import 'features/home/domain/saju_fortune_rules.dart';
 import 'features/home/domain/saju_interpreter.dart';
+import 'features/wish_room/domain/evening_bell_notification_service.dart';
 
 /// [로컬 영속성] 앱 실행 시 실제 기기 documents 디렉터리를 기준으로
 /// Hive를 초기화한다. Hive를 사용하는 로컬 스토어 모듈이 `Hive.openBox()`를
@@ -30,5 +31,12 @@ Future<void> main() async {
   // 동작하도록 설계되어 있고(GuinjiDeepLinkHandler.init 내부에서 프레임 콜백
   // 사용), 앱 시작 자체를 블로킹할 필요는 없다.
   GuinjiDeepLinkHandler.init();
+  // [Phase C-1] 저녁 7시 종소리 알림 — 플러그인 초기화 후, 사용자가 과거에
+  // 옵트인했다면 예약을 다시 걸어준다(기기 재설치/데이터 초기화로 예약이
+  // 사라졌을 가능성 보정). await 하지 않는 이유: 이 부가 기능이 앱 시작을
+  // 블로킹할 필요가 없다(GuinjiDeepLinkHandler.init와 동일한 설계).
+  EveningBellNotificationService.initialize().then((_) {
+    EveningBellNotificationService.syncFromSavedPreference();
+  });
   runApp(const App());
 }
