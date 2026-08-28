@@ -24,12 +24,15 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        // [Phase C-1] flutter_local_notifications 20.1.0이 예약 알림의 하위호환을
+        // 위해 desugaring + Java 17을 요구함(패키지 android/build.gradle 참고).
+        isCoreLibraryDesugaringEnabled = true
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
+        jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
     defaultConfig {
@@ -41,6 +44,8 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // [Phase C-1] desugaring 사용 시 함께 권장되는 설정(패키지 README 참고).
+        multiDexEnabled = true
     }
 
     // [6-7-3] Release 서명 연결: 기존 android/key.properties + android/release-key.jks 를 사용.
@@ -65,5 +70,10 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // [Phase C-1] flutter_local_notifications 20.1.0 desugaring 요구사항
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
 
