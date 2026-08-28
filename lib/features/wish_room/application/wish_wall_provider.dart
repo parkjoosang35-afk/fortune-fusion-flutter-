@@ -190,17 +190,21 @@ class WishWallProvider extends ChangeNotifier {
   }
 
   /// [wishId]의 07 개봉 화면을 봤음을 서버에 기록한다(idempotent).
-  Future<void> markBoxOpened(String wishId) async {
+  /// [소원방 마무리 - Phase B] 서버가 이 호출 안에서 wish_100days(+30,
+  /// 소원당 1회) 지급을 함께 확정하므로 grantedAmount도 반환한다
+  /// (markWishFulfilled와 동일한 패턴). 기록 자체가 실패하면(비로그인/
+  /// 네트워크 오류) grantedAmount=0으로 조용히 무시한다(기존 실패 허용
+  /// 정책과 동일 — 다음 방문에 pending-openings가 다시 후보로 돌려줌).
+  Future<int> markBoxOpened(String wishId) async {
     try {
-      final updated = await _repository.markBoxOpened(wishId);
-      if (updated != null) {
-        _syncInLists(updated);
+      final result = await _repository.markBoxOpened(wishId);
+      if (result.wish != null) {
+        _syncInLists(result.wish!);
         notifyListeners();
       }
+      return result.grantedAmount;
     } catch (_) {
-      // 기록 실패는 조용히 무시 — 다음 방문에 pending-openings가 다시
-      // 후보로 돌려주는 정도는 허용 가능한 실패(findPendingBoxOpeningWishId
-      // 로컬 근사치의 기존 실패 허용 정책과 동일).
+      return 0;
     }
   }
 

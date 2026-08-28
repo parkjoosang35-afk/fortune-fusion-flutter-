@@ -124,11 +124,17 @@ class _WishRoomHomeScreenState extends State<WishRoomHomeScreen> {
           // 서버가 sealedAt asc 정렬로 내려주므로 첫 항목이 가장 오래된 것.
           final wish = pending.first;
           final ageDays = DateTime.now().difference(wish.createdAt).inDays;
-          await provider.markBoxOpened(wish.id);
+          // [소원방 마무리 - Phase B] 서버가 이 호출 트랜잭션 안에서
+          // wish_100days(+30, 소원당 1회)까지 확정 지급하므로 그 금액을
+          // 07 개봉 화면에 그대로 전달해 안내한다.
+          final grantedWish100Days = await provider.markBoxOpened(wish.id);
           if (!mounted) return;
           await Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => WishRoomBoxOpeningScreen(wishAgeDays: ageDays),
+              builder: (_) => WishRoomBoxOpeningScreen(
+                wishAgeDays: ageDays,
+                wish100DaysGrantedAmount: grantedWish100Days,
+              ),
             ),
           );
           if (!mounted) return;

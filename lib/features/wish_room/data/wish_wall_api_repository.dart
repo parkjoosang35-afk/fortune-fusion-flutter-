@@ -503,7 +503,9 @@ class ApiWishWallRepository implements WishWallRepository {
   }
 
   @override
-  Future<WishPost?> markBoxOpened(String wishId) async {
+  Future<({WishPost? wish, int grantedAmount})> markBoxOpened(
+    String wishId,
+  ) async {
     final uri = Uri.parse('$_base/$wishId/opened');
     try {
       final headers = await _authHeaders(json: true);
@@ -517,7 +519,11 @@ class ApiWishWallRepository implements WishWallRepository {
           decoded['error'] ?? 'HTTP ${response.statusCode}',
         );
       }
-      return _fromJson(decoded['data'] as Map<String, dynamic>);
+      final data = decoded['data'] as Map<String, dynamic>;
+      final wish = _fromJson(data);
+      // [소원방 마무리 - Phase B] wish_100days 서버 지급 확정 금액.
+      final grantedAmount = data['grantedAmount'] as int? ?? 0;
+      return (wish: wish, grantedAmount: grantedAmount);
     } catch (e) {
       _fail('markBoxOpened', e);
     }

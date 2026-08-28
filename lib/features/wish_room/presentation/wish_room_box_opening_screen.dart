@@ -36,10 +36,20 @@ import '../widgets/wish_room_dust.dart';
 /// "07 화면을 실제로 봤음"을 기록하는 책임은 호출부 1곳에만 두어
 /// 책임 소재를 명확히 한다).
 class WishRoomBoxOpeningScreen extends StatefulWidget {
-  const WishRoomBoxOpeningScreen({super.key, this.wishAgeDays = 7});
+  const WishRoomBoxOpeningScreen({
+    super.key,
+    this.wishAgeDays = 7,
+    this.wish100DaysGrantedAmount = 0,
+  });
 
   /// "N일 동안 밝혔던 당신의 소원이 하늘에 닿았습니다" 문구의 N.
   final int wishAgeDays;
+
+  /// [소원방 마무리 - Phase B] 호출부(WishRoomHomeScreen)가
+  /// `WishWallProvider.markBoxOpened`를 통해 이미 서버에서 확정 지급받은
+  /// wish_100days(+30, 소원당 1회) 금액. 0이면 이 채널의 지급 없음(이미
+  /// 지급됨 등)이므로 안내 문구를 표시하지 않는다.
+  final int wish100DaysGrantedAmount;
 
   @override
   State<WishRoomBoxOpeningScreen> createState() =>
@@ -68,7 +78,11 @@ class _WishRoomBoxOpeningScreenState extends State<WishRoomBoxOpeningScreen>
         .policy
         .earnWeeklyBoxOpeningBonus();
     if (!mounted) return;
-    setState(() => _grantedAmount = granted);
+    // [Phase B] 두 채널(weekly_box_opening + wish_100days)이 같은 화면
+    // 진입에서 동시에 지급될 수 있으므로 합산해서 안내한다.
+    setState(
+      () => _grantedAmount = granted + widget.wish100DaysGrantedAmount,
+    );
   }
 
   @override

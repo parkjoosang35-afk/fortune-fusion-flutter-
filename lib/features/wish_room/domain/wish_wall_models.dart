@@ -327,6 +327,12 @@ enum BlessingBagEarnReason {
   // bokjumeoni-plan §06 COMMENTS + §02 EARN. sourceId=wishId를 함께 넘겨
   // "같은 소원엔 1회"까지 서버가 함께 판정한다.
   wishComment,
+  // [소원방 마무리 - Phase B] daily_feed_visit(+1, 1일 1회) — bokjumeoni-plan
+  // §02 EARN "모두의 소원방을 스크롤해서 바닥까지 읽다". 클라이언트는 06
+  // Feed 화면에서 "3소원 이상 스크롤"을 확인한 뒤(=itemBuilder가 index 2
+  // 이상까지 실제로 빌드) 1회성으로 이 채널을 요청한다. 최종 1일 1회
+  // 제한은 서버(scope='daily')가 판정한다.
+  dailyFeedVisit,
 }
 
 extension BlessingBagEarnReasonX on BlessingBagEarnReason {
@@ -355,6 +361,8 @@ extension BlessingBagEarnReasonX on BlessingBagEarnReason {
         return 'daily_meditation';
       case BlessingBagEarnReason.wishComment:
         return 'wish_comment';
+      case BlessingBagEarnReason.dailyFeedVisit:
+        return 'daily_feed_visit';
     }
   }
 
@@ -380,6 +388,8 @@ extension BlessingBagEarnReasonX on BlessingBagEarnReason {
         return '60초 명상';
       case BlessingBagEarnReason.wishComment:
         return '응원 한 마디';
+      case BlessingBagEarnReason.dailyFeedVisit:
+        return '모두의 소원방 둘러보기';
     }
   }
 
@@ -405,6 +415,8 @@ extension BlessingBagEarnReasonX on BlessingBagEarnReason {
         return '진행 중인 이벤트에 참여하면 받아요';
       case BlessingBagEarnReason.wishComment:
         return '누군가의 소원에 응원 한 마디를 남기면 받아요 (15자 이상 · 1일 3회 · 같은 소원엔 1회)';
+      case BlessingBagEarnReason.dailyFeedVisit:
+        return '모두의 소원방에서 3개 이상 소원을 읽으면 받아요 (1일 1회)';
     }
   }
 
@@ -432,6 +444,8 @@ extension BlessingBagEarnReasonX on BlessingBagEarnReason {
         return 2;
       case BlessingBagEarnReason.wishComment:
         return 2;
+      case BlessingBagEarnReason.dailyFeedVisit:
+        return 1;
     }
   }
 }

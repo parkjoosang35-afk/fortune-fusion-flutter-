@@ -98,7 +98,12 @@ abstract class WishWallRepository {
   Future<List<WishPost>> fetchPendingBoxOpenings() async => const [];
 
   /// [wishId] 소원의 07 개봉 화면을 봤음을 서버에 기록한다(idempotent).
-  Future<WishPost?> markBoxOpened(String wishId) async => null;
+  /// [소원방 마무리 - Phase B] 서버가 이 호출 시점에 wish_100days(+30,
+  /// 소원당 1회) 지급을 함께 확정하므로 grantedAmount도 함께 반환한다
+  /// (markWishFulfilled와 동일 패턴 — idempotent라 이미 개봉된 소원이면 0).
+  Future<({WishPost? wish, int grantedAmount})> markBoxOpened(
+    String wishId,
+  ) async => (wish: null, grantedAmount: 0);
 
   /// [wishId] 소원을 "이뤄졌어요"로 표시한다. 서버가 실제 지급한 복주머니
   /// 금액을 grantedAmount로 함께 반환한다(idempotent — 이미 fulfilled면 0).
@@ -492,7 +497,9 @@ class MockWishWallRepository implements WishWallRepository {
   Future<List<WishPost>> fetchPendingBoxOpenings() async => const [];
 
   @override
-  Future<WishPost?> markBoxOpened(String wishId) async => null;
+  Future<({WishPost? wish, int grantedAmount})> markBoxOpened(
+    String wishId,
+  ) async => (wish: null, grantedAmount: 0);
 
   @override
   Future<({WishPost wish, int grantedAmount})> markWishFulfilled(

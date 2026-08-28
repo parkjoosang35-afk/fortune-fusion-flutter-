@@ -158,6 +158,19 @@ class BlessingBagPolicyAdapter {
 
   // ── [소원방 리스킨 — "보내기" 확장 채널] ──────────────────────────
 
+  /// [소원방 마무리 - Phase B] 모두의 소원방 피드 방문 보너스 —
+  /// daily_feed_visit(+1, 1일 1회). "3소원 이상 스크롤"을 실제로 확인한
+  /// 06 Feed 화면(WishRoomFeedScreen)이 1회성으로 호출한다. 서버가
+  /// scope='daily'로 최종 판정(이미 오늘 지급됐으면 0 반환).
+  Future<int> earnDailyFeedVisitBonus() {
+    return _pouch.earn(
+      BlessingBagEarnReason.dailyFeedVisit.defaultAmount,
+      BlessingBagEarnReason.dailyFeedVisit.label,
+      sourceType: BlessingBagEarnReason.dailyFeedVisit.code,
+      scope: 'daily',
+    );
+  }
+
   /// 감사 도장(Seal) 보내기 — sendPouch보다 가벼운 소액 소비로, 감사의
   /// 마음을 도장 하나로 표현할 때 사용(기본 1개).
   Future<bool> giftSeal({int amount = 1}) {

@@ -53,12 +53,28 @@ class _WishRoomFeedScreenState extends State<WishRoomFeedScreen> {
   int _selectedChip = 0;
   final Set<String> _busySendIds = {};
 
+  // [소원방 마무리 - Phase B] daily_feed_visit(+1, 1일 1회) — bokjumeoni-plan
+  // §02 EARN "모두의 소원방을 스크롤해서 바닥까지 읽다 · 3소원 이상 읽어야
+  // 인정". "3소원 이상 노출"을 itemBuilder가 실제로 그 인덱스까지 빌드했는지
+  // 로 판정한다(스크롤 이벤트 델타 누적 대신, 실제로 화면에 렌더링된 카드
+  // 개수를 근거로 삼아야 "스크롤해서 읽었다"는 의도에 더 부합함). 이 화면
+  // 인스턴스당 1회만 요청하도록 플래그로 방어한다(서버도 scope='daily'로
+  // 최종 방어하지만, 불필요한 중복 네트워크 호출을 줄이기 위함).
+  bool _feedVisitClaimed = false;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<WishWallProvider>().ensureLoaded();
     });
+  }
+
+  void _maybeClaimFeedVisitBonus(int builtIndex) {
+    // index는 0부터 시작하므로 "3소원 이상"은 index >= 2를 의미한다.
+    if (_feedVisitClaimed || builtIndex < 2) return;
+    _feedVisitClaimed = true;
+    context.read<WishWallProvider>().policy.earnDailyFeedVisitBonus();
   }
 
   List<WishPost> _filtered(List<WishPost> feed) {
@@ -211,6 +227,13 @@ class _WishRoomFeedScreenState extends State<WishRoomFeedScreen> {
                                   const SizedBox(height: 12),
                               itemBuilder: (context, i) {
                                 final wish = posts[i];
+                                // [Phase B] 카드가 실제로 빌드되는 시점 =
+                                // 사용자가 그만큼 스크롤해서 읽은 시점으로
+                                // 간주한다(ListView.separated는 기본적으로
+                                // 화면에 보이거나 곧 보일 위치까지만 빌드).
+                                WidgetsBinding.instance.addPostFrameCallback(
+                                  (_) => _maybeClaimFeedVisitBonus(i),
+                                );
                                 return _FeedCard(
                                   wish: wish,
                                   timeLabel: _timeAgoLabel(wish.createdAt),
