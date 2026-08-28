@@ -10,6 +10,7 @@ import '../../../core/widgets/premium_chip.dart';
 import '../../../core/widgets/premium_badge.dart';
 import '../../../core/widgets/premium_graphics.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../../../core/widgets/face_palm_select_sheet.dart';
 import '../../auth/application/auth_provider.dart';
 import '../../pass/application/pass_provider.dart';
 import '../../pass/domain/pending_pass_request.dart';
@@ -284,7 +285,6 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
     '사주': 'saju',
     '타로': 'tarot',
     '얼굴/손금': 'face_palm',
-    '상담/해석': 'consultation_ext',
   };
 
   /// 관리자 데이터를 기존 정적 그룹 구조([_categoryGroups]와 동일한 레코드
@@ -598,12 +598,6 @@ class _TrendingRow extends StatelessWidget {
     // 없이 둘러볼 수 있어야 하므로 false로 변경. 실제 게이트는
     // tarot_category_detail_screen.dart의 "시작하기"(다음 액션)로 옮겼다.
     (Icons.style_outlined, '타로', AppRouter.tarotIntroRoute, false),
-    (
-      Icons.chat_bubble_outline_rounded,
-      'AI 상담',
-      '/ai-fortune/consultation/type',
-      true,
-    ),
     (Icons.badge_outlined, '이름 운세', '/ai-fortune/name/input', true),
     (Icons.back_hand_outlined, '손금', '/ai-fortune/palm/capture', true),
   ];
@@ -875,15 +869,6 @@ _categoryGroups = [
       (label: '손금', route: '/ai-fortune/palm/capture', pass: true),
     ],
   ),
-  (
-    icon: Icons.chat_bubble_outline_rounded,
-    title: '상담/해석',
-    desc: '혼자 고민하지 말고 함께 이야기해요',
-    items: [
-      (label: 'AI 상담', route: '/ai-fortune/consultation/type', pass: true),
-      (label: '고민상담', route: '/ai-fortune/consultation/type', pass: true),
-    ],
-  ),
 ];
 
 /// 그룹 1개를 카드로 렌더링 - 제목/설명 + 하위 카테고리 미니 칩(Wrap).
@@ -979,7 +964,7 @@ class _SubCategoryChip extends StatelessWidget {
   }
 }
 
-/// ⑤ 빠른 진입 기능 섹션 - AI상담/이름운세/행운의번호/소원게시판/소원방.
+/// ⑤ 빠른 진입 기능 섹션 - 관상/손금/이름운세/행운의번호/소원방.
 /// 우리 서비스 고유 감성 기능·커뮤니티로 이어주는 짧은 CTA 카드 5개.
 class _QuickEntryRow extends StatelessWidget {
   const _QuickEntryRow();
@@ -997,25 +982,9 @@ class _QuickEntryRow extends StatelessWidget {
           switch (i) {
             case 0:
               return _QuickEntryCard(
-                icon: Icons.chat_bubble_outline_rounded,
-                label: 'AI 상담',
-                onTap: () async {
-                  final isPassActive = context
-                      .read<AccessChecker>()
-                      .canAccessFortuneScope();
-                  if (isPassActive) {
-                    Navigator.of(
-                      context,
-                    ).pushNamed('/ai-fortune/consultation/type');
-                  } else {
-                    await navigateWithPassGate(
-                      context,
-                      title: 'AI 상담',
-                      route: '/ai-fortune/consultation/type',
-                      requiresPass: true,
-                    );
-                  }
-                },
+                icon: Icons.face_outlined,
+                label: '관상/손금',
+                onTap: () => showFacePalmSelectSheet(context),
               );
             case 1:
               return _QuickEntryCard(
@@ -1198,7 +1167,7 @@ class _PassStatusStripState extends State<_PassStatusStrip> {
   }
 }
 
-/// ⑦ 하단 연결 CTA - 커뮤니티 가기 / 후기 보기 / 고민상담 보기.
+/// ⑦ 하단 연결 CTA - 소원방 가기 / 관상/손금 보기.
 /// 전체보기가 "운세 메뉴판"에서 끝나지 않고 커뮤니티·감성 기능까지 이어지도록
 /// 마지막에 가볍게 3개의 연결 지점을 배치한다.
 class _BottomConnectRow extends StatelessWidget {
@@ -1220,11 +1189,9 @@ class _BottomConnectRow extends StatelessWidget {
         const SizedBox(width: UnifiedTokens.spaceSm),
         Expanded(
           child: _ConnectTile(
-            icon: Icons.chat_bubble_rounded,
-            label: '고민상담 보기',
-            onTap: () => Navigator.of(
-              context,
-            ).pushNamed('/ai-fortune/consultation/type'),
+            icon: Icons.face_rounded,
+            label: '관상/손금 보기',
+            onTap: () => showFacePalmSelectSheet(context),
           ),
         ),
       ],

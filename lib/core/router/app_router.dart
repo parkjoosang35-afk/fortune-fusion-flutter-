@@ -33,9 +33,6 @@ import '../../features/fortune/palm/presentation/palm_result_screen.dart';
 import '../../features/fortune/palm/presentation/palm_history_screen.dart';
 import '../../features/name_fortune/presentation/name_fortune_input_screen.dart';
 import '../../features/name_fortune/presentation/name_fortune_result_screen.dart';
-import '../../features/consultation/presentation/consultation_type_screen.dart';
-import '../../features/consultation/presentation/consultation_chat_screen.dart';
-import '../../features/wish_counsel/presentation/wish_counsel_home_screen.dart';
 import '../../features/wallet/presentation/wallet_screen.dart';
 import '../../features/mission/presentation/mission_screen.dart';
 import '../../features/ranking/presentation/ranking_screen.dart';
@@ -406,16 +403,6 @@ class AppRouter {
         return _page(const NameFortuneInputScreen());
       case '/ai-fortune/name/result':
         return _page(const NameFortuneResultScreen());
-
-      // ── AI상담 ──
-      case '/ai-fortune/consultation/type':
-        return _page(const ConsultationTypeScreen());
-      case '/ai-fortune/consultation/chat':
-        return _page(const ConsultationChatScreen());
-
-      // ── 상담 (Midnight Comfort, 신통방통소원방 옆 신규 섹션) ──
-      case '/wish-counsel/home':
-        return _page(const WishCounselHomeScreen());
 
       // ── 리워드 ──
       case '/reward/wallet':

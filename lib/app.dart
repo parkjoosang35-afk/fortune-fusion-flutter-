@@ -31,8 +31,6 @@ import 'features/home/application/fortune_category_provider.dart';
 import 'features/home/data/fortune_category_repository.dart';
 import 'features/home/application/home_page_config_provider.dart';
 import 'features/home/data/page_config_repository.dart';
-import 'features/consultation/application/consultation_provider.dart';
-import 'features/consultation/data/consultation_repository.dart';
 import 'features/mission/application/mission_provider.dart';
 import 'features/mission/data/mission_repository.dart';
 import 'features/ranking/application/ranking_provider.dart';
@@ -61,8 +59,6 @@ import 'features/wish_room/data/wish_wall_repository.dart';
 import 'features/wish_room/data/wish_wall_api_repository.dart';
 import 'features/wish_room/application/blessing_bag_policy_adapter.dart';
 import 'features/wish_room/application/wish_wall_provider.dart';
-import 'features/wish_counsel/data/wish_counsel_repository.dart';
-import 'features/wish_counsel/application/wish_counsel_provider.dart';
 import 'features/shop/data/shop_repository.dart';
 import 'features/shop/data/shop_api_repository.dart';
 import 'features/shop/application/shop_provider.dart';
@@ -187,19 +183,6 @@ class App extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => HomePageConfigProvider(HomePageConfigRepository()),
         ),
-        // 07단계(추가) §3.5 - ConsultationProvider가 사주 계산/타로 카드뽑기를
-        // 채팅 흐름 안에서 수행하려면 SajuProvider/TarotProvider 인스턴스가 필요하다.
-        // 새 Provider를 만들지 않고 위에서 이미 등록한 인스턴스를 attachFortuneProviders로
-        // 주입해, 사주/타로 히스토리 화면과 동일한 상태(LoadState)를 공유한다.
-        ChangeNotifierProxyProvider2<
-          SajuProvider,
-          TarotProvider,
-          ConsultationProvider
-        >(
-          create: (_) => ConsultationProvider(ConsultationRepository()),
-          update: (_, saju, tarot, consultation) =>
-              consultation!..attachFortuneProviders(saju, tarot),
-        ),
         ChangeNotifierProvider(
           create: (_) => MissionProvider(MissionRepository()),
         ),
@@ -235,11 +218,6 @@ class App extends StatelessWidget {
           update: (context, policy, previous) =>
               previous ??
               WishWallProvider(context.read<WishWallRepository>(), policy),
-        ),
-        // [상담(Midnight Comfort)] 신통방통소원방 옆 신규 섹션 — 완전 Mock,
-        // 무료 광고형 구조(코인 차감 없음) 정책을 따른다.
-        ChangeNotifierProvider(
-          create: (_) => WishCounselProvider(WishCounselRepository()),
         ),
         // [복주머니 확장 Phase02-B] 상점(인장/촛불/부적) + 보물함 —
         // admin_web `/api/public/shop/*`, `/api/public/inventory` 실 API 연동.

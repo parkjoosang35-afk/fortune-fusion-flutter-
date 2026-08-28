@@ -15,6 +15,7 @@ import '../../../core/domain/access/access_checker.dart';
 import '../../auth/application/auth_provider.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../wish_room/presentation/wish_room_entry_gate.dart';
+import '../../../core/widgets/face_palm_select_sheet.dart';
 import 'home_style_tokens.dart';
 import 'home_banner_carousel.dart';
 import '../domain/jeontong_eighty_matrix.dart';
@@ -744,7 +745,7 @@ class _FortuneTarotMiniCard extends StatelessWidget {
   }
 }
 
-/// ⑥ 소원방 · 상담 카드 - #F5F3FB
+/// ⑥ 소원방 · 관상/손금 카드 - #F5F3FB
 ///
 /// [소원방 리스킨] 복주머니와 별개인 자체 화폐("조각") 경제를 쓰던 구
 /// "신통방통 소원방"(wish_room) 모듈은 완전히 삭제되었고, 그 대체품인
@@ -752,7 +753,13 @@ class _FortuneTarotMiniCard extends StatelessWidget {
 /// 리스킨에서는 `design_handoff_wish_room.zip`(V2 "마법진이 소환되는
 /// 신전" 팔레트)을 적용한 [WishRoomHomeScreen](제단 홈)으로 다시 교체한다.
 /// 이 화면은 하단 탭바의 "소원방" 탭과 완전히 동일한 화면이다(단일 진입점).
-/// "상담"(Midnight Comfort, 9명의 AI 상담사, 완전 무료) 카드는 그대로 유지한다.
+/// [상담 기능 완전 삭제] "상담"(wish_counsel 클라이언트 챗봇 시뮬레이션 +
+/// consultation 실LLM 상담) 두 시스템 모두 사용자 지시로 완전히 삭제되었다.
+/// 그 자리는 이미 구현되어 있었지만 "전체보기"에만 있던 관상/손금 두 기능을
+/// 하나로 합친 카드로 교체한다. 탭하면 [showFacePalmSelectSheet]가 관상/손금
+/// 선택 바텀시트를 띄우고, 각 선택은 기존 `/ai-fortune/face/capture`,
+/// `/ai-fortune/palm/capture` 라우트로 [navigateWithPassGate]를 거쳐 이동한다
+/// (새 라우트/화면 생성 없음, 기존 화면 재사용).
 class _WishBoardRoomRow extends StatelessWidget {
   const _WishBoardRoomRow();
 
@@ -777,12 +784,11 @@ class _WishBoardRoomRow extends StatelessWidget {
           const SizedBox(width: _Dims.wishCardGap),
           Expanded(
             child: _LavenderMiniCard(
-              title: '상담',
-              bottomLabel: '마음을 나눠요',
+              title: '관상 · 손금',
+              bottomLabel: '얼굴과 손을 읽어보세요',
               circleIcon: Icons.arrow_drop_up_rounded,
               circleStyle: PremiumCircleButtonStyle.black,
-              onTap: () =>
-                  Navigator.of(context).pushNamed('/wish-counsel/home'),
+              onTap: () => showFacePalmSelectSheet(context),
             ),
           ),
         ],

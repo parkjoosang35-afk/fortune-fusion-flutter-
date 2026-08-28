@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_unified_style.dart';
-import '../../../core/widgets/fortune/ai_consult_banner.dart';
 import '../../../core/widgets/fortune/disclaimer_banner.dart';
 import '../../../core/widgets/fortune/hero_summary_card.dart';
 import '../../../core/widgets/fortune/list_card.dart';
@@ -68,7 +67,7 @@ import 'widgets/jeontong_result_text_extractor.dart';
 /// "게이트는 진입 전에, 결과 화면은 결과만" 원칙).
 ///
 /// 기존 [GenericFortuneResultScreen]과 동일한 공용 위젯(HeroSummaryCard/
-/// SectionCard/ListCard/LuckElementsGrid/ResultBottomActions/AIConsultBanner)을
+/// SectionCard/ListCard/LuckElementsGrid/ResultBottomActions)을
 /// 그대로 재사용해 새 UI 컴포넌트를 만들지 않는다.
 /// [2026 무당식 단정 확장 — 그룹①(이진판정형) 사용자 승인 "선택지 B"]
 /// "좋다/주의"를 단정할 수 있는 15종(카드 UI는 강행하지 않고, 기존
@@ -250,9 +249,6 @@ class _JeontongEightyResultScreenState
                   isBookmarked: _isBookmarked,
                   onSave: () => _onSave(entry),
                   onToggleBookmark: () => _onTapBookmark(entry.id),
-                  onOpenAiConsult: () => Navigator.of(
-                    context,
-                  ).pushNamed('/ai-fortune/consultation/type'),
                 ),
         ),
       ),
@@ -458,7 +454,6 @@ class _ResultBody extends StatelessWidget {
     required this.isBookmarked,
     required this.onSave,
     required this.onToggleBookmark,
-    required this.onOpenAiConsult,
   });
 
   final JeontongCategoryEntry entry;
@@ -470,7 +465,6 @@ class _ResultBody extends StatelessWidget {
   final bool isBookmarked;
   final VoidCallback onSave;
   final VoidCallback onToggleBookmark;
-  final VoidCallback onOpenAiConsult;
 
   @override
   Widget build(BuildContext context) {
@@ -643,15 +637,8 @@ class _ResultBody extends StatelessWidget {
                       (route) => route.settings.name == '/home',
                     ),
                   ),
-                  ResultActionItem(
-                    icon: Icons.chat_bubble_outline_rounded,
-                    label: '고민상담',
-                    onTap: onOpenAiConsult,
-                  ),
                 ],
               ),
-              const SizedBox(height: UnifiedTokens.spaceMd),
-              AIConsultBanner(onTap: onOpenAiConsult),
             ],
           ),
         ),

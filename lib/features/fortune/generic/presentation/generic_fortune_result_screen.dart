@@ -6,7 +6,6 @@ import '../../../../core/domain/access/access_checker.dart';
 import '../../../../core/domain/gate/category_gate.dart';
 import '../../../../core/theme/app_unified_style.dart';
 import '../../../../core/widgets/app_toast.dart';
-import '../../../../core/widgets/fortune/ai_consult_banner.dart';
 import '../../../../core/widgets/fortune/disclaimer_banner.dart';
 import '../../../../core/widgets/fortune/hero_summary_card.dart';
 import '../../../../core/widgets/fortune/list_card.dart';
@@ -29,7 +28,7 @@ import '../domain/generic_fortune_report_builder.dart';
 ///
 /// 새 화면/네비게이션 스택을 추가하지 않고, 기존 [DailyFortuneResultScreen]과
 /// 동일한 공용 위젯(HeroSummaryCard/SectionCard/ListCard/LuckElementsGrid/
-/// ResultBottomActions/AIConsultBanner)을 그대로 재사용한다.
+/// ResultBottomActions)을 그대로 재사용한다.
 class GenericFortuneResultScreen extends StatefulWidget {
   const GenericFortuneResultScreen({super.key, required this.categoryId});
 
@@ -85,9 +84,6 @@ class _GenericFortuneResultScreenState
                 entry: _entry!,
                 saved: _saved,
                 onSave: () => _onSave(_entry!),
-                onOpenAiConsult: () => Navigator.of(
-                  context,
-                ).pushNamed('/ai-fortune/consultation/type'),
               )
             : _LockedView(entry: _entry!, reasonLabel: _reasonLabel),
       ),
@@ -216,13 +212,11 @@ class _ResultBody extends StatelessWidget {
     required this.entry,
     required this.saved,
     required this.onSave,
-    required this.onOpenAiConsult,
   });
 
   final FortuneCategoryEntry entry;
   final bool saved;
   final VoidCallback onSave;
-  final VoidCallback onOpenAiConsult;
 
   @override
   Widget build(BuildContext context) {
@@ -272,15 +266,8 @@ class _ResultBody extends StatelessWidget {
                     onTap: () =>
                         Navigator.of(context).pushNamed('/home/all-categories'),
                   ),
-                  ResultActionItem(
-                    icon: Icons.chat_bubble_outline_rounded,
-                    label: '고민상담',
-                    onTap: onOpenAiConsult,
-                  ),
                 ],
               ),
-              const SizedBox(height: UnifiedTokens.spaceMd),
-              AIConsultBanner(onTap: onOpenAiConsult),
             ],
           ),
         ),
