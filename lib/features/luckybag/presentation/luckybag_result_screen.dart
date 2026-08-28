@@ -162,7 +162,7 @@ class _LuckyBagResultScreenState extends State<LuckyBagResultScreen>
                           ),
                           const SizedBox(height: UnifiedTokens.spaceMd),
                           Text(
-                            isWin ? '축하해요! 좋은 행운을 발견했어요' : '다음 기회에 만나요',
+                            isWin ? '축하해요, 좋은 행운을 발견했어요' : '다음 기회에 만나요',
                             style: UnifiedText.titleLarge(),
                             textAlign: TextAlign.center,
                           ),

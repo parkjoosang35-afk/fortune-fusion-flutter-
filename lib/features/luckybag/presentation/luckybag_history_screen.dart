@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/app_empty_state.dart';
 import '../application/luckybag_provider.dart';
 import '../domain/luckybag_open_log_model.dart';
@@ -9,6 +8,11 @@ import '../domain/luckybag_open_log_model.dart';
 /// 03단계 §3.3 리워드 탭 - LuckyBagHistoryScreen(개봉 이력/보상요약)
 /// 06§4.9 `GET /v1/luckybags/history` + `GET /rewards/my` 대응 화면.
 /// 03§9.2 재사용 패턴("내 보관함" 계열) - MyAmuletsScreen과 동일한 탭(이력/보상요약) 구조.
+///
+/// [복주머니 디자인 정합성 수정] 옛 다크 "신비로운 밤하늘" 그라디언트 배경
+/// (AppColors.mysticGradient)과 화이트 하드코딩 텍스트를 걷어내고, 허브/상점과
+/// 같은 화이트+라벤더 톤([UnifiedColors])으로 통일한다. 탭 구조·데이터 로딩
+/// 로직은 그대로 유지 — 색과 컴포넌트만 교체.
 class LuckyBagHistoryScreen extends StatefulWidget {
   const LuckyBagHistoryScreen({super.key});
 
@@ -41,10 +45,19 @@ class _LuckyBagHistoryScreenState extends State<LuckyBagHistoryScreen>
     final provider = context.watch<LuckyBagProvider>();
 
     return Scaffold(
+      backgroundColor: UnifiedColors.bg,
       appBar: AppBar(
-        title: const Text('복주머니 이력'),
+        backgroundColor: UnifiedColors.bg,
+        elevation: 0,
+        title: Text('복주머니 이력', style: UnifiedText.title()),
+        iconTheme: IconThemeData(color: UnifiedColors.textPrimary),
         bottom: TabBar(
           controller: _tabController,
+          labelColor: UnifiedColors.black,
+          unselectedLabelColor: UnifiedColors.textSecondary,
+          indicatorColor: UnifiedColors.black,
+          labelStyle: UnifiedText.bodyStrong(),
+          unselectedLabelStyle: UnifiedText.body(),
           tabs: const [
             Tab(text: '개봉 이력'),
             Tab(text: '보상 요약'),
@@ -87,7 +100,7 @@ class _HistoryTab extends StatelessWidget {
     return RefreshIndicator(
       onRefresh: onRefresh,
       child: ListView.builder(
-        padding: const EdgeInsets.all(AppSpacing.lg),
+        padding: const EdgeInsets.all(UnifiedTokens.screenPadding),
         itemCount: logs.length,
         itemBuilder: (context, index) => _HistoryTile(log: logs[index]),
       ),
@@ -95,22 +108,22 @@ class _HistoryTab extends StatelessWidget {
   }
 }
 
+Color _gradeColorOf(String code) {
+  switch (code) {
+    case 'best':
+      return const Color(0xFFA9772F);
+    case 'rare':
+      return const Color(0xFF4DA8FF);
+    case 'common':
+      return const Color(0xFF5FE3B3);
+    default:
+      return UnifiedColors.textSecondary;
+  }
+}
+
 class _HistoryTile extends StatelessWidget {
   final LuckyBagOpenLogModel log;
   const _HistoryTile({required this.log});
-
-  Color get _gradeColor {
-    switch (log.grade.code) {
-      case 'best':
-        return AppColors.secondaryDark;
-      case 'rare':
-        return AppColors.info;
-      case 'common':
-        return AppColors.success;
-      default:
-        return AppColors.textSecondary;
-    }
-  }
 
   String get _dateLabel {
     final d = log.openedAt;
@@ -121,30 +134,29 @@ class _HistoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final gradeColor = _gradeColorOf(log.grade.code);
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      padding: const EdgeInsets.only(bottom: UnifiedTokens.spaceMd),
       child: Container(
-        padding: const EdgeInsets.all(AppSpacing.lg),
+        padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
         decoration: BoxDecoration(
-          color: Theme.of(context).cardTheme.color,
-          borderRadius: BorderRadius.circular(AppRadius.cardSmall),
+          color: UnifiedColors.cardSection,
+          borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
+          border: Border.all(color: UnifiedColors.border),
         ),
         child: Row(
           children: [
             Text(log.product.iconEmoji, style: const TextStyle(fontSize: 26)),
-            const SizedBox(width: AppSpacing.md),
+            const SizedBox(width: UnifiedTokens.spaceMd),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    log.product.name,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
+                  Text(log.product.name, style: UnifiedText.bodyStrong()),
                   const SizedBox(height: 2),
                   Text(
                     '$_dateLabel · ${log.rewardLabel}',
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: UnifiedText.bodySmall(),
                   ),
                 ],
               ),
@@ -152,16 +164,12 @@ class _HistoryTile extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: _gradeColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(AppRadius.full),
+                color: gradeColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
               ),
               child: Text(
                 log.grade.name,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: _gradeColor,
-                ),
+                style: UnifiedText.chipLabel(color: gradeColor),
               ),
             ),
           ],
@@ -174,19 +182,6 @@ class _HistoryTile extends StatelessWidget {
 class _RewardSummaryTab extends StatelessWidget {
   final List<LuckyBagRewardSummaryEntry> entries;
   const _RewardSummaryTab({required this.entries});
-
-  Color _gradeColor(String code) {
-    switch (code) {
-      case 'best':
-        return AppColors.secondaryDark;
-      case 'rare':
-        return AppColors.info;
-      case 'common':
-        return AppColors.success;
-      default:
-        return AppColors.textSecondary;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -204,37 +199,40 @@ class _RewardSummaryTab extends StatelessWidget {
     );
 
     return ListView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.all(UnifiedTokens.screenPadding),
       children: [
         Container(
-          padding: const EdgeInsets.all(AppSpacing.lg),
+          padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
           decoration: BoxDecoration(
-            gradient: AppColors.mysticGradient,
-            borderRadius: BorderRadius.circular(AppRadius.card),
+            color: UnifiedColors.cardAllMenu,
+            borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
+            border: Border.all(color: UnifiedColors.border),
           ),
           child: Row(
             children: [
               Expanded(
                 child: _SummaryStat(label: '총 개봉 횟수', value: '$totalCount회'),
               ),
-              Container(width: 1, height: 32, color: Colors.white24),
+              Container(width: 1, height: 32, color: UnifiedColors.border),
               Expanded(
                 child: _SummaryStat(label: '누적 복주머니 획득', value: '$totalPoint개'),
               ),
             ],
           ),
         ),
-        const SizedBox(height: AppSpacing.xl),
-        Text('등급별 통계', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: AppSpacing.md),
-        ...entries.map(
-          (e) => Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.md),
+        const SizedBox(height: UnifiedTokens.spaceXl),
+        Text('등급별 통계', style: UnifiedText.bodyStrong()),
+        const SizedBox(height: UnifiedTokens.spaceMd),
+        ...entries.map((e) {
+          final gradeColor = _gradeColorOf(e.grade.code);
+          return Padding(
+            padding: const EdgeInsets.only(bottom: UnifiedTokens.spaceMd),
             child: Container(
-              padding: const EdgeInsets.all(AppSpacing.lg),
+              padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
               decoration: BoxDecoration(
-                color: Theme.of(context).cardTheme.color,
-                borderRadius: BorderRadius.circular(AppRadius.cardSmall),
+                color: UnifiedColors.cardSection,
+                borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
+                border: Border.all(color: UnifiedColors.border),
               ),
               child: Row(
                 children: [
@@ -244,38 +242,32 @@ class _RewardSummaryTab extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: _gradeColor(e.grade.code).withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(AppRadius.full),
+                      color: gradeColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(
+                        UnifiedTokens.radiusPill,
+                      ),
                     ),
                     child: Text(
                       e.grade.name,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: _gradeColor(e.grade.code),
-                      ),
+                      style: UnifiedText.chipLabel(color: gradeColor),
                     ),
                   ),
-                  const SizedBox(width: AppSpacing.md),
+                  const SizedBox(width: UnifiedTokens.spaceMd),
                   Expanded(
-                    child: Text(
-                      '${e.count}회 획득',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
+                    child: Text('${e.count}회 획득', style: UnifiedText.body()),
                   ),
                   if (e.totalPointReward > 0)
                     Text(
                       '${e.totalPointReward}개',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.secondaryDark,
+                      style: UnifiedText.bodyStrong(
+                        color: UnifiedColors.black,
                       ),
                     ),
                 ],
               ),
             ),
-          ),
-        ),
+          );
+        }),
       ],
     );
   }
@@ -290,19 +282,9 @@ class _SummaryStat extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(
-          value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
+        Text(value, style: UnifiedText.titleLarge()),
         const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(color: Colors.white70, fontSize: 12),
-        ),
+        Text(label, style: UnifiedText.caption()),
       ],
     );
   }
