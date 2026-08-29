@@ -12,6 +12,8 @@ import '../widgets/blessing_bag_bottom_sheet.dart';
 import '../widgets/wish_room_bg_atmosphere.dart';
 import '../widgets/wish_room_buttons.dart';
 import '../widgets/wish_room_candle.dart';
+import '../widgets/wish_room_growth_widgets.dart';
+import '../widgets/wish_room_item_meaning_card.dart';
 import '../widgets/wish_room_rise_heart.dart';
 import '../widgets/wish_room_seal.dart';
 import '../widgets/wish_room_seal_mapping.dart';
@@ -183,6 +185,22 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
         context,
       ).showSnackBar(const SnackBar(content: Text('응원에 실패했습니다. 다시 시도해주세요.')));
     }
+  }
+
+  /// [STEP05-B STEP9-8] 홈 화면 `_handleTodayCandle`과 동일 — 새 보상정책을
+  /// 만들지 않고 기존 서버 정책(daily_candle, 1일 1회)만 그대로 호출한다.
+  Future<void> _handleTodayCandle() async {
+    final policy = context.read<WishWallProvider>().policy;
+    final granted = await policy.earnDailyCandleBonus();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text(
+          granted > 0 ? '오늘의 촛불을 켰어요 (+$granted 🎁)' : '오늘은 이미 촛불을 켰어요',
+        ),
+      ),
+    );
   }
 
   Future<void> _openSendPouch() async {
@@ -401,12 +419,23 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
     // 사용하고, 없으면(미선택) 기존 카테고리 기반 기본값을 그대로 쓴다.
     final sealCode = wish.sealItemCode;
     final candleCode = wish.candleItemCode;
+    final talismanCode = wish.talismanItemCode;
     final sealGlyph = sealCode != null
         ? sealVisualFor(sealCode).glyph
         : seal.glyph;
     final candleColor = candleCode != null
         ? candleColorFor(candleCode)
         : WishRoomColors.glow;
+    final talismanVisual = talismanCode != null
+        ? talismanVisualFor(talismanCode)
+        : null;
+
+    // [STEP05-B STEP9-7 — 상태 감성 문구 / STEP9-2 — 진행률] 홈 화면에서
+    // 이미 검증된 wishStateEmotionalLabel()/wishProgressOf()를 그대로
+    // 재사용한다(서버 wishState/sealedAt/unlockAt 값은 변경하지 않고
+    // 표시용으로만 변환).
+    final stateLabel = wishStateEmotionalLabel(wish);
+    final progress = wishProgressOf(wish);
 
     return Scaffold(
       backgroundColor: WishRoomColors.backgroundDeep,
@@ -438,6 +467,35 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
                         ),
                       ),
                       WishRoomIconButton(icon: '⋯', onPressed: _showMoreSheet),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  // [STEP05-B STEP9-4/9-5 — 3초 안에 "이게 내 소원인지 남의
+                  // 소원인지" + "지금 상태가 뭔지"를 동시에 보여주는 첫 줄.
+                  // isMine은 서버 toWishDto()가 내려주는 값을 그대로 읽기만
+                  // 한다(§4/§8 요구 — 내/타인 소원 확실히 구분).
+                  Row(
+                    children: [
+                      Text(
+                        wish.isMine ? '🌙 나의 소원' : '🌙 함께 빌어주는 소원',
+                        style: const TextStyle(
+                          fontFamily: 'GowunBatangWish',
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                          color: WishRoomColors.textPrimary,
+                        ),
+                      ),
+                      const Spacer(),
+                      Flexible(
+                        child: Text(
+                          stateLabel,
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            color: WishRoomColors.textSecondary,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                   Expanded(
@@ -544,6 +602,30 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
                             ),
                           ),
                           const SizedBox(height: 14),
+                          // [STEP05-B STEP9-6 — 아이템 설명 카드] 실제
+                          // 장착된 아이템(candleItemCode/sealItemCode/
+                          // talismanItemCode)에 대해서만 "이름 · 역할 · 오늘
+                          // 메시지"를 보여준다. 인장은 미선택이어도 카테고리
+                          // 기본 seal.glyph가 항상 있으므로 항상 표시한다.
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (candleCode != null) ...[
+                                buildCandleMeaningCard(
+                                  candleColor: candleColor,
+                                ),
+                                const SizedBox(height: 8),
+                              ],
+                              buildSealMeaningCard(glyph: sealGlyph),
+                              if (talismanVisual != null) ...[
+                                const SizedBox(height: 8),
+                                buildTalismanMeaningCard(
+                                  visual: talismanVisual,
+                                ),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 14),
                           // Intention gauge
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -611,6 +693,14 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
                                     ),
                                   ),
                                 ),
+                                // [STEP05-B STEP9-2/9-9 — 성장 트랙] 서버
+                                // sealedAt/unlockAt이 모두 있을 때만 표시
+                                // 한다(구버전 소원은 progress==null이라
+                                // 조용히 생략).
+                                if (progress != null) ...[
+                                  const SizedBox(height: 12),
+                                  GrowthStageTrack(ratio: progress.ratio),
+                                ],
                               ],
                             ),
                           ),
@@ -698,6 +788,38 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
                                 ),
                             ],
                           ),
+                          // [STEP05-B STEP9-8 — 오늘의 소원 활동] 내 소원
+                          // (isMine=true)에만 표시한다. 타인 소원에는 이미
+                          // 위 Actions에 "함께 응원하기"/"복주머니 보내기"가
+                          // 있으므로 중복 섹션을 만들지 않는다(§8 요구 —
+                          // 내/타인 소원 기능 혼용 금지). 콜백은 홈 화면과
+                          // 동일하게 기존 API(policy.earnDailyCandleBonus,
+                          // support, showBlessingBagBottomSheet)에만
+                          // 연결한다 — 새 정책/화폐 없음.
+                          if (wish.isMine) ...[
+                            const SizedBox(height: 18),
+                            const Text(
+                              '🌙 오늘의 소원 활동',
+                              style: TextStyle(
+                                fontFamily: 'GowunBatangWish',
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                                color: WishRoomColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            TodayWishActionsRow(
+                              onCandle: _handleTodayCandle,
+                              onSupport: wish.hasSupportedByMe
+                                  ? null
+                                  : (_busy ? null : _doSupport),
+                              supportLabel: wish.hasSupportedByMe
+                                  ? '응원했어요'
+                                  : '응원하기',
+                              supportEnabled: !wish.hasSupportedByMe,
+                              onPouch: _openSendPouch,
+                            ),
+                          ],
                           const SizedBox(height: 14),
                           // [소원방 마무리 - Phase A] 응원 미리보기 (최대 3개)
                           Container(
