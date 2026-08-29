@@ -1251,14 +1251,28 @@ class _MyWishHighlightCardState extends State<_MyWishHighlightCard>
                     ),
                   ),
                   const Spacer(),
-                  if (wish.talismanItemCode == 'talisman_guardian')
-                    const Padding(
-                      padding: EdgeInsets.only(left: 4),
-                      child: Text('🛡️', style: TextStyle(fontSize: 12)),
+                  // [STEP05-A §8] 부적 장착 시 은은한 기운 배지. 기존
+                  // 'talisman_guardian' 단일 하드코딩(🛡️ 텍스트만) 대신
+                  // talismanVisualFor()로 3종(수호/만월/인연) 전체를
+                  // 대응시키고, 살짝 숨쉬듯 은은하게 빛나는 pulsing 효과를
+                  // 얹는다(§19 "평상시는 편안하고 신비롭게" — 화려하지
+                  // 않게, 늘 은은한 밝기 변화만).
+                  if (wish.talismanItemCode != null)
+                    _TalismanAmbientBadge(
+                      visual: talismanVisualFor(wish.talismanItemCode!),
                     ),
                 ],
               ),
               const SizedBox(height: 10),
+              // [STEP05-A §5/§8] 미니 제단 스트립 — 이 소원에 실제로
+              // 장착된 촛불/인장을 "보이는 효과"로 표시한다. 기존
+              // WishRoomCandle(flicker 애니메이션 그대로 재사용)과
+              // WishRoomSeal(도장 위젯 그대로 재사용)을 조합할 뿐, 새
+              // 위젯/색상 시스템을 만들지 않는다. 아래 4~6번 지표
+              // 텍스트("🕯 켜짐" 등)는 그대로 유지 — 이 스트립은 그
+              // 정보를 대체하지 않고 시각적으로 보강만 한다.
+              _AltarStrip(wish: wish),
+              const SizedBox(height: 12),
               // 1. 소원 내용 — 최우선 표시, 2줄까지 허용 후 ellipsis.
               Text(
                 wish.text.isNotEmpty ? wish.text : '(소원 내용 없음)',
@@ -1283,7 +1297,16 @@ class _MyWishHighlightCardState extends State<_MyWishHighlightCard>
               ),
               const SizedBox(height: 14),
               // 3. 남은기간/진행률 — sealedAt/unlockAt 둘 다 있을 때만 표시.
+              // [STEP05-A §7] 숫자 퍼센트/막대만 보여주던 것을 "성장하는
+              // 느낌"의 5단계 트랙(🌱→🌿→🌳→✨→🌸)으로 확장한다. 실제
+              // 진행률 계산([_wishProgress], 서버 sealedAt/unlockAt 기준)은
+              // 절대 변경하지 않고, 기존 LinearProgressIndicator는 그대로
+              // 유지한 채 그 위에 성장 단계 라벨만 추가한다(§9 — 이 성장
+              // 표현은 소원 성취 "확률"이 아니라 단순 시간 경과에 대한
+              // 감성적 표현일 뿐임을 라벨 문구로도 명확히 한다).
               if (progress != null) ...[
+                _GrowthStageTrack(ratio: progress.ratio),
+                const SizedBox(height: 10),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(999),
                   child: LinearProgressIndicator(
@@ -1489,6 +1512,280 @@ class _TodayActionButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ============================================================
+// [STEP05-A — 소원방 홈 제단 비주얼 개선] 미니 제단 스트립 / 부적 은은한
+// 기운 배지 / 소원 성장 단계 트랙.
+// ============================================================
+//
+// [작업 범위 원칙 — STEP05 지시서 §1/§9/§24 준수] 이 3개 위젯은 오직
+// "표시"만 담당한다. wishState/sealedAt/unlockAt/sealItemCode/
+// candleItemCode/talismanItemCode 등 서버 필드는 절대 변경하지 않고
+// 읽기만 하며, 새 DB/API/화폐/보상정책을 만들지 않는다. 소원 성취
+// "확률"을 의미하는 표현은 사용하지 않는다(§9) — 아래 성장 단계는 순수
+// 시간 경과에 대한 감성적 표현일 뿐이다.
+
+/// [STEP05-A §5/§8] 강조 카드 상단의 미니 제단 스트립.
+///
+/// 이 소원에 실제로 장착된 촛불([WishPost.candleItemCode])과 인장
+/// ([WishPost.sealItemCode])을 "제단에 놓인 실물"처럼 나란히 보여준다.
+/// 기존 [WishRoomCandle](flicker 애니메이션 포함)과 [WishRoomSeal](도장
+/// 위젯)을 그대로 재사용하며, 새 색상/도형 시스템을 만들지 않는다 —
+/// 색상/글리프 매핑은 기존 [candleColorFor]/[sealVisualFor]를 그대로
+/// 사용한다(홈 리스트 행 `_WishListRow`에서 이미 쓰던 것과 동일 매핑).
+///
+/// 인장에는 미세한 breathing glow(은은한 밝기 변화)를 얹어 "살짝
+/// 빛나는 효과"(지시서 §8 "인장" 섹션)를 표현한다 — 화려한 파티클이
+/// 아니라 숨쉬듯 잔잔한 opacity 변화 정도로 제한한다(§19 "평상시는
+/// 편안하고 신비롭게").
+class _AltarStrip extends StatefulWidget {
+  const _AltarStrip({required this.wish});
+  final WishPost wish;
+
+  @override
+  State<_AltarStrip> createState() => _AltarStripState();
+}
+
+class _AltarStripState extends State<_AltarStrip>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _breathe;
+
+  @override
+  void initState() {
+    super.initState();
+    // 은은한 breathing 주기 — 촛불 flicker(1.8s)보다 훨씬 느리게 돌려
+    // "잔잔함"을 유지한다.
+    _breathe = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2600),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _breathe.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final wish = widget.wish;
+    final hasSeal = wish.sealItemCode != null;
+    final hasCandle = wish.candleItemCode != null;
+    // 촛불/인장이 모두 미장착이면(기본 상태) 스트립 자체를 생략해 화면을
+    // 복잡하게 만들지 않는다 — §19 "일반 화면은 편안하게".
+    if (!hasSeal && !hasCandle) return const SizedBox.shrink();
+
+    final candleColor = hasCandle
+        ? candleColorFor(wish.candleItemCode!)
+        : WishRoomColors.glow;
+    final sealGlyph = hasSeal ? sealVisualFor(wish.sealItemCode!).glyph : null;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+      decoration: BoxDecoration(
+        color: WishRoomColors.backgroundDeep.withValues(alpha: 0.25),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: WishRoomColors.surfaceCardBorder.withValues(alpha: 0.6),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (hasCandle) ...[
+            SizedBox(
+              width: 28,
+              height: 46,
+              child: Center(
+                child: WishRoomCandle(size: 26, color: candleColor),
+              ),
+            ),
+            const SizedBox(width: 10),
+          ],
+          if (hasSeal)
+            AnimatedBuilder(
+              animation: _breathe,
+              builder: (context, child) {
+                final glow = 0.5 + 0.5 * _breathe.value; // 0.5~1.0 은은한 변화
+                return Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: WishRoomColors.accent.withValues(
+                          alpha: 0.35 * glow,
+                        ),
+                        blurRadius: 14 * glow,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                  child: child,
+                );
+              },
+              child: WishRoomSeal(
+                text: sealGlyph!,
+                color: WishRoomColors.accent,
+                size: 26,
+              ),
+            ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              hasCandle && hasSeal
+                  ? '촛불과 인장이 소원을 지키고 있어요'
+                  : hasCandle
+                  ? '촛불이 소원을 밝히고 있어요'
+                  : '인장이 소원을 지키고 있어요',
+              style: const TextStyle(
+                fontSize: 11,
+                color: WishRoomColors.textSecondary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// [STEP05-A §8 "부적"] 부적 장착 시 표시하는 은은한 배지.
+///
+/// 기존 하드코딩된 '🛡️' 단일 텍스트(talisman_guardian만 대응)를
+/// [talismanVisualFor]로 교체해 상점에 있는 부적 3종(수호/만월/인연)
+/// 전부를 대응시킨다. "제단 주변에 은은한 기운이 보이도록"(지시서 §8)을
+/// 배지 주변의 부드러운 pulsing glow로 표현한다 — 등장/확대/원위치 같은
+/// 1회성 연출은 "장착 순간" 피드백(STEP05-B 범위)이며, 이 배지는 항상
+/// 표시되는 "장착 중" 상태이므로 반복되는 은은한 숨쉬기 효과만 사용한다.
+class _TalismanAmbientBadge extends StatefulWidget {
+  const _TalismanAmbientBadge({required this.visual});
+  final ShopTalismanVisual visual;
+
+  @override
+  State<_TalismanAmbientBadge> createState() => _TalismanAmbientBadgeState();
+}
+
+class _TalismanAmbientBadgeState extends State<_TalismanAmbientBadge>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2200),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _pulse,
+      builder: (context, child) {
+        final glow = 0.4 + 0.6 * _pulse.value;
+        return Container(
+          padding: const EdgeInsets.only(left: 4),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: widget.visual.color.withValues(alpha: 0.4 * glow),
+                blurRadius: 10 * glow,
+              ),
+            ],
+          ),
+          child: child,
+        );
+      },
+      child: Text(widget.visual.icon, style: const TextStyle(fontSize: 13)),
+    );
+  }
+}
+
+/// [STEP05-A §7] 소원 진행률을 5단계 성장 트랙으로 표현.
+///
+/// 🌱(시작) → 🌿(자라는 중) → 🌳(무르익는 중) → ✨(100일 임박) →
+/// 🌸(성취 가능) 5단계는 지시서 §7 예시를 그대로 사용한다. [ratio]는
+/// 기존 [_wishProgress]가 계산한 sealedAt~unlockAt 기준 진행률(0.0~1.0)을
+/// 그대로 받아 5구간으로 양자화할 뿐 — 별도의 진행률 계산 로직을
+/// 새로 만들지 않는다. 현재 단계는 살짝 확대+glow로 강조하고 나머지는
+/// 흐리게 표시해 "지금 어디쯤인지"를 한눈에 보여준다.
+class _GrowthStageTrack extends StatelessWidget {
+  const _GrowthStageTrack({required this.ratio});
+  final double ratio;
+
+  static const _stages = ['🌱', '🌿', '🌳', '✨', '🌸'];
+
+  int _currentStageIndex() {
+    final idx = (ratio * (_stages.length - 1)).round();
+    return idx.clamp(0, _stages.length - 1);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final current = _currentStageIndex();
+    return Row(
+      children: List.generate(_stages.length, (i) {
+        final isCurrent = i == current;
+        final isPassed = i < current;
+        final opacity = isCurrent ? 1.0 : (isPassed ? 0.7 : 0.28);
+        return Expanded(
+          child: Column(
+            children: [
+              AnimatedScale(
+                scale: isCurrent ? 1.25 : 1.0,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOut,
+                child: AnimatedOpacity(
+                  opacity: opacity,
+                  duration: const Duration(milliseconds: 300),
+                  child: Container(
+                    decoration: isCurrent
+                        ? BoxDecoration(
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: WishRoomColors.glow.withValues(
+                                  alpha: 0.5,
+                                ),
+                                blurRadius: 10,
+                              ),
+                            ],
+                          )
+                        : null,
+                    child: Text(
+                      _stages[i],
+                      style: const TextStyle(fontSize: 15),
+                    ),
+                  ),
+                ),
+              ),
+              if (i < _stages.length - 1)
+                Padding(
+                  padding: const EdgeInsets.only(top: 3),
+                  child: Container(
+                    height: 1.5,
+                    color: isPassed
+                        ? WishRoomColors.glow.withValues(alpha: 0.4)
+                        : WishRoomColors.surfaceCardBorder,
+                  ),
+                ),
+            ],
+          ),
+        );
+      }),
     );
   }
 }
