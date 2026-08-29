@@ -74,8 +74,24 @@ export async function GET(request: NextRequest) {
       prisma.wish.count({ where }),
     ]);
 
+    // [STEP04] 로그인 사용자가 이 페이지의 소원들 중 이미 응원한 것이 있는지
+    // 한 번의 쿼리로 조회한다(N+1 방지, Like 테이블 targetType='wish' 재사용).
+    let supportedIds = new Set<number>();
+    if (auth) {
+      const wishIds = (wishes as unknown as WishRow[]).map((w) => w.id);
+      const likes = await prisma.like.findMany({
+        where: {
+          targetType: "wish",
+          targetId: { in: wishIds },
+          userId: auth.userId,
+        },
+        select: { targetId: true },
+      });
+      supportedIds = new Set(likes.map((l) => l.targetId));
+    }
+
     const data = (wishes as unknown as WishRow[]).map((w) =>
-      toWishDto(w, auth?.userId ?? null)
+      toWishDto(w, auth?.userId ?? null, supportedIds.has(w.id))
     );
 
     return NextResponse.json(

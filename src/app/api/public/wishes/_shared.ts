@@ -9,7 +9,8 @@
 // - 작성자(userId)는 반드시 서버가 JWT(Authorization: Bearer)로 결정한다.
 //   클라이언트가 body/query로 보낸 userId는 절대 신뢰하지 않는다.
 // - pray(기도)는 이번 단계에서 DB 저장/전용 API 없음(Flutter UI 피드백만).
-// - support 중복 방지는 이번 단계에서 구현하지 않는다(근거 테이블 없음 확인됨).
+// - [STEP04] support 중복 방지는 기존 Like 폴리모픽 모델(targetType='wish')을
+//   재사용해 구현한다(새 테이블/필드 추가 없음). support/route.ts 참조.
 import { NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/user-auth";
 
@@ -119,8 +120,17 @@ export function resolveWishUnlockAt(w: Pick<WishRow, "sealedAt" | "unlockAt">): 
  * visibility(anonymous/public/private)는 Prisma에 별도 필드가 없어
  * isAnonymous + status로 근사 매핑한다(private 소원은 status='private_only'로
  * 구분 — 신규 필드/스키마 변경 없이 기존 status 문자열 컬럼의 값 종류만 확장).
+ *
+ * [STEP04] isSupportedByMe: 세 번째 인자(옵션)로 "현재 사용자가 이미 이 소원을
+ * 응원했는지"를 명시적으로 넘길 수 있다. 이 값은 반드시 호출부가 Like 테이블을
+ * 조회해서 결정한 결과를 넘겨야 하며(서버 최종 판단), 생략 시 false로 처리된다
+ * (기존 8개 호출부는 이 인자를 넘기지 않으므로 동작 변화 없음 — 하위호환 유지).
  */
-export function toWishDto(w: WishRow, currentUserId: number | null) {
+export function toWishDto(
+  w: WishRow,
+  currentUserId: number | null,
+  isSupportedByMe = false
+) {
   const visibility =
     w.status === "private_only"
       ? "private"
@@ -141,6 +151,7 @@ export function toWishDto(w: WishRow, currentUserId: number | null) {
     isGratitude: w.achievedAt != null,
     createdAt: w.createdAt.toISOString(),
     supportCount: w.supportCount,
+    isSupportedByMe,
     prayerCount: 0,
     pouchCount: w.bokjuCount,
     isMine: currentUserId != null && w.userId === currentUserId,

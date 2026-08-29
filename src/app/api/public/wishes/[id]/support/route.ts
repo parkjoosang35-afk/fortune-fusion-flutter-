@@ -1,10 +1,17 @@
 // 소원 응원 API — WishWallRepository.support() 대응.
 //
-// [사용자 확정 원칙] 현재 스키마에는 "어떤 유저가 어떤 Wish를 응원했는지"
-// 기록하는 테이블이 없다(Like 모델이 @@unique([targetType, targetId, userId])로
-// wish 타입을 구조상 지원하지만 실제 사용 코드는 0건임을 확인함).
-// 이번 6-1 단계에서는 임의로 새 테이블/필드를 만들지 않고, 지시받은 대로
-// supportCount + 1만 수행한다(중복 방지 없음 — 후속 정책 작업으로 이관).
+// [STEP04] 기존 Like 폴리모픽 모델(targetType/targetId/userId, @@unique 제약)을
+// targetType='wish'로 재사용해 "같은 사용자 + 같은 소원 = 중복 응원 불가"를
+// 서버가 최종 판단한다(새 테이블/필드 추가 없음). 커뮤니티 게시글 좋아요
+// (community/posts/[id]/like/route.ts)와 달리 이 응원(support)은 토글이 아니라
+// "일회성(create-only, idempotent)" 액션이다 — 이미 응원했으면 취소하지 않고
+// alreadySupported:true만 반환한다(응원 취소 기능은 이번 STEP 범위 밖).
+//
+// 처리 순서: (1)사용자 확인 (2)소원 확인 (3)중복 응원 여부 확인
+// (4)응원 기록 저장 (5)supportCount 증가 (6)트랜잭션 (7)결과 반환.
+//
+// [보상 없음] 응원 자체에는 이번 STEP에서 복주머니를 지급하지 않는다
+// (새 PointPolicy 추가 금지 원칙).
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import {
@@ -17,6 +24,8 @@ import {
 } from "../../_shared";
 
 export const dynamic = "force-dynamic";
+
+const SUPPORT_TARGET_TYPE = "wish";
 
 export async function POST(
   request: NextRequest,
@@ -35,29 +44,82 @@ export async function POST(
   }
 
   try {
-    const existing = await prisma.wish.findUnique({ where: { id: dbId } });
-    if (!existing || existing.deletedAt != null) {
+    const result = await prisma.$transaction(async (tx) => {
+      // (2) 소원 확인
+      const existing = await tx.wish.findUnique({ where: { id: dbId } });
+      if (!existing || existing.deletedAt != null) {
+        throw new Error("WISH_NOT_FOUND");
+      }
+      if (existing.status !== "visible" && existing.status !== "gratitude") {
+        throw new Error("WISH_NOT_SUPPORTABLE");
+      }
+
+      // (3) 중복 응원 여부 확인 — Like 테이블의 @@unique(targetType, targetId, userId)
+      // 제약을 그대로 조회 조건에 사용한다(서버가 최종 판단, 클라이언트 로컬
+      // 플래그는 신뢰하지 않는다).
+      const existingLike = await tx.like.findUnique({
+        where: {
+          targetType_targetId_userId: {
+            targetType: SUPPORT_TARGET_TYPE,
+            targetId: dbId,
+            userId: auth.userId,
+          },
+        },
+      });
+
+      if (existingLike) {
+        // 이미 응원한 경우: 기록/카운트 변경 없이 현재 상태만 반환한다.
+        const withUser = await tx.wish.findUnique({
+          where: { id: dbId },
+          include: { user: { select: { nickname: true } } },
+        });
+        return { wish: withUser!, alreadySupported: true };
+      }
+
+      // (4) 응원 기록 저장 (5) supportCount 증가 — 같은 트랜잭션 안에서 원자 처리.
+      await tx.like.create({
+        data: {
+          targetType: SUPPORT_TARGET_TYPE,
+          targetId: dbId,
+          userId: auth.userId,
+        },
+      });
+      const updated = await tx.wish.update({
+        where: { id: dbId },
+        data: { supportCount: { increment: 1 } },
+        include: { user: { select: { nickname: true } } },
+      });
+
+      return { wish: updated, alreadySupported: false };
+    });
+
+    const dto = toWishDto(
+      result.wish as unknown as WishRow,
+      auth.userId,
+      true // 이 응답을 받는 시점에는 항상 "내가 응원한 상태"이다(신규/기존 응원 모두).
+    );
+    return NextResponse.json(
+      {
+        success: true,
+        alreadySupported: result.alreadySupported,
+        data: dto,
+      },
+      { headers: CORS_HEADERS }
+    );
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "UNKNOWN";
+    if (message === "WISH_NOT_FOUND") {
       return NextResponse.json(
         { success: false, error: "소원을 찾을 수 없습니다." },
         { status: 404, headers: CORS_HEADERS }
       );
     }
-    if (existing.status !== "visible" && existing.status !== "gratitude") {
+    if (message === "WISH_NOT_SUPPORTABLE") {
       return NextResponse.json(
         { success: false, error: "응원할 수 없는 소원입니다." },
         { status: 403, headers: CORS_HEADERS }
       );
     }
-
-    const updated = await prisma.wish.update({
-      where: { id: dbId },
-      data: { supportCount: { increment: 1 } },
-      include: { user: { select: { nickname: true } } },
-    });
-
-    const dto = toWishDto(updated as unknown as WishRow, auth.userId);
-    return NextResponse.json({ success: true, data: dto }, { headers: CORS_HEADERS });
-  } catch (e) {
     console.error("[POST /api/public/wishes/:id/support] 실패:", e);
     return NextResponse.json(
       { success: false, error: "응원 처리에 실패했습니다." },

@@ -53,7 +53,23 @@ export async function GET(
       );
     }
 
-    const dto = toWishDto(wish as unknown as WishRow, auth?.userId ?? null);
+    // [STEP04] 현재 사용자가 이미 이 소원을 응원했는지 Like 테이블로 확인한다
+    // (서버가 최종 판단 — 클라이언트 로컬 플래그를 신뢰하지 않는다).
+    let isSupportedByMe = false;
+    if (auth) {
+      const like = await prisma.like.findUnique({
+        where: {
+          targetType_targetId_userId: {
+            targetType: "wish",
+            targetId: dbId,
+            userId: auth.userId,
+          },
+        },
+      });
+      isSupportedByMe = like != null;
+    }
+
+    const dto = toWishDto(wish as unknown as WishRow, auth?.userId ?? null, isSupportedByMe);
     return NextResponse.json({ success: true, data: dto }, { headers: CORS_HEADERS });
   } catch (e) {
     console.error("[GET /api/public/wishes/:id] 실패:", e);
