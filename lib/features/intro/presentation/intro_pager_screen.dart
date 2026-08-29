@@ -1,29 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_unified_style.dart';
 import '../application/intro_config_provider.dart';
 import '../application/intro_state_provider.dart';
 import '../domain/intro_config_model.dart';
 import 'intro_palette.dart';
-import 'widgets/intro_card_widget.dart';
+import 'intro_text_styles.dart';
 import 'widgets/intro_cta_section.dart';
+import 'widgets/intro_page_content.dart';
+import 'widgets/intro_progress_dots.dart';
 import 'widgets/intro_skip_action.dart';
 
 /// [인트로 전면 개편 - 2~4단계] 스플래시(1단계) 다음에 이어지는 인트로 페이저.
 ///
-/// 3페이지 구성:
-/// - 0: 카드1 "광고 한 번으로, 1시간 동안 자유롭게"(프리패스)
-/// - 1: 카드2 "복주머니는 무료로 모으고, 자유롭게 써요"(복주머니)
-/// - 2: 시작화면(CTA) "이제 신통방통을 시작해보세요"
+/// 3페이지 구성(핸드오프 4장 캐러셀 중 페이지2·3·4에 대응, 페이지1은 별도
+/// SplashScreen):
+/// - 0: 페이지2 "오늘의 결이 무슨 빛인지"(오늘의 운세 · crystal.png)
+/// - 1: 페이지3 "내 곁의 귀인은 몇 명일까"(귀인지도 · scroll.png + 피처 3개)
+/// - 2: 페이지4 CTA "이제 신통방통과 함께"(celebrating.png)
 ///
 /// [기존 구조 재사용 원칙] 완료 처리(IntroStateProvider.markSeen/markSkipped)는
 /// 기존 onboarding_screen.dart의 "onboarding_completed 저장 후 이동" 패턴을
 /// 그대로 계승하되, 로그인 강제 없이 "바로 시작하기(비회원)"를 기본 동선으로
 /// 추가한다.
 ///
-/// [2026-08-21 인트로 3종 색상 정리] 배경/다음버튼/페이지 인디케이터를
-/// 브랜드 컬러 #90035C(IntroPalette) 톤으로 교체했다. 페이지 구성·전환
-/// 로직·완료 처리는 그대로 유지한다.
+/// [2026 디자인 핸드오프 콘텐츠 전면 반영] 이전 버전(색상+캐릭터 이미지만
+/// 교체)은 카드형 레이아웃(IntroCardWidget)과 옛 카피를 그대로 쓰고 있었다.
+/// 이번 개정에서 `screens/01_Intro.html` 페이지2/3/4의 정확한 카피·구조
+/// (eyebrow 라벨, accent 그라디언트 제목, 피처리스트 3개, CTA 버튼 문구/
+/// 아이콘)를 1:1로 이식했다. 스플래시 별도 화면 구조 자체는 유지한다
+/// (SplashScreen이 이미 부트스트랩 로직을 담당하고 있어 페이저에 통합하면
+/// 로직 중복/분리 리스크가 커, 4페이지 완전 캐러셀 통합은 이번 범위에서
+/// 제외했다 — 대신 인디케이터는 [IntroProgressDots]로 "4페이지 중 몇 번째"
+/// 감각을 그대로 살렸다).
 class IntroPagerScreen extends StatefulWidget {
   const IntroPagerScreen({super.key});
 
@@ -61,9 +69,10 @@ class _IntroPagerScreenState extends State<IntroPagerScreen> {
   }
 
   Future<void> _skip() async {
-    await context.read<IntroStateProvider>().markSkipped();
+    // [핸드오프 라우팅] onSkipTap() → /auth/signup (페이지2·3의 건너뛰기).
+    await context.read<IntroStateProvider>().markSeen(asGuest: false);
     if (!mounted) return;
-    Navigator.of(context).pushReplacementNamed('/home');
+    Navigator.of(context).pushReplacementNamed('/signup');
   }
 
   Future<void> _startAsGuest() async {
@@ -84,6 +93,10 @@ class _IntroPagerScreenState extends State<IntroPagerScreen> {
     Navigator.of(context).pushReplacementNamed('/login');
   }
 
+  void _goDisclaimer() {
+    Navigator.of(context).pushNamed('/policy/notice');
+  }
+
   @override
   Widget build(BuildContext context) {
     final config = context.watch<IntroConfigProvider>().config;
@@ -99,127 +112,111 @@ class _IntroPagerScreenState extends State<IntroPagerScreen> {
           ),
         ),
         child: SafeArea(
-        child: Column(
-          children: [
-            // 상단 - 스킵 버튼(관리자 설정에 따라 마지막 페이지에서는 숨김)
-            SizedBox(
-              height: 44,
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: showSkip
-                    ? IntroSkipAction(onSkip: _skip)
-                    : const SizedBox.shrink(),
-              ),
-            ),
-            Expanded(
-              child: PageView(
-                controller: _controller,
-                onPageChanged: (i) => setState(() => _index = i),
-                children: [
-                  _buildCard1(config),
-                  _buildCard2(config),
-                  _buildCTA(config),
-                ],
-              ),
-            ),
-            const SizedBox(height: UnifiedTokens.spaceLg),
-            // 페이지 인디케이터(점) - 마지막 CTA 페이지에서는 숨김(버튼이 대신함).
-            if (_index < _pageCount - 1) ...[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(
-                  _pageCount,
-                  (i) => AnimatedContainer(
-                    duration: const Duration(milliseconds: 220),
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    width: _index == i ? 20 : 6,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: _index == i
-                          ? IntroPalette.primary
-                          : IntroPalette.indicatorInactive,
-                      borderRadius: BorderRadius.circular(
-                        UnifiedTokens.radiusPill,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: UnifiedTokens.spaceXl),
+          child: Stack(
+            children: [
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: UnifiedTokens.screenPadding,
-                ),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    onPressed: _next,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: IntroPalette.primary,
-                      foregroundColor: IntroPalette.onPrimary,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(
-                          UnifiedTokens.radiusPill,
-                        ),
-                      ),
-                    ),
-                    child: Text(
-                      '다음',
-                      style: UnifiedText.bodyStrong(
-                        color: IntroPalette.onPrimary,
-                      ),
-                    ),
-                  ),
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+                child: PageView(
+                  controller: _controller,
+                  onPageChanged: (i) => setState(() => _index = i),
+                  children: [
+                    _buildPage2(config),
+                    _buildPage3(config),
+                    _buildCTA(config),
+                  ],
                 ),
               ),
-              const SizedBox(height: UnifiedTokens.spaceXl),
+              // 상단 우측 - 스킵 버튼(핸드오프 .skip-btn 절대위치, 페이지2·3에서만).
+              if (showSkip)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: IntroSkipAction(onSkip: _skip),
+                ),
             ],
-          ],
-        ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildCard1(IntroConfigModel config) {
-    return IntroCardWidget(
-      icon: Icons.lock_open_rounded,
-      badgeText: '1시간',
-      heroColor: IntroPalette.primaryLight,
-      // [핸드오프 반영] 오늘의 운세/크리스탈 테마 카드 → crystal.png
-      characterAsset: 'assets/images/home/doryeong/crystal.png',
-      title: config.card1Title,
-      description: config.card1Description,
+  Widget _buildPage2(IntroConfigModel config) {
+    return Column(
+      children: [
+        Expanded(
+          child: IntroPageContent(
+            eyebrow: 'CHAPTER · N°01',
+            characterAsset: 'assets/images/home/doryeong/crystal.png',
+            characterSize: 200,
+            title: config.card1Title,
+            titleFontSize: 30,
+            titleHighlight: '무슨 빛',
+            titleHighlightColors: const [Color(0xFFA8E3D5), IntroPalette.crystal],
+            subtitle: config.card1Description,
+          ),
+        ),
+        const SizedBox(height: 12),
+        IntroProgressDots(activeIndex: 1),
+        const SizedBox(height: 16),
+        _buildNextButton(),
+      ],
     );
   }
 
-  Widget _buildCard2(IntroConfigModel config) {
-    return IntroCardWidget(
-      icon: Icons.card_giftcard_rounded,
-      heroColor: IntroPalette.primaryLight,
-      // [핸드오프 반영] 귀인지도/부적 테마 카드 → scroll.png
-      characterAsset: 'assets/images/home/doryeong/scroll.png',
-      showCounter: true,
-      counterTarget: 12,
-      title: config.card2Title,
-      description: config.card2Description,
+  Widget _buildPage3(IntroConfigModel config) {
+    return Column(
+      children: [
+        Expanded(
+          child: IntroPageContent(
+            eyebrow: 'CHAPTER · N°02',
+            characterAsset: 'assets/images/home/doryeong/scroll.png',
+            characterSize: 150,
+            title: config.card2Title,
+            titleFontSize: 26,
+            titleHighlight: '귀인',
+            titleHighlightColors: const [IntroPalette.gold, IntroPalette.primary],
+            subtitle: config.card2Description,
+            featureItems: config.featureItems,
+            alignTop: true,
+          ),
+        ),
+        const SizedBox(height: 12),
+        IntroProgressDots(activeIndex: 2),
+        const SizedBox(height: 16),
+        _buildNextButton(),
+      ],
+    );
+  }
+
+  Widget _buildNextButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: ElevatedButton(
+        onPressed: _next,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: IntroPalette.primary,
+          foregroundColor: IntroPalette.onPrimary,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        child: Text('다음', style: IntroTextStyles.btnPrimary()),
+      ),
     );
   }
 
   Widget _buildCTA(IntroConfigModel config) {
-    return SingleChildScrollView(
-      physics: const NeverScrollableScrollPhysics(),
-      child: IntroCTASection(
-        title: config.ctaTitle,
-        subtitle: config.ctaSubtitle,
-        signupRewardText: config.signupRewardText,
-        showGuestHint: config.showGuestHint,
-        onStartAsGuest: _startAsGuest,
-        onSignup: _goSignup,
-        onLogin: _goLogin,
-      ),
+    return IntroCTASection(
+      title: config.ctaTitle,
+      subtitle: config.ctaSubtitle,
+      signupRewardText: config.signupRewardText,
+      showGuestHint: config.showGuestHint,
+      onStartAsGuest: _startAsGuest,
+      onSignup: _goSignup,
+      onLogin: _goLogin,
+      onDisclaimer: _goDisclaimer,
     );
   }
 }

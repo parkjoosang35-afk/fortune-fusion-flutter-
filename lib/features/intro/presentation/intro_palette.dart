@@ -51,4 +51,17 @@ class IntroPalette {
   /// primaryLight(카드 오버레이용, alpha 8%)보다 조금 더 진해 다크 배경에서도
   /// 위치를 식별할 수 있다.
   static const Color indicatorInactive = Color(0x40DCC8FF);
+
+  // ───────────────────────── [핸드오프 콘텐츠 반영] 추가 색상 ─────────────────────────
+  // 아래 3개는 2026 핸드오프 콘텐츠 재작업(카피/구조 1:1 이식) 시 새로 필요해진
+  // 값으로, tokens/colors_and_type.css의 나머지 변수를 마저 옮긴 것이다.
+
+  /// 페이지2(오늘의 결) 캐릭터 halo·accent 그라디언트용 아쿠아(핸드오프 --crystal).
+  static const Color crystal = Color(0xFFA8D5E3);
+
+  /// 제목 accent 그라디언트 상단 톤(핸드오프 --gold), page2/4 title.accent에 사용.
+  static const Color gold = Color(0xFFF5D97A);
+
+  /// 제목 text-shadow 전용(핸드오프 --glow-shadow, primary의 35% 알파).
+  static const Color glowShadow = Color(0x59E8C8F5);
 }

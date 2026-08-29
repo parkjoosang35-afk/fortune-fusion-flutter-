@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'app_shell.dart';
 import '../../features/auth/presentation/splash_screen.dart';
 import '../../features/intro/presentation/intro_pager_screen.dart';
+import '../../features/policy/presentation/policy_notice_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/signup_screen.dart';
 import '../../features/auth/presentation/profile_check_screen.dart';
@@ -140,6 +141,11 @@ class AppRouter {
         return _page(const SignupScreen());
       case '/signup/profile-check':
         return _page(const ProfileCheckScreen());
+      // [2026 디자인 핸드오프 콘텐츠 반영] 인트로 페이지4 CTA 링크
+      // `"재미·참고용" 콘텐츠 안내` 대상 라우트(핸드오프 §라우팅
+      // onDisclaimerTap()과 동일한 경로 문자열).
+      case '/policy/notice':
+        return _page(const PolicyNoticeScreen());
 
       case '/home':
         return _page(const AppShell());

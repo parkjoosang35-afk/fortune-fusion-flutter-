@@ -1,10 +1,13 @@
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_unified_style.dart';
 import '../../intro/application/intro_state_provider.dart';
 import '../../intro/application/intro_config_provider.dart';
+import '../../intro/domain/intro_config_model.dart';
 import '../../intro/presentation/intro_palette.dart';
+import '../../intro/presentation/intro_text_styles.dart';
+import '../../intro/presentation/widgets/intro_character.dart';
+import '../../intro/presentation/widgets/intro_eyebrow_label.dart';
 import '../../home/domain/jeontong_local_to_server_migration.dart';
 import '../application/auth_provider.dart';
 
@@ -15,6 +18,13 @@ import '../application/auth_provider.dart';
 /// #90035C(IntroPalette) 기준으로 교체했다. 부트스트랩 로직과 진입 정책은
 /// 절대 손대지 않고 시각적 톤만 바꾼다(§7 계산/로직 불변 원칙과 동일한
 /// 정신 — 여기서는 "부트스트랩 로직 불변").
+///
+/// [2026 디자인 핸드오프 콘텐츠 전면 반영] 기존 UI는 색상/캐릭터 이미지만
+/// 핸드오프를 따르고 실제 카피/구조(eyebrow 라벨, 정확한 서브카피, 로딩닷)는
+/// 반영하지 않았던 문제를 바로잡는다. `screens/01_Intro.html` 페이지1
+/// (`eyebrow`="神通萬通 · SINTONG", 제목 "신통방통" 42px, 서브카피
+/// "하늘의 답을 / 신통도령이 전해드립니다", 하단 로딩닷 3개)을 그대로 이식했다.
+/// 부트스트랩 로직(`_bootstrap`)과 fade 애니메이션 컨트롤러는 절대 손대지 않는다.
 ///
 /// [기존 구조 재사용 원칙] 부트스트랩 로직(AuthProvider.restoreSession() 호출,
 /// introSeen 여부에 따른 분기)은 기존 SplashScreen 구조를 그대로 유지하고,
@@ -128,6 +138,13 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    // [2026 핸드오프 콘텐츠 반영] fallback 카피가 곧 정확한 핸드오프 원문이므로
+    // 서버 config 로드를 기다릴 필요 없이 바로 fallback을 읽어도 안전하다
+    // (스플래시는 IntroConfigProvider.load()를 트리거하는 화면 자체이며, 이
+    // 첫 프레임 시점엔 아직 로드가 끝나지 않았을 수 있음).
+    final config = IntroConfigModel.fallback();
+    final subtitleLines = (config.splashSubtitle ?? '').split('\n');
+
     return Scaffold(
       body: DecoratedBox(
         decoration: const BoxDecoration(
@@ -137,52 +154,115 @@ class _SplashScreenState extends State<SplashScreen>
             colors: [IntroPalette.backgroundTop, IntroPalette.backgroundBottom],
           ),
         ),
-        child: Center(
+        child: SafeArea(
           child: FadeTransition(
             opacity: _fade,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // [핸드오프 반영] 신통도령 greeting - halo(glow) + 캐릭터 이미지
-                Container(
-                  width: 148,
-                  height: 148,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        IntroPalette.primary.withValues(alpha: 0.35),
-                        IntroPalette.primary.withValues(alpha: 0.0),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 24,
+              ),
+              child: Column(
+                children: [
+                  // eyebrow — 神通萬通 · SINTONG
+                  const IntroEyebrowLabel('神通萬通 · SINTONG'),
+                  const SizedBox(height: 32),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // [핸드오프 반영] 신통도령 greeting - halo(glow) + 부유 애니메이션
+                        const IntroCharacter(
+                          asset: 'assets/images/home/doryeong/greeting.png',
+                          size: 176,
+                          haloSize: 234,
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          config.splashTitle,
+                          textAlign: TextAlign.center,
+                          style: IntroTextStyles.title(fontSize: 42),
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          subtitleLines.join('\n'),
+                          textAlign: TextAlign.center,
+                          style: IntroTextStyles.sub(),
+                        ),
                       ],
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: IntroPalette.primary.withValues(alpha: 0.45),
-                        blurRadius: 28,
-                        spreadRadius: 2,
+                  ),
+                  // 로딩 dot 3개(핸드오프 .load-dot)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(
+                        3,
+                        (i) => Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 3),
+                          child: _LoadDot(delay: Duration(milliseconds: i * 200)),
+                        ),
                       ),
-                    ],
+                    ),
                   ),
-                  child: Image.asset(
-                    'assets/images/home/doryeong/greeting.png',
-                    width: 130,
-                    height: 130,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-                const SizedBox(height: UnifiedTokens.spaceXxl),
-                Text(
-                  '신통방통',
-                  style: UnifiedText.titleLarge(
-                    color: IntroPalette.textPrimary,
-                  ).copyWith(fontSize: 22),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+/// [핸드오프 반영] `.load-dot` — 스플래시 하단 로딩 점 3개, 순차 pulse 애니메이션.
+class _LoadDot extends StatefulWidget {
+  final Duration delay;
+
+  const _LoadDot({required this.delay});
+
+  @override
+  State<_LoadDot> createState() => _LoadDotState();
+}
+
+class _LoadDotState extends State<_LoadDot> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )..repeat();
+    Future.delayed(widget.delay, () {
+      if (mounted) _controller.forward(from: 0);
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final t = _controller.value;
+        final opacity = 0.35 + 0.65 * (0.5 - (t - 0.5).abs()) * 2;
+        return Container(
+          width: 6,
+          height: 6,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: IntroPalette.primary.withValues(alpha: opacity.clamp(0.35, 1.0)),
+          ),
+        );
+      },
     );
   }
 }
