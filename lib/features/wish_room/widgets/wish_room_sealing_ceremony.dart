@@ -67,8 +67,7 @@ class _WishSealingCeremonyScreen extends StatefulWidget {
 
 enum _Stage { candle, seal, talisman, done }
 
-class _WishSealingCeremonyScreenState
-    extends State<_WishSealingCeremonyScreen>
+class _WishSealingCeremonyScreenState extends State<_WishSealingCeremonyScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _stageController;
   late final List<_Stage> _stages;

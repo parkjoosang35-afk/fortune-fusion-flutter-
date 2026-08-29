@@ -11,6 +11,10 @@ class IntroEyebrowLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(text, textAlign: TextAlign.center, style: IntroTextStyles.eyebrow());
+    return Text(
+      text,
+      textAlign: TextAlign.center,
+      style: IntroTextStyles.eyebrow(),
+    );
   }
 }

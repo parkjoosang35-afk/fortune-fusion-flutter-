@@ -36,6 +36,7 @@ class GuinjiProvider extends ChangeNotifier {
 
   bool get isLoading => _isLoading;
   String? get error => _error;
+
   /// 마지막 실패의 서버 에러 코드('UNAUTHORIZED'|'NOT_FOUND'|'EXPIRED' 등).
   /// [GuinjiJoinScreen]이 'UNAUTHORIZED'일 때만 로그인 유도로 분기하는 데 사용.
   String? get errorCode => _errorCode;
@@ -241,7 +242,10 @@ class GuinjiProvider extends ChangeNotifier {
 
   /// POST /guinji/unlocks — 관계 상세 스페셜 해설 해금.
   /// 성공 시 true(호출부에서 UI 잠금 해제 처리), 실패 시 false([error] 참고).
-  Future<bool> unlock({required String memberId, required String method}) async {
+  Future<bool> unlock({
+    required String memberId,
+    required String method,
+  }) async {
     _error = null;
     final result = await _repository.unlock(memberId: memberId, method: method);
     if (!result.success) {

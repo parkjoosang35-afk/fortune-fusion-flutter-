@@ -157,11 +157,7 @@ class WishRoomSecondaryButton extends StatelessWidget {
 }
 
 class WishRoomIconButton extends StatelessWidget {
-  const WishRoomIconButton({
-    super.key,
-    required this.icon,
-    this.onPressed,
-  });
+  const WishRoomIconButton({super.key, required this.icon, this.onPressed});
 
   final String icon;
   final VoidCallback? onPressed;

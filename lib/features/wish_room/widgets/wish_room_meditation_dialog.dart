@@ -137,10 +137,10 @@ class _MeditationDialogState extends State<_MeditationDialog>
             Text(
               _completed
                   ? (_claiming
-                      ? '복주머니를 확인하고 있어요…'
-                      : (_grantedAmount != null && _grantedAmount! > 0
-                          ? '오늘의 마음을 가라앉혔어요'
-                          : '오늘은 이미 받았어요. 내일 다시 해보세요'))
+                        ? '복주머니를 확인하고 있어요…'
+                        : (_grantedAmount != null && _grantedAmount! > 0
+                              ? '오늘의 마음을 가라앉혔어요'
+                              : '오늘은 이미 받았어요. 내일 다시 해보세요'))
                   : '숨을 천천히 들이쉬고 내쉬며\n잠시 마음을 가라앉혀요',
               textAlign: TextAlign.center,
               style: const TextStyle(

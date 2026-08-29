@@ -39,9 +39,8 @@ class ApiGratitudeRepository implements GratitudeRepository {
       final data = body['data'] as List<dynamic>? ?? const [];
       return data
           .map(
-            (e) => GratitudeSealableCandidate.fromJson(
-              e as Map<String, dynamic>,
-            ),
+            (e) =>
+                GratitudeSealableCandidate.fromJson(e as Map<String, dynamic>),
           )
           .toList();
     } catch (e) {

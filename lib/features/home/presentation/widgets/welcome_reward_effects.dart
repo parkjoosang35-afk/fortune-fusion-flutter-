@@ -93,8 +93,7 @@ class WelcomeRewardBurstRays extends StatefulWidget {
   const WelcomeRewardBurstRays({super.key, this.length = 180});
 
   @override
-  State<WelcomeRewardBurstRays> createState() =>
-      _WelcomeRewardBurstRaysState();
+  State<WelcomeRewardBurstRays> createState() => _WelcomeRewardBurstRaysState();
 }
 
 class _WelcomeRewardBurstRaysState extends State<WelcomeRewardBurstRays>
@@ -248,15 +247,21 @@ class _WelcomeRewardConfettiState extends State<WelcomeRewardConfetti>
     );
   }
 
-  Widget _buildPiece(_ConfettiPiece piece, double elapsedMs, double fallDistance) {
+  Widget _buildPiece(
+    _ConfettiPiece piece,
+    double elapsedMs,
+    double fallDistance,
+  ) {
     // 각 조각은 delay 이후 duration 동안 0→1 진행(핸드오프 keyframes fall).
     final cycleMs = piece.delayMs + piece.durationMs;
     final localMs = elapsedMs % max(cycleMs, 1);
     if (localMs < piece.delayMs) {
       return const SizedBox.shrink();
     }
-    final progress =
-        ((localMs - piece.delayMs) / piece.durationMs).clamp(0.0, 1.0);
+    final progress = ((localMs - piece.delayMs) / piece.durationMs).clamp(
+      0.0,
+      1.0,
+    );
     // opacity: 0→1(첫 10%) → 유지 → 0(끝).
     double opacity;
     if (progress < 0.1) {

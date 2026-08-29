@@ -136,9 +136,9 @@ class _GuinjiJoinScreenState extends State<GuinjiJoinScreen> {
     final day = int.tryParse(_dayController.text.trim());
 
     if (name.isEmpty || year == null || month == null || day == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('이름과 생년월일을 모두 입력해 주세요.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('이름과 생년월일을 모두 입력해 주세요.')));
       return;
     }
     if (_mapId == null) {
@@ -152,9 +152,9 @@ class _GuinjiJoinScreenState extends State<GuinjiJoinScreen> {
     try {
       birthDate = DateTime(year, month, day);
     } catch (_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('생년월일을 다시 확인해 주세요.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('생년월일을 다시 확인해 주세요.')));
       return;
     }
 
@@ -171,9 +171,9 @@ class _GuinjiJoinScreenState extends State<GuinjiJoinScreen> {
     setState(() => _submitting = false);
 
     if (result == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(provider.error ?? '참여에 실패했습니다.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(provider.error ?? '참여에 실패했습니다.')));
       return;
     }
 
@@ -249,74 +249,75 @@ class _GuinjiJoinScreenState extends State<GuinjiJoinScreen> {
                     Expanded(child: _LoginRequiredCard(onLogin: _goToLogin))
                   else
                     Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 12),
-                          Image.asset(
-                            'assets/images/home/doryeong/greeting.png',
-                            width: 110,
-                            height: 110,
-                            fit: BoxFit.contain,
-                          ),
-                          const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 10,
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            const SizedBox(height: 12),
+                            Image.asset(
+                              'assets/images/home/doryeong/greeting.png',
+                              width: 110,
+                              height: 110,
+                              fit: BoxFit.contain,
                             ),
-                            decoration: BoxDecoration(
-                              color: GuinjiColors.surfaceCard,
-                              border: Border.all(
-                                color: GuinjiColors.surfaceCardBorder,
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
                               ),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Text.rich(
-                              TextSpan(
-                                children: [
-                                  TextSpan(
-                                    text: _ownerName,
-                                    style: const TextStyle(
-                                      color: GuinjiColors.lavender,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                  const TextSpan(text: '님이\n당신을 귀인지도에 초대했어요'),
-                                ],
-                                style: const TextStyle(
-                                  fontFamily: GuinjiFonts.body,
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 13,
-                                  height: 1.5,
-                                  color: GuinjiColors.textPrimary,
+                              decoration: BoxDecoration(
+                                color: GuinjiColors.surfaceCard,
+                                border: Border.all(
+                                  color: GuinjiColors.surfaceCardBorder,
                                 ),
+                                borderRadius: BorderRadius.circular(14),
                               ),
-                              textAlign: TextAlign.center,
+                              child: Text.rich(
+                                TextSpan(
+                                  children: [
+                                    TextSpan(
+                                      text: _ownerName,
+                                      style: const TextStyle(
+                                        color: GuinjiColors.lavender,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const TextSpan(text: '님이\n당신을 귀인지도에 초대했어요'),
+                                  ],
+                                  style: const TextStyle(
+                                    fontFamily: GuinjiFonts.body,
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 13,
+                                    height: 1.5,
+                                    color: GuinjiColors.textPrimary,
+                                  ),
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 20),
-                          const Align(
-                            alignment: Alignment.centerLeft,
-                            child: Padding(
-                              padding: EdgeInsets.only(left: 4),
-                              child: _MonoLabel('당신의 사주', fontSize: 9),
+                            const SizedBox(height: 20),
+                            const Align(
+                              alignment: Alignment.centerLeft,
+                              child: Padding(
+                                padding: EdgeInsets.only(left: 4),
+                                child: _MonoLabel('당신의 사주', fontSize: 9),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          _JoinFormCard(
-                            nameController: _nameController,
-                            yearController: _yearController,
-                            monthController: _monthController,
-                            dayController: _dayController,
-                            noTime: _noTime,
-                            onNoTimeChanged: (v) => setState(() => _noTime = v),
-                          ),
-                          const SizedBox(height: 12),
-                        ],
+                            const SizedBox(height: 8),
+                            _JoinFormCard(
+                              nameController: _nameController,
+                              yearController: _yearController,
+                              monthController: _monthController,
+                              dayController: _dayController,
+                              noTime: _noTime,
+                              onNoTimeChanged: (v) =>
+                                  setState(() => _noTime = v),
+                            ),
+                            const SizedBox(height: 12),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
                   // [버그 수정 — 딥링크 비로그인 진입] 로그인 유도 카드가
                   // 이미 안내와 CTA(로그인/회원가입)를 모두 담당하므로,
                   // _needsLogin일 때는 기존 하단 CTA(관계 확인하기/나도 내
@@ -409,10 +410,7 @@ class _LoginRequiredCard extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20,
-                vertical: 18,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
               decoration: BoxDecoration(
                 color: GuinjiColors.surfaceCard,
                 border: Border.all(color: GuinjiColors.surfaceCardBorder),

@@ -39,7 +39,14 @@ class LoveAnalyzer extends CategoryAnalyzer<LoveAnalysis> {
   CategoryMetadata get metadata => const CategoryMetadata(
     categoryId: 'A06',
     categoryPurpose: '평생에 걸친 배우자 인연의 구조와 결혼생활을 감당하는 그릇의 크기, 배우자궁의 안정성을 분석',
-    requiredData: ['십신 분포(배우자성/비겁)', '신강신약', '배우자궁(일지) 관계', '신살(년살/육해살)', '용신/기신', '대운'],
+    requiredData: [
+      '십신 분포(배우자성/비겁)',
+      '신강신약',
+      '배우자궁(일지) 관계',
+      '신살(년살/육해살)',
+      '용신/기신',
+      '대운',
+    ],
     analysisRules: [
       '배우자성(남:재성/여:관살) 개수와 비겁 개수를 조합해 인연 구조(spousePattern) 판정',
       '신강신약 × 배우자성 개수 조합으로 결혼생활을 감당할 그릇의 크기(spouseBondStrength) 판정',
@@ -48,7 +55,14 @@ class LoveAnalyzer extends CategoryAnalyzer<LoveAnalysis> {
       '대운 목록에서 배우자성 범주이거나 용신 오행을 포함하는 대운을 혼인 정점 시기로 판정',
     ],
     excludedData: ['세운(올해)', '월운(이번 달)', '자녀운(A07 담당)'],
-    outputStructure: ['인연 구조', '그릇의 크기', '배우자궁 상태', '리스크', '연애·결혼 접근법', '정점 대운'],
+    outputStructure: [
+      '인연 구조',
+      '그릇의 크기',
+      '배우자궁 상태',
+      '리스크',
+      '연애·결혼 접근법',
+      '정점 대운',
+    ],
   );
 
   @override
@@ -74,7 +88,8 @@ class LoveAnalyzer extends CategoryAnalyzer<LoveAnalysis> {
     evidence.add(
       AnalysisEvidence(
         sourceField: 'birthInfo.gender + tenGods+hiddenStems(5대범주 집계)',
-        sourceValue: '성별=$gender → 배우자성=$spouseCategoryLabel, 개수=$spouseCount, 비겁=$biCount',
+        sourceValue:
+            '성별=$gender → 배우자성=$spouseCategoryLabel, 개수=$spouseCount, 비겁=$biCount',
         rule: '남성은 재성, 여성은 관살을 배우자성으로 채택(전통 명리학 육친법)',
         judgment: '배우자성 개수를 기준으로 인연 구조 1차 판정',
         interpretationRole: InterpretationRole.primary,
@@ -100,7 +115,8 @@ class LoveAnalyzer extends CategoryAnalyzer<LoveAnalysis> {
       AnalysisEvidence(
         sourceField: 'spouseCount/biCount 조합',
         sourceValue: '배우자성=$spouseCount, 비겁=$biCount',
-        rule: '배우자성=1&비겁=0→정연형 / 배우자성≥2&비겁=0→다연형 / 배우자성≥1&비겁≥2→경쟁연형 / 배우자성=0→만혼특수연형 / 그외→혼합형',
+        rule:
+            '배우자성=1&비겁=0→정연형 / 배우자성≥2&비겁=0→다연형 / 배우자성≥1&비겁≥2→경쟁연형 / 배우자성=0→만혼특수연형 / 그외→혼합형',
         judgment: spousePattern,
         interpretationRole: InterpretationRole.primary,
         weight: 1.0,
@@ -113,7 +129,8 @@ class LoveAnalyzer extends CategoryAnalyzer<LoveAnalysis> {
     if (strengthVerdict == '신강' && spouseCount >= 2) {
       spouseBondStrength = '신강용배(身强用配) — 여러 인연을 감당할 힘이 있어 관계를 주도적으로 이끄는 편';
     } else if (strengthVerdict == '신강' && spouseCount <= 1) {
-      spouseBondStrength = '신강경연(身强輕緣) — 힘은 있으나 배우자성이 적어 스스로 인연을 적극적으로 만들어야 하는 구조';
+      spouseBondStrength =
+          '신강경연(身强輕緣) — 힘은 있으나 배우자성이 적어 스스로 인연을 적극적으로 만들어야 하는 구조';
     } else if (strengthVerdict == '신약' && spouseCount >= 2) {
       spouseBondStrength = '연다신약(緣多身弱) — 인연 기회는 많으나 관계를 감당할 힘이 부족해 무리한 관계는 부담';
     } else if (strengthVerdict == '신약') {
@@ -126,7 +143,8 @@ class LoveAnalyzer extends CategoryAnalyzer<LoveAnalysis> {
         AnalysisEvidence(
           sourceField: 'strength.verdict + 배우자성 개수',
           sourceValue: '$strengthVerdict, 배우자성=$spouseCount',
-          rule: '신강+배우자성많음→신강용배 / 신강+배우자성적음→신강경연 / 신약+배우자성많음→연다신약 / 신약→신약보연 / 중화→중화용배',
+          rule:
+              '신강+배우자성많음→신강용배 / 신강+배우자성적음→신강경연 / 신약+배우자성많음→연다신약 / 신약→신약보연 / 중화→중화용배',
           judgment: spouseBondStrength,
           interpretationRole: InterpretationRole.strength,
           weight: 0.95,
@@ -142,8 +160,12 @@ class LoveAnalyzer extends CategoryAnalyzer<LoveAnalysis> {
         .toList();
     final conflictTypes = {'지지충', '천간충', '형', '파', '해', '원진', '귀문'};
     final harmonyTypes = {'육합', '삼합', '방합', '천간합'};
-    final conflictRelations = dayBranchRelations.where((r) => conflictTypes.contains(r.type)).toList();
-    final harmonyRelations = dayBranchRelations.where((r) => harmonyTypes.contains(r.type)).toList();
+    final conflictRelations = dayBranchRelations
+        .where((r) => conflictTypes.contains(r.type))
+        .toList();
+    final harmonyRelations = dayBranchRelations
+        .where((r) => harmonyTypes.contains(r.type))
+        .toList();
     final String spousePalaceCondition;
     if (conflictRelations.isNotEmpty && harmonyRelations.isNotEmpty) {
       spousePalaceCondition =
@@ -158,7 +180,8 @@ class LoveAnalyzer extends CategoryAnalyzer<LoveAnalysis> {
           '배우자궁 안정 — 일지가 ${harmonyRelations.map((r) => r.type).join(',')} 관계로 화합해 '
           '배우자와 자연스럽게 조화를 이루는 구조';
     } else {
-      spousePalaceCondition = '배우자궁 독자형 — 일지가 다른 글자와 특별한 합충 관계 없이 독립적이라 스스로 관계를 만들어가는 구조';
+      spousePalaceCondition =
+          '배우자궁 독자형 — 일지가 다른 글자와 특별한 합충 관계 없이 독립적이라 스스로 관계를 만들어가는 구조';
     }
     evidence.add(
       AnalysisEvidence(
@@ -179,9 +202,13 @@ class LoveAnalyzer extends CategoryAnalyzer<LoveAnalysis> {
         sourceField: '일지 관여 관계 상세 목록',
         sourceValue: dayBranchRelations.isEmpty
             ? '없음'
-            : dayBranchRelations.map((r) => '${r.type}(${r.characters.join("")})').join(', '),
+            : dayBranchRelations
+                  .map((r) => '${r.type}(${r.characters.join("")})')
+                  .join(', '),
         rule: '같은 spousePattern이라도 배우자궁 관계의 실제 종류/상대 글자는 사람마다 다름(§5)',
-        judgment: dayBranchRelations.isEmpty ? '일지 관여 관계 없음' : '${dayBranchRelations.length}건의 배우자궁 관계 확인',
+        judgment: dayBranchRelations.isEmpty
+            ? '일지 관여 관계 없음'
+            : '${dayBranchRelations.length}건의 배우자궁 관계 확인',
         interpretationRole: InterpretationRole.supporting,
         weight: 0.4,
       ),
@@ -190,7 +217,11 @@ class LoveAnalyzer extends CategoryAnalyzer<LoveAnalysis> {
     // ── ⑤ 리스크(romanceRiskPattern): 년살(도화)/육해살 + 비겁 개수 ──
     final sinsalList = profile.sinsal ?? const [];
     final foundRomanceSinsal = sinsalList
-        .where((s) => _romanceRiskSinsalNames.contains(s.nameKr) && s.foundOn.isNotEmpty)
+        .where(
+          (s) =>
+              _romanceRiskSinsalNames.contains(s.nameKr) &&
+              s.foundOn.isNotEmpty,
+        )
         .map((s) => s.nameKr)
         .toSet()
         .toList();
@@ -223,9 +254,13 @@ class LoveAnalyzer extends CategoryAnalyzer<LoveAnalysis> {
     supportingEvidence.add(
       AnalysisEvidence(
         sourceField: '애정 관련 신살(년살/육해살) 존재 여부',
-        sourceValue: foundRomanceSinsal.isEmpty ? '없음' : foundRomanceSinsal.join(', '),
+        sourceValue: foundRomanceSinsal.isEmpty
+            ? '없음'
+            : foundRomanceSinsal.join(', '),
         rule: '애정 신살 존재 여부는 리스크 판단과 별개로 항상 추적',
-        judgment: foundRomanceSinsal.isEmpty ? '애정 관련 신살 없음' : '${foundRomanceSinsal.join(', ')} 보유',
+        judgment: foundRomanceSinsal.isEmpty
+            ? '애정 관련 신살 없음'
+            : '${foundRomanceSinsal.join(', ')} 보유',
         interpretationRole: InterpretationRole.supporting,
         weight: 0.3,
       ),
@@ -245,7 +280,9 @@ class LoveAnalyzer extends CategoryAnalyzer<LoveAnalysis> {
     final yongsinElement = profile.yongsin?.yongsin ?? '';
     for (final d in daewoonList) {
       final matchesCategory = q.daewoonMatchesCategory(d, spouseCategory);
-      final carriesYongsin = yongsinElement.isNotEmpty && q.daewoonCarriesElement(d, yongsinElement);
+      final carriesYongsin =
+          yongsinElement.isNotEmpty &&
+          q.daewoonCarriesElement(d, yongsinElement);
       if (matchesCategory || carriesYongsin) {
         marriagePeakDaewoonLabel =
             '${d.startAge}세(${d.startYear}년)부터 시작된 ${d.pillar.stemKr}${d.pillar.branchKr}(${d.pillar.stemHanja}${d.pillar.branchHanja}) 대운';
@@ -275,7 +312,8 @@ class LoveAnalyzer extends CategoryAnalyzer<LoveAnalysis> {
             sourceValue:
                 '${current.startAge}세 ${current.pillar.stemKr}${current.pillar.branchKr}(${current.pillar.stemHanja}${current.pillar.branchHanja})',
             rule: '기준일이 속한 대운을 조회(재계산 아님, PHASE4 목록 조회)',
-            judgment: '현재 ${current.pillar.stemKr}${current.pillar.branchKr} 대운을 지나는 중',
+            judgment:
+                '현재 ${current.pillar.stemKr}${current.pillar.branchKr} 대운을 지나는 중',
             interpretationRole: InterpretationRole.timing,
             weight: 0.5,
           ),
@@ -290,8 +328,10 @@ class LoveAnalyzer extends CategoryAnalyzer<LoveAnalysis> {
       if (yongsinElement.isNotEmpty) '$yongsinElement 기운이 강해지는 시기·인연',
     ];
     final caution = <String>[
-      if (conflictRelations.isNotEmpty) '배우자궁 충돌(${conflictRelations.map((r) => r.type).join(',')})로 인한 갈등 관리',
-      if (foundRomanceSinsal.isNotEmpty) '${foundRomanceSinsal.join(', ')} 신호에 따른 이성 관계 절제',
+      if (conflictRelations.isNotEmpty)
+        '배우자궁 충돌(${conflictRelations.map((r) => r.type).join(',')})로 인한 갈등 관리',
+      if (foundRomanceSinsal.isNotEmpty)
+        '${foundRomanceSinsal.join(', ')} 신호에 따른 이성 관계 절제',
       if (biCount >= 2 && spouseCount >= 1) '경쟁·삼각관계로 이어질 수 있는 상황에 대한 신중함',
     ];
     if (favorable.isEmpty) favorable.add('현재의 인연 구조를 안정적으로 유지하는 환경');
@@ -299,7 +339,9 @@ class LoveAnalyzer extends CategoryAnalyzer<LoveAnalysis> {
 
     final confidence = (profile.strength == null || profile.yongsin == null)
         ? AnalysisConfidence.low
-        : (marriagePeakDaewoonLabel.isEmpty && riskParts.isEmpty && conflictRelations.isEmpty)
+        : (marriagePeakDaewoonLabel.isEmpty &&
+              riskParts.isEmpty &&
+              conflictRelations.isEmpty)
         ? AnalysisConfidence.medium
         : AnalysisConfidence.high;
 
@@ -350,7 +392,9 @@ class LoveAnalyzer extends CategoryAnalyzer<LoveAnalysis> {
         : spouseBondStrength.startsWith('신강경연')
         ? '먼저 다가가고 인연을 적극적으로 만들어가는 편이'
         : '상황에 맞춰 유연하게 관계를 조율하는 편이';
-    final palaceNote = hasConflict ? ' 좋고, 특히 사소한 갈등이 쌓이지 않도록 대화를 자주 나누는 습관이 도움이 됨' : ' 좋음';
+    final palaceNote = hasConflict
+        ? ' 좋고, 특히 사소한 갈등이 쌓이지 않도록 대화를 자주 나누는 습관이 도움이 됨'
+        : ' 좋음';
     return '$base$palaceNote';
   }
 }

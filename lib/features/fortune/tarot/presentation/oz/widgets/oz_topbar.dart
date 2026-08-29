@@ -30,7 +30,10 @@ class OzTopbar extends StatelessWidget {
       child: Row(
         children: [
           if (onBack != null)
-            _CircleIconButton(icon: Icons.arrow_back_ios_new_rounded, onTap: onBack!)
+            _CircleIconButton(
+              icon: Icons.arrow_back_ios_new_rounded,
+              onTap: onBack!,
+            )
           else
             const SizedBox(width: 4),
           const SizedBox(width: OzTokens.spaceSm),

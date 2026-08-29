@@ -29,10 +29,7 @@ class WelcomeRewardPouchPainter extends CustomPainter {
     // 배경 원형 glow(radialGradient #wp-glow).
     final glowPaint = Paint()
       ..shader = RadialGradient(
-        colors: [
-          _gold.withValues(alpha: 0.45),
-          _gold.withValues(alpha: 0),
-        ],
+        colors: [_gold.withValues(alpha: 0.45), _gold.withValues(alpha: 0)],
       ).createShader(const Rect.fromLTWH(-5, 5, 110, 110));
     canvas.drawCircle(const Offset(50, 60), 55, glowPaint);
 
@@ -142,9 +139,7 @@ class WelcomeRewardPouchPainter extends CustomPainter {
           fontSize: 16,
           fontWeight: FontWeight.w900,
           fontFamily: 'serif',
-          shadows: [
-            Shadow(color: _gold.withValues(alpha: 0.8), blurRadius: 8),
-          ],
+          shadows: [Shadow(color: _gold.withValues(alpha: 0.8), blurRadius: 8)],
         ),
       ),
       textAlign: TextAlign.center,
@@ -181,8 +176,7 @@ class WelcomeRewardPouchHero extends StatefulWidget {
   const WelcomeRewardPouchHero({super.key, this.size = 130});
 
   @override
-  State<WelcomeRewardPouchHero> createState() =>
-      _WelcomeRewardPouchHeroState();
+  State<WelcomeRewardPouchHero> createState() => _WelcomeRewardPouchHeroState();
 }
 
 class _WelcomeRewardPouchHeroState extends State<WelcomeRewardPouchHero>

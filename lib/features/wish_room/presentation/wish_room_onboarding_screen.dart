@@ -141,10 +141,8 @@ class WishRoomOnboardingScreen extends StatelessWidget {
                       const SizedBox(height: 10),
                       WishRoomGhostButton(
                         label: '이미 계정이 있어요',
-                        onPressed: () => _enterWithBellOptIn(
-                          context,
-                          isHaveAccount: true,
-                        ),
+                        onPressed: () =>
+                            _enterWithBellOptIn(context, isHaveAccount: true),
                       ),
                     ],
                   ),

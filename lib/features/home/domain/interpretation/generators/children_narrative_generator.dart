@@ -39,7 +39,8 @@ import '../interpretation_rules.dart';
 import '../narrative_generator.dart';
 import '../term_translation_layer.dart';
 
-class ChildrenNarrativeGenerator implements NarrativeGenerator<ChildrenAnalysis> {
+class ChildrenNarrativeGenerator
+    implements NarrativeGenerator<ChildrenAnalysis> {
   const ChildrenNarrativeGenerator();
 
   /// 'A — B' 형식으로 저장된 childPattern/childBondStrength 문자열을
@@ -80,7 +81,9 @@ class ChildrenNarrativeGenerator implements NarrativeGenerator<ChildrenAnalysis>
       '$dayGanKr($dayGanHanja) 일간의 이 사주는 $patternName 구조를 갖고 있어요. $patternDesc.',
       if (bondDesc.isNotEmpty) '여기에 $bondName 상태가 더해져, $bondDesc.',
     ];
-    final coreResult = coreResultAll.take(rules.maxCoreResultSentences).toList();
+    final coreResult = coreResultAll
+        .take(rules.maxCoreResultSentences)
+        .toList();
 
     // ── ② 왜 이런 결과가 나왔는가(whyThisResult) — coreEvidence를
     // sourceField 기준으로 하나씩 자연어로 풀어낸다(§7 근거 추적성).
@@ -113,7 +116,9 @@ class ChildrenNarrativeGenerator implements NarrativeGenerator<ChildrenAnalysis>
           );
         case '신살(자녀궁 공망/겁살/재살) + 자녀성 부재 조합':
           if (foundChildRiskSinsal.isNotEmpty) {
-            final phrases = foundChildRiskSinsal.map((s) => sinsalPhrase(terms, s)).join(' ');
+            final phrases = foundChildRiskSinsal
+                .map((s) => sinsalPhrase(terms, s))
+                .join(' ');
             whyThisResult.add(phrases);
           }
           if (childCount == 0) {
@@ -138,7 +143,8 @@ class ChildrenNarrativeGenerator implements NarrativeGenerator<ChildrenAnalysis>
       if (foundChildRiskSinsal.isNotEmpty)
         '자녀궁에 ${foundChildRiskSinsal.join(', ')} 기운이 있어, 자녀 관련 사안에서 평소보다 신중함이 필요한 편이에요.',
     ].where((s) => s.trim().isNotEmpty).toList();
-    final cappedCharacteristics = characteristics.length > rules.maxCharacteristicParagraphs
+    final cappedCharacteristics =
+        characteristics.length > rules.maxCharacteristicParagraphs
         ? characteristics.sublist(0, rules.maxCharacteristicParagraphs)
         : characteristics;
 
@@ -181,7 +187,9 @@ class ChildrenNarrativeGenerator implements NarrativeGenerator<ChildrenAnalysis>
     // ── ⑦ 시기(timingSection) — PHASE4 실계산 대운만 사용(§18) ──
     List<String>? timingSection;
     if (analysis.childBlessingDaewoonLabel.isNotEmpty) {
-      timingSection = ['${analysis.childBlessingDaewoonLabel} 시기에 자녀 관련 인연·경사가 가장 활발해질 수 있어요.'];
+      timingSection = [
+        '${analysis.childBlessingDaewoonLabel} 시기에 자녀 관련 인연·경사가 가장 활발해질 수 있어요.',
+      ];
       final currentDaewoonEvidence = analysis.supportingEvidence
           .where((e) => e.sourceField == 'currentDaewoon(PHASE4 실계산)')
           .toList();

@@ -131,7 +131,8 @@ class SajuProfileQuery {
   }) {
     return allTenGodOccurrences()
         .where(
-          (o) => o.category == category && (includeHiddenStems || !o.isHiddenStem),
+          (o) =>
+              o.category == category && (includeHiddenStems || !o.isHiddenStem),
         )
         .toList();
   }
@@ -220,8 +221,18 @@ class SajuProfileQuery {
 }
 
 const Map<String, String> _zhiElementTable = {
-  '子': '수', '丑': '토', '寅': '목', '卯': '목', '辰': '토', '巳': '화',
-  '午': '화', '未': '토', '申': '금', '酉': '금', '戌': '토', '亥': '수',
+  '子': '수',
+  '丑': '토',
+  '寅': '목',
+  '卯': '목',
+  '辰': '토',
+  '巳': '화',
+  '午': '화',
+  '未': '토',
+  '申': '금',
+  '酉': '금',
+  '戌': '토',
+  '亥': '수',
 };
 
 String? _zhiElementOf(String zhi) => _zhiElementTable[zhi];

@@ -24,12 +24,7 @@ class AuthCheckbox extends StatelessWidget {
           width: 1.5,
         ),
         boxShadow: value
-            ? [
-                BoxShadow(
-                  color: IntroPalette.glowShadow,
-                  blurRadius: 12,
-                ),
-              ]
+            ? [BoxShadow(color: IntroPalette.glowShadow, blurRadius: 12)]
             : null,
       ),
       child: value

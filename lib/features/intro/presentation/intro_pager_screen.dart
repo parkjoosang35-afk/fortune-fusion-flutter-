@@ -151,7 +151,10 @@ class _IntroPagerScreenState extends State<IntroPagerScreen> {
             title: config.card1Title,
             titleFontSize: 30,
             titleHighlight: '무슨 빛',
-            titleHighlightColors: const [Color(0xFFA8E3D5), IntroPalette.crystal],
+            titleHighlightColors: const [
+              Color(0xFFA8E3D5),
+              IntroPalette.crystal,
+            ],
             subtitle: config.card1Description,
           ),
         ),
@@ -174,7 +177,10 @@ class _IntroPagerScreenState extends State<IntroPagerScreen> {
             title: config.card2Title,
             titleFontSize: 26,
             titleHighlight: '귀인',
-            titleHighlightColors: const [IntroPalette.gold, IntroPalette.primary],
+            titleHighlightColors: const [
+              IntroPalette.gold,
+              IntroPalette.primary,
+            ],
             subtitle: config.card2Description,
             featureItems: config.featureItems,
             alignTop: true,

@@ -28,12 +28,18 @@ class OzFaceDownCard extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: selected ? OzColors.gold.withValues(alpha: 0.85) : OzColors.borderStrong,
+          color: selected
+              ? OzColors.gold.withValues(alpha: 0.85)
+              : OzColors.borderStrong,
           width: selected ? 1.6 : 1.0,
         ),
         boxShadow: selected
             ? [
-                BoxShadow(color: OzColors.gold.withValues(alpha: 0.45), blurRadius: 22, spreadRadius: 1),
+                BoxShadow(
+                  color: OzColors.gold.withValues(alpha: 0.45),
+                  blurRadius: 22,
+                  spreadRadius: 1,
+                ),
                 BoxShadow(
                   color: OzColors.gold.withValues(alpha: 0.25),
                   blurRadius: 6,
@@ -58,7 +64,10 @@ class OzFaceDownCard extends StatelessWidget {
               ),
             ),
             alignment: Alignment.center,
-            child: Text('✨', style: TextStyle(fontSize: width * 0.28, color: OzColors.gold)),
+            child: Text(
+              '✨',
+              style: TextStyle(fontSize: width * 0.28, color: OzColors.gold),
+            ),
           ),
         ),
       ),

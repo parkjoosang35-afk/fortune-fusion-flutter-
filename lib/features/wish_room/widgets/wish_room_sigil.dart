@@ -276,8 +276,7 @@ class _WishRoomSigilRingState extends State<WishRoomSigilRing>
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {
-        final angle =
-            _controller.value * 2 * pi * (widget.reverse ? -1 : 1);
+        final angle = _controller.value * 2 * pi * (widget.reverse ? -1 : 1);
         return Transform.rotate(
           angle: angle,
           child: WishRoomSigil(

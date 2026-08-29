@@ -172,16 +172,16 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
           if (mounted) setState(() => _showHeartBurst = false);
         });
       } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('오늘은 이미 이 소원에 정성을 더했어요')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('오늘은 이미 이 소원에 정성을 더했어요')));
       }
     } catch (_) {
       if (!mounted) return;
       setState(() => _busy = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('응원에 실패했습니다. 다시 시도해주세요.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('응원에 실패했습니다. 다시 시도해주세요.')));
     }
   }
 
@@ -303,9 +303,9 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
                     wishReportReasons.first,
                   );
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('신고가 접수되었어요')),
-                    );
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(const SnackBar(content: Text('신고가 접수되었어요')));
                   }
                 },
               ),
@@ -654,7 +654,9 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
                                         Expanded(
                                           child: WishRoomSecondaryButton(
                                             label: '🔥 소원 더하기',
-                                            onPressed: _busy ? null : _doSupport,
+                                            onPressed: _busy
+                                                ? null
+                                                : _doSupport,
                                           ),
                                         ),
                                         const SizedBox(width: 10),

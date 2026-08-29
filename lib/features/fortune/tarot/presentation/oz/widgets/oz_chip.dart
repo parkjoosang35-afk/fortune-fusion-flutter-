@@ -27,14 +27,18 @@ class OzChip extends StatelessWidget {
           color: selected ? const Color(0x26F5D98A) : OzColors.card,
           borderRadius: BorderRadius.circular(OzTokens.radiusPill),
           border: Border.all(
-            color: selected ? OzColors.gold.withValues(alpha: 0.5) : OzColors.borderSoft,
+            color: selected
+                ? OzColors.gold.withValues(alpha: 0.5)
+                : OzColors.borderSoft,
           ),
         ),
         child: Text(
           label,
           style: OzTypography.body(
             fontSize: 12.5,
-            color: selected ? OzColors.gold : OzColors.fg.withValues(alpha: 0.75),
+            color: selected
+                ? OzColors.gold
+                : OzColors.fg.withValues(alpha: 0.75),
           ),
         ),
       ),

@@ -81,7 +81,13 @@ class GuinjiPerson {
   /// 화면 표시용 영문 키(mok/hwa/to/geum/su)로 변환한다. 값이 모두 0이거나
   /// 비어 있으면 기본값 'to'(토)로 폴백한다.
   static String _dominantOhaengKey(Map<String, dynamic> koreanCounts) {
-    const koreanToKey = {'목': 'mok', '화': 'hwa', '토': 'to', '금': 'geum', '수': 'su'};
+    const koreanToKey = {
+      '목': 'mok',
+      '화': 'hwa',
+      '토': 'to',
+      '금': 'geum',
+      '수': 'su',
+    };
     String bestKr = '토';
     int bestCount = -1;
     for (final entry in koreanToKey.keys) {

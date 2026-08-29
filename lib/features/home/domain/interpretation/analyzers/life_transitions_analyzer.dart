@@ -34,7 +34,8 @@ import '../category_analyzer.dart';
 import '../saju_profile_query.dart';
 import 'life_transitions_analysis.dart';
 
-class LifeTransitionsAnalyzer extends CategoryAnalyzer<LifeTransitionsAnalysis> {
+class LifeTransitionsAnalyzer
+    extends CategoryAnalyzer<LifeTransitionsAnalysis> {
   const LifeTransitionsAnalyzer();
 
   @override
@@ -51,11 +52,21 @@ class LifeTransitionsAnalyzer extends CategoryAnalyzer<LifeTransitionsAnalysis> 
       '호전+대전환이 겹치는 첫 전환점을 가장 주목할 전환점(keyTurningPointLabel)으로 채택',
     ],
     excludedData: ['세운(올해)', '월운(이번 달)', '재물·직업 등 주제별 대운 흐름(B그룹 담당)'],
-    outputStructure: ['전환 성격', '전환기 대응 방식', '전환점별 상세', '리스크', '전환 접근법', '핵심 전환점'],
+    outputStructure: [
+      '전환 성격',
+      '전환기 대응 방식',
+      '전환점별 상세',
+      '리스크',
+      '전환 접근법',
+      '핵심 전환점',
+    ],
   );
 
   @override
-  LifeTransitionsAnalysis analyze(SajuProfile profile, {DateTime? referenceDate}) {
+  LifeTransitionsAnalysis analyze(
+    SajuProfile profile, {
+    DateTime? referenceDate,
+  }) {
     final evidence = <AnalysisEvidence>[];
     final q = SajuProfileQuery(profile);
 
@@ -90,8 +101,11 @@ class LifeTransitionsAnalyzer extends CategoryAnalyzer<LifeTransitionsAnalysis> 
           changeLevel = '순환형';
         }
       }
-      final carriesYongsin = yongsinElement.isNotEmpty && q.daewoonCarriesElement(d, yongsinElement);
-      final carriesGisin = gisinElement.isNotEmpty && q.daewoonCarriesElement(d, gisinElement);
+      final carriesYongsin =
+          yongsinElement.isNotEmpty &&
+          q.daewoonCarriesElement(d, yongsinElement);
+      final carriesGisin =
+          gisinElement.isNotEmpty && q.daewoonCarriesElement(d, gisinElement);
       final String direction;
       if (carriesYongsin && !carriesGisin) {
         direction = '호전';
@@ -105,7 +119,8 @@ class LifeTransitionsAnalyzer extends CategoryAnalyzer<LifeTransitionsAnalysis> 
           entry: d,
           changeLevel: changeLevel,
           direction: direction,
-          label: '${d.startAge}세(${d.startYear}년)부터 시작된 '
+          label:
+              '${d.startAge}세(${d.startYear}년)부터 시작된 '
               '${d.pillar.stemKr}${d.pillar.branchKr}(${d.pillar.stemHanja}${d.pillar.branchHanja}) 대운',
         ),
       );
@@ -113,16 +128,21 @@ class LifeTransitionsAnalyzer extends CategoryAnalyzer<LifeTransitionsAnalysis> 
     evidence.add(
       AnalysisEvidence(
         sourceField: 'daewoon(PHASE4 실계산, 앞 5개)',
-        sourceValue: classified.map((c) => '${c.label}=${c.changeLevel}/${c.direction}').join(' | '),
+        sourceValue: classified
+            .map((c) => '${c.label}=${c.changeLevel}/${c.direction}')
+            .join(' | '),
         rule: '이전 대운과 십신 범주(천간+지지)가 모두 바뀌면 대전환, 하나만 바뀌면 소전환, 그대로면 순환형으로 분류',
-        judgment: '${classified.length}개 전환점 중 대전환 ${classified.where((c) => c.changeLevel == '대전환').length}개 확인',
+        judgment:
+            '${classified.length}개 전환점 중 대전환 ${classified.where((c) => c.changeLevel == '대전환').length}개 확인',
         interpretationRole: InterpretationRole.primary,
         weight: 0.9,
       ),
     );
 
     // ── ② 전체 전환 성격(transitionPattern) — 대전환 개수 기준 4단계 ──
-    final bigTransitionCount = classified.where((c) => c.changeLevel == '대전환').length;
+    final bigTransitionCount = classified
+        .where((c) => c.changeLevel == '대전환')
+        .length;
     final String transitionPattern;
     if (bigTransitionCount >= 3) {
       transitionPattern = '급변형(急變型) — 대운이 바뀔 때마다 삶의 국면이 완전히 새로 짜이는 구조';
@@ -148,13 +168,17 @@ class LifeTransitionsAnalyzer extends CategoryAnalyzer<LifeTransitionsAnalysis> 
     final strengthVerdict = profile.strength?.verdict ?? '중화';
     final String transitionBondStrength;
     if (strengthVerdict == '신강' && bigTransitionCount >= 2) {
-      transitionBondStrength = '신강주도(身强主導) — 큰 전환이 잦아도 스스로 방향을 잡아 주도적으로 헤쳐나가는 편';
+      transitionBondStrength =
+          '신강주도(身强主導) — 큰 전환이 잦아도 스스로 방향을 잡아 주도적으로 헤쳐나가는 편';
     } else if (strengthVerdict == '신강') {
-      transitionBondStrength = '신강안정(身强安定) — 전환이 크지 않은 만큼 힘을 차분히 쌓아가며 안정적으로 대응하는 편';
+      transitionBondStrength =
+          '신강안정(身强安定) — 전환이 크지 않은 만큼 힘을 차분히 쌓아가며 안정적으로 대응하는 편';
     } else if (strengthVerdict == '신약' && bigTransitionCount >= 2) {
-      transitionBondStrength = '신약격동(身弱激動) — 전환이 잦고 힘이 약해 변화의 물살을 크게 느낄 수 있어 주변의 지지가 중요한 편';
+      transitionBondStrength =
+          '신약격동(身弱激動) — 전환이 잦고 힘이 약해 변화의 물살을 크게 느낄 수 있어 주변의 지지가 중요한 편';
     } else if (strengthVerdict == '신약') {
-      transitionBondStrength = '신약적응(身弱適應) — 힘은 약하지만 전환이 크지 않아 천천히 적응해 나갈 수 있는 편';
+      transitionBondStrength =
+          '신약적응(身弱適應) — 힘은 약하지만 전환이 크지 않아 천천히 적응해 나갈 수 있는 편';
     } else {
       transitionBondStrength = '중화순응(中和順應) — 상황에 맞춰 유연하게 전환기를 받아들이는 편';
     }
@@ -163,7 +187,8 @@ class LifeTransitionsAnalyzer extends CategoryAnalyzer<LifeTransitionsAnalysis> 
         AnalysisEvidence(
           sourceField: 'strength.verdict + bigTransitionCount',
           sourceValue: '$strengthVerdict, 대전환=$bigTransitionCount',
-          rule: '신강+대전환많음→신강주도 / 신강+대전환적음→신강안정 / 신약+대전환많음→신약격동 / 신약+대전환적음→신약적응 / 중화→중화순응',
+          rule:
+              '신강+대전환많음→신강주도 / 신강+대전환적음→신강안정 / 신약+대전환많음→신약격동 / 신약+대전환적음→신약적응 / 중화→중화순응',
           judgment: transitionBondStrength,
           interpretationRole: InterpretationRole.strength,
           weight: 0.85,
@@ -175,7 +200,9 @@ class LifeTransitionsAnalyzer extends CategoryAnalyzer<LifeTransitionsAnalysis> 
     // 전환점의 changeLevel/direction을 순서대로 서술 ──
     final turningPointsCondition = classified.isEmpty
         ? '대운 정보가 부족해 전환점을 판정할 수 없음'
-        : classified.map((c) => '${c.label}(${c.changeLevel}·${c.direction})').join(', ');
+        : classified
+              .map((c) => '${c.label}(${c.changeLevel}·${c.direction})')
+              .join(', ');
     evidence.add(
       AnalysisEvidence(
         sourceField: '대운 전환점별 십신범주 변화 + 용신/기신 대조(PHASE4 실계산)',
@@ -201,7 +228,9 @@ class LifeTransitionsAnalyzer extends CategoryAnalyzer<LifeTransitionsAnalysis> 
     ];
 
     // ── ⑤ 리스크(transitionRiskPattern): 기신과 맞닿은 전환점 개수·시점 ──
-    final gisinTransitions = classified.where((c) => c.direction == '주의').toList();
+    final gisinTransitions = classified
+        .where((c) => c.direction == '주의')
+        .toList();
     final riskParts = <String>[];
     if (gisinTransitions.isNotEmpty) {
       riskParts.add(
@@ -209,14 +238,19 @@ class LifeTransitionsAnalyzer extends CategoryAnalyzer<LifeTransitionsAnalysis> 
       );
     }
     if (bigTransitionCount >= 3) {
-      riskParts.add('대운이 바뀔 때마다 국면이 크게 달라지는 만큼, 매 전환점마다 새로운 환경에 적응하는 시간이 필요할 수 있음');
+      riskParts.add(
+        '대운이 바뀔 때마다 국면이 크게 달라지는 만큼, 매 전환점마다 새로운 환경에 적응하는 시간이 필요할 수 있음',
+      );
     }
-    final transitionRiskPattern = riskParts.isEmpty ? '두드러진 전환점 리스크 신호는 확인되지 않음' : riskParts.join(' / ');
+    final transitionRiskPattern = riskParts.isEmpty
+        ? '두드러진 전환점 리스크 신호는 확인되지 않음'
+        : riskParts.join(' / ');
     if (riskParts.isNotEmpty) {
       evidence.add(
         AnalysisEvidence(
           sourceField: '기신 대조 전환점 + bigTransitionCount 조합',
-          sourceValue: '기신전환점=${gisinTransitions.length}, 대전환=$bigTransitionCount',
+          sourceValue:
+              '기신전환점=${gisinTransitions.length}, 대전환=$bigTransitionCount',
           rule: '기신과 맞닿은 전환점 존재 또는 대전환 3개 이상을 리스크 신호로 채택 후 종합',
           judgment: transitionRiskPattern,
           interpretationRole: InterpretationRole.caution,
@@ -225,13 +259,17 @@ class LifeTransitionsAnalyzer extends CategoryAnalyzer<LifeTransitionsAnalysis> 
       );
     }
     // 호전 전환점 개수도 항상 세부 근거로 남긴다(§5).
-    final yongsinTransitions = classified.where((c) => c.direction == '호전').toList();
+    final yongsinTransitions = classified
+        .where((c) => c.direction == '호전')
+        .toList();
     supportingEvidence.add(
       AnalysisEvidence(
         sourceField: '용신/기신 대조 전환점 개수',
-        sourceValue: '호전=${yongsinTransitions.length}, 주의=${gisinTransitions.length}, 중립=${classified.length - yongsinTransitions.length - gisinTransitions.length}',
+        sourceValue:
+            '호전=${yongsinTransitions.length}, 주의=${gisinTransitions.length}, 중립=${classified.length - yongsinTransitions.length - gisinTransitions.length}',
         rule: '전환점별 용신/기신 대조 결과는 리스크 판단과 별개로 항상 추적',
-        judgment: '호전 ${yongsinTransitions.length}개, 주의 ${gisinTransitions.length}개',
+        judgment:
+            '호전 ${yongsinTransitions.length}개, 주의 ${gisinTransitions.length}개',
         interpretationRole: InterpretationRole.supporting,
         weight: 0.3,
       ),
@@ -247,7 +285,9 @@ class LifeTransitionsAnalyzer extends CategoryAnalyzer<LifeTransitionsAnalysis> 
     // ── ⑦ 핵심 전환점(keyTurningPointLabel) — 호전+대전환이 겹치는 첫
     // 전환점, 없으면 호전인 첫 전환점 ──
     var keyTurningPointLabel = '';
-    final bestBig = classified.where((c) => c.direction == '호전' && c.changeLevel == '대전환').toList();
+    final bestBig = classified
+        .where((c) => c.direction == '호전' && c.changeLevel == '대전환')
+        .toList();
     if (bestBig.isNotEmpty) {
       keyTurningPointLabel = bestBig.first.label;
     } else if (yongsinTransitions.isNotEmpty) {
@@ -276,7 +316,8 @@ class LifeTransitionsAnalyzer extends CategoryAnalyzer<LifeTransitionsAnalysis> 
             sourceValue:
                 '${current.startAge}세 ${current.pillar.stemKr}${current.pillar.branchKr}(${current.pillar.stemHanja}${current.pillar.branchHanja})',
             rule: '기준일이 속한 대운을 조회(재계산 아님, PHASE4 목록 조회)',
-            judgment: '현재 ${current.pillar.stemKr}${current.pillar.branchKr} 대운을 지나는 중',
+            judgment:
+                '현재 ${current.pillar.stemKr}${current.pillar.branchKr} 대운을 지나는 중',
             interpretationRole: InterpretationRole.timing,
             weight: 0.5,
           ),
@@ -286,17 +327,22 @@ class LifeTransitionsAnalyzer extends CategoryAnalyzer<LifeTransitionsAnalysis> 
 
     // ── 좋은 흐름 / 주의 흐름 ──
     final favorable = <String>[
-      if (yongsinTransitions.isNotEmpty) '${yongsinTransitions.map((c) => c.label).join(', ')} 시기의 순조로운 흐름',
+      if (yongsinTransitions.isNotEmpty)
+        '${yongsinTransitions.map((c) => c.label).join(', ')} 시기의 순조로운 흐름',
       if (keyTurningPointLabel.isNotEmpty) '$keyTurningPointLabel 시기',
     ];
     final caution = <String>[
-      if (gisinTransitions.isNotEmpty) '${gisinTransitions.map((c) => c.label).join(', ')} 시기의 신중한 대응',
+      if (gisinTransitions.isNotEmpty)
+        '${gisinTransitions.map((c) => c.label).join(', ')} 시기의 신중한 대응',
       if (bigTransitionCount >= 3) '전환이 잦은 만큼 매번 새로운 환경에 적응하는 데 필요한 마음의 여유',
     ];
     if (favorable.isEmpty) favorable.add('현재의 흐름을 안정적으로 유지하는 환경');
     if (caution.isEmpty) caution.add('두드러진 전환점 리스크 신호는 확인되지 않음');
 
-    final confidence = (profile.strength == null || profile.yongsin == null || classified.isEmpty)
+    final confidence =
+        (profile.strength == null ||
+            profile.yongsin == null ||
+            classified.isEmpty)
         ? AnalysisConfidence.low
         : (keyTurningPointLabel.isEmpty && riskParts.isEmpty)
         ? AnalysisConfidence.medium
@@ -348,8 +394,12 @@ class LifeTransitionsAnalyzer extends CategoryAnalyzer<LifeTransitionsAnalysis> 
         : transitionBondStrength.startsWith('신약적응')
         ? '변화의 속도를 서두르지 않고 천천히 적응해 나가는 방식이'
         : '상황에 맞춰 전환기를 대하는 태도를 유연하게 조절하는 방식이';
-    final gisinNote = hasGisinTransition ? ' 좋고, 특히 기신과 맞닿은 시기에는 중요한 결정을 미리 앞당기거나 뒤로 미루는 유연함이 필요' : ' 좋음';
-    final yongsinNote = hasYongsinTransition ? ', 용신과 맞닿은 전환점에서는 새로운 도전을 적극적으로 시도해볼 만함' : '';
+    final gisinNote = hasGisinTransition
+        ? ' 좋고, 특히 기신과 맞닿은 시기에는 중요한 결정을 미리 앞당기거나 뒤로 미루는 유연함이 필요'
+        : ' 좋음';
+    final yongsinNote = hasYongsinTransition
+        ? ', 용신과 맞닿은 전환점에서는 새로운 도전을 적극적으로 시도해볼 만함'
+        : '';
     return '$base$gisinNote$yongsinNote';
   }
 }

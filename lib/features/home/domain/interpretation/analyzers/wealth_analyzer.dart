@@ -57,7 +57,8 @@ class WealthAnalyzer extends CategoryAnalyzer<WealthAnalysis> {
       AnalysisEvidence(
         sourceField: 'tenGods+hiddenStems(5대범주 집계)',
         sourceValue: categoryCounts.toString(),
-        rule: '재성=$wealthCount, 관살=$officerCount, 인성=$printerCount, 비겁=$biCount',
+        rule:
+            '재성=$wealthCount, 관살=$officerCount, 인성=$printerCount, 비겁=$biCount',
         judgment: '재성 개수를 기준으로 재물 구조 1차 판정',
         interpretationRole: InterpretationRole.primary,
         weight: 0.7,
@@ -81,7 +82,8 @@ class WealthAnalyzer extends CategoryAnalyzer<WealthAnalysis> {
       AnalysisEvidence(
         sourceField: 'wealthCount/officerCount/printerCount 조합',
         sourceValue: '재성=$wealthCount, 관살=$officerCount, 인성=$printerCount',
-        rule: '재성≥2&관살≥1→재관쌍미 / 재성≥2&인성=0→재성편중 / 재성=0&인성≥2→인다무재 / 재성=0→무재격 / 그외→균형형',
+        rule:
+            '재성≥2&관살≥1→재관쌍미 / 재성≥2&인성=0→재성편중 / 재성=0&인성≥2→인다무재 / 재성=0→무재격 / 그외→균형형',
         judgment: wealthPattern,
         interpretationRole: InterpretationRole.primary,
         weight: 1.0,
@@ -107,7 +109,8 @@ class WealthAnalyzer extends CategoryAnalyzer<WealthAnalysis> {
         AnalysisEvidence(
           sourceField: 'strength.verdict + 재성 개수',
           sourceValue: '$strengthVerdict, 재성=$wealthCount',
-          rule: '신강+재성많음→재왕신강 / 신강+재성적음→신강용재 / 신약+재성많음→재다신약 / 신약→재약신약 / 중화→중화용재',
+          rule:
+              '신강+재성많음→재왕신강 / 신강+재성적음→신강용재 / 신약+재성많음→재다신약 / 신약→재약신약 / 중화→중화용재',
           judgment: wealthStrength,
           interpretationRole: InterpretationRole.strength,
           weight: 0.95,
@@ -153,7 +156,8 @@ class WealthAnalyzer extends CategoryAnalyzer<WealthAnalysis> {
     final supportingEvidence = <AnalysisEvidence>[
       AnalysisEvidence(
         sourceField: '정재/편재/관살/인성/비겁 세부 개수',
-        sourceValue: '정재=$jeongjaeCount, 편재=$pyeonjaeCount, 관살=$officerCount, 인성=$printerCount, 비겁=$biCount',
+        sourceValue:
+            '정재=$jeongjaeCount, 편재=$pyeonjaeCount, 관살=$officerCount, 인성=$printerCount, 비겁=$biCount',
         rule: '같은 wealthPattern이라도 세부 조성 비율은 사람마다 다름(§5)',
         judgment: '정재:편재 비율 $jeongjaeCount:$pyeonjaeCount, 비겁 $biCount개',
         interpretationRole: InterpretationRole.supporting,
@@ -167,8 +171,11 @@ class WealthAnalyzer extends CategoryAnalyzer<WealthAnalysis> {
         .where((o) => o.tenGod == '겁재')
         .length;
     final gisin = profile.yongsin?.gisin ?? '';
-    final wealthElement = jeongjaeCount + pyeonjaeCount > 0 ? _wealthElementOf(q) : '';
-    final gisinIsWealth = gisin.isNotEmpty && wealthElement.isNotEmpty && gisin == wealthElement;
+    final wealthElement = jeongjaeCount + pyeonjaeCount > 0
+        ? _wealthElementOf(q)
+        : '';
+    final gisinIsWealth =
+        gisin.isNotEmpty && wealthElement.isNotEmpty && gisin == wealthElement;
     final riskParts = <String>[];
     if (gyeopjaeCount >= 2) {
       riskParts.add('겁재가 $gyeopjaeCount개로 많아 동업·보증·투자 동참에서 재물이 새어나갈 위험');
@@ -217,7 +224,9 @@ class WealthAnalyzer extends CategoryAnalyzer<WealthAnalysis> {
     final yongsinElement = profile.yongsin?.yongsin ?? '';
     for (final d in daewoonList) {
       final matchesCategory = q.daewoonMatchesCategory(d, '재성');
-      final carriesYongsin = yongsinElement.isNotEmpty && q.daewoonCarriesElement(d, yongsinElement);
+      final carriesYongsin =
+          yongsinElement.isNotEmpty &&
+          q.daewoonCarriesElement(d, yongsinElement);
       if (matchesCategory || carriesYongsin) {
         wealthPeakDaewoonLabel =
             '${d.startAge}세(${d.startYear}년)부터 시작된 ${d.pillar.stemKr}${d.pillar.branchKr}(${d.pillar.stemHanja}${d.pillar.branchHanja}) 대운';
@@ -249,7 +258,8 @@ class WealthAnalyzer extends CategoryAnalyzer<WealthAnalysis> {
             sourceValue:
                 '${current.startAge}세 ${current.pillar.stemKr}${current.pillar.branchKr}(${current.pillar.stemHanja}${current.pillar.branchHanja})',
             rule: '기준일이 속한 대운을 조회(재계산 아님, PHASE4 목록 조회)',
-            judgment: '현재 ${current.pillar.stemKr}${current.pillar.branchKr} 대운을 지나는 중',
+            judgment:
+                '현재 ${current.pillar.stemKr}${current.pillar.branchKr} 대운을 지나는 중',
             interpretationRole: InterpretationRole.timing,
             weight: 0.5,
           ),

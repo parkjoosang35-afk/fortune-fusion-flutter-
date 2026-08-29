@@ -94,8 +94,7 @@ class _BlessingBagHubSheetState extends State<_BlessingBagHubSheet> {
                       ),
                     ),
                     IconButton(
-                      onPressed: () =>
-                          Navigator.of(context).pop(_sentSuccess),
+                      onPressed: () => Navigator.of(context).pop(_sentSuccess),
                       icon: const Icon(
                         Icons.close,
                         size: 20,
@@ -308,7 +307,8 @@ class _SendPanelState extends State<_SendPanel> {
   Widget build(BuildContext context) {
     final wish = widget.wish;
     final balance = _balance;
-    final canSend = wish != null &&
+    final canSend =
+        wish != null &&
         _amount <= balance &&
         _amount <= _perSendMax &&
         _amount > 0;
@@ -403,7 +403,9 @@ class _SendPanelState extends State<_SendPanel> {
             ),
             _StepperButton(
               icon: Icons.add,
-              onTap: _amount < _perSendMax ? () => _setAmount(_amount + 1) : null,
+              onTap: _amount < _perSendMax
+                  ? () => _setAmount(_amount + 1)
+                  : null,
             ),
           ],
         ),
@@ -424,7 +426,9 @@ class _SendPanelState extends State<_SendPanel> {
                       color: active ? WishWallColors.ink : WishWallColors.bg2,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: active ? WishWallColors.ink : WishWallColors.line,
+                        color: active
+                            ? WishWallColors.ink
+                            : WishWallColors.line,
                       ),
                     ),
                     alignment: Alignment.center,
@@ -451,10 +455,14 @@ class _SendPanelState extends State<_SendPanel> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: _giftSealToo ? WishWallColors.accentSoft : WishWallColors.bg2,
+              color: _giftSealToo
+                  ? WishWallColors.accentSoft
+                  : WishWallColors.bg2,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: _giftSealToo ? WishWallColors.accent : WishWallColors.line,
+                color: _giftSealToo
+                    ? WishWallColors.accent
+                    : WishWallColors.line,
               ),
             ),
             child: Row(
@@ -538,9 +546,9 @@ class _SendPanelState extends State<_SendPanel> {
                   )
                 : Text(
                     '$_amount개 보내기',
-                    style: WishWallText.label(color: Colors.white).copyWith(
-                      fontSize: 15,
-                    ),
+                    style: WishWallText.label(
+                      color: Colors.white,
+                    ).copyWith(fontSize: 15),
                   ),
           ),
         ),
@@ -665,10 +673,12 @@ class _SendSuccessViewState extends State<_SendSuccessView>
       vsync: this,
       duration: const Duration(milliseconds: 1400),
     );
-    _pouchRise = Tween<double>(
-      begin: 22,
-      end: 0,
-    ).animate(CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.45, curve: Curves.easeOutCubic)));
+    _pouchRise = Tween<double>(begin: 22, end: 0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.45, curve: Curves.easeOutCubic),
+      ),
+    );
     _pouchScale = TweenSequence<double>([
       TweenSequenceItem(tween: Tween(begin: 0.6, end: 1.15), weight: 45),
       TweenSequenceItem(tween: Tween(begin: 1.15, end: 1.0), weight: 20),
@@ -678,16 +688,17 @@ class _SendSuccessViewState extends State<_SendSuccessView>
       parent: _controller,
       curve: const Interval(0.0, 0.3, curve: Curves.easeOut),
     );
-    _glowOpacity = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween(begin: 0.0, end: 0.9), weight: 30),
-      TweenSequenceItem(tween: Tween(begin: 0.9, end: 0.0), weight: 40),
-      TweenSequenceItem(tween: ConstantTween(0.0), weight: 30),
-    ]).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.3, 0.7, curve: Curves.easeInOut),
-      ),
-    );
+    _glowOpacity =
+        TweenSequence<double>([
+          TweenSequenceItem(tween: Tween(begin: 0.0, end: 0.9), weight: 30),
+          TweenSequenceItem(tween: Tween(begin: 0.9, end: 0.0), weight: 40),
+          TweenSequenceItem(tween: ConstantTween(0.0), weight: 30),
+        ]).animate(
+          CurvedAnimation(
+            parent: _controller,
+            curve: const Interval(0.3, 0.7, curve: Curves.easeInOut),
+          ),
+        );
     _line1Opacity = CurvedAnimation(
       parent: _controller,
       curve: const Interval(0.55, 0.8, curve: Curves.easeOut),
@@ -934,12 +945,14 @@ class _ReceivePanelState extends State<_ReceivePanel> {
         const SizedBox(height: 18),
         Text('오늘 받을 수 있어요', style: WishWallText.caption()),
         const SizedBox(height: 10),
-        ...reasons.map((r) => _EarnChannelCard(
-              reason: r,
-              claiming: _claiming.contains(r),
-              claimedAmount: _claimed[r],
-              onTap: () => _claim(r),
-            )),
+        ...reasons.map(
+          (r) => _EarnChannelCard(
+            reason: r,
+            claiming: _claiming.contains(r),
+            claimedAmount: _claimed[r],
+            onTap: () => _claim(r),
+          ),
+        ),
         // [복주머니 확장 Phase02 항목3] 답례 도장(GratitudeSeal) 섹션.
         // 기존 giftSeal("감사 도장 보내기")과 혼동을 피하기 위해 "답례 도장"
         // 문구를 사용한다. 내 소원에 복주머니를 보내준 사람에게 24시간 이내
@@ -1221,7 +1234,9 @@ class _EarnChannelTrailing extends StatelessWidget {
       ),
       child: Text(
         '+$amount 받기',
-        style: WishWallText.label(color: WishWallColors.bg).copyWith(fontSize: 12),
+        style: WishWallText.label(
+          color: WishWallColors.bg,
+        ).copyWith(fontSize: 12),
       ),
     );
   }

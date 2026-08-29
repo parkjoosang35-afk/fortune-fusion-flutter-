@@ -65,12 +65,15 @@ class LifeTransitionsNarrativeGenerator
     final (patternName, patternDesc) = _split(analysis.transitionPattern);
     final (bondName, bondDesc) = _split(analysis.transitionBondStrength);
 
-    final bigTransitionCount = int.tryParse(ctx['bigTransitionCount'] ?? '0') ?? 0;
+    final bigTransitionCount =
+        int.tryParse(ctx['bigTransitionCount'] ?? '0') ?? 0;
     final strengthVerdict = ctx['strengthVerdict'] ?? '';
     final yongsinElement = ctx['yongsinElement'] ?? '';
     final gisinElement = ctx['gisinElement'] ?? '';
-    final yongsinTransitionCount = int.tryParse(ctx['yongsinTransitionCount'] ?? '0') ?? 0;
-    final gisinTransitionCount = int.tryParse(ctx['gisinTransitionCount'] ?? '0') ?? 0;
+    final yongsinTransitionCount =
+        int.tryParse(ctx['yongsinTransitionCount'] ?? '0') ?? 0;
+    final gisinTransitionCount =
+        int.tryParse(ctx['gisinTransitionCount'] ?? '0') ?? 0;
     final dayGanKr = profile.dayPillar.stemKr;
     final dayGanHanja = profile.dayPillar.stemHanja;
     // [신규] 이 Narrative 생성 과정 전체에서 공유하는 용어 추적기(§7).
@@ -81,7 +84,9 @@ class LifeTransitionsNarrativeGenerator
       '$dayGanKr($dayGanHanja) 일간의 이 사주는 $patternName 구조를 갖고 있어요. $patternDesc.',
       if (bondDesc.isNotEmpty) '여기에 $bondName 상태가 더해져, $bondDesc.',
     ];
-    final coreResult = coreResultAll.take(rules.maxCoreResultSentences).toList();
+    final coreResult = coreResultAll
+        .take(rules.maxCoreResultSentences)
+        .toList();
 
     // ── ② 왜 이런 결과가 나왔는가(whyThisResult) — coreEvidence를
     // sourceField 기준으로 하나씩 자연어로 풀어낸다(§7 근거 추적성).
@@ -129,7 +134,8 @@ class LifeTransitionsNarrativeGenerator
       if (yongsinTransitionCount > 0)
         '$yongsinTransitionCount개의 전환점이 ${yongsinElement.isNotEmpty ? yongsinPhrase(terms, yongsinElement) : '용신'}과 맞닿아 있어, 그 시기마다 새로운 국면이 오히려 순조롭게 풀릴 가능성이 있어요.',
     ].where((s) => s.trim().isNotEmpty).toList();
-    final cappedCharacteristics = characteristics.length > rules.maxCharacteristicParagraphs
+    final cappedCharacteristics =
+        characteristics.length > rules.maxCharacteristicParagraphs
         ? characteristics.sublist(0, rules.maxCharacteristicParagraphs)
         : characteristics;
 
@@ -169,7 +175,9 @@ class LifeTransitionsNarrativeGenerator
     // ── ⑦ 시기(timingSection) — PHASE4 실계산 대운만 사용(§18) ──
     List<String>? timingSection;
     if (analysis.keyTurningPointLabel.isNotEmpty) {
-      timingSection = ['${analysis.keyTurningPointLabel} 시기가 이 사주의 인생 전환점 중 가장 주목할 시기예요.'];
+      timingSection = [
+        '${analysis.keyTurningPointLabel} 시기가 이 사주의 인생 전환점 중 가장 주목할 시기예요.',
+      ];
       final currentDaewoonEvidence = analysis.supportingEvidence
           .where((e) => e.sourceField == 'currentDaewoon(PHASE4 실계산)')
           .toList();

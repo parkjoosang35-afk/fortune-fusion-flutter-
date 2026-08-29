@@ -30,12 +30,7 @@ class IntroProgressDots extends StatelessWidget {
                 : IntroPalette.indicatorInactive,
             borderRadius: BorderRadius.circular(999),
             boxShadow: active
-                ? [
-                    BoxShadow(
-                      color: IntroPalette.glowShadow,
-                      blurRadius: 8,
-                    ),
-                  ]
+                ? [BoxShadow(color: IntroPalette.glowShadow, blurRadius: 8)]
                 : null,
           ),
         );

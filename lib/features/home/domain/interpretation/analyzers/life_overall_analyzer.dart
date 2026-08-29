@@ -60,7 +60,16 @@ class LifeOverallAnalyzer extends CategoryAnalyzer<LifeOverallAnalysis> {
       '오행 부족/신살 존재 여부로 신뢰도(confidence) 조정',
     ],
     excludedData: ['세운(올해)', '월운(이번 달)', '오늘 일진'],
-    outputStructure: ['중심 기운', '인생 테마', '타고난 성향', '강점', '약점', '좋은 흐름', '주의 흐름', '종합결론'],
+    outputStructure: [
+      '중심 기운',
+      '인생 테마',
+      '타고난 성향',
+      '강점',
+      '약점',
+      '좋은 흐름',
+      '주의 흐름',
+      '종합결론',
+    ],
   );
 
   @override
@@ -82,12 +91,19 @@ class LifeOverallAnalyzer extends CategoryAnalyzer<LifeOverallAnalysis> {
     );
 
     // ── ① 중심 기운(십신 5대 범주 집계) ──
-    final categoryCount = <String, int>{'비겁': 0, '식상': 0, '재성': 0, '관살': 0, '인성': 0};
+    final categoryCount = <String, int>{
+      '비겁': 0,
+      '식상': 0,
+      '재성': 0,
+      '관살': 0,
+      '인성': 0,
+    };
     final tenGods = profile.tenGods;
     if (tenGods != null) {
       for (final g in tenGods.values) {
         final cat = tenGodCategoryOf(g);
-        if (categoryCount.containsKey(cat)) categoryCount[cat] = categoryCount[cat]! + 1;
+        if (categoryCount.containsKey(cat))
+          categoryCount[cat] = categoryCount[cat]! + 1;
       }
     }
     final hiddenStems = profile.hiddenStems;
@@ -95,7 +111,8 @@ class LifeOverallAnalyzer extends CategoryAnalyzer<LifeOverallAnalysis> {
       for (final entry in hiddenStems.values) {
         for (final d in entry.stems) {
           final cat = tenGodCategoryOf(d.tenGod);
-          if (categoryCount.containsKey(cat)) categoryCount[cat] = categoryCount[cat]! + 1;
+          if (categoryCount.containsKey(cat))
+            categoryCount[cat] = categoryCount[cat]! + 1;
         }
       }
     }
@@ -112,7 +129,9 @@ class LifeOverallAnalyzer extends CategoryAnalyzer<LifeOverallAnalysis> {
         sourceField: 'tenGods + hiddenStems(십신 7위치+지장간)',
         sourceValue: categoryCount.toString(),
         rule: '십신을 5대 범주로 집계해 최다 범주를 중심 기운으로 판정',
-        judgment: dominantCount > 0 ? '$dominantCategory 중심 ($dominantCount회)' : '특정 기운으로 치우치지 않은 균형형',
+        judgment: dominantCount > 0
+            ? '$dominantCategory 중심 ($dominantCount회)'
+            : '특정 기운으로 치우치지 않은 균형형',
         interpretationRole: InterpretationRole.primary,
         weight: 1.0,
       ),
@@ -125,7 +144,8 @@ class LifeOverallAnalyzer extends CategoryAnalyzer<LifeOverallAnalysis> {
       evidence.add(
         AnalysisEvidence(
           sourceField: 'strength.verdict/score',
-          sourceValue: '${strength.verdict}(score=${strength.score.toStringAsFixed(2)})',
+          sourceValue:
+              '${strength.verdict}(score=${strength.score.toStringAsFixed(2)})',
           rule: 'score≥0.6 신강 / score≤0.4 신약 / 그 사이 중화',
           judgment: strengthVerdict == '신강'
               ? '스스로의 힘으로 밀어붙이는 추진력이 강함'
@@ -148,7 +168,8 @@ class LifeOverallAnalyzer extends CategoryAnalyzer<LifeOverallAnalysis> {
           sourceField: 'yongsin.yongsin/gisin',
           sourceValue: '용신=$yongsinElement, 기신=$gisinElement',
           rule: yongsin.reasoning,
-          judgment: '$yongsinElement 기운이 살아날 때 삶이 편해지고, $gisinElement 기운이 강해질 때 힘들어짐',
+          judgment:
+              '$yongsinElement 기운이 살아날 때 삶이 편해지고, $gisinElement 기운이 강해질 때 힘들어짐',
           interpretationRole: InterpretationRole.primary,
           weight: 0.95,
         ),
@@ -230,7 +251,8 @@ class LifeOverallAnalyzer extends CategoryAnalyzer<LifeOverallAnalysis> {
     ];
     final weaknesses = <String>[
       if (gisinElement.isNotEmpty) '$gisinElement 기운이 강해질 때 나타나는 불균형',
-      if (deficientElements.isNotEmpty) '${deficientElements.join(', ')} 기운 부족으로 인한 취약점',
+      if (deficientElements.isNotEmpty)
+        '${deficientElements.join(', ')} 기운 부족으로 인한 취약점',
       if (dominantElements.length >= 2) '여러 오행이 한쪽으로 몰려 있어 생기는 편중',
     ];
     if (weaknesses.isEmpty) weaknesses.add('두드러진 약점보다는 전반적으로 균형 잡힌 구조');

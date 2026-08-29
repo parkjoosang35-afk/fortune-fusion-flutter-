@@ -46,14 +46,22 @@ import 'parents_siblings_analysis.dart';
 /// 부모형제궁 관점으로 재사용).
 const Set<String> _familyRiskSinsalNames = {'공망', '겁살', '재살'};
 
-class ParentsSiblingsAnalyzer extends CategoryAnalyzer<ParentsSiblingsAnalysis> {
+class ParentsSiblingsAnalyzer
+    extends CategoryAnalyzer<ParentsSiblingsAnalysis> {
   const ParentsSiblingsAnalyzer();
 
   @override
   CategoryMetadata get metadata => const CategoryMetadata(
     categoryId: 'A08',
     categoryPurpose: '평생에 걸친 부모(인성)와 형제(비겁) 두 축의 인연 구조, 그리고 부모형제궁(월지)의 안정성을 분석',
-    requiredData: ['십신 분포(인성/비겁)', '신강신약', '부모형제궁(월지) 관계', '신살(공망/겁살/재살)', '용신/기신', '대운'],
+    requiredData: [
+      '십신 분포(인성/비겁)',
+      '신강신약',
+      '부모형제궁(월지) 관계',
+      '신살(공망/겁살/재살)',
+      '용신/기신',
+      '대운',
+    ],
     analysisRules: [
       '인성(부모성) 개수만으로 부모 인연 구조(parentPattern) 판정',
       '비겁(형제성) 개수만으로 형제 인연 구조(siblingPattern) 판정',
@@ -64,11 +72,23 @@ class ParentsSiblingsAnalyzer extends CategoryAnalyzer<ParentsSiblingsAnalysis> 
       '대운 목록에서 인성/비겁 범주이거나 용신 오행을 포함하는 대운을 부모·형제 인연 정점 시기로 판정',
     ],
     excludedData: ['세운(올해)', '월운(이번 달)', '배우자운(A06 담당)', '자녀운(A07 담당)'],
-    outputStructure: ['부모 인연 구조', '부모 도움을 받는 방식', '형제 인연 구조', '형제 힘을 쓰는 방식', '부모형제궁 상태', '리스크', '관계 접근법', '정점 대운'],
+    outputStructure: [
+      '부모 인연 구조',
+      '부모 도움을 받는 방식',
+      '형제 인연 구조',
+      '형제 힘을 쓰는 방식',
+      '부모형제궁 상태',
+      '리스크',
+      '관계 접근법',
+      '정점 대운',
+    ],
   );
 
   @override
-  ParentsSiblingsAnalysis analyze(SajuProfile profile, {DateTime? referenceDate}) {
+  ParentsSiblingsAnalysis analyze(
+    SajuProfile profile, {
+    DateTime? referenceDate,
+  }) {
     final evidence = <AnalysisEvidence>[];
     final q = SajuProfileQuery(profile);
 
@@ -133,13 +153,15 @@ class ParentsSiblingsAnalyzer extends CategoryAnalyzer<ParentsSiblingsAnalysis> 
     final strengthVerdict = profile.strength?.verdict ?? '중화';
     final String parentBondStrength;
     if (strengthVerdict == '신강' && parentCount >= 2) {
-      parentBondStrength = '신강중첩인(身强重疊印) — 힘도 있고 인복도 두터워 부모의 지원을 발판으로 더 크게 뻗어나가는 편';
+      parentBondStrength =
+          '신강중첩인(身强重疊印) — 힘도 있고 인복도 두터워 부모의 지원을 발판으로 더 크게 뻗어나가는 편';
     } else if (strengthVerdict == '신강') {
       parentBondStrength = '신강자립(身强自立) — 힘이 있어 부모 도움이 적어도 스스로 길을 열어가는 편';
     } else if (strengthVerdict == '신약' && parentCount >= 1) {
       parentBondStrength = '신약의인(身弱依印) — 부모·윗사람의 도움을 받을 때 특히 안정감이 커지는 편';
     } else if (strengthVerdict == '신약') {
-      parentBondStrength = '신약무의(身弱無依) — 힘이 약한데 인성도 부족해 스스로 기반을 다지는 노력이 더 필요한 편';
+      parentBondStrength =
+          '신약무의(身弱無依) — 힘이 약한데 인성도 부족해 스스로 기반을 다지는 노력이 더 필요한 편';
     } else {
       parentBondStrength = '중화인복(中和印福) — 상황에 맞춰 부모의 도움을 유연하게 받아들이는 편';
     }
@@ -148,7 +170,8 @@ class ParentsSiblingsAnalyzer extends CategoryAnalyzer<ParentsSiblingsAnalysis> 
         AnalysisEvidence(
           sourceField: 'strength.verdict + 인성 개수',
           sourceValue: '$strengthVerdict, 인성=$parentCount',
-          rule: '신강+인성많음→신강중첩인 / 신강+인성적음→신강자립 / 신약+인성있음→신약의인 / 신약+인성없음→신약무의 / 중화→중화인복',
+          rule:
+              '신강+인성많음→신강중첩인 / 신강+인성적음→신강자립 / 신약+인성있음→신약의인 / 신약+인성없음→신약무의 / 중화→중화인복',
           judgment: parentBondStrength,
           interpretationRole: InterpretationRole.strength,
           weight: 0.9,
@@ -175,7 +198,8 @@ class ParentsSiblingsAnalyzer extends CategoryAnalyzer<ParentsSiblingsAnalysis> 
         AnalysisEvidence(
           sourceField: 'strength.verdict + 비겁 개수',
           sourceValue: '$strengthVerdict, 비겁=$siblingCount',
-          rule: '신강+비겁많음→신강경쟁비 / 신강+비겁적음→신강독립비 / 신약+비겁있음→신약조력비 / 신약+비겁없음→신약고립비 / 중화→중화협비',
+          rule:
+              '신강+비겁많음→신강경쟁비 / 신강+비겁적음→신강독립비 / 신약+비겁있음→신약조력비 / 신약+비겁없음→신약고립비 / 중화→중화협비',
           judgment: siblingBondStrength,
           interpretationRole: InterpretationRole.strength,
           weight: 0.9,
@@ -191,8 +215,12 @@ class ParentsSiblingsAnalyzer extends CategoryAnalyzer<ParentsSiblingsAnalysis> 
         .toList();
     const conflictTypes = {'지지충', '천간충', '형', '파', '해', '원진', '귀문'};
     const harmonyTypes = {'육합', '삼합', '방합', '천간합'};
-    final conflictRelations = monthBranchRelations.where((r) => conflictTypes.contains(r.type)).toList();
-    final harmonyRelations = monthBranchRelations.where((r) => harmonyTypes.contains(r.type)).toList();
+    final conflictRelations = monthBranchRelations
+        .where((r) => conflictTypes.contains(r.type))
+        .toList();
+    final harmonyRelations = monthBranchRelations
+        .where((r) => harmonyTypes.contains(r.type))
+        .toList();
     final String familyPalaceCondition;
     if (conflictRelations.isNotEmpty && harmonyRelations.isNotEmpty) {
       familyPalaceCondition =
@@ -207,7 +235,8 @@ class ParentsSiblingsAnalyzer extends CategoryAnalyzer<ParentsSiblingsAnalysis> 
           '부모형제궁 안정 — 월지가 ${harmonyRelations.map((r) => r.type).join(',')} 관계로 화합해 '
           '부모·형제와 자연스럽게 조화를 이루는 구조';
     } else {
-      familyPalaceCondition = '부모형제궁 독자형 — 월지가 다른 글자와 특별한 합충 관계 없이 독립적이라 부모·형제와 각자의 영역을 존중하며 지내는 구조';
+      familyPalaceCondition =
+          '부모형제궁 독자형 — 월지가 다른 글자와 특별한 합충 관계 없이 독립적이라 부모·형제와 각자의 영역을 존중하며 지내는 구조';
     }
     evidence.add(
       AnalysisEvidence(
@@ -229,9 +258,14 @@ class ParentsSiblingsAnalyzer extends CategoryAnalyzer<ParentsSiblingsAnalysis> 
         sourceField: '월지 관여 관계 상세 목록',
         sourceValue: monthBranchRelations.isEmpty
             ? '없음'
-            : monthBranchRelations.map((r) => '${r.type}(${r.characters.join("")})').join(', '),
-        rule: '같은 parentPattern/siblingPattern이라도 부모형제궁 관계의 실제 종류/상대 글자는 사람마다 다름(§5)',
-        judgment: monthBranchRelations.isEmpty ? '월지 관여 관계 없음' : '${monthBranchRelations.length}건의 부모형제궁 관계 확인',
+            : monthBranchRelations
+                  .map((r) => '${r.type}(${r.characters.join("")})')
+                  .join(', '),
+        rule:
+            '같은 parentPattern/siblingPattern이라도 부모형제궁 관계의 실제 종류/상대 글자는 사람마다 다름(§5)',
+        judgment: monthBranchRelations.isEmpty
+            ? '월지 관여 관계 없음'
+            : '${monthBranchRelations.length}건의 부모형제궁 관계 확인',
         interpretationRole: InterpretationRole.supporting,
         weight: 0.4,
       ),
@@ -241,7 +275,11 @@ class ParentsSiblingsAnalyzer extends CategoryAnalyzer<ParentsSiblingsAnalysis> 
     // 재살 + 인성/비겁 부재 여부 ──
     final sinsalList = profile.sinsal ?? const [];
     final foundFamilyRiskSinsal = sinsalList
-        .where((s) => _familyRiskSinsalNames.contains(s.nameKr) && s.foundOn.contains('월지'))
+        .where(
+          (s) =>
+              _familyRiskSinsalNames.contains(s.nameKr) &&
+              s.foundOn.contains('월지'),
+        )
         .map((s) => s.nameKr)
         .toSet()
         .toList();
@@ -261,12 +299,15 @@ class ParentsSiblingsAnalyzer extends CategoryAnalyzer<ParentsSiblingsAnalysis> 
     if (siblingCount == 0) {
       riskParts.add('비겁이 원국에 나타나지 않아 형제·동료의 협력보다 혼자 해내는 방식이 더 잘 맞을 수 있음');
     }
-    final familyRiskPattern = riskParts.isEmpty ? '두드러진 부모·형제운 리스크 신호는 확인되지 않음' : riskParts.join(' / ');
+    final familyRiskPattern = riskParts.isEmpty
+        ? '두드러진 부모·형제운 리스크 신호는 확인되지 않음'
+        : riskParts.join(' / ');
     if (riskParts.isNotEmpty) {
       evidence.add(
         AnalysisEvidence(
           sourceField: '신살(부모형제궁 공망/겁살/재살) + 인성·비겁 부재 조합',
-          sourceValue: '신살=$foundFamilyRiskSinsal, 인성=$parentCount, 비겁=$siblingCount',
+          sourceValue:
+              '신살=$foundFamilyRiskSinsal, 인성=$parentCount, 비겁=$siblingCount',
           rule: '부모형제궁(월지)에 공망/겁살/재살 존재 또는 인성=0/비겁=0 각각을 리스크 신호로 채택 후 종합',
           judgment: familyRiskPattern,
           interpretationRole: InterpretationRole.caution,
@@ -278,9 +319,13 @@ class ParentsSiblingsAnalyzer extends CategoryAnalyzer<ParentsSiblingsAnalysis> 
     supportingEvidence.add(
       AnalysisEvidence(
         sourceField: '부모형제궁(월지) 신살 존재 여부',
-        sourceValue: foundFamilyRiskSinsal.isEmpty ? '없음' : foundFamilyRiskSinsal.join(', '),
+        sourceValue: foundFamilyRiskSinsal.isEmpty
+            ? '없음'
+            : foundFamilyRiskSinsal.join(', '),
         rule: '부모형제궁 신살 존재 여부는 리스크 판단과 별개로 항상 추적',
-        judgment: foundFamilyRiskSinsal.isEmpty ? '부모형제궁에 걸린 신살 없음' : '${foundFamilyRiskSinsal.join(', ')} 보유',
+        judgment: foundFamilyRiskSinsal.isEmpty
+            ? '부모형제궁에 걸린 신살 없음'
+            : '${foundFamilyRiskSinsal.join(', ')} 보유',
         interpretationRole: InterpretationRole.supporting,
         weight: 0.3,
       ),
@@ -301,7 +346,9 @@ class ParentsSiblingsAnalyzer extends CategoryAnalyzer<ParentsSiblingsAnalysis> 
     for (final d in daewoonList) {
       final matchesParent = q.daewoonMatchesCategory(d, '인성');
       final matchesSibling = q.daewoonMatchesCategory(d, '비겁');
-      final carriesYongsin = yongsinElement.isNotEmpty && q.daewoonCarriesElement(d, yongsinElement);
+      final carriesYongsin =
+          yongsinElement.isNotEmpty &&
+          q.daewoonCarriesElement(d, yongsinElement);
       if (matchesParent || matchesSibling || carriesYongsin) {
         familyBlessingDaewoonLabel =
             '${d.startAge}세(${d.startYear}년)부터 시작된 ${d.pillar.stemKr}${d.pillar.branchKr}(${d.pillar.stemHanja}${d.pillar.branchHanja}) 대운';
@@ -314,7 +361,8 @@ class ParentsSiblingsAnalyzer extends CategoryAnalyzer<ParentsSiblingsAnalysis> 
           sourceField: 'daewoon(PHASE4 실계산)',
           sourceValue: familyBlessingDaewoonLabel,
           rule: '대운의 천간/지지 십신이 인성 또는 비겁 범주이거나 용신 오행을 포함하는 첫 대운 채택',
-          judgment: '$familyBlessingDaewoonLabel 시기에 부모·형제 관련 인연·도움이 가장 활발해질 가능성',
+          judgment:
+              '$familyBlessingDaewoonLabel 시기에 부모·형제 관련 인연·도움이 가장 활발해질 가능성',
           interpretationRole: InterpretationRole.timing,
           weight: 0.8,
         ),
@@ -331,7 +379,8 @@ class ParentsSiblingsAnalyzer extends CategoryAnalyzer<ParentsSiblingsAnalysis> 
             sourceValue:
                 '${current.startAge}세 ${current.pillar.stemKr}${current.pillar.branchKr}(${current.pillar.stemHanja}${current.pillar.branchHanja})',
             rule: '기준일이 속한 대운을 조회(재계산 아님, PHASE4 목록 조회)',
-            judgment: '현재 ${current.pillar.stemKr}${current.pillar.branchKr} 대운을 지나는 중',
+            judgment:
+                '현재 ${current.pillar.stemKr}${current.pillar.branchKr} 대운을 지나는 중',
             interpretationRole: InterpretationRole.timing,
             weight: 0.5,
           ),
@@ -341,21 +390,28 @@ class ParentsSiblingsAnalyzer extends CategoryAnalyzer<ParentsSiblingsAnalysis> 
 
     // ── 좋은 흐름 / 주의 흐름 ──
     final favorable = <String>[
-      if (harmonyRelations.isNotEmpty) '부모형제궁이 안정적이라 부모·형제와의 관계를 오래 좋게 유지하기 좋은 환경',
-      if (familyBlessingDaewoonLabel.isNotEmpty) '$familyBlessingDaewoonLabel 시기',
+      if (harmonyRelations.isNotEmpty)
+        '부모형제궁이 안정적이라 부모·형제와의 관계를 오래 좋게 유지하기 좋은 환경',
+      if (familyBlessingDaewoonLabel.isNotEmpty)
+        '$familyBlessingDaewoonLabel 시기',
       if (yongsinElement.isNotEmpty) '$yongsinElement 기운이 강해지는 시기·인연',
     ];
     final caution = <String>[
-      if (conflictRelations.isNotEmpty) '부모형제궁 충돌(${conflictRelations.map((r) => r.type).join(',')})로 인한 갈등 관리',
-      if (foundFamilyRiskSinsal.isNotEmpty) '${foundFamilyRiskSinsal.join(', ')} 신호에 따른 부모·형제 관련 사안 대비',
-      if (parentCount == 0 || siblingCount == 0) '부모 또는 형제의 도움이 상대적으로 적을 수 있는 만큼 스스로의 기반을 준비하는 마음가짐',
+      if (conflictRelations.isNotEmpty)
+        '부모형제궁 충돌(${conflictRelations.map((r) => r.type).join(',')})로 인한 갈등 관리',
+      if (foundFamilyRiskSinsal.isNotEmpty)
+        '${foundFamilyRiskSinsal.join(', ')} 신호에 따른 부모·형제 관련 사안 대비',
+      if (parentCount == 0 || siblingCount == 0)
+        '부모 또는 형제의 도움이 상대적으로 적을 수 있는 만큼 스스로의 기반을 준비하는 마음가짐',
     ];
     if (favorable.isEmpty) favorable.add('현재의 부모·형제 인연 구조를 안정적으로 유지하는 환경');
     if (caution.isEmpty) caution.add('두드러진 부모·형제운 리스크 신호는 확인되지 않음');
 
     final confidence = (profile.strength == null || profile.yongsin == null)
         ? AnalysisConfidence.low
-        : (familyBlessingDaewoonLabel.isEmpty && riskParts.isEmpty && conflictRelations.isEmpty)
+        : (familyBlessingDaewoonLabel.isEmpty &&
+              riskParts.isEmpty &&
+              conflictRelations.isEmpty)
         ? AnalysisConfidence.medium
         : AnalysisConfidence.high;
 
@@ -366,7 +422,9 @@ class ParentsSiblingsAnalyzer extends CategoryAnalyzer<ParentsSiblingsAnalysis> 
       'siblingCount': '$siblingCount',
       'strengthVerdict': strengthVerdict,
       'yongsinElement': yongsinElement,
-      'monthBranchRelationTypes': monthBranchRelations.map((r) => r.type).join(','),
+      'monthBranchRelationTypes': monthBranchRelations
+          .map((r) => r.type)
+          .join(','),
       'foundFamilyRiskSinsal': foundFamilyRiskSinsal.join(','),
       'familyBlessingDaewoonLabel': familyBlessingDaewoonLabel,
     };
@@ -415,7 +473,9 @@ class ParentsSiblingsAnalyzer extends CategoryAnalyzer<ParentsSiblingsAnalysis> 
         : siblingBondStrength.startsWith('신약고립비')
         ? '혼자 감당하려 하지 말고 주변에 도움을 요청하는 습관을 들이는 편이'
         : '형제·동료와의 협력 정도를 상황에 맞춰 조절하는 편이';
-    final conflictNote = hasConflict ? ' 좋고, 특히 부모·형제와의 갈등이 쌓이지 않도록 감정을 오래 묵히지 않는 습관이 도움이 됨' : ' 좋음';
+    final conflictNote = hasConflict
+        ? ' 좋고, 특히 부모·형제와의 갈등이 쌓이지 않도록 감정을 오래 묵히지 않는 습관이 도움이 됨'
+        : ' 좋음';
     return '$parentPart, $siblingPart$conflictNote';
   }
 }

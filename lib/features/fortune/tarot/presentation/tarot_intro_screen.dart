@@ -225,7 +225,9 @@ class _StarField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fadeIn = _progress(ms, 130, 1050);
-    final twinkle = ms >= 1300 ? _pulseDown(_loopPhase(ms, 1300, 2900), 0.55, 1.0) : 1.0;
+    final twinkle = ms >= 1300
+        ? _pulseDown(_loopPhase(ms, 1300, 2900), 0.55, 1.0)
+        : 1.0;
     final opacity = fadeIn * twinkle;
     return IgnorePointer(
       child: CustomPaint(
@@ -243,9 +245,14 @@ class _StarFieldPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.white.withValues(alpha: 0.55 * opacity);
+    final paint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.55 * opacity);
     for (final s in stars) {
-      canvas.drawCircle(Offset(s.$1 * size.width, s.$2 * size.height), s.$3, paint);
+      canvas.drawCircle(
+        Offset(s.$1 * size.width, s.$2 * size.height),
+        s.$3,
+        paint,
+      );
     }
   }
 
@@ -263,8 +270,12 @@ class _CentralGlow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fadeIn = _progress(ms, 600, 1450);
-    final pulseOpacity = ms >= 2050 ? _pulseDown(_loopPhase(ms, 2050, 3300), 0.75, 1.0) : 1.0;
-    final pulseScale = ms >= 2050 ? _pulseUp(_loopPhase(ms, 2050, 3300), 1.0, 1.08) : 1.0;
+    final pulseOpacity = ms >= 2050
+        ? _pulseDown(_loopPhase(ms, 2050, 3300), 0.75, 1.0)
+        : 1.0;
+    final pulseScale = ms >= 2050
+        ? _pulseUp(_loopPhase(ms, 2050, 3300), 1.0, 1.08)
+        : 1.0;
     return IgnorePointer(
       child: Center(
         child: Opacity(
@@ -315,7 +326,10 @@ class _OuterSigil extends StatelessWidget {
             width: 260,
             height: 260,
             child: CustomPaint(
-              painter: _OuterSigilPainter(opacity: opacity, rotation: rotationRad),
+              painter: _OuterSigilPainter(
+                opacity: opacity,
+                rotation: rotationRad,
+              ),
             ),
           ),
         ),
@@ -409,7 +423,10 @@ class _InnerSigil extends StatelessWidget {
             width: 150,
             height: 150,
             child: CustomPaint(
-              painter: _InnerSigilPainter(opacity: opacity, rotation: rotationRad),
+              painter: _InnerSigilPainter(
+                opacity: opacity,
+                rotation: rotationRad,
+              ),
             ),
           ),
         ),
@@ -524,7 +541,11 @@ void _drawCenteredText(
   final tp = TextPainter(
     text: TextSpan(
       text: text,
-      style: TextStyle(fontSize: fontSize, color: color, fontFamily: fontFamily),
+      style: TextStyle(
+        fontSize: fontSize,
+        color: color,
+        fontFamily: fontFamily,
+      ),
     ),
     textDirection: TextDirection.ltr,
   )..layout();
@@ -672,7 +693,10 @@ class _FanCard extends StatelessWidget {
                   fontSize: 32,
                   color: _TI.glow,
                   shadows: [
-                    Shadow(color: _TI.glow.withValues(alpha: 0.7), blurRadius: 12),
+                    Shadow(
+                      color: _TI.glow.withValues(alpha: 0.7),
+                      blurRadius: 12,
+                    ),
                   ],
                 ),
               ),
@@ -738,7 +762,8 @@ class _DustPainter extends CustomPainter {
       } else {
         opacity = _lerp(0.5, 0, (phase - 0.85) / 0.15);
       }
-      final dy = size.height * 0.0 + (-phase * size.height * 1.1) + size.height - 12;
+      final dy =
+          size.height * 0.0 + (-phase * size.height * 1.1) + size.height - 12;
       final dx = left * size.width + phase * 24;
       final paint = Paint()
         ..shader = RadialGradient(
@@ -753,7 +778,8 @@ class _DustPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _DustPainter oldDelegate) => oldDelegate.ms != ms;
+  bool shouldRepaint(covariant _DustPainter oldDelegate) =>
+      oldDelegate.ms != ms;
 }
 
 // ---------------- 중앙 컨텐츠(아치+워드마크+라벨+카피) ----------------
@@ -874,7 +900,9 @@ class _Wordmark extends StatelessWidget {
               Color(0xFFFDF7E6),
             ],
             stops: [0.0, 0.3, 0.45, 0.5, 0.55, 0.7, 1.0],
-          ).createShader(Rect.fromLTWH(left, bounds.top, gradWidth, bounds.height));
+          ).createShader(
+            Rect.fromLTWH(left, bounds.top, gradWidth, bounds.height),
+          );
         },
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -920,7 +948,11 @@ class _LabelRow extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(width: 24, height: 1, color: _TI.glow.withValues(alpha: 0.6)),
+            Container(
+              width: 24,
+              height: 1,
+              color: _TI.glow.withValues(alpha: 0.6),
+            ),
             const SizedBox(width: 10),
             Text(
               label,
@@ -932,7 +964,11 @@ class _LabelRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 10),
-            Container(width: 24, height: 1, color: _TI.glow.withValues(alpha: 0.6)),
+            Container(
+              width: 24,
+              height: 1,
+              color: _TI.glow.withValues(alpha: 0.6),
+            ),
           ],
         ),
       ),
@@ -941,7 +977,11 @@ class _LabelRow extends StatelessWidget {
 }
 
 class _CopyText extends StatelessWidget {
-  const _CopyText({required this.ms, required this.copyBrand, required this.copyRest});
+  const _CopyText({
+    required this.ms,
+    required this.copyBrand,
+    required this.copyRest,
+  });
   final double ms;
   final String copyBrand;
   final String copyRest;

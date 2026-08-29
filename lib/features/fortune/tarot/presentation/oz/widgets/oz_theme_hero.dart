@@ -61,7 +61,10 @@ class OzThemeHero extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       group.label,
-                      style: OzTypography.hero(fontSize: 24, color: Colors.white),
+                      style: OzTypography.hero(
+                        fontSize: 24,
+                        color: Colors.white,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -74,7 +77,10 @@ class OzThemeHero extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       '$count개 카테고리',
-                      style: OzTypography.monoLabel(fontSize: 10, letterSpacing: 3),
+                      style: OzTypography.monoLabel(
+                        fontSize: 10,
+                        letterSpacing: 3,
+                      ),
                     ),
                   ],
                 ),

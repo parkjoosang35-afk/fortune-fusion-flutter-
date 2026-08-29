@@ -48,9 +48,9 @@ class _GuinjiRelationDetailScreenState
     if (ok) {
       setState(() => _specialUnlocked = true);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(provider.error ?? '해금에 실패했습니다.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(provider.error ?? '해금에 실패했습니다.')));
     }
   }
 

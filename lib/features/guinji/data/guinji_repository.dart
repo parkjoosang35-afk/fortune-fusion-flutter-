@@ -26,7 +26,9 @@ class GuinjiRepository {
     String? name,
     required Map<String, dynamic> saju,
   }) async {
-    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/guinji/maps');
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/guinji/maps',
+    );
     debugPrint('[GuinjiRepository] [createMap] 요청 -> $uri');
 
     try {

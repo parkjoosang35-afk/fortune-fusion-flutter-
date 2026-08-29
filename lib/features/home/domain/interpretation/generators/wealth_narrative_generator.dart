@@ -61,7 +61,9 @@ class WealthNarrativeGenerator implements NarrativeGenerator<WealthAnalysis> {
       '$dayGanKr($dayGanHanja) 일간의 이 사주는 ${analysis.wealthPattern}.',
       '여기에 ${analysis.wealthStrength}.',
     ];
-    final coreResult = coreResultAll.take(rules.maxCoreResultSentences).toList();
+    final coreResult = coreResultAll
+        .take(rules.maxCoreResultSentences)
+        .toList();
 
     // ── ② 왜 이런 결과가 나왔는가(whyThisResult) — coreEvidence를
     // sourceField 기준으로 하나씩 자연어로 풀어낸다(§7 근거 추적성).
@@ -103,7 +105,8 @@ class WealthNarrativeGenerator implements NarrativeGenerator<WealthAnalysis> {
     }
     if (jeongjaeCount > 0 || pyeonjaeCount > 0) {
       final dominantJae = jeongjaeCount > pyeonjaeCount ? '정재' : '편재';
-      final wealthFlavor = tenGodMeaningOf(dominantJae)?.practicalMeaningFor('wealth') ?? '';
+      final wealthFlavor =
+          tenGodMeaningOf(dominantJae)?.practicalMeaningFor('wealth') ?? '';
       if (wealthFlavor.isNotEmpty) {
         whyThisResult.add(
           '${tenGodPhrase(terms, '정재')} $jeongjaeCount개, ${tenGodPhrase(terms, '편재')} $pyeonjaeCount개 중 '
@@ -117,16 +120,20 @@ class WealthNarrativeGenerator implements NarrativeGenerator<WealthAnalysis> {
     final characteristics = <String>[
       '자산 운용 스타일은 ${analysis.assetManagementStyle}.',
       _strengthRealLife(analysis.wealthStrength),
-      if (gyeopjaeCount >= 2) '겁재가 $gyeopjaeCount개로 많아, 동업이나 공동 투자에서 특히 신중함이 필요한 편이에요.',
+      if (gyeopjaeCount >= 2)
+        '겁재가 $gyeopjaeCount개로 많아, 동업이나 공동 투자에서 특히 신중함이 필요한 편이에요.',
     ].where((s) => s.trim().isNotEmpty).toList();
-    final cappedCharacteristics = characteristics.length > rules.maxCharacteristicParagraphs
+    final cappedCharacteristics =
+        characteristics.length > rules.maxCharacteristicParagraphs
         ? characteristics.sublist(0, rules.maxCharacteristicParagraphs)
         : characteristics;
 
     // ── ④ 좋은 흐름(favorableFlows) ──
     final favorableFlows = List<String>.from(analysis.favorableConditions);
     if (favorableFlows.length < rules.minFavorableItems) {
-      favorableFlows.add('${analysis.wealthPattern.split(' — ').first} 구조 자체를 살릴 수 있는 환경');
+      favorableFlows.add(
+        '${analysis.wealthPattern.split(' — ').first} 구조 자체를 살릴 수 있는 환경',
+      );
     }
     final cappedFavorable = favorableFlows.length > rules.maxFavorableItems
         ? favorableFlows.sublist(0, rules.maxFavorableItems)
@@ -163,7 +170,9 @@ class WealthNarrativeGenerator implements NarrativeGenerator<WealthAnalysis> {
     // ── ⑦ 시기(timingSection) — PHASE4 실계산 대운만 사용(§18) ──
     List<String>? timingSection;
     if (analysis.wealthPeakDaewoonLabel.isNotEmpty) {
-      timingSection = ['${analysis.wealthPeakDaewoonLabel} 시기에 재물운이 가장 활발해질 수 있어요.'];
+      timingSection = [
+        '${analysis.wealthPeakDaewoonLabel} 시기에 재물운이 가장 활발해질 수 있어요.',
+      ];
       final currentDaewoonEvidence = analysis.supportingEvidence
           .where((e) => e.sourceField == 'currentDaewoon(PHASE4 실계산)')
           .toList();

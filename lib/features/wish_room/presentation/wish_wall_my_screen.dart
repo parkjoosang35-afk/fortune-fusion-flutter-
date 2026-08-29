@@ -273,7 +273,9 @@ class _TreasureBoxEntry extends StatelessWidget {
             Expanded(
               child: Text(
                 '나의 보물함 — 모아둔 인장·촛불·부적',
-                style: WishWallText.body().copyWith(fontWeight: FontWeight.w600),
+                style: WishWallText.body().copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
             Text(

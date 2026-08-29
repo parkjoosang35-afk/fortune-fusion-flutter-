@@ -42,7 +42,8 @@ class _TreasureBoxScreenState extends State<TreasureBoxScreen> {
     final ownedCandles = shop.candles.where((e) => e.owned).length;
     final ownedTalismans = shop.talismans.where((e) => e.owned).length;
     final totalOwned = ownedSeals + ownedCandles + ownedTalismans;
-    final total = shop.seals.length + shop.candles.length + shop.talismans.length;
+    final total =
+        shop.seals.length + shop.candles.length + shop.talismans.length;
 
     return Scaffold(
       backgroundColor: WishRoomColors.backgroundDeep,
@@ -54,7 +55,9 @@ class _TreasureBoxScreenState extends State<TreasureBoxScreen> {
           SafeArea(
             child: shop.isLoading && shop.seals.isEmpty
                 ? const Center(
-                    child: CircularProgressIndicator(color: WishRoomColors.glow),
+                    child: CircularProgressIndicator(
+                      color: WishRoomColors.glow,
+                    ),
                   )
                 : Column(
                     children: [
@@ -83,11 +86,19 @@ class _TreasureBoxScreenState extends State<TreasureBoxScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Padding(
-                                padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+                                padding: const EdgeInsets.fromLTRB(
+                                  20,
+                                  4,
+                                  20,
+                                  16,
+                                ),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('나의 보물함', style: WishRoomTextStyles.screenTitle),
+                                    Text(
+                                      '나의 보물함',
+                                      style: WishRoomTextStyles.screenTitle,
+                                    ),
                                     const SizedBox(height: 6),
                                     Text(
                                       '매일 하나씩, 조용히 채워지는 나만의 함',
@@ -116,7 +127,9 @@ class _TreasureBoxScreenState extends State<TreasureBoxScreen> {
                               _TalismanGrid(items: shop.talismans),
                               const SizedBox(height: 16),
                               Container(
-                                margin: const EdgeInsets.symmetric(horizontal: 20),
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                ),
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 14,
                                   vertical: 12,
@@ -257,7 +270,9 @@ class _SealGrid extends StatelessWidget {
                       fontFamily: 'NotoSerifKRWish',
                       fontWeight: FontWeight.w900,
                       fontSize: 22,
-                      color: WishRoomColors.textSecondary.withValues(alpha: 0.35),
+                      color: WishRoomColors.textSecondary.withValues(
+                        alpha: 0.35,
+                      ),
                     ),
                   ),
           );

@@ -13,7 +13,11 @@ import '../oz_theme.dart';
 class OzCategoryCard extends StatelessWidget {
   final TarotCategoryMeta category;
   final VoidCallback onTap;
-  const OzCategoryCard({super.key, required this.category, required this.onTap});
+  const OzCategoryCard({
+    super.key,
+    required this.category,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +63,10 @@ class OzCategoryCard extends StatelessWidget {
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: OzTypography.body(fontSize: 9.5, color: OzColors.faint),
+                  style: OzTypography.body(
+                    fontSize: 9.5,
+                    color: OzColors.faint,
+                  ),
                 ),
               ],
             ),
@@ -68,7 +75,10 @@ class OzCategoryCard extends StatelessWidget {
                 top: -4,
                 right: -2,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 5,
+                    vertical: 1.5,
+                  ),
                   decoration: BoxDecoration(
                     gradient: OzColors.roseGradient,
                     borderRadius: BorderRadius.circular(3),

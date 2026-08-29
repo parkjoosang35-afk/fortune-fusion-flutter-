@@ -27,7 +27,8 @@ import 'package:flutter/material.dart';
 
 import '../../domain/manseryeok/saju_profile.dart';
 import '../../domain/interpretation/term_translation.dart';
-import '../../domain/interpretation/term_translation_layer.dart' show sinsalMeanings;
+import '../../domain/interpretation/term_translation_layer.dart'
+    show sinsalMeanings;
 import 'hanji_design_tokens.dart';
 import 'saju_seal.dart';
 
@@ -259,7 +260,9 @@ class JeontongDeepReportCard extends StatelessWidget {
       children: [
         for (var i = 0; i < lines.length; i++)
           Padding(
-            padding: EdgeInsets.only(bottom: i == lines.length - 1 ? 0 : HanjiSpacing.sm),
+            padding: EdgeInsets.only(
+              bottom: i == lines.length - 1 ? 0 : HanjiSpacing.sm,
+            ),
             child: Text(
               numbered ? '${i + 1}. ${lines[i]}' : lines[i],
               style: HanjiTextStyles.body(),
@@ -289,9 +292,7 @@ class _PillarTable extends StatelessWidget {
       children: [
         TableRow(
           decoration: BoxDecoration(color: HanjiColors.card),
-          children: [
-            for (final c in columns) _cell(c.$1, isHeader: true),
-          ],
+          children: [for (final c in columns) _cell(c.$1, isHeader: true)],
         ),
         TableRow(
           children: [
@@ -316,9 +317,17 @@ class _PillarTable extends StatelessWidget {
     );
   }
 
-  Widget _cell(String text, {bool isHeader = false, Color? color, bool bold = false}) {
+  Widget _cell(
+    String text, {
+    bool isHeader = false,
+    Color? color,
+    bool bold = false,
+  }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: HanjiSpacing.sm, horizontal: HanjiSpacing.xs),
+      padding: const EdgeInsets.symmetric(
+        vertical: HanjiSpacing.sm,
+        horizontal: HanjiSpacing.xs,
+      ),
       child: Center(
         child: Text(
           text,
@@ -384,10 +393,7 @@ class _FiveElementBalance extends StatelessWidget {
       children: [
         SizedBox(
           width: 28,
-          child: Text(
-            element,
-            style: HanjiTextStyles.bodyTitle(color: color),
-          ),
+          child: Text(element, style: HanjiTextStyles.bodyTitle(color: color)),
         ),
         const SizedBox(width: HanjiSpacing.sm),
         Expanded(
@@ -408,7 +414,10 @@ class _FiveElementBalance extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: HanjiSpacing.sm),
-                  Text('$count개 · $statusLabel', style: HanjiTextStyles.bodySmall()),
+                  Text(
+                    '$count개 · $statusLabel',
+                    style: HanjiTextStyles.bodySmall(),
+                  ),
                 ],
               ),
               const SizedBox(height: 2),
@@ -436,16 +445,28 @@ class _StrengthCautionList extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (strengths.isNotEmpty) ...[
-          Text('강점', style: HanjiTextStyles.bodyTitle(color: HanjiColors.crystal)),
+          Text(
+            '강점',
+            style: HanjiTextStyles.bodyTitle(color: HanjiColors.crystal),
+          ),
           const SizedBox(height: HanjiSpacing.sm),
-          for (final s in strengths.take(4)) _bulletLine(s, HanjiColors.crystal, Icons.check_circle_outline_rounded),
+          for (final s in strengths.take(4))
+            _bulletLine(
+              s,
+              HanjiColors.crystal,
+              Icons.check_circle_outline_rounded,
+            ),
         ],
         if (strengths.isNotEmpty && cautions.isNotEmpty)
           const SizedBox(height: HanjiSpacing.md),
         if (cautions.isNotEmpty) ...[
-          Text('조심할 점', style: HanjiTextStyles.bodyTitle(color: HanjiColors.accent)),
+          Text(
+            '조심할 점',
+            style: HanjiTextStyles.bodyTitle(color: HanjiColors.accent),
+          ),
           const SizedBox(height: HanjiSpacing.sm),
-          for (final c in cautions.take(4)) _bulletLine(c, HanjiColors.accent, Icons.error_outline_rounded),
+          for (final c in cautions.take(4))
+            _bulletLine(c, HanjiColors.accent, Icons.error_outline_rounded),
         ],
       ],
     );
@@ -487,7 +508,11 @@ class _PracticalAdviceGrid extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(_icons[entry.key] ?? Icons.info_outline_rounded, size: 18, color: HanjiColors.sigil),
+              Icon(
+                _icons[entry.key] ?? Icons.info_outline_rounded,
+                size: 18,
+                color: HanjiColors.sigil,
+              ),
               const SizedBox(width: HanjiSpacing.sm),
               SizedBox(
                 width: 36,
@@ -497,7 +522,8 @@ class _PracticalAdviceGrid extends StatelessWidget {
               Expanded(child: Text(entry.value, style: HanjiTextStyles.body())),
             ],
           ),
-          if (entry.key != advice.keys.last) const SizedBox(height: HanjiSpacing.sm),
+          if (entry.key != advice.keys.last)
+            const SizedBox(height: HanjiSpacing.sm),
         ],
       ],
     );

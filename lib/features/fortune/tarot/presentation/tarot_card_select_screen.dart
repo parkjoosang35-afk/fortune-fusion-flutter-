@@ -94,7 +94,10 @@ class _TarotCardSelectScreenState extends State<TarotCardSelectScreen>
                     children: [
                       Text(
                         _statusEyebrow(state),
-                        style: OzTypography.monoLabel(fontSize: 10, letterSpacing: 3),
+                        style: OzTypography.monoLabel(
+                          fontSize: 10,
+                          letterSpacing: 3,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -131,7 +134,9 @@ class _TarotCardSelectScreenState extends State<TarotCardSelectScreen>
                             OutlinedButton(
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: OzColors.gold,
-                                side: BorderSide(color: OzColors.gold.withValues(alpha: 0.6)),
+                                side: BorderSide(
+                                  color: OzColors.gold.withValues(alpha: 0.6),
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(
                                     OzTokens.radiusPill,
@@ -145,9 +150,7 @@ class _TarotCardSelectScreenState extends State<TarotCardSelectScreen>
                               onPressed: () {
                                 context
                                     .read<TarotSessionController>()
-                                    .retryReveal(
-                                      context.read<TarotProvider>(),
-                                    );
+                                    .retryReveal(context.read<TarotProvider>());
                               },
                               child: const Text('다시 시도하기'),
                             ),
@@ -225,11 +228,11 @@ class _TarotCardSelectScreenState extends State<TarotCardSelectScreen>
                           ? '카드 펼쳐보기'
                           : '${state.selectedSlotIndexes.length}/${state.requiredCardCount}장 선택 중...',
                       loading: state.status == TarotSessionStatus.revealing,
-                      onPressed:
-                          state.status == TarotSessionStatus.cardsChosen
+                      onPressed: state.status == TarotSessionStatus.cardsChosen
                           ? _onRevealPressed
                           : null,
-                      trailingIcon: state.status == TarotSessionStatus.cardsChosen
+                      trailingIcon:
+                          state.status == TarotSessionStatus.cardsChosen
                           ? Icons.auto_awesome_rounded
                           : null,
                     ),

@@ -204,9 +204,7 @@ class App extends StatelessWidget {
         // 거치도록 ProxyProvider로 연결한다.
         // [6-1-F/G] Mock → 실서비스 API 전환. MockWishWallRepository는 삭제하지
         // 않고 테스트용으로 보존한다(사용자 지시).
-        Provider<WishWallRepository>(
-          create: (_) => ApiWishWallRepository(),
-        ),
+        Provider<WishWallRepository>(create: (_) => ApiWishWallRepository()),
         ProxyProvider<LuckPouchProvider, BlessingBagPolicyAdapter>(
           update: (_, pouch, __) => BlessingBagPolicyAdapter(pouch),
         ),
@@ -238,9 +236,7 @@ class App extends StatelessWidget {
         // 연동. ShopProvider와 동일한 원칙으로 새 화폐를 만들지 않고
         // LuckPouchProvider를 참조만 하며, 답례 성공 시 LuckPouchProvider.load()
         // 로 서버 원장을 재조회한다.
-        Provider<GratitudeRepository>(
-          create: (_) => ApiGratitudeRepository(),
-        ),
+        Provider<GratitudeRepository>(create: (_) => ApiGratitudeRepository()),
         ChangeNotifierProxyProvider<LuckPouchProvider, GratitudeProvider>(
           create: (context) => GratitudeProvider(
             context.read<GratitudeRepository>(),
@@ -268,25 +264,9 @@ class App extends StatelessWidget {
             initialRoute: '/splash',
             onGenerateRoute: AppRouter.onGenerateRoute,
             builder: (context, child) {
-              // [STEP05-B STEP7 임시 검증용] URL 쿼리 파라미터로 텍스트
-              // 스케일을 강제 오버라이드해 접근성 큰글씨 시나리오를 실제
-              // 화면에서 재현한다. 검증 완료 후 이 블록은 제거한다.
-              Widget wrapped = LuckPouchToastOverlay(
+              return LuckPouchToastOverlay(
                 child: child ?? const SizedBox.shrink(),
               );
-              final tsParam = Uri.base.queryParameters['textScale'];
-              if (tsParam != null) {
-                final scale = double.tryParse(tsParam);
-                if (scale != null) {
-                  wrapped = MediaQuery(
-                    data: MediaQuery.of(context).copyWith(
-                      textScaler: TextScaler.linear(scale),
-                    ),
-                    child: wrapped,
-                  );
-                }
-              }
-              return wrapped;
             },
           );
         },

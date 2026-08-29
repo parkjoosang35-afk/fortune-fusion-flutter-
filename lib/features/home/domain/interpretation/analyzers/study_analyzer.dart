@@ -77,8 +77,21 @@ class StudyAnalyzer extends CategoryAnalyzer<StudyAnalysis> {
       '문창귀인 위치에 걸린 신살(공망/겁살/재살) + 인성·문창귀인 부재 여부를 조합해 리스크(studyRiskPattern) 판정',
       '대운 목록에서 인성 범주이거나 용신 오행을 포함하는 대운을 학업·시험 정점 시기로 판정',
     ],
-    excludedData: ['세운(올해)', '월운(이번 달)', '배우자운(A06 담당)', '자녀운(A07 담당)', '부모형제운(A08 담당)'],
-    outputStructure: ['학업 구조', '학업 몰입 방식', '문창귀인 위치 의미', '리스크', '학업 접근법', '정점 대운'],
+    excludedData: [
+      '세운(올해)',
+      '월운(이번 달)',
+      '배우자운(A06 담당)',
+      '자녀운(A07 담당)',
+      '부모형제운(A08 담당)',
+    ],
+    outputStructure: [
+      '학업 구조',
+      '학업 몰입 방식',
+      '문창귀인 위치 의미',
+      '리스크',
+      '학업 접근법',
+      '정점 대운',
+    ],
   );
 
   @override
@@ -91,16 +104,22 @@ class StudyAnalyzer extends CategoryAnalyzer<StudyAnalysis> {
     final categoryCounts = q.tenGodCategoryCounts(includeHiddenStems: true);
     final studyGodCount = categoryCounts['인성'] ?? 0;
     final sinsalList = profile.sinsal ?? const [];
-    final munchangEntries = sinsalList.where((s) => s.nameKr == '문창귀인').toList();
-    final hasMunchang = munchangEntries.isNotEmpty && munchangEntries.any((s) => s.foundOn.isNotEmpty);
+    final munchangEntries = sinsalList
+        .where((s) => s.nameKr == '문창귀인')
+        .toList();
+    final hasMunchang =
+        munchangEntries.isNotEmpty &&
+        munchangEntries.any((s) => s.foundOn.isNotEmpty);
     final munchangPositions = hasMunchang
         ? munchangEntries.expand((s) => s.foundOn).toSet().toList()
         : <String>[];
     evidence.add(
       AnalysisEvidence(
         sourceField: 'tenGods+hiddenStems(5대범주 집계) + sinsal(문창귀인)',
-        sourceValue: '인성(학업성)=$studyGodCount, 문창귀인=${hasMunchang ? '보유(${munchangPositions.join(',')})' : '없음'}',
-        rule: '인성=學文·문서·수용력, 문창귀인=전통 명리학 대표 학업·시험 신살로 채택(레거시 getLifeStudy 원칙 계승)',
+        sourceValue:
+            '인성(학업성)=$studyGodCount, 문창귀인=${hasMunchang ? '보유(${munchangPositions.join(',')})' : '없음'}',
+        rule:
+            '인성=學文·문서·수용력, 문창귀인=전통 명리학 대표 학업·시험 신살로 채택(레거시 getLifeStudy 원칙 계승)',
         judgment: '인성 개수와 문창귀인 보유 여부를 기준으로 학업 구조 1차 판정',
         interpretationRole: InterpretationRole.primary,
         weight: 0.7,
@@ -111,9 +130,11 @@ class StudyAnalyzer extends CategoryAnalyzer<StudyAnalysis> {
     // 라벨 형식으로 확장(§4) ──
     final String studyPattern;
     if (studyGodCount >= 2 && hasMunchang) {
-      studyPattern = '학업최상형(學業最上型) — 학문을 받아들이는 힘과 시험 운이 함께 갖춰져 학업 성과가 가장 두드러지는 구조';
+      studyPattern =
+          '학업최상형(學業最上型) — 학문을 받아들이는 힘과 시험 운이 함께 갖춰져 학업 성과가 가장 두드러지는 구조';
     } else if (hasMunchang) {
-      studyPattern = '시험운발동형(試驗運發動型) — 평소 학업량과 무관하게 시험·자격증 같은 결정적 순간에 유독 운이 따르는 구조';
+      studyPattern =
+          '시험운발동형(試驗運發動型) — 평소 학업량과 무관하게 시험·자격증 같은 결정적 순간에 유독 운이 따르는 구조';
     } else if (studyGodCount >= 2) {
       studyPattern = '학구형(學究型) — 꾸준한 학습과 깊이 있는 이해력으로 실력을 쌓아가는 구조';
     } else if (studyGodCount == 1) {
@@ -137,13 +158,15 @@ class StudyAnalyzer extends CategoryAnalyzer<StudyAnalysis> {
     final strengthVerdict = profile.strength?.verdict ?? '중화';
     final String studyBondStrength;
     if (strengthVerdict == '신강' && studyGodCount >= 2) {
-      studyBondStrength = '신강왕인(身强旺印) — 힘도 있고 학업 수용력도 두터워 어려운 과정도 스스로 밀어붙여 끝내는 편';
+      studyBondStrength =
+          '신강왕인(身强旺印) — 힘도 있고 학업 수용력도 두터워 어려운 과정도 스스로 밀어붙여 끝내는 편';
     } else if (strengthVerdict == '신강') {
       studyBondStrength = '신강자학(身强自學) — 힘이 있어 인성이 적어도 스스로 계획을 세워 공부해 나가는 편';
     } else if (strengthVerdict == '신약' && studyGodCount >= 1) {
       studyBondStrength = '신약의학(身弱依學) — 좋은 스승·환경의 도움을 받을 때 학업 몰입도가 특히 높아지는 편';
     } else if (strengthVerdict == '신약') {
-      studyBondStrength = '신약분산(身弱分散) — 힘이 약한데 학업성도 부족해 한 과목에 오래 집중하기보다 짧게 끊어 공부하는 편이 유리';
+      studyBondStrength =
+          '신약분산(身弱分散) — 힘이 약한데 학업성도 부족해 한 과목에 오래 집중하기보다 짧게 끊어 공부하는 편이 유리';
     } else {
       studyBondStrength = '중화학구(中和學究) — 상황에 맞춰 학습 강도를 유연하게 조절하는 편';
     }
@@ -152,7 +175,8 @@ class StudyAnalyzer extends CategoryAnalyzer<StudyAnalysis> {
         AnalysisEvidence(
           sourceField: 'strength.verdict + 인성 개수',
           sourceValue: '$strengthVerdict, 인성=$studyGodCount',
-          rule: '신강+인성많음→신강왕인 / 신강+인성적음→신강자학 / 신약+인성있음→신약의학 / 신약+인성없음→신약분산 / 중화→중화학구',
+          rule:
+              '신강+인성많음→신강왕인 / 신강+인성적음→신강자학 / 신약+인성있음→신약의학 / 신약+인성없음→신약분산 / 중화→중화학구',
           judgment: studyBondStrength,
           interpretationRole: InterpretationRole.strength,
           weight: 0.9,
@@ -168,9 +192,11 @@ class StudyAnalyzer extends CategoryAnalyzer<StudyAnalysis> {
       final stageDescs = munchangPositions
           .map((p) => '$p(${_lifeStageByPosition[p] ?? '해당 시기'})')
           .join(', ');
-      munchangPositionCondition = '문창귀인 발동 — $stageDescs 자리에 문창귀인이 걸려, 해당 시기의 학업·시험에서 유독 운이 따르는 구조';
+      munchangPositionCondition =
+          '문창귀인 발동 — $stageDescs 자리에 문창귀인이 걸려, 해당 시기의 학업·시험에서 유독 운이 따르는 구조';
     } else {
-      munchangPositionCondition = '문창귀인 미발동 — 원국에 문창귀인이 나타나지 않아, 특정 시기의 시험운보다 꾸준한 노력으로 성과를 쌓아가는 구조';
+      munchangPositionCondition =
+          '문창귀인 미발동 — 원국에 문창귀인이 나타나지 않아, 특정 시기의 시험운보다 꾸준한 노력으로 성과를 쌓아가는 구조';
     }
     evidence.add(
       AnalysisEvidence(
@@ -194,9 +220,13 @@ class StudyAnalyzer extends CategoryAnalyzer<StudyAnalysis> {
     final supportingEvidence = <AnalysisEvidence>[
       AnalysisEvidence(
         sourceField: '문창귀인 위치 상세 목록',
-        sourceValue: munchangPositions.isEmpty ? '없음' : munchangPositions.join(', '),
+        sourceValue: munchangPositions.isEmpty
+            ? '없음'
+            : munchangPositions.join(', '),
         rule: '같은 studyPattern이라도 문창귀인이 걸린 실제 위치/개수는 사람마다 다름(§5)',
-        judgment: munchangPositions.isEmpty ? '문창귀인 없음' : '${munchangPositions.length}개 자리에 문창귀인 확인',
+        judgment: munchangPositions.isEmpty
+            ? '문창귀인 없음'
+            : '${munchangPositions.length}개 자리에 문창귀인 확인',
         interpretationRole: InterpretationRole.supporting,
         weight: 0.4,
       ),
@@ -204,7 +234,9 @@ class StudyAnalyzer extends CategoryAnalyzer<StudyAnalysis> {
         sourceField: '역마(살) 보유 여부',
         sourceValue: yeokmaEntries.isEmpty ? '없음' : yeokmaEntries.join(', '),
         rule: '역마는 이동·해외·유학과 관련된 신살로, 학업 중 유학·해외 활동 경향을 보여주는 보조 근거(§5)',
-        judgment: yeokmaEntries.isEmpty ? '역마 관련 신호 없음' : '${yeokmaEntries.join(', ')} 자리에 역마 확인 — 해외·유학형 학업 경향',
+        judgment: yeokmaEntries.isEmpty
+            ? '역마 관련 신호 없음'
+            : '${yeokmaEntries.join(', ')} 자리에 역마 확인 — 해외·유학형 학업 경향',
         interpretationRole: InterpretationRole.supporting,
         weight: 0.3,
       ),
@@ -226,7 +258,9 @@ class StudyAnalyzer extends CategoryAnalyzer<StudyAnalysis> {
       riskParts.add('문창귀인이 걸린 자리에 공망이 겹쳐, 시험운이 있어도 실제 결과로 이어지기까지 시간이 걸릴 수 있음');
     }
     if (hasMunchang && foundStudyRiskSinsal.contains('겁살')) {
-      riskParts.add('문창귀인이 걸린 자리에 겁살이 겹쳐, 시험·발표 직전에 예기치 못한 변수가 생기지 않도록 미리 대비하는 것이 좋음');
+      riskParts.add(
+        '문창귀인이 걸린 자리에 겁살이 겹쳐, 시험·발표 직전에 예기치 못한 변수가 생기지 않도록 미리 대비하는 것이 좋음',
+      );
     }
     if (hasMunchang && foundStudyRiskSinsal.contains('재살')) {
       riskParts.add('문창귀인이 걸린 자리에 재살이 겹쳐, 시험 과정에서 구설이나 절차상 문제에 유의할 필요');
@@ -234,12 +268,15 @@ class StudyAnalyzer extends CategoryAnalyzer<StudyAnalysis> {
     if (studyGodCount == 0 && !hasMunchang) {
       riskParts.add('인성도 문창귀인도 원국에 나타나지 않아 이론 학습보다 실무·현장 경험을 통한 성장이 더 유리한 편');
     }
-    final studyRiskPattern = riskParts.isEmpty ? '두드러진 학업·시험운 리스크 신호는 확인되지 않음' : riskParts.join(' / ');
+    final studyRiskPattern = riskParts.isEmpty
+        ? '두드러진 학업·시험운 리스크 신호는 확인되지 않음'
+        : riskParts.join(' / ');
     if (riskParts.isNotEmpty) {
       evidence.add(
         AnalysisEvidence(
           sourceField: '신살(문창귀인 위치 공망/겁살/재살) + 인성·문창귀인 부재 조합',
-          sourceValue: '신살=$foundStudyRiskSinsal, 인성=$studyGodCount, 문창귀인=$hasMunchang',
+          sourceValue:
+              '신살=$foundStudyRiskSinsal, 인성=$studyGodCount, 문창귀인=$hasMunchang',
           rule: '문창귀인 위치에 공망/겁살/재살 존재 또는 인성=0&문창귀인 없음을 리스크 신호로 채택 후 종합',
           judgment: studyRiskPattern,
           interpretationRole: InterpretationRole.caution,
@@ -251,9 +288,13 @@ class StudyAnalyzer extends CategoryAnalyzer<StudyAnalysis> {
     supportingEvidence.add(
       AnalysisEvidence(
         sourceField: '문창귀인 위치 신살 존재 여부',
-        sourceValue: foundStudyRiskSinsal.isEmpty ? '없음' : foundStudyRiskSinsal.join(', '),
+        sourceValue: foundStudyRiskSinsal.isEmpty
+            ? '없음'
+            : foundStudyRiskSinsal.join(', '),
         rule: '문창귀인 위치 신살 존재 여부는 리스크 판단과 별개로 항상 추적',
-        judgment: foundStudyRiskSinsal.isEmpty ? '문창귀인 자리에 걸린 신살 없음' : '${foundStudyRiskSinsal.join(', ')} 보유',
+        judgment: foundStudyRiskSinsal.isEmpty
+            ? '문창귀인 자리에 걸린 신살 없음'
+            : '${foundStudyRiskSinsal.join(', ')} 보유',
         interpretationRole: InterpretationRole.supporting,
         weight: 0.3,
       ),
@@ -273,7 +314,9 @@ class StudyAnalyzer extends CategoryAnalyzer<StudyAnalysis> {
     final yongsinElement = profile.yongsin?.yongsin ?? '';
     for (final d in daewoonList) {
       final matchesStudy = q.daewoonMatchesCategory(d, '인성');
-      final carriesYongsin = yongsinElement.isNotEmpty && q.daewoonCarriesElement(d, yongsinElement);
+      final carriesYongsin =
+          yongsinElement.isNotEmpty &&
+          q.daewoonCarriesElement(d, yongsinElement);
       if (matchesStudy || carriesYongsin) {
         studyPeakDaewoonLabel =
             '${d.startAge}세(${d.startYear}년)부터 시작된 ${d.pillar.stemKr}${d.pillar.branchKr}(${d.pillar.stemHanja}${d.pillar.branchHanja}) 대운';
@@ -303,7 +346,8 @@ class StudyAnalyzer extends CategoryAnalyzer<StudyAnalysis> {
             sourceValue:
                 '${current.startAge}세 ${current.pillar.stemKr}${current.pillar.branchKr}(${current.pillar.stemHanja}${current.pillar.branchHanja})',
             rule: '기준일이 속한 대운을 조회(재계산 아님, PHASE4 목록 조회)',
-            judgment: '현재 ${current.pillar.stemKr}${current.pillar.branchKr} 대운을 지나는 중',
+            judgment:
+                '현재 ${current.pillar.stemKr}${current.pillar.branchKr} 대운을 지나는 중',
             interpretationRole: InterpretationRole.timing,
             weight: 0.5,
           ),
@@ -318,9 +362,12 @@ class StudyAnalyzer extends CategoryAnalyzer<StudyAnalysis> {
       if (yongsinElement.isNotEmpty) '$yongsinElement 기운이 강해지는 시기·학습 환경',
     ];
     final caution = <String>[
-      if (foundStudyRiskSinsal.isNotEmpty) '${foundStudyRiskSinsal.join(', ')} 신호에 따른 시험·발표 시기 대비',
-      if (studyGodCount == 0 && !hasMunchang) '이론 학습에 대한 부담이 상대적으로 클 수 있는 만큼 실무 경험으로 보완하는 마음가짐',
-      if (!hasMunchang && studyGodCount <= 1) '학업 성과가 꾸준한 노력에 비례해 더디게 나타날 수 있는 점',
+      if (foundStudyRiskSinsal.isNotEmpty)
+        '${foundStudyRiskSinsal.join(', ')} 신호에 따른 시험·발표 시기 대비',
+      if (studyGodCount == 0 && !hasMunchang)
+        '이론 학습에 대한 부담이 상대적으로 클 수 있는 만큼 실무 경험으로 보완하는 마음가짐',
+      if (!hasMunchang && studyGodCount <= 1)
+        '학업 성과가 꾸준한 노력에 비례해 더디게 나타날 수 있는 점',
     ];
     if (favorable.isEmpty) favorable.add('현재의 학업 구조를 안정적으로 유지하는 환경');
     if (caution.isEmpty) caution.add('두드러진 학업·시험운 리스크 신호는 확인되지 않음');
@@ -377,8 +424,12 @@ class StudyAnalyzer extends CategoryAnalyzer<StudyAnalysis> {
         : studyBondStrength.startsWith('신약분산')
         ? '한 번에 오래 붙잡고 있기보다 짧게 끊어서 반복하는 방식이'
         : '상황에 맞춰 학습 강도와 방식을 유연하게 조절하는 편이';
-    final munchangNote = hasMunchang ? ' 좋고, 특히 실제 시험·발표 일정이 다가올 때 유독 집중력이 오르는 편' : ' 좋음';
-    final yeokmaNote = hasYeokma ? ', 해외 연수나 유학처럼 환경을 바꾸는 학습 방식도 잘 맞을 수 있음' : '';
+    final munchangNote = hasMunchang
+        ? ' 좋고, 특히 실제 시험·발표 일정이 다가올 때 유독 집중력이 오르는 편'
+        : ' 좋음';
+    final yeokmaNote = hasYeokma
+        ? ', 해외 연수나 유학처럼 환경을 바꾸는 학습 방식도 잘 맞을 수 있음'
+        : '';
     return '$base$munchangNote$yeokmaNote';
   }
 }

@@ -44,7 +44,8 @@ import '../interpretation_rules.dart';
 import '../narrative_generator.dart';
 import '../term_translation_layer.dart';
 
-class ParentsSiblingsNarrativeGenerator implements NarrativeGenerator<ParentsSiblingsAnalysis> {
+class ParentsSiblingsNarrativeGenerator
+    implements NarrativeGenerator<ParentsSiblingsAnalysis> {
   const ParentsSiblingsNarrativeGenerator();
 
   /// 'A — B' 형식으로 저장된 pattern/bondStrength 문자열을 (이름, 설명)으로
@@ -65,8 +66,12 @@ class ParentsSiblingsNarrativeGenerator implements NarrativeGenerator<ParentsSib
     final ctx = analysis.interpretationContext;
     final (parentName, parentDesc) = _split(analysis.parentPattern);
     final (siblingName, siblingDesc) = _split(analysis.siblingPattern);
-    final (parentBondName, parentBondDesc) = _split(analysis.parentBondStrength);
-    final (siblingBondName, siblingBondDesc) = _split(analysis.siblingBondStrength);
+    final (parentBondName, parentBondDesc) = _split(
+      analysis.parentBondStrength,
+    );
+    final (siblingBondName, siblingBondDesc) = _split(
+      analysis.siblingBondStrength,
+    );
 
     final parentCount = int.tryParse(ctx['parentCount'] ?? '0') ?? 0;
     final siblingCount = int.tryParse(ctx['siblingCount'] ?? '0') ?? 0;
@@ -88,7 +93,9 @@ class ParentsSiblingsNarrativeGenerator implements NarrativeGenerator<ParentsSib
       if (parentDesc.isNotEmpty) '$parentDesc.',
       if (siblingDesc.isNotEmpty) '$siblingDesc.',
     ];
-    final coreResult = coreResultAll.take(rules.maxCoreResultSentences).toList();
+    final coreResult = coreResultAll
+        .take(rules.maxCoreResultSentences)
+        .toList();
 
     // ── ② 왜 이런 결과가 나왔는가(whyThisResult) — coreEvidence를
     // sourceField 기준으로 하나씩 자연어로 풀어낸다(§7 근거 추적성).
@@ -128,7 +135,9 @@ class ParentsSiblingsNarrativeGenerator implements NarrativeGenerator<ParentsSib
           );
         case '신살(부모형제궁 공망/겁살/재살) + 인성·비겁 부재 조합':
           if (foundFamilyRiskSinsal.isNotEmpty) {
-            final phrases = foundFamilyRiskSinsal.map((s) => sinsalPhrase(terms, s)).join(' ');
+            final phrases = foundFamilyRiskSinsal
+                .map((s) => sinsalPhrase(terms, s))
+                .join(' ');
             whyThisResult.add(phrases);
           }
           if (parentCount == 0 || siblingCount == 0) {
@@ -155,14 +164,17 @@ class ParentsSiblingsNarrativeGenerator implements NarrativeGenerator<ParentsSib
       if (foundFamilyRiskSinsal.isNotEmpty)
         '부모형제궁에 ${foundFamilyRiskSinsal.join(', ')} 기운이 있어, 부모·형제 관련 사안에서 평소보다 신중함이 필요한 편이에요.',
     ].where((s) => s.trim().isNotEmpty).toList();
-    final cappedCharacteristics = characteristics.length > rules.maxCharacteristicParagraphs
+    final cappedCharacteristics =
+        characteristics.length > rules.maxCharacteristicParagraphs
         ? characteristics.sublist(0, rules.maxCharacteristicParagraphs)
         : characteristics;
 
     // ── ④ 좋은 흐름(favorableFlows) ──
     final favorableFlows = List<String>.from(analysis.favorableConditions);
     if (favorableFlows.length < rules.minFavorableItems) {
-      favorableFlows.add('$parentName·$siblingName 구조 자체를 안정적으로 살릴 수 있는 가족 관계 환경');
+      favorableFlows.add(
+        '$parentName·$siblingName 구조 자체를 안정적으로 살릴 수 있는 가족 관계 환경',
+      );
     }
     final cappedFavorable = favorableFlows.length > rules.maxFavorableItems
         ? favorableFlows.sublist(0, rules.maxFavorableItems)
@@ -175,7 +187,9 @@ class ParentsSiblingsNarrativeGenerator implements NarrativeGenerator<ParentsSib
       cautionFlows.add(analysis.familyRiskPattern);
     }
     if (cautionFlows.length < rules.minCautionItems) {
-      cautionFlows.add('$parentBondName·$siblingBondName 상태에서 부모형제궁 관계를 소홀히 하는 것');
+      cautionFlows.add(
+        '$parentBondName·$siblingBondName 상태에서 부모형제궁 관계를 소홀히 하는 것',
+      );
     }
     final cappedCaution = cautionFlows.length > rules.maxCautionItems
         ? cautionFlows.sublist(0, rules.maxCautionItems)
@@ -198,7 +212,9 @@ class ParentsSiblingsNarrativeGenerator implements NarrativeGenerator<ParentsSib
     // ── ⑦ 시기(timingSection) — PHASE4 실계산 대운만 사용(§18) ──
     List<String>? timingSection;
     if (analysis.familyBlessingDaewoonLabel.isNotEmpty) {
-      timingSection = ['${analysis.familyBlessingDaewoonLabel} 시기에 부모·형제 관련 인연·도움이 가장 활발해질 수 있어요.'];
+      timingSection = [
+        '${analysis.familyBlessingDaewoonLabel} 시기에 부모·형제 관련 인연·도움이 가장 활발해질 수 있어요.',
+      ];
       final currentDaewoonEvidence = analysis.supportingEvidence
           .where((e) => e.sourceField == 'currentDaewoon(PHASE4 실계산)')
           .toList();

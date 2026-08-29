@@ -112,9 +112,7 @@ class OzTarotHomeScreen extends StatelessWidget {
                 ),
                 const SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: OzHomeSpacing.lg,
-                    ),
+                    padding: EdgeInsets.symmetric(horizontal: OzHomeSpacing.lg),
                     child: _OzHomeSectionTitle(text: '✦  테마별로 둘러보기'),
                   ),
                 ),
@@ -624,15 +622,12 @@ class _OzHomeCategoryBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () =>
-          Navigator.of(context).pushNamed(AppRouter.tarotHubRoute),
+      onTap: () => Navigator.of(context).pushNamed(AppRouter.tarotHubRoute),
       child: Container(
         height: 150,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(OzHomeRadii.banner),
-          border: Border.all(
-            color: OzHomeColors.gold.withValues(alpha: 0.22),
-          ),
+          border: Border.all(color: OzHomeColors.gold.withValues(alpha: 0.22)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.4),
@@ -796,9 +791,7 @@ class _OzHomeThemeCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: OzHomeColors.gold.withValues(alpha: 0.18),
-          ),
+          border: Border.all(color: OzHomeColors.gold.withValues(alpha: 0.18)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.3),
@@ -863,34 +856,36 @@ class _OzHomeThemeCard extends StatelessWidget {
                 children: [
                   Text(
                     data.name,
-                    style: OzHomeTypography.cardName(
-                      size: 15,
-                      color: Colors.white,
-                    ).copyWith(
-                      shadows: const [
-                        Shadow(
-                          color: Color(0x80000000),
-                          offset: Offset(0, 1),
-                          blurRadius: 4,
+                    style:
+                        OzHomeTypography.cardName(
+                          size: 15,
+                          color: Colors.white,
+                        ).copyWith(
+                          shadows: const [
+                            Shadow(
+                              color: Color(0x80000000),
+                              offset: Offset(0, 1),
+                              blurRadius: 4,
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
                   ),
                   const SizedBox(height: 3),
                   Text(
                     '${data.count}개 카테고리',
-                    style: OzHomeTypography.monoLabel(
-                      size: 10,
-                      color: OzHomeColors.gold,
-                    ).copyWith(
-                      shadows: const [
-                        Shadow(
-                          color: Color(0x80000000),
-                          offset: Offset(0, 1),
-                          blurRadius: 4,
+                    style:
+                        OzHomeTypography.monoLabel(
+                          size: 10,
+                          color: OzHomeColors.gold,
+                        ).copyWith(
+                          shadows: const [
+                            Shadow(
+                              color: Color(0x80000000),
+                              offset: Offset(0, 1),
+                              blurRadius: 4,
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
                   ),
                 ],
               ),
@@ -942,7 +937,10 @@ class _OzHomePrimaryButton extends StatelessWidget {
               ).copyWith(color: const Color(0xFF2A1A08)),
             ),
             const SizedBox(width: 6),
-            const Text('→', style: TextStyle(color: Color(0xFF2A1A08), fontSize: 13)),
+            const Text(
+              '→',
+              style: TextStyle(color: Color(0xFF2A1A08), fontSize: 13),
+            ),
           ],
         ),
       ),

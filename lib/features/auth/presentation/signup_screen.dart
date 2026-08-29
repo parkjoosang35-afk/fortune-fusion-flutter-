@@ -229,7 +229,8 @@ class _SignupScreenState extends State<SignupScreen> {
                 // `.bottom-link`
                 Center(
                   child: GestureDetector(
-                    onTap: () => Navigator.of(context).pushReplacementNamed('/login'),
+                    onTap: () =>
+                        Navigator.of(context).pushReplacementNamed('/login'),
                     child: RichText(
                       text: TextSpan(
                         style: IntroTextStyles.bottomLink(),

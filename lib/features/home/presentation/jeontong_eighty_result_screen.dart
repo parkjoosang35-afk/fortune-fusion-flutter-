@@ -76,9 +76,20 @@ import 'widgets/jeontong_result_text_extractor.dart';
 /// 제외하고(그룹③ 취급), 나머지는 재검토 없이 확정된 15종 중 F04를 뺀
 /// 14종만 포함한다.
 const Set<String> kJeontongGroup1BinaryCategoryIds = {
-  'A02', 'B04', 'B06', 'B08', 'B09',
-  'C08', 'D10',
-  'G01', 'G02', 'G03', 'G05', 'G07', 'G08', 'G10',
+  'A02',
+  'B04',
+  'B06',
+  'B08',
+  'B09',
+  'C08',
+  'D10',
+  'G01',
+  'G02',
+  'G03',
+  'G05',
+  'G07',
+  'G08',
+  'G10',
 };
 
 /// [2026 무당식 단정 확장 — 그룹②(타이밍형) 사용자 승인 "선택지 B"]
@@ -98,9 +109,15 @@ const Set<String> kJeontongGroup1BinaryCategoryIds = {
 ///   아니라 "해외 진출에 얼마나 유리한 성향인지"를 나타내는 정도·유형
 ///   분류에 가까워 그룹③으로 남긴다.
 const Set<String> kJeontongGroup2TimingCategoryIds = {
-  'B02', 'B03', 'B05',
-  'C06', 'C07',
-  'F05', 'F06', 'F08', 'F09',
+  'B02',
+  'B03',
+  'B05',
+  'C06',
+  'C07',
+  'F05',
+  'F06',
+  'F08',
+  'F09',
 };
 
 class JeontongEightyResultScreen extends StatefulWidget {
@@ -743,16 +760,17 @@ class _ResultBody extends StatelessWidget {
         // 확인되지 않음") 존재 여부로 판정한다(새 계산 없음, 이미 산출된
         // weaknesses/strengths 재사용).
         const noRiskFixed = '특별히 두드러진 위험 신호는 확인되지 않음';
-        final a01HasRisk = !(analysis.weaknesses.length == 1 &&
-            analysis.weaknesses.first == noRiskFixed);
+        final a01HasRisk =
+            !(analysis.weaknesses.length == 1 &&
+                analysis.weaknesses.first == noRiskFixed);
         final a01Verdict = buildDeclarativeVerdict(
           categoryLabel: '전체적인 삶',
           hasRisk: a01HasRisk,
           reasonSentence: a01HasRisk
               ? analysis.weaknesses.first
               : analysis.strengths.isNotEmpty
-                  ? analysis.strengths.first
-                  : analysis.lifeTheme,
+              ? analysis.strengths.first
+              : analysis.lifeTheme,
           actionSentence: narrative.practicalGuidance?.isNotEmpty == true
               ? narrative.practicalGuidance!.first
               : null,
@@ -795,8 +813,8 @@ class _ResultBody extends StatelessWidget {
           reasonSentence: a03HasRisk
               ? analysis.riskPattern.split(' / ').first
               : (narrative.favorableFlows.isNotEmpty
-                  ? narrative.favorableFlows.first
-                  : analysis.wealthPattern),
+                    ? narrative.favorableFlows.first
+                    : analysis.wealthPattern),
           actionSentence: narrative.practicalGuidance?.isNotEmpty == true
               ? narrative.practicalGuidance!.first
               : null,
@@ -834,8 +852,8 @@ class _ResultBody extends StatelessWidget {
           reasonSentence: a04HasRisk
               ? analysis.careerRiskPattern.split(' / ').first
               : (narrative.favorableFlows.isNotEmpty
-                  ? narrative.favorableFlows.first
-                  : analysis.careerPattern),
+                    ? narrative.favorableFlows.first
+                    : analysis.careerPattern),
           actionSentence: narrative.practicalGuidance?.isNotEmpty == true
               ? narrative.practicalGuidance!.first
               : null,
@@ -873,8 +891,8 @@ class _ResultBody extends StatelessWidget {
           reasonSentence: a05HasRisk
               ? analysis.healthRiskPattern.split(' / ').first
               : (narrative.favorableFlows.isNotEmpty
-                  ? narrative.favorableFlows.first
-                  : analysis.healthConstitutionPattern),
+                    ? narrative.favorableFlows.first
+                    : analysis.healthConstitutionPattern),
           actionSentence: narrative.practicalGuidance?.isNotEmpty == true
               ? narrative.practicalGuidance!.first
               : null,
@@ -912,8 +930,8 @@ class _ResultBody extends StatelessWidget {
           reasonSentence: a06HasRisk
               ? analysis.romanceRiskPattern.split(' / ').first
               : (narrative.favorableFlows.isNotEmpty
-                  ? narrative.favorableFlows.first
-                  : analysis.spousePattern),
+                    ? narrative.favorableFlows.first
+                    : analysis.spousePattern),
           actionSentence: narrative.practicalGuidance?.isNotEmpty == true
               ? narrative.practicalGuidance!.first
               : null,
@@ -951,8 +969,8 @@ class _ResultBody extends StatelessWidget {
           reasonSentence: a07HasRisk
               ? analysis.childRiskPattern.split(' / ').first
               : (narrative.favorableFlows.isNotEmpty
-                  ? narrative.favorableFlows.first
-                  : analysis.childPattern),
+                    ? narrative.favorableFlows.first
+                    : analysis.childPattern),
           actionSentence: narrative.practicalGuidance?.isNotEmpty == true
               ? narrative.practicalGuidance!.first
               : null,
@@ -990,8 +1008,8 @@ class _ResultBody extends StatelessWidget {
           reasonSentence: a08HasRisk
               ? analysis.familyRiskPattern.split(' / ').first
               : (narrative.favorableFlows.isNotEmpty
-                  ? narrative.favorableFlows.first
-                  : analysis.parentPattern),
+                    ? narrative.favorableFlows.first
+                    : analysis.parentPattern),
           actionSentence: narrative.practicalGuidance?.isNotEmpty == true
               ? narrative.practicalGuidance!.first
               : null,
@@ -1029,8 +1047,8 @@ class _ResultBody extends StatelessWidget {
           reasonSentence: a09HasRisk
               ? analysis.studyRiskPattern.split(' / ').first
               : (narrative.favorableFlows.isNotEmpty
-                  ? narrative.favorableFlows.first
-                  : analysis.studyPattern),
+                    ? narrative.favorableFlows.first
+                    : analysis.studyPattern),
           actionSentence: narrative.practicalGuidance?.isNotEmpty == true
               ? narrative.practicalGuidance!.first
               : null,
@@ -1068,8 +1086,8 @@ class _ResultBody extends StatelessWidget {
           reasonSentence: a10HasRisk
               ? analysis.transitionRiskPattern.split(' / ').first
               : (narrative.favorableFlows.isNotEmpty
-                  ? narrative.favorableFlows.first
-                  : analysis.transitionPattern),
+                    ? narrative.favorableFlows.first
+                    : analysis.transitionPattern),
           actionSentence: narrative.practicalGuidance?.isNotEmpty == true
               ? narrative.practicalGuidance!.first
               : null,
@@ -1165,8 +1183,8 @@ DeclarativeVerdict? _buildGroup1Verdict(
               (data['strengths'] as List?)?.cast<String>() ?? const [];
           final lifeTheme = data['life_theme'] as String? ?? '';
           const noRiskFixed = '특별히 두드러진 위험 신호는 확인되지 않음';
-          final hasRisk = !(weaknesses.length == 1 &&
-              weaknesses.first == noRiskFixed);
+          final hasRisk =
+              !(weaknesses.length == 1 && weaknesses.first == noRiskFixed);
           return buildDeclarativeVerdict(
             categoryLabel: categoryLabel,
             hasRisk: hasRisk,
@@ -1177,30 +1195,30 @@ DeclarativeVerdict? _buildGroup1Verdict(
         }
       case 'B04':
         {
-          final cautionPeriods =
-              (data['caution_periods'] as List?) ?? const [];
+          final cautionPeriods = (data['caution_periods'] as List?) ?? const [];
           final summary = data['summary'] as String? ?? '';
           final parts = _jeontongSentenceSplit(summary);
           return buildDeclarativeVerdict(
             categoryLabel: categoryLabel,
             hasRisk: cautionPeriods.isNotEmpty,
             reasonSentence: parts.isNotEmpty ? parts.first : summary,
-            actionSentence:
-                parts.length > 1 ? parts.sublist(1).join(' ') : null,
+            actionSentence: parts.length > 1
+                ? parts.sublist(1).join(' ')
+                : null,
           );
         }
       case 'B06':
         {
-          final cautionWindows =
-              (data['caution_windows'] as List?) ?? const [];
+          final cautionWindows = (data['caution_windows'] as List?) ?? const [];
           final summary = data['summary'] as String? ?? '';
           final parts = _jeontongSentenceSplit(summary);
           return buildDeclarativeVerdict(
             categoryLabel: categoryLabel,
             hasRisk: cautionWindows.isNotEmpty,
             reasonSentence: parts.isNotEmpty ? parts.first : summary,
-            actionSentence:
-                parts.length > 1 ? parts.sublist(1).join(' ') : null,
+            actionSentence: parts.length > 1
+                ? parts.sublist(1).join(' ')
+                : null,
           );
         }
       case 'B08':
@@ -1215,8 +1233,9 @@ DeclarativeVerdict? _buildGroup1Verdict(
             categoryLabel: categoryLabel,
             hasRisk: periods.isEmpty,
             reasonSentence: parts.isNotEmpty ? parts.first : summary,
-            actionSentence:
-                parts.length > 1 ? parts.sublist(1).join(' ') : null,
+            actionSentence: parts.length > 1
+                ? parts.sublist(1).join(' ')
+                : null,
           );
         }
       case 'B09':
@@ -1230,8 +1249,9 @@ DeclarativeVerdict? _buildGroup1Verdict(
             categoryLabel: categoryLabel,
             hasRisk: periods.isNotEmpty,
             reasonSentence: parts.isNotEmpty ? parts.first : summary,
-            actionSentence:
-                parts.length > 1 ? parts.sublist(1).join(' ') : null,
+            actionSentence: parts.length > 1
+                ? parts.sublist(1).join(' ')
+                : null,
           );
         }
       case 'C08':
@@ -1270,7 +1290,7 @@ DeclarativeVerdict? _buildGroup1Verdict(
           final riskPattern = data['healthRiskPattern'] as String? ?? '';
           final favorable =
               (data['favorableConditions'] as List?)?.cast<String>() ??
-                  const [];
+              const [];
           final constitution =
               data['healthConstitutionPattern'] as String? ?? '';
           final adviceFood =
@@ -1287,16 +1307,16 @@ DeclarativeVerdict? _buildGroup1Verdict(
         }
       case 'G03':
         {
-          final cautionPeriods =
-              (data['caution_periods'] as List?) ?? const [];
+          final cautionPeriods = (data['caution_periods'] as List?) ?? const [];
           final summary = data['summary'] as String? ?? '';
           final parts = _jeontongSentenceSplit(summary);
           return buildDeclarativeVerdict(
             categoryLabel: categoryLabel,
             hasRisk: cautionPeriods.isNotEmpty,
             reasonSentence: parts.isNotEmpty ? parts.first : summary,
-            actionSentence:
-                parts.length > 1 ? parts.sublist(1).join(' ') : null,
+            actionSentence: parts.length > 1
+                ? parts.sublist(1).join(' ')
+                : null,
           );
         }
       case 'G05':
@@ -1308,8 +1328,9 @@ DeclarativeVerdict? _buildGroup1Verdict(
             categoryLabel: categoryLabel,
             hasRisk: excess.isNotEmpty,
             reasonSentence: parts.isNotEmpty ? parts.first : message,
-            actionSentence:
-                parts.length > 1 ? parts.sublist(1).join(' ') : null,
+            actionSentence: parts.length > 1
+                ? parts.sublist(1).join(' ')
+                : null,
           );
         }
       case 'G07':
@@ -1322,8 +1343,9 @@ DeclarativeVerdict? _buildGroup1Verdict(
             categoryLabel: categoryLabel,
             hasRisk: hasRisk,
             reasonSentence: parts.isNotEmpty ? parts.first : message,
-            actionSentence:
-                parts.length > 1 ? parts.sublist(1).join(' ') : null,
+            actionSentence: parts.length > 1
+                ? parts.sublist(1).join(' ')
+                : null,
           );
         }
       case 'G08':
@@ -1336,8 +1358,9 @@ DeclarativeVerdict? _buildGroup1Verdict(
             categoryLabel: categoryLabel,
             hasRisk: hasRisk,
             reasonSentence: parts.isNotEmpty ? parts.first : message,
-            actionSentence:
-                parts.length > 1 ? parts.sublist(1).join(' ') : null,
+            actionSentence: parts.length > 1
+                ? parts.sublist(1).join(' ')
+                : null,
           );
         }
       case 'G10':
@@ -1345,14 +1368,15 @@ DeclarativeVerdict? _buildGroup1Verdict(
           final verdict = data['verdict'] as String? ?? '';
           final message = data['message'] as String? ?? '';
           final parts = _jeontongSentenceSplit(message);
-          final hasRisk = verdict == '꾸준한 관리 필요형' ||
-              verdict == '컨디션 관리 신경 써야 하는 편';
+          final hasRisk =
+              verdict == '꾸준한 관리 필요형' || verdict == '컨디션 관리 신경 써야 하는 편';
           return buildDeclarativeVerdict(
             categoryLabel: categoryLabel,
             hasRisk: hasRisk,
             reasonSentence: parts.isNotEmpty ? parts.first : message,
-            actionSentence:
-                parts.length > 1 ? parts.sublist(1).join(' ') : null,
+            actionSentence: parts.length > 1
+                ? parts.sublist(1).join(' ')
+                : null,
           );
         }
     }
@@ -1383,8 +1407,9 @@ DeclarativeVerdict? _buildGroup2Verdict(
             categoryLabel: categoryLabel,
             isActiveNow: peaks.isNotEmpty,
             reasonSentence: parts.isNotEmpty ? parts.first : summary,
-            actionSentence:
-                parts.length > 1 ? parts.sublist(1).join(' ') : null,
+            actionSentence: parts.length > 1
+                ? parts.sublist(1).join(' ')
+                : null,
           );
         }
       case 'B05':
@@ -1396,8 +1421,9 @@ DeclarativeVerdict? _buildGroup2Verdict(
             categoryLabel: categoryLabel,
             isActiveNow: active.isNotEmpty,
             reasonSentence: parts.isNotEmpty ? parts.first : summary,
-            actionSentence:
-                parts.length > 1 ? parts.sublist(1).join(' ') : null,
+            actionSentence: parts.length > 1
+                ? parts.sublist(1).join(' ')
+                : null,
           );
         }
       case 'B03':
@@ -1413,8 +1439,9 @@ DeclarativeVerdict? _buildGroup2Verdict(
             categoryLabel: categoryLabel,
             isActiveNow: shiftPeriods.isNotEmpty,
             reasonSentence: parts.isNotEmpty ? parts.first : summary,
-            actionSentence:
-                parts.length > 1 ? parts.sublist(1).join(' ') : null,
+            actionSentence: parts.length > 1
+                ? parts.sublist(1).join(' ')
+                : null,
           );
         }
       case 'C06':
@@ -1434,8 +1461,7 @@ DeclarativeVerdict? _buildGroup2Verdict(
           final title = data['title'] as String? ?? '';
           final overall = data['overall'] as String? ?? '';
           final advice = data['advice'] as String? ?? '';
-          final isActiveNow = title == '문창귀인이 들어오는 해' ||
-              title == '학습운이 양호한 해';
+          final isActiveNow = title == '문창귀인이 들어오는 해' || title == '학습운이 양호한 해';
           return buildTimingVerdict(
             categoryLabel: categoryLabel,
             isActiveNow: isActiveNow,
@@ -1453,8 +1479,9 @@ DeclarativeVerdict? _buildGroup2Verdict(
             categoryLabel: categoryLabel,
             isActiveNow: daewoonHit && yearHit,
             reasonSentence: parts.isNotEmpty ? parts.first : message,
-            actionSentence:
-                parts.length > 1 ? parts.sublist(1).join(' ') : null,
+            actionSentence: parts.length > 1
+                ? parts.sublist(1).join(' ')
+                : null,
           );
         }
       case 'F06':
@@ -1466,8 +1493,9 @@ DeclarativeVerdict? _buildGroup2Verdict(
             categoryLabel: categoryLabel,
             isActiveNow: peaks.isNotEmpty,
             reasonSentence: parts.isNotEmpty ? parts.first : summary,
-            actionSentence:
-                parts.length > 1 ? parts.sublist(1).join(' ') : null,
+            actionSentence: parts.length > 1
+                ? parts.sublist(1).join(' ')
+                : null,
           );
         }
       case 'F08':
@@ -1489,8 +1517,9 @@ DeclarativeVerdict? _buildGroup2Verdict(
             categoryLabel: categoryLabel,
             isActiveNow: active.isNotEmpty,
             reasonSentence: parts.isNotEmpty ? parts.first : summary,
-            actionSentence:
-                parts.length > 1 ? parts.sublist(1).join(' ') : null,
+            actionSentence: parts.length > 1
+                ? parts.sublist(1).join(' ')
+                : null,
           );
         }
     }

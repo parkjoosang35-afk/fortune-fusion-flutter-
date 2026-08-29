@@ -40,8 +40,7 @@ class WishRoomCommentsScreen extends StatefulWidget {
   final String wishText;
 
   @override
-  State<WishRoomCommentsScreen> createState() =>
-      _WishRoomCommentsScreenState();
+  State<WishRoomCommentsScreen> createState() => _WishRoomCommentsScreenState();
 }
 
 /// bokjumeoni-plan §06 "응원 문구 프리셋" 7종 — ko-KR 하드코딩(서버 i18n 아님).
@@ -119,9 +118,9 @@ class _WishRoomCommentsScreenState extends State<WishRoomCommentsScreen> {
           const SnackBar(content: Text('응원을 남겼어요. 15자 이상이면 복을 받을 수 있어요.')),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('응원을 남겼어요.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('응원을 남겼어요.')));
       }
     } catch (e) {
       if (!mounted) return;
@@ -268,13 +267,11 @@ class _WishRoomCommentsScreenState extends State<WishRoomCommentsScreen> {
                   : ListView.separated(
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                       itemCount: _comments.length,
-                      separatorBuilder: (_, __) =>
-                          const SizedBox(height: 14),
+                      separatorBuilder: (_, __) => const SizedBox(height: 14),
                       itemBuilder: (context, index) {
                         return _CommentCard(
                           comment: _comments[index],
-                          onReport: () =>
-                              _showReportSheet(_comments[index]),
+                          onReport: () => _showReportSheet(_comments[index]),
                         );
                       },
                     ),

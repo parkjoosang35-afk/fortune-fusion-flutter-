@@ -46,7 +46,14 @@ class ChildrenAnalyzer extends CategoryAnalyzer<ChildrenAnalysis> {
   CategoryMetadata get metadata => const CategoryMetadata(
     categoryId: 'A07',
     categoryPurpose: '평생에 걸친 자녀 인연의 구조와 육아를 감당하는 그릇의 크기, 자녀궁의 안정성을 분석',
-    requiredData: ['십신 분포(자녀성/인성)', '신강신약', '자녀궁(시지) 관계', '신살(공망/겁살/재살)', '용신/기신', '대운'],
+    requiredData: [
+      '십신 분포(자녀성/인성)',
+      '신강신약',
+      '자녀궁(시지) 관계',
+      '신살(공망/겁살/재살)',
+      '용신/기신',
+      '대운',
+    ],
     analysisRules: [
       '자녀성(남:관살/여:식상) 개수와 인성 개수를 조합해 자녀 인연 구조(childPattern) 판정',
       '신강신약 × 자녀성 개수 조합으로 육아를 감당할 그릇의 크기(childBondStrength) 판정',
@@ -81,7 +88,8 @@ class ChildrenAnalyzer extends CategoryAnalyzer<ChildrenAnalysis> {
     evidence.add(
       AnalysisEvidence(
         sourceField: 'birthInfo.gender + tenGods+hiddenStems(5대범주 집계)',
-        sourceValue: '성별=$gender → 자녀성=$childCategoryLabel, 개수=$childCount, 인성=$inseongCount',
+        sourceValue:
+            '성별=$gender → 자녀성=$childCategoryLabel, 개수=$childCount, 인성=$inseongCount',
         rule: '남성은 관살, 여성은 식상을 자녀성으로 채택(전통 명리학 육친법 — 재생관 논리)',
         judgment: '자녀성 개수를 기준으로 자녀 인연 구조 1차 판정',
         interpretationRole: InterpretationRole.primary,
@@ -107,7 +115,8 @@ class ChildrenAnalyzer extends CategoryAnalyzer<ChildrenAnalysis> {
       AnalysisEvidence(
         sourceField: 'childCount/inseongCount 조합',
         sourceValue: '자녀성=$childCount, 인성=$inseongCount',
-        rule: '자녀성=1&인성≤1→안정형 / 자녀성≥2&인성≤1→풍요형 / 자녀성≥1&인성≥2→조력형 / 자녀성=0→만연형 / 그외→혼합형',
+        rule:
+            '자녀성=1&인성≤1→안정형 / 자녀성≥2&인성≤1→풍요형 / 자녀성≥1&인성≥2→조력형 / 자녀성=0→만연형 / 그외→혼합형',
         judgment: childPattern,
         interpretationRole: InterpretationRole.primary,
         weight: 1.0,
@@ -120,9 +129,11 @@ class ChildrenAnalyzer extends CategoryAnalyzer<ChildrenAnalysis> {
     if (strengthVerdict == '신강' && childCount >= 2) {
       childBondStrength = '신강용육(身强用育) — 여러 자녀를 감당할 힘이 있어 육아를 주도적으로 이끄는 편';
     } else if (strengthVerdict == '신강' && childCount <= 1) {
-      childBondStrength = '신강경육(身强輕育) — 힘은 있으나 자녀성이 적어 스스로 자녀 인연을 적극적으로 만들어가야 하는 구조';
+      childBondStrength =
+          '신강경육(身强輕育) — 힘은 있으나 자녀성이 적어 스스로 자녀 인연을 적극적으로 만들어가야 하는 구조';
     } else if (strengthVerdict == '신약' && childCount >= 2) {
-      childBondStrength = '다자신약(多子身弱) — 자녀 인연 기회는 많으나 육아를 감당할 힘이 부족해 무리한 양육은 부담';
+      childBondStrength =
+          '다자신약(多子身弱) — 자녀 인연 기회는 많으나 육아를 감당할 힘이 부족해 무리한 양육은 부담';
     } else if (strengthVerdict == '신약') {
       childBondStrength = '신약보육(身弱補育) — 배우자·주변의 지지를 받을 때 육아가 더 안정되는 편';
     } else {
@@ -133,7 +144,8 @@ class ChildrenAnalyzer extends CategoryAnalyzer<ChildrenAnalysis> {
         AnalysisEvidence(
           sourceField: 'strength.verdict + 자녀성 개수',
           sourceValue: '$strengthVerdict, 자녀성=$childCount',
-          rule: '신강+자녀성많음→신강용육 / 신강+자녀성적음→신강경육 / 신약+자녀성많음→다자신약 / 신약→신약보육 / 중화→중화용육',
+          rule:
+              '신강+자녀성많음→신강용육 / 신강+자녀성적음→신강경육 / 신약+자녀성많음→다자신약 / 신약→신약보육 / 중화→중화용육',
           judgment: childBondStrength,
           interpretationRole: InterpretationRole.strength,
           weight: 0.95,
@@ -149,8 +161,12 @@ class ChildrenAnalyzer extends CategoryAnalyzer<ChildrenAnalysis> {
         .toList();
     const conflictTypes = {'지지충', '천간충', '형', '파', '해', '원진', '귀문'};
     const harmonyTypes = {'육합', '삼합', '방합', '천간합'};
-    final conflictRelations = hourBranchRelations.where((r) => conflictTypes.contains(r.type)).toList();
-    final harmonyRelations = hourBranchRelations.where((r) => harmonyTypes.contains(r.type)).toList();
+    final conflictRelations = hourBranchRelations
+        .where((r) => conflictTypes.contains(r.type))
+        .toList();
+    final harmonyRelations = hourBranchRelations
+        .where((r) => harmonyTypes.contains(r.type))
+        .toList();
     final String childPalaceCondition;
     if (conflictRelations.isNotEmpty && harmonyRelations.isNotEmpty) {
       childPalaceCondition =
@@ -165,7 +181,8 @@ class ChildrenAnalyzer extends CategoryAnalyzer<ChildrenAnalysis> {
           '자녀궁 안정 — 시지가 ${harmonyRelations.map((r) => r.type).join(',')} 관계로 화합해 '
           '자녀와 자연스럽게 조화를 이루는 구조';
     } else {
-      childPalaceCondition = '자녀궁 독자형 — 시지가 다른 글자와 특별한 합충 관계 없이 독립적이라 자녀가 스스로 자기 길을 만들어가는 구조';
+      childPalaceCondition =
+          '자녀궁 독자형 — 시지가 다른 글자와 특별한 합충 관계 없이 독립적이라 자녀가 스스로 자기 길을 만들어가는 구조';
     }
     evidence.add(
       AnalysisEvidence(
@@ -186,9 +203,13 @@ class ChildrenAnalyzer extends CategoryAnalyzer<ChildrenAnalysis> {
         sourceField: '시지 관여 관계 상세 목록',
         sourceValue: hourBranchRelations.isEmpty
             ? '없음'
-            : hourBranchRelations.map((r) => '${r.type}(${r.characters.join("")})').join(', '),
+            : hourBranchRelations
+                  .map((r) => '${r.type}(${r.characters.join("")})')
+                  .join(', '),
         rule: '같은 childPattern이라도 자녀궁 관계의 실제 종류/상대 글자는 사람마다 다름(§5)',
-        judgment: hourBranchRelations.isEmpty ? '시지 관여 관계 없음' : '${hourBranchRelations.length}건의 자녀궁 관계 확인',
+        judgment: hourBranchRelations.isEmpty
+            ? '시지 관여 관계 없음'
+            : '${hourBranchRelations.length}건의 자녀궁 관계 확인',
         interpretationRole: InterpretationRole.supporting,
         weight: 0.4,
       ),
@@ -198,7 +219,11 @@ class ChildrenAnalyzer extends CategoryAnalyzer<ChildrenAnalysis> {
     // + 자녀성 부재 여부 ──
     final sinsalList = profile.sinsal ?? const [];
     final foundChildRiskSinsal = sinsalList
-        .where((s) => _childRiskSinsalNames.contains(s.nameKr) && s.foundOn.contains('시지'))
+        .where(
+          (s) =>
+              _childRiskSinsalNames.contains(s.nameKr) &&
+              s.foundOn.contains('시지'),
+        )
         .map((s) => s.nameKr)
         .toSet()
         .toList();
@@ -215,7 +240,9 @@ class ChildrenAnalyzer extends CategoryAnalyzer<ChildrenAnalysis> {
     if (childCount == 0) {
       riskParts.add('자녀성이 원국에 나타나지 않아 자녀 인연이 늦어지거나 특별한 노력이 필요할 수 있음');
     }
-    final childRiskPattern = riskParts.isEmpty ? '두드러진 자녀운 리스크 신호는 확인되지 않음' : riskParts.join(' / ');
+    final childRiskPattern = riskParts.isEmpty
+        ? '두드러진 자녀운 리스크 신호는 확인되지 않음'
+        : riskParts.join(' / ');
     if (riskParts.isNotEmpty) {
       evidence.add(
         AnalysisEvidence(
@@ -232,9 +259,13 @@ class ChildrenAnalyzer extends CategoryAnalyzer<ChildrenAnalysis> {
     supportingEvidence.add(
       AnalysisEvidence(
         sourceField: '자녀궁(시지) 신살 존재 여부',
-        sourceValue: foundChildRiskSinsal.isEmpty ? '없음' : foundChildRiskSinsal.join(', '),
+        sourceValue: foundChildRiskSinsal.isEmpty
+            ? '없음'
+            : foundChildRiskSinsal.join(', '),
         rule: '자녀궁 신살 존재 여부는 리스크 판단과 별개로 항상 추적',
-        judgment: foundChildRiskSinsal.isEmpty ? '자녀궁에 걸린 신살 없음' : '${foundChildRiskSinsal.join(', ')} 보유',
+        judgment: foundChildRiskSinsal.isEmpty
+            ? '자녀궁에 걸린 신살 없음'
+            : '${foundChildRiskSinsal.join(', ')} 보유',
         interpretationRole: InterpretationRole.supporting,
         weight: 0.3,
       ),
@@ -253,7 +284,9 @@ class ChildrenAnalyzer extends CategoryAnalyzer<ChildrenAnalysis> {
     final yongsinElement = profile.yongsin?.yongsin ?? '';
     for (final d in daewoonList) {
       final matchesCategory = q.daewoonMatchesCategory(d, childCategory);
-      final carriesYongsin = yongsinElement.isNotEmpty && q.daewoonCarriesElement(d, yongsinElement);
+      final carriesYongsin =
+          yongsinElement.isNotEmpty &&
+          q.daewoonCarriesElement(d, yongsinElement);
       if (matchesCategory || carriesYongsin) {
         childBlessingDaewoonLabel =
             '${d.startAge}세(${d.startYear}년)부터 시작된 ${d.pillar.stemKr}${d.pillar.branchKr}(${d.pillar.stemHanja}${d.pillar.branchHanja}) 대운';
@@ -283,7 +316,8 @@ class ChildrenAnalyzer extends CategoryAnalyzer<ChildrenAnalysis> {
             sourceValue:
                 '${current.startAge}세 ${current.pillar.stemKr}${current.pillar.branchKr}(${current.pillar.stemHanja}${current.pillar.branchHanja})',
             rule: '기준일이 속한 대운을 조회(재계산 아님, PHASE4 목록 조회)',
-            judgment: '현재 ${current.pillar.stemKr}${current.pillar.branchKr} 대운을 지나는 중',
+            judgment:
+                '현재 ${current.pillar.stemKr}${current.pillar.branchKr} 대운을 지나는 중',
             interpretationRole: InterpretationRole.timing,
             weight: 0.5,
           ),
@@ -298,8 +332,10 @@ class ChildrenAnalyzer extends CategoryAnalyzer<ChildrenAnalysis> {
       if (yongsinElement.isNotEmpty) '$yongsinElement 기운이 강해지는 시기·인연',
     ];
     final caution = <String>[
-      if (conflictRelations.isNotEmpty) '자녀궁 충돌(${conflictRelations.map((r) => r.type).join(',')})로 인한 갈등 관리',
-      if (foundChildRiskSinsal.isNotEmpty) '${foundChildRiskSinsal.join(', ')} 신호에 따른 자녀 관련 사안 대비',
+      if (conflictRelations.isNotEmpty)
+        '자녀궁 충돌(${conflictRelations.map((r) => r.type).join(',')})로 인한 갈등 관리',
+      if (foundChildRiskSinsal.isNotEmpty)
+        '${foundChildRiskSinsal.join(', ')} 신호에 따른 자녀 관련 사안 대비',
       if (childCount == 0) '자녀 인연이 늦어질 수 있는 만큼 서두르지 않는 마음가짐',
     ];
     if (favorable.isEmpty) favorable.add('현재의 자녀 인연 구조를 안정적으로 유지하는 환경');
@@ -307,7 +343,9 @@ class ChildrenAnalyzer extends CategoryAnalyzer<ChildrenAnalysis> {
 
     final confidence = (profile.strength == null || profile.yongsin == null)
         ? AnalysisConfidence.low
-        : (childBlessingDaewoonLabel.isEmpty && riskParts.isEmpty && conflictRelations.isEmpty)
+        : (childBlessingDaewoonLabel.isEmpty &&
+              riskParts.isEmpty &&
+              conflictRelations.isEmpty)
         ? AnalysisConfidence.medium
         : AnalysisConfidence.high;
 
@@ -320,7 +358,9 @@ class ChildrenAnalyzer extends CategoryAnalyzer<ChildrenAnalysis> {
       'inseongCount': '$inseongCount',
       'strengthVerdict': strengthVerdict,
       'yongsinElement': yongsinElement,
-      'hourBranchRelationTypes': hourBranchRelations.map((r) => r.type).join(','),
+      'hourBranchRelationTypes': hourBranchRelations
+          .map((r) => r.type)
+          .join(','),
       'foundChildRiskSinsal': foundChildRiskSinsal.join(','),
       'childBlessingDaewoonLabel': childBlessingDaewoonLabel,
     };
@@ -357,7 +397,9 @@ class ChildrenAnalyzer extends CategoryAnalyzer<ChildrenAnalysis> {
         : childBondStrength.startsWith('신강경육')
         ? '자녀 인연을 스스로 적극적으로 만들어가고 늦어져도 여유를 갖는 편이'
         : '상황에 맞춰 유연하게 육아 방식을 조율하는 편이';
-    final palaceNote = hasConflict ? ' 좋고, 특히 자녀와의 갈등이 쌓이지 않도록 대화를 자주 나누는 습관이 도움이 됨' : ' 좋음';
+    final palaceNote = hasConflict
+        ? ' 좋고, 특히 자녀와의 갈등이 쌓이지 않도록 대화를 자주 나누는 습관이 도움이 됨'
+        : ' 좋음';
     return '$base$palaceNote';
   }
 }

@@ -107,9 +107,10 @@ class _WelcomeRewardModalState extends State<WelcomeRewardModal>
       parent: _entry,
       curve: const Interval(0.0, 0.67, curve: Curves.easeOut),
     );
-    final riseScale = Tween<double>(begin: 0.9, end: 1.0).animate(
-      CurvedAnimation(parent: _entry, curve: Curves.easeOutBack),
-    );
+    final riseScale = Tween<double>(
+      begin: 0.9,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _entry, curve: Curves.easeOutBack));
 
     return Material(
       color: Colors.transparent,
@@ -228,10 +229,7 @@ class _ModalCardState extends State<_ModalCard>
               top: 0,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildCharacter(),
-                  _buildSpeechTail(),
-                ],
+                children: [_buildCharacter(), _buildSpeechTail()],
               ),
             ),
           ],
@@ -283,7 +281,11 @@ class _ModalCardState extends State<_ModalCard>
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color.lerp(IntroPalette.backgroundTop, IntroPalette.primary, 0.12)!,
+              Color.lerp(
+                IntroPalette.backgroundTop,
+                IntroPalette.primary,
+                0.12,
+              )!,
               IntroPalette.backgroundTop,
             ],
           ),
@@ -336,7 +338,10 @@ class _ModalCardState extends State<_ModalCard>
                 '신통방통에\n오신 걸 환영합니다',
                 style: IntroTextStyles.modalTitle(),
                 highlight: '환영합니다',
-                highlightColors: const [IntroPalette.gold, IntroPalette.primary],
+                highlightColors: const [
+                  IntroPalette.gold,
+                  IntroPalette.primary,
+                ],
               ),
               const SizedBox(height: 4),
               const WelcomeRewardPouchHero(size: 130),
@@ -513,7 +518,10 @@ class _ModalCardState extends State<_ModalCard>
 
   /// `.modal-card::before/::after`(spark 3s linear infinite) — 코너 반짝임.
   /// [phase]는 0.5(1.5s 딜레이)를 주면 두 코너가 서로 엇갈려 반짝인다.
-  Widget _buildCornerSparkle({required Alignment alignment, required double phase}) {
+  Widget _buildCornerSparkle({
+    required Alignment alignment,
+    required double phase,
+  }) {
     return Positioned(
       top: 12,
       left: alignment == Alignment.topLeft ? 14 : null,

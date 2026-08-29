@@ -54,9 +54,7 @@ class IntroTextStyles {
         letterSpacing: fontSize * -0.03,
         height: 1.2,
         color: color ?? IntroPalette.textPrimary,
-        shadows: [
-          Shadow(color: IntroPalette.glowShadow, blurRadius: 30),
-        ],
+        shadows: [Shadow(color: IntroPalette.glowShadow, blurRadius: 30)],
       );
 
   /// `.sub` — Gowun Batang 400 14px/1.75, muted 라벤더 화이트.
@@ -129,7 +127,8 @@ class IntroTextStyles {
   );
 
   /// `.form-title` — 폼 제목(22px), title()의 축소 버전.
-  static TextStyle formTitle({Color? color}) => title(color: color, fontSize: 22);
+  static TextStyle formTitle({Color? color}) =>
+      title(color: color, fontSize: 22);
 
   /// `.form-subtitle` — Gowun Batang 400 12px/1.55, muted.
   static TextStyle formSubtitle({Color? color}) => GoogleFonts.gowunBatang(

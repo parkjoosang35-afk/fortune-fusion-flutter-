@@ -49,8 +49,7 @@ class _ShopPurchaseEffectOverlay extends StatefulWidget {
       _ShopPurchaseEffectOverlayState();
 }
 
-class _ShopPurchaseEffectOverlayState
-    extends State<_ShopPurchaseEffectOverlay>
+class _ShopPurchaseEffectOverlayState extends State<_ShopPurchaseEffectOverlay>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
 
@@ -155,10 +154,7 @@ class _ShopPurchaseEffectOverlayState
                           fontSize: 17,
                           color: WishRoomColors.textPrimary,
                           shadows: [
-                            Shadow(
-                              color: Color(0xCC000000),
-                              blurRadius: 12,
-                            ),
+                            Shadow(color: Color(0xCC000000), blurRadius: 12),
                           ],
                         ),
                       ),

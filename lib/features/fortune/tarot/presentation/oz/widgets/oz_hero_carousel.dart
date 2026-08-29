@@ -99,7 +99,9 @@ class _OzHeroCarouselState extends State<OzHeroCarousel> {
                         color: active
                             ? OzColors.gold
                             : OzColors.fg.withValues(alpha: 0.4),
-                        borderRadius: BorderRadius.circular(OzTokens.radiusPill),
+                        borderRadius: BorderRadius.circular(
+                          OzTokens.radiusPill,
+                        ),
                       ),
                     );
                   }),

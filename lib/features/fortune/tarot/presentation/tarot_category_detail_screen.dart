@@ -94,7 +94,10 @@ class _TarotCategoryDetailScreenState extends State<TarotCategoryDetailScreen>
                                 controller: _entryController,
                               ),
                               const SizedBox(height: OzTokens.spaceLg),
-                              Text('몇 장으로 볼까요?', style: OzTypography.sectionTitle(fontSize: 17)),
+                              Text(
+                                '몇 장으로 볼까요?',
+                                style: OzTypography.sectionTitle(fontSize: 17),
+                              ),
                               const SizedBox(height: OzTokens.spaceMd),
                               Row(
                                 children: _spreadOptions.map((opt) {
@@ -107,10 +110,13 @@ class _TarotCategoryDetailScreenState extends State<TarotCategoryDetailScreen>
                                       child: OzSpreadOption(
                                         label: opt.$2,
                                         desc: opt.$3,
-                                        cardCount: opt.$1 == 'three_card' ? 3 : 1,
+                                        cardCount: opt.$1 == 'three_card'
+                                            ? 3
+                                            : 1,
                                         active: selected,
-                                        onTap: () =>
-                                            setState(() => _spreadType = opt.$1),
+                                        onTap: () => setState(
+                                          () => _spreadType = opt.$1,
+                                        ),
                                       ),
                                     ),
                                   );
@@ -185,10 +191,15 @@ class _EntryRitual extends StatelessWidget {
                         Colors.transparent,
                       ],
                     ),
-                    border: Border.all(color: OzColors.gold.withValues(alpha: 0.55)),
+                    border: Border.all(
+                      color: OzColors.gold.withValues(alpha: 0.55),
+                    ),
                     boxShadow: OzColors.goldGlow(alpha: 0.2, blur: 20),
                   ),
-                  child: Text(category.emoji, style: const TextStyle(fontSize: 32)),
+                  child: Text(
+                    category.emoji,
+                    style: const TextStyle(fontSize: 32),
+                  ),
                 ),
               ),
             ),

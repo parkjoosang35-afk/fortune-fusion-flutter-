@@ -1005,9 +1005,7 @@ class _QuickEntryRow extends StatelessWidget {
                 icon: Icons.star_border_rounded,
                 label: '소원방',
                 onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const WishRoomEntryGate(),
-                  ),
+                  MaterialPageRoute(builder: (_) => const WishRoomEntryGate()),
                 ),
               );
           }

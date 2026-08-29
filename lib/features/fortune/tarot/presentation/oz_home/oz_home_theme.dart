@@ -126,19 +126,21 @@ class OzHomeTypography {
   );
 
   /// 카운트 pill 안의 큰 숫자
-  static TextStyle countNumber({required Color color}) => GoogleFonts.notoSansKr(
-    fontWeight: FontWeight.w900,
-    fontSize: 14,
-    letterSpacing: -0.28,
-    color: color,
-  );
+  static TextStyle countNumber({required Color color}) =>
+      GoogleFonts.notoSansKr(
+        fontWeight: FontWeight.w900,
+        fontSize: 14,
+        letterSpacing: -0.28,
+        color: color,
+      );
 
   /// 카운트 pill 안의 라벨 ("개 카테고리")
-  static TextStyle countLabel({required Color color}) => GoogleFonts.gowunBatang(
-    fontSize: 10.5,
-    letterSpacing: -0.05,
-    color: color,
-  );
+  static TextStyle countLabel({required Color color}) =>
+      GoogleFonts.gowunBatang(
+        fontSize: 10.5,
+        letterSpacing: -0.05,
+        color: color,
+      );
 
   /// 상단바 앱 타이틀 · (Noto Serif KR 대체) Noto Sans KR 700 · 20px
   static TextStyle topbarTitle() => GoogleFonts.notoSansKr(

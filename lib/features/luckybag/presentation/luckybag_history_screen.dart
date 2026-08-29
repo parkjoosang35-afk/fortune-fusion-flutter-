@@ -259,9 +259,7 @@ class _RewardSummaryTab extends StatelessWidget {
                   if (e.totalPointReward > 0)
                     Text(
                       '${e.totalPointReward}개',
-                      style: UnifiedText.bodyStrong(
-                        color: UnifiedColors.black,
-                      ),
+                      style: UnifiedText.bodyStrong(color: UnifiedColors.black),
                     ),
                 ],
               ),

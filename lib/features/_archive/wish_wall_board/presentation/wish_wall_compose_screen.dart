@@ -98,9 +98,9 @@ class _WishWallComposeScreenState extends State<WishWallComposeScreen> {
       // [6-1-F 원칙] API 실패 시 Mock으로 몰래 대체하지 않고 오류를 그대로 알린다.
       if (!mounted) return;
       setState(() => _submitting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('소원 작성에 실패했어요. 다시 시도해 주세요. ($e)')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('소원 작성에 실패했어요. 다시 시도해 주세요. ($e)')));
     }
   }
 

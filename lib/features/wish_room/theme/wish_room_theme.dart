@@ -81,7 +81,13 @@ class WishRoomColors {
 }
 
 /// 소원 하나의 정성 성장 단계 — [WishPost.glow](0.0~1.0)를 5단계로 양자화.
-enum WishGrowthStage { ember, smallCandle, steadyCandle, brightCandle, goldenFlame }
+enum WishGrowthStage {
+  ember,
+  smallCandle,
+  steadyCandle,
+  brightCandle,
+  goldenFlame,
+}
 
 extension WishGrowthStageX on double {
   WishGrowthStage get toGrowthStage {

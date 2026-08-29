@@ -535,7 +535,9 @@ class _WishWallDetailScreenState extends State<WishWallDetailScreen> {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('신고 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.'),
+                            content: Text(
+                              '신고 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.',
+                            ),
                           ),
                         );
                       }

@@ -111,7 +111,8 @@ class HealthAnalyzer extends CategoryAnalyzer<HealthAnalysis> {
     evidence.add(
       AnalysisEvidence(
         sourceField: 'fiveElements.dominant/deficient/isImbalanced',
-        sourceValue: '과다=$dominantElements, 부족=$deficientElements, 편중=$isImbalanced',
+        sourceValue:
+            '과다=$dominantElements, 부족=$deficientElements, 편중=$isImbalanced',
         rule: '8글자 중 3개 이상이면 과다, 0개면 부족으로 판정(PHASE2 계산값)',
         judgment: isImbalanced ? '오행이 한쪽으로 편중된 구조' : '오행이 비교적 고르게 분포된 구조',
         interpretationRole: InterpretationRole.primary,
@@ -124,11 +125,14 @@ class HealthAnalyzer extends CategoryAnalyzer<HealthAnalysis> {
     // 문자열을 단순 나열하지 않음) ──
     final String healthConstitutionPattern;
     if (dominantElements.length >= 2 && deficientElements.length >= 2) {
-      healthConstitutionPattern = '복합편중형 — 여러 오행이 과다·결핍으로 동시에 치우쳐 몸의 균형 관리가 특히 중요한 구조';
+      healthConstitutionPattern =
+          '복합편중형 — 여러 오행이 과다·결핍으로 동시에 치우쳐 몸의 균형 관리가 특히 중요한 구조';
     } else if (dominantElements.length >= 2) {
-      healthConstitutionPattern = '다중과다형 — 두 가지 이상의 기운이 함께 넘쳐 그 계통에 부담이 쌓이기 쉬운 구조';
+      healthConstitutionPattern =
+          '다중과다형 — 두 가지 이상의 기운이 함께 넘쳐 그 계통에 부담이 쌓이기 쉬운 구조';
     } else if (dominantElements.length == 1 && deficientElements.isNotEmpty) {
-      healthConstitutionPattern = '단일편중형 — 특정 기운은 넘치고 다른 기운은 부족해 대비되는 두 계통을 함께 살펴야 하는 구조';
+      healthConstitutionPattern =
+          '단일편중형 — 특정 기운은 넘치고 다른 기운은 부족해 대비되는 두 계통을 함께 살펴야 하는 구조';
     } else if (dominantElements.length == 1) {
       healthConstitutionPattern = '단일과다형 — 하나의 기운이 두드러지게 강해 그 계통의 관리가 관건인 구조';
     } else if (deficientElements.length >= 2) {
@@ -141,7 +145,8 @@ class HealthAnalyzer extends CategoryAnalyzer<HealthAnalysis> {
     evidence.add(
       AnalysisEvidence(
         sourceField: 'dominantElements.length/deficientElements.length 조합',
-        sourceValue: '과다개수=${dominantElements.length}, 부족개수=${deficientElements.length}',
+        sourceValue:
+            '과다개수=${dominantElements.length}, 부족개수=${deficientElements.length}',
         rule:
             '과다≥2&부족≥2→복합편중형 / 과다≥2→다중과다형 / 과다=1&부족≥1→단일편중형 / 과다=1→단일과다형 / '
             '부족≥2→복합결핍형 / 부족=1→단일결핍형 / 그외→오행균형형',
@@ -188,8 +193,10 @@ class HealthAnalyzer extends CategoryAnalyzer<HealthAnalysis> {
     if (vulnerableOrgans.isNotEmpty) {
       evidence.add(
         AnalysisEvidence(
-          sourceField: 'dominant/deficient → organ 고정표(five_elements_rules.json)',
-          sourceValue: '과다오행=$dominantElements, 부족오행=$deficientElements → $vulnerableOrgans',
+          sourceField:
+              'dominant/deficient → organ 고정표(five_elements_rules.json)',
+          sourceValue:
+              '과다오행=$dominantElements, 부족오행=$deficientElements → $vulnerableOrgans',
           rule: '과다·부족 오행 각각을 전통 오행-장기 대응표에 매핑',
           judgment: '${vulnerableOrgans.join(', ')} 계통을 특히 챙길 필요',
           interpretationRole: InterpretationRole.supporting,
@@ -206,7 +213,9 @@ class HealthAnalyzer extends CategoryAnalyzer<HealthAnalysis> {
         sourceField: '과다 오행별 excess 증상(five_elements_rules.json)',
         sourceValue: dominantElements.isEmpty
             ? '없음'
-            : dominantElements.map((e) => '$e: ${_excessSymptomByElement[e]}').join(' / '),
+            : dominantElements
+                  .map((e) => '$e: ${_excessSymptomByElement[e]}')
+                  .join(' / '),
         rule: '같은 healthConstitutionPattern이라도 실제 과다 오행 종류는 사람마다 다름(§5)',
         judgment: dominantElements.isEmpty
             ? '두드러지게 과다한 오행 없음'
@@ -218,7 +227,9 @@ class HealthAnalyzer extends CategoryAnalyzer<HealthAnalysis> {
         sourceField: '부족 오행별 lack 증상(five_elements_rules.json)',
         sourceValue: deficientElements.isEmpty
             ? '없음'
-            : deficientElements.map((e) => '$e: ${_lackSymptomByElement[e]}').join(' / '),
+            : deficientElements
+                  .map((e) => '$e: ${_lackSymptomByElement[e]}')
+                  .join(' / '),
         rule: '같은 healthConstitutionPattern이라도 실제 부족 오행 종류는 사람마다 다름(§5)',
         judgment: deficientElements.isEmpty
             ? '원국에 없는 오행 없음'
@@ -232,7 +243,10 @@ class HealthAnalyzer extends CategoryAnalyzer<HealthAnalysis> {
     // 것만 채택(전통 고정표 대조, §16 "가짜 근거 금지"와 동일 원칙) ──
     final sinsalList = profile.sinsal ?? const [];
     final foundHealthSinsal = sinsalList
-        .where((s) => _healthRiskSinsalNames.contains(s.nameKr) && s.foundOn.isNotEmpty)
+        .where(
+          (s) =>
+              _healthRiskSinsalNames.contains(s.nameKr) && s.foundOn.isNotEmpty,
+        )
         .map((s) => s.nameKr)
         .toSet()
         .toList();
@@ -258,7 +272,9 @@ class HealthAnalyzer extends CategoryAnalyzer<HealthAnalysis> {
     // ── ⑦ 리스크(healthRiskPattern) — 건강신살 + 기신강도 + 편중을 종합 ──
     final riskParts = <String>[];
     if (foundHealthSinsal.isNotEmpty) {
-      riskParts.add('${foundHealthSinsal.join(', ')}이(가) 있어 급작스러운 사고·수술·지병에 대한 대비가 필요');
+      riskParts.add(
+        '${foundHealthSinsal.join(', ')}이(가) 있어 급작스러운 사고·수술·지병에 대한 대비가 필요',
+      );
     }
     if (gisinElement.isNotEmpty && gisinCount >= 2) {
       final gisinOrgan = _organByElement[gisinElement] ?? const [];
@@ -267,7 +283,9 @@ class HealthAnalyzer extends CategoryAnalyzer<HealthAnalysis> {
       );
     }
     if (isImbalanced && dominantElements.isNotEmpty) {
-      riskParts.add('${dominantElements.join(', ')} 기운이 과다해 해당 계통의 만성적인 부담에 유의');
+      riskParts.add(
+        '${dominantElements.join(', ')} 기운이 과다해 해당 계통의 만성적인 부담에 유의',
+      );
     }
     final healthRiskPattern = riskParts.isEmpty
         ? '두드러진 건강상 리스크 신호는 확인되지 않음'
@@ -276,7 +294,8 @@ class HealthAnalyzer extends CategoryAnalyzer<HealthAnalysis> {
       evidence.add(
         AnalysisEvidence(
           sourceField: '건강신살 + 기신오행강도 + 오행편중 조합',
-          sourceValue: '신살=$foundHealthSinsal, 기신=$gisinElement($gisinCount개), 편중=$isImbalanced',
+          sourceValue:
+              '신살=$foundHealthSinsal, 기신=$gisinElement($gisinCount개), 편중=$isImbalanced',
           rule: '건강신살 존재 / 기신오행≥2개 / 오행과다 각각을 리스크 신호로 채택 후 종합',
           judgment: healthRiskPattern,
           interpretationRole: InterpretationRole.caution,
@@ -289,13 +308,17 @@ class HealthAnalyzer extends CategoryAnalyzer<HealthAnalysis> {
     // 기준 food_good 고정표 조회 ──
     final dayGan = profile.dayPillar.stemHanja;
     final dayElement = ganElement[dayGan]?.$1 ?? q.dayElement;
-    final careBaseElement = deficientElements.isNotEmpty ? deficientElements.first : dayElement;
+    final careBaseElement = deficientElements.isNotEmpty
+        ? deficientElements.first
+        : dayElement;
     final recommendedCare = _goodFoodByElement[careBaseElement] ?? const [];
     if (recommendedCare.isNotEmpty) {
       evidence.add(
         AnalysisEvidence(
-          sourceField: '부족오행(우선) 또는 일간오행 → food_good 고정표(five_elements_rules.json)',
-          sourceValue: '기준오행=$careBaseElement(${deficientElements.isNotEmpty ? "부족오행" : "일간오행"})',
+          sourceField:
+              '부족오행(우선) 또는 일간오행 → food_good 고정표(five_elements_rules.json)',
+          sourceValue:
+              '기준오행=$careBaseElement(${deficientElements.isNotEmpty ? "부족오행" : "일간오행"})',
           rule: '부족한 오행이 있으면 그 오행을 보충하는 음식을, 없으면 일간 오행에 맞는 음식을 조회',
           judgment: '${recommendedCare.join(', ')} 등을 챙기면 도움',
           interpretationRole: InterpretationRole.supporting,
@@ -338,7 +361,8 @@ class HealthAnalyzer extends CategoryAnalyzer<HealthAnalysis> {
             sourceValue:
                 '${current.startAge}세 ${current.pillar.stemKr}${current.pillar.branchKr}(${current.pillar.stemHanja}${current.pillar.branchHanja})',
             rule: '기준일이 속한 대운을 조회(재계산 아님, PHASE4 목록 조회)',
-            judgment: '현재 ${current.pillar.stemKr}${current.pillar.branchKr} 대운을 지나는 중',
+            judgment:
+                '현재 ${current.pillar.stemKr}${current.pillar.branchKr} 대운을 지나는 중',
             interpretationRole: InterpretationRole.timing,
             weight: 0.5,
           ),
@@ -353,7 +377,9 @@ class HealthAnalyzer extends CategoryAnalyzer<HealthAnalysis> {
           sourceField: 'yongsinRooted(용신 오행의 원국 실재 여부)',
           sourceValue: '용신=$yongsinElement, 원국뿌리=$yongsinRooted',
           rule: '용신 오행이 원국(천간+지지 본기)에 실제로 있는지 조회(§5 세부 근거)',
-          judgment: yongsinRooted ? '용신 $yongsinElement 기운이 원국에 뿌리내려 있어 회복 탄력성이 좋은 편' : '용신 $yongsinElement 기운이 원국에 없어 외부(대운 등)에서 보완이 필요',
+          judgment: yongsinRooted
+              ? '용신 $yongsinElement 기운이 원국에 뿌리내려 있어 회복 탄력성이 좋은 편'
+              : '용신 $yongsinElement 기운이 원국에 없어 외부(대운 등)에서 보완이 필요',
           interpretationRole: InterpretationRole.supporting,
           weight: 0.4,
         ),
@@ -363,18 +389,25 @@ class HealthAnalyzer extends CategoryAnalyzer<HealthAnalysis> {
     // ── 좋은 흐름 / 주의 흐름 ──
     final favorable = <String>[
       if (yongsinElement.isNotEmpty) '$yongsinElement 기운을 보완하는 환경·습관·시기',
-      if (recommendedCare.isNotEmpty) '${recommendedCare.take(3).join(', ')} 등으로 부족한 기운을 채우는 관리',
+      if (recommendedCare.isNotEmpty)
+        '${recommendedCare.take(3).join(', ')} 등으로 부족한 기운을 채우는 관리',
       if (!isImbalanced) '오행이 고르게 갖춰져 있어 무리하지 않으면 안정적으로 유지되는 체질',
     ];
     final caution = <String>[
-      if (foundHealthSinsal.isNotEmpty) '${foundHealthSinsal.join(', ')} 신호에 따른 사고·수술·만성질환 예방',
-      if (gisinElement.isNotEmpty && gisinCount >= 2) '$gisinElement 기운이 강해지는 환경·시기에 대한 절제',
-      if (healthCautionDaewoonLabel.isNotEmpty) '$healthCautionDaewoonLabel 시기의 건강검진·컨디션 관리',
+      if (foundHealthSinsal.isNotEmpty)
+        '${foundHealthSinsal.join(', ')} 신호에 따른 사고·수술·만성질환 예방',
+      if (gisinElement.isNotEmpty && gisinCount >= 2)
+        '$gisinElement 기운이 강해지는 환경·시기에 대한 절제',
+      if (healthCautionDaewoonLabel.isNotEmpty)
+        '$healthCautionDaewoonLabel 시기의 건강검진·컨디션 관리',
     ];
     if (favorable.isEmpty) favorable.add('현재의 체질을 안정적으로 유지하는 생활 습관');
     if (caution.isEmpty) caution.add('두드러진 건강상 리스크 신호는 확인되지 않음');
 
-    final confidence = (profile.strength == null || profile.yongsin == null || fiveElements == null)
+    final confidence =
+        (profile.strength == null ||
+            profile.yongsin == null ||
+            fiveElements == null)
         ? AnalysisConfidence.low
         : (foundHealthSinsal.isEmpty && riskParts.isEmpty)
         ? AnalysisConfidence.medium

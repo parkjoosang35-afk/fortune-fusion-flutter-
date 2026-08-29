@@ -141,12 +141,14 @@ JeontongCategoryResult _a01(JeontongCalcContext ctx) {
     return JeontongCategoryResult(
       category: '평생 총운',
       data: {
-        'headline': '$dayElement 기운 · ${analysis.dominantTenGodCategory} 중심 · ${analysis.strengthVerdict}',
+        'headline':
+            '$dayElement 기운 · ${analysis.dominantTenGodCategory} 중심 · ${analysis.strengthVerdict}',
         'core_nature': analysis.coreNatureDescription,
         'personality': analysis.strengths.join(', '),
         'strengths': analysis.strengths,
         'weaknesses': analysis.weaknesses,
-        'five_elements': profile.fiveElements?.totalCount ?? const <String, int>{},
+        'five_elements':
+            profile.fiveElements?.totalCount ?? const <String, int>{},
         'life_theme': analysis.lifeTheme,
         'summary':
             '${analysis.dominantTenGodCategory} 기운이 두드러지는 구조이며, ${analysis.lifeTheme}',
@@ -332,7 +334,8 @@ JeontongCategoryResult _a05(JeontongCalcContext ctx) {
         'core_organs': analysis.vulnerableOrgans,
         'lifetime_warnings': analysis.cautionConditions,
         'advice_food': analysis.recommendedCare,
-        'lifestyle': '${analysis.healthConstitutionPattern} · ${analysis.healthVitality}',
+        'lifestyle':
+            '${analysis.healthConstitutionPattern} · ${analysis.healthVitality}',
         // 신규 고유 필드 보존(향후 이야기체 고도화용, §7 필드 삭제 금지).
         'healthConstitutionPattern': analysis.healthConstitutionPattern,
         'healthVitality': analysis.healthVitality,
@@ -384,7 +387,8 @@ JeontongCategoryResult _a06(JeontongCalcContext ctx) {
       data: {
         'spouse_god': spouseGod,
         'style': analysis.spousePattern,
-        'message': '${analysis.spouseBondStrength}. ${analysis.spousePalaceCondition}',
+        'message':
+            '${analysis.spouseBondStrength}. ${analysis.spousePalaceCondition}',
         'marriage_timing': analysis.marriagePeakDaewoonLabel.isNotEmpty
             ? '${analysis.marriagePeakDaewoonLabel} 시기에 혼인·인연운이 가장 활발해질 가능성'
             : '배우자성·용신 대운에서 결혼 인연이 활성화됨',

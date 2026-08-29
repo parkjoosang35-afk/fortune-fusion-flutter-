@@ -516,11 +516,21 @@ class _TalismanSymbolPainter extends CustomPainter {
     stroke.strokeWidth = 2 * ((sx + sy) / 2);
     final path1 = Path()
       ..moveTo(p(45, 85).dx, p(45, 85).dy)
-      ..quadraticBezierTo(p(45, 105).dx, p(45, 105).dy, p(55, 110).dx, p(55, 110).dy);
+      ..quadraticBezierTo(
+        p(45, 105).dx,
+        p(45, 105).dy,
+        p(55, 110).dx,
+        p(55, 110).dy,
+      );
     canvas.drawPath(path1, stroke);
     final path2 = Path()
       ..moveTo(p(95, 85).dx, p(95, 85).dy)
-      ..quadraticBezierTo(p(95, 105).dx, p(95, 105).dy, p(85, 110).dx, p(85, 110).dy);
+      ..quadraticBezierTo(
+        p(95, 105).dx,
+        p(95, 105).dy,
+        p(85, 110).dx,
+        p(85, 110).dy,
+      );
     canvas.drawPath(path2, stroke);
     // M55 110 L85 110
     line(55, 110, 85, 110, 2);

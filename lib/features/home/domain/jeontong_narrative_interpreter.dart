@@ -103,8 +103,20 @@ class JeontongNarrativeInterpreter {
   /// 카테고리 간 문구 중복을 막는다.
   static bool _sharesAdviceAcrossCategories(String categoryId) {
     const sharedAdviceIds = {
-      'C01', 'C02', 'C03', 'C04', 'C05',
-      'D09', 'G04', 'H01', 'H02', 'H03', 'H04', 'H05', 'H07', 'H10',
+      'C01',
+      'C02',
+      'C03',
+      'C04',
+      'C05',
+      'D09',
+      'G04',
+      'H01',
+      'H02',
+      'H03',
+      'H04',
+      'H05',
+      'H07',
+      'H10',
     };
     return sharedAdviceIds.contains(categoryId);
   }
@@ -241,7 +253,8 @@ class JeontongNarrativeInterpreter {
           // 리스크까지 함께 서술해 같은 A06이라도 사람마다 다른 근거
           // (§5)가 문장에 드러나게 한다. 없으면(레거시 폴백) 기존 문장을
           // 그대로 유지한다.
-          final spousePalaceCondition = data?['spousePalaceCondition'] as String?;
+          final spousePalaceCondition =
+              data?['spousePalaceCondition'] as String?;
           final romanceRiskPattern = data?['romanceRiskPattern'] as String?;
           final advice = data?['advice'] as String?;
           if (spousePalaceCondition != null) {
@@ -463,8 +476,11 @@ class JeontongNarrativeInterpreter {
     if (coreOrgans != null && constitutionPattern != null) {
       // ── HealthAnalyzer 신규 경로(§4/§15 개인화 강화) ──
       final organsText = coreOrgans.isNotEmpty ? _joinKo(coreOrgans) : '몸 전반';
-      final constitutionSentence = '$honorific의 체질을 살펴보면 $constitutionPattern에 가까워요.';
-      final vitalitySentence = vitality != null ? ' 타고난 체력 면에서는 $vitality 흐름이에요.' : '';
+      final constitutionSentence =
+          '$honorific의 체질을 살펴보면 $constitutionPattern에 가까워요.';
+      final vitalitySentence = vitality != null
+          ? ' 타고난 체력 면에서는 $vitality 흐름이에요.'
+          : '';
       if (emphasis == 'warnings' && warnings != null && warnings.isNotEmpty) {
         return '평생 조심하면 좋은 부분으로 보면, $constitutionSentence$vitalitySentence '
             '특히 ${_joinKo(warnings)} 쪽에 신경을 쓰면 도움이 될 거예요. '
@@ -945,7 +961,9 @@ class JeontongNarrativeInterpreter {
     String honorific,
     Map<String, dynamic>? data,
   ) {
-    final colors = (data?['colors'] as List?)?.map((e) => e.toString()).toList();
+    final colors = (data?['colors'] as List?)
+        ?.map((e) => e.toString())
+        .toList();
     final directions = (data?['directions'] as List?)
         ?.map((e) => e.toString())
         .toList();

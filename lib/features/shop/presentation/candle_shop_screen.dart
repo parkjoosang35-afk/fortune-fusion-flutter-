@@ -168,7 +168,9 @@ class _CandleTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: WishRoomColors.surfaceCard,
           border: Border.all(
-            color: rare ? WishRoomColors.glow : WishRoomColors.surfaceCardBorder,
+            color: rare
+                ? WishRoomColors.glow
+                : WishRoomColors.surfaceCardBorder,
           ),
           borderRadius: BorderRadius.circular(14),
         ),

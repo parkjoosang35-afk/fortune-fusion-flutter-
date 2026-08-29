@@ -84,7 +84,9 @@ class StudyNarrativeGenerator implements NarrativeGenerator<StudyAnalysis> {
       '$dayGanKr($dayGanHanja) 일간의 이 사주는 $patternName 구조를 갖고 있어요. $patternDesc.',
       if (bondDesc.isNotEmpty) '여기에 $bondName 상태가 더해져, $bondDesc.',
     ];
-    final coreResult = coreResultAll.take(rules.maxCoreResultSentences).toList();
+    final coreResult = coreResultAll
+        .take(rules.maxCoreResultSentences)
+        .toList();
 
     // ── ② 왜 이런 결과가 나왔는가(whyThisResult) — coreEvidence를
     // sourceField 기준으로 하나씩 자연어로 풀어낸다(§7 근거 추적성).
@@ -117,7 +119,9 @@ class StudyNarrativeGenerator implements NarrativeGenerator<StudyAnalysis> {
           );
         case '신살(문창귀인 위치 공망/겁살/재살) + 인성·문창귀인 부재 조합':
           if (foundStudyRiskSinsal.isNotEmpty) {
-            final phrases = foundStudyRiskSinsal.map((s) => sinsalPhrase(terms, s)).join(' ');
+            final phrases = foundStudyRiskSinsal
+                .map((s) => sinsalPhrase(terms, s))
+                .join(' ');
             whyThisResult.add(phrases);
           }
           if (studyGodCount == 0 && !hasMunchang) {
@@ -126,9 +130,7 @@ class StudyNarrativeGenerator implements NarrativeGenerator<StudyAnalysis> {
             );
           }
         case 'daewoon(PHASE4 실계산)':
-          whyThisResult.add(
-            '${analysis.studyPeakDaewoonLabel} 시기가 대운에서 확인돼요.',
-          );
+          whyThisResult.add('${analysis.studyPeakDaewoonLabel} 시기가 대운에서 확인돼요.');
       }
     }
 
@@ -144,7 +146,8 @@ class StudyNarrativeGenerator implements NarrativeGenerator<StudyAnalysis> {
       if (foundStudyRiskSinsal.isNotEmpty)
         '문창귀인 자리에 ${foundStudyRiskSinsal.join(', ')} 기운이 있어, 시험·발표 시기에 평소보다 신중함이 필요한 편이에요.',
     ].where((s) => s.trim().isNotEmpty).toList();
-    final cappedCharacteristics = characteristics.length > rules.maxCharacteristicParagraphs
+    final cappedCharacteristics =
+        characteristics.length > rules.maxCharacteristicParagraphs
         ? characteristics.sublist(0, rules.maxCharacteristicParagraphs)
         : characteristics;
 
@@ -186,7 +189,9 @@ class StudyNarrativeGenerator implements NarrativeGenerator<StudyAnalysis> {
     // ── ⑦ 시기(timingSection) — PHASE4 실계산 대운만 사용(§18) ──
     List<String>? timingSection;
     if (analysis.studyPeakDaewoonLabel.isNotEmpty) {
-      timingSection = ['${analysis.studyPeakDaewoonLabel} 시기에 학업·시험 성과가 가장 활발해질 수 있어요.'];
+      timingSection = [
+        '${analysis.studyPeakDaewoonLabel} 시기에 학업·시험 성과가 가장 활발해질 수 있어요.',
+      ];
       final currentDaewoonEvidence = analysis.supportingEvidence
           .where((e) => e.sourceField == 'currentDaewoon(PHASE4 실계산)')
           .toList();

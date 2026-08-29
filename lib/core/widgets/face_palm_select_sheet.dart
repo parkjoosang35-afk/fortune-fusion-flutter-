@@ -38,9 +38,7 @@ Future<void> showFacePalmSelectSheet(BuildContext context) {
                 margin: const EdgeInsets.only(bottom: UnifiedTokens.spaceLg),
                 decoration: BoxDecoration(
                   color: UnifiedColors.border,
-                  borderRadius: BorderRadius.circular(
-                    UnifiedTokens.radiusPill,
-                  ),
+                  borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
                 ),
               ),
             ),

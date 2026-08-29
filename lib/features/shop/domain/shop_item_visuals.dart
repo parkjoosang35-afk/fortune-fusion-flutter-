@@ -56,4 +56,5 @@ const Map<String, ShopTalismanVisual> talismanVisuals = {
 };
 
 ShopTalismanVisual talismanVisualFor(String itemCode) =>
-    talismanVisuals[itemCode] ?? const ShopTalismanVisual('🧿', WishRoomColors.glow);
+    talismanVisuals[itemCode] ??
+    const ShopTalismanVisual('🧿', WishRoomColors.glow);

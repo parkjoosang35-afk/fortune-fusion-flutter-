@@ -82,7 +82,8 @@ class CareerAnalyzer extends CategoryAnalyzer<CareerAnalysis> {
       AnalysisEvidence(
         sourceField: 'tenGods+hiddenStems(5대범주 집계)',
         sourceValue: categoryCounts.toString(),
-        rule: '관살=$officerCount, 인성=$printerCount, 식상=$outputCount, 비겁=$biCount',
+        rule:
+            '관살=$officerCount, 인성=$printerCount, 식상=$outputCount, 비겁=$biCount',
         judgment: '관살/인성/식상 조합을 기준으로 직업 구조 1차 판정',
         interpretationRole: InterpretationRole.primary,
         weight: 0.7,
@@ -110,7 +111,8 @@ class CareerAnalyzer extends CategoryAnalyzer<CareerAnalysis> {
     evidence.add(
       AnalysisEvidence(
         sourceField: 'officerCount/printerCount/outputCount/wealthCount 조합',
-        sourceValue: '관살=$officerCount, 인성=$printerCount, 식상=$outputCount, 재성=$wealthCount',
+        sourceValue:
+            '관살=$officerCount, 인성=$printerCount, 식상=$outputCount, 재성=$wealthCount',
         rule:
             '관살≥2&인성≥1→관인상생 / 관살≥2&인성=0&비겁≥1→살중신경 / 식상≥2&재성≥1→식상생재 / '
             '식상≥2→식상격 / 관살=0&인성=0→무관무인 / 관살≥2&인성≥2→관인균형 / 그외→혼합형',
@@ -139,7 +141,8 @@ class CareerAnalyzer extends CategoryAnalyzer<CareerAnalysis> {
         AnalysisEvidence(
           sourceField: 'strength.verdict + 관살 개수',
           sourceValue: '$strengthVerdict, 관살=$officerCount',
-          rule: '신강+관살많음→신강용관 / 신강+관살적음→신강경관 / 신약+관살많음→관다신약 / 신약→신약보좌 / 중화→중화용관',
+          rule:
+              '신강+관살많음→신강용관 / 신강+관살적음→신강경관 / 신약+관살많음→관다신약 / 신약→신약보좌 / 중화→중화용관',
           judgment: careerStrength,
           interpretationRole: InterpretationRole.strength,
           weight: 0.95,
@@ -248,7 +251,8 @@ class CareerAnalyzer extends CategoryAnalyzer<CareerAnalysis> {
       evidence.add(
         AnalysisEvidence(
           sourceField: '상관+관살 / 정관+편관 혼재 / 무관무인+신약 조합',
-          sourceValue: '상관=$sangGwanCount, 정관=$jeongGwanCount, 편관=$pyeonGwanCount, 신강신약=$strengthVerdict',
+          sourceValue:
+              '상관=$sangGwanCount, 정관=$jeongGwanCount, 편관=$pyeonGwanCount, 신강신약=$strengthVerdict',
           rule: '상관≥1&관살≥1→상관견관 / 정관·편관 모두≥1→관살혼잡 / 관살=0&인성=0&신약→조직안착지연',
           judgment: careerRiskPattern,
           interpretationRole: InterpretationRole.caution,
@@ -264,7 +268,9 @@ class CareerAnalyzer extends CategoryAnalyzer<CareerAnalysis> {
     final yongsinElement = profile.yongsin?.yongsin ?? '';
     for (final d in daewoonList) {
       final matchesCategory = q.daewoonMatchesCategory(d, '관살');
-      final carriesYongsin = yongsinElement.isNotEmpty && q.daewoonCarriesElement(d, yongsinElement);
+      final carriesYongsin =
+          yongsinElement.isNotEmpty &&
+          q.daewoonCarriesElement(d, yongsinElement);
       if (matchesCategory || carriesYongsin) {
         careerPeakDaewoonLabel =
             '${d.startAge}세(${d.startYear}년)부터 시작된 ${d.pillar.stemKr}${d.pillar.branchKr}(${d.pillar.stemHanja}${d.pillar.branchHanja}) 대운';
@@ -294,7 +300,8 @@ class CareerAnalyzer extends CategoryAnalyzer<CareerAnalysis> {
             sourceValue:
                 '${current.startAge}세 ${current.pillar.stemKr}${current.pillar.branchKr}(${current.pillar.stemHanja}${current.pillar.branchHanja})',
             rule: '기준일이 속한 대운을 조회(재계산 아님, PHASE4 목록 조회)',
-            judgment: '현재 ${current.pillar.stemKr}${current.pillar.branchKr} 대운을 지나는 중',
+            judgment:
+                '현재 ${current.pillar.stemKr}${current.pillar.branchKr} 대운을 지나는 중',
             interpretationRole: InterpretationRole.timing,
             weight: 0.5,
           ),
@@ -304,14 +311,17 @@ class CareerAnalyzer extends CategoryAnalyzer<CareerAnalysis> {
 
     // ── 좋은 흐름 / 주의 흐름 ──
     final favorable = <String>[
-      if (suitableFields.isNotEmpty) '${suitableFields.take(3).join(', ')} 분야에서 강점을 살릴 수 있는 환경',
+      if (suitableFields.isNotEmpty)
+        '${suitableFields.take(3).join(', ')} 분야에서 강점을 살릴 수 있는 환경',
       if (careerPeakDaewoonLabel.isNotEmpty) '$careerPeakDaewoonLabel 시기',
       if (yongsinElement.isNotEmpty) '$yongsinElement 기운이 강해지는 조직·역할',
     ];
     final caution = <String>[
       if (sangGwanCount >= 1 && officerCount >= 1) '상사·조직과의 의견 충돌에 대한 신중한 대응',
-      if (jeongGwanCount >= 1 && pyeonGwanCount >= 1) '한 방향을 정하지 못하고 진로를 자주 바꾸는 것',
-      if (officerCount == 0 && printerCount == 0) '조직 규율에 억지로 맞추려는 시도보다 독립적 노선 모색',
+      if (jeongGwanCount >= 1 && pyeonGwanCount >= 1)
+        '한 방향을 정하지 못하고 진로를 자주 바꾸는 것',
+      if (officerCount == 0 && printerCount == 0)
+        '조직 규율에 억지로 맞추려는 시도보다 독립적 노선 모색',
     ];
     if (favorable.isEmpty) favorable.add('현재의 직업 구조를 안정적으로 유지하는 환경');
     if (caution.isEmpty) caution.add('두드러진 직업상 리스크 신호는 확인되지 않음');

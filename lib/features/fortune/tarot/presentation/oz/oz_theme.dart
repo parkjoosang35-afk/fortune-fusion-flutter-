@@ -63,7 +63,10 @@ class OzColors {
 
   /// 골드 글로우(검은 drop-shadow 대신 사용, README 금지사항 준수).
   static List<BoxShadow> goldGlow({double alpha = 0.35, double blur = 24}) => [
-    BoxShadow(color: gold.withValues(alpha: alpha), blurRadius: blur),
+    BoxShadow(
+      color: gold.withValues(alpha: alpha),
+      blurRadius: blur,
+    ),
   ];
 
   static List<BoxShadow> cardElevation() => const [

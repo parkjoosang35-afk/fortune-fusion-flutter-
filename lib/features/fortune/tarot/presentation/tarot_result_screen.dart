@@ -112,7 +112,10 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('타로 결과 공유하기', style: OzTypography.sectionTitle(fontSize: 18)),
+              Text(
+                '타로 결과 공유하기',
+                style: OzTypography.sectionTitle(fontSize: 18),
+              ),
               const SizedBox(height: OzTokens.spaceLg),
               ClipRRect(
                 borderRadius: BorderRadius.circular(OzTokens.radiusLg),
@@ -145,10 +148,7 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
                     Navigator.of(ctx).pop();
                     await _captureAndShare();
                   },
-                  child: Text(
-                    '이미지로 공유하기',
-                    style: OzTypography.ctaLabel(),
-                  ),
+                  child: Text('이미지로 공유하기', style: OzTypography.ctaLabel()),
                 ),
               ),
             ],
@@ -209,7 +209,9 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
                 key: ValueKey(state.data!.id),
                 result: state.data!,
               ),
-              LoadStatus.initial => const AppErrorState(message: '입력 정보가 없습니다.'),
+              LoadStatus.initial => const AppErrorState(
+                message: '입력 정보가 없습니다.',
+              ),
             },
           ),
         ],
@@ -673,10 +675,7 @@ class _ResultContent extends StatelessWidget {
                   t: t,
                   start: 0.34 + i * 0.04,
                   fadeSpan: 0.14,
-                  child: _PositionCard(
-                    position: result.positions[i],
-                    index: i,
-                  ),
+                  child: _PositionCard(position: result.positions[i], index: i),
                 ),
               ),
           ],
@@ -775,7 +774,10 @@ class _QuestionBanner extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('질문', style: OzTypography.monoLabel(fontSize: 10, letterSpacing: 2.4)),
+          Text(
+            '질문',
+            style: OzTypography.monoLabel(fontSize: 10, letterSpacing: 2.4),
+          ),
           const SizedBox(height: 6),
           Text(question, style: OzTypography.cardName(fontSize: 14)),
         ],
@@ -813,7 +815,10 @@ class _YesNoBadge extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             '카드가 가리키는 방향입니다',
-            style: OzTypography.body(fontSize: 11.5, color: color.withValues(alpha: 0.85)),
+            style: OzTypography.body(
+              fontSize: 11.5,
+              color: color.withValues(alpha: 0.85),
+            ),
           ),
         ],
       ),
@@ -916,7 +921,13 @@ class _AiReadingCard extends StatelessWidget {
         children: [
           _SectionLabel(icon: '🔮', label: 'AI 리딩'),
           const SizedBox(height: OzTokens.spaceSm),
-          Text(text, style: OzTypography.body(fontSize: 13.5, color: OzColors.fg.withValues(alpha: 0.85))),
+          Text(
+            text,
+            style: OzTypography.body(
+              fontSize: 13.5,
+              color: OzColors.fg.withValues(alpha: 0.85),
+            ),
+          ),
         ],
       ),
     );
@@ -975,10 +986,19 @@ class _InfoTile extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: OzTypography.monoLabel(fontSize: 10, letterSpacing: 1.6),
+                  style: OzTypography.monoLabel(
+                    fontSize: 10,
+                    letterSpacing: 1.6,
+                  ),
                 ),
                 const SizedBox(height: 4),
-                Text(content, style: OzTypography.body(fontSize: 13, color: OzColors.fg.withValues(alpha: 0.85))),
+                Text(
+                  content,
+                  style: OzTypography.body(
+                    fontSize: 13,
+                    color: OzColors.fg.withValues(alpha: 0.85),
+                  ),
+                ),
               ],
             ),
           ),
@@ -1012,12 +1032,19 @@ class _LuckyColorTile extends StatelessWidget {
               color: color,
               shape: BoxShape.circle,
               boxShadow: [
-                BoxShadow(color: color.withValues(alpha: 0.6), blurRadius: 12, spreadRadius: 2),
+                BoxShadow(
+                  color: color.withValues(alpha: 0.6),
+                  blurRadius: 12,
+                  spreadRadius: 2,
+                ),
               ],
             ),
           ),
           const SizedBox(height: OzTokens.spaceSm),
-          Text('행운의 색', style: OzTypography.monoLabel(fontSize: 9.5, letterSpacing: 1.4)),
+          Text(
+            '행운의 색',
+            style: OzTypography.monoLabel(fontSize: 9.5, letterSpacing: 1.4),
+          ),
           const SizedBox(height: 2),
           Text(name, style: OzTypography.cardName(fontSize: 13)),
         ],
@@ -1046,7 +1073,10 @@ class _LuckyNumberTile extends StatelessWidget {
             style: OzTypography.hero(fontSize: 22, color: OzColors.gold),
           ),
           const SizedBox(height: 4),
-          Text('행운의 숫자', style: OzTypography.monoLabel(fontSize: 9.5, letterSpacing: 1.4)),
+          Text(
+            '행운의 숫자',
+            style: OzTypography.monoLabel(fontSize: 9.5, letterSpacing: 1.4),
+          ),
         ],
       ),
     );
@@ -1165,11 +1195,17 @@ class _PositionCard extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: glow.withValues(alpha: 0.16),
-                        borderRadius: BorderRadius.circular(OzTokens.radiusPill),
+                        borderRadius: BorderRadius.circular(
+                          OzTokens.radiusPill,
+                        ),
                       ),
                       child: Text(
                         position.label,
-                        style: OzTypography.monoLabel(fontSize: 9.5, color: glow, letterSpacing: 1.2),
+                        style: OzTypography.monoLabel(
+                          fontSize: 9.5,
+                          color: glow,
+                          letterSpacing: 1.2,
+                        ),
                       ),
                     ),
                   ],
@@ -1182,7 +1218,10 @@ class _PositionCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   position.interpretation,
-                  style: OzTypography.body(fontSize: 12.5, color: OzColors.fg.withValues(alpha: 0.8)),
+                  style: OzTypography.body(
+                    fontSize: 12.5,
+                    color: OzColors.fg.withValues(alpha: 0.8),
+                  ),
                 ),
               ],
             ),

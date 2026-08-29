@@ -39,7 +39,9 @@ class OzSpreadOption extends StatelessWidget {
           color: active ? const Color(0x1AF5D98A) : OzColors.cardSoft,
           borderRadius: BorderRadius.circular(OzTokens.radiusMd),
           border: Border.all(
-            color: active ? OzColors.gold.withValues(alpha: 0.5) : OzColors.borderSoft,
+            color: active
+                ? OzColors.gold.withValues(alpha: 0.5)
+                : OzColors.borderSoft,
           ),
           boxShadow: active ? OzColors.goldGlow(alpha: 0.16, blur: 16) : null,
         ),
@@ -55,7 +57,9 @@ class OzSpreadOption extends StatelessWidget {
                         style: OzTypography.monoLabel(
                           fontSize: 20,
                           letterSpacing: 1,
-                          color: active ? OzColors.gold : OzColors.fg.withValues(alpha: 0.7),
+                          color: active
+                              ? OzColors.gold
+                              : OzColors.fg.withValues(alpha: 0.7),
                         ),
                       ),
                     )
@@ -76,7 +80,9 @@ class OzSpreadOption extends StatelessWidget {
                                 colors: [Color(0xFF4A3378), Color(0xFF2A1A5C)],
                               ),
                               border: Border.all(
-                                color: OzColors.gold.withValues(alpha: active ? 0.6 : 0.35),
+                                color: OzColors.gold.withValues(
+                                  alpha: active ? 0.6 : 0.35,
+                                ),
                               ),
                             ),
                           ),

@@ -11,6 +11,7 @@ abstract class WishWallRepository {
   /// 클라이언트는 별도의 인기 점수를 계산하지 않는다.
   Future<List<WishPost>> fetchFeed({String? categoryFilter, String? sort});
   Future<WishPost?> fetchDetail(String wishId);
+
   ///
   /// [복주머니 확장 Phase03 — 인장/촛불 "실사용"] [sealItemCode]/
   /// [candleItemCode]는 사용자가 보유한(구매한) 상점 인장/촛불 중 이번
@@ -81,6 +82,7 @@ abstract class WishWallRepository {
     final comment = await createComment(wishId, text);
     return (comment: comment, grantedAmount: 0);
   }
+
   Future<void> reportWish(String wishId, String reason);
 
   /// [소원방 마무리 - Phase A] 댓글(응원) 신고 — admin_web

@@ -189,8 +189,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       InkWell(
-                        onTap: () =>
-                            setState(() => _rememberMe = !_rememberMe),
+                        onTap: () => setState(() => _rememberMe = !_rememberMe),
                         borderRadius: BorderRadius.circular(8),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
@@ -234,16 +233,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 18),
                 Row(
                   children: [
-                    Expanded(
-                      child: Divider(color: IntroPalette.cardBorder),
-                    ),
+                    Expanded(child: Divider(color: IntroPalette.cardBorder)),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 10),
                       child: Text('또는', style: IntroTextStyles.fieldHint()),
                     ),
-                    Expanded(
-                      child: Divider(color: IntroPalette.cardBorder),
-                    ),
+                    Expanded(child: Divider(color: IntroPalette.cardBorder)),
                   ],
                 ),
                 const SizedBox(height: 16),

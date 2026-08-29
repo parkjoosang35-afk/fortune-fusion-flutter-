@@ -67,8 +67,10 @@ class _IntroCharacterState extends State<IntroCharacter>
           ),
           AnimatedBuilder(
             animation: _float,
-            builder: (context, child) =>
-                Transform.translate(offset: Offset(0, _float.value), child: child),
+            builder: (context, child) => Transform.translate(
+              offset: Offset(0, _float.value),
+              child: child,
+            ),
             child: Image.asset(
               widget.asset,
               width: widget.size,

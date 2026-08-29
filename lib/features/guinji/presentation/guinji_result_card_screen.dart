@@ -36,8 +36,7 @@ class GuinjiResultCardScreen extends StatefulWidget {
   final List<GuinjiPerson> people;
 
   @override
-  State<GuinjiResultCardScreen> createState() =>
-      _GuinjiResultCardScreenState();
+  State<GuinjiResultCardScreen> createState() => _GuinjiResultCardScreenState();
 }
 
 class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
@@ -49,8 +48,7 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
     setState(() => _capturing = true);
     try {
       final boundary =
-          _cardKey.currentContext?.findRenderObject()
-              as RenderRepaintBoundary?;
+          _cardKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
       if (boundary == null) {
         if (!mounted) return;
         AppToast.show(context, '카드를 준비하는 중입니다. 잠시 후 다시 시도해 주세요.');
@@ -65,9 +63,7 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
         '${dir.path}/guinji_result_${DateTime.now().millisecondsSinceEpoch}.png',
       ).writeAsBytes(bytes);
 
-      await Share.shareXFiles([
-        XFile(file.path),
-      ], text: '나의 귀인지도 · 신통방통');
+      await Share.shareXFiles([XFile(file.path)], text: '나의 귀인지도 · 신통방통');
     } catch (_) {
       if (!mounted) return;
       await Share.share('나의 귀인지도 · 신통방통');

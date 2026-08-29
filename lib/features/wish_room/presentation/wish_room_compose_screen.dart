@@ -145,9 +145,9 @@ class _WishRoomComposeScreenState extends State<WishRoomComposeScreen>
     } catch (e) {
       if (!mounted) return;
       setState(() => _submitting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('소원 봉인에 실패했어요. 다시 시도해 주세요. ($e)')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('소원 봉인에 실패했어요. 다시 시도해 주세요. ($e)')));
     }
   }
 
@@ -334,8 +334,9 @@ class _WishRoomComposeScreenState extends State<WishRoomComposeScreen>
                                       Container(
                                         padding: const EdgeInsets.all(6),
                                         decoration: BoxDecoration(
-                                          borderRadius:
-                                              BorderRadius.circular(10),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
                                           color: selected
                                               ? WishRoomColors.glowShadow
                                               : Colors.transparent,
@@ -343,7 +344,7 @@ class _WishRoomComposeScreenState extends State<WishRoomComposeScreen>
                                             color: selected
                                                 ? WishRoomColors.glow
                                                 : WishRoomColors
-                                                    .surfaceCardBorder,
+                                                      .surfaceCardBorder,
                                             width: selected ? 2 : 1,
                                           ),
                                         ),
@@ -394,8 +395,9 @@ class _WishRoomComposeScreenState extends State<WishRoomComposeScreen>
                             title: '보유한 부적',
                             emptyHint: '상점에서 부적을 구매하면 여기서 선택할 수 있어요',
                             selectedCode: _selectedTalismanItemCode,
-                            onSelect: (code) =>
-                                setState(() => _selectedTalismanItemCode = code),
+                            onSelect: (code) => setState(
+                              () => _selectedTalismanItemCode = code,
+                            ),
                           ),
                         ],
                       ),

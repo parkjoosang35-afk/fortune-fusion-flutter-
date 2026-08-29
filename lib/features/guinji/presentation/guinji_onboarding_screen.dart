@@ -54,8 +54,7 @@ class GuinjiOnboardingScreen extends StatefulWidget {
   const GuinjiOnboardingScreen({super.key});
 
   @override
-  State<GuinjiOnboardingScreen> createState() =>
-      _GuinjiOnboardingScreenState();
+  State<GuinjiOnboardingScreen> createState() => _GuinjiOnboardingScreenState();
 }
 
 class _GuinjiOnboardingScreenState extends State<GuinjiOnboardingScreen> {
@@ -237,10 +236,7 @@ class _GateCard extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20,
-                vertical: 18,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
               decoration: BoxDecoration(
                 color: GuinjiColors.surfaceCard,
                 border: Border.all(color: GuinjiColors.surfaceCardBorder),

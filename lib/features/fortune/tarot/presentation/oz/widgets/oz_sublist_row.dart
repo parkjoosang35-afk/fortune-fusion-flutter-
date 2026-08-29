@@ -82,7 +82,10 @@ class OzSublistRow extends StatelessWidget {
                     category.moodCopy,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: OzTypography.body(fontSize: 11.5, color: OzColors.faint),
+                    style: OzTypography.body(
+                      fontSize: 11.5,
+                      color: OzColors.faint,
+                    ),
                   ),
                 ],
               ),

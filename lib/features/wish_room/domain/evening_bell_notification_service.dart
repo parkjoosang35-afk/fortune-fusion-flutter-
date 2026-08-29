@@ -69,10 +69,7 @@ class EveningBellNotificationService {
     } catch (e) {
       // 초기화 실패해도 앱 부팅을 막지 않는다(리마인더 기능은 부가 기능).
       if (kDebugMode) {
-        developer.log(
-          '초기화 실패: $e',
-          name: 'EveningBellNotificationService',
-        );
+        developer.log('초기화 실패: $e', name: 'EveningBellNotificationService');
       }
     }
   }
@@ -149,10 +146,7 @@ class EveningBellNotificationService {
       return granted ?? false;
     } catch (e) {
       if (kDebugMode) {
-        developer.log(
-          '권한 요청 실패: $e',
-          name: 'EveningBellNotificationService',
-        );
+        developer.log('권한 요청 실패: $e', name: 'EveningBellNotificationService');
       }
       return false;
     }

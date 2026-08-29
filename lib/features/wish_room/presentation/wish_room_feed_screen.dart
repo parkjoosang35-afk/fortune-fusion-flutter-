@@ -111,8 +111,7 @@ class _WishRoomFeedScreenState extends State<WishRoomFeedScreen> {
   void _openDetail(WishPost wish, int index) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) =>
-            WishRoomDetailScreen(wishId: wish.id, index: index + 1),
+        builder: (_) => WishRoomDetailScreen(wishId: wish.id, index: index + 1),
       ),
     );
   }
@@ -243,12 +242,7 @@ class _WishRoomFeedScreenState extends State<WishRoomFeedScreen> {
                               ),
                             )
                           : ListView.separated(
-                              padding: const EdgeInsets.fromLTRB(
-                                20,
-                                0,
-                                20,
-                                16,
-                              ),
+                              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                               itemCount: posts.length,
                               separatorBuilder: (_, __) =>
                                   const SizedBox(height: 12),
@@ -363,11 +357,7 @@ class _FeedCard extends StatelessWidget {
               right: -20,
               child: Opacity(
                 opacity: 0.4,
-                child: WishRoomSigilRing(
-                  size: 70,
-                  opacity: 0.5,
-                  reverse: true,
-                ),
+                child: WishRoomSigilRing(size: 70, opacity: 0.5, reverse: true),
               ),
             ),
             Column(
@@ -417,9 +407,7 @@ class _FeedCard extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 10),
                   decoration: const BoxDecoration(
                     border: Border(
-                      top: BorderSide(
-                        color: WishRoomColors.surfaceCardBorder,
-                      ),
+                      top: BorderSide(color: WishRoomColors.surfaceCardBorder),
                     ),
                   ),
                   child: Row(

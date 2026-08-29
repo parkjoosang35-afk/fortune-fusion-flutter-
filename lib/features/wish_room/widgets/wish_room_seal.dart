@@ -40,7 +40,11 @@ class WishRoomSeal extends StatelessWidget {
             width: selected ? 2 : 1,
           ),
           boxShadow: [
-            BoxShadow(color: color.withValues(alpha: 0.53), blurRadius: 8, offset: const Offset(0, 2)),
+            BoxShadow(
+              color: color.withValues(alpha: 0.53),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
           ],
         ),
         alignment: Alignment.center,
@@ -52,7 +56,11 @@ class WishRoomSeal extends StatelessWidget {
             fontSize: size * 0.55,
             color: const Color(0xFFFFF9E8),
             shadows: const [
-              Shadow(color: Color(0x4D000000), offset: Offset(0, 1), blurRadius: 2),
+              Shadow(
+                color: Color(0x4D000000),
+                offset: Offset(0, 1),
+                blurRadius: 2,
+              ),
             ],
           ),
         ),

@@ -63,10 +63,7 @@ class IntroPageContent extends StatelessWidget {
                   ? MainAxisAlignment.start
                   : MainAxisAlignment.center,
               children: [
-                IntroCharacter(
-                  asset: characterAsset,
-                  size: characterSize,
-                ),
+                IntroCharacter(asset: characterAsset, size: characterSize),
                 const SizedBox(height: 20),
                 IntroTitleText(
                   title,

@@ -90,7 +90,10 @@ class IntroCTASection extends StatelessWidget {
                   title,
                   style: IntroTextStyles.title(fontSize: 30),
                   highlight: '신통방통',
-                  highlightColors: const [IntroPalette.gold, IntroPalette.primary],
+                  highlightColors: const [
+                    IntroPalette.gold,
+                    IntroPalette.primary,
+                  ],
                 ),
                 const SizedBox(height: 14),
                 Text(
@@ -163,7 +166,10 @@ class IntroCTASection extends StatelessWidget {
             // Link — "재미·참고용" 콘텐츠 안내
             TextButton(
               onPressed: onDisclaimer,
-              child: Text('"재미·참고용" 콘텐츠 안내', style: IntroTextStyles.linkButton()),
+              child: Text(
+                '"재미·참고용" 콘텐츠 안내',
+                style: IntroTextStyles.linkButton(),
+              ),
             ),
             // [기존 결정사항 유지] 바로 시작하기(게스트모드) — 핸드오프에는
             // 없는 요소지만 사용자가 별도로 확정한 "게스트 모드 유지" 결정을
@@ -196,7 +202,8 @@ class _Sparkle extends StatefulWidget {
   State<_Sparkle> createState() => _SparkleState();
 }
 
-class _SparkleState extends State<_Sparkle> with SingleTickerProviderStateMixin {
+class _SparkleState extends State<_Sparkle>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
 
   @override
@@ -224,10 +231,7 @@ class _SparkleState extends State<_Sparkle> with SingleTickerProviderStateMixin 
         final opacity = 0.4 + 0.6 * (0.5 - (t - 0.5).abs()) * 2;
         return Opacity(
           opacity: opacity.clamp(0.4, 1.0),
-          child: Transform.scale(
-            scale: scale.clamp(0.6, 1.0),
-            child: child,
-          ),
+          child: Transform.scale(scale: scale.clamp(0.6, 1.0), child: child),
         );
       },
       child: Icon(Icons.auto_awesome, color: widget.color, size: widget.size),

@@ -45,7 +45,11 @@ class _WishRoomRiseHeartState extends State<WishRoomRiseHeart>
             opacity: (1 - t).clamp(0.0, 1.0),
             child: Transform.translate(
               offset: Offset(0, -18 * t),
-              child: Icon(Icons.favorite, size: widget.size, color: widget.color),
+              child: Icon(
+                Icons.favorite,
+                size: widget.size,
+                color: widget.color,
+              ),
             ),
           );
         },

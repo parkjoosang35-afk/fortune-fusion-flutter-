@@ -86,7 +86,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const SizedBox(width: UnifiedTokens.spaceMd),
                     Expanded(
-                      child: Text('소원방 저녁 종소리', style: UnifiedText.bodyStrong()),
+                      child: Text(
+                        '소원방 저녁 종소리',
+                        style: UnifiedText.bodyStrong(),
+                      ),
                     ),
                     Switch(
                       value: _bellEnabled ?? false,

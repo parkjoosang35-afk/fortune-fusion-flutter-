@@ -28,9 +28,7 @@ class IntroTitleText extends StatelessWidget {
     final lines = text.split('\n');
     return Column(
       mainAxisSize: MainAxisSize.min,
-      children: [
-        for (final line in lines) _buildLine(line),
-      ],
+      children: [for (final line in lines) _buildLine(line)],
     );
   }
 

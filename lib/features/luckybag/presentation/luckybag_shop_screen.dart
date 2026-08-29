@@ -95,9 +95,7 @@ class _LuckyBagShopScreenState extends State<LuckyBagShopScreen> {
                 ),
                 decoration: BoxDecoration(
                   color: UnifiedColors.cardAllMenu,
-                  borderRadius: BorderRadius.circular(
-                    UnifiedTokens.radiusPill,
-                  ),
+                  borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
                 ),
                 child: Text(
                   '${wallet.balance}개',

@@ -189,7 +189,9 @@ class _SealTile extends StatelessWidget {
           children: [
             WishRoomSeal(
               text: visual.glyph,
-              color: visual.rare ? const Color(0xFFD4AF37) : WishRoomColors.accent,
+              color: visual.rare
+                  ? const Color(0xFFD4AF37)
+                  : WishRoomColors.accent,
               size: 44,
             ),
             const SizedBox(height: 8),

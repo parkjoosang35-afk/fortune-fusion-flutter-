@@ -44,7 +44,8 @@ import '../term_translation_layer.dart';
 /// 대상 여부를 판단하기 위한 방어적 상수.
 const Set<String> _tenGodGroupNames = {'비겁', '식상', '재성', '관살', '인성'};
 
-class LifeOverallNarrativeGenerator implements NarrativeGenerator<LifeOverallAnalysis> {
+class LifeOverallNarrativeGenerator
+    implements NarrativeGenerator<LifeOverallAnalysis> {
   const LifeOverallNarrativeGenerator();
 
   @override
@@ -77,7 +78,9 @@ class LifeOverallNarrativeGenerator implements NarrativeGenerator<LifeOverallAna
       if (dominantCategory != '균형')
         '특히 ${dominantCategoryPhrase()} 기운이 원국·지장간 전체에서 $dominantCount회로 가장 많이 반복돼요.',
     ];
-    final coreResult = coreResultAll.take(rules.maxCoreResultSentences).toList();
+    final coreResult = coreResultAll
+        .take(rules.maxCoreResultSentences)
+        .toList();
 
     // ── ② 왜 이런 결과가 나왔는가(whyThisResult) — coreEvidence를
     // sourceField 기준으로 하나씩 자연어로 풀어낸다(§7 근거 추적성).
@@ -98,7 +101,9 @@ class LifeOverallNarrativeGenerator implements NarrativeGenerator<LifeOverallAna
             '그중 ${dominantCategoryPhrase()} 기운이 가장 많이 반복돼요.',
           );
         case 'strength.verdict/score':
-          whyThisResult.add('${strengthPhrase(terms, strengthVerdict)}으로 판정돼요.');
+          whyThisResult.add(
+            '${strengthPhrase(terms, strengthVerdict)}으로 판정돼요.',
+          );
         case 'yongsin.yongsin/gisin':
           if (yongsinElement.isNotEmpty) {
             whyThisResult.add(
@@ -107,9 +112,11 @@ class LifeOverallNarrativeGenerator implements NarrativeGenerator<LifeOverallAna
             );
           }
         case 'fiveElements.dominant/deficient':
-          if (analysis.dominantElements.isNotEmpty || analysis.deficientElements.isNotEmpty) {
+          if (analysis.dominantElements.isNotEmpty ||
+              analysis.deficientElements.isNotEmpty) {
             whyThisResult.add(
-              analysis.dominantElements.isNotEmpty && analysis.deficientElements.isNotEmpty
+              analysis.dominantElements.isNotEmpty &&
+                      analysis.deficientElements.isNotEmpty
                   ? '오행을 보면 ${analysis.dominantElements.join(', ')} 기운은 넘치고 '
                         '${analysis.deficientElements.join(', ')} 기운은 부족한 편중 구조예요.'
                   : analysis.dominantElements.isNotEmpty
@@ -119,10 +126,10 @@ class LifeOverallNarrativeGenerator implements NarrativeGenerator<LifeOverallAna
           }
         case 'sinsal':
           if (analysis.notableSinsal.isNotEmpty) {
-            final phrases = analysis.notableSinsal.map((s) => sinsalPhrase(terms, s)).join(' ');
-            whyThisResult.add(
-              '원국에 $phrases 이 기운이 평생에 걸쳐 특이하게 작용해요.',
-            );
+            final phrases = analysis.notableSinsal
+                .map((s) => sinsalPhrase(terms, s))
+                .join(' ');
+            whyThisResult.add('원국에 $phrases 이 기운이 평생에 걸쳐 특이하게 작용해요.');
           }
       }
     }
@@ -130,11 +137,13 @@ class LifeOverallNarrativeGenerator implements NarrativeGenerator<LifeOverallAna
     // ── ③ 나에게 나타나는 특징(characteristics) — strengths/weaknesses를
     // "실제 생활 모습"으로 풀어낸다 ──
     final characteristics = <String>[
-      for (final s in analysis.strengths) '${dominantCategoryPhrase()} 기운과 관련해, $s.',
+      for (final s in analysis.strengths)
+        '${dominantCategoryPhrase()} 기운과 관련해, $s.',
       if (analysis.dominantElements.length >= 2)
         '${analysis.dominantElements.join(', ')} 기운이 겹쳐 있어, 특정 방향으로 힘이 몰리는 편이에요.',
     ].where((s) => s.trim().isNotEmpty).toList();
-    final cappedCharacteristics = characteristics.length > rules.maxCharacteristicParagraphs
+    final cappedCharacteristics =
+        characteristics.length > rules.maxCharacteristicParagraphs
         ? characteristics.sublist(0, rules.maxCharacteristicParagraphs)
         : characteristics;
 
@@ -167,7 +176,8 @@ class LifeOverallNarrativeGenerator implements NarrativeGenerator<LifeOverallAna
         '${yongsinPhrase(terms, yongsinElement)}가 강해지는 환경(직업·관계·취미 등)을 의식적으로 가까이해 보세요.',
       if (gisinElement.isNotEmpty)
         '${gisinPhrase(terms, gisinElement)}가 지나치게 강해지는 상황은 미리 알아채고 거리를 두는 것이 좋아요.',
-      if (dominantCategory != '균형') '${dominantCategoryPhrase()} 기운을 살릴 수 있는 역할이나 활동을 적극적으로 찾아보세요.',
+      if (dominantCategory != '균형')
+        '${dominantCategoryPhrase()} 기운을 살릴 수 있는 역할이나 활동을 적극적으로 찾아보세요.',
       if (analysis.notableSinsal.isNotEmpty)
         '${analysis.notableSinsal.join(', ')} 기운이 발현되는 순간을 놓치지 않고 활용해 보세요.',
     ].where((s) => s.trim().isNotEmpty).toList();

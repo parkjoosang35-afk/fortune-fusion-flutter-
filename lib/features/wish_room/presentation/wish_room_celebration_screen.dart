@@ -62,7 +62,12 @@ class _WishRoomCelebrationScreenState extends State<WishRoomCelebrationScreen>
       final delay = (i * 0.4) % 5.0;
       final rot = (i * 25).toDouble();
       final amber = i % 2 == 1;
-      return _PetalSeed(left: left, delaySeconds: delay, rotationDeg: rot, amber: amber);
+      return _PetalSeed(
+        left: left,
+        delaySeconds: delay,
+        rotationDeg: rot,
+        amber: amber,
+      );
     });
   }
 
@@ -73,9 +78,9 @@ class _WishRoomCelebrationScreenState extends State<WishRoomCelebrationScreen>
   }
 
   void _goCompose() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const WishRoomComposeScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const WishRoomComposeScreen()));
   }
 
   void _goHome() {
@@ -107,9 +112,7 @@ class _WishRoomCelebrationScreenState extends State<WishRoomCelebrationScreen>
           ),
           // 대형 정회전 마법진
           const Positioned.fill(
-            child: Center(
-              child: WishRoomSigilRing(size: 640, opacity: 0.6),
-            ),
+            child: Center(child: WishRoomSigilRing(size: 640, opacity: 0.6)),
           ),
           // 소형 역회전 마법진
           const Positioned.fill(

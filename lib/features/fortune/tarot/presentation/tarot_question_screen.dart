@@ -105,23 +105,37 @@ class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
                         Container(
                           decoration: BoxDecoration(
                             color: OzColors.cardSoft,
-                            borderRadius: BorderRadius.circular(OzTokens.radiusMd),
+                            borderRadius: BorderRadius.circular(
+                              OzTokens.radiusMd,
+                            ),
                             border: Border.all(color: OzColors.borderSoft),
                           ),
                           child: TextField(
                             controller: _questionController,
                             maxLines: 3,
-                            style: OzTypography.body(fontSize: 14, color: OzColors.fg),
+                            style: OzTypography.body(
+                              fontSize: 14,
+                              color: OzColors.fg,
+                            ),
                             cursorColor: OzColors.gold,
                             decoration: InputDecoration(
                               hintText: '궁금한 질문을 자유롭게 적어보세요',
-                              hintStyle: OzTypography.body(fontSize: 13, color: OzColors.faint),
+                              hintStyle: OzTypography.body(
+                                fontSize: 13,
+                                color: OzColors.faint,
+                              ),
                               border: InputBorder.none,
                               focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(OzTokens.radiusMd),
-                                borderSide: BorderSide(color: OzColors.gold.withValues(alpha: 0.5)),
+                                borderRadius: BorderRadius.circular(
+                                  OzTokens.radiusMd,
+                                ),
+                                borderSide: BorderSide(
+                                  color: OzColors.gold.withValues(alpha: 0.5),
+                                ),
                               ),
-                              contentPadding: const EdgeInsets.all(OzTokens.spaceLg),
+                              contentPadding: const EdgeInsets.all(
+                                OzTokens.spaceLg,
+                              ),
                             ),
                           ),
                         ),
@@ -133,14 +147,18 @@ class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
                               .map(
                                 (q) => _PresetChip(
                                   label: q,
-                                  onTap: () =>
-                                      setState(() => _questionController.text = q),
+                                  onTap: () => setState(
+                                    () => _questionController.text = q,
+                                  ),
                                 ),
                               )
                               .toList(),
                         ),
                         const SizedBox(height: OzTokens.spaceXxl),
-                        Text('스프레드 선택', style: OzTypography.sectionTitle(fontSize: 17)),
+                        Text(
+                          '스프레드 선택',
+                          style: OzTypography.sectionTitle(fontSize: 17),
+                        ),
                         const SizedBox(height: OzTokens.spaceMd),
                         Row(
                           children: [
@@ -172,14 +190,18 @@ class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
                                 desc: '즉답형',
                                 ynLabel: 'Y/N',
                                 active: _spreadType == 'yes_no',
-                                onTap: () => setState(() => _spreadType = 'yes_no'),
+                                onTap: () =>
+                                    setState(() => _spreadType = 'yes_no'),
                               ),
                             ),
                           ],
                         ),
                         if (_spreadType != 'yes_no') ...[
                           const SizedBox(height: OzTokens.spaceXxl),
-                          Text('어떤 주제로 볼까요?', style: OzTypography.sectionTitle(fontSize: 17)),
+                          Text(
+                            '어떤 주제로 볼까요?',
+                            style: OzTypography.sectionTitle(fontSize: 17),
+                          ),
                           const SizedBox(height: OzTokens.spaceMd),
                           Wrap(
                             spacing: OzTokens.spaceSm,
@@ -225,10 +247,7 @@ class _PresetChip extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(OzTokens.radiusPill),
       child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 8,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: OzColors.card,
           borderRadius: BorderRadius.circular(OzTokens.radiusPill),
@@ -236,7 +255,10 @@ class _PresetChip extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: OzTypography.body(fontSize: 12, color: OzColors.fg.withValues(alpha: 0.85)),
+          style: OzTypography.body(
+            fontSize: 12,
+            color: OzColors.fg.withValues(alpha: 0.85),
+          ),
         ),
       ),
     );

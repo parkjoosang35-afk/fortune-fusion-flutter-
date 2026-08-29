@@ -232,7 +232,10 @@ class _TarotLoadingScreenState extends State<TarotLoadingScreen>
                   const SizedBox(height: 8),
                   Text(
                     'AI TAROT READING',
-                    style: OzTypography.monoLabel(fontSize: 10, letterSpacing: 4),
+                    style: OzTypography.monoLabel(
+                      fontSize: 10,
+                      letterSpacing: 4,
+                    ),
                   ),
                   const SizedBox(height: 32),
                   AnimatedSwitcher(
@@ -253,7 +256,10 @@ class _TarotLoadingScreenState extends State<TarotLoadingScreen>
                       child: Text(
                         '${_messages[_messageIndex].$1} ${_messages[_messageIndex].$2}',
                         textAlign: TextAlign.center,
-                        style: OzTypography.body(fontSize: 14, color: OzColors.fg),
+                        style: OzTypography.body(
+                          fontSize: 14,
+                          color: OzColors.fg,
+                        ),
                       ),
                     ),
                   ),
@@ -302,7 +308,10 @@ class _OzMoonCard extends StatelessWidget {
             border: Border.all(color: OzColors.gold.withValues(alpha: 0.45)),
           ),
           alignment: Alignment.center,
-          child: Text('✨', style: TextStyle(fontSize: width * 0.29, color: OzColors.gold)),
+          child: Text(
+            '✨',
+            style: TextStyle(fontSize: width * 0.29, color: OzColors.gold),
+          ),
         ),
       ),
     );
@@ -365,7 +374,9 @@ class _OzLoadingDots extends StatelessWidget {
                 height: 8,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: OzColors.gold.withValues(alpha: opacity.clamp(0.3, 0.95)),
+                  color: OzColors.gold.withValues(
+                    alpha: opacity.clamp(0.3, 0.95),
+                  ),
                 ),
               ),
             );

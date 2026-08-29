@@ -78,7 +78,9 @@ class CareerNarrativeGenerator implements NarrativeGenerator<CareerAnalysis> {
       '$dayGanKr($dayGanHanja) 일간의 이 사주는 $patternName 구조를 갖고 있어요. $patternDesc.',
       if (strengthDesc.isNotEmpty) '여기에 $strengthName의 그릇이 더해져, $strengthDesc.',
     ];
-    final coreResult = coreResultAll.take(rules.maxCoreResultSentences).toList();
+    final coreResult = coreResultAll
+        .take(rules.maxCoreResultSentences)
+        .toList();
 
     // ── ② 왜 이런 결과가 나왔는가(whyThisResult) — coreEvidence를
     // sourceField 기준으로 하나씩 자연어로 풀어낸다(§7 근거 추적성).
@@ -126,7 +128,8 @@ class CareerNarrativeGenerator implements NarrativeGenerator<CareerAnalysis> {
     }
     if (jeongGwanCount > 0 || pyeonGwanCount > 0) {
       final dominantGwan = jeongGwanCount > pyeonGwanCount ? '정관' : '편관';
-      final officerFlavor = tenGodMeaningOf(dominantGwan)?.practicalMeaningFor('career') ?? '';
+      final officerFlavor =
+          tenGodMeaningOf(dominantGwan)?.practicalMeaningFor('career') ?? '';
       if (officerFlavor.isNotEmpty) {
         whyThisResult.add(
           '${tenGodPhrase(terms, '정관')} $jeongGwanCount개, ${tenGodPhrase(terms, '편관')} $pyeonGwanCount개 중 '
@@ -150,7 +153,8 @@ class CareerNarrativeGenerator implements NarrativeGenerator<CareerAnalysis> {
       else if (jeongGwanCount > 0 && pyeonGwanCount > 0)
         '정관과 편관이 섞여 있어, 안정된 조직 생활과 도전적인 역할 사이를 오갈 수 있어요.',
     ].where((s) => s.trim().isNotEmpty).toList();
-    final cappedCharacteristics = characteristics.length > rules.maxCharacteristicParagraphs
+    final cappedCharacteristics =
+        characteristics.length > rules.maxCharacteristicParagraphs
         ? characteristics.sublist(0, rules.maxCharacteristicParagraphs)
         : characteristics;
 

@@ -80,9 +80,7 @@ class _WishRoomBoxOpeningScreenState extends State<WishRoomBoxOpeningScreen>
     if (!mounted) return;
     // [Phase B] 두 채널(weekly_box_opening + wish_100days)이 같은 화면
     // 진입에서 동시에 지급될 수 있으므로 합산해서 안내한다.
-    setState(
-      () => _grantedAmount = granted + widget.wish100DaysGrantedAmount,
-    );
+    setState(() => _grantedAmount = granted + widget.wish100DaysGrantedAmount);
   }
 
   @override

@@ -809,40 +809,7 @@ class _WishListSection extends StatefulWidget {
 }
 
 class _WishListSectionState extends State<_WishListSection> {
-  // [STEP7 진단용 — 사용자 지시 개발자 지시서 ① 최종본] 실제 Flutter
-  // Scrollable(이 CustomScrollView)의 ScrollController.offset이 사용자
-  // 스크롤 동작 전/후로 실제로 변하는지 직접 확인하기 위한 임시 컨트롤러다.
-  // STEP 7 PASS 확정 전까지만 유지하며, PASS 후 반드시 제거한다.
   final ScrollController _scrollController = ScrollController();
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollController.addListener(() {
-      // ignore: avoid_print
-      print(
-        '[STEP7스크롤진단] offset=${_scrollController.offset.toStringAsFixed(1)} '
-        'max=${_scrollController.position.maxScrollExtent.toStringAsFixed(1)}',
-      );
-    });
-    // [STEP7 진단용] addListener는 offset이 "변경"될 때만 호출되므로,
-    // 최초 마운트 시점의 초기 상태(스크롤 발생 여부와 무관하게)를
-    // 강제로 한 번 출력해 컨트롤러가 실제로 attach 되었는지 확인한다.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      if (_scrollController.hasClients) {
-        // ignore: avoid_print
-        print(
-          '[STEP7스크롤진단-초기] attached=true offset='
-          '${_scrollController.offset.toStringAsFixed(1)} '
-          'max=${_scrollController.position.maxScrollExtent.toStringAsFixed(1)}',
-        );
-      } else {
-        // ignore: avoid_print
-        print('[STEP7스크롤진단-초기] attached=false (컨트롤러가 어떤 Scrollable에도 연결되지 않음)');
-      }
-    });
-  }
 
   @override
   void dispose() {
@@ -1189,10 +1156,7 @@ class _WishRoomBottomNav extends StatelessWidget {
               onTap: it.$3,
               borderRadius: BorderRadius.circular(12),
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 4,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [

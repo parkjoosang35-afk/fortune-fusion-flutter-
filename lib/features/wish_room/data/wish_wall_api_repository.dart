@@ -221,7 +221,8 @@ class ApiWishWallRepository implements WishWallRepository {
               'visibility': visibility.name,
               if (sealItemCode != null) 'sealItemCode': sealItemCode,
               if (candleItemCode != null) 'candleItemCode': candleItemCode,
-              if (talismanItemCode != null) 'talismanItemCode': talismanItemCode,
+              if (talismanItemCode != null)
+                'talismanItemCode': talismanItemCode,
             }),
           )
           .timeout(const Duration(seconds: 10));

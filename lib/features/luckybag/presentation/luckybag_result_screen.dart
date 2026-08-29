@@ -155,9 +155,7 @@ class _LuckyBagResultScreenState extends State<LuckyBagResultScreen>
                             ),
                             child: Text(
                               widget.result.grade.name,
-                              style: UnifiedText.chipLabel(
-                                color: _gradeColor,
-                              ),
+                              style: UnifiedText.chipLabel(color: _gradeColor),
                             ),
                           ),
                           const SizedBox(height: UnifiedTokens.spaceMd),
@@ -182,9 +180,9 @@ class _LuckyBagResultScreenState extends State<LuckyBagResultScreen>
                           SizedBox(
                             width: 200,
                             child: ElevatedButton(
-                              onPressed: () => Navigator.of(context).popUntil(
-                                (r) => r.settings.name == '/home',
-                              ),
+                              onPressed: () => Navigator.of(
+                                context,
+                              ).popUntil((r) => r.settings.name == '/home'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: UnifiedColors.black,
                                 foregroundColor: Colors.white,

@@ -59,7 +59,9 @@ class HealthNarrativeGenerator implements NarrativeGenerator<HealthAnalysis> {
     InterpretationRules rules = InterpretationRules.standard,
   }) {
     final ctx = analysis.interpretationContext;
-    final (patternName, patternDesc) = _split(analysis.healthConstitutionPattern);
+    final (patternName, patternDesc) = _split(
+      analysis.healthConstitutionPattern,
+    );
     final (vitalityName, vitalityDesc) = _split(analysis.healthVitality);
 
     final dominantElements = (ctx['dominantElements'] ?? '')
@@ -88,7 +90,9 @@ class HealthNarrativeGenerator implements NarrativeGenerator<HealthAnalysis> {
       '$dayGanKr($dayGanHanja) 일간의 이 사주는 $patternName 체질을 갖고 있어요. $patternDesc.',
       if (vitalityDesc.isNotEmpty) '여기에 $vitalityName 상태가 더해져, $vitalityDesc.',
     ];
-    final coreResult = coreResultAll.take(rules.maxCoreResultSentences).toList();
+    final coreResult = coreResultAll
+        .take(rules.maxCoreResultSentences)
+        .toList();
 
     // ── ② 왜 이런 결과가 나왔는가(whyThisResult) — coreEvidence를
     // sourceField 기준으로 하나씩 자연어로 풀어낸다(§7 근거 추적성).
@@ -106,9 +110,7 @@ class HealthNarrativeGenerator implements NarrativeGenerator<HealthAnalysis> {
             '부족한 기운은 ${deficientElements.isEmpty ? '따로 없어요' : '${deficientElements.join(', ')}예요'}.',
           );
         case 'dominantElements.length/deficientElements.length 조합':
-          whyThisResult.add(
-            '이 과다·부족 오행의 조합을 종합하면 $patternName 구조로 판정돼요.',
-          );
+          whyThisResult.add('이 과다·부족 오행의 조합을 종합하면 $patternName 구조로 판정돼요.');
         case 'strength.verdict + fiveElements.isImbalanced':
           whyThisResult.add(
             '${strengthPhrase(terms, strengthVerdict)}으로 판정되는데, '
@@ -123,7 +125,9 @@ class HealthNarrativeGenerator implements NarrativeGenerator<HealthAnalysis> {
           }
         case '건강신살 + 기신오행강도 + 오행편중 조합':
           if (foundHealthSinsal.isNotEmpty) {
-            final phrases = foundHealthSinsal.map((s) => sinsalPhrase(terms, s)).join(' ');
+            final phrases = foundHealthSinsal
+                .map((s) => sinsalPhrase(terms, s))
+                .join(' ');
             whyThisResult.add(phrases);
           }
           if (gisinElement.isNotEmpty && gisinCount >= 2) {
@@ -152,7 +156,8 @@ class HealthNarrativeGenerator implements NarrativeGenerator<HealthAnalysis> {
       if (foundHealthSinsal.isNotEmpty)
         '${foundHealthSinsal.join(', ')} 기운이 있어, 평소보다 사고·수술·만성질환 예방에 더 신경 쓰는 편이 좋아요.',
     ].where((s) => s.trim().isNotEmpty).toList();
-    final cappedCharacteristics = characteristics.length > rules.maxCharacteristicParagraphs
+    final cappedCharacteristics =
+        characteristics.length > rules.maxCharacteristicParagraphs
         ? characteristics.sublist(0, rules.maxCharacteristicParagraphs)
         : characteristics;
 

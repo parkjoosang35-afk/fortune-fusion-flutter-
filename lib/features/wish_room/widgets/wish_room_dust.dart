@@ -130,14 +130,15 @@ class _DustPainter extends CustomPainter {
       final dy = size.height * 0.9 - t * (size.height * 0.9 + 120);
       final dx = seed.left * size.width + t * 20;
 
-      paint.shader = RadialGradient(
-        colors: [
-          color.withValues(alpha: alpha.clamp(0.0, 1.0)),
-          color.withValues(alpha: 0),
-        ],
-      ).createShader(
-        Rect.fromCircle(center: Offset(dx, dy), radius: seed.size),
-      );
+      paint.shader =
+          RadialGradient(
+            colors: [
+              color.withValues(alpha: alpha.clamp(0.0, 1.0)),
+              color.withValues(alpha: 0),
+            ],
+          ).createShader(
+            Rect.fromCircle(center: Offset(dx, dy), radius: seed.size),
+          );
       canvas.drawCircle(Offset(dx, dy), seed.size, paint);
     }
   }

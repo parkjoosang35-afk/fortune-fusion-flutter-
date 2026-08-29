@@ -150,15 +150,10 @@ class ShopSubNav extends StatelessWidget {
           return InkWell(
             onTap: isActive
                 ? null
-                : () => Navigator.of(
-                    context,
-                  ).pushReplacementNamed(tab.$3),
+                : () => Navigator.of(context).pushReplacementNamed(tab.$3),
             borderRadius: BorderRadius.circular(8),
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 10,
-                vertical: 4,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               child: Text(
                 tab.$2,
                 style: TextStyle(
@@ -265,7 +260,10 @@ class PurchaseConfirmSheet extends StatelessWidget {
 
   final ShopCatalogItem item;
 
-  static Future<bool?> show(BuildContext context, {required ShopCatalogItem item}) {
+  static Future<bool?> show(
+    BuildContext context, {
+    required ShopCatalogItem item,
+  }) {
     return showModalBottomSheet<bool>(
       context: context,
       backgroundColor: Colors.transparent,

@@ -198,20 +198,12 @@ class AuthRepository {
   /// 토큰이 없거나 만료/무효(401)면 null을 반환(로그인 화면으로 이동).
   Future<UserModel?> restoreSession() async {
     final token = await AuthTokenStore.getToken();
-    // [STEP7 원인 조사용 임시 로그 - 조사 완료 후 제거]
-    debugPrint(
-      '[STEP7진단] restoreSession 호출됨. token='
-      '${token == null ? "NULL" : "존재(길이=${token.length})"}',
-    );
     if (token == null) return null;
     final uri = Uri.parse('$_base/me');
     try {
       final response = await http
           .get(uri, headers: {'Authorization': 'Bearer $token'})
           .timeout(const Duration(seconds: 10));
-      debugPrint(
-        '[STEP7진단] auth/me 응답 statusCode=${response.statusCode} body=${response.body}',
-      );
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
         // 토큰 만료/무효 — 로컬 세션도 함께 정리한다.

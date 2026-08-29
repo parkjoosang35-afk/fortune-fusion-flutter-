@@ -131,7 +131,8 @@ class _StarFieldPainter extends CustomPainter {
   }
 
   void _drawSparkle(Canvas canvas, Offset c, double size, double opacity) {
-    final paint = Paint()..color = OzColors.gold.withValues(alpha: opacity * 0.9);
+    final paint = Paint()
+      ..color = OzColors.gold.withValues(alpha: opacity * 0.9);
     final path = Path()
       ..moveTo(c.dx, c.dy - size)
       ..lineTo(c.dx + size * 0.22, c.dy - size * 0.22)

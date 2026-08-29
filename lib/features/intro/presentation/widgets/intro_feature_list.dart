@@ -87,7 +87,10 @@ class _FeatureRowState extends State<_FeatureRow> {
                   ),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text(widget.item.icon, style: IntroTextStyles.featureIcon()),
+                child: Text(
+                  widget.item.icon,
+                  style: IntroTextStyles.featureIcon(),
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(

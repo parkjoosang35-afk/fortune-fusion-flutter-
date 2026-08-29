@@ -86,7 +86,10 @@ class OzThemeCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     '$count개 카테고리',
-                    style: OzTypography.monoLabel(fontSize: 10, letterSpacing: 1.6),
+                    style: OzTypography.monoLabel(
+                      fontSize: 10,
+                      letterSpacing: 1.6,
+                    ),
                   ),
                 ],
               ),

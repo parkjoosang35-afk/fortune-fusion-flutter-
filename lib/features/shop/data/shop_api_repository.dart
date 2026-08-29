@@ -33,7 +33,8 @@ class ApiShopRepository implements ShopRepository {
     final uri = Uri.parse('$_shopBase/$path');
     try {
       final res = await http.get(uri);
-      final body = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+      final body =
+          jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
       if (res.statusCode != 200 || body['success'] != true) {
         _fail('GET /shop/$path', body['error'] ?? res.statusCode);
       }
@@ -61,7 +62,8 @@ class ApiShopRepository implements ShopRepository {
     final uri = Uri.parse(_inventoryBase);
     try {
       final res = await http.get(uri, headers: await _authHeaders());
-      final body = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+      final body =
+          jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
       if (res.statusCode != 200 || body['success'] != true) {
         _fail('GET /inventory', body['error'] ?? res.statusCode);
       }

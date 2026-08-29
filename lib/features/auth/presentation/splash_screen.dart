@@ -117,9 +117,7 @@ class _SplashScreenState extends State<SplashScreen>
     // 화면 전환(아래 라우팅)을 막지 않는다 — fire-and-forget이 아니라 await로
     // 순서를 보장하되, 결과와 무관하게 계속 진행한다.
     if (authProvider.isLoggedIn) {
-      final migration = await migrateLocalJeontongProfileToServer(
-        authProvider,
-      );
+      final migration = await migrateLocalJeontongProfileToServer(authProvider);
       if (kDebugMode) {
         debugPrint('[신통방통 2단계 마이그레이션] $migration');
       }
@@ -158,10 +156,7 @@ class _SplashScreenState extends State<SplashScreen>
           child: FadeTransition(
             opacity: _fade,
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 24,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
               child: Column(
                 children: [
                   // eyebrow — 神通萬通 · SINTONG
@@ -201,7 +196,9 @@ class _SplashScreenState extends State<SplashScreen>
                         3,
                         (i) => Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 3),
-                          child: _LoadDot(delay: Duration(milliseconds: i * 200)),
+                          child: _LoadDot(
+                            delay: Duration(milliseconds: i * 200),
+                          ),
                         ),
                       ),
                     ),
@@ -226,7 +223,8 @@ class _LoadDot extends StatefulWidget {
   State<_LoadDot> createState() => _LoadDotState();
 }
 
-class _LoadDotState extends State<_LoadDot> with SingleTickerProviderStateMixin {
+class _LoadDotState extends State<_LoadDot>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
 
   @override
@@ -259,7 +257,9 @@ class _LoadDotState extends State<_LoadDot> with SingleTickerProviderStateMixin 
           height: 6,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: IntroPalette.primary.withValues(alpha: opacity.clamp(0.35, 1.0)),
+            color: IntroPalette.primary.withValues(
+              alpha: opacity.clamp(0.35, 1.0),
+            ),
           ),
         );
       },

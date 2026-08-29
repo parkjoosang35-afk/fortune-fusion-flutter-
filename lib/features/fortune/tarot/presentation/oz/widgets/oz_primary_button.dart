@@ -38,7 +38,9 @@ class OzPrimaryButton extends StatelessWidget {
                       colors: [Color(0xFF4A3D63), Color(0xFF352A4D)],
                     ),
               borderRadius: BorderRadius.circular(OzTokens.radiusMd),
-              boxShadow: enabled ? OzColors.goldGlow(alpha: 0.4, blur: 22) : null,
+              boxShadow: enabled
+                  ? OzColors.goldGlow(alpha: 0.4, blur: 22)
+                  : null,
             ),
             child: Center(
               child: loading
@@ -106,8 +108,11 @@ class OzPillButton extends StatelessWidget {
             children: [
               Text(label, style: OzTypography.ctaLabel(fontSize: 12.5)),
               const SizedBox(width: 4),
-              const Icon(Icons.arrow_forward_rounded,
-                  size: 14, color: Color(0xFF2A1A08)),
+              const Icon(
+                Icons.arrow_forward_rounded,
+                size: 14,
+                color: Color(0xFF2A1A08),
+              ),
             ],
           ),
         ),

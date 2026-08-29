@@ -49,7 +49,10 @@ class OzCategoryDetailHero extends StatelessWidget {
                 children: [
                   Text(
                     category.group.label.toUpperCase(),
-                    style: OzTypography.monoLabel(fontSize: 10, letterSpacing: 3),
+                    style: OzTypography.monoLabel(
+                      fontSize: 10,
+                      letterSpacing: 3,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
