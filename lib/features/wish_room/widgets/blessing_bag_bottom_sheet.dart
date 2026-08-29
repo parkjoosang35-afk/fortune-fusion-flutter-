@@ -279,7 +279,9 @@ class _SendPanelState extends State<_SendPanel> {
       }
       widget.onSent();
       setState(() => _state = _SendState.success);
-      await Future.delayed(const Duration(milliseconds: 900));
+      // [STEP04 PART2 마무리 §1] _SendSuccessView 연출(1400ms)이 끝까지
+      // 재생되도록 대기 후 닫는다.
+      await Future.delayed(const Duration(milliseconds: 1600));
       if (mounted) Navigator.of(context).pop(true);
     } else {
       setState(() {
@@ -622,6 +624,21 @@ class _StepperButton extends StatelessWidget {
   }
 }
 
+/// [STEP04 PART2 마무리 §1] 복주머니 전송 성공 연출.
+///
+/// 서버 [WishWallProvider.sendPouch]가 실제로 성공(`ok == true`)한 뒤에만
+/// [_SendPanel]이 이 위젯을 표시한다 — 즉 여기서 그려지는 개수/애니메이션은
+/// 전부 "이미 서버가 확정한 결과"에 대한 표현일 뿐, 서버 호출 이전에
+/// 미리 낙관적으로 보여주지 않는다(Wallet/PointHistory/WishBokju 로직은
+/// 이 파일에서 건드리지 않음 — 표시 전용).
+///
+/// 연출 타임라인(총 1400ms, 단일 [AnimationController]):
+/// 0~45%  : 🎁 복주머니가 아래에서 위로 떠오르며 살짝 확대(날아가는 느낌)
+/// 35~65% : 짧은 빛(원형 glow) 확산 효과
+/// 55~100%: "복주머니 N개를 보냈어요" → "당신의 소원이 이루어지길
+///          함께 빌게요 ✨" 두 줄이 순차적으로 페이드인
+/// 전체화면 연출이 아니라 이 바텀시트 패널 내부에서만 재생되며, 스크롤
+/// 위치나 화면 전체 레이아웃에는 영향을 주지 않는다.
 class _SendSuccessView extends StatefulWidget {
   const _SendSuccessView({required this.amount, required this.giftedSeal});
   final int amount;
@@ -634,14 +651,52 @@ class _SendSuccessView extends StatefulWidget {
 class _SendSuccessViewState extends State<_SendSuccessView>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
+  late final Animation<double> _pouchRise;
+  late final Animation<double> _pouchScale;
+  late final Animation<double> _pouchOpacity;
+  late final Animation<double> _glowOpacity;
+  late final Animation<double> _line1Opacity;
+  late final Animation<double> _line2Opacity;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 500),
-    )..forward();
+      duration: const Duration(milliseconds: 1400),
+    );
+    _pouchRise = Tween<double>(
+      begin: 22,
+      end: 0,
+    ).animate(CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.45, curve: Curves.easeOutCubic)));
+    _pouchScale = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.6, end: 1.15), weight: 45),
+      TweenSequenceItem(tween: Tween(begin: 1.15, end: 1.0), weight: 20),
+      TweenSequenceItem(tween: ConstantTween(1.0), weight: 35),
+    ]).animate(_controller);
+    _pouchOpacity = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.0, 0.3, curve: Curves.easeOut),
+    );
+    _glowOpacity = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: 0.9), weight: 30),
+      TweenSequenceItem(tween: Tween(begin: 0.9, end: 0.0), weight: 40),
+      TweenSequenceItem(tween: ConstantTween(0.0), weight: 30),
+    ]).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.3, 0.7, curve: Curves.easeInOut),
+      ),
+    );
+    _line1Opacity = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.55, 0.8, curve: Curves.easeOut),
+    );
+    _line2Opacity = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.75, 1.0, curve: Curves.easeOut),
+    );
+    _controller.forward();
   }
 
   @override
@@ -655,38 +710,90 @@ class _SendSuccessViewState extends State<_SendSuccessView>
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ScaleTransition(
-              scale: CurvedAnimation(
-                parent: _controller,
-                curve: Curves.elasticOut,
-              ),
-              child: Container(
-                width: 72,
-                height: 72,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: WishWallColors.accentSoft,
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 120,
+                  height: 120,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // 빛 효과(glow burst)
+                      Opacity(
+                        opacity: _glowOpacity.value,
+                        child: Container(
+                          width: 110,
+                          height: 110,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: RadialGradient(
+                              colors: [
+                                WishWallColors.accent,
+                                Colors.transparent,
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      // 날아가는 복주머니
+                      Opacity(
+                        opacity: _pouchOpacity.value.clamp(0.0, 1.0),
+                        child: Transform.translate(
+                          offset: Offset(0, _pouchRise.value),
+                          child: Transform.scale(
+                            scale: _pouchScale.value,
+                            child: Container(
+                              width: 72,
+                              height: 72,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: WishWallColors.accentSoft,
+                              ),
+                              alignment: Alignment.center,
+                              child: const Text(
+                                '🎁',
+                                style: TextStyle(fontSize: 32),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                alignment: Alignment.center,
-                child: const Text('✨', style: TextStyle(fontSize: 32)),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              '복주머니 ${widget.amount}개를 보냈어요',
-              style: WishWallText.title2().copyWith(fontSize: 17),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              widget.giftedSeal
-                  ? '감사 도장과 함께 따뜻한 마음이 잘 전해졌어요'
-                  : '따뜻한 마음이 잘 전해졌어요',
-              style: WishWallText.caption(),
-            ),
-          ],
+                const SizedBox(height: 16),
+                Opacity(
+                  opacity: _line1Opacity.value,
+                  child: Text(
+                    '복주머니 ${widget.amount}개를 보냈어요',
+                    style: WishWallText.title2().copyWith(fontSize: 17),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Opacity(
+                  opacity: _line2Opacity.value,
+                  child: Text(
+                    '당신의 소원이 이루어지길 함께 빌게요 ✨',
+                    style: WishWallText.caption(),
+                  ),
+                ),
+                if (widget.giftedSeal) ...[
+                  const SizedBox(height: 4),
+                  Opacity(
+                    opacity: _line2Opacity.value,
+                    child: Text(
+                      '감사 도장(願)도 함께 전해졌어요',
+                      style: WishWallText.caption(color: WishWallColors.dim),
+                    ),
+                  ),
+                ],
+              ],
+            );
+          },
         ),
       ),
     );

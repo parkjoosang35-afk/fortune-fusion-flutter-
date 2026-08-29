@@ -264,6 +264,15 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
     );
   }
 
+  /// [STEP04 PART2 마무리 §2] 신고/차단 메뉴 — 기존 [WishWallProvider.reportWish]/
+  /// [hideWish]/[blockUser]를 그대로 재사용한다(신규 API/서버 로직 없음).
+  /// 이전 버전은 "신고하기"/"이 소원 숨기기" 2개만 노출했으나, 다른 사람의
+  /// 소원(isMine=false)에서는 "작성자 차단하기"도 이미 구현되어 있음에도
+  /// 이 화면 메뉴에서 빠져 있었다(`wish_wall_detail_screen.dart`에는 이미
+  /// 3개 모두 있었음) — 여기서도 동일하게 3개를 노출해 사용자가 자연스럽게
+  /// 찾을 수 있도록 한다. 강하게 노출하지 않기 위해 ⋮(더보기) 안에만
+  /// 배치하고, 내 소원(isMine=true)에는 "작성자 차단하기"를 숨긴다(자기
+  /// 자신을 차단하는 것은 의미가 없으므로).
   void _showMoreSheet() {
     final wish = _wish;
     if (wish == null) return;
@@ -293,6 +302,11 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
                     wish.id,
                     wishReportReasons.first,
                   );
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('신고가 접수되었어요')),
+                    );
+                  }
                 },
               ),
               ListTile(
@@ -310,6 +324,24 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
                   if (context.mounted) Navigator.of(context).pop();
                 },
               ),
+              if (!wish.isMine)
+                ListTile(
+                  leading: const Icon(
+                    Icons.block,
+                    color: WishRoomColors.textPrimary,
+                  ),
+                  title: const Text(
+                    '작성자 차단하기',
+                    style: TextStyle(color: WishRoomColors.textPrimary),
+                  ),
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    await context.read<WishWallProvider>().blockUser(
+                      wish.authorId,
+                    );
+                    if (context.mounted) Navigator.of(context).pop();
+                  },
+                ),
               const SizedBox(height: 8),
             ],
           ),
