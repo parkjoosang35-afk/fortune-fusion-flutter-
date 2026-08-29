@@ -87,6 +87,16 @@ class WishRoomHomeScreen extends StatefulWidget {
 }
 
 class _WishRoomHomeScreenState extends State<WishRoomHomeScreen> {
+  // [STEP05-B 마무리 — FAB 전용 레이아웃 공간 예약]
+  // 네비게이션 바 자체 높이(상단 패딩10 + 아이콘18~/라벨10 텍스트 컬럼
+  // ~40 + 하단 패딩18 ≈ 78px 실측 근사치) 아래에, FAB(58px 지름) +
+  // bottom 오프셋(24px)이 완전히 들어가려면 최소 82px가 필요하다. 네비
+  // 바와 FAB 오프셋 두 값 중 더 큰 쪽을 기준으로 여유를 더해 안전하게
+  // 확보한다 — 네비 바 실측 높이(~78)와 FAB 필요 높이(58+24=82) 중
+  // 최댓값에 8px 여유를 더한 값을 사용해, 어떤 폰트 크기/화면 밀도에서도
+  // FAB가 네비 바 영역을 벗어나 스크롤 콘텐츠를 침범하지 않게 한다.
+  static const double _fabZoneHeight = 90;
+
   @override
   void initState() {
     super.initState();
