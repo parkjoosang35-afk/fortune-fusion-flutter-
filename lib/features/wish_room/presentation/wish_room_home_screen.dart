@@ -6,6 +6,7 @@ import '../domain/wish_wall_models.dart';
 import '../theme/wish_room_theme.dart';
 import '../widgets/blessing_bag_bottom_sheet.dart';
 import '../../shop/domain/shop_item_visuals.dart';
+import '../widgets/wish_room_buttons.dart';
 import '../widgets/wish_room_candle.dart';
 import '../widgets/wish_room_dust.dart';
 import '../widgets/wish_room_seal.dart';
@@ -421,6 +422,7 @@ class _WishRoomHomeScreenState extends State<WishRoomHomeScreen> {
                           ? null
                           : () => _handleTodaySupport(highlightWish),
                       onPouch: () => _handleTodayPouch(highlightWish),
+                      onCompose: _openCompose,
                     ),
                   ),
                   // [STEP05-B 마무리 — 320px FAB 겹침 버그 구조적 해결]
@@ -778,6 +780,7 @@ class _WishListSection extends StatefulWidget {
     this.onCandle,
     this.onSupport,
     this.onPouch,
+    required this.onCompose,
   });
 
   // [STEP7 — FAB 겹침 버그 수정] 헤더/제단을 이 스크롤 영역의 슬리버로
@@ -803,6 +806,10 @@ class _WishListSection extends StatefulWidget {
   final VoidCallback? onCandle;
   final VoidCallback? onSupport;
   final VoidCallback? onPouch;
+
+  /// [STEP 8 — 소원 없음 상태 CTA] 빈 상태 화면의 "내 소원 만들기" 버튼과
+  /// 03 Compose 화면 진입 지점을 동일하게 연결한다(FAB와 동일한 목적지).
+  final VoidCallback onCompose;
 
   @override
   State<_WishListSection> createState() => _WishListSectionState();
@@ -860,37 +867,43 @@ class _WishListSectionState extends State<_WishListSection> {
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 20)),
         ],
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
-          sliver: SliverToBoxAdapter(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                const Text(
-                  '최근 소원',
-                  style: TextStyle(
-                    fontFamily: 'GowunBatangWish',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                    color: WishRoomColors.textPrimary,
-                  ),
-                ),
-                InkWell(
-                  onTap: widget.onSeeAll,
-                  child: Text(
-                    '전체 보기 →',
+        // [STEP 8 — 소원 없음 상태] "최근 소원" 섹션 헤더(+"전체 보기" 링크)는
+        // 보여줄 내용이 있을 때만 의미가 있다. 소원이 0개인데 이 헤더를 먼저
+        // 보여주면 "무엇을 봐야 하는지" 사용자가 혼란스러워하므로, 로딩 중이
+        // 아니고 실제로 0개일 때는 헤더를 생략하고 곧바로 아래의 완성된 빈
+        // 상태 블록(안내+CTA)만 보여준다.
+        if (!(widget.wishes.isEmpty && !widget.isLoading))
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
+            sliver: SliverToBoxAdapter(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  const Text(
+                    '최근 소원',
                     style: TextStyle(
-                      fontSize: 11,
-                      color: WishRoomColors.textSecondary,
+                      fontFamily: 'GowunBatangWish',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: WishRoomColors.textPrimary,
                     ),
                   ),
-                ),
-              ],
+                  InkWell(
+                    onTap: widget.onSeeAll,
+                    child: Text(
+                      '전체 보기 →',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: WishRoomColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
         const SliverToBoxAdapter(child: SizedBox(height: 12)),
         if (widget.isLoading && widget.wishes.isEmpty)
           const SliverFillRemaining(
@@ -900,38 +913,57 @@ class _WishListSectionState extends State<_WishListSection> {
             ),
           )
         else if (widget.wishes.isEmpty)
+          // [STEP 8 — 소원이 없는 사용자가 당황하지 않도록] 사용자 지시
+          // "STEP 8 반드시 확인할 것 ①"의 구조를 그대로 따른다:
+          //   "아직 소원이 없어요" → "첫 번째 소원을 빌어보세요 ✨" → 큰 CTA
+          // 과거에는 텍스트 2줄만 있고 행동 유도(CTA)가 전혀 없어 사용자가
+          // FAB(+)를 스스로 찾아 눌러야 했다(직관적이지 않음, 실제 캡처
+          // before_step8_empty_scrolled_320.png로 확인된 문제). 이제 이
+          // 블록 안에 "내 소원 만들기" 큰 버튼을 직접 넣어, 빈 화면을 본
+          // 순간 바로 다음 행동이 무엇인지 보이게 한다.
           SliverFillRemaining(
             hasScrollBody: false,
             child: Center(
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 24,
+                  horizontal: 20,
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Opacity(
-                      opacity: 0.4,
+                      opacity: 0.5,
                       child: WishRoomCandle(
-                        size: 60,
+                        size: 64,
                         color: WishRoomColors.textTertiary,
                         lit: false,
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 18),
                     const Text(
-                      '아직 소원이 담기지 않았어요',
+                      '아직 소원이 없어요',
                       style: TextStyle(
                         fontFamily: 'NotoSerifKRWish',
                         fontWeight: FontWeight.w900,
-                        fontSize: 16,
+                        fontSize: 17,
                         color: WishRoomColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '첫 촛불을 켜보세요',
+                      '첫 번째 소원을 빌어보세요 ✨',
                       style: TextStyle(
                         fontSize: 13,
                         color: WishRoomColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: 200,
+                      child: WishRoomPrimaryButton(
+                        label: '내 소원 만들기',
+                        onPressed: widget.onCompose,
                       ),
                     ),
                   ],
