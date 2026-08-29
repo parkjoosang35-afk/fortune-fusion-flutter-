@@ -17,7 +17,7 @@ class IntroSkipAction extends StatelessWidget {
     return TextButton(
       onPressed: onSkip,
       style: TextButton.styleFrom(
-        foregroundColor: IntroPalette.primaryDark,
+        foregroundColor: IntroPalette.textSecondary,
         padding: const EdgeInsets.symmetric(
           horizontal: UnifiedTokens.spaceLg,
           vertical: UnifiedTokens.spaceSm,
@@ -25,7 +25,7 @@ class IntroSkipAction extends StatelessWidget {
       ),
       child: Text(
         '건너뛰기',
-        style: UnifiedText.bodySmall(color: IntroPalette.primaryDark),
+        style: UnifiedText.bodySmall(color: IntroPalette.textSecondary),
       ),
     );
   }

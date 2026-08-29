@@ -129,13 +129,12 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: IntroPalette.backgroundSoft,
       body: DecoratedBox(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [IntroPalette.backgroundSoft, IntroPalette.primaryLight],
+            colors: [IntroPalette.backgroundTop, IntroPalette.backgroundBottom],
           ),
         ),
         child: Center(
@@ -159,7 +158,7 @@ class _SplashScreenState extends State<SplashScreen>
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: IntroPalette.primary.withValues(alpha: 0.35),
+                        color: IntroPalette.primary.withValues(alpha: 0.45),
                         blurRadius: 28,
                         spreadRadius: 2,
                       ),
@@ -175,7 +174,7 @@ class _SplashScreenState extends State<SplashScreen>
                 Text(
                   '신통방통',
                   style: UnifiedText.titleLarge(
-                    color: IntroPalette.primaryDark,
+                    color: IntroPalette.textPrimary,
                   ).copyWith(fontSize: 22),
                 ),
               ],

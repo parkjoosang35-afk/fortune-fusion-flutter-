@@ -40,6 +40,7 @@ class IntroHeroSection extends StatelessWidget {
       height: 220,
       decoration: BoxDecoration(
         color: cardColor,
+        border: Border.all(color: IntroPalette.cardBorder),
         borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
       ),
       child: Stack(

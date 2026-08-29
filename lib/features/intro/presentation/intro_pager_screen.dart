@@ -90,8 +90,15 @@ class _IntroPagerScreenState extends State<IntroPagerScreen> {
     final showSkip = config.showSkipButton && _index < _pageCount - 1;
 
     return Scaffold(
-      backgroundColor: IntroPalette.backgroundSoft,
-      body: SafeArea(
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [IntroPalette.backgroundTop, IntroPalette.backgroundBottom],
+          ),
+        ),
+        child: SafeArea(
         child: Column(
           children: [
             // 상단 - 스킵 버튼(관리자 설정에 따라 마지막 페이지에서는 숨김)
@@ -130,7 +137,7 @@ class _IntroPagerScreenState extends State<IntroPagerScreen> {
                     decoration: BoxDecoration(
                       color: _index == i
                           ? IntroPalette.primary
-                          : IntroPalette.primaryLight,
+                          : IntroPalette.indicatorInactive,
                       borderRadius: BorderRadius.circular(
                         UnifiedTokens.radiusPill,
                       ),
@@ -160,7 +167,9 @@ class _IntroPagerScreenState extends State<IntroPagerScreen> {
                     ),
                     child: Text(
                       '다음',
-                      style: UnifiedText.bodyStrong(color: Colors.white),
+                      style: UnifiedText.bodyStrong(
+                        color: IntroPalette.onPrimary,
+                      ),
                     ),
                   ),
                 ),
@@ -168,6 +177,7 @@ class _IntroPagerScreenState extends State<IntroPagerScreen> {
               const SizedBox(height: UnifiedTokens.spaceXl),
             ],
           ],
+        ),
         ),
       ),
     );
@@ -177,7 +187,7 @@ class _IntroPagerScreenState extends State<IntroPagerScreen> {
     return IntroCardWidget(
       icon: Icons.lock_open_rounded,
       badgeText: '1시간',
-      heroColor: UnifiedColors.cardMain,
+      heroColor: IntroPalette.primaryLight,
       title: config.card1Title,
       description: config.card1Description,
     );
@@ -186,7 +196,7 @@ class _IntroPagerScreenState extends State<IntroPagerScreen> {
   Widget _buildCard2(IntroConfigModel config) {
     return IntroCardWidget(
       icon: Icons.card_giftcard_rounded,
-      heroColor: UnifiedColors.cardWish,
+      heroColor: IntroPalette.primaryLight,
       showCounter: true,
       counterTarget: 12,
       title: config.card2Title,

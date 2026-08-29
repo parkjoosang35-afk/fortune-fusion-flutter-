@@ -132,7 +132,7 @@ class IntroCTASection extends StatelessWidget {
             child: OutlinedButton(
               onPressed: onSignup,
               style: OutlinedButton.styleFrom(
-                foregroundColor: IntroPalette.primaryDark,
+                foregroundColor: IntroPalette.textPrimary,
                 side: const BorderSide(color: IntroPalette.primary),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
@@ -140,7 +140,7 @@ class IntroCTASection extends StatelessWidget {
               ),
               child: Text(
                 '가입하고 복주머니 100개 받기',
-                style: UnifiedText.bodyStrong(color: IntroPalette.primaryDark),
+                style: UnifiedText.bodyStrong(color: IntroPalette.textPrimary),
               ),
             ),
           ),
@@ -149,7 +149,7 @@ class IntroCTASection extends StatelessWidget {
             onPressed: onLogin,
             child: Text(
               '이미 계정이 있으신가요? 로그인',
-              style: UnifiedText.bodySmall(color: UnifiedColors.textSecondary),
+              style: UnifiedText.bodySmall(color: IntroPalette.textSecondary),
             ),
           ),
           if (showGuestHint) ...[
@@ -157,7 +157,7 @@ class IntroCTASection extends StatelessWidget {
             Text(
               '회원가입 없이도 대부분의 기능을 자유롭게 둘러볼 수 있어요.',
               textAlign: TextAlign.center,
-              style: UnifiedText.caption(),
+              style: UnifiedText.caption(color: IntroPalette.textSecondary),
             ),
           ],
         ],
