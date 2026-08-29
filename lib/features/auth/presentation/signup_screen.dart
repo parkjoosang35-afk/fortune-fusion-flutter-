@@ -2,17 +2,38 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/config/env_config.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
-import '../../../core/widgets/app_button.dart';
-import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/luck_pouch_toast.dart';
+import '../../intro/presentation/intro_palette.dart';
+import '../../intro/presentation/intro_text_styles.dart';
+import '../../intro/presentation/widgets/intro_title_text.dart';
 import '../../wallet/application/wallet_provider.dart';
 import '../application/auth_provider.dart';
+import 'widgets/auth_checkbox.dart';
+import 'widgets/auth_form_field.dart';
+import 'widgets/auth_form_header.dart';
+import 'widgets/auth_primary_button.dart';
 
 /// 02번 §1.1 "이메일 가입" - 로그인과 분리된 회원가입 화면
 /// 03단계 §3.3 SignupProfileStepScreen(1단계: 계정정보) 대응
+///
+/// [Phase B - 2026 디자인 핸드오프 콘텐츠 반영] 기존 화면은 앱 전역 화이트
+/// 테마(AppColors/AppTextField/AppButton)를 그대로 쓰고 있어 인트로
+/// 3화면(스플래시/페이저/CTA)과 시각적으로 단절돼 있었다. `screens/
+/// 02_SignUp_Login.html` PAGE 1(회원가입)의 정확한 카피·구조·톤(Moonlit
+/// Crystal 팔레트)을 1:1로 이식한다.
+///
+/// [기존 로직 불변 원칙] 컨트롤러/유효성검사/`_submit()`의 AuthProvider·
+/// WalletProvider 연동·보상 토스트 처리·네비게이션은 전혀 손대지 않고
+/// `build()`(순수 UI)만 교체했다.
+///
+/// [약관 항목 수 - 기존 확정사항 우선 적용] 핸드오프 원문은 4개 항목(만
+/// 14세 이상/이용약관/개인정보/마케팅)을 그리지만, 이 프로젝트는 이전
+/// 세션에서 "약관 2개(이용약관+개인정보) 유지"가 이미 확정된 사항이고
+/// `AuthProvider.signup()`도 `termsAgreed`/`privacyAgreed` 2개 파라미터만
+/// 받는다. 필드 구조를 함부로 4개로 늘리면 서버 계약(AuthRepository)까지
+/// 건드려야 해 이번 Phase B 범위를 벗어난다 — 시각 톤만 핸드오프 스타일로
+/// 바꾸고 약관 항목 수는 기존 2개(전체동의 포함 3행)를 유지한다.
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
 
@@ -116,71 +137,118 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('회원가입')),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.xl),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                '신통방통과 함께\n운명을 탐험해 보세요',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              AppTextField(
-                controller: _nicknameController,
-                label: '닉네임',
-                hintText: '앱에서 사용할 닉네임',
-              ),
-              const SizedBox(height: AppSpacing.md),
-              AppTextField(
-                controller: _emailController,
-                label: '이메일',
-                hintText: 'example@fortunefusion.app',
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: AppSpacing.md),
-              AppTextField(
-                controller: _passwordController,
-                label: '비밀번호',
-                hintText: '8자 이상 입력해 주세요',
-                obscureText: true,
-              ),
-              const SizedBox(height: AppSpacing.md),
-              AppTextField(
-                controller: _passwordConfirmController,
-                label: '비밀번호 확인',
-                hintText: '비밀번호를 다시 입력해 주세요',
-                obscureText: true,
-                errorText: _passwordError,
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              _TermsAgreementSection(
-                allAgreed: _allAgreed,
-                termsAgreed: _termsAgreed,
-                privacyAgreed: _privacyAgreed,
-                onAllChanged: _setAllAgreed,
-                onTermsChanged: (v) => setState(() => _termsAgreed = v),
-                onPrivacyChanged: (v) => setState(() => _privacyAgreed = v),
-                onOpenTerms: () => _openPolicyLink('/terms'),
-                onOpenPrivacy: () => _openPolicyLink('/privacy-policy'),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              AppButton(
-                label: '회원가입',
-                isLoading: _isSubmitting,
-                onPressed: _isSubmitting ? null : _submit,
-              ),
-              const SizedBox(height: AppSpacing.md),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text(
-                  '이미 계정이 있으신가요? 로그인',
-                  style: TextStyle(color: AppColors.textSecondary),
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [IntroPalette.backgroundTop, IntroPalette.backgroundBottom],
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                AuthFormHeader(
+                  eyebrow: 'SIGN UP · N°01',
+                  onBack: () => Navigator.of(context).maybePop(),
                 ),
-              ),
-            ],
+                // `.title-block`
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 22, left: 2, right: 2),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      IntroTitleText(
+                        '신통방통과 함께\n운명을 탐험해보세요',
+                        style: IntroTextStyles.formTitle(),
+                        highlight: '운명',
+                        highlightColors: const [
+                          IntroPalette.gold,
+                          IntroPalette.primary,
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '이메일과 비밀번호만 있으면 시작할 수 있어요.',
+                        style: IntroTextStyles.formSubtitle(),
+                      ),
+                    ],
+                  ),
+                ),
+                AuthFormField(
+                  controller: _nicknameController,
+                  label: '이름',
+                  required: true,
+                  hintText: '사주 풀이에 사용될 이름',
+                  hint: '한글 · 영문 이름 (본명 권장)',
+                ),
+                AuthFormField(
+                  controller: _emailController,
+                  label: '이메일',
+                  required: true,
+                  hintText: 'example@fortunefusion.app',
+                  hint: '로그인 시 사용됩니다',
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                AuthFormField(
+                  controller: _passwordController,
+                  label: '비밀번호',
+                  required: true,
+                  hintText: '8자 이상 입력해 주세요',
+                  hint: '영문·숫자·특수문자 중 2가지 이상 조합',
+                  obscureText: true,
+                ),
+                AuthFormField(
+                  controller: _passwordConfirmController,
+                  label: '비밀번호 확인',
+                  required: true,
+                  hintText: '비밀번호를 다시 입력해 주세요',
+                  obscureText: true,
+                  errorText: _passwordError,
+                ),
+                const SizedBox(height: 6),
+                _TermsAgreementSection(
+                  allAgreed: _allAgreed,
+                  termsAgreed: _termsAgreed,
+                  privacyAgreed: _privacyAgreed,
+                  onAllChanged: _setAllAgreed,
+                  onTermsChanged: (v) => setState(() => _termsAgreed = v),
+                  onPrivacyChanged: (v) => setState(() => _privacyAgreed = v),
+                  onOpenTerms: () => _openPolicyLink('/terms'),
+                  onOpenPrivacy: () => _openPolicyLink('/privacy-policy'),
+                ),
+                const SizedBox(height: 20),
+                AuthPrimaryButton(
+                  label: '회원가입',
+                  isLoading: _isSubmitting,
+                  onPressed: _isSubmitting ? null : _submit,
+                ),
+                const SizedBox(height: 14),
+                // `.bottom-link`
+                Center(
+                  child: GestureDetector(
+                    onTap: () => Navigator.of(context).pushReplacementNamed('/login'),
+                    child: RichText(
+                      text: TextSpan(
+                        style: IntroTextStyles.bottomLink(),
+                        children: [
+                          const TextSpan(text: '이미 계정이 있으신가요?'),
+                          TextSpan(
+                            text: ' 로그인',
+                            style: IntroTextStyles.bottomLink(
+                              color: IntroPalette.primary,
+                            ).copyWith(fontWeight: FontWeight.w700),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -192,6 +260,9 @@ class _SignupScreenState extends State<SignupScreen> {
 /// 전체동의 체크박스 1개 + 이용약관/개인정보처리방침 개별 체크박스 2개로 구성하며,
 /// 각 항목의 "보기" 텍스트를 탭하면 admin_web의 공개 페이지(/terms, /privacy-policy)를
 /// 외부 브라우저로 연다.
+///
+/// [Phase B 핸드오프 반영] `.terms` 카드(라벤더 카드 배경 + border) + `.checkbox`
+/// (glow 체크) 스타일로 재구성. 항목 수(2개)와 콜백 시그니처는 기존 그대로.
 class _TermsAgreementSection extends StatelessWidget {
   const _TermsAgreementSection({
     required this.allAgreed,
@@ -216,16 +287,13 @@ class _TermsAgreementSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        border: Border.all(color: AppColors.divider),
-        borderRadius: BorderRadius.circular(AppRadius.buttonSmall),
+        color: IntroPalette.primaryLight,
+        border: Border.all(color: IntroPalette.cardBorder),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _AgreementRow(
             value: allAgreed,
@@ -233,16 +301,18 @@ class _TermsAgreementSection extends StatelessWidget {
             emphasize: true,
             onChanged: onAllChanged,
           ),
-          const Divider(height: AppSpacing.md),
+          const Divider(height: 20, color: IntroPalette.cardBorder),
           _AgreementRow(
             value: termsAgreed,
-            label: '[필수] 이용약관 동의',
+            label: '이용약관 동의',
+            requiredMark: true,
             onChanged: onTermsChanged,
             onViewDetail: onOpenTerms,
           ),
           _AgreementRow(
             value: privacyAgreed,
-            label: '[필수] 개인정보처리방침 동의',
+            label: '개인정보 처리방침 동의',
+            requiredMark: true,
             onChanged: onPrivacyChanged,
             onViewDetail: onOpenPrivacy,
           ),
@@ -258,6 +328,7 @@ class _AgreementRow extends StatelessWidget {
     required this.label,
     required this.onChanged,
     this.onViewDetail,
+    this.requiredMark = false,
     this.emphasize = false,
   });
 
@@ -265,45 +336,55 @@ class _AgreementRow extends StatelessWidget {
   final String label;
   final ValueChanged<bool> onChanged;
   final VoidCallback? onViewDetail;
+  final bool requiredMark;
   final bool emphasize;
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () => onChanged(!value),
+      borderRadius: BorderRadius.circular(8),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
         child: Row(
           children: [
-            Checkbox(
-              value: value,
-              onChanged: (v) => onChanged(v ?? false),
-              activeColor: AppColors.primary,
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            const SizedBox(width: AppSpacing.xs),
+            AuthCheckbox(value: value),
+            const SizedBox(width: 10),
             Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: emphasize ? FontWeight.bold : FontWeight.normal,
-                  color: AppColors.textPrimary,
+              child: RichText(
+                text: TextSpan(
+                  children: [
+                    if (requiredMark)
+                      TextSpan(
+                        text: '[필수] ',
+                        style: IntroTextStyles.termsLabel(
+                          color: IntroPalette.primary,
+                          fontSize: emphasize ? 13 : 12,
+                          weight: FontWeight.w700,
+                        ),
+                      ),
+                    TextSpan(
+                      text: label,
+                      style: IntroTextStyles.termsLabel(
+                        fontSize: emphasize ? 13 : 12,
+                        weight: emphasize ? FontWeight.w700 : FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
             if (onViewDetail != null)
-              TextButton(
-                onPressed: onViewDetail,
-                style: TextButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  minimumSize: const Size(48, 32),
-                ),
-                child: const Text(
-                  '보기',
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    decoration: TextDecoration.underline,
+              GestureDetector(
+                onTap: onViewDetail,
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Text(
+                    '보기',
+                    style: IntroTextStyles.termsView().copyWith(
+                      decoration: TextDecoration.underline,
+                      decorationColor: IntroPalette.textSecondary,
+                    ),
                   ),
                 ),
               ),

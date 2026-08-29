@@ -64,4 +64,11 @@ class IntroPalette {
 
   /// 제목 text-shadow 전용(핸드오프 --glow-shadow, primary의 35% 알파).
   static const Color glowShadow = Color(0x59E8C8F5);
+
+  // ───────────────────────── [Phase B - 02_SignUp_Login.html 반영] ─────────────────────────
+
+  /// 필드 에러/위험 상태 전용(핸드오프 --danger). 로그인/회원가입 화면에서
+  /// 비밀번호 확인 불일치 등 에러 힌트 텍스트·테두리에 사용한다. 인트로
+  /// 3화면(01_Intro.html)에는 없던 색으로, 02번 핸드오프 문서에서 처음 등장했다.
+  static const Color danger = Color(0xFFF5A8BD);
 }

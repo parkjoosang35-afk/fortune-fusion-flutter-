@@ -111,4 +111,89 @@ class IntroTextStyles {
     color: color ?? IntroPalette.primary,
     height: 1.0,
   );
+
+  // ───────────────────────── [Phase B - 02_SignUp_Login.html 반영] ─────────────────────────
+  // 02번 핸드오프 문서에서 처음 요구되는 `Pretendard`(필드 라벨/힌트) 스타일들.
+  // 앱 전역에 이미 `Pretendard` 폰트 패밀리가 pubspec.yaml에 등록되어 있어
+  // (core/theme/app_theme.dart 기본 폰트) google_fonts 대체 없이 `fontFamily:
+  // 'Pretendard'`로 직접 지정한다.
+
+  /// `.form-eyebrow` — 로그인/회원가입 폼 상단 라벨. eyebrow()와 폰트/톤은
+  /// 동일하나 letter-spacing이 0.3em(핸드오프 값)으로 살짝 좁다.
+  static TextStyle formEyebrow({Color? color}) => GoogleFonts.ibmPlexMono(
+    fontSize: 10,
+    fontWeight: FontWeight.w500,
+    letterSpacing: 3.0, // 0.3em * 10
+    color: color ?? IntroPalette.textSecondary,
+    height: 1.0,
+  );
+
+  /// `.form-title` — 폼 제목(22px), title()의 축소 버전.
+  static TextStyle formTitle({Color? color}) => title(color: color, fontSize: 22);
+
+  /// `.form-subtitle` — Gowun Batang 400 12px/1.55, muted.
+  static TextStyle formSubtitle({Color? color}) => GoogleFonts.gowunBatang(
+    fontSize: 12,
+    fontWeight: FontWeight.w400,
+    height: 1.55,
+    color: color ?? IntroPalette.textSecondary,
+  );
+
+  /// `.field-label` — Pretendard 500 11px, fg.
+  static TextStyle fieldLabel({Color? color}) => const TextStyle(
+    fontFamily: 'Pretendard',
+    fontSize: 11,
+    fontWeight: FontWeight.w500,
+    letterSpacing: -0.11,
+    height: 1.0,
+  ).copyWith(color: color ?? IntroPalette.textPrimary);
+
+  /// `.field-hint` — Pretendard 400 10.5px/1.4, muted(기본)/danger/crystal 가변.
+  static TextStyle fieldHint({Color? color}) => const TextStyle(
+    fontFamily: 'Pretendard',
+    fontSize: 10.5,
+    fontWeight: FontWeight.w400,
+    height: 1.4,
+  ).copyWith(color: color ?? IntroPalette.textSecondary);
+
+  /// `.terms-view` — Pretendard 500 11px, muted, 밑줄은 위젯에서 적용.
+  static TextStyle termsView({Color? color}) => const TextStyle(
+    fontFamily: 'Pretendard',
+    fontSize: 11,
+    fontWeight: FontWeight.w500,
+  ).copyWith(color: color ?? IntroPalette.textSecondary);
+
+  /// `.terms-label` — Gowun Batang, 일반 12px/전체동의 13px(700)로 가변.
+  static TextStyle termsLabel({
+    Color? color,
+    double fontSize = 12,
+    FontWeight weight = FontWeight.w500,
+  }) => GoogleFonts.gowunBatang(
+    fontSize: fontSize,
+    fontWeight: weight,
+    height: 1.4,
+    color: color ?? IntroPalette.textPrimary,
+  );
+
+  /// `.field-input` — 입력 텍스트, Gowun Batang 400 14px.
+  static TextStyle fieldInput({Color? color}) => GoogleFonts.gowunBatang(
+    fontSize: 14,
+    fontWeight: FontWeight.w400,
+    letterSpacing: -0.14,
+    color: color ?? IntroPalette.textPrimary,
+  );
+
+  /// `.field-input::placeholder` — rgba(220,210,245,0.35).
+  static TextStyle fieldPlaceholder() => GoogleFonts.gowunBatang(
+    fontSize: 14,
+    fontWeight: FontWeight.w400,
+    color: const Color(0x59DCD2F5),
+  );
+
+  /// `.bottom-link` / 로그인상태유지·비밀번호찾기 — Gowun Batang 500 12px.
+  static TextStyle bottomLink({Color? color}) => GoogleFonts.gowunBatang(
+    fontSize: 12,
+    fontWeight: FontWeight.w500,
+    color: color ?? IntroPalette.textSecondary,
+  );
 }
