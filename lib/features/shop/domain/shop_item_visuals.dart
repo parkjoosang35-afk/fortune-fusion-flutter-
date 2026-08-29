@@ -50,7 +50,7 @@ class ShopTalismanVisual {
 }
 
 const Map<String, ShopTalismanVisual> talismanVisuals = {
-  'talisman_guardian': ShopTalismanVisual('🛡️', Color(0xFF8FB9E8)),
+  'talisman_guardian': ShopTalismanVisual('🧿', Color(0xFF8FB9E8)),
   'talisman_full_moon': ShopTalismanVisual('🌕', Color(0xFFE8D8A8)),
   'talisman_friend': ShopTalismanVisual('🤝', Color(0xFFC8A8E8)),
 };
