@@ -523,10 +523,21 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
                                     // [복주머니 확장 Phase03 — 지킴 부적 보호
                                     // 배지, DECISION-004 합리적 판단] 자동
                                     // 지급 로직 없이 "적용 중" 표시로만
-                                    // 실사용 의미를 부여한다.
+                                    // 실사용 의미를 부여한다. "지킴 보호"
+                                    // 문구 자체가 guardian 전용 의미이므로
+                                    // 조건은 그대로 유지한다.
+                                    // [STEP05-B 마무리 — 하드코딩 아이콘
+                                    // 제거] '🛡️' 직접 하드코딩 시
+                                    // CanvasKit에서 회색 실루엣 버그가
+                                    // 발생했다. talismanVisualFor()로
+                                    // 다른 화면과 동일한 아이콘(🧿)을
+                                    // 사용해 일관성을 확보한다.
                                     if (wish.talismanItemCode ==
                                         'talisman_guardian')
-                                      const WishRoomPill(label: '🛡️ 지킴 보호 중'),
+                                      WishRoomPill(
+                                        label:
+                                            '${talismanVisualFor(wish.talismanItemCode!).icon} 지킴 보호 중',
+                                      ),
                                   ],
                                 ),
                               ],

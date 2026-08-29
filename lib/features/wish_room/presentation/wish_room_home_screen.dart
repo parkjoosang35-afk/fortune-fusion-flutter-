@@ -397,21 +397,56 @@ class _WishRoomHomeScreenState extends State<WishRoomHomeScreen> {
                       onPouch: () => _handleTodayPouch(highlightWish),
                     ),
                   ),
-                  _WishRoomBottomNav(
-                    onHome: () {},
-                    onFeed: _openFullBoard,
-                    onRecord: _openMy,
+                  // [STEP05-B 마무리 — 320px FAB 겹침 버그 구조적 해결]
+                  //
+                  // [1차 시도(실패) 기록] FAB를 전체 화면 Stack 절대좌표
+                  // (bottom:100)에서, 하단 네비게이션 바와 같은 로컬
+                  // Stack(clipBehavior: Clip.none)으로 옮겼었다. 그러나
+                  // 이 방식은 실패했다 — Clip.none인 Stack은 자신의 박스
+                  // 높이(네비 바 자체 높이, ~90px)를 넘어서는 FAB(58px +
+                  // bottom:76 오프셋 = 134px 필요)를 "레이아웃 공간
+                  // 확보 없이 그림만 오버플로우"시킨다. Column은 형제를
+                  // 순서대로 그리므로, 이 Stack이 바로 위 형제인
+                  // Expanded(스크롤 영역)의 그려진 하단 일부 위에 겹쳐
+                  // 페인팅되어 버그가 전혀 해결되지 않았다(재검증
+                  // 스크린샷으로 확인).
+                  //
+                  // [최종 해결] 로컬 Stack을 고정 높이 SizedBox로 감싸,
+                  // FAB(58px)와 그 bottom 오프셋(24px)을 모두 포함하는
+                  // 충분한 높이(_fabZoneHeight)를 명시적으로 부여한다.
+                  // 이렇게 하면 FAB가 이 SizedBox "내부"에 완전히
+                  // 들어가고(오버플로우 없음), Column의 정식 레이아웃
+                  // 계산에서 이 높이만큼이 실제로 차지되어 Expanded가
+                  // 정확히 그만큼 줄어든다 — 즉 FAB 전용 공간이 진짜로
+                  // "예약"되므로, 화면 크기와 무관하게 스크롤 콘텐츠와
+                  // FAB가 서로 다른 레이아웃 영역에 격리된다. (텍스트
+                  // 숨김/배지 삭제/FAB 축소/폭 기반 분기 없이 위치 구조
+                  // 자체를 수정한 것 — 320/360/390 전 구간에서 동일하게
+                  // 안전하다.)
+                  SizedBox(
+                    height: _fabZoneHeight,
+                    child: Stack(
+                      alignment: Alignment.bottomCenter,
+                      children: [
+                        Align(
+                          alignment: Alignment.bottomCenter,
+                          child: _WishRoomBottomNav(
+                            onHome: () {},
+                            onFeed: _openFullBoard,
+                            onRecord: _openMy,
+                          ),
+                        ),
+                        Positioned(
+                          right: 20,
+                          bottom: 24,
+                          child: _ComposeFab(onPressed: _openCompose),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
-          ),
-
-          // ── FAB: bottom:100 right:20, 58x58 원, glow bg, + ──
-          Positioned(
-            right: 20,
-            bottom: 100,
-            child: _ComposeFab(onPressed: _openCompose),
           ),
         ],
       ),
@@ -953,10 +988,25 @@ class _WishListRow extends StatelessWidget {
                       ),
                       // [복주머니 확장 Phase03 — 지킴 부적 보호 배지,
                       // DECISION-004 합리적 판단] 자동 지급 없이 "적용 중"
-                      // 표시로만 실사용 의미를 부여한다.
+                      // 표시로만 실사용 의미를 부여한다. "지킴 보호"라는
+                      // 문맥 자체가 guardian 부적 전용 의미이므로, 조건은
+                      // 그대로 'talisman_guardian'만 유지한다(다른 2종
+                      // 부적까지 배지를 확장하는 것은 새 기능 추가에
+                      // 해당하므로 이번 STEP05-B 마무리 범위에서 하지
+                      // 않는다).
+                      // [STEP05-B 마무리 — 하드코딩 아이콘 제거] 과거에는
+                      // '🛡️' 문자를 직접 하드코딩해 CanvasKit에서 회색
+                      // 실루엣 버그가 발생했다. 이제 다른 화면
+                      // (_MyWishHighlightCard의 _TalismanAmbientBadge)과
+                      // 완전히 동일한 talismanVisualFor() 매핑을 사용해,
+                      // 화면마다 아이콘이 다르게 보이는 불일치 없이 항상
+                      // 정상 렌더링되는 🧿로 표시한다.
                       if (wish.talismanItemCode == 'talisman_guardian') ...[
                         const SizedBox(width: 6),
-                        const Text('🛡️', style: TextStyle(fontSize: 11)),
+                        Text(
+                          talismanVisualFor(wish.talismanItemCode!).icon,
+                          style: const TextStyle(fontSize: 11),
+                        ),
                       ],
                     ],
                   ),
