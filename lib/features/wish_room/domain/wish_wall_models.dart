@@ -182,6 +182,13 @@ class WishPost {
   bool hasPrayedToday;
   bool hasNewReaction;
 
+  // [STEP04 PART2 §1/§12] 서버 `toWishDto()`가 이미 내려주는
+  // `isMine`(currentUserId === w.userId) 필드. 이 소원이 로그인한 사용자
+  // 본인의 소원인지 여부 — 다른 사람 소원 상세(§6)에서 "이뤄졌어요" 버튼
+  // 대신 응원/복주머니 버튼을 보여줄지 판단하는 데 사용한다. 서버 값이
+  // 없으면(Mock 등) false로 안전하게 대체한다.
+  bool isMine;
+
   // [복주머니 확장 Phase02-A 클라이언트 연동] 서버 `toWishDto()`가 내려주는
   // 봉인→밝히기→이루어짐 상태 머신 필드. MockWishWallRepository(서버 API가
   // 없는 로컬 목데이터)는 이 필드들을 세팅하지 않을 수 있으므로 전부
@@ -236,6 +243,7 @@ class WishPost {
     this.hasSupportedByMe = false,
     this.hasPrayedToday = false,
     this.hasNewReaction = false,
+    this.isMine = false,
     this.wishState = 'sealed',
     this.sealedAt,
     this.unlockAt,

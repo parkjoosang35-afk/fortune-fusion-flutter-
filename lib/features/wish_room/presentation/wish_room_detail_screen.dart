@@ -1,13 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../shop/domain/shop_item_visuals.dart';
 import '../application/wish_wall_provider.dart';
 import '../domain/wish_wall_models.dart';
 import '../theme/wish_room_theme.dart';
+import '../widgets/blessing_bag_bottom_sheet.dart';
 import '../widgets/wish_room_bg_atmosphere.dart';
 import '../widgets/wish_room_buttons.dart';
 import '../widgets/wish_room_candle.dart';
+import '../widgets/wish_room_rise_heart.dart';
 import '../widgets/wish_room_seal.dart';
 import '../widgets/wish_room_seal_mapping.dart';
 import 'wish_room_celebration_screen.dart';
@@ -18,13 +23,25 @@ import 'wish_room_comments_screen.dart';
 /// [디자인 핸드오프 — pixel-perfect 재현] `wish-screens.jsx`의
 /// `ScreenDetail` 컴포넌트를 그대로 재구현한다: 상단 nav(←/`WISH · N°NN`/⋯)
 /// → 히어로 캔들(90px+radial glow) → 소원카드(날짜eyebrow+본문+3 pill) →
-/// 간절함 게이지(★★★★☆+progress bar) → 2개 액션(🔥 소원 더하기/✿ 이뤄졌어요)
-/// → quote footer(dashed border).
+/// 간절함 게이지(★★★★☆+progress bar) → 액션 버튼 → quote footer(dashed
+/// border).
 ///
-/// [절충 결정 — 소셜기능 매핑]
-/// - "🔥 소원 더하기" → 기존 무료 응원([WishWallProvider.support])에 매핑한다.
-///   V2 원본에는 응원/기도/복주머니 3버튼이 없고 이 2버튼뿐이므로, 가장
-///   유사한 무료 액션(응원=소원의 정성을 더함)에 대응시켰다(발명 최소화).
+/// [STEP04 PART2 §6 — 내/타인 소원 겸용 구조 결정]
+/// 이 화면은 "내 소원"과 "다른 사람 소원" 상세를 겸용한다(홈 화면의 내
+/// 소원 목록과, Feed의 다른 사람 소원 목록이 모두 이 화면으로 push된다).
+/// 서버 `toWishDto()`가 이미 `isMine`(로그인 사용자 본인 소원 여부)을
+/// 내려주므로([WishPost.isMine]), 이 값으로 액션 버튼 구성을 분기한다:
+/// - 내 소원(isMine=true): 기존 그대로 "🔥 소원 더하기"(응원)+"✿ 이뤄졌어요".
+/// - 다른 사람 소원(isMine=false): "💛 함께 응원하기"/"✨ 함께 응원했어요"+
+///   "🎁 복주머니 보내기" — "이뤄졌어요"는 소원 당사자만 판단할 수 있는
+///   액션이므로 숨긴다(발명 없이 기존 markWishFulfilled를 본인 소원에만
+///   노출).
+/// 화면을 물리적으로 둘로 쪼개지 않고 조건부 렌더링으로 처리해 중복 화면을
+/// 만들지 않는다(사용자 지시 — 중복 화면/역할을 함부로 합치거나 쪼개지
+/// 말 것).
+///
+/// - "🔥 소원 더하기"/"💛 함께 응원하기" → 기존 무료 응원
+///   ([WishWallProvider.support])에 매핑한다.
 /// - "✿ 이뤄졌어요" → [Phase02-A 클라이언트 연동] 서버에 실제 wishState/
 ///   fulfilledAt 필드가 생겼으므로, 로컬 확인 다이얼로그 →
 ///   [WishWallProvider.markWishFulfilled](서버 `PATCH /wishes/:id/fulfilled`,
@@ -35,6 +52,9 @@ import 'wish_room_comments_screen.dart';
 ///   않는다(중복 지급 방지 — 서버 트랜잭션 안에서 이미 checkPolicyEligibility
 ///   로 건당 1회를 판정·지급함). 하드코딩됐던 `daysToFulfill=89`는 제거하고
 ///   [WishPost.createdAt] 기준 실제 경과일([_daysSince])을 그대로 넘겨준다.
+/// - "🎁 복주머니 보내기" → 기존 [showBlessingBagBottomSheet]를 그대로
+///   재사용한다(wish_room_home_screen.dart의 `_openBlessingBagSend`와 동일
+///   패턴, 새 API/구조 추가 없음).
 /// - 간절함의 크기(★/progress) → [WishPost.glow](0.0~1.0, supportCount 기반
 ///   기존 계산식)를 그대로 재사용해 5단계 별점/게이지로 환산한다(새 필드
 ///   추가 없이 기존 데이터로 표현).
@@ -55,7 +75,31 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
   WishPost? _wish;
   bool _loading = true;
   bool _busy = false;
+  bool _showHeartBurst = false;
   List<WishComment> _comments = [];
+
+  /// [STEP04 PART2 §5] 응원/복주머니 감성 문구. 실제 count는 항상
+  /// [WishPost.supportCount]/[WishPost.pouchCount](서버 값)를 그대로 쓰고,
+  /// 이 헬퍼는 표현(문구)만 담당한다.
+  String _supportCountLabel(int count) {
+    if (count <= 0) return '🌙 첫 번째 응원이 되어주세요';
+    return '💛 $count명이 함께 빌고 있어요';
+  }
+
+  String _pouchCountLabel(int count) {
+    if (count <= 0) return '🎁 아직 도착한 복주머니가 없어요';
+    return '🎁 $count개의 복주머니가 도착했어요';
+  }
+
+  /// [STEP04 PART2 §4] HapticFeedback — 미지원 환경(웹 등)에서 예외가 나도
+  /// 화면 흐름에 영향을 주지 않도록 조용히 무시한다.
+  Future<void> _safeHaptic() async {
+    try {
+      await HapticFeedback.lightImpact();
+    } catch (_) {
+      // 진동 미지원 플랫폼(웹 등) — 안전하게 무시.
+    }
+  }
 
   @override
   void initState() {
@@ -100,22 +144,57 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
     return DateTime.now().difference(wish.createdAt).inDays + 1;
   }
 
-  Future<void> _addWish() async {
+  /// [STEP04 PART2 §1/§2/§3/§4] 응원하기.
+  ///
+  /// - 서버가 최종 판단한다: 로컬에서 `hasSupportedByMe`를 강제로 세팅하지
+  ///   않고, [WishWallProvider.support]가 반환한 [WishPost]/`alreadySupported`
+  ///   값을 그대로 신뢰한다.
+  /// - UI에서도 이미 응원한 소원이면 재요청을 막지만(버튼 비활성화 +
+  ///   `hasSupportedByMe` 체크), 서버 쪽 중복방지 로직(Like 유니크 제약)이
+  ///   최종 방어선이다.
+  /// - 신규 응원 성공(alreadySupported==false) 시에만 짧은 하트 연출 +
+  ///   Haptic을 실행한다(이미 응원한 소원을 다시 눌러도 재연출하지 않음).
+  Future<void> _doSupport() async {
     final wish = _wish;
-    if (wish == null || _busy) return;
-    if (wish.hasSupportedByMe) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('오늘은 이미 이 소원에 정성을 더했어요')));
-      return;
-    }
+    if (wish == null || _busy || wish.hasSupportedByMe) return;
     setState(() => _busy = true);
-    final updated = await context.read<WishWallProvider>().support(wish.id);
-    if (!mounted) return;
-    setState(() {
-      _wish = updated;
-      _busy = false;
-    });
+    try {
+      final result = await context.read<WishWallProvider>().support(wish.id);
+      if (!mounted) return;
+      setState(() {
+        _wish = result.wish;
+        _busy = false;
+        if (!result.alreadySupported) _showHeartBurst = true;
+      });
+      if (!result.alreadySupported) {
+        unawaited(_safeHaptic());
+        Future.delayed(const Duration(milliseconds: 800), () {
+          if (mounted) setState(() => _showHeartBurst = false);
+        });
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('오늘은 이미 이 소원에 정성을 더했어요')),
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _busy = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('응원에 실패했습니다. 다시 시도해주세요.')),
+      );
+    }
+  }
+
+  Future<void> _openSendPouch() async {
+    final wish = _wish;
+    if (wish == null) return;
+    final sent = await showBlessingBagBottomSheet(context, wish: wish);
+    if (sent == true && mounted) {
+      final refreshed = await context.read<WishWallProvider>().fetchDetail(
+        wish.id,
+      );
+      if (mounted && refreshed != null) setState(() => _wish = refreshed);
+    }
   }
 
   Future<void> _markFulfilled() async {
@@ -493,22 +572,85 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
                             ),
                           ),
                           const SizedBox(height: 14),
-                          // Actions
-                          Row(
+                          // [STEP04 PART2 §5] 응원/복주머니 감성 카운트
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _supportCountLabel(wish.supportCount),
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: WishRoomColors.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _pouchCountLabel(wish.pouchCount),
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: WishRoomColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          // [STEP04 PART2 §1/§2/§3/§6] Actions — isMine 조건부
+                          // 렌더링. 내 소원은 기존 그대로(소원 더하기+이뤄졌어요),
+                          // 다른 사람 소원은 응원+복주머니 버튼으로 대체한다.
+                          Stack(
+                            clipBehavior: Clip.none,
+                            alignment: Alignment.topCenter,
                             children: [
-                              Expanded(
-                                child: WishRoomSecondaryButton(
-                                  label: '🔥 소원 더하기',
-                                  onPressed: _busy ? null : _addWish,
-                                ),
+                              Row(
+                                children: wish.isMine
+                                    ? [
+                                        Expanded(
+                                          child: WishRoomSecondaryButton(
+                                            label: '🔥 소원 더하기',
+                                            onPressed: _busy ? null : _doSupport,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: WishRoomSecondaryButton(
+                                            label: '✿ 이뤄졌어요',
+                                            onPressed: _markFulfilled,
+                                          ),
+                                        ),
+                                      ]
+                                    : [
+                                        Expanded(
+                                          child: WishRoomSecondaryButton(
+                                            label: wish.hasSupportedByMe
+                                                ? '✨ 함께 응원했어요'
+                                                : '💛 함께 응원하기',
+                                            onPressed:
+                                                (_busy || wish.hasSupportedByMe)
+                                                ? null
+                                                : _doSupport,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: WishRoomSecondaryButton(
+                                            label: '🎁 복주머니 보내기',
+                                            onPressed: _openSendPouch,
+                                          ),
+                                        ),
+                                      ],
                               ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: WishRoomSecondaryButton(
-                                  label: '✿ 이뤄졌어요',
-                                  onPressed: _markFulfilled,
+                              if (_showHeartBurst)
+                                const Positioned(
+                                  top: -20,
+                                  child: WishRoomRiseHeart(
+                                    color: WishRoomColors.glow,
+                                    size: 20,
+                                  ),
                                 ),
-                              ),
                             ],
                           ),
                           const SizedBox(height: 14),

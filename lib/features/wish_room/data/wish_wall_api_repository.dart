@@ -98,9 +98,14 @@ class ApiWishWallRepository implements WishWallRepository {
       supportCount: json['supportCount'] as int? ?? 0,
       prayerCount: json['prayerCount'] as int? ?? 0,
       pouchCount: json['pouchCount'] as int? ?? 0,
-      hasSupportedByMe: false,
+      // [STEP04 PART2 §1] 서버가 항상 isSupportedByMe를 계산해 내려준다
+      // (목록: Like 배치조회, 상세: 개별조회, 응원: 항상 true). 클라이언트가
+      // 임의로 false 고정/true 강제하지 않고 서버 값을 그대로 신뢰한다.
+      hasSupportedByMe: json['isSupportedByMe'] as bool? ?? false,
       hasPrayedToday: false,
       hasNewReaction: false,
+      // [STEP04 PART2 §1/§12] 서버 toWishDto()의 isMine 필드를 그대로 매핑.
+      isMine: json['isMine'] as bool? ?? false,
       // [Phase02-A 클라이언트 연동] 서버 toWishDto()가 내려주는 상태머신
       // 필드. wishState가 없으면(구버전 응답 등) 'sealed'로 안전하게 대체.
       wishState: json['wishState'] as String? ?? 'sealed',
@@ -116,10 +121,19 @@ class ApiWishWallRepository implements WishWallRepository {
   }
 
   @override
-  Future<List<WishPost>> fetchFeed({String? categoryFilter}) async {
+  Future<List<WishPost>> fetchFeed({
+    String? categoryFilter,
+    String? sort,
+  }) async {
     final query = <String, String>{};
     if (categoryFilter != null && categoryFilter != 'all') {
       query['category'] = categoryFilter;
+    }
+    // [STEP04 PART2 §8] 서버 GET /api/public/wishes가 이미 지원하는 sort
+    // 파라미터(latest|popular)를 그대로 전달한다. 값이 없거나 알 수 없는
+    // 값이면 파라미터 자체를 보내지 않아 서버 기본값(latest)을 따른다.
+    if (sort == 'latest' || sort == 'popular') {
+      query['sort'] = sort!;
     }
     final uri = Uri.parse(
       _base,
@@ -234,7 +248,9 @@ class ApiWishWallRepository implements WishWallRepository {
   Future<void> deleteWish(String wishId) async {}
 
   @override
-  Future<WishPost> support(String wishId) async {
+  Future<({WishPost wish, bool alreadySupported})> support(
+    String wishId,
+  ) async {
     final uri = Uri.parse('$_base/$wishId/support');
     try {
       final headers = await _authHeaders(json: true);
@@ -245,9 +261,14 @@ class ApiWishWallRepository implements WishWallRepository {
       if (response.statusCode != 200 || decoded['success'] != true) {
         _fail('support', decoded['error'] ?? 'HTTP ${response.statusCode}');
       }
+      // [STEP04 PART2 §1] 서버가 최종 판단한다 — hasSupportedByMe를
+      // 클라이언트가 강제로 true로 덮어쓰지 않는다. 서버는
+      // toWishDto(..., true)로 항상 isSupportedByMe=true를 내려주므로
+      // _fromJson이 그대로 파싱하면 정확한 값이 된다. alreadySupported는
+      // 최상위 응답 필드(중복 응원 여부)를 그대로 신뢰한다.
       final wish = _fromJson(decoded['data'] as Map<String, dynamic>);
-      wish.hasSupportedByMe = true;
-      return wish;
+      final alreadySupported = decoded['alreadySupported'] as bool? ?? false;
+      return (wish: wish, alreadySupported: alreadySupported);
     } catch (e) {
       _fail('support', e);
     }

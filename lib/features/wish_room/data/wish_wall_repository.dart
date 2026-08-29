@@ -6,7 +6,10 @@ import '../domain/wish_wall_models.dart';
 /// 제공하며(§7.3 "개발 초기 Mock 우선" 권장 원칙), 추후 실 API 연동 시
 /// 이 인터페이스를 그대로 유지한 채 Repository 구현부만 교체하면 된다.
 abstract class WishWallRepository {
-  Future<List<WishPost>> fetchFeed({String? categoryFilter});
+  /// [STEP04 PART2 §8] [sort]는 서버가 지원하는 'latest'(기본) 또는
+  /// 'popular' 중 하나를 그대로 전달한다. 서버가 실제 정렬을 수행하며,
+  /// 클라이언트는 별도의 인기 점수를 계산하지 않는다.
+  Future<List<WishPost>> fetchFeed({String? categoryFilter, String? sort});
   Future<WishPost?> fetchDetail(String wishId);
   ///
   /// [복주머니 확장 Phase03 — 인장/촛불 "실사용"] [sealItemCode]/
@@ -52,7 +55,14 @@ abstract class WishWallRepository {
 
   Future<void> updateWishStatus(String wishId, {bool? isGratitude});
   Future<void> deleteWish(String wishId);
-  Future<WishPost> support(String wishId);
+
+  /// [STEP04 PART2 §1] 응원(support) — 서버가 최종 판단한다.
+  ///
+  /// 반환되는 [alreadySupported]는 "이번 호출 이전에 이미 응원했었는지"를
+  /// 나타낸다(=이번 호출로 count가 증가하지 않았음). 클라이언트는 이 값과
+  /// 갱신된 [wish]의 `hasSupportedByMe`/`supportCount`를 그대로 신뢰하며,
+  /// 로컬에서 임의로 `hasSupportedByMe`를 강제 설정하지 않는다.
+  Future<({WishPost wish, bool alreadySupported})> support(String wishId);
   Future<WishPost> submitDailyPrayer(String wishId);
   Future<List<WishPost>> fetchMyWishes();
   Future<List<WishComment>> fetchComments(String wishId);
@@ -306,12 +316,28 @@ class MockWishWallRepository implements WishWallRepository {
   }
 
   @override
-  Future<List<WishPost>> fetchFeed({String? categoryFilter}) async {
+  Future<List<WishPost>> fetchFeed({
+    String? categoryFilter,
+    String? sort,
+  }) async {
     await Future.delayed(const Duration(milliseconds: 200));
-    if (categoryFilter == null || categoryFilter == 'all') {
-      return List.of(_wishes);
+    List<WishPost> result = categoryFilter == null || categoryFilter == 'all'
+        ? List.of(_wishes)
+        : _wishes.where((w) => w.categoryId.name == categoryFilter).toList();
+    // [STEP04 PART2 §8] Mock에도 서버와 동일한 정렬 의미를 재현한다(서버
+    // popular 정렬: bokjuCount desc, supportCount desc / latest: createdAt desc).
+    if (sort == 'popular') {
+      result = List.of(result)
+        ..sort((a, b) {
+          final byPouch = b.pouchCount.compareTo(a.pouchCount);
+          if (byPouch != 0) return byPouch;
+          return b.supportCount.compareTo(a.supportCount);
+        });
+    } else {
+      result = List.of(result)
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     }
-    return _wishes.where((w) => w.categoryId.name == categoryFilter).toList();
+    return result;
   }
 
   @override
@@ -400,15 +426,18 @@ class MockWishWallRepository implements WishWallRepository {
   }
 
   @override
-  Future<WishPost> support(String wishId) async {
+  Future<({WishPost wish, bool alreadySupported})> support(
+    String wishId,
+  ) async {
     await Future.delayed(const Duration(milliseconds: 150));
     final wish = await fetchDetail(wishId);
     if (wish == null) throw Exception('소원을 찾을 수 없습니다');
-    if (!wish.hasSupportedByMe) {
+    final alreadySupported = wish.hasSupportedByMe;
+    if (!alreadySupported) {
       wish.hasSupportedByMe = true;
       wish.supportCount += 1;
     }
-    return wish;
+    return (wish: wish, alreadySupported: alreadySupported);
   }
 
   @override

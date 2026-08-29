@@ -31,10 +31,16 @@ class WishWallProvider extends ChangeNotifier {
     await loadFeed();
   }
 
-  Future<void> loadFeed() async {
+  // [STEP04 PART2 §8] 현재 선택된 정렬 기준('latest'|'popular'). 화면이
+  // 값을 바꾸면 [loadFeed]를 다시 호출해 서버에 새 sort로 재조회한다.
+  String _sort = 'latest';
+  String get sort => _sort;
+
+  Future<void> loadFeed({String? sort}) async {
+    if (sort != null) _sort = sort;
     _isLoading = true;
     notifyListeners();
-    _feed = await _repository.fetchFeed();
+    _feed = await _repository.fetchFeed(sort: _sort);
     _isLoading = false;
     _loaded = true;
     notifyListeners();
@@ -72,11 +78,18 @@ class WishWallProvider extends ChangeNotifier {
   }
 
   /// 응원(♥) — 무료, 즉시 반영.
-  Future<WishPost> support(String wishId) async {
-    final updated = await _repository.support(wishId);
-    _syncInLists(updated);
+  ///
+  /// [STEP04 PART2 §1] 서버가 최종 판단한 [WishPost.hasSupportedByMe]/
+  /// [WishPost.supportCount]와 이번 호출이 신규 응원이었는지(alreadySupported)
+  /// 여부를 그대로 반환한다. 호출부는 alreadySupported로 애니메이션/Haptic
+  /// 실행 여부를 결정할 수 있다(이미 응원한 경우 재연출하지 않기 위함).
+  Future<({WishPost wish, bool alreadySupported})> support(
+    String wishId,
+  ) async {
+    final result = await _repository.support(wishId);
+    _syncInLists(result.wish);
     notifyListeners();
-    return updated;
+    return result;
   }
 
   /// 오늘의 기도(✧) — 무료, 하루 1회.

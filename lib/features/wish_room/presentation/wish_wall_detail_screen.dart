@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../application/wish_wall_provider.dart';
@@ -50,13 +51,25 @@ class _WishWallDetailScreenState extends State<WishWallDetailScreen> {
     });
   }
 
+  // [STEP04 PART2 §1] support()가 이제 (wish, alreadySupported) 튜플을
+  // 반환한다. 서버가 최종 판단한 값을 그대로 신뢰하며, alreadySupported면
+  // 하트 연출을 다시 재생하지 않는다.
   Future<void> _doSupport() async {
     final wish = _wish;
     if (wish == null || wish.hasSupportedByMe) return;
-    setState(() => _burst = true);
-    final updated = await context.read<WishWallProvider>().support(wish.id);
+    final result = await context.read<WishWallProvider>().support(wish.id);
     if (!mounted) return;
-    setState(() => _wish = updated);
+    setState(() {
+      _wish = result.wish;
+      if (!result.alreadySupported) _burst = true;
+    });
+    if (!result.alreadySupported) {
+      try {
+        await HapticFeedback.lightImpact();
+      } catch (_) {
+        // 진동 미지원 플랫폼(웹 등) — 안전하게 무시.
+      }
+    }
   }
 
   Future<void> _doPray() async {
@@ -282,7 +295,9 @@ class _WishWallDetailScreenState extends State<WishWallDetailScreen> {
                             active: wish.hasSupportedByMe,
                             onTap: _doSupport,
                             icon: '♥',
-                            label: wish.hasSupportedByMe ? '응원했어요' : '응원',
+                            label: wish.hasSupportedByMe
+                                ? '✨ 함께 응원했어요'
+                                : '💛 함께 응원하기',
                             color: WishWallColors.red,
                             showBurst: _burst,
                           ),

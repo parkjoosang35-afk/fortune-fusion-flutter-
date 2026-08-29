@@ -52,6 +52,9 @@ class _WishRoomFeedScreenState extends State<WishRoomFeedScreen> {
 
   int _selectedChip = 0;
   final Set<String> _busySendIds = {};
+  // [STEP04 PART2 §8] 서버가 지원하는 sort 값('latest'|'popular')만
+  // 그대로 전달한다. 임의의 인기점수 계산 없음.
+  String _sort = 'latest';
 
   // [소원방 마무리 - Phase B] daily_feed_visit(+1, 1일 1회) — bokjumeoni-plan
   // §02 EARN "모두의 소원방을 스크롤해서 바닥까지 읽다 · 3소원 이상 읽어야
@@ -68,6 +71,12 @@ class _WishRoomFeedScreenState extends State<WishRoomFeedScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<WishWallProvider>().ensureLoaded();
     });
+  }
+
+  void _changeSort(String sort) {
+    if (_sort == sort) return;
+    setState(() => _sort = sort);
+    context.read<WishWallProvider>().loadFeed(sort: sort);
   }
 
   void _maybeClaimFeedVisitBonus(int builtIndex) {
@@ -195,6 +204,24 @@ class _WishRoomFeedScreenState extends State<WishRoomFeedScreen> {
                         },
                       ),
                     ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                      child: Row(
+                        children: [
+                          _SortChip(
+                            label: '✨ 최신',
+                            selected: _sort == 'latest',
+                            onTap: () => _changeSort('latest'),
+                          ),
+                          const SizedBox(width: 8),
+                          _SortChip(
+                            label: '🔥 응원 많은 소원',
+                            selected: _sort == 'popular',
+                            onTap: () => _changeSort('popular'),
+                          ),
+                        ],
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     Expanded(
                       child: loading
@@ -257,6 +284,44 @@ class _WishRoomFeedScreenState extends State<WishRoomFeedScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SortChip extends StatelessWidget {
+  const _SortChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: WishRoomColors.surfaceCardBorder),
+          color: selected ? WishRoomColors.glow : Colors.transparent,
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'GowunBatangWish',
+            fontSize: 12,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+            color: selected
+                ? const Color(0xFF3A2515)
+                : WishRoomColors.textSecondary,
+          ),
+        ),
       ),
     );
   }
@@ -362,7 +427,7 @@ class _FeedCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          '🕯 ${wish.supportCount}명이 함께 빌었어요',
+                          '💛 ${wish.supportCount}명이 함께 빌고 있어요',
                           style: const TextStyle(
                             fontFamily: 'IBMPlexMonoWish',
                             fontSize: 11,
@@ -384,7 +449,7 @@ class _FeedCard extends StatelessWidget {
                             border: Border.all(color: WishRoomColors.glow),
                           ),
                           child: Text(
-                            joined ? '함께 빌었어요' : '+ 함께 빌기',
+                            joined ? '✨ 함께 응원했어요' : '💛 응원',
                             style: const TextStyle(
                               fontFamily: 'GowunBatangWish',
                               fontSize: 11,
