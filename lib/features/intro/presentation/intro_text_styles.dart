@@ -196,4 +196,82 @@ class IntroTextStyles {
     fontWeight: FontWeight.w500,
     color: color ?? IntroPalette.textSecondary,
   );
+
+  // ───────────────────────── [Phase C - 03_Welcome_Reward.html 반영] ─────────────────────────
+
+  /// `.modal-eyebrow` — mono 10px, letter-spacing 0.35em, glow color.
+  static TextStyle modalEyebrow({Color? color}) => GoogleFonts.ibmPlexMono(
+    fontSize: 10,
+    fontWeight: FontWeight.w500,
+    letterSpacing: 3.5, // 0.35em * 10
+    color: color ?? IntroPalette.primary,
+    height: 1.0,
+  );
+
+  /// `.modal-title` — 900 22px/1.3, title()의 축소 버전과 동일 톤(formTitle과 공유).
+  static TextStyle modalTitle({Color? color}) =>
+      title(color: color, fontSize: 22);
+
+  /// `.modal-body` — Gowun Batang 400 12.5px/1.65, muted.
+  static TextStyle modalBody({Color? color}) => GoogleFonts.gowunBatang(
+    fontSize: 12.5,
+    fontWeight: FontWeight.w400,
+    height: 1.65,
+    color: color ?? IntroPalette.textSecondary,
+  );
+
+  /// `.modal-body strong` — fg, 700.
+  static TextStyle modalBodyStrong({Color? color}) => GoogleFonts.gowunBatang(
+    fontSize: 12.5,
+    fontWeight: FontWeight.w700,
+    height: 1.65,
+    color: color ?? IntroPalette.textPrimary,
+  );
+
+  /// `.info-row` — Gowun Batang 500 11.5px/1.4, fg.
+  static TextStyle infoRow({Color? color}) => GoogleFonts.gowunBatang(
+    fontSize: 11.5,
+    fontWeight: FontWeight.w500,
+    height: 1.4,
+    color: color ?? IntroPalette.textPrimary,
+  );
+
+  /// `.modal-note` — Pretendard 400 10.5px/1.5, muted.
+  static TextStyle modalNote({Color? color}) => const TextStyle(
+    fontFamily: 'Pretendard',
+    fontSize: 10.5,
+    fontWeight: FontWeight.w400,
+    height: 1.5,
+  ).copyWith(color: color ?? IntroPalette.textSecondary);
+
+  /// `.modal-note strong` — fg 강조.
+  static TextStyle modalNoteStrong({Color? color}) => const TextStyle(
+    fontFamily: 'Pretendard',
+    fontSize: 10.5,
+    fontWeight: FontWeight.w600,
+    height: 1.5,
+  ).copyWith(color: color ?? IntroPalette.textPrimary);
+
+  /// `.reward-counter .unit` — Gowun Batang 700 12px, glow.
+  static TextStyle rewardUnit({Color? color}) => GoogleFonts.gowunBatang(
+    fontSize: 12,
+    fontWeight: FontWeight.w700,
+    letterSpacing: -0.12, // -0.01em * 12
+    color: color ?? IntroPalette.primary,
+  );
+
+  /// `.toast` 본문 — Gowun Batang 500 12.5px/1.4, fg.
+  static TextStyle toastBody({Color? color}) => GoogleFonts.gowunBatang(
+    fontSize: 12.5,
+    fontWeight: FontWeight.w500,
+    height: 1.4,
+    color: color ?? IntroPalette.textPrimary,
+  );
+
+  /// `.toast` 서브 라벨 — muted 11px.
+  static TextStyle toastSub({Color? color}) => GoogleFonts.gowunBatang(
+    fontSize: 11,
+    fontWeight: FontWeight.w400,
+    color: color ?? IntroPalette.textSecondary,
+  );
 }

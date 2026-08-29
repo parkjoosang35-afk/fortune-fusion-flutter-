@@ -71,4 +71,10 @@ class IntroPalette {
   /// 비밀번호 확인 불일치 등 에러 힌트 텍스트·테두리에 사용한다. 인트로
   /// 3화면(01_Intro.html)에는 없던 색으로, 02번 핸드오프 문서에서 처음 등장했다.
   static const Color danger = Color(0xFFF5A8BD);
+
+  // ───────────────────────── [Phase C - 03_Welcome_Reward.html 반영] ─────────────────────────
+
+  /// 웰컴 리워드 팝업 stage 배경(핸드오프 `html, body { background: #0a0716 }`).
+  /// 팝업 백드롭(반투명 흑자색 + blur)의 기저색으로 사용한다.
+  static const Color voidBlack = Color(0xFF0A0716);
 }

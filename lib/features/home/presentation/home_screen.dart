@@ -23,6 +23,8 @@ import '../../../core/router/app_router.dart' show AppRouter;
 import '../application/home_page_config_provider.dart';
 import '../application/section_visibility_evaluator.dart';
 import '../../../core/widgets/premium_graphics.dart' show FadeSlideIn;
+import '../data/welcome_reward_flag_store.dart';
+import 'widgets/welcome_reward_modal.dart';
 
 // 2026-08-13 -- 톤 일관화 토큰. 신 클래스/신 색상 정의 0.
 class _Tone {
@@ -174,7 +176,46 @@ class _HomeScreenState extends State<HomeScreen> {
       // 요청이 발생하도록 최소화했다(다른 탭만 쓰는 사용자는 이 호출이 아예
       // 발생하지 않음).
       _loadHomePageConfigAndVerify();
+
+      // [Phase C - 03_Welcome_Reward.html Flow notes 반영] "회원가입 완료 →
+      // 홈 자동 진입 → 0.4s 딜레이 → 신통도령 팝업" 시퀀스. 기존
+      // Wallet/Attendance/Pass/Notification/HealingQuote 로드 로직은 전혀
+      // 건드리지 않고, 이 postFrameCallback 안에 새 호출 1개만 추가한다.
+      _maybeShowWelcomeRewardModal();
     });
+  }
+
+  /// [Phase C] `AuthProvider.lastSignupReward`가 존재하고(=이번 세션에서
+  /// 방금 회원가입이 성공해 홈에 처음 도달) 아직 로컬 플래그로 수령
+  /// 처리되지 않았을 때만 웰컴 리워드 팝업을 1회 노출한다.
+  ///
+  /// `lastSignupReward`는 프로세스 메모리에만 존재하는 값이라(앱 재시작/
+  /// 재로그인 시 자연스럽게 null) 별도의 서버 플래그 없이도 "같은 세션 내
+  /// 최초 1회"라는 제약이 자동으로 성립한다. 로컬
+  /// [WelcomeRewardFlagStore]는 같은 세션 안에서 HomeScreen이 여러 번
+  /// 재빌드/재진입되는 경우(예: 뒤로가기 후 재진입)에 대한 추가 방어선이다.
+  Future<void> _maybeShowWelcomeRewardModal() async {
+    final auth = context.read<AuthProvider>();
+    final reward = auth.lastSignupReward;
+    final userId = auth.currentUser?.id;
+    if (reward == null || userId == null) return;
+
+    final amount = (reward['amount'] as num?)?.toInt() ?? 0;
+    if (amount <= 0) return;
+
+    final alreadyClaimed = await WelcomeRewardFlagStore.isClaimed(userId);
+    if (alreadyClaimed || !mounted) return;
+
+    await Future.delayed(const Duration(milliseconds: 400));
+    if (!mounted) return;
+
+    await WelcomeRewardModal.show(
+      context,
+      amount: amount,
+      onClaim: () {
+        WelcomeRewardFlagStore.markClaimed(userId);
+      },
+    );
   }
 
   /// [6-4-B] HomePageConfigProvider.load() 완료 후, 실제 AuthProvider/
