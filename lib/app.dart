@@ -267,8 +267,27 @@ class App extends StatelessWidget {
             themeMode: themeProvider.mode,
             initialRoute: '/splash',
             onGenerateRoute: AppRouter.onGenerateRoute,
-            builder: (context, child) =>
-                LuckPouchToastOverlay(child: child ?? const SizedBox.shrink()),
+            builder: (context, child) {
+              // [STEP05-B STEP7 임시 검증용] URL 쿼리 파라미터로 텍스트
+              // 스케일을 강제 오버라이드해 접근성 큰글씨 시나리오를 실제
+              // 화면에서 재현한다. 검증 완료 후 이 블록은 제거한다.
+              Widget wrapped = LuckPouchToastOverlay(
+                child: child ?? const SizedBox.shrink(),
+              );
+              final tsParam = Uri.base.queryParameters['textScale'];
+              if (tsParam != null) {
+                final scale = double.tryParse(tsParam);
+                if (scale != null) {
+                  wrapped = MediaQuery(
+                    data: MediaQuery.of(context).copyWith(
+                      textScaler: TextScaler.linear(scale),
+                    ),
+                    child: wrapped,
+                  );
+                }
+              }
+              return wrapped;
+            },
           );
         },
       ),
