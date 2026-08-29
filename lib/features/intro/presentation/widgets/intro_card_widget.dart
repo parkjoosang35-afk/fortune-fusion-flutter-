@@ -10,6 +10,7 @@ class IntroCardWidget extends StatelessWidget {
   final IconData icon;
   final String? badgeText;
   final Color heroColor;
+  final String? characterAsset;
   final bool showCounter;
   final int counterTarget;
   final String counterSuffix;
@@ -21,6 +22,7 @@ class IntroCardWidget extends StatelessWidget {
     required this.icon,
     this.badgeText,
     required this.heroColor,
+    this.characterAsset,
     this.showCounter = false,
     this.counterTarget = 12,
     this.counterSuffix = '개',
@@ -42,6 +44,7 @@ class IntroCardWidget extends StatelessWidget {
             icon: icon,
             badgeText: badgeText,
             cardColor: heroColor,
+            characterAsset: characterAsset,
             showCounter: showCounter,
             counterTarget: counterTarget,
             counterSuffix: counterSuffix,

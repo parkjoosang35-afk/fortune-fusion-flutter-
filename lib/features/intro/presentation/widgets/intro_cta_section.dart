@@ -42,22 +42,27 @@ class IntroCTASection extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            width: 88,
-            height: 88,
-            alignment: Alignment.center,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [IntroPalette.primary, IntroPalette.primaryDark],
+          // [핸드오프 반영] 신통도령 celebrating - halo + 이미지
+          Center(
+            child: Container(
+              width: 148,
+              height: 148,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    IntroPalette.primary.withValues(alpha: 0.30),
+                    IntroPalette.primary.withValues(alpha: 0.0),
+                  ],
+                ),
               ),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.auto_awesome_rounded,
-              size: 40,
-              color: IntroPalette.onPrimary,
+              child: Image.asset(
+                'assets/images/home/doryeong/celebrating.png',
+                width: 130,
+                height: 130,
+                fit: BoxFit.contain,
+              ),
             ),
           ),
           const SizedBox(height: UnifiedTokens.spaceXxl),

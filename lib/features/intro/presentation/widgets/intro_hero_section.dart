@@ -17,6 +17,10 @@ class IntroHeroSection extends StatelessWidget {
   final String? badgeText;
   final Color cardColor;
 
+  /// [핸드오프 반영] 신통도령 캐릭터 이미지 경로(assets/images/home/doryeong/*.png).
+  /// 지정하면 아이콘 원 대신 캐릭터 이미지를 halo 배경과 함께 보여준다.
+  final String? characterAsset;
+
   /// true면 [counterTarget]까지 숫자가 올라가는 카운트업 애니메이션을 보여준다
   /// (복주머니 카드 전용 — "복주머니 개수 증가" 요구사항 대응).
   final bool showCounter;
@@ -28,6 +32,7 @@ class IntroHeroSection extends StatelessWidget {
     required this.icon,
     this.badgeText,
     this.cardColor = IntroPalette.primaryLight,
+    this.characterAsset,
     this.showCounter = false,
     this.counterTarget = 12,
     this.counterSuffix = '개',
@@ -49,22 +54,45 @@ class IntroHeroSection extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  width: 84,
-                  height: 84,
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        IntroPalette.primary,
-                        IntroPalette.primaryDark,
-                      ],
+                if (characterAsset != null)
+                  // [핸드오프 반영] 신통도령 캐릭터 - halo(은은한 후광) + 이미지
+                  Container(
+                    width: 132,
+                    height: 132,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          IntroPalette.primary.withValues(alpha: 0.28),
+                          IntroPalette.primary.withValues(alpha: 0.0),
+                        ],
+                      ),
                     ),
-                    shape: BoxShape.circle,
+                    child: Image.asset(
+                      characterAsset!,
+                      width: 116,
+                      height: 116,
+                      fit: BoxFit.contain,
+                    ),
+                  )
+                else
+                  Container(
+                    width: 84,
+                    height: 84,
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          IntroPalette.primary,
+                          IntroPalette.primaryDark,
+                        ],
+                      ),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(icon, size: 40, color: IntroPalette.onPrimary),
                   ),
-                  child: Icon(icon, size: 40, color: IntroPalette.onPrimary),
-                ),
                 if (showCounter) ...[
                   const SizedBox(height: UnifiedTokens.spaceLg),
                   TweenAnimationBuilder<int>(

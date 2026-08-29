@@ -188,6 +188,8 @@ class _IntroPagerScreenState extends State<IntroPagerScreen> {
       icon: Icons.lock_open_rounded,
       badgeText: '1시간',
       heroColor: IntroPalette.primaryLight,
+      // [핸드오프 반영] 오늘의 운세/크리스탈 테마 카드 → crystal.png
+      characterAsset: 'assets/images/home/doryeong/crystal.png',
       title: config.card1Title,
       description: config.card1Description,
     );
@@ -197,6 +199,8 @@ class _IntroPagerScreenState extends State<IntroPagerScreen> {
     return IntroCardWidget(
       icon: Icons.card_giftcard_rounded,
       heroColor: IntroPalette.primaryLight,
+      // [핸드오프 반영] 귀인지도/부적 테마 카드 → scroll.png
+      characterAsset: 'assets/images/home/doryeong/scroll.png',
       showCounter: true,
       counterTarget: 12,
       title: config.card2Title,

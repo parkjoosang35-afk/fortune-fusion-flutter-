@@ -143,19 +143,19 @@ class _SplashScreenState extends State<SplashScreen>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                // [핸드오프 반영] 신통도령 greeting - halo(glow) + 캐릭터 이미지
                 Container(
-                  width: 88,
-                  height: 88,
+                  width: 148,
+                  height: 148,
+                  alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
                       colors: [
-                        IntroPalette.primary,
-                        IntroPalette.primaryDark,
+                        IntroPalette.primary.withValues(alpha: 0.35),
+                        IntroPalette.primary.withValues(alpha: 0.0),
                       ],
                     ),
-                    shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
                         color: IntroPalette.primary.withValues(alpha: 0.45),
@@ -164,10 +164,11 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
                     ],
                   ),
-                  child: const Icon(
-                    Icons.auto_awesome_rounded,
-                    color: IntroPalette.onPrimary,
-                    size: 40,
+                  child: Image.asset(
+                    'assets/images/home/doryeong/greeting.png',
+                    width: 130,
+                    height: 130,
+                    fit: BoxFit.contain,
                   ),
                 ),
                 const SizedBox(height: UnifiedTokens.spaceXxl),
