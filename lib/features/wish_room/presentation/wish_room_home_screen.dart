@@ -379,21 +379,37 @@ class _WishRoomHomeScreenState extends State<WishRoomHomeScreen> {
               padding: const EdgeInsets.only(top: 14, bottom: 0),
               child: Column(
                 children: [
-                  _HomeHeader(
-                    balance: balance,
-                    onOpenMoon: _openFullBoard,
-                    onOpenPouch: _openBlessingBagReceive,
-                    onOpenShop: _openShop,
-                    onOpenGuide: _openOnboardingReview,
-                  ),
-                  _CandleAltar(wishCount: wishCount, totalDays: totalDays),
-                  const SizedBox(height: 20),
-                  // [STEP03 — 접근성/안정성] 강조 카드와 "오늘의 소원 활동"을
-                  // 고정 영역이 아니라 아래 리스트와 함께 스크롤되는 영역
-                  // 안으로 넣어, 작은 화면에서도 오버플로우 없이 항상
-                  // 전체 콘텐츠에 도달할 수 있게 한다.
+                  // [STEP7 — 320px + textScale≥1.3 FAB-전역 네비게이션
+                  // 겹침 버그 근본 수정] 과거에는 _HomeHeader/_CandleAltar가
+                  // Column의 "고정(non-flex)" 형제였다. textScale이 커지면
+                  // 이 두 위젯의 텍스트 렌더링 높이가 함께 커지는데, 고정
+                  // 영역(헤더+제단+20+_fabZoneHeight)의 합이 320×568 같은
+                  // 작은 뷰포트에서 화면 높이를 초과하면 Expanded가 0 아래로
+                  // 줄어들 수 없어 Column 전체가 overflow된다. release
+                  // 빌드는 이 overflow를 클리핑하지 않고 그대로 그리므로,
+                  // Column의 마지막 자식인 FAB존이 화면 밖(앱 전역
+                  // BottomNavigationBar 영역)까지 밀려나 겹쳐 보였다
+                  // (실제 캡처 wr_320_ts13.png / crop_fab_320_ts13.png로
+                  // 확인).
+                  //
+                  // [해결] 헤더와 제단도 이미 존재하는 스크롤 영역
+                  // (_WishListSection의 CustomScrollView, 바로 위 주석에
+                  // 적힌 것과 동일한 이유로 하이라이트 카드를 스크롤 영역에
+                  // 넣었던 선례)에 슬리버로 편입시킨다. 이렇게 하면
+                  // Column에는 Expanded(스크롤 영역) 하나와 고정
+                  // _fabZoneHeight 하나만 남고, textScale이 얼마나 커지든
+                  // 텍스트는 스크롤 영역 안에서 더 스크롤되기만 할 뿐 FAB존
+                  // 높이를 침범하지 않는다(FAB존은 항상 화면 안, 항상 같은
+                  // 위치).
                   Expanded(
                     child: _WishListSection(
+                      balance: balance,
+                      wishCount: wishCount,
+                      totalDays: totalDays,
+                      onOpenMoon: _openFullBoard,
+                      onOpenPouch: _openBlessingBagReceive,
+                      onOpenShop: _openShop,
+                      onOpenGuide: _openOnboardingReview,
                       wishes: wishes,
                       isLoading: provider.isLoading,
                       onSeeAll: _openMy,
@@ -746,6 +762,13 @@ class _CandleAltar extends StatelessWidget {
 /// 화면 밖으로 잘리지 않도록 한다(사용자 지시 §14 접근성/안정성).
 class _WishListSection extends StatelessWidget {
   const _WishListSection({
+    required this.balance,
+    required this.wishCount,
+    required this.totalDays,
+    required this.onOpenMoon,
+    required this.onOpenPouch,
+    required this.onOpenShop,
+    this.onOpenGuide,
     required this.wishes,
     required this.isLoading,
     required this.onSeeAll,
@@ -756,6 +779,16 @@ class _WishListSection extends StatelessWidget {
     this.onSupport,
     this.onPouch,
   });
+
+  // [STEP7 — FAB 겹침 버그 수정] 헤더/제단을 이 스크롤 영역의 슬리버로
+  // 편입시키기 위해 필요한 값들. 위 build() 상단의 [근본 수정] 주석 참고.
+  final int balance;
+  final int wishCount;
+  final int totalDays;
+  final VoidCallback onOpenMoon;
+  final VoidCallback onOpenPouch;
+  final VoidCallback onOpenShop;
+  final VoidCallback? onOpenGuide;
 
   final List<WishPost> wishes;
   final bool isLoading;
@@ -775,6 +808,19 @@ class _WishListSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return CustomScrollView(
       slivers: [
+        SliverToBoxAdapter(
+          child: _HomeHeader(
+            balance: balance,
+            onOpenMoon: onOpenMoon,
+            onOpenPouch: onOpenPouch,
+            onOpenShop: onOpenShop,
+            onOpenGuide: onOpenGuide,
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: _CandleAltar(wishCount: wishCount, totalDays: totalDays),
+        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 20)),
         if (highlightWish != null) ...[
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
