@@ -22,6 +22,10 @@ class UserModel {
   final String? birthPlace;
   final String? gender;
   final String grade; // user_grades 연계(향후)
+  // [Phase C - 웰컴 리워드 팝업 1회성 노출] 서버 users.welcome_gift_claimed 값.
+  // WelcomeRewardModal(회원가입 웰컴 리워드 팝업) CTA를 이미 탭했는지 여부를
+  // 서버 기준으로 판별하기 위한 필드(클라이언트 로컬 저장소 대체).
+  final bool welcomeGiftClaimed;
 
   const UserModel({
     required this.id,
@@ -35,6 +39,7 @@ class UserModel {
     this.birthPlace,
     this.gender,
     this.grade = 'normal',
+    this.welcomeGiftClaimed = false,
   });
 
   UserModel copyWith({
@@ -47,6 +52,7 @@ class UserModel {
     bool? birthTimeUnknown,
     String? birthPlace,
     String? gender,
+    bool? welcomeGiftClaimed,
   }) {
     return UserModel(
       id: id,
@@ -60,6 +66,7 @@ class UserModel {
       birthPlace: birthPlace ?? this.birthPlace,
       gender: gender ?? this.gender,
       grade: grade,
+      welcomeGiftClaimed: welcomeGiftClaimed ?? this.welcomeGiftClaimed,
     );
   }
 
@@ -75,6 +82,7 @@ class UserModel {
     'birth_place': birthPlace,
     'gender': gender,
     'grade': grade,
+    'welcome_gift_claimed': welcomeGiftClaimed,
   };
 
   factory UserModel.fromJson(Map<String, dynamic> json) => UserModel(
@@ -89,5 +97,6 @@ class UserModel {
     birthPlace: json['birth_place'] as String?,
     gender: json['gender'] as String?,
     grade: json['grade'] as String? ?? 'normal',
+    welcomeGiftClaimed: json['welcome_gift_claimed'] as bool? ?? false,
   );
 }

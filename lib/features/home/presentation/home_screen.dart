@@ -23,7 +23,6 @@ import '../../../core/router/app_router.dart' show AppRouter;
 import '../application/home_page_config_provider.dart';
 import '../application/section_visibility_evaluator.dart';
 import '../../../core/widgets/premium_graphics.dart' show FadeSlideIn;
-import '../data/welcome_reward_flag_store.dart';
 import 'widgets/welcome_reward_modal.dart';
 
 // 2026-08-13 -- 톤 일관화 토큰. 신 클래스/신 색상 정의 0.
@@ -189,22 +188,20 @@ class _HomeScreenState extends State<HomeScreen> {
   /// 방금 회원가입이 성공해 홈에 처음 도달) 아직 로컬 플래그로 수령
   /// 처리되지 않았을 때만 웰컴 리워드 팝업을 1회 노출한다.
   ///
-  /// `lastSignupReward`는 프로세스 메모리에만 존재하는 값이라(앱 재시작/
-  /// 재로그인 시 자연스럽게 null) 별도의 서버 플래그 없이도 "같은 세션 내
-  /// 최초 1회"라는 제약이 자동으로 성립한다. 로컬
-  /// [WelcomeRewardFlagStore]는 같은 세션 안에서 HomeScreen이 여러 번
-  /// 재빌드/재진입되는 경우(예: 뒤로가기 후 재진입)에 대한 추가 방어선이다.
+  /// [서버 필드 기준 판별 - 로커설 플래그 대체] `UserModel.welcomeGiftClaimed`
+  /// (서버 users.welcome_gift_claimed)가 이미 true면 절대 다시 띄우지 않는다.
+  /// 앱 재설치/다른 기기 로그인 등 멀티 디바이스 상황에서도 서버 값이
+  /// 단일 진실 소스다. `lastSignupReward`(프로세스 메모리 값, 회원가입
+  /// 직후에만 존재)가 있고 amount>0이면서 아직 claim되지 않은 경우에만
+  /// 팝업을 띄운다.
   Future<void> _maybeShowWelcomeRewardModal() async {
     final auth = context.read<AuthProvider>();
+    final user = auth.currentUser;
     final reward = auth.lastSignupReward;
-    final userId = auth.currentUser?.id;
-    if (reward == null || userId == null) return;
+    if (user == null || reward == null || user.welcomeGiftClaimed) return;
 
     final amount = (reward['amount'] as num?)?.toInt() ?? 0;
-    if (amount <= 0) return;
-
-    final alreadyClaimed = await WelcomeRewardFlagStore.isClaimed(userId);
-    if (alreadyClaimed || !mounted) return;
+    if (amount <= 0 || !mounted) return;
 
     await Future.delayed(const Duration(milliseconds: 400));
     if (!mounted) return;
@@ -213,7 +210,7 @@ class _HomeScreenState extends State<HomeScreen> {
       context,
       amount: amount,
       onClaim: () {
-        WelcomeRewardFlagStore.markClaimed(userId);
+        auth.claimWelcomeGift();
       },
     );
   }

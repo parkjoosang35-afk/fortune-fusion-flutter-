@@ -257,4 +257,22 @@ class AuthRepository {
   Future<void> _persistSession(UserModel user, String token) async {
     await AuthTokenStore.save(token: token, userId: int.parse(user.id));
   }
+
+  /// [Phase C - 웰컴 리워드 팝업 1회성 노출] WelcomeRewardModal의 CTA("복주머니
+  /// 받기") 탭 시 호출. 서버 `users.welcome_gift_claimed`를 true로 갱신해
+  /// 이후 세션 복원/재로그인 시 팝업이 다시 뜨지 않도록 한다. 실패해도(네트워크
+  /// 오류 등) 팝업 자체는 이미 닫힌 뒤이므로 조용히 무시한다(사용자 경험을
+  /// 막지 않음 — 다음 세션에서 재시도될 수 있음을 감수).
+  Future<void> claimWelcomeGift() async {
+    final token = await AuthTokenStore.getToken();
+    if (token == null) return;
+    final uri = Uri.parse('$_base/welcome-gift/claim');
+    try {
+      await http
+          .post(uri, headers: {'Authorization': 'Bearer $token'})
+          .timeout(const Duration(seconds: 10));
+    } catch (e) {
+      debugPrint('[AuthRepository] [claimWelcomeGift] 예외 -> $e');
+    }
+  }
 }

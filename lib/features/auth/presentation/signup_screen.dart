@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/config/env_config.dart';
 import '../../../core/widgets/app_toast.dart';
-import '../../../core/widgets/luck_pouch_toast.dart';
 import '../../intro/presentation/intro_palette.dart';
 import '../../intro/presentation/intro_text_styles.dart';
 import '../../intro/presentation/widgets/intro_title_text.dart';
@@ -110,16 +109,16 @@ class _SignupScreenState extends State<SignupScreen> {
     setState(() => _isSubmitting = false);
 
     if (ok) {
-      // [인트로 전면 개편 - SignupRewardHandler] 서버가 회원가입 보상을
-      // 지급했으면(amount>0) WalletProvider를 즉시 갱신해 잔액을 최신화하고,
-      // "회원가입 보상 +100 복주머니" 토스트를 띄운다. 정책 비활성 등으로
-      // signupReward가 null이면 조용히 건너뛴다(가입 자체는 그대로 성공 처리).
+      // [Phase C - WelcomeRewardModal로 통합] 서버가 회원가입 보상을
+      // 지급했으면(amount>0) WalletProvider를 즉시 갱신해 잔액을 최신화한다.
+      // 과거에는 여기서 "회원가입 보상 +N 복주머니" 토스트를 함께 띄웠지만,
+      // 이제 HomeScreen 진입 시 WelcomeRewardModal(팝업)이 동일한 정보를
+      // 더 풍성하게 보여주므로 중복 알림을 제거했다(토스트+팝업 동시 노출 방지).
       final reward = context.read<AuthProvider>().lastSignupReward;
       final rewardAmount = reward?['amount'] as int?;
       if (rewardAmount != null && rewardAmount > 0) {
         await context.read<WalletProvider>().load();
         if (!mounted) return;
-        LuckPouchToastController.instance.showSignupReward(rewardAmount);
       }
       if (!mounted) return;
       Navigator.of(

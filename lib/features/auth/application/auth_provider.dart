@@ -151,6 +151,17 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// [Phase C - 웰컴 리워드 팝업 1회성 노출] WelcomeRewardModal CTA 탭 시 호출.
+  /// 서버에 클레임을 기록하는 동시에, 현재 세션의 UserModel도 즉시 갱신해
+  /// (재조회 없이) `welcomeGiftClaimed == true`가 바로 반영되도록 한다.
+  Future<void> claimWelcomeGift() async {
+    final user = currentUser;
+    if (user == null || user.welcomeGiftClaimed) return;
+    _state = LoadState.success(user.copyWith(welcomeGiftClaimed: true));
+    notifyListeners();
+    await _repository.claimWelcomeGift();
+  }
+
   /// Phase2-3: 회원탈퇴(소프트삭제) - 02번 §1.1
   Future<bool> withdraw() async {
     final email = currentUser?.email;

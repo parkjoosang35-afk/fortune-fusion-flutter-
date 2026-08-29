@@ -24,14 +24,14 @@ import 'welcome_reward_pouch.dart';
 /// [범위 격리 원칙] 색상/스타일은 `IntroPalette`/`IntroTextStyles`(격리된
 /// 핸드오프 전용 팔레트)만 참조하고 앱 전역 메인 컬러 파일은 참조하지 않는다.
 ///
-/// [통합 지점 - 기존 로직과의 관계] 이 모달은 "STATE 1(팝업 등장)"만 담당한다.
-/// "STATE 2(카운터 tick + 토스트)"에 해당하는 실제 지급 확인 알림은 이미
-/// signup_screen.dart._submit()에서 회원가입 성공 직후
-/// `LuckPouchToastController.showSignupReward()`로 먼저 트리거되어 있으므로
-/// (기존 로직 불변 원칙), 이 모달의 CTA("복주머니 받기") 탭 시에는 중복 알림을
-/// 다시 띄우지 않고 1회성 노출 플래그만 소비한 뒤 fade-out으로 닫는다. 홈
-/// 상단의 복주머니 잔액 배지는 이미 WalletProvider가 실 잔액을 반영하고
-/// 있어 별도 카운터 tick 애니메이션 없이도 최신값이 보인다.
+/// [통합 지점 - 기존 로직과의 관계] 과거에는 회원가입 성공 직후
+/// `LuckPouchToastController.showSignupReward()` 토스트가 별도로 떴지만,
+/// 이 모달이 동일 정보를 더 풍성하게 보여주므로 해당 토스트 호출은
+/// signup_screen.dart에서 제거했다(중복 알림 방지, 커밋 "Phase C 서버 연동"
+/// 참고). CTA("복주머니 받기") 탭 시에는 `AuthProvider.claimWelcomeGift()`를
+/// 호출해 서버 `users.welcome_gift_claimed`를 true로 갱신한 뒤 fade-out으로
+/// 닫는다. 홈 상단의 복주머니 잔액 배지는 이미 WalletProvider가 실 잔액을
+/// 반영하고 있어 별도 카운터 tick 애니메이션 없이도 최신값이 보인다.
 class WelcomeRewardModal extends StatefulWidget {
   final int amount;
   final VoidCallback onClaim;
