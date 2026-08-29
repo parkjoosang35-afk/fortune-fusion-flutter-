@@ -139,6 +139,11 @@ model User {
   // 하지 않음 — 데이터 임의 수정 금지 원칙).
   termsAgreedAt    DateTime? @map("terms_agreed_at")
   privacyAgreedAt  DateTime? @map("privacy_agreed_at")
+  // [Phase C - 웰컴 리워드 팝업 1회성 노출] 회원가입 웰컴 리워드 팝업(WelcomeRewardModal,
+  // Flutter 03_Welcome_Reward.html)을 이미 확인(CTA "복주머니 받기" 탭)했는지 여부.
+  // 클라이언트 로컬 저장소(SharedPreferences) 대신 서버 필드로 관리해 앱 재설치/
+  // 다른 기기 로그인 등 멀티 디바이스 상황에서도 팝업이 정확히 1회만 노출되도록 한다.
+  welcomeGiftClaimed Boolean @default(false) @map("welcome_gift_claimed")
   gradeId          Int?      @map("grade_id")
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")

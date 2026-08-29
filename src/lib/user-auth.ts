@@ -79,6 +79,7 @@ export function toUserDto(user: {
   email: string | null;
   gender: string | null;
   grade: { code: string } | null;
+  welcomeGiftClaimed?: boolean;
   profile: {
     birthDate: string | null;
     birthTime: string | null;
@@ -100,6 +101,8 @@ export function toUserDto(user: {
     birth_place: user.profile?.birthPlace ?? null,
     gender: user.gender,
     grade: user.grade?.code ?? "bronze",
+    // [Phase C - 웰컴 리워드 팝업 1회성 노출] 서버 필드 기준 판별용.
+    welcome_gift_claimed: user.welcomeGiftClaimed ?? false,
   };
 }
 
