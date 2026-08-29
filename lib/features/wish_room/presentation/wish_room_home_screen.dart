@@ -16,6 +16,7 @@ import 'wish_room_compose_screen.dart';
 import 'wish_room_detail_screen.dart';
 import 'wish_room_empty_screen.dart';
 import 'wish_room_feed_screen.dart';
+import 'wish_room_onboarding_screen.dart';
 import 'wish_wall_my_screen.dart';
 
 /// 소원방(Wish Room) — "나의 소원방" 홈 화면.
@@ -223,6 +224,85 @@ class _WishRoomHomeScreenState extends State<WishRoomHomeScreen> {
     );
   }
 
+  /// [STEP03 — 소원방 핵심 UX 재설계] "이용안내" 재진입 버튼.
+  ///
+  /// [wishRoomOnboardingSeenPrefsKey 불변 원칙] 이 버튼은 온보딩 화면을
+  /// 단순히 다시 "보여주기"만 할 뿐, [markWishRoomOnboardingSeen]을
+  /// 호출하지 않는다 — 이미 이 화면(홈)에 도달했다는 것 자체가 온보딩을
+  /// 이미 통과했다는 뜻이므로 seen 상태를 다시 건드릴 이유가 없다.
+  /// onEnter/onHaveAccount 콜백은 [WishRoomEntryGate]처럼 상태를 저장하지
+  /// 않고 단순히 이 화면을 닫기만 한다(순수 재열람).
+  void _openOnboardingReview() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => WishRoomOnboardingScreen(
+          onEnter: () => Navigator.of(context).pop(),
+          onHaveAccount: () => Navigator.of(context).pop(),
+        ),
+      ),
+    );
+  }
+
+  /// [STEP03 — 오늘의 소원 활동 · 촛불 켜기] 새 보상정책을 만들지 않고
+  /// 기존 서버 정책(daily_candle, +1, 1일 1회)만 그대로 호출한다.
+  Future<void> _handleTodayCandle() async {
+    final policy = context.read<WishWallProvider>().policy;
+    final granted = await policy.earnDailyCandleBonus();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text(
+          granted > 0 ? '오늘의 촛불을 켰어요 (+$granted 🎁)' : '오늘은 이미 촛불을 켰어요',
+        ),
+      ),
+    );
+  }
+
+  /// [STEP03 — 오늘의 소원 활동 · 응원하기] 기존 무료 응원
+  /// ([WishWallProvider.support], 상세 화면과 동일 액션)을 그대로 재사용한다.
+  Future<void> _handleTodaySupport(WishPost wish) async {
+    if (wish.hasSupportedByMe) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('오늘은 이미 이 소원에 정성을 더했어요'),
+        ),
+      );
+      return;
+    }
+    await context.read<WishWallProvider>().support(wish.id);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text('소원에 응원을 보냈어요 💛'),
+      ),
+    );
+  }
+
+  /// [STEP03 — 오늘의 소원 활동 · 복주머니 사용] 강조된 나의 소원이 있으면
+  /// 그 소원에 "보내기"를, 없으면 "받기" 팝업을 연다 — 기존
+  /// [_openBlessingBagSend]/[_openBlessingBagReceive]를 그대로 재사용한다.
+  Future<void> _handleTodayPouch(WishPost? wish) async {
+    if (wish != null) {
+      await _openBlessingBagSend(wish);
+    } else {
+      await _openBlessingBagReceive();
+    }
+  }
+
+  /// [STEP03 — 다중 소원 시 강조 대상 선정] "가장 최근/진행 중인 소원"을
+  /// 메인으로 강조한다(사용자 지시 §12) — 임의 삭제/숨김 없이 정렬 우선순위만
+  /// 사용한다. 우선순위: (1) 아직 이루어지지도/보관되지도 않은 진행중(sealed)
+  /// 소원 중 가장 최근 것 → (2) 그런 소원이 없으면 전체 중 가장 최근 것.
+  WishPost? _selectHighlightWish(List<WishPost> wishes) {
+    if (wishes.isEmpty) return null;
+    final sealedOnes = wishes.where((w) => w.wishState == 'sealed').toList();
+    final pool = sealedOnes.isNotEmpty ? sealedOnes : wishes;
+    return pool.reduce((a, b) => a.createdAt.isAfter(b.createdAt) ? a : b);
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<WishWallProvider>();
@@ -247,6 +327,8 @@ class _WishRoomHomeScreenState extends State<WishRoomHomeScreen> {
       totalDays = DateTime.now().difference(earliest).inDays;
       if (totalDays < 0) totalDays = 0;
     }
+
+    final highlightWish = _selectHighlightWish(wishes);
 
     return Scaffold(
       backgroundColor: WishRoomColors.backgroundDeep,
@@ -292,9 +374,14 @@ class _WishRoomHomeScreenState extends State<WishRoomHomeScreen> {
                     onOpenMoon: _openFullBoard,
                     onOpenPouch: _openBlessingBagReceive,
                     onOpenShop: _openShop,
+                    onOpenGuide: _openOnboardingReview,
                   ),
                   _CandleAltar(wishCount: wishCount, totalDays: totalDays),
                   const SizedBox(height: 20),
+                  // [STEP03 — 접근성/안정성] 강조 카드와 "오늘의 소원 활동"을
+                  // 고정 영역이 아니라 아래 리스트와 함께 스크롤되는 영역
+                  // 안으로 넣어, 작은 화면에서도 오버플로우 없이 항상
+                  // 전체 콘텐츠에 도달할 수 있게 한다.
                   Expanded(
                     child: _WishListSection(
                       wishes: wishes,
@@ -302,6 +389,12 @@ class _WishRoomHomeScreenState extends State<WishRoomHomeScreen> {
                       onSeeAll: _openMy,
                       onTapWish: _openDetail,
                       onTapSeal: _openBlessingBagSend,
+                      highlightWish: highlightWish,
+                      onCandle: _handleTodayCandle,
+                      onSupport: highlightWish == null
+                          ? null
+                          : () => _handleTodaySupport(highlightWish),
+                      onPouch: () => _handleTodayPouch(highlightWish),
                     ),
                   ),
                   _WishRoomBottomNav(
@@ -340,11 +433,16 @@ class _HomeHeader extends StatelessWidget {
     required this.onOpenMoon,
     required this.onOpenPouch,
     required this.onOpenShop,
+    this.onOpenGuide,
   });
   final int balance;
   final VoidCallback onOpenMoon;
   final VoidCallback onOpenPouch;
   final VoidCallback onOpenShop;
+
+  /// [STEP03 — 이용안내 재진입] null이면 버튼을 렌더링하지 않는다(호출부
+  /// 미전달 시 헤더 레이아웃을 그대로 유지하기 위한 안전장치).
+  final VoidCallback? onOpenGuide;
 
   @override
   Widget build(BuildContext context) {
@@ -376,6 +474,26 @@ class _HomeHeader extends StatelessWidget {
                     color: WishRoomColors.textPrimary,
                   ),
                 ),
+                if (onOpenGuide != null) ...[
+                  const SizedBox(height: 6),
+                  InkWell(
+                    onTap: onOpenGuide,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Text(
+                        '❔ 소원방 이용안내',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: WishRoomColors.textSecondary,
+                          decoration: TextDecoration.underline,
+                          decorationColor: WishRoomColors.textSecondary
+                              .withValues(alpha: 0.5),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -575,6 +693,12 @@ class _CandleAltar extends StatelessWidget {
 }
 
 /// "최근 소원" 타이틀 + "전체 보기 →" + 리스트(촛불/텍스트/Seal 행).
+///
+/// [STEP03 — 접근성/안정성 개선] 이 섹션은 이제 단순 리스트가 아니라,
+/// 상단에 "나의 소원 강조 카드"와 "오늘의 소원 활동"까지 함께 스크롤되는
+/// 하나의 [CustomScrollView]로 구성한다 — 고정 높이 영역에 몰아넣지 않고
+/// 전체를 스크롤 가능하게 만들어 작은 화면/큰 글씨 설정에서도 콘텐츠가
+/// 화면 밖으로 잘리지 않도록 한다(사용자 지시 §14 접근성/안정성).
 class _WishListSection extends StatelessWidget {
   const _WishListSection({
     required this.wishes,
@@ -582,6 +706,10 @@ class _WishListSection extends StatelessWidget {
     required this.onSeeAll,
     required this.onTapWish,
     required this.onTapSeal,
+    this.highlightWish,
+    this.onCandle,
+    this.onSupport,
+    this.onPouch,
   });
 
   final List<WishPost> wishes;
@@ -590,15 +718,43 @@ class _WishListSection extends StatelessWidget {
   final ValueChanged<WishPost> onTapWish;
   final ValueChanged<WishPost> onTapSeal;
 
+  /// [STEP03] 강조 카드에 표시할 소원(가장 최근/진행중). null이면 강조
+  /// 카드와 "오늘의 소원 활동" 섹션 자체를 표시하지 않는다(소원이 0개인
+  /// 경우 등).
+  final WishPost? highlightWish;
+  final VoidCallback? onCandle;
+  final VoidCallback? onSupport;
+  final VoidCallback? onPouch;
+
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
+    return CustomScrollView(
+      slivers: [
+        if (highlightWish != null) ...[
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+            sliver: SliverToBoxAdapter(
+              child: _MyWishHighlightCard(
+                wish: highlightWish!,
+                onTap: () => onTapWish(highlightWish!),
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+            sliver: SliverToBoxAdapter(
+              child: _TodayWishActions(
+                onCandle: onCandle ?? () {},
+                onSupport: onSupport ?? () {},
+                onPouch: onPouch ?? () {},
+              ),
+            ),
+          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 20)),
+        ],
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
+          sliver: SliverToBoxAdapter(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -626,67 +782,72 @@ class _WishListSection extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 12),
-          Expanded(
-            child: isLoading && wishes.isEmpty
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      color: WishRoomColors.accent,
-                    ),
-                  )
-                : wishes.isEmpty
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 24),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Opacity(
-                            opacity: 0.4,
-                            child: WishRoomCandle(
-                              size: 60,
-                              color: WishRoomColors.textTertiary,
-                              lit: false,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            '아직 소원이 담기지 않았어요',
-                            style: TextStyle(
-                              fontFamily: 'NotoSerifKRWish',
-                              fontWeight: FontWeight.w900,
-                              fontSize: 16,
-                              color: WishRoomColors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '첫 촛불을 켜보세요',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: WishRoomColors.textSecondary,
-                            ),
-                          ),
-                        ],
+        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 12)),
+        if (isLoading && wishes.isEmpty)
+          const SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: CircularProgressIndicator(color: WishRoomColors.accent),
+            ),
+          )
+        else if (wishes.isEmpty)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Opacity(
+                      opacity: 0.4,
+                      child: WishRoomCandle(
+                        size: 60,
+                        color: WishRoomColors.textTertiary,
+                        lit: false,
                       ),
                     ),
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    itemCount: wishes.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final wish = wishes[index];
-                      return _WishListRow(
-                        wish: wish,
-                        onTap: () => onTapWish(wish),
-                        onTapSeal: () => onTapSeal(wish),
-                      );
-                    },
-                  ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      '아직 소원이 담기지 않았어요',
+                      style: TextStyle(
+                        fontFamily: 'NotoSerifKRWish',
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                        color: WishRoomColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '첫 촛불을 켜보세요',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: WishRoomColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          )
+        else
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+            sliver: SliverList.separated(
+              itemCount: wishes.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final wish = wishes[index];
+                return _WishListRow(
+                  wish: wish,
+                  onTap: () => onTapWish(wish),
+                  onTapSeal: () => onTapSeal(wish),
+                );
+              },
+            ),
           ),
-        ],
-      ),
+      ],
     );
   }
 }
@@ -934,6 +1095,397 @@ class _ComposeFab extends StatelessWidget {
             fontSize: 26,
             color: Color(0xFF3A2515),
             height: 1.0,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================
+// [STEP03 — 소원방 핵심 UX 재설계] 나의 소원 강조 카드 + 오늘의 소원 활동
+// ============================================================
+//
+// [작업 범위 원칙] 이 두 위젯은 오직 "표시"만 담당한다 — DB/API/모델을
+// 절대 변경하지 않고, 서버가 이미 채워준 WishPost 필드(text/wishState/
+// sealedAt/unlockAt/supportCount/pouchCount/sealItemCode/candleItemCode/
+// talismanItemCode)만 읽어서 UI를 구성한다. wishState 문자열 값 자체는
+// 절대 바꾸지 않고, 여기서는 오직 "감성 문구로의 매핑"만 수행한다.
+
+/// [STEP03 §7] 소원 상태별 감성 문구 매핑. DB의 wishState 원시값(sealed/
+/// fulfilled/archived)은 그대로 유지하며, 이 함수는 표시용 변환만 한다.
+/// "100일 임박"은 wishState와 별개의 파생 조건(unlockAt까지 7일 이내)이며,
+/// 서버가 100일을 재계산하는 게 아니라 클라이언트가 "표시용으로만" 판단한다.
+String wishStateEmotionalLabel(WishPost wish) {
+  switch (wish.wishState) {
+    case 'fulfilled':
+      return '🌸 소원이 이루어졌어요';
+    case 'archived':
+      return '📦 소원함에 간직하고 있어요';
+    case 'sealed':
+    default:
+      final unlock = wish.unlockAt;
+      if (unlock != null) {
+        final remaining = unlock.difference(DateTime.now()).inDays;
+        if (remaining <= 7 && remaining >= 0) {
+          return '✨ 소원함이 곧 열려요';
+        }
+      }
+      return '🌱 소원이 잘 자라고 있어요';
+  }
+}
+
+/// [STEP03 §6] 표시용 진행률(0.0~1.0) 계산 — 서버 sealedAt/unlockAt을
+/// 그대로 신뢰하며 100일을 재계산하지 않는다. 둘 중 하나라도 null이면(예:
+/// Mock 데이터, 구버전 소원) 앱이 죽지 않도록 null을 반환해 호출부가
+/// "진행률 알 수 없음" 상태를 표시하게 한다.
+({int elapsedDays, int totalDays, int remainingDays, double ratio})?
+_wishProgress(WishPost wish) {
+  final sealed = wish.sealedAt;
+  final unlock = wish.unlockAt;
+  if (sealed == null || unlock == null) return null;
+  final total = unlock.difference(sealed).inDays;
+  if (total <= 0) return null;
+  var elapsed = DateTime.now().difference(sealed).inDays;
+  if (elapsed < 0) elapsed = 0;
+  if (elapsed > total) elapsed = total;
+  final remaining = total - elapsed;
+  final ratio = (elapsed / total).clamp(0.0, 1.0);
+  return (
+    elapsedDays: elapsed,
+    totalDays: total,
+    remainingDays: remaining,
+    ratio: ratio,
+  );
+}
+
+/// "나의 소원" 강조 카드 — 홈 화면에서 가장 최근/진행 중인 소원 하나를
+/// 크게 보여준다(사용자 지시 §4/§6/§7/§12).
+///
+/// [정보 우선순위 — 사용자 지시 §13] 1.소원내용 2.소원상태 3.남은기간
+/// 4.촛불 5.응원 6.받은복주머니 7.사용아이템 순으로 배치한다. 숫자만
+/// 나열하지 않고 소원 내용(text)이 항상 최상단에 가장 크게 보이도록 한다.
+///
+/// [애니메이션 — 최소화 원칙] 카드 자체는 진입 시 미세한 fade+slide만
+/// 적용한다(화려한 파티클/사운드는 이번 STEP 범위 밖).
+class _MyWishHighlightCard extends StatefulWidget {
+  const _MyWishHighlightCard({required this.wish, required this.onTap});
+
+  final WishPost wish;
+  final VoidCallback onTap;
+
+  @override
+  State<_MyWishHighlightCard> createState() => _MyWishHighlightCardState();
+}
+
+class _MyWishHighlightCardState extends State<_MyWishHighlightCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _entrance;
+
+  @override
+  void initState() {
+    super.initState();
+    _entrance = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 420),
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _entrance.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final wish = widget.wish;
+    final progress = _wishProgress(wish);
+    final stateLabel = wishStateEmotionalLabel(wish);
+
+    return AnimatedBuilder(
+      animation: _entrance,
+      builder: (context, child) {
+        final t = Curves.easeOut.transform(_entrance.value);
+        return Opacity(
+          opacity: t,
+          child: Transform.translate(
+            offset: Offset(0, (1 - t) * 12),
+            child: child,
+          ),
+        );
+      },
+      child: InkWell(
+        onTap: widget.onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: WishRoomColors.surfaceCard,
+            border: Border.all(
+              color: WishRoomColors.glow.withValues(alpha: 0.4),
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: WishRoomColors.glowShadow.withValues(alpha: 0.35),
+                blurRadius: 24,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // eyebrow: "나의 소원" 타이틀 라벨.
+              Row(
+                children: [
+                  const Text(
+                    '나의 소원',
+                    style: TextStyle(
+                      fontFamily: 'IBMPlexMonoWish',
+                      fontSize: 10,
+                      letterSpacing: 2.0,
+                      color: WishRoomColors.textSecondary,
+                    ),
+                  ),
+                  const Spacer(),
+                  if (wish.talismanItemCode == 'talisman_guardian')
+                    const Padding(
+                      padding: EdgeInsets.only(left: 4),
+                      child: Text('🛡️', style: TextStyle(fontSize: 12)),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              // 1. 소원 내용 — 최우선 표시, 2줄까지 허용 후 ellipsis.
+              Text(
+                wish.text.isNotEmpty ? wish.text : '(소원 내용 없음)',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontFamily: 'GowunBatangWish',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 17,
+                  height: 1.4,
+                  color: WishRoomColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              // 2. 소원 상태 감성 문구.
+              Text(
+                stateLabel,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: WishRoomColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 14),
+              // 3. 남은기간/진행률 — sealedAt/unlockAt 둘 다 있을 때만 표시.
+              if (progress != null) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    value: progress.ratio,
+                    minHeight: 6,
+                    backgroundColor: WishRoomColors.surfaceCardBorder,
+                    valueColor: const AlwaysStoppedAnimation(
+                      WishRoomColors.glow,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  progress.remainingDays > 0
+                      ? '${progress.elapsedDays}일째 · ${progress.remainingDays}일 남았어요'
+                      : '${progress.elapsedDays}일째 · 곧 열 수 있어요',
+                  style: const TextStyle(
+                    fontFamily: 'IBMPlexMonoWish',
+                    fontSize: 10,
+                    letterSpacing: 1.0,
+                    color: WishRoomColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ] else
+                const SizedBox(height: 4),
+              // 4~6. 촛불/응원/받은 복주머니 — 작은 지표 3개를 한 행에.
+              // [WishPost에 별도 "촛불 개수" 필드가 없으므로] 봉인된 소원은
+              // 항상 촛불 하나가 켜져 있다는 상태 텍스트로 표시한다(숫자
+              // 나열보다 의미 전달 우선 — 사용자 지시 §13).
+              Row(
+                children: [
+                  const _HighlightMetric(icon: '🕯', value: '켜짐', label: '촛불'),
+                  const SizedBox(width: 16),
+                  _HighlightMetric(
+                    icon: '💛',
+                    value: '${wish.supportCount}',
+                    label: '응원',
+                  ),
+                  const SizedBox(width: 16),
+                  _HighlightMetric(
+                    icon: '🎁',
+                    value: '${wish.pouchCount}',
+                    label: '복주머니',
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 강조 카드 내부 작은 지표(아이콘+숫자+라벨) — 게임화(랭킹/경쟁) 느낌을
+/// 주지 않도록 담담한 회색조 텍스트로만 표시한다(사용자 지시 §9 게임화 금지).
+class _HighlightMetric extends StatelessWidget {
+  const _HighlightMetric({
+    required this.icon,
+    required this.value,
+    required this.label,
+  });
+
+  final String icon;
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(icon, style: const TextStyle(fontSize: 13)),
+        const SizedBox(width: 4),
+        Text(
+          value,
+          style: const TextStyle(
+            fontFamily: 'IBMPlexMonoWish',
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: WishRoomColors.textPrimary,
+          ),
+        ),
+        const SizedBox(width: 3),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            color: WishRoomColors.textTertiary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// "오늘의 소원 활동" 섹션 — 촛불켜기/응원하기/복주머니사용 3개 액션.
+///
+/// [절대 원칙 — 사용자 지시 §7] 새 보상정책/화폐를 생성하지 않는다. 각
+/// 버튼은 기존 서버 정책(daily_candle)과 기존 화면 액션(support,
+/// blessing bag bottom sheet)에만 연결된다. 강제 미션처럼 보이지 않도록
+/// 버튼 3개만 담담하게 배치하고 진행률/보상 확률 등은 표시하지 않는다.
+class _TodayWishActions extends StatelessWidget {
+  const _TodayWishActions({
+    required this.onCandle,
+    required this.onSupport,
+    required this.onPouch,
+  });
+
+  final VoidCallback onCandle;
+  final VoidCallback onSupport;
+  final VoidCallback onPouch;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          '오늘의 소원 활동',
+          style: TextStyle(
+            fontFamily: 'GowunBatangWish',
+            fontWeight: FontWeight.w700,
+            fontSize: 13,
+            color: WishRoomColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _TodayActionButton(
+                icon: '🕯',
+                label: '촛불 켜기',
+                onTap: onCandle,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _TodayActionButton(
+                icon: '💛',
+                label: '응원하기',
+                onTap: onSupport,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _TodayActionButton(
+                icon: '🎁',
+                label: '복주머니',
+                onTap: onPouch,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _TodayActionButton extends StatelessWidget {
+  const _TodayActionButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final String icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: WishRoomColors.surfaceCard,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: WishRoomColors.surfaceCardBorder),
+          ),
+          alignment: Alignment.center,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(icon, style: const TextStyle(fontSize: 18)),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontFamily: 'GowunBatangWish',
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: WishRoomColors.textPrimary,
+                ),
+              ),
+            ],
           ),
         ),
       ),

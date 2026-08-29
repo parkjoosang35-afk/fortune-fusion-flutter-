@@ -72,7 +72,7 @@ class WishRoomEmptyScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 32),
                         const Text(
-                          '아직 소원이\n담기지 않았어요',
+                          '🌙 아직 빌어둔 소원이\n없어요',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontFamily: 'NotoSerifKRWish',
