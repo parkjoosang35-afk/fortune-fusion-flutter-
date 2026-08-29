@@ -760,7 +760,7 @@ class _CandleAltar extends StatelessWidget {
 /// 하나의 [CustomScrollView]로 구성한다 — 고정 높이 영역에 몰아넣지 않고
 /// 전체를 스크롤 가능하게 만들어 작은 화면/큰 글씨 설정에서도 콘텐츠가
 /// 화면 밖으로 잘리지 않도록 한다(사용자 지시 §14 접근성/안정성).
-class _WishListSection extends StatelessWidget {
+class _WishListSection extends StatefulWidget {
   const _WishListSection({
     required this.balance,
     required this.wishCount,
@@ -805,29 +805,79 @@ class _WishListSection extends StatelessWidget {
   final VoidCallback? onPouch;
 
   @override
+  State<_WishListSection> createState() => _WishListSectionState();
+}
+
+class _WishListSectionState extends State<_WishListSection> {
+  // [STEP7 진단용 — 사용자 지시 개발자 지시서 ① 최종본] 실제 Flutter
+  // Scrollable(이 CustomScrollView)의 ScrollController.offset이 사용자
+  // 스크롤 동작 전/후로 실제로 변하는지 직접 확인하기 위한 임시 컨트롤러다.
+  // STEP 7 PASS 확정 전까지만 유지하며, PASS 후 반드시 제거한다.
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(() {
+      // ignore: avoid_print
+      print(
+        '[STEP7스크롤진단] offset=${_scrollController.offset.toStringAsFixed(1)} '
+        'max=${_scrollController.position.maxScrollExtent.toStringAsFixed(1)}',
+      );
+    });
+    // [STEP7 진단용] addListener는 offset이 "변경"될 때만 호출되므로,
+    // 최초 마운트 시점의 초기 상태(스크롤 발생 여부와 무관하게)를
+    // 강제로 한 번 출력해 컨트롤러가 실제로 attach 되었는지 확인한다.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_scrollController.hasClients) {
+        // ignore: avoid_print
+        print(
+          '[STEP7스크롤진단-초기] attached=true offset='
+          '${_scrollController.offset.toStringAsFixed(1)} '
+          'max=${_scrollController.position.maxScrollExtent.toStringAsFixed(1)}',
+        );
+      } else {
+        // ignore: avoid_print
+        print('[STEP7스크롤진단-초기] attached=false (컨트롤러가 어떤 Scrollable에도 연결되지 않음)');
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return CustomScrollView(
+      controller: _scrollController,
       slivers: [
         SliverToBoxAdapter(
           child: _HomeHeader(
-            balance: balance,
-            onOpenMoon: onOpenMoon,
-            onOpenPouch: onOpenPouch,
-            onOpenShop: onOpenShop,
-            onOpenGuide: onOpenGuide,
+            balance: widget.balance,
+            onOpenMoon: widget.onOpenMoon,
+            onOpenPouch: widget.onOpenPouch,
+            onOpenShop: widget.onOpenShop,
+            onOpenGuide: widget.onOpenGuide,
           ),
         ),
         SliverToBoxAdapter(
-          child: _CandleAltar(wishCount: wishCount, totalDays: totalDays),
+          child: _CandleAltar(
+            wishCount: widget.wishCount,
+            totalDays: widget.totalDays,
+          ),
         ),
         const SliverToBoxAdapter(child: SizedBox(height: 20)),
-        if (highlightWish != null) ...[
+        if (widget.highlightWish != null) ...[
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
             sliver: SliverToBoxAdapter(
               child: _MyWishHighlightCard(
-                wish: highlightWish!,
-                onTap: () => onTapWish(highlightWish!),
+                wish: widget.highlightWish!,
+                onTap: () => widget.onTapWish(widget.highlightWish!),
               ),
             ),
           ),
@@ -835,9 +885,9 @@ class _WishListSection extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
             sliver: SliverToBoxAdapter(
               child: _TodayWishActions(
-                onCandle: onCandle ?? () {},
-                onSupport: onSupport ?? () {},
-                onPouch: onPouch ?? () {},
+                onCandle: widget.onCandle ?? () {},
+                onSupport: widget.onSupport ?? () {},
+                onPouch: widget.onPouch ?? () {},
               ),
             ),
           ),
@@ -861,7 +911,7 @@ class _WishListSection extends StatelessWidget {
                   ),
                 ),
                 InkWell(
-                  onTap: onSeeAll,
+                  onTap: widget.onSeeAll,
                   child: Text(
                     '전체 보기 →',
                     style: TextStyle(
@@ -875,14 +925,14 @@ class _WishListSection extends StatelessWidget {
           ),
         ),
         const SliverToBoxAdapter(child: SizedBox(height: 12)),
-        if (isLoading && wishes.isEmpty)
+        if (widget.isLoading && widget.wishes.isEmpty)
           const SliverFillRemaining(
             hasScrollBody: false,
             child: Center(
               child: CircularProgressIndicator(color: WishRoomColors.accent),
             ),
           )
-        else if (wishes.isEmpty)
+        else if (widget.wishes.isEmpty)
           SliverFillRemaining(
             hasScrollBody: false,
             child: Center(
@@ -926,14 +976,14 @@ class _WishListSection extends StatelessWidget {
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
             sliver: SliverList.separated(
-              itemCount: wishes.length,
+              itemCount: widget.wishes.length,
               separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
-                final wish = wishes[index];
+                final wish = widget.wishes[index];
                 return _WishListRow(
                   wish: wish,
-                  onTap: () => onTapWish(wish),
-                  onTapSeal: () => onTapSeal(wish),
+                  onTap: () => widget.onTapWish(wish),
+                  onTapSeal: () => widget.onTapSeal(wish),
                 );
               },
             ),
