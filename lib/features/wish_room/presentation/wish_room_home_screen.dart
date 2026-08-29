@@ -1083,35 +1083,43 @@ class _WishRoomBottomNav extends StatelessWidget {
         ),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: items.map((it) {
-          final color = it.$4
-              ? WishRoomColors.glow
-              : WishRoomColors.textSecondary;
-          return InkWell(
-            onTap: it.$3,
-            borderRadius: BorderRadius.circular(12),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(it.$1, style: TextStyle(fontSize: 18, color: color)),
-                  const SizedBox(height: 4),
-                  Text(
-                    it.$2,
-                    style: TextStyle(
-                      fontFamily: 'GowunBatangWish',
-                      fontSize: 10,
-                      fontWeight: it.$4 ? FontWeight.w700 : FontWeight.w400,
-                      color: color,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          ...items.map((it) {
+            final color = it.$4
+                ? WishRoomColors.glow
+                : WishRoomColors.textSecondary;
+            return InkWell(
+              onTap: it.$3,
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 4,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(it.$1, style: TextStyle(fontSize: 18, color: color)),
+                    const SizedBox(height: 4),
+                    Text(
+                      it.$2,
+                      style: TextStyle(
+                        fontFamily: 'GowunBatangWish',
+                        fontSize: 10,
+                        fontWeight: it.$4 ? FontWeight.w700 : FontWeight.w400,
+                        color: color,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          );
-        }).toList(),
+            );
+          }),
+          // FAB(58px, right:20)가 세 번째 네비 항목('기록')과 겹치지 않도록
+          // 그 폭만큼 실제 레이아웃 공간을 예약한다(자르기/숨기기 아님).
+          const SizedBox(width: 58),
+        ],
       ),
     );
   }
