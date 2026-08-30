@@ -147,10 +147,21 @@ class _CategoriesGridScreenState extends State<CategoriesGridScreen> {
     FortuneGroupCode.f: Icons.face_outlined,
   };
 
+  // [UI 노출 정책 - 미동작 섹션 숨김] AllCategoriesScreen의
+  // FortuneMatrixSection과 동일하게 "오늘 운세"(T)/"이름 운세"(N) 섹션을
+  // 이 화면에서도 숨긴다. 데이터(FortuneMatrix)는 삭제하지 않는다.
+  static const Set<FortuneGroupCode> _hiddenGroups = {
+    FortuneGroupCode.t,
+    FortuneGroupCode.n,
+  };
+
   @override
   Widget build(BuildContext context) {
     final access = context.watch<AccessChecker>();
-    final allEntries = FortuneMatrix.all;
+    final visibleGroups = FortuneMatrix.groups
+        .where((g) => !_hiddenGroups.contains(g.code))
+        .toList();
+    final allEntries = visibleGroups.expand((g) => g.items).toList();
 
     return Scaffold(
       backgroundColor: UnifiedColors.bg,
@@ -167,7 +178,7 @@ class _CategoriesGridScreenState extends State<CategoriesGridScreen> {
               children: [
                 _Header(totalCount: allEntries.length),
                 const SizedBox(height: UnifiedTokens.spaceXl),
-                for (final group in FortuneMatrix.groups)
+                for (final group in visibleGroups)
                   Padding(
                     padding: const EdgeInsets.only(
                       bottom: UnifiedTokens.spaceXl,

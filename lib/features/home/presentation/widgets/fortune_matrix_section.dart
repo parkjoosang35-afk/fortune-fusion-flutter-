@@ -25,12 +25,24 @@ class FortuneMatrixSection extends StatelessWidget {
     FortuneGroupCode.f: Icons.face_outlined,
   };
 
+  // [UI 노출 정책 - 미동작 섹션 숨김] "오늘 운세"(T)와 "이름 운세"(N) 섹션
+  // 전체를 화면에서 숨긴다. FortuneMatrix 데이터(fortune_matrix.dart)는
+  // 삭제하지 않고 그대로 유지하며, 이 위젯의 렌더링 단계에서만 그룹을
+  // 제외한다. 향후 이 Set에서 코드를 빼면 즉시 섹션이 복원된다.
+  static const Set<FortuneGroupCode> _hiddenGroups = {
+    FortuneGroupCode.t,
+    FortuneGroupCode.n,
+  };
+
   @override
   Widget build(BuildContext context) {
+    final visibleGroups = FortuneMatrix.groups
+        .where((g) => !_hiddenGroups.contains(g.code))
+        .toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final group in FortuneMatrix.groups)
+        for (final group in visibleGroups)
           Padding(
             padding: const EdgeInsets.only(bottom: UnifiedTokens.spaceMd),
             child: _GroupCard(

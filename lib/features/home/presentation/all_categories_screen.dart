@@ -1015,10 +1015,12 @@ class _QuickEntryRow extends StatelessWidget {
   const _QuickEntryRow();
 
   // [UI 노출 정책 - 미동작 섹션 숨김] "행운의 번호"는 탭해도 실제 화면 없이
-  // 안내 토스트만 뜨는 미완성 항목이라 이 빠른 진입 줄에서 숨긴다. 위젯/로직은
+  // 안내 토스트만 뜨는 미완성 항목이라 이 빠른 진입 줄에서 숨긴다.
+  // "이름 운세"도 동일 정책으로 전체 화면에서 숨긴다. 위젯/로직은
   // 삭제하지 않고 build()에서 조건부로만 제외해 향후 값을 되돌리면 즉시
   // 복원된다.
   static const bool _showLuckyNumberEntry = false;
+  static const bool _showNameFortuneEntry = false;
 
   @override
   Widget build(BuildContext context) {
@@ -1028,11 +1030,12 @@ class _QuickEntryRow extends StatelessWidget {
         label: '관상/손금',
         onTap: () => showFacePalmSelectSheet(ctx),
       ),
-      (ctx) => _QuickEntryCard(
-        icon: Icons.badge_outlined,
-        label: '이름 운세',
-        onTap: () => Navigator.of(ctx).pushNamed('/ai-fortune/name/input'),
-      ),
+      if (_showNameFortuneEntry)
+        (ctx) => _QuickEntryCard(
+          icon: Icons.badge_outlined,
+          label: '이름 운세',
+          onTap: () => Navigator.of(ctx).pushNamed('/ai-fortune/name/input'),
+        ),
       if (_showLuckyNumberEntry)
         (ctx) => _QuickEntryCard(
           icon: Icons.auto_awesome_outlined,
