@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'core/util/qa_text_scale.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'core/router/app_router.dart';
@@ -264,8 +265,19 @@ class App extends StatelessWidget {
             initialRoute: '/splash',
             onGenerateRoute: AppRouter.onGenerateRoute,
             builder: (context, child) {
-              return LuckPouchToastOverlay(
+              // [STEP9 §7 QA 전용] 웹 프리뷰 URL에 ?ts=1.3 같은 파라미터가
+              // 있을 때만 textScale을 오버라이드한다(없으면 null → 시스템
+              // 기본값 그대로, 즉 기존 프로덕션 동작과 완전히 동일).
+              final qaScale = readQaTextScaleOverride();
+              final content = LuckPouchToastOverlay(
                 child: child ?? const SizedBox.shrink(),
+              );
+              if (qaScale == null) return content;
+              return MediaQuery(
+                data: MediaQuery.of(context).copyWith(
+                  textScaler: TextScaler.linear(qaScale),
+                ),
+                child: content,
               );
             },
           );
