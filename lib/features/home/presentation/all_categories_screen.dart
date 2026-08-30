@@ -46,6 +46,10 @@ class AllCategoriesScreen extends StatefulWidget {
 class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
   bool _checking = false;
 
+  // [UI 노출 정책 - 미동작 섹션 숨김] "N종 전체 보기" 버튼의 노출 여부.
+  // false로 두면 버튼만 숨겨지고 라우트/문구 코드는 그대로 유지된다.
+  static const bool _showCategoriesGridEntry = false;
+
   @override
   void initState() {
     super.initState();
@@ -295,6 +299,24 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
   /// - 매핑되지 않는 그룹은 정적 데이터를 그대로 둔다.
   /// - 관리자 데이터 로딩 실패/로딩 중/데이터 없음이면 전체를 기존 정적
   ///   [_categoryGroups]로 폴백한다(레이아웃/문구 100% 기존 유지).
+  // [UI 노출 정책 - 미동작 섹션 숨김] "오늘/기간 운세" 그룹은 하위 항목이
+  // "오늘의 운세" 하나뿐이며 해당 항목이 아직 전체보기 화면에서 정상 동작하지
+  // 않아 그룹 전체를 노출하지 않는다. 데이터(_categoryGroups)는 삭제하지 않고
+  // 그대로 유지해 향후 재노출 시 이 필터만 되돌리면 된다.
+  static const Set<String> _hiddenGroupTitles = {'오늘/기간 운세'};
+
+  List<
+    ({
+      IconData icon,
+      String title,
+      String desc,
+      List<({String label, String? route, bool pass})> items,
+    })
+  >
+  get _visibleStaticGroups => _categoryGroups
+      .where((g) => !_hiddenGroupTitles.contains(g.title))
+      .toList();
+
   List<
     ({
       IconData icon,
@@ -305,13 +327,13 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
   >
   _resolveCategoryGroups(FortuneCategoryProvider provider) {
     if (!provider.state.isSuccess || provider.groups.isEmpty) {
-      return _categoryGroups;
+      return _visibleStaticGroups;
     }
     final byCode = <String, FortuneCategoryGroupData>{
       for (final g in provider.groups) g.code: g,
     };
 
-    return _categoryGroups.map((staticGroup) {
+    return _visibleStaticGroups.map((staticGroup) {
       final code = _groupCodeByTitle[staticGroup.title];
       final adminGroup = code == null ? null : byCode[code];
       if (adminGroup == null || adminGroup.categories.isEmpty) {
@@ -439,20 +461,23 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
               child: FortuneMatrixSection(onTapEntry: _openMatrixEntry),
             ),
             const SizedBox(height: UnifiedTokens.spaceMd),
-            // [신규 화면 진입점] 80종 전체 보기(카드 그리드 전용 화면)로 이동
-            // 하는 텍스트 버튼 한 줄만 추가한다(다른 위젯/State/메서드는
-            // 그대로 유지).
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () =>
-                    Navigator.of(context).pushNamed('/categories-grid'),
-                child: Text(
-                  '${FortuneMatrix.all.length}종 전체 보기 →',
-                  style: UnifiedText.bodyStrong(),
+            // [UI 노출 정책 - 미동작 섹션 숨김] "N종 전체 보기" 이동 버튼은 연결된
+            // 화면이 아직 전체보기에서 정상 동작하지 않아 숨긴다. 버튼 코드/라우트
+            // 는 삭제하지 않고 _showCategoriesGridEntry(false)로만 숨겨두어
+            // 향후 값을 true로 되돌리면 그대로 복원된다.
+            if (_showCategoriesGridEntry) ...[
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () =>
+                      Navigator.of(context).pushNamed('/categories-grid'),
+                  child: Text(
+                    '${FortuneMatrix.all.length}종 전체 보기 →',
+                    style: UnifiedText.bodyStrong(),
+                  ),
                 ),
               ),
-            ),
+            ],
             const SizedBox(height: UnifiedTokens.spaceXxl),
 
             FadeSlideIn(
@@ -602,17 +627,25 @@ class _TrendingRow extends StatelessWidget {
     (Icons.back_hand_outlined, '손금', '/ai-fortune/palm/capture', true),
   ];
 
+  // [UI 노출 정책 - 미동작 섹션 숨김] 클릭 시 정상 동작하지 않는 항목만 이
+  // 가로 스크롤 칩 스트립에서 숨긴다. 데이터(_items)는 삭제하지 않고 그대로
+  // 유지하며, 노출 단계에서만 필터링해 향후 값을 되돌리면 즉시 복원된다.
+  static const Set<String> _hiddenLabels = {'오늘의 운세', '이름 운세'};
+
   @override
   Widget build(BuildContext context) {
+    final visibleItems = _items
+        .where((e) => !_hiddenLabels.contains(e.$2))
+        .toList();
     return SizedBox(
       height: 34,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount: _items.length,
+        itemCount: visibleItems.length,
         separatorBuilder: (_, __) =>
             const SizedBox(width: UnifiedTokens.spaceSm),
         itemBuilder: (context, i) {
-          final (icon, label, route, requiresPass) = _items[i];
+          final (icon, label, route, requiresPass) = visibleItems[i];
           return PremiumChip(
             label: label,
             icon: icon,
@@ -687,6 +720,11 @@ class _FeaturedGrid extends StatelessWidget {
     ),
   ];
 
+  // [UI 노출 정책 - 미동작 섹션 숨김] 대표 카테고리 4개 중 클릭 시 정상
+  // 동작하지 않는 항목만 숨긴다. 원본 데이터(_items)는 삭제하지 않고 그대로
+  // 유지하며, 노출 단계에서만 필터링해 향후 값을 되돌리면 즉시 복원된다.
+  static const Set<String> _hiddenLabels = {'오늘의 운세', '이름 운세'};
+
   @override
   Widget build(BuildContext context) {
     // [버그 수정] 이 Column은 ListView(높이 unbounded) 안에 있으므로,
@@ -698,22 +736,29 @@ class _FeaturedGrid extends StatelessWidget {
     // 카드 4개가 통째로 사라지는 버그의 정확한 원인).
     // _FeaturedCard는 이미 SizedBox(height: 138)로 고정 높이를 갖고 있어
     // stretch가 애초에 불필요했으므로 제거한다.
+    final visibleItems = _items
+        .where((e) => !_hiddenLabels.contains(e.$1))
+        .toList();
+    final rowCount = (visibleItems.length / 2).ceil();
     return Column(
       children: [
-        for (var row = 0; row < 2; row++) ...[
+        for (var row = 0; row < rowCount; row++) ...[
           if (row > 0) const SizedBox(height: UnifiedTokens.spaceSm),
           Row(
             children: [
               for (var col = 0; col < 2; col++) ...[
                 if (col > 0) const SizedBox(width: UnifiedTokens.spaceSm),
-                Expanded(
-                  child: _FeaturedCard(
-                    item: _items[row * 2 + col],
-                    pass: pass,
-                    busy: busy,
-                    onTap: onTap,
-                  ),
-                ),
+                if (row * 2 + col < visibleItems.length)
+                  Expanded(
+                    child: _FeaturedCard(
+                      item: visibleItems[row * 2 + col],
+                      pass: pass,
+                      busy: busy,
+                      onTap: onTap,
+                    ),
+                  )
+                else
+                  const Expanded(child: SizedBox.shrink()),
               ],
             ],
           ),
@@ -969,47 +1014,48 @@ class _SubCategoryChip extends StatelessWidget {
 class _QuickEntryRow extends StatelessWidget {
   const _QuickEntryRow();
 
+  // [UI 노출 정책 - 미동작 섹션 숨김] "행운의 번호"는 탭해도 실제 화면 없이
+  // 안내 토스트만 뜨는 미완성 항목이라 이 빠른 진입 줄에서 숨긴다. 위젯/로직은
+  // 삭제하지 않고 build()에서 조건부로만 제외해 향후 값을 되돌리면 즉시
+  // 복원된다.
+  static const bool _showLuckyNumberEntry = false;
+
   @override
   Widget build(BuildContext context) {
+    final entries = <Widget Function(BuildContext)>[
+      (ctx) => _QuickEntryCard(
+        icon: Icons.face_outlined,
+        label: '관상/손금',
+        onTap: () => showFacePalmSelectSheet(ctx),
+      ),
+      (ctx) => _QuickEntryCard(
+        icon: Icons.badge_outlined,
+        label: '이름 운세',
+        onTap: () => Navigator.of(ctx).pushNamed('/ai-fortune/name/input'),
+      ),
+      if (_showLuckyNumberEntry)
+        (ctx) => _QuickEntryCard(
+          icon: Icons.auto_awesome_outlined,
+          label: '행운의 번호',
+          onTap: () =>
+              AppToast.show(ctx, '오늘의 행운숫자는 홈 화면에서 곧 만나볼 수 있어요 ✨'),
+        ),
+      (ctx) => _QuickEntryCard(
+        icon: Icons.star_border_rounded,
+        label: '소원방',
+        onTap: () => Navigator.of(ctx).push(
+          MaterialPageRoute(builder: (_) => const WishRoomEntryGate()),
+        ),
+      ),
+    ];
     return SizedBox(
       height: 96,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount: 4,
+        itemCount: entries.length,
         separatorBuilder: (_, __) =>
             const SizedBox(width: UnifiedTokens.spaceSm),
-        itemBuilder: (context, i) {
-          switch (i) {
-            case 0:
-              return _QuickEntryCard(
-                icon: Icons.face_outlined,
-                label: '관상/손금',
-                onTap: () => showFacePalmSelectSheet(context),
-              );
-            case 1:
-              return _QuickEntryCard(
-                icon: Icons.badge_outlined,
-                label: '이름 운세',
-                onTap: () =>
-                    Navigator.of(context).pushNamed('/ai-fortune/name/input'),
-              );
-            case 2:
-              return _QuickEntryCard(
-                icon: Icons.auto_awesome_outlined,
-                label: '행운의 번호',
-                onTap: () =>
-                    AppToast.show(context, '오늘의 행운숫자는 홈 화면에서 곧 만나볼 수 있어요 ✨'),
-              );
-            default:
-              return _QuickEntryCard(
-                icon: Icons.star_border_rounded,
-                label: '소원방',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const WishRoomEntryGate()),
-                ),
-              );
-          }
-        },
+        itemBuilder: (context, i) => entries[i](context),
       ),
     );
   }
