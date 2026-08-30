@@ -41,6 +41,12 @@ class GratitudeProvider extends ChangeNotifier {
 
   String? lastSealError;
 
+  /// [소원방 개편 · 7d] 가장 최근에 성공한 답례 도장 결과 — "받기" UI가
+  /// 수령 애니메이션에 표시할 지급액(senderGrantedAmount)/상대 닉네임을
+  /// 읽을 수 있도록 저장해둔다. 재화 자체는 여전히 서버가 확정하고,
+  /// [LuckPouchProvider.load]로만 잔액을 갱신한다 — 이 필드는 표시 전용.
+  GratitudeSeal? lastSealedResult;
+
   /// sealable + received 목록을 함께 로드한다.
   Future<void> loadAll() async {
     _isLoading = true;
@@ -88,7 +94,8 @@ class GratitudeProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _repo.seal(sourcePouchId);
+      final result = await _repo.seal(sourcePouchId);
+      lastSealedResult = result;
       // 목록에서 제거(낙관적 업데이트가 아니라, 이미 서버가 확정한 뒤이므로
       // 즉시 반영해도 안전하다).
       _sealable = _sealable

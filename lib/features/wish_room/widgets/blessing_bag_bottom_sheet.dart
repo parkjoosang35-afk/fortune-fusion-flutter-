@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -7,6 +10,7 @@ import '../application/wish_wall_provider.dart';
 import '../domain/gratitude_models.dart';
 import '../domain/wish_wall_models.dart';
 import '../theme/wish_wall_theme.dart';
+import 'wish_room_gift_burst_overlay.dart';
 import 'wish_room_meditation_dialog.dart';
 
 /// 복주머니 허브 팝업 — "보내기" / "받기" 탭.
@@ -278,9 +282,15 @@ class _SendPanelState extends State<_SendPanel> {
       }
       widget.onSent();
       setState(() => _state = _SendState.success);
-      // [STEP04 PART2 마무리 §1] _SendSuccessView 연출(1400ms)이 끝까지
-      // 재생되도록 대기 후 닫는다.
-      await Future.delayed(const Duration(milliseconds: 1600));
+      // [소원방 개편 · 7c — 애니메이션 강화] 바텀시트 내부 카드 연출만으로는
+      // 부족하다는 사용자 지시("애니메이션 효괴 확실하게")에 따라, 화면
+      // 전체를 덮는 골든 플래시 + 이모지 폭죽 연출을 함께 재생한다. 이
+      // 연출은 표시 전용이며 서버 호출(sendPouch)이 이미 성공한 뒤에만
+      // 실행되므로 재화 로직에는 전혀 영향을 주지 않는다.
+      unawaited(playWishRoomGiftBurst(context, centerEmoji: '🧧'));
+      // [STEP04 PART2 마무리 §1] _SendSuccessView 연출이 끝까지 재생되도록
+      // 대기 후 닫는다(전체화면 연출과 맞춰 대기 시간을 늘렸다).
+      await Future.delayed(const Duration(milliseconds: 2000));
       if (mounted) Navigator.of(context).pop(true);
     } else {
       // [SECTION10 발견 UX 버그 수정 — 최소 침습] 서버가 구분해 내려준
@@ -325,7 +335,11 @@ class _SendPanelState extends State<_SendPanel> {
     final errorLabel = _errorLabel(_errorReason);
 
     if (_state == _SendState.success) {
-      return _SendSuccessView(amount: _amount, giftedSeal: _giftSealToo);
+      return _SendSuccessView(
+        amount: _amount,
+        giftedSeal: _giftSealToo,
+        recipientName: wish?.displayName ?? '익명',
+      );
     }
 
     return ListView(
@@ -567,6 +581,11 @@ class _SendPanelState extends State<_SendPanel> {
   }
 }
 
+/// [소원방 개편 · 7c] "보내기" 대상 미리보기 — 기존에는 작은 아바타 이모지와
+/// 소원 본문만 보여줘서 "누구에게 보내는지" 전혀 식별할 수 없었다. 사용자
+/// 승인("니가 쓴 기획대로 다바꿔")에 따라 수신자 이름(또는 익명 표시)을
+/// 카드 상단에 명확한 문구로 노출한다. [WishPost.displayName]이 이미
+/// `isAnonymous`를 반영해 '익명'/실제 닉네임을 반환하므로 그대로 사용한다.
 class _TargetWishPreview extends StatelessWidget {
   const _TargetWishPreview({required this.wish});
   final WishPost wish;
@@ -580,30 +599,48 @@ class _TargetWishPreview extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: WishWallColors.line),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: wish.categoryId.glassColor,
-              border: Border.all(color: wish.categoryId.corkColor),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              wish.isAnonymous ? '?' : wish.authorAvatarEmoji,
-              style: const TextStyle(fontSize: 15),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              wish.text,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: WishWallText.caption(),
-            ),
+          Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: wish.categoryId.glassColor,
+                  border: Border.all(color: wish.categoryId.corkColor),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  wish.isAnonymous ? '?' : wish.authorAvatarEmoji,
+                  style: const TextStyle(fontSize: 15),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${wish.displayName}님에게 보내요',
+                      style: WishWallText.body().copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: WishWallColors.accent2,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      wish.text,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: WishWallText.caption(),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -642,7 +679,7 @@ class _StepperButton extends StatelessWidget {
   }
 }
 
-/// [STEP04 PART2 마무리 §1] 복주머니 전송 성공 연출.
+/// [소원방 개편 · 7c — 애니메이션 대폭 강화] 복주머니 전송 성공 연출.
 ///
 /// 서버 [WishWallProvider.sendPouch]가 실제로 성공(`ok == true`)한 뒤에만
 /// [_SendPanel]이 이 위젯을 표시한다 — 즉 여기서 그려지는 개수/애니메이션은
@@ -650,17 +687,22 @@ class _StepperButton extends StatelessWidget {
 /// 미리 낙관적으로 보여주지 않는다(Wallet/PointHistory/WishBokju 로직은
 /// 이 파일에서 건드리지 않음 — 표시 전용).
 ///
-/// 연출 타임라인(총 1400ms, 단일 [AnimationController]):
-/// 0~45%  : 🎁 복주머니가 아래에서 위로 떠오르며 살짝 확대(날아가는 느낌)
-/// 35~65% : 짧은 빛(원형 glow) 확산 효과
-/// 55~100%: "복주머니 N개를 보냈어요" → "당신의 소원이 이루어지길
-///          함께 빌게요 ✨" 두 줄이 순차적으로 페이드인
-/// 전체화면 연출이 아니라 이 바텀시트 패널 내부에서만 재생되며, 스크롤
-/// 위치나 화면 전체 레이아웃에는 영향을 주지 않는다.
+/// [강화 배경] 사용자가 "애니메이션 효괴 확실하게"라고 명시적으로(두 차례)
+/// 요구했다. 기존 1400ms 단일 페이드 연출은 임팩트가 부족하다는 지적에
+/// 따라: 1) 회전하는 다중 링 확산, 2) 탄성(elastic) 바운스로 등장하는
+/// 복주머니, 3) 개별 지연을 가진 반짝임(sparkle) 파티클들, 4) 수신자
+/// 이름을 포함한 더 명확한 문구, 5) 전체 재생시간을 1800ms로 늘려 임팩트를
+/// 강화했다. 동시에 [_SendPanel._send]에서 [playWishRoomGiftBurst] 전체화면
+/// 오버레이도 함께 재생되어 이중으로 화려한 연출을 만든다.
 class _SendSuccessView extends StatefulWidget {
-  const _SendSuccessView({required this.amount, required this.giftedSeal});
+  const _SendSuccessView({
+    required this.amount,
+    required this.giftedSeal,
+    required this.recipientName,
+  });
   final int amount;
   final bool giftedSeal;
+  final String recipientName;
 
   @override
   State<_SendSuccessView> createState() => _SendSuccessViewState();
@@ -669,53 +711,90 @@ class _SendSuccessView extends StatefulWidget {
 class _SendSuccessViewState extends State<_SendSuccessView>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
-  late final Animation<double> _pouchRise;
   late final Animation<double> _pouchScale;
   late final Animation<double> _pouchOpacity;
+  late final Animation<double> _pouchRotation;
+  late final Animation<double> _ring1Progress;
+  late final Animation<double> _ring2Progress;
   late final Animation<double> _glowOpacity;
   late final Animation<double> _line1Opacity;
   late final Animation<double> _line2Opacity;
+  late final Animation<double> _line3Opacity;
+  late final List<_SparklePoint> _sparkles;
 
   @override
   void initState() {
     super.initState();
+    final rand = Random();
+    _sparkles = List.generate(10, (i) {
+      final angle = (i / 10) * 2 * pi + rand.nextDouble() * 0.4;
+      return _SparklePoint(
+        angle: angle,
+        distance: 46 + rand.nextDouble() * 30,
+        delay: 0.15 + rand.nextDouble() * 0.35,
+        size: 8 + rand.nextDouble() * 6,
+      );
+    });
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1400),
+      duration: const Duration(milliseconds: 1800),
     );
-    _pouchRise = Tween<double>(begin: 22, end: 0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.0, 0.45, curve: Curves.easeOutCubic),
-      ),
-    );
-    _pouchScale = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween(begin: 0.6, end: 1.15), weight: 45),
-      TweenSequenceItem(tween: Tween(begin: 1.15, end: 1.0), weight: 20),
-      TweenSequenceItem(tween: ConstantTween(1.0), weight: 35),
-    ]).animate(_controller);
+    _pouchScale =
+        TweenSequence<double>([
+          TweenSequenceItem(tween: Tween(begin: 0.2, end: 1.25), weight: 35),
+          TweenSequenceItem(tween: Tween(begin: 1.25, end: 0.92), weight: 15),
+          TweenSequenceItem(tween: Tween(begin: 0.92, end: 1.06), weight: 15),
+          TweenSequenceItem(tween: Tween(begin: 1.06, end: 1.0), weight: 35),
+        ]).animate(
+          CurvedAnimation(
+            parent: _controller,
+            curve: const Interval(0.0, 0.55, curve: Curves.linear),
+          ),
+        );
     _pouchOpacity = CurvedAnimation(
       parent: _controller,
-      curve: const Interval(0.0, 0.3, curve: Curves.easeOut),
+      curve: const Interval(0.0, 0.2, curve: Curves.easeOut),
+    );
+    _pouchRotation =
+        TweenSequence<double>([
+          TweenSequenceItem(tween: Tween(begin: -0.35, end: 0.12), weight: 60),
+          TweenSequenceItem(tween: Tween(begin: 0.12, end: 0.0), weight: 40),
+        ]).animate(
+          CurvedAnimation(
+            parent: _controller,
+            curve: const Interval(0.0, 0.5, curve: Curves.easeOutBack),
+          ),
+        );
+    _ring1Progress = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.05, 0.6, curve: Curves.easeOutCubic),
+    );
+    _ring2Progress = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.18, 0.75, curve: Curves.easeOutCubic),
     );
     _glowOpacity =
         TweenSequence<double>([
-          TweenSequenceItem(tween: Tween(begin: 0.0, end: 0.9), weight: 30),
-          TweenSequenceItem(tween: Tween(begin: 0.9, end: 0.0), weight: 40),
+          TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0), weight: 25),
+          TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 45),
           TweenSequenceItem(tween: ConstantTween(0.0), weight: 30),
         ]).animate(
           CurvedAnimation(
             parent: _controller,
-            curve: const Interval(0.3, 0.7, curve: Curves.easeInOut),
+            curve: const Interval(0.1, 0.65, curve: Curves.easeInOut),
           ),
         );
     _line1Opacity = CurvedAnimation(
       parent: _controller,
-      curve: const Interval(0.55, 0.8, curve: Curves.easeOut),
+      curve: const Interval(0.5, 0.72, curve: Curves.easeOut),
     );
     _line2Opacity = CurvedAnimation(
       parent: _controller,
-      curve: const Interval(0.75, 1.0, curve: Curves.easeOut),
+      curve: const Interval(0.65, 0.87, curve: Curves.easeOut),
+    );
+    _line3Opacity = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.8, 1.0, curve: Curves.easeOut),
     );
     _controller.forward();
   }
@@ -726,20 +805,56 @@ class _SendSuccessViewState extends State<_SendSuccessView>
     super.dispose();
   }
 
+  Widget _buildRing(double progress, double maxScale, Color color) {
+    final scale = 0.3 + Curves.easeOut.transform(progress) * maxScale;
+    final opacity = (1 - progress).clamp(0.0, 1.0) * 0.7;
+    return Transform.scale(
+      scale: scale,
+      child: Opacity(
+        opacity: opacity,
+        child: Container(
+          width: 96,
+          height: 96,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: color, width: 2.2),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSparkle(_SparklePoint s, double t) {
+    final localT = ((t - s.delay) / (0.95 - s.delay)).clamp(0.0, 1.0);
+    if (localT <= 0 || localT >= 1) return const SizedBox.shrink();
+    final eased = Curves.easeOutCubic.transform(localT);
+    final dx = cos(s.angle) * s.distance * eased;
+    final dy = sin(s.angle) * s.distance * eased;
+    final fadeOut = localT > 0.6 ? (1 - (localT - 0.6) / 0.4) : 1.0;
+    return Transform.translate(
+      offset: Offset(dx, dy),
+      child: Opacity(
+        opacity: fadeOut.clamp(0.0, 1.0),
+        child: Text('✨', style: TextStyle(fontSize: s.size)),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 28),
+        padding: const EdgeInsets.symmetric(vertical: 30),
         child: AnimatedBuilder(
           animation: _controller,
           builder: (context, child) {
+            final t = _controller.value;
             return Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 SizedBox(
-                  width: 120,
-                  height: 120,
+                  width: 150,
+                  height: 150,
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
@@ -747,8 +862,8 @@ class _SendSuccessViewState extends State<_SendSuccessView>
                       Opacity(
                         opacity: _glowOpacity.value,
                         child: Container(
-                          width: 110,
-                          height: 110,
+                          width: 130,
+                          height: 130,
                           decoration: const BoxDecoration(
                             shape: BoxShape.circle,
                             gradient: RadialGradient(
@@ -760,24 +875,46 @@ class _SendSuccessViewState extends State<_SendSuccessView>
                           ),
                         ),
                       ),
-                      // 날아가는 복주머니
+                      // 확산 링 2겹
+                      _buildRing(
+                        _ring1Progress.value,
+                        1.35,
+                        WishWallColors.accent,
+                      ),
+                      _buildRing(
+                        _ring2Progress.value,
+                        1.0,
+                        WishWallColors.accent2,
+                      ),
+                      // 반짝임 파티클
+                      ..._sparkles.map((s) => _buildSparkle(s, t)),
+                      // 등장하는 복주머니(탄성 바운스 + 살짝 회전)
                       Opacity(
                         opacity: _pouchOpacity.value.clamp(0.0, 1.0),
-                        child: Transform.translate(
-                          offset: Offset(0, _pouchRise.value),
+                        child: Transform.rotate(
+                          angle: _pouchRotation.value,
                           child: Transform.scale(
-                            scale: _pouchScale.value,
+                            scale: _pouchScale.value.clamp(0.0, 1.4),
                             child: Container(
-                              width: 72,
-                              height: 72,
-                              decoration: const BoxDecoration(
+                              width: 76,
+                              height: 76,
+                              decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: WishWallColors.accentSoft,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: WishWallColors.accent.withValues(
+                                      alpha: 0.5,
+                                    ),
+                                    blurRadius: 24,
+                                    spreadRadius: 2,
+                                  ),
+                                ],
                               ),
                               alignment: Alignment.center,
                               child: const Text(
-                                '🎁',
-                                style: TextStyle(fontSize: 32),
+                                '🧧',
+                                style: TextStyle(fontSize: 34),
                               ),
                             ),
                           ),
@@ -786,17 +923,27 @@ class _SendSuccessViewState extends State<_SendSuccessView>
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 18),
                 Opacity(
                   opacity: _line1Opacity.value,
                   child: Text(
+                    '${widget.recipientName}님에게',
+                    style: WishWallText.caption(
+                      color: WishWallColors.accent2,
+                    ).copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Opacity(
+                  opacity: _line2Opacity.value,
+                  child: Text(
                     '복주머니 ${widget.amount}개를 보냈어요',
-                    style: WishWallText.title2().copyWith(fontSize: 17),
+                    style: WishWallText.title2().copyWith(fontSize: 19),
                   ),
                 ),
                 const SizedBox(height: 6),
                 Opacity(
-                  opacity: _line2Opacity.value,
+                  opacity: _line3Opacity.value,
                   child: Text(
                     '당신의 소원이 이루어지길 함께 빌게요 ✨',
                     style: WishWallText.caption(),
@@ -805,7 +952,7 @@ class _SendSuccessViewState extends State<_SendSuccessView>
                 if (widget.giftedSeal) ...[
                   const SizedBox(height: 4),
                   Opacity(
-                    opacity: _line2Opacity.value,
+                    opacity: _line3Opacity.value,
                     child: Text(
                       '감사 도장(願)도 함께 전해졌어요',
                       style: WishWallText.caption(color: WishWallColors.dim),
@@ -819,6 +966,20 @@ class _SendSuccessViewState extends State<_SendSuccessView>
       ),
     );
   }
+}
+
+class _SparklePoint {
+  const _SparklePoint({
+    required this.angle,
+    required this.distance,
+    required this.delay,
+    required this.size,
+  });
+
+  final double angle;
+  final double distance;
+  final double delay;
+  final double size;
 }
 
 // ============================================================
@@ -994,10 +1155,33 @@ class _GratitudeSealSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('답례 도장을 찍어보세요', style: WishWallText.caption()),
+          Row(
+            children: [
+              const Text('🎁', style: TextStyle(fontSize: 15)),
+              const SizedBox(width: 6),
+              Text(
+                '받은 선물함',
+                style: WishWallText.body().copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: WishWallColors.accentSoft,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '${gp.sealable.length}',
+                  style: WishWallText.caption(color: WishWallColors.accent2),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 4),
           Text(
-            '내 소원에 복주머니를 보내준 분에게 24시간 안에 답례하면 서로 복주머니를 받아요',
+            '누가 내 소원에 복주머니를 보냈는지 확인하고, 24시간 안에 답례 도장을 찍으면 서로 복주머니를 받아요',
             style: WishWallText.caption(color: WishWallColors.dim),
           ),
           const SizedBox(height: 10),
@@ -1010,6 +1194,12 @@ class _GratitudeSealSection extends StatelessWidget {
   }
 }
 
+/// [소원방 개편 · 7d] "답례 도장" 카드 — 기존에는 발신자를 전혀 알 수 없는
+/// "복주머니 N개를 받았어요"만 표시했다. 사용자 승인에 따라 이제
+/// [candidate.senderNickname]을 카드 상단에 굵게 표시해 "누가" 보냈는지
+/// 바로 알 수 있게 하고, 답례 도장을 찍는 순간 [playWishRoomGiftBurst]
+/// 전체화면 연출(inbound=true, "받는" 방향)을 재생해 수령 액션을 명확하고
+/// 화려하게 체감할 수 있게 했다.
 class _GratitudeSealCard extends StatelessWidget {
   const _GratitudeSealCard({required this.candidate, required this.provider});
   final GratitudeSealableCandidate candidate;
@@ -1033,7 +1223,9 @@ class _GratitudeSealCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: WishWallColors.bg2,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: WishWallColors.line),
+          border: Border.all(
+            color: WishWallColors.accent.withValues(alpha: 0.35),
+          ),
         ),
         child: Row(
           children: [
@@ -1045,7 +1237,7 @@ class _GratitudeSealCard extends StatelessWidget {
                 color: WishWallColors.accentSoft,
               ),
               alignment: Alignment.center,
-              child: const Text('🙏', style: TextStyle(fontSize: 18)),
+              child: const Text('🧧', style: TextStyle(fontSize: 18)),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -1053,7 +1245,14 @@ class _GratitudeSealCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '복주머니 ${candidate.amount}개를 받았어요',
+                    '${candidate.senderNickname}님이 보냈어요',
+                    style: WishWallText.caption(
+                      color: WishWallColors.accent2,
+                    ).copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '복주머니 ${candidate.amount}개',
                     style: WishWallText.body().copyWith(
                       fontWeight: FontWeight.w700,
                     ),
@@ -1076,7 +1275,30 @@ class _GratitudeSealCard extends StatelessWidget {
                 : InkWell(
                     onTap: () async {
                       final ok = await provider.seal(candidate.sourcePouchId);
-                      if (!ok && context.mounted) {
+                      if (!context.mounted) return;
+                      if (ok) {
+                        // [소원방 개편 · 7d] 답례 성공 — 화면 전체를 덮는
+                        // "받는" 방향(inbound) 연출을 재생해 확실한 수령
+                        // 체감을 준다.
+                        unawaited(
+                          playWishRoomGiftBurst(
+                            context,
+                            centerEmoji: '🙏',
+                            inbound: true,
+                          ),
+                        );
+                        final granted = provider.lastSealedResult?.amount;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            behavior: SnackBarBehavior.floating,
+                            content: Text(
+                              granted != null && granted > 0
+                                  ? '답례 도장을 찍었어요! 복주머니 $granted개를 받았어요 🎉'
+                                  : '답례 도장을 찍었어요 🎉',
+                            ),
+                          ),
+                        );
+                      } else {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             behavior: SnackBarBehavior.floating,

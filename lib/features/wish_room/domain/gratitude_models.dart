@@ -32,12 +32,18 @@ class GratitudeSealableCandidate {
   /// 답례 요청을 400으로 거부한다.
   final DateTime expiresAt;
 
+  /// [소원방 개편 · 7] 복주머니를 보낸 사람의 닉네임. 과거에는 "익명성
+  /// 원칙"에 따라 서버가 전혀 내려주지 않았으나, 사용자 승인에 따라
+  /// 노출하도록 변경했다.
+  final String senderNickname;
+
   const GratitudeSealableCandidate({
     required this.sourcePouchId,
     required this.wishId,
     required this.amount,
     required this.createdAt,
     required this.expiresAt,
+    this.senderNickname = '익명',
   });
 
   bool get isExpired => DateTime.now().isAfter(expiresAt);
@@ -55,6 +61,7 @@ class GratitudeSealableCandidate {
       expiresAt:
           DateTime.tryParse(json['expiresAt'] as String? ?? '') ??
           DateTime.now(),
+      senderNickname: (json['senderNickname'] as String?) ?? '익명',
     );
   }
 }
@@ -77,6 +84,10 @@ class GratitudeSeal {
   /// 그 목록은 recipient 관점이라 sender 쪽 지급액을 알 필요가 없다.
   final int? senderGrantedAmount;
 
+  /// [소원방 개편 · 7] 이 도장 교환의 상대방 닉네임 — `received` 목록에서는
+  /// "내게 답례해준 사람", `seal` 응답에서는 "원래 복주머니를 보낸 사람".
+  final String counterpartNickname;
+
   const GratitudeSeal({
     required this.id,
     required this.wishId,
@@ -84,6 +95,7 @@ class GratitudeSeal {
     required this.amount,
     required this.createdAt,
     this.senderGrantedAmount,
+    this.counterpartNickname = '익명',
   });
 
   factory GratitudeSeal.fromJson(Map<String, dynamic> json) {
@@ -96,6 +108,7 @@ class GratitudeSeal {
           DateTime.tryParse(json['createdAt'] as String? ?? '') ??
           DateTime.now(),
       senderGrantedAmount: (json['senderGrantedAmount'] as num?)?.toInt(),
+      counterpartNickname: (json['counterpartNickname'] as String?) ?? '익명',
     );
   }
 }
