@@ -24,14 +24,19 @@ void main() {
       // ignore: avoid_print
       print(analysis.lifeTheme);
       // ignore: avoid_print
-      print('dominant=${analysis.dominantTenGodCategory} strength=${analysis.strengthVerdict} '
-          'yongsin=${analysis.yongsinElement} gisin=${analysis.gisinElement} '
-          'sinsal=${analysis.notableSinsal}');
+      print(
+        'dominant=${analysis.dominantTenGodCategory} strength=${analysis.strengthVerdict} '
+        'yongsin=${analysis.yongsinElement} gisin=${analysis.gisinElement} '
+        'sinsal=${analysis.notableSinsal}',
+      );
     }
 
     final themes = results.values.map((r) => r['lifeTheme']).toSet();
-    expect(themes.length, greaterThan(1),
-        reason: '서로 다른 사주인데 lifeTheme이 동일하면 개인화 실패');
+    expect(
+      themes.length,
+      greaterThan(1),
+      reason: '서로 다른 사주인데 lifeTheme이 동일하면 개인화 실패',
+    );
 
     final a = results[kJeontongTestInputs[0].userId];
     final b = results[kJeontongTestInputs[1].userId];
@@ -42,10 +47,16 @@ void main() {
     final input = kJeontongTestInputs[0];
     final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
     final r1 = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-      kst: kst, gender: input.gender, isLunar: input.isLunar, referenceDate: refDate,
+      kst: kst,
+      gender: input.gender,
+      isLunar: input.isLunar,
+      referenceDate: refDate,
     );
     final r2 = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-      kst: kst, gender: input.gender, isLunar: input.isLunar, referenceDate: refDate,
+      kst: kst,
+      gender: input.gender,
+      isLunar: input.isLunar,
+      referenceDate: refDate,
     );
     final a1 = analyzer.analyze(r1.profile, referenceDate: refDate).toJson();
     final a2 = analyzer.analyze(r2.profile, referenceDate: refDate).toJson();

@@ -74,8 +74,11 @@ void main() {
     // coreResult는 dominantTenGodCategory(6종)×strengthVerdict(3종)×
     // dayGan(10종) 조합 수준으로 자연 수렴할 수 있어 A04와 같은 기준(20종)을
     // 그대로 적용하되, 전체 Narrative는 완전 불일치를 요구한다.
-    expect(coreResultSet.length, greaterThan(20),
-        reason: 'coreResult 종류가 지나치게 적으면 개인화가 얕다는 신호');
+    expect(
+      coreResultSet.length,
+      greaterThan(20),
+      reason: 'coreResult 종류가 지나치게 적으면 개인화가 얕다는 신호',
+    );
     expect(fullNarrativeSet.length, 120, reason: '전체 Narrative는 120명 전원 달라야 함');
   });
 
@@ -94,17 +97,29 @@ void main() {
       final narrative = generator.generate(built.profile, analysis);
       final cat = analysis.dominantTenGodCategory;
       byCategory.putIfAbsent(cat, () => []).add(narrative.toJson().toString());
-      byCategoryWhy.putIfAbsent(cat, () => []).add(narrative.whyThisResult.join(' '));
+      byCategoryWhy
+          .putIfAbsent(cat, () => [])
+          .add(narrative.whyThisResult.join(' '));
     }
     // 최다 그룹을 찾아 내부 차별화 확인
-    final largestCat = byCategory.entries.reduce((a, b) => a.value.length >= b.value.length ? a : b);
+    final largestCat = byCategory.entries.reduce(
+      (a, b) => a.value.length >= b.value.length ? a : b,
+    );
     // ignore: avoid_print
-    print('최다 dominantTenGodCategory=${largestCat.key} (${largestCat.value.length}명)');
+    print(
+      '최다 dominantTenGodCategory=${largestCat.key} (${largestCat.value.length}명)',
+    );
     if (largestCat.value.length > 1) {
-      expect(largestCat.value.toSet().length, greaterThan(1),
-          reason: '같은 $largestCat.key 그룹 내부에서 Narrative가 전부 동일하면 개인화 실패');
-      expect(byCategoryWhy[largestCat.key]!.toSet().length, greaterThan(1),
-          reason: '같은 $largestCat.key 그룹 내부에서 whyThisResult가 전부 동일하면 개인화 실패');
+      expect(
+        largestCat.value.toSet().length,
+        greaterThan(1),
+        reason: '같은 $largestCat.key 그룹 내부에서 Narrative가 전부 동일하면 개인화 실패',
+      );
+      expect(
+        byCategoryWhy[largestCat.key]!.toSet().length,
+        greaterThan(1),
+        reason: '같은 $largestCat.key 그룹 내부에서 whyThisResult가 전부 동일하면 개인화 실패',
+      );
     }
   });
 
@@ -120,11 +135,19 @@ void main() {
     final a01Analysis = analyzer.analyze(built.profile, referenceDate: refDate);
     final a01Narrative = generator.generate(built.profile, a01Analysis);
     expect(a01Narrative.categoryId, 'A01');
-    expect(a01Narrative.coreResult.join(' '), contains(a01Analysis.dominantTenGodCategory));
+    expect(
+      a01Narrative.coreResult.join(' '),
+      contains(a01Analysis.dominantTenGodCategory),
+    );
   });
 
   test('§9 금지 문구(범용 문구)가 A01 Narrative에 포함되지 않는다(120명 전수 검사)', () {
-    const forbiddenGenericPhrases = ['사주 뿌리부터', '오행의 흐름을 보면', '여기에 더해', '사주는 정해진 운명'];
+    const forbiddenGenericPhrases = [
+      '사주 뿌리부터',
+      '오행의 흐름을 보면',
+      '여기에 더해',
+      '사주는 정해진 운명',
+    ];
     for (final input in kJeontongSample120) {
       final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
       final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
@@ -137,8 +160,11 @@ void main() {
       final narrative = generator.generate(built.profile, analysis);
       final fullText = narrative.toParagraphs().join(' ');
       for (final phrase in forbiddenGenericPhrases) {
-        expect(fullText.contains(phrase), isFalse,
-            reason: '${input.userId}의 A01 Narrative에 금지 문구 "$phrase"가 포함됨');
+        expect(
+          fullText.contains(phrase),
+          isFalse,
+          reason: '${input.userId}의 A01 Narrative에 금지 문구 "$phrase"가 포함됨',
+        );
       }
     }
   });
@@ -154,8 +180,11 @@ void main() {
       );
       final analysis = analyzer.analyze(built.profile, referenceDate: refDate);
       final narrative = generator.generate(built.profile, analysis);
-      expect(narrative.timingSection, isNull,
-          reason: 'A01은 평생 관점 카테고리라 세운/월운/대운을 다루지 않아 timingSection이 항상 null이어야 함');
+      expect(
+        narrative.timingSection,
+        isNull,
+        reason: 'A01은 평생 관점 카테고리라 세운/월운/대운을 다루지 않아 timingSection이 항상 null이어야 함',
+      );
     }
   });
 }

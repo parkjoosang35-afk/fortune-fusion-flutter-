@@ -37,7 +37,10 @@ void main() {
     for (final input in kJeontongTestInputs) {
       final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
       final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-        kst: kst, gender: input.gender, isLunar: input.isLunar, referenceDate: refDate,
+        kst: kst,
+        gender: input.gender,
+        isLunar: input.isLunar,
+        referenceDate: refDate,
       );
       final analysis = analyzer.analyze(built.profile, referenceDate: refDate);
       results[input.userId] = analysis.toJson().toString();
@@ -63,13 +66,25 @@ void main() {
     final input = kJeontongTestInputs[0];
     final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
     final r1 = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-      kst: kst, gender: input.gender, isLunar: input.isLunar, referenceDate: refDate,
+      kst: kst,
+      gender: input.gender,
+      isLunar: input.isLunar,
+      referenceDate: refDate,
     );
     final r2 = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-      kst: kst, gender: input.gender, isLunar: input.isLunar, referenceDate: refDate,
+      kst: kst,
+      gender: input.gender,
+      isLunar: input.isLunar,
+      referenceDate: refDate,
     );
-    final a1 = analyzer.analyze(r1.profile, referenceDate: refDate).toJson().toString();
-    final a2 = analyzer.analyze(r2.profile, referenceDate: refDate).toJson().toString();
+    final a1 = analyzer
+        .analyze(r1.profile, referenceDate: refDate)
+        .toJson()
+        .toString();
+    final a2 = analyzer
+        .analyze(r2.profile, referenceDate: refDate)
+        .toJson()
+        .toString();
     expect(a1, equals(a2));
   });
 
@@ -79,9 +94,17 @@ void main() {
     final jsons = <String>{};
     for (var i = 0; i < 10; i++) {
       final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-        kst: kst, gender: input.gender, isLunar: input.isLunar, referenceDate: refDate,
+        kst: kst,
+        gender: input.gender,
+        isLunar: input.isLunar,
+        referenceDate: refDate,
       );
-      jsons.add(analyzer.analyze(built.profile, referenceDate: refDate).toJson().toString());
+      jsons.add(
+        analyzer
+            .analyze(built.profile, referenceDate: refDate)
+            .toJson()
+            .toString(),
+      );
     }
     expect(jsons.length, equals(1), reason: '10회 반복 결과가 모두 동일해야 함');
   });
@@ -90,7 +113,10 @@ void main() {
     final input = kJeontongTestInputs[0];
     final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
     final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-      kst: kst, gender: input.gender, isLunar: input.isLunar, referenceDate: refDate,
+      kst: kst,
+      gender: input.gender,
+      isLunar: input.isLunar,
+      referenceDate: refDate,
     );
     final a01 = lifeAnalyzer.analyze(built.profile, referenceDate: refDate);
     final a03 = wealthAnalyzer.analyze(built.profile, referenceDate: refDate);
@@ -112,37 +138,58 @@ void main() {
     expect(a08.familyPalaceCondition, isNotEmpty);
   });
 
-  test('30명 샘플의 A08 parentPattern/siblingPattern/familyPalaceCondition이 계산값에 따라 달라진다', () {
-    final parentPatternSet = <String>{};
-    final siblingPatternSet = <String>{};
-    final palaceSet = <String>{};
-    final fullJsonSet = <String>{};
+  test(
+    '30명 샘플의 A08 parentPattern/siblingPattern/familyPalaceCondition이 계산값에 따라 달라진다',
+    () {
+      final parentPatternSet = <String>{};
+      final siblingPatternSet = <String>{};
+      final palaceSet = <String>{};
+      final fullJsonSet = <String>{};
 
-    for (final input in kJeontongSample30) {
-      final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
-      final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-        kst: kst, gender: input.gender, isLunar: input.isLunar, referenceDate: refDate,
+      for (final input in kJeontongSample30) {
+        final kst = input.birthDateTimeUtc.toUtc().add(
+          const Duration(hours: 9),
+        );
+        final built =
+            JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
+              kst: kst,
+              gender: input.gender,
+              isLunar: input.isLunar,
+              referenceDate: refDate,
+            );
+        final analysis = analyzer.analyze(
+          built.profile,
+          referenceDate: refDate,
+        );
+        parentPatternSet.add(analysis.parentPattern);
+        siblingPatternSet.add(analysis.siblingPattern);
+        palaceSet.add(analysis.familyPalaceCondition);
+        fullJsonSet.add(analysis.toJson().toString());
+      }
+
+      expect(fullJsonSet.length, greaterThan(1));
+      expect(
+        parentPatternSet.length,
+        greaterThan(1),
+        reason: 'parentPattern이 30명 전원 동일하면 개인화 실패',
       );
-      final analysis = analyzer.analyze(built.profile, referenceDate: refDate);
-      parentPatternSet.add(analysis.parentPattern);
-      siblingPatternSet.add(analysis.siblingPattern);
-      palaceSet.add(analysis.familyPalaceCondition);
-      fullJsonSet.add(analysis.toJson().toString());
-    }
+      expect(
+        siblingPatternSet.length,
+        greaterThan(1),
+        reason: 'siblingPattern이 30명 전원 동일하면 개인화 실패',
+      );
+      expect(
+        palaceSet.length,
+        greaterThan(1),
+        reason: 'familyPalaceCondition이 30명 전원 동일하면 개인화 실패',
+      );
 
-    expect(fullJsonSet.length, greaterThan(1));
-    expect(parentPatternSet.length, greaterThan(1),
-        reason: 'parentPattern이 30명 전원 동일하면 개인화 실패');
-    expect(siblingPatternSet.length, greaterThan(1),
-        reason: 'siblingPattern이 30명 전원 동일하면 개인화 실패');
-    expect(palaceSet.length, greaterThan(1),
-        reason: 'familyPalaceCondition이 30명 전원 동일하면 개인화 실패');
-
-    // ignore: avoid_print
-    print('parentPattern 종류=$parentPatternSet');
-    // ignore: avoid_print
-    print('siblingPattern 종류=$siblingPatternSet');
-    // ignore: avoid_print
-    print('familyPalaceCondition 종류=$palaceSet');
-  });
+      // ignore: avoid_print
+      print('parentPattern 종류=$parentPatternSet');
+      // ignore: avoid_print
+      print('siblingPattern 종류=$siblingPatternSet');
+      // ignore: avoid_print
+      print('familyPalaceCondition 종류=$palaceSet');
+    },
+  );
 }

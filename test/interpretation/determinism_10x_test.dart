@@ -65,12 +65,21 @@ void main() {
       wealthJsons.add(wealthAnalysis.toJson().toString());
     }
 
-    expect(profileSnapshots.toSet().length, equals(1),
-        reason: '[$label] PHASE1~4 재계산 결과 자체가 매회 달라짐(결정론 위반)');
-    expect(lifeJsons.toSet().length, equals(1),
-        reason: '[$label] A01 CategoryAnalysis.toJson()이 $times회 중 서로 다름');
-    expect(wealthJsons.toSet().length, equals(1),
-        reason: '[$label] A03 CategoryAnalysis.toJson()이 $times회 중 서로 다름');
+    expect(
+      profileSnapshots.toSet().length,
+      equals(1),
+      reason: '[$label] PHASE1~4 재계산 결과 자체가 매회 달라짐(결정론 위반)',
+    );
+    expect(
+      lifeJsons.toSet().length,
+      equals(1),
+      reason: '[$label] A01 CategoryAnalysis.toJson()이 $times회 중 서로 다름',
+    );
+    expect(
+      wealthJsons.toSet().length,
+      equals(1),
+      reason: '[$label] A03 CategoryAnalysis.toJson()이 $times회 중 서로 다름',
+    );
   }
 
   group('TEST1 결정론 — seed 3명(골든 픽스처)', () {

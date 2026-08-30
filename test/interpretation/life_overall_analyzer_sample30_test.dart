@@ -30,7 +30,8 @@ void main() {
       );
       final analysis = analyzer.analyze(built.profile, referenceDate: refDate);
 
-      themeCount[analysis.lifeTheme] = (themeCount[analysis.lifeTheme] ?? 0) + 1;
+      themeCount[analysis.lifeTheme] =
+          (themeCount[analysis.lifeTheme] ?? 0) + 1;
       dominantCount[analysis.dominantTenGodCategory] =
           (dominantCount[analysis.dominantTenGodCategory] ?? 0) + 1;
       fullJsonSet.add(analysis.toJson().toString());
@@ -69,13 +70,25 @@ void main() {
     for (final input in kJeontongSample30.take(10)) {
       final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
       final r1 = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-        kst: kst, gender: input.gender, isLunar: input.isLunar, referenceDate: refDate,
+        kst: kst,
+        gender: input.gender,
+        isLunar: input.isLunar,
+        referenceDate: refDate,
       );
       final r2 = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-        kst: kst, gender: input.gender, isLunar: input.isLunar, referenceDate: refDate,
+        kst: kst,
+        gender: input.gender,
+        isLunar: input.isLunar,
+        referenceDate: refDate,
       );
-      final a1 = analyzer.analyze(r1.profile, referenceDate: refDate).toJson().toString();
-      final a2 = analyzer.analyze(r2.profile, referenceDate: refDate).toJson().toString();
+      final a1 = analyzer
+          .analyze(r1.profile, referenceDate: refDate)
+          .toJson()
+          .toString();
+      final a2 = analyzer
+          .analyze(r2.profile, referenceDate: refDate)
+          .toJson()
+          .toString();
       expect(a1, equals(a2), reason: '${input.userId}: 동일 입력은 항상 동일 결과여야 함');
     }
   });

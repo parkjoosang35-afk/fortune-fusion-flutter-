@@ -45,16 +45,21 @@ void main() {
 
     setUpAll(() {
       for (final input in kJeontongSample120) {
-        final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
-        final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-          kst: kst,
-          gender: input.gender,
-          isLunar: input.isLunar,
-          referenceDate: refDate,
+        final kst = input.birthDateTimeUtc.toUtc().add(
+          const Duration(hours: 9),
         );
+        final built =
+            JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
+              kst: kst,
+              gender: input.gender,
+              isLunar: input.isLunar,
+              referenceDate: refDate,
+            );
         final p = built.profile;
         dayMasterSet.add(p.dayPillar.stemHanja);
-        fiveElementsSet.add('${p.fiveElements?.dominant}|${p.fiveElements?.deficient}');
+        fiveElementsSet.add(
+          '${p.fiveElements?.dominant}|${p.fiveElements?.deficient}',
+        );
         tenGodsSet.add(p.tenGods?.values.join(',') ?? '');
         hiddenStemsSet.add(
           p.hiddenStems?.values
@@ -67,7 +72,9 @@ void main() {
         gisinSet.add(p.yongsin?.gisin ?? '');
         gusinSet.add(p.yongsin?.gusin ?? '');
         relationshipsSet.add(
-          (p.relationships ?? const []).map((r) => '${r.type}:${r.characters.join('')}').join(','),
+          (p.relationships ?? const [])
+              .map((r) => '${r.type}:${r.characters.join('')}')
+              .join(','),
         );
         sinsalSet.add((p.sinsal ?? const []).map((s) => s.nameKr).join(','));
         daewoonSet.add(
@@ -132,13 +139,16 @@ void main() {
 
     setUpAll(() {
       for (final input in kJeontongSample120) {
-        final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
-        final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-          kst: kst,
-          gender: input.gender,
-          isLunar: input.isLunar,
-          referenceDate: refDate,
+        final kst = input.birthDateTimeUtc.toUtc().add(
+          const Duration(hours: 9),
         );
+        final built =
+            JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
+              kst: kst,
+              gender: input.gender,
+              isLunar: input.isLunar,
+              referenceDate: refDate,
+            );
         final a = lifeAnalyzer.analyze(built.profile, referenceDate: refDate);
         dominantTenGodCategorySet.add(a.dominantTenGodCategory);
         lifeThemeSet.add(a.lifeTheme);
@@ -211,13 +221,16 @@ void main() {
 
     setUpAll(() {
       for (final input in kJeontongSample120) {
-        final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
-        final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-          kst: kst,
-          gender: input.gender,
-          isLunar: input.isLunar,
-          referenceDate: refDate,
+        final kst = input.birthDateTimeUtc.toUtc().add(
+          const Duration(hours: 9),
         );
+        final built =
+            JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
+              kst: kst,
+              gender: input.gender,
+              isLunar: input.isLunar,
+              referenceDate: refDate,
+            );
         final a = wealthAnalyzer.analyze(built.profile, referenceDate: refDate);
         wealthPatternSet.add(a.wealthPattern);
         wealthStrengthSet.add(a.wealthStrength);
@@ -270,13 +283,16 @@ void main() {
 
     setUpAll(() {
       for (final input in kJeontongSample120) {
-        final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
-        final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-          kst: kst,
-          gender: input.gender,
-          isLunar: input.isLunar,
-          referenceDate: refDate,
+        final kst = input.birthDateTimeUtc.toUtc().add(
+          const Duration(hours: 9),
         );
+        final built =
+            JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
+              kst: kst,
+              gender: input.gender,
+              isLunar: input.isLunar,
+              referenceDate: refDate,
+            );
         final a = careerAnalyzer.analyze(built.profile, referenceDate: refDate);
         careerPatternSet.add(a.careerPattern);
         careerStrengthSet.add(a.careerStrength);
@@ -306,7 +322,9 @@ void main() {
       // day_master_rules.json의 career_fit은 10천간 고정표이므로 완전
       // 동일 반복이 정상이다(§14 "명리학 용어 자체 반복은 허용"과 동일 논리).
       // ignore: avoid_print
-      print('A04 suitableFields 종류=${suitableFieldsSet.length} (10종 고정표 기반, 초과 시 이상)');
+      print(
+        'A04 suitableFields 종류=${suitableFieldsSet.length} (10종 고정표 기반, 초과 시 이상)',
+      );
       expect(suitableFieldsSet.length, lessThanOrEqualTo(10));
       expect(suitableFieldsSet.length, greaterThan(1));
     });
@@ -336,13 +354,16 @@ void main() {
 
     setUpAll(() {
       for (final input in kJeontongSample120) {
-        final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
-        final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-          kst: kst,
-          gender: input.gender,
-          isLunar: input.isLunar,
-          referenceDate: refDate,
+        final kst = input.birthDateTimeUtc.toUtc().add(
+          const Duration(hours: 9),
         );
+        final built =
+            JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
+              kst: kst,
+              gender: input.gender,
+              isLunar: input.isLunar,
+              referenceDate: refDate,
+            );
         final a = healthAnalyzer.analyze(built.profile, referenceDate: refDate);
         healthConstitutionPatternSet.add(a.healthConstitutionPattern);
         healthVitalitySet.add(a.healthVitality);
@@ -375,7 +396,9 @@ void main() {
       // five_elements_rules.json의 food_good은 5오행 고정표이므로 완전
       // 동일 반복이 정상이다(§14 "명리학 용어 자체 반복은 허용"과 동일 논리).
       // ignore: avoid_print
-      print('A05 recommendedCare 종류=${recommendedCareSet.length} (5종 고정표 기반, 초과 시 이상)');
+      print(
+        'A05 recommendedCare 종류=${recommendedCareSet.length} (5종 고정표 기반, 초과 시 이상)',
+      );
       expect(recommendedCareSet.length, lessThanOrEqualTo(5));
       expect(recommendedCareSet.length, greaterThan(1));
     });

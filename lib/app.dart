@@ -274,9 +274,9 @@ class App extends StatelessWidget {
               );
               if (qaScale == null) return content;
               return MediaQuery(
-                data: MediaQuery.of(context).copyWith(
-                  textScaler: TextScaler.linear(qaScale),
-                ),
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(textScaler: TextScaler.linear(qaScale)),
                 child: content,
               );
             },

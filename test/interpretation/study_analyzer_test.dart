@@ -35,7 +35,10 @@ void main() {
     for (final input in kJeontongTestInputs) {
       final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
       final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-        kst: kst, gender: input.gender, isLunar: input.isLunar, referenceDate: refDate,
+        kst: kst,
+        gender: input.gender,
+        isLunar: input.isLunar,
+        referenceDate: refDate,
       );
       final analysis = analyzer.analyze(built.profile, referenceDate: refDate);
       results[input.userId] = analysis.toJson().toString();
@@ -59,13 +62,25 @@ void main() {
     final input = kJeontongTestInputs[0];
     final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
     final r1 = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-      kst: kst, gender: input.gender, isLunar: input.isLunar, referenceDate: refDate,
+      kst: kst,
+      gender: input.gender,
+      isLunar: input.isLunar,
+      referenceDate: refDate,
     );
     final r2 = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-      kst: kst, gender: input.gender, isLunar: input.isLunar, referenceDate: refDate,
+      kst: kst,
+      gender: input.gender,
+      isLunar: input.isLunar,
+      referenceDate: refDate,
     );
-    final a1 = analyzer.analyze(r1.profile, referenceDate: refDate).toJson().toString();
-    final a2 = analyzer.analyze(r2.profile, referenceDate: refDate).toJson().toString();
+    final a1 = analyzer
+        .analyze(r1.profile, referenceDate: refDate)
+        .toJson()
+        .toString();
+    final a2 = analyzer
+        .analyze(r2.profile, referenceDate: refDate)
+        .toJson()
+        .toString();
     expect(a1, equals(a2));
   });
 
@@ -75,9 +90,17 @@ void main() {
     final jsons = <String>{};
     for (var i = 0; i < 10; i++) {
       final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-        kst: kst, gender: input.gender, isLunar: input.isLunar, referenceDate: refDate,
+        kst: kst,
+        gender: input.gender,
+        isLunar: input.isLunar,
+        referenceDate: refDate,
       );
-      jsons.add(analyzer.analyze(built.profile, referenceDate: refDate).toJson().toString());
+      jsons.add(
+        analyzer
+            .analyze(built.profile, referenceDate: refDate)
+            .toJson()
+            .toString(),
+      );
     }
     expect(jsons.length, equals(1), reason: '10회 반복 결과가 모두 동일해야 함');
   });
@@ -86,7 +109,10 @@ void main() {
     final input = kJeontongTestInputs[0];
     final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
     final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-      kst: kst, gender: input.gender, isLunar: input.isLunar, referenceDate: refDate,
+      kst: kst,
+      gender: input.gender,
+      isLunar: input.isLunar,
+      referenceDate: refDate,
     );
     final a01 = lifeAnalyzer.analyze(built.profile, referenceDate: refDate);
     final a03 = wealthAnalyzer.analyze(built.profile, referenceDate: refDate);
@@ -94,7 +120,10 @@ void main() {
     final a05 = healthAnalyzer.analyze(built.profile, referenceDate: refDate);
     final a06 = loveAnalyzer.analyze(built.profile, referenceDate: refDate);
     final a07 = childrenAnalyzer.analyze(built.profile, referenceDate: refDate);
-    final a08 = parentsSiblingsAnalyzer.analyze(built.profile, referenceDate: refDate);
+    final a08 = parentsSiblingsAnalyzer.analyze(
+      built.profile,
+      referenceDate: refDate,
+    );
     final a09 = analyzer.analyze(built.profile, referenceDate: refDate);
     expect(a01.categoryId, isNot(equals(a09.categoryId)));
     expect(a03.categoryId, isNot(equals(a09.categoryId)));
@@ -110,37 +139,58 @@ void main() {
     expect(a09.studyApproach, isNotEmpty);
   });
 
-  test('30명 샘플의 A09 studyPattern/studyBondStrength/munchangPositionCondition이 계산값에 따라 달라진다', () {
-    final studyPatternSet = <String>{};
-    final studyBondStrengthSet = <String>{};
-    final munchangSet = <String>{};
-    final fullJsonSet = <String>{};
+  test(
+    '30명 샘플의 A09 studyPattern/studyBondStrength/munchangPositionCondition이 계산값에 따라 달라진다',
+    () {
+      final studyPatternSet = <String>{};
+      final studyBondStrengthSet = <String>{};
+      final munchangSet = <String>{};
+      final fullJsonSet = <String>{};
 
-    for (final input in kJeontongSample30) {
-      final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
-      final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-        kst: kst, gender: input.gender, isLunar: input.isLunar, referenceDate: refDate,
+      for (final input in kJeontongSample30) {
+        final kst = input.birthDateTimeUtc.toUtc().add(
+          const Duration(hours: 9),
+        );
+        final built =
+            JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
+              kst: kst,
+              gender: input.gender,
+              isLunar: input.isLunar,
+              referenceDate: refDate,
+            );
+        final analysis = analyzer.analyze(
+          built.profile,
+          referenceDate: refDate,
+        );
+        studyPatternSet.add(analysis.studyPattern);
+        studyBondStrengthSet.add(analysis.studyBondStrength);
+        munchangSet.add(analysis.munchangPositionCondition);
+        fullJsonSet.add(analysis.toJson().toString());
+      }
+
+      expect(fullJsonSet.length, greaterThan(1));
+      expect(
+        studyPatternSet.length,
+        greaterThan(1),
+        reason: 'studyPattern이 30명 전원 동일하면 개인화 실패',
       );
-      final analysis = analyzer.analyze(built.profile, referenceDate: refDate);
-      studyPatternSet.add(analysis.studyPattern);
-      studyBondStrengthSet.add(analysis.studyBondStrength);
-      munchangSet.add(analysis.munchangPositionCondition);
-      fullJsonSet.add(analysis.toJson().toString());
-    }
+      expect(
+        studyBondStrengthSet.length,
+        greaterThan(1),
+        reason: 'studyBondStrength가 30명 전원 동일하면 개인화 실패',
+      );
+      expect(
+        munchangSet.length,
+        greaterThan(1),
+        reason: 'munchangPositionCondition이 30명 전원 동일하면 개인화 실패',
+      );
 
-    expect(fullJsonSet.length, greaterThan(1));
-    expect(studyPatternSet.length, greaterThan(1),
-        reason: 'studyPattern이 30명 전원 동일하면 개인화 실패');
-    expect(studyBondStrengthSet.length, greaterThan(1),
-        reason: 'studyBondStrength가 30명 전원 동일하면 개인화 실패');
-    expect(munchangSet.length, greaterThan(1),
-        reason: 'munchangPositionCondition이 30명 전원 동일하면 개인화 실패');
-
-    // ignore: avoid_print
-    print('studyPattern 종류=$studyPatternSet');
-    // ignore: avoid_print
-    print('studyBondStrength 종류=$studyBondStrengthSet');
-    // ignore: avoid_print
-    print('munchangPositionCondition 종류=$munchangSet');
-  });
+      // ignore: avoid_print
+      print('studyPattern 종류=$studyPatternSet');
+      // ignore: avoid_print
+      print('studyBondStrength 종류=$studyBondStrengthSet');
+      // ignore: avoid_print
+      print('munchangPositionCondition 종류=$munchangSet');
+    },
+  );
 }

@@ -72,20 +72,31 @@ void main() {
     print('오행편중 여부 분포: $imbalanced');
 
     // 10천간 중 최소 절반 이상 등장해야 "일간이 다양하다"고 볼 수 있다.
-    expect(dayGans.length, greaterThanOrEqualTo(5),
-        reason: '일간 종류가 너무 적으면 입력 분산 공식을 재조정해야 함');
+    expect(
+      dayGans.length,
+      greaterThanOrEqualTo(5),
+      reason: '일간 종류가 너무 적으면 입력 분산 공식을 재조정해야 함',
+    );
 
     // 신강/신약/중화 세 종류가 모두 나와야 한다.
-    expect(strengthVerdicts.keys.toSet(),
-        containsAll(<String>{'신강', '신약', '중화'}),
-        reason: '신강/신약/중화가 모두 존재해야 §1 요구 충족');
+    expect(
+      strengthVerdicts.keys.toSet(),
+      containsAll(<String>{'신강', '신약', '중화'}),
+      reason: '신강/신약/중화가 모두 존재해야 §1 요구 충족',
+    );
 
     // 용신 오행도 여러 종류(목화토금수 중 다수)가 나와야 한다.
-    expect(yongsinElements.length, greaterThanOrEqualTo(3),
-        reason: '용신 오행이 지나치게 편중되면 개인화 검증 표본으로 부적합');
+    expect(
+      yongsinElements.length,
+      greaterThanOrEqualTo(3),
+      reason: '용신 오행이 지나치게 편중되면 개인화 검증 표본으로 부적합',
+    );
 
     // 오행 편중/균형 둘 다 존재해야 한다.
-    expect(imbalanced.keys.toSet(), containsAll(<bool>{true, false}),
-        reason: '오행편중/오행균형 사주가 모두 있어야 §1 요구 충족');
+    expect(
+      imbalanced.keys.toSet(),
+      containsAll(<bool>{true, false}),
+      reason: '오행편중/오행균형 사주가 모두 있어야 §1 요구 충족',
+    );
   });
 }

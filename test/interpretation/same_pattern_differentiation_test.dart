@@ -44,8 +44,9 @@ void main() {
       final a = wealthAnalyzer.analyze(built.profile, referenceDate: refDate);
       byPattern.putIfAbsent(a.wealthPattern, () => []).add(input.userId);
       contextByUser[input.userId] = a.interpretationContext;
-      supportingByUser[input.userId] =
-          a.supportingEvidence.map((e) => e.toJson().toString()).join('|');
+      supportingByUser[input.userId] = a.supportingEvidence
+          .map((e) => e.toJson().toString())
+          .join('|');
       wealthStrengthByUser[input.userId] = a.wealthStrength;
       incomePatternByUser[input.userId] = a.incomePattern;
       riskPatternByUser[input.userId] = a.riskPattern;
@@ -54,48 +55,77 @@ void main() {
     }
 
     // ignore: avoid_print
-    print('wealthPattern 그룹 크기: ${byPattern.map((k, v) => MapEntry(k, v.length))}');
+    print(
+      'wealthPattern 그룹 크기: ${byPattern.map((k, v) => MapEntry(k, v.length))}',
+    );
 
     // 2) 가장 인원이 많은 그룹(사용자 예시의 '재관쌍미'에 해당하는 것이
     //    이상적이나, 표본 특성상 최다 그룹이 다를 수 있으므로 "최다 그룹"을
     //    범용적으로 선택한다 — 어떤 패턴이든 그룹 내부 차별화 원칙은 동일).
-    final largestPatternEntry =
-        byPattern.entries.reduce((a, b) => a.value.length >= b.value.length ? a : b);
+    final largestPatternEntry = byPattern.entries.reduce(
+      (a, b) => a.value.length >= b.value.length ? a : b,
+    );
     final groupUsers = largestPatternEntry.value;
     // ignore: avoid_print
-    print('검증 대상 그룹: "${largestPatternEntry.key}" (${groupUsers.length}명) $groupUsers');
+    print(
+      '검증 대상 그룹: "${largestPatternEntry.key}" (${groupUsers.length}명) $groupUsers',
+    );
 
-    expect(groupUsers.length, greaterThanOrEqualTo(3),
-        reason: '그룹 내부 차별화를 검증하려면 최소 3명 이상의 동일 패턴 그룹이 필요함(현재 120명 표본에서 미달 시 표본을 늘려야 함)');
+    expect(
+      groupUsers.length,
+      greaterThanOrEqualTo(3),
+      reason:
+          '그룹 내부 차별화를 검증하려면 최소 3명 이상의 동일 패턴 그룹이 필요함(현재 120명 표본에서 미달 시 표본을 늘려야 함)',
+    );
 
     // 3) 그룹 내부에서 interpretationContext(정재/편재/관성/인성/비겁 개수,
     //    신강신약, 용신/기신, 현재대운 등)가 실제로 서로 다른지 확인한다.
-    final contextStrings = groupUsers.map((u) => contextByUser[u].toString()).toSet();
+    final contextStrings = groupUsers
+        .map((u) => contextByUser[u].toString())
+        .toSet();
     // ignore: avoid_print
-    print('그룹 내부 interpretationContext 종류 수=${contextStrings.length}/${groupUsers.length}');
-    expect(contextStrings.length, greaterThan(1),
-        reason: '같은 wealthPattern이라도 정재/편재/관성/인성/비겁 세부 개수 등이 전원 동일하면 §5 위반');
+    print(
+      '그룹 내부 interpretationContext 종류 수=${contextStrings.length}/${groupUsers.length}',
+    );
+    expect(
+      contextStrings.length,
+      greaterThan(1),
+      reason: '같은 wealthPattern이라도 정재/편재/관성/인성/비겁 세부 개수 등이 전원 동일하면 §5 위반',
+    );
 
     // 4) supportingEvidence(정재:편재 비율, 겁재 개수, 현재 대운 등)도
     //    그룹 내부에서 다양해야 한다.
-    final supportingStrings = groupUsers.map((u) => supportingByUser[u]!).toSet();
+    final supportingStrings = groupUsers
+        .map((u) => supportingByUser[u]!)
+        .toSet();
     // ignore: avoid_print
-    print('그룹 내부 supportingEvidence 종류 수=${supportingStrings.length}/${groupUsers.length}');
-    expect(supportingStrings.length, greaterThan(1),
-        reason: '같은 wealthPattern 그룹의 supportingEvidence(§5 세부 근거)가 전원 동일하면 안 됨');
+    print(
+      '그룹 내부 supportingEvidence 종류 수=${supportingStrings.length}/${groupUsers.length}',
+    );
+    expect(
+      supportingStrings.length,
+      greaterThan(1),
+      reason: '같은 wealthPattern 그룹의 supportingEvidence(§5 세부 근거)가 전원 동일하면 안 됨',
+    );
 
     // 5) §15 "핵심성향/재물획득방식/위험요소/자산관리방식/대운/조언이
     //    서로 다른지" — 현재 구현에서 문장 이전 단계 대응 필드로 확인.
-    final wealthStrengths = groupUsers.map((u) => wealthStrengthByUser[u]!).toSet();
-    final incomePatterns = groupUsers.map((u) => incomePatternByUser[u]!).toSet();
+    final wealthStrengths = groupUsers
+        .map((u) => wealthStrengthByUser[u]!)
+        .toSet();
+    final incomePatterns = groupUsers
+        .map((u) => incomePatternByUser[u]!)
+        .toSet();
     final riskPatterns = groupUsers.map((u) => riskPatternByUser[u]!).toSet();
     final assetStyles = groupUsers.map((u) => assetStyleByUser[u]!).toSet();
     final daewoons = groupUsers.map((u) => daewoonByUser[u]!).toSet();
 
     // ignore: avoid_print
-    print('그룹 내부: wealthStrength=${wealthStrengths.length}종, '
-        'incomePattern=${incomePatterns.length}종, riskPattern=${riskPatterns.length}종, '
-        'assetStyle=${assetStyles.length}종, daewoon=${daewoons.length}종');
+    print(
+      '그룹 내부: wealthStrength=${wealthStrengths.length}종, '
+      'incomePattern=${incomePatterns.length}종, riskPattern=${riskPatterns.length}종, '
+      'assetStyle=${assetStyles.length}종, daewoon=${daewoons.length}종',
+    );
 
     // 최소한 이 5개 중 다수가 그룹 내에서 갈라져야 한다(전부 1종류로
     // 뭉치면 "제목만 다르고 내용은 같다"는 §19 금지사항에 해당).
@@ -107,8 +137,11 @@ void main() {
       daewoons.length > 1,
     ].where((b) => b).length;
 
-    expect(differentiatedFieldCount, greaterThanOrEqualTo(2),
-        reason: '같은 wealthPattern 그룹 내부에서 최소 2개 이상의 실질 필드가 갈라져야 함(§15)');
+    expect(
+      differentiatedFieldCount,
+      greaterThanOrEqualTo(2),
+      reason: '같은 wealthPattern 그룹 내부에서 최소 2개 이상의 실질 필드가 갈라져야 함(§15)',
+    );
   });
 
   test('재관쌍미 그룹이 별도로 존재하면 그 안에서도 세부 조성이 다르다(있을 때만 검증)', () {
@@ -133,8 +166,11 @@ void main() {
     // ignore: avoid_print
     print('재관쌍미 그룹: ${jaegwanUsers.length}명');
     if (jaegwanUsers.length >= 2) {
-      expect(contexts.toSet().length, greaterThan(1),
-          reason: '재관쌍미 그룹 내부의 정재/편재/관성/인성/비겁 조성이 전원 동일하면 §5 위반');
+      expect(
+        contexts.toSet().length,
+        greaterThan(1),
+        reason: '재관쌍미 그룹 내부의 정재/편재/관성/인성/비겁 조성이 전원 동일하면 §5 위반',
+      );
     } else {
       // ignore: avoid_print
       print('재관쌍미 표본이 2명 미만이라 이 회차에서는 skip (표본 확대 필요 시 후속 조치)');

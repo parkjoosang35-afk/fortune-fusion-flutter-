@@ -378,115 +378,102 @@ void main() {
     }
   });
 
-  group(
-    '[j7·A05] runJeontongCategory("A05", ctx) 경로 — HealthAnalyzer 기반 '
-    '개인화 결과로 wiring 완료 확인(§21 13단계)',
-    () {
-      for (final u in _seedUsers) {
-        test(
-          '${u.userId}: profile 전달 시 HealthAnalyzer 결과를 그대로 노출',
-          () {
-            final newB = _runNew(u, _kFixedDate);
-            final rules = SajuFortuneRules.cachedOrNull;
-            expect(
-              rules,
-              isNotNull,
-              reason: 'SajuFortuneRules.preload()가 setUpAll에서 완료되어야 함',
-            );
-
-            // profile을 함께 전달 — 실제 화면(report_builder)이
-            // migratedCategoryIds 경로에서 항상 이렇게 호출하는 것과 동일.
-            final ctx = JeontongCalcContext(
-              saju: newB.saju,
-              interp: newB.interp,
-              rules: rules!,
-              referenceDate: _kFixedDate,
-              profile: newB.profile,
-            );
-
-            late final JeontongCategoryResult result;
-            expect(
-              () => result = runJeontongCategory('A05', ctx),
-              returnsNormally,
-            );
-            expect(result.category, '평생 건강운');
-
-            // HealthAnalyzer를 직접 실행한 결과와 완전히 동일해야 한다
-            // (재계산 아님 — 동일 profile로 동일 analyzer를 두 번 호출해도
-            // §2 결정론에 의해 완전히 같은 값이 나와야 함).
-            final directAnalysis = const HealthAnalyzer().analyze(
-              newB.profile,
-              referenceDate: _kFixedDate,
-            );
-            expect(result.data['core_organs'], directAnalysis.vulnerableOrgans);
-            expect(
-              result.data['lifetime_warnings'],
-              directAnalysis.cautionConditions,
-            );
-            expect(result.data['advice_food'], directAnalysis.recommendedCare);
-            expect(
-              result.data['lifestyle'],
-              '${directAnalysis.healthConstitutionPattern} · ${directAnalysis.healthVitality}',
-            );
-            expect(
-              result.data['healthConstitutionPattern'],
-              directAnalysis.healthConstitutionPattern,
-            );
-            expect(
-              result.data['healthVitality'],
-              directAnalysis.healthVitality,
-            );
-            expect(
-              result.data['healthRiskPattern'],
-              directAnalysis.healthRiskPattern,
-            );
-            expect(
-              result.data['healthCautionDaewoonLabel'],
-              directAnalysis.healthCautionDaewoonLabel,
-            );
-
-            // ignore: avoid_print
-            print(
-              '[A05·신규] ${u.userId} healthConstitutionPattern='
-              '${directAnalysis.healthConstitutionPattern}',
-            );
-            // ignore: avoid_print
-            print('[A05·신규] ${u.userId} healthVitality=${directAnalysis.healthVitality}');
-            // ignore: avoid_print
-            print(
-              '[A05·신규] ${u.userId} vulnerableOrgans=${directAnalysis.vulnerableOrgans} '
-              '(참고 · 레거시 coreOrgans=${newB.a05.coreOrgans})',
-            );
-          },
+  group('[j7·A05] runJeontongCategory("A05", ctx) 경로 — HealthAnalyzer 기반 '
+      '개인화 결과로 wiring 완료 확인(§21 13단계)', () {
+    for (final u in _seedUsers) {
+      test('${u.userId}: profile 전달 시 HealthAnalyzer 결과를 그대로 노출', () {
+        final newB = _runNew(u, _kFixedDate);
+        final rules = SajuFortuneRules.cachedOrNull;
+        expect(
+          rules,
+          isNotNull,
+          reason: 'SajuFortuneRules.preload()가 setUpAll에서 완료되어야 함',
         );
-      }
 
-      test(
-        'profile이 null이면(방어적 폴백) 레거시 getLifeHealth 경로로 안전하게 동작',
-        () {
-          final u = _seedUsers.first;
-          final newB = _runNew(u, _kFixedDate);
-          final rules = SajuFortuneRules.cachedOrNull!;
+        // profile을 함께 전달 — 실제 화면(report_builder)이
+        // migratedCategoryIds 경로에서 항상 이렇게 호출하는 것과 동일.
+        final ctx = JeontongCalcContext(
+          saju: newB.saju,
+          interp: newB.interp,
+          rules: rules!,
+          referenceDate: _kFixedDate,
+          profile: newB.profile,
+        );
 
-          // profile을 일부러 전달하지 않음 — migratedCategoryIds 밖에서
-          // 호출되는 방어적 시나리오를 재현.
-          final ctx = JeontongCalcContext(
-            saju: newB.saju,
-            interp: newB.interp,
-            rules: rules,
-            referenceDate: _kFixedDate,
-          );
+        late final JeontongCategoryResult result;
+        expect(() => result = runJeontongCategory('A05', ctx), returnsNormally);
+        expect(result.category, '평생 건강운');
 
-          final result = runJeontongCategory('A05', ctx);
-          expect(result.category, '평생 건강운');
-          expect(result.data['core_organs'], newB.a05.coreOrgans);
-          expect(result.data['lifetime_warnings'], newB.a05.lifetimeWarnings);
-          expect(result.data['advice_food'], newB.a05.adviceFood);
-          expect(result.data['lifestyle'], newB.a05.lifestyle);
-          // 폴백 경로는 HealthAnalyzer 고유 필드를 채우지 않는다.
-          expect(result.data.containsKey('healthConstitutionPattern'), isFalse);
-        },
+        // HealthAnalyzer를 직접 실행한 결과와 완전히 동일해야 한다
+        // (재계산 아님 — 동일 profile로 동일 analyzer를 두 번 호출해도
+        // §2 결정론에 의해 완전히 같은 값이 나와야 함).
+        final directAnalysis = const HealthAnalyzer().analyze(
+          newB.profile,
+          referenceDate: _kFixedDate,
+        );
+        expect(result.data['core_organs'], directAnalysis.vulnerableOrgans);
+        expect(
+          result.data['lifetime_warnings'],
+          directAnalysis.cautionConditions,
+        );
+        expect(result.data['advice_food'], directAnalysis.recommendedCare);
+        expect(
+          result.data['lifestyle'],
+          '${directAnalysis.healthConstitutionPattern} · ${directAnalysis.healthVitality}',
+        );
+        expect(
+          result.data['healthConstitutionPattern'],
+          directAnalysis.healthConstitutionPattern,
+        );
+        expect(result.data['healthVitality'], directAnalysis.healthVitality);
+        expect(
+          result.data['healthRiskPattern'],
+          directAnalysis.healthRiskPattern,
+        );
+        expect(
+          result.data['healthCautionDaewoonLabel'],
+          directAnalysis.healthCautionDaewoonLabel,
+        );
+
+        // ignore: avoid_print
+        print(
+          '[A05·신규] ${u.userId} healthConstitutionPattern='
+          '${directAnalysis.healthConstitutionPattern}',
+        );
+        // ignore: avoid_print
+        print(
+          '[A05·신규] ${u.userId} healthVitality=${directAnalysis.healthVitality}',
+        );
+        // ignore: avoid_print
+        print(
+          '[A05·신규] ${u.userId} vulnerableOrgans=${directAnalysis.vulnerableOrgans} '
+          '(참고 · 레거시 coreOrgans=${newB.a05.coreOrgans})',
+        );
+      });
+    }
+
+    test('profile이 null이면(방어적 폴백) 레거시 getLifeHealth 경로로 안전하게 동작', () {
+      final u = _seedUsers.first;
+      final newB = _runNew(u, _kFixedDate);
+      final rules = SajuFortuneRules.cachedOrNull!;
+
+      // profile을 일부러 전달하지 않음 — migratedCategoryIds 밖에서
+      // 호출되는 방어적 시나리오를 재현.
+      final ctx = JeontongCalcContext(
+        saju: newB.saju,
+        interp: newB.interp,
+        rules: rules,
+        referenceDate: _kFixedDate,
       );
-    },
-  );
+
+      final result = runJeontongCategory('A05', ctx);
+      expect(result.category, '평생 건강운');
+      expect(result.data['core_organs'], newB.a05.coreOrgans);
+      expect(result.data['lifetime_warnings'], newB.a05.lifetimeWarnings);
+      expect(result.data['advice_food'], newB.a05.adviceFood);
+      expect(result.data['lifestyle'], newB.a05.lifestyle);
+      // 폴백 경로는 HealthAnalyzer 고유 필드를 채우지 않는다.
+      expect(result.data.containsKey('healthConstitutionPattern'), isFalse);
+    });
+  });
 }

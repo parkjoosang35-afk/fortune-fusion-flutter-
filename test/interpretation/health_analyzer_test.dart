@@ -27,14 +27,19 @@ void main() {
     for (final input in kJeontongTestInputs) {
       final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
       final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-        kst: kst, gender: input.gender, isLunar: input.isLunar, referenceDate: refDate,
+        kst: kst,
+        gender: input.gender,
+        isLunar: input.isLunar,
+        referenceDate: refDate,
       );
       final analysis = analyzer.analyze(built.profile, referenceDate: refDate);
       results[input.userId] = analysis.toJson().toString();
       // ignore: avoid_print
       print('--- ${input.userId} ---');
       // ignore: avoid_print
-      print('${analysis.healthConstitutionPattern} / ${analysis.healthVitality}');
+      print(
+        '${analysis.healthConstitutionPattern} / ${analysis.healthVitality}',
+      );
       // ignore: avoid_print
       print('organs=${analysis.vulnerableOrgans}');
       // ignore: avoid_print
@@ -49,13 +54,25 @@ void main() {
     final input = kJeontongTestInputs[0];
     final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
     final r1 = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-      kst: kst, gender: input.gender, isLunar: input.isLunar, referenceDate: refDate,
+      kst: kst,
+      gender: input.gender,
+      isLunar: input.isLunar,
+      referenceDate: refDate,
     );
     final r2 = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-      kst: kst, gender: input.gender, isLunar: input.isLunar, referenceDate: refDate,
+      kst: kst,
+      gender: input.gender,
+      isLunar: input.isLunar,
+      referenceDate: refDate,
     );
-    final a1 = analyzer.analyze(r1.profile, referenceDate: refDate).toJson().toString();
-    final a2 = analyzer.analyze(r2.profile, referenceDate: refDate).toJson().toString();
+    final a1 = analyzer
+        .analyze(r1.profile, referenceDate: refDate)
+        .toJson()
+        .toString();
+    final a2 = analyzer
+        .analyze(r2.profile, referenceDate: refDate)
+        .toJson()
+        .toString();
     expect(a1, equals(a2));
   });
 
@@ -65,9 +82,17 @@ void main() {
     final jsons = <String>{};
     for (var i = 0; i < 10; i++) {
       final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-        kst: kst, gender: input.gender, isLunar: input.isLunar, referenceDate: refDate,
+        kst: kst,
+        gender: input.gender,
+        isLunar: input.isLunar,
+        referenceDate: refDate,
       );
-      jsons.add(analyzer.analyze(built.profile, referenceDate: refDate).toJson().toString());
+      jsons.add(
+        analyzer
+            .analyze(built.profile, referenceDate: refDate)
+            .toJson()
+            .toString(),
+      );
     }
     expect(jsons.length, equals(1), reason: '10회 반복 결과가 모두 동일해야 함');
   });
@@ -76,7 +101,10 @@ void main() {
     final input = kJeontongTestInputs[0];
     final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
     final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-      kst: kst, gender: input.gender, isLunar: input.isLunar, referenceDate: refDate,
+      kst: kst,
+      gender: input.gender,
+      isLunar: input.isLunar,
+      referenceDate: refDate,
     );
     final a01 = lifeAnalyzer.analyze(built.profile, referenceDate: refDate);
     final a03 = wealthAnalyzer.analyze(built.profile, referenceDate: refDate);
@@ -89,31 +117,49 @@ void main() {
     expect(a05.healthVitality, isNotEmpty);
   });
 
-  test('30명 샘플의 A05 healthConstitutionPattern/healthVitality가 계산값에 따라 달라진다', () {
-    final patternSet = <String>{};
-    final vitalitySet = <String>{};
-    final fullJsonSet = <String>{};
+  test(
+    '30명 샘플의 A05 healthConstitutionPattern/healthVitality가 계산값에 따라 달라진다',
+    () {
+      final patternSet = <String>{};
+      final vitalitySet = <String>{};
+      final fullJsonSet = <String>{};
 
-    for (final input in kJeontongSample30) {
-      final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
-      final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-        kst: kst, gender: input.gender, isLunar: input.isLunar, referenceDate: refDate,
+      for (final input in kJeontongSample30) {
+        final kst = input.birthDateTimeUtc.toUtc().add(
+          const Duration(hours: 9),
+        );
+        final built =
+            JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
+              kst: kst,
+              gender: input.gender,
+              isLunar: input.isLunar,
+              referenceDate: refDate,
+            );
+        final analysis = analyzer.analyze(
+          built.profile,
+          referenceDate: refDate,
+        );
+        patternSet.add(analysis.healthConstitutionPattern);
+        vitalitySet.add(analysis.healthVitality);
+        fullJsonSet.add(analysis.toJson().toString());
+      }
+
+      expect(fullJsonSet.length, greaterThan(1));
+      expect(
+        patternSet.length,
+        greaterThan(1),
+        reason: 'healthConstitutionPattern이 30명 전원 동일하면 개인화 실패',
       );
-      final analysis = analyzer.analyze(built.profile, referenceDate: refDate);
-      patternSet.add(analysis.healthConstitutionPattern);
-      vitalitySet.add(analysis.healthVitality);
-      fullJsonSet.add(analysis.toJson().toString());
-    }
+      expect(
+        vitalitySet.length,
+        greaterThan(1),
+        reason: 'healthVitality가 30명 전원 동일하면 개인화 실패',
+      );
 
-    expect(fullJsonSet.length, greaterThan(1));
-    expect(patternSet.length, greaterThan(1),
-        reason: 'healthConstitutionPattern이 30명 전원 동일하면 개인화 실패');
-    expect(vitalitySet.length, greaterThan(1),
-        reason: 'healthVitality가 30명 전원 동일하면 개인화 실패');
-
-    // ignore: avoid_print
-    print('healthConstitutionPattern 종류=$patternSet');
-    // ignore: avoid_print
-    print('healthVitality 종류=$vitalitySet');
-  });
+      // ignore: avoid_print
+      print('healthConstitutionPattern 종류=$patternSet');
+      // ignore: avoid_print
+      print('healthVitality 종류=$vitalitySet');
+    },
+  );
 }

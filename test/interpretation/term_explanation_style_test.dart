@@ -55,12 +55,30 @@ void main() {
       isLunar: input.isLunar,
       referenceDate: refDate,
     );
-    final lifeAnalysis = lifeAnalyzer.analyze(built.profile, referenceDate: refDate);
-    final wealthAnalysis = wealthAnalyzer.analyze(built.profile, referenceDate: refDate);
-    final careerAnalysis = careerAnalyzer.analyze(built.profile, referenceDate: refDate);
-    final lifeText = lifeGen.generate(built.profile, lifeAnalysis).toParagraphs().join(' ');
-    final wealthText = wealthGen.generate(built.profile, wealthAnalysis).toParagraphs().join(' ');
-    final careerText = careerGen.generate(built.profile, careerAnalysis).toParagraphs().join(' ');
+    final lifeAnalysis = lifeAnalyzer.analyze(
+      built.profile,
+      referenceDate: refDate,
+    );
+    final wealthAnalysis = wealthAnalyzer.analyze(
+      built.profile,
+      referenceDate: refDate,
+    );
+    final careerAnalysis = careerAnalyzer.analyze(
+      built.profile,
+      referenceDate: refDate,
+    );
+    final lifeText = lifeGen
+        .generate(built.profile, lifeAnalysis)
+        .toParagraphs()
+        .join(' ');
+    final wealthText = wealthGen
+        .generate(built.profile, wealthAnalysis)
+        .toParagraphs()
+        .join(' ');
+    final careerText = careerGen
+        .generate(built.profile, careerAnalysis)
+        .toParagraphs()
+        .join(' ');
     return (life: lifeText, wealth: wealthText, career: careerText);
   }
 
@@ -72,9 +90,21 @@ void main() {
       // 각 카테고리 결과 안에 "(...)" 형태의 괄호 풀이가 최소 1개는
       // 있어야 한다(용어 자체는 나열되지만 반드시 쉬운 뜻이 함께 옴).
       final parenPattern = RegExp(r'[가-힣]+\([^)]+\)');
-      expect(parenPattern.hasMatch(texts.life), isTrue, reason: 'A01 결과에 "용어(쉬운 의미)" 패턴이 없음');
-      expect(parenPattern.hasMatch(texts.wealth), isTrue, reason: 'A03 결과에 "용어(쉬운 의미)" 패턴이 없음');
-      expect(parenPattern.hasMatch(texts.career), isTrue, reason: 'A04 결과에 "용어(쉬운 의미)" 패턴이 없음');
+      expect(
+        parenPattern.hasMatch(texts.life),
+        isTrue,
+        reason: 'A01 결과에 "용어(쉬운 의미)" 패턴이 없음',
+      );
+      expect(
+        parenPattern.hasMatch(texts.wealth),
+        isTrue,
+        reason: 'A03 결과에 "용어(쉬운 의미)" 패턴이 없음',
+      );
+      expect(
+        parenPattern.hasMatch(texts.career),
+        isTrue,
+        reason: 'A04 결과에 "용어(쉬운 의미)" 패턴이 없음',
+      );
     });
   });
 
@@ -123,9 +153,14 @@ void main() {
     test('같은 A03 결과 안에서 재성의 긴 설명이 2회 이상 반복되지 않는다', () {
       for (final input in kJeontongSample120.take(60)) {
         final texts = buildAllTexts(input);
-        final count = '재성(돈을 벌고 관리하는 방식과 관련된 기운)'.allMatches(texts.wealth).length;
-        expect(count, lessThanOrEqualTo(1),
-            reason: '${input.userId}: A03 결과에서 재성의 긴 설명이 $count회 반복됨(§7 위반)');
+        final count = '재성(돈을 벌고 관리하는 방식과 관련된 기운)'
+            .allMatches(texts.wealth)
+            .length;
+        expect(
+          count,
+          lessThanOrEqualTo(1),
+          reason: '${input.userId}: A03 결과에서 재성의 긴 설명이 $count회 반복됨(§7 위반)',
+        );
       }
     });
 
@@ -133,17 +168,25 @@ void main() {
       for (final input in kJeontongSample120.take(60)) {
         final texts = buildAllTexts(input);
         final count = '관살(책임, 조직, 규율과 관련된 기운)'.allMatches(texts.career).length;
-        expect(count, lessThanOrEqualTo(1),
-            reason: '${input.userId}: A04 결과에서 관살의 긴 설명이 $count회 반복됨(§7 위반)');
+        expect(
+          count,
+          lessThanOrEqualTo(1),
+          reason: '${input.userId}: A04 결과에서 관살의 긴 설명이 $count회 반복됨(§7 위반)',
+        );
       }
     });
 
     test('같은 A01 결과 안에서 용신의 긴 설명이 2회 이상 반복되지 않는다', () {
       for (final input in kJeontongSample120.take(60)) {
         final texts = buildAllTexts(input);
-        final count = '용신(用神, 사주 전체의 균형을 잡는 데 도움이 되는 기운)'.allMatches(texts.life).length;
-        expect(count, lessThanOrEqualTo(1),
-            reason: '${input.userId}: A01 결과에서 용신의 긴 설명이 $count회 반복됨(§7 위반)');
+        final count = '용신(用神, 사주 전체의 균형을 잡는 데 도움이 되는 기운)'
+            .allMatches(texts.life)
+            .length;
+        expect(
+          count,
+          lessThanOrEqualTo(1),
+          reason: '${input.userId}: A01 결과에서 용신의 긴 설명이 $count회 반복됨(§7 위반)',
+        );
       }
     });
   });
@@ -153,8 +196,11 @@ void main() {
       final input = kJeontongTestInputs[0];
       final texts = buildAllTexts(input);
       if (texts.life.contains('용신(用神')) {
-        expect(texts.life.contains('용신(用神, 사주 전체의 균형을 잡는 데 도움이 되는 기운)은 이 사주에서'), isTrue,
-            reason: 'A01의 용신 첫 등장 설명이 "이 사주에서"로 연결되지 않음');
+        expect(
+          texts.life.contains('용신(用神, 사주 전체의 균형을 잡는 데 도움이 되는 기운)은 이 사주에서'),
+          isTrue,
+          reason: 'A01의 용신 첫 등장 설명이 "이 사주에서"로 연결되지 않음',
+        );
       }
     });
 
@@ -166,7 +212,8 @@ void main() {
       // 끝나지 않고 개인 수치로 이어짐을 보증.
       final countPattern = RegExp(r'[가-힣]+\([^)]+\)\s*\d+개');
       expect(
-        countPattern.hasMatch(texts.wealth) || countPattern.hasMatch(texts.career),
+        countPattern.hasMatch(texts.wealth) ||
+            countPattern.hasMatch(texts.career),
         isTrue,
         reason: 'A03/A04 결과에 "용어(설명) N개" 형태의 개인화 연결 패턴이 없음',
       );
@@ -192,7 +239,9 @@ void main() {
         if (texts.career.contains('관살')) careerMentionsGwansal++;
       }
       // ignore: avoid_print
-      print('A03 재성 언급=$wealthMentionsJaeseong/50, A04 관살 언급=$careerMentionsGwansal/50');
+      print(
+        'A03 재성 언급=$wealthMentionsJaeseong/50, A04 관살 언급=$careerMentionsGwansal/50',
+      );
       expect(wealthMentionsJaeseong, greaterThan(0));
       expect(careerMentionsGwansal, greaterThan(0));
     });
@@ -204,23 +253,53 @@ void main() {
       final wealthSet = <String>{};
       final careerSet = <String>{};
       for (final input in kJeontongSample120) {
-        final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
-        final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-          kst: kst,
-          gender: input.gender,
-          isLunar: input.isLunar,
+        final kst = input.birthDateTimeUtc.toUtc().add(
+          const Duration(hours: 9),
+        );
+        final built =
+            JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
+              kst: kst,
+              gender: input.gender,
+              isLunar: input.isLunar,
+              referenceDate: refDate,
+            );
+        final lifeAnalysis = lifeAnalyzer.analyze(
+          built.profile,
           referenceDate: refDate,
         );
-        final lifeAnalysis = lifeAnalyzer.analyze(built.profile, referenceDate: refDate);
-        final wealthAnalysis = wealthAnalyzer.analyze(built.profile, referenceDate: refDate);
-        final careerAnalysis = careerAnalyzer.analyze(built.profile, referenceDate: refDate);
-        lifeSet.add(lifeGen.generate(built.profile, lifeAnalysis).toJson().toString());
-        wealthSet.add(wealthGen.generate(built.profile, wealthAnalysis).toJson().toString());
-        careerSet.add(careerGen.generate(built.profile, careerAnalysis).toJson().toString());
+        final wealthAnalysis = wealthAnalyzer.analyze(
+          built.profile,
+          referenceDate: refDate,
+        );
+        final careerAnalysis = careerAnalyzer.analyze(
+          built.profile,
+          referenceDate: refDate,
+        );
+        lifeSet.add(
+          lifeGen.generate(built.profile, lifeAnalysis).toJson().toString(),
+        );
+        wealthSet.add(
+          wealthGen.generate(built.profile, wealthAnalysis).toJson().toString(),
+        );
+        careerSet.add(
+          careerGen.generate(built.profile, careerAnalysis).toJson().toString(),
+        );
       }
-      expect(lifeSet.length, equals(120), reason: 'A01 120명 전체 Narrative 유일성 깨짐');
-      expect(wealthSet.length, equals(120), reason: 'A03 120명 전체 Narrative 유일성 깨짐');
-      expect(careerSet.length, equals(120), reason: 'A04 120명 전체 Narrative 유일성 깨짐');
+      expect(
+        lifeSet.length,
+        equals(120),
+        reason: 'A01 120명 전체 Narrative 유일성 깨짐',
+      );
+      expect(
+        wealthSet.length,
+        equals(120),
+        reason: 'A03 120명 전체 Narrative 유일성 깨짐',
+      );
+      expect(
+        careerSet.length,
+        equals(120),
+        reason: 'A04 120명 전체 Narrative 유일성 깨짐',
+      );
     });
 
     test('계산 레벨(Analyzer) 핵심 판단 필드는 문장 레이어 리팩터링과 무관하게 결정론적으로 동일하다', () {
@@ -228,16 +307,24 @@ void main() {
       final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
       final jsons = <String>{};
       for (var i = 0; i < 3; i++) {
-        final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-          kst: kst,
-          gender: input.gender,
-          isLunar: input.isLunar,
+        final built =
+            JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
+              kst: kst,
+              gender: input.gender,
+              isLunar: input.isLunar,
+              referenceDate: refDate,
+            );
+        final wealthAnalysis = wealthAnalyzer.analyze(
+          built.profile,
           referenceDate: refDate,
         );
-        final wealthAnalysis = wealthAnalyzer.analyze(built.profile, referenceDate: refDate);
         jsons.add(wealthAnalysis.toJson().toString());
       }
-      expect(jsons.length, equals(1), reason: 'WealthAnalysis(계산 레벨) 결과가 매 호출마다 달라짐 — 계산 로직 훼손 의심');
+      expect(
+        jsons.length,
+        equals(1),
+        reason: 'WealthAnalysis(계산 레벨) 결과가 매 호출마다 달라짐 — 계산 로직 훼손 의심',
+      );
     });
   });
 
@@ -266,14 +353,21 @@ void main() {
 
       // 같은 입력에 대해 두 번 계산해도 4주/신강신약/용신 판정이
       // 완전히 동일해야 한다(결정론 + 불변성).
-      final built2 = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-        kst: kst,
-        gender: input.gender,
-        isLunar: input.isLunar,
-        referenceDate: refDate,
+      final built2 =
+          JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
+            kst: kst,
+            gender: input.gender,
+            isLunar: input.isLunar,
+            referenceDate: refDate,
+          );
+      expect(
+        built2.profile.dayPillar.stemHanja,
+        equals(profile.dayPillar.stemHanja),
       );
-      expect(built2.profile.dayPillar.stemHanja, equals(profile.dayPillar.stemHanja));
-      expect(built2.profile.strength?.verdict, equals(profile.strength?.verdict));
+      expect(
+        built2.profile.strength?.verdict,
+        equals(profile.strength?.verdict),
+      );
       expect(built2.profile.yongsin?.yongsin, equals(profile.yongsin?.yongsin));
       expect(built2.profile.yongsin?.gisin, equals(profile.yongsin?.gisin));
       expect(
@@ -282,36 +376,66 @@ void main() {
       );
     });
 
-    test('LifeOverallAnalysis.strengthVerdict/yongsinElement/gisinElement는 profile.strength/yongsin 원본과 일치한다', () {
-      final input = kJeontongTestInputs[0];
-      final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
-      final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-        kst: kst,
-        gender: input.gender,
-        isLunar: input.isLunar,
-        referenceDate: refDate,
-      );
-      final analysis = lifeAnalyzer.analyze(built.profile, referenceDate: refDate);
-      expect(analysis.strengthVerdict, equals(built.profile.strength?.verdict));
-      expect(analysis.yongsinElement, equals(built.profile.yongsin?.yongsin ?? ''));
-      expect(analysis.gisinElement, equals(built.profile.yongsin?.gisin ?? ''));
-    });
+    test(
+      'LifeOverallAnalysis.strengthVerdict/yongsinElement/gisinElement는 profile.strength/yongsin 원본과 일치한다',
+      () {
+        final input = kJeontongTestInputs[0];
+        final kst = input.birthDateTimeUtc.toUtc().add(
+          const Duration(hours: 9),
+        );
+        final built =
+            JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
+              kst: kst,
+              gender: input.gender,
+              isLunar: input.isLunar,
+              referenceDate: refDate,
+            );
+        final analysis = lifeAnalyzer.analyze(
+          built.profile,
+          referenceDate: refDate,
+        );
+        expect(
+          analysis.strengthVerdict,
+          equals(built.profile.strength?.verdict),
+        );
+        expect(
+          analysis.yongsinElement,
+          equals(built.profile.yongsin?.yongsin ?? ''),
+        );
+        expect(
+          analysis.gisinElement,
+          equals(built.profile.yongsin?.gisin ?? ''),
+        );
+      },
+    );
   });
 
   group('신규 검증 8: 기존 회귀 테스트 전체 통과(대표 스모크)', () {
     test('A01/A03/A04 각 결과가 §9 금지 문구를 포함하지 않으면서도 practicalGuidance가 채워진다', () {
       const forbidden = ['사주 뿌리부터', '오행의 흐름을 보면', '여기에 더해', '사주는 정해진 운명'];
       for (final input in kJeontongSample120.take(30)) {
-        final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
-        final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-          kst: kst,
-          gender: input.gender,
-          isLunar: input.isLunar,
+        final kst = input.birthDateTimeUtc.toUtc().add(
+          const Duration(hours: 9),
+        );
+        final built =
+            JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
+              kst: kst,
+              gender: input.gender,
+              isLunar: input.isLunar,
+              referenceDate: refDate,
+            );
+        final lifeAnalysis = lifeAnalyzer.analyze(
+          built.profile,
           referenceDate: refDate,
         );
-        final lifeAnalysis = lifeAnalyzer.analyze(built.profile, referenceDate: refDate);
-        final wealthAnalysis = wealthAnalyzer.analyze(built.profile, referenceDate: refDate);
-        final careerAnalysis = careerAnalyzer.analyze(built.profile, referenceDate: refDate);
+        final wealthAnalysis = wealthAnalyzer.analyze(
+          built.profile,
+          referenceDate: refDate,
+        );
+        final careerAnalysis = careerAnalyzer.analyze(
+          built.profile,
+          referenceDate: refDate,
+        );
         final lifeN = lifeGen.generate(built.profile, lifeAnalysis);
         final wealthN = wealthGen.generate(built.profile, wealthAnalysis);
         final careerN = careerGen.generate(built.profile, careerAnalysis);
@@ -323,8 +447,11 @@ void main() {
         final fullText =
             '${lifeN.toParagraphs().join(' ')} ${wealthN.toParagraphs().join(' ')} ${careerN.toParagraphs().join(' ')}';
         for (final phrase in forbidden) {
-          expect(fullText.contains(phrase), isFalse,
-              reason: '${input.userId}: 리팩터링 후 결과에 금지 문구 "$phrase" 포함');
+          expect(
+            fullText.contains(phrase),
+            isFalse,
+            reason: '${input.userId}: 리팩터링 후 결과에 금지 문구 "$phrase" 포함',
+          );
         }
       }
     });

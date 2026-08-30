@@ -44,24 +44,37 @@ void main() {
 
     setUpAll(() {
       for (final input in kJeontongSample120) {
-        final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
-        final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-          kst: kst,
-          gender: input.gender,
-          isLunar: input.isLunar,
+        final kst = input.birthDateTimeUtc.toUtc().add(
+          const Duration(hours: 9),
+        );
+        final built =
+            JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
+              kst: kst,
+              gender: input.gender,
+              isLunar: input.isLunar,
+              referenceDate: refDate,
+            );
+        final life = lifeAnalyzer.analyze(
+          built.profile,
           referenceDate: refDate,
         );
-        final life = lifeAnalyzer.analyze(built.profile, referenceDate: refDate);
-        final wealth = wealthAnalyzer.analyze(built.profile, referenceDate: refDate);
+        final wealth = wealthAnalyzer.analyze(
+          built.profile,
+          referenceDate: refDate,
+        );
 
         a01LifeTheme.add(life.lifeTheme);
         a01CoreNature.add(life.coreNatureDescription);
         a01Strengths.add(life.strengths.join(' / '));
-        a01CoreEvidenceJudgments.add(life.coreEvidence.map((e) => e.judgment).join(' '));
+        a01CoreEvidenceJudgments.add(
+          life.coreEvidence.map((e) => e.judgment).join(' '),
+        );
 
         a03WealthPattern.add(wealth.wealthPattern);
         a03WealthStrength.add(wealth.wealthStrength);
-        a03CoreEvidenceJudgments.add(wealth.coreEvidence.map((e) => e.judgment).join(' '));
+        a03CoreEvidenceJudgments.add(
+          wealth.coreEvidence.map((e) => e.judgment).join(' '),
+        );
       }
     });
 
@@ -70,7 +83,11 @@ void main() {
     /// 명리학 용어 자체 반복은 허용". 10천간(coreNatureDescription)처럼
     /// 원래 10종 고정 지식이 반복되는 것은 정상이므로, 최다 빈도 문자열의
     /// 등장 비율이 "입력 다양성 대비 과도"한지를 허용 임계치로 판단한다.
-    void checkMaxDuplicateRatio(String label, List<String> values, {required double maxRatio}) {
+    void checkMaxDuplicateRatio(
+      String label,
+      List<String> values, {
+      required double maxRatio,
+    }) {
       final freq = <String, int>{};
       for (final v in values) {
         freq[v] = (freq[v] ?? 0) + 1;
@@ -78,9 +95,15 @@ void main() {
       final maxCount = freq.values.reduce((a, b) => a > b ? a : b);
       final ratio = maxCount / values.length;
       // ignore: avoid_print
-      print('[$label] 종류=${freq.length}, 최다반복=$maxCount/${values.length} (${(ratio * 100).toStringAsFixed(1)}%)');
-      expect(ratio, lessThanOrEqualTo(maxRatio),
-          reason: '[$label] 동일 문자열이 $maxCount/${values.length}회(${(ratio * 100).toStringAsFixed(1)}%) 반복 — 과도한 중복(§14)');
+      print(
+        '[$label] 종류=${freq.length}, 최다반복=$maxCount/${values.length} (${(ratio * 100).toStringAsFixed(1)}%)',
+      );
+      expect(
+        ratio,
+        lessThanOrEqualTo(maxRatio),
+        reason:
+            '[$label] 동일 문자열이 $maxCount/${values.length}회(${(ratio * 100).toStringAsFixed(1)}%) 반복 — 과도한 중복(§14)',
+      );
     }
 
     test('A01 lifeTheme 중복률이 과도하지 않다', () {
@@ -94,7 +117,9 @@ void main() {
       // 고정표를 참조하고 있는지 검증한다(변질 여부 확인 목적).
       final distinct = a01CoreNature.toSet();
       // ignore: avoid_print
-      print('[A01.coreNatureDescription] 종류=${distinct.length} (10종 고정표 기반, 초과 시 이상)');
+      print(
+        '[A01.coreNatureDescription] 종류=${distinct.length} (10종 고정표 기반, 초과 시 이상)',
+      );
       expect(distinct.length, lessThanOrEqualTo(10));
       expect(distinct.length, greaterThan(1));
     });
@@ -104,7 +129,11 @@ void main() {
     });
 
     test('A01 coreEvidence judgment 전체 결합문 중복률이 과도하지 않다', () {
-      checkMaxDuplicateRatio('A01.coreEvidenceJudgments', a01CoreEvidenceJudgments, maxRatio: 0.15);
+      checkMaxDuplicateRatio(
+        'A01.coreEvidenceJudgments',
+        a01CoreEvidenceJudgments,
+        maxRatio: 0.15,
+      );
     });
 
     test('A03 wealthPattern 중복률이 과도하지 않다(단, 재관쌍미 편중은 별도 findings로 기록)', () {
@@ -117,15 +146,27 @@ void main() {
       // wealthPattern 분류 규칙 자체의 정교화는 A04 착수 전 개선 과제로
       // 별도 기록한다(보고서에 명시) — 여기서는 완화된 임계치로 "실패
       // 처리는 하지 않되 수치를 남긴다".
-      checkMaxDuplicateRatio('A03.wealthPattern', a03WealthPattern, maxRatio: 0.85);
+      checkMaxDuplicateRatio(
+        'A03.wealthPattern',
+        a03WealthPattern,
+        maxRatio: 0.85,
+      );
     });
 
     test('A03 wealthStrength 중복률이 과도하지 않다', () {
-      checkMaxDuplicateRatio('A03.wealthStrength', a03WealthStrength, maxRatio: 0.6);
+      checkMaxDuplicateRatio(
+        'A03.wealthStrength',
+        a03WealthStrength,
+        maxRatio: 0.6,
+      );
     });
 
     test('A03 coreEvidence judgment 전체 결합문 중복률이 과도하지 않다', () {
-      checkMaxDuplicateRatio('A03.coreEvidenceJudgments', a03CoreEvidenceJudgments, maxRatio: 0.5);
+      checkMaxDuplicateRatio(
+        'A03.coreEvidenceJudgments',
+        a03CoreEvidenceJudgments,
+        maxRatio: 0.5,
+      );
     });
   });
 
@@ -135,14 +176,20 @@ void main() {
     for (final idx in sampleIndices) {
       final input = kJeontongSample120[idx];
       test('${input.userId}: A01 coreEvidence가 근거-판단 추적 요건을 만족한다', () {
-        final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
-        final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-          kst: kst,
-          gender: input.gender,
-          isLunar: input.isLunar,
+        final kst = input.birthDateTimeUtc.toUtc().add(
+          const Duration(hours: 9),
+        );
+        final built =
+            JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
+              kst: kst,
+              gender: input.gender,
+              isLunar: input.isLunar,
+              referenceDate: refDate,
+            );
+        final life = lifeAnalyzer.analyze(
+          built.profile,
           referenceDate: refDate,
         );
-        final life = lifeAnalyzer.analyze(built.profile, referenceDate: refDate);
 
         expect(life.coreEvidence, isNotEmpty);
         for (final e in life.coreEvidence) {
@@ -163,40 +210,60 @@ void main() {
         expect(life.interpretationContext['strengthVerdict'], isNotEmpty);
       });
 
-      test('${input.userId}: A03 coreEvidence+supportingEvidence가 근거-판단 추적 요건을 만족한다', () {
-        final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
-        final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-          kst: kst,
-          gender: input.gender,
-          isLunar: input.isLunar,
-          referenceDate: refDate,
-        );
-        final wealth = wealthAnalyzer.analyze(built.profile, referenceDate: refDate);
+      test(
+        '${input.userId}: A03 coreEvidence+supportingEvidence가 근거-판단 추적 요건을 만족한다',
+        () {
+          final kst = input.birthDateTimeUtc.toUtc().add(
+            const Duration(hours: 9),
+          );
+          final built =
+              JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
+                kst: kst,
+                gender: input.gender,
+                isLunar: input.isLunar,
+                referenceDate: refDate,
+              );
+          final wealth = wealthAnalyzer.analyze(
+            built.profile,
+            referenceDate: refDate,
+          );
 
-        expect(wealth.coreEvidence, isNotEmpty);
-        for (final e in wealth.coreEvidence) {
-          expect(e.sourceField, isNotEmpty);
-          expect(e.sourceValue, isNotEmpty);
-          expect(e.rule, isNotEmpty);
-          expect(e.judgment, isNotEmpty);
-          expect(e.interpretationRole, isNotNull);
-        }
-        // §5 세부 근거(정재/편재/관성/인성/비겁 개수)가 supportingEvidence에
-        // 실제로 남아 있어야 한다.
-        expect(wealth.supportingEvidence, isNotEmpty);
+          expect(wealth.coreEvidence, isNotEmpty);
+          for (final e in wealth.coreEvidence) {
+            expect(e.sourceField, isNotEmpty);
+            expect(e.sourceValue, isNotEmpty);
+            expect(e.rule, isNotEmpty);
+            expect(e.judgment, isNotEmpty);
+            expect(e.interpretationRole, isNotNull);
+          }
+          // §5 세부 근거(정재/편재/관성/인성/비겁 개수)가 supportingEvidence에
+          // 실제로 남아 있어야 한다.
+          expect(wealth.supportingEvidence, isNotEmpty);
 
-        // interpretationContext에 wealthPattern/wealthStrength 판단에 쓰인
-        // 원시 수치(정재/편재/관성/인성/비겁 개수, 신강신약, 용신/기신)가
-        // 모두 남아있어야 한다.
-        final ctx = wealth.interpretationContext;
-        for (final key in [
-          'wealthCount', 'officerCount', 'printerCount', 'biCount',
-          'jeongjaeCount', 'pyeonjaeCount', 'gyeopjaeCount',
-          'strengthVerdict', 'yongsinElement', 'gisinElement',
-        ]) {
-          expect(ctx.containsKey(key), isTrue, reason: 'interpretationContext에 "$key"가 없음(§16 추적성 위반)');
-        }
-      });
+          // interpretationContext에 wealthPattern/wealthStrength 판단에 쓰인
+          // 원시 수치(정재/편재/관성/인성/비겁 개수, 신강신약, 용신/기신)가
+          // 모두 남아있어야 한다.
+          final ctx = wealth.interpretationContext;
+          for (final key in [
+            'wealthCount',
+            'officerCount',
+            'printerCount',
+            'biCount',
+            'jeongjaeCount',
+            'pyeonjaeCount',
+            'gyeopjaeCount',
+            'strengthVerdict',
+            'yongsinElement',
+            'gisinElement',
+          ]) {
+            expect(
+              ctx.containsKey(key),
+              isTrue,
+              reason: 'interpretationContext에 "$key"가 없음(§16 추적성 위반)',
+            );
+          }
+        },
+      );
     }
   });
 }

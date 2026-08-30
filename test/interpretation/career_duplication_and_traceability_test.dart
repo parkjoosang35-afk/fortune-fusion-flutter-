@@ -22,23 +22,35 @@ void main() {
 
     setUpAll(() {
       for (final input in kJeontongSample120) {
-        final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
-        final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-          kst: kst,
-          gender: input.gender,
-          isLunar: input.isLunar,
+        final kst = input.birthDateTimeUtc.toUtc().add(
+          const Duration(hours: 9),
+        );
+        final built =
+            JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
+              kst: kst,
+              gender: input.gender,
+              isLunar: input.isLunar,
+              referenceDate: refDate,
+            );
+        final career = careerAnalyzer.analyze(
+          built.profile,
           referenceDate: refDate,
         );
-        final career = careerAnalyzer.analyze(built.profile, referenceDate: refDate);
 
         a04CareerPattern.add(career.careerPattern);
         a04CareerStrength.add(career.careerStrength);
         a04WorkStyle.add(career.workStyle);
-        a04CoreEvidenceJudgments.add(career.coreEvidence.map((e) => e.judgment).join(' '));
+        a04CoreEvidenceJudgments.add(
+          career.coreEvidence.map((e) => e.judgment).join(' '),
+        );
       }
     });
 
-    void checkMaxDuplicateRatio(String label, List<String> values, {required double maxRatio}) {
+    void checkMaxDuplicateRatio(
+      String label,
+      List<String> values, {
+      required double maxRatio,
+    }) {
       final freq = <String, int>{};
       for (final v in values) {
         freq[v] = (freq[v] ?? 0) + 1;
@@ -46,9 +58,15 @@ void main() {
       final maxCount = freq.values.reduce((a, b) => a > b ? a : b);
       final ratio = maxCount / values.length;
       // ignore: avoid_print
-      print('[$label] 종류=${freq.length}, 최다반복=$maxCount/${values.length} (${(ratio * 100).toStringAsFixed(1)}%)');
-      expect(ratio, lessThanOrEqualTo(maxRatio),
-          reason: '[$label] 동일 문자열이 $maxCount/${values.length}회(${(ratio * 100).toStringAsFixed(1)}%) 반복 — 과도한 중복(§14)');
+      print(
+        '[$label] 종류=${freq.length}, 최다반복=$maxCount/${values.length} (${(ratio * 100).toStringAsFixed(1)}%)',
+      );
+      expect(
+        ratio,
+        lessThanOrEqualTo(maxRatio),
+        reason:
+            '[$label] 동일 문자열이 $maxCount/${values.length}회(${(ratio * 100).toStringAsFixed(1)}%) 반복 — 과도한 중복(§14)',
+      );
     }
 
     test('A04 careerPattern 중복률이 과도하지 않다(단, 관인상생 편중은 별도 findings로 기록)', () {
@@ -64,11 +82,19 @@ void main() {
       // A03의 wealthPattern과 함께 향후 개선 과제로 별도 기록한다(보고서에
       // 명시) — 여기서는 완화된 임계치로 "실패 처리는 하지 않되 수치를
       // 남긴다".
-      checkMaxDuplicateRatio('A04.careerPattern', a04CareerPattern, maxRatio: 0.8);
+      checkMaxDuplicateRatio(
+        'A04.careerPattern',
+        a04CareerPattern,
+        maxRatio: 0.8,
+      );
     });
 
     test('A04 careerStrength 중복률이 과도하지 않다', () {
-      checkMaxDuplicateRatio('A04.careerStrength', a04CareerStrength, maxRatio: 0.6);
+      checkMaxDuplicateRatio(
+        'A04.careerStrength',
+        a04CareerStrength,
+        maxRatio: 0.6,
+      );
     });
 
     test('A04 workStyle 중복률이 과도하지 않다', () {
@@ -76,7 +102,11 @@ void main() {
     });
 
     test('A04 coreEvidence judgment 전체 결합문 중복률이 과도하지 않다', () {
-      checkMaxDuplicateRatio('A04.coreEvidenceJudgments', a04CoreEvidenceJudgments, maxRatio: 0.5);
+      checkMaxDuplicateRatio(
+        'A04.coreEvidenceJudgments',
+        a04CoreEvidenceJudgments,
+        maxRatio: 0.5,
+      );
     });
   });
 
@@ -85,40 +115,62 @@ void main() {
 
     for (final idx in sampleIndices) {
       final input = kJeontongSample120[idx];
-      test('${input.userId}: A04 coreEvidence+supportingEvidence가 근거-판단 추적 요건을 만족한다', () {
-        final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
-        final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-          kst: kst,
-          gender: input.gender,
-          isLunar: input.isLunar,
-          referenceDate: refDate,
-        );
-        final career = careerAnalyzer.analyze(built.profile, referenceDate: refDate);
+      test(
+        '${input.userId}: A04 coreEvidence+supportingEvidence가 근거-판단 추적 요건을 만족한다',
+        () {
+          final kst = input.birthDateTimeUtc.toUtc().add(
+            const Duration(hours: 9),
+          );
+          final built =
+              JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
+                kst: kst,
+                gender: input.gender,
+                isLunar: input.isLunar,
+                referenceDate: refDate,
+              );
+          final career = careerAnalyzer.analyze(
+            built.profile,
+            referenceDate: refDate,
+          );
 
-        expect(career.coreEvidence, isNotEmpty);
-        for (final e in career.coreEvidence) {
-          expect(e.sourceField, isNotEmpty);
-          expect(e.sourceValue, isNotEmpty);
-          expect(e.rule, isNotEmpty);
-          expect(e.judgment, isNotEmpty);
-          expect(e.interpretationRole, isNotNull);
-        }
-        // §5 세부 근거(관살/인성/식상/비겁/재성 개수, 정관/편관 비교)가
-        // supportingEvidence에 실제로 남아 있어야 한다.
-        expect(career.supportingEvidence, isNotEmpty);
+          expect(career.coreEvidence, isNotEmpty);
+          for (final e in career.coreEvidence) {
+            expect(e.sourceField, isNotEmpty);
+            expect(e.sourceValue, isNotEmpty);
+            expect(e.rule, isNotEmpty);
+            expect(e.judgment, isNotEmpty);
+            expect(e.interpretationRole, isNotNull);
+          }
+          // §5 세부 근거(관살/인성/식상/비겁/재성 개수, 정관/편관 비교)가
+          // supportingEvidence에 실제로 남아 있어야 한다.
+          expect(career.supportingEvidence, isNotEmpty);
 
-        // interpretationContext에 careerPattern/careerStrength 판단에
-        // 쓰인 원시 수치(관살/인성/식상/비겁/재성 개수, 신강신약, 용신/
-        // 기신, 일간)가 모두 남아있어야 한다.
-        final ctx = career.interpretationContext;
-        for (final key in [
-          'officerCount', 'printerCount', 'outputCount', 'biCount', 'wealthCount',
-          'jeongGwanCount', 'pyeonGwanCount', 'sangGwanCount',
-          'strengthVerdict', 'yongsinElement', 'gisinElement', 'dayGan',
-        ]) {
-          expect(ctx.containsKey(key), isTrue, reason: 'interpretationContext에 "$key"가 없음(§16 추적성 위반)');
-        }
-      });
+          // interpretationContext에 careerPattern/careerStrength 판단에
+          // 쓰인 원시 수치(관살/인성/식상/비겁/재성 개수, 신강신약, 용신/
+          // 기신, 일간)가 모두 남아있어야 한다.
+          final ctx = career.interpretationContext;
+          for (final key in [
+            'officerCount',
+            'printerCount',
+            'outputCount',
+            'biCount',
+            'wealthCount',
+            'jeongGwanCount',
+            'pyeonGwanCount',
+            'sangGwanCount',
+            'strengthVerdict',
+            'yongsinElement',
+            'gisinElement',
+            'dayGan',
+          ]) {
+            expect(
+              ctx.containsKey(key),
+              isTrue,
+              reason: 'interpretationContext에 "$key"가 없음(§16 추적성 위반)',
+            );
+          }
+        },
+      );
     }
   });
 }

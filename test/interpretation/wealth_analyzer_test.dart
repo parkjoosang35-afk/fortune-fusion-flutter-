@@ -23,14 +23,19 @@ void main() {
     for (final input in kJeontongTestInputs) {
       final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
       final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-        kst: kst, gender: input.gender, isLunar: input.isLunar, referenceDate: refDate,
+        kst: kst,
+        gender: input.gender,
+        isLunar: input.isLunar,
+        referenceDate: refDate,
       );
       final analysis = analyzer.analyze(built.profile, referenceDate: refDate);
       results[input.userId] = analysis.toJson().toString();
       // ignore: avoid_print
       print('--- ${input.userId} ---');
       // ignore: avoid_print
-      print('${analysis.wealthPattern} / ${analysis.wealthStrength} / ${analysis.incomePattern}');
+      print(
+        '${analysis.wealthPattern} / ${analysis.wealthStrength} / ${analysis.incomePattern}',
+      );
       // ignore: avoid_print
       print('risk=${analysis.riskPattern}');
       // ignore: avoid_print
@@ -43,13 +48,25 @@ void main() {
     final input = kJeontongTestInputs[0];
     final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
     final r1 = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-      kst: kst, gender: input.gender, isLunar: input.isLunar, referenceDate: refDate,
+      kst: kst,
+      gender: input.gender,
+      isLunar: input.isLunar,
+      referenceDate: refDate,
     );
     final r2 = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-      kst: kst, gender: input.gender, isLunar: input.isLunar, referenceDate: refDate,
+      kst: kst,
+      gender: input.gender,
+      isLunar: input.isLunar,
+      referenceDate: refDate,
     );
-    final a1 = analyzer.analyze(r1.profile, referenceDate: refDate).toJson().toString();
-    final a2 = analyzer.analyze(r2.profile, referenceDate: refDate).toJson().toString();
+    final a1 = analyzer
+        .analyze(r1.profile, referenceDate: refDate)
+        .toJson()
+        .toString();
+    final a2 = analyzer
+        .analyze(r2.profile, referenceDate: refDate)
+        .toJson()
+        .toString();
     expect(a1, equals(a2));
   });
 
@@ -57,7 +74,10 @@ void main() {
     final input = kJeontongTestInputs[0];
     final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
     final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-      kst: kst, gender: input.gender, isLunar: input.isLunar, referenceDate: refDate,
+      kst: kst,
+      gender: input.gender,
+      isLunar: input.isLunar,
+      referenceDate: refDate,
     );
     final a01 = lifeAnalyzer.analyze(built.profile, referenceDate: refDate);
     final a03 = analyzer.analyze(built.profile, referenceDate: refDate);
@@ -75,7 +95,10 @@ void main() {
     for (final input in kJeontongSample30) {
       final kst = input.birthDateTimeUtc.toUtc().add(const Duration(hours: 9));
       final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-        kst: kst, gender: input.gender, isLunar: input.isLunar, referenceDate: refDate,
+        kst: kst,
+        gender: input.gender,
+        isLunar: input.isLunar,
+        referenceDate: refDate,
       );
       final analysis = analyzer.analyze(built.profile, referenceDate: refDate);
       patternSet.add(analysis.wealthPattern);
@@ -84,10 +107,16 @@ void main() {
     }
 
     expect(fullJsonSet.length, greaterThan(1));
-    expect(patternSet.length, greaterThan(1),
-        reason: 'wealthPattern이 30명 전원 동일하면 개인화 실패');
-    expect(strengthSet.length, greaterThan(1),
-        reason: 'wealthStrength가 30명 전원 동일하면 개인화 실패');
+    expect(
+      patternSet.length,
+      greaterThan(1),
+      reason: 'wealthPattern이 30명 전원 동일하면 개인화 실패',
+    );
+    expect(
+      strengthSet.length,
+      greaterThan(1),
+      reason: 'wealthStrength가 30명 전원 동일하면 개인화 실패',
+    );
 
     // ignore: avoid_print
     print('wealthPattern 종류=$patternSet');
