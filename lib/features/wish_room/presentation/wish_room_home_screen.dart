@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -8,6 +10,7 @@ import '../widgets/blessing_bag_bottom_sheet.dart';
 import '../../shop/domain/shop_item_visuals.dart';
 import '../widgets/wish_room_buttons.dart';
 import '../widgets/wish_room_candle.dart';
+import '../widgets/wish_room_candle_ignite_overlay.dart';
 import '../widgets/wish_room_dust.dart';
 import '../widgets/wish_room_seal.dart';
 import '../widgets/wish_room_sigil.dart';
@@ -17,7 +20,7 @@ import 'wish_room_compose_screen.dart';
 import 'wish_room_detail_screen.dart';
 import 'wish_room_empty_screen.dart';
 import 'wish_room_feed_screen.dart';
-import 'wish_room_onboarding_screen.dart';
+import 'wish_room_guide_screen.dart';
 import 'wish_wall_my_screen.dart';
 
 /// 소원방(Wish Room) — "나의 소원방" 홈 화면.
@@ -237,21 +240,15 @@ class _WishRoomHomeScreenState extends State<WishRoomHomeScreen> {
 
   /// [STEP03 — 소원방 핵심 UX 재설계] "이용안내" 재진입 버튼.
   ///
-  /// [wishRoomOnboardingSeenPrefsKey 불변 원칙] 이 버튼은 온보딩 화면을
-  /// 단순히 다시 "보여주기"만 할 뿐, [markWishRoomOnboardingSeen]을
-  /// 호출하지 않는다 — 이미 이 화면(홈)에 도달했다는 것 자체가 온보딩을
-  /// 이미 통과했다는 뜻이므로 seen 상태를 다시 건드릴 이유가 없다.
-  /// onEnter/onHaveAccount 콜백은 [WishRoomEntryGate]처럼 상태를 저장하지
-  /// 않고 단순히 이 화면을 닫기만 한다(순수 재열람).
+  /// [이용안내 개선] 과거 버전은 입장 게이트 화면([WishRoomOnboardingScreen],
+  /// "소원방 들어가기" CTA만 있고 실제 기능 설명이 없는 화면)을 그대로
+  /// 재사용해 "이용안내를 눌러도 아무 설명이 없다"는 불만의 원인이었다.
+  /// 이제는 실제 기능 설명을 담은 전용 화면([WishRoomGuideScreen])을
+  /// 새로 열며, 온보딩 seen 플래그와는 완전히 무관하다.
   void _openOnboardingReview() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => WishRoomOnboardingScreen(
-          onEnter: () => Navigator.of(context).pop(),
-          onHaveAccount: () => Navigator.of(context).pop(),
-        ),
-      ),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const WishRoomGuideScreen()));
   }
 
   /// [STEP03 — 오늘의 소원 활동 · 촛불 켜기] 새 보상정책을 만들지 않고
@@ -260,6 +257,9 @@ class _WishRoomHomeScreenState extends State<WishRoomHomeScreen> {
     final policy = context.read<WishWallProvider>().policy;
     final granted = await policy.earnDailyCandleBonus();
     if (!mounted) return;
+    if (granted > 0) {
+      unawaited(playWishRoomCandleIgnition(context));
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
@@ -285,9 +285,13 @@ class _WishRoomHomeScreenState extends State<WishRoomHomeScreen> {
     await context.read<WishWallProvider>().support(wish.id);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         behavior: SnackBarBehavior.floating,
-        content: Text('소원에 응원을 보냈어요 💛'),
+        content: Text(
+          wish.isMine
+              ? '내 소원에 정성을 더했어요 💛'
+              : '이 소원을 쓴 사람에게 응원이 전달됐어요 💛',
+        ),
       ),
     );
   }

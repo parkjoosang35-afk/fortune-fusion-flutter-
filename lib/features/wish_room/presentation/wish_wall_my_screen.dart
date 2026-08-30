@@ -60,6 +60,47 @@ class _WishWallMyScreenState extends State<WishWallMyScreen> {
     );
   }
 
+  /// [소원방 개편 · 5] 내 소원 삭제 — 실수 방지를 위해 항상 확인 다이얼로그를
+  /// 먼저 띄운 뒤, 승인 시에만 [WishWallProvider.deleteWish]를 호출한다.
+  Future<void> _confirmDelete(WishPost wish) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: WishWallColors.bg2,
+        title: Text('소원을 삭제할까요?', style: WishWallText.title2()),
+        content: Text(
+          '삭제하면 이 소원은 다시 볼 수 없고, 다른 사람에게도 더 이상\n보이지 않아요.',
+          style: WishWallText.body(color: WishWallColors.muted),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('삭제', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await context.read<WishWallProvider>().deleteWish(wish.id);
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('소원을 삭제했어요')));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('삭제 중 문제가 발생했어요. 다시 시도해주세요.')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final all = context.watch<WishWallProvider>().myWishes;
@@ -231,6 +272,7 @@ class _WishWallMyScreenState extends State<WishWallMyScreen> {
                                     ? _ShelfBottle(
                                         wish: row[i],
                                         onTap: () => _openDetail(row[i]),
+                                        onDelete: () => _confirmDelete(row[i]),
                                       )
                                     : const SizedBox.shrink(),
                               ),
@@ -356,15 +398,24 @@ class _FilterChip extends StatelessWidget {
 }
 
 class _ShelfBottle extends StatelessWidget {
-  const _ShelfBottle({required this.wish, required this.onTap});
+  const _ShelfBottle({
+    required this.wish,
+    required this.onTap,
+    this.onDelete,
+  });
   final WishPost wish;
   final VoidCallback onTap;
+
+  /// [소원방 개편 · 5] 길게 눌러 삭제 — 발견성을 위해 우측 상단에도 작은
+  /// 삭제 아이콘을 함께 노출한다.
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
     final tilt = wish.isPrivate ? -6.0 : 0.0;
     return InkWell(
       onTap: onTap,
+      onLongPress: onDelete,
       borderRadius: BorderRadius.circular(14),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -410,6 +461,28 @@ class _ShelfBottle extends StatelessWidget {
                       bottom: 6,
                       right: 2,
                       child: Text('✨', style: TextStyle(fontSize: 14)),
+                    ),
+                  if (onDelete != null)
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      child: InkWell(
+                        onTap: onDelete,
+                        borderRadius: BorderRadius.circular(999),
+                        child: Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: BoxDecoration(
+                            color: WishWallColors.bg2.withValues(alpha: 0.9),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: WishWallColors.line),
+                          ),
+                          child: const Icon(
+                            Icons.delete_outline,
+                            size: 13,
+                            color: WishWallColors.muted,
+                          ),
+                        ),
+                      ),
                     ),
                 ],
               ),

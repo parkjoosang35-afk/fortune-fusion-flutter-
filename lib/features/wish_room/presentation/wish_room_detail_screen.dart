@@ -12,6 +12,7 @@ import '../widgets/blessing_bag_bottom_sheet.dart';
 import '../widgets/wish_room_bg_atmosphere.dart';
 import '../widgets/wish_room_buttons.dart';
 import '../widgets/wish_room_candle.dart';
+import '../widgets/wish_room_candle_ignite_overlay.dart';
 import '../widgets/wish_room_growth_widgets.dart';
 import '../widgets/wish_room_item_meaning_card.dart';
 import '../widgets/wish_room_rise_heart.dart';
@@ -170,6 +171,15 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
       });
       if (!result.alreadySupported) {
         unawaited(_safeHaptic());
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              wish.isMine
+                  ? '내 소원에 정성을 더했어요 💛'
+                  : '이 소원을 쓴 사람에게 응원이 전달됐어요 💛',
+            ),
+          ),
+        );
         Future.delayed(const Duration(milliseconds: 800), () {
           if (mounted) setState(() => _showHeartBurst = false);
         });
@@ -189,10 +199,15 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
 
   /// [STEP05-B STEP9-8] 홈 화면 `_handleTodayCandle`과 동일 — 새 보상정책을
   /// 만들지 않고 기존 서버 정책(daily_candle, 1일 1회)만 그대로 호출한다.
+  /// [소원방 개편 · 2a] 실제로 새로 촛불을 켠 경우에만 점화 연출을 재생한다
+  /// (이미 켠 날은 재연출하지 않음).
   Future<void> _handleTodayCandle() async {
     final policy = context.read<WishWallProvider>().policy;
     final granted = await policy.earnDailyCandleBonus();
     if (!mounted) return;
+    if (granted > 0) {
+      unawaited(playWishRoomCandleIgnition(context));
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
@@ -314,17 +329,9 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
                   '신고하기',
                   style: TextStyle(color: WishRoomColors.textPrimary),
                 ),
-                onTap: () async {
+                onTap: () {
                   Navigator.pop(ctx);
-                  await context.read<WishWallProvider>().reportWish(
-                    wish.id,
-                    wishReportReasons.first,
-                  );
-                  if (mounted) {
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(const SnackBar(content: Text('신고가 접수되었어요')));
-                  }
+                  _showReportReasonSheet(wish);
                 },
               ),
               ListTile(
@@ -360,8 +367,217 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
                     if (context.mounted) Navigator.of(context).pop();
                   },
                 ),
+              // [소원방 개편 · 5] 내 소원 삭제 — 내 소원(isMine=true)에서만
+              // 노출한다.
+              if (wish.isMine)
+                ListTile(
+                  leading: const Icon(
+                    Icons.delete_outline,
+                    color: WishRoomColors.error,
+                  ),
+                  title: const Text(
+                    '이 소원 삭제하기',
+                    style: TextStyle(color: WishRoomColors.error),
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _confirmDeleteWish(wish);
+                  },
+                ),
               const SizedBox(height: 8),
             ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// 신고 사유를 실제로 고를 수 있는 선택지 시트. 이전 버전은
+  /// `wishReportReasons.first`를 즉시 전송해 사용자가 사유를 선택할 수
+  /// 없었던 버그가 있었다 — `wish_wall_detail_screen.dart`의 검증된 패턴을
+  /// 그대로 사용한다.
+  void _showReportReasonSheet(WishPost wish) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: WishRoomColors.backgroundMid,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: ListView(
+            shrinkWrap: true,
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            children: [
+              const Padding(
+                padding: EdgeInsets.fromLTRB(20, 8, 20, 12),
+                child: Text(
+                  '신고 사유를 선택해주세요',
+                  style: TextStyle(
+                    color: WishRoomColors.textPrimary,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              ...wishReportReasons.map(
+                (reason) => ListTile(
+                  title: Text(
+                    reason,
+                    style: const TextStyle(color: WishRoomColors.textPrimary),
+                  ),
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    final provider = context.read<WishWallProvider>();
+                    try {
+                      await provider.reportWish(wish.id, reason);
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('신고가 접수되었어요')),
+                        );
+                      }
+                    } catch (_) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              '신고 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.',
+                            ),
+                          ),
+                        );
+                      }
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// [소원방 개편 · 5] 삭제 확인 다이얼로그 — 실수 방지를 위해 항상 확인을
+  /// 거친 뒤에만 [WishWallProvider.deleteWish]를 호출하고, 성공 시 화면을
+  /// 닫는다.
+  Future<void> _confirmDeleteWish(WishPost wish) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: WishRoomColors.backgroundMid,
+        title: const Text(
+          '소원을 삭제할까요?',
+          style: TextStyle(color: WishRoomColors.textPrimary),
+        ),
+        content: const Text(
+          '삭제하면 이 소원은 다시 볼 수 없고, 다른 사람에게도 더 이상\n보이지 않아요.',
+          style: TextStyle(color: WishRoomColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text(
+              '삭제',
+              style: TextStyle(color: WishRoomColors.error),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await context.read<WishWallProvider>().deleteWish(wish.id);
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('소원을 삭제했어요')));
+        Navigator.of(context).pop();
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('삭제 중 문제가 발생했어요. 다시 시도해주세요.')),
+        );
+      }
+    }
+  }
+
+  /// [소원방 개편 · 3] 이 소원을 응원한 사람 목록을 시트로 보여준다.
+  /// 서버 실패/지원 안됨 시 빈 목록이 반환되므로 "불러오는 중" →
+  /// "아직 없어요" 두 상태만 다루면 충분하다.
+  void _showSupportersSheet(WishPost wish) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: WishRoomColors.backgroundMid,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: FutureBuilder<List<WishSupporter>>(
+            future: context.read<WishWallProvider>().fetchSupporters(wish.id),
+            builder: (context, snapshot) {
+              final supporters = snapshot.data ?? const [];
+              return SizedBox(
+                height: 360,
+                child: Column(
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.fromLTRB(20, 16, 20, 8),
+                      child: Text(
+                        '응원해준 사람들',
+                        style: TextStyle(
+                          color: WishRoomColors.textPrimary,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: !snapshot.hasData
+                          ? const Center(
+                              child: CircularProgressIndicator(
+                                color: WishRoomColors.glow,
+                              ),
+                            )
+                          : supporters.isEmpty
+                          ? const Center(
+                              child: Text(
+                                '아직 목록을 표시할 수 없어요',
+                                style: TextStyle(
+                                  color: WishRoomColors.textSecondary,
+                                ),
+                              ),
+                            )
+                          : ListView.builder(
+                              itemCount: supporters.length,
+                              itemBuilder: (context, i) {
+                                final s = supporters[i];
+                                return ListTile(
+                                  leading: const Icon(
+                                    Icons.favorite,
+                                    color: WishRoomColors.error,
+                                    size: 18,
+                                  ),
+                                  title: Text(
+                                    s.nickname,
+                                    style: const TextStyle(
+                                      color: WishRoomColors.textPrimary,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
         );
       },
@@ -711,12 +927,22 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  _supportCountLabel(wish.supportCount),
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: WishRoomColors.textPrimary,
+                                GestureDetector(
+                                  onTap: wish.supportCount > 0
+                                      ? () => _showSupportersSheet(wish)
+                                      : null,
+                                  child: Text(
+                                    wish.supportCount > 0
+                                        ? '${_supportCountLabel(wish.supportCount)} · 누가 응원했는지 보기'
+                                        : _supportCountLabel(wish.supportCount),
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: WishRoomColors.textPrimary,
+                                      decoration: wish.supportCount > 0
+                                          ? TextDecoration.underline
+                                          : TextDecoration.none,
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(height: 4),

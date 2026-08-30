@@ -201,6 +201,22 @@ class WishWallProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// [소원방 개편 · 5] 내 소원 삭제 — 서버 DELETE(본인 소유 확인 +
+  /// `deletedAt` soft-delete) 성공 후에만 로컬 feed/myWishes에서 제거한다.
+  /// 실패 시 예외를 그대로 전파해 호출부가 사용자에게 오류를 알릴 수
+  /// 있도록 한다(조용히 실패 삼키지 않음).
+  Future<void> deleteWish(String wishId) async {
+    await _repository.deleteWish(wishId);
+    _feed.removeWhere((w) => w.id == wishId);
+    _myWishes.removeWhere((w) => w.id == wishId);
+    notifyListeners();
+  }
+
+  /// [소원방 개편 · 3] 이 소원을 응원한 사람 목록(부가 정보, 실패 시 빈 목록).
+  Future<List<WishSupporter>> fetchSupporters(String wishId) {
+    return _repository.fetchSupporters(wishId);
+  }
+
   void _syncInLists(WishPost updated) {
     final feedIdx = _feed.indexWhere((w) => w.id == updated.id);
     if (feedIdx != -1) _feed[feedIdx] = updated;

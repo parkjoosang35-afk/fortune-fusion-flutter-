@@ -243,10 +243,49 @@ class ApiWishWallRepository implements WishWallRepository {
   @override
   Future<void> updateWishStatus(String wishId, {bool? isGratitude}) async {}
 
-  /// [6-1-F 최종 결정] 서버 삭제 API 없음 — 관리자 삭제는 기존
-  /// community/reports의 Wish 처리 구조를 그대로 사용한다. 안전한 no-op.
+  /// [소원방 개편 · 3] 응원자 목록 — 서버 `GET /wishes/:id/supporters`를
+  /// 호출한다. 실패 시 UI가 죽지 않도록 빈 목록으로 폴백한다(집계 카운트는
+  /// 이미 WishPost.supportCount로 항상 표시되므로, 이 목록은 부가 정보).
   @override
-  Future<void> deleteWish(String wishId) async {}
+  Future<List<WishSupporter>> fetchSupporters(String wishId) async {
+    final uri = Uri.parse('$_base/$wishId/supporters');
+    try {
+      final response = await http
+          .get(uri, headers: await _authHeaders())
+          .timeout(const Duration(seconds: 10));
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        return const [];
+      }
+      final list = decoded['data'] as List<dynamic>? ?? const [];
+      return list
+          .map((e) => WishSupporter.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      debugPrint('[ApiWishWallRepository] [fetchSupporters] 실패 -> $e');
+      return const [];
+    }
+  }
+
+  /// [소원방 개편 · 5] 내 소원 삭제 — 서버 `DELETE /wishes/:id`(본인 소유
+  /// + 기존 `deletedAt` soft-delete 필드만 사용, 신규 스키마 없음)를
+  /// 호출한다. 실패 시 예외를 던져 UI가 오류를 표시하도록 한다.
+  @override
+  Future<void> deleteWish(String wishId) async {
+    final uri = Uri.parse('$_base/$wishId');
+    try {
+      final headers = await _authHeaders(json: true);
+      final response = await http
+          .delete(uri, headers: headers)
+          .timeout(const Duration(seconds: 10));
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        _fail('deleteWish', decoded['error'] ?? 'HTTP ${response.statusCode}');
+      }
+    } catch (e) {
+      _fail('deleteWish', e);
+    }
+  }
 
   @override
   Future<({WishPost wish, bool alreadySupported})> support(

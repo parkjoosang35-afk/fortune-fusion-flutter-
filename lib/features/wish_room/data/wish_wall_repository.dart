@@ -57,6 +57,11 @@ abstract class WishWallRepository {
   Future<void> updateWishStatus(String wishId, {bool? isGratitude});
   Future<void> deleteWish(String wishId);
 
+  /// [소원방 개편 · 3] 이 소원을 응원한 사람 목록(최신순, 최대 100명).
+  /// 기본 구현은 빈 목록(서버 미지원 시 안전한 폴백) — 실 API 구현체에서
+  /// 오버라이드한다.
+  Future<List<WishSupporter>> fetchSupporters(String wishId) async => [];
+
   /// [STEP04 PART2 §1] 응원(support) — 서버가 최종 판단한다.
   ///
   /// 반환되는 [alreadySupported]는 "이번 호출 이전에 이미 응원했었는지"를
@@ -419,6 +424,9 @@ class MockWishWallRepository implements WishWallRepository {
     await Future.delayed(const Duration(milliseconds: 100));
     // Mock: 필드가 final이라 실제 갱신은 생략(추후 실 API 연동 시 구현).
   }
+
+  @override
+  Future<List<WishSupporter>> fetchSupporters(String wishId) async => [];
 
   @override
   Future<void> deleteWish(String wishId) async {

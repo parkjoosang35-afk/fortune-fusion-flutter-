@@ -288,6 +288,30 @@ class WishPost {
   }
 }
 
+/// [소원방 개편 · 3] 소원에 응원을 보낸 사람 한 명(닉네임 + 시각).
+/// 기존 Like 테이블 레코드를 그대로 노출하는 읽기 전용 모델.
+class WishSupporter {
+  final String userId;
+  final String nickname;
+  final DateTime createdAt;
+
+  const WishSupporter({
+    required this.userId,
+    required this.nickname,
+    required this.createdAt,
+  });
+
+  factory WishSupporter.fromJson(Map<String, dynamic> json) {
+    return WishSupporter(
+      userId: '${json['userId']}',
+      nickname: (json['nickname'] as String?) ?? '익명',
+      createdAt:
+          DateTime.tryParse(json['createdAt'] as String? ?? '') ??
+          DateTime.now(),
+    );
+  }
+}
+
 /// 응원 댓글.
 class WishComment {
   final String id;

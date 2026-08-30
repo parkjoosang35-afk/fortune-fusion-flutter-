@@ -173,6 +173,9 @@ class _WishRoomCommentsScreenState extends State<WishRoomCommentsScreen> {
     );
   }
 
+  /// 신고 사유를 실제로 고를 수 있는 선택지 시트. 이전 버전은
+  /// `wishReportReasons.first`를 즉시 전송해 사용자가 사유를 선택할 수
+  /// 없었던 버그가 있었다.
   void _showReportSheet(WishComment comment) {
     showModalBottomSheet(
       context: context,
@@ -182,30 +185,52 @@ class _WishRoomCommentsScreenState extends State<WishRoomCommentsScreen> {
       ),
       builder: (ctx) {
         return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+          child: ListView(
+            shrinkWrap: true,
+            padding: const EdgeInsets.symmetric(vertical: 8),
             children: [
-              ListTile(
-                leading: const Icon(
-                  Icons.flag_outlined,
-                  color: WishRoomColors.textPrimary,
+              const Padding(
+                padding: EdgeInsets.fromLTRB(20, 8, 20, 12),
+                child: Text(
+                  '신고 사유를 선택해주세요',
+                  style: TextStyle(
+                    color: WishRoomColors.textPrimary,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-                title: const Text(
-                  '신고하기',
-                  style: TextStyle(color: WishRoomColors.textPrimary),
+              ),
+              ...wishReportReasons.map(
+                (reason) => ListTile(
+                  title: Text(
+                    reason,
+                    style: const TextStyle(color: WishRoomColors.textPrimary),
+                  ),
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    try {
+                      await context.read<WishWallProvider>().reportComment(
+                        comment.id,
+                        reason,
+                      );
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('신고가 접수되었습니다.')),
+                        );
+                      }
+                    } catch (_) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              '신고 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.',
+                            ),
+                          ),
+                        );
+                      }
+                    }
+                  },
                 ),
-                onTap: () async {
-                  Navigator.pop(ctx);
-                  await context.read<WishWallProvider>().reportComment(
-                    comment.id,
-                    wishReportReasons.first,
-                  );
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('신고가 접수되었습니다.')),
-                    );
-                  }
-                },
               ),
               const SizedBox(height: 8),
             ],
