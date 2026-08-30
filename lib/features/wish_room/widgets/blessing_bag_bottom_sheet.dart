@@ -263,12 +263,12 @@ class _SendPanelState extends State<_SendPanel> {
       return;
     }
     setState(() => _state = _SendState.sending);
-    final ok = await context.read<WishWallProvider>().sendPouch(
+    final result = await context.read<WishWallProvider>().sendPouch(
       wish.id,
       _amount,
     );
     if (!mounted) return;
-    if (ok) {
+    if (result.ok) {
       // [소원방 리스킨 — 새 사용 채널] 보내기와 함께 "감사 도장"도 같이
       // 보내기로 선택한 경우, 별도의 소액 지출 채널(giftSeal)을 추가로
       // 요청한다. 실패해도(예: 잔액 소진) 이미 성공한 복주머니 전송은
@@ -283,9 +283,14 @@ class _SendPanelState extends State<_SendPanel> {
       await Future.delayed(const Duration(milliseconds: 1600));
       if (mounted) Navigator.of(context).pop(true);
     } else {
+      // [SECTION10 발견 UX 버그 수정 — 최소 침습] 서버가 구분해 내려준
+      // 실패 사유(reasonCode)를 그대로 사용한다. 과거에는 항상
+      // 'insufficientBalance'로 하드코딩되어, amount 화이트리스트
+      // ([1,5,10,50,100]) 위반 시에도 "복주머니가 부족해요"라고 잘못
+      // 표시했다. 서버/DB 정책은 변경하지 않고 표시 문구 분기만 고친다.
       setState(() {
         _state = _SendState.idle;
-        _errorReason = 'insufficientBalance';
+        _errorReason = result.reasonCode ?? 'insufficientBalance';
       });
     }
   }
@@ -297,7 +302,12 @@ class _SendPanelState extends State<_SendPanel> {
       case 'exceedsPerSendMax':
         return '한 번에 최대 $_perSendMax개까지 보낼 수 있어요';
       case 'invalidAmount':
-        return '보낼 수량을 확인해주세요';
+        // [SECTION10 발견 UX 버그 수정] 서버 amount 화이트리스트
+        // ([1,5,10,50,100]) 위반 사유. 잔액 부족과 다른 원인임을 명확히
+        // 구분해 안내한다(서버 정책 자체는 변경하지 않음).
+        return '올바른 복주머니 수량을 선택해주세요';
+      case 'unknown':
+        return '전송에 실패했어요. 다시 시도해주세요';
       default:
         return null;
     }

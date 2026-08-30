@@ -117,14 +117,36 @@ class WishWallProvider extends ChangeNotifier {
   /// 활성화/에러 표시 판단용으로만 계속 사용된다(blessing_bag_bottom_sheet.dart).
   /// 실패(예: 잔액 부족 400) 시 서버 응답 그대로 실패를 반환하며, Mock으로
   /// 몰래 대체하지 않는다.
-  Future<bool> sendPouch(String wishId, int amount) async {
+  ///
+  /// [SECTION10 발견 UX 버그 수정 — 최소 침습] 서버(`/wishes/:id/bokju`)는
+  /// 실패 사유를 두 가지로 구분해 반환한다:
+  /// - INSUFFICIENT_BALANCE(400): "복주머니가 부족합니다."
+  /// - amount 화이트리스트[1,5,10,50,100] 위반(400): "amount는 1/5/10/50/100
+  ///   중 하나여야 합니다."
+  /// 과거에는 이 둘을 구분하지 않고 `catch (_) { return false; }`로 삼켜서
+  /// 호출부(blessing_bag_bottom_sheet.dart)가 실패 원인과 무관하게 항상
+  /// "복주머니가 부족해요"로 표시했다. 서버/DB 정책(화이트리스트 값,
+  /// Wallet/PointHistory/WishBokju 구조)은 그대로 두고, 여기서 예외 메시지
+  /// 문자열만 검사해 원인을 구분해 반환한다(신규 API/서버 변경 없음).
+  Future<({bool ok, String? reasonCode})> sendPouch(
+    String wishId,
+    int amount,
+  ) async {
     try {
       final updated = await _repository.incrementPouch(wishId, amount);
       _syncInLists(updated);
       notifyListeners();
-      return true;
-    } catch (_) {
-      return false;
+      return (ok: true, reasonCode: null);
+    } catch (e) {
+      final message = e.toString();
+      if (message.contains('1/5/10/50/100')) {
+        return (ok: false, reasonCode: 'invalidAmount');
+      }
+      if (message.contains('복주머니가 부족합니다') ||
+          message.contains('INSUFFICIENT_BALANCE')) {
+        return (ok: false, reasonCode: 'insufficientBalance');
+      }
+      return (ok: false, reasonCode: 'unknown');
     }
   }
 

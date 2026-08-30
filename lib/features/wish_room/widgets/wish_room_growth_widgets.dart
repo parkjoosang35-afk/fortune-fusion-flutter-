@@ -137,7 +137,11 @@ class GrowthStageTrack extends StatelessWidget {
 /// 새 애니메이션이 아니라 기존 검증된 효과를 다른 화면에서도 쓸 수 있게
 /// 감싸기만 한 것.
 class SealBreathingGlow extends StatefulWidget {
-  const SealBreathingGlow({super.key, required this.child, required this.color});
+  const SealBreathingGlow({
+    super.key,
+    required this.child,
+    required this.color,
+  });
   final Widget child;
   final Color color;
 
@@ -290,7 +294,11 @@ class _TodayActionTile extends StatelessWidget {
 /// 부적(符) 은은한 pulsing glow 래퍼 — `_TalismanAmbientBadge`
 /// (wish_room_home_screen.dart) 구현을 그대로 옮겨 재사용한다(2.2s).
 class TalismanPulseGlow extends StatefulWidget {
-  const TalismanPulseGlow({super.key, required this.child, required this.color});
+  const TalismanPulseGlow({
+    super.key,
+    required this.child,
+    required this.color,
+  });
   final Widget child;
   final Color color;
 
