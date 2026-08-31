@@ -324,13 +324,23 @@ class _WishRoomHomeScreenState extends State<WishRoomHomeScreen> {
     final wishes = provider.myWishes;
     final balance = provider.policy.balance;
 
+    // [홈으로 돌아가기 — 사주/타로와 동일한 패턴] 이 화면이 `push`로
+    // 진입된 경우(=메인 홈 화면 "소원방" 카드/`/wish-room` 라우트를 통해
+    // [WishRoomEntryGate]가 만든 인스턴스)에만 `canPop()`이 true이므로,
+    // 그때만 뒤로가기 콜백을 활성화한다. `AppShell` 5탭 `IndexedStack`
+    // 안의 [WishRoomHomeScreen]() 인스턴스는 push된 적이 없어 `canPop()`이
+    // false이고, 이 경우 헤더/빈 상태 화면 모두 버튼을 렌더링하지 않는다
+    // (탭 전환은 이미 AppShell 자체 하단바로 가능하므로 중복 UI 불필요).
+    final canGoBack = Navigator.canPop(context);
+    final onBack = canGoBack ? () => Navigator.of(context).pop() : null;
+
     // [Phase 01 · 2단계 · orphan 화면 연결] 온보딩 직후 첫 진입인데(=
     // showEmptyScreenIfEmpty) 로딩이 끝났고 소원이 정말 0개라면, 축소된
     // 인라인 빈 상태 대신 02 Empty 전체화면을 강조해서 보여준다.
     if (widget.showEmptyScreenIfEmpty &&
         !provider.isLoading &&
         wishes.isEmpty) {
-      return WishRoomEmptyScreen(onCompose: _openCompose);
+      return WishRoomEmptyScreen(onCompose: _openCompose, onBack: onBack);
     }
 
     final wishCount = wishes.length;
@@ -415,6 +425,7 @@ class _WishRoomHomeScreenState extends State<WishRoomHomeScreen> {
                       onOpenPouch: _openBlessingBagReceive,
                       onOpenShop: _openShop,
                       onOpenGuide: _openOnboardingReview,
+                      onBack: onBack,
                       wishes: wishes,
                       isLoading: provider.isLoading,
                       onSeeAll: _openMy,
@@ -463,6 +474,11 @@ class _WishRoomHomeScreenState extends State<WishRoomHomeScreen> {
                         Align(
                           alignment: Alignment.bottomCenter,
                           child: _WishRoomBottomNav(
+                            // '나의 소원' 탭은 이미 이 화면 자신이므로
+                            // no-op 그대로 둔다(홈으로 돌아가기는 위
+                            // 헤더의 ← 버튼으로 제공 — 사주/타로의
+                            // AppBar 자동 back arrow와 동일한 위치의
+                            // 대응 UI).
                             onHome: () {},
                             onFeed: _openFullBoard,
                             onRecord: _openMy,
@@ -501,6 +517,7 @@ class _HomeHeader extends StatelessWidget {
     required this.onOpenPouch,
     required this.onOpenShop,
     this.onOpenGuide,
+    this.onBack,
   });
   final int balance;
   final VoidCallback onOpenMoon;
@@ -511,6 +528,12 @@ class _HomeHeader extends StatelessWidget {
   /// 미전달 시 헤더 레이아웃을 그대로 유지하기 위한 안전장치).
   final VoidCallback? onOpenGuide;
 
+  /// [홈으로 돌아가기 — 사주/타로와 동일한 패턴] 메인 홈 화면 카드를 눌러
+  /// push로 들어온 경우(=Navigator.canPop()==true)에만 상위에서 콜백을
+  /// 넘겨준다. null이면(=AppShell "소원방" 탭 인스턴스, pop할 대상이
+  /// 없음) 버튼 자체를 렌더링하지 않아 탭 화면 레이아웃은 그대로 유지된다.
+  final VoidCallback? onBack;
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -518,6 +541,28 @@ class _HomeHeader extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          if (onBack != null) ...[
+            InkWell(
+              onTap: onBack,
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: WishRoomColors.surfaceCard,
+                  border: Border.all(color: WishRoomColors.surfaceCardBorder),
+                ),
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.arrow_back_rounded,
+                  size: 20,
+                  color: WishRoomColors.textPrimary,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -775,6 +820,7 @@ class _WishListSection extends StatefulWidget {
     required this.onOpenPouch,
     required this.onOpenShop,
     this.onOpenGuide,
+    this.onBack,
     required this.wishes,
     required this.isLoading,
     required this.onSeeAll,
@@ -796,6 +842,9 @@ class _WishListSection extends StatefulWidget {
   final VoidCallback onOpenPouch;
   final VoidCallback onOpenShop;
   final VoidCallback? onOpenGuide;
+
+  /// [홈으로 돌아가기] `_HomeHeader.onBack`으로 그대로 전달된다.
+  final VoidCallback? onBack;
 
   final List<WishPost> wishes;
   final bool isLoading;
@@ -840,6 +889,7 @@ class _WishListSectionState extends State<_WishListSection> {
             onOpenPouch: widget.onOpenPouch,
             onOpenShop: widget.onOpenShop,
             onOpenGuide: widget.onOpenGuide,
+            onBack: widget.onBack,
           ),
         ),
         SliverToBoxAdapter(

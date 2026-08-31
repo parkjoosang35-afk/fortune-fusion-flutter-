@@ -22,10 +22,15 @@ import '../widgets/wish_room_candle.dart';
 /// 시나리오, (b) 향후 별도 라우트가 필요할 때를 위해 독립 화면으로
 /// 제공한다.
 class WishRoomEmptyScreen extends StatelessWidget {
-  const WishRoomEmptyScreen({super.key, required this.onCompose});
+  const WishRoomEmptyScreen({super.key, required this.onCompose, this.onBack});
 
   /// "+ 첫 소원 담기" — 03 Compose 화면으로 이동.
   final VoidCallback onCompose;
+
+  /// [홈으로 돌아가기 — 사주/타로와 동일한 패턴] push로 들어온 경우
+  /// (`Navigator.canPop()==true`)에만 상위에서 넘어온다. null이면 좌상단
+  /// 뒤로가기 버튼을 렌더링하지 않는다.
+  final VoidCallback? onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -47,15 +52,33 @@ class WishRoomEmptyScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const Text(
-                    '나의 소원방',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontFamily: 'IBMPlexMonoWish',
-                      fontSize: 10,
-                      letterSpacing: 3.0,
-                      color: WishRoomColors.textSecondary,
-                    ),
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      const Text(
+                        '나의 소원방',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: 'IBMPlexMonoWish',
+                          fontSize: 10,
+                          letterSpacing: 3.0,
+                          color: WishRoomColors.textSecondary,
+                        ),
+                      ),
+                      if (onBack != null)
+                        Positioned(
+                          left: 0,
+                          child: InkWell(
+                            onTap: onBack,
+                            borderRadius: BorderRadius.circular(16),
+                            child: const Icon(
+                              Icons.arrow_back_rounded,
+                              size: 20,
+                              color: WishRoomColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                   Padding(
                     padding: const EdgeInsets.only(bottom: 20),
