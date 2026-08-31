@@ -16,10 +16,17 @@ declare module "lunar-javascript" {
   }
 
   export class Yun {
-    getDaYun(): DaYun[];
+    // [중대 수정 — 2026-09] `getDaYun()`은 npm 원본에서 `n?: number`를
+    // 받아 라운드 개수를 지정할 수 있다(생략 시 10). Dart 원본
+    // `Yun.getDaYunBy(int n)`과 동일 함수(이름만 다름). index<1(소운기,
+    // 빈 간지)을 걸러내려면 넉넉히 가져와야 하므로 인자를 노출한다.
+    getDaYun(n?: number): DaYun[];
   }
 
   export class DaYun {
+    // index 0은 "소운기"(출생~첫 대운 시작 전 과도기)로 getGanZhi()가
+    // 빈 문자열을 반환한다 — 실제 대운(index>=1)만 걸러내는 데 필요.
+    getIndex(): number;
     getStartAge(): number;
     getStartYear(): number;
     getGanZhi(): string;

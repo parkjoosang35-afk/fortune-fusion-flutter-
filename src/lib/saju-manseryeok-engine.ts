@@ -440,18 +440,38 @@ export function calculateSaju(opts: CalculateSajuOptions): SajuManseryeokResult 
   const gongmang = getGongmang(dGan, dZhi);
 
   // 대운(10년 단위) — 첫 9개.
+  //
+  // [중대 수정 — 2026-09, 대운 검증 중 발견된 버그 수정]
+  // 기존에는 레거시 Dart `saju_engine.dart`의 패턴(`getYun(gender)`,
+  // sect 인자 없음, `getDaYun()` → `.slice(0, 9)`)을 그대로 베꼈으나,
+  // 이는 `lunar` 패키지 원본(Yun.dart/DaYun.dart, npm lunar-javascript
+  // 동일)의 index 처리 방식을 오해한 버그였다:
+  //   - `getDaYun()`은 index 0~9(10개)를 반환하는데, index<1(=0)은
+  //     "소운기"(출생~첫 대운 시작 전 과도기)로 `getGanZhi()`가 빈
+  //     문자열을 반환한다.
+  //   - 레거시 패턴은 `.slice(0, 9)`로 index 0~8을 취하므로, 결과
+  //     목록 1번째에 빈 간지 항목이 섞여 들어가고, 실제 유효한 9번째
+  //     대운(index 9)이 누락되는 문제가 있었다.
+  // 신규 엔진(`daewoon_engine.dart`의 `DaewoonEngine.analyze()`)은
+  // `getDaYunBy(count + 1)`로 넉넉히 가져온 뒤 `index < 1`을 명시적으로
+  // 걸러내 진짜 대운 9개(index 1~9)만 담는다. 여기서도 동일하게 맞춘다.
+  // (sect 기본값은 Dart/JS 모두 인자 없이 호출 시 1로 귀결되므로 영향
+  // 없음 — 검증 완료.)
   const yun = ec.getYun(gender === "male" ? 1 : 0);
-  const daYunList = yun.getDaYun();
+  const daYunList = yun.getDaYun(10);
   const luckPillars: SajuLuckPillar[] = [];
-  for (const dy of daYunList.slice(0, 9)) {
+  for (const dy of daYunList) {
+    if (dy.getIndex() < 1) continue; // 소운기(빈 간지) 제외.
     const gz: string = dy.getGanZhi();
-    const gzKr = gz.length >= 2 ? `${GAN_KR[gz[0]] ?? ""}${ZHI_KR[gz[1]] ?? ""}` : "";
+    if (gz.length < 2) continue;
+    const gzKr = `${GAN_KR[gz[0]] ?? ""}${ZHI_KR[gz[1]] ?? ""}`;
     luckPillars.push({
       startAge: dy.getStartAge(),
       startYear: dy.getStartYear(),
       ganZhi: gz,
       ganZhiKr: gzKr,
     });
+    if (luckPillars.length >= 9) break;
   }
 
   const ref = referenceDate ?? new Date();
