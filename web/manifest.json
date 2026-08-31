@@ -1,11 +1,11 @@
 {
-    "name": "flutter_app",
-    "short_name": "flutter_app",
+    "name": "신통방통",
+    "short_name": "신통방통",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#14102A",
+    "theme_color": "#14102A",
+    "description": "신통도령과 함께하는 오늘의 사주 · 타로 · 궁합 운세",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
