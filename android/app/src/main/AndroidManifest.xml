@@ -64,15 +64,43 @@
                  재호출한다(guinji_share_screen.dart, admin_web
                  src/app/g/[token]/page.tsx 참고).
 
-                 [Phase B, 아직 미착수] 실제 운영 도메인이 확정되면 그 도메인에
-                 대한 https intent-filter(android:autoVerify="true")를 추가하고
-                 서버에 `.well-known/assetlinks.json`을 배포해, 링크를 클릭한
-                 즉시(중간 웹페이지 경유 없이) 앱이 열리도록 완성해야 한다. -->
+                 [Phase B, 완료] 운영 도메인 sintong.kr(가비아 g클라우드 서버,
+                 1.201.118.72)을 확보하고 아래 3가지를 완료했다:
+                   1) DNS A레코드(sintong.kr → 1.201.118.72, 가비아 콘솔)
+                   2) Let's Encrypt HTTPS 인증서(certbot, 자동갱신 등록됨)
+                   3) https://sintong.kr/.well-known/assetlinks.json 배포
+                      (Next.js public/ 폴더는 dotfile을 정적으로 서빙하지
+                      않는 제약이 있어 API Route로 구현,
+                      src/app/.well-known/assetlinks.json/route.ts)
+                 Google Digital Asset Links API로 sintong.kr ↔
+                 com.fortunefusion.fortune(release-key.jks SHA256) 소유권
+                 매핑이 정상 검증됨을 확인했다. 아래 두 번째 intent-filter가
+                 그 https App Links이며, autoVerify="true"로 앱 설치 시
+                 Android가 자동으로 도메인 소유권을 검증한다(검증 성공 시
+                 카톡 인앱브라우저에서 링크를 클릭해도 중간 웹페이지 없이
+                 즉시 앱이 열린다. 검증 전이거나 실패 시에는 기존처럼
+                 웹페이지 → "앱에서 열기" 버튼 경로로 자연스럽게 폴백된다). -->
             <intent-filter android:autoVerify="false">
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="fortunefusion" android:host="g"/>
+            </intent-filter>
+            <!-- [Phase B] sintong.kr 운영 도메인 App Links (https).
+                 assetlinks.json 검증에 성공하면 https://sintong.kr/g/{token}
+                 링크를 클릭한 즉시 앱이 직접 열린다(카톡 인앱브라우저 포함).
+                 pathPrefix="/g"로 범위를 제한해, admin_web의 다른 공개
+                 페이지(/login, /terms, /privacy-policy, /account-deletion 등)를
+                 브라우저에서 열 때는 이 앱이 가로채지 않고 정상적으로
+                 웹페이지로 열리도록 한다. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data
+                    android:scheme="https"
+                    android:host="sintong.kr"
+                    android:pathPrefix="/g"/>
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

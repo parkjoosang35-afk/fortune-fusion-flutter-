@@ -50,14 +50,30 @@ class GuinjiDeepLinkHandler {
     );
   }
 
-  /// `fortunefusion://g/{token}` 형태만 처리한다(host가 'g'). 그 외 스킴/호스트는
-  /// 이 앱이 아직 사용하지 않으므로 무시한다.
+  /// 두 가지 형태를 처리한다:
+  ///   1) `fortunefusion://g/{token}` — 커스텀 스킴(host가 'g').
+  ///      pathSegments[0]이 곧 token.
+  ///   2) `https://sintong.kr/g/{token}` — [Phase B] 운영 도메인 App Links.
+  ///      pathSegments가 ['g', token] 형태(호스트가 도메인이라 'g'가 첫
+  ///      경로 세그먼트로 들어옴)이므로 인덱스가 다르다.
+  /// 그 외 스킴/호스트는 이 앱이 아직 사용하지 않으므로 무시한다.
   static void _handleUri(Uri uri) {
-    if (uri.scheme != 'fortunefusion' || uri.host != 'g') return;
+    String? token;
 
-    // fortunefusion://g/{token} → path가 '/{token}', pathSegments[0]이 token.
-    final segments = uri.pathSegments;
-    final token = segments.isNotEmpty ? segments.first : null;
+    if (uri.scheme == 'fortunefusion' && uri.host == 'g') {
+      // fortunefusion://g/{token} → path가 '/{token}', pathSegments[0]이 token.
+      final segments = uri.pathSegments;
+      token = segments.isNotEmpty ? segments.first : null;
+    } else if (uri.scheme == 'https' &&
+        uri.host == 'sintong.kr' &&
+        uri.pathSegments.length >= 2 &&
+        uri.pathSegments[0] == 'g') {
+      // https://sintong.kr/g/{token} → pathSegments가 ['g', token].
+      token = uri.pathSegments[1];
+    } else {
+      return;
+    }
+
     if (token == null || token.isEmpty) return;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
