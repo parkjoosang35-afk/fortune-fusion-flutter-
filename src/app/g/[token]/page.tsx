@@ -23,8 +23,8 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { isGuinjiInviteExpired } from "@/app/api/public/guinji/_shared";
-import { GuinjiPreviewForm } from "./preview-form";
-import { RelationNetworkGraph, type RelationCount } from "./relation-network-graph";
+import { GuinjiInviteInteractive } from "./guinji-invite-interactive";
+import { type RelationCount } from "./relation-network-graph";
 import { deriveCharacterType } from "@/lib/guinji-character-type";
 import { GUINJI_RELATION_TYPES } from "./relation-meta";
 
@@ -156,15 +156,16 @@ const RELATION_COLOR: Record<string, string> = {
 // 나와야 바이럴이 된다"고 명시적으로 요구했다(스크린샷 4장 비교 지시).
 // 기존 다크(인디고) 미니멀 카드 1장짜리 구조를 다음으로 교체한다:
 //   1) 캐릭터 일러스트 + 오행 기반 캐릭터 유형 타이틀 + 상세 해설(신설)
-//   2) 이름·생년월일 입력폼(기존 GuinjiPreviewForm 재사용, 폼 자체 로직은
-//      변경하지 않음 — 서버에 아무것도 저장하지 않는 정직성 원칙 유지)
-//   3) 관계 지도 네트워크 그래프(신설, RelationNetworkGraph — 비식별 집계만)
+//   2)+3) 이름·생년월일 입력폼 + 관계 지도 그래프(`GuinjiInviteInteractive`,
+//      신설 — 폼 제출이 실제로 DB에 참여를 기록하고, 그 응답으로 그래프를
+//      새로고침 없이 즉시 갱신한다. 기존 `GuinjiPreviewForm`은 DB에 아무
+//      것도 저장하지 않아 "지도에 반영되지 않는다"는 사용자 지적의 근본
+//      원인이었다 — 완전히 폐기하고 이 컴포넌트로 교체했다.)
 // 배경도 레퍼런스와 동일하게 크림/베이지 톤으로 바꾼다(기존 OG 카드
 // buildOgPng.tsx의 #FAF3E0과 동일 계열로 카톡→랜딩 시각 일관성 확보).
 export default async function GuinjiInviteLandingPage({ params }: PageProps) {
   const { token } = await params;
   const invite = await loadInvite(token);
-  const deepLink = `fortunefusion://g/${token}`;
 
   return (
     <div className="min-h-screen bg-[#FAF3E0] px-4 py-8">
@@ -207,21 +208,17 @@ export default async function GuinjiInviteLandingPage({ params }: PageProps) {
               </p>
             </div>
 
-            {/* 2) 웹 미리보기 폼 — 로그인/앱 설치 없이 즉시 결과를 보여줘
-                바이럴 이탈을 막는다(위 generateMetadata 주석 참고). */}
-            <div className="rounded-2xl border border-amber-900/10 bg-white/70 p-6 shadow-sm">
-              <p className="mb-1 text-center text-sm font-bold text-stone-700">
-                나는 {invite.ownerName}님에게 어떤 사람일까?
-              </p>
-              <GuinjiPreviewForm
-                token={token}
-                ownerName={invite.ownerName}
-                deepLink={deepLink}
-              />
-            </div>
-
-            {/* 3) 관계 지도 네트워크 그래프 — 비식별 집계 시각화(신설) */}
-            <RelationNetworkGraph counts={invite.relationCounts} ownerName={invite.ownerName} />
+            {/* 2)+3) 웹 참여 폼 + 관계 지도 그래프 — 로그인/앱 설치 없이
+                이름+생년월일을 한 번 입력하면 즉시 결과가 나오고, 실제로
+                지도(GuinjiMapMember/GuinjiRelationship)에 반영되어 아래
+                그래프가 새로고침 없이 그 자리에서 갱신된다(2026-09 수정 —
+                기존에는 폼이 DB에 아무것도 저장하지 않는 "미리보기"뿐이라
+                지도에 전혀 반영되지 않던 문제를 근본적으로 해결). */}
+            <GuinjiInviteInteractive
+              token={token}
+              ownerName={invite.ownerName}
+              initialCounts={invite.relationCounts}
+            />
           </div>
         )}
 
