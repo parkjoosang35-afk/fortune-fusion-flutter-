@@ -24,11 +24,15 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { isGuinjiInviteExpired } from "@/app/api/public/guinji/_shared";
 import { GuinjiPreviewForm } from "./preview-form";
+import { RelationNetworkGraph, type RelationCount } from "./relation-network-graph";
+import { deriveCharacterType } from "@/lib/guinji-character-type";
+import { GUINJI_RELATION_TYPES } from "./relation-meta";
 
 export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: Promise<{ token: string }>;
+  searchParams: Promise<{ v?: string }>;
 };
 
 // [Phase A-2 — 카톡 공유 바이럴 개선, OG 미리보기 카드] 지금까지 이
@@ -38,11 +42,23 @@ type PageProps = {
 // 이미지 라우트(`/api/public/og/guinji/[token].png`, M8 확정: 동적 생성
 // 아님·고정 PNG)를 여기 연결해, 카카오톡 등 SNS 크롤러가 og:title/
 // og:description/og:image를 읽어 카드 미리보기를 만들 수 있게 한다.
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+//
+// [결정 매모 D1/D6 — 2026-08-31, 카톡 OG 캐시버스팅] Flutter
+// `buildGuinjiInviteLink()`가 공유 링크에 `?v={shareCode}`를 붙여 보낸다.
+// 이 값을 그대로 버리지 않고 OG 이미지 URL의 **경로**에 심어
+// (`/og/guinji/{token}/{shareCode}.png`) 내보낸다 — 쿼리스트링 변경만으론
+// 카톡이 캐시를 갱신하지 않는 경우에도, 이미지 경로 자체가 매번 달라지므로
+// 새로 크롤링하게 만드는 것이 목적(2단 캐시버스팅). `v`가 없는 구버전
+// 링크(이미 퍼진 링크 호환)는 캐시버스팅 세그먼트 없는 기존 라우트로 그대로
+// 간다.
+export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
   const { token } = await params;
+  const { v: shareCode } = await searchParams;
   const invite = await loadInvite(token);
   const baseUrl = process.env.PUBLIC_BASE_URL ?? "http://localhost:3000";
-  const ogImageUrl = `${baseUrl}/api/public/og/guinji/${token}.png`;
+  const ogImageUrl = shareCode
+    ? `${baseUrl}/api/public/og/guinji/${token}/${shareCode}.png`
+    : `${baseUrl}/api/public/og/guinji/${token}.png`;
 
   const title =
     invite.state === "ok"
@@ -68,11 +84,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
+const RELATION_TYPE_ORDER = ["guin", "oreunpal", "inyeon", "salrim", "horang"] as const;
+
 async function loadInvite(token: string) {
   try {
     const map = await prisma.guinjiMap.findUnique({
       where: { token },
-      include: { owner: { select: { nickname: true } } },
+      include: {
+        owner: { select: { nickname: true } },
+        relationships: { select: { relationType: true } },
+      },
     });
 
     if (!map || map.deletedAt != null || map.status !== "active") {
@@ -81,73 +102,155 @@ async function loadInvite(token: string) {
     if (isGuinjiInviteExpired(map.createdAt)) {
       return { state: "expired" as const };
     }
-    return { state: "ok" as const, ownerName: map.owner.nickname };
+
+    // [캐릭터 유형] `ownerSajuParsed`(이미 클라이언트가 계산해 캐싱해 둔 실제
+    // 오행 카운트)에서 우세 오행 1개를 뽑아 5종 캐릭터 유형에 대입한다(새로운
+    // 사주 계산을 만들지 않는다 — deriveCharacterType 참고). 파싱 실패 시
+    // 캐릭터 섹션만 조용히 생략한다(랜딩페이지 전체를 막지 않음).
+    let characterType = null;
+    try {
+      if (map.ownerSajuParsed) {
+        const saju = JSON.parse(map.ownerSajuParsed) as { fiveElementsCount?: Record<string, number> };
+        if (saju.fiveElementsCount) characterType = deriveCharacterType(saju.fiveElementsCount);
+      }
+    } catch (e) {
+      console.error("[GET /g/[token]] 캐릭터 유형 계산 실패:", e);
+    }
+
+    // [비식별 원칙] 멤버 개별 정보는 절대 넘기지 않고, 관계유형별 집계
+    // 카운트만 만든다(RelationNetworkGraph에는 이 counts만 전달).
+    const rawCounts: Record<string, number> = {};
+    for (const t of RELATION_TYPE_ORDER) rawCounts[t] = 0;
+    for (const r of map.relationships) {
+      if (rawCounts[r.relationType] != null) rawCounts[r.relationType] += 1;
+    }
+    const relationCounts: RelationCount[] = RELATION_TYPE_ORDER.map((key) => ({
+      key,
+      label: GUINJI_RELATION_TYPES[key].label,
+      hanja: GUINJI_RELATION_TYPES[key].hanja,
+      color: RELATION_COLOR[key],
+      count: rawCounts[key],
+    }));
+
+    return {
+      state: "ok" as const,
+      ownerName: map.owner.nickname,
+      characterType,
+      relationCounts,
+    };
   } catch (e) {
     console.error("[GET /g/[token]] 조회 실패:", e);
     return { state: "error" as const };
   }
 }
 
+const RELATION_COLOR: Record<string, string> = {
+  guin: "#B98BC9",
+  oreunpal: "#5FA3C4",
+  inyeon: "#D97A93",
+  salrim: "#6FAE7C",
+  horang: "#D98A4A",
+};
+
+// [바이럴 UI 개편 — 2026-09] 사용자가 경쟁 서비스 레퍼런스를 보고 "이렇게
+// 나와야 바이럴이 된다"고 명시적으로 요구했다(스크린샷 4장 비교 지시).
+// 기존 다크(인디고) 미니멀 카드 1장짜리 구조를 다음으로 교체한다:
+//   1) 캐릭터 일러스트 + 오행 기반 캐릭터 유형 타이틀 + 상세 해설(신설)
+//   2) 이름·생년월일 입력폼(기존 GuinjiPreviewForm 재사용, 폼 자체 로직은
+//      변경하지 않음 — 서버에 아무것도 저장하지 않는 정직성 원칙 유지)
+//   3) 관계 지도 네트워크 그래프(신설, RelationNetworkGraph — 비식별 집계만)
+// 배경도 레퍼런스와 동일하게 크림/베이지 톤으로 바꾼다(기존 OG 카드
+// buildOgPng.tsx의 #FAF3E0과 동일 계열로 카톡→랜딩 시각 일관성 확보).
 export default async function GuinjiInviteLandingPage({ params }: PageProps) {
   const { token } = await params;
   const invite = await loadInvite(token);
   const deepLink = `fortunefusion://g/${token}`;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-indigo-950 via-slate-900 to-slate-950 px-6 py-12">
-      <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-white/5 p-8 text-center shadow-xl backdrop-blur">
-        <p className="mb-2 text-xs font-medium uppercase tracking-widest text-indigo-300">
+    <div className="min-h-screen bg-[#FAF3E0] px-4 py-8">
+      <div className="mx-auto w-full max-w-sm">
+        <p className="mb-4 text-center text-xs font-medium uppercase tracking-widest text-amber-800/70">
           신통방통 · 귀인지도
         </p>
 
         {invite.state === "ok" && (
-          <>
-            <h1 className="mb-4 text-xl font-bold text-white">
-              {invite.ownerName}님이
-              <br />
-              당신을 귀인지도에 초대했어요
-            </h1>
-            <p className="mb-2 text-sm leading-relaxed text-slate-300">
-              앱 설치 없이, 아래에 생년월일만 넣어도
-              <br />
-              바로 관계를 확인할 수 있어요.
-            </p>
-            {/* [Phase A-2] 웹 미리보기 폼 — 로그인/앱 설치 없이 즉시 결과를
-                보여줘 바이럴 이탈을 막는다(위 generateMetadata 주석 참고). */}
-            <GuinjiPreviewForm
-              token={token}
-              ownerName={invite.ownerName}
-              deepLink={deepLink}
-            />
-          </>
+          <div className="space-y-4">
+            {/* 1) 캐릭터 카드 — 일러스트 + 오행 캐릭터 유형 + 상세 해설 */}
+            <div className="rounded-2xl border border-amber-900/10 bg-white/70 p-6 text-center shadow-sm">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/guinji/bangtong_fairy.png"
+                alt=""
+                className="mx-auto mb-3 h-24 w-24 rounded-full object-cover shadow"
+              />
+              <h1 className="text-lg font-bold text-stone-800">
+                {invite.ownerName}님의 귀인 지도
+              </h1>
+              {invite.characterType && (
+                <>
+                  <p
+                    className="mt-1 text-2xl font-bold"
+                    style={{ color: invite.characterType.color }}
+                  >
+                    {invite.characterType.hanja} {invite.characterType.title}
+                  </p>
+                  <p className="mt-1 text-sm text-stone-500">{invite.characterType.tagline}</p>
+                  <p className="mt-4 rounded-xl bg-amber-900/5 px-4 py-3 text-left text-sm leading-relaxed text-stone-600">
+                    {invite.characterType.description}
+                  </p>
+                </>
+              )}
+              <p className="mt-4 text-sm leading-relaxed text-stone-500">
+                생일만 넣으면, 내가 이 사람에게
+                <br />
+                어떤 사람인지 바로 나와요.
+              </p>
+            </div>
+
+            {/* 2) 웹 미리보기 폼 — 로그인/앱 설치 없이 즉시 결과를 보여줘
+                바이럴 이탈을 막는다(위 generateMetadata 주석 참고). */}
+            <div className="rounded-2xl border border-amber-900/10 bg-white/70 p-6 shadow-sm">
+              <p className="mb-1 text-center text-sm font-bold text-stone-700">
+                나는 {invite.ownerName}님에게 어떤 사람일까?
+              </p>
+              <GuinjiPreviewForm
+                token={token}
+                ownerName={invite.ownerName}
+                deepLink={deepLink}
+              />
+            </div>
+
+            {/* 3) 관계 지도 네트워크 그래프 — 비식별 집계 시각화(신설) */}
+            <RelationNetworkGraph counts={invite.relationCounts} ownerName={invite.ownerName} />
+          </div>
         )}
 
         {invite.state === "expired" && (
-          <>
-            <h1 className="mb-4 text-xl font-bold text-white">
+          <div className="rounded-2xl border border-amber-900/10 bg-white/70 p-8 text-center shadow-sm">
+            <h1 className="mb-4 text-xl font-bold text-stone-800">
               초대 링크가 만료되었어요
             </h1>
-            <p className="mb-8 text-sm leading-relaxed text-slate-300">
+            <p className="mb-2 text-sm leading-relaxed text-stone-500">
               이 초대 링크는 생성된 지 7일이 지나
               <br />
               더 이상 사용할 수 없어요.
               <br />
               지도 주인에게 새 링크를 요청해 주세요.
             </p>
-          </>
+          </div>
         )}
 
         {(invite.state === "not_found" || invite.state === "error") && (
-          <>
-            <h1 className="mb-4 text-xl font-bold text-white">
+          <div className="rounded-2xl border border-amber-900/10 bg-white/70 p-8 text-center shadow-sm">
+            <h1 className="mb-4 text-xl font-bold text-stone-800">
               지도를 찾을 수 없어요
             </h1>
-            <p className="mb-8 text-sm leading-relaxed text-slate-300">
+            <p className="mb-2 text-sm leading-relaxed text-stone-500">
               링크가 잘못되었거나 지도 주인이
               <br />
               봉인을 거두었을 수 있어요.
             </p>
-          </>
+          </div>
         )}
       </div>
     </div>

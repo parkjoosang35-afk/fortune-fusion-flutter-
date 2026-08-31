@@ -11,14 +11,20 @@
 // 오직 로그인 후 정식 참여(`POST /guinji/maps/{mapId}/members`)에서만
 // 일어난다 — 이 라우트는 순수 조회/계산 응답일 뿐이다.
 //
-// [간이 판정 — 정직성 원칙] `buildPreviewSajuInput()` 주석 참고. 이것은
-// 정통사주 만세력 실계산이 아니라 결정론적 규칙(생년월일 해시) 기반
-// 간이 계산이다. 응답에 `isPreview: true`를 항상 포함해, 프론트가 반드시
-// "간이 미리보기"임을 사용자에게 표시하도록 강제한다.
+// [정확도 개선 — 2026-09] 기존 `buildPreviewSajuInput()`(생년월일 해시
+// 기반 가짜 명식)을 폐기하고, `saju-manseryeok-engine.ts`(npm
+// lunar-javascript, Flutter `SajuEngine`과 동일 알고리즘·동일 6tail
+// 원작 버전)로 **실제 만세력**을 계산한다. 사용자가 "생년월일만 넣어도
+// 정확한 사주/관계가 나와야 한다"고 명시적으로 요구했다 — 더 이상
+// "간이 미리보기"가 아니라 실제 명식을 산출하되, 태어난 시간을 모를
+// 때만(timeKnown=false) 정오(12:00) 가정 근사가 남아있을 뿐이다.
+// 이 근사 하나 때문에 `isPreview: true`를 유지해 화면에 "시간 미입력 시
+// 정확도가 낮을 수 있음"을 안내한다(정직성 원칙 — 느낌표 없이 담담하게).
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { isGuinjiInviteExpired } from "../../../_shared";
-import { buildPreviewSajuInput, judgeGuinjiRelation } from "@/lib/guinji-relation-judger";
+import { judgeGuinjiRelation } from "@/lib/guinji-relation-judger";
+import { calculateSaju, guinjiSajuInputFromManseryeok } from "@/lib/saju-manseryeok-engine";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +37,9 @@ const CORS_HEADERS_WITH_METHODS = {
 
 interface RequestBody {
   birthDate?: string; // 'YYYY-MM-DD'
+  calendarType?: string; // 'solar' | 'lunar', 기본 solar
+  birthTime?: string | null; // 'HH:mm', null/미입력이면 시간모름
+  gender?: string; // 'male' | 'female', 기본 female(미입력 시 십성 성별차 없음 — 대운 방향에만 영향)
 }
 
 export async function POST(
@@ -56,14 +65,44 @@ export async function POST(
       { status: 400, headers: CORS_HEADERS }
     );
   }
-  // 대략적인 날짜 유효성(달력상 실존 날짜인지) 확인 — 존재하지 않는 날짜로
-  // 해시를 돌려 이상한 결과를 주지 않도록 최소 방어.
-  const parsed = new Date(`${birthDate}T00:00:00Z`);
-  if (Number.isNaN(parsed.getTime())) {
+  const [y, m, d] = birthDate.split("-").map((s) => Number(s));
+  const isLunar = body.calendarType === "lunar";
+  // 달력상 실존 날짜인지 검증. 양력은 JS Date 롤오버 특성(예: "1995-02-30"이
+  // 조용히 3월 2일로 넘어가는 것)을 되돌려 만든 날짜가 원래 입력과 정확히
+  // 같은지 재확인해 걸러낸다. 음력은 JS Date 검증이 무의미하므로(음력
+  // 월/일 범위가 양력과 다름) lunar-javascript 자체의 range validation
+  // (calculateSaju 호출부 try/catch)에 맡긴다 — 최소한 범위만 여기서 거른다.
+  if (!isLunar) {
+    const parsed = new Date(y, m - 1, d);
+    const isRealDate =
+      !Number.isNaN(parsed.getTime()) &&
+      parsed.getFullYear() === y &&
+      parsed.getMonth() === m - 1 &&
+      parsed.getDate() === d;
+    if (!isRealDate) {
+      return NextResponse.json(
+        { success: false, error: "생년월일을 다시 확인해 주세요." },
+        { status: 400, headers: CORS_HEADERS }
+      );
+    }
+  } else if (m < 1 || m > 12 || d < 1 || d > 30) {
     return NextResponse.json(
       { success: false, error: "생년월일을 다시 확인해 주세요." },
       { status: 400, headers: CORS_HEADERS }
     );
+  }
+  const gender = body.gender === "male" ? "male" : "female";
+  let timeUnknown = true;
+  let hour = 12;
+  let minute = 0;
+  const birthTime = body.birthTime?.trim();
+  if (birthTime && /^\d{2}:\d{2}$/.test(birthTime)) {
+    const [hh, mm] = birthTime.split(":").map((s) => Number(s));
+    if (hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59) {
+      hour = hh;
+      minute = mm;
+      timeUnknown = false;
+    }
   }
 
   try {
@@ -92,8 +131,24 @@ export async function POST(
     }
 
     const ownerSaju = JSON.parse(map.ownerSajuParsed);
-    const guestPreviewSaju = buildPreviewSajuInput(birthDate);
-    const judged = judgeGuinjiRelation(ownerSaju, guestPreviewSaju);
+
+    let guestManseryeok;
+    try {
+      guestManseryeok = calculateSaju({
+        year: y, month: m, day: d,
+        hour, minute,
+        gender,
+        isLunar,
+        timeUnknown,
+      });
+    } catch {
+      return NextResponse.json(
+        { success: false, error: "생년월일을 다시 확인해 주세요(달력상 존재하지 않는 날짜일 수 있어요)." },
+        { status: 400, headers: CORS_HEADERS }
+      );
+    }
+    const guestSaju = guinjiSajuInputFromManseryeok(guestManseryeok);
+    const judged = judgeGuinjiRelation(ownerSaju, guestSaju);
 
     return NextResponse.json(
       {
@@ -102,7 +157,13 @@ export async function POST(
           ownerName: map.owner.nickname,
           relationType: judged.relationType,
           chemistryScore: judged.chemistryScore,
+          // [정확도 개선] 실제 만세력 기반 명식이므로 더 이상 가짜 결과가
+          // 아니다. isPreview는 오직 "시간 미입력 시 정오 가정 근사"만을
+          // 뜻한다(timeUnknown과 함께 프론트가 안내 문구를 조건부 표시).
           isPreview: true,
+          timeUnknown: guestManseryeok.timeUnknown,
+          dayMasterKr: guestManseryeok.dayMaster.kr,
+          dayMasterElement: guestManseryeok.dayMaster.element,
         },
       },
       { headers: CORS_HEADERS }

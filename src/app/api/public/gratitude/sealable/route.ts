@@ -61,6 +61,16 @@ export async function GET(request: NextRequest) {
 
     const wishIdToPublicId = new Map(myWishIds.map((id) => [id, toWishPublicId(id)]));
 
+    // [소원방 개편 · 7] 발신자 닉네임 조회 — 새 필드/스키마 없이 이미
+    // PointHistory.userId(=보낸 사람)에 존재하는 값을 User.nickname으로
+    // 한 번에 조회해 맵으로 구성한다(N+1 방지).
+    const senderIds = [...new Set(pouchHistories.map((h) => h.userId))];
+    const senders = await prisma.user.findMany({
+      where: { id: { in: senderIds } },
+      select: { id: true, nickname: true },
+    });
+    const senderNicknameMap = new Map(senders.map((u) => [u.id, u.nickname]));
+
     const data = pouchHistories
       .filter((h) => !sealedSet.has(h.id))
       .map((h) =>
@@ -69,6 +79,7 @@ export async function GET(request: NextRequest) {
           wishId: wishIdToPublicId.get(h.sourceId as number) ?? toWishPublicId(h.sourceId as number),
           amount: Math.abs(h.amount),
           pouchCreatedAt: h.createdAt,
+          senderNickname: senderNicknameMap.get(h.userId) ?? "익명",
         })
       );
 

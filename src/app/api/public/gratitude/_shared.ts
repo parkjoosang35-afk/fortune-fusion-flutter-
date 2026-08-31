@@ -11,9 +11,12 @@
 //   생성되고, "누가 보냈는지"(userId)를 이미 정확히 갖고 있어 별도 조회 없이
 //   sender/recipient를 역산할 수 있다).
 //
-// [익명성 원칙] 소원방 전체가 "익명이지만 서로 존재를 확인하는" 세계관이므로
-// (01-planning.html §07 "도장은 익명이지만 상대에게 알림으로 도착"), 이 DTO들은
-// 상대방의 실제 식별정보(닉네임 등)를 노출하지 않는다 — wishId/금액/시각만 노출.
+// [소원방 개편 · 7 — 익명성 원칙 수정] 과거에는 이 DTO들이 상대방의 실제
+// 식별정보를 전혀 노출하지 않았으나("도장은 익명이지만 상대에게 알림으로
+// 도착"), 사용자 명시적 승인에 따라 복주머니를 보낸 사람의 닉네임을
+// 노출하도록 변경한다("니가 쓴 기획대로 다바꿔"). 새 테이블/필드 추가
+// 없이 이미 PointHistory/User에 존재하는 정보(발신자 userId → nickname)만
+// 조회해 함께 반환한다.
 import type { GratitudeSeal } from "@/generated/prisma/client";
 
 export const CORS_HEADERS = { "Access-Control-Allow-Origin": "*" };
@@ -31,12 +34,14 @@ export function isGratitudeSealExpired(pouchCreatedAt: Date, now: Date = new Dat
 }
 
 /** GET /gratitude/sealable — 내가 아직 도장을 찍지 않은, 24시간 이내의
- * 받은 sendPouch 후보 하나의 DTO. */
+ * 받은 sendPouch 후보 하나의 DTO. [소원방 개편 · 7] senderNickname을 함께
+ * 노출한다(호출부가 발신자 User.nickname을 조회해 전달). */
 export function toSealableCandidateDto(candidate: {
   sourcePouchId: number;
   wishId: string;
   amount: number;
   pouchCreatedAt: Date;
+  senderNickname: string;
 }) {
   return {
     sourcePouchId: candidate.sourcePouchId,
@@ -44,17 +49,21 @@ export function toSealableCandidateDto(candidate: {
     amount: candidate.amount,
     createdAt: candidate.pouchCreatedAt.toISOString(),
     expiresAt: gratitudeSealExpiresAt(candidate.pouchCreatedAt).toISOString(),
+    senderNickname: candidate.senderNickname,
   };
 }
 
 /** GET /gratitude/received / POST /gratitude/seal 응답 — 이미 생성된
  * GratitudeSeal 레코드 DTO. grantedAmount는 그 시점에 실제로 지급된 금액
  * (PointHistory 조회로 얻은 값)을 그대로 노출한다(정책이 나중에 바뀌어도
- * 과거 이력은 지급 당시 값을 정확히 보여주기 위함). */
+ * 과거 이력은 지급 당시 값을 정확히 보여주기 위함). [소원방 개편 · 7]
+ * counterpartNickname — seal/received 문맥에 따라 "원래 보낸 사람"(sealable
+ * 대상) 또는 "내게 답례 도장을 찍어준 사람"을 가리키며, 호출부가 채운다. */
 export function toGratitudeSealDto(
   seal: GratitudeSeal,
   publicWishId: string,
-  grantedAmount: number
+  grantedAmount: number,
+  counterpartNickname: string
 ) {
   return {
     id: seal.id,
@@ -62,5 +71,6 @@ export function toGratitudeSealDto(
     sourcePouchId: seal.sourcePouchId,
     amount: grantedAmount,
     createdAt: seal.createdAt.toISOString(),
+    counterpartNickname,
   };
 }

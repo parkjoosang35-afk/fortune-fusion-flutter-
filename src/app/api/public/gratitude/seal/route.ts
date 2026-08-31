@@ -140,14 +140,27 @@ export async function POST(request: NextRequest) {
         recipientGranted = outcome.grantedAmount;
       }
 
-      return { seal, wish, senderGranted, recipientGranted };
+      // [소원방 개편 · 7] 원래 복주머니를 보낸 사람(recipientId)의 닉네임을
+      // 함께 조회한다 — 이 응답을 받는 쪽(auth.userId=도장을 찍은 사람)의
+      // 상대는 recipientId다.
+      const counterpart = await tx.user.findUnique({
+        where: { id: senderOfPouchUserId },
+        select: { nickname: true },
+      });
+
+      return { seal, wish, senderGranted, recipientGranted, counterpartNickname: counterpart?.nickname ?? "익명" };
     });
 
     return NextResponse.json(
       {
         success: true,
         data: {
-          ...toGratitudeSealDto(result.seal, toWishPublicId(result.wish.id), result.recipientGranted),
+          ...toGratitudeSealDto(
+            result.seal,
+            toWishPublicId(result.wish.id),
+            result.recipientGranted,
+            result.counterpartNickname
+          ),
           senderGrantedAmount: result.senderGranted,
         },
       },

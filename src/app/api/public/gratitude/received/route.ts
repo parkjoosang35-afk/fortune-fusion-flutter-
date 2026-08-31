@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
     const seals = await prisma.gratitudeSeal.findMany({
       where: { recipientId: auth.userId },
       orderBy: { createdAt: "desc" },
+      include: { sender: { select: { nickname: true } } },
     });
 
     if (seals.length === 0) {
@@ -41,11 +42,14 @@ export async function GET(request: NextRequest) {
       if (h.sourceId != null) grantedBySourceId.set(h.sourceId, h.amount);
     }
 
+    // [소원방 개편 · 7] 여기서 나(recipient)의 상대는 도장을 찍어준
+    // sender다 — sender.nickname을 counterpartNickname으로 노출한다.
     const data = seals.map((seal) =>
       toGratitudeSealDto(
         seal,
         toWishPublicId(seal.wishId),
-        grantedBySourceId.get(seal.sourcePouchId) ?? 0
+        grantedBySourceId.get(seal.sourcePouchId) ?? 0,
+        seal.sender?.nickname ?? "익명"
       )
     );
 

@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "purge:withdrawn": "NODE_OPTIONS=--conditions=react-server tsx scripts/purge-withdrawn-accounts.ts"
+    "purge:withdrawn": "NODE_OPTIONS=--conditions=react-server tsx scripts/purge-withdrawn-accounts.ts",
+    "test:og-ocr": "node scripts/og-ocr-regression.mjs",
+    "test:og-buildpng": "tsx scripts/test-build-og-png.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
@@ -20,6 +22,7 @@
     "dotenv": "^17.4.2",
     "jose": "^6.2.4",
     "lucide-react": "^1.25.0",
+    "lunar-javascript": "^1.7.7",
     "next": "16.2.11",
     "prisma": "^7.9.0",
     "react": "19.2.4",

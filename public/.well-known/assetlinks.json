@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.fortunefusion.fortune",
+      "sha256_cert_fingerprints": [
+        "98:85:8E:63:95:58:51:4C:13:C1:07:71:10:65:2F:86:52:2E:ED:34:8A:B8:43:72:5D:0D:45:1F:8C:F3:E1:3D"
+      ]
+    }
+  }
+]
