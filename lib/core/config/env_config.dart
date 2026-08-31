@@ -11,7 +11,9 @@ class EnvConfig {
 
   static const String adminApiBaseUrl = String.fromEnvironment(
     'ADMIN_API_BASE_URL',
-    defaultValue:
-        'https://3000-icl3vxc7xf6zjzgg3f9cz-8f57ffe2.sandbox.novita.ai',
+    // [Phase C] 가비아 운영 서버(sintong.kr) 도메인으로 전환.
+    // 이전 샌드박스 임시 프리뷰 주소는 세션 종료 시 무효화되는 문제가 있어
+    // 영구 운영 도메인으로 고정한다.
+    defaultValue: 'https://sintong.kr',
   );
 }
