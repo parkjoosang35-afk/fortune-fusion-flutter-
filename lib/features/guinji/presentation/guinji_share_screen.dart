@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,6 +11,23 @@ import '../../../core/widgets/app_toast.dart';
 import '../application/guinji_provider.dart';
 import '../theme/guinji_theme.dart';
 import '../widgets/guinji_bg_atmosphere.dart';
+
+/// [카톡 공유 OG 캐시버스팅 — 결정 매모 D6/1-1] 짧은 캐시버스팅 코드 생성기.
+///
+/// 6자리 소문자+숫자 코드(36^6 ≈ 21억 조합) — 카톡 등 SNS 크롤러가 OG
+/// 이미지를 캐시해두는 문제를 우회하기 위해, 공유 링크를 새로 만들 때마다
+/// 매번 다른 값을 붙인다(아래 [buildGuinjiInviteLink] 참고). 암호학적
+/// 안전성이 필요한 값이 아니라(추측 가능해도 보안 문제 없음, 지도 자체의
+/// 접근 제어는 `token`이 담당) `Random()`으로 충분하다.
+const _kShareCodeAlphabet = 'abcdefghijklmnopqrstuvwxyz0123456789';
+final math.Random _shareCodeRandom = math.Random();
+
+String generateGuinjiShareCode({int length = 6}) {
+  return List.generate(
+    length,
+    (_) => _kShareCodeAlphabet[_shareCodeRandom.nextInt(_kShareCodeAlphabet.length)],
+  ).join();
+}
 
 /// [귀인지도 딥링크 버그수정 — Phase A] 초대 링크 생성 헬퍼.
 ///
@@ -24,8 +43,16 @@ import '../widgets/guinji_bg_atmosphere.dart';
 /// [주의] 이 base URL은 샌드박스 프리뷰마다 바뀌는 임시 도메인이다. 실제
 /// 운영 배포 시에는 `EnvConfig.adminApiBaseUrl`을 진짜 도메인으로 교체하는
 /// 것만으로 이 함수가 자동으로 올바른 링크를 생성한다(Phase B, 아직 미착수).
+///
+/// [카톡 공유 OG 캐시버스팅 — 결정 매모 D6/1-1] 호출될 때마다
+/// [generateGuinjiShareCode]로 새 코드를 만들어 `?v=` 쿼리스트링으로 붙인다.
+/// 서버(`admin_web`)의 `/g/[token]/page.tsx`가 이 `v` 값을 그대로 OG 이미지
+/// URL의 **경로**에 심어(`/og/guinji/{token}/{v}.png`) 내보내므로, 카톡이
+/// 쿼리스트링 변경만으론 캐시를 갱신하지 않는 경우에도 이미지 경로 자체가
+/// 매번 달라져 새로 크롤링하게 만든다(쿼리 + 경로 2단 방어).
 String buildGuinjiInviteLink(String token) {
-  return '${EnvConfig.adminApiBaseUrl}/g/$token';
+  final shareCode = generateGuinjiShareCode();
+  return '${EnvConfig.adminApiBaseUrl}/g/$token?v=$shareCode';
 }
 
 /// 귀인지도(Guinji Map) — 08. 공유 화면.
@@ -56,8 +83,30 @@ String buildGuinjiInviteLink(String token) {
 /// [절대 원칙] "1명 참여 = 복주머니 20P" 안내 문구는 원본 디자인 스펙을 그대로
 /// 옮긴 **안내 텍스트**일 뿐이며, 실제 지급은 서버(`guinji/maps/{id}/members`
 /// 트랜잭션 내부, PointPolicy 등록됨)에서만 발생한다.
-class GuinjiShareScreen extends StatelessWidget {
+class GuinjiShareScreen extends StatefulWidget {
   const GuinjiShareScreen({super.key});
+
+  @override
+  State<GuinjiShareScreen> createState() => _GuinjiShareScreenState();
+}
+
+class _GuinjiShareScreenState extends State<GuinjiShareScreen> {
+  // [카톡 공유 OG 캐시버스팅 — 결정 매모 D6/1-1] 화면에 표시되는 "복사용"
+  // 링크는 화면 진입 시 1회만 생성해 고정한다(재렌더마다 바뀌면 사용자가
+  // 헷갈림). 실제 공유 버튼(카톡/인스타 등)을 누르는 순간에는
+  // [_shareInvite]가 매번 새로 [buildGuinjiInviteLink]를 호출해 그때마다
+  // 새 캐시버스팅 코드가 담긴 링크를 만든다 — "공유 액션 = 새 코드"가
+  // 캐시 무효화 의도에 가장 정확히 맞기 때문.
+  String? _displayLink;
+  String? _displayLinkToken;
+
+  String _linkFor(String token) {
+    if (_displayLinkToken != token) {
+      _displayLinkToken = token;
+      _displayLink = buildGuinjiInviteLink(token);
+    }
+    return _displayLink!;
+  }
 
   Future<void> _shareInvite(BuildContext context, String? token) async {
     if (token == null) return;
@@ -98,7 +147,7 @@ class GuinjiShareScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final provider = context.watch<GuinjiProvider>();
     final token = provider.mapToken;
-    final link = token != null ? buildGuinjiInviteLink(token) : '지도를 여는 중…';
+    final link = token != null ? _linkFor(token) : '지도를 여는 중…';
     final joinedCount = provider.people.length;
 
     return Scaffold(
