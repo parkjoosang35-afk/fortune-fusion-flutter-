@@ -16,6 +16,7 @@ import '../../auth/application/auth_provider.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../wish_room/presentation/wish_room_entry_gate.dart';
 import '../../../core/widgets/face_palm_select_sheet.dart';
+import '../../fortune/sintong/screens/home_reading_mini_card.dart';
 import 'home_style_tokens.dart';
 import 'home_banner_carousel.dart';
 import '../domain/jeontong_eighty_matrix.dart';
@@ -821,12 +822,11 @@ class _WishBoardRoomRow extends StatelessWidget {
           ),
           const SizedBox(width: _Dims.wishCardGap),
           Expanded(
-            child: _LavenderMiniCard(
-              title: '관상 · 손금',
-              bottomLabel: '얼굴과 손을 읽어보세요',
-              circleIcon: Icons.arrow_drop_up_rounded,
-              circleStyle: PremiumCircleButtonStyle.black,
-              onTap: () => showFacePalmSelectSheet(context),
+            child: SizedBox(
+              height: _Dims.wishCardHeight,
+              child: HomeReadingMiniCard(
+                onTap: () => showFacePalmSelectSheet(context),
+              ),
             ),
           ),
         ],

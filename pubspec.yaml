@@ -115,6 +115,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/images/
+    - assets/images/sintong/
     - assets/images/wish_counsel/characters/
     - assets/images/home/doryeong/
     - assets/audio/tarot/
@@ -171,6 +172,28 @@ flutter:
         - asset: assets/fonts/wish_room/IBMPlexMono-Regular.ttf
           weight: 400
         - asset: assets/fonts/wish_room/IBMPlexMono-Medium.ttf
+          weight: 500
+    # [관상·손금 신통방통 "새벽 한지" 리스킨] 전용 폰트 3종.
+    # wish_room과 동일한 실제 폰트 파일(.ttf)을 재사용하되, 핸드오프 코드가
+    # 기대하는 평범한 family 이름(NotoSerifKR/GowunBatang/IBMPlexMono)으로
+    # 별도 등록한다. Pretendard(UI용)는 이미 앱 전역에 등록되어 있어 재등록 불필요.
+    - family: NotoSerifKR
+      fonts:
+        - asset: assets/fonts/sintong/NotoSerifKR-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/sintong/NotoSerifKR-Black.ttf
+          weight: 900
+    - family: GowunBatang
+      fonts:
+        - asset: assets/fonts/sintong/GowunBatang-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/sintong/GowunBatang-Bold.ttf
+          weight: 700
+    - family: IBMPlexMono
+      fonts:
+        - asset: assets/fonts/sintong/IBMPlexMono-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/sintong/IBMPlexMono-Medium.ttf
           weight: 500
   #
   # For details regarding fonts from package dependencies,
