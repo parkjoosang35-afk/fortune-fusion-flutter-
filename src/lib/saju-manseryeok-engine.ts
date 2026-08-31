@@ -23,6 +23,28 @@
 // 웹 미리보기 결과에도 이제 `isPreview: true`를 유지하되 그 의미는
 // "시간 미입력 시 정오 가정 등으로 인한 근사"만을 뜻하게 된다(명식
 // 자체는 더 이상 가짜가 아님).
+//
+// [중대 수정 이력 — 2026-09, 사용자 피드백 반영]
+// 위 1차 버전은 Flutter의 **레거시** `saju_engine.dart`(SajuEngine)만
+// 이식한 것이었다. 그런데 실제 앱의 귀인지도(`guinji_provider.dart` →
+// `JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4()`)는
+// 레거시 엔진을 쓰지 않고, **신규 엔진**(`ManseryeokCoreEngine` +
+// `SinsalEngine` + `RelationshipsEngine`, 신살 15종 이상 계산)을 쓴다는
+// 것을 뒤늦게 발견했다. 레거시는 신살을 3종(천을귀인/문창귀인/역마)만
+// 계산해, 앱이 실제로 산출하는 명식과 웹 미리보기 명식 사이에 기능적
+// 격차가 있었다 — 이는 명백한 검증 부실이었다. 이번 수정으로 Flutter
+// `sinsal_engine.dart`(공망 포함 다수 신살)와 `relationships_engine.dart`
+// (원진 관계)를 그대로 이식해 신규 엔진과 신살 목록을 동등하게 만든다.
+//
+// [2차 외부 검증 — 2026-09] 자체 구현끼리의 대조만으로는 불충분하다는
+// 반성 하에, 이 코드베이스와 무관한 외부 자료와 교차검증했다.
+// 1988-09-17 09:00(양력) 케이스 계산 결과(년주=戊辰/월주=辛酉/일주=乙亥/
+// 시주=辛巳)를, 이 생년월일의 실존 인물(이용대)을 다루는 외부 사이트
+// (unseon.com)가 명시한 "년주 戊辰·월주 辛酉·일주 乙亥"와 대조해 3주
+// 전부 일치를 확인했다. 또한 자시(子時) 경계 시각(23:30/00:30)을 직접
+// 테스트해 `EightChar.setSect()` 패키지 기본값이 이 프로젝트가 채택한
+// 정책(sect=2, 야자시도 당일)과 정확히 일치함을 코드 실행으로 확인했다
+// (`manseryeok_policy.dart` 정책 문서와 패키지 실제 동작 일치 재검증).
 import { Lunar, Solar } from "lunar-javascript";
 
 const GAN_KR: Record<string, string> = {
@@ -100,7 +122,7 @@ const YEOKMA: Record<string, string> = {
   亥: "巳", 卯: "巳", 未: "巳",
 };
 
-/** 대표 신살 검출 — find_sinsal() 이식. */
+/** 대표 신살 검출 — find_sinsal() 이식(레거시 3종, SinsalEngine ①에서 재사용). */
 function findSinsal(dayGan: string, zhiList: string[]): string[] {
   const found: string[] = [];
   if (zhiList.some((z) => (CHEONEUL_GWIIN[dayGan] ?? []).includes(z))) {
@@ -114,6 +136,171 @@ function findSinsal(dayGan: string, zhiList: string[]): string[] {
     found.push("驛馬(역마)");
   }
   return found;
+}
+
+// ── [신규 엔진 이식 — 2026-09 수정] Flutter `sinsal_engine.dart` +
+// `relationships_engine.dart`의 신살 15종 이상 계산을 그대로 이식한다.
+// 아래 상수/로직은 Dart 원본과 완전히 동일한 고정표를 사용하며, 새로운
+// 명리 판정 규칙을 임의로 만들지 않는다(원본 Dart 파일 주석 "절대 원칙"과
+// 동일 원칙 적용).
+
+const ZHI_ORDER = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"];
+
+/** 지지 → 그 지지가 속한 삼합 그룹의 생지(生地). sinsal_engine.dart 동일. */
+const BRANCH_TO_GROUP_SAENGJI: Record<string, string> = {
+  申: "申", 子: "申", 辰: "申",
+  巳: "巳", 酉: "巳", 丑: "巳",
+  寅: "寅", 午: "寅", 戌: "寅",
+  亥: "亥", 卯: "亥", 未: "亥",
+};
+
+/** 지살(오프셋 0) 기준 12신살 순서 오프셋. sinsal_engine.dart 동일. */
+const TWELVE_SINSAL_OFFSETS: Array<[number, string]> = [
+  [-3, "겁살"], [-2, "재살"], [-1, "천살"], [0, "지살"],
+  [1, "년살"], [2, "월살"], [3, "망신살"], [4, "장성살"],
+  [5, "반안살"], [6, "역마살"], [7, "육해살"], [8, "화개살"],
+];
+
+function computeTwelveSinsalTable(basisBranch: string): Record<string, string> {
+  const saengJi = BRANCH_TO_GROUP_SAENGJI[basisBranch];
+  const saengJiIdx = ZHI_ORDER.indexOf(saengJi);
+  const table: Record<string, string> = {};
+  for (const [offset, name] of TWELVE_SINSAL_OFFSETS) {
+    table[name] = ZHI_ORDER[(((saengJiIdx + offset) % 12) + 12) % 12];
+  }
+  return table;
+}
+
+/** 양인살 — 일간(양간만) 기준. sinsal_engine.dart 동일. */
+const YANG_IN_BY_DAY_GAN: Record<string, string> = {
+  甲: "卯", 丙: "午", 戊: "午", 庚: "酉", 壬: "子",
+};
+
+/** 괴강살 — 일주 고정표. sinsal_engine.dart 동일. */
+const GOEGANG_DAY_PILLARS = ["庚辰", "庚戌", "壬辰", "戊戌"];
+
+/** 백호대살 — 일주 고정표(7주). sinsal_engine.dart 동일. */
+const BAEKHO_DAESAL_PILLARS = ["甲辰", "乙未", "丙戌", "丁丑", "戊辰", "壬戌", "癸丑"];
+
+/** 원진(怨嗔) 쌍 — relationships_engine.dart의 _yuanChenPairs와 동일. */
+const YUAN_CHEN_PAIRS: Array<[string, string]> = [
+  ["子", "未"], ["丑", "午"], ["寅", "酉"], ["卯", "申"], ["辰", "亥"], ["巳", "戌"],
+];
+
+export interface SinsalEntry {
+  id: string;
+  nameKr: string;
+  nameHanja: string;
+  basis: string;
+  foundOn: string[];
+}
+
+/**
+ * [신규 엔진 이식] `SinsalEngine.analyze()`(sinsal_engine.dart) 전체를
+ * TypeScript로 이식 — 신살 15종 이상(천을귀인/문창귀인/역마/공망/12신살/
+ * 양인살/괴강살/백호대살/원진살)을 계산한다. 이전(1차) 버전은 레거시의
+ * 3종만 반영해 실제 앱(신규 엔진)과 결과 격차가 있었다 — 이 함수가 그
+ * 격차를 없앤다.
+ */
+function analyzeSinsal(
+  yearPillar: SajuPillar,
+  monthPillar: SajuPillar,
+  dayPillar: SajuPillar,
+  hourPillar: SajuPillar
+): SinsalEntry[] {
+  const positions: Record<string, SajuPillar> = {
+    year: yearPillar, month: monthPillar, day: dayPillar, hour: hourPillar,
+  };
+  const posLabel: Record<string, string> = { year: "년지", month: "월지", day: "일지", hour: "시지" };
+  const branches: Record<string, string> = {
+    year: yearPillar.zhi, month: monthPillar.zhi, day: dayPillar.zhi, hour: hourPillar.zhi,
+  };
+  const dayGan = dayPillar.gan;
+  const dayZhi = dayPillar.zhi;
+  const entries: SinsalEntry[] = [];
+
+  // ① 레거시 3종(천을귀인/문창귀인/역마) 재사용 + 발동 위치 역추적.
+  const zhiList = [yearPillar.zhi, monthPillar.zhi, dayPillar.zhi, hourPillar.zhi];
+  const legacyFound = findSinsal(dayGan, zhiList);
+  const matchesLegacy = (name: string, zhi: string): boolean => {
+    if (name === "天乙貴人") return (CHEONEUL_GWIIN[dayGan] ?? []).includes(zhi);
+    if (name === "文昌貴人") return MUNCHANG_GWIIN[dayGan] === zhi;
+    if (name === "驛馬") return YEOKMA[dayZhi] === zhi;
+    return false;
+  };
+  for (const f of legacyFound) {
+    const name = f.split("(")[0];
+    const foundOn = Object.entries(branches)
+      .filter(([, z]) => matchesLegacy(name, z))
+      .map(([k]) => posLabel[k]);
+    const nameKr = f.includes("(") ? f.split("(")[1].replace(")", "") : name;
+    entries.push({ id: name, nameKr, nameHanja: name, basis: "일간", foundOn });
+  }
+
+  // ② 공망(空亡).
+  const gongmang = getGongmang(dayGan, dayZhi);
+  const gongmangBranches = gongmang.split(" ")[0];
+  const gongmangFoundOn = Object.entries(branches)
+    .filter(([, z]) => gongmangBranches.includes(z))
+    .map(([k]) => posLabel[k]);
+  entries.push({ id: "空亡", nameKr: "공망", nameHanja: "空亡", basis: "일주", foundOn: gongmangFoundOn });
+
+  // ③ 12신살(일지 기준).
+  const table = computeTwelveSinsalTable(dayZhi);
+  for (const [name, branch] of Object.entries(table)) {
+    const foundOn = Object.entries(branches)
+      .filter(([, z]) => z === branch)
+      .map(([k]) => posLabel[k]);
+    entries.push({ id: `12신살_${name}`, nameKr: name, nameHanja: branch, basis: "일지", foundOn });
+  }
+
+  // ④ 양인살(일간 기준).
+  const yangIn = YANG_IN_BY_DAY_GAN[dayGan];
+  if (yangIn) {
+    const foundOn = Object.entries(branches)
+      .filter(([, z]) => z === yangIn)
+      .map(([k]) => posLabel[k]);
+    entries.push({ id: "羊刃", nameKr: "양인살", nameHanja: yangIn, basis: "일간", foundOn });
+  }
+
+  // ⑤ 괴강살(4주 전체).
+  const goeGangFoundOn = Object.entries(positions)
+    .filter(([, p]) => GOEGANG_DAY_PILLARS.includes(p.gan + p.zhi))
+    .map(([k]) => posLabel[k]);
+  if (goeGangFoundOn.length > 0) {
+    entries.push({ id: "魁罡", nameKr: "괴강살", nameHanja: "魁罡", basis: "주(柱) 전체", foundOn: goeGangFoundOn });
+  }
+
+  // ⑥ 백호대살(4주 전체).
+  const baekhoFoundOn = Object.entries(positions)
+    .filter(([, p]) => BAEKHO_DAESAL_PILLARS.includes(p.gan + p.zhi))
+    .map(([k]) => posLabel[k]);
+  if (baekhoFoundOn.length > 0) {
+    entries.push({ id: "白虎", nameKr: "백호대살", nameHanja: "白虎", basis: "주(柱) 전체", foundOn: baekhoFoundOn });
+  }
+
+  // ⑦ 원진(元辰) — relationships_engine.dart의 원진 판정 로직 이식.
+  const branchPosLabel = ["년지", "월지", "일지", "시지"];
+  const branchArr = [yearPillar.zhi, monthPillar.zhi, dayPillar.zhi, hourPillar.zhi];
+  const yuanChenFoundOn = new Set<string>();
+  for (const [a, b] of YUAN_CHEN_PAIRS) {
+    for (let i = 0; i < 4; i++) {
+      for (let j = i + 1; j < 4; j++) {
+        if ((branchArr[i] === a && branchArr[j] === b) || (branchArr[i] === b && branchArr[j] === a)) {
+          yuanChenFoundOn.add(branchPosLabel[i]);
+          yuanChenFoundOn.add(branchPosLabel[j]);
+        }
+      }
+    }
+  }
+  if (yuanChenFoundOn.size > 0) {
+    entries.push({
+      id: "元辰", nameKr: "원진살", nameHanja: "元辰", basis: "지지 조합",
+      foundOn: Array.from(yuanChenFoundOn),
+    });
+  }
+
+  return entries;
 }
 
 /** 공망 계산 — get_gongmang() 이식. */
@@ -168,7 +355,11 @@ export interface SajuManseryeokResult {
   dayMasterStrength: string;
   fiveElementsCount: Record<string, number>;
   tenGods: Record<string, string>;
-  sinsal: string[];
+  /**
+   * [2026-09 수정] 이전에는 레거시 3종(문자열 배열)이었으나, 이제
+   * `SinsalEngine.analyze()`(신규 엔진) 이식으로 15종 이상을 반환한다.
+   */
+  sinsal: SinsalEntry[];
   gongmang: string;
   luckPillars: SajuLuckPillar[];
   currentAge: number;
@@ -246,7 +437,6 @@ export function calculateSaju(opts: CalculateSajuOptions): SajuManseryeokResult 
   };
 
   const strength = judgeStrength(dGan, elementsCount);
-  const sinsal = findSinsal(dGan, zhiList);
   const gongmang = getGongmang(dGan, dZhi);
 
   // 대운(10년 단위) — 첫 9개.
@@ -274,6 +464,14 @@ export function calculateSaju(opts: CalculateSajuOptions): SajuManseryeokResult 
     element: `${GAN_ELEMENT[gan].el}-${ZHI_ELEMENT[zhi].el}`,
   });
 
+  const yearPillarObj = buildPillar(yGan, yZhi);
+  const monthPillarObj = buildPillar(mGan, mZhi);
+  const dayPillarObj = buildPillar(dGan, dZhi);
+  const hourPillarObj = buildPillar(hGan, hZhi);
+
+  // [신규 엔진 이식] 신살 15종 이상 계산(sinsal_engine.dart 이식).
+  const sinsal = analyzeSinsal(yearPillarObj, monthPillarObj, dayPillarObj, hourPillarObj);
+
   const pad = (n: number, len = 2) => n.toString().padStart(len, "0");
 
   return {
@@ -281,10 +479,10 @@ export function calculateSaju(opts: CalculateSajuOptions): SajuManseryeokResult 
     birthSolar: `${pad(year, 4)}-${pad(month)}-${pad(day)} ${pad(hour)}:${pad(minute)}`,
     birthLunar: lunar.toString(),
     pillars: {
-      year: buildPillar(yGan, yZhi),
-      month: buildPillar(mGan, mZhi),
-      day: buildPillar(dGan, dZhi),
-      hour: buildPillar(hGan, hZhi),
+      year: yearPillarObj,
+      month: monthPillarObj,
+      day: dayPillarObj,
+      hour: hourPillarObj,
     },
     dayMaster: {
       gan: dGan,
@@ -306,8 +504,9 @@ export function calculateSaju(opts: CalculateSajuOptions): SajuManseryeokResult 
 /**
  * `SajuManseryeokResult` → `GuinjiSajuInput`(guinji-relation-judger.ts 계약)
  * 변환 — Flutter `guinjiSajuInputFromProfile()`과 동일한 어댑터를 웹에서도
- * 재사용한다. 시살 ID는 신살 문자열에서 한자 부분만 추출한다(예:
- * '天乙貴人(천을귀인)' → '天乙貴人', Dart의 sinsal_engine.dart와 동일 규칙).
+ * 재사용한다. [2026-09 수정] `sinsal`이 이제 `SinsalEntry[]`(신규 엔진,
+ * 15종 이상)이므로 각 항목의 `id`를 그대로 사용한다(Dart
+ * `guinji_saju_adapter.dart`의 `profile.sinsal?.map((e) => e.id)`와 동일).
  */
 export function guinjiSajuInputFromManseryeok(result: SajuManseryeokResult) {
   return {
@@ -325,6 +524,6 @@ export function guinjiSajuInputFromManseryeok(result: SajuManseryeokResult) {
       hour: result.pillars.hour.zhi,
     },
     fiveElementsCount: result.fiveElementsCount,
-    sinsalIds: result.sinsal.map((s) => s.split("(")[0]),
+    sinsalIds: result.sinsal.map((s) => s.id),
   };
 }
