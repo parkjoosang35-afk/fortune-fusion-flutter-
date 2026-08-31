@@ -18,7 +18,10 @@ import '../domain/palm_model.dart';
 class PalmRepository {
   final List<PalmResultModel> _history = [];
 
-  Future<ApiResult<PalmResultModel>> analyze({Uint8List? image}) async {
+  Future<ApiResult<PalmResultModel>> analyze({
+    Uint8List? image,
+    PalmHandSide hand = PalmHandSide.right,
+  }) async {
     if (image == null) {
       return ApiResult.fail('손바닥 사진을 먼저 촬영하거나 선택해주세요.');
     }
@@ -28,7 +31,7 @@ class PalmRepository {
     );
     final imageBase64 = base64Encode(image);
     debugPrint(
-      '[PalmRepository] [analyze] 요청 -> $uri (userId=$userId, imageBytes=${image.length})',
+      '[PalmRepository] [analyze] 요청 -> $uri (userId=$userId, imageBytes=${image.length}, hand=${hand.apiValue})',
     );
 
     try {
@@ -36,7 +39,14 @@ class PalmRepository {
           .post(
             uri,
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'userId': userId, 'image': imageBase64}),
+            // [신통방통 리스킨] hand 파라미터를 함께 전송한다. 서버가 아직
+            // 활용하지 않더라도 추가 필드는 무시되므로 안전하며, 추후
+            // 백엔드가 왼손/오른손별 해석을 지원할 때 바로 연동 가능하다.
+            body: jsonEncode({
+              'userId': userId,
+              'image': imageBase64,
+              'hand': hand.apiValue,
+            }),
           )
           .timeout(const Duration(seconds: 50));
 

@@ -25,6 +25,17 @@ class PalmProvider extends ChangeNotifier {
   Uint8List? get selectedImageBytes => _selectedImageBytes;
   bool get hasSelectedImage => _selectedImageBytes != null;
 
+  // [신통방통 리스킨] 사용자가 촬영/분석하려는 손 방향. 기본값은 오른손.
+  PalmHandSide _handSide = PalmHandSide.right;
+  PalmHandSide get handSide => _handSide;
+
+  /// PalmCaptureScreen의 손 선택 토글에서 호출
+  void setHandSide(PalmHandSide side) {
+    if (_handSide == side) return;
+    _handSide = side;
+    notifyListeners();
+  }
+
   /// PalmCaptureScreen에서 카메라 촬영 또는 갤러리 선택 완료 시 호출
   void setSelectedImage(Uint8List bytes) {
     _selectedImageBytes = bytes;
@@ -41,7 +52,10 @@ class PalmProvider extends ChangeNotifier {
     _state = const LoadState.loading();
     notifyListeners();
 
-    final result = await _repository.analyze(image: _selectedImageBytes);
+    final result = await _repository.analyze(
+      image: _selectedImageBytes,
+      hand: _handSide,
+    );
 
     if (result.success && result.data != null) {
       _state = LoadState.success(result.data!);

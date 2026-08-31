@@ -11,6 +11,7 @@ import '../../sintong/widgets/palm_silhouette.dart';
 import '../../sintong/widgets/sintong_button.dart';
 import '../../sintong/widgets/sintong_screen_bg.dart';
 import '../application/palm_provider.dart';
+import '../domain/palm_model.dart';
 
 /// [관상·손금 신통방통 "새벽 한지" 리스킨] AI 손금 인트로/촬영 화면.
 ///
@@ -63,8 +64,10 @@ class _PalmCaptureScreenState extends State<PalmCaptureScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final selectedImageBytes = context.watch<PalmProvider>().selectedImageBytes;
+    final palmProvider = context.watch<PalmProvider>();
+    final selectedImageBytes = palmProvider.selectedImageBytes;
     final hasImage = selectedImageBytes != null;
+    final handSide = palmProvider.handSide;
 
     return Scaffold(
       body: Stack(
@@ -92,7 +95,7 @@ class _PalmCaptureScreenState extends State<PalmCaptureScreen> {
                   BangtongCoachCard(
                     message: hasImage
                         ? '결이 잘 보여요.\n이대로 분석을 시작해볼게요.'
-                        : '손바닥에 네 갈래 길이 흘러요.\n결이 잘 보이게 펼쳐 주세요.',
+                        : '${handSide == PalmHandSide.right ? '오른손' : '왼손'}바닥에 네 갈래 길이 흘러요.\n결이 잘 보이게 펼쳐 주세요.',
                   ),
                   const SizedBox(height: 14),
 
@@ -150,7 +153,36 @@ class _PalmCaptureScreenState extends State<PalmCaptureScreen> {
                   ),
                   const SizedBox(height: 14),
 
-                  const SizedBox(height: 4),
+                  // [신통방통 리스킨] 손 선택 토글 — 분석 전에만 변경 가능
+                  if (!hasImage) ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _HandToggle(
+                            label: '오른손',
+                            sub: '현재 · 후천',
+                            selected: handSide == PalmHandSide.right,
+                            onTap: () => context
+                                .read<PalmProvider>()
+                                .setHandSide(PalmHandSide.right),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _HandToggle(
+                            label: '왼손',
+                            sub: '과거 · 선천',
+                            selected: handSide == PalmHandSide.left,
+                            onTap: () => context
+                                .read<PalmProvider>()
+                                .setHandSide(PalmHandSide.left),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+
                   Text(
                     '촬영한 사진은 분석 즉시 파기되며 저장되지 않습니다',
                     style: SintongType.caption,
@@ -262,6 +294,58 @@ class _IconBtn extends StatelessWidget {
           border: Border.all(color: SintongColors.line),
         ),
         child: Icon(icon, size: 16, color: SintongColors.fg),
+      ),
+    );
+  }
+}
+
+/// [신통방통 리스킨] 왼손/오른손 선택 토글 칩.
+class _HandToggle extends StatelessWidget {
+  final String label;
+  final String sub;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _HandToggle({
+    required this.label,
+    required this.sub,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? SintongColors.card : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: selected ? SintongColors.accent : SintongColors.line,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Text(
+              selected ? '◉' : '○',
+              style: TextStyle(
+                fontSize: 16,
+                color: selected ? SintongColors.accent : SintongColors.muted,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: SintongType.cardTitle),
+                Text(sub, style: SintongType.caption.copyWith(fontSize: 10)),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
