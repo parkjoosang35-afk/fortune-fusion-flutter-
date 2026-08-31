@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/widgets/app_toast.dart';
 import '../../guinji/presentation/guinji_join_screen.dart';
 import '../../guinji/presentation/guinji_onboarding_screen.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
@@ -25,6 +26,7 @@ class _ProfileCheckScreenState extends State<ProfileCheckScreen> {
   bool _isLeapMonth = false;
   String _gender = 'F';
   bool _skipTime = false;
+  bool _isSubmitting = false;
   final TextEditingController _birthPlaceController = TextEditingController();
 
   @override
@@ -82,7 +84,8 @@ class _ProfileCheckScreenState extends State<ProfileCheckScreen> {
         ? '${_birthTime!.hour.toString().padLeft(2, '0')}:${_birthTime!.minute.toString().padLeft(2, '0')}'
         : null;
 
-    await context.read<AuthProvider>().updateProfile(
+    setState(() => _isSubmitting = true);
+    final ok = await context.read<AuthProvider>().updateProfile(
       birthDate: birthDateStr,
       birthTime: birthTimeStr,
       isLunar: _isLunar,
@@ -96,15 +99,30 @@ class _ProfileCheckScreenState extends State<ProfileCheckScreen> {
           : _birthPlaceController.text.trim(),
       gender: _gender,
     );
-    if (mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
-      replayPendingPassRequest();
-      replayPendingGuinjiJoin();
-      // [버그 수정 — 온보딩 비로그인 진입] 프로필을 방금 완성했으므로,
-      // 대기 중이던 온보딩 재진입 요청도 함께 재생한다(생년월일이 이제
-      // 채워졌으니 이번에는 게이트를 통과해 정상적으로 지도 만들기로 진행).
-      replayPendingGuinjiOnboarding();
+    if (!mounted) return;
+    setState(() => _isSubmitting = false);
+    // [버그 수정 — 프로필 저장 실패 방치] 이전에는 updateProfile()의 성공
+    // 여부를 전혀 확인하지 않고 항상 홈으로 이동시켰다. 네트워크 오류 등으로
+    // 서버 저장이 실패해도 클라이언트는 "완료"된 것처럼 보이고, 이후
+    // 귀인지도 등 생년월일이 필요한 화면에 재진입할 때마다 이 화면으로
+    // 다시 돌아오는(무한 반복처럼 보이는) 현상의 원인이었다. 실패 시에는
+    // 화면에 머물러 사용자가 재시도할 수 있게 한다.
+    if (!ok) {
+      AppToast.show(
+        context,
+        context.read<AuthProvider>().lastProfileUpdateError ??
+            '프로필 저장에 실패했습니다. 다시 시도해 주세요.',
+        isError: true,
+      );
+      return;
     }
+    Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+    replayPendingPassRequest();
+    replayPendingGuinjiJoin();
+    // [버그 수정 — 온보딩 비로그인 진입] 프로필을 방금 완성했으므로,
+    // 대기 중이던 온보딩 재진입 요청도 함께 재생한다(생년월일이 이제
+    // 채워졌으니 이번에는 게이트를 통과해 정상적으로 지도 만들기로 진행).
+    replayPendingGuinjiOnboarding();
   }
 
   @override
@@ -206,8 +224,17 @@ class _ProfileCheckScreenState extends State<ProfileCheckScreen> {
               ),
               const SizedBox(height: AppSpacing.xxl),
               ElevatedButton(
-                onPressed: _birthDate == null ? null : _submit,
-                child: const Text('완료'),
+                onPressed: (_birthDate == null || _isSubmitting) ? null : _submit,
+                child: _isSubmitting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('완료'),
               ),
               TextButton(
                 onPressed: () {

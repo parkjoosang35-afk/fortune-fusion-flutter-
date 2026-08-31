@@ -138,11 +138,24 @@ class AuthProvider extends ChangeNotifier {
     final result = await _repository.updateProfile(updated);
     if (result.success && result.data != null) {
       _state = LoadState.success(result.data!);
+      _lastProfileUpdateError = null;
       notifyListeners();
       return true;
     }
+    // [버그 수정 — 프로필 저장 실패 방치] 이전에는 실패해도 아무 상태 변화가
+    // 없어(그리고 호출부도 반환값을 확인하지 않아) 실패 원인을 사용자에게
+    // 보여줄 방법이 없었다. isLoggedIn은 `_state.isSuccess` 기준이므로 여기서
+    // `_state`를 error로 바꾸면 로그인 자체가 풀린 것처럼 보이는 부작용이
+    // 생긴다 — 그래서 로그인 상태(`_state`)는 그대로 유지하고, 별도의
+    // 경량 필드에만 실패 메시지를 보관한다.
+    _lastProfileUpdateError = result.errorMessage ?? '프로필 수정에 실패했습니다.';
+    notifyListeners();
     return false;
   }
+
+  /// 직전 [updateProfile] 호출이 실패했을 때의 서버 에러 메시지(성공 시 null).
+  String? _lastProfileUpdateError;
+  String? get lastProfileUpdateError => _lastProfileUpdateError;
 
   Future<void> logout() async {
     await _repository.logout();
