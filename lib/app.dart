@@ -5,6 +5,7 @@ import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'core/router/app_router.dart';
 import 'core/router/app_navigator_key.dart';
+import 'core/widgets/web_mobile_frame.dart';
 
 import 'features/auth/application/auth_provider.dart';
 import 'features/auth/data/auth_repository.dart';
@@ -272,12 +273,15 @@ class App extends StatelessWidget {
               final content = LuckPouchToastOverlay(
                 child: child ?? const SizedBox.shrink(),
               );
-              if (qaScale == null) return content;
+              // [PC 웹 미리보기 개선] PC 브라우저처럼 화면이 넓을 때만
+              // 모바일 폭으로 중앙 고정한다(모바일/APK는 영향 없음).
+              final framed = WebMobileFrame(child: content);
+              if (qaScale == null) return framed;
               return MediaQuery(
                 data: MediaQuery.of(
                   context,
                 ).copyWith(textScaler: TextScaler.linear(qaScale)),
-                child: content,
+                child: framed,
               );
             },
           );
