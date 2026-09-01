@@ -118,6 +118,8 @@ flutter:
     - assets/images/sintong/
     - assets/images/wish_counsel/characters/
     - assets/images/home/doryeong/
+    - assets/images/guinji/doryeong/
+    - assets/images/guinji/seonnyeo/
     - assets/audio/tarot/
     - assets/tarot/cards/majors/
     - assets/tarot/cards/cups/

@@ -177,6 +177,65 @@ class GuinjiRepository {
     }
   }
 
+  /// POST /guinji/g/{token}/join — 게스트(비로그인) 웹 참여.
+  ///
+  /// [바이럴 게스트 원칙 — 절대] 이 메서드는 [AuthTokenStore.authHeader]를
+  /// 절대 사용하지 않는다. 카톡 등으로 초대 링크를 받은 지인이 회원가입 없이
+  /// 웹에서 이름·생년월일만 입력하면 그 자리에서 (1) 관계 결과가 나오고
+  /// (2) 실제로 지도에 반영된다(admin_web `g/[token]/join/route.ts` 참고 —
+  /// 로그인 불필요, DB 실저장, idempotent). 포인트는 지급되지 않는다.
+  ///
+  /// 반환: {ownerName, relationType, chemistryScore, timeUnknown,
+  /// dayMasterKr, dayMasterElement, joined:true, mapSummary:{total,counts}}
+  Future<ApiResult<Map<String, dynamic>>> joinAnonymous({
+    required String token,
+    required String name,
+    required String birthDate, // 'YYYY-MM-DD'
+    String calendarType = 'solar', // 'solar' | 'lunar'
+    String? birthTime, // 'HH:mm' | null (모르면 null)
+    required String gender, // 'male' | 'female'
+    required bool agreePolicy,
+    required bool agreeAge14,
+  }) async {
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/guinji/g/$token/join',
+    );
+    debugPrint('[GuinjiRepository] [joinAnonymous] 요청 -> $uri (인증 헤더 없음)');
+
+    try {
+      // [주의] 여기서는 AuthTokenStore.authHeader()를 절대 호출하지 않는다
+      // (게스트 웹 참여는 로그인 상태와 완전히 무관해야 한다).
+      final response = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'name': name,
+              'birthDate': birthDate,
+              'calendarType': calendarType,
+              'birthTime': birthTime,
+              'gender': gender,
+              'agreePolicy': agreePolicy,
+              'agreeAge14': agreeAge14,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode >= 400 || decoded['success'] != true) {
+        final error = decoded['error'] as String? ?? '참여에 실패했습니다.';
+        debugPrint('[GuinjiRepository] [joinAnonymous] 실패 -> $error');
+        return ApiResult.fail(error, code: decoded['code'] as String?);
+      }
+
+      final data = decoded['data'] as Map<String, dynamic>;
+      return ApiResult.ok(data);
+    } catch (e) {
+      debugPrint('[GuinjiRepository] [joinAnonymous] 예외 -> $e');
+      return ApiResult.fail('참여 처리 중 오류가 발생했습니다: $e');
+    }
+  }
+
   /// POST /guinji/unlocks — 관계 상세의 스페셜 해설 해금(광고 또는 포인트).
   /// 반환: {unlocked: true, remainingToday}
   Future<ApiResult<Map<String, dynamic>>> unlock({
