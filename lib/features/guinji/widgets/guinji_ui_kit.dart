@@ -642,18 +642,33 @@ class _Stat extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Text(
-            num,
-            style: const TextStyle(
-              fontFamily: GuinjiFonts.display,
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-              color: GuinjiColors.lavender,
+          // [렌더 버그 수정 — 사용자 리포트] "128,542"처럼 자릿수가 많은
+          // 숫자가 좁은 스탯 박스 폭에서 두 줄로 줄바꿈되어 표시되는
+          // 문제가 있었다("128,54" / "2"로 쪼개짐). `FittedBox` +
+          // `maxLines: 1` + `softWrap: false`로 항상 한 줄로 유지하고,
+          // 폭이 부족하면 폰트를 축소해서라도 한 줄에 맞춘다(디자인
+          // 핸드오프의 `.stat-num { font: 900 20px/1 }` 한 줄 표시와
+          // 동일하게 재현).
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              num,
+              maxLines: 1,
+              softWrap: false,
+              style: const TextStyle(
+                fontFamily: GuinjiFonts.display,
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+                height: 1.0,
+                color: GuinjiColors.lavender,
+              ),
             ),
           ),
           const SizedBox(height: 4),
           Text(
             label,
+            maxLines: 1,
+            softWrap: false,
             style: const TextStyle(
               fontFamily: GuinjiFonts.mono,
               fontSize: 9,

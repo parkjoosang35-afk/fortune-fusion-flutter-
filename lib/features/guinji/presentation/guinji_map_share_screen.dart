@@ -292,10 +292,24 @@ class _OgPreview extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
+                // [렌더 버그 수정 — L 화면과 동일한 패턴] 줄바꿈(`\n`)과
+                // 색상이 다른 TextSpan을 한 Text.rich 트리에 섞으면
+                // Flutter Web(CanvasKit)에서 첫 줄 글리프가 깨지는 문제가
+                // 있어, 줄바꿈이 들어가는 첫 줄을 별도 Text로 분리한다.
+                Text(
+                  '$ownerName의 지도에',
+                  style: const TextStyle(
+                    fontFamily: GuinjiFonts.display,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                    height: 1.2,
+                    letterSpacing: -0.3,
+                    color: GuinjiColors.textPrimary,
+                  ),
+                ),
                 Text.rich(
                   TextSpan(
                     children: [
-                      TextSpan(text: '$ownerName의 지도에\n'),
                       TextSpan(
                         text: '귀인 $guinjiCount명',
                         style: const TextStyle(color: GuinjiColors.gold),

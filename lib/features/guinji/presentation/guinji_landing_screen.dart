@@ -150,24 +150,41 @@ class _Brand extends StatelessWidget {
 class _LandingTitle extends StatelessWidget {
   const _LandingTitle();
 
+  // [렌더 버그 수정 — 사용자 리포트] 이전에는 두 줄(`\n`)과 색상이 다른
+  // TextSpan을 한 Text.rich 트리 안에 섞어 사용했는데, Flutter Web
+  // (CanvasKit) 텍스트 레이아웃에서 첫 줄("내 곁의")이 정상적으로
+  // 셰이핑되지 않고 깨진 글리프로 렌더링되는 문제가 발생했다(스크린샷
+  // 확인됨: 제목 위에 알 수 없는 깨진 글자가 표시됨). 줄바꿈이 있는
+  // 텍스트는 별도의 `Text` 위젯으로 완전히 분리하고, 색상이 섞이는 둘째
+  // 줄만 `Text.rich`(단일 라인, 줄바꿈 없음)로 남겨 문제를 원천 차단한다.
+  static const _titleStyle = TextStyle(
+    fontFamily: GuinjiFonts.display,
+    fontSize: 22,
+    fontWeight: FontWeight.w900,
+    height: 1.3,
+    letterSpacing: -0.4,
+    color: GuinjiColors.textPrimary,
+  );
+
   @override
   Widget build(BuildContext context) {
-    return const Text.rich(
-      TextSpan(
-        style: TextStyle(
-          fontFamily: GuinjiFonts.display,
-          fontSize: 22,
-          fontWeight: FontWeight.w900,
-          height: 1.3,
-          letterSpacing: -0.4,
-          color: GuinjiColors.textPrimary,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: const [
+        Text('내 곁의', style: _titleStyle),
+        Text.rich(
+          TextSpan(
+            style: _titleStyle,
+            children: [
+              TextSpan(
+                text: '귀인',
+                style: TextStyle(color: GuinjiColors.lavender),
+              ),
+              TextSpan(text: '은 몇 명일까'),
+            ],
+          ),
         ),
-        children: [
-          TextSpan(text: '내 곁의\n'),
-          TextSpan(text: '귀인', style: TextStyle(color: GuinjiColors.lavender)),
-          TextSpan(text: '은 몇 명일까'),
-        ],
-      ),
+      ],
     );
   }
 }

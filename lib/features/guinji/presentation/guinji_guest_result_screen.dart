@@ -90,10 +90,26 @@ class GuinjiGuestResultScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 6),
+                    // [렌더 버그 수정 — L 화면과 동일한 패턴] 줄바꿈(`\n`)과
+                    // 색상이 다른 TextSpan을 한 Text.rich 트리에 섞으면
+                    // Flutter Web(CanvasKit)에서 첫 줄 글리프가 깨지는
+                    // 문제가 있어, 줄바꿈이 들어가는 첫 줄을 별도 Text로
+                    // 분리한다.
+                    Text(
+                      '당신은 $hostName에게',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontFamily: GuinjiFonts.display,
+                        fontSize: 19,
+                        fontWeight: FontWeight.w900,
+                        height: 1.3,
+                        letterSpacing: -0.4,
+                        color: GuinjiColors.textPrimary,
+                      ),
+                    ),
                     Text.rich(
                       TextSpan(
                         children: [
-                          TextSpan(text: '당신은 $hostName에게\n'),
                           TextSpan(
                             text: label,
                             style: const TextStyle(

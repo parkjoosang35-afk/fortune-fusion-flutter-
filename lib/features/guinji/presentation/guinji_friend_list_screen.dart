@@ -160,12 +160,24 @@ class _GuinjiFriendListScreenState extends State<GuinjiFriendListScreen> {
               onBack: () => Navigator.of(context).maybePop(),
               trailing: GuinjiIconButton(icon: '⋯', onPressed: () {}),
             ),
+            // [렌더 버그 수정 — L 화면과 동일한 패턴] 줄바꿈(`\n`)과 색상이
+            // 다른 TextSpan을 한 Text.rich 트리에 섞으면 Flutter Web
+            // (CanvasKit)에서 첫 줄 글리프가 깨지는 문제가 있어, 줄바꿈이
+            // 들어가는 첫 줄을 별도 Text로 분리한다.
+            const Text(
+              '내 곁의',
+              style: TextStyle(
+                fontFamily: GuinjiFonts.display,
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+                height: 1.3,
+                letterSpacing: -0.4,
+                color: GuinjiColors.textPrimary,
+              ),
+            ),
             Text.rich(
               TextSpan(
-                children: [
-                  const TextSpan(text: '내 곁의\n'),
-                  guinjiAccentSpan('귀인 랭킹'),
-                ],
+                children: [guinjiAccentSpan('귀인 랭킹')],
                 style: const TextStyle(
                   fontFamily: GuinjiFonts.display,
                   fontSize: 20,
