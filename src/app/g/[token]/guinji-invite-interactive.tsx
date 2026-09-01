@@ -15,6 +15,7 @@
 import { useState } from "react";
 import { GUINJI_RELATION_TYPES } from "./relation-meta";
 import { RelationNetworkGraph, type RelationCount } from "./relation-network-graph";
+import { GUINJI_RELATION_TYPE_ORDER } from "@/lib/guinji-relation-judger";
 
 type JoinResult = {
   ownerName: string;
@@ -26,17 +27,26 @@ type JoinResult = {
   mapSummary: { total: number; counts: Record<string, number> };
 };
 
+// [PRD p.38 LABEL_HUE tone → HEX, `guinji_design_handoff/DEV_SPEC.md` Dart
+// RelationLabel enum과 동일한 색상값] page.tsx의 RELATION_COLOR와 가지를 맞춰야 하묀로
+// 동일한 값을 사용한다.
 const RELATION_COLOR: Record<string, string> = {
-  guin: "#B98BC9",
-  oreunpal: "#5FA3C4",
-  inyeon: "#D97A93",
-  salrim: "#6FAE7C",
-  horang: "#D98A4A",
+  CHEON_GWII: "#F5D97A",
+  NA_SALRIDA: "#E8C8F5",
+  JORYEOK: "#A8D5E3",
+  GACHI_GA: "#C8F5D5",
+  NA_SALJINDA: "#F5C8D5",
+  CHANG_GYIM: "#E8C890",
+  GAMJEONG: "#D5C8F5",
+  DEUNGDEUNG: "#A5B5E8",
+  KKEURIDA: "#F5A8BD",
+  GACHI_BICH: "#F5D97A",
+  JAGEUKJE: "#F5B880",
+  GINGJANG: "#B5A8E8",
 };
-const RELATION_TYPE_ORDER = ["guin", "oreunpal", "inyeon", "salrim", "horang"] as const;
 
 function countsToRelationCounts(counts: Record<string, number>): RelationCount[] {
-  return RELATION_TYPE_ORDER.map((key) => ({
+  return GUINJI_RELATION_TYPE_ORDER.map((key) => ({
     key,
     label: GUINJI_RELATION_TYPES[key].label,
     hanja: GUINJI_RELATION_TYPES[key].hanja,

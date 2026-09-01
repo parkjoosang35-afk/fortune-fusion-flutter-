@@ -31,7 +31,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { isGuinjiInviteExpired } from "../../../_shared";
-import { GuinjiSajuInput, judgeGuinjiRelation } from "@/lib/guinji-relation-judger";
+import { GUINJI_RELATION_TYPE_ORDER, GuinjiSajuInput, judgeGuinjiRelation } from "@/lib/guinji-relation-judger";
 import { calculateSaju, guinjiSajuInputFromManseryeok } from "@/lib/saju-manseryeok-engine";
 
 export const dynamic = "force-dynamic";
@@ -42,8 +42,6 @@ const CORS_HEADERS_WITH_METHODS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
 };
-
-const RELATION_TYPE_ORDER = ["guin", "oreunpal", "inyeon", "salrim", "horang"] as const;
 
 interface RequestBody {
   name?: string;
@@ -220,7 +218,7 @@ export async function POST(
       select: { relationType: true },
     });
     const rawCounts: Record<string, number> = {};
-    for (const t of RELATION_TYPE_ORDER) rawCounts[t] = 0;
+    for (const t of GUINJI_RELATION_TYPE_ORDER) rawCounts[t] = 0;
     for (const r of allRelationships) {
       if (rawCounts[r.relationType] != null) rawCounts[r.relationType] += 1;
     }

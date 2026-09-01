@@ -1,6 +1,9 @@
 // 관계 지도 네트워크 그래프 — 사용자 요구("4번째 레퍼런스처럼 나와야 바이럴이
-// 된다")의 핵심 신규 시각화. 중앙 "나" 노드 + 관계유형(貴/同/緣/養/師)별
-// 위성 노드 + 연결선으로 구성된 별자리 스타일 SVG.
+// 된다")의 핵심 신규 시각화. 중앙 "나" 노드 + 관계유형(12라벨)별 위성
+// 노드 + 연결선으로 구성된 별자리 스타일 SVG.
+//
+// [2026-09 전면 재작성 — 12라벨 체계] key 타입을 기존 5종 리터럴 유니언
+// 에서 `GuinjiRelationType`(12종)으로 교체한다.
 //
 // [비식별 원칙] 이 컴포넌트는 멤버 이름/생년월일 등 어떤 개인정보도 받지
 // 않는다 — props는 오직 "관계유형별 인원수(집계)"뿐이다. 로그인 없는
@@ -10,8 +13,10 @@
 // [결정론적 렌더링] Math.random()을 쓰지 않는다 — 서버 컴포넌트로 매
 // 요청마다 같은 counts가 들어오면 항상 같은 SVG가 나오도록 인덱스 기반
 // 각도 계산만 사용한다(하이드레이션 불일치 방지 + 캐시 친화적).
+import type { GuinjiRelationType } from "@/lib/guinji-relation-judger";
+
 export interface RelationCount {
-  key: "guin" | "oreunpal" | "inyeon" | "salrim" | "horang";
+  key: GuinjiRelationType;
   label: string;
   hanja: string;
   color: string;
@@ -125,8 +130,8 @@ export function RelationNetworkGraph({
         </svg>
       )}
 
-      {/* 오행/관계유형 5분류 요약 카드 */}
-      <div className="mt-4 grid grid-cols-5 gap-1.5">
+      {/* 오행/관계유형 12분류 요약 카드 */}
+      <div className="mt-4 grid grid-cols-4 gap-1.5">
         {counts.map((c) => (
           <div
             key={c.key}

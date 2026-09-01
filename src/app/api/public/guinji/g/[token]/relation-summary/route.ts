@@ -9,12 +9,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { isGuinjiInviteExpired } from "@/app/api/public/guinji/_shared";
+import { GUINJI_RELATION_TYPE_ORDER } from "@/lib/guinji-relation-judger";
 
 export const dynamic = "force-dynamic";
 
 const CORS_HEADERS = { "Access-Control-Allow-Origin": "*" };
-
-const RELATION_TYPE_ORDER = ["guin", "oreunpal", "inyeon", "salrim", "horang"] as const;
 
 export async function GET(
   _request: Request,
@@ -46,7 +45,7 @@ export async function GET(
     }
 
     const counts: Record<string, number> = {};
-    for (const t of RELATION_TYPE_ORDER) counts[t] = 0;
+    for (const t of GUINJI_RELATION_TYPE_ORDER) counts[t] = 0;
     for (const r of map.relationships) {
       if (counts[r.relationType] != null) counts[r.relationType] += 1;
     }
