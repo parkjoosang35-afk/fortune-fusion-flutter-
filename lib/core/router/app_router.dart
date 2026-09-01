@@ -76,6 +76,20 @@ import '../../features/guinji/presentation/guinji_result_card_screen.dart';
 import '../../features/guinji/presentation/guinji_share_screen.dart';
 import '../../features/guinji/presentation/guinji_onboarding_screen.dart';
 import '../../features/guinji/application/guinji_provider.dart';
+// [2026 디자인 핸드오프 — Guinji Section.html 8화면 재구현]
+// L·I·C·M·N·S·F·Y 8화면. 기존 `/guinji` 계열(온보딩→지도→공유→참여→
+// 결과카드, 이미 실 API 연동 완료된 프로덕션 플로우)과는 완전히 별개의
+// 데모/재구현 화면이므로, 파일명·클래스명·라우트 네임스페이스를 모두
+// 분리한다(`/guinji-map/*`). 과거 세션에서 `guinji_share_screen.dart`
+// 파일명이 겹쳐 프로덕션 공유 화면을 실수로 덮어쓴 사고가 있었으므로,
+// 이 재구현 화면들은 절대 기존 파일명/클래스명을 재사용하지 않는다.
+import '../../features/guinji/presentation/guinji_landing_screen.dart';
+import '../../features/guinji/presentation/guinji_input_screen.dart';
+import '../../features/guinji/presentation/guinji_calculating_screen.dart';
+import '../../features/guinji/presentation/guinji_map_result_screen.dart';
+import '../../features/guinji/presentation/guinji_map_share_screen.dart';
+import '../../features/guinji/presentation/guinji_friend_list_screen.dart';
+import '../../features/guinji/presentation/guinji_guest_result_screen.dart';
 import 'package:provider/provider.dart';
 import '../auth/auth_token_store.dart';
 import 'app_navigator_key.dart';
@@ -189,6 +203,53 @@ class AppRouter {
               final people = context.watch<GuinjiProvider>().people;
               return GuinjiRankingScreen(people: people);
             },
+          ),
+        );
+
+      // ══════════════════════════════════════════════════════════════
+      // [2026 디자인 핸드오프 — Guinji Section.html 8화면 재구현]
+      // `/guinji-map/*` 네임스페이스. design_handoff_guinji_web/
+      // "Guinji Section.html" `flow-map`(2230~2245줄)의 8화면(L·I·C·M·N·
+      // S·F·Y)을 1:1로 재현한 신규 화면들이다. 기존 `/guinji` 계열
+      // (온보딩→지도→공유→참여→결과카드, 이미 실 API 연동된 프로덕션
+      // 플로우)과는 완전히 별개이며, 서로의 파일/클래스/라우트를 절대
+      // 공유하지 않는다. 아직 GuinjiProvider의 실 API(joinAnonymous 등)
+      // 연동 전 단계라 화면 간 이동은 고정 목데이터/네비게이션으로
+      // 연결한다(후속 작업: 실데이터 연동).
+      //
+      //   /guinji-map            → L · Landing
+      //   /guinji-map/new        → I · Input
+      //   /guinji-map/calc       → C · Calculating
+      //   /guinji-map/m          → M · My Map (탭 시 N 바텀시트)
+      //   /guinji-map/m/share    → S · Share
+      //   /guinji-map/m/friends  → F · Friend List
+      //   /guinji-map/guest/result → Y · Guest Result
+      // ══════════════════════════════════════════════════════════════
+      case '/guinji-map':
+        return _page(const GuinjiLandingScreen());
+      case '/guinji-map/new':
+        return _page(const GuinjiInputScreen());
+      case '/guinji-map/calc':
+        return _page(
+          GuinjiCalculatingScreen(
+            onComplete: () => appNavigatorKey.currentState
+                ?.pushReplacementNamed('/guinji-map/m'),
+          ),
+        );
+      case '/guinji-map/m':
+        return _page(const GuinjiMapResultScreen());
+      case '/guinji-map/m/share':
+        return _page(
+          const GuinjiMapShareScreen(ownerName: '지민', mapToken: 'jm-92kf3'),
+        );
+      case '/guinji-map/m/friends':
+        return _page(const GuinjiFriendListScreen());
+      case '/guinji-map/guest/result':
+        return _page(
+          const GuinjiGuestResultScreen(
+            hostName: '지민',
+            relationKey: 'CHEON_GWII',
+            score: 92,
           ),
         );
       // [오늘의 운세 표준 플로우] 기존 진입점(홈 카드/전체보기 등)은 그대로

@@ -73,7 +73,7 @@ class GuinjiLandingScreen extends StatelessWidget {
             GuinjiPrimaryButton(
               label: '지도 만들기 · 무료',
               onPressed: () {
-                Navigator.of(context).pushNamed('/guinji/new');
+                Navigator.of(context).pushNamed('/guinji-map/new');
               },
             ),
             const SizedBox(height: 12),

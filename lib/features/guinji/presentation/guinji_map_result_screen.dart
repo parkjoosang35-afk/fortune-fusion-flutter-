@@ -19,6 +19,7 @@ class GuinjiMapResultScreen extends StatefulWidget {
     this.ownerName = '지민',
     this.onNodeTap,
     this.onInvite,
+    this.onOpenFriends,
   });
 
   static const routeName = '/guinji/m';
@@ -27,7 +28,12 @@ class GuinjiMapResultScreen extends StatefulWidget {
 
   /// 노드 탭 콜백 — (name, relationKey)를 전달한다.
   final void Function(String name, String relationKey)? onNodeTap;
+
+  /// 지인초대 FAB 탭 콜백 — 기본값은 S(Share) 화면으로 push.
   final VoidCallback? onInvite;
+
+  /// 상단 `⋯` 탭 콜백 — 기본값은 F(Friend List) 화면으로 push.
+  final VoidCallback? onOpenFriends;
 
   @override
   State<GuinjiMapResultScreen> createState() => _GuinjiMapResultScreenState();
@@ -115,7 +121,12 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
                 GuinjiTopBar(
                   breadcrumb: 'M · MY GUINJI',
                   onBack: () => Navigator.of(context).maybePop(),
-                  trailing: GuinjiIconButton(icon: '⋯', onPressed: () {}),
+                  trailing: GuinjiIconButton(
+                    icon: '⋯',
+                    onPressed: widget.onOpenFriends ??
+                        () => Navigator.of(context)
+                            .pushNamed('/guinji-map/m/friends'),
+                  ),
                 ),
                 Center(
                   child: Column(
@@ -181,7 +192,11 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
             Positioned(
               bottom: 8,
               right: 0,
-              child: _Fab(onPressed: widget.onInvite),
+              child: _Fab(
+                onPressed: widget.onInvite ??
+                    () => Navigator.of(context)
+                        .pushNamed('/guinji-map/m/share'),
+              ),
             ),
           ],
         ),

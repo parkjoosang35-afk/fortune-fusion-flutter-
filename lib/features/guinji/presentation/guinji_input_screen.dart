@@ -203,7 +203,7 @@ class _GuinjiInputScreenState extends State<GuinjiInputScreen> {
             GuinjiPrimaryButton(
               label: '다음',
               onPressed: () {
-                Navigator.of(context).pushNamed('/guinji/calc');
+                Navigator.of(context).pushNamed('/guinji-map/calc');
               },
             ),
           ],
