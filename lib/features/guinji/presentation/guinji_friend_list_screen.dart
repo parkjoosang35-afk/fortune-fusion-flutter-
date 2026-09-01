@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../domain/guinji_person.dart';
 import '../domain/guinji_relation_meta.dart';
 import '../theme/guinji_theme.dart';
 import '../widgets/guinji_ui_kit.dart';
@@ -91,6 +92,32 @@ const _defaultFriends = [
     score: 67,
   ),
 ];
+
+/// [귀인지도 실구현] [GuinjiProvider.people]을 실제 점수 내림차순으로
+/// 정렬해 순위(1..N)를 부여하고, [GuinjiPerson.ohaeng](mok/hwa/to/geum/su)를
+/// 화면 표시용 한자 라벨(예: '火 오행')로 변환한 [GuinjiFriendEntry] 목록을
+/// 만든다. F화면의 `_defaultFriends` 목데이터를 대체한다.
+List<GuinjiFriendEntry> guinjiFriendEntriesFromPeople(
+  List<GuinjiPerson> people,
+) {
+  final sorted = [...people]..sort((a, b) => b.score.compareTo(a.score));
+  return [
+    for (var i = 0; i < sorted.length; i++)
+      GuinjiFriendEntry(
+        rank: i + 1,
+        name: sorted[i].name,
+        relationKey: sorted[i].relation,
+        ohaengLabel: _ohaengLabelFor(sorted[i].ohaeng),
+        score: sorted[i].score,
+      ),
+  ];
+}
+
+String _ohaengLabelFor(String ohaengKey) {
+  final meta = guinjiOhaengTypes[ohaengKey];
+  if (meta == null) return '오행';
+  return '${meta.label} 오행';
+}
 
 class _GuinjiFriendListScreenState extends State<GuinjiFriendListScreen> {
   int _filterIndex = 0;

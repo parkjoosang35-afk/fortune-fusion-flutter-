@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -31,6 +32,7 @@ class _GuinjiStarFieldState extends State<GuinjiStarField>
   late final List<AnimationController> _controllers;
   late final List<Animation<double>> _opacities;
   late final List<Animation<double>> _scales;
+  late final List<Timer> _delayTimers;
 
   @override
   void initState() {
@@ -76,18 +78,24 @@ class _GuinjiStarFieldState extends State<GuinjiStarField>
       ]).animate(_controllers[i]);
     });
 
+    _delayTimers = [];
     for (var i = 0; i < _controllers.length; i++) {
       final star = _stars[i];
-      Future.delayed(star.delay, () {
-        if (mounted) {
-          _controllers[i].repeat();
-        }
-      });
+      _delayTimers.add(
+        Timer(star.delay, () {
+          if (mounted) {
+            _controllers[i].repeat();
+          }
+        }),
+      );
     }
   }
 
   @override
   void dispose() {
+    for (final timer in _delayTimers) {
+      timer.cancel();
+    }
     for (final controller in _controllers) {
       controller.dispose();
     }

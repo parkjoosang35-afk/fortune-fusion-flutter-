@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../theme/guinji_theme.dart';
@@ -223,24 +225,31 @@ class _LandingPreviewMapState extends State<_LandingPreviewMap>
   ];
 
   late final List<AnimationController> _controllers;
+  late final List<Timer> _delayTimers;
 
   @override
   void initState() {
     super.initState();
+    _delayTimers = [];
     _controllers = List.generate(_nodes.length, (i) {
       final controller = AnimationController(
         vsync: this,
         duration: const Duration(milliseconds: 4000),
       );
-      Future.delayed(Duration(milliseconds: _nodes[i].delayMs), () {
-        if (mounted) controller.repeat();
-      });
+      _delayTimers.add(
+        Timer(Duration(milliseconds: _nodes[i].delayMs), () {
+          if (mounted) controller.repeat();
+        }),
+      );
       return controller;
     });
   }
 
   @override
   void dispose() {
+    for (final timer in _delayTimers) {
+      timer.cancel();
+    }
     for (final c in _controllers) {
       c.dispose();
     }
@@ -264,44 +273,58 @@ class _LandingPreviewMapState extends State<_LandingPreviewMap>
           ],
         ),
       ),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          // landing-badge
-          Positioned(
-            top: 10,
-            left: 10,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: GuinjiColors.gold.withValues(alpha: 0.2),
-                border: Border.all(color: GuinjiColors.gold.withValues(alpha: 0.45)),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: const Text(
-                '▸ 예시 미리보기',
-                style: TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontSize: 9,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.5,
-                  color: GuinjiColors.gold,
+      // [렌더 크래시 수정 — Task 8 검증에서 발견] `LayoutBuilder`는 투명한
+      // Builder가 아니라 자체 RenderObject를 삽입하는 위젯이라, 예전처럼
+      // `Stack` → `LayoutBuilder` → `AnimatedBuilder` → `Positioned` 순서로
+      // 감싸면 `Positioned`의 실제 렌더 부모가 `RenderStack`이 아니게 되어
+      // "Incorrect use of ParentDataWidget" 크래시가 발생했다(L 화면 진입
+      // 즉시 예외). `LayoutBuilder`를 `Stack` **밖으로** 한 번만 감싸
+      // constraints를 얻고, `Stack`의 직계 자식은 `AnimatedBuilder`(투명한
+      // StatelessWidget 서브클래스라 RenderObject를 삽입하지 않음) →
+      // `Positioned`로 유지해 정상적인 ParentData 체인을 보장한다.
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              // landing-badge
+              Positioned(
+                top: 10,
+                left: 10,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: GuinjiColors.gold.withValues(alpha: 0.2),
+                    border: Border.all(
+                      color: GuinjiColors.gold.withValues(alpha: 0.45),
+                    ),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: const Text(
+                    '▸ 예시 미리보기',
+                    style: TextStyle(
+                      fontFamily: 'Pretendard',
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.5,
+                      color: GuinjiColors.gold,
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-          // preview-center
-          const Center(
-            child: _PreviewCenter(),
-          ),
-          // preview-node x6
-          for (var i = 0; i < _nodes.length; i++)
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final node = _nodes[i];
-                return AnimatedBuilder(
+              // preview-center
+              const Center(
+                child: _PreviewCenter(),
+              ),
+              // preview-node x6
+              for (var i = 0; i < _nodes.length; i++)
+                AnimatedBuilder(
                   animation: _controllers[i],
                   builder: (context, _) {
+                    final node = _nodes[i];
                     final t = _controllers[i].value;
                     final dy = t <= 0.5
                         ? -4 * (t / 0.5)
@@ -312,10 +335,10 @@ class _LandingPreviewMapState extends State<_LandingPreviewMap>
                       child: _PreviewNode(hanja: node.hanja, color: node.color),
                     );
                   },
-                );
-              },
-            ),
-        ],
+                ),
+            ],
+          );
+        },
       ),
     );
   }

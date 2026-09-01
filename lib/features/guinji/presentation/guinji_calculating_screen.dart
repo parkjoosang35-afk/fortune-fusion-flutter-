@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../theme/guinji_theme.dart';
@@ -32,12 +34,20 @@ class GuinjiCalculatingScreen extends StatefulWidget {
 }
 
 class _GuinjiCalculatingScreenState extends State<GuinjiCalculatingScreen> {
+  Timer? _advanceTimer;
+
   @override
   void initState() {
     super.initState();
-    Future.delayed(widget.autoAdvanceAfter, () {
+    _advanceTimer = Timer(widget.autoAdvanceAfter, () {
       if (mounted) widget.onComplete?.call();
     });
+  }
+
+  @override
+  void dispose() {
+    _advanceTimer?.cancel();
+    super.dispose();
   }
 
   @override

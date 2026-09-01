@@ -249,13 +249,57 @@ class AppRouter {
           ),
         );
       case '/guinji-map/m':
-        return _page(const GuinjiMapResultScreen());
+        return _page(
+          Builder(
+            builder: (context) {
+              final provider = context.watch<GuinjiProvider>();
+              return GuinjiMapResultScreen(
+                ownerName: provider.mapName ?? '나',
+                people: provider.people,
+              );
+            },
+          ),
+        );
       case '/guinji-map/m/share':
         return _page(
-          const GuinjiMapShareScreen(ownerName: '지민', mapToken: 'jm-92kf3'),
+          Builder(
+            builder: (context) {
+              final provider = context.watch<GuinjiProvider>();
+              return GuinjiMapShareScreen(
+                ownerName: provider.mapName ?? '나',
+                mapToken: provider.mapToken ?? '',
+                joinedCount: provider.people.length,
+                onKakaoShare: () => shareGuinjiMapInvite(
+                  context,
+                  provider.mapToken,
+                ),
+                onSmsShare: () => shareGuinjiMapInvite(
+                  context,
+                  provider.mapToken,
+                ),
+                onInstagramShare: () => shareGuinjiMapInvite(
+                  context,
+                  provider.mapToken,
+                ),
+                onMoreShare: () => shareGuinjiMapInvite(
+                  context,
+                  provider.mapToken,
+                ),
+              );
+            },
+          ),
         );
       case '/guinji-map/m/friends':
-        return _page(const GuinjiFriendListScreen());
+        return _page(
+          Builder(
+            builder: (context) {
+              final people = context.watch<GuinjiProvider>().people;
+              return GuinjiFriendListScreen(
+                friends: guinjiFriendEntriesFromPeople(people),
+              );
+            },
+          ),
+        );
       case '/guinji-map/guest/result':
         return _page(
           const GuinjiGuestResultScreen(
