@@ -116,6 +116,73 @@ class GuinjiProvider extends ChangeNotifier {
     }
   }
 
+  /// [2026 디자인 핸드오프 — `/guinji-map/*` 신규 8화면] I(Input) 화면
+  /// CTA — 기존 [createMapForUser]는 이미 완성된 [UserModel] 프로필(로그인
+  /// 회원의 저장된 생년월일)을 사주 계산 입력으로 쓰지만, 신규 I 화면은
+  /// 화면 자체에서 별명·생년월일·양음력·시간을 직접 입력받으므로(로그인
+  /// 회원이라도 프로필 완성을 강제하지 않는다 — I 화면 UX 자체가 이미 입력
+  /// 폼이기 때문), [joinMap]과 동일한 방식으로 폼 입력값에서 곧바로 사주를
+  /// 계산해 `POST /guinji/maps`를 호출한다.
+  ///
+  /// [로그인 게이트] 이 메서드는 `createMap`이 인증을 요구하므로(백엔드
+  /// `requireUser`) 로그인 상태에서만 호출되어야 한다 — 호출부(I 화면)가
+  /// `AuthProvider.isLoggedIn`을 먼저 확인하고, 비로그인이면 이 메서드를
+  /// 호출하지 않고 로그인 화면으로 안내한다.
+  ///
+  /// 반환값: 성공 시 true(호출부는 이후 [map]/[people]을 그대로 사용),
+  /// 실패 시 false([error] 참고).
+  Future<bool> createMapWithInput({
+    required String name,
+    required bool isLunar,
+    required DateTime birthDate,
+    String? birthTime, // 'HH:mm', null이면 시간 미상
+  }) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      int hour = 12;
+      int minute = 0;
+      if (birthTime != null && birthTime.contains(':')) {
+        final parts = birthTime.split(':');
+        hour = int.tryParse(parts[0]) ?? 12;
+        minute = int.tryParse(parts.length > 1 ? parts[1] : '0') ?? 0;
+      }
+      final kst = DateTime(
+        birthDate.year,
+        birthDate.month,
+        birthDate.day,
+        hour,
+        minute,
+      );
+
+      final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
+        kst: kst,
+        gender: 'male', // RelationJudger는 gender를 사용하지 않음(joinMap과 동일 관례).
+        isLunar: isLunar,
+        isLeapMonth: false,
+        referenceDate: DateTime.now(),
+      );
+      final sajuJson = guinjiSajuInputFromProfile(built.profile);
+
+      final result = await _repository.createMap(name: name, saju: sajuJson);
+      if (!result.success) {
+        _isLoading = false;
+        _error = result.errorMessage ?? '지도 생성에 실패했습니다.';
+        notifyListeners();
+        return false;
+      }
+
+      return await loadMyMap();
+    } catch (e) {
+      _isLoading = false;
+      _error = '사주 계산 중 오류가 발생했습니다: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+
   /// `GET /guinji/maps/me` 호출 — 지도/멤버/관계 최신 상태로 갱신.
   /// 지도가 없으면(온보딩 전) [map]이 null로 유지되고 true를 반환한다
   /// (에러 아님 — 호출부가 hasMap으로 분기).

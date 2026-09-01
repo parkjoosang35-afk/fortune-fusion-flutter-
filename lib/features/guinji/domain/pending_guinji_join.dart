@@ -58,3 +58,31 @@ class PendingGuinjiOnboardingStore {
     _pending = false;
   }
 }
+
+/// [2026 디자인 핸드오프 — `/guinji-map/*` 신규 8화면] 위
+/// [PendingGuinjiOnboardingStore]와 동일한 목적(로그인/프로필 완성 후 원래
+/// 하려던 화면으로 자동 복귀)이지만, 기존 `/guinji`(온보딩) 네임스페이스와
+/// 완전히 분리된 신규 `/guinji-map/*` 플로우의 I(Input) 화면 전용 저장소다.
+/// 두 네임스페이스는 파일/클래스/라우트를 절대 공유하지 않는다는 원칙에
+/// 따라, 재진입 대상 화면도 [GuinjiOnboardingScreen]이 아닌
+/// [GuinjiInputScreen]이어야 하므로 별도 스토어로 분리한다.
+class PendingGuinjiMapEntryStore {
+  PendingGuinjiMapEntryStore._();
+
+  static bool _pending = false;
+
+  static void save() {
+    _pending = true;
+  }
+
+  /// 저장된 플래그를 소비하면서 동시에 비운다(1회성 소비 — 중복 재실행 방지).
+  static bool consume() {
+    final pending = _pending;
+    _pending = false;
+    return pending;
+  }
+
+  static void clear() {
+    _pending = false;
+  }
+}
