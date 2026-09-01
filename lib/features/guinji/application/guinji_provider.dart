@@ -240,6 +240,107 @@ class GuinjiProvider extends ChangeNotifier {
     return result.data;
   }
 
+  /// POST /guinji/g/{token}/join — 게스트(비로그인) 웹 참여.
+  ///
+  /// [바이럴 게스트 원칙 — 절대] 이 메서드는 회원가입/로그인 상태와 완전히
+  /// 무관하다([GuinjiRepository.joinAnonymous]가 인증 헤더를 사용하지 않음).
+  /// 호출부(게스트 참여+입력 화면)는 성공 시 반환된 데이터를 그대로
+  /// Y(Guest Result) 화면에 넘겨 웹에서 완결된 결과를 보여주고, 회원가입/앱
+  /// 전환 유도는 오직 사용자가 스스로 원할 때만 노출한다(자동 리다이렉트
+  /// 금지).
+  ///
+  /// 반환: 성공 시 {ownerName, relationType, chemistryScore, timeUnknown,
+  /// dayMasterKr, dayMasterElement, joined:true, mapSummary:{total,counts}},
+  /// 실패 시 null([error] 참고).
+  Future<Map<String, dynamic>?> joinAnonymous({
+    required String token,
+    required String name,
+    required String birthDate, // 'YYYY-MM-DD'
+    String calendarType = 'solar',
+    String? birthTime,
+    required String gender,
+    required bool agreePolicy,
+    required bool agreeAge14,
+  }) async {
+    _isLoading = true;
+    _error = null;
+    _errorCode = null;
+    notifyListeners();
+
+    final result = await _repository.joinAnonymous(
+      token: token,
+      name: name,
+      birthDate: birthDate,
+      calendarType: calendarType,
+      birthTime: birthTime,
+      gender: gender,
+      agreePolicy: agreePolicy,
+      agreeAge14: agreeAge14,
+    );
+
+    _isLoading = false;
+    if (!result.success) {
+      _error = result.errorMessage ?? '참여에 실패했습니다.';
+      _errorCode = result.errorCode;
+      notifyListeners();
+      return null;
+    }
+    notifyListeners();
+    return result.data;
+  }
+
+  /// POST /guinji/g/{token}/preview — 게스트가 지도에 실제로 참여(저장)하지
+  /// 않고 관계 결과만 먼저 미리 본다. I(Input) 화면에서 선택적으로 사용.
+  ///
+  /// 반환: 성공 시 {ownerName, relationType, chemistryScore, isPreview:true,
+  /// timeUnknown, dayMasterKr, dayMasterElement}, 실패 시 null.
+  Future<Map<String, dynamic>?> previewAnonymous({
+    required String token,
+    required String name,
+    required String birthDate,
+    String calendarType = 'solar',
+    String? birthTime,
+    required String gender,
+  }) async {
+    _isLoading = true;
+    _error = null;
+    _errorCode = null;
+    notifyListeners();
+
+    final result = await _repository.previewAnonymous(
+      token: token,
+      name: name,
+      birthDate: birthDate,
+      calendarType: calendarType,
+      birthTime: birthTime,
+      gender: gender,
+    );
+
+    _isLoading = false;
+    if (!result.success) {
+      _error = result.errorMessage ?? '미리보기에 실패했습니다.';
+      _errorCode = result.errorCode;
+      notifyListeners();
+      return null;
+    }
+    notifyListeners();
+    return result.data;
+  }
+
+  /// GET /guinji/g/{token}/relation-summary — 비식별 집계(total/counts)만
+  /// 조회. L(Landing) 화면의 통계 노출 등에 사용. 실패해도 화면 전체를
+  /// 막지 않도록 호출부에서 조용히 무시할 수 있다(반환 null이면 통계 숨김).
+  Future<Map<String, dynamic>?> fetchRelationSummary(String token) async {
+    final result = await _repository.fetchRelationSummary(token);
+    if (!result.success) {
+      debugPrint(
+        '[GuinjiProvider] [fetchRelationSummary] 실패(무시 가능) -> ${result.errorMessage}',
+      );
+      return null;
+    }
+    return result.data;
+  }
+
   /// POST /guinji/unlocks — 관계 상세 스페셜 해설 해금.
   /// 성공 시 true(호출부에서 UI 잠금 해제 처리), 실패 시 false([error] 참고).
   Future<bool> unlock({

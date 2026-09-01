@@ -236,6 +236,93 @@ class GuinjiRepository {
     }
   }
 
+  /// POST /guinji/g/{token}/preview — 게스트가 지도에 실제로 참여(저장)하지
+  /// 않고 관계 결과만 먼저 미리 본다(admin_web `g/[token]/preview/route.ts`
+  /// 참고 — 인증 불필요, DB 미저장, 순수 계산). I(Input) 화면에서 "결과
+  /// 먼저 보기" 같은 선택적 미리보기 UX에 사용할 수 있다.
+  ///
+  /// [바이럴 게스트 원칙] 이 메서드도 [AuthTokenStore.authHeader]를
+  /// 사용하지 않는다.
+  ///
+  /// 반환: {ownerName, relationType, chemistryScore, isPreview:true,
+  /// timeUnknown, dayMasterKr, dayMasterElement}
+  Future<ApiResult<Map<String, dynamic>>> previewAnonymous({
+    required String token,
+    required String name,
+    required String birthDate, // 'YYYY-MM-DD'
+    String calendarType = 'solar',
+    String? birthTime,
+    required String gender,
+  }) async {
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/guinji/g/$token/preview',
+    );
+    debugPrint('[GuinjiRepository] [previewAnonymous] 요청 -> $uri (인증 헤더 없음)');
+
+    try {
+      final response = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'name': name,
+              'birthDate': birthDate,
+              'calendarType': calendarType,
+              'birthTime': birthTime,
+              'gender': gender,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode >= 400 || decoded['success'] != true) {
+        final error = decoded['error'] as String? ?? '미리보기에 실패했습니다.';
+        debugPrint('[GuinjiRepository] [previewAnonymous] 실패 -> $error');
+        return ApiResult.fail(error, code: decoded['code'] as String?);
+      }
+
+      final data = decoded['data'] as Map<String, dynamic>;
+      return ApiResult.ok(data);
+    } catch (e) {
+      debugPrint('[GuinjiRepository] [previewAnonymous] 예외 -> $e');
+      return ApiResult.fail('미리보기 처리 중 오류가 발생했습니다: $e');
+    }
+  }
+
+  /// GET /guinji/g/{token}/relation-summary — 비식별 집계만 반환
+  /// (admin_web `g/[token]/relation-summary/route.ts` 참고 — 인증 불필요,
+  /// 개인정보 노출 없음). L(Landing) 화면의 "지금까지 이런 인연들이" 같은
+  /// 통계 노출에 사용할 수 있다.
+  ///
+  /// 반환: {total, counts}
+  Future<ApiResult<Map<String, dynamic>>> fetchRelationSummary(
+    String token,
+  ) async {
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/guinji/g/$token/relation-summary',
+    );
+    debugPrint('[GuinjiRepository] [fetchRelationSummary] 요청 -> $uri (인증 헤더 없음)');
+
+    try {
+      final response = await http
+          .get(uri, headers: {'Accept': 'application/json'})
+          .timeout(const Duration(seconds: 15));
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode >= 400 || decoded['success'] != true) {
+        final error = decoded['error'] as String? ?? '통계 조회에 실패했습니다.';
+        debugPrint('[GuinjiRepository] [fetchRelationSummary] 실패 -> $error');
+        return ApiResult.fail(error, code: decoded['code'] as String?);
+      }
+
+      final data = decoded['data'] as Map<String, dynamic>;
+      return ApiResult.ok(data);
+    } catch (e) {
+      debugPrint('[GuinjiRepository] [fetchRelationSummary] 예외 -> $e');
+      return ApiResult.fail('통계 조회 중 오류가 발생했습니다: $e');
+    }
+  }
+
   /// POST /guinji/unlocks — 관계 상세의 스페셜 해설 해금(광고 또는 포인트).
   /// 반환: {unlocked: true, remainingToday}
   Future<ApiResult<Map<String, dynamic>>> unlock({
