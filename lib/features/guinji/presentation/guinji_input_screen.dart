@@ -192,8 +192,18 @@ class _GuinjiInputScreenState extends State<GuinjiInputScreen> {
                       required: true,
                       child: Row(
                         children: [
+                          // [실제 버그 수정 — 사용자 리포트: "생년월일이 왜
+                          // 안돼"] 디자인 원본(`Guinji Section.html` 1374줄)은
+                          // `flex: 1.4`인데, 예전 구현에서 오타로 `flex: 14`
+                          // (10배)가 들어가 있었다. `Expanded.flex`는 정수만
+                          // 허용하므로 1.4 : 1 : 1 비율을 정수로 스케일링한
+                          // 7 : 5 : 5로 재현한다. 기존 flex:14 상태에서는
+                          // "연도" 칸이 전체 폭의 87%를 차지해 "월"/"일" 칸이
+                          // 손톱만큼만 남아 실제 기기에서 거의 탭이 되지
+                          // 않았다 — 이것이 "생년월일 입력이 안 된다"는
+                          // 체감의 실제 원인이었다.
                           Expanded(
-                            flex: 14,
+                            flex: 7,
                             child: GuinjiInputBox(
                               controller: _yearController,
                               placeholder: '1998',
@@ -204,6 +214,7 @@ class _GuinjiInputScreenState extends State<GuinjiInputScreen> {
                           ),
                           const SizedBox(width: 6),
                           Expanded(
+                            flex: 5,
                             child: GuinjiInputBox(
                               controller: _monthController,
                               placeholder: '05',
@@ -214,6 +225,7 @@ class _GuinjiInputScreenState extends State<GuinjiInputScreen> {
                           ),
                           const SizedBox(width: 6),
                           Expanded(
+                            flex: 5,
                             child: GuinjiInputBox(
                               controller: _dayController,
                               placeholder: '14',

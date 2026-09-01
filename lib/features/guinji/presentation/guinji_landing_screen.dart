@@ -49,12 +49,29 @@ class GuinjiLandingScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const GuinjiCharPair(
-                      leftAsset: 'assets/images/guinji/doryeong/greeting.png',
-                      rightAsset: 'assets/images/guinji/seonnyeo/greeting.png',
-                      duration: Duration(milliseconds: 3600),
-                      imageSize: 108,
-                      gap: 4,
+                    // [렌더 버그 수정 — 사용자 리포트: "캐릭터 중앙으로 밑에
+                    // 이름에 잘 갓다놓으라고"] 부모 Column이
+                    // `CrossAxisAlignment.start`라서 `GuinjiCharPair`(내부
+                    // Row가 `mainAxisSize.min`이라 자기 콘텐츠 폭만큼만
+                    // 차지)가 화면 왼쪽에 붙어버리고, 반면 바로 아래
+                    // `_CharacterNames`는 `mainAxisAlignment.center`로 전체
+                    // 폭 기준 중앙정렬되어 있어 캐릭터와 이름 라벨이 서로
+                    // 어긋나 보였다(스크린샷 확인됨). 이 위치에서만 전체
+                    // 폭을 채우고 내부를 중앙정렬해 이름 라벨과 정렬을
+                    // 맞춘다.
+                    SizedBox(
+                      width: double.infinity,
+                      child: Center(
+                        child: GuinjiCharPair(
+                          leftAsset:
+                              'assets/images/guinji/doryeong/greeting.png',
+                          rightAsset:
+                              'assets/images/guinji/seonnyeo/greeting.png',
+                          duration: const Duration(milliseconds: 3600),
+                          imageSize: 108,
+                          gap: 4,
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 4),
                     const _CharacterNames(),
