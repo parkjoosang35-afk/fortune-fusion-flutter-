@@ -22,11 +22,11 @@ class GuinjiEmptyMapScreen extends StatelessWidget {
   /// 동일(orbit 0→4, 안쪽→바깥쪽): guin, oreunpal, inyeon, salrim, horang.
   static const List<double> _ringRadii = [55, 84, 108, 130, 148];
   static const List<Color> _ringColors = [
-    GuinjiColors.relationGuin,
-    GuinjiColors.relationOreunpal,
-    GuinjiColors.relationInyeon,
-    GuinjiColors.relationSalrim,
-    GuinjiColors.relationHorang,
+    GuinjiColors.relationCheonGwii,
+    GuinjiColors.relationJoryeok,
+    GuinjiColors.relationGachiGa,
+    GuinjiColors.relationNaSaljinda,
+    GuinjiColors.relationJageukje,
   ];
 
   @override

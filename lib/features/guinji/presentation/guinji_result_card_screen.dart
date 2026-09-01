@@ -75,9 +75,9 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
   @override
   Widget build(BuildContext context) {
     final people = widget.people;
-    final guin = people.where((p) => p.relation == 'guin').length;
-    final oreunpal = people.where((p) => p.relation == 'oreunpal').length;
-    final horang = people.where((p) => p.relation == 'horang').length;
+    final guin = people.where((p) => p.relation == 'CHEON_GWII').length;
+    final oreunpal = people.where((p) => p.relation == 'JORYEOK').length;
+    final horang = people.where((p) => p.relation == 'JAGEUKJE').length;
 
     return Scaffold(
       backgroundColor: GuinjiColors.backgroundDeep,

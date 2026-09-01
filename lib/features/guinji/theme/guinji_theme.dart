@@ -44,14 +44,22 @@ class GuinjiColors {
     colors: [backgroundSoft, backgroundDeep, backgroundDarker],
   );
 
-  /// 5유형(貴/同/緣/養/師) 색상 — `GUINJI_SCREENS.md` "5 유형 정의" 표.
-  /// Phase G-1에서는 아직 화면에 노출하지 않지만, 후속 화면(S5/S6/S7)이
-  /// 공통으로 참조할 수 있도록 미리 토큰화해 둔다.
-  static const relationGuin = Color(0xFFE8C8F5); // 貴 귀인 (라벤더)
-  static const relationOreunpal = Color(0xFFA8D5E3); // 同 오른팔 (아쿠아)
-  static const relationInyeon = Color(0xFFF5C8D5); // 緣 인연 (핑크)
-  static const relationSalrim = Color(0xFFC8F5D5); // 養 살림꾼 (민트)
-  static const relationHorang = Color(0xFFF5B880); // 師 호랑이 선생 (오렌지)
+  /// 12라벨(貴人地圖 관계 라벨) 색상 — admin_web `src/app/g/[token]/page.tsx`의
+  /// `RELATION_COLOR`(PRD "신통방통 · 귀인지도 섹션 PRD" v0.9 기준으로
+  /// 전면 재작성됨)와 동일한 HEX 값을 그대로 이식한다. 기존 5색
+  /// (relationGuin 등)은 [2026-09 12라벨 전환] 작업으로 완전히 대체되었다.
+  static const relationCheonGwii = Color(0xFFF5D97A); // 천생귀인
+  static const relationNaSalrida = Color(0xFFE8C8F5); // 나를 살리는 사람
+  static const relationJoryeok = Color(0xFFA8D5E3); // 조력자
+  static const relationGachiGa = Color(0xFFC8F5D5); // 같이 가야 좋은 길
+  static const relationNaSaljinda = Color(0xFFF5C8D5); // 내가 살리는 사람
+  static const relationChangGyim = Color(0xFFE8C890); // 내가 챙기는 사람
+  static const relationGamjeong = Color(0xFFD5C8F5); // 감정 충전소
+  static const relationDeungdeung = Color(0xFFA5B5E8); // 든든한 등받이
+  static const relationKkeurida = Color(0xFFF5A8BD); // 끌리는 사람
+  static const relationGachiBich = Color(0xFFF5D97A); // 같이 빛나는 사람
+  static const relationJageukje = Color(0xFFF5B880); // 자극제
+  static const relationGingjang = Color(0xFFB5A8E8); // 긴장 속 단짝
 
   /// 오행(五行) 5색 — `GUINJI_SCREENS.md` "오행 5색" 표.
   static const ohaengMok = Color(0xFF7FB8D4); // 木

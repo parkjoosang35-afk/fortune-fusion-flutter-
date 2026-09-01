@@ -39,7 +39,9 @@ class _GuinjiMapScreenState extends State<GuinjiMapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final guinCount = widget.people.where((p) => p.relation == 'guin').length;
+    final guinCount = widget.people
+        .where((p) => p.relation == 'CHEON_GWII')
+        .length;
 
     return Scaffold(
       backgroundColor: GuinjiColors.backgroundDeep,
