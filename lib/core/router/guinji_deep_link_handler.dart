@@ -2,12 +2,12 @@ import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import '../../features/guinji/presentation/guinji_join_screen.dart';
+import '../../features/guinji/presentation/guinji_map_guest_join_screen.dart';
 import 'app_navigator_key.dart';
 
 /// [귀인지도 딥링크 버그수정 — Phase A] `fortunefusion://g/{token}` 커스텀
-/// URI 스킴으로 앱이 열렸을 때(콜드 스타트/백그라운드 복귀 모두) 초대 참여
-/// 화면([GuinjiJoinScreen])으로 이동시키는 전역 리스너.
+/// URI 스킴으로 앱이 열렸을 때(콜드 스타트/백그라운드 복귀 모두) 게스트
+/// 참여+입력 화면([GuinjiMapGuestJoinScreen])으로 이동시키는 전역 리스너.
 ///
 /// [배경] `AndroidManifest.xml`에 이 스킴에 대한 intent-filter를 등록해도,
 /// Flutter 쪽에서 실제로 그 링크를 "수신"해서 라우팅하는 코드가 없으면
@@ -18,8 +18,14 @@ import 'app_navigator_key.dart';
 /// Flutter 앱 *내부*에서 이미 실행 중인 상태로 `Navigator.pushNamed('/g/xxx')`
 /// 같은 호출이 발생했을 때만 동작하는 것으로, OS 레벨 딥링크 수신과는 완전히
 /// 별개다. 이 핸들러가 "실제 OS가 앱을 열어준" 이벤트를 받아 그 토큰을 꺼내
-/// [GuinjiJoinScreen]으로 직접 push한다(로그인 필요 시 그 화면 자체의
-/// `_needsLogin` 분기가 로그인 유도 카드를 보여주므로 별도 처리 불필요).
+/// [GuinjiMapGuestJoinScreen]으로 직접 push한다.
+///
+/// [2026 디자인 핸드오프 — 로그인-필요 GuinjiJoinScreen에서 교체됨] 과거
+/// 이 핸들러는 로그인을 요구하는 `GuinjiJoinScreen`으로 이동시켰으나,
+/// 바이럴 게스트 절대 원칙(회원가입 불필요 + 웹 완결 경험)을 만족시키기
+/// 위해 인증이 필요 없는 `joinAnonymous` 기반 화면으로 전환했다.
+/// `GuinjiJoinScreen`(로그인 필요, 지인 참여 전용) 자체는 삭제하지 않고
+/// 보존한다 — 이 딥링크의 대상에서만 제외될 뿐이다.
 class GuinjiDeepLinkHandler {
   GuinjiDeepLinkHandler._();
 
@@ -80,7 +86,9 @@ class GuinjiDeepLinkHandler {
       final navState = appNavigatorKey.currentState;
       if (navState == null) return;
       navState.push(
-        MaterialPageRoute(builder: (_) => GuinjiJoinScreen(inviteToken: token)),
+        MaterialPageRoute(
+          builder: (_) => GuinjiMapGuestJoinScreen(token: token!),
+        ),
       );
     });
   }

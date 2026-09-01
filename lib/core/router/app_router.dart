@@ -90,6 +90,7 @@ import '../../features/guinji/presentation/guinji_map_result_screen.dart';
 import '../../features/guinji/presentation/guinji_map_share_screen.dart';
 import '../../features/guinji/presentation/guinji_friend_list_screen.dart';
 import '../../features/guinji/presentation/guinji_guest_result_screen.dart';
+import '../../features/guinji/presentation/guinji_map_guest_join_screen.dart';
 import 'package:provider/provider.dart';
 import '../auth/auth_token_store.dart';
 import 'app_navigator_key.dart';
@@ -116,25 +117,36 @@ class AppRouter {
   static const String tarotIntroRoute = '/tarot/intro';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
-    // [귀인지도 딥링크] named route 이름이 '/g/{token}' 형태로 직접 전달되는
-    // 경우(예: 웹에서 URL 해시로 진입하는 향후 확장 등)를 대비한 보조 경로.
-    // [중요] 이 분기 자체는 OS 레벨 딥링크(카톡에서 링크 클릭 시 앱을 여는
-    // 것)와는 무관하다 — 그 처리는 `GuinjiDeepLinkHandler`(app_links 패키지,
-    // `fortunefusion://g/{token}` 커스텀 스킴 수신)가 전담하며, 이 핸들러는
-    // 토큰을 꺼내 `GuinjiJoinScreen`을 직접 push한다(이 onGenerateRoute를
-    // 거치지 않음). 아래 분기는 앱이 이미 실행 중인 상태에서 코드가 직접
-    // `Navigator.pushNamed('/g/xxx')`를 호출하는 경우에만 동작한다.
+    // [2026 디자인 핸드오프 — 게스트 딥링크 이중 진입점 통합] named route
+    // 이름이 '/g/{token}' 형태로 직접 전달되는 경우(웹 URL 진입, 그리고
+    // `GuinjiDeepLinkHandler`가 수신한 OS 레벨 딥링크 모두 최종적으로 이
+    // 경로를 통하도록 통일했다 — 아래 참고)를 처리한다.
+    //
+    // [배경 — 왜 로그인-필요 GuinjiJoinScreen에서 이 화면으로 교체했는가]
+    // `Guinji Section.html` flow-map(2230~2245줄)이 명시한 게스트 라우트
+    // 문자열이 정확히 `/g/:mapToken`이고, 사용자의 절대 원칙(바이럴 게스트는
+    // 회원가입 없이 웹에서 완결된 경험을 해야 함)을 만족시키려면 이 경로가
+    // 비로그인 화면([GuinjiMapGuestJoinScreen], `joinAnonymous` 기반)으로
+    // 연결돼야 한다. 기존 `GuinjiJoinScreen`(로그인 필요, `joinMap` 기반)은
+    // 완전히 별개의 지인 참여 플로우이며 이 경로로는 더 이상 도달하지
+    // 않는다 — 그 화면 자체는 삭제하지 않고 보존하지만(향후 다른 진입점
+    // 필요 시 재사용 가능), '/g/{token}' 딥링크의 대상에서는 제외한다.
+    // `GuinjiDeepLinkHandler`(app_links 패키지, OS 레벨 커스텀 스킴/App
+    // Links 수신)도 동일하게 이 화면으로 push하도록 함께 수정했다(해당
+    // 파일 참고).
+    //
     // 고정 케이스로 매칭되지 않는 '/g/{token}' 형태를 switch 진입 전에 먼저
     // 검사한다(Dart switch는 와일드카드 패턴을 지원하지 않으므로 별도 분기
-    // 필요). 토큰이 없는 '/g' 또는 '/g/'만 들어오면 온보딩으로 안전 폴백한다.
+    // 필요). 토큰이 없는 '/g' 또는 '/g/'만 들어오면 랜딩 화면으로 안전
+    // 폴백한다.
     final name = settings.name ?? '';
     if (name == '/g' || name == '/g/') {
-      return _page(const GuinjiOnboardingScreen());
+      return _page(const GuinjiLandingScreen());
     }
     if (name.startsWith('/g/')) {
       final token = name.substring('/g/'.length);
       if (token.isNotEmpty) {
-        return _page(GuinjiJoinScreen(inviteToken: token));
+        return _page(GuinjiMapGuestJoinScreen(token: token));
       }
     }
 
