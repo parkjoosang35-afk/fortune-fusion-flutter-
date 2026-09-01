@@ -37,7 +37,7 @@ class _HomeBannerCarouselState extends State<HomeBannerCarousel> {
   final List<_BannerSlideData> _slides = const [
     _BannerSlideData(
       key: 'guinji',
-      route: '/guinji',
+      route: '/guinji-map',
       eyebrow: 'SINTONG · N°01',
       titleLines: ['내 주변에', '{accent}귀인{/}은 몇 명일까'],
       sub: '생일만 있으면 돼요.\n지도를 채워보세요.',
@@ -247,12 +247,14 @@ class _HomeBannerCarouselState extends State<HomeBannerCarousel> {
   }
 
   void _handleTap(BuildContext context, _BannerSlideData data) {
-    // [귀인지도 Phase G-1] Slide 1(guinji)만 `/guinji` 온보딩 화면으로 연결한다
-    // (AppRouter에 신규 등록). 오늘의 운세(별자리)/인연·궁합 상세 화면과
-    // 백엔드 라우팅(`/fortune/today`, `/fortune/compatibility`)은 아직 앱에
-    // 구현되어 있지 않으므로 기존 관례대로 안내 토스트를 유지한다.
-    if (data.route == '/guinji') {
-      Navigator.of(context).pushNamed('/guinji');
+    // [귀인지도 map 재구현] Slide 1(guinji)은 신규 `/guinji-map` 네임스페이스
+    // (L·랜딩 화면)로 연결한다. 기존 구버전 `/guinji` 플로우는 더 이상 이
+    // 배너에서 진입시키지 않는다(신규 8화면 재구현으로 완전히 대체).
+    // 오늘의 운세(별자리)/인연·궁합 상세 화면과 백엔드 라우팅
+    // (`/fortune/today`, `/fortune/compatibility`)은 아직 앱에 구현되어
+    // 있지 않으므로 기존 관례대로 안내 토스트를 유지한다.
+    if (data.route == '/guinji-map') {
+      Navigator.of(context).pushNamed('/guinji-map');
       return;
     }
     AppToast.show(context, '곧 만나볼 수 있어요! 준비 중이에요 🙏');
