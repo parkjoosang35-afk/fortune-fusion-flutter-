@@ -42,7 +42,8 @@ class GuinjiPerson {
   ///   "YYYY·MM·DD" 형식으로 변환한다.
   /// - [relation]: `{relationType, chemistryScore, ohaengEvidence:{mine,
   ///   other, reason}}` (없으면 아직 판정 전 — 이론상 발생하지 않지만
-  ///   방어적으로 'inyeon'/0/''로 폴백한다).
+  ///   방어적으로 'JORYEOK'(조력자, 백엔드 `judgeGuinjiRelation()`의 매칭
+  ///   실패 시 기본값과 동일)/0/''로 폴백한다).
   /// - [ohaeng]은 서버 응답에 직접 없으므로, `ohaengEvidence.other`(상대
   ///   본인의 오행 카운트, 한글 목/화/토/금/수 키)에서 최댓값 오행을 찾아
   ///   화면 표시용 영문 키(mok/hwa/to/geum/su)로 변환한다.
@@ -58,7 +59,7 @@ class GuinjiPerson {
         ? '${birthParts[0]}·${birthParts[1]}·${birthParts[2]}'
         : birthDate;
 
-    final relationType = relation?['relationType'] as String? ?? 'inyeon';
+    final relationType = relation?['relationType'] as String? ?? 'JORYEOK';
     final chemistryScore = (relation?['chemistryScore'] as num?)?.toInt() ?? 0;
     final ohaengEvidence =
         relation?['ohaengEvidence'] as Map<String, dynamic>? ?? const {};

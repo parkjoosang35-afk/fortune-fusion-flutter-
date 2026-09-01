@@ -178,7 +178,7 @@ class _GuinjiJoinScreenState extends State<GuinjiJoinScreen> {
     }
 
     final relationship = result['relationship'] as Map<String, dynamic>?;
-    final relationType = relationship?['relationType'] as String? ?? 'inyeon';
+    final relationType = relationship?['relationType'] as String? ?? 'JORYEOK';
     final chemistryScore =
         (relationship?['chemistryScore'] as num?)?.toInt() ?? 0;
     final meta = guinjiRelationTypes[relationType];
