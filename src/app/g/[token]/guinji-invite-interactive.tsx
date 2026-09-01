@@ -17,6 +17,40 @@ import { GUINJI_RELATION_TYPES } from "./relation-meta";
 import { RelationNetworkGraph, type RelationCount } from "./relation-network-graph";
 import { GUINJI_RELATION_TYPE_ORDER } from "@/lib/guinji-relation-judger";
 
+// [2026-09, 바이럴 원칙 재확인 — "회원가입 불필요 + 웹에서 완결 + 본인이
+// 원할 때만 전환"] 이전에는 결과 카드가 마운트되는 즉시(useEffect) 자동으로
+// `fortunefusion://` 스킴을 호출해 앱으로 튕기려고 시도했다. 이것이 바로
+// 사용자가 격노하며 지적한 문제("생년월일 넣으면 신통방통으로 넘어가면서
+// 앱에 걸릴까봐 도메인 주소를 넣은거 아니야") — 게스트가 웹에서 결과를
+// 다 확인하기도 전에 강제로 앱으로 전환을 시도하는 행동은 바이럴 원칙에
+// 정면으로 위배된다.
+//
+// 바이럴 성장 루프의 정확한 원칙(사용자 명시):
+//   1) 바이럴 링크로 들어온 사람은 회원가입이 필요 없다.
+//   2) 웹에서 결과·관계 지도를 전부 둘러볼 수 있어야 한다(완결된 경험).
+//   3) 본인이 "나도 지도를 만들어볼까" 하고 스스로 원할 때만, 그때
+//      비로소 앱 설치/회원가입으로 유도한다 — 자동 전환 금지, 강제 없음.
+//
+// 새 디자인 핸드오프(design_handoff_guinji_web) Y·Guest Result 화면
+// 스펙과도 정확히 일치: 결과 카드 아래 CTA는 "당신의 지도에는 누가
+// 있을까요" + "✧ 내 지도 만들기 · 무료" 버튼 하나뿐이며, 자동 리다이렉트는
+// 스펙 어디에도 없다. 이 버튼을 "직접 눌렀을 때만" 앱 설치/실행을 시도한다
+// (자기 지도를 만드는 행위는 정의상 앱 계정이 필요하므로, 이 시점의 전환
+// 유도는 원칙 3에 해당하는 정당한 전환이다).
+const PLAY_STORE_URL =
+  "https://play.google.com/store/apps/details?id=com.fortunefusion.fortune";
+
+function openAppOrFallback(token: string, setShowFallback: (v: boolean) => void) {
+  const deepLink = `fortunefusion://g/${token}`;
+  const start = Date.now();
+  window.location.href = deepLink;
+  window.setTimeout(() => {
+    if (Date.now() - start < 5000 && document.visibilityState === "visible") {
+      setShowFallback(true);
+    }
+  }, 1500);
+}
+
 type JoinResult = {
   ownerName: string;
   relationType: string;
@@ -152,7 +186,7 @@ export function GuinjiInviteInteractive({
         </p>
 
         {result ? (
-          <ResultCard ownerName={ownerName} result={result} />
+          <ResultCard ownerName={ownerName} result={result} token={token} />
         ) : (
           <form onSubmit={handleSubmit} className="mt-4">
             <p className="mb-3 text-center text-xs text-stone-400">
@@ -299,8 +333,24 @@ export function GuinjiInviteInteractive({
   );
 }
 
-function ResultCard({ ownerName, result }: { ownerName: string; result: JoinResult }) {
+function ResultCard({
+  ownerName,
+  result,
+  token,
+}: {
+  ownerName: string;
+  result: JoinResult;
+  token: string;
+}) {
   const meta = GUINJI_RELATION_TYPES[result.relationType];
+  const [showFallback, setShowFallback] = useState(false);
+
+  // [핵심] 자동 리다이렉트 없음. 결과·관계 지도는 이 페이지(웹) 안에서
+  // 이미 완결된다(바로 아래 RelationNetworkGraph에 자기 이름이 올라간
+  // 지도가 실시간으로 보인다) — 게스트는 회원가입도, 앱 설치도 강요받지
+  // 않는다. 아래 CTA는 "본인이 스스로 원할 때"만 누르는 선택적 다음
+  // 단계(자기 지도 만들기 = 호스트 전환, 이 경우에만 앱 계정이 필요하므로
+  // 정당한 전환 지점)다.
   return (
     <div className="mt-4 rounded-xl border border-amber-900/10 bg-amber-900/5 p-6 text-center">
       <p className="mb-1 text-xs text-stone-400">
@@ -323,9 +373,39 @@ function ResultCard({ ownerName, result }: { ownerName: string; result: JoinResu
           태어난 시간을 입력하지 않아 정오(12:00) 기준으로 계산했어요.
         </p>
       )}
-      <p className="rounded-lg bg-emerald-700/10 px-3 py-2 text-xs font-medium text-emerald-800">
-        지도에 이름이 올라갔어요 🎉 아래 관계 지도에서 확인해 보세요.
+      <p className="mb-4 rounded-lg bg-emerald-700/10 px-3 py-2 text-xs font-medium text-emerald-800">
+        지도에 이름이 올라갔어요. 아래 관계 지도에서 바로 확인해 보세요.
       </p>
+
+      {/* [핵심] 여기까지가 게스트에게 강요되는 흐름의 끝이다 — 결과 확인,
+          지도 반영 모두 이 웹 페이지 안에서 완결됐다(회원가입 없음).
+          아래는 "본인이 스스로 원할 때"만 누르는 선택적 다음 단계다.
+          (design_handoff_guinji_web README Y·Guest Result 스펙:
+          서브 카피 "당신의 지도에는 누가 있을까요" + Primary CTA
+          "✧ 내 지도 만들기 · 무료") */}
+      <p className="mb-2 text-xs text-stone-400">당신의 지도에는 누가 있을까요</p>
+      <button
+        type="button"
+        onClick={() => openAppOrFallback(token, setShowFallback)}
+        className="block w-full rounded-xl bg-amber-700 px-4 py-3 text-sm font-bold text-white transition hover:bg-amber-600"
+      >
+        ✧ 내 지도 만들기 · 무료
+      </button>
+
+      {showFallback && (
+        <div className="mt-3 rounded-lg border border-amber-900/15 bg-white p-3">
+          <p className="mb-2 text-xs text-stone-500">
+            앱이 설치되어 있지 않은 것 같아요. 스토어에서 신통방통을 설치하면
+            나만의 귀인지도를 만들 수 있어요.
+          </p>
+          <a
+            href={PLAY_STORE_URL}
+            className="block w-full rounded-lg bg-stone-800 px-4 py-2 text-center text-xs font-bold text-white"
+          >
+            신통방통 설치하기
+          </a>
+        </div>
+      )}
     </div>
   );
 }
