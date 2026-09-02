@@ -301,6 +301,50 @@ class GuinjiNodeSheet extends StatelessWidget {
                     ),
                   ),
 
+                // ★ 결과 화면(M/N) 전용 신통방통 이관 CTA — 새 디자인
+                // `ResultAppHandoff` 재현(다른 화면에는 사용하지 않는다).
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                  child: GmDarkCtaShell(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const GmFreeBadge(label: '신통방통에서 계속'),
+                        const SizedBox(height: 10),
+                        const Text(
+                          '이 관계, 신통방통에서\n내 지도로 저장해두세요',
+                          style: TextStyle(
+                            fontFamily: GmFonts.serif,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: GmColors.ivory,
+                            height: 1.25,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          '매일 업데이트되는 오늘의 궁합과\n깊이 있는 관계 리포트를 무료로.',
+                          style: TextStyle(
+                            fontSize: 11,
+                            height: 1.5,
+                            color: GmColors.ivory.withValues(alpha: 0.7),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        GmRoseButton(
+                          label: '신통방통에서 내 귀인지도 만들기',
+                          icon: Icons.arrow_forward,
+                          onPressed: () {
+                            Navigator.of(context).maybePop();
+                            Navigator.of(context).pushNamed('/guinji-map');
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
                 // 액션 버튼 2개
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),

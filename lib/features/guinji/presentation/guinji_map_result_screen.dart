@@ -229,6 +229,47 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
                   onPressed: _openShareSheet,
                 ),
               ),
+
+              // ★ 결과 화면(M/N) 전용 신통방통 이관 CTA — 새 디자인
+              // `ResultAppHandoff` 재현(다른 화면에는 사용하지 않는다).
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+                child: GmDarkCtaShell(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const GmFreeBadge(label: '신통방통에서 계속'),
+                      const SizedBox(height: 12),
+                      const Text(
+                        '내 귀인지도를 신통방통에서\n더 깊게 이어보세요',
+                        style: TextStyle(
+                          fontFamily: GmFonts.serif,
+                          fontSize: 19,
+                          fontWeight: FontWeight.w700,
+                          color: GmColors.ivory,
+                          height: 1.25,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '지도 저장·매일 업데이트·상세 관계 리포트까지\n전부 무료로 이용할 수 있어요.',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          height: 1.55,
+                          color: GmColors.ivory.withValues(alpha: 0.7),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      GmRoseButton(
+                        label: '신통방통에서 내 귀인지도 만들기',
+                        icon: Icons.arrow_forward,
+                        onPressed: () =>
+                            Navigator.of(context).pushNamed('/guinji-map'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ),
