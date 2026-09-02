@@ -4,24 +4,22 @@ import 'package:flutter/material.dart';
 
 import '../domain/guinji_person.dart';
 import '../domain/guinji_relation_meta.dart';
-import '../theme/guinji_theme.dart';
-import '../widgets/guinji_sigil_ring.dart';
-import '../widgets/guinji_ui_kit.dart';
+import '../theme/guinji_map_theme.dart';
+import '../widgets/guinji_map_widgets.dart';
 import 'guinji_node_sheet.dart';
 
 /// M · My Map — `/guinji-map/m`
 ///
-/// [design_handoff_guinji_web/Guinji Section.html] 1546~1655줄 마크업을
-/// 재현한다. 중앙 `我`(나) 노드 + 4개 점선 orbit(100/170/240/300px) +
-/// [people] 각 인원을 궤도 위 노드로 표시(회전 sigil 90s, opacity 0.35) +
-/// 필터 칩 + 지인초대 FAB. 노드 탭 시 [onNodeTap]으로 N(Node Sheet)을
-/// 바텀시트로 띄운다(상위 라우팅에서 처리).
+/// [2026-09 새 디자인 리스킨] 새 디자인 zip
+/// `lib/guiindo/widgets/node_graph.dart`(`InteractiveNodeGraph`, pan/zoom/
+/// drag/tap 제스처 지원)와 `lib/guiindo/screens/result_map_screen.dart`
+/// (헤더 + 그래프 + 상위 3명 + 공유 CTA) 구조를 이식했다.
 ///
-/// [귀인지도 실구현] 원래 HTML 목데이터는 11개 노드에 고정 % 좌표를
-/// 하드코딩했지만(정확히 11종 관계유형 각 1명), 실제 [GuinjiProvider.people]은
-/// 인원 수·관계유형 분포가 매번 다르므로 고정 좌표를 쓸 수 없다. 대신
-/// [_layoutPeople]이 인원 수에 맞춰 궤도(ring)와 각도를 절차적으로
-/// 계산한다 — 궤도당 최대 6명, 넘치면 다음 궤도로 넘어간다.
+/// [귀인지도 실구현] 실제 [GuinjiProvider.people]은 인원 수·관계유형
+/// 분포가 매번 다르므로, 새 디자인의 고정 목데이터 레이아웃 대신
+/// [_layoutPeople]이 참여자 수·점수 기반으로 각도/거리를 절차적으로
+/// 계산한다(`InteractiveNodeGraph._rebuildLayout()`과 동일한 공식:
+/// `r = 60 + (100-score)*1.6`, `radius = 22 + (score-50)*0.25`).
 class GuinjiMapResultScreen extends StatefulWidget {
   const GuinjiMapResultScreen({
     super.key,
@@ -43,10 +41,10 @@ class GuinjiMapResultScreen extends StatefulWidget {
   /// 노드 탭 콜백 — 탭한 [GuinjiPerson]을 전달한다.
   final void Function(GuinjiPerson person)? onNodeTap;
 
-  /// 지인초대 FAB 탭 콜백 — 기본값은 S(Share) 화면으로 push.
+  /// 공유 CTA 탭 콜백 — 기본값은 S(Share) 화면으로 push.
   final VoidCallback? onInvite;
 
-  /// 상단 `⋯` 탭 콜백 — 기본값은 F(Friend List) 화면으로 push.
+  /// 상단 "목록 보기" 탭 콜백 — 기본값은 F(Friend List) 화면으로 push.
   final VoidCallback? onOpenFriends;
 
   @override
@@ -54,9 +52,6 @@ class GuinjiMapResultScreen extends StatefulWidget {
 }
 
 class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
-  int _filterIndex = 0;
-  static const _filters = ['전체', '貴 귀인', '조력자', '인연', '랭킹'];
-
   /// 노드 탭 시 기본 동작: 상위에서 [GuinjiMapResultScreen.onNodeTap]을
   /// 지정하지 않았다면, 여기서 [GuinjiNodeSheet]을 [person]의 실제 데이터로
   /// 띄운다. "공유하기"는 바텀시트를 닫고 곧바로 S(Share) 화면으로 이동한다.
@@ -87,361 +82,623 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
     );
   }
 
+  void _openShareSheet() {
+    if (widget.onInvite != null) {
+      widget.onInvite!();
+      return;
+    }
+    Navigator.of(context).pushNamed('/guinji-map/m/share');
+  }
+
+  void _openFriends() {
+    if (widget.onOpenFriends != null) {
+      widget.onOpenFriends!();
+      return;
+    }
+    Navigator.of(context).pushNamed('/guinji-map/m/friends');
+  }
+
   @override
   Widget build(BuildContext context) {
     final total = widget.people.length;
-    final guiCount =
-        widget.people.where((p) => p.relation == 'CHEON_GWII').length;
-    final headerText =
-        total == 0 ? '아직 참여한 귀인이 없어요' : '貴 $guiCount명 · 총 $total명';
+    final top3 = widget.people.toList()
+      ..sort((a, b) => b.score.compareTo(a.score));
+    final topThree = top3.take(3).toList();
 
     return Scaffold(
-      backgroundColor: GuinjiColors.backgroundDarker,
-      body: GuinjiScreenScaffold(
-        bgAlignment: const Alignment(0, -0.2),
-        bgOpacity: 0.12,
-        child: Stack(
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                GuinjiTopBar(
-                  breadcrumb: 'M · MY GUINJI',
-                  onBack: () => Navigator.of(context).maybePop(),
-                  trailing: GuinjiIconButton(
-                    icon: '⋯',
-                    onPressed: widget.onOpenFriends ??
-                        () => Navigator.of(context)
-                            .pushNamed('/guinji-map/m/friends'),
-                  ),
-                ),
-                Center(
-                  child: Column(
-                    children: [
-                      Text(
-                        headerText,
-                        style: const TextStyle(
-                          fontFamily: GuinjiFonts.mono,
-                          fontSize: 9,
-                          letterSpacing: 2,
-                          color: GuinjiColors.lavender,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${widget.ownerName}의 귀인지도',
-                        style: const TextStyle(
-                          fontFamily: GuinjiFonts.display,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w900,
-                          color: GuinjiColors.textPrimary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final side = constraints.maxWidth < constraints.maxHeight
-                          ? constraints.maxWidth
-                          : constraints.maxHeight;
-                      return Center(
-                        child: SizedBox(
-                          width: side,
-                          height: side,
-                          child: _MapCanvas(
-                            side: side,
-                            people: widget.people,
-                            onNodeTap: _handleNodeTap,
+      backgroundColor: GmColors.bgIvory,
+      appBar: GmTopBar(
+        back: true,
+        title: '${widget.ownerName}님의 귀인 지도',
+        onShare: _openShareSheet,
+      ),
+      body: SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 440),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // 헤더
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text.rich(
+                            TextSpan(
+                              children: [
+                                const TextSpan(
+                                  text: '지금 ',
+                                  style: TextStyle(fontSize: 11, color: GmColors.inkSoft),
+                                ),
+                                TextSpan(
+                                  text: '$total명',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: GmColors.rose700,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const TextSpan(
+                                  text: '이 함께해요',
+                                  style: TextStyle(fontSize: 11, color: GmColors.inkSoft),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                SizedBox(
-                  height: 36,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _filters.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 6),
-                    itemBuilder: (context, i) => GuinjiChip(
-                      label: _filters[i],
-                      active: _filterIndex == i,
-                      onTap: () => setState(() => _filterIndex = i),
+                          const SizedBox(height: 2),
+                          const Text(
+                            '노드를 눌러 관계 상세를 확인하세요',
+                            style: TextStyle(fontSize: 10.5, color: GmColors.inkFaint),
+                          ),
+                        ],
+                      ),
                     ),
+                    OutlinedButton(
+                      onPressed: _openFriends,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: GmColors.inkSoft,
+                        side: const BorderSide(color: GmColors.line),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9999)),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      ),
+                      child: const Text('목록 보기', style: TextStyle(fontSize: 12)),
+                    ),
+                  ],
+                ),
+              ),
+
+              // 인터랙티브 노드 그래프(pan/zoom/drag/tap)
+              _InteractiveGuinjiGraph(
+                ownerName: widget.ownerName,
+                people: widget.people,
+                onSelect: _handleNodeTap,
+              ),
+
+              // 상위 3명
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                child: Row(
+                  children: [
+                    const Text(
+                      '가장 강한 인연',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: GmColors.ink),
+                    ),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: _openFriends,
+                      child: const Text(
+                        '전체 보기',
+                        style: TextStyle(fontSize: 11, color: GmColors.rose700),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (topThree.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  child: Text(
+                    '지인을 초대하면 여기에 표시돼요',
+                    style: TextStyle(fontSize: 12, color: GmColors.inkFaint),
+                  ),
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    children: topThree
+                        .map(
+                          (p) => _GmFriendRow(
+                            person: p,
+                            onTap: () => _handleNodeTap(p),
+                          ),
+                        )
+                        .toList(),
                   ),
                 ),
-                const SizedBox(height: 8),
-              ],
-            ),
-            Positioned(
-              bottom: 8,
-              right: 0,
-              child: _Fab(
-                onPressed: widget.onInvite ??
-                    () => Navigator.of(context)
-                        .pushNamed('/guinji-map/m/share'),
+
+              // 공유 CTA
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+                child: GmRoseButton(
+                  label: '친구 초대하고 지도 완성하기',
+                  onPressed: _openShareSheet,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-/// [person]에 계산된 화면 좌표(0~1 비율)를 더한 배치 결과.
-class _PositionedPerson {
-  const _PositionedPerson({
+/// [person]에 계산된 화면 좌표(px, 중심 기준 상대 오프셋)를 더한 배치 결과.
+class _NodeState {
+  _NodeState({
+    required this.x,
+    required this.y,
+    required this.r,
+    required this.color,
     required this.person,
-    required this.left,
-    required this.top,
   });
 
+  double x, y, r;
+  final Color color;
   final GuinjiPerson person;
-  final double left; // 0~1
-  final double top; // 0~1
 }
 
-/// [people]을 궤도(ring)별로 절차적으로 배치한다. 궤도당 최대 6명이며,
-/// 넘치면 다음(더 바깥) 궤도로 넘어간다. 각 궤도 안에서는 정각도로
-/// 균등 분배해 원 위에 배치한다(12시 방향부터 시계방향).
-List<_PositionedPerson> _layoutPeople(List<GuinjiPerson> people) {
+/// [people]을 새 디자인의 `InteractiveNodeGraph._rebuildLayout()` 공식으로
+/// 절차적으로 배치한다: 각도는 인덱스 균등분배(12시 방향부터 시계방향),
+/// 중심 거리(r)와 노드 반지름은 점수에 반비례/비례한다.
+List<_NodeState> _layoutPeople(List<GuinjiPerson> people, double cx, double cy) {
   if (people.isEmpty) return const [];
-  const perRing = 6;
-  const ringRatios = [100 / 300, 170 / 300, 240 / 300, 300 / 300];
-
-  final result = <_PositionedPerson>[];
-  for (var i = 0; i < people.length; i++) {
-    final ringIndex = math.min(i ~/ perRing, ringRatios.length - 1);
-    final ringStart = ringIndex * perRing;
-    final countInRing = math.min(perRing, people.length - ringStart);
-    final indexInRing = i - ringStart;
-    final angle =
-        (2 * math.pi * indexInRing / countInRing) - (math.pi / 2);
-    final ratio = ringRatios[ringIndex];
-    final left = 0.5 + 0.5 * ratio * math.cos(angle);
-    final top = 0.5 + 0.5 * ratio * math.sin(angle);
-    result.add(_PositionedPerson(person: people[i], left: left, top: top));
-  }
-  return result;
+  final total = people.length;
+  return people.asMap().entries.map((e) {
+    final i = e.key;
+    final p = e.value;
+    final angle = (i / total) * math.pi * 2 - math.pi / 2;
+    final r = 60 + (100 - p.score) * 1.6;
+    final meta = guinjiRelationTypes[p.relation];
+    final color = meta != null ? GmColors.categoryColor(meta.category) : GmColors.rose500;
+    return _NodeState(
+      x: cx + math.cos(angle) * r,
+      y: cy + math.sin(angle) * r,
+      r: 22 + (p.score - 50) * 0.25,
+      color: color,
+      person: p,
+    );
+  }).toList();
 }
 
-class _MapCanvas extends StatelessWidget {
-  const _MapCanvas({
-    required this.side,
+/// 인터랙티브 노드 그래프 — pan(빈 공간 드래그) / zoom(pinch) / drag(노드
+/// 이동) / tap(노드 선택)을 하나의 GestureDetector로 처리한다. 새 디자인
+/// `InteractiveNodeGraph`와 동일한 구조.
+class _InteractiveGuinjiGraph extends StatefulWidget {
+  const _InteractiveGuinjiGraph({
+    required this.ownerName,
     required this.people,
-    this.onNodeTap,
+    required this.onSelect,
   });
 
-  final double side;
+  final String ownerName;
   final List<GuinjiPerson> people;
-  final void Function(GuinjiPerson person)? onNodeTap;
+  final void Function(GuinjiPerson person) onSelect;
 
-  static const _orbitRatios = [100 / 300, 170 / 300, 240 / 300, 300 / 300];
+  @override
+  State<_InteractiveGuinjiGraph> createState() => _InteractiveGuinjiGraphState();
+}
+
+class _InteractiveGuinjiGraphState extends State<_InteractiveGuinjiGraph> {
+  final _key = GlobalKey();
+  double _scale = 1;
+  double _panX = 0, _panY = 0;
+  double _pinchStart = 1;
+  final _nodes = <_NodeState>[];
+  _NodeState? _dragging;
+  bool _panning = false;
+  bool _moved = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _rebuildLayout());
+  }
+
+  @override
+  void didUpdateWidget(covariant _InteractiveGuinjiGraph oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _rebuildLayout();
+  }
+
+  void _rebuildLayout() {
+    final box = _key.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return;
+    final size = box.size;
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    _nodes
+      ..clear()
+      ..addAll(_layoutPeople(widget.people, cx, cy));
+    if (mounted) setState(() {});
+  }
+
+  _NodeState? _hitTest(Offset local) {
+    final tx = (local.dx - _panX) / _scale;
+    final ty = (local.dy - _panY) / _scale;
+    for (final n in _nodes.reversed) {
+      final dx = tx - n.x;
+      final dy = ty - n.y;
+      if (dx * dx + dy * dy <= n.r * n.r * 1.4) return n;
+    }
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final positioned = _layoutPeople(people);
     return Container(
+      key: _key,
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      height: 380,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: GuinjiColors.surfaceCardBorder),
-        gradient: RadialGradient(
-          radius: 0.9,
-          colors: [
-            GuinjiColors.lavender.withValues(alpha: 0.15),
-            Colors.transparent,
-          ],
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [GmColors.bgIvory, GmColors.bgCream.withValues(alpha: 0.6)],
         ),
+        border: Border.all(color: GmColors.line),
+        borderRadius: BorderRadius.circular(24),
       ),
-      clipBehavior: Clip.hardEdge,
+      clipBehavior: Clip.antiAlias,
       child: Stack(
-        alignment: Alignment.center,
         children: [
-          // 90s 회전 sigil (opacity 0.35)
-          Opacity(
-            opacity: 0.35,
-            child: GuinjiSigilRing(
-              size: side * 0.68,
-              color: GuinjiColors.lavender,
-              opacity: 0.6,
-              duration: const Duration(seconds: 90),
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onScaleStart: (details) {
+                _moved = false;
+                final n = _hitTest(details.localFocalPoint);
+                if (n != null) {
+                  _dragging = n;
+                  _panning = false;
+                } else {
+                  _panning = true;
+                  _dragging = null;
+                }
+                _pinchStart = _scale;
+              },
+              onScaleUpdate: (details) {
+                if (details.pointerCount >= 2) {
+                  setState(() {
+                    _scale = (_pinchStart * details.scale).clamp(0.6, 2.5);
+                  });
+                  return;
+                }
+                if (details.focalPointDelta.distance > 3) _moved = true;
+                setState(() {
+                  if (_dragging != null) {
+                    _dragging!.x += details.focalPointDelta.dx / _scale;
+                    _dragging!.y += details.focalPointDelta.dy / _scale;
+                  } else if (_panning) {
+                    _panX += details.focalPointDelta.dx;
+                    _panY += details.focalPointDelta.dy;
+                  }
+                });
+              },
+              onScaleEnd: (details) {
+                if (_dragging != null && !_moved) {
+                  widget.onSelect(_dragging!.person);
+                }
+                _dragging = null;
+                _panning = false;
+              },
+              child: CustomPaint(
+                painter: _GraphPainter(
+                  nodes: _nodes,
+                  ownerName: widget.ownerName,
+                  scale: _scale,
+                  panX: _panX,
+                  panY: _panY,
+                ),
+                size: Size.infinite,
+              ),
             ),
           ),
-          // 4개 점선 orbit
-          for (final ratio in _orbitRatios)
-            Container(
-              width: side * ratio,
-              height: side * ratio,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: GuinjiColors.lavender.withValues(alpha: 0.25),
-                  width: 1,
+          if (widget.people.isEmpty)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 32),
+                child: Text(
+                  '지인을 초대하면 여기에 표시돼요',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12.5, color: GmColors.inkFaint),
                 ),
               ),
             ),
-          // 중앙 我
-          Container(
-            width: side * 0.15,
-            height: side * 0.15,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(
-                center: const Alignment(-0.4, -0.4),
-                colors: [
-                  GuinjiColors.lavender,
-                  GuinjiColors.lavender.withValues(alpha: 0.6),
-                ],
-              ),
-              border: Border.all(color: GuinjiColors.lavender, width: 2),
-              boxShadow: [
-                BoxShadow(color: GuinjiColors.glowShadow, blurRadius: 30),
-              ],
-            ),
-            child: Text(
-              '我',
-              style: TextStyle(
-                fontFamily: GuinjiFonts.display,
-                fontSize: side * 0.06,
-                fontWeight: FontWeight.w900,
-                color: Colors.white,
-              ),
+          Positioned(
+            top: 12,
+            right: 12,
+            child: _ZoomControls(
+              onZoomIn: () => setState(() => _scale = (_scale + 0.2).clamp(0.6, 2.5)),
+              onZoomOut: () => setState(() => _scale = (_scale - 0.2).clamp(0.6, 2.5)),
+              onReset: () => setState(() {
+                _scale = 1;
+                _panX = 0;
+                _panY = 0;
+              }),
             ),
           ),
-          // 실제 참여자 노드
-          for (final p in positioned)
-            Positioned(
-              left: p.left * side - side * 0.05,
-              top: p.top * side - side * 0.05,
-              child: _MapNode(side: side, person: p.person, onTap: onNodeTap),
-            ),
-          // 빈 상태 안내
-          if (people.isEmpty)
-            Positioned(
-              bottom: side * 0.06,
-              child: Text(
-                '지인을 초대하면 여기에 표시돼요',
-                style: TextStyle(
-                  fontFamily: GuinjiFonts.body,
-                  fontSize: side * 0.032,
-                  color: GuinjiColors.textSecondary,
-                ),
-              ),
-            ),
+          const Positioned(left: 12, bottom: 12, child: _Legend()),
         ],
       ),
     );
   }
 }
 
-class _MapNode extends StatelessWidget {
-  const _MapNode({required this.side, required this.person, this.onTap});
+class _ZoomControls extends StatelessWidget {
+  const _ZoomControls({required this.onZoomIn, required this.onZoomOut, required this.onReset});
 
-  final double side;
+  final VoidCallback onZoomIn, onZoomOut, onReset;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.9),
+        border: Border.all(color: GmColors.line),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          _btn(Icons.add, onZoomIn),
+          const SizedBox(height: 4),
+          _btn(Icons.remove, onZoomOut),
+          const SizedBox(height: 4),
+          _btn(Icons.restart_alt, onReset),
+        ],
+      ),
+    );
+  }
+
+  Widget _btn(IconData i, VoidCallback tap) => InkWell(
+    onTap: tap,
+    borderRadius: BorderRadius.circular(8),
+    child: SizedBox(width: 28, height: 28, child: Icon(i, size: 14, color: GmColors.ink)),
+  );
+}
+
+class _Legend extends StatelessWidget {
+  const _Legend();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.9),
+        border: Border.all(color: GmColors.line),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '거리 = 관계 거리',
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: GmColors.inkSoft),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              _swatch(GmColors.categoryBoost, '귀인'),
+              const SizedBox(width: 8),
+              _swatch(GmColors.categoryPath, '인연'),
+              const SizedBox(width: 8),
+              _swatch(GmColors.categoryWarm, '보완'),
+              const SizedBox(width: 8),
+              _swatch(GmColors.categoryCare, '조심'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _swatch(Color c, String label) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Container(width: 8, height: 8, decoration: BoxDecoration(color: c, shape: BoxShape.circle)),
+      const SizedBox(width: 4),
+      Text(label, style: const TextStyle(fontSize: 10, color: GmColors.ink)),
+    ],
+  );
+}
+
+class _GraphPainter extends CustomPainter {
+  _GraphPainter({
+    required this.nodes,
+    required this.ownerName,
+    required this.scale,
+    required this.panX,
+    required this.panY,
+  });
+
+  final List<_NodeState> nodes;
+  final String ownerName;
+  final double scale, panX, panY;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.save();
+    canvas.translate(panX, panY);
+    canvas.scale(scale);
+
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+
+    final ring = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1
+      ..color = GmColors.line;
+    _dashed(canvas, Offset(cx, cy), 80, ring);
+    _dashed(canvas, Offset(cx, cy), 140, ring);
+    _dashed(canvas, Offset(cx, cy), 200, ring..color = GmColors.lineSoft);
+
+    for (final n in nodes) {
+      canvas.drawLine(
+        Offset(cx, cy),
+        Offset(n.x, n.y),
+        Paint()
+          ..color = n.color.withValues(alpha: 0.4)
+          ..strokeWidth = 1,
+      );
+    }
+
+    canvas.drawCircle(Offset(cx, cy), 34, Paint()..color = GmColors.ink);
+    _text(canvas, Offset(cx, cy - 3), '$ownerName님', 10, GmColors.ivory, weight: FontWeight.w700);
+    _text(canvas, Offset(cx, cy + 10), '나', 8, GmColors.gold);
+
+    for (final n in nodes) {
+      canvas.drawCircle(Offset(n.x, n.y), n.r + 4, Paint()..color = n.color.withValues(alpha: 0.15));
+      canvas.drawCircle(Offset(n.x, n.y), n.r, Paint()..color = n.color);
+      canvas.drawCircle(
+        Offset(n.x, n.y),
+        n.r,
+        Paint()
+          ..color = Colors.white
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2,
+      );
+      _text(canvas, Offset(n.x, n.y - 1), n.person.name, 10, Colors.white, weight: FontWeight.w700);
+      _text(canvas, Offset(n.x, n.y + 10), '${n.person.score}', 8, Colors.white.withValues(alpha: 0.85));
+    }
+
+    canvas.restore();
+  }
+
+  void _dashed(Canvas c, Offset center, double radius, Paint p) {
+    const step = 6 / 180 * math.pi;
+    for (double a = 0; a < math.pi * 2; a += step * 2) {
+      c.drawLine(
+        Offset(center.dx + math.cos(a) * radius, center.dy + math.sin(a) * radius),
+        Offset(center.dx + math.cos(a + step) * radius, center.dy + math.sin(a + step) * radius),
+        p,
+      );
+    }
+  }
+
+  void _text(Canvas c, Offset o, String s, double size, Color color, {FontWeight weight = FontWeight.w600}) {
+    final tp = TextPainter(
+      text: TextSpan(text: s, style: TextStyle(fontSize: size, color: color, fontWeight: weight)),
+      textDirection: TextDirection.ltr,
+      textAlign: TextAlign.center,
+    );
+    tp.layout();
+    tp.paint(c, Offset(o.dx - tp.width / 2, o.dy - tp.height / 2));
+  }
+
+  @override
+  bool shouldRepaint(covariant _GraphPainter oldDelegate) =>
+      oldDelegate.scale != scale ||
+      oldDelegate.panX != panX ||
+      oldDelegate.panY != panY ||
+      oldDelegate.nodes != nodes;
+}
+
+/// F/M화면 공용 컴포넌트 — 새 디자인 `friend_row.dart`의 `FriendRow` 이식.
+class _GmFriendRow extends StatelessWidget {
+  const _GmFriendRow({required this.person, this.onTap});
+
   final GuinjiPerson person;
-  final void Function(GuinjiPerson person)? onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final meta = guinjiRelationTypes[person.relation];
-    final color = meta?.color ?? GuinjiColors.lavender;
-    final hanja = meta?.hanja ?? '?';
-    final nodeSize = side * 0.10;
-    return GestureDetector(
-      onTap: () => onTap?.call(person),
-      child: Column(
-        children: [
-          Container(
-            width: nodeSize,
-            height: nodeSize,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: color.withValues(alpha: 0.22),
-              border: Border.all(color: color, width: 1.5),
-              boxShadow: [
-                BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 10),
+    final color = meta != null ? GmColors.categoryColor(meta.category) : GmColors.rose500;
+    final label = meta?.label ?? person.relation;
+    final initial = person.name.isNotEmpty ? person.name.substring(0, 1) : '?';
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: color.withValues(alpha: 0.15),
+                border: Border.all(color: color.withValues(alpha: 0.4)),
+              ),
+              child: Text(
+                initial,
+                style: TextStyle(
+                  fontFamily: GmFonts.serif,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        person.name,
+                        style: const TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700,
+                          color: GmColors.ink,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      GmChip(
+                        label: label,
+                        background: color.withValues(alpha: 0.12),
+                        foreground: color,
+                        borderColor: color.withValues(alpha: 0.25),
+                        fontSize: 10,
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    meta?.short ?? person.note,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 11, color: GmColors.inkFaint),
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${person.score}',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: color),
+                ),
+                const Text(
+                  'SCORE',
+                  style: TextStyle(fontSize: 8, letterSpacing: 0.6, color: GmColors.inkFaint),
+                ),
               ],
             ),
-            child: Text(
-              hanja,
-              style: TextStyle(
-                fontFamily: GuinjiFonts.display,
-                fontSize: nodeSize * 0.4,
-                fontWeight: FontWeight.w700,
-                color: color,
-              ),
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            person.name,
-            style: const TextStyle(
-              fontFamily: GuinjiFonts.body,
-              fontSize: 9,
-              color: GuinjiColors.textPrimary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Fab extends StatelessWidget {
-  const _Fab({this.onPressed});
-
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: GuinjiColors.gold,
-      borderRadius: BorderRadius.circular(999),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(999),
-        onTap: onPressed,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
-            boxShadow: [
-              BoxShadow(
-                color: GuinjiColors.gold.withValues(alpha: 0.5),
-                blurRadius: 24,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '+',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
-              ),
-              SizedBox(width: 6),
-              Text(
-                '지인 초대',
-                style: TextStyle(
-                  fontFamily: GuinjiFonts.body,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
+          ],
         ),
       ),
     );

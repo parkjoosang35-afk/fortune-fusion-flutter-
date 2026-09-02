@@ -1,31 +1,18 @@
 import 'package:flutter/material.dart';
 
 import '../domain/guinji_relation_meta.dart';
-import '../theme/guinji_theme.dart';
-import '../widgets/guinji_ui_kit.dart';
+import '../theme/guinji_map_theme.dart';
+import '../widgets/guinji_map_widgets.dart';
 
-/// N · Node Sheet — `/guinji/m/:mapId?node=:nodeId` (바텀시트)
+/// N · Node Sheet — M(My Map) 화면 위에 `showModalBottomSheet`로 띄우는
+/// 관계 상세 바텀시트.
 ///
-/// [design_handoff_guinji_web/Guinji Section.html] 1706~1774줄 마크업을
-/// 재현한다. M(My Map) 화면 위에 `showModalBottomSheet`로 띄우는 것을
-/// 전제로 하며, backdrop(blur+dim)은 `showModalBottomSheet`의 barrierColor로
-/// 대체한다.
-///
-/// 사용 예:
-/// ```dart
-/// showModalBottomSheet(
-///   context: context,
-///   isScrollControlled: true,
-///   backgroundColor: Colors.transparent,
-///   barrierColor: const Color(0x99000000),
-///   builder: (_) => GuinjiNodeSheet(
-///     name: '수아', birthLabel: '1998 · 05 · 14 · 火時',
-///     relationKey: 'CHEON_GWII', score: 92,
-///     narratorText: '수아님은 ...',
-///     evidenceRows: const [('오행 보충도', '+0.82'), ...],
-///   ),
-/// );
-/// ```
+/// [2026-09 새 디자인 리스킨] 새 디자인 zip
+/// `lib/guiindo/widgets/node_detail_sheet.dart`의 UI(DraggableScrollableSheet
+/// + 72px 아바타 + ChipPill + 44px 점수 + "관계의 결" 박스 + 좋은/조심할
+/// 순간 2줄 + 세부지표 + 액션버튼 2개)를 이식했다. [showGuinjiNodeSheet]
+/// 함수 시그니처는 M화면의 `_handleNodeTap()`이 그대로 호출하므로 절대
+/// 변경하지 않는다.
 class GuinjiNodeSheet extends StatelessWidget {
   const GuinjiNodeSheet({
     super.key,
@@ -48,290 +35,374 @@ class GuinjiNodeSheet extends StatelessWidget {
   final VoidCallback? onShare;
   final VoidCallback? onSeeMore;
 
+  static String _goodMoment(String category) {
+    switch (category) {
+      case 'boost':
+        return '큰 결정을 앞두고 있을 때, 감정이 흔들릴 때';
+      case 'path':
+        return '함께 계획하고 실행할 때, 여행이나 도전';
+      case 'warm':
+        return '일이 벅찰 때 잠깐 만나 대화를 나눌 때';
+      case 'care':
+        return '무대 위, 새로운 자극이 필요할 때';
+    }
+    return '평범한 일상 속 짧은 만남';
+  }
+
+  static String _carefulMoment(String category) {
+    switch (category) {
+      case 'boost':
+        return '서로 지쳐 있는 저녁 시간대의 다툼';
+      case 'path':
+        return '속도가 안 맞을 때 서로 답답해질 수 있어요';
+      case 'warm':
+        return '너무 자주 만나면 서로 무뎌질 수 있어요';
+      case 'care':
+        return '가까이 붙어 있을 때 감정 소모가 커요';
+    }
+    return '무리한 부탁이나 갑작스러운 변화';
+  }
+
   @override
   Widget build(BuildContext context) {
     final meta = guinjiRelationTypes[relationKey];
-    final color = meta?.color ?? GuinjiColors.lavender;
-    final hanja = meta?.hanja ?? '?';
+    final color = meta != null
+        ? GmColors.categoryColor(meta.category)
+        : GmColors.rose500;
     final label = meta?.label ?? relationKey;
+    final long = meta?.long ?? narratorText;
+    final category = meta?.category ?? 'boost';
+    final initial = name.isNotEmpty ? name.substring(0, 1) : '?';
 
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.8,
-      ),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(18, 12, 18, 22),
-        decoration: BoxDecoration(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color.lerp(GuinjiColors.backgroundSoft, color, 0.06)!,
-              GuinjiColors.backgroundDeep,
+    return DraggableScrollableSheet(
+      initialChildSize: 0.72,
+      minChildSize: 0.45,
+      maxChildSize: 0.92,
+      builder: (_, scrollController) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: GmColors.bgIvory,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x33000000),
+                blurRadius: 24,
+                offset: Offset(0, -6),
+              ),
             ],
           ),
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 36,
+          child: SingleChildScrollView(
+            controller: scrollController,
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                // 핸들
+                Container(
+                  width: 40,
                   height: 4,
-                  margin: const EdgeInsets.only(bottom: 12),
+                  margin: const EdgeInsets.only(top: 10, bottom: 8),
                   decoration: BoxDecoration(
-                    color: GuinjiColors.textSecondary.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(999),
+                    color: GmColors.line,
+                    borderRadius: BorderRadius.circular(9999),
                   ),
                 ),
-              ),
-              // n-header
-              Container(
-                padding: const EdgeInsets.only(bottom: 12),
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(color: GuinjiColors.surfaceCardBorder),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: color.withValues(alpha: 0.25),
-                        border: Border.all(color: color, width: 2),
-                      ),
-                      child: Text(
-                        hanja,
-                        style: TextStyle(
-                          fontFamily: GuinjiFonts.display,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: color,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            name,
-                            style: const TextStyle(
-                              fontFamily: GuinjiFonts.body,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: GuinjiColors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            birthLabel.toUpperCase(),
-                            style: const TextStyle(
-                              fontFamily: GuinjiFonts.mono,
-                              fontSize: 10,
-                              letterSpacing: 1.5,
-                              color: GuinjiColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Text(
-                      '$score',
-                      style: TextStyle(
-                        fontFamily: GuinjiFonts.display,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        color: color,
-                        shadows: [
-                          Shadow(
-                            color: color.withValues(alpha: 0.5),
-                            blurRadius: 12,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // n-badge
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: GuinjiRelationBadge(
-                  code: relationKey,
-                  koreanLabel: label,
-                  color: color,
-                ),
-              ),
-              // Doryeong narrator + n-body
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Image.asset(
-                      'assets/images/guinji/doryeong/pointing.png',
-                      width: 44,
-                      height: 44,
-                      fit: BoxFit.contain,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: GuinjiColors.lavender.withValues(alpha: 0.04),
-                          border: Border.all(
-                            color: GuinjiColors.surfaceCardBorder,
-                          ),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          narratorText,
-                          style: const TextStyle(
-                            fontFamily: GuinjiFonts.body,
-                            fontSize: 12.5,
-                            height: 1.7,
-                            color: GuinjiColors.textPrimary,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // n-basis rows
-              Padding(
-                padding: const EdgeInsets.only(bottom: 14),
-                child: Column(
-                  children: [
-                    for (final (rowLabel, value) in evidenceRows)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 6),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              rowLabel,
-                              style: const TextStyle(
-                                fontFamily: 'Pretendard',
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
-                                color: GuinjiColors.textSecondary,
-                              ),
-                            ),
-                            Text(
-                              value,
-                              style: const TextStyle(
-                                fontFamily: GuinjiFonts.body,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: GuinjiColors.textPrimary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              // 더 자세한 풀이 보기 (업셀)
-              InkWell(
-                onTap: onSeeMore,
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    color: GuinjiColors.lavender.withValues(alpha: 0.06),
-                    border: Border.all(
-                      color: GuinjiColors.lavender.withValues(alpha: 0.3),
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
+
+                // 헤더(프로필+라벨+점수)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
+                  child: Column(
                     children: [
                       Container(
-                        width: 28,
-                        height: 28,
-                        alignment: Alignment.center,
+                        width: 72,
+                        height: 72,
                         decoration: BoxDecoration(
-                          color: GuinjiColors.lavender.withValues(alpha: 0.25),
                           shape: BoxShape.circle,
-                        ),
-                        child: const Text(
-                          '+',
-                          style: TextStyle(
-                            fontFamily: GuinjiFonts.display,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w900,
-                            color: GuinjiColors.lavender,
+                          gradient: LinearGradient(
+                            colors: [color, color.withValues(alpha: 0.85)],
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '더 자세한 풀이 보기',
-                              style: TextStyle(
-                                fontFamily: GuinjiFonts.body,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: GuinjiColors.textPrimary,
-                              ),
-                            ),
-                            SizedBox(height: 2),
-                            Text(
-                              '오행 · 십성 · 대운 흐름',
-                              style: TextStyle(
-                                fontFamily: 'Pretendard',
-                                fontSize: 10,
-                                color: GuinjiColors.textSecondary,
-                              ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: color.withValues(alpha: 0.35),
+                              blurRadius: 24,
+                              spreadRadius: 2,
                             ),
                           ],
                         ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          initial,
+                          style: const TextStyle(
+                            fontFamily: GmFonts.serif,
+                            fontSize: 30,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
+                      const SizedBox(height: 12),
+                      GmChip(
+                        label: label,
+                        background: color.withValues(alpha: 0.12),
+                        foreground: color,
+                        borderColor: color.withValues(alpha: 0.25),
+                      ),
+                      const SizedBox(height: 10),
+                      Text.rich(
+                        TextSpan(
+                          style: const TextStyle(
+                            fontFamily: GmFonts.serif,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: GmColors.ink,
+                            height: 1.35,
+                          ),
+                          children: [
+                            TextSpan(text: '$name님은\n'),
+                            TextSpan(
+                              text: meta?.short ?? label,
+                              style: TextStyle(color: color),
+                            ),
+                          ],
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        birthLabel,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: GmColors.inkFaint,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Text(
+                            '$score',
+                            style: TextStyle(
+                              fontSize: 44,
+                              fontWeight: FontWeight.w700,
+                              color: color,
+                              height: 1,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Text(
+                            '/ 100',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: GmColors.inkSoft,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
                       const Text(
-                        '›',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: GuinjiColors.textSecondary,
+                        '관계 케미 점수',
+                        style: TextStyle(fontSize: 10.5, color: GmColors.inkFaint),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // 관계의 결
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                  child: Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.85),
+                      border: Border.all(color: GmColors.line),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const GmLabelMini('관계의 결'),
+                        const SizedBox(height: 10),
+                        Text(
+                          long,
+                          style: const TextStyle(
+                            fontSize: 13.5,
+                            height: 1.7,
+                            color: GmColors.ink,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          narratorText,
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            height: 1.6,
+                            color: GmColors.inkSoft,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        _MomentRow(
+                          color: color,
+                          label: '함께 있으면 좋은 순간',
+                          desc: _goodMoment(category),
+                        ),
+                        const SizedBox(height: 8),
+                        _MomentRow(
+                          color: GmColors.rose800,
+                          label: '조심할 순간',
+                          desc: _carefulMoment(category),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // 판정 근거(세부 지표)
+                if (evidenceRows.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: GmColors.bgCream.withValues(alpha: 0.6),
+                        border: Border.all(color: GmColors.line),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        children: [
+                          for (final (rowLabel, value) in evidenceRows)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    rowLabel,
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color: GmColors.inkSoft,
+                                    ),
+                                  ),
+                                  Text(
+                                    value,
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: GmColors.ink,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                // 액션 버튼 2개
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: onSeeMore,
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: GmColors.line),
+                            foregroundColor: GmColors.ink,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: const Text(
+                            '더 자세히 보기',
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 5,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: GmColors.gradientRose,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: TextButton(
+                            onPressed: onShare,
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            child: const Text(
+                              '이 관계 공유하기',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
-              GuinjiGhostButton(
-                label: '이 관계 공유하기',
-                icon: '↗',
-                onPressed: onShare,
-              ),
-            ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _MomentRow extends StatelessWidget {
+  const _MomentRow({required this.color, required this.label, required this.desc});
+
+  final Color color;
+  final String label;
+  final String desc;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 6,
+          height: 6,
+          margin: const EdgeInsets.only(top: 6, right: 8),
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        Expanded(
+          child: RichText(
+            text: TextSpan(
+              style: const TextStyle(fontSize: 12, height: 1.55, color: GmColors.inkSoft),
+              children: [
+                TextSpan(
+                  text: '$label · ',
+                  style: const TextStyle(fontWeight: FontWeight.w700, color: GmColors.ink),
+                ),
+                TextSpan(text: desc),
+              ],
+            ),
           ),
         ),
-      ),
+      ],
     );
   }
 }
 
 /// M화면에서 노드를 탭했을 때 이 함수를 호출해 [GuinjiNodeSheet]을
-/// 바텀시트로 띄운다.
+/// 바텀시트로 띄운다. [2026-09 새 디자인 리스킨] 시그니처는 절대 변경하지
+/// 않는다 — M화면의 `_handleNodeTap()`이 이 정확한 파라미터로 호출한다.
 Future<void> showGuinjiNodeSheet({
   required BuildContext context,
   required String name,

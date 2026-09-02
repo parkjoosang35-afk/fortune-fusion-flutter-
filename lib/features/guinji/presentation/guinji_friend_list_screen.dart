@@ -2,15 +2,19 @@ import 'package:flutter/material.dart';
 
 import '../domain/guinji_person.dart';
 import '../domain/guinji_relation_meta.dart';
-import '../theme/guinji_theme.dart';
-import '../widgets/guinji_ui_kit.dart';
+import '../theme/guinji_map_theme.dart';
+import '../widgets/guinji_map_widgets.dart';
 
-/// F · Friend list — `/guinji/m/:mapId/friends`
+/// F · Friend list — `/guinji-map/m/friends`
 ///
-/// [design_handoff_guinji_web/Guinji Section.html] 1914~2031줄 마크업을
-/// 재현한다. 점수 정렬된 참여자 랭킹 리스트 + 관계유형 필터 칩. 탭 시
-/// [onFriendTap] 콜백으로 N(Node Sheet) 등 상세화면 연결(상위 라우팅
-/// 위임).
+/// [2026-09 새 디자인 리스킨] 새 디자인 zip
+/// `lib/guiindo/screens/friend_list_screen.dart` + `lib/guiindo/widgets/
+/// friend_row.dart` 구조를 이식했다. 탭 시 [onFriendTap] 콜백으로 N(Node
+/// Sheet) 등 상세화면 연결(상위 라우팅 위임).
+///
+/// [필터 체계 전환] 기존 3개 특정 관계키(貴/助/緣) 필터를, 새 디자인과
+/// 동일한 4대 카테고리(전체/귀인/인연/보완/조심, [guinjiCategoryOrder])
+/// 필터로 전환했다.
 class GuinjiFriendListScreen extends StatefulWidget {
   const GuinjiFriendListScreen({
     super.key,
@@ -18,17 +22,18 @@ class GuinjiFriendListScreen extends StatefulWidget {
     this.onFriendTap,
   });
 
-  static const routeName = '/guinji/m/friends';
+  static const routeName = '/guinji-map/m/friends';
 
   final List<GuinjiFriendEntry> friends;
   final void Function(GuinjiFriendEntry entry)? onFriendTap;
 
   @override
-  State<GuinjiFriendListScreen> createState() =>
-      _GuinjiFriendListScreenState();
+  State<GuinjiFriendListScreen> createState() => _GuinjiFriendListScreenState();
 }
 
-/// 친구 랭킹 한 행의 데이터.
+/// 친구 랭킹 한 행의 데이터. [app_router.dart]의 F라우트와
+/// [guinjiFriendEntriesFromPeople]이 이 클래스를 그대로 사용하므로 필드
+/// 구조를 절대 변경하지 않는다.
 class GuinjiFriendEntry {
   const GuinjiFriendEntry({
     required this.rank,
@@ -47,59 +52,21 @@ class GuinjiFriendEntry {
   final int score;
 }
 
-/// HTML 마크업(1951~2021줄) 그대로 이식한 목데이터 6명.
 const _defaultFriends = [
-  GuinjiFriendEntry(
-    rank: 1,
-    name: '수아',
-    relationKey: 'CHEON_GWII',
-    ohaengLabel: '火 오행',
-    score: 92,
-  ),
-  GuinjiFriendEntry(
-    rank: 2,
-    name: '민서',
-    relationKey: 'NA_SALRIDA',
-    ohaengLabel: '木 오행',
-    score: 88,
-  ),
-  GuinjiFriendEntry(
-    rank: 3,
-    name: '도윤',
-    relationKey: 'GACHI_BICH',
-    ohaengLabel: '金 오행',
-    score: 84,
-  ),
-  GuinjiFriendEntry(
-    rank: 4,
-    name: '유진',
-    relationKey: 'JORYEOK',
-    ohaengLabel: '水 오행',
-    score: 81,
-  ),
-  GuinjiFriendEntry(
-    rank: 5,
-    name: '하늘',
-    relationKey: 'KKEURIDA',
-    ohaengLabel: '木 오행',
-    score: 76,
-  ),
-  GuinjiFriendEntry(
-    rank: 6,
-    name: '지호',
-    relationKey: 'JAGEUKJE',
-    ohaengLabel: '金 오행',
-    score: 67,
-  ),
+  GuinjiFriendEntry(rank: 1, name: '수아', relationKey: 'CHEON_GWII', ohaengLabel: '火 오행', score: 92),
+  GuinjiFriendEntry(rank: 2, name: '민서', relationKey: 'NA_SALRIDA', ohaengLabel: '木 오행', score: 88),
+  GuinjiFriendEntry(rank: 3, name: '도윤', relationKey: 'GACHI_BICH', ohaengLabel: '金 오행', score: 84),
+  GuinjiFriendEntry(rank: 4, name: '유진', relationKey: 'JORYEOK', ohaengLabel: '水 오행', score: 81),
+  GuinjiFriendEntry(rank: 5, name: '하늘', relationKey: 'KKEURIDA', ohaengLabel: '木 오행', score: 76),
+  GuinjiFriendEntry(rank: 6, name: '지호', relationKey: 'JAGEUKJE', ohaengLabel: '金 오행', score: 67),
 ];
 
 /// [귀인지도 실구현] [GuinjiProvider.people]을 실제 점수 내림차순으로
 /// 정렬해 순위(1..N)를 부여하고, [GuinjiPerson.ohaeng](mok/hwa/to/geum/su)를
 /// 화면 표시용 한자 라벨(예: '火 오행')로 변환한 [GuinjiFriendEntry] 목록을
-/// 만든다. F화면의 `_defaultFriends` 목데이터를 대체한다.
-List<GuinjiFriendEntry> guinjiFriendEntriesFromPeople(
-  List<GuinjiPerson> people,
-) {
+/// 만든다. [app_router.dart]의 F라우트가 직접 호출하므로 시그니처를 절대
+/// 변경하지 않는다.
+List<GuinjiFriendEntry> guinjiFriendEntriesFromPeople(List<GuinjiPerson> people) {
   final sorted = [...people]..sort((a, b) => b.score.compareTo(a.score));
   return [
     for (var i = 0; i < sorted.length; i++)
@@ -120,102 +87,70 @@ String _ohaengLabelFor(String ohaengKey) {
 }
 
 class _GuinjiFriendListScreenState extends State<GuinjiFriendListScreen> {
-  int _filterIndex = 0;
+  int _tab = 0;
 
-  List<String> get _filterLabels {
-    final total = widget.friends.length;
-    final cheon = widget.friends
-        .where((f) => f.relationKey == 'CHEON_GWII')
-        .length;
-    final joryeok = widget.friends
-        .where((f) => f.relationKey == 'JORYEOK')
-        .length;
-    final kkeurida = widget.friends
-        .where((f) => f.relationKey == 'KKEURIDA')
-        .length;
-    return ['전체 $total', '貴 $cheon', '助 $joryeok', '緣 $kkeurida'];
-  }
+  /// 탭 목록: 전체 + [guinjiCategoryOrder] 4개(귀인/인연/보완/조심).
+  static final _tabs = ['전체', ...guinjiCategoryOrder.map((c) => c.title)];
 
-  static const _filterRelationKeys = [null, 'CHEON_GWII', 'JORYEOK', 'KKEURIDA'];
+  /// 탭 인덱스 → 카테고리 키(전체는 null).
+  static final _catByIdx = <String?>[null, ...guinjiCategoryOrder.map((c) => c.key)];
+
+  String? _categoryOf(String relationKey) => guinjiRelationTypes[relationKey]?.category;
 
   List<GuinjiFriendEntry> get _filtered {
-    final key = _filterRelationKeys[_filterIndex];
-    if (key == null) return widget.friends;
-    return widget.friends.where((f) => f.relationKey == key).toList();
+    final cat = _catByIdx[_tab];
+    if (cat == null) return widget.friends;
+    return widget.friends.where((f) => _categoryOf(f.relationKey) == cat).toList();
   }
 
   @override
   Widget build(BuildContext context) {
-    final labels = _filterLabels;
     return Scaffold(
-      backgroundColor: GuinjiColors.backgroundDarker,
-      body: GuinjiScreenScaffold(
-        bgAlignment: const Alignment(0, -0.6),
-        bgOpacity: 0.10,
+      backgroundColor: GmColors.bgIvory,
+      appBar: GmTopBar(back: true, title: '참여자 ${widget.friends.length}명'),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            GuinjiTopBar(
-              breadcrumb: 'F · FRIENDS',
-              onBack: () => Navigator.of(context).maybePop(),
-              trailing: GuinjiIconButton(icon: '⋯', onPressed: () {}),
-            ),
-            // [렌더 버그 수정 — L 화면과 동일한 패턴] 줄바꿈(`\n`)과 색상이
-            // 다른 TextSpan을 한 Text.rich 트리에 섞으면 Flutter Web
-            // (CanvasKit)에서 첫 줄 글리프가 깨지는 문제가 있어, 줄바꿈이
-            // 들어가는 첫 줄을 별도 Text로 분리한다.
-            const Text(
-              '내 곁의',
-              style: TextStyle(
-                fontFamily: GuinjiFonts.display,
-                fontSize: 20,
-                fontWeight: FontWeight.w900,
-                height: 1.3,
-                letterSpacing: -0.4,
-                color: GuinjiColors.textPrimary,
-              ),
-            ),
-            Text.rich(
-              TextSpan(
-                children: [guinjiAccentSpan('귀인 랭킹')],
-                style: const TextStyle(
-                  fontFamily: GuinjiFonts.display,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                  height: 1.3,
-                  letterSpacing: -0.4,
-                  color: GuinjiColors.textPrimary,
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
-            SizedBox(
-              height: 34,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: labels.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 6),
-                itemBuilder: (context, i) => GuinjiChip(
-                  label: labels[i],
-                  active: _filterIndex == i,
-                  onTap: () => setState(() => _filterIndex = i),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Expanded(
-              child: ListView.separated(
-                itemCount: _filtered.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 8),
-                itemBuilder: (context, i) {
-                  final entry = _filtered[i];
-                  return _FriendRow(
-                    entry: entry,
-                    onTap: () => widget.onFriendTap?.call(entry),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: List.generate(_tabs.length, (i) {
+                  final active = _tab == i;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: GestureDetector(
+                      onTap: () => setState(() => _tab = i),
+                      child: GmChip(
+                        label: _tabs[i],
+                        background: active ? GmColors.ink : Colors.white,
+                        foreground: active ? GmColors.ivory : GmColors.inkSoft,
+                        borderColor: active ? GmColors.ink : GmColors.line,
+                      ),
+                    ),
                   );
-                },
+                }),
               ),
             ),
+            const SizedBox(height: 16),
+            if (_filtered.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 48),
+                child: Center(
+                  child: Text(
+                    '해당 카테고리 참여자가 없어요',
+                    style: TextStyle(fontSize: 12, color: GmColors.inkFaint),
+                  ),
+                ),
+              )
+            else
+              ..._filtered.map(
+                (entry) => _GmFriendRowTile(
+                  entry: entry,
+                  onTap: () => widget.onFriendTap?.call(entry),
+                ),
+              ),
           ],
         ),
       ),
@@ -223,9 +158,9 @@ class _GuinjiFriendListScreenState extends State<GuinjiFriendListScreen> {
   }
 }
 
-/// `.friend-row` — 순위 + 아바타(관계 한자) + 이름/라벨 + 점수.
-class _FriendRow extends StatelessWidget {
-  const _FriendRow({required this.entry, this.onTap});
+/// 새 디자인 `friend_row.dart`의 `FriendRow` 이식(라운드 카드형).
+class _GmFriendRowTile extends StatelessWidget {
+  const _GmFriendRowTile({required this.entry, this.onTap});
 
   final GuinjiFriendEntry entry;
   final VoidCallback? onTap;
@@ -233,107 +168,104 @@ class _FriendRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final meta = guinjiRelationTypes[entry.relationKey];
-    final color = meta?.color ?? GuinjiColors.lavender;
+    final color = meta != null ? GmColors.categoryColor(meta.category) : GmColors.rose500;
     final label = meta?.label ?? entry.relationKey;
-    final hanja = meta?.hanja ?? '?';
+    final initial = entry.name.isNotEmpty ? entry.name.substring(0, 1) : '?';
 
-    return Material(
-      color: GuinjiColors.surfaceCard,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            border: Border.all(color: GuinjiColors.surfaceCardBorder),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            children: [
-              SizedBox(
-                width: 22,
-                child: Text(
-                  entry.rank.toString().padLeft(2, '0'),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontFamily: GuinjiFonts.mono,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 11,
-                    letterSpacing: 1.2,
-                    color: GuinjiColors.textSecondary,
-                  ),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.85),
+          border: Border.all(color: GmColors.line),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 22,
+              child: Text(
+                entry.rank.toString().padLeft(2, '0'),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 11,
+                  letterSpacing: 1.2,
+                  color: GmColors.inkFaint,
                 ),
               ),
-              const SizedBox(width: 10),
-              Container(
-                width: 32,
-                height: 32,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: color.withValues(alpha: 0.25),
-                  border: Border.all(color: color, width: 1.5),
-                ),
-                child: Text(
-                  hanja,
-                  style: TextStyle(
-                    fontFamily: GuinjiFonts.display,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12,
-                    color: color,
-                  ),
-                ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.13),
+                borderRadius: BorderRadius.circular(14),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      entry.name,
-                      style: const TextStyle(
-                        fontFamily: GuinjiFonts.body,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
-                        color: GuinjiColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text.rich(
-                      TextSpan(
-                        children: [
-                          TextSpan(
-                            text: label,
-                            style: TextStyle(
-                              color: color,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          TextSpan(text: ' · ${entry.ohaengLabel}'),
-                        ],
-                        style: const TextStyle(
-                          fontFamily: 'Pretendard',
-                          fontWeight: FontWeight.w500,
-                          fontSize: 10,
-                          color: GuinjiColors.textSecondary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                '${entry.score}',
+              alignment: Alignment.center,
+              child: Text(
+                initial,
                 style: TextStyle(
-                  fontFamily: GuinjiFonts.display,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 18,
+                  fontFamily: GmFonts.serif,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
                   color: color,
                 ),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        entry.name,
+                        style: const TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
+                          color: GmColors.ink,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      GmChip(
+                        label: label,
+                        background: color.withValues(alpha: 0.1),
+                        foreground: color,
+                        borderColor: color.withValues(alpha: 0.2),
+                        fontSize: 10,
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${meta?.short ?? ''} · ${entry.ohaengLabel}',
+                    style: const TextStyle(fontSize: 10.5, color: GmColors.inkSoft),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${entry.score}',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: color),
+                ),
+                const Text(
+                  'SCORE',
+                  style: TextStyle(fontSize: 9, letterSpacing: 1, color: GmColors.inkFaint),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
