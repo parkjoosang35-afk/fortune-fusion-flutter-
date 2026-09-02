@@ -160,9 +160,15 @@ class _GmBodyText extends StatelessWidget {
 }
 
 /// 오늘 사주 미리보기 카드(마케팅용, L 화면 전용 예시 텍스트).
+///
+/// [2026-09 흐름 정합성 수정] 기존에는 `$hostName님은...`처럼 3인칭 이름으로
+/// "당신의 사주"를 설명해 마치 이미 존재하는 다른 사람의 결과처럼 읽혔다.
+/// 이 카드는 "내 정보를 입력하면 이런 식으로 내 사주 결과가 나와요"라는
+/// 예시이므로, 1인칭+예시 라벨로 명확히 표현한다.
 class GmPreviewCard extends StatelessWidget {
   const GmPreviewCard({super.key, required this.hostName});
 
+  // ignore: unused_field
   final String hostName;
 
   @override
@@ -183,15 +189,15 @@ class GmPreviewCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const GmChip(
-              label: '오늘 사주 미리보기',
+              label: '예시) 내 사주 미리보기',
               background: Colors.white,
               borderColor: GmColors.rose200,
               foreground: GmColors.rose700,
             ),
             const SizedBox(height: 8),
-            Text(
-              '$hostName님은\n부드럽게 스미는\n불꽃형 🔥',
-              style: const TextStyle(
+            const Text(
+              '나는\n부드럽게 스미는\n불꽃형 🔥',
+              style: TextStyle(
                 fontFamily: GmFonts.serif,
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
@@ -201,7 +207,7 @@ class GmPreviewCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              '타로/사주는 만세력 기반 결과예요. 짧은 힌트로 오늘의 관계 방향을 확인해요.',
+              '내 정보를 입력하면 만세력 기반으로 이런 결과를 확인할 수 있어요.',
               style: TextStyle(fontSize: 12, color: GmColors.inkSoft, height: 1.5),
             ),
             const SizedBox(height: 12),
@@ -222,9 +228,17 @@ class GmPreviewCard extends StatelessWidget {
 }
 
 /// 관계 요약(귀인/인연/보완/조심 4카드) — [guinjiCategoryOrder] 기반.
+///
+/// [2026-09 흐름 정합성 수정] 기존 문구("$hostName님과 나는 서로 기운을
+/// 복돋우는 귀인형 관계예요")는 아직 지인이 아무도 참여하지 않은 신규
+/// 방문 시점에 마치 "OO"라는 실존 상대와 이미 관계 분석이 끝난 것처럼
+/// 읽혀 혼란을 유발했다. 실제로는 지인이 초대링크로 참여해야만 관계가
+/// 계산되므로, 이 카드는 "귀인지도에서 확인할 수 있는 4가지 관계 유형
+/// 소개"로 성격을 명확히 하고 예시임을 라벨로 표기한다.
 class GmRelationOverview extends StatelessWidget {
   const GmRelationOverview({super.key, required this.hostName});
 
+  // ignore: unused_field
   final String hostName;
 
   static const _ratios = {'boost': 92, 'path': 88, 'warm': 85, 'care': 35};
@@ -242,26 +256,26 @@ class GmRelationOverview extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 32, 20, 32),
       child: Column(
         children: [
-          const GmLabelMini('관계 요약'),
+          const GmLabelMini('예시) 관계 요약'),
           const SizedBox(height: 6),
           Text.rich(
             TextSpan(
               children: [
-                TextSpan(text: '$hostName님과 나는\n서로 기운을 복돋우는\n', style: GmText.h2),
+                const TextSpan(text: '지인이 참여하면\n서로 기운을 복돋우는\n', style: GmText.h2),
                 TextSpan(
                   text: '귀인형 관계',
                   style: GmText.h2.copyWith(color: GmColors.rose700),
                 ),
-                TextSpan(text: '예요', style: GmText.h2),
+                const TextSpan(text: '처럼\n결과가 나올 수 있어요', style: GmText.h2),
               ],
             ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
-          Text(
-            '$hostName님과 함께 있으면\n어색함이 스르르 풀리고\n가슴 깊이 안심이 되는 특별한 인연이에요.',
+          const Text(
+            '함께 있으면 어색함이 스르르 풀리고\n가슴 깊이 안심이 되는,\n특별한 인연이 발견될 수 있어요.',
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 12, height: 1.6, color: GmColors.inkSoft),
+            style: TextStyle(fontSize: 12, height: 1.6, color: GmColors.inkSoft),
           ),
           const SizedBox(height: 20),
           GridView.count(
@@ -352,10 +366,10 @@ class GmNodeMapPreview extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const GmLabelMini('관계 지도'),
+          const GmLabelMini('예시) 관계 지도'),
           const SizedBox(height: 4),
           const Text(
-            '주요 관계 지도예요. 원의 크기와 거리로 관계의 결을 보여줘요.',
+            '내 정보를 입력하면 이런 모습으로 지도가 그려져요. 원의 크기와 거리로 관계의 결을 보여줘요.',
             style: TextStyle(fontSize: 13, color: GmColors.inkSoft),
           ),
           const SizedBox(height: 12),

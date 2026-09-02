@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../application/guinji_provider.dart';
-import '../theme/guinji_theme.dart';
-import '../widgets/guinji_ui_kit.dart';
+import '../theme/guinji_map_theme.dart';
+import '../widgets/guinji_map_widgets.dart';
 import 'guinji_calculating_screen.dart';
 import 'guinji_guest_result_screen.dart';
 
@@ -12,9 +12,14 @@ import 'guinji_guest_result_screen.dart';
 /// [design_handoff_guinji_web/Guinji Section.html] `flow-map`(2230~2245줄)
 /// 게스트 플로우 스펙: `/g/:mapToken` → 참여 안내·사주 입력 → `/g/:mapToken/calc`
 /// (C·Calculating 재사용) → `/g/:mapToken/result`(Y·Guest Result).
-/// UI 구조는 원본 프로토타입(`GuinjiScreens.jsx` "SCREEN 7 · Guest Join
-/// Page", 1135~1278줄)의 도령/선녀 greeting + 이름/생년월일/시간모름/
-/// 성별/약관 폼을 재현한다.
+///
+/// [2026-09 새 디자인 리스킨] 이 화면은 8화면(L/I/C/M/N/F/S/Y) 리스킨
+/// 당시 누락되어 구버전 다크·라벤더 톤(`guinji_theme.dart`)에 남아있었다.
+/// "귀인지도 흐름이 실제로 확실히 동작하는가"를 재검증하는 과정에서 발견,
+/// 새 디자인의 아이보리+로즈골드 팔레트·공용 위젯(`GmTopBar`/`GmFieldLabel`/
+/// `GmFieldShell`/`GmChip`/`GmPrimaryButton`)으로 I(Input) 화면과 동일한
+/// 시각 언어로 재도색했다. 데이터 흐름·API 호출·다음 화면 이동 로직은
+/// 절대 변경하지 않았다(아래 [_handleSubmit] 그대로 유지).
 ///
 /// [절대 원칙 — 바이럴 게스트 플로우] 이 화면은:
 ///  (a) 회원가입 없이 도달·완료 가능해야 하고([GuinjiProvider.joinAnonymous]는
@@ -161,203 +166,194 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: GuinjiColors.backgroundDarker,
-      body: GuinjiScreenScaffold(
-        bgAlignment: const Alignment(0, -0.5),
-        bgOpacity: 0.12,
+      backgroundColor: GmColors.bgIvory,
+      appBar: GmTopBar(
+        back: true,
+        title: '귀인지도 참여',
+        onBack: () => Navigator.of(context).maybePop(),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            GuinjiTopBar(
-              breadcrumb: 'GUEST · JOIN',
-              onBack: () => Navigator.of(context).maybePop(),
+            const _GreetingCard(),
+            const SizedBox(height: 24),
+            const Text(
+              '당신의 사주',
+              style: TextStyle(
+                fontFamily: GmFonts.serif,
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: GmColors.ink,
+              ),
             ),
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _GreetingCard(),
-                    const SizedBox(height: 20),
-                    const Padding(
-                      padding: EdgeInsets.only(left: 2, bottom: 8),
-                      child: Text(
-                        '당신의 사주',
-                        style: TextStyle(
-                          fontFamily: GuinjiFonts.mono,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 3,
-                          color: GuinjiColors.textSecondary,
-                        ),
-                      ),
-                    ),
-                    GuinjiField(
-                      label: '이름 · 닉네임',
-                      required: true,
-                      hint: '지도 소유자에게만 표시됩니다',
-                      controller: _nameController,
-                      placeholder: '어떻게 불릴까요',
-                      maxLength: 24,
-                    ),
-                    GuinjiField(
-                      label: '생년월일',
-                      required: true,
-                      child: Row(
-                        children: [
-                          Expanded(
-                            flex: 14,
-                            child: GuinjiInputBox(
-                              controller: _yearController,
-                              placeholder: '2003',
-                              keyboardType: TextInputType.number,
-                              maxLength: 4,
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: GuinjiInputBox(
-                              controller: _monthController,
-                              placeholder: '05',
-                              keyboardType: TextInputType.number,
-                              maxLength: 2,
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: GuinjiInputBox(
-                              controller: _dayController,
-                              placeholder: '14',
-                              keyboardType: TextInputType.number,
-                              maxLength: 2,
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    GuinjiField(
-                      label: '달력',
-                      child: Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: [
-                          for (var i = 0; i < _calendarChips.length; i++)
-                            GuinjiChip(
-                              label: _calendarChips[i],
-                              active: _calendarIndex == i,
-                              onTap: () => setState(() => _calendarIndex = i),
-                            ),
-                        ],
-                      ),
-                    ),
-                    GuinjiField(
-                      label: '태어난 시간',
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: GuinjiInputBox(
-                              controller: _hourController,
-                              placeholder: '09',
-                              keyboardType: TextInputType.number,
-                              maxLength: 2,
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: GuinjiInputBox(
-                              controller: _minuteController,
-                              placeholder: '20',
-                              keyboardType: TextInputType.number,
-                              maxLength: 2,
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    GuinjiToggle(
-                      label: '태어난 시간을 몰라요',
-                      description: '3기둥으로 계산 (정확도 다소 낮아짐)',
-                      value: _timeUnknown,
-                      onChanged: (v) => setState(() => _timeUnknown = v),
-                    ),
-                    const SizedBox(height: 14),
-                    GuinjiField(
-                      label: '성별',
-                      required: true,
-                      child: Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: [
-                          GuinjiChip(
-                            label: '여성',
-                            active: _gender == 'female',
-                            onTap: () => setState(() => _gender = 'female'),
-                          ),
-                          GuinjiChip(
-                            label: '남성',
-                            active: _gender == 'male',
-                            onTap: () => setState(() => _gender = 'male'),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    _ConsentCheckbox(
-                      label: '개인정보 수집·이용에 동의합니다',
-                      value: _agreePolicy,
-                      onChanged: (v) => setState(() => _agreePolicy = v),
-                    ),
-                    const SizedBox(height: 8),
-                    _ConsentCheckbox(
-                      label: '만 14세 이상입니다',
-                      value: _agreeAge14,
-                      onChanged: (v) => setState(() => _agreeAge14 = v),
-                    ),
-                    if (_formError != null) ...[
-                      const SizedBox(height: 12),
-                      Text(
-                        _formError!,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontFamily: GuinjiFonts.body,
-                          fontSize: 12,
-                          color: GuinjiColors.error,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 16),
-                  ],
+            const SizedBox(height: 4),
+            const Text(
+              '내 정보를 입력하면 초대한 친구와의 관계가 채워져요.',
+              style: TextStyle(fontSize: 12, color: GmColors.inkSoft),
+            ),
+            const SizedBox(height: 24),
+
+            const GmFieldLabel('이름 · 닉네임'),
+            const SizedBox(height: 6),
+            GmFieldShell(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: TextField(
+                controller: _nameController,
+                maxLength: 24,
+                style: const TextStyle(fontSize: 14, color: GmColors.ink),
+                decoration: const InputDecoration(
+                  isDense: true,
+                  counterText: '',
+                  hintText: '어떻게 불릴까요',
+                  hintStyle: TextStyle(color: GmColors.inkFaint),
+                  border: InputBorder.none,
                 ),
               ),
             ),
-            GuinjiPrimaryButton(
+            const SizedBox(height: 4),
+            const Text(
+              '지도 소유자에게만 표시돼요.',
+              style: TextStyle(fontSize: 10.5, color: GmColors.inkFaint),
+            ),
+            const SizedBox(height: 12),
+
+            const GmFieldLabel('생년월일'),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Expanded(
+                  flex: 7,
+                  child: _NumberBox(controller: _yearController, placeholder: '2003', maxLength: 4),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  flex: 5,
+                  child: _NumberBox(controller: _monthController, placeholder: '05', maxLength: 2),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  flex: 5,
+                  child: _NumberBox(controller: _dayController, placeholder: '14', maxLength: 2),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            const GmFieldLabel('달력'),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (var i = 0; i < _calendarChips.length; i++)
+                  _ChoiceChip(
+                    label: _calendarChips[i],
+                    active: _calendarIndex == i,
+                    onTap: () => setState(() => _calendarIndex = i),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            const GmFieldLabel('태어난 시간'),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Expanded(
+                  child: _NumberBox(controller: _hourController, placeholder: '09', maxLength: 2),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: _NumberBox(controller: _minuteController, placeholder: '20', maxLength: 2),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Checkbox(
+                  value: _timeUnknown,
+                  activeColor: GmColors.rose500,
+                  onChanged: (v) => setState(() => _timeUnknown = v ?? false),
+                ),
+                const Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(top: 12),
+                    child: Text(
+                      '태어난 시간을 몰라요 (3기둥으로 계산, 정확도 다소 낮아짐)',
+                      style: TextStyle(fontSize: 11.5, color: GmColors.inkSoft, height: 1.5),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+
+            const GmFieldLabel('성별'),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                _ChoiceChip(
+                  label: '여성',
+                  active: _gender == 'female',
+                  onTap: () => setState(() => _gender = 'female'),
+                ),
+                _ChoiceChip(
+                  label: '남성',
+                  active: _gender == 'male',
+                  onTap: () => setState(() => _gender = 'male'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            _ConsentCheckbox(
+              label: '개인정보 수집·이용에 동의합니다',
+              value: _agreePolicy,
+              onChanged: (v) => setState(() => _agreePolicy = v),
+            ),
+            const SizedBox(height: 8),
+            _ConsentCheckbox(
+              label: '만 14세 이상입니다',
+              value: _agreeAge14,
+              onChanged: (v) => setState(() => _agreeAge14 = v),
+            ),
+
+            if (_formError != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                _formError!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 12, color: Colors.redAccent),
+              ),
+            ],
+
+            const SizedBox(height: 24),
+            GmPrimaryButton(
               label: '관계 확인하기',
               loading: _submitting,
               onPressed: _submitting ? null : _handleSubmit,
             ),
-            const SizedBox(height: 6),
-            GuinjiGhostButton(
-              label: '나도 내 지도 만들기',
-              onPressed: () =>
-                  Navigator.of(context).pushNamed('/guinji-map'),
+            const SizedBox(height: 8),
+            Center(
+              child: TextButton(
+                onPressed: () => Navigator.of(context).pushNamed('/guinji-map'),
+                child: const Text(
+                  '나도 내 지도 만들기',
+                  style: TextStyle(fontSize: 12.5, color: GmColors.rose700),
+                ),
+              ),
             ),
             const SizedBox(height: 10),
             const Text(
               '입력한 정보는 지도 소유자에게만 공유돼요.\n'
               '상대방의 개인정보는 동의 없이 입력하지 말아 주세요.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'Pretendard',
-                fontSize: 10,
-                height: 1.5,
-                color: GuinjiColors.textSecondary,
-              ),
+              style: TextStyle(fontSize: 10, height: 1.5, color: GmColors.inkFaint),
             ),
           ],
         ),
@@ -366,50 +362,110 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
   }
 }
 
-/// 도령/선녀 greeting 이미지 + 말풍선 카드.
+/// 상단 greeting 카드 — 새 디자인 팔레트로 재도색.
 ///
 /// [초대자 이름 표시 제약] 참고 — [fetchInvite]가 인증 필요 API라 제출 전엔
 /// 실제 초대자 이름을 알 수 없으므로 일반화된 문구를 사용한다.
 class _GreetingCard extends StatelessWidget {
+  const _GreetingCard();
+
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        SizedBox(
-          width: 96,
-          height: 96,
-          child: Image.asset(
-            'assets/images/guinji/seonnyeo/greeting.png',
-            fit: BoxFit.contain,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: GuinjiColors.surfaceCard,
-            border: Border.all(color: GuinjiColors.surfaceCardBorder),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: const Text(
-            '친구가 당신을\n귀인지도에 초대했어요',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: GuinjiFonts.body,
-              fontSize: 13,
-              height: 1.5,
-              color: GuinjiColors.textPrimary,
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.85),
+        border: Border.all(color: GmColors.line),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: const [
+          BoxShadow(color: Color(0x26A6795E), blurRadius: 20, offset: Offset(0, 4)),
+        ],
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 56,
+            height: 56,
+            child: Image.asset(
+              'assets/images/guinji/seonnyeo/greeting.png',
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => const Icon(
+                Icons.favorite,
+                color: GmColors.rose500,
+                size: 32,
+              ),
             ),
           ),
-        ),
-      ],
+          const SizedBox(width: 14),
+          const Expanded(
+            child: Text(
+              '친구가 당신을\n귀인지도에 초대했어요',
+              style: TextStyle(
+                fontFamily: GmFonts.serif,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: GmColors.ink,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-/// 정사각 체크박스 + 라벨(개인정보/연령 동의) — 원본 JSX
-/// (`GuinjiScreens.jsx` 1214~1230줄)의 "태어난 시간을 몰라요" 체크박스
-/// 스타일을 그대로 이식.
+class _NumberBox extends StatelessWidget {
+  const _NumberBox({required this.controller, required this.placeholder, required this.maxLength});
+
+  final TextEditingController controller;
+  final String placeholder;
+  final int maxLength;
+
+  @override
+  Widget build(BuildContext context) {
+    return GmFieldShell(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: TextField(
+        controller: controller,
+        keyboardType: TextInputType.number,
+        maxLength: maxLength,
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 14, color: GmColors.ink),
+        decoration: InputDecoration(
+          isDense: true,
+          counterText: '',
+          hintText: placeholder,
+          hintStyle: const TextStyle(color: GmColors.inkFaint),
+          border: InputBorder.none,
+        ),
+      ),
+    );
+  }
+}
+
+class _ChoiceChip extends StatelessWidget {
+  const _ChoiceChip({required this.label, required this.active, required this.onTap});
+
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: GmChip(
+        label: label,
+        background: active ? GmColors.ink : Colors.white,
+        foreground: active ? GmColors.ivory : GmColors.inkSoft,
+        borderColor: active ? GmColors.ink : GmColors.line,
+      ),
+    );
+  }
+}
+
+/// 정사각 체크박스 + 라벨(개인정보/연령 동의) — 새 디자인 팔레트로 재도색.
 class _ConsentCheckbox extends StatelessWidget {
   const _ConsentCheckbox({
     required this.label,
@@ -429,7 +485,8 @@ class _ConsentCheckbox extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: GuinjiColors.surfaceCard,
+          color: Colors.white.withValues(alpha: 0.85),
+          border: Border.all(color: GmColors.line),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
@@ -439,11 +496,9 @@ class _ConsentCheckbox extends StatelessWidget {
               height: 18,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: value ? GuinjiColors.lavender : Colors.transparent,
+                color: value ? GmColors.rose500 : Colors.transparent,
                 border: Border.all(
-                  color: value
-                      ? GuinjiColors.lavender
-                      : GuinjiColors.textSecondary,
+                  color: value ? GmColors.rose500 : GmColors.inkSoft,
                   width: 1.5,
                 ),
                 borderRadius: BorderRadius.circular(4),
@@ -454,7 +509,7 @@ class _ConsentCheckbox extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: GuinjiColors.ink,
+                        color: Colors.white,
                         height: 1,
                       ),
                     )
@@ -464,11 +519,7 @@ class _ConsentCheckbox extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: const TextStyle(
-                  fontFamily: GuinjiFonts.body,
-                  fontSize: 12,
-                  color: GuinjiColors.textPrimary,
-                ),
+                style: const TextStyle(fontSize: 12, color: GmColors.ink),
               ),
             ),
           ],

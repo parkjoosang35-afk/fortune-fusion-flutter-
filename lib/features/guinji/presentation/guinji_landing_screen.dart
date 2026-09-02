@@ -61,9 +61,19 @@ class GuinjiLandingScreen extends StatelessWidget {
 /// 새 디자인 `InputFormSection`(랜딩 인라인 축약 폼) 대응 — 이 프로젝트는
 /// 실제 입력을 I(Input) 화면에서만 받으므로, 랜딩에서는 시각적 안내만
 /// 보여주고 탭하면 곧바로 I 화면으로 이동한다.
+///
+/// [2026-09 흐름 정합성 수정] 기존 문구("나는 $hostName님에게 어떤 사람일까?")는
+/// 아직 아무 관계도 생성되지 않은 신규 방문 시점에 마치 실존하는 "OO"라는
+/// 상대와 이미 관계가 있는 것처럼 읽혀 사용자 혼란을 유발했다(리포트:
+/// "귀인지도을 만들려면 일단 내가 어떤 사람인지 사주을보고... 지인에게
+/// 링크을 보내는게 맞는것 아니야?"). 실제 정상 흐름은 정확히 사용자가
+/// 말한 그대로다: 내 정보 입력 → 내 결과(귀인지도) 확인 → 그 결과를 근거로
+/// 지인에게 링크 공유. 이 위젯의 문구를 그 순서에 맞춰 다시 쓰고, 3단계
+/// 미니 가이드를 추가해 진행 순서를 명시적으로 보여준다.
 class _GmInlineStartSection extends StatelessWidget {
   const _GmInlineStartSection({required this.hostName, required this.onSubmit});
 
+  // ignore: unused_field
   final String hostName;
   final VoidCallback onSubmit;
 
@@ -84,7 +94,7 @@ class _GmInlineStartSection extends StatelessWidget {
             TextSpan(
               children: [
                 const TextSpan(text: '✦ ', style: TextStyle(color: GmColors.rose500)),
-                TextSpan(text: '나는 $hostName님에게 어떤 사람일까?', style: const TextStyle(fontSize: 13, color: GmColors.inkSoft)),
+                const TextSpan(text: '내가 어떤 사람인지부터 확인해볼까요?', style: TextStyle(fontSize: 13, color: GmColors.inkSoft)),
                 const TextSpan(text: ' ✦', style: TextStyle(color: GmColors.rose500)),
               ],
             ),
@@ -92,12 +102,14 @@ class _GmInlineStartSection extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           const Text(
-            '정확한 궁합의 분석을 위해 정보를 입력해주세요.',
+            '정확한 사주 분석을 위해 내 정보를 입력해주세요.',
             style: TextStyle(fontSize: 11.5, color: GmColors.inkFaint),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 20),
-          GmPrimaryButton(label: '관계 결과 확인하기', onPressed: onSubmit),
+          const _GmMiniStepsGuide(),
+          const SizedBox(height: 20),
+          GmPrimaryButton(label: '내 사주 확인하기', onPressed: onSubmit),
           const SizedBox(height: 10),
           const Text(
             '입력 정보는 분석 후 다른 용도로 사용되지 않아요.',
@@ -106,6 +118,54 @@ class _GmInlineStartSection extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// [2026-09 흐름 정합성 수정] 랜딩에서 CTA를 누르기 전에 전체 진행 순서
+/// (내 정보 입력 → 내 귀인지도 확인 → 지인에게 공유)를 한눈에 보여주는
+/// 3단계 미니 가이드. 새 디자인 zip의 `create_intro_screen.dart`(Y·만들기
+/// 인트로, 이 프로젝트에는 별도 화면으로 이식하지 않았다)가 보여주던
+/// 3-Step 안내를 화면 추가 없이 이 인라인 섹션에 축약해 반영한다.
+class _GmMiniStepsGuide extends StatelessWidget {
+  const _GmMiniStepsGuide();
+
+  static const _steps = [
+    ('01', '내 정보 입력', '이름·생년월일·태어난 시간'),
+    ('02', '나의 귀인지도 확인', '내 사주 기반 관계 지도 확인'),
+    ('03', '지인에게 공유', '링크로 보내면 관계가 채워져요'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        for (final (index, title, desc) in _steps)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Row(
+              children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: const BoxDecoration(color: GmColors.rose50, shape: BoxShape.circle),
+                  alignment: Alignment.center,
+                  child: Text(index, style: const TextStyle(fontSize: 10, color: GmColors.rose700, fontWeight: FontWeight.w700)),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: GmColors.ink)),
+                      Text(desc, style: const TextStyle(fontSize: 10.5, color: GmColors.inkSoft)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }
