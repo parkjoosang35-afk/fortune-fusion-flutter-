@@ -276,7 +276,7 @@ class _CastingOrbState extends State<_CastingOrb>
                             fontFamily: GuinjiFonts.display,
                             fontSize: 24,
                             fontWeight: FontWeight.w900,
-                            color: Color(0xFF2A1A3A),
+                            color: Colors.white,
                           ),
                         ),
                       ),

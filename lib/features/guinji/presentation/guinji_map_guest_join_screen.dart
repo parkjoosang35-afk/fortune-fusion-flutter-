@@ -327,7 +327,7 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
                         style: const TextStyle(
                           fontFamily: GuinjiFonts.body,
                           fontSize: 12,
-                          color: Color(0xFFF5A8BD),
+                          color: GuinjiColors.error,
                         ),
                       ),
                     ],

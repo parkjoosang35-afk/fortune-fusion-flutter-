@@ -3,6 +3,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../theme/guinji_theme.dart';
+
 /// 귀인지도(Guinji Map) 8화면 공통 "별빛 배경".
 ///
 /// [design_handoff_guinji_web/Guinji Section.html] `.stars`/`.star` +
@@ -12,6 +14,10 @@ import 'package:flutter/material.dart';
 ///   랜덤 최대 opacity(0.4~0.9 → CSS 변수 `--o`)
 /// - `twinkle` keyframe: opacity `var(--o)` ↔ 0.15, scale 1 ↔ 0.6 (0%,100% 은
 ///   var(--o)/scale(1), 50% 는 0.15/scale(0.6))
+///
+/// [2026-11 리스킨] 신규 아이보리+로즈골드 팔레트에서는 흰 별이 밝은 배경에
+/// 묻혀 거의 보이지 않으므로, 새 디자인(`lib/guiindo/widgets/stars_background.dart`
+/// `_StarsPainter`)과 동일하게 gold/blush 톤 도트로 교체한다.
 ///
 /// 좌표계는 부모 크기에 상대적인 비율(0~1)로 저장해 두고
 /// [LayoutBuilder]로 실제 픽셀 위치를 계산한다 — 화면 회전/리사이즈에도
@@ -110,6 +116,8 @@ class _GuinjiStarFieldState extends State<GuinjiStarField>
           return Stack(
             children: List.generate(_stars.length, (i) {
               final star = _stars[i];
+              final starColor =
+                  i.isEven ? GuinjiColors.gold : GuinjiColors.relationNaSaljinda;
               return Positioned(
                 left: star.left * constraints.maxWidth - star.size / 2,
                 top: star.top * constraints.maxHeight - star.size / 2,
@@ -123,8 +131,8 @@ class _GuinjiStarFieldState extends State<GuinjiStarField>
                         child: Container(
                           width: star.size,
                           height: star.size,
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
+                          decoration: BoxDecoration(
+                            color: starColor,
                             shape: BoxShape.circle,
                           ),
                         ),

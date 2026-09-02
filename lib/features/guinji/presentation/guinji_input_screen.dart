@@ -339,7 +339,7 @@ class _GuinjiInputScreenState extends State<GuinjiInputScreen> {
                         style: const TextStyle(
                           fontFamily: GuinjiFonts.body,
                           fontSize: 12,
-                          color: Color(0xFFF5A8BD),
+                          color: GuinjiColors.error,
                         ),
                       ),
                     ],

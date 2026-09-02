@@ -335,7 +335,7 @@ class GuinjiInputBox extends StatelessWidget {
         ),
         decoration: InputDecoration(
           hintText: placeholder,
-          hintStyle: const TextStyle(color: Color(0x59DCD2F5)),
+          hintStyle: const TextStyle(color: GuinjiColors.textSecondary),
           border: InputBorder.none,
           isDense: true,
           counterText: '',
@@ -463,7 +463,7 @@ class GuinjiToggle extends StatelessWidget {
               decoration: BoxDecoration(
                 color: value
                     ? GuinjiColors.lavender
-                    : const Color(0x33DCC8FF),
+                    : GuinjiColors.surfaceCardBorder,
                 borderRadius: BorderRadius.circular(999),
               ),
               alignment: value ? Alignment.centerRight : Alignment.centerLeft,
@@ -471,9 +471,7 @@ class GuinjiToggle extends StatelessWidget {
                 width: 16,
                 height: 16,
                 decoration: BoxDecoration(
-                  color: value
-                      ? const Color(0xFF2A1A3A)
-                      : GuinjiColors.textPrimary,
+                  color: Colors.white,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -529,7 +527,7 @@ class GuinjiPrimaryButton extends StatelessWidget {
                       height: 18,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Color(0xFF2A1A3A),
+                        color: Colors.white,
                       ),
                     ),
                   )
@@ -544,7 +542,7 @@ class GuinjiPrimaryButton extends StatelessWidget {
                           fontFamily: GuinjiFonts.body,
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF2A1A3A),
+                          color: Colors.white,
                         ),
                       ),
                     ],

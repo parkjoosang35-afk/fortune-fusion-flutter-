@@ -230,7 +230,7 @@ class _CharacterNames extends StatelessWidget {
             fontFamily: GuinjiFonts.mono,
             fontSize: 9,
             letterSpacing: 2,
-            color: Color(0xFFF5C8D5),
+            color: GuinjiColors.gold,
           ),
         ),
       ],
@@ -406,7 +406,7 @@ class _PreviewCenter extends StatelessWidget {
           fontFamily: GuinjiFonts.display,
           fontSize: 18,
           fontWeight: FontWeight.w900,
-          color: Color(0xFF2A1A3A),
+          color: Colors.white,
         ),
       ),
     );

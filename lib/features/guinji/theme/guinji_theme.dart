@@ -2,41 +2,52 @@ import 'package:flutter/material.dart';
 
 /// 귀인지도(Guinji Map) — 전용 디자인 토큰.
 ///
-/// [신통방통_귀인지도_최종_개발계획서_v2.0.md §9 / design_handoff_home_redesign
-/// (3).zip → assets/colors_and_type.css `[data-palette="crystal"]`] "Moonlit
-/// Crystal(달빛 크리스탈)" 팔레트를 그대로 이식한다. 이 파일은 순수 디자인
-/// 토큰(색상/타이포/spacing)만 다루며 어떤 화폐/잔액/포인트도 정의하지
-/// 않는다(절대 원칙 — 재화는 항상 Wallet/PointHistory 경로로만 처리).
+/// [2026-11 리스킨] 기존 "Moonlit Crystal(달빛 크리스탈)" 다크 팔레트를
+/// 신규 디자인 핸드오프(`flutter (1).zip` → `lib/guiindo/theme/colors.dart`
+/// `AppColors`)의 "아이보리 + 로즈골드" 라이트 팔레트로 전면 교체한다.
+/// 색상 상수의 **이름**(backgroundSoft, lavender, textPrimary 등)은 8화면
+/// (`guinji_landing_screen.dart` 등)과 공통 위젯 키트(`guinji_ui_kit.dart`)가
+/// 이미 참조하고 있으므로 그대로 유지하고, **값**만 새 팔레트로 교체해
+/// 화면/로직 코드를 건드리지 않고 리스킨한다(매핑 방식).
 ///
-/// [팔레트 확장 여지] `ERROR_STATES_AND_MOTION.md`는 Crystal 외 Hanji(라이트)
-/// / Midnight(이벤트) 2종을 추가로 정의하지만, Phase G-1(온보딩 1화면)에서는
-/// Crystal 하나만 사용한다. 다크모드 자동전환·팔레트 선택 UI는 후속 Phase에서
-/// ThemeExtension으로 확장한다.
+/// 매핑 기준(AppColors → GuinjiColors):
+///  - bgCream/bgIvory      → backgroundSoft/backgroundDeep/backgroundDarker
+///  - ink/inkSoft            → textPrimary/textSecondary
+///  - rose500(Primary)       → lavender(기존 라벤더 액센트 슬롯을 그대로 사용)
+///  - gold                   → gold/aqua
+///  - 화이트 카드 + line 테두리 → surfaceCard/surfaceCardBorder
+///
+/// 이 파일은 순수 디자인 토큰(색상/타이포)만 다루며 어떤 화폐/잔액/포인트도
+/// 정의하지 않는다(절대 원칙 — 재화는 항상 Wallet/PointHistory 경로로만
+/// 처리).
 class GuinjiColors {
   GuinjiColors._();
 
-  // ── Moonlit Crystal 배경 그라디언트 (bg-1 → bg-2) ──
-  static const backgroundSoft = Color(0xFF3D3568); // --bg-1
-  static const backgroundDeep = Color(0xFF1E1A3A); // --bg-2
-  static const backgroundDarker = Color(0xFF14102A); // 배너 하단(README 참고)
+  // ── 배경 그라디언트(아이보리 + 크림) — 구 backgroundSoft→Deep→Darker 슬롯 ──
+  static const backgroundSoft = Color(0xFFF5EBDC); // AppColors.bgCream
+  static const backgroundDeep = Color(0xFFFBF7EF); // AppColors.bgIvory
+  static const backgroundDarker = Color(0xFFFBF7EF); // Scaffold 배경(bgIvory)
 
   // ── 텍스트 ──
-  static const textPrimary = Color(0xFFF0EAFF); // --fg
-  static const textSecondary = Color(0xA6DCD2F5); // --muted (65% 근사)
-  static const paper = Color(0xFFF8F2E6); // 타이틀 전용(README 배너 title)
+  static const textPrimary = Color(0xFF2A2438); // AppColors.ink
+  static const textSecondary = Color(0xFF6E5A54); // AppColors.inkSoft
+  static const paper = Color(0xFFFBF7EF); // AppColors.ivory(타이틀 전용)
 
-  // ── 액센트 ──
-  static const lavender = Color(0xFFE8C8F5); // --glow / --sigil (CTA·강조)
-  static const lavenderSoft = Color(0xFFF5E4FB);
-  static const glowShadow = Color(0x59E8C8F5); // rgba(232,200,245,0.35)
-  static const aqua = Color(0xFF7FB8D4); // --accent
-  static const crystalAqua = Color(0xFFA8D5E3); // --crystal
-  static const gold = Color(0xFFF5D97A); // 타이틀 그라디언트 시작·스파클
-  static const ink = Color(0xFF1A0D2E); // CTA 텍스트(라벤더 배경 위)
+  // ── 액센트(로즈골드) — 구 lavender 슬롯을 rose500으로 대체 ──
+  static const lavender = Color(0xFFC99B7F); // AppColors.rose500 (Primary/CTA)
+  static const lavenderSoft = Color(0xFFF5D9C9); // AppColors.rose100
+  static const glowShadow = Color(0x40C99B7F); // rose500 25% 근사(그림자)
+  static const aqua = Color(0xFFD4A574); // AppColors.gold
+  static const crystalAqua = Color(0xFFE8CBA0); // AppColors.goldLight
+  static const gold = Color(0xFFD4A574); // AppColors.gold
+  static const ink = Color(0xFFFFFFFF); // CTA 텍스트(로즈 배경 위 화이트)
 
-  // ── 카드/구분선 ──
-  static const surfaceCard = Color(0x14C8B4FF); // rgba(200,180,255,0.08)
-  static const surfaceCardBorder = Color(0x26DCC8FF); // rgba(220,200,255,0.15)
+  // ── 카드/구분선(화이트 카드 + 라인 테두리) ──
+  static const surfaceCard = Color(0xFFFFFFFF); // 카드 배경(불투명 화이트)
+  static const surfaceCardBorder = Color(0xFFE8DDD0); // AppColors.line
+
+  // 에러/경고 텍스트(아이보리 배경에서도 식별 가능한 진한 로즈레드)
+  static const error = Color(0xFFC65D5D);
 
   static const backgroundGradient = LinearGradient(
     begin: Alignment.topCenter,
@@ -44,40 +55,42 @@ class GuinjiColors {
     colors: [backgroundSoft, backgroundDeep, backgroundDarker],
   );
 
-  /// 12라벨(貴人地圖 관계 라벨) 색상 — admin_web `src/app/g/[token]/page.tsx`의
-  /// `RELATION_COLOR`(PRD "신통방통 · 귀인지도 섹션 PRD" v0.9 기준으로
-  /// 전면 재작성됨)와 동일한 HEX 값을 그대로 이식한다. 기존 5색
-  /// (relationGuin 등)은 [2026-09 12라벨 전환] 작업으로 완전히 대체되었다.
-  static const relationCheonGwii = Color(0xFFF5D97A); // 천생귀인
-  static const relationNaSalrida = Color(0xFFE8C8F5); // 나를 살리는 사람
-  static const relationJoryeok = Color(0xFFA8D5E3); // 조력자
-  static const relationGachiGa = Color(0xFFC8F5D5); // 같이 가야 좋은 길
-  static const relationNaSaljinda = Color(0xFFF5C8D5); // 내가 살리는 사람
-  static const relationChangGyim = Color(0xFFE8C890); // 내가 챙기는 사람
-  static const relationGamjeong = Color(0xFFD5C8F5); // 감정 충전소
-  static const relationDeungdeung = Color(0xFFA5B5E8); // 든든한 등받이
-  static const relationKkeurida = Color(0xFFF5A8BD); // 끌리는 사람
-  static const relationGachiBich = Color(0xFFF5D97A); // 같이 빛나는 사람
-  static const relationJageukje = Color(0xFFF5B880); // 자극제
-  static const relationGingjang = Color(0xFFB5A8E8); // 긴장 속 단짝
+  /// 12라벨(貴人地圖 관계 라벨) 색상 — 로즈골드 아이보리 팔레트에 맞춰
+  /// 파스텔 웜톤으로 재조정(기존 다크 배경용 네온 파스텔 → 라이트 배경용
+  /// 저채도 톤). 관계 유형별 구분은 유지하면서 전체적으로 채도를 낮추고
+  /// 배경(아이보리)과 대비가 확보되도록 톤을 조정했다.
+  static const relationCheonGwii = Color(0xFFC99B7F); // 천생귀인 (rose500)
+  static const relationNaSalrida = Color(0xFFD4A574); // 나를 살리는 사람 (gold)
+  static const relationJoryeok = Color(0xFF8FA68C); // 조력자 (세이지그린)
+  static const relationGachiGa = Color(0xFFA6795E); // 같이 가야 좋은 길 (rose700)
+  static const relationNaSaljinda = Color(0xFFE8B4A5); // 내가 살리는 사람 (blush)
+  static const relationChangGyim = Color(0xFFB58567); // 내가 챙기는 사람 (rose600)
+  static const relationGamjeong = Color(0xFFC9A5C9); // 감정 충전소 (더스티 라일락)
+  static const relationDeungdeung = Color(0xFF8B9DAE); // 든든한 등받이 (더스티 블루)
+  static const relationKkeurida = Color(0xFFD69175); // 끌리는 사람 (rose400)
+  static const relationGachiBich = Color(0xFFE8CBA0); // 같이 빛나는 사람 (goldLight)
+  static const relationJageukje = Color(0xFFCC8B5C); // 자극제 (버뮤트 오렌지)
+  static const relationGingjang = Color(0xFF9C8AA5); // 긴장 속 단짝 (더스티 퍼플)
 
-  /// 오행(五行) 5색 — `GUINJI_SCREENS.md` "오행 5색" 표.
-  static const ohaengMok = Color(0xFF7FB8D4); // 木
-  static const ohaengHwa = Color(0xFFE8A5B8); // 火
-  static const ohaengTo = Color(0xFFE8C890); // 土
-  static const ohaengGeum = Color(0xFFE8E0F5); // 金
-  static const ohaengSu = Color(0xFFA8A5E8); // 水
+  /// 오행(五行) 5색 — 로즈골드 아이보리 팔레트에 맞춘 저채도 톤.
+  static const ohaengMok = Color(0xFF8FA68C); // 木 (세이지그린)
+  static const ohaengHwa = Color(0xFFD69175); // 火 (rose400)
+  static const ohaengTo = Color(0xFFD4A574); // 土 (gold)
+  static const ohaengGeum = Color(0xFFE8DDD0); // 金 (line, 은은한 아이보리)
+  static const ohaengSu = Color(0xFF8B9DAE); // 水 (더스티 블루)
 }
 
-/// 타이포 폰트 패밀리 — README/`colors_and_type.css` `--font-*` 변수를
-/// pubspec.yaml에 이미 등록된 로컬 폰트 패밀리명으로 매핑한다.
-/// (Wish Room이 `GowunBatangWish`/`IBMPlexMonoWish`로 이미 등록해 둔 자산을
-/// 재사용 — 새 폰트 asset을 추가하지 않는다.)
+/// 타이포 폰트 패밀리 — [2026-11 리스킨] 신규 디자인 핸드오프의
+/// `AppFonts`(serif=NotoSerifKR, sans=Pretendard)에 맞춰 재매핑한다.
+/// pubspec.yaml에 `NotoSerifKR`/`Pretendard`가 이미 등록되어 있으므로 별도
+/// 폰트 asset 추가는 필요 없다. 기존 `GowunBatangWish`/`IBMPlexMonoWish`
+/// 대신 본문·모노 슬롯도 새 팔레트 톤에 맞춰 `NotoSerifKR`/`Pretendard`로
+/// 통일한다(로즈골드 디자인은 손글씨체 느낌의 GowunBatang을 사용하지 않음).
 class GuinjiFonts {
   GuinjiFonts._();
 
-  static const display = 'NotoSerifKRWish'; // --font-display 대응 존재 시 사용
-  static const body = 'GowunBatangWish'; // --font-body
+  static const display = 'NotoSerifKR'; // --font-display (구 NotoSerifKRWish)
+  static const body = 'Pretendard'; // --font-body (구 GowunBatangWish)
   static const ui = 'Pretendard'; // --font-ui (앱 전역 기본 폰트)
-  static const mono = 'IBMPlexMonoWish'; // --font-mono
+  static const mono = 'Pretendard'; // --font-mono (구 IBMPlexMonoWish)
 }
