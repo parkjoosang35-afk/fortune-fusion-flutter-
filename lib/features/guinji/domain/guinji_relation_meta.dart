@@ -21,6 +21,9 @@ class GuinjiRelationMeta {
     required this.color,
     required this.orbit,
     required this.description,
+    required this.category,
+    required this.short,
+    required this.long,
   });
 
   final String key;
@@ -32,6 +35,17 @@ class GuinjiRelationMeta {
   /// 궤도 인덱스(0=최내곽 貴 → 4=최외곽 師).
   final int orbit;
   final String description;
+
+  /// 4대 카테고리: 'boost'(귀인) / 'path'(인연) / 'warm'(보완) / 'care'(조심).
+  /// [2026-09 새 디자인 리스킨] 새 디자인 zip의 `labels.dart` `RelationCategory`
+  /// enum과 1:1 대응. 12라벨명이 완전히 동일하여 이름 기준으로 매핑 확정.
+  final String category;
+
+  /// 새 디자인 카드용 한 줄 요약(새 디자인 `LabelTemplate.short`와 동일).
+  final String short;
+
+  /// 새 디자인 상세 설명(새 디자인 `LabelTemplate.long`와 동일).
+  final String long;
 }
 
 /// 12라벨 순서(priority 내림차순, admin_web `GUINJI_RELATION_TYPE_ORDER`와
@@ -47,6 +61,9 @@ const Map<String, GuinjiRelationMeta> guinjiRelationTypes = {
     color: GuinjiColors.relationCheonGwii,
     orbit: 0,
     description: '이 사람은 내게 희소한 기운을 가져다줘요.',
+    category: 'boost',
+    short: '태어날 때부터 나를 돕는 사람',
+    long: '사주의 근본에서부터 나에게 힘을 실어주는 관계예요. 어려울 때 결정적인 조언과 방향을 알려주는 존재입니다.',
   ),
   'NA_SALRIDA': GuinjiRelationMeta(
     key: 'NA_SALRIDA',
@@ -56,6 +73,9 @@ const Map<String, GuinjiRelationMeta> guinjiRelationTypes = {
     color: GuinjiColors.relationNaSalrida,
     orbit: 1,
     description: '힘들 때 절로 찾는, 나를 살리는 사람.',
+    category: 'boost',
+    short: '내 부족함을 채워주는 사람',
+    long: '내 오행에 결핍된 기운을 정확히 보충해주는 관계입니다.',
   ),
   'JORYEOK': GuinjiRelationMeta(
     key: 'JORYEOK',
@@ -65,6 +85,9 @@ const Map<String, GuinjiRelationMeta> guinjiRelationTypes = {
     color: GuinjiColors.relationJoryeok,
     orbit: 2,
     description: '서로의 약점을 채워주는 조력자.',
+    category: 'boost',
+    short: '실질적으로 나를 돕는 사람',
+    long: '일이나 결정을 앞두고 있을 때 손을 내밀어주는 관계예요.',
   ),
   'GACHI_GA': GuinjiRelationMeta(
     key: 'GACHI_GA',
@@ -74,6 +97,9 @@ const Map<String, GuinjiRelationMeta> guinjiRelationTypes = {
     color: GuinjiColors.relationGachiGa,
     orbit: 3,
     description: '같이 걸을 때 더 멀리 가는 사이.',
+    category: 'path',
+    short: '함께할 때 서로 잘 되는 사이',
+    long: '방향과 속도가 맞는 관계입니다. 오래 함께할수록 서로에게 좋은 결과가 쌓여요.',
   ),
   'NA_SALJINDA': GuinjiRelationMeta(
     key: 'NA_SALJINDA',
@@ -83,6 +109,9 @@ const Map<String, GuinjiRelationMeta> guinjiRelationTypes = {
     color: GuinjiColors.relationNaSaljinda,
     orbit: 4,
     description: '내가 에너지를 주는 사람 — 가끔은 쉬어가도 좋아요.',
+    category: 'path',
+    short: '내가 도와줄 때 빛나는 사람',
+    long: '나의 기운이 상대에게 크게 도움 되는 관계예요.',
   ),
   'CHANG_GYIM': GuinjiRelationMeta(
     key: 'CHANG_GYIM',
@@ -92,6 +121,9 @@ const Map<String, GuinjiRelationMeta> guinjiRelationTypes = {
     color: GuinjiColors.relationChangGyim,
     orbit: 5,
     description: '주다 보면 내가 소모되기 쉬운 조합.',
+    category: 'path',
+    short: '내 손길이 필요한 사람',
+    long: '내가 세심하게 챙길수록 관계가 순해지는 사이입니다.',
   ),
   'GAMJEONG': GuinjiRelationMeta(
     key: 'GAMJEONG',
@@ -101,6 +133,9 @@ const Map<String, GuinjiRelationMeta> guinjiRelationTypes = {
     color: GuinjiColors.relationGamjeong,
     orbit: 6,
     description: '만나면 마음이 회복되는 사람.',
+    category: 'warm',
+    short: '지치면 만나고 싶어지는 사람',
+    long: '함께 있으면 감정의 배터리가 채워지는 관계예요.',
   ),
   'DEUNGDEUNG': GuinjiRelationMeta(
     key: 'DEUNGDEUNG',
@@ -110,6 +145,9 @@ const Map<String, GuinjiRelationMeta> guinjiRelationTypes = {
     color: GuinjiColors.relationDeungdeung,
     orbit: 7,
     description: '곁에서 흔들리지 않게 잡아주는 사람.',
+    category: 'warm',
+    short: '뒤에서 나를 지탱해주는 사람',
+    long: '요란하지 않지만 오래 곁에 있는 관계입니다.',
   ),
   'KKEURIDA': GuinjiRelationMeta(
     key: 'KKEURIDA',
@@ -119,6 +157,9 @@ const Map<String, GuinjiRelationMeta> guinjiRelationTypes = {
     color: GuinjiColors.relationKkeurida,
     orbit: 8,
     description: '끌리지만 안정감은 따로 가는 사이.',
+    category: 'warm',
+    short: '자연스레 마음이 향하는 사람',
+    long: '오행의 결이 서로 맞물려 자연스러운 호감이 생기는 관계예요.',
   ),
   'GACHI_BICH': GuinjiRelationMeta(
     key: 'GACHI_BICH',
@@ -128,6 +169,9 @@ const Map<String, GuinjiRelationMeta> guinjiRelationTypes = {
     color: GuinjiColors.relationGachiBich,
     orbit: 9,
     description: '각자의 결이 또렷한 채로 빛나는 사이.',
+    category: 'care',
+    short: '함께 있을 때 서로가 튀는 사람',
+    long: '개성이 강한 관계라 함께 있을 때 시너지도, 마찰도 큽니다.',
   ),
   'JAGEUKJE': GuinjiRelationMeta(
     key: 'JAGEUKJE',
@@ -137,6 +181,9 @@ const Map<String, GuinjiRelationMeta> guinjiRelationTypes = {
     color: GuinjiColors.relationJageukje,
     orbit: 10,
     description: '서로의 날카로움이 성장으로 가는 자극제.',
+    category: 'care',
+    short: '나를 흔들어 깨우는 사람',
+    long: '편안하지는 않지만 성장의 계기가 되는 관계입니다.',
   ),
   'GINGJANG': GuinjiRelationMeta(
     key: 'GINGJANG',
@@ -146,7 +193,38 @@ const Map<String, GuinjiRelationMeta> guinjiRelationTypes = {
     color: GuinjiColors.relationGingjang,
     orbit: 11,
     description: '부딪히면서도 놓지 않는 단짝.',
+    category: 'care',
+    short: '가까울수록 예민해지는 사람',
+    long: '결이 가까워 함께 있지만 미묘한 긴장이 도는 관계입니다.',
   ),
+};
+
+/// 4대 카테고리 메타(새 디자인 `kCategories`와 동일 값).
+class GuinjiCategoryMeta {
+  const GuinjiCategoryMeta({
+    required this.key,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final String key;
+  final String title;
+  final String subtitle;
+}
+
+const List<GuinjiCategoryMeta> guinjiCategoryOrder = [
+  GuinjiCategoryMeta(key: 'boost', title: '귀인', subtitle: '나를 끌어올려주는 관계'),
+  GuinjiCategoryMeta(key: 'path', title: '인연', subtitle: '함께 걸어갈 방향의 사람'),
+  GuinjiCategoryMeta(key: 'warm', title: '보완', subtitle: '내 결을 채워주는 존재'),
+  GuinjiCategoryMeta(key: 'care', title: '조심', subtitle: '거리 조절이 필요한 관계'),
+];
+
+/// 카테고리별 관계 키 목록(새 디자인 `kLabelsByCategory`와 동일 순서).
+const Map<String, List<String>> guinjiRelationKeysByCategory = {
+  'boost': ['CHEON_GWII', 'NA_SALRIDA', 'JORYEOK'],
+  'path': ['GACHI_GA', 'NA_SALJINDA', 'CHANG_GYIM'],
+  'warm': ['GAMJEONG', 'DEUNGDEUNG', 'KKEURIDA'],
+  'care': ['GACHI_BICH', 'JAGEUKJE', 'GINGJANG'],
 };
 // 주의: 관계 순서 리스트(`guinjiRelationOrder`)는 `guinji_person.dart`에
 // 정의되어 있다(중복 선언 방지). 그 파일도 12라벨로 갱신 필요 — 미완료.
