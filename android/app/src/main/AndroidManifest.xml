@@ -85,6 +85,14 @@
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="fortunefusion" android:host="g"/>
+                <!-- [귀인지도 바이럴 랜딩 - ServiceGrid 신설] 바이럴 랜딩페이지
+                     (admin_web `/g/[token]`)의 "소원방/타로/정통사주/오늘의
+                     운세" 카드가 누르는 즉시 신통방통 앱의 해당 화면으로
+                     바로 이동하도록, 위 `g` host와 별개로 `svc` host를 신규
+                     등록한다. `fortunefusion://svc/{key}` 형태이며 key는
+                     wish-room|tarot|jeontong|today 중 하나(자세한 매핑은
+                     guinji_deep_link_handler.dart 참고). -->
+                <data android:scheme="fortunefusion" android:host="svc"/>
             </intent-filter>
             <!-- [Phase B] sintong.kr 운영 도메인 App Links (https).
                  assetlinks.json 검증에 성공하면 https://sintong.kr/g/{token}
@@ -101,6 +109,12 @@
                     android:scheme="https"
                     android:host="sintong.kr"
                     android:pathPrefix="/g"/>
+                <!-- [귀인지도 바이럴 랜딩 - ServiceGrid 신설] https 경로 버전.
+                     https://sintong.kr/svc/{key} 형태(예: /svc/wish-room). -->
+                <data
+                    android:scheme="https"
+                    android:host="sintong.kr"
+                    android:pathPrefix="/svc"/>
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
