@@ -18,6 +18,13 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <!-- [버그 수정 - 모바일 하단 빈 공간] viewport 메타 태그가 누락되어
+       모바일 브라우저가 기본 데스크톱 너비(약 980px)로 렌더링 후 화면에
+       맞춰 축소했다. 그 결과 Flutter UI가 실제 화면보다 훨씬 넓은
+       뷰포트를 기준으로 배치되어, 콘텐츠가 화면 상단에 압축되고 나머지는
+       거대한 빈 공간(흰 배경 또는 다크 배경)으로 남는 문제가 발생했다.
+       표준 Flutter 웹 프로젝트의 기본 viewport 태그를 복원한다. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="description" content="신통도령과 함께하는 오늘의 사주 · 타로 · 궁합. 나만을 위한 운세를 지금 만나보세요.">
 
   <!-- iOS meta tags & icons -->

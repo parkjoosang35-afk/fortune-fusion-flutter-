@@ -49,6 +49,26 @@ class IntroPageContent extends StatelessWidget {
     this.alignTop = false,
   });
 
+  /// 캐릭터/제목/서브카피/피처리스트를 렌더링하는 공용 콘텐츠 블록.
+  List<Widget> _contentChildren() {
+    return [
+      IntroCharacter(asset: characterAsset, size: characterSize),
+      const SizedBox(height: 20),
+      IntroTitleText(
+        title,
+        style: IntroTextStyles.title(fontSize: titleFontSize),
+        highlight: titleHighlight,
+        highlightColors: titleHighlightColors,
+      ),
+      const SizedBox(height: 14),
+      Text(subtitle, textAlign: TextAlign.center, style: IntroTextStyles.sub()),
+      if (featureItems != null) ...[
+        const SizedBox(height: 20),
+        IntroFeatureList(items: featureItems!),
+      ],
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -56,34 +76,27 @@ class IntroPageContent extends StatelessWidget {
         IntroEyebrowLabel(eyebrow),
         const SizedBox(height: 20),
         Expanded(
-          child: SingleChildScrollView(
-            physics: const NeverScrollableScrollPhysics(),
-            child: Column(
-              mainAxisAlignment: alignTop
-                  ? MainAxisAlignment.start
-                  : MainAxisAlignment.center,
-              children: [
-                IntroCharacter(asset: characterAsset, size: characterSize),
-                const SizedBox(height: 20),
-                IntroTitleText(
-                  title,
-                  style: IntroTextStyles.title(fontSize: titleFontSize),
-                  highlight: titleHighlight,
-                  highlightColors: titleHighlightColors,
+          // [버그 수정 - 캐릭터/제목과 버튼 사이 거대한 빈 공간]
+          // SingleChildScrollView 내부의 Column은 mainAxisAlignment.center를
+          // 줘도 실제로는 항상 상단(0.0)에 배치된다(스크롤 가능 콘텐츠는
+          // "정렬" 개념이 없고 오프셋만 존재하기 때문). alignTop이 아닌
+          // 경우(페이지2) 콘텐츠를 화면 세로 중앙에 실제로 배치하려면
+          // SingleChildScrollView를 제거하고 Column 자체를
+          // mainAxisAlignment.center로 렌더링해야 한다. alignTop인 경우
+          // (페이지3)는 원래도 상단 정렬이 의도이므로, 콘텐츠가 화면보다
+          // 커질 수 있어 SingleChildScrollView(스크롤 가능)를 유지한다.
+          child: alignTop
+              ? SingleChildScrollView(
+                  physics: const NeverScrollableScrollPhysics(),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: _contentChildren(),
+                  ),
+                )
+              : Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: _contentChildren(),
                 ),
-                const SizedBox(height: 14),
-                Text(
-                  subtitle,
-                  textAlign: TextAlign.center,
-                  style: IntroTextStyles.sub(),
-                ),
-                if (featureItems != null) ...[
-                  const SizedBox(height: 20),
-                  IntroFeatureList(items: featureItems!),
-                ],
-              ],
-            ),
-          ),
         ),
       ],
     );
