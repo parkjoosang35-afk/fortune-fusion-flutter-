@@ -154,8 +154,13 @@ class _SplashScreenState extends State<SplashScreen>
     // Positioned.fill로 그라디언트 배경을 Scaffold body 전체(화면 높이)에
     // 강제로 채우고, 그 위에 SafeArea/콘텐츠를 올려 콘텐츠 길이와 무관하게
     // 배경이 항상 화면을 꽉 채우게 한다.
+    // [1차 수정 실패 원인 - 추가 수정] Stack은 기본적으로 포지션 없는
+    // 자식(SafeArea)의 실제 렌더링 크기에 맞춰 자기 크기를 정하므로,
+    // Positioned.fill만으로는 부족했다. `fit: StackFit.expand`를 지정해
+    // Stack이 항상 부모(Scaffold body)의 최대 크기로 확장되도록 한다.
     return Scaffold(
       body: Stack(
+        fit: StackFit.expand,
         children: [
           const Positioned.fill(
             child: DecoratedBox(

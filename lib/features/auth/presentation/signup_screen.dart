@@ -149,7 +149,19 @@ class _SignupScreenState extends State<SignupScreen> {
       // Scaffold body 전체 영역(화면 높이)에 강제로 채우고, 그 위에
       // SafeArea/SingleChildScrollView를 올려 콘텐츠 길이와 무관하게
       // 배경이 항상 화면을 꽉 채우게 한다.
+      //
+      // [1차 수정 실패 원인 - 추가 수정] `Stack`의 기본 크기 결정 규칙은
+      // "포지션 지정 안 된(non-positioned) 자식"의 실제 렌더링 크기를
+      // 기준으로 Stack 자체의 크기를 정한다(Positioned.fill 자식은 크기
+      // 계산에서 제외됨). 즉 SafeArea/SingleChildScrollView가 화면보다
+      // 짧으면 Stack 자체가 그 짧은 높이로 줄어들고, Positioned.fill은
+      // 그 "줄어든 Stack" 안에서만 꽉 채울 뿐이라 문제가 그대로 재현됐다.
+      // `fit: StackFit.expand`를 지정하면 Stack이 항상 부모(Scaffold body)가
+      // 제공하는 최대 크기로 확장되고, 그 안의 모든 자식(포지션 없는
+      // SafeArea 포함)도 그 크기에 맞춰 강제로 레이아웃되므로 배경이
+      // 콘텐츠 길이와 완전히 무관하게 항상 화면 전체를 채운다.
       body: Stack(
+        fit: StackFit.expand,
         children: [
           const Positioned.fill(
             child: DecoratedBox(

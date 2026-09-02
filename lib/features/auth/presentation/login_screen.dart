@@ -122,7 +122,13 @@ class _LoginScreenState extends State<LoginScreen> {
       // 경우(작은 화면/큰 폰트스케일 등) 그 아래로 Scaffold 기본 배경색
       // (흰색)이 노출될 수 있다. Stack + Positioned.fill로 배경을 화면
       // 전체에 강제로 채워 콘텐츠 길이와 무관하게 항상 꽉 차게 한다.
+      //
+      // [1차 수정 실패 원인 - 추가 수정] Stack은 기본적으로 포지션 없는
+      // 자식(SafeArea)의 실제 렌더링 크기에 맞춰 자기 크기를 정하므로,
+      // Positioned.fill만으로는 부족했다. `fit: StackFit.expand`를 지정해
+      // Stack이 항상 부모(Scaffold body)의 최대 크기로 확장되도록 한다.
       body: Stack(
+        fit: StackFit.expand,
         children: [
           const Positioned.fill(
             child: DecoratedBox(
