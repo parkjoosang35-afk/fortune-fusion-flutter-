@@ -15,6 +15,7 @@ import 'package:flutter_app/features/auth/data/auth_repository.dart';
 import 'package:flutter_app/features/guinji/application/guinji_provider.dart';
 import 'package:flutter_app/features/guinji/data/guinji_repository.dart';
 import 'package:flutter_app/features/guinji/domain/guinji_person.dart';
+import 'package:flutter_app/features/guinji/domain/pending_guinji_join.dart';
 import 'package:flutter_app/features/guinji/presentation/guinji_landing_screen.dart';
 import 'package:flutter_app/features/guinji/presentation/guinji_input_screen.dart';
 import 'package:flutter_app/features/guinji/presentation/guinji_calculating_screen.dart';
@@ -70,6 +71,41 @@ void main() {
     expect(tester.takeException(), isNull);
     // 폼 요소가 실제로 그려지는지 확인.
     expect(find.text('다음'), findsOneWidget);
+  });
+
+  // [버그 수정 회귀 방지 — 사주 재입력] "회원가입/로그인을 안 하고 내
+  // 귀인지도 만들기를 하면 사주를 넣으려고 하고, 클릭 시 로그인/회원가입
+  // 페이지로 넘어가고, 로그인이나 회원가입 시 다시 사주를 넣으라고 한다"는
+  // 버그 리포트에 대한 검증. [GuinjiInputScreen]이 [initialDraft]를 받으면
+  // 로그인 전 입력했던 값을 그대로 폼에 복원해야 한다(빈 화면으로 재진입
+  // 금지).
+  testWidgets('I · Input 화면이 initialDraft로 재진입 시 이전 입력값을 복원한다', (
+    tester,
+  ) async {
+    const draft = GuinjiMapEntryDraft(
+      nickname: '수아',
+      year: '1998',
+      month: '05',
+      day: '14',
+      hour: '09',
+      minute: '20',
+      calendarIndex: 1,
+      timeUnknown: false,
+    );
+    await tester.pumpWidget(
+      _wrap(const GuinjiInputScreen(initialDraft: draft)),
+    );
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    // TextField는 EditableText와 그 내부 렌더링 Text 둘 다에 같은 문자열이
+    // 나타날 수 있어 findsWidgets(1개 이상)로 검증한다 — 핵심은 "빈 폼이
+    // 아니라 이전에 입력한 값이 실제로 화면에 존재하는가"이다.
+    expect(find.text('수아'), findsWidgets);
+    expect(find.text('1998'), findsWidgets);
+    expect(find.text('05'), findsWidgets);
+    expect(find.text('14'), findsWidgets);
+    expect(find.text('09'), findsWidgets);
+    expect(find.text('20'), findsWidgets);
   });
 
   testWidgets('C · Calculating 화면이 예외 없이 렌더된다', (tester) async {

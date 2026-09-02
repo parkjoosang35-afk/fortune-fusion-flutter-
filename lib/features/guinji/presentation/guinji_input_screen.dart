@@ -15,14 +15,20 @@ import '../widgets/guinji_ui_kit.dart';
 /// 동일한 타이밍 전략을 따르되, 재진입 대상 화면만 신규 네임스페이스의
 /// 것으로 바꾼다(두 네임스페이스는 서로의 재진입 로직/화면을 공유하지
 /// 않는다는 원칙 유지).
+///
+/// [버그 수정 — 사주 재입력] 저장된 [GuinjiMapEntryDraft]가 있으면 그대로
+/// [GuinjiInputScreen]의 `initialDraft`로 전달해, 사용자가 로그인 전에
+/// 입력했던 별명/생년월일/시간이 화면에 그대로 복원되도록 한다.
 void replayPendingGuinjiMapEntry() {
-  final pending = PendingGuinjiMapEntryStore.consume();
-  if (!pending) return;
+  final draft = PendingGuinjiMapEntryStore.consume();
+  if (draft == null) return;
   WidgetsBinding.instance.addPostFrameCallback((_) {
     final navState = appNavigatorKey.currentState;
     if (navState == null) return;
     navState.push(
-      MaterialPageRoute(builder: (_) => const GuinjiInputScreen()),
+      MaterialPageRoute(
+        builder: (_) => GuinjiInputScreen(initialDraft: draft),
+      ),
     );
   });
 }
@@ -36,32 +42,55 @@ void replayPendingGuinjiMapEntry() {
 ///
 /// [로그인 게이트 — Task 3] `createMap`은 백엔드에서 인증(`requireUser`)을
 /// 요구하므로, 이 화면은 "다음" 제출 시점에 [AuthProvider.isLoggedIn]을
-/// 먼저 확인한다. 비로그인이면 [PendingGuinjiMapEntryStore]에 재진입
-/// 플래그를 저장하고 `/login`으로 이동시키며, 로그인 완료 후
-/// `profile_check_screen.dart`가 이 플래그를 감지해 이 화면으로 자동
-/// 복귀시킨다(기존 `/guinji`(온보딩) 네임스페이스의
-/// `PendingGuinjiOnboardingStore`/`replayPendingGuinjiOnboarding` 패턴과
-/// 동일한 전략이나, 완전히 별개의 전용 스토어를 사용해 두 네임스페이스가
-/// 서로의 재진입 로직을 공유하지 않도록 한다).
+/// 먼저 확인한다. 비로그인이면 그 시점에 입력된 값을 [GuinjiMapEntryDraft]로
+/// [PendingGuinjiMapEntryStore]에 저장하고 `/login`으로 이동시키며, 로그인
+/// 완료 후 `profile_check_screen.dart`가 이 draft를 감지해 이 화면으로
+/// 자동 복귀시키면서 입력값을 그대로 복원한다(기존 `/guinji`(온보딩)
+/// 네임스페이스의 `PendingGuinjiOnboardingStore`/
+/// `replayPendingGuinjiOnboarding` 패턴과 동일한 전략이나, 완전히 별개의
+/// 전용 스토어를 사용해 두 네임스페이스가 서로의 재진입 로직을 공유하지
+/// 않도록 한다).
+///
+/// [버그 수정 — 사주 재입력] "회원가입/로그인을 안 하고 내 귀인지도
+/// 만들기를 하면 사주를 넣으려고 하고, 클릭 시 로그인/회원가입 페이지로
+/// 넘어가고, 로그인이나 회원가입 시 다시 사주를 넣으라고 한다"는 버그
+/// 리포트의 원인이 여기 있었다 — 재진입 시 완전히 빈 화면 인스턴스를
+/// 새로 만들었기 때문. [initialDraft]를 받아 컨트롤러를 미리 채우는
+/// 것으로 해결한다.
 class GuinjiInputScreen extends StatefulWidget {
-  const GuinjiInputScreen({super.key});
+  const GuinjiInputScreen({super.key, this.initialDraft});
 
   static const routeName = '/guinji-map/new';
+
+  /// 로그인 리다이렉트 전에 저장해 둔 입력값(있으면 복원, 없으면 빈 폼).
+  final GuinjiMapEntryDraft? initialDraft;
 
   @override
   State<GuinjiInputScreen> createState() => _GuinjiInputScreenState();
 }
 
 class _GuinjiInputScreenState extends State<GuinjiInputScreen> {
-  final _nicknameController = TextEditingController();
-  final _yearController = TextEditingController();
-  final _monthController = TextEditingController();
-  final _dayController = TextEditingController();
-  final _hourController = TextEditingController();
-  final _minuteController = TextEditingController();
+  late final _nicknameController = TextEditingController(
+    text: widget.initialDraft?.nickname ?? '',
+  );
+  late final _yearController = TextEditingController(
+    text: widget.initialDraft?.year ?? '',
+  );
+  late final _monthController = TextEditingController(
+    text: widget.initialDraft?.month ?? '',
+  );
+  late final _dayController = TextEditingController(
+    text: widget.initialDraft?.day ?? '',
+  );
+  late final _hourController = TextEditingController(
+    text: widget.initialDraft?.hour ?? '',
+  );
+  late final _minuteController = TextEditingController(
+    text: widget.initialDraft?.minute ?? '',
+  );
 
-  int _calendarIndex = 0; // 0=양력, 1=음력, 2=음력(윤달)
-  bool _timeUnknown = false;
+  late int _calendarIndex = widget.initialDraft?.calendarIndex ?? 0; // 0=양력, 1=음력, 2=음력(윤달)
+  late bool _timeUnknown = widget.initialDraft?.timeUnknown ?? false;
   bool _submitting = false;
   String? _formError;
 
@@ -87,7 +116,24 @@ class _GuinjiInputScreenState extends State<GuinjiInputScreen> {
     // 적용되며, 이 I 화면은 "지도를 직접 만드는" 호스트 플로우이므로
     // 로그인 요구가 절대 원칙 위반이 아니다.
     if (!auth.isLoggedIn) {
-      PendingGuinjiMapEntryStore.save();
+      // [버그 수정 — 사주 재입력] 로그인 화면으로 보내기 전, 지금까지
+      // 입력된 값을 그대로 draft로 저장한다. 아직 필드 검증 전이라 값이
+      // 비어 있거나 형식이 틀려도 그대로 저장해 두고(재진입 시 복원만
+      // 목적이므로 검증은 다시 "다음"을 누를 때 동일하게 수행됨), 사용자가
+      // 로그인/회원가입을 마치고 돌아왔을 때 처음부터 다시 입력하지
+      // 않도록 한다.
+      PendingGuinjiMapEntryStore.save(
+        GuinjiMapEntryDraft(
+          nickname: _nicknameController.text,
+          year: _yearController.text,
+          month: _monthController.text,
+          day: _dayController.text,
+          hour: _hourController.text,
+          minute: _minuteController.text,
+          calendarIndex: _calendarIndex,
+          timeUnknown: _timeUnknown,
+        ),
+      );
       Navigator.of(context).pushNamed('/login');
       return;
     }

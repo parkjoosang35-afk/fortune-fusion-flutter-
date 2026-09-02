@@ -255,6 +255,18 @@ class _ProfileCheckScreenState extends State<ProfileCheckScreen> {
                   // [버그 수정 — 딥링크 비로그인 진입] 귀인지도 참여도 동일하게
                   // 스킵 경로에서도 재실행한다.
                   replayPendingGuinjiJoin();
+                  // [의도적 비대칭 유지] `createMapForUser`(구 온보딩)는 계정
+                  // 프로필의 생년월일을 그대로 사주 계산에 쓰므로, 프로필 입력을
+                  // 스킵하면 게이트를 통과할 수 없어 온보딩 재진입은 재생하지
+                  // 않는다.
+                  //
+                  // [버그 수정 — 사주 재입력] 반면 신규 I(Input) 화면의
+                  // `createMapWithInput`은 계정 프로필과 무관하게 화면 자체
+                  // 폼(별명/생년월일/시간)에서 입력받으므로, 계정 프로필
+                  // 입력을 스킵해도 저장된 draft가 있으면 그대로 복원해야
+                  // 한다 — 스킵했다는 이유로 이미 입력해 둔 사주를 또
+                  // 날려버리면 안 된다.
+                  replayPendingGuinjiMapEntry();
                 },
                 child: const Text('나중에 하기'),
               ),
