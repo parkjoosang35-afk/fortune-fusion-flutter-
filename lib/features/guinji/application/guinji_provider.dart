@@ -3,8 +3,11 @@ import 'package:flutter/foundation.dart';
 import '../../auth/domain/user_model.dart';
 import '../../home/domain/jeontong_eighty_report_builder.dart';
 import '../../home/domain/manseryeok/saju_profile.dart';
+import '../../home/domain/saju_engine.dart' show SajuResult;
+import '../../home/domain/saju_interpreter.dart';
 import '../../home/domain/user_profile_to_jeontong_adapter.dart';
 import '../data/guinji_repository.dart';
+import '../domain/guinji_owner_saju_summary.dart';
 import '../domain/guinji_person.dart';
 import '../domain/guinji_saju_adapter.dart';
 
@@ -34,8 +37,18 @@ class GuinjiProvider extends ChangeNotifier {
   /// chemistryScore/ohaengEvidence).
   List<Map<String, dynamic>> _relationships = const [];
 
+  /// [흐름 정합성 — M화면 "나는 어떤 사람인지"] 호스트 본인의 실계산 사주
+  /// 요약. [createMapForUser]/[createMapWithInput] 성공 시 이미 계산해 둔
+  /// [SajuResult]로부터 만들어 캐싱한다(재계산 없음). M(결과) 화면이 이
+  /// 값을 그대로 읽어 "귀인지도" 관계 그래프보다 먼저 "나"를 보여준다.
+  GuinjiOwnerSajuSummary? _ownerSajuSummary;
+
   bool get isLoading => _isLoading;
   String? get error => _error;
+
+  /// 호스트 본인의 실계산 사주 요약(없으면 null — I 화면을 아직 거치지
+  /// 않은 세션이거나 앱 재시작 후 아직 다시 계산되지 않은 상태).
+  GuinjiOwnerSajuSummary? get ownerSajuSummary => _ownerSajuSummary;
 
   /// 마지막 실패의 서버 에러 코드('UNAUTHORIZED'|'NOT_FOUND'|'EXPIRED' 등).
   /// [GuinjiJoinScreen]이 'UNAUTHORIZED'일 때만 로그인 유도로 분기하는 데 사용.
@@ -94,6 +107,7 @@ class GuinjiProvider extends ChangeNotifier {
       );
       final SajuProfile profile = built.profile;
       final sajuJson = guinjiSajuInputFromProfile(profile);
+      _cacheOwnerSajuSummary(built.saju);
 
       final result = await _repository.createMap(saju: sajuJson);
       if (!result.success) {
@@ -113,6 +127,26 @@ class GuinjiProvider extends ChangeNotifier {
       _error = '사주 계산 중 오류가 발생했습니다: $e';
       notifyListeners();
       return false;
+    }
+  }
+
+  /// [흐름 정합성 — M화면 "나는 어떤 사람인지"] 방금 계산한 [SajuResult]로
+  /// [_ownerSajuSummary]를 채운다. [SajuRules]가 아직 preload되지 않았으면
+  /// (이론상 main.dart가 앱 시작 시 fire-and-forget으로 미리 걸어두므로
+  /// 거의 발생하지 않음) 조용히 건너뛴다 — M화면은 null이면 이 섹션을
+  /// 숨기도록 방어적으로 구현되어 있어 전체 흐름을 막지 않는다.
+  void _cacheOwnerSajuSummary(SajuResult saju) {
+    final rules = SajuRules.cachedOrNull;
+    if (rules == null) {
+      debugPrint(
+        '[GuinjiProvider] [_cacheOwnerSajuSummary] SajuRules 미로드 -> 요약 생략',
+      );
+      return;
+    }
+    try {
+      _ownerSajuSummary = GuinjiOwnerSajuSummary.fromSajuResult(saju, rules);
+    } catch (e) {
+      debugPrint('[GuinjiProvider] [_cacheOwnerSajuSummary] 실패 -> $e');
     }
   }
 
@@ -165,6 +199,7 @@ class GuinjiProvider extends ChangeNotifier {
         referenceDate: DateTime.now(),
       );
       final sajuJson = guinjiSajuInputFromProfile(built.profile);
+      _cacheOwnerSajuSummary(built.saju);
 
       final result = await _repository.createMap(name: name, saju: sajuJson);
       if (!result.success) {

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../domain/guinji_owner_saju_summary.dart';
 import '../domain/guinji_person.dart';
 import '../domain/guinji_relation_meta.dart';
 import '../theme/guinji_map_theme.dart';
@@ -25,6 +26,7 @@ class GuinjiMapResultScreen extends StatefulWidget {
     super.key,
     this.ownerName = '나',
     this.people = const [],
+    this.ownerSajuSummary,
     this.onNodeTap,
     this.onInvite,
     this.onOpenFriends,
@@ -37,6 +39,12 @@ class GuinjiMapResultScreen extends StatefulWidget {
   /// 실제 참여자 목록(`GuinjiProvider.people`에서 전달). 비어 있으면
   /// "아직 참여한 귀인이 없어요" 안내를 보여준다.
   final List<GuinjiPerson> people;
+
+  /// [흐름 정합성 — "나는 어떤 사람인지"] 호스트 본인의 실계산 사주 요약
+  /// (`GuinjiProvider.ownerSajuSummary`). null이면(아직 계산되지 않은
+  /// 세션) "나는 어떤 사람인지" 섹션 자체를 숨긴다 — 목데이터로 대체하지
+  /// 않는다.
+  final GuinjiOwnerSajuSummary? ownerSajuSummary;
 
   /// 노드 탭 콜백 — 탭한 [GuinjiPerson]을 전달한다.
   final void Function(GuinjiPerson person)? onNodeTap;
@@ -171,6 +179,17 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
                 ),
               ),
 
+              // [흐름 정합성] "나는 어떤 사람인지" — 관계 그래프(아직 지인이
+              // 없으면 비어 있음)보다 먼저, 실계산된 내 사주 요약을 보여준다.
+              if (widget.ownerSajuSummary != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                  child: _GmOwnerSajuCard(
+                    ownerName: widget.ownerName,
+                    summary: widget.ownerSajuSummary!,
+                  ),
+                ),
+
               // 인터랙티브 노드 그래프(pan/zoom/drag/tap)
               _InteractiveGuinjiGraph(
                 ownerName: widget.ownerName,
@@ -248,15 +267,6 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
                           fontWeight: FontWeight.w700,
                           color: GmColors.ivory,
                           height: 1.25,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        '지도 저장·매일 업데이트·상세 관계 리포트까지\n전부 무료로 이용할 수 있어요.',
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          height: 1.55,
-                          color: GmColors.ivory.withValues(alpha: 0.7),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -741,6 +751,106 @@ class _GmFriendRow extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// M화면 전용 — "나는 어떤 사람인지" 카드. [GuinjiOwnerSajuSummary](실계산
+/// 결과)를 받아 일간·신강중화신약·본성·성격을 보여준다. 관계 그래프(아직
+/// 지인이 없으면 텅 비어있는 상태)만 있던 화면에 "나 자신"에 대한 결과를
+/// 먼저 보여줘 흐름을 자연스럽게 만든다.
+class _GmOwnerSajuCard extends StatelessWidget {
+  const _GmOwnerSajuCard({required this.ownerName, required this.summary});
+
+  final String ownerName;
+  final GuinjiOwnerSajuSummary summary;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+      decoration: BoxDecoration(
+        color: GmColors.bgCream,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: GmColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '나는 어떤 사람인지',
+            style: GmText.labelMini.copyWith(color: GmColors.rose700),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: GmColors.rose100,
+                  border: Border.all(color: GmColors.rose300),
+                ),
+                child: Text(
+                  summary.dayMasterKr.isNotEmpty
+                      ? summary.dayMasterKr.substring(0, 1)
+                      : '?',
+                  style: const TextStyle(
+                    fontFamily: GmFonts.serif,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: GmColors.rose700,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            '$ownerName님은 ${summary.dayMasterKr} · ${summary.dayMasterImage}',
+                            style: const TextStyle(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w700,
+                              color: GmColors.ink,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    GmChip(
+                      label: summary.strengthLevelKr,
+                      background: GmColors.rose50,
+                      foreground: GmColors.rose700,
+                      borderColor: GmColors.rose200,
+                      fontSize: 10.5,
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(summary.nature, style: GmText.bodySoft),
+          const SizedBox(height: 8),
+          Text(
+            summary.personality,
+            style: const TextStyle(fontSize: 13, height: 1.6, color: GmColors.inkSoft),
+          ),
+        ],
       ),
     );
   }

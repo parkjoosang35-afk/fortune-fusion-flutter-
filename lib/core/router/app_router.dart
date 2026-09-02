@@ -242,8 +242,17 @@ class AppRouter {
       case '/guinji-map/new':
         return _page(const GuinjiInputScreen());
       case '/guinji-map/calc':
+        // [흐름 정합성] 이 라우트는 호스트가 I(입력)에서 자기 정보만 제출한
+        // 직후(createMapWithInput 성공)에만 진입한다 — 아직 지인이 참여하지
+        // 않아 "관계"가 존재하지 않으므로, 기본값(게스트 2인 관계 계산 문구)
+        // 대신 "내 사주 계산" 전용 문구로 오버라이드한다. 게스트 참여 흐름
+        // (guinji_map_guest_join_screen.dart)은 이 라우트를 타지 않고 직접
+        // MaterialPageRoute로 push하므로 기본값(관계 계산 문구)이 그대로
+        // 유지된다 — 회귀 없음.
         return _page(
           GuinjiCalculatingScreen(
+            title: '내 사주를\n정성껏 살펴보고 있어요',
+            subtitle: '만세력을 계산하고\n오행·십성·합충을 분석 중입니다',
             onComplete: () => appNavigatorKey.currentState
                 ?.pushReplacementNamed('/guinji-map/m'),
           ),
@@ -256,6 +265,10 @@ class AppRouter {
               return GuinjiMapResultScreen(
                 ownerName: provider.mapName ?? '나',
                 people: provider.people,
+                // [흐름 정합성] I에서 실제 계산된 내 사주 요약을 M화면
+                // "나는 어떤 사람인지" 카드에 전달한다. 아직 계산되지
+                // 않았거나 SajuRules 미로드 시 null → 섹션 자동 숨김.
+                ownerSajuSummary: provider.ownerSajuSummary,
               );
             },
           ),
