@@ -143,71 +143,94 @@ class _SplashScreenState extends State<SplashScreen>
     final config = IntroConfigModel.fallback();
     final subtitleLines = (config.splashSubtitle ?? '').split('\n');
 
+    // [버그 수정 - 회원가입/로그인 화면과 동일한 원인]
+    // 기존 코드는 `DecoratedBox(그라디언트) > SafeArea > Column(Expanded 포함)`
+    // 순서였다. 여기서는 Expanded가 있어 대부분 화면을 채우는 것처럼 보이지만,
+    // DecoratedBox 자체는 여전히 자식 Column의 "실제 렌더링 높이"에만 맞춰
+    // 그려진다 — 폰트 스케일/실제 콘텐츠 높이가 화면보다 짧아지는 경우(예:
+    // 큰 화면, 작은 폰트스케일 등) 그 아래 남는 공간에는 Scaffold의 기본
+    // 배경색(AppColors.hcBackground, 순백색)이 노출된다. signup/login
+    // 화면과 동일한 근본 원인이므로 동일한 해결책을 적용한다: Stack +
+    // Positioned.fill로 그라디언트 배경을 Scaffold body 전체(화면 높이)에
+    // 강제로 채우고, 그 위에 SafeArea/콘텐츠를 올려 콘텐츠 길이와 무관하게
+    // 배경이 항상 화면을 꽉 채우게 한다.
     return Scaffold(
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [IntroPalette.backgroundTop, IntroPalette.backgroundBottom],
+      body: Stack(
+        children: [
+          const Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    IntroPalette.backgroundTop,
+                    IntroPalette.backgroundBottom,
+                  ],
+                ),
+              ),
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: FadeTransition(
-            opacity: _fade,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-              child: Column(
-                children: [
-                  // eyebrow — 神通萬通 · SINTONG
-                  const IntroEyebrowLabel('神通萬通 · SINTONG'),
-                  const SizedBox(height: 32),
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // [핸드오프 반영] 신통도령 greeting - halo(glow) + 부유 애니메이션
-                        const IntroCharacter(
-                          asset: 'assets/images/home/doryeong/greeting.png',
-                          size: 176,
-                          haloSize: 234,
-                        ),
-                        const SizedBox(height: 20),
-                        Text(
-                          config.splashTitle,
-                          textAlign: TextAlign.center,
-                          style: IntroTextStyles.title(fontSize: 42),
-                        ),
-                        const SizedBox(height: 14),
-                        Text(
-                          subtitleLines.join('\n'),
-                          textAlign: TextAlign.center,
-                          style: IntroTextStyles.sub(),
-                        ),
-                      ],
+          SafeArea(
+            child: FadeTransition(
+              opacity: _fade,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 24,
+                ),
+                child: Column(
+                  children: [
+                    // eyebrow — 神通萬通 · SINTONG
+                    const IntroEyebrowLabel('神通萬通 · SINTONG'),
+                    const SizedBox(height: 32),
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // [핸드오프 반영] 신통도령 greeting - halo(glow) + 부유 애니메이션
+                          const IntroCharacter(
+                            asset: 'assets/images/home/doryeong/greeting.png',
+                            size: 176,
+                            haloSize: 234,
+                          ),
+                          const SizedBox(height: 20),
+                          Text(
+                            config.splashTitle,
+                            textAlign: TextAlign.center,
+                            style: IntroTextStyles.title(fontSize: 42),
+                          ),
+                          const SizedBox(height: 14),
+                          Text(
+                            subtitleLines.join('\n'),
+                            textAlign: TextAlign.center,
+                            style: IntroTextStyles.sub(),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  // 로딩 dot 3개(핸드오프 .load-dot)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(
-                        3,
-                        (i) => Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 3),
-                          child: _LoadDot(
-                            delay: Duration(milliseconds: i * 200),
+                    // 로딩 dot 3개(핸드오프 .load-dot)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(
+                          3,
+                          (i) => Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 3),
+                            child: _LoadDot(
+                              delay: Duration(milliseconds: i * 200),
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

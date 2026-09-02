@@ -136,121 +136,147 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [IntroPalette.backgroundTop, IntroPalette.backgroundBottom],
+      // [버그 수정 - 회원가입 화면 하단 거대한 흰 빈 공간]
+      // 기존 코드는 `DecoratedBox(그라디언트) > SafeArea > SingleChildScrollView`
+      // 순서였다. DecoratedBox는 스스로 크기를 정하지 않고 자식(스크롤
+      // 콘텐츠)의 "실제 렌더링 높이"에만 맞춰 그려진다. 이 화면의 폼
+      // 콘텐츠(입력 4칸 + 약관 카드 + 버튼)는 화면 전체 높이보다 짧기 때문에,
+      // 그라디언트는 콘텐츠 높이까지만 그려지고 그 아래 남는 공간은
+      // Scaffold의 기본 배경색인 AppColors.hcBackground(순백색, #FFFFFF)가
+      // 그대로 노출되어 "거대한 흰 빈 공간"으로 보였다(로그인 화면은 우연히
+      // 콘텐츠가 화면 높이에 가까워 증상이 눈에 덜 띄었을 뿐, 동일한 결함을
+      // 갖고 있었다). 해결: Stack + Positioned.fill로 그라디언트 배경을
+      // Scaffold body 전체 영역(화면 높이)에 강제로 채우고, 그 위에
+      // SafeArea/SingleChildScrollView를 올려 콘텐츠 길이와 무관하게
+      // 배경이 항상 화면을 꽉 채우게 한다.
+      body: Stack(
+        children: [
+          const Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    IntroPalette.backgroundTop,
+                    IntroPalette.backgroundBottom,
+                  ],
+                ),
+              ),
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                AuthFormHeader(
-                  eyebrow: 'SIGN UP · N°01',
-                  onBack: () => Navigator.of(context).maybePop(),
-                ),
-                // `.title-block`
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 22, left: 2, right: 2),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      IntroTitleText(
-                        '신통방통과 함께\n운명을 탐험해보세요',
-                        style: IntroTextStyles.formTitle(),
-                        highlight: '운명',
-                        highlightColors: const [
-                          IntroPalette.gold,
-                          IntroPalette.primary,
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        '이메일과 비밀번호만 있으면 시작할 수 있어요.',
-                        style: IntroTextStyles.formSubtitle(),
-                      ),
-                    ],
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  AuthFormHeader(
+                    eyebrow: 'SIGN UP · N°01',
+                    onBack: () => Navigator.of(context).maybePop(),
                   ),
-                ),
-                AuthFormField(
-                  controller: _nicknameController,
-                  label: '이름',
-                  required: true,
-                  hintText: '사주 풀이에 사용될 이름',
-                  hint: '한글 · 영문 이름 (본명 권장)',
-                ),
-                AuthFormField(
-                  controller: _emailController,
-                  label: '이메일',
-                  required: true,
-                  hintText: 'example@fortunefusion.app',
-                  hint: '로그인 시 사용됩니다',
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                AuthFormField(
-                  controller: _passwordController,
-                  label: '비밀번호',
-                  required: true,
-                  hintText: '8자 이상 입력해 주세요',
-                  hint: '영문·숫자·특수문자 중 2가지 이상 조합',
-                  obscureText: true,
-                ),
-                AuthFormField(
-                  controller: _passwordConfirmController,
-                  label: '비밀번호 확인',
-                  required: true,
-                  hintText: '비밀번호를 다시 입력해 주세요',
-                  obscureText: true,
-                  errorText: _passwordError,
-                ),
-                const SizedBox(height: 6),
-                _TermsAgreementSection(
-                  allAgreed: _allAgreed,
-                  termsAgreed: _termsAgreed,
-                  privacyAgreed: _privacyAgreed,
-                  onAllChanged: _setAllAgreed,
-                  onTermsChanged: (v) => setState(() => _termsAgreed = v),
-                  onPrivacyChanged: (v) => setState(() => _privacyAgreed = v),
-                  onOpenTerms: () => _openPolicyLink('/terms'),
-                  onOpenPrivacy: () => _openPolicyLink('/privacy-policy'),
-                ),
-                const SizedBox(height: 20),
-                AuthPrimaryButton(
-                  label: '회원가입',
-                  isLoading: _isSubmitting,
-                  onPressed: _isSubmitting ? null : _submit,
-                ),
-                const SizedBox(height: 14),
-                // `.bottom-link`
-                Center(
-                  child: GestureDetector(
-                    onTap: () =>
-                        Navigator.of(context).pushReplacementNamed('/login'),
-                    child: RichText(
-                      text: TextSpan(
-                        style: IntroTextStyles.bottomLink(),
-                        children: [
-                          const TextSpan(text: '이미 계정이 있으신가요?'),
-                          TextSpan(
-                            text: ' 로그인',
-                            style: IntroTextStyles.bottomLink(
-                              color: IntroPalette.primary,
-                            ).copyWith(fontWeight: FontWeight.w700),
-                          ),
-                        ],
+                  // `.title-block`
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      bottom: 22,
+                      left: 2,
+                      right: 2,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        IntroTitleText(
+                          '신통방통과 함께\n운명을 탐험해보세요',
+                          style: IntroTextStyles.formTitle(),
+                          highlight: '운명',
+                          highlightColors: const [
+                            IntroPalette.gold,
+                            IntroPalette.primary,
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '이메일과 비밀번호만 있으면 시작할 수 있어요.',
+                          style: IntroTextStyles.formSubtitle(),
+                        ),
+                      ],
+                    ),
+                  ),
+                  AuthFormField(
+                    controller: _nicknameController,
+                    label: '이름',
+                    required: true,
+                    hintText: '사주 풀이에 사용될 이름',
+                    hint: '한글 · 영문 이름 (본명 권장)',
+                  ),
+                  AuthFormField(
+                    controller: _emailController,
+                    label: '이메일',
+                    required: true,
+                    hintText: 'example@fortunefusion.app',
+                    hint: '로그인 시 사용됩니다',
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+                  AuthFormField(
+                    controller: _passwordController,
+                    label: '비밀번호',
+                    required: true,
+                    hintText: '8자 이상 입력해 주세요',
+                    hint: '영문·숫자·특수문자 중 2가지 이상 조합',
+                    obscureText: true,
+                  ),
+                  AuthFormField(
+                    controller: _passwordConfirmController,
+                    label: '비밀번호 확인',
+                    required: true,
+                    hintText: '비밀번호를 다시 입력해 주세요',
+                    obscureText: true,
+                    errorText: _passwordError,
+                  ),
+                  const SizedBox(height: 6),
+                  _TermsAgreementSection(
+                    allAgreed: _allAgreed,
+                    termsAgreed: _termsAgreed,
+                    privacyAgreed: _privacyAgreed,
+                    onAllChanged: _setAllAgreed,
+                    onTermsChanged: (v) => setState(() => _termsAgreed = v),
+                    onPrivacyChanged: (v) => setState(() => _privacyAgreed = v),
+                    onOpenTerms: () => _openPolicyLink('/terms'),
+                    onOpenPrivacy: () => _openPolicyLink('/privacy-policy'),
+                  ),
+                  const SizedBox(height: 20),
+                  AuthPrimaryButton(
+                    label: '회원가입',
+                    isLoading: _isSubmitting,
+                    onPressed: _isSubmitting ? null : _submit,
+                  ),
+                  const SizedBox(height: 14),
+                  // `.bottom-link`
+                  Center(
+                    child: GestureDetector(
+                      onTap: () =>
+                          Navigator.of(context).pushReplacementNamed('/login'),
+                      child: RichText(
+                        text: TextSpan(
+                          style: IntroTextStyles.bottomLink(),
+                          children: [
+                            const TextSpan(text: '이미 계정이 있으신가요?'),
+                            TextSpan(
+                              text: ' 로그인',
+                              style: IntroTextStyles.bottomLink(
+                                color: IntroPalette.primary,
+                              ).copyWith(fontWeight: FontWeight.w700),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

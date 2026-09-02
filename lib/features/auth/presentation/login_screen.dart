@@ -117,171 +117,186 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [IntroPalette.backgroundTop, IntroPalette.backgroundBottom],
-          ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                AuthFormHeader(
-                  eyebrow: 'SIGN IN · WELCOME BACK',
-                  onBack: () => Navigator.of(context).maybePop(),
-                ),
-                // Hero character (doryeong greeting)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Center(
-                    child: IntroCharacter(
-                      asset: 'assets/images/home/doryeong/greeting.png',
-                      size: 140,
-                      haloSize: 160,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                // `.title-block` (중앙정렬)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 26),
-                  child: Column(
-                    children: [
-                      IntroTitleText(
-                        '다시 오셨네요\n신통도령이 기다리고 있었어요',
-                        style: IntroTextStyles.formTitle(),
-                        highlight: '신통도령',
-                        highlightColors: const [
-                          IntroPalette.gold,
-                          IntroPalette.primary,
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        '이메일과 비밀번호를 입력해주세요.',
-                        textAlign: TextAlign.center,
-                        style: IntroTextStyles.formSubtitle(),
-                      ),
-                    ],
-                  ),
-                ),
-                AuthFormField(
-                  controller: _emailController,
-                  label: '이메일',
-                  hintText: 'example@fortunefusion.app',
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                AuthFormField(
-                  controller: _passwordController,
-                  label: '비밀번호',
-                  hintText: '비밀번호를 입력해주세요',
-                  obscureText: true,
-                ),
-                // Remember + forgot
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      InkWell(
-                        onTap: () => setState(() => _rememberMe = !_rememberMe),
-                        borderRadius: BorderRadius.circular(8),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 4,
-                            horizontal: 2,
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              AuthCheckbox(value: _rememberMe),
-                              const SizedBox(width: 8),
-                              Text(
-                                '로그인 상태 유지',
-                                style: IntroTextStyles.bottomLink(
-                                  color: IntroPalette.textPrimary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: _forgotPassword,
-                        child: Text(
-                          '비밀번호 찾기',
-                          style: IntroTextStyles.bottomLink().copyWith(
-                            decoration: TextDecoration.underline,
-                            decorationColor: IntroPalette.textSecondary,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 18),
-                AuthPrimaryButton(
-                  label: '로그인',
-                  isLoading: _isSubmitting,
-                  onPressed: _isSubmitting ? null : _login,
-                ),
-                const SizedBox(height: 18),
-                Row(
-                  children: [
-                    Expanded(child: Divider(color: IntroPalette.cardBorder)),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      child: Text('또는', style: IntroTextStyles.fieldHint()),
-                    ),
-                    Expanded(child: Divider(color: IntroPalette.cardBorder)),
+      // [버그 수정 - 회원가입 화면과 동일한 원인] DecoratedBox는 자식(스크롤
+      // 콘텐츠)의 실제 높이에만 맞춰 그려지므로, 콘텐츠가 화면보다 짧은
+      // 경우(작은 화면/큰 폰트스케일 등) 그 아래로 Scaffold 기본 배경색
+      // (흰색)이 노출될 수 있다. Stack + Positioned.fill로 배경을 화면
+      // 전체에 강제로 채워 콘텐츠 길이와 무관하게 항상 꽉 차게 한다.
+      body: Stack(
+        children: [
+          const Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    IntroPalette.backgroundTop,
+                    IntroPalette.backgroundBottom,
                   ],
                 ),
-                const SizedBox(height: 16),
-                // [6-5-A 발견사항 수정] 실제 소셜 로그인 연동 전까지, 클릭 전에도
-                // 준비 중 상태임을 알 수 있도록 라벨을 명확히 표기한다(인증
-                // 구조/서버 501 응답은 변경하지 않음 - _socialLogin 로직 그대로 유지).
-                _SocialButton(
-                  icon: Icons.chat_bubble_rounded,
-                  label: '카카오로 계속하기 (준비 중)',
-                  onTap: _isSubmitting ? null : () => _socialLogin('카카오'),
-                ),
-                const SizedBox(height: 10),
-                _SocialButton(
-                  icon: Icons.g_mobiledata_rounded,
-                  label: '구글로 계속하기 (준비 중)',
-                  onTap: _isSubmitting ? null : () => _socialLogin('구글'),
-                ),
-                const SizedBox(height: 18),
-                // `.bottom-link`
-                Center(
-                  child: GestureDetector(
-                    onTap: () =>
-                        Navigator.of(context).pushReplacementNamed('/signup'),
-                    child: RichText(
-                      text: TextSpan(
-                        style: IntroTextStyles.bottomLink(),
-                        children: [
-                          const TextSpan(text: '계정이 없으신가요?'),
-                          TextSpan(
-                            text: ' 회원가입',
-                            style: IntroTextStyles.bottomLink(
-                              color: IntroPalette.primary,
-                            ).copyWith(fontWeight: FontWeight.w700),
-                          ),
-                        ],
+              ),
+            ),
+          ),
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  AuthFormHeader(
+                    eyebrow: 'SIGN IN · WELCOME BACK',
+                    onBack: () => Navigator.of(context).maybePop(),
+                  ),
+                  // Hero character (doryeong greeting)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Center(
+                      child: IntroCharacter(
+                        asset: 'assets/images/home/doryeong/greeting.png',
+                        size: 140,
+                        haloSize: 160,
                       ),
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  // `.title-block` (중앙정렬)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 26),
+                    child: Column(
+                      children: [
+                        IntroTitleText(
+                          '다시 오셨네요\n신통도령이 기다리고 있었어요',
+                          style: IntroTextStyles.formTitle(),
+                          highlight: '신통도령',
+                          highlightColors: const [
+                            IntroPalette.gold,
+                            IntroPalette.primary,
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '이메일과 비밀번호를 입력해주세요.',
+                          textAlign: TextAlign.center,
+                          style: IntroTextStyles.formSubtitle(),
+                        ),
+                      ],
+                    ),
+                  ),
+                  AuthFormField(
+                    controller: _emailController,
+                    label: '이메일',
+                    hintText: 'example@fortunefusion.app',
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+                  AuthFormField(
+                    controller: _passwordController,
+                    label: '비밀번호',
+                    hintText: '비밀번호를 입력해주세요',
+                    obscureText: true,
+                  ),
+                  // Remember + forgot
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        InkWell(
+                          onTap: () =>
+                              setState(() => _rememberMe = !_rememberMe),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 4,
+                              horizontal: 2,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                AuthCheckbox(value: _rememberMe),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '로그인 상태 유지',
+                                  style: IntroTextStyles.bottomLink(
+                                    color: IntroPalette.textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: _forgotPassword,
+                          child: Text(
+                            '비밀번호 찾기',
+                            style: IntroTextStyles.bottomLink().copyWith(
+                              decoration: TextDecoration.underline,
+                              decorationColor: IntroPalette.textSecondary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  AuthPrimaryButton(
+                    label: '로그인',
+                    isLoading: _isSubmitting,
+                    onPressed: _isSubmitting ? null : _login,
+                  ),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Expanded(child: Divider(color: IntroPalette.cardBorder)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: Text('또는', style: IntroTextStyles.fieldHint()),
+                      ),
+                      Expanded(child: Divider(color: IntroPalette.cardBorder)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // [6-5-A 발견사항 수정] 실제 소셜 로그인 연동 전까지, 클릭 전에도
+                  // 준비 중 상태임을 알 수 있도록 라벨을 명확히 표기한다(인증
+                  // 구조/서버 501 응답은 변경하지 않음 - _socialLogin 로직 그대로 유지).
+                  _SocialButton(
+                    icon: Icons.chat_bubble_rounded,
+                    label: '카카오로 계속하기 (준비 중)',
+                    onTap: _isSubmitting ? null : () => _socialLogin('카카오'),
+                  ),
+                  const SizedBox(height: 10),
+                  _SocialButton(
+                    icon: Icons.g_mobiledata_rounded,
+                    label: '구글로 계속하기 (준비 중)',
+                    onTap: _isSubmitting ? null : () => _socialLogin('구글'),
+                  ),
+                  const SizedBox(height: 18),
+                  // `.bottom-link`
+                  Center(
+                    child: GestureDetector(
+                      onTap: () =>
+                          Navigator.of(context).pushReplacementNamed('/signup'),
+                      child: RichText(
+                        text: TextSpan(
+                          style: IntroTextStyles.bottomLink(),
+                          children: [
+                            const TextSpan(text: '계정이 없으신가요?'),
+                            TextSpan(
+                              text: ' 회원가입',
+                              style: IntroTextStyles.bottomLink(
+                                color: IntroPalette.primary,
+                              ).copyWith(fontWeight: FontWeight.w700),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
