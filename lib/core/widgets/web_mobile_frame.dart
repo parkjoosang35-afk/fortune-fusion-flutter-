@@ -33,6 +33,15 @@ class WebMobileFrame extends StatelessWidget {
   static const double _minVerticalMargin = 16; // 위/아래 최소 여백
   static const double _maxVerticalMargin = 40; // 위/아래 최대 여백(공간 넉넉할 때)
 
+  /// [버그 수정 - PC에서 폰이 지나치게 가늘고 길게 보임] 기존 코드는
+  /// frameHeight를 "화면 전체 높이"까지 늘어날 수 있게 허용했다. 폭은
+  /// 430(+베젤)으로 고정인데 세로만 브라우저 창 높이만큼 늘어나면서,
+  /// 실제 스마트폰 비율(대략 9:19.5~9:20)을 크게 벗어나 매우 가늘고
+  /// 긴 모양이 되는 문제가 있었다. 실제 폰 화면 비율에 맞춰 프레임
+  /// 전체 높이(바디 기준, 노치/홈 인디케이터 포함)의 상한을 둔다.
+  /// maxWidth(430) 기준 최대 비율 약 1:2.2 → 430 * 2.2 ≈ 946.
+  static const double _maxAspectRatio = 2.2; // height / width(바디 기준)
+
   static const Color _bodyColor = Color(0xFF0B0B12);
   static const Color _bodyEdgeColor = Color(0xFF3A3A46);
   static const Color _notchColor = Color(0xFF15141F);
@@ -57,10 +66,14 @@ class WebMobileFrame extends StatelessWidget {
             ? _minVerticalMargin
             : 0.0;
 
-        final frameHeight = (totalHeight - margin * 2).clamp(
-          320.0,
-          totalHeight,
-        );
+        // 실제 폰 비율을 넘지 않도록 상한을 걸어준다(바디 폭 = maxWidth
+        // 기준, 베젤은 좌우로만 붙으므로 비율 계산에서는 제외).
+        final maxHeightByAspect = maxWidth * _maxAspectRatio;
+        final availableHeight = totalHeight - margin * 2;
+        final cappedHeight = availableHeight > maxHeightByAspect
+            ? maxHeightByAspect
+            : availableHeight;
+        final frameHeight = cappedHeight < 320.0 ? 320.0 : cappedHeight;
         final contentHeight =
             frameHeight - _notchAreaHeight - _homeAreaHeight;
 
