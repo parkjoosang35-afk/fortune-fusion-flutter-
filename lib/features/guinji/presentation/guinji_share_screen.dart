@@ -1,16 +1,15 @@
 import 'dart:math' as math;
 
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../../core/config/env_config.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../application/guinji_provider.dart';
 import '../theme/guinji_theme.dart';
 import '../widgets/guinji_bg_atmosphere.dart';
+import 'guinji_map_share_screen.dart' show GuinjiShareTarget, shareGuinjiMapInvite;
 
 /// [카톡 공유 OG 캐시버스팅 — 결정 매모 D6/1-1] 짧은 캐시버스팅 코드 생성기.
 ///
@@ -108,40 +107,16 @@ class _GuinjiShareScreenState extends State<GuinjiShareScreen> {
     return _displayLink!;
   }
 
-  Future<void> _shareInvite(BuildContext context, String? token) async {
-    if (token == null) return;
-    final link = buildGuinjiInviteLink(token);
-    final message =
-        '별빛나그네님이 귀인지도에 당신을 초대했어요!\n'
-        '링크를 열면 생일만 입력해도 관계가 채워져요.\n$link';
-
-    // [웹 결함 수정] navigator.share 미지원/설정 부재 환경에서
-    // Share.share()가 아무 피드백 없이 실패하는 문제가 있어, 웹에서는
-    // 항상 클립보드 복사로 확실하게 동작을 보장한다.
-    if (kIsWeb) {
-      await Clipboard.setData(ClipboardData(text: message));
-      if (!context.mounted) return;
-      AppToast.show(context, '초대 메시지를 복사했어요. 원하는 앱에 붙여넣어 전달해 주세요.');
-      return;
-    }
-
-    try {
-      final result = await Share.share(message, subject: '귀인지도 초대 · 신통방통');
-      // 사용자가 공유 시트를 그냥 닫은 경우(dismissed)는 실패가 아니므로
-      // 별도 안내 없이 넘어간다.
-      if (result.status == ShareResultStatus.unavailable) {
-        if (!context.mounted) return;
-        await Clipboard.setData(ClipboardData(text: message));
-        if (!context.mounted) return;
-        AppToast.show(context, '공유 시트를 열 수 없어 링크를 복사했어요.');
-      }
-    } catch (_) {
-      if (!context.mounted) return;
-      await Clipboard.setData(ClipboardData(text: message));
-      if (!context.mounted) return;
-      AppToast.show(context, '공유 시트를 열 수 없어 링크를 복사했어요.');
-    }
-  }
+  /// [2026-09 버그수정] 카톡/인스타/스레드/더보기 버튼이 실제로 서로 다른
+  /// 앱을 열도록, `guinji_map_share_screen.dart`의 [shareGuinjiMapInvite]
+  /// (대상별 분기 포함)를 그대로 재사용한다. 기존에는 이 4개 버튼이 전부
+  /// 동일한 로직(웹에서는 무조건 클립보드 복사만)을 호출해 "카톡"·"인스타"
+  /// 버튼을 눌러도 해당 앱이 전혀 열리지 않는 결함이 있었다.
+  Future<void> _shareInvite(
+    BuildContext context,
+    String? token, {
+    GuinjiShareTarget target = GuinjiShareTarget.more,
+  }) => shareGuinjiMapInvite(context, token, target: target);
 
   @override
   Widget build(BuildContext context) {
@@ -233,7 +208,7 @@ class _GuinjiShareScreenState extends State<GuinjiShareScreen> {
                           label: '카톡',
                           icon: Icons.chat_bubble,
                           color: const Color(0xFFFEE500),
-                          onTap: () => _shareInvite(context, token),
+                          onTap: () => _shareInvite(context, token, target: GuinjiShareTarget.kakao),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -242,7 +217,7 @@ class _GuinjiShareScreenState extends State<GuinjiShareScreen> {
                           label: '인스타',
                           icon: Icons.camera_alt,
                           color: const Color(0xFFE4405F),
-                          onTap: () => _shareInvite(context, token),
+                          onTap: () => _shareInvite(context, token, target: GuinjiShareTarget.instagram),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -251,7 +226,7 @@ class _GuinjiShareScreenState extends State<GuinjiShareScreen> {
                           label: '스레드',
                           icon: Icons.alternate_email,
                           color: GuinjiColors.textPrimary,
-                          onTap: () => _shareInvite(context, token),
+                          onTap: () => _shareInvite(context, token, target: GuinjiShareTarget.more),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -260,7 +235,7 @@ class _GuinjiShareScreenState extends State<GuinjiShareScreen> {
                           label: '더보기',
                           icon: Icons.more_horiz,
                           color: GuinjiColors.textPrimary,
-                          onTap: () => _shareInvite(context, token),
+                          onTap: () => _shareInvite(context, token, target: GuinjiShareTarget.more),
                         ),
                       ),
                     ],

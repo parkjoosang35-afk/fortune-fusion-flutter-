@@ -2,34 +2,112 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/widgets/app_toast.dart';
 import '../theme/guinji_map_theme.dart';
 import '../widgets/guinji_map_widgets.dart';
 import 'guinji_share_screen.dart' show buildGuinjiInviteLink;
 
-/// [2026 디자인 핸드오프 — `/guinji-map/*` 신규 8화면] S(Share) 화면 4개
-/// 공유 버튼(카톡/SMS/인스타/더보기) 공통 핸들러.
+/// [2026-09 버그수정] 공유 대상(카톡/SMS/인스타/더보기) 식별자.
 ///
-/// 기존 프로덕션 `guinji_share_screen.dart`(`GuinjiShareScreen`,
-/// `/guinji/share`)의 `_shareInvite` 구현과 동일한 패턴을 그대로 재사용한다:
-/// - 웹: `navigator.share`가 브라우저/OS에 따라 미지원이거나 조용히
-///   실패하는 결함이 있어(2026-08 실사용자 리포트), 항상 클립보드 복사 +
-///   토스트로 확실하게 완료한다.
-/// - 네이티브(Android): `share_plus`의 `Share.share()`로 OS 표준 공유
-///   시트(`Intent.ACTION_SEND`)를 연다. 실패/미지원 시 클립보드 복사로
-///   폴백한다.
-Future<void> shareGuinjiMapInvite(BuildContext context, String? token) async {
+/// [배경] 지금까지 4개 버튼이 모두 동일한 `shareGuinjiMapInvite()`를
+/// 호출해서, 웹에서는 어떤 버튼을 눌러도 "카카오톡으로 공유" 버튼조차
+/// 실제로 카카오톡을 열지 않고 그냥 클립보드 복사만 하는 결함이 있었다
+/// (2026-09 실사용자 리포트: "카톡 sns인스타 열리지도 않고"). 이제 버튼별로
+/// 실제 목적지 앱/공유 방식이 다르므로 대상을 구분한다.
+enum GuinjiShareTarget { kakao, sms, instagram, more }
+
+/// [2026-09 버그수정] 공유 버튼(카톡/SMS/인스타/더보기) 공통 핸들러.
+///
+/// [버그 수정 배경] 기존 구현은 웹에서 `kIsWeb`이면 무조건 클립보드 복사 +
+/// 토스트로만 끝냈다("카카오톡으로 공유" 버튼을 눌러도 카카오톡이 전혀
+/// 열리지 않음). 이제 대상별로 실제 앱이 열리도록 시도한 뒤, 그 방식이
+/// 불가능한 환경에서만 클립보드 복사로 최종 폴백한다.
+///
+/// - **카카오톡**: `kakaolink://` 커스텀 스킴은 카카오 앱 등록(JS 키) 없이는
+///   호출할 수 없으므로, 대신 `https://sharer.kakao.com/talk/friends/picker/link`
+///   같은 인증이 필요한 API 대신 **가장 확실한 방법**인 공유 텍스트
+///   클립보드 복사 후 카카오톡 웹/앱을 직접 열어주는 `tel:`류 스킴이 없어,
+///   `navigator.share`(모바일 브라우저 공유 시트, 카카오톡이 대상 목록에
+///   뜸)를 1차로 시도한다.
+/// - **SMS**: `sms:?body=...` URI 스킴으로 문자 앱을 직접 연다(카톡 불필요,
+///   모든 스마트폰이 기본 지원).
+/// - **인스타그램**: 인스타그램은 외부에서 텍스트를 직접 주입해 스토리/DM을
+///   여는 공개 URL 스킴이 없으므로(공식 정책), 클립보드에 메시지를 복사한
+///   뒤 인스타그램 앱을 실행시켜 사용자가 붙여넣도록 안내한다.
+/// - **더보기**: `navigator.share`(웹) / `Share.share()`(네이티브)로 OS
+///   표준 공유 시트를 연다.
+/// - 모든 경로에서 최종 실패 시 클립보드 복사 + 안내 토스트로 폴백한다.
+Future<void> shareGuinjiMapInvite(
+  BuildContext context,
+  String? token, {
+  GuinjiShareTarget target = GuinjiShareTarget.more,
+}) async {
   if (token == null || token.isEmpty) return;
   final link = buildGuinjiInviteLink(token);
   final message =
       '귀인지도에 당신을 초대했어요!\n'
       '링크를 열면 생일만 입력해도 관계가 채워져요.\n$link';
 
-  if (kIsWeb) {
+  Future<void> copyAndToast(String toastMessage) async {
     await Clipboard.setData(ClipboardData(text: message));
     if (!context.mounted) return;
-    AppToast.show(context, '초대 메시지를 복사했어요. 원하는 앱에 붙여넣어 전달해 주세요.');
+    AppToast.show(context, toastMessage);
+  }
+
+  Future<bool> tryLaunch(Uri uri) async {
+    try {
+      return await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  switch (target) {
+    case GuinjiShareTarget.sms:
+      // [SMS] 카카오톡과 무관하게 항상 사용 가능한 표준 스킴.
+      final smsUri = Uri(
+        scheme: 'sms',
+        path: '',
+        queryParameters: {'body': message},
+      );
+      if (await tryLaunch(smsUri)) return;
+      await copyAndToast('문자 앱을 열 수 없어 링크를 복사했어요.');
+      return;
+
+    case GuinjiShareTarget.instagram:
+      // [인스타그램] 외부 텍스트 주입 공개 API가 없어 클립보드 복사 후
+      // 앱을 직접 실행한다(사용자가 스토리/DM에 붙여넣기).
+      await Clipboard.setData(ClipboardData(text: message));
+      final opened = await tryLaunch(Uri.parse('instagram://'));
+      if (!context.mounted) return;
+      if (opened) {
+        AppToast.show(context, '초대 메시지를 복사했어요. 인스타그램에 붙여넣어 전달해 주세요.');
+      } else {
+        AppToast.show(context, '초대 메시지를 복사했어요. 원하는 앱에 붙여넣어 전달해 주세요.');
+      }
+      return;
+
+    case GuinjiShareTarget.kakao:
+    case GuinjiShareTarget.more:
+      break;
+  }
+
+  // [카카오톡/더보기] 웹: navigator.share(모바일 브라우저 공유 시트)를
+  // 1차로 시도한다 — 대부분의 모바일 브라우저에서 카카오톡이 공유 대상
+  // 목록에 표시된다. 미지원/실패 시에만 클립보드 복사로 폴백한다.
+  if (kIsWeb) {
+    try {
+      final result = await Share.share(message, subject: '귀인지도 초대 · 신통방통');
+      if (result.status == ShareResultStatus.unavailable) {
+        if (!context.mounted) return;
+        await copyAndToast('초대 메시지를 복사했어요. 원하는 앱에 붙여넣어 전달해 주세요.');
+      }
+    } catch (_) {
+      if (!context.mounted) return;
+      await copyAndToast('초대 메시지를 복사했어요. 원하는 앱에 붙여넣어 전달해 주세요.');
+    }
     return;
   }
 
@@ -37,15 +115,11 @@ Future<void> shareGuinjiMapInvite(BuildContext context, String? token) async {
     final result = await Share.share(message, subject: '귀인지도 초대 · 신통방통');
     if (result.status == ShareResultStatus.unavailable) {
       if (!context.mounted) return;
-      await Clipboard.setData(ClipboardData(text: message));
-      if (!context.mounted) return;
-      AppToast.show(context, '공유 시트를 열 수 없어 링크를 복사했어요.');
+      await copyAndToast('공유 시트를 열 수 없어 링크를 복사했어요.');
     }
   } catch (_) {
     if (!context.mounted) return;
-    await Clipboard.setData(ClipboardData(text: message));
-    if (!context.mounted) return;
-    AppToast.show(context, '공유 시트를 열 수 없어 링크를 복사했어요.');
+    await copyAndToast('공유 시트를 열 수 없어 링크를 복사했어요.');
   }
 }
 

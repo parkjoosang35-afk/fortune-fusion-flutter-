@@ -158,6 +158,20 @@
             <action android:name="android.intent.action.VIEW"/>
             <data android:scheme="http"/>
         </intent>
+        <!-- [귀인지도 SNS 공유 버그수정 — 2026-09] 카톡/SMS/인스타그램 공유
+             버튼이 실제로 해당 앱을 열도록 하려면(url_launcher launchUrl),
+             Android 11+ 패키지 가시성 정책상 각 스킴을 명시적으로 질의
+             선언해야 한다. 선언이 없으면 launchUrl()이 canLaunchUrl() 단계
+             에서 false를 반환하거나 조용히 실패해 "버튼을 눌러도 반응
+             없음" 증상이 발생한다. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="sms"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="instagram"/>
+        </intent>
     </queries>
 </manifest>
 

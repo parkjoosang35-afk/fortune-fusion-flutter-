@@ -285,18 +285,22 @@ class AppRouter {
                 onKakaoShare: () => shareGuinjiMapInvite(
                   context,
                   provider.mapToken,
+                  target: GuinjiShareTarget.kakao,
                 ),
                 onSmsShare: () => shareGuinjiMapInvite(
                   context,
                   provider.mapToken,
+                  target: GuinjiShareTarget.sms,
                 ),
                 onInstagramShare: () => shareGuinjiMapInvite(
                   context,
                   provider.mapToken,
+                  target: GuinjiShareTarget.instagram,
                 ),
                 onMoreShare: () => shareGuinjiMapInvite(
                   context,
                   provider.mapToken,
+                  target: GuinjiShareTarget.more,
                 ),
               );
             },
