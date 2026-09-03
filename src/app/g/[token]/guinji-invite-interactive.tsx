@@ -180,8 +180,8 @@ export function GuinjiInviteInteractive({
 
   return (
     <>
-      <div className="rounded-2xl border border-amber-900/10 bg-white/70 p-6 shadow-sm">
-        <p className="mb-1 text-center text-sm font-bold text-stone-700">
+      <div className="rounded-3xl border border-[#E8DDD0] bg-white/85 p-6 shadow-[0_4px_20px_-8px_rgba(166,121,94,0.15)]">
+        <p className="mb-1 text-center text-sm font-bold text-[#2A2438]">
           나는 {ownerName}님에게 어떤 사람일까?
         </p>
 
@@ -189,7 +189,7 @@ export function GuinjiInviteInteractive({
           <ResultCard ownerName={ownerName} result={result} token={token} />
         ) : (
           <form onSubmit={handleSubmit} className="mt-4">
-            <p className="mb-3 text-center text-xs text-stone-400">
+            <p className="mb-3 text-center text-xs text-[#A08C82]">
               이름과 생년월일을 입력하면, 바로 결과가 나오고 지도에 이름이 올라가요.
             </p>
 
@@ -198,7 +198,7 @@ export function GuinjiInviteInteractive({
               onChange={(e) => setName(e.target.value)}
               placeholder="이름(닉네임도 괜찮아요)"
               maxLength={20}
-              className="mb-3 w-full rounded-lg border border-amber-900/15 bg-white px-3 py-2 text-center text-sm text-stone-800 placeholder:text-stone-400 focus:border-amber-500 focus:outline-none"
+              className="mb-3 w-full rounded-2xl border border-[#E8DDD0] bg-white px-3 py-2.5 text-center text-sm text-[#2A2438] placeholder:text-[#A08C82] focus:border-[#C99B7F] focus:outline-none focus:ring-2 focus:ring-[#FBEFE8]"
             />
 
             {/* 음력/양력 토글 */}
@@ -210,8 +210,8 @@ export function GuinjiInviteInteractive({
                   onClick={() => setCalendarType(v)}
                   className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${
                     calendarType === v
-                      ? "bg-amber-700 text-white"
-                      : "bg-white text-stone-500 border border-amber-900/15"
+                      ? "bg-[#A6795E] text-white"
+                      : "bg-white text-[#6E5A54] border border-[#E8DDD0]"
                   }`}
                 >
                   {v === "solar" ? "양력" : "음력"}
@@ -226,7 +226,7 @@ export function GuinjiInviteInteractive({
                 placeholder="년(예: 1998)"
                 inputMode="numeric"
                 maxLength={4}
-                className="w-1/3 rounded-lg border border-amber-900/15 bg-white px-3 py-2 text-center text-sm text-stone-800 placeholder:text-stone-400 focus:border-amber-500 focus:outline-none"
+                className="w-1/3 rounded-2xl border border-[#E8DDD0] bg-white px-3 py-2.5 text-center text-sm text-[#2A2438] placeholder:text-[#A08C82] focus:border-[#C99B7F] focus:outline-none focus:ring-2 focus:ring-[#FBEFE8]"
               />
               <input
                 value={month}
@@ -234,7 +234,7 @@ export function GuinjiInviteInteractive({
                 placeholder="월"
                 inputMode="numeric"
                 maxLength={2}
-                className="w-1/3 rounded-lg border border-amber-900/15 bg-white px-3 py-2 text-center text-sm text-stone-800 placeholder:text-stone-400 focus:border-amber-500 focus:outline-none"
+                className="w-1/3 rounded-2xl border border-[#E8DDD0] bg-white px-3 py-2.5 text-center text-sm text-[#2A2438] placeholder:text-[#A08C82] focus:border-[#C99B7F] focus:outline-none focus:ring-2 focus:ring-[#FBEFE8]"
               />
               <input
                 value={day}
@@ -242,7 +242,7 @@ export function GuinjiInviteInteractive({
                 placeholder="일"
                 inputMode="numeric"
                 maxLength={2}
-                className="w-1/3 rounded-lg border border-amber-900/15 bg-white px-3 py-2 text-center text-sm text-stone-800 placeholder:text-stone-400 focus:border-amber-500 focus:outline-none"
+                className="w-1/3 rounded-2xl border border-[#E8DDD0] bg-white px-3 py-2.5 text-center text-sm text-[#2A2438] placeholder:text-[#A08C82] focus:border-[#C99B7F] focus:outline-none focus:ring-2 focus:ring-[#FBEFE8]"
               />
             </div>
 
@@ -252,7 +252,7 @@ export function GuinjiInviteInteractive({
                 type="button"
                 onClick={() => setTimeKnown(false)}
                 className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${
-                  !timeKnown ? "bg-amber-700 text-white" : "bg-white text-stone-500 border border-amber-900/15"
+                  !timeKnown ? "bg-[#A6795E] text-white" : "bg-white text-[#6E5A54] border border-[#E8DDD0]"
                 }`}
               >
                 시간 모름
@@ -261,7 +261,7 @@ export function GuinjiInviteInteractive({
                 type="button"
                 onClick={() => setTimeKnown(true)}
                 className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${
-                  timeKnown ? "bg-amber-700 text-white" : "bg-white text-stone-500 border border-amber-900/15"
+                  timeKnown ? "bg-[#A6795E] text-white" : "bg-white text-[#6E5A54] border border-[#E8DDD0]"
                 }`}
               >
                 시간 입력
@@ -276,7 +276,7 @@ export function GuinjiInviteInteractive({
                   placeholder="시(0~23)"
                   inputMode="numeric"
                   maxLength={2}
-                  className="w-1/2 max-w-[120px] rounded-lg border border-amber-900/15 bg-white px-3 py-2 text-center text-sm text-stone-800 placeholder:text-stone-400 focus:border-amber-500 focus:outline-none"
+                  className="w-1/2 max-w-[120px] rounded-2xl border border-[#E8DDD0] bg-white px-3 py-2.5 text-center text-sm text-[#2A2438] placeholder:text-[#A08C82] focus:border-[#C99B7F] focus:outline-none focus:ring-2 focus:ring-[#FBEFE8]"
                 />
                 <input
                   value={minute}
@@ -284,42 +284,42 @@ export function GuinjiInviteInteractive({
                   placeholder="분"
                   inputMode="numeric"
                   maxLength={2}
-                  className="w-1/2 max-w-[120px] rounded-lg border border-amber-900/15 bg-white px-3 py-2 text-center text-sm text-stone-800 placeholder:text-stone-400 focus:border-amber-500 focus:outline-none"
+                  className="w-1/2 max-w-[120px] rounded-2xl border border-[#E8DDD0] bg-white px-3 py-2.5 text-center text-sm text-[#2A2438] placeholder:text-[#A08C82] focus:border-[#C99B7F] focus:outline-none focus:ring-2 focus:ring-[#FBEFE8]"
                 />
               </div>
             )}
 
             {/* 동의 체크박스 — 개인정보처리방침 / 14세 이상 확인 (필수) */}
             <div className="mb-3 space-y-1.5 text-left">
-              <label className="flex items-center gap-2 text-xs text-stone-500">
+              <label className="flex items-center gap-2 text-xs text-[#6E5A54]">
                 <input
                   type="checkbox"
                   checked={agreePolicy}
                   onChange={(e) => setAgreePolicy(e.target.checked)}
-                  className="h-4 w-4 accent-amber-700"
+                  className="h-4 w-4 accent-[#A6795E]"
                 />
                 (필수) 개인정보처리방침에 동의합니다.
               </label>
-              <label className="flex items-center gap-2 text-xs text-stone-500">
+              <label className="flex items-center gap-2 text-xs text-[#6E5A54]">
                 <input
                   type="checkbox"
                   checked={agreeAge14}
                   onChange={(e) => setAgreeAge14(e.target.checked)}
-                  className="h-4 w-4 accent-amber-700"
+                  className="h-4 w-4 accent-[#A6795E]"
                 />
                 (필수) 만 14세 이상입니다.
               </label>
             </div>
 
-            {error && <p className="mb-3 text-center text-xs text-rose-500">{error}</p>}
+            {error && <p className="mb-3 text-center text-xs text-[#C97E5B]">{error}</p>}
             <button
               type="submit"
               disabled={submitting}
-              className="mb-2 block w-full rounded-xl bg-amber-700 px-4 py-3 text-sm font-bold text-white transition hover:bg-amber-600 disabled:opacity-60"
+              className="mb-2 block w-full rounded-2xl bg-[#A6795E] px-4 py-3.5 text-sm font-bold text-white shadow-[0_8px_32px_-12px_rgba(166,121,94,0.22)] transition-transform active:scale-[0.98] hover:bg-[#B58567] disabled:opacity-60"
             >
               {submitting ? "확인하는 중" : `${ownerName}님과 나의 관계 보기`}
             </button>
-            <p className="text-center text-xs text-stone-400">
+            <p className="text-center text-xs text-[#A08C82]">
               결과 확인과 동시에 지도에 이름이 올라가요. 다시 입력할 필요 없어요.
             </p>
           </form>
@@ -352,28 +352,28 @@ function ResultCard({
   // 단계(자기 지도 만들기 = 호스트 전환, 이 경우에만 앱 계정이 필요하므로
   // 정당한 전환 지점)다.
   return (
-    <div className="mt-4 rounded-xl border border-amber-900/10 bg-amber-900/5 p-6 text-center">
-      <p className="mb-1 text-xs text-stone-400">
+    <div className="mt-4 rounded-2xl border border-[#E8DDD0] bg-[#F5EBDC] p-6 text-center">
+      <p className="mb-1 text-xs text-[#A08C82]">
         {result.dayMasterKr ? `나의 일간 · ${result.dayMasterKr}(${result.dayMasterElement})` : "관계 결과"}
       </p>
-      <p className="mb-3 text-3xl font-bold text-amber-800">
+      <p style={{ fontFamily: "'Noto Serif KR', serif" }} className="mb-3 text-3xl font-bold text-[#A6795E]">
         {meta?.hanja} {meta?.label}
       </p>
-      <p className="mb-4 text-sm text-stone-600">
+      <p className="mb-4 text-sm text-[#6E5A54]">
         {result.ownerName ?? ownerName}님과 당신은{" "}
-        <span className="font-medium text-amber-700">{meta?.subtitle}</span>의 결이에요.
+        <span className="font-medium text-[#A6795E]">{meta?.subtitle}</span>의 결이에요.
         <br />
         케미 점수 {result.chemistryScore}점
       </p>
       {meta?.description && (
-        <p className="mb-3 text-xs leading-relaxed text-stone-500">{meta.description}</p>
+        <p className="mb-3 text-xs leading-relaxed text-[#6E5A54]">{meta.description}</p>
       )}
       {result.timeUnknown && (
-        <p className="mb-3 text-xs leading-relaxed text-stone-400">
+        <p className="mb-3 text-xs leading-relaxed text-[#A08C82]">
           태어난 시간을 입력하지 않아 정오(12:00) 기준으로 계산했어요.
         </p>
       )}
-      <p className="mb-4 rounded-lg bg-emerald-700/10 px-3 py-2 text-xs font-medium text-emerald-800">
+      <p className="mb-4 rounded-xl bg-[#7BA05B]/10 px-3 py-2 text-xs font-medium text-[#5A7A43]">
         지도에 이름이 올라갔어요. 아래 관계 지도에서 바로 확인해 보세요.
       </p>
 
@@ -383,24 +383,24 @@ function ResultCard({
           (design_handoff_guinji_web README Y·Guest Result 스펙:
           서브 카피 "당신의 지도에는 누가 있을까요" + Primary CTA
           "✧ 내 지도 만들기 · 무료") */}
-      <p className="mb-2 text-xs text-stone-400">당신의 지도에는 누가 있을까요</p>
+      <p className="mb-2 text-xs text-[#A08C82]">당신의 지도에는 누가 있을까요</p>
       <button
         type="button"
         onClick={() => openAppOrFallback(token, setShowFallback)}
-        className="block w-full rounded-xl bg-amber-700 px-4 py-3 text-sm font-bold text-white transition hover:bg-amber-600"
+        className="block w-full rounded-2xl bg-[#A6795E] px-4 py-3.5 text-sm font-bold text-white shadow-[0_8px_32px_-12px_rgba(166,121,94,0.22)] transition-transform active:scale-[0.98] hover:bg-[#B58567]"
       >
         ✧ 내 지도 만들기 · 무료
       </button>
 
       {showFallback && (
-        <div className="mt-3 rounded-lg border border-amber-900/15 bg-white p-3">
-          <p className="mb-2 text-xs text-stone-500">
+        <div className="mt-3 rounded-2xl border border-[#E8DDD0] bg-white p-3">
+          <p className="mb-2 text-xs text-[#6E5A54]">
             앱이 설치되어 있지 않은 것 같아요. 스토어에서 신통방통을 설치하면
             나만의 귀인지도를 만들 수 있어요.
           </p>
           <a
             href={PLAY_STORE_URL}
-            className="block w-full rounded-lg bg-stone-800 px-4 py-2 text-center text-xs font-bold text-white"
+            className="block w-full rounded-xl bg-[#2A2438] px-4 py-2 text-center text-xs font-bold text-white"
           >
             신통방통 설치하기
           </a>

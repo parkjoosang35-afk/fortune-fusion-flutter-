@@ -20,10 +20,24 @@
 // 아래 배포되고, Android App Links(autoVerify) + assetlinks.json으로
 // "링크 클릭 즉시 앱이 열리는" 완전한 딥링크가 된다. 지금은 그 전 단계로,
 // 이 중간 웹페이지를 거쳐 앱을 여는 2단계 구조다.
+//
+// [2026-09, 바이럴 디자인 이식] 사용자가 예전에 전달한 "바이럴 디자인"
+// 핸드오프 패키지(`nextjs_guiindo`, HANDOFF.md)의 아이보리+로즈골드 팔레트
+// (--bg-ivory:#FBF7EF, --bg-cream:#F5EBDC, --rose-500:#C99B7F,
+// --rose-700:#A6795E, --blush:#E8B4A5, --gold:#D4A574, --ink:#2A2438,
+// --ink-soft:#6E5A54)로 전면 리스킨한다. Flutter `/guinji-map/*`
+// (GmColors)와 정확히 같은 색상 토큰이므로, 카톡 → 이 랜딩 → 앱까지
+// 이어지는 전체 바이럴 여정이 하나의 디자인 언어로 통일된다.
+// admin_web은 Tailwind v4(설정파일 없는 CSS 기반)를 쓰므로, 전역 테마를
+// 건드리지 않고 이 라우트에만 arbitrary value(`bg-[#FBF7EF]` 등)로 색을
+// 지정한다 — 관리자 대시보드 나머지 화면에는 영향이 없다. 아래
+// `loadInvite()`의 조회 로직, `generateMetadata()`의 OG 개인화,
+// 캐시버스팅 구조는 전혀 손대지 않았다(디자인만 교체).
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { isGuinjiInviteExpired } from "@/app/api/public/guinji/_shared";
 import { GuinjiInviteInteractive } from "./guinji-invite-interactive";
+import { ServiceGrid } from "./service-grid";
 import { type RelationCount } from "./relation-network-graph";
 import { deriveCharacterType } from "@/lib/guinji-character-type";
 import { GUINJI_RELATION_TYPES } from "./relation-meta";
@@ -144,7 +158,8 @@ async function loadInvite(token: string) {
 }
 
 // [PRD p.38 LABEL_HUE tone → HEX, `guinji_design_handoff/DEV_SPEC.md` Dart
-// RelationLabel enum과 동일한 색상값] 기존 5색을 12라벨 색상으로 전면 교체.
+// RelationLabel enum과 동일한 색상값] 12라벨 고유색 — 브랜드 팔레트(로즈골드)
+// 와는 별개로 "관계 유형"을 구분하기 위한 파스텔 톤이라 그대로 유지한다.
 const RELATION_COLOR: Record<string, string> = {
   CHEON_GWII: "#F5D97A",
   NA_SALRIDA: "#E8C8F5",
@@ -160,56 +175,85 @@ const RELATION_COLOR: Record<string, string> = {
   GINGJANG: "#B5A8E8",
 };
 
-// [바이럴 UI 개편 — 2026-09] 사용자가 경쟁 서비스 레퍼런스를 보고 "이렇게
-// 나와야 바이럴이 된다"고 명시적으로 요구했다(스크린샷 4장 비교 지시).
-// 기존 다크(인디고) 미니멀 카드 1장짜리 구조를 다음으로 교체한다:
-//   1) 캐릭터 일러스트 + 오행 기반 캐릭터 유형 타이틀 + 상세 해설(신설)
-//   2)+3) 이름·생년월일 입력폼 + 관계 지도 그래프(`GuinjiInviteInteractive`,
-//      신설 — 폼 제출이 실제로 DB에 참여를 기록하고, 그 응답으로 그래프를
-//      새로고침 없이 즉시 갱신한다. 기존 `GuinjiPreviewForm`은 DB에 아무
-//      것도 저장하지 않아 "지도에 반영되지 않는다"는 사용자 지적의 근본
-//      원인이었다 — 완전히 폐기하고 이 컴포넌트로 교체했다.)
-// 배경도 레퍼런스와 동일하게 크림/베이지 톤으로 바꾼다(기존 OG 카드
-// buildOgPng.tsx의 #FAF3E0과 동일 계열로 카톡→랜딩 시각 일관성 확보).
+// 배경 별빛 데코 — nextjs_guiindo `.bg-stars` 유틸(globals.css)과 동일한
+// radial-gradient 조합을 인라인으로 재현(이 프로젝트엔 별도 유틸 클래스가
+// 없으므로 이 파일 안에서 그대로 이식).
+const STARS_BG =
+  "radial-gradient(1px 1px at 20% 30%, rgba(212,165,116,.6) 50%, transparent 100%)," +
+  "radial-gradient(1px 1px at 70% 20%, rgba(232,180,165,.5) 50%, transparent 100%)," +
+  "radial-gradient(1.2px 1.2px at 40% 70%, rgba(212,165,116,.4) 50%, transparent 100%)," +
+  "radial-gradient(1px 1px at 85% 60%, rgba(232,180,165,.5) 50%, transparent 100%)";
+
+const SERIF = "'Noto Serif KR', serif";
+
 export default async function GuinjiInviteLandingPage({ params }: PageProps) {
   const { token } = await params;
   const invite = await loadInvite(token);
 
   return (
-    <div className="min-h-screen bg-[#FAF3E0] px-4 py-8">
-      <div className="mx-auto w-full max-w-sm">
-        <p className="mb-4 text-center text-xs font-medium uppercase tracking-widest text-amber-800/70">
-          신통방통 · 귀인지도
-        </p>
+    <div className="min-h-screen bg-[#FBF7EF] px-4 py-8">
+      <div className="relative mx-auto w-full max-w-[440px]">
+        {/* 별빛 배경 데코 (상단 영역) */}
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-56 opacity-70"
+          style={{ backgroundImage: STARS_BG }}
+          aria-hidden
+        />
+
+        {/* 브랜드 마크 */}
+        <div className="relative mb-5 flex items-center justify-center gap-1.5">
+          <span
+            className="flex h-6 w-6 items-center justify-center rounded-full"
+            style={{ backgroundImage: "linear-gradient(135deg, #E2A88A, #A6795E)" }}
+          >
+            <span className="text-[10px] font-bold leading-none text-white">신</span>
+          </span>
+          <span style={{ fontFamily: SERIF }} className="text-[13px] font-bold text-[#2A2438]">
+            신통방통
+          </span>
+        </div>
+
+        {/* 이용부 배지 */}
+        <div className="relative mb-6 flex justify-center">
+          <div className="inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-[#F5D9C9] bg-[#FBEFE8] px-3 py-1.5">
+            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#C99B7F]" />
+            <span className="whitespace-nowrap text-[11px] font-semibold text-[#A6795E]">
+              귀인지도 초대
+            </span>
+          </div>
+        </div>
 
         {invite.state === "ok" && (
-          <div className="space-y-4">
+          <div className="relative space-y-4">
             {/* 1) 캐릭터 카드 — 일러스트 + 오행 캐릭터 유형 + 상세 해설 */}
-            <div className="rounded-2xl border border-amber-900/10 bg-white/70 p-6 text-center shadow-sm">
+            <div className="rounded-3xl border border-[#E8DDD0] bg-white/85 p-6 text-center shadow-[0_4px_20px_-8px_rgba(166,121,94,0.15)]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/guinji/bangtong_fairy.png"
                 alt=""
-                className="mx-auto mb-3 h-24 w-24 rounded-full object-cover shadow"
+                className="mx-auto mb-3 h-24 w-24 rounded-full object-cover shadow-[0_8px_32px_-12px_rgba(166,121,94,0.22)]"
               />
-              <h1 className="text-lg font-bold text-stone-800">
+              <h1
+                style={{ fontFamily: SERIF }}
+                className="text-lg font-bold leading-snug text-[#2A2438]"
+              >
                 {invite.ownerName}님의 귀인 지도
               </h1>
               {invite.characterType && (
                 <>
                   <p
+                    style={{ fontFamily: SERIF, color: invite.characterType.color }}
                     className="mt-1 text-2xl font-bold"
-                    style={{ color: invite.characterType.color }}
                   >
                     {invite.characterType.hanja} {invite.characterType.title}
                   </p>
-                  <p className="mt-1 text-sm text-stone-500">{invite.characterType.tagline}</p>
-                  <p className="mt-4 rounded-xl bg-amber-900/5 px-4 py-3 text-left text-sm leading-relaxed text-stone-600">
+                  <p className="mt-1 text-sm text-[#6E5A54]">{invite.characterType.tagline}</p>
+                  <p className="mt-4 rounded-2xl bg-[#F5EBDC] px-4 py-3 text-left text-sm leading-relaxed text-[#6E5A54]">
                     {invite.characterType.description}
                   </p>
                 </>
               )}
-              <p className="mt-4 text-sm leading-relaxed text-stone-500">
+              <p className="mt-4 text-sm leading-relaxed text-[#A08C82]">
                 생일만 넣으면, 내가 이 사람에게
                 <br />
                 어떤 사람인지 바로 나와요.
@@ -219,23 +263,26 @@ export default async function GuinjiInviteLandingPage({ params }: PageProps) {
             {/* 2)+3) 웹 참여 폼 + 관계 지도 그래프 — 로그인/앱 설치 없이
                 이름+생년월일을 한 번 입력하면 즉시 결과가 나오고, 실제로
                 지도(GuinjiMapMember/GuinjiRelationship)에 반영되어 아래
-                그래프가 새로고침 없이 그 자리에서 갱신된다(2026-09 수정 —
-                기존에는 폼이 DB에 아무것도 저장하지 않는 "미리보기"뿐이라
-                지도에 전혀 반영되지 않던 문제를 근본적으로 해결). */}
+                그래프가 새로고침 없이 그 자리에서 갱신된다. */}
             <GuinjiInviteInteractive
               token={token}
               ownerName={invite.ownerName}
               initialCounts={invite.relationCounts}
             />
+
+            {/* [ServiceGrid] 소원방/타로/정통사주/오늘의 운세로 즉시
+                이동하는 카드 4개. 결과·관계지도 확인의 필수 경로가
+                아닌 선택적 다음 단계로, 그래프 아래에 배치한다. */}
+            <ServiceGrid />
           </div>
         )}
 
         {invite.state === "expired" && (
-          <div className="rounded-2xl border border-amber-900/10 bg-white/70 p-8 text-center shadow-sm">
-            <h1 className="mb-4 text-xl font-bold text-stone-800">
+          <div className="relative rounded-3xl border border-[#E8DDD0] bg-white/85 p-8 text-center shadow-[0_4px_20px_-8px_rgba(166,121,94,0.15)]">
+            <h1 style={{ fontFamily: SERIF }} className="mb-4 text-xl font-bold text-[#2A2438]">
               초대 링크가 만료되었어요
             </h1>
-            <p className="mb-2 text-sm leading-relaxed text-stone-500">
+            <p className="mb-2 text-sm leading-relaxed text-[#6E5A54]">
               이 초대 링크는 생성된 지 7일이 지나
               <br />
               더 이상 사용할 수 없어요.
@@ -246,17 +293,24 @@ export default async function GuinjiInviteLandingPage({ params }: PageProps) {
         )}
 
         {(invite.state === "not_found" || invite.state === "error") && (
-          <div className="rounded-2xl border border-amber-900/10 bg-white/70 p-8 text-center shadow-sm">
-            <h1 className="mb-4 text-xl font-bold text-stone-800">
+          <div className="relative rounded-3xl border border-[#E8DDD0] bg-white/85 p-8 text-center shadow-[0_4px_20px_-8px_rgba(166,121,94,0.15)]">
+            <h1 style={{ fontFamily: SERIF }} className="mb-4 text-xl font-bold text-[#2A2438]">
               지도를 찾을 수 없어요
             </h1>
-            <p className="mb-2 text-sm leading-relaxed text-stone-500">
+            <p className="mb-2 text-sm leading-relaxed text-[#6E5A54]">
               링크가 잘못되었거나 지도 주인이
               <br />
               봉인을 거두었을 수 있어요.
             </p>
           </div>
         )}
+
+        {/* 브랜드 푸터 */}
+        <footer className="relative mt-10 border-t border-[#E8DDD0] pt-5 text-center">
+          <p className="text-[10px] text-[#A08C82]">
+            © 2026 Sintongbangtong. All rights reserved.
+          </p>
+        </footer>
       </div>
     </div>
   );
