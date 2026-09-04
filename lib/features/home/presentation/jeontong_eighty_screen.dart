@@ -6,6 +6,7 @@ import '../../../core/domain/access/access_checker.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
 import '../data/jeontong_profile_store.dart';
 import '../domain/jeontong_eighty_matrix.dart';
+import '../../../core/router/main_bottom_nav_bar.dart';
 import 'jeontong_design/hanji_background.dart';
 import 'jeontong_design/hanji_design_tokens.dart';
 import 'jeontong_design/saju_seal.dart';
@@ -94,6 +95,11 @@ class _JeontongEightyScreenState extends State<JeontongEightyScreen> {
     final hasPass = context.watch<AccessChecker>().isOpenPassActive();
 
     return Scaffold(
+      // [하단바 통일 작업] 이 화면은 홈 화면 "정통사주" 카드에서 push로
+      // 열리는 별도 라우트(`/jeontong/eighty`)라 AppShell 밖에 있다 —
+      // 전역 5탭 하단바가 보이지 않는다는 사용자 리포트를 해결하기 위해
+      // 동일한 하단바를 추가한다("운세" 탭 인덱스 1을 강조).
+      bottomNavigationBar: const MainBottomNavBar(currentIndex: 1),
       body: HanjiBackground(
         sigilOpacity: 0.14,
         child: SafeArea(

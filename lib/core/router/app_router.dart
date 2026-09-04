@@ -174,7 +174,14 @@ class AppRouter {
         return _page(const PolicyNoticeScreen());
 
       case '/home':
-        return _page(const AppShell());
+        // [하단바 통일 작업] 정통사주/타로/소원방/귀인지도 등 AppShell
+        // 바깥의 push 화면에 추가한 [MainBottomNavBar]가 특정 탭으로
+        // 곧장 진입시키기 위해 int 인덱스를 arguments로 넘길 수 있다.
+        // 기존처럼 arguments 없이 호출되면 그대로 0(홈)으로 시작한다.
+        final homeArgs = settings.arguments;
+        return _page(
+          AppShell(initialIndex: homeArgs is int ? homeArgs : 0),
+        );
 
       // [귀인지도 Phase G-1: 라우트 스캐폴딩] 홈 배너 캐러셀 Slide 1
       // ("귀인지도") CTA의 진입점. 신통방통_귀인지도_최종_개발계획서_v2.0.md

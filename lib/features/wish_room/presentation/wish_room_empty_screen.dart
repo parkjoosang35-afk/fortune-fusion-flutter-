@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/router/main_bottom_nav_bar.dart';
 import '../theme/wish_room_theme.dart';
 import '../widgets/wish_room_bg_atmosphere.dart';
 import '../widgets/wish_room_buttons.dart';
@@ -22,7 +23,12 @@ import '../widgets/wish_room_candle.dart';
 /// 시나리오, (b) 향후 별도 라우트가 필요할 때를 위해 독립 화면으로
 /// 제공한다.
 class WishRoomEmptyScreen extends StatelessWidget {
-  const WishRoomEmptyScreen({super.key, required this.onCompose, this.onBack});
+  const WishRoomEmptyScreen({
+    super.key,
+    required this.onCompose,
+    this.onBack,
+    this.showMainBottomNav = false,
+  });
 
   /// "+ 첫 소원 담기" — 03 Compose 화면으로 이동.
   final VoidCallback onCompose;
@@ -32,10 +38,17 @@ class WishRoomEmptyScreen extends StatelessWidget {
   /// 뒤로가기 버튼을 렌더링하지 않는다.
   final VoidCallback? onBack;
 
+  /// [하단바 통일 작업] [WishRoomHomeScreen]이 push된 인스턴스일 때만
+  /// true로 전달되어 전역 5탭 하단바를 함께 보여준다.
+  final bool showMainBottomNav;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: WishRoomColors.backgroundDeep,
+      bottomNavigationBar: showMainBottomNav
+          ? const MainBottomNavBar(currentIndex: 2)
+          : null,
       body: Stack(
         children: [
           const Positioned.fill(

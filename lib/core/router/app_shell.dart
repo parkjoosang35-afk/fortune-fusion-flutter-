@@ -15,14 +15,26 @@ import '../../features/mypage/presentation/my_screen.dart';
 /// 유지하므로, 탭 전환 시 상단 배경색은 각 화면의 Scaffold.backgroundColor가
 /// 그대로 담당한다(이 파일은 탭바 자체만 화이트로 변경).
 class AppShell extends StatefulWidget {
-  const AppShell({super.key});
+  const AppShell({super.key, this.initialIndex = 0});
+
+  /// [하단바 통일 작업] 정통사주/타로/소원방/귀인지도처럼 AppShell
+  /// 바깥에서 push된 화면에서 [MainBottomNavBar]를 탭했을 때, 스택을
+  /// 정리하고 이 특정 탭으로 곧장 진입시키기 위한 초기 탭 인덱스.
+  /// 지정하지 않으면 기존과 동일하게 항상 0(홈)으로 시작한다.
+  final int initialIndex;
 
   @override
   State<AppShell> createState() => _AppShellState();
 }
 
 class _AppShellState extends State<AppShell> {
-  int _index = 0;
+  late int _index;
+
+  @override
+  void initState() {
+    super.initState();
+    _index = widget.initialIndex.clamp(0, _tabs.length - 1);
+  }
 
   static const _tabs = [
     HomeScreen(), // 🏠 홈 - 화이트 프리미엄 9섹션 리디자인

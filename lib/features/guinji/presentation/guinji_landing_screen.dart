@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/router/main_bottom_nav_bar.dart';
 import '../theme/guinji_map_theme.dart';
 import '../widgets/guinji_map_landing_widgets.dart';
 import '../widgets/guinji_map_widgets.dart';
@@ -26,6 +27,11 @@ class GuinjiLandingScreen extends StatelessWidget {
       appBar: GmTopBar(
         onShare: () => _openShareSheet(context),
       ),
+      // [하단바 통일 작업] 귀인지도는 홈 배너 캐러셀에서 push로 열리는
+      // 별도 라우트(`/guinji-map`)라 AppShell 밖에 있다 — 전역 5탭
+      // 하단바가 보이지 않는다는 사용자 리포트를 해결하기 위해 동일한
+      // 하단바를 추가한다(홈 배너에서 진입하므로 "홈" 탭 인덱스 0을 강조).
+      bottomNavigationBar: const MainBottomNavBar(currentIndex: 0),
       body: SingleChildScrollView(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 440),

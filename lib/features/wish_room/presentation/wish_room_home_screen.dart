@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/router/main_bottom_nav_bar.dart';
 import '../application/wish_wall_provider.dart';
 import '../domain/wish_wall_models.dart';
 import '../theme/wish_room_theme.dart';
@@ -340,7 +341,14 @@ class _WishRoomHomeScreenState extends State<WishRoomHomeScreen> {
     if (widget.showEmptyScreenIfEmpty &&
         !provider.isLoading &&
         wishes.isEmpty) {
-      return WishRoomEmptyScreen(onCompose: _openCompose, onBack: onBack);
+      return WishRoomEmptyScreen(
+        onCompose: _openCompose,
+        onBack: onBack,
+        // [하단바 통일 작업] push 인스턴스(canGoBack=true)일 때만 전역
+        // 5탭 하단바를 보여준다 — AppShell 탭 인스턴스는 이미 자체
+        // 하단바를 갖고 있으므로 중복 방지.
+        showMainBottomNav: canGoBack,
+      );
     }
 
     final wishCount = wishes.length;
@@ -357,6 +365,13 @@ class _WishRoomHomeScreenState extends State<WishRoomHomeScreen> {
 
     return Scaffold(
       backgroundColor: WishRoomColors.backgroundDeep,
+      // [하단바 통일 작업] 이 화면이 push된 인스턴스(=canGoBack, 홈 화면
+      // "소원방" 카드/`WishRoomEntryGate` 경유)일 때만 전역 5탭 하단바를
+      // 보여준다. `AppShell`의 탭 인스턴스(canGoBack=false)는 이미
+      // AppShell 자체 하단바가 있으므로 중복 표시하지 않는다.
+      bottomNavigationBar: canGoBack
+          ? const MainBottomNavBar(currentIndex: 2)
+          : null,
       body: Stack(
         children: [
           // ── BgAtmosphere: radial gradient(120% 80% at 50% 20%) + 중앙
