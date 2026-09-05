@@ -36,27 +36,28 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { isGuinjiInviteExpired } from "@/app/api/public/guinji/_shared";
-import { RedirectToApp } from "./redirect-to-app";
+import { GuinjiInviteInteractive } from "./guinji-invite-interactive";
+import { ServiceGrid } from "./service-grid";
 import { type RelationCount } from "./relation-network-graph";
 import { deriveCharacterType } from "@/lib/guinji-character-type";
 import { GUINJI_RELATION_TYPES } from "./relation-meta";
 import { GUINJI_RELATION_TYPE_ORDER } from "@/lib/guinji-relation-judger";
 
-// [초대 링크 = 플러터 원본 페이지 기반 전환] 게스트가 실제로 보게 될 화면은
-// admin_web 자체 재구현이 아니라 Flutter 웹 앱의 원본 `/g/{token}` 화면
-// (`GuinjiMapGuestJoinScreen` → `GuinjiGuestResultScreen`, 호스트 이름+
-// 관계유형+케미점수 표시까지 이미 완성됨)이어야 한다는 사용자의 명시적
-// 정정에 따라, 아래 `appUrl`로 즉시 리다이렉트한다(`redirect-to-app.tsx`
-// 참고). 카톡 OG 미리보기 카드는 `generateMetadata()`가 그대로 유지한다
-// (크롤러는 JS를 실행하지 않으므로 이 리다이렉트의 영향을 받지 않음).
-//
-// [운영 전환 시] `NEXT_PUBLIC_USER_APP_URL`은 원래 "9단계 앱 바로가기"
-// (관리자 사이드바 → Flutter 웹 프리뷰) 목적으로 만들어진 환경변수를
-// 그대로 재사용한다. 실제 운영 배포 시 이 값을 진짜 Flutter 웹 배포
-// 도메인(예: `https://sintong.kr/app`)으로 바꾸는 것만으로 이 리다이렉트가
-// 자동으로 올바른 곳을 가리키게 된다.
-const FLUTTER_APP_URL =
-  process.env.NEXT_PUBLIC_USER_APP_URL || "https://sintong.kr/app";
+// [2026-09, 즉시 리다이렉트(B-1) 전면 폐기 — 원상복구] 직전 세션에서
+// "초대 링크는 플러터 원본 페이지 기반으로 가야 한다"는 사용자 지시를
+// "마운트 즉시 강제 리다이렉트"로 잘못 해석해 `RedirectToApp`을 붙였다.
+// 이는 doryeong.app(경쟁 서비스) 레퍼런스 스크린샷을 근거로 사용자가
+// 강하게 정정한 원칙을 정면으로 위반한 것이었다:
+//   1) 카톡을 눌러 들어오면 "첨부한 콘텐츠"(귀인지도 캐릭터 카드)가 먼저
+//      보여야 한다 — 즉시 다른 화면으로 튕기면 안 된다.
+//   2) 콘텐츠를 보고 받은 사람이 자기 이름+생년월일을 입력하면, 그 자리에서
+//      관계·점수·랭킹이 나오고 지도에 등록되어야 한다(웹에서 완결).
+//   3) 앱 전환은 받은 사람이 "나도 지도를 만들어볼까" 하고 스스로 원할
+//      때만 일어난다 — 자동 강제 전환 금지.
+// 이 원칙을 정확히 구현한 컴포넌트(`GuinjiInviteInteractive` + 실제 DB에
+// 반영하는 `/api/public/guinji/g/{token}/join`)는 이미 완성되어 있었으나,
+// B-1 작업 때 실수로 페이지에서 떼어내고 `RedirectToApp`으로 바꿔버렸다.
+// 여기서 그 실수를 되돌리고 원래 흐름을 복원한다.
 
 export const dynamic = "force-dynamic";
 
@@ -332,16 +333,17 @@ export default async function GuinjiInviteLandingPage({ params }: PageProps) {
               </div>
             )}
 
-            {/* [초대 링크 = 플러터 원본 페이지 기반 전환] 이름+생년월일 입력
-                폼과 관계 지도 그래프는 admin_web 자체 재구현(웹 완결 경험)
-                대신, 이미 완성되어 있는 Flutter 원본 화면
-                (`GuinjiMapGuestJoinScreen` → `GuinjiGuestResultScreen`)이
-                담당한다. 여기서는 즉시 그 화면으로 리다이렉트만 한다. */}
-            <RedirectToApp
-              ownerName={invite.ownerName}
-              appUrl={FLUTTER_APP_URL}
+            {/* [원상복구] 콘텐츠(위 캐릭터 카드) 다음에 이름+생년월일 입력폼이
+                바로 이어진다. 제출하면 그 자리에서 관계·점수가 나오고
+                RelationNetworkGraph가 새로고침 없이 갱신된다(웹 완결 경험).
+                앱 전환은 결과 카드의 "내 지도 만들기" 버튼을 사용자가 직접
+                눌렀을 때만 시도된다. */}
+            <GuinjiInviteInteractive
               token={token}
+              ownerName={invite.ownerName}
+              initialCounts={invite.relationCounts}
             />
+            <ServiceGrid />
           </div>
         </>
       )}
