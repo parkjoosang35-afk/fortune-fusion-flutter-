@@ -8,6 +8,7 @@ import '../domain/guinji_person.dart';
 import '../domain/guinji_relation_meta.dart';
 import '../theme/guinji_map_theme.dart';
 import '../widgets/guinji_map_widgets.dart';
+import 'guinji_map_relation_detail_screen.dart';
 import 'guinji_node_sheet.dart';
 
 /// M · My Map — `/guinji-map/m`
@@ -87,7 +88,17 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
         Navigator.of(context).maybePop();
         Navigator.of(context).pushNamed('/guinji-map/m/share');
       },
-      onSeeMore: () {},
+      // [귀인지도 기능 정리 — 1] 이전까지 빈 콜백(() {})이라 "더 자세히
+      // 보기" 버튼이 눌러도 반응이 없던 문제를 해결한다. 바텀시트를 닫고
+      // 새 디자인 톤 관계상세 화면으로 push한다.
+      onSeeMore: () {
+        Navigator.of(context).maybePop();
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => GuinjiMapRelationDetailScreen(person: person),
+          ),
+        );
+      },
     );
   }
 
@@ -105,6 +116,12 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
       return;
     }
     Navigator.of(context).pushNamed('/guinji-map/m/friends');
+  }
+
+  // [귀인지도 기능 정리 — 2] 신규 디자인 계열에 랭킹 화면 진입점이
+  // 아예 없던 문제를 해결한다. 상단 "목록 보기" 버튼 옆에 배치.
+  void _openRanking() {
+    Navigator.of(context).pushNamed('/guinji-map/m/ranking');
   }
 
   @override
@@ -169,6 +186,17 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
                         ],
                       ),
                     ),
+                    OutlinedButton(
+                      onPressed: _openRanking,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: GmColors.rose700,
+                        side: BorderSide(color: GmColors.rose300),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9999)),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      ),
+                      child: const Text('랭킹', style: TextStyle(fontSize: 12)),
+                    ),
+                    const SizedBox(width: 8),
                     OutlinedButton(
                       onPressed: _openFriends,
                       style: OutlinedButton.styleFrom(

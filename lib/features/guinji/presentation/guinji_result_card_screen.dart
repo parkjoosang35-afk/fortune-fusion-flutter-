@@ -31,9 +31,20 @@ import '../widgets/guinji_bg_atmosphere.dart';
 /// 어떤 재화 지급도 이 화면에서는 발생하지 않는다(캡처·공유는 순수
 /// 클라이언트 로컬 동작).
 class GuinjiResultCardScreen extends StatefulWidget {
-  const GuinjiResultCardScreen({super.key, this.people = guinjiSamplePeople});
+  const GuinjiResultCardScreen({
+    super.key,
+    this.people = guinjiSamplePeople,
+    this.ownerName = '지민',
+  });
 
   final List<GuinjiPerson> people;
+
+  /// [귀인지도 기능 정리 — 3, 이상한 부분] 이전까지 카드 본문의
+  /// "지민의 지도에는" 문구가 실제 소유자 이름과 무관하게 항상 "지민"으로
+  /// 하드코딩돼 있었다. 호출부(랭킹 화면 등)에서 실제 이름을 전달하면
+  /// 그 이름이 표시되고, 값이 없으면(기존 `/guinji/result-card` 라우트
+  /// 등 회귀 방지) 기존 기본값 '지민'을 그대로 유지한다.
+  final String ownerName;
 
   @override
   State<GuinjiResultCardScreen> createState() => _GuinjiResultCardScreenState();
@@ -109,6 +120,7 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
                       child: RepaintBoundary(
                         key: _cardKey,
                         child: _TheCard(
+                          ownerName: widget.ownerName,
                           guin: guin,
                           oreunpal: oreunpal,
                           horang: horang,
@@ -194,11 +206,13 @@ class _MonoLabel extends StatelessWidget {
 /// 카드 본체 — 240×320(3:4), 회전 마법진 배경 + 신통도령 + 통계 + 인용구.
 class _TheCard extends StatelessWidget {
   const _TheCard({
+    required this.ownerName,
     required this.guin,
     required this.oreunpal,
     required this.horang,
   });
 
+  final String ownerName;
   final int guin;
   final int oreunpal;
   final int horang;
@@ -283,10 +297,10 @@ class _TheCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 2),
-                const Text(
-                  '지민의 지도에는',
+                Text(
+                  '$ownerName의 지도에는',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontFamily: GuinjiFonts.body,
                     fontSize: 10,
                     color: GuinjiColors.textSecondary,

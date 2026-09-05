@@ -91,6 +91,10 @@ import '../../features/guinji/presentation/guinji_map_share_screen.dart';
 import '../../features/guinji/presentation/guinji_friend_list_screen.dart';
 import '../../features/guinji/presentation/guinji_guest_result_screen.dart';
 import '../../features/guinji/presentation/guinji_map_guest_join_screen.dart';
+// [귀인지도 기능 정리 — 관계상세/랭킹] `/guinji-map/*` 신규 디자인 톤으로
+// 새로 만든 관계상세(N→상세)·랭킹 화면. M/F 화면에서 진입점으로 연결한다.
+import '../../features/guinji/presentation/guinji_map_relation_detail_screen.dart';
+import '../../features/guinji/presentation/guinji_map_ranking_screen.dart';
 import 'package:provider/provider.dart';
 import '../auth/auth_token_store.dart';
 import 'app_navigator_key.dart';
@@ -318,8 +322,41 @@ class AppRouter {
           Builder(
             builder: (context) {
               final people = context.watch<GuinjiProvider>().people;
+              // [귀인지도 기능 정리 — F화면 상세 연결] friends는 점수
+              // 내림차순으로 정렬된 GuinjiFriendEntry 목록이므로, 동일하게
+              // people을 점수 내림차순 정렬해두면 rank(1-base) - 1 인덱스로
+              // 원본 GuinjiPerson과 1:1 매핑된다(guinjiFriendEntriesFromPeople
+              // 내부 정렬 로직과 동일한 기준 재사용).
+              final sortedPeople = [...people]
+                ..sort((a, b) => b.score.compareTo(a.score));
               return GuinjiFriendListScreen(
                 friends: guinjiFriendEntriesFromPeople(people),
+                onFriendTap: (entry) {
+                  final idx = entry.rank - 1;
+                  if (idx < 0 || idx >= sortedPeople.length) return;
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => GuinjiMapRelationDetailScreen(
+                        person: sortedPeople[idx],
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        );
+      case '/guinji-map/m/ranking':
+        // [귀인지도 기능 정리 — 랭킹] 신규 디자인 계열 최초의 랭킹
+        // 진입점. 구계열(`/guinji/ranking`)과 동일하게 전역
+        // [GuinjiProvider]에서 실제 people을 읽어 전달한다.
+        return _page(
+          Builder(
+            builder: (context) {
+              final provider = context.watch<GuinjiProvider>();
+              return GuinjiMapRankingScreen(
+                people: provider.people,
+                ownerName: provider.mapName ?? '나',
               );
             },
           ),
