@@ -181,8 +181,10 @@ export function GuinjiInviteInteractive({
   return (
     <>
       <div className="rounded-3xl border border-[#E8DDD0] bg-white/85 p-6 shadow-[0_4px_20px_-8px_rgba(166,121,94,0.15)]">
-        <p className="mb-1 text-center text-sm font-bold text-[#2A2438]">
+        <p className="mb-1 flex items-center justify-center gap-1.5 text-center text-[13px] text-[#6E5A54]">
+          <span className="text-[#C99B7F]">✦</span>
           나는 {ownerName}님에게 어떤 사람일까?
+          <span className="text-[#C99B7F]">✦</span>
         </p>
 
         {result ? (

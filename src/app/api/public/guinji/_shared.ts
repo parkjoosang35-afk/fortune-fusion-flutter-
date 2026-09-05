@@ -81,13 +81,21 @@ export function todayKstDateKey(): string {
 }
 
 /**
- * [M6 확정] 초대 링크(GuinjiMap.token) 만료 조건 — 개발계획서 §15 M6 "초대 링크
- * 만료 조건(시간/횟수)"에 대한 보완 결정: 지도 생성 후 7일이 지나면 만료로
- * 판정한다(§우측 로드맵 노트 "M6(7일 만료 또는 지도삭제시)"). 지도 자체가
+ * [M6 확정 → 2026-09 버그수정] 초대 링크(GuinjiMap.token) 만료 조건 —
+ * 개발계획서 §15 M6 "초대 링크 만료 조건(시간/횟수)"에 대한 보완 결정.
+ *
+ * [버그 발견 2026-09] 원래 이 값은 7일이었는데, Flutter 앱 공유 화면
+ * (`guinji_map_share_screen.dart`)의 안내 문구는 처음부터 "링크는 30일간
+ * 유효해요"로 표시되고 있었다 — 즉 서버와 클라이언트 문구가 불일치했다.
+ * 실사용자가 지도를 만들고 7일이 지난 뒤 공유한 링크를 지인이 열면
+ * "초대 링크가 만료되었어요" 화면이 뜨는데, 정작 앱은 "30일간 유효"라고
+ * 안내했으므로 사용자 입장에서는 명백한 버그로 보인다(2026-09 실사용자
+ * 리포트로 발견). 바이럴 공유 링크의 특성상 7일은 지나치게 짧으므로,
+ * 서버 쪽 값을 UI 문구와 동일한 30일로 맞춘다(지도 자체가
  * 삭제(status!=active 또는 deletedAt)된 경우는 이 함수와 별개로 NOT_FOUND로
- * 처리한다(호출부에서 status/deletedAt을 먼저 확인).
+ * 처리한다(호출부에서 status/deletedAt을 먼저 확인)).
  */
-export const GUINJI_INVITE_EXPIRY_DAYS = 7;
+export const GUINJI_INVITE_EXPIRY_DAYS = 30;
 
 export function isGuinjiInviteExpired(mapCreatedAt: Date): boolean {
   const expiresAt = new Date(mapCreatedAt.getTime() + GUINJI_INVITE_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
