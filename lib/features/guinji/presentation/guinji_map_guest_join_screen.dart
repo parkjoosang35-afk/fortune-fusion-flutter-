@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/router/main_bottom_nav_bar.dart';
 import '../application/guinji_provider.dart';
 import '../theme/guinji_map_theme.dart';
 import '../widgets/guinji_map_widgets.dart';
@@ -142,6 +143,8 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
     final hostName = result['ownerName'] as String? ?? '지도 주인';
     final relationKey = result['relationType'] as String? ?? 'CHEON_GWII';
     final score = (result['chemistryScore'] as num?)?.toInt() ?? 0;
+    final mapSummary = result['mapSummary'] as Map<String, dynamic>?;
+    final mapTotal = (mapSummary?['total'] as num?)?.toInt();
 
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -154,6 +157,8 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
                   hostName: hostName,
                   relationKey: relationKey,
                   score: score,
+                  guestName: name,
+                  mapTotal: mapTotal,
                 ),
               ),
             );
@@ -172,6 +177,7 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
         title: '귀인지도 참여',
         onBack: () => Navigator.of(context).maybePop(),
       ),
+      bottomNavigationBar: const MainBottomNavBar(currentIndex: 0),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
         child: Column(
