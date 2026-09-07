@@ -358,9 +358,35 @@ List<_NodeState> _layoutPeople(List<GuinjiPerson> people, double cx, double cy) 
   }).toList();
 }
 
+/// 배경 반짝임용 별 하나의 사양(위치는 컨테이너 크기에 대한 0~1 비율).
+class _GmGraphStarSpec {
+  _GmGraphStarSpec({
+    required this.dx,
+    required this.dy,
+    required this.phase,
+    required this.speed,
+    required this.maxOpacity,
+    required this.radius,
+    required this.gold,
+  });
+
+  final double dx, dy, phase, speed, maxOpacity, radius;
+  final bool gold;
+}
+
 /// 인터랙티브 노드 그래프 — pan(빈 공간 드래그) / zoom(pinch) / drag(노드
 /// 이동) / tap(노드 선택)을 하나의 GestureDetector로 처리한다. 새 디자인
 /// `InteractiveNodeGraph`와 동일한 구조.
+///
+/// [애니메이션 강화] 정적 페인팅이던 관계 그래프에 다음 연출을 추가한다
+/// (모두 단일 [_timeController]가 구동하는 [_GraphPainter]에서 렌더링):
+/// - 배경 별빛 반짝임([_starSpecs])
+/// - 궤도 링(80/140/200px)의 서로 다른 속도 회전
+/// - 중앙 "나" 노드의 레이더 펄스(radar ping)
+/// - 각 노드의 호흡(breathing) 크기 변화 + 미세 플로팅
+/// - 중심→노드 연결선을 따라 흐르는 에너지 입자
+/// - 첫 진입 시 중심에서 뻗어나가는 등장(entrance) 애니메이션
+/// 드래그 중인 노드는 흔들리지 않도록 breathe/float를 비활성화한다.
 class _InteractiveGuinjiGraph extends StatefulWidget {
   const _InteractiveGuinjiGraph({
     required this.ownerName,
@@ -376,7 +402,8 @@ class _InteractiveGuinjiGraph extends StatefulWidget {
   State<_InteractiveGuinjiGraph> createState() => _InteractiveGuinjiGraphState();
 }
 
-class _InteractiveGuinjiGraphState extends State<_InteractiveGuinjiGraph> {
+class _InteractiveGuinjiGraphState extends State<_InteractiveGuinjiGraph>
+    with TickerProviderStateMixin {
   final _key = GlobalKey();
   double _scale = 1;
   double _panX = 0, _panY = 0;
@@ -385,10 +412,41 @@ class _InteractiveGuinjiGraphState extends State<_InteractiveGuinjiGraph> {
   _NodeState? _dragging;
   bool _panning = false;
   bool _moved = false;
+  int _lastNodeCount = -1;
+
+  /// 연속 "시계" — 12초 주기로 0→1 반복. 링 회전/펄스/호흡/에너지 흐름이
+  /// 모두 이 값에서 서로 다른 배속으로 파생된다(전용 컨트롤러를 여러 개
+  /// 두지 않아 가볍다).
+  late final AnimationController _timeController;
+
+  /// 최초 진입(혹은 인원 수 변화) 시 한 번 재생되는 등장(entrance) 애니메이션.
+  late final AnimationController _entranceController;
+
+  late final List<_GmGraphStarSpec> _starSpecs;
 
   @override
   void initState() {
     super.initState();
+    _timeController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 12),
+    )..repeat();
+    _entranceController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    final rnd = math.Random(7);
+    _starSpecs = List.generate(18, (i) {
+      return _GmGraphStarSpec(
+        dx: rnd.nextDouble(),
+        dy: rnd.nextDouble(),
+        phase: rnd.nextDouble() * math.pi * 2,
+        speed: 0.6 + rnd.nextDouble() * 1.2,
+        maxOpacity: 0.25 + rnd.nextDouble() * 0.35,
+        radius: 0.8 + rnd.nextDouble() * 1.4,
+        gold: i.isEven,
+      );
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) => _rebuildLayout());
   }
 
@@ -396,6 +454,13 @@ class _InteractiveGuinjiGraphState extends State<_InteractiveGuinjiGraph> {
   void didUpdateWidget(covariant _InteractiveGuinjiGraph oldWidget) {
     super.didUpdateWidget(oldWidget);
     _rebuildLayout();
+  }
+
+  @override
+  void dispose() {
+    _timeController.dispose();
+    _entranceController.dispose();
+    super.dispose();
   }
 
   void _rebuildLayout() {
@@ -407,6 +472,12 @@ class _InteractiveGuinjiGraphState extends State<_InteractiveGuinjiGraph> {
     _nodes
       ..clear()
       ..addAll(_layoutPeople(widget.people, cx, cy));
+    // 인원 수가 실제로 바뀌었을 때만 등장 애니메이션을 재생한다(부모의
+    // 무관한 리빌드마다 반복 재생되지 않도록).
+    if (_nodes.isNotEmpty && _nodes.length != _lastNodeCount) {
+      _lastNodeCount = _nodes.length;
+      _entranceController.forward(from: 0);
+    }
     if (mounted) setState(() {});
   }
 
@@ -479,15 +550,24 @@ class _InteractiveGuinjiGraphState extends State<_InteractiveGuinjiGraph> {
                 _dragging = null;
                 _panning = false;
               },
-              child: CustomPaint(
-                painter: _GraphPainter(
-                  nodes: _nodes,
-                  ownerName: widget.ownerName,
-                  scale: _scale,
-                  panX: _panX,
-                  panY: _panY,
-                ),
-                size: Size.infinite,
+              child: AnimatedBuilder(
+                animation: Listenable.merge([_timeController, _entranceController]),
+                builder: (context, _) {
+                  return CustomPaint(
+                    painter: _GraphPainter(
+                      nodes: _nodes,
+                      ownerName: widget.ownerName,
+                      scale: _scale,
+                      panX: _panX,
+                      panY: _panY,
+                      time: _timeController.value,
+                      entrance: _entranceController.value,
+                      draggingPerson: _dragging?.person,
+                      stars: _starSpecs,
+                    ),
+                    size: Size.infinite,
+                  );
+                },
               ),
             ),
           ),
@@ -608,14 +688,46 @@ class _GraphPainter extends CustomPainter {
     required this.scale,
     required this.panX,
     required this.panY,
+    required this.time,
+    required this.entrance,
+    required this.stars,
+    this.draggingPerson,
   });
 
   final List<_NodeState> nodes;
   final String ownerName;
   final double scale, panX, panY;
 
+  /// 0→1 무한 반복되는 시계값(12초 주기) — 링 회전/펄스/에너지 흐름/배경별
+  /// 반짝임의 공통 시간축.
+  final double time;
+
+  /// 0(등장 시작)→1(완전히 배치 완료) 등장(entrance) 진행도.
+  final double entrance;
+
+  final List<_GmGraphStarSpec> stars;
+
+  /// 현재 드래그 중인 노드 — breathing/float 애니메이션을 잠시 멈춰 드래그
+  /// 체감을 방해하지 않는다.
+  final GuinjiPerson? draggingPerson;
+
+  static const _twoPi = math.pi * 2;
+
   @override
   void paint(Canvas canvas, Size size) {
+    // ── 배경 별빛 반짝임(팬/줌 영향을 받지 않도록 canvas 변환 전에 그린다) ──
+    for (final s in stars) {
+      final tw = (math.sin(time * _twoPi * s.speed + s.phase) + 1) / 2; // 0~1
+      final opacity = 0.15 + tw * s.maxOpacity;
+      canvas.drawCircle(
+        Offset(s.dx * size.width, s.dy * size.height),
+        s.radius * (0.6 + tw * 0.4),
+        Paint()
+          ..color = (s.gold ? GmColors.gold : GmColors.rose400)
+              .withValues(alpha: opacity),
+      );
+    }
+
     canvas.save();
     canvas.translate(panX, panY);
     canvas.scale(scale);
@@ -623,49 +735,129 @@ class _GraphPainter extends CustomPainter {
     final cx = size.width / 2;
     final cy = size.height / 2;
 
-    final ring = Paint()
+    // ── 회전하는 궤도 링(반지름별로 속도를 달리해 정교함을 살린다) ──
+    final ringBase = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1
-      ..color = GmColors.line;
-    _dashed(canvas, Offset(cx, cy), 80, ring);
-    _dashed(canvas, Offset(cx, cy), 140, ring);
-    _dashed(canvas, Offset(cx, cy), 200, ring..color = GmColors.lineSoft);
+      ..strokeWidth = 1;
+    _dashed(canvas, Offset(cx, cy), 80, ringBase..color = GmColors.line,
+        rotation: time * _twoPi * 0.5);
+    _dashed(canvas, Offset(cx, cy), 140, ringBase..color = GmColors.line,
+        rotation: -time * _twoPi * 0.32);
+    _dashed(canvas, Offset(cx, cy), 200, ringBase..color = GmColors.lineSoft,
+        rotation: time * _twoPi * 0.2);
 
-    for (final n in nodes) {
-      canvas.drawLine(
-        Offset(cx, cy),
-        Offset(n.x, n.y),
-        Paint()
-          ..color = n.color.withValues(alpha: 0.4)
-          ..strokeWidth = 1,
-      );
+    // ── 중심에서 퍼져나가는 레이더 펄스(radar ping) ──
+    for (int i = 0; i < 2; i++) {
+      final t = ((time + i * 0.5) % 1.0);
+      final pulseRadius = 20 + t * 190;
+      final pulseOpacity = (1 - t) * 0.35;
+      if (pulseOpacity > 0.01) {
+        canvas.drawCircle(
+          Offset(cx, cy),
+          pulseRadius,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.4
+            ..color = GmColors.rose400.withValues(alpha: pulseOpacity),
+        );
+      }
     }
 
-    canvas.drawCircle(Offset(cx, cy), 34, Paint()..color = GmColors.ink);
+    // ── 중심→노드 연결선 + 흐르는 에너지 입자 ──
+    for (final n in nodes) {
+      final nodeEntrance = _entranceForNode(n, entrance);
+      final ex = cx + (n.x - cx) * nodeEntrance;
+      final ey = cy + (n.y - cy) * nodeEntrance;
+      canvas.drawLine(
+        Offset(cx, cy),
+        Offset(ex, ey),
+        Paint()
+          ..color = n.color.withValues(alpha: 0.4 * nodeEntrance)
+          ..strokeWidth = 1,
+      );
+      if (nodeEntrance > 0.98) {
+        // 라인을 따라 흐르는 작은 입자(에너지 흐름 효과) — 2개를 위상차를
+        // 두어 흐름감을 강화한다.
+        for (int k = 0; k < 2; k++) {
+          final flow = ((time * (0.7 + k * 0.15)) + k * 0.5) % 1.0;
+          final fx = cx + (n.x - cx) * flow;
+          final fy = cy + (n.y - cy) * flow;
+          final fade = math.sin(flow * math.pi); // 시작/끝에서 페이드
+          canvas.drawCircle(
+            Offset(fx, fy),
+            2.2,
+            Paint()..color = n.color.withValues(alpha: 0.75 * fade),
+          );
+        }
+      }
+    }
+
+    // ── 중앙 "나" 노드: 은은한 호흡(scale) + 오라 ──
+    final ownerBreath = 1 + math.sin(time * _twoPi * 0.5) * 0.035;
+    canvas.drawCircle(
+      Offset(cx, cy),
+      40 * ownerBreath,
+      Paint()..color = GmColors.gold.withValues(alpha: 0.14),
+    );
+    canvas.drawCircle(Offset(cx, cy), 34 * ownerBreath, Paint()..color = GmColors.ink);
     _text(canvas, Offset(cx, cy - 3), '$ownerName님', 10, GmColors.ivory, weight: FontWeight.w700);
     _text(canvas, Offset(cx, cy + 10), '나', 8, GmColors.gold);
 
+    // ── 인물 노드: 등장(scale+fade) + 호흡 + 미세 플로팅 ──
     for (final n in nodes) {
-      canvas.drawCircle(Offset(n.x, n.y), n.r + 4, Paint()..color = n.color.withValues(alpha: 0.15));
-      canvas.drawCircle(Offset(n.x, n.y), n.r, Paint()..color = n.color);
+      final nodeEntrance = _entranceForNode(n, entrance);
+      if (nodeEntrance <= 0.001) continue;
+      final isDragging = draggingPerson == n.person;
+      final seedOffset = n.person.name.hashCode % 1000 / 1000.0;
+      final breathe = isDragging
+          ? 1.0
+          : 1 + math.sin(time * _twoPi * 0.7 + seedOffset * _twoPi) * 0.06;
+      final floatY = isDragging
+          ? 0.0
+          : math.sin(time * _twoPi * 0.45 + seedOffset * _twoPi) * 2.5;
+      final ox = n.x;
+      final oy = n.y + floatY;
+      final r = n.r * breathe * nodeEntrance.clamp(0.0, 1.0);
+      final alpha = nodeEntrance.clamp(0.0, 1.0);
+
       canvas.drawCircle(
-        Offset(n.x, n.y),
-        n.r,
+        Offset(ox, oy),
+        r + 4,
+        Paint()..color = n.color.withValues(alpha: 0.15 * alpha),
+      );
+      canvas.drawCircle(Offset(ox, oy), r, Paint()..color = n.color.withValues(alpha: alpha));
+      canvas.drawCircle(
+        Offset(ox, oy),
+        r,
         Paint()
-          ..color = Colors.white
+          ..color = Colors.white.withValues(alpha: alpha)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2,
       );
-      _text(canvas, Offset(n.x, n.y - 1), n.person.name, 10, Colors.white, weight: FontWeight.w700);
-      _text(canvas, Offset(n.x, n.y + 10), '${n.person.score}', 8, Colors.white.withValues(alpha: 0.85));
+      if (alpha > 0.6) {
+        _text(canvas, Offset(ox, oy - 1), n.person.name, 10, Colors.white.withValues(alpha: alpha), weight: FontWeight.w700);
+        _text(canvas, Offset(ox, oy + 10), '${n.person.score}', 8, Colors.white.withValues(alpha: alpha * 0.85));
+      }
     }
 
     canvas.restore();
   }
 
-  void _dashed(Canvas c, Offset center, double radius, Paint p) {
+  /// 노드별로 등장 시작 시점을 살짝 엇갈리게(stagger) 만들어 한꺼번에
+  /// "팍" 나타나지 않고 순차적으로 퍼져나가는 느낌을 준다.
+  double _entranceForNode(_NodeState n, double globalEntrance) {
+    final total = nodes.length;
+    if (total == 0) return globalEntrance;
+    final idx = nodes.indexOf(n);
+    final stagger = total <= 1 ? 0.0 : (idx / total) * 0.4;
+    final local = ((globalEntrance - stagger) / (1 - 0.4)).clamp(0.0, 1.0);
+    // easeOutBack 느낌의 완만한 오버슈트
+    return Curves.easeOutCubic.transform(local);
+  }
+
+  void _dashed(Canvas c, Offset center, double radius, Paint p, {double rotation = 0}) {
     const step = 6 / 180 * math.pi;
-    for (double a = 0; a < math.pi * 2; a += step * 2) {
+    for (double a = rotation; a < _twoPi + rotation; a += step * 2) {
       c.drawLine(
         Offset(center.dx + math.cos(a) * radius, center.dy + math.sin(a) * radius),
         Offset(center.dx + math.cos(a + step) * radius, center.dy + math.sin(a + step) * radius),
@@ -685,11 +877,7 @@ class _GraphPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _GraphPainter oldDelegate) =>
-      oldDelegate.scale != scale ||
-      oldDelegate.panX != panX ||
-      oldDelegate.panY != panY ||
-      oldDelegate.nodes != nodes;
+  bool shouldRepaint(covariant _GraphPainter oldDelegate) => true;
 }
 
 /// F/M화면 공용 컴포넌트 — 새 디자인 `friend_row.dart`의 `FriendRow` 이식.

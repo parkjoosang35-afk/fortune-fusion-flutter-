@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/router/main_bottom_nav_bar.dart';
+import '../../auth/application/auth_provider.dart';
+import '../application/guinji_provider.dart';
 import '../theme/guinji_map_theme.dart';
 import '../widgets/guinji_map_landing_widgets.dart';
 import '../widgets/guinji_map_widgets.dart';
@@ -13,14 +16,84 @@ import '../widgets/guinji_map_widgets.dart';
 /// 유지한다: CTA는 여전히 I(Input) 화면(`/guinji-map/new`)으로 이동하며,
 /// 회원가입/로그인 없이 누구나 접근 가능한 첫 진입 페이지라는 성격도
 /// 그대로다.
-class GuinjiLandingScreen extends StatelessWidget {
+///
+/// [2026-09 흐름 정합성 수정] 사용자 리포트: "메인화면에서 내 지도 만들기
+/// 하고 회원가입해서 진행했다면 메인에서 사주을 안보고 내 귀인지도로
+/// 바로 들어가야지 맞는것 아닌가?" — 로그인 상태에서 이미 자기 지도를
+/// 만든 회원이 홈 배너를 다시 눌렀을 때, 매번 랜딩(L)의 "사주 입력부터
+/// 다시 하라"는 안내를 보는 것은 불필요한 재입력 유도다. 이 화면 진입
+/// 시점에 서버에 내 지도 존재 여부를 조회해, 이미 있으면 곧바로
+/// M(내 지도) 화면으로 교체 이동한다(뒤로가기 시 랜딩으로 안 돌아가도록
+/// pushReplacementNamed 사용). 비로그인이거나 지도가 없으면 조회 결과와
+/// 무관하게 원래의 랜딩 콘텐츠를 그대로 보여준다(신규 방문자 흐름은
+/// 변경 없음).
+class GuinjiLandingScreen extends StatefulWidget {
   const GuinjiLandingScreen({super.key});
 
   static const routeName = '/guinji-map';
 
   @override
+  State<GuinjiLandingScreen> createState() => _GuinjiLandingScreenState();
+}
+
+class _GuinjiLandingScreenState extends State<GuinjiLandingScreen> {
+  /// 로그인 회원의 기존 지도 여부를 서버에 확인하는 동안 랜딩 콘텐츠
+  /// 대신 로딩 화면을 보여줄지 여부. 비로그인 사용자는 확인할 필요가
+  /// 없으므로 처음부터 false로 시작해 랜딩을 즉시 보여준다.
+  bool _checkingExistingMap = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeRedirectToMyMap());
+  }
+
+  Future<void> _maybeRedirectToMyMap() async {
+    if (!mounted) return;
+    final auth = context.read<AuthProvider>();
+    if (!auth.isLoggedIn) {
+      // 비로그인 사용자는 지도를 가질 수 없으므로 곧바로 랜딩을 보여준다.
+      return;
+    }
+
+    setState(() => _checkingExistingMap = true);
+
+    final guinji = context.read<GuinjiProvider>();
+    await guinji.loadMyMap();
+
+    if (!mounted) return;
+    if (guinji.hasMap) {
+      Navigator.of(context).pushReplacementNamed('/guinji-map/m');
+      return;
+    }
+
+    // 지도가 없는 로그인 회원(신규)은 원래 랜딩 흐름(사주 입력 → 결과
+    // 확인)을 그대로 거쳐야 한다.
+    setState(() => _checkingExistingMap = false);
+  }
+
+  @override
   Widget build(BuildContext context) {
     const hostName = 'OO';
+
+    if (_checkingExistingMap) {
+      return Scaffold(
+        backgroundColor: GmColors.bgIvory,
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(color: GmColors.rose500),
+              const SizedBox(height: 16),
+              Text(
+                '내 귀인지도를 불러오고 있어요',
+                style: TextStyle(fontSize: 13, color: GmColors.inkSoft),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: GmColors.bgIvory,
