@@ -34,6 +34,10 @@ import '../../features/fortune/palm/presentation/palm_result_screen.dart';
 import '../../features/fortune/palm/presentation/palm_history_screen.dart';
 import '../../features/name_fortune/presentation/name_fortune_input_screen.dart';
 import '../../features/name_fortune/presentation/name_fortune_result_screen.dart';
+// [궁합(C그룹) 복원] admin_web 실API 연동 화면 복원(git 53ce1ff).
+import '../../features/compatibility/domain/compatibility_model.dart';
+import '../../features/compatibility/presentation/compatibility_input_screen.dart';
+import '../../features/compatibility/presentation/compatibility_result_screen.dart';
 import '../../features/wallet/presentation/wallet_screen.dart';
 import '../../features/attendance/presentation/attendance_calendar_screen.dart';
 import '../../features/mission/presentation/mission_screen.dart';
@@ -481,9 +485,15 @@ class AppRouter {
       // C그룹(7개) 항목이 여기로 딥링크된다. arguments로 CompatibilityType을
       // 전달하면 해당 유형이 미리 선택된다(없으면 기본 love).
       case '/compatibility/input':
-        return _page(const RemovedDailyFortuneStub());
+        {
+          final args = settings.arguments;
+          final initialType = args is CompatibilityType ? args : null;
+          return _page(
+            CompatibilityInputScreen(initialType: initialType),
+          );
+        }
       case '/compatibility/result':
-        return _page(const RemovedDailyFortuneStub());
+        return _page(const CompatibilityResultScreen());
 
       // ── AI 사주 ──
       case '/ai-fortune/saju/input':

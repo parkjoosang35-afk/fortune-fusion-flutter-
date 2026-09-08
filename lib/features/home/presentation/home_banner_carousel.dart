@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../core/widgets/app_toast.dart';
+import '../domain/jeontong_eighty_matrix.dart';
 
 /// [메인 UI 리디자인 - 귀인지도 배너 3장 롤링 캐러셀]
 ///
@@ -250,14 +250,25 @@ class _HomeBannerCarouselState extends State<HomeBannerCarousel> {
     // [귀인지도 map 재구현] Slide 1(guinji)은 신규 `/guinji-map` 네임스페이스
     // (L·랜딩 화면)로 연결한다. 기존 구버전 `/guinji` 플로우는 더 이상 이
     // 배너에서 진입시키지 않는다(신규 8화면 재구현으로 완전히 대체).
-    // 오늘의 운세(별자리)/인연·궁합 상세 화면과 백엔드 라우팅
-    // (`/fortune/today`, `/fortune/compatibility`)은 아직 앱에 구현되어
-    // 있지 않으므로 기존 관례대로 안내 토스트를 유지한다.
-    if (data.route == '/guinji-map') {
-      Navigator.of(context).pushNamed('/guinji-map');
-      return;
+    //
+    // [카드섹션 운세보기/궁합보기 연결] Slide 2("운세 보기")/Slide 3("궁합
+    // 보기")는 개발 당시 연결될 백엔드/화면이 없어 안내 토스트로만
+    // 대신하였으나, 이제 둘 다 실제 화면이 있으므로 연결한다. "운세
+    // 보기"는 이미 안정적으로 동작 중인 정통사주 부적게이트
+    // (JeontongEightyMatrix.gateRoute)로, "궁합 보기"는 admin_web 실API
+    // 연동이 되어있는 궁합 입력 화면(`/compatibility/input`, 모듈 복원
+    // git 53ce1ff)으로 보낸다.
+    switch (data.route) {
+      case '/guinji-map':
+        Navigator.of(context).pushNamed('/guinji-map');
+        return;
+      case '/fortune/today':
+        Navigator.of(context).pushNamed(JeontongEightyMatrix.gateRoute);
+        return;
+      case '/fortune/compatibility':
+        Navigator.of(context).pushNamed('/compatibility/input');
+        return;
     }
-    AppToast.show(context, '곧 만나볼 수 있어요! 준비 중이에요 🙏');
   }
 }
 

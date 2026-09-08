@@ -29,6 +29,11 @@ import 'features/fortune/palm/application/palm_provider.dart';
 import 'features/fortune/palm/data/palm_repository.dart';
 import 'features/name_fortune/application/name_fortune_provider.dart';
 import 'features/name_fortune/data/name_fortune_repository.dart';
+// [궁합(C그룹) 복원 - 귀인지도 배너 궁합보기 연결] 2026-08-13에 블랙리스트
+// 처리로 삭제되었던 궁합 모듈을 admin_web 실API(`/api/public/compatibility/*`)
+// 연동 상태 그대로 git 히스토리(53ce1ff)에서 복원한다.
+import 'features/compatibility/application/compatibility_provider.dart';
+import 'features/compatibility/data/compatibility_repository.dart';
 import 'features/home/application/fortune_category_provider.dart';
 import 'features/home/data/fortune_category_repository.dart';
 import 'features/home/application/home_page_config_provider.dart';
@@ -171,8 +176,11 @@ class App extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => NameFortuneProvider(NameFortuneRepository()),
         ),
-        // 2026-08-13 결정: 궁합(compatibility)은 블랙리스트 19종에 포함되어
-        // features/compatibility 모듈이 삭제되었다. 등록 제거.
+        // [궁합(C그룹) 복원] 홈 배너 캐러셀 "궁합 보기" CTA 연결을 위해
+        // 2026-08-13에 제거되었던 CompatibilityProvider 등록을 복원한다.
+        ChangeNotifierProvider(
+          create: (_) => CompatibilityProvider(CompatibilityRepository()),
+        ),
         // [운세 카테고리 확장] 전체보기(all_categories_screen.dart) 화면이
         // 관리자 기준 그룹/정렬/노출/추천 데이터를 로드하는 전역 Provider.
         ChangeNotifierProvider(

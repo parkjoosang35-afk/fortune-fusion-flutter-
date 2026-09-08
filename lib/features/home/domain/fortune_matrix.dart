@@ -21,9 +21,9 @@
 /// 재사용한다.
 library;
 
-// 2026-08-13 결정: 궁합(compatibility)은 블랙리스트 19종에 포함되어 features/compatibility
-// 모듈이 삭제되었다. 아래 원 import는 무효화한다.
-// import '../../compatibility/domain/compatibility_model.dart';
+// [궁합(C그룹) 복원] admin_web 실API 연동 화면이 복원되어(git 53ce1ff 기준)
+// 이 import를 다시 활성화한다.
+import '../../compatibility/domain/compatibility_model.dart';
 
 /// 게이트 판정 결과 6종.
 ///
@@ -142,8 +142,7 @@ class FortuneMatrix {
     _tGroup,
     _sGroup,
     _nGroup,
-    // 2026-08-13 결정: 궁합(C그룹)은 블랙리스트 19종에 포함되어 제거됨.
-    // _cGroup,
+    _cGroup,
     _fGroup,
   ];
 
@@ -409,11 +408,12 @@ class FortuneMatrix {
     ],
   );
 
-  // ── C: 궁합 (7) [궁합(C그룹) 신규 구현] ──
-  // 2026-08-13 결정: 궁합(compatibility)은 블랙리스트 19종에 포함되어
-  // features/compatibility 모듈이 삭제되었다. CompatibilityType 참조가
-  // 깨지므로 이 그룹 정의 전체를 무효화한다(groups 리스트에도 이미 미포함).
-  /*
+  // ── C: 궁합 (7) [궁합(C그룹) 복원] ──
+  // admin_web 백엔드(`/api/public/compatibility/*`, CompatibilityRequest/
+  // CompatibilityResult 모델)는 이미 완전히 구현되어 있고(무료 정책까지
+  // 반영) Flutter 클라이언트도 복원되었다(git 53ce1ff). 유형별로
+  // routeArguments에 [CompatibilityType]을 전달해 입력 화면 진입 시 해당
+  // 유형이 미리 선택되게 한다.
   static final _cGroup = FortuneCategoryGroupEntry(
     code: FortuneGroupCode.c,
     items: [
@@ -487,7 +487,6 @@ class FortuneMatrix {
       ),
     ],
   );
-  */
 
   // ── F: 관상·손금(카메라) (5) — 기존 face/palm capture 화면 재사용.
   static final _fGroup = FortuneCategoryGroupEntry(
