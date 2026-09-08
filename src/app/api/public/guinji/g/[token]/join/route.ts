@@ -213,8 +213,14 @@ export async function POST(
 
     // 최신 관계 지도 집계(비식별) — 프론트가 이 응답만으로 즉시 그래프를
     // 다시 그릴 수 있게 한다(추가 GET 호출 없이 1회 요청으로 완결).
+    // [2026-11 멤버 삭제 기능] 소유자가 잘못 입력된 멤버를 삭제(소프트
+    // 삭제, GuinjiMapMember.status="removed")하면 그 관계는 더 이상
+    // 집계·그래프에 나타나면 안 된다. relationType만 보고 카운트하던
+    // 기존 로직은 memberId↔member.status 조인이 없어 삭제해도 숫자가
+    // 줄지 않는 버그가 있었으므로, member.status="active" 조건을 조인해
+    // 필터링한다.
     const allRelationships = await prisma.guinjiRelationship.findMany({
-      where: { mapId: map.id },
+      where: { mapId: map.id, member: { status: "active" } },
       select: { relationType: true },
     });
     const rawCounts: Record<string, number> = {};

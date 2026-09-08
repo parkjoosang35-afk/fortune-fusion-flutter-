@@ -12,7 +12,9 @@ export const CORS_HEADERS = { "Access-Control-Allow-Origin": "*" };
 
 export const CORS_HEADERS_WITH_AUTH = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  // [2026-11 멤버 삭제 기능] DELETE 메서드 추가 — 소유자가 잘못 입력된
+  // 멤버를 지우는 DELETE /guinji/maps/{mapId}/members/{memberId} API용.
+  "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 

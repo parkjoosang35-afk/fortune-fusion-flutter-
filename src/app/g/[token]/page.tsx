@@ -122,7 +122,13 @@ async function loadInvite(token: string) {
       where: { token },
       include: {
         owner: { select: { nickname: true } },
-        relationships: { select: { relationType: true } },
+        // [2026-11 멤버 삭제 기능] 소유자가 삭제(소프트 삭제)한 멤버의
+        // 관계는 랜딩페이지 집계 그래프에서도 제외해야 한다 — member의
+        // status를 조인해 활성 멤버만 카운트한다(join/route.ts와 동일 원칙).
+        relationships: {
+          where: { member: { status: "active" } },
+          select: { relationType: true },
+        },
       },
     });
 
