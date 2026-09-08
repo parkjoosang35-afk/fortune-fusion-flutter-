@@ -4,7 +4,6 @@ import '../theme/wish_room_theme.dart';
 import '../widgets/wish_room_bg_atmosphere.dart';
 import '../widgets/wish_room_buttons.dart';
 import '../widgets/wish_room_candle.dart';
-import '../widgets/wish_room_evening_bell_dialog.dart';
 
 /// 소원방(Wish Room) — 01. 온보딩 화면.
 ///
@@ -136,13 +135,19 @@ class WishRoomOnboardingScreen extends StatelessWidget {
                     children: [
                       WishRoomPrimaryButton(
                         label: '소원방 들어가기',
-                        onPressed: () => _enterWithBellOptIn(context),
+                        // [2026-11 설정 화면 정리 후속] "저녁 종소리" 기능은
+                        // 사용자 요청으로 완전히 제거 대상이 되었으나, 이
+                        // 온보딩 화면에서 CTA를 누를 때마다 뜨는 옵트인
+                        // 다이얼로그(showEveningBellOptInDialog)가 별도의
+                        // 진입점으로 남아있어 삭제되지 않은 채 계속 노출되고
+                        // 있었다. 이제 다이얼로그 호출 없이 곧바로 onEnter를
+                        // 실행한다.
+                        onPressed: onEnter,
                       ),
                       const SizedBox(height: 10),
                       WishRoomGhostButton(
                         label: '이미 계정이 있어요',
-                        onPressed: () =>
-                            _enterWithBellOptIn(context, isHaveAccount: true),
+                        onPressed: onHaveAccount ?? onEnter,
                       ),
                     ],
                   ),
@@ -153,21 +158,5 @@ class WishRoomOnboardingScreen extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  /// [Phase C-1] 온보딩 마지막 단계 — CTA를 누르면 곧바로 진입시키지 않고,
-  /// 저녁 종소리 알림 옵트인 다이얼로그를 먼저 보여준 뒤(수락/거부 무관하게)
-  /// 원래의 진입 콜백을 호출한다. 다이얼로그는 항상 정상적으로 닫히므로
-  /// 온보딩 흐름 자체를 막지 않는다.
-  Future<void> _enterWithBellOptIn(
-    BuildContext context, {
-    bool isHaveAccount = false,
-  }) async {
-    await showEveningBellOptInDialog(context);
-    if (isHaveAccount) {
-      (onHaveAccount ?? onEnter)();
-    } else {
-      onEnter();
-    }
   }
 }
