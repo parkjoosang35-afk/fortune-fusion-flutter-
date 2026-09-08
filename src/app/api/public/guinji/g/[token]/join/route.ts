@@ -234,6 +234,18 @@ export async function POST(
           dayMasterKr: guestManseryeok.dayMaster.kr,
           dayMasterElement: guestManseryeok.dayMaster.element,
           joined: true, // [명시] 이 응답은 실제로 지도에 반영되었음을 뜻한다.
+          // [2026-11 추가 — "같은 귀인 4명이 다 똑같다" 버그 수정] 사람마다
+          // 다르게 계산되는 오행/합충/방향성 근거 데이터를 응답에 포함한다.
+          // 지금까지 이 값은 DB(guinjiRelationship.ohaengEvidence)에만
+          // 저장되고 클라이언트로는 절대 전달되지 않아, 결과 화면이
+          // 관계유형별 고정 문구 1개만 보여주는 원인이었다. 이제
+          // `relation-narrative.ts`가 이 값을 받아 사람마다 다른 서술을
+          // 조합해 만든다(어뷰징 없이 — 완전 무작위가 아니라 실제 계산값
+          // 기반). idempotent 재사용 경로(기존 멤버 재제출)에서도
+          // relationType/chemistryScore와 마찬가지로 outcome.relationship
+          // (DB 저장값) 기준으로 통일해, 매번 재계산한 judged 대신 실제
+          // 저장된 값과 항상 일치하도록 한다.
+          ohaengEvidence: JSON.parse(outcome.relationship.ohaengEvidence) as typeof judged.ohaengEvidence,
           mapSummary: { total: allRelationships.length, counts: rawCounts },
         },
       },

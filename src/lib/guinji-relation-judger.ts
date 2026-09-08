@@ -286,6 +286,12 @@ export interface GuinjiJudgeResult {
     mine: Record<string, number>;
     other: Record<string, number>;
     reason: string;
+    /** [2026-11 추가] 상대(other)의 8글자 십성 분포에서 최다 카테고리
+     * (인성/식상/재성/비겁/관살, 동률 없으면 null). 관계유형 자체를 정하는
+     * 신호이기도 하지만, 같은 관계유형이라도 이 값이 사람마다 달라서
+     * 클라이언트가 "이 사람은 특히 ○○ 기운이 강해요" 같은 개인화된
+     * 서술을 만드는 데 쓴다. */
+    otherDominantCategory: string | null;
     /** 디버깅/투명성용 — 점수 산식 각 항 값을 함께 보존. */
     breakdown: {
       ohHaengDelta: number;
@@ -295,6 +301,13 @@ export interface GuinjiJudgeResult {
       bothTimeExact: boolean;
       directionDelta: number;
       dir: string;
+      /** [2026-11 추가] 합(合)/충(沖) 원시 건수 — reason 문자열에는 이미
+       * 포함되어 있었으나 구조화된 필드로는 없었다. 클라이언트가 개인화된
+       * 서술(관계 내러티브)을 만들 때 문자열 파싱 없이 바로 쓸 수 있게
+       * 노출한다. 기존 저장된 레코드(JSON)에는 이 필드가 없을 수 있으므로
+       * 소비 측에서는 optional로 다뤄야 한다. */
+      hapCount: number;
+      chungCount: number;
     };
   };
 }
@@ -739,6 +752,7 @@ export function judgeGuinjiRelation(
       mine: mineCount,
       other: otherCount,
       reason,
+      otherDominantCategory: otherCat,
       breakdown: {
         ohHaengDelta,
         sipSungWeight,
@@ -747,6 +761,8 @@ export function judgeGuinjiRelation(
         bothTimeExact,
         directionDelta,
         dir,
+        hapCount,
+        chungCount,
       },
     },
   };

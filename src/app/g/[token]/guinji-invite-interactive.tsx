@@ -17,6 +17,7 @@ import { GUINJI_RELATION_TYPES } from "./relation-meta";
 import { RelationNetworkGraph, type RelationCount } from "./relation-network-graph";
 import { GUINJI_RELATION_TYPE_ORDER } from "@/lib/guinji-relation-judger";
 import { SINTONG_WEB_URLS } from "./sintong-web-urls";
+import { buildRelationNarrative, type OhaengEvidenceLike } from "./relation-narrative";
 
 // [2026-09, 웹 전환 원칙 최종 확정 — 사용자 명시 지시] 신통방통은 원래
 // 앱이지만, 지금은 `https://sintong.kr/app/` 경로에 Flutter Web 빌드가
@@ -37,6 +38,10 @@ type JoinResult = {
   timeUnknown: boolean;
   dayMasterKr?: string;
   dayMasterElement?: string;
+  // [2026-11 추가 — "같은 귀인 4명이 다 똑같다" 버그 수정] 사람마다 다른
+  // 오행/합충/방향성 계산 근거. ResultCard가 이 값으로 개인화된 서술을
+  // 만든다(관계유형만으로는 알 수 없는, 사람별 차이의 진짜 원천).
+  ohaengEvidence?: OhaengEvidenceLike;
   mapSummary: { total: number; counts: Record<string, number> };
 };
 
@@ -323,6 +328,23 @@ function ResultCard({
 }) {
   const meta = GUINJI_RELATION_TYPES[result.relationType];
 
+  // [2026-11 추가 -- "같은 귀인 4명이 다 똑같다" 버그 수정, 사용자 격노
+  // 피드백 직접 반영] meta.description(관계유형 12종당 고정 문구 1개)만
+  // 보여주면 같은 유형으로 판정된 모든 사람이 완전히 동일한 텍스트를
+  // 보게 된다 -- 이게 "사기 아니냐"는 지적의 근본 원인이었다.
+  // buildRelationNarrative()가 이 관계에서 실제로 계산된 오행/합충/
+  // 방향성/케미점수/게스트 본인 일간오행을 근거로 문단을 이어붙여,
+  // 같은 유형이라도 계산값이 다르면 서술이 달라지게 한다(어뷰징 없이 --
+  // 완전 무작위가 아니라 실제 사주 계산 결과 기반). 동시에 문단 수를
+  // 늘려 결과 화면의 텍스트 총량도 함께 늘린다("글을 좀 더 많이
+  // 넣으라"는 반복 요청 반영).
+  const narrative = buildRelationNarrative({
+    baseDescription: meta?.description ?? "",
+    chemistryScore: result.chemistryScore,
+    dayMasterElement: result.dayMasterElement,
+    ohaengEvidence: result.ohaengEvidence,
+  });
+
   // [핵심] 자동 리다이렉트 없음. 결과·관계 지도는 이 페이지(웹) 안에서
   // 이미 완결된다(바로 아래 RelationNetworkGraph에 자기 이름이 올라간
   // 지도가 실시간으로 보인다) — 게스트는 회원가입도, 앱 설치도 강요받지
@@ -340,12 +362,20 @@ function ResultCard({
       <p className="mb-4 text-sm text-[#6E5A54]">
         {result.ownerName ?? ownerName}님과 당신은{" "}
         <span className="font-medium text-[#A6795E]">{meta?.subtitle}</span>의 결이에요.
-        <br />
-        케미 점수 {result.chemistryScore}점
       </p>
-      {meta?.description && (
-        <p className="mb-3 text-xs leading-relaxed text-[#6E5A54]">{meta.description}</p>
-      )}
+      {/* [2026-11 수정 — "같은 귀인 4명이 다 똑같다" 버그 수정] 관계유형
+          고정 문구 1개(meta.description)만 보여주던 자리를, 이 관계의
+          실제 계산값(오행/합충/방향성/케미점수/게스트 본인 오행)을
+          근거로 만든 여러 문단(narrative)으로 교체한다. 같은 관계유형
+          이어도 계산값이 다르면 문단 내용이 달라지고, 문단 수가 늘어
+          텍스트 총량도 함께 늘어난다. */}
+      <div className="mb-3 space-y-2 text-left">
+        {narrative.map((p, i) => (
+          <p key={i} className="text-xs leading-relaxed text-[#6E5A54]">
+            {p}
+          </p>
+        ))}
+      </div>
       {result.timeUnknown && (
         <p className="mb-3 text-xs leading-relaxed text-[#A08C82]">
           태어난 시간을 입력하지 않아 정오(12:00) 기준으로 계산했어요.
