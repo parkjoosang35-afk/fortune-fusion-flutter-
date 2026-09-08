@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     reason?: string;
     sourceType?: string;
     sourceId?: number;
-    scope?: "daily" | "lifetime";
+    scope?: "daily" | "weekly" | "lifetime";
   };
   try {
     body = await request.json();
@@ -61,6 +61,8 @@ export async function POST(request: NextRequest) {
           capped: false,
           newlyGrantedTiers: [] as number[],
           todayScore: 0,
+          comboGranted: false,
+          comboAmount: 0,
         };
       }
 
@@ -75,6 +77,8 @@ export async function POST(request: NextRequest) {
         capped: earnOutcome.capped,
         newlyGrantedTiers: earnOutcome.newlyGrantedTiers,
         todayScore: earnOutcome.todayScore,
+        comboGranted: earnOutcome.comboGranted,
+        comboAmount: earnOutcome.comboAmount,
       };
     });
 
@@ -91,6 +95,8 @@ export async function POST(request: NextRequest) {
             activityScore: 0,
             activityTierBonusGranted: [],
             blockedReason: result.blocked,
+            comboGranted: false,
+            comboAmount: 0,
           },
         },
         { headers: CORS_HEADERS }
@@ -106,6 +112,8 @@ export async function POST(request: NextRequest) {
           capped: result.capped,
           activityScore: result.todayScore,
           activityTierBonusGranted: result.newlyGrantedTiers,
+          comboGranted: result.comboGranted,
+          comboAmount: result.comboAmount,
         },
       },
       { headers: CORS_HEADERS }

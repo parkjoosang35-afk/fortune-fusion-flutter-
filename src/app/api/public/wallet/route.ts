@@ -55,6 +55,11 @@ export async function GET(request: NextRequest) {
           type: h.type, // earn/spend
           amount: h.amount,
           reason: h.memo ?? h.sourceType,
+          // [소원방 3대 개선 - 10채널 재설계] "받기" 팝업에서 채널별 오늘
+          // 완료 여부를 판단하려면 sourceType이 필요하다(reason은 memo로
+          // 뭉쳐 나와 신뢰도가 낮음). 기존 필드는 그대로 두고 추가만 한다
+          // (하위호환 — 기존 클라이언트는 이 필드를 무시하면 그대로 동작).
+          sourceType: h.sourceType,
           createdAt: h.createdAt.toISOString(),
         })),
       },

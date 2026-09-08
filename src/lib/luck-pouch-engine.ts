@@ -115,6 +115,26 @@ export function todayRangeKst(): { start: Date; end: Date } {
   };
 }
 
+// [소원방 3대 개선 - weekly scope] KST 기준 "이번 주" 구간(월요일 00:00 ~
+// 다음 주 월요일 00:00)을 반환한다. weekly_box_opening(주간 소원함 개봉)의
+// "7일 1회" 판정에 사용한다.
+export function thisWeekRangeKst(): { start: Date; end: Date } {
+  const now = new Date();
+  const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  const y = kstNow.getUTCFullYear();
+  const m = kstNow.getUTCMonth();
+  const d = kstNow.getUTCDate();
+  // getUTCDay(): 0=일 1=월 ... 6=토. 월요일을 주의 시작으로 삼는다.
+  const dow = kstNow.getUTCDay();
+  const daysSinceMonday = dow === 0 ? 6 : dow - 1;
+  const mondayKst = new Date(Date.UTC(y, m, d - daysSinceMonday, 0, 0, 0));
+  const nextMondayKst = new Date(Date.UTC(y, m, d - daysSinceMonday + 7, 0, 0, 0));
+  return {
+    start: new Date(mondayKst.getTime() - 9 * 60 * 60 * 1000),
+    end: new Date(nextMondayKst.getTime() - 9 * 60 * 60 * 1000),
+  };
+}
+
 async function getEconomyConfigValue(tx: Tx, key: string, fallback: number): Promise<number> {
   const row = await tx.economyConfig.findUnique({ where: { key } });
   return row?.value ?? fallback;
@@ -284,10 +304,78 @@ export async function maybeGrantActivityTierBonus(
   return { newlyGrantedTiers, todayScore };
 }
 
+// [소원방 3대 개선 - 콤보보너스] "오늘의 3가지 완성" — 10채널 재설계 §10.
+// altar_visit(제단 참배)/daily_candle(촛불)/daily_feed_visit(피드 둘러보기)
+// 3종을 모두 "오늘(KST)" 지급받았으면 자동으로 콤보 보너스를 1일 1회 지급한다.
+// 활동 점수 구간 보너스(maybeGrantActivityTierBonus)와 동일한 패턴으로,
+// 일일 총 상한(clipToDailyCap) 계산에는 관여하지 않고(행동에 대한 별도
+// 보상이므로) 중복 지급은 sourceType='daily_wish_combo' 오늘자 존재 여부로
+// 막는다. 금액은 PointPolicy.daily_wish_combo에서 읽는다(하드코딩 금지).
+const DAILY_WISH_COMBO_SOURCE_TYPE = "daily_wish_combo";
+const DAILY_WISH_COMBO_REQUIRED_SOURCE_TYPES = ["altar_visit", "daily_candle", "daily_feed_visit"];
+
+export async function maybeGrantDailyWishComboBonus(
+  tx: Tx,
+  userId: number
+): Promise<{ comboGranted: boolean; comboAmount: number }> {
+  const policy = await tx.pointPolicy.findUnique({ where: { sourceType: DAILY_WISH_COMBO_SOURCE_TYPE } });
+  if (!policy || !policy.isActive) {
+    return { comboGranted: false, comboAmount: 0 };
+  }
+
+  const { start, end } = todayRangeKst();
+
+  const alreadyGrantedToday = await tx.pointHistory.findFirst({
+    where: { userId, sourceType: DAILY_WISH_COMBO_SOURCE_TYPE, createdAt: { gte: start, lt: end } },
+    select: { id: true },
+  });
+  if (alreadyGrantedToday) {
+    return { comboGranted: false, comboAmount: 0 };
+  }
+
+  const todayEarns = await tx.pointHistory.findMany({
+    where: {
+      userId,
+      type: "earn",
+      createdAt: { gte: start, lt: end },
+      sourceType: { in: DAILY_WISH_COMBO_REQUIRED_SOURCE_TYPES },
+    },
+    select: { sourceType: true },
+  });
+  const completedTypes = new Set(todayEarns.map((h) => h.sourceType));
+  const allDone = DAILY_WISH_COMBO_REQUIRED_SOURCE_TYPES.every((t) => completedTypes.has(t));
+  if (!allDone) {
+    return { comboGranted: false, comboAmount: 0 };
+  }
+
+  const multiplier = await getFullMoonMultiplier(tx, userId, DAILY_WISH_COMBO_SOURCE_TYPE);
+  const comboAmount = policy.amount * multiplier;
+  const wallet = await getWalletOrCreate(tx, userId);
+  const balanceAfter = wallet.balance + comboAmount;
+  await tx.wallet.update({ where: { id: wallet.id }, data: { balance: balanceAfter, balanceSyncedAt: new Date() } });
+  await tx.pointHistory.create({
+    data: {
+      walletId: wallet.id,
+      userId,
+      amount: comboAmount,
+      type: "earn",
+      sourceType: DAILY_WISH_COMBO_SOURCE_TYPE,
+      balanceAfter,
+      memo:
+        multiplier > 1
+          ? `오늘의 3가지 완성 보너스 (만월 부적 ×${multiplier})`
+          : "오늘의 3가지 완성 보너스",
+    },
+  });
+
+  return { comboGranted: true, comboAmount };
+}
+
 /**
- * 적립류 액션의 "일일 상한 클리핑 + 활동 점수 보너스" 두 단계를 한 번에 처리하는
- * 헬퍼. 대부분의 적립 진입점(커뮤니티/운세/부적/상담 등)은 이 함수 하나만 호출하면
- * 충분하다(출석은 자체 스트릭 로직이 있어 applyDailyCapAndEarn만 개별 사용).
+ * 적립류 액션의 "일일 상한 클리핑 + 활동 점수 보너스 + 오늘의 3가지 완성 콤보"
+ * 세 단계를 한 번에 처리하는 헬퍼. 대부분의 적립 진입점(커뮤니티/운세/부적/상담/
+ * 소원방 등)은 이 함수 하나만 호출하면 충분하다(출석은 자체 스트릭 로직이 있어
+ * applyDailyCapAndEarn만 개별 사용).
  */
 export async function earnLuckPouch(
   tx: Tx,
@@ -295,7 +383,8 @@ export async function earnLuckPouch(
 ) {
   const earnResult = await applyDailyCapAndEarn(tx, params);
   const tierResult = await maybeGrantActivityTierBonus(tx, params.userId);
-  return { ...earnResult, ...tierResult };
+  const comboResult = await maybeGrantDailyWishComboBonus(tx, params.userId);
+  return { ...earnResult, ...tierResult, ...comboResult };
 }
 
 /**
@@ -376,12 +465,19 @@ export async function getSpendRuleAmount(tx: Tx, actionType: string, fallback: n
 // sourceId가 주어지면(예: 상담 세션 id) "해당 sourceType+sourceId 조합"으로 이미
 // 지급된 이력이 있는지를 우선 확인한다(review_reward의 "상담 1건당 1회" 원칙).
 // dailyLimit 설정 여부와 무관하게 sourceId 중복은 항상 차단한다.
+//
+// [소원방 3대 개선 - scope 확장] 기존에는 "weekly"를 지원하지 않아
+// Flutter가 scope:'weekly'를 보내도 실제로는 daily(1일 1회)로 판정되는
+// 알려진 버그가 있었다(weekly_box_opening이 매일 지급되던 원인). 이제
+// "weekly"를 KST 기준 "이번 주 월요일 00:00 ~ 다음 주 월요일 00:00"
+// 구간으로 정식 지원한다(dailyLimit 필드명은 그대로 재사용 — 스키마
+// 변경 없이 "이 판정 구간 안에서 N회"라는 의미로 해석).
 // ══════════════════════════════════════════════════════════════════
 export async function checkPolicyEligibility(
   tx: Tx,
   userId: number,
   sourceType: string,
-  opts: { scope: "daily" | "lifetime"; sourceId?: number }
+  opts: { scope: "daily" | "weekly" | "lifetime"; sourceId?: number }
 ): Promise<{ eligible: boolean; reason?: "DAILY_LIMIT_REACHED" | "ALREADY_GRANTED"; dailyLimit?: number | null }> {
   if (opts.sourceId != null) {
     const existing = await tx.pointHistory.findFirst({
@@ -400,6 +496,16 @@ export async function checkPolicyEligibility(
 
   if (opts.scope === "lifetime") {
     const count = await tx.pointHistory.count({ where: { userId, sourceType } });
+    return count >= dailyLimit
+      ? { eligible: false, reason: "DAILY_LIMIT_REACHED", dailyLimit }
+      : { eligible: true, dailyLimit };
+  }
+
+  if (opts.scope === "weekly") {
+    const { start, end } = thisWeekRangeKst();
+    const count = await tx.pointHistory.count({
+      where: { userId, sourceType, createdAt: { gte: start, lt: end } },
+    });
     return count >= dailyLimit
       ? { eligible: false, reason: "DAILY_LIMIT_REACHED", dailyLimit }
       : { eligible: true, dailyLimit };
