@@ -59,6 +59,17 @@ class AuthTokenStore {
     return _cachedUserId ?? fallbackUserId;
   }
 
+  /// [버그 수정 — 게스트에게 테스트 계정 실 잔액 노출] 실제로 저장된
+  /// 로그인 토큰이 있는지 여부. [getCurrentUserId]는 비로그인 시에도
+  /// 항상 [fallbackUserId](테스트 계정)를 반환하기 때문에, 그 값을 그대로
+  /// API 호출에 써버리면 "로그인 안 한 사용자에게 테스트 계정의 실제
+  /// 데이터(복주머니 잔액 등)가 그대로 보이는" 문제가 생긴다. 화면/Repository
+  /// 쪽에서 "실제로 로그인된 상태인지"를 먼저 확인해야 할 때 이 값을 쓴다.
+  static Future<bool> isLoggedIn() async {
+    final token = await getToken();
+    return token != null && token.isNotEmpty;
+  }
+
   /// 동기 접근용 — 앱 부팅 시 [getToken]/[getCurrentUserId]를 1회 호출해 캐시를
   /// 채운 뒤 사용한다(각 Repository가 매번 await SharedPreferences 하지 않도록).
   static int? get cachedUserIdOrNull => _cachedUserId;

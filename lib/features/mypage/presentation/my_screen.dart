@@ -95,7 +95,7 @@ class _MyScreenState extends State<MyScreen> {
                           children: [
                             Flexible(
                               child: Text(
-                                user?.nickname ?? '게스트',
+                                user?.nickname ?? '로그인이 필요해요',
                                 style: UnifiedText.title(),
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -108,7 +108,7 @@ class _MyScreenState extends State<MyScreen> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          user?.email ?? '로그인이 필요합니다',
+                          user?.email ?? '로그인 후 모든 기능을 이용할 수 있어요',
                           style: UnifiedText.caption(),
                         ),
                       ],
@@ -119,6 +119,31 @@ class _MyScreenState extends State<MyScreen> {
                   // "/signup/profile-check" 라우트/화면 자체는 로그인·회원가입
                   // 플로우에서 여전히 쓰이므로 그대로 보존한다 — 이 마이 화면
                   // 진입점만 없앤다.
+                  //
+                  // [버그 수정] 비로그인 상태에서 "게스트"라는 텍스트만 있고
+                  // 로그인으로 갈 방법이 전혀 없었다(사용자 항의: "게스트 글씨
+                  // 없애고 로그인이라도 넣어 놔야지"). 닉네임 자리를
+                  // "로그인이 필요해요"로 바꾸고, 비로그인 상태에서만
+                  // 우측에 "로그인" 버튼을 추가로 노출한다.
+                  if (!auth.isLoggedIn)
+                    OutlinedButton(
+                      onPressed: () =>
+                          Navigator.of(context).pushNamed('/login'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: UnifiedColors.textPrimary,
+                        side: const BorderSide(color: UnifiedColors.border),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: UnifiedTokens.spaceMd,
+                          vertical: UnifiedTokens.spaceSm,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            UnifiedTokens.radiusPill,
+                          ),
+                        ),
+                      ),
+                      child: Text('로그인', style: UnifiedText.bodyStrong()),
+                    ),
                 ],
               ),
             ),
@@ -246,24 +271,32 @@ class _MyScreenState extends State<MyScreen> {
               ),
             ),
             const SizedBox(height: UnifiedTokens.spaceXxl),
+            // [버그 수정] 비로그인 상태에서도 이 버튼이 "로그아웃"으로
+            // 표시되어 있었다(로그아웃해도 이미 로그인 안 된 상태라
+            // 눌러도 의미가 없는 죽은 버튼). 로그인 여부에 따라
+            // 로그인/로그아웃 버튼을 전환한다.
             OutlinedButton(
-              onPressed: () async {
-                // [로그아웃 시 프리패스 서버측 강제 만료] 반드시 인증 토큰이
-                // 살아있는 동안(= AuthProvider.logout()으로 토큰을 지우기 전에)
-                // PassProvider.resetOnLogout()을 먼저 호출해야 한다. 이 메서드는
-                // 서버 UserPass를 revoked 처리한 뒤 화면 상태도 초기화한다.
-                // 순서를 바꾸면 userId를 얻을 수 없어 서버측 만료가 누락되고,
-                // 재로그인 시 프리패스 잔여시간이 그대로 복원되는 문제가 재발한다.
-                await context.read<PassProvider>().resetOnLogout();
-                if (context.mounted) {
-                  await context.read<AuthProvider>().logout();
-                }
-                if (context.mounted) {
-                  Navigator.of(
-                    context,
-                  ).pushNamedAndRemoveUntil('/login', (route) => false);
-                }
-              },
+              onPressed: auth.isLoggedIn
+                  ? () async {
+                      // [로그아웃 시 프리패스 서버측 강제 만료] 반드시 인증
+                      // 토큰이 살아있는 동안(= AuthProvider.logout()으로
+                      // 토큰을 지우기 전에) PassProvider.resetOnLogout()을
+                      // 먼저 호출해야 한다. 이 메서드는 서버 UserPass를
+                      // revoked 처리한 뒤 화면 상태도 초기화한다. 순서를
+                      // 바꾸면 userId를 얻을 수 없어 서버측 만료가 누락되고,
+                      // 재로그인 시 프리패스 잔여시간이 그대로 복원되는
+                      // 문제가 재발한다.
+                      await context.read<PassProvider>().resetOnLogout();
+                      if (context.mounted) {
+                        await context.read<AuthProvider>().logout();
+                      }
+                      if (context.mounted) {
+                        Navigator.of(
+                          context,
+                        ).pushNamedAndRemoveUntil('/login', (route) => false);
+                      }
+                    }
+                  : () => Navigator.of(context).pushNamed('/login'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: UnifiedColors.textSecondary,
                 side: const BorderSide(color: UnifiedColors.border),
@@ -272,7 +305,10 @@ class _MyScreenState extends State<MyScreen> {
                   borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
                 ),
               ),
-              child: Text('로그아웃', style: UnifiedText.bodyStrong()),
+              child: Text(
+                auth.isLoggedIn ? '로그아웃' : '로그인',
+                style: UnifiedText.bodyStrong(),
+              ),
             ),
             // [열림패스/복주머니/복주머니 통합정책 §5/§7] "열림패스 테스트 모드
             // 구현: 강제 ON/OFF, 만료 상태 테스트, 남은 시간 표시 테스트"에
