@@ -1,34 +1,24 @@
 "use client";
 
-// [귀인지도 바이럴 랜딩 - ServiceGrid 신설, 2026-09] 사용자 명시 요구사항:
-// "소원방 누르면 신통방통 소원방, 타로 누르면 신통방통 타로로 들어가야
-// 하는데 왜 이게 안돼?" — 실제 코드 조사 결과 이 4개 카드(소원방/타로/
-// 정통사주/오늘의 운세) 자체가 지금까지 랜딩페이지에 전혀 구현되어 있지
-// 않았다(첨부 디자인 목업에만 있던 레이아웃). 이 컴포넌트가 그 카드를
-// 신설하고, "내 지도 만들기" 버튼(`openAppOrFallback`)과 동일한 딥링크+
-// 폴백 패턴으로 각 서비스에 "즉시 이동"시킨다.
-//
-// [딥링크 스킴] `fortunefusion://svc/{key}` (앱 설치 시 즉시 처리 —
-// Flutter GuinjiDeepLinkHandler._serviceRouteFor 참고). 앱이 없으면
-// 1.5초 후 플레이스토어 안내로 폴백한다(openAppOrFallback과 동일 원칙 —
-// 자동 강제 전환 없음, 사용자가 카드를 "직접 눌렀을 때"만 전환 시도).
+// [귀인지도 바이럴 랜딩 - ServiceGrid, 2026-09 웹 전환 최종 확정] 사용자
+// 명시 지시: 이 페이지는 웹이므로, 소원방/타로/정통사주/오늘의 운세 카드는
+// 앱 설치를 유도하는 딥링크+폴백이 아니라 `https://sintong.kr/app/`에
+// 이미 배포된 신통방통 메인(Flutter Web)의 해당 화면으로 곧바로 이동한다.
 //
 // [바이럴 원칙 재확인] 귀인지도 결과 자체(케미 점수/관계지도 그래프)는
 // 이미 이 웹페이지 안에서 완결된다. 이 ServiceGrid는 "다른 신통방통
 // 서비스도 궁금하면" 눌러보는 선택적 다음 단계일 뿐, 결과 확인의 필수
 // 경로가 아니다.
-import { useState, type ReactElement } from "react";
-
-const PLAY_STORE_URL =
-  "https://play.google.com/store/apps/details?id=com.fortunefusion.fortune";
+import { type ReactElement } from "react";
+import { SINTONG_WEB_URLS } from "./sintong-web-urls";
 
 type ServiceKey = "wish-room" | "tarot" | "jeontong" | "today";
 
-const SERVICES: { key: ServiceKey; title: string; desc: string; color: string }[] = [
-  { key: "wish-room", title: "소원방", desc: "간절한 소망을\n담아 빌어봐요", color: "#E8B4A5" },
-  { key: "tarot", title: "타로", desc: "오늘의 마음\n방향을 살펴요", color: "#D4A574" },
-  { key: "jeontong", title: "정통사주", desc: "만세력 기반\n정통 사주 풀이", color: "#C99B7F" },
-  { key: "today", title: "오늘의 운세", desc: "매일 새롭게\n갱신되는 운세", color: "#7E5A47" },
+const SERVICES: { key: ServiceKey; title: string; desc: string; color: string; url: string }[] = [
+  { key: "wish-room", title: "소원방", desc: "간절한 소망을\n담아 빌어봐요", color: "#E8B4A5", url: SINTONG_WEB_URLS.wishRoom },
+  { key: "tarot", title: "타로", desc: "오늘의 마음\n방향을 살펴요", color: "#D4A574", url: SINTONG_WEB_URLS.tarot },
+  { key: "jeontong", title: "정통사주", desc: "만세력 기반\n정통 사주 풀이", color: "#C99B7F", url: SINTONG_WEB_URLS.jeontong },
+  { key: "today", title: "오늘의 운세", desc: "매일 새롭게\n갱신되는 운세", color: "#7E5A47", url: SINTONG_WEB_URLS.todayFortune },
 ];
 
 const ICONS: Record<ServiceKey, ReactElement> = {
@@ -58,20 +48,7 @@ const ICONS: Record<ServiceKey, ReactElement> = {
   ),
 };
 
-function openServiceOrFallback(key: ServiceKey, setFallbackKey: (k: ServiceKey | null) => void) {
-  const deepLink = `fortunefusion://svc/${key}`;
-  const start = Date.now();
-  window.location.href = deepLink;
-  window.setTimeout(() => {
-    if (Date.now() - start < 5000 && document.visibilityState === "visible") {
-      setFallbackKey(key);
-    }
-  }, 1500);
-}
-
 export function ServiceGrid() {
-  const [fallbackKey, setFallbackKey] = useState<ServiceKey | null>(null);
-
   return (
     <div className="rounded-3xl border border-[#E8DDD0] bg-white/85 p-5 shadow-[0_4px_20px_-8px_rgba(166,121,94,0.15)]">
       <div className="mb-4 text-center">
@@ -84,11 +61,10 @@ export function ServiceGrid() {
       </div>
       <div className="grid grid-cols-4 gap-2">
         {SERVICES.map((s) => (
-          <button
+          <a
             key={s.key}
-            type="button"
-            onClick={() => openServiceOrFallback(s.key, setFallbackKey)}
-            className="group relative rounded-2xl border border-[#E8DDD0] bg-white p-3 text-center transition hover:shadow-[0_8px_32px_-12px_rgba(166,121,94,0.22)]"
+            href={s.url}
+            className="group relative block rounded-2xl border border-[#E8DDD0] bg-white p-3 text-center transition hover:shadow-[0_8px_32px_-12px_rgba(166,121,94,0.22)]"
           >
             <span className="absolute right-2 top-2 rounded-full bg-[#C99B7F] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-white">
               Free
@@ -102,25 +78,12 @@ export function ServiceGrid() {
             <div className="mb-0.5 text-[12px] font-semibold text-[#2A2438]">{s.title}</div>
             <div className="whitespace-pre-line text-[9.5px] leading-tight text-[#6E5A54]">{s.desc}</div>
             <div className="mt-1.5 text-[9.5px] text-[#A6795E]">바로가기 →</div>
-          </button>
+          </a>
         ))}
       </div>
-
-      {fallbackKey && (
-        <div className="mt-3 rounded-2xl border border-[#E8DDD0] bg-white p-3">
-          <p className="mb-2 text-xs text-[#6E5A54]">
-            앱이 설치되어 있지 않은 것 같아요. 스토어에서 신통방통을 설치하면
-            {" "}
-            {SERVICES.find((s) => s.key === fallbackKey)?.title}을 바로 이용할 수 있어요.
-          </p>
-          <a
-            href={PLAY_STORE_URL}
-            className="block w-full rounded-xl bg-[#2A2438] px-4 py-2 text-center text-xs font-bold text-white"
-          >
-            신통방통 설치하기
-          </a>
-        </div>
-      )}
+      <p className="mt-3 text-center text-[11px] text-[#A08C82]">
+        설치 없이 바로 열려요 · 신통방통 웹
+      </p>
     </div>
   );
 }

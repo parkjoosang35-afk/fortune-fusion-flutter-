@@ -42,6 +42,7 @@ import { type RelationCount } from "./relation-network-graph";
 import { deriveCharacterType } from "@/lib/guinji-character-type";
 import { GUINJI_RELATION_TYPES } from "./relation-meta";
 import { GUINJI_RELATION_TYPE_ORDER } from "@/lib/guinji-relation-judger";
+import { SintongBottomNavBar } from "./sintong-bottom-nav-bar";
 
 // [2026-09, 즉시 리다이렉트(B-1) 전면 폐기 — 원상복구] 직전 세션에서
 // "초대 링크는 플러터 원본 페이지 기반으로 가야 한다"는 사용자 지시를
@@ -224,7 +225,7 @@ export default async function GuinjiInviteLandingPage({ params }: PageProps) {
   const invite = await loadInvite(token);
 
   return (
-    <div className="min-h-screen bg-[#FBF7EF]">
+    <div className="min-h-screen bg-[#FBF7EF] pb-[76px]">
       {invite.state === "ok" && (
         <>
           {/* 히어로 섹션 — zip HeroSection 이식: 큰 히어로 이미지 +
@@ -416,6 +417,13 @@ export default async function GuinjiInviteLandingPage({ params }: PageProps) {
       <footer className="mx-auto w-full max-w-[440px] border-t border-[#E8DDD0] px-5 pt-5 pb-8 text-center">
         <p className="text-[10px] text-[#A08C82]">© 2026 Sintongbangtong. All rights reserved.</p>
       </footer>
+
+      {/* [2026-09, 웹 하단바 신설 — 사용자 명시 지시 "웹이니까 신통방통 하단바를
+          넣어주고"] 이 페이지는 웹(브라우저)에서 열리지만, 신통방통 앱의
+          정체성을 그대로 느낄 수 있도록 화면 하단에 고정된 신통방통 브랜드
+          내비게이션 바를 추가한다. 각 탭은 앱 설치 없이 곧바로
+          `https://sintong.kr/app/` 웹 버전의 해당 화면으로 이동한다. */}
+      <SintongBottomNavBar />
     </div>
   );
 }

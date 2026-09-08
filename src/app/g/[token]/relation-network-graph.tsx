@@ -13,6 +13,17 @@
 // [결정론적 렌더링] Math.random()을 쓰지 않는다 — 서버 컴포넌트로 매
 // 요청마다 같은 counts가 들어오면 항상 같은 SVG가 나오도록 인덱스 기반
 // 각도 계산만 사용한다(하이드레이션 불일치 방지 + 캐시 친화적).
+//
+// [2026-09, 애니메이션 추가 — 사용자 명시 지시 "화려하게 움직이게"] 좌표
+// 계산 로직(polarToXY, sectorSpan 등)은 완전히 결정론적 상태를 유지하고,
+// 오직 순수 CSS `@keyframes` 애니메이션만 덧씌운다 — 매 요청 동일 counts에
+// 대해 SVG 구조/좌표는 항상 동일하고, 애니메이션은 클라이언트에서 재생되는
+// 시각 효과일 뿐이므로 서버 컴포넌트 하이드레이션 불일치가 발생하지 않는다.
+// 효과 구성:
+//   1) 중앙 "나" 노드 — 은은한 glow pulse (숨쉬듯 커지고 작아짐)
+//   2) 위성 노드 — 각자 다른 delay로 pulse (별이 반짝이는 느낌)
+//   3) 연결선 — stroke-dasharray 애니메이션으로 빛이 흐르는 느낌
+//   4) 배경 궤도 원 2개 — 아주 느리게 회전(오브젝트가 살아있는 느낌)
 import type { GuinjiRelationType } from "@/lib/guinji-relation-judger";
 
 export interface RelationCount {
@@ -80,9 +91,43 @@ export function RelationNetworkGraph({
           role="img"
           aria-label={`${ownerName}님의 관계 지도, 총 ${total}명`}
         >
-          {/* 은하수 느낌의 옅은 배경 원들 */}
-          <circle cx={CENTER} cy={CENTER} r={SATELLITE_RADIUS_BASE} fill="none" stroke="#E8DDD0" strokeDasharray="2 4" strokeWidth={1} />
+          <style>{`
+            @keyframes gm-orbit-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+            @keyframes gm-orbit-slow-reverse { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
+            @keyframes gm-center-pulse {
+              0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0px rgba(42,36,56,0.4)); }
+              50% { transform: scale(1.06); filter: drop-shadow(0 0 6px rgba(166,121,94,0.55)); }
+            }
+            @keyframes gm-node-twinkle {
+              0%, 100% { opacity: 0.85; transform: scale(1); }
+              50% { opacity: 1; transform: scale(1.18); }
+            }
+            @keyframes gm-line-flow {
+              to { stroke-dashoffset: -24; }
+            }
+            .gm-orbit-a { transform-origin: ${CENTER}px ${CENTER}px; animation: gm-orbit-slow 40s linear infinite; }
+            .gm-orbit-b { transform-origin: ${CENTER}px ${CENTER}px; animation: gm-orbit-slow-reverse 55s linear infinite; }
+            .gm-center-node { transform-origin: ${CENTER}px ${CENTER}px; animation: gm-center-pulse 2.6s ease-in-out infinite; }
+            .gm-satellite { transform-box: fill-box; transform-origin: center; animation: gm-node-twinkle 2.2s ease-in-out infinite; }
+            .gm-line { stroke-dasharray: 4 6; animation: gm-line-flow 1.6s linear infinite; }
+            @media (prefers-reduced-motion: reduce) {
+              .gm-orbit-a, .gm-orbit-b, .gm-center-node, .gm-satellite, .gm-line { animation: none; }
+            }
+          `}</style>
+
+          {/* 은하수 느낌의 옅은 배경 원들 — 아주 느리게 서로 반대로 회전 */}
           <circle
+            className="gm-orbit-a"
+            cx={CENTER}
+            cy={CENTER}
+            r={SATELLITE_RADIUS_BASE}
+            fill="none"
+            stroke="#E8DDD0"
+            strokeDasharray="2 4"
+            strokeWidth={1}
+          />
+          <circle
+            className="gm-orbit-b"
             cx={CENTER}
             cy={CENTER}
             r={SATELLITE_RADIUS_BASE + SATELLITE_RADIUS_STEP * 2}
@@ -92,23 +137,28 @@ export function RelationNetworkGraph({
             strokeWidth={1}
           />
 
-          {/* 중앙 노드에서 각 위성 노드로 이어지는 연결선 */}
+          {/* 중앙 노드에서 각 위성 노드로 이어지는 연결선 — 빛이 흐르듯 애니메이션 */}
           {nodes.map((node, i) => (
             <line
               key={`line-${i}`}
+              className="gm-line"
               x1={CENTER}
               y1={CENTER}
               x2={node.x}
               y2={node.y}
               stroke={node.color}
-              strokeOpacity={0.35}
+              strokeOpacity={0.4}
               strokeWidth={1.5}
             />
           ))}
 
-          {/* 위성 노드 */}
+          {/* 위성 노드 — 별이 반짝이듯 각자 다른 타이밍으로 pulse */}
           {nodes.map((node, i) => (
-            <g key={`node-${i}`}>
+            <g
+              key={`node-${i}`}
+              className="gm-satellite"
+              style={{ animationDelay: `${(i % 6) * 0.35}s` }}
+            >
               <circle cx={node.x} cy={node.y} r={NODE_RADIUS} fill={node.color} fillOpacity={0.85} />
               <text
                 x={node.x}
@@ -123,11 +173,13 @@ export function RelationNetworkGraph({
             </g>
           ))}
 
-          {/* 중앙 "나" 노드 */}
-          <circle cx={CENTER} cy={CENTER} r={CENTER_RADIUS} fill="#2A2438" />
-          <text x={CENTER} y={CENTER + 5} textAnchor="middle" fontSize={15} fontWeight={700} fill="#FBF7EF">
-            나
-          </text>
+          {/* 중앙 "나" 노드 — 은은하게 숨쉬듯 glow pulse */}
+          <g className="gm-center-node">
+            <circle cx={CENTER} cy={CENTER} r={CENTER_RADIUS} fill="#2A2438" />
+            <text x={CENTER} y={CENTER + 5} textAnchor="middle" fontSize={15} fontWeight={700} fill="#FBF7EF">
+              나
+            </text>
+          </g>
         </svg>
       )}
 

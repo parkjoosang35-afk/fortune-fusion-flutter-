@@ -16,39 +16,18 @@ import { useState } from "react";
 import { GUINJI_RELATION_TYPES } from "./relation-meta";
 import { RelationNetworkGraph, type RelationCount } from "./relation-network-graph";
 import { GUINJI_RELATION_TYPE_ORDER } from "@/lib/guinji-relation-judger";
+import { SINTONG_WEB_URLS } from "./sintong-web-urls";
 
-// [2026-09, 바이럴 원칙 재확인 — "회원가입 불필요 + 웹에서 완결 + 본인이
-// 원할 때만 전환"] 이전에는 결과 카드가 마운트되는 즉시(useEffect) 자동으로
-// `fortunefusion://` 스킴을 호출해 앱으로 튕기려고 시도했다. 이것이 바로
-// 사용자가 격노하며 지적한 문제("생년월일 넣으면 신통방통으로 넘어가면서
-// 앱에 걸릴까봐 도메인 주소를 넣은거 아니야") — 게스트가 웹에서 결과를
-// 다 확인하기도 전에 강제로 앱으로 전환을 시도하는 행동은 바이럴 원칙에
-// 정면으로 위배된다.
-//
-// 바이럴 성장 루프의 정확한 원칙(사용자 명시):
-//   1) 바이럴 링크로 들어온 사람은 회원가입이 필요 없다.
-//   2) 웹에서 결과·관계 지도를 전부 둘러볼 수 있어야 한다(완결된 경험).
-//   3) 본인이 "나도 지도를 만들어볼까" 하고 스스로 원할 때만, 그때
-//      비로소 앱 설치/회원가입으로 유도한다 — 자동 전환 금지, 강제 없음.
-//
-// 새 디자인 핸드오프(design_handoff_guinji_web) Y·Guest Result 화면
-// 스펙과도 정확히 일치: 결과 카드 아래 CTA는 "당신의 지도에는 누가
-// 있을까요" + "✧ 내 지도 만들기 · 무료" 버튼 하나뿐이며, 자동 리다이렉트는
-// 스펙 어디에도 없다. 이 버튼을 "직접 눌렀을 때만" 앱 설치/실행을 시도한다
-// (자기 지도를 만드는 행위는 정의상 앱 계정이 필요하므로, 이 시점의 전환
-// 유도는 원칙 3에 해당하는 정당한 전환이다).
-const PLAY_STORE_URL =
-  "https://play.google.com/store/apps/details?id=com.fortunefusion.fortune";
-
-function openAppOrFallback(token: string, setShowFallback: (v: boolean) => void) {
-  const deepLink = `fortunefusion://g/${token}`;
-  const start = Date.now();
-  window.location.href = deepLink;
-  window.setTimeout(() => {
-    if (Date.now() - start < 5000 && document.visibilityState === "visible") {
-      setShowFallback(true);
-    }
-  }, 1500);
+// [2026-09, 웹 전환 원칙 최종 확정 — 사용자 명시 지시] 신통방통은 원래
+// 앱이지만, 지금은 `https://sintong.kr/app/` 경로에 Flutter Web 빌드가
+// 이미 배포되어 있어 "앱 설치 없이도" 브라우저에서 즉시 신통방통 메인을
+// 그대로 열 수 있다. 이 페이지는 웹이므로, 커스텀 URI 스킴
+// (`fortunefusion://`)으로 앱을 열려 시도했다가 실패하면 플레이스토어로
+// 유도하던 기존 "딥링크+폴백" 패턴을 전부 제거하고, "내 지도 만들기" 버튼을
+// 누르면 곧바로 웹 신통방통 메인의 귀인지도 화면(SINTONG_WEB_URLS.guinji)
+// 으로 이동한다 — 앱 설치를 요구하지 않는다.
+function goToSintongWeb(url: string) {
+  window.location.href = url;
 }
 
 type JoinResult = {
@@ -188,7 +167,7 @@ export function GuinjiInviteInteractive({
         </p>
 
         {result ? (
-          <ResultCard ownerName={ownerName} result={result} token={token} />
+          <ResultCard ownerName={ownerName} result={result} />
         ) : (
           <form onSubmit={handleSubmit} className="mt-4">
             <p className="mb-3 text-center text-xs text-[#A08C82]">
@@ -338,21 +317,18 @@ export function GuinjiInviteInteractive({
 function ResultCard({
   ownerName,
   result,
-  token,
 }: {
   ownerName: string;
   result: JoinResult;
-  token: string;
 }) {
   const meta = GUINJI_RELATION_TYPES[result.relationType];
-  const [showFallback, setShowFallback] = useState(false);
 
   // [핵심] 자동 리다이렉트 없음. 결과·관계 지도는 이 페이지(웹) 안에서
   // 이미 완결된다(바로 아래 RelationNetworkGraph에 자기 이름이 올라간
   // 지도가 실시간으로 보인다) — 게스트는 회원가입도, 앱 설치도 강요받지
   // 않는다. 아래 CTA는 "본인이 스스로 원할 때"만 누르는 선택적 다음
-  // 단계(자기 지도 만들기 = 호스트 전환, 이 경우에만 앱 계정이 필요하므로
-  // 정당한 전환 지점)다.
+  // 단계인데, 이 서비스는 이미 웹으로도 완전히 동작하므로 눌렀을 때
+  // 앱 설치가 아니라 웹 신통방통 메인 귀인지도로 바로 이동한다.
   return (
     <div className="mt-4 rounded-2xl border border-[#E8DDD0] bg-[#F5EBDC] p-6 text-center">
       <p className="mb-1 text-xs text-[#A08C82]">
@@ -388,26 +364,14 @@ function ResultCard({
       <p className="mb-2 text-xs text-[#A08C82]">당신의 지도에는 누가 있을까요</p>
       <button
         type="button"
-        onClick={() => openAppOrFallback(token, setShowFallback)}
+        onClick={() => goToSintongWeb(SINTONG_WEB_URLS.guinji)}
         className="block w-full rounded-2xl bg-[#A6795E] px-4 py-3.5 text-sm font-bold text-white shadow-[0_8px_32px_-12px_rgba(166,121,94,0.22)] transition-transform active:scale-[0.98] hover:bg-[#B58567]"
       >
         ✧ 내 지도 만들기 · 무료
       </button>
-
-      {showFallback && (
-        <div className="mt-3 rounded-2xl border border-[#E8DDD0] bg-white p-3">
-          <p className="mb-2 text-xs text-[#6E5A54]">
-            앱이 설치되어 있지 않은 것 같아요. 스토어에서 신통방통을 설치하면
-            나만의 귀인지도를 만들 수 있어요.
-          </p>
-          <a
-            href={PLAY_STORE_URL}
-            className="block w-full rounded-xl bg-[#2A2438] px-4 py-2 text-center text-xs font-bold text-white"
-          >
-            신통방통 설치하기
-          </a>
-        </div>
-      )}
+      <p className="mt-2 text-center text-[11px] text-[#A08C82]">
+        설치 없이 바로 열려요 · 신통방통 웹
+      </p>
     </div>
   );
 }
