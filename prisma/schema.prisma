@@ -1551,9 +1551,15 @@ model ShopCatalogItem {
   id              Int       @id @default(autoincrement())
   // 값 도메인: "seal"(인장) | "candle"(특별 촛불) | "talisman"(부적)
   itemType        String    @map("item_type")
-  // 인장: seal_ok/seal_eun/seal_geobuk/seal_hak/seal_geumbak
-  // 촛불: candle_lotus/candle_incense/candle_star/candle_yuchok
-  // 부적: talisman_guardian/talisman_fullmoon/talisman_friend
+  // [Phase05 확장 — 각 카테고리 10종]
+  // 인장(10): seal_jade/seal_silver/seal_turtle/seal_crane/seal_gold_leaf/
+  //           seal_bamboo/seal_pearl/seal_tiger/seal_phoenix/seal_dragon
+  // 촛불(10): candle_lotus/candle_incense/candle_star/candle_jade_wax/
+  //           candle_pine/candle_plum/candle_moon/candle_sunrise/
+  //           candle_phoenix/candle_eternal
+  // 부적(10): talisman_guardian/talisman_full_moon/talisman_friend/
+  //           talisman_travel/talisman_health/talisman_study/talisman_dream/
+  //           talisman_love/talisman_wealth/talisman_phoenix
   itemCode        String    @unique @map("item_code")
   nameKo          String    @map("name_ko")
   descriptionKo   String    @map("description_ko")
