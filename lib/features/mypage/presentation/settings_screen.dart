@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -7,6 +8,8 @@ import '../../../core/widgets/app_dialog.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../auth/application/auth_provider.dart';
 import '../../pass/application/pass_provider.dart';
+import '../../ads_test/domain/admob_ad_ids.dart';
+import '../../ads_test/presentation/admob_test_rewarded_ad.dart';
 
 /// [Sowoon.kr 리디자인 프롬프트] 다크모드 토글 UI 완전 제거.
 /// 앱은 항상 화이트/골드 라이트 테마로만 동작한다(ThemeProvider는 ThemeMode.light 고정).
@@ -102,9 +105,70 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
             ),
+
+            // [애드몹 테스트 연동] 구글 공식 테스트 Ad Unit ID로 보상형 광고를
+            // 로드/재생해보는 QA 전용 진입점. 여기서 지급되는 보상은 실제
+            // 복주머니 잔액에 반영되지 않는다(순수 SDK 동작 확인용).
+            // Web에서는 애드몹 SDK 자체가 동작하지 않아 섹션을 숨긴다.
+            if (!kIsWeb && AdmobAdIds.isSupportedPlatform) ...[
+              const SizedBox(height: UnifiedTokens.spaceXxl),
+              Text('애드몹 테스트', style: UnifiedText.title()),
+              const SizedBox(height: UnifiedTokens.spaceSm),
+              Container(
+                decoration: BoxDecoration(
+                  color: UnifiedColors.bg,
+                  border: Border.all(color: UnifiedColors.border),
+                  borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
+                ),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
+                  onTap: () => _showTestRewardedAd(context),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: UnifiedTokens.spaceLg,
+                      vertical: UnifiedTokens.spaceMd,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.smart_display_outlined,
+                          color: UnifiedColors.textSecondary,
+                          size: UnifiedTokens.iconLg,
+                        ),
+                        const SizedBox(width: UnifiedTokens.spaceMd),
+                        Expanded(
+                          child: Text(
+                            '테스트 리워드 광고 보기',
+                            style: UnifiedText.bodyStrong(),
+                          ),
+                        ),
+                        Text(
+                          '구글 공식 테스트 ID',
+                          style: UnifiedText.caption(
+                            color: UnifiedColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
+    );
+  }
+
+  /// [애드몹 테스트 연동] "테스트 리워드 광고 보기" 버튼 탭 핸들러.
+  void _showTestRewardedAd(BuildContext context) {
+    AppToast.show(context, '테스트 광고를 불러오는 중...');
+    AdmobTestRewardedAd.loadAndShow(
+      context,
+      onResult: (rewarded, message) {
+        if (!context.mounted) return;
+        AppToast.show(context, message, isError: !rewarded);
+      },
     );
   }
 

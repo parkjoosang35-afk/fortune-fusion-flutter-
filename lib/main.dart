@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'app.dart';
 import 'core/router/guinji_deep_link_handler.dart';
@@ -38,5 +40,13 @@ Future<void> main() async {
   EveningBellNotificationService.initialize().then((_) {
     EveningBellNotificationService.syncFromSavedPreference();
   });
+  // [애드몹 테스트 연동] Google Mobile Ads SDK 초기화. Web 플랫폼은 SDK 자체가
+  // 지원되지 않으므로(google_mobile_ads는 Android/iOS 전용) kIsWeb일 때는
+  // 아예 호출하지 않는다 — 호출해도 즉시 실패하지만, 불필요한 콘솔 오류를
+  // 남기지 않기 위해 사전에 가드한다. await 하지 않는 이유는 다른 초기화
+  // (Hive/딥링크/알림)와 동일하게 앱 최초 프레임을 블로킹할 필요가 없어서다.
+  if (!kIsWeb) {
+    MobileAds.instance.initialize();
+  }
   runApp(const App());
 }

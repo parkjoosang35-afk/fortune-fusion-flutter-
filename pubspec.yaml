@@ -90,6 +90,12 @@ dependencies:
   flutter_local_notifications: 20.1.0
   timezone: 0.10.1
 
+  # [애드몹 테스트 연동] Google Mobile Ads SDK. Dart 3.9.2/Flutter 3.35.4 고정
+  # 환경 호환 버전(6.x+는 더 최신 Flutter 요구). 지금 단계는 구글 공식 테스트
+  # App ID/Ad Unit ID만 사용하는 "테스트 모드"이며, Web 플랫폼은 지원하지 않아
+  # kIsWeb 분기로 안전하게 no-op 처리한다(admob_ad_ids.dart 참고).
+  google_mobile_ads: 5.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

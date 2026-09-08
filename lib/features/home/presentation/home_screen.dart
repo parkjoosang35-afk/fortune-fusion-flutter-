@@ -25,6 +25,7 @@ import '../application/home_page_config_provider.dart';
 import '../application/section_visibility_evaluator.dart';
 import '../../../core/widgets/premium_graphics.dart' show FadeSlideIn;
 import 'widgets/welcome_reward_modal.dart';
+import '../../ads_test/presentation/admob_test_banner.dart';
 
 // 2026-08-13 -- 톤 일관화 토큰. 신 클래스/신 색상 정의 0.
 class _Tone {
@@ -353,6 +354,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   delay: Duration(milliseconds: 160),
                   child: _WishBoardRoomRow(),
                 ),
+
+                // [애드몹 테스트 연동] 구글 공식 테스트 Ad Unit ID로 표시하는
+                // 배너. 기존 CMS 제휴광고(home_middle 슬롯, AdBannerWidget)와
+                // 완전히 별개의 QA 전용 배너이며, 로드에 실패하면 공간을
+                // 차지하지 않고 사라진다(Web에서도 안전하게 no-op). 화면
+                // 맨 아래(소원게시판 카드 다음, 하단 고정바 위)에 배치해
+                // 기존 레이아웃 흐름을 방해하지 않는다.
+                const SizedBox(height: _Dims.wishCardGap),
+                const AdmobTestBanner(),
               ],
             ),
 
