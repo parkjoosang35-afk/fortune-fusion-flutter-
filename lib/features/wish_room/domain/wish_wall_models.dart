@@ -365,6 +365,13 @@ enum BlessingBagEarnReason {
   // 이상까지 실제로 빌드) 1회성으로 이 채널을 요청한다. 최종 1일 1회
   // 제한은 서버(scope='daily')가 판정한다.
   dailyFeedVisit,
+  // [소원방 3대 개선 - 10채널 재설계 §10] "오늘의 3가지 완성" 콤보 보너스
+  // (daily_wish_combo, +3, 1일 1회) — altarVisit/dailyCandle/dailyFeedVisit
+  // 3가지를 오늘 모두 완료하면 서버가 그 세 번째 채널의 earn 트랜잭션
+  // 안에서 자동으로 함께 지급한다(클라이언트가 별도로 요청하지 않음 —
+  // maybeGrantDailyWishComboBonus 참고). "받기" 팝업에는 진행상태
+  // 안내용으로만 노출한다.
+  dailyWishCombo,
 }
 
 extension BlessingBagEarnReasonX on BlessingBagEarnReason {
@@ -395,6 +402,8 @@ extension BlessingBagEarnReasonX on BlessingBagEarnReason {
         return 'wish_comment';
       case BlessingBagEarnReason.dailyFeedVisit:
         return 'daily_feed_visit';
+      case BlessingBagEarnReason.dailyWishCombo:
+        return 'daily_wish_combo';
     }
   }
 
@@ -422,6 +431,8 @@ extension BlessingBagEarnReasonX on BlessingBagEarnReason {
         return '응원 한 마디';
       case BlessingBagEarnReason.dailyFeedVisit:
         return '모두의 소원방 둘러보기';
+      case BlessingBagEarnReason.dailyWishCombo:
+        return '오늘의 3가지 완성';
     }
   }
 
@@ -449,6 +460,8 @@ extension BlessingBagEarnReasonX on BlessingBagEarnReason {
         return '누군가의 소원에 응원 한 마디를 남기면 받아요 (15자 이상 · 1일 3회 · 같은 소원엔 1회)';
       case BlessingBagEarnReason.dailyFeedVisit:
         return '모두의 소원방에서 3개 이상 소원을 읽으면 받아요 (1일 1회)';
+      case BlessingBagEarnReason.dailyWishCombo:
+        return '제단 참배 + 오늘의 촛불 + 소원방 둘러보기를 모두 마치면 자동으로 받아요 (1일 1회)';
     }
   }
 
@@ -478,6 +491,8 @@ extension BlessingBagEarnReasonX on BlessingBagEarnReason {
         return 2;
       case BlessingBagEarnReason.dailyFeedVisit:
         return 1;
+      case BlessingBagEarnReason.dailyWishCombo:
+        return 3;
     }
   }
 }

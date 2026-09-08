@@ -98,6 +98,7 @@ class WalletRepository {
           amount: rawAmount.abs(),
           reason: map['reason'] as String? ?? '',
           createdAt: DateTime.parse(map['createdAt'] as String),
+          sourceType: map['sourceType'] as String?,
         );
       }).toList();
 

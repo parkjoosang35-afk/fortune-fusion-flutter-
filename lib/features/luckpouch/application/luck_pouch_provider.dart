@@ -57,6 +57,7 @@ class LuckPouchProvider extends ChangeNotifier {
       amount: h.amount,
       reason: h.reason,
       createdAt: h.createdAt,
+      sourceType: h.sourceType,
     );
   }
 

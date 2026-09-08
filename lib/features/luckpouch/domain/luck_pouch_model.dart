@@ -11,12 +11,18 @@ class LuckPouchHistoryModel {
   final String reason;
   final DateTime createdAt;
 
+  /// [소원방 3대 개선 - 10채널 재설계] 서버 PointHistory.sourceType 원본값.
+  /// "받기" 팝업에서 채널별 "오늘 완료" 여부를 판정하는 데 쓴다(reason은
+  /// memo로 뭉쳐 나와 신뢰도가 낮음). 과거 응답과의 하위호환을 위해 null 허용.
+  final String? sourceType;
+
   const LuckPouchHistoryModel({
     required this.id,
     required this.type,
     required this.amount,
     required this.reason,
     required this.createdAt,
+    this.sourceType,
   });
 
   Map<String, dynamic> toJson() => {
@@ -25,6 +31,7 @@ class LuckPouchHistoryModel {
     'amount': amount,
     'reason': reason,
     'createdAt': createdAt.toIso8601String(),
+    'sourceType': sourceType,
   };
 
   factory LuckPouchHistoryModel.fromJson(Map<String, dynamic> json) {
@@ -37,6 +44,7 @@ class LuckPouchHistoryModel {
       amount: json['amount'] as int,
       reason: json['reason'] as String,
       createdAt: DateTime.parse(json['createdAt'] as String),
+      sourceType: json['sourceType'] as String?,
     );
   }
 }
