@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../data/attendance_repository.dart';
+import '../domain/attendance_calendar_model.dart';
 
 /// [실API 전환] admin_web `/api/public/attendance/checkin`이 지갑 적립까지
 /// 트랜잭션 내부에서 직접 처리하므로, 호출부(화면)는 반환된 reward>0일 때
@@ -18,6 +19,33 @@ class AttendanceProvider extends ChangeNotifier {
   bool get checkedToday => _checkedToday;
   bool get isLoading => _isLoading;
   String? get lastError => _lastError;
+
+  // ── 출석 달력(30일 그리드) 상태 — 미션/복주머니열기/개봉이력 삭제 후
+  // "출석체크" 단일 기능을 위한 신규 달력 화면(AttendanceCalendarScreen)에서 사용 ──
+  AttendanceCalendarModel? _calendar;
+  bool _isCalendarLoading = false;
+  String? _calendarError;
+
+  AttendanceCalendarModel? get calendar => _calendar;
+  bool get isCalendarLoading => _isCalendarLoading;
+  String? get calendarError => _calendarError;
+
+  /// 지정한 연/월(생략 시 이번 달)의 출석 달력을 불러온다.
+  Future<void> loadCalendar({int? year, int? month}) async {
+    _isCalendarLoading = true;
+    notifyListeners();
+    final result = await _repository.getCalendar(year: year, month: month);
+    if (result.success && result.data != null) {
+      _calendar = result.data;
+      _streak = result.data!.streak;
+      _checkedToday = result.data!.checkedToday;
+      _calendarError = null;
+    } else {
+      _calendarError = result.errorMessage;
+    }
+    _isCalendarLoading = false;
+    notifyListeners();
+  }
 
   Future<void> load() async {
     _isLoading = true;

@@ -35,6 +35,7 @@ import '../../features/fortune/palm/presentation/palm_history_screen.dart';
 import '../../features/name_fortune/presentation/name_fortune_input_screen.dart';
 import '../../features/name_fortune/presentation/name_fortune_result_screen.dart';
 import '../../features/wallet/presentation/wallet_screen.dart';
+import '../../features/attendance/presentation/attendance_calendar_screen.dart';
 import '../../features/mission/presentation/mission_screen.dart';
 import '../../features/ranking/presentation/ranking_screen.dart';
 import '../../features/notification/notifications_screen.dart';
@@ -602,6 +603,10 @@ class AppRouter {
       // ── 리워드 ──
       case '/reward/wallet':
         return _page(const WalletScreen());
+      case '/reward/attendance':
+        // [복주머니 화면 재구성] 미션/복주머니열기/개봉이력 삭제 후
+        // 출석체크만 남기면서 신설한 "이번 달 출석 달력" 화면.
+        return _page(const AttendanceCalendarScreen());
       case '/reward/missions':
         return _page(const MissionScreen());
       case '/reward/ranking':
