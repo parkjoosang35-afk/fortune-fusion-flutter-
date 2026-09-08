@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../luckpouch/application/luck_pouch_provider.dart';
 import '../../wish_room/theme/wish_room_theme.dart';
@@ -10,6 +11,8 @@ import '../domain/shop_item_visuals.dart';
 import '../domain/shop_models.dart';
 import '../widgets/shop_purchase_effect.dart';
 import '../widgets/shop_widgets.dart';
+
+const String _candleShopGuideSeenKey = 'shop_guide_seen_candle';
 
 /// 촛불 상점 — `new-screens.jsx`의 `ScreenCandleShop` 픽셀 디자인을 그대로
 /// Flutter로 재구현한다. 세로 리스트, 연꽃/향초/별초(rare)/유촉(rare) 4종.
@@ -24,9 +27,17 @@ class _CandleShopScreenState extends State<CandleShopScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       context.read<ShopProvider>().loadAll();
+      final prefs = await SharedPreferences.getInstance();
+      if (!mounted) return;
+      final seen = prefs.getBool(_candleShopGuideSeenKey) ?? false;
+      if (!seen) {
+        await prefs.setBool(_candleShopGuideSeenKey, true);
+        if (!mounted) return;
+        ShopGuideDialog.show(context, ShopGuideType.candle);
+      }
     });
   }
 
@@ -79,7 +90,11 @@ class _CandleShopScreenState extends State<CandleShopScreen> {
             child: Column(
               children: [
                 const SizedBox(height: 10),
-                ShopHeader(title: 'CANDLE SHOP · 燭', balance: pouch.balance),
+                ShopHeader(
+                  title: 'CANDLE SHOP · 燭',
+                  balance: pouch.balance,
+                  guideType: ShopGuideType.candle,
+                ),
                 const ShopIntro(
                   title: '소원을 밝혀줄\n특별한 촛불',
                   sub: '소원 하나에 하나의 촛불을 골라주세요.',

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../luckpouch/application/luck_pouch_provider.dart';
 import '../../wish_room/theme/wish_room_theme.dart';
@@ -9,6 +10,8 @@ import '../domain/shop_item_visuals.dart';
 import '../domain/shop_models.dart';
 import '../widgets/shop_purchase_effect.dart';
 import '../widgets/shop_widgets.dart';
+
+const String _talismanShopGuideSeenKey = 'shop_guide_seen_talisman';
 
 /// 부적 상점 — bokjumeoni-plan `01-planning.html`에 "부적(지킴/만월/벗)"으로만
 /// 언급되어 JSX 명시 코드가 없다. `ScreenCandleShop`의 세로 리스트 패턴을
@@ -25,9 +28,17 @@ class _TalismanShopScreenState extends State<TalismanShopScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       context.read<ShopProvider>().loadAll();
+      final prefs = await SharedPreferences.getInstance();
+      if (!mounted) return;
+      final seen = prefs.getBool(_talismanShopGuideSeenKey) ?? false;
+      if (!seen) {
+        await prefs.setBool(_talismanShopGuideSeenKey, true);
+        if (!mounted) return;
+        ShopGuideDialog.show(context, ShopGuideType.talisman);
+      }
     });
   }
 
@@ -90,7 +101,11 @@ class _TalismanShopScreenState extends State<TalismanShopScreen> {
             child: Column(
               children: [
                 const SizedBox(height: 10),
-                ShopHeader(title: 'TALISMAN SHOP · 符', balance: pouch.balance),
+                ShopHeader(
+                  title: 'TALISMAN SHOP · 符',
+                  balance: pouch.balance,
+                  guideType: ShopGuideType.talisman,
+                ),
                 const ShopIntro(
                   title: '소원을 지켜줄\n부적을 지녀보세요',
                   sub: '부적은 정해진 기간 동안만 효력이 있어요.',

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../wish_room/theme/wish_room_theme.dart';
 import '../../wish_room/widgets/wish_room_bg_atmosphere.dart';
@@ -9,6 +10,8 @@ import '../application/shop_provider.dart';
 import '../domain/shop_item_visuals.dart';
 import '../domain/shop_models.dart';
 import '../widgets/shop_widgets.dart';
+
+const String _treasureGuideSeenKey = 'shop_guide_seen_treasure';
 
 /// 보물함 — `new-screens.jsx`의 `ScreenTreasureBox` 픽셀 디자인을 그대로
 /// 재구현한다. 원본은 인장/촛불 2개 섹션이지만, 우리 카탈로그는 부적도
@@ -28,9 +31,17 @@ class _TreasureBoxScreenState extends State<TreasureBoxScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       context.read<ShopProvider>().loadAll();
+      final prefs = await SharedPreferences.getInstance();
+      if (!mounted) return;
+      final seen = prefs.getBool(_treasureGuideSeenKey) ?? false;
+      if (!seen) {
+        await prefs.setBool(_treasureGuideSeenKey, true);
+        if (!mounted) return;
+        ShopGuideDialog.show(context, ShopGuideType.treasure);
+      }
     });
   }
 
@@ -75,7 +86,13 @@ class _TreasureBoxScreenState extends State<TreasureBoxScreen> {
                               'TREASURE · 寶物匣',
                               style: WishRoomTextStyles.eyebrow,
                             ),
-                            const SizedBox(width: 34, height: 34),
+                            _IconBtn(
+                              icon: Icons.help_outline,
+                              onTap: () => ShopGuideDialog.show(
+                                context,
+                                ShopGuideType.treasure,
+                              ),
+                            ),
                           ],
                         ),
                       ),

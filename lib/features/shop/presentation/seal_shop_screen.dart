@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../luckpouch/application/luck_pouch_provider.dart';
 import '../../wish_room/theme/wish_room_theme.dart';
@@ -10,6 +11,8 @@ import '../domain/shop_item_visuals.dart';
 import '../domain/shop_models.dart';
 import '../widgets/shop_purchase_effect.dart';
 import '../widgets/shop_widgets.dart';
+
+const String _sealShopGuideSeenKey = 'shop_guide_seen_seal';
 
 /// 인장 상점 — bokjumeoni-plan `03-dev-spec.html` `SealShopScreen` 코드
 /// 스펙 및 `new-screens.jsx`의 `ScreenSealShop` 픽셀 디자인을 그대로
@@ -25,9 +28,19 @@ class _SealShopScreenState extends State<SealShopScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       context.read<ShopProvider>().loadAll();
+      // [요청1 — 사용법 안내창] 처음 방문한 경우에만 자동으로 안내를 띄운다.
+      // 이후에는 ShopHeader의 "?" 아이콘으로 언제든 다시 열 수 있다.
+      final prefs = await SharedPreferences.getInstance();
+      if (!mounted) return;
+      final seen = prefs.getBool(_sealShopGuideSeenKey) ?? false;
+      if (!seen) {
+        await prefs.setBool(_sealShopGuideSeenKey, true);
+        if (!mounted) return;
+        ShopGuideDialog.show(context, ShopGuideType.seal);
+      }
     });
   }
 
@@ -84,7 +97,11 @@ class _SealShopScreenState extends State<SealShopScreen> {
             child: Column(
               children: [
                 const SizedBox(height: 10),
-                ShopHeader(title: 'SEAL SHOP · 印章', balance: pouch.balance),
+                ShopHeader(
+                  title: 'SEAL SHOP · 印章',
+                  balance: pouch.balance,
+                  guideType: ShopGuideType.seal,
+                ),
                 const ShopIntro(
                   title: '소원을 봉인할\n새 인장을 만나보세요',
                   sub: '구매하면 정해진 기간 동안 보유돼요 · 소원을 봉인할 때 골라 쓰세요.',
