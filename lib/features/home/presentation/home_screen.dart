@@ -951,7 +951,11 @@ class _OpenPassBottomBarState extends State<_OpenPassBottomBar> {
           _Dims.bottomBarBottomGap,
         ),
         child: GestureDetector(
-          onTap: () => Navigator.of(context).pushNamed('/reward/wallet'),
+          // [버그 수정 - 프리패스 바 오작동] 이 바는 "프리패스" 상태를
+          // 보여주는 하단 pill이므로, 탭 시 복주머니 지갑(/reward/wallet)이
+          // 아니라 프리패스 안내/상태 화면(/free-pass-gate)으로 이동해야
+          // 한다(기존 코드는 실수로 지갑 라우트로 연결되어 있었음).
+          onTap: () => Navigator.of(context).pushNamed('/free-pass-gate'),
           child: Container(
             height: _Dims.bottomBarHeight,
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
@@ -988,8 +992,10 @@ class _OpenPassBottomBarState extends State<_OpenPassBottomBar> {
                   size: _Dims.bottomBarCircleSize,
                   bgColor: HomeColors.neon,
                   fgColor: HomeColors.textPrimary,
+                  // [버그 수정 - 프리패스 바 오작동] 위 바 전체 탭과 동일하게
+                  // 프리패스 화면으로 이동하도록 통일.
                   onTap: () =>
-                      Navigator.of(context).pushNamed('/reward/wallet'),
+                      Navigator.of(context).pushNamed('/free-pass-gate'),
                 ),
               ],
             ),
