@@ -174,9 +174,7 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              wish.isMine
-                  ? '내 소원에 정성을 더했어요 💛'
-                  : '이 소원을 쓴 사람에게 응원이 전달됐어요 💛',
+              wish.isMine ? '내 소원에 정성을 더했어요 💛' : '이 소원을 쓴 사람에게 응원이 전달됐어요 💛',
             ),
           ),
         );
@@ -230,9 +228,28 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
     }
   }
 
+  /// [소원방 3대 개선 · 요청2 어뷰징 방지] "이뤄졌어요"를 소원 작성 직후
+  /// 바로 눌러 복주머니만 챙기는 어뷰징을 막기 위한 최소 경과일. 소원을
+  /// 봉인한 뒤 최소 3일은 지나야 성취를 기록할 수 있게 한다(값 자체는
+  /// 서버 정책이 아니라 클라이언트 UX 가드이며, 서버는 여전히 건당 1회
+  /// 지급만 별도로 판정한다).
+  static const int _minDaysBeforeFulfillment = 3;
+
   Future<void> _markFulfilled() async {
     final wish = _wish;
     if (wish == null) return;
+    if (_daysSince < _minDaysBeforeFulfillment) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text(
+            '소원을 봉인한 지 $_minDaysBeforeFulfillment일이 지나야 '
+            '성취를 기록할 수 있어요 (현재 $_daysSince일째)',
+          ),
+        ),
+      );
+      return;
+    }
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(

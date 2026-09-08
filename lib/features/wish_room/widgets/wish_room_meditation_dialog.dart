@@ -50,7 +50,8 @@ class _MeditationDialogState extends State<_MeditationDialog> {
   static const int _inhaleSeconds = 4;
   static const int _holdSeconds = 2;
   static const int _exhaleSeconds = 4;
-  static const int _roundSeconds = _inhaleSeconds + _holdSeconds + _exhaleSeconds; // 10초
+  static const int _roundSeconds =
+      _inhaleSeconds + _holdSeconds + _exhaleSeconds; // 10초
   static const int _totalRounds = 6; // 6 x 10초 = 60초
   static const int _totalMs = _roundSeconds * _totalRounds * 1000;
   static const int _tickMs = 100;
