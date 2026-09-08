@@ -4,11 +4,17 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../luckpouch/application/luck_pouch_provider.dart';
 import '../application/blessing_bag_policy_adapter.dart';
 import '../application/gratitude_provider.dart';
 import '../application/wish_wall_provider.dart';
 import '../domain/gratitude_models.dart';
 import '../domain/wish_wall_models.dart';
+import '../presentation/wish_room_box_opening_screen.dart';
+import '../presentation/wish_room_celebration_screen.dart';
+import '../presentation/wish_room_compose_screen.dart';
+import '../presentation/wish_room_feed_screen.dart';
+import '../presentation/wish_wall_my_screen.dart';
 import '../theme/wish_wall_theme.dart';
 import 'wish_room_gift_burst_overlay.dart';
 import 'wish_room_meditation_dialog.dart';
@@ -983,7 +989,30 @@ class _SparklePoint {
 }
 
 // ============================================================
-// 받기 탭
+// 받기 탭 — [소원방 3대 개선 · 10채널 재설계] 클릭 한 번으로 즉시 지급되던
+// 기존 6채널 팝업을, 실제 유저 행동(피드 방문/응원/소원 작성/소원함 개봉/
+// 성취 기록)과 연결된 10채널 구조로 재구성한다. 채널은 네 종류의 UI로
+// 나뉜다:
+// 1) 즉시 클릭형([_ClaimEarnCard]) — 그 자체가 이미 "행동"인 채널만 사용
+//    (촛불켜기/60초명상/제단참배). 서버가 여전히 최종 중복지급 판정을 한다.
+// 2) 딥링크형([_DeepLinkEarnCard]) — 실제 행동이 다른 화면에서 일어나는
+//    채널(응원남기기/피드둘러보기/새소원봉인/성취기록). 팝업은 "이동" 버튼만
+//    제공하고, 실제 지급은 그 화면에서 행동을 마쳤을 때 서버가 확정한다.
+// 3) 조건부 딥링크형([_WeeklyBoxOpeningCard]) — pending 소원함 유무를 먼저
+//    조회한 다음에만 개봉 화면으로 이동한다(없으면 이동하지 않고 안내만).
+// 4) 진행표시형([_ComboProgressCard]) — 클릭 불가. 오늘 3채널(제단참배/
+//    촛불/피드둘러보기) 완료 여부만 보여준다(실제 지급은 서버가 세 번째
+//    채널의 earn 트랜잭션 안에서 자동으로 함께 확정하므로 여기서 별도
+//    API 호출을 하지 않는다).
+//
+// [버그 수정] 기존 daily_prayer 채널은 서버 PointPolicy에 아예 등록되어
+// 있지 않아 무제한 지급되던 버그가 있었으므로 팝업에서 완전히 제거한다
+// (wish_wall_provider.pray()는 여전히 무료 "오늘의 기도" UI 토글로만 남고
+// 복주머니와는 무관하다). 기존 wishFulfilled 직접클릭(policy.
+// earnWishFulfilledBonus())도 sourceId 없이 호출되어 "소원 1건당 1회"
+// 판정이 걸리지 않는 버그가 있었으므로 제거하고, 성취 기록은 반드시
+// [WishRoomDetailScreen._markFulfilled]가 wishId를 서버에 함께 넘기는
+// 경로로만 지급되도록 딥링크로만 노출한다.
 // ============================================================
 
 class _ReceivePanel extends StatefulWidget {
@@ -1009,6 +1038,25 @@ class _ReceivePanelState extends State<_ReceivePanel> {
     });
   }
 
+  /// 오늘 이미 서버에 기록된(=지급 성공한) sourceType 코드 집합.
+  /// [소원방 3대 개선 - 10채널 재설계] 팝업을 다시 열었을 때도 "오늘 완료"
+  /// 상태가 유지되도록, 이 세션의 로컬 [_claimed] 맵뿐 아니라 서버
+  /// PointHistory(=[LuckPouchProvider.history])의 sourceType도 함께 본다.
+  Set<String> _todaySourceTypes(BuildContext context) {
+    final history = context.watch<LuckPouchProvider>().history;
+    final now = DateTime.now();
+    return history
+        .where(
+          (h) =>
+              h.sourceType != null &&
+              h.createdAt.year == now.year &&
+              h.createdAt.month == now.month &&
+              h.createdAt.day == now.day,
+        )
+        .map((h) => h.sourceType!)
+        .toSet();
+  }
+
   Future<void> _claim(BlessingBagEarnReason reason) async {
     if (_claiming.contains(reason) || _claimed.containsKey(reason)) return;
 
@@ -1030,22 +1078,15 @@ class _ReceivePanelState extends State<_ReceivePanel> {
       case BlessingBagEarnReason.altarVisit:
         granted = await policy.earnAltarVisitBonus();
         break;
-      case BlessingBagEarnReason.weeklyBoxOpening:
-        granted = await policy.earnWeeklyBoxOpeningBonus();
-        break;
-      case BlessingBagEarnReason.dailyPrayer:
-        granted = await policy.earnDailyPrayerBonus();
-        break;
-      case BlessingBagEarnReason.wishCreatedBonus:
-        granted = await policy.earnWishCreatedBonus();
-        break;
-      case BlessingBagEarnReason.wishFulfilled:
-        granted = await policy.earnWishFulfilledBonus();
-        break;
       case BlessingBagEarnReason.dailyCandle:
         granted = await policy.earnDailyCandleBonus();
         break;
       default:
+        // [버그 수정 - 10채널 재설계] 나머지 사유(daily_prayer/wish_created_
+        // bonus/weekly_box_opening/wish_fulfilled/wish_comment/daily_feed_
+        // visit/daily_wish_combo)는 이 즉시클릭 경로를 더 이상 사용하지
+        // 않는다(딥링크형/조건부형/진행표시형으로 분리됨). 여기로 들어오면
+        // 아무것도 하지 않는다(방어적 기본값).
         granted = 0;
     }
     if (!mounted) return;
@@ -1066,18 +1107,13 @@ class _ReceivePanelState extends State<_ReceivePanel> {
   @override
   Widget build(BuildContext context) {
     final balance = context.watch<WishWallProvider>().policy.balance;
+    final todaySourceTypes = _todaySourceTypes(context);
 
-    // [소원방 리스킨 — "받기" 확장 채널] 4개 적립 채널을 카드형 리스트로
-    // 노출한다. altarVisit는 이 화면 진입 시 자동으로 이미 시도되었을 수
-    // 있으므로(WishRoomHomeScreen.initState), 여기서도 다시 누르면 서버가
-    // 중복 지급을 막고 0을 반환한다(안전).
-    const reasons = [
-      BlessingBagEarnReason.altarVisit,
+    // [즉시 클릭형] 그 자체로 이미 "행동"인 3채널만 이 경로를 쓴다.
+    const claimReasons = [
       BlessingBagEarnReason.dailyCandle,
       BlessingBagEarnReason.dailyMeditation,
-      BlessingBagEarnReason.dailyPrayer,
-      BlessingBagEarnReason.weeklyBoxOpening,
-      BlessingBagEarnReason.wishFulfilled,
+      BlessingBagEarnReason.altarVisit,
     ];
 
     return ListView(
@@ -1116,19 +1152,72 @@ class _ReceivePanelState extends State<_ReceivePanel> {
         const SizedBox(height: 18),
         Text('오늘 받을 수 있어요', style: WishWallText.caption()),
         const SizedBox(height: 10),
-        ...reasons.map(
-          (r) => _EarnChannelCard(
+        // ① 촛불켜기 ② 60초명상 ③ 제단참배 — 즉시 클릭형.
+        ...claimReasons.map(
+          (r) => _ClaimEarnCard(
             reason: r,
             claiming: _claiming.contains(r),
             claimedAmount: _claimed[r],
+            alreadyDoneToday: todaySourceTypes.contains(r.code),
             onTap: () => _claim(r),
           ),
         ),
-        // [복주머니 확장 Phase02 항목3] 답례 도장(GratitudeSeal) 섹션.
-        // 기존 giftSeal("감사 도장 보내기")과 혼동을 피하기 위해 "답례 도장"
+        // ④ 응원남기기 — 특정 소원이 필요해 팝업에서 직접 지급할 수 없으니
+        // "모두의 소원방"으로 이동해 직접 소원을 골라 응원하도록 안내한다.
+        _DeepLinkEarnCard(
+          reason: BlessingBagEarnReason.wishComment,
+          buttonLabel: '응원하러 가기',
+          alreadyDoneToday: false,
+          onTap: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const WishRoomFeedScreen())),
+        ),
+        // ⑤ 피드둘러보기 — 모두의 소원방에서 3개 이상 스크롤하면 화면이
+        // 자동으로 지급을 요청한다(WishRoomFeedScreen._maybeClaimFeedVisit
+        // Bonus). 팝업은 이동만 시켜준다.
+        _DeepLinkEarnCard(
+          reason: BlessingBagEarnReason.dailyFeedVisit,
+          buttonLabel: '둘러보러 가기',
+          alreadyDoneToday: todaySourceTypes.contains(
+            BlessingBagEarnReason.dailyFeedVisit.code,
+          ),
+          onTap: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const WishRoomFeedScreen())),
+        ),
+        // ⑥ 새소원봉인 — 소원 작성 화면으로 이동. 작성을 완료하면 서버가
+        // 트랜잭션 안에서 이미 지급을 확정한다.
+        _DeepLinkEarnCard(
+          reason: BlessingBagEarnReason.wishCreatedBonus,
+          buttonLabel: '소원 쓰러 가기',
+          alreadyDoneToday: todaySourceTypes.contains(
+            BlessingBagEarnReason.wishCreatedBonus.code,
+          ),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const WishRoomComposeScreen()),
+          ),
+        ),
+        // ⑦ 소원함개봉 — pending 여부를 먼저 확인하는 조건부 딥링크.
+        const _WeeklyBoxOpeningCard(),
+        // ⑧ 성취기록 — [버그 수정] sourceId 없이 지급을 요청하던 직접클릭을
+        // 제거하고, 반드시 "내 소원"에서 해당 소원을 열어 "이뤄졌어요"를
+        // 눌러야만 지급되도록(=서버가 wishId를 함께 받아 건당 1회를 정확히
+        // 판정) 딥링크로만 노출한다.
+        _DeepLinkEarnCard(
+          reason: BlessingBagEarnReason.wishFulfilled,
+          buttonLabel: '내 소원 보기',
+          alreadyDoneToday: false,
+          onTap: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const WishWallMyScreen())),
+        ),
+        // ⑨ 답례 도장(GratitudeSeal) — [복주머니 확장 Phase02 항목3] 기존
+        // giftSeal("감사 도장 보내기")과 혼동을 피하기 위해 "답례 도장"
         // 문구를 사용한다. 내 소원에 복주머니를 보내준 사람에게 24시간 이내
         // 답례하면 나(+2)/상대(+5) 모두 복주머니를 받는다.
         const _GratitudeSealSection(),
+        // ⑩ 콤보보너스 — 클릭 불가, 오늘 3채널 완료 진행상태만 보여준다.
+        _ComboProgressCard(todaySourceTypes: todaySourceTypes),
       ],
     );
   }
@@ -1334,42 +1423,56 @@ class _GratitudeSealCard extends StatelessWidget {
   }
 }
 
-class _EarnChannelCard extends StatelessWidget {
-  const _EarnChannelCard({
+/// [소원방 3대 개선 - 10채널 재설계] 채널 아이콘 매핑. 두 카드 타입
+/// ([_ClaimEarnCard]/[_DeepLinkEarnCard])과 진행표시 카드가 공유한다.
+/// daily_prayer는 10채널 재설계에서 완전히 제거되어 case가 없다(default로
+/// 안전하게 처리).
+IconData _earnChannelIcon(BlessingBagEarnReason reason) {
+  switch (reason) {
+    case BlessingBagEarnReason.altarVisit:
+      return Icons.local_fire_department_rounded;
+    case BlessingBagEarnReason.weeklyBoxOpening:
+      return Icons.inventory_2_rounded;
+    case BlessingBagEarnReason.wishFulfilled:
+      return Icons.celebration_rounded;
+    case BlessingBagEarnReason.dailyCandle:
+      return Icons.local_fire_department_outlined;
+    case BlessingBagEarnReason.dailyMeditation:
+      return Icons.self_improvement_rounded;
+    case BlessingBagEarnReason.wishComment:
+      return Icons.chat_bubble_rounded;
+    case BlessingBagEarnReason.dailyFeedVisit:
+      return Icons.explore_rounded;
+    case BlessingBagEarnReason.wishCreatedBonus:
+      return Icons.edit_note_rounded;
+    case BlessingBagEarnReason.dailyWishCombo:
+      return Icons.stars_rounded;
+    default:
+      return Icons.card_giftcard_rounded;
+  }
+}
+
+/// ① 촛불켜기 ② 60초명상 ③ 제단참배 — 즉시 클릭형 카드. 그 자체가 이미
+/// "행동"인 채널만 이 카드를 쓴다(클릭 = 행동 완료).
+class _ClaimEarnCard extends StatelessWidget {
+  const _ClaimEarnCard({
     required this.reason,
     required this.claiming,
     required this.claimedAmount,
+    required this.alreadyDoneToday,
     required this.onTap,
   });
 
   final BlessingBagEarnReason reason;
   final bool claiming;
   final int? claimedAmount;
+  final bool alreadyDoneToday;
   final VoidCallback onTap;
-
-  IconData get _icon {
-    switch (reason) {
-      case BlessingBagEarnReason.altarVisit:
-        return Icons.local_fire_department_rounded;
-      case BlessingBagEarnReason.dailyPrayer:
-        return Icons.auto_awesome_rounded;
-      case BlessingBagEarnReason.weeklyBoxOpening:
-        return Icons.inventory_2_rounded;
-      case BlessingBagEarnReason.wishFulfilled:
-        return Icons.celebration_rounded;
-      case BlessingBagEarnReason.dailyCandle:
-        return Icons.local_fire_department_outlined;
-      case BlessingBagEarnReason.dailyMeditation:
-        return Icons.self_improvement_rounded;
-      default:
-        return Icons.card_giftcard_rounded;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
-    final done = claimedAmount != null;
-    final gotSomething = done && claimedAmount! > 0;
+    final done = claimedAmount != null || alreadyDoneToday;
+    final gotSomething = claimedAmount != null && claimedAmount! > 0;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -1393,7 +1496,11 @@ class _EarnChannelCard extends StatelessWidget {
                   color: WishWallColors.accentSoft,
                 ),
                 alignment: Alignment.center,
-                child: Icon(_icon, size: 20, color: WishWallColors.accent2),
+                child: Icon(
+                  _earnChannelIcon(reason),
+                  size: 20,
+                  color: WishWallColors.accent2,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -1420,6 +1527,320 @@ class _EarnChannelCard extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// ④⑤⑥⑧ 응원남기기/피드둘러보기/새소원봉인/성취기록 — 딥링크형 카드.
+/// [소원방 3대 개선 - 10채널 재설계] 실제 행동이 이 팝업이 아니라 다른
+/// 화면에서 일어나는 채널들이다. 이 카드는 지급을 직접 요청하지 않고
+/// [onTap]으로 해당 화면 이동만 담당한다 — 실제 지급/중복방지 판정은 그
+/// 화면(또는 그 화면이 호출하는 서버 API)이 전담한다.
+class _DeepLinkEarnCard extends StatelessWidget {
+  const _DeepLinkEarnCard({
+    required this.reason,
+    required this.buttonLabel,
+    required this.alreadyDoneToday,
+    required this.onTap,
+  });
+
+  final BlessingBagEarnReason reason;
+  final String buttonLabel;
+  final bool alreadyDoneToday;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: WishWallColors.bg2,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: WishWallColors.line),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: WishWallColors.accentSoft,
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                _earnChannelIcon(reason),
+                size: 20,
+                color: WishWallColors.accent2,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    reason.label,
+                    style: WishWallText.body().copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(reason.description, style: WishWallText.caption()),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            if (alreadyDoneToday)
+              Text(
+                '오늘 완료',
+                style: WishWallText.caption(color: WishWallColors.dim),
+              )
+            else
+              InkWell(
+                onTap: onTap,
+                borderRadius: BorderRadius.circular(999),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: WishWallColors.ink,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    buttonLabel,
+                    style: WishWallText.label(
+                      color: WishWallColors.bg,
+                    ).copyWith(fontSize: 12),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// ⑦ 소원함개봉 — 조건부 딥링크 카드. [소원방 3대 개선 - 10채널 재설계]
+/// 클릭 시 먼저 서버에 pending 소원함(=100일 경과·미개봉 소원)이 있는지
+/// 확인한다. 있으면 그 자리에서 [WishWallProvider.markBoxOpened]로 지급을
+/// 확정하고 07 개봉 화면 → 08 성취 화면으로 체이닝한다(WishRoomHomeScreen.
+/// initState의 자동 개봉 흐름과 동일 패턴). 없으면 이동하지 않고 안내만
+/// 표시한다 — "클릭만으로 즉시 지급"이 아니라 실제 조건(100일 경과)을
+/// 만족해야만 화면이 진행된다.
+class _WeeklyBoxOpeningCard extends StatefulWidget {
+  const _WeeklyBoxOpeningCard();
+
+  @override
+  State<_WeeklyBoxOpeningCard> createState() => _WeeklyBoxOpeningCardState();
+}
+
+class _WeeklyBoxOpeningCardState extends State<_WeeklyBoxOpeningCard> {
+  bool _checking = false;
+
+  Future<void> _handleTap() async {
+    if (_checking) return;
+    setState(() => _checking = true);
+    final provider = context.read<WishWallProvider>();
+    final pending = await provider.fetchPendingBoxOpenings();
+    if (!mounted) return;
+    setState(() => _checking = false);
+    if (pending.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('아직 열 수 있는 소원함이 없어요. 100일 동안 소원을 밝혀주세요'),
+        ),
+      );
+      return;
+    }
+    final wish = pending.first;
+    final ageDays = DateTime.now().difference(wish.createdAt).inDays;
+    final grantedWish100Days = await provider.markBoxOpened(wish.id);
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => WishRoomBoxOpeningScreen(
+          wishAgeDays: ageDays,
+          wish100DaysGrantedAmount: grantedWish100Days,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => WishRoomCelebrationScreen(
+          wishText: wish.text,
+          daysToFulfill: ageDays,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const reason = BlessingBagEarnReason.weeklyBoxOpening;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: WishWallColors.bg2,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: WishWallColors.line),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: WishWallColors.accentSoft,
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                _earnChannelIcon(reason),
+                size: 20,
+                color: WishWallColors.accent2,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    reason.label,
+                    style: WishWallText.body().copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(reason.description, style: WishWallText.caption()),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            _checking
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.2,
+                      color: WishWallColors.accent,
+                    ),
+                  )
+                : InkWell(
+                    onTap: _handleTap,
+                    borderRadius: BorderRadius.circular(999),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 7,
+                      ),
+                      decoration: BoxDecoration(
+                        color: WishWallColors.ink,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        '확인하기',
+                        style: WishWallText.label(
+                          color: WishWallColors.bg,
+                        ).copyWith(fontSize: 12),
+                      ),
+                    ),
+                  ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// ⑩ 콤보보너스 — 진행표시형 카드. [소원방 3대 개선 - 10채널 재설계] 클릭할
+/// 수 없다. "제단참배 + 오늘의 촛불 + 피드둘러보기" 3채널을 오늘 모두
+/// 완료하면 서버가 세 번째 채널의 earn 트랜잭션 안에서 자동으로 지급을
+/// 함께 확정한다(daily_wish_combo). 여기서는 그 완료 여부(오늘자 sourceType
+/// 히스토리)만 N/3 형태로 보여준다.
+class _ComboProgressCard extends StatelessWidget {
+  const _ComboProgressCard({required this.todaySourceTypes});
+  final Set<String> todaySourceTypes;
+
+  static const _subChannels = [
+    BlessingBagEarnReason.altarVisit,
+    BlessingBagEarnReason.dailyCandle,
+    BlessingBagEarnReason.dailyFeedVisit,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    const reason = BlessingBagEarnReason.dailyWishCombo;
+    final doneCount = _subChannels
+        .where((r) => todaySourceTypes.contains(r.code))
+        .length;
+    final comboDone = todaySourceTypes.contains(reason.code);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 10),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: WishWallColors.bg2,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: comboDone
+                ? WishWallColors.green.withValues(alpha: 0.4)
+                : WishWallColors.line,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: WishWallColors.accentSoft,
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                _earnChannelIcon(reason),
+                size: 20,
+                color: WishWallColors.accent2,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    reason.label,
+                    style: WishWallText.body().copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(reason.description, style: WishWallText.caption()),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              comboDone ? '+${reason.defaultAmount} 받음' : '$doneCount/3',
+              style: WishWallText.caption(
+                color: comboDone ? WishWallColors.green : WishWallColors.dim,
+              ).copyWith(fontWeight: FontWeight.w700),
+            ),
+          ],
         ),
       ),
     );
