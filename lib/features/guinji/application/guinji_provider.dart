@@ -254,6 +254,47 @@ class GuinjiProvider extends ChangeNotifier {
     return true;
   }
 
+  /// [멤버 삭제 — "웹에서도 소유자가 삭제 가능" 요구사항의 앱 측 구현]
+  /// 지도 소유자가 이름/생년월일을 잘못 입력한 멤버를 삭제한다.
+  /// `DELETE /guinji/maps/{mapId}/members/{memberId}` 호출 후, 성공하면
+  /// 로컬 상태(_members/_relationships)에서도 즉시 제거해 UI가 서버
+  /// 재조회 없이 곧바로 갱신되도록 한다(낙관적 갱신 — admin_web
+  /// `/my/guinji` 페이지와 동일한 패턴).
+  ///
+  /// 반환값: 성공 시 true(이미 삭제된 멤버를 다시 호출해도 서버가
+  /// 멱등하게 성공 처리하므로 true), 실패 시 false([error] 참고).
+  Future<bool> deleteMember(String memberId) async {
+    final currentMapId = mapId;
+    if (currentMapId == null) {
+      _error = '지도 정보가 없어 삭제할 수 없습니다.';
+      notifyListeners();
+      return false;
+    }
+
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    final result = await _repository.deleteMember(
+      mapId: currentMapId,
+      memberId: memberId,
+    );
+    if (!result.success) {
+      _isLoading = false;
+      _error = result.errorMessage ?? '삭제에 실패했습니다.';
+      notifyListeners();
+      return false;
+    }
+
+    _members = _members.where((m) => m['memberId'] != memberId).toList();
+    _relationships = _relationships
+        .where((r) => r['memberId'] != memberId)
+        .toList();
+    _isLoading = false;
+    notifyListeners();
+    return true;
+  }
+
   /// 참여(join) 화면 — 지인(guest)이 자신의 생년월일 정보를 제출해 지도에
   /// 합류한다. gender는 참여 폼에 입력 필드가 없으므로 기본값 'M'을 사용한다
   /// (RelationJudger의 판정 로직·오행 계산은 gender를 사용하지 않으므로

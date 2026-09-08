@@ -323,6 +323,48 @@ class GuinjiRepository {
     }
   }
 
+  /// DELETE /guinji/maps/{mapId}/members/{memberId} — 소유자가 잘못
+  /// 입력된 멤버를 삭제(소프트 삭제)한다.
+  ///
+  /// [배경] 사용자가 격노하며 지적: "상대방이 생년월일을 잘못 넣거나
+  /// 이름을 잘못 넣어서 귀인지도가 잘못 나올 때 삭제하는 게 없다" —
+  /// 지도 소유자만 자기 지도의 멤버를 지울 수 있다(서버가
+  /// `map.ownerId === auth.userId`를 확인, 타인의 지도는 403). 완전
+  /// 삭제가 아니라 `GuinjiMapMember.status="removed"`로 바뀌는 소프트
+  /// 삭제이며, 삭제 즉시 관계 집계·그래프에서도 제외된다.
+  ///
+  /// 반환: {alreadyRemoved: bool} — 이미 삭제된 멤버를 다시 호출해도
+  /// 에러가 아니라 멱등하게 성공 처리된다(중복 클릭/재시도 안전).
+  Future<ApiResult<Map<String, dynamic>>> deleteMember({
+    required String mapId,
+    required String memberId,
+  }) async {
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/guinji/maps/$mapId/members/$memberId',
+    );
+    debugPrint('[GuinjiRepository] [deleteMember] 요청 -> $uri');
+
+    try {
+      final authHeader = await AuthTokenStore.authHeader();
+      final response = await http
+          .delete(uri, headers: {'Content-Type': 'application/json', ...authHeader})
+          .timeout(const Duration(seconds: 15));
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode >= 400 || decoded['success'] != true) {
+        final error = decoded['error'] as String? ?? '삭제에 실패했습니다.';
+        debugPrint('[GuinjiRepository] [deleteMember] 실패 -> $error');
+        return ApiResult.fail(error, code: decoded['code'] as String?);
+      }
+
+      final data = decoded['data'] as Map<String, dynamic>;
+      return ApiResult.ok(data);
+    } catch (e) {
+      debugPrint('[GuinjiRepository] [deleteMember] 예외 -> $e');
+      return ApiResult.fail('삭제 처리 중 오류가 발생했습니다: $e');
+    }
+  }
+
   /// POST /guinji/unlocks — 관계 상세의 스페셜 해설 해금(광고 또는 포인트).
   /// 반환: {unlocked: true, remainingToday}
   Future<ApiResult<Map<String, dynamic>>> unlock({

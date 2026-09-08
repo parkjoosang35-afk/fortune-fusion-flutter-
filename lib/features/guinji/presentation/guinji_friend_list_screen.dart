@@ -20,12 +20,19 @@ class GuinjiFriendListScreen extends StatefulWidget {
     super.key,
     this.friends = _defaultFriends,
     this.onFriendTap,
+    this.onFriendDelete,
   });
 
   static const routeName = '/guinji-map/m/friends';
 
   final List<GuinjiFriendEntry> friends;
   final void Function(GuinjiFriendEntry entry)? onFriendTap;
+
+  /// [멤버 삭제 — "이름/생년월일을 잘못 넣어서 잘못 나올 때 삭제"] 지도
+  /// 소유자가 이 행을 삭제하려 할 때 호출된다. null이면 삭제 UI 자체를
+  /// 표시하지 않는다(예: 딥링크 진입 등 다른 사람의 지도를 보여주는
+  /// 컨텍스트에서는 삭제를 노출하지 않기 위한 안전장치).
+  final void Function(GuinjiFriendEntry entry)? onFriendDelete;
 
   @override
   State<GuinjiFriendListScreen> createState() => _GuinjiFriendListScreenState();
@@ -41,6 +48,7 @@ class GuinjiFriendEntry {
     required this.relationKey,
     required this.ohaengLabel,
     required this.score,
+    this.memberId,
   });
 
   final int rank;
@@ -50,6 +58,11 @@ class GuinjiFriendEntry {
   /// 예: '火 오행'.
   final String ohaengLabel;
   final int score;
+
+  /// [멤버 삭제] 서버 `GuinjiMapMember.id` 공개 포맷(`m_123`). 목데이터
+  /// (`_defaultFriends`)에는 없으므로 null일 수 있다 — null이면 삭제
+  /// 대상이 명확하지 않으므로 호출부가 삭제를 건너뛴다.
+  final String? memberId;
 }
 
 const _defaultFriends = [
@@ -76,6 +89,7 @@ List<GuinjiFriendEntry> guinjiFriendEntriesFromPeople(List<GuinjiPerson> people)
         relationKey: sorted[i].relation,
         ohaengLabel: _ohaengLabelFor(sorted[i].ohaeng),
         score: sorted[i].score,
+        memberId: sorted[i].id,
       ),
   ];
 }
@@ -96,6 +110,32 @@ class _GuinjiFriendListScreenState extends State<GuinjiFriendListScreen> {
   static final _catByIdx = <String?>[null, ...guinjiCategoryOrder.map((c) => c.key)];
 
   String? _categoryOf(String relationKey) => guinjiRelationTypes[relationKey]?.category;
+
+  /// [멤버 삭제 확인 다이얼로그] "잘못 입력했을 때 삭제" 요구사항 —
+  /// 실수로 지우는 걸 막기 위해 반드시 확인을 거친다. 느낌표 금지
+  /// 원칙에 따라 문구에 느낌표를 쓰지 않는다.
+  Future<void> _confirmDelete(BuildContext context, GuinjiFriendEntry entry) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('멤버 삭제'),
+        content: Text('"${entry.name}" 님을 지도에서 삭제할까요.\n삭제하면 관계·랭킹 집계에서도 제외돼요.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('삭제', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      widget.onFriendDelete?.call(entry);
+    }
+  }
 
   List<GuinjiFriendEntry> get _filtered {
     final cat = _catByIdx[_tab];
@@ -149,6 +189,9 @@ class _GuinjiFriendListScreenState extends State<GuinjiFriendListScreen> {
                 (entry) => _GmFriendRowTile(
                   entry: entry,
                   onTap: () => widget.onFriendTap?.call(entry),
+                  onDelete: widget.onFriendDelete == null
+                      ? null
+                      : () => _confirmDelete(context, entry),
                 ),
               ),
           ],
@@ -160,10 +203,11 @@ class _GuinjiFriendListScreenState extends State<GuinjiFriendListScreen> {
 
 /// 새 디자인 `friend_row.dart`의 `FriendRow` 이식(라운드 카드형).
 class _GmFriendRowTile extends StatelessWidget {
-  const _GmFriendRowTile({required this.entry, this.onTap});
+  const _GmFriendRowTile({required this.entry, this.onTap, this.onDelete});
 
   final GuinjiFriendEntry entry;
   final VoidCallback? onTap;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -265,6 +309,17 @@ class _GmFriendRowTile extends StatelessWidget {
                 ),
               ],
             ),
+            if (onDelete != null) ...[
+              const SizedBox(width: 4),
+              InkWell(
+                onTap: onDelete,
+                borderRadius: BorderRadius.circular(16),
+                child: const Padding(
+                  padding: EdgeInsets.all(6),
+                  child: Icon(Icons.close, size: 16, color: GmColors.inkFaint),
+                ),
+              ),
+            ],
           ],
         ),
       ),

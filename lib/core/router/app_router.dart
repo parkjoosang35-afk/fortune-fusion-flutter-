@@ -342,6 +342,23 @@ class AppRouter {
                     ),
                   );
                 },
+                // [멤버 삭제 — "이름/생년월일을 잘못 넣어서 잘못 나올 때
+                // 삭제"] 지도 소유자가 F(친구목록) 화면에서 직접 삭제할
+                // 수 있게 한다. 확인 다이얼로그는 화면 내부(_confirmDelete)
+                // 에서 이미 거쳤으므로 여기서는 곧바로 서버 호출한다.
+                onFriendDelete: (entry) async {
+                  final memberId = entry.memberId;
+                  if (memberId == null) return;
+                  final provider = context.read<GuinjiProvider>();
+                  final ok = await provider.deleteMember(memberId);
+                  if (!ok && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(provider.error ?? '삭제에 실패했습니다.'),
+                      ),
+                    );
+                  }
+                },
               );
             },
           ),
