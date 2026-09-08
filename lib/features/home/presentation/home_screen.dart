@@ -460,15 +460,12 @@ class _TopHeader extends StatelessWidget {
             ],
           ),
         ),
+        // [2026-11 홈 헤더 정리] "내 기록 (읽기 전용)" 진입점(시계 아이콘)을
+        // 완전히 제거했다(사용자 요청: "내기록 (읽기전용 삭제)"). 관련 화면·
+        // 라우트(/history/readonly, HistoryReadOnlyScreen)도 함께 제거했다.
+        // 아이콘 제거로 비어버린 간격만 유지해 프로필 아바타 위치가 흔들리지
+        // 않게 한다.
         const SizedBox(width: _Dims.headerIconGap),
-        GestureDetector(
-          onTap: () => Navigator.of(context).pushNamed('/history/readonly'),
-          child: const Icon(
-            Icons.history_rounded,
-            size: HomeTokens.iconXl,
-            color: HomeColors.textPrimary,
-          ),
-        ),
         // [첨부 디자인 반영] 우측 끝 원형 프로필 아바타 - 로그인 상태면
         // 마이페이지(설정)로, 비로그인 상태면 로그인 화면으로 이동한다.
         GestureDetector(

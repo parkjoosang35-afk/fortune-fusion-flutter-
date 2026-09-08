@@ -67,8 +67,6 @@ import '../../features/home/presentation/jeontong_eighty_loading_screen.dart';
 import '../../features/home/presentation/jeontong_talisman_gate_screen.dart';
 import '../../features/home/presentation/jeontong_input_screen.dart';
 import '../../features/home/domain/jeontong_eighty_matrix.dart';
-import '../../features/history/presentation/history_readonly_screen.dart';
-import '../../features/history/presentation/history_jeontong_overview_screen.dart';
 import '../../features/guinji/presentation/guinji_map_screen.dart';
 import '../../features/guinji/presentation/guinji_join_screen.dart';
 import '../../features/guinji/presentation/guinji_ranking_screen.dart';
@@ -460,14 +458,10 @@ class AppRouter {
           ),
         );
 
-      // [정통사주 한눈에 미리보기] 히스토리 정통사주 탭에서 진입하는
-      // read-only 조망 화면 1개만 추가(다른 라우트/순서/provider 무수정).
-      case '/jeontong/overview':
-        return _page(
-          HistoryJeontongOverviewScreen(
-            userId: (settings.arguments as Map)['userId'] as String,
-          ),
-        );
+      // [2026-11 홈 화면 정리] "/jeontong/overview"는 방금 제거한 "내 기록
+      // (읽기 전용)" 화면의 "한눈에 미리보기" 버튼에서만 진입 가능했던
+      // 라우트였다. 그 화면이 삭제되어 더 이상 진입 경로가 없으므로 함께
+      // 제거한다(HistoryJeontongOverviewScreen 파일 자체도 삭제).
 
       case '/my/fortune-records':
         return _page(const MyFortuneRecordsScreen());
@@ -689,8 +683,9 @@ class AppRouter {
       case '/shop/treasure':
         return _page(const TreasureBoxScreen());
 
-      case '/history/readonly':
-        return _page(const HistoryReadOnlyScreen());
+      // [2026-11 홈 화면 정리] "내 기록 (읽기 전용)" 진입점(홈 화면 시계
+      // 아이콘) 및 이 라우트를 사용자 요청으로 완전히 제거했다.
+      // (구 라우트: '/history/readonly' -> HistoryReadOnlyScreen)
 
       default:
         // [P3 legacy 제거] 미사용 legacy HomeScreen(home_screen.dart) 대신

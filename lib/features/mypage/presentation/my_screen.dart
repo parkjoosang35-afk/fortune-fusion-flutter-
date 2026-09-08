@@ -114,16 +114,11 @@ class _MyScreenState extends State<MyScreen> {
                       ],
                     ),
                   ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.edit_outlined,
-                      color: UnifiedColors.textCaption,
-                      size: UnifiedTokens.iconLg,
-                    ),
-                    onPressed: () => Navigator.of(
-                      context,
-                    ).pushNamed('/signup/profile-check'),
-                  ),
+                  // [2026-11 마이 화면 정리] 프로필 카드 우측의 연필(수정) 아이콘
+                  // 버튼을 완전히 제거했다(사용자 요청: "게스트 프로필 설정 삭제").
+                  // "/signup/profile-check" 라우트/화면 자체는 로그인·회원가입
+                  // 플로우에서 여전히 쓰이므로 그대로 보존한다 — 이 마이 화면
+                  // 진입점만 없앤다.
                 ],
               ),
             ),

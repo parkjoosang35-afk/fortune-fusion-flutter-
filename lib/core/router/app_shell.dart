@@ -55,9 +55,25 @@ class _AppShellState extends State<AppShell> {
       Icons.local_fire_department_rounded,
       '소원방',
     ),
+    // [2026-11 복주머니 아이콘 교체] main_bottom_nav_bar.dart와 동일하게,
+    // 기본 Material 아이콘(선물상자 모양) 대신 실제 한국 전통 복주머니
+    // 모양으로 생성한 커스텀 이미지 에셋을 쓴다. items 빌더에서 인덱스
+    // 3번만 Image.asset으로 렌더링한다.
     (Icons.card_giftcard_outlined, Icons.card_giftcard_rounded, '복주머니'),
     (Icons.person_outline_rounded, Icons.person_rounded, '마이'),
   ];
+
+  static const String _luckyBagIconAsset = 'assets/icons/luckybag_icon.png';
+
+  Widget _luckyBagIcon({required bool selected}) {
+    return ColorFiltered(
+      colorFilter: ColorFilter.mode(
+        selected ? const Color(0xFF111111) : const Color(0xFF9A9AA2),
+        BlendMode.srcIn,
+      ),
+      child: Image.asset(_luckyBagIconAsset, width: 22, height: 22),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -96,15 +112,23 @@ class _AppShellState extends State<AppShell> {
                 fontWeight: FontWeight.w600,
                 letterSpacing: -0.2,
               ),
-              items: _navItems
-                  .map(
-                    (e) => BottomNavigationBarItem(
-                      icon: Icon(e.$1, size: 22),
-                      activeIcon: Icon(e.$2, size: 22),
-                      label: e.$3,
-                    ),
-                  )
-                  .toList(),
+              items: _navItems.asMap().entries.map((entry) {
+                final index = entry.key;
+                final e = entry.value;
+                // 복주머니 탭(인덱스 3)만 커스텀 이미지 아이콘으로 교체.
+                if (index == 3) {
+                  return BottomNavigationBarItem(
+                    icon: _luckyBagIcon(selected: false),
+                    activeIcon: _luckyBagIcon(selected: true),
+                    label: e.$3,
+                  );
+                }
+                return BottomNavigationBarItem(
+                  icon: Icon(e.$1, size: 22),
+                  activeIcon: Icon(e.$2, size: 22),
+                  label: e.$3,
+                );
+              }).toList(),
             ),
           ),
         ),
