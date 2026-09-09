@@ -9,6 +9,7 @@ import '../../intro/presentation/intro_text_styles.dart';
 import '../../intro/presentation/widgets/intro_character.dart';
 import '../../intro/presentation/widgets/intro_title_text.dart';
 import '../application/auth_provider.dart';
+import '../data/social_auth_service.dart';
 import 'widgets/auth_checkbox.dart';
 import 'widgets/auth_form_field.dart';
 import 'widgets/auth_form_header.dart';
@@ -84,20 +85,45 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  /// [설계결정 - 로드맵④] 실제 카카오/구글 OAuth SDK 연동은 이번 범위 밖이다.
-  /// 서버(`/api/public/auth/social-login`)가 501을 정직하게 응답하며, 이 화면은
-  /// 그 실패를 "추후 지원 예정" 안내로 표시한다(가짜 성공 처리 금지).
-  Future<void> _socialLogin(String provider) async {
+  /// [로드맵④] 카카오/구글 실제 SDK 로그인 연동.
+  /// SocialAuthService가 각 사 SDK로 로그인해 액세스 토큰을 받아오고,
+  /// 그 토큰을 AuthProvider.loginWithSocial()를 통해 서버(admin_web)로
+  /// 전달해 서버가 각 사 API로 다시 검증하는 방식이다(가짜 성공 처리 금지
+  /// 원칙 유지 — 클라이언트는 위조된 토큰으로 로그인을 성립시킬 수 없다).
+  Future<void> _socialLogin(String label, String provider) async {
     setState(() => _isSubmitting = true);
-    final ok = await context.read<AuthProvider>().loginWithSocial(provider);
-    setState(() => _isSubmitting = false);
-    if (!mounted) return;
-    if (ok) {
-      Navigator.of(
-        context,
-      ).pushNamedAndRemoveUntil('/signup/profile-check', (route) => false);
-    } else {
-      AppToast.show(context, '$provider 로그인은 추후 지원 예정입니다.');
+    try {
+      final authResult = provider == 'google'
+          ? await SocialAuthService.signInWithGoogle()
+          : await SocialAuthService.signInWithKakao();
+      if (authResult == null) {
+        // 사용자가 로그인 창에서 취소함 — 에러 안내 없이 조용히 종료.
+        setState(() => _isSubmitting = false);
+        return;
+      }
+      if (!mounted) return;
+      final ok = await context.read<AuthProvider>().loginWithSocial(
+        authResult.provider,
+        authResult.accessToken,
+      );
+      setState(() => _isSubmitting = false);
+      if (!mounted) return;
+      if (ok) {
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/signup/profile-check', (route) => false);
+      } else {
+        AppToast.show(
+          context,
+          context.read<AuthProvider>().state.errorMessage ??
+              '$label 로그인에 실패했습니다.',
+          isError: true,
+        );
+      }
+    } catch (e) {
+      setState(() => _isSubmitting = false);
+      if (!mounted) return;
+      AppToast.show(context, '$label 로그인 중 오류가 발생했습니다.', isError: true);
     }
   }
 
@@ -262,19 +288,22 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  // [6-5-A 발견사항 수정] 실제 소셜 로그인 연동 전까지, 클릭 전에도
-                  // 준비 중 상태임을 알 수 있도록 라벨을 명확히 표기한다(인증
-                  // 구조/서버 501 응답은 변경하지 않음 - _socialLogin 로직 그대로 유지).
+                  // [로드맵④ 완료] 카카오/구글 실제 SDK 연동 완료 - "준비 중"
+                  // 라벨 제거.
                   _SocialButton(
                     icon: Icons.chat_bubble_rounded,
-                    label: '카카오로 계속하기 (준비 중)',
-                    onTap: _isSubmitting ? null : () => _socialLogin('카카오'),
+                    label: '카카오로 계속하기',
+                    onTap: _isSubmitting
+                        ? null
+                        : () => _socialLogin('카카오', 'kakao'),
                   ),
                   const SizedBox(height: 10),
                   _SocialButton(
                     icon: Icons.g_mobiledata_rounded,
-                    label: '구글로 계속하기 (준비 중)',
-                    onTap: _isSubmitting ? null : () => _socialLogin('구글'),
+                    label: '구글로 계속하기',
+                    onTap: _isSubmitting
+                        ? null
+                        : () => _socialLogin('구글', 'google'),
                   ),
                   const SizedBox(height: 18),
                   // `.bottom-link`

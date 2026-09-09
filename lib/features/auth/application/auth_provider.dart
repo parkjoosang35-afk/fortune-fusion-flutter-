@@ -98,10 +98,10 @@ class AuthProvider extends ChangeNotifier {
     return false;
   }
 
-  Future<bool> loginWithSocial(String provider) async {
+  Future<bool> loginWithSocial(String provider, String accessToken) async {
     _state = const LoadState.loading();
     notifyListeners();
-    final result = await _repository.socialLogin(provider);
+    final result = await _repository.socialLogin(provider, accessToken);
     if (result.success && result.data != null) {
       await _loadGrade(result.data!);
       _state = LoadState.success(result.data!);

@@ -122,31 +122,42 @@ class AuthRepository {
     }
   }
 
-  /// [설계결정 - 로드맵④] 실제 카카오/구글 OAuth SDK 연동은 이번 범위 밖이다.
-  /// 서버는 501(NOT_IMPLEMENTED)을 정직하게 응답하며, 이 메서드는 그 실패를
-  /// 그대로 전달한다(가짜 성공 처리 금지). presentation 레이어(login_screen.dart)는
-  /// 이 실패를 "추후 지원 예정" 안내로 표시한다.
-  Future<ApiResult<UserModel>> socialLogin(String provider) async {
+  /// [로드맵⑤] 실제 카카오/구글 OAuth SDK 연동 완료.
+  /// [provider]는 'kakao' 또는 'google', [accessToken]은 각 SDK가 발급한
+  /// 액세스 토큰(카카오)/ID 토큰(구글)이다. 서버(admin_web)가 이 토큰을 다시
+  /// 각 사(카카오/구글) API로 검증하므로, 클라이언트가 위조한 값으로는
+  /// 로그인이 성립하지 않는다(가짜 성공 처리 금지 원칙 유지).
+  Future<ApiResult<UserModel>> socialLogin(
+    String provider,
+    String accessToken,
+  ) async {
     final uri = Uri.parse('$_base/social-login');
     try {
       final response = await http
           .post(
             uri,
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'provider': provider}),
+            body: jsonEncode({
+              'provider': provider,
+              'accessToken': accessToken,
+            }),
           )
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
-      return ApiResult.fail(
-        decoded['error'] as String? ?? '$provider 로그인은 추후 지원 예정입니다.',
-        code: decoded['code'] as String? ?? 'NOT_IMPLEMENTED',
-      );
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        return ApiResult.fail(
+          decoded['error'] as String? ?? '$provider 로그인에 실패했습니다.',
+          code: decoded['code'] as String?,
+        );
+      }
+      final data = decoded['data'] as Map<String, dynamic>;
+      final user = UserModel.fromJson(data['user'] as Map<String, dynamic>);
+      await _persistSession(user, data['token'] as String);
+      lastFirstLoginReward = data['firstLoginReward'] as Map<String, dynamic>?;
+      return ApiResult.ok(user);
     } catch (e) {
       debugPrint('[AuthRepository] [socialLogin] 예외 -> $e');
-      return ApiResult.fail(
-        '$provider 소셜 로그인은 추후 지원 예정입니다.',
-        code: 'NOT_IMPLEMENTED',
-      );
+      return ApiResult.fail('$provider 로그인 중 오류가 발생했습니다: $e');
     }
   }
 
