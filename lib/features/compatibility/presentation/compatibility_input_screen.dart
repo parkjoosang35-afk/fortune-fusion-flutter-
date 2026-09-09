@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_unified_style.dart';
+import '../../../core/widgets/birthday_picker/birthday_picker_modal.dart';
 import '../application/compatibility_provider.dart';
 import '../domain/compatibility_model.dart';
 
@@ -40,22 +41,37 @@ class _CompatibilityInputScreenState extends State<CompatibilityInputScreen> {
     super.dispose();
   }
 
-  Future<void> _pickDate(bool isA) async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime(2000, 1, 1),
-      firstDate: DateTime(1930, 1, 1),
-      lastDate: DateTime.now(),
+  /// [BirthdayPickerModal 적용] 궁합은 dev-spec.md 매핑상 midnight 팔려트
+  /// + 시간 선택(requireTime=false) — 나/상대방 각각 동일한 공용
+  /// 모달을 호출하며, isA로 어려 대상을 구분한다.
+  Future<void> _openBirthdayPicker(bool isA) async {
+    final current = isA ? _birthDateA : _birthDateB;
+    final initial = current == null
+        ? null
+        : BirthdayPickerValue(
+            year: current.year,
+            month: current.month,
+            day: current.day,
+            weekday: current.weekday == 7 ? 0 : current.weekday,
+          );
+    final result = await showBirthdayPicker(
+      context,
+      palette: BirthdayPickerPalette.midnight,
+      requireTime: false,
+      initialValue: initial,
+      sourceLabel: isA ? 'COMPAT · 나' : 'COMPAT · 상대방',
+      title: '알려주세요',
+      ctaLabel: '저장하기',
     );
-    if (picked != null) {
-      setState(() {
-        if (isA) {
-          _birthDateA = picked;
-        } else {
-          _birthDateB = picked;
-        }
-      });
-    }
+    if (result == null) return;
+    setState(() {
+      final picked = DateTime(result.year, result.month, result.day);
+      if (isA) {
+        _birthDateA = picked;
+      } else {
+        _birthDateB = picked;
+      }
+    });
   }
 
   String _fmt(DateTime? d) => d == null
@@ -124,7 +140,7 @@ class _CompatibilityInputScreenState extends State<CompatibilityInputScreen> {
                 title: '나',
                 nameController: _nameAController,
                 birthDate: _birthDateA,
-                onPickDate: () => _pickDate(true),
+                onPickDate: () => _openBirthdayPicker(true),
                 onChanged: () => setState(() {}),
               ),
               SizedBox(height: UnifiedTokens.spaceLg),
@@ -132,7 +148,7 @@ class _CompatibilityInputScreenState extends State<CompatibilityInputScreen> {
                 title: '상대방',
                 nameController: _nameBController,
                 birthDate: _birthDateB,
-                onPickDate: () => _pickDate(false),
+                onPickDate: () => _openBirthdayPicker(false),
                 onChanged: () => setState(() {}),
               ),
               SizedBox(height: UnifiedTokens.spaceXxl),

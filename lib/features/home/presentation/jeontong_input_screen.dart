@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/auth/auth_token_store.dart';
+import '../../../core/widgets/birthday_picker/birthday_picker_modal.dart';
 import '../data/jeontong_profile_store.dart';
 import '../domain/jeontong_eighty_matrix.dart';
 import '../domain/jeontong_input.dart';
@@ -87,48 +88,53 @@ class _JeontongInputScreenState extends State<JeontongInputScreen> {
     setState(() => _loadingProfile = false);
   }
 
-  Future<void> _pickDate() async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _birthDate ?? DateTime(now.year - 30, now.month, now.day),
-      firstDate: DateTime(1900, 1, 1),
-      lastDate: now,
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: ColorScheme.light(
-            primary: HanjiColors.accent,
-            onPrimary: Colors.white,
-            surface: HanjiColors.bg1,
-            onSurface: HanjiColors.fg,
-          ),
-        ),
-        child: child!,
-      ),
+  /// [BirthdayPickerModal 적용] 정통사주는 dev-spec.md 매핑상 hanji 팔레트 +
+  /// 시간 필수(requireTime=true) — 기존 OS 기본 `showDatePicker`/
+  /// `showTimePicker` 2단계 흐름을 이 공용 모달 1개로 통일한다.
+  Future<void> _openBirthdayPicker() async {
+    final initial = _birthDate == null
+        ? null
+        : BirthdayPickerValue(
+            year: _birthDate!.year,
+            month: _birthDate!.month,
+            day: _birthDate!.day,
+            weekday: _birthDate!.weekday == 7 ? 0 : _birthDate!.weekday,
+            time: _birthTime == null
+                ? null
+                : _zhiTimeValueFromTimeOfDay(_birthTime!),
+          );
+    final result = await showBirthdayPicker(
+      context,
+      palette: BirthdayPickerPalette.hanji,
+      requireTime: true,
+      initialValue: initial,
+      sourceLabel: 'SAJU · 정보 입력',
+      title: '알려주세요',
+      ctaLabel: '저장하기',
     );
-    if (picked != null) setState(() => _birthDate = picked);
+    if (result == null) return;
+    setState(() {
+      _birthDate = DateTime(result.year, result.month, result.day);
+      final t = result.time;
+      _birthTime = t == null
+          ? null
+          : TimeOfDay(hour: t.rangeStart == 23 ? 23 : t.rangeStart, minute: 0);
+    });
   }
 
-  Future<void> _pickTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _birthTime ?? const TimeOfDay(hour: 12, minute: 0),
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
-        child: Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: HanjiColors.accent,
-              onPrimary: Colors.white,
-              surface: HanjiColors.bg1,
-              onSurface: HanjiColors.fg,
-            ),
-          ),
-          child: child!,
-        ),
-      ),
-    );
-    if (picked != null) setState(() => _birthTime = picked);
+  BirthdayPickerTimeValue? _zhiTimeValueFromTimeOfDay(TimeOfDay t) {
+    for (final z in kBirthdayZhiTimes) {
+      if (z.rangeStart == t.hour) {
+        return BirthdayPickerTimeValue(
+          zhi: z.zhi,
+          hanja: z.hanja,
+          rangeStart: z.rangeStart,
+          rangeEnd: z.rangeEnd,
+          label: '${z.label} (${z.hint})',
+        );
+      }
+    }
+    return null;
   }
 
   Future<void> _onSubmit() async {
@@ -272,28 +278,17 @@ class _JeontongInputScreenState extends State<JeontongInputScreen> {
                             const SizedBox(height: HanjiSpacing.lg),
 
                             _Field(
-                              label: '생년월일',
+                              label: '생년월일시',
                               child: _PickerTile(
-                                key: const ValueKey('jeontong_input_date_tile'),
+                                key: const ValueKey(
+                                  'jeontong_input_birthday_tile',
+                                ),
                                 icon: Icons.calendar_today_rounded,
                                 label: _birthDate == null
-                                    ? '생년월일을 선택해주세요'
-                                    : '${_birthDate!.year}년 ${_birthDate!.month}월 ${_birthDate!.day}일',
-                                onTap: _pickDate,
-                              ),
-                            ),
-                            const SizedBox(height: HanjiSpacing.lg),
-
-                            _Field(
-                              label: '태어난 시각',
-                              child: _PickerTile(
-                                key: const ValueKey('jeontong_input_time_tile'),
-                                icon: Icons.access_time_rounded,
-                                label: _birthTime == null
-                                    ? '태어난 시각을 선택해주세요'
-                                    : '${_birthTime!.hour.toString().padLeft(2, '0')}시 '
-                                          '${_birthTime!.minute.toString().padLeft(2, '0')}분',
-                                onTap: _pickTime,
+                                    ? '생년월일과 태어난 시각을 입력해주세요'
+                                    : '${_birthDate!.year}년 ${_birthDate!.month}월 ${_birthDate!.day}일'
+                                          '${_birthTime == null ? '' : ' · ${_birthTime!.hour.toString().padLeft(2, '0')}시 ${_birthTime!.minute.toString().padLeft(2, '0')}분'}',
+                                onTap: _openBirthdayPicker,
                               ),
                             ),
                             const SizedBox(height: HanjiSpacing.xxl),

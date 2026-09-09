@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/theme/app_unified_style.dart';
 import '../../../../core/widgets/app_bottom_sheet.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/birthday_picker/birthday_picker_modal.dart';
 import '../../../auth/application/auth_provider.dart';
 import '../application/saju_provider.dart';
 import '../domain/saju_model.dart';
@@ -208,34 +209,49 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
               _FieldTile(
                 icon: Icons.cake_outlined,
                 label: pickerBirthDate == null
-                    ? '생년월일 선택'
-                    : '${pickerBirthDate!.year}년 ${pickerBirthDate!.month}월 ${pickerBirthDate!.day}일',
+                    ? '생년월일시 입력'
+                    : '${pickerBirthDate!.year}년 ${pickerBirthDate!.month}월 ${pickerBirthDate!.day}일'
+                          '${pickerBirthTime == null ? '' : ' · ${pickerBirthTime!.format(sheetContext)}'}',
                 onTap: () async {
-                  final picked = await showDatePicker(
-                    context: sheetContext,
-                    initialDate: pickerBirthDate ?? DateTime(2000, 1, 1),
-                    firstDate: DateTime(1930, 1, 1),
-                    lastDate: DateTime.now(),
+                  // [BirthdayPickerModal 적용] 프로필 등록 바텀시트의 로컬
+                  // 날짜/시간 피커도 메인 폼과 동일하게 공용 모달로 통일한다.
+                  final initial = pickerBirthDate == null
+                      ? null
+                      : BirthdayPickerValue(
+                          year: pickerBirthDate!.year,
+                          month: pickerBirthDate!.month,
+                          day: pickerBirthDate!.day,
+                          weekday: pickerBirthDate!.weekday == 7
+                              ? 0
+                              : pickerBirthDate!.weekday,
+                          time: pickerBirthTime == null
+                              ? null
+                              : _zhiTimeValueFromTimeOfDay(pickerBirthTime!),
+                        );
+                  final result = await showBirthdayPicker(
+                    sheetContext,
+                    palette: BirthdayPickerPalette.midnight,
+                    requireTime: true,
+                    initialValue: initial,
+                    sourceLabel: 'SAJU · 프로필 등록',
+                    title: '알려주세요',
+                    ctaLabel: '저장하기',
                   );
-                  if (picked != null) {
-                    setSheetState(() => pickerBirthDate = picked);
-                  }
-                },
-              ),
-              _FieldTile(
-                icon: Icons.access_time_rounded,
-                label: pickerBirthTime == null
-                    ? '태어난 시간(선택)'
-                    : pickerBirthTime!.format(sheetContext),
-                onTap: () async {
-                  final picked = await showTimePicker(
-                    context: sheetContext,
-                    initialTime:
-                        pickerBirthTime ?? const TimeOfDay(hour: 12, minute: 0),
-                  );
-                  if (picked != null) {
-                    setSheetState(() => pickerBirthTime = picked);
-                  }
+                  if (result == null) return;
+                  setSheetState(() {
+                    pickerBirthDate = DateTime(
+                      result.year,
+                      result.month,
+                      result.day,
+                    );
+                    final t = result.time;
+                    pickerBirthTime = t == null
+                        ? null
+                        : TimeOfDay(
+                            hour: t.rangeStart == 23 ? 23 : t.rangeStart,
+                            minute: 0,
+                          );
+                  });
                 },
               ),
               SizedBox(height: UnifiedTokens.spaceMd),
@@ -275,22 +291,53 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
     );
   }
 
-  Future<void> _pickDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _birthDate ?? DateTime(2000, 1, 1),
-      firstDate: DateTime(1930, 1, 1),
-      lastDate: DateTime.now(),
+  /// [BirthdayPickerModal 적용] AI사주(신형)는 dev-spec.md 매핑상 midnight
+  /// 팔레트 + 시간 필수(requireTime=true) — 기존 OS 기본 `showDatePicker`/
+  /// `showTimePicker` 2단계 흐름을 이 공용 모달 1개로 통일한다.
+  Future<void> _openBirthdayPicker() async {
+    final initial = _birthDate == null
+        ? null
+        : BirthdayPickerValue(
+            year: _birthDate!.year,
+            month: _birthDate!.month,
+            day: _birthDate!.day,
+            weekday: _birthDate!.weekday == 7 ? 0 : _birthDate!.weekday,
+            time: _birthTime == null
+                ? null
+                : _zhiTimeValueFromTimeOfDay(_birthTime!),
+          );
+    final result = await showBirthdayPicker(
+      context,
+      palette: BirthdayPickerPalette.midnight,
+      requireTime: true,
+      initialValue: initial,
+      sourceLabel: 'SAJU · 정보 입력',
+      title: '알려주세요',
+      ctaLabel: '저장하기',
     );
-    if (picked != null) setState(() => _birthDate = picked);
+    if (result == null) return;
+    setState(() {
+      _birthDate = DateTime(result.year, result.month, result.day);
+      final t = result.time;
+      _birthTime = t == null
+          ? null
+          : TimeOfDay(hour: t.rangeStart == 23 ? 23 : t.rangeStart, minute: 0);
+    });
   }
 
-  Future<void> _pickTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _birthTime ?? const TimeOfDay(hour: 12, minute: 0),
-    );
-    if (picked != null) setState(() => _birthTime = picked);
+  BirthdayPickerTimeValue? _zhiTimeValueFromTimeOfDay(TimeOfDay t) {
+    for (final z in kBirthdayZhiTimes) {
+      if (z.rangeStart == t.hour) {
+        return BirthdayPickerTimeValue(
+          zhi: z.zhi,
+          hanja: z.hanja,
+          rangeStart: z.rangeStart,
+          rangeEnd: z.rangeEnd,
+          label: '${z.label} (${z.hint})',
+        );
+      }
+    }
+    return null;
   }
 
   void _submit() {
@@ -433,17 +480,10 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
               _FieldTile(
                 icon: Icons.cake_outlined,
                 label: _birthDate == null
-                    ? '생년월일 선택'
-                    : '${_birthDate!.year}년 ${_birthDate!.month}월 ${_birthDate!.day}일',
-                onTap: _pickDate,
-              ),
-              SizedBox(height: UnifiedTokens.spaceSm),
-              _FieldTile(
-                icon: Icons.access_time_rounded,
-                label: _birthTime == null
-                    ? '태어난 시간(모르면 비워두세요)'
-                    : _birthTime!.format(context),
-                onTap: _pickTime,
+                    ? '생년월일시 입력'
+                    : '${_birthDate!.year}년 ${_birthDate!.month}월 ${_birthDate!.day}일'
+                          '${_birthTime == null ? '' : ' · ${_birthTime!.format(context)}'}',
+                onTap: _openBirthdayPicker,
               ),
               SizedBox(height: UnifiedTokens.spaceMd),
 
