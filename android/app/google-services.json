@@ -12,7 +12,20 @@
           "package_name": "com.fortunefusion.fortune"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "29545196276-ii1i66daibn02b7oil8gf571eijo6th2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.fortunefusion.fortune",
+            "certificate_hash": "a6eb8c0c602ec0a6671ba75594d265da1c2fbe24"
+          }
+        },
+        {
+          "client_id": "29545196276-5udpd2jkpdvu2jetj0tjc5bb81e8alg6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBqf2X7paEfUUfhAT_FgYLEralRig0_cs8"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "29545196276-5udpd2jkpdvu2jetj0tjc5bb81e8alg6.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
