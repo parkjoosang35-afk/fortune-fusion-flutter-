@@ -195,6 +195,50 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
     }
   }
 
+  /// [소원방 3대 개선 · 요청2 "소원 더하기" 용도 설명] "🔥 소원 더하기"가
+  /// 무엇을 하는 버튼인지 몰라 헤매던 문제를 해결하기 위한 안내 다이얼로그.
+  /// 실제 동작(support API)을 그대로 설명한다 — 새로운 기능을 추가하지
+  /// 않고, 이미 있는 동작을 사용자가 이해할 수 있게 문구만 붙인다.
+  /// - 눌러도 복주머니를 주지 않는다(무료 응원, PointPolicy 없음).
+  /// - 자기 소원 1건당 딱 1번만 누를 수 있다(서버 Like 유니크 제약).
+  /// - 누른 만큼 위의 "간절함의 크기"(★ 게이지) + 소원카드 글로우가 차오른다.
+  void _showSupportGuide() {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: WishRoomColors.backgroundMid,
+        title: const Text(
+          '🔥 소원 더하기가 뭐예요?',
+          style: TextStyle(
+            fontFamily: 'NotoSerifKRWish',
+            color: WishRoomColors.textPrimary,
+            fontSize: 16,
+          ),
+        ),
+        content: const Text(
+          '내 소원에 스스로 정성을 더하는 버튼이에요.\n\n'
+          '· 누르면 복주머니를 받지는 않아요.\n'
+          '· 소원 하나당 딱 한 번만 누를 수 있어요.\n'
+          '· 누르면 위의 "간절함의 크기"(★)가 채워지고\n'
+          '  소원의 글로우가 더 밝아져요.\n\n'
+          '다른 사람의 응원을 받고 싶다면,\n'
+          '"모두의 소원방"에서 이 소원에 달린\n'
+          '"💛 함께 응원하기"를 받아보세요.',
+          style: TextStyle(color: WishRoomColors.textSecondary, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text(
+              '알겠어요',
+              style: TextStyle(color: WishRoomColors.glow),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// [STEP05-B STEP9-8] 홈 화면 `_handleTodayCandle`과 동일 — 새 보상정책을
   /// 만들지 않고 기존 서버 정책(daily_candle, 1일 1회)만 그대로 호출한다.
   /// [소원방 개편 · 2a] 실제로 새로 촛불을 켠 경우에만 점화 연출을 재생한다
@@ -879,12 +923,30 @@ class _WishRoomDetailScreenState extends State<WishRoomDetailScreen> {
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    const Text(
-                                      '간절함의 크기',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: WishRoomColors.textSecondary,
-                                      ),
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Text(
+                                          '간절함의 크기',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color:
+                                                WishRoomColors.textSecondary,
+                                          ),
+                                        ),
+                                        if (wish.isMine) ...[
+                                          const SizedBox(width: 4),
+                                          GestureDetector(
+                                            onTap: _showSupportGuide,
+                                            child: const Icon(
+                                              Icons.info_outline,
+                                              size: 14,
+                                              color:
+                                                  WishRoomColors.textSecondary,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
                                     ),
                                     Text(
                                       List.generate(
