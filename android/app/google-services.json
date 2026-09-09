@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "29545196276",
+    "project_id": "sintongbangtong-f1ac3",
+    "storage_bucket": "sintongbangtong-f1ac3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:29545196276:android:e7c8730c8c282d886e4ca1",
+        "android_client_info": {
+          "package_name": "com.fortunefusion.fortune"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBqf2X7paEfUUfhAT_FgYLEralRig0_cs8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
