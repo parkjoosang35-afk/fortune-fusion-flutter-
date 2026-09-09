@@ -166,19 +166,28 @@ class _BirthdayPickerModalState extends State<BirthdayPickerModal>
   }
 
   // ── derived date state ──
+  // [버그 수정] `String.contains('')`는 모든 문자열에서 항상 true를
+  // 반환하므로(빈 부분 문자열은 어디에나 "포함"됨) `!s.contains('')`는
+  // 늘 false가 되어 버렸다 — 즉 8자리를 다 채워도 _y/_m/_d가 항상 null을
+  // 반환해 STEP2 전환 시 `_y!`/`_m!`/`_d!`에서 널 체크 예외가 터지고
+  // 화면이 통째로 비어버리는 원인이었다. 배열 원소 자체가 비었는지
+  // (join 이전에) 확인하도록 수정한다.
   int? get _y {
-    final s = _digits.sublist(0, 4).join();
-    return s.length == 4 && !s.contains('') ? int.tryParse(s) : null;
+    final slice = _digits.sublist(0, 4);
+    if (slice.any((x) => x.isEmpty)) return null;
+    return int.tryParse(slice.join());
   }
 
   int? get _m {
-    final s = _digits.sublist(4, 6).join();
-    return s.length == 2 && !s.contains('') ? int.tryParse(s) : null;
+    final slice = _digits.sublist(4, 6);
+    if (slice.any((x) => x.isEmpty)) return null;
+    return int.tryParse(slice.join());
   }
 
   int? get _d {
-    final s = _digits.sublist(6, 8).join();
-    return s.length == 2 && !s.contains('') ? int.tryParse(s) : null;
+    final slice = _digits.sublist(6, 8);
+    if (slice.any((x) => x.isEmpty)) return null;
+    return int.tryParse(slice.join());
   }
 
   bool get _dateComplete => _digits.every((x) => x.isNotEmpty);
@@ -1246,7 +1255,7 @@ class _SavedToast extends StatefulWidget {
   State<_SavedToast> createState() => _SavedToastState();
 }
 
-class _SavedToastState extends State<_SavedToast> with SingleTickerProviderStateMixin {
+class _SavedToastState extends State<_SavedToast> with TickerProviderStateMixin {
   late AnimationController _rotateCtrl;
   late AnimationController _sealCtrl;
 
