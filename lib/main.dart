@@ -2,7 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:kakao_flutter_sdk_common/kakao_flutter_sdk_common.dart';
 import 'app.dart';
+import 'core/config/social_auth_config.dart';
 import 'core/router/guinji_deep_link_handler.dart';
 import 'features/home/domain/saju_fortune_rules.dart';
 import 'features/home/domain/saju_interpreter.dart';
@@ -47,6 +49,13 @@ Future<void> main() async {
   // (Hive/딥링크/알림)와 동일하게 앱 최초 프레임을 블로킹할 필요가 없어서다.
   if (!kIsWeb) {
     MobileAds.instance.initialize();
+  }
+  // [카카오 간편로그인] 카카오 SDK 초기화. kakao_flutter_sdk_user는 Web
+  // 플랫폼도 지원하지만(JS SDK 브리지), 이번 로드맵은 Android 우선이라
+  // Android에서만 초기화한다(Web에서 초기화하면 index.html에 카카오
+  // JS SDK <script> 태그 추가가 별도로 필요해 범위 밖으로 남겨둔다).
+  if (!kIsWeb) {
+    KakaoSdk.init(nativeAppKey: SocialAuthConfig.kakaoNativeAppKey);
   }
   runApp(const App());
 }

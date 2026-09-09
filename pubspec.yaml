@@ -96,6 +96,18 @@ dependencies:
   # kIsWeb 분기로 안전하게 no-op 처리한다(admob_ad_ids.dart 참고).
   google_mobile_ads: 5.2.0
 
+  # [카카오/구글 간편로그인] 1단계(Firebase/카카오 콘솔 설정) 완료 후
+  # 2단계: Flutter SDK 연동. Dart 3.9.2/Flutter 3.35.4 고정 환경 호환 버전.
+  google_sign_in: 6.2.2         # 구글 로그인 (Firebase Authentication과 별개로,
+                                 # ID 토큰만 발급받아 서버(admin_web)로 전달 후
+                                 # 서버가 Google API로 검증하는 방식 - firebase_auth 불필요)
+  kakao_flutter_sdk_user: 1.9.7+3 # 카카오 로그인(사용자 관리 SDK). 로그인 후 액세스
+                                 # 토큰을 서버로 전달해 서버가 카카오 API로 검증한다.
+  kakao_flutter_sdk_common: 1.9.7+3 # main.dart에서 KakaoSdk.init() 직접 호출용
+                                 # (kakao_flutter_sdk_user의 전이 의존성이지만
+                                 # depend_on_referenced_packages 린트 규칙 준수를
+                                 # 위해 명시적으로 선언).
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

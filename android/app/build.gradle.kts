@@ -16,6 +16,9 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    // [카카오/구글 간편로그인] google-services.json을 읽어 Google Sign-In이
+    // 필요로 하는 OAuth 클라이언트 정보를 빌드에 주입한다.
+    id("com.google.gms.google-services")
 }
 
 android {
