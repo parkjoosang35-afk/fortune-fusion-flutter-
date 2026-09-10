@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../application/tarot_session_controller.dart';
+import '../domain/tarot_category_model.dart';
 import 'oz/oz_theme.dart';
 import 'oz/widgets/oz_background.dart';
 import 'oz/widgets/oz_chip.dart';
@@ -50,23 +51,84 @@ class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
 
   static const _topicOptions = [('general', '종합'), ('love', '감정/연애')];
 
-  // [65종 타로 리딩엔진 §계획3] 5개 파일럿 카테고리는 `category.id`가 topic
-  // 으로 전달된다(예: 'love_reunion_chance'). 이 값들은 `_topicOptions`
+  // [65종 타로 리딩엔진 §계획3→§51/§61 감사 후 확장] 65개 카테고리 중
+  // daily_direction_of_choice(A/B 양자택일, 별도 개발 대상)를 제외한 64개는
+  // `category.id`가 곧 서버 `tarot_topics.topic_key`로 시딩되어 있다
+  // (docs/tarot_65_topics_design_table.md 확정본 반영,
+  // admin_web/prisma/seed_tarot_pilot_topics.ts +
+  // seed_tarot_remaining_60_topics.ts 시딩 완료). 이 값들은 `_topicOptions`
   // (기존 레거시 2개 칩)에는 없지만 유효한 신규 topic이므로, 카테고리
-  // 상세화면을 거쳐 들어온 경우엔 그대로 통과시켜야 한다. 현재 5개
-  // 파일럿 중 YES/NO를 지원하는 topic만 별도로 표시해 YES/NO 옵션 노출
-  // 여부를 결정한다(서버 tarot_topics.yes_no_enabled와 동기화된 값).
-  static const _pilotTopicIds = {
-    'love_flow_of_crush',
-    'love_inner_truth',
-    'love_reunion_chance',
-    'career_job_change',
-    'wealth_fortune',
+  // 상세화면을 거쳐 들어온 경우엔 그대로 통과시켜야 한다.
+  static const _seededTopicIds = {
+    // 연애·관계 14개
+    'love_flow_of_crush', 'love_inner_truth', 'love_reunion_chance',
+    'love_will_they_contact', 'love_confession_timing', 'love_fortune',
+    'love_marriage_chance', 'love_relationship_future',
+    'love_secret_relationship', 'love_long_distance',
+    'love_lingering_after_breakup', 'love_destined_connection',
+    'love_next_chapter_of_crush', 'love_timing_of_fate',
+    // 일·커리어 12개
+    'career_job_change', 'career_interview_result',
+    'career_boss_relationship', 'career_coworker_flow',
+    'career_project_result', 'career_promotion_chance',
+    'career_startup_fortune', 'career_freelance_fortune',
+    'career_current_job_future', 'career_yearly_flow',
+    'career_aptitude_direction', 'career_new_sprout',
+    // 금전·현실 9개
+    'wealth_fortune', 'wealth_spending_flow', 'wealth_investment_flow',
+    'wealth_contract_success', 'wealth_incoming_timing',
+    'wealth_spending_warning', 'wealth_solution_hint',
+    'wealth_asset_direction', 'wealth_harvest_timing',
+    // 일상·운세 9개 (daily_direction_of_choice는 A/B 별도개발이라 제외)
+    'daily_today_tarot', 'daily_this_week', 'daily_this_month',
+    'daily_this_year', 'daily_message_needed_now', 'daily_things_to_watch',
+    'daily_luck_point', 'daily_tomorrow_feeling', 'daily_quarterly_flow',
+    // 감정·내면 10개
+    'emotion_current_heart', 'emotion_anxiety_root', 'emotion_need_comfort',
+    'emotion_to_let_go', 'emotion_can_i_restart', 'emotion_advice_for_myself',
+    'emotion_hidden_talent', 'emotion_inner_growth', 'emotion_wave',
+    'emotion_time_lag',
+    // 특별테마 10개
+    'special_soul_card', 'special_destiny_card', 'special_dawn_tarot',
+    'special_full_moon_tarot', 'special_wish_tarot',
+    'special_lucky_door_tarot', 'special_maze_of_fate_tarot',
+    'special_secret_garden_tarot', 'special_guardian_star_tarot',
+    'special_midnight_vow_tarot',
   };
-  static const _yesNoEnabledTopicIds = {'love_reunion_chance'};
+
+  // [§51/§61 감사 - YES/NO 12개 확정] 대표님 마스터 프롬프트 §17 및
+  // docs/tarot_65_topics_design_table.md 검증표와 정확히 일치하는 12개
+  // (서버 tarot_topics.yes_no_enabled=1과 동기화된 값).
+  static const _yesNoEnabledTopicIds = {
+    'love_reunion_chance',
+    'love_will_they_contact',
+    'love_confession_timing',
+    'love_marriage_chance',
+    'career_job_change',
+    'career_interview_result',
+    'career_project_result',
+    'career_promotion_chance',
+    'wealth_investment_flow',
+    'wealth_contract_success',
+    'emotion_can_i_restart',
+    'special_wish_tarot',
+  };
+
+  bool get _isSeededTopic => _seededTopicIds.contains(_topic);
 
   bool get _yesNoAvailable =>
-      !_pilotTopicIds.contains(_topic) || _yesNoEnabledTopicIds.contains(_topic);
+      !_isSeededTopic || _yesNoEnabledTopicIds.contains(_topic);
+
+  /// [Bug2 수정] 시딩된 개별 타로 주제(65개 카테고리)로 진입한 경우 그
+  /// 표시용 한글 이름을 반환한다. 레거시 2칩 주제('general'/'love')인
+  /// 경우는 null을 반환해 기존 칩 UI를 그대로 노출한다.
+  String? get _seededTopicLabel {
+    if (!_isSeededTopic) return null;
+    for (final meta in TarotCategoryData.all) {
+      if (meta.id == _topic) return meta.label;
+    }
+    return null;
+  }
 
   @override
   void initState() {
@@ -77,8 +139,8 @@ class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
     final validLegacyTopic = _topicOptions.any(
       (t) => t.$1 == widget.initialTopic,
     );
-    final validPilotTopic = _pilotTopicIds.contains(widget.initialTopic);
-    _topic = (validLegacyTopic || validPilotTopic)
+    final validSeededTopic = _seededTopicIds.contains(widget.initialTopic);
+    _topic = (validLegacyTopic || validSeededTopic)
         ? widget.initialTopic!
         : 'general';
     // 딥링크로 들어온 topic이 YES/NO 미지원 파일럿 주제인데 spreadType이
@@ -99,10 +161,16 @@ class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
     final question = _questionController.text.trim().isEmpty
         ? '오늘의 전반적인 운세'
         : _questionController.text.trim();
+    // [§51/§61 감사 - Bug1 수정] 기존에는 spreadType이 'yes_no'이면 topic을
+    // 무조건 'general'로 강제 변경해, 재회 가능성/이직운 등 개별 타로
+    // 주제로 YES/NO를 선택해도 서버에 'general'이 전달되어 신규 엔진
+    // 경로(78장 풀덱 + 해당 주제 포지션)가 아닌 레거시 경로로 빠지는
+    // 버그가 있었다. topic은 항상 실제 선택된 주제(_topic)를 그대로
+    // 전달해야 한다.
     context.read<TarotSessionController>().confirmQuestion(
       spreadType: _spreadType,
       question: question,
-      topic: _spreadType == 'yes_no' ? 'general' : _topic,
+      topic: _topic,
     );
     Navigator.of(context).pushNamed('/tarot/card-select');
   }
@@ -249,6 +317,13 @@ class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
                             ],
                           ],
                         ),
+                        // [§51/§61 감사 - Bug2 수정] 65개 카테고리 상세화면을
+                        // 거쳐 개별 타로 주제(예: '재회 가능성')로 진입한
+                        // 경우, 어떤 주제인지 전혀 표시되지 않고 무관한
+                        // 레거시 2칩('종합'/'감정·연애')만 노출되던 버그를
+                        // 고쳐, 선택된 개별 타로명을 명확히 보여주는 배지로
+                        // 교체한다. 레거시 진입(개별 카테고리를 거치지 않은
+                        // 경우)에는 기존 2칩 UI를 그대로 유지한다.
                         if (_spreadType != 'yes_no') ...[
                           const SizedBox(height: OzTokens.spaceXxl),
                           Text(
@@ -256,19 +331,23 @@ class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
                             style: OzTypography.sectionTitle(fontSize: 17),
                           ),
                           const SizedBox(height: OzTokens.spaceMd),
-                          Wrap(
-                            spacing: OzTokens.spaceSm,
-                            runSpacing: OzTokens.spaceSm,
-                            children: _topicOptions
-                                .map(
-                                  (t) => OzChip(
-                                    label: t.$2,
-                                    selected: _topic == t.$1,
-                                    onTap: () => setState(() => _topic = t.$1),
-                                  ),
-                                )
-                                .toList(),
-                          ),
+                          if (_seededTopicLabel != null)
+                            _SeededTopicBadge(label: _seededTopicLabel!)
+                          else
+                            Wrap(
+                              spacing: OzTokens.spaceSm,
+                              runSpacing: OzTokens.spaceSm,
+                              children: _topicOptions
+                                  .map(
+                                    (t) => OzChip(
+                                      label: t.$2,
+                                      selected: _topic == t.$1,
+                                      onTap: () =>
+                                          setState(() => _topic = t.$1),
+                                    ),
+                                  )
+                                  .toList(),
+                            ),
                         ],
                         const SizedBox(height: OzTokens.spaceXxl),
                         OzPrimaryButton(
@@ -282,6 +361,37 @@ class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// [Bug2 수정] 65개 개별 타로 카테고리로 진입했을 때, 레거시 2칩 대신
+/// 선택된 개별 타로명을 명확히 보여주는 배지.
+class _SeededTopicBadge extends StatelessWidget {
+  final String label;
+  const _SeededTopicBadge({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: OzColors.gold.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(OzTokens.radiusPill),
+        border: Border.all(color: OzColors.gold.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.auto_awesome, size: 16, color: OzColors.gold),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: OzTypography.body(fontSize: 13, color: OzColors.fg)
+                .copyWith(fontWeight: FontWeight.w600),
           ),
         ],
       ),
