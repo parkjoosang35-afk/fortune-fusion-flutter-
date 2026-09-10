@@ -66,11 +66,18 @@ class OzSpreadOption extends StatelessWidget {
                   : Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.end,
+                      // [65종 타로 리딩엔진] 5카드 옵션 추가로 실루엣이 4장을
+                      // 초과할 수 있어, 카드 폭/간격을 줄여 좁은 Expanded
+                      // 영역에서도 오버플로우 없이 표시되도록 한다(시각적
+                      // 조정만, cardCount 자체 의미는 변경하지 않음).
                       children: List.generate(cardCount, (i) {
+                        final compact = cardCount > 3;
                         return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 2),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: compact ? 1 : 2,
+                          ),
                           child: Container(
-                            width: 20,
+                            width: compact ? 13 : 20,
                             height: 34,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(3),

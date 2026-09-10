@@ -80,6 +80,10 @@ class TarotSessionState {
 
   int get requiredCardCount {
     switch (spreadType) {
+      // [65종 타로 리딩엔진 §계획3] 5카드 스프레드 추가. 기존에는 이
+      // case가 없어 5카드 선택 시 default(1)로 떨어지는 버그가 있었다.
+      case 'five_card':
+        return 5;
       case 'three_card':
         return 3;
       case 'one_card':

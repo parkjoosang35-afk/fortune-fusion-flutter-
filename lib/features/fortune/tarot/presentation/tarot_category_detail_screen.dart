@@ -36,9 +36,14 @@ class _TarotCategoryDetailScreenState extends State<TarotCategoryDetailScreen>
   late final AnimationController _entryController;
   String _spreadType = 'one_card';
 
+  // [65종 타로 리딩엔진 §계획3] 5카드 옵션 추가. 신규 파일럿 주제가 아닌
+  // 카테고리(레거시 20개 topicKey)에서는 서버가 5카드를 지원하지 않지만,
+  // 그 경우에도 UI는 그대로 노출하고 서버가 "지원하지 않는 스프레드"로
+  // 안전하게 차단하는 구조이므로 화면 단에서 별도 분기를 두지 않는다.
   static const _spreadOptions = [
     ('one_card', '1카드', '빠른 답변'),
     ('three_card', '3카드', '과거·현재·미래'),
+    ('five_card', '5카드', '심화 리딩'),
   ];
 
   @override
@@ -110,7 +115,9 @@ class _TarotCategoryDetailScreenState extends State<TarotCategoryDetailScreen>
                                       child: OzSpreadOption(
                                         label: opt.$2,
                                         desc: opt.$3,
-                                        cardCount: opt.$1 == 'three_card'
+                                        cardCount: opt.$1 == 'five_card'
+                                            ? 5
+                                            : opt.$1 == 'three_card'
                                             ? 3
                                             : 1,
                                         active: selected,
@@ -235,7 +242,17 @@ class _StartButton extends StatelessWidget {
           requiresPass: true,
           arguments: {
             'initialSpreadType': spreadType,
-            'initialTopic': category.topicKey,
+            // [65종 타로 리딩엔진 §핵심 버그 수정] 신규 서버 tarot_topics.
+            // topic_key는 65개 카테고리의 고유 `id`값으로 시딩되어 있다
+            // (예: 'love_reunion_chance'). 기존에는 20개로 수렴하는
+            // `category.topicKey`(예: 'reunion')를 그대로 넘겨 신규 엔진
+            // 경로가 전혀 트리거되지 않았다. `category.id`로 넘기면:
+            // - 5개 파일럿 카테고리 → 서버가 신규 topic으로 인식(78장 풀덱
+            //   + DB 포지션 기반 신규 엔진 경로)
+            // - 나머지 60개 카테고리 → 서버가 topic_key 미매칭으로 판단해
+            //   기존 레거시 경로(15장 DECK, topic 파라미터는 무시되고
+            //   질문화면에서 다시 topic 선택)로 자동 폴백 → 하위 호환 유지.
+            'initialTopic': category.id,
           },
         );
       },

@@ -33,7 +33,13 @@ class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
   late String _spreadType;
   late String _topic;
 
-  static const _validSpreadTypes = {'one_card', 'three_card', 'yes_no'};
+  // [65종 타로 리딩엔진 §계획3] 5카드 추가.
+  static const _validSpreadTypes = {
+    'one_card',
+    'three_card',
+    'five_card',
+    'yes_no',
+  };
 
   static const _presetQuestions = [
     '오늘 하루는 어떨까요?',
@@ -44,14 +50,43 @@ class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
 
   static const _topicOptions = [('general', '종합'), ('love', '감정/연애')];
 
+  // [65종 타로 리딩엔진 §계획3] 5개 파일럿 카테고리는 `category.id`가 topic
+  // 으로 전달된다(예: 'love_reunion_chance'). 이 값들은 `_topicOptions`
+  // (기존 레거시 2개 칩)에는 없지만 유효한 신규 topic이므로, 카테고리
+  // 상세화면을 거쳐 들어온 경우엔 그대로 통과시켜야 한다. 현재 5개
+  // 파일럿 중 YES/NO를 지원하는 topic만 별도로 표시해 YES/NO 옵션 노출
+  // 여부를 결정한다(서버 tarot_topics.yes_no_enabled와 동기화된 값).
+  static const _pilotTopicIds = {
+    'love_flow_of_crush',
+    'love_inner_truth',
+    'love_reunion_chance',
+    'career_job_change',
+    'wealth_fortune',
+  };
+  static const _yesNoEnabledTopicIds = {'love_reunion_chance'};
+
+  bool get _yesNoAvailable =>
+      !_pilotTopicIds.contains(_topic) || _yesNoEnabledTopicIds.contains(_topic);
+
   @override
   void initState() {
     super.initState();
     _spreadType = _validSpreadTypes.contains(widget.initialSpreadType)
         ? widget.initialSpreadType!
         : 'one_card';
-    final validTopic = _topicOptions.any((t) => t.$1 == widget.initialTopic);
-    _topic = validTopic ? widget.initialTopic! : 'general';
+    final validLegacyTopic = _topicOptions.any(
+      (t) => t.$1 == widget.initialTopic,
+    );
+    final validPilotTopic = _pilotTopicIds.contains(widget.initialTopic);
+    _topic = (validLegacyTopic || validPilotTopic)
+        ? widget.initialTopic!
+        : 'general';
+    // 딥링크로 들어온 topic이 YES/NO 미지원 파일럿 주제인데 spreadType이
+    // yes_no였다면(정상적으로는 발생하지 않지만 방어적으로) one_card로
+    // 되돌려 서버 측 차단 에러를 사전에 방지한다.
+    if (_spreadType == 'yes_no' && !_yesNoAvailable) {
+      _spreadType = 'one_card';
+    }
   }
 
   @override
@@ -184,16 +219,34 @@ class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
                               ),
                             ),
                             const SizedBox(width: OzTokens.spaceSm),
+                            // [65종 타로 리딩엔진 §계획3] 5카드 옵션 추가.
                             Expanded(
                               child: OzSpreadOption(
-                                label: 'YES·NO',
-                                desc: '즉답형',
-                                ynLabel: 'Y/N',
-                                active: _spreadType == 'yes_no',
+                                label: '5카드',
+                                desc: '심화 리딩',
+                                cardCount: 5,
+                                active: _spreadType == 'five_card',
                                 onTap: () =>
-                                    setState(() => _spreadType = 'yes_no'),
+                                    setState(() => _spreadType = 'five_card'),
                               ),
                             ),
+                            // [65종 타로 리딩엔진 §계획3] YES/NO는
+                            // `yes_no_enabled` 주제(현재는 재회 가능성만)에서만
+                            // 노출한다. 레거시 20개 topic(비파일럿)은 계속
+                            // 노출(기존 동작 그대로 유지).
+                            if (_yesNoAvailable) ...[
+                              const SizedBox(width: OzTokens.spaceSm),
+                              Expanded(
+                                child: OzSpreadOption(
+                                  label: 'YES·NO',
+                                  desc: '즉답형',
+                                  ynLabel: 'Y/N',
+                                  active: _spreadType == 'yes_no',
+                                  onTap: () =>
+                                      setState(() => _spreadType = 'yes_no'),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                         if (_spreadType != 'yes_no') ...[

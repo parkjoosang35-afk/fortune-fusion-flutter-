@@ -81,6 +81,10 @@ class TarotResultView {
 
   static String _spreadLabel(String spreadType) {
     switch (spreadType) {
+      // [65종 타로 리딩엔진 §계획3] 5카드 라벨 추가(기존엔 default로
+      // '원카드'라고 잘못 표시되는 버그가 있었다).
+      case 'five_card':
+        return '파이브카드';
       case 'three_card':
         return '쓰리카드';
       case 'yes_no':

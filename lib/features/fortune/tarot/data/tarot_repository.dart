@@ -38,6 +38,14 @@ class TarotRepository {
     String topic = 'general',
   }) => _draw(question: question, spreadType: 'three_card', topic: topic);
 
+  /// [65종 타로 리딩엔진 §계획3] 5카드 심화 리딩. 신규 파일럿 주제(78장
+  /// 풀덱 + DB 포지션 기반)에서만 서버가 실제로 지원하며, 레거시 주제로
+  /// 요청 시 서버가 "지원하지 않는 스프레드"로 안전하게 차단한다.
+  Future<ApiResult<TarotResultModel>> drawFiveCards({
+    required String question,
+    String topic = 'general',
+  }) => _draw(question: question, spreadType: 'five_card', topic: topic);
+
   /// [운세 카테고리 확장] 타로 YES/NO 스프레드(1장 뽑아 방향으로 답변).
   /// 기존 [drawOneCard]/[drawThreeCards]와 동일한 `_draw` 경로를 공유하며,
   /// `spreadType: 'yes_no'`만 서버에 추가로 전달한다(하위 호환, 추가 방식).

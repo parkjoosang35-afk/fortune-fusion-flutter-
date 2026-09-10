@@ -37,7 +37,12 @@ class TarotProvider extends ChangeNotifier {
     _state = const LoadState.loading();
     notifyListeners();
 
-    final result = spreadType == 'three_card'
+    // [65종 타로 리딩엔진 §계획3] 5카드 분기 추가. 기존에는 이 분기가
+    // 없어 5카드 선택 시 else절(drawOneCard, topic 고정 'general')로
+    // 떨어지는 버그가 있었다.
+    final result = spreadType == 'five_card'
+        ? await _repository.drawFiveCards(question: question, topic: topic)
+        : spreadType == 'three_card'
         ? await _repository.drawThreeCards(question: question, topic: topic)
         : spreadType == 'yes_no'
         ? await _repository.drawYesNo(question: question, topic: topic)
