@@ -96,7 +96,37 @@ class SocialAuthService {
   /// 카카오 로그인 실행. 카카오톡 앱이 설치되어 있으면 카카오톡으로,
   /// 없으면 카카오계정(웹) 방식으로 자동 폴백한다. 성공 시 액세스 토큰을
   /// 반환, 사용자가 취소하면 null.
+  ///
+  /// [웹 로그인 실패 버그 수정 — sintong.kr/app 실사용자 재현]
+  /// kakao_flutter_sdk_common의 웹 플러그인 구현(`isMobileDevice()`)은
+  /// "카카오톡 앱이 실제로 설치되어 있는지"를 확인하는 게 아니라, 단순히
+  /// User-Agent가 모바일 기기인지만 검사한다(kakao_flutter_sdk_plugin.dart
+  /// `isKakaoTalkInstalled` case 참고). 그 결과 실제 모바일 브라우저에서는
+  /// 카카오톡 미설치 여부와 무관하게 `isKakaoTalkInstalled()`가 항상
+  /// `true`를 반환했고, 우리 코드가 이를 그대로 믿고
+  /// `loginWithKakaoTalk()`(Android Intent로 카카오톡 앱을 직접 열어
+  /// 앱→웹 콜백으로 돌아오는 네이티브 전용 흐름)를 호출했다. 이 흐름은
+  /// 순수 웹 브라우저 탭 안에서는 앱이 콜백을 되돌려줄 경로가 없어
+  /// 정상적으로 완료될 수 없고, 결국 "카카오 로그인 중 오류가
+  /// 발생했습니다" 에러로 이어졌다(2026-09-10 sintong.kr/app 실사용자
+  /// 재현 확인).
+  ///
+  /// [해결] 웹(kIsWeb)에서는 `isKakaoTalkInstalled()` 분기 자체를 건너뛰고
+  /// 항상 `loginWithKakaoAccount()`(카카오 JS-SDK 팝업 방식,
+  /// `CommonConstants.webAccountLoginRedirectUri = 'JS-SDK'`로 고정된
+  /// redirectUri 사용)만 호출한다. 네이티브(Android/iOS) 앱은 기존 동작을
+  /// 그대로 유지한다(이미 정상 동작 확인됨 — 건드리지 않음).
   static Future<SocialAuthResult?> signInWithKakao() async {
+    if (kIsWeb) {
+      try {
+        final token = await UserApi.instance.loginWithKakaoAccount();
+        return SocialAuthResult('kakao', token.accessToken);
+      } on KakaoClientException catch (e) {
+        if (e.reason == ClientErrorCause.cancelled) return null; // 사용자가 취소
+        rethrow;
+      }
+    }
+
     try {
       final installed = await isKakaoTalkInstalled();
       final OAuthToken token = installed
