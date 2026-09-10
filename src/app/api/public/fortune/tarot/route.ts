@@ -43,6 +43,7 @@ import { completeText, LlmClientError } from "@/lib/llm-client";
 import { checkCategoryUsage, checkDailyAbsoluteLimit, consumeCategoryUsage } from "@/lib/open-pass-service";
 import { drawFromFullDeck } from "@/lib/tarot/card-draw-engine";
 import { getTopicWithPositions, buildTopicSummaryPrompt } from "@/lib/tarot/narrative-engine";
+import { matchTopicFromQuestion } from "@/lib/tarot/topic-matcher";
 
 export const dynamic = "force-dynamic";
 
@@ -130,7 +131,7 @@ export async function POST(request: NextRequest) {
   const userId = Number(body.userId ?? 1);
   const question = body.question?.trim();
   const rawSpreadType = body.spreadType ?? "one_card";
-  const topic = body.topic ?? "general";
+  const requestedTopic = body.topic ?? "general";
   const optionA = body.optionA?.trim();
   const optionB = body.optionB?.trim();
 
@@ -146,6 +147,19 @@ export async function POST(request: NextRequest) {
       { status: 400, headers: CORS_HEADERS }
     );
   }
+
+  // ── [신통방통 타로 65종 주제 연동 §계획2 자유질문 자동매칭] ──
+  // 카테고리 상세화면을 거쳐 명시적으로 topic이 지정된 경우(레거시
+  // general/love가 아닌 값)는 사용자의 의도를 그대로 존중해 자동매칭을
+  // 건드리지 않는다. topic이 레거시 기본값(general/love)일 때만 —
+  // 즉 "자유질문" 입력 화면에서 주제를 별도로 고르지 않은 경우에만 —
+  // 질문 문장을 분석해 65개 주제 중 하나로 자동 라우팅을 시도한다.
+  // choice_ab 전용 daily_direction_of_choice는 topic-keywords.ts에서
+  // 의도적으로 제외되어 있어 자동매칭으로는 절대 선택되지 않는다
+  // (optionA/optionB 필수 파라미터 누락으로 오류가 나는 것을 방지).
+  const isLegacyDefaultTopic = requestedTopic === "general" || requestedTopic === "love";
+  const autoMatchedTopic = isLegacyDefaultTopic ? matchTopicFromQuestion(question) : null;
+  const topic = autoMatchedTopic ?? requestedTopic;
 
   // ── [어뷰징 방지 개편 §신규 ①] 유저별 절대 일일 AI 호출 상한(5회) 검사 ──
   // 프리패스 카테고리별 제한(아래)과 완전히 독립적인 2중 방어선. 프리패스를 재발급받아도
@@ -456,6 +470,13 @@ export async function POST(request: NextRequest) {
           question,
           spreadType,
           topic,
+          // [§계획2 자유질문 자동매칭] 자동매칭이 실제로 일어났을 때만
+          // true + 주제 이름을 함께 내려줘 Flutter가 "이 질문은 'OO' 주제로
+          // 자동 매칭되었어요" 같은 안내를 표시할 수 있게 한다. 매칭이 없던
+          // 경우(레거시 경로 그대로)는 undefined -> 필드 생략, 기존 응답과
+          // 100% 동일하게 유지된다.
+          autoMatchedTopic: autoMatchedTopic ? topic : undefined,
+          autoMatchedTopicName: autoMatchedTopic ? pilotTopic?.topicName : undefined,
           positions,
           answer,
           // [65종 타로 리딩엔진 §계획4 A/B 양자택일] choice_ab가 아닐 때는
