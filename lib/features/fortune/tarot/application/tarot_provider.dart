@@ -24,15 +24,21 @@ class TarotProvider extends ChangeNotifier {
   String? _question;
   String _spreadType = 'one_card';
   String _topic = 'general';
+  String? _optionA;
+  String? _optionB;
 
   Future<void> draw({
     required String question,
     required String spreadType,
     String topic = 'general',
+    String? optionA,
+    String? optionB,
   }) async {
     _question = question;
     _spreadType = spreadType;
     _topic = topic;
+    _optionA = optionA;
+    _optionB = optionB;
 
     _state = const LoadState.loading();
     notifyListeners();
@@ -40,7 +46,15 @@ class TarotProvider extends ChangeNotifier {
     // [65종 타로 리딩엔진 §계획3] 5카드 분기 추가. 기존에는 이 분기가
     // 없어 5카드 선택 시 else절(drawOneCard, topic 고정 'general')로
     // 떨어지는 버그가 있었다.
-    final result = spreadType == 'five_card'
+    // [65종 타로 리딩엔진 §계획1 - choice_ab] A/B 양자택일 분기 추가.
+    final result = spreadType == 'choice_ab'
+        ? await _repository.drawChoiceAb(
+            question: question,
+            optionA: optionA ?? '',
+            optionB: optionB ?? '',
+            topic: topic,
+          )
+        : spreadType == 'five_card'
         ? await _repository.drawFiveCards(question: question, topic: topic)
         : spreadType == 'three_card'
         ? await _repository.drawThreeCards(question: question, topic: topic)
@@ -58,7 +72,13 @@ class TarotProvider extends ChangeNotifier {
 
   Future<void> retry() async {
     if (_question == null) return;
-    await draw(question: _question!, spreadType: _spreadType, topic: _topic);
+    await draw(
+      question: _question!,
+      spreadType: _spreadType,
+      topic: _topic,
+      optionA: _optionA,
+      optionB: _optionB,
+    );
   }
 
   Future<void> loadHistory() async {

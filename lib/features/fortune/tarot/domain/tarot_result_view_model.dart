@@ -89,6 +89,8 @@ class TarotResultView {
         return '쓰리카드';
       case 'yes_no':
         return 'YES/NO';
+      case 'choice_ab':
+        return 'A/B 비교';
       default:
         return '원카드';
     }

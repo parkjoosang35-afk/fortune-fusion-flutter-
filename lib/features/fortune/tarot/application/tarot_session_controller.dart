@@ -64,6 +64,12 @@ class TarotSessionState {
   final TarotResultModel? result;
   final String? errorMessage;
 
+  // [65종 타로 리딩엔진 §계획1 - choice_ab] A/B 양자택일 스프레드에서만
+  // 질문화면(④)에서 입력받아 confirmQuestion()으로 함께 확정되는 두
+  // 선택지 텍스트. 그 외 스프레드에서는 항상 null.
+  final String? optionA;
+  final String? optionB;
+
   const TarotSessionState({
     required this.status,
     this.category,
@@ -74,6 +80,8 @@ class TarotSessionState {
     this.selectedSlotIndexes = const [],
     this.result,
     this.errorMessage,
+    this.optionA,
+    this.optionB,
   });
 
   const TarotSessionState.initial() : this(status: TarotSessionStatus.idle);
@@ -83,6 +91,9 @@ class TarotSessionState {
       // [65종 타로 리딩엔진 §계획3] 5카드 스프레드 추가. 기존에는 이
       // case가 없어 5카드 선택 시 default(1)로 떨어지는 버그가 있었다.
       case 'five_card':
+        return 5;
+      // [65종 타로 리딩엔진 §계획1 - choice_ab] A/B 양자택일도 5장 구조.
+      case 'choice_ab':
         return 5;
       case 'three_card':
         return 3;
@@ -108,6 +119,12 @@ class TarotSessionState {
     TarotResultModel? result,
     String? errorMessage,
     bool clearError = false,
+    String? optionA,
+    String? optionB,
+    // [65종 타로 리딩엔진 §계획1 - choice_ab] choice_ab가 아닌 스프레드로
+    // 재확정할 때 이전 세션에 남아있던 optionA/optionB를 명시적으로
+    // 비우기 위한 플래그(`??` 패턴만으로는 null로 되돌릴 수 없기 때문).
+    bool clearOptions = false,
   }) {
     return TarotSessionState(
       status: status ?? this.status,
@@ -119,6 +136,8 @@ class TarotSessionState {
       selectedSlotIndexes: selectedSlotIndexes ?? this.selectedSlotIndexes,
       result: result ?? this.result,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      optionA: clearOptions ? null : (optionA ?? this.optionA),
+      optionB: clearOptions ? null : (optionB ?? this.optionB),
     );
   }
 }
@@ -153,6 +172,10 @@ class TarotSessionController extends ChangeNotifier {
     required String spreadType,
     required String question,
     String? topic,
+    // [65종 타로 리딩엔진 §계획1 - choice_ab] A/B 양자택일 스프레드에서만
+    // 질문화면에서 함께 전달되는 두 선택지. 그 외 스프레드는 null 그대로.
+    String? optionA,
+    String? optionB,
   }) {
     // 카테고리 없이도(직접 진입) 질문 확정은 허용하되, 이미 카드 선택이
     // 진행된 이후(shuffling 이후) 되돌아와 재확정하는 것도 막지 않고
@@ -168,6 +191,9 @@ class TarotSessionController extends ChangeNotifier {
       ),
       selectedSlotIndexes: const [],
       clearError: true,
+      clearOptions: true,
+      optionA: optionA,
+      optionB: optionB,
     );
     notifyListeners();
   }
@@ -222,6 +248,8 @@ class TarotSessionController extends ChangeNotifier {
         question: _state.question!,
         spreadType: _state.spreadType!,
         topic: _state.topic,
+        optionA: _state.optionA,
+        optionB: _state.optionB,
       );
       final providerState = tarotProvider.state;
       if (providerState.isSuccess && providerState.data != null) {

@@ -41,12 +41,21 @@ class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
   late String _topic;
 
   // [65종 타로 리딩엔진 §계획3] 5카드 추가.
+  // [65종 타로 리딩엔진 §계획1 - choice_ab] A/B 양자택일 추가.
   static const _validSpreadTypes = {
     'one_card',
     'three_card',
     'five_card',
     'yes_no',
+    'choice_ab',
   };
+
+  final _optionAController = TextEditingController();
+  final _optionBController = TextEditingController();
+
+  /// [65종 타로 리딩엔진 §계획1 - choice_ab] daily_direction_of_choice
+  /// 주제(A/B 양자택일 전용)로 진입했는지 여부.
+  bool get _isChoiceAbTopic => _topic == 'daily_direction_of_choice';
 
   static const _topicOptions = [('general', '종합'), ('love', '감정/연애')];
 

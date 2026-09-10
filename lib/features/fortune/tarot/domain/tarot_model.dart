@@ -502,6 +502,12 @@ class TarotResultModel {
   /// 항상 null이며, 기존 화면(TarotResultScreen 등)의 동작에는 영향이 없다.
   final String? answer;
 
+  /// [65종 타로 리딩엔진 §계획1 - choice_ab] A/B 양자택일 스프레드
+  /// (spreadType == 'choice_ab')에서만 채워지는 사용자가 입력한 두 선택지.
+  /// 그 외 스프레드에서는 항상 null이며, 기존 화면 동작에는 영향이 없다.
+  final String? optionA;
+  final String? optionB;
+
   const TarotResultModel({
     required this.id,
     required this.question,
@@ -511,6 +517,8 @@ class TarotResultModel {
     required this.createdAt,
     this.topic = 'general',
     this.answer,
+    this.optionA,
+    this.optionB,
   });
 }
 

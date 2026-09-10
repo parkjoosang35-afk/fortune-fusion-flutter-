@@ -54,10 +54,28 @@ class TarotRepository {
     String topic = 'general',
   }) => _draw(question: question, spreadType: 'yes_no', topic: topic);
 
+  /// [65종 타로 리딩엔진 §계획1 - choice_ab] A/B 양자택일 5장 스프레드.
+  /// `daily_direction_of_choice` 주제 전용. optionA/optionB(사용자가 입력한
+  /// 두 선택지 텍스트)를 서버에 함께 전달해야 한다.
+  Future<ApiResult<TarotResultModel>> drawChoiceAb({
+    required String question,
+    required String optionA,
+    required String optionB,
+    String topic = 'daily_direction_of_choice',
+  }) => _draw(
+    question: question,
+    spreadType: 'choice_ab',
+    topic: topic,
+    optionA: optionA,
+    optionB: optionB,
+  );
+
   Future<ApiResult<TarotResultModel>> _draw({
     required String question,
     required String spreadType,
     required String topic,
+    String? optionA,
+    String? optionB,
   }) async {
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/fortune/tarot',
@@ -77,6 +95,8 @@ class TarotRepository {
               'question': question,
               'spreadType': spreadType,
               'topic': topic,
+              if (optionA != null) 'optionA': optionA,
+              if (optionB != null) 'optionB': optionB,
             }),
           )
           .timeout(const Duration(seconds: 45));
@@ -119,6 +139,8 @@ class TarotRepository {
         createdAt: DateTime.parse(data['createdAt'] as String),
         topic: data['topic'] as String? ?? 'general',
         answer: data['answer'] as String?,
+        optionA: data['optionA'] as String?,
+        optionB: data['optionB'] as String?,
       );
 
       _history.insert(0, result);
@@ -175,6 +197,8 @@ class TarotRepository {
           createdAt: DateTime.parse(item['createdAt'] as String),
           topic: item['topic'] as String? ?? 'general',
           answer: item['answer'] as String?,
+          optionA: item['optionA'] as String?,
+          optionB: item['optionB'] as String?,
         );
       }).toList();
 
