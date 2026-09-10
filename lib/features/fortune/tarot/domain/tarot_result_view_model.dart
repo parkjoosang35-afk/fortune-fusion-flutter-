@@ -11,6 +11,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'tarot_category_model.dart';
 import 'tarot_model.dart';
 import 'tarot_reading_extras.dart';
 
@@ -61,6 +62,14 @@ class TarotResultView {
   /// 기능이 이 하나의 값만 참조하면 되도록 뷰모델 레벨에서 계산해둔다.
   final int score;
 
+  /// [65종 타로 리딩엔진 §계획3 - 결과화면 7섹션 제목 동적화] 이 리딩이
+  /// 65개 주제 중 하나에 속할 때(`TarotCategoryData.byId`로 찾아짐),
+  /// "AI 리딩"/"오늘의 조언" 섹션 제목에 주제명을 붙여 65개 리딩이 각자
+  /// 다른 화면처럼 느껴지게 한다. 매칭되지 않으면(레거시 general/love 등)
+  /// 기존 고정 문구를 그대로 사용해 회귀를 방지한다.
+  final String aiReadingLabel;
+  final String adviceLabel;
+
   const TarotResultView({
     required this.result,
     required this.heroCard,
@@ -72,6 +81,8 @@ class TarotResultView {
     required this.luckyNumber,
     required this.sections,
     required this.score,
+    required this.aiReadingLabel,
+    required this.adviceLabel,
   });
 
   /// [§11 P4] "내 운세 기록" 저장 시 표시할 제목. 카드 이름 + 스프레드
@@ -139,6 +150,12 @@ class TarotResultView {
   factory TarotResultView.fromResult(TarotResultModel result) {
     final heroCard = result.positions.first.card;
     final lucky = TarotReadingExtras.luckyColor(result.id);
+    // [65종 타로 리딩엔진 §계획3] 서버가 응답에 실어준 topic(카테고리
+    // 화면에서 명시 지정했거나, §계획2 자동매칭으로 결정된 값)이 65개
+    // 주제 중 하나와 일치하면 그 한글 주제명을 섹션 제목에 반영한다.
+    // 매칭 실패(general/love 등 레거시)면 topicName은 null -> 기존
+    // 고정 문구('AI 리딩'/'오늘의 조언')를 그대로 사용한다.
+    final topicName = TarotCategoryData.byId(result.topic)?.label;
     return TarotResultView(
       result: result,
       heroCard: heroCard,
@@ -150,6 +167,8 @@ class TarotResultView {
       luckyNumber: TarotReadingExtras.luckyNumber(result.id),
       sections: defaultSections,
       score: TarotReadingExtras.readingScore(result.id),
+      aiReadingLabel: topicName != null ? '$topicName AI 리딩' : 'AI 리딩',
+      adviceLabel: topicName != null ? '$topicName 조언' : '오늘의 조언',
     );
   }
 }

@@ -693,7 +693,7 @@ class _ResultContent extends StatelessWidget {
         _Reveal(
           t: t,
           start: 0.27,
-          child: _AiReadingCard(text: result.summary),
+          child: _AiReadingCard(text: result.summary, label: view.aiReadingLabel),
         ),
         const SizedBox(height: OzTokens.spaceLg),
         // ③ 상세 리딩
@@ -716,7 +716,7 @@ class _ResultContent extends StatelessWidget {
         _Reveal(
           t: t,
           start: 0.58,
-          child: _InfoTile(icon: '🧭', label: '오늘의 조언', content: view.advice),
+          child: _InfoTile(icon: '🧭', label: view.adviceLabel, content: view.advice),
         ),
         const SizedBox(height: OzTokens.spaceMd),
         // ⑤ 행운의 색 / ⑥ 행운의 숫자
@@ -1050,7 +1050,12 @@ class _OneLinerCard extends StatelessWidget {
 
 class _AiReadingCard extends StatelessWidget {
   final String text;
-  const _AiReadingCard({required this.text});
+  // [65종 타로 리딩엔진 §계획3 - 결과화면 7섹션 제목 동적화] 65개 주제
+  // 중 하나로 매칭되면 'OO AI 리딩'처럼 주제명이 붙은 제목을 받는다.
+  // 매칭 실패 시 [TarotResultView.aiReadingLabel]이 기존 고정 문구
+  // 'AI 리딩'을 그대로 내려주므로 이 위젯은 항상 label만 그리면 된다.
+  final String label;
+  const _AiReadingCard({required this.text, required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -1065,7 +1070,7 @@ class _AiReadingCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionLabel(icon: '🔮', label: 'AI 리딩'),
+          _SectionLabel(icon: '🔮', label: label),
           const SizedBox(height: OzTokens.spaceSm),
           Text(
             text,
