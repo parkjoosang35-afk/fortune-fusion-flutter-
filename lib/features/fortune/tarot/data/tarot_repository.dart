@@ -141,6 +141,8 @@ class TarotRepository {
         answer: data['answer'] as String?,
         optionA: data['optionA'] as String?,
         optionB: data['optionB'] as String?,
+        autoMatchedTopic: data['autoMatchedTopic'] as String?,
+        autoMatchedTopicName: data['autoMatchedTopicName'] as String?,
       );
 
       _history.insert(0, result);
@@ -199,6 +201,8 @@ class TarotRepository {
           answer: item['answer'] as String?,
           optionA: item['optionA'] as String?,
           optionB: item['optionB'] as String?,
+          autoMatchedTopic: item['autoMatchedTopic'] as String?,
+          autoMatchedTopicName: item['autoMatchedTopicName'] as String?,
         );
       }).toList();
 

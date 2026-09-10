@@ -632,6 +632,20 @@ class _ResultContent extends StatelessWidget {
           start: 0.0,
           child: _QuestionBanner(question: result.question),
         ),
+        // [65종 타로 리딩엔진 §계획2 - 자유질문 자동매칭] 사용자가 주제를
+        // 직접 고르지 않은 자유질문이 서버에서 65개 주제 중 하나로 자동
+        // 매칭되었을 때만 노출되는 안내 배너. 매칭이 없었던 기존 흐름에는
+        // 영향이 없다(autoMatchedTopicName이 항상 null).
+        if (result.autoMatchedTopicName != null) ...[
+          const SizedBox(height: OzTokens.spaceSm),
+          _Reveal(
+            t: t,
+            start: 0.02,
+            child: _AutoMatchedTopicBanner(
+              topicName: result.autoMatchedTopicName!,
+            ),
+          ),
+        ],
         if (result.answer != null) ...[
           const SizedBox(height: OzTokens.spaceMd),
           _Reveal(
@@ -797,6 +811,43 @@ class _QuestionBanner extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(question, style: OzTypography.cardName(fontSize: 14)),
+        ],
+      ),
+    );
+  }
+}
+
+/// [65종 타로 리딩엔진 §계획2 - 자유질문 자동매칭] 사용자가 주제를 직접
+/// 고르지 않은 자유질문이 서버에서 65개 주제 중 하나로 자동 매칭되었을
+/// 때, 그 사실과 매칭된 주제명을 알려주는 작은 안내 배너.
+class _AutoMatchedTopicBanner extends StatelessWidget {
+  final String topicName;
+  const _AutoMatchedTopicBanner({required this.topicName});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: OzTokens.spaceMd,
+        vertical: 10,
+      ),
+      decoration: BoxDecoration(
+        color: OzColors.teal.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(OzTokens.radiusMd),
+        border: Border.all(color: OzColors.teal.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.auto_awesome, size: 14, color: OzColors.teal),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              '이 질문은 \'$topicName\' 주제로 자동 매칭되었어요',
+              style: OzTypography.monoLabel(fontSize: 11),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
         ],
       ),
     );
