@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../util/is_mobile_browser.dart';
+
 /// [PC 웹 미리보기 개선] 데스크톱 브라우저에서 앱을 열었을 때, 화면 전체를
 /// 꽉 채우는 대신 실제 스마트폰 목업(테두리 · 노치 · 홈 인디케이터) 안에
 /// 들어있는 것처럼 보여준다.
@@ -28,10 +30,19 @@ import 'package:flutter/material.dart';
 /// 넉넉한 PC에서는 폰이 실제로 더 크게 보이고, 창이 작으면 비율을 유지한
 /// 채 작아진다 — 어떤 경우에도 실제 스마트폰과 같은 비율을 유지한다.
 ///
-/// [적용 범위] 웹 플랫폼(kIsWeb)에서만 동작하고, 안드로이드 APK/실제 모바일
-/// 브라우저 폭에서는 화면 폭이 이미 [maxWidth] 이하이므로 시각적으로 아무
-/// 변화가 없다(기존 프로덕션 동작과 동일). 즉 이 위젯은 "PC에서 볼 때만"
-/// 실질적으로 효과가 있다.
+/// [적용 범위] 웹 플랫폼(kIsWeb)에서만 동작하고, 안드로이드 APK에서는
+/// 이 위젯이 즉시 child를 그대로 반환한다(기존 프로덕션 동작과 동일).
+///
+/// [3차 긴급 수정 - 실제 모바일에서 목업이 잘못 나타난 사고] 기존에는
+/// "화면 폭이 430px를 넘으면 PC"로만 판단했는데, 실제 사용자가 카카오톡
+/// 공유 링크를 눌러 휴대폰(삼성 등 안드로이드 기기 다수 포함) 브라우저로
+/// 열었을 때도 CSS 논리적 뷰포트 폭이 430px를 초과하는 경우가 있어 PC로
+/// 오판되었다. 그 결과 실제 서비스 링크를 받은 사용자에게 앱이 아주 작은
+/// 장식용 폰 그림 안에 쪼그라들어 표시되는 심각한 문제가 발생했다.
+/// 이제는 폭 조건에 더해 User-Agent로 실제 모바일/태블릿 기기인지를
+/// 먼저 확인하고, 실제 모바일 기기라면 폭 값과 무관하게 무조건 목업 없이
+/// child를 그대로 보여준다 — "실제 모바일 사용자에게는 항상 정상 화면"이
+/// 최우선이며, 폰 목업은 오직 데스크톱 브라우저에서만 나타나야 한다.
 class WebMobileFrame extends StatelessWidget {
   const WebMobileFrame({super.key, required this.child});
 
@@ -79,6 +90,11 @@ class WebMobileFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!kIsWeb) return child;
+
+    // [3차 긴급 수정] User-Agent로 실제 모바일/태블릿 기기임이 확인되면,
+    // 화면 폭과 무관하게 절대 목업을 씌우지 않는다. 이 판별을 폭 검사보다
+    // 먼저 수행해 실제 모바일 사용자에게 절대 영향이 가지 않도록 한다.
+    if (isMobileBrowser()) return child;
 
     return LayoutBuilder(
       builder: (context, constraints) {
