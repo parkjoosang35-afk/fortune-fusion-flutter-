@@ -116,26 +116,23 @@ class SocialAuthService {
   /// `CommonConstants.webAccountLoginRedirectUri = 'JS-SDK'`로 고정된
   /// redirectUri 사용)만 호출한다. 네이티브(Android/iOS) 앱은 기존 동작을
   /// 그대로 유지한다(이미 정상 동작 확인됨 — 건드리지 않음).
+  ///
+  /// [2차 수정 - 배포 빌드 캐시 문제] 위 수정 배포 후에도 동일 에러가
+  /// 재현되어 추가 조사한 결과, 실제 원인은 `MissingPluginException`
+  /// (getKaHeader on channel kakao_flutter_sdk_method_channel)이었다.
+  /// `.dart_tool/flutter_build/`에 stale 캐시로 여러 개의
+  /// `web_plugin_registrant.dart`가 존재했고, 그중 일부에 카카오 웹
+  /// 플러그인 등록이 빠져 있어 최종 `main.dart.js`에 플러그인 코드 자체가
+  /// 누락되었다. `.dart_tool` 전체 삭제 후 `flutter clean` → `pub get` →
+  /// 클린 재빌드로 해결(2026-09-10). Playwright로 카카오 로그인 팝업이
+  /// 실제 `accounts.kakao.com` 로그인 페이지까지 정상 도달함을 검증 완료.
   static Future<SocialAuthResult?> signInWithKakao() async {
     if (kIsWeb) {
       try {
         final token = await UserApi.instance.loginWithKakaoAccount();
         return SocialAuthResult('kakao', token.accessToken);
       } on KakaoClientException catch (e) {
-        // [임시 디버그 - 웹 카카오 로그인 원인 조사] 실제 예외 내용이
-        // login_screen.dart의 범용 catch에 삼켜져 콘솔에 전혀 남지 않아,
-        // 원인 규명을 위해 브라우저 콘솔에 직접 출력한다(원인 확정 후 제거 예정).
-        debugPrint(
-          '[SocialAuthService][WEB-DEBUG] KakaoClientException reason=${e.reason} msg=${e.msg}',
-        );
         if (e.reason == ClientErrorCause.cancelled) return null; // 사용자가 취소
-        rethrow;
-      } catch (e, st) {
-        // [임시 디버그] KakaoClientException이 아닌 그 외 모든 예외
-        // (PlatformException, DioException, TimeoutException 등)의 실제
-        // 타입과 메시지를 확인하기 위한 임시 로깅.
-        debugPrint('[SocialAuthService][WEB-DEBUG] type=${e.runtimeType} error=$e');
-        debugPrint('[SocialAuthService][WEB-DEBUG] stack=$st');
         rethrow;
       }
     }
