@@ -122,7 +122,20 @@ class SocialAuthService {
         final token = await UserApi.instance.loginWithKakaoAccount();
         return SocialAuthResult('kakao', token.accessToken);
       } on KakaoClientException catch (e) {
+        // [임시 디버그 - 웹 카카오 로그인 원인 조사] 실제 예외 내용이
+        // login_screen.dart의 범용 catch에 삼켜져 콘솔에 전혀 남지 않아,
+        // 원인 규명을 위해 브라우저 콘솔에 직접 출력한다(원인 확정 후 제거 예정).
+        debugPrint(
+          '[SocialAuthService][WEB-DEBUG] KakaoClientException reason=${e.reason} msg=${e.msg}',
+        );
         if (e.reason == ClientErrorCause.cancelled) return null; // 사용자가 취소
+        rethrow;
+      } catch (e, st) {
+        // [임시 디버그] KakaoClientException이 아닌 그 외 모든 예외
+        // (PlatformException, DioException, TimeoutException 등)의 실제
+        // 타입과 메시지를 확인하기 위한 임시 로깅.
+        debugPrint('[SocialAuthService][WEB-DEBUG] type=${e.runtimeType} error=$e');
+        debugPrint('[SocialAuthService][WEB-DEBUG] stack=$st');
         rethrow;
       }
     }
