@@ -46,6 +46,12 @@ class _TarotCategoryDetailScreenState extends State<TarotCategoryDetailScreen>
     ('five_card', '5카드', '심화 리딩'),
   ];
 
+  /// [65종 타로 리딩엔진 §계획1 - choice_ab] daily_direction_of_choice
+  /// 카테고리는 서버가 choice_ab 스프레드만 지원하므로, 몇 장으로 볼지
+  /// 고르는 UI 자체를 건너뛰고 곧바로 choice_ab로 진입한다.
+  bool get _isChoiceAbCategory =>
+      widget.categoryId == 'daily_direction_of_choice';
+
   @override
   void initState() {
     super.initState();
@@ -53,6 +59,9 @@ class _TarotCategoryDetailScreenState extends State<TarotCategoryDetailScreen>
       vsync: this,
       duration: const Duration(milliseconds: 1400),
     )..forward();
+    if (_isChoiceAbCategory) {
+      _spreadType = 'choice_ab';
+    }
   }
 
   @override
@@ -99,36 +108,48 @@ class _TarotCategoryDetailScreenState extends State<TarotCategoryDetailScreen>
                                 controller: _entryController,
                               ),
                               const SizedBox(height: OzTokens.spaceLg),
-                              Text(
-                                '몇 장으로 볼까요?',
-                                style: OzTypography.sectionTitle(fontSize: 17),
-                              ),
-                              const SizedBox(height: OzTokens.spaceMd),
-                              Row(
-                                children: _spreadOptions.map((opt) {
-                                  final selected = _spreadType == opt.$1;
-                                  return Expanded(
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(
-                                        right: OzTokens.spaceMd,
-                                      ),
-                                      child: OzSpreadOption(
-                                        label: opt.$2,
-                                        desc: opt.$3,
-                                        cardCount: opt.$1 == 'five_card'
-                                            ? 5
-                                            : opt.$1 == 'three_card'
-                                            ? 3
-                                            : 1,
-                                        active: selected,
-                                        onTap: () => setState(
-                                          () => _spreadType = opt.$1,
+                              // [65종 타로 리딩엔진 §계획1 - choice_ab]
+                              // daily_direction_of_choice는 choice_ab
+                              // 스프레드 1개만 지원하므로 "몇 장으로
+                              // 볼까요?" 선택 UI를 노출하지 않는다. 대신
+                              // 다음 화면(질문화면)에서 A/B 선택지를
+                              // 입력받게 됨을 미리 안내한다.
+                              if (_isChoiceAbCategory)
+                                _ChoiceAbNotice(category: category)
+                              else ...[
+                                Text(
+                                  '몇 장으로 볼까요?',
+                                  style: OzTypography.sectionTitle(
+                                    fontSize: 17,
+                                  ),
+                                ),
+                                const SizedBox(height: OzTokens.spaceMd),
+                                Row(
+                                  children: _spreadOptions.map((opt) {
+                                    final selected = _spreadType == opt.$1;
+                                    return Expanded(
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(
+                                          right: OzTokens.spaceMd,
+                                        ),
+                                        child: OzSpreadOption(
+                                          label: opt.$2,
+                                          desc: opt.$3,
+                                          cardCount: opt.$1 == 'five_card'
+                                              ? 5
+                                              : opt.$1 == 'three_card'
+                                              ? 3
+                                              : 1,
+                                          active: selected,
+                                          onTap: () => setState(
+                                            () => _spreadType = opt.$1,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ],
                               const SizedBox(height: OzTokens.spaceXxl),
                               _StartButton(
                                 category: category,
@@ -212,6 +233,38 @@ class _EntryRitual extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+/// [65종 타로 리딩엔진 §계획1 - choice_ab] daily_direction_of_choice
+/// 카테고리 상세화면에서 "몇 장으로 볼까요?" UI 대신 노출되는 안내 배너.
+class _ChoiceAbNotice extends StatelessWidget {
+  final TarotCategoryMeta category;
+  const _ChoiceAbNotice({required this.category});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(OzTokens.spaceLg),
+      decoration: BoxDecoration(
+        color: OzColors.gold.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(OzTokens.radiusMd),
+        border: Border.all(color: OzColors.gold.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.auto_awesome, size: 18, color: OzColors.gold),
+          const SizedBox(width: OzTokens.spaceSm),
+          Expanded(
+            child: Text(
+              '이 리딩은 5장의 카드로 두 선택지를 비교해요.\n다음 화면에서 비교할 두 선택지를 알려주세요.',
+              style: OzTypography.body(fontSize: 13, color: OzColors.fg),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -155,7 +155,14 @@ class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
       (t) => t.$1 == widget.initialTopic,
     );
     final validSeededTopic = _seededTopicIds.contains(widget.initialTopic);
-    _topic = (validLegacyTopic || validSeededTopic)
+    // [65종 타로 리딩엔진 §계획1 - choice_ab] daily_direction_of_choice는
+    // `_seededTopicIds`에서 의도적으로 제외되어 있으므로(A/B 별도 개발
+    // 대상이라는 주석) 여기서 별도로 유효 topic으로 인정해줘야 한다.
+    // 이 체크가 없으면 카테고리 상세화면을 거쳐 들어와도 'general'로
+    // 강제 폴백되어 choice_ab UI가 전혀 노출되지 않는 버그가 생긴다.
+    final validChoiceAbTopic =
+        widget.initialTopic == 'daily_direction_of_choice';
+    _topic = (validLegacyTopic || validSeededTopic || validChoiceAbTopic)
         ? widget.initialTopic!
         : 'general';
     // 딥링크로 들어온 topic이 YES/NO 미지원 파일럿 주제인데 spreadType이
@@ -164,11 +171,20 @@ class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
     if (_spreadType == 'yes_no' && !_yesNoAvailable) {
       _spreadType = 'one_card';
     }
+    // [65종 타로 리딩엔진 §계획1 - choice_ab] daily_direction_of_choice
+    // 주제는 서버 tarot_topics.allowed_spreads = ["choice_ab"]만 허용한다
+    // (§43 확정본). 이 주제로 들어오면 다른 스프레드 UI를 아예 노출하지
+    // 않고 항상 choice_ab로 강제 고정한다.
+    if (_isChoiceAbTopic) {
+      _spreadType = 'choice_ab';
+    }
   }
 
   @override
   void dispose() {
     _questionController.dispose();
+    _optionAController.dispose();
+    _optionBController.dispose();
     super.dispose();
   }
 
@@ -176,6 +192,23 @@ class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
     final question = _questionController.text.trim().isEmpty
         ? '오늘의 전반적인 운세'
         : _questionController.text.trim();
+
+    // [65종 타로 리딩엔진 §계획1 - choice_ab] A/B 두 선택지는 필수 입력.
+    // 비어있으면 제출을 막고 안내만 표시한다(서버도 동일하게 차단하지만
+    // 화면에서 먼저 막아 불필요한 API 실패를 방지).
+    String? optionA;
+    String? optionB;
+    if (_isChoiceAbTopic) {
+      optionA = _optionAController.text.trim();
+      optionB = _optionBController.text.trim();
+      if (optionA.isEmpty || optionB.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('비교할 두 선택지를 모두 입력해주세요.')),
+        );
+        return;
+      }
+    }
+
     // [§51/§61 감사 - Bug1 수정] 기존에는 spreadType이 'yes_no'이면 topic을
     // 무조건 'general'로 강제 변경해, 재회 가능성/이직운 등 개별 타로
     // 주제로 YES/NO를 선택해도 서버에 'general'이 전달되어 신규 엔진
@@ -186,6 +219,8 @@ class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
       spreadType: _spreadType,
       question: question,
       topic: _topic,
+      optionA: optionA,
+      optionB: optionB,
     );
     Navigator.of(context).pushNamed('/tarot/card-select');
   }
@@ -272,97 +307,125 @@ class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
                               )
                               .toList(),
                         ),
-                        const SizedBox(height: OzTokens.spaceXxl),
-                        Text(
-                          '스프레드 선택',
-                          style: OzTypography.sectionTitle(fontSize: 17),
-                        ),
-                        const SizedBox(height: OzTokens.spaceMd),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OzSpreadOption(
-                                label: '1카드',
-                                desc: '빠른 답변',
-                                cardCount: 1,
-                                active: _spreadType == 'one_card',
-                                onTap: () =>
-                                    setState(() => _spreadType = 'one_card'),
-                              ),
-                            ),
-                            const SizedBox(width: OzTokens.spaceSm),
-                            Expanded(
-                              child: OzSpreadOption(
-                                label: '3카드',
-                                desc: '과거·현재·미래',
-                                cardCount: 3,
-                                active: _spreadType == 'three_card',
-                                onTap: () =>
-                                    setState(() => _spreadType = 'three_card'),
-                              ),
-                            ),
-                            const SizedBox(width: OzTokens.spaceSm),
-                            // [65종 타로 리딩엔진 §계획3] 5카드 옵션 추가.
-                            Expanded(
-                              child: OzSpreadOption(
-                                label: '5카드',
-                                desc: '심화 리딩',
-                                cardCount: 5,
-                                active: _spreadType == 'five_card',
-                                onTap: () =>
-                                    setState(() => _spreadType = 'five_card'),
-                              ),
-                            ),
-                            // [65종 타로 리딩엔진 §계획3] YES/NO는
-                            // `yes_no_enabled` 주제(현재는 재회 가능성만)에서만
-                            // 노출한다. 레거시 20개 topic(비파일럿)은 계속
-                            // 노출(기존 동작 그대로 유지).
-                            if (_yesNoAvailable) ...[
-                              const SizedBox(width: OzTokens.spaceSm),
-                              Expanded(
-                                child: OzSpreadOption(
-                                  label: 'YES·NO',
-                                  desc: '즉답형',
-                                  ynLabel: 'Y/N',
-                                  active: _spreadType == 'yes_no',
-                                  onTap: () =>
-                                      setState(() => _spreadType = 'yes_no'),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                        // [§51/§61 감사 - Bug2 수정] 65개 카테고리 상세화면을
-                        // 거쳐 개별 타로 주제(예: '재회 가능성')로 진입한
-                        // 경우, 어떤 주제인지 전혀 표시되지 않고 무관한
-                        // 레거시 2칩('종합'/'감정·연애')만 노출되던 버그를
-                        // 고쳐, 선택된 개별 타로명을 명확히 보여주는 배지로
-                        // 교체한다. 레거시 진입(개별 카테고리를 거치지 않은
-                        // 경우)에는 기존 2칩 UI를 그대로 유지한다.
-                        if (_spreadType != 'yes_no') ...[
+                        // [65종 타로 리딩엔진 §계획1 - choice_ab] 이 주제는
+                        // allowed_spreads가 choice_ab 하나뿐이므로 스프레드
+                        // 선택 UI 자체를 노출하지 않고, 대신 비교할 두
+                        // 선택지를 입력받는 전용 UI로 대체한다.
+                        if (_isChoiceAbTopic) ...[
                           const SizedBox(height: OzTokens.spaceXxl),
                           Text(
-                            '어떤 주제로 볼까요?',
+                            'A/B 두 선택지를 알려주세요',
                             style: OzTypography.sectionTitle(fontSize: 17),
                           ),
                           const SizedBox(height: OzTokens.spaceMd),
-                          if (_seededTopicLabel != null)
-                            _SeededTopicBadge(label: _seededTopicLabel!)
-                          else
-                            Wrap(
-                              spacing: OzTokens.spaceSm,
-                              runSpacing: OzTokens.spaceSm,
-                              children: _topicOptions
-                                  .map(
-                                    (t) => OzChip(
-                                      label: t.$2,
-                                      selected: _topic == t.$1,
-                                      onTap: () =>
-                                          setState(() => _topic = t.$1),
-                                    ),
-                                  )
-                                  .toList(),
+                          _OptionInputField(
+                            label: '선택 A',
+                            controller: _optionAController,
+                            hintText: '예: 이 회사에 남는다',
+                            accent: OzColors.teal,
+                          ),
+                          const SizedBox(height: OzTokens.spaceMd),
+                          _OptionInputField(
+                            label: '선택 B',
+                            controller: _optionBController,
+                            hintText: '예: 이직을 한다',
+                            accent: OzColors.rose,
+                          ),
+                        ] else ...[
+                          const SizedBox(height: OzTokens.spaceXxl),
+                          Text(
+                            '스프레드 선택',
+                            style: OzTypography.sectionTitle(fontSize: 17),
+                          ),
+                          const SizedBox(height: OzTokens.spaceMd),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OzSpreadOption(
+                                  label: '1카드',
+                                  desc: '빠른 답변',
+                                  cardCount: 1,
+                                  active: _spreadType == 'one_card',
+                                  onTap: () =>
+                                      setState(() => _spreadType = 'one_card'),
+                                ),
+                              ),
+                              const SizedBox(width: OzTokens.spaceSm),
+                              Expanded(
+                                child: OzSpreadOption(
+                                  label: '3카드',
+                                  desc: '과거·현재·미래',
+                                  cardCount: 3,
+                                  active: _spreadType == 'three_card',
+                                  onTap: () => setState(
+                                    () => _spreadType = 'three_card',
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: OzTokens.spaceSm),
+                              // [65종 타로 리딩엔진 §계획3] 5카드 옵션 추가.
+                              Expanded(
+                                child: OzSpreadOption(
+                                  label: '5카드',
+                                  desc: '심화 리딩',
+                                  cardCount: 5,
+                                  active: _spreadType == 'five_card',
+                                  onTap: () => setState(
+                                    () => _spreadType = 'five_card',
+                                  ),
+                                ),
+                              ),
+                              // [65종 타로 리딩엔진 §계획3] YES/NO는
+                              // `yes_no_enabled` 주제(현재는 재회 가능성만)에서만
+                              // 노출한다. 레거시 20개 topic(비파일럿)은 계속
+                              // 노출(기존 동작 그대로 유지).
+                              if (_yesNoAvailable) ...[
+                                const SizedBox(width: OzTokens.spaceSm),
+                                Expanded(
+                                  child: OzSpreadOption(
+                                    label: 'YES·NO',
+                                    desc: '즉답형',
+                                    ynLabel: 'Y/N',
+                                    active: _spreadType == 'yes_no',
+                                    onTap: () =>
+                                        setState(() => _spreadType = 'yes_no'),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          // [§51/§61 감사 - Bug2 수정] 65개 카테고리 상세화면을
+                          // 거쳐 개별 타로 주제(예: '재회 가능성')로 진입한
+                          // 경우, 어떤 주제인지 전혀 표시되지 않고 무관한
+                          // 레거시 2칩('종합'/'감정·연애')만 노출되던 버그를
+                          // 고쳐, 선택된 개별 타로명을 명확히 보여주는 배지로
+                          // 교체한다. 레거시 진입(개별 카테고리를 거치지 않은
+                          // 경우)에는 기존 2칩 UI를 그대로 유지한다.
+                          if (_spreadType != 'yes_no') ...[
+                            const SizedBox(height: OzTokens.spaceXxl),
+                            Text(
+                              '어떤 주제로 볼까요?',
+                              style: OzTypography.sectionTitle(fontSize: 17),
                             ),
+                            const SizedBox(height: OzTokens.spaceMd),
+                            if (_seededTopicLabel != null)
+                              _SeededTopicBadge(label: _seededTopicLabel!)
+                            else
+                              Wrap(
+                                spacing: OzTokens.spaceSm,
+                                runSpacing: OzTokens.spaceSm,
+                                children: _topicOptions
+                                    .map(
+                                      (t) => OzChip(
+                                        label: t.$2,
+                                        selected: _topic == t.$1,
+                                        onTap: () =>
+                                            setState(() => _topic = t.$1),
+                                      ),
+                                    )
+                                    .toList(),
+                              ),
+                          ],
                         ],
                         const SizedBox(height: OzTokens.spaceXxl),
                         OzPrimaryButton(
@@ -407,6 +470,72 @@ class _SeededTopicBadge extends StatelessWidget {
             label,
             style: OzTypography.body(fontSize: 13, color: OzColors.fg)
                 .copyWith(fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// [65종 타로 리딩엔진 §계획1 - choice_ab] A/B 선택지 입력 필드.
+/// 질문 입력창과 동일한 톤(카드형 배경 + 골드 포커스 보더)을 유지하되,
+/// 좌측에 'A'/'B' 라벨 배지를 두어 두 입력을 시각적으로 구분한다.
+class _OptionInputField extends StatelessWidget {
+  final String label;
+  final TextEditingController controller;
+  final String hintText;
+  final Color accent;
+  const _OptionInputField({
+    required this.label,
+    required this.controller,
+    required this.hintText,
+    required this.accent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: OzColors.cardSoft,
+        borderRadius: BorderRadius.circular(OzTokens.radiusMd),
+        border: Border.all(color: OzColors.borderSoft),
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: OzTokens.spaceMd,
+        vertical: 4,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.18),
+              shape: BoxShape.circle,
+              border: Border.all(color: accent.withValues(alpha: 0.5)),
+            ),
+            child: Text(
+              label.substring(label.length - 1),
+              style: OzTypography.monoLabel(fontSize: 13, color: accent),
+            ),
+          ),
+          const SizedBox(width: OzTokens.spaceSm),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              style: OzTypography.body(fontSize: 14, color: OzColors.fg),
+              cursorColor: OzColors.gold,
+              decoration: InputDecoration(
+                hintText: hintText,
+                hintStyle: OzTypography.body(
+                  fontSize: 13,
+                  color: OzColors.faint,
+                ),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+            ),
           ),
         ],
       ),

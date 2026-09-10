@@ -640,6 +640,23 @@ class _ResultContent extends StatelessWidget {
             child: _YesNoBadge(answer: result.answer!),
           ),
         ],
+        // [65종 타로 리딩엔진 §계획1 - choice_ab] A/B 양자택일 스프레드는
+        // 사용자가 입력한 두 선택지를 카드 결과 위에 다시 보여줘, 5장의
+        // 포지션(선택A 현재/결과흐름/선택B 현재/결과흐름/최종조언)이 각각
+        // 어느 선택지에 대한 것인지 헷갈리지 않게 한다.
+        if (result.spreadType == 'choice_ab' &&
+            result.optionA != null &&
+            result.optionB != null) ...[
+          const SizedBox(height: OzTokens.spaceMd),
+          _Reveal(
+            t: t,
+            start: 0.04,
+            child: _ChoiceAbOptionsBanner(
+              optionA: result.optionA!,
+              optionB: result.optionB!,
+            ),
+          ),
+        ],
         const SizedBox(height: OzTokens.spaceXl),
         // ① 카드 이름
         _Reveal(
@@ -780,6 +797,84 @@ class _QuestionBanner extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(question, style: OzTypography.cardName(fontSize: 14)),
+        ],
+      ),
+    );
+  }
+}
+
+/// [65종 타로 리딩엔진 §계획1 - choice_ab] A/B 두 선택지를 나란히 보여주는
+/// 배너. `_PositionCard` 5개(선택A 현재/결과흐름/선택B 현재/결과흐름/
+/// 최종조언)를 읽기 전에 어떤 두 선택지를 비교하는지 다시 상기시켜준다.
+class _ChoiceAbOptionsBanner extends StatelessWidget {
+  final String optionA;
+  final String optionB;
+  const _ChoiceAbOptionsBanner({required this.optionA, required this.optionB});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _ChoiceAbOptionTile(
+            label: 'A',
+            text: optionA,
+            accent: OzColors.teal,
+          ),
+        ),
+        const SizedBox(width: OzTokens.spaceSm),
+        Expanded(
+          child: _ChoiceAbOptionTile(
+            label: 'B',
+            text: optionB,
+            accent: OzColors.rose,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ChoiceAbOptionTile extends StatelessWidget {
+  final String label;
+  final String text;
+  final Color accent;
+  const _ChoiceAbOptionTile({
+    required this.label,
+    required this.text,
+    required this.accent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(OzTokens.spaceMd),
+      decoration: BoxDecoration(
+        color: OzColors.cardSoft,
+        borderRadius: BorderRadius.circular(OzTokens.radiusMd),
+        border: Border.all(color: accent.withValues(alpha: 0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(OzTokens.radiusPill),
+            ),
+            child: Text(
+              '선택 $label',
+              style: OzTypography.monoLabel(fontSize: 9.5, color: accent),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            text,
+            style: OzTypography.body(fontSize: 12.5, color: OzColors.fg),
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+          ),
         ],
       ),
     );
