@@ -1,5 +1,5 @@
 // 공개(비인증) "타로 운세" 생성 API — Flutter TarotRepository.drawOneCard()/
-// drawThreeCards() 대응.
+// drawThreeCards()/drawYesNo() 및 5카드(five_card) 대응.
 //
 // [Phase6 - AI운세 실LLM 연동, 1차: 사주/타로 텍스트 전용] 카드 뽑기 자체(어떤
 // 카드가 정/역방향으로 나오는지)는 여전히 결정론적 규칙(질문 해시 시드)으로
@@ -7,14 +7,31 @@
 // 로직이라 LLM 연동 대상이 아니다). 이번 연동의 핵심은 "총평(summary)" 텍스트를
 // rule-based 조합형 텍스트 대신 실제 LLM 응답으로 교체하는 것이다.
 //
+// [신통방통 타로 65종 주제 연동 - 서버 엔진 분리] 대표님 지시서에 따라 이 파일을
+// 두 축으로 완전히 분리한다:
+//   1) Card Draw Engine  — 78장 tarot_cards 기준 결정론적 추첨, 리딩 내 카드
+//      중복 금지, 카드가 확정되면 절대 불변(어뷰징 방지 원칙).
+//   2) AI Narrative Engine — topic/spread/position 메타데이터를 포함한 전체
+//      페이로드를 프롬프트에 담아 LLM에 전달한다. AI는 카드를 임의로 바꾸지
+//      못하고 오직 "이미 확정된 카드"에 대한 해석 텍스트만 생성한다.
+//
+// [신규 vs 레거시 분기] `tarot_topics.topic_key`에 매칭되는 행이 있으면(현재
+// 1차 파일럿 5개: love_flow_of_crush/love_inner_truth/love_reunion_chance/
+// career_job_change/wealth_fortune) 신규 엔진 경로(78장 풀덱 + DB 포지션
+// 메타데이터)를 사용한다. 매칭되지 않으면(나머지 60개 주제 + general 등
+// 기존 20개 topicKey) 기존 레거시 로직(15장 DECK + 하드코딩 라벨)을 100%
+// 그대로 유지한다 — 화면/네비게이션 흐름 무변경 원칙, 미검증 60개 주제를
+// 건드리지 않기 위함이다.
+//
 // [프롬프트 도메인 매핑] ai_prompt_templates에는 tarot(종합)/tarot_love(감정
-// 관계운)/tarot_yesno(YES-NO) 3개 도메인이 있다. Flutter가 보내는 topic이
+// 관계운)/tarot_yesno(YES-NO) 3개 도메인이 있다. 레거시 경로는 topic이
 // 연애 계열(love/reunion/crush/marriage)이면 tarot_love를, 그 외에는 tarot를
-// 사용한다.
+// 사용한다. 신규 경로는 tarot_topics.prompt_domain 컬럼을 그대로 사용한다.
 //
 // [운세 카테고리 확장] spreadType === "yes_no"이면 무조건 tarot_yesno 도메인을
-// 사용하고(topic 무관), 카드 1장의 정/역방향으로 answer(YES/NO)를 결정론적으로
-// 계산해 응답에 포함한다. 기존 one_card/three_card 흐름은 완전히 그대로 유지된다.
+// 사용하고(topic 무관, 레거시 경로 한정 — 신규 경로는 prompt_domain 사용),
+// 카드 1장의 정/역방향으로 answer(YES/NO)를 결정론적으로 계산해 응답에
+// 포함한다. 기존 one_card/three_card 흐름은 완전히 그대로 유지된다.
 //
 // [무료 광고형 구조 재정비 §신규발견] 타로 리딩은 복주머니(포인트)를 소비하지 않는다.
 // 과거 point_policies(ai_tarot_request) 기반 차감→즉시환급 로직은 "복주머니는
@@ -24,11 +41,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { completeText, LlmClientError } from "@/lib/llm-client";
 import { checkCategoryUsage, checkDailyAbsoluteLimit, consumeCategoryUsage } from "@/lib/open-pass-service";
+import { drawFromFullDeck } from "@/lib/tarot/card-draw-engine";
+import { getTopicWithPositions, buildTopicSummaryPrompt } from "@/lib/tarot/narrative-engine";
 
 export const dynamic = "force-dynamic";
 
 const CORS_HEADERS = { "Access-Control-Allow-Origin": "*" };
 
+// ══════════════════════════════════════════════════════════════════
+// [레거시 경로] 기존 15장 DECK + 결정론적 추첨. tarot_topics에 매칭되지
+// 않는 주제(60개 미검증 주제 + general 등)는 이 경로를 그대로 사용한다.
+// ══════════════════════════════════════════════════════════════════
 const DECK: { name: string; nameKr: string; up: string; down: string }[] = [
   { name: "The Fool", nameKr: "바보", up: "새로운 시작과 자유로운 도전", down: "무모한 행동이나 준비 부족 주의" },
   { name: "The Magician", nameKr: "마법사", up: "스스로의 능력과 의지로 원하는 것을 이루는 힘", down: "재능을 낭비하거나 자만하는 태도 주의" },
@@ -57,7 +80,7 @@ function hashSeed(input: string): number {
   return Math.abs(h);
 }
 
-function drawCards(question: string, count: number) {
+function drawLegacyCards(question: string, count: number) {
   const seed = hashSeed(question);
   const indices: number[] = [];
   let cursor = seed;
@@ -101,12 +124,7 @@ export async function POST(request: NextRequest) {
 
   const userId = Number(body.userId ?? 1);
   const question = body.question?.trim();
-  const spreadType =
-    body.spreadType === "three_card"
-      ? "three_card"
-      : body.spreadType === "yes_no"
-        ? "yes_no"
-        : "one_card";
+  const rawSpreadType = body.spreadType ?? "one_card";
   const topic = body.topic ?? "general";
 
   if (!Number.isInteger(userId) || userId <= 0) {
@@ -139,12 +157,40 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // ── [신통방통 타로 65종 주제 연동] 신규 vs 레거시 경로 분기 판정 ──
+  // topic(Flutter가 보내는 값)이 tarot_topics.topic_key와 매칭되면 신규
+  // 엔진 경로. 매칭 실패하면 완전히 기존 레거시 경로로 처리한다.
+  const pilotTopic = await getTopicWithPositions(topic);
+
   // ── [STEP8 - 프리패스 카테고리별 이용횟수 검증] ──
   // fortune_categories에는 tarot/tarot_yesno/tarot_love 3개 category_key가 별도로
   // 존재하므로, 아래 domain 산출과 동일한 규칙으로 categoryKey를 미리 결정해
   // 카테고리별로 독립적으로 카운트한다(예: 종합 타로 2회 소진해도 YES/NO는 별도 2회 이용 가능).
-  const categoryKey =
-    spreadType === "yes_no" ? "tarot_yesno" : LOVE_TOPICS.has(topic) ? "tarot_love" : "tarot";
+  // [신규 경로] pilotTopic이 있으면 promptDomain을 그대로 categoryKey로 사용해
+  // 기존 3개 카테고리 체계에 자연스럽게 편입시킨다(신규 categoryKey를 만들지
+  // 않음 — fortune_categories에 새 행을 추가하지 않고도 어뷰징 방지가 그대로 적용됨).
+  const spreadType = pilotTopic
+    ? rawSpreadType
+    : rawSpreadType === "three_card"
+      ? "three_card"
+      : rawSpreadType === "five_card"
+        ? "five_card"
+        : rawSpreadType === "yes_no"
+          ? "yes_no"
+          : "one_card";
+
+  const categoryKey = pilotTopic
+    ? pilotTopic.promptDomain === "tarot_yesno" || spreadType === "yes_no"
+      ? "tarot_yesno"
+      : pilotTopic.promptDomain === "tarot_love"
+        ? "tarot_love"
+        : "tarot"
+    : spreadType === "yes_no"
+      ? "tarot_yesno"
+      : LOVE_TOPICS.has(topic)
+        ? "tarot_love"
+        : "tarot";
+
   const usageCheck = await checkCategoryUsage(userId, categoryKey);
   if (!usageCheck.allowed) {
     return NextResponse.json(
@@ -163,72 +209,168 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // 1) 카드 뽑기(결정론적, LLM 연동 대상 아님)
-    const cardCount = spreadType === "three_card" ? 3 : 1;
-    const drawn = drawCards(question, cardCount);
-    const labels =
-      spreadType === "three_card"
-        ? ["과거", "현재", "미래"]
-        : spreadType === "yes_no"
-          ? ["답변"]
-          : ["오늘의 카드"];
-    const positions = drawn.map((card, i) => ({
-      label: labels[i],
-      card,
-      interpretation: card.meaning,
-    }));
-
-    // [YES/NO] 카드 정/역방향으로 결정론적 answer 산출(정방향=YES, 역방향=NO).
-    // YES/NO 스프레드가 아니면 undefined(응답 JSON에서 생략)로 기존 흐름과 동일하게 유지.
-    const answer =
-      spreadType === "yes_no" ? (drawn[0].isReversed ? "NO" : "YES") : undefined;
-
-    // 2) 총평(summary)만 LLM으로 생성
-    // YES/NO는 topic과 무관하게 항상 tarot_yesno 도메인을 사용한다.
-    const domain =
-      spreadType === "yes_no"
-        ? "tarot_yesno"
-        : LOVE_TOPICS.has(topic)
-          ? "tarot_love"
-          : "tarot";
-    const template = await prisma.aiPromptTemplate.findFirst({
-      where: { fortuneTypeOrDomain: domain, isActive: true },
-      select: { id: true, version: true, templateBody: true },
-    });
-
+    let positions: { label: string; card: { id: string; name: string; nameKr: string; isReversed: boolean; meaning?: string }; interpretation: string }[];
+    let answer: string | undefined;
     let summary = FALLBACK_SUMMARY;
-    if (template) {
-      const cardsDesc = positions
-        .map((p) => `${p.label}: ${p.card.nameKr}${p.card.isReversed ? "(역방향)" : "(정방향)"} - ${p.card.meaning}`)
-        .join("\n");
-      const spreadDesc =
-        spreadType === "three_card"
-          ? "3장(과거-현재-미래)"
-          : spreadType === "yes_no"
-            ? "YES/NO 1장"
-            : "1장";
-      const userPromptLines = [
-        `사용자 질문: ${question}`,
-        `타로 스프레드: ${spreadDesc}`,
-        `뽑힌 카드:\n${cardsDesc}`,
-      ];
-      if (answer) {
-        userPromptLines.push(
-          `카드가 가리키는 방향: ${answer}`,
-          "답변은 반드시 YES 또는 NO 방향을 먼저 명확히 밝히고, 그 이유와 행동 힌트를 함께 제시하세요. YES/NO만 단답으로 끝내지 마세요."
+    let template: { id: number; version: number; templateBody: string } | null = null;
+
+    if (pilotTopic) {
+      // ══════════════════════════════════════════════════════════════
+      // [신규 엔진 경로] Card Draw Engine(78장, 중복없음, 확정 후 불변)
+      // → AI Narrative Engine(topic/position 메타데이터 포함 프롬프트)
+      // ══════════════════════════════════════════════════════════════
+      if (
+        spreadType !== "one_card" &&
+        spreadType !== "three_card" &&
+        spreadType !== "five_card" &&
+        spreadType !== "yes_no"
+      ) {
+        return NextResponse.json(
+          { success: false, error: "지원하지 않는 스프레드입니다." },
+          { status: 400, headers: CORS_HEADERS }
         );
       }
-      userPromptLines.push("위 [기본 규칙]과 [출력 형식]을 그대로 지켜서 이 스프레드에 대한 총평을 작성해주세요.");
-      const userPrompt = userPromptLines.join("\n");
+      if (!pilotTopic.allowedSpreads.includes(spreadType)) {
+        return NextResponse.json(
+          { success: false, error: "이 주제에서 지원하지 않는 스프레드입니다." },
+          { status: 400, headers: CORS_HEADERS }
+        );
+      }
+      if (spreadType === "yes_no" && !pilotTopic.yesNoEnabled) {
+        return NextResponse.json(
+          { success: false, error: "이 주제에서는 YES/NO 스프레드를 지원하지 않습니다." },
+          { status: 400, headers: CORS_HEADERS }
+        );
+      }
 
-      try {
-        summary = await completeText({ systemPrompt: template.templateBody, userPrompt });
-      } catch (e) {
-        console.error("[POST /api/public/fortune/tarot] LLM 호출 실패:", e);
+      const positionMetas = pilotTopic.positionsBySpread[spreadType];
+      if (!positionMetas || positionMetas.length === 0) {
+        return NextResponse.json(
+          { success: false, error: "이 주제의 포지션 구성을 찾을 수 없습니다." },
+          { status: 500, headers: CORS_HEADERS }
+        );
+      }
+
+      // 1) Card Draw Engine — 78장 기준, 리딩 내 카드 중복 금지, 결정론적(질문+포지션수 시드)
+      const drawn = await drawFromFullDeck(question, positionMetas.length);
+
+      positions = drawn.map((card, i) => ({
+        label: positionMetas[i].positionName,
+        card: {
+          id: card.id,
+          name: card.name,
+          nameKr: card.nameKr,
+          isReversed: card.isReversed,
+        },
+        interpretation: card.meaning,
+      }));
+
+      answer =
+        spreadType === "yes_no" ? (drawn[0].isReversed ? "NO" : "YES") : undefined;
+
+      // 2) AI Narrative Engine — topic/position 전체 메타데이터를 프롬프트에 담아 전달.
+      // AI는 이미 확정된 카드에 대한 해석 텍스트만 생성하며, 카드 자체를 바꿀 수 없다.
+      template = await prisma.aiPromptTemplate.findFirst({
+        where: { fortuneTypeOrDomain: pilotTopic.promptDomain, isActive: true },
+        select: { id: true, version: true, templateBody: true },
+      });
+
+      if (template) {
+        const userPrompt = buildTopicSummaryPrompt({
+          topic: pilotTopic,
+          spreadType,
+          question,
+          drawnCards: drawn,
+          positionMetas,
+          answer,
+        });
+        try {
+          summary = await completeText({ systemPrompt: template.templateBody, userPrompt });
+        } catch (e) {
+          console.error("[POST /api/public/fortune/tarot] (신규경로) LLM 호출 실패:", e);
+        }
+      }
+    } else {
+      // ══════════════════════════════════════════════════════════════
+      // [레거시 경로] 기존 15장 DECK + 하드코딩 라벨 유지.
+      // [버그수정 §five_card] 기존에는 여기서 five_card가 처리되지 않아
+      // 무조건 one_card(1장)로 강제 변환되는 버그가 있었다(사용자 리포트:
+      // "5장/3장을 뽑았는데 1장만 나온다"). three_card/yes_no와 동일한
+      // 패턴으로 five_card 분기를 명시적으로 추가해 5장이 정상 반환되도록
+      // 수정. DECK.length(15) > 5이므로 drawLegacyCards의 중복방지 로직이
+      // 문제없이 5장을 뽑는다.
+      // ══════════════════════════════════════════════════════════════
+      const cardCount =
+        spreadType === "five_card" ? 5 : spreadType === "three_card" ? 3 : 1;
+      const drawn = drawLegacyCards(question, cardCount);
+      const labels =
+        spreadType === "five_card"
+          ? ["현재 상황", "숨겨진 영향", "장애물", "조언", "결과"]
+          : spreadType === "three_card"
+            ? ["과거", "현재", "미래"]
+            : spreadType === "yes_no"
+              ? ["답변"]
+              : ["오늘의 카드"];
+      positions = drawn.map((card, i) => ({
+        label: labels[i],
+        card,
+        interpretation: card.meaning,
+      }));
+
+      // [YES/NO] 카드 정/역방향으로 결정론적 answer 산출(정방향=YES, 역방향=NO).
+      answer =
+        spreadType === "yes_no" ? (drawn[0].isReversed ? "NO" : "YES") : undefined;
+
+      const domain =
+        spreadType === "yes_no"
+          ? "tarot_yesno"
+          : LOVE_TOPICS.has(topic)
+            ? "tarot_love"
+            : "tarot";
+      template = await prisma.aiPromptTemplate.findFirst({
+        where: { fortuneTypeOrDomain: domain, isActive: true },
+        select: { id: true, version: true, templateBody: true },
+      });
+
+      if (template) {
+        const cardsDesc = positions
+          .map((p) => `${p.label}: ${p.card.nameKr}${p.card.isReversed ? "(역방향)" : "(정방향)"} - ${p.card.meaning}`)
+          .join("\n");
+        const spreadDesc =
+          spreadType === "five_card"
+            ? "5장(현재 상황-숨겨진 영향-장애물-조언-결과)"
+            : spreadType === "three_card"
+              ? "3장(과거-현재-미래)"
+              : spreadType === "yes_no"
+                ? "YES/NO 1장"
+                : "1장";
+        const userPromptLines = [
+          `사용자 질문: ${question}`,
+          `타로 스프레드: ${spreadDesc}`,
+          `뽑힌 카드:\n${cardsDesc}`,
+        ];
+        if (answer) {
+          userPromptLines.push(
+            `카드가 가리키는 방향: ${answer}`,
+            "답변은 반드시 YES 또는 NO 방향을 먼저 명확히 밝히고, 그 이유와 행동 힌트를 함께 제시하세요. YES/NO만 단답으로 끝내지 마세요."
+          );
+        }
+        userPromptLines.push("위 [기본 규칙]과 [출력 형식]을 그대로 지켜서 이 스프레드에 대한 총평을 작성해주세요.");
+        const userPrompt = userPromptLines.join("\n");
+
+        try {
+          summary = await completeText({ systemPrompt: template.templateBody, userPrompt });
+        } catch (e) {
+          console.error("[POST /api/public/fortune/tarot] LLM 호출 실패:", e);
+        }
       }
     }
 
     // 3) DB 트랜잭션: fortune_requests/results 기록(포인트 차감 없음)
+    // [어뷰징 방지] reading_id는 fortuneRequest.id 생성 시점에 고유하게 확정되고,
+    // positions(확정된 카드)는 resultMeta에 그대로 스냅샷 저장되어 이후 절대
+    // 변경되지 않는다. "재뽑기"는 이 트랜잭션과 무관한 별도의 새 POST 요청
+    // (= 별도 리딩)으로만 가능하다.
     const outcome = await prisma.$transaction(async (tx) => {
       const wallet = await tx.wallet.findFirst({
         where: { userId, currencyType: "POINT", deletedAt: null },
