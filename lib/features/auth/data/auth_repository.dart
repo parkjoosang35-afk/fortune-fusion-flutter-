@@ -129,8 +129,9 @@ class AuthRepository {
   /// 로그인이 성립하지 않는다(가짜 성공 처리 금지 원칙 유지).
   Future<ApiResult<UserModel>> socialLogin(
     String provider,
-    String accessToken,
-  ) async {
+    String accessToken, {
+    String tokenType = 'id_token',
+  }) async {
     final uri = Uri.parse('$_base/social-login');
     try {
       final response = await http
@@ -140,6 +141,9 @@ class AuthRepository {
             body: jsonEncode({
               'provider': provider,
               'accessToken': accessToken,
+              // [웹 소셜로그인 활성화] 구글 웹은 idToken 대신 accessToken을
+              // 보내므로 서버가 검증 엔드포인트를 구분할 수 있게 표시한다.
+              'tokenType': tokenType,
             }),
           )
           .timeout(const Duration(seconds: 10));

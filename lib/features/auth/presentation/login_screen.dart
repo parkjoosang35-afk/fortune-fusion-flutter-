@@ -105,6 +105,7 @@ class _LoginScreenState extends State<LoginScreen> {
       final ok = await context.read<AuthProvider>().loginWithSocial(
         authResult.provider,
         authResult.accessToken,
+        tokenType: authResult.tokenType,
       );
       setState(() => _isSubmitting = false);
       if (!mounted) return;

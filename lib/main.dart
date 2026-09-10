@@ -50,12 +50,17 @@ Future<void> main() async {
   if (!kIsWeb) {
     MobileAds.instance.initialize();
   }
-  // [카카오 간편로그인] 카카오 SDK 초기화. kakao_flutter_sdk_user는 Web
-  // 플랫폼도 지원하지만(JS SDK 브리지), 이번 로드맵은 Android 우선이라
-  // Android에서만 초기화한다(Web에서 초기화하면 index.html에 카카오
-  // JS SDK <script> 태그 추가가 별도로 필요해 범위 밖으로 남겨둔다).
-  if (!kIsWeb) {
-    KakaoSdk.init(nativeAppKey: SocialAuthConfig.kakaoNativeAppKey);
-  }
+  // [카카오 간편로그인 - 웹 활성화] 카카오 SDK 초기화. kakao_flutter_sdk_common의
+  // `KakaoSdk.appKey`는 플랫폼별로 다른 키를 사용한다(kIsWeb ?
+  // javaScriptAppKey : nativeAppKey) — 그래서 두 값을 모두 전달해야
+  // Android/Web 양쪽에서 각자 올바른 키로 동작한다. 웹에서 실제로 로그인이
+  // 성공하려면 SocialAuthConfig.kakaoJavaScriptAppKey에 카카오 디벨로퍼스
+  // 콘솔에서 발급받은 JavaScript 키를 채워 넣어야 한다(비어 있으면 카카오
+  // 서버가 client_id 오류를 반환하며, 이는 이 SDK 초기화만으로 해결되지
+  // 않는 별도 조치가 필요한 부분이다).
+  KakaoSdk.init(
+    nativeAppKey: SocialAuthConfig.kakaoNativeAppKey,
+    javaScriptAppKey: SocialAuthConfig.kakaoJavaScriptAppKey,
+  );
   runApp(const App());
 }
