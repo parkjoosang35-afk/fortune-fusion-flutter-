@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../application/tarot_session_controller.dart';
 import '../domain/tarot_category_model.dart';
+import '../domain/tarot_suggested_questions.dart';
 import 'oz/oz_theme.dart';
 import 'oz/widgets/oz_background.dart';
 import 'oz/widgets/oz_chip.dart';
@@ -12,9 +13,14 @@ import 'oz/widgets/oz_topbar.dart';
 /// [타로 오즈 리스킨 · 화면04 ASK] 질문 입력 화면.
 ///
 /// 순수 리스킨: 필드/로직(질문 입력·스프레드·주제 선택, [_submit] 전체
-/// 로직, `_validSpreadTypes`/`_topicOptions`/`_presetQuestions` 데이터,
-/// initState의 fallback 로직)은 그대로 유지하고 위젯 트리만 오즈 스타일로
-/// 교체한다.
+/// 로직, `_validSpreadTypes`/`_topicOptions` 데이터, initState의 fallback
+/// 로직)은 그대로 유지하고 위젯 트리만 오즈 스타일로 교체한다.
+///
+/// [65종 타로 리딩엔진 §질문칩 주제별 차별화 - 버그 수정] 기존
+/// `_presetQuestions`(고정 4문구)는 선택된 65개 주제와 무관하게 항상
+/// 동일했다("65개 타로 = 65개 독립 리딩" 원칙 위배). [_suggestedQuestions]
+/// getter로 대체해 `TarotSuggestedQuestions.forTopic(_topic)`을 통해
+/// 주제별로 다른 추천 질문이 노출되도록 수정.
 class TarotQuestionScreen extends StatefulWidget {
   const TarotQuestionScreen({
     super.key,
@@ -42,14 +48,14 @@ class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
     'yes_no',
   };
 
-  static const _presetQuestions = [
-    '오늘 하루는 어떨까요?',
-    '지금 이 고민, 어떻게 풀어가야 할까요?',
-    '연애운이 궁금해요',
-    '이 선택이 맞을까요?',
-  ];
-
   static const _topicOptions = [('general', '종합'), ('love', '감정/연애')];
+
+  // [65종 타로 리딩엔진 §질문칩 주제별 차별화] 선택된 `_topic`에 맞는
+  // 추천 질문 3개(또는 매핑 없을 시 레거시 4개 범용 문구)를 반환한다.
+  // 주제를 바꿔 선택할 때마다 이 값도 함께 바뀌어야 하므로 build()에서
+  // 매번 새로 조회하는 getter로 둔다.
+  List<String> get _suggestedQuestions =>
+      TarotSuggestedQuestions.forTopic(_topic);
 
   // [65종 타로 리딩엔진 §계획3→§51/§61 감사 후 확장] 65개 카테고리 중
   // daily_direction_of_choice(A/B 양자택일, 별도 개발 대상)를 제외한 64개는
@@ -246,7 +252,7 @@ class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
                         Wrap(
                           spacing: OzTokens.spaceSm,
                           runSpacing: OzTokens.spaceSm,
-                          children: _presetQuestions
+                          children: _suggestedQuestions
                               .map(
                                 (q) => _PresetChip(
                                   label: q,
