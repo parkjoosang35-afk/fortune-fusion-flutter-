@@ -29,16 +29,14 @@ class SocialAuthConfig {
   /// kakao_flutter_sdk_common의 `KakaoSdk.appKey`는 웹 플랫폼에서 이 값을
   /// 사용한다(kIsWeb ? javaScriptAppKey : nativeAppKey).
   ///
-  /// ⚠️ TODO(운영자 조치 필요): 아래 값은 아직 비어 있다. 카카오 로그인이
-  /// 웹(sintong.kr/app)에서 실제로 동작하려면:
-  ///   1) 카카오 디벨로퍼스(https://developers.kakao.com) > 내 애플리케이션 >
-  ///      앱 설정 > 플랫폼에서 "Web" 플랫폼을 추가하고 사이트 도메인을
-  ///      `https://sintong.kr`로 등록한다.
-  ///   2) 앱 설정 > 요약 정보에서 "JavaScript 키"를 복사해 아래 상수에
-  ///      채워 넣는다(빈 문자열로 두면 웹에서 카카오 로그인 시도 시 카카오
-  ///      서버가 "잘못된 클라이언트(client_id 없음)" 오류를 반환한다).
-  ///   3) 카카오 로그인 > Redirect URI에 `https://sintong.kr/app/`(또는
-  ///      실제 배포 경로)를 등록해야 할 수 있다(카카오계정 로그인 팝업
-  ///      완료 후 리다이렉트에 필요).
-  static const String kakaoJavaScriptAppKey = '';
+  /// 카카오 디벨로퍼스 > 신통방통(App ID 1571801) > 플랫폼 키 > JavaScript
+  /// 키(Default JS Key)에서 발급받은 값. Web 플랫폼(사이트 도메인
+  /// `https://sintong.kr`) 등록 후 발급됨.
+  ///
+  /// ⚠️ TODO(운영자 조치 필요): 카카오 로그인 > Redirect URI에
+  /// `https://sintong.kr/app/`(또는 실제 배포 경로)가 등록되어 있는지
+  /// 별도로 확인이 필요하다(카카오계정 로그인 팝업 완료 후 리다이렉트에
+  /// 필요할 수 있음).
+  static const String kakaoJavaScriptAppKey =
+      '76a00e4de08a24efb9a944d81ad9f19f';
 }
