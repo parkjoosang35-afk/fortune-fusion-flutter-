@@ -112,6 +112,11 @@ export async function POST(request: NextRequest) {
     question?: string;
     spreadType?: string;
     topic?: string;
+    // [65종 타로 리딩엔진 §계획4 A/B 양자택일] choice_ab 스프레드 전용 —
+    // 사용자가 비교하려는 두 선택지의 실제 텍스트. daily_direction_of_choice
+    // 주제에서만 사용되며, 다른 스프레드에서는 무시된다.
+    optionA?: string;
+    optionB?: string;
   };
   try {
     body = await request.json();
@@ -126,6 +131,8 @@ export async function POST(request: NextRequest) {
   const question = body.question?.trim();
   const rawSpreadType = body.spreadType ?? "one_card";
   const topic = body.topic ?? "general";
+  const optionA = body.optionA?.trim();
+  const optionB = body.optionB?.trim();
 
   if (!Number.isInteger(userId) || userId <= 0) {
     return NextResponse.json(
@@ -223,7 +230,8 @@ export async function POST(request: NextRequest) {
         spreadType !== "one_card" &&
         spreadType !== "three_card" &&
         spreadType !== "five_card" &&
-        spreadType !== "yes_no"
+        spreadType !== "yes_no" &&
+        spreadType !== "choice_ab"
       ) {
         return NextResponse.json(
           { success: false, error: "지원하지 않는 스프레드입니다." },
@@ -242,6 +250,22 @@ export async function POST(request: NextRequest) {
           { status: 400, headers: CORS_HEADERS }
         );
       }
+      // [65종 타로 리딩엔진 §계획4 A/B 양자택일] choice_ab는 isChoiceAb=true인
+      // 주제에서만 허용하고, 비교할 두 선택지 텍스트가 반드시 필요하다.
+      if (spreadType === "choice_ab") {
+        if (!pilotTopic.isChoiceAb) {
+          return NextResponse.json(
+            { success: false, error: "이 주제에서는 A/B 양자택일 스프레드를 지원하지 않습니다." },
+            { status: 400, headers: CORS_HEADERS }
+          );
+        }
+        if (!optionA || !optionB) {
+          return NextResponse.json(
+            { success: false, error: "비교할 두 선택지(optionA, optionB)를 모두 입력해주세요." },
+            { status: 400, headers: CORS_HEADERS }
+          );
+        }
+      }
 
       const positionMetas = pilotTopic.positionsBySpread[spreadType];
       if (!positionMetas || positionMetas.length === 0) {
@@ -251,8 +275,14 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // 1) Card Draw Engine — 78장 기준, 리딩 내 카드 중복 금지, 결정론적(질문+포지션수 시드)
-      const drawn = await drawFromFullDeck(question, positionMetas.length);
+      // 1) Card Draw Engine — 78장 기준, 리딩 내 카드 중복 금지, 결정론적(시드) 추첨.
+      // [choice_ab] 선택지 텍스트가 바뀌면 카드도 달라져야 하므로(같은 질문이라도
+      // "이직한다"/"그대로 있는다"를 서로 다른 선택지로 바꿔 다시 물으면 새 리딩이
+      // 되어야 한다), 시드에 optionA/optionB를 포함시킨다. 5개 포지션(A현재/A결과/
+      // B현재/B결과/최종조언)을 여전히 78장 중 중복없이 한 번에 추첨한다.
+      const drawSeed =
+        spreadType === "choice_ab" ? `${question}::${optionA}::${optionB}` : question;
+      const drawn = await drawFromFullDeck(drawSeed, positionMetas.length);
 
       positions = drawn.map((card, i) => ({
         label: positionMetas[i].positionName,
@@ -283,6 +313,8 @@ export async function POST(request: NextRequest) {
           drawnCards: drawn,
           positionMetas,
           answer,
+          optionA: spreadType === "choice_ab" ? optionA : undefined,
+          optionB: spreadType === "choice_ab" ? optionB : undefined,
         });
         try {
           summary = await completeText({ systemPrompt: template.templateBody, userPrompt });
@@ -386,7 +418,7 @@ export async function POST(request: NextRequest) {
         data: {
           userId,
           fortuneType: "tarot",
-          inputPayload: JSON.stringify({ question, spreadType, topic }),
+          inputPayload: JSON.stringify({ question, spreadType, topic, optionA, optionB }),
           sourceType: "ai_generated",
           pointSpent: cost,
           status: "success",
@@ -426,6 +458,10 @@ export async function POST(request: NextRequest) {
           topic,
           positions,
           answer,
+          // [65종 타로 리딩엔진 §계획4 A/B 양자택일] choice_ab가 아닐 때는
+          // undefined -> JSON에서 필드 자체가 생략되어 기존 응답과 100% 동일.
+          optionA: spreadType === "choice_ab" ? optionA : undefined,
+          optionB: spreadType === "choice_ab" ? optionB : undefined,
           summary,
           createdAt: outcome.createdAt.toISOString(),
           balance: outcome.balance,

@@ -93,17 +93,26 @@ export function buildTopicSummaryPrompt(params: {
   drawnCards: DrawnCard[];
   positionMetas: PositionMeta[];
   answer?: string;
+  // [65종 타로 리딩엔진 §계획4 A/B 양자택일] choice_ab 스프레드 전용 —
+  // 사용자가 입력한 두 선택지의 실제 텍스트(예: "이직한다" / "그대로 있는다").
+  // AI 프롬프트에 그대로 노출해, "선택 A"/"선택 B"라는 추상 라벨이 아니라
+  // 실제 선택지를 근거로 비교 조언을 생성하게 한다.
+  optionA?: string;
+  optionB?: string;
 }): string {
-  const { topic, spreadType, question, drawnCards, positionMetas, answer } = params;
+  const { topic, spreadType, question, drawnCards, positionMetas, answer, optionA, optionB } =
+    params;
 
   const spreadDesc =
-    spreadType === "five_card"
-      ? `5장(${positionMetas.map((p) => p.positionName).join("-")})`
-      : spreadType === "three_card"
-        ? `3장(${positionMetas.map((p) => p.positionName).join("-")})`
-        : spreadType === "yes_no"
-          ? "YES/NO 1장"
-          : "1장";
+    spreadType === "choice_ab"
+      ? `A/B 양자택일 5장(${positionMetas.map((p) => p.positionName).join("-")})`
+      : spreadType === "five_card"
+        ? `5장(${positionMetas.map((p) => p.positionName).join("-")})`
+        : spreadType === "three_card"
+          ? `3장(${positionMetas.map((p) => p.positionName).join("-")})`
+          : spreadType === "yes_no"
+            ? "YES/NO 1장"
+            : "1장";
 
   const cardsDesc = drawnCards
     .map((card, i) => {
@@ -129,6 +138,16 @@ export function buildTopicSummaryPrompt(params: {
     "",
     cardsDesc,
   ];
+
+  if (spreadType === "choice_ab" && optionA && optionB) {
+    lines.push(
+      "",
+      `선택지 A: ${optionA}`,
+      `선택지 B: ${optionB}`,
+      "위 5장 중 앞의 2장(선택 A 현재/결과 흐름)은 선택지 A를 골랐을 때의 카드이고, 다음 2장(선택 B 현재/결과 흐름)은 선택지 B를 골랐을 때의 카드이며, 마지막 1장(최종 조언)은 두 선택을 비교한 종합 조언 카드다.",
+      "반드시 선택지 A와 선택지 B 각각의 흐름을 먼저 요약하고, 마지막에 두 선택지 중 어느 쪽이 더 나은 흐름인지 비교해 명확한 조언을 제시하라. 단, 사용자의 최종 결정을 대신 강요하지 말고 참고할 방향을 제안하는 톤으로 작성하라."
+    );
+  }
 
   if (answer) {
     lines.push(
