@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { verifyAdminSession } from "@/lib/dal";
 import { canAccessMenu, RBAC_MATRIX } from "@/lib/rbac";
@@ -30,11 +31,19 @@ export default async function TarotCardsPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">타로카드 마스터 관리</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          타로 리딩에 사용되는 카드 마스터 데이터를 관리합니다. 총 {cards.length}장
-        </p>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">타로카드 마스터 관리</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            타로 리딩에 사용되는 카드 마스터 데이터를 관리합니다. 총 {cards.length}장
+          </p>
+        </div>
+        <Link
+          href="/ai-content/tarot-topics"
+          className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100"
+        >
+          타로 65개 주제 관리 →
+        </Link>
       </div>
 
       <TarotCardCreateForm canWrite={canWrite} />
