@@ -44,6 +44,7 @@ import { checkCategoryUsage, checkDailyAbsoluteLimit, consumeCategoryUsage } fro
 import { drawFromFullDeck } from "@/lib/tarot/card-draw-engine";
 import { getTopicWithPositions, buildTopicSummaryPrompt } from "@/lib/tarot/narrative-engine";
 import { matchTopicFromQuestion } from "@/lib/tarot/topic-matcher";
+import { validateTarotQuestion } from "@/lib/tarot/question-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -146,6 +147,27 @@ export async function POST(request: NextRequest) {
       { success: false, error: "question이 필요합니다." },
       { status: 400, headers: CORS_HEADERS }
     );
+  }
+
+  // ── [자유질문 무관 텍스트 리딩 생성 버그 수정 §1단계+2단계: 입력 형식 +
+  // 질문 의도 검증] ──
+  // "안녕하세요", "123456", "asdfgh", "ㅋㅋㅋ", "사과", "나는 오늘 밥을
+  // 먹었다"처럼 타로로 해석할 의도가 전혀 없는 입력은 카드 추첨/LLM
+  // 호출로 넘어가기 전에 여기서 차단한다. 클라이언트(Flutter)에서도
+  // 동일한 판정을 미리 보여줄 수 있지만, API를 직접 두들기는 우회를
+  // 막으려면 최종 차단은 반드시 여기(서버)에서 이루어져야 한다.
+  //
+  // [choice_ab 예외] daily_direction_of_choice 주제는 "질문" 자체보다
+  // optionA/optionB(비교할 두 선택지)가 핵심 입력이므로, question이
+  // 다소 짧거나 의문형이 아니어도(예: "이거 vs 저거") 차단하지 않는다.
+  if (rawSpreadType !== "choice_ab") {
+    const questionCheck = validateTarotQuestion(question);
+    if (!questionCheck.valid) {
+      return NextResponse.json(
+        { success: false, error: questionCheck.reason, reason: "INVALID_QUESTION" },
+        { status: 400, headers: CORS_HEADERS }
+      );
+    }
   }
 
   // ── [신통방통 타로 65종 주제 연동 §계획2 자유질문 자동매칭] ──
@@ -402,6 +424,16 @@ export async function POST(request: NextRequest) {
           );
         }
         userPromptLines.push("위 [기본 규칙]과 [출력 형식]을 그대로 지켜서 이 스프레드에 대한 총평을 작성해주세요.");
+        // [자유질문 무관 텍스트 리딩 생성 버그 수정 §3단계: 리딩 AI 자체 방어]
+        // 레거시 경로도 신규 경로(narrative-engine.ts)와 동일한 최후 방어선을
+        // 갖도록 동일한 취지의 지시를 추가한다.
+        userPromptLines.push(
+          "[사용자 질문 적절성에 대한 안전장치] 만약 위 \"사용자 질문\"이 타로 상담 " +
+            "질문으로 명백히 부적절하다면(예: 인사말, 의미 없는 문자, 타로/운세와 " +
+            "전혀 무관한 일반 서술문) 카드를 억지로 해석하거나 질문을 임의로 " +
+            "지어내지 말고, \"질문을 다시 입력해주세요\"라는 취지로 짧게 안내하는 " +
+            "문장만 작성하라."
+        );
         const userPrompt = userPromptLines.join("\n");
 
         try {
