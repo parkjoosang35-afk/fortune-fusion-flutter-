@@ -140,10 +140,31 @@ class _IntroPagerScreenState extends State<IntroPagerScreen> {
     );
   }
 
+  // [5차 수정 - dots/버튼 미표시 버그 근본 해결]
+  // 기존에는 Column[Expanded(콘텐츠), dots, 버튼] 구조였다. 콘텐츠
+  // (IntroPageContent) 내부에서 자체적으로 오버플로우를 스크롤 처리하고
+  // 있음에도, 데스크톱 목업(WebMobileFrame)이 강제하는 특정 논리 뷰포트
+  // 높이(예: 1280x800 창에서 계산되는 배율)에서는 dots/버튼이 화면에
+  // 전혀 나타나지 않는 문제가 있었다. 원인을 렌더러 버그로 의심해
+  // Transform.scale→FittedBox 교체까지 시도했으나 재현되어, 실제로는
+  // "콘텐츠 영역이 필요로 하는 공간이 가용 공간보다 커서 하단 형제
+  // 위젯이 밀려나는" 통상적인 레이아웃 문제였음이 최종 확인되었다.
+  //
+  // 해결: dots/버튼을 Column의 순차 배치 흐름에서 완전히 분리해 Stack +
+  // Positioned(bottom: 0)로 화면 하단에 고정한다. 콘텐츠는
+  // Positioned.fill(bottom: 하단 예약 높이)로 남은 영역을 모두 차지하고
+  // 내부에서 스스로 스크롤하므로, 위쪽 콘텐츠가 아무리 넘쳐도 dots/버튼은
+  // 어떤 뷰포트/배율에서도 항상 화면에 고정되어 보인다.
+  static const double _bottomBarHeight = 12 + 44 + 16 + 52; // dots+버튼 예약 높이
+
   Widget _buildPage2(IntroConfigModel config) {
-    return Column(
+    return Stack(
       children: [
-        Expanded(
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 0,
+          bottom: _bottomBarHeight,
           child: IntroPageContent(
             eyebrow: 'CHAPTER · N°01',
             characterAsset: 'assets/images/home/doryeong/crystal.png',
@@ -158,18 +179,31 @@ class _IntroPagerScreenState extends State<IntroPagerScreen> {
             subtitle: config.card1Description,
           ),
         ),
-        const SizedBox(height: 12),
-        IntroProgressDots(activeIndex: 1),
-        const SizedBox(height: 16),
-        _buildNextButton(),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IntroProgressDots(activeIndex: 1),
+              const SizedBox(height: 16),
+              _buildNextButton(),
+            ],
+          ),
+        ),
       ],
     );
   }
 
   Widget _buildPage3(IntroConfigModel config) {
-    return Column(
+    return Stack(
       children: [
-        Expanded(
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 0,
+          bottom: _bottomBarHeight,
           child: IntroPageContent(
             eyebrow: 'CHAPTER · N°02',
             characterAsset: 'assets/images/home/doryeong/scroll.png',
@@ -186,10 +220,19 @@ class _IntroPagerScreenState extends State<IntroPagerScreen> {
             alignTop: true,
           ),
         ),
-        const SizedBox(height: 12),
-        IntroProgressDots(activeIndex: 2),
-        const SizedBox(height: 16),
-        _buildNextButton(),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IntroProgressDots(activeIndex: 2),
+              const SizedBox(height: 16),
+              _buildNextButton(),
+            ],
+          ),
+        ),
       ],
     );
   }

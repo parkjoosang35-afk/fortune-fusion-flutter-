@@ -82,11 +82,6 @@ class WebMobileFrame extends StatelessWidget {
   static const double _horizontalPadding = 24; // 좌우 최소 여백
   static const double _verticalPadding = 24; // 위아래 최소 여백
 
-  // [임시 디버그용] scale 값이 인트로 dots/버튼 렌더링에 미치는 영향을
-  // 격리 검증하기 위해 계산된 scale을 무시하고 강제로 특정 값을 쓴다.
-  // null이면 정상 동작(자동 계산). 검증 완료 후 반드시 null로 되돌린다.
-  static const double? _debugForceScale = null;
-
   static const Color _bodyColor = Color(0xFF0B0B12);
   static const Color _bodyEdgeColor = Color(0xFF3A3A46);
   static const Color _notchColor = Color(0xFF15141F);
@@ -119,9 +114,19 @@ class WebMobileFrame extends StatelessWidget {
         final rawScale = scaleByWidth < scaleByHeight
             ? scaleByWidth
             : scaleByHeight;
-        final scale =
-            _debugForceScale ?? rawScale.clamp(_minScale, _maxScale);
+        final scale = rawScale.clamp(_minScale, _maxScale);
 
+        // [4차 수정 - Transform.scale 렌더링 버그 회피] 기존에는
+        // SizedBox + Transform.scale로 확대/축소했는데, 특정 비-정수
+        // scale 값(대략 0.78~0.88 구간)에서 Flutter Web(canvaskit)
+        // 렌더러가 Transform.scale + ClipRRect + Stack이 겹친 내부
+        // 구조를 잘못 페인팅해 dots/버튼 등 일부 자식이 화면에 그려지지
+        // 않는 문제가 있었다(오버플로우나 예외 없이 조용히 실패).
+        // FittedBox(fit: BoxFit.contain)는 Transform이 아니라 레이아웃
+        // 단계에서 크기를 결정하므로 이 버그를 근본적으로 회피한다.
+        // RepaintBoundary로 감싸 별도 레이어에서 합성하게 하여 부모
+        // 트리의 리페인트가 이 영역의 캐시된 래스터에 영향을 주지
+        // 않도록 한다(추가 안정성).
         return DecoratedBox(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
@@ -131,21 +136,17 @@ class WebMobileFrame extends StatelessWidget {
             ),
           ),
           child: Center(
-            // 실제로 화면에 할당되는 최종 크기 = 디자인 기준 크기 × 배율.
-            // Transform.scale 자체는 그려지는 모양만 바꾸고 레이아웃이
-            // 차지하는 공간은 바꾸지 않으므로, 바깥 SizedBox를 배율이
-            // 반영된 최종 크기로 명시해줘야 Center가 정확히 중앙에
-            // 배치하고 다른 위젯과 공간을 올바르게 나눠 쓴다.
             child: SizedBox(
               width: _designFrameWidth * scale,
               height: _designFrameHeight * scale,
-              child: Transform.scale(
-                scale: scale,
-                alignment: Alignment.center,
-                child: SizedBox(
-                  width: _designFrameWidth,
-                  height: _designFrameHeight,
-                  child: _PhoneBody(child: child),
+              child: RepaintBoundary(
+                child: FittedBox(
+                  fit: BoxFit.contain,
+                  child: SizedBox(
+                    width: _designFrameWidth,
+                    height: _designFrameHeight,
+                    child: _PhoneBody(child: child),
+                  ),
                 ),
               ),
             ),
