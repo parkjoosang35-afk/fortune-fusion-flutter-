@@ -63,6 +63,11 @@ class TarotSessionState {
   final List<int> selectedSlotIndexes;
   final TarotResultModel? result;
   final String? errorMessage;
+  // [프리패스 카테고리 제한 안내 버그 수정] 서버 reason('CATEGORY_LIMIT_REACHED'
+  // 등)을 보존해, 화면단이 일반 오류(OOPS)와 "이용횟수 초과" 안내를 구분해
+  // 보여줄 수 있게 한다. pass_gate_helper.dart의 PassProvider.lastErrorReason과
+  // 동일한 패턴.
+  final String? errorReason;
 
   // [65종 타로 리딩엔진 §계획1 - choice_ab] A/B 양자택일 스프레드에서만
   // 질문화면(④)에서 입력받아 confirmQuestion()으로 함께 확정되는 두
@@ -80,6 +85,7 @@ class TarotSessionState {
     this.selectedSlotIndexes = const [],
     this.result,
     this.errorMessage,
+    this.errorReason,
     this.optionA,
     this.optionB,
   });
@@ -118,6 +124,7 @@ class TarotSessionState {
     List<int>? selectedSlotIndexes,
     TarotResultModel? result,
     String? errorMessage,
+    String? errorReason,
     bool clearError = false,
     String? optionA,
     String? optionB,
@@ -136,6 +143,7 @@ class TarotSessionState {
       selectedSlotIndexes: selectedSlotIndexes ?? this.selectedSlotIndexes,
       result: result ?? this.result,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      errorReason: clearError ? null : (errorReason ?? this.errorReason),
       optionA: clearOptions ? null : (optionA ?? this.optionA),
       optionB: clearOptions ? null : (optionB ?? this.optionB),
     );
@@ -261,6 +269,7 @@ class TarotSessionController extends ChangeNotifier {
         _state = _state.copyWith(
           status: TarotSessionStatus.error,
           errorMessage: providerState.errorMessage ?? '타로 리딩에 실패했습니다.',
+          errorReason: tarotProvider.lastErrorReason,
         );
       }
     } catch (e) {

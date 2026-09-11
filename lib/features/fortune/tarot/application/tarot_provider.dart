@@ -21,6 +21,12 @@ class TarotProvider extends ChangeNotifier {
   List<TarotResultModel> _history = [];
   List<TarotResultModel> get history => _history;
 
+  // [프리패스 카테고리 제한 안내 버그 수정] 서버가 draw() 실패 시 함께 내려주는
+  // reason('CATEGORY_LIMIT_REACHED' 등)을 보존한다. PassProvider.lastErrorReason과
+  // 동일한 목적 - 화면단이 "일반 오류"와 "이용횟수 초과"를 구분할 수 있게 한다.
+  String? _lastErrorReason;
+  String? get lastErrorReason => _lastErrorReason;
+
   String? _question;
   String _spreadType = 'one_card';
   String _topic = 'general';
@@ -63,8 +69,10 @@ class TarotProvider extends ChangeNotifier {
         : await _repository.drawOneCard(question: question);
 
     if (result.success && result.data != null) {
+      _lastErrorReason = null;
       _state = LoadState.success(result.data!);
     } else {
+      _lastErrorReason = result.errorCode;
       _state = LoadState.error(result.errorMessage ?? '타로 리딩에 실패했습니다.');
     }
     notifyListeners();

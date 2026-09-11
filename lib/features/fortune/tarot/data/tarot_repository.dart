@@ -108,8 +108,12 @@ class TarotRepository {
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
         final error = decoded['error'] as String? ?? '타로 리딩에 실패했습니다.';
+        // [프리패스 카테고리 제한 안내 버그 수정] 서버가 함께 내려주는
+        // reason('CATEGORY_LIMIT_REACHED' 등)을 errorCode로 함께 전달해야
+        // 화면단(TarotSessionController/tarot_card_select_screen)이 일반
+        // 에러(OOPS)와 "이용횟수 초과" 안내를 구분해 보여줄 수 있다.
         debugPrint('[TarotRepository] [_draw] 실패 -> $error');
-        return ApiResult.fail(error);
+        return ApiResult.fail(error, code: decoded['reason'] as String?);
       }
 
       final data = decoded['data'] as Map<String, dynamic>;

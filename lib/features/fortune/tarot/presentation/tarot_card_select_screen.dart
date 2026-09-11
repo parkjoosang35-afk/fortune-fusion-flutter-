@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../pass/presentation/pass_gate_helper.dart';
 import '../application/tarot_audio_controller.dart';
 import '../application/tarot_provider.dart';
 import '../application/tarot_session_controller.dart';
@@ -65,6 +66,25 @@ class _TarotCardSelectScreenState extends State<TarotCardSelectScreen>
         !_navigatedToLoading) {
       _navigatedToLoading = true;
       Navigator.of(context).pushReplacementNamed('/ai-fortune/tarot/loading');
+      return;
+    }
+    // [프리패스 카테고리 제한 안내 버그 수정] 카드를 다 고르고 실제 서버에
+    // 요청을 보낸 이 시점에야 "오늘 이 프리패스로 이용할 수 있는 횟수를
+    // 모두 사용했습니다" 같은 카테고리별 제한 초과가 확인되는 경우, 일반
+    // 오류(OOPS) 전체화면 대신 다른 운세 카테고리와 동일한 안내
+    // 다이얼로그([showCategoryLimitReachedSheet])를 보여주고 이전 화면으로
+    // 돌아간다.
+    final state = session.state;
+    if (state.status == TarotSessionStatus.error &&
+        state.errorReason == 'CATEGORY_LIMIT_REACHED') {
+      final title = state.category?.label ?? '타로';
+      await showCategoryLimitReachedSheet(
+        context,
+        categoryTitle: title,
+        message: state.errorMessage,
+      );
+      if (!mounted) return;
+      Navigator.of(context).pop();
     }
   }
 
