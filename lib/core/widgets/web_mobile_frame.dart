@@ -82,6 +82,11 @@ class WebMobileFrame extends StatelessWidget {
   static const double _horizontalPadding = 24; // 좌우 최소 여백
   static const double _verticalPadding = 24; // 위아래 최소 여백
 
+  // [임시 디버그용] scale 값이 인트로 dots/버튼 렌더링에 미치는 영향을
+  // 격리 검증하기 위해 계산된 scale을 무시하고 강제로 특정 값을 쓴다.
+  // null이면 정상 동작(자동 계산). 검증 완료 후 반드시 null로 되돌린다.
+  static const double? _debugForceScale = null;
+
   static const Color _bodyColor = Color(0xFF0B0B12);
   static const Color _bodyEdgeColor = Color(0xFF3A3A46);
   static const Color _notchColor = Color(0xFF15141F);
@@ -114,7 +119,8 @@ class WebMobileFrame extends StatelessWidget {
         final rawScale = scaleByWidth < scaleByHeight
             ? scaleByWidth
             : scaleByHeight;
-        final scale = rawScale.clamp(_minScale, _maxScale);
+        final scale =
+            _debugForceScale ?? rawScale.clamp(_minScale, _maxScale);
 
         return DecoratedBox(
           decoration: const BoxDecoration(
