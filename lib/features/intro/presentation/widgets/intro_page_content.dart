@@ -76,27 +76,45 @@ class IntroPageContent extends StatelessWidget {
         IntroEyebrowLabel(eyebrow),
         const SizedBox(height: 20),
         Expanded(
-          // [버그 수정 - 캐릭터/제목과 버튼 사이 거대한 빈 공간]
-          // SingleChildScrollView 내부의 Column은 mainAxisAlignment.center를
-          // 줘도 실제로는 항상 상단(0.0)에 배치된다(스크롤 가능 콘텐츠는
-          // "정렬" 개념이 없고 오프셋만 존재하기 때문). alignTop이 아닌
-          // 경우(페이지2) 콘텐츠를 화면 세로 중앙에 실제로 배치하려면
-          // SingleChildScrollView를 제거하고 Column 자체를
-          // mainAxisAlignment.center로 렌더링해야 한다. alignTop인 경우
-          // (페이지3)는 원래도 상단 정렬이 의도이므로, 콘텐츠가 화면보다
-          // 커질 수 있어 SingleChildScrollView(스크롤 가능)를 유지한다.
-          child: alignTop
-              ? SingleChildScrollView(
-                  physics: const NeverScrollableScrollPhysics(),
+          // [2차 버그 수정 - 데스크톱 목업(WebMobileFrame)에서 콘텐츠가 넘쳐
+          // dots+버튼이 화면 밖으로 밀려나는 문제]
+          // 과거(1차) 수정에서는 "짧은 콘텐츠가 항상 상단에 붙어 버튼과의
+          // 사이가 거대하게 빈다"는 문제를 고치기 위해 SingleChildScrollView를
+          // 제거하고 Column(mainAxisAlignment.center)만 사용했다. 그런데
+          // WebMobileFrame이 앱 내부를 고정 논리 캔버스(430x900)로 강제하는
+          // 환경 등, 실제 가용 높이가 콘텐츠 총 높이보다 작아지는 경우
+          // Column은 정렬 개념이 있을 뿐 "넘치는 만큼 줄여주는" 기능이 없어
+          // RenderFlex 오버플로우가 발생하고, 그 결과 형제 위젯인
+          // dots/버튼까지 화면 밖으로 밀려나 보이지 않게 되었다.
+          //
+          // 해결: LayoutBuilder + SingleChildScrollView +
+          // ConstrainedBox(minHeight: 가용 높이) 조합을 사용한다.
+          // - 콘텐츠가 가용 높이보다 짧으면: ConstrainedBox가 최소 높이를
+          //   가용 높이만큼 강제하므로, 내부 Column(center)이 실제로
+          //   중앙에 배치된다(1차 버그가 재발하지 않음).
+          // - 콘텐츠가 가용 높이보다 길면: SingleChildScrollView가 스크롤을
+          //   허용해 하드 오버플로우 없이 자연스럽게 넘치는 부분만 스크롤
+          //   가능해지고, Expanded가 차지하는 공간 자체는 변하지 않으므로
+          //   형제 위젯(dots/버튼)이 화면 밖으로 밀려나지 않는다(2차 버그
+          //   수정).
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                physics: alignTop
+                    ? const NeverScrollableScrollPhysics()
+                    : const ClampingScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
+                    mainAxisAlignment: alignTop
+                        ? MainAxisAlignment.start
+                        : MainAxisAlignment.center,
                     children: _contentChildren(),
                   ),
-                )
-              : Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: _contentChildren(),
                 ),
+              );
+            },
+          ),
         ),
       ],
     );
