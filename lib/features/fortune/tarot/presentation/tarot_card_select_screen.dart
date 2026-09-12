@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/widgets/app_dialog.dart';
 import '../../../pass/presentation/pass_gate_helper.dart';
 import '../application/tarot_audio_controller.dart';
 import '../application/tarot_provider.dart';
@@ -82,6 +83,23 @@ class _TarotCardSelectScreenState extends State<TarotCardSelectScreen>
         context,
         categoryTitle: title,
         message: state.errorMessage,
+      );
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      return;
+    }
+    // [자유질문 무관 텍스트 리딩 생성 버그 수정] 서버가 질문 자체를 부적절하다고
+    // 판단해 거부한 경우(INVALID_QUESTION)는 "다시 시도하기"로 같은 질문을
+    // 재전송해도 계속 동일하게 거부된다(질문 내용 자체가 원인이므로). 따라서
+    // 일반 오류(OOPS) 화면 대신 안내 다이얼로그를 보여준 뒤 질문 입력 화면으로
+    // 돌아가 사용자가 질문을 고쳐 쓰도록 한다.
+    if (state.status == TarotSessionStatus.error &&
+        state.errorReason == 'INVALID_QUESTION') {
+      await showAppInfoDialog(
+        context,
+        title: '질문을 다시 입력해주세요',
+        message: state.errorMessage ?? '타로로 궁금한 내용을 질문해주세요.',
+        confirmLabel: '질문 다시 쓰기',
       );
       if (!mounted) return;
       Navigator.of(context).pop();
