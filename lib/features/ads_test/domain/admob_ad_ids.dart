@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 /// [애드몹 테스트 연동] Google 공식 "테스트용" App ID / Ad Unit ID 모음.
 ///
@@ -42,4 +43,31 @@ class AdmobAdIds {
   static String get bannerUnitId => androidBannerTestId;
   static String get interstitialUnitId => androidInterstitialTestId;
   static String get rewardedUnitId => androidRewardedTestId;
+
+  /// [애드몹 실서비스 전환 준비 - 4번] 개발/QA용 "테스트 기기" 광고 ID 목록.
+  ///
+  /// [배경] 실제 AdMob 계정으로 전환한 뒤 개발자 본인 기기로 실제 광고를
+  /// 반복 클릭/시청하면 "무효 트래픽(invalid traffic)"으로 감지되어 최악의
+  /// 경우 AdMob 계정 자체가 정지될 수 있다. 이를 방지하려면 QA에 사용하는
+  /// 기기의 광고 ID(Advertising ID)를 여기 등록해 두면, 그 기기에서는 실제
+  /// 광고 대신 "Test Ad" 라벨이 붙은 안전한 테스트 광고만 노출된다.
+  ///
+  /// [등록 방법] 앱을 실제 AdMob App ID로 실행하면, 콘솔 로그에
+  /// "Use RequestConfiguration.Builder().setTestDeviceIds(Arrays.asList("XXXX"))"
+  /// 형태로 기기 ID가 출력된다. 그 ID를 아래 리스트에 추가하면 된다.
+  ///
+  /// [현재 상태] 아직 실제 AdMob 계정으로 전환하지 않아 비워둔 상태다.
+  /// 테스트 ID(androidRewardedTestId 등)로 광고를 띄우는 동안에는 이 설정이
+  /// 필요 없다(테스트 ID는 원래부터 항상 테스트 광고만 노출한다). 실제
+  /// Ad Unit ID로 교체하기 직전에 QA 기기 ID를 채워 넣을 것.
+  static const List<String> testDeviceIds = <String>[];
+
+  /// 앱 시작 시 1회 호출해 [testDeviceIds]를 SDK에 반영한다. 테스트 기기가
+  /// 비어 있으면(운영 전환 전) 아무 효과가 없으므로 항상 호출해도 안전하다.
+  static void applyRequestConfiguration() {
+    if (!isSupportedPlatform) return;
+    MobileAds.instance.updateRequestConfiguration(
+      RequestConfiguration(testDeviceIds: testDeviceIds),
+    );
+  }
 }

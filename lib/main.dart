@@ -6,6 +6,8 @@ import 'package:kakao_flutter_sdk_common/kakao_flutter_sdk_common.dart';
 import 'app.dart';
 import 'core/config/social_auth_config.dart';
 import 'core/router/guinji_deep_link_handler.dart';
+import 'features/ads_test/domain/admob_ad_ids.dart';
+import 'features/ads_test/domain/admob_consent_service.dart';
 import 'features/home/domain/saju_fortune_rules.dart';
 import 'features/home/domain/saju_interpreter.dart';
 import 'features/wish_room/domain/evening_bell_notification_service.dart';
@@ -42,13 +44,26 @@ Future<void> main() async {
   EveningBellNotificationService.initialize().then((_) {
     EveningBellNotificationService.syncFromSavedPreference();
   });
-  // [애드몹 테스트 연동] Google Mobile Ads SDK 초기화. Web 플랫폼은 SDK 자체가
-  // 지원되지 않으므로(google_mobile_ads는 Android/iOS 전용) kIsWeb일 때는
-  // 아예 호출하지 않는다 — 호출해도 즉시 실패하지만, 불필요한 콘솔 오류를
-  // 남기지 않기 위해 사전에 가드한다. await 하지 않는 이유는 다른 초기화
-  // (Hive/딥링크/알림)와 동일하게 앱 최초 프레임을 블로킹할 필요가 없어서다.
+  // [애드몹 실서비스 전환 준비] Google Mobile Ads SDK 초기화 전에 반드시
+  // UMP(사용자 동의) 절차를 먼저 거쳐야 한다 — EEA/영국 사용자에게는 동의를
+  // 받기 전에 개인화 광고를 요청하면 안 되기 때문이다(Google 정책 요구사항).
+  // `requestAndLoadIfRequired()`가 지역 판단 → (필요시) 동의 폼 표시 →
+  // 완료까지 전부 처리하며, 동의가 필요 없는 지역(한국 등)에서는 아무 UI도
+  // 뜨지 않고 즉시 넘어간다. Web 플랫폼은 SDK 자체가 지원되지 않으므로
+  // (google_mobile_ads는 Android/iOS 전용) kIsWeb일 때는 아예 호출하지
+  // 않는다. await 하지 않는 이유는 다른 초기화(Hive/딥링크/알림)와 동일하게
+  // 앱 최초 프레임을 블로킹할 필요가 없어서다 — 동의 폼이 필요한 경우
+  // 최초 프레임이 뜬 뒤에 자연스럽게 오버레이로 표시된다.
   if (!kIsWeb) {
-    MobileAds.instance.initialize();
+    AdmobConsentService.requestAndLoadIfRequired().then((canRequestAds) {
+      if (canRequestAds) {
+        // [테스트 기기 등록] 실제 계정 전환 시 무효 클릭 방지를 위해
+        // AdmobAdIds.testDeviceIds에 등록된 기기만 테스트 광고를 받도록
+        // 설정한다(현재는 빈 리스트라 운영에는 영향 없음).
+        AdmobAdIds.applyRequestConfiguration();
+        MobileAds.instance.initialize();
+      }
+    });
   }
   // [카카오 간편로그인 - 웹 활성화] 카카오 SDK 초기화. kakao_flutter_sdk_common의
   // `KakaoSdk.appKey`는 플랫폼별로 다른 키를 사용한다(kIsWeb ?

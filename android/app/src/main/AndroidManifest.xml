@@ -20,6 +20,13 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
 
+    <!-- [애드몹 실서비스 전환 준비 - 1번] Android 13(API 33)+ 기기에서 AdMob이
+         광고 식별자(Advertising ID)를 정상적으로 사용하려면 이 권한이 명시적으로
+         선언되어 있어야 한다. 이 권한이 없으면 targetSdk 33+ 기기에서 광고
+         식별자가 전부 0으로 채워져 광고 타겟팅/보상형 광고 성과가 정상 동작하지
+         않을 수 있다(Google Play 정책 요구사항이기도 하다). -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID"/>
+
     <application
         android:label="Fortune Fusion"
         android:name="${applicationName}"
