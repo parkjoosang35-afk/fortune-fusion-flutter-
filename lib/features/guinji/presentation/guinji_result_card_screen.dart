@@ -1,9 +1,7 @@
-import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/widgets/app_toast.dart';
@@ -26,10 +24,16 @@ import '../widgets/guinji_bg_atmosphere.dart';
 /// 카운트를 표시한다).
 ///
 /// [귀인지도 실구현] "이미지 저장"·"공유하기" 버튼은 `tarot_result_screen`
-/// 의 검증된 패턴(RepaintBoundary → PNG → path_provider 임시 파일 →
-/// share_plus 네이티브 공유 시트)을 그대로 재사용해 실제로 동작한다.
-/// 어떤 재화 지급도 이 화면에서는 발생하지 않는다(캡처·공유는 순수
-/// 클라이언트 로컬 동작).
+/// 의 검증된 패턴(RepaintBoundary → PNG → share_plus 네이티브 공유 시트)을
+/// 그대로 재사용해 실제로 동작한다. 어떤 재화 지급도 이 화면에서는 발생하지
+/// 않는다(캡처·공유는 순수 클라이언트 로컬 동작).
+///
+/// [타로 공유 안 되는 버그 수정과 동일 건] 과거에는 path_provider로 캡처
+/// 이미지를 디스크 임시 파일에 저장한 뒤 그 경로로 XFile을 만들어
+/// 공유했는데, path_provider는 Web 플랫폼을 지원하지 않는 패키지라(pub.dev
+/// platforms 목록에 web 없음) 웹 프리뷰/웹 배포에서 getTemporaryDirectory()
+/// 호출 자체가 예외를 던져 공유가 항상 실패했다. XFile.fromData()(메모리
+/// 기반, 모든 플랫폼 지원)로 바꿔 디스크 파일 저장 단계를 완전히 제거한다.
 class GuinjiResultCardScreen extends StatefulWidget {
   const GuinjiResultCardScreen({
     super.key,
@@ -69,15 +73,21 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       final bytes = byteData!.buffer.asUint8List();
 
-      final dir = await getTemporaryDirectory();
-      final file = await File(
-        '${dir.path}/guinji_result_${DateTime.now().millisecondsSinceEpoch}.png',
-      ).writeAsBytes(bytes);
+      final file = XFile.fromData(
+        bytes,
+        mimeType: 'image/png',
+        name: 'guinji_result_${DateTime.now().millisecondsSinceEpoch}.png',
+      );
 
-      await Share.shareXFiles([XFile(file.path)], text: '나의 귀인지도 · 신통방통');
+      await Share.shareXFiles([file], text: '나의 귀인지도 · 신통방통');
     } catch (_) {
       if (!mounted) return;
-      await Share.share('나의 귀인지도 · 신통방통');
+      try {
+        await Share.share('나의 귀인지도 · 신통방통');
+      } catch (_) {
+        if (!mounted) return;
+        AppToast.show(context, '공유하기를 지원하지 않는 환경입니다.');
+      }
     } finally {
       if (mounted) setState(() => _capturing = false);
     }

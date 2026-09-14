@@ -73,12 +73,12 @@ dependencies:
   # 바꿔 디스크 파일 저장 단계를 완전히 제거한다. XFile은 share_plus가
   # re-export하므로 cross_file을 별도로 의존성에 추가할 필요는 없다.
   share_plus: 10.1.4
-  # [주의] path_provider는 Web 플랫폼을 지원하지 않는다(pub.dev platforms에
-  # web 없음). 타로 화면(tarot_result_screen.dart)은 이 문제로 XFile.fromData()
-  # 방식으로 전환했지만, guinji_result_card_screen.dart가 여전히 이 패키지를
-  # 직접 사용하므로 의존성 자체는 유지한다. guinji 쪽도 동일 버그가 있을
-  # 가능성이 높음(별도 확인/수정 필요).
-  path_provider: 2.1.5
+  # [주의] path_provider는 Web 플랫폼을 지원하지 않는 패키지다(pub.dev
+  # platforms 목록에 web 없음). tarot_result_screen.dart와
+  # guinji_result_card_screen.dart 둘 다 이 문제로 XFile.fromData() 방식으로
+  # 전환해 더 이상 이 패키지를 사용하지 않으므로 의존성 자체를 제거했다.
+  # 앞으로 새 화면에서 임시 파일 경로가 필요해지면 다시 추가하되, 그 경우
+  # Web 플랫폼 지원이 필요한지 반드시 먼저 확인할 것.
 
   # [타로 섹션 전면 개편 §11 P5 사운드 시스템] 카드 셔플/탭/리빌 임팩트/
   # 저장완료/UI탭 등 짧은 SFX 재생용. Web/Android 모두 지원.
