@@ -252,6 +252,19 @@ class _SendPanelState extends State<_SendPanel> {
   String? _errorReason;
   bool _giftSealToo = false;
 
+  /// [복주머니 받는 사람 선택 — 사용자 명시적 요청("복주머니 받는 사람을
+  /// 선택할수 있게 해주고")] 기존에는 이 팝업을 연 진입점(리스트 행 Seal,
+  /// 상세화면 버튼 등)이 고정해서 넘겨준 [widget.wish] 하나만 대상이 될 수
+  /// 있었다. 실제로는 wish==null이면 [_send]가 이미 전송을 막고 있었지만
+  /// ("보내는 사람이 없는데도 보내지네"는 재현되지 않는 상태였음), "누구에게
+  /// 보내는지"를 사용자가 직접 고를 방법이 전혀 없어 불투명하게 느껴졌다.
+  /// 이제 진입 시 넘어온 wish를 "초기값"으로만 쓰고, 사용자가
+  /// [_pickRecipient]로 언제든 다른 공개 소원(=받는 사람)을 직접
+  /// 선택/변경할 수 있게 한다. 재화 로직([sendPouch])은 여전히 선택된
+  /// wish.id 단 하나에만 적용되므로(서버 트랜잭션 그대로), 이중 전송/새
+  /// 화폐 위험은 없다.
+  late WishPost? _selectedWish = widget.wish;
+
   static const int _perSendMax = 5;
 
   int get _balance => context.read<WishWallProvider>().policy.balance;
@@ -263,8 +276,32 @@ class _SendPanelState extends State<_SendPanel> {
     });
   }
 
+  /// 공개 피드([WishWallProvider.feed])에서 받는 사람(소원)을 직접 고르는
+  /// 팝업을 연다. 새 유저 검색 API를 만들지 않고, 서버가 이미 공개 상태로
+  /// 필터링해 내려주는 기존 피드 데이터를 그대로 재사용한다.
+  Future<void> _pickRecipient() async {
+    final provider = context.read<WishWallProvider>();
+    await provider.ensureLoaded();
+    if (!mounted) return;
+    final picked = await showModalBottomSheet<WishPost>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _RecipientPickerSheet(
+        wishes: provider.feed,
+        selectedId: _selectedWish?.id,
+      ),
+    );
+    if (picked != null && mounted) {
+      setState(() {
+        _selectedWish = picked;
+        _errorReason = null;
+      });
+    }
+  }
+
   Future<void> _send() async {
-    final wish = widget.wish;
+    final wish = _selectedWish;
     if (wish == null) return;
     final policy = context.read<WishWallProvider>().policy;
     final v = policy.validateSend(_amount);
@@ -331,7 +368,7 @@ class _SendPanelState extends State<_SendPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final wish = widget.wish;
+    final wish = _selectedWish;
     final balance = _balance;
     final canSend =
         wish != null &&
@@ -350,34 +387,12 @@ class _SendPanelState extends State<_SendPanel> {
 
     return ListView(
       controller: widget.scrollController,
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      padding: const EdgeInsets.fromLTRB(20, 16, 24, 24),
       children: [
         if (wish == null)
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: WishWallColors.bg2,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.info_outline,
-                  size: 16,
-                  color: WishWallColors.dim,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '소원 게시물을 먼저 열어서 복주머니를 보내보세요',
-                    style: WishWallText.caption(),
-                  ),
-                ),
-              ],
-            ),
-          )
+          _RecipientPickerPrompt(onTap: _pickRecipient)
         else
-          _TargetWishPreview(wish: wish),
+          _TargetWishPreview(wish: wish, onChangeTap: _pickRecipient),
         const SizedBox(height: 16),
         Text(
           wish == null ? '보낼 수량' : '이 소원병에 복주머니를 매달아 응원을 전해요',
@@ -592,9 +607,14 @@ class _SendPanelState extends State<_SendPanel> {
 /// 승인("니가 쓴 기획대로 다바꿔")에 따라 수신자 이름(또는 익명 표시)을
 /// 카드 상단에 명확한 문구로 노출한다. [WishPost.displayName]이 이미
 /// `isAnonymous`를 반영해 '익명'/실제 닉네임을 반환하므로 그대로 사용한다.
+///
+/// [받는 사람 선택 기능 추가] 우측 상단에 "변경" 버튼을 추가해, 이미 특정
+/// 소원이 지정된 상태에서도 사용자가 언제든 다른 받는 사람(소원)으로 바꿀
+/// 수 있게 한다([onChangeTap] → [_SendPanelState._pickRecipient]).
 class _TargetWishPreview extends StatelessWidget {
-  const _TargetWishPreview({required this.wish});
+  const _TargetWishPreview({required this.wish, required this.onChangeTap});
   final WishPost wish;
+  final VoidCallback onChangeTap;
 
   @override
   Widget build(BuildContext context) {
@@ -646,10 +666,324 @@ class _TargetWishPreview extends StatelessWidget {
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
+              InkWell(
+                onTap: onChangeTap,
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: WishWallColors.accentSoft,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: WishWallColors.accent.withValues(alpha: 0.4),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.swap_horiz_rounded,
+                        size: 14,
+                        color: WishWallColors.accent2,
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        '변경',
+                        style: WishWallText.caption(
+                          color: WishWallColors.accent2,
+                        ).copyWith(fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ],
       ),
+    );
+  }
+}
+
+/// [받는 사람 선택 기능 추가] wish==null(진입점이 대상을 지정하지 않음)일
+/// 때 표시되는 안내 카드. 기존에는 단순 안내 텍스트만 있고 전송 버튼이
+/// 비활성화 상태로 방치되어 "왜 안 보내지는지" 알기 어려웠다. 이제 카드
+/// 자체를 탭하면 바로 받는 사람 선택 팝업이 열리도록 명확한 CTA로 바꾼다.
+class _RecipientPickerPrompt extends StatelessWidget {
+  const _RecipientPickerPrompt({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: WishWallColors.accentSoft,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: WishWallColors.accent.withValues(alpha: 0.4),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.person_search_rounded,
+              size: 18,
+              color: WishWallColors.accent2,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '받는 사람을 선택해주세요',
+                    style: WishWallText.body().copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: WishWallColors.accent2,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '탭해서 소원 목록에서 골라보세요',
+                    style: WishWallText.caption(),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              size: 20,
+              color: WishWallColors.accent2,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// [받는 사람 선택 기능 추가 — 핵심 신규 UI] 공개 피드([WishWallProvider.feed])
+/// 목록에서 받는 사람(=소원)을 직접 골라 반환하는 바텀시트.
+///
+/// [설계 원칙] 새 "유저 검색" API/화폐/서버 로직을 전혀 추가하지 않는다.
+/// 서버(`/wishes/:id/bokju`)는 이미 특정 wish(=그 작성자)에게만 적립하도록
+/// 강제하므로(WISH_NOT_PUBLIC 검증 포함), 여기서는 기존에 이미 로드된 공개
+/// 피드 데이터를 재사용해 사용자가 "어떤 소원(=누구)에게 보낼지"를 눈으로
+/// 보고 고를 수 있게 할 뿐이다.
+class _RecipientPickerSheet extends StatefulWidget {
+  const _RecipientPickerSheet({required this.wishes, this.selectedId});
+  final List<WishPost> wishes;
+  final String? selectedId;
+
+  @override
+  State<_RecipientPickerSheet> createState() => _RecipientPickerSheetState();
+}
+
+class _RecipientPickerSheetState extends State<_RecipientPickerSheet> {
+  late final TextEditingController _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final q = _query.trim();
+    final filtered = q.isEmpty
+        ? widget.wishes
+        : widget.wishes
+              .where(
+                (w) =>
+                    w.displayName.contains(q) ||
+                    w.text.toLowerCase().contains(q.toLowerCase()),
+              )
+              .toList();
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.72,
+      minChildSize: 0.5,
+      maxChildSize: 0.92,
+      expand: false,
+      builder: (context, scrollController) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: WishWallColors.bg2,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              const SizedBox(height: 10),
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: WishWallColors.line2,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 14, 12, 0),
+                child: Row(
+                  children: [
+                    const Text('🎁', style: TextStyle(fontSize: 18)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '받는 사람 선택',
+                        style: WishWallText.title2().copyWith(fontSize: 17),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(
+                        Icons.close,
+                        size: 20,
+                        color: WishWallColors.ink,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 10),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (v) => setState(() => _query = v),
+                  style: WishWallText.body(),
+                  decoration: InputDecoration(
+                    hintText: '닉네임 또는 소원 내용으로 검색',
+                    hintStyle: WishWallText.caption(),
+                    prefixIcon: Icon(
+                      Icons.search_rounded,
+                      size: 18,
+                      color: WishWallColors.dim,
+                    ),
+                    filled: true,
+                    fillColor: WishWallColors.bg,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: WishWallColors.line),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: WishWallColors.line),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: WishWallColors.accent),
+                    ),
+                  ),
+                ),
+              ),
+              const Divider(height: 1, color: WishWallColors.line),
+              Expanded(
+                child: filtered.isEmpty
+                    ? Center(
+                        child: Text(
+                          q.isEmpty ? '보낼 수 있는 소원이 아직 없어요' : '검색 결과가 없어요',
+                          style: WishWallText.caption(),
+                        ),
+                      )
+                    : ListView.separated(
+                        controller: scrollController,
+                        padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
+                        itemCount: filtered.length,
+                        separatorBuilder: (_, _) =>
+                            const SizedBox(height: 10),
+                        itemBuilder: (context, i) {
+                          final w = filtered[i];
+                          final selected = w.id == widget.selectedId;
+                          return InkWell(
+                            onTap: () => Navigator.of(context).pop(w),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: selected
+                                    ? WishWallColors.accentSoft
+                                    : WishWallColors.bg,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: selected
+                                      ? WishWallColors.accent
+                                      : WishWallColors.line,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: w.categoryId.glassColor,
+                                      border: Border.all(
+                                        color: w.categoryId.corkColor,
+                                      ),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      w.isAnonymous ? '?' : w.authorAvatarEmoji,
+                                      style: const TextStyle(fontSize: 16),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          w.displayName,
+                                          style: WishWallText.body().copyWith(
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          w.text,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: WishWallText.caption(),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (selected)
+                                    Icon(
+                                      Icons.check_circle_rounded,
+                                      size: 20,
+                                      color: WishWallColors.accent2,
+                                    )
+                                  else
+                                    Icon(
+                                      Icons.chevron_right_rounded,
+                                      size: 20,
+                                      color: WishWallColors.dim,
+                                    ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
