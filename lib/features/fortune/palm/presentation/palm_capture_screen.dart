@@ -142,9 +142,20 @@ class _PalmCaptureScreenState extends State<PalmCaptureScreen> {
                                     opacity: 0.55,
                                     child: PalmSigil(size: 240, opacity: 0.55),
                                   ),
-                                  const PalmSilhouette(
-                                    size: 140,
-                                    showLines: true,
+                                  // [버그 수정] PalmSilhouette는 항상 엄지가
+                                  // 왼쪽에 오는 고정된 모양(오른손 기준)으로
+                                  // 그려져 있어, "왼손" 토글을 눌러도 실루엣이
+                                  // 바뀌지 않아 사용자가 어느 손을 어떻게
+                                  // 놓아야 할지 헷갈리는 문제가 있었다.
+                                  // handSide == left일 때 좌우 반전(flipX)해
+                                  // 엄지가 오른쪽으로 오도록(왼손 팜업 모양)
+                                  // 만든다.
+                                  Transform.flip(
+                                    flipX: handSide == PalmHandSide.left,
+                                    child: const PalmSilhouette(
+                                      size: 140,
+                                      showLines: true,
+                                    ),
                                   ),
                                 ],
                               ),
