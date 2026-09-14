@@ -18,11 +18,14 @@
 //     라우트 파싱 없이 `enterTarotCategory()`(기존 tarot_home_screen.dart
 //     의 공용 함수, 절대 변경하지 않음)를 그대로 호출해 카테고리 상세
 //     화면(③, 손대지 않음)으로 이동한다.
-//  2) 인기/NEW 배너 → 전용 "필터링된 리스트 화면"이 기존 앱에 없으므로
-//     (기존 홈 화면도 인라인 그리드로만 노출했을 뿐, 별도 라우트가 없었음)
-//     서브 카테고리 허브(②, [AppRouter.tarotHubRoute], 손대지 않음)로
-//     이동해 전체 카테고리를 훑어보게 한다. [group]은 null로 두어 허브가
-//     "전체" 상태로 열리게 한다.
+//  2) 인기/NEW 배너 → [문제5 수정] 서브 카테고리 허브(②,
+//     [AppRouter.tarotHubRoute])로 이동할 때 arguments로 문자열
+//     'popular'/'new'(= [OzCategoryBannerData.id])를 전달해
+//     [TarotHubScreen.specialFilter]로 받는다. 허브는 이 값에 따라
+//     [TarotCategoryData.popular]/[TarotCategoryData.newest]로 실제
+//     필터링된 목록만 보여주므로, 배너의 count 표기와 탭 후 노출되는
+//     카테고리 개수가 항상 일치한다(이전에는 group=null로 전체 65개가
+//     열려 "8개라고 써있는데 훨씬 많다"는 문제가 있었다).
 //  3) 테마 카드 6개 → [group]에 실제 [TarotCategoryGroup] enum 값을 저장.
 //     탭 시 기존 홈이 항상 하던 것과 동일하게
 //     `Navigator.pushNamed(AppRouter.tarotHubRoute, arguments: group)`로
@@ -68,7 +71,7 @@ class OzCategoryBannerData {
   final String id; // 'popular' or 'new'
   final String tagline; // 상단 모노 태그 (예: 'MOST · LOVED')
   final List<OzBannerTitleLine> titleLines; // 두 줄 타이틀(2번째 줄 액센트)
-  final int count; // 카테고리 개수(표시용, 8)
+  final int count; // 카테고리 개수(실제 popular/newest 필터 결과와 동일해야 함)
   final String imageAsset; // 배경 이미지 경로
   final OzBannerAccent accent; // 골드 or 로즈
 
@@ -151,7 +154,9 @@ const kOzCategoryBanners = <OzCategoryBannerData>[
       OzBannerTitleLine(text: '지금 많이', accent: false),
       OzBannerTitleLine(text: '보는 카테고리', accent: true), // 골드 이탤릭
     ],
-    count: 8,
+    // [문제5 수정] 이전에는 8로 하드코딩되어 실제 노출 개수와 달랐다.
+    // TarotCategoryData.popular()의 기본 take(6)와 값을 맞춘다.
+    count: 6,
     imageAsset: 'assets/tarot/oz/banner-popular.png',
     accent: OzBannerAccent.gold,
   ),
@@ -162,7 +167,8 @@ const kOzCategoryBanners = <OzCategoryBannerData>[
       OzBannerTitleLine(text: '새로 생긴', accent: false),
       OzBannerTitleLine(text: '카테고리', accent: true), // 로즈 이탤릭
     ],
-    count: 8,
+    // [문제5 수정] isNew==true인 카테고리가 실제로 12개이므로 값을 맞춘다.
+    count: 12,
     imageAsset: 'assets/tarot/oz/banner-new.png',
     accent: OzBannerAccent.rose,
   ),

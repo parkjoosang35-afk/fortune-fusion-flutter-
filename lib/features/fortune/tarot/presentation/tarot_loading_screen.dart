@@ -115,7 +115,11 @@ class _TarotLoadingScreenState extends State<TarotLoadingScreen>
 
     final isRising = _riseController.value < 1.0;
     final session = context.watch<TarotSessionController>();
-    final cardCount = session.state.requiredCardCount.clamp(1, 3);
+    // [8가지 버그 리포트 §7 수정] 기존에는 .clamp(1, 3)으로 5카드/choice_ab
+    // 스프레드도 최대 3장까지만 표시되어 "5장을 뽑았는데 섞는 화면에는 3장만
+    // 보인다"는 리포트의 원인이 되었다. 실제 뽑은 매수(최대 5장)와 항상
+    // 일치하도록 상한을 5로 늘린다.
+    final cardCount = session.state.requiredCardCount.clamp(1, 5);
 
     return Scaffold(
       backgroundColor: OzColors.bgDeep,
@@ -132,7 +136,13 @@ class _TarotLoadingScreenState extends State<TarotLoadingScreen>
                     style: TextStyle(color: OzColors.gold, fontSize: 1),
                   ), // (레이아웃 안정용, 실제 달 장식은 하단 Stack에서 그림)
                   SizedBox(
-                    width: cardCount > 1 ? 300 : 220,
+                    // [8가지 버그 리포트 §7 수정] 5카드까지 표시할 수 있도록
+                    // 카드 수가 많을 때는 폭을 더 넓게 잡아 겹치지 않게 한다.
+                    width: cardCount >= 4
+                        ? 340
+                        : cardCount > 1
+                        ? 300
+                        : 220,
                     height: 260,
                     child: AnimatedBuilder(
                       animation: Listenable.merge([
@@ -205,9 +215,23 @@ class _TarotLoadingScreenState extends State<TarotLoadingScreen>
                                       0.0,
                                       1.0,
                                     );
+                                // [8가지 버그 리포트 §7 수정] 5장까지 표시될 때
+                                // 카드가 서로 겹치지 않도록 매수가 많을수록
+                                // 간격을 좁히고 카드 자체도 조금 더 작게 그린다.
+                                final spacing = cardCount >= 4 ? 58.0 : 84.0;
                                 final dx = cardCount > 1
-                                    ? (i - (cardCount - 1) / 2) * 84.0
+                                    ? (i - (cardCount - 1) / 2) * spacing
                                     : 0.0;
+                                final cardW = cardCount >= 4
+                                    ? 72.0
+                                    : cardCount > 1
+                                    ? 92.0
+                                    : 118.0;
+                                final cardH = cardCount >= 4
+                                    ? 110.0
+                                    : cardCount > 1
+                                    ? 140.0
+                                    : 178.0;
                                 return Transform.translate(
                                   offset: Offset(dx, (1 - localRise) * 60),
                                   child: Transform.rotate(
@@ -217,8 +241,8 @@ class _TarotLoadingScreenState extends State<TarotLoadingScreen>
                                     child: Opacity(
                                       opacity: localRise.clamp(0.0, 1.0),
                                       child: _OzMoonCard(
-                                        width: cardCount > 1 ? 92 : 118,
-                                        height: cardCount > 1 ? 140 : 178,
+                                        width: cardW,
+                                        height: cardH,
                                       ),
                                     ),
                                   ),

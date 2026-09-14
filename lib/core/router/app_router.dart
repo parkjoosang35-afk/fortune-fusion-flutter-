@@ -541,6 +541,11 @@ class AppRouter {
             initialGroup: settings.arguments is TarotCategoryGroup
                 ? settings.arguments as TarotCategoryGroup
                 : null,
+            // [문제5 수정] 홈 배너('popular'/'new')에서 문자열 arguments로
+            // 진입한 경우, 실제 인기/최신 카테고리만 필터링해 보여준다.
+            specialFilter: settings.arguments is String
+                ? settings.arguments as String
+                : null,
           ),
         );
       // ③카테고리 상세 진입. arguments로 카테고리 id(String)를 받는다.

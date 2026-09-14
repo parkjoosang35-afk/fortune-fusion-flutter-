@@ -628,7 +628,12 @@ class _OzHomeCategoryBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => Navigator.of(context).pushNamed(AppRouter.tarotHubRoute),
+      // [문제5 수정] 배너에 표시된 개수(popular/new)와 실제로 보여지는
+      // 카테고리 목록이 일치하도록 data.id('popular'|'new')를 필터 인자로
+      // 그대로 전달한다. 기존에는 인자 없이 이동해 전체 65개 카테고리가
+      // 열려 배너의 "8개" 표기와 실제 노출 개수가 맞지 않았다.
+      onTap: () =>
+          Navigator.of(context).pushNamed(AppRouter.tarotHubRoute, arguments: data.id),
       child: Container(
         height: 150,
         decoration: BoxDecoration(

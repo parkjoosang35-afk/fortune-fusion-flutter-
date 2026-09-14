@@ -188,6 +188,41 @@ class _TopicTemplates {
 
   static List<String> fillAll(List<String> templates, TarotTopic topic) =>
       templates.map((t) => _fill(t, topic)).toList(growable: false);
+
+  // [8가지 버그 리포트 §2 수정] 기존 generateCardInterpretation()은 카드의
+  // meaningText(meta.up/down)가 정/역방향에만 좌우되는 고정 문장이라, 심화해석
+  // 화면에서 "마음의 관점/현실의 관점/흐름의 관점" 3개를 만들어도 도입구
+  // 템플릿만 다를 뿐 핵심 내용은 항상 같아서 "결론이 다 똑같다"는 불만으로
+  // 이어졌다. 관점별로 실제로 다른 "해석의 결"을 더해주는 전용 문장 풀을
+  // 신설한다 — 20개 주제 전체에 별도 문장을 새로 쓰는 대신(과설계 방지),
+  // 기존과 동일한 {keyword}/{subject} 치환 패턴을 재사용해 관점별 범용
+  // 템플릿 하나만 관리한다.
+  static const List<String> heartAngleLines = [
+    '마음의 결로 보면, 지금 {subject}을(를) 대하는 감정 자체가 가장 중요한 신호예요. 스스로 느끼는 불안이나 기대를 억누르지 말고 있는 그대로 들여다보세요.',
+    '감정적으로는 {keyword}을(를) 향한 마음이 생각보다 더 확고하다는 걸 이 카드가 보여줘요. 마음이 흔들릴 땐 그 흔들림의 이유부터 찬찬히 짚어보세요.',
+    '내면의 목소리에 집중하면, {subject}에 대한 진짜 감정은 겉으로 드러난 것과 조금 다를 수 있어요. 솔직한 마음을 인정하는 것부터가 시작이에요.',
+    '지금 느끼는 감정의 무게가 {keyword}의 다음 방향을 결정짓고 있어요. 애써 괜찮은 척하기보다 감정을 먼저 다독여주는 게 필요해요.',
+    '마음 깊은 곳에서는 이미 {subject}에 대한 답을 알고 있을지도 몰라요. 머리보다 가슴이 먼저 신호를 보내고 있다는 걸 잊지 마세요.',
+    '감정의 온도가 조금 높아져 있다면, 그건 {keyword}이(가) 당신에게 여전히 중요하다는 증거예요. 그 마음을 부정하지 않아도 괜찮아요.',
+  ];
+
+  static const List<String> realityAngleLines = [
+    '현실적인 시선으로 보면, {subject}은(는) 감정보다 구체적인 상황과 조건이 더 크게 작용하고 있어요. 지금 실제로 바꿀 수 있는 것부터 정리해보세요.',
+    '실질적으로는 {keyword}과(와) 관련된 주변 여건이 먼저 정리되어야 다음 단계로 나아갈 수 있어요. 감정보다 상황 파악이 우선이에요.',
+    '냉정하게 따져보면, {subject}에서 지금 당장 할 수 있는 현실적인 선택지는 생각보다 명확해요. 막연한 기대보다 실행 가능한 계획이 필요해요.',
+    '{keyword}의 흐름을 현실적으로 짚어보면, 시간과 자원을 어떻게 쓰느냐가 결과를 좌우해요. 감상보다 계산이 필요한 시점이에요.',
+    '겉으로 보이는 조건들을 하나씩 점검해보면, {subject}에 대한 현실적인 그림이 조금씩 선명해질 거예요. 작은 실행부터 시작해보세요.',
+    '현실은 마음처럼 빠르게 움직이지 않아요. {keyword}에서 조급함을 내려놓고 지금 가능한 것부터 하나씩 처리해나가는 편이 결과적으로 더 빨라요.',
+  ];
+
+  static const List<String> flowAngleLines = [
+    '시간의 흐름으로 보면, {subject}은(는) 지금이 전환점에 가까운 시기예요. 조금만 더 지나면 방향이 한층 뚜렷해질 거예요.',
+    '흐름 자체를 읽어보면, {keyword}은(는) 서서히 상승세를 타고 있는 국면이에요. 지금의 정체는 다음 단계로 넘어가기 전의 잠깐의 숨고르기일 수 있어요.',
+    '앞으로의 타이밍을 놓고 보면, {subject}에 대한 결정은 조금 더 지켜본 뒤 내려도 늦지 않아요. 흐름이 스스로 정리될 시간을 주세요.',
+    '지금까지의 흐름과 앞으로의 방향을 이어보면, {keyword}은(는) 예상보다 완만하지만 꾸준히 나아가고 있는 모양이에요.',
+    '{subject}을(를) 시간 순서로 펼쳐보면, 지금의 답답함은 흐름이 바뀌기 직전의 신호로 읽을 수 있어요. 조금만 더 기다려볼 가치가 있어요.',
+    '흐름의 관점에서는 {keyword}이(가) 이미 새로운 국면으로 들어서고 있어요. 변화의 속도보다 방향이 맞는지를 먼저 확인해보세요.',
+  ];
 }
 
 /// 07단계(추가) §3.6 - 타로 해석 텍스트 생성 엔진.
@@ -257,6 +292,33 @@ class TarotTextEngine {
         .replaceAll('{name}', '$reversedTag${card.nameKr}')
         .replaceAll('{card}', meaningText);
     return filled;
+  }
+
+  /// [8가지 버그 리포트 §2 수정] 심화해석 화면(마음의 관점/현실의 관점/
+  /// 흐름의 관점)에서 실제로 서로 다른 내용을 담기 위한 전용 메서드.
+  /// [perspectiveIndex] (0=마음, 1=현실, 2=흐름)에 맞는 전용 문장 풀에서
+  /// 문장을 골라 카드 해석([generateCardInterpretation])과 이어붙인다 —
+  /// 카드의 정/역방향 핵심 의미는 그대로 유지하면서, 관점별로 실제로
+  /// 달라지는 "조언의 결"을 덧붙여 세 관점이 겹치지 않게 한다.
+  static String generatePerspectiveInterpretation(
+    TarotCard card,
+    String topic,
+    int perspectiveIndex, {
+    int? seed,
+  }) {
+    final base = generateCardInterpretation(card, topic, seed: seed);
+    final topicMetaObj = _resolveTopic(topic);
+    final angleTemplates = switch (perspectiveIndex) {
+      0 => _TopicTemplates.heartAngleLines,
+      1 => _TopicTemplates.realityAngleLines,
+      _ => _TopicTemplates.flowAngleLines,
+    };
+    final anglePool = _TopicTemplates.fillAll(angleTemplates, topicMetaObj);
+    final rng = _rngFor(
+      seed ?? (card.id.hashCode ^ topic.hashCode ^ (perspectiveIndex * 97)),
+    );
+    final angleLine = anglePool[rng.nextInt(anglePool.length)];
+    return '$base $angleLine';
   }
 
   /// 07단계(추가) §3.6 - 여러 장의 카드를 종합한 총평 텍스트를 생성한다.

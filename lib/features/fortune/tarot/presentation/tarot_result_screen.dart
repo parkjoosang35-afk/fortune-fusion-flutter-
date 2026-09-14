@@ -143,8 +143,16 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
                     ),
                   ),
                   onPressed: () async {
-                    Navigator.of(ctx).pop();
-                    await _captureAndShare();
+                    // [8가지 버그 리포트 §1 수정] 기존에는 바텀시트를 먼저
+                    // pop()한 뒤 캡처를 시도했는데, pop() 즉시 이 바텀시트
+                    // 안에 있던 RepaintBoundary(_shareCardKey)가 위젯 트리에서
+                    // 제거되어(dispose) currentContext가 null이 되어버렸다.
+                    // 이 때문에 _captureAndShare()가 조용히 return하며 아무
+                    // 공유도 일어나지 않는 것이 실제 "공유하기 안 됨" 버그의
+                    // 원인이었다. 바텀시트가 아직 열려있는 이 시점에 먼저
+                    // 캡처를 완료한 뒤, 그 다음에 시트를 닫고 공유 시트를
+                    // 띄운다.
+                    await _captureAndShare(ctx);
                   },
                   child: Text('이미지로 공유하기', style: OzTypography.ctaLabel()),
                 ),
@@ -156,7 +164,7 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
     );
   }
 
-  Future<void> _captureAndShare() async {
+  Future<void> _captureAndShare(BuildContext sheetContext) async {
     // [타로 공유 안 되는 버그 수정] 기존에는 path_provider(getTemporaryDirectory)로
     // 캡처한 이미지를 디스크에 저장한 뒤 그 경로로 XFile을 만들어 공유했다.
     // path_provider는 Web 플랫폼을 지원하지 않는 패키지라(pub.dev platforms에
@@ -165,16 +173,33 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
     // Web Share API 제약으로 실패하는 경우가 있었다. 디스크 파일 저장 없이
     // 캡처한 PNG 바이트를 곧바로 XFile.fromData()(메모리 기반, 모든 플랫폼
     // 지원)로 감싸 공유하도록 바꿔 Web/Android 양쪽에서 동작하게 한다.
+    //
+    // [8가지 버그 리포트 §1 추가 수정] 캡처는 호출부가 바텀시트를 pop()하기
+    // *전에* 이 함수를 호출하도록 순서를 바꿨으므로, 여기서는 캡처를 끝낸
+    // 뒤에 바텀시트를 닫는다(sheetContext로 명시적으로 pop) — 이전에는
+    // pop()이 먼저 실행되어 RepaintBoundary가 이미 dispose된 뒤라
+    // currentContext가 null이 되어 캡처 자체가 조용히 실패했었다.
+    bool popped = false;
     try {
       final boundary =
           _shareCardKey.currentContext?.findRenderObject()
               as RenderRepaintBoundary?;
-      if (boundary == null) return;
+      if (boundary == null) {
+        if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+        popped = true;
+        if (!mounted) return;
+        AppToast.show(context, '공유 이미지를 준비하지 못했어요. 다시 시도해주세요.');
+        return;
+      }
       final image = await boundary.toImage(
         pixelRatio: TarotShareCard.capturePixelRatio,
       );
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       final bytes = byteData!.buffer.asUint8List();
+
+      // 캡처가 끝났으니 이제 바텀시트를 닫는다.
+      if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+      popped = true;
 
       final file = XFile.fromData(
         bytes,
@@ -187,6 +212,9 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
         text: 'AI 타로 리딩 결과를 확인해보세요! · Fortune Fusion',
       );
     } catch (e) {
+      if (!popped && sheetContext.mounted) {
+        Navigator.of(sheetContext).pop();
+      }
       if (!mounted) return;
       try {
         await Share.share('AI 타로 리딩 결과를 확인해보세요! · Fortune Fusion');
