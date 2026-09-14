@@ -37,6 +37,17 @@ class TarotQuestionScreen extends StatefulWidget {
 
 class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
   final _questionController = TextEditingController();
+  // [문제8 수정 - 자유질문 UX 개선] 사용자가 글을 쓴 뒤 엔터를 누르거나
+  // 다른 곳을 탭해 포커스를 잃었을 때 "반영됨" 피드백을 보여주기 위한
+  // 상태. _questionSaving(짧은 로딩 표시) → _questionReflected(반영 완료
+  // 문구) 순서로 전환된다. 사용자가 다시 텍스트를 수정하면(onChanged) 두
+  // 값 모두 초기화되어, 최신 입력이 아직 "반영 확인"되지 않았음을 명확히
+  // 보여준다. 자유질문 입력 기능 자체는 그대로 유지하고, 입력 반영 여부를
+  // 알 수 없다는 불만을 해결하기 위한 순수 UI 피드백이다(제출 로직·서버
+  // 통신과는 무관).
+  final _questionFocusNode = FocusNode();
+  bool _questionSaving = false;
+  bool _questionReflected = false;
   late String _spreadType;
   late String _topic;
 
@@ -145,9 +156,39 @@ class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
     return null;
   }
 
+  /// [문제8 수정] 포커스를 잃을 때(엔터 후 다음 필드로 이동, 화면 다른
+  /// 곳 탭, 스프레드/주제 선택 등) 입력된 질문이 있으면 "반영 중 → 반영
+  /// 완료" 피드백을 짧게 보여준다. 별도 서버 통신이 필요 없는 로컬
+  /// 입력값이므로 실제로는 이미 컨트롤러에 즉시 반영되어 있지만, 사용자가
+  /// "입력이 반영되었는지 알 수 없다"고 느꼈던 문제를 해결하기 위해
+  /// 명시적인 시각적 확인 단계를 추가한다.
+  void _onQuestionFocusChange() {
+    if (_questionFocusNode.hasFocus) return;
+    final text = _questionController.text.trim();
+    if (text.isEmpty) {
+      setState(() {
+        _questionSaving = false;
+        _questionReflected = false;
+      });
+      return;
+    }
+    setState(() {
+      _questionSaving = true;
+      _questionReflected = false;
+    });
+    Future.delayed(const Duration(milliseconds: 450), () {
+      if (!mounted) return;
+      setState(() {
+        _questionSaving = false;
+        _questionReflected = true;
+      });
+    });
+  }
+
   @override
   void initState() {
     super.initState();
+    _questionFocusNode.addListener(_onQuestionFocusChange);
     _spreadType = _validSpreadTypes.contains(widget.initialSpreadType)
         ? widget.initialSpreadType!
         : 'one_card';
@@ -182,6 +223,8 @@ class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
 
   @override
   void dispose() {
+    _questionFocusNode.removeListener(_onQuestionFocusChange);
+    _questionFocusNode.dispose();
     _questionController.dispose();
     _optionAController.dispose();
     _optionBController.dispose();
@@ -253,59 +296,6 @@ class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
                         Text(
                           '마음속 질문을\n들려주세요',
                           style: OzTypography.hero(fontSize: 24),
-                        ),
-                        const SizedBox(height: OzTokens.spaceLg),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: OzColors.cardSoft,
-                            borderRadius: BorderRadius.circular(
-                              OzTokens.radiusMd,
-                            ),
-                            border: Border.all(color: OzColors.borderSoft),
-                          ),
-                          child: TextField(
-                            controller: _questionController,
-                            maxLines: 3,
-                            style: OzTypography.body(
-                              fontSize: 14,
-                              color: OzColors.fg,
-                            ),
-                            cursorColor: OzColors.gold,
-                            decoration: InputDecoration(
-                              hintText: '궁금한 질문을 자유롭게 적어보세요',
-                              hintStyle: OzTypography.body(
-                                fontSize: 13,
-                                color: OzColors.faint,
-                              ),
-                              border: InputBorder.none,
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(
-                                  OzTokens.radiusMd,
-                                ),
-                                borderSide: BorderSide(
-                                  color: OzColors.gold.withValues(alpha: 0.5),
-                                ),
-                              ),
-                              contentPadding: const EdgeInsets.all(
-                                OzTokens.spaceLg,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: OzTokens.spaceMd),
-                        Wrap(
-                          spacing: OzTokens.spaceSm,
-                          runSpacing: OzTokens.spaceSm,
-                          children: _suggestedQuestions
-                              .map(
-                                (q) => _PresetChip(
-                                  label: q,
-                                  onTap: () => setState(
-                                    () => _questionController.text = q,
-                                  ),
-                                ),
-                              )
-                              .toList(),
                         ),
                         // [65종 타로 리딩엔진 §계획1 - choice_ab] 이 주제는
                         // allowed_spreads가 choice_ab 하나뿐이므로 스프레드
@@ -427,6 +417,148 @@ class _TarotQuestionScreenState extends State<TarotQuestionScreen> {
                               ),
                           ],
                         ],
+                        // [문제8 수정 - 자유질문 UX 개선] 기존에는 이
+                        // 입력창이 화면 맨 위(스프레드/주제 선택보다 먼저)에
+                        // 있어, 사용자가 스프레드·주제를 고르는 사이 이미
+                        // 입력한 질문이 화면 밖으로 밀려나 "내가 쓴 게 아직
+                        // 남아있나?" 불안해하는 문제가 있었다. 사용자 요청에
+                        // 따라 화면 중간 이하(스프레드/주제 선택 다음, 제출
+                        // 버튼 바로 앞)로 이동하고, 포커스를 잃을 때(엔터로
+                        // 다음 줄 대신 다른 곳을 탭하거나 스프레드를 선택하는
+                        // 등) "반영 중 → 반영됨" 피드백을 명시적으로 보여준다.
+                        const SizedBox(height: OzTokens.spaceXxl),
+                        Text(
+                          '질문을 적어주시면 더 정확해요',
+                          style: OzTypography.sectionTitle(fontSize: 17),
+                        ),
+                        const SizedBox(height: OzTokens.spaceMd),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: OzColors.cardSoft,
+                            borderRadius: BorderRadius.circular(
+                              OzTokens.radiusMd,
+                            ),
+                            border: Border.all(
+                              color: _questionReflected
+                                  ? OzColors.teal.withValues(alpha: 0.55)
+                                  : OzColors.borderSoft,
+                            ),
+                          ),
+                          child: TextField(
+                            controller: _questionController,
+                            focusNode: _questionFocusNode,
+                            maxLines: 3,
+                            textInputAction: TextInputAction.done,
+                            // 엔터(완료)를 누르면 키보드를 내려 포커스를
+                            // 잃게 하고, 그 결과 _onQuestionFocusChange가
+                            // "반영됨" 피드백을 트리거한다.
+                            onSubmitted: (_) =>
+                                _questionFocusNode.unfocus(),
+                            onChanged: (_) {
+                              // 다시 입력을 수정하면 이전 "반영됨" 표시를
+                              // 지워, 최신 내용이 아직 확인되지 않았음을
+                              // 보여준다.
+                              if (_questionReflected || _questionSaving) {
+                                setState(() {
+                                  _questionReflected = false;
+                                  _questionSaving = false;
+                                });
+                              }
+                            },
+                            style: OzTypography.body(
+                              fontSize: 14,
+                              color: OzColors.fg,
+                            ),
+                            cursorColor: OzColors.gold,
+                            decoration: InputDecoration(
+                              hintText: '궁금한 질문을 자유롭게 적어보세요',
+                              hintStyle: OzTypography.body(
+                                fontSize: 13,
+                                color: OzColors.faint,
+                              ),
+                              border: InputBorder.none,
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(
+                                  OzTokens.radiusMd,
+                                ),
+                                borderSide: BorderSide(
+                                  color: OzColors.gold.withValues(alpha: 0.5),
+                                ),
+                              ),
+                              contentPadding: const EdgeInsets.all(
+                                OzTokens.spaceLg,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        // [문제8 수정] 입력 반영 상태 피드백 — 로딩 표시 →
+                        // "질문이 반영되었어요" 문구. 두 상태 모두 없을
+                        // 때는 자리만 유지해 레이아웃이 흔들리지 않게 한다.
+                        SizedBox(
+                          height: 20,
+                          child: _questionSaving
+                              ? Row(
+                                  children: [
+                                    SizedBox(
+                                      width: 13,
+                                      height: 13,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: OzColors.gold,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      '반영 중...',
+                                      style: OzTypography.body(
+                                        fontSize: 12,
+                                        color: OzColors.faint,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : _questionReflected
+                              ? Row(
+                                  children: [
+                                    Icon(
+                                      Icons.check_circle,
+                                      size: 14,
+                                      color: OzColors.teal,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      '질문이 반영되었어요',
+                                      style: OzTypography.body(
+                                        fontSize: 12,
+                                        color: OzColors.teal,
+                                      ).copyWith(fontWeight: FontWeight.w600),
+                                    ),
+                                  ],
+                                )
+                              : const SizedBox.shrink(),
+                        ),
+                        const SizedBox(height: OzTokens.spaceSm),
+                        Wrap(
+                          spacing: OzTokens.spaceSm,
+                          runSpacing: OzTokens.spaceSm,
+                          children: _suggestedQuestions
+                              .map(
+                                (q) => _PresetChip(
+                                  label: q,
+                                  onTap: () => setState(() {
+                                    _questionController.text = q;
+                                    // 추천 질문 칩을 탭한 경우도 "직접 입력
+                                    // 완료"와 동일하게 즉시 반영 피드백을
+                                    // 보여준다(칩은 포커스 변화가 없으므로
+                                    // 별도로 트리거해야 한다).
+                                    _questionSaving = false;
+                                    _questionReflected = true;
+                                  }),
+                                ),
+                              )
+                              .toList(),
+                        ),
                         const SizedBox(height: OzTokens.spaceXxl),
                         OzPrimaryButton(
                           label: '카드 뽑으러 가기',
