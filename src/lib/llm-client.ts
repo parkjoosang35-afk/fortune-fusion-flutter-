@@ -29,7 +29,16 @@
 // 사용자에게 실패를 알리고 포인트를 차감하지 않는 방식으로 처리해야 한다.
 
 const ANTHROPIC_BASE_URL = "https://api.anthropic.com/v1";
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY ?? "";
+// [버그 수정 - 2026-09-14] 샌드박스 환경이 자체 도구용으로 시스템 프로세스
+// 환경변수 `ANTHROPIC_API_KEY`(젠스파크 내부 프록시용 gsk- 토큰)를 이미
+// 주입해 두어서, 같은 이름의 .env 값이 이 프로세스 환경변수를 덮어쓰지 못하고
+// 매번 잘못된 토큰으로 Anthropic 공식 API를 호출해 401(invalid x-api-key)이
+// 나던 문제가 있었다(→ route.ts가 이를 catch해 FALLBACK_SUMMARY로 조용히
+// 대체 → "질문을 바꿔도 리딩이 똑같다"는 버그로 드러남). 이름 충돌을 피하기
+// 위해 앱 전용 변수명(ANTHROPIC_APP_API_KEY)을 최우선으로 사용하고, 혹시
+// 그 변수가 없는 배포 환경을 위해 기존 이름을 최후 폴백으로만 남겨둔다.
+const ANTHROPIC_API_KEY =
+  process.env.ANTHROPIC_APP_API_KEY || process.env.ANTHROPIC_API_KEY || "";
 const ANTHROPIC_VERSION = "2023-06-01";
 const DEFAULT_MODEL = "claude-haiku-4-5";
 const DEFAULT_MAX_TOKENS = 2000;

@@ -33,6 +33,7 @@ const AD_TYPE_LABELS: Record<string, string> = {
   video: "동영상",
   external: "외부 광고",
   network: "광고플랫폼",
+  admob: "애드몹(AdMob)",
 };
 
 const initialState: FortuneAdFormState = {};
@@ -92,6 +93,11 @@ export default function FortuneAdRow({
             )}
             {adType === "network" && (
               <textarea name="adSourceHtml" defaultValue={ad.adSourceHtml ?? ""} rows={2} placeholder="연동 스크립트/HTML" className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500 md:col-span-4" />
+            )}
+            {adType === "admob" && (
+              <p className="col-span-full rounded-lg bg-indigo-50 px-2 py-1 text-xs text-indigo-700">
+                별도 URL/스크립트 입력 불필요 — 앱의 AdMob 보상형 Ad Unit ID로 자동 노출됩니다.
+              </p>
             )}
 
             <input type="number" name="rewardAmount" defaultValue={ad.rewardAmount} placeholder="1회 보상" min={1} className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-indigo-500" />

@@ -12,6 +12,7 @@ const AD_TYPE_LABELS: Record<string, string> = {
   video: "동영상",
   external: "외부 광고(URL)",
   network: "광고플랫폼 연동(스크립트/HTML)",
+  admob: "애드몹(AdMob) 보상형 광고",
 };
 
 export default function FortuneAdCreateForm({ canWrite }: { canWrite: boolean }) {
@@ -90,6 +91,13 @@ export default function FortuneAdCreateForm({ canWrite }: { canWrite: boolean })
           rows={3}
           className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 md:col-span-4"
         />
+      )}
+      {adType === "admob" && (
+        <p className="col-span-full rounded-lg bg-indigo-50 px-3 py-2 text-xs text-indigo-700">
+          별도 URL/스크립트 입력이 필요 없습니다. 앱의 AdMob Ad Unit ID(보상형)로
+          실제 광고가 자동 노출되며, 시청 완료 시 아래 &ldquo;1회 시청
+          보상&rdquo; 개수만큼 서버가 복주머니를 지급합니다.
+        </p>
       )}
 
       <input

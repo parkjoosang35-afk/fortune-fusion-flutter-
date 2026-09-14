@@ -100,6 +100,26 @@ function todayRangeKst(): { start: Date; end: Date } {
 /** 유저별 절대 일일 AI 호출 상한(프리패스 보유 여부와 무관하게 항상 적용). */
 export const DAILY_ABSOLUTE_AI_CALL_LIMIT = 5;
 
+/**
+ * [QA/테스트 계정 예외, 2026-09] 환경변수 `UNLIMITED_TEST_USER_IDS`에 나열된 userId는
+ * 절대 일일 상한(위 DAILY_ABSOLUTE_AI_CALL_LIMIT)을 적용받지 않는다. 콤마로 구분된
+ * 숫자 목록이며(예: "42,57"), 운영 서비스 정책을 바꾸는 것이 아니라 QA/개발 담당자가
+ * 반복 테스트를 할 수 있도록 하는 화이트리스트다. 목록이 비어 있으면(.env에 값이
+ * 없거나 빈 문자열) 기존과 완전히 동일하게 모든 유저에게 상한이 적용된다 — 운영
+ * 정책을 바꾸는 코드가 아니라, 명시적으로 지정한 특정 계정에만 열어주는 opt-in
+ * 예외다(§15 "관리자/앱 정책 불일치 금지"는 실제 운영 로직을 다루므로 이 예외와
+ * 무관 — 여기서는 검사 자체를 우회하는 것이 아니라 검사 결과를 계정별로 다르게 낼 뿐).
+ */
+function isUnlimitedTestUser(userId: number): boolean {
+  const raw = process.env.UNLIMITED_TEST_USER_IDS ?? "";
+  if (!raw.trim()) return false;
+  return raw
+    .split(",")
+    .map((s) => Number(s.trim()))
+    .filter((n) => Number.isInteger(n))
+    .includes(userId);
+}
+
 export interface DailyAbsoluteLimitResult {
   allowed: boolean;
   usageCount: number;
@@ -129,6 +149,11 @@ export async function checkDailyAbsoluteLimit(userId: number): Promise<DailyAbso
       createdAt: { gte: start, lt: end },
     },
   });
+  if (isUnlimitedTestUser(userId)) {
+    // 화이트리스트에 등록된 테스트 계정은 usageCount를 그대로 보여주되(참고용),
+    // allowed는 항상 true로 반환해 일일 상한 차단을 받지 않는다.
+    return { allowed: true, usageCount, maxUsage: DAILY_ABSOLUTE_AI_CALL_LIMIT };
+  }
   return {
     allowed: usageCount < DAILY_ABSOLUTE_AI_CALL_LIMIT,
     usageCount,

@@ -97,6 +97,7 @@ export default function PrivacyPolicyPage() {
           <li>유료 상품(구독, 상품권, 부적 등) 결제 및 정산</li>
           <li>커뮤니티(소원방), 매칭, 채팅, AI 상담 등 부가 서비스 제공</li>
           <li>공지사항 전달, 이벤트 및 광고성 정보 제공(수신 동의자에 한함)</li>
+          <li>Google AdMob을 통한 배너·보상형(리워드) 광고 노출 및 맞춤형 광고 제공</li>
           <li>서비스 부정이용 방지, 접속 기록 보관 등 서비스 운영 및 개선</li>
         </ul>
       </Section>
@@ -162,6 +163,24 @@ export default function PrivacyPolicyPage() {
             서비스 내 일부 화면에서 쿠팡파트너스 제휴 링크/배너를 통해 외부
             쇼핑몰로 연결될 수 있으며, 이 경우 해당 서비스(쿠팡)의 개인정보
             처리방침이 별도로 적용됩니다.
+          </li>
+          <li>
+            <span className="font-semibold">광고 서비스(Google AdMob):</span>{" "}
+            앱 내 광고 노출 및 보상형(리워드) 광고 제공을 위해 Google
+            AdMob을 이용합니다. Google은 광고 개인화 등을 위해 광고 식별자
+            (Advertising ID), 기기 정보, 대략적인 위치 정보, 앱 사용 데이터를
+            수집할 수 있으며, 이용자는 기기의 설정 메뉴에서 광고 식별자
+            재설정 또는 맞춤 광고 수신 거부를 선택할 수 있습니다. Google의
+            개인정보 처리에 관한 자세한 내용은{" "}
+            <a
+              href="https://policies.google.com/privacy"
+              className="text-indigo-600 underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Google 개인정보처리방침
+            </a>
+            을 참고하시기 바랍니다.
           </li>
         </ul>
       </Section>

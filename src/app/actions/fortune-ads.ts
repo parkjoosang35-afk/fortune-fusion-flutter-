@@ -11,7 +11,13 @@ import { prisma } from "@/lib/db";
 import { verifyAdminSession } from "@/lib/dal";
 import { canWriteMenu, canDeleteMenu } from "@/lib/rbac";
 
-const AD_TYPES = ["image", "video", "external", "network"] as const;
+// [애드몹 실제 연동] "admob" — google_mobile_ads 보상형(리워드) 광고 SDK를
+// 그대로 재생하는 유형. image/video/external/network와 달리 콘텐츠
+// URL/스크립트가 필요 없다(광고 자체를 AdMob 서버가 결정해서 내려준다).
+// perUserDailyLimit/dailyLimitReward/rewardAmount 등 기존 지급 통제 로직은
+// 동일하게 그대로 적용된다(FortuneAd.rewardAmount가 실제 지급량을 결정한다는
+// 원칙은 adType과 무관하게 항상 유지된다).
+const AD_TYPES = ["image", "video", "external", "network", "admob"] as const;
 
 function canWriteReward(roleCode: string): boolean {
   return canWriteMenu(roleCode, "reward");
