@@ -31,15 +31,17 @@
         android:label="Fortune Fusion"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
-        <!-- [애드몹 테스트 연동] Google Mobile Ads SDK가 앱 시작 시 요구하는
-             APPLICATION_ID meta-data. 아래 값은 구글이 공개 배포한 "테스트용"
-             App ID(ca-app-pub-3940256099942544~3347511713)이며, 실제 서비스
-             계정과 무관하다. 운영 전환 시 사장님의 실제 애드몹 계정에서
-             발급한 App ID로 이 값만 교체하면 된다(AdmobAdIds.androidAppId
-             주석 참고). -->
+        <!-- [애드몹 실제 계정 연동] Google Mobile Ads SDK가 앱 시작 시 요구하는
+             APPLICATION_ID meta-data. 사장님이 발급받은 신통방통 실제 AdMob
+             App ID로 교체했다. Google 공식 정책상 App ID 자체는 실제 값을
+             상시 등록해도 안전하다(실제 광고 노출 여부는 App ID가 아니라
+             "Ad Unit ID"가 결정한다 — 배너/전면/보상형 Ad Unit ID는
+             AdmobAdIds에서 dart-define(ADMOB_USE_REAL_IDS) 플래그로만
+             조건부 전환되며, 이 플래그 없이는 항상 구글 공식 테스트 Ad Unit
+             ID만 사용되어 개발/QA 중 무효 트래픽 위험이 없다). -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713"/>
+            android:value="ca-app-pub-2370852566371234~8570397726"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"
