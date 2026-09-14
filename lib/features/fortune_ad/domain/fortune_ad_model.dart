@@ -5,7 +5,7 @@ class FortuneAdModel {
   final int id;
   final String title;
   final String? description;
-  final String adType; // image | video | external | network
+  final String adType; // image | video | external | network | admob
   final String? imageUrl;
   final String? videoUrl;
   final String? externalUrl;
