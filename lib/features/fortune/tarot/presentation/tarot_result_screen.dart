@@ -1,9 +1,7 @@
-import 'dart:io';
 import 'dart:math';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../../core/data/my_fortune_record_store.dart';
@@ -159,6 +157,14 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
   }
 
   Future<void> _captureAndShare() async {
+    // [타로 공유 안 되는 버그 수정] 기존에는 path_provider(getTemporaryDirectory)로
+    // 캡처한 이미지를 디스크에 저장한 뒤 그 경로로 XFile을 만들어 공유했다.
+    // path_provider는 Web 플랫폼을 지원하지 않는 패키지라(pub.dev platforms에
+    // web이 없음) 웹 프리뷰/웹 배포에서 getTemporaryDirectory() 호출 자체가
+    // 예외를 던져 항상 catch로 빠지고, 텍스트만 공유하는 폴백조차 브라우저의
+    // Web Share API 제약으로 실패하는 경우가 있었다. 디스크 파일 저장 없이
+    // 캡처한 PNG 바이트를 곧바로 XFile.fromData()(메모리 기반, 모든 플랫폼
+    // 지원)로 감싸 공유하도록 바꿔 Web/Android 양쪽에서 동작하게 한다.
     try {
       final boundary =
           _shareCardKey.currentContext?.findRenderObject()
@@ -170,17 +176,24 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       final bytes = byteData!.buffer.asUint8List();
 
-      final dir = await getTemporaryDirectory();
-      final file = await File(
-        '${dir.path}/tarot_share_${DateTime.now().millisecondsSinceEpoch}.png',
-      ).writeAsBytes(bytes);
+      final file = XFile.fromData(
+        bytes,
+        mimeType: 'image/png',
+        name: 'tarot_share_${DateTime.now().millisecondsSinceEpoch}.png',
+      );
 
-      await Share.shareXFiles([
-        XFile(file.path),
-      ], text: 'AI 타로 리딩 결과를 확인해보세요! · Fortune Fusion');
-    } catch (_) {
+      await Share.shareXFiles(
+        [file],
+        text: 'AI 타로 리딩 결과를 확인해보세요! · Fortune Fusion',
+      );
+    } catch (e) {
       if (!mounted) return;
-      await Share.share('AI 타로 리딩 결과를 확인해보세요! · Fortune Fusion');
+      try {
+        await Share.share('AI 타로 리딩 결과를 확인해보세요! · Fortune Fusion');
+      } catch (_) {
+        if (!mounted) return;
+        AppToast.show(context, '공유하기를 지원하지 않는 환경입니다.');
+      }
     }
   }
 

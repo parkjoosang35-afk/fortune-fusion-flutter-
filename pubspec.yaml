@@ -64,9 +64,20 @@ dependencies:
   video_player: 2.9.2
 
   # [오늘의 운세 표준 플로우] §6 후속연결 "공유 → 이미지 생성 후 공유" 구현용.
-  # RepaintBoundary로 캡처한 결과 카드를 임시 파일로 저장(path_provider)한 뒤
-  # 네이티브 공유 시트로 전달(share_plus). 둘 다 Web 플랫폼도 지원한다.
+  # RepaintBoundary로 캡처한 결과 카드를 PNG 바이트로 만들어 share_plus로
+  # 전달한다. [타로 공유 안 되는 버그 수정] 과거에는 path_provider로 임시
+  # 파일에 저장한 뒤 그 경로로 XFile을 만들었는데, path_provider는 Web
+  # 플랫폼을 지원하지 않는 패키지라(pub.dev platforms 목록에 web 없음) 웹
+  # 프리뷰/웹 배포에서 getTemporaryDirectory() 호출 자체가 예외를 던져
+  # 공유가 항상 실패했다. XFile.fromData()(메모리 기반, 모든 플랫폼 지원)로
+  # 바꿔 디스크 파일 저장 단계를 완전히 제거한다. XFile은 share_plus가
+  # re-export하므로 cross_file을 별도로 의존성에 추가할 필요는 없다.
   share_plus: 10.1.4
+  # [주의] path_provider는 Web 플랫폼을 지원하지 않는다(pub.dev platforms에
+  # web 없음). 타로 화면(tarot_result_screen.dart)은 이 문제로 XFile.fromData()
+  # 방식으로 전환했지만, guinji_result_card_screen.dart가 여전히 이 패키지를
+  # 직접 사용하므로 의존성 자체는 유지한다. guinji 쪽도 동일 버그가 있을
+  # 가능성이 높음(별도 확인/수정 필요).
   path_provider: 2.1.5
 
   # [타로 섹션 전면 개편 §11 P5 사운드 시스템] 카드 셔플/탭/리빌 임팩트/
