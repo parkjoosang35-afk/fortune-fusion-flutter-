@@ -225,6 +225,30 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
     }
   }
 
+  /// [8가지 버그 리포트 §6 — 탈출구 없음 수정] 이 화면은 question →
+  /// (pushReplacementNamed)loading → (pushReplacementNamed)result 순서로
+  /// 진입하므로, 뒤로가기(pop)는 이전 질문 입력 화면으로 돌아간다(자연스러운
+  /// "다시 물어보기" 동작). 다만 스택 맨 밑(예: 히스토리에서 곧바로 진입한
+  /// 경우 등)이라 canPop이 false일 수도 있으므로, 그 경우에는 앱 전역
+  /// [MainBottomNavBar]와 동일한 패턴(`pushNamedAndRemoveUntil('/home', ...,
+  /// arguments: 1)`)으로 "운세" 탭으로 안전하게 복귀시킨다.
+  void _handleBack(BuildContext context) {
+    if (Navigator.canPop(context)) {
+      Navigator.of(context).pop();
+    } else {
+      Navigator.of(
+        context,
+      ).pushNamedAndRemoveUntil('/home', (route) => false, arguments: 1);
+    }
+  }
+
+  /// [8가지 버그 리포트 §6] "홈으로 가기" — 언제나 앱 첫 탭(홈)으로 복귀.
+  void _handleHome(BuildContext context) {
+    Navigator.of(
+      context,
+    ).pushNamedAndRemoveUntil('/home', (route) => false, arguments: 0);
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<TarotProvider>();
@@ -255,6 +279,39 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
               ),
             },
           ),
+          // [8가지 버그 리포트 §6 — 뒤로가기/홈 없음 수정] 사용자 지적("뒤로가기나
+          // 홈으로 가기가 없어") 대응. 기존 5액션 하단 바(다시 뽑기/저장/공유/
+          // 심화해석/히스토리)는 기획상 100% 그대로 유지하고, 대신 상단에
+          // 작은 원형 뒤로가기/홈 버튼을 얹어 이 화면에서 항상 벗어날 수 있게
+          // 한다. 카드 리빌 연출(OzBackground/_TarotResultCinematic) 위에
+          // 얹히므로 기존 애니메이션 타이밍에는 전혀 영향을 주지 않는다.
+          if (state.isSuccess || state.isError)
+            SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  OzTokens.spaceMd,
+                  OzTokens.spaceSm,
+                  OzTokens.spaceMd,
+                  0,
+                ),
+                child: Row(
+                  children: [
+                    _TopCircleIconButton(
+                      icon: Icons.arrow_back_ios_new_rounded,
+                      tooltip: '뒤로가기',
+                      onTap: () => _handleBack(context),
+                    ),
+                    const SizedBox(width: OzTokens.spaceSm),
+                    _TopCircleIconButton(
+                      icon: Icons.home_rounded,
+                      tooltip: '홈으로 가기',
+                      onTap: () => _handleHome(context),
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
       bottomNavigationBar: state.isSuccess
@@ -296,6 +353,42 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
               ),
             )
           : null,
+    );
+  }
+}
+
+/// [8가지 버그 리포트 §6] 상단 뒤로가기/홈 버튼 — 반투명 원형 배경 위에
+/// 아이콘만 얹은 작은 버튼. [oz_topbar.dart]의 `_CircleIconButton`과 톤을
+/// 맞추되, 카드 리빌 연출 위에 겹쳐도 눈에 띄도록 살짝 배경을 준다.
+class _TopCircleIconButton extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+  const _TopCircleIconButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(OzTokens.radiusPill),
+        onTap: onTap,
+        child: Container(
+          width: 34,
+          height: 34,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: OzColors.bgDeep.withValues(alpha: 0.55),
+            border: Border.all(color: OzColors.borderSoft),
+          ),
+          child: Icon(icon, size: 16, color: OzColors.fg),
+        ),
+      ),
     );
   }
 }
