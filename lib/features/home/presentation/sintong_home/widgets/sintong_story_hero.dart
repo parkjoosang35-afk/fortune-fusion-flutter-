@@ -1,37 +1,35 @@
 // ═══════════════════════════════════════════════════════════════
 // FILE: sintong_story_hero.dart
-// [신통방통 메인 매핑] C-04 · StoryHero — Handoff.html §06/§07
+// [신통방통 메인 매핑] C-04 · StoryHero — design_handoff_story_hero.zip
 // "귀인지도" 소개용 5컷 × 6초 = 30초 무한 루프 스토리 슬라이드.
 //
-// 스펙(Handoff.html §07):
-// - 5컷: hanbok(0-6s) / sky(6-12s) / saju(12-18s) / thread(18-24s) / map(24-30s)
-// - 각 컷: 페이드 크로스디졸브 전환 + Ken Burns 슬로우 줌(1.08→1.00)
+// 스펙(README.md + story_hero_prototype.html — 소스 오브 트루스):
+// - 5컷: hanbok(0-6s) / forest(6-12s) / tower(12-18s) / apothecary(18-24s)
+//   / village(24-30s) — 전부 16:9 이미지, 세로 특수처리 불필요
+// - 컨테이너: aspect 16:11, radius 18, bg #0E0820,
+//   shadow 0 8px 24px -12px rgba(0,0,0,0.35)
+// - 각 컷: Ken Burns 슬로우 줌(1.08→1.00) + 페이드 크로스디졸브
+//   CSS keyframe(cutSwap, 30s 기준): 0%→4%→17%→20% 페이드인/유지/페이드아웃.
+//   이 위젯의 localT는 "컷 1개(6초)=0..1" 로컬 스케일이므로, 컷 1개가
+//   전체 루프의 1/5(20%)인 점을 이용해 5배 스케일링해서 사용한다:
+//   4%→0.20, 17%→0.85, 20%→1.00.
+// - 캡션(capSwap, 30s 기준 0%→6%→17%→20%)도 동일 원리로 5배 스케일링:
+//   6%→0.30, 17%→0.85, 20%→1.00. Y축 8px→0→-4px.
 // - 별빛 반짝임 오버레이 5개, 3초 주기 opacity 0.35↔1.0
-// - 하단좌측 진행 도트 5개(14×3), 현재 컷은 gold(#FFD6A0)로 6초에 걸쳐 채워짐
-// - 캡션(Fraunces Italic 18/1.25)은 각 컷 진입 0~6%에 페이드인, 17~20%에 페이드아웃
-// - Cut 1(한복, 세로 3:4)은 BoxFit.contain 중앙 배치 + 같은 이미지의 블러
-//   버전(sigma 24, brightness 0.5)을 배경으로 깔아 좌우 여백을 채움
-// - 우상단 "STORY" 배지, 하단 40%부터 그라디언트 어둡게 처리(캡션 가독성)
-//
-// [탭 인터랙션] 히어로 탭 시 귀인지도 생성 플로우(GuiinCta와 동일한
-// 목적지)로 이동한다.
-//
-// 배터리 절약을 위해 화면이 비활성(dispose 시점)이면 타이머를 정지한다.
+// - 하단좌측 진행 도트 5개(14×3), 현재 컷은 gold(#FFD6A0)로 6초 linear 채움
+// - 우상단 "⟳ STORY" pill 버튼 — 탭 시 애니메이션 완전 리셋 후 Cut 1부터
+//   재생 + 프레스 피드백(scale 0.94, 150ms)
+// - 배너 배경(캡션/도트/스파클 제외) 탭 → 귀인지도 생성 플로우 이동
+// - 앱이 백그라운드로 가면 애니메이션 일시정지, 포그라운드 복귀 시 재개
 // ═══════════════════════════════════════════════════════════════
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../sintong_home_tokens.dart';
 
 class _StoryCut {
-  const _StoryCut({
-    required this.asset,
-    required this.captionLines,
-    this.isPortrait = false,
-  });
+  const _StoryCut({required this.asset, required this.captionLines});
 
   final String asset;
   final List<InlineSpan> captionLines; // 강조어는 gold 컬러 TextSpan으로 섞음
-  final bool isPortrait;
 }
 
 class SintongStoryHero extends StatefulWidget {
@@ -47,28 +45,34 @@ class SintongStoryHero extends StatefulWidget {
 }
 
 class _SintongStoryHeroState extends State<SintongStoryHero>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   static const String _assetBase = 'assets/images/sintong_home';
 
   final List<_StoryCut> _cuts = const [
     _StoryCut(
       asset: '$_assetBase/story-0-hanbok.jpg',
-      isPortrait: true,
       captionLines: [
         TextSpan(text: '귀인'),
         TextSpan(text: '이\n당신을 기다리고 있어요'),
       ],
     ),
     _StoryCut(
-      asset: '$_assetBase/story-1-sky.jpg',
+      asset: '$_assetBase/story-1-forest.jpg',
       captionLines: [
-        TextSpan(text: '밤하늘에는\n당신을 위한 '),
-        TextSpan(text: '별'),
-        TextSpan(text: '이 있어요'),
+        TextSpan(text: '밤길에도\n당신을 이끄는 '),
+        TextSpan(text: '발걸음'),
       ],
     ),
     _StoryCut(
-      asset: '$_assetBase/story-2-saju.jpg',
+      asset: '$_assetBase/story-2-tower.jpg',
+      captionLines: [
+        TextSpan(text: '먼 곳에서도\n'),
+        TextSpan(text: '인연'),
+        TextSpan(text: '은 이어져요'),
+      ],
+    ),
+    _StoryCut(
+      asset: '$_assetBase/story-3-apothecary.jpg',
       captionLines: [
         TextSpan(text: '당신의 사주가\n'),
         TextSpan(text: '이야기'),
@@ -76,14 +80,7 @@ class _SintongStoryHeroState extends State<SintongStoryHero>
       ],
     ),
     _StoryCut(
-      asset: '$_assetBase/story-4-thread.jpg',
-      captionLines: [
-        TextSpan(text: '붉은 실이 이어지는\n'),
-        TextSpan(text: '인연의 방향'),
-      ],
-    ),
-    _StoryCut(
-      asset: '$_assetBase/story-5-map.jpg',
+      asset: '$_assetBase/story-4-village.jpg',
       captionLines: [
         TextSpan(text: '나만의 '),
         TextSpan(text: '귀인지도'),
@@ -93,16 +90,16 @@ class _SintongStoryHeroState extends State<SintongStoryHero>
   ];
 
   // 30초 총 루프를 통째로 도는 마스터 컨트롤러 하나로 모든 서브 애니메이션
-  // (컷 전환/줌/캡션/도트)을 동기화한다 — Handoff §07 "Progress dots는
-  // 컷을 진행시키는 동일 AnimationController로 구동해 완벽히 동기화" 요구
-  // 그대로 반영.
+  // (컷 전환/줌/캡션/도트)을 동기화한다.
   late final AnimationController _loopCtrl;
   // 반짝임(sparkle)은 3초 독립 주기라 별도 컨트롤러 사용.
   late final AnimationController _sparkleCtrl;
+  bool _storyBtnPressed = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final totalMs =
         SintongStoryHero.cutDuration.inMilliseconds * SintongStoryHero.cutCount;
     _loopCtrl = AnimationController(
@@ -116,138 +113,30 @@ class _SintongStoryHeroState extends State<SintongStoryHero>
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // 배터리 절약: 앱이 백그라운드로 가면 애니메이션 일시정지, 복귀 시 재개.
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      _loopCtrl.stop();
+      _sparkleCtrl.stop();
+    } else if (state == AppLifecycleState.resumed) {
+      _loopCtrl.repeat();
+      _sparkleCtrl.repeat(reverse: true);
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _loopCtrl.dispose();
     _sparkleCtrl.dispose();
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: widget.onTap,
-      child: AspectRatio(
-        aspectRatio: 16 / 11,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(SintongHomeRadii.xl),
-          child: DecoratedBox(
-            decoration: const BoxDecoration(color: Color(0xFF0E0820)),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                AnimatedBuilder(
-                  animation: _loopCtrl,
-                  builder: (context, _) {
-                    final t = _loopCtrl.value; // 0..1 (30초 전체 진행률)
-                    return Stack(
-                      fit: StackFit.expand,
-                      children: List.generate(_cuts.length, (i) {
-                        final localT = _cutLocalProgress(t, i);
-                        return _CutLayer(cut: _cuts[i], localT: localT);
-                      }),
-                    );
-                  },
-                ),
-                // 하단 그라디언트 워시(캡션 가독성)
-                const DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Color(0x260E0820),
-                        Color(0x000E0820),
-                        Color(0xB30E0820),
-                      ],
-                      stops: [0, 0.4, 1],
-                    ),
-                  ),
-                ),
-                // 별빛 반짝임 오버레이
-                AnimatedBuilder(
-                  animation: _sparkleCtrl,
-                  builder: (context, _) {
-                    final opacity = 0.35 + _sparkleCtrl.value * 0.65;
-                    return Opacity(
-                      opacity: opacity,
-                      child: const _SparkleOverlay(),
-                    );
-                  },
-                ),
-                // 우상단 STORY 배지
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.92),
-                      borderRadius: BorderRadius.circular(
-                        SintongHomeRadii.pill,
-                      ),
-                    ),
-                    child: Text(
-                      'STORY',
-                      style: TextStyle(
-                        fontFamily: 'Pretendard',
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.4,
-                        color: SintongHomeColors.ember,
-                      ),
-                    ),
-                  ),
-                ),
-                // 캡션(컷별 페이드 인/아웃)
-                Positioned(
-                  left: 16,
-                  right: 16,
-                  bottom: 26,
-                  child: AnimatedBuilder(
-                    animation: _loopCtrl,
-                    builder: (context, _) {
-                      final t = _loopCtrl.value;
-                      return Stack(
-                        children: List.generate(_cuts.length, (i) {
-                          final localT = _cutLocalProgress(t, i);
-                          return _CaptionLayer(cut: _cuts[i], localT: localT);
-                        }),
-                      );
-                    },
-                  ),
-                ),
-                // 하단좌측 진행 도트 5개
-                Positioned(
-                  left: 16,
-                  bottom: 14,
-                  child: AnimatedBuilder(
-                    animation: _loopCtrl,
-                    builder: (context, _) {
-                      final t = _loopCtrl.value;
-                      return Row(
-                        children: List.generate(_cuts.length, (i) {
-                          final localT = _cutLocalProgress(t, i);
-                          final fill = localT.clamp(0.0, 1.0);
-                          return Padding(
-                            padding: EdgeInsets.only(
-                              right: i == _cuts.length - 1 ? 0 : 5,
-                            ),
-                            child: _ProgressDot(fill: fill),
-                          );
-                        }),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+  void _restartStory() {
+    _loopCtrl
+      ..reset()
+      ..repeat();
   }
 
   /// 전체 루프 진행률 [t](0..1, 30초 기준)에서 컷 [index]의 로컬 진행률을
@@ -258,6 +147,181 @@ class _SintongStoryHeroState extends State<SintongStoryHero>
     final segment = 1 / n;
     final start = index * segment;
     return (t - start) / segment;
+  }
+
+  int _currentCutIndex(double t) {
+    final idx = (t * _cuts.length).floor();
+    return idx.clamp(0, _cuts.length - 1);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _loopCtrl,
+      builder: (context, _) {
+        final t = _loopCtrl.value;
+        final currentCut = _currentCutIndex(t);
+        return Semantics(
+          label: '귀인지도 스토리, 슬라이드 ${currentCut + 1}/${_cuts.length}, 탭하여 열기',
+          button: true,
+          child: GestureDetector(
+            onTap: widget.onTap,
+            child: AspectRatio(
+              aspectRatio: 16 / 11,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(SintongHomeRadii.xl),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x59000000),
+                      blurRadius: 24,
+                      offset: Offset(0, 8),
+                      spreadRadius: -12,
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(SintongHomeRadii.xl),
+                  child: DecoratedBox(
+                    decoration: const BoxDecoration(color: Color(0xFF0E0820)),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        // 1) 배경 이미지 5장
+                        Stack(
+                          fit: StackFit.expand,
+                          children: List.generate(_cuts.length, (i) {
+                            final localT = _cutLocalProgress(t, i);
+                            return _CutLayer(cut: _cuts[i], localT: localT);
+                          }),
+                        ),
+                        // 2) 하단 그라디언트 워시(캡션 가독성)
+                        const DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Color(0x260E0820),
+                                Color(0x000E0820),
+                                Color(0xB30E0820),
+                              ],
+                              stops: [0, 0.4, 1],
+                            ),
+                          ),
+                        ),
+                        // 3) 별빛 반짝임 오버레이
+                        AnimatedBuilder(
+                          animation: _sparkleCtrl,
+                          builder: (context, _) {
+                            final opacity = 0.35 + _sparkleCtrl.value * 0.65;
+                            return IgnorePointer(
+                              child: Opacity(
+                                opacity: opacity,
+                                child: const _SparkleOverlay(),
+                              ),
+                            );
+                          },
+                        ),
+                        // 4) 우상단 "⟳ STORY" 버튼 — 실제 재시작 기능
+                        Positioned(
+                          top: 12,
+                          right: 12,
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTapDown: (_) =>
+                                setState(() => _storyBtnPressed = true),
+                            onTapCancel: () =>
+                                setState(() => _storyBtnPressed = false),
+                            onTapUp: (_) =>
+                                setState(() => _storyBtnPressed = false),
+                            onTap: _restartStory,
+                            child: AnimatedScale(
+                              scale: _storyBtnPressed ? 0.94 : 1.0,
+                              duration: const Duration(milliseconds: 150),
+                              curve: Curves.easeOut,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.92),
+                                  borderRadius: BorderRadius.circular(
+                                    SintongHomeRadii.pill,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.replay,
+                                      size: 11,
+                                      color: SintongHomeColors.ember,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'STORY',
+                                      style: TextStyle(
+                                        fontFamily: 'Pretendard',
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 1.4,
+                                        color: SintongHomeColors.ember,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        // 5) 캡션(컷별 페이드 인/아웃) — left/right 16, bottom 68
+                        Positioned(
+                          left: 16,
+                          right: 16,
+                          bottom: 68,
+                          child: IgnorePointer(
+                            child: Stack(
+                              children: List.generate(_cuts.length, (i) {
+                                final localT = _cutLocalProgress(t, i);
+                                return _CaptionLayer(
+                                  cut: _cuts[i],
+                                  localT: localT,
+                                );
+                              }),
+                            ),
+                          ),
+                        ),
+                        // 6) 하단좌측 진행 도트 5개
+                        Positioned(
+                          left: 16,
+                          bottom: 14,
+                          child: IgnorePointer(
+                            child: Row(
+                              children: List.generate(_cuts.length, (i) {
+                                final localT = _cutLocalProgress(t, i);
+                                final fill = localT.clamp(0.0, 1.0);
+                                return Padding(
+                                  padding: EdgeInsets.only(
+                                    right: i == _cuts.length - 1 ? 0 : 5,
+                                  ),
+                                  child: _ProgressDot(fill: fill),
+                                );
+                              }),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }
 
@@ -271,20 +335,12 @@ class _CutLayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // [버그 수정 — 스토리 슬라이드 끊김] CSS 원본 keyframe(cutSwap)의
-    // 퍼센트(0%/4%/17%/20%)는 "30초 전체 루프" 기준값이다. 이 위젯이
-    // 받는 [localT]는 "컷 하나(6초)를 0..1로 정규화한 로컬 진행률"이므로,
-    // CSS % 그대로 0.04/0.17/0.20을 문턱값으로 쓰면 실제로는 6초 중
-    // 앞의 1.2초(20%가 아니라 20%의 20%=1.2초)만 보이고 나머지 4.8초는
-    // 완전히 사라져 "슬라이드가 끊기는" 것처럼 보이는 버그가 있었다.
-    // 컷 하나 = 전체 루프의 1/5(=20%)이므로, CSS %를 로컬 스케일로
-    // 되돌리려면 5를 곱해야 한다: 4%→0.20, 17%→0.85, 20%→1.00.
-    // (0→0.20 페이드인, 0.20→0.85 유지, 0.85→1.00 페이드아웃 — 다음 컷과
-    // 자연스러운 크로스디졸브를 위해 캡션 레이어와 동일한 곡선을 쓴다.)
     if (localT < -0.02 || localT > 1.02) {
       return const SizedBox.shrink();
     }
     final p = localT.clamp(0.0, 1.0);
+    // CSS cutSwap(30s 기준 4%/17%/20%)을 컷 로컬 스케일(x5)로 환산:
+    // 0→0.20 페이드인, 0.20→0.85 유지, 0.85→1.00 페이드아웃.
     double opacity;
     if (p < 0.20) {
       opacity = p / 0.20;
@@ -296,49 +352,21 @@ class _CutLayer extends StatelessWidget {
     opacity = opacity.clamp(0.0, 1.0);
     if (opacity <= 0.001) return const SizedBox.shrink();
 
-    // 줌: 컷 전체(0→1, 즉 6초 내내)에 걸쳐 1.08 → 1.00로 슬로우 줌.
+    // Ken Burns: 컷 전체(0→1, 6초 내내)에 걸쳐 1.08 → 1.00로 슬로우 줌.
     final scale = 1.08 - p * 0.08;
-
-    Widget image;
-    if (cut.isPortrait) {
-      // Cut1 특수 처리 — 세로 이미지를 BoxFit.contain 중앙 배치하고
-      // 좌우 여백은 같은 이미지의 블러(sigma24, brightness0.5) 버전으로 채움.
-      image = Stack(
-        fit: StackFit.expand,
-        children: [
-          Transform.scale(
-            scale: 1.15,
-            child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-              child: ColorFiltered(
-                colorFilter: const ColorFilter.mode(
-                  Colors.black38,
-                  BlendMode.darken,
-                ),
-                child: Image.asset(cut.asset, fit: BoxFit.cover),
-              ),
-            ),
-          ),
-          Image.asset(cut.asset, fit: BoxFit.contain),
-        ],
-      );
-    } else {
-      image = Image.asset(cut.asset, fit: BoxFit.cover);
-    }
 
     return Opacity(
       opacity: opacity,
-      child: Transform.scale(scale: scale, child: image),
+      child: Transform.scale(
+        scale: scale,
+        child: Image.asset(cut.asset, fit: BoxFit.cover),
+      ),
     );
   }
 }
 
-/// 캡션 레이어 — Handoff §07 capSwap 매핑(30초 전체 기준 0%→6%→17%→20%를
-/// 컷 로컬(6초=1.0) 기준으로 5배 환산: 0→0.30→0.85→1.00).
-///
-/// [버그 수정 — 스토리 슬라이드 끊김] 위 [_CutLayer]와 동일한 원인으로
-/// CSS % 원본값을 그대로 로컬 진행률 문턱값에 써서 캡션이 컷 시작
-/// 직후(6초 중 0.36초)에 사라졌다 나머지 5.6초 동안 보이지 않던 버그.
+/// 캡션 레이어 — capSwap 매핑(30초 전체 기준 0%→6%→17%→20%를 컷 로컬(6초
+/// =1.0) 기준으로 5배 환산: 0→0.30→0.85→1.00). Y축 8px→0→-4px.
 class _CaptionLayer extends StatelessWidget {
   const _CaptionLayer({required this.cut, required this.localT});
 
@@ -431,8 +459,9 @@ class _SparkleOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const IgnorePointer(
-      child: CustomPaint(painter: _SparkleDotsPainter(), size: Size.infinite),
+    return const CustomPaint(
+      painter: _SparkleDotsPainter(),
+      size: Size.infinite,
     );
   }
 }
