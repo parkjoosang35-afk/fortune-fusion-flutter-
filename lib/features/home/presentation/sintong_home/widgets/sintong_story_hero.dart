@@ -96,6 +96,8 @@ class _SintongStoryHeroState extends State<SintongStoryHero>
   late final AnimationController _sparkleCtrl;
   bool _storyBtnPressed = false;
 
+  bool _precached = false;
+
   @override
   void initState() {
     super.initState();
@@ -110,6 +112,21 @@ class _SintongStoryHeroState extends State<SintongStoryHero>
       vsync: this,
       duration: const Duration(seconds: 3),
     )..repeat(reverse: true);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // [끊김 방지] 첫 프레임에 5장을 동시에 디코딩하면 배너가 나타나는
+    // 순간 프레임이 드롭되어 "켤 때 뚝뚝 끊기는" 느낌을 준다. 위젯이
+    // 화면에 붙는 즉시 모든 컷 이미지를 미리 디코드해 캐시에 올려두고,
+    // 실제 애니메이션 빌드 시점에는 캐시된 이미지만 그리도록 한다.
+    if (!_precached) {
+      _precached = true;
+      for (final cut in _cuts) {
+        precacheImage(AssetImage(cut.asset), context);
+      }
+    }
   }
 
   @override
@@ -149,140 +166,150 @@ class _SintongStoryHeroState extends State<SintongStoryHero>
     return (t - start) / segment;
   }
 
-  int _currentCutIndex(double t) {
-    final idx = (t * _cuts.length).floor();
-    return idx.clamp(0, _cuts.length - 1);
-  }
-
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _loopCtrl,
-      builder: (context, _) {
-        final t = _loopCtrl.value;
-        final currentCut = _currentCutIndex(t);
-        return Semantics(
-          label: '귀인지도 스토리, 슬라이드 ${currentCut + 1}/${_cuts.length}, 탭하여 열기',
-          button: true,
-          child: GestureDetector(
-            onTap: widget.onTap,
-            child: AspectRatio(
-              aspectRatio: 16 / 11,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(SintongHomeRadii.xl),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x59000000),
-                      blurRadius: 24,
-                      offset: Offset(0, 8),
-                      spreadRadius: -12,
-                    ),
-                  ],
+    // [끊김 방지 — 구조 수정] 이전 버전은 정적인 부분(그림자/모양/
+    // GestureDetector/STORY 버튼/Semantics)까지 전부 하나의 AnimatedBuilder
+    // 안에 넣어버려서, 애니메이션이 도는 동안(초당 최대 60회) 이 무거운
+    // 트리 전체가 계속 다시 빌드되고 있었다. 이것이 배너가 "켤 때 부드럽지
+    // 않다"고 느껴진 핵심 원인이다. 이제 정적인 셸(shell)은 바깥에 한 번만
+    // 짓고, 실제로 프레임마다 값이 바뀌는 부분(이미지 페이드/캡션/도트/
+    // 반짝임)만 각각 좁은 AnimatedBuilder로 감싸 그 부분만 재빌드되게
+    // 한다.
+    return Semantics(
+      label: '귀인지도 스토리, 탭하여 열기',
+      button: true,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AspectRatio(
+          aspectRatio: 16 / 11,
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(SintongHomeRadii.xl),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x59000000),
+                  blurRadius: 24,
+                  offset: Offset(0, 8),
+                  spreadRadius: -12,
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(SintongHomeRadii.xl),
-                  child: DecoratedBox(
-                    decoration: const BoxDecoration(color: Color(0xFF0E0820)),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        // 1) 배경 이미지 5장
-                        Stack(
-                          fit: StackFit.expand,
-                          children: List.generate(_cuts.length, (i) {
-                            final localT = _cutLocalProgress(t, i);
-                            return _CutLayer(cut: _cuts[i], localT: localT);
-                          }),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(SintongHomeRadii.xl),
+              child: DecoratedBox(
+                decoration: const BoxDecoration(color: Color(0xFF0E0820)),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    // 1) 배경 이미지 5장 — _loopCtrl 값만 구독
+                    RepaintBoundary(
+                      child: AnimatedBuilder(
+                        animation: _loopCtrl,
+                        builder: (context, _) {
+                          final t = _loopCtrl.value;
+                          return Stack(
+                            fit: StackFit.expand,
+                            children: List.generate(_cuts.length, (i) {
+                              final localT = _cutLocalProgress(t, i);
+                              return _CutLayer(cut: _cuts[i], localT: localT);
+                            }),
+                          );
+                        },
+                      ),
+                    ),
+                    // 2) 하단 그라디언트 워시(캡션 가독성) — 정적, 재빌드 없음
+                    const DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Color(0x260E0820),
+                            Color(0x000E0820),
+                            Color(0xB30E0820),
+                          ],
+                          stops: [0, 0.4, 1],
                         ),
-                        // 2) 하단 그라디언트 워시(캡션 가독성)
-                        const DecoratedBox(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Color(0x260E0820),
-                                Color(0x000E0820),
-                                Color(0xB30E0820),
-                              ],
-                              stops: [0, 0.4, 1],
-                            ),
+                      ),
+                    ),
+                    // 3) 별빛 반짝임 오버레이 — _sparkleCtrl 값만 구독
+                    AnimatedBuilder(
+                      animation: _sparkleCtrl,
+                      builder: (context, _) {
+                        final opacity = 0.35 + _sparkleCtrl.value * 0.65;
+                        return IgnorePointer(
+                          child: Opacity(
+                            opacity: opacity,
+                            child: const _SparkleOverlay(),
                           ),
-                        ),
-                        // 3) 별빛 반짝임 오버레이
-                        AnimatedBuilder(
-                          animation: _sparkleCtrl,
-                          builder: (context, _) {
-                            final opacity = 0.35 + _sparkleCtrl.value * 0.65;
-                            return IgnorePointer(
-                              child: Opacity(
-                                opacity: opacity,
-                                child: const _SparkleOverlay(),
+                        );
+                      },
+                    ),
+                    // 4) 우상단 "⟳ STORY" 버튼 — 정적 셸, 프레스 상태만 로컬 관리
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTapDown: (_) =>
+                            setState(() => _storyBtnPressed = true),
+                        onTapCancel: () =>
+                            setState(() => _storyBtnPressed = false),
+                        onTapUp: (_) =>
+                            setState(() => _storyBtnPressed = false),
+                        onTap: _restartStory,
+                        child: AnimatedScale(
+                          scale: _storyBtnPressed ? 0.94 : 1.0,
+                          duration: const Duration(milliseconds: 150),
+                          curve: Curves.easeOut,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.92),
+                              borderRadius: BorderRadius.circular(
+                                SintongHomeRadii.pill,
                               ),
-                            );
-                          },
-                        ),
-                        // 4) 우상단 "⟳ STORY" 버튼 — 실제 재시작 기능
-                        Positioned(
-                          top: 12,
-                          right: 12,
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTapDown: (_) =>
-                                setState(() => _storyBtnPressed = true),
-                            onTapCancel: () =>
-                                setState(() => _storyBtnPressed = false),
-                            onTapUp: (_) =>
-                                setState(() => _storyBtnPressed = false),
-                            onTap: _restartStory,
-                            child: AnimatedScale(
-                              scale: _storyBtnPressed ? 0.94 : 1.0,
-                              duration: const Duration(milliseconds: 150),
-                              curve: Curves.easeOut,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 5,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.replay,
+                                  size: 11,
+                                  color: SintongHomeColors.ember,
                                 ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.92),
-                                  borderRadius: BorderRadius.circular(
-                                    SintongHomeRadii.pill,
+                                const SizedBox(width: 4),
+                                Text(
+                                  'STORY',
+                                  style: TextStyle(
+                                    fontFamily: 'Pretendard',
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 1.4,
+                                    color: SintongHomeColors.ember,
                                   ),
                                 ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.replay,
-                                      size: 11,
-                                      color: SintongHomeColors.ember,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'STORY',
-                                      style: TextStyle(
-                                        fontFamily: 'Pretendard',
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: 1.4,
-                                        color: SintongHomeColors.ember,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                              ],
                             ),
                           ),
                         ),
-                        // 5) 캡션(컷별 페이드 인/아웃) — left/right 16, bottom 68
-                        Positioned(
-                          left: 16,
-                          right: 16,
-                          bottom: 68,
-                          child: IgnorePointer(
-                            child: Stack(
+                      ),
+                    ),
+                    // 5) 캡션(컷별 페이드 인/아웃) — left/right 16, bottom 68
+                    Positioned(
+                      left: 16,
+                      right: 16,
+                      bottom: 68,
+                      child: IgnorePointer(
+                        child: AnimatedBuilder(
+                          animation: _loopCtrl,
+                          builder: (context, _) {
+                            final t = _loopCtrl.value;
+                            return Stack(
                               children: List.generate(_cuts.length, (i) {
                                 final localT = _cutLocalProgress(t, i);
                                 return _CaptionLayer(
@@ -290,15 +317,21 @@ class _SintongStoryHeroState extends State<SintongStoryHero>
                                   localT: localT,
                                 );
                               }),
-                            ),
-                          ),
+                            );
+                          },
                         ),
-                        // 6) 하단좌측 진행 도트 5개
-                        Positioned(
-                          left: 16,
-                          bottom: 14,
-                          child: IgnorePointer(
-                            child: Row(
+                      ),
+                    ),
+                    // 6) 하단좌측 진행 도트 5개
+                    Positioned(
+                      left: 16,
+                      bottom: 14,
+                      child: IgnorePointer(
+                        child: AnimatedBuilder(
+                          animation: _loopCtrl,
+                          builder: (context, _) {
+                            final t = _loopCtrl.value;
+                            return Row(
                               children: List.generate(_cuts.length, (i) {
                                 final localT = _cutLocalProgress(t, i);
                                 final fill = localT.clamp(0.0, 1.0);
@@ -309,18 +342,18 @@ class _SintongStoryHeroState extends State<SintongStoryHero>
                                   child: _ProgressDot(fill: fill),
                                 );
                               }),
-                            ),
-                          ),
+                            );
+                          },
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }
