@@ -211,26 +211,28 @@ flutter:
         - asset: assets/fonts/wish_room/IBMPlexMono-Medium.ttf
           weight: 500
     # [관상·손금 신통방통 "새벽 한지" 리스킨] 전용 폰트 3종.
-    # wish_room과 동일한 실제 폰트 파일(.ttf)을 재사용하되, 핸드오프 코드가
-    # 기대하는 평범한 family 이름(NotoSerifKR/GowunBatang/IBMPlexMono)으로
-    # 별도 등록한다. Pretendard(UI용)는 이미 앱 전역에 등록되어 있어 재등록 불필요.
+    # [용량 최적화 2026-09-15] wish_room과 100% 동일한 바이트의 .ttf 파일이
+    # assets/fonts/sintong/ 에도 중복 보관되어 있어 APK/웹 빌드에 약 45MB가
+    # 낭비되고 있었다(다운로드 실패 리포트의 원인 중 하나). family 이름
+    # (NotoSerifKR/GowunBatang/IBMPlexMono)은 핸드오프 코드가 그대로 참조하므로
+    # 유지하되, 실제 파일은 wish_room/ 폴더의 동일 파일을 가리키도록 통합한다.
     - family: NotoSerifKR
       fonts:
-        - asset: assets/fonts/sintong/NotoSerifKR-Bold.ttf
+        - asset: assets/fonts/wish_room/NotoSerifKR-Bold.ttf
           weight: 700
-        - asset: assets/fonts/sintong/NotoSerifKR-Black.ttf
+        - asset: assets/fonts/wish_room/NotoSerifKR-Black.ttf
           weight: 900
     - family: GowunBatang
       fonts:
-        - asset: assets/fonts/sintong/GowunBatang-Regular.ttf
+        - asset: assets/fonts/wish_room/GowunBatang-Regular.ttf
           weight: 400
-        - asset: assets/fonts/sintong/GowunBatang-Bold.ttf
+        - asset: assets/fonts/wish_room/GowunBatang-Bold.ttf
           weight: 700
     - family: IBMPlexMono
       fonts:
-        - asset: assets/fonts/sintong/IBMPlexMono-Regular.ttf
+        - asset: assets/fonts/wish_room/IBMPlexMono-Regular.ttf
           weight: 400
-        - asset: assets/fonts/sintong/IBMPlexMono-Medium.ttf
+        - asset: assets/fonts/wish_room/IBMPlexMono-Medium.ttf
           weight: 500
   #
   # For details regarding fonts from package dependencies,
