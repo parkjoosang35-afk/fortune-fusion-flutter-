@@ -271,28 +271,33 @@ class _CutLayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // CSS keyframe(cutSwap) 매핑: 0% opacity0/scale1.08 → 4% opacity1 →
-    // 17% opacity1/scale1.00 → 20% opacity0 → 100% opacity0.
+    // [버그 수정 — 스토리 슬라이드 끊김] CSS 원본 keyframe(cutSwap)의
+    // 퍼센트(0%/4%/17%/20%)는 "30초 전체 루프" 기준값이다. 이 위젯이
+    // 받는 [localT]는 "컷 하나(6초)를 0..1로 정규화한 로컬 진행률"이므로,
+    // CSS % 그대로 0.04/0.17/0.20을 문턱값으로 쓰면 실제로는 6초 중
+    // 앞의 1.2초(20%가 아니라 20%의 20%=1.2초)만 보이고 나머지 4.8초는
+    // 완전히 사라져 "슬라이드가 끊기는" 것처럼 보이는 버그가 있었다.
+    // 컷 하나 = 전체 루프의 1/5(=20%)이므로, CSS %를 로컬 스케일로
+    // 되돌리려면 5를 곱해야 한다: 4%→0.20, 17%→0.85, 20%→1.00.
+    // (0→0.20 페이드인, 0.20→0.85 유지, 0.85→1.00 페이드아웃 — 다음 컷과
+    // 자연스러운 크로스디졸브를 위해 캡션 레이어와 동일한 곡선을 쓴다.)
     if (localT < -0.02 || localT > 1.02) {
       return const SizedBox.shrink();
     }
     final p = localT.clamp(0.0, 1.0);
     double opacity;
-    if (p < 0.04) {
-      opacity = p / 0.04;
-    } else if (p < 0.17) {
+    if (p < 0.20) {
+      opacity = p / 0.20;
+    } else if (p < 0.85) {
       opacity = 1;
-    } else if (p < 0.20) {
-      opacity = 1 - (p - 0.17) / 0.03;
     } else {
-      opacity = 0;
+      opacity = 1 - (p - 0.85) / 0.15;
     }
     opacity = opacity.clamp(0.0, 1.0);
     if (opacity <= 0.001) return const SizedBox.shrink();
 
-    // 줌: 0%→17% 구간에서 1.08 → 1.00로 슬로우 줌.
-    final zoomP = (p / 0.17).clamp(0.0, 1.0);
-    final scale = 1.08 - zoomP * 0.08;
+    // 줌: 컷 전체(0→1, 즉 6초 내내)에 걸쳐 1.08 → 1.00로 슬로우 줌.
+    final scale = 1.08 - p * 0.08;
 
     Widget image;
     if (cut.isPortrait) {
@@ -328,8 +333,12 @@ class _CutLayer extends StatelessWidget {
   }
 }
 
-/// 캡션 레이어 — Handoff §07 capSwap 매핑: 0%→6% 페이드인(+아래→위 슬라이드),
-/// 6%→17% 유지, 17%→20% 페이드아웃.
+/// 캡션 레이어 — Handoff §07 capSwap 매핑(30초 전체 기준 0%→6%→17%→20%를
+/// 컷 로컬(6초=1.0) 기준으로 5배 환산: 0→0.30→0.85→1.00).
+///
+/// [버그 수정 — 스토리 슬라이드 끊김] 위 [_CutLayer]와 동일한 원인으로
+/// CSS % 원본값을 그대로 로컬 진행률 문턱값에 써서 캡션이 컷 시작
+/// 직후(6초 중 0.36초)에 사라졌다 나머지 5.6초 동안 보이지 않던 버그.
 class _CaptionLayer extends StatelessWidget {
   const _CaptionLayer({required this.cut, required this.localT});
 
@@ -342,20 +351,17 @@ class _CaptionLayer extends StatelessWidget {
     final p = localT.clamp(0.0, 1.0);
     double opacity;
     double dy;
-    if (p < 0.06) {
-      final k = p / 0.06;
+    if (p < 0.30) {
+      final k = p / 0.30;
       opacity = k;
       dy = 8 * (1 - k);
-    } else if (p < 0.17) {
+    } else if (p < 0.85) {
       opacity = 1;
       dy = 0;
-    } else if (p < 0.20) {
-      final k = (p - 0.17) / 0.03;
+    } else {
+      final k = (p - 0.85) / 0.15;
       opacity = 1 - k;
       dy = -4 * k;
-    } else {
-      opacity = 0;
-      dy = -4;
     }
     opacity = opacity.clamp(0.0, 1.0);
     if (opacity <= 0.001) return const SizedBox.shrink();
