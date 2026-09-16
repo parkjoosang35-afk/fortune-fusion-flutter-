@@ -32,6 +32,13 @@ export async function GET(request: NextRequest) {
         members: {
           where: { status: "active" },
           orderBy: { createdAt: "asc" },
+          // [해금 상태 영속화 — 2026-09 버그수정] 앱을 재시작하거나 화면을
+          // 나갔다 다시 들어오면 "한번 열어본 스페셜 해설"이 다시 잠긴
+          // 것처럼 보인다는 리포트("한번 열어본거 계속 열려야됨")를 해결
+          // 하기 위해, 멤버별 해금 기록 존재 여부를 함께 내려준다. 클라이언트
+          // 로컬 state(_specialUnlocked=false 초기화)만으로는 서버에 이미
+          // 저장된 해금 사실을 알 수 없었던 것이 근본 원인이었다.
+          include: { unlockRecords: { select: { id: true }, take: 1 } },
         },
         relationships: true,
       },
@@ -83,6 +90,9 @@ export async function GET(request: NextRequest) {
             birthTime: m.birthTime,
             birthTimeMissing: m.birthTimeMissing,
             joined: m.joinedUserId != null,
+            // [해금 상태 영속화] 이 멤버에 대한 unlock_record가 하나라도
+            // 있으면(광고 시청 또는 포인트 결제로 해금 완료) true.
+            unlocked: m.unlockRecords.length > 0,
           })),
           relationships: map.members
             .map((m) => relationshipByMemberId.get(m.id))
