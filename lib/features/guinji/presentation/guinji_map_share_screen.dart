@@ -153,7 +153,7 @@ class GuinjiMapShareScreen extends StatefulWidget {
   /// true면 배너 문구를 "모으는 중" 대신 "축하 이벤트가 열렸어요"로 전환.
   final bool milestoneReached;
 
-  /// 마일스톤 달성 시 지급된(또는 지급될) 보너스 포인트(배너 문구용).
+  /// 마일스톤 달성 시 지급된(또는 지급될) 복주머니 보너스 개수(배너 문구용).
   final int milestoneRewardPoint;
 
   @override
@@ -529,7 +529,7 @@ class _ShareOption extends StatelessWidget {
 /// [친구 초대 마일스톤 실기능화] 기존에는 "N명 모으면 축하 이벤트가
 /// 열려요"라는 문구만 있고 실제로 연결된 기능이 전혀 없던 순수 장식
 /// 배너였다("3명 모이면 이벤트가 있어요는 도대체 뭐야?" 사용자 지적).
-/// 이제 서버가 실제로 30P를 지급하는 마일스톤과 연동해, 달성 여부에 따라
+/// 이제 서버가 실제로 복주머니 30개를 지급하는 마일스톤과 연동해, 달성 여부에 따라
 /// 문구와 아이콘이 전환된다.
 class _RetentionBanner extends StatelessWidget {
   const _RetentionBanner({
@@ -547,7 +547,7 @@ class _RetentionBanner extends StatelessWidget {
   /// 이미 목표 인원에 도달했는지(서버 `GuinjiProvider.milestoneReached`).
   final bool reached;
 
-  /// 마일스톤 보너스 포인트(예: 30). 달성 문구에 노출.
+  /// 마일스톤 보너스 복주머니 개수(예: 30). 달성 문구에 노출.
   final int rewardPoint;
 
   @override
@@ -587,7 +587,7 @@ class _RetentionBanner extends StatelessWidget {
               children: [
                 Text(
                   reached
-                      ? '축하 이벤트가 열렸어요 · +$displayPoint P 지급'
+                      ? '축하 이벤트가 열렸어요 · 복주머니 +$displayPoint개 지급'
                       : '$goal명 모으면 축하 이벤트가 열려요',
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,

@@ -125,7 +125,7 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                '친구 3명이 귀인지도에 모였어요.\n고마운 마음을 담아 복주머니 ${rewardPoint > 0 ? rewardPoint : 30}P를 보내드려요.',
+                '친구 3명이 귀인지도에 모였어요.\n고마운 마음을 담아 복주머니 ${rewardPoint > 0 ? rewardPoint : 30}개를 보내드려요.',
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 13, height: 1.5, color: GmColors.inkSoft),
               ),

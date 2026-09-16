@@ -69,13 +69,13 @@ class GuinjiProvider extends ChangeNotifier {
   bool get milestoneReached => _map?['milestoneReached'] as bool? ?? false;
 
   /// [1회성 이벤트 소비] 이번 [loadMyMap] 호출에서 **막** 목표를 달성해
-  /// 서버가 보너스 포인트를 지급했는지. 화면이 이 값을 읽어 축하 다이얼로그를
+  /// 서버가 보너스 복주머니를 지급했는지. 화면이 이 값을 읽어 축하 다이얼로그를
   /// 띄운 뒤에는 반드시 [consumeMilestoneJustReached]를 호출해 꺼야 한다
   /// (그러지 않으면 재렌더마다 축하 팝업이 반복해서 뜬다).
   bool get milestoneJustReached => _milestoneJustReached;
   bool _milestoneJustReached = false;
 
-  /// 방금 지급된 마일스톤 보너스 포인트(축하 화면 문구용, 예: 30).
+  /// 방금 지급된 마일스톤 보너스 복주머니 개수(축하 화면 문구용, 예: 30).
   int get milestoneRewardPoint => _milestoneRewardPoint;
   int _milestoneRewardPoint = 0;
 
