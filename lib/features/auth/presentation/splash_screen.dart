@@ -63,28 +63,35 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
+    // [스플래시 히어로 이미지 미표시 버그 수정 - 4차, 진짜 근본 원인 해결]
+    // 1~3차 수정은 모두 "setState와 네비게이션 사이의 프레임 레이스"를
+    // 의심했으나, 실제 디버그 로그(T0~T10 타임스탬프)를 웹 콘솔에서
+    // 직접 추적한 결과 전혀 다른 원인이 드러났다:
+    //
+    //   기존 _controller는 initState 시점부터 "고정 1300ms" 동안
+    //   fade-in(0~40%) -> hold(40~80%) -> fade-out(80~100%)을 자동으로
+    //   전부 재생하는 TweenSequence였다. 그런데 실제 부트스트랩
+    //   (세션 복원 + introConfig 로드 + 히어로 이미지 precache + 400ms
+    //   체류)은 이 환경에서 약 2.0~2.5초가 걸린다(T0=4.937s ~
+    //   T10=7.438s, 총 2501ms). 즉 화면 전체를 감싸는 FadeTransition은
+    //   1.3초 만에 이미 opacity=0(완전 투명)으로 끝나버리고, 그 안의
+    //   히어로 이미지가 `_heroReady=true`가 되어 실제로 그려지는 시점
+    //   (T7=6.950s, initState 대비 +2013ms)에는 이미 부모 전체가
+    //   투명해서 화면에 아무것도 보이지 않았던 것이다. setState/
+    //   endOfFrame 관련 수정(2~3차)은 이 문제와 무관했다.
+    //
+    //   근본 해결: 컨트롤러를 "고정 시간에 자동으로 사라지는 애니메이션"
+    //   이 아니라 "빠르게 페이드인한 뒤 부트스트랩이 끝날 때까지 완전히
+    //   보이는 상태(opacity=1)로 유지 -> 부트스트랩 완료 직후에만 명시적
+    //   으로 페이드아웃"하는 방식으로 재설계한다. forward()는 페이드인만
+    //   담당하고 끝나면 1.0에 멈춰 있으며, `_bootstrap()`의 네비게이션
+    //   직전에 `_controller.reverse()`를 await해 페이드아웃시킨다.
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1300),
+      duration: const Duration(milliseconds: 400),
+      reverseDuration: const Duration(milliseconds: 300),
     );
-    // fade-in(0~40%) -> hold -> fade-out(80~100%), 전체 1.3초 내에서 처리.
-    _fade = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween(
-          begin: 0.0,
-          end: 1.0,
-        ).chain(CurveTween(curve: Curves.easeOut)),
-        weight: 40,
-      ),
-      TweenSequenceItem(tween: ConstantTween(1.0), weight: 40),
-      TweenSequenceItem(
-        tween: Tween(
-          begin: 1.0,
-          end: 0.0,
-        ).chain(CurveTween(curve: Curves.easeIn)),
-        weight: 20,
-      ),
-    ]).animate(_controller);
+    _fade = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
     _controller.forward();
     // [스플래시 히어로 이미지 미표시 버그 수정] 첫 프레임이 끝난 직후
     // (addPostFrameCallback) precacheImage를 시작해 다운로드를 최대한
@@ -186,6 +193,17 @@ class _SplashScreenState extends State<SplashScreen>
       if (kDebugMode) {
         debugPrint('[신통방통 2단계 마이그레이션] $migration');
       }
+    }
+
+    if (!mounted) return;
+
+    // [4차 수정] 모든 부트스트랩/이미지 준비가 끝난 "이 시점"에야 비로소
+    // 명시적으로 페이드아웃을 재생하고, 그 애니메이션이 완전히 끝날
+    // 때까지 await한 뒤 네비게이션한다. 더 이상 고정된 1.3초 타이머에
+    // 의존하지 않으므로, 부트스트랩이 얼마나 걸리든 항상 완성된 화면
+    // (히어로 이미지 + 정상 폰트)이 사용자에게 노출된 뒤에 사라진다.
+    if (mounted) {
+      await _controller.reverse();
     }
 
     if (!mounted) return;
