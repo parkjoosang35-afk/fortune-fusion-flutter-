@@ -63,11 +63,9 @@ class PouchBurstData {
         angle: rng.nextDouble() * 2 * math.pi,
         radius: 60 + math.pow(rng.nextDouble(), 0.55) * 260,
         size:
-            LuckyBoxTokens.particleSizeMin ??
-            18 +
-                rng.nextDouble() *
-                    (RewardConfig.particleSizeMax -
-                        RewardConfig.particleSizeMin),
+            RewardConfig.particleSizeMin +
+            rng.nextDouble() *
+                (RewardConfig.particleSizeMax - RewardConfig.particleSizeMin),
         rotationDeg: -180 + rng.nextDouble() * 360,
         delayMs: rng.nextDouble() * 350,
         durationMs: 1600 + rng.nextDouble() * 1200,

@@ -74,6 +74,8 @@ import 'features/wish_room/data/gratitude_api_repository.dart';
 import 'features/wish_room/application/gratitude_provider.dart';
 import 'features/guinji/data/guinji_repository.dart';
 import 'features/guinji/application/guinji_provider.dart';
+import 'features/pouch_box/application/pouch_box_provider.dart';
+import 'features/pouch_box/data/pouch_box_repository.dart';
 
 /// 07단계 §2.1 앱 루트 - MultiProvider 전역 등록 + MaterialApp 라우팅 연결
 /// 10단계(A안): 모든 Repository는 Mock 구현이며, 향후 실제 API 연동 시
@@ -109,6 +111,13 @@ class App extends StatelessWidget {
         // 자체는 WalletProvider.load()로 재조회하는 동일한 서버-확정 패턴을 쓴다.
         ChangeNotifierProvider(
           create: (_) => FortuneAdProvider(FortuneAdRepository()),
+        ),
+        // [행운상자 - 복주머니 탭 신규 기능] 하단바 "복주머니" 탭의 그리드
+        // 화면이 참조하는 전역 상태(오늘 현황 + 시청시작/완료 API 위임).
+        // FortuneAdProvider와 동일한 분리 원칙(상태/통신만 담당, 화면
+        // 전이는 PouchBoxTabScreen이 담당)으로 바로 옆에 등록한다.
+        ChangeNotifierProvider(
+          create: (_) => PouchBoxProvider(PouchBoxRepository()),
         ),
         ChangeNotifierProvider(
           create: (_) => NotificationProvider(NotificationRepository()),

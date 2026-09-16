@@ -3,7 +3,12 @@ import '../theme/app_colors.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/fortune/presentation/fortune_hub_screen.dart';
 import '../../features/wish_room/presentation/wish_room_home_screen.dart';
-import '../../features/luckybag/presentation/luckybag_hub_screen.dart';
+// [행운상자 - 복주머니 탭 신규 기능] 사용자 요청("복주머니 탭 자리에
+// 첨부한 행운상자 기능을 넣어달라, 하단바 라벨은 그대로 복주머니")에 따라
+// 이 탭이 보여주는 화면 내용을 LuckyBagScreen(잔액+광고카드+출석체크)에서
+// PouchBoxTabScreen(그리드→광고→흔들림→폭발→결과 상태머신)으로 교체한다.
+// LuckyBagScreen 파일 자체는 프로젝트 관례에 따라 삭제하지 않고 보존한다.
+import '../../features/pouch_box/presentation/pouch_box_tab_screen.dart';
 import '../../features/mypage/presentation/my_screen.dart';
 
 /// 03단계 §3.1 5탭 하단내비게이션 + IndexedStack 앱쉘
@@ -43,7 +48,10 @@ class _AppShellState extends State<AppShell> {
     // 핸드오프의 ScreenHome을 pixel-perfect 재현한 화면. 탭 아이콘/라벨/위치
     // (하단바 자체 UI)는 그대로 유지하고 이 탭이 보여주는 화면 내용만 교체.
     WishRoomHomeScreen(),
-    LuckyBagScreen(), // 🍀 복주머니 - 잔액 히어로+커뮤니티엔진 배너+적립방법/사용처/구독보너스/히스토리
+    // 🎁 복주머니 - [행운상자 - 복주머니 탭 신규 기능] 광고 시청으로 여는
+    // 행운상자 그리드(하단바 라벨/아이콘은 그대로 "복주머니" 유지, 화면
+    // 내용만 신규 행운상자 인터랙션으로 전면 교체됨).
+    PouchBoxTabScreen(),
     MyScreen(), // 👤 마이 - 프로필+등급뱃지+아카이브+설정
   ];
 
