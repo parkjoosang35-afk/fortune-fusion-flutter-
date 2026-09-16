@@ -3,6 +3,7 @@ import '../../../../core/widgets/bangtong_seonyeo.dart';
 import 'intro_eyebrow_label.dart';
 import 'intro_feature_list.dart';
 import 'intro_title_text.dart';
+import '../intro_palette.dart';
 import '../intro_text_styles.dart';
 import '../../domain/intro_config_model.dart';
 
@@ -33,9 +34,15 @@ class IntroPageContent extends StatelessWidget {
   /// `justify-content: flex-start`) 여부.
   final bool alignTop;
 
-  /// [방통선녀 캐릭터 재배치] 페이지 상단(eyebrow 위)에 표시할 캐릭터
-  /// 표정. null이면 캐릭터를 표시하지 않는다.
-  final BangtongMood? characterMood;
+  /// [배치 재수정 - 증명사진 문제 해결] 페이지 최상단에 크게 표시할
+  /// 캐릭터 전신/반신/포즈 이미지 경로. null이면 캐릭터 히어로를 표시하지
+  /// 않는다. 기존에는 76~84px 작은 원형 얼굴 아바타를 텍스트 위에 얹었으나,
+  /// "증명사진처럼 작다"는 피드백에 따라 화면 폭 전체를 채우는 큰 배너
+  /// 이미지(BangtongIntroHero)로 교체한다.
+  final String? characterAsset;
+
+  /// 캐릭터 히어로 배너의 높이. 화면 상단 여백을 활용해 충분히 크게 보여준다.
+  final double characterHeroHeight;
 
   const IntroPageContent({
     super.key,
@@ -47,7 +54,8 @@ class IntroPageContent extends StatelessWidget {
     this.titleHighlightColors = const [Colors.white, Colors.white],
     this.featureItems,
     this.alignTop = false,
-    this.characterMood,
+    this.characterAsset,
+    this.characterHeroHeight = 260,
   });
 
   /// 제목/서브카피/피처리스트를 렌더링하는 공용 콘텐츠 블록.
@@ -72,9 +80,14 @@ class IntroPageContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        if (characterMood != null) ...[
-          BangtongFaceAvatar(size: 84, mood: characterMood!, glow: true),
-          const SizedBox(height: 16),
+        if (characterAsset != null) ...[
+          BangtongIntroHero(
+            asset: characterAsset!,
+            height: characterHeroHeight,
+            fadeColor: IntroPalette.backgroundTop,
+            borderRadius: BorderRadius.circular(28),
+          ),
+          const SizedBox(height: 18),
         ],
         IntroEyebrowLabel(eyebrow),
         const SizedBox(height: 20),

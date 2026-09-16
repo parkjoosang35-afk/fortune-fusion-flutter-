@@ -176,7 +176,8 @@ class _IntroPagerScreenState extends State<IntroPagerScreen> {
               IntroPalette.crystal,
             ],
             subtitle: config.card1Description,
-            characterMood: BangtongMood.serene,
+            characterAsset: BangtongSeonyeoAssets.poseLightingCandle,
+            characterHeroHeight: 300,
           ),
         ),
         Positioned(
@@ -216,7 +217,8 @@ class _IntroPagerScreenState extends State<IntroPagerScreen> {
             subtitle: config.card2Description,
             featureItems: config.featureItems,
             alignTop: true,
-            characterMood: BangtongMood.wonder,
+            characterAsset: BangtongSeonyeoAssets.mainHalfBody,
+            characterHeroHeight: 220,
           ),
         ),
         Positioned(

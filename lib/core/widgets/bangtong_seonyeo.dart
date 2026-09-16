@@ -214,6 +214,77 @@ class BangtongFaceAvatar extends StatelessWidget {
   }
 }
 
+/// [배치 수정 - 인트로 히어로] 화면 상단을 가득 채우는 큰 배너형 캐릭터
+/// 이미지. 기존에 작은 원형 얼굴(76~96px)만 텍스트 위에 얹었던 것을
+/// "증명사진처럼 작다"는 피드백에 따라, 여백이 넉넉한 인트로 화면에는
+/// 전신/반신/포즈 원본 이미지(896x1200)를 화면 폭 전체로 크게 보여주고
+/// 하단을 배경색으로 자연스럽게 페이드아웃시켜 텍스트와 이어붙인다.
+class BangtongIntroHero extends StatelessWidget {
+  final String asset;
+  final double height;
+  final Color fadeColor;
+  final Alignment alignment;
+  final BorderRadius borderRadius;
+
+  const BangtongIntroHero({
+    super.key,
+    required this.asset,
+    required this.height,
+    required this.fadeColor,
+    this.alignment = Alignment.topCenter,
+    this.borderRadius = const BorderRadius.only(
+      bottomLeft: Radius.circular(32),
+      bottomRight: Radius.circular(32),
+    ),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: borderRadius,
+      child: SizedBox(
+        width: double.infinity,
+        height: height,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Semantics(
+              label: '방통선녀',
+              child: Image.asset(
+                asset,
+                fit: BoxFit.cover,
+                alignment: alignment,
+              ),
+            ),
+            // 이미지 하단을 화면 배경색으로 부드럽게 녹여, 사진을 잘라 붙인
+            // 듯한 경계선 없이 텍스트 영역과 자연스럽게 이어지도록 한다.
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: height * 0.55,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      fadeColor.withValues(alpha: 0),
+                      fadeColor.withValues(alpha: 0.55),
+                      fadeColor,
+                    ],
+                    stops: const [0.0, 0.6, 1.0],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// 포즈 프레임 · 세로 카드 안 포즈 이미지(사주·부적·기도 문맥).
 class BangtongPoseFrame extends StatelessWidget {
   final String asset;

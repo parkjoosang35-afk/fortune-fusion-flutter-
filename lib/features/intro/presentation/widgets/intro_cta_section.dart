@@ -48,13 +48,16 @@ class IntroCTASection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // 방통선녀 캐릭터 — 마지막 단계에서 환하게 웃으며 시작을 반긴다.
-        const BangtongFaceAvatar(
-          size: 92,
-          mood: BangtongMood.smile,
-          glow: true,
+        // [배치 재수정 - 증명사진 문제 해결] 방통선녀 캐릭터 — 마지막
+        // 단계에서 두 손 모아 기도하며 시작을 반긴다. 작은 원형 얼굴
+        // 대신 화면 폭 전체를 채우는 큰 포즈 이미지로 교체.
+        BangtongIntroHero(
+          asset: BangtongSeonyeoAssets.posePraying,
+          height: 260,
+          fadeColor: IntroPalette.backgroundTop,
+          borderRadius: BorderRadius.circular(28),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 18),
         const IntroEyebrowLabel('READY · TO · BEGIN'),
         const SizedBox(height: 20),
         Expanded(

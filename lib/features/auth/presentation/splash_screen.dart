@@ -188,48 +188,53 @@ class _SplashScreenState extends State<SplashScreen>
                   children: [
                     // eyebrow — 神通萬通 · SINTONG
                     const IntroEyebrowLabel('神通萬通 · SINTONG'),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 20),
                     Expanded(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // [신통도령 대체 - 방통선녀 재배치] 얼굴 아이콘 +
-                          // 부드러운 광채. 스플래시는 짧게 스쳐가는 화면이라
-                          // 과한 애니메이션 없이 정적 이미지로 배치한다.
-                          Container(
-                            width: 96,
-                            height: 96,
-                            margin: const EdgeInsets.only(bottom: 20),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: IntroPalette.primary.withValues(
-                                    alpha: 0.35,
+                      // [오버플로우 방지] 캐릭터 히어로(260px 고정) + 타이틀 +
+                      // 서브카피 총합이 작은 화면 높이를 넘길 수 있어,
+                      // intro_page_content.dart와 동일한 안전 패턴
+                      // (LayoutBuilder+SingleChildScrollView+ConstrainedBox)을
+                      // 적용해 콘텐츠가 길어도 하드 오버플로우 없이 스크롤되게 한다.
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          return SingleChildScrollView(
+                            physics: const ClampingScrollPhysics(),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minHeight: constraints.maxHeight,
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  // [배치 재수정 - 증명사진 문제 해결] 기존
+                                  // 96px 원형 얼굴 아이콘은 "증명사진처럼
+                                  // 작다"는 피드백을 받아, 화면 폭 전체를
+                                  // 채우는 큰 전신 이미지로 교체했다.
+                                  // 스플래시는 짧게 스쳐가는 화면이라 과한
+                                  // 애니메이션 없이 정적 이미지로 배치한다.
+                                  BangtongIntroHero(
+                                    asset: BangtongSeonyeoAssets.mainFullBody,
+                                    height: 260,
+                                    fadeColor: IntroPalette.backgroundTop,
+                                    borderRadius: BorderRadius.circular(28),
                                   ),
-                                  blurRadius: 40,
-                                  spreadRadius: 4,
-                                ),
-                              ],
+                                  const SizedBox(height: 18),
+                                  Text(
+                                    config.splashTitle,
+                                    textAlign: TextAlign.center,
+                                    style: IntroTextStyles.title(fontSize: 38),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    subtitleLines.join('\n'),
+                                    textAlign: TextAlign.center,
+                                    style: IntroTextStyles.sub(),
+                                  ),
+                                ],
+                              ),
                             ),
-                            clipBehavior: Clip.antiAlias,
-                            child: Image.asset(
-                              BangtongSeonyeoAssets.faceIcon,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          Text(
-                            config.splashTitle,
-                            textAlign: TextAlign.center,
-                            style: IntroTextStyles.title(fontSize: 42),
-                          ),
-                          const SizedBox(height: 14),
-                          Text(
-                            subtitleLines.join('\n'),
-                            textAlign: TextAlign.center,
-                            style: IntroTextStyles.sub(),
-                          ),
-                        ],
+                          );
+                        },
                       ),
                     ),
                     // 로딩 dot 3개(핸드오프 .load-dot)
