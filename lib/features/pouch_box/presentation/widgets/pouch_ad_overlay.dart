@@ -16,6 +16,12 @@ import '../../../ads_test/domain/admob_ad_ids.dart';
 /// 광고를 중간에 닫아버린 경우(onUserEarnedReward 콜백 미도달)만 예외적으로
 /// `onCancelled()`를 호출해 그리드로 되돌린다(보상 없음, fortune_ad와 동일
 /// 정책).
+///
+/// [광고 로드 실패 처리] dev-spec.md §7 항목10 "재시도 / 오늘 소진 처리 /
+/// 소용량 리트라이" 중 "재시도"를 채택. 최초 로드 실패 시 1회 자동
+/// 재시도하고, 그마저도 실패하면 사용자가 "다시 시도"/"그만두기"를 직접
+/// 선택하는 UI로 전환한다(예전처럼 900ms 후 조용히 그리드로 튕기지 않음 —
+/// 사용자가 왜 상자가 안 열리는지 이해할 새도 없이 사라지는 문제 방지).
 class PouchAdOverlay extends StatefulWidget {
   final void Function(int watchSeconds) onCompleted;
   final VoidCallback onCancelled;
@@ -37,6 +43,8 @@ class _PouchAdOverlayState extends State<PouchAdOverlay> {
   int _remaining = _seconds;
   bool _admobLoading = true;
   String? _errorMessage;
+  bool _autoRetried = false;
+  bool _showRetryActions = false;
 
   bool get _isAdmob => AdmobAdIds.isSupportedPlatform;
 
@@ -110,15 +118,42 @@ class _PouchAdOverlayState extends State<PouchAdOverlay> {
             debugPrint('[PouchAdOverlay] 애드몹 로드 실패 -> $error');
           }
           if (!mounted) return;
-          setState(() {
-            _errorMessage = '지금은 광고를 불러올 수 없어요. 잠시 후 다시 시도해주세요.';
-          });
-          Future.delayed(const Duration(milliseconds: 900), () {
-            if (mounted) widget.onFailed();
-          });
+          _handleLoadFailure();
         },
       ),
     );
+  }
+
+  /// 최초 실패 시 1회 자동 재시도(짧은 지연 후 조용히 다시 로드). 재시도도
+  /// 실패하면 사용자가 직접 선택할 수 있는 액션 버튼을 보여준다.
+  void _handleLoadFailure() {
+    if (!_autoRetried) {
+      _autoRetried = true;
+      setState(() {
+        _admobLoading = true;
+        _errorMessage = '광고를 다시 불러오고 있어요';
+      });
+      Future.delayed(const Duration(milliseconds: 1200), () {
+        if (!mounted) return;
+        _loadAndShowAdmobRewardedAd();
+      });
+      return;
+    }
+    setState(() {
+      _admobLoading = false;
+      _showRetryActions = true;
+      _errorMessage = '지금은 광고를 불러올 수 없어요.';
+    });
+  }
+
+  void _retryManually() {
+    setState(() {
+      _showRetryActions = false;
+      _admobLoading = true;
+      _errorMessage = null;
+      _autoRetried = false; // 사용자가 직접 누른 재시도는 다시 1회 자동재시도 허용
+    });
+    _loadAndShowAdmobRewardedAd();
   }
 
   @override
@@ -177,22 +212,82 @@ class _PouchAdOverlayState extends State<PouchAdOverlay> {
                   fontSize: 14,
                 ),
               ),
-              const SizedBox(height: LuckyBoxTokens.sp6),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(LuckyBoxTokens.rPill),
-                child: LinearProgressIndicator(
-                  value: _isAdmob
-                      ? (_admobLoading ? null : 1.0)
-                      : (1 - _remaining / _seconds),
-                  minHeight: 5,
-                  backgroundColor: LuckyBoxTokens.bgSofter,
-                  color: LuckyBoxTokens.accentGlow,
+              if (_showRetryActions) ...[
+                const SizedBox(height: LuckyBoxTokens.sp5),
+                _RetryActions(
+                  onRetry: _retryManually,
+                  onGiveUp: widget.onFailed,
                 ),
-              ),
+              ] else ...[
+                const SizedBox(height: LuckyBoxTokens.sp6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(LuckyBoxTokens.rPill),
+                  child: LinearProgressIndicator(
+                    value: _isAdmob
+                        ? (_admobLoading ? null : 1.0)
+                        : (1 - _remaining / _seconds),
+                    minHeight: 5,
+                    backgroundColor: LuckyBoxTokens.bgSofter,
+                    color: LuckyBoxTokens.accentGlow,
+                  ),
+                ),
+              ],
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+/// 자동 재시도까지 모두 실패했을 때 사용자에게 보여주는 선택 UI.
+/// "다시 시도" 탭 시 광고 로드를 재시도하고, "그만두기" 탭 시
+/// [PouchAdOverlay.onFailed]를 호출해 그리드로 되돌린다(보상 없음).
+class _RetryActions extends StatelessWidget {
+  final VoidCallback onRetry;
+  final VoidCallback onGiveUp;
+
+  const _RetryActions({required this.onRetry, required this.onGiveUp});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton(
+            onPressed: onGiveUp,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: LuckyBoxTokens.fgSecondary,
+              side: BorderSide(color: LuckyBoxTokens.line),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(LuckyBoxTokens.rPill),
+              ),
+              padding: const EdgeInsets.symmetric(
+                vertical: LuckyBoxTokens.sp3,
+              ),
+            ),
+            child: const Text('그만두기'),
+          ),
+        ),
+        const SizedBox(width: LuckyBoxTokens.sp3),
+        Expanded(
+          child: ElevatedButton(
+            onPressed: onRetry,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: LuckyBoxTokens.ctaPrimaryBg,
+              foregroundColor: LuckyBoxTokens.ctaPrimaryFg,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(LuckyBoxTokens.rPill),
+              ),
+              padding: const EdgeInsets.symmetric(
+                vertical: LuckyBoxTokens.sp3,
+              ),
+              elevation: 0,
+            ),
+            child: const Text('다시 시도'),
+          ),
+        ),
+      ],
     );
   }
 }
