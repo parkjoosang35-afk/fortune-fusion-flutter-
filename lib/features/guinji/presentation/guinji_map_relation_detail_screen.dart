@@ -545,6 +545,12 @@ class _SpecialUnlockedCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final label = meta?.label ?? person.relation;
     final ohaengText = ohaeng != null ? '${ohaeng!.name}(${ohaeng!.label})' : '오행';
+    // [스페셜 해설 콘텐츠 풍부화 — 2026-09] 관계 유형(12종)별 실제 심층
+    // 해설/팁을 사용한다("내용이 빈약하다" 리포트 대응). meta가 null인
+    // 경우(이론상 발생하지 않지만 방어적으로)에만 기본 문구로 폴백한다.
+    final insight = meta?.specialInsight ??
+        '두 분의 관계는 사주 4기둥을 근거로 풀이한 특별한 결을 지니고 있어요.';
+    final tips = meta?.tips ?? const ['결정이 흔들릴 때 이 사람에게 먼저 물어보세요.'];
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
@@ -567,26 +573,32 @@ class _SpecialUnlockedCard extends StatelessWidget {
                 const TextSpan(text: '의 결이에요. '),
                 TextSpan(text: '${person.name}님이 지닌 '),
                 TextSpan(text: ohaengText, style: const TextStyle(color: GmColors.rose700)),
-                const TextSpan(text: '의 기운은 서로를 살리는(生) 작용을 합니다. 작은 일도 함께 상의하면 결이 잘 풀려요.'),
+                const TextSpan(text: '의 기운을 함께 지녔어요.\n\n'),
+                TextSpan(text: insight),
               ],
             ),
           ),
           const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: GmColors.rose700.withValues(alpha: 0.06),
-              border: Border.all(color: GmColors.rose700.withValues(alpha: 0.18)),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Text.rich(
-              TextSpan(
-                style: TextStyle(fontSize: 11, height: 1.5, color: GmColors.inkSoft),
-                children: [
-                  TextSpan(text: 'Tip. ', style: TextStyle(color: GmColors.rose700)),
-                  TextSpan(text: '결정이 흔들릴 때 이 사람에게 먼저 물어보세요.'),
-                ],
+          ...tips.map(
+            (tip) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: GmColors.rose700.withValues(alpha: 0.06),
+                  border: Border.all(color: GmColors.rose700.withValues(alpha: 0.18)),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text.rich(
+                  TextSpan(
+                    style: const TextStyle(fontSize: 11, height: 1.5, color: GmColors.inkSoft),
+                    children: [
+                      const TextSpan(text: 'Tip. ', style: TextStyle(color: GmColors.rose700)),
+                      TextSpan(text: tip),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),

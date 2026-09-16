@@ -698,41 +698,42 @@ class _SpecialUnlockedCard extends StatelessWidget {
                   text: '${ohaeng.name}(${ohaeng.label})',
                   style: const TextStyle(color: GuinjiColors.crystalAqua),
                 ),
-                const TextSpan(text: '의 기운은 서로를 '),
-                const TextSpan(
-                  text: '살리는(生)',
-                  style: TextStyle(color: GuinjiColors.lavender),
-                ),
-                const TextSpan(text: ' 작용을 합니다. 작은 일도 함께 상의하면 결이 잘 풀려요.'),
+                const TextSpan(text: '의 기운을 함께 지녔어요.\n\n'),
+                TextSpan(text: relation.specialInsight),
               ],
             ),
           ),
           const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: GuinjiColors.lavender.withValues(alpha: 0.08),
-              border: Border.all(
-                color: GuinjiColors.lavender.withValues(alpha: 0.2),
-              ),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Text.rich(
-              TextSpan(
-                style: TextStyle(
-                  fontFamily: GuinjiFonts.body,
-                  fontSize: 11,
-                  height: 1.5,
-                  color: GuinjiColors.textSecondary,
-                ),
-                children: [
-                  TextSpan(
-                    text: 'Tip. ',
-                    style: TextStyle(color: GuinjiColors.lavender),
+          ...relation.tips.map(
+            (tip) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: GuinjiColors.lavender.withValues(alpha: 0.08),
+                  border: Border.all(
+                    color: GuinjiColors.lavender.withValues(alpha: 0.2),
                   ),
-                  TextSpan(text: '결정이 흔들릴 때 이 사람에게 먼저 물어보세요.'),
-                ],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text.rich(
+                  TextSpan(
+                    style: const TextStyle(
+                      fontFamily: GuinjiFonts.body,
+                      fontSize: 11,
+                      height: 1.5,
+                      color: GuinjiColors.textSecondary,
+                    ),
+                    children: [
+                      const TextSpan(
+                        text: 'Tip. ',
+                        style: TextStyle(color: GuinjiColors.lavender),
+                      ),
+                      TextSpan(text: tip),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
