@@ -122,6 +122,84 @@ class AuthRepository {
     }
   }
 
+  /// [로그인 화면 "아이디 찾기" 버그수정 — 2026-09] 닉네임+생년월일 본인확인
+  /// 후 마스킹된 이메일을 반환한다(서버 `/api/public/auth/find-email`).
+  /// [정직성 원칙] 이 환경에는 이메일/SMS 발송 인프라가 없어 "메일 발송"
+  /// 방식 대신, 서버가 보유한 데이터로 즉시 본인확인 후 결과를 보여주는
+  /// 정공법으로 구현했다(가짜 성공 안내 금지).
+  ///
+  /// 반환: 성공 시 마스킹된 이메일 문자열(예: "ab***@example.com"),
+  /// 실패 시 null(에러 메시지는 [lastError] 참고).
+  String? lastError;
+
+  Future<String?> findEmail({
+    required String nickname,
+    required String birthDate, // 'YYYY-MM-DD'
+  }) async {
+    lastError = null;
+    final uri = Uri.parse('$_base/find-email');
+    try {
+      final response = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'nickname': nickname, 'birthDate': birthDate}),
+          )
+          .timeout(const Duration(seconds: 10));
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        lastError = decoded['error'] as String? ?? '아이디를 찾을 수 없습니다.';
+        return null;
+      }
+      final data = decoded['data'] as Map<String, dynamic>;
+      return data['maskedEmail'] as String?;
+    } catch (e) {
+      debugPrint('[AuthRepository] [findEmail] 예외 -> $e');
+      lastError = '아이디 찾기 중 오류가 발생했습니다: $e';
+      return null;
+    }
+  }
+
+  /// [로그인 화면 "비밀번호 찾기" 버그수정 — 2026-09] 이메일+닉네임+생년월일
+  /// 3중 본인확인 후 즉시 새 비밀번호로 재설정한다
+  /// (서버 `/api/public/auth/reset-password`). [findEmail]과 동일한 정직성
+  /// 원칙 — 실제로 서버 DB의 비밀번호를 변경하는 정공법이다.
+  ///
+  /// 반환: 성공 시 true, 실패 시 false([lastError] 참고).
+  Future<bool> resetPassword({
+    required String email,
+    required String nickname,
+    required String birthDate, // 'YYYY-MM-DD'
+    required String newPassword,
+  }) async {
+    lastError = null;
+    final uri = Uri.parse('$_base/reset-password');
+    try {
+      final response = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'email': email,
+              'nickname': nickname,
+              'birthDate': birthDate,
+              'newPassword': newPassword,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        lastError = decoded['error'] as String? ?? '비밀번호 재설정에 실패했습니다.';
+        return false;
+      }
+      return true;
+    } catch (e) {
+      debugPrint('[AuthRepository] [resetPassword] 예외 -> $e');
+      lastError = '비밀번호 재설정 중 오류가 발생했습니다: $e';
+      return false;
+    }
+  }
+
   /// [로드맵⑤] 실제 카카오/구글 OAuth SDK 연동 완료.
   /// [provider]는 'kakao' 또는 'google', [accessToken]은 각 SDK가 발급한
   /// 액세스 토큰(카카오)/ID 토큰(구글)이다. 서버(admin_web)가 이 토큰을 다시

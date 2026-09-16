@@ -22,16 +22,17 @@ import '../../../core/router/app_router.dart' show AppRouter;
 ///   ① 정통운세 - 정통사주 69종
 ///   ② 이미지운세 - 관상 / 손금
 ///   ③ 카드운세 - 타로
-///   ④ AI운세 - AI 사주 / AI 이름운세 / AI 궁합 / AI 운세해석
+///   ④ AI운세 - AI 사주 / AI 궁합
+///
+/// [2026-09 하단바 정리] 사용자 지시로 "AI 이름운세"/"AI 운세해석" 두
+/// 항목을 이 화면 진입점 목록에서 제거했다(기능 코드 자체 삭제 아님).
 ///
 /// [절대 원칙 준수]
 /// - PHASE1~4 계산엔진/SajuProfile/NarrativeGenerator는 전혀 건드리지
 ///   않는다. 이 화면은 오직 기존 라우트로의 "진입 배선"만 다룬다.
 /// - 정통사주 69종 카테고리 자체(A~H, JeontongEightyMatrix)는 무수정.
 /// - 각 항목은 전부 기존에 이미 존재하는 라우트만 재사용한다(신규 화면
-///   생성 없음). 아직 실제 화면이 없는 "AI 운세해석"만 기존 앱 전반에서
-///   이미 쓰이는 "준비중 안내 토스트" 패턴을 그대로 재사용한다(신규 UX
-///   패턴 추가 아님).
+///   생성 없음).
 /// - [상담 기능 완전 삭제] "AI 상담"(wish_counsel + consultation 두 시스템)은
 ///   사용자 지시로 코드/라우트/화면이 전부 삭제되었다. 이 화면은 원래부터
 ///   AI 상담 진입점을 노출하지 않았으므로 추가 변경이 필요 없다.
@@ -176,16 +177,19 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
     ],
   );
 
-  /// ④ AI운세 - AI 사주 / AI 이름운세 / AI 궁합 / AI 운세해석.
+  /// ④ AI운세 - AI 사주 / AI 궁합.
+  /// [2026-09 하단바 정리] 사용자 지시로 "AI 이름운세"와 "AI 운세해석"
+  /// 항목을 이 목록에서 완전히 제거했다(전용 화면/라우트 자체를 지우는
+  /// 것이 아니라, 이 진입점 목록에서만 배선을 뗀다 — name_fortune 기능
+  /// 코드 자체는 그대로 유지되어 있어 필요 시 즉시 재노출 가능).
   /// [명칭 분리 원칙] 여기 "AI 사주"는 PHASE1~4 정통사주와 완전히 별개인
   /// AI(LLM) 해석 화면(`/ai-fortune/saju/input`)이며, 절대 "정통사주"라는
   /// 이름을 쓰지 않는다.
   /// "AI 궁합"은 기존에 이미 라우팅되어 있는 `/compatibility/input`을 그대로
-  /// 재사용한다(신규 개발 없음). "AI 운세해석"은 현재 전용 화면이 없어 기존
-  /// 앱 전반에서 쓰이는 "준비중" 안내 패턴을 그대로 적용한다(route: null).
+  /// 재사용한다(신규 개발 없음).
   static const _aiSection = _FortuneSection(
     title: 'AI운세',
-    subtitle: 'AI가 분석하는 사주·이름·궁합·종합 해석',
+    subtitle: 'AI가 분석하는 사주·궁합',
     headerIcon: Icons.auto_awesome_rounded,
     items: [
       _FortuneItem(
@@ -196,24 +200,10 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
         requiresPass: true,
       ),
       _FortuneItem(
-        title: 'AI 이름운세',
-        desc: '이름에 담긴 기운을 성명학으로 해석해요',
-        icon: Icons.badge_outlined,
-        route: '/ai-fortune/name/input',
-        requiresPass: true,
-      ),
-      _FortuneItem(
         title: 'AI 궁합',
         desc: '나와 상대방의 인연을 유형별로 풀이해보세요',
         icon: Icons.favorite_outline_rounded,
         route: '/compatibility/input',
-        requiresPass: true,
-      ),
-      _FortuneItem(
-        title: 'AI 운세해석',
-        desc: '여러 운세 결과를 종합해 AI가 풀어드려요',
-        icon: Icons.insights_outlined,
-        route: null,
         requiresPass: true,
       ),
     ],

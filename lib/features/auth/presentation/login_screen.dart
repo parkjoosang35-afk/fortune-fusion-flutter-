@@ -9,11 +9,12 @@ import '../../guinji/presentation/guinji_onboarding_screen.dart';
 import '../../home/domain/jeontong_local_to_server_migration.dart';
 import '../../intro/presentation/intro_palette.dart';
 import '../../intro/presentation/intro_text_styles.dart';
-import '../../intro/presentation/widgets/intro_character.dart';
 import '../../intro/presentation/widgets/intro_title_text.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
 import '../application/auth_provider.dart';
 import '../data/social_auth_service.dart';
+import 'find_email_screen.dart';
+import 'reset_password_screen.dart';
 import 'widgets/auth_checkbox.dart';
 import 'widgets/auth_form_field.dart';
 import 'widgets/auth_form_header.dart';
@@ -161,10 +162,19 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  // [로그인 화면 "아이디/비밀번호 찾기" 버그수정 — 2026-09] 기존에는 서버
+  // API가 없어 "추후 지원 예정" 안내만 띄웠으나, find_email_screen.dart /
+  // reset_password_screen.dart 신설로 실제 동작하는 화면으로 연결한다.
+  void _findEmail() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const FindEmailScreen()));
+  }
+
   void _forgotPassword() {
-    // [기존 소셜로그인과 동일한 정직성 원칙] 비밀번호 재설정 서버 API가
-    // 아직 없어 가짜 성공/이동 없이 "추후 지원 예정" 안내만 띄운다.
-    AppToast.show(context, '비밀번호 찾기는 추후 지원 예정입니다.');
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const ResetPasswordScreen()));
   }
 
   @override
@@ -214,27 +224,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     eyebrow: 'SIGN IN · WELCOME BACK',
                     onBack: () => Navigator.of(context).maybePop(),
                   ),
-                  // Hero character (doryeong greeting)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: Center(
-                      child: IntroCharacter(
-                        asset: 'assets/images/home/doryeong/greeting.png',
-                        size: 140,
-                        haloSize: 160,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 12),
                   // `.title-block` (중앙정렬)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 26),
                     child: Column(
                       children: [
                         IntroTitleText(
-                          '다시 오셨네요\n신통도령이 기다리고 있었어요',
+                          '다시 오셨네요\n오늘도 좋은 하루예요',
                           style: IntroTextStyles.formTitle(),
-                          highlight: '신통도령',
+                          highlight: '좋은 하루',
                           highlightColors: const [
                             IntroPalette.gold,
                             IntroPalette.primary,
@@ -291,15 +290,41 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                         ),
-                        GestureDetector(
-                          onTap: _forgotPassword,
-                          child: Text(
-                            '비밀번호 찾기',
-                            style: IntroTextStyles.bottomLink().copyWith(
-                              decoration: TextDecoration.underline,
-                              decorationColor: IntroPalette.textSecondary,
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            GestureDetector(
+                              onTap: _findEmail,
+                              child: Text(
+                                '아이디 찾기',
+                                style: IntroTextStyles.bottomLink().copyWith(
+                                  decoration: TextDecoration.underline,
+                                  decorationColor: IntroPalette.textSecondary,
+                                ),
+                              ),
                             ),
-                          ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                              ),
+                              child: Text(
+                                '|',
+                                style: IntroTextStyles.bottomLink(
+                                  color: IntroPalette.textSecondary,
+                                ),
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: _forgotPassword,
+                              child: Text(
+                                '비밀번호 찾기',
+                                style: IntroTextStyles.bottomLink().copyWith(
+                                  decoration: TextDecoration.underline,
+                                  decorationColor: IntroPalette.textSecondary,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),

@@ -189,107 +189,18 @@ class _ModalCard extends StatefulWidget {
   State<_ModalCard> createState() => _ModalCardState();
 }
 
-class _ModalCardState extends State<_ModalCard>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _float;
-
-  @override
-  void initState() {
-    super.initState();
-    // `.modal-char`(char-float 3.4s) — 상하 bob + 좌우 rotate 왕복.
-    _float = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 3400),
-    )..repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _float.dispose();
-    super.dispose();
-  }
-
+class _ModalCardState extends State<_ModalCard> {
   @override
   Widget build(BuildContext context) {
-    const cardTopGap = 70.0; // 캐릭터(130)+말풍선꼬리(14) 노출 영역 확보.
-
+    // [신통도령 캐릭터 제거 — 2026-09] 기존에는 캐릭터(130)+말풍선꼬리(14)
+    // 노출 영역을 상단에 확보한 뒤 Stack으로 캐릭터를 그 위에 겹쳤으나,
+    // 캐릭터를 완전히 제거하면서 별도 상단 여백 없이 카드만 그대로
+    // 렌더링한다(_buildCharacter/_buildSpeechTail 미사용).
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 320),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Stack(
-          clipBehavior: Clip.none,
-          alignment: Alignment.topCenter,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: cardTopGap),
-              child: _buildCard(context),
-            ),
-            Positioned(
-              top: 0,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [_buildCharacter(), _buildSpeechTail()],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCharacter() {
-    return AnimatedBuilder(
-      animation: _float,
-      builder: (context, child) {
-        final t = Curves.easeInOut.transform(_float.value);
-        return Transform.translate(
-          offset: Offset(0, -6 * t),
-          child: Transform.rotate(angle: (-2 + 4 * t) * pi / 180, child: child),
-        );
-      },
-      child: SizedBox(
-        width: 130,
-        height: 130,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.5),
-                blurRadius: 24,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Image.asset(
-            'assets/images/home/doryeong/celebrating.png',
-            fit: BoxFit.contain,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSpeechTail() {
-    return ClipPath(
-      clipper: _TriangleClipper(),
-      child: Container(
-        width: 22,
-        height: 14,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color.lerp(
-                IntroPalette.backgroundTop,
-                IntroPalette.primary,
-                0.12,
-              )!,
-              IntroPalette.backgroundTop,
-            ],
-          ),
-        ),
+        child: _buildCard(context),
       ),
     );
   }
@@ -297,7 +208,7 @@ class _ModalCardState extends State<_ModalCard>
   Widget _buildCard(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(22, 40, 22, 22),
+      padding: const EdgeInsets.fromLTRB(22, 24, 22, 22),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -444,7 +355,7 @@ class _ModalCardState extends State<_ModalCard>
             text: '복주머니 ${widget.amount}개',
             style: IntroTextStyles.modalBodyStrong(),
           ),
-          const TextSpan(text: '를 신통도령이 준비했어요.'),
+          const TextSpan(text: '를 준비했어요.'),
         ],
       ),
     );
@@ -578,16 +489,3 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-class _TriangleClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    return Path()
-      ..moveTo(0, 0)
-      ..lineTo(size.width, 0)
-      ..lineTo(size.width / 2, size.height)
-      ..close();
-  }
-
-  @override
-  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
-}

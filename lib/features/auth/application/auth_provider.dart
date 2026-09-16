@@ -36,6 +36,33 @@ class AuthProvider extends ChangeNotifier {
   Map<String, dynamic>? get lastFirstLoginReward =>
       _repository.lastFirstLoginReward;
 
+  /// [로그인 화면 "아이디 찾기" 버그수정 — 2026-09] 닉네임+생년월일 본인확인
+  /// 후 마스킹된 이메일을 반환한다. 실패 시 null([lastError] 참고).
+  String? get lastError => _repository.lastError;
+
+  Future<String?> findEmail({
+    required String nickname,
+    required String birthDate,
+  }) {
+    return _repository.findEmail(nickname: nickname, birthDate: birthDate);
+  }
+
+  /// [로그인 화면 "비밀번호 찾기" 버그수정 — 2026-09] 이메일+닉네임+생년월일
+  /// 3중 본인확인 후 즉시 새 비밀번호로 재설정한다.
+  Future<bool> resetPassword({
+    required String email,
+    required String nickname,
+    required String birthDate,
+    required String newPassword,
+  }) {
+    return _repository.resetPassword(
+      email: email,
+      nickname: nickname,
+      birthDate: birthDate,
+      newPassword: newPassword,
+    );
+  }
+
   Future<void> _loadGrade(UserModel user) async {
     _currentGrade = await _gradeRepository.getGradeByCode(user.grade);
   }

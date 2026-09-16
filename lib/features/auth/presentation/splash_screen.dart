@@ -6,7 +6,6 @@ import '../../intro/application/intro_config_provider.dart';
 import '../../intro/domain/intro_config_model.dart';
 import '../../intro/presentation/intro_palette.dart';
 import '../../intro/presentation/intro_text_styles.dart';
-import '../../intro/presentation/widgets/intro_character.dart';
 import '../../intro/presentation/widgets/intro_eyebrow_label.dart';
 import '../../home/domain/jeontong_local_to_server_migration.dart';
 import '../application/auth_provider.dart';
@@ -193,13 +192,6 @@ class _SplashScreenState extends State<SplashScreen>
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          // [핸드오프 반영] 신통도령 greeting - halo(glow) + 부유 애니메이션
-                          const IntroCharacter(
-                            asset: 'assets/images/home/doryeong/greeting.png',
-                            size: 176,
-                            haloSize: 234,
-                          ),
-                          const SizedBox(height: 20),
                           Text(
                             config.splashTitle,
                             textAlign: TextAlign.center,
