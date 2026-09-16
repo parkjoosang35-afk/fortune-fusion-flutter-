@@ -28,12 +28,17 @@ type Tx = Prisma.TransactionClient;
 // 적립 상한(80/120)에서 면제한다(설계 결정: B안). 광고 전용 일일 제한(회원당 하루
 // 시청 횟수 N회 / 광고 1건당 하루 최대 지급량)은 FortuneAdWatchLog 테이블의 당일
 // COMPLETED 카운트로 별도 체크하므로, 전역 상한과 별개로 안전하게 면제할 수 있다.
+// [행운상자 - 복주머니 탭 신규 기능 - 2026-09] POUCH_BOX_REWARD(행운상자
+// 광고 시청 보상)도 AD_WATCH_REWARD와 동일한 이유로 전역 일일 적립 상한에서
+// 면제한다. 행운상자 전용 일일 제한(하루 5회)은 PouchBoxOpenLog 테이블의
+// 당일 COMPLETED 카운트로 별도 체크하므로 전역 상한과 별개로 안전하다.
 const CAP_EXEMPT_SOURCE_TYPES = new Set([
   "admin_adjust",
   "admin_grant",
   "manual",
   "signup_reward",
   "AD_WATCH_REWARD",
+  "POUCH_BOX_REWARD",
 ]);
 
 /**

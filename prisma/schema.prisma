@@ -205,6 +205,8 @@ model User {
   openPassAdRewardLogs          OpenPassAdRewardLog[]
   passCategoryUsages            PassCategoryUsage[]
   fortuneAdWatchLogs            FortuneAdWatchLog[]
+  // [행운상자 - 복주머니 탭 신규 기능]
+  pouchBoxOpenLogs               PouchBoxOpenLog[]
   // [복주머니 확장 Phase02-A]
   inventoryItems                UserInventoryItem[]
   gratitudeSealsSent            GratitudeSeal[]           @relation("GratitudeSealSender")
@@ -3652,4 +3654,56 @@ model GuinjiUnlockRecord {
   @@unique([userId, memberId]) // 멤버당 1회만 해금(중복 해금 방지 — E3 대응)
   @@index([userId, dateKey])
   @@map("unlock_record")
+}
+
+// ════════════════════════════════════════════════════════════════
+// [행운상자 - 복주머니 탭 신규 기능 - 2026-09]
+//
+// [배경] 사용자가 첨부한 핸드오프 패키지(handoff.zip, dev-spec.md)에 따라
+// 하단바 "복주머니" 탭(라벨은 그대로 유지)의 화면 내용을 기존 잔액+출석체크
+// 조합에서 "행운상자" 인터랙션(3x3 그리드 → 광고시청(5s) → 폭발 애니메이션 →
+// 결과)으로 전면 교체한다. 절대 원칙(dev-spec.md §0): 결제 없음, 광고만이
+// 유일한 획득 수단, 보상은 서버가 결정(클라이언트 랜덤 절대 금지 — 어뷰징
+// 방지), 하루 5회 한도(04:00 KST 리셋).
+//
+// [설계 - 기존 인프라 재사용] fortune-ad-service.ts/FortuneAdWatchLog의
+// "PENDING → COMPLETED 원자적 전환 + idempotencyKey 중복지급차단" 패턴을
+// 그대로 재사용한다. 다만 이 기능은 특정 FortuneAd 레코드(관리자가 등록하는
+// 광고 콘텐츠)에 결부되지 않고 "하루 5회"라는 순수 카운트 한도만 있으므로,
+// FortuneAd 테이블에 의존하지 않는 독립 테이블로 둔다(광고 자체는 앱이
+// google_mobile_ads RewardedAd를 직접 호출 — 관리자가 광고 콘텐츠를 등록/
+// 관리할 필요가 없는 순수 AdMob 리워드형이므로 FortuneAd 재사용 시 오히려
+// 불필요한 간접레이어가 생긴다).
+//
+// [보상 결정] dev-spec.md §4 가중확률(55%/50~150, 30%/150~250, 13%/200~280,
+// 2%/300 잭팟)을 서버(pouch-box-service.ts)에서만 계산한다. 지급 자체는
+// earnLuckPouch()(luck-pouch-engine.ts)를 그대로 호출해 AD_WATCH_REWARD와
+// 동일하게 전역 일일 적립 상한(80/120)에서 면제되도록 sourceType을
+// "POUCH_BOX_REWARD"로 CAP_EXEMPT_SOURCE_TYPES에 추가한다(luck-pouch-engine.ts
+// 수정 필요).
+// ════════════════════════════════════════════════════════════════
+model PouchBoxOpenLog {
+  id        Int    @id @default(autoincrement())
+  userId    Int    @map("user_id")
+  sessionId String @map("session_id") // start 호출 시 서버가 발급(광고 시청 세션)
+
+  startedAt    DateTime  @default(now()) @map("started_at")
+  completedAt  DateTime? @map("completed_at")
+  watchSeconds Int?      @map("watch_seconds") // 클라이언트가 보고한 실제 시청 시간(참고값, 최종판정은 서버)
+
+  rewardAmount Int    @default(0) @map("reward_amount") // 실제 지급된 복주머니 개수(0=미지급)
+  rewardTier   String? @map("reward_tier") // common/uncommon/rare/jackpot (결과화면 특수연출 판단용)
+  rewardStatus String @default("PENDING") @map("reward_status") // PENDING/COMPLETED/FAILED
+
+  // 클라이언트가 start 시점에 생성해 매 요청에 동일하게 전달. complete 요청의
+  // 중복 처리를 막는 유일한 근거(FortuneAdWatchLog와 동일 원칙).
+  idempotencyKey String? @unique @map("idempotency_key")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([userId, rewardStatus, createdAt])
+  @@map("pouch_box_open_logs")
 }
