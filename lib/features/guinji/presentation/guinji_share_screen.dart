@@ -67,8 +67,12 @@ String buildGuinjiInviteLink(String token) {
 ///
 /// [SNS 공유 그리드 실연동] 앱 라우터(`AppRouter.onGenerateRoute`)가 이미
 /// `/g/{token}` 딥링크를 `GuinjiJoinScreen`으로 직접 파싱하도록 완성되어
-/// 있으므로(카톡 등에서 링크를 열면 바로 참여 화면으로 진입), 카톡/인스타/
-/// 스레드/더보기 4개 버튼은 플랫폼별로 분기한다.
+/// 있으므로(카톡 등에서 링크를 열면 바로 참여 화면으로 진입), 카톡/문자/
+/// 더보기 버튼은 플랫폼별로 분기한다.
+///
+/// [2026-09 인스타그램 옵션 제거] 인스타그램은 외부에서 텍스트를 직접
+/// 주입할 공개 공유 API가 없어(클립보드 복사 + 앱 실행 시도뿐인 불완전한
+/// 구현) 사용자 피드백에 따라 버튼을 제거하고 문자(SMS) 공유로 대체했다.
 ///
 /// - **Android(네이티브)**: `share_plus`의 `Share.share()`가
 ///   `Intent.ACTION_SEND`(OS 표준 공유 시트)를 호출한다.
@@ -214,19 +218,10 @@ class _GuinjiShareScreenState extends State<GuinjiShareScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: _ShareOption(
-                          label: '인스타',
-                          icon: Icons.camera_alt,
-                          color: const Color(0xFFE4405F),
-                          onTap: () => _shareInvite(context, token, target: GuinjiShareTarget.instagram),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _ShareOption(
-                          label: '스레드',
-                          icon: Icons.alternate_email,
-                          color: GuinjiColors.textPrimary,
-                          onTap: () => _shareInvite(context, token, target: GuinjiShareTarget.more),
+                          label: '문자',
+                          icon: Icons.sms_outlined,
+                          color: GuinjiColors.aqua,
+                          onTap: () => _shareInvite(context, token, target: GuinjiShareTarget.sms),
                         ),
                       ),
                       const SizedBox(width: 8),

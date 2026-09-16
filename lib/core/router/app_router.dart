@@ -296,6 +296,9 @@ class AppRouter {
                 ownerName: provider.mapName ?? '나',
                 mapToken: provider.mapToken ?? '',
                 joinedCount: provider.people.length,
+                retentionGoal: provider.milestoneGoal ?? 3,
+                milestoneReached: provider.milestoneReached,
+                milestoneRewardPoint: provider.milestoneRewardPoint,
                 onKakaoShare: () => shareGuinjiMapInvite(
                   context,
                   provider.mapToken,
@@ -305,11 +308,6 @@ class AppRouter {
                   context,
                   provider.mapToken,
                   target: GuinjiShareTarget.sms,
-                ),
-                onInstagramShare: () => shareGuinjiMapInvite(
-                  context,
-                  provider.mapToken,
-                  target: GuinjiShareTarget.instagram,
                 ),
                 onMoreShare: () => shareGuinjiMapInvite(
                   context,

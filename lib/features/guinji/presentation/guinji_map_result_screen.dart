@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/router/main_bottom_nav_bar.dart';
+import '../../../core/widgets/bangtong_seonyeo.dart';
+import '../application/guinji_provider.dart';
 import '../domain/guinji_owner_saju_summary.dart';
 import '../domain/guinji_person.dart';
 import '../domain/guinji_relation_meta.dart';
@@ -61,6 +64,92 @@ class GuinjiMapResultScreen extends StatefulWidget {
 }
 
 class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // [친구 초대 마일스톤 — 축하 UI 트리거] M(내 지도) 화면은 지도를 만든
+    // 이후 사용자가 가장 자주 돌아오는 메인 화면이므로, 서버가 방금(이번
+    // `loadMyMap` 호출에서) 마일스톤 보너스를 지급했다면 여기서 축하
+    // 다이얼로그를 1회 띄운다. 프레임이 그려진 뒤 확인해야
+    // `ScaffoldMessenger`/`showDialog`가 안전하게 동작한다.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowMilestoneCelebration());
+  }
+
+  void _maybeShowMilestoneCelebration() {
+    if (!mounted) return;
+    final provider = context.read<GuinjiProvider>();
+    if (!provider.milestoneJustReached) return;
+
+    final rewardPoint = provider.milestoneRewardPoint;
+    // [1회성 소비] 다이얼로그를 띄우기 전에 먼저 꺼서, 다이얼로그가 열려
+    // 있는 동안 다른 리스너의 재렌더로 인해 중복 호출되지 않게 한다.
+    provider.consumeMilestoneJustReached();
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+          decoration: BoxDecoration(
+            color: GmColors.bgIvory,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.15),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const BangtongFaceAvatar(
+                size: 84,
+                mood: BangtongMood.wonder,
+                glow: true,
+                glowColor: GmColors.gold,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                '축하 이벤트 달성',
+                style: TextStyle(
+                  fontFamily: GmFonts.serif,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: GmColors.ink,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '친구 3명이 귀인지도에 모였어요.\n고마운 마음을 담아 복주머니 ${rewardPoint > 0 ? rewardPoint : 30}P를 보내드려요.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 13, height: 1.5, color: GmColors.inkSoft),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: GmColors.rose500,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('좋아요', style: TextStyle(fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   /// 노드 탭 시 기본 동작: 상위에서 [GuinjiMapResultScreen.onNodeTap]을
   /// 지정하지 않았다면, 여기서 [GuinjiNodeSheet]을 [person]의 실제 데이터로
   /// 띄운다. "공유하기"는 바텀시트를 닫고 곧바로 S(Share) 화면으로 이동한다.

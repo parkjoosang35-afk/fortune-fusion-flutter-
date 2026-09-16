@@ -276,6 +276,12 @@ class GuinjiProvider extends ChangeNotifier {
         .cast<Map<String, dynamic>>();
     _relationships = (data['relationships'] as List<dynamic>? ?? const [])
         .cast<Map<String, dynamic>>();
+    // [버그 수정 — 친구 초대 마일스톤] 서버가 이번 조회에서 막 마일스톤을
+    // 달성해 보너스를 지급했는지 실제로 파싱한다(이 대입이 없으면
+    // [milestoneJustReached]/[milestoneRewardPoint] getter가 항상
+    // false/0을 반환해 축하 UI가 절대 뜨지 않는다).
+    _milestoneJustReached = _map?['milestoneJustReached'] as bool? ?? false;
+    _milestoneRewardPoint = _map?['milestoneRewardPoint'] as int? ?? 0;
     _isLoading = false;
     notifyListeners();
     return true;

@@ -5,18 +5,25 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/widgets/app_toast.dart';
+import '../../../core/widgets/bangtong_seonyeo.dart';
 import '../theme/guinji_map_theme.dart';
 import '../widgets/guinji_map_widgets.dart';
 import 'guinji_share_screen.dart' show buildGuinjiInviteLink;
 
-/// [2026-09 버그수정] 공유 대상(카톡/SMS/인스타/더보기) 식별자.
+/// [2026-09 버그수정] 공유 대상(카톡/SMS/더보기) 식별자.
 ///
-/// [배경] 지금까지 4개 버튼이 모두 동일한 `shareGuinjiMapInvite()`를
+/// [배경] 지금까지 여러 버튼이 모두 동일한 `shareGuinjiMapInvite()`를
 /// 호출해서, 웹에서는 어떤 버튼을 눌러도 "카카오톡으로 공유" 버튼조차
 /// 실제로 카카오톡을 열지 않고 그냥 클립보드 복사만 하는 결함이 있었다
 /// (2026-09 실사용자 리포트: "카톡 sns인스타 열리지도 않고"). 이제 버튼별로
 /// 실제 목적지 앱/공유 방식이 다르므로 대상을 구분한다.
-enum GuinjiShareTarget { kakao, sms, instagram, more }
+///
+/// [2026-09 인스타그램 옵션 제거] 인스타그램은 외부에서 텍스트를 직접
+/// 주입해 공유를 여는 공개 API가 없어(클립보드 복사 + 앱 실행 시도만
+/// 가능한 불완전한 구현이었다) 사용자 피드백("인스타그램 공유가 안돼면
+/// 그냥 없애버려")에 따라 버튼 자체를 제거했다. enum 값은 다른 코드에서
+/// 참조할 일이 없어 완전히 삭제한다.
+enum GuinjiShareTarget { kakao, sms, more }
 
 /// [2026-09 버그수정] 공유 버튼(카톡/SMS/인스타/더보기) 공통 핸들러.
 ///
@@ -33,9 +40,6 @@ enum GuinjiShareTarget { kakao, sms, instagram, more }
 ///   뜸)를 1차로 시도한다.
 /// - **SMS**: `sms:?body=...` URI 스킴으로 문자 앱을 직접 연다(카톡 불필요,
 ///   모든 스마트폰이 기본 지원).
-/// - **인스타그램**: 인스타그램은 외부에서 텍스트를 직접 주입해 스토리/DM을
-///   여는 공개 URL 스킴이 없으므로(공식 정책), 클립보드에 메시지를 복사한
-///   뒤 인스타그램 앱을 실행시켜 사용자가 붙여넣도록 안내한다.
 /// - **더보기**: `navigator.share`(웹) / `Share.share()`(네이티브)로 OS
 ///   표준 공유 시트를 연다.
 /// - 모든 경로에서 최종 실패 시 클립보드 복사 + 안내 토스트로 폴백한다.
@@ -74,19 +78,6 @@ Future<void> shareGuinjiMapInvite(
       );
       if (await tryLaunch(smsUri)) return;
       await copyAndToast('문자 앱을 열 수 없어 링크를 복사했어요.');
-      return;
-
-    case GuinjiShareTarget.instagram:
-      // [인스타그램] 외부 텍스트 주입 공개 API가 없어 클립보드 복사 후
-      // 앱을 직접 실행한다(사용자가 스토리/DM에 붙여넣기).
-      await Clipboard.setData(ClipboardData(text: message));
-      final opened = await tryLaunch(Uri.parse('instagram://'));
-      if (!context.mounted) return;
-      if (opened) {
-        AppToast.show(context, '초대 메시지를 복사했어요. 인스타그램에 붙여넣어 전달해 주세요.');
-      } else {
-        AppToast.show(context, '초대 메시지를 복사했어요. 원하는 앱에 붙여넣어 전달해 주세요.');
-      }
       return;
 
     case GuinjiShareTarget.kakao:
@@ -141,8 +132,9 @@ class GuinjiMapShareScreen extends StatefulWidget {
     this.retentionGoal = 3,
     this.onKakaoShare,
     this.onSmsShare,
-    this.onInstagramShare,
     this.onMoreShare,
+    this.milestoneReached = false,
+    this.milestoneRewardPoint = 0,
   });
 
   static const routeName = '/guinji-map/m/share';
@@ -155,8 +147,14 @@ class GuinjiMapShareScreen extends StatefulWidget {
 
   final VoidCallback? onKakaoShare;
   final VoidCallback? onSmsShare;
-  final VoidCallback? onInstagramShare;
   final VoidCallback? onMoreShare;
+
+  /// [친구 초대 마일스톤] 이미 목표 인원(기본 3명)에 도달했는지 —
+  /// true면 배너 문구를 "모으는 중" 대신 "축하 이벤트가 열렸어요"로 전환.
+  final bool milestoneReached;
+
+  /// 마일스톤 달성 시 지급된(또는 지급될) 보너스 포인트(배너 문구용).
+  final int milestoneRewardPoint;
 
   @override
   State<GuinjiMapShareScreen> createState() => _GuinjiMapShareScreenState();
@@ -261,13 +259,6 @@ class _GuinjiMapShareScreenState extends State<GuinjiMapShareScreen> {
                 ),
                 const SizedBox(height: 8),
                 _ShareOption(
-                  icon: Icons.camera_alt_outlined,
-                  title: '인스타그램에 공유',
-                  desc: '스토리에 초대 이미지 올리기',
-                  onTap: widget.onInstagramShare,
-                ),
-                const SizedBox(height: 8),
-                _ShareOption(
                   icon: Icons.more_horiz,
                   title: '더보기',
                   desc: '다른 앱으로 공유하기',
@@ -279,6 +270,8 @@ class _GuinjiMapShareScreenState extends State<GuinjiMapShareScreen> {
                   goal: widget.retentionGoal,
                   joined: widget.joinedCount,
                   remaining: remaining,
+                  reached: widget.milestoneReached,
+                  rewardPoint: widget.milestoneRewardPoint,
                 ),
 
                 const SizedBox(height: 16),
@@ -333,6 +326,23 @@ class _KakaoOgPreview extends StatelessWidget {
                 children: [
                   Container(decoration: const BoxDecoration(gradient: GmColors.gradientDark)),
                   const Positioned.fill(child: GmStarsBackground(opacity: 0.7)),
+                  // [친구 초대 캐릭터 삽입] 카드 우측 하단에 공식 마스코트
+                  // "방통선녀" 얼굴 아바타를 은은한 글로우와 함께 배치한다.
+                  // 텍스트가 좌측에 몰려 있어 우측 여백이 비어 있던 자리를
+                  // 채우면서, 다크 그라데이션 배경과도 글로우 테두리로 잘
+                  // 어우러진다(원본 이미지가 불투명 파스텔 배경이라 사각
+                  // 이미지 그대로 얹으면 배경 색이 어긋나므로 원형 크롭).
+                  Positioned(
+                    right: 12,
+                    bottom: 12,
+                    child: BangtongFaceAvatar(
+                      size: 64,
+                      mood: BangtongMood.wonder,
+                      glow: true,
+                      glowColor: GmColors.gold,
+                      borderColor: GmColors.goldLight,
+                    ),
+                  ),
                   Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -348,25 +358,30 @@ class _KakaoOgPreview extends StatelessWidget {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              '$ownerName님의 귀인 지도',
-                              style: const TextStyle(
-                                fontFamily: GmFonts.serif,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                                height: 1.2,
+                        Padding(
+                          // 우측 하단 캐릭터 아바타와 텍스트가 겹치지 않도록
+                          // 우측에 여백을 확보한다.
+                          padding: const EdgeInsets.only(right: 76),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '$ownerName님의 귀인 지도',
+                                style: const TextStyle(
+                                  fontFamily: GmFonts.serif,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                  height: 1.2,
+                                ),
                               ),
-                            ),
-                            Text(
-                              '귀인 $guinjiCount명이 밝히는 중',
-                              style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.7)),
-                            ),
-                          ],
+                              Text(
+                                '귀인 $guinjiCount명이 밝히는 중',
+                                style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.7)),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -511,21 +526,41 @@ class _ShareOption extends StatelessWidget {
   }
 }
 
+/// [친구 초대 마일스톤 실기능화] 기존에는 "N명 모으면 축하 이벤트가
+/// 열려요"라는 문구만 있고 실제로 연결된 기능이 전혀 없던 순수 장식
+/// 배너였다("3명 모이면 이벤트가 있어요는 도대체 뭐야?" 사용자 지적).
+/// 이제 서버가 실제로 30P를 지급하는 마일스톤과 연동해, 달성 여부에 따라
+/// 문구와 아이콘이 전환된다.
 class _RetentionBanner extends StatelessWidget {
-  const _RetentionBanner({required this.goal, required this.joined, required this.remaining});
+  const _RetentionBanner({
+    required this.goal,
+    required this.joined,
+    required this.remaining,
+    this.reached = false,
+    this.rewardPoint = 0,
+  });
 
   final int goal;
   final int joined;
   final int remaining;
 
+  /// 이미 목표 인원에 도달했는지(서버 `GuinjiProvider.milestoneReached`).
+  final bool reached;
+
+  /// 마일스톤 보너스 포인트(예: 30). 달성 문구에 노출.
+  final int rewardPoint;
+
   @override
   Widget build(BuildContext context) {
+    final displayPoint = rewardPoint > 0 ? rewardPoint : 30;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: GmColors.gold.withValues(alpha: 0.12),
-        border: Border.all(color: GmColors.gold.withValues(alpha: 0.35)),
+        color: (reached ? GmColors.rose500 : GmColors.gold).withValues(alpha: 0.12),
+        border: Border.all(
+          color: (reached ? GmColors.rose500 : GmColors.gold).withValues(alpha: 0.35),
+        ),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -534,11 +569,16 @@ class _RetentionBanner extends StatelessWidget {
             width: 32,
             height: 32,
             alignment: Alignment.center,
-            decoration: const BoxDecoration(color: GmColors.gold, shape: BoxShape.circle),
-            child: Text(
-              '$goal',
-              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Colors.white),
+            decoration: BoxDecoration(
+              color: reached ? GmColors.rose500 : GmColors.gold,
+              shape: BoxShape.circle,
             ),
+            child: reached
+                ? const Icon(Icons.celebration, size: 16, color: Colors.white)
+                : Text(
+                    '$goal',
+                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Colors.white),
+                  ),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -546,7 +586,9 @@ class _RetentionBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '$goal명 모으면 축하 이벤트가 열려요',
+                  reached
+                      ? '축하 이벤트가 열렸어요 · +$displayPoint P 지급'
+                      : '$goal명 모으면 축하 이벤트가 열려요',
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 12,
@@ -556,7 +598,9 @@ class _RetentionBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '지금 $joined명 · $remaining명 더 필요해요',
+                  reached
+                      ? '친구 $joined명이 함께해 주었어요. 고마운 마음을 담았어요.'
+                      : '지금 $joined명 · $remaining명 더 필요해요',
                   style: const TextStyle(fontSize: 10, height: 1.3, color: GmColors.inkSoft),
                 ),
               ],
