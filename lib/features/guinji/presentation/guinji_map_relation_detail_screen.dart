@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/widgets/app_toast.dart';
+import '../../../core/widgets/bangtong_seonyeo.dart';
 import '../application/guinji_provider.dart';
 import '../application/guinji_rewarded_ad_helper.dart';
 import '../domain/guinji_person.dart';
@@ -267,7 +268,13 @@ class _GuinjiMapRelationDetailScreenState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const GmLabelMini('관계의 결'),
+                    Row(
+                      children: [
+                        const BangtongFaceAvatar(size: 32, mood: BangtongMood.smile),
+                        const SizedBox(width: 8),
+                        const GmLabelMini('관계의 결'),
+                      ],
+                    ),
                     const SizedBox(height: 10),
                     Text(
                       meta?.long ?? meta?.description ?? '두 분의 관계를 살펴보고 있어요.',

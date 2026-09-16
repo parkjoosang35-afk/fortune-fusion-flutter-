@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/router/app_navigator_key.dart';
+import '../../../core/widgets/bangtong_seonyeo.dart';
 import '../../auth/application/auth_provider.dart';
 import '../application/guinji_provider.dart';
 import '../domain/guinji_relation_meta.dart';
@@ -252,7 +253,15 @@ class _GuinjiJoinScreenState extends State<GuinjiJoinScreen> {
                       child: SingleChildScrollView(
                         child: Column(
                           children: [
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 12),
+                            const Center(
+                              child: BangtongFaceAvatar(
+                                size: 68,
+                                mood: BangtongMood.wonder,
+                                glow: true,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 16,
@@ -404,6 +413,8 @@ class _LoginRequiredCard extends StatelessWidget {
               ),
               child: Column(
                 children: [
+                  const BangtongFaceAvatar(size: 64, mood: BangtongMood.concerned),
+                  const SizedBox(height: 12),
                   const Text(
                     '로그인하고\n귀인지도에 참여해요',
                     textAlign: TextAlign.center,
