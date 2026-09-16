@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../theme/lucky_box_tokens.dart';
 import '../application/pouch_box_provider.dart';
@@ -127,6 +128,13 @@ class _PouchBoxTabScreenState extends State<PouchBoxTabScreen> {
     }
     if (!mounted) return;
     if (_phase != _Phase.opening) return; // 이미 grid로 되돌아간 경우(실패)
+    // dev-spec.md §8 Haptic — 상자가 실제로 "열리는"(burst 진입) 순간에 진동.
+    // 잭팟이면 더 강한 heavyImpact로 특별한 손맛을 준다.
+    if (_rewardTier == 'jackpot') {
+      HapticFeedback.heavyImpact();
+    } else {
+      HapticFeedback.mediumImpact();
+    }
     setState(() => _phase = _Phase.burst);
   }
 
