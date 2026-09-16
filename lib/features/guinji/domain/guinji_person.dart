@@ -14,6 +14,7 @@ class GuinjiPerson {
     required this.relation,
     required this.score,
     required this.note,
+    this.unlocked = false,
   });
 
   final String id;
@@ -33,6 +34,13 @@ class GuinjiPerson {
 
   /// 명리학적 근거 짧은 메모(예: "천을귀인 · 인성").
   final String note;
+
+  /// [해금 상태 영속화 — 2026-09 버그수정] 서버(`GET /guinji/maps/me`
+  /// `members[].unlocked`)가 내려주는 "스페셜 해설을 이미 해금했는지"
+  /// 여부. 화면단 로컬 state(`_specialUnlocked`)의 초기값으로 사용해,
+  /// 앱 재시작·화면 재진입 시에도 한번 해금한 관계는 계속 열린 상태로
+  /// 보이게 한다("한번 열어본거 계속 열려야됨" 리포트 대응).
+  final bool unlocked;
 
   /// [귀인지도 실구현] 서버 응답(GET /guinji/maps/me의 members+relationships)을
   /// [GuinjiPerson]으로 매핑한다.
@@ -75,6 +83,7 @@ class GuinjiPerson {
       relation: relationType,
       score: chemistryScore,
       note: reason,
+      unlocked: member['unlocked'] as bool? ?? false,
     );
   }
 

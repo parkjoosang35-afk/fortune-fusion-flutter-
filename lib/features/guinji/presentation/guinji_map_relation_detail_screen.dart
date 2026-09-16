@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../core/widgets/app_toast.dart';
 import '../application/guinji_provider.dart';
 import '../domain/guinji_person.dart';
 import '../domain/guinji_relation_meta.dart';
@@ -33,7 +35,11 @@ class GuinjiMapRelationDetailScreen extends StatefulWidget {
 
 class _GuinjiMapRelationDetailScreenState
     extends State<GuinjiMapRelationDetailScreen> {
-  bool _specialUnlocked = false;
+  // [해금 상태 영속화 — 2026-09 버그수정] 서버가 이미 해금된 것으로
+  // 응답한 멤버(`person.unlocked`)라면 화면 진입 즉시 해금 상태로 시작한다.
+  // 기존에는 항상 false로 시작해 앱을 나갔다 들어오면 다시 잠긴 것처럼
+  // 보이는 문제("한번 열어본거 계속 열려야됨")가 있었다.
+  late bool _specialUnlocked = widget.person.unlocked;
   bool _unlocking = false;
 
   static String _goodMoment(String category) {
@@ -83,12 +89,31 @@ class _GuinjiMapRelationDetailScreenState
     }
   }
 
-  void _handleShare() {
+  // [공유하기 버튼 버그수정 — 2026-09] 기존에는 Share.share()를 결과를
+  // 기다리지 않고 fire-and-forget으로 호출해, 웹에서 navigator.share
+  // 미지원/실패 시(또는 Android에서 공유 대상 앱이 없을 때) 아무 반응도
+  // 없이 조용히 실패하는 문제가 있었다("이관계공유하기 안됨" 리포트).
+  // guinji_map_share_screen.dart의 검증된 패턴과 동일하게, 웹에서는
+  // Share.share() 실패/미지원 시 클립보드 복사로 확실히 폴백한다.
+  Future<void> _handleShare() async {
     final person = widget.person;
     final meta = guinjiRelationTypes[person.relation];
-    Share.share(
-      '${person.name}님과의 관계는 "${meta?.label ?? ''}"예요 · 신통방통 귀인지도',
-    );
+    final message = '${person.name}님과의 관계는 "${meta?.label ?? ''}"예요 · 신통방통 귀인지도';
+
+    Future<void> copyAndToast() async {
+      await Clipboard.setData(ClipboardData(text: message));
+      if (!mounted) return;
+      AppToast.show(context, '메시지를 복사했어요. 원하는 앱에 붙여넣어 전달해 주세요.');
+    }
+
+    try {
+      final result = await Share.share(message, subject: '신통방통 귀인지도');
+      if (result.status == ShareResultStatus.unavailable) {
+        await copyAndToast();
+      }
+    } catch (_) {
+      await copyAndToast();
+    }
   }
 
   @override

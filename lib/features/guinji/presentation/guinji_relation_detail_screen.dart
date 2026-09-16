@@ -32,7 +32,9 @@ class GuinjiRelationDetailScreen extends StatefulWidget {
 
 class _GuinjiRelationDetailScreenState
     extends State<GuinjiRelationDetailScreen> {
-  bool _specialUnlocked = false;
+  // [해금 상태 영속화 — 2026-09 버그수정] 서버가 이미 해금된 것으로
+  // 응답한 멤버(`person.unlocked`)라면 화면 진입 즉시 해금 상태로 시작한다.
+  late bool _specialUnlocked = widget.person.unlocked;
   bool _unlocking = false;
 
   Future<void> _handleUnlock(String method) async {
