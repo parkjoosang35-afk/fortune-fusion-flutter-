@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/router/app_navigator_key.dart';
+import '../../../core/widgets/bangtong_seonyeo.dart';
 import '../../auth/application/auth_provider.dart';
 import '../domain/pending_guinji_join.dart';
 import '../theme/guinji_theme.dart';
@@ -237,6 +238,11 @@ class _GateCard extends StatelessWidget {
               ),
               child: Column(
                 children: [
+                  const BangtongFaceAvatar(
+                    size: 64,
+                    mood: BangtongMood.concerned,
+                  ),
+                  const SizedBox(height: 12),
                   Text(
                     title,
                     textAlign: TextAlign.center,
@@ -344,6 +350,12 @@ class _DoryeongGreeting extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
+        const BangtongFaceAvatar(
+          size: 84,
+          mood: BangtongMood.smile,
+          glow: true,
+        ),
+        const SizedBox(height: 12),
         Container(
           constraints: const BoxConstraints(maxWidth: 260),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

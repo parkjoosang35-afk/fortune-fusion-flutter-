@@ -155,6 +155,7 @@ flutter:
     - assets/images/home/doryeong/
     - assets/images/guinji/doryeong/
     - assets/images/guinji/seonnyeo/
+    - assets/images/character/
     - assets/audio/tarot/
     - assets/tarot/cards/majors/
     - assets/tarot/cards/cups/

@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../core/widgets/bangtong_seonyeo.dart';
 import '../../../auth/presentation/widgets/auth_primary_button.dart';
 import '../../../intro/presentation/intro_palette.dart';
 import '../../../intro/presentation/intro_text_styles.dart';
@@ -192,15 +193,27 @@ class _ModalCard extends StatefulWidget {
 class _ModalCardState extends State<_ModalCard> {
   @override
   Widget build(BuildContext context) {
-    // [신통도령 캐릭터 제거 — 2026-09] 기존에는 캐릭터(130)+말풍선꼬리(14)
-    // 노출 영역을 상단에 확보한 뒤 Stack으로 캐릭터를 그 위에 겹쳤으나,
-    // 캐릭터를 완전히 제거하면서 별도 상단 여백 없이 카드만 그대로
-    // 렌더링한다(_buildCharacter/_buildSpeechTail 미사용).
+    // [방통선녀 캐릭터 재배치 — 2026-09] 카드 상단에 살짝 겹치도록 얼굴
+    // 아바타(경이 표정)를 배치해 환영 인사를 건네는 느낌을 준다.
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 320),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: _buildCard(context),
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.topCenter,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 34),
+              child: _buildCard(context),
+            ),
+            const BangtongFaceAvatar(
+              size: 76,
+              mood: BangtongMood.wonder,
+              glow: true,
+            ),
+          ],
+        ),
       ),
     );
   }

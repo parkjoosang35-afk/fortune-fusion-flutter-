@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/widgets/bangtong_seonyeo.dart';
 import '../application/intro_config_provider.dart';
 import '../application/intro_state_provider.dart';
 import '../domain/intro_config_model.dart';
@@ -175,6 +176,7 @@ class _IntroPagerScreenState extends State<IntroPagerScreen> {
               IntroPalette.crystal,
             ],
             subtitle: config.card1Description,
+            characterMood: BangtongMood.serene,
           ),
         ),
         Positioned(
@@ -214,6 +216,7 @@ class _IntroPagerScreenState extends State<IntroPagerScreen> {
             subtitle: config.card2Description,
             featureItems: config.featureItems,
             alignTop: true,
+            characterMood: BangtongMood.wonder,
           ),
         ),
         Positioned(

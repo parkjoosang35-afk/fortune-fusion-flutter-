@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../domain/jeontong_eighty_matrix.dart';
+import '../../../core/widgets/bangtong_seonyeo.dart';
 
 /// [메인 UI 리디자인 - 귀인지도 배너 3장 롤링 캐러셀]
 ///
@@ -13,8 +14,8 @@ import '../domain/jeontong_eighty_matrix.dart';
 ///   Slide3 인연·궁합(플럼·핑크)
 /// - 자동슬라이드 4.2초, 스와이프 시 정지 후 재개, 도트 인디케이터,
 ///   reduced-motion 대응(자동재생 스킵)
-/// - 각 슬라이드: 별 반짝임 22개, 회전 마법진(sigil), 후광 pulse,
-/// 스파클 4개(pop), NEW/TODAY/HOT 배지(pulse), CTA(breath)
+/// - 각 슬라이드: 별 반짝임 22개, 회전 마법진(sigil), 후광 pulse, 방통선녀
+/// 캐릭터(float+tilt), 스파클 4개(pop), NEW/TODAY/HOT 배지(pulse), CTA(breath)
 ///
 /// 백엔드 라우팅(`/guinji`, `/fortune/today`, `/fortune/compatibility`)은 아직
 /// 앱에 구현되어 있지 않아, 기존 앱의 관례(§`_FortuneCategoryChips`)를 따라
@@ -44,6 +45,9 @@ class _HomeBannerCarouselState extends State<HomeBannerCarousel> {
       ctaLabel: '지도 만들기',
       ctaIcon: '✧',
       badgeLabel: 'NEW',
+      characterAsset: BangtongSeonyeoAssets.exprSmile,
+      characterOffsetBottom: -10,
+      characterOffsetRight: 0,
       accentGradient: [Color(0xFFF5D97A), Color(0xFFE8C8F5)],
       eyebrowColor: Color(0xFFE8C8F5),
       badgeBg: Color(0xFFE8C8F5),
@@ -71,6 +75,9 @@ class _HomeBannerCarouselState extends State<HomeBannerCarousel> {
       ctaLabel: '운세 보기',
       ctaIcon: '☾',
       badgeLabel: 'TODAY',
+      characterAsset: BangtongSeonyeoAssets.exprPlayful,
+      characterOffsetBottom: -6,
+      characterOffsetRight: 4,
       accentGradient: [Color(0xFFA8E3D5), Color(0xFFA8D5E3)],
       eyebrowColor: Color(0xFFA8D5E3),
       badgeBg: Color(0xFFA8D5E3),
@@ -98,6 +105,9 @@ class _HomeBannerCarouselState extends State<HomeBannerCarousel> {
       ctaLabel: '궁합 보기',
       ctaIcon: '❤',
       badgeLabel: 'HOT',
+      characterAsset: BangtongSeonyeoAssets.exprWonder,
+      characterOffsetBottom: -10,
+      characterOffsetRight: 0,
       accentGradient: [Color(0xFFF5D97A), Color(0xFFF5A8BD)],
       eyebrowColor: Color(0xFFF5C8D5),
       badgeBg: Color(0xFFF5C8D5),
@@ -277,6 +287,9 @@ class _BannerSlideData {
     required this.ctaLabel,
     required this.ctaIcon,
     required this.badgeLabel,
+    required this.characterAsset,
+    required this.characterOffsetBottom,
+    required this.characterOffsetRight,
     required this.accentGradient,
     required this.eyebrowColor,
     required this.badgeBg,
@@ -304,6 +317,9 @@ class _BannerSlideData {
   final String ctaLabel;
   final String ctaIcon;
   final String badgeLabel;
+  final String characterAsset;
+  final double characterOffsetBottom;
+  final double characterOffsetRight;
   final List<Color> accentGradient;
   final Color eyebrowColor;
   final Color badgeBg;
@@ -338,6 +354,8 @@ class _BannerSlideState extends State<_BannerSlide>
   late final AnimationController _sigilCtrl;
   late final AnimationController _haloCtrl;
   late final AnimationController _badgeCtrl;
+  late final AnimationController _floatCtrl;
+  late final AnimationController _tiltCtrl;
   late final AnimationController _ctaCtrl;
   late final List<_StarSpec> _stars;
   late final List<_SparkleSpec> _sparkles;
@@ -408,6 +426,14 @@ class _BannerSlideState extends State<_BannerSlide>
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     )..repeat(reverse: true);
+    _floatCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+    _tiltCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1700),
+    )..repeat(reverse: true);
     _ctaCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
@@ -423,6 +449,8 @@ class _BannerSlideState extends State<_BannerSlide>
     _sigilCtrl.dispose();
     _haloCtrl.dispose();
     _badgeCtrl.dispose();
+    _floatCtrl.dispose();
+    _tiltCtrl.dispose();
     _ctaCtrl.dispose();
     super.dispose();
   }
@@ -550,6 +578,38 @@ class _BannerSlideState extends State<_BannerSlide>
                         ),
                       ),
                     ),
+                  ),
+                );
+              },
+            ),
+          ),
+
+          // 방통선녀 캐릭터(float + tilt)
+          Positioned(
+            right: data.characterOffsetRight,
+            bottom: data.characterOffsetBottom,
+            width: 130,
+            height: 130,
+            child: AnimatedBuilder(
+              animation: _floatCtrl,
+              builder: (context, _) {
+                final dy = -6 * _floatCtrl.value;
+                return Transform.translate(
+                  offset: Offset(0, dy),
+                  child: AnimatedBuilder(
+                    animation: _tiltCtrl,
+                    builder: (context, _) {
+                      final angleDeg = -1.5 + 3.0 * _tiltCtrl.value;
+                      return Transform.rotate(
+                        angle: angleDeg * math.pi / 180,
+                        child: ClipOval(
+                          child: Image.asset(
+                            data.characterAsset,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 );
               },

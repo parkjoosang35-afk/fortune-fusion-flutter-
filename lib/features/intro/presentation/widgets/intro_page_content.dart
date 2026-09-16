@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/bangtong_seonyeo.dart';
 import 'intro_eyebrow_label.dart';
 import 'intro_feature_list.dart';
 import 'intro_title_text.dart';
@@ -32,6 +33,10 @@ class IntroPageContent extends StatelessWidget {
   /// `justify-content: flex-start`) 여부.
   final bool alignTop;
 
+  /// [방통선녀 캐릭터 재배치] 페이지 상단(eyebrow 위)에 표시할 캐릭터
+  /// 표정. null이면 캐릭터를 표시하지 않는다.
+  final BangtongMood? characterMood;
+
   const IntroPageContent({
     super.key,
     required this.eyebrow,
@@ -42,6 +47,7 @@ class IntroPageContent extends StatelessWidget {
     this.titleHighlightColors = const [Colors.white, Colors.white],
     this.featureItems,
     this.alignTop = false,
+    this.characterMood,
   });
 
   /// 제목/서브카피/피처리스트를 렌더링하는 공용 콘텐츠 블록.
@@ -66,6 +72,10 @@ class IntroPageContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
+        if (characterMood != null) ...[
+          BangtongFaceAvatar(size: 84, mood: characterMood!, glow: true),
+          const SizedBox(height: 16),
+        ],
         IntroEyebrowLabel(eyebrow),
         const SizedBox(height: 20),
         Expanded(

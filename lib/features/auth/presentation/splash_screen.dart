@@ -9,6 +9,7 @@ import '../../intro/presentation/intro_text_styles.dart';
 import '../../intro/presentation/widgets/intro_eyebrow_label.dart';
 import '../../home/domain/jeontong_local_to_server_migration.dart';
 import '../application/auth_provider.dart';
+import '../../../core/widgets/bangtong_seonyeo.dart';
 
 /// [인트로 전면 개편 - 1단계 브랜드 스플래시]
 /// 중앙 로고 + "신통방통" + (선택)짧은 카피, fade-in/out, 1.0~1.5초.
@@ -192,6 +193,31 @@ class _SplashScreenState extends State<SplashScreen>
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
+                          // [신통도령 대체 - 방통선녀 재배치] 얼굴 아이콘 +
+                          // 부드러운 광채. 스플래시는 짧게 스쳐가는 화면이라
+                          // 과한 애니메이션 없이 정적 이미지로 배치한다.
+                          Container(
+                            width: 96,
+                            height: 96,
+                            margin: const EdgeInsets.only(bottom: 20),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: IntroPalette.primary.withValues(
+                                    alpha: 0.35,
+                                  ),
+                                  blurRadius: 40,
+                                  spreadRadius: 4,
+                                ),
+                              ],
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: Image.asset(
+                              BangtongSeonyeoAssets.faceIcon,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
                           Text(
                             config.splashTitle,
                             textAlign: TextAlign.center,

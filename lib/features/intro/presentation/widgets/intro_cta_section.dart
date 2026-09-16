@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/bangtong_seonyeo.dart';
 import 'intro_eyebrow_label.dart';
 import 'intro_title_text.dart';
 import 'intro_progress_dots.dart';
@@ -47,6 +48,13 @@ class IntroCTASection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
+        // 방통선녀 캐릭터 — 마지막 단계에서 환하게 웃으며 시작을 반긴다.
+        const BangtongFaceAvatar(
+          size: 92,
+          mood: BangtongMood.smile,
+          glow: true,
+        ),
+        const SizedBox(height: 16),
         const IntroEyebrowLabel('READY · TO · BEGIN'),
         const SizedBox(height: 20),
         Expanded(

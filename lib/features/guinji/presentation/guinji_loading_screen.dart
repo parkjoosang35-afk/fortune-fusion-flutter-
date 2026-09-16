@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/widgets/bangtong_seonyeo.dart';
 import '../../auth/domain/user_model.dart';
 import '../../wish_room/widgets/wish_room_dust.dart';
 import '../../wish_room/widgets/wish_room_sigil.dart';
@@ -142,6 +143,12 @@ class _GuinjiLoadingScreenState extends State<GuinjiLoadingScreen>
                         color: GuinjiColors.aqua,
                         opacity: 0.55,
                         reverse: true,
+                      ),
+                      // 방통선녀 캐릭터 — 사주를 읽어내는 주문 연출 중앙 배치.
+                      const BangtongFaceAvatar(
+                        size: 104,
+                        mood: BangtongMood.wonder,
+                        glow: true,
                       ),
                     ],
                   ),
