@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../application/guinji_provider.dart';
+import '../application/guinji_rewarded_ad_helper.dart';
 import '../domain/guinji_person.dart';
 import '../domain/guinji_relation_meta.dart';
 import '../theme/guinji_theme.dart';
@@ -37,9 +38,33 @@ class _GuinjiRelationDetailScreenState
   late bool _specialUnlocked = widget.person.unlocked;
   bool _unlocking = false;
 
+  // [광고 해금 버그수정 — 2026-09] guinji_map_relation_detail_screen.dart와
+  // 동일한 패턴: method가 'ad'면 서버 API 전에 실제 AdMob 리워드 광고를
+  // 먼저 재생하고, 끝까지 시청했을 때만 서버 해금을 요청한다.
   Future<void> _handleUnlock(String method) async {
     if (_unlocking) return;
+    if (method == 'ad') {
+      setState(() => _unlocking = true);
+      await GuinjiRewardedAdHelper.loadAndShow(
+        onResult: (rewarded, errorMessage) {
+          if (!mounted) return;
+          if (rewarded) {
+            _callUnlockApi(method);
+          } else {
+            setState(() => _unlocking = false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(errorMessage ?? '광고 시청이 완료되지 않았어요.')),
+            );
+          }
+        },
+      );
+      return;
+    }
     setState(() => _unlocking = true);
+    await _callUnlockApi(method);
+  }
+
+  Future<void> _callUnlockApi(String method) async {
     final provider = context.read<GuinjiProvider>();
     final ok = await provider.unlock(
       memberId: widget.person.id,

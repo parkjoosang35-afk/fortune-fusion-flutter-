@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../core/widgets/app_toast.dart';
 import '../application/guinji_provider.dart';
+import '../application/guinji_rewarded_ad_helper.dart';
 import '../domain/guinji_person.dart';
 import '../domain/guinji_relation_meta.dart';
 import '../theme/guinji_map_theme.dart';
@@ -70,9 +71,34 @@ class _GuinjiMapRelationDetailScreenState
     return '무리한 부탁이나 갑작스러운 변화';
   }
 
+  // [광고 해금 버그수정 — 2026-09] method가 'ad'면 서버 API를 곧바로
+  // 호출하지 않고, 먼저 실제 AdMob 리워드 광고를 로드/재생한다. 광고를
+  // 끝까지 시청했을 때만 [_callUnlockApi]로 서버 해금을 요청한다
+  // ("광고연결 안됨" 리포트 대응 — 이전에는 광고 자체가 전혀 뜨지 않았다).
   Future<void> _handleUnlock(String method) async {
     if (_unlocking) return;
+    if (method == 'ad') {
+      setState(() => _unlocking = true);
+      await GuinjiRewardedAdHelper.loadAndShow(
+        onResult: (rewarded, errorMessage) {
+          if (!mounted) return;
+          if (rewarded) {
+            _callUnlockApi(method);
+          } else {
+            setState(() => _unlocking = false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(errorMessage ?? '광고 시청이 완료되지 않았어요.')),
+            );
+          }
+        },
+      );
+      return;
+    }
     setState(() => _unlocking = true);
+    await _callUnlockApi(method);
+  }
+
+  Future<void> _callUnlockApi(String method) async {
     final provider = context.read<GuinjiProvider>();
     final ok = await provider.unlock(
       memberId: widget.person.id,
