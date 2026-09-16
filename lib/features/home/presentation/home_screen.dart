@@ -182,7 +182,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final services = _buildServiceSpecs();
 
     return Scaffold(
-      backgroundColor: SintongHomeColors.background,
+      backgroundColor: SintongHomeColors.scaffoldBackground,
       body: SafeArea(
         bottom: false,
         child: ListView(

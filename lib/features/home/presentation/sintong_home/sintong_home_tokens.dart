@@ -15,6 +15,13 @@ class SintongHomeColors {
   SintongHomeColors._();
 
   static const Color background = Color(0xFFFFFFFF);
+  /// [메인 배경 색상 보정] 순백색(background) 그대로 화면 전체 배경으로
+  /// 쓰면 인트로(다크 네이비~퍼플)와 톤이 완전히 끊겨 "흰 바탕이 앱
+  /// 색상이 아닌 것 같다"는 이질감이 생긴다. 카드 자체 배경(background)은
+  /// 화이트를 유지해 카드-배경 대비는 그대로 살리고, Scaffold 배경만 이
+  /// 값(아주 연한 라벤더 화이트)으로 톤다운해 인트로의 보라 계열과
+  /// 자연스럽게 이어지도록 한다.
+  static const Color scaffoldBackground = Color(0xFFF7F6FB);
   static const Color ink = Color(0xFF1A1A1A);
   static const Color inkSoft = Color(0xFF6B6B6B);
   static const Color inkMute = Color(0xFF9A9A9A);
