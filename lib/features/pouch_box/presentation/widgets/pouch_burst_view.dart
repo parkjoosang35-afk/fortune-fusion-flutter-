@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../theme/lucky_box_tokens.dart';
+import '../../application/pouch_box_audio_controller.dart';
 import 'pouch_burst_painter.dart';
 
 /// [행운상자 - 복주머니 탭 신규 기능] dev-spec.md §3-3 "burst" 단계 —
@@ -40,6 +41,7 @@ class _PouchBurstViewState extends State<PouchBurstView>
       vsync: this,
       duration: LuckyBoxTokens.burstTotal,
     )..forward();
+    PouchBoxAudioController.instance.playBurst(isJackpot: widget.isJackpot);
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         widget.onSettle();

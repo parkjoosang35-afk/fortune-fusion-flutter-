@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../theme/lucky_box_tokens.dart';
+import '../../application/pouch_box_audio_controller.dart';
 import 'mini_pouch_icon.dart';
 
 /// [행운상자 - 복주머니 탭 신규 기능] dev-spec.md §3-4 Result 화면.
@@ -44,6 +45,7 @@ class _PouchResultViewState extends State<PouchResultView>
       CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
     );
     _controller.forward();
+    PouchBoxAudioController.instance.playCountUp();
   }
 
   @override

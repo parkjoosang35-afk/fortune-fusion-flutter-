@@ -157,6 +157,7 @@ flutter:
     - assets/images/guinji/seonnyeo/
     - assets/images/character/
     - assets/audio/tarot/
+    - assets/audio/pouch_box/
     - assets/tarot/cards/majors/
     - assets/tarot/cards/cups/
     - assets/tarot/cards/wands/

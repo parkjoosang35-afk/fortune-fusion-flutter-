@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../../../theme/lucky_box_tokens.dart';
+import '../../application/pouch_box_audio_controller.dart';
 
 /// [행운상자 - 복주머니 탭 신규 기능] dev-spec.md §3-3 "opening" 단계 —
 /// 상자 shake(1.1초, 350ms loop x 3, ease-in-out, rotate ±6° + scale
@@ -24,6 +25,7 @@ class _PouchOpeningViewState extends State<PouchOpeningView>
       vsync: this,
       duration: LuckyBoxTokens.openingShake,
     )..forward();
+    PouchBoxAudioController.instance.playOpenShake();
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         widget.onSettle();
