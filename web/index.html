@@ -73,8 +73,59 @@
   <meta name="twitter:title" content="신통방통 - 신통도령과 함께하는 오늘의 운세">
   <meta name="twitter:description" content="사주 · 타로 · 궁합 · 귀인지도까지, 신통도령이 들려주는 오늘 당신의 운명 이야기를 만나보세요.">
   <meta name="twitter:image" content="https://sintong.kr/app/og-image.png">
+
+  <!-- [버그 수정 - 로딩 중 흰 화면 깜빡임] Flutter 엔진이 완전히 로드되어
+       화면을 그리기까지(main.dart.js 다운로드+파싱, 15초 이상 걸릴 수 있음)
+       브라우저는 <body>의 기본 배경(흰색)을 그대로 보여준다. 앱의 실제
+       테마 색상(다크 네이비~퍼플 그라데이션, intro_palette.dart의
+       backgroundTop/backgroundBottom과 동일)과 전혀 다른 흰색이 로딩 내내
+       노출되어 "흰 바탕이 앱 색상과 안 맞는다"는 문제가 발생했다.
+       body에 동일한 그라데이션 배경 + 로딩 스피너를 CSS로 미리 그려서,
+       Flutter가 화면을 그리기 전까지도 앱과 일관된 색감을 유지한다.
+       Flutter 첫 프레임이 렌더링되면 flutter-view가 body 위에 올라오면서
+       이 로딩 화면을 자연스럽게 덮는다. -->
+  <meta name="theme-color" content="#1E1A3A">
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: linear-gradient(to bottom, #3D3568, #1E1A3A);
+    }
+    #app-loading {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(to bottom, #3D3568, #1E1A3A);
+      z-index: 9999;
+    }
+    #app-loading .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255, 255, 255, 0.25);
+      border-top-color: rgba(255, 255, 255, 0.9);
+      border-radius: 50%;
+      animation: app-loading-spin 0.9s linear infinite;
+    }
+    @keyframes app-loading-spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
 </head>
 <body>
+  <div id="app-loading"><div class="spinner"></div></div>
+  <script>
+    // Flutter Web이 첫 프레임을 그리면 'flutter-first-frame' 이벤트를 쏘아준다.
+    // 그 시점에 로딩용 그라데이션/스피너를 페이드아웃하며 제거한다.
+    window.addEventListener('flutter-first-frame', function () {
+      var el = document.getElementById('app-loading');
+      if (!el) return;
+      el.style.transition = 'opacity 200ms ease-out';
+      el.style.opacity = '0';
+      setTimeout(function () { el.remove(); }, 220);
+    });
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
