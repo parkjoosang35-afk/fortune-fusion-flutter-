@@ -32,7 +32,7 @@ void replayPendingGuinjiOnboarding() {
 /// (3).zip` → `GUINJI_SCREENS.md` "02 · 온보딩" 스펙을 재구현한다(원본은
 /// `guinji_prototype/GuinjiScreens.jsx`의 `OnboardingScreen`).
 ///
-/// 목적: 처음 진입 시 신통도령 인사 + 기존 사주 프로필 확인 → "지도 만들기"
+/// 목적: 처음 진입 시 안내 문구 + 기존 사주 프로필 확인 → "지도 만들기"
 /// CTA. 이 Phase에서는 목데이터/뼈대만 구현하며, 실제 지도 생성 API 호출·
 /// DB 저장(신규 테이블 5개, §5)은 하지 않는다 — CTA는 준비 중 안내만 띄운다
 /// (홈 배너 `_handleTap`과 동일한 관례).
@@ -228,13 +228,6 @@ class _GateCard extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.asset(
-              'assets/images/home/doryeong/greeting.png',
-              width: 96,
-              height: 96,
-              fit: BoxFit.contain,
-            ),
-            const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
               decoration: BoxDecoration(
@@ -341,12 +334,7 @@ class _MonoLabel extends StatelessWidget {
   }
 }
 
-/// 신통도령 인사 일러스트 + 말풍선.
-///
-/// [Phase G-1 범위] 원본 스펙(`gentle-bob 3.2s` float 애니메이션)은 홈
-/// 캐러셀에 이미 구현된 `b-doryeong-float` 패턴과 동일하므로, 이 Phase에서는
-/// 정적 이미지로 우선 배치하고 애니메이션은 화면 확정 후 추가한다(과도한
-/// 선행 구현으로 인한 재작업 방지 — README "한 Phase씩" 원칙).
+/// 귀인지도 안내 말풍선.
 class _DoryeongGreeting extends StatelessWidget {
   const _DoryeongGreeting({required this.nickname});
 
@@ -356,13 +344,6 @@ class _DoryeongGreeting extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Image.asset(
-          'assets/images/home/doryeong/greeting.png',
-          width: 140,
-          height: 140,
-          fit: BoxFit.contain,
-        ),
-        const SizedBox(height: 10),
         Container(
           constraints: const BoxConstraints(maxWidth: 260),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -371,36 +352,16 @@ class _DoryeongGreeting extends StatelessWidget {
             border: Border.all(color: GuinjiColors.surfaceCardBorder),
             borderRadius: BorderRadius.circular(14),
           ),
-          child: Column(
+          child: const Column(
             children: [
-              Text.rich(
-                TextSpan(
-                  children: [
-                    const TextSpan(text: '안녕하세요, 소인 '),
-                    const TextSpan(
-                      text: '신통도령',
-                      style: TextStyle(color: GuinjiColors.lavender),
-                    ),
-                    const TextSpan(text: '이라 하옵니다.'),
-                  ],
-                  style: const TextStyle(
-                    fontFamily: GuinjiFonts.body,
-                    fontSize: 13,
-                    height: 1.5,
-                    color: GuinjiColors.textPrimary,
-                  ),
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 2),
-              const Text(
+              Text(
                 '당신의 사주로 귀인지도를 열어드릴게요.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: GuinjiFonts.body,
-                  fontSize: 12,
+                  fontSize: 13,
                   height: 1.5,
-                  color: GuinjiColors.textSecondary,
+                  color: GuinjiColors.textPrimary,
                 ),
               ),
             ],

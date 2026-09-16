@@ -89,7 +89,7 @@ class IntroConfigModel {
     showGuestHint: true,
     // 페이지1(스플래시) · eyebrow: 神通萬通 · SINTONG
     splashTitle: '신통방통',
-    splashSubtitle: '하늘의 답을\n신통도령이 전해드립니다',
+    splashSubtitle: '하늘의 답을\n매일 전해드립니다',
     // 페이지2(오늘의 결이 무슨 빛인지) · eyebrow: CHAPTER · N°01
     card1Title: '오늘의 결이\n무슨 빛인지',
     card1Description: '별자리와 사주가 만나\n하루의 결을 그려드립니다.',
@@ -100,7 +100,7 @@ class IntroConfigModel {
     card2ImageUrl: null,
     // 페이지4(CTA) · eyebrow: READY · TO · BEGIN
     ctaTitle: '이제\n신통방통과 함께',
-    ctaSubtitle: '생년월일 한번만 입력하면\n신통도령이 매일 봐드립니다.',
+    ctaSubtitle: '생년월일 한번만 입력하면\n매일 새로운 운세를 봐드립니다.',
     // [기존 결정사항 유지] 가입 보상 배지 문구 — 핸드오프에는 없는 요소이지만
     // "가입 시 복주머니 100개 지급" 결정 자체는 이전 세션에서 확정된 사항이라
     // 문구만 유지한다(§CTA 섹션 참고).

@@ -456,7 +456,7 @@ class _SpecialLockedCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           const Text(
-            '사주 4기둥을 근거로 신통도령이 자세히 풀어드립니다.',
+            '사주 4기둥을 근거로 자세히 풀어드립니다.',
             style: TextStyle(fontSize: 12, height: 1.5, color: GmColors.inkSoft),
           ),
           const SizedBox(height: 12),

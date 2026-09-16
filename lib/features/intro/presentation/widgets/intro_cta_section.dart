@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'intro_character.dart';
 import 'intro_eyebrow_label.dart';
 import 'intro_title_text.dart';
 import 'intro_progress_dots.dart';
@@ -56,36 +55,6 @@ class IntroCTASection extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // [핸드오프 반영] 신통도령 celebrating - halo + 스파클 3개 + float
-                SizedBox(
-                  height: 230,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      const IntroCharacter(
-                        asset: 'assets/images/home/doryeong/celebrating.png',
-                        size: 200,
-                        haloSize: 260,
-                      ),
-                      const Positioned(
-                        top: 8,
-                        left: 24,
-                        child: _Sparkle(color: IntroPalette.gold, size: 18),
-                      ),
-                      const Positioned(
-                        top: 0,
-                        right: 30,
-                        child: _Sparkle(color: IntroPalette.primary, size: 14),
-                      ),
-                      const Positioned(
-                        top: 56,
-                        right: 8,
-                        child: _Sparkle(color: IntroPalette.gold, size: 16),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
                 IntroTitleText(
                   title,
                   style: IntroTextStyles.title(fontSize: 30),
@@ -188,53 +157,6 @@ class IntroCTASection extends StatelessWidget {
           ],
         ),
       ],
-    );
-  }
-}
-
-class _Sparkle extends StatefulWidget {
-  final Color color;
-  final double size;
-
-  const _Sparkle({required this.color, required this.size});
-
-  @override
-  State<_Sparkle> createState() => _SparkleState();
-}
-
-class _SparkleState extends State<_Sparkle>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2400),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        final t = _controller.value;
-        final scale = 0.6 + 0.4 * (0.5 - (t - 0.5).abs()) * 2;
-        final opacity = 0.4 + 0.6 * (0.5 - (t - 0.5).abs()) * 2;
-        return Opacity(
-          opacity: opacity.clamp(0.4, 1.0),
-          child: Transform.scale(scale: scale.clamp(0.6, 1.0), child: child),
-        );
-      },
-      child: Icon(Icons.auto_awesome, color: widget.color, size: widget.size),
     );
   }
 }

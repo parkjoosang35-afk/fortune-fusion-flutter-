@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'intro_character.dart';
 import 'intro_eyebrow_label.dart';
 import 'intro_feature_list.dart';
 import 'intro_title_text.dart';
@@ -10,12 +9,10 @@ import '../../domain/intro_config_model.dart';
 /// 인트로 페이지2("오늘의 결이 무슨 빛인지")/페이지3("내 곁의 귀인은 몇
 /// 명일까") 공용 레이아웃. 기존 `IntroCardWidget`(카드 박스형 히어로 +
 /// 좌측정렬 텍스트 블록)을 완전히 대체한다 — 핸드오프는 카드 박스가 없고
-/// 캐릭터·제목·서브가 화면 중앙에 자유 배치, 가운데 정렬된다
+/// 제목·서브가 화면 중앙에 자유 배치, 가운데 정렬된다
 /// (`screens/01_Intro.html` `.hero` 블록 참조).
 class IntroPageContent extends StatelessWidget {
   final String eyebrow;
-  final String characterAsset;
-  final double characterSize;
 
   /// `\n`으로 줄바꿈된 원문 제목(IntroConfigModel의 title 필드).
   final String title;
@@ -38,8 +35,6 @@ class IntroPageContent extends StatelessWidget {
   const IntroPageContent({
     super.key,
     required this.eyebrow,
-    required this.characterAsset,
-    required this.characterSize,
     required this.title,
     required this.subtitle,
     this.titleFontSize = 30,
@@ -49,11 +44,9 @@ class IntroPageContent extends StatelessWidget {
     this.alignTop = false,
   });
 
-  /// 캐릭터/제목/서브카피/피처리스트를 렌더링하는 공용 콘텐츠 블록.
+  /// 제목/서브카피/피처리스트를 렌더링하는 공용 콘텐츠 블록.
   List<Widget> _contentChildren() {
     return [
-      IntroCharacter(asset: characterAsset, size: characterSize),
-      const SizedBox(height: 20),
       IntroTitleText(
         title,
         style: IntroTextStyles.title(fontSize: titleFontSize),

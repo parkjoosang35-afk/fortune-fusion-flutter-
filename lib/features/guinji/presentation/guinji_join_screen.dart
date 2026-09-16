@@ -252,14 +252,7 @@ class _GuinjiJoinScreenState extends State<GuinjiJoinScreen> {
                       child: SingleChildScrollView(
                         child: Column(
                           children: [
-                            const SizedBox(height: 12),
-                            Image.asset(
-                              'assets/images/home/doryeong/greeting.png',
-                              width: 110,
-                              height: 110,
-                              fit: BoxFit.contain,
-                            ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 20),
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 16,
@@ -402,13 +395,6 @@ class _LoginRequiredCard extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.asset(
-              'assets/images/home/doryeong/greeting.png',
-              width: 96,
-              height: 96,
-              fit: BoxFit.contain,
-            ),
-            const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
               decoration: BoxDecoration(

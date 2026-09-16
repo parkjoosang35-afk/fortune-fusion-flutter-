@@ -13,8 +13,8 @@ import '../domain/jeontong_eighty_matrix.dart';
 ///   Slide3 인연·궁합(플럼·핑크)
 /// - 자동슬라이드 4.2초, 스와이프 시 정지 후 재개, 도트 인디케이터,
 ///   reduced-motion 대응(자동재생 스킵)
-/// - 각 슬라이드: 별 반짝임 22개, 회전 마법진(sigil), 후광 pulse, 신통도령
-///   캐릭터(float+tilt), 스파클 4개(pop), NEW/TODAY/HOT 배지(pulse), CTA(breath)
+/// - 각 슬라이드: 별 반짝임 22개, 회전 마법진(sigil), 후광 pulse,
+/// 스파클 4개(pop), NEW/TODAY/HOT 배지(pulse), CTA(breath)
 ///
 /// 백엔드 라우팅(`/guinji`, `/fortune/today`, `/fortune/compatibility`)은 아직
 /// 앱에 구현되어 있지 않아, 기존 앱의 관례(§`_FortuneCategoryChips`)를 따라
@@ -44,7 +44,6 @@ class _HomeBannerCarouselState extends State<HomeBannerCarousel> {
       ctaLabel: '지도 만들기',
       ctaIcon: '✧',
       badgeLabel: 'NEW',
-      imageAsset: 'assets/images/home/doryeong/scroll.png',
       accentGradient: [Color(0xFFF5D97A), Color(0xFFE8C8F5)],
       eyebrowColor: Color(0xFFE8C8F5),
       badgeBg: Color(0xFFE8C8F5),
@@ -62,19 +61,16 @@ class _HomeBannerCarouselState extends State<HomeBannerCarousel> {
       sigilDurationSeconds: 60,
       sparkleShape: _SparkleShape.star,
       sparkleColors: [Color(0xFFF5D97A), Color(0xFFE8C8F5)],
-      doryeongOffsetBottom: -10,
-      doryeongOffsetRight: 0,
     ),
     _BannerSlideData(
       key: 'fortune',
       route: '/fortune/today',
       eyebrow: 'SINTONG · N°02',
       titleLines: ['오늘의 내', '{accent}별자리{/}는 무슨 색'],
-      sub: '신통도령이 봐드릴게요.\n3분이면 충분해요.',
+      sub: '생년월일 하나로 오늘의 운세를\n확인해보세요.',
       ctaLabel: '운세 보기',
       ctaIcon: '☾',
       badgeLabel: 'TODAY',
-      imageAsset: 'assets/images/home/doryeong/crystal.png',
       accentGradient: [Color(0xFFA8E3D5), Color(0xFFA8D5E3)],
       eyebrowColor: Color(0xFFA8D5E3),
       badgeBg: Color(0xFFA8D5E3),
@@ -92,8 +88,6 @@ class _HomeBannerCarouselState extends State<HomeBannerCarousel> {
       sigilDurationSeconds: 100,
       sparkleShape: _SparkleShape.star,
       sparkleColors: [Color(0xFFA8D5E3), Color(0xFFE8F2F8)],
-      doryeongOffsetBottom: -6,
-      doryeongOffsetRight: 4,
     ),
     _BannerSlideData(
       key: 'fate',
@@ -104,7 +98,6 @@ class _HomeBannerCarouselState extends State<HomeBannerCarousel> {
       ctaLabel: '궁합 보기',
       ctaIcon: '❤',
       badgeLabel: 'HOT',
-      imageAsset: 'assets/images/home/doryeong/thread.png',
       accentGradient: [Color(0xFFF5D97A), Color(0xFFF5A8BD)],
       eyebrowColor: Color(0xFFF5C8D5),
       badgeBg: Color(0xFFF5C8D5),
@@ -122,8 +115,6 @@ class _HomeBannerCarouselState extends State<HomeBannerCarousel> {
       sigilDurationSeconds: 60,
       sparkleShape: _SparkleShape.heart,
       sparkleColors: [Color(0xFFF5A8BD), Color(0xFFF5D97A)],
-      doryeongOffsetBottom: -10,
-      doryeongOffsetRight: 0,
     ),
   ];
 
@@ -286,7 +277,6 @@ class _BannerSlideData {
     required this.ctaLabel,
     required this.ctaIcon,
     required this.badgeLabel,
-    required this.imageAsset,
     required this.accentGradient,
     required this.eyebrowColor,
     required this.badgeBg,
@@ -304,8 +294,6 @@ class _BannerSlideData {
     required this.sigilDurationSeconds,
     required this.sparkleShape,
     required this.sparkleColors,
-    required this.doryeongOffsetBottom,
-    required this.doryeongOffsetRight,
   });
 
   final String key;
@@ -316,7 +304,6 @@ class _BannerSlideData {
   final String ctaLabel;
   final String ctaIcon;
   final String badgeLabel;
-  final String imageAsset;
   final List<Color> accentGradient;
   final Color eyebrowColor;
   final Color badgeBg;
@@ -334,8 +321,6 @@ class _BannerSlideData {
   final int sigilDurationSeconds;
   final _SparkleShape sparkleShape;
   final List<Color> sparkleColors;
-  final double doryeongOffsetBottom;
-  final double doryeongOffsetRight;
 }
 
 class _BannerSlide extends StatefulWidget {
@@ -353,8 +338,6 @@ class _BannerSlideState extends State<_BannerSlide>
   late final AnimationController _sigilCtrl;
   late final AnimationController _haloCtrl;
   late final AnimationController _badgeCtrl;
-  late final AnimationController _floatCtrl;
-  late final AnimationController _tiltCtrl;
   late final AnimationController _ctaCtrl;
   late final List<_StarSpec> _stars;
   late final List<_SparkleSpec> _sparkles;
@@ -425,14 +408,6 @@ class _BannerSlideState extends State<_BannerSlide>
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     )..repeat(reverse: true);
-    _floatCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
-    _tiltCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1700),
-    )..repeat(reverse: true);
     _ctaCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
@@ -448,8 +423,6 @@ class _BannerSlideState extends State<_BannerSlide>
     _sigilCtrl.dispose();
     _haloCtrl.dispose();
     _badgeCtrl.dispose();
-    _floatCtrl.dispose();
-    _tiltCtrl.dispose();
     _ctaCtrl.dispose();
     super.dispose();
   }
@@ -577,36 +550,6 @@ class _BannerSlideState extends State<_BannerSlide>
                         ),
                       ),
                     ),
-                  ),
-                );
-              },
-            ),
-          ),
-
-          // 신통도령 캐릭터(float + tilt)
-          Positioned(
-            right: data.doryeongOffsetRight,
-            bottom: data.doryeongOffsetBottom,
-            width: 155,
-            height: 155,
-            child: AnimatedBuilder(
-              animation: _floatCtrl,
-              builder: (context, _) {
-                final dy = -6 * _floatCtrl.value;
-                return Transform.translate(
-                  offset: Offset(0, dy),
-                  child: AnimatedBuilder(
-                    animation: _tiltCtrl,
-                    builder: (context, _) {
-                      final angleDeg = -1.5 + 3.0 * _tiltCtrl.value;
-                      return Transform.rotate(
-                        angle: angleDeg * math.pi / 180,
-                        child: Image.asset(
-                          data.imageAsset,
-                          fit: BoxFit.contain,
-                        ),
-                      );
-                    },
                   ),
                 );
               },

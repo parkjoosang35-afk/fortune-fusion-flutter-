@@ -14,9 +14,9 @@ import 'widgets/intro_skip_action.dart';
 ///
 /// 3페이지 구성(핸드오프 4장 캐러셀 중 페이지2·3·4에 대응, 페이지1은 별도
 /// SplashScreen):
-/// - 0: 페이지2 "오늘의 결이 무슨 빛인지"(오늘의 운세 · crystal.png)
-/// - 1: 페이지3 "내 곁의 귀인은 몇 명일까"(귀인지도 · scroll.png + 피처 3개)
-/// - 2: 페이지4 CTA "이제 신통방통과 함께"(celebrating.png)
+/// - 0: 페이지2 "오늘의 결이 무슨 빛인지"(오늘의 운세)
+/// - 1: 페이지3 "내 곁의 귀인은 몇 명일까"(귀인지도 · 피처 3개)
+/// - 2: 페이지4 CTA "이제 신통방통과 함께"
 ///
 /// [기존 구조 재사용 원칙] 완료 처리(IntroStateProvider.markSeen/markSkipped)는
 /// 기존 onboarding_screen.dart의 "onboarding_completed 저장 후 이동" 패턴을
@@ -167,8 +167,6 @@ class _IntroPagerScreenState extends State<IntroPagerScreen> {
           bottom: _bottomBarHeight,
           child: IntroPageContent(
             eyebrow: 'CHAPTER · N°01',
-            characterAsset: 'assets/images/home/doryeong/crystal.png',
-            characterSize: 200,
             title: config.card1Title,
             titleFontSize: 30,
             titleHighlight: '무슨 빛',
@@ -206,8 +204,6 @@ class _IntroPagerScreenState extends State<IntroPagerScreen> {
           bottom: _bottomBarHeight,
           child: IntroPageContent(
             eyebrow: 'CHAPTER · N°02',
-            characterAsset: 'assets/images/home/doryeong/scroll.png',
-            characterSize: 150,
             title: config.card2Title,
             titleFontSize: 26,
             titleHighlight: '귀인',

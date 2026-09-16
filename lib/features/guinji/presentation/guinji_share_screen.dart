@@ -146,16 +146,7 @@ class _GuinjiShareScreenState extends State<GuinjiShareScreen> {
                       const _MonoLabel('SHARE · INVITE'),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  Center(
-                    child: Image.asset(
-                      'assets/images/home/doryeong/celebrating.png',
-                      width: 130,
-                      height: 130,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 16),
                   const Text(
                     '지인을 지도에\n초대해보세요',
                     textAlign: TextAlign.center,

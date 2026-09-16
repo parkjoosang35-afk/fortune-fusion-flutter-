@@ -13,7 +13,7 @@ import 'guinji_map_screen.dart';
 /// 귀인지도(Guinji Map) — 03. 로딩 화면.
 ///
 /// [Phase G-2] `GUINJI_SCREENS.md` "03 · 로딩" 스펙 재구현(원본
-/// `GuinjiScreens.jsx` → `LoadingScreen`): 사주 계산 중 신통도령 주문
+/// `GuinjiScreens.jsx` → `LoadingScreen`): 사주 계산 중 주문
 /// 애니메이션 + 4.2초 진행바. 회전 마법진 2개(외곽 8s / 내부 5s 역회전)는
 /// 소원방에 이미 구현되어 있는 [WishRoomSigilRing]을 재사용한다(색상만
 /// Guinji 팔레트로 교체 — 신규 CustomPainter 재작성 방지).
@@ -142,12 +142,6 @@ class _GuinjiLoadingScreenState extends State<GuinjiLoadingScreen>
                         color: GuinjiColors.aqua,
                         opacity: 0.55,
                         reverse: true,
-                      ),
-                      Image.asset(
-                        'assets/images/home/doryeong/greeting.png',
-                        width: 140,
-                        height: 140,
-                        fit: BoxFit.contain,
                       ),
                     ],
                   ),

@@ -316,7 +316,7 @@ class _RelationBadge extends StatelessWidget {
   }
 }
 
-/// 유형 해설 카드 — 신통도령 미니(pointing) + 관계 설명.
+/// 유형 해설 카드 — 관계 설명.
 class _TypeDescriptionCard extends StatelessWidget {
   const _TypeDescriptionCard({required this.relation});
 
@@ -328,13 +328,6 @@ class _TypeDescriptionCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Image.asset(
-            'assets/images/home/doryeong/pointing.png',
-            width: 40,
-            height: 40,
-            fit: BoxFit.contain,
-          ),
-          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -557,7 +550,7 @@ class _SpecialLockedCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           const Text(
-            '사주 4기둥을 근거로 신통도령이 자세히 풀어드립니다.',
+            '사주 4기둥을 근거로 자세히 풀어드립니다.',
             style: TextStyle(
               fontFamily: GuinjiFonts.body,
               fontSize: 12,
@@ -651,7 +644,7 @@ class _SmallCta extends StatelessWidget {
   }
 }
 
-/// 스페셜 해설 카드(해금 후) — 신통도령 풀이.
+/// 스페셜 해설 카드(해금 후) — 상세 풀이.
 class _SpecialUnlockedCard extends StatelessWidget {
   const _SpecialUnlockedCard({
     required this.person,

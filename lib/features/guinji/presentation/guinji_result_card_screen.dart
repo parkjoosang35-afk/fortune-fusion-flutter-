@@ -213,7 +213,7 @@ class _MonoLabel extends StatelessWidget {
   }
 }
 
-/// 카드 본체 — 240×320(3:4), 회전 마법진 배경 + 신통도령 + 통계 + 인용구.
+/// 카드 본체 — 240×320(3:4), 회전 마법진 배경 + 통계 + 인용구.
 class _TheCard extends StatelessWidget {
   const _TheCard({
     required this.ownerName,
@@ -297,16 +297,7 @@ class _TheCard extends StatelessWidget {
                     _MonoLabel('N°01', fontSize: 7),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Center(
-                  child: Image.asset(
-                    'assets/images/home/doryeong/celebrating.png',
-                    width: 68,
-                    height: 68,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 12),
                 Text(
                   '$ownerName의 지도에는',
                   textAlign: TextAlign.center,

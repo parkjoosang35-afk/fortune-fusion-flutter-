@@ -12,7 +12,7 @@ import 'guinji_share_screen.dart';
 ///
 /// [귀인지도 실구현] 아직 아무도 참여하지 않은 상태(서버 `GET
 /// /guinji/maps/me`의 members가 비어있음)의 빈 궤도(5개 관계유형 링) +
-/// 신통도령 안내 + 초대 CTA 2단. "첫 지인 초대하기"는 공유(S8) 화면으로
+/// 안내 문구 + 초대 CTA 2단. "첫 지인 초대하기"는 공유(S8) 화면으로
 /// 이동하고, "링크 복사해서 보내기" Ghost CTA는 [GuinjiProvider.mapToken]을
 /// 직접 클립보드에 복사한다(공유화면의 복사 로직과 동일).
 class GuinjiEmptyMapScreen extends StatelessWidget {
@@ -301,7 +301,7 @@ class _HintPill extends StatelessWidget {
   }
 }
 
-/// 신통도령(pointing) 미니 아이콘 + 말풍선.
+/// 안내 말풍선.
 class _DoryeongHint extends StatelessWidget {
   const _DoryeongHint();
 
@@ -310,13 +310,6 @@ class _DoryeongHint extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Image.asset(
-          'assets/images/home/doryeong/pointing.png',
-          width: 44,
-          height: 44,
-          fit: BoxFit.contain,
-        ),
-        const SizedBox(width: 8),
         Flexible(
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -326,7 +319,7 @@ class _DoryeongHint extends StatelessWidget {
               borderRadius: BorderRadius.circular(14),
             ),
             child: const Text(
-              '소인, 아직 아무도\n못 만났사옵니다',
+              '아직 아무도\n만나지 않았어요',
               style: TextStyle(
                 fontFamily: GuinjiFonts.body,
                 fontWeight: FontWeight.w500,
