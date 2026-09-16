@@ -59,6 +59,33 @@ class GuinjiProvider extends ChangeNotifier {
   String? get mapName => _map?['name'] as String?;
   String? get mapToken => _map?['token'] as String?;
 
+  /// [친구 초대 마일스톤 — "N명 모으면 축하 이벤트" 실제 기능화]
+  /// 서버(`GET /guinji/maps/me`)가 내려주는 마일스톤 목표 인원(기본 3명).
+  /// 지도가 없으면 null.
+  int? get milestoneGoal => _map?['milestoneGoal'] as int?;
+
+  /// 이미 목표 인원에 도달했는지(달성 후에도 계속 true로 유지됨 —
+  /// 배너가 "축하 이벤트가 열렸어요" 문구로 계속 보일지 판단하는 용도).
+  bool get milestoneReached => _map?['milestoneReached'] as bool? ?? false;
+
+  /// [1회성 이벤트 소비] 이번 [loadMyMap] 호출에서 **막** 목표를 달성해
+  /// 서버가 보너스 포인트를 지급했는지. 화면이 이 값을 읽어 축하 다이얼로그를
+  /// 띄운 뒤에는 반드시 [consumeMilestoneJustReached]를 호출해 꺼야 한다
+  /// (그러지 않으면 재렌더마다 축하 팝업이 반복해서 뜬다).
+  bool get milestoneJustReached => _milestoneJustReached;
+  bool _milestoneJustReached = false;
+
+  /// 방금 지급된 마일스톤 보너스 포인트(축하 화면 문구용, 예: 30).
+  int get milestoneRewardPoint => _milestoneRewardPoint;
+  int _milestoneRewardPoint = 0;
+
+  /// 축하 다이얼로그를 1회 소비 처리한다 — 이후 재렌더에서는 다시 뜨지 않음.
+  void consumeMilestoneJustReached() {
+    if (!_milestoneJustReached) return;
+    _milestoneJustReached = false;
+    notifyListeners();
+  }
+
   /// [GuinjiPerson] 리스트로 매핑된 멤버 목록(랭킹/지도 화면이 그대로 사용).
   List<GuinjiPerson> get people {
     final relationByMemberId = {
