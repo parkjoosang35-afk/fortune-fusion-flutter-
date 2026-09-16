@@ -57,6 +57,14 @@ class LuckyBoxTokens {
     stops: [0.0, 0.5, 1.0],
   );
 
+  /// dev-spec.md §7 항목7 Jackpot 특수 연출 — 골드 계열 카운트업 그라디언트.
+  static const jackpotCountUpGradient = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0xFFD97941), accentGold, Color(0xFFF5D76E)],
+    stops: [0.0, 0.5, 1.0],
+  );
+
   // Shadows
   static final cardShadow = [
     BoxShadow(

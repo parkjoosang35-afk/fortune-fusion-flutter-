@@ -9,11 +9,13 @@ import 'pouch_burst_painter.dart';
 /// [onSettle]로 result 단계 전이를 알린다.
 class PouchBurstView extends StatefulWidget {
   final int particleCount;
+  final bool isJackpot;
   final VoidCallback onSettle;
 
   const PouchBurstView({
     super.key,
     required this.particleCount,
+    this.isJackpot = false,
     required this.onSettle,
   });
 
@@ -32,6 +34,7 @@ class _PouchBurstViewState extends State<PouchBurstView>
     _data = PouchBurstData.generate(
       particleCount: widget.particleCount,
       totalMs: LuckyBoxTokens.burstTotal.inMilliseconds.toDouble(),
+      isJackpot: widget.isJackpot,
     );
     _controller = AnimationController(
       vsync: this,

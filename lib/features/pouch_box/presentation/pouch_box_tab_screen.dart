@@ -195,6 +195,7 @@ class _PouchBoxTabScreenState extends State<PouchBoxTabScreen> {
                 color: LuckyBoxTokens.bgSoft,
                 child: PouchBurstView(
                   particleCount: _particleCountFor(_rewardAmount),
+                  isJackpot: _rewardTier == 'jackpot',
                   onSettle: _onBurstSettle,
                 ),
               ),

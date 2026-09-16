@@ -50,12 +50,22 @@ class PouchBurstData {
   final List<_PouchParticle> particles;
   final List<_Sparkle> sparkles;
   final double totalMs;
+  final bool isJackpot;
 
-  PouchBurstData._(this.particles, this.sparkles, this.totalMs);
+  PouchBurstData._(
+    this.particles,
+    this.sparkles,
+    this.totalMs,
+    this.isJackpot,
+  );
 
+  /// dev-spec.md §7 항목7 "Jackpot(300) 특수 연출: 금색 파티클 배수" 채택.
+  /// [isJackpot]이면 모든 파티클이 발광(lit=true)하고, 골든 스파클 개수를
+  /// 24 → 48로 2배 늘려 화면을 더 풍성하게 채운다.
   factory PouchBurstData.generate({
     required int particleCount,
     required double totalMs,
+    bool isJackpot = false,
   }) {
     final rng = math.Random();
     final particles = List.generate(particleCount, (i) {
@@ -70,19 +80,20 @@ class PouchBurstData {
         delayMs: rng.nextDouble() * 350,
         durationMs: 1600 + rng.nextDouble() * 1200,
         hue: -20 + rng.nextDouble() * 40,
-        lit: rng.nextDouble() > 0.7,
+        lit: isJackpot ? true : rng.nextDouble() > 0.7,
       );
     });
-    final sparkles = List.generate(24, (i) {
+    final sparkleCount = isJackpot ? 48 : 24;
+    final sparkles = List.generate(sparkleCount, (i) {
       return _Sparkle(
         angle: rng.nextDouble() * 2 * math.pi,
         radius: 40 + rng.nextDouble() * 220,
-        size: 6 + rng.nextDouble() * 8,
+        size: (isJackpot ? 8 : 6) + rng.nextDouble() * 8,
         delayMs: rng.nextDouble() * 500,
         durationMs: 900 + rng.nextDouble() * 700,
       );
     });
-    return PouchBurstData._(particles, sparkles, totalMs);
+    return PouchBurstData._(particles, sparkles, totalMs, isJackpot);
   }
 }
 
@@ -124,10 +135,16 @@ class PouchBurstPainter extends CustomPainter {
       ..color = Colors.white.withValues(alpha: opacity * 0.9)
       ..maskFilter = const MaskFilter.blur(ui.BlurStyle.normal, 24);
     canvas.drawCircle(center, radius, paint);
+    // 잭팟은 골든 글로우 반경/강도를 키워 "터지는 순간"을 더 화려하게.
     final goldPaint = Paint()
-      ..color = LuckyBoxTokens.accentGold.withValues(alpha: opacity * 0.6)
-      ..maskFilter = const MaskFilter.blur(ui.BlurStyle.normal, 36);
-    canvas.drawCircle(center, radius * 1.3, goldPaint);
+      ..color = LuckyBoxTokens.accentGold.withValues(
+        alpha: opacity * (data.isJackpot ? 0.85 : 0.6),
+      )
+      ..maskFilter = MaskFilter.blur(
+        ui.BlurStyle.normal,
+        data.isJackpot ? 48 : 36,
+      );
+    canvas.drawCircle(center, radius * (data.isJackpot ? 1.6 : 1.3), goldPaint);
   }
 
   // t=0: 3개 확장 링(stagger 0,200,400ms), 각 1.4s. border scale 0.3→7 + fade.
@@ -142,10 +159,13 @@ class PouchBurstPainter extends CustomPainter {
       final scale = 0.3 + _easeOut(localT) * (7.0 - 0.3);
       final opacity = (1 - localT).clamp(0.0, 1.0);
       final radius = 40.0 * scale;
+      final ringColor = data.isJackpot
+          ? LuckyBoxTokens.accentGold
+          : LuckyBoxTokens.accentGlow;
       final paint = Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.5
-        ..color = LuckyBoxTokens.accentGlow.withValues(alpha: opacity * 0.55);
+        ..strokeWidth = data.isJackpot ? 3.2 : 2.5
+        ..color = ringColor.withValues(alpha: opacity * 0.55);
       canvas.drawCircle(center, radius, paint);
     }
   }
@@ -202,13 +222,21 @@ class PouchBurstPainter extends CustomPainter {
       }
 
       final hueShift = (p.hue / 40).clamp(-0.5, 0.5) + 0.5;
-      final color =
-          Color.lerp(
-            LuckyBoxTokens.accentGlow,
-            LuckyBoxTokens.accentRust,
-            hueShift,
-          ) ??
-          LuckyBoxTokens.accentGlow;
+      // 잭팟은 라벤더/러스트 그라디언트 대신 골드 계열로 전 파티클을
+      // 물들여 "황금 복주머니 비" 느낌을 낸다.
+      final color = data.isJackpot
+          ? (Color.lerp(
+                  LuckyBoxTokens.accentGold,
+                  LuckyBoxTokens.accentRust,
+                  hueShift * 0.4,
+                ) ??
+                LuckyBoxTokens.accentGold)
+          : (Color.lerp(
+                  LuckyBoxTokens.accentGlow,
+                  LuckyBoxTokens.accentRust,
+                  hueShift,
+                ) ??
+                LuckyBoxTokens.accentGlow);
 
       canvas.save();
       canvas.translate(pos.dx, pos.dy);

@@ -113,19 +113,47 @@ class _PouchResultViewState extends State<PouchResultView>
               ],
             ),
             const Spacer(),
-            Text(
-              '◇ FORTUNE ◇',
-              style: LuckyBoxTokens.monoLabel.copyWith(
-                color: LuckyBoxTokens.accentGlowDark,
+            // dev-spec.md §7 항목7 — Jackpot(300)이면 상단 라벨을
+            // "◇ FORTUNE ◇" 대신 골드 배지 "★ JACKPOT ★"로 교체한다.
+            if (widget.isJackpot)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: LuckyBoxTokens.sp4,
+                  vertical: LuckyBoxTokens.sp1,
+                ),
+                decoration: BoxDecoration(
+                  color: LuckyBoxTokens.accentGold.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(LuckyBoxTokens.rPill),
+                  border: Border.all(
+                    color: LuckyBoxTokens.accentGold,
+                    width: 1.2,
+                  ),
+                ),
+                child: Text(
+                  '★ JACKPOT ★',
+                  style: LuckyBoxTokens.monoLabel.copyWith(
+                    color: LuckyBoxTokens.accentGold,
+                    fontSize: 12,
+                  ),
+                ),
+              )
+            else
+              Text(
+                '◇ FORTUNE ◇',
+                style: LuckyBoxTokens.monoLabel.copyWith(
+                  color: LuckyBoxTokens.accentGlowDark,
+                ),
               ),
-            ),
             const SizedBox(height: LuckyBoxTokens.sp6),
             AnimatedBuilder(
               animation: _count,
               builder: (context, _) {
                 return ShaderMask(
                   shaderCallback: (bounds) =>
-                      LuckyBoxTokens.countUpGradient.createShader(bounds),
+                      (widget.isJackpot
+                              ? LuckyBoxTokens.jackpotCountUpGradient
+                              : LuckyBoxTokens.countUpGradient)
+                          .createShader(bounds),
                   blendMode: BlendMode.srcIn,
                   child: Text(
                     '+ ${_count.value} 개',
@@ -136,9 +164,11 @@ class _PouchResultViewState extends State<PouchResultView>
             ),
             const SizedBox(height: LuckyBoxTokens.sp5),
             Text(
-              '복주머니 GET',
+              widget.isJackpot ? '대박 잭팟' : '복주머니 GET',
               style: LuckyBoxTokens.title.copyWith(
-                color: LuckyBoxTokens.fgPrimary,
+                color: widget.isJackpot
+                    ? LuckyBoxTokens.accentRust
+                    : LuckyBoxTokens.fgPrimary,
                 fontSize: 18,
               ),
             ),
