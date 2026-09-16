@@ -46,6 +46,19 @@ class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _fade;
+  // [스플래시 히어로 이미지 미표시 버그 수정 - 2차, 근본 원인 해결]
+  // 1차 수정(precacheImage를 _bootstrap의 Future.wait에 포함)은
+  // "화면 전환 타이밍"만 늦출 뿐, 정작 첫 build() 호출 시점에 이미지가
+  // 아직 캐시에 없으면 그 프레임은 빈 이미지로 그려지는 문제를 막지
+  // 못했다(Playwright 정밀 캡처로 실제 확인 — 첫 페인트 프레임에
+  // 히어로 영역이 빈 그라디언트로 나가고, 폰트조차 tofu box로
+  // 깨져 있었음). 근본적으로는 "이미지가 준비되기 전에는 그 자리를
+  // 아예 투명하게 유지"해야 한다. _heroReady 플래그를 두어 build()에서
+  // AnimatedOpacity로 감싸고, precacheImage가 끝나야만(또는 타임아웃 시)
+  // 화면에 드러나도록 한다 — 레이아웃 높이(260px)는 항상 고정 유지되므로
+  // 다른 요소가 밀리는 점프는 없다.
+  Future<void>? _heroImagePrecache;
+  bool _heroReady = false;
 
   @override
   void initState() {
@@ -73,6 +86,34 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     ]).animate(_controller);
     _controller.forward();
+    // [스플래시 히어로 이미지 미표시 버그 수정] 첫 프레임이 끝난 직후
+    // (addPostFrameCallback) precacheImage를 시작해 다운로드를 최대한
+    // 앞당긴다. initState 시점에는 아직 BuildContext의 mediaquery 등이
+    // 완전히 준비되지 않을 수 있어 postFrameCallback에서 실행한다.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _heroImagePrecache =
+          precacheImage(
+            const AssetImage(BangtongSeonyeoAssets.mainFullBody),
+            context,
+          ).timeout(
+            const Duration(milliseconds: 2500),
+            onTimeout: () {
+              if (kDebugMode) {
+                debugPrint('[스플래시 히어로 이미지] precache 타임아웃(2.5초) — 계속 진행');
+              }
+            },
+          ).whenComplete(() {
+            // [2차 수정 핵심] precache가 끝나는 즉시(성공이든 타임아웃이든)
+            // setState로 _heroReady를 true로 바꿔, 그제서야 히어로 이미지가
+            // 화면에 페이드인되도록 한다. 이 setState 시점에는 이미
+            // Image.asset이 내부적으로 완전히 디코딩된 상태이므로, 다음
+            // build()에서는 반드시 완성된 이미지가 그려진다.
+            if (mounted) {
+              setState(() => _heroReady = true);
+            }
+          });
+    });
     // [버그 수정] initState 안에서 _bootstrap()을 곧바로 호출하면, 그 안의
     // AuthProvider.restoreSession()이 첫 await 이전에 동기적으로
     // notifyListeners()를 호출해 "setState() or markNeedsBuild() called
@@ -106,6 +147,30 @@ class _SplashScreenState extends State<SplashScreen>
       introConfig.load(),
       Future.delayed(const Duration(milliseconds: 1300)),
     ]);
+
+    // [스플래시 히어로 이미지 미표시 버그 수정 - 3차, 완전 해결]
+    // 2차 수정(precacheImage 완료 시 setState(_heroReady=true))도
+    // Future.wait 안에 함께 묶어두면, precache가 끝나는 순간 setState가
+    // "다음 프레임에 리빌드 예약"만 걸어둔 채로 Future.wait의 연속 실행이
+    // 곧바로(같은 마이크로태스크 배치 안에서) 이어져 버려, 실제로는
+    // 이미지가 포함된 프레임이 화면에 한 번도 그려지지 않고 바로
+    // Navigator.pushReplacementNamed가 호출되는 경쟁 상태가 있었다
+    // (Playwright 정밀 캡처로 재확인: 여전히 빈 이미지+깨진 폰트 프레임만
+    // 노출됨). 이를 근본적으로 막기 위해 여기서는:
+    //  1) 다른 부트스트랩 작업(세션 복원 등)과 히어로 이미지 로딩을
+    //     완전히 분리된 await 단계로 나누고,
+    //  2) setState 이후 `WidgetsBinding.instance.endOfFrame`으로 실제로
+    //     그 프레임이 래스터화될 때까지 명시적으로 대기하며,
+    //  3) 그 후에도 최소 체류 시간(400ms)을 추가로 확보해, 이미지가
+    //     "찰나에 스쳐가는" 것이 아니라 사용자 눈에 실제로 보이도록 한다.
+    if (_heroImagePrecache != null) {
+      await _heroImagePrecache;
+    }
+    if (mounted) {
+      setState(() => _heroReady = true);
+      await WidgetsBinding.instance.endOfFrame;
+      await Future.delayed(const Duration(milliseconds: 400));
+    }
 
     if (!mounted) return;
 
@@ -212,11 +277,23 @@ class _SplashScreenState extends State<SplashScreen>
                                   // 채우는 큰 전신 이미지로 교체했다.
                                   // 스플래시는 짧게 스쳐가는 화면이라 과한
                                   // 애니메이션 없이 정적 이미지로 배치한다.
-                                  BangtongIntroHero(
-                                    asset: BangtongSeonyeoAssets.mainFullBody,
-                                    height: 260,
-                                    fadeColor: IntroPalette.backgroundTop,
-                                    borderRadius: BorderRadius.circular(28),
+                                  // [2차 수정 핵심] 이미지가 precache로
+                                  // 완전히 준비되기 전까지는 투명(opacity 0)
+                                  // 으로 유지해, "빈 이미지가 잠깐 그려지는"
+                                  // 첫 프레임 노출을 원천 차단한다. 레이아웃
+                                  // 공간(260px)은 항상 동일하게 유지되므로
+                                  // 텍스트 위치가 튀는 점프는 없다.
+                                  AnimatedOpacity(
+                                    opacity: _heroReady ? 1.0 : 0.0,
+                                    duration: const Duration(
+                                      milliseconds: 220,
+                                    ),
+                                    child: BangtongIntroHero(
+                                      asset: BangtongSeonyeoAssets.mainFullBody,
+                                      height: 260,
+                                      fadeColor: IntroPalette.backgroundTop,
+                                      borderRadius: BorderRadius.circular(28),
+                                    ),
                                   ),
                                   const SizedBox(height: 18),
                                   Text(
