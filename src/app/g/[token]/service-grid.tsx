@@ -23,9 +23,19 @@ type ServiceKey = "wish-room" | "tarot" | "jeontong" | "today";
 // 문구를 각 줄 6자 이내로 짧게 다듬어 재줄바꿈 가능성을 낮췄다. 제목도
 // "오늘의 운세"(5글자)가 카드 폭에서 줄바꿈되던 것을 "오늘 운세"(4글자)로
 // 줄였다. 카드 레이아웃 자체(고정 높이 지정)도 아래에서 함께 수정한다.
+// [2026-12, 2차 수정 — headless Chrome 실측 검증 완료] 1차 수정("마음의
+// 방향을\n살펴보세요")은 실제 배포 후에도 카드 폭(≈70px)에서 "마음의
+// 방향을"(7글자, 공백 포함)이 다른 카드 첫 줄(6글자 단위)보다 길어 다시
+// 줄바꿈되고 desc 높이(h-6, 2줄)를 넘겨 "살펴보세요"가 통째로 잘리는
+// 문제가 재현되었다("니눈에는 이게 돼보이냐?" 실사용자 리포트, 스크린샷
+// 첨부로 확인). 이번에는 코드만 고치지 않고 `google-chrome --headless
+// --screenshot`으로 실제 Tailwind 렌더링을 직접 캡처해 4글자 카드
+// 폭에서 모든 줄이 6자 이내로 줄바꿈되는지 눈으로 확인한 뒤 반영했다
+// (/tmp/sg_test/test4.png). "마음의 방향을" → "마음속 답을"(6글자)로
+// 줄여 다른 카드 첫 줄과 길이를 맞췄다.
 const SERVICES: { key: ServiceKey; title: string; desc: string; color: string; url: string }[] = [
   { key: "wish-room", title: "소원방", desc: "소망을 담아\n빌어보세요", color: "#E8B4A5", url: SINTONG_WEB_URLS.wishRoom },
-  { key: "tarot", title: "타로", desc: "마음의 방향을\n살펴보세요", color: "#D4A574", url: SINTONG_WEB_URLS.tarot },
+  { key: "tarot", title: "타로", desc: "마음속 답을\n찾아보세요", color: "#D4A574", url: SINTONG_WEB_URLS.tarot },
   { key: "jeontong", title: "정통사주", desc: "만세력 기반\n사주 풀이", color: "#C99B7F", url: SINTONG_WEB_URLS.jeontong },
   { key: "today", title: "오늘 운세", desc: "매일 새롭게\n갱신돼요", color: "#7E5A47", url: SINTONG_WEB_URLS.todayFortune },
 ];
@@ -64,8 +74,15 @@ export function ServiceGrid() {
         <div className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-[#A6795E]">
           신통방통 다른 서비스
         </div>
+        {/* [2026-12 균형 버그수정] 440px 폭에서 자동 줄바꿈에 맡기면
+            "...만나보세" + "요"처럼 어절 중간이 아니라 글자 단위로
+            끊겨 어색했다(headless 검증으로 확인). 의미 단위("~에서 더
+            많은" / "운세를 만나보세요")로 끊어지도록 명시적 줄바꿈을
+            넣는다. */}
         <h3 style={{ fontFamily: "'Noto Serif KR', serif" }} className="text-[16px] font-bold text-[#2A2438]">
-          신통방통에서 더 많은 운세를 만나보세요
+          신통방통에서 더 많은
+          <br />
+          운세를 만나보세요
         </h3>
       </div>
       <div className="grid grid-cols-4 gap-2">
