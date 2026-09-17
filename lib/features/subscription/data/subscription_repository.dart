@@ -38,11 +38,14 @@ class SubscriptionRepository {
   }
 
   Future<ApiResult<UserSubscriptionModel?>> getMySubscription() async {
-    final userId = await AuthTokenStore.getCurrentUserId();
-    final uri = Uri.parse('$_base/my?userId=$userId');
+    final uri = Uri.parse('$_base/my');
     try {
+      final headers = {
+        'Accept': 'application/json',
+        ...await AuthTokenStore.authHeader(),
+      };
       final response = await http
-          .get(uri, headers: {'Accept': 'application/json'})
+          .get(uri, headers: headers)
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
@@ -63,17 +66,20 @@ class SubscriptionRepository {
   Future<ApiResult<UserSubscriptionModel>> subscribe(
     SubscriptionPlanModel plan,
   ) async {
-    final userId = await AuthTokenStore.getCurrentUserId();
     if (plan.price <= 0) {
       return ApiResult.fail('무료 플랜은 별도 결제가 필요하지 않습니다.');
     }
     final uri = Uri.parse('$_base/subscribe');
     try {
+      final headers = {
+        'Content-Type': 'application/json',
+        ...await AuthTokenStore.authHeader(),
+      };
       final response = await http
           .post(
             uri,
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'userId': userId, 'planId': plan.id}),
+            headers: headers,
+            body: jsonEncode({'planId': plan.id}),
           )
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
@@ -90,15 +96,14 @@ class SubscriptionRepository {
   }
 
   Future<ApiResult<UserSubscriptionModel>> cancel() async {
-    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse('$_base/cancel');
     try {
+      final headers = {
+        'Content-Type': 'application/json',
+        ...await AuthTokenStore.authHeader(),
+      };
       final response = await http
-          .post(
-            uri,
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'userId': userId}),
-          )
+          .post(uri, headers: headers)
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
@@ -114,11 +119,14 @@ class SubscriptionRepository {
   }
 
   Future<ApiResult<List<PaymentModel>>> getPaymentHistory() async {
-    final userId = await AuthTokenStore.getCurrentUserId();
-    final uri = Uri.parse('$_base/payments?userId=$userId');
+    final uri = Uri.parse('$_base/payments');
     try {
+      final headers = {
+        'Accept': 'application/json',
+        ...await AuthTokenStore.authHeader(),
+      };
       final response = await http
-          .get(uri, headers: {'Accept': 'application/json'})
+          .get(uri, headers: headers)
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {

@@ -8,11 +8,12 @@ import '../domain/point_history_model.dart';
 
 /// 06단계 §4.2 `/v1/wallet` 대응 Repository — admin_web 공개 API
 /// (`GET /api/public/wallet`, `POST /api/public/wallet/earn`,
-/// `POST /api/public/wallet/spend`)를 호출한다.
+/// `POST /api/public/wallet/spend`, `POST /api/public/wallet/send`)를 호출한다.
 ///
-/// [방법 A — 임시 인증 우회] 회원 로그인 시스템이 아직 없어, 서버가 시딩해둔
-/// 테스트 유저(userId=1, "별빛나그네")를 고정으로 사용한다. 추후 실제 로그인이
-/// 붙으면 [userId]를 로그인한 사용자의 id로 교체하기만 하면 된다.
+/// [Stage2 결함수정 — 인증우회 회귀 차단] 서버가 `requireUser()`로 JWT 필수인증을
+/// 강제하도록 변경되었으므로, 모든 요청에 [AuthTokenStore.authHeader]로 만든
+/// `Authorization: Bearer <token>` 헤더를 반드시 포함한다. body/query의 userId는
+/// 서버가 더 이상 신뢰하지 않지만(JWT로만 판정), 하위 호환을 위해 값은 유지한다.
 class WalletRepository {
   /// [버그 수정 — 2026-11 헤더 복주머니 숫자 노출 사고] 지금까지
   /// [AuthTokenStore.getCurrentUserId]가 비로그인 시에도 폴백값
@@ -54,15 +55,16 @@ class WalletRepository {
 
   Future<ApiResult<({int balance, List<PointHistoryModel> history})>>
   _fetchWallet() async {
-    final userId = await AuthTokenStore.getCurrentUserId();
-    final uri = Uri.parse(
-      '${EnvConfig.adminApiBaseUrl}/api/public/wallet?userId=$userId',
-    );
+    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/wallet');
     debugPrint('[WalletRepository] [1] 지갑 조회 요청 -> $uri');
 
     try {
+      final headers = {
+        'Accept': 'application/json',
+        ...await AuthTokenStore.authHeader(),
+      };
       final response = await http
-          .get(uri, headers: {'Accept': 'application/json'})
+          .get(uri, headers: headers)
           .timeout(const Duration(seconds: 10));
 
       debugPrint(
@@ -129,7 +131,6 @@ class WalletRepository {
     int? sourceId,
     String? scope,
   }) async {
-    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/wallet/earn',
     );
@@ -139,12 +140,15 @@ class WalletRepository {
     );
 
     try {
+      final headers = {
+        'Content-Type': 'application/json',
+        ...await AuthTokenStore.authHeader(),
+      };
       final response = await http
           .post(
             uri,
-            headers: {'Content-Type': 'application/json'},
+            headers: headers,
             body: jsonEncode({
-              'userId': userId,
               'amount': amount,
               'reason': reason,
               'sourceType': sourceType,
@@ -194,7 +198,6 @@ class WalletRepository {
     required int amount,
     String memo = '복 나누기',
   }) async {
-    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/wallet/send',
     );
@@ -203,12 +206,15 @@ class WalletRepository {
     );
 
     try {
+      final headers = {
+        'Content-Type': 'application/json',
+        ...await AuthTokenStore.authHeader(),
+      };
       final response = await http
           .post(
             uri,
-            headers: {'Content-Type': 'application/json'},
+            headers: headers,
             body: jsonEncode({
-              'fromUserId': userId,
               'toUserId': toUserId,
               'amount': amount,
               'memo': memo,
@@ -282,7 +288,6 @@ class WalletRepository {
     String reason, {
     String sourceType = 'app',
   }) async {
-    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/wallet/spend',
     );
@@ -291,12 +296,15 @@ class WalletRepository {
     );
 
     try {
+      final headers = {
+        'Content-Type': 'application/json',
+        ...await AuthTokenStore.authHeader(),
+      };
       final response = await http
           .post(
             uri,
-            headers: {'Content-Type': 'application/json'},
+            headers: headers,
             body: jsonEncode({
-              'userId': userId,
               'amount': amount,
               'reason': reason,
               'sourceType': sourceType,
