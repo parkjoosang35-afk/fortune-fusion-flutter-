@@ -123,6 +123,16 @@ dependencies:
                                  # depend_on_referenced_packages 린트 규칙 준수를
                                  # 위해 명시적으로 선언).
 
+  # [귀인지도 결과카드 "이미지 저장" 버그수정 — 2026-11] 지금까지 "이미지
+  # 저장" 버튼이 실제로는 "공유하기"와 완전히 동일한 Share.shareXFiles()를
+  # 호출해서, 사용자가 "저장"을 눌러도 항상 OS 공유 시트만 뜨고 갤러리에
+  # 곧바로 저장되지는 않았다(사용자가 시트에서 "저장" 대상을 한 번 더
+  # 선택해야만 저장됨) — "뭘 공유하는 건지 모르겠다"는 불만의 원인 중
+  # 하나. Android는 gal(Uint8List → 갤러리 직접 저장)로 실제 저장을,
+  # Web은 브라우저 다운로드로 대체한다(gal은 Web 미지원 패키지).
+  # Dart 3.9.2/Flutter 3.35.4 고정 환경 호환 최신판.
+  gal: 2.3.3
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

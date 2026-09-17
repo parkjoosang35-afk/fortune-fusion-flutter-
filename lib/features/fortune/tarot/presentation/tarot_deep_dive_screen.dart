@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../domain/tarot_model.dart';
 import '../domain/tarot_reading_extras.dart';
+import '../domain/tarot_text_engine.dart';
 import 'theme/tarot_colors.dart';
 import 'theme/tarot_perf_config.dart';
 import 'theme/tarot_text_styles.dart';
@@ -52,6 +53,8 @@ class TarotDeepDiveScreen extends StatelessWidget {
                 ),
                 children: [
                   _HeroChip(card: heroCard),
+                  const SizedBox(height: TarotTokens.spaceMd),
+                  _CardMeaningLine(card: heroCard),
                   const SizedBox(height: TarotTokens.spaceXl),
                   Text('같은 카드, 세 가지 결', style: TarotTextStyles.sectionHeader),
                   const SizedBox(height: 4),
@@ -114,6 +117,52 @@ class _HeroChip extends StatelessWidget {
                   style: TarotTextStyles.bodyStrong,
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// [2026-11 버그수정 - 심화해석 3관점 문구 반복] 카드의 정/역방향 핵심
+/// 의미 문장을 이 자리에서 딱 1회만 보여준다. 예전에는 이 문장이 마음/
+/// 현실/흐름 3개 관점 문단 앞머리에 매번 반복해서 붙어 세 문단이 거의
+/// 똑같아 보이는 원인이었다 — 이제 관점 문단([_PerspectiveCard])은 이
+/// 문장 없이 관점 전용 조언만 담으므로, 카드 자체의 의미는 여기서
+/// 한 번만 명확히 전달한다.
+class _CardMeaningLine extends StatelessWidget {
+  final TarotCard card;
+  const _CardMeaningLine({required this.card});
+
+  @override
+  Widget build(BuildContext context) {
+    final meta = TarotDeckData.metaForName(card.name);
+    final meaning = meta == null
+        ? (card.isReversed ? '지금은 신중함이 필요한 흐름이에요.' : '긍정적인 변화가 다가오고 있어요.')
+        : (card.isReversed ? meta.down : meta.up);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: TarotTokens.spaceLg,
+        vertical: TarotTokens.spaceMd,
+      ),
+      decoration: BoxDecoration(
+        color: TarotColors.surfaceCard.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(TarotTokens.radiusMd),
+        border: Border.all(color: TarotColors.borderSoft),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('🔑', style: TextStyle(fontSize: 14)),
+          const SizedBox(width: TarotTokens.spaceSm),
+          Expanded(
+            child: Text(
+              meaning,
+              style: TarotTextStyles.body.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],

@@ -1,9 +1,12 @@
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../core/config/env_config.dart';
+import '../../../core/util/image_gallery_saver.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/bangtong_seonyeo.dart';
 import '../../wish_room/widgets/wish_room_sigil.dart';
@@ -24,9 +27,9 @@ import '../widgets/guinji_bg_atmosphere.dart';
 /// 표 참고 — 지도 메인 화면 필터 chips·랭킹 화면도 동일 원칙으로 유형별
 /// 카운트를 표시한다).
 ///
-/// [귀인지도 실구현] "이미지 저장"·"공유하기" 버튼은 `tarot_result_screen`
-/// 의 검증된 패턴(RepaintBoundary → PNG → share_plus 네이티브 공유 시트)을
-/// 그대로 재사용해 실제로 동작한다. 어떤 재화 지급도 이 화면에서는 발생하지
+/// [귀인지도 실구현] "공유하기" 버튼은 `tarot_result_screen`의 검증된
+/// 패턴(RepaintBoundary → PNG → share_plus 네이티브 공유 시트)을 그대로
+/// 재사용해 실제로 동작한다. 어떤 재화 지급도 이 화면에서는 발생하지
 /// 않는다(캡처·공유는 순수 클라이언트 로컬 동작).
 ///
 /// [타로 공유 안 되는 버그 수정과 동일 건] 과거에는 path_provider로 캡처
@@ -35,6 +38,18 @@ import '../widgets/guinji_bg_atmosphere.dart';
 /// platforms 목록에 web 없음) 웹 프리뷰/웹 배포에서 getTemporaryDirectory()
 /// 호출 자체가 예외를 던져 공유가 항상 실패했다. XFile.fromData()(메모리
 /// 기반, 모든 플랫폼 지원)로 바꿔 디스크 파일 저장 단계를 완전히 제거한다.
+///
+/// [2026-11 버그수정 — "이미지 저장/공유가 뭘 하는지 모르겠다"] 두 가지를
+/// 함께 고쳤다:
+/// 1) 기존에는 "이미지 저장" 버튼도 "공유하기" 버튼도 똑같이
+///    `Share.shareXFiles()`만 호출해서, "저장"을 눌러도 OS 공유 시트만
+///    뜨고 갤러리에 곧바로 저장되지 않았다. 이제 "이미지 저장"은
+///    [saveImageBytesToGallery](Android: gal 패키지로 실제 갤러리 저장,
+///    Web: 브라우저 다운로드)를 호출해 실제로 저장하고, "공유하기"만
+///    OS 공유 시트를 연다.
+/// 2) 공유 텍스트가 "나의 귀인지도 · 신통방통"처럼 지나치게 짧아 받는
+///    사람이 무엇을 받았는지 알기 어려웠다. 이제 소유자 이름·귀인 수·
+///    앱 안내 문구가 담긴 구체적인 문장 + 앱 링크로 교체한다.
 class GuinjiResultCardScreen extends StatefulWidget {
   const GuinjiResultCardScreen({
     super.key,
@@ -59,20 +74,70 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
   final _cardKey = GlobalKey();
   bool _capturing = false;
 
-  Future<void> _captureAndShare() async {
+  /// [2026-11 버그수정] "이미지 저장"과 "공유하기"가 공통으로 필요로 하는
+  /// 카드 캡처 로직만 분리한 헬퍼. 실패 시 null을 반환하며, 준비 중
+  /// 안내 토스트는 호출부에서 각자의 문구로 보여준다.
+  Future<Uint8List?> _captureCardBytes() async {
+    final boundary =
+        _cardKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+    if (boundary == null) return null;
+    final image = await boundary.toImage(pixelRatio: 3.0);
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    return byteData?.buffer.asUint8List();
+  }
+
+  /// [비식별 원칙] 카드에 이름을 노출하지 않는 원칙은 그대로 유지하되,
+  /// 공유 문구(카톡 등 텍스트로만 먼저 보이는 부분)에는 받는 사람이
+  /// "무엇을 공유받았는지" 한눈에 알 수 있도록 소유자 이름·귀인 수·앱
+  /// 안내를 구체적으로 담는다. 기존 '나의 귀인지도 · 신통방통' 한 줄만으로는
+  /// "뭘 공유한 건지 모르겠다"는 사용자 불만으로 이어졌었다.
+  String _shareMessage(int guin) {
+    return '${widget.ownerName}님의 귀인지도 결과예요! 🔮\n'
+        '내 주변 귀인 $guin명을 신통방통이 찾아줬어요.\n'
+        '나의 귀인지도도 무료로 확인해보세요 👉 ${EnvConfig.adminApiBaseUrl}';
+  }
+
+  /// [2026-11 버그수정 — "이미지 저장이 뭘 하는지 모르겠다"] 캡처한 카드를
+  /// 곧바로 기기 갤러리(Android: gal / Web: 브라우저 다운로드)에 저장한다.
+  /// 이전에는 이 버튼도 공유 시트를 여는 것과 동일하게 동작해, "저장"을
+  /// 눌렀는데 왜 공유창이 뜨는지 혼란스럽다는 문제가 있었다.
+  Future<void> _saveImage() async {
     if (_capturing) return;
     setState(() => _capturing = true);
     try {
-      final boundary =
-          _cardKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-      if (boundary == null) {
+      final bytes = await _captureCardBytes();
+      if (bytes == null) {
         if (!mounted) return;
         AppToast.show(context, '카드를 준비하는 중입니다. 잠시 후 다시 시도해 주세요.');
         return;
       }
-      final image = await boundary.toImage(pixelRatio: 3.0);
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      final bytes = byteData!.buffer.asUint8List();
+      final ok = await saveImageBytesToGallery(
+        bytes,
+        name: 'guinji_result_${DateTime.now().millisecondsSinceEpoch}',
+      );
+      if (!mounted) return;
+      AppToast.show(
+        context,
+        ok ? '카드 이미지를 저장했어요 🖼️' : '이미지 저장에 실패했어요. 권한을 확인해주세요.',
+      );
+    } catch (_) {
+      if (!mounted) return;
+      AppToast.show(context, '이미지 저장에 실패했어요. 다시 시도해주세요.');
+    } finally {
+      if (mounted) setState(() => _capturing = false);
+    }
+  }
+
+  Future<void> _captureAndShare(int guin) async {
+    if (_capturing) return;
+    setState(() => _capturing = true);
+    try {
+      final bytes = await _captureCardBytes();
+      if (bytes == null) {
+        if (!mounted) return;
+        AppToast.show(context, '카드를 준비하는 중입니다. 잠시 후 다시 시도해 주세요.');
+        return;
+      }
 
       final file = XFile.fromData(
         bytes,
@@ -80,11 +145,11 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
         name: 'guinji_result_${DateTime.now().millisecondsSinceEpoch}.png',
       );
 
-      await Share.shareXFiles([file], text: '나의 귀인지도 · 신통방통');
+      await Share.shareXFiles([file], text: _shareMessage(guin));
     } catch (_) {
       if (!mounted) return;
       try {
-        await Share.share('나의 귀인지도 · 신통방통');
+        await Share.share(_shareMessage(guin));
       } catch (_) {
         if (!mounted) return;
         AppToast.show(context, '공유하기를 지원하지 않는 환경입니다.');
@@ -144,14 +209,16 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
                       Expanded(
                         child: _GhostButton(
                           label: _capturing ? '준비하는 중' : '이미지 저장',
-                          onPressed: _capturing ? () {} : _captureAndShare,
+                          onPressed: _capturing ? () {} : _saveImage,
                         ),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: _PrimaryButton(
                           label: _capturing ? '준비하는 중' : '공유하기',
-                          onPressed: _capturing ? () {} : _captureAndShare,
+                          onPressed: _capturing
+                              ? () {}
+                              : () => _captureAndShare(guin),
                         ),
                       ),
                     ],

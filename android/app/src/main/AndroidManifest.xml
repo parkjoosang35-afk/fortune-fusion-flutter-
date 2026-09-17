@@ -27,10 +27,21 @@
          않을 수 있다(Google Play 정책 요구사항이기도 하다). -->
     <uses-permission android:name="com.google.android.gms.permission.AD_ID"/>
 
+    <!-- [귀인지도 결과카드 "이미지 저장" 버그수정 — 2026-11] gal 패키지가
+         결과카드 PNG를 실제 갤러리(사진 앱)에 저장하는 데 필요한 권한.
+         API 29 이하 기기에서만 필요(API 30+는 MediaStore Scoped Storage로
+         이 권한 없이도 자체 앱 전용 저장이 가능하나, gal 공식 문서는
+         API 29에서 앨범 저장을 위해 requestLegacyExternalStorage도 함께
+         요구한다). -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29"/>
+
     <application
         android:label="Fortune Fusion"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:requestLegacyExternalStorage="true">
         <!-- [애드몹 실제 계정 연동] Google Mobile Ads SDK가 앱 시작 시 요구하는
              APPLICATION_ID meta-data. 사장님이 발급받은 신통방통 실제 AdMob
              App ID로 교체했다. Google 공식 정책상 App ID 자체는 실제 값을

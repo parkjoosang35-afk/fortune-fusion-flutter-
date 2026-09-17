@@ -294,19 +294,24 @@ class TarotTextEngine {
     return filled;
   }
 
-  /// [8가지 버그 리포트 §2 수정] 심화해석 화면(마음의 관점/현실의 관점/
-  /// 흐름의 관점)에서 실제로 서로 다른 내용을 담기 위한 전용 메서드.
-  /// [perspectiveIndex] (0=마음, 1=현실, 2=흐름)에 맞는 전용 문장 풀에서
-  /// 문장을 골라 카드 해석([generateCardInterpretation])과 이어붙인다 —
-  /// 카드의 정/역방향 핵심 의미는 그대로 유지하면서, 관점별로 실제로
-  /// 달라지는 "조언의 결"을 덧붙여 세 관점이 겹치지 않게 한다.
-  static String generatePerspectiveInterpretation(
+  /// [2026-11 버그수정 - 심화해석 3관점 문구 반복] 관점(마음/현실/흐름)
+  /// 전용 문장 풀에서만 문장을 골라 반환한다.
+  ///
+  /// [배경] 기존(8가지 버그 리포트 §2에서 도입, 현재는 삭제된 버전)에는
+  /// 카드의 정/역방향 고정 의미 문장([generateCardInterpretation]의 결과,
+  /// 관점과 무관하게 항상 동일)을 3개 관점 각각의 앞머리에 매번 그대로
+  /// 반복해서 붙였다. 그 결과 화면에 노출되는 마음/현실/흐름 3개 문단이
+  /// 서로 70% 이상 같은 문장으로 시작하는 것처럼 느껴지는 반복 체감
+  /// 문제가 있었다("아직도 말이 비슷하게 나옴" 사용자 리포트). 이제 카드
+  /// 고정 의미 문장은 화면([TarotDeepDiveScreen]) 상단 카드칩에서 1회만
+  /// 보여주고, 이 메서드는 순수 관점 전용 문장만 반환해 세 문단이
+  /// 겹치지 않게 한다.
+  static String generateAngleOnly(
     TarotCard card,
     String topic,
     int perspectiveIndex, {
     int? seed,
   }) {
-    final base = generateCardInterpretation(card, topic, seed: seed);
     final topicMetaObj = _resolveTopic(topic);
     final angleTemplates = switch (perspectiveIndex) {
       0 => _TopicTemplates.heartAngleLines,
@@ -317,8 +322,7 @@ class TarotTextEngine {
     final rng = _rngFor(
       seed ?? (card.id.hashCode ^ topic.hashCode ^ (perspectiveIndex * 97)),
     );
-    final angleLine = anglePool[rng.nextInt(anglePool.length)];
-    return '$base $angleLine';
+    return anglePool[rng.nextInt(anglePool.length)];
   }
 
   /// 07단계(추가) §3.6 - 여러 장의 카드를 종합한 총평 텍스트를 생성한다.
