@@ -8,9 +8,9 @@
 // ============================================================
 
 import 'package:flutter/material.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/data/my_fortune_record_store.dart';
+import '../../../../core/util/safe_share.dart';
 import 'hanji_design_tokens.dart';
 
 class HanjiActionButtons extends StatelessWidget {
@@ -34,8 +34,14 @@ class HanjiActionButtons extends StatelessWidget {
     ).showSnackBar(const SnackBar(content: Text('내 운세 기록에 저장되었습니다')));
   }
 
+  // [공유 페이지 net::ERR_UNKNOWN_URL_SCHEME 버그수정 — 2026-12] 기존에는
+  // 아무 가드/폴백 없이 `Share.share()`를 곧바로 호출했다. `share_plus_web
+  // .dart`가 웹에서 canShare() 미지원 브라우저(카톡/삼성인터넷 인앱 등)를
+  // 만나면 `mailto:` 스킴을 자체적으로 새 탭에 열려고 시도해 정확히 이
+  // 에러 화면을 유발하는 것을 확인했다(core/util/safe_share.dart 문서
+  // 참고). 공통 헬퍼로 교체해 웹에서는 클립보드 복사로 안전하게 폴백한다.
   Future<void> _onShare(BuildContext context) async {
-    await Share.share(buildShareText());
+    await safeShareText(context, buildShareText());
   }
 
   @override

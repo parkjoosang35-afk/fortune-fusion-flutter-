@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/util/safe_share.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/bangtong_seonyeo.dart';
 import '../theme/guinji_map_theme.dart';
@@ -98,33 +98,24 @@ Future<void> shareGuinjiMapInvite(
       break;
   }
 
-  // [카카오톡/더보기] 웹: navigator.share(모바일 브라우저 공유 시트)를
-  // 1차로 시도한다 — 대부분의 모바일 브라우저에서 카카오톡이 공유 대상
-  // 목록에 표시된다. 미지원/실패 시에만 클립보드 복사로 폴백한다.
-  if (kIsWeb) {
-    try {
-      final result = await Share.share(message, subject: '귀인지도 초대 · 신통방통');
-      if (result.status == ShareResultStatus.unavailable) {
-        if (!context.mounted) return;
-        await copyAndToast('초대 메시지를 복사했어요. 원하는 앱에 붙여넣어 전달해 주세요.');
-      }
-    } catch (_) {
-      if (!context.mounted) return;
-      await copyAndToast('초대 메시지를 복사했어요. 원하는 앱에 붙여넣어 전달해 주세요.');
-    }
-    return;
-  }
-
-  try {
-    final result = await Share.share(message, subject: '귀인지도 초대 · 신통방통');
-    if (result.status == ShareResultStatus.unavailable) {
-      if (!context.mounted) return;
-      await copyAndToast('공유 시트를 열 수 없어 링크를 복사했어요.');
-    }
-  } catch (_) {
-    if (!context.mounted) return;
-    await copyAndToast('공유 시트를 열 수 없어 링크를 복사했어요.');
-  }
+  // [카카오톡/더보기 · 근본 수정 — 2026-12] 이전에는 웹에서도
+  // `Share.share()`를 직접 호출했는데, `share_plus_web.dart` 내부를 확인해
+  // 보니 `navigator.canShare`가 없는 브라우저(카톡/삼성인터넷 인앱)에서는
+  // 패키지가 **자체적으로** `mailto:` 스킴을 `window.open()`으로 새 탭에
+  // 열려고 시도한다. 그 새 탭이 스킴을 처리하지 못해 `sms:` 버그와 똑같이
+  // "페이지 로드에 실패했습니다 / net::ERR_UNKNOWN_URL_SCHEME" 에러 화면이
+  // 뜬다(사용자 재리포트: "공유 페이지가 다 이렇게 나오네" — SMS 버튼만
+  // 고쳐졌을 뿐 이 경로는 여전히 남아 있었다). 이제 공통 헬퍼
+  // [safeShareText](core/util/safe_share.dart)를 사용해 웹에서는 아예
+  // `Share.share()`를 시도하지 않고 곧바로 클립보드 복사로 확정 완료한다.
+  if (!context.mounted) return;
+  await safeShareText(
+    context,
+    message,
+    subject: '귀인지도 초대 · 신통방통',
+    copiedMessage: '초대 메시지를 복사했어요. 원하는 앱에 붙여넣어 전달해 주세요.',
+    failedMessage: '공유 시트를 열 수 없어 링크를 복사했어요.',
+  );
 }
 
 /// S · Share — `/guinji-map/m/share`

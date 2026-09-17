@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
 
-import '../../../core/widgets/app_toast.dart';
+import '../../../core/util/safe_share.dart';
 import '../../../core/widgets/bangtong_seonyeo.dart';
 import '../application/guinji_provider.dart';
 import '../application/guinji_rewarded_ad_helper.dart';
@@ -116,31 +114,21 @@ class _GuinjiMapRelationDetailScreenState
     }
   }
 
-  // [공유하기 버튼 버그수정 — 2026-09] 기존에는 Share.share()를 결과를
-  // 기다리지 않고 fire-and-forget으로 호출해, 웹에서 navigator.share
-  // 미지원/실패 시(또는 Android에서 공유 대상 앱이 없을 때) 아무 반응도
-  // 없이 조용히 실패하는 문제가 있었다("이관계공유하기 안됨" 리포트).
-  // guinji_map_share_screen.dart의 검증된 패턴과 동일하게, 웹에서는
-  // Share.share() 실패/미지원 시 클립보드 복사로 확실히 폴백한다.
+  // [공유하기 버튼 버그수정 — 2026-09, 근본 수정 2026-12] 기존에는
+  // Share.share()를 결과를 기다리지 않고 fire-and-forget으로 호출해, 웹에서
+  // navigator.share 미지원/실패 시(또는 Android에서 공유 대상 앱이 없을 때)
+  // 아무 반응도 없이 조용히 실패하는 문제가 있었다("이관계공유하기 안됨"
+  // 리포트). 2026-12 재조사 결과 `share_plus_web.dart`가 canShare()
+  // 미지원 브라우저에서 `mailto:` 스킴을 자체적으로 새 탭에 열려고 시도해
+  // net::ERR_UNKNOWN_URL_SCHEME 에러 화면을 유발하는 것을 확인했다(공통
+  // 헬퍼 문서 참고: core/util/safe_share.dart). 이제 그 공통 헬퍼를
+  // 사용해 웹에서는 Share.share() 자체를 시도하지 않는다.
   Future<void> _handleShare() async {
     final person = widget.person;
     final meta = guinjiRelationTypes[person.relation];
     final message = '${person.name}님과의 관계는 "${meta?.label ?? ''}"예요 · 신통방통 귀인지도';
-
-    Future<void> copyAndToast() async {
-      await Clipboard.setData(ClipboardData(text: message));
-      if (!mounted) return;
-      AppToast.show(context, '메시지를 복사했어요. 원하는 앱에 붙여넣어 전달해 주세요.');
-    }
-
-    try {
-      final result = await Share.share(message, subject: '신통방통 귀인지도');
-      if (result.status == ShareResultStatus.unavailable) {
-        await copyAndToast();
-      }
-    } catch (_) {
-      await copyAndToast();
-    }
+    if (!mounted) return;
+    await safeShareText(context, message, subject: '신통방통 귀인지도');
   }
 
   @override

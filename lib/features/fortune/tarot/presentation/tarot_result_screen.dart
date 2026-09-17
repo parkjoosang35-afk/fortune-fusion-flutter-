@@ -5,6 +5,7 @@ import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../../core/data/my_fortune_record_store.dart';
+import '../../../../core/util/safe_share.dart';
 import '../../../../core/utils/load_state.dart';
 import '../../../../core/widgets/app_error_state.dart';
 import '../../../../core/widgets/app_toast.dart';
@@ -215,13 +216,14 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
       if (!popped && sheetContext.mounted) {
         Navigator.of(sheetContext).pop();
       }
+      // [근본 수정 — 2026-12] 이미지 첨부 공유(shareXFiles)가 실패했을 때의
+      // 텍스트 전용 폴백에서 예전에는 `Share.share()`를 직접 호출했다.
+      // `share_plus_web.dart`가 웹에서 canShare() 미지원 시 `mailto:`
+      // 스킴을 자체적으로 새 탭에 열려고 시도해 net::ERR_UNKNOWN_URL_SCHEME
+      // 에러 화면을 유발하는 것을 확인했다(core/util/safe_share.dart 문서
+      // 참고). 공통 헬퍼로 교체해 웹에서는 곧바로 클립보드 복사로 폴백한다.
       if (!mounted) return;
-      try {
-        await Share.share('AI 타로 리딩 결과를 확인해보세요! · Fortune Fusion');
-      } catch (_) {
-        if (!mounted) return;
-        AppToast.show(context, '공유하기를 지원하지 않는 환경입니다.');
-      }
+      await safeShareText(context, 'AI 타로 리딩 결과를 확인해보세요! · Fortune Fusion');
     }
   }
 
