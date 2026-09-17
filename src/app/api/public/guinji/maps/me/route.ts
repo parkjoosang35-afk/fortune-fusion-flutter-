@@ -70,6 +70,40 @@ export async function GET(request: NextRequest) {
       });
     });
 
+    // [친구 초대 "N명 모으면 축하 이벤트" 실제 기능화 — 2026-09]
+    // [배경] 기존 Flutter 공유 화면(`guinji_map_share_screen.dart`)의
+    // "3명 모으면 축하 이벤트가 열려요" 배너는 실제로는 아무 기능도 연결되어
+    // 있지 않은 순수 장식 문구였다(사용자 지적: "도대체 뭐야? 이벤트를
+    // 기획해서 기능을 넣어주던지"). 여기서는 활성 멤버 수가 마일스톤
+    // (3명)에 도달한 "그 순간"에 지도 소유자에게 1회성 보너스 복주머니를
+    // 지급하고, 그 사실을 응답에 실어 클라이언트가 축하 화면을 보여줄 수
+    // 있게 한다. 절대원칙(모든 지급은 PointPolicy 등록)에 따라
+    // `guinji_milestone_3` 정책을 사용하며, dailyLimit=1 + scope:'lifetime'
+    // 조합(=평생 1회)으로 checkPolicyEligibility가 중복 지급을 막는다.
+    const GUINJI_MILESTONE_GOAL = 3;
+    const activeMemberCount = map.members.length;
+    let milestoneJustReached = false;
+    let milestoneRewardPoint = 0;
+    if (activeMemberCount >= GUINJI_MILESTONE_GOAL) {
+      milestoneJustReached = await prisma.$transaction(async (tx) => {
+        const eligibility = await checkPolicyEligibility(tx, auth.userId, "guinji_milestone_3", {
+          scope: "lifetime",
+        });
+        if (!eligibility.eligible) return false;
+        const policy = await tx.pointPolicy.findUnique({ where: { sourceType: "guinji_milestone_3" } });
+        const amount = policy?.isActive === false ? 0 : policy?.amount ?? 30;
+        if (amount <= 0) return false;
+        milestoneRewardPoint = amount;
+        await earnLuckPouch(tx, {
+          userId: auth.userId,
+          amount,
+          sourceType: "guinji_milestone_3",
+          memo: `귀인지도 친구 ${GUINJI_MILESTONE_GOAL}명 참여 축하`,
+        });
+        return true;
+      });
+    }
+
     const relationshipByMemberId = new Map(map.relationships.map((r) => [r.memberId, r]));
 
     return NextResponse.json(
@@ -81,6 +115,13 @@ export async function GET(request: NextRequest) {
             name: map.name,
             token: map.token,
             createdAt: map.createdAt.toISOString(),
+            // [친구 초대 마일스톤] 공유 화면(S)이 진행률 배너를 실제 값으로
+            // 그릴 수 있도록 목표/현재 인원과, 방금 이번 요청에서 막 달성해
+            // 보상이 지급됐는지(축하 화면 트리거용)를 함께 내려준다.
+            milestoneGoal: GUINJI_MILESTONE_GOAL,
+            milestoneReached: activeMemberCount >= GUINJI_MILESTONE_GOAL,
+            milestoneJustReached,
+            milestoneRewardPoint: milestoneJustReached ? milestoneRewardPoint : 0,
           },
           members: map.members.map((m) => ({
             memberId: toGuinjiMemberPublicId(m.id),

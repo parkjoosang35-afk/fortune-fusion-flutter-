@@ -19,11 +19,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { spendLuckPouch } from "@/lib/luck-pouch-engine";
+import { createNotification, wishDeepLink } from "@/lib/notification-engine";
 import {
   CORS_HEADERS,
   parseWishDbId,
   requireUser,
   toWishDto,
+  toWishPublicId,
   unauthorizedResponse,
   type WishRow,
 } from "../../_shared";
@@ -115,6 +117,18 @@ export async function POST(
         data: { bokjuCount: { increment: amount } },
         include: { user: { select: { nickname: true } } },
       });
+
+      // [알림 실제 발송 연동] 자기 자신에게 보낸 경우(가능하다면)는
+      // 알림을 보내지 않는다.
+      if (updated.userId !== auth.userId) {
+        await createNotification(tx, {
+          userId: updated.userId,
+          category: "community",
+          title: "복주머니가 도착했어요",
+          body: `${auth.nickname}님이 복주머니 ${amount}개를 보냈어요.`,
+          deepLink: wishDeepLink(toWishPublicId(updated.id)),
+        });
+      }
 
       return { updated, balanceAfter: spendResult.balanceAfter };
     });

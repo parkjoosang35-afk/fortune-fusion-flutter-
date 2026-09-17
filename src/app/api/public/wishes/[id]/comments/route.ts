@@ -32,10 +32,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { checkPolicyEligibility, earnLuckPouch } from "@/lib/luck-pouch-engine";
+import { createNotification, wishDeepLink } from "@/lib/notification-engine";
 import {
   CORS_HEADERS,
   parseWishDbId,
   requireUser,
+  toWishPublicId,
   unauthorizedResponse,
 } from "../../_shared";
 
@@ -187,6 +189,19 @@ export async function POST(
         data: { targetType: "wish", targetId: dbId, userId: auth.userId, content },
         include: { user: { select: { nickname: true } } },
       });
+
+      // [알림 실제 발송 연동] 자기 글에 자기가 댓글 단 경우는 알림을
+      // 보내지 않는다. 길이(15자) 제한과 무관하게 댓글이 달렸다는 사실
+      // 자체는 항상 알린다(보상 지급 조건과 알림 발송 조건은 별개).
+      if (wish.userId !== auth.userId) {
+        await createNotification(tx, {
+          userId: wish.userId,
+          category: "community",
+          title: "새로운 응원 한마디가 도착했어요",
+          body: `${created.user.nickname}: ${content}`,
+          deepLink: wishDeepLink(toWishPublicId(dbId)),
+        });
+      }
 
       // 15자 미만은 지급 자체를 스킵한다(작성은 이미 허용됨).
       let granted = 0;

@@ -14,11 +14,13 @@
 // (새 PointPolicy 추가 금지 원칙).
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { createNotification, wishDeepLink } from "@/lib/notification-engine";
 import {
   CORS_HEADERS,
   parseWishDbId,
   requireUser,
   toWishDto,
+  toWishPublicId,
   unauthorizedResponse,
   type WishRow,
 } from "../../_shared";
@@ -89,6 +91,18 @@ export async function POST(
         data: { supportCount: { increment: 1 } },
         include: { user: { select: { nickname: true } } },
       });
+
+      // [알림 실제 발송 연동] 자기 자신의 소원에 자기가 응원한 경우는
+      // 알림을 보내지 않는다(무의미한 자기 알림 방지).
+      if (updated.userId !== auth.userId) {
+        await createNotification(tx, {
+          userId: updated.userId,
+          category: "community",
+          title: "새로운 응원이 도착했어요",
+          body: `${auth.nickname}님이 회원님의 소원을 응원했어요.`,
+          deepLink: wishDeepLink(toWishPublicId(updated.id)),
+        });
+      }
 
       return { wish: updated, alreadySupported: false };
     });

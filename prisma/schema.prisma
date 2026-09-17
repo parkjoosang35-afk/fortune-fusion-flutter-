@@ -2610,6 +2610,14 @@ model Notification {
   templateId Int?      @map("template_id")
   title      String
   body       String
+  // [알림 실제 발송 연동] 이벤트 발생 시점(응원/댓글/복주머니)에 실제로 이
+  // 테이블에 insert하기 위해 추가. category는 기존 NotificationPreference의
+  // 확정 화이트리스트(marketing/fortune_update/matching/community)를 그대로
+  // 재사용한다(신규 카테고리 발명 없음) — 소원방 응원/댓글/복주머니는 모두
+  // "community"로 분류한다. deepLink는 NotificationTemplate과 동일하게
+  // 클라이언트가 탭 시 이동할 경로 문자열(예: "wish:w_123")을 담는다.
+  category   String?   @map("category")
+  deepLink   String?   @map("deep_link")
   isRead     Boolean   @default(false) @map("is_read")
   sentAt     DateTime  @default(now()) @map("sent_at")
   createdAt  DateTime  @default(now()) @map("created_at")

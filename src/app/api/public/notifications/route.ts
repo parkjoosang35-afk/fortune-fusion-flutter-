@@ -42,6 +42,8 @@ export async function GET(request: NextRequest) {
             body: n.body,
             isRead: n.isRead,
             sentAt: n.sentAt.toISOString(),
+            category: n.category,
+            deepLink: n.deepLink,
           })),
           unreadCount,
         },
