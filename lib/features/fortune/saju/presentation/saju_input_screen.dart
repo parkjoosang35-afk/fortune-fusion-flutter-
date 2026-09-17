@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_unified_style.dart';
@@ -47,6 +49,15 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
   String? _selectedProfileId;
   String? _selectedProfileName;
   bool _saveAsProfile = false;
+
+  // [프로필체크 화면 완전 제거 - 사용자 요청] 로그인 직후 생년월일시를
+  // 강제로 입력받던 '/signup/profile-check' 화면을 없애는 대신, 사주/운세
+  // 첫 정보 입력 시점에 "내 계정 프로필로 저장" 체크박스를 노출해 원하는
+  // 사용자만 선택적으로 계정(AuthProvider)에 생년월일시를 저장하게 한다.
+  // 기본값은 false — 매번 물어보되 강요하지 않는다는 원칙을 지킨다.
+  // 이미 계정에 생년월일이 저장돼 있으면(로그인 사용자가 initState에서
+  // 자동 프리필된 경우) 다시 물을 필요가 없으므로 체크박스 자체를 숨긴다.
+  bool _saveToAccount = false;
 
   // [운세 카테고리 확장] '월별' 추가 → 사주 월별 운세(saju_monthly) 도메인과
   // 자연스럽게 연결(입력/결과 화면 구조는 기존 멀티 토픽 선택 방식 그대로 재사용).
@@ -340,7 +351,7 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
     return null;
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (_birthDate == null) return;
     final birthDateStr =
         '${_birthDate!.year}-${_birthDate!.month.toString().padLeft(2, '0')}-${_birthDate!.day.toString().padLeft(2, '0')}';
@@ -372,6 +383,22 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
         isLunar: _isLunar,
       );
     }
+    // [프로필체크 화면 완전 제거 - 사용자 요청] 로그인 사용자가 "내 계정
+    // 프로필로 저장" 체크박스를 켰으면, 계정(AuthProvider)에도 생년월일시를
+    // 저장해 다음에 다시 물어보지 않도록 한다. 결과 화면 이동을 막지 않기
+    // 위해 응답을 기다리지 않고(fire-and-forget) 실패해도 조용히 넘어간다
+    // — 이미 요청한 사주 결과 자체는 이 저장과 무관하게 정상 진행된다.
+    if (_saveToAccount) {
+      unawaited(
+        context.read<AuthProvider>().updateProfile(
+          birthDate: birthDateStr,
+          birthTime: birthTimeStr,
+          isLunar: _isLunar,
+          birthTimeUnknown: _birthTime == null,
+        ),
+      );
+    }
+    if (!mounted) return;
     Navigator.of(context).pushNamed('/ai-fortune/saju/loading');
   }
 
@@ -549,6 +576,31 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
                   value: _saveAsProfile,
                   onChanged: (v) => setState(() => _saveAsProfile = v ?? false),
                   title: Text('이 정보를 내 사주함에 저장', style: UnifiedText.body()),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              // [프로필체크 화면 완전 제거 - 사용자 요청] 로그인은 했지만
+              // 계정에 생년월일이 아직 없는 사용자에게만 노출한다. 이미
+              // 계정 프로필이 있으면(initState에서 자동 프리필된 경우)
+              // 다시 물어볼 필요가 없어 숨긴다. "내 사주함 저장"(로컬
+              // 프로필 목록)과는 별개로, 이건 계정 자체(AuthProvider)에
+              // 저장해 로그인 → 사주/운세/귀인지도 등 다른 화면에서도
+              // 자동으로 채워지게 하는 용도다.
+              if (context.watch<AuthProvider>().isLoggedIn &&
+                  context.watch<AuthProvider>().currentUser?.birthDate ==
+                      null)
+                CheckboxListTile(
+                  value: _saveToAccount,
+                  onChanged: (v) =>
+                      setState(() => _saveToAccount = v ?? false),
+                  title: Text(
+                    '내 계정 프로필로 저장하고 다음에 자동 입력',
+                    style: UnifiedText.body(),
+                  ),
+                  subtitle: Text(
+                    '체크하면 로그인할 때마다 매번 입력하지 않아도 돼요',
+                    style: UnifiedText.caption(),
+                  ),
                   controlAffinity: ListTileControlAffinity.leading,
                   contentPadding: EdgeInsets.zero,
                 ),

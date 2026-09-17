@@ -3,9 +3,13 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/config/env_config.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../../guinji/presentation/guinji_input_screen.dart';
+import '../../guinji/presentation/guinji_join_screen.dart';
+import '../../guinji/presentation/guinji_onboarding_screen.dart';
 import '../../intro/presentation/intro_palette.dart';
 import '../../intro/presentation/intro_text_styles.dart';
 import '../../intro/presentation/widgets/intro_title_text.dart';
+import '../../pass/presentation/pass_gate_helper.dart';
 import '../../wallet/application/wallet_provider.dart';
 import '../application/auth_provider.dart';
 import 'widgets/auth_checkbox.dart';
@@ -121,9 +125,20 @@ class _SignupScreenState extends State<SignupScreen> {
         if (!mounted) return;
       }
       if (!mounted) return;
+      // [프로필체크 화면 완전 제거 - 사용자 요청] 회원가입 직후 생년월일
+      // 입력을 강제하던 '/signup/profile-check' 화면이 삭제되었다. 이제
+      // 가입 성공 시 곧바로 홈으로 이동한다 — 생년월일은 이후 사주/운세
+      // 첫 이용 시점에 해당 입력 화면의 "내 계정 프로필로 저장" 체크박스로
+      // 원하는 사용자만 계정에 저장한다.
       Navigator.of(
         context,
-      ).pushNamedAndRemoveUntil('/signup/profile-check', (route) => false);
+      ).pushNamedAndRemoveUntil('/home', (route) => false);
+      // 로그인 화면과 동일하게, 회원가입 화면으로 오게 만든 대기 중인
+      // 재진입 요청(프리패스/귀인지도 등)이 있으면 함께 재생한다.
+      replayPendingPassRequest();
+      replayPendingGuinjiJoin();
+      replayPendingGuinjiOnboarding();
+      replayPendingGuinjiMapEntry();
     } else {
       AppToast.show(
         context,

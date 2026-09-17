@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/auth/auth_token_store.dart';
 import '../../../core/widgets/birthday_picker/birthday_picker_modal.dart';
+import '../../auth/application/auth_provider.dart';
 import '../data/jeontong_profile_store.dart';
 import '../domain/jeontong_eighty_matrix.dart';
 import '../domain/jeontong_input.dart';
@@ -47,6 +51,11 @@ class _JeontongInputScreenState extends State<JeontongInputScreen> {
   bool _isLunar = false;
   bool _loadingProfile = true;
   bool _submitting = false;
+
+  // [프로필체크 화면 완전 제거 - 사용자 요청] 정통사주도 사주/운세 계열의
+  // "첫 정보 입력" 화면이므로 saju_input_screen.dart와 동일한 패턴으로
+  // "내 계정 프로필로 저장" 체크박스를 둔다. 기본값 false — 강요하지 않음.
+  bool _saveToAccount = false;
 
   String get _userId =>
       (AuthTokenStore.cachedUserIdOrNull ?? AuthTokenStore.fallbackUserId)
@@ -156,6 +165,24 @@ class _JeontongInputScreenState extends State<JeontongInputScreen> {
     );
     await jeontongProfileStore.save(_userId, input);
     if (!mounted) return;
+
+    // [프로필체크 화면 완전 제거 - 사용자 요청] 체크박스를 켰으면 계정
+    // (AuthProvider)에도 생년월일시를 저장한다. 로컬 프로필 저장
+    // (jeontongProfileStore)과는 별개 동작이며, 결과 이동을 막지 않도록
+    // 응답을 기다리지 않는다(fire-and-forget).
+    if (_saveToAccount) {
+      unawaited(
+        context.read<AuthProvider>().updateProfile(
+          birthDate:
+              '${birthDate.year}-${birthDate.month.toString().padLeft(2, '0')}-${birthDate.day.toString().padLeft(2, '0')}',
+          birthTime:
+              '${birthTime.hour.toString().padLeft(2, '0')}:${birthTime.minute.toString().padLeft(2, '0')}',
+          isLunar: _isLunar,
+          gender: _gender,
+          birthTimeUnknown: false,
+        ),
+      );
+    }
 
     final categoryId = widget.categoryId;
     if (categoryId != null) {
@@ -291,6 +318,36 @@ class _JeontongInputScreenState extends State<JeontongInputScreen> {
                                 onTap: _openBirthdayPicker,
                               ),
                             ),
+                            // [프로필체크 화면 완전 제거 - 사용자 요청]
+                            // 로그인은 했지만 계정에 생년월일이 아직 없는
+                            // 사용자에게만 노출한다.
+                            if (context.watch<AuthProvider>().isLoggedIn &&
+                                context
+                                        .watch<AuthProvider>()
+                                        .currentUser
+                                        ?.birthDate ==
+                                    null) ...[
+                              const SizedBox(height: HanjiSpacing.md),
+                              CheckboxListTile(
+                                value: _saveToAccount,
+                                onChanged: (v) => setState(
+                                  () => _saveToAccount = v ?? false,
+                                ),
+                                title: Text(
+                                  '내 계정 프로필로 저장하고 다음에 자동 입력',
+                                  style: HanjiTextStyles.body(
+                                    color: HanjiColors.fg,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  '체크하면 로그인할 때마다 매번 입력하지 않아도 돼요',
+                                  style: HanjiTextStyles.bodySmall(),
+                                ),
+                                controlAffinity:
+                                    ListTileControlAffinity.leading,
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ],
                             const SizedBox(height: HanjiSpacing.xxl),
 
                             SizedBox(

@@ -85,21 +85,17 @@ class _LoginScreenState extends State<LoginScreen> {
       // (화면 깜빡임/지연)이 발생했다. 이미 프로필(생년월일)이 있는
       // 재로그인 사용자는 곧바로 홈으로 보내고, 신규/미입력 사용자만
       // 프로필체크 화면으로 보낸다.
-      final hasProfile = context.read<AuthProvider>().currentUser?.birthDate !=
-          null;
-      Navigator.of(context).pushNamedAndRemoveUntil(
-        hasProfile ? '/home' : '/signup/profile-check',
-        (route) => false,
-      );
-      if (hasProfile) {
-        // ProfileCheckScreen.initState()가 프로필 보유 시 수행하던 pending
-        // 요청 재생(프리패스/귀인지도 참여/온보딩/지도 재진입)을 여기서도
-        // 동일하게 수행해, 우회 경로가 생겨도 정합성이 깨지지 않게 한다.
-        replayPendingPassRequest();
-        replayPendingGuinjiJoin();
-        replayPendingGuinjiOnboarding();
-        replayPendingGuinjiMapEntry();
-      }
+      // [프로필체크 화면 완전 제거] 생년월일 보유 여부와 무관하게 항상
+      // 곧바로 홈으로 이동한다. 생년월일은 이후 사주/운세 첫 이용 시점에
+      // 해당 입력 화면에서 받고, "내 계정 프로필로 저장" 체크박스로
+      // 원하는 사용자만 계정에 저장한다.
+      Navigator.of(
+        context,
+      ).pushNamedAndRemoveUntil('/home', (route) => false);
+      replayPendingPassRequest();
+      replayPendingGuinjiJoin();
+      replayPendingGuinjiOnboarding();
+      replayPendingGuinjiMapEntry();
     } else {
       AppToast.show(
         context,
@@ -134,20 +130,15 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() => _isSubmitting = false);
       if (!mounted) return;
       if (ok) {
-        // [요청 1 - 프로필체크 강제 이동 제거] _login()과 동일하게, 이미
-        // 생년월일이 있는 사용자는 프로필체크를 거치지 않고 곧바로 홈으로.
-        final hasProfile =
-            context.read<AuthProvider>().currentUser?.birthDate != null;
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          hasProfile ? '/home' : '/signup/profile-check',
-          (route) => false,
-        );
-        if (hasProfile) {
-          replayPendingPassRequest();
-          replayPendingGuinjiJoin();
-          replayPendingGuinjiOnboarding();
-          replayPendingGuinjiMapEntry();
-        }
+        // [프로필체크 화면 완전 제거] _login()과 동일하게, 프로필 보유
+        // 여부와 무관하게 항상 곧바로 홈으로 이동한다.
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/home', (route) => false);
+        replayPendingPassRequest();
+        replayPendingGuinjiJoin();
+        replayPendingGuinjiOnboarding();
+        replayPendingGuinjiMapEntry();
       } else {
         AppToast.show(
           context,

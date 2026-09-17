@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/router/app_navigator_key.dart';
 import '../../../core/widgets/bangtong_seonyeo.dart';
+import '../../../core/widgets/birthday_picker/birthday_picker_modal.dart';
 import '../../auth/application/auth_provider.dart';
 import '../domain/pending_guinji_join.dart';
 import '../theme/guinji_theme.dart';
@@ -99,11 +100,50 @@ class _GuinjiOnboardingScreenState extends State<GuinjiOnboardingScreen> {
     Navigator.of(context).pushNamed('/login');
   }
 
-  /// [버그 수정] 생년월일이 없는 로그인 사용자를 프로필 완성 화면으로
-  /// 보낸다. 완성 후 이 온보딩 화면으로 자동 복귀한다.
-  void _goToProfileCheck() {
-    PendingGuinjiOnboardingStore.save();
-    Navigator.of(context).pushNamed('/signup/profile-check');
+  bool _isSavingProfile = false;
+
+  /// [프로필체크 화면 완전 제거 - 사용자 요청] 이전에는 생년월일이 없는
+  /// 로그인 사용자를 별도의 '/signup/profile-check' 화면으로 이동시켰다가
+  /// 완료 후 이 화면으로 자동 복귀시켰다(화면 전환 2회). 그 화면 자체가
+  /// 삭제되었으므로, 이 화면을 벗어나지 않고 공용 [showBirthdayPicker]
+  /// 모달로 생년월일시를 바로 받아 [AuthProvider.updateProfile]로 계정에
+  /// 저장한다(귀인지도는 계정 생년월일이 필수이므로 별도 체크박스 없이
+  /// 항상 저장 — saju_input_screen.dart의 선택적 저장과는 성격이 다르다).
+  Future<void> _goToProfileCheck() async {
+    final result = await showBirthdayPicker(
+      context,
+      palette: BirthdayPickerPalette.midnight,
+      requireTime: false,
+      sourceLabel: '귀인지도 · 프로필 완성',
+      title: '생년월일을 알려주세요',
+      ctaLabel: '완료',
+    );
+    if (result == null || !mounted) return;
+    setState(() => _isSavingProfile = true);
+    final t = result.time;
+    final ok = await context.read<AuthProvider>().updateProfile(
+      birthDate: result.iso,
+      birthTime: t == null
+          ? null
+          : '${t.rangeStart.toString().padLeft(2, '0')}:00',
+      isLunar: false,
+      birthTimeUnknown: t == null,
+    );
+    if (!mounted) return;
+    setState(() => _isSavingProfile = false);
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            context.read<AuthProvider>().lastProfileUpdateError ??
+                '프로필 저장에 실패했습니다. 다시 시도해 주세요.',
+          ),
+        ),
+      );
+    }
+    // 성공/실패와 무관하게 이 화면은 그대로 유지된다 — build()가 매번
+    // AuthProvider.currentUser?.birthDate를 다시 확인해 저장에 성공했으면
+    // 자동으로 프로필 카드/CTA 화면으로 전환된다(별도 네비게이션 불필요).
   }
 
   @override
@@ -153,9 +193,10 @@ class _GuinjiOnboardingScreenState extends State<GuinjiOnboardingScreen> {
                     Expanded(
                       child: _GateCard(
                         title: '생년월일을 알려주면\n귀인지도를 열어드려요',
-                        message: '지도를 만들려면 생년월일이 필요해요.\n입력 후 이 화면으로 자동으로 돌아와요.',
+                        message: '지도를 만들려면 생년월일이 필요해요.\n아래 버튼을 누르면 바로 입력할 수 있어요.',
                         ctaLabel: '프로필 완성하기',
-                        onPressed: _goToProfileCheck,
+                        onPressed: () => _goToProfileCheck(),
+                        isLoading: _isSavingProfile,
                       ),
                     )
                   else
@@ -215,12 +256,17 @@ class _GateCard extends StatelessWidget {
     required this.message,
     required this.ctaLabel,
     required this.onPressed,
+    this.isLoading = false,
   });
 
   final String title;
   final String message;
   final String ctaLabel;
   final VoidCallback onPressed;
+
+  /// [프로필체크 화면 완전 제거] 인라인 생년월일 저장(updateProfile) 진행
+  /// 중임을 표시 — true면 CTA 버튼 대신 로딩 인디케이터를 보여준다.
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -265,7 +311,17 @@ class _GateCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  _PrimaryCta(label: ctaLabel, onPressed: onPressed),
+                  if (isLoading)
+                    const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.4,
+                        color: GuinjiColors.lavender,
+                      ),
+                    )
+                  else
+                    _PrimaryCta(label: ctaLabel, onPressed: onPressed),
                 ],
               ),
             ),
