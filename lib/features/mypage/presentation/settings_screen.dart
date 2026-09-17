@@ -10,6 +10,7 @@ import '../../auth/application/auth_provider.dart';
 import '../../pass/application/pass_provider.dart';
 import '../../ads_test/domain/admob_ad_ids.dart';
 import '../../ads_test/presentation/admob_test_rewarded_ad.dart';
+import '../../notification/data/notification_preference_repository.dart';
 
 /// [Sowoon.kr 리디자인 프롬프트] 다크모드 토글 UI 완전 제거.
 /// 앱은 항상 화이트/골드 라이트 테마로만 동작한다(ThemeProvider는 ThemeMode.light 고정).
@@ -27,6 +28,66 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  // [알림 실제 발송 연동] 카테고리별 on/off 토글. admin_web
+  // `notification_preferences` 테이블의 04A N-3 확정 화이트리스트
+  // (marketing/fortune_update/matching/community)를 그대로 노출한다.
+  final _notificationPrefRepo = NotificationPreferenceRepository();
+  List<NotificationPreferenceItem> _notificationPrefs = [];
+  bool _notificationPrefsLoading = true;
+
+  static const Map<String, String> _categoryLabels = {
+    'community': '소원방 응원 · 댓글 · 복주머니',
+    'fortune_update': '운세 업데이트',
+    'matching': '매칭 알림',
+    'marketing': '이벤트 · 마케팅',
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotificationPrefs();
+  }
+
+  Future<void> _loadNotificationPrefs() async {
+    final result = await _notificationPrefRepo.getPreferences();
+    if (!mounted) return;
+    setState(() {
+      if (result.success && result.data != null) {
+        _notificationPrefs = result.data!;
+      }
+      _notificationPrefsLoading = false;
+    });
+  }
+
+  Future<void> _toggleNotificationPref(
+    NotificationPreferenceItem item,
+    bool value,
+  ) async {
+    final index = _notificationPrefs.indexWhere(
+      (e) => e.category == item.category,
+    );
+    if (index < 0) return;
+    setState(() {
+      _notificationPrefs[index] = NotificationPreferenceItem(
+        category: item.category,
+        isEnabled: value,
+      );
+    });
+
+    final result = await _notificationPrefRepo.updatePreference(
+      category: item.category,
+      isEnabled: value,
+    );
+    if (!mounted) return;
+    if (!result.success) {
+      // 실패 시 로컬 상태를 원복하고 사용자에게 알린다.
+      setState(() {
+        _notificationPrefs[index] = item;
+      });
+      AppToast.show(context, result.errorMessage ?? '설정 저장에 실패했습니다.', isError: true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -104,6 +165,60 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ],
               ),
+            ),
+
+            // [알림 실제 발송 연동] 카테고리별 알림 수신 on/off 토글 섹션.
+            // 서버 NotificationPreference(userId, category)와 1:1 연동되며,
+            // 여기서 끄면 해당 category의 알림(예: 소원방 응원/댓글/복주머니)이
+            // 서버 notification-engine.ts에서 실제로 생성되지 않는다.
+            const SizedBox(height: UnifiedTokens.spaceXxl),
+            Text('알림 설정', style: UnifiedText.title()),
+            const SizedBox(height: UnifiedTokens.spaceSm),
+            Container(
+              decoration: BoxDecoration(
+                color: UnifiedColors.bg,
+                border: Border.all(color: UnifiedColors.border),
+                borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
+              ),
+              child: _notificationPrefsLoading
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(
+                        vertical: UnifiedTokens.spaceLg,
+                      ),
+                      child: Center(
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                    )
+                  : Column(
+                      children: [
+                        for (
+                          int i = 0;
+                          i < _notificationPrefs.length;
+                          i++
+                        ) ...[
+                          if (i > 0)
+                            const Divider(
+                              height: 1,
+                              color: UnifiedColors.border,
+                            ),
+                          _NotificationPrefRow(
+                            title:
+                                _categoryLabels[_notificationPrefs[i]
+                                    .category] ??
+                                _notificationPrefs[i].category,
+                            value: _notificationPrefs[i].isEnabled,
+                            onChanged: (v) => _toggleNotificationPref(
+                              _notificationPrefs[i],
+                              v,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
             ),
 
             // [애드몹 테스트 연동] 구글 공식 테스트 Ad Unit ID로 보상형 광고를
@@ -210,6 +325,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } else {
       AppToast.show(context, '탈퇴 처리에 실패했습니다.', isError: true);
     }
+  }
+}
+
+/// [알림 실제 발송 연동] 알림 설정 섹션 전용 토글 행. 약관 링크 행
+/// (`_PolicyLinkRow`)과 동일한 패딩/보더 스타일을 유지하되, 우측에
+/// 외부링크 아이콘 대신 Switch를 배치한다.
+class _NotificationPrefRow extends StatelessWidget {
+  const _NotificationPrefRow({
+    required this.title,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String title;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: UnifiedTokens.spaceLg,
+        vertical: UnifiedTokens.spaceXs,
+      ),
+      child: Row(
+        children: [
+          Expanded(child: Text(title, style: UnifiedText.bodyStrong())),
+          Switch(value: value, onChanged: onChanged),
+        ],
+      ),
+    );
   }
 }
 
