@@ -14,11 +14,20 @@ import { SINTONG_WEB_URLS } from "./sintong-web-urls";
 
 type ServiceKey = "wish-room" | "tarot" | "jeontong" | "today";
 
+// [귀인지도 랜딩 "다른 서비스" 카드 균형 버그수정 — 2026-12] 기존 desc
+// 문구("간절한 소망을\n담아 빌어봐요" 등)가 좁은 4열 그리드 카드 폭에서
+// 다시 자동 줄바꿈되어 조사·종결어미가 단독 줄로 떨어지고, 카드마다
+// 텍스트 줄 수(2~4줄)가 달라져 "바로가기" 위치가 서로 어긋나 보였다
+// ("귀인지도 글씨하고 균형이 안맞는데" 리포트 — Flutter 앱의 동일 컴포넌트
+// `guinji_map_landing_widgets.dart`의 `GmServiceGrid`와 완전히 같은 원인).
+// 문구를 각 줄 6자 이내로 짧게 다듬어 재줄바꿈 가능성을 낮췄다. 제목도
+// "오늘의 운세"(5글자)가 카드 폭에서 줄바꿈되던 것을 "오늘 운세"(4글자)로
+// 줄였다. 카드 레이아웃 자체(고정 높이 지정)도 아래에서 함께 수정한다.
 const SERVICES: { key: ServiceKey; title: string; desc: string; color: string; url: string }[] = [
-  { key: "wish-room", title: "소원방", desc: "간절한 소망을\n담아 빌어봐요", color: "#E8B4A5", url: SINTONG_WEB_URLS.wishRoom },
-  { key: "tarot", title: "타로", desc: "오늘의 마음\n방향을 살펴요", color: "#D4A574", url: SINTONG_WEB_URLS.tarot },
-  { key: "jeontong", title: "정통사주", desc: "만세력 기반\n정통 사주 풀이", color: "#C99B7F", url: SINTONG_WEB_URLS.jeontong },
-  { key: "today", title: "오늘의 운세", desc: "매일 새롭게\n갱신되는 운세", color: "#7E5A47", url: SINTONG_WEB_URLS.todayFortune },
+  { key: "wish-room", title: "소원방", desc: "소망을 담아\n빌어보세요", color: "#E8B4A5", url: SINTONG_WEB_URLS.wishRoom },
+  { key: "tarot", title: "타로", desc: "마음의 방향을\n살펴보세요", color: "#D4A574", url: SINTONG_WEB_URLS.tarot },
+  { key: "jeontong", title: "정통사주", desc: "만세력 기반\n사주 풀이", color: "#C99B7F", url: SINTONG_WEB_URLS.jeontong },
+  { key: "today", title: "오늘 운세", desc: "매일 새롭게\n갱신돼요", color: "#7E5A47", url: SINTONG_WEB_URLS.todayFortune },
 ];
 
 const ICONS: Record<ServiceKey, ReactElement> = {
@@ -64,20 +73,32 @@ export function ServiceGrid() {
           <a
             key={s.key}
             href={s.url}
-            className="group relative block rounded-2xl border border-[#E8DDD0] bg-white p-3 text-center transition hover:shadow-[0_8px_32px_-12px_rgba(166,121,94,0.22)]"
+            // [균형 버그수정] flex-col + 고정 높이 텍스트 박스로, 카드마다
+            // 실제 텍스트 줄 수(1줄/2줄)가 달라도 아이콘·제목·설명·
+            // "바로가기"의 세로 위치가 4개 카드에서 항상 동일하게 정렬된다.
+            className="group relative flex flex-col items-center rounded-2xl border border-[#E8DDD0] bg-white p-3 text-center transition hover:shadow-[0_8px_32px_-12px_rgba(166,121,94,0.22)]"
           >
             <span className="absolute right-2 top-2 rounded-full bg-[#C99B7F] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-white">
               Free
             </span>
             <div
-              className="mx-auto mb-2 flex h-11 w-11 items-center justify-center rounded-2xl"
+              className="mb-2 flex h-11 w-11 items-center justify-center rounded-2xl"
               style={{ backgroundColor: `${s.color}20`, color: s.color }}
             >
               {ICONS[s.key]}
             </div>
-            <div className="mb-0.5 text-[12px] font-semibold text-[#2A2438]">{s.title}</div>
-            <div className="whitespace-pre-line text-[9.5px] leading-tight text-[#6E5A54]">{s.desc}</div>
-            <div className="mt-1.5 text-[9.5px] text-[#A6795E]">바로가기 →</div>
+            {/* 제목: 1줄 고정(넘치면 말줄임) — "오늘 운세"처럼 4글자라도
+                카드 폭에서 재줄바꿈되지 않도록 nowrap+ellipsis. */}
+            <div className="mb-0.5 w-full truncate whitespace-nowrap text-[12px] font-semibold text-[#2A2438]">
+              {s.title}
+            </div>
+            {/* 설명: 항상 2줄 높이(leading-tight 9.5px * 2 ≈ 24px)만
+                차지하도록 고정 높이 박스에 담아, 실제 줄 수가 1줄이든
+                2줄이든 아래 "바로가기"가 카드마다 밀리지 않게 한다. */}
+            <div className="flex h-6 w-full items-start justify-center whitespace-pre-line text-[9.5px] leading-tight text-[#6E5A54]">
+              {s.desc}
+            </div>
+            <div className="mt-auto pt-1.5 text-[9.5px] text-[#A6795E]">바로가기 →</div>
           </a>
         ))}
       </div>
