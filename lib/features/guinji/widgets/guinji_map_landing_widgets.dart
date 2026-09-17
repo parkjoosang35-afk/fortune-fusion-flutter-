@@ -674,8 +674,12 @@ class GmServiceGrid extends StatelessWidget {
         children: [
           const GmLabelMini('신통방통 다른 서비스'),
           const SizedBox(height: 4),
+          // [2026-12, 2차 수정 — headless Chrome 실측 검증(admin_web
+          // 동일 컴포넌트에서 확인) 반영] 자동 줄바꿈에 맡기면 "...만나
+          // 보세" + "요"처럼 어절 중간에서 끊겨 어색하다. 의미 단위로
+          // 끊어지도록 명시적 줄바꿈을 넣는다.
           const Text(
-            '신통방통에서 더 많은 운세를 만나보세요',
+            '신통방통에서 더 많은\n운세를 만나보세요',
             style: TextStyle(fontFamily: GmFonts.serif, fontSize: 18, fontWeight: FontWeight.w700, color: GmColors.ink),
             textAlign: TextAlign.center,
           ),
@@ -708,8 +712,13 @@ class GmServiceGrid extends StatelessWidget {
                 onTap: () => Navigator.of(context).pushNamed('/wish-room'),
               ),
               _GmServiceCard(
+                // [2026-12, 2차 수정] "마음의 방향을"(7글자)이 다른 카드
+                // desc 첫 줄(6글자 단위)보다 길어 카드 폭에서 재줄바꿈되고
+                // "살펴보세요"가 잘리는 문제가 실제 배포 후 재현됨
+                // (admin_web 동일 컴포넌트 headless 검증으로 원인 확인).
+                // "마음속 답을"(6글자)로 줄여 다른 카드와 길이를 맞춤.
                 title: '타로',
-                desc: '마음의 방향을\n살펴보세요',
+                desc: '마음속 답을\n찾아보세요',
                 color: GmColors.gold,
                 icon: Icons.style_outlined,
                 onTap: () => Navigator.of(context).pushNamed('/tarot/intro'),
