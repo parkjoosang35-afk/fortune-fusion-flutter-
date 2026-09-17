@@ -426,7 +426,7 @@ extension BlessingBagEarnReasonX on BlessingBagEarnReason {
       case BlessingBagEarnReason.dailyCandle:
         return '오늘의 촛불';
       case BlessingBagEarnReason.dailyMeditation:
-        return '60초 명상';
+        return '30초 명상';
       case BlessingBagEarnReason.wishComment:
         return '응원 한 마디';
       case BlessingBagEarnReason.dailyFeedVisit:
@@ -453,7 +453,7 @@ extension BlessingBagEarnReasonX on BlessingBagEarnReason {
       case BlessingBagEarnReason.dailyCandle:
         return '오늘 촛불을 한 번 켜면 받아요 (1일 1회)';
       case BlessingBagEarnReason.dailyMeditation:
-        return '60초 동안 마음을 가라앉히면 받아요 (1일 1회)';
+        return '30초 동안 마음을 가라앉히면 받아요 (1일 1회)';
       case BlessingBagEarnReason.eventParticipation:
         return '진행 중인 이벤트에 참여하면 받아요';
       case BlessingBagEarnReason.wishComment:
@@ -486,7 +486,7 @@ extension BlessingBagEarnReasonX on BlessingBagEarnReason {
       case BlessingBagEarnReason.dailyCandle:
         return 1;
       case BlessingBagEarnReason.dailyMeditation:
-        return 2;
+        return 5;
       case BlessingBagEarnReason.wishComment:
         return 2;
       case BlessingBagEarnReason.dailyFeedVisit:
