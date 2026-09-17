@@ -441,16 +441,16 @@ class ApiWishWallRepository implements WishWallRepository {
 
   @override
   Future<void> reportWish(String wishId, String reason) async {
+    // [D-04 결함수정] userId는 서버가 Authorization: Bearer JWT로 직접 판단하므로
+    // body에 더 이상 실어 보내지 않는다(클라이언트 값은 서버에서 무시됨).
     final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/reports');
     try {
-      final userId = await AuthTokenStore.getCurrentUserId();
       final headers = await _authHeaders(json: true);
       final response = await http
           .post(
             uri,
             headers: headers,
             body: jsonEncode({
-              'userId': userId,
               'targetType': 'wish',
               'targetId': wishId,
               'reason': reason,
@@ -468,16 +468,16 @@ class ApiWishWallRepository implements WishWallRepository {
 
   @override
   Future<void> reportComment(String commentId, String reason) async {
+    // [D-04 결함수정] userId는 서버가 Authorization: Bearer JWT로 직접 판단하므로
+    // body에 더 이상 실어 보내지 않는다(클라이언트 값은 서버에서 무시됨).
     final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/reports');
     try {
-      final userId = await AuthTokenStore.getCurrentUserId();
       final headers = await _authHeaders(json: true);
       final response = await http
           .post(
             uri,
             headers: headers,
             body: jsonEncode({
-              'userId': userId,
               'targetType': 'comment',
               'targetId': commentId,
               'reason': reason,
