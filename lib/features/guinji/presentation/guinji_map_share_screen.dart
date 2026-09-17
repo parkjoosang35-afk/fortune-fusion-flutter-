@@ -70,13 +70,26 @@ Future<void> shareGuinjiMapInvite(
 
   switch (target) {
     case GuinjiShareTarget.sms:
-      // [SMS] 카카오톡과 무관하게 항상 사용 가능한 표준 스킴.
-      final smsUri = Uri(
-        scheme: 'sms',
-        path: '',
-        queryParameters: {'body': message},
-      );
-      if (await tryLaunch(smsUri)) return;
+      // [공유 페이지 net::ERR_UNKNOWN_URL_SCHEME 버그수정 — 2026-09]
+      // `sms:` 커스텀 스킴은 네이티브(Android/iOS)에서는 launchUrl이 OS의
+      // 문자 앱을 직접 여는 표준 방법이지만, Flutter Web(사용자가 실제로
+      // 쓰는 `https://sintong.kr/app/` 웹 버전)에서는 url_launcher_web이
+      // LaunchMode를 무시하고 항상 `window.open('sms:...')`으로 **새 탭**을
+      // 열려고 시도한다. 삼성인터넷/카톡 인앱브라우저 등 새 탭에서
+      // `sms:` 스킴을 처리할 수 없는 브라우저 컨텍스트에서는 그 새 탭이
+      // "페이지 로드에 실패했습니다 / net::ERR_UNKNOWN_URL_SCHEME" 오류
+      // 화면으로 뜬다(사용자 리포트: "공유 페이지가 다 이렇게 나오네" —
+      // 실제 배포 서버(admin_web 프록시 뒤 nginx, /app 경로로 서빙되는
+      // Flutter Web 빌드)에서 재현 확인). 웹에서는 애초에 이 스킴을 시도
+      // 하지 않고 곧바로 클립보드 복사로 폴백해야 한다.
+      if (!kIsWeb) {
+        final smsUri = Uri(
+          scheme: 'sms',
+          path: '',
+          queryParameters: {'body': message},
+        );
+        if (await tryLaunch(smsUri)) return;
+      }
       await copyAndToast('문자 앱을 열 수 없어 링크를 복사했어요.');
       return;
 
