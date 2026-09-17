@@ -44,26 +44,43 @@ Future<void> main() async {
   EveningBellNotificationService.initialize().then((_) {
     EveningBellNotificationService.syncFromSavedPreference();
   });
-  // [애드몹 실서비스 전환 준비] Google Mobile Ads SDK 초기화 전에 반드시
-  // UMP(사용자 동의) 절차를 먼저 거쳐야 한다 — EEA/영국 사용자에게는 동의를
-  // 받기 전에 개인화 광고를 요청하면 안 되기 때문이다(Google 정책 요구사항).
-  // `requestAndLoadIfRequired()`가 지역 판단 → (필요시) 동의 폼 표시 →
-  // 완료까지 전부 처리하며, 동의가 필요 없는 지역(한국 등)에서는 아무 UI도
-  // 뜨지 않고 즉시 넘어간다. Web 플랫폼은 SDK 자체가 지원되지 않으므로
-  // (google_mobile_ads는 Android/iOS 전용) kIsWeb일 때는 아예 호출하지
-  // 않는다. await 하지 않는 이유는 다른 초기화(Hive/딥링크/알림)와 동일하게
-  // 앱 최초 프레임을 블로킹할 필요가 없어서다 — 동의 폼이 필요한 경우
-  // 최초 프레임이 뜬 뒤에 자연스럽게 오버레이로 표시된다.
+  // [광고 미연동 버그수정 2026-09] Google Mobile Ads SDK 초기화 전에 UMP
+  // (사용자 동의) 절차를 먼저 거치는 것 자체는 맞다 — EEA/영국 사용자에게는
+  // 동의를 받기 전에 개인화 광고를 요청하면 안 되기 때문이다(Google 정책
+  // 요구사항). 하지만 기존 코드는 `if (canRequestAds) { ... initialize(); }`
+  // 형태로 SDK 초기화 자체를 동의 결과에 결박해 두었다 — 이게 실질적인
+  // 버그였다. `canRequestAds()`가 일시적으로 false를 반환하거나(동의 정보
+  // 조회 네트워크 지연/실패, 최초 설치 시 SDK 캐시 미준비 등) 한국처럼
+  // 원래 동의 UI 자체가 필요 없는 지역에서도 내부적으로 false가 나오는
+  // 경우가 있어, 이 조건에 걸리면 `MobileAds.instance.initialize()`가
+  // "그 실행 동안 영원히" 호출되지 않았다. Google Mobile Ads SDK는
+  // 초기화되지 않은 상태에서 `RewardedAd.load()`를 호출하면 조용히
+  // `onAdFailedToLoad`만 반복되므로, 사용자 입장에서는 "광고가 아예
+  // 뜨지 않는다"로만 보였다(행운상자·귀인지도·기존 복주머니 리워드 광고
+  // 전부 동일하게 영향받는 구조적 원인).
+  //
+  // [올바른 패턴] Google 공식 UMP 가이드대로 "동의 절차가 끝나면(성공/실패
+  // 무관) 항상 SDK를 초기화"하도록 고친다. 실제로 광고 요청이 허용되는지
+  // 여부(`canRequestAds`)는 SDK가 내부적으로 개인화/비개인화 광고 여부를
+  // 판단하는 데 사용될 뿐, "초기화 자체를 막을 이유"는 아니다.
   if (!kIsWeb) {
-    AdmobConsentService.requestAndLoadIfRequired().then((canRequestAds) {
-      if (canRequestAds) {
-        // [테스트 기기 등록] 실제 계정 전환 시 무효 클릭 방지를 위해
-        // AdmobAdIds.testDeviceIds에 등록된 기기만 테스트 광고를 받도록
-        // 설정한다(현재는 빈 리스트라 운영에는 영향 없음).
-        AdmobAdIds.applyRequestConfiguration();
-        MobileAds.instance.initialize();
-      }
-    });
+    // [안전장치] 동의 플로우가 네트워크 이슈 등으로 콜백을 아예 호출하지
+    // 못하고 멈추는 극단적인 경우까지 대비해, 8초 타임아웃 시 폴백으로도
+    // SDK를 초기화한다 — "광고가 영원히 안 뜨는" 상태를 원천적으로 방지.
+    AdmobConsentService.requestAndLoadIfRequired()
+        .timeout(const Duration(seconds: 8), onTimeout: () => false)
+        .then((_) {
+          // [테스트 기기 등록] 실제 계정 전환 시 무효 클릭 방지를 위해
+          // AdmobAdIds.testDeviceIds에 등록된 기기만 테스트 광고를 받도록
+          // 설정한다(현재는 빈 리스트라 운영에는 영향 없음).
+          AdmobAdIds.applyRequestConfiguration();
+          MobileAds.instance.initialize();
+        })
+        .catchError((_) {
+          // 동의 플로우 자체가 예외를 던진 경우에도 SDK 초기화는 계속
+          // 진행한다(부가 기능인 UMP가 핵심 광고 기능을 막아서는 안 됨).
+          MobileAds.instance.initialize();
+        });
   }
   // [카카오 간편로그인 - 웹 활성화] 카카오 SDK 초기화. kakao_flutter_sdk_common의
   // `KakaoSdk.appKey`는 플랫폼별로 다른 키를 사용한다(kIsWeb ?
