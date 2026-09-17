@@ -702,28 +702,28 @@ class GmServiceGrid extends StatelessWidget {
             children: [
               _GmServiceCard(
                 title: '소원방',
-                desc: '간절한 소망을\n담아 빌어봐요',
+                desc: '소망을 담아\n빌어보세요',
                 color: GmColors.blush,
                 icon: Icons.local_fire_department_outlined,
                 onTap: () => Navigator.of(context).pushNamed('/wish-room'),
               ),
               _GmServiceCard(
                 title: '타로',
-                desc: '오늘의 마음\n방향을 살펴요',
+                desc: '마음의 방향을\n살펴보세요',
                 color: GmColors.gold,
                 icon: Icons.style_outlined,
                 onTap: () => Navigator.of(context).pushNamed('/tarot/intro'),
               ),
               _GmServiceCard(
                 title: '정통사주',
-                desc: '만세력 기반\n정통 사주 풀이',
+                desc: '만세력 기반\n사주 풀이',
                 color: GmColors.rose500,
                 icon: Icons.brightness_5_outlined,
                 onTap: () => Navigator.of(context).pushNamed('/jeontong/eighty'),
               ),
               _GmServiceCard(
-                title: '오늘의 운세',
-                desc: '매일 새롭게\n갱신되는 운세',
+                title: '오늘 운세',
+                desc: '매일 새롭게\n갱신돼요',
                 color: GmColors.rose800,
                 icon: Icons.wb_sunny_outlined,
                 onTap: () => Navigator.of(context).pushNamed('/fortune/today/intro'),
@@ -736,6 +736,24 @@ class GmServiceGrid extends StatelessWidget {
   }
 }
 
+/// [귀인지도 랜딩 "다른 서비스" 카드 균형 버그수정 — 2026-12]
+///
+/// [문제] 기존에는 `desc`에 하드코딩된 `\n`이 좁은 4열 그리드 카드 폭에서
+/// 다시 자동 줄바꿈되어("간절한 소망을" → "간절한 소망\n을"처럼 조사·
+/// 종결어미가 단독 줄로 떨어짐) 카드마다 텍스트 줄 수가 2~4줄로 제각각
+/// 달라졌다. 게다가 바깥 `Column`이 `mainAxisAlignment: center`였기 때문에,
+/// 줄 수가 많은 카드("소원방")는 콘텐츠 블록 전체가 아래로, 줄 수가 적은
+/// 카드는 위로 쏠려 4개 카드의 아이콘·제목·"바로가기" 세로 위치가 서로
+/// 어긋나 보였다("귀인지도 글씨하고 균형이 안맞는데" 리포트).
+///
+/// [해결] 1) 문구 자체를 카드 폭에서 절대 재줄바꿈되지 않도록 더 짧게
+/// 다듬었다(제목 최대 4글자 유지하되 desc는 각 줄 6자 이내로 축약).
+/// 2) 그래도 폰트 크기·기기 폭에 따라 재줄바꿈될 가능성에 대비해, 제목은
+/// `maxLines: 1`(줄임표), 설명은 `maxLines: 2`로 고정하고 각각을 고정
+/// 높이 `SizedBox`에 담아 텍스트 실제 줄 수와 무관하게 카드 내 위치가
+/// 절대 흔들리지 않게 만들었다. 3) 바깥 `Column`을 `start` 정렬로 바꾸고
+/// `Spacer()`로 "바로가기 →"를 카드 최하단에 고정해, 4개 카드의 아이콘·
+/// 제목·설명·링크가 모두 같은 세로선에 정렬된다.
 class _GmServiceCard extends StatelessWidget {
   const _GmServiceCard({
     required this.title,
@@ -774,8 +792,9 @@ class _GmServiceCard extends StatelessWidget {
               ),
             ),
             Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
+                const SizedBox(height: 4),
                 Container(
                   width: 40,
                   height: 40,
@@ -784,10 +803,34 @@ class _GmServiceCard extends StatelessWidget {
                   child: Icon(icon, size: 22, color: color),
                 ),
                 const SizedBox(height: 6),
-                Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: GmColors.ink)),
+                // 제목: 카드 폭이 좁아 4글자("오늘 운세")도 줄바꿈될 수
+                // 있으므로 maxLines:1 + ellipsis로 항상 한 줄 높이만
+                // 차지하도록 고정한다.
+                SizedBox(
+                  height: 16,
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: GmColors.ink),
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(desc, textAlign: TextAlign.center, style: const TextStyle(fontSize: 9.5, color: GmColors.inkSoft, height: 1.25)),
-                const SizedBox(height: 4),
+                // 설명: 항상 정확히 2줄 높이만 차지하도록 고정 —
+                // 실제 줄 수가 1줄이든 2줄이든 이 박스 높이는 동일하므로
+                // 아래 "바로가기"가 카드마다 밀리지 않는다.
+                SizedBox(
+                  height: 24,
+                  child: Text(
+                    desc,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 9.5, color: GmColors.inkSoft, height: 1.25),
+                  ),
+                ),
+                const Spacer(),
                 const Text('바로가기 →', style: TextStyle(fontSize: 9.5, color: GmColors.rose700)),
               ],
             ),
