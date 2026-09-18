@@ -179,6 +179,7 @@ flutter:
     - assets/tarot/oz/
     - assets/jeontong/easy_terms.json
     - assets/jeontong/rules/
+    - assets/videos/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

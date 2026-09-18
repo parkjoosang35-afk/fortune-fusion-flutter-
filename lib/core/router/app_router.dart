@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'app_shell.dart';
 import '../../features/auth/presentation/splash_screen.dart';
-import '../../features/intro/presentation/intro_pager_screen.dart';
+import '../../features/intro/presentation/onboarding_gate_screen.dart';
 import '../../features/policy/presentation/policy_notice_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/signup_screen.dart';
@@ -161,8 +161,15 @@ class AppRouter {
         return _page(const SplashScreen());
       // [인트로 전면 개편] 4단계 인트로(카드1/카드2/CTA) 페이저. 스플래시 이후
       // introSeen=false인 첫 실행 사용자에게만 노출된다.
+      //
+      // [온보딩 영상 적용 — 개발자 핸드오프 가이드 §4] 이 페이저 진입 전에
+      // 5대 핵심기능 소개 영상(27초)을 먼저 보여줘야 하므로,
+      // OnboardingGateScreen이 SharedPreferences(`has_seen_onboarding_v1`)
+      // 기준으로 "영상 → 이 페이저" 또는 "바로 이 페이저"를 내부적으로
+      // 분기한다(카드 인트로 자체의 introSeen 분기는 SplashScreen이 기존
+      // 그대로 담당 — 이중 분기 로직이 아니라 한 단계 더 얹는 방식).
       case '/intro':
-        return _page(const IntroPagerScreen());
+        return _page(const OnboardingGateScreen());
       // [6-5-D] 구 3페이지 온보딩(OnboardingScreen)은 신규 IntroPagerScreen이
       // 완전히 대체했고, 이 named route를 호출하는 코드가 앱 전체(딥링크 포함)
       // 어디에도 없음을 확인해 죽은 라우트만 제거한다. 화면 파일 자체
