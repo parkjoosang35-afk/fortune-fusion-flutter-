@@ -46,6 +46,7 @@ import '../domain/jeontong_eighty_matrix.dart';
 import '../../../core/router/app_router.dart' show AppRouter;
 import '../application/home_page_config_provider.dart';
 import '../application/section_visibility_evaluator.dart';
+import '../domain/page_config_model.dart';
 import 'widgets/welcome_reward_modal.dart';
 import '../../ads_test/presentation/admob_test_banner.dart';
 import '../../ad_banner/presentation/ad_banner_widget.dart';
@@ -57,6 +58,7 @@ import 'sintong_home/widgets/sintong_story_hero.dart';
 import 'sintong_home/widgets/sintong_guiin_cta.dart';
 import 'sintong_home/widgets/sintong_service_tile.dart';
 import 'sintong_home/widgets/sintong_free_pass_bar.dart';
+import 'sintong_home/widgets/sintong_dynamic_section_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -107,32 +109,88 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// [6-4-B] HomePageConfigProvider.load() 배선 검증(기존 로직 그대로,
-  /// 화면 렌더링에는 반영하지 않는 디버그 전용 경로).
+  /// [Stage2 결함수정 — 결함-E05-01] HomePageConfigProvider.load() 결과를
+  /// 실제로 화면 렌더링에 반영하기 위한 최초 로드 트리거.
+  ///
+  /// [수정 이력] 과거에는 이 함수가 `configProvider.load()` 후 결과를
+  /// `debugPrint`로만 출력하고 끝나, 관리자가 admin_web에서 홈 섹션의
+  /// 순서/노출 여부를 바꿔도 앱 화면이 전혀 반영하지 않는 결함(E-05,
+  /// "미구현" 판정)이 있었다. `configProvider`는 `ChangeNotifier`이고
+  /// `build()`에서 `context.watch<HomePageConfigProvider>()`로 구독하고
+  /// 있으므로, 여기서는 `load()` 호출만으로 충분하다 — 로드가 끝나면
+  /// `notifyListeners()`가 `build()`를 재실행시켜 `visibleSections(ctx)`
+  /// 결과가 실제 섹션 순서/노출로 그대로 반영된다(아래 `build()` 참고).
   Future<void> _loadHomePageConfigAndVerify() async {
     final configProvider = context.read<HomePageConfigProvider>();
     await configProvider.load();
     if (!mounted) return;
-
-    final auth = context.read<AuthProvider>();
-    final access = context.read<AccessChecker>();
-    final wallet = context.read<WalletProvider>();
-
-    final ctx = HomeVisibilityContext(
-      isLoggedIn: auth.isLoggedIn,
-      now: DateTime.now(),
-      openPassActive: access.openPassState.isActive,
-      luckPouchBalance: wallet.balance,
-      platform: HomeVisibilityContext.currentPlatformKey(),
-    );
-
-    final visible = configProvider.visibleSections(ctx);
     debugPrint(
-      '[6-4-B 검증] HomePageConfig load 상태=${configProvider.state.isSuccess}, '
+      '[E05-01] HomePageConfig load 완료 상태=${configProvider.state.isSuccess}, '
       'usingCache=${configProvider.usingCache}, '
-      '전체 섹션=${configProvider.rawSections.length}, '
-      'visible 섹션=${visible.length} (아직 화면에는 미반영)',
+      '전체 섹션=${configProvider.rawSections.length}',
     );
+  }
+
+  /// [Stage2 결함수정 — 결함-E05-01] 관리자 CMS 섹션 키를 기존 전용 위젯에
+  /// 매핑한다. 매핑되는 전용 위젯이 없는 섹션(lucky_number,
+  /// wish_community_preview, happy_money_earn/use, subscription_promo 등)은
+  /// `SintongDynamicSectionCard`로 관리자가 입력한 title/subtitle/buttonText/
+  /// badgeText 값을 그대로 렌더링한다.
+  Widget _buildSectionWidget(
+    PageSectionModel section,
+    List<SintongServiceSpec> services,
+  ) {
+    switch (section.sectionKey) {
+      case 'pass_status_bar':
+      case 'pass_promo':
+        // 둘 다 "열림패스 상태/유도"를 다루므로 기존 C-07 위젯(실시간
+        // 남은시간 표시)을 그대로 재사용한다. displayRules(open_pass_inactive
+        // 등)는 이미 evaluator가 필터링했으므로 여기서는 항상 렌더링한다.
+        return const SintongFreePassBar();
+      case 'hero_fortune_summary':
+        // 기존 C-03(힐링바)+C-04(스토리히어로)+C-05(귀인지도 CTA) 블록이
+        // "오늘의 대표 운세" 개념과 가장 가까우므로 그대로 매핑한다.
+        return KeyedSubtree(
+          key: _todayFortuneSectionKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SintongHealingBar(),
+              const SizedBox(height: SintongHomeSpacing.sectionGap),
+              SintongStoryHero(onTap: _openGuiinMap),
+              const SizedBox(height: 14),
+              SintongGuiinCta(onTap: _openGuiinMap),
+            ],
+          ),
+        );
+      case 'fortune_category_grid':
+        // 기존 C-06 서비스 리스트/그리드(4개: 정통사주/타로/소원방/손금관상)
+        return _isGridView
+            ? GridView.count(
+                crossAxisCount: 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: SintongHomeSpacing.cardGap,
+                crossAxisSpacing: SintongHomeSpacing.cardGap,
+                childAspectRatio: 0.98,
+                children: services
+                    .map((s) => SintongServiceGridTile(spec: s))
+                    .toList(),
+              )
+            : Column(
+                children: [
+                  for (int i = 0; i < services.length; i++) ...[
+                    SintongServiceTile(spec: services[i]),
+                    if (i != services.length - 1)
+                      const SizedBox(height: SintongHomeSpacing.cardGap),
+                  ],
+                ],
+              );
+      default:
+        // lucky_number / wish_community_preview / happy_money_earn /
+        // happy_money_use / subscription_promo 등 전용 위젯이 없는 섹션.
+        return SintongDynamicSectionCard(section: section);
+    }
   }
 
   void _openGuiinMap() {
@@ -182,6 +240,33 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final services = _buildServiceSpecs();
 
+    // [Stage2 결함수정 — 결함-E05-01] admin_web이 발행한 홈 섹션 구성을
+    // 실제 렌더링 순서/노출에 반영한다. `context.watch`로 구독하므로
+    // `HomePageConfigProvider.load()` 완료 시 자동으로 이 build()가 재실행된다.
+    final configProvider = context.watch<HomePageConfigProvider>();
+    final auth = context.watch<AuthProvider>();
+    final access = context.watch<AccessChecker>();
+    final wallet = context.watch<WalletProvider>();
+
+    final visCtx = HomeVisibilityContext(
+      isLoggedIn: auth.isLoggedIn,
+      now: DateTime.now(),
+      openPassActive: access.openPassState.isActive,
+      luckPouchBalance: wallet.balance,
+      platform: HomeVisibilityContext.currentPlatformKey(),
+    );
+
+    // 서버 구성이 아직 로드되지 않았거나(초기 프레임) 로드에 실패해 캐시도
+    // 없는 경우(`shouldFallbackToStatic`)에는 기존 하드코딩 고정 순서로
+    // 폴백한다 — 관리자 설정이 전혀 없던 과거 동작과 동일하게 화면이
+    // 비어버리는 회귀를 방지한다.
+    final rawSections = configProvider.rawSections;
+    final useDynamicSections =
+        rawSections.isNotEmpty && !configProvider.shouldFallbackToStatic;
+    final visibleSections = useDynamicSections
+        ? configProvider.visibleSections(visCtx)
+        : <PageSectionModel>[];
+
     return Scaffold(
       backgroundColor: SintongHomeColors.scaffoldBackground,
       body: SafeArea(
@@ -194,20 +279,19 @@ class _HomeScreenState extends State<HomeScreen> {
             24,
           ),
           children: [
-            // C-01 브랜드 앱바
+            // C-01 브랜드 앱바 (항상 최상단 고정 — CMS 섹션 목록에 없는
+            // 구조적 헤더이므로 동적 배선 대상에서 제외)
             const SintongBrandAppBar(),
             const SizedBox(height: SintongHomeSpacing.sectionGap),
 
             // [G-02 치명결함수정] CMS 제휴광고 배너(admin_web에서 등록/활성화한
             // 배너를 관리자가 즉시 앱에 반영할 수 있어야 하는 요건, home_top
-            // position). 위젯/Provider/Repository는 모두 완성되어 있었으나
-            // 어떤 화면에서도 실제로 인스턴스화되지 않아(grep 0건) 사용자가
-            // 영원히 배너를 볼 수 없던 결함을 수정 — 여기서 최초로 배치한다.
-            // 활성 배너가 없으면 fallback 없이 공간을 차지하지 않고 사라진다.
+            // position). 활성 배너가 없으면 공간을 차지하지 않고 사라진다.
             const AdBannerWidget(position: 'home_top'),
             const SizedBox(height: SintongHomeSpacing.sectionGap),
 
-            // C-02 전체보기 칩 + 그리드 스위치
+            // C-02 전체보기 칩 + 그리드 스위치 (CMS 섹션 목록에 없는 UI
+            // 컨트롤이므로 동적 배선 대상에서 제외, 항상 고정 위치)
             SintongModeChipRow(
               onChipTap: () =>
                   Navigator.of(context).pushNamed('/home/all-categories'),
@@ -216,48 +300,63 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: SintongHomeSpacing.sectionGap),
 
-            // C-03 힐링바 + C-04 스토리히어로 + C-05 귀인지도 CTA
-            KeyedSubtree(
-              key: _todayFortuneSectionKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SintongHealingBar(),
+            // [E05-01 핵심 수정] 이하 관리자(admin_web)가 발행한 섹션들을
+            // sortOrder 순서 그대로, isVisible/status/displayRules를 모두
+            // 통과한 것만 렌더링한다. 서버 구성 로드 실패 시(useDynamicSections
+            // ==false)에는 과거와 동일한 고정 순서(힐링바+스토리히어로+
+            // 귀인지도 → 서비스그리드 → 프리패스바)로 폴백한다.
+            if (useDynamicSections)
+              for (int i = 0; i < visibleSections.length; i++) ...[
+                _buildSectionWidget(visibleSections[i], services),
+                if (i != visibleSections.length - 1)
                   const SizedBox(height: SintongHomeSpacing.sectionGap),
-                  SintongStoryHero(onTap: _openGuiinMap),
-                  const SizedBox(height: 14),
-                  SintongGuiinCta(onTap: _openGuiinMap),
-                ],
+              ]
+            else ...[
+              // C-03 힐링바 + C-04 스토리히어로 + C-05 귀인지도 CTA
+              KeyedSubtree(
+                key: _todayFortuneSectionKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SintongHealingBar(),
+                    const SizedBox(height: SintongHomeSpacing.sectionGap),
+                    SintongStoryHero(onTap: _openGuiinMap),
+                    const SizedBox(height: 14),
+                    SintongGuiinCta(onTap: _openGuiinMap),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: SintongHomeSpacing.sectionGap),
+              const SizedBox(height: SintongHomeSpacing.sectionGap),
 
-            // C-06 서비스 리스트/그리드(4개: 정통사주/타로/소원방/손금·관상)
-            _isGridView
-                ? GridView.count(
-                    crossAxisCount: 2,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    mainAxisSpacing: SintongHomeSpacing.cardGap,
-                    crossAxisSpacing: SintongHomeSpacing.cardGap,
-                    childAspectRatio: 0.98,
-                    children: services
-                        .map((s) => SintongServiceGridTile(spec: s))
-                        .toList(),
-                  )
-                : Column(
-                    children: [
-                      for (int i = 0; i < services.length; i++) ...[
-                        SintongServiceTile(spec: services[i]),
-                        if (i != services.length - 1)
-                          const SizedBox(height: SintongHomeSpacing.cardGap),
+              // C-06 서비스 리스트/그리드(4개: 정통사주/타로/소원방/손금·관상)
+              _isGridView
+                  ? GridView.count(
+                      crossAxisCount: 2,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      mainAxisSpacing: SintongHomeSpacing.cardGap,
+                      crossAxisSpacing: SintongHomeSpacing.cardGap,
+                      childAspectRatio: 0.98,
+                      children: services
+                          .map((s) => SintongServiceGridTile(spec: s))
+                          .toList(),
+                    )
+                  : Column(
+                      children: [
+                        for (int i = 0; i < services.length; i++) ...[
+                          SintongServiceTile(spec: services[i]),
+                          if (i != services.length - 1)
+                            const SizedBox(
+                              height: SintongHomeSpacing.cardGap,
+                            ),
+                        ],
                       ],
-                    ],
-                  ),
-            const SizedBox(height: SintongHomeSpacing.sectionGap),
+                    ),
+              const SizedBox(height: SintongHomeSpacing.sectionGap),
 
-            // C-07 프리패스 바
-            const SintongFreePassBar(),
+              // C-07 프리패스 바
+              const SintongFreePassBar(),
+            ],
 
             const SizedBox(height: 10),
             const AdmobTestBanner(),
