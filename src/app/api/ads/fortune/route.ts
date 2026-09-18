@@ -7,13 +7,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { todayRangeKst } from "@/lib/luck-pouch-engine";
 import { serializeFortuneAdSummary } from "@/lib/fortune-ad-service";
+import { requireUser, unauthorizedResponse } from "@/app/api/public/wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
 const CORS_HEADERS = { "Access-Control-Allow-Origin": "*" };
 
 export async function GET(request: NextRequest) {
-  const userId = Number(request.nextUrl.searchParams.get("userId") ?? 1);
+  // [Stage2 결함수정 — 결함-A04-01] 다른 사용자의 오늘 시청현황이 무단 열람되지 않도록
+  // JWT로만 신원을 판별한다.
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
 
   try {
     const now = new Date();

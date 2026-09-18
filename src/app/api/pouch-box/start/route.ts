@@ -8,19 +8,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { prisma } from "@/lib/db";
 import { checkPouchBoxEligibility, POUCH_BOX_REASON_LABELS } from "@/lib/pouch-box-service";
+import { requireUser, unauthorizedResponse } from "@/app/api/public/wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
 const CORS_HEADERS = { "Access-Control-Allow-Origin": "*" };
 
 export async function POST(request: NextRequest) {
-  let body: { userId?: number };
-  try {
-    body = await request.json();
-  } catch {
-    body = {};
-  }
-  const userId = Number(body.userId ?? 1);
+  // [Stage2 결함수정 — 결함-A04-01] 이 API는 지급 세션을 발급하는 지점이므로
+  // body.userId 위조 시 타인 명의로 하루 5회 한도를 대신 소진시키거나, 이어지는
+  // /complete 호출과 결합해 타인 계정으로 보상을 가로챌 위험이 있다. JWT
+  // Authorization 헤더로만 신원을 판별한다(body의 userId는 더 이상 신뢰하지 않음).
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
 
   try {
     const eligibility = await checkPouchBoxEligibility(userId);

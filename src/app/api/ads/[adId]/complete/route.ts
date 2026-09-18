@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { earnLuckPouch } from "@/lib/luck-pouch-engine";
 import { checkFortuneAdEligibility, FORTUNE_AD_REASON_LABELS } from "@/lib/fortune-ad-service";
+import { requireUser, unauthorizedResponse } from "@/app/api/public/wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +38,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ad
     );
   }
 
-  const userId = Number(body.userId ?? 1);
+  // [Stage2 결함수정 — 결함-A04-01] 실제 보상 지급 지점 — JWT로만 신원을 판별한다.
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
   const sessionId = body.sessionId;
   const watchSeconds = Number.isInteger(body.watchSeconds) ? Number(body.watchSeconds) : null;
 

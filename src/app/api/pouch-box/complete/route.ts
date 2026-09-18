@@ -19,6 +19,7 @@ import {
   POUCH_BOX_REASON_LABELS,
   rollPouchBoxReward,
 } from "@/lib/pouch-box-service";
+import { requireUser, unauthorizedResponse } from "@/app/api/public/wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +42,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const userId = Number(body.userId ?? 1);
+  // [Stage2 결함수정 — 결함-A04-01] 실제 보상 지급 지점 — 반드시 JWT로만 신원을 판별한다.
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
   const sessionId = body.sessionId;
   const watchSeconds = Number.isInteger(body.watchSeconds) ? Number(body.watchSeconds) : null;
 
