@@ -47,7 +47,11 @@ class _AppShellState extends State<AppShell> {
     // 🕯 신통방통 소원방 - "마법진이 소환되는 신전"(V2 Moonlit Crystal) 디자인
     // 핸드오프의 ScreenHome을 pixel-perfect 재현한 화면. 탭 아이콘/라벨/위치
     // (하단바 자체 UI)는 그대로 유지하고 이 탭이 보여주는 화면 내용만 교체.
-    WishRoomHomeScreen(),
+    // [하단바 중복 버그 수정] isTabInstance:true를 명시적으로 전달해,
+    // 이 화면이 스스로 또 다른 전역 하단바를 그리지 않도록 한다(과거에는
+    // Navigator.canPop()으로만 추론해 특정 상황에서 두 하단바가 겹쳐
+    // 보이는 버그가 있었다 — wish_room_home_screen.dart 상단 문서 참고).
+    WishRoomHomeScreen(isTabInstance: true),
     // 🎁 복주머니 - [행운상자 - 복주머니 탭 신규 기능] 광고 시청으로 여는
     // 행운상자 그리드(하단바 라벨/아이콘은 그대로 "복주머니" 유지, 화면
     // 내용만 신규 행운상자 인터랙션으로 전면 교체됨).

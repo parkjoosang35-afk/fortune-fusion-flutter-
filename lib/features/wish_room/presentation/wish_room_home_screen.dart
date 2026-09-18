@@ -62,6 +62,7 @@ class WishRoomHomeScreen extends StatefulWidget {
     super.key,
     this.showEmptyScreenIfEmpty = false,
     this.checkBoxOpening = false,
+    this.isTabInstance = false,
   });
 
   /// [Phase 01 · 2단계 · orphan 화면 연결] true면 로딩 완료 후 소원이
@@ -70,6 +71,23 @@ class WishRoomHomeScreen extends StatefulWidget {
   /// 넘긴다 — 그 외(이미 온보딩을 봤던 기존 사용자)는 지금까지처럼
   /// 아래 [_WishListSection]의 축소된 인라인 빈 상태를 그대로 사용한다.
   final bool showEmptyScreenIfEmpty;
+
+  /// [하단바 중복 버그 수정 — 근본 원인 해결] 기존에는 이 화면이 push된
+  /// 인스턴스인지(=전역 5탭 [MainBottomNavBar]를 스스로 그려야 하는지)를
+  /// `Navigator.canPop(context)`로만 추론했다. 그런데 루트 Navigator의
+  /// 스택 깊이가 2 이상인 상태(예: 딥링크/다른 화면에서 온 경로 등)에서
+  /// 사용자가 "마이" 탭 등 [AppShell]의 tab을 그대로 보고 있으면, 이
+  /// 화면이 `AppShell`의 `IndexedStack` 안(=탭 인스턴스)에 있어도
+  /// `canPop()`이 true로 나와 "이미 AppShell 자체 하단바가 있는데도"
+  /// 이 화면이 또 자신만의 [MainBottomNavBar]를 그려, 두 하단바가
+  /// 세로로 겹쳐 보이는 버그가 있었다(사용자 스크린샷으로 재현 확인).
+  ///
+  /// 이제는 "탭 인스턴스인지"를 Navigator 스택 깊이에서 추론하지 않고
+  /// 생성 시점에 명시적으로 전달한다 — [AppShell]의 `_tabs` 목록에서만
+  /// `true`로 넘기고, [WishRoomEntryGate](실제 push 경유 진입)는 기본값
+  /// `false`를 그대로 사용해 기존 push 동작(뒤로가기+하단바 표시)을
+  /// 그대로 유지한다.
+  final bool isTabInstance;
 
   /// [Phase 01 · 2단계 · orphan 화면 연결] true면 [initState]에서
   /// [findPendingBoxOpeningWishId]로 100일 지난 소원이 있는지 확인하고,
@@ -332,7 +350,12 @@ class _WishRoomHomeScreenState extends State<WishRoomHomeScreen> {
     // 안의 [WishRoomHomeScreen]() 인스턴스는 push된 적이 없어 `canPop()`이
     // false이고, 이 경우 헤더/빈 상태 화면 모두 버튼을 렌더링하지 않는다
     // (탭 전환은 이미 AppShell 자체 하단바로 가능하므로 중복 UI 불필요).
-    final canGoBack = Navigator.canPop(context);
+    // [하단바 중복 버그 수정] `isTabInstance`(AppShell 탭 인스턴스 여부를
+    // 생성 시점에 명시적으로 전달받은 값)를 최우선으로 신뢰한다.
+    // `Navigator.canPop(context)`는 더 이상 이 판단에 쓰지 않는다 —
+    // 루트 스택 깊이만으로는 "AppShell 탭 안인지"를 안전하게 구분할 수
+    // 없었기 때문이다(위 [isTabInstance] 문서 참고).
+    final canGoBack = !widget.isTabInstance && Navigator.canPop(context);
     final onBack = canGoBack ? () => Navigator.of(context).pop() : null;
 
     // [Phase 01 · 2단계 · orphan 화면 연결] 온보딩 직후 첫 진입인데(=

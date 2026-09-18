@@ -231,6 +231,19 @@ class _MyScreenState extends State<MyScreen> {
                 MaterialPageRoute(builder: (_) => const WishRoomEntryGate()),
               ),
             ),
+            const SizedBox(height: UnifiedTokens.spaceMd),
+            // [마이페이지 진입점 추가] 이미 구현되어 있던 출석체크 달력
+            // 화면(`AttendanceCalendarScreen`, `/reward/attendance` 라우트,
+            // 30일 그리드 + 연속출석 마일스톤 + 출석하기 버튼)이 지금까지
+            // 이 마이 탭에서는 진입할 방법이 전혀 없었다(기존에는
+            // `luckybag_hub_screen.dart`의 바로가기 카드에서만 접근
+            // 가능했음). 화면/라우트/Provider는 전혀 새로 만들지 않고,
+            // 기존 라우트로 이동하는 메뉴 항목만 하나 추가한다.
+            _MenuTile(
+              icon: Icons.calendar_month_outlined,
+              title: '출석체크',
+              onTap: () => Navigator.of(context).pushNamed('/reward/attendance'),
+            ),
             const SizedBox(height: UnifiedTokens.spaceXxl),
 
             // §3 설정 섹션
