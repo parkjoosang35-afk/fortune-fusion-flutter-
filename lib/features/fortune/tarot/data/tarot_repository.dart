@@ -85,13 +85,14 @@ class TarotRepository {
     );
 
     try {
-      final userId = await AuthTokenStore.getCurrentUserId();
       final response = await http
           .post(
             uri,
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+              'Content-Type': 'application/json',
+              ...await AuthTokenStore.authHeader(),
+            },
             body: jsonEncode({
-              'userId': userId,
               'question': question,
               'spreadType': spreadType,
               'topic': topic,
@@ -164,11 +165,12 @@ class TarotRepository {
   /// 누적된 로컬 결과는 그대로 보여줄 수 있도록 폴백을 유지한다.
   Future<ApiResult<List<TarotResultModel>>> getHistory() async {
     try {
-      final userId = await AuthTokenStore.getCurrentUserId();
       final uri = Uri.parse(
-        '${EnvConfig.adminApiBaseUrl}/api/public/fortune/tarot/history?userId=$userId',
+        '${EnvConfig.adminApiBaseUrl}/api/public/fortune/tarot/history',
       );
-      final response = await http.get(uri).timeout(const Duration(seconds: 15));
+      final response = await http
+          .get(uri, headers: await AuthTokenStore.authHeader())
+          .timeout(const Duration(seconds: 15));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
         debugPrint('[TarotRepository] [getHistory] 서버 조회 실패, 로컬로 폴백');

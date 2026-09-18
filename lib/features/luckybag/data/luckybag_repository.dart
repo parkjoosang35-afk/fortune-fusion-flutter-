@@ -140,7 +140,6 @@ class LuckyBagRepository {
     String productId,
     int remainingBalance,
   ) async {
-    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/luckybag/open',
     );
@@ -150,9 +149,11 @@ class LuckyBagRepository {
       final response = await http
           .post(
             uri,
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+              'Content-Type': 'application/json',
+              ...await AuthTokenStore.authHeader(),
+            },
             body: jsonEncode({
-              'userId': userId,
               'productId': int.parse(productId),
             }),
           )
@@ -215,14 +216,16 @@ class LuckyBagRepository {
 
   Future<(List<LuckyBagOpenLogModel>, List<LuckyBagRewardSummaryEntry>)?>
   _fetchHistory() async {
-    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
-      '${EnvConfig.adminApiBaseUrl}/api/public/luckybag/history?userId=$userId',
+      '${EnvConfig.adminApiBaseUrl}/api/public/luckybag/history',
     );
     debugPrint('[LuckyBagRepository] [history] 요청 시작 -> $uri');
 
     final response = await http
-        .get(uri, headers: {'Accept': 'application/json'})
+        .get(uri, headers: {
+          'Accept': 'application/json',
+          ...await AuthTokenStore.authHeader(),
+        })
         .timeout(const Duration(seconds: 10));
 
     debugPrint(

@@ -15,15 +15,17 @@ import '../domain/attendance_calendar_model.dart';
 /// 최신 잔액만 재조회한다(호출부는 attendance_provider.dart 참조).
 class AttendanceRepository {
   Future<ApiResult<Map<String, dynamic>>> getStatus() async {
-    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
-      '${EnvConfig.adminApiBaseUrl}/api/public/attendance/status?userId=$userId',
+      '${EnvConfig.adminApiBaseUrl}/api/public/attendance/status',
     );
     debugPrint('[AttendanceRepository] [status] 요청 -> $uri');
 
     try {
       final response = await http
-          .get(uri, headers: {'Accept': 'application/json'})
+          .get(uri, headers: {
+            'Accept': 'application/json',
+            ...await AuthTokenStore.authHeader(),
+          })
           .timeout(const Duration(seconds: 10));
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
@@ -48,18 +50,19 @@ class AttendanceRepository {
   /// alreadyChecked를 담아 반환한다. 서버가 이미 지갑 적립까지 처리하므로 호출부는
   /// 반환된 rewardPoint>0일 때 WalletProvider.load()로 잔액만 새로고침하면 된다.
   Future<ApiResult<Map<String, dynamic>>> checkIn() async {
-    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/attendance/checkin',
     );
-    debugPrint('[AttendanceRepository] [checkin] 요청 시작 -> userId=$userId');
+    debugPrint('[AttendanceRepository] [checkin] 요청 시작');
 
     try {
       final response = await http
           .post(
             uri,
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'userId': userId}),
+            headers: {
+              'Content-Type': 'application/json',
+              ...await AuthTokenStore.authHeader(),
+            },
           )
           .timeout(const Duration(seconds: 10));
 
@@ -90,9 +93,7 @@ class AttendanceRepository {
     int? year,
     int? month,
   }) async {
-    final userId = await AuthTokenStore.getCurrentUserId();
     final query = {
-      'userId': '$userId',
       if (year != null) 'year': '$year',
       if (month != null) 'month': '$month',
     };
@@ -103,7 +104,10 @@ class AttendanceRepository {
 
     try {
       final response = await http
-          .get(uri, headers: {'Accept': 'application/json'})
+          .get(uri, headers: {
+            'Accept': 'application/json',
+            ...await AuthTokenStore.authHeader(),
+          })
           .timeout(const Duration(seconds: 10));
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;

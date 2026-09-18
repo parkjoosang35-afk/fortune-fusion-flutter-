@@ -23,7 +23,6 @@ class CompatibilityRepository {
     required String birthDateA,
     required String birthDateB,
   }) async {
-    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/compatibility/request',
     );
@@ -35,9 +34,11 @@ class CompatibilityRepository {
       final response = await http
           .post(
             uri,
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+              'Content-Type': 'application/json',
+              ...await AuthTokenStore.authHeader(),
+            },
             body: jsonEncode({
-              'userId': userId,
               'type': type.apiValue,
               'nameA': nameA,
               'nameB': nameB,
@@ -70,11 +71,12 @@ class CompatibilityRepository {
   /// 그대로 보여줄 수 있도록 폴백을 유지한다(이름 운세와 동일 패턴).
   Future<ApiResult<List<CompatibilityResultModel>>> getHistory() async {
     try {
-      final userId = await AuthTokenStore.getCurrentUserId();
       final uri = Uri.parse(
-        '${EnvConfig.adminApiBaseUrl}/api/public/compatibility/history?userId=$userId',
+        '${EnvConfig.adminApiBaseUrl}/api/public/compatibility/history',
       );
-      final response = await http.get(uri).timeout(const Duration(seconds: 15));
+      final response = await http
+          .get(uri, headers: await AuthTokenStore.authHeader())
+          .timeout(const Duration(seconds: 15));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
         debugPrint('[CompatibilityRepository] [getHistory] 서버 조회 실패, 로컬로 폴백');

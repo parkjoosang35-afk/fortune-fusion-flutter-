@@ -40,14 +40,16 @@ class GiftcardRepository {
   /// 재고소진 시에도 서버는 status:"failed" 레코드를 생성해 success:true로 응답한다
   /// (Flutter의 issue.status==failed 감지 → 환불 처리 흐름과 정합성 유지 - 설계결정 참조).
   Future<ApiResult<GiftcardIssueModel>> orderProduct(String productId) async {
-    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse('$_base/orders');
     try {
       final response = await http
           .post(
             uri,
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'userId': userId, 'productId': productId}),
+            headers: {
+              'Content-Type': 'application/json',
+              ...await AuthTokenStore.authHeader(),
+            },
+            body: jsonEncode({'productId': productId}),
           )
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
@@ -65,11 +67,13 @@ class GiftcardRepository {
 
   /// GET /api/public/giftcard/orders/my
   Future<ApiResult<List<GiftcardIssueModel>>> getMyOrders() async {
-    final userId = await AuthTokenStore.getCurrentUserId();
-    final uri = Uri.parse('$_base/orders/my?userId=$userId');
+    final uri = Uri.parse('$_base/orders/my');
     try {
       final response = await http
-          .get(uri, headers: {'Accept': 'application/json'})
+          .get(uri, headers: {
+            'Accept': 'application/json',
+            ...await AuthTokenStore.authHeader(),
+          })
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
@@ -89,14 +93,15 @@ class GiftcardRepository {
 
   /// POST /api/public/giftcard/orders/:id/use
   Future<ApiResult<GiftcardIssueModel>> useIssue(String issueId) async {
-    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse('$_base/orders/$issueId/use');
     try {
       final response = await http
           .post(
             uri,
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'userId': userId}),
+            headers: {
+              'Content-Type': 'application/json',
+              ...await AuthTokenStore.authHeader(),
+            },
           )
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;

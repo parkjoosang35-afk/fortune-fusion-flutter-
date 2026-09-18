@@ -22,21 +22,23 @@ class FaceRepository {
     if (image == null) {
       return ApiResult.fail('얼굴 사진을 먼저 촬영하거나 선택해주세요.');
     }
-    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/fortune/face',
     );
     final imageBase64 = base64Encode(image);
     debugPrint(
-      '[FaceRepository] [analyze] 요청 -> $uri (userId=$userId, imageBytes=${image.length})',
+      '[FaceRepository] [analyze] 요청 -> $uri (imageBytes=${image.length})',
     );
 
     try {
       final response = await http
           .post(
             uri,
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'userId': userId, 'image': imageBase64}),
+            headers: {
+              'Content-Type': 'application/json',
+              ...await AuthTokenStore.authHeader(),
+            },
+            body: jsonEncode({'image': imageBase64}),
           )
           .timeout(const Duration(seconds: 50));
 
@@ -67,11 +69,12 @@ class FaceRepository {
   /// 누적된 로컬 결과는 그대로 보여줄 수 있도록 폴백을 유지한다(name_fortune_repository와 동일 패턴).
   Future<ApiResult<List<FaceResultModel>>> getHistory() async {
     try {
-      final userId = await AuthTokenStore.getCurrentUserId();
       final uri = Uri.parse(
-        '${EnvConfig.adminApiBaseUrl}/api/public/fortune/face/history?userId=$userId',
+        '${EnvConfig.adminApiBaseUrl}/api/public/fortune/face/history',
       );
-      final response = await http.get(uri).timeout(const Duration(seconds: 15));
+      final response = await http
+          .get(uri, headers: await AuthTokenStore.authHeader())
+          .timeout(const Duration(seconds: 15));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
         debugPrint('[FaceRepository] [getHistory] 서버 조회 실패, 로컬로 폴백');

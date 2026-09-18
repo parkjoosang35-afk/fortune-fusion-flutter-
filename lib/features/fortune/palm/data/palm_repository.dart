@@ -25,25 +25,26 @@ class PalmRepository {
     if (image == null) {
       return ApiResult.fail('손바닥 사진을 먼저 촬영하거나 선택해주세요.');
     }
-    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/fortune/palm',
     );
     final imageBase64 = base64Encode(image);
     debugPrint(
-      '[PalmRepository] [analyze] 요청 -> $uri (userId=$userId, imageBytes=${image.length}, hand=${hand.apiValue})',
+      '[PalmRepository] [analyze] 요청 -> $uri (imageBytes=${image.length}, hand=${hand.apiValue})',
     );
 
     try {
       final response = await http
           .post(
             uri,
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+              'Content-Type': 'application/json',
+              ...await AuthTokenStore.authHeader(),
+            },
             // [신통방통 리스킨] hand 파라미터를 함께 전송한다. 서버가 아직
             // 활용하지 않더라도 추가 필드는 무시되므로 안전하며, 추후
             // 백엔드가 왼손/오른손별 해석을 지원할 때 바로 연동 가능하다.
             body: jsonEncode({
-              'userId': userId,
               'image': imageBase64,
               'hand': hand.apiValue,
             }),
@@ -77,11 +78,12 @@ class PalmRepository {
   /// 누적된 로컬 결과는 그대로 보여줄 수 있도록 폴백을 유지한다(name_fortune_repository와 동일 패턴).
   Future<ApiResult<List<PalmResultModel>>> getHistory() async {
     try {
-      final userId = await AuthTokenStore.getCurrentUserId();
       final uri = Uri.parse(
-        '${EnvConfig.adminApiBaseUrl}/api/public/fortune/palm/history?userId=$userId',
+        '${EnvConfig.adminApiBaseUrl}/api/public/fortune/palm/history',
       );
-      final response = await http.get(uri).timeout(const Duration(seconds: 15));
+      final response = await http
+          .get(uri, headers: await AuthTokenStore.authHeader())
+          .timeout(const Duration(seconds: 15));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
         debugPrint('[PalmRepository] [getHistory] 서버 조회 실패, 로컬로 폴백');
