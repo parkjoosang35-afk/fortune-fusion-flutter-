@@ -251,25 +251,23 @@ class _SplashScreenState extends State<SplashScreen>
     final config = IntroConfigModel.fallback();
     final subtitleLines = (config.splashSubtitle ?? '').split('\n');
 
-    // [버그 수정 - 회원가입/로그인 화면과 동일한 원인]
-    // 기존 코드는 `DecoratedBox(그라디언트) > SafeArea > Column(Expanded 포함)`
-    // 순서였다. 여기서는 Expanded가 있어 대부분 화면을 채우는 것처럼 보이지만,
-    // DecoratedBox 자체는 여전히 자식 Column의 "실제 렌더링 높이"에만 맞춰
-    // 그려진다 — 폰트 스케일/실제 콘텐츠 높이가 화면보다 짧아지는 경우(예:
-    // 큰 화면, 작은 폰트스케일 등) 그 아래 남는 공간에는 Scaffold의 기본
-    // 배경색(AppColors.hcBackground, 순백색)이 노출된다. signup/login
-    // 화면과 동일한 근본 원인이므로 동일한 해결책을 적용한다: Stack +
-    // Positioned.fill로 그라디언트 배경을 Scaffold body 전체(화면 높이)에
-    // 강제로 채우고, 그 위에 SafeArea/콘텐츠를 올려 콘텐츠 길이와 무관하게
-    // 배경이 항상 화면을 꽉 채우게 한다.
-    // [1차 수정 실패 원인 - 추가 수정] Stack은 기본적으로 포지션 없는
-    // 자식(SafeArea)의 실제 렌더링 크기에 맞춰 자기 크기를 정하므로,
-    // Positioned.fill만으로는 부족했다. `fit: StackFit.expand`를 지정해
-    // Stack이 항상 부모(Scaffold body)의 최대 크기로 확장되도록 한다.
+    // [스플래시 풀블리드 개편 - "증명사진 카드처럼 작게 떠 있다" 피드백 반영]
+    // 기존 구조는 캐릭터 이미지를 260px 높이의 둥근 카드 하나로 축소해
+    // 화면 중앙에 배치하고, 위/아래로 텅 빈 그라데이션 여백이 크게
+    // 남아 "동영상 인트로 앞에 뜨는 어색한 화면"으로 보였다(사용자 피드백
+    // 스크린샷 참고: 캐릭터가 작은 사진처럼 붙어 있고 위아래 배경만 넓게
+    // 비어 있음). 이제는 캐릭터 전신 이미지를 화면 전체를 채우는 배경
+    // (Positioned.fill + BoxFit.cover)으로 깔고, 그 위에 그라데이션
+    // 스크림을 얹어 텍스트 가독성을 확보한 뒤, eyebrow/타이틀/서브카피/
+    // 로딩닷을 이미지 위에 오버레이하는 "풀스크린 히어로" 방식으로
+    // 재구성한다. 부트스트랩 로직(_bootstrap, _controller 애니메이션,
+    // _heroReady 게이팅)은 전혀 손대지 않고 오직 build()의 레이아웃만
+    // 바꾼다.
     return Scaffold(
       body: Stack(
         fit: StackFit.expand,
         children: [
+          // 배경 그라데이션(이미지 로딩 전/실패 시에도 항상 깔려 있는 베이스).
           const Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
@@ -284,6 +282,41 @@ class _SplashScreenState extends State<SplashScreen>
               ),
             ),
           ),
+          // [풀블리드 히어로] 캐릭터 전신 이미지가 화면 전체를 채운다.
+          // _heroReady가 될 때까지는 투명하게 유지해(기존 2차 수정 원칙
+          // 그대로 유지) 빈 이미지가 잠깐 스쳐 보이는 첫 프레임을 막는다.
+          Positioned.fill(
+            child: AnimatedOpacity(
+              opacity: _heroReady ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 260),
+              child: Image.asset(
+                BangtongSeonyeoAssets.mainFullBody,
+                fit: BoxFit.cover,
+                alignment: Alignment.topCenter,
+              ),
+            ),
+          ),
+          // 이미지 위에 얹는 그라데이션 스크림 - 상단은 eyebrow 라벨이
+          // 잘 보이도록 살짝 어둡게, 중단은 얼굴이 잘 보이도록 투명하게,
+          // 하단은 타이틀/서브카피/로딩닷이 놓일 자리를 배경색에 가깝게
+          // 어둡혀 가독성을 확보한다.
+          const Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0x99201A3D), // 상단 - 반투명 다크
+                    Color(0x00201A3D), // 중단 - 투명(얼굴이 잘 보이도록)
+                    Color(0xCC1E1A3A), // 하단 - 텍스트 가독용 다크
+                    Color(0xFF1E1A3A), // 최하단 - 배경색과 동일(자연스러운 이음)
+                  ],
+                  stops: [0.0, 0.32, 0.68, 1.0],
+                ),
+              ),
+            ),
+          ),
           SafeArea(
             child: FadeTransition(
               opacity: _fade,
@@ -294,99 +327,42 @@ class _SplashScreenState extends State<SplashScreen>
                 ),
                 child: Column(
                   children: [
-                    // eyebrow — 神通萬通 · SINTONG
+                    // eyebrow - 神通萬通 · SINTONG (이미지 위, 화면 최상단)
                     const IntroEyebrowLabel('神通萬通 · SINTONG'),
-                    const SizedBox(height: 20),
-                    Expanded(
-                      // [오버플로우 방지] 캐릭터 히어로(260px 고정) + 타이틀 +
-                      // 서브카피 총합이 작은 화면 높이를 넘길 수 있어,
-                      // intro_page_content.dart와 동일한 안전 패턴
-                      // (LayoutBuilder+SingleChildScrollView+ConstrainedBox)을
-                      // 적용해 콘텐츠가 길어도 하드 오버플로우 없이 스크롤되게 한다.
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          return SingleChildScrollView(
-                            physics: const ClampingScrollPhysics(),
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(
-                                minHeight: constraints.maxHeight,
-                              ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  // [배치 재수정 - 증명사진 문제 해결] 기존
-                                  // 96px 원형 얼굴 아이콘은 "증명사진처럼
-                                  // 작다"는 피드백을 받아, 화면 폭 전체를
-                                  // 채우는 큰 전신 이미지로 교체했다.
-                                  // 스플래시는 짧게 스쳐가는 화면이라 과한
-                                  // 애니메이션 없이 정적 이미지로 배치한다.
-                                  // [2차 수정 핵심] 이미지가 precache로
-                                  // 완전히 준비되기 전까지는 투명(opacity 0)
-                                  // 으로 유지해, "빈 이미지가 잠깐 그려지는"
-                                  // 첫 프레임 노출을 원천 차단한다. 레이아웃
-                                  // 공간(260px)은 항상 동일하게 유지되므로
-                                  // 텍스트 위치가 튀는 점프는 없다.
-                                  // [5차 수정] 히어로 이미지뿐 아니라 타이틀/
-                                  // 서브카피도 같은 AnimatedOpacity로 묶어,
-                                  // NanumMyeongjo 폰트가 실제로 로딩 완료된
-                                  // 뒤에야(=_heroReady=true) 함께 나타나도록
-                                  // 한다. 폰트 미도착 상태의 tofu box 노출을
-                                  // 막는 근본 해결책 — 레이아웃 공간(260px+
-                                  // 텍스트 높이)은 항상 동일하게 유지되므로
-                                  // 점프는 없다.
-                                  AnimatedOpacity(
-                                    opacity: _heroReady ? 1.0 : 0.0,
-                                    duration: const Duration(
-                                      milliseconds: 220,
-                                    ),
-                                    child: Column(
-                                      children: [
-                                        BangtongIntroHero(
-                                          asset:
-                                              BangtongSeonyeoAssets.mainFullBody,
-                                          height: 260,
-                                          fadeColor:
-                                              IntroPalette.backgroundTop,
-                                          borderRadius: BorderRadius.circular(
-                                            28,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 18),
-                                        Text(
-                                          config.splashTitle,
-                                          textAlign: TextAlign.center,
-                                          style: IntroTextStyles.title(
-                                            fontSize: 38,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 12),
-                                        Text(
-                                          subtitleLines.join('\n'),
-                                          textAlign: TextAlign.center,
-                                          style: IntroTextStyles.sub(),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
+                    // 캐릭터 얼굴/상반신이 잘 보이도록 중단은 비워둔다
+                    // (배경 이미지가 이 공간을 채운다).
+                    const Spacer(),
+                    // [5차 수정 원칙 유지] 타이틀/서브카피도 폰트 로딩이
+                    // 끝난 뒤(_heroReady=true)에만 나타나도록 게이팅한다.
+                    AnimatedOpacity(
+                      opacity: _heroReady ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 220),
+                      child: Column(
+                        children: [
+                          Text(
+                            config.splashTitle,
+                            textAlign: TextAlign.center,
+                            style: IntroTextStyles.title(fontSize: 38),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            subtitleLines.join('\n'),
+                            textAlign: TextAlign.center,
+                            style: IntroTextStyles.sub(),
+                          ),
+                        ],
                       ),
                     ),
+                    const SizedBox(height: 28),
                     // 로딩 dot 3개(핸드오프 .load-dot)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(
-                          3,
-                          (i) => Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 3),
-                            child: _LoadDot(
-                              delay: Duration(milliseconds: i * 200),
-                            ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(
+                        3,
+                        (i) => Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 3),
+                          child: _LoadDot(
+                            delay: Duration(milliseconds: i * 200),
                           ),
                         ),
                       ),
