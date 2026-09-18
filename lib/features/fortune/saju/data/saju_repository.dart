@@ -48,11 +48,22 @@ class SajuRepository {
     debugPrint('[SajuRepository] [requestSaju] 요청 시작 -> $uri');
 
     try {
+      // [Stage2 결함수정 — 결함-A04-01/Authorization 헤더 회귀 재발 수정]
+      // 서버(`/api/public/fortune/saju`)가 `requireUser()`로 JWT Bearer 인증을
+      // 필수화했으나, 이 메서드는 다른 12개 Repository와 달리 헤더 없이 body의
+      // userId만 실어 보내고 있어 항상 401("로그인이 필요합니다")로 실패하는
+      // 회귀가 있었다(2026-09-18 발견). wallet/subscription 등과 동일한
+      // authHeader() 표준 패턴으로 통일한다. body의 userId는 서버가 더 이상
+      // 신뢰하지 않지만 하위 호환을 위해 값은 유지한다.
       final userId = await AuthTokenStore.getCurrentUserId();
+      final headers = {
+        'Content-Type': 'application/json',
+        ...await AuthTokenStore.authHeader(),
+      };
       final response = await http
           .post(
             uri,
-            headers: {'Content-Type': 'application/json'},
+            headers: headers,
             body: jsonEncode({
               'userId': userId,
               'name': name,

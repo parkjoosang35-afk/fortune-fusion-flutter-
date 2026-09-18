@@ -12,6 +12,9 @@ import '../domain/fortune_ad_model.dart';
 /// 호출한다. WalletRepository와 동일하게 userId는 AuthTokenStore(폴백 1)를 사용한다.
 class FortuneAdRepository {
   /// 노출 가능한 광고 목록 조회.
+  ///
+  /// [Stage2 결함수정 — 결함-A04-01] 서버가 `requireUser()`로 JWT 필수인증을
+  /// 강제하도록 변경되었으므로 Authorization 헤더를 반드시 포함한다.
   Future<ApiResult<List<FortuneAdModel>>> getAds() async {
     final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
@@ -20,8 +23,12 @@ class FortuneAdRepository {
     debugPrint('[FortuneAdRepository] [list] 요청 -> $uri');
 
     try {
+      final headers = {
+        'Accept': 'application/json',
+        ...await AuthTokenStore.authHeader(),
+      };
       final response = await http
-          .get(uri, headers: {'Accept': 'application/json'})
+          .get(uri, headers: headers)
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
@@ -47,8 +54,12 @@ class FortuneAdRepository {
     ).replace(queryParameters: {'userId': '$userId'});
 
     try {
+      final headers = {
+        'Accept': 'application/json',
+        ...await AuthTokenStore.authHeader(),
+      };
       final response = await http
-          .get(uri, headers: {'Accept': 'application/json'})
+          .get(uri, headers: headers)
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
@@ -80,12 +91,12 @@ class FortuneAdRepository {
     );
 
     try {
+      final headers = {
+        'Content-Type': 'application/json',
+        ...await AuthTokenStore.authHeader(),
+      };
       final response = await http
-          .post(
-            uri,
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'userId': userId}),
-          )
+          .post(uri, headers: headers, body: jsonEncode({'userId': userId}))
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
@@ -119,10 +130,14 @@ class FortuneAdRepository {
     );
 
     try {
+      final headers = {
+        'Content-Type': 'application/json',
+        ...await AuthTokenStore.authHeader(),
+      };
       final response = await http
           .post(
             uri,
-            headers: {'Content-Type': 'application/json'},
+            headers: headers,
             body: jsonEncode({
               'userId': userId,
               'sessionId': sessionId,
