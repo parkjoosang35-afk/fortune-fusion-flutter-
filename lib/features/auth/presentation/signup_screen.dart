@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/config/env_config.dart';
 import '../../../core/widgets/app_toast.dart';
@@ -8,6 +9,8 @@ import '../../guinji/presentation/guinji_join_screen.dart';
 import '../../guinji/presentation/guinji_onboarding_screen.dart';
 import '../../intro/presentation/intro_palette.dart';
 import '../../intro/presentation/intro_text_styles.dart';
+import '../../intro/presentation/onboarding_gate_screen.dart';
+import '../../intro/presentation/onboarding_video_screen.dart';
 import '../../intro/presentation/widgets/intro_title_text.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
 import '../../wallet/application/wallet_provider.dart';
@@ -130,9 +133,13 @@ class _SignupScreenState extends State<SignupScreen> {
       // 가입 성공 시 곧바로 홈으로 이동한다 — 생년월일은 이후 사주/운세
       // 첫 이용 시점에 해당 입력 화면의 "내 계정 프로필로 저장" 체크박스로
       // 원하는 사용자만 계정에 저장한다.
-      Navigator.of(
-        context,
-      ).pushNamedAndRemoveUntil('/home', (route) => false);
+      //
+      // [온보딩 영상 적용 가이드 §4] "회원가입 완료 직후"도 온보딩 영상
+      // 트리거 조건으로 명시되어 있음. `has_seen_onboarding_v1` 플래그를
+      // 아직 안 봤다면(=스플래시 경로로 한 번도 안 봤다면) 홈 이동 전에
+      // 영상을 먼저 보여준다. 이미 봤다면 기존과 동일하게 곧바로 '/home'.
+      await _goHomeWithOnboardingCheck(context);
+      if (!mounted) return;
       // 로그인 화면과 동일하게, 회원가입 화면으로 오게 만든 대기 중인
       // 재진입 요청(프리패스/귀인지도 등)이 있으면 함께 재생한다.
       replayPendingPassRequest();
@@ -146,6 +153,44 @@ class _SignupScreenState extends State<SignupScreen> {
         isError: true,
       );
     }
+  }
+
+  /// [온보딩 영상 적용 가이드 §4] 회원가입 성공 직후 호출.
+  /// `has_seen_onboarding_v1` 플래그를 아직 안 봤으면 온보딩 영상을
+  /// 먼저 전체화면으로 보여준 뒤(건너뛰기 가능) '/home'으로 이동하고,
+  /// 이미 봤으면(스플래시 경로 등으로) 기존과 동일하게 곧바로 이동한다.
+  Future<void> _goHomeWithOnboardingCheck(BuildContext context) async {
+    bool alreadySeen = true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      alreadySeen =
+          prefs.getBool(OnboardingGateScreen.prefsKey) ?? false;
+    } catch (_) {
+      // 조회 실패 시 기존 동작(곧바로 홈 이동)과 동일하게 안전 폴백.
+      alreadySeen = true;
+    }
+    if (!context.mounted) return;
+
+    if (!alreadySeen) {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => OnboardingVideoScreen(
+            onFinished: () async {
+              try {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setBool(OnboardingGateScreen.prefsKey, true);
+              } catch (_) {}
+              if (context.mounted) Navigator.of(context).pop();
+            },
+          ),
+        ),
+      );
+      if (!context.mounted) return;
+    }
+
+    Navigator.of(
+      context,
+    ).pushNamedAndRemoveUntil('/home', (route) => false);
   }
 
   @override

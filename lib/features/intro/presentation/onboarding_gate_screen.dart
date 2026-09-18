@@ -25,7 +25,9 @@ import 'onboarding_video_screen.dart';
 class OnboardingGateScreen extends StatefulWidget {
   const OnboardingGateScreen({super.key});
 
-  static const String _prefsKey = 'has_seen_onboarding_v1';
+  /// [회원가입 흐름(signup_screen.dart)에서도 동일 키를 참조하기 위해
+  /// public으로 노출] 가이드 §6 예시 그대로 `has_seen_onboarding_v1`.
+  static const String prefsKey = 'has_seen_onboarding_v1';
 
   @override
   State<OnboardingGateScreen> createState() => _OnboardingGateScreenState();
@@ -46,7 +48,7 @@ class _OnboardingGateScreenState extends State<OnboardingGateScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final seen =
-          prefs.getBool(OnboardingGateScreen._prefsKey) ?? false;
+          prefs.getBool(OnboardingGateScreen.prefsKey) ?? false;
       if (!mounted) return;
       setState(() => _videoAlreadySeen = seen);
     } catch (_) {
@@ -59,7 +61,7 @@ class _OnboardingGateScreenState extends State<OnboardingGateScreen> {
   Future<void> _onVideoFinished() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(OnboardingGateScreen._prefsKey, true);
+      await prefs.setBool(OnboardingGateScreen.prefsKey, true);
     } catch (_) {
       // 저장 실패해도 이번 실행에서는 계속 진행(다음 실행에 재노출될 수
       // 있으나 화면이 멈추지 않는 것이 우선).
