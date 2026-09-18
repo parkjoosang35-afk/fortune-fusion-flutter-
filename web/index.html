@@ -61,12 +61,19 @@
        한다. og:image는 절대 URL이어야 카톡 크롤러가 정상적으로 읽는다.
        [2026-09-19 캐릭터 교체] 신통도령(남) → 방통선녀(여)로 전면 교체됨에
        따라 텍스트 문구도 "신통도령이 들려주는"에서 캐릭터명을 제거한
-       중립 문구로 수정. -->
+       중립 문구로 수정.
+       [2026-09-19 캐시 버스팅] 카카오 OG 캐시 클리어 도구를 사용해도 카톡
+       클라이언트 측에서 이미지가 갱신되지 않는 사례가 있어, og:image URL에
+       버전 쿼리스트링(?v=2)을 추가함. 카카오/트위터 크롤러는 쿼리스트링이
+       다르면 완전히 새로운 URL로 인식해 무조건 재크롤링하므로, 캐시
+       클리어 도구의 성공 여부에 의존하지 않고 확실하게 새 이미지를 반영
+       시킬 수 있다. 이후 이미지를 다시 교체할 때는 이 버전 숫자를 반드시
+       증가시켜야 한다(v=2 -> v=3 ...). -->
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="신통방통">
   <meta property="og:title" content="신통방통 - 오늘 당신의 운명을 만나보세요">
   <meta property="og:description" content="사주 · 타로 · 궁합 · 귀인지도까지, 신통방통이 들려주는 오늘 당신의 운명 이야기를 만나보세요.">
-  <meta property="og:image" content="https://sintong.kr/app/og-image.png">
+  <meta property="og:image" content="https://sintong.kr/app/og-image.png?v=2">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:url" content="https://sintong.kr/app/">
@@ -75,7 +82,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="신통방통 - 오늘 당신의 운명을 만나보세요">
   <meta name="twitter:description" content="사주 · 타로 · 궁합 · 귀인지도까지, 신통방통이 들려주는 오늘 당신의 운명 이야기를 만나보세요.">
-  <meta name="twitter:image" content="https://sintong.kr/app/og-image.png">
+  <meta name="twitter:image" content="https://sintong.kr/app/og-image.png?v=2">
 
   <!-- [버그 수정 - 로딩 중 흰 화면 깜빡임] Flutter 엔진이 완전히 로드되어
        화면을 그리기까지(main.dart.js 다운로드+파싱, 15초 이상 걸릴 수 있음)
