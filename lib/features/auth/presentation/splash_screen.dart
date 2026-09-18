@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../intro/application/intro_state_provider.dart';
 import '../../intro/application/intro_config_provider.dart';
@@ -99,23 +100,47 @@ class _SplashScreenState extends State<SplashScreen>
     // 완전히 준비되지 않을 수 있어 postFrameCallback에서 실행한다.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      // [스플래시 타이틀 폰트 tofu box 버그 수정 - 5차, 폰트 로딩도 이미지와
+      // 동일하게 게이팅한다] 근본 원인: IntroTextStyles.title()이 쓰는
+      // GoogleFonts.nanumMyeongjo()는 로컬 asset으로 번들되어 있지 않아
+      // (Pretendard/GowunBatang/IBMPlexMono와 달리) 웹에서 최초 호출 시마다
+      // fonts.gstatic.com으로 런타임 네트워크 다운로드가 필요하다. 그런데
+      // 기존 코드는 히어로 이미지만 _heroReady로 게이팅했고, 타이틀
+      // Text는 폰트 도착 여부와 무관하게 즉시 그려져 — 다운로드가 끝나기
+      // 전 첫 프레임에는 시스템 폴백 폰트(한글 글리프 없음)로 그려져
+      // tofu box(□□□□)가 노출됐다. 해결: 여기서 IntroTextStyles.title()을
+      // 한 번 호출해 폰트 로딩을 즉시 트리거하고, 그 직후
+      // GoogleFonts.pendingFonts()로 로딩 완료 Future를 확보한 뒤,
+      // 이미지 precache와 함께 Future.wait로 묶어 둘 다 끝나야만
+      // _heroReady=true가 되도록 한다 — build()에서도 히어로 이미지와
+      // 타이틀/서브카피를 하나의 AnimatedOpacity로 함께 묶어 폰트가
+      // 준비되기 전에는 텍스트도 투명하게 유지된다(FOUT 원천 차단).
+      IntroTextStyles.title(fontSize: 38); // 폰트 로딩 트리거(side-effect)
+      final fontsPending = GoogleFonts.pendingFonts();
       _heroImagePrecache =
-          precacheImage(
-            const AssetImage(BangtongSeonyeoAssets.mainFullBody),
-            context,
-          ).timeout(
+          Future.wait([
+            precacheImage(
+              const AssetImage(BangtongSeonyeoAssets.mainFullBody),
+              context,
+            ),
+            fontsPending,
+          ]).timeout(
             const Duration(milliseconds: 2500),
             onTimeout: () {
               if (kDebugMode) {
-                debugPrint('[스플래시 히어로 이미지] precache 타임아웃(2.5초) — 계속 진행');
+                debugPrint(
+                  '[스플래시 히어로 이미지/폰트] precache 타임아웃(2.5초) — 계속 진행',
+                );
               }
+              return <void>[];
             },
           ).whenComplete(() {
-            // [2차 수정 핵심] precache가 끝나는 즉시(성공이든 타임아웃이든)
-            // setState로 _heroReady를 true로 바꿔, 그제서야 히어로 이미지가
-            // 화면에 페이드인되도록 한다. 이 setState 시점에는 이미
-            // Image.asset이 내부적으로 완전히 디코딩된 상태이므로, 다음
-            // build()에서는 반드시 완성된 이미지가 그려진다.
+            // [2차 수정 핵심] precache(이미지+폰트)가 끝나는 즉시(성공이든
+            // 타임아웃이든) setState로 _heroReady를 true로 바꿔, 그제서야
+            // 히어로 이미지 + 타이틀/서브카피가 함께 화면에 페이드인되도록
+            // 한다. 이 setState 시점에는 이미 이미지가 디코딩되고 폰트가
+            // FontLoader에 등록된 상태이므로, 다음 build()에서는 반드시
+            // 완성된 이미지와 정상 한글 폰트가 함께 그려진다.
             if (mounted) {
               setState(() => _heroReady = true);
             }
@@ -301,29 +326,47 @@ class _SplashScreenState extends State<SplashScreen>
                                   // 첫 프레임 노출을 원천 차단한다. 레이아웃
                                   // 공간(260px)은 항상 동일하게 유지되므로
                                   // 텍스트 위치가 튀는 점프는 없다.
+                                  // [5차 수정] 히어로 이미지뿐 아니라 타이틀/
+                                  // 서브카피도 같은 AnimatedOpacity로 묶어,
+                                  // NanumMyeongjo 폰트가 실제로 로딩 완료된
+                                  // 뒤에야(=_heroReady=true) 함께 나타나도록
+                                  // 한다. 폰트 미도착 상태의 tofu box 노출을
+                                  // 막는 근본 해결책 — 레이아웃 공간(260px+
+                                  // 텍스트 높이)은 항상 동일하게 유지되므로
+                                  // 점프는 없다.
                                   AnimatedOpacity(
                                     opacity: _heroReady ? 1.0 : 0.0,
                                     duration: const Duration(
                                       milliseconds: 220,
                                     ),
-                                    child: BangtongIntroHero(
-                                      asset: BangtongSeonyeoAssets.mainFullBody,
-                                      height: 260,
-                                      fadeColor: IntroPalette.backgroundTop,
-                                      borderRadius: BorderRadius.circular(28),
+                                    child: Column(
+                                      children: [
+                                        BangtongIntroHero(
+                                          asset:
+                                              BangtongSeonyeoAssets.mainFullBody,
+                                          height: 260,
+                                          fadeColor:
+                                              IntroPalette.backgroundTop,
+                                          borderRadius: BorderRadius.circular(
+                                            28,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 18),
+                                        Text(
+                                          config.splashTitle,
+                                          textAlign: TextAlign.center,
+                                          style: IntroTextStyles.title(
+                                            fontSize: 38,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Text(
+                                          subtitleLines.join('\n'),
+                                          textAlign: TextAlign.center,
+                                          style: IntroTextStyles.sub(),
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                  const SizedBox(height: 18),
-                                  Text(
-                                    config.splashTitle,
-                                    textAlign: TextAlign.center,
-                                    style: IntroTextStyles.title(fontSize: 38),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    subtitleLines.join('\n'),
-                                    textAlign: TextAlign.center,
-                                    style: IntroTextStyles.sub(),
                                   ),
                                 ],
                               ),
