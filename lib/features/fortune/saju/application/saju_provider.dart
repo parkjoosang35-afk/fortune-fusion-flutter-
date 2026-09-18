@@ -18,6 +18,15 @@ class SajuProvider extends ChangeNotifier {
   List<SajuResultModel> _history = [];
   List<SajuResultModel> get history => _history;
 
+  /// [Stage2 결함수정 — 결함-A10-01] 로그아웃 시 이전 계정의 사주 결과/이력
+  /// (생년월일시 등 개인정보 포함)이 잔존해 다음 계정에 노출되지 않도록
+  /// 초기화한다.
+  void clearOnLogout() {
+    _state = const LoadState.initial();
+    _history = [];
+    notifyListeners();
+  }
+
   // [사주정보 이름 필드 보완] 결과/재시도(retry)에도 이름이 그대로 유지되도록
   // 요청 시 전달받은 이름을 상태로 보관한다.
   String? _name;

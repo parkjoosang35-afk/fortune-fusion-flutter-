@@ -30,6 +30,19 @@ class AttendanceProvider extends ChangeNotifier {
   bool get isCalendarLoading => _isCalendarLoading;
   String? get calendarError => _calendarError;
 
+  /// [Stage2 결함수정 — 결함-A10-01] 로그아웃 시 이전 계정의 출석 이력
+  /// (streak/달력)이 잔존해 다음 계정에 노출되지 않도록 초기화한다.
+  void clearOnLogout() {
+    _streak = 0;
+    _checkedToday = false;
+    _isLoading = false;
+    _lastError = null;
+    _calendar = null;
+    _isCalendarLoading = false;
+    _calendarError = null;
+    notifyListeners();
+  }
+
   /// 지정한 연/월(생략 시 이번 달)의 출석 달력을 불러온다.
   Future<void> loadCalendar({int? year, int? month}) async {
     _isCalendarLoading = true;

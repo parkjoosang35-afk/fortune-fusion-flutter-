@@ -54,6 +54,15 @@ class NotificationProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get lastError => _lastError;
 
+  /// [Stage2 결함수정 — 결함-A10-01] 로그아웃 시 이전 계정의 알림 목록이
+  /// 잔존해 다음 계정에 노출되지 않도록 초기화한다.
+  void clearOnLogout() {
+    _items = [];
+    _isLoading = false;
+    _lastError = null;
+    notifyListeners();
+  }
+
   Future<void> load() async {
     _isLoading = true;
     notifyListeners();

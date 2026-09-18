@@ -25,6 +25,18 @@ class WalletProvider extends ChangeNotifier {
   List<PointHistoryModel> get history => _history;
   bool get isLoading => _isLoading;
 
+  /// [Stage2 결함수정 — 결함-A10-01] 로그아웃 시 반드시 호출해야 한다.
+  /// 이전 계정의 잔액/거래내역이 메모리에 남아있으면, 같은 기기에서 다른
+  /// 계정으로 재로그인했을 때 새 계정 데이터가 로드되기 전 짧은 순간
+  /// 이전 계정의 잔액이 화면에 노출될 위험이 있다(개인정보 잔존).
+  void clearOnLogout() {
+    _balance = 0;
+    _history = [];
+    _isLoading = false;
+    lastEarnBlockedReason = null;
+    notifyListeners();
+  }
+
   Future<void> load() async {
     _isLoading = true;
     notifyListeners();

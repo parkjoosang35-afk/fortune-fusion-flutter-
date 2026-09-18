@@ -1,21 +1,12 @@
 import 'dart:async';
-import 'dart:io';
 
-import 'package:hive/hive.dart';
-
-/// [로컬 영속성] 모든 단위/위젯 테스트 실행 전에 Hive를 실제로 초기화한다.
-///
-/// `package:test`는 `test/` 디렉토리에 `flutter_test_config.dart`가 있으면
-/// 그 안의 `testExecutable`을 각 테스트 파일 실행을 감싸는 wrapper로 자동
-/// 사용한다(개별 테스트 파일을 수정할 필요가 없다).
-///
-/// [배경] Hive를 사용하는 로컬 스토어 구현체들은 `Hive.openBox()`를
-/// 호출하는데, 테스트 환경에서는 `Hive.initFlutter()`(Flutter 플러그인
-/// 경로 조회 필요)를 호출할 수 없다. 대신 순수 Dart API인 `Hive.init(path)`에
-/// OS 임시 디렉터리를 넘겨 초기화하면, 테스트에서도 실제 디스크 I/O를
-/// 거치는 진짜 Hive box를 사용할 수 있다.
+/// [Stage2 결함수정 — 결함-H01-01] 과거 Hive 기반 로컬 스토어를 염두에 두고
+/// 테스트 실행 전 `Hive.init()`을 수행하는 wrapper였으나, 실제로는 어떤 로컬
+/// 스토어 구현체도 Hive를 사용하지 않아(모든 로컬 저장은 SharedPreferences)
+/// 죽은 초기화 코드였다. Hive 의존성 자체를 제거(main.dart/pubspec.yaml 동시
+/// 수정)하면서 이 파일도 함께 정리했다. `flutter_test_config.dart`는
+/// `test/` 하위 모든 테스트 실행을 감싸는 wrapper 훅으로 계속 유지하되,
+/// 현재는 별도 사전 초기화가 필요 없으므로 testMain을 그대로 호출한다.
 Future<void> testExecutable(FutureOr<void> Function() testMain) async {
-  final tempDir = Directory.systemTemp.createTempSync('hive_test_');
-  Hive.init(tempDir.path);
   await testMain();
 }

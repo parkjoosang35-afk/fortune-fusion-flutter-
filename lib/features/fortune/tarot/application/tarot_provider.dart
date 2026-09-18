@@ -21,6 +21,14 @@ class TarotProvider extends ChangeNotifier {
   List<TarotResultModel> _history = [];
   List<TarotResultModel> get history => _history;
 
+  /// [Stage2 결함수정 — 결함-A10-01] 로그아웃 시 이전 계정의 타로 결과/이력이
+  /// 잔존해 다음 계정에 노출되지 않도록 초기화한다.
+  void clearOnLogout() {
+    _state = const LoadState.initial();
+    _history = [];
+    notifyListeners();
+  }
+
   // [프리패스 카테고리 제한 안내 버그 수정] 서버가 draw() 실패 시 함께 내려주는
   // reason('CATEGORY_LIMIT_REACHED' 등)을 보존한다. PassProvider.lastErrorReason과
   // 동일한 목적 - 화면단이 "일반 오류"와 "이용횟수 초과"를 구분할 수 있게 한다.

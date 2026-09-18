@@ -272,9 +272,16 @@ class App extends StatelessWidget {
           create: (_) => GuinjiProvider(GuinjiRepository()),
         ),
       ],
-      child: Consumer<ThemeProvider>(
-        builder: (context, themeProvider, _) {
-          return MaterialApp(
+      // [Stage2 결함수정 — 결함-A10-01] MultiProvider의 모든 Provider가
+      // 트리에 생성된 직후(child 슬롯) 단 한 번, 개인정보/이력을 담은 각
+      // feature Provider의 clearOnLogout()을 AuthProvider의 콜백
+      // 레지스트리에 등록한다. AuthProvider.logout() 호출 시 이 콜백들이
+      // 자동 실행되어 다른 계정으로 재로그인할 때 이전 계정 데이터가
+      // 화면에 잠깐이라도 노출되는 것을 방지한다.
+      child: _LogoutCallbackRegistrar(
+        child: Consumer<ThemeProvider>(
+          builder: (context, themeProvider, _) {
+            return MaterialApp(
             navigatorKey: appNavigatorKey,
             title: '신통방통',
             debugShowCheckedModeBanner: false,
@@ -300,10 +307,80 @@ class App extends StatelessWidget {
                 ).copyWith(textScaler: TextScaler.linear(qaScale)),
                 child: framed,
               );
-            },
-          );
-        },
+              },
+            );
+          },
+        ),
       ),
     );
   }
+}
+
+/// [Stage2 결함수정 — 결함-A10-01] `App` 위젯의 `child` 슬롯에 위치하여
+/// MultiProvider의 모든 Provider가 이미 생성된 시점에 단 한 번
+/// `initState`에서 각 feature Provider의 `clearOnLogout()`을
+/// `AuthProvider.registerLogoutCallback()`에 등록한다. 계층 분리 원칙(각
+/// feature Provider는 서로를 직접 참조하지 않음)을 지키면서, 로그아웃 시
+/// 개인정보/이력을 담은 모든 Provider의 메모리 상태를 일괄 초기화하기
+/// 위한 배선 지점이다.
+///
+/// 주의: `PassProvider.resetOnLogout()`은 서버측 UserPass revoke 처리가
+/// 필요해 `my_screen.dart`에서 `AuthProvider.logout()` 호출 *이전*에 이미
+/// 명시적으로 호출되고 있으므로 여기서는 등록하지 않는다(중복 실행 방지).
+class _LogoutCallbackRegistrar extends StatefulWidget {
+  const _LogoutCallbackRegistrar({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_LogoutCallbackRegistrar> createState() =>
+      _LogoutCallbackRegistrarState();
+}
+
+class _LogoutCallbackRegistrarState extends State<_LogoutCallbackRegistrar> {
+  bool _registered = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_registered) return;
+    _registered = true;
+
+    final auth = context.read<AuthProvider>();
+    auth.registerLogoutCallback(context.read<WalletProvider>().clearOnLogout);
+    auth.registerLogoutCallback(
+      context.read<MissionProvider>().clearOnLogout,
+    );
+    auth.registerLogoutCallback(
+      context.read<SubscriptionProvider>().clearOnLogout,
+    );
+    auth.registerLogoutCallback(
+      context.read<GiftcardProvider>().clearOnLogout,
+    );
+    auth.registerLogoutCallback(
+      context.read<AttendanceProvider>().clearOnLogout,
+    );
+    auth.registerLogoutCallback(
+      context.read<NotificationProvider>().clearOnLogout,
+    );
+    auth.registerLogoutCallback(
+      context.read<LuckyBagProvider>().clearOnLogout,
+    );
+    auth.registerLogoutCallback(
+      context.read<RankingProvider>().clearOnLogout,
+    );
+    auth.registerLogoutCallback(
+      context.read<CompatibilityProvider>().clearOnLogout,
+    );
+    auth.registerLogoutCallback(context.read<TarotProvider>().clearOnLogout);
+    auth.registerLogoutCallback(context.read<FaceProvider>().clearOnLogout);
+    auth.registerLogoutCallback(context.read<PalmProvider>().clearOnLogout);
+    auth.registerLogoutCallback(
+      context.read<NameFortuneProvider>().clearOnLogout,
+    );
+    auth.registerLogoutCallback(context.read<SajuProvider>().clearOnLogout);
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

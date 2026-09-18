@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:kakao_flutter_sdk_common/kakao_flutter_sdk_common.dart';
 import 'app.dart';
 import 'core/config/social_auth_config.dart';
@@ -12,16 +11,14 @@ import 'features/home/domain/saju_fortune_rules.dart';
 import 'features/home/domain/saju_interpreter.dart';
 import 'features/wish_room/domain/evening_bell_notification_service.dart';
 
-/// [로컬 영속성] 앱 실행 시 실제 기기 documents 디렉터리를 기준으로
-/// Hive를 초기화한다. Hive를 사용하는 로컬 스토어 모듈이 `Hive.openBox()`를
-/// 호출하기 전에 반드시 이 초기화가 먼저 끝나 있어야 한다.
-///
-/// 순수 Dart 테스트 환경에서는 이 위젯 플러그인 기반 초기화를 쓸 수
-/// 없으므로, 대신 `test/flutter_test_config.dart`에서 `Hive.init(경로)`로
-/// 별도 초기화한다(Flutter 플러그인 경로 조회가 필요 없는 순수 Dart API).
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Hive.initFlutter();
+  // [Stage2 결함수정 — 결함-H01-01] 과거 "구조화 로컬 캐시(히스토리/오프라인)"
+  // 용도로 Hive를 도입할 계획이었으나 실제로는 어떤 기능도 Hive.openBox()를
+  // 호출하지 않았다(모든 로컬 저장은 SharedPreferences로 구현됨, 55곳).
+  // 초기화만 되고 실사용 0건인 죽은 의존성이었으므로 `Hive.initFlutter()`
+  // 호출과 `hive`/`hive_flutter` 패키지 의존성을 제거했다(pubspec.yaml 동시
+  // 수정). 향후 구조화 로컬 캐시가 실제로 필요해지면 그때 다시 도입한다.
   // [정통사주 실계산 활성화 - 미션 2] 만세력 해석 룰 DB(일간/십신/오행 +
   // 세운/월운/일운/개운아이템/궁합)를 앱 부팅 시점에 fire-and-forget으로
   // 미리 로드해 둔다. await 하지 않는 이유: 이 로드가 끝나기 전에

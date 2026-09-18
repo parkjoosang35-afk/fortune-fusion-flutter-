@@ -25,6 +25,22 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoggedIn => _state.isSuccess && _state.data != null;
   UserModel? get currentUser => _state.data;
 
+  /// [Stage2 결함수정 — 결함-A10-01] 로그아웃 시 AuthProvider 외 다른
+  /// Provider(잔액/이력/미션/알림 등 개인정보를 담은 화면 상태)가 초기화되지
+  /// 않고 그대로 남아있으면, 같은 기기에서 다른 계정으로 재로그인했을 때
+  /// 새 계정 데이터가 로드되기 전 짧은 순간 이전 계정의 데이터가 화면에
+  /// 노출될 위험이 있었다. AuthProvider는 다른 feature Provider를 직접
+  /// 참조하지 않으므로(계층 분리 원칙), 대신 `app.dart`가 앱 시작 시 각
+  /// Provider의 `clearOnLogout()`을 이 리스트에 등록해두면 [logout]이
+  /// 호출될 때 자동으로 전부 실행되는 콜백 레지스트리 패턴을 사용한다.
+  final List<VoidCallback> _onLogoutCallbacks = [];
+
+  /// 다른 Provider가 자신의 `clearOnLogout()`을 등록한다(`app.dart`에서
+  /// 각 Provider 생성 직후 1회 호출).
+  void registerLogoutCallback(VoidCallback callback) {
+    _onLogoutCallbacks.add(callback);
+  }
+
   /// [인트로 전면 개편] 직전 signup() 성공 시 서버가 함께 내려준 회원가입
   /// 보상 정보(`{amount, balanceAfter}` 또는 null). signup_screen.dart의
   /// SignupRewardHandler가 이 값으로 토스트를 띄우고 WalletProvider를 갱신한다.
@@ -197,6 +213,10 @@ class AuthProvider extends ChangeNotifier {
     _state = const LoadState.initial();
     _currentGrade = null;
     notifyListeners();
+    // [결함-A10-01 수정] 등록된 다른 모든 Provider의 캐시도 함께 초기화한다.
+    for (final callback in _onLogoutCallbacks) {
+      callback();
+    }
   }
 
   /// [Phase C - 웰컴 리워드 팝업 1회성 노출] WelcomeRewardModal CTA 탭 시 호출.

@@ -24,6 +24,18 @@ class SubscriptionProvider extends ChangeNotifier {
   /// 마이페이지/AI결과 화면 등에서 잠금해제 여부를 확인할 때 사용하는 편의 getter
   bool get isPremium => _mySubscription?.isActive ?? false;
 
+  /// [Stage2 결함수정 — 결함-A10-01] 로그아웃 시 이전 계정의 구독 상태(플랜/
+  /// 결제내역)가 잔존해 다음 계정에 노출되지 않도록 초기화한다. `_plans`(공개
+  /// 상품 목록, 개인정보 아님)는 유지해도 무방하나 일관성을 위해 함께 비운다.
+  void clearOnLogout() {
+    _mySubscription = null;
+    _paymentHistory = [];
+    _isLoadingPlans = false;
+    _isLoadingSubscription = false;
+    _isProcessing = false;
+    notifyListeners();
+  }
+
   Future<void> loadPlans() async {
     _isLoadingPlans = true;
     notifyListeners();

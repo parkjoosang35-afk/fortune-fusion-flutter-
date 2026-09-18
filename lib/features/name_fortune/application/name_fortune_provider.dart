@@ -16,6 +16,14 @@ class NameFortuneProvider extends ChangeNotifier {
   List<NameFortuneResultModel> _history = [];
   List<NameFortuneResultModel> get history => _history;
 
+  /// [Stage2 결함수정 — 결함-A10-01] 로그아웃 시 이전 계정의 이름 운세
+  /// (성명학) 결과/이력이 잔존해 다음 계정에 노출되지 않도록 초기화한다.
+  void clearOnLogout() {
+    _state = const LoadState.initial();
+    _history = [];
+    notifyListeners();
+  }
+
   String? _name;
   String? _hanja;
   String? _birthDate;

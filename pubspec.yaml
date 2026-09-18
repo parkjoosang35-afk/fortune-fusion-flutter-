@@ -40,8 +40,9 @@ dependencies:
   provider: 6.1.5+1         # 상태관리
   http: 1.5.0                # API 통신 (10단계 초기: Mock/Real 전환 가능한 ApiClient)
   shared_preferences: 2.5.3  # 토큰/온보딩완료/테마 등 경량 키값 저장
-  hive: 2.2.3                 # 구조화 로컬 캐시(히스토리/오프라인)
-  hive_flutter: 1.1.0         # Hive Flutter 통합
+  # [Stage2 결함수정 — 결함-H01-01] hive/hive_flutter는 초기화만 되고 실제
+  # 어떤 기능도 Hive.openBox()를 호출하지 않던 죽은 의존성이라 제거했다
+  # (모든 로컬 저장은 shared_preferences로 이미 구현되어 있었음).
   intl: ^0.19.0               # 날짜/숫자 포맷팅(사주/운세/포인트 표시)
 
   # 07단계(추가, 수정) - AI 손금/관상 분석 이미지 입력 기능(§3.3)

@@ -12,6 +12,14 @@ class RankingProvider extends ChangeNotifier {
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
+  /// [Stage2 결함수정 — 결함-A10-01] 로그아웃 시 이전 계정 기준으로 계산된
+  /// "나의 순위" 표시(`isMe` 플래그 등)가 잔존하지 않도록 초기화한다.
+  void clearOnLogout() {
+    _entries = [];
+    _isLoading = false;
+    notifyListeners();
+  }
+
   Future<void> load({required int myPoints}) async {
     _isLoading = true;
     notifyListeners();
