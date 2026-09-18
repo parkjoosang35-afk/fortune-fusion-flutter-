@@ -121,11 +121,21 @@ class ApiWishWallRepository implements WishWallRepository {
   }
 
   @override
-  Future<List<WishPost>> fetchFeed({
+  Future<WishFeedPage> fetchFeed({
     String? categoryFilter,
     String? sort,
+    int page = 1,
+    int pageSize = 20,
   }) async {
-    final query = <String, String>{};
+    final query = <String, String>{
+      // [결함-D11-01 수정 — 2026-09-18] 서버(GET /api/public/wishes)는
+      // page/pageSize를 이미 파싱하고 있었으나(Math.max(1,...)/
+      // Math.min(50, Math.max(1,...))), 클라이언트가 이 두 값을 전혀
+      // 전달하지 않아 항상 page=1/pageSize=20(서버 기본값)만 요청되어
+      // 21번째 이후 소원에 영구히 접근할 수 없었다. 실제로 전달한다.
+      'page': '$page',
+      'pageSize': '$pageSize',
+    };
     if (categoryFilter != null && categoryFilter != 'all') {
       query['category'] = categoryFilter;
     }
@@ -135,9 +145,7 @@ class ApiWishWallRepository implements WishWallRepository {
     if (sort == 'latest' || sort == 'popular') {
       query['sort'] = sort!;
     }
-    final uri = Uri.parse(
-      _base,
-    ).replace(queryParameters: query.isEmpty ? null : query);
+    final uri = Uri.parse(_base).replace(queryParameters: query);
     try {
       final headers = await _authHeaders();
       final response = await http
@@ -150,7 +158,16 @@ class ApiWishWallRepository implements WishWallRepository {
       final list = (decoded['data'] as List<dynamic>)
           .map((e) => _fromJson(e as Map<String, dynamic>))
           .toList();
-      return _applyLocalFilters(list);
+      final filtered = await _applyLocalFilters(list);
+      // [결함-D11-01 수정] 서버가 계산한 pagination.hasMore를 그대로
+      // 신뢰한다(클라이언트가 total/hasMore를 임의로 재계산하지 않음).
+      // 응답에 pagination 필드가 없는 구버전 서버 대비 안전한 폴백으로
+      // list.length >= pageSize일 때만 hasMore로 추정한다.
+      final paginationRaw = decoded['pagination'];
+      final hasMore = paginationRaw is Map<String, dynamic>
+          ? (paginationRaw['hasMore'] as bool? ?? list.length >= pageSize)
+          : list.length >= pageSize;
+      return WishFeedPage(items: filtered, hasMore: hasMore);
     } catch (e) {
       _fail('fetchFeed', e);
     }

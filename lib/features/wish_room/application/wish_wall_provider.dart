@@ -20,9 +20,20 @@ class WishWallProvider extends ChangeNotifier {
   bool _isLoading = false;
   bool _loaded = false;
 
+  // [결함-D11-01 수정 — 2026-09-18] 무한스크롤 페이지 상태. 서버가 이미
+  // 지원하는 오프셋 페이지네이션(page/pageSize)을 실제로 사용하기 위해
+  // 신설. [_currentPage]는 "다음에 요청할 페이지"가 아니라 "마지막으로
+  // 성공적으로 불러온 페이지"를 의미한다(loadMore가 +1해서 요청).
+  static const int _pageSize = 20;
+  int _currentPage = 1;
+  bool _hasMore = true;
+  bool _isLoadingMore = false;
+
   List<WishPost> get feed => _feed;
   List<WishPost> get myWishes => _myWishes;
   bool get isLoading => _isLoading;
+  bool get isLoadingMore => _isLoadingMore;
+  bool get hasMore => _hasMore;
   bool get loaded => _loaded;
   BlessingBagPolicyAdapter get policy => _policy;
 
@@ -36,14 +47,55 @@ class WishWallProvider extends ChangeNotifier {
   String _sort = 'latest';
   String get sort => _sort;
 
+  /// 1페이지부터 다시 불러온다(최초 진입, sort 변경, pull-to-refresh 등).
   Future<void> loadFeed({String? sort}) async {
     if (sort != null) _sort = sort;
     _isLoading = true;
+    _currentPage = 1;
+    _hasMore = true;
     notifyListeners();
-    _feed = await _repository.fetchFeed(sort: _sort);
+    final result = await _repository.fetchFeed(
+      sort: _sort,
+      page: 1,
+      pageSize: _pageSize,
+    );
+    _feed = result.items;
+    _hasMore = result.hasMore;
     _isLoading = false;
     _loaded = true;
     notifyListeners();
+  }
+
+  /// [결함-D11-01 수정] 다음 페이지를 이어서 불러와 [_feed] 뒤에 덧붙인다.
+  /// 이미 로딩 중이거나 더 이상 다음 페이지가 없으면(hasMore=false)
+  /// 조용히 무시한다(중복 호출 방지 — 스크롤 리스너가 여러 번 트리거될
+  /// 수 있으므로).
+  Future<void> loadMore() async {
+    if (_isLoadingMore || !_hasMore || _isLoading) return;
+    _isLoadingMore = true;
+    notifyListeners();
+    try {
+      final nextPage = _currentPage + 1;
+      final result = await _repository.fetchFeed(
+        sort: _sort,
+        page: nextPage,
+        pageSize: _pageSize,
+      );
+      // [중복 방지] 오프셋 페이지네이션 특성상(검수 보고서 D-11 기록)
+      // 페이지 사이에 새 글이 삽입되면 경계에서 항목이 중복 노출될 수
+      // 있다. id 기준으로 이미 존재하는 항목은 걸러내 화면에 중복
+      // 카드가 쌓이지 않도록 최소한의 방어를 더한다.
+      final existingIds = _feed.map((w) => w.id).toSet();
+      final newItems = result.items
+          .where((w) => !existingIds.contains(w.id))
+          .toList();
+      _feed = [..._feed, ...newItems];
+      _hasMore = result.hasMore;
+      _currentPage = nextPage;
+    } finally {
+      _isLoadingMore = false;
+      notifyListeners();
+    }
   }
 
   Future<void> loadMyWishes() async {

@@ -65,12 +65,35 @@ class _WishRoomFeedScreenState extends State<WishRoomFeedScreen> {
   // 최종 방어하지만, 불필요한 중복 네트워크 호출을 줄이기 위함).
   bool _feedVisitClaimed = false;
 
+  // [결함-D11-01 수정 — 2026-09-18] 서버(GET /api/public/wishes)와
+  // WishWallProvider.loadMore()는 이미 오프셋 페이지네이션을 지원하는데,
+  // 이 화면(모두의 소원방)에 스크롤 리스너가 전혀 없어 21번째 이후 소원에
+  // 영구히 접근할 수 없었다(치명적 버그). ListView.separated에 컨트롤러를
+  // 달고, 스크롤이 하단 근접(마지막 320px 이내)하면 다음 페이지를 요청한다.
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<WishWallProvider>().ensureLoaded();
     });
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    if (position.pixels >= position.maxScrollExtent - 320) {
+      context.read<WishWallProvider>().loadMore();
+    }
   }
 
   void _changeSort(String sort) {
@@ -242,11 +265,42 @@ class _WishRoomFeedScreenState extends State<WishRoomFeedScreen> {
                               ),
                             )
                           : ListView.separated(
+                              controller: _scrollController,
                               padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                              itemCount: posts.length,
+                              // [결함-D11-01 수정] 목록 끝에 다음 페이지
+                              // 로딩 인디케이터 한 칸을 추가한다(hasMore가
+                              // true일 때만). 카테고리 칩은 로컬 필터라
+                              // 서버 hasMore와 별개지만, "전체" 필터일 때만
+                              // 실제로 다음 페이지를 채워야 의미가 있으므로
+                              // provider.hasMore를 그대로 사용해도 안전
+                              // (필터 중엔 스크롤이 하단에 닿기 전에 이미
+                              // 화면이 짧게 끝나 자연스럽게 loadMore가
+                              // 호출되지 않는 경우가 많고, 호출되더라도
+                              // 추가로 불러온 항목은 필터링되어 표시만
+                              // 안 될 뿐 오류로 이어지지 않는다).
+                              itemCount:
+                                  posts.length +
+                                  (provider.hasMore ? 1 : 0),
                               separatorBuilder: (_, __) =>
                                   const SizedBox(height: 12),
                               itemBuilder: (context, i) {
+                                if (i >= posts.length) {
+                                  return const Padding(
+                                    padding: EdgeInsets.symmetric(
+                                      vertical: 20,
+                                    ),
+                                    child: Center(
+                                      child: SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.5,
+                                          color: WishRoomColors.glow,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }
                                 final wish = posts[i];
                                 // [Phase B] 카드가 실제로 빌드되는 시점 =
                                 // 사용자가 그만큼 스크롤해서 읽은 시점으로

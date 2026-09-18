@@ -1,5 +1,18 @@
 import '../domain/wish_wall_models.dart';
 
+/// [결함-D11-01 수정 — 2026-09-18] `fetchFeed` 응답 래퍼.
+///
+/// 서버 `pagination.hasMore`를 그대로 실어 화면(무한스크롤)이 "다음 페이지가
+/// 더 있는지"를 정확히 판단할 수 있게 한다. [MockWishWallRepository]는
+/// 서버 페이지네이션이 없으므로 전체 목록을 한 페이지로 간주해
+/// hasMore=false를 고정 반환한다.
+class WishFeedPage {
+  const WishFeedPage({required this.items, required this.hasMore});
+
+  final List<WishPost> items;
+  final bool hasMore;
+}
+
 /// 소원벽게시판 Repository 계약.
 ///
 /// [handoff.zip] 기획안 §7 API 계약을 이식. 현재는 인메모리 Mock 구현만
@@ -9,7 +22,21 @@ abstract class WishWallRepository {
   /// [STEP04 PART2 §8] [sort]는 서버가 지원하는 'latest'(기본) 또는
   /// 'popular' 중 하나를 그대로 전달한다. 서버가 실제 정렬을 수행하며,
   /// 클라이언트는 별도의 인기 점수를 계산하지 않는다.
-  Future<List<WishPost>> fetchFeed({String? categoryFilter, String? sort});
+  ///
+  /// [결함-D11-01 수정 — 2026-09-18] 서버 `GET /api/public/wishes`는 이미
+  /// `page`/`pageSize`를 지원하고 `pagination:{page,pageSize,total,hasMore}`를
+  /// 응답에 포함하는데(서버는 정상), 과거 클라이언트는 이 두 파라미터를
+  /// 전혀 전달하지 않아 항상 서버 기본값(page=1, pageSize=20)만 요청되고
+  /// 21번째 이후 콘텐츠에 영구히 접근할 수 없었다. [page](1-base)/
+  /// [pageSize] 파라미터를 신설하고, 반환값도 다음 페이지 존재 여부
+  /// ([WishFeedPage.hasMore])를 함께 돌려주도록 확장한다(하위 호환을 위해
+  /// 기본값은 서버 기본값과 동일한 page=1/pageSize=20 유지).
+  Future<WishFeedPage> fetchFeed({
+    String? categoryFilter,
+    String? sort,
+    int page = 1,
+    int pageSize = 20,
+  });
   Future<WishPost?> fetchDetail(String wishId);
 
   ///
@@ -323,9 +350,11 @@ class MockWishWallRepository implements WishWallRepository {
   }
 
   @override
-  Future<List<WishPost>> fetchFeed({
+  Future<WishFeedPage> fetchFeed({
     String? categoryFilter,
     String? sort,
+    int page = 1,
+    int pageSize = 20,
   }) async {
     await Future.delayed(const Duration(milliseconds: 200));
     List<WishPost> result = categoryFilter == null || categoryFilter == 'all'
@@ -344,7 +373,17 @@ class MockWishWallRepository implements WishWallRepository {
       result = List.of(result)
         ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     }
-    return result;
+    // [결함-D11-01 수정] Mock 데이터는 소규모라 서버와 동일한 오프셋
+    // 페이지네이션을 흉내내되(page/pageSize 무시하고 전체를 한 번에
+    // 돌려주면 무한스크롤 로직 자체를 테스트할 수 없으므로), 실제로
+    // page/pageSize를 적용해 잘라 반환한다.
+    final start = (page - 1) * pageSize;
+    if (start >= result.length) {
+      return const WishFeedPage(items: [], hasMore: false);
+    }
+    final end = (start + pageSize).clamp(0, result.length);
+    final pageItems = result.sublist(start, end);
+    return WishFeedPage(items: pageItems, hasMore: end < result.length);
   }
 
   @override
