@@ -48,6 +48,7 @@ import '../application/home_page_config_provider.dart';
 import '../application/section_visibility_evaluator.dart';
 import 'widgets/welcome_reward_modal.dart';
 import '../../ads_test/presentation/admob_test_banner.dart';
+import '../../ad_banner/presentation/ad_banner_widget.dart';
 import 'sintong_home/sintong_home_tokens.dart';
 import 'sintong_home/widgets/sintong_brand_app_bar.dart';
 import 'sintong_home/widgets/sintong_mode_chip_row.dart';
@@ -195,6 +196,15 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             // C-01 브랜드 앱바
             const SintongBrandAppBar(),
+            const SizedBox(height: SintongHomeSpacing.sectionGap),
+
+            // [G-02 치명결함수정] CMS 제휴광고 배너(admin_web에서 등록/활성화한
+            // 배너를 관리자가 즉시 앱에 반영할 수 있어야 하는 요건, home_top
+            // position). 위젯/Provider/Repository는 모두 완성되어 있었으나
+            // 어떤 화면에서도 실제로 인스턴스화되지 않아(grep 0건) 사용자가
+            // 영원히 배너를 볼 수 없던 결함을 수정 — 여기서 최초로 배치한다.
+            // 활성 배너가 없으면 fallback 없이 공간을 차지하지 않고 사라진다.
+            const AdBannerWidget(position: 'home_top'),
             const SizedBox(height: SintongHomeSpacing.sectionGap),
 
             // C-02 전체보기 칩 + 그리드 스위치
