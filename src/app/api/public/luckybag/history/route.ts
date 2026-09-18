@@ -7,6 +7,7 @@
 // rewardAmount를 꺼낸다(개봉 시점의 스냅샷을 그대로 사용 — 이후 상품/확률표 변경과 무관).
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,9 @@ const CORS_HEADERS = {
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const userId = Number(searchParams.get("userId") ?? 1);
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
 
   const logs = await prisma.luckybagOpenLog.findMany({
     where: { userId, deletedAt: null },

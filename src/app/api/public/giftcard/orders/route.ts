@@ -8,6 +8,7 @@
 // 재사용, 중복 트랜잭션 로직 구현 방지).
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -93,7 +94,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const userId = Number(body.userId ?? 1);
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
   const productId = body.productId ? parseProductId(body.productId) : null;
   if (productId === null) {
     return NextResponse.json(

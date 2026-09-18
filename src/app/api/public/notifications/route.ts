@@ -5,6 +5,7 @@
 // (다른 공개 API들의 확립된 패턴 — Firebase 가이드 "쿼리 최적화" 원칙과 동일 취지).
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorizedResponse } from "../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,9 @@ const CORS_HEADERS = { "Access-Control-Allow-Origin": "*" };
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const userId = Number(searchParams.get("userId") ?? "1");
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
   const limit = Math.min(100, Math.max(1, Number(searchParams.get("limit") ?? "50") || 50));
 
   if (!Number.isInteger(userId) || userId <= 0) {

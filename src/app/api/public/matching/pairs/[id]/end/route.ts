@@ -1,6 +1,7 @@
 // 공개(비인증) 매칭 종료 API — MatchingRepository.endPair() 대응.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorizedResponse } from "../../../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +38,9 @@ export async function POST(
   } catch {
     body = {};
   }
-  const userId = Number(body.userId ?? 1);
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
 
   try {
     const pair = await prisma.matchingPair.update({

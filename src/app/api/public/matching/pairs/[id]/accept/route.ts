@@ -5,6 +5,7 @@
 // 한다(Flutter 화면에 "수락" 버튼이 노출될 일이 없지만, 시그니처 호환을 위해 유지).
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorizedResponse } from "../../../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +42,9 @@ export async function POST(
   } catch {
     body = {};
   }
-  const userId = Number(body.userId ?? 1);
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
 
   try {
     const pair = await prisma.matchingPair.update({

@@ -8,10 +8,10 @@
 //   - 즉 "보내는 행위" 자체가 양쪽 모두에게 포인트를 늘려주는 구조(디플레이션 방지 + 나눔 유도).
 //
 // 일일 한도(economy_config.daily_send_limit)를 적용해 인플레이션(과도한 셀프 송금 등)을 방어한다.
-// [인증 임시 방편] 아직 로그인 시스템이 없으므로 fromUserId/toUserId를 바디로 직접 받는다.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { incrementMissionProgress } from "@/lib/mission-progress";
+import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +33,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const fromUserId = Number(body.fromUserId);
+  // [D-04류 결함수정] "보내는 사람(fromUserId)"은 body가 아닌 JWT로만 결정한다
+  // (body.fromUserId 위조로 타인 지갑에서 송금 처리되는 인증우회 결함 차단).
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const fromUserId = auth.userId;
   const toUserId = Number(body.toUserId);
   const amount = Number(body.amount);
   const memo = body.memo ?? "복 나누기";

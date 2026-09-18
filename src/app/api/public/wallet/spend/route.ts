@@ -8,6 +8,7 @@
 // 환급률은 economy_config.refund_rate 값을 사용하며, 관리자가 대시보드에서 즉시 조정 가능.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const userId = Number(body.userId ?? 1);
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
   const amount = Number(body.amount);
   const reason = body.reason ?? "차감";
   const sourceType = body.sourceType ?? "purchase";

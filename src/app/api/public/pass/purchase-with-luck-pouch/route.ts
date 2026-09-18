@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { spendLuckPouch } from "@/lib/luck-pouch-engine";
+import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const userId = Number(body.userId ?? 1);
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
   const policyId = Number(body.policyId ?? 0);
 
   if (!policyId) {

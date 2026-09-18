@@ -1,6 +1,7 @@
 // 공개(비인증) 전체 알림 읽음 처리 API — Flutter NotificationRepository.markAllRead() 대응.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,9 @@ export async function POST(request: NextRequest) {
   } catch {
     body = {};
   }
-  const userId = Number(body.userId ?? 1);
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
 
   if (!Number.isInteger(userId) || userId <= 0) {
     return NextResponse.json(

@@ -9,6 +9,7 @@
 // API 라우트에서 incrementMissionProgress()를 호출해 처리한다(src/lib/mission-progress.ts).
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorizedResponse } from "../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,9 @@ const CORS_HEADERS = { "Access-Control-Allow-Origin": "*" };
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const userId = Number(searchParams.get("userId") ?? "1");
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
 
   if (!Number.isInteger(userId) || userId <= 0) {
     return NextResponse.json(

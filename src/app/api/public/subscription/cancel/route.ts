@@ -3,6 +3,7 @@
 // (환불(K-2 payment_refunds)은 이번 1차 범위 밖 - Mock 단계와 동일 원칙)
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,9 @@ export async function POST(request: NextRequest) {
   } catch {
     body = {};
   }
-  const userId = Number(body.userId ?? 1);
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
 
   try {
     const current = await prisma.userSubscription.findFirst({

@@ -17,6 +17,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { completeText, LlmClientError } from "@/lib/llm-client";
 import { checkCategoryUsage, checkDailyAbsoluteLimit, consumeCategoryUsage } from "@/lib/open-pass-service";
+import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -70,7 +71,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const userId = Number(body.userId ?? 1);
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
   const type = body.type ?? "love"; // love/friend/business/family
   const birthDateA = body.birthDateA ?? "";
   const birthDateB = body.birthDateB ?? "";

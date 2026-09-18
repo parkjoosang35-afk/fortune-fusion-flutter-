@@ -4,9 +4,27 @@
 // 05_Admin_System_Design.md §3.10 admin_login_logs 기록, §6 세션 관리 반영
 import { z } from "zod";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { createAdminSession, deleteAdminSession } from "@/lib/session";
+
+/**
+ * [Stage2 결함수정 — 결함-H08-01] admin_login_logs.ip_address가 "sandbox-dev"로
+ * 하드코딩되어 추적성이 훼손되어 있던 문제를 수정한다. Next.js Server Action에서는
+ * Request 객체에 직접 접근할 수 없으므로 `next/headers`의 `headers()`로 프록시가
+ * 전달하는 표준 헤더(x-forwarded-for가 최우선, 없으면 x-real-ip)에서 클라이언트
+ * IP를 추출한다. 두 헤더 모두 없는 로컬 개발 환경에서는 "unknown"으로 폴백한다
+ * (과거처럼 임의 문자열로 위장하지 않고, 정보가 없음을 명시적으로 드러낸다).
+ */
+async function extractClientIp(): Promise<string> {
+  const headerList = await headers();
+  const forwardedFor = headerList.get("x-forwarded-for");
+  if (forwardedFor) return forwardedFor.split(",")[0].trim();
+  const realIp = headerList.get("x-real-ip");
+  if (realIp) return realIp.trim();
+  return "unknown";
+}
 
 const LoginSchema = z.object({
   email: z.string().min(1, { message: "이메일(ID)을 입력해주세요." }),
@@ -43,10 +61,11 @@ export async function login(
 
   // 04A B-4 admin_login_logs: 성공/실패 모두 기록 (Append-only)
   if (adminUser) {
+    const clientIp = await extractClientIp();
     await prisma.adminLoginLog.create({
       data: {
         adminUserId: adminUser.id,
-        ipAddress: "sandbox-dev", // 실제 배포 환경에서는 요청 헤더에서 추출 필요
+        ipAddress: clientIp,
         successFlag: passwordOk,
       },
     });

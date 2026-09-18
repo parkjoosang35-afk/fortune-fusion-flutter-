@@ -11,6 +11,7 @@
 // 어색함을 방지한다.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +52,9 @@ function parsePreferences(raw: string | null): string[] {
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const userId = Number(searchParams.get("userId") ?? "1");
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
 
   try {
     const [likedRows, pairRows] = await Promise.all([

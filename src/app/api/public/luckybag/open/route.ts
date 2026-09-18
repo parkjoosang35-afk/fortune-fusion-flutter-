@@ -15,6 +15,7 @@
 //   8) 최종 잔액과 당첨 결과를 응답으로 반환
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const userId = Number(body.userId ?? 1);
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
   const productId = Number(body.productId);
 
   if (!Number.isInteger(productId) || productId <= 0) {

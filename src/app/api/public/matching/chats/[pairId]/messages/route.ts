@@ -5,6 +5,7 @@
 // chat_rooms(type="matching", relatedPairId)를 pairId 기준으로 find-or-create한다.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorizedResponse } from "../../../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -39,8 +40,10 @@ export async function GET(
       { status: 400, headers: CORS_HEADERS }
     );
   }
-  const { searchParams } = new URL(request.url);
-  const userId = Number(searchParams.get("userId") ?? "1");
+  // [D-04류 결함수정] "isMine" 판별용 userId는 query가 아닌 JWT로만 결정한다.
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
 
   try {
     const room = await prisma.chatRoom.findFirst({
@@ -92,7 +95,9 @@ export async function POST(
       { status: 400, headers: CORS_HEADERS }
     );
   }
-  const userId = Number(body.userId ?? 1);
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
   const content = (body.content ?? "").trim();
   if (!content) {
     return NextResponse.json(

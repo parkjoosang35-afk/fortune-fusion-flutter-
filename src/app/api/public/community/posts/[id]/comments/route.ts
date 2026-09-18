@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { earnLuckPouch } from "@/lib/luck-pouch-engine";
+import { requireUser, unauthorizedResponse } from "../../../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -81,7 +82,9 @@ export async function POST(
       { status: 400, headers: CORS_HEADERS }
     );
   }
-  const userId = Number(body.userId ?? 1);
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
   const content = (body.content ?? "").trim();
   if (!content) {
     return NextResponse.json(

@@ -6,6 +6,7 @@
 // idempotencyKey로 중복 지급을 방지한다(§13 QA "중복 보상 지급 방지").
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 import {
   grantOpenPass,
   checkAdRewardEligibility,
@@ -32,7 +33,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: "요청 본문이 올바르지 않습니다." }, { status: 400, headers: CORS_HEADERS });
   }
 
-  const userId = Number(body.userId ?? 0);
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
   const policyId = Number(body.policyId ?? 0);
   const adSourceId = Number(body.adSourceId ?? 0);
   const idempotencyKey = body.idempotencyKey || null;

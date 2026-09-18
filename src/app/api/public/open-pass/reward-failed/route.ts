@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 import {
   resolveFallbackAttachment,
   recordAdRewardLog,
@@ -28,7 +29,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const userId = Number(body.userId ?? 0);
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
   const policyId = Number(body.policyId ?? 0) || null;
   const adSourceId = Number(body.adSourceId ?? 0) || null;
   // [프리패스 테스트 인프라] §4 fail/no_fill/cancel/timeout을 각각 구별된 값으로 통과시키며,

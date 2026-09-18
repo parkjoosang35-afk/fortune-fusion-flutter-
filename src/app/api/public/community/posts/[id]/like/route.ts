@@ -3,6 +3,7 @@
 // 이미 좋아요한 경우는 delete, 아니면 create + community_posts.like_count 캐시 갱신.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorizedResponse } from "../../../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +35,9 @@ export async function POST(
   } catch {
     body = {};
   }
-  const userId = Number(body.userId ?? 1);
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
 
   try {
     const result = await prisma.$transaction(async (tx) => {

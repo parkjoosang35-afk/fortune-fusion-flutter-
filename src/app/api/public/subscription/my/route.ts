@@ -1,6 +1,7 @@
 // 공개(비인증) 내 구독 현황 조회 API — SubscriptionRepository.getMySubscription() 대응.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,9 @@ function parseBenefits(raw: string): string[] {
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const userId = Number(searchParams.get("userId") ?? "1");
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
 
   try {
     const sub = await prisma.userSubscription.findFirst({

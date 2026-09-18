@@ -1,6 +1,7 @@
 // 공개(비인증) 내 상품권 발급 내역 API — GiftcardRepository.getMyOrders() 대응.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorizedResponse } from "../../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,9 @@ function pickEmoji(brand: string, name: string): string {
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const userId = Number(searchParams.get("userId") ?? "1");
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
 
   try {
     const issues = await prisma.giftcardIssue.findMany({

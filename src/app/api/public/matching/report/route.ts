@@ -7,6 +7,7 @@
 // (targetId를 pair의 상대방 userId로 resolve).
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const userId = Number(body.userId ?? 1);
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
   const targetType = body.targetType ?? "";
   const reason = (body.reason ?? "").trim();
   if (!reason) {

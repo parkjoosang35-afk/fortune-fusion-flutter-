@@ -9,6 +9,7 @@
 // 폴백해 화면이 깨지지 않도록 한다.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +44,9 @@ function toProfileDto(p: {
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const userId = Number(searchParams.get("userId") ?? "1");
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
 
   try {
     const profile = await prisma.matchingProfile.findUnique({
@@ -81,7 +84,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const userId = Number(body.userId ?? 1);
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
   const isPublic = body.isPublic ?? true;
   const introText = (body.introText ?? "").trim();
   const preferences = Array.isArray(body.preferences) ? body.preferences : [];

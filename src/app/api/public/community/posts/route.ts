@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { incrementMissionProgress } from "@/lib/mission-progress";
 import { earnLuckPouch } from "@/lib/luck-pouch-engine";
+import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +60,10 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const boardIdParam = searchParams.get("boardId");
   const sortByPopular = searchParams.get("sortByPopular") === "true";
-  const userId = Number(searchParams.get("userId") ?? "1");
+  // [D-04류 결함수정] 게시글 목록은 비로그인 열람을 허용한다(wishes/route.ts와 동일 원칙).
+  // isMine/isLikedByMe 판별용 userId는 body/query가 아닌 JWT로만 결정한다.
+  const auth = await requireUser(request);
+  const userId = auth?.userId ?? 0;
 
   try {
     const where: { boardId?: number; status: string; deletedAt: null } = {
@@ -120,7 +124,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const userId = Number(body.userId ?? 1);
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
   const title = (body.title ?? "").trim();
   const content = (body.content ?? "").trim();
 

@@ -5,6 +5,7 @@
 // eligible=true 항목만 사용하면 된다(§15 "앱이 임의로 우선순위를 정하면 안 됨").
 import { NextRequest, NextResponse } from "next/server";
 import { resolveProductAdConfig } from "@/lib/open-pass-service";
+import { requireUser } from "../../../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -19,8 +20,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   const { searchParams } = new URL(request.url);
   const platform = searchParams.get("platform") ?? "all";
-  const userIdParam = searchParams.get("userId");
-  const userId = userIdParam ? Number(userIdParam) : undefined;
+  // [D-04류 결함수정] 로그인 시 자격(쿨다운/일일제한) 판정은 query가 아닌 JWT의 userId로만
+  // 한다(비로그인 조회는 계속 허용 — 로그인 전 미리보기 용도).
+  const auth = await requireUser(request);
+  const userId = auth?.userId;
 
   try {
     const adSources = await resolveProductAdConfig(policyId, platform, userId);

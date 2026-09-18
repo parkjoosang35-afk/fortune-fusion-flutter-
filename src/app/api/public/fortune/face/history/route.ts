@@ -3,6 +3,7 @@
 // (앱 재시작 시 소실), 서버 영속 이력을 조회할 수 있도록 추가한다.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorizedResponse } from "../../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,9 @@ const CORS_HEADERS = { "Access-Control-Allow-Origin": "*" };
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const userId = Number(searchParams.get("userId") ?? "1");
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
 
   if (!Number.isInteger(userId) || userId <= 0) {
     return NextResponse.json(

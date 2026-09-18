@@ -5,14 +5,18 @@
 // 반환한다(Mock의 "myPoints로 임의 순위 삽입" 방식 대신, 실제 저장된 점수/순위를 사용).
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser } from "../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
 const CORS_HEADERS = { "Access-Control-Allow-Origin": "*" };
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const userId = Number(searchParams.get("userId") ?? "1");
+  // [D-04류 결함수정] "내 순위 표시"는 body/query의 userId가 아닌 JWT로만 판단한다.
+  // 랭킹 목록 자체는 비로그인도 열람 가능해야 하므로(공개 정보) requireUser()가 null이어도
+  // 계속 진행하되, isMe 판별에는 반드시 인증된 userId만 사용한다(위조 불가).
+  const auth = await requireUser(request);
+  const userId = auth?.userId ?? null;
 
   try {
     const latestPeriodRow = await prisma.rankingSnapshot.findFirst({

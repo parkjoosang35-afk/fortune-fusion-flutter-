@@ -10,6 +10,18 @@
 // (동일 이메일 재가입 불가 = UNIQUE 제약), 별도 중복 지급 방지 플래그 없이도
 // "가입당 정확히 1회"가 구조적으로 보장된다. 재로그인은 이 API를 다시 타지 않으므로
 // 재지급 위험도 없다.
+//
+// [결함-A07-01 수정 — 2026-09-18] 지시서 스펙(회원가입 완료 즉시 "프리패스 1시간 +
+// 복주머니 100개" 지급)과 실제 동작이 두 가지 지점에서 불일치했다:
+//   ① point_policies(signup_reward).amount=20 vs IntroConfig.signupRewardAmount=100
+//      (관리자 화면에는 "100개 지급"이라고 표시되면서 실제로는 20개만 지급되던 문제)
+//   ② 프리패스 1시간 지급 로직이 이 파일에 전혀 없었음(UserPass 생성 코드 0건)
+// ①은 DB 값 정정(point_policies.signup_reward.amount: 20→100)으로, ②는 아래
+// PassPolicy(passType="event", durationMin=60) 조회 + UserPass 발급 로직 신설로
+// 해결한다. sourceType="signup"으로 기록해 광고(ad)/파트너(partner) 등 다른 발급
+// 경로와 구분되도록 한다(claim-ad/route.ts의 UserPass 생성 패턴을 그대로 재사용).
+// 복주머니와 마찬가지로 User row 생성 자체가 "최초 1회"를 구조적으로 보장하므로
+// 별도의 중복 지급 방지 플래그는 두지 않는다.
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
@@ -87,7 +99,17 @@ export async function POST(request: NextRequest) {
     const signupRewardAmount =
       signupRewardPolicy?.isActive === false ? 0 : signupRewardPolicy?.amount ?? 20;
 
-    const { created, walletBalanceAfter } = await prisma.$transaction(async (tx) => {
+    // [결함-A07-01 수정] 회원가입 프리패스(1시간) 지급 대상 정책 조회.
+    // passType="event" + durationMin=60인 활성 정책 중 첫 번째를 사용한다(기존
+    // "프리패스 1시간(복주머니 구매)" 정책과 동일 효과를 공유 — 이용자 입장에서는
+    // 발급 경로만 다를 뿐 "1시간 동안 전체 운세 콘텐츠 이용 가능"이라는 동일한
+    // 혜택이므로 별도 전용 정책을 새로 만들지 않고 재사용한다).
+    const signupPassPolicy = await prisma.passPolicy.findFirst({
+      where: { passType: "event", durationMin: 60, isActive: true, deletedAt: null },
+      orderBy: { id: "asc" },
+    });
+
+    const { created, walletBalanceAfter, passExpiresAt } = await prisma.$transaction(async (tx) => {
       const now = new Date();
       const user = await tx.user.create({
         data: {
@@ -122,7 +144,34 @@ export async function POST(request: NextRequest) {
         balanceAfter = rewardResult.balanceAfter;
       }
 
-      return { created: user, walletBalanceAfter: balanceAfter };
+      // [결함-A07-01 수정] 프리패스 1시간 지급. claim-ad/route.ts와 동일한
+      // UserPass 생성 패턴(activatedAt=now, expiresAt=now+durationMin분).
+      let expiresAt: Date | null = null;
+      if (signupPassPolicy) {
+        expiresAt = new Date(now.getTime() + signupPassPolicy.durationMin * 60 * 1000);
+        const userPass = await tx.userPass.create({
+          data: {
+            userId: user.id,
+            policyId: signupPassPolicy.id,
+            activatedAt: now,
+            expiresAt,
+            sourceType: "signup",
+          },
+        });
+        await tx.operationLog.create({
+          data: {
+            actorType: "user",
+            actorId: user.id,
+            action: "signup_reward_pass",
+            targetType: "user_pass",
+            targetId: userPass.id,
+            before: null,
+            after: JSON.stringify({ policyId: signupPassPolicy.id, expiresAt: expiresAt.toISOString() }),
+          },
+        });
+      }
+
+      return { created: user, walletBalanceAfter: balanceAfter, passExpiresAt: expiresAt };
     });
 
     const token = await signUserToken({ userId: created.id, nickname: created.nickname });
@@ -137,6 +186,9 @@ export async function POST(request: NextRequest) {
             signupRewardAmount > 0
               ? { amount: signupRewardAmount, balanceAfter: walletBalanceAfter }
               : null,
+          signupPass: passExpiresAt
+            ? { policyId: signupPassPolicy?.id, expiresAt: passExpiresAt.toISOString() }
+            : null,
         },
       },
       { headers: CORS_HEADERS }

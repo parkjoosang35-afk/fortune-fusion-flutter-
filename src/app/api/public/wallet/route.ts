@@ -9,6 +9,7 @@
 // 추출하도록 교체하되, 이 API의 응답 스키마는 유지한다.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorizedResponse } from "../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,9 @@ const CORS_HEADERS = {
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const userId = Number(searchParams.get("userId") ?? "1");
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
 
   if (!Number.isInteger(userId) || userId <= 0) {
     return NextResponse.json(

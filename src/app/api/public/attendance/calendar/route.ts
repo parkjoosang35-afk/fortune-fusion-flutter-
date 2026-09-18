@@ -7,6 +7,7 @@
 // 함께 내려준다 — 30일 달력 + 보상 트랙 UI를 한 번의 호출로 그릴 수 있게 한다.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,9 @@ function todayRangeUtcKST(): { start: Date; end: Date } {
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const userId = Number(searchParams.get("userId") ?? "1");
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
   const now = new Date();
   const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
   const year = Number(searchParams.get("year") ?? kstNow.getUTCFullYear());

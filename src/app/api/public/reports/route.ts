@@ -7,6 +7,7 @@
 // 화이트리스트 값과 숫자 PK로 변환한다.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorizedResponse } from "../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,13 @@ function parseTargetId(targetType: string, targetId: string): number | null {
 }
 
 export async function POST(request: NextRequest) {
-  let body: { userId?: number; targetType?: string; targetId?: string; reason?: string };
+  // [D-04 결함수정] body.userId를 그대로 신뢰하지 않고 Authorization: Bearer JWT로
+  // 서버가 최종 판단한다(guinji/_shared.ts, wishes/_shared.ts와 동일 원칙).
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
+
+  let body: { targetType?: string; targetId?: string; reason?: string };
   try {
     body = await request.json();
   } catch {
@@ -38,7 +45,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const userId = Number(body.userId ?? 1);
   const feTargetType = body.targetType ?? "";
   const reason = (body.reason ?? "").trim();
 

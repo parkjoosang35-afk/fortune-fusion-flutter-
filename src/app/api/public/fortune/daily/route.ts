@@ -26,6 +26,7 @@ import { incrementMissionProgress } from "@/lib/mission-progress";
 import { earnLuckPouch } from "@/lib/luck-pouch-engine";
 import { completeText, LlmClientError } from "@/lib/llm-client";
 import { checkDailyAbsoluteLimit } from "@/lib/open-pass-service";
+import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -79,7 +80,9 @@ function todayRangeUtcKST(): { start: Date; end: Date; key: string } {
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const userId = Number(searchParams.get("userId") ?? "1");
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
 
   if (!Number.isInteger(userId) || userId <= 0) {
     return NextResponse.json(

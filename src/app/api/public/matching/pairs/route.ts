@@ -1,6 +1,7 @@
 // 공개(비인증) 매칭 성사 목록 조회 API — MatchingRepository.getPairs() 대응.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,9 @@ function pickEmoji(userId: number): string {
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const userId = Number(searchParams.get("userId") ?? "1");
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
 
   try {
     const pairs = await prisma.matchingPair.findMany({

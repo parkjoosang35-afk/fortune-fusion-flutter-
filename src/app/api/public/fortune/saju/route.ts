@@ -22,6 +22,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { completeText, LlmClientError } from "@/lib/llm-client";
 import { checkCategoryUsage, checkDailyAbsoluteLimit, consumeCategoryUsage } from "@/lib/open-pass-service";
+import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 
 // [어뷰징 방지 개편 §신규 ②] saju는 uniqueTopics 각각에 대해 LLM을 병렬 호출하므로
 // (Promise.allSettled), 클라이언트가 몇 개를 보내든 서버가 최종 방어선으로 최대
@@ -105,7 +106,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const userId = Number(body.userId ?? 1);
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
   // [사주정보 이름 필드 보완] Flutter 입럅 화상이 이뙔 모니토링 없는 버전을
   // 호출해넄 무효가 도지 압땄 없도록, 버전 목러가 모니토링 없으면 '게스트'로 폴백한다.
   const name = body.name && body.name.trim().length > 0 ? body.name.trim() : "게스트";
@@ -210,13 +213,26 @@ export async function POST(request: NextRequest) {
       (e): e is { topic: string; template: NonNullable<(typeof templateEntries)[number]["template"]> } =>
         e.template !== null
     );
+    // [C-01 치명결함수정 — 사주 명식-AI텍스트 불일치] 서버가 결정론적으로 계산한
+    // pillars(4주)를 프롬프트에 명시적으로 전달하지 않으면 LLM이 생년월일만 보고
+    // 자체적으로(부정확하게) 사주를 재계산해 화면에 표시되는 명식과 전혀 다른
+    // 사주를 언급하는 문제가 100% 재현되었다. 반드시 서버가 이미 계산한 pillars를
+    // 프롬프트에 고정 텍스트로 못박아 LLM이 이 값만 사용하도록 강제한다.
+    const pillarsText = [
+      `년주(年柱): ${pillars.year}`,
+      `월주(月柱): ${pillars.month}`,
+      `일주(日柱): ${pillars.day}`,
+      pillars.hour ? `시주(時柱): ${pillars.hour}` : "시주(時柱): 태어난 시간 미상으로 계산 불가",
+    ].join(", ");
+
     const settled = await Promise.allSettled(
       withTemplate.map(({ topic, template }) => {
         const userPrompt = [
           `사용자 정보: ${name}, 생년월일 ${birthDate}(${isLunar ? "음력" : "양력"})`,
           birthTime ? `태어난 시간: ${birthTime}` : "태어난 시간: 미상",
+          `[중요] 이 사람의 사주 명식(4주)은 이미 계산되어 확정되었습니다. 아래 명식을 그대로 인용하여 해석하세요. 절대로 직접 사주를 다시 계산하거나 다른 간지를 언급하지 마세요: ${pillarsText}`,
           `요청 주제: ${topic}`,
-          "위 [기본 규칙]과 [출력 형식]을 그대로 지켜서 이 사람의 운세를 작성해주세요.",
+          "위 [기본 규칙]과 [출력 형식]을 그대로 지켜서, 반드시 위에 제시된 사주 명식(4주)만을 근거로 이 사람의 운세를 작성해주세요.",
         ].join("\n");
         return completeText({ systemPrompt: template.templateBody, userPrompt });
       })

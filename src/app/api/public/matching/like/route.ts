@@ -12,6 +12,7 @@
 // (과거 point_policies.matching_like 기반 과금 로직은 폐기).
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const userId = Number(body.userId ?? 1);
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
   const targetUserId = Number(body.targetUserId);
   if (!Number.isInteger(targetUserId) || targetUserId <= 0) {
     return NextResponse.json(

@@ -45,6 +45,7 @@ import { drawFromFullDeck } from "@/lib/tarot/card-draw-engine";
 import { getTopicWithPositions, buildTopicSummaryPrompt } from "@/lib/tarot/narrative-engine";
 import { matchTopicFromQuestion } from "@/lib/tarot/topic-matcher";
 import { validateTarotQuestion } from "@/lib/tarot/question-guard";
+import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -129,7 +130,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const userId = Number(body.userId ?? 1);
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
   const question = body.question?.trim();
   const rawSpreadType = body.spreadType ?? "one_card";
   const requestedTopic = body.topic ?? "general";

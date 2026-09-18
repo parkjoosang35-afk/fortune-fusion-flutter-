@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { earnLuckPouch, checkPolicyEligibility } from "@/lib/luck-pouch-engine";
+import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const userId = Number(body.userId ?? 1);
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
   const amount = Number(body.amount);
   const reason = body.reason ?? "적립";
   const sourceType = body.sourceType ?? "admin_adjust";

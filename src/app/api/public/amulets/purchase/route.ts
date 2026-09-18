@@ -2,6 +2,7 @@
 // 지갑(POINT) 차감 + user_amulets 발급을 하나의 트랜잭션으로 처리한다.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const userId = Number(body.userId ?? 1);
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
   const itemId = parseItemId(body.itemId);
   if (itemId == null) {
     return NextResponse.json(

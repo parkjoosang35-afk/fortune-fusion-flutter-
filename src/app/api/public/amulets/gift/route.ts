@@ -4,6 +4,7 @@
 // nickname 컬럼이 있으면 사용). 존재하지 않으면 404.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const fromUserId = Number(body.userId ?? 1);
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const fromUserId = auth.userId;
   const userAmuletId = parseUserAmuletId(body.userAmuletId);
   if (userAmuletId == null || !body.toUserNickname) {
     return NextResponse.json(

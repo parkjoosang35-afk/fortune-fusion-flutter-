@@ -22,6 +22,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { checkCategoryUsage, consumeCategoryUsage } from "@/lib/open-pass-service";
+import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +45,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const userId = Number(body.userId ?? 1);
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+  const userId = auth.userId;
   const contentType = body.contentType ?? "unknown";
   const categoryKey = body.categoryKey && body.categoryKey.trim() ? body.categoryKey.trim() : null;
   // [STEP8 - 이중 차감 방지] 기본값 true: 화면 진입 게이트체크는 "확인만" 하고,
