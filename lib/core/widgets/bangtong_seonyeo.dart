@@ -226,6 +226,16 @@ class BangtongIntroHero extends StatelessWidget {
   final Alignment alignment;
   final BorderRadius borderRadius;
 
+  /// [전신 이미지 잘림 방지 - CTA 마지막 페이지 개편] 기존에는 항상
+  /// `BoxFit.cover`로 고정해, 고정 height 박스에 3:4 전신 이미지를 넣으면
+  /// 다리 아래가 잘려나가는 문제가 있었다. "영상처럼 전신이 그대로
+  /// 나왔으면 좋겠다"는 피드백에 따라 [fit]을 외부에서 지정할 수 있게
+  /// 열어둔다 — CTA 히어로처럼 잘림 없이 전신을 다 보여줘야 하는 자리는
+  /// `BoxFit.contain`(좌우 여백은 생기지만 잘림 없음)을 쓰고, 기존
+  /// 배너형 자리(스플래시 등)는 기본값 `BoxFit.cover`를 그대로 유지해
+  /// 기존 화면들의 모양을 바꾸지 않는다.
+  final BoxFit fit;
+
   const BangtongIntroHero({
     super.key,
     required this.asset,
@@ -236,6 +246,7 @@ class BangtongIntroHero extends StatelessWidget {
       bottomLeft: Radius.circular(32),
       bottomRight: Radius.circular(32),
     ),
+    this.fit = BoxFit.cover,
   });
 
   @override
@@ -252,7 +263,7 @@ class BangtongIntroHero extends StatelessWidget {
               label: '방통선녀',
               child: Image.asset(
                 asset,
-                fit: BoxFit.cover,
+                fit: fit,
                 alignment: alignment,
               ),
             ),
