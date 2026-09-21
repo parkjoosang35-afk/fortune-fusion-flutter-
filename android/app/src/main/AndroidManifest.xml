@@ -38,7 +38,7 @@
         android:maxSdkVersion="29"/>
 
     <application
-        android:label="Fortune Fusion"
+        android:label="신통방통"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:requestLegacyExternalStorage="true">
