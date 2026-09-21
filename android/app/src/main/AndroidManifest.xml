@@ -38,7 +38,7 @@
         android:maxSdkVersion="29"/>
 
     <application
-        android:label="신통방통"
+        android:label="Fortune Fusion"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:requestLegacyExternalStorage="true">
@@ -150,7 +150,7 @@
                  리다이렉트. 스킴은 반드시 "kakao" + 네이티브 앱 키(REST API
                  키가 아님) 형태여야 하며, 카카오 디벨로퍼스 콘솔의 네이티브
                  앱 키(6372a58baa9ce5d09bcc7edf0d38fc75)와 일치해야 한다. -->
-            <intent-filter android:label="flutter_web_auth">
+            <intent-filter android:label="Fortune Fusion">
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
@@ -214,6 +214,7 @@
         </intent>
     </queries>
 </manifest>
+
 
 
 
