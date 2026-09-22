@@ -14,7 +14,21 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+
+// [폰트 깨짐(□) 버그 수정 — 2026-09-22 사용자 리포트]
+// 기존에는 이 화면 전용으로 google_fonts 패키지(GoogleFonts.notoSansKr/
+// inter/instrumentSerif)를 써서 폰트를 "런타임에 구글 폰트 서버에서
+// 다운로드"하는 방식이었다. 앱 나머지 전체(상단바 '신통방통', 하단
+// 네비게이션 등)는 이미 로컬에 내장된 'Pretendard' 폰트를 쓰고 있어
+// 네트워크 상태와 무관하게 항상 정상 표시되는데, 이 화면만 예외로
+// 네트워크 폰트에 의존해 모바일 환경에서 폰트 다운로드가 지연/실패하면
+// 글자가 깨진 사각형(□)으로 보이는 문제가 있었다(실사용자 스크린샷으로
+// 확인). 앱 전역에서 이미 pubspec.yaml에 등록해 로컬 asset으로 번들된
+// 'Pretendard'(한글/영문/숫자)와 'NotoSerifKR'(한자 — 火/吉 등 이
+// 화면에서 쓰는 한자 1글자 액센트를 포함)로 완전히 대체한다.
+// fontFamilyFallback으로 Pretendard에 없는 한자 글리프만 NotoSerifKR로
+// 자동 대체되도록 해 항상 로컬 파일만으로 100% 렌더링을 보장한다.
+const List<String> _kHanjaFallback = ['NotoSerifKR'];
 
 /// Color tokens — README.md "Design Tokens > Colors" 표 그대로.
 class SHomeV2Colors {
@@ -78,9 +92,11 @@ class SHomeV2Spacing {
 class SHomeV2Text {
   SHomeV2Text._();
 
-  /// Hero title — Noto Sans KR 500 30/1.15/-2%
+  /// Hero title — Pretendard 500 30/1.15/-2%
   static TextStyle heroTitle({Color color = SHomeV2Colors.heroFg}) =>
-      GoogleFonts.notoSansKr(
+      TextStyle(
+        fontFamily: 'Pretendard',
+        fontFamilyFallback: _kHanjaFallback,
         fontSize: 30,
         height: 1.15,
         fontWeight: FontWeight.w500,
@@ -88,9 +104,11 @@ class SHomeV2Text {
         color: color,
       );
 
-  /// Hero eyebrow — Inter 500 11/1, tracking .30em uppercase
+  /// Hero eyebrow — Pretendard 500 11/1, tracking .30em uppercase
   static TextStyle heroEyebrow({Color color = SHomeV2Colors.heroFg}) =>
-      GoogleFonts.inter(
+      TextStyle(
+        fontFamily: 'Pretendard',
+        fontFamilyFallback: _kHanjaFallback,
         fontSize: 11,
         height: 1,
         fontWeight: FontWeight.w500,
@@ -98,18 +116,21 @@ class SHomeV2Text {
         color: color,
       );
 
-  /// Hero sub — Inter/NotoSansKR 400 13/1.55
-  static TextStyle heroSub({Color color = SHomeV2Colors.heroFg}) =>
-      GoogleFonts.notoSansKr(
-        fontSize: 13,
-        height: 1.55,
-        fontWeight: FontWeight.w400,
-        color: color,
-      );
+  /// Hero sub — Pretendard 400 13/1.55
+  static TextStyle heroSub({Color color = SHomeV2Colors.heroFg}) => TextStyle(
+    fontFamily: 'Pretendard',
+    fontFamilyFallback: _kHanjaFallback,
+    fontSize: 13,
+    height: 1.55,
+    fontWeight: FontWeight.w400,
+    color: color,
+  );
 
   /// Sheet title — 700 15/1.2/-0.5%
   static TextStyle sheetTitle({Color color = SHomeV2Colors.sheetTitleFg}) =>
-      GoogleFonts.notoSansKr(
+      TextStyle(
+        fontFamily: 'Pretendard',
+        fontFamilyFallback: _kHanjaFallback,
         fontSize: 15,
         height: 1.2,
         fontWeight: FontWeight.w700,
@@ -119,7 +140,9 @@ class SHomeV2Text {
 
   /// Sheet meta — 500 12/1
   static TextStyle sheetMeta({Color color = SHomeV2Colors.sheetMetaFg}) =>
-      GoogleFonts.notoSansKr(
+      TextStyle(
+        fontFamily: 'Pretendard',
+        fontFamilyFallback: _kHanjaFallback,
         fontSize: 12,
         height: 1,
         fontWeight: FontWeight.w500,
@@ -128,7 +151,9 @@ class SHomeV2Text {
 
   /// Card title — 700 13/1.3/-0.5%
   static TextStyle cardTitle({Color color = SHomeV2Colors.cardTitle}) =>
-      GoogleFonts.notoSansKr(
+      TextStyle(
+        fontFamily: 'Pretendard',
+        fontFamilyFallback: _kHanjaFallback,
         fontSize: 13,
         height: 1.3,
         fontWeight: FontWeight.w700,
@@ -137,28 +162,31 @@ class SHomeV2Text {
       );
 
   /// Chip label — 500(active 600) 12.5/1
-  static TextStyle chip({
-    Color color = Colors.white,
-    bool active = false,
-  }) => GoogleFonts.notoSansKr(
-    fontSize: 12.5,
-    height: 1,
-    fontWeight: active ? FontWeight.w600 : FontWeight.w500,
-    color: color,
-  );
-
-  /// CTA — 600 14.5/1/-0.5%
-  static TextStyle cta({Color color = SHomeV2Colors.ctaFg}) =>
-      GoogleFonts.notoSansKr(
-        fontSize: 14.5,
+  static TextStyle chip({Color color = Colors.white, bool active = false}) =>
+      TextStyle(
+        fontFamily: 'Pretendard',
+        fontFamilyFallback: _kHanjaFallback,
+        fontSize: 12.5,
         height: 1,
-        fontWeight: FontWeight.w600,
-        letterSpacing: -0.0725,
+        fontWeight: active ? FontWeight.w600 : FontWeight.w500,
         color: color,
       );
 
-  /// Brand mono — Inter 600 10.5, tracking .12em uppercase
-  static TextStyle brandMono({Color color = Colors.white}) => GoogleFonts.inter(
+  /// CTA — 600 14.5/1/-0.5%
+  static TextStyle cta({Color color = SHomeV2Colors.ctaFg}) => TextStyle(
+    fontFamily: 'Pretendard',
+    fontFamilyFallback: _kHanjaFallback,
+    fontSize: 14.5,
+    height: 1,
+    fontWeight: FontWeight.w600,
+    letterSpacing: -0.0725,
+    color: color,
+  );
+
+  /// Brand mono — Pretendard 600 10.5, tracking .12em uppercase
+  static TextStyle brandMono({Color color = Colors.white}) => TextStyle(
+    fontFamily: 'Pretendard',
+    fontFamilyFallback: _kHanjaFallback,
     fontSize: 10.5,
     height: 1,
     fontWeight: FontWeight.w600,
@@ -170,7 +198,9 @@ class SHomeV2Text {
   static TextStyle navLabel({
     Color color = SHomeV2Colors.navOff,
     bool active = false,
-  }) => GoogleFonts.notoSansKr(
+  }) => TextStyle(
+    fontFamily: 'Pretendard',
+    fontFamilyFallback: _kHanjaFallback,
     fontSize: 10,
     height: 1,
     fontWeight: active ? FontWeight.w700 : FontWeight.w500,
@@ -181,38 +211,43 @@ class SHomeV2Text {
   // ── 서브 스크린(_shared.css) 전용 ──
 
   /// Sub header title (hdr-title) — 600 10.5, tracking .22em uppercase
-  static TextStyle subHeaderTitle({Color color = Colors.white}) =>
-      GoogleFonts.inter(
-        fontSize: 10.5,
-        height: 1,
-        fontWeight: FontWeight.w600,
-        letterSpacing: 2.31,
-        color: color,
-      );
+  static TextStyle subHeaderTitle({Color color = Colors.white}) => TextStyle(
+    fontFamily: 'Pretendard',
+    fontFamilyFallback: _kHanjaFallback,
+    fontSize: 10.5,
+    height: 1,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 2.31,
+    color: color,
+  );
 
   /// Hero strip eyebrow (.eb) — 500 10/1, tracking .28em uppercase
-  static TextStyle subHeroEyebrow({Color color = Colors.white}) =>
-      GoogleFonts.inter(
-        fontSize: 10,
-        height: 1,
-        fontWeight: FontWeight.w500,
-        letterSpacing: 2.8,
-        color: color,
-      );
+  static TextStyle subHeroEyebrow({Color color = Colors.white}) => TextStyle(
+    fontFamily: 'Pretendard',
+    fontFamilyFallback: _kHanjaFallback,
+    fontSize: 10,
+    height: 1,
+    fontWeight: FontWeight.w500,
+    letterSpacing: 2.8,
+    color: color,
+  );
 
   /// Hero strip title (.ti) — 700 22/1.2/-1%
-  static TextStyle subHeroTitle({Color color = Colors.white}) =>
-      GoogleFonts.notoSansKr(
-        fontSize: 22,
-        height: 1.2,
-        fontWeight: FontWeight.w700,
-        letterSpacing: -0.22,
-        color: color,
-      );
+  static TextStyle subHeroTitle({Color color = Colors.white}) => TextStyle(
+    fontFamily: 'Pretendard',
+    fontFamilyFallback: _kHanjaFallback,
+    fontSize: 22,
+    height: 1.2,
+    fontWeight: FontWeight.w700,
+    letterSpacing: -0.22,
+    color: color,
+  );
 
   /// Section head — 700 15/1.2/-0.5%
   static TextStyle sectionHead({Color color = SHomeV2Colors.sheetTitleFg}) =>
-      GoogleFonts.notoSansKr(
+      TextStyle(
+        fontFamily: 'Pretendard',
+        fontFamilyFallback: _kHanjaFallback,
         fontSize: 15,
         height: 1.2,
         fontWeight: FontWeight.w700,
@@ -222,7 +257,9 @@ class SHomeV2Text {
 
   /// Section sub — 400 12.5/1.6
   static TextStyle sectionSub({Color color = const Color(0x9EFAF9F9)}) =>
-      GoogleFonts.notoSansKr(
+      TextStyle(
+        fontFamily: 'Pretendard',
+        fontFamilyFallback: _kHanjaFallback,
         fontSize: 12.5,
         height: 1.6,
         fontWeight: FontWeight.w400,
@@ -231,7 +268,9 @@ class SHomeV2Text {
 
   /// Option title — 600 13.5/1.2/-0.5%
   static TextStyle optTitle({Color color = SHomeV2Colors.sheetTitleFg}) =>
-      GoogleFonts.notoSansKr(
+      TextStyle(
+        fontFamily: 'Pretendard',
+        fontFamilyFallback: _kHanjaFallback,
         fontSize: 13.5,
         height: 1.2,
         fontWeight: FontWeight.w600,
@@ -241,7 +280,9 @@ class SHomeV2Text {
 
   /// Option sub — 400 11.5/1.4
   static TextStyle optSub({Color color = const Color(0x8CFAF9F9)}) =>
-      GoogleFonts.notoSansKr(
+      TextStyle(
+        fontFamily: 'Pretendard',
+        fontFamilyFallback: _kHanjaFallback,
         fontSize: 11.5,
         height: 1.4,
         fontWeight: FontWeight.w400,
@@ -263,21 +304,26 @@ class SHomeV2Text {
       );
 
   /// Quote body — 400 13/1.65/-0.5%
-  static TextStyle quote({Color color = const Color(0xD9FAF9F9)}) =>
-      GoogleFonts.notoSansKr(
-        fontSize: 13,
-        height: 1.65,
-        fontWeight: FontWeight.w400,
-        letterSpacing: -0.065,
-        color: color,
-      );
+  static TextStyle quote({Color color = const Color(0xD9FAF9F9)}) => TextStyle(
+    fontFamily: 'Pretendard',
+    fontFamilyFallback: _kHanjaFallback,
+    fontSize: 13,
+    height: 1.65,
+    fontWeight: FontWeight.w400,
+    letterSpacing: -0.065,
+    color: color,
+  );
 
-  /// Quote emphasis(영문/한자 전용 이탤릭 세리프) — Instrument Serif
-  /// italic 400 15. [한글 금지] 한글 문자열에는 절대 이 스타일을 쓰지
-  /// 않는다(README §구현 주의사항 7). 각 서브 화면에서 <em> 부분은
-  /// 한글이므로 실제로는 optTitle 굵기 정도의 강조로 대체해 렌더링한다.
+  /// Quote emphasis(영문/한자 전용 이탤릭 강조) — italic 400 15.
+  /// [한글 금지] 한글 문자열에는 절대 이 스타일을 쓰지 않는다(README
+  /// §구현 주의사항 7). 네트워크 폰트(Instrument Serif) 의존을 없애기
+  /// 위해 로컬 Pretendard 이탤릭으로 대체한다(영문/한자 전용이라 큰
+  /// 시각적 차이 없음 — Pretendard는 fontStyle.italic을 합성 이탤릭으로
+  /// 렌더링한다).
   static TextStyle quoteEmphasis({Color color = SHomeV2Colors.glow}) =>
-      GoogleFonts.instrumentSerif(
+      TextStyle(
+        fontFamily: 'Pretendard',
+        fontFamilyFallback: _kHanjaFallback,
         fontSize: 15,
         height: 1,
         fontStyle: FontStyle.italic,
