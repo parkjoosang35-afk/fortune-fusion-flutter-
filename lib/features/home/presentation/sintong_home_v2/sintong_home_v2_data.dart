@@ -5,6 +5,12 @@
 // ═══════════════════════════════════════════════════════════════
 library;
 
+import 'package:flutter/widgets.dart' show BuildContext;
+
+// 참고: 홈 하단 시트 카드 목록(sHomeV2SheetCards)은 관상/손금 카드가
+// [openFaceReading]/[openPalmReading](routing.dart)을 직접 참조해야 해서
+// 순환 참조를 피하기 위해 sintong_home_v2_routing.dart 쪽에 정의한다.
+
 /// 5개 카테고리 식별자 — 히어로 슬라이드/칩/서브 화면이 공유하는 순서.
 enum SHomeV2Category { guide, saju, tarot, wish, palm }
 
@@ -210,33 +216,29 @@ const Map<SHomeV2Category, List<SHomeV2Option>> sHomeV2Options = {
   ],
 };
 
-/// 홈 하단 시트 3카드(소원방/타로/정통사주) — README index.html 순서 그대로.
+/// 홈 하단 시트 카드 1개 — README index.html "전체보기" 그리드 항목.
+///
+/// [6칸 확장] 원래 소원방/타로/정통사주 3장이었으나, 사용자 요청으로
+/// 귀인지도/관상/손금 3장을 추가해 2행(3+3) 총 6장으로 확장한다.
+/// 관상/손금은 기존 [SHomeV2Category.palm](통합 선택 시트로 연결)과
+/// 별개로 각각 실제 촬영 화면에 곧장 연결해야 하므로, [category] 대신
+/// [customOnTap]을 지정할 수 있게 한다(지정 시 category 무시).
 class SHomeV2SheetCard {
   const SHomeV2SheetCard({
-    required this.category,
+    this.category,
     required this.thumbAsset,
     required this.title,
-  });
+    this.customOnTap,
+  }) : assert(
+         category != null || customOnTap != null,
+         'category 또는 customOnTap 중 하나는 반드시 지정해야 한다',
+       );
 
-  final SHomeV2Category category;
+  final SHomeV2Category? category;
   final String thumbAsset;
   final String title;
-}
 
-const List<SHomeV2SheetCard> sHomeV2SheetCards = [
-  SHomeV2SheetCard(
-    category: SHomeV2Category.wish,
-    thumbAsset: 'assets/images/sintong_home_v2/sheet-1-wish.jpg',
-    title: '소원방',
-  ),
-  SHomeV2SheetCard(
-    category: SHomeV2Category.tarot,
-    thumbAsset: 'assets/images/sintong_home_v2/sheet-2-tarot.jpg',
-    title: '타로',
-  ),
-  SHomeV2SheetCard(
-    category: SHomeV2Category.saju,
-    thumbAsset: 'assets/images/sintong_home_v2/sheet-3-saju.jpg',
-    title: '정통사주',
-  ),
-];
+  /// 지정되면 [category] 기반 기본 라우팅(openSubScreen) 대신 이 콜백을
+  /// 호출한다(예: 관상/손금을 통합 시트 없이 곧장 촬영 화면으로 이동).
+  final void Function(BuildContext context)? customOnTap;
+}

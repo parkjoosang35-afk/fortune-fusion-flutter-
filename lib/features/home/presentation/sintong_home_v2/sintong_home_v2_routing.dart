@@ -21,6 +21,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/router/app_router.dart' show AppRouter;
 import '../../../../core/widgets/face_palm_select_sheet.dart';
+import '../../../pass/presentation/pass_gate_helper.dart';
 import '../../../wish_room/presentation/wish_room_entry_gate.dart';
 import '../../../guinji/presentation/guinji_landing_screen.dart';
 import '../../domain/jeontong_eighty_matrix.dart';
@@ -53,3 +54,66 @@ void openSubScreen(BuildContext context, SHomeV2Category category) {
       showFacePalmSelectSheet(context);
   }
 }
+
+/// [전체보기 시트 확장 — 관상/손금 개별 카드] 기존 5개 카테고리(guide/
+/// saju/tarot/wish/palm) 중 palm은 "관상+손금 통합" 선택 시트 1개로
+/// 묶여있었으나, 시트 그리드에 관상/손금을 각각 별도 카드로 추가하기
+/// 위해 전용 목적지 함수를 분리한다. 기존 [showFacePalmSelectSheet]
+/// 내부에서 쓰던 것과 완전히 동일한 라우트(`/ai-fortune/face/capture`,
+/// `/ai-fortune/palm/capture`)와 게이트 로직([navigateWithPassGate])을
+/// 그대로 재사용한다(신규 라우트/화면 없음).
+void openFaceReading(BuildContext context) {
+  navigateWithPassGate(
+    context,
+    title: '오늘의 관상',
+    route: '/ai-fortune/face/capture',
+    requiresPass: true,
+  );
+}
+
+void openPalmReading(BuildContext context) {
+  navigateWithPassGate(
+    context,
+    title: '손금',
+    route: '/ai-fortune/palm/capture',
+    requiresPass: true,
+  );
+}
+
+/// 홈 하단 시트 "전체보기" 그리드 — 2행(3+3) 총 6칸.
+/// 1행: 소원방/타로/정통사주(README index.html 원본 순서 그대로).
+/// 2행: 귀인지도/관상/손금(사용자 요청으로 추가한 3칸 — 관상·손금은
+/// [SHomeV2Category.palm]의 통합 선택 시트를 거치지 않고 각각 곧장
+/// 촬영 화면으로 연결한다).
+const List<SHomeV2SheetCard> sHomeV2SheetCards = [
+  SHomeV2SheetCard(
+    category: SHomeV2Category.wish,
+    thumbAsset: 'assets/images/sintong_home_v2/sheet-1-wish.jpg',
+    title: '소원방',
+  ),
+  SHomeV2SheetCard(
+    category: SHomeV2Category.tarot,
+    thumbAsset: 'assets/images/sintong_home_v2/sheet-2-tarot.jpg',
+    title: '타로',
+  ),
+  SHomeV2SheetCard(
+    category: SHomeV2Category.saju,
+    thumbAsset: 'assets/images/sintong_home_v2/sheet-3-saju.jpg',
+    title: '정통사주',
+  ),
+  SHomeV2SheetCard(
+    category: SHomeV2Category.guide,
+    thumbAsset: 'assets/images/sintong_home_v2/sheet-4-guide.jpg',
+    title: '귀인지도',
+  ),
+  SHomeV2SheetCard(
+    thumbAsset: 'assets/images/sintong_home_v2/sheet-5-face.jpg',
+    title: '관상',
+    customOnTap: openFaceReading,
+  ),
+  SHomeV2SheetCard(
+    thumbAsset: 'assets/images/sintong_home_v2/sheet-6-palm.jpg',
+    title: '손금',
+    customOnTap: openPalmReading,
+  ),
+];

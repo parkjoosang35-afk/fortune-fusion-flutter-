@@ -1,8 +1,13 @@
 // ═══════════════════════════════════════════════════════════════
 // FILE: sintong_v2_sheet.dart
 // [신통방통 홈 v2] 하단 시트 — README §sheet 스펙:
-// "전체보기 · 3 gates" 헤더 + 3열 카드 그리드(소원방/타로/정통사주) +
-// "프리패스" CTA(margin-top:auto로 시트 하단에 붙음).
+// "전체보기 · N gates" 헤더 + 카드 그리드 + "프리패스" CTA(margin-top:
+// auto로 시트 하단에 붙음).
+//
+// [6칸 확장] 사용자 요청으로 원래 3칸(소원방/타로/정통사주, 1행)이던
+// 그리드를 2행(3+3, 총 6칸: +귀인지도/관상/손금)으로 확장했다. 카드
+// 개수가 가변적이어도 항상 3열로 자동 줄바꿈되도록 Row 2개 대신
+// Wrap 기반 3열 레이아웃으로 재구성한다.
 //
 // [기능 보존] CTA는 기존 v1 [SintongFreePassBar]와 동일한 목적지
 // (`/free-pass-gate`)로 이동한다. 실시간 잔여시간 표시는 이 디자인
@@ -52,21 +57,35 @@ class SintongV2Sheet extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('전체보기', style: SHomeV2Text.sheetTitle()),
-                    Text('3 gates', style: SHomeV2Text.sheetMeta()),
+                    Text(
+                      '${sHomeV2SheetCards.length} gates',
+                      style: SHomeV2Text.sheetMeta(),
+                    ),
                   ],
                 ),
               ),
             ),
           ),
           const SizedBox(height: 8),
-          Row(
-            children: [
-              for (int i = 0; i < sHomeV2SheetCards.length; i++) ...[
-                Expanded(child: _SheetCardTile(card: sHomeV2SheetCards[i])),
-                if (i != sHomeV2SheetCards.length - 1)
-                  const SizedBox(width: 9),
-              ],
-            ],
+          // 3열 고정 그리드 — 카드 개수가 3의 배수가 아니어도 항상
+          // 왼쪽 정렬로 줄바꿈된다(LayoutBuilder로 전체 폭을 받아
+          // (전체폭 - 간격*2)/3을 카드 폭으로 계산).
+          LayoutBuilder(
+            builder: (context, constraints) {
+              const gap = 9.0;
+              final tileWidth = (constraints.maxWidth - gap * 2) / 3;
+              return Wrap(
+                spacing: gap,
+                runSpacing: gap,
+                children: [
+                  for (final card in sHomeV2SheetCards)
+                    SizedBox(
+                      width: tileWidth,
+                      child: _SheetCardTile(card: card),
+                    ),
+                ],
+              );
+            },
           ),
           // [스크롤 레이아웃 전환] 원래 README `.cta-wrap { margin-top:auto }`을
           // Spacer()로 재현했으나, 화면 전체가 SingleChildScrollView로
@@ -110,7 +129,9 @@ class _SheetCardTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(SHomeV2Radii.card),
       child: InkWell(
         borderRadius: BorderRadius.circular(SHomeV2Radii.card),
-        onTap: () => openSubScreen(context, card.category),
+        onTap: () => card.customOnTap != null
+            ? card.customOnTap!(context)
+            : openSubScreen(context, card.category!),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
