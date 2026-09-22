@@ -160,6 +160,7 @@ class _SheetCardGridTile extends StatelessWidget {
                 height: 82,
                 width: double.infinity,
                 fit: BoxFit.cover,
+                alignment: card.imageAlignment,
               ),
             ),
             Padding(
@@ -209,6 +210,7 @@ class _SheetCardListTile extends StatelessWidget {
                   width: 56,
                   height: 56,
                   fit: BoxFit.cover,
+                  alignment: card.imageAlignment,
                 ),
               ),
               const SizedBox(width: 14),

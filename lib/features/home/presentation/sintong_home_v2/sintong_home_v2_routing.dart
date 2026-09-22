@@ -95,11 +95,16 @@ const List<SHomeV2SheetCard> sHomeV2SheetCards = [
     category: SHomeV2Category.tarot,
     thumbAsset: 'assets/images/sintong_home_v2/sheet-2-tarot.jpg',
     title: '타로',
+    // [얼굴 잘림 수정] 인물 얼굴이 원본 사진 상단부(약 15~30% 지점)에
+    // 있어 기본 중앙 크롭에서 완전히 잘려 나갔다 — 상단 쪽으로 크게 이동.
+    imageAlignment: Alignment(0, -0.8),
   ),
   SHomeV2SheetCard(
     category: SHomeV2Category.saju,
     thumbAsset: 'assets/images/sintong_home_v2/sheet-3-saju.jpg',
     title: '정통사주',
+    // 얼굴이 약 25~35% 지점 — "조금 내리고"(살짝 아래로) 요청 반영.
+    imageAlignment: Alignment(0, -0.3),
   ),
   SHomeV2SheetCard(
     category: SHomeV2Category.guide,
@@ -110,6 +115,8 @@ const List<SHomeV2SheetCard> sHomeV2SheetCards = [
     thumbAsset: 'assets/images/sintong_home_v2/sheet-5-face.jpg',
     title: '관상',
     customOnTap: openFaceReading,
+    // 얼굴이 약 30~45% 지점 — "좀 내리고"(살짝 아래로) 요청 반영.
+    imageAlignment: Alignment(0, -0.15),
   ),
   SHomeV2SheetCard(
     thumbAsset: 'assets/images/sintong_home_v2/sheet-6-palm.jpg',

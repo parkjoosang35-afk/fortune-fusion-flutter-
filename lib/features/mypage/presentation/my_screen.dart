@@ -242,7 +242,17 @@ class _MyScreenState extends State<MyScreen> {
             _MenuTile(
               icon: Icons.calendar_month_outlined,
               title: '출석체크',
-              onTap: () => Navigator.of(context).pushNamed('/reward/attendance'),
+              // [버그 수정] 비로그인 상태에서도 그냥 출석체크 화면으로
+              // 들어가버려(내부적으로 로그인 체크가 없음) 정상 동작하지
+              // 않는 문제가 있었다(사용자 피드백). 로그인 여부를 먼저
+              // 확인해 비로그인이면 로그인 화면으로 보낸다.
+              onTap: () {
+                if (!context.read<AuthProvider>().isLoggedIn) {
+                  Navigator.of(context).pushNamed('/login');
+                  return;
+                }
+                Navigator.of(context).pushNamed('/reward/attendance');
+              },
             ),
             const SizedBox(height: UnifiedTokens.spaceXxl),
 

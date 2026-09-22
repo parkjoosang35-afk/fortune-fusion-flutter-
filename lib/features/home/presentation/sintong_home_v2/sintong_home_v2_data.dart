@@ -5,7 +5,7 @@
 // ═══════════════════════════════════════════════════════════════
 library;
 
-import 'package:flutter/widgets.dart' show BuildContext;
+import 'package:flutter/widgets.dart' show Alignment, BuildContext;
 
 // 참고: 홈 하단 시트 카드 목록(sHomeV2SheetCards)은 관상/손금 카드가
 // [openFaceReading]/[openPalmReading](routing.dart)을 직접 참조해야 해서
@@ -229,6 +229,7 @@ class SHomeV2SheetCard {
     required this.thumbAsset,
     required this.title,
     this.customOnTap,
+    this.imageAlignment = Alignment.center,
   }) : assert(
          category != null || customOnTap != null,
          'category 또는 customOnTap 중 하나는 반드시 지정해야 한다',
@@ -241,4 +242,11 @@ class SHomeV2SheetCard {
   /// 지정되면 [category] 기반 기본 라우팅(openSubScreen) 대신 이 콜백을
   /// 호출한다(예: 관상/손금을 통합 시트 없이 곧장 촬영 화면으로 이동).
   final void Function(BuildContext context)? customOnTap;
+
+  /// [이미지 크롭 위치 조정] 세로로 긴 원본 사진(9:16)을 82px(그리드)
+  /// 또는 56x56(리스트)의 낮은 박스에 BoxFit.cover로 표시할 때, 기본
+  /// Alignment.center(세로 중앙 40% 대역)로는 얼굴이 그 위/아래에 있어
+  /// 잘리는 사진들이 있다(사용자 피드백: "타로 이미지 얼굴이 잘림").
+  /// 카드별로 사진 속 얼굴 위치에 맞춰 세로 정렬을 조정한다.
+  final Alignment imageAlignment;
 }
