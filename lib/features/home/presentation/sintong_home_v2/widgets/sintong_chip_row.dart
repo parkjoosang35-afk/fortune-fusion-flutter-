@@ -1,8 +1,12 @@
 // ═══════════════════════════════════════════════════════════════
 // FILE: sintong_chip_row.dart
-// [신통방통 홈 v2] 히어로 위에 겹쳐지는 칩 로우 — README "칩 탭 규칙":
-// 1탭 = 히어로 슬라이드를 해당 카테고리로 이동(자동 순환 리셋)
-// 2탭(0.7초 이내) = 해당 카테고리 서브 화면으로 이동
+// [신통방통 홈 v2] 히어로 위에 겹쳐지는 칩 로우.
+//
+// [중요 수정] 원래 "1탭=캐러셀만 이동, 2탭(0.7초 이내)=서브 화면 이동"
+// 규칙이었으나, 실제 사용자는 더블탭 규칙을 알 수 없어 "눌러도 안
+// 넘어간다"고 느끼는 문제가 있었다(사용자 피드백 반영). 이제 칩을
+// 누르면 바로 해당 카테고리 실제 화면으로 이동하고, 캐러셀도 함께
+// 해당 슬라이드로 이동시킨다(1탭으로 통일).
 // ═══════════════════════════════════════════════════════════════
 import 'package:flutter/material.dart';
 
@@ -11,7 +15,7 @@ import '../sintong_home_v2_routing.dart';
 import '../sintong_home_v2_tokens.dart';
 import 'sintong_hero_carousel.dart';
 
-class SintongChipRow extends StatefulWidget {
+class SintongChipRow extends StatelessWidget {
   const SintongChipRow({
     super.key,
     required this.currentIndex,
@@ -20,32 +24,15 @@ class SintongChipRow extends StatefulWidget {
 
   final int currentIndex;
 
-  /// 1탭 시 히어로를 해당 인덱스로 이동시키는 콜백(부모가 소유한
+  /// 칩 탭 시 히어로를 해당 인덱스로 이동시키는 콜백(부모가 소유한
   /// [SintongHeroCarouselState.goTo]에 위임).
   final ValueChanged<int> onChipTapGoTo;
 
-  @override
-  State<SintongChipRow> createState() => _SintongChipRowState();
-}
-
-class _SintongChipRowState extends State<SintongChipRow> {
-  int? _lastTapIndex;
-  DateTime? _lastTapAt;
-
-  void _onChipTap(int index) {
-    final now = DateTime.now();
-    final isDoubleTap =
-        _lastTapIndex == index &&
-        _lastTapAt != null &&
-        now.difference(_lastTapAt!) < SHomeV2Motion.doubleTapWindow;
-
-    if (isDoubleTap) {
-      openSubScreen(context, sHeroOrder[index]);
-    } else {
-      widget.onChipTapGoTo(index);
-    }
-    _lastTapIndex = index;
-    _lastTapAt = now;
+  void _onChipTap(BuildContext context, int index) {
+    // 캐러셀도 함께 해당 슬라이드로 이동시켜 시각적 피드백을 준 뒤,
+    // 곧바로 실제 기능 화면으로 이동한다.
+    onChipTapGoTo(index);
+    openSubScreen(context, sHeroOrder[index]);
   }
 
   @override
@@ -58,9 +45,9 @@ class _SintongChipRowState extends State<SintongChipRow> {
         itemCount: sHeroOrder.length,
         separatorBuilder: (_, __) => const SizedBox(width: 5),
         itemBuilder: (context, index) {
-          final active = index == widget.currentIndex;
+          final active = index == currentIndex;
           return GestureDetector(
-            onTap: () => _onChipTap(index),
+            onTap: () => _onChipTap(context, index),
             child: AnimatedContainer(
               duration: SHomeV2Motion.chipTransition,
               padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -78,9 +65,7 @@ class _SintongChipRowState extends State<SintongChipRow> {
               child: Text(
                 sHeroOrder[index].chipLabel,
                 style: SHomeV2Text.chip(
-                  color: active
-                      ? SHomeV2Colors.chipOnFg
-                      : Colors.white,
+                  color: active ? SHomeV2Colors.chipOnFg : Colors.white,
                   active: active,
                 ),
               ),

@@ -31,6 +31,8 @@ import '../../../pass/application/pass_provider.dart';
 import '../../../auth/application/auth_provider.dart';
 import '../../application/home_page_config_provider.dart';
 import '../widgets/welcome_reward_modal.dart';
+import '../../../ads_test/presentation/admob_test_banner.dart';
+import '../../../ad_banner/presentation/ad_banner_widget.dart';
 import 'sintong_home_v2_tokens.dart';
 import 'widgets/sintong_hero_carousel.dart';
 import 'widgets/sintong_v2_topbar.dart';
@@ -95,44 +97,73 @@ class _SintongHomeV2ScreenState extends State<SintongHomeV2Screen> {
       backgroundColor: SHomeV2Colors.sheetBg,
       body: SafeArea(
         bottom: false,
-        child: Column(
-          children: [
-            SizedBox(
-              height: 460,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  SintongHeroCarousel(
-                    key: _heroKey,
-                    onIndexChanged: (i) => setState(() => _heroIndex = i),
-                  ),
-                  const Positioned(top: 0, left: 0, right: 0, child: SintongV2TopBar()),
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 44,
-                    child: SintongDotsIndicator(currentIndex: _heroIndex),
-                  ),
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 78,
-                    child: SintongChipRow(
-                      currentIndex: _heroIndex,
-                      onChipTapGoTo: (i) =>
-                          _heroKey.currentState?.goTo(i),
+        // [스크롤 버그 수정] 기존 Column+Expanded 구조는 시트/광고 등
+        // 화면에 담을 콘텐츠가 늘어나도 넘치는 부분이 잘려 보이고,
+        // 모바일에서 아래로 스크롤이 전혀 되지 않는 문제가 있었다
+        // (사용자 피드백: "휴대폰으로 밑으로 내려가지지도 않아").
+        // 전체를 SingleChildScrollView로 감싸 히어로(고정 460) 아래로
+        // 시트/광고 콘텐츠가 자연스러운 높이만큼 이어지고 필요 시
+        // 스크롤되도록 수정한다.
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              SizedBox(
+                height: 460,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    SintongHeroCarousel(
+                      key: _heroKey,
+                      onIndexChanged: (i) => setState(() => _heroIndex = i),
                     ),
-                  ),
-                ],
+                    const Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: SintongV2TopBar(),
+                    ),
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 44,
+                      child: SintongDotsIndicator(currentIndex: _heroIndex),
+                    ),
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 78,
+                      child: SintongChipRow(
+                        currentIndex: _heroIndex,
+                        onChipTapGoTo: (i) => _heroKey.currentState?.goTo(i),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Expanded(
-              child: Transform.translate(
+              Transform.translate(
                 offset: const Offset(0, -20),
                 child: const SintongV2Sheet(),
               ),
-            ),
-          ],
+              // [광고 복원] v1 home_screen.dart에 있던 CMS 제휴광고 배너와
+              // 애드몹 테스트 배너가 v2 교체 시 누락되어 있었다(사용자
+              // 피드백 "광고도 안 넣어져있고"). 동일한 두 위젯을 그대로
+              // 재사용해 시트 아래에 복원한다(신규 로직 없음).
+              Transform.translate(
+                offset: const Offset(0, -20),
+                child: Container(
+                  color: SHomeV2Colors.sheetBg,
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  child: Column(
+                    children: const [
+                      AdBannerWidget(position: 'home_top'),
+                      SizedBox(height: 10),
+                      AdmobTestBanner(),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

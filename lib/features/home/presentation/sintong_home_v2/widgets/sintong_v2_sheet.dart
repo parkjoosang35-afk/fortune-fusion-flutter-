@@ -53,9 +53,11 @@ class SintongV2Sheet extends StatelessWidget {
               ],
             ],
           ),
-          // README `.cta-wrap { margin-top:auto }` — 남은 공간을 모두
-          // 차지해 CTA를 시트 하단으로 밀어낸다.
-          const Spacer(),
+          // [스크롤 레이아웃 전환] 원래 README `.cta-wrap { margin-top:auto }`을
+          // Spacer()로 재현했으나, 화면 전체가 SingleChildScrollView로
+          // 바뀌면서 이 위젯의 부모가 더 이상 고정 높이(Expanded)를 주지
+          // 않아 Spacer가 무한 높이 오류를 일으킨다. 고정 간격으로 대체.
+          const SizedBox(height: 18),
           Padding(
             padding: const EdgeInsets.only(bottom: 16),
             child: SizedBox(
