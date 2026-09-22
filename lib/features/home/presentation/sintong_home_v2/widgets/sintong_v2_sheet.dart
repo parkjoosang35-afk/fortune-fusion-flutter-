@@ -1,27 +1,35 @@
 // ═══════════════════════════════════════════════════════════════
 // FILE: sintong_v2_sheet.dart
-// [신통방통 홈 v2] 하단 시트 — README §sheet 스펙:
-// "전체보기 · N gates" 헤더 + 카드 그리드 + "프리패스" CTA(margin-top:
-// auto로 시트 하단에 붙음).
+// [신통방통 홈 v2] 하단 시트 — "전체보기" 헤더 + 카드 그리드/리스트 +
+// 프리패스 바.
 //
-// [6칸 확장] 사용자 요청으로 원래 3칸(소원방/타로/정통사주, 1행)이던
-// 그리드를 2행(3+3, 총 6칸: +귀인지도/관상/손금)으로 확장했다. 카드
-// 개수가 가변적이어도 항상 3열로 자동 줄바꿈되도록 Row 2개 대신
-// Wrap 기반 3열 레이아웃으로 재구성한다.
-//
-// [기능 보존] CTA는 기존 v1 [SintongFreePassBar]와 동일한 목적지
-// (`/free-pass-gate`)로 이동한다. 실시간 잔여시간 표시는 이 디자인
-// 스펙에는 없으므로(README에 "프리패스" 고정 라벨만 존재) 생략하되,
-// 탭 시 이동 로직만 그대로 재사용한다(신규 로직 없음).
+// [사용자 피드백 반영 — 이전 디자인 기능 복원]
+// 1. "전체보기" 옆 "N gates" 텍스트 제거.
+// 2. "전체보기" 옆에 있던 리스트⇄그리드 뷰 전환 스퀘어 버튼(v1
+//    [SintongModeChipRow]의 그리드 스위치)이 이번 v2 교체 때 빠져
+//    있었다 — 그대로 복원한다. 탭하면 카드가 세로형 리스트(가로로
+//    넓게 펼쳐진 행)와 3열 그리드 사이를 전환한다.
+// 3. 프리패스 CTA를 v2 전용 커스텀 pill 버튼 대신, v1
+//    [SintongFreePassBar](검정 pill + 자물쇠 아이콘 + 실시간 잔여시간
+//    + 초록 원형 화살표, AccessChecker 실시간 tick)를 그대로 재사용
+//    한다(다크 테마에서도 원래 검정 배경이라 잘 어울림).
 // ═══════════════════════════════════════════════════════════════
 import 'package:flutter/material.dart';
 
+import '../../sintong_home/widgets/sintong_free_pass_bar.dart';
 import '../sintong_home_v2_data.dart';
 import '../sintong_home_v2_routing.dart';
 import '../sintong_home_v2_tokens.dart';
 
-class SintongV2Sheet extends StatelessWidget {
+class SintongV2Sheet extends StatefulWidget {
   const SintongV2Sheet({super.key});
+
+  @override
+  State<SintongV2Sheet> createState() => _SintongV2SheetState();
+}
+
+class _SintongV2SheetState extends State<SintongV2Sheet> {
+  bool _isGrid = true;
 
   @override
   Widget build(BuildContext context) {
@@ -36,81 +44,86 @@ class SintongV2Sheet extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // [버그 수정] "전체보기" 텍스트에 탭 핸들러가 없어 눌러도 아무
-          // 반응이 없었다(사용자 피드백). v1 [SintongModeChipRow]의
-          // "전체보기" 칩과 동일한 목적지(`/home/all-categories`, 운세
-          // 전체보기 카테고리 허브)로 이동하도록 InkWell로 감싼다.
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(8),
-              onTap: () =>
-                  Navigator.of(context).pushNamed('/home/all-categories'),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 6,
-                  vertical: 6,
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('전체보기', style: SHomeV2Text.sheetTitle()),
-                    Text(
-                      '${sHomeV2SheetCards.length} gates',
-                      style: SHomeV2Text.sheetMeta(),
+          Row(
+            children: [
+              // "전체보기" — 탭하면 운세 전체보기 카테고리 허브로 이동
+              // (v1 [SintongModeChipRow] "전체보기" 칩과 동일한 목적지).
+              Expanded(
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: () => Navigator.of(
+                      context,
+                    ).pushNamed('/home/all-categories'),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 6,
+                      ),
+                      child: Text('전체보기', style: SHomeV2Text.sheetTitle()),
                     ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          // 3열 고정 그리드 — 카드 개수가 3의 배수가 아니어도 항상
-          // 왼쪽 정렬로 줄바꿈된다(LayoutBuilder로 전체 폭을 받아
-          // (전체폭 - 간격*2)/3을 카드 폭으로 계산).
-          LayoutBuilder(
-            builder: (context, constraints) {
-              const gap = 9.0;
-              final tileWidth = (constraints.maxWidth - gap * 2) / 3;
-              return Wrap(
-                spacing: gap,
-                runSpacing: gap,
-                children: [
-                  for (final card in sHomeV2SheetCards)
-                    SizedBox(
-                      width: tileWidth,
-                      child: _SheetCardTile(card: card),
-                    ),
-                ],
-              );
-            },
-          ),
-          // [스크롤 레이아웃 전환] 원래 README `.cta-wrap { margin-top:auto }`을
-          // Spacer()로 재현했으나, 화면 전체가 SingleChildScrollView로
-          // 바뀌면서 이 위젯의 부모가 더 이상 고정 높이(Expanded)를 주지
-          // 않아 Spacer가 무한 높이 오류를 일으킨다. 고정 간격으로 대체.
-          const SizedBox(height: 18),
-          Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: SizedBox(
-              height: 50,
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () =>
-                    Navigator.of(context).pushNamed('/free-pass-gate'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: SHomeV2Colors.ctaBg,
-                  foregroundColor: SHomeV2Colors.ctaFg,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(SHomeV2Radii.pill),
                   ),
                 ),
-                child: Text('프리패스', style: SHomeV2Text.cta()),
               ),
-            ),
+              // [복원] 리스트⇄그리드 뷰 전환 스퀘어 버튼.
+              GestureDetector(
+                onTap: () => setState(() => _isGrid = !_isGrid),
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: SHomeV2Colors.chipBg,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    _isGrid
+                        ? Icons.view_list_rounded
+                        : Icons.grid_view_rounded,
+                    size: 14,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _isGrid
+              ? LayoutBuilder(
+                  // 3열 고정 그리드 — 카드 개수가 3의 배수가 아니어도
+                  // 항상 왼쪽 정렬로 줄바꿈된다.
+                  builder: (context, constraints) {
+                    const gap = 9.0;
+                    final tileWidth = (constraints.maxWidth - gap * 2) / 3;
+                    return Wrap(
+                      spacing: gap,
+                      runSpacing: gap,
+                      children: [
+                        for (final card in sHomeV2SheetCards)
+                          SizedBox(
+                            width: tileWidth,
+                            child: _SheetCardGridTile(card: card),
+                          ),
+                      ],
+                    );
+                  },
+                )
+              : Column(
+                  children: [
+                    for (int i = 0; i < sHomeV2SheetCards.length; i++) ...[
+                      _SheetCardListTile(card: sHomeV2SheetCards[i]),
+                      if (i != sHomeV2SheetCards.length - 1)
+                        const SizedBox(height: 9),
+                    ],
+                  ],
+                ),
+          const SizedBox(height: 18),
+          // [복원] v1 프리패스 바 그대로 재사용(검정 pill + 자물쇠 +
+          // 실시간 잔여시간 + 초록 원형 화살표).
+          const Padding(
+            padding: EdgeInsets.only(bottom: 16),
+            child: SintongFreePassBar(),
           ),
         ],
       ),
@@ -118,9 +131,14 @@ class SintongV2Sheet extends StatelessWidget {
   }
 }
 
-class _SheetCardTile extends StatelessWidget {
-  const _SheetCardTile({required this.card});
+/// 그리드형(3열) 카드 — 이미지 위 + 제목 아래, 정사각형에 가까운 비율.
+class _SheetCardGridTile extends StatelessWidget {
+  const _SheetCardGridTile({required this.card});
   final SHomeV2SheetCard card;
+
+  void _onTap(BuildContext context) => card.customOnTap != null
+      ? card.customOnTap!(context)
+      : openSubScreen(context, card.category!);
 
   @override
   Widget build(BuildContext context) {
@@ -129,9 +147,7 @@ class _SheetCardTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(SHomeV2Radii.card),
       child: InkWell(
         borderRadius: BorderRadius.circular(SHomeV2Radii.card),
-        onTap: () => card.customOnTap != null
-            ? card.customOnTap!(context)
-            : openSubScreen(context, card.category!),
+        onTap: () => _onTap(context),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -158,6 +174,63 @@ class _SheetCardTile extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 리스트형(가로) 카드 — 썸네일(좌) + 제목(우) + 화살표(더보기 시각
+/// 힌트), v1 [SintongServiceTile]과 유사한 레이아웃을 다크 테마로 재현.
+class _SheetCardListTile extends StatelessWidget {
+  const _SheetCardListTile({required this.card});
+  final SHomeV2SheetCard card;
+
+  void _onTap(BuildContext context) => card.customOnTap != null
+      ? card.customOnTap!(context)
+      : openSubScreen(context, card.category!);
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: SHomeV2Colors.cardBg,
+      borderRadius: BorderRadius.circular(SHomeV2Radii.card),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(SHomeV2Radii.card),
+        onTap: () => _onTap(context),
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.asset(
+                  card.thumbAsset,
+                  width: 56,
+                  height: 56,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(card.title, style: SHomeV2Text.cardTitle()),
+              ),
+              Container(
+                width: 32,
+                height: 32,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  color: SHomeV2Colors.glow,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.chevron_right_rounded,
+                  size: 18,
+                  color: Colors.black,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
