@@ -45,17 +45,19 @@ class AdmobAdIds {
   static const String _testRewardedId =
       'ca-app-pub-3940256099942544/5224354917';
 
-  // ── 사장님 실제 애드몹 계정 ID (신통방통, 2026년 발급) ──
+  // ── 서치앤메이크(대표: 이권호) 신규 애드몹 계정 ID (신통방통, 2026년 발급) ──
+  // 사업 운영 법인 이전에 따라 기존 "사장님" 개인 명의 계정에서 서치앤메이크
+  // 명의 신규 AdMob 계정으로 전환하며 새로 발급받은 App ID/광고단위로 교체.
   // ⚠️ 개발자 주의: 이 값들로 직접 광고를 반복 로드/시청하지 말 것(무효
   // 트래픽 → 계정 정지 위험). useRealAds가 true인 최종 릴리즈 빌드에서만
   // 실제로 사용되며, 그 전까지는 코드에만 존재하고 실행되지 않는다.
-  static const String _realAppId = 'ca-app-pub-2370852566371234~8570397726';
+  static const String _realAppId = 'ca-app-pub-4640621040048656~2796265243';
   static const String _realBannerId =
-      'ca-app-pub-2370852566371234/8788433300';
+      'ca-app-pub-4640621040048656/5379030707';
   static const String _realInterstitialId =
-      'ca-app-pub-2370852566371234/9001642563';
+      'ca-app-pub-4640621040048656/9326014573';
   static const String _realRewardedId =
-      'ca-app-pub-2370852566371234/7225562466';
+      'ca-app-pub-4640621040048656/5542682232';
 
   /// 실제 광고 ID 사용 여부. 기본 false(테스트 ID). Play 스토어 제출용
   /// 최종 빌드 시 `--dart-define=ADMOB_USE_REAL_IDS=true`를 넘겨야만 true가

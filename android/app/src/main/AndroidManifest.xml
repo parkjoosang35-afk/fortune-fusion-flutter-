@@ -42,17 +42,20 @@
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:requestLegacyExternalStorage="true">
-        <!-- [애드몹 실제 계정 연동] Google Mobile Ads SDK가 앱 시작 시 요구하는
-             APPLICATION_ID meta-data. 사장님이 발급받은 신통방통 실제 AdMob
-             App ID로 교체했다. Google 공식 정책상 App ID 자체는 실제 값을
-             상시 등록해도 안전하다(실제 광고 노출 여부는 App ID가 아니라
-             "Ad Unit ID"가 결정한다 — 배너/전면/보상형 Ad Unit ID는
-             AdmobAdIds에서 dart-define(ADMOB_USE_REAL_IDS) 플래그로만
-             조건부 전환되며, 이 플래그 없이는 항상 구글 공식 테스트 Ad Unit
-             ID만 사용되어 개발/QA 중 무효 트래픽 위험이 없다). -->
+        <!-- [애드몹 실제 계정 연동 — 2026년 사업 운영 법인(서치앤메이크) 명의
+             신규 AdMob 계정으로 교체] Google Mobile Ads SDK가 앱 시작 시
+             요구하는 APPLICATION_ID meta-data. 이전 계정("사장님" 개인 명의)
+             에서 서치앤메이크(대표: 이권호) 명의 신규 AdMob 계정으로 소유권
+             이전 대신 완전히 새로 발급받은 App ID로 교체했다. Google 공식
+             정책상 App ID 자체는 실제 값을 상시 등록해도 안전하다(실제 광고
+             노출 여부는 App ID가 아니라 "Ad Unit ID"가 결정한다 — 배너/전면/
+             보상형 Ad Unit ID는 AdmobAdIds에서 dart-define
+             (ADMOB_USE_REAL_IDS) 플래그로만 조건부 전환되며, 이 플래그
+             없이는 항상 구글 공식 테스트 Ad Unit ID만 사용되어 개발/QA 중
+             무효 트래픽 위험이 없다). -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-2370852566371234~8570397726"/>
+            android:value="ca-app-pub-4640621040048656~2796265243"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"
