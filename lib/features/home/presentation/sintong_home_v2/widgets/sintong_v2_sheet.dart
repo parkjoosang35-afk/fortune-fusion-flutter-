@@ -31,16 +31,31 @@ class SintongV2Sheet extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('전체보기', style: SHomeV2Text.sheetTitle()),
-                Text('3 gates', style: SHomeV2Text.sheetMeta()),
-              ],
+          // [버그 수정] "전체보기" 텍스트에 탭 핸들러가 없어 눌러도 아무
+          // 반응이 없었다(사용자 피드백). v1 [SintongModeChipRow]의
+          // "전체보기" 칩과 동일한 목적지(`/home/all-categories`, 운세
+          // 전체보기 카테고리 허브)로 이동하도록 InkWell로 감싼다.
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () =>
+                  Navigator.of(context).pushNamed('/home/all-categories'),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 6,
+                  vertical: 6,
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('전체보기', style: SHomeV2Text.sheetTitle()),
+                    Text('3 gates', style: SHomeV2Text.sheetMeta()),
+                  ],
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 8),
