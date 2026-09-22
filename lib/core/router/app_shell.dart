@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
-import '../../features/home/presentation/home_screen.dart';
+// [신통방통 홈 v2 전면 교체] 사용자 두 번째 디자인 핸드오프
+// (design_handoff_sintong_main.zip)로 전면 교체 — 기존 v1
+// home_screen.dart(화이트 프리미엄 CMS 동적 섹션)는 더 이상 이 탭에
+// 배선하지 않는다(파일 자체는 프로젝트 관례상 보존).
+import '../../features/home/presentation/sintong_home_v2/sintong_home_v2_screen.dart';
 import '../../features/fortune/presentation/fortune_hub_screen.dart';
 import '../../features/wish_room/presentation/wish_room_home_screen.dart';
 // [행운상자 - 복주머니 탭 신규 기능] 사용자 요청("복주머니 탭 자리에
@@ -42,7 +46,7 @@ class _AppShellState extends State<AppShell> {
   }
 
   static const _tabs = [
-    HomeScreen(), // 🏠 홈 - 화이트 프리미엄 9섹션 리디자인
+    SintongHomeV2Screen(), // 🏠 홈 - 다크 히어로 캐러셀 v2(design_handoff_sintong_main)
     FortuneHubScreen(), // 🔮 운세 - 7개 카테고리+비용뱃지
     // 🕯 신통방통 소원방 - "마법진이 소환되는 신전"(V2 Moonlit Crystal) 디자인
     // 핸드오프의 ScreenHome을 pixel-perfect 재현한 화면. 탭 아이콘/라벨/위치
