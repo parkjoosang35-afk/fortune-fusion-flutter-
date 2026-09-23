@@ -20,6 +20,7 @@ class TarotShareCard extends StatelessWidget {
     required this.luckyColorName,
     required this.luckyColor,
     required this.luckyNumber,
+    this.nickname,
   });
 
   final String cardIcon;
@@ -33,6 +34,11 @@ class TarotShareCard extends StatelessWidget {
   final String luckyColorName;
   final Color luckyColor;
   final int luckyNumber;
+
+  /// [공유카드 회원 닉네임 표시] 로그인한 사용자의 닉네임(nullable —
+  /// 비로그인/게스트일 때는 null이며, 이 경우 기존처럼 닉네임 줄 없이
+  /// "타로 카드 풀이" 라벨만 노출한다).
+  final String? nickname;
 
   static const double logicalWidth = 360;
   static const double logicalHeight = 450;
@@ -52,7 +58,12 @@ class TarotShareCard extends StatelessWidget {
             children: [
               const Text('🔮', style: TextStyle(fontSize: 16)),
               const SizedBox(width: 6),
-              Text('타로 카드 풀이', style: TarotTextStyles.caption),
+              Text(
+                nickname == null || nickname!.trim().isEmpty
+                    ? '타로 카드 풀이'
+                    : '$nickname님의 타로 카드 풀이',
+                style: TarotTextStyles.caption,
+              ),
             ],
           ),
           const Spacer(),

@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../../core/data/my_fortune_record_store.dart';
 import '../../../../core/util/safe_share.dart';
+import '../../../auth/application/auth_provider.dart';
 import '../../../../core/utils/load_state.dart';
 import '../../../../core/widgets/app_error_state.dart';
 import '../../../../core/widgets/app_toast.dart';
@@ -100,6 +101,10 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
   }
 
   Future<void> _onShare(TarotResultView view) async {
+    // [공유카드 회원 닉네임 표시] 로그인 사용자의 닉네임을 공유 이미지에
+    // 함께 노출한다(비로그인/게스트면 null → TarotShareCard가 기존 문구로
+    // 자동 폴백하므로 이 화면에서 별도 분기 처리는 필요 없다).
+    final nickname = context.read<AuthProvider>().currentUser?.nickname;
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: OzColors.bgMid,
@@ -130,6 +135,7 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
                     luckyColorName: view.luckyColorName,
                     luckyColor: view.luckyColor,
                     luckyNumber: view.luckyNumber,
+                    nickname: nickname,
                   ),
                 ),
               ),
