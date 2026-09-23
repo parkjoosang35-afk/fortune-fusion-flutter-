@@ -29,6 +29,17 @@ class TarotProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// [테스트 전용] 실제 서버 왕복(POST /api/public/fortune/tarot) 없이
+  /// [TarotResultScreen] 등 화면 위젯 트리를 결과 성공 상태로 곧바로
+  /// 전환하기 위한 헬퍼. 위젯 테스트에서만 사용하며, 앱 정상 동작 경로
+  /// ([draw]/[retry]/[selectFromHistory])에는 전혀 영향을 주지 않는다.
+  @visibleForTesting
+  void debugInjectResult(TarotResultModel result) {
+    _lastErrorReason = null;
+    _state = LoadState.success(result);
+    notifyListeners();
+  }
+
   // [프리패스 카테고리 제한 안내 버그 수정] 서버가 draw() 실패 시 함께 내려주는
   // reason('CATEGORY_LIMIT_REACHED' 등)을 보존한다. PassProvider.lastErrorReason과
   // 동일한 목적 - 화면단이 "일반 오류"와 "이용횟수 초과"를 구분할 수 있게 한다.
