@@ -156,7 +156,12 @@ class TarotSessionState {
 /// 이것이 "상태머신처럼 관리"의 실질적 구현이다 - 중복 탭/빠른 연속 탭 등
 /// 임의 순서로 메서드가 호출돼도 상태가 깨지지 않는다.
 class TarotSessionController extends ChangeNotifier {
-  static const int _faceDownDeckSize = 12; // 화면에 부채꼴로 펼칠 카드 뒷면 수
+  // [타로 78장 풀덱 진열] 화면에 부채꼴로 펼칠 카드 뒷면 수. 기존 12장(연출용
+  // 일부만 노출)에서 실제 타로 78장 풀덱(메이저 22 + 마이너 56) 전체를
+  // 그대로 진열하도록 확장한다. 실제 카드 정체는 여전히 서버가 결정하며
+  // (§10 설계 원칙 유지), 이 값은 오직 "뒷면 슬롯이 몇 장 보이는가"만
+  // 바꾼다 - 카드 선택/뽑기 로직에는 영향이 없다.
+  static const int _faceDownDeckSize = 78; // 화면에 부채꼴로 펼칠 카드 뒷면 수
 
   TarotSessionState _state = const TarotSessionState.initial();
   TarotSessionState get state => _state;

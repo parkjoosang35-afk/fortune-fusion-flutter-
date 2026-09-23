@@ -123,7 +123,7 @@ class TarotResultView {
     TarotResultSection(
       type: TarotResultSectionType.aiReading,
       icon: '🔮',
-      label: 'AI 리딩',
+      label: '카드 풀이',
     ),
     TarotResultSection(
       type: TarotResultSectionType.positions,
@@ -143,7 +143,7 @@ class TarotResultView {
     TarotResultSection(
       type: TarotResultSectionType.aiClosing,
       icon: '🌙',
-      label: 'AI 한마디',
+      label: '카드의 속삭임',
     ),
   ];
 
@@ -167,7 +167,7 @@ class TarotResultView {
       luckyNumber: TarotReadingExtras.luckyNumber(result.id),
       sections: defaultSections,
       score: TarotReadingExtras.readingScore(result.id),
-      aiReadingLabel: topicName != null ? '$topicName AI 리딩' : 'AI 리딩',
+      aiReadingLabel: topicName != null ? '$topicName 카드 풀이' : '카드 풀이',
       adviceLabel: topicName != null ? '$topicName 조언' : '오늘의 조언',
     );
   }

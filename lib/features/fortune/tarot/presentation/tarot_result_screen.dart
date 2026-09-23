@@ -13,6 +13,7 @@ import '../application/tarot_audio_controller.dart';
 import '../application/tarot_provider.dart';
 import '../application/tarot_session_controller.dart';
 import '../domain/tarot_model.dart';
+import '../domain/tarot_reading_extras.dart';
 import '../domain/tarot_result_view_model.dart';
 import 'oz/oz_theme.dart';
 import 'oz/widgets/oz_background.dart';
@@ -210,7 +211,7 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
 
       await Share.shareXFiles(
         [file],
-        text: 'AI 타로 리딩 결과를 확인해보세요! · Fortune Fusion',
+        text: '타로 카드 풀이 결과를 확인해보세요! · Fortune Fusion',
       );
     } catch (e) {
       if (!popped && sheetContext.mounted) {
@@ -223,7 +224,7 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
       // 에러 화면을 유발하는 것을 확인했다(core/util/safe_share.dart 문서
       // 참고). 공통 헬퍼로 교체해 웹에서는 곧바로 클립보드 복사로 폴백한다.
       if (!mounted) return;
-      await safeShareText(context, 'AI 타로 리딩 결과를 확인해보세요! · Fortune Fusion');
+      await safeShareText(context, '타로 카드 풀이 결과를 확인해보세요! · Fortune Fusion');
     }
   }
 
@@ -842,7 +843,12 @@ class _ResultContent extends StatelessWidget {
                   t: t,
                   start: 0.34 + i * 0.04,
                   fadeSpan: 0.14,
-                  child: _PositionCard(position: result.positions[i], index: i),
+                  child: _PositionCard(
+                  position: result.positions[i],
+                  index: i,
+                  topic: result.topic,
+                  resultId: result.id,
+                ),
                 ),
               ),
           ],
@@ -1410,10 +1416,25 @@ class _AiClosingCard extends StatelessWidget {
 
 /// 카드별 리딩(상세 리딩). CSS 대응: .oz-card-reading(.past/.present/.future
 /// 색상 차등 → past:teal, present:gold, future:rose로 재현).
+///
+/// [타로 카드 탭 확대] 카드를 탭하면 [_PositionDetailSheet]가 카드 이미지를
+/// 확대해서 보여주고, 기존 [position.interpretation](요약 1줄)에 더해
+/// [TarotReadingExtras.deepDivePerspectives]가 만들어주는 "마음/현실/흐름"
+/// 3관점 심화 텍스트를 추가로 노출한다(§11 P4 심화해석에서 이미 검증된
+/// 문장 풀을 그대로 재사용 - 신규 서버 API 없이 §1-3 신규 자산 최소화
+/// 원칙을 유지). 카드에 살짝 확대되는 느낌을 주기 위해 InkWell + Hero를
+/// 함께 사용한다.
 class _PositionCard extends StatelessWidget {
   final TarotSpreadPosition position;
   final int index;
-  const _PositionCard({required this.position, required this.index});
+  final String topic;
+  final String resultId;
+  const _PositionCard({
+    required this.position,
+    required this.index,
+    required this.topic,
+    required this.resultId,
+  });
 
   Color get _glow {
     switch (index) {
@@ -1426,94 +1447,368 @@ class _PositionCard extends StatelessWidget {
     }
   }
 
+  String get _heroTag => 'tarot_position_card_${resultId}_$index';
+
   @override
   Widget build(BuildContext context) {
     final card = position.card;
     final glow = _glow;
-    return Container(
-      padding: const EdgeInsets.all(OzTokens.spaceLg),
-      decoration: BoxDecoration(
-        color: OzColors.cardSoft,
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(OzTokens.radiusLg),
+      child: InkWell(
         borderRadius: BorderRadius.circular(OzTokens.radiusLg),
-        border: Border.all(color: OzColors.borderSoft),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 56,
-            height: 84,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF4A3378), Color(0xFF2A1A5C)],
-              ),
-              borderRadius: BorderRadius.circular(OzTokens.radiusSm),
-              border: Border.all(color: glow.withValues(alpha: 0.5)),
-            ),
-            alignment: Alignment.center,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(OzTokens.radiusSm),
-              child: Transform.rotate(
-                angle: card.isReversed ? pi : 0,
-                child: Image.asset(
-                  card.thumbAssetPath,
+        onTap: () => _openDetail(context),
+        child: Container(
+          padding: const EdgeInsets.all(OzTokens.spaceLg),
+          decoration: BoxDecoration(
+            color: OzColors.cardSoft,
+            borderRadius: BorderRadius.circular(OzTokens.radiusLg),
+            border: Border.all(color: OzColors.borderSoft),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Hero(
+                tag: _heroTag,
+                child: Container(
                   width: 56,
                   height: 84,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) =>
-                      Text(card.icon, style: const TextStyle(fontSize: 24)),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF4A3378), Color(0xFF2A1A5C)],
+                    ),
+                    borderRadius: BorderRadius.circular(OzTokens.radiusSm),
+                    border: Border.all(color: glow.withValues(alpha: 0.5)),
+                  ),
+                  alignment: Alignment.center,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(OzTokens.radiusSm),
+                    child: Transform.rotate(
+                      angle: card.isReversed ? pi : 0,
+                      child: Image.asset(
+                        card.thumbAssetPath,
+                        width: 56,
+                        height: 84,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Text(
+                          card.icon,
+                          style: const TextStyle(fontSize: 24),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-          const SizedBox(width: OzTokens.spaceMd),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+              const SizedBox(width: OzTokens.spaceMd),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: OzTokens.spaceSm,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: glow.withValues(alpha: 0.16),
-                        borderRadius: BorderRadius.circular(
-                          OzTokens.radiusPill,
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: OzTokens.spaceSm,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: glow.withValues(alpha: 0.16),
+                            borderRadius: BorderRadius.circular(
+                              OzTokens.radiusPill,
+                            ),
+                          ),
+                          child: Text(
+                            position.label,
+                            style: OzTypography.monoLabel(
+                              fontSize: 9.5,
+                              color: glow,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
                         ),
-                      ),
-                      child: Text(
-                        position.label,
-                        style: OzTypography.monoLabel(
-                          fontSize: 9.5,
-                          color: glow,
-                          letterSpacing: 1.2,
+                        const Spacer(),
+                        Icon(
+                          Icons.zoom_in_rounded,
+                          size: 16,
+                          color: OzColors.faint,
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '${card.nameKr}${card.isReversed ? ' (역방향)' : ''}',
+                      style: OzTypography.cardName(fontSize: 15),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      position.interpretation,
+                      style: OzTypography.body(
+                        fontSize: 12.5,
+                        color: OzColors.fg.withValues(alpha: 0.8),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  '${card.nameKr}${card.isReversed ? ' (역방향)' : ''}',
-                  style: OzTypography.cardName(fontSize: 15),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  position.interpretation,
-                  style: OzTypography.body(
-                    fontSize: 12.5,
-                    color: OzColors.fg.withValues(alpha: 0.8),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openDetail(BuildContext context) {
+    Navigator.of(context).push(
+      PageRouteBuilder<void>(
+        opaque: false,
+        barrierColor: Colors.black.withValues(alpha: 0.72),
+        barrierDismissible: true,
+        transitionDuration: const Duration(milliseconds: 260),
+        reverseTransitionDuration: const Duration(milliseconds: 200),
+        pageBuilder: (_, __, ___) => _PositionDetailSheet(
+          position: position,
+          glow: _glow,
+          heroTag: _heroTag,
+          topic: topic,
+          resultId: resultId,
+        ),
+        transitionsBuilder: (_, animation, __, child) => FadeTransition(
+          opacity: animation,
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+/// [타로 카드 탭 확대] 과거/현재/미래(등) 포지션 카드를 탭했을 때 뜨는
+/// 확대 상세 화면. 카드 이미지를 크게 보여주고, 기존 요약 해석
+/// ([position.interpretation])에 더해 [TarotReadingExtras
+/// .deepDivePerspectives](§11 P4 심화해석에서 이미 검증된 "마음/현실/흐름"
+/// 3관점 문장 풀)를 이 포지션의 카드에 적용해 추가 콘텐츠로 보여준다.
+/// 신규 서버 API/문장 풀 없이 기존 자산만 재사용한다(§1-3 원칙).
+class _PositionDetailSheet extends StatelessWidget {
+  final TarotSpreadPosition position;
+  final Color glow;
+  final String heroTag;
+  final String topic;
+  final String resultId;
+  const _PositionDetailSheet({
+    required this.position,
+    required this.glow,
+    required this.heroTag,
+    required this.topic,
+    required this.resultId,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final card = position.card;
+    // 포지션별로 다른 관점 문장이 나오도록 index 정보 없이도 카드명 자체가
+    // 이미 시드에 포함되므로(perspectives 내부에서 card.name도 섞임)
+    // 과거/현재/미래가 서로 다른 카드라면 자연히 문장도 달라진다.
+    final perspectives = TarotReadingExtras.deepDivePerspectives(
+      card,
+      topic,
+      '${resultId}_${position.label}',
+    );
+
+    return Material(
+      color: Colors.transparent,
+      child: SafeArea(
+        child: Center(
+          child: GestureDetector(
+            // 바깥 여백을 탭하면 닫히도록 하되, 카드 내부 탭은 전파되지
+            // 않게 한다.
+            onTap: () => Navigator.of(context).pop(),
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: OzTokens.spaceLg,
+              ),
+              child: GestureDetector(
+                onTap: () {},
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: OzTokens.spaceMd,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: glow.withValues(alpha: 0.18),
+                                borderRadius: BorderRadius.circular(
+                                  OzTokens.radiusPill,
+                                ),
+                              ),
+                              child: Text(
+                                position.label,
+                                style: OzTypography.monoLabel(
+                                  fontSize: 11,
+                                  color: glow,
+                                  letterSpacing: 1.4,
+                                ),
+                              ),
+                            ),
+                            const Spacer(),
+                            IconButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              icon: Icon(
+                                Icons.close_rounded,
+                                color: OzColors.fg.withValues(alpha: 0.8),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: OzTokens.spaceSm),
+                        Hero(
+                          tag: heroTag,
+                          child: Container(
+                            width: 170,
+                            height: 255,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  Color(0xFF4A3378),
+                                  Color(0xFF2A1A5C),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(
+                                OzTokens.radiusLg,
+                              ),
+                              border: Border.all(
+                                color: glow.withValues(alpha: 0.7),
+                                width: 1.4,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: glow.withValues(alpha: 0.35),
+                                  blurRadius: 30,
+                                  spreadRadius: 2,
+                                ),
+                              ],
+                            ),
+                            alignment: Alignment.center,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(
+                                OzTokens.radiusLg,
+                              ),
+                              child: Transform.rotate(
+                                angle: card.isReversed ? pi : 0,
+                                child: Image.asset(
+                                  card.imageAssetPath,
+                                  width: 170,
+                                  height: 255,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Text(
+                                    card.icon,
+                                    style: const TextStyle(fontSize: 64),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: OzTokens.spaceLg),
+                        Text(
+                          '${card.nameKr}${card.isReversed ? ' (역방향)' : ''}',
+                          textAlign: TextAlign.center,
+                          style: OzTypography.hero(
+                            fontSize: 20,
+                            color: OzColors.fg,
+                          ),
+                        ),
+                        const SizedBox(height: OzTokens.spaceMd),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(OzTokens.spaceLg),
+                          decoration: BoxDecoration(
+                            color: OzColors.cardSoft,
+                            borderRadius: BorderRadius.circular(
+                              OzTokens.radiusMd,
+                            ),
+                            border: Border.all(color: OzColors.borderSoft),
+                          ),
+                          child: Text(
+                            position.interpretation,
+                            style: OzTypography.body(
+                              fontSize: 13.5,
+                              color: OzColors.fg.withValues(alpha: 0.9),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: OzTokens.spaceLg),
+                        Text(
+                          '이 카드를 더 깊이 들여다보면',
+                          style: OzTypography.monoLabel(
+                            fontSize: 10.5,
+                            letterSpacing: 1.6,
+                          ),
+                        ),
+                        const SizedBox(height: OzTokens.spaceSm),
+                        for (final p in perspectives) ...[
+                          Container(
+                            width: double.infinity,
+                            margin: const EdgeInsets.only(
+                              bottom: OzTokens.spaceSm,
+                            ),
+                            padding: const EdgeInsets.all(OzTokens.spaceMd),
+                            decoration: BoxDecoration(
+                              color: OzColors.card,
+                              borderRadius: BorderRadius.circular(
+                                OzTokens.radiusMd,
+                              ),
+                              border: Border.all(color: OzColors.borderSoft),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Text(
+                                      '✨',
+                                      style: TextStyle(fontSize: 13),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      p.label,
+                                      style: OzTypography.monoLabel(
+                                        fontSize: 9.5,
+                                        color: OzColors.gold,
+                                        letterSpacing: 1.2,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  p.text,
+                                  style: OzTypography.body(fontSize: 12.5),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: OzTokens.spaceLg),
+                      ],
+                    ),
                   ),
                 ),
-              ],
+              ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }

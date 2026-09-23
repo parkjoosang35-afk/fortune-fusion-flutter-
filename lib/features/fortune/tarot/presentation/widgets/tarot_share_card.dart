@@ -52,7 +52,7 @@ class TarotShareCard extends StatelessWidget {
             children: [
               const Text('🔮', style: TextStyle(fontSize: 16)),
               const SizedBox(width: 6),
-              Text('AI 타로 리딩', style: TarotTextStyles.caption),
+              Text('타로 카드 풀이', style: TarotTextStyles.caption),
             ],
           ),
           const Spacer(),

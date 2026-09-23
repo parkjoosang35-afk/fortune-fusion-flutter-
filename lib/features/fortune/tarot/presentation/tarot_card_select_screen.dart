@@ -350,6 +350,15 @@ class _ShuffleFan extends StatelessWidget {
 }
 
 /// 카드 탭 대기/선택 완료 상태 - 선택된 슬롯은 위로 떠오르고 골드 글로우.
+///
+/// [타로 78장 풀덱 진열] 기존에는 카드 12장 정도만 Stack+Transform으로
+/// 겹쳐서 부채꼴로 펼쳤다. 실제 타로 78장 풀덱(메이저 22 + 마이너 56)
+/// 전체를 진열하도록 [_faceDownDeckSize]가 78로 확장됨에 따라, 겹침 기반
+/// Stack 부채꼴은 화면 폭을 크게 벗어나거나 탭 히트테스트가 어긋나므로
+/// 스크롤 가능한 [Wrap] 그리드로 전환한다. 카드마다 아주 미세한 회전을
+/// 줘서 "셔플된 덱을 펼쳐놓은" 느낌은 유지하되(§10 설계 원칙 - 실제 카드
+/// 정체는 여전히 다루지 않음), 겹치지 않게 배치해 78장 모두 탭 가능하게
+/// 한다.
 class _SelectableFan extends StatelessWidget {
   final List<TarotFaceDownSlot> slots;
   final int requiredCount;
@@ -365,32 +374,44 @@ class _SelectableFan extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (slots.isEmpty) return const SizedBox.shrink();
-    final count = slots.length;
     return SizedBox(
       width: double.infinity,
-      height: 210,
-      child: Stack(
-        alignment: Alignment.center,
-        children: List.generate(count, (i) {
-          final slot = slots[i];
-          final angle = (i - count / 2) * 0.11;
-          final dx = (i - count / 2) * 21.0;
-          final lift = slot.isSelected ? -18.0 : 0.0;
-          return Transform.translate(
-            offset: Offset(dx, lift),
-            child: Transform.rotate(
-              angle: angle,
-              child: GestureDetector(
-                onTap: interactive ? () => onSlotTap(slot.slotIndex) : null,
-                child: OzFaceDownCard(
-                  width: 74,
-                  height: 112,
-                  selected: slot.isSelected,
+      height: 340,
+      child: Scrollbar(
+        thumbVisibility: true,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(
+            horizontal: OzTokens.spaceLg,
+            vertical: OzTokens.spaceMd,
+          ),
+          child: Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 6,
+            runSpacing: 12,
+            children: List.generate(slots.length, (i) {
+              final slot = slots[i];
+              // 카드마다 미세하게 다른 각도를 줘서 손으로 펼쳐놓은 덱 느낌을
+              // 낸다(-3.2도~+3.2도 사이, 결정론적이라 매 빌드 흔들리지 않음).
+              final wobbleSeed = (i * 37) % 11 - 5;
+              final angle = wobbleSeed / 90;
+              final lift = slot.isSelected ? -10.0 : 0.0;
+              return Transform.translate(
+                offset: Offset(0, lift),
+                child: Transform.rotate(
+                  angle: angle,
+                  child: GestureDetector(
+                    onTap: interactive ? () => onSlotTap(slot.slotIndex) : null,
+                    child: OzFaceDownCard(
+                      width: 38,
+                      height: 58,
+                      selected: slot.isSelected,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          );
-        }),
+              );
+            }),
+          ),
+        ),
       ),
     );
   }
