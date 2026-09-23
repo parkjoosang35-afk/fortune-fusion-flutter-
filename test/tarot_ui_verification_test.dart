@@ -150,16 +150,26 @@ void main() {
             matching: find.byType(InkWell),
           )
           .first;
+      // [진행] 결과화면 콘텐츠는 ListView(가상 스크롤)로 렌더링되므로, "과거"
+      // 포지션 카드가 위젯 트리에는 존재하더라도 현재 뷰포트 밖(스크롤 필요)에
+      // 있으면 탭 히트테스트가 실패한다. ensureVisible()로 먼저 스크롤해
+      // 화면 안으로 가져온 뒤 탭한다.
+      await tester.ensureVisible(pastCardFinder);
+      await tester.pump();
       await tester.tap(pastCardFinder);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
 
-      // 상세 시트가 열리고, 그 안에 원래 포지션 interpretation 전문이 표시돼야 한다.
+      // 상세 시트가 열리고, 그 안에 원래 포지션 interpretation 전문이 표시돼야
+      // 한다. [_openDetail]이 PageRouteBuilder(opaque: false)를 쓰기 때문에
+      // 원래 결과화면의 _PositionCard도 뒤에 그대로 남아있어(비-opaque 라우트),
+      // 동일 텍스트가 "결과화면 원본 카드"+"상세 시트" 2곳에서 발견되는 것이
+      // 정상 동작이다 - findsWidgets(1개 이상)로 검증한다.
       expect(
         find.textContaining('과거에는 두려움 없이 새로운 시작을 했던 흔적이 보입니다.'),
-        findsOneWidget,
+        findsWidgets,
       );
-      // 심화 관점 섹션 헤더도 함께 표시돼야 한다.
+      // 심화 관점 섹션 헤더도 함께 표시돼야 한다(상세 시트에만 존재하는 신규 콘텐츠).
       expect(find.textContaining('더 깊이 들여다보면'), findsOneWidget);
 
       // 닫기 버튼으로 상세 시트를 닫으면 원래 결과화면으로 복귀한다.
