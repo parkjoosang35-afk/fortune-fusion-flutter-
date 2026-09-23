@@ -565,7 +565,7 @@ class _HeroSlideView extends StatelessWidget {
               Text(slide.tag, style: OzHomeTypography.monoLabel(size: 10)),
               const SizedBox(height: 6),
               for (final line in slide.titleLines)
-                Text(line, style: OzHomeTypography.heroTitle(size: 22)),
+                Text(line, style: OzHomeTypography.heroTitle(size: 17)),
               const SizedBox(height: 14),
               _OzHomePrimaryButton(label: slide.cta, onTap: onCtaTap),
             ],
@@ -696,19 +696,29 @@ class _OzHomeCategoryBanner extends StatelessWidget {
                         color: _accentColor.withValues(alpha: 0.75),
                       ),
                     ),
-                    // Title (two lines, second line accent italic)
+                    // Title (two lines, second line accent) — 테마카드와
+                    // 동일한 고운바탕(Gowun Batang) 서체 · 줄바꿈 없이
+                    // 한 줄로 붙어 보이는 노토산스산세리프 대신 아래
+                    // 테마카드(연애·관계 등) 폰트로 통일 + 크기 축소
+                    // (사용자 피드백: "글씨가 너무 커").
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         for (final line in data.titleLines)
                           Text(
                             line.text,
-                            style: line.accent
-                                ? OzHomeTypography.bannerAccent(
-                                    size: 20,
-                                    color: _accentColor,
-                                  )
-                                : OzHomeTypography.heroTitle(size: 22),
+                            style: OzHomeTypography.cardName(
+                              size: 17,
+                              color: line.accent ? _accentColor : Colors.white,
+                            ).copyWith(
+                              shadows: const [
+                                Shadow(
+                                  color: Color(0x80000000),
+                                  offset: Offset(0, 1),
+                                  blurRadius: 4,
+                                ),
+                              ],
+                            ),
                           ),
                       ],
                     ),
