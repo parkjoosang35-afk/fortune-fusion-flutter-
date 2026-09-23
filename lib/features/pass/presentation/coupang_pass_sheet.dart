@@ -57,6 +57,19 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
   bool _claiming = false;
   late final AnimationController _glowController;
 
+  // [프리패스 "로딩만 돌고 멈춤" 버그 수정] didChangeAppLifecycleState
+  // (AppLifecycleState.resumed) 기반 자동 복귀 감지는 모바일 브라우저(삼성
+  // 인터넷 등)에서 Flutter Web 앱을 직접 열어 쓰는 환경에서는 신뢰할 수
+  // 없다 - 새 탭이 백그라운드/포그라운드 전환 이벤트를 브라우저 탭에
+  // 정확히 전달하지 않거나, 팝업 차단으로 탭 자체가 새 브라우징 컨텍스트로
+  // 인식되지 않는 경우가 흔하다. 그 결과 "쿠팡 페이지 확인 중..." 로딩
+  // 배너만 계속 돌고 자동 진행이 영원히 트리거되지 않는 증상이 발생한다.
+  // 자동 감지에만 의존하지 않고, 쿠팡 방문 버튼을 누른 뒤 일정 시간이
+  // 지나면 (사용자가 이미 쿠팡을 확인하고 돌아왔을 가능성이 높다고 보고)
+  // 자동 감지가 오지 않았어도 스스로 카운트다운을 시작하는 안전장치를 둔다.
+  Timer? _waitingReturnFallbackTimer;
+  static const Duration _waitingReturnFallbackDelay = Duration(seconds: 7);
+
   @override
   void initState() {
     super.initState();
@@ -76,6 +89,7 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _countdownTimer?.cancel();
+    _waitingReturnFallbackTimer?.cancel();
     _glowController.dispose();
     super.dispose();
   }
@@ -156,10 +170,23 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
       _phase = _Phase.waitingReturn;
       _launchedAd = true;
     });
+
+    // [프리패스 "로딩만 돌고 멈춤" 버그 수정] 자동 복귀 감지(생명주기
+    // 이벤트)가 오지 않는 모바일 브라우저 환경을 대비한 안전장치. 일정
+    // 시간 뒤 waitingReturn 상태가 그대로면 사용자가 이미 쿠팡을 확인하고
+    // 돌아왔다고 간주하고 자동으로 카운트다운을 시작한다.
+    _waitingReturnFallbackTimer?.cancel();
+    _waitingReturnFallbackTimer = Timer(_waitingReturnFallbackDelay, () {
+      if (!mounted) return;
+      if (_phase == _Phase.waitingReturn) {
+        _startCountdown(policy);
+      }
+    });
   }
 
   void _startCountdown(PassPolicyModel policy) {
     if (_phase == _Phase.counting || _phase == _Phase.success) return;
+    _waitingReturnFallbackTimer?.cancel();
     setState(() {
       _phase = _Phase.counting;
       _secondsLeft = policy.adWaitSeconds;
@@ -468,7 +495,11 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
           const SizedBox(width: UnifiedTokens.spaceSm),
           Expanded(
             child: Text(
-              '쿠팡 페이지 확인 중이에요. 앱으로 돌아오면 자동으로 진행돼요.',
+              // [프리패스 "로딩만 돌고 멈춤" 버그 수정] 자동 복귀 감지가 되지
+              // 않는 환경(모바일 브라우저 등)을 대비해 잠시 후 자동으로도
+              // 진행된다는 점과, 바로 아래 큰 버튼을 눌러도 된다는 점을
+              // 함께 안내한다.
+              '쿠팡 페이지를 확인하셨다면 아래 버튼을 눌러주세요.\n잠시 기다리면 자동으로도 진행돼요.',
               style: UnifiedText.bodySmall(),
               textAlign: TextAlign.center,
             ),
@@ -552,7 +583,12 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
         label = '프리패스 $durationLabel 받기';
         break;
       case _Phase.waitingReturn:
-        label = '쿠팡 방문 후 앱으로 돌아와주세요';
+        // [프리패스 "로딩만 돌고 멈춤" 버그 수정] 이 문구는 단순 안내가
+        // 아니라 실제로 탭 가능한 버튼이다(onTap이 _startCountdown 호출).
+        // 기존 "쿠팡 방문 후 앱으로 돌아와주세요"는 지시문처럼 읽혀
+        // 버튼인지 알아채기 어려웠으므로, "눌러야 할 동작"임을 명확히
+        // 드러내는 문구로 교체한다.
+        label = '쿠팡 확인했어요, 프리패스 받기';
         break;
       case _Phase.counting:
         label = '지급 중... $_secondsLeft초';
