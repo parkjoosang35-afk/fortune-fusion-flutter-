@@ -42,26 +42,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // [프리패스 단순화 - 자동지급 안전장치] §4/§9
-    // "쿠팡 방문 후 대기시간이 지나면 버튼을 다시 누를 필요 없이 자동
-    // 지급"하는 흐름에서는 앱 라이프사이클 이벤트가 중복 발생(예: 빠른
-    // 화면 전환/재진입)해도 claim-ad가 여러 번 호출될 수 있다. 이미
-    // 유효한(만료되지 않은) 프리패스가 있으면 새로 발급하지 않고 기존
-    // 발급 건을 그대로 반환해 중복 지급/시간 손해를 방지한다.
+    // [프리패스 "시간이 안 들어가요" 버그 수정 — 2026-09-23]
+    // 기존 코드는 "이미 유효한(만료되지 않은) 프리패스가 있으면 무조건
+    // 새로 발급하지 않고 기존 만료시각을 그대로 반환"했다. 이 안전장치는
+    // 원래 "앱 라이프사이클 이벤트가 짧은 시간 안에 중복 발생해 claim-ad가
+    // 두 번 연속 호출되는 것"만 막으려던 것이었는데, 조건이 너무 넓어서
+    // "몇 시간 전에 광고를 보고 받은 패스가 아직 남아있는 상태에서, 사용자가
+    // 광고를 한 번 더 보고 프리패스를 충전하려는" 정상적인 재시청까지
+    // 전부 막아버렸다. 그 결과 Flutter 앱은 "지급 완료" 화면을 보여주지만
+    // 실제 만료시각은 1초도 늘어나지 않는 버그가 발생했다(사용자 리포트:
+    // "프리패스 시간이 안 들어가잖아").
+    //
+    // 이제는 "몇 초 안의 진짜 중복 호출"만 멱등 처리하도록 범위를 크게
+    // 좁힌다: 같은 정책으로 방금(idempotencyWindow 이내) 발급된 UserPass가
+    // 있을 때만 그 건을 그대로 반환하고, 그 외(=정상적인 재시청 충전
+    // 요청)에는 항상 새로 발급해 만료시각이 뒤로 늘어나게 한다.
     const now0 = new Date();
-    const existingActive = await prisma.userPass.findFirst({
-      where: { userId, expiresAt: { gt: now0 } },
-      orderBy: { expiresAt: "desc" },
+    const idempotencyWindowMs = 5000; // 5초 — 중복 클릭/생명주기 중복 이벤트 방어용
+    const recentDuplicate = await prisma.userPass.findFirst({
+      where: {
+        userId,
+        policyId: policy.id,
+        createdAt: { gte: new Date(now0.getTime() - idempotencyWindowMs) },
+      },
+      orderBy: { id: "desc" },
     });
-    if (existingActive) {
+    if (recentDuplicate) {
       return NextResponse.json(
         {
           success: true,
           data: {
-            userPassId: existingActive.id,
-            policyId: existingActive.policyId,
+            userPassId: recentDuplicate.id,
+            policyId: recentDuplicate.policyId,
             policyName: policy.name,
-            expiresAt: existingActive.expiresAt.toISOString(),
+            expiresAt: recentDuplicate.expiresAt.toISOString(),
             idempotent: true,
           },
         },
