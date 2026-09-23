@@ -359,7 +359,15 @@ class _ShuffleFan extends StatelessWidget {
 /// 줘서 "셔플된 덱을 펼쳐놓은" 느낌은 유지하되(§10 설계 원칙 - 실제 카드
 /// 정체는 여전히 다루지 않음), 겹치지 않게 배치해 78장 모두 탭 가능하게
 /// 한다.
-class _SelectableFan extends StatelessWidget {
+///
+/// [78장 좌르르 펼침 연출] 78장이 한꺼번에 "뚝" 나타나면 딱딱한 느낌이라,
+/// 셔플이 끝나고 카드 뒷면이 진열되는 순간 인덱스 순서대로 아주 짧은
+/// 시차(카드당 약 8ms)를 두고 위→아래로 미끄러지며 페이드인+살짝 확대되는
+/// "딜링(dealing)" 연출을 추가한다. StatefulWidget으로 전환해 위젯이 새로
+/// mount될 때(셔플 종료 → selectingCards 전이로 이 위젯이 새로 생성될 때)
+/// 딱 한 번 [_dealController]를 재생한다 - 탭 상호작용/선택 상태(lift)에는
+/// 전혀 영향을 주지 않는 순수 시각 연출이다.
+class _SelectableFan extends StatefulWidget {
   final List<TarotFaceDownSlot> slots;
   final int requiredCount;
   final bool interactive;
@@ -372,7 +380,31 @@ class _SelectableFan extends StatelessWidget {
   });
 
   @override
+  State<_SelectableFan> createState() => _SelectableFanState();
+}
+
+class _SelectableFanState extends State<_SelectableFan>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _dealController;
+
+  @override
+  void initState() {
+    super.initState();
+    _dealController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _dealController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final slots = widget.slots;
     if (slots.isEmpty) return const SizedBox.shrink();
     return SizedBox(
       width: double.infinity,
@@ -395,12 +427,30 @@ class _SelectableFan extends StatelessWidget {
               final wobbleSeed = (i * 37) % 11 - 5;
               final angle = wobbleSeed / 90;
               final lift = slot.isSelected ? -10.0 : 0.0;
-              return Transform.translate(
+
+              // [78장 좌르르 펼침 연출] 카드 인덱스가 클수록 애니메이션
+              // 시작 시점을 뒤로 미뤄, 앞에서부터 순서대로 하나씩 나타나는
+              // 웨이브 효과를 만든다. 카드가 많아도(78장) 전체 재생 시간은
+              // _dealController duration(900ms)을 넘지 않도록 start를
+              // 0.0~0.85 구간에서 고르게 분산한다.
+              final start = (i / slots.length * 0.85).clamp(0.0, 0.85);
+              final dealAnim = CurvedAnimation(
+                parent: _dealController,
+                curve: Interval(
+                  start,
+                  (start + 0.4).clamp(0.0, 1.0),
+                  curve: Curves.easeOutCubic,
+                ),
+              );
+
+              final card = Transform.translate(
                 offset: Offset(0, lift),
                 child: Transform.rotate(
                   angle: angle,
                   child: GestureDetector(
-                    onTap: interactive ? () => onSlotTap(slot.slotIndex) : null,
+                    onTap: widget.interactive
+                        ? () => widget.onSlotTap(slot.slotIndex)
+                        : null,
                     child: OzFaceDownCard(
                       width: 38,
                       height: 58,
@@ -408,6 +458,21 @@ class _SelectableFan extends StatelessWidget {
                     ),
                   ),
                 ),
+              );
+
+              return AnimatedBuilder(
+                animation: dealAnim,
+                builder: (context, child) {
+                  final t = dealAnim.value;
+                  return Opacity(
+                    opacity: t.clamp(0.0, 1.0),
+                    child: Transform.translate(
+                      offset: Offset(0, (1 - t) * 26),
+                      child: Transform.scale(scale: 0.7 + t * 0.3, child: child),
+                    ),
+                  );
+                },
+                child: card,
               );
             }),
           ),
