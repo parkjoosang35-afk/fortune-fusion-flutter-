@@ -351,22 +351,24 @@ class _ShuffleFan extends StatelessWidget {
 
 /// 카드 탭 대기/선택 완료 상태 - 선택된 슬롯은 위로 떠오르고 골드 글로우.
 ///
-/// [타로 78장 풀덱 진열] 기존에는 카드 12장 정도만 Stack+Transform으로
-/// 겹쳐서 부채꼴로 펼쳤다. 실제 타로 78장 풀덱(메이저 22 + 마이너 56)
-/// 전체를 진열하도록 [_faceDownDeckSize]가 78로 확장됨에 따라, 겹침 기반
-/// Stack 부채꼴은 화면 폭을 크게 벗어나거나 탭 히트테스트가 어긋나므로
-/// 스크롤 가능한 [Wrap] 그리드로 전환한다. 카드마다 아주 미세한 회전을
-/// 줘서 "셔플된 덱을 펼쳐놓은" 느낌은 유지하되(§10 설계 원칙 - 실제 카드
-/// 정체는 여전히 다루지 않음), 겹치지 않게 배치해 78장 모두 탭 가능하게
-/// 한다.
+/// [타로 78장 풀덱 진열 - 스크롤 제거] 기존에는 고정 높이(340px) 컨테이너 +
+/// Wrap + SingleChildScrollView 조합으로 78장을 배치해, 실제로는 화면에
+/// 45장 정도만 보이고 나머지는 스크롤해야 볼 수 있었다("78장이 한번에
+/// 보인다"는 요구를 충족하지 못함). 이를 [LayoutBuilder]로 실제 가용
+/// 영역(width x height)을 측정한 뒤, [_computeGrid]가 78장이 스크롤 없이
+/// 전부 들어갈 수 있는 열(columns) 수와 카드 크기를 매 순간 계산해 [Stack]
+/// + [Positioned]로 절대좌표 배치한다. 화면 크기가 달라져도 항상 78장
+/// 전체가 한 화면에 보인다.
 ///
-/// [78장 좌르르 펼침 연출] 78장이 한꺼번에 "뚝" 나타나면 딱딱한 느낌이라,
-/// 셔플이 끝나고 카드 뒷면이 진열되는 순간 인덱스 순서대로 아주 짧은
-/// 시차(카드당 약 8ms)를 두고 위→아래로 미끄러지며 페이드인+살짝 확대되는
-/// "딜링(dealing)" 연출을 추가한다. StatefulWidget으로 전환해 위젯이 새로
-/// mount될 때(셔플 종료 → selectingCards 전이로 이 위젯이 새로 생성될 때)
-/// 딱 한 번 [_dealController]를 재생한다 - 탭 상호작용/선택 상태(lift)에는
-/// 전혀 영향을 주지 않는 순수 시각 연출이다.
+/// [한게임 포커 스타일 "카드 딜링" 연출] 단순히 제자리에서 페이드인/확대
+/// 되는 연출은 사용자가 기대한 "카드섞기 후 카드가 78장이 1장씩 차례대로
+/// 쫙 깔리는" 한게임 포커의 딜링 연출과 다르다. 이를 반영해 78장 전부가
+/// 그리드 중앙(셔플 애니메이션이 있던 자리, 즉 "덱"이 놓인 자리)에서
+/// 시작해, 인덱스 순서대로 아주 촘촘한 시차를 두고 각자의 최종 격자
+/// 자리로 실제로 "이동"하며 날아가 앉는다. StatefulWidget으로 전환해
+/// 위젯이 새로 mount될 때(셔플 종료 → selectingCards 전이로 이 위젯이
+/// 새로 생성될 때) 딱 한 번 [_dealController]를 재생한다 - 탭
+/// 상호작용/선택 상태(lift)에는 영향을 주지 않는 순수 시각 연출이다.
 class _SelectableFan extends StatefulWidget {
   final List<TarotFaceDownSlot> slots;
   final int requiredCount;
@@ -387,12 +389,20 @@ class _SelectableFanState extends State<_SelectableFan>
     with SingleTickerProviderStateMixin {
   late final AnimationController _dealController;
 
+  // 카드 뒷면 이미지 기준 가로:세로 비율(38:58). 그리드 칸 크기를 계산할 때
+  // 이 비율을 유지해 카드가 찌그러지지 않게 한다.
+  static const double _cardAspect = 38 / 58;
+  static const double _gridSpacing = 4.0;
+
   @override
   void initState() {
     super.initState();
+    // [한게임 포커 딜링 타이밍] 78장이 한 장씩 순서대로 자리에 앉는 게
+    // 눈에 보이려면 900ms로는 너무 짧다(사실상 동시에 나타나는 것처럼
+    // 보임). 2400ms로 늘려 카드 사이의 시차가 실제로 인지되도록 한다.
     _dealController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 900),
+      duration: const Duration(milliseconds: 2400),
     )..forward();
   }
 
@@ -402,61 +412,121 @@ class _SelectableFanState extends State<_SelectableFan>
     super.dispose();
   }
 
+  double _lerp(double a, double b, double t) => a + (b - a) * t;
+
+  /// [maxWidth] x [maxHeight] 영역 안에 [count]장의 카드를 스크롤 없이
+  /// 모두 배치할 수 있는 최적의 열(columns) 수와 카드 크기를 계산한다.
+  /// 1~20열까지 브루트포스로 시도해, 카드 한 장의 크기가 최대가 되는
+  /// 조합을 고른다 - 화면 크기가 달라져도 78장 전체가 항상 한 화면에
+  /// 들어오게 하기 위함.
+  ({int columns, int rows, double cardWidth, double cardHeight}) _computeGrid(
+    double maxWidth,
+    double maxHeight,
+    int count,
+  ) {
+    int bestColumns = 1;
+    double bestCardWidth = 0;
+    for (int cols = 1; cols <= 20; cols++) {
+      final rows = (count / cols).ceil();
+      final cellWidth = (maxWidth - _gridSpacing * (cols - 1)) / cols;
+      final cellHeight = (maxHeight - _gridSpacing * (rows - 1)) / rows;
+      if (cellWidth <= 0 || cellHeight <= 0) continue;
+      double cardWidth = cellWidth;
+      double cardHeight = cardWidth / _cardAspect;
+      if (cardHeight > cellHeight) {
+        cardHeight = cellHeight;
+        cardWidth = cardHeight * _cardAspect;
+      }
+      if (cardWidth > bestCardWidth) {
+        bestCardWidth = cardWidth;
+        bestColumns = cols;
+      }
+    }
+    if (bestCardWidth <= 0) {
+      // 극단적으로 작은 영역이 들어오는 예외 상황 대비 안전값.
+      bestColumns = (sqrt(count.toDouble())).ceil().clamp(1, 20);
+      bestCardWidth = 20;
+    }
+    final rows = (count / bestColumns).ceil();
+    final cardHeight = bestCardWidth / _cardAspect;
+    return (
+      columns: bestColumns,
+      rows: rows,
+      cardWidth: bestCardWidth,
+      cardHeight: cardHeight,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final slots = widget.slots;
     if (slots.isEmpty) return const SizedBox.shrink();
-    return SizedBox(
-      width: double.infinity,
-      height: 340,
-      child: Scrollbar(
-        thumbVisibility: true,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(
-            horizontal: OzTokens.spaceLg,
-            vertical: OzTokens.spaceMd,
-          ),
-          child: Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 6,
-            runSpacing: 12,
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxWidth = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : 360.0;
+        final maxHeight = constraints.maxHeight.isFinite
+            ? constraints.maxHeight
+            : 380.0;
+        final grid = _computeGrid(maxWidth, maxHeight, slots.length);
+        final gridWidth =
+            grid.columns * grid.cardWidth +
+            (grid.columns - 1) * _gridSpacing;
+        final gridHeight =
+            grid.rows * grid.cardHeight + (grid.rows - 1) * _gridSpacing;
+        final offsetX = (maxWidth - gridWidth) / 2;
+        final offsetY = (maxHeight - gridHeight) / 2;
+
+        // [딜링 시작점] 셔플 애니메이션이 놓였던 화면 중앙 = "덱"이 있던
+        // 자리. 78장 전부가 이 한 점에서 출발해 각자의 격자 자리로
+        // 퍼져나가야 한게임 포커에서 카드를 돌리는 느낌이 난다.
+        final sourceX = maxWidth / 2 - grid.cardWidth / 2;
+        final sourceY = maxHeight / 2 - grid.cardHeight / 2;
+
+        return SizedBox(
+          width: maxWidth,
+          height: maxHeight,
+          child: Stack(
+            clipBehavior: Clip.none,
             children: List.generate(slots.length, (i) {
               final slot = slots[i];
-              // 카드마다 미세하게 다른 각도를 줘서 손으로 펼쳐놓은 덱 느낌을
-              // 낸다(-3.2도~+3.2도 사이, 결정론적이라 매 빌드 흔들리지 않음).
-              final wobbleSeed = (i * 37) % 11 - 5;
-              final angle = wobbleSeed / 90;
-              final lift = slot.isSelected ? -10.0 : 0.0;
+              final row = i ~/ grid.columns;
+              final col = i % grid.columns;
+              final finalLeft = offsetX + col * (grid.cardWidth + _gridSpacing);
+              final finalTop = offsetY + row * (grid.cardHeight + _gridSpacing);
 
-              // [78장 좌르르 펼침 연출] 카드 인덱스가 클수록 애니메이션
-              // 시작 시점을 뒤로 미뤄, 앞에서부터 순서대로 하나씩 나타나는
-              // 웨이브 효과를 만든다. 카드가 많아도(78장) 전체 재생 시간은
-              // _dealController duration(900ms)을 넘지 않도록 start를
-              // 0.0~0.85 구간에서 고르게 분산한다.
-              final start = (i / slots.length * 0.85).clamp(0.0, 0.85);
+              // 자리에 앉은 뒤에도 손으로 펼쳐놓은 듯한 아주 미세한 각도
+              // (그리드가 촘촘하므로 옆 칸과 겹치지 않을 정도로만).
+              final wobbleSeed = (i * 37) % 7 - 3;
+              final finalAngle = wobbleSeed / 160;
+              final lift = slot.isSelected ? -8.0 : 0.0;
+
+              // [순서대로 한 장씩] 인덱스가 클수록 시작 시점을 아주
+              // 조금씩 뒤로 미뤄, 78장이 "차례대로" 쫙 깔리는 웨이브를
+              // 만든다. 각 카드의 비행 구간(0.16)은 서로 겹치도록 두어
+              // 자연스러운 연속 딜링처럼 보이게 한다.
+              final start = slots.length > 1
+                  ? (i / (slots.length - 1) * 0.84).clamp(0.0, 0.84)
+                  : 0.0;
               final dealAnim = CurvedAnimation(
                 parent: _dealController,
                 curve: Interval(
                   start,
-                  (start + 0.4).clamp(0.0, 1.0),
+                  (start + 0.16).clamp(0.0, 1.0),
                   curve: Curves.easeOutCubic,
                 ),
               );
 
-              final card = Transform.translate(
-                offset: Offset(0, lift),
-                child: Transform.rotate(
-                  angle: angle,
-                  child: GestureDetector(
-                    onTap: widget.interactive
-                        ? () => widget.onSlotTap(slot.slotIndex)
-                        : null,
-                    child: OzFaceDownCard(
-                      width: 38,
-                      height: 58,
-                      selected: slot.isSelected,
-                    ),
-                  ),
+              final card = GestureDetector(
+                onTap: widget.interactive
+                    ? () => widget.onSlotTap(slot.slotIndex)
+                    : null,
+                child: OzFaceDownCard(
+                  width: grid.cardWidth,
+                  height: grid.cardHeight,
+                  selected: slot.isSelected,
                 ),
               );
 
@@ -464,11 +534,20 @@ class _SelectableFanState extends State<_SelectableFan>
                 animation: dealAnim,
                 builder: (context, child) {
                   final t = dealAnim.value;
-                  return Opacity(
-                    opacity: t.clamp(0.0, 1.0),
-                    child: Transform.translate(
-                      offset: Offset(0, (1 - t) * 26),
-                      child: Transform.scale(scale: 0.7 + t * 0.3, child: child),
+                  final left = _lerp(sourceX, finalLeft, t);
+                  final top = _lerp(sourceY, finalTop, t) + lift * t;
+                  // 날아가는 동안엔 덱과 같은 각도(0)에서 시작해 자기
+                  // 자리의 미세한 wobble 각도로 안착한다.
+                  final angle = _lerp(0, finalAngle, t);
+                  // 덱에서 튀어나올 땐 살짝 크게(1.15) 보였다가 제자리에
+                  // 앉으며 원래 크기(1.0)로 줄어드는 깊이감을 준다.
+                  final scale = _lerp(1.15, 1.0, t);
+                  return Positioned(
+                    left: left,
+                    top: top,
+                    child: Transform.rotate(
+                      angle: angle,
+                      child: Transform.scale(scale: scale, child: child),
                     ),
                   );
                 },
@@ -476,8 +555,8 @@ class _SelectableFanState extends State<_SelectableFan>
               );
             }),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
