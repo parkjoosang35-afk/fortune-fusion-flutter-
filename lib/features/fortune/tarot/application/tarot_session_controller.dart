@@ -247,6 +247,56 @@ class TarotSessionController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// [타로 카드뽑기 화면 디자인 핸드오프 매핑 · T1 §5.4 되돌리기] 마지막으로
+  /// 선택한 슬롯을 다시 미선택 상태로 되돌린다. `selectingCards`(아직
+  /// 5장 미만) 뿐 아니라 `cardsChosen`(5장 완성) 상태에서도 허용해야
+  /// "다시 고르기" 버튼이 동작한다(스펙 §5.4 "5장 완성 상태에서는
+  /// '다시 고르기'" 참고).
+  void undoLastSelection() {
+    if (_state.status != TarotSessionStatus.selectingCards &&
+        _state.status != TarotSessionStatus.cardsChosen) {
+      return;
+    }
+    if (_state.selectedSlotIndexes.isEmpty) return;
+
+    final lastIndex = _state.selectedSlotIndexes.last;
+    final updatedSelection = _state.selectedSlotIndexes.sublist(
+      0,
+      _state.selectedSlotIndexes.length - 1,
+    );
+    final updatedSlots = _state.deckSlots
+        .map((s) => s.slotIndex == lastIndex ? s.copyWith(isSelected: false) : s)
+        .toList();
+
+    _state = _state.copyWith(
+      deckSlots: updatedSlots,
+      selectedSlotIndexes: updatedSelection,
+      status: TarotSessionStatus.selectingCards,
+    );
+    notifyListeners();
+  }
+
+  /// [타로 카드뽑기 화면 디자인 핸드오프 매핑 · T1 §5.5/§13 다시 뽑기] 지금까지
+  /// 선택한 카드를 전부 초기화하고 `selectingCards` 상태로 되돌린다(호출
+  /// 직후 화면단이 코스메틱 셔플 연출을 이어서 재생한다). 실제 카드 정체
+  /// 결정 로직(reveal)에는 영향이 없다 - 오직 "몇 번 슬롯이 선택됐는가"만
+  /// 초기화한다.
+  void resetSelection() {
+    if (_state.status != TarotSessionStatus.selectingCards &&
+        _state.status != TarotSessionStatus.cardsChosen) {
+      return;
+    }
+    final resetSlots = _state.deckSlots
+        .map((s) => s.isSelected ? s.copyWith(isSelected: false) : s)
+        .toList();
+    _state = _state.copyWith(
+      deckSlots: resetSlots,
+      selectedSlotIndexes: const [],
+      status: TarotSessionStatus.selectingCards,
+    );
+    notifyListeners();
+  }
+
   /// ⑥→⑦ 결과 요청. 실제 API 호출은 [tarotProvider]에 위임하고, 성공하면
   /// 결과를 세션 상태에 반영한다.
   Future<void> reveal(TarotProvider tarotProvider) async {
