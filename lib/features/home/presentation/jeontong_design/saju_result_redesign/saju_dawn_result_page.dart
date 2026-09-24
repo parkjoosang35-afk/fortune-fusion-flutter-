@@ -49,6 +49,13 @@ class SajuDawnResultPage extends StatefulWidget {
   /// 위해 호출부가 그대로 만든 위젯을 주입받는다(TopBar trailing 슬롯).
   final Widget? bookmarkButton;
 
+  /// [법적 고지 보존] 기존 legacy 화면의 DisclaimerBanner.common/
+  /// forTags, 플레이스홀더 안내, 출생시간 미입력 안내 등을 이 슬롯에
+  /// 그대로 주입받는다(Dawn Paper가 이 배너들을 시각적으로 재해석
+  /// 하지 않고, 호출부가 이미 검증된 기존 위젯을 그대로 넘겨 맕보 상단에
+  /// 배치한다 — 재계산/재작성 없음).
+  final List<Widget> topBanners;
+
   final VoidCallback? onBack;
   final void Function(RelatedFortune)? onRelatedTap;
   final VoidCallback? onPrimaryAction;
@@ -61,6 +68,7 @@ class SajuDawnResultPage extends StatefulWidget {
     required this.strengthLabel,
     this.typeLabel,
     this.bookmarkButton,
+    this.topBanners = const [],
     this.onBack,
     this.onRelatedTap,
     this.onPrimaryAction,
@@ -122,6 +130,19 @@ class _SajuDawnResultPageState extends State<SajuDawnResultPage> {
                   strengthLabel: widget.strengthLabel,
                   typeLabel: widget.typeLabel,
                 ),
+                if (widget.topBanners.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (final banner in widget.topBanners) ...[
+                          banner,
+                          const SizedBox(height: 10),
+                        ],
+                      ],
+                    ),
+                  ),
                 SajuDawnSectionShell(
                   num: '壹 · ONE',
                   name: '당신의 일간',

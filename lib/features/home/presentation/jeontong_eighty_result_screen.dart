@@ -43,6 +43,8 @@ import '../domain/jeontong_eighty_report_builder.dart'
 import '../domain/jeontong_input.dart';
 import '../domain/jeontong_narrative_interpreter.dart';
 import '../domain/jeontong_report_cache.dart';
+import '../domain/manseryeok/saju_profile.dart' show SajuProfile;
+import '../domain/saju_engine.dart' show SajuResult;
 import '../domain/saju_fortune_rules.dart' show SajuFortuneRules;
 import '../domain/saju_interpreter.dart' show SajuInterpreter, SajuRules;
 import '../domain/user_profile_to_jeontong_adapter.dart';
@@ -54,6 +56,14 @@ import 'jeontong_design/hanji_design_tokens.dart';
 import 'jeontong_design/jeontong_deep_report_card.dart';
 import 'jeontong_design/jeontong_narrative_card.dart';
 import 'jeontong_design/jeontong_saju_detail_section.dart';
+import 'jeontong_design/saju_result_redesign/saju_dawn_data_builder.dart'
+    show
+        buildSajuDawnResultDataFromDeepReport,
+        buildSajuDawnResultDataFromParagraphs;
+import 'jeontong_design/saju_result_redesign/saju_dawn_data_models.dart'
+    show SajuResultData, RelatedFortune;
+import 'jeontong_design/saju_result_redesign/saju_dawn_result_page.dart'
+    show SajuDawnResultPage;
 import 'jeontong_design/saju_seal.dart';
 import 'widgets/jeontong_easy_term_toggle.dart';
 import 'widgets/jeontong_result_text_extractor.dart';
@@ -488,6 +498,24 @@ class _ResultBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasProfile = profile != null;
+
+    // [2026 Dawn Paper 결과화면 통합] 프로필이 있으면(즉 실계산 입력이
+    // 있으면) 새 Dawn Paper 전체 페이지([SajuDawnResultPage])로 그린다.
+    // 프로필이 없거나(아직 입력 전) 실계산이 어떤 이유로든 실패하면
+    // (방어적) 기존 legacy 레이아웃으로 안전하게 폴백한다 — 결과 화면이
+    // 절대 깨지지 않는다(§ 기존 안전망 원칙 그대로 계승).
+    if (hasProfile) {
+      final dawnPage = _tryBuildDawnResultPage(
+        context,
+        entry: entry,
+        profile: profile!,
+        isBookmarked: isBookmarked,
+        onToggleBookmark: onToggleBookmark,
+        onSave: onSave,
+      );
+      if (dawnPage != null) return dawnPage;
+    }
+
     final report = jeontongReportCache.getOrBuild(
       entry: entry,
       userId: hasProfile ? userId : null,
@@ -753,367 +781,16 @@ class _ResultBody extends StatelessWidget {
       // 카테고리는 삭제하지 않는다"). FortuneNarrative.toParagraphs()는
       // 기존 JeontongNarrativeCard가 요구하는 List<String> 그대로이므로 새
       // 위젯 없이 재사용한다.
-      if (entry.id == 'A01') {
-        final analysis = const LifeOverallAnalyzer().analyze(
-          built.profile,
-          referenceDate: DateTime.now(),
-        );
-        final narrative = const LifeOverallNarrativeGenerator().generate(
-          built.profile,
-          analysis,
-        );
-        // [2026 무당식 단정 총평] A01은 별도 riskPattern 필드가 없어
-        // weaknesses 리스트의 고정 문구("특별히 두드러진 위험 신호는
-        // 확인되지 않음") 존재 여부로 판정한다(새 계산 없음, 이미 산출된
-        // weaknesses/strengths 재사용).
-        const noRiskFixed = '특별히 두드러진 위험 신호는 확인되지 않음';
-        final a01HasRisk =
-            !(analysis.weaknesses.length == 1 &&
-                analysis.weaknesses.first == noRiskFixed);
-        final a01Verdict = buildDeclarativeVerdict(
-          categoryLabel: '전체적인 삶',
-          hasRisk: a01HasRisk,
-          reasonSentence: a01HasRisk
-              ? analysis.weaknesses.first
-              : analysis.strengths.isNotEmpty
-              ? analysis.strengths.first
-              : analysis.lifeTheme,
-          actionSentence: narrative.practicalGuidance?.isNotEmpty == true
-              ? narrative.practicalGuidance!.first
-              : null,
-        );
-        return JeontongDeepReportCard(
-          profile: built.profile,
-          data: JeontongDeepReportData(
-            oneLineSummary: a01Verdict.summary,
-            isFortunate: a01Verdict.isFortunate,
-            characteristicsTitle: '② 타고난 성격',
-            personalitySentences: [
-              analysis.coreNatureDescription,
-              ...narrative.characteristics,
-            ],
-            strengths: analysis.strengths,
-            cautions: analysis.weaknesses,
-            generalGuidance: narrative.practicalGuidance ?? const [],
-            finalSummary: narrative.finalSummary,
-          ),
-        );
-      }
-      if (entry.id == 'A03') {
-        final analysis = const WealthAnalyzer().analyze(
-          built.profile,
-          referenceDate: DateTime.now(),
-        );
-        final narrative = const WealthNarrativeGenerator().generate(
-          built.profile,
-          analysis,
-        );
-        // [2026 무당식 단정 총평] riskPattern이 고정 "확인되지 않음" 문구가
-        // 아니면 실제 계산된 리스크가 있다는 뜻(겁재 개수·기신=재성 여부 등
-        // 사람마다 다른 수치로 이미 산출됨) — 이 유무로만 좋음/주의를
-        // 판정한다(새 계산 없음).
-        const noRiskFixed = '두드러진 재물 리스크 신호는 확인되지 않음';
-        final a03HasRisk = analysis.riskPattern != noRiskFixed;
-        final a03Verdict = buildDeclarativeVerdict(
-          categoryLabel: '재물',
-          hasRisk: a03HasRisk,
-          reasonSentence: a03HasRisk
-              ? analysis.riskPattern.split(' / ').first
-              : (narrative.favorableFlows.isNotEmpty
-                    ? narrative.favorableFlows.first
-                    : analysis.wealthPattern),
-          actionSentence: narrative.practicalGuidance?.isNotEmpty == true
-              ? narrative.practicalGuidance!.first
-              : null,
-        );
-        return JeontongDeepReportCard(
-          profile: built.profile,
-          data: JeontongDeepReportData(
-            oneLineSummary: a03Verdict.summary,
-            isFortunate: a03Verdict.isFortunate,
-            characteristicsTitle: '② 재물 스타일',
-            personalitySentences: narrative.characteristics,
-            strengths: narrative.favorableFlows,
-            cautions: narrative.cautionFlows,
-            practicalAdvice: {'돈': analysis.assetManagementStyle},
-            generalGuidance: narrative.practicalGuidance ?? const [],
-            daewoonFlow: narrative.timingSection ?? const [],
-            finalSummary: narrative.finalSummary,
-          ),
-        );
-      }
-      if (entry.id == 'A04') {
-        final analysis = const CareerAnalyzer().analyze(
-          built.profile,
-          referenceDate: DateTime.now(),
-        );
-        final narrative = const CareerNarrativeGenerator().generate(
-          built.profile,
-          analysis,
-        );
-        const noRiskFixed = '두드러진 직업상 리스크 신호는 확인되지 않음';
-        final a04HasRisk = analysis.careerRiskPattern != noRiskFixed;
-        final a04Verdict = buildDeclarativeVerdict(
-          categoryLabel: '직업·일',
-          hasRisk: a04HasRisk,
-          reasonSentence: a04HasRisk
-              ? analysis.careerRiskPattern.split(' / ').first
-              : (narrative.favorableFlows.isNotEmpty
-                    ? narrative.favorableFlows.first
-                    : analysis.careerPattern),
-          actionSentence: narrative.practicalGuidance?.isNotEmpty == true
-              ? narrative.practicalGuidance!.first
-              : null,
-        );
-        return JeontongDeepReportCard(
-          profile: built.profile,
-          data: JeontongDeepReportData(
-            oneLineSummary: a04Verdict.summary,
-            isFortunate: a04Verdict.isFortunate,
-            characteristicsTitle: '② 일하는 방식',
-            personalitySentences: narrative.characteristics,
-            strengths: narrative.favorableFlows,
-            cautions: narrative.cautionFlows,
-            practicalAdvice: {'일': analysis.workStyle},
-            generalGuidance: narrative.practicalGuidance ?? const [],
-            daewoonFlow: narrative.timingSection ?? const [],
-            finalSummary: narrative.finalSummary,
-          ),
-        );
-      }
-      if (entry.id == 'A05') {
-        final analysis = const HealthAnalyzer().analyze(
-          built.profile,
-          referenceDate: DateTime.now(),
-        );
-        final narrative = const HealthNarrativeGenerator().generate(
-          built.profile,
-          analysis,
-        );
-        const noRiskFixed = '두드러진 건강상 리스크 신호는 확인되지 않음';
-        final a05HasRisk = analysis.healthRiskPattern != noRiskFixed;
-        final a05Verdict = buildDeclarativeVerdict(
-          categoryLabel: '건강',
-          hasRisk: a05HasRisk,
-          reasonSentence: a05HasRisk
-              ? analysis.healthRiskPattern.split(' / ').first
-              : (narrative.favorableFlows.isNotEmpty
-                    ? narrative.favorableFlows.first
-                    : analysis.healthConstitutionPattern),
-          actionSentence: narrative.practicalGuidance?.isNotEmpty == true
-              ? narrative.practicalGuidance!.first
-              : null,
-        );
-        return JeontongDeepReportCard(
-          profile: built.profile,
-          data: JeontongDeepReportData(
-            oneLineSummary: a05Verdict.summary,
-            isFortunate: a05Verdict.isFortunate,
-            characteristicsTitle: '② 타고난 체질',
-            personalitySentences: narrative.characteristics,
-            strengths: narrative.favorableFlows,
-            cautions: narrative.cautionFlows,
-            practicalAdvice: {'건강': analysis.healthVitality},
-            generalGuidance: narrative.practicalGuidance ?? const [],
-            daewoonFlow: narrative.timingSection ?? const [],
-            finalSummary: narrative.finalSummary,
-          ),
-        );
-      }
-      if (entry.id == 'A06') {
-        final analysis = const LoveAnalyzer().analyze(
-          built.profile,
-          referenceDate: DateTime.now(),
-        );
-        final narrative = const LoveNarrativeGenerator().generate(
-          built.profile,
-          analysis,
-        );
-        const noRiskFixed = '두드러진 애정상 리스크 신호는 확인되지 않음';
-        final a06HasRisk = analysis.romanceRiskPattern != noRiskFixed;
-        final a06Verdict = buildDeclarativeVerdict(
-          categoryLabel: '애정·인연',
-          hasRisk: a06HasRisk,
-          reasonSentence: a06HasRisk
-              ? analysis.romanceRiskPattern.split(' / ').first
-              : (narrative.favorableFlows.isNotEmpty
-                    ? narrative.favorableFlows.first
-                    : analysis.spousePattern),
-          actionSentence: narrative.practicalGuidance?.isNotEmpty == true
-              ? narrative.practicalGuidance!.first
-              : null,
-        );
-        return JeontongDeepReportCard(
-          profile: built.profile,
-          data: JeontongDeepReportData(
-            oneLineSummary: a06Verdict.summary,
-            isFortunate: a06Verdict.isFortunate,
-            characteristicsTitle: '② 연애·결혼 성향',
-            personalitySentences: narrative.characteristics,
-            strengths: narrative.favorableFlows,
-            cautions: narrative.cautionFlows,
-            practicalAdvice: {'관계': analysis.recommendedApproach},
-            generalGuidance: narrative.practicalGuidance ?? const [],
-            daewoonFlow: narrative.timingSection ?? const [],
-            finalSummary: narrative.finalSummary,
-          ),
-        );
-      }
-      if (entry.id == 'A07') {
-        final analysis = const ChildrenAnalyzer().analyze(
-          built.profile,
-          referenceDate: DateTime.now(),
-        );
-        final narrative = const ChildrenNarrativeGenerator().generate(
-          built.profile,
-          analysis,
-        );
-        const noRiskFixed = '두드러진 자녀운 리스크 신호는 확인되지 않음';
-        final a07HasRisk = analysis.childRiskPattern != noRiskFixed;
-        final a07Verdict = buildDeclarativeVerdict(
-          categoryLabel: '자녀운',
-          hasRisk: a07HasRisk,
-          reasonSentence: a07HasRisk
-              ? analysis.childRiskPattern.split(' / ').first
-              : (narrative.favorableFlows.isNotEmpty
-                    ? narrative.favorableFlows.first
-                    : analysis.childPattern),
-          actionSentence: narrative.practicalGuidance?.isNotEmpty == true
-              ? narrative.practicalGuidance!.first
-              : null,
-        );
-        return JeontongDeepReportCard(
-          profile: built.profile,
-          data: JeontongDeepReportData(
-            oneLineSummary: a07Verdict.summary,
-            isFortunate: a07Verdict.isFortunate,
-            characteristicsTitle: '② 자녀 인연 성향',
-            personalitySentences: narrative.characteristics,
-            strengths: narrative.favorableFlows,
-            cautions: narrative.cautionFlows,
-            practicalAdvice: {'관계': analysis.childRearingApproach},
-            generalGuidance: narrative.practicalGuidance ?? const [],
-            daewoonFlow: narrative.timingSection ?? const [],
-            finalSummary: narrative.finalSummary,
-          ),
-        );
-      }
-      if (entry.id == 'A08') {
-        final analysis = const ParentsSiblingsAnalyzer().analyze(
-          built.profile,
-          referenceDate: DateTime.now(),
-        );
-        final narrative = const ParentsSiblingsNarrativeGenerator().generate(
-          built.profile,
-          analysis,
-        );
-        const noRiskFixed = '두드러진 부모·형제운 리스크 신호는 확인되지 않음';
-        final a08HasRisk = analysis.familyRiskPattern != noRiskFixed;
-        final a08Verdict = buildDeclarativeVerdict(
-          categoryLabel: '부모·형제운',
-          hasRisk: a08HasRisk,
-          reasonSentence: a08HasRisk
-              ? analysis.familyRiskPattern.split(' / ').first
-              : (narrative.favorableFlows.isNotEmpty
-                    ? narrative.favorableFlows.first
-                    : analysis.parentPattern),
-          actionSentence: narrative.practicalGuidance?.isNotEmpty == true
-              ? narrative.practicalGuidance!.first
-              : null,
-        );
-        return JeontongDeepReportCard(
-          profile: built.profile,
-          data: JeontongDeepReportData(
-            oneLineSummary: a08Verdict.summary,
-            isFortunate: a08Verdict.isFortunate,
-            characteristicsTitle: '② 부모·형제 인연 성향',
-            personalitySentences: narrative.characteristics,
-            strengths: narrative.favorableFlows,
-            cautions: narrative.cautionFlows,
-            practicalAdvice: {'관계': analysis.familyRelationApproach},
-            generalGuidance: narrative.practicalGuidance ?? const [],
-            daewoonFlow: narrative.timingSection ?? const [],
-            finalSummary: narrative.finalSummary,
-          ),
-        );
-      }
-      if (entry.id == 'A09') {
-        final analysis = const StudyAnalyzer().analyze(
-          built.profile,
-          referenceDate: DateTime.now(),
-        );
-        final narrative = const StudyNarrativeGenerator().generate(
-          built.profile,
-          analysis,
-        );
-        const noRiskFixed = '두드러진 학업·시험운 리스크 신호는 확인되지 않음';
-        final a09HasRisk = analysis.studyRiskPattern != noRiskFixed;
-        final a09Verdict = buildDeclarativeVerdict(
-          categoryLabel: '학업·시험운',
-          hasRisk: a09HasRisk,
-          reasonSentence: a09HasRisk
-              ? analysis.studyRiskPattern.split(' / ').first
-              : (narrative.favorableFlows.isNotEmpty
-                    ? narrative.favorableFlows.first
-                    : analysis.studyPattern),
-          actionSentence: narrative.practicalGuidance?.isNotEmpty == true
-              ? narrative.practicalGuidance!.first
-              : null,
-        );
-        return JeontongDeepReportCard(
-          profile: built.profile,
-          data: JeontongDeepReportData(
-            oneLineSummary: a09Verdict.summary,
-            isFortunate: a09Verdict.isFortunate,
-            characteristicsTitle: '② 학업·시험 성향',
-            personalitySentences: narrative.characteristics,
-            strengths: narrative.favorableFlows,
-            cautions: narrative.cautionFlows,
-            practicalAdvice: {'학업': analysis.studyApproach},
-            generalGuidance: narrative.practicalGuidance ?? const [],
-            daewoonFlow: narrative.timingSection ?? const [],
-            finalSummary: narrative.finalSummary,
-          ),
-        );
-      }
-      if (entry.id == 'A10') {
-        final analysis = const LifeTransitionsAnalyzer().analyze(
-          built.profile,
-          referenceDate: DateTime.now(),
-        );
-        final narrative = const LifeTransitionsNarrativeGenerator().generate(
-          built.profile,
-          analysis,
-        );
-        const noRiskFixed = '두드러진 전환점 리스크 신호는 확인되지 않음';
-        final a10HasRisk = analysis.transitionRiskPattern != noRiskFixed;
-        final a10Verdict = buildDeclarativeVerdict(
-          categoryLabel: '인생 5대 전환점',
-          hasRisk: a10HasRisk,
-          reasonSentence: a10HasRisk
-              ? analysis.transitionRiskPattern.split(' / ').first
-              : (narrative.favorableFlows.isNotEmpty
-                    ? narrative.favorableFlows.first
-                    : analysis.transitionPattern),
-          actionSentence: narrative.practicalGuidance?.isNotEmpty == true
-              ? narrative.practicalGuidance!.first
-              : null,
-        );
-        return JeontongDeepReportCard(
-          profile: built.profile,
-          data: JeontongDeepReportData(
-            oneLineSummary: a10Verdict.summary,
-            isFortunate: a10Verdict.isFortunate,
-            characteristicsTitle: '② 전환점 성향',
-            personalitySentences: narrative.characteristics,
-            strengths: narrative.favorableFlows,
-            cautions: narrative.cautionFlows,
-            practicalAdvice: {'전환기 대응': analysis.transitionApproach},
-            generalGuidance: narrative.practicalGuidance ?? const [],
-            daewoonFlow: narrative.timingSection ?? const [],
-            finalSummary: narrative.finalSummary,
-          ),
-        );
+      //
+      // [2026 Dawn Paper 결과화면 통합] 이 10종(A01/A03~A10) 계산+조합
+      // 로직은 [_buildDeepReportDataForCategory]로 추출해 이 legacy 위젯
+      // 경로와 새 [SajuDawnResultPage] 경로([_buildDawnResultData])가
+      // 동일한 함수를 공유한다 — 계산을 두 번 다르게 만들지 않기 위함
+      // (§ 재계산 금지 원칙과 동일한 정신: "이미 만든 결과를 두 곳에서
+      // 그대로 재사용").
+      final deepData = _buildDeepReportDataForCategory(entry.id, built.profile);
+      if (deepData != null) {
+        return JeontongDeepReportCard(profile: built.profile, data: deepData);
       }
 
       final interp = SajuInterpreter.fullInterpretation(built.saju);
@@ -1162,6 +839,353 @@ class _ResultBody extends StatelessWidget {
       return const SizedBox.shrink();
     }
   }
+}
+
+/// [2026 Dawn Paper 결과화면 통합 — 공용 추출] A01/A03~A10 10종 전용
+/// CategoryAnalyzer → NarrativeGenerator → [buildDeclarativeVerdict] 조합
+/// 로직을 [_ResultBody._buildNarrativeSection]에서 그대로 옮겨온 것뿐이다
+/// (§ 재계산 금지 — 문장 하나 새로 만들지 않음). [JeontongEightyResultScreen]
+/// 의 legacy [JeontongDeepReportCard] 경로와 신규 [SajuDawnResultPage]
+/// 경로(`buildSajuDawnResultDataFromDeepReport`) 양쪽이 이 함수 하나를
+/// 공유해, 같은 카테고리의 계산이 두 곳에서 따로따로 이뤄지며 서로 다른
+/// 결과를 낳는 위험을 원천 차단한다. 10종에 해당하지 않으면 null —
+/// 호출부가 기존 Pipeline B(JeontongNarrativeInterpreter) 경로로 폴백한다.
+JeontongDeepReportData? _buildDeepReportDataForCategory(
+  String categoryId,
+  SajuProfile builtProfile,
+) {
+  if (categoryId == 'A01') {
+    final analysis = const LifeOverallAnalyzer().analyze(
+      builtProfile,
+      referenceDate: DateTime.now(),
+    );
+    final narrative = const LifeOverallNarrativeGenerator().generate(
+      builtProfile,
+      analysis,
+    );
+    // [2026 무당식 단정 총평] A01은 별도 riskPattern 필드가 없어
+    // weaknesses 리스트의 고정 문구("특별히 두드러진 위험 신호는
+    // 확인되지 않음") 존재 여부로 판정한다(새 계산 없음, 이미 산출된
+    // weaknesses/strengths 재사용).
+    const noRiskFixed = '특별히 두드러진 위험 신호는 확인되지 않음';
+    final hasRisk =
+        !(analysis.weaknesses.length == 1 &&
+            analysis.weaknesses.first == noRiskFixed);
+    final verdict = buildDeclarativeVerdict(
+      categoryLabel: '전체적인 삶',
+      hasRisk: hasRisk,
+      reasonSentence: hasRisk
+          ? analysis.weaknesses.first
+          : analysis.strengths.isNotEmpty
+          ? analysis.strengths.first
+          : analysis.lifeTheme,
+      actionSentence: narrative.practicalGuidance?.isNotEmpty == true
+          ? narrative.practicalGuidance!.first
+          : null,
+    );
+    return JeontongDeepReportData(
+      oneLineSummary: verdict.summary,
+      isFortunate: verdict.isFortunate,
+      characteristicsTitle: '② 타고난 성격',
+      personalitySentences: [
+        analysis.coreNatureDescription,
+        ...narrative.characteristics,
+      ],
+      strengths: analysis.strengths,
+      cautions: analysis.weaknesses,
+      generalGuidance: narrative.practicalGuidance ?? const [],
+      finalSummary: narrative.finalSummary,
+    );
+  }
+  if (categoryId == 'A03') {
+    final analysis = const WealthAnalyzer().analyze(
+      builtProfile,
+      referenceDate: DateTime.now(),
+    );
+    final narrative = const WealthNarrativeGenerator().generate(
+      builtProfile,
+      analysis,
+    );
+    const noRiskFixed = '두드러진 재물 리스크 신호는 확인되지 않음';
+    final hasRisk = analysis.riskPattern != noRiskFixed;
+    final verdict = buildDeclarativeVerdict(
+      categoryLabel: '재물',
+      hasRisk: hasRisk,
+      reasonSentence: hasRisk
+          ? analysis.riskPattern.split(' / ').first
+          : (narrative.favorableFlows.isNotEmpty
+                ? narrative.favorableFlows.first
+                : analysis.wealthPattern),
+      actionSentence: narrative.practicalGuidance?.isNotEmpty == true
+          ? narrative.practicalGuidance!.first
+          : null,
+    );
+    return JeontongDeepReportData(
+      oneLineSummary: verdict.summary,
+      isFortunate: verdict.isFortunate,
+      characteristicsTitle: '② 재물 스타일',
+      personalitySentences: narrative.characteristics,
+      strengths: narrative.favorableFlows,
+      cautions: narrative.cautionFlows,
+      practicalAdvice: {'돈': analysis.assetManagementStyle},
+      generalGuidance: narrative.practicalGuidance ?? const [],
+      daewoonFlow: narrative.timingSection ?? const [],
+      finalSummary: narrative.finalSummary,
+    );
+  }
+  if (categoryId == 'A04') {
+    final analysis = const CareerAnalyzer().analyze(
+      builtProfile,
+      referenceDate: DateTime.now(),
+    );
+    final narrative = const CareerNarrativeGenerator().generate(
+      builtProfile,
+      analysis,
+    );
+    const noRiskFixed = '두드러진 직업상 리스크 신호는 확인되지 않음';
+    final hasRisk = analysis.careerRiskPattern != noRiskFixed;
+    final verdict = buildDeclarativeVerdict(
+      categoryLabel: '직업·일',
+      hasRisk: hasRisk,
+      reasonSentence: hasRisk
+          ? analysis.careerRiskPattern.split(' / ').first
+          : (narrative.favorableFlows.isNotEmpty
+                ? narrative.favorableFlows.first
+                : analysis.careerPattern),
+      actionSentence: narrative.practicalGuidance?.isNotEmpty == true
+          ? narrative.practicalGuidance!.first
+          : null,
+    );
+    return JeontongDeepReportData(
+      oneLineSummary: verdict.summary,
+      isFortunate: verdict.isFortunate,
+      characteristicsTitle: '② 일하는 방식',
+      personalitySentences: narrative.characteristics,
+      strengths: narrative.favorableFlows,
+      cautions: narrative.cautionFlows,
+      practicalAdvice: {'일': analysis.workStyle},
+      generalGuidance: narrative.practicalGuidance ?? const [],
+      daewoonFlow: narrative.timingSection ?? const [],
+      finalSummary: narrative.finalSummary,
+    );
+  }
+  if (categoryId == 'A05') {
+    final analysis = const HealthAnalyzer().analyze(
+      builtProfile,
+      referenceDate: DateTime.now(),
+    );
+    final narrative = const HealthNarrativeGenerator().generate(
+      builtProfile,
+      analysis,
+    );
+    const noRiskFixed = '두드러진 건강상 리스크 신호는 확인되지 않음';
+    final hasRisk = analysis.healthRiskPattern != noRiskFixed;
+    final verdict = buildDeclarativeVerdict(
+      categoryLabel: '건강',
+      hasRisk: hasRisk,
+      reasonSentence: hasRisk
+          ? analysis.healthRiskPattern.split(' / ').first
+          : (narrative.favorableFlows.isNotEmpty
+                ? narrative.favorableFlows.first
+                : analysis.healthConstitutionPattern),
+      actionSentence: narrative.practicalGuidance?.isNotEmpty == true
+          ? narrative.practicalGuidance!.first
+          : null,
+    );
+    return JeontongDeepReportData(
+      oneLineSummary: verdict.summary,
+      isFortunate: verdict.isFortunate,
+      characteristicsTitle: '② 타고난 체질',
+      personalitySentences: narrative.characteristics,
+      strengths: narrative.favorableFlows,
+      cautions: narrative.cautionFlows,
+      practicalAdvice: {'건강': analysis.healthVitality},
+      generalGuidance: narrative.practicalGuidance ?? const [],
+      daewoonFlow: narrative.timingSection ?? const [],
+      finalSummary: narrative.finalSummary,
+    );
+  }
+  if (categoryId == 'A06') {
+    final analysis = const LoveAnalyzer().analyze(
+      builtProfile,
+      referenceDate: DateTime.now(),
+    );
+    final narrative = const LoveNarrativeGenerator().generate(
+      builtProfile,
+      analysis,
+    );
+    const noRiskFixed = '두드러진 애정상 리스크 신호는 확인되지 않음';
+    final hasRisk = analysis.romanceRiskPattern != noRiskFixed;
+    final verdict = buildDeclarativeVerdict(
+      categoryLabel: '애정·인연',
+      hasRisk: hasRisk,
+      reasonSentence: hasRisk
+          ? analysis.romanceRiskPattern.split(' / ').first
+          : (narrative.favorableFlows.isNotEmpty
+                ? narrative.favorableFlows.first
+                : analysis.spousePattern),
+      actionSentence: narrative.practicalGuidance?.isNotEmpty == true
+          ? narrative.practicalGuidance!.first
+          : null,
+    );
+    return JeontongDeepReportData(
+      oneLineSummary: verdict.summary,
+      isFortunate: verdict.isFortunate,
+      characteristicsTitle: '② 연애·결혼 성향',
+      personalitySentences: narrative.characteristics,
+      strengths: narrative.favorableFlows,
+      cautions: narrative.cautionFlows,
+      practicalAdvice: {'관계': analysis.recommendedApproach},
+      generalGuidance: narrative.practicalGuidance ?? const [],
+      daewoonFlow: narrative.timingSection ?? const [],
+      finalSummary: narrative.finalSummary,
+    );
+  }
+  if (categoryId == 'A07') {
+    final analysis = const ChildrenAnalyzer().analyze(
+      builtProfile,
+      referenceDate: DateTime.now(),
+    );
+    final narrative = const ChildrenNarrativeGenerator().generate(
+      builtProfile,
+      analysis,
+    );
+    const noRiskFixed = '두드러진 자녀운 리스크 신호는 확인되지 않음';
+    final hasRisk = analysis.childRiskPattern != noRiskFixed;
+    final verdict = buildDeclarativeVerdict(
+      categoryLabel: '자녀운',
+      hasRisk: hasRisk,
+      reasonSentence: hasRisk
+          ? analysis.childRiskPattern.split(' / ').first
+          : (narrative.favorableFlows.isNotEmpty
+                ? narrative.favorableFlows.first
+                : analysis.childPattern),
+      actionSentence: narrative.practicalGuidance?.isNotEmpty == true
+          ? narrative.practicalGuidance!.first
+          : null,
+    );
+    return JeontongDeepReportData(
+      oneLineSummary: verdict.summary,
+      isFortunate: verdict.isFortunate,
+      characteristicsTitle: '② 자녀 인연 성향',
+      personalitySentences: narrative.characteristics,
+      strengths: narrative.favorableFlows,
+      cautions: narrative.cautionFlows,
+      practicalAdvice: {'관계': analysis.childRearingApproach},
+      generalGuidance: narrative.practicalGuidance ?? const [],
+      daewoonFlow: narrative.timingSection ?? const [],
+      finalSummary: narrative.finalSummary,
+    );
+  }
+  if (categoryId == 'A08') {
+    final analysis = const ParentsSiblingsAnalyzer().analyze(
+      builtProfile,
+      referenceDate: DateTime.now(),
+    );
+    final narrative = const ParentsSiblingsNarrativeGenerator().generate(
+      builtProfile,
+      analysis,
+    );
+    const noRiskFixed = '두드러진 부모·형제운 리스크 신호는 확인되지 않음';
+    final hasRisk = analysis.familyRiskPattern != noRiskFixed;
+    final verdict = buildDeclarativeVerdict(
+      categoryLabel: '부모·형제운',
+      hasRisk: hasRisk,
+      reasonSentence: hasRisk
+          ? analysis.familyRiskPattern.split(' / ').first
+          : (narrative.favorableFlows.isNotEmpty
+                ? narrative.favorableFlows.first
+                : analysis.parentPattern),
+      actionSentence: narrative.practicalGuidance?.isNotEmpty == true
+          ? narrative.practicalGuidance!.first
+          : null,
+    );
+    return JeontongDeepReportData(
+      oneLineSummary: verdict.summary,
+      isFortunate: verdict.isFortunate,
+      characteristicsTitle: '② 부모·형제 인연 성향',
+      personalitySentences: narrative.characteristics,
+      strengths: narrative.favorableFlows,
+      cautions: narrative.cautionFlows,
+      practicalAdvice: {'관계': analysis.familyRelationApproach},
+      generalGuidance: narrative.practicalGuidance ?? const [],
+      daewoonFlow: narrative.timingSection ?? const [],
+      finalSummary: narrative.finalSummary,
+    );
+  }
+  if (categoryId == 'A09') {
+    final analysis = const StudyAnalyzer().analyze(
+      builtProfile,
+      referenceDate: DateTime.now(),
+    );
+    final narrative = const StudyNarrativeGenerator().generate(
+      builtProfile,
+      analysis,
+    );
+    const noRiskFixed = '두드러진 학업·시험운 리스크 신호는 확인되지 않음';
+    final hasRisk = analysis.studyRiskPattern != noRiskFixed;
+    final verdict = buildDeclarativeVerdict(
+      categoryLabel: '학업·시험운',
+      hasRisk: hasRisk,
+      reasonSentence: hasRisk
+          ? analysis.studyRiskPattern.split(' / ').first
+          : (narrative.favorableFlows.isNotEmpty
+                ? narrative.favorableFlows.first
+                : analysis.studyPattern),
+      actionSentence: narrative.practicalGuidance?.isNotEmpty == true
+          ? narrative.practicalGuidance!.first
+          : null,
+    );
+    return JeontongDeepReportData(
+      oneLineSummary: verdict.summary,
+      isFortunate: verdict.isFortunate,
+      characteristicsTitle: '② 학업·시험 성향',
+      personalitySentences: narrative.characteristics,
+      strengths: narrative.favorableFlows,
+      cautions: narrative.cautionFlows,
+      practicalAdvice: {'학업': analysis.studyApproach},
+      generalGuidance: narrative.practicalGuidance ?? const [],
+      daewoonFlow: narrative.timingSection ?? const [],
+      finalSummary: narrative.finalSummary,
+    );
+  }
+  if (categoryId == 'A10') {
+    final analysis = const LifeTransitionsAnalyzer().analyze(
+      builtProfile,
+      referenceDate: DateTime.now(),
+    );
+    final narrative = const LifeTransitionsNarrativeGenerator().generate(
+      builtProfile,
+      analysis,
+    );
+    const noRiskFixed = '두드러진 전환점 리스크 신호는 확인되지 않음';
+    final hasRisk = analysis.transitionRiskPattern != noRiskFixed;
+    final verdict = buildDeclarativeVerdict(
+      categoryLabel: '인생 5대 전환점',
+      hasRisk: hasRisk,
+      reasonSentence: hasRisk
+          ? analysis.transitionRiskPattern.split(' / ').first
+          : (narrative.favorableFlows.isNotEmpty
+                ? narrative.favorableFlows.first
+                : analysis.transitionPattern),
+      actionSentence: narrative.practicalGuidance?.isNotEmpty == true
+          ? narrative.practicalGuidance!.first
+          : null,
+    );
+    return JeontongDeepReportData(
+      oneLineSummary: verdict.summary,
+      isFortunate: verdict.isFortunate,
+      characteristicsTitle: '② 전환점 성향',
+      personalitySentences: narrative.characteristics,
+      strengths: narrative.favorableFlows,
+      cautions: narrative.cautionFlows,
+      practicalAdvice: {'전환기 대응': analysis.transitionApproach},
+      generalGuidance: narrative.practicalGuidance ?? const [],
+      daewoonFlow: narrative.timingSection ?? const [],
+      finalSummary: narrative.finalSummary,
+    );
+  }
+  return null;
 }
 
 /// [결과 공유 기능] 정통사주(오늘의 운세 통합) 결과 화면 하단 CTA "공유"
