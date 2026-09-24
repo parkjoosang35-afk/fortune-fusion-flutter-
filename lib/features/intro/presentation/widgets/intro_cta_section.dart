@@ -46,9 +46,15 @@ class IntroCTASection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // [캐릭터 삭제 — 사용자 요청] 기존 전신 캐릭터 히어로
-        // (BangtongIntroHero)를 삭제하고 eyebrow 라벨부터 바로 시작한다.
-        const SizedBox(height: 12),
+        // [인트로 페이지 복구 - 2026] 유실됐던 고화질 전신 캐릭터 히어로를
+        // 되살린다. 기존 BangtongIntroHero(공용 위젯, 삭제됨) 대신 이
+        // 화면 전용의 가벼운 _IntroHeroImage로 동일한 연출(전신 이미지 +
+        // 하단 배경색 페이드아웃)을 재현한다.
+        const _IntroHeroImage(
+          asset: 'assets/images/intro/hero-fullbody.png',
+          height: 340,
+        ),
+        const SizedBox(height: 18),
         const IntroEyebrowLabel('READY · TO · BEGIN'),
         const SizedBox(height: 20),
         Expanded(
@@ -158,6 +164,64 @@ class IntroCTASection extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+/// [인트로 페이지 복구 - 2026] 전신 캐릭터 히어로 이미지 + 하단 배경색
+/// 페이드아웃. 기존 공용 위젯 `BangtongIntroHero`(삭제됨)와 동일한 시각
+/// 효과를 이 화면 전용으로 재현한다 — 잘림 없이 보여야 하므로
+/// `BoxFit.contain` 고정.
+class _IntroHeroImage extends StatelessWidget {
+  final String asset;
+  final double height;
+
+  const _IntroHeroImage({required this.asset, required this.height});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: const BorderRadius.only(
+        bottomLeft: Radius.circular(32),
+        bottomRight: Radius.circular(32),
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        height: height,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Semantics(
+              label: '신통방통 캐릭터',
+              child: Image.asset(
+                asset,
+                fit: BoxFit.contain,
+                alignment: Alignment.topCenter,
+              ),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: height * 0.55,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      IntroPalette.backgroundTop.withValues(alpha: 0),
+                      IntroPalette.backgroundTop.withValues(alpha: 0.55),
+                      IntroPalette.backgroundTop,
+                    ],
+                    stops: const [0.0, 0.6, 1.0],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
