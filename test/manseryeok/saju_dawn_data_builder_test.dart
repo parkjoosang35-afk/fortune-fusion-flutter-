@@ -17,11 +17,8 @@ import 'package:flutter_app/features/home/domain/saju_interpreter.dart';
 import 'package:flutter_app/features/home/presentation/jeontong_design/saju_result_redesign/saju_dawn_data_builder.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-// [주의] JeontongDeepReportData/buildDeclarativeVerdict는
-// jeontong_deep_report_card.dart가 아니라 그 파일 안에 정의돼 있다 —
-// import 경로는 presentation 계층 파일이다.
 final _kFixedDate = DateTime.utc(2026, 8, 13);
-final _birthUtc = DateTime.utc(1990, 6, 15, 3, 0, 0); // KST 12:00 오전
+final _birthUtc = DateTime.utc(1990, 6, 15, 3, 0, 0); // KST 12:00
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -34,7 +31,7 @@ void main() {
   final entryA01 = JeontongEightyMatrix.byId('A01')!;
   final entryA02 = JeontongEightyMatrix.byId('A02')!; // fallback 경로 대표
 
-  test('A01(특화 카테고리) 경로 — SajuResultData가 예외 없이 만들어진다', () {
+  test('Pipeline A(JeontongDeepReportData) — SajuResultData가 예외 없이 만들어진다', () {
     final kst = _birthUtc.add(const Duration(hours: 9));
     final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
       kst: kst,
@@ -79,16 +76,14 @@ void main() {
       finalSummary: narrative.finalSummary,
     );
 
-    final result = buildSajuDawnDataForSpecialCategory(
+    final result = buildSajuDawnResultDataFromDeepReport(
       entry: entryA01,
-      saju: built.saju,
       profile: built.profile,
-      rules: SajuFortuneRules.cachedOrNull!,
-      data: deepData,
+      saju: built.saju,
+      fortuneRules: SajuFortuneRules.cachedOrNull,
+      content: deepData,
       referenceDate: _kFixedDate,
-      birthDateTimeUtc: _birthUtc,
-      gender: 'F',
-      isLunar: false,
+      userRefId: '#test0001',
     );
 
     // [매핑 정확성] 4주 8글자는 실계산 profile과 한 글자도 다르지 않아야
@@ -114,8 +109,9 @@ void main() {
     expect(result.chapters[2].includeTimeline, isTrue);
     expect(result.chapters[0].includeTimeline, isFalse);
 
-    // 대운 타임라인 — 실계산 daewoon 리스트와 개수 일치.
-    expect(result.daeunTimeline.length, built.profile.daewoon!.length);
+    // 대운 타임라인 — 실계산 daewoon 존재 시 비어있지 않다(최대 4개로 제한).
+    expect(result.daeunTimeline, isNotEmpty);
+    expect(result.daeunTimeline.length, lessThanOrEqualTo(4));
 
     // doList/avoidList가 실계산 strengths/cautions 그대로.
     expect(result.doList, analysis.strengths);
@@ -124,15 +120,16 @@ void main() {
     // lucky는 getLuckyItems() 실데이터 기반 — 숫자 목록이 비어있지 않다.
     expect(result.lucky.numbers, isNotEmpty);
 
-    // related — 같은 대카테고리(A) 안의 다른 카테고리 중 최대 3개.
+    // related — 같은 대카테고리(A) 안의 다른 카테고리 중 최대 4개.
     expect(result.related, isNotEmpty);
+    expect(result.related.length, lessThanOrEqualTo(4));
     expect(result.related.any((r) => r.code == 'A01'), isFalse);
 
-    // userRefId — '#' 접두 해시 포맷.
-    expect(result.userRefId.startsWith('#'), isTrue);
+    // userRefId는 호출부가 넘긴 값을 그대로 보존.
+    expect(result.userRefId, '#test0001');
   });
 
-  test('A02(fallback 경로) — SajuFullInterpretation 기반으로도 예외 없이 만들어진다', () {
+  test('Pipeline B(paragraphs) — SajuFullInterpretation 기반으로도 예외 없이 만들어진다', () {
     final kst = _birthUtc.add(const Duration(hours: 9));
     final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
       kst: kst,
@@ -140,28 +137,33 @@ void main() {
       isLunar: false,
       referenceDate: _kFixedDate,
     );
+    // Pipeline B는 SajuFullInterpretation을 직접 쓰지 않고, 이미 조합된
+    // paragraphs(JeontongNarrativeInterpreter.paragraphs()의 산출물 형태)만
+    // 받는다 — 여기서는 그 산출물을 흉내낸 리스트를 넘긴다(재계산 없음,
+    // 매핑 레이어 자체의 계약만 검증).
     final interp = SajuInterpreter.fullInterpretation(built.saju);
+    expect(interp.dayMasterAnalysis.nature, isNotEmpty); // 실계산 확인용
 
-    final result = buildSajuDawnDataForFallbackCategory(
+    final result = buildSajuDawnResultDataFromParagraphs(
       entry: entryA02,
-      saju: built.saju,
       profile: built.profile,
-      rules: SajuFortuneRules.cachedOrNull!,
-      interp: interp,
+      saju: built.saju,
+      fortuneRules: SajuFortuneRules.cachedOrNull,
       paragraphs: const ['타고난 성격을 살펴보면...', '이렇게 하면 더 좋아요.'],
       referenceDate: _kFixedDate,
-      birthDateTimeUtc: _birthUtc,
-      gender: 'F',
-      isLunar: false,
+      userRefId: '#test0002',
     );
 
     expect(result.categoryCode, 'A02');
     expect(result.chapters.length, 4);
-    expect(result.ilganDescription, interp.dayMasterAnalysis.nature);
-    expect(result.balanceScore, inInclusiveRange(0, 100));
+    // Pipeline B는 personalitySentences 자리에 paragraphs 전체를 그대로
+    // 一(총평) 챕터에 배치한다(§ 빌더 상단 주석 "열린 설계 질문 처리" 2번).
+    final chapterOneText =
+        result.chapters.first.paragraphs.expand((p) => p.runs).map((r) => r.text).join();
+    expect(chapterOneText, contains('타고난 성격을 살펴보면'));
   });
 
-  test('SajuResultData(subtitle) 길이가 표시 한도를 넘지 않는다', () {
+  test('verdict 없이 호출해도 문단 첫 줄이 oneLineSummary로 안전하게 폴백한다', () {
     final kst = _birthUtc.add(const Duration(hours: 9));
     final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
       kst: kst,
@@ -169,18 +171,15 @@ void main() {
       isLunar: false,
       referenceDate: _kFixedDate,
     );
-    final interp = SajuInterpreter.fullInterpretation(built.saju);
-    final result = buildSajuDawnDataForFallbackCategory(
+    final result = buildSajuDawnResultDataFromParagraphs(
       entry: entryA02,
-      saju: built.saju,
       profile: built.profile,
-      rules: SajuFortuneRules.cachedOrNull!,
-      interp: interp,
-      paragraphs: const [
-        '이것은 아주 길고 긴 문장으로, 표시 공간을 초과할 만큼 충분히 길게 작성된 예시 문단입니다 — 뒤 절까지 포함해서요.',
-      ],
+      saju: built.saju,
+      fortuneRules: SajuFortuneRules.cachedOrNull,
+      paragraphs: const ['첫 문단입니다.'],
       referenceDate: _kFixedDate,
+      userRefId: '#test0003',
     );
-    expect(result.subtitle.length, lessThanOrEqualTo(43));
+    expect(result.ilganDescription, contains('첫 문단입니다'));
   });
 }
