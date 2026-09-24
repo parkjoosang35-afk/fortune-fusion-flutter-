@@ -284,8 +284,10 @@ class _OhaengBarState extends State<OhaengBar> {
           ),
         ),
         SizedBox(
-          height: 30,
+          height: 32,
           child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.start,
             children: [
               Text(
                 widget.element.hanja,
@@ -300,7 +302,7 @@ class _OhaengBarState extends State<OhaengBar> {
               const SizedBox(height: 3),
               Text(
                 widget.element.hangul,
-                style: const TextStyle(fontSize: 10, color: SajuDawnColors.ink3),
+                style: const TextStyle(fontSize: 10, color: SajuDawnColors.ink3, height: 1),
               ),
             ],
           ),
