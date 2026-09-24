@@ -53,3 +53,4 @@ dev.log
 !/public/uploads/.gitkeep
 nextdev.log
 __pycache__/
+server.log
