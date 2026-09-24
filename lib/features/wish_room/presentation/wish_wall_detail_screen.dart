@@ -7,6 +7,8 @@ import '../domain/wish_wall_models.dart';
 import '../theme/wish_wall_theme.dart';
 import '../widgets/bottle_widget.dart';
 import '../widgets/blessing_bag_bottom_sheet.dart';
+import '../../share/application/share_service.dart';
+import '../../share/domain/share_result_model.dart';
 
 /// 02. 병 상세 화면.
 ///
@@ -447,6 +449,25 @@ class _WishWallDetailScreenState extends State<WishWallDetailScreen> {
     );
   }
 
+  /// [결과 공유 기능] `POST /api/public/share`로 공유 링크를 생성한 뒤 OS
+  /// 공유 시트로 전달한다. [payload]에는 소원 카테고리/요약만 담고, 익명
+  /// 게시판 원칙(작성자 실명/authorId 등)을 지켜 개인정보를 포함하지
+  /// 않는다(제안서 (h)절 보안 원칙 — 소원 원문도 타인의 사적 고백일 수
+  /// 있어 요약(최대 80자)만 노출한다).
+  void _shareWish(BuildContext context, WishPost wish) {
+    final summary = wish.text.trim().length > 80
+        ? '${wish.text.trim().substring(0, 80)}...'
+        : wish.text.trim();
+    ShareService.shareResult(
+      context,
+      resultType: ShareResultType.wish,
+      title: '${wish.categoryId.label} 소원 · 신통방통',
+      description: summary,
+      payload: {'category': wish.categoryId.label, 'summary': summary},
+      sourceRefId: wish.id,
+    );
+  }
+
   void _showMoreSheet(BuildContext context, WishPost wish) {
     showModalBottomSheet(
       context: context,
@@ -459,6 +480,17 @@ class _WishWallDetailScreenState extends State<WishWallDetailScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              ListTile(
+                leading: const Icon(
+                  Icons.ios_share_rounded,
+                  color: WishWallColors.ink,
+                ),
+                title: Text('공유하기', style: WishWallText.body()),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _shareWish(context, wish);
+                },
+              ),
               ListTile(
                 leading: const Icon(
                   Icons.flag_outlined,

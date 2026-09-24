@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/utils/load_state.dart';
 import '../../../../core/widgets/app_error_state.dart';
-import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/result_card_stack.dart';
 import '../../sintong/theme/sintong_colors.dart';
 import '../../sintong/theme/sintong_typography.dart';
 import '../../sintong/widgets/hanja_stamp.dart';
 import '../../sintong/widgets/sintong_screen_bg.dart';
+import '../../../share/application/share_service.dart';
+import '../../../share/domain/share_result_model.dart';
 import '../application/palm_provider.dart';
 import '../domain/palm_model.dart';
 
@@ -67,7 +68,7 @@ class _PalmResultScreenState extends State<PalmResultScreen> {
                       ? () => Navigator.of(context).pop()
                       : null,
                   onShare: state.isSuccess
-                      ? () => AppToast.show(context, '공유 링크가 복사되었습니다.')
+                      ? () => _shareResult(context, state.data!)
                       : null,
                 ),
                 Expanded(
@@ -134,6 +135,26 @@ class _PalmResultScreenState extends State<PalmResultScreen> {
               Navigator.of(context).pushNamed('/ai-fortune/palm/history'),
         ),
       ],
+    );
+  }
+
+  /// [결과 공유 기능] `POST /api/public/share`로 공유 링크를 생성한 뒤 OS 공유
+  /// 시트로 전달한다. [payload]에는 화면 표시용 요약 값만 담고, 원본 촬영
+  /// 사진/실명 등 민감정보는 절대 포함하지 않는다(제안서 (h)절 보안 원칙).
+  void _shareResult(BuildContext context, PalmResultModel result) {
+    ShareService.shareResult(
+      context,
+      resultType: ShareResultType.palm,
+      title: '손금 결과 · 신통방통',
+      description: result.summary,
+      payload: {
+        'summary': result.summary,
+        'highlights': result.topicResults.entries
+            .take(3)
+            .map((e) => '${e.key}: ${e.value}')
+            .toList(),
+      },
+      sourceRefId: result.id,
     );
   }
 }

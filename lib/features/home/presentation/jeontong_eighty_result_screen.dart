@@ -57,6 +57,8 @@ import 'jeontong_design/jeontong_saju_detail_section.dart';
 import 'jeontong_design/saju_seal.dart';
 import 'widgets/jeontong_easy_term_toggle.dart';
 import 'widgets/jeontong_result_text_extractor.dart';
+import '../../share/application/share_service.dart';
+import '../../share/domain/share_result_model.dart';
 
 /// [정통사주 80종 개편] 80종 전용 결과 화면 — 라우트 `/jeontong/eighty/result`.
 ///
@@ -647,6 +649,11 @@ class _ResultBody extends StatelessWidget {
                     onTap: onSave,
                   ),
                   ResultActionItem(
+                    icon: Icons.ios_share_rounded,
+                    label: '공유',
+                    onTap: () => _shareJeontongResult(context, entry, report),
+                  ),
+                  ResultActionItem(
                     icon: Icons.grid_view_rounded,
                     label: '다른 운세',
                     onTap: () => Navigator.of(context).pushNamedAndRemoveUntil(
@@ -1155,6 +1162,33 @@ class _ResultBody extends StatelessWidget {
       return const SizedBox.shrink();
     }
   }
+}
+
+/// [결과 공유 기능] 정통사주(오늘의 운세 통합) 결과 화면 하단 CTA "공유"
+/// 버튼 핸들러. `POST /api/public/share`로 공유 링크를 생성한 뒤 OS 공유
+/// 시트로 전달한다. [payload]에는 화면 표시용 요약 값만 담고, 생년월일
+/// 원본/실명 등 민감정보는 절대 포함하지 않는다(제안서 (h)절 보안 원칙).
+void _shareJeontongResult(
+  BuildContext context,
+  JeontongCategoryEntry entry,
+  FortuneReport report,
+) {
+  final overviewBody = report
+      .sectionsOfType<OverviewSection>()
+      .map((s) => s.body)
+      .firstOrNull;
+  ShareService.shareResult(
+    context,
+    resultType: ShareResultType.fortune,
+    title: '${entry.title} · 신통방통',
+    description: report.hero.subDescription ?? report.hero.headline,
+    payload: {
+      'category': entry.title,
+      'headline': report.hero.headline,
+      'summary': overviewBody ?? report.hero.subDescription ?? '',
+    },
+    sourceRefId: entry.id,
+  );
 }
 
 /// [2026 무당식 단정 확장 — 그룹①(이진판정형) 15종 중 F04 제외 14종]

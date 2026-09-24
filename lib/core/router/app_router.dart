@@ -97,6 +97,10 @@ import '../../features/guinji/presentation/guinji_map_guest_join_screen.dart';
 // 새로 만든 관계상세(N→상세)·랭킹 화면. M/F 화면에서 진입점으로 연결한다.
 import '../../features/guinji/presentation/guinji_map_relation_detail_screen.dart';
 import '../../features/guinji/presentation/guinji_map_ranking_screen.dart';
+// [결과 공유 기능 — sintong-share-proposal.pdf] `/r/{shareId}` 딥링크
+// 도착 화면. `/g/{token}`(귀인지도 게스트 참여)과 동일한 패턴으로 named
+// route 진입 전 별도 분기 처리한다(아래 참고).
+import '../../features/share/presentation/shared_result_screen.dart';
 import 'package:provider/provider.dart';
 import '../auth/auth_token_store.dart';
 import 'app_navigator_key.dart';
@@ -153,6 +157,18 @@ class AppRouter {
       final token = name.substring('/g/'.length);
       if (token.isNotEmpty) {
         return _page(GuinjiMapGuestJoinScreen(token: token));
+      }
+    }
+
+    // [결과 공유 기능 — sintong-share-proposal.pdf] '/r/{shareId}' 형태를
+    // 처리한다. `GuinjiDeepLinkHandler`가 OS 레벨 딥링크(커스텀 스킴
+    // `fortunefusion://r/{shareId}` 및 App Links `https://sintong.kr/r/{shareId}`)를
+    // 수신했을 때도 최종적으로 이 named route를 통해 도달한다(위 '/g/'와
+    // 동일한 이중 진입점 통합 패턴).
+    if (name.startsWith('/r/')) {
+      final shareId = name.substring('/r/'.length);
+      if (shareId.isNotEmpty) {
+        return _page(SharedResultScreen(shareId: shareId));
       }
     }
 

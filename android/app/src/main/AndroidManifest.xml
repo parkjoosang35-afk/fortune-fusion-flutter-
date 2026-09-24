@@ -125,6 +125,11 @@
                      wish-room|tarot|jeontong|today 중 하나(자세한 매핑은
                      guinji_deep_link_handler.dart 참고). -->
                 <data android:scheme="fortunefusion" android:host="svc"/>
+                <!-- [결과 공유 기능 — sintong-share-proposal.pdf] 운세/타로/관상/
+                     손금/소원성 5개 결과 화면의 공유 링크. `fortunefusion://r/{shareId}`
+                     형태(guinji_deep_link_handler.dart가 수신, SharedResultScreen으로
+                     라우팅). -->
+                <data android:scheme="fortunefusion" android:host="r"/>
             </intent-filter>
             <!-- [Phase B] sintong.kr 운영 도메인 App Links (https).
                  assetlinks.json 검증에 성공하면 https://sintong.kr/g/{token}
@@ -147,6 +152,13 @@
                     android:scheme="https"
                     android:host="sintong.kr"
                     android:pathPrefix="/svc"/>
+                <!-- [결과 공유 기능 — sintong-share-proposal.pdf] https://sintong.kr/r/{shareId}
+                     형태. admin_web `/r/[id]` SSR 페이지와 동일한 경로를 앱이
+                     App Links로 가로챈다(검증 성공 시 즉시 앱 오픈). -->
+                <data
+                    android:scheme="https"
+                    android:host="sintong.kr"
+                    android:pathPrefix="/r"/>
             </intent-filter>
             <!-- [카카오 간편로그인] 카카오톡 앱으로 로그인 시, 카카오톡 앱에서
                  인증을 마치고 우리 앱으로 돌아오기 위해 필요한 커스텀 스킴

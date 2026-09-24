@@ -36,6 +36,11 @@ import 'app_router.dart';
 /// 함께 처리한다. key → 실제 Flutter named route 매핑은
 /// [_serviceRouteFor]에 있다. `/g/{token}`(게스트 참여) 흐름과는
 /// 완전히 독립적인 별도 host이므로 서로 간섭하지 않는다.
+///
+/// [결과 공유 기능 — sintong-share-proposal.pdf] `fortunefusion://r/{shareId}`
+/// (및 `https://sintong.kr/r/{shareId}`) 딥링크도 이 핸들러가 함께
+/// 수신한다. `g`/`svc`와 동일하게 완전히 독립된 host('r')이며,
+/// [AppRouter.onGenerateRoute]의 '/r/' 접두사 분기로 최종 라우팅한다.
 class GuinjiDeepLinkHandler {
   GuinjiDeepLinkHandler._();
 
@@ -119,14 +124,38 @@ class GuinjiDeepLinkHandler {
       serviceKey = uri.pathSegments[1];
     }
 
-    if (serviceKey == null || serviceKey.isEmpty) return;
-    final routeName = _serviceRouteFor(serviceKey);
-    if (routeName == null) return;
+    if (serviceKey != null && serviceKey.isNotEmpty) {
+      final routeName = _serviceRouteFor(serviceKey);
+      if (routeName != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final navState = appNavigatorKey.currentState;
+          if (navState == null) return;
+          navState.pushNamed(routeName);
+        });
+      }
+      return;
+    }
 
+    // ── 4) 결과 공유(`r`) ───────────────────────────────────────────
+    // [sintong-share-proposal.pdf] `fortunefusion://r/{shareId}` /
+    // `https://sintong.kr/r/{shareId}`. AppRouter의 '/r/{shareId}' named
+    // route로 그대로 위임한다(SharedResultScreen이 실제 조회를 담당).
+    String? shareId;
+    if (uri.scheme == 'fortunefusion' && uri.host == 'r') {
+      final segments = uri.pathSegments;
+      shareId = segments.isNotEmpty ? segments.first : null;
+    } else if (uri.scheme == 'https' &&
+        uri.host == 'sintong.kr' &&
+        uri.pathSegments.length >= 2 &&
+        uri.pathSegments[0] == 'r') {
+      shareId = uri.pathSegments[1];
+    }
+
+    if (shareId == null || shareId.isEmpty) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final navState = appNavigatorKey.currentState;
       if (navState == null) return;
-      navState.pushNamed(routeName);
+      navState.pushNamed('/r/$shareId');
     });
   }
 
