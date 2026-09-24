@@ -44,7 +44,6 @@ import '../domain/jeontong_input.dart';
 import '../domain/jeontong_narrative_interpreter.dart';
 import '../domain/jeontong_report_cache.dart';
 import '../domain/manseryeok/saju_profile.dart' show SajuProfile;
-import '../domain/saju_engine.dart' show SajuResult;
 import '../domain/saju_fortune_rules.dart' show SajuFortuneRules;
 import '../domain/saju_interpreter.dart' show SajuInterpreter, SajuRules;
 import '../domain/user_profile_to_jeontong_adapter.dart';
@@ -61,7 +60,7 @@ import 'jeontong_design/saju_result_redesign/saju_dawn_data_builder.dart'
         buildSajuDawnResultDataFromDeepReport,
         buildSajuDawnResultDataFromParagraphs;
 import 'jeontong_design/saju_result_redesign/saju_dawn_data_models.dart'
-    show SajuResultData, RelatedFortune;
+    show SajuResultData;
 import 'jeontong_design/saju_result_redesign/saju_dawn_result_page.dart'
     show SajuDawnResultPage;
 import 'jeontong_design/saju_seal.dart';
@@ -838,6 +837,156 @@ class _ResultBody extends StatelessWidget {
     } catch (_) {
       return const SizedBox.shrink();
     }
+  }
+}
+
+/// [2026 Dawn Paper 결과화면 통합] 프로필이 있을 때 새 [SajuDawnResultPage]
+/// 전체 페이지를 조립해 시도한다. [_ResultBody._buildNarrativeSection]과
+/// 완전히 동일한 방어적 패턴(실패 시 null → 호출부가 기존 legacy 레이아웃으로
+/// 안전하게 폴백)을 따른다 — 재계산 없음, 이미 검증된 PHASE1~4 계산 +
+/// Pipeline A/B 문장 조합 결과만 [SajuResultData]로 옮겨 담는다.
+///
+/// [계산 공유] [_buildDeepReportDataForCategory]를 legacy
+/// [_buildNarrativeSection]과 동일하게 호출해, 같은 카테고리의 계산이 두
+/// 경로에서 서로 다르게 이뤄지는 위험을 원천 차단한다(§ 재계산 금지 원칙).
+Widget? _tryBuildDawnResultPage(
+  BuildContext context, {
+  required JeontongCategoryEntry entry,
+  required JeontongInput profile,
+  required bool isBookmarked,
+  required VoidCallback onToggleBookmark,
+  required VoidCallback onSave,
+}) {
+  try {
+    final rules = SajuRules.cachedOrNull;
+    if (rules == null) return null;
+    final kst = profile.birthDateTimeUtc.add(const Duration(hours: 9));
+    final sajuGender = profile.gender == 'F' || profile.gender == 'female'
+        ? 'female'
+        : 'male';
+    final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
+      kst: kst,
+      gender: sajuGender,
+      isLunar: profile.isLunar,
+      isLeapMonth: profile.effectiveIsLeapMonth,
+      referenceDate: DateTime.now(),
+    );
+    final fortuneRules = SajuFortuneRules.cachedOrNull;
+
+    // [userRefId] 디자인 핸드오프 포맷("#409670384")을 맞추기 위해
+    // categoryId + 생년월일시 UTC epoch 초를 조합한 안정적(같은 입력 →
+    // 같은 값) 숫자열을 쓴다 — 새 식별자 발급이 아니라 화면 표시용
+    // "레퍼런스 번호"일 뿐이므로 실제 계산에는 전혀 사용되지 않는다.
+    final userRefId =
+        '#${profile.birthDateTimeUtc.millisecondsSinceEpoch ~/ 1000}';
+
+    SajuResultData data;
+    final deepData = _buildDeepReportDataForCategory(entry.id, built.profile);
+    if (deepData != null) {
+      data = buildSajuDawnResultDataFromDeepReport(
+        entry: entry,
+        profile: built.profile,
+        saju: built.saju,
+        fortuneRules: fortuneRules,
+        content: deepData,
+        referenceDate: DateTime.now(),
+        userRefId: userRefId,
+      );
+    } else {
+      final interp = SajuInterpreter.fullInterpretation(built.saju);
+      Map<String, dynamic>? categoryData;
+      if (fortuneRules != null) {
+        final ctx = JeontongCalcContext(
+          saju: built.saju,
+          interp: interp,
+          rules: fortuneRules,
+          referenceDate: DateTime.now(),
+          profile: built.profile,
+        );
+        categoryData = runJeontongCategory(entry.id, ctx).data;
+      }
+      final paragraphs = JeontongNarrativeInterpreter.paragraphs(
+        interp,
+        entry,
+        name: profile.normalizedName,
+        data: categoryData,
+      );
+
+      DeclarativeVerdict? verdict;
+      if (categoryData != null) {
+        if (kJeontongGroup1BinaryCategoryIds.contains(entry.id)) {
+          verdict = _buildGroup1Verdict(entry.id, categoryData, entry.title);
+        } else if (kJeontongGroup2TimingCategoryIds.contains(entry.id)) {
+          verdict = _buildGroup2Verdict(entry.id, categoryData, entry.title);
+        }
+      }
+
+      data = buildSajuDawnResultDataFromParagraphs(
+        entry: entry,
+        profile: built.profile,
+        saju: built.saju,
+        fortuneRules: fortuneRules,
+        paragraphs: paragraphs,
+        verdict: verdict,
+        referenceDate: DateTime.now(),
+        userRefId: userRefId,
+      );
+    }
+
+    // [법적 고지 보존] legacy 화면이 렌더링하던 배너들을 순서 그대로
+    // topBanners에 주입한다 — Dawn Paper가 재해석하지 않고 그대로 노출.
+    final topBanners = <Widget>[
+      if (kJeontongPlaceholderCategoryIds.contains(entry.id))
+        const _JeontongPlaceholderNotice(),
+      const DisclaimerBanner.common(),
+      if (entry.disclaimers.isNotEmpty)
+        DisclaimerBanner.forTags(entry.disclaimers),
+      if (profile.birthTimeUnknown) const _BirthTimeUnknownNotice(),
+    ];
+
+    return SajuDawnResultPage(
+      data: data,
+      strengthLabel: built.saju.dayMasterStrength,
+      // [typeLabel] 모든 카테고리/파이프라인에 공통으로 쓸 수 있는
+      // "조력형/주도형" 류의 유형 분류 소스가 현재 코드베이스에 없어
+      // (§ 조사 완료) null로 둔다 — SajuDawnResultPage/SajuDawnHero는
+      // typeLabel이 null이면 해당 배지를 생략하도록 이미 설계돼 있다.
+      typeLabel: null,
+      bookmarkButton: IconButton(
+        key: const ValueKey('jeontong_bookmark_toggle'),
+        icon: Icon(
+          isBookmarked ? Icons.star_rounded : Icons.star_border_rounded,
+          color: isBookmarked ? HanjiColors.accent : HanjiColors.muted,
+        ),
+        tooltip: isBookmarked ? '즐겨찾기 해제' : '즐겨찾기 추가',
+        onPressed: onToggleBookmark,
+      ),
+      topBanners: topBanners,
+      onBack: () => Navigator.of(context).pop(),
+      onRelatedTap: (r) =>
+          Navigator.of(context).pushNamed(
+            JeontongEightyMatrix.resultRoute,
+            arguments: r.code,
+          ),
+      onPrimaryAction: () => Navigator.of(context).pushNamedAndRemoveUntil(
+        JeontongEightyMatrix.browseRoute,
+        (route) => route.settings.name == '/home',
+      ),
+      onSave: onSave,
+      onShare: () {
+        final report = jeontongReportCache.getOrBuild(
+          entry: entry,
+          userId: null,
+          birthDateTimeUtc: profile.birthDateTimeUtc,
+          gender: profile.gender,
+          isLunar: profile.isLunar,
+          isLeapMonth: profile.effectiveIsLeapMonth,
+        );
+        _shareJeontongResult(context, entry, report);
+      },
+    );
+  } catch (_) {
+    return null;
   }
 }
 
