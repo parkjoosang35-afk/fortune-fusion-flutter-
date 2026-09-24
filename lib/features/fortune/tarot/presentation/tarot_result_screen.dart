@@ -13,6 +13,8 @@ import '../../../../core/widgets/app_toast.dart';
 import '../application/tarot_audio_controller.dart';
 import '../application/tarot_provider.dart';
 import '../application/tarot_session_controller.dart';
+import '../../../share/application/share_service.dart';
+import '../../../share/domain/share_result_model.dart';
 import '../domain/tarot_model.dart';
 import '../domain/tarot_reading_extras.dart';
 import '../domain/tarot_result_view_model.dart';
@@ -165,10 +167,57 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
                   child: Text('이미지로 공유하기', style: OzTypography.ctaLabel()),
                 ),
               ),
+              const SizedBox(height: OzTokens.spaceMd),
+              // [결과 공유 기능 — sintong-share-proposal.pdf] 이미지 캡처
+              // 공유(기존 기능, 변경 없음)와 별개로, 앱 설치 여부와 무관하게
+              // 열람 가능한 `/r/{shareId}` 웹 링크를 만들어 공유하는 새 경로.
+              // 카카오톡 등에서 링크를 누르면 OG 카드 미리보기가 뜨고,
+              // 앱이 설치돼 있으면 App Links로 바로 앱이 열린다(미설치
+              // 시에는 SSR 웹페이지로 열람 가능).
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: OzColors.gold),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(OzTokens.radiusPill),
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    _shareResultLink(view);
+                  },
+                  child: Text(
+                    '링크로 공유하기',
+                    style: OzTypography.ctaLabel(color: OzColors.gold),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  /// [결과 공유 기능] `POST /api/public/share`로 공유 링크를 생성한 뒤 OS
+  /// 공유 시트로 전달한다. [payload]에는 화면 표시용 요약 값만 담고, 질문
+  /// 원문/실명 등 민감정보는 절대 포함하지 않는다(제안서 (h)절 보안 원칙).
+  void _shareResultLink(TarotResultView view) {
+    ShareService.shareResult(
+      context,
+      resultType: ShareResultType.tarot,
+      title: '${view.heroCard.nameKr} · 신통방통 타로',
+      description: view.oneLiner,
+      payload: {
+        'summary': view.oneLiner,
+        'highlights': [
+          '행운의 색: ${view.luckyColorName}',
+          '행운의 숫자: ${view.luckyNumber}',
+        ],
+      },
+      sourceRefId: view.result.id,
     );
   }
 
