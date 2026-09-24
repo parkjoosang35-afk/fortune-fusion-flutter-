@@ -146,9 +146,6 @@ export default function AccountDeletionPage() {
                 복구 불가능하게 비식별화되고 사주 프로필·AI 상담 이용기록
                 등은 완전 삭제됩니다.
               </li>
-              <li>
-                단, 결제 관련 기록은 전자상거래법에 따라 5년간 별도 보존됩니다.
-              </li>
               <li>이 작업은 취소할 수 없습니다.</li>
             </ul>
           </div>
@@ -197,8 +194,8 @@ export default function AccountDeletionPage() {
           <p className="font-semibold">계정 삭제 요청이 완료되었습니다.</p>
           <p className="mt-1">
             그동안 신통방통을 이용해 주셔서 감사합니다. 문의사항이 있으시면{" "}
-            <a href="mailto:parkjoosang35@gmail.com" className="underline">
-              parkjoosang35@gmail.com
+            <a href="mailto:searciandmake@gmail.com" className="underline">
+              searciandmake@gmail.com
             </a>
             으로 연락해 주세요.
           </p>

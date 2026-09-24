@@ -8,8 +8,9 @@ export const metadata = {
 };
 
 const EFFECTIVE_DATE = "2026년 8월 18일";
-const CONTACT_EMAIL = "parkjoosang35@gmail.com";
-const OPERATOR_NAME = "라이즈주식회사";
+const CONTACT_EMAIL = "searciandmake@gmail.com";
+const OPERATOR_NAME = "서치앤메이크";
+const REPRESENTATIVE_NAME = "이권호";
 
 function Article({
   no,
@@ -36,7 +37,7 @@ export default function TermsPage() {
       <header className="mb-10 border-b border-slate-200 pb-6">
         <h1 className="text-2xl font-bold text-slate-900">이용약관</h1>
         <p className="mt-2 text-sm text-slate-500">
-          시행일: {EFFECTIVE_DATE} · 운영주체: {OPERATOR_NAME}
+          시행일: {EFFECTIVE_DATE} · 운영주체: {OPERATOR_NAME} (대표: {REPRESENTATIVE_NAME})
         </p>
       </header>
 
@@ -61,13 +62,9 @@ export default function TermsPage() {
             이용하는 회원을 말합니다.
           </li>
           <li>
-            &ldquo;복주머니&rdquo;란 서비스 내에서 유료 콘텐츠 이용 등에
-            사용되는 재화(포인트)로서, 현금으로 환금되지 않는 서비스 전용
-            가상 자산입니다.
-          </li>
-          <li>
-            &ldquo;유료서비스&rdquo;란 회사가 유상으로 제공하는 구독, 상품권,
-            부적 등 일체의 콘텐츠 및 재화를 의미합니다.
+            &ldquo;복주머니&rdquo;란 광고 시청, 출석, 커뮤니티 활동 등을 통해
+            무료로 적립되는 서비스 전용 가상 자산(포인트)으로서, 현금으로
+            구매하거나 환금할 수 없습니다.
           </li>
         </ul>
       </Article>
@@ -99,9 +96,9 @@ export default function TermsPage() {
       <Article no={5} title="서비스의 제공 및 변경">
         <p>
           회사는 사주/운세/타로/얼굴관상/손금 등 AI 기반 콘텐츠, 커뮤니티,
-          매칭, AI 상담, 유료 구독 및 재화 판매 서비스를 제공합니다. 서비스의
-          내용, 화면 구성 등은 운영상·기술상의 필요에 따라 변경될 수 있으며,
-          이 경우 사전에 공지합니다.
+          매칭, AI 상담 서비스를 제공합니다. 서비스의 내용, 화면 구성 등은
+          운영상·기술상의 필요에 따라 변경될 수 있으며, 이 경우 사전에
+          공지합니다.
         </p>
         <p>
           AI가 생성하는 사주/운세/관상/궁합 등의 결과는 오락 및 참고 목적으로
@@ -118,26 +115,22 @@ export default function TermsPage() {
         </p>
       </Article>
 
-      <Article no={7} title="유료서비스 및 결제">
+      <Article no={7} title="복주머니 및 무료 재화 정책">
         <ul className="ml-4 list-disc space-y-1">
           <li>
-            이용자는 구독, 상품권, 부적 등 유료서비스를 이용하기 위해 회사가
-            정한 결제수단으로 대금을 결제할 수 있습니다.
-          </li>
-          <li>
-            결제는 결제대행사(PG)를 통해 처리되며, 회사는 카드번호 등 결제수단
-            원본정보를 직접 보관하지 않습니다.
-          </li>
-          <li>
-            유료서비스의 청약철회, 환불 등은 「전자상거래 등에서의
-            소비자보호에 관한 법률」 등 관련 법령에 따르며, 이미 사용되었거나
-            제공이 개시된 콘텐츠(예: 이미 확인한 AI 운세 결과, 사용된 복주머니
-            등)에 대해서는 관련 법령이 정한 예외 사유에 따라 환불이 제한될 수
-            있습니다.
+            현재 서비스 내 복주머니는 광고 시청, 출석체크, 커뮤니티 활동 등을
+            통해서만 적립되는 무료 재화이며, 현금 등 유상 결제를 통한 구매(충전)
+            기능은 제공하지 않습니다.
           </li>
           <li>
             복주머니는 현금으로 환금되지 않으며, 회원 탈퇴 시 잔여 복주머니는
             소멸됩니다.
+          </li>
+          <li>
+            향후 유료 구독, 상품권 등 유상 결제 서비스가 추가되는 경우, 회사는
+            사전에 이 약관 및 관련 정책을 개정하여 공지하고 「전자상거래 등에서의
+            소비자보호에 관한 법률」 등 관련 법령에 따른 청약철회, 환불 절차를
+            별도로 마련합니다.
           </li>
         </ul>
       </Article>
@@ -195,7 +188,7 @@ export default function TermsPage() {
           바랍니다.
         </p>
         <ul className="ml-4 list-disc space-y-1">
-          <li>운영주체: {OPERATOR_NAME}</li>
+          <li>운영주체: {OPERATOR_NAME} (대표: {REPRESENTATIVE_NAME})</li>
           <li>
             문의 이메일:{" "}
             <a href={`mailto:${CONTACT_EMAIL}`} className="text-indigo-600 underline">

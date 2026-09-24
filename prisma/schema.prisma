@@ -122,39 +122,39 @@ model UserGrade {
 
 // ── 04A A-1: users ───────────────────────────────────────────────
 model User {
-  id               Int       @id @default(autoincrement())
-  email            String?   @unique
-  phone            String?   @unique
-  passwordHash     String?   @map("password_hash")
-  nickname         String    @unique
-  gender           String?
-  status           String    @default("active") // active/suspended/withdrawn
-  withdrawalReason String?   @map("withdrawal_reason")
-  lastLoginAt      DateTime? @map("last_login_at")
-  signupChannel    String    @default("app") @map("signup_channel")
-  marketingAgreed  Boolean   @default(false) @map("marketing_agreed")
+  id                 Int       @id @default(autoincrement())
+  email              String?   @unique
+  phone              String?   @unique
+  passwordHash       String?   @map("password_hash")
+  nickname           String    @unique
+  gender             String?
+  status             String    @default("active") // active/suspended/withdrawn
+  withdrawalReason   String?   @map("withdrawal_reason")
+  lastLoginAt        DateTime? @map("last_login_at")
+  signupChannel      String    @default("app") @map("signup_channel")
+  marketingAgreed    Boolean   @default(false) @map("marketing_agreed")
   // [6-7-4-B-4] 회원가입 시 필수 약관(이용약관/개인정보처리방침) 동의 시각.
   // 기존 회원(가입 당시 약관동의 UI가 없었던 계정)은 NULL로 남으며, 이는
   // "구법 하 가입 회원"임을 나타내는 정상적인 상태다(소급 강제 동의 처리를
   // 하지 않음 — 데이터 임의 수정 금지 원칙).
-  termsAgreedAt    DateTime? @map("terms_agreed_at")
-  privacyAgreedAt  DateTime? @map("privacy_agreed_at")
+  termsAgreedAt      DateTime? @map("terms_agreed_at")
+  privacyAgreedAt    DateTime? @map("privacy_agreed_at")
   // [Phase C - 웰컴 리워드 팝업 1회성 노출] 회원가입 웰컴 리워드 팝업(WelcomeRewardModal,
   // Flutter 03_Welcome_Reward.html)을 이미 확인(CTA "복주머니 받기" 탭)했는지 여부.
   // 클라이언트 로컬 저장소(SharedPreferences) 대신 서버 필드로 관리해 앱 재설치/
   // 다른 기기 로그인 등 멀티 디바이스 상황에서도 팝업이 정확히 1회만 노출되도록 한다.
-  welcomeGiftClaimed Boolean @default(false) @map("welcome_gift_claimed")
+  welcomeGiftClaimed Boolean   @default(false) @map("welcome_gift_claimed")
   // [로드맵⑤ - 카카오/구글 소셜 로그인] 각 사가 발급하는 고유 사용자 ID.
   // 이메일 가입 회원은 null이며, 소셜 로그인 회원은 최초 로그인 시 이 필드로
   // 계정을 식별/생성한다(이메일이 없거나 비공개일 수 있어 email 필드에 의존하지 않음).
-  kakaoId          String?   @unique @map("kakao_id")
-  googleId         String?   @unique @map("google_id")
-  gradeId          Int?      @map("grade_id")
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
-  deletedAt        DateTime? @map("deleted_at")
-  createdBy        String?   @map("created_by")
-  updatedBy        String?   @map("updated_by")
+  kakaoId            String?   @unique @map("kakao_id")
+  googleId           String?   @unique @map("google_id")
+  gradeId            Int?      @map("grade_id")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  deletedAt          DateTime? @map("deleted_at")
+  createdBy          String?   @map("created_by")
+  updatedBy          String?   @map("updated_by")
 
   grade                         UserGrade?               @relation(fields: [gradeId], references: [id])
   profile                       UserProfile?
@@ -206,47 +206,50 @@ model User {
   passCategoryUsages            PassCategoryUsage[]
   fortuneAdWatchLogs            FortuneAdWatchLog[]
   // [행운상자 - 복주머니 탭 신규 기능]
-  pouchBoxOpenLogs               PouchBoxOpenLog[]
+  pouchBoxOpenLogs              PouchBoxOpenLog[]
   // [복주머니 확장 Phase02-A]
   inventoryItems                UserInventoryItem[]
-  gratitudeSealsSent            GratitudeSeal[]           @relation("GratitudeSealSender")
-  gratitudeSealsReceived        GratitudeSeal[]           @relation("GratitudeSealRecipient")
+  gratitudeSealsSent            GratitudeSeal[]          @relation("GratitudeSealSender")
+  gratitudeSealsReceived        GratitudeSeal[]          @relation("GratitudeSealRecipient")
   // [귀인지도 Phase B-1]
-  guinjiMapsOwned                GuinjiMap[]
-  guinjiRelationshipsAsOwner      GuinjiRelationship[]
-  guinjiShareEventsFrom           GuinjiShareEvent[]
-  guinjiUnlockRecords             GuinjiUnlockRecord[]
-  guinjiMapMembersJoined          GuinjiMapMember[]    @relation("GuinjiMapMemberJoinedUser")
+  guinjiMapsOwned               GuinjiMap[]
+  guinjiRelationshipsAsOwner    GuinjiRelationship[]
+  guinjiShareEventsFrom         GuinjiShareEvent[]
+  guinjiUnlockRecords           GuinjiUnlockRecord[]
+  guinjiMapMembersJoined        GuinjiMapMember[]        @relation("GuinjiMapMemberJoinedUser")
+  // [결과 공유 기능 — sintong-share-proposal.pdf] 운세/타로/관상/손금/소원성
+  // 5종 결과를 https://sintong.kr/r/{shareId} 링크로 공유한 이력.
+  sharedResults                 SharedResult[]
 
   @@map("users")
 }
 
 // ── 04A A-2: user_profiles (1:1) ────────────────────────────────
 model UserProfile {
-  id         Int       @id @default(autoincrement())
-  userId     Int       @unique @map("user_id")
-  birthDate  String?   @map("birth_date") // 민감정보(암호화 대상), 로컬 개발단계에서는 평문 문자열로 보관
-  birthTime  String?   @map("birth_time")
-  isLunar    Boolean   @default(false) @map("is_lunar")
+  id               Int       @id @default(autoincrement())
+  userId           Int       @unique @map("user_id")
+  birthDate        String?   @map("birth_date") // 민감정보(암호화 대상), 로컬 개발단계에서는 평문 문자열로 보관
+  birthTime        String?   @map("birth_time")
+  isLunar          Boolean   @default(false) @map("is_lunar")
   // [신통방통 2단계 - 회원/운세 프로필 통합] 계산엔진(ManseryeokCoreEngine.
   // buildProfileWithCore)이 이미 지원하는 BirthInfo.isLeapMonth를 그대로
   // 연결하는 신규 컬럼. 음력 선택 시에만 의미가 있으며, 양력이면 항상 false로
   // 취급한다(계산엔진/입력모델 어느 쪽도 수정하지 않음 — API/UI 연결만 추가).
-  isLeapMonth Boolean  @default(false) @map("is_leap_month")
+  isLeapMonth      Boolean   @default(false) @map("is_leap_month")
   // [신통방통 2단계] 사용자가 출생시간을 모른다고 표시한 상태를 서버에도
   // 보존한다. true인 경우에도 계산엔진에는 관례값(12:00)이 그대로 전달되며,
   // 이 플래그는 결과 화면 안내 문구("정확도가 낮을 수 있습니다") 노출에만
   // 사용한다 — 계산 로직/결과에는 영향을 주지 않는다.
-  birthTimeUnknown Boolean @default(false) @map("birth_time_unknown")
-  birthPlace String?   @map("birth_place")
-  mbti       String?
-  introText  String?   @map("intro_text")
-  status     String    @default("active")
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
-  deletedAt  DateTime? @map("deleted_at")
-  createdBy  String?   @map("created_by")
-  updatedBy  String?   @map("updated_by")
+  birthTimeUnknown Boolean   @default(false) @map("birth_time_unknown")
+  birthPlace       String?   @map("birth_place")
+  mbti             String?
+  introText        String?   @map("intro_text")
+  status           String    @default("active")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+  createdBy        String?   @map("created_by")
+  updatedBy        String?   @map("updated_by")
 
   user User @relation(fields: [userId], references: [id])
 
@@ -1564,24 +1567,24 @@ model Wish {
   // "fulfilled"(이루어짐) | "archived"(100일 경과, 사용자 확인 대기).
   // 기존 status(visible/gratitude/private_only 등, 노출 가시성 판정용)와는
   // 별개 축이므로 필드를 분리한다 — 혼용 금지.
-  wishState   String    @default("sealed") @map("wish_state")
-  sealedAt    DateTime  @default(now()) @map("sealed_at")
+  wishState        String    @default("sealed") @map("wish_state")
+  sealedAt         DateTime  @default(now()) @map("sealed_at")
   // [기본값 100일] DECISION-002(봉인 기간) 미확정 상태이므로 기획안 제안값(100일
   // 고정)을 기본으로 적용한다. 인장별 오버라이드는 인장 상점(Phase02-B) 구현 시
   // 이 필드에 직접 다른 날짜를 대입하는 방식으로 확장 가능(스키마 변경 불필요).
   // nullable인 이유: 기존(마이그레이션 이전) 소원 레코드에는 값이 없으므로,
   // null이면 서버 로직이 항상 sealedAt + 100일로 계산해서 사용한다(하위호환).
-  unlockAt    DateTime? @map("unlock_at")
-  fulfilledAt DateTime? @map("fulfilled_at")
-  openedBoxAt DateTime? @map("opened_box_at") // Box Opening 화면 완료 시각
+  unlockAt         DateTime? @map("unlock_at")
+  fulfilledAt      DateTime? @map("fulfilled_at")
+  openedBoxAt      DateTime? @map("opened_box_at") // Box Opening 화면 완료 시각
   // [복주머니 확장 Phase03 — 인장/촛불 "실사용" 연결] 소원 작성 시 사용자가
   // 보유한(UserInventoryItem) 특별 인장/촛불 중 선택한 itemCode 스냅샷.
   // ShopCatalogItem.itemCode 값을 문자열로 그대로 저장한다(느슨한 참조 —
   // 카탈로그 품목이 삭제/비활성화되어도 이미 봉인된 소원의 표시는 깨지지
   // 않아야 하므로 FK 대신 문자열 스냅샷 방식을 택했다. PurchasePrice와 동일한
   // "구매 시점 스냅샷" 철학). null이면 미선택(기본 인장/촛불 표시).
-  sealItemCode   String? @map("seal_item_code")
-  candleItemCode String? @map("candle_item_code")
+  sealItemCode     String?   @map("seal_item_code")
+  candleItemCode   String?   @map("candle_item_code")
   // [복주머니 확장 Phase03 — 부적 "실사용" 연결, DECISION-004 합리적 판단]
   // 사용자가 보유한(UserInventoryItem) 부적 중 선택해 이 소원에 적용한
   // itemCode 스냅샷(sealItemCode/candleItemCode와 동일한 느슨한 참조 철학).
@@ -1592,7 +1595,7 @@ model Wish {
   //   이 필드를 조회해 실제 배수 로직으로 적용한다(완전 실사용).
   // - talisman_friend(벗 부적): 초대(referral) 시스템 자체가 없어 이번
   //   스코프에서 제외 — 필드 자체는 선택/저장까지만 지원.
-  talismanItemCode String? @map("talisman_item_code")
+  talismanItemCode String?   @map("talisman_item_code")
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
   deletedAt        DateTime? @map("deleted_at")
@@ -3557,21 +3560,21 @@ model FortuneAdWatchLog {
 
 // ── guinji_map: 귀인지도 1개(소유자 1인당 1개) ──────────────────
 model GuinjiMap {
-  id        Int       @id @default(autoincrement())
-  ownerId   Int       @map("owner_id")
-  name      String // 소유자 닉네임 기반 지도명(예: "지민의 지도")
-  token     String    @unique // 공유용 고유 토큰(초대 링크 sintong.app/g/{token})
-  status    String    @default("active") // active/removed
+  id              Int       @id @default(autoincrement())
+  ownerId         Int       @map("owner_id")
+  name            String // 소유자 닉네임 기반 지도명(예: "지민의 지도")
+  token           String    @unique // 공유용 고유 토큰(초대 링크 sintong.app/g/{token})
+  status          String    @default("active") // active/removed
   // [API §6 구현 - 사주 아키텍처 B안 보완] 지도 생성 시 클라이언트가 계산해
   // 전달한 owner 본인의 사주 JSON 캐시. 멤버 추가(POST .../members)마다
   // RelationJudger가 owner↔member를 즉시 대조 판정해야 하므로, 매 요청마다
   // owner 사주를 재전송받지 않고 여기 캐시해 재사용한다(M9: 프로필 수정 시
   // 이 필드를 갱신하면 이후 신규 멤버 판정부터 반영됨 — 기존 관계 재계산은
   // 별도 트리거 필요, 이번 Phase 범위 밖).
-  ownerSajuParsed String? @map("owner_saju_parsed")
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
+  ownerSajuParsed String?   @map("owner_saju_parsed")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
 
   owner         User                 @relation(fields: [ownerId], references: [id])
   members       GuinjiMapMember[]
@@ -3598,9 +3601,9 @@ model GuinjiMapMember {
   updatedAt        DateTime  @updatedAt @map("updated_at")
   deletedAt        DateTime? @map("deleted_at")
 
-  map          GuinjiMap            @relation(fields: [mapId], references: [id])
-  joinedUser   User?                @relation("GuinjiMapMemberJoinedUser", fields: [joinedUserId], references: [id])
-  relationship GuinjiRelationship?
+  map           GuinjiMap            @relation(fields: [mapId], references: [id])
+  joinedUser    User?                @relation("GuinjiMapMemberJoinedUser", fields: [joinedUserId], references: [id])
+  relationship  GuinjiRelationship?
   unlockRecords GuinjiUnlockRecord[]
 
   @@index([mapId, status])
@@ -3609,16 +3612,16 @@ model GuinjiMapMember {
 
 // ── relationship: owner→member 단방향 관계 판정 결과(캐시) ───────
 model GuinjiRelationship {
-  id               Int       @id @default(autoincrement())
-  mapId            Int       @map("map_id")
-  ownerId          Int       @map("owner_id")
-  memberId         Int       @unique @map("member_id") // GuinjiMapMember.id, 1:1(멤버당 관계 1건)
-  relationType     String    @map("relation_type") // guin/oreunpal/inyeon/salrim/horang
-  chemistryScore   Int       @map("chemistry_score") // 0~100 (M2: 오행50+신살30+합20)
-  ohaengEvidence   String    @map("ohaeng_evidence") // JSON: {mine:{...}, other:{...}, reason}
-  calculatedAt     DateTime  @default(now()) @map("calculated_at") // M9 재계산 시각(UPSERT마다 갱신)
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
+  id             Int      @id @default(autoincrement())
+  mapId          Int      @map("map_id")
+  ownerId        Int      @map("owner_id")
+  memberId       Int      @unique @map("member_id") // GuinjiMapMember.id, 1:1(멤버당 관계 1건)
+  relationType   String   @map("relation_type") // guin/oreunpal/inyeon/salrim/horang
+  chemistryScore Int      @map("chemistry_score") // 0~100 (M2: 오행50+신살30+합20)
+  ohaengEvidence String   @map("ohaeng_evidence") // JSON: {mine:{...}, other:{...}, reason}
+  calculatedAt   DateTime @default(now()) @map("calculated_at") // M9 재계산 시각(UPSERT마다 갱신)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
   map    GuinjiMap       @relation(fields: [mapId], references: [id])
   owner  User            @relation(fields: [ownerId], references: [id])
@@ -3630,14 +3633,14 @@ model GuinjiRelationship {
 
 // ── share_event: 초대 토큰 오픈·참여 이력(바이럴 K-factor 추적) ──
 model GuinjiShareEvent {
-  id            Int       @id @default(autoincrement())
-  mapId         Int       @map("map_id")
-  token         String    @map("token")
-  fromUserId    Int       @map("from_user_id")
-  openedAt      DateTime? @map("opened_at")
-  joinedAt      DateTime? @map("joined_at")
-  reSharedFrom  Int?      @map("re_shared_from") // 재공유 체인 추적(GuinjiShareEvent.id)
-  createdAt     DateTime  @default(now()) @map("created_at")
+  id           Int       @id @default(autoincrement())
+  mapId        Int       @map("map_id")
+  token        String    @map("token")
+  fromUserId   Int       @map("from_user_id")
+  openedAt     DateTime? @map("opened_at")
+  joinedAt     DateTime? @map("joined_at")
+  reSharedFrom Int?      @map("re_shared_from") // 재공유 체인 추적(GuinjiShareEvent.id)
+  createdAt    DateTime  @default(now()) @map("created_at")
 
   map      GuinjiMap @relation(fields: [mapId], references: [id])
   fromUser User      @relation(fields: [fromUserId], references: [id])
@@ -3699,9 +3702,9 @@ model PouchBoxOpenLog {
   completedAt  DateTime? @map("completed_at")
   watchSeconds Int?      @map("watch_seconds") // 클라이언트가 보고한 실제 시청 시간(참고값, 최종판정은 서버)
 
-  rewardAmount Int    @default(0) @map("reward_amount") // 실제 지급된 복주머니 개수(0=미지급)
+  rewardAmount Int     @default(0) @map("reward_amount") // 실제 지급된 복주머니 개수(0=미지급)
   rewardTier   String? @map("reward_tier") // common/uncommon/rare/jackpot (결과화면 특수연출 판단용)
-  rewardStatus String @default("PENDING") @map("reward_status") // PENDING/COMPLETED/FAILED
+  rewardStatus String  @default("PENDING") @map("reward_status") // PENDING/COMPLETED/FAILED
 
   // 클라이언트가 start 시점에 생성해 매 요청에 동일하게 전달. complete 요청의
   // 중복 처리를 막는 유일한 근거(FortuneAdWatchLog와 동일 원칙).
@@ -3714,4 +3717,57 @@ model PouchBoxOpenLog {
   @@index([userId, createdAt])
   @@index([userId, rewardStatus, createdAt])
   @@map("pouch_box_open_logs")
+}
+
+// ════════════════════════════════════════════════════════════════
+// [결과 공유 기능 — sintong-share-proposal.pdf, 2026-09-24 발주서]
+// 운세(fortune)/타로(tarot)/관상(face)/손금(palm)/소원성(wish) 5종 결과를
+// `https://sintong.kr/r/{shareId}` 단일 링크로 앱 설치자(App Links 자동
+// 오픈)와 미설치자(SSR 웹페이지 + OG 미리보기) 모두에게 전달하기 위한
+// 공유 스냅샷 테이블.
+//
+// [보안 원칙 — NFR-03] shareId(비순차 랜덤 문자열)가 이 데이터에 대한
+// 유일한 접근 통제 수단이다(추측 불가능해야 함). 순차 정수 PK(id)를
+// 외부에 노출하지 않는다.
+//
+// [개인정보 원칙 — 제안서 (h)절] 이 테이블에는 절대 다음을 저장하지 않는다:
+// 닉네임을 넘는 실명, 전화번호, 이메일, 생년월일 원본, 관상/손금 원본
+// 사진, 인증 토큰, 소원 원문 그대로. `payload`는 각 resultType별로 이미
+// 비식별 처리된(화이트리스트) 표시용 텍스트만 JSON 문자열로 담는다
+// (guinji `buildOgPng` 화이트리스트 원칙과 동일한 설계를 그대로 계승).
+//
+// [DB 기술 차이 — 발주서 DDL은 PostgreSQL(JSONB) 가정이었으나 실제 운영
+// DB는 Prisma+better-sqlite3(SQLite)이므로 JSONB 대신 fortune_requests/
+// fortune_results와 동일하게 String(JSON 직렬화)으로 매핑한다.]
+model SharedResult {
+  id          Int       @id @default(autoincrement())
+  // 공개 URL에 노출되는 유일한 식별자(6~16자, 0/O·1/l 등 혼동 문자 제외
+  // 영숫자). generateShareId() 참고.
+  shareId     String    @unique @map("share_id")
+  userId      Int       @map("user_id")
+  resultType  String    @map("result_type") // fortune/tarot/face/palm/wish
+  // 원본 결과를 가리키는 참조(있으면). 도메인마다 형식이 달라(FortuneRequest.id,
+  // Wish.id 등) 느슨하게 문자열로만 보관하고 FK 제약은 걸지 않는다.
+  sourceRefId String?   @map("source_ref_id")
+  // OG og:title / 공유 문구 타이틀(닉네임 포함 가능, 예: "지민님의 오늘의 운세").
+  title       String
+  // OG og:description / 공유 문구 본문 한 줄 요약(비식별 원칙 준수).
+  description String
+  // 화면별 표시용 화이트리스트 데이터(JSON 문자열). 예: 타로 카드명 배열,
+  // 관상/손금 요약 문구, 소원 카테고리+진행도. 원본 민감정보는 포함 금지.
+  payload     String
+  // OG 카드 이미지 절대 URL(있으면). 없으면 /r/[id]/page.tsx가 결과
+  // 유형별 정적 기본 이미지로 폴백한다.
+  imageUrl    String?   @map("image_url")
+  viewCount   Int       @default(0) @map("view_count")
+  status      String    @default("active") // active/removed
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([resultType, createdAt])
+  @@map("shared_results")
 }

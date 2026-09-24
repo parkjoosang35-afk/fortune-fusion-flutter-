@@ -8,10 +8,14 @@
 // (손금/관상 사진 미저장, 회원탈퇴 파기 미구현이었던 부분은 6-7-4-B-4에서 구현 완료,
 // 로그인 로그 실작동, 쿠팡파트너스 실사용, 소셜로그인/PG결제는 501/시뮬레이션 상태 등)
 // 만을 반영했으며, 실제로 수집·처리하지 않는 항목은 기재하지 않았다.
+// [2026-XX 정정] 복주머니는 광고/활동으로만 적립되는 무료 재화이며, 구독/PG
+// 결제는 서버 시뮬레이션만 존재하고 실제 결제대행사 연동이 없어 결제/PG 관련
+// 수집·위탁 항목을 실제 서비스 상태에 맞게 삭제했다.
 //
-// [사업자 정보] 사용자 확정: 운영주체 "라이즈주식회사", 문의 이메일
-// "parkjoosang35@gmail.com". 전화번호는 사용자가 "임의로 만들지 않는다"고 명시해
+// [사업자 정보] 사용자 확정: 운영주체 "서치앤메이크"(대표: 이권호), 문의 이메일
+// "searciandmake@gmail.com". 전화번호는 사용자가 "임의로 만들지 않는다"고 명시해
 // 기재하지 않는다.
+// (2026년 사업 운영 법인 이전에 따라 라이즈주식회사 → 서치앤메이크로 변경)
 
 export const metadata = {
   title: "개인정보처리방침 | Fortune Fusion",
@@ -19,8 +23,9 @@ export const metadata = {
 };
 
 const EFFECTIVE_DATE = "2026년 8월 18일";
-const CONTACT_EMAIL = "parkjoosang35@gmail.com";
-const OPERATOR_NAME = "라이즈주식회사";
+const CONTACT_EMAIL = "searciandmake@gmail.com";
+const OPERATOR_NAME = "서치앤메이크";
+const REPRESENTATIVE_NAME = "이권호";
 
 function Section({
   title,
@@ -43,7 +48,7 @@ export default function PrivacyPolicyPage() {
       <header className="mb-10 border-b border-slate-200 pb-6">
         <h1 className="text-2xl font-bold text-slate-900">개인정보처리방침</h1>
         <p className="mt-2 text-sm text-slate-500">
-          시행일: {EFFECTIVE_DATE} · 운영주체: {OPERATOR_NAME}
+          시행일: {EFFECTIVE_DATE} · 운영주체: {OPERATOR_NAME} (대표: {REPRESENTATIVE_NAME})
         </p>
       </header>
 
@@ -72,11 +77,6 @@ export default function PrivacyPolicyPage() {
             일시적으로 처리되며, 회사 서버(데이터베이스)에 저장하지 않습니다.
           </li>
           <li>
-            결제 정보: 주문내역, 결제금액, 결제수단(PG사), 결제 승인번호 —
-            카드번호 등 결제수단 원본 정보는 PG사(결제대행사)가 처리하며 회사는
-            보관하지 않습니다.
-          </li>
-          <li>
             커뮤니티/매칭/상담 이용기록: 게시글, 댓글, 소원카드 내용, 매칭
             프로필, 채팅 메시지, AI 상담 대화 내용
           </li>
@@ -94,7 +94,6 @@ export default function PrivacyPolicyPage() {
         <ul className="ml-4 list-disc space-y-1">
           <li>회원 가입 의사 확인, 회원제 서비스 제공에 따른 본인 식별·인증</li>
           <li>사주/운세/궁합/얼굴관상/손금 등 개인화된 콘텐츠 생성 및 제공</li>
-          <li>유료 상품(구독, 상품권, 부적 등) 결제 및 정산</li>
           <li>커뮤니티(소원방), 매칭, 채팅, AI 상담 등 부가 서비스 제공</li>
           <li>공지사항 전달, 이벤트 및 광고성 정보 제공(수신 동의자에 한함)</li>
           <li>Google AdMob을 통한 배너·보상형(리워드) 광고 노출 및 맞춤형 광고 제공</li>
@@ -114,13 +113,6 @@ export default function PrivacyPolicyPage() {
             30일간 유예기간을 두며, 유예기간 경과 후 이메일, 전화번호, 닉네임 등
             개인식별정보를 복구 불가능한 방식으로 비식별화하고, 사주 프로필·AI
             운세 이용기록·상담 내역 등 민감한 이용기록은 완전 삭제합니다.
-          </li>
-          <li>
-            <span className="font-semibold">
-              결제 관련 기록(계약 또는 청약철회 등에 관한 기록, 대금결제 및
-              재화 공급에 관한 기록):
-            </span>{" "}
-            5년 (전자상거래 등에서의 소비자보호에 관한 법률)
           </li>
           <li>
             <span className="font-semibold">소비자 불만 또는 분쟁처리에 관한 기록:</span>{" "}
@@ -153,10 +145,6 @@ export default function PrivacyPolicyPage() {
             제공업체에 실시간으로 전송하여 사주/얼굴관상/손금 등 분석 결과를
             생성합니다. 전송된 사진 및 입력정보는 분석 응답 생성 목적으로만
             일시적으로 처리되며 회사 서버에 별도 저장되지 않습니다.
-          </li>
-          <li>
-            <span className="font-semibold">결제 처리(PG):</span> 유료 상품 결제
-            시 결제대행사(PG사)를 통해 결제가 처리됩니다.
           </li>
           <li>
             <span className="font-semibold">제휴 마케팅(쿠팡파트너스):</span>{" "}
@@ -219,7 +207,6 @@ export default function PrivacyPolicyPage() {
         <ul className="ml-4 list-disc space-y-1">
           <li>비밀번호의 암호화 저장 및 일방향 암호화(해시) 처리</li>
           <li>개인정보에 대한 접근 권한 관리(관리자 계정 역할 기반 접근 제어)</li>
-          <li>결제수단 원본정보(카드번호 등) 비저장 원칙(PG사 위탁 처리)</li>
         </ul>
       </Section>
 
@@ -230,7 +217,7 @@ export default function PrivacyPolicyPage() {
           운영하고 있습니다.
         </p>
         <ul className="ml-4 list-disc space-y-1">
-          <li>운영주체: {OPERATOR_NAME}</li>
+          <li>운영주체: {OPERATOR_NAME} (대표: {REPRESENTATIVE_NAME})</li>
           <li>
             개인정보 관련 문의 이메일:{" "}
             <a href={`mailto:${CONTACT_EMAIL}`} className="text-indigo-600 underline">
