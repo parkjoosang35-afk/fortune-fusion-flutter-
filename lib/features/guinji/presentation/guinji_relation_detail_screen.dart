@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/widgets/bangtong_seonyeo.dart';
 import '../application/guinji_provider.dart';
 import '../application/guinji_rewarded_ad_helper.dart';
 import '../domain/guinji_person.dart';
@@ -326,16 +325,10 @@ class _TypeDescriptionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _Card(
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const BangtongFaceAvatar(size: 40, mood: BangtongMood.smile),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text.rich(
+          Text.rich(
                   TextSpan(
                     children: [
                       TextSpan(
@@ -359,17 +352,14 @@ class _TypeDescriptionCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  relation.description,
-                  style: const TextStyle(
-                    fontFamily: GuinjiFonts.body,
-                    fontSize: 12,
-                    height: 1.55,
-                    color: GuinjiColors.textSecondary,
-                  ),
-                ),
-              ],
+          const SizedBox(height: 6),
+          Text(
+            relation.description,
+            style: const TextStyle(
+              fontFamily: GuinjiFonts.body,
+              fontSize: 12,
+              height: 1.55,
+              color: GuinjiColors.textSecondary,
             ),
           ),
         ],

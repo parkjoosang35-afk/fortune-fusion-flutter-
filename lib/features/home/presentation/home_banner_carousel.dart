@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../domain/jeontong_eighty_matrix.dart';
-import '../../../core/widgets/bangtong_seonyeo.dart';
+
 
 /// [메인 UI 리디자인 - 귀인지도 배너 3장 롤링 캐러셀]
 ///
@@ -45,7 +45,7 @@ class _HomeBannerCarouselState extends State<HomeBannerCarousel> {
       ctaLabel: '지도 만들기',
       ctaIcon: '✧',
       badgeLabel: 'NEW',
-      characterAsset: BangtongSeonyeoAssets.exprSmile,
+      characterAsset: 'assets/images/character/expr-02-smile.png',
       characterOffsetBottom: -10,
       characterOffsetRight: 0,
       accentGradient: [Color(0xFFF5D97A), Color(0xFFE8C8F5)],
@@ -75,7 +75,7 @@ class _HomeBannerCarouselState extends State<HomeBannerCarousel> {
       ctaLabel: '운세 보기',
       ctaIcon: '☾',
       badgeLabel: 'TODAY',
-      characterAsset: BangtongSeonyeoAssets.exprPlayful,
+      characterAsset: 'assets/images/character/expr-03-playful.png',
       characterOffsetBottom: -6,
       characterOffsetRight: 4,
       accentGradient: [Color(0xFFA8E3D5), Color(0xFFA8D5E3)],
@@ -105,7 +105,7 @@ class _HomeBannerCarouselState extends State<HomeBannerCarousel> {
       ctaLabel: '궁합 보기',
       ctaIcon: '❤',
       badgeLabel: 'HOT',
-      characterAsset: BangtongSeonyeoAssets.exprWonder,
+      characterAsset: 'assets/images/character/expr-05-wonder.png',
       characterOffsetBottom: -10,
       characterOffsetRight: 0,
       accentGradient: [Color(0xFFF5D97A), Color(0xFFF5A8BD)],

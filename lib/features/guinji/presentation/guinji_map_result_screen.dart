@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/router/main_bottom_nav_bar.dart';
-import '../../../core/widgets/bangtong_seonyeo.dart';
 import '../application/guinji_provider.dart';
 import '../domain/guinji_owner_saju_summary.dart';
 import '../domain/guinji_person.dart';
@@ -107,13 +106,6 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const BangtongFaceAvatar(
-                size: 84,
-                mood: BangtongMood.wonder,
-                glow: true,
-                glowColor: GmColors.gold,
-              ),
-              const SizedBox(height: 16),
               const Text(
                 '축하 이벤트 달성',
                 style: TextStyle(

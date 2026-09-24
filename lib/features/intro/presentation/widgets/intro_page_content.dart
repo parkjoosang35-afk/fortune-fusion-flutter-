@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../../core/widgets/bangtong_seonyeo.dart';
 import 'intro_eyebrow_label.dart';
 import 'intro_feature_list.dart';
 import 'intro_title_text.dart';
-import '../intro_palette.dart';
 import '../intro_text_styles.dart';
 import '../../domain/intro_config_model.dart';
 
@@ -81,11 +79,13 @@ class IntroPageContent extends StatelessWidget {
     return Column(
       children: [
         if (characterAsset != null) ...[
-          BangtongIntroHero(
-            asset: characterAsset!,
-            height: characterHeroHeight,
-            fadeColor: IntroPalette.backgroundTop,
+          ClipRRect(
             borderRadius: BorderRadius.circular(28),
+            child: Image.asset(
+              characterAsset!,
+              height: characterHeroHeight,
+              fit: BoxFit.cover,
+            ),
           ),
           const SizedBox(height: 18),
         ],

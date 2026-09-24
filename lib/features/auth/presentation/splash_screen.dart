@@ -10,7 +10,6 @@ import '../../intro/presentation/intro_text_styles.dart';
 import '../../intro/presentation/widgets/intro_eyebrow_label.dart';
 import '../../home/domain/jeontong_local_to_server_migration.dart';
 import '../application/auth_provider.dart';
-import '../../../core/widgets/bangtong_seonyeo.dart';
 
 /// [인트로 전면 개편 - 1단계 브랜드 스플래시]
 /// 중앙 로고 + "신통방통" + (선택)짧은 카피, fade-in/out, 1.0~1.5초.
@@ -118,13 +117,8 @@ class _SplashScreenState extends State<SplashScreen>
       IntroTextStyles.title(fontSize: 38); // 폰트 로딩 트리거(side-effect)
       final fontsPending = GoogleFonts.pendingFonts();
       _heroImagePrecache =
-          Future.wait([
-            precacheImage(
-              const AssetImage(BangtongSeonyeoAssets.mainFullBody),
-              context,
-            ),
-            fontsPending,
-          ]).timeout(
+          fontsPending
+          .timeout(
             const Duration(milliseconds: 2500),
             onTimeout: () {
               if (kDebugMode) {
@@ -282,20 +276,8 @@ class _SplashScreenState extends State<SplashScreen>
               ),
             ),
           ),
-          // [풀블리드 히어로] 캐릭터 전신 이미지가 화면 전체를 채운다.
-          // _heroReady가 될 때까지는 투명하게 유지해(기존 2차 수정 원칙
-          // 그대로 유지) 빈 이미지가 잠깐 스쳐 보이는 첫 프레임을 막는다.
-          Positioned.fill(
-            child: AnimatedOpacity(
-              opacity: _heroReady ? 1.0 : 0.0,
-              duration: const Duration(milliseconds: 260),
-              child: Image.asset(
-                BangtongSeonyeoAssets.mainFullBody,
-                fit: BoxFit.cover,
-                alignment: Alignment.topCenter,
-              ),
-            ),
-          ),
+          // [캐릭터 삭제 — 2026-09-24 사용자 요청] 기존 풀블리드 캐릭터
+          // 전신 이미지를 삭제하고 배경 그라데이션만 유지한다.
           // 이미지 위에 얹는 그라데이션 스크림 - 상단은 eyebrow 라벨이
           // 잘 보이도록 살짝 어둡게, 중단은 얼굴이 잘 보이도록 투명하게,
           // 하단은 타이틀/서브카피/로딩닷이 놓일 자리를 배경색에 가깝게

@@ -12,7 +12,6 @@ import '../../intro/presentation/intro_text_styles.dart';
 import '../../intro/presentation/widgets/intro_title_text.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
 import '../application/auth_provider.dart';
-import '../../../core/widgets/bangtong_seonyeo.dart';
 import '../data/social_auth_service.dart';
 import 'find_email_screen.dart';
 import 'reset_password_screen.dart';
@@ -217,15 +216,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     onBack: () => Navigator.of(context).maybePop(),
                   ),
                   const SizedBox(height: 12),
-                  // [신통도령 대체 - 방통선녀 재배치] 미소 표정 얼굴 아바타.
-                  const Center(
-                    child: BangtongFaceAvatar(
-                      size: 72,
-                      mood: BangtongMood.smile,
-                      glow: true,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
                   // `.title-block` (중앙정렬)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 26),

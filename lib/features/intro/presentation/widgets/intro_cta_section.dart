@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../core/widgets/bangtong_seonyeo.dart';
 import 'intro_eyebrow_label.dart';
 import 'intro_title_text.dart';
 import '../intro_palette.dart';
@@ -47,22 +46,9 @@ class IntroCTASection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // [카드인트로 1페이지 축소 + 전신 이미지 반영] 온보딩 영상이 이미
-        // 5대 기능을 전부 소개했으므로, 그 뒤에 이어지는 카드 인트로는
-        // 이 CTA 한 장만 남긴다. 사용자 요청("영상처럼 전신이 그대로
-        // 나왔으면 좋겠다")에 따라 상반신만 보이던 `posePraying` 대신
-        // 전신 원본(`mainFullBody`, 896x1200)을 `BoxFit.contain`으로
-        // 잘림 없이 그대로 표시한다. 전신 비율(3:4)을 담기 위해 높이도
-        // 260→340으로 키웠다.
-        BangtongIntroHero(
-          asset: BangtongSeonyeoAssets.mainFullBody,
-          height: 340,
-          fit: BoxFit.contain,
-          alignment: Alignment.topCenter,
-          fadeColor: IntroPalette.backgroundTop,
-          borderRadius: BorderRadius.circular(28),
-        ),
-        const SizedBox(height: 18),
+        // [캐릭터 삭제 — 사용자 요청] 기존 전신 캐릭터 히어로
+        // (BangtongIntroHero)를 삭제하고 eyebrow 라벨부터 바로 시작한다.
+        const SizedBox(height: 12),
         const IntroEyebrowLabel('READY · TO · BEGIN'),
         const SizedBox(height: 20),
         Expanded(

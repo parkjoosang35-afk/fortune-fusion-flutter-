@@ -4,7 +4,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../../core/widgets/bangtong_seonyeo.dart';
 import '../../../auth/presentation/widgets/auth_primary_button.dart';
 import '../../../intro/presentation/intro_palette.dart';
 import '../../../intro/presentation/intro_text_styles.dart';
@@ -193,27 +192,11 @@ class _ModalCard extends StatefulWidget {
 class _ModalCardState extends State<_ModalCard> {
   @override
   Widget build(BuildContext context) {
-    // [방통선녀 캐릭터 재배치 — 2026-09] 카드 상단에 살짝 겹치도록 얼굴
-    // 아바타(경이 표정)를 배치해 환영 인사를 건네는 느낌을 준다.
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 320),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Stack(
-          clipBehavior: Clip.none,
-          alignment: Alignment.topCenter,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 34),
-              child: _buildCard(context),
-            ),
-            const BangtongFaceAvatar(
-              size: 76,
-              mood: BangtongMood.wonder,
-              glow: true,
-            ),
-          ],
-        ),
+        child: _buildCard(context),
       ),
     );
   }

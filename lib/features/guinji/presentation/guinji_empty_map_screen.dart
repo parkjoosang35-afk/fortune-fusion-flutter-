@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/widgets/app_toast.dart';
-import '../../../core/widgets/bangtong_seonyeo.dart';
 import '../application/guinji_provider.dart';
 import '../theme/guinji_theme.dart';
 import '../widgets/guinji_bg_atmosphere.dart';
@@ -308,32 +307,23 @@ class _DoryeongHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const BangtongFaceAvatar(size: 44, mood: BangtongMood.concerned),
-        const SizedBox(width: 8),
-        Flexible(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: GuinjiColors.surfaceCard,
-              border: Border.all(color: GuinjiColors.surfaceCardBorder),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Text(
-              '아직 아무도\n만나지 않았어요',
-              style: TextStyle(
-                fontFamily: GuinjiFonts.body,
-                fontWeight: FontWeight.w500,
-                fontSize: 12,
-                height: 1.4,
-                color: GuinjiColors.textPrimary,
-              ),
-            ),
-          ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: GuinjiColors.surfaceCard,
+        border: Border.all(color: GuinjiColors.surfaceCardBorder),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: const Text(
+        '아직 아무도\n만나지 않았어요',
+        style: TextStyle(
+          fontFamily: GuinjiFonts.body,
+          fontWeight: FontWeight.w500,
+          fontSize: 12,
+          height: 1.4,
+          color: GuinjiColors.textPrimary,
         ),
-      ],
+      ),
     );
   }
 }

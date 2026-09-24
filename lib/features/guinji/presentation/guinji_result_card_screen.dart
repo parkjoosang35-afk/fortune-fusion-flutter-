@@ -9,7 +9,6 @@ import '../../../core/config/env_config.dart';
 import '../../../core/util/image_gallery_saver.dart';
 import '../../../core/util/safe_share.dart';
 import '../../../core/widgets/app_toast.dart';
-import '../../../core/widgets/bangtong_seonyeo.dart';
 import '../../wish_room/widgets/wish_room_sigil.dart';
 import '../domain/guinji_person.dart';
 import '../theme/guinji_theme.dart';
@@ -366,10 +365,6 @@ class _TheCard extends StatelessWidget {
                     ),
                     _MonoLabel('N°01', fontSize: 7),
                   ],
-                ),
-                const SizedBox(height: 8),
-                const Center(
-                  child: BangtongFaceAvatar(size: 48, mood: BangtongMood.smile),
                 ),
                 const SizedBox(height: 8),
                 Text(

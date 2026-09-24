@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 
 import '../../../core/config/env_config.dart';
 import '../../../core/widgets/app_toast.dart';
-import '../../../core/widgets/bangtong_seonyeo.dart';
 import '../application/guinji_provider.dart';
 import '../theme/guinji_theme.dart';
 import '../widgets/guinji_bg_atmosphere.dart';
@@ -150,14 +149,6 @@ class _GuinjiShareScreenState extends State<GuinjiShareScreen> {
                       const SizedBox(width: 10),
                       const _MonoLabel('SHARE · INVITE'),
                     ],
-                  ),
-                  const SizedBox(height: 12),
-                  const Center(
-                    child: BangtongFaceAvatar(
-                      size: 76,
-                      mood: BangtongMood.playful,
-                      glow: true,
-                    ),
                   ),
                   const SizedBox(height: 12),
                   const Text(

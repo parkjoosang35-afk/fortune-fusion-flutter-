@@ -5,7 +5,6 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/util/safe_share.dart';
 import '../../../core/widgets/app_toast.dart';
-import '../../../core/widgets/bangtong_seonyeo.dart';
 import '../theme/guinji_map_theme.dart';
 import '../widgets/guinji_map_widgets.dart';
 import 'guinji_share_screen.dart' show buildGuinjiInviteLink;
@@ -330,34 +329,9 @@ class _KakaoOgPreview extends StatelessWidget {
                 children: [
                   Container(decoration: const BoxDecoration(gradient: GmColors.gradientDark)),
                   const Positioned.fill(child: GmStarsBackground(opacity: 0.7)),
-                  // [친구 초대 캐릭터 삽입 — 재수정] 동그란 얼굴 클로즈업
-                  // (증명사진처럼 작고 딱딱해 보인다는 피드백)을 걷어내고,
-                  // 등롱을 든 반신 이미지(mainHalfBody)를 카드 우측 전체
-                  // 높이에 걸쳐 크게 배치한다. 원본 이미지가 불투명 파스텔
-                  // 배경이라 사각 이미지를 그대로 얹으면 카드의 다크
-                  // 그라데이션과 색이 어긋나므로, ShaderMask로 좌측 경계의
-                  // 알파를 서서히 지워 카드 배경이 자연스럽게 배어나오도록
-                  // 만든다(사진을 잘라 붙인 듯한 경계선 없음).
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    bottom: 0,
-                    width: 140,
-                    child: ShaderMask(
-                      shaderCallback: (rect) => const LinearGradient(
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                        colors: [Colors.transparent, Colors.white, Colors.white],
-                        stops: [0.0, 0.55, 1.0],
-                      ).createShader(rect),
-                      blendMode: BlendMode.dstIn,
-                      child: Image.asset(
-                        BangtongSeonyeoAssets.mainHalfBody,
-                        fit: BoxFit.cover,
-                        alignment: Alignment.topCenter,
-                      ),
-                    ),
-                  ),
+                  // [캐릭터 삭제 — 사용자 요청] 기존 우측 반신 캐릭터
+                  // 패널(ShaderMask+Image.asset)을 삭제했다. 텍스트 우측
+                  // 여백(padding right:100)은 레이아웃 안정성을 위해 유지.
                   Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
