@@ -34,7 +34,7 @@ import '../widgets/welcome_reward_modal.dart';
 import '../../../ads_test/presentation/admob_test_banner.dart';
 import '../../../ad_banner/presentation/ad_banner_widget.dart';
 import 'sintong_home_v2_tokens.dart';
-import 'widgets/sintong_hero_carousel.dart';
+import 'widgets/sintong_hero_carousel.dart' show SintongHeroCarousel, SintongHeroCarouselState, sHeroAspectRatio;
 import 'widgets/sintong_v2_topbar.dart';
 import 'widgets/sintong_chip_row.dart';
 import 'widgets/sintong_v2_sheet.dart';
@@ -101,14 +101,21 @@ class _SintongHomeV2ScreenState extends State<SintongHomeV2Screen> {
         // 화면에 담을 콘텐츠가 늘어나도 넘치는 부분이 잘려 보이고,
         // 모바일에서 아래로 스크롤이 전혀 되지 않는 문제가 있었다
         // (사용자 피드백: "휴대폰으로 밑으로 내려가지지도 않아").
-        // 전체를 SingleChildScrollView로 감싸 히어로(고정 460) 아래로
-        // 시트/광고 콘텐츠가 자연스러운 높이만큼 이어지고 필요 시
-        // 스크롤되도록 수정한다.
+        // 전체를 SingleChildScrollView로 감싸 히어로 아래로 시트/광고
+        // 콘텐츠가 자연스러운 높이만큼 이어지고 필요 시 스크롤되도록
+        // 한다.
+        //
+        // [사진 잘림 방지 — 2026-09-24] 기존 고정 `height: 460` 박스는
+        // 실제 사진 비율(9:16.1)보다 훨씬 넓적해 BoxFit.cover가 인물을
+        // 크게 잘라냈다(사용자 스크린샷 확인). AspectRatio로 감싸 원본
+        // 비율 그대로 사진 전체가 보이게 하고, 늘어난 높이만큼 아래
+        // "전체보기" 시트가 더 아래로 밀려 내려가는 것은 사용자가 직접
+        // 확인 후 허용함("밑에 전체보기 섹션을 좀더 내려도 괜찮아").
         child: SingleChildScrollView(
           child: Column(
             children: [
-              SizedBox(
-                height: 460,
+              AspectRatio(
+                aspectRatio: sHeroAspectRatio,
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
@@ -122,16 +129,21 @@ class _SintongHomeV2ScreenState extends State<SintongHomeV2Screen> {
                       right: 0,
                       child: SintongV2TopBar(),
                     ),
+                    // [카테고리 칩을 좀 더 아래로 — 2026-09-24 사용자
+                    // 리포트] 히어로 박스가 세로로 훨씬 길어졌으므로,
+                    // 이미지 하단 여백에 딱 붙지 않고 조금 더 내려서
+                    // 자리잡도록 bottom 값을 줄인다(도트/칩 간 34px
+                    // 상대 간격은 그대로 유지).
                     Positioned(
                       left: 0,
                       right: 0,
-                      bottom: 44,
+                      bottom: 20,
                       child: SintongDotsIndicator(currentIndex: _heroIndex),
                     ),
                     Positioned(
                       left: 0,
                       right: 0,
-                      bottom: 78,
+                      bottom: 54,
                       child: SintongChipRow(
                         currentIndex: _heroIndex,
                         onChipTapGoTo: (i) => _heroKey.currentState?.goTo(i),

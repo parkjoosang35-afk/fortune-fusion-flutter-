@@ -24,8 +24,20 @@ const List<SHomeV2Category> sHeroOrder = [
   SHomeV2Category.saju,
   SHomeV2Category.tarot,
   SHomeV2Category.wish,
+  SHomeV2Category.face,
   SHomeV2Category.palm,
 ];
+
+/// [사진 잘림 방지 — 2026-09-24 사용자 리포트] 히어로 원본 이미지들의
+/// 실제 가로:세로 비율(card-*.jpg 572×1024, hero.jpg 768×1376 — 둘 다
+/// 약 9:16.1). 기존 고정 `height: 460` 박스는 이 비율보다 훨씬 넓적해
+/// BoxFit.cover가 인물 얼굴을 크게 잘라내는 문제가 있었다(사용자
+/// 스크린샷으로 확인: "귀인지도" 슬라이드 인물 머리가 통째로 잘림).
+/// 화면 폭 기준 AspectRatio로 박스를 감싸 원본 비율 그대로 보여주고,
+/// 그만큼 늘어난 높이는 아래 콘텐츠(전체보기 시트)가 자연스럽게 밀려
+/// 내려가는 것으로 해결한다(사용자 확인: "밑에 전체보기 섹션을 좀더
+/// 내려도 괜찮아").
+const double sHeroAspectRatio = 572 / 1024;
 
 class SintongHeroCarousel extends StatefulWidget {
   const SintongHeroCarousel({super.key, required this.onIndexChanged});
@@ -91,22 +103,22 @@ class SintongHeroCarouselState extends State<SintongHeroCarousel> {
       onPanDown: (_) => _stopAuto(),
       onPanEnd: (_) => _startAuto(),
       onPanCancel: _startAuto,
-      child: SizedBox(
-        height: 460,
-        child: PageView.builder(
-          controller: _controller,
-          onPageChanged: _onPageChanged,
-          itemCount: sHeroOrder.length,
-          itemBuilder: (context, index) {
-            final category = sHeroOrder[index];
-            final isActive = index == _current;
-            return _HeroSlide(
-              category: category,
-              isActive: isActive,
-              onTap: () => openSubScreen(context, category),
-            );
-          },
-        ),
+      // [사진 잘림 방지] 실제 높이는 부모(sintong_home_v2_screen.dart)가
+      // AspectRatio로 감싸 결정하므로, 여기서는 주어진 공간을 그대로
+      // 채우기만 한다(StackFit.expand로 전달된 tight constraints 사용).
+      child: PageView.builder(
+        controller: _controller,
+        onPageChanged: _onPageChanged,
+        itemCount: sHeroOrder.length,
+        itemBuilder: (context, index) {
+          final category = sHeroOrder[index];
+          final isActive = index == _current;
+          return _HeroSlide(
+            category: category,
+            isActive: isActive,
+            onTap: () => openSubScreen(context, category),
+          );
+        },
       ),
     );
   }
@@ -193,10 +205,21 @@ class _HeroSlideState extends State<_HeroSlide>
             ),
           ),
           // Caption — fade+slide in when active.
-          Positioned(
-            left: 24,
-            right: 24,
-            top: 130,
+          // [2026-09-24 사용자 리포트] "오늘의 귀인/오늘의 운" 같은 큰
+          // 타이틀(heroTitle, 30px)을 완전히 삭제하고, 작은 eyebrow +
+          // 설명 문구만 남겨 균형 있게 배치한다. 히어로 박스가 이제
+          // 원본 사진 비율(AspectRatio)만큼 세로로 길어졌으므로, 고정
+          // 픽셀 top 대신 Align의 상대 비율로 배치해 어떤 화면 폭에서도
+          // 이미지 상단부 여백에 자연스럽게 자리잡게 한다.
+          //
+          // [텍스트가 얼굴을 가림 — 2026-09-24 사용자 2차 리포트] 위
+          // -0.62 값은 이미지 상단부(인물 얼굴이 시작되는 지점)와 겹쳐
+          // 문구가 얼굴을 가렸다("글씨가 너무 위에 있으니 얼굴을
+          // 가린다"). 6장 사진 모두 얼굴이 대체로 상단~중상단(-0.6~0
+          // 구간)에 있으므로, 문구를 그 아래(칩 로우 위 여백)로 옮겨
+          // 얼굴과 겹치지 않게 한다.
+          Align(
+            alignment: const Alignment(0, 0.42),
             child: AnimatedOpacity(
               opacity: widget.isActive ? 1 : 0,
               duration: SHomeV2Motion.captionFade,
@@ -207,31 +230,29 @@ class _HeroSlideState extends State<_HeroSlide>
                     : const Offset(0, 0.02),
                 duration: SHomeV2Motion.captionFade,
                 curve: SHomeV2Motion.captionCurve,
-                child: Column(
-                  children: [
-                    Text(
-                      widget.category.heroEyebrow,
-                      textAlign: TextAlign.center,
-                      style: SHomeV2Text.heroEyebrow(),
-                    ),
-                    const SizedBox(height: 14),
-                    Text(
-                      widget.category.heroTitle,
-                      textAlign: TextAlign.center,
-                      style: SHomeV2Text.heroTitle(),
-                    ),
-                    const SizedBox(height: 14),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 270),
-                      child: Text(
-                        widget.category.heroSub,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        widget.category.heroEyebrow,
                         textAlign: TextAlign.center,
-                        style: SHomeV2Text.heroSub().copyWith(
-                          color: Colors.white.withValues(alpha: 0.88),
+                        style: SHomeV2Text.heroEyebrow(),
+                      ),
+                      const SizedBox(height: 10),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 270),
+                        child: Text(
+                          widget.category.heroSub,
+                          textAlign: TextAlign.center,
+                          style: SHomeV2Text.heroSub().copyWith(
+                            color: Colors.white.withValues(alpha: 0.88),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

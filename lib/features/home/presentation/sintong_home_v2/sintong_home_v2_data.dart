@@ -1,7 +1,11 @@
 // ═══════════════════════════════════════════════════════════════
 // FILE: sintong_home_v2_data.dart
 // [신통방통 홈 v2] README.md "카피(히어로 슬라이드)" 표 + "시트 카드"
-// + 5개 카테고리 라우팅 매핑을 위한 정적 데이터.
+// + 6개 카테고리 라우팅 매핑을 위한 정적 데이터.
+//
+// [6개 확장] 히어로 캐러셀이 원래 5개(guide/saju/tarot/wish/palm)였고
+// palm이 "손금·관상" 통합 슬라이드였다 — 사용자 요청으로 관상(face)을
+// 별도 슬라이드로 분리해 6개로 확장한다(palm은 이제 손금 전용).
 // ═══════════════════════════════════════════════════════════════
 library;
 
@@ -11,8 +15,8 @@ import 'package:flutter/widgets.dart' show Alignment, BuildContext;
 // [openFaceReading]/[openPalmReading](routing.dart)을 직접 참조해야 해서
 // 순환 참조를 피하기 위해 sintong_home_v2_routing.dart 쪽에 정의한다.
 
-/// 5개 카테고리 식별자 — 히어로 슬라이드/칩/서브 화면이 공유하는 순서.
-enum SHomeV2Category { guide, saju, tarot, wish, palm }
+/// 6개 카테고리 식별자 — 히어로 슬라이드/칩/서브 화면이 공유하는 순서.
+enum SHomeV2Category { guide, saju, tarot, wish, face, palm }
 
 extension SHomeV2CategoryX on SHomeV2Category {
   /// 칩 라벨 — README "칩 라벨" 표.
@@ -21,7 +25,8 @@ extension SHomeV2CategoryX on SHomeV2Category {
     SHomeV2Category.saju => '정통사주',
     SHomeV2Category.tarot => '타로',
     SHomeV2Category.wish => '소원방',
-    SHomeV2Category.palm => '손금·관상',
+    SHomeV2Category.face => '관상',
+    SHomeV2Category.palm => '손금',
   };
 
   /// 히어로 슬라이드 배경 이미지.
@@ -30,6 +35,7 @@ extension SHomeV2CategoryX on SHomeV2Category {
     SHomeV2Category.saju => 'assets/images/sintong_home_v2/card-saju.jpg',
     SHomeV2Category.tarot => 'assets/images/sintong_home_v2/card-tarot.jpg',
     SHomeV2Category.wish => 'assets/images/sintong_home_v2/card-wish.jpg',
+    SHomeV2Category.face => 'assets/images/sintong_home_v2/card-face.jpg',
     SHomeV2Category.palm => 'assets/images/sintong_home_v2/card-palm.jpg',
   };
 
@@ -39,6 +45,7 @@ extension SHomeV2CategoryX on SHomeV2Category {
     SHomeV2Category.saju => 'assets/images/sintong_home_v2/card-saju.jpg',
     SHomeV2Category.tarot => 'assets/images/sintong_home_v2/card-tarot.jpg',
     SHomeV2Category.wish => 'assets/images/sintong_home_v2/card-wish.jpg',
+    SHomeV2Category.face => 'assets/images/sintong_home_v2/card-face.jpg',
     SHomeV2Category.palm => 'assets/images/sintong_home_v2/card-palm.jpg',
   };
 
@@ -47,7 +54,8 @@ extension SHomeV2CategoryX on SHomeV2Category {
     SHomeV2Category.saju => '사주 · 四柱八字',
     SHomeV2Category.tarot => '타로 · 오늘의 한 장',
     SHomeV2Category.wish => '소원 · 願',
-    SHomeV2Category.palm => '관상 · 觀相 手相',
+    SHomeV2Category.face => '관상 · 觀相',
+    SHomeV2Category.palm => '손금 · 手相',
   };
 
   String get heroTitle => switch (this) {
@@ -55,7 +63,8 @@ extension SHomeV2CategoryX on SHomeV2Category {
     SHomeV2Category.saju => '오늘의 운',
     SHomeV2Category.tarot => '오늘의 카드',
     SHomeV2Category.wish => '오늘의 소원',
-    SHomeV2Category.palm => '오늘의 결',
+    SHomeV2Category.face => '오늘의 관상',
+    SHomeV2Category.palm => '오늘의 손금',
   };
 
   String get heroSub => switch (this) {
@@ -63,7 +72,8 @@ extension SHomeV2CategoryX on SHomeV2Category {
     SHomeV2Category.saju => '네 기둥에 새겨진 여덟 글자로\n오늘의 흐름을 읽어드려요.',
     SHomeV2Category.tarot => '눈을 감고 마음속 질문을 떠올려보세요.\n지금 뽑은 한 장이 답이 됩니다.',
     SHomeV2Category.wish => '간절한 마음을 종이에 담고\n촛불 위에 조용히 봉인합니다.',
-    SHomeV2Category.palm => '얼굴에 흐르는 기운, 손에 새겨진 선.\n사진 한 장으로 결을 읽어드려요.',
+    SHomeV2Category.face => '얼굴에 흐르는 기운을 살피면\n지금의 결이 보여요.',
+    SHomeV2Category.palm => '손에 새겨진 세 개의 선.\n사진 한 장으로 결을 읽어드려요.',
   };
 
   /// 서브 화면 헤더 타이틀(hdr-title, 상단 작은 라벨).
@@ -72,7 +82,8 @@ extension SHomeV2CategoryX on SHomeV2Category {
     SHomeV2Category.saju => '정통사주 · 四柱八字',
     SHomeV2Category.tarot => '타로 · 오늘의 한 장',
     SHomeV2Category.wish => '소원방 · 願',
-    SHomeV2Category.palm => '관상 · 손금',
+    SHomeV2Category.face => '관상 · 觀相',
+    SHomeV2Category.palm => '손금 · 手相',
   };
 
   /// 서브 화면 히어로 스트립 캡션 eyebrow.
@@ -81,7 +92,8 @@ extension SHomeV2CategoryX on SHomeV2Category {
     SHomeV2Category.saju => '사주 · 四柱八字',
     SHomeV2Category.tarot => '타로 · 오늘의 카드',
     SHomeV2Category.wish => '소원 · 願',
-    SHomeV2Category.palm => '觀相 · 手相',
+    SHomeV2Category.face => '觀相',
+    SHomeV2Category.palm => '手相',
   };
 
   /// 서브 화면 히어로 스트립 타이틀(2줄, \n으로 줄바꿈).
@@ -90,7 +102,8 @@ extension SHomeV2CategoryX on SHomeV2Category {
     SHomeV2Category.saju => '네 기둥에 새겨진\n여덟 글자',
     SHomeV2Category.tarot => '지금 뽑은 한 장이\n답이 됩니다',
     SHomeV2Category.wish => '간절한 마음을\n촛불에 봉인합니다',
-    SHomeV2Category.palm => '얼굴과 손에 새겨진\n지금까지의 이야기',
+    SHomeV2Category.face => '얼굴에 흐르는\n지금까지의 이야기',
+    SHomeV2Category.palm => '손에 새겨진\n세 개의 선',
   };
 
   /// 서브 화면 인용구(quote) — em(강조) 부분은 [quoteEmphasis]로 분리.
@@ -99,6 +112,7 @@ extension SHomeV2CategoryX on SHomeV2Category {
     SHomeV2Category.saju => '태어난 ',
     SHomeV2Category.tarot => '눈을 감고 ',
     SHomeV2Category.wish => '',
+    SHomeV2Category.face => '',
     SHomeV2Category.palm => '',
   };
   String get quoteEmphasis => switch (this) {
@@ -106,6 +120,7 @@ extension SHomeV2CategoryX on SHomeV2Category {
     SHomeV2Category.saju => '해 · 달 · 날 · 시각',
     SHomeV2Category.tarot => '마음속 질문',
     SHomeV2Category.wish => '이루어질 때까지',
+    SHomeV2Category.face => '사진 한 장',
     SHomeV2Category.palm => '사진 한 장',
   };
   String get quoteMiddle => switch (this) {
@@ -113,6 +128,7 @@ extension SHomeV2CategoryX on SHomeV2Category {
     SHomeV2Category.saju => '에 하늘이 새겨둔 여덟 글자로',
     SHomeV2Category.tarot => '을 떠올려보세요.',
     SHomeV2Category.wish => ' 함께 밝혀둘게요.',
+    SHomeV2Category.face => '이면 됩니다.',
     SHomeV2Category.palm => '이면 됩니다.',
   };
   String get quoteSuffix => switch (this) {
@@ -120,6 +136,7 @@ extension SHomeV2CategoryX on SHomeV2Category {
     SHomeV2Category.saju => '오늘의 흐름과 평생의 결을 읽어드려요.',
     SHomeV2Category.tarot => '준비가 되면 카드를 한 장 골라주세요.',
     SHomeV2Category.wish => '마음속 소원을 조용히 담아두세요.',
+    SHomeV2Category.face => '지금의 결을 조용히 읽어드려요.',
     SHomeV2Category.palm => '지금까지의 삶과 앞으로의 결을 조용히 읽어드려요.',
   };
 
@@ -128,6 +145,7 @@ extension SHomeV2CategoryX on SHomeV2Category {
     SHomeV2Category.saju => '사주 풀이 종류',
     SHomeV2Category.tarot => '주제로 골라보기',
     SHomeV2Category.wish => '소원을 담는 법',
+    SHomeV2Category.face => '읽는 방법 고르기',
     SHomeV2Category.palm => '읽는 방법 고르기',
   };
 
@@ -136,7 +154,8 @@ extension SHomeV2CategoryX on SHomeV2Category {
     SHomeV2Category.saju => '궁금한 결부터 천천히 들여다보세요.',
     SHomeV2Category.tarot => '묻고 싶은 결에 맞춰 덱을 선택하세요.',
     SHomeV2Category.wish => '종류에 맞게 촛불을 켜고 봉인하세요.',
-    SHomeV2Category.palm => '얼굴 또는 손바닥 사진을 준비해주세요.',
+    SHomeV2Category.face => '정면 사진을 준비해주세요.',
+    SHomeV2Category.palm => '손바닥 사진을 준비해주세요.',
   };
 
   String get ctaLabel => switch (this) {
@@ -144,6 +163,7 @@ extension SHomeV2CategoryX on SHomeV2Category {
     SHomeV2Category.saju => '생년월시 입력하기',
     SHomeV2Category.tarot => '한 장 뽑기',
     SHomeV2Category.wish => '촛불 켜고 봉인하기',
+    SHomeV2Category.face => '사진 올리기',
     SHomeV2Category.palm => '사진 올리기',
   };
 }
@@ -209,10 +229,11 @@ const Map<SHomeV2Category, List<SHomeV2Option>> sHomeV2Options = {
     SHomeV2Option(glyph: '成', title: '시험 · 성취 · 成', sub: '준비하는 마음, 이루는 마음'),
     SHomeV2Option(glyph: '福', title: '일상의 복 · 福', sub: '이름 붙일 수 없는 소소한 바람'),
   ],
-  SHomeV2Category.palm: [
+  SHomeV2Category.face: [
     SHomeV2Option(glyph: '相', title: '관상 · 얼굴 읽기', sub: '정면 사진 1장 · 기운의 결을 살핌'),
+  ],
+  SHomeV2Category.palm: [
     SHomeV2Option(glyph: '手', title: '손금 · 세 개의 선', sub: '생명선 · 감정선 · 두뇌선'),
-    SHomeV2Option(glyph: '合', title: '관상 + 손금 통합 리딩', sub: '두 결을 나란히 놓고 깊이 읽기'),
   ],
 };
 

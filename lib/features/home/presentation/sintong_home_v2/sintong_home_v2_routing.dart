@@ -1,8 +1,14 @@
 // ═══════════════════════════════════════════════════════════════
 // FILE: sintong_home_v2_routing.dart
-// [신통방통 홈 v2] 새 디자인(히어로 캐러셀/칩/하단 시트)의 5개 카테고리
-// (귀인지도/정통사주/타로/소원방/손금·관상)를 눌렀을 때 이동할 목적지를
+// [신통방통 홈 v2] 새 디자인(히어로 캐러셀/칩/하단 시트)의 6개 카테고리
+// (귀인지도/정통사주/타로/소원방/관상/손금)를 눌렀을 때 이동할 목적지를
 // 한 곳에 모은다.
+//
+// [히어로 캐러셀 6개 확장] 원래 palm 1개("손금·관상" 통합 슬라이드)로
+// 묶여 있었으나, 사용자 요청으로 관상을 별도 카테고리([face])로 분리해
+// 히어로 캐러셀도 6개 슬라이드로 확장한다. palm은 이제 손금 전용이며,
+// 두 카테고리 모두 기존 [openFaceReading]/[openPalmReading]으로 곧장
+// 연결한다(더 이상 통합 선택 시트를 거치지 않음).
 //
 // [중요 수정] 원래 이 파일은 "새 디자인 전용 서브 목차 화면(guide/saju/
 // tarot/wish/palm GuideSubScreen)"을 만들어 그리로 연결했으나, 이는
@@ -20,7 +26,6 @@ library;
 import 'package:flutter/material.dart';
 
 import '../../../../core/router/app_router.dart' show AppRouter;
-import '../../../../core/widgets/face_palm_select_sheet.dart';
 import '../../../pass/presentation/pass_gate_helper.dart';
 import '../../../wish_room/presentation/wish_room_entry_gate.dart';
 import '../../../guinji/presentation/guinji_landing_screen.dart';
@@ -49,17 +54,18 @@ void openSubScreen(BuildContext context, SHomeV2Category category) {
       Navigator.of(
         context,
       ).push(MaterialPageRoute(builder: (_) => const WishRoomEntryGate()));
+    case SHomeV2Category.face:
+      // 관상 — 곧장 관상 촬영 화면으로 이동(통합 시트 없음).
+      openFaceReading(context);
     case SHomeV2Category.palm:
-      // 손금·관상 — 기존 서비스카드와 동일: 관상/손금 선택 바텀시트.
-      showFacePalmSelectSheet(context);
+      // 손금 — 곧장 손금 촬영 화면으로 이동(통합 시트 없음).
+      openPalmReading(context);
   }
 }
 
-/// [전체보기 시트 확장 — 관상/손금 개별 카드] 기존 5개 카테고리(guide/
-/// saju/tarot/wish/palm) 중 palm은 "관상+손금 통합" 선택 시트 1개로
-/// 묶여있었으나, 시트 그리드에 관상/손금을 각각 별도 카드로 추가하기
-/// 위해 전용 목적지 함수를 분리한다. 기존 [showFacePalmSelectSheet]
-/// 내부에서 쓰던 것과 완전히 동일한 라우트(`/ai-fortune/face/capture`,
+/// [관상/손금 개별 전용 목적지] 관상/손금은 기존 [showFacePalmSelectSheet]
+/// 통합 선택 시트를 거치지 않고, 히어로 슬라이드/칩/시트 카드 모두 곧장
+/// 각자의 촬영 화면으로 연결한다. 동일한 라우트(`/ai-fortune/face/capture`,
 /// `/ai-fortune/palm/capture`)와 게이트 로직([navigateWithPassGate])을
 /// 그대로 재사용한다(신규 라우트/화면 없음).
 void openFaceReading(BuildContext context) {
