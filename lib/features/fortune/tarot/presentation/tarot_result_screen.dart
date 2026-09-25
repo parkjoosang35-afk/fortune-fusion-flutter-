@@ -109,92 +109,118 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
     final nickname = context.read<AuthProvider>().currentUser?.nickname;
     await showModalBottomSheet<void>(
       context: context,
+      // [결과 공유 시트 잘림 버그 수정 — 실제 사용자 플로우 재현으로 확정]
+      // isScrollControlled:true가 없으면 바텀시트가 기본적으로 화면 높이의
+      // 절반(그리고 그 안의 콘텐츠는 잘려도 스크롤 불가)까지만 차지하도록
+      // 강제된다. 이 시트는 "타로 결과 공유하기" 타이틀 + 공유카드
+      // 미리보기(TarotShareCard, 높이가 상당함) + 버튼 2개(이미지로/링크로
+      // 공유하기)로 구성되어 있어, 특히 작은 화면(iPhone SE 등)이나 이번
+      // 실사용자 재현 테스트(390×844 뷰포트)에서는 시트 콘텐츠 전체 높이가
+      // 뷰포트를 초과해 "링크로 공유하기" 버튼이 화면 밖으로 완전히 잘려
+      // 나갔다. 이 상태에서는 마우스 휠/터치 드래그/스크롤 이벤트가 전혀
+      // 먹히지 않는 것까지 확인됨(SingleChildScrollView가 없어 스크롤
+      // 가능한 컨테이너 자체가 존재하지 않았기 때문) — 사용자가 "설마
+      // 이미지만 공유하는 거 아니냐"고 의심했던 정확한 원인: 링크 공유
+      // 버튼이 물리적으로 눌리지 않는 상태였다. isScrollControlled:true로
+      // 시트가 필요한 만큼(최대 화면 높이까지) 확장되도록 허용하고, 아래
+      // Column을 SingleChildScrollView로 감싸 그래도 넘치는 경우엔
+      // 스크롤로 반드시 두 버튼 모두에 도달할 수 있게 한다.
+      isScrollControlled: true,
       backgroundColor: OzColors.bgMid,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(OzTokens.spaceXl),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '타로 결과 공유하기',
-                style: OzTypography.sectionTitle(fontSize: 18),
-              ),
-              const SizedBox(height: OzTokens.spaceLg),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(OzTokens.radiusLg),
-                child: RepaintBoundary(
-                  key: _shareCardKey,
-                  child: TarotShareCard(
-                    cardIcon: view.heroCard.icon,
-                    cardImagePath: view.heroCard.imageAssetPath,
-                    cardName: view.heroCard.nameKr,
-                    isReversed: view.heroCard.isReversed,
-                    oneLiner: view.oneLiner,
-                    luckyColorName: view.luckyColorName,
-                    luckyColor: view.luckyColor,
-                    luckyNumber: view.luckyNumber,
-                    nickname: nickname,
-                  ),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(ctx).size.height * 0.9,
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(OzTokens.spaceXl),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '타로 결과 공유하기',
+                  style: OzTypography.sectionTitle(fontSize: 18),
                 ),
-              ),
-              const SizedBox(height: OzTokens.spaceLg),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: OzColors.gold,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(OzTokens.radiusPill),
+                const SizedBox(height: OzTokens.spaceLg),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(OzTokens.radiusLg),
+                  child: RepaintBoundary(
+                    key: _shareCardKey,
+                    child: TarotShareCard(
+                      cardIcon: view.heroCard.icon,
+                      cardImagePath: view.heroCard.imageAssetPath,
+                      cardName: view.heroCard.nameKr,
+                      isReversed: view.heroCard.isReversed,
+                      oneLiner: view.oneLiner,
+                      luckyColorName: view.luckyColorName,
+                      luckyColor: view.luckyColor,
+                      luckyNumber: view.luckyNumber,
+                      nickname: nickname,
                     ),
                   ),
-                  onPressed: () async {
-                    // [8가지 버그 리포트 §1 수정] 기존에는 바텀시트를 먼저
-                    // pop()한 뒤 캡처를 시도했는데, pop() 즉시 이 바텀시트
-                    // 안에 있던 RepaintBoundary(_shareCardKey)가 위젯 트리에서
-                    // 제거되어(dispose) currentContext가 null이 되어버렸다.
-                    // 이 때문에 _captureAndShare()가 조용히 return하며 아무
-                    // 공유도 일어나지 않는 것이 실제 "공유하기 안 됨" 버그의
-                    // 원인이었다. 바텀시트가 아직 열려있는 이 시점에 먼저
-                    // 캡처를 완료한 뒤, 그 다음에 시트를 닫고 공유 시트를
-                    // 띄운다.
-                    await _captureAndShare(ctx);
-                  },
-                  child: Text('이미지로 공유하기', style: OzTypography.ctaLabel()),
                 ),
-              ),
-              const SizedBox(height: OzTokens.spaceMd),
-              // [결과 공유 기능 — sintong-share-proposal.pdf] 이미지 캡처
-              // 공유(기존 기능, 변경 없음)와 별개로, 앱 설치 여부와 무관하게
-              // 열람 가능한 `/r/{shareId}` 웹 링크를 만들어 공유하는 새 경로.
-              // 카카오톡 등에서 링크를 누르면 OG 카드 미리보기가 뜨고,
-              // 앱이 설치돼 있으면 App Links로 바로 앱이 열린다(미설치
-              // 시에는 SSR 웹페이지로 열람 가능).
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: OzColors.gold),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(OzTokens.radiusPill),
+                const SizedBox(height: OzTokens.spaceLg),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: OzColors.gold,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          OzTokens.radiusPill,
+                        ),
+                      ),
+                    ),
+                    onPressed: () async {
+                      // [8가지 버그 리포트 §1 수정] 기존에는 바텀시트를 먼저
+                      // pop()한 뒤 캡처를 시도했는데, pop() 즉시 이 바텀시트
+                      // 안에 있던 RepaintBoundary(_shareCardKey)가 위젯 트리에서
+                      // 제거되어(dispose) currentContext가 null이 되어버렸다.
+                      // 이 때문에 _captureAndShare()가 조용히 return하며 아무
+                      // 공유도 일어나지 않는 것이 실제 "공유하기 안 됨" 버그의
+                      // 원인이었다. 바텀시트가 아직 열려있는 이 시점에 먼저
+                      // 캡처를 완료한 뒤, 그 다음에 시트를 닫고 공유 시트를
+                      // 띄운다.
+                      await _captureAndShare(ctx);
+                    },
+                    child: Text('이미지로 공유하기', style: OzTypography.ctaLabel()),
+                  ),
+                ),
+                const SizedBox(height: OzTokens.spaceMd),
+                // [결과 공유 기능 — sintong-share-proposal.pdf] 이미지 캡처
+                // 공유(기존 기능, 변경 없음)와 별개로, 앱 설치 여부와 무관하게
+                // 열람 가능한 `/r/{shareId}` 웹 링크를 만들어 공유하는 새 경로.
+                // 카카오톡 등에서 링크를 누르면 OG 카드 미리보기가 뜨고,
+                // 앱이 설치돼 있으면 App Links로 바로 앱이 열린다(미설치
+                // 시에는 SSR 웹페이지로 열람 가능).
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: OzColors.gold),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          OzTokens.radiusPill,
+                        ),
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      _shareResultLink(view);
+                    },
+                    child: Text(
+                      '링크로 공유하기',
+                      style: OzTypography.ctaLabel(color: OzColors.gold),
                     ),
                   ),
-                  onPressed: () {
-                    Navigator.of(ctx).pop();
-                    _shareResultLink(view);
-                  },
-                  child: Text(
-                    '링크로 공유하기',
-                    style: OzTypography.ctaLabel(color: OzColors.gold),
-                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -264,10 +290,9 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
         name: 'tarot_share_${DateTime.now().millisecondsSinceEpoch}.png',
       );
 
-      await Share.shareXFiles(
-        [file],
-        text: '타로 카드 풀이 결과를 확인해보세요! · Fortune Fusion',
-      );
+      await Share.shareXFiles([
+        file,
+      ], text: '타로 카드 풀이 결과를 확인해보세요! · Fortune Fusion');
     } catch (e) {
       if (!popped && sheetContext.mounted) {
         Navigator.of(sheetContext).pop();
@@ -885,7 +910,10 @@ class _ResultContent extends StatelessWidget {
         _Reveal(
           t: t,
           start: 0.27,
-          child: _AiReadingCard(text: result.summary, label: view.aiReadingLabel),
+          child: _AiReadingCard(
+            text: result.summary,
+            label: view.aiReadingLabel,
+          ),
         ),
         const SizedBox(height: OzTokens.spaceLg),
         // ③ 상세 리딩
@@ -899,11 +927,11 @@ class _ResultContent extends StatelessWidget {
                   start: 0.34 + i * 0.04,
                   fadeSpan: 0.14,
                   child: _PositionCard(
-                  position: result.positions[i],
-                  index: i,
-                  topic: result.topic,
-                  resultId: result.id,
-                ),
+                    position: result.positions[i],
+                    index: i,
+                    topic: result.topic,
+                    resultId: result.id,
+                  ),
                 ),
               ),
           ],
@@ -913,7 +941,11 @@ class _ResultContent extends StatelessWidget {
         _Reveal(
           t: t,
           start: 0.58,
-          child: _InfoTile(icon: '🧭', label: view.adviceLabel, content: view.advice),
+          child: _InfoTile(
+            icon: '🧭',
+            label: view.adviceLabel,
+            content: view.advice,
+          ),
         ),
         const SizedBox(height: OzTokens.spaceMd),
         // ⑤ 행운의 색 / ⑥ 행운의 숫자
@@ -1630,10 +1662,8 @@ class _PositionCard extends StatelessWidget {
           topic: topic,
           resultId: resultId,
         ),
-        transitionsBuilder: (_, animation, __, child) => FadeTransition(
-          opacity: animation,
-          child: child,
-        ),
+        transitionsBuilder: (_, animation, __, child) =>
+            FadeTransition(opacity: animation, child: child),
       ),
     );
   }
@@ -1681,9 +1711,7 @@ class _PositionDetailSheet extends StatelessWidget {
             onTap: () => Navigator.of(context).pop(),
             behavior: HitTestBehavior.opaque,
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: OzTokens.spaceLg,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: OzTokens.spaceLg),
               child: GestureDetector(
                 onTap: () {},
                 child: ConstrainedBox(
@@ -1734,10 +1762,7 @@ class _PositionDetailSheet extends StatelessWidget {
                               gradient: const LinearGradient(
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
-                                colors: [
-                                  Color(0xFF4A3378),
-                                  Color(0xFF2A1A5C),
-                                ],
+                                colors: [Color(0xFF4A3378), Color(0xFF2A1A5C)],
                               ),
                               borderRadius: BorderRadius.circular(
                                 OzTokens.radiusLg,
