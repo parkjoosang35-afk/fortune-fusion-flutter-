@@ -66,9 +66,7 @@ class _FaceResultScreenState extends State<FaceResultScreen> {
                   hanja: '觀',
                   hanjaColor: SintongColors.stampGuan,
                   title: '觀相 · REPORT',
-                  onBack: canGoBack
-                      ? () => Navigator.of(context).pop()
-                      : null,
+                  onBack: canGoBack ? () => Navigator.of(context).pop() : null,
                   onShare: state.isSuccess
                       ? () => _shareResult(context, state.data!)
                       : null,
@@ -144,6 +142,18 @@ class _FaceResultScreenState extends State<FaceResultScreen> {
   /// 시트로 전달한다. [payload]에는 화면 표시용 요약 값만 담고, 원본 촬영
   /// 사진/실명 등 민감정보는 절대 포함하지 않는다(제안서 (h)절 보안 원칙).
   void _shareResult(BuildContext context, FaceResultModel result) {
+    // [결과 공유 링크 콘텐츠 부실 버그 수정 — 타로와 동일 원칙 적용]
+    // 기존에는 topicResults 상위 3개만 담아 부위별 특징(features, 이마/눈/
+    // 코/입/턱 등)이 전혀 노출되지 않았다. 관상은 부위별 특징 해석이
+    // 핵심이므로 features도 highlights에 포함해 링크만으로 충분한 맥락을
+    // 전달한다(서버 payload 상한 4000자 대비 features+topicResults 합쳐도
+    // 여유 있음).
+    final featureLines = result.features.entries
+        .map((e) => '${e.key}: ${e.value}')
+        .toList();
+    final topicLines = result.topicResults.entries
+        .map((e) => '${e.key}: ${e.value}')
+        .toList();
     ShareService.shareResult(
       context,
       resultType: ShareResultType.face,
@@ -151,10 +161,7 @@ class _FaceResultScreenState extends State<FaceResultScreen> {
       description: result.summary,
       payload: {
         'summary': result.summary,
-        'highlights': result.topicResults.entries
-            .take(3)
-            .map((e) => '${e.key}: ${e.value}')
-            .toList(),
+        'highlights': [...featureLines, ...topicLines],
       },
       sourceRefId: result.id,
     );

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../widgets/app_toast.dart';
+import 'web_native_share.dart';
 
 /// [공유 페이지 net::ERR_UNKNOWN_URL_SCHEME 버그 근본 수정 — 2026-12]
 ///
@@ -36,8 +37,19 @@ import '../widgets/app_toast.dart';
 /// 다운로드로 안전하게 폴백하므로 이 버그와 무관 — 텍스트 전용
 /// `Share.share()`만 위험하다).
 ///
-/// [해결 원칙] 웹에서는 `Share.share()`(텍스트)를 절대 신뢰하지 않고,
-/// 곧바로 클립보드 복사 + 안내 토스트로 확정적으로 완료한다. 네이티브
+/// [해결 원칙 — 2026-12 수정, 2027-01 UX 불일치 버그 재수정]
+/// 웹에서는 `share_plus`의 `Share.share()`(텍스트)를 절대 호출하지
+/// 않는다 — 그 구현이 `navigator.canShare()`가 없는 브라우저를 만나면
+/// `mailto:` 스킴을 새 탭에 열려다 실패하는 버그가 있었기 때문이다.
+/// 그렇다고 웹에서 무조건 클립보드로만 보내면, 같은 결과 화면의
+/// "이미지로 공유하기"(`Share.shareXFiles()` 경로는 네이티브 Web Share
+/// API를 실제로 시도해 카카오톡 등 공유 대상 목록이 뜬다)와 달리
+/// "링크로 공유하기"만 아무 시트도 없이 조용히 끝나 사용자가 "왜 하나만
+/// 안 되냐"고 혼란스러워하는 일관성 버그가 생긴다. 그래서 웹에서도
+/// `web_native_share.dart`(이 파일이 직접 `navigator.canShare()`를 먼저
+/// 확인한 뒤에만 `navigator.share()`를 시도 — `share_plus`를 거치지
+/// 않으므로 `mailto:` 버그와 무관)로 네이티브 공유 시트를 먼저 시도하고,
+/// 그것이 지원되지 않거나 실패한 경우에만 클립보드로 폴백한다. 네이티브
 /// (Android/iOS)에서는 기존처럼 `Share.share()`를 먼저 시도하고, 실패
 /// 시에만 클립보드로 폴백한다.
 Future<void> safeShareText(
@@ -54,10 +66,14 @@ Future<void> safeShareText(
   }
 
   if (kIsWeb) {
-    // [근본 수정] Share.share()를 아예 시도하지 않는다 — canShare()가
-    // 없는 브라우저를 만나면 위 버그 그대로 mailto: 새 탭 시도로 이어져
-    // 조용히 실패(또는 에러 화면)하기 때문. 클립보드 복사는 모든 웹
-    // 환경에서 100% 동작이 보장되는 유일한 방법이다.
+    // [UX 일관성 수정] `share_plus`의 `Share.share()`는 여전히 호출하지
+    // 않는다(mailto: 버그 재발 방지). 대신 이 프로젝트가 직접 구현한
+    // `tryNativeWebShare()`로 `navigator.canShare()`를 먼저 확인해 안전한
+    // 경우에만 네이티브 공유 시트를 띄운다.
+    final shared = await tryNativeWebShare(text, subject: subject);
+    if (shared) return;
+    // 네이티브 공유가 지원되지 않거나(구형 브라우저) 사용자가 취소한
+    // 경우에만 클립보드로 확정적으로 폴백한다.
     await copyAndToast(copiedMessage);
     return;
   }

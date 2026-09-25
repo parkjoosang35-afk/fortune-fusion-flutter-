@@ -23,7 +23,7 @@ import 'oz/widgets/oz_background.dart';
 import 'tarot_deep_dive_screen.dart';
 import 'theme/tarot_perf_config.dart';
 import 'widgets/tarot_particle_burst.dart';
-import 'widgets/tarot_share_card.dart';
+import 'widgets/tarot_share_report_card.dart';
 
 /// [타로 오즈 리스킨 · 화면07 RESULT] 결과 화면.
 ///
@@ -145,21 +145,16 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
                   style: OzTypography.sectionTitle(fontSize: 18),
                 ),
                 const SizedBox(height: OzTokens.spaceLg),
+                // [결과 공유 콘텐츠 부실 버그 수정] 카드 한 장짜리
+                // 미니카드(TarotShareCard, 삭제됨)가 아니라, 질문/카드/
+                // 한줄운세/AI 카드풀이/포지션별 해석/조언/행운의 색·숫자/
+                // AI 한마디까지 담는 [TarotShareReportCard]로 교체 —
+                // 실제 결과화면과 동등한 정보량을 이미지 한 장에 압축한다.
                 ClipRRect(
                   borderRadius: BorderRadius.circular(OzTokens.radiusLg),
                   child: RepaintBoundary(
                     key: _shareCardKey,
-                    child: TarotShareCard(
-                      cardIcon: view.heroCard.icon,
-                      cardImagePath: view.heroCard.imageAssetPath,
-                      cardName: view.heroCard.nameKr,
-                      isReversed: view.heroCard.isReversed,
-                      oneLiner: view.oneLiner,
-                      luckyColorName: view.luckyColorName,
-                      luckyColor: view.luckyColor,
-                      luckyNumber: view.luckyNumber,
-                      nickname: nickname,
-                    ),
+                    child: TarotShareReportCard(view: view, nickname: nickname),
                   ),
                 ),
                 const SizedBox(height: OzTokens.spaceLg),
@@ -229,16 +224,37 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
 
   /// [결과 공유 기능] `POST /api/public/share`로 공유 링크를 생성한 뒤 OS
   /// 공유 시트로 전달한다. [payload]에는 화면 표시용 요약 값만 담고, 질문
-  /// 원문/실명 등 민감정보는 절대 포함하지 않는다(제안서 (h)절 보안 원칙).
+  /// 원문(사용자가 자유 입력한 질문이 아니라 카테고리 질문인 경우만 담음
+  /// — 자유입력 질문은 실명/신상 정보가 섞일 수 있어 여전히 제외)/실명
+  /// 등 민감정보는 절대 포함하지 않는다(제안서 (h)절 보안 원칙).
+  ///
+  /// [결과 공유 링크 콘텐츠 부실 버그 수정] 기존에는 한줄운세 + 행운의
+  /// 색/숫자 2줄뿐이라 `/r/{shareId}` 링크를 받은 사람이 "이게 뭐지"
+  /// 싶을 만큼 정보가 부족했다("자기 타로 보고 잘 맞는다하고 지인들한테
+  /// 보내는건데 받은 사람들은 이게 모지?하고 하겟지" — 사용자 리포트).
+  /// 서버 payload 상한(4000자, `SHARE_PAYLOAD_MAX_LENGTH`)을 넘지 않는
+  /// 범위에서 AI 카드풀이(총평)·포지션별 해석(최대 3개)·오늘의 조언까지
+  /// highlights에 추가해, 앱을 설치하지 않아도 웹 링크만으로 실제 타로
+  /// 결과를 충분히 파악할 수 있게 한다.
   void _shareResultLink(TarotResultView view) {
+    final result = view.result;
+    final positionHighlights = result.positions
+        .take(3)
+        .map((p) => '${p.label}: ${p.interpretation}')
+        .toList();
     ShareService.shareResult(
       context,
       resultType: ShareResultType.tarot,
       title: '${view.heroCard.nameKr} · 신통방통 타로',
       description: view.oneLiner,
       payload: {
-        'summary': view.oneLiner,
+        'question': result.question,
+        'cardName':
+            '${view.heroCard.nameKr}${view.heroCard.isReversed ? " (역방향)" : ""}',
+        'summary': result.summary,
         'highlights': [
+          ...positionHighlights,
+          '${view.adviceLabel}: ${view.advice}',
           '행운의 색: ${view.luckyColorName}',
           '행운의 숫자: ${view.luckyNumber}',
         ],
@@ -275,7 +291,7 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
         return;
       }
       final image = await boundary.toImage(
-        pixelRatio: TarotShareCard.capturePixelRatio,
+        pixelRatio: TarotShareReportCard.capturePixelRatio,
       );
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       final bytes = byteData!.buffer.asUint8List();

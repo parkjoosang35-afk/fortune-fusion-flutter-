@@ -64,9 +64,7 @@ class _PalmResultScreenState extends State<PalmResultScreen> {
                   hanja: '紋',
                   hanjaColor: SintongColors.stampMun,
                   title: '手紋 · REPORT',
-                  onBack: canGoBack
-                      ? () => Navigator.of(context).pop()
-                      : null,
+                  onBack: canGoBack ? () => Navigator.of(context).pop() : null,
                   onShare: state.isSuccess
                       ? () => _shareResult(context, state.data!)
                       : null,
@@ -142,6 +140,15 @@ class _PalmResultScreenState extends State<PalmResultScreen> {
   /// 시트로 전달한다. [payload]에는 화면 표시용 요약 값만 담고, 원본 촬영
   /// 사진/실명 등 민감정보는 절대 포함하지 않는다(제안서 (h)절 보안 원칙).
   void _shareResult(BuildContext context, PalmResultModel result) {
+    // [결과 공유 링크 콘텐츠 부실 버그 수정 — 타로/관상과 동일 원칙 적용]
+    // 손금은 lines(생명선/두뇌선/감정선/운명선)가 핵심 해석 대상이므로
+    // topicResults 3개만이 아니라 lines 전체도 highlights에 포함한다.
+    final lineLines = result.lines.entries
+        .map((e) => '${e.key}: ${e.value}')
+        .toList();
+    final topicLines = result.topicResults.entries
+        .map((e) => '${e.key}: ${e.value}')
+        .toList();
     ShareService.shareResult(
       context,
       resultType: ShareResultType.palm,
@@ -149,10 +156,7 @@ class _PalmResultScreenState extends State<PalmResultScreen> {
       description: result.summary,
       payload: {
         'summary': result.summary,
-        'highlights': result.topicResults.entries
-            .take(3)
-            .map((e) => '${e.key}: ${e.value}')
-            .toList(),
+        'highlights': [...lineLines, ...topicLines],
       },
       sourceRefId: result.id,
     );
