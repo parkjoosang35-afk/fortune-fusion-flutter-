@@ -162,7 +162,7 @@ class SajuResultV3 {
     required this.tenGods, required this.sinsal, required this.gongmang,
     required this.luckPillars, this.currentLuck, required this.zhiQigan,
     required this.twelveStages, required this.relations, required this.yongshin,
-    required this.policy,
+    this.dayunPrecise, required this.policy,
   });
 
   factory SajuResultV3.fromJson(Map<String, dynamic> j) {
@@ -181,8 +181,9 @@ class SajuResultV3 {
         'details': j['strength_details'] ?? [],
       }),
       fiveElementsCount: Map<String, int>.from(j['five_elements_count'] ?? {}),
-      fiveElementsWeighted: (j['five_elements_weighted'] ?? {})
-          .map<String, double>((k, v) => MapEntry(k, (v as num).toDouble())),
+      fiveElementsWeighted: Map<String, dynamic>.from(
+        j['five_elements_weighted'] ?? {},
+      ).map<String, double>((k, v) => MapEntry(k, (v as num).toDouble())),
       tenGods: Map<String, String>.from(j['ten_gods'] ?? {}),
       sinsal: List<String>.from(j['sinsal'] ?? []),
       gongmang: j['gongmang'] ?? '',

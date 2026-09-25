@@ -61,7 +61,7 @@ class InterpretationResult {
     final nested = json['result'] is Map
         ? Map<String, dynamic>.from(json['result'] as Map)
         : null;
-    final body = nested != null ? {...json}..remove('result') : json;
+    final body = nested != null ? ({...json}..remove('result')) : json;
     final src = nested != null ? {...body, ...nested} : body;
     return InterpretationResult(
       headline: (src['headline'] ?? '').toString(),

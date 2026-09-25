@@ -19,6 +19,12 @@ import 'features/attendance/application/attendance_provider.dart';
 import 'features/attendance/data/attendance_repository.dart';
 import 'features/fortune/saju/application/saju_provider.dart';
 import 'features/fortune/saju/data/saju_repository.dart';
+// [정통사주 v3 연동 - 2차 지시서 옵션 2] 엔진 서버(69종 실계산 + AI 해석 폴백)
+// 전용 독립 Provider. 기존 saju(80종 로컬/AI 경로)와 완전히 분리된 신규 기능이며,
+// jeontong_eighty_*(기존 로컬 80종 계산기)는 이 작업 범위 밖이라 건드리지 않는다.
+import 'features/fortune/saju_v3/application/saju_v3_provider.dart';
+import 'features/fortune/saju_v3/data/saju_v3_api.dart';
+import 'core/config/env_config.dart';
 import 'features/fortune/tarot/application/tarot_provider.dart';
 import 'features/fortune/tarot/application/tarot_session_controller.dart';
 import 'features/fortune/tarot/application/tarot_audio_controller.dart';
@@ -173,6 +179,21 @@ class App extends StatelessWidget {
         ),
         // ── 기능별 Provider ──
         ChangeNotifierProvider(create: (_) => SajuProvider(SajuRepository())),
+        // [정통사주 v3 - 2차 지시서 옵션 2] 서버 엔진(69종 실계산) 전용 Provider.
+        // baseUrl은 EnvConfig.adminApiBaseUrl 기반으로 조립한다(하드코딩 금지).
+        // freePassProvider는 현재 실제 발급 소스가 없는 임시 브릿지이며(완료
+        // 보고서에 기재된 인증 불일치 이슈), 추후 백엔드 인증 통합 결정에 따라
+        // AuthTokenStore 등으로 교체될 예정이다.
+        ChangeNotifierProvider(
+          create: (_) => SajuV3Provider(
+            SajuV3Api(
+              // SajuV3Api 내부 메서드가 이미 '/saju/v3/...' 전체 경로를 쓰므로
+              // 여기서는 admin_web 루트 도메인만 넘긴다(중복 접두 방지).
+              baseUrl: EnvConfig.adminApiBaseUrl,
+              freePassProvider: () => null,
+            ),
+          ),
+        ),
         ChangeNotifierProvider(create: (_) => TarotProvider(TarotRepository())),
         // [타로 리뉴얼] 타로 세션 흐름(카테고리 선택→질문→셔플→카드선택→결과)
         // 전용 상태머신. 기존 TarotProvider(결과 조회/히스토리)와 책임 분리.
@@ -379,6 +400,9 @@ class _LogoutCallbackRegistrarState extends State<_LogoutCallbackRegistrar> {
       context.read<NameFortuneProvider>().clearOnLogout,
     );
     auth.registerLogoutCallback(context.read<SajuProvider>().clearOnLogout);
+    // [정통사주 v3 - 개인정보(생년월일시) 잔존 방지] SajuProvider와 동일한
+    // 취지로 로그아웃 시 v3 계산 결과/생년월일시 상태를 초기화한다.
+    auth.registerLogoutCallback(context.read<SajuV3Provider>().clearOnLogout);
   }
 
   @override
