@@ -454,16 +454,24 @@ class _WishWallDetailScreenState extends State<WishWallDetailScreen> {
   /// 게시판 원칙(작성자 실명/authorId 등)을 지켜 개인정보를 포함하지
   /// 않는다(제안서 (h)절 보안 원칙 — 소원 원문도 타인의 사적 고백일 수
   /// 있어 요약(최대 80자)만 노출한다).
+  ///
+  /// [결과 공유 링크 콘텐츠 부실 버그 수정 — 타로/관상/손금/사주와 동일
+  /// 원칙] 소원 원문 자체는 최대 140자(작성 화면 `_maxLen` 제한, 이미
+  /// 짧음)라 80자로 추가 절삭할 필요가 없다 — 응원/기도 수 같은 공개
+  /// 카운트도 highlights에 함께 담아 "이게 뭐지" 없이 소원방 게시글의
+  /// 분위기를 그대로 전달한다.
   void _shareWish(BuildContext context, WishPost wish) {
-    final summary = wish.text.trim().length > 80
-        ? '${wish.text.trim().substring(0, 80)}...'
-        : wish.text.trim();
+    final summary = wish.text.trim();
     ShareService.shareResult(
       context,
       resultType: ShareResultType.wish,
       title: '${wish.categoryId.label} 소원 · 신통방통',
       description: summary,
-      payload: {'category': wish.categoryId.label, 'summary': summary},
+      payload: {
+        'category': wish.categoryId.label,
+        'summary': summary,
+        'highlights': ['응원 ${wish.supportCount}개 · 기도 ${wish.prayerCount}번'],
+      },
       sourceRefId: wish.id,
     );
   }

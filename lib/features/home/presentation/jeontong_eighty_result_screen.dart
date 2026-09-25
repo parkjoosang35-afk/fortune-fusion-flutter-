@@ -963,11 +963,9 @@ Widget? _tryBuildDawnResultPage(
       ),
       topBanners: topBanners,
       onBack: () => Navigator.of(context).pop(),
-      onRelatedTap: (r) =>
-          Navigator.of(context).pushNamed(
-            JeontongEightyMatrix.resultRoute,
-            arguments: r.code,
-          ),
+      onRelatedTap: (r) => Navigator.of(
+        context,
+      ).pushNamed(JeontongEightyMatrix.resultRoute, arguments: r.code),
       onPrimaryAction: () => Navigator.of(context).pushNamedAndRemoveUntil(
         JeontongEightyMatrix.browseRoute,
         (route) => route.settings.name == '/home',
@@ -1341,6 +1339,17 @@ JeontongDeepReportData? _buildDeepReportDataForCategory(
 /// 버튼 핸들러. `POST /api/public/share`로 공유 링크를 생성한 뒤 OS 공유
 /// 시트로 전달한다. [payload]에는 화면 표시용 요약 값만 담고, 생년월일
 /// 원본/실명 등 민감정보는 절대 포함하지 않는다(제안서 (h)절 보안 원칙).
+///
+/// [결과 공유 링크 콘텐츠 부실 버그 수정 — 타로/관상/손금과 동일 원칙]
+/// 기존에는 headline + overview 한 문단뿐이라 "평생 자녀운" 같은 결과를
+/// 공유해도 받는 사람이 문장 하나만 보고 맥락을 전혀 이해할 수 없었다
+/// ("받은 사람들은 이게 모지?하고 하겟지" — 사용자 리포트). [report]의
+/// [AspectSection](세부 운세), [ListSection](조언/추천), [LuckySection]
+/// (행운 요소)까지 모두 highlights에 담아 이 결과 화면에 실제로 보이는
+/// 정보량과 동등한 수준으로 링크만으로도 파악할 수 있게 한다. 이 화면은
+/// requiresPass 여부와 무관하게 report.sections 전체를 이미 무조건
+/// 렌더링하므로(위 build() 참조, 별도 잠금 카드 없음) 여기서 모든 섹션을
+/// 담아도 열림패스로 잠긴 콘텐츠를 우회 노출하는 것이 아니다.
 void _shareJeontongResult(
   BuildContext context,
   JeontongCategoryEntry entry,
@@ -1350,6 +1359,18 @@ void _shareJeontongResult(
       .sectionsOfType<OverviewSection>()
       .map((s) => s.body)
       .firstOrNull;
+  final aspectLines = report
+      .sectionsOfType<AspectSection>()
+      .map((s) => '${s.title}: ${s.body}')
+      .toList();
+  final listLines = report
+      .sectionsOfType<ListSection>()
+      .expand((s) => s.items.map((item) => '${s.title}: $item'))
+      .toList();
+  final luckyLines = report
+      .sectionsOfType<LuckySection>()
+      .expand((s) => s.items.map((item) => '${item.label}: ${item.value}'))
+      .toList();
   ShareService.shareResult(
     context,
     resultType: ShareResultType.fortune,
@@ -1359,6 +1380,7 @@ void _shareJeontongResult(
       'category': entry.title,
       'headline': report.hero.headline,
       'summary': overviewBody ?? report.hero.subDescription ?? '',
+      'highlights': [...aspectLines, ...listLines, ...luckyLines],
     },
     sourceRefId: entry.id,
   );

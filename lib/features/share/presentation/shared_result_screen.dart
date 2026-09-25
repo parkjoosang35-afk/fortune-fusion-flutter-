@@ -77,10 +77,21 @@ class _SharedResultScreenState extends State<SharedResultScreen> {
   }
 
   Widget _buildResult(BuildContext context, SharedResultDto shared) {
+    // [결과 공유 링크 콘텐츠 부실 버그 수정] 기존에는 highlights만 단순
+    // 나열해, 타로의 question/cardName처럼 서버 payload를 확장하며 새로
+    // 추가한 키들이 화면에 전혀 표시되지 않았다("자기 타로 보고 잘
+    // 맞는다하고 지인들한테 보내는건데 받은 사람들은 이게 모지?하고
+    // 하겟지" — 사용자 리포트). resultType별로 알려진 추가 키
+    // (question/cardName — 타로 전용)까지 화이트리스트로 인식해 요약
+    // 바로 아래에 노출하고, highlights는 여전히 그 다음에 전체를 보여준다
+    // (기존 6줄 상한 없이 전부 표시 — 앱 쪽은 SSR 웹처럼 초기 로딩
+    // 대역폭 제약이 없으므로 굳이 자르지 않는다).
     final payload = shared.payload ?? const {};
     final highlights = (payload['highlights'] as List?)
         ?.map((e) => e.toString())
         .toList();
+    final question = payload['question'] as String?;
+    final cardName = payload['cardName'] as String?;
     return ListView(
       padding: const EdgeInsets.all(UnifiedTokens.spaceXl),
       children: [
@@ -88,6 +99,22 @@ class _SharedResultScreenState extends State<SharedResultScreen> {
         const SizedBox(height: UnifiedTokens.spaceXs),
         Text(shared.title, style: UnifiedText.titleLarge()),
         const SizedBox(height: UnifiedTokens.spaceMd),
+        if (cardName != null && cardName.isNotEmpty) ...[
+          Text(
+            '카드: $cardName',
+            style: UnifiedText.body().copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: UnifiedTokens.spaceSm),
+        ],
+        if (question != null && question.isNotEmpty) ...[
+          Text(
+            '질문: $question',
+            style: UnifiedText.body().copyWith(
+              color: UnifiedColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: UnifiedTokens.spaceMd),
+        ],
         Container(
           padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
           decoration: BoxDecoration(
@@ -107,15 +134,13 @@ class _SharedResultScreenState extends State<SharedResultScreen> {
         ],
         const SizedBox(height: UnifiedTokens.spaceXl),
         if (shared.ownerNickname != null)
-          Text(
-            '${shared.ownerNickname}님이 공유했어요',
-            style: UnifiedText.caption(),
-          ),
+          Text('${shared.ownerNickname}님이 공유했어요', style: UnifiedText.caption()),
         const SizedBox(height: UnifiedTokens.spaceLg),
         Center(
           child: TextButton(
-            onPressed: () =>
-                Navigator.of(context).pushNamedAndRemoveUntil('/home', (r) => false),
+            onPressed: () => Navigator.of(
+              context,
+            ).pushNamedAndRemoveUntil('/home', (r) => false),
             child: const Text('신통방통 홈으로 가기'),
           ),
         ),
