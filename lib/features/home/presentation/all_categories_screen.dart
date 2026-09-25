@@ -881,6 +881,12 @@ _categoryGroups = [
       // 부적게이트를 먼저 거친다.
       (label: '정통사주', route: JeontongEightyMatrix.gateRoute, pass: true),
       (label: 'AI 사주', route: '/ai-fortune/saju/input', pass: true),
+      // [정통사주 v3 - 4차 지시서 항목②] 신규 엔진 서버(69종 실계산) 베타
+      // 진입점. 기존 "정통사주"(jeontong_eighty_*, 위 항목)와는 완전히
+      // 별개 화면/라우트이며, 그 항목은 이 추가와 무관하게 그대로 둔다.
+      // 엔진 자체 접근제어(X-Free-Pass)를 쓰므로 앱 프리패스 게이트는
+      // 통과시키지 않는다(pass: false).
+      (label: '정통사주 v3 (베타)', route: '/saju/v3', pass: false),
     ],
   ),
   (

@@ -179,18 +179,24 @@ class App extends StatelessWidget {
         ),
         // ── 기능별 Provider ──
         ChangeNotifierProvider(create: (_) => SajuProvider(SajuRepository())),
-        // [정통사주 v3 - 2차 지시서 옵션 2] 서버 엔진(69종 실계산) 전용 Provider.
-        // baseUrl은 EnvConfig.adminApiBaseUrl 기반으로 조립한다(하드코딩 금지).
-        // freePassProvider는 현재 실제 발급 소스가 없는 임시 브릿지이며(완료
-        // 보고서에 기재된 인증 불일치 이슈), 추후 백엔드 인증 통합 결정에 따라
-        // AuthTokenStore 등으로 교체될 예정이다.
+        // [정통사주 v3 - 4차 지시서 항목③ 인증 연결] 서버 엔진(69종
+        // 실계산) 전용 Provider. baseUrl은 EnvConfig.adminApiBaseUrl 기반으로
+        // 조립한다(하드코딩 금지). freePassProvider는 img2_인증연결가이드.png
+        // 그대로 EnvConfig.sajuFreePassToken(=--dart-define=SAJU_FREEPASS로만
+        // 주입되는 값)을 반환한다 — 앱의 표준 인증(AuthTokenStore, admin API용
+        // JWT Bearer)은 그대로 유지되고, 이 saju_v3 요청에만 X-Free-Pass가
+        // 추가로 실린다(두 인증 헤더는 서로 다른 서버/용도이므로 충돌 없음).
+        // 값이 비어 있으면(토큰 미주입) 헤더 자체가 생략되고 엔진 서버가
+        // 402로 안내한다 — 별도의 임시 우회 로직을 두지 않는다.
         ChangeNotifierProvider(
           create: (_) => SajuV3Provider(
             SajuV3Api(
               // SajuV3Api 내부 메서드가 이미 '/saju/v3/...' 전체 경로를 쓰므로
               // 여기서는 admin_web 루트 도메인만 넘긴다(중복 접두 방지).
               baseUrl: EnvConfig.adminApiBaseUrl,
-              freePassProvider: () => null,
+              freePassProvider: () => EnvConfig.sajuFreePassToken.isEmpty
+                  ? null
+                  : EnvConfig.sajuFreePassToken,
             ),
           ),
         ),

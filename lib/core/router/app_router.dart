@@ -101,6 +101,10 @@ import '../../features/guinji/presentation/guinji_map_ranking_screen.dart';
 // 도착 화면. `/g/{token}`(귀인지도 게스트 참여)과 동일한 패턴으로 named
 // route 진입 전 별도 분기 처리한다(아래 참고).
 import '../../features/share/presentation/shared_result_screen.dart';
+// [정통사주 v3 - 4차 지시서 항목②] 신규 엔진 서버(69종 실계산) 연동 진입점.
+// 기존 정통사주 80종(jeontong_eighty_*, JeontongEightyMatrix.*Route)과는
+// 완전히 별개이며, 그 라우트/화면은 이 작업으로 절대 수정하지 않는다.
+import '../../features/fortune/saju_v3/presentation/saju_v3_home_screen.dart';
 import 'package:provider/provider.dart';
 import '../auth/auth_token_store.dart';
 import 'app_navigator_key.dart';
@@ -488,6 +492,13 @@ class AppRouter {
 
       case '/my/fortune-records':
         return _page(const MyFortuneRecordsScreen());
+
+      // [정통사주 v3 - 4차 지시서 항목②] 신규 엔진 서버(69종 실계산) 연동
+      // 진입점. 기존 55개 case는 순서·내용 변경 없이 그대로 두고 이 1개만
+      // 추가한다(img1_라우트배치가이드.png 그대로). jeontong_eighty_*
+      // (기존 정통사주 80종)와는 완전히 별개이며 그 라우트/화면은 무수정.
+      case '/saju/v3':
+        return _page(const SajuV3HomeScreen());
 
       // ── [운섹션 87 카테고리 통합] 공용 결과 화면 ──
       // 전용 화면이 아직 없는 카테고리(K/V/O 일부/X/G/B/D/R)의 단일 진입점.
