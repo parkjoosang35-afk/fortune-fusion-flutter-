@@ -165,14 +165,18 @@ void main() {
         find.byKey(const ValueKey('jeontong_bookmark_toggle')),
         findsOneWidget,
       );
-      // 9 PART가 이름 개인화된 제목으로 모두 그려졌는지 확인
-      // (PART1/PART9는 조금 다른 문구 조합 — jeontong_v3_report_view.dart
-      // 의 _personalizedPartTitle 규칙과 동일).
-      expect(find.textContaining('홍길동의 사주, 한눈에 보기'), findsOneWidget);
+      // [2026-11 "주제에 맞는것만" 재수정] A01(평생 총운)은 PART9(종합
+      // 분석)에 대응하므로, 그 카드 하나만 그려지고 나머지 8개(PART1~8,
+      // "한눈에 보는 나" 등 무관한 축)는 화면에 전혀 노출되지 않아야 한다.
       expect(find.textContaining('홍길동의 사주 종합 분석'), findsOneWidget);
-      // A01은 PART9(종합 분석)에 대응하므로, 그 카드 안에 카테고리 심층
-      // 해석(interpret 결과)이 자연스럽게 엮여 있어야 한다.
+      expect(find.textContaining('홍길동의 사주, 한눈에 보기'), findsNothing);
+      expect(find.textContaining('홍길동의 타고난 성향'), findsNothing);
+      // PART9 카드 안에 카테고리 심층 해석(interpret 결과)이 자연스럽게
+      // 엮여 있어야 한다.
       expect(find.textContaining('A01 핵심 상세 분석 headline'), findsOneWidget);
+      // summary("~을 위한 한마디")도 9개 PART를 아우르는 무관한 요약이라
+      // 더 이상 노출하지 않는다.
+      expect(find.textContaining('을 위한 한마디'), findsNothing);
     },
   );
 

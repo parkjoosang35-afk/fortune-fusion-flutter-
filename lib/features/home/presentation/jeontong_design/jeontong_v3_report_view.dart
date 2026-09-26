@@ -93,6 +93,19 @@ class JeontongV3ReportView extends StatelessWidget {
     final report = reportState.data!;
     final focusPartNo = kJeontongCategoryToReportPartNo[entry.id];
     final interpret = interpretState.isSuccess ? interpretState.data : null;
+    // [버그 수정 — 2026-11 "주제에 맞는것만" 재수정] 9-PART는 "평생 총운"
+    // 하나를 볼 때만 의미가 있는 고정 스켈레톤이고, 나머지 68종 카테고리는
+    // 자기 주제와 무관한 나머지 8개 PART(오행 분포, 십성 배치, 관계 구조
+    // 등 JSON 나열 문구 포함)까지 전부 화면에 그대로 노출돼 사용자가 "개판"
+    // 이라고 느낀 원인이었다. 이제는 선택한 카테고리에 대응하는 PART
+    // 딱 하나만(있으면) 보여주고, 나머지 8개는 화면에 전혀 그리지 않는다.
+    // 대응 PART가 없는 카테고리(건강/궁합/개운 아이템)는 9-PART 카드를
+    // 아예 하나도 그리지 않고 [_JeontongV3StandaloneDeepDive] 하나만
+    // 보여준다. summary(9개 전체를 아우르는 한 문단)도 같은 이유로 뺀다
+    // — 주제와 무관한 다른 축 언급이 섞여 들어갈 수 있기 때문이다.
+    final focusedPart = focusPartNo == null
+        ? null
+        : report.report.parts.where((p) => p.no == focusPartNo).firstOrNull;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(
@@ -104,33 +117,21 @@ class JeontongV3ReportView extends StatelessWidget {
       children: [
         _JeontongV3StatusNotice(report: report),
         const SizedBox(height: HanjiSpacing.md),
-        for (final part in report.report.parts) ...[
+        if (focusedPart != null) ...[
           _JeontongV3PartCard(
-            part: part,
+            part: focusedPart,
             displayName: displayName,
-            isFocused: focusPartNo == part.no,
-            focusInterpret: focusPartNo == part.no ? interpret : null,
-            focusInterpretState: focusPartNo == part.no
-                ? interpretState
-                : null,
-            focusNarrativeState: focusPartNo == part.no
-                ? narrativeState
-                : null,
+            isFocused: true,
+            focusInterpret: interpret,
+            focusInterpretState: interpretState,
+            focusNarrativeState: narrativeState,
             onRetryInterpret: onRetryInterpret,
             onRetryNarrative: onRetryNarrative,
           ),
           const SizedBox(height: HanjiSpacing.md),
-        ],
-        if (report.report.summary.isNotEmpty) ...[
-          _JeontongV3SummaryCard(
-            displayName: displayName,
-            summary: report.report.summary,
-          ),
-          const SizedBox(height: HanjiSpacing.md),
-        ],
-        // [옵션 B] 9 PART 중 어느 것에도 대응하지 않는 카테고리(건강/궁합/
-        // 개운 아이템)는 9 PART 뒤에 별도 블록으로 심층 해석을 붙인다.
-        if (focusPartNo == null) ...[
+        ] else ...[
+          // [옵션 B] 9 PART 중 어느 것에도 대응하지 않는 카테고리(건강/궁합/
+          // 개운 아이템)는 이 카테고리 전용 심층 분석 블록 하나만 보여준다.
           _JeontongV3StandaloneDeepDive(
             entry: entry,
             displayName: displayName,
@@ -589,45 +590,6 @@ class _JeontongV3FocusDetail extends StatelessWidget {
           ),
         ],
       ],
-    );
-  }
-}
-
-class _JeontongV3SummaryCard extends StatelessWidget {
-  const _JeontongV3SummaryCard({
-    required this.displayName,
-    required this.summary,
-  });
-
-  final String displayName;
-  final String summary;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(HanjiSpacing.lg),
-      decoration: BoxDecoration(
-        color: HanjiColors.bg2,
-        borderRadius: BorderRadius.circular(HanjiRadii.card),
-        border: Border.all(color: HanjiColors.line),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '$displayName을 위한 한마디',
-            style: HanjiTextStyles.monoSmall(color: HanjiColors.accent),
-          ),
-          const SizedBox(height: HanjiSpacing.xs),
-          Text(
-            summary,
-            style: HanjiTextStyles.body(
-              color: HanjiColors.fg,
-            ).copyWith(fontStyle: FontStyle.italic),
-          ),
-        ],
-      ),
     );
   }
 }
