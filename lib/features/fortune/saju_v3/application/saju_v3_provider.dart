@@ -227,7 +227,7 @@ class SajuV3Provider extends ChangeNotifier {
     } on SajuV3ApiException catch (e) {
       _interpretStates[categoryCode] = LoadState.error(e.message);
     } catch (e) {
-      _interpretStates[categoryCode] = LoadState.error('AI 해석을 불러올 수 없습니다: $e');
+      _interpretStates[categoryCode] = LoadState.error('해석을 불러올 수 없습니다: $e');
     }
     notifyListeners();
   }
@@ -264,7 +264,7 @@ class SajuV3Provider extends ChangeNotifier {
     } on SajuV3ApiException catch (e) {
       _narrativeStates[categoryCode] = LoadState.error(e.message);
     } catch (e) {
-      _narrativeStates[categoryCode] = LoadState.error('AI 해석을 불러올 수 없습니다: $e');
+      _narrativeStates[categoryCode] = LoadState.error('해석을 불러올 수 없습니다: $e');
     }
     notifyListeners();
   }

@@ -138,8 +138,8 @@ class _Jeontong69DetailScreenState extends State<Jeontong69DetailScreen>
           unselectedLabelColor: Jt3Colors.moonSilver,
           tabs: const [
             Tab(text: '계산 결과'),
-            Tab(text: 'AI 해석'),
-            Tab(text: 'AI 해석(줄글)'),
+            Tab(text: '해석'),
+            Tab(text: '해석(줄글)'),
           ],
         ),
       ),

@@ -46,7 +46,7 @@ class _SajuV3ReportScreenState extends State<SajuV3ReportScreen> {
         backgroundColor: Jt3Colors.inkBlack,
         foregroundColor: Jt3Colors.royalGold,
         title: const Text(
-          'AI 장문 리포트 (베타)',
+          '장문 리포트 (베타)',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
       ),
@@ -232,7 +232,7 @@ class _ReportView extends StatelessWidget {
               ),
             ),
             child: Text(
-              'AI 해석 준비 중입니다 — 검증된 룰 기반 해석으로 보여드려요.',
+              '해석 준비 중입니다 — 검증된 룰 기반 해석으로 보여드려요.',
               style: TextStyle(
                 color: Jt3Colors.royalGold.withValues(alpha: 0.95),
                 fontSize: 13,

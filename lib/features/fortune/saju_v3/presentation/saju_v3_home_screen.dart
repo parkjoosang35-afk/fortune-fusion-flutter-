@@ -283,7 +283,7 @@ class _SajuV3HomeScreenState extends State<SajuV3HomeScreen> {
                     ),
                   ),
                   child: const Text(
-                    'AI 장문 리포트 보기 (베타)',
+                    '장문 리포트 보기 (베타)',
                     style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
                   ),
                 ),

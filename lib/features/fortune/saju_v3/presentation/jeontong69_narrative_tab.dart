@@ -65,7 +65,7 @@ class Jeontong69NarrativeTab extends StatelessWidget {
               border: Border.all(color: Colors.amber.shade200),
             ),
             child: Text(
-              'AI 해석 준비 중입니다 — 검증된 룰 기반 해석으로 보여드려요.',
+              '해석 준비 중입니다 — 검증된 룰 기반 해석으로 보여드려요.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
