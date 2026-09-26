@@ -25,7 +25,9 @@ import '../../../../core/theme/app_unified_style.dart';
 import '../../../../core/utils/load_state.dart';
 import '../../../../core/widgets/fortune/result_bottom_actions.dart';
 import '../../../fortune/saju_v3/domain/interpretation_result.dart';
+import '../../../fortune/saju_v3/domain/narrative_result.dart';
 import '../../../fortune/saju_v3/domain/saju_report.dart';
+import '../../../fortune/saju_v3/presentation/widgets/narrative_term_text.dart';
 import '../../domain/jeontong_eighty_matrix.dart';
 import '../../domain/jeontong_v3_report_mapping.dart';
 import 'hanji_design_tokens.dart';
@@ -43,8 +45,10 @@ class JeontongV3ReportView extends StatelessWidget {
     required this.displayName,
     required this.reportState,
     required this.interpretState,
+    required this.narrativeState,
     required this.onRetryReport,
     required this.onRetryInterpret,
+    required this.onRetryNarrative,
     this.onSave,
     this.onShare,
     this.onBrowseOthers,
@@ -58,8 +62,14 @@ class JeontongV3ReportView extends StatelessWidget {
 
   final LoadState<SajuReportResult> reportState;
   final LoadState<InterpretationResult> interpretState;
+  // [버그 수정 — 2026-09-27] 69종 "이야기형(줄글)" 해석
+  // (`/saju/v3/narrative`). 강조된 PART 카드 안의 "핵심 상세 분석"에서
+  // interpret(4블록 카드형)보다 우선해 이 줄글을 보여준다 — 사용자가
+  // 실제로 겪은 문제(관계 구조 JSON 그대로 노출)의 직접적인 수정.
+  final LoadState<NarrativeResult> narrativeState;
   final VoidCallback onRetryReport;
   final VoidCallback onRetryInterpret;
+  final VoidCallback onRetryNarrative;
 
   // [정통사주 69종 결과 화면 리뉴얼 — 6차 지시서] legacy 화면과 동일한
   // 저장/공유/다른 운세 하단 액션. null이면(위젯 테스트 등) 액션 바를
@@ -103,7 +113,11 @@ class JeontongV3ReportView extends StatelessWidget {
             focusInterpretState: focusPartNo == part.no
                 ? interpretState
                 : null,
+            focusNarrativeState: focusPartNo == part.no
+                ? narrativeState
+                : null,
             onRetryInterpret: onRetryInterpret,
+            onRetryNarrative: onRetryNarrative,
           ),
           const SizedBox(height: HanjiSpacing.md),
         ],
@@ -121,7 +135,9 @@ class JeontongV3ReportView extends StatelessWidget {
             entry: entry,
             displayName: displayName,
             interpretState: interpretState,
+            narrativeState: narrativeState,
             onRetry: onRetryInterpret,
+            onRetryNarrative: onRetryNarrative,
           ),
           const SizedBox(height: HanjiSpacing.md),
         ],
@@ -293,7 +309,9 @@ class _JeontongV3PartCard extends StatelessWidget {
     required this.isFocused,
     required this.focusInterpret,
     required this.focusInterpretState,
+    required this.focusNarrativeState,
     required this.onRetryInterpret,
+    required this.onRetryNarrative,
   });
 
   final SajuReportPart part;
@@ -301,7 +319,13 @@ class _JeontongV3PartCard extends StatelessWidget {
   final bool isFocused;
   final InterpretationResult? focusInterpret;
   final LoadState<InterpretationResult>? focusInterpretState;
+  // [버그 수정 — 2026-09-27] 강조된 PART일 때, 9-PART report의 원본
+  // paras(rule_fallback이면 "관계 구조(합충형파해 등): {"liuhe": [], ...}"
+  // 같은 JSON 나열 문구)를 사용자에게 그대로 보여주지 않고, 이 카테고리
+  // 전용으로 서버가 만들어준 이야기형 줄글(narrative.text)을 우선 노출한다.
+  final LoadState<NarrativeResult>? focusNarrativeState;
   final VoidCallback onRetryInterpret;
+  final VoidCallback onRetryNarrative;
 
   @override
   Widget build(BuildContext context) {
@@ -370,15 +394,53 @@ class _JeontongV3PartCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: HanjiSpacing.sm),
-          ...part.paras.map(
-            (p) => Padding(
+          // [버그 수정 — 2026-09-27] 강조된 카드에서 이야기형(줄글) 해석이
+          // 준비돼 있으면, 원본 9-PART paras(rule_fallback이면 JSON을 그대로
+          // 문자열로 박은 "관계 구조(합충형파해 등): {"liuhe": [], ...}" 같은
+          // 문구)를 사용자에게 노출하지 않고 그 자리에 자연스러운 줄글을
+          // 보여준다. 강조되지 않은 카드는 기존과 동일하게 paras 그대로.
+          if (isFocused &&
+              focusNarrativeState != null &&
+              (focusNarrativeState!.isLoading ||
+                  focusNarrativeState!.isInitial))
+            Padding(
               padding: const EdgeInsets.only(bottom: HanjiSpacing.xs + 2),
-              child: Text(
-                p,
+              child: Row(
+                children: [
+                  const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  const SizedBox(width: HanjiSpacing.sm),
+                  Text(
+                    '풀이를 준비하고 있어요...',
+                    style: HanjiTextStyles.body(color: HanjiColors.muted),
+                  ),
+                ],
+              ),
+            )
+          else if (isFocused &&
+              focusNarrativeState != null &&
+              focusNarrativeState!.isSuccess &&
+              (focusNarrativeState!.data?.text.trim().isNotEmpty ?? false))
+            Padding(
+              padding: const EdgeInsets.only(bottom: HanjiSpacing.xs + 2),
+              child: NarrativeTermText(
+                text: focusNarrativeState!.data!.text,
                 style: HanjiTextStyles.body(color: HanjiColors.fg),
               ),
+            )
+          else
+            ...part.paras.map(
+              (p) => Padding(
+                padding: const EdgeInsets.only(bottom: HanjiSpacing.xs + 2),
+                child: Text(
+                  p,
+                  style: HanjiTextStyles.body(color: HanjiColors.fg),
+                ),
+              ),
             ),
-          ),
           // [핵심 상세 분석 — 카테고리 심층 엮기] 사용자가 탭한 69종
           // 카테고리가 이 PART에 대응할 때만, interpret() 결과를 이 카드
           // 내부에 이어서 자연스럽게 엮는다. 별도 카드로 분리하지 않는다
@@ -579,16 +641,24 @@ class _JeontongV3StandaloneDeepDive extends StatelessWidget {
     required this.entry,
     required this.displayName,
     required this.interpretState,
+    required this.narrativeState,
     required this.onRetry,
+    required this.onRetryNarrative,
   });
 
   final JeontongCategoryEntry entry;
   final String displayName;
   final LoadState<InterpretationResult> interpretState;
+  final LoadState<NarrativeResult> narrativeState;
   final VoidCallback onRetry;
+  final VoidCallback onRetryNarrative;
 
   @override
   Widget build(BuildContext context) {
+    final narrativeText = narrativeState.isSuccess
+        ? narrativeState.data?.text.trim()
+        : null;
+    final hasNarrative = narrativeText != null && narrativeText.isNotEmpty;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(HanjiSpacing.lg),
@@ -611,6 +681,33 @@ class _JeontongV3StandaloneDeepDive extends StatelessWidget {
             ],
           ),
           const SizedBox(height: HanjiSpacing.sm),
+          // [버그 수정 — 2026-09-27] 건강/궁합/개운 아이템류(9 PART 대응
+          // 없음)도 이야기형 줄글(narrative)이 준비돼 있으면 우선 보여준다.
+          if (hasNarrative) ...[
+            NarrativeTermText(
+              text: narrativeText,
+              style: HanjiTextStyles.body(color: HanjiColors.fg),
+            ),
+            const SizedBox(height: HanjiSpacing.md),
+            Container(height: 1, color: HanjiColors.line),
+            const SizedBox(height: HanjiSpacing.md),
+          ] else if (narrativeState.isLoading || narrativeState.isInitial) ...[
+            Row(
+              children: [
+                const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                const SizedBox(width: HanjiSpacing.sm),
+                Text(
+                  '풀이를 준비하고 있어요...',
+                  style: HanjiTextStyles.body(color: HanjiColors.muted),
+                ),
+              ],
+            ),
+            const SizedBox(height: HanjiSpacing.md),
+          ],
           _JeontongV3FocusDetail(
             interpret: interpretState.isSuccess ? interpretState.data : null,
             state: interpretState,

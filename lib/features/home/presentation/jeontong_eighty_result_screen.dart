@@ -19,6 +19,7 @@ import '../../fortune/shared/domain/fortune_report_model.dart';
 import '../../fortune/saju_v3/data/saju_v3_api.dart';
 import '../../fortune/saju_v3/domain/birth_input.dart';
 import '../../fortune/saju_v3/domain/interpretation_result.dart';
+import '../../fortune/saju_v3/domain/narrative_result.dart';
 import '../../fortune/saju_v3/domain/saju_report.dart';
 import '../data/jeontong_bookmark_store.dart';
 import '../data/jeontong_history_store.dart';
@@ -194,6 +195,14 @@ class _JeontongEightyResultScreenState
   );
   LoadState<SajuReportResult> _reportState = const LoadState.initial();
   LoadState<InterpretationResult> _interpretState = const LoadState.initial();
+  // [버그 수정 — 2026-09-27] 지난 세션에 서버(`/saju/v3/narrative`)에는
+  // 69종 "이야기형(줄글)" 해석을 배포했으나, 실제 사용자가 보는 이 화면은
+  // 그 엔드포인트를 한 번도 호출하지 않고 있었다(다른 미사용 화면
+  // Jeontong69DetailScreen에만 연결돼 있었음). 그 결과 사용자는 계속
+  // `/saju/v3/report`의 rule_fallback 텍스트(JSON을 그대로 문자열로 박은
+  // "관계 구조: {"liuhe": [], ...}" 같은 문구)만 보게 됐다. 이 화면에서
+  // 직접 narrative를 호출해 자연스러운 줄글을 우선 노출한다.
+  LoadState<NarrativeResult> _narrativeState = const LoadState.initial();
 
   String get _userId =>
       (AuthTokenStore.cachedUserIdOrNull ?? AuthTokenStore.fallbackUserId)
@@ -223,6 +232,7 @@ class _JeontongEightyResultScreenState
     setState(() {
       _reportState = const LoadState.loading();
       _interpretState = const LoadState.loading();
+      _narrativeState = const LoadState.loading();
     });
 
     // [Future.wait 대신 개별 처리] 두 호출 중 하나가 실패해도 다른 하나는
@@ -230,6 +240,7 @@ class _JeontongEightyResultScreenState
     // 독립적인 try/catch로 분리한다.
     unawaited(_loadReport(birth, question));
     unawaited(_loadInterpret(birth, entry.id));
+    unawaited(_loadNarrative(birth, entry.id, question));
   }
 
   Future<void> _loadReport(BirthInput birth, String question) async {
@@ -267,6 +278,33 @@ class _JeontongEightyResultScreenState
     }
   }
 
+  // [버그 수정 — 2026-09-27] 69종 이야기형 해석(`/saju/v3/narrative`) 호출.
+  // 위 _loadReport/_loadInterpret와 동일한 패턴(독립 try/catch, 부분 실패
+  // 방어)을 그대로 따른다 — 새 구조를 만들지 않는다.
+  Future<void> _loadNarrative(
+    BirthInput birth,
+    String categoryCode,
+    String question,
+  ) async {
+    try {
+      final result = await _v3Api.getSajuV3Narrative(
+        birth,
+        categoryCode: categoryCode,
+        question: question,
+      );
+      if (!mounted) return;
+      setState(() => _narrativeState = LoadState.success(result));
+    } on SajuV3ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _narrativeState = LoadState.error(e.message));
+    } catch (e) {
+      if (!mounted) return;
+      setState(
+        () => _narrativeState = LoadState.error('이야기형 해석을 불러올 수 없습니다: $e'),
+      );
+    }
+  }
+
   void _retryReport(JeontongCategoryEntry entry) {
     if (_profile == null) return;
     final birth = jeontongInputToBirthInput(_profile!);
@@ -278,6 +316,13 @@ class _JeontongEightyResultScreenState
     if (_profile == null) return;
     final birth = jeontongInputToBirthInput(_profile!);
     unawaited(_loadInterpret(birth, entry.id));
+  }
+
+  void _retryNarrative(JeontongCategoryEntry entry) {
+    if (_profile == null) return;
+    final birth = jeontongInputToBirthInput(_profile!);
+    final question = jeontongAutoQuestionForCategory(entry.title);
+    unawaited(_loadNarrative(birth, entry.id, question));
   }
 
   // [신통방통 2단계] 로그인 회원은 서버 UserProfile을 기준으로 사용한다.
@@ -394,8 +439,10 @@ class _JeontongEightyResultScreenState
                   onToggleBookmark: () => _onTapBookmark(entry.id),
                   reportState: _reportState,
                   interpretState: _interpretState,
+                  narrativeState: _narrativeState,
                   onRetryReport: () => _retryReport(entry),
                   onRetryInterpret: () => _retryInterpret(entry),
+                  onRetryNarrative: () => _retryNarrative(entry),
                 ),
         ),
       ),
@@ -653,8 +700,10 @@ class _ResultBody extends StatelessWidget {
     required this.onToggleBookmark,
     required this.reportState,
     required this.interpretState,
+    required this.narrativeState,
     required this.onRetryReport,
     required this.onRetryInterpret,
+    required this.onRetryNarrative,
   });
 
   final JeontongCategoryEntry entry;
@@ -671,8 +720,10 @@ class _ResultBody extends StatelessWidget {
   // 화면 상위(_JeontongEightyResultScreenState)에서 로딩을 트리거한다.
   final LoadState<SajuReportResult> reportState;
   final LoadState<InterpretationResult> interpretState;
+  final LoadState<NarrativeResult> narrativeState;
   final VoidCallback onRetryReport;
   final VoidCallback onRetryInterpret;
+  final VoidCallback onRetryNarrative;
 
   @override
   Widget build(BuildContext context) {
@@ -719,8 +770,10 @@ class _ResultBody extends StatelessWidget {
               displayName: displayName,
               reportState: reportState,
               interpretState: interpretState,
+              narrativeState: narrativeState,
               onRetryReport: onRetryReport,
               onRetryInterpret: onRetryInterpret,
+              onRetryNarrative: onRetryNarrative,
               onSave: onSave,
               onShare: () => _shareJeontongV3Result(
                 context,
