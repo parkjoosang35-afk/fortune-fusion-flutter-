@@ -42,7 +42,7 @@ class ComingSoonScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  '더 완벽한 AI 분석을 위해 준비 중입니다.',
+                  '더 완벽한 분석을 위해 준비 중입니다.',
                   style: Theme.of(context).textTheme.bodyMedium,
                   textAlign: TextAlign.center,
                 ),

@@ -255,7 +255,7 @@ class _TarotLoadingScreenState extends State<TarotLoadingScreen>
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'AI TAROT READING',
+                    'TAROT READING',
                     style: OzTypography.monoLabel(
                       fontSize: 10,
                       letterSpacing: 4,

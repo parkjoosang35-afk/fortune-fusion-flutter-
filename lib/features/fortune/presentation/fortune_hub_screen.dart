@@ -135,7 +135,7 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
     items: [
       _FortuneItem(
         title: '관상',
-        desc: '사진으로 보는 AI 관상 분석',
+        desc: '사진으로 보는 관상 분석',
         icon: Icons.face_outlined,
         route: '/ai-fortune/face/capture',
         requiresPass: true,
@@ -188,19 +188,19 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
   /// "AI 궁합"은 기존에 이미 라우팅되어 있는 `/compatibility/input`을 그대로
   /// 재사용한다(신규 개발 없음).
   static const _aiSection = _FortuneSection(
-    title: 'AI운세',
-    subtitle: 'AI가 분석하는 사주·궁합',
+    title: '종합운세',
+    subtitle: '분석하는 사주·궁합',
     headerIcon: Icons.auto_awesome_rounded,
     items: [
       _FortuneItem(
-        title: 'AI 사주',
-        desc: 'AI가 분석하는 나의 사주 명식',
+        title: '사주 해석',
+        desc: '분석하는 나의 사주 명식',
         icon: Icons.psychology_outlined,
         route: '/ai-fortune/saju/input',
         requiresPass: true,
       ),
       _FortuneItem(
-        title: 'AI 궁합',
+        title: '궁합',
         desc: '나와 상대방의 인연을 유형별로 풀이해보세요',
         icon: Icons.favorite_outline_rounded,
         route: '/compatibility/input',

@@ -25,8 +25,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   static const _pages = [
     _OnboardingPage(
       Icons.auto_stories_rounded,
-      'AI 사주부터 타로까지',
-      'AI가 분석하는 나만의 운세를\n한 곳에서 만나보세요',
+      '사주부터 타로까지',
+      '분석하는 나만의 운세를\n한 곳에서 만나보세요',
     ),
     _OnboardingPage(
       Icons.emoji_events_rounded,
@@ -35,7 +35,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     ),
     _OnboardingPage(
       Icons.favorite_rounded,
-      'AI 궁합 & 커뮤니티',
+      '궁합 & 커뮤니티',
       '소중한 인연과의 궁합을 확인하고\n소원게시판에서 소통하세요',
     ),
   ];

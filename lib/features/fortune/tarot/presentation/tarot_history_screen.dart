@@ -37,7 +37,7 @@ class _TarotHistoryScreenState extends State<TarotHistoryScreen> {
             ? const AppEmptyState(
                 icon: Icons.style_outlined,
                 title: '아직 타로 기록이 없어요',
-                description: 'AI 타로를 뽑아보세요',
+                description: '타로를 뽑아보세요',
               )
             : ListView.separated(
                 padding: EdgeInsets.all(UnifiedTokens.screenPadding),

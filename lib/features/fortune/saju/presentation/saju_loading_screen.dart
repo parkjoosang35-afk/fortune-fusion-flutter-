@@ -18,7 +18,7 @@ class _SajuLoadingScreenState extends State<SajuLoadingScreen>
 
   static const _messages = [
     '사주 명식을 계산하고 있어요...',
-    'AI가 오행의 균형을 분석하고 있어요...',
+    '오행의 균형을 분석하고 있어요...',
     '주제별 해석을 작성하고 있어요...',
   ];
 

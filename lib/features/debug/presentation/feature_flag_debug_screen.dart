@@ -151,7 +151,7 @@ class _FeatureFlagDebugScreenState extends State<FeatureFlagDebugScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '메인 AI 사주 호출 카운터 (${AiCallCounter.flagKey})',
+                    '메인 사주 호출 카운터 (${AiCallCounter.flagKey})',
                     style: UnifiedText.title(),
                   ),
                   const SizedBox(height: UnifiedTokens.spaceSm),
