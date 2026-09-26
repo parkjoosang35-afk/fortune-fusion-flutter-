@@ -23,6 +23,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_unified_style.dart';
 import '../../../../core/utils/load_state.dart';
+import '../../../../core/widgets/fortune/result_bottom_actions.dart';
 import '../../../fortune/saju_v3/domain/interpretation_result.dart';
 import '../../../fortune/saju_v3/domain/saju_report.dart';
 import '../../domain/jeontong_eighty_matrix.dart';
@@ -44,6 +45,9 @@ class JeontongV3ReportView extends StatelessWidget {
     required this.interpretState,
     required this.onRetryReport,
     required this.onRetryInterpret,
+    this.onSave,
+    this.onShare,
+    this.onBrowseOthers,
   });
 
   final JeontongCategoryEntry entry;
@@ -56,6 +60,13 @@ class JeontongV3ReportView extends StatelessWidget {
   final LoadState<InterpretationResult> interpretState;
   final VoidCallback onRetryReport;
   final VoidCallback onRetryInterpret;
+
+  // [정통사주 69종 결과 화면 리뉴얼 — 6차 지시서] legacy 화면과 동일한
+  // 저장/공유/다른 운세 하단 액션. null이면(위젯 테스트 등) 액션 바를
+  // 그리지 않는다 — 기존 회귀 없음 원칙과 동일하게 선택적 슬롯으로 둔다.
+  final VoidCallback? onSave;
+  final VoidCallback? onShare;
+  final VoidCallback? onBrowseOthers;
 
   @override
   Widget build(BuildContext context) {
@@ -112,7 +123,31 @@ class JeontongV3ReportView extends StatelessWidget {
             interpretState: interpretState,
             onRetry: onRetryInterpret,
           ),
+          const SizedBox(height: HanjiSpacing.md),
         ],
+        if (onSave != null || onShare != null || onBrowseOthers != null)
+          ResultBottomActions(
+            actions: [
+              if (onSave != null)
+                ResultActionItem(
+                  icon: Icons.bookmark_border_rounded,
+                  label: '저장',
+                  onTap: onSave!,
+                ),
+              if (onShare != null)
+                ResultActionItem(
+                  icon: Icons.ios_share_rounded,
+                  label: '공유',
+                  onTap: onShare!,
+                ),
+              if (onBrowseOthers != null)
+                ResultActionItem(
+                  icon: Icons.grid_view_rounded,
+                  label: '다른 운세',
+                  onTap: onBrowseOthers!,
+                ),
+            ],
+          ),
       ],
     );
   }

@@ -404,6 +404,56 @@ class _JeontongEightyResultScreenState
 
   Future<void> _onSave(JeontongCategoryEntry entry) async {
     final hasProfile = _profile != null;
+
+    // [정통사주 69종 결과 화면 리뉴얼 — 6차 지시서] 프로필이 있고 v3
+    // 리포트가 정상 로딩됐으면, 화면에 실제로 보이는 saju_v3 응답(9 PART
+    // + 선택 카테고리 심층)을 그대로 저장 카드로 옮긴다 — legacy 캐시
+    // (jeontongReportCache)의 결정론적 값이 아니라 "지금 보고 있는 그
+    // 내용"이 저장돼야 한다는 원칙(§ 재계산 금지와 동일한 정신: 이미
+    // 화면에 있는 결과를 그대로 재사용). v3 리포트가 아직 없거나(로딩 중/
+    // 실패) 프로필이 없으면 기존 legacy 경로로 안전하게 폴백한다.
+    if (hasProfile && _reportState.hasData) {
+      final displayName = _profile!.normalizedName ?? '회원님';
+      final v3Report = _reportState.data!;
+      final focusPartNo = kJeontongCategoryToReportPartNo[entry.id];
+      final focusPart = focusPartNo == null
+          ? null
+          : v3Report.report.parts
+              .where((p) => p.no == focusPartNo)
+              .firstOrNull;
+      final interpretHeadline = _interpretState.isSuccess
+          ? _interpretState.data?.headline
+          : null;
+      final title = interpretHeadline?.isNotEmpty ?? false
+          ? interpretHeadline!
+          : (focusPart?.paras.firstOrNull ??
+                (v3Report.report.summary.isNotEmpty
+                    ? v3Report.report.summary
+                    : entry.title));
+      final summary = v3Report.report.summary.isNotEmpty
+          ? v3Report.report.summary
+          : (focusPart?.paras.firstOrNull ?? entry.title);
+      await MyFortuneRecordStore.save(
+        SavedFortuneRecord(
+          id: 'jeontong80_${entry.id}_${DateTime.now().toIso8601String().substring(0, 10)}',
+          categoryLabel: entry.title,
+          title: '$displayName · $title',
+          summary: summary,
+          // [정통사주 69종 결과 화면 리뉴얼] v3 리포트는 legacy처럼 명시적
+          // 점수(score)를 계산하지 않는다(9 PART 장문 리포트 구조 —
+          // 사용자 확정 지시서에 점수화 요구 없음). Dawn Paper 저장 경로
+          // (jeontong_saju_detail_section.dart)와 동일하게 0으로 둔다.
+          score: 0,
+          date: DateTime.now(),
+          savedAt: DateTime.now(),
+        ),
+      );
+      if (!mounted) return;
+      setState(() => _saved = true);
+      AppToast.show(context, '마이 > 내 운세 기록에 저장되었어요');
+      return;
+    }
+
     final report = jeontongReportCache.getOrBuild(
       entry: entry,
       userId: hasProfile ? _userId : null,
@@ -671,6 +721,18 @@ class _ResultBody extends StatelessWidget {
               interpretState: interpretState,
               onRetryReport: onRetryReport,
               onRetryInterpret: onRetryInterpret,
+              onSave: onSave,
+              onShare: () => _shareJeontongV3Result(
+                context,
+                entry,
+                displayName,
+                reportState,
+                interpretState,
+              ),
+              onBrowseOthers: () => Navigator.of(context).pushNamedAndRemoveUntil(
+                JeontongEightyMatrix.browseRoute,
+                (route) => route.settings.name == '/home',
+              ),
             ),
           ),
         ],
@@ -1520,6 +1582,66 @@ JeontongDeepReportData? _buildDeepReportDataForCategory(
 /// requiresPass 여부와 무관하게 report.sections 전체를 이미 무조건
 /// 렌더링하므로(위 build() 참조, 별도 잠금 카드 없음) 여기서 모든 섹션을
 /// 담아도 열림패스로 잠긴 콘텐츠를 우회 노출하는 것이 아니다.
+/// [정통사주 69종 결과 화면 리뉴얼 — 6차 지시서] 실제 saju_v3 백엔드 응답
+/// (9 PART 리포트 + 선택 카테고리 심층 해석)을 그대로 보고 있는 화면에서
+/// "공유"를 눌렀을 때 쓰는 v3 전용 버전. legacy [_shareJeontongResult]는
+/// [FortuneReport](로컬 계산 결과) 타입만 받으므로 그대로 재사용할 수 없어
+/// 별도 함수로 둔다 — 담는 정보량(제목/요약/강조 PART 본문/핵심 상세 분석)은
+/// 화면에 실제로 보이는 수준과 동등하게 맞춘다(위 legacy 함수와 동일한
+/// "링크만으로도 맥락 파악 가능" 원칙). AI라는 단어는 절대 포함하지 않는다.
+void _shareJeontongV3Result(
+  BuildContext context,
+  JeontongCategoryEntry entry,
+  String displayName,
+  LoadState<SajuReportResult> reportState,
+  LoadState<InterpretationResult> interpretState,
+) {
+  if (!reportState.hasData) {
+    AppToast.show(context, '아직 풀이 결과를 불러오는 중이에요.', isError: true);
+    return;
+  }
+  final v3Report = reportState.data!;
+  final focusPartNo = kJeontongCategoryToReportPartNo[entry.id];
+  final focusPart = focusPartNo == null
+      ? null
+      : v3Report.report.parts.where((p) => p.no == focusPartNo).firstOrNull;
+  final interpret = interpretState.isSuccess ? interpretState.data : null;
+
+  final headline = interpret?.headline.isNotEmpty ?? false
+      ? interpret!.headline
+      : (focusPart?.paras.firstOrNull ??
+            (v3Report.report.summary.isNotEmpty
+                ? v3Report.report.summary
+                : entry.title));
+  final description = v3Report.report.summary.isNotEmpty
+      ? v3Report.report.summary
+      : (focusPart?.paras.firstOrNull ?? entry.title);
+
+  final highlights = <String>[
+    if (focusPart != null) ...focusPart.paras,
+    if (interpret != null)
+      for (final section in interpret.sections)
+        ...section.body.map(
+          (line) => section.title.isNotEmpty ? '${section.title}: $line' : line,
+        ),
+    if (interpret != null) ...interpret.actions,
+  ];
+
+  ShareService.shareResult(
+    context,
+    resultType: ShareResultType.fortune,
+    title: '$displayName · ${entry.title} · 신통방통',
+    description: description,
+    payload: {
+      'category': entry.title,
+      'headline': headline,
+      'summary': description,
+      'highlights': highlights,
+    },
+    sourceRefId: entry.id,
+  );
+}
+
 void _shareJeontongResult(
   BuildContext context,
   JeontongCategoryEntry entry,
