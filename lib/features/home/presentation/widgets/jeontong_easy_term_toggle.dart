@@ -11,9 +11,13 @@ import 'package:flutter/services.dart' show rootBundle;
 /// ... }` 형태의 flat map이다. 메타데이터 키 `_description` 1개만 용어가
 /// 아니므로 건너뛴다. (예: "일간" → {"easy":"나 자신", ...})
 class EasyTerms {
-  const EasyTerms._(this._byTerm);
+  const EasyTerms._(this._byTerm, this._detailByTerm);
 
   final Map<String, String> _byTerm;
+  // [69종 서사형 해석 — 인라인 용어 탭용 추가 필드] 기존 `_byTerm`(easy만
+  // 보관)의 계약은 그대로 두고, `detail` 필드를 별도 맵에 추가로 보관한다
+  // (기존 `explain()`/`cachedOrNull` 동작·시그니처 변경 없음 — 하위호환).
+  final Map<String, String> _detailByTerm;
 
   static const String _assetPath = 'assets/jeontong/easy_terms.json';
 
@@ -30,15 +34,19 @@ class EasyTerms {
     final raw = await rootBundle.loadString(_assetPath);
     final decoded = jsonDecode(raw);
     final byTerm = <String, String>{};
+    final detailByTerm = <String, String>{};
     if (decoded is Map) {
       decoded.forEach((key, value) {
         if (key == '_description') return;
         if (value is Map && value['easy'] is String) {
           byTerm[key.toString()] = value['easy'] as String;
+          if (value['detail'] is String) {
+            detailByTerm[key.toString()] = value['detail'] as String;
+          }
         }
       });
     }
-    return EasyTerms._(byTerm);
+    return EasyTerms._(byTerm, detailByTerm);
   }
 
   /// fire-and-forget 프리로드. 실패해도 예외를 삼켜 화면에 영향을 주지
@@ -57,6 +65,15 @@ class EasyTerms {
   static void resetForTest() => _cached = null;
 
   String? explain(String token) => _byTerm[token];
+
+  /// [69종 서사형 해석 — 인라인 용어 탭용] 해당 용어의 상세 설명(detail).
+  /// 사전에 detail이 없으면 null(호출부는 easy만으로도 표시 가능해야 함).
+  String? detailOf(String token) => _detailByTerm[token];
+
+  /// [69종 서사형 해석 — 인라인 용어 탭용] 사전에 등록된 모든 용어 키
+  /// 목록(순서 무관). 본문 스캔 시 "실제로 등장하는 것만" 필터링하는
+  /// 용도로 쓰이므로, 이 목록 자체의 순서는 결과에 영향을 주지 않는다.
+  Iterable<String> get allTerms => _byTerm.keys;
 }
 
 /// 전문 용어 한 개를 탭하면 같은 자리(inline)에서 쉬운 설명이

@@ -16,6 +16,7 @@ import '../data/saju_v3_api.dart';
 import '../domain/birth_input.dart';
 import '../domain/category_item.dart';
 import '../domain/interpretation_result.dart';
+import '../domain/narrative_result.dart';
 import '../domain/saju_report.dart';
 import '../domain/saju_result_v3.dart';
 
@@ -234,6 +235,42 @@ class SajuV3Provider extends ChangeNotifier {
   Future<void> retryInterpretation(String categoryCode) =>
       loadInterpretation(categoryCode);
 
+  // ── [69종 AI 해석 전면 재설계] 서사형(줄글) 해석, 카테고리별 캐시 ──
+  // 기존 _interpretStates(4블록 카드형)와 완전히 별개의 캐시다 — 같은
+  // categoryCode라도 두 엔드포인트(/interpret, /narrative)는 다른 결과를
+  // 반환하므로 절대 공유하지 않는다.
+  final Map<String, LoadState<NarrativeResult>> _narrativeStates = {};
+  LoadState<NarrativeResult> narrativeStateOf(String categoryCode) {
+    return _narrativeStates[categoryCode] ?? const LoadState.initial();
+  }
+
+  Future<void> loadNarrative(String categoryCode, {String question = ''}) async {
+    final birth = _birthInput;
+    if (birth == null) {
+      _narrativeStates[categoryCode] = const LoadState.error('생년월일시 정보가 없습니다.');
+      notifyListeners();
+      return;
+    }
+    _narrativeStates[categoryCode] = const LoadState.loading();
+    notifyListeners();
+    try {
+      final result = await _api.getSajuV3Narrative(
+        birth,
+        categoryCode: categoryCode,
+        question: question,
+        zihourPolicy: _zihourPolicy,
+      );
+      _narrativeStates[categoryCode] = LoadState.success(result);
+    } on SajuV3ApiException catch (e) {
+      _narrativeStates[categoryCode] = LoadState.error(e.message);
+    } catch (e) {
+      _narrativeStates[categoryCode] = LoadState.error('AI 해석을 불러올 수 없습니다: $e');
+    }
+    notifyListeners();
+  }
+
+  Future<void> retryNarrative(String categoryCode) => loadNarrative(categoryCode);
+
   // ── [5차 지시서] AI 정통사주 해석 엔진 v1.0 — 9 PART 장문 리포트 ──
   // 질문 문구별로 결과가 달라질 수 있어(§5 표현 개인화), 질문 텍스트를 키로
   // 캐시한다. 동일 질문 재요청은 서버 idempotency 캐시(source=cache)로도
@@ -282,6 +319,7 @@ class SajuV3Provider extends ChangeNotifier {
     _categoriesState = const LoadState.initial();
     _all69State = const LoadState.initial();
     _interpretStates.clear();
+    _narrativeStates.clear();
     _reportStates.clear();
     _lastReportQuestion = '';
     _freePassToken = null;

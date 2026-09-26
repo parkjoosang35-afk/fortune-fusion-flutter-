@@ -24,6 +24,7 @@ import 'package:http/http.dart' as http;
 import '../domain/birth_input.dart';
 import '../domain/category_item.dart';
 import '../domain/interpretation_result.dart';
+import '../domain/narrative_result.dart';
 import '../domain/saju_report.dart';
 import '../domain/saju_result_v3.dart';
 
@@ -227,5 +228,24 @@ class SajuV3Api {
       'question': question,
     });
     return SajuReportResult.fromJson(data as Map<String, dynamic>);
+  }
+
+  /// [69종 AI 해석 전면 재설계] 카테고리 1개당 서사형(줄글) 해석 —
+  /// 기존 4블록 카드형(/interpret)·9-PART 리포트(/report)를 대체하지
+  /// 않고 병행하는 새 엔드포인트. LLM 미연결/QA 미통과 시 서버가
+  /// rule_fallback을 200으로 반환한다. 402/429는 SajuV3ApiException.
+  Future<NarrativeResult> getSajuV3Narrative(
+    BirthInput b, {
+    required String categoryCode,
+    String question = '',
+    String zihourPolicy = 'traditional',
+  }) async {
+    final data = await _post('/saju/v3/narrative', {
+      ...b.toJson(),
+      'zihour_policy': zihourPolicy,
+      'category_code': categoryCode,
+      'question': question,
+    });
+    return NarrativeResult.fromJson(data as Map<String, dynamic>);
   }
 }

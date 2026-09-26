@@ -15,7 +15,10 @@ import '../domain/birth_input.dart';
 import '../domain/saju_result_v3.dart';
 import 'jeontong_facts_panel.dart';
 import 'jeontong69_interpretation_tab.dart';
+import 'jeontong69_narrative_tab.dart';
 import 'jeontong_v3_theme.dart';
+import '../../../home/presentation/widgets/jeontong_easy_term_toggle.dart'
+    show JeontongEasyTermToggle;
 
 /// data 안의 동적 키 → 한글 라벨 (미지원 키는 원문 표시)
 const kJt3DataLabels = <String, String>{
@@ -101,11 +104,14 @@ class _Jeontong69DetailScreenState extends State<Jeontong69DetailScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
+    // [69종 서사형 해석 — 용어 탭 설명] 결과 화면 진입 시 1회 프리로드.
+    JeontongEasyTermToggle.preload();
     // AI 해석 탭 데이터는 진입 시점에 미리 요청해 둔다(탭 전환 시 즉시 표시).
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       context.read<SajuV3Provider>().loadInterpretation(widget.item.code);
+      context.read<SajuV3Provider>().loadNarrative(widget.item.code);
     });
   }
 
@@ -133,6 +139,7 @@ class _Jeontong69DetailScreenState extends State<Jeontong69DetailScreen>
           tabs: const [
             Tab(text: '계산 결과'),
             Tab(text: 'AI 해석'),
+            Tab(text: 'AI 해석(줄글)'),
           ],
         ),
       ),
@@ -141,6 +148,7 @@ class _Jeontong69DetailScreenState extends State<Jeontong69DetailScreen>
         children: [
           _buildFactsTab(facts, item),
           _buildInterpretationTab(item.code),
+          _buildNarrativeTab(item.code),
         ],
       ),
     );
@@ -206,6 +214,24 @@ class _Jeontong69DetailScreenState extends State<Jeontong69DetailScreen>
             loading: state.isLoading,
             error: state.isError ? state.errorMessage : null,
             onRetry: () => provider.retryInterpretation(categoryCode),
+          ),
+        );
+      },
+    );
+  }
+
+  // [69종 AI 해석 전면 재설계] 서사형(줄글) 탭 — /saju/v3/narrative.
+  Widget _buildNarrativeTab(String categoryCode) {
+    return Consumer<SajuV3Provider>(
+      builder: (context, provider, _) {
+        final state = provider.narrativeStateOf(categoryCode);
+        return Container(
+          color: Jt3Colors.inkBlack,
+          child: Jeontong69NarrativeTab(
+            result: state.data,
+            loading: state.isLoading,
+            error: state.isError ? state.errorMessage : null,
+            onRetry: () => provider.retryNarrative(categoryCode),
           ),
         );
       },
