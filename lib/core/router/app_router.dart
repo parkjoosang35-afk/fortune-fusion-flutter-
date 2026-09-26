@@ -68,7 +68,6 @@ import '../../features/home/presentation/jeontong_eighty_screen.dart';
 import '../../features/home/presentation/jeontong_eighty_result_screen.dart';
 import '../../features/home/presentation/jeontong_eighty_grid_screen.dart';
 import '../../features/home/presentation/jeontong_eighty_loading_screen.dart';
-import '../../features/home/presentation/jeontong_talisman_gate_screen.dart';
 import '../../features/home/presentation/jeontong_input_screen.dart';
 import '../../features/home/domain/jeontong_eighty_matrix.dart';
 import '../../features/guinji/presentation/guinji_map_screen.dart';
@@ -439,13 +438,16 @@ class AppRouter {
       // 무관하며 아래에 그대로 유지된다(변경 없음). ──
       case JeontongEightyMatrix.browseRoute:
         return _page(const JeontongEightyScreen());
-      // [부적게이트] "운세" 섹션 진입점(홈 카드/전체보기/운세허브)에서
-      // [browseRoute](69종 목록)로 가기 직전에 표시하는 인터랙티브 게이트.
-      // 카테고리 선택 이전 단계이므로 categoryId를 받지 않는다. 애니메이션
-      // 완료 후 이 화면이 [browseRoute]로 `pushReplacementNamed`한다(뒤로가기
-      // 시 게이트를 다시 보지 않고 곧장 이전 화면으로 돌아가게 하기 위함).
+      // [부적게이트 제거 · 2026] 기존에는 "운세" 섹션 진입점(홈 카드/전체보기/
+      // 운세허브)에서 [browseRoute](69종 목록)로 가기 직전에 부적을 5번 탭해야
+      // 통과하는 인터랙티브 게이트([JeontongTalismanGateScreen])를 표시했으나,
+      // 사용자 요청으로 게이트 화면 자체를 제거하고 곧장 목록으로 이동한다.
+      // 호출부(홈 카드/전체보기/운세허브/배너 등)는 모두 그대로
+      // [JeontongEightyMatrix.gateRoute]를 pushNamed하고 있으므로, 각 호출부를
+      // 일일이 수정하는 대신 이 라우트 자체가 [JeontongEightyScreen]을 바로
+      // 반환하도록 바꿔 회귀 없이 게이트를 제거한다.
       case JeontongEightyMatrix.gateRoute:
-        return _page(const JeontongTalismanGateScreen());
+        return _page(const JeontongEightyScreen());
       // [운세 섹션 4단계 흐름 - 화면3 로딩] "사주보기" 제출 직후 결과로
       // 곧장 가지 않고 반드시 이 로딩 화면을 먼저 거친다(handoff 원본
       // saju_loading_screen.dart 디자인 재현). arguments로 categoryId
