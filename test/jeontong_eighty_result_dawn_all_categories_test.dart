@@ -1,53 +1,106 @@
-// [2026 Dawn Paper 결과화면 통합 — 전체 카테고리 크래시 없음 스모크 테스트]
+// [정통사주 69종 결과 화면 리뉴얼 — 6차 지시서 · 전체 카테고리 크래시 없음
+// 스모크 테스트]
 //
-// [배경] jeontong_eighty_result_dawn_integration_test.dart는 A01(Pipeline A)
-// /A02(Pipeline B) 2종만 실제 화면 진입점을 통해 검증했다. 하지만
-// `_tryBuildDawnResultPage`의 `try/catch`는 방어적으로 예외를 삼켜 legacy로
-// 폴백하므로, 특정 카테고리에서만 예외가 나 "조용히" legacy로 떨어지는
-// 회귀를 놓칠 수 있다(§ 완료 체크리스트 "Pipeline B(비-A01/A03-A10) 카테고리도
-// 실제 화면에서 동작하는지 검증" 항목).
+// [배경] jeontong_eighty_result_dawn_integration_test.dart는 A01/G01 2종만
+// 실제 화면 진입점을 통해 검증했다. 이 파일은 [JeontongEightyMatrix.all]
+// 69종 전부를 실제 프로필로 진입시켜, 각 카테고리에서
+// [JeontongV3ReportView]가 실제로 뜨는지(=legacy로 조용히 폴백하지
+// 않았는지) 직접 확인한다. 섹션 텍스트 상세 검증은 이미
+// jeontong_eighty_result_dawn_integration_test.dart가 담당하므로, 여기서는
+// "크래시 없음 + v3 경로 활성화" 2가지만 넓게 확인한다.
 //
-// 이 파일은 [JeontongEightyMatrix.all] 69종 전부를 실제 프로필로 진입시켜,
-// 각 카테고리에서 [SajuDawnResultPage]가 실제로 뜨는지(=legacy로 조용히
-// 폴백하지 않았는지) 직접 확인한다. 섹션 텍스트 상세 검증은 이미
-// saju_dawn_result_page_widget_test.dart/jeontong_eighty_result_dawn_integration_test.dart
-// 가 담당하므로, 여기서는 "크래시 없음 + Dawn 경로 활성화" 2가지만 넓게
-// 확인한다(뷰포트를 기본값으로 둬 지연 빌드로 섹션 일부만 렌더링돼도
-// 무방 — SajuDawnResultPage 위젯 자체가 트리에 있는지만 본다).
+// [로컬 계산 완전 대체 — 6차 지시서 "진행"] 실제 네트워크 호출 없이
+// `JeontongEightyResultScreen.testV3ApiClient`로 MockClient를 주입해
+// `/saju/v3/report`·`/saju/v3/interpret` 서버 응답을 시뮬레이션한다.
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:visibility_detector/visibility_detector.dart';
 
 import 'package:flutter_app/features/home/data/jeontong_history_store.dart';
 import 'package:flutter_app/features/home/data/jeontong_profile_store.dart';
 import 'package:flutter_app/features/home/domain/jeontong_eighty_matrix.dart';
 import 'package:flutter_app/features/home/domain/jeontong_input.dart';
 import 'package:flutter_app/features/home/domain/jeontong_report_cache.dart';
-import 'package:flutter_app/features/home/domain/saju_fortune_rules.dart';
-import 'package:flutter_app/features/home/domain/saju_interpreter.dart';
-import 'package:flutter_app/features/home/presentation/jeontong_design/saju_result_redesign/saju_dawn_result_page.dart';
+import 'package:flutter_app/features/home/presentation/jeontong_design/jeontong_v3_report_view.dart';
 import 'package:flutter_app/features/home/presentation/jeontong_eighty_result_screen.dart';
 
-Future<void> _pumpUntilLoaded(WidgetTester tester) async {
-  var guard = 0;
-  while (find.byType(CircularProgressIndicator).evaluate().isNotEmpty &&
-      guard < 20) {
-    await tester.pump(const Duration(milliseconds: 16));
-    guard++;
-  }
+Map<String, dynamic> _mockReportJson() {
+  const titles = [
+    '한눈에 보는 나',
+    '타고난 성향',
+    '숨겨진 성향',
+    '재능·직업',
+    '재물운',
+    '연애·배우자·인간관계',
+    '인생 흐름',
+    '현재 운',
+    '종합 분석',
+  ];
+  return {
+    'source': 'rule_fallback',
+    'report': {
+      'parts': [
+        for (var i = 0; i < titles.length; i++)
+          {
+            'no': i + 1,
+            'title': titles[i],
+            'paras': ['PART${i + 1} 본문'],
+            'evidence': <String>[],
+          },
+      ],
+      'summary': '요약',
+      'evidence_used': <String>[],
+    },
+    'input_flags': <String>[],
+  };
+}
+
+Map<String, dynamic> _mockInterpretJson({required String categoryCode}) {
+  return {
+    'source': 'rule_fallback',
+    'headline': '$categoryCode headline',
+    'sections': [
+      {
+        'key': 's1',
+        'title': '$categoryCode 섹션',
+        'body': ['$categoryCode 본문'],
+      },
+    ],
+    'actions': ['$categoryCode 행동'],
+    'closing': '$categoryCode 마무리',
+    'evidence_used': <String>[],
+  };
+}
+
+http.Client _mockV3Client() {
+  return MockClient((request) async {
+    final path = request.url.path;
+    final body = jsonDecode(request.body) as Map<String, dynamic>;
+    if (path == '/saju/v3/report') {
+      return http.Response(
+        jsonEncode(_mockReportJson()),
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    }
+    if (path == '/saju/v3/interpret') {
+      final categoryCode = (body['category_code'] ?? '').toString();
+      return http.Response(
+        jsonEncode(_mockInterpretJson(categoryCode: categoryCode)),
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    }
+    return http.Response('not found', 404);
+  });
 }
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-
-  setUpAll(() async {
-    SajuRules.resetForTest();
-    SajuFortuneRules.resetForTest();
-    await SajuRules.preload();
-    await SajuFortuneRules.preload();
-    VisibilityDetectorController.instance.updateInterval = Duration.zero;
-  });
 
   setUp(() {
     jeontongReportCache.clear();
@@ -64,7 +117,7 @@ void main() {
 
   for (final entry in entries) {
     testWidgets(
-      '[Dawn 전체 카테고리 스모크] ${entry.id}(${entry.title}) — 프로필이 있으면 SajuDawnResultPage가 예외 없이 렌더링된다',
+      '[v3 전체 카테고리 스모크] ${entry.id}(${entry.title}) — 프로필이 있으면 JeontongV3ReportView가 예외 없이 렌더링된다',
       (tester) async {
         await jeontongProfileStore.save(
           '1',
@@ -75,17 +128,21 @@ void main() {
           ),
         );
         await tester.pumpWidget(
-          MaterialApp(home: JeontongEightyResultScreen(categoryId: entry.id)),
+          MaterialApp(
+            home: JeontongEightyResultScreen(
+              categoryId: entry.id,
+              testV3ApiClient: _mockV3Client(),
+            ),
+          ),
         );
-        await _pumpUntilLoaded(tester);
-        await tester.pumpAndSettle(const Duration(milliseconds: 200));
+        await tester.pumpAndSettle();
 
         expect(
-          find.byType(SajuDawnResultPage),
+          find.byType(JeontongV3ReportView),
           findsOneWidget,
           reason:
-              '${entry.id}에서 SajuDawnResultPage가 렌더링되지 않음 — '
-              '_tryBuildDawnResultPage가 조용히 예외를 삼켜 legacy로 폴백했을 가능성.',
+              '${entry.id}에서 JeontongV3ReportView가 렌더링되지 않음 — '
+              'legacy로 조용히 폴백했을 가능성.',
         );
       },
     );

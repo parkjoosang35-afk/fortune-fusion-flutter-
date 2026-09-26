@@ -56,12 +56,21 @@ class SajuV3Api {
   final String baseUrl;
   final FreePassProvider freePassProvider;
   final Duration timeout;
+  // [정통사주 69종 결과 화면 리뉴얼 — 테스트 용이성] 기존 코드는 항상
+  // 전역 http.get/http.post 함수를 직접 호출해 네트워크 계층을 목(mock)할
+  // 방법이 없었다. 선택적으로 [http.Client]를 주입받을 수 있게 해, 위젯
+  // 테스트에서 `package:http/testing.dart`의 MockClient로 실제 네트워크
+  // 없이 응답을 시뮬레이션할 수 있게 한다 — 생성자 기본값이 기존과
+  // 동일하게 동작하므로(신규 http.Client()) 이미 이 클래스를 쓰는
+  // 코드(app.dart 등)는 전혀 수정할 필요가 없다(하위호환 100%).
+  final http.Client _client;
 
   SajuV3Api({
     required this.baseUrl,
     required this.freePassProvider,
     this.timeout = const Duration(seconds: 15),
-  });
+    http.Client? client,
+  }) : _client = client ?? http.Client();
 
   Map<String, String> _headers() {
     final token = freePassProvider();
@@ -76,7 +85,7 @@ class SajuV3Api {
     final uri = Uri.parse('$baseUrl$path');
     debugPrint('[SajuV3Api] GET -> $uri');
     try {
-      final res = await http
+      final res = await _client
           .get(uri, headers: _headers())
           .timeout(timeout);
       return _decode(res);
@@ -93,7 +102,7 @@ class SajuV3Api {
     final uri = Uri.parse('$baseUrl$path');
     debugPrint('[SajuV3Api] POST -> $uri');
     try {
-      final res = await http
+      final res = await _client
           .post(uri, headers: _headers(), body: jsonEncode(body))
           .timeout(timeout);
       return _decode(res);

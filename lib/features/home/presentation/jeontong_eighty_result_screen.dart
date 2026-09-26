@@ -1,6 +1,10 @@
+import 'dart:async' show unawaited;
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 import '../../../core/theme/app_unified_style.dart';
+import '../../../core/utils/load_state.dart';
 import '../../../core/widgets/fortune/disclaimer_banner.dart';
 import '../../../core/widgets/fortune/hero_summary_card.dart';
 import '../../../core/widgets/fortune/list_card.dart';
@@ -9,8 +13,13 @@ import '../../../core/widgets/fortune/result_bottom_actions.dart';
 import '../../../core/widgets/fortune/section_card.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../../core/auth/auth_token_store.dart';
+import '../../../core/config/env_config.dart';
 import '../../../core/data/my_fortune_record_store.dart';
 import '../../fortune/shared/domain/fortune_report_model.dart';
+import '../../fortune/saju_v3/data/saju_v3_api.dart';
+import '../../fortune/saju_v3/domain/birth_input.dart';
+import '../../fortune/saju_v3/domain/interpretation_result.dart';
+import '../../fortune/saju_v3/domain/saju_report.dart';
 import '../data/jeontong_bookmark_store.dart';
 import '../data/jeontong_history_store.dart';
 import '../data/jeontong_profile_store.dart';
@@ -55,6 +64,8 @@ import 'jeontong_design/hanji_design_tokens.dart';
 import 'jeontong_design/jeontong_deep_report_card.dart';
 import 'jeontong_design/jeontong_narrative_card.dart';
 import 'jeontong_design/jeontong_saju_detail_section.dart';
+import 'jeontong_design/jeontong_v3_report_view.dart';
+import '../domain/jeontong_v3_report_mapping.dart';
 import 'jeontong_design/saju_result_redesign/saju_dawn_data_builder.dart'
     show
         buildSajuDawnResultDataFromDeepReport,
@@ -132,9 +143,18 @@ const Set<String> kJeontongGroup2TimingCategoryIds = {
 };
 
 class JeontongEightyResultScreen extends StatefulWidget {
-  const JeontongEightyResultScreen({super.key, required this.categoryId});
+  const JeontongEightyResultScreen({
+    super.key,
+    required this.categoryId,
+    // [정통사주 69종 결과 화면 리뉴얼 — 테스트 용이성] 위젯 테스트에서
+    // 실제 네트워크 호출 없이 saju_v3 엔진 응답을 시뮬레이션하기 위한
+    // 선택적 훅. null이면(운영 기본값) 기존과 동일하게 EnvConfig 기반
+    // SajuV3Api를 그대로 생성한다 — 하위호환 100%, 회귀 없음.
+    this.testV3ApiClient,
+  });
 
   final String? categoryId;
+  final http.Client? testV3ApiClient;
 
   @override
   State<JeontongEightyResultScreen> createState() =>
@@ -161,6 +181,20 @@ class _JeontongEightyResultScreenState
   bool _profileLoading = true;
   JeontongInput? _profile;
 
+  // [정통사주 69종 결과 화면 리뉴얼 — 6차 지시서] 실제 saju_v3 엔진 연동.
+  // 이 화면 전용 인스턴스를 직접 들고 있는다(app.dart의 전역
+  // SajuV3Provider는 `/saju/v3` 라우트 트리를 위한 것이고, 이 legacy
+  // 화면 트리에서 별도 Provider 등록 없이 곧바로 API를 호출하기 위함
+  // — 기존 화면 구조를 바꾸지 않는 최소 변경).
+  late final SajuV3Api _v3Api = SajuV3Api(
+    baseUrl: EnvConfig.adminApiBaseUrl,
+    freePassProvider: () =>
+        EnvConfig.sajuFreePassToken.isEmpty ? null : EnvConfig.sajuFreePassToken,
+    client: widget.testV3ApiClient,
+  );
+  LoadState<SajuReportResult> _reportState = const LoadState.initial();
+  LoadState<InterpretationResult> _interpretState = const LoadState.initial();
+
   String get _userId =>
       (AuthTokenStore.cachedUserIdOrNull ?? AuthTokenStore.fallbackUserId)
           .toString();
@@ -173,6 +207,77 @@ class _JeontongEightyResultScreenState
     // 보여주므로(위젯 자체 문서 참고) await 하지 않는다.
     JeontongEasyTermToggle.preload();
     _loadProfileAndRecord();
+  }
+
+  /// [6차 지시서 §구현 순서] 프로필이 있을 때(=실제 생년월일시 입력 완료)
+  /// `/saju/v3/report`(9 PART 고정 스켈레톤)와 `/saju/v3/interpret`(선택된
+  /// 69종 심층 해석)을 동시에 호출한다. 재계산 없음 — 이미 검증된
+  /// 서버 엔진 결과를 그대로 받아 화면에서 조합만 한다.
+  Future<void> _loadV3ReportAndInterpret(
+    JeontongCategoryEntry entry,
+    JeontongInput profile,
+  ) async {
+    final birth = jeontongInputToBirthInput(profile);
+    final question = jeontongAutoQuestionForCategory(entry.title);
+
+    setState(() {
+      _reportState = const LoadState.loading();
+      _interpretState = const LoadState.loading();
+    });
+
+    // [Future.wait 대신 개별 처리] 두 호출 중 하나가 실패해도 다른 하나는
+    // 정상 표시되도록(부분 실패에도 화면이 깨지지 않는 방어적 원칙) 각각
+    // 독립적인 try/catch로 분리한다.
+    unawaited(_loadReport(birth, question));
+    unawaited(_loadInterpret(birth, entry.id));
+  }
+
+  Future<void> _loadReport(BirthInput birth, String question) async {
+    try {
+      final result = await _v3Api.getSajuV3Report(birth, question: question);
+      if (!mounted) return;
+      setState(() => _reportState = LoadState.success(result));
+    } on SajuV3ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _reportState = LoadState.error(e.message));
+    } catch (e) {
+      if (!mounted) return;
+      setState(
+        () => _reportState = LoadState.error('사주 풀이를 불러올 수 없습니다: $e'),
+      );
+    }
+  }
+
+  Future<void> _loadInterpret(BirthInput birth, String categoryCode) async {
+    try {
+      final result = await _v3Api.getSajuV3Interpret(
+        birth,
+        categoryCode: categoryCode,
+      );
+      if (!mounted) return;
+      setState(() => _interpretState = LoadState.success(result));
+    } on SajuV3ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _interpretState = LoadState.error(e.message));
+    } catch (e) {
+      if (!mounted) return;
+      setState(
+        () => _interpretState = LoadState.error('심층 분석을 불러올 수 없습니다: $e'),
+      );
+    }
+  }
+
+  void _retryReport(JeontongCategoryEntry entry) {
+    if (_profile == null) return;
+    final birth = jeontongInputToBirthInput(_profile!);
+    final question = jeontongAutoQuestionForCategory(entry.title);
+    unawaited(_loadReport(birth, question));
+  }
+
+  void _retryInterpret(JeontongCategoryEntry entry) {
+    if (_profile == null) return;
+    final birth = jeontongInputToBirthInput(_profile!);
+    unawaited(_loadInterpret(birth, entry.id));
   }
 
   // [신통방통 2단계] 로그인 회원은 서버 UserProfile을 기준으로 사용한다.
@@ -230,6 +335,16 @@ class _JeontongEightyResultScreenState
       // 1회 조회한다. SharedPreferences 접근 실패 시에도 store 내부에서
       // in-memory 폴백으로 처리되므로 여기서는 결과만 반영한다.
       _refreshBookmarkFlag(entry.id);
+
+      // [6차 지시서 §구현 순서] 프로필이 있으면(=실제 생년월일시 입력
+      // 완료) 이 카테고리의 실제 saju_v3 엔진 결과(9 PART 리포트 +
+      // 선택 카테고리 심층 해석)를 병렬로 호출한다. 프로필이 없으면
+      // 로그인/입력 유도 화면으로 이미 분기되므로(§ 기존 openJeontongEntry
+      // 로직) 여기서는 아무 것도 하지 않는다 — LoadState.initial 그대로
+      // 유지되고, 화면은 legacy 폴백 레이아웃을 그린다(회귀 없음).
+      if (hasProfile) {
+        unawaited(_loadV3ReportAndInterpret(entry, profile));
+      }
     }
   }
 
@@ -277,6 +392,10 @@ class _JeontongEightyResultScreenState
                   isBookmarked: _isBookmarked,
                   onSave: () => _onSave(entry),
                   onToggleBookmark: () => _onTapBookmark(entry.id),
+                  reportState: _reportState,
+                  interpretState: _interpretState,
+                  onRetryReport: () => _retryReport(entry),
+                  onRetryInterpret: () => _retryInterpret(entry),
                 ),
         ),
       ),
@@ -482,6 +601,10 @@ class _ResultBody extends StatelessWidget {
     required this.isBookmarked,
     required this.onSave,
     required this.onToggleBookmark,
+    required this.reportState,
+    required this.interpretState,
+    required this.onRetryReport,
+    required this.onRetryInterpret,
   });
 
   final JeontongCategoryEntry entry;
@@ -493,26 +616,65 @@ class _ResultBody extends StatelessWidget {
   final bool isBookmarked;
   final VoidCallback onSave;
   final VoidCallback onToggleBookmark;
+  // [정통사주 69종 결과 화면 리뉴얼 — 6차 지시서] 실제 saju_v3 백엔드
+  // (/saju/v3/report + /saju/v3/interpret) 응답 상태. 프로필이 있을 때만
+  // 화면 상위(_JeontongEightyResultScreenState)에서 로딩을 트리거한다.
+  final LoadState<SajuReportResult> reportState;
+  final LoadState<InterpretationResult> interpretState;
+  final VoidCallback onRetryReport;
+  final VoidCallback onRetryInterpret;
 
   @override
   Widget build(BuildContext context) {
     final hasProfile = profile != null;
 
-    // [2026 Dawn Paper 결과화면 통합] 프로필이 있으면(즉 실계산 입력이
-    // 있으면) 새 Dawn Paper 전체 페이지([SajuDawnResultPage])로 그린다.
-    // 프로필이 없거나(아직 입력 전) 실계산이 어떤 이유로든 실패하면
-    // (방어적) 기존 legacy 레이아웃으로 안전하게 폴백한다 — 결과 화면이
-    // 절대 깨지지 않는다(§ 기존 안전망 원칙 그대로 계승).
+    // [정통사주 69종 결과 화면 리뉴얼 — 6차 지시서 "진행"] 프로필이 있으면
+    // 더 이상 로컬 계산(Dawn Paper/PHASE1~4 재조합)으로 그리지 않고, 이미
+    // 검증된 saju_v3 백엔드(/saju/v3/report 9 PART + /saju/v3/interpret
+    // 카테고리 심층)를 그대로 반영하는 [JeontongV3ReportView]로 렌더링한다.
+    // "AI 카드 하나 붙이기"가 아니라 하나의 완성된 개인 리포트 전체가
+    // 되도록, 헤더(이름·즐겨찾기)만 이 위젯이 감싸고 본문 전체는
+    // JeontongV3ReportView가 그린다. 프로필이 없으면(아직 입력 전) 아래
+    // 기존 legacy 경로(결정론적 샘플)로 그대로 폴백한다 — 회귀 없음.
     if (hasProfile) {
-      final dawnPage = _tryBuildDawnResultPage(
-        context,
-        entry: entry,
-        profile: profile!,
-        isBookmarked: isBookmarked,
-        onToggleBookmark: onToggleBookmark,
-        onSave: onSave,
+      final displayName = profile!.normalizedName ?? '회원님';
+      return Column(
+        children: [
+          _Header(
+            title: entry.title,
+            trailing: IconButton(
+              key: const ValueKey('jeontong_bookmark_toggle'),
+              icon: Icon(
+                isBookmarked ? Icons.star_rounded : Icons.star_border_rounded,
+                color: isBookmarked ? HanjiColors.accent : HanjiColors.muted,
+              ),
+              tooltip: isBookmarked ? '즐겨찾기 해제' : '즐겨찾기 추가',
+              onPressed: onToggleBookmark,
+            ),
+          ),
+          if (profile!.birthTimeUnknown) ...[
+            const Padding(
+              padding: EdgeInsets.fromLTRB(
+                UnifiedTokens.spaceXl,
+                UnifiedTokens.spaceSm,
+                UnifiedTokens.spaceXl,
+                0,
+              ),
+              child: _BirthTimeUnknownNotice(),
+            ),
+          ],
+          Expanded(
+            child: JeontongV3ReportView(
+              entry: entry,
+              displayName: displayName,
+              reportState: reportState,
+              interpretState: interpretState,
+              onRetryReport: onRetryReport,
+              onRetryInterpret: onRetryInterpret,
+            ),
+          ),
+        ],
       );
-      if (dawnPage != null) return dawnPage;
     }
 
     final report = jeontongReportCache.getOrBuild(
@@ -849,6 +1011,14 @@ class _ResultBody extends StatelessWidget {
 /// [계산 공유] [_buildDeepReportDataForCategory]를 legacy
 /// [_buildNarrativeSection]과 동일하게 호출해, 같은 카테고리의 계산이 두
 /// 경로에서 서로 다르게 이뤄지는 위험을 원천 차단한다(§ 재계산 금지 원칙).
+///
+/// [정통사주 69종 결과 화면 리뉴얼 — 6차 지시서] [_ResultBody]가 이제
+/// 프로필이 있을 때 이 함수 대신 [JeontongV3ReportView](실제 saju_v3
+/// 백엔드 기반)를 그린다. 이 함수는 로컬 계산 경로의 완전 삭제 여부가
+/// 아직 확정되지 않아(§ 미결정 — 네트워크 오류 시 폴백으로 남길지, 완전
+/// 제거할지) 당장은 삭제하지 않고 보존한다. 현재는 어디서도 호출되지
+/// 않아 analyzer가 unused_element로 표시하므로 명시적으로 억제한다.
+// ignore: unused_element
 Widget? _tryBuildDawnResultPage(
   BuildContext context, {
   required JeontongCategoryEntry entry,
