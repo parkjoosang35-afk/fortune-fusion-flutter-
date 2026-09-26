@@ -16,6 +16,7 @@ import '../data/saju_v3_api.dart';
 import '../domain/birth_input.dart';
 import '../domain/category_item.dart';
 import '../domain/interpretation_result.dart';
+import '../domain/saju_report.dart';
 import '../domain/saju_result_v3.dart';
 
 /// 카테고리 코드 그룹 메타 (69종 목록 화면 섹셔닝용)
@@ -233,6 +234,47 @@ class SajuV3Provider extends ChangeNotifier {
   Future<void> retryInterpretation(String categoryCode) =>
       loadInterpretation(categoryCode);
 
+  // ── [5차 지시서] AI 정통사주 해석 엔진 v1.0 — 9 PART 장문 리포트 ──
+  // 질문 문구별로 결과가 달라질 수 있어(§5 표현 개인화), 질문 텍스트를 키로
+  // 캐시한다. 동일 질문 재요청은 서버 idempotency 캐시(source=cache)로도
+  // 보호되지만, 클라이언트에서도 불필요한 재조회를 막기 위해 함께 캐시한다.
+  final Map<String, LoadState<SajuReportResult>> _reportStates = {};
+  String _lastReportQuestion = '';
+  String get lastReportQuestion => _lastReportQuestion;
+
+  LoadState<SajuReportResult> reportStateOf(String question) {
+    return _reportStates[question] ?? const LoadState.initial();
+  }
+
+  Future<void> loadReport(String question) async {
+    final birth = _birthInput;
+    _lastReportQuestion = question;
+    if (birth == null) {
+      _reportStates[question] = const LoadState.error('생년월일시 정보가 없습니다.');
+      notifyListeners();
+      return;
+    }
+    _reportStates[question] = const LoadState.loading();
+    notifyListeners();
+    try {
+      final result = await _api.getSajuV3Report(
+        birth,
+        question: question,
+        zihourPolicy: _zihourPolicy,
+      );
+      _reportStates[question] = LoadState.success(result);
+    } on SajuV3ApiException catch (e) {
+      // 402(프리패스 필요)·429(rate limit)·네트워크 오류를 구분해 안내할 수
+      // 있도록 메시지에 상태 정보를 실어 보낸다(화면에서 e.message 그대로 노출).
+      _reportStates[question] = LoadState.error(e.message);
+    } catch (e) {
+      _reportStates[question] = LoadState.error('리포트를 불러올 수 없습니다: $e');
+    }
+    notifyListeners();
+  }
+
+  Future<void> retryReport() => loadReport(_lastReportQuestion);
+
   /// 로그아웃 시 개인정보(생년월일시·계산 결과) 잔존 방지 — SajuProvider의
   /// clearOnLogout()과 동일한 취지.
   void clearOnLogout() {
@@ -240,6 +282,8 @@ class SajuV3Provider extends ChangeNotifier {
     _categoriesState = const LoadState.initial();
     _all69State = const LoadState.initial();
     _interpretStates.clear();
+    _reportStates.clear();
+    _lastReportQuestion = '';
     _freePassToken = null;
     notifyListeners();
   }

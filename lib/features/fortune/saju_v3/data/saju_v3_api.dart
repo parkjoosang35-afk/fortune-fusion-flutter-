@@ -24,6 +24,7 @@ import 'package:http/http.dart' as http;
 import '../domain/birth_input.dart';
 import '../domain/category_item.dart';
 import '../domain/interpretation_result.dart';
+import '../domain/saju_report.dart';
 import '../domain/saju_result_v3.dart';
 
 /// 프리패스 토큰을 매 요청 시점에 조회하기 위한 콜백.
@@ -38,11 +39,13 @@ class SajuV3ApiException implements Exception {
   final String message;
   final int? statusCode;
   final bool isFreePassRequired;
+  final bool isRateLimited;
 
   const SajuV3ApiException(
     this.message, {
     this.statusCode,
     this.isFreePassRequired = false,
+    this.isRateLimited = false,
   });
 
   @override
@@ -120,6 +123,18 @@ class SajuV3Api {
         isFreePassRequired: true,
       );
     }
+    if (res.statusCode == 429) {
+      // §15 rate limit — 5차 지시서: 시간당/일일 한도 초과. 네트워크 오류와
+      // 구분되는 안내 문구를 화면 쪽에서 노출할 수 있도록 플래그로 표시한다.
+      String message = '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.';
+      try {
+        final decoded = jsonDecode(res.body);
+        if (decoded is Map && decoded['detail'] != null) {
+          message = decoded['detail'].toString();
+        }
+      } catch (_) {}
+      throw SajuV3ApiException(message, statusCode: 429, isRateLimited: true);
+    }
     if (res.statusCode < 200 || res.statusCode >= 300) {
       String message = '요청에 실패했습니다 (${res.statusCode})';
       try {
@@ -180,5 +195,22 @@ class SajuV3Api {
       'category_code': categoryCode,
     });
     return InterpretationResult.fromJson(data as Map<String, dynamic>);
+  }
+
+  /// [5차 지시서] AI 정통사주 해석 엔진 v1.0 — 9 PART 장문 개인 리포트.
+  /// LLM 미연결 상태에서는 서버가 rule_fallback(계산값 나열)을 200으로 반환한다.
+  /// 402(프리패스 없음)·429(rate limit)는 SajuV3ApiException으로 던져지므로
+  /// 화면 쪽에서 isFreePassRequired / isRateLimited로 분기해 안내한다.
+  Future<SajuReportResult> getSajuV3Report(
+    BirthInput b, {
+    String question = '',
+    String zihourPolicy = 'traditional',
+  }) async {
+    final data = await _post('/saju/v3/report', {
+      ...b.toJson(),
+      'zihour_policy': zihourPolicy,
+      'question': question,
+    });
+    return SajuReportResult.fromJson(data as Map<String, dynamic>);
   }
 }

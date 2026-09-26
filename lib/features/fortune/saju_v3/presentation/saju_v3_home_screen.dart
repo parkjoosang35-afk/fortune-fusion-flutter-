@@ -7,11 +7,14 @@
 // 완전히 별개의 신규 진입점이다. 그 화면/라우트는 이 작업에서 절대
 // 수정하지 않는다(4차 지침 "하지 말 것" 항목).
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../../../core/widgets/birthday_picker/birthday_picker_modal.dart';
+import '../application/saju_v3_provider.dart';
 import '../domain/birth_input.dart';
 import 'jeontong69_list_screen.dart';
 import 'jeontong_v3_theme.dart';
+import 'saju_v3_report_screen.dart';
 
 class SajuV3HomeScreen extends StatefulWidget {
   const SajuV3HomeScreen({super.key});
@@ -81,11 +84,10 @@ class _SajuV3HomeScreenState extends State<SajuV3HomeScreen> {
     return null;
   }
 
-  void _onSubmit() {
-    if (!_isValid) return;
+  BirthInput _buildBirthInput() {
     final birthDate = _birthDate!;
     final birthTime = _birthTime!;
-    final birth = BirthInput(
+    return BirthInput(
       name: _nameController.text.isEmpty ? null : _nameController.text,
       year: birthDate.year,
       month: birthDate.month,
@@ -95,10 +97,25 @@ class _SajuV3HomeScreenState extends State<SajuV3HomeScreen> {
       gender: _gender,
       isLunar: _isLunar,
     );
+  }
+
+  void _onSubmit() {
+    if (!_isValid) return;
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => Jeontong69ListScreen(birth: birth),
+        builder: (_) => Jeontong69ListScreen(birth: _buildBirthInput()),
       ),
+    );
+  }
+
+  // [5차 지시서] AI 정통사주 해석 엔진 v1.0 — 9 PART 장문 리포트 진입.
+  // 69종 목록과 달리 별도의 birth 파라미터 전달 구조가 없으므로(SajuV3Provider가
+  // 상태로 보관), 여기서 Provider에 먼저 birthInput을 심어두고 리포트 화면으로 push한다.
+  void _onOpenReport() {
+    if (!_isValid) return;
+    context.read<SajuV3Provider>().setBirthInput(_buildBirthInput());
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const SajuV3ReportScreen()),
     );
   }
 
@@ -242,6 +259,32 @@ class _SajuV3HomeScreenState extends State<SajuV3HomeScreen> {
                   child: const Text(
                     '69종 사주 보기',
                     style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: OutlinedButton(
+                  onPressed: _isValid ? _onOpenReport : null,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Jt3Colors.royalGold,
+                    disabledForegroundColor: Jt3Colors.moonSilver.withValues(
+                      alpha: 0.4,
+                    ),
+                    side: BorderSide(
+                      color: _isValid
+                          ? Jt3Colors.royalGold
+                          : Jt3Colors.moonSilver.withValues(alpha: 0.25),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(Jt3Radii.button),
+                    ),
+                  ),
+                  child: const Text(
+                    'AI 장문 리포트 보기 (베타)',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
                   ),
                 ),
               ),
