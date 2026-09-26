@@ -127,8 +127,96 @@ Flutter 앱을 신규 배포 서버 기준으로 재빌드하고, 기존 계산�
 
 ## 다음 단계 (사용자 승인 필요, 이번 턴에서 진행하지 않음)
 
-- **PHASE 12 — 실제 LLM 연결**: `SAJU_LLM_API_KEY`/`SAJU_LLM_BASE_URL`/`SAJU_LLM_MODEL` 3개 환경변수
-  설정 후 `verify_live_llm.py` PASS 확인 → `llm_call=make_llm_call()` 주입. 비용이 발생하는 항목이라
-  소유자 승인 및 예산 확인이 필요하다.
 - rate limit 기본값(시간당 6·일일 20·IP 일일 200·기기 5계정·LLM 일일 1000회)은 이미 owner 승인된
   값으로, 운영 반영 시 그대로 유지하면 된다.
+
+---
+
+## PHASE 12 — 실제 LLM 연결 (사용자 승인 후 진행, 완료)
+
+> 승인 경위: 위 "다음 단계"에 비용 발생 항목으로 보류되어 있었으나, 사용자가 명시적으로
+> "연결" → (모델 제안 확인 후) "진행"을 지시하여 이번 턴에서 실제 LLM 연결 및 검증을 완료했다.
+
+### 1. 모델 선정
+
+- 개발자 스펙 기본값 `gpt-4o-mini`는 이 샌드박스의 Genspark 내부 LLM 프록시
+  (`OPENAI_API_KEY` → `https://www.genspark.ai/api/llm_proxy/v1`, OpenAI 호환)에서 **제공되지
+  않음**을 `/v1/models` 조회로 확인했다.
+- 후보 모델(gpt-5-nano, gpt-5.4-nano, gpt-5.4-mini, claude-haiku-4-5)을 비용(`genspark_usage.
+  credits`)·응답속도·`reasoning_tokens` 오버헤드·JSON 모드 호환·한국어 품질 기준으로 직접 비교
+  테스트했다.
+  - `gpt-5-nano`: 응답 전 숨은 reasoning에 토큰을 과다 소모(응답 지연·불필요 비용).
+  - `gpt-5.4-nano`: reasoning 오버헤드 0, 이 샌드박스 기준 크레딧 비용 0, 응답 4~15초, 한국어
+    품질 양호, `response_format: json_object` 정상 호환 → **최종 선정**.
+- 선정 결과를 사용자에게 제시하고, 이 키가 **샌드박스 개발용 키이며 실제 운영 키가 아님**을
+  명확히 고지한 뒤 확인("진행")을 받고서야 검증 스크립트를 실행했다.
+
+### 2. `verify_live_llm.py` 공식 검증 스크립트
+
+- 환경변수: `SAJU_LLM_API_KEY=$OPENAI_API_KEY`,
+  `SAJU_LLM_BASE_URL=https://www.genspark.ai/api/llm_proxy/v1`, `SAJU_LLM_MODEL=gpt-5.4-nano`
+- 골든 샘플(박주상, 1972-02-13 02시생 남, 질문 "내 재물운이 궁금해")로 실행
+- 결과: `source: llm | qa_passed: True | PART: 9 | 본문: 1116자` → **PASS**
+
+### 3. `saju_api.py` 패치 — 회귀 안전성 우선 설계
+
+- 배포 서버(`api/saju_api.py`, git 미관리 배포 디렉터리)에 조건부 헬퍼 추가:
+  - `SAJU_LLM_API_KEY` 또는 `OPENAI_API_KEY` 환경변수가 **없으면** `None` 반환 → 기존
+    `rule_fallback` 동작 100% 그대로 유지
+  - 있으면 `make_llm_call()`을 호출해 실 LLM 주입
+  - `/saju/v3/report` 라우트의 `llm_call=None` 하드코딩을 `llm_call=_get_report_llm_call()`로 교체
+- 이 설계로 **환경변수 유무만으로 자동 분기**되며, 기존 487항목 회귀 테스트 스위트(환경변수 미설정
+  상태로 실행)에 영향이 없도록 보장했다.
+
+### 4. 회귀 재검증 (환경변수 미설정 기준)
+
+- 패치 후 전체 11개 테스트 파일 재실행 → **487/487 통과**
+  (ai_layer 25 + interpret_service 14 + ai_report_v2 27 + llm_adapter 6 + phase13_bulk 8 +
+  api_v3 54 + dart_contract 35 + dart_static_v31 23 + categories69 130 + engine_suite 115 +
+  precision 50)
+- `test_park_joosang.py` 스모크 테스트: "모든 테스트 통과 · LLM 호출 0회 · 비용 0원" 재확인
+
+### 5. 실 서버(포트 8000) 라이브 LLM curl 검증
+
+- 라이브 LLM 환경변수를 적용해 엔진 서버 재기동 후 curl로 4가지 케이스 확인:
+  1. **QA 게이트 정상 차단 사례**: 실 LLM이 생성한 문장 중 "확실히"(단정 표현) 포함 →
+     `source: rule_fallback`, `fallback_reason: "QA 미통과: ['[단정] ...확실히...']"` 로 자동
+     안전 폴백. **버그가 아니라 §25/§27/§29 안전장치가 실 LLM 출력에도 정상 작동함을 증명**하는
+     결과.
+  2~4. 이후 3건은 서로 다른 생년월일로 재요청 → 모두 `source: llm`, `qa_passed: True`,
+     9 PART 정상 생성 확인.
+- **idempotency 캐시 확인**: 동일 요청 재전송 → `source: cache`, 약 1초 내 응답
+  (캐시 레이어가 LLM 호출 위에 그대로 얹혀 정상 동작, LLM 재호출 없음)
+
+### 6. Flutter 클라이언트 End-to-End 검증 (Playwright)
+
+- 라우트가 모든 요청에 `ctx={"user_id": "freepass"}`를 고정 사용하는 구조상, 이번 턴의 curl
+  테스트들과 Flutter 클라이언트 테스트가 **동일한 시간당 6회 한도 버킷을 공유**하게 되어, 첫
+  Flutter 클라이언트 시도에서 429가 발생함 → 화면에 ⏳ "요청 한도를 초과했어요" 에러 UI가
+  라이브 LLM 활성 상태에서도 정상 표시됨을 재확인(기존 검증의 재확인 성격).
+- 엔진 서버를 재기동해 인메모리 `AbuseGuard` 상태(시간당 카운터)를 초기화한 뒤 재시도:
+  - 생년월일 1998-09-16, 질문 "올해 취업운 재검증"으로 전체 클릭스루 진행
+  - 네트워크 로그: `POST /saju/v3/report` 요청 후 약 15초 뒤 `[response] 200
+    http://localhost:8000/saju/v3/report` 확인 (curl로 측정한 4~15초 레이턴시와 일치)
+  - 15초·20초 시점 스크린샷을 직접 열어 시각 확인: 로딩 스피너·에러 배너 없이 9 PART 리포트
+    본문(PART 1 "한눈에 보는 나", PART 2 "타고난 성향", PART 3 "숨겨진 성향" 등)이 실 LLM이
+    생성한 자연스러운 서술형 한국어 문장으로 정상 렌더링됨을 확인
+    (예: "병화 일간(태양)이라, 결과를 '보이게' 만드는 타입이에요.")
+
+### 7. 결론 및 운영 참고사항
+
+| 구분 | 결과 |
+|---|---|
+| 모델 선정 | `gpt-5.4-nano` (샌드박스 프록시 기준), 근거 문서화 완료 |
+| 공식 검증 스크립트 (`verify_live_llm.py`) | PASS |
+| 회귀 안전성 (487항목, 환경변수 미설정) | 487/487 통과, 영향 없음 |
+| 실 서버 curl 검증 | QA 게이트 차단 1건 + 성공 3건 + 캐시 1건, 모두 기대 동작 |
+| Flutter 클라이언트 E2E (Playwright) | 429 UI 재확인 + 200 성공 시 9 PART 리포트 정상 렌더링 시각 확인 |
+
+- **중요**: 이번 턴에 사용한 API 키는 **샌드박스 개발용 Genspark 내부 프록시 키**이며, 실제
+  운영 배포 시에는 개발자 스펙(`docs/환경변수설정방법.md`)에 따라 소유자가 **실제 OpenAI(또는
+  호환) API 키**를 `SAJU_LLM_API_KEY`로 발급·설정해야 한다. 모델명도 운영 키가 지원하는 모델
+  (예: `gpt-4o-mini` 등)로 재확인이 필요하다.
+- 배포 디렉터리(`saju_engine_deploy/...`)는 git 미관리 상태이므로, 이번 패치(`_get_report_llm_
+  call()` 조건부 주입)는 파일 시스템 변경으로만 존재한다. 향후 정식 배포 시 이 패치를 소스
+  패키지에도 반영해야 한다.
