@@ -68,7 +68,13 @@ class SajuV3Api {
   SajuV3Api({
     required this.baseUrl,
     required this.freePassProvider,
-    this.timeout = const Duration(seconds: 15),
+    // [실서버 타임아웃 버그 수정] 엔진 서버는 LLM 호출 → QA 게이트 검증 →
+    // (필요 시) 룰 폴백까지 순차 처리하며, 실측 결과 /saju/v3/report는
+    // 최대 36초, /saju/v3/interpret는 최대 14초가 걸렸다(curl 직접 검증).
+    // 기존 15초 기본값은 이 정상 응답조차 "요청 시간이 초과되었습니다"로
+    // 오탐하게 만들어 실제 프로덕션 화면에서 로딩 실패를 유발했다
+    // (사용자 스크린샷으로 재현 확인). 안전 마진을 두어 60초로 상향한다.
+    this.timeout = const Duration(seconds: 60),
     http.Client? client,
   }) : _client = client ?? http.Client();
 
