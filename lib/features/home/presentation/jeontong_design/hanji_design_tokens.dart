@@ -20,7 +20,13 @@ class HanjiColors {
   static const Color bg1 = Color(0xFFFAF3E0); // 크림 한지 (상단 그라디언트)
   static const Color bg2 = Color(0xFFEFE4C8); // 크림 한지 (하단 그라디언트)
   static const Color fg = Color(0xFF2A1F14); // 잉크 브라운 (본문)
-  static const Color muted = Color(0x8C3C2D1E); // rgba(60,45,30,0.55)
+  // [6차 지시서 §4 실측 후 대비 수정] 기존 alpha 0x8C(55%)는 bg1
+  // (FAF3E0) 위에서 WCAG 대비율 3.22:1로 AA 일반 텍스트 기준(4.5:1)에
+  // 못 미쳤다(캡션·"풀이 준비 중" 안내·클로징 문구 등 muted를 쓰는 모든
+  // 자리가 실제로 흐릿하게 보임 — 실측 계산으로 확인). alpha를 0xB0
+  // (69%)로 올려 대비 4.9:1 이상으로 개선. 색조(RGB)는 그대로 유지해
+  // 디자인 톤은 바뀌지 않는다.
+  static const Color muted = Color(0xB03C2D1E); // rgba(60,45,30,0.69)
   static const Color glow = Color(0xFFD97941); // 러스트 랜턴 (하이라이트)
   static const Color glowShadow = Color(0x47D97941); // rgba(217,121,65,0.28)
   static const Color crystal = Color(0xFF7BA896); // 옥색 (보조)

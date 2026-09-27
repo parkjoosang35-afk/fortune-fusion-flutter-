@@ -170,23 +170,140 @@ class JeontongV3ReportView extends StatelessWidget {
   }
 }
 
+/// [6차 지시서 §4] 리포트 최초 로딩 화면. 기존엔 화면 중앙에 스피너만
+/// 떠 있다가 데이터가 오면 레이아웃 전체가 한 번에 나타나는 방식이라
+/// "텍스트가 갑자기 밀리는" 느낌이 컸다. 실제 완성 화면(상태 배너 +
+/// PART 카드 1장)과 같은 모양의 회색 블록을 먼저 그려서, 로딩→완료
+/// 전환 시 레이아웃이 그 자리에서 내용만 바뀌듯 자연스럽게 이어지도록
+/// 한다(카드 위치·크기가 로딩 단계부터 이미 확정돼 있음).
 class _JeontongV3Loading extends StatelessWidget {
   const _JeontongV3Loading();
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const CircularProgressIndicator(color: HanjiColors.accent),
-          const SizedBox(height: HanjiSpacing.md),
-          Text(
-            '사주를 풀이하고 있어요...',
-            style: HanjiTextStyles.body(color: HanjiColors.muted),
-          ),
-        ],
+    return ListView(
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(
+        HanjiSpacing.xl,
+        HanjiSpacing.sm,
+        HanjiSpacing.xl,
+        HanjiSpacing.xxl,
       ),
+      children: [
+        // 상태 배너 자리
+        const _HanjiSkeletonBox(height: 46, radius: UnifiedTokens.radiusMd),
+        const SizedBox(height: HanjiSpacing.md),
+        // PART 카드 자리 — 실제 _JeontongV3PartCard와 동일한 패딩으로
+        // 카드 테두리 위치를 미리 잡아 둔다.
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(HanjiSpacing.lg),
+          decoration: BoxDecoration(
+            color: HanjiColors.card,
+            borderRadius: BorderRadius.circular(HanjiRadii.card),
+            border: Border.all(color: HanjiColors.line, width: 1),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const _HanjiSkeletonBox(
+                    width: 24,
+                    height: 24,
+                    radius: 12,
+                  ),
+                  const SizedBox(width: HanjiSpacing.sm),
+                  const Expanded(
+                    child: _HanjiSkeletonBox(height: 22, radius: 6),
+                  ),
+                ],
+              ),
+              const SizedBox(height: HanjiSpacing.lg),
+              const _HanjiSkeletonBox(height: 15, radius: 4),
+              const SizedBox(height: HanjiSpacing.sm),
+              const _HanjiSkeletonBox(height: 15, radius: 4),
+              const SizedBox(height: HanjiSpacing.sm),
+              const _HanjiSkeletonBox(
+                height: 15,
+                width: 220,
+                radius: 4,
+              ),
+              const SizedBox(height: HanjiSpacing.md),
+              Container(height: 1, color: HanjiColors.line),
+              const SizedBox(height: HanjiSpacing.md),
+              const _HanjiSkeletonBox(height: 13, width: 110, radius: 4),
+              const SizedBox(height: HanjiSpacing.sm),
+              const _HanjiSkeletonBox(height: 15, radius: 4),
+              const SizedBox(height: HanjiSpacing.sm),
+              const _HanjiSkeletonBox(height: 15, width: 180, radius: 4),
+            ],
+          ),
+        ),
+        const SizedBox(height: HanjiSpacing.md),
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.only(top: HanjiSpacing.sm),
+            child: Text(
+              '사주를 풀이하고 있어요...',
+              style: HanjiTextStyles.body(color: HanjiColors.muted),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Hanji 팔레트 톤에 맞춘 스켈레톤 블록. 공용 [SkeletonBox]는
+/// `Theme.of(context).dividerColor`(전역 라이트/다크 테마 기준)를 쓰지만,
+/// 이 화면은 항상 고정된 Hanji 크림톤 배경이라 그 색과 맞지 않는다.
+/// 애니메이션 로직은 동일하게 유지하고 베이스 컬러만 [HanjiColors.line]
+/// 계열로 바꿔 이 화면 배경 위에서 자연스럽게 보이도록 한다.
+class _HanjiSkeletonBox extends StatefulWidget {
+  const _HanjiSkeletonBox({
+    this.width = double.infinity,
+    this.height = 16,
+    this.radius = 6,
+  });
+
+  final double width;
+  final double height;
+  final double radius;
+
+  @override
+  State<_HanjiSkeletonBox> createState() => _HanjiSkeletonBoxState();
+}
+
+class _HanjiSkeletonBoxState extends State<_HanjiSkeletonBox>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1200),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        final t = _controller.value;
+        final opacity = 0.35 + 0.3 * (t < 0.5 ? t * 2 : (1 - t) * 2);
+        return Container(
+          width: widget.width,
+          height: widget.height,
+          decoration: BoxDecoration(
+            color: HanjiColors.sigil.withValues(alpha: opacity * 0.5),
+            borderRadius: BorderRadius.circular(widget.radius),
+          ),
+        );
+      },
     );
   }
 }
@@ -252,6 +369,18 @@ class _JeontongV3ErrorView extends StatelessWidget {
 /// - cache: "이전에 만든 풀이를 다시 보여드려요"
 /// - llm: 아무것도 표시하지 않음(정상 케이스 — 사용자는 이게 기본이라고
 ///   느껴야 한다. "AI가 만들었다"는 사실이 드러나면 안 된다).
+///
+/// [6차 지시서 §4 실측 후 수정]
+/// 1) 대비 — 기존 아이콘·문구가 `UnifiedColors.textCaption`(#9A9AA2)을
+///    이 배너 배경(`cardBanner` #F2F0FA) 위에 그대로 써서 대비율 2.48:1로
+///    WCAG AA 기준(4.5:1)에 크게 못 미쳤다(실측 계산 확인). 전역 상수 값을
+///    바꾸면 25곳의 다른 화면에 영향을 주므로, 이 배너 안에서만
+///    `UnifiedColors.textSecondary`(#6B6B75, 대비 4.67:1)로 국소 교체.
+/// 2) rule_fallback일 때는 폴백이라는 사실을 더 명확히 전달하도록 아이콘을
+///    "준비 중" 톤(auto_stories → hourglass_top)으로 바꾸고 문구도 "AI"란
+///    말은 여전히 쓰지 않되 "곧 더 자세한 풀이로 갈아드려요"를 덧붙여
+///    사용자가 이게 임시 화면임을 알 수 있게 한다(§4 "폴백 응답이 그대로
+///    노출되는 경우 절대 금지 — 폴백 배너로 깔끔하게" 요구 반영).
 class _JeontongV3StatusNotice extends StatelessWidget {
   const _JeontongV3StatusNotice({required this.report});
 
@@ -260,10 +389,14 @@ class _JeontongV3StatusNotice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     String? text;
+    IconData icon = Icons.auto_stories_rounded;
     if (report.isFallback) {
-      text = '확인된 사주 계산 결과를 바탕으로 정리해서 보여드려요.';
+      text = '확인된 사주 계산 결과를 바탕으로 정리해서 보여드려요. '
+          '곧 더 자세한 풀이로 갈아드릴게요.';
+      icon = Icons.hourglass_top_rounded;
     } else if (report.isCache) {
       text = '조금 전 풀이해드린 결과를 다시 보여드려요.';
+      icon = Icons.auto_stories_rounded;
     }
     if (text == null) return const SizedBox.shrink();
     return Container(
@@ -277,16 +410,43 @@ class _JeontongV3StatusNotice extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
-            Icons.auto_stories_rounded,
+            icon,
             size: UnifiedTokens.iconMd,
-            color: UnifiedColors.textCaption,
+            color: UnifiedColors.textSecondary,
           ),
           const SizedBox(width: UnifiedTokens.spaceSm),
-          Expanded(child: Text(text, style: UnifiedText.caption())),
+          Expanded(
+            child: Text(
+              text,
+              style: UnifiedText.caption(color: UnifiedColors.textSecondary),
+            ),
+          ),
         ],
       ),
     );
   }
+}
+
+/// [6차 지시서 §4 "폴백 응답이 그대로 화면에 노출되는 경우 절대 금지"]
+/// rule_fallback 리포트의 일부 PART(3 숨겨진 성향·6 인간관계·8 현재 운
+/// 등)는 서버가 `f"관계 구조(합충형파해 등): {json.dumps(rel, ...)}"`
+/// 처럼 원본 딕셔너리를 그대로 문자열로 박아 보낸다(엔진 쪽 파일이라
+/// ai_layer/report_service.py 수정 없이 이 화면에서 방어). 이 함수는
+/// "레이블: {json...}" 패턴을 감지해 JSON 중괄호 이후를 잘라내고
+/// "계산 결과를 정리 중이에요" 같은 안내로 바꾼다. JSON이 아닌 정상
+/// 문장은 그대로 통과시킨다(원본 값 가공/재계산이 아니라 화면 표시
+/// 형식만 다듬는 것).
+String _humanizeFallbackPara(String p) {
+  final braceIdx = p.indexOf('{');
+  if (braceIdx <= 0) return p;
+  // "레이블: {...}" 형태인지 확인 — 콜론 뒤에 중괄호가 오는 케이스만
+  // 대상으로 한다(사람이 쓴 일반 문장에 우연히 '{'가 들어갈 일은
+  // 이 리포트 문맥상 없다).
+  final head = p.substring(0, braceIdx).trimRight();
+  if (!head.endsWith(':')) return p;
+  final label = head.substring(0, head.length - 1).trim();
+  if (label.isEmpty) return p;
+  return '$label 데이터를 계산해 반영했어요(자세한 문장은 곧 업데이트돼요).';
 }
 
 /// PART 제목 앞에 이름을 붙여 개인화한다("OOO님의 타고난 성향").
@@ -404,19 +564,28 @@ class _JeontongV3PartCard extends StatelessWidget {
               focusNarrativeState != null &&
               (focusNarrativeState!.isLoading ||
                   focusNarrativeState!.isInitial))
+            // [6차 지시서 §4] 줄글이 오기 전 문단 모양의 스켈레톤을 먼저
+            // 그려서, 도착 시 같은 자리에서 텍스트로 바뀌듯 전환되게 한다
+            // (스피너+한 줄 문구 방식은 실제 문단 분량과 높이가 달라 텍스트
+            // 도착 시 카드가 갑자기 커지는 문제가 있었다).
             Padding(
               padding: const EdgeInsets.only(bottom: HanjiSpacing.xs + 2),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(
-                    width: 14,
+                  const _HanjiSkeletonBox(height: 14, radius: 4),
+                  const SizedBox(height: HanjiSpacing.sm),
+                  const _HanjiSkeletonBox(height: 14, radius: 4),
+                  const SizedBox(height: HanjiSpacing.sm),
+                  const _HanjiSkeletonBox(
                     height: 14,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    width: 160,
+                    radius: 4,
                   ),
-                  const SizedBox(width: HanjiSpacing.sm),
+                  const SizedBox(height: HanjiSpacing.sm),
                   Text(
                     '풀이를 준비하고 있어요...',
-                    style: HanjiTextStyles.body(color: HanjiColors.muted),
+                    style: HanjiTextStyles.bodySmall(color: HanjiColors.muted),
                   ),
                 ],
               ),
@@ -437,7 +606,7 @@ class _JeontongV3PartCard extends StatelessWidget {
               (p) => Padding(
                 padding: const EdgeInsets.only(bottom: HanjiSpacing.xs + 2),
                 child: Text(
-                  p,
+                  _humanizeFallbackPara(p),
                   style: HanjiTextStyles.body(color: HanjiColors.fg),
                 ),
               ),
@@ -479,17 +648,22 @@ class _JeontongV3FocusDetail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (state == null || state!.isLoading || state!.isInitial) {
-      return Row(
+      // [6차 지시서 §4] 스피너 대신 실제 headline/section 모양의
+      // 스켈레톤 블록을 먼저 그려 레이아웃 흔들림을 줄인다.
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(
-            width: 14,
-            height: 14,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-          const SizedBox(width: HanjiSpacing.sm),
+          const _HanjiSkeletonBox(height: 13, width: 96, radius: 4),
+          const SizedBox(height: HanjiSpacing.sm),
+          const _HanjiSkeletonBox(height: 20, width: 220, radius: 4),
+          const SizedBox(height: HanjiSpacing.md),
+          const _HanjiSkeletonBox(height: 15, radius: 4),
+          const SizedBox(height: HanjiSpacing.sm),
+          const _HanjiSkeletonBox(height: 15, width: 200, radius: 4),
+          const SizedBox(height: HanjiSpacing.sm),
           Text(
             '핵심 상세 분석을 준비하고 있어요...',
-            style: HanjiTextStyles.body(color: HanjiColors.muted),
+            style: HanjiTextStyles.bodySmall(color: HanjiColors.muted),
           ),
         ],
       );
@@ -654,19 +828,16 @@ class _JeontongV3StandaloneDeepDive extends StatelessWidget {
             Container(height: 1, color: HanjiColors.line),
             const SizedBox(height: HanjiSpacing.md),
           ] else if (narrativeState.isLoading || narrativeState.isInitial) ...[
-            Row(
-              children: [
-                const SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                const SizedBox(width: HanjiSpacing.sm),
-                Text(
-                  '풀이를 준비하고 있어요...',
-                  style: HanjiTextStyles.body(color: HanjiColors.muted),
-                ),
-              ],
+            // [6차 지시서 §4] 위 강조 카드와 동일한 스켈레톤 패턴 적용.
+            const _HanjiSkeletonBox(height: 14, radius: 4),
+            const SizedBox(height: HanjiSpacing.sm),
+            const _HanjiSkeletonBox(height: 14, radius: 4),
+            const SizedBox(height: HanjiSpacing.sm),
+            const _HanjiSkeletonBox(height: 14, width: 160, radius: 4),
+            const SizedBox(height: HanjiSpacing.sm),
+            Text(
+              '풀이를 준비하고 있어요...',
+              style: HanjiTextStyles.bodySmall(color: HanjiColors.muted),
             ),
             const SizedBox(height: HanjiSpacing.md),
           ],
