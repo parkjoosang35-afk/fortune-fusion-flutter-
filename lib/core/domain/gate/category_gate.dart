@@ -2,6 +2,21 @@ import '../../../features/home/domain/fortune_matrix.dart';
 import '../access/access_checker.dart';
 import 'category_usage_store.dart';
 
+/// @deprecated [결과보기 통합 권한 시스템 v1.0, §1/§2] 이 클래스가 구현하는
+/// "카테고리 진입 자체를 [AccessChecker.isOpenPassActive]/freeOncePerDay/
+/// lockedFreeFirst로 막거나 여는" 판정은, 프리패스가 시간제→횟수제로
+/// 바뀌고 자유 이용 원칙(P1/P2 — 프리패스 유무와 무관하게 전체 콘텐츠를
+/// 항상 자유 탐색 가능, 제한은 오직 [결과보기] 버튼 클릭 시점에만 발생)이
+/// 확정되면서 신규 정책과 더 이상 맞지 않는다. 신규 정책에서 유일하게
+/// 남는 게이트 지점은 §8 공통 ResultAccessService(getQuote/begin)뿐이며,
+/// [ResultAccessGateSheet]가 그 역할을 전담한다.
+///
+/// 삭제하지 않고 남겨둔 이유: [AccessChecker]의 deprecated 주석과 동일 —
+/// 아직 이 클래스를 참조하는 호출부(all_categories_screen.dart의
+/// `_openMatrixEntry` 등)가 마이그레이션되지 않았다. saju 프로토타입
+/// 검증(§14.2/§14.6/§14.8) 통과 후 tarot/name/face/palm 확산이 끝나면
+/// [AccessChecker]와 함께 정리 대상이다.
+///
 /// [운섹션 87 카테고리 통합] PassGate 단일 판정 레이어.
 ///
 /// 기존 [AccessChecker]/[PassProvider]가 이미 "열림패스가 활성 상태인가"를

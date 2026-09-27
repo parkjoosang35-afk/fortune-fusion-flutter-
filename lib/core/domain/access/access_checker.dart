@@ -2,6 +2,23 @@ import '../../../features/pass/application/pass_provider.dart';
 import '../assets/asset_type.dart';
 import '../assets/open_pass_state.dart';
 
+/// @deprecated [결과보기 통합 권한 시스템 v1.0, §1/§2] 프리패스가 "시간제
+/// (30분/1시간 동안 전체 열람)"에서 "횟수제(1회=결과 1건 무료)"로 정의가
+/// 바뀌면서, 이 클래스가 담당하던 "열림패스가 지금 활성 상태인가로 전체
+/// 콘텐츠 접근을 통째로 막거나 여는" 판정 자체가 신규 정책과 맞지 않게
+/// 되었다. 신규 정책(P1/P2 자유 이용 원칙)에서는 프리패스 유무와 무관하게
+/// 전체 콘텐츠를 항상 자유롭게 탐색할 수 있고, 제한은 오직 [결과보기] 버튼을
+/// 누르는 시점에만 발생한다(§8 공통 ResultAccessService.getQuote/begin이
+/// 그 판정을 전담). 즉 이 클래스의 [isOpenPassActive]/[canAccessFortuneScope]
+/// 판정 결과로 "화면 진입 자체를 막는" 용도는 더 이상 정책에 부합하지 않는다.
+///
+/// 삭제하지 않고 남겨둔 이유: 이 파일을 참조하는 15곳의 호출부
+/// ([navigateWithPassGate], [CategoryGate.decide] 등)가 아직 마이그레이션
+/// 중이라, 즉시 삭제하면 컴파일이 깨진다. 마이그레이션이 saju 프로토타입
+/// (§14.2/§14.6/§14.8 검증)을 통과하고 tarot/name/face/palm까지 확산되어
+/// 안정화된 뒤, 정리 대상이다(그때 이 클래스와 [navigateWithPassGate]의
+/// requiresPass 분기, [CategoryGate] 전체를 함께 제거한다).
+///
 /// [재화 구조 정리 및 재연결] 공통 접근 체크 로직.
 ///
 /// 모든 화면은 "이 콘텐츠를 열어도 되는가"를 개별 판단하지 않고, 반드시 이

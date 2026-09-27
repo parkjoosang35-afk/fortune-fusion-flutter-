@@ -7,6 +7,8 @@ import '../../../../core/widgets/app_bottom_sheet.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/birthday_picker/birthday_picker_modal.dart';
 import '../../../auth/application/auth_provider.dart';
+import '../../../result_access/domain/result_access_model.dart';
+import '../../../result_access/presentation/result_access_gate_sheet.dart';
 import '../application/saju_provider.dart';
 import '../domain/saju_model.dart';
 
@@ -29,9 +31,17 @@ class SajuInputScreen extends StatefulWidget {
   // 화면의 토픽 멀티선택을 해당 주제로 미리 선택해두기 위한 선택적 인자.
   // null(기존 모든 진입 경로)이면 기존 동작과 완전히 동일하게 '종합'만
   // 기본 선택된다(회귀 없음).
-  const SajuInputScreen({super.key, this.initialTopics});
+  const SajuInputScreen({super.key, this.initialTopics, this.restoredInput});
 
   final List<String>? initialTopics;
+
+  /// [결과보기 통합 권한 시스템 v1.0, §7 쿠팡 이동 후 상태 복원] 스플래시
+  /// 부트스트랩이 [PendingResultAccessReturnStore]에서 소비한 저장값을 그대로
+  /// 전달한다. null(기존 모든 진입 경로)이면 기존 동작과 완전히 동일하다.
+  /// 값이 있으면 initState에서 입력값을 그대로 복원한 뒤 자동으로 [_submit]을
+  /// 호출해 결과보기 게이트 시트를 다시 띄운다 — 사용자가 쿠팡에서 프리패스
+  /// 2회를 받고 돌아왔을 때 처음부터 다시 입력하지 않도록 한다.
+  final Map<String, dynamic>? restoredInput;
 
   @override
   State<SajuInputScreen> createState() => _SajuInputScreenState();
@@ -106,6 +116,58 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
     // [웹→앱 이식] saju.html "내 사주함" - 화면 진입 시 저장된 프로필 목록 로드
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<SajuProvider>().loadProfiles();
+      // [결과보기 통합 권한 시스템 v1.0, §7] 쿠팡 복귀 후 복원된 입력값이
+      // 있으면 그대로 화면에 채우고, 자동으로 결과보기 게이트를 다시
+      // 띄운다. 원래 위젯 빌드 완료 뒤(postFrameCallback)에 실행해야
+      // BirthdayPicker 등 의존 위젯이 이미 준비된 상태에서 안전하게
+      // setState할 수 있다.
+      _restoreFromPendingReturn();
+    });
+  }
+
+  /// [§7] [widget.restoredInput]이 있으면 사용자가 입력했던 값을 그대로
+  /// 복원한 뒤 [_submit]을 다시 호출한다 — 쿠팡 이동으로 결과보기가 중단된
+  /// 지점부터 이어서 진행하는 효과. 값이 없으면(대부분의 일반 진입) 아무
+  /// 것도 하지 않는다(회귀 없음).
+  void _restoreFromPendingReturn() {
+    final restored = widget.restoredInput;
+    if (restored == null) return;
+
+    final birthDateStr = restored['birthDate'] as String?;
+    if (birthDateStr == null) return;
+    final parts = birthDateStr.split('-');
+    if (parts.length != 3) return;
+
+    setState(() {
+      _nameController.text = restored['name'] as String? ?? _nameController.text;
+      _birthDate = DateTime(
+        int.parse(parts[0]),
+        int.parse(parts[1]),
+        int.parse(parts[2]),
+      );
+      final birthTimeStr = restored['birthTime'] as String?;
+      if (birthTimeStr != null) {
+        final t = birthTimeStr.split(':');
+        _birthTime = TimeOfDay(hour: int.parse(t[0]), minute: int.parse(t[1]));
+      }
+      _isLunar = restored['isLunar'] as bool? ?? _isLunar;
+      final topics = (restored['topics'] as List?)?.map((e) => e.toString());
+      if (topics != null && topics.isNotEmpty) {
+        _topics
+          ..clear()
+          ..addAll(topics);
+      }
+      _selectedProfileId = restored['profileId'] as String?;
+      _selectedProfileName = restored['profileName'] as String?;
+      _saveAsProfile = restored['saveAsProfile'] as bool? ?? false;
+      _saveToAccount = restored['saveToAccount'] as bool? ?? false;
+    });
+
+    // 다음 프레임에 자동으로 결과보기 게이트를 다시 띄운다(입력 복원
+    // 화면을 사용자가 잠깐이라도 눈으로 확인한 뒤 진행되도록 한 프레임
+    // 미룬다).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _submit();
     });
   }
 
@@ -364,6 +426,31 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
         ? '게스트'
         : _nameController.text.trim();
 
+    // [결과보기 통합 권한 시스템 v1.0, §6/§8.5] 입력 검증까지는 자유
+    // 이용(P1/P2)이므로 게이트 없이 진행하고, "사주 분석하기" 버튼(=곧
+    // 결과보기로 이어지는 지점)을 누른 이 시점에만 3택 게이트를 띄운다.
+    // §7 대비 — 쿠팡으로 이동할 경우 복원에 필요한 입력값 전체를
+    // userInputForRestore에 그대로 담아 둔다.
+    final beginResult = await showResultAccessGateSheet(
+      context,
+      contentType: 'saju',
+      categoryKey: 'saju',
+      contentTitle: '사주',
+      returnRoute: '/ai-fortune/saju/input',
+      userInputForRestore: {
+        'name': nameStr,
+        'birthDate': birthDateStr,
+        'birthTime': birthTimeStr,
+        'isLunar': _isLunar,
+        'topics': _topics.toList(),
+        'profileId': _selectedProfileId,
+        'profileName': _selectedProfileName,
+        'saveAsProfile': _saveAsProfile,
+        'saveToAccount': _saveToAccount,
+      },
+    );
+    if (!mounted || beginResult == null) return;
+
     context.read<SajuProvider>().requestSaju(
       name: nameStr,
       birthDate: birthDateStr,
@@ -372,6 +459,8 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
       topics: _topics.toList(),
       profileId: _selectedProfileId,
       profileName: _selectedProfileName,
+      paymentMethod: beginResult.paymentMethod.code,
+      transactionId: beginResult.transactionId,
     );
     if (_saveAsProfile && _selectedProfileId == null) {
       context.read<SajuProvider>().createProfile(

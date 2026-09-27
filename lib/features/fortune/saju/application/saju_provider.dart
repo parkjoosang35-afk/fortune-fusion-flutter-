@@ -51,6 +51,13 @@ class SajuProvider extends ChangeNotifier {
     required List<String> topics,
     String? profileId,
     String? profileName,
+    // [결과보기 통합 권한 시스템 v1.0, Phase4] §8.5 — SajuInputScreen이
+    // ResultAccessGateSheet의 begin() 성공 결과를 그대로 여기에 실어
+    // 보낸다. 둘 다 null이면(마이그레이션 전 호출부) 서버가 레거시
+    // 경로로 자동 폴백한다(하위호환).
+    String? paymentMethod,
+    String? transactionId,
+    String? adSessionId,
   }) async {
     _name = name;
     _birthDate = birthDate;
@@ -77,6 +84,9 @@ class SajuProvider extends ChangeNotifier {
         topics: topics,
         profileId: profileId,
         profileName: profileName,
+        paymentMethod: paymentMethod,
+        transactionId: transactionId,
+        adSessionId: adSessionId,
       );
 
       if (result.success && result.data != null) {

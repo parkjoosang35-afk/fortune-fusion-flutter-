@@ -533,15 +533,29 @@ class AppRouter {
           // {'initialTopics': ['재물', ...]} 형태의 인자로 딥링크된다.
           // arguments가 없거나(기존 모든 진입 경로) 형식이 다르면 그대로
           // null로 전달되어 기존 기본 동작(종합 선택)과 동일하다.
+          //
+          // [결과보기 통합 권한 시스템 v1.0, §7] 쿠팡 복귀 복원 흐름은
+          // {'restoredInput': {...}} 형태로 동일한 arguments 맵에 함께
+          // 실어 보낸다(기존 initialTopics 키와 공존).
           final args = settings.arguments;
           List<String>? initialTopics;
+          Map<String, dynamic>? restoredInput;
           if (args is Map) {
             final raw = args['initialTopics'];
             if (raw is List) {
               initialTopics = raw.map((e) => e.toString()).toList();
             }
+            final restoredRaw = args['restoredInput'];
+            if (restoredRaw is Map) {
+              restoredInput = restoredRaw.cast<String, dynamic>();
+            }
           }
-          return _page(SajuInputScreen(initialTopics: initialTopics));
+          return _page(
+            SajuInputScreen(
+              initialTopics: initialTopics,
+              restoredInput: restoredInput,
+            ),
+          );
         }
       case '/ai-fortune/saju/loading':
         return _page(const SajuLoadingScreen());

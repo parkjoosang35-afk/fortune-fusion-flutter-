@@ -9,6 +9,7 @@ import '../../intro/presentation/intro_palette.dart';
 import '../../intro/presentation/intro_text_styles.dart';
 import '../../intro/presentation/widgets/intro_eyebrow_label.dart';
 import '../../home/domain/jeontong_local_to_server_migration.dart';
+import '../../result_access/domain/pending_result_access_return.dart';
 import '../application/auth_provider.dart';
 
 /// [인트로 전면 개편 - 1단계 브랜드 스플래시]
@@ -226,6 +227,21 @@ class _SplashScreenState extends State<SplashScreen>
     }
 
     if (!mounted) return;
+
+    // [결과보기 통합 권한 시스템 v1.0, §7 쿠팡 이동 후 상태 복원] 쿠팡
+    // 이동 중 OS가 Flutter 프로세스를 kill해 재부팅된 경우, 여기서 저장된
+    // pending 상태를 소비(1회성)해 원래 입력화면으로 직접 복원한다.
+    // introSeen 분기보다 먼저 확인해야, 온보딩을 이미 마친 사용자가 쿠팡
+    // 도중 프로세스가 죽어도 /intro가 아니라 정확히 원래 화면으로 돌아간다.
+    final pendingReturn = await PendingResultAccessReturnStore.consume();
+    if (!mounted) return;
+    if (pendingReturn != null) {
+      Navigator.of(context).pushReplacementNamed(
+        pendingReturn.returnRoute,
+        arguments: {'restoredInput': pendingReturn.userInput},
+      );
+      return;
+    }
 
     if (!introState.introSeen) {
       Navigator.of(context).pushReplacementNamed('/intro');

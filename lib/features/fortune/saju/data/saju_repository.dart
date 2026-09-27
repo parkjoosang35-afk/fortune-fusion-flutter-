@@ -38,6 +38,16 @@ class SajuRepository {
     required List<String> topics,
     String? profileId,
     String? profileName,
+    // [결과보기 통합 권한 시스템 v1.0, Phase4] §8.5 "결제 확정 후 AI 생성"
+    // — ResultAccessGateSheet가 이미 begin()으로 차감을 확정한 뒤, 그
+    // 결과의 paymentMethod/transactionId를 그대로 여기에 실어 서버에
+    // 전달한다. 둘 다 null이면(과거 호출부, 또는 마이그레이션 전 화면)
+    // 서버(saju/route.ts)가 자동으로 레거시 카테고리 이용횟수 검증
+    // 경로로 폴백한다 — 하위호환, 이 메서드의 기존 시그니처는 그대로
+    // 유지된다.
+    String? paymentMethod,
+    String? transactionId,
+    String? adSessionId,
   }) async {
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/fortune/saju',
@@ -73,6 +83,9 @@ class SajuRepository {
               'topics': topics,
               'profileId': profileId,
               'profileName': profileName,
+              if (paymentMethod != null) 'paymentMethod': paymentMethod,
+              if (transactionId != null) 'transactionId': transactionId,
+              if (adSessionId != null) 'adSessionId': adSessionId,
             }),
           )
           .timeout(const Duration(seconds: 45));

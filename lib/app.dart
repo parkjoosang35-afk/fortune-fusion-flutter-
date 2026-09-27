@@ -82,6 +82,8 @@ import 'features/guinji/data/guinji_repository.dart';
 import 'features/guinji/application/guinji_provider.dart';
 import 'features/pouch_box/application/pouch_box_provider.dart';
 import 'features/pouch_box/data/pouch_box_repository.dart';
+import 'features/result_access/application/result_access_provider.dart';
+import 'features/result_access/data/result_access_repository.dart';
 
 /// 07단계 §2.1 앱 루트 - MultiProvider 전역 등록 + MaterialApp 라우팅 연결
 /// 10단계(A안): 모든 Repository는 Mock 구현이며, 향후 실제 API 연동 시
@@ -153,6 +155,14 @@ class App extends StatelessWidget {
         // [신규] 열림패스(AlarmPass) — admin_web `/api/public/pass/*` 실 API 연동.
         // 홈 화면 상단 상태바 + 열림패스 섹션에서 공유하는 전역 상태.
         ChangeNotifierProvider(create: (_) => PassProvider(PassRepository())),
+        // [결과보기 통합 권한 시스템 v1.0, Phase4, §8.1 공통화 원칙] 정통사주
+        // 69종·타로 65종·운세 전체가 공유하는 단일 결과보기 3택 게이트
+        // Provider. PassProvider(프리패스 발급/레거시 카테고리 게이트)와는
+        // 책임이 분리되어 있어 서로 대체하지 않는다 — ResultAccessGateSheet가
+        // 이 Provider 하나만 참조한다.
+        ChangeNotifierProvider(
+          create: (_) => ResultAccessProvider(ResultAccessRepository()),
+        ),
         // [재화 구조 정리 및 재연결] 복주머니 — WalletProvider(실 Wallet/PointHistory
         // 원장) 위에 얹힌 얇은 위임 래퍼로 재구성했다(§8 금지 원칙은 "자산을 뒤섞지
         // 않는다"는 원래 의미로, 복주머니가 곧 유일한 실사용자 재화가 된 지금은
