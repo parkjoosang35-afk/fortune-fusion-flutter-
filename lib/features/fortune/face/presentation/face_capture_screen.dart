@@ -3,6 +3,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/widgets/app_toast.dart';
+import '../../../result_access/domain/result_access_model.dart';
+import '../../../result_access/presentation/result_access_gate_sheet.dart';
 import '../../sintong/theme/sintong_colors.dart';
 import '../../sintong/theme/sintong_typography.dart';
 import '../../sintong/widgets/bangtong_coach_card.dart';
@@ -62,8 +64,27 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
     }
   }
 
-  void _startAnalysis(BuildContext context) {
-    context.read<FaceProvider>().analyze();
+  // [결과보기 통합 권한 시스템 v1.0, §6/§8.5] 사진 촬영/선택까지는 자유
+  // 이용(P1/P2)이므로 게이트 없이 진행하고, "분석 시작하기" 버튼(=곧
+  // 결과보기로 이어지는 지점)을 누른 이 시점에만 3택 게이트를 띄운다.
+  // [§7 예외] 얼굴 사진(개인정보)은 쿠팡 이동 복원 대상에 포함하지 않는다
+  // (다른 콘텐츠와 달리 userInputForRestore를 비워 둔다) — 프로세스가
+  // kill되면 사용자가 다시 촬영해야 하며, 이는 개인정보 보호 관점에서
+  // 의도된 제약이다.
+  Future<void> _startAnalysis(BuildContext context) async {
+    final beginResult = await showResultAccessGateSheet(
+      context,
+      contentType: 'face',
+      categoryKey: 'face',
+      contentTitle: '관상',
+      returnRoute: '/ai-fortune/face/capture',
+    );
+    if (!context.mounted || beginResult == null) return;
+
+    context.read<FaceProvider>().analyze(
+      paymentMethod: beginResult.paymentMethod.code,
+      transactionId: beginResult.transactionId,
+    );
     Navigator.of(context).pushNamed('/ai-fortune/face/analyzing');
   }
 

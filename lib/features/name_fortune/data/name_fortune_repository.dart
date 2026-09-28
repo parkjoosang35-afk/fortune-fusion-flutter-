@@ -17,6 +17,11 @@ class NameFortuneRepository {
     String? hanja,
     String? birthDate,
     String? gender,
+    // [결과보기 통합 권한 시스템 v1.0, §8] saju와 동일하게 게이트 시트가
+    // 반환한 결제수단/트랜잭션ID를 그대로 서버에 전달한다. 둘 다 null이면
+    // (기존 호출부) 서버가 자동으로 레거시 경로로 처리한다(하위호환).
+    String? paymentMethod,
+    String? transactionId,
   }) async {
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/fortune/name',
@@ -36,6 +41,8 @@ class NameFortuneRepository {
               'hanja': hanja,
               'birthDate': birthDate,
               'gender': gender,
+              if (paymentMethod != null) 'paymentMethod': paymentMethod,
+              if (transactionId != null) 'transactionId': transactionId,
             }),
           )
           .timeout(const Duration(seconds: 30));

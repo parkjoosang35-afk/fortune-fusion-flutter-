@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../../../../core/widgets/app_dialog.dart';
 import '../../../pass/presentation/pass_gate_helper.dart';
+import '../../../result_access/domain/result_access_model.dart';
+import '../../../result_access/presentation/result_access_gate_sheet.dart';
 import '../application/tarot_audio_controller.dart';
 import '../application/tarot_provider.dart';
 import '../application/tarot_session_controller.dart';
@@ -117,8 +119,31 @@ class _TarotCardSelectScreenState extends State<TarotCardSelectScreen> {
   Future<void> _onRevealPressed() async {
     final session = context.read<TarotSessionController>();
     final tarotProvider = context.read<TarotProvider>();
+
+    // [결과보기 통합 권한 시스템 v1.0, §6/§8.5] 카테고리 탐색·질문 입력·
+    // 카드 선택까지는 자유 이용(P1/P2)이므로 게이트 없이 진행하고, "리딩
+    // 시작하기" 버튼(=곧 결과보기로 이어지는 지점)을 누른 이 시점에만
+    // 3택 게이트를 띄운다. [§7 예외] 타로는 뽑힌 카드 슬롯이 세션
+    // 메모리에만 있고 디스크에 영속화되지 않으므로(카드 뒷면 상태),
+    // 쿠팡 이동으로 프로세스가 kill되면 세션이 소실된다 — face/palm과
+    // 동일하게 쿠팡 복원 대상에서 제외한다(사용자가 카드를 다시 뽑아야
+    // 함, 의도된 제약).
+    final categoryLabel = session.state.category?.label ?? '타로';
+    final beginResult = await showResultAccessGateSheet(
+      context,
+      contentType: 'tarot',
+      categoryKey: 'tarot',
+      contentTitle: categoryLabel,
+      returnRoute: '/ai-fortune/tarot/question',
+    );
+    if (!mounted || beginResult == null) return;
+
     context.read<TarotAudioController>().playRevealImpact();
-    await session.reveal(tarotProvider);
+    await session.reveal(
+      tarotProvider,
+      paymentMethod: beginResult.paymentMethod.code,
+      transactionId: beginResult.transactionId,
+    );
     if (!mounted) return;
     if (session.state.status == TarotSessionStatus.resultReady &&
         !_navigatedToLoading) {

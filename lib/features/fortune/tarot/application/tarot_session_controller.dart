@@ -299,7 +299,16 @@ class TarotSessionController extends ChangeNotifier {
 
   /// ⑥→⑦ 결과 요청. 실제 API 호출은 [tarotProvider]에 위임하고, 성공하면
   /// 결과를 세션 상태에 반영한다.
-  Future<void> reveal(TarotProvider tarotProvider) async {
+  ///
+  /// [결과보기 통합 권한 시스템 v1.0, §8] [paymentMethod]/[transactionId]는
+  /// 호출부([TarotCardSelectScreen]._onRevealPressed)가 §6 게이트 시트에서
+  /// 받은 결제 확정 결과를 그대로 실어 보낸다. 둘 다 null이면(레거시 호출)
+  /// 서버가 자동으로 기존 무료 경로로 처리한다(하위호환).
+  Future<void> reveal(
+    TarotProvider tarotProvider, {
+    String? paymentMethod,
+    String? transactionId,
+  }) async {
     if (_state.status != TarotSessionStatus.cardsChosen) return;
     if (_state.question == null || _state.spreadType == null) return;
 
@@ -313,6 +322,8 @@ class TarotSessionController extends ChangeNotifier {
         topic: _state.topic,
         optionA: _state.optionA,
         optionB: _state.optionB,
+        paymentMethod: paymentMethod,
+        transactionId: transactionId,
       );
       final providerState = tarotProvider.state;
       if (providerState.isSuccess && providerState.data != null) {

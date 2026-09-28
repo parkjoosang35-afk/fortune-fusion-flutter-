@@ -34,6 +34,10 @@ class NameFortuneProvider extends ChangeNotifier {
     String? hanja,
     String? birthDate,
     String? gender,
+    // [결과보기 통합 권한 시스템 v1.0, §8] 게이트 시트(§6)가 반환한
+    // 결제수단/트랜잭션ID를 그대로 Repository에 전달한다.
+    String? paymentMethod,
+    String? transactionId,
   }) async {
     _name = name;
     _hanja = hanja;
@@ -48,6 +52,8 @@ class NameFortuneProvider extends ChangeNotifier {
       hanja: hanja,
       birthDate: birthDate,
       gender: gender,
+      paymentMethod: paymentMethod,
+      transactionId: transactionId,
     );
 
     if (result.success && result.data != null) {

@@ -58,6 +58,11 @@ class TarotProvider extends ChangeNotifier {
     String topic = 'general',
     String? optionA,
     String? optionB,
+    // [결과보기 통합 권한 시스템 v1.0, §8] 게이트 시트(§6)가 반환한
+    // 결제수단/트랜잭션ID를 그대로 Repository에 전달한다. 둘 다 null이면
+    // (기존 호출부) 서버가 자동으로 레거시 경로로 처리한다(하위호환).
+    String? paymentMethod,
+    String? transactionId,
   }) async {
     _question = question;
     _spreadType = spreadType;
@@ -78,14 +83,35 @@ class TarotProvider extends ChangeNotifier {
             optionA: optionA ?? '',
             optionB: optionB ?? '',
             topic: topic,
+            paymentMethod: paymentMethod,
+            transactionId: transactionId,
           )
         : spreadType == 'five_card'
-        ? await _repository.drawFiveCards(question: question, topic: topic)
+        ? await _repository.drawFiveCards(
+            question: question,
+            topic: topic,
+            paymentMethod: paymentMethod,
+            transactionId: transactionId,
+          )
         : spreadType == 'three_card'
-        ? await _repository.drawThreeCards(question: question, topic: topic)
+        ? await _repository.drawThreeCards(
+            question: question,
+            topic: topic,
+            paymentMethod: paymentMethod,
+            transactionId: transactionId,
+          )
         : spreadType == 'yes_no'
-        ? await _repository.drawYesNo(question: question, topic: topic)
-        : await _repository.drawOneCard(question: question);
+        ? await _repository.drawYesNo(
+            question: question,
+            topic: topic,
+            paymentMethod: paymentMethod,
+            transactionId: transactionId,
+          )
+        : await _repository.drawOneCard(
+            question: question,
+            paymentMethod: paymentMethod,
+            transactionId: transactionId,
+          );
 
     if (result.success && result.data != null) {
       _lastErrorReason = null;

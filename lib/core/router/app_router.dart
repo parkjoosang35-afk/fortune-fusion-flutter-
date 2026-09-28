@@ -672,7 +672,19 @@ class AppRouter {
 
       // ── 이름 운세(성명학) [운세 카테고리 확장 - 신규] ──
       case '/ai-fortune/name/input':
-        return _page(const NameFortuneInputScreen());
+        {
+          // [결과보기 통합 권한 시스템 v1.0, §7] 쿠팡 복귀 복원 흐름 —
+          // saju/input과 동일한 패턴으로 {'restoredInput': {...}}를 받는다.
+          final args = settings.arguments;
+          Map<String, dynamic>? restoredInput;
+          if (args is Map) {
+            final restoredRaw = args['restoredInput'];
+            if (restoredRaw is Map) {
+              restoredInput = restoredRaw.cast<String, dynamic>();
+            }
+          }
+          return _page(NameFortuneInputScreen(restoredInput: restoredInput));
+        }
       case '/ai-fortune/name/result':
         return _page(const NameFortuneResultScreen());
 

@@ -56,13 +56,15 @@ class PalmProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> analyze() async {
+  Future<void> analyze({String? paymentMethod, String? transactionId}) async {
     _state = const LoadState.loading();
     notifyListeners();
 
     final result = await _repository.analyze(
       image: _selectedImageBytes,
       hand: _handSide,
+      paymentMethod: paymentMethod,
+      transactionId: transactionId,
     );
 
     if (result.success && result.data != null) {

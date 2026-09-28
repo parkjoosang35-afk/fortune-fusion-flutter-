@@ -26,17 +26,42 @@ import '../domain/tarot_model.dart';
 class TarotRepository {
   final List<TarotResultModel> _history = [];
 
-  Future<ApiResult<TarotResultModel>> drawOneCard({required String question}) =>
-      _draw(question: question, spreadType: 'one_card', topic: 'general');
+  Future<ApiResult<TarotResultModel>> drawOneCard({
+    required String question,
+    String? paymentMethod,
+    String? transactionId,
+  }) => _draw(
+    question: question,
+    spreadType: 'one_card',
+    topic: 'general',
+    paymentMethod: paymentMethod,
+    transactionId: transactionId,
+  );
 
   Future<ApiResult<TarotResultModel>> drawThreeCard({
     required String question,
-  }) => _draw(question: question, spreadType: 'three_card', topic: 'general');
+    String? paymentMethod,
+    String? transactionId,
+  }) => _draw(
+    question: question,
+    spreadType: 'three_card',
+    topic: 'general',
+    paymentMethod: paymentMethod,
+    transactionId: transactionId,
+  );
 
   Future<ApiResult<TarotResultModel>> drawThreeCards({
     required String question,
     String topic = 'general',
-  }) => _draw(question: question, spreadType: 'three_card', topic: topic);
+    String? paymentMethod,
+    String? transactionId,
+  }) => _draw(
+    question: question,
+    spreadType: 'three_card',
+    topic: topic,
+    paymentMethod: paymentMethod,
+    transactionId: transactionId,
+  );
 
   /// [65종 타로 리딩엔진 §계획3] 5카드 심화 리딩. 신규 파일럿 주제(78장
   /// 풀덱 + DB 포지션 기반)에서만 서버가 실제로 지원하며, 레거시 주제로
@@ -44,7 +69,15 @@ class TarotRepository {
   Future<ApiResult<TarotResultModel>> drawFiveCards({
     required String question,
     String topic = 'general',
-  }) => _draw(question: question, spreadType: 'five_card', topic: topic);
+    String? paymentMethod,
+    String? transactionId,
+  }) => _draw(
+    question: question,
+    spreadType: 'five_card',
+    topic: topic,
+    paymentMethod: paymentMethod,
+    transactionId: transactionId,
+  );
 
   /// [운세 카테고리 확장] 타로 YES/NO 스프레드(1장 뽑아 방향으로 답변).
   /// 기존 [drawOneCard]/[drawThreeCards]와 동일한 `_draw` 경로를 공유하며,
@@ -52,7 +85,15 @@ class TarotRepository {
   Future<ApiResult<TarotResultModel>> drawYesNo({
     required String question,
     String topic = 'general',
-  }) => _draw(question: question, spreadType: 'yes_no', topic: topic);
+    String? paymentMethod,
+    String? transactionId,
+  }) => _draw(
+    question: question,
+    spreadType: 'yes_no',
+    topic: topic,
+    paymentMethod: paymentMethod,
+    transactionId: transactionId,
+  );
 
   /// [65종 타로 리딩엔진 §계획1 - choice_ab] A/B 양자택일 5장 스프레드.
   /// `daily_direction_of_choice` 주제 전용. optionA/optionB(사용자가 입력한
@@ -62,12 +103,16 @@ class TarotRepository {
     required String optionA,
     required String optionB,
     String topic = 'daily_direction_of_choice',
+    String? paymentMethod,
+    String? transactionId,
   }) => _draw(
     question: question,
     spreadType: 'choice_ab',
     topic: topic,
     optionA: optionA,
     optionB: optionB,
+    paymentMethod: paymentMethod,
+    transactionId: transactionId,
   );
 
   Future<ApiResult<TarotResultModel>> _draw({
@@ -76,6 +121,12 @@ class TarotRepository {
     required String topic,
     String? optionA,
     String? optionB,
+    // [결과보기 통합 권한 시스템 v1.0, §8] saju/name/face/palm과 동일하게
+    // 게이트 시트가 반환한 결제수단/트랜잭션ID를 그대로 서버에 전달한다.
+    // 둘 다 null이면(기존 호출부) 서버가 자동으로 레거시 경로(무료)로
+    // 처리한다(하위호환).
+    String? paymentMethod,
+    String? transactionId,
   }) async {
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/fortune/tarot',
@@ -98,6 +149,8 @@ class TarotRepository {
               'topic': topic,
               if (optionA != null) 'optionA': optionA,
               if (optionB != null) 'optionB': optionB,
+              if (paymentMethod != null) 'paymentMethod': paymentMethod,
+              if (transactionId != null) 'transactionId': transactionId,
             }),
           )
           .timeout(const Duration(seconds: 45));
