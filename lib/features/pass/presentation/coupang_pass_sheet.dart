@@ -276,7 +276,8 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
               _buildEmptyState(pass.isLoading)
             else if (_phase == _Phase.success)
               _SuccessCelebration(
-                durationLabel: formatPassDuration(policy.durationMin),
+                durationLabel: _passAmountLabel(policy),
+                isCountBased: policy.grantCount != null,
               )
             else
               _buildContent(policy),
@@ -354,8 +355,20 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
     );
   }
 
+  // [결과보기 통합 권한 시스템 v1.0, 2026-09-28] §1/§3 시간제→횟수제 전환.
+  // policy.grantCount != null(현재는 쿠팡 정책 id=11)이면 화면 전체가 "N회"
+  // 문구를 쓰고, null이면(레거시 시간제 정책) 기존 durationMin 기반 "N시간/분"
+  // 문구를 그대로 유지한다 — 이 한 곳에서만 분기하면 아래 모든 호출부가
+  // 자동으로 올바른 라벨을 받는다.
+  String _passAmountLabel(PassPolicyModel policy) {
+    final grantCount = policy.grantCount;
+    if (grantCount != null) return formatPassGrantCount(grantCount);
+    return formatPassDuration(policy.durationMin);
+  }
+
   Widget _buildContent(PassPolicyModel policy) {
-    final durationLabel = formatPassDuration(policy.durationMin);
+    final isCountBased = policy.grantCount != null;
+    final durationLabel = _passAmountLabel(policy);
     final isCounting = _phase == _Phase.counting;
     final isWaitingReturn = _phase == _Phase.waitingReturn;
 
@@ -368,7 +381,9 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
               : '프리패스가 필요해요');
     final guideText = policy.adGuideText?.isNotEmpty == true
         ? policy.adGuideText!
-        : '쿠팡 파트너스 광고를 확인하면 $durationLabel 동안\n모든 콘텐츠를 무료로 이용할 수 있어요.';
+        : isCountBased
+            ? '쿠팡 파트너스 광고를 확인하면 결과보기 $durationLabel가\n지급되어 무료로 이용할 수 있어요.'
+            : '쿠팡 파트너스 광고를 확인하면 $durationLabel 동안\n모든 콘텐츠를 무료로 이용할 수 있어요.';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -422,12 +437,12 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
         if (isWaitingReturn) _buildWaitingBanner(policy),
         if (isCounting) _buildCountingBanner(),
 
-        // 이용시간 뱃지
-        _buildDurationPill(durationLabel),
+        // 이용시간/횟수 뱃지
+        _buildDurationPill(durationLabel, isCountBased: isCountBased),
         const SizedBox(height: UnifiedTokens.spaceLg),
 
         // 메인 CTA
-        _buildMainCta(policy, durationLabel),
+        _buildMainCta(policy, durationLabel, isCountBased: isCountBased),
 
         const SizedBox(height: UnifiedTokens.spaceSm),
         TextButton(
@@ -545,7 +560,7 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
     );
   }
 
-  Widget _buildDurationPill(String durationLabel) {
+  Widget _buildDurationPill(String durationLabel, {required bool isCountBased}) {
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: UnifiedTokens.spaceMd,
@@ -558,14 +573,16 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
-            Icons.timer_outlined,
+          Icon(
+            isCountBased ? Icons.confirmation_num_outlined : Icons.timer_outlined,
             size: UnifiedTokens.iconSm,
             color: UnifiedColors.textSecondary,
           ),
           const SizedBox(width: 4),
           Text(
-            '프리패스 이용시간 · $durationLabel',
+            isCountBased
+                ? '프리패스 지급 · $durationLabel'
+                : '프리패스 이용시간 · $durationLabel',
             style: UnifiedText.chipLabel(color: UnifiedColors.textSecondary),
           ),
         ],
@@ -573,7 +590,11 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
     );
   }
 
-  Widget _buildMainCta(PassPolicyModel policy, String durationLabel) {
+  Widget _buildMainCta(
+    PassPolicyModel policy,
+    String durationLabel, {
+    required bool isCountBased,
+  }) {
     final isCounting = _phase == _Phase.counting;
     final disabled = isCounting || _claiming;
 
@@ -654,9 +675,15 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
 /// §5/§7 지급 완료 축하 애니메이션 — 체크 아이콘 스케일-인 + 반짝임(sparkle) +
 /// 부드러운 Fade. 과하지 않게 900ms 이내로 짧게 재생한다.
 class _SuccessCelebration extends StatefulWidget {
-  const _SuccessCelebration({required this.durationLabel});
+  const _SuccessCelebration({
+    required this.durationLabel,
+    this.isCountBased = false,
+  });
 
   final String durationLabel;
+  // [결과보기 통합 권한 시스템 v1.0, 2026-09-28] true면 durationLabel이 "N회"
+  // 형태(횟수제)이므로 하단 안내 문구를 "~동안 이용"이 아니라 "~획득" 형태로 표시한다.
+  final bool isCountBased;
 
   @override
   State<_SuccessCelebration> createState() => _SuccessCelebrationState();
@@ -762,7 +789,9 @@ class _SuccessCelebrationState extends State<_SuccessCelebration>
           FadeTransition(
             opacity: fade,
             child: Text(
-              '${widget.durationLabel} 동안 모든 콘텐츠를 자유롭게 이용하세요',
+              widget.isCountBased
+                  ? '결과보기 ${widget.durationLabel}가 지급되었어요'
+                  : '${widget.durationLabel} 동안 모든 콘텐츠를 자유롭게 이용하세요',
               style: UnifiedText.caption(),
             ),
           ),
