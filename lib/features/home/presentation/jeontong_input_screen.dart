@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../../core/auth/auth_token_store.dart';
 import '../../../core/widgets/birthday_picker/birthday_picker_modal.dart';
 import '../../auth/application/auth_provider.dart';
+import '../../result_access/presentation/result_access_gate_sheet.dart';
 import '../data/jeontong_profile_store.dart';
 import '../domain/jeontong_eighty_matrix.dart';
 import '../domain/jeontong_input.dart';
@@ -13,7 +14,6 @@ import 'jeontong_design/hanji_background.dart';
 import 'jeontong_design/hanji_card.dart';
 import 'jeontong_design/hanji_design_tokens.dart';
 import 'jeontong_design/saju_seal.dart';
-import '../../pass/presentation/pass_gate_helper.dart';
 
 /// [정통사주 · MVP 라스트 마일 - Mission 1] 정통사주 전용 생년월일시
 /// 입력 화면 — 라우트 `/jeontong/input`.
@@ -188,16 +188,35 @@ class _JeontongInputScreenState extends State<JeontongInputScreen> {
     if (categoryId != null) {
       final entry = JeontongEightyMatrix.byId(categoryId);
       if (entry != null) {
-        // [운세 섹션 4단계 흐름 - 화면3 로딩] "만세력으로 사주 뽑기" 제출
-        // 직후 결과로 곧장 가지 않고, 반드시 로딩 화면을 먼저 보여준다
-        // (handoff 원본 saju_input_screen.dart `_submit()`이 결과가 아닌
-        // '/saju/$code/loading'으로 이동하던 것과 동일한 설계 의도).
-        await navigateWithPassGate(
+        // [결과보기 통합 권한 시스템 v1.0, §6/§8 적용] 생년월일시 저장까지는
+        // 자유 이용(P1/P2)이므로 게이트 없이 진행했고, 이 시점(=결과보기로
+        // 이어지는 지점)에만 3택 게이트 시트를 띄운다. §8.1 공통화 원칙에
+        // 따라 saju/tarot과 동일한 showResultAccessGateSheet를 재사용한다.
+        final beginResult = await showResultAccessGateSheet(
           context,
-          title: entry.title,
-          route: JeontongEightyMatrix.loadingRoute,
-          requiresPass: true,
-          arguments: entry.id,
+          contentType: 'jeontong',
+          contentId: entry.id,
+          categoryKey: entry.major.letter,
+          contentTitle: entry.title,
+          returnRoute: '/jeontong/input',
+          userInputForRestore: {'categoryId': entry.id},
+        );
+        if (!mounted) return;
+        if (beginResult == null) {
+          setState(() => _submitting = false);
+          return;
+        }
+
+        // [운세 섹션 4단계 흐름 - 화면3 로딩] 결제 확정 직후 결과로 곧장
+        // 가지 않고, 반드시 로딩 화면을 먼저 보여준다(handoff 원본
+        // saju_input_screen.dart `_submit()`이 결과가 아닌
+        // '/saju/$code/loading'으로 이동하던 것과 동일한 설계 의도).
+        await Navigator.of(context).pushNamed(
+          JeontongEightyMatrix.loadingRoute,
+          arguments: JeontongLoadingRouteArgs(
+            categoryId: entry.id,
+            transactionId: beginResult.transactionId,
+          ),
         );
         if (mounted) setState(() => _submitting = false);
         return;

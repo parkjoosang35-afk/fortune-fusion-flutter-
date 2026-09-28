@@ -454,11 +454,27 @@ class AppRouter {
       // (String?)를 그대로 받아 결과 화면 이동 시 다시 전달한다. 이 화면은
       // 부적게이트와 무관 — 애니메이션 완료 후 곧장 [resultRoute]로 이동한다.
       case JeontongEightyMatrix.loadingRoute:
-        return _page(
-          JeontongEightyLoadingScreen(
-            categoryId: settings.arguments as String?,
-          ),
-        );
+        {
+          // [결과보기 통합 권한 시스템 v1.0, §8 적용] 신규 호출부는
+          // JeontongLoadingRouteArgs(categoryId+transactionId)를 넘기지만,
+          // 혹시 남아있을 구 호출부(String만 넘김)도 하위호환으로 지원한다.
+          final args = settings.arguments;
+          final String? categoryId;
+          final String? transactionId;
+          if (args is JeontongLoadingRouteArgs) {
+            categoryId = args.categoryId;
+            transactionId = args.transactionId;
+          } else {
+            categoryId = args as String?;
+            transactionId = null;
+          }
+          return _page(
+            JeontongEightyLoadingScreen(
+              categoryId: categoryId,
+              transactionId: transactionId,
+            ),
+          );
+        }
       case JeontongEightyMatrix.resultRoute:
         return _page(
           JeontongEightyResultScreen(categoryId: settings.arguments as String?),

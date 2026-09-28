@@ -111,6 +111,22 @@ class JeontongMajorGroup {
   final List<JeontongCategoryEntry> items;
 }
 
+/// [결과보기 통합 권한 시스템 v1.0, §8 적용] [loadingRoute]로 이동할 때
+/// categoryId와 함께 §8.5 결제 확정 결과의 transactionId도 실어 보내기 위한
+/// 인자 묶음. 정통사주는 서버 API를 호출하지 않는 순수 클라이언트 로컬
+/// 계산이라, [JeontongEightyLoadingScreen]이 계산 성공/실패에 따라 직접
+/// complete()/fail()을 호출해야 하며 그러려면 이 transactionId가 필요하다.
+///
+/// [하위호환] transactionId가 null이면(비정상 진입 등) 로딩 화면이 §8
+/// complete/fail 호출을 건너뛴다 — 기존처럼 애니메이션 후 곧장 결과 화면으로
+/// 이동하는 동작은 그대로 유지된다(회귀 없음).
+class JeontongLoadingRouteArgs {
+  const JeontongLoadingRouteArgs({required this.categoryId, this.transactionId});
+
+  final String? categoryId;
+  final String? transactionId;
+}
+
 /// [JeontongEightyMatrix] — 정통사주 80종 전체 카탈로그(단일 소스).
 class JeontongEightyMatrix {
   JeontongEightyMatrix._();
@@ -119,10 +135,11 @@ class JeontongEightyMatrix {
   static const String resultRoute = '/jeontong/eighty/result';
 
   /// [운세 섹션 4단계 흐름 - 화면3 로딩] 결과 계산 중 보여주는 로딩 화면
-  /// 라우트. 게이트 체크(`navigateWithPassGate`)를 통과한 뒤 곧장 결과로
-  /// 가는 대신 먼저 이 라우트로 진입하고, 로딩 화면 자체가 애니메이션
-  /// 완료 후 [resultRoute]로 `pushReplacementNamed`한다(뒤로가기 시 로딩
-  /// 화면을 건너뛰기 위함). arguments로 categoryId(String)를 그대로 받는다.
+  /// 라우트. §6 결과보기 게이트 시트(`showResultAccessGateSheet`)를 통과한
+  /// 뒤 곧장 결과로 가는 대신 먼저 이 라우트로 진입하고, 로딩 화면 자체가
+  /// 애니메이션 완료 후 [resultRoute]로 `pushReplacementNamed`한다(뒤로가기
+  /// 시 로딩 화면을 건너뛰기 위함). arguments로 [JeontongLoadingRouteArgs]
+  /// (categoryId + §8.5 transactionId)를 받는다.
   static const String loadingRoute = '/jeontong/eighty/loading';
 
   /// [부적게이트] "정통사주" 섹션 진입 직후, 69종 목록([browseRoute])을

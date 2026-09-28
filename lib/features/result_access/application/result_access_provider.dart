@@ -117,6 +117,32 @@ class ResultAccessProvider extends ChangeNotifier {
     return true;
   }
 
+  /// §8.5/§8.6 — 서버 API를 전혀 호출하지 않는 콘텐츠(예: 정통사주 69종)가
+  /// 클라이언트 로컬 계산을 성공적으로 마친 뒤 직접 호출해야 하는 완료 확정.
+  /// saju/tarot/name/face/palm은 자체 fortune/{type} route.ts 내부에서 서버가
+  /// 이미 처리하므로 이 메서드를 호출할 필요가 없다.
+  Future<bool> complete(String transactionId) async {
+    final result = await _repository.complete(transactionId);
+    if (!result.success) {
+      _lastError = result.errorMessage;
+      notifyListeners();
+      return false;
+    }
+    return true;
+  }
+
+  /// §8.6 — 서버 API가 없는 콘텐츠의 로컬 계산이 실패했을 때 차감분을
+  /// 복구(환불)한다. begin()이 반환한 transactionId를 그대로 넘겨야 한다.
+  Future<bool> fail(String transactionId) async {
+    final result = await _repository.fail(transactionId);
+    if (!result.success) {
+      _lastError = result.errorMessage;
+      notifyListeners();
+      return false;
+    }
+    return true;
+  }
+
   void clearError() {
     _lastError = null;
     _lastErrorReason = null;

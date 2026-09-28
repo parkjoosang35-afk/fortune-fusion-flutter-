@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/auth/auth_token_store.dart';
 import '../../../core/domain/access/access_checker.dart';
-import '../../pass/presentation/pass_gate_helper.dart';
+import '../../result_access/presentation/result_access_gate_sheet.dart';
 import '../data/jeontong_profile_store.dart';
 import '../domain/jeontong_eighty_matrix.dart';
 import '../../../core/router/main_bottom_nav_bar.dart';
@@ -76,17 +76,34 @@ class _JeontongEightyScreenState extends State<JeontongEightyScreen> {
       ).pushNamed('/jeontong/input', arguments: entry.id);
       return;
     }
-    // [운세 섹션 4단계 흐름 - 화면3 로딩] 게이트 체크를 통과한 뒤 결과로
-    // 곧장 가지 않고, 반드시 로딩 화면(JeontongEightyLoadingScreen)을 먼저
-    // 보여준다. 로딩 화면이 애니메이션 완료 후 스스로 결과 화면으로
-    // `pushReplacementNamed`한다(navigateWithPassGate 로직 자체는 무변경 —
-    // 목적지 라우트만 resultRoute → loadingRoute로 교체).
-    await navigateWithPassGate(
+    // [결과보기 통합 권한 시스템 v1.0, §6/§8 적용] "카테고리를 탭한 시점"이
+    // 아니라 여기서부터가 사실상 "결과보기"이므로(정통사주는 별도의 입력→
+    // 제출 버튼 없이 카테고리 탭이 곧 결과보기 요청이다) 이 시점에 3택
+    // 게이트 시트를 띄운다. §8.1 공통화 원칙에 따라 saju/tarot과 동일한
+    // showResultAccessGateSheet 하나만 재사용한다(전용 게이트 위젯 없음).
+    if (!mounted) return;
+    final beginResult = await showResultAccessGateSheet(
       context,
-      title: entry.title,
-      route: JeontongEightyMatrix.loadingRoute,
-      requiresPass: true,
-      arguments: entry.id,
+      contentType: 'jeontong',
+      contentId: entry.id,
+      categoryKey: entry.major.letter,
+      contentTitle: entry.title,
+      returnRoute: JeontongEightyMatrix.browseRoute,
+      userInputForRestore: {'categoryId': entry.id},
+    );
+    if (!mounted || beginResult == null) return;
+
+    // [운세 섹션 4단계 흐름 - 화면3 로딩] 결제 확정 뒤 결과로 곧장 가지
+    // 않고, 반드시 로딩 화면(JeontongEightyLoadingScreen)을 먼저 보여준다.
+    // 로딩 화면이 애니메이션 완료 후 스스로 결과 화면으로
+    // `pushReplacementNamed`하며, 그 전에 계산 성공/실패에 따라 §8.5/§8.6
+    // complete()/fail()을 직접 호출한다(서버 API가 없는 콘텐츠이므로).
+    await Navigator.of(context).pushNamed(
+      JeontongEightyMatrix.loadingRoute,
+      arguments: JeontongLoadingRouteArgs(
+        categoryId: entry.id,
+        transactionId: beginResult.transactionId,
+      ),
     );
   }
 

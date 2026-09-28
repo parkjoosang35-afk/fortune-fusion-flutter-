@@ -162,6 +162,77 @@ class ResultAccessRepository {
       return ApiResult.fail('광고 시청 완료 처리 중 오류가 발생했습니다: $e');
     }
   }
+
+  /// POST /api/public/result-access/complete — §8.5/§8.6 순서에서 서버 API를
+  /// 전혀 호출하지 않는 콘텐츠(예: 정통사주 69종의 클라이언트 로컬 계산)를
+  /// 위한 완료 확정. saju/tarot/name/face/palm처럼 자체 fortune/{type}
+  /// route.ts가 있는 콘텐츠는 서버가 그 내부에서 이미 처리하므로 이 메서드를
+  /// 호출할 필요가 없다.
+  Future<ApiResult<void>> complete(String transactionId) async {
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/result-access/complete',
+    );
+    debugPrint(
+      '[ResultAccessRepository] [complete] 요청 -> transactionId=$transactionId',
+    );
+    try {
+      final response = await http
+          .post(
+            uri,
+            headers: {
+              'Content-Type': 'application/json',
+              ...await AuthTokenStore.authHeader(),
+            },
+            body: jsonEncode({'transactionId': transactionId}),
+          )
+          .timeout(const Duration(seconds: 10));
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        final error = decoded['error'] as String? ?? '결과보기 완료 처리에 실패했습니다.';
+        debugPrint('[ResultAccessRepository] [complete] 실패 -> $error');
+        return ApiResult.fail(error);
+      }
+      return ApiResult.ok(null);
+    } catch (e) {
+      debugPrint('[ResultAccessRepository] [complete] 예외 -> $e');
+      return ApiResult.fail('결과보기 완료 처리 중 오류가 발생했습니다: $e');
+    }
+  }
+
+  /// POST /api/public/result-access/fail — §8.6과 동일한 환불 원칙을 서버 AI
+  /// 생성 단계가 없는 콘텐츠에도 적용하기 위한 얇은 래퍼. transaction_id
+  /// 기준으로 status가 여전히 "pending"인 경우에만 서버가 복구를 수행한다
+  /// (이미 종결된 거래는 서버가 그대로 무시 — 중복 복구 방지, §14.8).
+  Future<ApiResult<void>> fail(String transactionId) async {
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/result-access/fail',
+    );
+    debugPrint(
+      '[ResultAccessRepository] [fail] 요청 -> transactionId=$transactionId',
+    );
+    try {
+      final response = await http
+          .post(
+            uri,
+            headers: {
+              'Content-Type': 'application/json',
+              ...await AuthTokenStore.authHeader(),
+            },
+            body: jsonEncode({'transactionId': transactionId}),
+          )
+          .timeout(const Duration(seconds: 10));
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        final error = decoded['error'] as String? ?? '결과보기 실패 처리에 실패했습니다.';
+        debugPrint('[ResultAccessRepository] [fail] 실패 -> $error');
+        return ApiResult.fail(error);
+      }
+      return ApiResult.ok(null);
+    } catch (e) {
+      debugPrint('[ResultAccessRepository] [fail] 예외 -> $e');
+      return ApiResult.fail('결과보기 실패 처리 중 오류가 발생했습니다: $e');
+    }
+  }
 }
 
 /// [§8.4 멱등성] 결과보기 시도 1건마다 고유한 transactionId를 생성한다.

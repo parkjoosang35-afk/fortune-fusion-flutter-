@@ -35,8 +35,11 @@
 // ============================================================
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/auth/auth_token_store.dart';
+import '../../../core/widgets/app_error_state.dart';
+import '../../result_access/application/result_access_provider.dart';
 import '../data/jeontong_profile_store.dart';
 import '../domain/jeontong_eighty_matrix.dart';
 import '../domain/jeontong_input.dart';
@@ -60,12 +63,21 @@ const List<_CalcStep> _kCalcSteps = [
 ];
 
 class JeontongEightyLoadingScreen extends StatefulWidget {
-  const JeontongEightyLoadingScreen({super.key, required this.categoryId});
+  const JeontongEightyLoadingScreen({
+    super.key,
+    required this.categoryId,
+    this.transactionId,
+  });
 
   /// 결과를 보여줄 카테고리 id(예: 'A01'). null이면(비정상 진입) 애니메이션만
   /// 재생하고 결과 화면으로 넘어가 [JeontongEightyResultScreen]의 자체
   /// "준비 중" 안내를 그대로 보여준다(신규 에러 UI를 만들지 않는다).
   final String? categoryId;
+
+  /// [결과보기 통합 권한 시스템 v1.0, §8 적용] §8.5에서 이미 차감(begin)이
+  /// 확정된 거래의 id. null이면(구 호출부 하위호환 또는 비정상 진입) §8
+  /// complete()/fail() 호출을 건너뛴다 — 기존 동작 그대로 유지(회귀 없음).
+  final String? transactionId;
 
   @override
   State<JeontongEightyLoadingScreen> createState() =>
@@ -84,6 +96,10 @@ class _JeontongEightyLoadingScreenState
   int _stepIndex = 0;
   bool _navigated = false;
   JeontongInput? _profile;
+
+  /// [결과보기 통합 권한 시스템 v1.0, §8.6] 계산 실패 시 true — 애니메이션을
+  /// 멈추고 실패 안내 화면으로 전환한다. 이미 환불(fail())도 함께 처리된다.
+  bool _calcFailed = false;
 
   String get _userId =>
       (AuthTokenStore.cachedUserIdOrNull ?? AuthTokenStore.fallbackUserId)
@@ -118,16 +134,25 @@ class _JeontongEightyLoadingScreenState
   }
 
   Future<void> _startCalculation() async {
-    // [계산 재사용] 저장된 프로필을 조회해 결과를 미리 캐시에 데워둔다.
-    // 실패해도(프로필 없음/카테고리 없음) 예외를 던지지 않고 그대로 진행
-    // — 결과 화면 자체가 이미 null-safe 폴백을 갖고 있다(회귀 없음).
+    // [결과보기 통합 권한 시스템 v1.0, §8.5/§8.6] 정통사주는 서버 API를
+    // 전혀 호출하지 않는 순수 클라이언트 로컬 계산이므로, saju/tarot처럼
+    // 서버가 내부에서 처리해주는 completeResultAccess/failAndRefundResultAccess
+    // 를 이 화면이 직접 호출해야 한다. §8.5에서 이미 차감(begin)이 확정된
+    // transactionId가 있을 때만 이 절차를 수행한다 — transactionId가
+    // null이면(구 호출부 하위호환) 기존과 동일하게 §8 호출 없이 진행한다.
+    JeontongCategoryEntry? entry;
+    Object? calcError;
     try {
       final profile = await jeontongProfileStore.get(_userId);
       if (!mounted) return;
       _profile = profile;
 
-      final entry = JeontongEightyMatrix.byId(widget.categoryId ?? '');
+      entry = JeontongEightyMatrix.byId(widget.categoryId ?? '');
       if (entry != null) {
+        // [계산 재사용] 이미 검증된 jeontongReportCache.getOrBuild를 여기서
+        // 1회 호출해 결과를 캐시에 "미리 데워둔다"(warm) — 결과 화면이 동일
+        // 캐시 키로 다시 호출하면 캐시 히트로 즉시 렌더링된다(중복 계산
+        // 아님). 이 호출이 예외를 던지면 아래 catch에서 §8.6 환불로 이어진다.
         jeontongReportCache.getOrBuild(
           entry: entry,
           userId: profile != null ? _userId : null,
@@ -136,10 +161,27 @@ class _JeontongEightyLoadingScreenState
           isLunar: profile?.isLunar,
         );
       }
-    } catch (_) {
-      // 계산 준비 실패는 치명적이지 않다 — 결과 화면이 필요 시 자체적으로
-      // 다시 조회/폴백한다.
+    } catch (e) {
+      calcError = e;
     }
+
+    final transactionId = widget.transactionId;
+    if (transactionId != null) {
+      if (entry != null && calcError == null) {
+        // §8.5 성공 확정 — fortuneRequestId가 없는 콘텐츠이므로 서버가
+        // null로 저장한다(§8 적용 설계 문서 1단계).
+        await context.read<ResultAccessProvider>().complete(transactionId);
+      } else {
+        // §8.6 실패 환불 — entry를 찾지 못했거나(카테고리 id 불일치 등)
+        // 계산 자체가 예외를 던진 경우 모두 여기로 온다.
+        await context.read<ResultAccessProvider>().fail(transactionId);
+        if (!mounted) return;
+        setState(() => _calcFailed = true);
+        return;
+      }
+    }
+
+    if (!mounted) return;
 
     // 최소 로딩 시간(애니메이션) 보장 — 위 계산은 순수 동기 함수라
     // 즉시 끝나므로, 애니메이션이 끝날 때까지 대기한다.
@@ -162,6 +204,20 @@ class _JeontongEightyLoadingScreenState
 
   @override
   Widget build(BuildContext context) {
+    // [결과보기 통합 권한 시스템 v1.0, §8.6] 계산 실패(+환불 완료) 시
+    // saju_result_screen.dart와 동일한 공유 에러 위젯(AppErrorState)으로
+    // 안내한다 — 신규 에러 UI를 만들지 않는다.
+    if (_calcFailed) {
+      return Scaffold(
+        body: SafeArea(
+          child: AppErrorState(
+            message: '사주 풀이 계산에 실패했습니다. 이용하신 결제수단은 환불되었어요.',
+            onRetry: () => Navigator.of(context).maybePop(),
+          ),
+        ),
+      );
+    }
+
     final birthLabel = _profile == null
         ? '◇ · ◇ · ◇'
         : '${_profile!.birthDateTimeLocal.year} · '
