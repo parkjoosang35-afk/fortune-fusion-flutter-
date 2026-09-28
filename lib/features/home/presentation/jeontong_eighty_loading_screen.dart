@@ -38,12 +38,16 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/auth/auth_token_store.dart';
+import '../../../core/config/env_config.dart';
 import '../../../core/widgets/app_error_state.dart';
+import '../../fortune/saju_v3/data/saju_v3_api.dart';
 import '../../result_access/application/result_access_provider.dart';
 import '../data/jeontong_profile_store.dart';
 import '../domain/jeontong_eighty_matrix.dart';
 import '../domain/jeontong_input.dart';
 import '../domain/jeontong_report_cache.dart';
+import '../domain/jeontong_v3_prefetch_cache.dart';
+import '../domain/jeontong_v3_report_mapping.dart';
 import 'jeontong_design/hanji_background.dart';
 import 'jeontong_design/hanji_design_tokens.dart';
 import 'jeontong_design/saju_seal.dart';
@@ -87,7 +91,16 @@ class JeontongEightyLoadingScreen extends StatefulWidget {
 class _JeontongEightyLoadingScreenState
     extends State<JeontongEightyLoadingScreen>
     with TickerProviderStateMixin {
-  static const _totalDuration = Duration(seconds: 8);
+  // [69종 리딩 지연 개선 — P0] 기존 고정 8초는 "연산 시간이 아니라 연출을
+  // 위한 인위적 대기"였다(실측 확인 — 아래 계산은 순수 동기 로컬 함수라
+  // 즉시 끝난다). 이 연출 자체(만세력 책 펼침 애니메이션)는 사용자가
+  // "로딩창이 뜨는 느낌"을 원해 유지하되, 그 시간을 절반으로 줄이고
+  // (8초→4초), 그 4초 동안 노는 대신 saju_v3 네트워크 요청을 미리
+  // 시작해(§ [_startCalculation] 참고) 결과화면 진입 후의 대기 시간과
+  // 겹치게(overlap) 만든다 — 이중 대기(로딩화면 8초 + 결과화면 최대
+  // 60초, 도합 최대 68초)를 "로딩화면 4초와 네트워크 요청이 겹치는"
+  // 구조로 바꿔 체감 대기를 줄인다.
+  static const _totalDuration = Duration(seconds: 4);
 
   late final AnimationController _progressCtrl;
   late final AnimationController _pageFlipCtrl;
@@ -96,6 +109,17 @@ class _JeontongEightyLoadingScreenState
   int _stepIndex = 0;
   bool _navigated = false;
   JeontongInput? _profile;
+
+  // [69종 리딩 지연 개선 — P0] 프로필이 있을 때만 쓰는 saju_v3 API
+  // 클라이언트. 결과화면(jeontong_eighty_result_screen.dart)이 만드는
+  // 것과 동일한 생성 방식(EnvConfig 기반)이며, 이 화면 전용 인스턴스를
+  // 새로 만든다 — 두 화면이 인스턴스를 공유할 필요는 없다(호출 결과만
+  // [jeontongV3PrefetchCache]를 통해 공유하면 충분).
+  late final SajuV3Api _v3Api = SajuV3Api(
+    baseUrl: EnvConfig.adminApiBaseUrl,
+    freePassProvider: () =>
+        EnvConfig.sajuFreePassToken.isEmpty ? null : EnvConfig.sajuFreePassToken,
+  );
 
   /// [결과보기 통합 권한 시스템 v1.0, §8.6] 계산 실패 시 true — 애니메이션을
   /// 멈추고 실패 안내 화면으로 전환한다. 이미 환불(fail())도 함께 처리된다.
@@ -142,6 +166,14 @@ class _JeontongEightyLoadingScreenState
     // null이면(구 호출부 하위호환) 기존과 동일하게 §8 호출 없이 진행한다.
     JeontongCategoryEntry? entry;
     Object? calcError;
+    // [69종 리딩 지연 개선 — P0] 프로필이 있으면(=saju_v3 백엔드 기반
+    // 결과화면을 탈 대상) 여기서 미리 시작해 둔 saju_v3 응답 Future.
+    // report만 대기 게이트로 쓴다(사용자가 실제로 보는 첫 콘텐츠는
+    // report의 강조 PART이므로 — interpret/narrative는 그 카드 내부에
+    // 이어서 채워지는 "핵심 상세 분석"이라 결과화면 진입 후 이어서
+    // 로딩되어도 무방하다, 기존 JeontongV3ReportView의 부분 로딩 방어
+    // 설계와 동일한 원칙).
+    Future<void>? reportPrefetch;
     try {
       final profile = await jeontongProfileStore.get(_userId);
       if (!mounted) return;
@@ -149,6 +181,27 @@ class _JeontongEightyLoadingScreenState
 
       entry = JeontongEightyMatrix.byId(widget.categoryId ?? '');
       if (entry != null) {
+        if (profile != null) {
+          // [69종 리딩 지연 개선 — P0 이중 로딩 제거] 결과화면이 나중에
+          // 다시 요청을 시작하는 대신, 여기서 saju_v3 API 3종을 미리
+          // 시작해 결과화면 진입 시점까지 기다린 시간만큼 체감 대기를
+          // 줄인다. [jeontongV3PrefetchCache]가 in-flight Future를
+          // 들고 있다가 결과화면이 그대로 이어받는다(중복 호출 없음).
+          final birth = jeontongInputToBirthInput(profile);
+          final question = jeontongAutoQuestionForCategory(entry.title);
+          final bundle = jeontongV3PrefetchCache.start(
+            api: _v3Api,
+            categoryId: entry.id,
+            birth: birth,
+            question: question,
+          );
+          // report 실패는 여기서 이 화면의 §8.6 환불 판단에 영향을 주지
+          // 않는다(정통사주는 로컬 계산 성공 여부로만 환불을 판단 —
+          // 기존 원칙 그대로 유지). 오직 "언제 결과화면으로 넘어갈지"
+          // 타이밍에만 쓰므로 예외를 삼킨다(결과화면이 이미 자체
+          // LoadState.error 처리를 갖고 있다).
+          reportPrefetch = bundle.report.then((_) {}, onError: (_) {});
+        }
         // [계산 재사용] 이미 검증된 jeontongReportCache.getOrBuild를 여기서
         // 1회 호출해 결과를 캐시에 "미리 데워둔다"(warm) — 결과 화면이 동일
         // 캐시 키로 다시 호출하면 캐시 히트로 즉시 렌더링된다(중복 계산
@@ -183,9 +236,22 @@ class _JeontongEightyLoadingScreenState
 
     if (!mounted) return;
 
-    // 최소 로딩 시간(애니메이션) 보장 — 위 계산은 순수 동기 함수라
-    // 즉시 끝나므로, 애니메이션이 끝날 때까지 대기한다.
-    await _progressCtrl.forward().orCancel;
+    // [69종 리딩 지연 개선 — P0] 최소 연출 시간(애니메이션 4초)과 saju_v3
+    // report 응답 완료 중 "더 늦게 끝나는 쪽"까지만 기다린다.
+    // - report가 4초보다 먼저 끝나면(캐시 히트 등) 애니메이션이 끝날
+    //   때까지만 대기 → 로딩 화면이 너무 순식간에 사라지지 않는다.
+    // - report가 4초보다 오래 걸리면(실제 LLM 처리 시간) 애니메이션은
+    //   이미 끝났지만 report가 끝날 때까지 조금 더 대기 → 결과화면 진입
+    //   직후 다시 스켈레톤을 보여주는 대신(기존 이중 로딩), 가능한 한
+    //   report가 준비된 상태로 결과화면에 진입시킨다. 단, 프로필이
+    //   있는 경우에도 report가 지나치게 오래 걸리면(rate limit 등)
+    //   무한정 기다리지 않도록 상한(§5차 지시서 SajuV3Api 타임아웃
+    //   60초)을 그대로 신뢰한다 — 이 화면에서 별도 타임아웃을 추가로
+    //   두지 않는다(중복 타임아웃 로직 방지, 이미 SajuV3Api가 60초
+    //   타임아웃을 던지면 reportPrefetch는 즉시 완료된다).
+    final waits = <Future<void>>[_progressCtrl.forward().orCancel];
+    if (reportPrefetch != null) waits.add(reportPrefetch);
+    await Future.wait(waits);
     if (!mounted || _navigated) return;
     _navigated = true;
     Navigator.of(context).pushReplacementNamed(

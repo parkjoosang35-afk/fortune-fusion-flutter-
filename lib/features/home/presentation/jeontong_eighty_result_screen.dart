@@ -53,6 +53,7 @@ import '../domain/jeontong_eighty_report_builder.dart'
 import '../domain/jeontong_input.dart';
 import '../domain/jeontong_narrative_interpreter.dart';
 import '../domain/jeontong_report_cache.dart';
+import '../domain/jeontong_v3_prefetch_cache.dart';
 import '../domain/manseryeok/saju_profile.dart' show SajuProfile;
 import '../domain/saju_fortune_rules.dart' show SajuFortuneRules;
 import '../domain/saju_interpreter.dart' show SajuInterpreter, SajuRules;
@@ -236,12 +237,82 @@ class _JeontongEightyResultScreenState
       _narrativeState = const LoadState.loading();
     });
 
+    // [69종 리딩 지연 개선 — P0 이중 로딩 제거] 로딩화면
+    // (JeontongEightyLoadingScreen)이 이 카테고리에 대해 saju_v3 API 3종을
+    // 이미 미리 시작해 두었다면(jeontongV3PrefetchCache), 여기서 그 진행
+    // 중인 Future를 그대로 이어받는다 — 화면 진입 시점에 처음부터 다시
+    // 요청을 쏘지 않는다(중복 네트워크 호출 방지 + 로딩화면에서 이미
+    // 흘러간 시간만큼 체감 대기가 줄어든다). 캐시에 없으면(예: 로딩화면을
+    // 건너뛴 딥링크 진입 등) null을 반환하므로 기존과 동일하게 이 자리에서
+    // 새로 요청을 시작한다 — 회귀 없음.
+    final prefetched = jeontongV3PrefetchCache.consume(entry.id, birth);
+
     // [Future.wait 대신 개별 처리] 두 호출 중 하나가 실패해도 다른 하나는
     // 정상 표시되도록(부분 실패에도 화면이 깨지지 않는 방어적 원칙) 각각
     // 독립적인 try/catch로 분리한다.
-    unawaited(_loadReport(birth, question));
-    unawaited(_loadInterpret(birth, entry.id));
-    unawaited(_loadNarrative(birth, entry.id, question));
+    if (prefetched != null) {
+      unawaited(_consumeReport(prefetched.report));
+      unawaited(_consumeInterpret(prefetched.interpret));
+      unawaited(_consumeNarrative(prefetched.narrative));
+    } else {
+      unawaited(_loadReport(birth, question));
+      unawaited(_loadInterpret(birth, entry.id));
+      unawaited(_loadNarrative(birth, entry.id, question));
+    }
+  }
+
+  // [69종 리딩 지연 개선 — P0] 로딩화면이 미리 시작해 둔 Future를 그대로
+  // await만 하는 버전. 성공/실패 처리(setState)는 아래 _loadReport 등과
+  // 완전히 동일한 로직이다 — 네트워크 호출 자체만 로딩화면이 이미 시작해
+  // 둔 것을 재사용할 뿐, 결과 반영 방식은 바꾸지 않는다(회귀 없음).
+  Future<void> _consumeReport(Future<SajuReportResult> prefetched) async {
+    try {
+      final result = await prefetched;
+      if (!mounted) return;
+      setState(() => _reportState = LoadState.success(result));
+    } on SajuV3ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _reportState = LoadState.error(e.message));
+    } catch (e) {
+      if (!mounted) return;
+      setState(
+        () => _reportState = LoadState.error('사주 풀이를 불러올 수 없습니다: $e'),
+      );
+    }
+  }
+
+  Future<void> _consumeInterpret(
+    Future<InterpretationResult> prefetched,
+  ) async {
+    try {
+      final result = await prefetched;
+      if (!mounted) return;
+      setState(() => _interpretState = LoadState.success(result));
+    } on SajuV3ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _interpretState = LoadState.error(e.message));
+    } catch (e) {
+      if (!mounted) return;
+      setState(
+        () => _interpretState = LoadState.error('심층 분석을 불러올 수 없습니다: $e'),
+      );
+    }
+  }
+
+  Future<void> _consumeNarrative(Future<NarrativeResult> prefetched) async {
+    try {
+      final result = await prefetched;
+      if (!mounted) return;
+      setState(() => _narrativeState = LoadState.success(result));
+    } on SajuV3ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _narrativeState = LoadState.error(e.message));
+    } catch (e) {
+      if (!mounted) return;
+      setState(
+        () => _narrativeState = LoadState.error('이야기형 해석을 불러올 수 없습니다: $e'),
+      );
+    }
   }
 
   Future<void> _loadReport(BirthInput birth, String question) async {
