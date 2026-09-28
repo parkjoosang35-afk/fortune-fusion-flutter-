@@ -31,4 +31,25 @@ class EnvConfig {
     'SAJU_FREEPASS',
     defaultValue: '',
   );
+
+  /// [신통방통 메인 히어로 영상 전환 지시서 v1.0 §5] 히어로 영상/포스터
+  /// 자산이 서빙되는 base URL(호스트+경로 접두사, 트레일링 슬래시 없음).
+  ///
+  /// [CDN 미구축 상태의 임시 구조] 사용자 확정: "현재 S3+CloudFront는
+  /// 구축되어 있지 않으므로 우선 sintong.kr 서버의 정적 디렉토리에서
+  /// 서빙한다... 영상 URL과 코드 구조는 추후 CDN으로 이전할 수 있도록
+  /// 하드코딩하지 말고 환경변수 또는 설정값으로 관리한다." 이 요구에 따라
+  /// 코드 어디에도 실제 도메인/경로를 직접 쓰지 않고, 오직 이 상수 하나만
+  /// 참조한다. 나중에 S3+CloudFront(또는 다른 CDN)로 옮길 때는 배포
+  /// 스크립트에서 --dart-define=HERO_VIDEO_BASE_URL=https://cdn.xxx/hero
+  /// 값만 바꿔 재빌드하면 되고, Dart 코드는 한 줄도 수정할 필요가 없다.
+  ///
+  /// 기본값(sintong.kr 자체 서버, nginx가 /static/hero/ 를 정적 서빙 —
+  /// 배포 시 nginx 설정과 반드시 짝을 맞출 것)은 개발/프리뷰 편의를 위한
+  /// 것이며, 운영 배포 시에도 현재는 이 기본값 그대로 사용한다(§5.5
+  /// "오리진 보호" 규칙은 CDN 도입 후 적용 대상).
+  static const String heroVideoBaseUrl = String.fromEnvironment(
+    'HERO_VIDEO_BASE_URL',
+    defaultValue: 'https://sintong.kr/static/hero',
+  );
 }

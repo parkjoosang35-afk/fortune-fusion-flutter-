@@ -5,35 +5,24 @@
 // [중요 수정] 원래 "1탭=캐러셀만 이동, 2탭(0.7초 이내)=서브 화면 이동"
 // 규칙이었으나, 실제 사용자는 더블탭 규칙을 알 수 없어 "눌러도 안
 // 넘어간다"고 느끼는 문제가 있었다(사용자 피드백 반영). 이제 칩을
-// 누르면 바로 해당 카테고리 실제 화면으로 이동하고, 캐러셀도 함께
-// 해당 슬라이드로 이동시킨다(1탭으로 통일).
+// 누르면 바로 해당 카테고리 실제 화면으로 이동한다(1탭으로 통일).
+//
+// [히어로 영상 전환 지시서 v1.0 §2 변경범위] "탭/칩" 행: "칩은 유지하되
+// 슬라이드 인덱스 연동만 해제(칩 탭 → 각 서비스 화면 이동). 슬라이드
+// 인덱스 상태값 삭제". 히어로가 캐러셀에서 30초 영상 1개로 교체되면서
+// 더 이상 "이동시킬 슬라이드"가 없으므로, 칩은 이제 활성/비활성 시각
+// 상태 없이 순수 라우팅 전용 버튼이 된다. [SintongDotsIndicator]도
+// 슬라이드 진행 표시용이었으므로 이 지시서에 따라 완전히 제거한다
+// (제거 체크리스트 #2 "인디케이터 DOM/CSS" 대응).
 // ═══════════════════════════════════════════════════════════════
 import 'package:flutter/material.dart';
 
 import '../sintong_home_v2_data.dart';
 import '../sintong_home_v2_routing.dart';
 import '../sintong_home_v2_tokens.dart';
-import 'sintong_hero_carousel.dart';
 
 class SintongChipRow extends StatelessWidget {
-  const SintongChipRow({
-    super.key,
-    required this.currentIndex,
-    required this.onChipTapGoTo,
-  });
-
-  final int currentIndex;
-
-  /// 칩 탭 시 히어로를 해당 인덱스로 이동시키는 콜백(부모가 소유한
-  /// [SintongHeroCarouselState.goTo]에 위임).
-  final ValueChanged<int> onChipTapGoTo;
-
-  void _onChipTap(BuildContext context, int index) {
-    // 캐러셀도 함께 해당 슬라이드로 이동시켜 시각적 피드백을 준 뒤,
-    // 곧바로 실제 기능 화면으로 이동한다.
-    onChipTapGoTo(index);
-    openSubScreen(context, sHeroOrder[index]);
-  }
+  const SintongChipRow({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -45,62 +34,27 @@ class SintongChipRow extends StatelessWidget {
         itemCount: sHeroOrder.length,
         separatorBuilder: (_, __) => const SizedBox(width: 5),
         itemBuilder: (context, index) {
-          final active = index == currentIndex;
           return GestureDetector(
-            onTap: () => _onChipTap(context, index),
-            child: AnimatedContainer(
-              duration: SHomeV2Motion.chipTransition,
+            onTap: () => openSubScreen(context, sHeroOrder[index]),
+            child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: active ? SHomeV2Colors.chipOnBg : SHomeV2Colors.chipBg,
+                color: SHomeV2Colors.chipBg,
                 borderRadius: BorderRadius.circular(SHomeV2Radii.pill),
                 border: Border.all(
-                  color: active
-                      ? SHomeV2Colors.chipOnBg
-                      : SHomeV2Colors.chipBorder,
+                  color: SHomeV2Colors.chipBorder,
                   width: 0.5,
                 ),
               ),
               child: Text(
                 sHeroOrder[index].chipLabel,
-                style: SHomeV2Text.chip(
-                  color: active ? SHomeV2Colors.chipOnFg : Colors.white,
-                  active: active,
-                ),
+                style: SHomeV2Text.chip(color: Colors.white),
               ),
             ),
           );
         },
       ),
-    );
-  }
-}
-
-class SintongDotsIndicator extends StatelessWidget {
-  const SintongDotsIndicator({super.key, required this.currentIndex});
-  final int currentIndex;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        for (int i = 0; i < sHeroOrder.length; i++) ...[
-          AnimatedContainer(
-            duration: SHomeV2Motion.dotTransition,
-            width: i == currentIndex ? 18 : 5,
-            height: 5,
-            decoration: BoxDecoration(
-              color: i == currentIndex
-                  ? SHomeV2Colors.dotOn
-                  : SHomeV2Colors.dotOff,
-              borderRadius: BorderRadius.circular(3),
-            ),
-          ),
-          if (i != sHeroOrder.length - 1) const SizedBox(width: 6),
-        ],
-      ],
     );
   }
 }

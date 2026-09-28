@@ -19,6 +19,13 @@
 // 분기를 유지하지 않고, 정적 레이아웃으로 전환한다(CMS 설정 로드
 // 자체는 향후 재사용을 위해 그대로 트리거만 해둔다 — 화면에는 반영
 // 안 함).
+//
+// [히어로 영상 전환 지시서 v1.0] 기존 6장 슬라이드 캐러셀
+// (SintongHeroCarousel)을 30초 홍보 영상(SintongHeroVideo)으로
+// 교체한다. §2 변경범위 표에 따라: 인디케이터 제거, 슬라이드 인덱스
+// 상태값(_heroIndex/_heroKey) 완전 삭제, 칩은 순수 라우팅 버튼으로
+// 단순화. 히어로 영역의 세로 비율도 캐러셀 원본 이미지 비율(572/1024)
+// 대신 실제 영상 비율(9:16, §6.1)로 맞춘다.
 // ═══════════════════════════════════════════════════════════════
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -34,10 +41,16 @@ import '../widgets/welcome_reward_modal.dart';
 import '../../../ads_test/presentation/admob_test_banner.dart';
 import '../../../ad_banner/presentation/ad_banner_widget.dart';
 import 'sintong_home_v2_tokens.dart';
-import 'widgets/sintong_hero_carousel.dart' show SintongHeroCarousel, SintongHeroCarouselState, sHeroAspectRatio;
+import 'widgets/sintong_hero_video.dart';
 import 'widgets/sintong_v2_topbar.dart';
 import 'widgets/sintong_chip_row.dart';
 import 'widgets/sintong_v2_sheet.dart';
+
+/// [§6.1 히어로 영역 스펙] 영상/포스터와 동일한 9:16 비율. REQ-06
+/// (CLS 방지)을 Flutter에서는 AspectRatio 위젯이 그대로 보장한다 —
+/// 영상이 로드되기 전(포스터만 보이는 상태)과 로드된 후 영역 크기가
+/// 항상 동일하다.
+const double sHeroAspectRatio = 9 / 16;
 
 class SintongHomeV2Screen extends StatefulWidget {
   const SintongHomeV2Screen({super.key});
@@ -47,9 +60,6 @@ class SintongHomeV2Screen extends StatefulWidget {
 }
 
 class _SintongHomeV2ScreenState extends State<SintongHomeV2Screen> {
-  final _heroKey = GlobalKey<SintongHeroCarouselState>();
-  int _heroIndex = 0;
-
   @override
   void initState() {
     super.initState();
@@ -119,9 +129,24 @@ class _SintongHomeV2ScreenState extends State<SintongHomeV2Screen> {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    SintongHeroCarousel(
-                      key: _heroKey,
-                      onIndexChanged: (i) => setState(() => _heroIndex = i),
+                    const SintongHeroVideo(),
+                    // [§6.1 오버레이 콘텐츠 — 하단 30% 그라데이션 +
+                    // 타이틀/설명] 캐러셀에는 슬라이드별 6종 캡션이
+                    // 있었지만, 영상은 콘텐츠가 하나이므로 실제 영상
+                    // 말미(28.5s)에 등장하는 카피와 동일한 문구를
+                    // 고정 오버레이로 노출한다(§6.3 CSS pointer-events:
+                    // none과 동일하게 IgnorePointer로 감싸 아래 칩
+                    // 탭을 막지 않는다).
+                    // [칩 로우와 겹치지 않도록 배치] 칩 로우가
+                    // bottom:54~86(높이 32) 구간을 차지하므로, 캡션은
+                    // 그 위(bottom:100)부터 위로 펼쳐지게 배치한다.
+                    const Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 100,
+                      child: IgnorePointer(
+                        child: _HeroVideoCaption(),
+                      ),
                     ),
                     const Positioned(
                       top: 0,
@@ -129,25 +154,14 @@ class _SintongHomeV2ScreenState extends State<SintongHomeV2Screen> {
                       right: 0,
                       child: SintongV2TopBar(),
                     ),
-                    // [카테고리 칩을 좀 더 아래로 — 2026-09-24 사용자
-                    // 리포트] 히어로 박스가 세로로 훨씬 길어졌으므로,
-                    // 이미지 하단 여백에 딱 붙지 않고 조금 더 내려서
-                    // 자리잡도록 bottom 값을 줄인다(도트/칩 간 34px
-                    // 상대 간격은 그대로 유지).
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 20,
-                      child: SintongDotsIndicator(currentIndex: _heroIndex),
-                    ),
-                    Positioned(
+                    // [지시서 §2] 인디케이터(SintongDotsIndicator)는
+                    // 영상 진행 표시가 필요 없어 완전히 제거했다. 칩
+                    // 로우는 기존과 동일한 위치(bottom: 54)에 유지.
+                    const Positioned(
                       left: 0,
                       right: 0,
                       bottom: 54,
-                      child: SintongChipRow(
-                        currentIndex: _heroIndex,
-                        onChipTapGoTo: (i) => _heroKey.currentState?.goTo(i),
-                      ),
+                      child: SintongChipRow(),
                     ),
                   ],
                 ),
@@ -177,6 +191,42 @@ class _SintongHomeV2ScreenState extends State<SintongHomeV2Screen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// [§6.1 오버레이 콘텐츠] 히어로 영상 위에 고정 노출하는 eyebrow +
+/// 설명 캡션. 실제 영상 말미(28.5s)에 로고와 함께 등장하는 카피
+/// ("사주는 나의 이야기를 읽는 것입니다")를 그대로 재사용해, 자동재생
+/// 여부·재생 위치와 무관하게 서비스 메시지가 항상 보이도록 한다.
+class _HeroVideoCaption extends StatelessWidget {
+  const _HeroVideoCaption();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '신통방통 · 神通方通',
+            textAlign: TextAlign.center,
+            style: SHomeV2Text.heroEyebrow(),
+          ),
+          const SizedBox(height: 10),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 280),
+            child: Text(
+              '사주는 나의 이야기를 읽는 것입니다',
+              textAlign: TextAlign.center,
+              style: SHomeV2Text.heroSub().copyWith(
+                color: Colors.white.withValues(alpha: 0.88),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

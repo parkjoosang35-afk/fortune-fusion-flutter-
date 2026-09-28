@@ -15,8 +15,23 @@ import 'package:flutter/widgets.dart' show Alignment, BuildContext;
 // [openFaceReading]/[openPalmReading](routing.dart)을 직접 참조해야 해서
 // 순환 참조를 피하기 위해 sintong_home_v2_routing.dart 쪽에 정의한다.
 
-/// 6개 카테고리 식별자 — 히어로 슬라이드/칩/서브 화면이 공유하는 순서.
+/// 6개 카테고리 식별자 — 칩/서브 화면이 공유하는 순서.
 enum SHomeV2Category { guide, saju, tarot, wish, face, palm }
+
+/// 칩 로우가 그리는 6개 카테고리 순서.
+///
+/// [히어로 영상 전환 지시서 v1.0] 원래 `sintong_hero_carousel.dart`(6장
+/// 슬라이드 캐러셀, 이번 지시서로 완전 제거됨)에 정의되어 있던 상수다.
+/// 캐러셀 파일은 삭제됐지만 칩 로우는 이 순서를 그대로 써야 하므로,
+/// 순환 참조 없는 데이터 파일로 옮겨 보존한다.
+const List<SHomeV2Category> sHeroOrder = [
+  SHomeV2Category.guide,
+  SHomeV2Category.saju,
+  SHomeV2Category.tarot,
+  SHomeV2Category.wish,
+  SHomeV2Category.face,
+  SHomeV2Category.palm,
+];
 
 extension SHomeV2CategoryX on SHomeV2Category {
   /// 칩 라벨 — README "칩 라벨" 표.
