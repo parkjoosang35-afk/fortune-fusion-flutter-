@@ -10,6 +10,7 @@ import '../../../core/widgets/app_shortcut_row.dart';
 import '../../auth/application/auth_provider.dart';
 import '../../auth/domain/grade_model.dart';
 import '../../pass/application/pass_provider.dart';
+import '../../pass/domain/pass_model.dart';
 import '../../wallet/application/wallet_provider.dart';
 import '../../wish_room/presentation/wish_room_entry_gate.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
@@ -370,6 +371,17 @@ class _PassSummaryCard extends StatelessWidget {
     return '${dt.month}월 ${dt.day}일 ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 
+  // [프리패스 2회지급 전환 지시서 §5.4, 2026-09-28] 쿠팡 정책(passType=='ad')이
+  // grantCount(회수제)를 쓰는지 확인한다. coupang_pass_sheet.dart의 _adPolicy와
+  // 동일한 판정 방식을 재사용해, "1시간" 하드코딩 문구가 이 카드에만 남지
+  // 않도록 한다(§5.3 중복 구현 금지 원칙).
+  PassPolicyModel? _adPolicy() {
+    for (final p in pass.policies) {
+      if (p.passType == PassType.ad) return p;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     // [재잠금 정확도] pass.status(서버 스냅샷) 대신 OpenPassState.fromModel의
@@ -378,6 +390,15 @@ class _PassSummaryCard extends StatelessWidget {
     final status = pass.status;
     final isActive = liveState.isActive;
     final remainingSec = liveState.remaining.inSeconds;
+    final adPolicy = _adPolicy();
+    final grantCount = adPolicy?.grantCount;
+    final isCountBased = grantCount != null;
+    final acquireLabel = isCountBased
+        ? '광고 보고 ${formatPassGrantCount(grantCount)} 받기'
+        : '광고 보고 1시간 열기';
+    final guideText = isCountBased
+        ? '쿠팡 파트너스 광고를 확인하면 결과보기 ${formatPassGrantCount(grantCount)}가 지급되어 무료로 이용할 수 있어요.'
+        : '광고 1회 시청으로 1시간 동안 모든 운세를 볼 수 있어요.';
     return PremiumCard(
       backgroundColor: UnifiedColors.cardAllMenu,
       borderColor: Colors.transparent,
@@ -407,8 +428,10 @@ class _PassSummaryCard extends StatelessWidget {
                 : '보유한 프리패스가 없어요',
           ),
           const SizedBox(height: UnifiedTokens.spaceMd),
-          // [무료 광고형 구조 재정비 §2] 프리패스는 "광고 1회 = 1시간"
-          // 단일 획득 경로만 노출한다(복주머니로 구매 버튼은 off).
+          // [무료 광고형 구조 재정비 §2 / 프리패스 2회지급 전환 §5.4]
+          // 프리패스는 쿠팡 파트너스 광고 확인 단일 획득 경로만 노출한다
+          // (복주머니로 구매 버튼은 off). 문구는 정책이 회수제(grantCount)인지
+          // 여부에 따라 자동 전환된다 — "1시간" 하드코딩 금지.
           SizedBox(
             width: double.infinity,
             child: OutlinedButton(
@@ -420,14 +443,14 @@ class _PassSummaryCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
                 ),
               ),
-              child: const Text('광고 보고 1시간 열기'),
+              child: Text(acquireLabel),
             ),
           ),
           const SizedBox(height: UnifiedTokens.spaceSm),
           Text(
-            isActive && status.expiresAt != null
+            isActive && status.expiresAt != null && !isCountBased
                 ? '만료 예정: ${_formatExpiry(status.expiresAt!)}'
-                : '광고 1회 시청으로 1시간 동안 모든 운세를 볼 수 있어요.',
+                : guideText,
             style: UnifiedText.caption(),
           ),
         ],

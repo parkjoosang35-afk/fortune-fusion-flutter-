@@ -363,7 +363,12 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
   String _passAmountLabel(PassPolicyModel policy) {
     final grantCount = policy.grantCount;
     if (grantCount != null) return formatPassGrantCount(grantCount);
-    return formatPassDuration(policy.durationMin);
+    // [프리패스 2회지급 전환 지시서 §3.4-2, 2026-09-28] 쿠팡 정책(id=11)은
+    // 이제 회수제(grantCount)로 확정 운영되므로, grantCount 값이 서버에서
+    // 아직 반영되지 않았거나 누락된 예외 상황에서도 durationMin(시간제) 문구
+    // ("1시간" 등)로 폴백하지 않는다 — "1시간" 문구가 재발하는 것을 막기
+    // 위한 방어 코드다(시간제 정책으로의 복원 금지, 지시서 §2.2 명시).
+    return formatPassGrantCount(0);
   }
 
   Widget _buildContent(PassPolicyModel policy) {
