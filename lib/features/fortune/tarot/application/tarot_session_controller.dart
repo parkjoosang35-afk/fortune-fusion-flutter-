@@ -361,14 +361,30 @@ class TarotSessionController extends ChangeNotifier {
   }
 
   /// 에러 상태에서 재시도.
-  Future<void> retryReveal(TarotProvider tarotProvider) async {
+  ///
+  /// [결과보기 통합 권한 시스템 v1.0, §8.6] 최초 시도에서 이미 결제(프리패스
+  /// 차감/복주머니 차감/광고 시청)가 확정됐다가 AI 생성 실패로 환불된
+  /// 경우이므로, 재시도도 반드시 새로운 결제 확정(§6 게이트 재호출)을 거쳐야
+  /// 한다. [paymentMethod]/[transactionId]를 누락하면 서버가
+  /// `useResultAccessService=false`로 판단해 §8 게이트를 건너뛰고 레거시
+  /// 무료 경로로 처리해버리므로, 호출부(TarotCardSelectScreen._ErrorView)가
+  /// 재시도 직전에 게이트를 다시 띄워 받은 값을 여기로 반드시 전달해야 한다.
+  Future<void> retryReveal(
+    TarotProvider tarotProvider, {
+    String? paymentMethod,
+    String? transactionId,
+  }) async {
     if (_state.status != TarotSessionStatus.error) return;
     _state = _state.copyWith(
       status: TarotSessionStatus.cardsChosen,
       clearError: true,
     );
     notifyListeners();
-    await reveal(tarotProvider);
+    await reveal(
+      tarotProvider,
+      paymentMethod: paymentMethod,
+      transactionId: transactionId,
+    );
   }
 
   /// 타로 서브트리를 벗어날 때 세션 상태를 완전히 초기화한다(§10-3 -

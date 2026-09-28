@@ -371,6 +371,29 @@ class _ErrorView extends StatelessWidget {
   final TarotSessionState state;
   const _ErrorView({required this.state});
 
+  /// [결과보기 통합 권한 시스템 v1.0, §8.6] "다시 시도하기"는 최초 시도에서
+  /// 이미 결제→환불이 끝난 상태이므로, 재시도 역시 §6 게이트를 다시 띄워
+  /// 새 결제를 확정한 뒤에만 서버에 요청을 보낸다. 게이트 없이 곧바로
+  /// retryReveal()을 호출하면 서버가 paymentMethod/transactionId 누락을
+  /// 보고 레거시(무료) 경로로 빠지는 결제 우회 버그가 생긴다.
+  Future<void> _handleRetry(BuildContext context) async {
+    final session = context.read<TarotSessionController>();
+    final categoryLabel = session.state.category?.label ?? '타로';
+    final beginResult = await showResultAccessGateSheet(
+      context,
+      contentType: 'tarot',
+      categoryKey: 'tarot',
+      contentTitle: categoryLabel,
+      returnRoute: '/ai-fortune/tarot/question',
+    );
+    if (!context.mounted || beginResult == null) return;
+    await session.retryReveal(
+      context.read<TarotProvider>(),
+      paymentMethod: beginResult.paymentMethod.code,
+      transactionId: beginResult.transactionId,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -403,11 +426,7 @@ class _ErrorView extends StatelessWidget {
                   vertical: OzTokens.spaceSm,
                 ),
               ),
-              onPressed: () {
-                context.read<TarotSessionController>().retryReveal(
-                  context.read<TarotProvider>(),
-                );
-              },
+              onPressed: () => _handleRetry(context),
               child: const Text('다시 시도하기'),
             ),
           ],
