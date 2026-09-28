@@ -42,8 +42,14 @@ class ResultAccessProvider extends ChangeNotifier {
     );
     if (result.success) {
       _quote = result.data;
+      _lastErrorReason = null;
     } else {
       _lastError = result.errorMessage;
+      // [비로그인 결과보기 복귀 지시서 R1/R4] getQuote() 실패(주로 401
+      // UNAUTHORIZED)도 begin()과 동일하게 errorCode를 lastErrorReason에
+      // 반영한다 — 화면단(ResultAccessGateSheet)이 이 값으로 "로그인 필요"
+      // 문맥인지 단순 조회 실패인지 구분해 CTA를 분기한다.
+      _lastErrorReason = result.errorCode;
     }
     _isLoadingQuote = false;
     notifyListeners();

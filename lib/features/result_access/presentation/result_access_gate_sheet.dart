@@ -25,6 +25,52 @@ import '../domain/result_access_model.dart';
 /// 호출에 그대로 실어 보내야 한다. 사용자가 취소했거나 쿠팡 이동으로
 /// 이어졌으면 null을 반환한다(쿠팡 이동은 §7에 따라 별도 상태 저장/복원으로
 /// 처리되므로, 이 시트가 그 결과까지 기다렸다가 반환할 필요가 없다).
+///
+/// [비로그인 결과보기 복귀 지시서 R2] 로그인/회원가입 성공 직후 호출되는
+/// 공통 진입점. [PendingResultAccessReturnStore]에 저장된 값이 있으면(=이
+/// 시트의 "로그인하고 결과보기" CTA를 거쳐 로그인하러 갔던 경우) 그 값을
+/// 소비해 **원래 화면으로 `replace` 복귀**한 뒤, 같은 프레임에 이 게이트
+/// 시트를 다시 띄운다(사용자가 로그인만 마치면 별도 조작 없이 곧바로 3택
+/// 화면을 다시 보게 된다). 저장된 값이 없으면(일반 로그인) 아무 것도 하지
+/// 않는다 — 호출부(login_screen.dart/signup_screen.dart)는 이 함수 호출
+/// 여부와 무관하게 기존 `/home` 이동 로직을 그대로 유지해야 한다(반환값
+/// true면 이 함수가 이미 복귀 라우팅까지 처리했다는 뜻이므로 호출부의
+/// `/home` 이동을 건너뛰어야 한다).
+Future<bool> restorePendingResultAccessAfterLogin(BuildContext context) async {
+  final pending = await PendingResultAccessReturnStore.consume();
+  if (pending == null) return false;
+  if (!context.mounted) return false;
+
+  // [뒤로가기 시 로그인 화면으로 돌아가지 않도록] replace로 원래 화면에
+  // 복귀한다 — 로그인 화면(및 그 이전 결과보기 시트를 띄웠던 화면)은
+  // 스택에서 제거된다.
+  await Navigator.of(context).pushReplacementNamed(
+    pending.returnRoute,
+    arguments: pending.userInput.isEmpty
+        ? null
+        : {'restoredInput': pending.userInput},
+  );
+  if (!context.mounted) return true;
+
+  // 복귀한 화면 위에 곧바로 결과보기 시트를 다시 띄운다 — 로그인 전에
+  // 보고 있던 콘텐츠 컨텍스트 그대로. 이 시점에는 이미 로그인이 완료된
+  // 상태이므로 quote 조회가 정상적으로 성공한다.
+  await showResultAccessGateSheet(
+    context,
+    contentType: pending.contentType,
+    contentId: pending.contentId,
+    categoryKey: pending.categoryKey,
+    contentTitle:
+        pending.contentTitle ?? pending.selectedCategory ?? pending.contentType,
+    returnRoute: pending.returnRoute,
+    userInputForRestore: pending.userInput,
+    selectedCategory: pending.selectedCategory,
+    question: pending.question,
+    resultRequestId: pending.resultRequestId,
+  );
+  return true;
+}
+
 Future<ResultAccessBeginResult?> showResultAccessGateSheet(
   BuildContext context, {
   required String contentType,
@@ -259,6 +305,8 @@ class _ResultAccessGateSheetState extends State<ResultAccessGateSheet> {
         resultRequestId: widget.resultRequestId,
         returnRoute: widget.returnRoute,
         savedAt: DateTime.now(),
+        contentTitle: widget.contentTitle,
+        categoryKey: widget.categoryKey,
       ),
     );
     if (!mounted) return;
@@ -337,22 +385,41 @@ class _ResultAccessGateSheetState extends State<ResultAccessGateSheet> {
     );
   }
 
+  /// [비로그인 결과보기 복귀 지시서 R1/R4] 조회 실패 사유가 'UNAUTHORIZED'
+  /// (=서버가 401을 반환, 비로그인 상태)이면 "다시 시도"(=동일 요청 재실행,
+  /// 로그인 상태가 안 바뀌었으니 똑같이 실패해 사실상 무동작으로 보였다)가
+  /// 아니라 "로그인 / 회원가입" CTA를 보여준다. 그 외(네트워크/5xx 등
+  /// 진짜 일시적 오류)에는 기존과 동일하게 재시도 버튼을 유지한다 — 재시도는
+  /// 순수 네트워크/서버 오류 문맥에서만 의미 있다는 지시서 R1 원칙 그대로.
   Widget _buildLoadError(ResultAccessProvider provider) {
+    final needsLogin = provider.lastErrorReason == 'UNAUTHORIZED';
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 24),
-          child: Text(
-            provider.lastError ?? '결과보기 권한 정보를 불러오지 못했습니다.',
-            style: UnifiedText.body(color: UnifiedColors.textCaption),
-            textAlign: TextAlign.center,
+          child: Column(
+            children: [
+              if (needsLogin) ...[
+                const Text('🔒', style: TextStyle(fontSize: 32)),
+                SizedBox(height: UnifiedTokens.spaceSm),
+              ],
+              Text(
+                needsLogin
+                    ? '로그인 후 결과보기를 이용할 수 있어요.'
+                    : (provider.lastError ?? '결과보기 권한 정보를 불러오지 못했습니다.'),
+                style: needsLogin
+                    ? UnifiedText.bodyStrong()
+                    : UnifiedText.body(color: UnifiedColors.textCaption),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
         ),
         SizedBox(
           width: double.infinity,
           height: 48,
           child: ElevatedButton(
-            onPressed: _loadQuote,
+            onPressed: needsLogin ? _handleLoginRequired : _loadQuote,
             style: ElevatedButton.styleFrom(
               backgroundColor: UnifiedColors.black,
               foregroundColor: Colors.white,
@@ -360,11 +427,45 @@ class _ResultAccessGateSheetState extends State<ResultAccessGateSheet> {
                 borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
               ),
             ),
-            child: const Text('다시 시도'),
+            child: Text(needsLogin ? '로그인하고 결과보기' : '다시 시도'),
           ),
         ),
       ],
     );
+  }
+
+  /// [비로그인 결과보기 복귀 지시서 R2] 로그인/회원가입으로 보내기 직전에
+  /// 지금 보고 있던 콘텐츠 컨텍스트(어떤 화면·어떤 입력값으로 돌아와야
+  /// 하는지)를 저장한다. 이미 존재하는 [PendingResultAccessReturnStore]
+  /// (§7 "쿠팡 이동 후 복귀"용으로 만들어진 디스크 저장소)를 그대로
+  /// 재사용한다 — 로그인 왕복도 쿠팡 왕복과 동일하게 "이 화면을 떠났다가
+  /// 돌아와야 한다"는 구조가 같으므로 신규 저장소를 만들지 않는다(§8.1
+  /// 공통화 원칙과 동일한 이유). 저장 후 이 시트를 닫고 `/login`으로
+  /// 이동한다 — 로그인 성공 시 login_screen.dart가 이 저장값을 소비해
+  /// 원래 화면 + 이 시트를 자동으로 복원한다(R2).
+  Future<void> _handleLoginRequired() async {
+    await PendingResultAccessReturnStore.save(
+      PendingResultAccessReturn(
+        contentType: widget.contentType,
+        contentId: widget.contentId,
+        selectedCategory: widget.selectedCategory,
+        question: widget.question,
+        userInput: widget.userInputForRestore,
+        resultRequestId: widget.resultRequestId,
+        returnRoute: widget.returnRoute,
+        savedAt: DateTime.now(),
+        contentTitle: widget.contentTitle,
+        categoryKey: widget.categoryKey,
+      ),
+    );
+    if (!mounted) return;
+    // 이 시트를 닫고(null 반환 — 호출부는 "사용자가 취소함"과 동일하게
+    // 처리하면 되므로 별도 분기 불필요) 로그인 화면으로 이동한다. 뒤로가기
+    // 시 이 시트가 다시 뜨지 않도록 pop 후 push(로그인 화면은 스택에
+    // 쌓인다 — 로그인 화면 자체의 "뒤로가기" 버튼으로 원래 화면에 돌아올
+    // 수 있어야 하므로 replace가 아니라 일반 push를 쓴다).
+    Navigator.of(context).pop();
+    Navigator.of(context).pushNamed('/login');
   }
 
   Widget _buildOptions(ResultAccessQuote quote) {

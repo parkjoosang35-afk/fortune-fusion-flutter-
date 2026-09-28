@@ -14,6 +14,7 @@ import '../../intro/presentation/onboarding_video_screen.dart';
 import '../../intro/presentation/widgets/intro_title_text.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
 import '../../wallet/application/wallet_provider.dart';
+import '../../result_access/presentation/result_access_gate_sheet.dart';
 import '../application/auth_provider.dart';
 import 'widgets/auth_checkbox.dart';
 import 'widgets/auth_form_field.dart';
@@ -188,9 +189,19 @@ class _SignupScreenState extends State<SignupScreen> {
       if (!context.mounted) return;
     }
 
-    Navigator.of(
+    // [비로그인 결과보기 복귀 지시서 R2] login_screen.dart와 동일하게,
+    // 회원가입(이메일 인증 포함) 완료 시점에도 pending 복귀 대상을 먼저
+    // 확인한다 — 있으면 원래 화면 + 결과보기 시트로 복귀하고, 없으면
+    // 기존과 동일하게 '/home'으로 이동한다.
+    final restoredResultAccess = await restorePendingResultAccessAfterLogin(
       context,
-    ).pushNamedAndRemoveUntil('/home', (route) => false);
+    );
+    if (!context.mounted) return;
+    if (!restoredResultAccess) {
+      Navigator.of(
+        context,
+      ).pushNamedAndRemoveUntil('/home', (route) => false);
+    }
   }
 
   @override

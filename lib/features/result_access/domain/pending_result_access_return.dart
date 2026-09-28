@@ -27,11 +27,26 @@ class PendingResultAccessReturn {
     this.resultRequestId,
     required this.returnRoute,
     required this.savedAt,
+    this.contentTitle,
+    this.categoryKey,
   });
 
   /// 정통사주/타로/운세 등(ResultAccessRepository.getQuote의 contentType과 동일값).
   final String contentType;
   final String? contentId;
+
+  /// [비로그인 결과보기 복귀 지시서 R2] 결과보기 시트 제목에 쓰인 사람이
+  /// 읽을 수 있는 콘텐츠 이름(예: '재물운', '프리랜서 운'). 로그인 복귀 후
+  /// 시트를 다시 그릴 때 [selectedCategory](서버 카테고리 키, 사람이 읽기
+  /// 어려운 값일 수 있음)와 별개로 정확한 표시 문구를 복원하기 위해
+  /// 추가했다. null이면(과거 저장된 값 등) 호출부가 안전하게 폴백한다.
+  final String? contentTitle;
+
+  /// [비로그인 결과보기 복귀 지시서 R2] 서버 카테고리별 이용횟수 검증에
+  /// 쓰이는 categoryKey. 원래 [ResultAccessGateSheet]가 받는 값과 동일 —
+  /// 로그인 복귀 후 시트를 다시 열 때도 원래와 동일한 조건으로 quote를
+  /// 조회해야 하므로 함께 저장한다.
+  final String? categoryKey;
 
   /// 예: '재물운'(§7 예시 "정통사주 → 재물운 → 결과보기").
   final String? selectedCategory;
@@ -59,6 +74,8 @@ class PendingResultAccessReturn {
     'resultRequestId': resultRequestId,
     'returnRoute': returnRoute,
     'savedAt': savedAt.toIso8601String(),
+    'contentTitle': contentTitle,
+    'categoryKey': categoryKey,
   };
 
   factory PendingResultAccessReturn.fromJson(Map<String, dynamic> json) {
@@ -72,6 +89,8 @@ class PendingResultAccessReturn {
       returnRoute: json['returnRoute'] as String,
       savedAt: DateTime.tryParse(json['savedAt'] as String? ?? '') ??
           DateTime.now(),
+      contentTitle: json['contentTitle'] as String?,
+      categoryKey: json['categoryKey'] as String?,
     );
   }
 }

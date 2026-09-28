@@ -40,7 +40,18 @@ class ResultAccessRepository {
       if (response.statusCode != 200 || decoded['success'] != true) {
         final error = decoded['error'] as String? ?? '결과보기 권한 정보를 불러오지 못했습니다.';
         debugPrint('[ResultAccessRepository] [quote] 실패 -> $error');
-        return ApiResult.fail(error);
+        // [비로그인 결과보기 복귀 지시서 R1/R4] admin_web의
+        // unauthorizedResponse()는 401 + "로그인이 필요합니다." 고정 문구만
+        // 내려준다(reason 필드 없음) — 이 API만 유일하게 인증을 요구하는
+        // 공개 엔드포인트라, 문구 매칭이 아니라 **statusCode==401**로
+        // 명확히 판정해 'UNAUTHORIZED' 코드를 부여한다. 호출부
+        // (ResultAccessProvider/ResultAccessGateSheet)는 이 code로 로그인
+        // CTA 분기를 결정한다(에러 메시지 문자열 매칭 금지 원칙 — 서버 문구가
+        // 바뀌어도 깨지지 않도록).
+        return ApiResult.fail(
+          error,
+          code: response.statusCode == 401 ? 'UNAUTHORIZED' : null,
+        );
       }
       return ApiResult.ok(
         ResultAccessQuote.fromJson(decoded['data'] as Map<String, dynamic>),
@@ -95,7 +106,14 @@ class ResultAccessRepository {
       if (response.statusCode != 200 || decoded['success'] != true) {
         final error = decoded['error'] as String? ?? '결과보기 권한 확인에 실패했습니다.';
         debugPrint('[ResultAccessRepository] [begin] 실패 -> $error (reason=${decoded['reason']})');
-        return ApiResult.fail(error, code: decoded['reason'] as String?);
+        // [비로그인 결과보기 복귀 지시서 R1/R4] getQuote()와 동일하게 401은
+        // unauthorizedResponse()가 내려준 고정 응답이라 'reason' 필드가
+        // 없다 — statusCode로 판정해 'UNAUTHORIZED'를 부여한다(그 외에는
+        // 서버가 내려준 reason 코드를 그대로 사용, 기존 동작 유지).
+        final code = response.statusCode == 401
+            ? 'UNAUTHORIZED'
+            : decoded['reason'] as String?;
+        return ApiResult.fail(error, code: code);
       }
       return ApiResult.ok(
         ResultAccessBeginResult.fromJson(decoded['data'] as Map<String, dynamic>),

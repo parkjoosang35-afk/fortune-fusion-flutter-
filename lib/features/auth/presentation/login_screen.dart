@@ -11,6 +11,7 @@ import '../../intro/presentation/intro_palette.dart';
 import '../../intro/presentation/intro_text_styles.dart';
 import '../../intro/presentation/widgets/intro_title_text.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
+import '../../result_access/presentation/result_access_gate_sheet.dart';
 import '../application/auth_provider.dart';
 import '../data/social_auth_service.dart';
 import 'find_email_screen.dart';
@@ -88,9 +89,23 @@ class _LoginScreenState extends State<LoginScreen> {
       // 곧바로 홈으로 이동한다. 생년월일은 이후 사주/운세 첫 이용 시점에
       // 해당 입력 화면에서 받고, "내 계정 프로필로 저장" 체크박스로
       // 원하는 사용자만 계정에 저장한다.
-      Navigator.of(
+      //
+      // [비로그인 결과보기 복귀 지시서 R2] "결과보기" 시트의 "로그인하고
+      // 결과보기" CTA를 거쳐 로그인하러 온 경우, PendingResultAccessReturnStore에
+      // 저장된 복귀 대상이 있다 — 그 경우 이 함수가 원래 화면으로 이미
+      // replace 이동 + 결과보기 시트 재오픈까지 마치므로, 아래의 일반
+      // '/home' 이동은 건너뛴다(중복 네비게이션 방지). 저장된 값이
+      // 없으면(일반 로그인, 기존 동작) false를 반환해 기존 로직을 그대로
+      // 수행한다 — 회귀 없음.
+      final restoredResultAccess = await restorePendingResultAccessAfterLogin(
         context,
-      ).pushNamedAndRemoveUntil('/home', (route) => false);
+      );
+      if (!mounted) return;
+      if (!restoredResultAccess) {
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/home', (route) => false);
+      }
       replayPendingPassRequest();
       replayPendingGuinjiJoin();
       replayPendingGuinjiOnboarding();
@@ -131,9 +146,17 @@ class _LoginScreenState extends State<LoginScreen> {
       if (ok) {
         // [프로필체크 화면 완전 제거] _login()과 동일하게, 프로필 보유
         // 여부와 무관하게 항상 곧바로 홈으로 이동한다.
-        Navigator.of(
+        // [비로그인 결과보기 복귀 지시서 R2] _login()과 동일하게 소셜
+        // 로그인 완료 시점에도 pending 복귀 대상을 먼저 확인한다.
+        final restoredResultAccess = await restorePendingResultAccessAfterLogin(
           context,
-        ).pushNamedAndRemoveUntil('/home', (route) => false);
+        );
+        if (!mounted) return;
+        if (!restoredResultAccess) {
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil('/home', (route) => false);
+        }
         replayPendingPassRequest();
         replayPendingGuinjiJoin();
         replayPendingGuinjiOnboarding();
