@@ -70,7 +70,8 @@ import '../domain/jeontong_v3_report_mapping.dart';
 import 'jeontong_design/saju_result_redesign/saju_dawn_data_builder.dart'
     show
         buildSajuDawnResultDataFromDeepReport,
-        buildSajuDawnResultDataFromParagraphs;
+        buildSajuDawnResultDataFromParagraphs,
+        buildSajuDawnResultDataFromV3Report;
 import 'jeontong_design/saju_result_redesign/saju_dawn_data_models.dart'
     show SajuResultData;
 import 'jeontong_design/saju_result_redesign/saju_dawn_result_page.dart'
@@ -729,16 +730,40 @@ class _ResultBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasProfile = profile != null;
 
-    // [정통사주 69종 결과 화면 리뉴얼 — 6차 지시서 "진행"] 프로필이 있으면
-    // 더 이상 로컬 계산(Dawn Paper/PHASE1~4 재조합)으로 그리지 않고, 이미
-    // 검증된 saju_v3 백엔드(/saju/v3/report 9 PART + /saju/v3/interpret
-    // 카테고리 심층)를 그대로 반영하는 [JeontongV3ReportView]로 렌더링한다.
-    // "AI 카드 하나 붙이기"가 아니라 하나의 완성된 개인 리포트 전체가
-    // 되도록, 헤더(이름·즐겨찾기)만 이 위젯이 감싸고 본문 전체는
-    // JeontongV3ReportView가 그린다. 프로필이 없으면(아직 입력 전) 아래
-    // 기존 legacy 경로(결정론적 샘플)로 그대로 폴백한다 — 회귀 없음.
+    // [정통사주 결과 페이지 리디자인 — 이번 세션] 프로필이 있고 리포트가
+    // 정상 로딩됐으면(성공), 이미 검증된 saju_v3 백엔드 응답을 새 디자인
+    // (Dawn Paper — 새벽 한지 · 신통방통 소원방)으로 그린다. 로딩/에러
+    // 상태는 화면 레이아웃을 아직 확정할 수 없으므로(Dawn Paper는 실제
+    // 챕터 텍스트 길이에 맞춰 그려야 함) 기존 [JeontongV3ReportView]의
+    // 검증된 스켈레톤/에러 뷰를 그대로 재사용한다 — 새 로딩·에러 UI를
+    // 또 만들지 않는다(회귀 없음, 재계산 없음 원칙과 동일한 정신).
     if (hasProfile) {
       final displayName = profile!.normalizedName ?? '회원님';
+      final showDawnPaper = reportState.isSuccess;
+      final dawnPage = showDawnPaper
+          ? _tryBuildDawnResultPageFromV3(
+              context,
+              entry: entry,
+              profile: profile!,
+              report: reportState.data!,
+              interpret: interpretState.isSuccess ? interpretState.data : null,
+              narrative: narrativeState.isSuccess ? narrativeState.data : null,
+              isBookmarked: isBookmarked,
+              onToggleBookmark: onToggleBookmark,
+              onSave: onSave,
+              displayName: displayName,
+              reportState: reportState,
+              interpretState: interpretState,
+            )
+          : null;
+
+      if (dawnPage != null) {
+        return dawnPage;
+      }
+
+      // [폴백 — 재계산 없음] Dawn Paper 조립이 실패했거나(예외) 아직
+      // 로딩/에러 상태면, 기존에 이미 검증된 JeontongV3ReportView로
+      // 그대로 그린다 — 화면이 절대 깨지지 않는다는 원칙 유지.
       return Column(
         children: [
           _Header(
@@ -1114,6 +1139,110 @@ class _ResultBody extends StatelessWidget {
     } catch (_) {
       return const SizedBox.shrink();
     }
+  }
+}
+
+/// [정통사주 결과 페이지 리디자인 — 이번 세션] 프로필이 있고 saju_v3
+/// 리포트가 성공적으로 로딩됐을 때, Dawn Paper([SajuDawnResultPage])를
+/// saju_v3 응답([SajuReportResult]/[InterpretationResult]/[NarrativeResult])
+/// 기반으로 조립한다. [_tryBuildDawnResultPage](legacy PHASE1~4 전용)와
+/// 완전히 동일한 방어적 패턴(try/catch → 실패 시 null → 호출부가 이미
+/// 검증된 [JeontongV3ReportView]로 안전하게 폴백)을 따른다.
+///
+/// [8글자/오행/대운/행운요소는 로컬 계산 그대로] saju_v3는 이 값들을
+/// 별도로 구조화해 내려주지 않으므로(9-PART는 텍스트일 뿐), 여기서도
+/// 기존 legacy 경로와 동일하게
+/// [JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4]를 호출해
+/// [SajuProfile]/[SajuResult]를 얻는다 — 같은 생년월일시 입력에 대해
+/// 항상 결정론적으로 동일한 값이므로 "재계산"이 아니라 "조회"다. 오직
+/// 肆(사주풀이) 텍스트만 [buildSajuDawnResultDataFromV3Report]를 통해
+/// saju_v3 응답으로 교체된다.
+Widget? _tryBuildDawnResultPageFromV3(
+  BuildContext context, {
+  required JeontongCategoryEntry entry,
+  required JeontongInput profile,
+  required SajuReportResult report,
+  required InterpretationResult? interpret,
+  required NarrativeResult? narrative,
+  required bool isBookmarked,
+  required VoidCallback onToggleBookmark,
+  required VoidCallback onSave,
+  required String displayName,
+  required LoadState<SajuReportResult> reportState,
+  required LoadState<InterpretationResult> interpretState,
+}) {
+  try {
+    final kst = profile.birthDateTimeUtc.add(const Duration(hours: 9));
+    final sajuGender = profile.gender == 'F' || profile.gender == 'female'
+        ? 'female'
+        : 'male';
+    final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
+      kst: kst,
+      gender: sajuGender,
+      isLunar: profile.isLunar,
+      isLeapMonth: profile.effectiveIsLeapMonth,
+      referenceDate: DateTime.now(),
+    );
+    final fortuneRules = SajuFortuneRules.cachedOrNull;
+
+    // [userRefId] legacy Dawn Paper 경로와 동일한 안정적 표시용 번호.
+    final userRefId =
+        '#${profile.birthDateTimeUtc.millisecondsSinceEpoch ~/ 1000}';
+
+    final data = buildSajuDawnResultDataFromV3Report(
+      entry: entry,
+      profile: built.profile,
+      saju: built.saju,
+      fortuneRules: fortuneRules,
+      report: report,
+      interpret: interpret,
+      narrative: narrative,
+      referenceDate: DateTime.now(),
+      userRefId: userRefId,
+    );
+
+    final topBanners = <Widget>[
+      if (kJeontongPlaceholderCategoryIds.contains(entry.id))
+        const _JeontongPlaceholderNotice(),
+      const DisclaimerBanner.common(),
+      if (entry.disclaimers.isNotEmpty)
+        DisclaimerBanner.forTags(entry.disclaimers),
+      if (profile.birthTimeUnknown) const _BirthTimeUnknownNotice(),
+    ];
+
+    return SajuDawnResultPage(
+      data: data,
+      strengthLabel: built.saju.dayMasterStrength,
+      typeLabel: null,
+      bookmarkButton: IconButton(
+        key: const ValueKey('jeontong_bookmark_toggle'),
+        icon: Icon(
+          isBookmarked ? Icons.star_rounded : Icons.star_border_rounded,
+          color: isBookmarked ? HanjiColors.accent : HanjiColors.muted,
+        ),
+        tooltip: isBookmarked ? '즐겨찾기 해제' : '즐겨찾기 추가',
+        onPressed: onToggleBookmark,
+      ),
+      topBanners: topBanners,
+      onBack: () => Navigator.of(context).pop(),
+      onRelatedTap: (r) => Navigator.of(
+        context,
+      ).pushNamed(JeontongEightyMatrix.resultRoute, arguments: r.code),
+      onPrimaryAction: () => Navigator.of(context).pushNamedAndRemoveUntil(
+        JeontongEightyMatrix.browseRoute,
+        (route) => route.settings.name == '/home',
+      ),
+      onSave: onSave,
+      onShare: () => _shareJeontongV3Result(
+        context,
+        entry,
+        displayName,
+        reportState,
+        interpretState,
+      ),
+    );
+  } catch (_) {
+    return null;
   }
 }
 

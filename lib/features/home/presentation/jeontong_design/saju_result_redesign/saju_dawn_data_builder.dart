@@ -49,8 +49,16 @@ import '../../../domain/interpretation/saju_profile_query.dart';
 import '../../../domain/interpretation/term_translation.dart'
     show elementMeaningDictionary, describeTenGodPlain;
 import '../../../domain/jeontong_eighty_matrix.dart';
+import '../../../domain/jeontong_v3_report_mapping.dart'
+    show kJeontongCategoryToReportPartNo;
 import '../../../domain/saju_fortune_modules.dart' show getLuckyItems;
 import '../../../domain/saju_fortune_rules.dart' show SajuFortuneRules;
+import '../../../../fortune/saju_v3/domain/interpretation_result.dart'
+    show InterpretationResult;
+import '../../../../fortune/saju_v3/domain/narrative_result.dart'
+    show NarrativeResult;
+import '../../../../fortune/saju_v3/domain/saju_report.dart'
+    show SajuReportResult, SajuReportPart;
 import '../jeontong_deep_report_card.dart'
     show JeontongDeepReportData, DeclarativeVerdict;
 import 'saju_dawn_data_models.dart';
@@ -129,6 +137,146 @@ SajuResultData buildSajuDawnResultDataFromParagraphs({
     daewoonFlowLines: const [],
     finalSummary: const [],
   );
+}
+
+/// [Pipeline C — saju_v3 백엔드 연동 전용] 6차 지시서 이후 실제 운영
+/// 화면([JeontongV3ReportView])이 쓰는 것과 동일한 세 응답
+/// ([SajuReportResult]/[InterpretationResult]/[NarrativeResult])을 그대로
+/// 조회해 Dawn Paper 4챕터(肆)에 배치한다.
+///
+/// [재계산 금지 — 재확인] 사주 8글자/오행분포/대운/행운요소(壹·貳·參·陸)는
+/// saju_v3가 별도로 구조화해 내려주지 않으므로(9-PART는 순수 텍스트),
+/// 이 함수도 다른 두 파이프라인과 동일하게 이미 계산된 [SajuProfile]/
+/// [SajuResult](PHASE1~4 — 같은 생년월일시 입력에 대해 항상 결정론적으로
+/// 동일한 값)를 그대로 조회한다. **오직 肆(사주풀이) 4챕터의 문장만**
+/// saju_v3 응답으로 교체한다 — 이것이 "결과 페이지 디자인 리뉴얼"과
+/// "6차 지시서가 확정한 실제 백엔드(saju_v3) 사용" 두 지시를 모두
+/// 만족시키는 유일한 지점이다.
+///
+/// [챕터 배치 규칙]
+/// - 一(총평): narrative(이야기형 줄글)가 성공했으면 그 [NarrativeResult.text]
+///   전체를 최우선으로 쓴다(사용자가 실제로 겪은 "관계 구조 JSON 노출"
+///   버그의 근본 수정과 동일한 우선순위 — [JeontongV3ReportView]가 이미
+///   증명한 패턴). narrative가 없으면, [kJeontongCategoryToReportPartNo]로
+///   찾은 대응 PART의 paras를 [_humanizeFallbackPara]와 동일한 원칙으로
+///   정리해 대신 쓴다. 대응 PART도 없으면(건강/궁합/개운 20종) interpret
+///   headline/sections만으로 채운다.
+/// - 二(강점과 조심할 점): interpret().actions를 그대로 doList/avoidList로
+///   내려보낸다(둘을 나눌 구조가 없으므로 전부 "이런 점을 참고해보세요"
+///   조언으로 취급 — 새 판단 아님, 이미 서버가 만든 문장 그대로).
+/// - 三(대운의 흐름): PART7("인생 흐름") 텍스트가 있으면 그것을, 없으면
+///   로컬 [SajuProfile.daewoon] 기반 문장(기존 헬퍼가 이미 만들던 형태와
+///   동일한 형식)으로 대체한다. 타임라인 노드는 항상 로컬 계산 그대로.
+/// - 四(실전 조언·맺음말): interpret().closing + 9번(종합분석) PART를 합친다.
+SajuResultData buildSajuDawnResultDataFromV3Report({
+  required JeontongCategoryEntry entry,
+  required SajuProfile profile,
+  required SajuResult saju,
+  required SajuFortuneRules? fortuneRules,
+  required SajuReportResult report,
+  required InterpretationResult? interpret,
+  required NarrativeResult? narrative,
+  required DateTime referenceDate,
+  required String userRefId,
+}) {
+  final focusPartNo = kJeontongCategoryToReportPartNo[entry.id];
+  SajuReportPart? findPart(int no) {
+    for (final p in report.report.parts) {
+      if (p.no == no) return p;
+    }
+    return null;
+  }
+
+  final focusPart = focusPartNo == null ? null : findPart(focusPartNo);
+  final part7 = findPart(7); // 인생 흐름(대운)
+  final part9 = findPart(9); // 종합 분석
+
+  final narrativeText = narrative?.text.trim();
+  final hasNarrative = narrativeText != null && narrativeText.isNotEmpty;
+
+  // 一(총평) — narrative 최우선 → focusPart paras → interpret만.
+  final List<String> summarySentences;
+  if (hasNarrative) {
+    summarySentences = narrativeText
+        .split('\n')
+        .map((l) => l.trim())
+        .where((l) => l.isNotEmpty)
+        .toList();
+  } else if (focusPart != null && focusPart.paras.isNotEmpty) {
+    summarySentences =
+        focusPart.paras.map(_humanizeFallbackPara).toList();
+  } else if (interpret != null && interpret.headline.isNotEmpty) {
+    summarySentences = [interpret.headline];
+  } else {
+    summarySentences = const [];
+  }
+
+  // 二(강점과 조심할 점) — interpret().actions 전체를 doList로,
+  // 구분 구조가 없어 avoidList는 비워 둔다(§ 위 주석).
+  final actionItems = interpret?.actions ?? const <String>[];
+
+  // 三(대운의 흐름) — PART7(인생 흐름) 우선, 없으면 로컬 daewoon 헬퍼.
+  final daewoonFlowLines = (part7 != null && part7.paras.isNotEmpty)
+      ? part7.paras.map(_humanizeFallbackPara).toList()
+      : _localDaewoonFlowLines(profile);
+
+  // 四(실전 조언·맺음말) — interpret().closing + PART9(종합 분석).
+  final finalSummaryLines = <String>[
+    if (interpret != null && interpret.hasClosing) interpret.closing,
+    if (part9 != null) ...part9.paras.map(_humanizeFallbackPara),
+  ];
+
+  return _build(
+    entry: entry,
+    profile: profile,
+    saju: saju,
+    fortuneRules: fortuneRules,
+    referenceDate: referenceDate,
+    userRefId: userRefId,
+    oneLineSummary: summarySentences.isNotEmpty
+        ? summarySentences.first
+        : entry.title,
+    isFortunate: true,
+    personalityTitle: interpret?.headline.isNotEmpty == true
+        ? interpret!.headline
+        : '총평 · 타고난 흐름',
+    personalitySentences: summarySentences,
+    strengths: actionItems,
+    cautions: const [],
+    generalGuidance: const [],
+    daewoonFlowLines: daewoonFlowLines,
+    finalSummary: finalSummaryLines,
+  );
+}
+
+/// [순수 텍스트 처리 — jeontong_v3_report_view.dart의 동일 함수와 로직
+/// 복제] rule_fallback 리포트의 일부 PART가 `f"레이블: {json...}"` 형태로
+/// 원본 딕셔너리를 그대로 문자열에 박아 보낼 때, 그 JSON 중괄호 이후를
+/// 잘라내고 안내 문구로 바꾼다. private 함수라 원본 파일에서 import할
+/// 수 없어(다른 파일의 top-level private) 동일 원칙으로 이 파일에도
+/// 둔다 — 새 판단이 아니라 이미 검증된 화면 표시 휴리스틱의 재사용이다.
+String _humanizeFallbackPara(String p) {
+  final braceIdx = p.indexOf('{');
+  if (braceIdx <= 0) return p;
+  final head = p.substring(0, braceIdx).trimRight();
+  if (!head.endsWith(':')) return p;
+  final label = head.substring(0, head.length - 1).trim();
+  if (label.isEmpty) return p;
+  return '$label 데이터를 계산해 반영했어요(자세한 문장은 곧 업데이트돼요).';
+}
+
+/// [로컬 폴백 — 재계산 없음] saju_v3 PART7이 비어 있을 때만 쓰는, 이미
+/// [SajuProfile.daewoon]에 계산돼 있는 대운 목록을 문장으로만 옮기는
+/// 최소 헬퍼. `_fallback_report`의 "대운 N구간: 간지" 형식과 동일한
+/// 수준의 단순 나열이다(새 명리학적 해석 없음).
+List<String> _localDaewoonFlowLines(SajuProfile profile) {
+  final list = profile.daewoon;
+  if (list == null || list.isEmpty) return const [];
+  final sorted = [...list]..sort((a, b) => a.startAge.compareTo(b.startAge));
+  return [
+    for (final d in sorted)
+      '${d.startAge}세부터 — ${d.pillar.hanja}(${d.pillar.kr}) 대운',
+  ];
 }
 
 // ============================================================
