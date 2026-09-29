@@ -62,6 +62,16 @@ class SajuDawnResultPage extends StatefulWidget {
   final VoidCallback? onSave;
   final VoidCallback? onShare;
 
+  /// [정통사주 로딩 개선 — Dawn Paper 스켈레톤 호스트] 肆(사주 풀이) 챕터가
+  /// [DawnSectionStatus.error]일 때 호출할 챕터별 재시도 콜백. null이면
+  /// 재시도 버튼을 그리지 않는다(Pipeline A/B처럼 애초에 loading/error가
+  /// 나올 수 없는 경로는 넘기지 않아도 된다).
+  final void Function(StoryChapter chapter)? onRetryChapter;
+
+  /// 伍(실전 조언) 섹션이 [DawnSectionStatus.error]일 때 호출할 재시도
+  /// 콜백.
+  final VoidCallback? onRetryAdvice;
+
   const SajuDawnResultPage({
     super.key,
     required this.data,
@@ -74,6 +84,8 @@ class SajuDawnResultPage extends StatefulWidget {
     this.onPrimaryAction,
     this.onSave,
     this.onShare,
+    this.onRetryChapter,
+    this.onRetryAdvice,
   });
 
   @override
@@ -178,6 +190,7 @@ class _SajuDawnResultPageState extends State<SajuDawnResultPage> {
                     chapters: data.chapters,
                     daeunTimeline: data.daeunTimeline,
                     ilganTheme: theme,
+                    onRetryChapter: widget.onRetryChapter,
                   ),
                 ),
                 SajuDawnSectionShell(
@@ -188,6 +201,8 @@ class _SajuDawnResultPageState extends State<SajuDawnResultPage> {
                     doList: data.doList,
                     avoidList: data.avoidList,
                     ilganTheme: theme,
+                    status: data.adviceStatus,
+                    onRetry: widget.onRetryAdvice,
                   ),
                 ),
                 SajuDawnSectionShell(

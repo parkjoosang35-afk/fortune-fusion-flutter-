@@ -20,11 +20,19 @@ class SajuDawnStoryChapters extends StatelessWidget {
   final List<DaeunNode> daeunTimeline;
   final IlganTheme ilganTheme;
 
+  /// [정통사주 로딩 개선 — Dawn Paper 스켈레톤 호스트] 챕터가
+  /// [DawnSectionStatus.error]일 때 "다시 시도" 버튼이 호출할 콜백. 챕터
+  /// 별로 재시도 소스가 다르므로(一/四는 report+interpret+narrative, 二는
+  /// interpret만) 호출부가 챕터 번호에 맞는 콜백을 결정해 넘긴다. null이면
+  /// 재시도 버튼을 그리지 않는다.
+  final void Function(StoryChapter chapter)? onRetryChapter;
+
   const SajuDawnStoryChapters({
     super.key,
     required this.chapters,
     required this.daeunTimeline,
     required this.ilganTheme,
+    this.onRetryChapter,
   });
 
   @override
@@ -40,6 +48,9 @@ class SajuDawnStoryChapters extends StatelessWidget {
               isLast: i == chapters.length - 1,
               daeunTimeline: chapters[i].includeTimeline ? daeunTimeline : const [],
               ilganTheme: ilganTheme,
+              onRetry: onRetryChapter == null
+                  ? null
+                  : () => onRetryChapter!(chapters[i]),
             ),
         ],
       ),
@@ -53,6 +64,7 @@ class _StoryChapterBlock extends StatelessWidget {
   final bool isLast;
   final List<DaeunNode> daeunTimeline;
   final IlganTheme ilganTheme;
+  final VoidCallback? onRetry;
 
   const _StoryChapterBlock({
     required this.chapter,
@@ -60,6 +72,7 @@ class _StoryChapterBlock extends StatelessWidget {
     required this.isLast,
     required this.daeunTimeline,
     required this.ilganTheme,
+    this.onRetry,
   });
 
   @override
@@ -97,21 +110,148 @@ class _StoryChapterBlock extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          for (var i = 0; i < chapter.paragraphs.length; i++)
-            Padding(
-              padding: EdgeInsets.only(
-                bottom: i == chapter.paragraphs.length - 1 ? 0 : 10,
+          // [정통사주 로딩 개선 — Dawn Paper 스켈레톤 호스트] 이 챕터의
+          // 문장이 saju_v3 응답을 기다리는 중이거나(loading) 실패했으면
+          // (error) 문단 대신 스켈레톤/에러 뷰를 그린다. 기존
+          // [_JeontongV3PartCard]의 스켈레톤 패턴(문단 모양 회색 블록 3줄
+          // + 안내 문구)을 그대로 이식한다 — 도착 시 같은 자리에서 텍스트로
+          // 바뀌듯 전환되어 레이아웃이 흔들리지 않는다.
+          if (chapter.status == DawnSectionStatus.loading)
+            const _DawnStoryTextSkeleton()
+          else if (chapter.status == DawnSectionStatus.error)
+            _DawnStorySectionError(onRetry: onRetry)
+          else
+            for (var i = 0; i < chapter.paragraphs.length; i++)
+              Padding(
+                padding: EdgeInsets.only(
+                  bottom: i == chapter.paragraphs.length - 1 ? 0 : 10,
+                ),
+                child: _StoryParagraphText(
+                  paragraph: chapter.paragraphs[i],
+                ),
               ),
-              child: _StoryParagraphText(
-                paragraph: chapter.paragraphs[i],
-              ),
-            ),
           if (daeunTimeline.isNotEmpty) ...[
             const SizedBox(height: 14),
             _DaeunTimeline(nodes: daeunTimeline, ilganTheme: ilganTheme),
           ],
         ],
       ),
+    );
+  }
+}
+
+/// [정통사주 로딩 개선 — jeontong_v3_report_view.dart의 `_HanjiSkeletonBox`
+/// 패턴 이식] 문단 모양(3줄, 마지막 줄은 짧게)의 회색 블록 + 안내 문구.
+/// 색상만 Dawn Paper 팔레트([SajuDawnColors.line2])로 맞췄다 — 애니메이션
+/// 로직(1200ms 펄스)은 원본과 동일하다.
+class _DawnStoryTextSkeleton extends StatelessWidget {
+  const _DawnStoryTextSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.only(bottom: 2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _DawnSkeletonBox(height: 14, radius: 4),
+          SizedBox(height: 8),
+          _DawnSkeletonBox(height: 14, radius: 4),
+          SizedBox(height: 8),
+          _DawnSkeletonBox(height: 14, width: 160, radius: 4),
+          SizedBox(height: 8),
+          Text(
+            '풀이를 준비하고 있어요...',
+            style: TextStyle(fontSize: 12.5, color: SajuDawnColors.ink3),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// [정통사주 로딩 개선] 관련 saju_v3 응답이 모두 실패했을 때만 표시되는
+/// 챕터 단위 에러 뷰. 로컬 계산 섹션(壹·貳·參·陸·柒, 및 항상 ready인
+/// 챕터 三)은 이 상태와 무관하게 항상 정상 표시된다 — 부분 실패에도 화면
+/// 전체가 깨지지 않는다는 기존 원칙을 챕터 단위로 좁힌 것뿐이다.
+class _DawnStorySectionError extends StatelessWidget {
+  final VoidCallback? onRetry;
+  const _DawnStorySectionError({this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Expanded(
+          child: Text(
+            '이 부분을 불러오지 못했어요.',
+            style: TextStyle(fontSize: 13, height: 1.5, color: SajuDawnColors.ink3),
+          ),
+        ),
+        if (onRetry != null)
+          TextButton(
+            onPressed: onRetry,
+            style: TextButton.styleFrom(
+              foregroundColor: SajuDawnColors.goldDeep,
+              padding: EdgeInsets.zero,
+              minimumSize: const Size(0, 0),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: const Text('다시 시도', style: TextStyle(fontSize: 13)),
+          ),
+      ],
+    );
+  }
+}
+
+/// Hanji 결과 화면의 `_HanjiSkeletonBox`와 완전히 동일한 애니메이션
+/// 로직(1200ms 펄스 opacity)을 쓰되, 베이스 컬러만 Dawn Paper 팔레트
+/// ([SajuDawnColors.line2])로 바꾼 스켈레톤 블록.
+class _DawnSkeletonBox extends StatefulWidget {
+  const _DawnSkeletonBox({
+    this.width = double.infinity,
+    this.height = 16,
+    this.radius = 6,
+  });
+
+  final double width;
+  final double height;
+  final double radius;
+
+  @override
+  State<_DawnSkeletonBox> createState() => _DawnSkeletonBoxState();
+}
+
+class _DawnSkeletonBoxState extends State<_DawnSkeletonBox>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1200),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        final t = _controller.value;
+        final opacity = 0.35 + 0.3 * (t < 0.5 ? t * 2 : (1 - t) * 2);
+        return Container(
+          width: widget.width,
+          height: widget.height,
+          decoration: BoxDecoration(
+            color: SajuDawnColors.line2.withValues(alpha: opacity),
+            borderRadius: BorderRadius.circular(widget.radius),
+          ),
+        );
+      },
     );
   }
 }

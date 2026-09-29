@@ -20,6 +20,22 @@
 import 'saju_dawn_tokens.dart';
 import 'saju_dawn_ilgan_theme.dart';
 
+/// [정통사주 로딩 개선 — Dawn Paper를 스켈레톤 호스트로 전환] 肆(사주풀이)
+/// 챕터와 伍(실전 조언) 섹션처럼 saju_v3 백엔드 3종 응답(report/interpret/
+/// narrative)에 의존하는 영역의 상태. 壹·貳·參·陸·柒 섹션과 챕터 三(대운의
+/// 흐름 — 로컬 [SajuProfile.daewoon] 폴백이 항상 있음)은 이 상태와 무관하게
+/// 항상 즉시 표시된다(로컬 계산 0ms 원칙).
+///
+/// - [ready]: 실제 문장이 채워짐 — 그대로 렌더링.
+/// - [loading]: 아직 관련 백엔드 응답이 오지 않음 — 스켈레톤(문단 모양 회색
+///   블록) 렌더링, 기존 [_JeontongV3PartCard]/[_JeontongV3FocusDetail] 패턴과
+///   동일한 톤.
+/// - [error]: 관련 백엔드 호출이 모두 실패함 — 이 섹션만 에러 문구 +
+///   재시도 버튼을 보여준다. 로컬 계산 섹션(壹·貳·參·陸·柒)은 이 상태와
+///   무관하게 항상 정상 표시된다(부분 실패에도 화면 전체가 깨지지 않는다는
+///   기존 원칙의 연장).
+enum DawnSectionStatus { ready, loading, error }
+
 class SajuResultData {
   final String categoryCode; // "A07"
   final String categoryHanja; // "命"
@@ -45,6 +61,12 @@ class SajuResultData {
   final List<String> doList;
   final List<String> avoidList;
 
+  /// [정통사주 로딩 개선 — Dawn Paper 스켈레톤 호스트] 伍(실전 조언) 섹션의
+  /// 상태. [doList]/[avoidList]가 `interpret().actions` 응답에 의존하므로,
+  /// Pipeline C(saju_v3)에서만 [DawnSectionStatus.loading]/[.error]가 될 수
+  /// 있다. Pipeline A/B는 이미 동기 계산된 값이므로 항상 [.ready].
+  final DawnSectionStatus adviceStatus;
+
   final LuckyItems lucky;
   final List<RelatedFortune> related;
 
@@ -69,6 +91,7 @@ class SajuResultData {
     required this.daeunTimeline,
     required this.doList,
     required this.avoidList,
+    this.adviceStatus = DawnSectionStatus.ready,
     required this.lucky,
     required this.related,
     required this.userRefId,
@@ -107,11 +130,20 @@ class StoryChapter {
   final List<StoryParagraph> paragraphs;
   final bool includeTimeline; // 챕터 3만 true
 
+  /// [정통사주 로딩 개선 — Dawn Paper 스켈레톤 호스트] 이 챕터의 문장이
+  /// 의존하는 saju_v3 응답(report part/narrative/interpret)의 로딩 상태.
+  /// 챕터 三(대운의 흐름)은 saju_v3 PART7이 없어도 로컬
+  /// [SajuProfile.daewoon] 폴백 문장이 항상 있으므로 실질적으로 항상
+  /// [DawnSectionStatus.ready]다. Pipeline A/B는 이미 동기 계산된 값만
+  /// 다루므로 항상 [.ready].
+  final DawnSectionStatus status;
+
   const StoryChapter({
     required this.chapterNum,
     required this.title,
     required this.paragraphs,
     this.includeTimeline = false,
+    this.status = DawnSectionStatus.ready,
   });
 }
 

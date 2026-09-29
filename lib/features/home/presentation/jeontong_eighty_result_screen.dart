@@ -74,7 +74,7 @@ import 'jeontong_design/saju_result_redesign/saju_dawn_data_builder.dart'
         buildSajuDawnResultDataFromParagraphs,
         buildSajuDawnResultDataFromV3Report;
 import 'jeontong_design/saju_result_redesign/saju_dawn_data_models.dart'
-    show SajuResultData;
+    show SajuResultData, StoryChapter;
 import 'jeontong_design/saju_result_redesign/saju_dawn_result_page.dart'
     show SajuDawnResultPage;
 import 'jeontong_design/saju_seal.dart';
@@ -801,40 +801,46 @@ class _ResultBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasProfile = profile != null;
 
-    // [정통사주 결과 페이지 리디자인 — 이번 세션] 프로필이 있고 리포트가
-    // 정상 로딩됐으면(성공), 이미 검증된 saju_v3 백엔드 응답을 새 디자인
-    // (Dawn Paper — 새벽 한지 · 신통방통 소원방)으로 그린다. 로딩/에러
-    // 상태는 화면 레이아웃을 아직 확정할 수 없으므로(Dawn Paper는 실제
-    // 챕터 텍스트 길이에 맞춰 그려야 함) 기존 [JeontongV3ReportView]의
-    // 검증된 스켈레톤/에러 뷰를 그대로 재사용한다 — 새 로딩·에러 UI를
-    // 또 만들지 않는다(회귀 없음, 재계산 없음 원칙과 동일한 정신).
+    // [정통사주 로딩 개선 — Dawn Paper를 스켈레톤 호스트로 전환] 이전에는
+    // `showDawnPaper = reportState.isSuccess` 게이트로, report가 성공할
+    // 때까지 legacy [JeontongV3ReportView]를 보여주다가 성공하는 순간
+    // 화면 전체가 Dawn Paper로 통째로 바뀌었다(사용자 보고 — "이미 만든
+    // 개선이 실제로 체감되지 않는다"의 근본 원인). 명식 8글자/오행/대운/
+    // 행운요소는 프로필만 있으면 [JeontongReportBuilder
+    // .buildProfileAndSajuResultViaPhase1to4]가 이미 0ms 동기 계산으로
+    // 내려주므로(§ 검증 완료 — PHASE1~4는 async/네트워크 없음), reportState
+    // 와 무관하게 프로필이 있으면 항상 Dawn Paper를 시도한다. report/
+    // interpret/narrative가 아직 로딩 중이면 肆(사주풀이)·伍(실전조언)
+    // 섹션만 챕터 단위 스켈레톤을 보여준다(§
+    // buildSajuDawnResultDataFromV3Report / SajuDawnStoryChapters 참고).
     if (hasProfile) {
       final displayName = profile!.normalizedName ?? '회원님';
-      final showDawnPaper = reportState.isSuccess;
-      final dawnPage = showDawnPaper
-          ? _tryBuildDawnResultPageFromV3(
-              context,
-              entry: entry,
-              profile: profile!,
-              report: reportState.data!,
-              interpret: interpretState.isSuccess ? interpretState.data : null,
-              narrative: narrativeState.isSuccess ? narrativeState.data : null,
-              isBookmarked: isBookmarked,
-              onToggleBookmark: onToggleBookmark,
-              onSave: onSave,
-              displayName: displayName,
-              reportState: reportState,
-              interpretState: interpretState,
-            )
-          : null;
+      final dawnPage = _tryBuildDawnResultPageFromV3(
+        context,
+        entry: entry,
+        profile: profile!,
+        reportState: reportState,
+        interpretState: interpretState,
+        narrativeState: narrativeState,
+        isBookmarked: isBookmarked,
+        onToggleBookmark: onToggleBookmark,
+        onSave: onSave,
+        displayName: displayName,
+        onRetryReport: onRetryReport,
+        onRetryInterpret: onRetryInterpret,
+        onRetryNarrative: onRetryNarrative,
+      );
 
       if (dawnPage != null) {
         return dawnPage;
       }
 
-      // [폴백 — 재계산 없음] Dawn Paper 조립이 실패했거나(예외) 아직
-      // 로딩/에러 상태면, 기존에 이미 검증된 JeontongV3ReportView로
-      // 그대로 그린다 — 화면이 절대 깨지지 않는다는 원칙 유지.
+      // [폴백 — 재계산 없음] Dawn Paper 조립 자체가 예외를 던졌을 때만
+      // (예: 프로필 값이 비정상이라 PHASE1~4가 실패하는 등 극단적 경우)
+      // 기존에 이미 검증된 JeontongV3ReportView로 그대로 그린다 — 화면이
+      // 절대 깨지지 않는다는 원칙 유지. reportState.isLoading/.isError는
+      // 더 이상 이 폴백을 타는 사유가 아니다(Dawn Paper가 그 상태들을
+      // 직접 그린다).
       return Column(
         children: [
           _Header(
@@ -1213,12 +1219,15 @@ class _ResultBody extends StatelessWidget {
   }
 }
 
-/// [정통사주 결과 페이지 리디자인 — 이번 세션] 프로필이 있고 saju_v3
-/// 리포트가 성공적으로 로딩됐을 때, Dawn Paper([SajuDawnResultPage])를
-/// saju_v3 응답([SajuReportResult]/[InterpretationResult]/[NarrativeResult])
-/// 기반으로 조립한다. [_tryBuildDawnResultPage](legacy PHASE1~4 전용)와
-/// 완전히 동일한 방어적 패턴(try/catch → 실패 시 null → 호출부가 이미
-/// 검증된 [JeontongV3ReportView]로 안전하게 폴백)을 따른다.
+/// [정통사주 로딩 개선 — Dawn Paper를 스켈레톤 호스트로 전환] 프로필이
+/// 있으면 report/interpret/narrative의 성공 여부와 무관하게 항상 Dawn
+/// Paper([SajuDawnResultPage])를 조립한다. [_tryBuildDawnResultPage](legacy
+/// PHASE1~4 전용)와 완전히 동일한 방어적 패턴(try/catch → 실패 시 null →
+/// 호출부가 이미 검증된 [JeontongV3ReportView]로 안전하게 폴백)을 따르되,
+/// 이제 이 폴백은 "PHASE1~4 계산 자체가 예외를 던지는" 극단적 경우에만
+/// 일어난다 — report/interpret/narrative의 loading/error는 더 이상 이
+/// 함수를 실패시키지 않고, [buildSajuDawnResultDataFromV3Report]가 챕터별
+/// [DawnSectionStatus]로 변환해 Dawn Paper 내부에서 직접 그린다.
 ///
 /// [8글자/오행/대운/행운요소는 로컬 계산 그대로] saju_v3는 이 값들을
 /// 별도로 구조화해 내려주지 않으므로(9-PART는 텍스트일 뿐), 여기서도
@@ -1226,21 +1235,22 @@ class _ResultBody extends StatelessWidget {
 /// [JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4]를 호출해
 /// [SajuProfile]/[SajuResult]를 얻는다 — 같은 생년월일시 입력에 대해
 /// 항상 결정론적으로 동일한 값이므로 "재계산"이 아니라 "조회"다. 오직
-/// 肆(사주풀이) 텍스트만 [buildSajuDawnResultDataFromV3Report]를 통해
-/// saju_v3 응답으로 교체된다.
+/// 肆(사주풀이)·伍(실전조언) 텍스트만 saju_v3 3개 응답의 [LoadState]를
+/// 그대로 [buildSajuDawnResultDataFromV3Report]에 넘겨 상태별로 표시한다.
 Widget? _tryBuildDawnResultPageFromV3(
   BuildContext context, {
   required JeontongCategoryEntry entry,
   required JeontongInput profile,
-  required SajuReportResult report,
-  required InterpretationResult? interpret,
-  required NarrativeResult? narrative,
+  required LoadState<SajuReportResult> reportState,
+  required LoadState<InterpretationResult> interpretState,
+  required LoadState<NarrativeResult> narrativeState,
   required bool isBookmarked,
   required VoidCallback onToggleBookmark,
   required VoidCallback onSave,
   required String displayName,
-  required LoadState<SajuReportResult> reportState,
-  required LoadState<InterpretationResult> interpretState,
+  required VoidCallback onRetryReport,
+  required VoidCallback onRetryInterpret,
+  required VoidCallback onRetryNarrative,
 }) {
   try {
     final kst = profile.birthDateTimeUtc.add(const Duration(hours: 9));
@@ -1265,9 +1275,9 @@ Widget? _tryBuildDawnResultPageFromV3(
       profile: built.profile,
       saju: built.saju,
       fortuneRules: fortuneRules,
-      report: report,
-      interpret: interpret,
-      narrative: narrative,
+      reportState: reportState,
+      interpretState: interpretState,
+      narrativeState: narrativeState,
       referenceDate: DateTime.now(),
       userRefId: userRefId,
     );
@@ -1280,6 +1290,26 @@ Widget? _tryBuildDawnResultPageFromV3(
         DisclaimerBanner.forTags(entry.disclaimers),
       if (profile.birthTimeUnknown) const _BirthTimeUnknownNotice(),
     ];
+
+    // [섹션별 재시도 매핑 — § buildSajuDawnResultDataFromV3Report 챕터
+    // 배치 규칙] 一(총평)은 narrative 최우선 → report 순으로 소스를 쓰므로
+    // 둘 다 재시도한다. 二/四(강점·조심할점/실전조언)와 伍(실전조언 그리드)
+    // 는 interpret().actions/closing만 쓰므로 interpret만 재시도한다.
+    // 三(대운의 흐름)은 로컬 daewoon 폴백이 항상 존재해 status가 절대
+    // error/loading이 되지 않으므로(§ chapter3Status always ready)
+    // 재시도 버튼 자체가 노출되지 않는다.
+    void retryChapter(StoryChapter chapter) {
+      switch (chapter.chapterNum) {
+        case '一':
+          onRetryNarrative();
+          onRetryReport();
+          break;
+        case '二':
+        case '四':
+          onRetryInterpret();
+          break;
+      }
+    }
 
     return SajuDawnResultPage(
       data: data,
@@ -1311,6 +1341,8 @@ Widget? _tryBuildDawnResultPageFromV3(
         reportState,
         interpretState,
       ),
+      onRetryChapter: retryChapter,
+      onRetryAdvice: onRetryInterpret,
     );
   } catch (_) {
     return null;

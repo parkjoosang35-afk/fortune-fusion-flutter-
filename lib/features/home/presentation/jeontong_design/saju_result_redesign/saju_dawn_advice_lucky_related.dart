@@ -24,15 +24,35 @@ class SajuDawnAdviceGrid extends StatelessWidget {
   final List<String> avoidList;
   final IlganTheme ilganTheme;
 
+  /// [정통사주 로딩 개선 — Dawn Paper 스켈레톤 호스트] 이 섹션(interpret()
+  /// .actions 기반)의 로딩 상태. ready면 [doList]/[avoidList]를 그대로
+  /// 그리고, loading/error면 두 카드 모두 스켈레톤/에러 뷰로 대체한다.
+  final DawnSectionStatus status;
+  final VoidCallback? onRetry;
+
   const SajuDawnAdviceGrid({
     super.key,
     required this.doList,
     required this.avoidList,
     required this.ilganTheme,
+    this.status = DawnSectionStatus.ready,
+    this.onRetry,
   });
 
   @override
   Widget build(BuildContext context) {
+    if (status == DawnSectionStatus.loading) {
+      return const Row(
+        children: [
+          Expanded(child: _AdviceCardSkeleton()),
+          SizedBox(width: 10),
+          Expanded(child: _AdviceCardSkeleton()),
+        ],
+      );
+    }
+    if (status == DawnSectionStatus.error) {
+      return _AdviceSectionError(onRetry: onRetry);
+    }
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -54,6 +74,134 @@ class SajuDawnAdviceGrid extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// [정통사주 로딩 개선] `_AdviceCard`와 동일한 크기·테두리를 가진
+/// 스켈레톤 카드 — 배지 자리 + 항목 2줄 자리를 회색 블록으로 미리
+/// 확정해 두어, 도착 시 카드 크기가 갑자기 바뀌지 않는다.
+class _AdviceCardSkeleton extends StatelessWidget {
+  const _AdviceCardSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      decoration: BoxDecoration(
+        color: SajuDawnColors.paper,
+        border: Border.all(color: SajuDawnColors.line),
+        borderRadius: BorderRadius.circular(SajuDawnRadius.small),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _DawnAdviceSkeletonBox(width: 26, height: 26, radius: 8),
+              SizedBox(width: 8),
+              Expanded(child: _DawnAdviceSkeletonBox(height: 14, radius: 4)),
+            ],
+          ),
+          SizedBox(height: 14),
+          _DawnAdviceSkeletonBox(height: 13, radius: 4),
+          SizedBox(height: 8),
+          _DawnAdviceSkeletonBox(height: 13, width: 120, radius: 4),
+        ],
+      ),
+    );
+  }
+}
+
+/// [정통사주 로딩 개선] interpret() 호출이 모두 실패했을 때만 표시되는
+/// 伍 섹션 전용 에러 뷰. 壹~肆(챕터 三 제외분 별도)·陸·柒 섹션은 이
+/// 상태와 무관하게 항상 정상 표시된다.
+class _AdviceSectionError extends StatelessWidget {
+  final VoidCallback? onRetry;
+  const _AdviceSectionError({this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      decoration: BoxDecoration(
+        color: SajuDawnColors.paper,
+        border: Border.all(color: SajuDawnColors.line),
+        borderRadius: BorderRadius.circular(SajuDawnRadius.small),
+      ),
+      child: Row(
+        children: [
+          const Expanded(
+            child: Text(
+              '실전 조언을 불러오지 못했어요.',
+              style: TextStyle(fontSize: 13, color: SajuDawnColors.ink3),
+            ),
+          ),
+          if (onRetry != null)
+            TextButton(
+              onPressed: onRetry,
+              style: TextButton.styleFrom(
+                foregroundColor: SajuDawnColors.goldDeep,
+                padding: EdgeInsets.zero,
+                minimumSize: const Size(0, 0),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text('다시 시도', style: TextStyle(fontSize: 13)),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// [정통사주 로딩 개선] `saju_dawn_story_chapters.dart`의 `_DawnSkeletonBox`
+/// 와 동일한 애니메이션 로직(1200ms 펄스) — 이 파일 전용으로 이름만
+/// 다르게 복제한다(두 파일이 서로 import하지 않는 기존 구조 유지).
+class _DawnAdviceSkeletonBox extends StatefulWidget {
+  const _DawnAdviceSkeletonBox({
+    this.width = double.infinity,
+    this.height = 16,
+    this.radius = 6,
+  });
+
+  final double width;
+  final double height;
+  final double radius;
+
+  @override
+  State<_DawnAdviceSkeletonBox> createState() => _DawnAdviceSkeletonBoxState();
+}
+
+class _DawnAdviceSkeletonBoxState extends State<_DawnAdviceSkeletonBox>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1200),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        final t = _controller.value;
+        final opacity = 0.35 + 0.3 * (t < 0.5 ? t * 2 : (1 - t) * 2);
+        return Container(
+          width: widget.width,
+          height: widget.height,
+          decoration: BoxDecoration(
+            color: SajuDawnColors.line2.withValues(alpha: opacity),
+            borderRadius: BorderRadius.circular(widget.radius),
+          ),
+        );
+      },
     );
   }
 }

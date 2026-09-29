@@ -43,6 +43,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart' show Color;
 
+import '../../../../../core/utils/load_state.dart';
 import '../../../domain/manseryeok/saju_profile.dart';
 import '../../../domain/saju_engine.dart' show SajuResult;
 import '../../../domain/interpretation/saju_profile_query.dart';
@@ -168,19 +169,32 @@ SajuResultData buildSajuDawnResultDataFromParagraphs({
 ///   로컬 [SajuProfile.daewoon] 기반 문장(기존 헬퍼가 이미 만들던 형태와
 ///   동일한 형식)으로 대체한다. 타임라인 노드는 항상 로컬 계산 그대로.
 /// - 四(실전 조언·맺음말): interpret().closing + 9번(종합분석) PART를 합친다.
+///
+/// [정통사주 로딩 개선 — Dawn Paper를 스켈레톤 호스트로 전환] 이전에는
+/// [report]가 이미 성공(non-null)했을 때만 호출됐다(호출부의
+/// `showDawnPaper = reportState.isSuccess` 게이트). 이제 Dawn Paper 자체가
+/// 로딩 단계부터 렌더링되어야 하므로, 세 응답을 값이 아니라
+/// [LoadState]로 받아 "아직 로딩 중"/"실패"를 챕터별로 구분해 표시할 수
+/// 있게 한다 — 壹·貳·參·陸·柒(로컬 계산)은 이 상태와 무관하게 항상 즉시
+/// 채워지고, 오직 肆(사주풀이 챕터)와 伍(실전 조언)만 이 상태를 참조한다.
 SajuResultData buildSajuDawnResultDataFromV3Report({
   required JeontongCategoryEntry entry,
   required SajuProfile profile,
   required SajuResult saju,
   required SajuFortuneRules? fortuneRules,
-  required SajuReportResult report,
-  required InterpretationResult? interpret,
-  required NarrativeResult? narrative,
+  required LoadState<SajuReportResult> reportState,
+  required LoadState<InterpretationResult> interpretState,
+  required LoadState<NarrativeResult> narrativeState,
   required DateTime referenceDate,
   required String userRefId,
 }) {
+  final report = reportState.isSuccess ? reportState.data : null;
+  final interpret = interpretState.isSuccess ? interpretState.data : null;
+  final narrative = narrativeState.isSuccess ? narrativeState.data : null;
+
   final focusPartNo = kJeontongCategoryToReportPartNo[entry.id];
   SajuReportPart? findPart(int no) {
+    if (report == null) return null;
     for (final p in report.report.parts) {
       if (p.no == no) return p;
     }
@@ -210,21 +224,40 @@ SajuResultData buildSajuDawnResultDataFromV3Report({
   } else {
     summarySentences = const [];
   }
+  // [로딩/에러 판정 — § 파일 상단] 문장이 이미 채워졌으면 소스가 무엇이든
+  // ready. 비어 있는데 관련 응답 중 하나라도 아직 진행 중이면 loading.
+  // 전부(narrative+report+interpret) 실패로 끝났으면 error.
+  final chapter1Status = _sectionStatus(
+    hasContent: summarySentences.isNotEmpty,
+    sources: [narrativeState, reportState, interpretState],
+  );
 
   // 二(강점과 조심할 점) — interpret().actions 전체를 doList로,
   // 구분 구조가 없어 avoidList는 비워 둔다(§ 위 주석).
   final actionItems = interpret?.actions ?? const <String>[];
+  final chapter2Status = _sectionStatus(
+    hasContent: actionItems.isNotEmpty,
+    sources: [interpretState],
+  );
 
   // 三(대운의 흐름) — PART7(인생 흐름) 우선, 없으면 로컬 daewoon 헬퍼.
+  // [항상 ready] 로컬 [SajuProfile.daewoon] 폴백이 항상 존재하므로(§ 파일
+  // 상단 주석) report 상태와 무관하게 이 챕터는 절대 로딩/에러로 표시되지
+  // 않는다 — 대운 타임라인과 마찬가지로 0ms에 확정되는 데이터다.
   final daewoonFlowLines = (part7 != null && part7.paras.isNotEmpty)
       ? part7.paras.map(_humanizeFallbackPara).toList()
       : _localDaewoonFlowLines(profile);
+  const chapter3Status = DawnSectionStatus.ready;
 
   // 四(실전 조언·맺음말) — interpret().closing + PART9(종합 분석).
   final finalSummaryLines = <String>[
     if (interpret != null && interpret.hasClosing) interpret.closing,
     if (part9 != null) ...part9.paras.map(_humanizeFallbackPara),
   ];
+  final chapter4Status = _sectionStatus(
+    hasContent: finalSummaryLines.isNotEmpty,
+    sources: [interpretState, reportState],
+  );
 
   return _build(
     entry: entry,
@@ -246,7 +279,36 @@ SajuResultData buildSajuDawnResultDataFromV3Report({
     generalGuidance: const [],
     daewoonFlowLines: daewoonFlowLines,
     finalSummary: finalSummaryLines,
+    chapterStatuses: [
+      chapter1Status,
+      chapter2Status,
+      chapter3Status,
+      chapter4Status,
+    ],
+    // [伍(실전 조언) 섹션] doList=strengths=interpret().actions와 소스가
+    // 완전히 동일하므로 챕터 二와 같은 상태를 공유한다.
+    adviceStatus: chapter2Status,
   );
+}
+
+/// [정통사주 로딩 개선 — 섹션 상태 판정 공용 헬퍼] 이미 문장이 채워졌으면
+/// (source 무관) 항상 ready. 비어 있는데 관련 [LoadState] 중 하나라도
+/// 아직 initial/loading이면 loading(=더 기다리면 채워질 가능성 있음).
+/// 관련 소스가 전부 error로 끝났으면 error(=재시도가 필요함을 사용자에게
+/// 알려야 함). 그 외(예: sources가 비어 있는 이론상 불가능한 경우)는
+/// 안전하게 loading으로 취급한다.
+DawnSectionStatus _sectionStatus({
+  required bool hasContent,
+  required List<LoadState> sources,
+}) {
+  if (hasContent) return DawnSectionStatus.ready;
+  if (sources.any((s) => s.isLoading || s.isInitial)) {
+    return DawnSectionStatus.loading;
+  }
+  if (sources.isNotEmpty && sources.every((s) => s.isError)) {
+    return DawnSectionStatus.error;
+  }
+  return DawnSectionStatus.loading;
 }
 
 /// [순수 텍스트 처리 — jeontong_v3_report_view.dart의 동일 함수와 로직
@@ -299,6 +361,16 @@ SajuResultData _build({
   required List<String> generalGuidance,
   required List<String> daewoonFlowLines,
   required List<String> finalSummary,
+  // [정통사주 로딩 개선] Pipeline A/B는 이미 동기 계산된 값만 다루므로
+  // 4챕터 모두 ready(기본값)다. Pipeline C(saju_v3)만 실제로 다른 값을
+  // 넘긴다.
+  List<DawnSectionStatus> chapterStatuses = const [
+    DawnSectionStatus.ready,
+    DawnSectionStatus.ready,
+    DawnSectionStatus.ready,
+    DawnSectionStatus.ready,
+  ],
+  DawnSectionStatus adviceStatus = DawnSectionStatus.ready,
 }) {
   final ilganTheme =
       IlganTheme.ofHanja(profile.dayPillar.stemHanja) ??
@@ -327,10 +399,12 @@ SajuResultData _build({
       daewoonFlowLines: daewoonFlowLines,
       generalGuidance: generalGuidance,
       finalSummary: finalSummary,
+      chapterStatuses: chapterStatuses,
     ),
     daeunTimeline: _buildDaeunTimeline(profile, referenceDate),
     doList: strengths,
     avoidList: cautions,
+    adviceStatus: adviceStatus,
     lucky: _buildLucky(saju, fortuneRules, profile),
     related: _buildRelated(entry),
     userRefId: userRefId,
@@ -461,44 +535,77 @@ List<StoryChapter> _buildChapters({
   required List<String> daewoonFlowLines,
   required List<String> generalGuidance,
   required List<String> finalSummary,
+  // [정통사주 로딩 개선] Pipeline A/B는 항상 4개 모두 ready를 넘긴다
+  // (기본값) — 이미 동기 계산된 문장만 다루므로 "준비되지 않음" 문구가
+  // 나올 일이 없다. Pipeline C(saju_v3)만 loading/error를 실제로 넘긴다.
+  List<DawnSectionStatus> chapterStatuses = const [
+    DawnSectionStatus.ready,
+    DawnSectionStatus.ready,
+    DawnSectionStatus.ready,
+    DawnSectionStatus.ready,
+  ],
 }) {
+  // [loading/error일 때 플레이스홀더 문구 억제] "아직 ○○이 준비되지
+  // 않았습니다"는 챕터 위젯이 스켈레톤/에러 뷰를 그리지 않는 ready 상태
+  // (Pipeline A/B의 정말로 빈 결과, 또는 saju_v3가 성공했지만 우연히 빈
+  // 문자열을 준 극단적 케이스)에서만 의미가 있다. loading/error 상태에서는
+  // 문단을 비워 두어 [SajuDawnStoryChapters]가 스켈레톤/에러 뷰를 그리도록
+  // 한다(문구 두 개가 동시에 보이는 것을 방지).
+  bool isPending(int i) => chapterStatuses[i] != DawnSectionStatus.ready;
+
   return [
     StoryChapter(
       chapterNum: '一',
       title: personalityTitle,
-      paragraphs: _toParagraphs(
-        personalitySentences.isEmpty
-            ? const ['아직 풀이할 문장이 준비되지 않았습니다.']
-            : personalitySentences,
-      ),
+      paragraphs: isPending(0)
+          ? const []
+          : _toParagraphs(
+              personalitySentences.isEmpty
+                  ? const ['아직 풀이할 문장이 준비되지 않았습니다.']
+                  : personalitySentences,
+            ),
+      status: chapterStatuses[0],
     ),
     StoryChapter(
       chapterNum: '二',
       title: '강점과 조심할 점',
-      paragraphs: _toParagraphs([
-        if (strengths.isNotEmpty) '강점 — ${strengths.join(' / ')}',
-        if (cautions.isNotEmpty) '조심할 점 — ${cautions.join(' / ')}',
-        if (strengths.isEmpty && cautions.isEmpty) '아직 정리된 강점·주의점이 없습니다.',
-      ]),
+      paragraphs: isPending(1)
+          ? const []
+          : _toParagraphs([
+              if (strengths.isNotEmpty) '강점 — ${strengths.join(' / ')}',
+              if (cautions.isNotEmpty) '조심할 점 — ${cautions.join(' / ')}',
+              if (strengths.isEmpty && cautions.isEmpty) '아직 정리된 강점·주의점이 없습니다.',
+            ]),
+      status: chapterStatuses[1],
     ),
     StoryChapter(
       chapterNum: '三',
       title: '대운의 흐름 · 시기별 전개',
-      paragraphs: _toParagraphs(
-        daewoonFlowLines.isEmpty
-            ? const ['대운 정보가 아직 준비되지 않았습니다.']
-            : daewoonFlowLines,
-      ),
+      // [항상 ready — § buildSajuDawnResultDataFromV3Report 주석] 로컬
+      // daewoon 폴백이 항상 있으므로 이 챕터는 isPending(2)가 될 일이
+      // 없다(chapterStatuses[2]는 늘 ready로 전달됨). 방어적으로 isPending
+      // 검사는 유지한다.
+      paragraphs: isPending(2)
+          ? const []
+          : _toParagraphs(
+              daewoonFlowLines.isEmpty
+                  ? const ['대운 정보가 아직 준비되지 않았습니다.']
+                  : daewoonFlowLines,
+            ),
       includeTimeline: true,
+      status: chapterStatuses[2],
     ),
     StoryChapter(
       chapterNum: '四',
       title: '실전 조언 · 맺음말',
-      paragraphs: _toParagraphs([
-        ...generalGuidance,
-        ...finalSummary,
-        if (generalGuidance.isEmpty && finalSummary.isEmpty) '아직 맺음말이 준비되지 않았습니다.',
-      ]),
+      paragraphs: isPending(3)
+          ? const []
+          : _toParagraphs([
+              ...generalGuidance,
+              ...finalSummary,
+              if (generalGuidance.isEmpty && finalSummary.isEmpty) '아직 맺음말이 준비되지 않았습니다.',
+            ]),
+      status: chapterStatuses[3],
     ),
   ];
 }
