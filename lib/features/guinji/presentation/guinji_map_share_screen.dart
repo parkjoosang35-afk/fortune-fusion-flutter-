@@ -1,10 +1,12 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/util/safe_share.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../application/guinji_provider.dart';
 import '../theme/guinji_map_theme.dart';
 import '../widgets/guinji_map_widgets.dart';
 import 'guinji_share_screen.dart' show buildGuinjiInviteLink;
@@ -168,12 +170,119 @@ class _GuinjiMapShareScreenState extends State<GuinjiMapShareScreen> {
   String? _displayLink;
   String? _displayLinkToken;
 
+  // ── [귀인지도 초대링크 재발급 v1.1] 소유자 링크 관리 ────────────
+  bool _linkActionLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // 화면 진입 시 현재 링크 상태(active/revoked)를 조회해 배지·버튼을
+    // 채운다. 실패해도 화면 전체를 막지 않는다(provider가 조용히 무시).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<GuinjiProvider>().loadInviteStatus();
+    });
+  }
+
+  /// "새 링크 만들기"(재발급) 확인 다이얼로그 — 옛 링크가 즉시 무효화됨을
+  /// 반드시 먼저 확인시킨다(§08 API 응답의 warning 문구와 동일한 취지).
+  Future<void> _confirmReissue() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('새 링크를 만들까요?'),
+        content: const Text(
+          '이전 링크로 들어오던 사람은 더 이상 들어올 수 없어요.\n'
+          '이미 지도에 합류한 친구는 그대로 남아있어요.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('새 링크 만들기'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _linkActionLoading = true);
+    final provider = context.read<GuinjiProvider>();
+    final data = await provider.reissueInviteLink();
+    if (!mounted) return;
+    setState(() {
+      _linkActionLoading = false;
+      // 토큰이 바뀌었으므로 다음 build에서 _link가 새로 계산되도록
+      // 캐시 키를 무효화한다.
+      _displayLinkToken = null;
+    });
+    if (data == null) {
+      AppToast.show(context, provider.error ?? '링크 재발급에 실패했습니다.');
+      return;
+    }
+    AppToast.show(context, '새 링크를 만들었어요.');
+  }
+
+  /// "링크 중단" 확인 다이얼로그.
+  Future<void> _confirmRevoke() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('링크를 중단할까요?'),
+        content: const Text(
+          '이 링크로 더 이상 새로운 친구가 들어올 수 없어요.\n'
+          '언제든 다시 열 수 있어요.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('중단하기'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _linkActionLoading = true);
+    final provider = context.read<GuinjiProvider>();
+    final ok = await provider.revokeInviteLink();
+    if (!mounted) return;
+    setState(() => _linkActionLoading = false);
+    if (!ok) {
+      AppToast.show(context, provider.error ?? '링크 중단에 실패했습니다.');
+      return;
+    }
+    AppToast.show(context, '링크를 중단했어요.');
+  }
+
+  Future<void> _reactivate() async {
+    setState(() => _linkActionLoading = true);
+    final provider = context.read<GuinjiProvider>();
+    final ok = await provider.reactivateInviteLink();
+    if (!mounted) return;
+    setState(() => _linkActionLoading = false);
+    if (!ok) {
+      AppToast.show(context, provider.error ?? '링크 중단 해제에 실패했습니다.');
+      return;
+    }
+    AppToast.show(context, '링크를 다시 열었어요.');
+  }
+
   /// [귀인지도 실구현] 실존하지 않는 하드코딩 도메인 대신
   /// `guinji_share_screen.dart`의 [buildGuinjiInviteLink]를 재사용해 실제
   /// `EnvConfig.adminApiBaseUrl` 기반 링크를 만든다. 화면 진입 후 토큰이
   /// 바뀌지 않는 한 1회만 생성해 고정한다.
   String get _link {
-    final token = widget.mapToken;
+    // [재발급 반영] provider가 재발급으로 mapToken을 갱신했으면 그 값을
+    // 우선 사용한다(위젯이 다시 생성되지 않아도 새 링크가 즉시 보이도록).
+    final token = context.watch<GuinjiProvider>().mapToken ?? widget.mapToken;
     if (token.isEmpty) return '지도를 여는 중…';
     if (_displayLinkToken != token) {
       _displayLinkToken = token;
@@ -294,11 +403,143 @@ class _GuinjiMapShareScreenState extends State<GuinjiMapShareScreen> {
                     ),
                   ),
                 ),
+
+                const SizedBox(height: 20),
+                const _LinkManagementSectionDivider(),
+                const SizedBox(height: 12),
+                _LinkManagementSection(
+                  loading: _linkActionLoading,
+                  onReissue: _confirmReissue,
+                  onRevoke: _confirmRevoke,
+                  onReactivate: _reactivate,
+                ),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+/// [귀인지도 초대링크 재발급 v1.1 — §07-4] 공유 화면 하단 "링크 관리" 섹션.
+/// 기존 화면(복사·카톡·SMS 공유)에 상태 배지 + 버튼 2개(재발급/중단·
+/// 중단해제)만 얹는다 — 지시서가 명시한 대로 새 화면을 만들지 않는다.
+class _LinkManagementSectionDivider extends StatelessWidget {
+  const _LinkManagementSectionDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(child: Divider(color: GmColors.line)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Text(
+            '링크 관리',
+            style: TextStyle(fontSize: 11, color: GmColors.inkSoft, fontWeight: FontWeight.w600),
+          ),
+        ),
+        Expanded(child: Divider(color: GmColors.line)),
+      ],
+    );
+  }
+}
+
+class _LinkManagementSection extends StatelessWidget {
+  const _LinkManagementSection({
+    required this.loading,
+    required this.onReissue,
+    required this.onRevoke,
+    required this.onReactivate,
+  });
+
+  final bool loading;
+  final VoidCallback onReissue;
+  final VoidCallback onRevoke;
+  final VoidCallback onReactivate;
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<GuinjiProvider>();
+    final inviteStatus = provider.inviteStatus;
+    final isRevoked = provider.isInviteRevoked;
+    final joinedMemberCount = provider.joinedMemberCount;
+
+    // [상태 배지] "초대 링크 활성 · 지금까지 N명이 참여했어요 · 만료 없음"
+    // (§07-4 카피 — 숫자를 쓰더라도 인원수일 뿐, 기간 숫자는 절대 넣지
+    // 않는다. inviteStatus를 아직 조회하지 못했으면(null) 배지를 생략).
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (inviteStatus != null)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: isRevoked
+                  ? GmColors.inkSoft.withValues(alpha: 0.08)
+                  : GmColors.gold.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isRevoked ? Icons.link_off : Icons.link,
+                  size: 16,
+                  color: isRevoked ? GmColors.inkSoft : GmColors.gold,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    isRevoked
+                        ? '초대 링크 중단됨'
+                        : joinedMemberCount != null
+                        ? '초대 링크 활성 · 지금까지 $joinedMemberCount명이 참여했어요 · 만료 없음'
+                        : '초대 링크 활성 · 만료 없음',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: isRevoked ? GmColors.inkSoft : GmColors.ink,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: loading ? null : onReissue,
+                icon: const Icon(Icons.autorenew, size: 16),
+                label: const Text('새 링크 만들기'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: GmColors.ink,
+                  side: BorderSide(color: GmColors.line),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: OutlinedButton.icon(
+                // [멱등 액션 전환] 이미 중단 상태면 버튼이 "중단 해제"로
+                // 바뀐다(§05 #3 reactivate) — 별도 화면 없이 같은 자리에서
+                // 토글.
+                onPressed: loading ? null : (isRevoked ? onReactivate : onRevoke),
+                icon: Icon(isRevoked ? Icons.play_circle_outline : Icons.pause_circle_outline, size: 16),
+                label: Text(isRevoked ? '중단 해제' : '링크 중단'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: isRevoked ? GmColors.gold : Colors.redAccent,
+                  side: BorderSide(color: isRevoked ? GmColors.gold : Colors.redAccent.withValues(alpha: 0.4)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

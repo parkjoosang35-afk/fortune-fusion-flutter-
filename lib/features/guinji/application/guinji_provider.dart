@@ -86,6 +86,120 @@ class GuinjiProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ── [귀인지도 초대링크 재발급 v1.1] 소유자 링크 관리 상태 ──────────
+  // `GET /guinji/maps/me`는 inviteStatus를 내려주지 않으므로(§Phase 1
+  // 범위 밖), 공유 화면(`GuinjiMapShareScreen`)이 별도로
+  // [fetchInviteStatus]를 호출해 여기 캐싱한다. 재발급/중단/중단해제
+  // 액션 성공 시에도 이 상태를 즉시 갱신해 화면이 새로고침 없이 반영되게
+  // 한다.
+  String? _inviteStatus;
+  int? _joinedMemberCount;
+
+  /// 초대 링크 현재 상태('active' | 'revoked'). 아직 조회하지 않았으면 null.
+  String? get inviteStatus => _inviteStatus;
+
+  /// 초대 링크가 중단된 상태인지("active"가 아니면 true로 간주하지 않고,
+  /// 정확히 "revoked"일 때만 true — 아직 조회 전(null)에는 false).
+  bool get isInviteRevoked => _inviteStatus == "revoked";
+
+  /// 이 링크로 실제 합류한 활성 멤버 수(관리 화면 표시용 — 링크 유입
+  /// 횟수가 아니다. 백엔드 §05 명세 참고).
+  int? get joinedMemberCount => _joinedMemberCount;
+
+  /// GET /guinji/maps/{mapId}/invite-status — 공유 화면 진입 시 호출해
+  /// 현재 링크 상태를 채운다. 실패해도 화면 전체를 막지 않도록 조용히
+  /// 무시할 수 있다(호출부는 null 유지 시 "확인 중"으로 표시).
+  Future<void> loadInviteStatus() async {
+    final id = mapId;
+    if (id == null) return;
+    final result = await _repository.fetchInviteStatus(mapId: id);
+    if (!result.success || result.data == null) {
+      debugPrint(
+        '[GuinjiProvider] [loadInviteStatus] 실패(무시 가능) -> ${result.errorMessage}',
+      );
+      return;
+    }
+    _inviteStatus = result.data!['inviteStatus'] as String?;
+    _joinedMemberCount = result.data!['joinedMemberCount'] as int?;
+    notifyListeners();
+  }
+
+  /// POST /guinji/maps/{mapId}/reissue — 초대 링크 재발급.
+  ///
+  /// [주의 — 옛 링크 즉시 무효화] 성공하면 [mapToken]이 즉시 새 값으로
+  /// 바뀐다(`_map`의 token 필드를 직접 갱신 — [loadMyMap] 재호출 불필요).
+  /// 호출부(공유 화면)는 재발급 전에 반드시 "이전 링크로 들어오던 사람은
+  /// 더 이상 들어올 수 없어요" 경고를 사용자에게 확인시켜야 한다(성공
+  /// 응답에도 동일 `warning` 문구가 실려 오므로 그대로 노출 가능).
+  ///
+  /// 반환: 성공 시 새 데이터({token, url, inviteStatus, tokenIssuedAt,
+  /// ogImageUrl, warning}), 실패 시 null([error] 참고).
+  Future<Map<String, dynamic>?> reissueInviteLink() async {
+    final id = mapId;
+    if (id == null) {
+      _error = '지도 정보를 찾을 수 없습니다.';
+      notifyListeners();
+      return null;
+    }
+    _error = null;
+    final result = await _repository.reissueInviteLink(mapId: id);
+    if (!result.success || result.data == null) {
+      _error = result.errorMessage ?? '링크 재발급에 실패했습니다.';
+      notifyListeners();
+      return null;
+    }
+    final data = result.data!;
+    final newToken = data['token'] as String?;
+    if (newToken != null && _map != null) {
+      _map = {..._map!, 'token': newToken};
+    }
+    _inviteStatus = data['inviteStatus'] as String?;
+    notifyListeners();
+    return data;
+  }
+
+  /// POST /guinji/maps/{mapId}/revoke — 초대 링크 중단.
+  /// 성공 시 true(호출부가 [inviteStatus]를 읽어 UI 갱신), 실패 시 false.
+  Future<bool> revokeInviteLink() async {
+    final id = mapId;
+    if (id == null) {
+      _error = '지도 정보를 찾을 수 없습니다.';
+      notifyListeners();
+      return false;
+    }
+    _error = null;
+    final result = await _repository.revokeInviteLink(mapId: id);
+    if (!result.success || result.data == null) {
+      _error = result.errorMessage ?? '링크 중단에 실패했습니다.';
+      notifyListeners();
+      return false;
+    }
+    _inviteStatus = result.data!['inviteStatus'] as String?;
+    notifyListeners();
+    return true;
+  }
+
+  /// POST /guinji/maps/{mapId}/reactivate — 초대 링크 중단 해제.
+  /// 성공 시 true, 실패 시 false([error] 참고).
+  Future<bool> reactivateInviteLink() async {
+    final id = mapId;
+    if (id == null) {
+      _error = '지도 정보를 찾을 수 없습니다.';
+      notifyListeners();
+      return false;
+    }
+    _error = null;
+    final result = await _repository.reactivateInviteLink(mapId: id);
+    if (!result.success || result.data == null) {
+      _error = result.errorMessage ?? '링크 중단 해제에 실패했습니다.';
+      notifyListeners();
+      return false;
+    }
+    _inviteStatus = result.data!['inviteStatus'] as String?;
+    notifyListeners();
+    return true;
+  }
+
   /// [GuinjiPerson] 리스트로 매핑된 멤버 목록(랭킹/지도 화면이 그대로 사용).
   List<GuinjiPerson> get people {
     final relationByMemberId = {

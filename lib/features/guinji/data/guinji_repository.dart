@@ -14,6 +14,12 @@ import '../../../core/config/env_config.dart';
 /// - `GET  /api/public/guinji/g/{token}` → [fetchInvite]
 /// - `POST /api/public/guinji/unlocks` → [unlock]
 ///
+/// [귀인지도 초대링크 재발급 v1.1 추가분 — 소유자 전용 링크 관리]
+/// - `POST /api/public/guinji/maps/{mapId}/reissue` → [reissueInviteLink]
+/// - `POST /api/public/guinji/maps/{mapId}/revoke` → [revokeInviteLink]
+/// - `POST /api/public/guinji/maps/{mapId}/reactivate` → [reactivateInviteLink]
+/// - `GET  /api/public/guinji/maps/{mapId}/invite-status` → [fetchInviteStatus]
+///
 /// [attendance_repository.dart와의 차이] 이 5개 라우트는 모두 `requireUser`로
 /// JWT 인증을 강제하므로(admin_web `_shared.ts`), 매 요청에
 /// `AuthTokenStore.authHeader()`로 얻은 `Authorization: Bearer <token>`
@@ -362,6 +368,153 @@ class GuinjiRepository {
     } catch (e) {
       debugPrint('[GuinjiRepository] [deleteMember] 예외 -> $e');
       return ApiResult.fail('삭제 처리 중 오류가 발생했습니다: $e');
+    }
+  }
+
+  /// POST /guinji/maps/{mapId}/reissue — 초대 링크 재발급(소유자 전용).
+  ///
+  /// [귀인지도 초대링크 재발급 v1.1] 토큰 값 자체를 새로 발급하고
+  /// inviteStatus를 active로 리셋한다(중단 중이었어도 재발급하면 즉시
+  /// 살아난다). 옛 토큰은 이후 어디서도 조회되지 않는다(INVALID 화면으로
+  /// 흡수) — 호출부는 성공 응답의 `warning` 문구를 재발급 직전 확인
+  /// 다이얼로그에 표시해야 한다.
+  ///
+  /// 반환: {token, url, inviteStatus, tokenIssuedAt, ogImageUrl, warning}
+  Future<ApiResult<Map<String, dynamic>>> reissueInviteLink({
+    required String mapId,
+  }) async {
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/guinji/maps/$mapId/reissue',
+    );
+    debugPrint('[GuinjiRepository] [reissueInviteLink] 요청 -> $uri');
+
+    try {
+      final authHeader = await AuthTokenStore.authHeader();
+      final response = await http
+          .post(uri, headers: {'Content-Type': 'application/json', ...authHeader})
+          .timeout(const Duration(seconds: 15));
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode >= 400 || decoded['success'] != true) {
+        final error = decoded['error'] as String? ?? '링크 재발급에 실패했습니다.';
+        debugPrint('[GuinjiRepository] [reissueInviteLink] 실패 -> $error');
+        return ApiResult.fail(error, code: decoded['code'] as String?);
+      }
+
+      final data = decoded['data'] as Map<String, dynamic>;
+      return ApiResult.ok(data);
+    } catch (e) {
+      debugPrint('[GuinjiRepository] [reissueInviteLink] 예외 -> $e');
+      return ApiResult.fail('링크 재발급 중 오류가 발생했습니다: $e');
+    }
+  }
+
+  /// POST /guinji/maps/{mapId}/revoke — 초대 링크 중단(소유자 전용).
+  ///
+  /// [귀인지도 초대링크 재발급 v1.1] token 값은 그대로 두고 inviteStatus만
+  /// revoked로 바꾼다. 이후 이 토큰으로 들어오는 신규 방문자는 REVOKED
+  /// 화면(E1 변형)을 보며, 이미 지도에 합류한 멤버는 영향받지 않는다(앱
+  /// 딥링크 경로 한정 — `GuinjiRepository.fetchInvite` 참고).
+  ///
+  /// 반환: {token, inviteStatus, revokedAt}
+  Future<ApiResult<Map<String, dynamic>>> revokeInviteLink({
+    required String mapId,
+  }) async {
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/guinji/maps/$mapId/revoke',
+    );
+    debugPrint('[GuinjiRepository] [revokeInviteLink] 요청 -> $uri');
+
+    try {
+      final authHeader = await AuthTokenStore.authHeader();
+      final response = await http
+          .post(uri, headers: {'Content-Type': 'application/json', ...authHeader})
+          .timeout(const Duration(seconds: 15));
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode >= 400 || decoded['success'] != true) {
+        final error = decoded['error'] as String? ?? '링크 중단에 실패했습니다.';
+        debugPrint('[GuinjiRepository] [revokeInviteLink] 실패 -> $error');
+        return ApiResult.fail(error, code: decoded['code'] as String?);
+      }
+
+      final data = decoded['data'] as Map<String, dynamic>;
+      return ApiResult.ok(data);
+    } catch (e) {
+      debugPrint('[GuinjiRepository] [revokeInviteLink] 예외 -> $e');
+      return ApiResult.fail('링크 중단 중 오류가 발생했습니다: $e');
+    }
+  }
+
+  /// POST /guinji/maps/{mapId}/reactivate — 초대 링크 중단 해제(소유자 전용).
+  ///
+  /// [귀인지도 초대링크 재발급 v1.1] inviteStatus를 active로 되돌리고
+  /// revokedAt을 null로 리셋한다. token 값은 건드리지 않는다(revoke의
+  /// 대칭 동작 — 새 토큰이 필요하면 [reissueInviteLink]를 별도로 호출).
+  ///
+  /// 반환: {token, inviteStatus}
+  Future<ApiResult<Map<String, dynamic>>> reactivateInviteLink({
+    required String mapId,
+  }) async {
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/guinji/maps/$mapId/reactivate',
+    );
+    debugPrint('[GuinjiRepository] [reactivateInviteLink] 요청 -> $uri');
+
+    try {
+      final authHeader = await AuthTokenStore.authHeader();
+      final response = await http
+          .post(uri, headers: {'Content-Type': 'application/json', ...authHeader})
+          .timeout(const Duration(seconds: 15));
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode >= 400 || decoded['success'] != true) {
+        final error = decoded['error'] as String? ?? '링크 중단 해제에 실패했습니다.';
+        debugPrint('[GuinjiRepository] [reactivateInviteLink] 실패 -> $error');
+        return ApiResult.fail(error, code: decoded['code'] as String?);
+      }
+
+      final data = decoded['data'] as Map<String, dynamic>;
+      return ApiResult.ok(data);
+    } catch (e) {
+      debugPrint('[GuinjiRepository] [reactivateInviteLink] 예외 -> $e');
+      return ApiResult.fail('링크 중단 해제 중 오류가 발생했습니다: $e');
+    }
+  }
+
+  /// GET /guinji/maps/{mapId}/invite-status — 초대 링크 현재 상태 조회
+  /// (소유자 전용, 공유 화면 상태 표시용).
+  ///
+  /// [주의] `joinedMemberCount`는 "링크 유입 횟수"가 아니라 "실제로 지도에
+  /// 합류한 활성 멤버 수"다(백엔드 지시서 §05 명세 그대로).
+  ///
+  /// 반환: {token, inviteStatus, tokenIssuedAt, joinedMemberCount}
+  Future<ApiResult<Map<String, dynamic>>> fetchInviteStatus({
+    required String mapId,
+  }) async {
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/guinji/maps/$mapId/invite-status',
+    );
+    debugPrint('[GuinjiRepository] [fetchInviteStatus] 요청 -> $uri');
+
+    try {
+      final authHeader = await AuthTokenStore.authHeader();
+      final response = await http
+          .get(uri, headers: {'Accept': 'application/json', ...authHeader})
+          .timeout(const Duration(seconds: 15));
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode >= 400 || decoded['success'] != true) {
+        final error = decoded['error'] as String? ?? '링크 상태 조회에 실패했습니다.';
+        debugPrint('[GuinjiRepository] [fetchInviteStatus] 실패 -> $error');
+        return ApiResult.fail(error, code: decoded['code'] as String?);
+      }
+
+      final data = decoded['data'] as Map<String, dynamic>;
+      return ApiResult.ok(data);
+    } catch (e) {
+      debugPrint('[GuinjiRepository] [fetchInviteStatus] 예외 -> $e');
+      return ApiResult.fail('링크 상태 조회 중 오류가 발생했습니다: $e');
     }
   }
 
