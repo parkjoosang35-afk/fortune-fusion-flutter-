@@ -289,7 +289,7 @@ class _GuinjiMapShareScreenState extends State<GuinjiMapShareScreen> {
                       style: TextStyle(fontSize: 11, color: GmColors.inkSoft, height: 1.5),
                       children: [
                         TextSpan(text: 'Tip. ', style: TextStyle(fontWeight: FontWeight.w700, color: GmColors.ink)),
-                        TextSpan(text: '링크는 30일간 유효해요. 이후에는 지도가 자동으로 마감돼요.'),
+                        TextSpan(text: '이 링크는 만료 없이 계속 사용할 수 있어요. 그만 받고 싶다면 링크를 중단할 수 있어요.'),
                       ],
                     ),
                   ),
