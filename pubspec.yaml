@@ -140,6 +140,13 @@ dependencies:
   # Dart 3.9.2/Flutter 3.35.4 고정 환경 호환 최신판.
   gal: 2.3.3
 
+  # [DEV-2026-001 작업2-4-3 버전 가시화] 설정화면에 앱 버전(versionName+
+  # versionCode)을 표시하기 위한 패키지. 서버 /app/version.txt(커밋해시+
+  # 배포시각)와 나란히 비교해 "서버-앱 버전 불일치"를 운영자/사용자가 즉시
+  # 판별할 수 있게 한다. Dart 3.9.2 고정 환경과 호환되는 최신 안정판(9.0.1,
+  # Min Dart SDK 3.3) 사용. Web/Android 모두 지원.
+  package_info_plus: 9.0.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

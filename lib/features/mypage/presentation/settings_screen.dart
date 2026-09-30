@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/config/env_config.dart';
@@ -35,6 +37,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   List<NotificationPreferenceItem> _notificationPrefs = [];
   bool _notificationPrefsLoading = true;
 
+  // [DEV-2026-001 작업2-4-3 버전 가시화] 앱(클라이언트) 버전과 서버
+  // (/app/version.txt, flutter_web 배포 시 커밋해시+배포시각을 기록)를
+  // 나란히 노출해 "서버-앱 버전 불일치"를 사용자/운영자가 이 화면 하나로
+  // 즉시 판별할 수 있게 한다. 서버 조회 실패는 네트워크 문제일 뿐 앱 자체
+  // 버전 표시와는 무관하므로 별도 상태로 분리해 앱 버전 표시를 막지 않는다.
+  String? _appVersionLabel; // 예: "1.0.0 (1)"
+  String? _serverVersionText; // /app/version.txt 원문(commit=...\ndeployed_at=...)
+  bool _serverVersionLoading = true;
+  String? _serverVersionError;
+
   static const Map<String, String> _categoryLabels = {
     'community': '소원방 응원 · 댓글 · 복주머니',
     'fortune_update': '운세 업데이트',
@@ -46,6 +58,58 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     _loadNotificationPrefs();
+    _loadAppVersion();
+    _loadServerVersion();
+  }
+
+  /// [DEV-2026-001 작업2-4-3] package_info_plus로 현재 실행 중인 앱의
+  /// versionName(pubspec.yaml version 필드 앞부분)과 versionCode(+ 뒤 숫자,
+  /// Android에서는 build.gradle.kts의 flutter.versionCode로 그대로 반영됨)를
+  /// 읽어온다.
+  Future<void> _loadAppVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (!mounted) return;
+      setState(() {
+        _appVersionLabel = '${info.version} (${info.buildNumber})';
+      });
+    } catch (e) {
+      debugPrint('[SettingsScreen] [_loadAppVersion] 실패 -> $e');
+      if (!mounted) return;
+      setState(() {
+        _appVersionLabel = '확인 불가';
+      });
+    }
+  }
+
+  /// [DEV-2026-001 작업2-4-3] 서버 배포 스크립트(deploy_flutter_web_to_prod.sh)가
+  /// 배포 시점마다 갱신하는 /app/version.txt(commit=.../deployed_at=...)를
+  /// 그대로 가져와 화면에 노출한다. 인증이 필요 없는 정적 파일이라
+  /// AuthTokenStore 헤더는 붙이지 않는다.
+  Future<void> _loadServerVersion() async {
+    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/app/version.txt');
+    try {
+      final response = await http.get(uri).timeout(const Duration(seconds: 8));
+      if (!mounted) return;
+      if (response.statusCode == 200 && response.body.trim().isNotEmpty) {
+        setState(() {
+          _serverVersionText = response.body.trim();
+          _serverVersionLoading = false;
+        });
+      } else {
+        setState(() {
+          _serverVersionError = '서버 버전 정보를 불러오지 못했습니다 (${response.statusCode})';
+          _serverVersionLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('[SettingsScreen] [_loadServerVersion] 실패 -> $e');
+      if (!mounted) return;
+      setState(() {
+        _serverVersionError = '서버 버전 정보를 불러오지 못했습니다';
+        _serverVersionLoading = false;
+      });
+    }
   }
 
   Future<void> _loadNotificationPrefs() async {
@@ -269,6 +333,75 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
             ],
+
+            // [DEV-2026-001 작업2-4-3 버전 가시화] 앱 버전 vs 서버 버전을
+            // 나란히 표시한다. 두 값이 배포 직후 달라 보이는 것은 정상
+            // (Android APK는 별도 채널로 배포되므로 즉시 반영되지 않음)이며,
+            // 여기서는 "지금 실행 중인 앱"과 "지금 서버에 배포된 최신본"을
+            // 사용자가 직접 비교할 수 있게 하는 것이 목적이다.
+            const SizedBox(height: UnifiedTokens.spaceXxl),
+            Text('버전 정보', style: UnifiedText.title()),
+            const SizedBox(height: UnifiedTokens.spaceSm),
+            Container(
+              decoration: BoxDecoration(
+                color: UnifiedColors.bg,
+                border: Border.all(color: UnifiedColors.border),
+                borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
+              ),
+              padding: const EdgeInsets.symmetric(
+                horizontal: UnifiedTokens.spaceLg,
+                vertical: UnifiedTokens.spaceMd,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text('앱 버전', style: UnifiedText.bodyStrong()),
+                      ),
+                      Text(
+                        _appVersionLabel ?? '확인 중...',
+                        style: UnifiedText.caption(
+                          color: UnifiedColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: UnifiedTokens.spaceSm),
+                  const Divider(height: 1, color: UnifiedColors.border),
+                  const SizedBox(height: UnifiedTokens.spaceSm),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('서버 버전', style: UnifiedText.bodyStrong()),
+                      const SizedBox(width: UnifiedTokens.spaceMd),
+                      Expanded(
+                        child: _serverVersionLoading
+                            ? Text(
+                                '확인 중...',
+                                textAlign: TextAlign.right,
+                                style: UnifiedText.caption(
+                                  color: UnifiedColors.textSecondary,
+                                ),
+                              )
+                            : Text(
+                                _serverVersionError ??
+                                    _serverVersionText ??
+                                    '-',
+                                textAlign: TextAlign.right,
+                                style: UnifiedText.caption(
+                                  color: _serverVersionError != null
+                                      ? Colors.red
+                                      : UnifiedColors.textSecondary,
+                                ),
+                              ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
