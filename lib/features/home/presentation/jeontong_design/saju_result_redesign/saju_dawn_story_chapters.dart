@@ -10,6 +10,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../../widgets/jeontong_easy_term_toggle.dart';
 import 'saju_dawn_data_models.dart';
 import 'saju_dawn_ilgan_theme.dart';
 import 'saju_dawn_section_shell.dart';
@@ -310,27 +311,116 @@ class _StoryParagraphText extends StatelessWidget {
             run.hanjaHighlight
                 ? WidgetSpan(
                     alignment: PlaceholderAlignment.middle,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 3),
-                      decoration: BoxDecoration(
-                        color: SajuDawnColors.gold.withValues(alpha: 0.14),
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                      child: Text(
-                        run.text,
-                        style: const TextStyle(
-                          fontFamily: SajuDawnFonts.serif,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                          color: SajuDawnColors.brownDeep,
-                          height: 1.85,
-                        ),
-                      ),
-                    ),
+                    child: _HanjaTermTap(text: run.text),
                   )
                 : TextSpan(text: run.text, style: SajuDawnText.storyBody),
         ],
       ),
+    );
+  }
+}
+
+/// [사주 용어 클릭 시 쉬운말 해석] 한자 하이라이트 구간을 탭하면
+/// `easy_terms.json` 사전(68개 용어, [EasyTerms])에서 이 구간 문자열
+/// 안에 포함된 가장 긴 등록 용어를 찾아 쉬운말 설명을 바텀시트로
+/// 보여준다. 사전 자체는 `easy_terms.json`이 이미 갖고 있는 값 그대로
+/// 노출할 뿐, 새 해석을 만들지 않는다(엔진/사전 무수정 원칙 — 표시
+/// 방식만 추가).
+class _HanjaTermTap extends StatelessWidget {
+  final String text;
+  const _HanjaTermTap({required this.text});
+
+  /// 하이라이트 구간 문자열 안에서 사전에 등록된 용어 중 가장 긴
+  /// 것을 찾는다(예: "재다신약" 구간에 "재성"도 부분 매치될 수 있으나
+  /// 더 긴 "재다신약"을 우선). 매치가 없으면 null.
+  String? _matchTerm() {
+    final terms = EasyTerms.cachedOrNull?.allTerms;
+    if (terms == null) return null;
+    String? best;
+    for (final term in terms) {
+      if (text.contains(term)) {
+        if (best == null || term.length > best.length) best = term;
+      }
+    }
+    return best;
+  }
+
+  void _showExplain(BuildContext context, String term) {
+    final easy = EasyTerms.cachedOrNull?.explain(term);
+    final detail = EasyTerms.cachedOrNull?.detailOf(term);
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: SajuDawnColors.paper,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                term,
+                style: const TextStyle(
+                  fontFamily: SajuDawnFonts.serif,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: SajuDawnColors.brownDeep,
+                ),
+              ),
+              const SizedBox(height: 8),
+              if (easy != null)
+                Text(
+                  easy,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: SajuDawnColors.goldDeep,
+                  ),
+                ),
+              if (detail != null) ...[
+                const SizedBox(height: 10),
+                Text(
+                  detail,
+                  style: SajuDawnText.storyBody.copyWith(height: 1.6),
+                ),
+              ],
+              if (easy == null && detail == null)
+                const Text('쉬운 설명 준비 중이에요.'),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final term = _matchTerm();
+    final content = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 3),
+      decoration: BoxDecoration(
+        color: SajuDawnColors.gold.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(3),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontFamily: SajuDawnFonts.serif,
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+          color: SajuDawnColors.brownDeep,
+          height: 1.85,
+        ),
+      ),
+    );
+    if (term == null) return content;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _showExplain(context, term),
+      child: content,
     );
   }
 }
