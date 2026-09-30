@@ -6,7 +6,6 @@ import 'core/theme/theme_provider.dart';
 import 'core/router/app_router.dart';
 import 'core/router/app_navigator_key.dart';
 import 'core/widgets/web_mobile_frame.dart';
-import 'features/app_version/presentation/force_update_gate.dart';
 
 import 'features/auth/application/auth_provider.dart';
 import 'features/auth/data/auth_repository.dart';
@@ -332,15 +331,8 @@ class App extends StatelessWidget {
               // 있을 때만 textScale을 오버라이드한다(없으면 null → 시스템
               // 기본값 그대로, 즉 기존 프로덕션 동작과 완전히 동일).
               final qaScale = readQaTextScaleOverride();
-              // [DEV-2026-001 작업3-5-2 재발방지체계] 앱 전체 트리 최상단에서
-              // 강제 업데이트 게이트를 씌운다. MaterialApp.builder의 child
-              // (=Navigator가 관리하는 라우트 트리) 바깥이라 어떤 화면으로
-              // 이동해도 항상 같은 위치에서 1회 체크되고, 다이얼로그는 그
-              // 화면 위에 얹힌다.
-              final content = ForceUpdateGate(
-                child: LuckPouchToastOverlay(
-                  child: child ?? const SizedBox.shrink(),
-                ),
+              final content = LuckPouchToastOverlay(
+                child: child ?? const SizedBox.shrink(),
               );
               // [PC 웹 미리보기 개선] PC 브라우저처럼 화면이 넓을 때만
               // 모바일 폭으로 중앙 고정한다(모바일/APK는 영향 없음).
