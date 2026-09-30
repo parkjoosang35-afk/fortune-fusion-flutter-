@@ -162,9 +162,14 @@ SajuResultData buildSajuDawnResultDataFromParagraphs({
 ///   찾은 대응 PART의 paras를 [_humanizeFallbackPara]와 동일한 원칙으로
 ///   정리해 대신 쓴다. 대응 PART도 없으면(건강/궁합/개운 20종) interpret
 ///   headline/sections만으로 채운다.
-/// - 二(강점과 조심할 점): interpret().actions를 그대로 doList/avoidList로
-///   내려보낸다(둘을 나눌 구조가 없으므로 전부 "이런 점을 참고해보세요"
-///   조언으로 취급 — 새 판단 아님, 이미 서버가 만든 문장 그대로).
+/// - 二(강점과 조심할 점): interpret().sections에서 key=="strength"인
+///   섹션의 body를 doList로, key=="caution"인 섹션의 body를 avoidList로
+///   쓴다(ai_layer/interpret_service.py의 `_fallback()`과 qa_check.py가
+///   LLM 경로·룰 폴백 경로 모두에서 이 두 key를 갖도록 강제하므로 항상
+///   신뢰 가능 — § 실사용자 스크린 녹화로 "강점"에 엉뚱한 행운 팁이
+///   노출되던 오매핑 버그를 수정). interpret().actions(행운 색상/음식/
+///   방향 활용 팁)는 이 챕터가 아니라 陸(행운요소) 근처 보조 정보로만
+///   쓰고, 강점/조심할 점 판정에는 더 이상 섞지 않는다.
 /// - 三(대운의 흐름): PART7("인생 흐름") 텍스트가 있으면 그것을, 없으면
 ///   로컬 [SajuProfile.daewoon] 기반 문장(기존 헬퍼가 이미 만들던 형태와
 ///   동일한 형식)으로 대체한다. 타임라인 노드는 항상 로컬 계산 그대로.
@@ -232,11 +237,20 @@ SajuResultData buildSajuDawnResultDataFromV3Report({
     sources: [narrativeState, reportState, interpretState],
   );
 
-  // 二(강점과 조심할 점) — interpret().actions 전체를 doList로,
-  // 구분 구조가 없어 avoidList는 비워 둔다(§ 위 주석).
-  final actionItems = interpret?.actions ?? const <String>[];
+  // 二(강점과 조심할 점) — interpret().sections에서 key=="strength"/
+  // "caution"인 섹션의 body를 각각 doList/avoidList로 쓴다(§ 위 주석).
+  List<String> sectionBody(String key) {
+    if (interpret == null) return const [];
+    for (final s in interpret.sections) {
+      if (s.key == key) return s.body;
+    }
+    return const [];
+  }
+
+  final strengthItems = sectionBody('strength');
+  final cautionItems = sectionBody('caution');
   final chapter2Status = _sectionStatus(
-    hasContent: actionItems.isNotEmpty,
+    hasContent: strengthItems.isNotEmpty || cautionItems.isNotEmpty,
     sources: [interpretState],
   );
 
@@ -274,8 +288,8 @@ SajuResultData buildSajuDawnResultDataFromV3Report({
         ? interpret!.headline
         : '총평 · 타고난 흐름',
     personalitySentences: summarySentences,
-    strengths: actionItems,
-    cautions: const [],
+    strengths: strengthItems,
+    cautions: cautionItems,
     generalGuidance: const [],
     daewoonFlowLines: daewoonFlowLines,
     finalSummary: finalSummaryLines,
@@ -285,8 +299,9 @@ SajuResultData buildSajuDawnResultDataFromV3Report({
       chapter3Status,
       chapter4Status,
     ],
-    // [伍(실전 조언) 섹션] doList=strengths=interpret().actions와 소스가
-    // 완전히 동일하므로 챕터 二와 같은 상태를 공유한다.
+    // [伍(실전 조언) 섹션] doList/avoidList=strengths/cautions=
+    // interpret().sections(key strength/caution)와 소스가 완전히
+    // 동일하므로 챕터 二와 같은 상태를 공유한다.
     adviceStatus: chapter2Status,
   );
 }
