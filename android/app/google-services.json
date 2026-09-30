@@ -9,7 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:29545196276:android:e7c8730c8c282d886e4ca1",
         "android_client_info": {
-          "package_name": "com.fortunefusion.fortune"
+          "package_name": "com.sintongbantong.app"
         }
       },
       "oauth_client": [
@@ -17,7 +17,7 @@
           "client_id": "29545196276-ii1i66daibn02b7oil8gf571eijo6th2.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.fortunefusion.fortune",
+            "package_name": "com.sintongbantong.app",
             "certificate_hash": "a6eb8c0c602ec0a6671ba75594d265da1c2fbe24"
           }
         },

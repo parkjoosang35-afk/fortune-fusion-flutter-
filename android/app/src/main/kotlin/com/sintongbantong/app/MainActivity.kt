@@ -1,6 +1,5 @@
-package com.fortunefusion.fortune
+package com.sintongbantong.app
 
 import io.flutter.embedding.android.FlutterActivity
 
 class MainActivity : FlutterActivity()
-

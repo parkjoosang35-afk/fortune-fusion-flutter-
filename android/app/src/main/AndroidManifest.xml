@@ -105,7 +105,7 @@
                       않는 제약이 있어 API Route로 구현,
                       src/app/.well-known/assetlinks.json/route.ts)
                  Google Digital Asset Links API로 sintong.kr ↔
-                 com.fortunefusion.fortune(release-key.jks SHA256) 소유권
+                 com.sintongbantong.app(release-key.jks SHA256) 소유권
                  매핑이 정상 검증됨을 확인했다. 아래 두 번째 intent-filter가
                  그 https App Links이며, autoVerify="true"로 앱 설치 시
                  Android가 자동으로 도메인 소유권을 검증한다(검증 성공 시
