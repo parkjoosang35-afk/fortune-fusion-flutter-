@@ -8,7 +8,6 @@
 // 동일한 화이트리스트 경계).
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { isGuinjiInviteExpired } from "@/app/api/public/guinji/_shared";
 import { GUINJI_RELATION_TYPE_ORDER } from "@/lib/guinji-relation-judger";
 
 export const dynamic = "force-dynamic";
@@ -37,12 +36,10 @@ export async function GET(
         { status: 404, headers: CORS_HEADERS }
       );
     }
-    if (isGuinjiInviteExpired(map.createdAt)) {
-      return NextResponse.json(
-        { success: false, error: "초대 링크가 만료되었어요." },
-        { status: 404, headers: CORS_HEADERS }
-      );
-    }
+    // [귀인지도 초대링크 재발급 v1.1 — 2026 Phase] 만료 판정 제거(isGuinjiInviteExpired는
+    // 삭제하지 않고 미사용으로 보존). 중단(revoked)된 링크도 집계는 그대로 노출한다
+    // (E1 변형 화면이 "지금까지 N명이 참여했어요" 카피를 쓸 때 사용할 수 있도록).
+
 
     const counts: Record<string, number> = {};
     for (const t of GUINJI_RELATION_TYPE_ORDER) counts[t] = 0;

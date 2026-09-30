@@ -35,10 +35,27 @@ function tryOpenApp(shareId: string) {
 
 /** payload는 결과 타입별로 자유 형식이므로, 알려진 키만 골라 안전하게
  * 화면에 나열한다(임의 객체를 그대로 JSON.stringify해 노출하지 않음 —
- * 혹시 모를 예기치 않은 필드 노출을 방지하는 최소한의 안전장치). */
-function renderPayloadLines(payload: unknown): string[] {
-  if (!payload || typeof payload !== "object") return [];
+ * 혹시 모를 예기치 않은 필드 노출을 방지하는 최소한의 안전장치).
+ *
+ * [결과 공유 링크 콘텐츠 부실 버그 수정 — 2027-01] 기존에는 summary +
+ * highlights(최대 6줄)만 보여줘, 앱이 설치되지 않은 사람이 링크를 받아도
+ * 결과의 극히 일부만 보고 "이게 뭐지?"하게 되는 문제가 있었다("자기 타로
+ * 보고 잘 맞는다하고 지인들한테 보내는건데 받은 사람들은 이게 모지?하고
+ * 하겟지" — 사용자 리포트). question/cardName(타로 전용 키)도 인식하고,
+ * highlights의 6줄 상한도 제거해(서버 payload 자체가 이미 4000자
+ * 상한으로 보호됨) 앱 내 [SharedResultScreen]과 동등한 정보량을
+ * 비설치자에게도 그대로 전달한다. */
+type PayloadLines = {
+  question?: string;
+  cardName?: string;
+  lines: string[];
+};
+
+function renderPayloadLines(payload: unknown): PayloadLines {
+  if (!payload || typeof payload !== "object") return { lines: [] };
   const obj = payload as Record<string, unknown>;
+  const question = typeof obj.question === "string" && obj.question ? obj.question : undefined;
+  const cardName = typeof obj.cardName === "string" && obj.cardName ? obj.cardName : undefined;
   const lines: string[] = [];
   if (typeof obj.summary === "string" && obj.summary) lines.push(obj.summary);
   if (Array.isArray(obj.highlights)) {
@@ -47,7 +64,7 @@ function renderPayloadLines(payload: unknown): string[] {
     }
   }
   if (typeof obj.category === "string" && obj.category) lines.push(`카테고리: ${obj.category}`);
-  return lines.slice(0, 6);
+  return { question, cardName, lines };
 }
 
 export function SharedResultView({
@@ -59,7 +76,7 @@ export function SharedResultView({
   payload,
 }: SharedResultViewProps) {
   const [attemptedAppOpen, setAttemptedAppOpen] = useState(false);
-  const payloadLines = renderPayloadLines(payload);
+  const { question, cardName, lines: payloadLines } = renderPayloadLines(payload);
 
   if (state !== "ok") {
     return (
@@ -134,6 +151,12 @@ export function SharedResultView({
           >
             {title}
           </h1>
+          {cardName && (
+            <p className="mb-1 text-[14px] font-bold text-[#2A2438]">카드: {cardName}</p>
+          )}
+          {question && (
+            <p className="mb-3 text-[13px] leading-relaxed text-[#8A7468]">질문: {question}</p>
+          )}
           {description && (
             <p className="mb-5 text-[14px] leading-relaxed text-[#6E5A54]">{description}</p>
           )}

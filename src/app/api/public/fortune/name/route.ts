@@ -15,6 +15,13 @@ import { prisma } from "@/lib/db";
 import { completeText, LlmClientError } from "@/lib/llm-client";
 import { checkCategoryUsage, checkDailyAbsoluteLimit, consumeCategoryUsage } from "@/lib/open-pass-service";
 import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
+import {
+  beginResultAccess,
+  completeResultAccess,
+  failAndRefundResultAccess,
+  ResultAccessError,
+  type ResultAccessPaymentMethod,
+} from "@/lib/result-access-service";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +37,9 @@ export async function POST(request: NextRequest) {
     birthDate?: string;
     gender?: string;
     hanja?: string;
+    paymentMethod?: string;
+    transactionId?: string;
+    adSessionId?: string;
   };
   try {
     body = await request.json();
@@ -47,6 +57,9 @@ export async function POST(request: NextRequest) {
   const birthDate = body.birthDate ?? null;
   const gender = body.gender ?? null;
   const hanja = body.hanja?.trim() || null;
+  const resultAccessTransactionId = body.transactionId?.trim() || null;
+  const resultAccessPaymentMethod = body.paymentMethod as ResultAccessPaymentMethod | undefined;
+  const useResultAccessService = Boolean(resultAccessTransactionId && resultAccessPaymentMethod);
 
   if (!Number.isInteger(userId) || userId <= 0) {
     return NextResponse.json(
@@ -76,9 +89,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // ── [STEP8 - 프리패스 카테고리별 이용횟수 검증] ──
-  const usageCheck = await checkCategoryUsage(userId, "name");
-  if (!usageCheck.allowed) {
+  // ── [레거시 경로] 프리패스 이용횟수 검증 ──
+  const usageCheck = useResultAccessService ? null : await checkCategoryUsage(userId, "name");
+  if (usageCheck && !usageCheck.allowed) {
     return NextResponse.json(
       {
         success: false,
@@ -92,6 +105,44 @@ export async function POST(request: NextRequest) {
       },
       { status: 403, headers: CORS_HEADERS }
     );
+  }
+
+  let resultAccessBegin: Awaited<ReturnType<typeof beginResultAccess>> | null = null;
+  if (useResultAccessService) {
+    try {
+      resultAccessBegin = await beginResultAccess({
+        userId,
+        transactionId: resultAccessTransactionId!,
+        contentType: "name",
+        categoryKey: "name",
+        paymentMethod: resultAccessPaymentMethod!,
+        adSessionId: body.adSessionId ?? null,
+      });
+    } catch (e) {
+      if (e instanceof ResultAccessError) {
+        const AD_SESSION_STATUS: Record<string, number> = {
+          AD_SESSION_REQUIRED: 400,
+          AD_SESSION_NOT_FOUND: 404,
+          AD_SESSION_NOT_COMPLETED: 409,
+          AD_SESSION_ALREADY_USED: 409,
+        };
+        const status =
+          e.code === "NO_FREEPASS_BALANCE"
+            ? 403
+            : e.code === "INSUFFICIENT_POUCH_BALANCE"
+              ? 409
+              : AD_SESSION_STATUS[e.code] ?? 400;
+        return NextResponse.json(
+          { success: false, error: e.message, reason: e.code },
+          { status, headers: CORS_HEADERS }
+        );
+      }
+      console.error("[POST /api/public/fortune/name] ResultAccess 확정 실패:", e);
+      return NextResponse.json(
+        { success: false, error: "결과보기 권한 확인 중 오류가 발생했습니다." },
+        { status: 500, headers: CORS_HEADERS }
+      );
+    }
   }
 
   try {
@@ -158,9 +209,13 @@ export async function POST(request: NextRequest) {
       return { requestId: fortuneRequest.id, createdAt: fortuneRequest.createdAt, balance, refundAmount, cost, fortuneResult };
     });
 
-    // ── [STEP8] 실제 분석 성공 후에만 카테고리 이용횟수 +1 ──
-    if (usageCheck.userPassId != null) {
+    // ── [레거시] 실제 분석 성공 후에만 카테고리 이용횟수 +1 ──
+    if (!useResultAccessService && usageCheck?.userPassId != null) {
       await consumeCategoryUsage(usageCheck.userPassId, userId, "name");
+    }
+
+    if (useResultAccessService && resultAccessBegin) {
+      await completeResultAccess(resultAccessBegin.transactionId, outcome.requestId);
     }
 
     return NextResponse.json(
@@ -177,11 +232,28 @@ export async function POST(request: NextRequest) {
           balance: outcome.balance,
           refundAmount: outcome.refundAmount,
           pointSpent: outcome.cost,
+          resultAccess: resultAccessBegin
+            ? {
+                transactionId: resultAccessBegin.transactionId,
+                paymentMethod: resultAccessBegin.paymentMethod,
+                amount: resultAccessBegin.amount,
+                freePassRemaining: resultAccessBegin.freePassRemaining,
+                pouchBalance: resultAccessBegin.pouchBalance,
+              }
+            : null,
         },
       },
       { headers: CORS_HEADERS }
     );
   } catch (e) {
+    if (useResultAccessService && resultAccessBegin) {
+      try {
+        await failAndRefundResultAccess(resultAccessBegin.transactionId);
+      } catch (refundError) {
+        console.error("[POST /api/public/fortune/name] 환불 처리 실패:", refundError);
+      }
+    }
+
     const message = e instanceof Error ? e.message : "UNKNOWN";
     if (message === "WALLET_NOT_FOUND") {
       return NextResponse.json(

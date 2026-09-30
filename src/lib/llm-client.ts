@@ -78,6 +78,9 @@ interface CompleteOptions {
   model?: string;
   timeoutMs?: number;
   maxTokens?: number;
+  /** [saju-output-spec.pdf §8 운영 파라미터 권장값] 낮으면 문장이 복붙처럼
+   *  반복됨(0.6~0.8 권장). 생략 시 Anthropic API 기본값 사용. */
+  temperature?: number;
 }
 
 /**
@@ -90,6 +93,7 @@ export async function completeText({
   model = DEFAULT_MODEL,
   timeoutMs = DEFAULT_TIMEOUT_MS,
   maxTokens = DEFAULT_MAX_TOKENS,
+  temperature,
 }: CompleteOptions): Promise<string> {
   if (!ANTHROPIC_API_KEY) {
     throw new LlmClientError("ANTHROPIC_API_KEY 환경변수가 설정되어 있지 않습니다.");
@@ -111,6 +115,7 @@ export async function completeText({
         max_tokens: maxTokens,
         system: systemPrompt,
         messages: [{ role: "user", content: userPrompt }],
+        ...(temperature !== undefined ? { temperature } : {}),
       }),
       signal: controller.signal,
     });

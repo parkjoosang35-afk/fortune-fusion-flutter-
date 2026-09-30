@@ -30,7 +30,6 @@
 // `agreeAge14`(14세 이상 확인)가 모두 true가 아니면 참여를 거부한다.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { isGuinjiInviteExpired } from "../../../_shared";
 import { GUINJI_RELATION_TYPE_ORDER, GuinjiSajuInput, judgeGuinjiRelation } from "@/lib/guinji-relation-judger";
 import { calculateSaju, guinjiSajuInputFromManseryeok } from "@/lib/saju-manseryeok-engine";
 
@@ -138,10 +137,13 @@ export async function POST(
         { status: 404, headers: CORS_HEADERS }
       );
     }
-    if (isGuinjiInviteExpired(map.createdAt)) {
+    // [귀인지도 초대링크 재발급 v1.1 — 2026 Phase] 만료 판정 제거(isGuinjiInviteExpired는
+    // 삭제하지 않고 미사용으로 보존). 대신 소유자가 명시적으로 중단(revoke)한
+    // 링크만 차단한다.
+    if (map.inviteStatus === "revoked") {
       return NextResponse.json(
-        { success: false, error: "초대 링크가 만료되었어요.", code: "EXPIRED" },
-        { status: 404, headers: CORS_HEADERS }
+        { success: false, error: "지도 주인이 이 링크를 중단했어요.", code: "REVOKED" },
+        { status: 403, headers: CORS_HEADERS }
       );
     }
     if (!map.ownerSajuParsed) {

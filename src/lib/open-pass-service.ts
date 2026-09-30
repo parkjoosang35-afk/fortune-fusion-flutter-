@@ -329,6 +329,153 @@ export async function grantOpenPass(params: {
   return { userPass: created, policy };
 }
 
+// ══════════════════════════════════════════════════════════════════
+// [결과보기 통합 권한 시스템 v1.0, 2026-09-28] §3.2~§3.4 쿠팡 프리패스
+// "하루 1회 획득 → +N회 지급" 원자적 지급의 단일 진입점.
+//
+// grantOpenPass()(레거시 시간제, "이어붙이기" 정책)와는 판정 기준이 근본적으로
+// 다르므로 별도 함수로 분리한다 — grantOpenPass를 이 목적으로 확장하면 시간제/
+// 횟수제 두 판정이 한 함수에 뒤섞여 §15(정책 불일치 금지)를 오히려 어길 위험이
+// 있다. 이 함수는 policy.grantCount != null인 "횟수제 정책"에만 사용해야 한다.
+//
+// [원자성 보장, §3.4] CoupangPassClaimLog에 걸린 @@unique([userId, policyId,
+// claimDateKey]) 제약이 유일한 진실이다. INSERT를 먼저 시도해 성공 여부로
+// "오늘 이미 획득했는지"를 판정한다(findFirst로 먼저 조회 후 별도로 insert하면
+// 그 사이에 동시 요청이 끼어들 수 있는 TOCTOU 경합이 생긴다 — 반드시 INSERT
+// 자체의 유니크 제약 위반(P2002)으로만 판정해야 한다). 로그 INSERT와 UserPass
+// 발급을 같은 트랜잭션으로 묶어, 로그만 남고 패스가 발급되지 않는 상태(또는
+// 그 반대)가 생기지 않게 한다.
+// ══════════════════════════════════════════════════════════════════
+export interface ClaimCoupangDailyPassResult {
+  /** true면 이번 호출로 새로 지급됨. false면 오늘 이미 획득해 지급하지 않음(§3.3). */
+  claimed: boolean;
+  userPass: Awaited<ReturnType<typeof prisma.userPass.create>> | null;
+  grantedCount: number | null;
+  /** claimed===false일 때, 오늘(KST) 이미 획득한 날짜키. */
+  alreadyClaimedDateKey: string | null;
+  policy: { id: number; name: string };
+}
+
+export async function claimCoupangDailyPass(params: {
+  userId: number;
+  policyId?: number;
+}): Promise<ClaimCoupangDailyPassResult> {
+  // [§3.4 1단계: 쿠팡 프리패스 획득 가능 여부 확인]
+  // policyId를 명시하지 않으면 "횟수제로 전환된 활성 ad 정책"(현재는 id=11
+  // 쿠팡 파트너스 1건)을 자동 선택한다. grantCount == null인 정책(레거시 시간제
+  // ad 정책)은 이 함수의 대상이 아니므로 조회 조건에서 제외한다.
+  const policy = params.policyId
+    ? await prisma.passPolicy.findFirst({
+        where: { id: params.policyId, passType: "ad", isActive: true, deletedAt: null },
+      })
+    : await prisma.passPolicy.findFirst({
+        where: { passType: "ad", isActive: true, deletedAt: null, grantCount: { not: null } },
+        orderBy: { id: "asc" },
+      });
+
+  if (!policy) {
+    throw new OpenPassServiceError("POLICY_NOT_FOUND", "활성화된 쿠팡 프리패스 정책이 없습니다.");
+  }
+  if (policy.grantCount == null) {
+    // 명시적으로 policyId를 넘겼는데 그 정책이 레거시 시간제인 경우 — 이 함수가
+    // 아니라 grantOpenPass()를 써야 한다는 신호이므로 명확한 에러로 알린다.
+    throw new OpenPassServiceError(
+      "NOT_COUNT_BASED_POLICY",
+      "이 정책은 횟수제 프리패스가 아닙니다."
+    );
+  }
+
+  const dateKey = todayKstKey();
+  const grantedCount = policy.grantCount;
+
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      // [§3.4 2단계: 오늘 이미 획득했는지 확인] — findFirst가 아니라 create()
+      // 자체의 유니크 제약 위반으로만 판정한다(동시 요청 안전).
+      const claimLog = await tx.coupangPassClaimLog.create({
+        data: { userId: params.userId, policyId: policy.id, claimDateKey: dateKey },
+      });
+
+      // [§3.4 3단계: 정상 조건 확인] 정책 조회 시 이미 isActive/deletedAt을
+      // 확인했으므로 추가 조건은 없다(향후 §3.5 "관리자 프리패스 설정 ON/OFF"가
+      // 추가되면 여기서 함께 확인한다).
+
+      // [§3.4 4단계: 프리패스 +grantCount 지급]
+      // §3.1 "만료: 지급 건별 유효기간(기록 유지, 즉시 삭제 금지)" — 신규
+      // 횟수제 건은 policy.validityDays(§3.5 관리자 유효기간 설정)를 기준으로
+      // expiresAt을 계산한다. validityDays가 null(관리자가 아직 설정하지 않음,
+      // 예: 현재 정책 11의 기본 상태)이면 "만료 없음"을 의미하므로, expiresAt이
+      // NOT NULL 컬럼임을 고려해 사실상 만료되지 않는 충분히 먼 미래 시각(100년
+      // 후)을 sentinel로 사용한다(§9.2 기존 컬럼/제약을 깨지 않는 최소 변경).
+      const now = new Date();
+      const expiresAt =
+        policy.validityDays != null
+          ? new Date(now.getTime() + policy.validityDays * 24 * 60 * 60 * 1000)
+          : new Date(now.getTime() + 100 * 365 * 24 * 60 * 60 * 1000);
+
+      const userPass = await tx.userPass.create({
+        data: {
+          userId: params.userId,
+          policyId: policy.id,
+          activatedAt: now,
+          expiresAt,
+          sourceType: "ad",
+          status: "active",
+          grantedCount,
+          remainingCount: grantedCount,
+          grantSource: "COUPANG_DAILY",
+        },
+      });
+
+      // [§3.4 5단계: 오늘 획득 기록 저장]
+      // 로그 행 자체는 위에서 이미 "저장"되었다(그것이 원자성의 근거) — 여기서는
+      // 그 로그에 이번에 발급된 UserPass.id를 감사 추적용으로 채워 넣기만 한다.
+      await tx.coupangPassClaimLog.update({
+        where: { id: claimLog.id },
+        data: { userPassId: userPass.id },
+      });
+
+      await tx.operationLog.create({
+        data: {
+          actorType: "user",
+          actorId: params.userId,
+          action: "claim_coupang_daily_pass",
+          targetType: "user_pass",
+          targetId: userPass.id,
+          before: null,
+          after: JSON.stringify({ policyId: policy.id, grantedCount, dateKey }),
+        },
+      });
+
+      return userPass;
+    });
+
+    return {
+      claimed: true,
+      userPass: result,
+      grantedCount,
+      alreadyClaimedDateKey: null,
+      policy: { id: policy.id, name: policy.name },
+    };
+  } catch (e) {
+    const code = (e as { code?: string } | null)?.code;
+    if (code === "P2002") {
+      // [§3.3/§3.7] 유니크 제약 위반 = 오늘 이미 획득함. 잔액과 무관한 별도
+      // "오늘 획득 여부" 판정이므로, 여기서는 잔액을 건드리지 않고 그대로
+      // "이미 받음" 결과만 반환한다(관리자 지급 등으로 잔액이 이후 얼마든
+      // 달라져도 이 판정에는 영향이 없다 — §3.7 분리 원칙).
+      return {
+        claimed: false,
+        userPass: null,
+        grantedCount: null,
+        alreadyClaimedDateKey: dateKey,
+        policy: { id: policy.id, name: policy.name },
+      };
+    }
+    throw e;
+  }
+}
+
 /**
  * 특정 유저가 특정 광고소스로 리워드를 받을 자격이 있는지 확인한다.
  * cooldownSeconds(마지막 성공 시점 기준)와 dailyLimit(당일 성공 횟수)을 함께 체크한다.

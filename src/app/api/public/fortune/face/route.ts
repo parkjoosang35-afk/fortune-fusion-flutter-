@@ -17,6 +17,13 @@ import { prisma } from "@/lib/db";
 import { completeVisionJson, LlmClientError } from "@/lib/llm-client";
 import { checkCategoryUsage, checkDailyAbsoluteLimit, consumeCategoryUsage } from "@/lib/open-pass-service";
 import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
+import {
+  beginResultAccess,
+  completeResultAccess,
+  failAndRefundResultAccess,
+  ResultAccessError,
+  type ResultAccessPaymentMethod,
+} from "@/lib/result-access-service";
 
 export const dynamic = "force-dynamic";
 
@@ -78,7 +85,13 @@ interface FaceVisionResponse {
 }
 
 export async function POST(request: NextRequest) {
-  let body: { userId?: number; image?: string };
+  let body: {
+    userId?: number;
+    image?: string;
+    paymentMethod?: string;
+    transactionId?: string;
+    adSessionId?: string;
+  };
   try {
     body = await request.json();
   } catch {
@@ -99,6 +112,9 @@ export async function POST(request: NextRequest) {
   }
 
   const image = body.image;
+  const resultAccessTransactionId = body.transactionId?.trim() || null;
+  const resultAccessPaymentMethod = body.paymentMethod as ResultAccessPaymentMethod | undefined;
+  const useResultAccessService = Boolean(resultAccessTransactionId && resultAccessPaymentMethod);
   if (!image || typeof image !== "string" || image.length < 100) {
     return NextResponse.json(
       { success: false, error: "얼굴 사진을 첨부해주세요." },
@@ -122,11 +138,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // ── [STEP8 - 프리패스 카테고리별 이용횟수 검증] ──
+  // ── [레거시 경로] 프리패스 카테고리별 이용횟수 검증 ──
   // Vision API 호출(고비용) 이전에 먼저 검증해, 이미 한도를 초과한 요청은
   // 불필요한 LLM 호출/사진 전송 없이 즉시 차단한다.
-  const usageCheck = await checkCategoryUsage(userId, "face");
-  if (!usageCheck.allowed) {
+  const usageCheck = useResultAccessService ? null : await checkCategoryUsage(userId, "face");
+  if (usageCheck && !usageCheck.allowed) {
     return NextResponse.json(
       {
         success: false,
@@ -140,6 +156,44 @@ export async function POST(request: NextRequest) {
       },
       { status: 403, headers: CORS_HEADERS }
     );
+  }
+
+  let resultAccessBegin: Awaited<ReturnType<typeof beginResultAccess>> | null = null;
+  if (useResultAccessService) {
+    try {
+      resultAccessBegin = await beginResultAccess({
+        userId,
+        transactionId: resultAccessTransactionId!,
+        contentType: "face",
+        categoryKey: "face",
+        paymentMethod: resultAccessPaymentMethod!,
+        adSessionId: body.adSessionId ?? null,
+      });
+    } catch (e) {
+      if (e instanceof ResultAccessError) {
+        const AD_SESSION_STATUS: Record<string, number> = {
+          AD_SESSION_REQUIRED: 400,
+          AD_SESSION_NOT_FOUND: 404,
+          AD_SESSION_NOT_COMPLETED: 409,
+          AD_SESSION_ALREADY_USED: 409,
+        };
+        const status =
+          e.code === "NO_FREEPASS_BALANCE"
+            ? 403
+            : e.code === "INSUFFICIENT_POUCH_BALANCE"
+              ? 409
+              : AD_SESSION_STATUS[e.code] ?? 400;
+        return NextResponse.json(
+          { success: false, error: e.message, reason: e.code },
+          { status, headers: CORS_HEADERS }
+        );
+      }
+      console.error("[POST /api/public/fortune/face] ResultAccess 확정 실패:", e);
+      return NextResponse.json(
+        { success: false, error: "결과보기 권한 확인 중 오류가 발생했습니다." },
+        { status: 500, headers: CORS_HEADERS }
+      );
+    }
   }
 
   try {
@@ -174,6 +228,14 @@ export async function POST(request: NextRequest) {
 
     // [사진 검증 실패] 얼굴이 아닌 사진 -> 기록 남기지 않고 즉시 에러 응답
     if (!vision.valid) {
+      // [§8.6] 실제 결과생성이 이뤄지지 않았으므로 신규 경로일 때 미리 확정한 차감을 반드시 복구해야 한다.
+      if (useResultAccessService && resultAccessBegin) {
+        try {
+          await failAndRefundResultAccess(resultAccessBegin.transactionId);
+        } catch (refundError) {
+          console.error("[POST /api/public/fortune/face] 사진검증실패 환불 실패:", refundError);
+        }
+      }
       return NextResponse.json(
         {
           success: false,
@@ -226,11 +288,15 @@ export async function POST(request: NextRequest) {
       return { requestId: fortuneRequest.id, createdAt: fortuneRequest.createdAt, fortuneResult };
     });
 
-    // ── [STEP8] 실제 분석 성공 후에만 카테고리 이용횟수 +1 ──
+    // ── [STEP8/레거시] 실제 분석 성공 후에만 카테고리 이용횟수 +1 ──
     // (valid=false로 위에서 이미 return한 경우는 이 지점에 도달하지 않으므로,
     // 사진 검증에 실패한 시도는 이용횟수를 소모하지 않는다.)
-    if (usageCheck.userPassId != null) {
+    if (!useResultAccessService && usageCheck?.userPassId != null) {
       await consumeCategoryUsage(usageCheck.userPassId, userId, "face");
+    }
+
+    if (useResultAccessService && resultAccessBegin) {
+      await completeResultAccess(resultAccessBegin.transactionId, outcome.requestId);
     }
 
     return NextResponse.json(
@@ -242,11 +308,28 @@ export async function POST(request: NextRequest) {
           topicResults,
           summary,
           createdAt: outcome.createdAt.toISOString(),
+          resultAccess: resultAccessBegin
+            ? {
+                transactionId: resultAccessBegin.transactionId,
+                paymentMethod: resultAccessBegin.paymentMethod,
+                amount: resultAccessBegin.amount,
+                freePassRemaining: resultAccessBegin.freePassRemaining,
+                pouchBalance: resultAccessBegin.pouchBalance,
+              }
+            : null,
         },
       },
       { headers: CORS_HEADERS }
     );
   } catch (e) {
+    if (useResultAccessService && resultAccessBegin) {
+      try {
+        await failAndRefundResultAccess(resultAccessBegin.transactionId);
+      } catch (refundError) {
+        console.error("[POST /api/public/fortune/face] 환불 처리 실패:", refundError);
+      }
+    }
+
     const message = e instanceof Error ? e.message : "UNKNOWN";
     if (message === "USER_NOT_FOUND") {
       return NextResponse.json(

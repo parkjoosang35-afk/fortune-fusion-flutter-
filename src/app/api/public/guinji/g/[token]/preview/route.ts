@@ -22,7 +22,6 @@
 // 정확도가 낮을 수 있음"을 안내한다(정직성 원칙 — 느낌표 없이 담담하게).
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { isGuinjiInviteExpired } from "../../../_shared";
 import { judgeGuinjiRelation } from "@/lib/guinji-relation-judger";
 import { calculateSaju, guinjiSajuInputFromManseryeok } from "@/lib/saju-manseryeok-engine";
 
@@ -117,10 +116,12 @@ export async function POST(
         { status: 404, headers: CORS_HEADERS }
       );
     }
-    if (isGuinjiInviteExpired(map.createdAt)) {
+    // [귀인지도 초대링크 재발급 v1.1 — 2026 Phase] 만료 판정 제거(isGuinjiInviteExpired는
+    // 삭제하지 않고 미사용으로 보존). 소유자가 중단(revoke)한 링크만 차단한다.
+    if (map.inviteStatus === "revoked") {
       return NextResponse.json(
-        { success: false, error: "초대 링크가 만료되었어요.", code: "EXPIRED" },
-        { status: 404, headers: CORS_HEADERS }
+        { success: false, error: "지도 주인이 이 링크를 중단했어요.", code: "REVOKED" },
+        { status: 403, headers: CORS_HEADERS }
       );
     }
     if (!map.ownerSajuParsed) {

@@ -40,6 +40,12 @@ export async function GET(_request: NextRequest) {
         name: p.name,
         passType: p.passType,
         durationMin: p.durationMin,
+        // [결과보기 통합 권한 시스템 v1.0, 2026-09-28] §1/§3 시간제→횟수제 전환.
+        // grantCount != null(현재는 쿠팡 정책 id=11)이면 Flutter 쪽에서
+        // durationMin 기반 시간제 문구("N시간 받기") 대신 "N회 받기" 문구를
+        // 렌더링하도록 구분자로 사용한다. null이면 기존 레거시 시간제 정책이므로
+        // Flutter는 기존과 동일하게 durationMin 문구를 그대로 사용한다.
+        grantCount: p.grantCount,
         dailyLimit: p.dailyLimit,
         ctaText: p.ctaText,
         // [CMS 배너 연동] ad 타입은 Banner가 있으면 그 값으로 덮어쓰고,

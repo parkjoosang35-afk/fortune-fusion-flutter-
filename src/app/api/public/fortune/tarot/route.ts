@@ -46,6 +46,13 @@ import { getTopicWithPositions, buildTopicSummaryPrompt } from "@/lib/tarot/narr
 import { matchTopicFromQuestion } from "@/lib/tarot/topic-matcher";
 import { validateTarotQuestion } from "@/lib/tarot/question-guard";
 import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
+import {
+  beginResultAccess,
+  completeResultAccess,
+  failAndRefundResultAccess,
+  ResultAccessError,
+  type ResultAccessPaymentMethod,
+} from "@/lib/result-access-service";
 
 export const dynamic = "force-dynamic";
 
@@ -120,6 +127,12 @@ export async function POST(request: NextRequest) {
     // 주제에서만 사용되며, 다른 스프레드에서는 무시된다.
     optionA?: string;
     optionB?: string;
+    // [결과보기 통합 권한 시스템 v1.0, Phase2] 신규 필드 — 둘 다 전달되면
+    // ResultAccessService(§8) 경로로 처리하고, 전달되지 않으면(기존 Flutter 앱)
+    // 아래 레거시 카테고리 이용횟수 검증 경로를 그대로 유지한다(하위호환).
+    paymentMethod?: string;
+    transactionId?: string;
+    adSessionId?: string;
   };
   try {
     body = await request.json();
@@ -138,6 +151,9 @@ export async function POST(request: NextRequest) {
   const requestedTopic = body.topic ?? "general";
   const optionA = body.optionA?.trim();
   const optionB = body.optionB?.trim();
+  const resultAccessTransactionId = body.transactionId?.trim() || null;
+  const resultAccessPaymentMethod = body.paymentMethod as ResultAccessPaymentMethod | undefined;
+  const useResultAccessService = Boolean(resultAccessTransactionId && resultAccessPaymentMethod);
 
   if (!Number.isInteger(userId) || userId <= 0) {
     return NextResponse.json(
@@ -237,8 +253,9 @@ export async function POST(request: NextRequest) {
         ? "tarot_love"
         : "tarot";
 
-  const usageCheck = await checkCategoryUsage(userId, categoryKey);
-  if (!usageCheck.allowed) {
+  // ── [레거시 경로] 프리패스 카테고리별 이용횟수 검증(§8 통합 이전 방식) ──
+  const usageCheck = useResultAccessService ? null : await checkCategoryUsage(userId, categoryKey);
+  if (usageCheck && !usageCheck.allowed) {
     return NextResponse.json(
       {
         success: false,
@@ -252,6 +269,45 @@ export async function POST(request: NextRequest) {
       },
       { status: 403, headers: CORS_HEADERS }
     );
+  }
+
+  // ── [신규 경로] §8.5 "결제 확정 후 AI 생성" — AI 호출 전에 먼저 차감을 확정한다. ──
+  let resultAccessBegin: Awaited<ReturnType<typeof beginResultAccess>> | null = null;
+  if (useResultAccessService) {
+    try {
+      resultAccessBegin = await beginResultAccess({
+        userId,
+        transactionId: resultAccessTransactionId!,
+        contentType: "tarot",
+        categoryKey,
+        paymentMethod: resultAccessPaymentMethod!,
+        adSessionId: body.adSessionId ?? null,
+      });
+    } catch (e) {
+      if (e instanceof ResultAccessError) {
+        const AD_SESSION_STATUS: Record<string, number> = {
+          AD_SESSION_REQUIRED: 400,
+          AD_SESSION_NOT_FOUND: 404,
+          AD_SESSION_NOT_COMPLETED: 409,
+          AD_SESSION_ALREADY_USED: 409,
+        };
+        const status =
+          e.code === "NO_FREEPASS_BALANCE"
+            ? 403
+            : e.code === "INSUFFICIENT_POUCH_BALANCE"
+              ? 409
+              : AD_SESSION_STATUS[e.code] ?? 400;
+        return NextResponse.json(
+          { success: false, error: e.message, reason: e.code },
+          { status, headers: CORS_HEADERS }
+        );
+      }
+      console.error("[POST /api/public/fortune/tarot] ResultAccess 확정 실패:", e);
+      return NextResponse.json(
+        { success: false, error: "결과보기 권한 확인 중 오류가 발생했습니다." },
+        { status: 500, headers: CORS_HEADERS }
+      );
+    }
   }
 
   try {
@@ -492,9 +548,14 @@ export async function POST(request: NextRequest) {
       return { requestId: fortuneRequest.id, createdAt: fortuneRequest.createdAt, balance, refundAmount, cost, fortuneResult };
     });
 
-    // ── [STEP8] 실제 분석 성공 후에만 카테고리 이용횟수 +1 ──
-    if (usageCheck.userPassId != null) {
+    // ── [STEP8/레거시] 실제 분석 성공 후에만 카테고리 이용횟수 +1 ──
+    if (!useResultAccessService && usageCheck?.userPassId != null) {
       await consumeCategoryUsage(usageCheck.userPassId, userId, categoryKey);
+    }
+
+    // ── [신규] §8.5 마지막 단계: AI 생성 성공 → 거래 최종 확정(status: pending→success) ──
+    if (useResultAccessService && resultAccessBegin) {
+      await completeResultAccess(resultAccessBegin.transactionId, outcome.requestId);
     }
 
     return NextResponse.json(
@@ -523,11 +584,31 @@ export async function POST(request: NextRequest) {
           balance: outcome.balance,
           refundAmount: outcome.refundAmount,
           pointSpent: outcome.cost,
+          // [결과보기 통합 권한 시스템 v1.0] 신규 경로로 처리된 경우에만 채워진다.
+          resultAccess: resultAccessBegin
+            ? {
+                transactionId: resultAccessBegin.transactionId,
+                paymentMethod: resultAccessBegin.paymentMethod,
+                amount: resultAccessBegin.amount,
+                freePassRemaining: resultAccessBegin.freePassRemaining,
+                pouchBalance: resultAccessBegin.pouchBalance,
+              }
+            : null,
         },
       },
       { headers: CORS_HEADERS }
     );
   } catch (e) {
+    // [결과보기 통합 권한 시스템 v1.0 §8.6] AI 생성 단계에서 실패하면 §8 신규 경로로
+    // 이미 차감된 프리패스/복주머니를 transaction_id 기준으로 정확히 복구한다.
+    if (useResultAccessService && resultAccessBegin) {
+      try {
+        await failAndRefundResultAccess(resultAccessBegin.transactionId);
+      } catch (refundError) {
+        console.error("[POST /api/public/fortune/tarot] 환불 처리 실패:", refundError);
+      }
+    }
+
     const message = e instanceof Error ? e.message : "UNKNOWN";
     if (message === "WALLET_NOT_FOUND") {
       return NextResponse.json(

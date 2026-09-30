@@ -15,7 +15,6 @@ import { prisma } from "@/lib/db";
 import {
   CORS_HEADERS,
   CORS_HEADERS_WITH_AUTH,
-  isGuinjiInviteExpired,
   requireUser,
   toGuinjiMapPublicId,
   unauthorizedResponse,
@@ -45,19 +44,23 @@ export async function GET(
       );
     }
 
-    // [M6 확정] 7일 만료 체크 — 지도 자체는 살아있어도 이 초대 링크는 더 이상
-    // 유효하지 않은 것으로 취급한다(E1 "새 지도 만들기" 안내로 이어짐).
-    if (isGuinjiInviteExpired(map.createdAt)) {
-      return NextResponse.json(
-        { success: false, error: "초대 링크가 만료되었어요.", code: "EXPIRED" },
-        { status: 404, headers: CORS_HEADERS }
-      );
-    }
-
+    // [귀인지도 초대링크 재발급 v1.1 — 2026 Phase] 만료 판정 제거(isGuinjiInviteExpired는
+    // 삭제하지 않고 미사용으로 보존). 이 라우트는 인증된 사용자만 호출하므로(requireUser)
+    // 모든 미참여 진입자에 대해 이미 관계 여부(joined)를 정확히 판정할 수 있다
+    // (익명 웹 랜딩과 달리 session 문제가 없음). 이미 참여한 멤버는 revoked 여부와
+    // 무관하게 지도로 진입해야 하므로(v1.1 §06 ³²를 ³³보다 먼저 판정), 멤버 판정을
+    // revoked 차단보다 먼저 수행한다.
     const existingMember = await prisma.guinjiMapMember.findFirst({
       where: { mapId: map.id, joinedUserId: auth.userId, status: "active" },
       select: { id: true },
     });
+
+    if (existingMember == null && map.inviteStatus === "revoked") {
+      return NextResponse.json(
+        { success: false, error: "지도 주인이 이 링크를 중단했어요.", code: "REVOKED" },
+        { status: 403, headers: CORS_HEADERS }
+      );
+    }
 
     return NextResponse.json(
       {

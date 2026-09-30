@@ -35,7 +35,6 @@
 // 캐시버스팅 구조는 전혀 손대지 않았다(디자인만 교체).
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
-import { isGuinjiInviteExpired } from "@/app/api/public/guinji/_shared";
 import { GuinjiInviteInteractive } from "./guinji-invite-interactive";
 import { ServiceGrid } from "./service-grid";
 import { type RelationCount } from "./relation-network-graph";
@@ -43,6 +42,7 @@ import { deriveCharacterType } from "@/lib/guinji-character-type";
 import { GUINJI_RELATION_TYPES } from "./relation-meta";
 import { GUINJI_RELATION_TYPE_ORDER } from "@/lib/guinji-relation-judger";
 import { SintongBottomNavBar } from "./sintong-bottom-nav-bar";
+import { MakeMyMapButton } from "./make-my-map-button";
 
 // [2026-09, 즉시 리다이렉트(B-1) 전면 폐기 — 원상복구] 직전 세션에서
 // "초대 링크는 플러터 원본 페이지 기반으로 가야 한다"는 사용자 지시를
@@ -135,8 +135,13 @@ async function loadInvite(token: string) {
     if (!map || map.deletedAt != null || map.status !== "active") {
       return { state: "not_found" as const };
     }
-    if (isGuinjiInviteExpired(map.createdAt)) {
-      return { state: "expired" as const };
+
+    // [귀인지도 초대링크 재발급 v1.1 — 2026 Phase] 만료 판정 제거(isGuinjiInviteExpired는
+    // 삭제하지 않고 미사용으로 보존). 이 익명 웹 랜딩은 session이 없어 "이미 참여한
+    // 사용자"를 판정할 수 없으므로(ALREADY_JOINED 분기 제외 — 대안 2 채택,
+    // 사용자 승인 2026-xx), 상태는 ACTIVE/REVOKED/NOT_FOUND 3분기만 판정한다.
+    if (map.inviteStatus === "revoked") {
+      return { state: "revoked" as const, ownerName: map.owner.nickname };
     }
 
     // [캐릭터 유형] `ownerSajuParsed`(이미 클라이언트가 계산해 캐싱해 둔 실제
@@ -355,7 +360,7 @@ export default async function GuinjiInviteLandingPage({ params }: PageProps) {
         </>
       )}
 
-      {invite.state === "expired" && (
+      {invite.state === "revoked" && (
         <div className="relative mx-auto w-full max-w-[440px] px-4 py-8">
           <div
             className="pointer-events-none absolute inset-x-0 top-0 h-56 opacity-70"
@@ -373,17 +378,21 @@ export default async function GuinjiInviteLandingPage({ params }: PageProps) {
               신통방통
             </span>
           </div>
+          {/* [v1.1 §7-2, E1 변형] 재요청 버튼을 넣지 않는다 — 주인의 중단
+              결정을 시스템이 무력화하면 안 된다. 버튼은 "나도 내 귀인 지도
+              만들기" 1개뿐이다(재요청 없음). */}
           <div className="relative rounded-3xl border border-[#E8DDD0] bg-white/85 p-8 text-center shadow-[0_4px_20px_-8px_rgba(166,121,94,0.15)]">
             <h1 style={{ fontFamily: SERIF }} className="mb-4 text-xl font-bold text-[#2A2438]">
-              초대 링크가 만료되었어요
+              {invite.ownerName}님이 이 링크를 닫았어요
             </h1>
             <p className="mb-2 text-sm leading-relaxed text-[#6E5A54]">
-              이 초대 링크는 생성된 지 7일이 지나
+              이 초대 링크는 더 이상 사용할 수 없어요.
               <br />
-              더 이상 사용할 수 없어요.
+              그래도 괜찮아요 — 나만의 귀인 지도는
               <br />
-              지도 주인에게 새 링크를 요청해 주세요.
+              언제든 만들 수 있어요.
             </p>
+            <MakeMyMapButton />
           </div>
         </div>
       )}
@@ -406,15 +415,21 @@ export default async function GuinjiInviteLandingPage({ params }: PageProps) {
               신통방통
             </span>
           </div>
+          {/* [v1.1 §7-3, E5 그대로] 재발급된 옛 토큰도 이 화면으로 흡수된다
+              (별도 안내 없음 — 별칭 테이블 없는 Phase 1의 한계, Phase 2
+              과제로 남김). */}
           <div className="relative rounded-3xl border border-[#E8DDD0] bg-white/85 p-8 text-center shadow-[0_4px_20px_-8px_rgba(166,121,94,0.15)]">
             <h1 style={{ fontFamily: SERIF }} className="mb-4 text-xl font-bold text-[#2A2438]">
-              지도를 찾을 수 없어요
+              링크를 찾을 수 없어요
             </h1>
             <p className="mb-2 text-sm leading-relaxed text-[#6E5A54]">
-              링크가 잘못되었거나 지도 주인이
+              주소가 잘못되었거나, 지도가
               <br />
-              봉인을 거두었을 수 있어요.
+              삭제되었을 수 있어요.
+              <br />
+              링크를 다시 확인해 주세요.
             </p>
+            <MakeMyMapButton />
           </div>
         </div>
       )}

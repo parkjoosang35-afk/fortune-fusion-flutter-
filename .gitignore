@@ -54,3 +54,7 @@ dev.log
 nextdev.log
 __pycache__/
 server.log
+
+# 임시 디버그/재시작 로그 파일 (개발 중 생성, 배포 대상 아님)
+server_restart*.log
+make_jwt_tmp*.mjs

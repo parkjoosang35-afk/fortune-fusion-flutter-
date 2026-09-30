@@ -43,10 +43,26 @@ const DEFAULT_TAGLINE: Record<ShareResultTypeLabel, string> = {
 };
 
 const FONTS_DIR = path.join(process.cwd(), "public", "fonts");
-const ILLUSTRATION_PATH = path.join(process.cwd(), "public", "guinji", "bangtong_fairy.png");
+const SHARE_OG_DIR = path.join(process.cwd(), "public", "share-og");
+
+// [카톡 OG 이미지 고정 버그 수정 — 2027-01] 기존에는 resultType과 무관하게
+// 항상 "한복 요정" 캐릭터(bangtong_fairy.png) 하나만 그려서, 타로 결과를
+// 공유해도 미리보기 이미지에 타로와 전혀 관련 없는 그림이 나왔다("타로을
+// 카톡으로 보내보니 og이미지가 타로을 보내는데 한복 이미지가 모냐 우리
+// 타로 이미지도 많은데" — 사용자 리포트). resultType별로 실제 테마에
+// 맞는 대표 이미지를 쓰도록 분기한다(모두 앱 assets에서 admin_web
+// public/share-og/로 복사해 둔 파일 — Flutter assets 디렉토리는
+// admin_web 프로세스가 직접 접근할 수 없어 사전 복사가 필요했다).
+const ILLUSTRATION_PATHS: Record<ShareResultTypeLabel, string> = {
+  fortune: path.join(SHARE_OG_DIR, "fortune.png"),
+  tarot: path.join(SHARE_OG_DIR, "tarot.png"),
+  face: path.join(SHARE_OG_DIR, "face.png"),
+  palm: path.join(SHARE_OG_DIR, "palm.png"),
+  wish: path.join(SHARE_OG_DIR, "wish.png"),
+};
 
 let cachedFonts: { name: string; data: Buffer; weight: 400 | 700; style: "normal" }[] | null = null;
-let cachedIllustrationDataUri: string | null = null;
+const cachedIllustrationDataUris = new Map<ShareResultTypeLabel, string>();
 
 async function loadFonts() {
   if (cachedFonts) return cachedFonts;
@@ -61,13 +77,15 @@ async function loadFonts() {
   return cachedFonts;
 }
 
-async function loadIllustrationDataUri() {
-  if (cachedIllustrationDataUri) return cachedIllustrationDataUri;
-  const buffer = await readFile(ILLUSTRATION_PATH);
+async function loadIllustrationDataUri(resultType: ShareResultTypeLabel) {
+  const cached = cachedIllustrationDataUris.get(resultType);
+  if (cached) return cached;
+  const buffer = await readFile(ILLUSTRATION_PATHS[resultType]);
   const isJpeg = buffer[0] === 0xff && buffer[1] === 0xd8;
   const mime = isJpeg ? "image/jpeg" : "image/png";
-  cachedIllustrationDataUri = `data:${mime};base64,${buffer.toString("base64")}`;
-  return cachedIllustrationDataUri;
+  const dataUri = `data:${mime};base64,${buffer.toString("base64")}`;
+  cachedIllustrationDataUris.set(resultType, dataUri);
+  return dataUri;
 }
 
 function clampLine(text: string, maxLength = 25): string {
@@ -83,7 +101,7 @@ function clampLine(text: string, maxLength = 25): string {
 export async function buildShareOgPng(data: OgShareCardData): Promise<ImageResponse> {
   const [fonts, illustrationDataUri] = await Promise.all([
     loadFonts(),
-    loadIllustrationDataUri(),
+    loadIllustrationDataUri(data.resultType),
   ]);
 
   const brandLabel = RESULT_TYPE_LABEL[data.resultType] ?? "신통방통";
