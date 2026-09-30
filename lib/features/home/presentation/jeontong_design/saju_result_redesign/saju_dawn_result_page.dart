@@ -211,15 +211,6 @@ class _SajuDawnResultPageState extends State<SajuDawnResultPage> {
                   revealKey: 'dawn_section_6_${data.categoryCode}',
                   child: SajuDawnLuckyGrid(lucky: data.lucky, ilganTheme: theme),
                 ),
-                SajuDawnSectionShell(
-                  num: '柒 · SEVEN',
-                  name: '함께 보면 좋은 운세',
-                  revealKey: 'dawn_section_7_${data.categoryCode}',
-                  child: SajuDawnRelatedGrid(
-                    related: data.related,
-                    onTap: widget.onRelatedTap,
-                  ),
-                ),
                 SajuDawnFooterMeta(userRefId: data.userRefId),
               ],
             ),

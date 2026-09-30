@@ -34,6 +34,8 @@
 // 하기 위해 push가 아닌 replace를 사용).
 // ============================================================
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -91,23 +93,35 @@ class JeontongEightyLoadingScreen extends StatefulWidget {
 class _JeontongEightyLoadingScreenState
     extends State<JeontongEightyLoadingScreen>
     with TickerProviderStateMixin {
-  // [69종 리딩 지연 개선 — P0] 기존 고정 8초는 "연산 시간이 아니라 연출을
-  // 위한 인위적 대기"였다(실측 확인 — 아래 계산은 순수 동기 로컬 함수라
-  // 즉시 끝난다). 이 연출 자체(만세력 책 펼침 애니메이션)는 사용자가
-  // "로딩창이 뜨는 느낌"을 원해 유지하되, 그 시간을 절반으로 줄이고
-  // (8초→4초), 그 4초 동안 노는 대신 saju_v3 네트워크 요청을 미리
-  // 시작해(§ [_startCalculation] 참고) 결과화면 진입 후의 대기 시간과
-  // 겹치게(overlap) 만든다 — 이중 대기(로딩화면 8초 + 결과화면 최대
-  // 60초, 도합 최대 68초)를 "로딩화면 4초와 네트워크 요청이 겹치는"
-  // 구조로 바꿔 체감 대기를 줄인다.
-  static const _totalDuration = Duration(seconds: 4);
+  // [로딩 재설계 — 사용자 리포트: "로딩 끝나고 빈 결과페이지가 한참
+  // 보인다"] 기존에는 report만 대기하고 interpret/narrative는 기다리지
+  // 않은 채 결과화면으로 넘어갔다 — 그 둘이 늦게 끝나면 결과화면
+  // 진입 후에도 스켈레톤이 계속 보이는 이중 대기가 발생했다(실측
+  // 확인: report 자체도 QA 재시도로 36초가 걸리는 사례 존재).
+  //
+  // [해결 원칙] "로딩 화면이 끝나면 바로 완성된 결과가 나와야 한다"는
+  // 사용자 요구에 따라, report·interpret·narrative 3종 모두를
+  // 로딩화면에서 끝까지 기다린 뒤에만 결과화면으로 넘어간다(실패해도
+  // 끝난 것으로 간주 — 결과화면이 이미 자체 에러 상태를 그릴 수
+  // 있으므로 예외를 삼키고 "완료"로 취급한다). 연출 최소 시간은
+  // 4초를 유지하되, 실제 데이터가 이미 끝나 있으면 그 이상 억지로
+  // 늘리지 않고, 반대로 데이터가 늦게 끝나면 진행바가 92%~98%
+  // 구간에서 천천히(트리클) 움직이며 자연스럽게 대기 — 멈춰 보이지
+  // 않게 한다. 완료되는 즉시 100%로 스냅하고 이동한다.
+  static const _minDuration = Duration(seconds: 4);
+  static const _trickleFloor = 0.92;
+  static const _trickleCeiling = 0.98;
 
   late final AnimationController _progressCtrl;
   late final AnimationController _pageFlipCtrl;
   late final AnimationController _streamCtrl;
+  late final Future<void> _minTimeFuture;
+  Timer? _trickleTimer;
 
   int _stepIndex = 0;
   bool _navigated = false;
+  bool _dataReady = false;
+  bool _minTimeElapsed = false;
   JeontongInput? _profile;
 
   // [69종 리딩 지연 개선 — P0] 프로필이 있을 때만 쓰는 saju_v3 API
@@ -132,8 +146,17 @@ class _JeontongEightyLoadingScreenState
   @override
   void initState() {
     super.initState();
-    _progressCtrl = AnimationController(vsync: this, duration: _totalDuration)
-      ..forward();
+    // [최소 연출 시간] 0→92%까지는 _minDuration 동안 정상 진행. 92%
+    // 이후는 실제 데이터 완료 여부에 따라 [_startTrickle]이 이어받아
+    // 92%~98% 구간을 천천히 채운다(아래 참고). upperBound는 1.0
+    // 그대로 두어(기본값) 완료 시 [_maybeFinish]가 1.0으로 스냅할 수
+    // 있게 한다 — animateTo(0.92)로 "92%까지만" 먼저 이동시킨다.
+    _progressCtrl = AnimationController(vsync: this, duration: _minDuration);
+    _minTimeFuture = _progressCtrl
+        .animateTo(_trickleFloor, duration: _minDuration)
+        .then((_) {
+          if (mounted) _startTrickle();
+        });
     _pageFlipCtrl = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 3),
@@ -145,7 +168,7 @@ class _JeontongEightyLoadingScreenState
 
     _progressCtrl.addListener(() {
       final t = _progressCtrl.value;
-      final newStep = (t * _kCalcSteps.length).floor().clamp(
+      final newStep = (t / _trickleFloor * _kCalcSteps.length).floor().clamp(
         0,
         _kCalcSteps.length - 1,
       );
@@ -153,8 +176,30 @@ class _JeontongEightyLoadingScreenState
         setState(() => _stepIndex = newStep);
       }
     });
-
     _startCalculation();
+  }
+
+  /// [92%~98% 트리클] 최소 연출 시간(4초)이 끝났는데도 데이터가 아직
+  /// 도착하지 않았을 때 진행바가 멈춰 보이지 않도록 아주 천천히(0.4초마다
+  /// 0.3%씩) 98%까지만 계속 채운다 — 사용자가 "멈췄다"고 느끼지 않게
+  /// 하는 순수 시각 효과이며, 실제 완료 판정과는 무관하다(완료되면
+  /// [_maybeFinish]가 즉시 100%로 스냅하고 이 타이머를 정지한다).
+  void _startTrickle() {
+    _trickleTimer?.cancel();
+    if (_dataReady) return;
+    _trickleTimer = Timer.periodic(const Duration(milliseconds: 400), (
+      timer,
+    ) {
+      if (!mounted || _dataReady) {
+        timer.cancel();
+        return;
+      }
+      final next = (_progressCtrl.value + 0.003).clamp(
+        0.0,
+        _trickleCeiling,
+      );
+      _progressCtrl.value = next;
+    });
   }
 
   Future<void> _startCalculation() async {
@@ -166,14 +211,13 @@ class _JeontongEightyLoadingScreenState
     // null이면(구 호출부 하위호환) 기존과 동일하게 §8 호출 없이 진행한다.
     JeontongCategoryEntry? entry;
     Object? calcError;
-    // [69종 리딩 지연 개선 — P0] 프로필이 있으면(=saju_v3 백엔드 기반
-    // 결과화면을 탈 대상) 여기서 미리 시작해 둔 saju_v3 응답 Future.
-    // report만 대기 게이트로 쓴다(사용자가 실제로 보는 첫 콘텐츠는
-    // report의 강조 PART이므로 — interpret/narrative는 그 카드 내부에
-    // 이어서 채워지는 "핵심 상세 분석"이라 결과화면 진입 후 이어서
-    // 로딩되어도 무방하다, 기존 JeontongV3ReportView의 부분 로딩 방어
-    // 설계와 동일한 원칙).
-    Future<void>? reportPrefetch;
+    // [로딩 재설계] 프로필이 있으면(=saju_v3 백엔드 기반 결과화면을 탈
+    // 대상) 여기서 미리 시작해 둔 saju_v3 응답 Future 3종(report·
+    // interpret·narrative) 전부를 대기 게이트로 쓴다 — "로딩 화면이
+    // 끝나면 바로 완성된 결과가 나와야 한다"는 요구에 따라, 결과화면이
+    // 렌더링할 모든 섹션(사주풀이/강점·조심할점/대운흐름/실전조언)의
+    // 데이터 소스가 실제로 준비된 뒤에만 넘어간다.
+    Future<void>? allDataPrefetch;
     try {
       final profile = await jeontongProfileStore.get(_userId);
       if (!mounted) return;
@@ -195,12 +239,17 @@ class _JeontongEightyLoadingScreenState
             birth: birth,
             question: question,
           );
-          // report 실패는 여기서 이 화면의 §8.6 환불 판단에 영향을 주지
-          // 않는다(정통사주는 로컬 계산 성공 여부로만 환불을 판단 —
-          // 기존 원칙 그대로 유지). 오직 "언제 결과화면으로 넘어갈지"
+          // 개별 요청의 실패는 여기서 이 화면의 §8.6 환불 판단에 영향을
+          // 주지 않는다(정통사주는 로컬 계산 성공 여부로만 환불을 판단
+          // — 기존 원칙 그대로 유지). 오직 "언제 결과화면으로 넘어갈지"
           // 타이밍에만 쓰므로 예외를 삼킨다(결과화면이 이미 자체
-          // LoadState.error 처리를 갖고 있다).
-          reportPrefetch = bundle.report.then((_) {}, onError: (_) {});
+          // LoadState.error 처리를 갖고 있다) — 3개 모두 끝나야(성공이든
+          // 실패든) 완료로 간주한다.
+          allDataPrefetch = Future.wait<void>([
+            bundle.report.then((_) {}, onError: (_) {}),
+            bundle.interpret.then((_) {}, onError: (_) {}),
+            bundle.narrative.then((_) {}, onError: (_) {}),
+          ]).then((_) {});
         }
         // [계산 재사용] 이미 검증된 jeontongReportCache.getOrBuild를 여기서
         // 1회 호출해 결과를 캐시에 "미리 데워둔다"(warm) — 결과 화면이 동일
@@ -236,24 +285,41 @@ class _JeontongEightyLoadingScreenState
 
     if (!mounted) return;
 
-    // [69종 리딩 지연 개선 — P0] 최소 연출 시간(애니메이션 4초)과 saju_v3
-    // report 응답 완료 중 "더 늦게 끝나는 쪽"까지만 기다린다.
-    // - report가 4초보다 먼저 끝나면(캐시 히트 등) 애니메이션이 끝날
+    // [로딩 재설계] 최소 연출 시간(4초, _progressCtrl이 이미 진행 중)과
+    // saju_v3 3종 응답 완료 중 "더 늦게 끝나는 쪽"에 맞춰 넘어간다.
+    // - 데이터가 4초보다 먼저 끝나면(캐시 히트 등) 애니메이션이 끝날
     //   때까지만 대기 → 로딩 화면이 너무 순식간에 사라지지 않는다.
-    // - report가 4초보다 오래 걸리면(실제 LLM 처리 시간) 애니메이션은
-    //   이미 끝났지만 report가 끝날 때까지 조금 더 대기 → 결과화면 진입
-    //   직후 다시 스켈레톤을 보여주는 대신(기존 이중 로딩), 가능한 한
-    //   report가 준비된 상태로 결과화면에 진입시킨다. 단, 프로필이
-    //   있는 경우에도 report가 지나치게 오래 걸리면(rate limit 등)
-    //   무한정 기다리지 않도록 상한(§5차 지시서 SajuV3Api 타임아웃
-    //   60초)을 그대로 신뢰한다 — 이 화면에서 별도 타임아웃을 추가로
-    //   두지 않는다(중복 타임아웃 로직 방지, 이미 SajuV3Api가 60초
-    //   타임아웃을 던지면 reportPrefetch는 즉시 완료된다).
-    final waits = <Future<void>>[_progressCtrl.forward().orCancel];
-    if (reportPrefetch != null) waits.add(reportPrefetch);
-    await Future.wait(waits);
+    // - 데이터가 4초보다 오래 걸리면(실제 LLM 처리) 애니메이션은 92%에서
+    //   멈추지 않고 트리클로 98%까지 천천히 채우며 자연스럽게 대기 →
+    //   결과화면 진입 직후 스켈레톤이 보이는 이중 대기를 없앤다. 데이터가
+    //   없는(프로필 미설정 등) 경로는 allDataPrefetch가 null이므로 최소
+    //   연출 시간만 기다리고 곧장 넘어간다(기존과 동일).
+    if (allDataPrefetch != null) {
+      unawaited(
+        allDataPrefetch.then((_) {
+          if (!mounted) return;
+          _dataReady = true;
+          _maybeFinish();
+        }),
+      );
+    } else {
+      _dataReady = true;
+    }
+    await _minTimeFuture;
+    if (!mounted) return;
+    _minTimeElapsed = true;
+    _maybeFinish();
+  }
+
+  /// [최소 연출 시간 AND 데이터 준비 완료] 둘 다 충족했을 때만 정확히
+  /// 한 번 결과화면으로 이동한다. 진행바를 100%로 스냅해 "완료됐다"는
+  /// 시각 피드백을 준 뒤 다음 프레임에 이동한다.
+  void _maybeFinish() {
     if (!mounted || _navigated) return;
+    if (!_dataReady || !_minTimeElapsed) return;
     _navigated = true;
+    _trickleTimer?.cancel();
+    _progressCtrl.value = 1.0;
     Navigator.of(context).pushReplacementNamed(
       JeontongEightyMatrix.resultRoute,
       arguments: widget.categoryId,
@@ -262,6 +328,7 @@ class _JeontongEightyLoadingScreenState
 
   @override
   void dispose() {
+    _trickleTimer?.cancel();
     _progressCtrl.dispose();
     _pageFlipCtrl.dispose();
     _streamCtrl.dispose();

@@ -383,11 +383,18 @@ class _DaeunTimeline extends StatelessWidget {
                         ),
                       ),
                     ),
-                    for (final node in nodes)
+                    for (final entry in nodes.asMap().entries)
                       Positioned(
-                        left: (node.position * width - 9).clamp(0.0, width - 18),
+                        left: (entry.value.position * width - 9).clamp(
+                          0.0,
+                          width - 18,
+                        ),
                         top: 0,
-                        child: _TimelineNode(node: node, ilganTheme: ilganTheme),
+                        child: _TimelineNode(
+                          node: entry.value,
+                          ilganTheme: ilganTheme,
+                          index: entry.key,
+                        ),
                       ),
                   ],
                 );
@@ -400,58 +407,106 @@ class _DaeunTimeline extends StatelessWidget {
   }
 }
 
-class _TimelineNode extends StatelessWidget {
+/// [대운 타임라인 진입 애니메이션] 사용자 리포트 "대운의 흐름... 애니메이션
+/// 넣어서 제대로 만들어"에 따라, 노드가 순서대로(index * 120ms 지연)
+/// 아래에서 위로 살짝 슬라이드하며 페이드인한다. 별도 스크롤 감지 패키지
+/// 없이 위젯 마운트 시점(이 섹션이 빌드되는 시점 — 이미
+/// [SajuDawnSectionShell]이 [RevealOnScroll]로 섹션 전체를 스크롤 진입
+/// 시에만 빌드하므로, 그 안쪽 노드가 처음 build될 때가 곧 "화면에 보이는
+/// 시점"과 사실상 같다)을 기준으로 지연 후 표시한다.
+class _TimelineNode extends StatefulWidget {
   final DaeunNode node;
   final IlganTheme ilganTheme;
-  const _TimelineNode({required this.node, required this.ilganTheme});
+  final int index;
+  const _TimelineNode({
+    required this.node,
+    required this.ilganTheme,
+    required this.index,
+  });
+
+  @override
+  State<_TimelineNode> createState() => _TimelineNodeState();
+}
+
+class _TimelineNodeState extends State<_TimelineNode> {
+  bool _visible = false;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(Duration(milliseconds: 120 * widget.index), () {
+      if (mounted) setState(() => _visible = true);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 60,
-      child: Column(
-        children: [
-          Text(
-            '${node.ageStart}세',
-            style: const TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w500,
-              color: SajuDawnColors.ink3,
+    final node = widget.node;
+    final ilganTheme = widget.ilganTheme;
+    return AnimatedSlide(
+      offset: _visible ? Offset.zero : const Offset(0, 0.4),
+      duration: const Duration(milliseconds: 420),
+      curve: Curves.easeOutCubic,
+      child: AnimatedOpacity(
+        opacity: _visible ? 1 : 0,
+        duration: const Duration(milliseconds: 420),
+        curve: Curves.easeOutCubic,
+        child: AnimatedScale(
+          scale: _visible ? 1 : 0.6,
+          duration: const Duration(milliseconds: 420),
+          curve: Curves.easeOutBack,
+          child: SizedBox(
+            width: 60,
+            child: Column(
+              children: [
+                Text(
+                  '${node.ageStart}세',
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                    color: SajuDawnColors.ink3,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Container(
+                  width: 18,
+                  height: 18,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: node.active
+                        ? ilganTheme.main
+                        : SajuDawnColors.paper,
+                    border: Border.all(
+                      color: node.active
+                          ? ilganTheme.main
+                          : SajuDawnColors.ink3,
+                      width: 3,
+                    ),
+                    boxShadow: node.active
+                        ? [
+                            BoxShadow(
+                              color: ilganTheme.main.withValues(alpha: 0.15),
+                              blurRadius: 0,
+                              spreadRadius: 4,
+                            ),
+                          ]
+                        : null,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  node.hanja,
+                  style: const TextStyle(
+                    fontFamily: SajuDawnFonts.serif,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: SajuDawnColors.ink2,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 2),
-          Container(
-            width: 18,
-            height: 18,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: node.active ? ilganTheme.main : SajuDawnColors.paper,
-              border: Border.all(
-                color: node.active ? ilganTheme.main : SajuDawnColors.ink3,
-                width: 3,
-              ),
-              boxShadow: node.active
-                  ? [
-                      BoxShadow(
-                        color: ilganTheme.main.withValues(alpha: 0.15),
-                        blurRadius: 0,
-                        spreadRadius: 4,
-                      ),
-                    ]
-                  : null,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            node.hanja,
-            style: const TextStyle(
-              fontFamily: SajuDawnFonts.serif,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: SajuDawnColors.ink2,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

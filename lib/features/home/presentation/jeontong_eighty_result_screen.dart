@@ -944,8 +944,6 @@ class _ResultBody extends StatelessWidget {
                 const _JeontongPlaceholderNotice(),
                 const SizedBox(height: UnifiedTokens.spaceMd),
               ],
-              const DisclaimerBanner.common(),
-              const SizedBox(height: UnifiedTokens.spaceMd),
               if (entry.disclaimers.isNotEmpty) ...[
                 DisclaimerBanner.forTags(entry.disclaimers),
                 const SizedBox(height: UnifiedTokens.spaceMd),
@@ -1285,7 +1283,6 @@ Widget? _tryBuildDawnResultPageFromV3(
     final topBanners = <Widget>[
       if (kJeontongPlaceholderCategoryIds.contains(entry.id))
         const _JeontongPlaceholderNotice(),
-      const DisclaimerBanner.common(),
       if (entry.disclaimers.isNotEmpty)
         DisclaimerBanner.forTags(entry.disclaimers),
       if (profile.birthTimeUnknown) const _BirthTimeUnknownNotice(),
@@ -1455,7 +1452,6 @@ Widget? _tryBuildDawnResultPage(
     final topBanners = <Widget>[
       if (kJeontongPlaceholderCategoryIds.contains(entry.id))
         const _JeontongPlaceholderNotice(),
-      const DisclaimerBanner.common(),
       if (entry.disclaimers.isNotEmpty)
         DisclaimerBanner.forTags(entry.disclaimers),
       if (profile.birthTimeUnknown) const _BirthTimeUnknownNotice(),
