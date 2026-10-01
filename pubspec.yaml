@@ -194,6 +194,32 @@ flutter:
     - assets/jeontong/easy_terms.json
     - assets/jeontong/rules/
     - assets/videos/
+    # [소원방 v2.6 재구축] design_handoff_sintong_wishroom_flutter 핸드오프
+    # 에셋 전체(캐릭터22·의상88·포즈94·아이템65·테마방4 등). data/wishroom_data.json
+    # 은 레벨/감쇠/슬롯/아이템/캐릭터/테마 전체 시드(Flutter 로더 + admin_web 서버
+    # 시드 공용 기준).
+    - assets/wishroom/data/
+    - assets/wishroom/chars/
+    - assets/wishroom/items/
+    - assets/wishroom/outfits/
+    - assets/wishroom/poses/
+    - assets/wishroom/rooms/
+    - assets/wishroom/bg-gold.jpg
+    - assets/wishroom/bg-maple.jpg
+    - assets/wishroom/bg-sakura.jpg
+    - assets/wishroom/bg-silver.jpg
+    - assets/wishroom/bg-snow.jpg
+    - assets/wishroom/gate.jpg
+    - assets/wishroom/char-f-pray.png
+    - assets/wishroom/char-f-sm.png
+    - assets/wishroom/char-m-pray.png
+    - assets/wishroom/char-m-sm.png
+    - assets/wishroom/room-empty.jpg
+    - assets/wishroom/room-lv1.jpg
+    - assets/wishroom/room-lv10.jpg
+    - assets/wishroom/room-lv7.jpg
+    - assets/wishroom/room-main.jpg
+    - assets/wishroom/splash.jpg
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
