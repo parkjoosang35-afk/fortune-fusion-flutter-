@@ -41,7 +41,11 @@ class _WishRoomShellState extends State<WishRoomShell> {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.wr;
+    // [버그수정] 바깥(AppShell) 테마에는 WrColors extension이 없어
+    // context.wr(=Theme.of(this).extension<WrColors>()!)를 Theme(...)으로
+    // 감싸기 전에 호출하면 null-check 크래시가 난다. 이 화면은 항상
+    // WrPalette.midnight 고정이므로 Theme 적용 전에는 상수를 직접 참조한다.
+    const c = WrColors.midnight;
     return Theme(
       data: wrTheme(WrPalette.midnight),
       child: Scaffold(

@@ -206,7 +206,10 @@ class _WelcomeScreen extends StatelessWidget {
   final VoidCallback onCompose, onExplore;
   @override
   Widget build(BuildContext context) {
-    final c = context.wr;
+    // [버그수정] Theme(...)으로 감싸기 전에는 바깥(AppShell) 테마에 WrColors
+    // extension이 없어 context.wr가 null-check 크래시를 낸다. midnight 고정이므로
+    // 상수를 직접 참조한다.
+    const c = WrColors.midnight;
     return Theme(data: wrTheme(WrPalette.midnight), child: Scaffold(
       backgroundColor: c.bg2,
       body: Stack(fit: StackFit.expand, children: [

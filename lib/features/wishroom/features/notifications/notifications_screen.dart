@@ -46,7 +46,9 @@ class _WrNotificationsScreenState extends State<WrNotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.wr;
+    // [버그수정] Theme(...) 적용 전 context에는 WrColors extension이 없어
+    // context.wr(null-check)가 터진다. midnight 고정이므로 상수를 직접 참조.
+    const c = WrColors.midnight;
     return Theme(data: wrTheme(WrPalette.midnight), child: Scaffold(
       backgroundColor: c.bg2,
       body: Consumer<WishRoomProvider>(builder: (context, p, __) {
