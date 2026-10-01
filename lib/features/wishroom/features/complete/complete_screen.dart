@@ -43,7 +43,21 @@ class _CompleteScreenState extends State<CompleteScreen> {
   Future<void> _boot() async {
     final p = context.read<WishRoomProvider>();
     final room = p.room;
-    if (room != null && room.status != RoomStatus.COMPLETED && room.status != RoomStatus.SEALED) {
+    if (room == null) return;
+    if (room.status == RoomStatus.SEALED) {
+      setState(() => _sealed = true);
+    } else if (room.status == RoomStatus.COMPLETED) {
+      // [버그수정] 완료 직후 화면을 나갔다가 재진입(새로고침 등)한 경우,
+      // 이미 COMPLETED 상태라 다시 complete()를 호출할 필요는 없지만
+      // reveal 연출을 재생하지 않으면 _showCaption=false로 영원히 남아
+      // BottomCard(봉인하기 버튼)에 도달할 방법이 없어지는 문제가 있었음.
+      // → 연출 없이 최종 상태(캡션+버튼 노출)로 바로 진입시켜 해결.
+      setState(() {
+        _gold = .7;
+        _charGlow = 1;
+        _showCaption = true;
+      });
+    } else {
       final ok = await p.complete(widget.roomId);
       if (!mounted) return;
       if (!ok) {
@@ -53,8 +67,6 @@ class _CompleteScreenState extends State<CompleteScreen> {
         return;
       }
       _playReveal();
-    } else if (room?.status == RoomStatus.SEALED) {
-      setState(() => _sealed = true);
     }
   }
 
