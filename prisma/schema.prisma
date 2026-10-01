@@ -223,6 +223,18 @@ model User {
   // [결과 공유 기능 — sintong-share-proposal.pdf] 운세/타로/관상/손금/소원성
   // 5종 결과를 https://sintong.kr/r/{shareId} 링크로 공유한 이력.
   sharedResults                 SharedResult[]
+  // [신통방통 소원방(WishRoom) v2.6 — 기존 Wish(소원성)와는 별도 기능]
+  wishRooms                     WishRoom[]
+  wishRoomSupports              WishRoomSupport[]
+  wishRoomComments              WishRoomComment[]
+  wishRoomGiftsSent             WishRoomGift[]
+  wishRoomReviews               WishRoomReview[]
+  wishRoomReviewCongrats        WishRoomReviewCongrats[]
+  wishRoomCharactersOwned       WishRoomCharacterOwned[]
+  wishRoomItemsOwned            WishRoomItemOwned[]
+  wishRoomOutfitsOwned          WishRoomOutfitOwned[]
+  wishRoomUserState             WishRoomUserState?
+  wishRoomEarnLogs              WishRoomEarnLog[]
 
   @@map("users")
 }
@@ -3941,4 +3953,285 @@ model SharedResult {
   @@index([userId, createdAt])
   @@index([resultType, createdAt])
   @@map("shared_results")
+}
+
+// ════════════════════════════════════════════════════════════════
+// [신통방통 소원방(WishRoom) v2.6 — design_handoff_sintong_wishroom_flutter]
+//
+// ⚠️ 중요: 기존 `Wish`/`WishBokju`/`WishConfig`/`WishReview`(소원성·Wish Castle,
+// 커뮤니티 "오늘의 소원" 게시판 기능)와는 **완전히 다른 별도 기능**이다.
+// 이름 충돌을 피하기 위해 이 기능의 모든 모델은 `WishRoom` 접두사를 쓴다.
+// 기존 Wish 테이블들은 그대로 두고 건드리지 않는다(사용자 확정 지시 — 삭제
+// 대상은 Flutter 클라이언트의 lib/features/wish_room/ 뿐, admin_web 기존
+// 소원성 테이블은 무관).
+//
+// [재화 단일화 원칙] 소원방 전용 재화 테이블을 신설하지 않는다. 복주머니
+// 적립/차감은 전부 기존 Wallet/PointHistory 원장 + luck-pouch-engine.ts의
+// earnLuckPouch()/spendLuckPouch()/checkPolicyEligibility()를 그대로 재사용
+// 한다(sourceType에 "wishroom_" 접두사를 붙여 구분 — 예: wishroom_devotion_bonus,
+// wishroom_support_reward, wishroom_gift_received, wishroom_ad_earn 등).
+// PointPolicy에 각 sourceType의 amount/dailyLimit을 등록해 하드코딩을 피한다
+// (다음 소단위: seed 스크립트에서 등록).
+//
+// [알림] 전용 알림 테이블을 신설하지 않는다. 기존 Notification 모델을 그대로
+// 쓰고 category="wishroom"(신규 화이트리스트 값), deepLink="wishroom:room/{id}"
+// 형식의 문자열을 담는다. 8종 알림 타입(SUPPORT/POUCH/COMMENT/STATUS/GROWTH/
+// COMPLETE/UNSEAL/REVIEW)은 애플리케이션 레벨에서 title/body/deepLink로 구분
+// 하여 생성한다(DB 컬럼 추가 없음).
+//
+// [서버 계산 원칙 — API_CONTRACT.md §6] brightness/decayLabel/decayBadge/
+// absentDays/daysLit/cooldownUntil/devotionsRemaining/levelName/curLevelPts/
+// nextLevelPts/outfitNow/levelProgress 등은 전부 응답 시점에 서버가 계산해서
+// 내려주는 "파생값"이며 DB에는 저장하지 않는다. DB에는 계산에 필요한
+// 원재료(lastDevotionAt, lastActiveAt, devotionsToday, points, level, createdAt
+// 등)만 저장한다.
+// ════════════════════════════════════════════════════════════════
+
+// ── 소원방 본체 — 1 소원(=1 라이프사이클)당 1행. 사용자당 다건(과거분 ARCHIVED 보존) ──
+model WishRoom {
+  id     Int @id @default(autoincrement())
+  userId Int @map("user_id") // 소원방 주인
+
+  // [SCR-02 소원 작성]
+  charCode   String @default("F00") @map("char_code") // WrCharacter.id (예: "F00")
+  text       String // 소원 본문
+  theme      String @default("free") // free/god/buddha/shaman (THEMES.id)
+  outfit     String? // 사용자가 고른 의상 테마. null=테마를 그대로 따라감
+  wishColor  String @default("hope") @map("wish_color") // WISH_COLORS.id
+  paper      String @default("hanji") // PAPERS.id
+  visibility String @default("PUBLIC") // PUBLIC/LINK/PRIVATE
+  region     String @default("") // 표시용 지역(선택)
+
+  // [상태 머신 §6] DRAFT→ACTIVE→GROWING→COMPLETED→(SEALED)→ARCHIVED
+  status String @default("ACTIVE")
+
+  // [성장치 §6] 정성 + 응원×0.5 + 받은 복주머니×10 + 아이템 기운 보너스(서버 계산 합산)
+  points        Float @default(0)
+  level         Int   @default(1)
+  devotionCount Int   @default(0) @map("devotion_count")
+  supportCount  Int   @default(0) @map("support_count")
+  pouchReceived Int   @default(0) @map("pouch_received")
+  commentCount  Int   @default(0) @map("comment_count")
+
+  // [정성 제한 §6] 하루 10회(KST 자정 리셋)·쿨타임 30초. 아이템 기운(effects.daily/cool)으로 보정.
+  devotionsToday     Int       @default(0) @map("devotions_today")
+  devotionsResetDate String?   @map("devotions_reset_date") // KST 'YYYY-MM-DD' — 날짜 바뀌면 devotionsToday를 0으로 리셋
+  lastDevotionAt      DateTime? @map("last_devotion_at") // 쿨타임 계산 기준
+  // [감쇠 §6] absentDays = today - lastActiveAt(KST, 날짜 단위). "다시 밝히기" 시 lastActiveAt=now로 갱신.
+  lastActiveAt         DateTime  @default(now()) @map("last_active_at")
+
+  // [꾸미기 §6] 슬롯 7종(CANDLE1·FLOWER1·DECORATION5·BACKGROUND1·SPECIAL1·SEAL3·THEME5)
+  // Equip{candle,flower,background,special,decoration[],seal[],theme[]} JSON 문자열(SQLite 네이티브 JSONB 없음, 기존 전례 동일)
+  equipJson  String @default("{}") @map("equip_json")
+  // Map<itemId,{x,y,s}> — 390×844 캔버스 기준 사용자 배치 좌표
+  layoutJson String @default("{}") @map("layout_json")
+
+  // [완료·취소] 완료 뒤 7일 동안 취소 가능
+  completedAt DateTime? @map("completed_at")
+  cancelUntil DateTime? @map("cancel_until")
+
+  // [타임캡슐 C1-C2] 작성 시 정한 봉인일(KST 'YYYY-MM-DD') → 그날 캡슐 오픈
+  sealUntil  String? @map("seal_until")
+  capsule    String? @default("LOCKED") // LOCKED/OPENED
+  outcome    String? // FULFILLED/ONGOING/REWISH (POST .../outcome)
+  wishStatus String? @default("IN_PROGRESS") @map("wish_status") // IN_PROGRESS/ACHIEVED
+
+  // [공유 S1-S2]
+  shareToken String? @unique @map("share_token")
+
+  // [SEALED/ARCHIVED 보존 스냅샷] 방 꾸미기·레벨 등 마지막 상태를 JSON으로 동결
+  snapshot String?
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  user                User                          @relation(fields: [userId], references: [id])
+  supports            WishRoomSupport[]
+  comments            WishRoomComment[]
+  gifts               WishRoomGift[]
+  reviews             WishRoomReview[]
+  supportRewardClaims WishRoomSupportRewardClaim[]
+
+  @@index([userId, status])
+  @@index([visibility, status, createdAt])
+  @@index([status, sealUntil])
+  @@map("wish_rooms")
+}
+
+// ── 응원(§6) — 방문자가 하루 1회 누르는 응원. roomId+userId+날짜 유니크로 "오늘 이미 응원함"을 판정 ──
+model WishRoomSupport {
+  id        Int      @id @default(autoincrement())
+  roomId    Int      @map("room_id")
+  userId    Int      @map("user_id") // 응원한 사람(방 주인이 아님)
+  dateKey   String   @map("date_key") // KST 'YYYY-MM-DD'
+  createdAt DateTime @default(now()) @map("created_at")
+
+  room WishRoom @relation(fields: [roomId], references: [id])
+  user User     @relation(fields: [userId], references: [id])
+
+  @@unique([roomId, userId, dateKey])
+  @@index([roomId, createdAt])
+  @@map("wish_room_supports")
+}
+
+// ── 댓글 ── (타인의 소원방에 남기는 응원 메시지)
+model WishRoomComment {
+  id          Int       @id @default(autoincrement())
+  roomId      Int       @map("room_id")
+  userId      Int       @map("user_id")
+  text        String
+  status      String    @default("active") // active/hidden_by_report(신고 3회 자동 숨김)/deleted_by_admin
+  reportCount Int       @default(0) @map("report_count")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  room WishRoom @relation(fields: [roomId], references: [id])
+  user User     @relation(fields: [userId], references: [id])
+
+  @@index([roomId, createdAt])
+  @@map("wish_room_comments")
+}
+
+// ── 선물(복주머니 보내기, Append-only 원장) ── 가입 7일 미만 발신자는 하루 100개 한도(§안전)
+model WishRoomGift {
+  id        Int      @id @default(autoincrement())
+  roomId    Int      @map("room_id")
+  senderId  Int      @map("sender_id")
+  amount    Int // 5/10/30/50
+  dateKey   String   @map("date_key") // KST 'YYYY-MM-DD' — 발신자 일일 한도 집계용
+  createdAt DateTime @default(now()) @map("created_at")
+
+  room   WishRoom @relation(fields: [roomId], references: [id])
+  sender User     @relation(fields: [senderId], references: [id])
+
+  @@index([senderId, dateKey])
+  @@index([roomId, createdAt])
+  @@map("wish_room_gifts")
+}
+
+// ── 응원 보상 마일스톤 수령 이력(R1) ── SUPPORT_REWARDS[].at(10/30/50…) 1회씩만 수령
+model WishRoomSupportRewardClaim {
+  id        Int      @id @default(autoincrement())
+  roomId    Int      @map("room_id")
+  at        Int // 마일스톤 임계값
+  itemCode  String?  @map("item_code") // 지급된 보상 아이템(rw_petal 등), null이면 포인트만
+  claimedAt DateTime @default(now()) @map("claimed_at")
+
+  room WishRoom @relation(fields: [roomId], references: [id])
+
+  @@unique([roomId, at])
+  @@map("wish_room_support_reward_claims")
+}
+
+// ── 성취 후기(V1-V6) ── 소원이 최종 레벨/완료에 도달한 뒤 작성
+model WishRoomReview {
+  id            Int       @id @default(autoincrement())
+  roomId        Int       @map("room_id")
+  userId        Int       @map("user_id")
+  text          String
+  photoUrl      String?   @map("photo_url")
+  visibility    String    @default("PUBLIC") // PUBLIC/PRIVATE
+  congratsCount Int       @default(0) @map("congrats_count")
+  status        String    @default("visible") // visible/hidden_by_report/deleted_by_admin
+  reportCount   Int       @default(0) @map("report_count")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  room     WishRoom                   @relation(fields: [roomId], references: [id])
+  user     User                       @relation(fields: [userId], references: [id])
+  congrats WishRoomReviewCongrats[]
+
+  @@index([roomId])
+  @@index([status, createdAt])
+  @@map("wish_room_reviews")
+}
+
+// ── 후기 "축하해요" 중복 방지(V5) ──
+model WishRoomReviewCongrats {
+  id        Int      @id @default(autoincrement())
+  reviewId  Int      @map("review_id")
+  userId    Int      @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  review WishRoomReview @relation(fields: [reviewId], references: [id])
+  user   User           @relation(fields: [userId], references: [id])
+
+  @@unique([reviewId, userId])
+  @@map("wish_room_review_congrats")
+}
+
+// ── 보유 캐릭터(CHARACTERS 22종 중 구매/획득분) ──
+model WishRoomCharacterOwned {
+  id            Int      @id @default(autoincrement())
+  userId        Int      @map("user_id")
+  charCode      String   @map("char_code")
+  purchasePrice Int      @default(0) @map("purchase_price")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, charCode])
+  @@map("wish_room_characters_owned")
+}
+
+// ── 보유 아이템(ITEMS 82종 중 구매분 — 꾸미기/테마소품) ──
+model WishRoomItemOwned {
+  id            Int      @id @default(autoincrement())
+  userId        Int      @map("user_id")
+  itemId        String   @map("item_id") // ITEMS[].id (예: "c_basic","d_bell")
+  purchasePrice Int      @default(0) @map("purchase_price")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, itemId])
+  @@map("wish_room_items_owned")
+}
+
+// ── 보유 의상(T3, 캐릭터×테마 조합 구매분) ── free 테마는 항상 보유로 간주(미저장)
+model WishRoomOutfitOwned {
+  id            Int      @id @default(autoincrement())
+  userId        Int      @map("user_id")
+  charCode      String   @map("char_code")
+  theme         String // god/buddha/shaman
+  purchasePrice Int      @default(0) @map("purchase_price")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, charCode, theme])
+  @@map("wish_room_outfits_owned")
+}
+
+// ── 사용자별 소원방 설정/상태(1:1) ── 대표캐릭터·인트로 생략 여부 등
+model WishRoomUserState {
+  id                 Int      @id @default(autoincrement())
+  userId             Int      @unique @map("user_id")
+  repCharCode        String   @default("F00") @map("rep_char_code") // 대표(장착) 캐릭터
+  skipIntro          Boolean  @default(false) @map("skip_intro") // PATCH /me/settings {skipIntro}
+  firstRoomIntroDone Boolean  @default(false) @map("first_room_intro_done") // §0-2 마이그레이션된 사용자도 최초 1회 풀 인트로
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("wish_room_user_states")
+}
+
+// ── EARN 획득 이력(§7 — 광고/출석/미션 3종) ── 일일/평생 한도 판정용 Append-only 로그
+model WishRoomEarnLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  source    String // ad/attend/m_visit/m_cheer/m_msg (EARN[].id)
+  amount    Int
+  dateKey   String   @map("date_key") // KST 'YYYY-MM-DD'
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, source, dateKey])
+  @@map("wish_room_earn_logs")
 }
