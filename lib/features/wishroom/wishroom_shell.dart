@@ -41,15 +41,10 @@ class _WishRoomShellState extends State<WishRoomShell> {
 
   @override
   Widget build(BuildContext context) {
-    // [버그수정] 바깥(AppShell) 테마에는 WrColors extension이 없어
-    // context.wr(=Theme.of(this).extension<WrColors>()!)를 Theme(...)으로
-    // 감싸기 전에 호출하면 null-check 크래시가 난다. 이 화면은 항상
-    // WrPalette.midnight 고정이므로 Theme 적용 전에는 상수를 직접 참조한다.
-    const c = WrColors.midnight;
     return Theme(
-      data: wrTheme(WrPalette.midnight),
+      data: wrThemeData(),
       child: Scaffold(
-        backgroundColor: c.bg2,
+        backgroundColor: WrC.bg2,
         body: SafeArea(
           top: false,
           child: IndexedStack(index: _index, children: _tabs),
@@ -59,7 +54,7 @@ class _WishRoomShellState extends State<WishRoomShell> {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter, end: Alignment.bottomCenter,
-              colors: [Colors.transparent, c.bg2], stops: const [0, .45],
+              colors: [Colors.transparent, WrC.bg2], stops: const [0, .45],
             ),
           ),
           child: SafeArea(
@@ -83,17 +78,17 @@ class _WishRoomShellState extends State<WishRoomShell> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Stack(clipBehavior: Clip.none, children: [
-                              Text(_labels[i].$1, style: TextStyle(fontSize: 17, color: i == _index ? c.glow : c.muted)),
+                              Text(_labels[i].$1, style: TextStyle(fontSize: 17, color: i == _index ? WrC.glow : WrC.muted)),
                               if (i == 2)
                                 Consumer<WishRoomProvider>(builder: (_, p, __) => p.unreadCount > 0
                                     ? Positioned(right: -6, top: -3, child: Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                        decoration: BoxDecoration(color: c.accent, borderRadius: BorderRadius.circular(8)),
+                                        decoration: BoxDecoration(color: WrC.blossom, borderRadius: BorderRadius.circular(8)),
                                         child: Text('${p.unreadCount}', style: const TextStyle(fontSize: 9, color: Colors.white))))
                                     : const SizedBox.shrink()),
                             ]),
                             const SizedBox(height: 3),
-                            Text(_labels[i].$2, style: TextStyle(fontSize: 10, color: i == _index ? c.fg : c.muted)),
+                            Text(_labels[i].$2, style: TextStyle(fontSize: 10, color: i == _index ? WrC.fg : WrC.muted)),
                           ],
                         ),
                       ),

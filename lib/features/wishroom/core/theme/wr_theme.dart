@@ -1,76 +1,102 @@
-// 신통방통 소원방 · Theme tokens (colors_and_type.css 1:1)
+// 신통방통 소원방 · 디자인 토큰 v2.6 — app2/wr2.css :root + 컴포넌트 클래스 1:1
+// ⚠️ 이 값 외의 색·폰트·라운드를 쓰지 마세요. 웹 프로토타입과 픽셀이 달라지는 1순위 원인입니다.
+// (구버전 wr_theme 의 midnight/hanji/crystal 팔레트는 v2 화면에서 쓰지 않습니다 — 폐기)
+//
+// [폰트 소스 변경] 핸드오프 원본은 google_fonts 패키지(네트워크 다운로드)를 쓰지만,
+// 이 프로젝트는 동일 폰트 파일을 assets/fonts/wish_room/ 에 번들해 pubspec.yaml 에
+// NotoSerifKRWish/GowunBatangWish/IBMPlexMonoWish 패밀리로 등록해두었다(상담 모듈과 공용).
+// 네트워크 의존 없이 그 번들 폰트를 그대로 쓴다 — 오프라인에서도 동작하고 웹 빌드 크기도 줄어든다.
+// 값(크기/굵기/자간/색)은 원본과 1:1 동일, 폰트 조달 방식만 다르다.
 import 'package:flutter/material.dart';
 
-enum WrPalette { midnight, hanji, crystal }
-
-@immutable
-class WrColors extends ThemeExtension<WrColors> {
-  // [네이밍 충돌 수정] WrPalette.crystal 테마의 정의(static const)와 "크리스탈
-  // 포인트 컬러" instance 필드가 원본 핸드오프 코드에서 둘 다 `crystal`이라는
-  // 이름을 써서 Dart 컴파일 에러(conflicting_static_and_instance)가 났다.
-  // 포인트 컬러 필드명을 crystalColor로 변경(의미는 동일, 외부에서 c.crystal
-  // 대신 c.crystalColor로 접근).
-  final Color bg1, bg2, fg, muted, glow, glowShadow, crystalColor, accent, card, line, sigil;
-  const WrColors({required this.bg1, required this.bg2, required this.fg, required this.muted, required this.glow,
-    required this.glowShadow, required this.crystalColor, required this.accent, required this.card, required this.line, required this.sigil});
-
-  static const midnight = WrColors(
-    bg1: Color(0xFF1A0D2E), bg2: Color(0xFF0A0716), fg: Color(0xFFF8F2E6), muted: Color(0x9EE8DCC8),
-    glow: Color(0xFFF5CF6A), glowShadow: Color(0x59F5CF6A), crystalColor: Color(0xFF8DBFD6), accent: Color(0xFFC94A3B),
-    card: Color(0x0DFFEBC8), line: Color(0x1FFFEBC8), sigil: Color(0xFFF5CF6A));
-  static const hanji = WrColors(
-    bg1: Color(0xFFFAF3E0), bg2: Color(0xFFEFE4C8), fg: Color(0xFF2A1F14), muted: Color(0x8C3C2D1E),
-    glow: Color(0xFFD97941), glowShadow: Color(0x47D97941), crystalColor: Color(0xFF7BA896), accent: Color(0xFF8B3A2B),
-    card: Color(0x0F8B5A2B), line: Color(0x263C2D1E), sigil: Color(0xFF8B5A2B));
-  static const crystalPalette = WrColors(
-    bg1: Color(0xFF3D3568), bg2: Color(0xFF1E1A3A), fg: Color(0xFFF0EAFF), muted: Color(0xA6DCD2F5),
-    glow: Color(0xFFE8C8F5), glowShadow: Color(0x59E8C8F5), crystalColor: Color(0xFFA8D5E3), accent: Color(0xFF7FB8D4),
-    card: Color(0x14C8B4FF), line: Color(0x26DCC8FF), sigil: Color(0xFFE8C8F5));
-
-  static WrColors of(WrPalette p) => switch (p) { WrPalette.midnight => midnight, WrPalette.hanji => hanji, WrPalette.crystal => crystalPalette };
-
-  /// 브랜드 규칙: 회색 그림자 금지 — 글로우만
-  List<BoxShadow> get glowMd => [BoxShadow(color: glowShadow, blurRadius: 20, offset: const Offset(0, 4))];
-
-  @override
-  WrColors copyWith() => this;
-  @override
-  WrColors lerp(ThemeExtension<WrColors>? o, double t) {
-    if (o is! WrColors) return this;
-    Color l(Color a, Color b) => Color.lerp(a, b, t)!;
-    return WrColors(bg1: l(bg1, o.bg1), bg2: l(bg2, o.bg2), fg: l(fg, o.fg), muted: l(muted, o.muted), glow: l(glow, o.glow),
-      glowShadow: l(glowShadow, o.glowShadow), crystalColor: l(crystalColor, o.crystalColor), accent: l(accent, o.accent),
-      card: l(card, o.card), line: l(line, o.line), sigil: l(sigil, o.sigil));
-  }
+class WrC {
+  // :root
+  static const glow = Color(0xFFF5CF6A); // --glow
+  static const glowShadow = Color(0x66F5CF6A); // --glow-shadow rgba(245,207,106,.4)
+  static const blossom = Color(0xFFF2628F); // --blossom   ★ 주 버튼 · 선택 · 강조
+  static const blossom2 = Color(0xFFFF8FB1); // --blossom-2
+  static const blossomShadow = Color(0x73F2628F); // --blossom-shadow rgba(242,98,143,.45)
+  static const fg = Color(0xFFFFF6EC); // --fg
+  static const muted = Color(0xA8FFECDC); // --muted rgba(255,236,220,.66)
+  static const line = Color(0x2EFFC8BE); // --line rgba(255,200,190,.18)
+  static const panel = Color(0xB8220E1C); // --panel rgba(34,14,28,.72)
+  static const panel2 = Color(0xEB3A1628); // --panel-2 rgba(58,22,40,.92)
+  static const card = Color(0x0FFFDCEB); // --card rgba(255,220,235,.06)
+  static const bg1 = Color(0xFF3A1630); // --bg-1
+  static const bg2 = Color(0xFF12060E); // --bg-2 (모든 화면 바탕)
+  static const accent = Color(0xFFC94A3B); // --accent 인장 빨강
+  // 자주 쓰는 고정색
+  static const cardBorder = Color(0x29FFBED2); // .card border rgba(255,190,210,.16)
+  static const panelBorder = Color(0x33FFBED2); // .panel border rgba(255,190,210,.2)
+  static const sheetBorder = Color(0x47FFBED2); // .sheet border rgba(255,190,210,.28)
+  static const glass = Color(0x8C1E0C18); // .icon-btn/.pill bg rgba(30,12,24,.55)
+  static const darkBtn = Color(0xC728101E); // .btn-dark rgba(40,16,30,.78)
+  static const chipBg = Color(0x33000000); // .chip rgba(0,0,0,.2)
+  static const tabsBg = Color(0x47000000); // .tabs rgba(0,0,0,.28)
+  static const hanjiInk = Color(0xFF4A2A1C); // .hanji 글자
+  static const navInactive = Color(0x8CFFE6DC); // .nav button rgba(255,230,220,.55)
 }
 
-class WrRadius { static const sm = 6.0, md = 10.0, lg = 14.0, xl = 20.0, pill = 999.0; }
-class WrSpace { static const s1 = 4.0, s2 = 8.0, s3 = 12.0, s4 = 16.0, s5 = 20.0, s6 = 24.0, s8 = 32.0, s10 = 40.0, s12 = 48.0; }
-
-class WrType {
-  // [폰트 소스 변경] 원본은 google_fonts 패키지(네트워크 다운로드)를 썼으나,
-  // 이 프로젝트는 이미 동일 폰트 파일을 assets/fonts/wish_room/에 번들해
-  // pubspec.yaml에 NotoSerifKRWish/GowunBatangWish/IBMPlexMonoWish 패밀리로
-  // 등록해두었다(상담 모듈과 공용). 네트워크 의존 없이 그 번들 폰트를 그대로
-  // 쓴다 — 오프라인에서도 동작하고 웹 빌드 크기도 줄어든다.
-  // Display: Noto Serif KR 900 · Body: Gowun Batang · UI: Pretendard(번들) · Mono: IBM Plex Mono (UPPERCASE, tracking .3em)
-  static TextStyle display1(Color c) => TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 34, height: 1.15, letterSpacing: -0.68, color: c);
-  static TextStyle display2(Color c) => TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w700, fontSize: 26, height: 1.2, letterSpacing: -0.52, color: c);
-  static TextStyle h1(Color c) => TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w700, fontSize: 22, height: 1.3, color: c);
-  static TextStyle h3(Color c) => TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 15, height: 1.4, color: c);
-  static TextStyle body(Color c) => TextStyle(fontFamily: 'GowunBatangWish', fontSize: 15, height: 1.6, color: c);
-  static TextStyle ui(Color c) => TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w500, fontSize: 14, height: 1.5, color: c);
-  static TextStyle mono(Color c, {double size = 10}) => TextStyle(fontFamily: 'IBMPlexMonoWish', fontWeight: FontWeight.w500, fontSize: size, letterSpacing: size * 0.3, color: c);
+class WrF {
+  static TextStyle display(double size, {Color color = WrC.fg, double? height}) => TextStyle(
+      fontFamily: 'NotoSerifKRWish', fontSize: size, fontWeight: FontWeight.w900, letterSpacing: -.02 * size, color: color, height: height);
+  static TextStyle body(double size, {FontWeight w = FontWeight.w400, Color color = WrC.fg, double? height}) =>
+      TextStyle(fontFamily: 'GowunBatangWish', fontSize: size, fontWeight: w, color: color, height: height);
+  static TextStyle ui(double size, {FontWeight w = FontWeight.w500, Color color = WrC.fg}) =>
+      TextStyle(fontFamily: 'Pretendard', fontSize: size, fontWeight: w, color: color);
+  /// .mono — 500 10px IBM Plex Mono, letter-spacing .28em, 대문자
+  static TextStyle mono({double size = 10, Color color = WrC.muted}) =>
+      TextStyle(fontFamily: 'IBMPlexMonoWish', fontSize: size, fontWeight: FontWeight.w500, letterSpacing: .28 * size, color: color);
 }
 
-ThemeData wrTheme(WrPalette p) {
-  final c = WrColors.of(p);
-  return ThemeData(
-    brightness: p == WrPalette.hanji ? Brightness.light : Brightness.dark,
-    scaffoldBackgroundColor: c.bg2,
-    extensions: [c],
-    splashFactory: NoSplash.splashFactory, // 브랜드: 잉크 리플 대신 96% scale press
-  );
+class WrR { static const seal = 6.0, chip = 999.0, tab = 10.0, tabs = 14.0, card = 16.0, btn = 16.0, btnSm = 12.0, panel = 20.0, sheet = 26.0; }
+
+/// 컴포넌트 데코레이션 — wr2.css 클래스와 이름 동일
+class WrDeco {
+  /// .btn-pink  linear(180deg, #ff8fb1, #f2628f 60%, #d9446f) + 0 6 24 blossom-shadow + inset 하이라이트 (Flutter: 위쪽 1px 흰 선 Container 로 대체)
+  static const btnPink = BoxDecoration(borderRadius: BorderRadius.all(Radius.circular(16)),
+      gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [WrC.blossom2, WrC.blossom, Color(0xFFD9446F)], stops: [0, .6, 1]),
+      boxShadow: [BoxShadow(color: WrC.blossomShadow, blurRadius: 24, offset: Offset(0, 6))]);
+  /// .btn-gold  linear(180deg, #ffe7a0, #f5cf6a 55%, #d9a53a) · 글자 #4a2a10
+  static const btnGold = BoxDecoration(borderRadius: BorderRadius.all(Radius.circular(16)),
+      gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFFFE7A0), WrC.glow, Color(0xFFD9A53A)], stops: [0, .55, 1]),
+      boxShadow: [BoxShadow(color: WrC.glowShadow, blurRadius: 22, offset: Offset(0, 6))]);
+  /// .btn-dark  + BackdropFilter blur 14
+  static final btnDark = BoxDecoration(borderRadius: BorderRadius.circular(16), color: WrC.darkBtn, border: Border.all(color: WrC.line));
+  /// .panel  + BackdropFilter blur 18 · 그림자 0 10 30 rgba(0,0,0,.35)
+  static final panel = BoxDecoration(borderRadius: BorderRadius.circular(20), color: WrC.panel, border: Border.all(color: WrC.panelBorder),
+      boxShadow: const [BoxShadow(color: Color(0x59000000), blurRadius: 30, offset: Offset(0, 10))]);
+  static final card = BoxDecoration(borderRadius: BorderRadius.circular(16), color: WrC.card, border: Border.all(color: WrC.cardBorder));
+  /// .sheet  left/right 10 · bottom 22 · radius 26 · linear(180deg, rgba(62,24,44,.97), rgba(30,10,22,.98))
+  static final sheet = BoxDecoration(borderRadius: BorderRadius.circular(26), border: Border.all(color: WrC.sheetBorder),
+      gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xF73E182C), Color(0xFA1E0A16)]),
+      boxShadow: const [BoxShadow(color: Color(0x80000000), blurRadius: 40, offset: Offset(0, -10)), BoxShadow(color: Color(0x38F2628F), blurRadius: 40)]);
+  /// .hanji  linear(135deg, rgba(255,244,226,.97), rgba(247,226,200,.95)) · 글자 #4a2a1c
+  static const hanji = BoxDecoration(borderRadius: BorderRadius.all(Radius.circular(16)),
+      gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xF7FFF4E2), Color(0xF2F7E2C8)]),
+      boxShadow: [BoxShadow(color: Color(0x73000000), blurRadius: 28, offset: Offset(0, 8)), BoxShadow(color: Color(0x80FFDCB4), spreadRadius: 1)]);
+  /// .chip / .chip.on
+  static final chip = BoxDecoration(borderRadius: BorderRadius.circular(999), color: WrC.chipBg, border: Border.all(color: WrC.line));
+  static const chipOn = BoxDecoration(borderRadius: BorderRadius.all(Radius.circular(999)), color: WrC.blossom, boxShadow: [BoxShadow(color: WrC.blossomShadow, blurRadius: 12, offset: Offset(0, 2))]);
+  /// .tab.on
+  static const tabOn = BoxDecoration(borderRadius: BorderRadius.all(Radius.circular(10)),
+      gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [WrC.blossom2, WrC.blossom]), boxShadow: [BoxShadow(color: WrC.blossomShadow, blurRadius: 14, offset: Offset(0, 3))]);
+  /// .seal 34×34 rotate(-6deg)
+  static const seal = BoxDecoration(borderRadius: BorderRadius.all(Radius.circular(6)), color: WrC.accent, boxShadow: [BoxShadow(color: Color(0x80C94A3B), blurRadius: 8, offset: Offset(0, 2))]);
+  /// .nav 보호 워시 — linear(180deg, rgba(16,6,12,0), rgba(16,6,12,.94) 38%) · padding 12 4 30
+  static const navWash = BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0x00100610), Color(0xF0100610)], stops: [0, .38]));
 }
 
-extension WrThemeX on BuildContext { WrColors get wr => Theme.of(this).extension<WrColors>()!; }
+/// 컴포넌트 치수 (wr2.css)
+class WrSize {
+  static const btnH = 54.0, btnSmH = 40.0, iconBtn = 38.0, tabH = 34.0, navItemW = 58.0, sealBox = 34.0;
+  static const btnFont = 16.0, btnSmFont = 13.5, chipFont = 12.0, tabFont = 13.0, navFont = 10.5, navGlyph = 18.0, pillFont = 14.0;
+  static const chipPad = EdgeInsets.symmetric(horizontal: 13, vertical: 7);
+  static const pillPad = EdgeInsets.fromLTRB(5, 5, 12, 5);
+  static const sheetHeaderPad = EdgeInsets.fromLTRB(20, 20, 20, 6), sheetBodyPad = EdgeInsets.fromLTRB(20, 8, 20, 20);
+  static const canvas = Size(390, 844); // 모든 좌표의 기준. 실제 화면 = width/390 배율
+  static const statusBarH = 54.0;
+}
+
+ThemeData wrThemeData() => ThemeData(brightness: Brightness.dark, scaffoldBackgroundColor: WrC.bg2, colorScheme: const ColorScheme.dark(primary: WrC.blossom, secondary: WrC.glow, surface: WrC.bg2, error: WrC.accent),
+    splashFactory: NoSplash.splashFactory, highlightColor: Colors.transparent, fontFamily: 'Pretendard');

@@ -1,5 +1,7 @@
-// SCR-02 소원 작성 `/compose` — docs/SCREENS.md §SCR-02
-// 한지 카드(텍스트 100자) + 수호자 선택 + 테마/빛깔/종이 + 공개범위 + 봉인일 + CTA.
+// SCR-02 소원 작성 `/compose` — docs/SCREENS.md §SCR-02 · docs/CHANGELOG.md §소원 봉인(타임캡슐)
+// 한지 카드(텍스트 100자) + 수호자 선택 + 테마/빛깔/종이 + 공개범위 + 봉인일(SealDatePicker) + CTA.
+// 봉인일 선택은 app2/capsule2.jsx의 SealGuideCard/SealDatePicker/SealConfirm을 그대로 따른다:
+// 소원을 봉인하려면 반드시 봉인 날짜(내일~3년 이내)를 먼저 골라야 제출할 수 있다(sealUntil 필수).
 // 제출 성공 시 인장 stamp 연출 후 인트로(full)로 자연 전환(WishRoomIntroScreen push replacement).
 import 'dart:ui';
 import 'package:flutter/material.dart' hide Visibility;
@@ -23,12 +25,20 @@ class _ComposeScreenState extends State<ComposeScreen> {
   WrTheme _theme = WrTheme.free;
   String _wishColor = 'hope';
   String _paper = 'hanji';
-  DateTime _sealUntil = DateTime.now().add(const Duration(days: 100));
+  // [CHANGELOG §소원 봉인] 봉인일은 작성 단계에서 반드시 사용자가 직접 골라야 한다 —
+  // 내일부터 3년 이내, 미선택 상태(null)로 시작. 고르기 전에는 제출 자체가 막힌다.
+  DateTime? _sealUntil;
   bool _submitting = false;
-  bool _piiWarning = false;
+  bool _piiWarning;
+  bool _asking = false; // SealConfirm 표시 여부
+
+  _ComposeScreenState() : _piiWarning = false;
 
   @override
-  void dispose() { _textCtrl.dispose(); super.dispose(); }
+  void dispose() {
+    _textCtrl.dispose();
+    super.dispose();
+  }
 
   List<WrCharacter> get _myChars {
     final me = context.read<WishRoomProvider>().me;
@@ -39,13 +49,16 @@ class _ComposeScreenState extends State<ComposeScreen> {
   }
 
   Future<void> _submit({bool force = false}) async {
-    if (_textCtrl.text.trim().isEmpty || _char == null) return;
-    setState(() => _submitting = true);
+    if (_textCtrl.text.trim().isEmpty || _char == null || _sealUntil == null) return;
+    setState(() {
+      _asking = false;
+      _submitting = true;
+    });
     final p = context.read<WishRoomProvider>();
     final ok = await p.createRoom(
       text: _textCtrl.text.trim(),
       char: _char!,
-      sealUntil: _sealUntil.toIso8601String().substring(0, 10),
+      sealUntil: _fmtIso(_sealUntil!),
       visibility: _visibility,
       theme: _theme,
       wishColor: _wishColor,
@@ -68,176 +81,589 @@ class _ComposeScreenState extends State<ComposeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // [버그수정] Theme(...) 적용 전 context에는 WrColors extension이 없어
-    // context.wr(null-check)가 터진다. midnight 고정이므로 상수를 직접 참조.
-    const c = WrColors.midnight;
     final cat = WrCatalog.I;
     final hasHistory = context.watch<WishRoomProvider>().archiveRooms.isNotEmpty;
-    return Theme(data: wrTheme(WrPalette.midnight), child: Scaffold(
-      backgroundColor: c.bg2,
-      body: Stack(fit: StackFit.expand, children: [
-        ImageFiltered(imageFilter: ImageFilter.blur(sigmaX: 18, sigmaY: 18), child: ColorFiltered(
-          colorFilter: const ColorFilter.matrix([
-            .45,0,0,0,0, 0,.45,0,0,0, 0,0,.45,0,0, 0,0,0,1,0,
-          ]),
-          child: Image.asset('assets/wishroom/room-main.jpg', fit: BoxFit.cover),
-        )),
-        SafeArea(child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(18, 20, 18, 40),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              IconButton(onPressed: () => Navigator.of(context).maybePop(), icon: Icon(Icons.close, color: c.fg)),
-            ]),
-            Text(hasHistory ? '새로운 마음을\n담아볼까요' : '소원을 담을\n준비가 되셨나요',
-                style: WrType.display2(c.fg)),
-            const SizedBox(height: 18),
-            // 한지 카드
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight,
-                  colors: [Color(0xF7FFF4E2), Color(0xF2F7E2C8)]),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Stack(children: [
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(_dateLabel(), style: const TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 11, color: Color(0x993C2D1E))),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _textCtrl,
-                    maxLength: 100,
-                    maxLines: 4,
-                    style: const TextStyle(fontFamily: 'GowunBatangWish', fontSize: 17, height: 1.65, color: Color(0xFF4A2A1C)),
-                    decoration: const InputDecoration(border: InputBorder.none, hintText: '이곳에 소원을 적어주세요', counterStyle: TextStyle(color: Color(0x663C2D1E))),
-                  ),
-                ]),
-                Positioned(right: 0, top: 0, child: Transform.rotate(angle: -6 * 3.14159 / 180,
-                  child: Container(width: 34, height: 34, alignment: Alignment.center,
-                    decoration: BoxDecoration(color: const Color(0xFFC94A3B), borderRadius: BorderRadius.circular(6)),
-                    child: const Text('願', style: TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 18, color: Color(0xFFFFF9E8)))))),
+    final canSubmit = _textCtrl.text.trim().isNotEmpty && _char != null && _sealUntil != null && !_submitting;
+    return Theme(
+      data: wrThemeData(),
+      child: Scaffold(
+        backgroundColor: WrC.bg2,
+        body: Stack(fit: StackFit.expand, children: [
+          ImageFiltered(
+            imageFilter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+            child: ColorFiltered(
+              colorFilter: const ColorFilter.matrix([
+                .45, 0, 0, 0, 0, //
+                0, .45, 0, 0, 0, //
+                0, 0, .45, 0, 0, //
+                0, 0, 0, 1, 0,
               ]),
+              child: Image.asset('assets/wishroom/room-main.jpg', fit: BoxFit.cover),
             ),
-            if (_piiWarning) Padding(padding: const EdgeInsets.only(top: 10), child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: const Color(0x33C94A3B), borderRadius: BorderRadius.circular(12)),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('개인정보로 보일 수 있는 내용이 담겨 있어요', style: TextStyle(color: c.fg, fontSize: 13)),
-                const SizedBox(height: 8),
-                Row(children: [
-                  TextButton(onPressed: () => setState(() => _piiWarning = false), child: const Text('고쳐 쓸게요')),
-                  const SizedBox(width: 8),
-                  TextButton(onPressed: () => _submit(force: true), child: const Text('그대로 담기')),
-                ]),
-              ]),
-            )),
-            const SizedBox(height: 24),
-            Text('수호자 선택', style: WrType.h3(c.fg)),
-            const SizedBox(height: 10),
-            SizedBox(height: 120, child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: _myChars.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 10),
-              itemBuilder: (_, i) {
-                final ch = _myChars[i];
-                final sel = _char == ch.id;
-                return GestureDetector(onTap: () => setState(() => _char = ch.id), child: Container(
-                  width: 96,
-                  decoration: BoxDecoration(
-                    color: sel ? c.card : Colors.transparent,
-                    border: Border.all(color: sel ? c.accent : c.line, width: sel ? 2 : 1),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  padding: const EdgeInsets.all(8),
-                  child: Column(children: [
-                    Expanded(child: Image.asset(cat.charImage(ch.id, WrTheme.free), fit: BoxFit.contain)),
-                    const SizedBox(height: 4),
-                    Text(ch.name, style: TextStyle(color: c.fg, fontSize: 12)),
+          ),
+          SafeArea(
+            child: Stack(children: [
+              SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(18, 20, 18, 120),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    IconButton(onPressed: () => Navigator.of(context).maybePop(), icon: Icon(Icons.close, color: WrC.fg)),
                   ]),
-                ));
-              },
-            )),
-            const SizedBox(height: 22),
-            Text('테마', style: WrType.h3(c.fg)),
-            const SizedBox(height: 10),
-            Wrap(spacing: 8, runSpacing: 8, children: cat.themes.map((t) {
-              final id = t['id'] as String;
-              final sel = _theme.name == id;
-              return GestureDetector(onTap: () => setState(() => _theme = WrTheme.values.byName(id)), child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(color: sel ? c.accent : c.card, borderRadius: BorderRadius.circular(999)),
-                child: Text('${t['glyph']} ${t['label']}', style: TextStyle(color: sel ? Colors.white : c.fg, fontSize: 13)),
-              ));
-            }).toList()),
-            const SizedBox(height: 22),
-            Text('소원 빛깔', style: WrType.h3(c.fg)),
-            const SizedBox(height: 10),
-            Wrap(spacing: 8, runSpacing: 8, children: cat.wishColors.map((w) {
-              final id = w['id'] as String;
-              final sel = _wishColor == id;
-              return GestureDetector(onTap: () => setState(() => _wishColor = id), child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: sel ? _hex(w['color'] as String) : c.card,
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: sel ? _hex(w['deep'] as String) : c.line),
+                  Text(hasHistory ? '새로운 마음을\n담아볼까요' : '소원을 담을\n준비가 되셨나요', style: WrF.display(26, height: 1.3)),
+                  const SizedBox(height: 18),
+                  // 한지 카드
+                  Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: WrDeco.hanji,
+                    child: Stack(children: [
+                      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text(_dateLabel(), style: const TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 11, color: Color(0x993C2D1E))),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _textCtrl,
+                          maxLength: 100,
+                          maxLines: 4,
+                          onChanged: (_) => setState(() {}),
+                          style: const TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 17, height: 1.65, color: Color(0xFF4A2A1C)),
+                          decoration: const InputDecoration(border: InputBorder.none, hintText: '이곳에 소원을 적어주세요', counterStyle: TextStyle(color: Color(0x663C2D1E))),
+                        ),
+                      ]),
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        child: Transform.rotate(
+                          angle: -6 * 3.14159 / 180,
+                          child: const WrSealGlyph(glyph: '願'),
+                        ),
+                      ),
+                    ]),
+                  ),
+                  if (_piiWarning)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 14),
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: WrDeco.card.copyWith(border: Border.all(color: WrC.blossom)),
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text('개인정보로 보일 수 있는 내용이 담겨 있어요', style: WrF.body(13, w: FontWeight.w700)),
+                          const SizedBox(height: 4),
+                          Text('공개된 소원방에서는 다른 분들이 볼 수 있어요.', style: WrF.body(12, color: WrC.muted)),
+                          const SizedBox(height: 10),
+                          Row(children: [
+                            _smallDarkBtn('고쳐 쓸게요', () => setState(() => _piiWarning = false)),
+                            const SizedBox(width: 8),
+                            _smallPinkBtn('그대로 담기', () => _submit(force: true)),
+                          ]),
+                        ]),
+                      ),
+                    ),
+                  _sec('수호자 선택'),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    height: 120,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _myChars.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 10),
+                      itemBuilder: (_, i) {
+                        final ch = _myChars[i];
+                        final sel = _char == ch.id;
+                        return GestureDetector(
+                          onTap: () => setState(() => _char = ch.id),
+                          child: Container(
+                            width: 96,
+                            decoration: BoxDecoration(
+                              color: sel ? WrC.card : Colors.transparent,
+                              border: Border.all(color: sel ? WrC.blossom2 : WrC.line, width: sel ? 2 : 1),
+                              borderRadius: BorderRadius.circular(14),
+                              boxShadow: sel ? [const BoxShadow(color: WrC.blossomShadow, blurRadius: 18)] : null,
+                            ),
+                            padding: const EdgeInsets.all(8),
+                            child: Column(children: [
+                              Expanded(child: Image.asset(cat.charImage(ch.id, _theme), fit: BoxFit.contain)),
+                              const SizedBox(height: 4),
+                              Text(ch.name, style: WrF.body(12, w: FontWeight.w700)),
+                            ]),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  _sec('소원방 테마'),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: cat.themes.map((t) {
+                      final id = t['id'] as String;
+                      final sel = _theme.name == id;
+                      return GestureDetector(
+                        onTap: () => setState(() => _theme = WrTheme.values.byName(id)),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: sel ? WrDeco.chipOn : WrDeco.chip,
+                          child: Text('${t['glyph']} ${t['label']}', style: WrF.body(13, w: FontWeight.w700, color: sel ? Colors.white : WrC.fg)),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  _sec('소원 빛깔'),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: cat.wishColors.map((w) {
+                      final id = w['id'] as String;
+                      final sel = _wishColor == id;
+                      return GestureDetector(
+                        onTap: () => setState(() => _wishColor = id),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: sel ? _hex(w['color'] as String) : WrC.card,
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(color: sel ? _hex(w['deep'] as String) : WrC.line),
+                          ),
+                          child: Text('${w['hanja']} ${w['label']}', style: WrF.body(12, w: FontWeight.w700, color: sel ? const Color(0xFF2A1F14) : WrC.fg)),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  _sec('종이'),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: cat.papers.map((pp) {
+                      final id = pp['id'] as String;
+                      final sel = _paper == id;
+                      final bg = (pp['bg'] as List).cast<String>();
+                      return GestureDetector(
+                        onTap: () => setState(() => _paper = id),
+                        child: Container(
+                          width: 46,
+                          height: 46,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(colors: [_hex(bg[0]), _hex(bg[1])]),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: sel ? WrC.blossom2 : Colors.transparent, width: 2),
+                            boxShadow: sel ? [const BoxShadow(color: WrC.blossomShadow, blurRadius: 12)] : null,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  // [CHANGELOG §2 봉인일 선택] SealGuideCard + SealDatePicker 1:1 재현
+                  _sec('봉인일 선택'),
+                  const SizedBox(height: 10),
+                  WrSealDatePicker(value: _sealUntil, onChange: (d) => setState(() => _sealUntil = d)),
+                  _sec('공개 범위'),
+                  const SizedBox(height: 10),
+                  Row(children: [
+                    _seg('모두에게', Visibility.PUBLIC),
+                    const SizedBox(width: 6),
+                    _seg('링크로만', Visibility.LINK),
+                    const SizedBox(width: 6),
+                    _seg('나만 보기', Visibility.PRIVATE),
+                  ]),
+                  const SizedBox(height: 8),
+                  Text(_visibilityDesc(_visibility), style: WrF.body(12, color: WrC.muted, height: 1.6)),
+                ]),
+              ),
+              // CTA — 하단 고정, 핑크 그라디언트 버튼(WrDeco.btnPink), 상태에 따라 문구가 바뀐다.
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(18, 20, 18, 16),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Colors.transparent, Color(0xF2100610)],
+                      stops: [0, .4],
+                    ),
+                  ),
+                  child: GestureDetector(
+                    onTap: canSubmit ? () => setState(() => _asking = true) : null,
+                    child: Opacity(
+                      opacity: canSubmit ? 1 : .45,
+                      child: Container(
+                        height: WrSize.btnH,
+                        alignment: Alignment.center,
+                        decoration: WrDeco.btnPink,
+                        child: _submitting
+                            ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : Text(_ctaLabel(), style: WrF.body(WrSize.btnFont, w: FontWeight.w700, color: Colors.white)),
+                      ),
+                    ),
+                  ),
                 ),
-                child: Text('${w['hanja']} ${w['label']}', style: TextStyle(color: sel ? const Color(0xFF2A1F14) : c.fg, fontSize: 12)),
-              ));
-            }).toList()),
-            const SizedBox(height: 22),
-            Text('종이', style: WrType.h3(c.fg)),
-            const SizedBox(height: 10),
-            Wrap(spacing: 8, runSpacing: 8, children: cat.papers.map((pp) {
-              final id = pp['id'] as String;
-              final sel = _paper == id;
-              final bg = (pp['bg'] as List).cast<String>();
-              return GestureDetector(onTap: () => setState(() => _paper = id), child: Container(
-                width: 46, height: 46,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [_hex(bg[0]), _hex(bg[1])]),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: sel ? c.accent : Colors.transparent, width: 2),
+              ),
+              if (_asking)
+                WrSealConfirm(
+                  date: _sealUntil!,
+                  busy: _submitting,
+                  onCancel: () => setState(() => _asking = false),
+                  onOk: () => _submit(),
                 ),
-              ));
-            }).toList()),
-            const SizedBox(height: 22),
-            Text('공개 범위', style: WrType.h3(c.fg)),
-            const SizedBox(height: 10),
-            Row(children: [
-              _seg('모두에게', Visibility.PUBLIC, c),
-              const SizedBox(width: 6),
-              _seg('링크로만', Visibility.LINK, c),
-              const SizedBox(width: 6),
-              _seg('나만 보기', Visibility.PRIVATE, c),
             ]),
-            const SizedBox(height: 32),
-            SizedBox(width: double.infinity, height: 56, child: ElevatedButton(
-              onPressed: _submitting || _char == null ? null : () => _submit(),
-              style: ElevatedButton.styleFrom(backgroundColor: c.accent, disabledBackgroundColor: c.accent.withValues(alpha: .4),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-              child: _submitting
-                  ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Text('🕯 촛불에 봉인하고 소원방 만들기', style: TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 16, color: Colors.white)),
-            )),
-          ]),
-        )),
-      ]),
-    ));
+          ),
+        ]),
+      ),
+    );
   }
 
-  Widget _seg(String label, Visibility v, WrColors c) {
-    final sel = _visibility == v;
-    return Expanded(child: GestureDetector(onTap: () => setState(() => _visibility = v), child: Container(
-      height: 40, alignment: Alignment.center,
-      decoration: BoxDecoration(color: sel ? c.accent : c.card, borderRadius: BorderRadius.circular(12)),
-      child: Text(label, style: TextStyle(color: sel ? Colors.white : c.fg, fontSize: 13)),
-    )));
+  String _ctaLabel() {
+    if (_textCtrl.text.trim().isEmpty) return '소원을 먼저 적어주세요';
+    if (_sealUntil == null) return '봉인 날짜를 골라주세요';
+    if (_char == null) return '수호자를 골라주세요';
+    return '🔐 소원 봉인하기';
   }
+
+  Widget _sec(String label) => Padding(
+        padding: const EdgeInsets.only(top: 22, bottom: 0),
+        child: Text(label, style: WrF.display(16)),
+      );
+
+  Widget _seg(String label, Visibility v) {
+    final sel = _visibility == v;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _visibility = v),
+        child: Container(
+          height: WrSize.tabH,
+          alignment: Alignment.center,
+          decoration: sel ? WrDeco.tabOn : BoxDecoration(borderRadius: BorderRadius.circular(WrR.tab), color: WrC.chipBg),
+          child: Text(label, style: WrF.body(WrSize.tabFont, w: FontWeight.w700, color: sel ? Colors.white : WrC.muted)),
+        ),
+      ),
+    );
+  }
+
+  String _visibilityDesc(Visibility v) {
+    switch (v) {
+      case Visibility.PUBLIC:
+        return '모두의 소원방에 보여요. 누구나 응원하고 복주머니를 보낼 수 있어요.';
+      case Visibility.LINK:
+        return '모두의 소원방에는 보이지 않아요. 소원방을 만든 뒤 공유 버튼으로 링크를 보내면, 받은 분만 들어와 응원할 수 있어요.';
+      case Visibility.PRIVATE:
+        return '나만 볼 수 있어요. 응원이나 복주머니는 받을 수 없어요.';
+    }
+  }
+
+  Widget _smallDarkBtn(String label, VoidCallback onTap) => Expanded(
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(height: WrSize.btnSmH, alignment: Alignment.center, decoration: WrDeco.btnDark, child: Text(label, style: WrF.body(WrSize.btnSmFont, w: FontWeight.w700))),
+        ),
+      );
+
+  Widget _smallPinkBtn(String label, VoidCallback onTap) => Expanded(
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(height: WrSize.btnSmH, alignment: Alignment.center, decoration: WrDeco.btnPink, child: Text(label, style: WrF.body(WrSize.btnSmFont, w: FontWeight.w700, color: Colors.white))),
+        ),
+      );
 
   String _dateLabel() {
     final now = DateTime.now();
     return '${now.year}. ${now.month}. ${now.day}';
   }
+
+  String _fmtIso(DateTime d) => '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 }
 
 Color _hex(String h) => Color(int.parse('FF${h.replaceFirst('#', '')}', radix: 16));
+
+/// 한지 카드 우상단 願 인장 — WrDeco.seal 1:1.
+class WrSealGlyph extends StatelessWidget {
+  const WrSealGlyph({super.key, required this.glyph});
+  final String glyph;
+  @override
+  Widget build(BuildContext context) => Container(
+        width: WrSize.sealBox,
+        height: WrSize.sealBox,
+        alignment: Alignment.center,
+        decoration: WrDeco.seal,
+        child: Text(glyph, style: WrF.display(18, color: const Color(0xFFFFF9E8))),
+      );
+}
+
+/// app2/capsule2.jsx SealGuideCard — 접고 펼 수 있는 "소원 봉인이란" 안내 카드.
+/// 접힌 상태(기본)에서는 작은 pill 버튼만 보이고, 탭하면 4단계 설명이 펼쳐진다.
+class WrSealGuideCard extends StatefulWidget {
+  const WrSealGuideCard({super.key});
+  @override
+  State<WrSealGuideCard> createState() => _WrSealGuideCardState();
+}
+
+class _WrSealGuideCardState extends State<WrSealGuideCard> {
+  bool _open = false;
+
+  static const _steps = [
+    ('✍', '소원 적기', '마음속 바람을 두루마리에 적어요'),
+    ('📅', '날짜 고르기', '내일부터 3년 안, 간직할 날을 정해요'),
+    ('🔐', '봉인', '그날까지 소원을 조용히 맡겨둬요'),
+    ('🎁', '봉인이 풀리는 날', '알림이 오면 두루마리를 펼쳐요'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_open) {
+      return GestureDetector(
+        onTap: () => setState(() => _open = true),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(6, 5, 11, 5),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            color: const Color(0x1AFFDC96),
+            border: Border.all(color: const Color(0x59FFDC96)),
+          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              width: 16,
+              height: 16,
+              alignment: Alignment.center,
+              decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xEBF2628F)),
+              child: Text('?', style: WrF.display(10, color: Colors.white)),
+            ),
+            const SizedBox(width: 5),
+            Text('소원 봉인이란', style: WrF.body(11.5, w: FontWeight.w700, color: const Color(0xFFFFE6B8))),
+          ]),
+        ),
+      );
+    }
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0x47FFDC96)),
+        gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0x14FFDC96), Color(0x0FFF96BE)]),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        GestureDetector(
+          onTap: () => setState(() => _open = false),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            child: Row(children: [
+              Text('SEAL · 소원 봉인이란', style: WrF.mono(size: 10, color: const Color(0xFFFFE08A))),
+              const Spacer(),
+              Container(width: 22, height: 22, alignment: Alignment.center, decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0x40000000)),
+                  child: Text('✕', style: WrF.body(11, color: WrC.muted))),
+            ]),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            RichText(
+              text: TextSpan(style: WrF.body(13.5, height: 1.7), children: [
+                const TextSpan(text: '지금의 소원을 '),
+                TextSpan(text: '미래의 나에게', style: WrF.body(13.5, w: FontWeight.w700, color: const Color(0xFFFFE08A))),
+                const TextSpan(text: ' 맡겨두는 거예요.\n봉인한 날이 오면, 그때의 마음을 다시 꺼내볼 수 있어요.'),
+              ]),
+            ),
+            const SizedBox(height: 12),
+            for (final s in _steps)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(children: [
+                  Container(
+                    width: 27,
+                    height: 27,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFF2A1020), border: Border.all(color: const Color(0x73FFDC96))),
+                    child: Text(s.$1, style: const TextStyle(fontSize: 13)),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(s.$2, style: WrF.body(12.5, w: FontWeight.w700)),
+                      Text(s.$3, style: WrF.body(11.5, color: WrC.muted)),
+                    ]),
+                  ),
+                ]),
+              ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0x59FFDC96))),
+              child: Text(
+                '· 기다리는 동안에도 촛불을 밝히고, 정성을 들이고, 방을 꾸밀 수 있어요.\n'
+                '· 봉인 날짜는 한 번 정하면 바꿀 수 없어요. 천천히 골라주세요.\n'
+                '· 그전에 이루어졌다면 언제든 "소원이 이루어졌어요"를 누를 수 있어요.',
+                style: WrF.body(11.5, color: const Color(0xD9FFF0DC), height: 1.6),
+              ),
+            ),
+          ]),
+        ),
+      ]),
+    );
+  }
+}
+
+/// app2/capsule2.jsx SealDatePicker — 네이티브 날짜 선택 + 100일/1년/2년/3년 빠른 선택.
+class WrSealDatePicker extends StatelessWidget {
+  const WrSealDatePicker({super.key, required this.value, required this.onChange});
+  final DateTime? value;
+  final ValueChanged<DateTime> onChange;
+
+  DateTime get _today => DateTime.now();
+  DateTime get _min => DateTime(_today.year, _today.month, _today.day).add(const Duration(days: 1));
+  DateTime get _max => DateTime(_today.year + 3, _today.month, _today.day);
+
+  Future<void> _openPicker(BuildContext context) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: value ?? _min,
+      firstDate: _min,
+      lastDate: _max,
+      helpText: '봉인 날짜 선택',
+    );
+    if (picked != null) onChange(picked);
+  }
+
+  void _preset(int days, int years) {
+    final base = DateTime(_today.year, _today.month, _today.day);
+    onChange(years > 0 ? DateTime(base.year + years, base.month, base.day) : base.add(Duration(days: days)));
+  }
+
+  int get _left => value == null ? 0 : value!.difference(DateTime(_today.year, _today.month, _today.day)).inDays;
+
+  String _fmtK(DateTime d) => '${d.year}년 ${d.month}월 ${d.day}일';
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const WrSealGuideCard(),
+      const SizedBox(height: 14),
+      Text('🔐 이 소원을 언제까지 간직할까요?', style: WrF.body(14, w: FontWeight.w700)),
+      const SizedBox(height: 3),
+      Text('내일부터 3년 안에서 고를 수 있어요', style: WrF.body(11.5, color: WrC.muted)),
+      const SizedBox(height: 12),
+      GestureDetector(
+        onTap: () => _openPicker(context),
+        child: Container(
+          height: 54,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: value != null
+              ? WrDeco.card.copyWith(border: Border.all(color: const Color(0x99FFDC96)), color: const Color(0x14FFDC96))
+              : WrDeco.card,
+          child: Row(children: [
+            const Text('📅', style: TextStyle(fontSize: 18)),
+            const SizedBox(width: 10),
+            Expanded(child: Text(value != null ? _fmtK(value!) : '봉인 날짜 선택', style: WrF.body(15, w: FontWeight.w700, color: value != null ? WrC.fg : WrC.muted))),
+            Text(value != null ? '바꾸기' : '날짜 직접 선택', style: WrF.mono(size: 10, color: WrC.muted)),
+          ]),
+        ),
+      ),
+      const SizedBox(height: 8),
+      Row(children: [
+        _presetChip('100일', () => _preset(100, 0)),
+        const SizedBox(width: 6),
+        _presetChip('1년', () => _preset(0, 1)),
+        const SizedBox(width: 6),
+        _presetChip('2년', () => _preset(0, 2)),
+        const SizedBox(width: 6),
+        _presetChip('3년', () => _preset(0, 3)),
+      ]),
+      if (value != null)
+        Container(
+          margin: const EdgeInsets.only(top: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0x59FFDC96)),
+            gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0x1FFFDC96), Color(0x14FF96BE)]),
+          ),
+          child: Row(children: [
+            Expanded(
+              child: RichText(
+                text: TextSpan(style: WrF.body(13.5, height: 1.55), children: [
+                  const TextSpan(text: '✨ '),
+                  TextSpan(text: _fmtK(value!), style: WrF.body(13.5, w: FontWeight.w700, color: const Color(0xFFFFE08A))),
+                  const TextSpan(text: '까지\n소원을 봉인합니다.'),
+                ]),
+              ),
+            ),
+            Text('D-$_left', style: WrF.display(24, color: const Color(0xFFFFE08A))),
+          ]),
+        ),
+    ]);
+  }
+
+  Widget _presetChip(String label, VoidCallback onTap) => Expanded(
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(height: 34, alignment: Alignment.center, decoration: WrDeco.chip, child: Text(label, style: WrF.body(12, w: FontWeight.w700, color: WrC.muted))),
+        ),
+      );
+}
+
+/// app2/capsule2.jsx SealConfirm — dim 오버레이 + "이 소원을 봉인할까요?" 확인창.
+class WrSealConfirm extends StatelessWidget {
+  const WrSealConfirm({super.key, required this.date, required this.onCancel, required this.onOk, required this.busy});
+  final DateTime date;
+  final VoidCallback onCancel, onOk;
+  final bool busy;
+
+  @override
+  Widget build(BuildContext context) {
+    final left = date.difference(DateTime.now()).inDays + 1;
+    return Stack(children: [
+      GestureDetector(
+        onTap: onCancel,
+        child: Container(color: const Color(0x80080308)),
+      ),
+      Center(
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 28),
+          padding: const EdgeInsets.fromLTRB(20, 26, 20, 18),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: const Color(0x4DFFC8AA)),
+            gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF3A1630), Color(0xFF1E0A16)]),
+            boxShadow: const [BoxShadow(color: Color(0x99000000), blurRadius: 50, offset: Offset(0, 20)), BoxShadow(color: Color(0x26FFBE8C), blurRadius: 40)],
+          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Text('🔐', style: TextStyle(fontSize: 34)),
+            const SizedBox(height: 10),
+            Text('이 소원을 봉인할까요?', style: WrF.display(19), textAlign: TextAlign.center),
+            const SizedBox(height: 10),
+            Text('봉인 날짜가 되면\n다시 소원을 확인할 수 있습니다.', textAlign: TextAlign.center, style: WrF.body(13, color: WrC.muted, height: 1.65)),
+            const SizedBox(height: 12),
+            Text('${date.year}년 ${date.month}월 ${date.day}일 · D-$left', style: WrF.body(12.5, w: FontWeight.w700, color: const Color(0xFFFFE08A))),
+            const SizedBox(height: 8),
+            Text('봉인 날짜는 나중에 바꿀 수 없어요', style: WrF.body(11, color: WrC.muted)),
+            const SizedBox(height: 18),
+            Row(children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: onCancel,
+                  child: Container(height: 48, alignment: Alignment.center, decoration: WrDeco.btnDark, child: Text('취소', style: WrF.body(15, w: FontWeight.w700))),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: GestureDetector(
+                  onTap: busy ? null : onOk,
+                  child: Opacity(
+                    opacity: busy ? .6 : 1,
+                    child: Container(
+                      height: 48,
+                      alignment: Alignment.center,
+                      decoration: WrDeco.btnPink,
+                      child: busy
+                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : Text('봉인하기', style: WrF.body(15, w: FontWeight.w700, color: Colors.white)),
+                    ),
+                  ),
+                ),
+              ),
+            ]),
+          ]),
+        ),
+      ),
+    ]);
+  }
+}
