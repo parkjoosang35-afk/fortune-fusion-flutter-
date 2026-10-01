@@ -38,28 +38,25 @@ class _VaultScreenState extends State<VaultScreen> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
-    // [버그수정] Theme(...) 적용 전 context에는 WrColors extension이 없어
-    // context.wr(null-check)가 터진다. midnight 고정이므로 상수를 직접 참조.
-    const c = WrColors.midnight;
-    return Theme(data: wrTheme(WrPalette.midnight), child: Scaffold(
-      backgroundColor: c.bg2,
+    return Theme(data: wrThemeData(), child: Scaffold(
+      backgroundColor: WrC.bg2,
       body: SafeArea(bottom: false, child: Column(children: [
         Padding(padding: const EdgeInsets.fromLTRB(16, 10, 16, 0), child: Row(children: [
-          Text('보관함', style: WrType.h1(c.fg)),
+          Text('보관함', style: WrF.display(22)),
           const Spacer(),
           GestureDetector(
             onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CharacterShopScreen())),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(color: c.card, borderRadius: BorderRadius.circular(999), border: Border.all(color: c.line)),
-              child: Text('캐릭터', style: TextStyle(color: c.fg, fontSize: 12)),
+              decoration: BoxDecoration(color: WrC.card, borderRadius: BorderRadius.circular(999), border: Border.all(color: WrC.line)),
+              child: Text('캐릭터', style: WrF.body(12, color: WrC.fg)),
             ),
           ),
         ])),
         TabBar(
           controller: _tabs,
-          labelColor: c.fg, unselectedLabelColor: c.muted,
-          indicatorColor: c.accent,
+          labelColor: WrC.fg, unselectedLabelColor: WrC.muted,
+          indicatorColor: WrC.blossom,
           labelStyle: const TextStyle(fontSize: 13),
           tabs: const [Tab(text: '소원 기록관'), Tab(text: '복주머니'), Tab(text: '응원 보상')],
         ),
@@ -84,7 +81,6 @@ class _ArchiveTabState extends State<_ArchiveTab> {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.wr;
     return Consumer<WishRoomProvider>(builder: (context, p, __) {
       final rooms = p.archiveRooms;
       final ongoing = rooms.where((r) => r.status != RoomStatus.SEALED && r.status != RoomStatus.ARCHIVED).toList();
@@ -92,9 +88,9 @@ class _ArchiveTabState extends State<_ArchiveTab> {
       final list = _ongoing ? ongoing : done;
       return RefreshIndicator(onRefresh: () => p.loadArchive(), child: CustomScrollView(slivers: [
         SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.fromLTRB(16, 12, 16, 8), child: Row(children: [
-          _chip('진행 중 (${ongoing.length})', true, c),
+          _chip('진행 중 (${ongoing.length})', true),
           const SizedBox(width: 8),
-          _chip('이루어진 소원 (${done.length})', false, c),
+          _chip('이루어진 소원 (${done.length})', false),
         ]))),
         SliverPadding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 24), sliver: SliverGrid(
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: .74),
@@ -102,7 +98,7 @@ class _ArchiveTabState extends State<_ArchiveTab> {
             if (i == list.length) {
               return GestureDetector(
                 onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ComposeScreen())),
-                child: DottedBox(c: c),
+                child: const DottedBox(),
               );
             }
             final room = list[i];
@@ -113,12 +109,12 @@ class _ArchiveTabState extends State<_ArchiveTab> {
     });
   }
 
-  Widget _chip(String label, bool ongoing, WrColors c) {
+  Widget _chip(String label, bool ongoing) {
     final sel = _ongoing == ongoing;
     return GestureDetector(onTap: () => setState(() => _ongoing = ongoing), child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(color: sel ? c.accent : c.card, borderRadius: BorderRadius.circular(999)),
-      child: Text(label, style: TextStyle(color: sel ? Colors.white : c.fg, fontSize: 12)),
+      decoration: sel ? WrDeco.chipOn : WrDeco.chip,
+      child: Text(label, style: WrF.body(12, w: FontWeight.w700, color: sel ? Colors.white : WrC.fg)),
     ));
   }
 
@@ -132,40 +128,38 @@ class _ArchiveCard extends StatelessWidget {
   final WishRoom room; final VoidCallback onTap;
   @override
   Widget build(BuildContext context) {
-    final c = context.wr;
     final finished = room.status == RoomStatus.SEALED || room.status == RoomStatus.ARCHIVED;
     return GestureDetector(onTap: onTap, child: Container(
-      decoration: BoxDecoration(color: c.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: c.line)),
+      decoration: BoxDecoration(color: WrC.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: WrC.line)),
       padding: const EdgeInsets.all(10),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Expanded(child: Stack(children: [
           Positioned.fill(child: ClipRRect(borderRadius: BorderRadius.circular(10),
-            child: ColoredBox(color: c.bg1, child: const Center(child: Icon(Icons.local_fire_department, color: Color(0x33FFFFFF), size: 36))))),
+            child: ColoredBox(color: WrC.bg1, child: const Center(child: Icon(Icons.local_fire_department, color: Color(0x33FFFFFF), size: 36))))),
           if (finished) Positioned(right: 4, top: 4, child: Transform.rotate(angle: -6 * 3.14159 / 180, child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(color: const Color(0xFFC94A3B), borderRadius: BorderRadius.circular(6)),
             child: const Text('成 완성', style: TextStyle(color: Color(0xFFFFF9E8), fontSize: 10, fontWeight: FontWeight.w700))))),
         ])),
         const SizedBox(height: 6),
-        Text(room.text, style: TextStyle(color: c.fg, fontSize: 12), maxLines: 2, overflow: TextOverflow.ellipsis),
+        Text(room.text, style: WrF.body(12, color: WrC.fg), maxLines: 2, overflow: TextOverflow.ellipsis),
         const SizedBox(height: 4),
-        Text('${room.daysLit}일째 · Lv.${room.level}', style: TextStyle(color: c.muted, fontSize: 10)),
+        Text('${room.daysLit}일째 · Lv.${room.level}', style: WrF.body(10, color: WrC.muted)),
       ]),
     ));
   }
 }
 
 class DottedBox extends StatelessWidget {
-  const DottedBox({super.key, required this.c});
-  final WrColors c;
+  const DottedBox({super.key});
   @override
   Widget build(BuildContext context) => Container(
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), border: Border.all(color: c.line, width: 1.4)),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), border: Border.all(color: WrC.line, width: 1.4)),
         alignment: Alignment.center,
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.add, color: c.muted),
+          const Icon(Icons.add, color: WrC.muted),
           const SizedBox(height: 6),
-          Text('새로운 소원방\n만들기', textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 12)),
+          Text('새로운 소원방\n만들기', textAlign: TextAlign.center, style: WrF.body(12, color: WrC.muted)),
         ]),
       );
 }
@@ -259,7 +253,6 @@ class _PouchTabState extends State<_PouchTab> {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.wr;
     final cat = WrCatalog.I;
     return Consumer<WishRoomProvider>(builder: (context, p, __) {
       final me = p.me;
@@ -267,16 +260,16 @@ class _PouchTabState extends State<_PouchTab> {
       return RefreshIndicator(onRefresh: () => p.loadLedger(), child: ListView(padding: const EdgeInsets.fromLTRB(16, 12, 16, 32), children: [
         Container(
           padding: const EdgeInsets.symmetric(vertical: 22),
-          decoration: BoxDecoration(color: c.card, borderRadius: BorderRadius.circular(18), border: Border.all(color: c.line)),
+          decoration: BoxDecoration(color: WrC.card, borderRadius: BorderRadius.circular(18), border: Border.all(color: WrC.line)),
           child: Column(children: [
             const Text('💰', style: TextStyle(fontSize: 42)),
             const SizedBox(height: 8),
-            Text('${me?.pouch ?? 0}', style: TextStyle(color: c.glow, fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 32)),
-            Text('복주머니', style: TextStyle(color: c.muted, fontSize: 12)),
+            Text('${me?.pouch ?? 0}', style: WrF.display(32, color: WrC.glow)),
+            Text('복주머니', style: WrF.body(12, color: WrC.muted)),
           ]),
         ),
         const SizedBox(height: 18),
-        Text('복주머니 모으기', style: WrType.h3(c.fg)),
+        Text('복주머니 모으기', style: WrF.display(16)),
         const SizedBox(height: 10),
         GridView.builder(
           shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
@@ -309,32 +302,32 @@ class _PouchTabState extends State<_PouchTab> {
           },
         ),
         const SizedBox(height: 22),
-        Text('사용처', style: WrType.h3(c.fg)),
+        Text('사용처', style: WrF.display(16)),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(color: c.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: c.line)),
+          decoration: BoxDecoration(color: WrC.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: WrC.line)),
           child: Column(children: [
-            _useRow('캐릭터 함께하기', '80 ~ 500', c),
-            _useRow('꾸미기 아이템', '아이템별 상이', c),
-            _useRow('다른 소원방에 선물', '5 · 10 · 30 · 50', c),
+            _useRow('캐릭터 함께하기', '80 ~ 500'),
+            _useRow('꾸미기 아이템', '아이템별 상이'),
+            _useRow('다른 소원방에 선물', '5 · 10 · 30 · 50'),
           ]),
         ),
         const SizedBox(height: 22),
-        Text('내역', style: WrType.h3(c.fg)),
+        Text('내역', style: WrF.display(16)),
         const SizedBox(height: 8),
-        if (p.ledger.isEmpty) Padding(padding: const EdgeInsets.symmetric(vertical: 20), child: Center(child: Text('아직 내역이 없어요', style: TextStyle(color: c.muted, fontSize: 12))))
+        if (p.ledger.isEmpty) Padding(padding: const EdgeInsets.symmetric(vertical: 20), child: Center(child: Text('아직 내역이 없어요', style: WrF.body(12, color: WrC.muted))))
         else ...p.ledger.take(30).map((e) => Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: Row(children: [
-              Expanded(child: Text((e['reason'] ?? e['label'] ?? '').toString(), style: TextStyle(color: c.fg, fontSize: 12))),
-              Text('${((e['amount'] ?? 0) as num) >= 0 ? '+' : ''}${e['amount'] ?? 0}', style: TextStyle(color: ((e['amount'] ?? 0) as num) >= 0 ? c.glow : c.muted, fontSize: 12, fontWeight: FontWeight.w700)),
+              Expanded(child: Text((e['reason'] ?? e['label'] ?? '').toString(), style: WrF.body(12, color: WrC.fg))),
+              Text('${((e['amount'] ?? 0) as num) >= 0 ? '+' : ''}${e['amount'] ?? 0}', style: WrF.body(12, w: FontWeight.w700, color: ((e['amount'] ?? 0) as num) >= 0 ? WrC.glow : WrC.muted)),
             ]))),
       ]));
     });
   }
 
-  Widget _useRow(String label, String value, WrColors c) => Padding(padding: const EdgeInsets.symmetric(vertical: 4), child: Row(children: [
-        Expanded(child: Text(label, style: TextStyle(color: c.fg, fontSize: 12))),
-        Text(value, style: TextStyle(color: c.muted, fontSize: 12)),
+  Widget _useRow(String label, String value) => Padding(padding: const EdgeInsets.symmetric(vertical: 4), child: Row(children: [
+        Expanded(child: Text(label, style: WrF.body(12, color: WrC.fg))),
+        Text(value, style: WrF.body(12, color: WrC.muted)),
       ]));
 }
 
@@ -359,11 +352,10 @@ class _RewardTabState extends State<_RewardTab> {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.wr;
     final cat = WrCatalog.I;
     return Consumer<WishRoomProvider>(builder: (context, p, __) {
       final room = p.room;
-      if (room == null) return Center(child: Text('소원방이 없어요', style: TextStyle(color: c.muted)));
+      if (room == null) return Center(child: Text('소원방이 없어요', style: WrF.body(14, color: WrC.muted)));
       final rewards = cat.supportRewards;
       final serverStates = {for (final r in room.rewards ?? const <SupportRewardState>[]) r.at: r};
       final supportCount = room.supportCount;
@@ -372,15 +364,15 @@ class _RewardTabState extends State<_RewardTab> {
       return ListView(padding: const EdgeInsets.fromLTRB(16, 12, 16, 32), children: [
         Container(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: c.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: c.line)),
+          decoration: BoxDecoration(color: WrC.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: WrC.line)),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('받은 응원 $supportCount회', style: TextStyle(color: c.fg, fontSize: 15, fontWeight: FontWeight.w700)),
+            Text('받은 응원 $supportCount회', style: WrF.body(15, w: FontWeight.w700, color: WrC.fg)),
             const SizedBox(height: 10),
             ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(
-              value: progress, minHeight: 8, backgroundColor: c.bg1,
-              valueColor: AlwaysStoppedAnimation(c.accent))),
+              value: progress, minHeight: 8, backgroundColor: WrC.bg1,
+              valueColor: const AlwaysStoppedAnimation(WrC.blossom))),
             const SizedBox(height: 6),
-            if (nextAt != null) Text('다음 보상까지 ${nextAt - supportCount}회', style: TextStyle(color: c.muted, fontSize: 11)),
+            if (nextAt != null) Text('다음 보상까지 ${nextAt - supportCount}회', style: WrF.body(11, color: WrC.muted)),
           ]),
         ),
         const SizedBox(height: 16),
@@ -392,29 +384,29 @@ class _RewardTabState extends State<_RewardTab> {
           return Padding(padding: const EdgeInsets.only(bottom: 10), child: Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: c.card, borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: reached && !claimed ? c.glow : c.line, width: reached && !claimed ? 1.6 : 1),
+              color: WrC.card, borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: reached && !claimed ? WrC.glow : WrC.line, width: reached && !claimed ? 1.6 : 1),
             ),
             child: Row(children: [
               Container(width: 44, height: 44, alignment: Alignment.center,
-                decoration: BoxDecoration(color: c.bg1, borderRadius: BorderRadius.circular(12)),
+                decoration: BoxDecoration(color: WrC.bg1, borderRadius: BorderRadius.circular(12)),
                 child: Text(_rewardGlyph(r['icon'] as String), style: const TextStyle(fontSize: 20))),
               const SizedBox(width: 12),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('$at회 · ${r['reward']}', style: TextStyle(color: c.fg, fontSize: 13, fontWeight: FontWeight.w600)),
-                Text(r['desc'] as String, style: TextStyle(color: c.muted, fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text('$at회 · ${r['reward']}', style: WrF.body(13, w: FontWeight.w600, color: WrC.fg)),
+                Text(r['desc'] as String, style: WrF.body(11, color: WrC.muted), maxLines: 1, overflow: TextOverflow.ellipsis),
               ])),
               if (claimed)
                 Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(color: c.accent.withValues(alpha: .18), borderRadius: BorderRadius.circular(999), border: Border.all(color: c.glow)),
-                  child: Text('획득', style: TextStyle(color: c.glow, fontSize: 11)))
+                  decoration: BoxDecoration(color: WrC.glow.withValues(alpha: .18), borderRadius: BorderRadius.circular(999), border: Border.all(color: WrC.glow)),
+                  child: Text('획득', style: WrF.body(11, color: WrC.glow)))
               else if (reached)
                 GestureDetector(onTap: () => _claim(p, room.id, at), child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(color: c.glow, borderRadius: BorderRadius.circular(999)),
+                  decoration: BoxDecoration(color: WrC.glow, borderRadius: BorderRadius.circular(999)),
                   child: const Text('받기', style: TextStyle(color: Color(0xFF4A2A10), fontSize: 11, fontWeight: FontWeight.w700))))
               else
-                Text('$supportCount/$at', style: TextStyle(color: c.muted, fontSize: 11)),
+                Text('$supportCount/$at', style: WrF.body(11, color: WrC.muted)),
             ]),
           ));
         }),

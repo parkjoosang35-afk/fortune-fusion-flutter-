@@ -212,32 +212,28 @@ class _WelcomeScreen extends StatelessWidget {
   final VoidCallback onCompose, onExplore;
   @override
   Widget build(BuildContext context) {
-    // [버그수정] Theme(...)으로 감싸기 전에는 바깥(AppShell) 테마에 WrColors
-    // extension이 없어 context.wr가 null-check 크래시를 낸다. midnight 고정이므로
-    // 상수를 직접 참조한다.
-    const c = WrColors.midnight;
-    return Theme(data: wrTheme(WrPalette.midnight), child: Scaffold(
-      backgroundColor: c.bg2,
+    return Theme(data: wrThemeData(), child: Scaffold(
+      backgroundColor: WrC.bg2,
       body: Stack(fit: StackFit.expand, children: [
         Image.asset('assets/wishroom/splash.jpg', fit: BoxFit.cover),
         Container(color: const Color(0x8A12060E)),
         SafeArea(child: Padding(padding: const EdgeInsets.all(24), child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            ShaderMask(shaderCallback: (b) => const LinearGradient(colors: [Color(0xFFFFF6EC), Color(0xFFFFC8D8), Color(0xFFFF8FB1)]).createShader(b),
-              child: const Text('신통방통 소원방', textAlign: TextAlign.center,
-                style: TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 36, color: Colors.white, height: 1.3))),
+            ShaderMask(shaderCallback: (b) => const LinearGradient(colors: [Color(0xFFFFF6EC), Color(0xFFFFC8D8), WrC.blossom2]).createShader(b),
+              child: Text('신통방통 소원방', textAlign: TextAlign.center,
+                style: WrF.display(36, color: Colors.white, height: 1.3))),
             const SizedBox(height: 44),
-            SizedBox(width: double.infinity, height: 56, child: ElevatedButton(
-              onPressed: onCompose,
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF2628F), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-              child: const Text('✿ 첫 소원 담기', style: TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 16, color: Colors.white)),
+            SizedBox(width: double.infinity, height: WrSize.btnH, child: GestureDetector(
+              onTap: onCompose,
+              child: Container(decoration: WrDeco.btnPink, alignment: Alignment.center,
+                child: Text('✿ 첫 소원 담기', style: WrF.body(WrSize.btnFont, w: FontWeight.w700, color: Colors.white))),
             )),
             const SizedBox(height: 12),
-            SizedBox(width: double.infinity, height: 56, child: OutlinedButton(
+            SizedBox(width: double.infinity, height: WrSize.btnH, child: OutlinedButton(
               onPressed: onExplore,
-              style: OutlinedButton.styleFrom(side: BorderSide(color: c.line), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-              child: Text('다른 소원방 둘러보기', style: TextStyle(color: c.fg, fontSize: 15)),
+              style: OutlinedButton.styleFrom(side: const BorderSide(color: WrC.line), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+              child: Text('다른 소원방 둘러보기', style: WrF.body(15, color: WrC.fg)),
             )),
           ],
         ))),

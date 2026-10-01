@@ -113,11 +113,8 @@ class _OtherRoomScreenState extends State<OtherRoomScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // [버그수정] Theme(...) 적용 전 context에는 WrColors extension이 없어
-    // context.wr(null-check)가 터진다. midnight 고정이므로 상수를 직접 참조.
-    const c = WrColors.midnight;
-    return Theme(data: wrTheme(WrPalette.midnight), child: Scaffold(
-      backgroundColor: c.bg2,
+    return Theme(data: wrThemeData(), child: Scaffold(
+      backgroundColor: WrC.bg2,
       body: Consumer<WishRoomProvider>(builder: (context, p, __) {
         final room = p.viewedRoom;
         if (room == null || room.id != widget.roomId) return const Center(child: CircularProgressIndicator(color: Color(0xFFF5CF6A)));

@@ -111,11 +111,8 @@ class _CompleteScreenState extends State<CompleteScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // [버그수정] Theme(...) 적용 전 context에는 WrColors extension이 없어
-    // context.wr(null-check)가 터진다. midnight 고정이므로 상수를 직접 참조.
-    const c = WrColors.midnight;
-    return Theme(data: wrTheme(WrPalette.midnight), child: Scaffold(
-      backgroundColor: c.bg2,
+    return Theme(data: wrThemeData(), child: Scaffold(
+      backgroundColor: WrC.bg2,
       body: Consumer<WishRoomProvider>(builder: (context, p, __) {
         final room = p.room;
         if (room == null) return const Center(child: CircularProgressIndicator(color: Color(0xFFF5CF6A)));
@@ -202,13 +199,12 @@ class _SealedBody extends StatelessWidget {
   final WishRoom room;
   @override
   Widget build(BuildContext context) {
-    final c = context.wr;
     return SafeArea(child: Padding(padding: const EdgeInsets.all(24), child: Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Container(
           width: 170, height: 210,
-          decoration: BoxDecoration(color: c.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: c.line)),
+          decoration: BoxDecoration(color: WrC.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: WrC.line)),
           alignment: Alignment.center,
           child: Stack(alignment: Alignment.center, children: [
             const Icon(Icons.local_fire_department, color: Color(0x33FFFFFF), size: 56),
@@ -219,7 +215,7 @@ class _SealedBody extends StatelessWidget {
           ]),
         ),
         const SizedBox(height: 24),
-        Text('소원 기록관에\n영원히 머뭅니다', textAlign: TextAlign.center, style: WrType.h1(c.fg)),
+        Text('소원 기록관에\n영원히 머뭅니다', textAlign: TextAlign.center, style: WrF.display(22)),
         const SizedBox(height: 32),
         SizedBox(width: double.infinity, height: 54, child: ElevatedButton(
           onPressed: () => Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const WishRoomShell()), (r) => false),
@@ -229,8 +225,8 @@ class _SealedBody extends StatelessWidget {
         const SizedBox(height: 10),
         SizedBox(width: double.infinity, height: 54, child: OutlinedButton(
           onPressed: () => Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const WishRoomShell(initialIndex: 4)), (r) => false),
-          style: OutlinedButton.styleFrom(side: BorderSide(color: c.line), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-          child: Text('소원 기록관 보기', style: TextStyle(color: c.fg)),
+          style: OutlinedButton.styleFrom(side: const BorderSide(color: WrC.line), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+          child: Text('소원 기록관 보기', style: WrF.body(15, color: WrC.fg)),
         )),
       ],
     )));

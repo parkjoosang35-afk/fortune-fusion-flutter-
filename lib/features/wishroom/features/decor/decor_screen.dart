@@ -78,11 +78,8 @@ class _DecorScreenState extends State<DecorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // [버그수정] Theme(...) 적용 전 context에는 WrColors extension이 없어
-    // context.wr(null-check)가 터진다. midnight 고정이므로 상수를 직접 참조.
-    const c = WrColors.midnight;
-    return Theme(data: wrTheme(WrPalette.midnight), child: Scaffold(
-      backgroundColor: c.bg2,
+    return Theme(data: wrThemeData(), child: Scaffold(
+      backgroundColor: WrC.bg2,
       body: Consumer<WishRoomProvider>(builder: (context, p, __) {
         final room = p.room;
         if (room == null) return const Center(child: CircularProgressIndicator(color: Color(0xFFF5CF6A)));
@@ -99,7 +96,7 @@ class _DecorScreenState extends State<DecorScreen> {
             ))),
           ])),
           Expanded(child: Container(
-            decoration: BoxDecoration(color: c.bg2, borderRadius: const BorderRadius.vertical(top: Radius.circular(26))),
+            decoration: BoxDecoration(color: WrC.bg2, borderRadius: const BorderRadius.vertical(top: Radius.circular(26))),
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               SizedBox(height: 40, child: ListView(scrollDirection: Axis.horizontal, children: Slot.values.map((s) {
@@ -108,8 +105,8 @@ class _DecorScreenState extends State<DecorScreen> {
                 return Padding(padding: const EdgeInsets.only(right: 8), child: GestureDetector(
                   onTap: () => setState(() { _slot = s; _preview = null; }),
                   child: Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(color: sel ? c.accent : c.card, borderRadius: BorderRadius.circular(999)),
-                    child: Text(label, style: TextStyle(color: sel ? Colors.white : c.fg, fontSize: 12))),
+                    decoration: sel ? WrDeco.chipOn : WrDeco.chip,
+                    child: Text(label, style: WrF.body(12, w: FontWeight.w700, color: sel ? Colors.white : WrC.fg))),
                 ));
               }).toList())),
               const SizedBox(height: 12),
@@ -121,8 +118,8 @@ class _DecorScreenState extends State<DecorScreen> {
                   final equipped = room.equip.all.contains(it.id);
                   return GestureDetector(onTap: () => _onTapItem(it, room), child: Container(
                     decoration: BoxDecoration(
-                      color: c.card, borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: equipped ? c.accent : c.line, width: equipped ? 2 : 1),
+                      color: WrC.card, borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: equipped ? WrC.blossom2 : WrC.line, width: equipped ? 2 : 1),
                     ),
                     padding: const EdgeInsets.all(8),
                     child: Column(children: [
@@ -133,19 +130,19 @@ class _DecorScreenState extends State<DecorScreen> {
                           child: const Icon(Icons.check, size: 12, color: Colors.white))),
                       ])),
                       const SizedBox(height: 4),
-                      Text(it.name, style: TextStyle(color: c.fg, fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      Text(it.name, style: WrF.body(11, color: WrC.fg), maxLines: 1, overflow: TextOverflow.ellipsis),
                       Text(equipped ? '놓여 있음' : (it.owned ? '보유' : '💰${it.price ?? 0}'),
-                        style: TextStyle(color: c.glow, fontSize: 10)),
+                        style: WrF.mono(size: 10, color: WrC.glow)),
                     ]),
                   ));
                 },
               )),
               if (_preview != null) Padding(padding: const EdgeInsets.symmetric(vertical: 10), child: Row(children: [
                 Expanded(child: OutlinedButton(onPressed: () => setState(() => _preview = null),
-                  style: OutlinedButton.styleFrom(side: BorderSide(color: c.line)), child: Text('되돌리기', style: TextStyle(color: c.fg)))),
+                  style: OutlinedButton.styleFrom(side: const BorderSide(color: WrC.line)), child: Text('되돌리기', style: WrF.body(14, color: WrC.fg)))),
                 const SizedBox(width: 10),
                 Expanded(child: ElevatedButton(onPressed: () => _confirmEquip(_preview!, room),
-                  style: ElevatedButton.styleFrom(backgroundColor: c.accent),
+                  style: ElevatedButton.styleFrom(backgroundColor: WrC.blossom),
                   child: Text(_preview!.owned ? '방에 들이기' : '💰${_preview!.price ?? 0} · 방에 들이기', style: const TextStyle(color: Colors.white)))),
               ])),
             ]),

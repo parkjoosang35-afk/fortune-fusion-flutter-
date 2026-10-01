@@ -46,43 +46,40 @@ class _WrNotificationsScreenState extends State<WrNotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // [버그수정] Theme(...) 적용 전 context에는 WrColors extension이 없어
-    // context.wr(null-check)가 터진다. midnight 고정이므로 상수를 직접 참조.
-    const c = WrColors.midnight;
-    return Theme(data: wrTheme(WrPalette.midnight), child: Scaffold(
-      backgroundColor: c.bg2,
+    return Theme(data: wrThemeData(), child: Scaffold(
+      backgroundColor: WrC.bg2,
       body: Consumer<WishRoomProvider>(builder: (context, p, __) {
         final list = p.notifications.where((n) => _matches(n.type, _filter)).toList()
           ..sort((a, b) => b.at.compareTo(a.at));
         return SafeArea(bottom: false, child: Column(children: [
           Padding(padding: const EdgeInsets.fromLTRB(16, 10, 16, 6), child: Row(children: [
-            Text('알림', style: WrType.h1(c.fg)),
+            Text('알림', style: WrF.display(22)),
             const Spacer(),
             GestureDetector(
               onTap: () => p.readNotifications(),
-              child: Text('모두 읽음', style: TextStyle(color: c.muted, fontSize: 12)),
+              child: Text('모두 읽음', style: WrF.body(12, color: WrC.muted)),
             ),
           ])),
           Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: SizedBox(
             height: 36,
             child: ListView(scrollDirection: Axis.horizontal, children: [
-              _chip('전체', _NotiFilter.all, c),
-              _chip('응원', _NotiFilter.support, c),
-              _chip('복주머니', _NotiFilter.pouch, c),
-              _chip('댓글', _NotiFilter.comment, c),
-              _chip('시스템', _NotiFilter.system, c),
+              _chip('전체', _NotiFilter.all),
+              _chip('응원', _NotiFilter.support),
+              _chip('복주머니', _NotiFilter.pouch),
+              _chip('댓글', _NotiFilter.comment),
+              _chip('시스템', _NotiFilter.system),
             ]),
           )),
           const SizedBox(height: 8),
           Expanded(child: list.isEmpty
-              ? _EmptyState(c: c)
+              ? const _EmptyState()
               : RefreshIndicator(
                   onRefresh: () => p.loadNotifications(),
                   child: ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
                     itemCount: list.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (_, i) => _NotiRow(n: list[i], c: c, onTap: () => _onTapNoti(list[i])),
+                    itemBuilder: (_, i) => _NotiRow(n: list[i], onTap: () => _onTapNoti(list[i])),
                   ),
                 )),
         ]));
@@ -90,22 +87,22 @@ class _WrNotificationsScreenState extends State<WrNotificationsScreen> {
     ));
   }
 
-  Widget _chip(String label, _NotiFilter f, WrColors c) {
+  Widget _chip(String label, _NotiFilter f) {
     final sel = _filter == f;
     return Padding(padding: const EdgeInsets.only(right: 8), child: GestureDetector(
       onTap: () => setState(() => _filter = f),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(color: sel ? c.accent : c.card, borderRadius: BorderRadius.circular(999)),
-        child: Text(label, style: TextStyle(color: sel ? Colors.white : c.fg, fontSize: 12)),
+        decoration: sel ? WrDeco.chipOn : WrDeco.chip,
+        child: Text(label, style: WrF.body(12, w: FontWeight.w700, color: sel ? Colors.white : WrC.fg)),
       ),
     ));
   }
 }
 
 class _NotiRow extends StatelessWidget {
-  const _NotiRow({required this.n, required this.c, required this.onTap});
-  final WrNotification n; final WrColors c; final VoidCallback onTap;
+  const _NotiRow({required this.n, required this.onTap});
+  final WrNotification n; final VoidCallback onTap;
 
   String get _icon => switch (n.type) {
         NotiType.SUPPORT => '❤', NotiType.POUCH => '💰', NotiType.COMMENT => '💬',
@@ -128,19 +125,19 @@ class _NotiRow extends StatelessWidget {
     return GestureDetector(onTap: onTap, child: Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: n.read ? c.card : const Color(0x1AF2628F),
+        color: n.read ? WrC.card : const Color(0x1AF2628F),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: c.line),
+        border: Border.all(color: WrC.line),
       ),
       child: Row(children: [
         Container(width: 44, height: 44, alignment: Alignment.center,
-          decoration: BoxDecoration(color: c.bg1, borderRadius: BorderRadius.circular(12)),
+          decoration: BoxDecoration(color: WrC.bg1, borderRadius: BorderRadius.circular(12)),
           child: Text(_icon, style: const TextStyle(fontSize: 20))),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(n.text, style: TextStyle(color: c.fg, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis),
+          Text(n.text, style: WrF.body(13, color: WrC.fg), maxLines: 2, overflow: TextOverflow.ellipsis),
           const SizedBox(height: 4),
-          Text(_relTime(), style: TextStyle(color: c.muted, fontSize: 11)),
+          Text(_relTime(), style: WrF.body(11, color: WrC.muted)),
         ])),
         if (!n.read) Container(width: 8, height: 8, margin: const EdgeInsets.only(left: 8),
           decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFFF2628F))),
@@ -150,14 +147,13 @@ class _NotiRow extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.c});
-  final WrColors c;
+  const _EmptyState();
   @override
   Widget build(BuildContext context) => Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Text('☾', style: TextStyle(fontSize: 40, color: c.muted)),
+        Text('☾', style: TextStyle(fontSize: 40, color: WrC.muted)),
         const SizedBox(height: 12),
-        Text('아직 조용한 밤이에요', style: TextStyle(color: c.fg, fontSize: 14)),
+        Text('아직 조용한 밤이에요', style: WrF.body(14, color: WrC.fg)),
         const SizedBox(height: 4),
-        Text('소식이 오면 이곳에 머뭅니다', style: TextStyle(color: c.muted, fontSize: 12)),
+        Text('소식이 오면 이곳에 머뭅니다', style: WrF.body(12, color: WrC.muted)),
       ]));
 }

@@ -26,14 +26,11 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // [버그수정] Theme(...) 적용 전 context에는 WrColors extension이 없어
-    // context.wr(null-check)가 터진다. midnight 고정이므로 상수를 직접 참조.
-    const c = WrColors.midnight;
     final cat = WrCatalog.I;
-    return Theme(data: wrTheme(WrPalette.midnight), child: Scaffold(
-      backgroundColor: c.bg2,
-      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, title: Text('캐릭터', style: TextStyle(color: c.fg)),
-        iconTheme: IconThemeData(color: c.fg)),
+    return Theme(data: wrThemeData(), child: Scaffold(
+      backgroundColor: WrC.bg2,
+      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, title: Text('캐릭터', style: WrF.display(18)),
+        iconTheme: const IconThemeData(color: WrC.fg)),
       body: Consumer<WishRoomProvider>(builder: (context, p, __) {
         final list = p.characters.where((ch) => ch.gender == _gender).toList();
         final sel = _selected ?? (list.isNotEmpty ? list.first : null);
@@ -61,9 +58,9 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
             ]),
           ])),
           Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: Row(children: [
-            _genderTab('여자 캐릭터', 'F', c),
+            _genderTab('여자 캐릭터', 'F'),
             const SizedBox(width: 8),
-            _genderTab('남자 캐릭터', 'M', c),
+            _genderTab('남자 캐릭터', 'M'),
           ])),
           const SizedBox(height: 10),
           Expanded(child: GridView.builder(
@@ -76,8 +73,8 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
               final isSel = sel?.id == ch.id;
               return GestureDetector(onTap: () => setState(() => _selected = ch), child: Container(
                 decoration: BoxDecoration(
-                  color: c.card, borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: isSel ? c.accent : c.line, width: isSel ? 2 : 1),
+                  color: WrC.card, borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: isSel ? WrC.blossom2 : WrC.line, width: isSel ? 2 : 1),
                 ),
                 padding: const EdgeInsets.all(4),
                 child: Opacity(opacity: isOwned ? 1 : .5, child: Image.asset(cat.charImage(ch.id, WrTheme.free), fit: BoxFit.contain)),
@@ -88,7 +85,7 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
             width: double.infinity, height: 54,
             child: ElevatedButton(
               onPressed: sel == null || sel.grade == 'event' ? null : () => _onCta(sel, owned),
-              style: ElevatedButton.styleFrom(backgroundColor: owned ? c.accent : const Color(0xFFF5CF6A)),
+              style: ElevatedButton.styleFrom(backgroundColor: owned ? WrC.blossom : WrC.glow),
               child: Text(
                 sel == null ? '' : (owned ? '대표 캐릭터로 설정' : '💰${sel.price ?? 0} · 함께하기'),
                 style: TextStyle(color: owned ? Colors.white : const Color(0xFF4A2A10), fontWeight: FontWeight.w700),
@@ -107,12 +104,12 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
         child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 10)),
       );
 
-  Widget _genderTab(String label, String g, WrColors c) {
+  Widget _genderTab(String label, String g) {
     final sel = _gender == g;
     return Expanded(child: GestureDetector(onTap: () => setState(() { _gender = g; _selected = null; }), child: Container(
       height: 38, alignment: Alignment.center,
-      decoration: BoxDecoration(color: sel ? c.accent : c.card, borderRadius: BorderRadius.circular(999)),
-      child: Text(label, style: TextStyle(color: sel ? Colors.white : c.fg, fontSize: 13)),
+      decoration: sel ? WrDeco.chipOn : WrDeco.chip,
+      child: Text(label, style: WrF.body(13, w: FontWeight.w700, color: sel ? Colors.white : WrC.fg)),
     )));
   }
 
