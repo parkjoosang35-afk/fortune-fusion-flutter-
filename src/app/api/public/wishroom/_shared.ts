@@ -14,7 +14,16 @@
 // 그대로 변환하면 이 계약이 자동으로 맞춰진다.
 import { NextResponse } from "next/server";
 import type { Prisma } from "@/generated/prisma/client";
-import { WishRoomError, checkRateLimit } from "@/lib/wishroom-engine";
+import {
+  WishRoomError,
+  checkRateLimit,
+  getOwnedCharacterIds,
+  getOwnedItemIds,
+  getOwnedOutfits,
+  kstDate,
+  meView,
+  type MeRow,
+} from "@/lib/wishroom-engine";
 
 type Tx = Prisma.TransactionClient;
 
@@ -108,4 +117,67 @@ export async function getBlockedUserIds(tx: Tx, userId: number): Promise<Set<num
   blockedByMe.forEach((b) => set.add(b.blockedId));
   blockedMe.forEach((b) => set.add(b.blockerId));
   return set;
+}
+
+/**
+ * WishRoomUserState가 없으면 기본값으로 생성해 반환한다(1:1, 최초 접근 시 lazy-create).
+ * app/api.js의 `db.me`는 항상 존재하는 고정 객체였으나 실제 DB에서는 User가입 시점에
+ * 자동 생성되지 않으므로, 소원방 관련 모든 라우트가 공용으로 이 헬퍼를 거쳐야 한다.
+ */
+export async function getOrCreateUserState(tx: Tx, userId: number) {
+  let state = await tx.wishRoomUserState.findUnique({ where: { userId } });
+  if (!state) {
+    state = await tx.wishRoomUserState.create({ data: { userId } });
+  }
+  return state;
+}
+
+/**
+ * meView() 호출에 필요한 모든 연관 데이터(지갑 잔액/보유 캐릭터·아이템·의상/오늘 선물
+ * 보낸 양/안읽은 알림 수/오늘 EARN 로그)를 한 번에 모아 Me DTO를 완성한다.
+ * POST/PATCH 계열 라우트가 응답에 `me`를 포함해야 할 때 공용으로 사용.
+ */
+export async function buildMeView(tx: Tx, userId: number, nowMs: number = Date.now()) {
+  const user = await tx.user.findUnique({ where: { id: userId }, select: { nickname: true, createdAt: true } });
+  if (!user) throw new WishRoomError(404, "USER_NOT_FOUND", "사용자를 찾을 수 없어요");
+
+  const [wallet, state, ownedChars, ownedItems, ownedOutfits, unreadCount, today] = await Promise.all([
+    tx.wallet.findFirst({ where: { userId, currencyType: "POINT", deletedAt: null } }),
+    getOrCreateUserState(tx, userId),
+    getOwnedCharacterIds(tx, userId),
+    getOwnedItemIds(tx, userId),
+    getOwnedOutfits(tx, userId),
+    tx.notification.count({ where: { userId, isRead: false, deletedAt: null } }),
+    Promise.resolve(kstDate(nowMs)),
+  ]);
+
+  const giftToday = await tx.wishRoomGift.aggregate({
+    where: { senderId: userId, dateKey: today },
+    _sum: { amount: true },
+  });
+  const earnRows = await tx.wishRoomEarnLog.findMany({ where: { userId, dateKey: today }, select: { source: true, amount: true } });
+  const earnToday: Record<string, number> = {};
+  for (const row of earnRows) {
+    earnToday[row.source] = (earnToday[row.source] ?? 0) + 1; // EARN[].limit은 "횟수" 기준(app/api.js log[src.id] += 1과 동일)
+  }
+
+  const meRow: MeRow = {
+    userId,
+    nickname: user.nickname,
+    joinedAt: user.createdAt,
+    pouch: wallet?.balance ?? 0,
+    repCharCode: state.repCharCode,
+    skipIntro: state.skipIntro,
+    wallpaper: null,
+  };
+
+  return meView(meRow, {
+    ownedChars: Array.from(ownedChars),
+    ownedItems: Array.from(ownedItems),
+    ownedOutfits,
+    giftToday: giftToday._sum.amount ?? 0,
+    unreadCount,
+    earnToday,
+    nowMs,
+  });
 }

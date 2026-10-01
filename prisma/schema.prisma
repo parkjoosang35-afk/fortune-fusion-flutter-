@@ -4008,6 +4008,9 @@ model WishRoom {
   // [상태 머신 §6] DRAFT→ACTIVE→GROWING→COMPLETED→(SEALED)→ARCHIVED
   status String @default("ACTIVE")
 
+  // [신고 §15, app/api.js r.reports 포팅] 신고 누적 수. 3회 이상이면 GET /wish-rooms/explore에서 제외.
+  reportCount Int @default(0) @map("report_count")
+
   // [성장치 §6] 정성 + 응원×0.5 + 받은 복주머니×10 + 아이템 기운 보너스(서버 계산 합산)
   points        Float @default(0)
   level         Int   @default(1)
@@ -4041,6 +4044,9 @@ model WishRoom {
   capsule    String? @default("LOCKED") // LOCKED/OPENED
   outcome    String? // FULFILLED/ONGOING/REWISH (POST .../outcome)
   wishStatus String? @default("IN_PROGRESS") @map("wish_status") // IN_PROGRESS/ACHIEVED
+  // [알림 1회 트리거 플래그, app/api.js r.unsealNotified / r.decayNotified 포팅]
+  unsealNotified Boolean @default(false) @map("unseal_notified") // GET /wish-rooms/me에서 UNSEAL 알림 중복 발송 방지
+  decayNotified  Boolean @default(false) @map("decay_notified") // POST .../enter에서 STATUS(감쇠) 알림 중복 발송 방지. absentDays<4로 복귀 시 false로 리셋
 
   // [공유 S1-S2]
   shareToken String? @unique @map("share_token")
@@ -4219,6 +4225,7 @@ model WishRoomUserState {
   repCharCode        String   @default("F00") @map("rep_char_code") // 대표(장착) 캐릭터
   skipIntro          Boolean  @default(false) @map("skip_intro") // PATCH /me/settings {skipIntro}
   firstRoomIntroDone Boolean  @default(false) @map("first_room_intro_done") // §0-2 마이그레이션된 사용자도 최초 1회 풀 인트로
+  lastEnterDate      String?  @map("last_enter_date") // KST 'YYYY-MM-DD' — GET /wish-rooms/me의 introMode('short') 판정용(app/api.js db.me.lastEnterDate 포팅)
   createdAt          DateTime @default(now()) @map("created_at")
   updatedAt          DateTime @updatedAt @map("updated_at")
 

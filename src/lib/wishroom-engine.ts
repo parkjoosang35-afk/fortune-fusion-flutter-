@@ -528,3 +528,80 @@ export async function buildRoomView(tx: Tx, roomRow: WishRoomRow, currentUserId:
     nowMs,
   });
 }
+
+// ---------------- 보유 판정(아이템/캐릭터) ----------------
+/**
+ * price===0 또는 freeTier인 아이템은 구매 기록 없이도 항상 "보유"로 간주한다
+ * (app/api.js freshDb()의 `ownedItems: D.ITEMS.filter(i => i.owned).map(...)` 시드와
+ * 동치 — c_basic/f_none/b_night/s_none(가격0, 방 생성 시 기본 장착) + t_bible 등
+ * freeTier 테마 소품 4종). 실제 DB(WishRoomItemOwned)에는 "구매한" 유료 아이템만 기록한다.
+ */
+export function isAlwaysOwnedItem(item: WrItemDef): boolean {
+  return !!item.freeTier || item.price === 0;
+}
+
+export async function getOwnedItemIds(tx: Tx, userId: number): Promise<Set<string>> {
+  const purchased = await tx.wishRoomItemOwned.findMany({ where: { userId }, select: { itemId: true } });
+  const set = new Set(purchased.map((p) => p.itemId));
+  for (const it of WR.ITEMS) {
+    if (isAlwaysOwnedItem(it)) set.add(it.id);
+  }
+  return set;
+}
+
+/** F00/M00(price:0, grade:basic)은 항상 보유로 간주 — 그 외는 WishRoomCharacterOwned 기록 필요. */
+export function isAlwaysOwnedCharacter(c: WrCharacterDef): boolean {
+  return c.price === 0;
+}
+
+export async function getOwnedCharacterIds(tx: Tx, userId: number): Promise<Set<string>> {
+  const purchased = await tx.wishRoomCharacterOwned.findMany({ where: { userId }, select: { charCode: true } });
+  const set = new Set(purchased.map((p) => p.charCode));
+  for (const c of WR.CHARACTERS) {
+    if (isAlwaysOwnedCharacter(c)) set.add(c.code ?? c.id);
+  }
+  return set;
+}
+
+// ---------------- Me DTO (meView 포팅) ----------------
+export interface MeRow {
+  userId: number;
+  nickname: string;
+  joinedAt: Date; // User.createdAt
+  pouch: number; // Wallet.balance
+  repCharCode: string;
+  skipIntro: boolean;
+  wallpaper?: Record<string, unknown> | null;
+}
+
+export interface MeViewOptions {
+  ownedChars: string[];
+  ownedItems: string[];
+  ownedOutfits: string[];
+  giftToday: number;
+  unreadCount: number;
+  earnToday: Record<string, number>;
+  nowMs?: number;
+}
+
+export function meView(m: MeRow, opts: MeViewOptions) {
+  const now = opts.nowMs ?? Date.now();
+  const today = kstDate(now);
+  return {
+    id: String(m.userId),
+    nick: m.nickname,
+    pouch: m.pouch,
+    repChar: m.repCharCode,
+    ownedChars: opts.ownedChars,
+    ownedItems: opts.ownedItems,
+    ownedOutfits: opts.ownedOutfits,
+    settings: { skipIntro: m.skipIntro },
+    accountAgeDays: daysBetween(m.joinedAt, new Date(now)),
+    earnToday: opts.earnToday,
+    giftToday: opts.giftToday,
+    wallpaper: m.wallpaper ?? null,
+    unread: opts.unreadCount,
+    today,
+    now,
+  };
+}
