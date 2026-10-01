@@ -6,7 +6,7 @@ import '../theme/app_colors.dart';
 // 배선하지 않는다(파일 자체는 프로젝트 관례상 보존).
 import '../../features/home/presentation/sintong_home_v2/sintong_home_v2_screen.dart';
 import '../../features/fortune/presentation/fortune_hub_screen.dart';
-import '../../features/wish_room/presentation/wish_room_home_screen.dart';
+import '../../features/wishroom/features/intro/wish_room_intro_screen.dart';
 // [행운상자 - 복주머니 탭 신규 기능] 사용자 요청("복주머니 탭 자리에
 // 첨부한 행운상자 기능을 넣어달라, 하단바 라벨은 그대로 복주머니")에 따라
 // 이 탭이 보여주는 화면 내용을 LuckyBagScreen(잔액+광고카드+출석체크)에서
@@ -39,23 +39,57 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   late int _index;
 
+  // [소원방 v2.6 전면 재구축] 신규 [WishRoomShell]은 자체 5탭(🕯☾✉✿◈)과
+  // 전용 하단바를 이미 갖고 있어, 구버전 WishRoomHomeScreen처럼 AppShell의
+  // IndexedStack 안에 "내용만" 끼워 넣을 수 없다(하단바가 이중으로 겹침).
+  // 그래서 소원방 탭은 IndexedStack 콘텐츠가 아니라 "탭을 누르면 전체화면으로
+  // [WishRoomIntroScreen]을 push"하는 방식으로 바꾼다 — 홈 카드/마이페이지
+  // 등 기존 다른 진입점들과 동일한 패턴(Navigator.push)으로 통일되는
+  // 장점도 있다. 탭을 뒤로가기(pop)하면 직전 탭(기본 0=홈)으로 자동 복귀.
+  //
+  // [탭(nav) 인덱스 vs 콘텐츠(tab) 인덱스 분리] `_navItems`는 기존 그대로
+  // 5개(홈/운세/소원방/복주머니/마이)를 유지하지만, `_tabs`(IndexedStack
+  // 콘텐츠)는 소원방 자리가 빠져 4개뿐이다. 그래서 nav 인덱스 ↔ tab 인덱스를
+  // 서로 변환하는 헬퍼가 필요하다: nav 2(소원방)는 콘텐츠가 없으므로 push만
+  // 하고 `_index`(=선택 표시용 nav 인덱스)는 그대로 둔다.
+  static const int _wishRoomNavIndex = 2;
+
+  int _navToTab(int navIndex) {
+    if (navIndex < _wishRoomNavIndex) return navIndex;
+    if (navIndex == _wishRoomNavIndex) return 0; // 소원방은 콘텐츠가 없음(push 전용)
+    return navIndex - 1; // 복주머니(3)->2, 마이(4)->3
+  }
+
   @override
   void initState() {
     super.initState();
-    _index = widget.initialIndex.clamp(0, _tabs.length - 1);
+    _index = widget.initialIndex.clamp(0, _navItems.length - 1);
+    if (_index == _wishRoomNavIndex) {
+      // 홈 라우트에 arguments:2로 곧장 진입한 경우(예: MainBottomNavBar)에도
+      // 동일하게 push 방식을 적용하기 위해 첫 프레임 이후 0(홈)으로
+      // 되돌리고 소원방을 push한다.
+      _index = 0;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _openWishRoom());
+    }
+  }
+
+  void _onTapNav(int navIndex) {
+    if (navIndex == _wishRoomNavIndex) {
+      _openWishRoom();
+      return;
+    }
+    setState(() => _index = navIndex);
+  }
+
+  Future<void> _openWishRoom() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const WishRoomIntroScreen()),
+    );
   }
 
   static const _tabs = [
     SintongHomeV2Screen(), // 🏠 홈 - 다크 히어로 캐러셀 v2(design_handoff_sintong_main)
     FortuneHubScreen(), // 🔮 운세 - 7개 카테고리+비용뱃지
-    // 🕯 신통방통 소원방 - "마법진이 소환되는 신전"(V2 Moonlit Crystal) 디자인
-    // 핸드오프의 ScreenHome을 pixel-perfect 재현한 화면. 탭 아이콘/라벨/위치
-    // (하단바 자체 UI)는 그대로 유지하고 이 탭이 보여주는 화면 내용만 교체.
-    // [하단바 중복 버그 수정] isTabInstance:true를 명시적으로 전달해,
-    // 이 화면이 스스로 또 다른 전역 하단바를 그리지 않도록 한다(과거에는
-    // Navigator.canPop()으로만 추론해 특정 상황에서 두 하단바가 겹쳐
-    // 보이는 버그가 있었다 — wish_room_home_screen.dart 상단 문서 참고).
-    WishRoomHomeScreen(isTabInstance: true),
     // 🎁 복주머니 - [행운상자 - 복주머니 탭 신규 기능] 광고 시청으로 여는
     // 행운상자 그리드(하단바 라벨/아이콘은 그대로 "복주머니" 유지, 화면
     // 내용만 신규 행운상자 인터랙션으로 전면 교체됨).
@@ -94,7 +128,7 @@ class _AppShellState extends State<AppShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _index, children: _tabs),
+      body: IndexedStack(index: _navToTab(_index), children: _tabs),
       // [홈 화면 최종 마감 정돈 프롬프트] 탭바 5개 완전 통일: 아이콘 22 고정,
       // 두께/라벨 크기·자간을 모두 동일 규칙으로 통일하고 활성(#111111)/
       // 비활성(#9A9AA2)은 색상 규칙으로만 구분한다(굵기/크기 차이 제거).
@@ -110,7 +144,7 @@ class _AppShellState extends State<AppShell> {
             height: 60,
             child: BottomNavigationBar(
               currentIndex: _index,
-              onTap: (i) => setState(() => _index = i),
+              onTap: _onTapNav,
               backgroundColor: AppColors.premiumBgSection,
               type: BottomNavigationBarType.fixed,
               elevation: 0,

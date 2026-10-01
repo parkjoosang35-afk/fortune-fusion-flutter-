@@ -39,7 +39,7 @@ import '../../notification/notification_provider.dart';
 import '../../pass/application/pass_provider.dart';
 import '../../../core/domain/access/access_checker.dart';
 import '../../auth/application/auth_provider.dart';
-import '../../wish_room/presentation/wish_room_entry_gate.dart';
+import '../../wishroom/features/intro/wish_room_intro_screen.dart';
 import '../../../core/widgets/face_palm_select_sheet.dart';
 import '../../guinji/presentation/guinji_landing_screen.dart';
 import '../domain/jeontong_eighty_matrix.dart';
@@ -223,7 +223,7 @@ class _HomeScreenState extends State<HomeScreen> {
         actionStyle: SintongActionStyle.primary,
         onTap: () => Navigator.of(
           context,
-        ).push(MaterialPageRoute(builder: (_) => const WishRoomEntryGate())),
+        ).push(MaterialPageRoute(builder: (_) => const WishRoomIntroScreen())),
       ),
       SintongServiceSpec(
         thumbAsset: 'assets/images/sintong_home/svc-palm.jpg',

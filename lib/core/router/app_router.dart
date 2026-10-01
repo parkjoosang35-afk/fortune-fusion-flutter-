@@ -55,8 +55,7 @@ import '../../features/giftcard/presentation/my_giftcards_screen.dart';
 import '../../features/giftcard/domain/giftcard_model.dart';
 import '../../features/subscription/presentation/subscription_plans_screen.dart';
 import '../../features/subscription/presentation/my_subscription_screen.dart';
-import '../../features/wish_room/presentation/wish_room_entry_gate.dart';
-import '../../features/wish_room/presentation/wish_room_onboarding_screen.dart';
+import '../../features/wishroom/features/intro/wish_room_intro_screen.dart';
 import '../../features/shop/presentation/seal_shop_screen.dart';
 import '../../features/shop/presentation/candle_shop_screen.dart';
 import '../../features/shop/presentation/talisman_shop_screen.dart';
@@ -740,27 +739,17 @@ class AppRouter {
       case '/my/subscription':
         return _page(const MySubscriptionScreen());
 
-      // ── 소원방 [Phase01 뼈대 정리] 구버전 소원벽(wish_wall_board_screen,
-      // 진짜 죽은 화면)은 lib/features/_archive/wish_wall_board/로 아카이브
-      // 되었다. '/wish-room'과 '/wish-wall' 모두 신규 V2 소원방
-      // 게이트([WishRoomEntryGate] — 온보딩 미완료 시 01 온보딩 화면을
-      // 먼저 보여주고, 완료했으면 [WishRoomHomeScreen])로 연결한다.
+      // ── 소원방 v2.6 [전면 재구축] design_handoff_sintong_wishroom_flutter.zip
+      // 기반 신규 모듈(lib/features/wishroom/)로 완전히 교체되었다. 구버전
+      // (lib/features/wish_room/, WishRoomEntryGate/WishRoomOnboardingScreen)은
+      // 신규 모듈 동작 검증 후 삭제 예정이라 아직 파일은 남아있지만 더 이상
+      // 라우팅하지 않는다. '/wish-room'·'/wish-wall'·'/onboarding' 모두
+      // 신규 진입점 [WishRoomIntroScreen](서버 introMode 판단 →
+      // 풀/숏 인트로 또는 바로 [WishRoomShell])으로 연결한다.
       case '/wish-room':
       case '/wish-wall':
-        return _page(const WishRoomEntryGate());
       case '/onboarding':
-        // [Phase 01 · 2단계 · orphan 화면 연결] 딥링크 등으로 이 라우트에
-        // 직접 진입하는 경우를 위한 독립 경로. [WishRoomEntryGate]와 동일한
-        // [markWishRoomOnboardingSeen] 플래그를 공유해야 게이트와 상태가
-        // 어긋나지 않는다.
-        return _page(
-          WishRoomOnboardingScreen(
-            onEnter: () async {
-              await markWishRoomOnboardingSeen();
-              appNavigatorKey.currentState?.pushReplacementNamed('/wish-room');
-            },
-          ),
-        );
+        return _page(const WishRoomIntroScreen());
 
       // ── 상점(복주머니 확장 Phase02-B) [인장/촛불/부적 3개 상점 + 보물함]
       // admin_web `/api/public/shop/*`, `/api/public/inventory` 실 API 연동.

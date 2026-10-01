@@ -27,7 +27,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/router/app_router.dart' show AppRouter;
 import '../../../pass/presentation/pass_gate_helper.dart';
-import '../../../wish_room/presentation/wish_room_entry_gate.dart';
+import '../../../wishroom/features/intro/wish_room_intro_screen.dart';
 import '../../../guinji/presentation/guinji_landing_screen.dart';
 import '../../domain/jeontong_eighty_matrix.dart';
 import 'sintong_home_v2_data.dart';
@@ -53,7 +53,7 @@ void openSubScreen(BuildContext context, SHomeV2Category category) {
       // 소원방 — 기존 서비스카드와 동일: 소원방 진입 게이트.
       Navigator.of(
         context,
-      ).push(MaterialPageRoute(builder: (_) => const WishRoomEntryGate()));
+      ).push(MaterialPageRoute(builder: (_) => const WishRoomIntroScreen()));
     case SHomeV2Category.face:
       // 관상 — 곧장 관상 촬영 화면으로 이동(통합 시트 없음).
       openFaceReading(context);

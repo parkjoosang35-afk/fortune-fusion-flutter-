@@ -12,7 +12,7 @@ import '../../auth/domain/grade_model.dart';
 import '../../pass/application/pass_provider.dart';
 import '../../pass/domain/pass_model.dart';
 import '../../wallet/application/wallet_provider.dart';
-import '../../wish_room/presentation/wish_room_entry_gate.dart';
+import '../../wishroom/features/intro/wish_room_intro_screen.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
 import '../../pass/presentation/pass_time_format.dart';
 
@@ -229,7 +229,7 @@ class _MyScreenState extends State<MyScreen> {
               icon: Icons.local_fire_department_outlined,
               title: '소원방 보러가기',
               onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const WishRoomEntryGate()),
+                MaterialPageRoute(builder: (_) => const WishRoomIntroScreen()),
               ),
             ),
             const SizedBox(height: UnifiedTokens.spaceMd),
