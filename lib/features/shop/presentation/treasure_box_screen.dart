@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../wish_room/theme/wish_room_theme.dart';
-import '../../wish_room/widgets/wish_room_bg_atmosphere.dart';
-import '../../wish_room/widgets/wish_room_candle.dart';
-import '../../wish_room/widgets/wish_room_seal.dart';
+import '../../../core/theme/legacy_wish_room/wish_room_theme.dart';
+import '../../../core/theme/legacy_wish_room/wish_room_bg_atmosphere.dart';
+import '../../../core/theme/legacy_wish_room/wish_room_candle.dart';
+import '../../../core/theme/legacy_wish_room/wish_room_seal.dart';
 import '../application/shop_provider.dart';
 import '../domain/shop_item_visuals.dart';
 import '../domain/shop_models.dart';

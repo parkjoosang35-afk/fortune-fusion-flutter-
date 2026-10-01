@@ -739,13 +739,14 @@ class AppRouter {
       case '/my/subscription':
         return _page(const MySubscriptionScreen());
 
-      // ── 소원방 v2.6 [전면 재구축] design_handoff_sintong_wishroom_flutter.zip
+      // ── 소원방 v2.6 [전면 재구축 완료] design_handoff_sintong_wishroom_flutter.zip
       // 기반 신규 모듈(lib/features/wishroom/)로 완전히 교체되었다. 구버전
       // (lib/features/wish_room/, WishRoomEntryGate/WishRoomOnboardingScreen)은
-      // 신규 모듈 동작 검증 후 삭제 예정이라 아직 파일은 남아있지만 더 이상
-      // 라우팅하지 않는다. '/wish-room'·'/wish-wall'·'/onboarding' 모두
-      // 신규 진입점 [WishRoomIntroScreen](서버 introMode 판단 →
-      // 풀/숏 인트로 또는 바로 [WishRoomShell])으로 연결한다.
+      // 신규 모듈 실동작(회원인증/복주머니/광고 연동 포함 전체 라이프사이클)을
+      // Playwright E2E로 끝까지 검증 완료한 뒤 삭제했다. '/wish-room'·
+      // '/wish-wall'·'/onboarding' 모두 신규 진입점 [WishRoomIntroScreen]
+      // (서버 introMode 판단 → 풀/숏 인트로 또는 바로 [WishRoomShell])으로
+      // 연결한다.
       case '/wish-room':
       case '/wish-wall':
       case '/onboarding':

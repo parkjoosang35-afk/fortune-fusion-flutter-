@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../theme/wish_room_theme.dart';
+import 'wish_room_theme.dart';
 
 /// [디자인 핸드오프 적용 — "마법진이 소환되는 신전"] 상승하는 먼지 파티클
 /// (Dust) 위젯.

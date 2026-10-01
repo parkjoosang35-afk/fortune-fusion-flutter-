@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/app_empty_state.dart';
-import '../wish_room/presentation/wish_room_detail_screen.dart';
+import '../wishroom/features/explore/other_room_screen.dart';
 import 'notification_provider.dart';
 
 /// 03단계 §3.3 마이 탭 - NotificationsScreen(인앱 알림 목록)
@@ -107,7 +107,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (type == 'wish' && targetId.isNotEmpty) {
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => WishRoomDetailScreen(wishId: targetId),
+          builder: (_) => OtherRoomScreen(roomId: targetId),
         ),
       );
     }

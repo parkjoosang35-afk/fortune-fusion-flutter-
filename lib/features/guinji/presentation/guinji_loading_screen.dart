@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../auth/domain/user_model.dart';
-import '../../wish_room/widgets/wish_room_dust.dart';
-import '../../wish_room/widgets/wish_room_sigil.dart';
+import '../../../core/theme/legacy_wish_room/wish_room_dust.dart';
+import '../../../core/theme/legacy_wish_room/wish_room_sigil.dart';
 import '../application/guinji_provider.dart';
 import '../theme/guinji_theme.dart';
 import '../widgets/guinji_bg_atmosphere.dart';

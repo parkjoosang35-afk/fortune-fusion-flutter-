@@ -9,7 +9,7 @@ import '../../../core/config/env_config.dart';
 import '../../../core/util/image_gallery_saver.dart';
 import '../../../core/util/safe_share.dart';
 import '../../../core/widgets/app_toast.dart';
-import '../../wish_room/widgets/wish_room_sigil.dart';
+import '../../../core/theme/legacy_wish_room/wish_room_sigil.dart';
 import '../domain/guinji_person.dart';
 import '../theme/guinji_theme.dart';
 import '../widgets/guinji_bg_atmosphere.dart';

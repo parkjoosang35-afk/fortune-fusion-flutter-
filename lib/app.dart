@@ -68,20 +68,17 @@ import 'features/intro/data/intro_config_repository.dart';
 import 'features/luckpouch/application/luck_pouch_provider.dart';
 import 'core/domain/access/access_checker.dart';
 import 'core/widgets/luck_pouch_toast.dart';
-import 'features/wish_room/data/wish_wall_repository.dart';
-import 'features/wish_room/data/wish_wall_api_repository.dart';
-import 'features/wish_room/application/blessing_bag_policy_adapter.dart';
-import 'features/wish_room/application/wish_wall_provider.dart';
 import 'features/shop/data/shop_repository.dart';
 import 'features/shop/data/shop_api_repository.dart';
 import 'features/shop/application/shop_provider.dart';
-import 'features/wish_room/data/gratitude_repository.dart';
-import 'features/wish_room/data/gratitude_api_repository.dart';
-import 'features/wish_room/application/gratitude_provider.dart';
-// [소원방 v2.6 재구축] 신규 모듈(lib/features/wishroom/, 구 wish_room과는 별개
-// 패키지) 전역 Provider. 구 모듈이 신규 모듈로 완전히 교체·검증된 뒤 삭제될
-// 때까지 두 모듈은 동시에 앱에 존재한다 — import 경로가 wish_room(구) vs
-// wishroom(신규)으로 명확히 구분되므로 충돌하지 않는다.
+// [소원방 v2.6 전면 재구축 완료] 구 모듈(lib/features/wish_room/, 및 그 소비자인
+// lib/features/_archive/wish_wall_board/)은 신규 모듈(lib/features/wishroom/)
+// 실동작(회원인증/복주머니/광고 연동 포함 전체 라이프사이클: 작성→정성들이기→
+// 완성→봉인)을 Playwright E2E로 끝까지 검증 완료한 뒤 삭제했다. 구 모듈이 쓰던
+// WishWallProvider/GratitudeProvider/BlessingBagPolicyAdapter와 그 Repository들
+// 도 함께 제거 — 라우터가 더 이상 그 어떤 구 화면으로도 연결하지 않아 완전한
+// 죽은 코드였다(단, EveningBellNotificationService는 실제로 쓰이는 독립 기능이라
+// lib/features/evening_bell/로 이동해 보존했다).
 import 'features/wishroom/application/wishroom_provider.dart';
 import 'features/wishroom/data/wr_api.dart';
 import 'features/guinji/data/guinji_repository.dart';
@@ -260,25 +257,9 @@ class App extends StatelessWidget {
         // [코인/포인트 잔재 제거] 과거 "신통방통 소원방"(wish_room) 모듈이 쓰던
         // 복주머니와 별개인 자체 화폐("조각"/달빛 크리스탈) 경제는 완전히
         // 삭제했다. 이 앱의 유일한 재화는 복주머니(LuckPouchProvider)뿐이다.
-        // [소원벽게시판 신규 구축] "소원 하나 = 유리병 하나" 컨셉의 소원벽게시판
-        // 전역 상태. 복주머니 적립/차감은 새 화폐를 만들지 않고 반드시
-        // BlessingBagPolicyAdapter → LuckPouchProvider(실제 신통방통 재화)를
-        // 거치도록 ProxyProvider로 연결한다.
-        // [6-1-F/G] Mock → 실서비스 API 전환. MockWishWallRepository는 삭제하지
-        // 않고 테스트용으로 보존한다(사용자 지시).
-        Provider<WishWallRepository>(create: (_) => ApiWishWallRepository()),
-        ProxyProvider<LuckPouchProvider, BlessingBagPolicyAdapter>(
-          update: (_, pouch, __) => BlessingBagPolicyAdapter(pouch),
-        ),
-        ChangeNotifierProxyProvider<BlessingBagPolicyAdapter, WishWallProvider>(
-          create: (context) => WishWallProvider(
-            context.read<WishWallRepository>(),
-            context.read<BlessingBagPolicyAdapter>(),
-          ),
-          update: (context, policy, previous) =>
-              previous ??
-              WishWallProvider(context.read<WishWallRepository>(), policy),
-        ),
+        // [소원방 v2.6 전면 재구축] 구 소원벽게시판(WishWallProvider/
+        // BlessingBagPolicyAdapter)은 신규 모듈(lib/features/wishroom/)로 완전히
+        // 대체되어 제거했다.
         // [복주머니 확장 Phase02-B] 상점(인장/촛불/부적) + 보물함 —
         // admin_web `/api/public/shop/*`, `/api/public/inventory` 실 API 연동.
         // ShopProvider도 위 BlessingBagPolicyAdapter/WishWallProvider와 동일한
@@ -293,21 +274,8 @@ class App extends StatelessWidget {
           update: (context, pouch, previous) =>
               previous ?? ShopProvider(context.read<ShopRepository>(), pouch),
         ),
-        // [복주머니 확장 Phase02 항목3] 감사 도장(GratitudeSeal, "답례 도장") —
-        // admin_web `/api/public/gratitude/{sealable,seal,received}` 실 API
-        // 연동. ShopProvider와 동일한 원칙으로 새 화폐를 만들지 않고
-        // LuckPouchProvider를 참조만 하며, 답례 성공 시 LuckPouchProvider.load()
-        // 로 서버 원장을 재조회한다.
-        Provider<GratitudeRepository>(create: (_) => ApiGratitudeRepository()),
-        ChangeNotifierProxyProvider<LuckPouchProvider, GratitudeProvider>(
-          create: (context) => GratitudeProvider(
-            context.read<GratitudeRepository>(),
-            context.read<LuckPouchProvider>(),
-          ),
-          update: (context, pouch, previous) =>
-              previous ??
-              GratitudeProvider(context.read<GratitudeRepository>(), pouch),
-        ),
+        // [소원방 v2.6 전면 재구축] 구 감사 도장(GratitudeProvider)은 신규 모듈로
+        // 완전히 대체되어 제거했다.
         // [귀인지도 실구현] admin_web `/api/public/guinji/*` 실 API 연동.
         // 결제 없음 — 지급(guinji_join/guinji_daily_visit)은 전부 서버
         // 트랜잭션 내부에서만 발생하며, 이 Provider는 조회/요청만 수행한다.

@@ -9,7 +9,7 @@ import 'features/ads_test/domain/admob_ad_ids.dart';
 import 'features/ads_test/domain/admob_consent_service.dart';
 import 'features/home/domain/saju_fortune_rules.dart';
 import 'features/home/domain/saju_interpreter.dart';
-import 'features/wish_room/domain/evening_bell_notification_service.dart';
+import 'features/evening_bell/domain/evening_bell_notification_service.dart';
 import 'features/wishroom/data/wr_catalog.dart';
 
 Future<void> main() async {

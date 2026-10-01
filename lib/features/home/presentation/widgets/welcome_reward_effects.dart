@@ -1,6 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import '../../../wish_room/widgets/wish_room_sigil.dart';
+import '../../../../core/theme/legacy_wish_room/wish_room_sigil.dart';
 
 /// [Phase C - 03_Welcome_Reward.html 반영] 팝업 배경 장식 3종:
 /// 회전 마법진 2겹(`.modal-sigil`/`.modal-sigil-2`), 12방향 빛줄기

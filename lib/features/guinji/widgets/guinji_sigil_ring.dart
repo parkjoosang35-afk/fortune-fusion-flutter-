@@ -2,7 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
-import '../../wish_room/widgets/wish_room_sigil.dart';
+import '../../../core/theme/legacy_wish_room/wish_room_sigil.dart';
 
 /// 귀인지도(Guinji Map) 8화면 전용 "회전 마법진" 래퍼.
 ///

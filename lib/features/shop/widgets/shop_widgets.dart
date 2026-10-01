@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../wish_room/theme/wish_room_theme.dart';
+import '../../../core/theme/legacy_wish_room/wish_room_theme.dart';
 import '../domain/shop_models.dart';
 
 /// 상점 3화면(SealShop/CandleShop/TalismanShop) + 보물함이 공유하는 공용

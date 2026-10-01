@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../theme/wish_room_theme.dart';
+import 'wish_room_theme.dart';
 import 'wish_room_dust.dart';
 import 'wish_room_sigil.dart';
 

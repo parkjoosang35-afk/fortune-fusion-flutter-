@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../theme/wish_room_theme.dart';
+import 'wish_room_theme.dart';
 
 /// [디자인 핸드오프 적용 — "마법진이 소환되는 신전"] 도장/스탬프(Seal) 위젯.
 ///

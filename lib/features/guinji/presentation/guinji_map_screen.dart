@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../wish_room/widgets/wish_room_sigil.dart';
+import '../../../core/theme/legacy_wish_room/wish_room_sigil.dart';
 import '../domain/guinji_person.dart';
 import '../domain/guinji_relation_meta.dart';
 import '../theme/guinji_theme.dart';

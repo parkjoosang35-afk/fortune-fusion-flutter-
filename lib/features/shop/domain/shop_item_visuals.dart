@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../wish_room/theme/wish_room_theme.dart';
+import '../../../core/theme/legacy_wish_room/wish_room_theme.dart';
 
 /// 상점 카탈로그 itemCode → 시각 요소(한자 글리프/색상) 매핑.
 ///

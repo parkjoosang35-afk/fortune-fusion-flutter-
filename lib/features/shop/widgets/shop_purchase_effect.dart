@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../wish_room/theme/wish_room_theme.dart';
-import '../../wish_room/widgets/wish_room_dust.dart';
+import '../../../core/theme/legacy_wish_room/wish_room_theme.dart';
+import '../../../core/theme/legacy_wish_room/wish_room_dust.dart';
 
 /// [상점 기획 결함 수정 — 구매 체감 애니메이션] 상점에서 아이템을 구매했을 때
 /// "좋은 기운이 들어오는" 느낌을 주는 전면 오버레이 효과.
