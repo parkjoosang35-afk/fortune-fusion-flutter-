@@ -1,0 +1,673 @@
+// 신통방통 소원방 v2.6 · 전역 Provider
+// wallet_provider.dart 패턴(ChangeNotifier + Repository 주입 + load() + clearOnLogout())을
+// 그대로 따른다. 화면들은 이 Provider 하나만 참조하며, WrRepository(=wr_api.dart)를
+// 통해 서버와 통신한다. 정적 카탈로그(아이템/캐릭터 그림·텍스트)는 WrCatalog.I를 직접
+// 참조하고, 이 Provider는 "서버 상태"(내 방·보유 여부·레벨·알림 등)만 보관한다.
+import 'package:flutter/foundation.dart';
+import '../data/models.dart';
+import '../data/wr_api.dart';
+
+class WishRoomProvider extends ChangeNotifier {
+  final WrRepository repo;
+  WishRoomProvider(this.repo);
+
+  // ── 내 소원방 ──
+  WishRoom? room;
+  Me? me;
+  IntroMode introMode = IntroMode.none;
+  bool isLoading = false;
+  bool loaded = false;
+  ApiError? lastError;
+
+  // ── 카탈로그(서버 보유여부 포함) ──
+  List<WrItem> items = [];
+  List<WrCharacter> characters = [];
+  bool catalogLoaded = false;
+
+  // ── 알림 ──
+  List<WrNotification> notifications = [];
+
+  // ── 탐색 ──
+  List<WishRoom> exploreFeed = [];
+  bool exploreLoading = false;
+
+  // ── 보관함 ──
+  List<WishRoom> archiveRooms = [];
+  List<Map<String, dynamic>> ledger = [];
+
+  // ── 성취후기 ──
+  List<WrReview> myReviews = [];
+  List<WrReview> reviewFeed = [];
+
+  // ── 타인 소원방(탐색 상세) 캐시 ──
+  WishRoom? viewedRoom;
+  List<WrComment> viewedComments = [];
+
+  int get unreadCount => me?.unread ?? 0;
+
+  /// [Stage2 결함수정 패턴 재사용] 로그아웃 시 이전 계정의 소원방/알림/탐색
+  /// 데이터가 메모리에 남아있지 않도록 전부 초기화한다.
+  void clearOnLogout() {
+    room = null;
+    me = null;
+    introMode = IntroMode.none;
+    isLoading = false;
+    loaded = false;
+    lastError = null;
+    items = [];
+    characters = [];
+    catalogLoaded = false;
+    notifications = [];
+    exploreFeed = [];
+    archiveRooms = [];
+    ledger = [];
+    myReviews = [];
+    reviewFeed = [];
+    viewedRoom = null;
+    viewedComments = [];
+    notifyListeners();
+  }
+
+  // ═══════════════════════════ 내 소원방 ═══════════════════════════
+
+  /// SCR-01/03 공용 — 내 방 + 내 정보 + 인트로 모드를 한 번에 로드.
+  Future<void> loadMyRoom() async {
+    isLoading = true;
+    lastError = null;
+    notifyListeners();
+    try {
+      final res = await repo.myRoom();
+      room = res.room;
+      me = res.me;
+      introMode = res.introMode;
+    } on ApiError catch (e) {
+      lastError = e;
+    } finally {
+      isLoading = false;
+      loaded = true;
+      notifyListeners();
+    }
+  }
+
+  /// SCR-02 — 소원 작성. 성공 시 room을 갱신하고 true 반환, 실패 시 false.
+  Future<bool> createRoom({
+    required String text,
+    required String char,
+    required String sealUntil,
+    Visibility visibility = Visibility.PUBLIC,
+    WrTheme theme = WrTheme.free,
+    String wishColor = 'hope',
+    String paper = 'hanji',
+    bool force = false,
+  }) async {
+    lastError = null;
+    try {
+      room = await repo.createRoom(
+        text: text,
+        char: char,
+        sealUntil: sealUntil,
+        visibility: visibility,
+        theme: theme,
+        wishColor: wishColor,
+        paper: paper,
+        force: force,
+      );
+      notifyListeners();
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// SCR-03 입장 연출(§3 introMode) — enter 응답의 before/room 두 상태를 반환한다.
+  Future<({WishRoom before, WishRoom room})?> enterRoom(String id) async {
+    lastError = null;
+    try {
+      final r = await repo.enter(id);
+      room = r.room;
+      notifyListeners();
+      return r;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return null;
+    }
+  }
+
+  /// §6.2 촛불 다시 밝히기
+  Future<bool> rekindle(String id) async {
+    lastError = null;
+    try {
+      room = await repo.rekindle(id);
+      notifyListeners();
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// §6.1 정성들이기는 DevotionController가 repo.devote()를 직접 호출하며,
+  /// 완료 콜백(onDone)에서 이 메서드를 호출해 Provider 상태(room/me)에 반영한다.
+  void applyDevotionResult(DevotionResult r) {
+    room = r.room;
+    me = r.me;
+    notifyListeners();
+  }
+
+  Future<Map<String, dynamic>?> support(String id) async {
+    lastError = null;
+    try {
+      final (r, reward) = await repo.support(id);
+      room = r;
+      notifyListeners();
+      return reward;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return null;
+    }
+  }
+
+  Future<bool> gift(String id, int amount) async {
+    lastError = null;
+    try {
+      final (r, m) = await repo.gift(id, amount);
+      if (room?.id == id) room = r;
+      me = m;
+      notifyListeners();
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> complete(String id, {bool cancel = false}) async {
+    lastError = null;
+    try {
+      room = await repo.complete(id, cancel: cancel);
+      notifyListeners();
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> seal(String id) async {
+    lastError = null;
+    try {
+      room = await repo.seal(id);
+      notifyListeners();
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> unseal(String id) async {
+    lastError = null;
+    try {
+      room = await repo.unseal(id);
+      notifyListeners();
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> outcome(String id, Outcome o, {String? text, String? sealUntil}) async {
+    lastError = null;
+    try {
+      room = await repo.outcome(id, o, text: text, sealUntil: sealUntil);
+      notifyListeners();
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> updateVisibility(String id, Visibility v) async {
+    lastError = null;
+    try {
+      room = await repo.updateRoom(id, visibility: v);
+      notifyListeners();
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // ── 꾸미기(SCR-04) ──
+
+  Future<bool> equip(String roomId, String itemId) async {
+    lastError = null;
+    try {
+      room = await repo.equip(roomId, itemId);
+      notifyListeners();
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> setLayout(String id, String itemId, {double? x, double? y, double? s, bool reset = false}) async {
+    lastError = null;
+    try {
+      room = await repo.setLayout(id, itemId, x: x, y: y, s: s, reset: reset);
+      notifyListeners();
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> setPaper(String id, String paper) async {
+    lastError = null;
+    try {
+      room = await repo.setPaper(id, paper);
+      notifyListeners();
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> setTheme(String id, WrTheme theme) async {
+    lastError = null;
+    try {
+      room = await repo.setTheme(id, theme);
+      notifyListeners();
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> setOutfit(String id, WrTheme? theme) async {
+    lastError = null;
+    try {
+      room = await repo.setOutfit(id, theme);
+      notifyListeners();
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  List<OutfitOffer> _outfitCache = [];
+  List<OutfitOffer> get outfitOffers => _outfitCache;
+
+  Future<void> loadOutfits(String char) async {
+    try {
+      _outfitCache = await repo.outfits(char);
+      notifyListeners();
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> buyOutfit(String char, WrTheme theme) async {
+    lastError = null;
+    try {
+      me = await repo.buyOutfit(char, theme);
+      notifyListeners();
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // ── 아이템/캐릭터 카탈로그(SCR-04/05) ──
+
+  Future<void> loadCatalog() async {
+    try {
+      final results = await Future.wait([repo.items(), repo.characters()]);
+      items = results[0] as List<WrItem>;
+      characters = results[1] as List<WrCharacter>;
+      catalogLoaded = true;
+      notifyListeners();
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> buyItem(String id) async {
+    lastError = null;
+    try {
+      me = await repo.buyItem(id);
+      await loadCatalog();
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> buyCharacter(String id) async {
+    lastError = null;
+    try {
+      me = await repo.buyCharacter(id);
+      await loadCatalog();
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> setCharacter(String id) async {
+    lastError = null;
+    try {
+      me = await repo.setCharacter(id);
+      notifyListeners();
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // ── 알림(SCR-08) ──
+
+  Future<void> loadNotifications() async {
+    try {
+      notifications = await repo.notifications();
+      notifyListeners();
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+    }
+  }
+
+  Future<void> readNotifications({String? id}) async {
+    try {
+      final unread = await repo.readNotifications(id: id);
+      if (id == null) {
+        notifications = notifications.map((n) => WrNotification.fromJson({
+              'id': n.id, 'text': n.text, 'type': n.type.name, 'roomId': n.roomId,
+              'at': n.at.millisecondsSinceEpoch, 'read': true,
+            })).toList();
+      } else {
+        notifications = notifications.map((n) => n.id == id
+            ? WrNotification.fromJson({
+                'id': n.id, 'text': n.text, 'type': n.type.name, 'roomId': n.roomId,
+                'at': n.at.millisecondsSinceEpoch, 'read': true,
+              })
+            : n).toList();
+      }
+      if (me != null) {
+        me = Me.fromJson({
+          'id': me!.id, 'nick': me!.nick, 'repChar': me!.repChar, 'pouch': me!.pouch,
+          'accountAgeDays': me!.accountAgeDays, 'giftToday': me!.giftToday, 'unread': unread,
+          'ownedChars': me!.ownedChars, 'ownedItems': me!.ownedItems, 'ownedOutfits': me!.ownedOutfits,
+          'settings': {'skipIntro': me!.skipIntro}, 'earnToday': me!.earnToday, 'wallpaper': me!.wallpaper,
+        });
+      }
+      notifyListeners();
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+    }
+  }
+
+  // ── 탐색(SCR-06/07) ──
+
+  String? _exploreCursor;
+  Future<void> loadExplore({bool refresh = true}) async {
+    if (exploreLoading) return;
+    exploreLoading = true;
+    if (refresh) {
+      _exploreCursor = null;
+      exploreFeed = [];
+    }
+    notifyListeners();
+    try {
+      final page = await repo.explore(cursor: _exploreCursor);
+      exploreFeed = refresh ? page : [...exploreFeed, ...page];
+    } on ApiError catch (e) {
+      lastError = e;
+    } finally {
+      exploreLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadViewedRoom(String id) async {
+    try {
+      viewedRoom = await repo.room(id);
+      viewedComments = await repo.comments(id);
+      notifyListeners();
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> postComment(String roomId, String text) async {
+    try {
+      final c = await repo.postComment(roomId, text);
+      viewedComments = [...viewedComments, c];
+      if (viewedRoom?.id == roomId) viewedRoom = await repo.room(roomId);
+      notifyListeners();
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> report({String? roomId, String? commentId}) async {
+    try {
+      await repo.report(roomId: roomId, commentId: commentId);
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> block(String userId) async {
+    try {
+      await repo.block(userId);
+      exploreFeed = exploreFeed.where((r) => r.ownerId != userId).toList();
+      notifyListeners();
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // ── 보관함(SCR-09) ──
+
+  Future<void> loadArchive() async {
+    try {
+      archiveRooms = await repo.archive();
+      notifyListeners();
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadLedger() async {
+    try {
+      ledger = await repo.ledger();
+      notifyListeners();
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+    }
+  }
+
+  Future<Map<String, dynamic>?> claimSupportReward(String id, int at) async {
+    try {
+      final res = await repo.claimSupportReward(id, at);
+      room = await repo.room(id);
+      notifyListeners();
+      return res;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return null;
+    }
+  }
+
+  // ── 성취후기(V1-V6, SCR-09) ──
+
+  Future<Map<String, dynamic>?> postReview(String roomId, {required String text, String? photo, bool public = true}) async {
+    try {
+      final res = await repo.postReview(roomId, text: text, photo: photo, public: public);
+      await loadMyReviews();
+      return res;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return null;
+    }
+  }
+
+  Future<void> loadMyReviews() async {
+    try {
+      myReviews = await repo.reviews(mine: true);
+      notifyListeners();
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadReviewFeed() async {
+    try {
+      reviewFeed = await repo.reviews(mine: false);
+      notifyListeners();
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> editReview(String id, {String? text, String? photo, bool? public}) async {
+    try {
+      final r = await repo.editReview(id, text: text, photo: photo, public: public);
+      myReviews = myReviews.map((x) => x.id == id ? r : x).toList();
+      notifyListeners();
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> deleteReview(String id) async {
+    try {
+      await repo.deleteReview(id);
+      myReviews = myReviews.where((x) => x.id != id).toList();
+      notifyListeners();
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> congrats(String id) async {
+    try {
+      final r = await repo.congrats(id);
+      reviewFeed = reviewFeed.map((x) => x.id == id ? r : x).toList();
+      notifyListeners();
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> reportReview(String id, String reason) async {
+    try {
+      await repo.reportReview(id, reason);
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // ── 공유(SCR-07) ──
+
+  Future<({String token, String url})?> shareLink(String id, {bool reissue = false}) async {
+    try {
+      return await repo.shareLink(id, reissue: reissue);
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return null;
+    }
+  }
+
+  // ── 설정 ──
+
+  Future<bool> setSkipIntro(bool v) async {
+    try {
+      me = await repo.settings(skipIntro: v);
+      notifyListeners();
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<(int, Me)?> earn(String source) async {
+    try {
+      final (amount, m) = await repo.earn(source);
+      me = m;
+      notifyListeners();
+      return (amount, m);
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return null;
+    }
+  }
+}

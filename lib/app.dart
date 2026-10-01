@@ -78,6 +78,12 @@ import 'features/shop/application/shop_provider.dart';
 import 'features/wish_room/data/gratitude_repository.dart';
 import 'features/wish_room/data/gratitude_api_repository.dart';
 import 'features/wish_room/application/gratitude_provider.dart';
+// [소원방 v2.6 재구축] 신규 모듈(lib/features/wishroom/, 구 wish_room과는 별개
+// 패키지) 전역 Provider. 구 모듈이 신규 모듈로 완전히 교체·검증된 뒤 삭제될
+// 때까지 두 모듈은 동시에 앱에 존재한다 — import 경로가 wish_room(구) vs
+// wishroom(신규)으로 명확히 구분되므로 충돌하지 않는다.
+import 'features/wishroom/application/wishroom_provider.dart';
+import 'features/wishroom/data/wr_api.dart';
 import 'features/guinji/data/guinji_repository.dart';
 import 'features/guinji/application/guinji_provider.dart';
 import 'features/pouch_box/application/pouch_box_provider.dart';
@@ -308,6 +314,14 @@ class App extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => GuinjiProvider(GuinjiRepository()),
         ),
+        // [소원방 v2.6 재구축] 신규 모듈 전역 상태. 서버가 레벨/포인트/쿨타임/
+        // 감쇠를 전부 계산하므로(docs/SCREENS.md [SERVER] 원칙) 이 Provider는
+        // 순수 ChangeNotifier + Repository 주입만으로 충분하다(복주머니 잔액은
+        // 서버의 Me.pouch를 그대로 표시하며, 소원방 쪽에서 별도 화폐/Proxy
+        // 연결을 만들지 않는다 — 재화 단일화 원칙).
+        ChangeNotifierProvider(
+          create: (_) => WishRoomProvider(ApiRepository()),
+        ),
       ],
       // [Stage2 결함수정 — 결함-A10-01] MultiProvider의 모든 Provider가
       // 트리에 생성된 직후(child 슬롯) 단 한 번, 개인정보/이력을 담은 각
@@ -419,6 +433,10 @@ class _LogoutCallbackRegistrarState extends State<_LogoutCallbackRegistrar> {
     // [정통사주 v3 - 개인정보(생년월일시) 잔존 방지] SajuProvider와 동일한
     // 취지로 로그아웃 시 v3 계산 결과/생년월일시 상태를 초기화한다.
     auth.registerLogoutCallback(context.read<SajuV3Provider>().clearOnLogout);
+    // [소원방 v2.6 재구축]
+    auth.registerLogoutCallback(
+      context.read<WishRoomProvider>().clearOnLogout,
+    );
   }
 
   @override
