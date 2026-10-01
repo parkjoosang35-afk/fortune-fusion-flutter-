@@ -4151,8 +4151,12 @@ model WishRoomReview {
   photoUrl      String?   @map("photo_url")
   visibility    String    @default("PUBLIC") // PUBLIC/PRIVATE
   congratsCount Int       @default(0) @map("congrats_count")
-  status        String    @default("visible") // visible/hidden_by_report/deleted_by_admin
-  reportCount   Int       @default(0) @map("report_count")
+  // [SERVER 어뷰징 검사, app/api.js reviewAbuse() 포팅] 통과: visible(보상 즉시 지급) ·
+  // 의심 플래그 있음: review(보상 보류 + 관리자 검토) · hidden_by_report(신고 3회 누적) · deleted_by_admin
+  status      String  @default("visible")
+  flagsJson   String  @default("[]") @map("flags_json") // reviewAbuseFlags() 결과(TOO_SHORT/REPEAT_CHAR/... 문자열 배열의 JSON)
+  reportCount Int     @default(0) @map("report_count")
+  rewardGranted Boolean @default(false) @map("reward_granted") // grantReviewReward() idempotency(복주머니 중복 지급 방지)
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
   deletedAt     DateTime? @map("deleted_at")

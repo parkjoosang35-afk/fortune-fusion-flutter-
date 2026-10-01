@@ -51,6 +51,17 @@ export function parseWishRoomCommentId(publicId: string): number | null {
   return Number(match[1]);
 }
 
+/** Flutter WrReview.id 포맷 — `wrv_{dbId}` (wr_/wrc_와 같은 접두사 컨벤션, PK 충돌 방지). */
+export function toWishRoomReviewPublicId(dbId: number): string {
+  return `wrv_${dbId}`;
+}
+
+export function parseWishRoomReviewId(publicId: string): number | null {
+  const match = /^wrv_(\d+)$/.exec(publicId);
+  if (!match) return null;
+  return Number(match[1]);
+}
+
 /** Flutter NotiType enum 8종(SUPPORT/POUCH/COMMENT/STATUS/GROWTH/COMPLETE/UNSEAL/REVIEW). */
 export type WrNotiType =
   | "SUPPORT"
