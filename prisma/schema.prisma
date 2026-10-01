@@ -4048,11 +4048,16 @@ model WishRoom {
   unsealNotified Boolean @default(false) @map("unseal_notified") // GET /wish-rooms/me에서 UNSEAL 알림 중복 발송 방지
   decayNotified  Boolean @default(false) @map("decay_notified") // POST .../enter에서 STATUS(감쇠) 알림 중복 발송 방지. absentDays<4로 복귀 시 false로 리셋
 
+  // [완료 취소 금지 플래그, app/api.js r.reviewRewardGranted 포팅] 후기 보상을 이미 받은 방은
+  // POST .../complete {cancel:true}로 되돌릴 수 없다(409 REVIEWED).
+  reviewRewardGranted Boolean @default(false) @map("review_reward_granted")
+
   // [공유 S1-S2]
   shareToken String? @unique @map("share_token")
 
   // [SEALED/ARCHIVED 보존 스냅샷] 방 꾸미기·레벨 등 마지막 상태를 JSON으로 동결
   snapshot String?
+  sealedAt DateTime? @map("sealed_at_final") // POST .../seal 호출 시각(타임캡슐 sealUntil과 다른, "최종 봉인(보관)" 타임스탬프)
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
