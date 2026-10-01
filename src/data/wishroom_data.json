@@ -1,0 +1,3145 @@
+{
+ "LEVELS": [
+  {
+   "lv": 1,
+   "name": "처음 만난 소원방",
+   "pts": 0,
+   "change": "기본 방, 촛불만 점등",
+   "fx": "intro"
+  },
+  {
+   "lv": 2,
+   "name": "작은 정성",
+   "pts": 30,
+   "change": "창가에 첫 꽃잎",
+   "fx": "flame"
+  },
+  {
+   "lv": 3,
+   "name": "향로 등장",
+   "pts": 100,
+   "change": "향로 배치 + 연기",
+   "fx": "incense"
+  },
+  {
+   "lv": 4,
+   "name": "등불 추가",
+   "pts": 250,
+   "change": "등불 점화, 반딧불 2마리",
+   "fx": "lantern"
+  },
+  {
+   "lv": 5,
+   "name": "소원함 빛남",
+   "pts": 500,
+   "change": "소원함 테두리 발광",
+   "fx": "box"
+  },
+  {
+   "lv": 6,
+   "name": "연꽃 장식",
+   "pts": 900,
+   "change": "연꽃 개화",
+   "fx": "lotus"
+  },
+  {
+   "lv": 7,
+   "name": "천장 별빛",
+   "pts": 1500,
+   "change": "천장 별 파티클",
+   "fx": "stars"
+  },
+  {
+   "lv": 8,
+   "name": "복주머니 장식",
+   "pts": 2400,
+   "change": "복주머니 걸림",
+   "fx": "pouch"
+  },
+  {
+   "lv": 9,
+   "name": "방 전체 밝아짐",
+   "pts": 3600,
+   "change": "전체 광량 +30%",
+   "fx": "lightup"
+  },
+  {
+   "lv": 10,
+   "name": "소원방 완성",
+   "pts": 5000,
+   "change": "완성 상태 유지",
+   "fx": "cinema"
+  }
+ ],
+ "DECAY": [
+  {
+   "minDays": 0,
+   "brightness": 1,
+   "label": "밝게 타는 중",
+   "badge": false
+  },
+  {
+   "minDays": 4,
+   "brightness": 0.8,
+   "label": "조금 약해짐",
+   "badge": false,
+   "push": true
+  },
+  {
+   "minDays": 8,
+   "brightness": 0.5,
+   "label": "희미해짐",
+   "badge": true
+  },
+  {
+   "minDays": 15,
+   "brightness": 0.3,
+   "label": "가물거림",
+   "badge": true
+  },
+  {
+   "minDays": 31,
+   "brightness": 0.2,
+   "label": "겨우 남은 불씨",
+   "badge": true
+  }
+ ],
+ "DEVOTION_RULE": {
+  "dailyLimit": 10,
+  "cooldownSec": 30,
+  "bonusAt": 10,
+  "bonusPouch": 20
+ },
+ "CHARACTERS": [
+  {
+   "id": "F00",
+   "code": "F00",
+   "name": "하린",
+   "title": "자유로운 산책자",
+   "grade": "basic",
+   "robe": "#e8e2d8",
+   "trim": "#ff8fb1",
+   "emblem": "自",
+   "behaviors": [
+    "gaze",
+    "pray"
+   ],
+   "job": "카페 매니저",
+   "type": "밝음 · 공감형",
+   "personality": "누구에게나 먼저 말을 건네는 다정한 사람이에요",
+   "likes": "따뜻한 라떼 · 산책",
+   "aura": "hope",
+   "line": "오늘 하루도 잘 해냈어요",
+   "gender": "F",
+   "price": 0
+  },
+  {
+   "id": "M00",
+   "code": "M00",
+   "name": "준",
+   "title": "따뜻한 동네 청년",
+   "grade": "basic",
+   "robe": "#4a5a6a",
+   "trim": "#f5cf6a",
+   "emblem": "由",
+   "behaviors": [
+    "gaze",
+    "pray"
+   ],
+   "job": "디자이너",
+   "type": "차분 · 신뢰형",
+   "personality": "말보다 행동으로 곁을 지켜주는 사람이에요",
+   "likes": "필름 카메라 · 새벽 공기",
+   "aura": "peace",
+   "line": "천천히, 같이 가요",
+   "gender": "M",
+   "price": 0
+  },
+  {
+   "id": "F01",
+   "code": "F01",
+   "name": "월하",
+   "title": "달빛 무녀",
+   "grade": "normal",
+   "robe": "#3b2a5c",
+   "trim": "#e8c8f5",
+   "emblem": "月",
+   "behaviors": [
+    "gaze",
+    "pray"
+   ],
+   "job": "달빛 무녀",
+   "type": "고요 · 수호형",
+   "personality": "말수는 적지만 한 번 맺은 약속은 끝까지 지켜요",
+   "likes": "보름달 · 연꽃차",
+   "aura": "peace",
+   "line": "오늘도 촛불 곁에 있을게요",
+   "gender": "F",
+   "price": 500
+  },
+  {
+   "id": "F02",
+   "code": "F02",
+   "name": "설화",
+   "title": "눈꽃 선녀",
+   "grade": "normal",
+   "robe": "#dfe6f2",
+   "trim": "#a8d5e3",
+   "emblem": "雪",
+   "behaviors": [
+    "flower",
+    "pray"
+   ],
+   "job": "눈꽃 선녀",
+   "type": "맑음 · 치유형",
+   "personality": "차갑게 보여도 누구보다 다정해요",
+   "likes": "첫눈 · 은방울",
+   "aura": "health",
+   "line": "아픈 마음도 눈처럼 녹아요",
+   "gender": "F",
+   "price": 500
+  },
+  {
+   "id": "F03",
+   "code": "F03",
+   "name": "홍연",
+   "title": "붉은 인연의 무녀",
+   "grade": "normal",
+   "robe": "#7a1f2b",
+   "trim": "#f5cf6a",
+   "emblem": "緣",
+   "behaviors": [
+    "pray",
+    "pouch"
+   ],
+   "job": "인연의 무녀",
+   "type": "열정 · 인연형",
+   "personality": "사람 사이의 붉은 실을 읽어요. 솔직하고 따뜻해요",
+   "likes": "동백 · 붉은 실",
+   "aura": "love",
+   "line": "닿을 인연은 반드시 닿아요",
+   "gender": "F",
+   "price": 500
+  },
+  {
+   "id": "F04",
+   "code": "F04",
+   "name": "청아",
+   "title": "푸른 샘의 수호자",
+   "grade": "normal",
+   "robe": "#1f4a5c",
+   "trim": "#8dbfd6",
+   "emblem": "泉",
+   "behaviors": [
+    "gaze",
+    "flower"
+   ],
+   "job": "푸른 샘 수호자",
+   "type": "차분 · 정화형",
+   "personality": "느리지만 깊게 생각하고, 한번 정하면 흔들리지 않아요",
+   "likes": "맑은 샘물 · 청자",
+   "aura": "health",
+   "line": "천천히 가도 괜찮아요",
+   "gender": "F",
+   "price": 500
+  },
+  {
+   "id": "F05",
+   "code": "F05",
+   "name": "은비",
+   "title": "은방울 점술가",
+   "grade": "normal",
+   "robe": "#5a5a78",
+   "trim": "#e8e2f5",
+   "emblem": "銀",
+   "behaviors": [
+    "gaze",
+    "pouch"
+   ],
+   "job": "은방울 점술가",
+   "type": "호기심 · 예지형",
+   "personality": "밝고 장난기 많지만 점괘만큼은 정확해요",
+   "likes": "방울 소리 · 별자리",
+   "aura": "hope",
+   "line": "좋은 소식이 오고 있어요",
+   "gender": "F",
+   "price": 500
+  },
+  {
+   "id": "F06",
+   "code": "F06",
+   "name": "화린",
+   "title": "불꽃 제관",
+   "grade": "rare",
+   "robe": "#8b3a1b",
+   "trim": "#ffb55a",
+   "emblem": "炎",
+   "behaviors": [
+    "gaze",
+    "celebrate"
+   ],
+   "job": "불꽃 제관",
+   "type": "용기 · 돌파형",
+   "personality": "망설임 없이 앞장서는 행동파예요",
+   "likes": "모닥불 · 붉은 비단",
+   "aura": "career",
+   "line": "지금이 바로 그때예요",
+   "gender": "F",
+   "price": 500
+  },
+  {
+   "id": "F07",
+   "code": "F07",
+   "name": "소야",
+   "title": "밤의 별지기",
+   "grade": "rare",
+   "robe": "#141a3d",
+   "trim": "#c8d4ff",
+   "emblem": "星",
+   "behaviors": [
+    "pray",
+    "celebrate"
+   ],
+   "job": "밤의 별지기",
+   "type": "사색 · 지혜형",
+   "personality": "별을 세며 밤을 새우는 노력파예요",
+   "likes": "유성 · 오래된 책",
+   "aura": "study",
+   "line": "별은 노력한 사람을 비춰요",
+   "gender": "F",
+   "price": 500
+  },
+  {
+   "id": "F08",
+   "code": "F08",
+   "name": "연화",
+   "title": "연꽃 보살",
+   "grade": "rare",
+   "robe": "#e8b7c8",
+   "trim": "#fff1c8",
+   "emblem": "蓮",
+   "behaviors": [
+    "flower",
+    "celebrate"
+   ],
+   "job": "연꽃 보살",
+   "type": "자비 · 포용형",
+   "personality": "누구의 이야기든 끝까지 들어줘요",
+   "likes": "연꽃 · 향",
+   "aura": "family",
+   "line": "당신 곁엔 늘 누군가 있어요",
+   "gender": "F",
+   "price": 500
+  },
+  {
+   "id": "F09",
+   "code": "F09",
+   "name": "아랑",
+   "title": "천년 여우",
+   "grade": "event",
+   "robe": "#2b1a3a",
+   "trim": "#ff9ad0",
+   "emblem": "狐",
+   "behaviors": [
+    "gaze",
+    "celebrate"
+   ],
+   "job": "천년 여우",
+   "type": "신비 · 매혹형",
+   "personality": "영리하고 속을 알 수 없지만 의리가 깊어요",
+   "likes": "달밤 · 복숭아",
+   "aura": "love",
+   "line": "천 년을 기다린 소원도 있답니다",
+   "gender": "F",
+   "price": null
+  },
+  {
+   "id": "F10",
+   "code": "F10",
+   "name": "다온",
+   "title": "새벽 봉황",
+   "grade": "event",
+   "robe": "#9a3b2b",
+   "trim": "#ffd76a",
+   "emblem": "鳳",
+   "behaviors": [
+    "pray",
+    "celebrate"
+   ],
+   "job": "새벽 봉황",
+   "type": "희망 · 재생형",
+   "personality": "넘어져도 다시 날아오르는 낙천가예요",
+   "likes": "해돋이 · 금빛 깃털",
+   "aura": "hope",
+   "line": "새벽은 반드시 와요",
+   "gender": "F",
+   "price": null
+  },
+  {
+   "id": "M01",
+   "code": "M01",
+   "name": "청운",
+   "title": "등불지기",
+   "grade": "normal",
+   "robe": "#2a3b4a",
+   "trim": "#f5cf6a",
+   "emblem": "燈",
+   "behaviors": [
+    "gaze",
+    "pray"
+   ],
+   "job": "등불지기",
+   "type": "성실 · 수호형",
+   "personality": "묵묵히 밤새 등불을 지키는 사람이에요",
+   "likes": "등잔 · 따뜻한 차",
+   "aura": "peace",
+   "line": "불은 제가 지킬게요",
+   "gender": "M",
+   "price": 500
+  },
+  {
+   "id": "M02",
+   "code": "M02",
+   "name": "도윤",
+   "title": "산신의 제자",
+   "grade": "normal",
+   "robe": "#3a4a2a",
+   "trim": "#c8e0a0",
+   "emblem": "山",
+   "behaviors": [
+    "pray",
+    "flower"
+   ],
+   "job": "산신의 제자",
+   "type": "우직 · 건강형",
+   "personality": "산처럼 든든하고 거짓말을 못 해요",
+   "likes": "소나무 · 약초",
+   "aura": "health",
+   "line": "몸이 먼저예요, 오늘은 푹 쉬어요",
+   "gender": "M",
+   "price": 500
+  },
+  {
+   "id": "M03",
+   "code": "M03",
+   "name": "한결",
+   "title": "바람 도사",
+   "grade": "normal",
+   "robe": "#4a5a6a",
+   "trim": "#dfe8f0",
+   "emblem": "風",
+   "behaviors": [
+    "gaze",
+    "pouch"
+   ],
+   "job": "바람 도사",
+   "type": "자유 · 변화형",
+   "personality": "한곳에 머물지 않고 늘 새 길을 찾아요",
+   "likes": "산바람 · 부채",
+   "aura": "career",
+   "line": "막힌 길엔 바람이 길을 내요",
+   "gender": "M",
+   "price": 500
+  },
+  {
+   "id": "M04",
+   "code": "M04",
+   "name": "무진",
+   "title": "검은 먹의 서예가",
+   "grade": "normal",
+   "robe": "#1a1714",
+   "trim": "#d9c8a8",
+   "emblem": "墨",
+   "behaviors": [
+    "gaze",
+    "pray"
+   ],
+   "job": "먹의 서예가",
+   "type": "집중 · 학문형",
+   "personality": "한 획에 마음을 담는 완벽주의자예요",
+   "likes": "먹 향 · 한지",
+   "aura": "study",
+   "line": "한 자 한 자, 쌓이면 이뤄져요",
+   "gender": "M",
+   "price": 500
+  },
+  {
+   "id": "M05",
+   "code": "M05",
+   "name": "해온",
+   "title": "해맞이 사관",
+   "grade": "normal",
+   "robe": "#8a5a1a",
+   "trim": "#ffe0a0",
+   "emblem": "陽",
+   "behaviors": [
+    "pouch",
+    "celebrate"
+   ],
+   "job": "해맞이 사관",
+   "type": "밝음 · 재물형",
+   "personality": "기록하고 셈하는 데 능한 낙천가예요",
+   "likes": "아침 햇살 · 엽전",
+   "aura": "wealth",
+   "line": "좋은 날은 제가 기록해 둘게요",
+   "gender": "M",
+   "price": 500
+  },
+  {
+   "id": "M06",
+   "code": "M06",
+   "name": "백야",
+   "title": "백호 무관",
+   "grade": "rare",
+   "robe": "#e8e4dc",
+   "trim": "#8dbfd6",
+   "emblem": "虎",
+   "behaviors": [
+    "gaze",
+    "celebrate"
+   ],
+   "job": "백호 무관",
+   "type": "정의 · 수호형",
+   "personality": "약한 사람을 먼저 지키는 무사예요",
+   "likes": "흰 눈 · 검",
+   "aura": "family",
+   "line": "걱정 마요, 제가 막아설게요",
+   "gender": "M",
+   "price": 500
+  },
+  {
+   "id": "M07",
+   "code": "M07",
+   "name": "운검",
+   "title": "구름 검객",
+   "grade": "rare",
+   "robe": "#2c2a4a",
+   "trim": "#b8a8ff",
+   "emblem": "雲",
+   "behaviors": [
+    "pray",
+    "celebrate"
+   ],
+   "job": "구름 검객",
+   "type": "냉철 · 결단형",
+   "personality": "말보다 행동이 빠르고 판단이 정확해요",
+   "likes": "구름 · 새벽 수련",
+   "aura": "career",
+   "line": "망설임은 제가 베어 드릴게요",
+   "gender": "M",
+   "price": 500
+  },
+  {
+   "id": "M08",
+   "code": "M08",
+   "name": "진우",
+   "title": "용궁 사자",
+   "grade": "rare",
+   "robe": "#123a4a",
+   "trim": "#6ad0d0",
+   "emblem": "龍",
+   "behaviors": [
+    "flower",
+    "pouch"
+   ],
+   "job": "용궁 사자",
+   "type": "풍요 · 재물형",
+   "personality": "바다의 보물을 다루는 넉넉한 사람이에요",
+   "likes": "진주 · 파도 소리",
+   "aura": "wealth",
+   "line": "복은 물결처럼 밀려와요",
+   "gender": "M",
+   "price": 500
+  },
+  {
+   "id": "M09",
+   "code": "M09",
+   "name": "율",
+   "title": "천문 박사",
+   "grade": "event",
+   "robe": "#1a1a3a",
+   "trim": "#f5cf6a",
+   "emblem": "天",
+   "behaviors": [
+    "gaze",
+    "celebrate"
+   ],
+   "job": "천문 박사",
+   "type": "이성 · 지혜형",
+   "personality": "하늘의 이치를 계산하는 조용한 학자예요",
+   "likes": "별자리 · 해시계",
+   "aura": "study",
+   "line": "때가 되면 별이 맞춰져요",
+   "gender": "M",
+   "price": null
+  },
+  {
+   "id": "M10",
+   "code": "M10",
+   "name": "가람",
+   "title": "강의 신관",
+   "grade": "event",
+   "robe": "#1b3a3a",
+   "trim": "#a8f0d8",
+   "emblem": "江",
+   "behaviors": [
+    "pray",
+    "celebrate"
+   ],
+   "job": "강의 신관",
+   "type": "온화 · 인연형",
+   "personality": "흐르는 강처럼 사람과 사람을 이어줘요",
+   "likes": "강물 · 연등",
+   "aura": "love",
+   "line": "흘러가 닿을 곳이 있어요",
+   "gender": "M",
+   "price": null
+  }
+ ],
+ "BEHAVIOR_LABEL": {
+  "gaze": "촛불 바라보기",
+  "pray": "두 손 모으기",
+  "flower": "꽃 바라보기",
+  "pouch": "복주머니 받기",
+  "celebrate": "소원 완료 축하"
+ },
+ "SLOTS": [
+  {
+   "id": "CANDLE",
+   "label": "촛불",
+   "max": 1,
+   "glyph": "🕯"
+  },
+  {
+   "id": "FLOWER",
+   "label": "꽃",
+   "max": 1,
+   "glyph": "✿"
+  },
+  {
+   "id": "DECORATION",
+   "label": "장식",
+   "max": 5,
+   "glyph": "◈"
+  },
+  {
+   "id": "BACKGROUND",
+   "label": "배경",
+   "max": 1,
+   "glyph": "☾"
+  },
+  {
+   "id": "SPECIAL",
+   "label": "특별",
+   "max": 1,
+   "glyph": "✦"
+  },
+  {
+   "id": "SEAL",
+   "label": "인장",
+   "max": 3,
+   "glyph": "印"
+  },
+  {
+   "id": "THEME",
+   "label": "테마 소품",
+   "max": 5,
+   "glyph": "✦"
+  }
+ ],
+ "ITEMS": [
+  {
+   "id": "c_basic",
+   "slot": "CANDLE",
+   "name": "기본 촛불",
+   "price": 0,
+   "owned": true,
+   "glow": "#ffd98a"
+  },
+  {
+   "id": "c_lotus",
+   "slot": "CANDLE",
+   "name": "연꽃 촛불",
+   "price": 60,
+   "glow": "#ffb0cc",
+   "aura": "peace",
+   "effect": {
+    "type": "devo",
+    "v": 10
+   },
+   "desc": "흙탕물에서도 맑게 피는 연꽃처럼, 마음이 고요해져 정성이 깊어져요"
+  },
+  {
+   "id": "c_celadon",
+   "slot": "CANDLE",
+   "name": "청자 촛대",
+   "price": 70,
+   "glow": "#bfeede",
+   "aura": "health",
+   "effect": {
+    "type": "cool",
+    "v": 3
+   },
+   "desc": "맑은 청자의 기운이 몸과 마음을 정갈하게 다듬어요"
+  },
+  {
+   "id": "c_amber",
+   "slot": "CANDLE",
+   "name": "향금 촛불",
+   "price": 80,
+   "glow": "#ffc060",
+   "aura": "wealth",
+   "effect": {
+    "type": "pouch",
+    "v": 5
+   },
+   "desc": "향금빛 불꽃이 재물의 기운을 불러 모아요"
+  },
+  {
+   "id": "c_plum",
+   "slot": "CANDLE",
+   "name": "매화 촛불",
+   "price": 80,
+   "glow": "#ffc0d4",
+   "aura": "love",
+   "effect": {
+    "type": "devo",
+    "v": 15
+   },
+   "desc": "추위 속에 먼저 피는 매화처럼, 기다린 마음이 더 깊이 닿아요"
+  },
+  {
+   "id": "c_red",
+   "slot": "CANDLE",
+   "name": "홍련 촛불",
+   "price": 90,
+   "glow": "#ff7a7a",
+   "aura": "love",
+   "effect": {
+    "type": "support",
+    "v": 20
+   },
+   "desc": "붉은 연꽃 불빛이 멀리까지 번져 응원이 더 크게 닿아요"
+  },
+  {
+   "id": "c_moon",
+   "slot": "CANDLE",
+   "name": "달빛 촛불",
+   "price": 100,
+   "glow": "#a8d8ff",
+   "aura": "hope",
+   "effect": {
+    "type": "decay",
+    "v": 50
+   },
+   "desc": "달빛은 꺼지지 않아요. 오래 비워도 촛불이 절반 아래로 약해지지 않아요"
+  },
+  {
+   "id": "c_star",
+   "slot": "CANDLE",
+   "name": "별빛 촛불",
+   "price": 120,
+   "glow": "#c8a0ff",
+   "aura": "study",
+   "effect": {
+    "type": "cool",
+    "v": 5
+   },
+   "desc": "별빛 아래 집중이 빨라져, 정성을 더 자주 머금어요"
+  },
+  {
+   "id": "c_phoenix",
+   "slot": "CANDLE",
+   "name": "봉황 촛대",
+   "price": 150,
+   "glow": "#ffd070",
+   "aura": "all",
+   "effect": {
+    "type": "devo",
+    "v": 25
+   },
+   "desc": "봉황이 날아오르듯, 모든 소원의 정성을 크게 끌어올려요"
+  },
+  {
+   "id": "f_none",
+   "slot": "FLOWER",
+   "name": "비워두기",
+   "price": 0,
+   "owned": true
+  },
+  {
+   "id": "f_blossom",
+   "slot": "FLOWER",
+   "name": "벚꽃 화병",
+   "price": 50,
+   "img": "vase",
+   "aura": "love",
+   "effect": {
+    "type": "support",
+    "v": 10
+   },
+   "desc": "벚꽃은 설렘을 불러요. 다른 분들의 응원이 더 환하게 닿아요"
+  },
+  {
+   "id": "f_lily",
+   "slot": "FLOWER",
+   "name": "은방울꽃",
+   "price": 50,
+   "img": "f_lily",
+   "aura": "hope",
+   "effect": {
+    "type": "devo",
+    "v": 10
+   },
+   "desc": "은방울꽃의 꽃말은 \"행복이 돌아옴\". 작은 정성도 더 크게 자라요"
+  },
+  {
+   "id": "f_mum",
+   "slot": "FLOWER",
+   "name": "국화 놋그릇",
+   "price": 60,
+   "img": "f_mum",
+   "aura": "health",
+   "effect": {
+    "type": "decay",
+    "v": 40
+   },
+   "desc": "오래 피는 국화는 장수를 뜻해요. 촛불이 쉽게 약해지지 않아요"
+  },
+  {
+   "id": "f_camellia",
+   "slot": "FLOWER",
+   "name": "동백",
+   "price": 70,
+   "img": "f_camellia",
+   "aura": "love",
+   "effect": {
+    "type": "devo",
+    "v": 10
+   },
+   "desc": "겨울에도 지지 않는 동백처럼, 변치 않는 마음이 정성을 키워요"
+  },
+  {
+   "id": "f_magnolia",
+   "slot": "FLOWER",
+   "name": "목련",
+   "price": 80,
+   "img": "f_magnolia",
+   "aura": "study",
+   "effect": {
+    "type": "devo",
+    "v": 15
+   },
+   "desc": "목련은 늘 북쪽을 향해 피어요. 한 방향을 향한 노력이 깊어져요"
+  },
+  {
+   "id": "f_hydrangea",
+   "slot": "FLOWER",
+   "name": "수국",
+   "price": 90,
+   "img": "f_hydrangea",
+   "aura": "family",
+   "effect": {
+    "type": "support",
+    "v": 15
+   },
+   "desc": "수국은 여럿이 모여 한 송이가 돼요. 함께 비는 응원이 커져요"
+  },
+  {
+   "id": "f_lotus",
+   "slot": "FLOWER",
+   "name": "분홍 연꽃",
+   "price": 100,
+   "img": "lotus",
+   "aura": "peace",
+   "effect": {
+    "type": "cool",
+    "v": 3
+   },
+   "desc": "물 위의 연꽃처럼 마음이 가라앉아, 정성을 더 빨리 머금어요"
+  },
+  {
+   "id": "f_plum",
+   "slot": "FLOWER",
+   "name": "매화 분재",
+   "price": 120,
+   "img": "f_plum",
+   "aura": "career",
+   "effect": {
+    "type": "devo",
+    "v": 15
+   },
+   "desc": "긴 겨울을 견딘 매화 분재. 인내 끝의 성취를 불러요"
+  },
+  {
+   "id": "f_peony",
+   "slot": "FLOWER",
+   "name": "모란",
+   "price": 150,
+   "img": "f_peony",
+   "aura": "wealth",
+   "effect": {
+    "type": "pouch",
+    "v": 10
+   },
+   "desc": "모란은 부귀의 꽃. 정성 10회를 채우면 복주머니가 더 담겨요"
+  },
+  {
+   "id": "d_bell",
+   "slot": "DECORATION",
+   "name": "풍경",
+   "price": 50,
+   "img": "bell",
+   "kind": "hang",
+   "s": 40,
+   "aura": "peace",
+   "effect": {
+    "type": "cool",
+    "v": 2
+   },
+   "desc": "풍경 소리가 잡념을 씻어, 마음을 더 빨리 모아요"
+  },
+  {
+   "id": "d_star",
+   "slot": "DECORATION",
+   "name": "별 조각",
+   "price": 60,
+   "img": "star",
+   "kind": "float",
+   "s": 38,
+   "aura": "hope",
+   "effect": {
+    "type": "devo",
+    "v": 5
+   },
+   "desc": "방 안에 떠 있는 별 조각이 소원을 비춰요"
+  },
+  {
+   "id": "d_moon",
+   "slot": "DECORATION",
+   "name": "달 조각",
+   "price": 60,
+   "img": "moon",
+   "kind": "float",
+   "s": 40,
+   "aura": "family",
+   "effect": {
+    "type": "decay",
+    "v": 30
+   },
+   "desc": "달 조각이 방을 지켜, 촛불이 쉽게 약해지지 않아요"
+  },
+  {
+   "id": "d_chorong",
+   "slot": "DECORATION",
+   "name": "청사초롱",
+   "price": 80,
+   "img": "d_chorong",
+   "kind": "hang",
+   "s": 50,
+   "aura": "love",
+   "effect": {
+    "type": "support",
+    "v": 10
+   },
+   "desc": "혼례길을 밝히던 청사초롱. 좋은 인연의 응원을 불러요"
+  },
+  {
+   "id": "d_norigae",
+   "slot": "DECORATION",
+   "name": "노리개",
+   "price": 80,
+   "img": "d_norigae",
+   "kind": "hang",
+   "s": 52,
+   "aura": "wealth",
+   "effect": {
+    "type": "pouch",
+    "v": 5
+   },
+   "desc": "옥과 산호 노리개가 복을 매달아 두어요"
+  },
+  {
+   "id": "d_fan",
+   "slot": "DECORATION",
+   "name": "태극 부채",
+   "price": 90,
+   "img": "d_fan",
+   "kind": "stand",
+   "s": 62,
+   "aura": "career",
+   "effect": {
+    "type": "devo",
+    "v": 10
+   },
+   "desc": "태극 부채가 나쁜 기운을 부쳐 보내고 길을 열어요"
+  },
+  {
+   "id": "d_rabbit",
+   "slot": "DECORATION",
+   "name": "옥토끼",
+   "price": 100,
+   "img": "d_rabbit",
+   "kind": "stand",
+   "s": 50,
+   "aura": "health",
+   "effect": {
+    "type": "devo",
+    "v": 10
+   },
+   "desc": "달의 옥토끼가 불로초를 찧어 건강의 기운을 더해요"
+  },
+  {
+   "id": "d_orb",
+   "slot": "DECORATION",
+   "name": "별빛 수정구",
+   "price": 120,
+   "img": "d_orb",
+   "kind": "stand",
+   "s": 50,
+   "aura": "study",
+   "effect": {
+    "type": "daily",
+    "v": 1
+   },
+   "desc": "별빛 수정구가 하루를 길게 비춰, 정성을 한 번 더 들일 수 있어요"
+  },
+  {
+   "id": "d_magpie",
+   "slot": "DECORATION",
+   "name": "까치",
+   "price": 150,
+   "img": "d_magpie",
+   "kind": "float",
+   "s": 62,
+   "aura": "all",
+   "effect": {
+    "type": "support",
+    "v": 15
+   },
+   "desc": "까치가 울면 반가운 소식이 와요. 응원이 더 크게 닿아요"
+  },
+  {
+   "id": "b_night",
+   "slot": "BACKGROUND",
+   "name": "보랏빛 밤",
+   "price": 0,
+   "owned": true
+  },
+  {
+   "id": "b_dawn",
+   "slot": "BACKGROUND",
+   "name": "새벽 노을",
+   "price": 50,
+   "winFilter": "hue-rotate(-40deg) saturate(1.2) brightness(1.05)",
+   "tint": "rgba(255,140,120,.14)",
+   "aura": "hope",
+   "effect": {
+    "type": "devo",
+    "v": 5
+   },
+   "desc": "새벽 노을은 새로운 시작의 빛이에요"
+  },
+  {
+   "id": "b_jade",
+   "slot": "BACKGROUND",
+   "name": "비취 달밤",
+   "price": 60,
+   "winFilter": "hue-rotate(95deg) saturate(.9)",
+   "tint": "rgba(120,230,200,.12)",
+   "aura": "health",
+   "effect": {
+    "type": "devo",
+    "v": 5
+   },
+   "desc": "비취빛 달밤이 몸과 마음을 맑게 해요"
+  },
+  {
+   "id": "b_galaxy",
+   "slot": "BACKGROUND",
+   "name": "은하의 밤",
+   "price": 70,
+   "winFilter": "hue-rotate(-70deg) saturate(1.3) brightness(.95)",
+   "tint": "rgba(120,140,255,.14)",
+   "wx": "stars",
+   "aura": "study",
+   "effect": {
+    "type": "devo",
+    "v": 5
+   },
+   "desc": "은하수 아래 생각이 또렷해져요"
+  },
+  {
+   "id": "b_sakura",
+   "slot": "BACKGROUND",
+   "name": "벚꽃 새벽",
+   "price": 90,
+   "win": "assets/bg-sakura.jpg",
+   "tint": "rgba(255,170,200,.16)",
+   "wx": "petal",
+   "aura": "love",
+   "effect": {
+    "type": "devo",
+    "v": 10
+   },
+   "desc": "벚꽃 새벽이 설렘의 기운으로 방을 채워요"
+  },
+  {
+   "id": "b_gold",
+   "slot": "BACKGROUND",
+   "name": "황금 노을",
+   "price": 100,
+   "win": "assets/bg-gold.jpg",
+   "tint": "rgba(255,180,90,.18)",
+   "aura": "wealth",
+   "effect": {
+    "type": "pouch",
+    "v": 5
+   },
+   "desc": "황금 노을이 하루의 복을 모아 담아요"
+  },
+  {
+   "id": "b_silver",
+   "slot": "BACKGROUND",
+   "name": "은빛 월광",
+   "price": 110,
+   "win": "assets/bg-silver.jpg",
+   "tint": "rgba(160,200,255,.16)",
+   "aura": "peace",
+   "effect": {
+    "type": "decay",
+    "v": 30
+   },
+   "desc": "은빛 월광은 밤새 방을 비춰 촛불을 지켜요"
+  },
+  {
+   "id": "b_maple",
+   "slot": "BACKGROUND",
+   "name": "단풍 가을밤",
+   "price": 130,
+   "win": "assets/bg-maple.jpg",
+   "tint": "rgba(255,120,70,.16)",
+   "wx": "maple",
+   "aura": "career",
+   "effect": {
+    "type": "devo",
+    "v": 10
+   },
+   "desc": "단풍처럼 무르익은 노력이 결실을 맺어요"
+  },
+  {
+   "id": "b_snow",
+   "slot": "BACKGROUND",
+   "name": "눈 내리는 밤",
+   "price": 150,
+   "win": "assets/bg-snow.jpg",
+   "tint": "rgba(180,200,255,.14)",
+   "wx": "snow",
+   "aura": "family",
+   "effect": {
+    "type": "cool",
+    "v": 3
+   },
+   "desc": "눈 내리는 밤, 고요 속에서 정성이 빨리 모여요"
+  },
+  {
+   "id": "s_none",
+   "slot": "SPECIAL",
+   "name": "비워두기",
+   "price": 0,
+   "owned": true
+  },
+  {
+   "id": "s_firefly",
+   "slot": "SPECIAL",
+   "name": "반딧불 무리",
+   "price": 50,
+   "fx": "firefly",
+   "img": "s_firefly",
+   "aura": "hope",
+   "effect": {
+    "type": "devo",
+    "v": 10
+   },
+   "desc": "반딧불이 작은 빛을 모아 소원을 밝혀요"
+  },
+  {
+   "id": "s_sakura",
+   "slot": "SPECIAL",
+   "name": "벚꽃 폭풍",
+   "price": 60,
+   "fx": "sakura",
+   "img": "s_sakura",
+   "aura": "love",
+   "effect": {
+    "type": "support",
+    "v": 15
+   },
+   "desc": "벚꽃 폭풍이 응원을 온 방 가득 퍼뜨려요"
+  },
+  {
+   "id": "s_snow",
+   "slot": "SPECIAL",
+   "name": "눈송이",
+   "price": 70,
+   "fx": "snow",
+   "img": "s_snow",
+   "aura": "peace",
+   "effect": {
+    "type": "cool",
+    "v": 3
+   },
+   "desc": "눈송이가 내려앉듯 마음이 차분해져요"
+  },
+  {
+   "id": "s_rain",
+   "slot": "SPECIAL",
+   "name": "별비",
+   "price": 80,
+   "fx": "starrain",
+   "img": "spark",
+   "aura": "study",
+   "effect": {
+    "type": "devo",
+    "v": 15
+   },
+   "desc": "별비가 내려 노력의 기운을 더해요"
+  },
+  {
+   "id": "s_butter",
+   "slot": "SPECIAL",
+   "name": "빛나비 떼",
+   "price": 90,
+   "fx": "butterfly",
+   "img": "petal",
+   "aura": "all",
+   "effect": {
+    "type": "support",
+    "v": 10
+   },
+   "desc": "빛나비가 응원을 실어 날라요"
+  },
+  {
+   "id": "s_lantern",
+   "slot": "SPECIAL",
+   "name": "풍등 승천",
+   "price": 110,
+   "fx": "lanterns",
+   "img": "s_lantern",
+   "aura": "all",
+   "effect": {
+    "type": "devo",
+    "v": 20
+   },
+   "desc": "풍등이 소원을 하늘까지 실어 보내요"
+  },
+  {
+   "id": "s_meteor",
+   "slot": "SPECIAL",
+   "name": "유성우",
+   "price": 120,
+   "fx": "meteor",
+   "img": "s_meteor",
+   "aura": "hope",
+   "effect": {
+    "type": "daily",
+    "v": 1
+   },
+   "desc": "유성에 비는 소원 한 번 더 — 하루 정성이 1회 늘어요"
+  },
+  {
+   "id": "s_aurora",
+   "slot": "SPECIAL",
+   "name": "오로라",
+   "price": 140,
+   "fx": "aurora",
+   "img": "s_aurora",
+   "aura": "health",
+   "effect": {
+    "type": "decay",
+    "v": 60
+   },
+   "desc": "오로라가 방을 감싸, 촛불이 60% 아래로 약해지지 않아요"
+  },
+  {
+   "id": "s_aura",
+   "slot": "SPECIAL",
+   "name": "금빛 오라",
+   "price": 150,
+   "fx": "aura",
+   "img": "s_stardust",
+   "aura": "wealth",
+   "effect": {
+    "type": "pouch",
+    "v": 15
+   },
+   "desc": "금빛 오라가 복주머니를 넉넉히 채워요"
+  },
+  {
+   "id": "sl_won",
+   "slot": "SEAL",
+   "name": "소원 인장",
+   "price": 50,
+   "hanja": "願",
+   "color": "#c94a3b",
+   "kind": "stand",
+   "s": 40,
+   "aura": "hope",
+   "effect": {
+    "type": "devo",
+    "v": 5
+   },
+   "desc": "願 · 모든 소원의 시작을 새기는 인장"
+  },
+  {
+   "id": "sl_hap",
+   "slot": "SEAL",
+   "name": "합격 인장",
+   "price": 70,
+   "hanja": "合",
+   "color": "#3a6ac9",
+   "kind": "stand",
+   "s": 40,
+   "aura": "study",
+   "effect": {
+    "type": "devo",
+    "v": 10
+   },
+   "desc": "合 · 합격과 맞아떨어짐을 부르는 인장"
+  },
+  {
+   "id": "sl_gang",
+   "slot": "SEAL",
+   "name": "건강 인장",
+   "price": 70,
+   "hanja": "康",
+   "color": "#2f8a5a",
+   "kind": "stand",
+   "s": 40,
+   "aura": "health",
+   "effect": {
+    "type": "devo",
+    "v": 10
+   },
+   "desc": "康 · 몸과 마음의 평안을 새긴 인장"
+  },
+  {
+   "id": "sl_bok",
+   "slot": "SEAL",
+   "name": "복 인장",
+   "price": 60,
+   "hanja": "福",
+   "color": "#b8860b",
+   "kind": "stand",
+   "s": 40,
+   "aura": "wealth",
+   "effect": {
+    "type": "pouch",
+    "v": 5
+   },
+   "desc": "福 · 복을 불러 담는 인장"
+  },
+  {
+   "id": "sl_yeon",
+   "slot": "SEAL",
+   "name": "인연 인장",
+   "price": 70,
+   "hanja": "緣",
+   "color": "#c93a7a",
+   "kind": "stand",
+   "s": 40,
+   "aura": "love",
+   "effect": {
+    "type": "support",
+    "v": 10
+   },
+   "desc": "緣 · 좋은 인연을 잇는 인장"
+  },
+  {
+   "id": "sl_jae",
+   "slot": "SEAL",
+   "name": "재물 인장",
+   "price": 80,
+   "hanja": "財",
+   "color": "#a8741a",
+   "kind": "stand",
+   "s": 40,
+   "aura": "wealth",
+   "effect": {
+    "type": "devo",
+    "v": 10
+   },
+   "desc": "財 · 재물의 흐름을 여는 인장"
+  },
+  {
+   "id": "sl_seong",
+   "slot": "SEAL",
+   "name": "성취 인장",
+   "price": 80,
+   "hanja": "成",
+   "color": "#c9602a",
+   "kind": "stand",
+   "s": 40,
+   "aura": "career",
+   "effect": {
+    "type": "devo",
+    "v": 10
+   },
+   "desc": "成 · 이루어짐을 약속하는 인장"
+  },
+  {
+   "id": "sl_su",
+   "slot": "SEAL",
+   "name": "장수 인장",
+   "price": 90,
+   "hanja": "壽",
+   "color": "#5a7a3a",
+   "kind": "stand",
+   "s": 40,
+   "aura": "health",
+   "effect": {
+    "type": "decay",
+    "v": 30
+   },
+   "desc": "壽 · 오래도록 꺼지지 않는 불을 새긴 인장"
+  },
+  {
+   "id": "sl_gil",
+   "slot": "SEAL",
+   "name": "길운 인장",
+   "price": 120,
+   "hanja": "吉",
+   "color": "#8a3ac9",
+   "kind": "stand",
+   "s": 40,
+   "aura": "all",
+   "effect": {
+    "type": "cool",
+    "v": 2
+   },
+   "desc": "吉 · 모든 일에 길한 기운을 더하는 인장"
+  },
+  {
+   "id": "sl_an",
+   "slot": "SEAL",
+   "name": "평안 인장",
+   "price": 100,
+   "hanja": "安",
+   "color": "#5a4ac9",
+   "kind": "stand",
+   "s": 40,
+   "aura": "family",
+   "effect": {
+    "type": "devo",
+    "v": 10
+   },
+   "desc": "安 · 가족의 무탈을 비는 인장"
+  },
+  {
+   "id": "t_bible",
+   "slot": "THEME",
+   "theme": "god",
+   "name": "성경책",
+   "kind": "stand",
+   "tier": "free",
+   "price": 0,
+   "glyph": "📖",
+   "s": 50,
+   "img": "t_bible",
+   "freeTier": true,
+   "aura": "peace",
+   "effect": {
+    "type": "devo",
+    "v": 5
+   },
+   "desc": "펼쳐 둔 성경책. 마음을 가라앉히고 기도에 집중하게 해요"
+  },
+  {
+   "id": "t_cross",
+   "slot": "THEME",
+   "theme": "god",
+   "name": "작은 십자가",
+   "kind": "stand",
+   "tier": "normal",
+   "price": 60,
+   "glyph": "✝",
+   "s": 46,
+   "img": "t_cross",
+   "freeTier": false,
+   "aura": "hope",
+   "effect": {
+    "type": "devo",
+    "v": 10
+   },
+   "desc": "작은 나무 십자가. 매일의 기도를 붙잡아 줘요"
+  },
+  {
+   "id": "t_prayc",
+   "slot": "THEME",
+   "theme": "god",
+   "name": "기도초",
+   "kind": "stand",
+   "tier": "normal",
+   "price": 80,
+   "glyph": "🕯",
+   "s": 48,
+   "img": "t_prayc",
+   "freeTier": false,
+   "aura": "peace",
+   "effect": {
+    "type": "cool",
+    "v": 3
+   },
+   "desc": "가늘고 흰 기도초. 조용히 타오르며 마음을 모아요"
+  },
+  {
+   "id": "t_hands",
+   "slot": "THEME",
+   "theme": "god",
+   "name": "기도하는 손",
+   "kind": "stand",
+   "tier": "normal",
+   "price": 100,
+   "glyph": "🙏",
+   "s": 50,
+   "img": "t_hands",
+   "freeTier": false,
+   "aura": "family",
+   "effect": {
+    "type": "support",
+    "v": 10
+   },
+   "desc": "두 손 모은 조각. 함께 드리는 기도가 더 크게 닿아요"
+  },
+  {
+   "id": "t_glass",
+   "slot": "THEME",
+   "theme": "god",
+   "name": "스테인드글라스",
+   "kind": "hang",
+   "tier": "special",
+   "price": 150,
+   "glyph": "⛪",
+   "s": 60,
+   "img": "t_glass",
+   "freeTier": false,
+   "aura": "all",
+   "effect": {
+    "type": "devo",
+    "v": 15
+   },
+   "desc": "빛이 스며드는 색유리 창. 방 전체가 따스한 빛으로 물들어요"
+  },
+  {
+   "id": "t_lotus",
+   "slot": "THEME",
+   "theme": "buddha",
+   "name": "연꽃",
+   "kind": "stand",
+   "tier": "free",
+   "price": 0,
+   "glyph": "🪷",
+   "s": 52,
+   "img": "t_lotus",
+   "freeTier": true,
+   "aura": "peace",
+   "effect": {
+    "type": "devo",
+    "v": 5
+   },
+   "desc": "진흙 속에서 피는 연꽃. 흔들리지 않는 마음을 담아요"
+  },
+  {
+   "id": "t_beads",
+   "slot": "THEME",
+   "theme": "buddha",
+   "name": "염주",
+   "kind": "stand",
+   "tier": "normal",
+   "price": 60,
+   "glyph": "📿",
+   "s": 44,
+   "img": "t_beads",
+   "freeTier": false,
+   "aura": "health",
+   "effect": {
+    "type": "cool",
+    "v": 3
+   },
+   "desc": "한 알 한 알 굴리며 마음을 고르는 염주"
+  },
+  {
+   "id": "t_lamp",
+   "slot": "THEME",
+   "theme": "buddha",
+   "name": "연등",
+   "kind": "hang",
+   "tier": "normal",
+   "price": 80,
+   "glyph": "🏮",
+   "s": 50,
+   "img": "t_lamp",
+   "freeTier": false,
+   "aura": "hope",
+   "effect": {
+    "type": "devo",
+    "v": 10
+   },
+   "desc": "소원을 적어 매단 연등. 어둠 속 길을 밝혀요"
+  },
+  {
+   "id": "t_bell",
+   "slot": "THEME",
+   "theme": "buddha",
+   "name": "작은 범종",
+   "kind": "hang",
+   "tier": "normal",
+   "price": 100,
+   "glyph": "🔔",
+   "s": 46,
+   "img": "t_bell",
+   "freeTier": false,
+   "aura": "peace",
+   "effect": {
+    "type": "decay",
+    "v": 40
+   },
+   "desc": "은은히 울리는 범종. 오래 비워도 촛불이 약해지지 않아요"
+  },
+  {
+   "id": "t_statue",
+   "slot": "THEME",
+   "theme": "buddha",
+   "name": "불상 장식",
+   "kind": "stand",
+   "tier": "special",
+   "price": 150,
+   "glyph": "☸",
+   "s": 62,
+   "img": "t_statue",
+   "freeTier": false,
+   "aura": "all",
+   "effect": {
+    "type": "devo",
+    "v": 15
+   },
+   "desc": "미소 짓는 작은 불상. 모든 소원을 자비롭게 감싸요"
+  },
+  {
+   "id": "t_talisman",
+   "slot": "THEME",
+   "theme": "shaman",
+   "name": "부적",
+   "kind": "hang",
+   "tier": "free",
+   "price": 0,
+   "glyph": "📜",
+   "s": 44,
+   "img": "t_talisman",
+   "freeTier": true,
+   "aura": "health",
+   "effect": {
+    "type": "decay",
+    "v": 30
+   },
+   "desc": "붉은 글씨의 부적. 나쁜 기운을 막아 촛불을 지켜요"
+  },
+  {
+   "id": "t_rattle",
+   "slot": "THEME",
+   "theme": "shaman",
+   "name": "방울",
+   "kind": "stand",
+   "tier": "normal",
+   "price": 60,
+   "glyph": "🔔",
+   "s": 46,
+   "img": "t_rattle",
+   "freeTier": false,
+   "aura": "hope",
+   "effect": {
+    "type": "support",
+    "v": 10
+   },
+   "desc": "맑게 울리는 무당 방울. 응원의 기운을 불러요"
+  },
+  {
+   "id": "t_sfan",
+   "slot": "THEME",
+   "theme": "shaman",
+   "name": "부채",
+   "kind": "stand",
+   "tier": "normal",
+   "price": 80,
+   "glyph": "🪭",
+   "s": 54,
+   "img": "t_sfan",
+   "freeTier": false,
+   "aura": "career",
+   "effect": {
+    "type": "devo",
+    "v": 10
+   },
+   "desc": "오방색 부채. 막힌 길을 부쳐 열어요"
+  },
+  {
+   "id": "t_holder",
+   "slot": "THEME",
+   "theme": "shaman",
+   "name": "촛대",
+   "kind": "stand",
+   "tier": "normal",
+   "price": 100,
+   "glyph": "🕯",
+   "s": 50,
+   "img": "t_holder",
+   "freeTier": false,
+   "aura": "peace",
+   "effect": {
+    "type": "cool",
+    "v": 3
+   },
+   "desc": "놋쇠 촛대 한 쌍. 신당의 불을 밝혀요"
+  },
+  {
+   "id": "t_pattern",
+   "slot": "THEME",
+   "theme": "shaman",
+   "name": "전통 문양",
+   "kind": "hang",
+   "tier": "special",
+   "price": 150,
+   "glyph": "❖",
+   "s": 60,
+   "img": "t_pattern",
+   "freeTier": false,
+   "aura": "all",
+   "effect": {
+    "type": "devo",
+    "v": 15
+   },
+   "desc": "오방색 전통 문양 휘장. 신당 전체에 기운이 가득해요"
+  },
+  {
+   "id": "t_heart",
+   "slot": "THEME",
+   "theme": "free",
+   "name": "하트",
+   "kind": "float",
+   "tier": "free",
+   "price": 0,
+   "glyph": "❤",
+   "s": 40,
+   "img": "t_heart",
+   "freeTier": true,
+   "aura": "love",
+   "effect": {
+    "type": "support",
+    "v": 5
+   },
+   "desc": "떠다니는 작은 하트. 마음을 가볍게 해요"
+  },
+  {
+   "id": "t_rainbow",
+   "slot": "THEME",
+   "theme": "free",
+   "name": "무지개",
+   "kind": "float",
+   "tier": "normal",
+   "price": 60,
+   "glyph": "🌈",
+   "s": 62,
+   "img": "t_rainbow",
+   "freeTier": false,
+   "aura": "hope",
+   "effect": {
+    "type": "devo",
+    "v": 10
+   },
+   "desc": "비 온 뒤의 무지개. 좋은 일이 올 거예요"
+  },
+  {
+   "id": "t_flowers",
+   "slot": "THEME",
+   "theme": "free",
+   "name": "꽃다발",
+   "kind": "stand",
+   "tier": "normal",
+   "price": 80,
+   "glyph": "💐",
+   "s": 54,
+   "img": "t_flowers",
+   "freeTier": false,
+   "aura": "love",
+   "effect": {
+    "type": "devo",
+    "v": 10
+   },
+   "desc": "향기로운 꽃다발. 오늘을 축하해요"
+  },
+  {
+   "id": "t_gift",
+   "slot": "THEME",
+   "theme": "free",
+   "name": "선물 상자",
+   "kind": "stand",
+   "tier": "normal",
+   "price": 100,
+   "glyph": "🎁",
+   "s": 48,
+   "img": "t_gift",
+   "freeTier": false,
+   "aura": "wealth",
+   "effect": {
+    "type": "pouch",
+    "v": 5
+   },
+   "desc": "리본 묶인 선물 상자. 작은 행운이 담겨요"
+  },
+  {
+   "id": "t_stars",
+   "slot": "THEME",
+   "theme": "free",
+   "name": "별 무리",
+   "kind": "float",
+   "tier": "special",
+   "price": 150,
+   "glyph": "✨",
+   "s": 58,
+   "img": "t_stars",
+   "freeTier": false,
+   "aura": "all",
+   "effect": {
+    "type": "devo",
+    "v": 15
+   },
+   "desc": "방 안을 맴도는 별 무리. 모든 소원을 반짝이게 해요"
+  },
+  {
+   "id": "rw_petal",
+   "slot": "SPECIAL",
+   "name": "응원의 꽃잎",
+   "price": null,
+   "reward": 10,
+   "fx": "sakura",
+   "img": "petal",
+   "aura": "love",
+   "effect": {
+    "type": "support",
+    "v": 10
+   },
+   "desc": "응원해주신 마음이 꽃잎이 되어 흩날려요. 받는 응원이 더 크게 닿아요"
+  },
+  {
+   "id": "rw_dust",
+   "slot": "SPECIAL",
+   "name": "응원의 빛가루",
+   "price": null,
+   "reward": 30,
+   "fx": "starrain",
+   "img": "spark",
+   "aura": "hope",
+   "effect": {
+    "type": "devo",
+    "v": 10
+   },
+   "desc": "응원의 빛가루가 쌓여 정성이 더 깊어져요"
+  },
+  {
+   "id": "d_goldbell",
+   "slot": "DECORATION",
+   "name": "금방울",
+   "price": null,
+   "reward": 100,
+   "img": "d_goldbell",
+   "kind": "hang",
+   "s": 46,
+   "aura": "all",
+   "effect": {
+    "type": "devo",
+    "v": 20
+   },
+   "desc": "응원 100번이 모여 울리는 금방울. 모든 소원의 정성을 끌어올려요"
+  },
+  {
+   "id": "d_jadeincense",
+   "slot": "DECORATION",
+   "name": "옥향로",
+   "price": null,
+   "reward": 300,
+   "img": "d_jadeincense",
+   "kind": "stand",
+   "s": 58,
+   "aura": "all",
+   "effect": {
+    "type": "decay",
+    "v": 50
+   },
+   "desc": "응원 300번의 옥향로. 향이 끊이지 않아 촛불이 절반 아래로 약해지지 않아요"
+  },
+  {
+   "id": "rw_aura",
+   "slot": "SPECIAL",
+   "name": "천상의 금빛 오라",
+   "price": null,
+   "reward": 500,
+   "fx": "aura",
+   "img": "star",
+   "aura": "all",
+   "effect": {
+    "type": "devo",
+    "v": 30
+   },
+   "desc": "응원 500번의 빛. 천상의 금빛 오라가 방을 감싸 모든 정성을 크게 키워요"
+  }
+ ],
+ "WISH_COLORS": [
+  {
+   "id": "health",
+   "label": "건강",
+   "hanja": "康",
+   "color": "#7fd6a0",
+   "deep": "#2f7a52",
+   "desc": "몸과 마음이 편안하기를"
+  },
+  {
+   "id": "wealth",
+   "label": "재물",
+   "hanja": "財",
+   "color": "#f5cf6a",
+   "deep": "#9a6a12",
+   "desc": "넉넉하고 풍요롭기를"
+  },
+  {
+   "id": "love",
+   "label": "사랑·인연",
+   "hanja": "緣",
+   "color": "#ff8fb1",
+   "deep": "#a8325a",
+   "desc": "좋은 인연이 닿기를"
+  },
+  {
+   "id": "study",
+   "label": "학업·합격",
+   "hanja": "合",
+   "color": "#8ab8ff",
+   "deep": "#2f5aa8",
+   "desc": "노력이 결실을 맺기를"
+  },
+  {
+   "id": "family",
+   "label": "가족·평안",
+   "hanja": "安",
+   "color": "#c8a8ff",
+   "deep": "#5a3aa8",
+   "desc": "가족 모두 무탈하기를"
+  },
+  {
+   "id": "career",
+   "label": "일·성공",
+   "hanja": "成",
+   "color": "#ffa860",
+   "deep": "#a8541a",
+   "desc": "하는 일이 잘 풀리기를"
+  },
+  {
+   "id": "peace",
+   "label": "마음·평온",
+   "hanja": "靜",
+   "color": "#9ad8e8",
+   "deep": "#2f6a7a",
+   "desc": "마음이 고요하고 평온하기를"
+  },
+  {
+   "id": "hope",
+   "label": "마음·희망",
+   "hanja": "願",
+   "color": "#fff0d8",
+   "deep": "#8a6a4a",
+   "desc": "마음속 바람이 이루어지기를"
+  }
+ ],
+ "PAPERS": [
+  {
+   "id": "hanji",
+   "label": "한지",
+   "bg": [
+    "#fbf1dc",
+    "#f1e0bd"
+   ],
+   "ink": "#4a2a1c",
+   "sub": "rgba(90,50,30,.6)"
+  },
+  {
+   "id": "blossom",
+   "label": "벚꽃",
+   "bg": [
+    "#ffeef3",
+    "#f9d2df"
+   ],
+   "ink": "#6a2440",
+   "sub": "rgba(120,40,70,.6)"
+  },
+  {
+   "id": "jade",
+   "label": "연두",
+   "bg": [
+    "#eef7e6",
+    "#d4e8c4"
+   ],
+   "ink": "#2c4a24",
+   "sub": "rgba(40,80,40,.6)"
+  },
+  {
+   "id": "sky",
+   "label": "하늘",
+   "bg": [
+    "#eaf4fb",
+    "#cfe2f2"
+   ],
+   "ink": "#1f3a58",
+   "sub": "rgba(30,60,100,.6)"
+  },
+  {
+   "id": "lilac",
+   "label": "연보라",
+   "bg": [
+    "#f4eefc",
+    "#ddd0f2"
+   ],
+   "ink": "#3e2a66",
+   "sub": "rgba(70,50,110,.6)"
+  },
+  {
+   "id": "gold",
+   "label": "금박",
+   "bg": [
+    "#fff4d0",
+    "#f0d48a"
+   ],
+   "ink": "#5a3a08",
+   "sub": "rgba(110,70,10,.6)",
+   "foil": true
+  },
+  {
+   "id": "indigo",
+   "label": "쪽빛",
+   "bg": [
+    "#2c3566",
+    "#1a1f44"
+   ],
+   "ink": "#f0eaff",
+   "sub": "rgba(220,210,255,.65)",
+   "dark": true
+  },
+  {
+   "id": "ink",
+   "label": "먹빛",
+   "bg": [
+    "#2e2622",
+    "#171210"
+   ],
+   "ink": "#f8eedc",
+   "sub": "rgba(240,220,190,.6)",
+   "dark": true
+  }
+ ],
+ "THEMES": [
+  {
+   "id": "free",
+   "label": "자유",
+   "glyph": "🌿",
+   "hanja": "自",
+   "sub": "나만의 방식으로",
+   "color": "#ff8fb1",
+   "deep": "#a8325a",
+   "light": "rgba(255,190,220,.18)",
+   "desc": "종교와 상관없이, 마음 가는 대로 비는 현대의 소원방",
+   "room": "assets/rooms/room-free.jpg",
+   "outfitHint": "현대 사복 — 니트 · 블라우스 · 원피스 · 셔츠 · 재킷"
+  },
+  {
+   "id": "god",
+   "label": "하나님",
+   "glyph": "🙏",
+   "hanja": "祈",
+   "sub": "기도의 방",
+   "color": "#ffe6a8",
+   "deep": "#8a6a2a",
+   "light": "rgba(255,240,200,.22)",
+   "desc": "스테인드글라스 빛이 드는 조용한 예배당",
+   "room": "assets/rooms/room-god.jpg",
+   "outfitHint": "단정한 사복 — 셔츠 · 니트 · 원피스 · 밝은 톤"
+  },
+  {
+   "id": "buddha",
+   "label": "부처님",
+   "glyph": "🪷",
+   "hanja": "佛",
+   "sub": "법당",
+   "color": "#ffc870",
+   "deep": "#9a5a1a",
+   "light": "rgba(255,200,120,.2)",
+   "desc": "부처님과 연등이 밝히는 고요한 법당",
+   "room": "assets/rooms/room-buddha.jpg",
+   "outfitHint": "단정한 법복 · 개량한복 · 차분한 현대복"
+  },
+  {
+   "id": "shaman",
+   "label": "무속인",
+   "glyph": "🔮",
+   "hanja": "神",
+   "sub": "신당",
+   "color": "#ff7a6a",
+   "deep": "#8a1f2a",
+   "light": "rgba(255,110,120,.18)",
+   "desc": "무신도와 오방색 천이 드리운 신비로운 신당",
+   "room": "assets/rooms/room-shaman.jpg",
+   "outfitHint": "전통 무속 의상 · 색동 · 전통 장식"
+  }
+ ],
+ "OUTFIT_ART": {
+  "F01": {
+   "free": "assets/outfits/F01_free.png",
+   "god": "assets/outfits/F01_god.png",
+   "buddha": "assets/outfits/F01_buddha.png",
+   "shaman": "assets/outfits/F01_shaman.png"
+  },
+  "F02": {
+   "free": "assets/outfits/F02_free.png",
+   "god": "assets/outfits/F02_god.png",
+   "buddha": "assets/outfits/F02_buddha.png",
+   "shaman": "assets/outfits/F02_shaman.png"
+  },
+  "F03": {
+   "free": "assets/outfits/F03_free.png",
+   "god": "assets/outfits/F03_god.png",
+   "buddha": "assets/outfits/F03_buddha.png",
+   "shaman": "assets/outfits/F03_shaman.png"
+  },
+  "F04": {
+   "free": "assets/outfits/F04_free.png",
+   "god": "assets/outfits/F04_god.png",
+   "buddha": "assets/outfits/F04_buddha.png",
+   "shaman": "assets/outfits/F04_shaman.png"
+  },
+  "F05": {
+   "free": "assets/outfits/F05_free.png",
+   "god": "assets/outfits/F05_god.png",
+   "buddha": "assets/outfits/F05_buddha.png",
+   "shaman": "assets/outfits/F05_shaman.png"
+  },
+  "F06": {
+   "free": "assets/outfits/F06_free.png",
+   "god": "assets/outfits/F06_god.png",
+   "buddha": "assets/outfits/F06_buddha.png",
+   "shaman": "assets/outfits/F06_shaman.png"
+  },
+  "F07": {
+   "free": "assets/outfits/F07_free.png",
+   "god": "assets/outfits/F07_god.png",
+   "buddha": "assets/outfits/F07_buddha.png",
+   "shaman": "assets/outfits/F07_shaman.png"
+  },
+  "F08": {
+   "free": "assets/outfits/F08_free.png",
+   "god": "assets/outfits/F08_god.png",
+   "buddha": "assets/outfits/F08_buddha.png",
+   "shaman": "assets/outfits/F08_shaman.png"
+  },
+  "F09": {
+   "free": "assets/outfits/F09_free.png",
+   "god": "assets/outfits/F09_god.png",
+   "buddha": "assets/outfits/F09_buddha.png",
+   "shaman": "assets/outfits/F09_shaman.png"
+  },
+  "F10": {
+   "free": "assets/outfits/F10_free.png",
+   "god": "assets/outfits/F10_god.png",
+   "buddha": "assets/outfits/F10_buddha.png",
+   "shaman": "assets/outfits/F10_shaman.png"
+  },
+  "M01": {
+   "free": "assets/outfits/M01_free.png",
+   "god": "assets/outfits/M01_god.png",
+   "buddha": "assets/outfits/M01_buddha.png",
+   "shaman": "assets/outfits/M01_shaman.png"
+  },
+  "M02": {
+   "free": "assets/outfits/M02_free.png",
+   "god": "assets/outfits/M02_god.png",
+   "buddha": "assets/outfits/M02_buddha.png",
+   "shaman": "assets/outfits/M02_shaman.png"
+  },
+  "M03": {
+   "free": "assets/outfits/M03_free.png",
+   "god": "assets/outfits/M03_god.png",
+   "buddha": "assets/outfits/M03_buddha.png",
+   "shaman": "assets/outfits/M03_shaman.png"
+  },
+  "M04": {
+   "free": "assets/outfits/M04_free.png",
+   "god": "assets/outfits/M04_god.png",
+   "buddha": "assets/outfits/M04_buddha.png",
+   "shaman": "assets/outfits/M04_shaman.png"
+  },
+  "M05": {
+   "free": "assets/outfits/M05_free.png",
+   "god": "assets/outfits/M05_god.png",
+   "buddha": "assets/outfits/M05_buddha.png",
+   "shaman": "assets/outfits/M05_shaman.png"
+  },
+  "M06": {
+   "free": "assets/outfits/M06_free.png",
+   "god": "assets/outfits/M06_god.png",
+   "buddha": "assets/outfits/M06_buddha.png",
+   "shaman": "assets/outfits/M06_shaman.png"
+  },
+  "M07": {
+   "free": "assets/outfits/M07_free.png",
+   "god": "assets/outfits/M07_god.png",
+   "buddha": "assets/outfits/M07_buddha.png",
+   "shaman": "assets/outfits/M07_shaman.png"
+  },
+  "M08": {
+   "free": "assets/outfits/M08_free.png",
+   "god": "assets/outfits/M08_god.png",
+   "buddha": "assets/outfits/M08_buddha.png",
+   "shaman": "assets/outfits/M08_shaman.png"
+  },
+  "M09": {
+   "free": "assets/outfits/M09_free.png",
+   "god": "assets/outfits/M09_god.png",
+   "buddha": "assets/outfits/M09_buddha.png",
+   "shaman": "assets/outfits/M09_shaman.png"
+  },
+  "M10": {
+   "free": "assets/outfits/M10_free.png",
+   "god": "assets/outfits/M10_god.png",
+   "buddha": "assets/outfits/M10_buddha.png",
+   "shaman": "assets/outfits/M10_shaman.png"
+  },
+  "F00": {
+   "free": "assets/chars/F00.png",
+   "god": "assets/outfits/F00_god.png",
+   "buddha": "assets/outfits/F00_buddha.png",
+   "shaman": "assets/outfits/F00_shaman.png"
+  },
+  "M00": {
+   "free": "assets/chars/M00.png",
+   "god": "assets/outfits/M00_god.png",
+   "buddha": "assets/outfits/M00_buddha.png",
+   "shaman": "assets/outfits/M00_shaman.png"
+  }
+ },
+ "OUTFIT_PRICE": {
+  "free": 0,
+  "god": 80,
+  "buddha": 80,
+  "shaman": 80
+ },
+ "THEME_ITEMS": [
+  [
+   "t_bible",
+   "god",
+   "성경책",
+   "stand",
+   "free",
+   0,
+   "📖",
+   50,
+   [
+    "peace",
+    "devo",
+    5,
+    "펼쳐 둔 성경책. 마음을 가라앉히고 기도에 집중하게 해요"
+   ]
+  ],
+  [
+   "t_cross",
+   "god",
+   "작은 십자가",
+   "stand",
+   "normal",
+   60,
+   "✝",
+   46,
+   [
+    "hope",
+    "devo",
+    10,
+    "작은 나무 십자가. 매일의 기도를 붙잡아 줘요"
+   ]
+  ],
+  [
+   "t_prayc",
+   "god",
+   "기도초",
+   "stand",
+   "normal",
+   80,
+   "🕯",
+   48,
+   [
+    "peace",
+    "cool",
+    3,
+    "가늘고 흰 기도초. 조용히 타오르며 마음을 모아요"
+   ]
+  ],
+  [
+   "t_hands",
+   "god",
+   "기도하는 손",
+   "stand",
+   "normal",
+   100,
+   "🙏",
+   50,
+   [
+    "family",
+    "support",
+    10,
+    "두 손 모은 조각. 함께 드리는 기도가 더 크게 닿아요"
+   ]
+  ],
+  [
+   "t_glass",
+   "god",
+   "스테인드글라스",
+   "hang",
+   "special",
+   150,
+   "⛪",
+   60,
+   [
+    "all",
+    "devo",
+    15,
+    "빛이 스며드는 색유리 창. 방 전체가 따스한 빛으로 물들어요"
+   ]
+  ],
+  [
+   "t_lotus",
+   "buddha",
+   "연꽃",
+   "stand",
+   "free",
+   0,
+   "🪷",
+   52,
+   [
+    "peace",
+    "devo",
+    5,
+    "진흙 속에서 피는 연꽃. 흔들리지 않는 마음을 담아요"
+   ]
+  ],
+  [
+   "t_beads",
+   "buddha",
+   "염주",
+   "stand",
+   "normal",
+   60,
+   "📿",
+   44,
+   [
+    "health",
+    "cool",
+    3,
+    "한 알 한 알 굴리며 마음을 고르는 염주"
+   ]
+  ],
+  [
+   "t_lamp",
+   "buddha",
+   "연등",
+   "hang",
+   "normal",
+   80,
+   "🏮",
+   50,
+   [
+    "hope",
+    "devo",
+    10,
+    "소원을 적어 매단 연등. 어둠 속 길을 밝혀요"
+   ]
+  ],
+  [
+   "t_bell",
+   "buddha",
+   "작은 범종",
+   "hang",
+   "normal",
+   100,
+   "🔔",
+   46,
+   [
+    "peace",
+    "decay",
+    40,
+    "은은히 울리는 범종. 오래 비워도 촛불이 약해지지 않아요"
+   ]
+  ],
+  [
+   "t_statue",
+   "buddha",
+   "불상 장식",
+   "stand",
+   "special",
+   150,
+   "☸",
+   62,
+   [
+    "all",
+    "devo",
+    15,
+    "미소 짓는 작은 불상. 모든 소원을 자비롭게 감싸요"
+   ]
+  ],
+  [
+   "t_talisman",
+   "shaman",
+   "부적",
+   "hang",
+   "free",
+   0,
+   "📜",
+   44,
+   [
+    "health",
+    "decay",
+    30,
+    "붉은 글씨의 부적. 나쁜 기운을 막아 촛불을 지켜요"
+   ]
+  ],
+  [
+   "t_rattle",
+   "shaman",
+   "방울",
+   "stand",
+   "normal",
+   60,
+   "🔔",
+   46,
+   [
+    "hope",
+    "support",
+    10,
+    "맑게 울리는 무당 방울. 응원의 기운을 불러요"
+   ]
+  ],
+  [
+   "t_sfan",
+   "shaman",
+   "부채",
+   "stand",
+   "normal",
+   80,
+   "🪭",
+   54,
+   [
+    "career",
+    "devo",
+    10,
+    "오방색 부채. 막힌 길을 부쳐 열어요"
+   ]
+  ],
+  [
+   "t_holder",
+   "shaman",
+   "촛대",
+   "stand",
+   "normal",
+   100,
+   "🕯",
+   50,
+   [
+    "peace",
+    "cool",
+    3,
+    "놋쇠 촛대 한 쌍. 신당의 불을 밝혀요"
+   ]
+  ],
+  [
+   "t_pattern",
+   "shaman",
+   "전통 문양",
+   "hang",
+   "special",
+   150,
+   "❖",
+   60,
+   [
+    "all",
+    "devo",
+    15,
+    "오방색 전통 문양 휘장. 신당 전체에 기운이 가득해요"
+   ]
+  ],
+  [
+   "t_heart",
+   "free",
+   "하트",
+   "float",
+   "free",
+   0,
+   "❤",
+   40,
+   [
+    "love",
+    "support",
+    5,
+    "떠다니는 작은 하트. 마음을 가볍게 해요"
+   ]
+  ],
+  [
+   "t_rainbow",
+   "free",
+   "무지개",
+   "float",
+   "normal",
+   60,
+   "🌈",
+   62,
+   [
+    "hope",
+    "devo",
+    10,
+    "비 온 뒤의 무지개. 좋은 일이 올 거예요"
+   ]
+  ],
+  [
+   "t_flowers",
+   "free",
+   "꽃다발",
+   "stand",
+   "normal",
+   80,
+   "💐",
+   54,
+   [
+    "love",
+    "devo",
+    10,
+    "향기로운 꽃다발. 오늘을 축하해요"
+   ]
+  ],
+  [
+   "t_gift",
+   "free",
+   "선물 상자",
+   "stand",
+   "normal",
+   100,
+   "🎁",
+   48,
+   [
+    "wealth",
+    "pouch",
+    5,
+    "리본 묶인 선물 상자. 작은 행운이 담겨요"
+   ]
+  ],
+  [
+   "t_stars",
+   "free",
+   "별 무리",
+   "float",
+   "special",
+   150,
+   "✨",
+   58,
+   [
+    "all",
+    "devo",
+    15,
+    "방 안을 맴도는 별 무리. 모든 소원을 반짝이게 해요"
+   ]
+  ]
+ ],
+ "TIER": {
+  "free": {
+   "label": "무료",
+   "color": "#c8f5d4"
+  },
+  "normal": {
+   "label": "🧧 일반",
+   "color": "#ffe08a"
+  },
+  "special": {
+   "label": "✨ 특별",
+   "color": "#e8c8ff"
+  }
+ },
+ "RITUAL": {
+  "free": {
+   "verb": "정성",
+   "icon": "🙏",
+   "pose": "pray",
+   "done": "당신의 정성이 소원에 닿고 있습니다",
+   "src": "",
+   "lines": [
+    [
+     "두 손 모아, 간절히 빌어요",
+     null
+    ],
+    [
+     "간절한 마음이 촛불에 스며들고 있어요",
+     "당신의 바람은 결코 작지 않아요"
+    ],
+    [
+     "조금만 더, 거의 다 닿았어요",
+     "이 소원, 분명 이루어질 거예요"
+    ]
+   ],
+   "quotes": [
+    [
+     "오늘의 작은 정성이 내일의 큰 기적이 돼요",
+     ""
+    ],
+    [
+     "간절히 원하면, 온 우주가 도와준다",
+     ""
+    ],
+    [
+     "천천히 가도 괜찮아요, 멈추지만 않으면 돼요",
+     ""
+    ],
+    [
+     "당신의 마음은 이미 빛나고 있어요",
+     ""
+    ]
+   ]
+  },
+  "god": {
+   "verb": "기도",
+   "icon": "✝",
+   "pose": "pray",
+   "done": "당신의 기도가 하늘에 닿고 있습니다",
+   "src": "성경 · 개역한글",
+   "lines": [
+    [
+     "두 손 모아 기도드려요",
+     null
+    ],
+    [
+     "주님께 마음을 올려드려요",
+     "기도는 결코 헛되지 않아요"
+    ],
+    [
+     "응답의 빛이 가까워지고 있어요",
+     "아멘, 그대로 이루어지기를"
+    ]
+   ],
+   "quotes": [
+    [
+     "구하라 그리하면 너희에게 주실 것이요",
+     "마태복음 7:7"
+    ],
+    [
+     "여호와는 나의 목자시니 내가 부족함이 없으리로다",
+     "시편 23:1"
+    ],
+    [
+     "두려워 말라 내가 너와 함께 함이니라",
+     "이사야 41:10"
+    ],
+    [
+     "너희 염려를 다 주께 맡기라 이는 저가 너희를 권고하심이니라",
+     "베드로전서 5:7"
+    ],
+    [
+     "내게 능력 주시는 자 안에서 내가 모든 것을 할 수 있느니라",
+     "빌립보서 4:13"
+    ],
+    [
+     "항상 기뻐하라 쉬지 말고 기도하라 범사에 감사하라",
+     "데살로니가전서 5:16-18"
+    ],
+    [
+     "너는 마음을 다하여 여호와를 의뢰하고",
+     "잠언 3:5"
+    ]
+   ]
+  },
+  "buddha": {
+   "verb": "치성",
+   "icon": "🪷",
+   "pose": "bow",
+   "done": "당신의 치성이 부처님께 닿고 있습니다",
+   "src": "부처님 말씀",
+   "lines": [
+    [
+     "두 손 모아 절을 올려요",
+     null
+    ],
+    [
+     "한 배 한 배, 마음을 내려놓아요",
+     "고요한 마음에 복이 깃들어요"
+    ],
+    [
+     "지극한 정성이 거의 닿았어요",
+     "나무아미타불"
+    ]
+   ],
+   "quotes": [
+    [
+     "모든 것은 마음이 지어낸다",
+     "일체유심조 · 화엄경"
+    ],
+    [
+     "자기 자신을 등불로 삼고, 진리를 등불로 삼아라",
+     "자등명 법등명 · 열반경"
+    ],
+    [
+     "물방울이 모여 항아리를 채우듯, 작은 선이 모여 큰 복이 된다",
+     "법구경"
+    ],
+    [
+     "미움은 미움으로 그치지 않고, 오직 사랑으로 그친다",
+     "법구경"
+    ],
+    [
+     "지나간 것을 좇지 말고, 오지 않은 것을 바라지 말라",
+     "일야현자경"
+    ],
+    [
+     "마음이 고요하면 온 세상이 고요하다",
+     "부처님 말씀"
+    ]
+   ]
+  },
+  "shaman": {
+   "verb": "정성",
+   "icon": "🙌",
+   "pose": "rub",
+   "done": "천지신명께 정성이 닿고 있습니다",
+   "src": "비나리",
+   "lines": [
+    [
+     "두 손 모아 비나이다",
+     null
+    ],
+    [
+     "비나이다 비나이다, 소원 성취 비나이다",
+     "정성이 지극하면 하늘도 감동해요"
+    ],
+    [
+     "신령님께 거의 닿았어요",
+     "액운은 물러가고 복은 들어오소서"
+    ]
+   ],
+   "quotes": [
+    [
+     "비나이다 비나이다, 천지신명께 비나이다",
+     "비나리"
+    ],
+    [
+     "액운은 물러가고 만복은 들어오소서",
+     "고사 덕담"
+    ],
+    [
+     "정성이 지극하면 돌 위에도 꽃이 핀다",
+     "옛말"
+    ],
+    [
+     "동서남북 사방에서 좋은 기운 모여드소서",
+     "비나리"
+    ],
+    [
+     "지성이면 감천이라",
+     "옛말"
+    ],
+    [
+     "올 한 해 무탈하고 소원 성취하소서",
+     "덕담"
+    ]
+   ]
+  }
+ },
+ "POSE_ART": {
+  "F01_free_pray": "assets/poses/F01_free_pray.png",
+  "F01_god_pray": "assets/poses/F01_god_pray.png",
+  "F01_buddha_bow": "assets/poses/F01_buddha_bow.png",
+  "F01_shaman_rub": "assets/poses/F01_shaman_rub.png",
+  "F02_free_pray": "assets/poses/F02_free_pray.png",
+  "F02_god_pray": "assets/poses/F02_god_pray.png",
+  "F02_buddha_bow": "assets/poses/F02_buddha_bow.png",
+  "F02_shaman_rub": "assets/poses/F02_shaman_rub.png",
+  "F03_free_pray": "assets/poses/F03_free_pray.png",
+  "F03_god_pray": "assets/poses/F03_god_pray.png",
+  "F03_buddha_bow": "assets/poses/F03_buddha_bow.png",
+  "F03_shaman_rub": "assets/poses/F03_shaman_rub.png",
+  "F04_free_pray": "assets/poses/F04_free_pray.png",
+  "F04_god_pray": "assets/poses/F04_god_pray.png",
+  "F04_buddha_bow": "assets/poses/F04_buddha_bow.png",
+  "F04_shaman_rub": "assets/poses/F04_shaman_rub.png",
+  "F05_free_pray": "assets/poses/F05_free_pray.png",
+  "F05_god_pray": "assets/poses/F05_god_pray.png",
+  "F05_buddha_bow": "assets/poses/F05_buddha_bow.png",
+  "F05_shaman_rub": "assets/poses/F05_shaman_rub.png",
+  "F06_free_pray": "assets/poses/F06_free_pray.png",
+  "F06_god_pray": "assets/poses/F06_god_pray.png",
+  "F06_buddha_bow": "assets/poses/F06_buddha_bow.png",
+  "F06_shaman_rub": "assets/poses/F06_shaman_rub.png",
+  "F07_free_pray": "assets/poses/F07_free_pray.png",
+  "F07_god_pray": "assets/poses/F07_god_pray.png",
+  "F07_buddha_bow": "assets/poses/F07_buddha_bow.png",
+  "F07_shaman_rub": "assets/poses/F07_shaman_rub.png",
+  "F08_free_pray": "assets/poses/F08_free_pray.png",
+  "F08_god_pray": "assets/poses/F08_god_pray.png",
+  "F08_buddha_bow": "assets/poses/F08_buddha_bow.png",
+  "F08_shaman_rub": "assets/poses/F08_shaman_rub.png",
+  "F09_free_pray": "assets/poses/F09_free_pray.png",
+  "F09_god_pray": "assets/poses/F09_god_pray.png",
+  "F09_buddha_bow": "assets/poses/F09_buddha_bow.png",
+  "F09_shaman_rub": "assets/poses/F09_shaman_rub.png",
+  "F10_free_pray": "assets/poses/F10_free_pray.png",
+  "F10_god_pray": "assets/poses/F10_god_pray.png",
+  "F10_buddha_bow": "assets/poses/F10_buddha_bow.png",
+  "F10_shaman_rub": "assets/poses/F10_shaman_rub.png",
+  "M01_free_pray": "assets/poses/M01_free_pray.png",
+  "M01_god_pray": "assets/poses/M01_god_pray.png",
+  "M01_buddha_bow": "assets/poses/M01_buddha_bow.png",
+  "M01_shaman_rub": "assets/poses/M01_shaman_rub.png",
+  "M02_free_pray": "assets/poses/M02_free_pray.png",
+  "M02_god_pray": "assets/poses/M02_god_pray.png",
+  "M02_buddha_bow": "assets/poses/M02_buddha_bow.png",
+  "M02_shaman_rub": "assets/poses/M02_shaman_rub.png",
+  "M03_free_pray": "assets/poses/M03_free_pray.png",
+  "M03_god_pray": "assets/poses/M03_god_pray.png",
+  "M03_buddha_bow": "assets/poses/M03_buddha_bow.png",
+  "M03_shaman_rub": "assets/poses/M03_shaman_rub.png",
+  "M04_free_pray": "assets/poses/M04_free_pray.png",
+  "M04_god_pray": "assets/poses/M04_god_pray.png",
+  "M04_buddha_bow": "assets/poses/M04_buddha_bow.png",
+  "M04_shaman_rub": "assets/poses/M04_shaman_rub.png",
+  "M05_free_pray": "assets/poses/M05_free_pray.png",
+  "M05_god_pray": "assets/poses/M05_god_pray.png",
+  "M05_buddha_bow": "assets/poses/M05_buddha_bow.png",
+  "M05_shaman_rub": "assets/poses/M05_shaman_rub.png",
+  "M06_free_pray": "assets/poses/M06_free_pray.png",
+  "M06_god_pray": "assets/poses/M06_god_pray.png",
+  "M06_buddha_bow": "assets/poses/M06_buddha_bow.png",
+  "M06_shaman_rub": "assets/poses/M06_shaman_rub.png",
+  "M07_free_pray": "assets/poses/M07_free_pray.png",
+  "M07_god_pray": "assets/poses/M07_god_pray.png",
+  "M07_buddha_bow": "assets/poses/M07_buddha_bow.png",
+  "M07_shaman_rub": "assets/poses/M07_shaman_rub.png",
+  "M08_free_pray": "assets/poses/M08_free_pray.png",
+  "M08_god_pray": "assets/poses/M08_god_pray.png",
+  "M08_buddha_bow": "assets/poses/M08_buddha_bow.png",
+  "M08_shaman_rub": "assets/poses/M08_shaman_rub.png",
+  "M09_free_pray": "assets/poses/M09_free_pray.png",
+  "M09_god_pray": "assets/poses/M09_god_pray.png",
+  "M09_buddha_bow": "assets/poses/M09_buddha_bow.png",
+  "M09_shaman_rub": "assets/poses/M09_shaman_rub.png",
+  "M10_free_pray": "assets/poses/M10_free_pray.png",
+  "M10_god_pray": "assets/poses/M10_god_pray.png",
+  "M10_buddha_bow": "assets/poses/M10_buddha_bow.png",
+  "M10_shaman_rub": "assets/poses/M10_shaman_rub.png",
+  "F00_free_pray": "assets/poses/F00_free_pray.png",
+  "F00_free_bow": "assets/poses/F00_free_bow.png",
+  "F00_free_rub": "assets/poses/F00_free_rub.png",
+  "F00_god_pray": "assets/poses/F00_god_pray.png",
+  "F00_buddha_bow": "assets/poses/F00_buddha_bow.png",
+  "F00_shaman_pray": "assets/poses/F00_shaman_pray.png",
+  "F00_shaman_rub": "assets/poses/F00_shaman_rub.png",
+  "M00_free_pray": "assets/poses/M00_free_pray.png",
+  "M00_free_bow": "assets/poses/M00_free_bow.png",
+  "M00_free_rub": "assets/poses/M00_free_rub.png",
+  "M00_god_pray": "assets/poses/M00_god_pray.png",
+  "M00_buddha_bow": "assets/poses/M00_buddha_bow.png",
+  "M00_shaman_pray": "assets/poses/M00_shaman_pray.png",
+  "M00_shaman_rub": "assets/poses/M00_shaman_rub.png"
+ },
+ "EFFECT_CAP": {
+  "devo": 100,
+  "support": 100,
+  "cool": 12,
+  "daily": 3,
+  "pouch": 40,
+  "decay": 60
+ },
+ "EFFECT_LABEL": {},
+ "EFFECT_SHORT": {},
+ "SUPPORT_REWARDS": [
+  {
+   "at": 10,
+   "reward": "꽃잎 이펙트",
+   "icon": "petal",
+   "item": "rw_petal",
+   "desc": "응원의 꽃잎이 방 안에 흩날려요"
+  },
+  {
+   "at": 30,
+   "reward": "빛가루 이펙트",
+   "icon": "spark",
+   "item": "rw_dust",
+   "desc": "반짝이는 빛가루가 천천히 내려앉아요"
+  },
+  {
+   "at": 50,
+   "reward": "랜덤 장식 1개",
+   "icon": "gift",
+   "item": "RANDOM",
+   "desc": "아직 없는 장식 중 하나가 선물로 와요"
+  },
+  {
+   "at": 100,
+   "reward": "특별 장식",
+   "icon": "chest",
+   "item": "d_goldbell",
+   "desc": "응원 100번의 금방울 · 상점에서는 살 수 없어요"
+  },
+  {
+   "at": 300,
+   "reward": "한정 장식",
+   "icon": "chest",
+   "item": "d_jadeincense",
+   "desc": "응원 300번의 옥향로 · 한정 장식"
+  },
+  {
+   "at": 500,
+   "reward": "특별 이펙트",
+   "icon": "star",
+   "item": "rw_aura",
+   "desc": "천상의 금빛 오라가 방 전체를 감싸요"
+  }
+ ],
+ "EARN": [
+  {
+   "id": "ad",
+   "label": "짧은 영상 보기",
+   "amount": 30,
+   "limit": 10,
+   "sub": "AD · 1일 10회"
+  },
+  {
+   "id": "attend",
+   "label": "오늘의 출석",
+   "amount": 10,
+   "limit": 1,
+   "sub": "ATTEND · 1일 1회"
+  },
+  {
+   "id": "devo10",
+   "label": "정성 10회 완료 보너스",
+   "amount": 20,
+   "limit": 1,
+   "sub": "DEVOTION × 10",
+   "auto": true
+  },
+  {
+   "id": "m_visit",
+   "label": "다른 소원방 3곳 둘러보기",
+   "amount": 10,
+   "limit": 1,
+   "sub": "MISSION · 01"
+  },
+  {
+   "id": "m_cheer",
+   "label": "응원 3번 보내기",
+   "amount": 20,
+   "limit": 1,
+   "sub": "MISSION · 02"
+  },
+  {
+   "id": "m_msg",
+   "label": "응원 메시지 남기기",
+   "amount": 30,
+   "limit": 1,
+   "sub": "MISSION · 03"
+  }
+ ],
+ "WISH_TEMPLATES": [
+  "엄마가 올 겨울 건강하게 지내시기를",
+  "이번 시험에 꼭 합격하기를",
+  "우리 가족이 모두 평안하기를",
+  "새로운 일이 잘 풀리기를"
+ ],
+ "SEED_ROOMS": [
+  {
+   "id": "r_a1",
+   "theme": "god",
+   "themeItems": [
+    "t_cross",
+    "t_glass"
+   ],
+   "color": "career",
+   "owner": "행복한 하루",
+   "region": "대구",
+   "text": "면접에서 떨지 않고 내 이야기를 할 수 있기를",
+   "char": "F07",
+   "lv": 6,
+   "pts": 1020,
+   "supports": 128,
+   "comments": 14,
+   "pouches": 32,
+   "bg": "b_night",
+   "candle": "c_moon",
+   "flower": "f_lotus",
+   "decos": [
+    "d_bell",
+    "d_moon",
+    "d_orb"
+   ],
+   "days": 42
+  },
+  {
+   "id": "r_a2",
+   "theme": "buddha",
+   "themeItems": [
+    "t_lamp",
+    "t_lotus"
+   ],
+   "color": "family",
+   "owner": "달빛소원",
+   "region": "전주",
+   "text": "딸아이 출산이 순하고 건강하기를",
+   "char": "M02",
+   "lv": 8,
+   "pts": 2600,
+   "supports": 402,
+   "comments": 51,
+   "pouches": 88,
+   "bg": "b_sakura",
+   "candle": "c_red",
+   "flower": "f_blossom",
+   "decos": [
+    "d_chorong",
+    "d_norigae",
+    "d_fan"
+   ],
+   "days": 140
+  },
+  {
+   "id": "r_a3",
+   "theme": "free",
+   "themeItems": [
+    "t_heart"
+   ],
+   "color": "wealth",
+   "owner": "하늘바다",
+   "region": "서울",
+   "text": "올해 안에 작은 가게를 열 수 있기를",
+   "char": "F03",
+   "lv": 4,
+   "pts": 310,
+   "supports": 47,
+   "comments": 6,
+   "pouches": 9,
+   "bg": "b_night",
+   "candle": "c_amber",
+   "flower": "f_blossom",
+   "decos": [
+    "d_bell"
+   ],
+   "days": 18
+  },
+  {
+   "id": "r_a4",
+   "theme": "shaman",
+   "themeItems": [
+    "t_talisman",
+    "t_rattle"
+   ],
+   "color": "study",
+   "owner": "새벽안개",
+   "region": "부산",
+   "text": "수능 날 아프지 않기를",
+   "char": "M06",
+   "lv": 7,
+   "pts": 1720,
+   "supports": 233,
+   "comments": 29,
+   "pouches": 41,
+   "bg": "b_snow",
+   "candle": "c_star",
+   "flower": "f_lotus",
+   "decos": [
+    "d_star",
+    "d_moon",
+    "d_magpie"
+   ],
+   "days": 77
+  },
+  {
+   "id": "r_a5",
+   "theme": "buddha",
+   "themeItems": [
+    "t_statue",
+    "t_bell"
+   ],
+   "color": "health",
+   "owner": "작은연꽃",
+   "region": "제주",
+   "text": "아버지 수술이 무사히 끝나기를",
+   "char": "F08",
+   "lv": 9,
+   "pts": 3900,
+   "supports": 611,
+   "comments": 83,
+   "pouches": 140,
+   "bg": "b_gold",
+   "candle": "c_phoenix",
+   "flower": "f_peony",
+   "decos": [
+    "d_chorong",
+    "d_bell",
+    "d_rabbit",
+    "d_orb"
+   ],
+   "days": 203
+  },
+  {
+   "id": "r_a6",
+   "theme": "free",
+   "themeItems": [],
+   "color": "hope",
+   "owner": "고요한밤",
+   "region": "광주",
+   "text": "다시 그림을 그릴 용기가 생기기를",
+   "char": "M07",
+   "lv": 2,
+   "pts": 44,
+   "supports": 11,
+   "comments": 2,
+   "pouches": 1,
+   "bg": "b_jade",
+   "candle": "c_basic",
+   "flower": "f_none",
+   "decos": [],
+   "days": 5
+  }
+ ],
+ "SEED_COMMENTS": {
+  "r_a1": [
+   "분명 잘 해낼 거예요",
+   "같은 마음으로 빌어요",
+   "떨려도 괜찮아요"
+  ],
+  "r_a2": [
+   "순산하시길 함께 빕니다",
+   "따님과 아기 모두 건강하기를"
+  ],
+  "r_a5": [
+   "아버님 쾌차를 빕니다",
+   "매일 들러서 촛불 보고 가요",
+   "꼭 무사하실 거예요"
+  ]
+ },
+ "NICKS": [
+  "달빛여행자",
+  "새벽안개",
+  "초록별",
+  "고요한밤",
+  "한지등",
+  "은하수",
+  "작은연꽃",
+  "먼산"
+ ]
+}

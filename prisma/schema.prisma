@@ -235,6 +235,9 @@ model User {
   wishRoomOutfitsOwned          WishRoomOutfitOwned[]
   wishRoomUserState             WishRoomUserState?
   wishRoomEarnLogs              WishRoomEarnLog[]
+  wishRoomBlocksMade            WishRoomBlock[]          @relation("WishRoomBlocker")
+  wishRoomBlocksReceived        WishRoomBlock[]          @relation("WishRoomBlocked")
+  wishRoomActionLogs            WishRoomActionLog[]
 
   @@map("users")
 }
@@ -1859,7 +1862,7 @@ model Comment {
 //   assigned_admin_id는 FK→admin_users.id(nullable, 05§6 요구사항 반영, v1.1 추가).
 model Report {
   id              Int       @id @default(autoincrement())
-  targetType      String    @map("target_type") // post/comment/wish/user/fortune_result (화이트리스트, 05§3.2 명시)
+  targetType      String    @map("target_type") // post/comment/wish/user/fortune_result/wish_room/wish_room_comment/wish_room_review (화이트리스트, 05§3.2 명시. wish_room*은 소원방 v2.6 전용 — 기존 wish(소원성)와 PK 충돌 방지 위해 별도 값 사용)
   targetId        Int       @map("target_id")
   reporterId      Int       @map("reporter_id")
   reason          String
@@ -4012,6 +4015,9 @@ model WishRoom {
   supportCount  Int   @default(0) @map("support_count")
   pouchReceived Int   @default(0) @map("pouch_received")
   commentCount  Int   @default(0) @map("comment_count")
+  // [SERVER] 정성 들일 때마다 장착 아이템 기운(devo effect)이 누적되는 보너스 포인트
+  // (app/api.js의 r.bonusPts 포팅). calcPoints()에 합산됨 — 별도 테이블 불필요.
+  bonusPts      Float @default(0) @map("bonus_pts")
 
   // [정성 제한 §6] 하루 10회(KST 자정 리셋)·쿨타임 30초. 아이템 기운(effects.daily/cool)으로 보정.
   devotionsToday     Int       @default(0) @map("devotions_today")
@@ -4234,4 +4240,34 @@ model WishRoomEarnLog {
 
   @@index([userId, source, dateKey])
   @@map("wish_room_earn_logs")
+}
+
+// ── 소원방 사용자 차단(§4 B — "신고하지 않고 차단만") ── 내가 차단한 상대의 방/댓글을 explore·comments에서 숨김
+model WishRoomBlock {
+  id          Int      @id @default(autoincrement())
+  blockerId   Int      @map("blocker_id") // 차단한 사람
+  blockedId   Int      @map("blocked_id") // 차단당한 사람
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  blocker User @relation("WishRoomBlocker", fields: [blockerId], references: [id])
+  blocked User @relation("WishRoomBlocked", fields: [blockedId], references: [id])
+
+  @@unique([blockerId, blockedId])
+  @@index([blockerId])
+  @@map("wish_room_blocks")
+}
+
+// ── 분당 요청 제한(rateLimit, app/api.js 포팅) 영속화용 Append-only 행위 로그.
+//    응원/댓글 등 남발 방지용 — 최근 60초 이내 건수만 조회하고 오래된 행은
+//    주기적으로 정리(TTL) 가능. action 값은 라우트별로 자유 정의(예: 'support','comment').
+model WishRoomActionLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  action    String // support/comment/devotion 등 rate-limit 판정 대상 행동 종류
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, action, createdAt])
+  @@map("wish_room_action_logs")
 }
