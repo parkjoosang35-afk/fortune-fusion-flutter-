@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { buildRoomView, dayDiff, kstDate } from "@/lib/wishroom-engine";
 import { createNotification } from "@/lib/notification-engine";
-import { buildMeView, getOrCreateUserState, requireUser, unauthorizedResponse, wishroomOptionsResponse, CORS_HEADERS, toErrorResponse, toWishRoomPublicId } from "../../_shared";
+import { buildMeView, getOrCreateUserState, requireUser, unauthorizedResponse, wishroomOptionsResponse, CORS_HEADERS, toErrorResponse, wrNotificationDeepLink } from "../../_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
           category: "community",
           title: "소원 봉인 해제",
           body: "🎁 소원 봉인이 풀렸습니다. 예전에 내가 빌었던 소원을 다시 확인해보세요.",
-          deepLink: `wishroom:${toWishRoomPublicId(room.id)}`,
+          deepLink: wrNotificationDeepLink(room.id, "UNSEAL"),
         });
         await tx.wishRoom.update({ where: { id: room.id }, data: { unsealNotified: true } });
       }

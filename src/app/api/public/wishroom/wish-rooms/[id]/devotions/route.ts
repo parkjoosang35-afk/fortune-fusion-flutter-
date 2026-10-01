@@ -8,7 +8,7 @@ import { prisma } from "@/lib/db";
 import { buildRoomView, calcPoints, effectsOf, kstDate, levelOf, parseEquip, WishRoomError, WR } from "@/lib/wishroom-engine";
 import { earnLuckPouch } from "@/lib/luck-pouch-engine";
 import { createNotification } from "@/lib/notification-engine";
-import { requireUser, unauthorizedResponse, wishroomOptionsResponse, CORS_HEADERS, toErrorResponse, parseWishRoomDbId, toWishRoomPublicId, buildMeView } from "../../../_shared";
+import { requireUser, unauthorizedResponse, wishroomOptionsResponse, CORS_HEADERS, toErrorResponse, parseWishRoomDbId, wrNotificationDeepLink, buildMeView } from "../../../_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           category: "community",
           title: "소원방 성장",
           body: `소원방이 Lv.${newLevel} 로 성장했어요.`,
-          deepLink: `wishroom:${toWishRoomPublicId(room.id)}`,
+          deepLink: wrNotificationDeepLink(room.id, "GROWTH"),
         });
       }
 

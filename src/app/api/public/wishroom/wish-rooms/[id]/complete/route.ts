@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { buildRoomView, WishRoomError } from "@/lib/wishroom-engine";
 import { createNotification } from "@/lib/notification-engine";
-import { requireUser, unauthorizedResponse, wishroomOptionsResponse, CORS_HEADERS, toErrorResponse, parseWishRoomDbId, toWishRoomPublicId } from "../../../_shared";
+import { requireUser, unauthorizedResponse, wishroomOptionsResponse, CORS_HEADERS, toErrorResponse, parseWishRoomDbId, wrNotificationDeepLink } from "../../../_shared";
 
 export const dynamic = "force-dynamic";
 const DAY_MS = 86400000;
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         category: "community",
         title: "소중한 소원이 이루어졌어요.",
         body: "소중한 소원이 이루어졌어요.",
-        deepLink: `wishroom:${toWishRoomPublicId(dbId)}`,
+        deepLink: wrNotificationDeepLink(dbId, "COMPLETE"),
       });
 
       return buildRoomView(tx, updated, auth.userId);

@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { buildRoomView, WishRoomError } from "@/lib/wishroom-engine";
 import { createNotification } from "@/lib/notification-engine";
-import { requireUser, unauthorizedResponse, wishroomOptionsResponse, CORS_HEADERS, toErrorResponse, parseWishRoomDbId, toWishRoomPublicId } from "../../../_shared";
+import { requireUser, unauthorizedResponse, wishroomOptionsResponse, CORS_HEADERS, toErrorResponse, parseWishRoomDbId, wrNotificationDeepLink } from "../../../_shared";
 import { kstDate } from "@/lib/wishroom-engine";
 
 export const dynamic = "force-dynamic";
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           category: "community",
           title: "소원방 상태 알림",
           body: "소원방 촛불이 조금 약해졌어요. 잠시 들러 돌봐주세요.",
-          deepLink: `wishroom:${toWishRoomPublicId(room.id)}`,
+          deepLink: wrNotificationDeepLink(room.id, "STATUS"),
         });
         await tx.wishRoom.update({ where: { id: room.id }, data: { decayNotified: true } });
       }

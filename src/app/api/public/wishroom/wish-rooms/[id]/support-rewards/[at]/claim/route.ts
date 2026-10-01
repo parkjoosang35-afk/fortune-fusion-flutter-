@@ -7,7 +7,7 @@ import { prisma } from "@/lib/db";
 import { buildRoomView, WishRoomError, WR, getOwnedItemIds } from "@/lib/wishroom-engine";
 import { earnLuckPouch } from "@/lib/luck-pouch-engine";
 import { createNotification } from "@/lib/notification-engine";
-import { requireUser, unauthorizedResponse, wishroomOptionsResponse, CORS_HEADERS, toErrorResponse, parseWishRoomDbId, toWishRoomPublicId, buildMeView } from "../../../../../_shared";
+import { requireUser, unauthorizedResponse, wishroomOptionsResponse, CORS_HEADERS, toErrorResponse, parseWishRoomDbId, wrNotificationDeepLink, buildMeView } from "../../../../../_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         category: "community",
         title: "응원 보상 도착",
         body: `응원 ${at}회 보상 · ${itemDef ? itemDef.name : `복주머니 ${bonus}`}이(가) 보관함에 담겼어요.`,
-        deepLink: `wishroom:${toWishRoomPublicId(room.id)}`,
+        deepLink: wrNotificationDeepLink(room.id, "GROWTH"),
       });
 
       const roomView = await buildRoomView(tx, room, auth.userId);

@@ -44,6 +44,45 @@ export function parseWishRoomDbId(publicId: string): number | null {
   return Number(match[1]);
 }
 
+/** Flutter WishRoomComment.id 포맷 — `wrc_{dbId}` (comments/route.ts의 toCommentDto와 동일 규칙). */
+export function parseWishRoomCommentId(publicId: string): number | null {
+  const match = /^wrc_(\d+)$/.exec(publicId);
+  if (!match) return null;
+  return Number(match[1]);
+}
+
+/** Flutter NotiType enum 8종(SUPPORT/POUCH/COMMENT/STATUS/GROWTH/COMPLETE/UNSEAL/REVIEW). */
+export type WrNotiType =
+  | "SUPPORT"
+  | "POUCH"
+  | "COMMENT"
+  | "STATUS"
+  | "GROWTH"
+  | "COMPLETE"
+  | "UNSEAL"
+  | "REVIEW";
+
+/**
+ * [NotiType 인코딩, 미해결 이슈 해결] 공용 `Notification` 테이블에는 category/deepLink만
+ * 있고 type 컬럼이 없다 — Flutter가 요구하는 NotiType(8종)을 저장할 곳이 없으므로,
+ * deepLink에 쿼리스트링으로 함께 실어 보낸다: "wishroom:{publicId}?type=GROWTH".
+ * createNotification() 호출부는 deepLink를 직접 조립하지 말고 반드시 이 헬퍼를 거칠 것.
+ */
+export function wrNotificationDeepLink(dbId: number, type: WrNotiType): string {
+  return `wishroom:${toWishRoomPublicId(dbId)}?type=${type}`;
+}
+
+/** wrNotificationDeepLink()로 인코딩된 deepLink를 roomId(공개 id)/type으로 복원한다. */
+export function parseWrNotificationDeepLink(deepLink: string | null): { roomId: string | null; type: WrNotiType } {
+  const fallback: WrNotiType = "STATUS";
+  if (!deepLink || !deepLink.startsWith("wishroom:")) return { roomId: null, type: fallback };
+  const rest = deepLink.slice("wishroom:".length);
+  const [roomId, query] = rest.split("?");
+  const match = query ? /type=(\w+)/.exec(query) : null;
+  const type = (match?.[1] as WrNotiType | undefined) ?? fallback;
+  return { roomId: roomId || null, type };
+}
+
 /** OPTIONS 프리플라이트 공용 응답(shop/purchase/route.ts 패턴과 동일). */
 export function wishroomOptionsResponse() {
   return new NextResponse(null, {
