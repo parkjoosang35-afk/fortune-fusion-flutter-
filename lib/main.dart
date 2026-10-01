@@ -10,9 +10,20 @@ import 'features/ads_test/domain/admob_consent_service.dart';
 import 'features/home/domain/saju_fortune_rules.dart';
 import 'features/home/domain/saju_interpreter.dart';
 import 'features/wish_room/domain/evening_bell_notification_service.dart';
+import 'features/wishroom/data/wr_catalog.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // [버그수정 — LateInitializationError] WrCatalog.I는 `static late` 필드라
+  // WrCatalog.load()가 먼저 완료되지 않은 상태에서 어디서든(_PouchTab의
+  // WrCatalog.I.earn 등) 접근하면 "Field '' has not been initialized" 크래시가
+  // 난다. 기존 코드는 이 load()를 호출하는 곳이 전혀 없었다 — MainRoomScreen/
+  // DecorScreen은 room==null일 때 조기 return 하는 화면 구조 덕분에 우연히
+  // WrCatalog.I에 도달하지 않아 크래시가 가려져 있었을 뿐, 보관함>복주머니
+  // 탭처럼 room 유무와 무관하게 바로 WrCatalog.I를 읽는 화면에서는 100%
+  // 재현된다. 앱 부팅 시 1회 await로 로드해 모든 화면에서 안전하게 만든다
+  // (JSON 에셋 1개 파싱이라 지연은 무시할 수준).
+  await WrCatalog.load();
   // [Stage2 결함수정 — 결함-H01-01] 과거 "구조화 로컬 캐시(히스토리/오프라인)"
   // 용도로 Hive를 도입할 계획이었으나 실제로는 어떤 기능도 Hive.openBox()를
   // 호출하지 않았다(모든 로컬 저장은 SharedPreferences로 구현됨, 55곳).

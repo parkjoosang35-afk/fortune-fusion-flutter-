@@ -11,8 +11,19 @@ class WrCatalog {
   final Map<String, dynamic> raw;
   static late WrCatalog I;
 
+  // [버그수정 — 실제 런타임 검증으로 발견] WrCatalog.load()가 앱 어디에서도
+  // 호출되지 않아 `static late WrCatalog I`가 초기화되지 않은 채 ComposeScreen/
+  // MainRoomScreen/DecorScreen/CharacterShopScreen/VaultScreen 등이 WrCatalog.I를
+  // 참조하는 즉시 LateInitializationError로 화면 전체가 크래시했다(회색 화면).
+  // 호출부(wish_room_intro_screen.dart._boot())에서 매번 안전하게 await할 수
+  // 있도록 load()를 멱등(idempotent)하게 만든다 — 이미 로드됐으면 즉시 반환.
+  static bool _loaded = false;
+  static bool get isLoaded => _loaded;
+
   static Future<void> load() async {
+    if (_loaded) return;
     I = WrCatalog._(jsonDecode(await rootBundle.loadString('assets/wishroom/data/wishroom_data.json')));
+    _loaded = true;
   }
 
   List<Map<String, dynamic>> _list(String k) => (raw[k] as List).map((e) => Map<String, dynamic>.from(e)).toList();

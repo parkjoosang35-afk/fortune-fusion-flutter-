@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../application/wishroom_provider.dart';
 import '../../data/models.dart';
+import '../../data/wr_catalog.dart';
 import '../../core/motion/wr_motion.dart';
 import '../../core/theme/wr_theme.dart';
 import '../../wishroom_shell.dart';
@@ -36,7 +37,12 @@ class _WishRoomIntroScreenState extends State<WishRoomIntroScreen> {
 
   Future<void> _boot() async {
     final p = context.read<WishRoomProvider>();
-    await p.loadMyRoom();
+    // [버그수정 — 실제 런타임 검증으로 발견] WrCatalog.load()가 앱 전체에서
+    // 호출되는 지점이 전혀 없어 ComposeScreen 등 WrCatalog.I를 참조하는 화면이
+    // LateInitializationError로 전부 크래시했다. 소원방의 공용 진입점인 이
+    // _boot()에서 loadMyRoom()과 함께(병렬) 반드시 로드해, 이후 하위 화면들이
+    // 안전하게 WrCatalog.I를 동기 참조할 수 있도록 보장한다.
+    await Future.wait([p.loadMyRoom(), WrCatalog.load()]);
     if (!mounted) return;
     if (p.room == null) return; // Welcome 화면으로 자연 분기(build에서 처리)
     final mode = p.introMode;
