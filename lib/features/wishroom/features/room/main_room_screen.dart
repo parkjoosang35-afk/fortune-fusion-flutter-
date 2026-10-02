@@ -244,6 +244,10 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
             )),
           ]))),
           if (_wishOpen) _wishFullCard(room, cat),
+          // app2/screens-a2.jsx › MainRoom() 331줄 1:1 — 봉인 풀림 안내(UnsealBanner).
+          // capsuleDue(서버 판정) && 아직 캡슐 오버레이를 열지 않았고 && '나중에' 선택도 안 했을 때.
+          if (room.capsuleDue && !_capOpen && !_capLater)
+            Positioned.fill(child: WrUnsealBanner(room: room, onOpen: () => _openCapsule(room))),
         ]);
       }),
     ));

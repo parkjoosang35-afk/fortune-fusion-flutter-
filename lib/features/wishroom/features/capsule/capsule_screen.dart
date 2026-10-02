@@ -12,6 +12,7 @@ import '../../core/theme/wr_theme.dart';
 import '../../core/fx/wr_fx.dart';
 import '../../core/motion/wr_motion.dart';
 import '../review/review_write_screen.dart';
+import '../explore/explore_screen.dart';
 import '../compose/compose_screen.dart' show WrSealDatePicker, WrSealConfirm;
 
 Color _hex(String h) => Color(int.parse('FF${h.replaceFirst('#', '')}', radix: 16));
@@ -124,7 +125,11 @@ class _CapsuleOpenScreenState extends State<CapsuleOpenScreen> {
       final room = p.room ?? widget.room;
       if (!mounted) return;
       Navigator.of(context).pop(); // CapsuleOpen 닫기
-      await Navigator.of(context).push(MaterialPageRoute(builder: (_) => AchieveFlowScreen(room: room)));
+      // capsule2.jsx `onFinish(go)` — AchieveFlow(ReviewWrite) 완료 후 go==='stories'면 탐색 이야기탭으로.
+      final go = await Navigator.of(context).push<String>(MaterialPageRoute(builder: (_) => AchieveFlowScreen(room: room)));
+      if (go == 'stories' && mounted) {
+        await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ExploreScreen(initialTab: 'stories')));
+      }
     } else {
       setState(() => _step = _CapStep.ongoing);
     }
@@ -321,14 +326,28 @@ class _AchieveFlowScreenState extends State<AchieveFlowScreen> {
   bool _cinematicDone = false;
 
   @override
+  void initState() {
+    super.initState();
+    if (!_showReview) {
+      // 이미 보상을 받은 경우(재방문 등) — 연출만 보여주고 자동 종료.
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await Future<void>.delayed(const Duration(milliseconds: 7200));
+        if (mounted) Navigator.of(context).pop();
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     if (!_cinematicDone) {
       return AchieveCinematicScreen(room: widget.room, onDone: () => setState(() => _cinematicDone = true));
     }
     if (_showReview) {
+      // AchieveFlowScreen과 ReviewWriteScreen은 같은 라우트(이 위젯의 build()가 그대로 교체되는
+      // 구조)이므로, ReviewWriteScreen 내부의 Navigator.of(context).pop(go) 호출이 곧 이 라우트를
+      // pop(go)하는 것과 동일하다 — capsule2.jsx onFinish(go) 전달이 별도 장치 없이 자연히 성립한다.
       return ReviewWriteScreen(room: widget.room);
     }
-    // 이미 보상을 받은 경우(재방문 등) — 곧바로 종료.
     return const SizedBox.shrink();
   }
 }

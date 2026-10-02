@@ -14,6 +14,7 @@ import '../../core/fx/wr_fx.dart';
 import '../../core/wr_canvas.dart';
 import '../room/room_scene.dart';
 import '../review/review_write_screen.dart';
+import '../explore/explore_screen.dart';
 import '../../wishroom_shell.dart';
 
 class CompleteScreen extends StatefulWidget {
@@ -112,8 +113,9 @@ class _CompleteScreenState extends State<CompleteScreen> {
     if (go == null) return; // 스킵("나중에 남길게요") — reviewed 상태 변경 없음
     setState(() => _reviewed = true);
     if (go == 'stories') {
-      // "이야기 보기" → 모두의 소원방 탐색(이번 범위에선 안내로 대체, SCR-06 stories 탭 직접 연동은 추후)
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('모두의 소원방 › 이루어진 이야기 탭에서 볼 수 있어요')));
+      // "이야기 보기" → capsule2.jsx `app.go('explore', {tab:'stories'})` 1:1 — 탐색 stories 탭으로 이동.
+      if (!mounted) return;
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ExploreScreen(initialTab: 'stories')));
     }
   }
 
