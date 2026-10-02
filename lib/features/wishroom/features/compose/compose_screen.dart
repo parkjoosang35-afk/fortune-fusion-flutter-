@@ -11,6 +11,7 @@ import '../../data/models.dart';
 import '../../data/wr_catalog.dart';
 import '../../core/theme/wr_theme.dart';
 import '../intro/wish_room_intro_screen.dart';
+import 'sealed_done_screen.dart';
 
 class ComposeScreen extends StatefulWidget {
   const ComposeScreen({super.key});
@@ -68,7 +69,16 @@ class _ComposeScreenState extends State<ComposeScreen> {
     setState(() => _submitting = false);
     if (!mounted) return;
     if (ok) {
-      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const WishRoomIntroScreen()));
+      // app2/capsule2.jsx SealedDone — 제출 성공 → 두루마리 말림/인장 연출 → "소원방 들어가기" → full 인트로.
+      // 원본 submit(): setAsk(false) → setSealing(true) → 1.5s 뒤 setDone(true) → SealedDone onGo={reload('intro')}.
+      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => SealedDoneScreen(
+        date: _sealUntil!,
+        text: _textCtrl.text.trim(),
+        wishColor: _wishColor,
+        onGo: () {
+          Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const WishRoomIntroScreen()));
+        },
+      )));
       return;
     }
     final err = p.lastError;
