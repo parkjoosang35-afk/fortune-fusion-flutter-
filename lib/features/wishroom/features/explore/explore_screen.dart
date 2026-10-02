@@ -12,13 +12,16 @@ import '../../core/fx/wr_fx.dart';
 import 'other_room_screen.dart';
 
 class ExploreScreen extends StatefulWidget {
-  const ExploreScreen({super.key});
+  const ExploreScreen({super.key, this.initialTab = 'rooms'});
+  /// capsule2.jsx `app.go('explore', {tab:'stories'})` — AchieveFlow/ReviewReward에서
+  /// "✨ 소원이 이루어진 이야기 보기" 선택 시 stories 탭으로 바로 진입.
+  final String initialTab; // rooms | stories
   @override
   State<ExploreScreen> createState() => _ExploreScreenState();
 }
 
 class _ExploreScreenState extends State<ExploreScreen> {
-  String _etab = 'rooms'; // rooms | stories
+  late String _etab = widget.initialTab; // rooms | stories
   bool _hot = true; // 인기순(hot) / 최신순(new)
 
   @override

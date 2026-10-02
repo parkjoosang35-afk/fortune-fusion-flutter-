@@ -16,6 +16,7 @@ import '../../core/wr_canvas.dart';
 import 'room_scene.dart';
 import 'devotion_controller.dart';
 import '../complete/complete_screen.dart';
+import '../capsule/capsule_screen.dart';
 
 class MainRoomScreen extends StatefulWidget {
   const MainRoomScreen({super.key});
@@ -37,6 +38,9 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
   bool _wishOpen = false; // 소원 전문 펼침
   bool _armed = false; // 쿨타임 완료 후 탭 대기(버튼 맥동)
   int _prevCooldown = 0;
+  // app2/screens-a2.jsx › MainRoom() capOpen/capLater — 타임캡슐(소원 봉인) 열기 오버레이 상태.
+  bool _capOpen = false;
+  bool _capLater = false;
 
   @override
   void initState() {
@@ -157,6 +161,17 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
   void _openShareSheet(WishRoom room) {
     showModalBottomSheet(context: context, backgroundColor: Colors.transparent, isScrollControlled: true,
       builder: (_) => _ShareSheet(room: room));
+  }
+
+  // app2/capsule2.jsx › UnsealBanner onOpen / screens-a2.jsx capOpen=true 1:1.
+  // CapsuleOpenScreen은 자체 Scaffold를 갖는 전체화면이라 push로 띄우고, 닫히면(pop)
+  // room.capsuleDue/outcome이 서버에서 갱신됐을 수 있으므로 reloadRoom(loadMyRoom) 한다.
+  Future<void> _openCapsule(WishRoom room) async {
+    setState(() => _capOpen = true);
+    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => CapsuleOpenScreen(room: room)));
+    if (!mounted) return;
+    setState(() => _capOpen = false);
+    context.read<WishRoomProvider>().loadMyRoom();
   }
 
   void _openGuide() {
