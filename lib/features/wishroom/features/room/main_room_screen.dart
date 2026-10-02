@@ -137,7 +137,7 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
       backgroundColor: Colors.transparent,
       child: Container(
         padding: const EdgeInsets.all(28),
-        decoration: BoxDecoration(color: const Color(0xFF1A0D2E), borderRadius: BorderRadius.circular(20),
+        decoration: BoxDecoration(color: WrC.bg1, borderRadius: BorderRadius.circular(20),
           border: Border.all(color: const Color(0x33F5CF6A))),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           const Text('LEVEL UP', style: TextStyle(color: Color(0xFFF5CF6A), fontSize: 14, letterSpacing: 4)),
