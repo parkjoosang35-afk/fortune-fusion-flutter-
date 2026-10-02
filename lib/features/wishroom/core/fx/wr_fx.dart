@@ -1,5 +1,6 @@
 // 신통방통 소원방 · 공용 FX 위젯 — app2/fx2.jsx 1:1 이식
-// Hearts(❤ 떠오름) · Burst(링+파티클 터짐) — SCR-06/SCR-07 등 여러 화면에서 공용으로 사용.
+// Hearts(❤ 떠오름) · Burst(링+파티클 터짐) · PetalRain(꽃잎비) · Butterflies(나비 4) ·
+// SCR-06/SCR-07/SCR-10 등 여러 화면에서 공용으로 사용.
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
