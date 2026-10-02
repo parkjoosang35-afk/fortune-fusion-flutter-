@@ -213,6 +213,13 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
         final double deg = busyCooldown ? charge * 360 : done ? 360.0 : (used / lim) * 360;
         final ritual = cat.ritual(room.theme);
 
+        // app2/guide2.jsx › GuideBook "한 바퀴 둘러보기"를 꾸미기/보관함 등 다른 탭에서
+        // 눌렀을 때: WishRoomShell이 먼저 이 탭(홈)으로 전환해두고, 여기서 실제 투어를 켠다.
+        if (p.tourRequested) {
+          p.consumeTourRequest();
+          WidgetsBinding.instance.addPostFrameCallback((_) { if (mounted) setState(() => _tour = true); });
+        }
+
         return Stack(children: [
           Positioned.fill(child: WrCanvasScaler(child: GestureDetector(
             onTap: _peek ? () => setState(() => _peek = false) : null,

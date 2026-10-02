@@ -41,6 +41,15 @@ class _WishRoomShellState extends State<WishRoomShell> {
 
   @override
   Widget build(BuildContext context) {
+    // app2/guide2.jsx › GuideBook "✦ 소원방 한 바퀴 둘러보기"는 app.room && 조건만으로
+    // 어느 화면(꾸미기/보관함 등)에서 열었어도 항상 보이고, 누르면 app.go('home') 후
+    // startTour(). IndexedStack 구조라 탭 전환은 이 Shell만 할 수 있으므로, Provider의
+    // tourRequested 플래그를 감지해 0번 탭(내 소원방)으로 전환한다. 실제 투어 시작은
+    // MainRoomScreen이 같은 플래그를 소비하며 수행한다.
+    final tourRequested = context.select<WishRoomProvider, bool>((p) => p.tourRequested);
+    if (tourRequested && _index != 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) { if (mounted) setState(() => _index = 0); });
+    }
     return Theme(
       data: wrThemeData(),
       child: Scaffold(

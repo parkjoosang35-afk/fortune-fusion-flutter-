@@ -43,6 +43,23 @@ class WishRoomProvider extends ChangeNotifier {
   WishRoom? viewedRoom;
   List<WrComment> viewedComments = [];
 
+  // ── 안내서 한 바퀴 둘러보기 ──
+  // app2/guide2.jsx › GuideBook의 "✦ 소원방 한 바퀴 둘러보기"는 app.room && 조건만으로
+  // 꾸미기/보관함 등 어디서 눌러도 항상 보이고, onClose(); app.go('home');
+  // setTimeout(()=>app.startTour(),400) 으로 메인 탭 이동 후 투어를 시작한다.
+  // Flutter는 IndexedStack 5탭 구조라 화면 위젯이 직접 탭을 바꿀 수 없으므로,
+  // 이 플래그를 WishRoomShell이 구독해 탭 전환 + 투어 시작을 대신 수행한다.
+  bool tourRequested = false;
+
+  void requestTour() {
+    tourRequested = true;
+    notifyListeners();
+  }
+
+  void consumeTourRequest() {
+    tourRequested = false;
+  }
+
   int get unreadCount => me?.unread ?? 0;
 
   /// [Stage2 결함수정 패턴 재사용] 로그아웃 시 이전 계정의 소원방/알림/탐색

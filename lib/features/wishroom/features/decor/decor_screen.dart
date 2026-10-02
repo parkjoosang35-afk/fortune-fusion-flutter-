@@ -597,9 +597,12 @@ class _DecorScreenState extends State<DecorScreen> {
   }
 
   // app2/screens-b2.jsx › app.openGuide('decor') 1:1 — guide2.jsx GuideBook(focus:'decor') 재사용.
+  // GuideBook의 "한 바퀴 둘러보기"는 app.room && 조건만 보므로 꾸미기에서도 항상 노출되고,
+  // 누르면 app.go('home') 후 startTour() — Provider.requestTour()로 셸이 탭 전환을 대신한다.
   void _openGuide() {
+    final p = context.read<WishRoomProvider>();
     showModalBottomSheet(context: context, backgroundColor: Colors.transparent, isScrollControlled: true,
-      builder: (_) => const GuideBook(focus: 'decor'));
+      builder: (_) => GuideBook(focus: 'decor', onStartTour: p.requestTour));
   }
 }
 

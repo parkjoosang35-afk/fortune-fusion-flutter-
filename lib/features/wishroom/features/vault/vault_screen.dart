@@ -57,9 +57,11 @@ class _VaultScreenState extends State<VaultScreen> with SingleTickerProviderStat
           ),
           const SizedBox(width: 8),
           // app2/screens-c2.jsx › TopBar right › app.openGuide('archive') 1:1.
+          // GuideBook의 "한 바퀴 둘러보기"는 app.room && 조건만 보므로 보관함에서도 항상
+          // 노출되고, 누르면 app.go('home') 후 startTour() — requestTour()로 셸이 대신한다.
           GestureDetector(
             onTap: () => showModalBottomSheet(context: context, backgroundColor: Colors.transparent, isScrollControlled: true,
-              builder: (_) => const GuideBook(focus: 'archive')),
+              builder: (_) => GuideBook(focus: 'archive', onStartTour: context.read<WishRoomProvider>().requestTour)),
             child: Container(
               width: 32, height: 32, alignment: Alignment.center,
               decoration: BoxDecoration(color: const Color(0x991E0C18), shape: BoxShape.circle, border: Border.all(color: WrC.line)),
