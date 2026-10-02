@@ -21,6 +21,7 @@ import '../capsule/capsule_screen.dart';
 import '../../../../core/util/safe_share.dart';
 import '../guide/guide_prefs.dart';
 import '../guide/guide_sheet.dart';
+import '../wallpaper/wallpaper_screen.dart';
 
 class MainRoomScreen extends StatefulWidget {
   const MainRoomScreen({super.key});
@@ -58,6 +59,9 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) => p.loadMyRoom());
     }
     if (p.catalogLoaded == false) p.loadCatalog();
+    // S-07(레벨업 안내)이 w.isSet/seenLevelNotice를 판단하려면 wallpaperStatus가
+    // 미리 로드돼 있어야 한다 — 레벨업 시점에 처음 불러오면 그 사이 안내를 놓친다.
+    p.loadWallpaperStatus();
     // app2/guide2.jsx › hintsOn()/seenSet()/wr_tour_done — localStorage 로딩을
     // shared_preferences 비동기 로딩으로 대체(GuidePrefs). FirstVisitChip은 이 값이
     // 준비된 뒤에야 올바른 표시 여부를 결정할 수 있다.
@@ -144,6 +148,14 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
 
   void _showLevelUp(int lv) {
     final unlock = RoomLayoutUnlocks.of(lv);
+    // S-07 — app2/fx2.jsx › LevelUp() 116-122줄 1:1: me.wallpaper가 있고(배경화면을
+    // 설정한 적 있고) 그 roomId가 지금 이 방이며, seenLevelNotice가 이 레벨보다
+    // 낮을 때만 1회 안내 문구를 보여준 뒤 서버에 기록한다(다음부턴 다시 안 보임).
+    final p = context.read<WishRoomProvider>();
+    final w = p.wallpaperStatus;
+    final room = p.room;
+    final showWpNotice = w.isSet && room != null && w.roomId == room.id && w.seenLevelNotice < lv;
+    if (showWpNotice) p.wallpaperLevelNotice(lv);
     showDialog(context: context, barrierColor: const Color(0xCC000000), builder: (_) => Dialog(
       backgroundColor: Colors.transparent,
       child: Container(
@@ -157,6 +169,15 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
             child: Text('Lv.$lv', style: const TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 64, color: Colors.white))),
           if (unlock != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(unlock['say'] as String,
             textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFFF8F2E6), fontSize: 14))),
+          if (showWpNotice) Padding(padding: const EdgeInsets.only(top: 12), child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: const Color(0x8C140810),
+              border: Border.all(color: const Color(0x4DFFE6B4))),
+            child: Text(
+              w.platform == 'ios' ? '소원방이 자랐어요. 배경화면을 새로 만들 수 있어요' : '소원방이 자랐어요. 배경화면에도 반영돼요',
+              style: const TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 12.5, color: Color(0xFFF8F2E6)),
+            ),
+          )),
           const SizedBox(height: 20),
           TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('확인')),
         ]),
@@ -606,6 +627,10 @@ class _CareSheetState extends State<_CareSheet> {
           _stat('응원', room.supportCount),
           _stat('복주머니', room.pouchReceived),
         ]),
+        // S-01 — app2/screens-a2.jsx › RoomMenu 안 WPEntryCard 삽입 위치 1:1.
+        // docs/WALLPAPER.md §4 공통: "소원방 돌보기(⚙ 소원 카드 탭) 시트의
+        // 배경화면으로 설정 카드".
+        WPEntryCard(room: room),
         const SizedBox(height: 20),
         SizedBox(width: double.infinity, height: 52, child: ElevatedButton(
           onPressed: () {
