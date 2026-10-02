@@ -13,6 +13,7 @@ import '../room/room_scene.dart';
 import '../characters/character_shop_screen.dart';
 import '../compose/compose_screen.dart';
 import '../guide/guide_sheet.dart';
+import '../../core/wr_nav_pill.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../../../ads_test/domain/admob_ad_ids.dart';
 
@@ -54,7 +55,11 @@ class _VaultScreenState extends State<VaultScreen> with SingleTickerProviderStat
     return Theme(data: wrThemeData(), child: Scaffold(
       backgroundColor: WrC.bg2,
       body: SafeArea(bottom: false, child: Column(children: [
+        // app2/screens-c2.jsx › Vault() TopBar(title="보관함") nav 기본값 true로
+        // NavPill이 좌측에 온다. [버그수정 — 전수감사] 기존엔 전혀 없었다.
         Padding(padding: const EdgeInsets.fromLTRB(16, 10, 16, 0), child: Row(children: [
+          WrNavPill(onBack: () => wrBackOrAskExit(context), onExitHome: () => wrExitHome(context)),
+          const SizedBox(width: 10),
           Text('보관함', style: WrF.display(22)),
           const Spacer(),
           GestureDetector(

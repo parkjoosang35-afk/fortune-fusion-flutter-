@@ -12,6 +12,7 @@ import '../../core/theme/wr_theme.dart';
 import '../../core/wr_canvas.dart';
 import '../../core/fx/wr_fx.dart';
 import '../room/room_scene.dart';
+import '../../core/wr_nav_pill.dart';
 
 class OtherRoomScreen extends StatefulWidget {
   const OtherRoomScreen({super.key, required this.roomId});
@@ -139,11 +140,13 @@ class _OtherRoomScreenState extends State<OtherRoomScreen> {
               fx: _fx.map((e) => e.widget).toList(),
             ))),
             if (!_peek) SafeArea(child: WrCanvasScaler(child: Stack(children: [
-              // TopBar
-              Positioned(top: 52, left: 14, child: IconButton(
-                onPressed: () => Navigator.of(context).maybePop(),
-                icon: const Icon(Icons.arrow_back, color: Colors.white))),
-              Positioned(top: 58, left: 60, right: 60, child: Column(children: [
+              // TopBar — app2/screens-b2.jsx › OtherRoom() TopBar(title=...) nav 기본값
+              // true로 NavPill(뒤로가기+신통방통 홈)이 온다. [버그수정 — 전수감사] 기존엔
+              // 단순 뒤로가기 아이콘만 있고 "신통방통 홈" 버튼이 없었다.
+              Positioned(top: 52, left: 14, child: WrNavPill(
+                onBack: () => Navigator.of(context).maybePop(),
+                onExitHome: () => wrExitHome(context))),
+              Positioned(top: 58, left: 80, right: 60, child: Column(children: [
                 Text('${room.owner}님의 소원방', style: WrF.display(16), textAlign: TextAlign.center, overflow: TextOverflow.ellipsis),
                 Text('Lv.${room.level} ${room.levelName}', style: WrF.body(10.5, color: WrC.muted)),
               ])),

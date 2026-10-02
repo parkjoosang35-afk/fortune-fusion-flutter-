@@ -7,6 +7,7 @@ import '../../application/wishroom_provider.dart';
 import '../../data/models.dart';
 import '../../core/theme/wr_theme.dart';
 import '../explore/other_room_screen.dart';
+import '../../core/wr_nav_pill.dart';
 
 enum _NotiFilter { all, support, pouch, comment, system }
 
@@ -70,8 +71,12 @@ class _WrNotificationsScreenState extends State<WrNotificationsScreen> {
         final hasUnread = list.any((n) => !n.read);
         return SafeArea(bottom: false, child: Column(children: [
           // TopBar — 원본은 상단 고정(absolute top:52) + 중앙 타이틀 + 우측 "모두 읽음" 칩.
+          // app2/screens-c2.jsx › Noti() TopBar(title="알림함") nav 기본값 true로
+          // NavPill이 좌측에 온다. [버그수정 — 전수감사] 기존엔 전혀 없었다.
           Padding(padding: const EdgeInsets.fromLTRB(16, 10, 16, 0), child: Row(children: [
+            WrNavPill(onBack: () => wrBackOrAskExit(context), onExitHome: () => wrExitHome(context)),
             Expanded(child: Center(child: Text('알림함', style: WrF.display(18)))),
+            const SizedBox(width: 60), // NavPill과 시각적 균형
           ])),
           Padding(padding: const EdgeInsets.fromLTRB(14, 10, 14, 0), child: Row(children: [
             Expanded(child: SizedBox(

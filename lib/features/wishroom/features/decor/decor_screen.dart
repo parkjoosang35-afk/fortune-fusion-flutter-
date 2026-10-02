@@ -18,6 +18,7 @@ import '../../core/wr_canvas.dart';
 import '../room/room_scene.dart';
 import '../room/room_layout.dart' as layout;
 import '../guide/guide_sheet.dart';
+import '../../core/wr_nav_pill.dart';
 
 class DecorScreen extends StatefulWidget {
   const DecorScreen({super.key});
@@ -162,6 +163,11 @@ class _DecorScreenState extends State<DecorScreen> {
               )).toList(),
             )),
             SafeArea(bottom: false, child: Padding(padding: const EdgeInsets.fromLTRB(14, 10, 14, 0), child: Row(children: [
+              // app2/screens-b2.jsx › Decor() TopBar(left=? 안내서버튼) — nav 기본값
+              // true로 NavPill이 그 왼쪽에 함께 온다. [버그수정 — 전수감사] 기존엔
+              // NavPill이 전혀 없었다.
+              WrNavPill(onBack: () => wrBackOrAskExit(context), onExitHome: () => wrExitHome(context)),
+              const SizedBox(width: 6),
               GestureDetector(onTap: _openGuide, child: Container(width: 32, height: 32, alignment: Alignment.center,
                 decoration: BoxDecoration(color: WrC.glass, shape: BoxShape.circle, border: Border.all(color: WrC.line)),
                 child: const Text('?', style: TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 13, color: Colors.white)))),

@@ -23,6 +23,7 @@ import '../guide/guide_prefs.dart';
 import '../guide/guide_sheet.dart';
 import '../wallpaper/wallpaper_screen.dart';
 import '../wallet/wallet_sheet.dart';
+import '../../core/wr_nav_pill.dart';
 
 class MainRoomScreen extends StatefulWidget {
   const MainRoomScreen({super.key});
@@ -214,6 +215,12 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
       builder: (_) => GuideBook(focus: focus, onStartTour: () => setState(() => _tour = true)));
   }
 
+  // app2/fx2.jsx › NavPill onBack=app.back · onExitHome=app.exitHome 1:1.
+  // 홈은 WishRoomShell의 탭 루트(= push된 화면 없음)이므로 뒤로가기를 누르면
+  // 항상 "신통방통 홈으로 갈까요" 확인시트가 뜬다(원본 exitAsk와 동일).
+  void _onBack() => wrBackOrAskExit(context);
+  void _onExitHome() => wrExitHome(context);
+
   @override
   Widget build(BuildContext context) {
     return Theme(data: wrThemeData(), child: Scaffold(
@@ -253,8 +260,11 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
             ),
           ))),
           if (!_peek) SafeArea(child: WrCanvasScaler(child: Stack(children: [
-            // TopBar
-            Positioned(top: 52, left: 14, child: _pouchPill(p.me?.pouch ?? 0)),
+            // TopBar — app2/fx2.jsx › TopBar({nav=true, right}) 1:1: 좌측 NavPill(뒤로가기+
+            // 신통방통 홈), 우측 PouchPill. [버그수정 — 전수감사] 기존엔 NavPill이 전체
+            // 화면 어디에도 없었고 PouchPill이 좌측에 있었다(원본은 우측).
+            Positioned(top: 52, left: 14, child: WrNavPill(onBack: () => _onBack(), onExitHome: () => _onExitHome())),
+            Positioned(top: 52, right: 14, child: _pouchPill(p.me?.pouch ?? 0)),
             const Positioned(top: 58, left: 0, right: 0, child: Center(child: Text('내 소원방', style: TextStyle(color: Colors.white, fontSize: 20)))),
             // 레벨바
             Positioned(top: 100, left: 14, child: _levelBar(room)),

@@ -9,6 +9,7 @@ import '../../data/models.dart';
 import '../../data/wr_catalog.dart';
 import '../../core/theme/wr_theme.dart';
 import '../../core/fx/wr_fx.dart';
+import '../../core/wr_nav_pill.dart';
 import 'other_room_screen.dart';
 
 class ExploreScreen extends StatefulWidget {
@@ -53,7 +54,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
             SliverToBoxAdapter(child: SafeArea(bottom: false, child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('모두의 소원방', style: WrF.display(22)),
+                // app2/fx2.jsx › TopBar(title="모두의 소원방") 1:1 — nav 기본값 true로
+                // NavPill(뒤로가기+신통방통 홈)이 항상 포함된다.
+                // [버그수정 — 전수감사] 기존엔 NavPill이 전혀 없었다.
+                Row(children: [
+                  WrNavPill(onBack: () => wrBackOrAskExit(context), onExitHome: () => wrExitHome(context)),
+                  const SizedBox(width: 10),
+                  Text('모두의 소원방', style: WrF.display(22)),
+                ]),
                 const SizedBox(height: 10),
                 Row(children: [
                   _tab('소원방', 'rooms'),

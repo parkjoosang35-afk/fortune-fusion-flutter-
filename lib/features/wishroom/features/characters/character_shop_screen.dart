@@ -7,6 +7,7 @@ import '../../application/wishroom_provider.dart';
 import '../../data/models.dart';
 import '../../data/wr_catalog.dart';
 import '../../core/theme/wr_theme.dart';
+import '../../core/wr_nav_pill.dart';
 
 class CharacterShopScreen extends StatefulWidget {
   const CharacterShopScreen({super.key});
@@ -172,10 +173,13 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
                 Padding(padding: const EdgeInsets.only(top: 12), child: Text('"${c.line}"',
                   style: WrF.body(12.5, color: Colors.white, height: 1.55))),
               ])),
+              // app2/screens-b2.jsx › CharShop() TopBar(title="소원방 캐릭터") nav 기본값
+              // true로 NavPill(뒤로가기+신통방통 홈)이 좌측에 온다. [버그수정 — 전수감사]
+              // 기존엔 단순 뒤로가기 아이콘만 있고 "신통방통 홈" 버튼이 없었다.
               Positioned(top: 0, left: 0, right: 0, child: SafeArea(bottom: false, child: Padding(
                 padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
                 child: Row(children: [
-                  IconButton(onPressed: () => Navigator.of(context).maybePop(), icon: const Icon(Icons.arrow_back_ios_new, size: 18, color: Colors.white)),
+                  WrNavPill(onBack: () => Navigator.of(context).maybePop(), onExitHome: () => wrExitHome(context)),
                   const Expanded(child: Center(child: Text('소원방 캐릭터', style: TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white)))),
                   Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(color: WrC.glass, borderRadius: BorderRadius.circular(999)),
@@ -184,7 +188,6 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
                       const SizedBox(width: 5),
                       Text('${p.me?.pouch ?? 0}', style: const TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 13, color: Colors.white)),
                     ])),
-                  const SizedBox(width: 44), // 좌측 뒤로가기 버튼과 균형
                 ]),
               ))),
             ])),

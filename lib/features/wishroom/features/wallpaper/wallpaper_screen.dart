@@ -27,6 +27,7 @@ import '../../core/theme/wr_theme.dart';
 import '../../core/wr_canvas.dart';
 import '../room/room_scene.dart';
 import 'wallpaper_service.dart';
+import '../../core/wr_nav_pill.dart';
 
 /// 지금 활성 플랫폼. 이 프로젝트는 Android 전용 빌드이므로 상수로 둔다(§4 공통 —
 /// ios/ 폴더에 실제 네이티브 빌드 파이프라인이 없어 Live Photo 경로는 화면
@@ -148,10 +149,13 @@ class _WallpaperScreenState extends State<WallpaperScreen> {
           return Stack(children: [
             SafeArea(
             child: Column(children: [
+              // app2/wallpaper2.jsx › TopBar(title="소원방 배경화면") nav 기본값 true로
+              // NavPill(뒤로가기+신통방통 홈)이 좌측에 온다. [버그수정 — 전수감사] 기존엔
+              // 단순 뒤로가기 아이콘만 있고 "신통방통 홈" 버튼이 없었다.
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
                 child: Row(children: [
-                  IconButton(onPressed: () => Navigator.of(context).maybePop(), icon: Icon(Icons.arrow_back, color: WrC.fg)),
+                  WrNavPill(onBack: () => Navigator.of(context).maybePop(), onExitHome: () => wrExitHome(context)),
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
                     Text('소원방 배경화면', style: WrF.display(16)),
                     if (room != null) Text('${room.levelName} · v1', style: WrF.mono()),
