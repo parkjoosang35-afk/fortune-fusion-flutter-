@@ -9,6 +9,9 @@
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
+    <!-- [소원방 v2.6 배경화면] 라이브 배경화면 서비스 선언 — 기기가 라이브
+         배경화면을 지원하지 않아도 앱 설치는 가능해야 하므로 required=false. -->
+    <uses-feature android:name="android.software.live_wallpaper" android:required="false"/>
 
     <!-- [Phase C-1] 저녁 7시 종소리 알림용 flutter_local_notifications 20.1.0 설정.
          정확한 시각(초 단위) 정밀도가 필요 없는 "은은한 종소리" 컨셉이므로
@@ -186,6 +189,23 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- [소원방 v2.6 배경화면 — Android 실제 라이브 배경화면]
+             docs/WALLPAPER.md §4 "Android — 진짜 라이브 배경화면" / §4 "6. 매니페스트
+             등록". BIND_WALLPAPER 권한은 시스템만 이 서비스를 바인딩할 수 있게
+             강제하는 표준 보안 요구사항이다(다른 앱이 임의로 호출 불가). -->
+        <service
+            android:name=".WishRoomWallpaperService"
+            android:exported="true"
+            android:label="신통방통 소원방"
+            android:permission="android.permission.BIND_WALLPAPER">
+            <intent-filter>
+                <action android:name="android.service.wallpaper.WallpaperService"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.service.wallpaper"
+                android:resource="@xml/wallpaper"/>
+        </service>
 
         <!-- [Phase C-1] flutter_local_notifications 20.1.0이 예약 알림을 실제로
              발화(및 재부팅 후 재예약)하는 데 필요한 리시버. -->

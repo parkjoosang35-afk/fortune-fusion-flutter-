@@ -193,6 +193,57 @@ class WrReview {
       wishColor = j['wishColor'] ?? 'hope', photo = j['photo'], congrats = j['congrats'] ?? 0, congratsByMe = j['congratsByMe'] ?? false, mine = j['mine'] ?? false, status = j['status'] ?? 'OK';
 }
 
+// ── 배경화면(W1~W5) — docs/WALLPAPER.md ──
+// 웹 원본의 "매니페스트"는 레이어 배열(sky/room/particle/deco/candle/char/fx...)을
+// 들고 있지만, 그 레이어들은 이미 RoomScene이 room+equip+level로부터 그대로
+// 그려내는 것과 같은 내용이다("같은 좌표" — WALLPAPER.md §3). 그래서 이 앱에서는
+// 별도 레이어 렌더러를 새로 만들지 않고, 매니페스트 응답에 담긴 WishRoom(또는
+// 보존된 소원방의 snapshot으로 재구성한 WishRoom)을 그대로 RoomScene에 넘겨
+// "같은 수식으로 그린다"는 원칙을 지킨다.
+class WPManifest {
+  final String wishRoomId;
+  final int version;
+  final String title;
+  final WishRoom room; // RoomScene(room: .., items: ..)에 그대로 전달
+  final List<String> equippedItemIds;
+  final bool fulfilled; // state === 'FULFILLED' (보존된 소원방 — 금빛 리본 · confetti 1회)
+  factory WPManifest.fromJson(Map<String, dynamic> j) {
+    final room = WishRoom.fromJson(Map<String, dynamic>.from(j['room']));
+    final state = j['state'] as String? ?? (room.status == RoomStatus.ARCHIVED ? 'FULFILLED' : 'ACTIVE');
+    return WPManifest._(
+      wishRoomId: j['wishRoomId'] as String? ?? room.id,
+      version: (j['version'] as num?)?.toInt() ?? 1,
+      title: j['title'] as String? ?? '내 소원방',
+      room: room,
+      equippedItemIds: j['equippedItemIds'] == null ? room.equip.all : List<String>.from(j['equippedItemIds']),
+      fulfilled: state == 'FULFILLED',
+    );
+  }
+  WPManifest._({required this.wishRoomId, required this.version, required this.title, required this.room, required this.equippedItemIds, required this.fulfilled});
+  String get band {
+    final lv = room.level;
+    if (lv >= 7) return 'B4';
+    if (lv >= 5) return 'B3';
+    if (lv >= 3) return 'B2';
+    return 'B1';
+  }
+}
+
+/// `GET /me/wallpaper` 응답 — 현재 설정 상태.
+class WallpaperStatus {
+  final String? roomId, platform, target; // platform: android|ios · target: BOTH|HOME|LOCK
+  final int version, latestVersion;
+  final bool needsUpdate, autoSynced;
+  final int seenLevelNotice;
+  WallpaperStatus.fromJson(Map<String, dynamic> j)
+      : roomId = j['roomId'], platform = j['platform'], target = j['target'],
+        version = (j['version'] as num?)?.toInt() ?? 0, latestVersion = (j['latestVersion'] as num?)?.toInt() ?? 0,
+        needsUpdate = j['needsUpdate'] ?? false, autoSynced = j['autoSynced'] ?? false,
+        seenLevelNotice = (j['seenLevelNotice'] as num?)?.toInt() ?? 0;
+  const WallpaperStatus.empty() : roomId = null, platform = null, target = null, version = 0, latestVersion = 0, needsUpdate = false, autoSynced = false, seenLevelNotice = 0;
+  bool get isSet => roomId != null;
+}
+
 class ApiError implements Exception {
   final int status; final String code, message; final Map<String, dynamic> extra;
   ApiError(this.status, this.code, this.message, [this.extra = const {}]);

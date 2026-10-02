@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- [소원방 v2.6 배경화면] 시스템 '배경화면 설정' 목록에서 보여줄 설명 문구. -->
+    <string name="wallpaper_description">내 소원방을 그대로, 매일 보이는 곳에 — 촛불이 흔들리고 꽃잎이 내려요.</string>
+</resources>

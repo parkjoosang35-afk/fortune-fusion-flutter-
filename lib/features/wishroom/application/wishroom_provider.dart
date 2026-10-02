@@ -6,6 +6,7 @@
 import 'package:flutter/foundation.dart';
 import '../data/models.dart';
 import '../data/wr_api.dart';
+import '../features/wallpaper/wallpaper_service.dart';
 
 class WishRoomProvider extends ChangeNotifier {
   final WrRepository repo;
@@ -62,6 +63,16 @@ class WishRoomProvider extends ChangeNotifier {
 
   int get unreadCount => me?.unread ?? 0;
 
+  /// docs/WALLPAPER.md §4.3 "동기화" — room(소원/장비/테마/레벨/상태)이 서버 응답으로
+  /// 바뀔 때마다(로드·정성·꾸미기·테마·레이아웃·생성 등) 호출해 네이티브 라이브
+  /// 배경화면(WishRoomWallpaperService.kt)이 다음 프레임부터 최신 상태를 그리게 한다.
+  /// 웹 프리뷰/iOS에서는 WallpaperService 내부에서 조용히 no-op 처리된다.
+  void _syncNativeWallpaper() {
+    final r = room;
+    if (r == null || !catalogLoaded) return;
+    WallpaperService.syncManifest(r, items);
+  }
+
   /// [Stage2 결함수정 패턴 재사용] 로그아웃 시 이전 계정의 소원방/알림/탐색
   /// 데이터가 메모리에 남아있지 않도록 전부 초기화한다.
   void clearOnLogout() {
@@ -82,6 +93,7 @@ class WishRoomProvider extends ChangeNotifier {
     reviewFeed = [];
     viewedRoom = null;
     viewedComments = [];
+    wallpaperStatus = const WallpaperStatus.empty();
     notifyListeners();
   }
 
@@ -97,6 +109,7 @@ class WishRoomProvider extends ChangeNotifier {
       room = res.room;
       me = res.me;
       introMode = res.introMode;
+      _syncNativeWallpaper();
     } on ApiError catch (e) {
       lastError = e;
     } finally {
@@ -129,6 +142,7 @@ class WishRoomProvider extends ChangeNotifier {
         paper: paper,
         force: force,
       );
+      _syncNativeWallpaper();
       notifyListeners();
       return true;
     } on ApiError catch (e) {
@@ -144,6 +158,7 @@ class WishRoomProvider extends ChangeNotifier {
     try {
       final r = await repo.enter(id);
       room = r.room;
+      _syncNativeWallpaper();
       notifyListeners();
       return r;
     } on ApiError catch (e) {
@@ -158,6 +173,7 @@ class WishRoomProvider extends ChangeNotifier {
     lastError = null;
     try {
       room = await repo.rekindle(id);
+      _syncNativeWallpaper();
       notifyListeners();
       return true;
     } on ApiError catch (e) {
@@ -172,6 +188,7 @@ class WishRoomProvider extends ChangeNotifier {
   void applyDevotionResult(DevotionResult r) {
     room = r.room;
     me = r.me;
+    _syncNativeWallpaper();
     notifyListeners();
   }
 
@@ -275,6 +292,7 @@ class WishRoomProvider extends ChangeNotifier {
     lastError = null;
     try {
       room = await repo.equip(roomId, itemId);
+      _syncNativeWallpaper();
       notifyListeners();
       return true;
     } on ApiError catch (e) {
@@ -288,6 +306,7 @@ class WishRoomProvider extends ChangeNotifier {
     lastError = null;
     try {
       room = await repo.setLayout(id, itemId, x: x, y: y, s: s, reset: reset);
+      _syncNativeWallpaper();
       notifyListeners();
       return true;
     } on ApiError catch (e) {
@@ -301,6 +320,7 @@ class WishRoomProvider extends ChangeNotifier {
     lastError = null;
     try {
       room = await repo.setPaper(id, paper);
+      _syncNativeWallpaper();
       notifyListeners();
       return true;
     } on ApiError catch (e) {
@@ -314,6 +334,7 @@ class WishRoomProvider extends ChangeNotifier {
     lastError = null;
     try {
       room = await repo.setTheme(id, theme);
+      _syncNativeWallpaper();
       notifyListeners();
       return true;
     } on ApiError catch (e) {
@@ -327,6 +348,7 @@ class WishRoomProvider extends ChangeNotifier {
     lastError = null;
     try {
       room = await repo.setOutfit(id, theme);
+      _syncNativeWallpaper();
       notifyListeners();
       return true;
     } on ApiError catch (e) {
@@ -370,6 +392,10 @@ class WishRoomProvider extends ChangeNotifier {
       items = results[0] as List<WrItem>;
       characters = results[1] as List<WrCharacter>;
       catalogLoaded = true;
+      // room이 loadMyRoom()으로 먼저 로드되고 카탈로그가 나중에 끝나는 순서도
+      // 있으므로(initState에서 두 호출을 거의 동시에 발사), 카탈로그 로딩이
+      // 끝나는 시점에도 한 번 더 동기화해 아이템 asset 정보 누락을 방지한다.
+      _syncNativeWallpaper();
       notifyListeners();
     } on ApiError catch (e) {
       lastError = e;
@@ -685,6 +711,70 @@ class WishRoomProvider extends ChangeNotifier {
       lastError = e;
       notifyListeners();
       return null;
+    }
+  }
+
+  // ── 배경화면 (app2/wallpaper2.jsx S-01~07 · docs/WALLPAPER.md W1~W5) ──
+
+  WallpaperStatus wallpaperStatus = const WallpaperStatus.empty();
+
+  Future<WPManifest?> loadWallpaperManifest(String roomId) async {
+    try {
+      return await repo.wallpaperManifest(roomId);
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return null;
+    }
+  }
+
+  Future<void> loadWallpaperStatus() async {
+    try {
+      wallpaperStatus = await repo.wallpaperStatus();
+      notifyListeners();
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+    }
+  }
+
+  /// S-02 "홈 화면 + 잠금 화면에 설정" 등 — 서버에 설정 상태를 기록한다.
+  /// 실제로 OS 배경화면을 바꾸는 동작은 화면(WallpaperScreen)이
+  /// WallpaperService(android) 플랫폼 채널을 직접 호출해 수행하고, 이 메서드는
+  /// 그 뒤에 "서버 기준 상태"만 PUT으로 동기화한다(§4 공통 흐름).
+  Future<bool> setWallpaper(String roomId, {required String platform, required String target, required int version}) async {
+    try {
+      wallpaperStatus = await repo.setWallpaper(roomId, platform: platform, target: target, version: version);
+      // [SERVER] me.wallpaper는 roomByToken 등 다른 응답에도 실려오므로 me도 최신화.
+      me = await repo.me();
+      notifyListeners();
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> clearWallpaper() async {
+    try {
+      await repo.clearWallpaper();
+      wallpaperStatus = const WallpaperStatus.empty();
+      notifyListeners();
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// S-07 — 레벨업 연출 안에서 배경화면 사용자에게 1회만 안내 문구를 보여준 뒤 기록.
+  Future<void> wallpaperLevelNotice(int level) async {
+    try {
+      await repo.wallpaperLevelNotice(level);
+    } catch (_) {
+      // fx2.jsx 원본도 .catch(()=>{})로 무시한다 — 연출을 막을 이유가 없다.
     }
   }
 }

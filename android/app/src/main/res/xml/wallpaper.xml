@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- [소원방 v2.6 배경화면] docs/WALLPAPER.md §4 "6. 매니페스트 등록".
+     시스템 '배경화면 설정' 목록에 노출되는 라이브 배경화면 메타데이터. -->
+<wallpaper xmlns:android="http://schemas.android.com/apk/res/android"
+    android:thumbnail="@drawable/wallpaper_thumbnail"
+    android:description="@string/wallpaper_description"
+    android:settingsActivity="com.sintongbantong.app.MainActivity" />

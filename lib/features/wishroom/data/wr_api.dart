@@ -63,6 +63,12 @@ abstract class WrRepository {
   Future<List<WrReview>> reviews({bool mine});                                                                  // V4
   Future<WrReview> congrats(String id);                                                                         // V5
   Future<void> reportReview(String id, String reason);                                                         // V6
+  // 배경화면 (docs/WALLPAPER.md)
+  Future<WPManifest> wallpaperManifest(String roomId);                                                         // W1 GET /wish-rooms/{id}/wallpaper
+  Future<WallpaperStatus> wallpaperStatus();                                                                    // W2 GET /me/wallpaper
+  Future<WallpaperStatus> setWallpaper(String roomId, {required String platform, required String target, required int version}); // W3 PUT /me/wallpaper
+  Future<void> clearWallpaper();                                                                                // W4 DELETE /me/wallpaper
+  Future<void> wallpaperLevelNotice(int level);                                                                 // W5 POST /me/wallpaper/level-notice
 }
 
 class ApiRepository implements WrRepository {
@@ -169,4 +175,12 @@ class ApiRepository implements WrRepository {
   @override Future<List<WrReview>> reviews({bool mine = false}) async => _l(await _req('GET', '/reviews${mine ? '?mine=1' : ''}'), WrReview.fromJson);
   @override Future<WrReview> congrats(String id) async => WrReview.fromJson(_m(await _req('POST', '/reviews/$id/congrats')));
   @override Future<void> reportReview(String id, String reason) async => await _req('POST', '/reviews/$id/report', {'reason': reason});
+
+  // ── 배경화면 (W1~W5) ──
+  @override Future<WPManifest> wallpaperManifest(String roomId) async => WPManifest.fromJson(_m(await _req('GET', '/wish-rooms/$roomId/wallpaper')));
+  @override Future<WallpaperStatus> wallpaperStatus() async => WallpaperStatus.fromJson(_m(await _req('GET', '/me/wallpaper')));
+  @override Future<WallpaperStatus> setWallpaper(String roomId, {required String platform, required String target, required int version}) async =>
+      WallpaperStatus.fromJson(_m(await _req('PUT', '/me/wallpaper', {'roomId': roomId, 'platform': platform, 'target': target, 'version': version})));
+  @override Future<void> clearWallpaper() async => await _req('DELETE', '/me/wallpaper');
+  @override Future<void> wallpaperLevelNotice(int level) async => await _req('POST', '/me/wallpaper/level-notice', {'level': level});
 }
