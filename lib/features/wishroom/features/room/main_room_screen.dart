@@ -19,6 +19,8 @@ import 'devotion_controller.dart';
 import '../complete/complete_screen.dart';
 import '../capsule/capsule_screen.dart';
 import '../../../../core/util/safe_share.dart';
+import '../guide/guide_prefs.dart';
+import '../guide/guide_sheet.dart';
 
 class MainRoomScreen extends StatefulWidget {
   const MainRoomScreen({super.key});
@@ -43,6 +45,9 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
   // app2/screens-a2.jsx › MainRoom() capOpen/capLater — 타임캡슐(소원 봉인) 열기 오버레이 상태.
   bool _capOpen = false;
   bool _capLater = false;
+  // app2/guide2.jsx › shell2.jsx tour state — 메인 화면 위 6단계 코치마크 오버레이.
+  bool _tour = false;
+  bool _firstVisitReady = false;
 
   @override
   void initState() {
@@ -53,6 +58,10 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) => p.loadMyRoom());
     }
     if (p.catalogLoaded == false) p.loadCatalog();
+    // app2/guide2.jsx › hintsOn()/seenSet()/wr_tour_done — localStorage 로딩을
+    // shared_preferences 비동기 로딩으로 대체(GuidePrefs). FirstVisitChip은 이 값이
+    // 준비된 뒤에야 올바른 표시 여부를 결정할 수 있다.
+    GuidePrefs.I.load().then((_) { if (mounted) setState(() => _firstVisitReady = true); });
     _startCooldownTicker();
     _speechTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       if (mounted) setState(() => _speechIdx++);
@@ -176,9 +185,11 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
     context.read<WishRoomProvider>().loadMyRoom();
   }
 
-  void _openGuide() {
+  // app2/guide2.jsx › app.openGuide(focus) 1:1 — focus를 펼친 채로 안내서를 연다.
+  // room이 있을 때만(= 메인화면 안내서 버튼) "한 바퀴 둘러보기" 버튼을 함께 보여준다.
+  void _openGuide([String? focus]) {
     showModalBottomSheet(context: context, backgroundColor: Colors.transparent, isScrollControlled: true,
-      builder: (_) => const _GuideSheet());
+      builder: (_) => GuideBook(focus: focus, onStartTour: () => setState(() => _tour = true)));
   }
 
   @override
@@ -219,7 +230,10 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
             // 레벨바
             Positioned(top: 100, left: 14, child: _levelBar(room)),
             // 우상단 알약 버튼 3개: 안내서 · 방만 보기 · 공유
-            if (!_devotion.busy && !_rekindling) Positioned(top: 100, right: 14, child: _pillBtn('? 안내서', _openGuide)),
+            if (!_devotion.busy && !_rekindling) Positioned(top: 100, right: 14, child: _pillBtn('? 안내서', () => _openGuide())),
+            // app2/guide2.jsx › FirstVisitChip — 처음 오셨나요 배너(top:140).
+            if (_firstVisitReady && !_devotion.busy && !_rekindling)
+              Positioned(top: 140, left: 0, right: 0, child: WrFirstVisitChip(onStartTour: () => setState(() => _tour = true))),
             if (!_devotion.busy && !_rekindling) Positioned(top: 136, right: 14, child: _pillBtn('◉ 방만 보기', () => setState(() => _peek = true))),
             if (!_devotion.busy && !_rekindling) Positioned(top: 172, right: 14, child: _pillBtn('⤴ 공유', () => _openShareSheet(room))),
             // 말풍선
@@ -250,6 +264,11 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
           // capsuleDue(서버 판정) && 아직 캡슐 오버레이를 열지 않았고 && '나중에' 선택도 안 했을 때.
           if (room.capsuleDue && !_capOpen && !_capLater)
             Positioned.fill(child: WrUnsealBanner(room: room, onOpen: () => _openCapsule(room))),
+          // app2/guide2.jsx › shell2.jsx {tour && <Tour .../>} — 둘러보기 6단계 코치마크.
+          if (_tour) Positioned.fill(child: WrCanvasScaler(child: WrTour(onDone: () {
+            setState(() => _tour = false);
+            GuidePrefs.I.setTourDone();
+          }))),
         ]);
       }),
     ));
@@ -814,29 +833,4 @@ class _ShareSheetState extends State<_ShareSheet> {
 }
 
 /// 안내서 시트 — CHANGELOG '봉인 안내 문구' GUIDE 섹션(최소 구현).
-class _GuideSheet extends StatelessWidget {
-  const _GuideSheet();
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
-      decoration: WrDeco.sheet,
-      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Container(width: 36, height: 4, margin: const EdgeInsets.only(bottom: 16), alignment: Alignment.center,
-          decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
-        Text('소원방 안내서', style: WrF.display(18, color: Colors.white)),
-        const SizedBox(height: 12),
-        _guideRow('🙏 정성 들이기', '매일 ${WrCatalog.I.devotionRule['dailyLimit'] ?? 10}회까지 정성을 담을 수 있어요'),
-        _guideRow('🕯 촛불이 약해졌어요', '4일 이상 찾지 않으면 촛불이 가물거려요'),
-        _guideRow('🔐 소원 봉인', '봉인일을 정하면 그날까지 소원을 간직해요'),
-        _guideRow('✿ 꾸미기', '복주머니로 방을 꾸밀 수 있어요'),
-      ]),
-    );
-  }
 
-  Widget _guideRow(String title, String desc) => Padding(padding: const EdgeInsets.only(bottom: 14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(title, style: WrF.body(14, w: FontWeight.w700, color: Colors.white)),
-        const SizedBox(height: 3),
-        Text(desc, style: WrF.body(12, color: Colors.white70)),
-      ]));
-}

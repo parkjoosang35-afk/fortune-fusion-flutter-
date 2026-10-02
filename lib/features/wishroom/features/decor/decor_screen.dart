@@ -17,6 +17,7 @@ import '../../core/theme/wr_theme.dart';
 import '../../core/wr_canvas.dart';
 import '../room/room_scene.dart';
 import '../room/room_layout.dart' as layout;
+import '../guide/guide_sheet.dart';
 
 class DecorScreen extends StatefulWidget {
   const DecorScreen({super.key});
@@ -595,22 +596,10 @@ class _DecorScreenState extends State<DecorScreen> {
     ]);
   }
 
+  // app2/screens-b2.jsx › app.openGuide('decor') 1:1 — guide2.jsx GuideBook(focus:'decor') 재사용.
   void _openGuide() {
-    showModalBottomSheet(context: context, backgroundColor: Colors.transparent, isScrollControlled: true, builder: (_) => Container(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
-      decoration: WrDeco.sheet,
-      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Container(width: 36, height: 4, margin: const EdgeInsets.only(bottom: 16), alignment: Alignment.center,
-          decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
-        Text('꾸미기 안내서', style: WrF.display(18, color: Colors.white)),
-        const SizedBox(height: 12),
-        Text('✿ 슬롯을 고르고 아이템을 탭하면 효과와 설명을 볼 수 있어요', style: WrF.body(13, color: Colors.white70, height: 1.6)),
-        const SizedBox(height: 8),
-        Text('✦ 소원 빛깔과 같은 기운의 아이템은 효과가 1.5배가 돼요', style: WrF.body(13, color: Colors.white70, height: 1.6)),
-        const SizedBox(height: 8),
-        Text('✥ 꽃·장식·인장·테마 소품은 자리를 직접 옮길 수 있어요', style: WrF.body(13, color: Colors.white70, height: 1.6)),
-      ]),
-    ));
+    showModalBottomSheet(context: context, backgroundColor: Colors.transparent, isScrollControlled: true,
+      builder: (_) => const GuideBook(focus: 'decor'));
   }
 }
 

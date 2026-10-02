@@ -12,6 +12,7 @@ import '../../core/wr_canvas.dart';
 import '../room/room_scene.dart';
 import '../characters/character_shop_screen.dart';
 import '../compose/compose_screen.dart';
+import '../guide/guide_sheet.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../../../ads_test/domain/admob_ad_ids.dart';
 
@@ -52,6 +53,17 @@ class _VaultScreenState extends State<VaultScreen> with SingleTickerProviderStat
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(color: const Color(0x991E0C18), borderRadius: BorderRadius.circular(999), border: Border.all(color: WrC.line)),
               child: Text('캐릭터', style: WrF.body(12, color: WrC.fg)),
+            ),
+          ),
+          const SizedBox(width: 8),
+          // app2/screens-c2.jsx › TopBar right › app.openGuide('archive') 1:1.
+          GestureDetector(
+            onTap: () => showModalBottomSheet(context: context, backgroundColor: Colors.transparent, isScrollControlled: true,
+              builder: (_) => const GuideBook(focus: 'archive')),
+            child: Container(
+              width: 32, height: 32, alignment: Alignment.center,
+              decoration: BoxDecoration(color: const Color(0x991E0C18), shape: BoxShape.circle, border: Border.all(color: WrC.line)),
+              child: const Text('?', style: TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 13, color: Colors.white)),
             ),
           ),
         ])),
