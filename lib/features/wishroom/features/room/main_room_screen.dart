@@ -5,7 +5,8 @@
 // DevotionController/RekindleTimeline을 사용한다.
 // app2/screens-a2.jsx › MainRoom() 1:1 이식.
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Visibility;
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:provider/provider.dart';
 import '../../application/wishroom_provider.dart';
 import '../../data/models.dart';
@@ -17,6 +18,7 @@ import 'room_scene.dart';
 import 'devotion_controller.dart';
 import '../complete/complete_screen.dart';
 import '../capsule/capsule_screen.dart';
+import '../../../../core/util/safe_share.dart';
 
 class MainRoomScreen extends StatefulWidget {
   const MainRoomScreen({super.key});
@@ -597,38 +599,218 @@ class _CareSheetState extends State<_CareSheet> {
       ]));
 }
 
-/// 공유 시트 — CHANGELOG '소원방 공유' §: 공개범위 미리보기 + 링크 복사(최소 구현).
-class _ShareSheet extends StatelessWidget {
+Color _shareHex(String s) { final h = s.replaceFirst('#', ''); return Color(int.parse('FF$h', radix: 16)); }
+
+/// app2/capsule2.jsx › ShareSheet 1:1 — 미리보기 카드 + 공개범위 전환 + 링크 복사/카카오톡/문자/더보기/새 링크.
+class _ShareSheet extends StatefulWidget {
   const _ShareSheet({required this.room});
   final WishRoom room;
   @override
+  State<_ShareSheet> createState() => _ShareSheetState();
+}
+
+class _ShareSheetState extends State<_ShareSheet> {
+  late Visibility _vis = widget.room.visibility;
+  ({String token, String url})? _link;
+  bool _copied = false;
+  bool _loadingLink = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_vis != Visibility.PRIVATE) _loadLink(false);
+  }
+
+  Future<void> _loadLink(bool reissue) async {
+    setState(() => _loadingLink = true);
+    final p = context.read<WishRoomProvider>();
+    final link = await p.shareLink(widget.room.id, reissue: reissue);
+    if (!mounted) return;
+    setState(() { _link = link; _loadingLink = false; });
+    if (reissue && link != null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('새 링크를 만들었어요 · 이전 링크는 더 열리지 않아요')));
+    }
+  }
+
+  Future<void> _changeVis(Visibility v) async {
+    if (v == _vis) return;
+    final p = context.read<WishRoomProvider>();
+    final ok = await p.updateVisibility(widget.room.id, v);
+    if (!mounted || !ok) return;
+    setState(() => _vis = v);
+    if (v != Visibility.PRIVATE && _link == null) _loadLink(false);
+  }
+
+  String get _shareMessage {
+    final p = context.read<WishRoomProvider>();
+    final nick = p.me?.nick ?? '나';
+    return '[신통방통 소원방] $nick님의 소원방에 초대해요\n"${widget.room.text}"\n촛불 하나 함께 밝혀주세요';
+  }
+
+  Future<void> _copy() async {
+    final link = _link;
+    if (link == null) return;
+    await Clipboard.setData(ClipboardData(text: link.url));
+    if (!mounted) return;
+    setState(() => _copied = true);
+    Timer(const Duration(milliseconds: 2200), () { if (mounted) setState(() => _copied = false); });
+  }
+
+  Future<void> _nativeShare() async {
+    if (_link == null) return;
+    await safeShareText(context, '$_shareMessage\n${_link!.url}');
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final cat = WrCatalog.I;
+    final room = widget.room;
+    final w = cat.wishColors.firstWhere((e) => e['id'] == room.wishColor, orElse: () => cat.wishColors.first);
+    final pp = cat.papers.firstWhere((e) => e['id'] == room.paper, orElse: () => cat.papers.first);
+    final color = _shareHex(w['color'] as String), deep = _shareHex(w['deep'] as String), hanja = w['hanja'] as String;
+    final bg = (pp['bg'] as List).cast<String>().map(_shareHex).toList();
+    final nick = context.watch<WishRoomProvider>().me?.nick ?? '나';
+
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
       decoration: WrDeco.sheet,
-      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+      child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
         Container(width: 36, height: 4, margin: const EdgeInsets.only(bottom: 16), alignment: Alignment.center,
           decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
-        Text('소원방 공유하기', style: WrF.display(18, color: Colors.white)),
+        Text('SHARE · 소원방 공유', style: WrF.mono(size: 10, color: WrC.muted)),
+        const SizedBox(height: 4),
+        Text('소원방 초대하기', style: WrF.display(18, color: Colors.white)),
+        const SizedBox(height: 16),
+        // 미리보기 카드 — 받는 사람에게 보이는 모습.
+        Container(
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), border: Border.all(color: WrC.line),
+            boxShadow: [BoxShadow(color: color.withValues(alpha: .2), blurRadius: 20)]),
+          child: Column(children: [
+            SizedBox(height: 110, child: Stack(children: [
+              Positioned.fill(child: WrCanvasScaler(child: RoomScene(room: room, items: const [], frozen: true, lowFx: true))),
+              Positioned(left: 10, top: 10, child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(color: const Color(0x80000000), borderRadius: BorderRadius.circular(999)),
+                child: Text('SINTONG · WISH ROOM', style: WrF.mono(size: 9, color: const Color(0xFFFFE08A)).copyWith(letterSpacing: 2)),
+              )),
+            ])),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: bg)),
+              child: Row(children: [
+                Container(width: 30, height: 30, alignment: Alignment.center,
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: deep),
+                  child: Text(hanja, style: const TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFFFFF4E0)))),
+                const SizedBox(width: 10),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('$nick님의 소원방 · Lv.${room.level}', style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 10.5, color: Color(0xFF8A6A50))),
+                  Text('"${room.text}"', maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 13.5, color: Color(0xFF4A2A1C))),
+                ])),
+              ]),
+            ),
+          ]),
+        ),
+        const SizedBox(height: 16),
+        Text('누구에게 보여줄까요', style: WrF.body(13.5, w: FontWeight.w700, color: Colors.white)),
         const SizedBox(height: 8),
-        Text('링크를 받은 사람은 내 소원방을 방문해 응원할 수 있어요', style: WrF.body(12, color: Colors.white70)),
-        const SizedBox(height: 18),
         Row(children: [
-          Expanded(child: SizedBox(height: 48, child: OutlinedButton(
-            onPressed: () { Navigator.of(context).pop(); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('링크가 복사되었어요'))); },
-            style: OutlinedButton.styleFrom(side: const BorderSide(color: WrC.line)),
-            child: Text('🔗 링크 복사', style: WrF.body(14, color: Colors.white)),
-          ))),
-          const SizedBox(width: 10),
-          Expanded(child: SizedBox(height: 48, child: ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(),
-            style: ElevatedButton.styleFrom(backgroundColor: WrC.blossom),
-            child: const Text('카카오톡 공유', style: TextStyle(color: Colors.white)),
-          ))),
+          _visTab('모두에게', Visibility.PUBLIC),
+          const SizedBox(width: 6),
+          _visTab('링크로만', Visibility.LINK),
+          const SizedBox(width: 6),
+          _visTab('나만 보기', Visibility.PRIVATE),
         ]),
-      ]),
+        const SizedBox(height: 8),
+        Text(_visDesc(_vis), style: WrF.body(11.5, color: WrC.muted, height: 1.6)),
+        if (_vis == Visibility.PRIVATE) ...[
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(16), alignment: Alignment.center,
+            decoration: WrDeco.card,
+            child: Column(children: [
+              const Text('🔒', style: TextStyle(fontSize: 26)),
+              const SizedBox(height: 6),
+              Text('지금은 나만 볼 수 있는 소원방이에요', style: WrF.body(13, color: WrC.fg)),
+              const SizedBox(height: 12),
+              SizedBox(height: WrSize.btnSmH, child: DecoratedBox(decoration: WrDeco.btnPink, child: Material(color: Colors.transparent,
+                child: InkWell(borderRadius: BorderRadius.circular(16), onTap: () => _changeVis(Visibility.LINK),
+                  child: const Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Center(child: Text('링크로만 공개하기', style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 13, color: Colors.white)))))))),
+            ]),
+          ),
+        ] else ...[
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), color: const Color(0x47000000),
+              border: Border.all(color: _copied ? const Color(0xB37FD6A0) : WrC.line)),
+            child: Row(children: [
+              Expanded(child: Text(_loadingLink ? '링크를 만드는 중…' : (_link?.url.replaceFirst('https://', '') ?? '링크를 만드는 중…'),
+                maxLines: 1, overflow: TextOverflow.ellipsis, style: WrF.mono(size: 12, color: WrC.fg))),
+              const SizedBox(width: 8),
+              SizedBox(height: 36, child: DecoratedBox(decoration: _copied ? WrDeco.btnDark : WrDeco.btnPink, child: Material(color: Colors.transparent,
+                child: InkWell(borderRadius: BorderRadius.circular(16), onTap: _link == null ? null : _copy,
+                  child: Padding(padding: const EdgeInsets.symmetric(horizontal: 14), child: Center(child: Text(_copied ? '✓ 복사됨' : '링크 복사',
+                    style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 13, color: Colors.white)))))))),
+            ]),
+          ),
+          const SizedBox(height: 16),
+          Row(children: [
+            _shareOpt('💬', const Color(0xFFFEE500), '카카오톡', () async { await _copy(); if (!mounted) return; ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('카카오톡 공유는 앱에서 열려요 · 링크를 복사해 두었어요'))); }),
+            _shareOpt('✉', const Color(0xFF3FAE55), '문자', () async { await _copy(); if (!mounted) return; ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('문자 앱으로 보내요 · 링크를 복사해 두었어요'))); }),
+            _shareOpt('⤴', const Color(0xFF4A7AD8), '더보기', _nativeShare),
+            _shareOpt('⟳', Colors.white12, '새 링크', () => _loadLink(true)),
+          ]),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: WrC.line)),
+            child: Text('· 링크를 받은 분은 방을 보고 응원·응원 메시지·복주머니를 보낼 수 있어요.\n· 소원방을 꾸미거나 정성을 들이는 건 나만 할 수 있어요.\n· 링크가 퍼졌다면 새 링크를 누르세요. 이전 링크는 더 이상 열리지 않아요.',
+              style: WrF.body(11.5, color: WrC.muted, height: 1.6)),
+          ),
+        ],
+        if (_copied) Container(
+          margin: const EdgeInsets.only(top: 10), alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(999), color: const Color(0xEB14281C), border: Border.all(color: const Color(0x9A7FD6A0))),
+          child: Text('링크를 복사했어요 · 원하는 곳에 붙여넣어 주세요', style: WrF.body(12, w: FontWeight.w700, color: const Color(0xFFC8F5D4))),
+        ),
+      ])),
     );
   }
+
+  Widget _visTab(String label, Visibility v) {
+    final sel = _vis == v;
+    return Expanded(child: GestureDetector(onTap: () => _changeVis(v), child: Container(
+      height: WrSize.tabH, alignment: Alignment.center,
+      decoration: sel ? WrDeco.tabOn : BoxDecoration(borderRadius: BorderRadius.circular(WrR.tab), color: WrC.chipBg),
+      child: Text(label, style: WrF.body(WrSize.tabFont, w: FontWeight.w700, color: sel ? Colors.white : WrC.muted)),
+    )));
+  }
+
+  String _visDesc(Visibility v) {
+    switch (v) {
+      case Visibility.PUBLIC:
+        return '모두의 소원방에도 보이고, 링크로도 들어올 수 있어요.';
+      case Visibility.LINK:
+        return '링크를 받은 분만 들어와 응원할 수 있어요. 모두의 소원방에는 보이지 않아요.';
+      case Visibility.PRIVATE:
+        return '나만 보기에서는 공유할 수 없어요. 공유하려면 공개 범위를 바꿔주세요.';
+    }
+  }
+
+  Widget _shareOpt(String icon, Color bg, String label, VoidCallback onTap) => Expanded(child: GestureDetector(
+    onTap: onTap,
+    child: Column(children: [
+      Container(width: 52, height: 52, alignment: Alignment.center,
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), color: bg,
+          boxShadow: const [BoxShadow(color: Color(0x59000000), blurRadius: 14)]),
+        child: Text(icon, style: const TextStyle(fontSize: 22))),
+      const SizedBox(height: 6),
+      Text(label, style: const TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 11.5, color: Colors.white)),
+    ]),
+  ));
 }
 
 /// 안내서 시트 — CHANGELOG '봉인 안내 문구' GUIDE 섹션(최소 구현).
