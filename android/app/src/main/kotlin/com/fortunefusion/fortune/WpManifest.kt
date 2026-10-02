@@ -1,4 +1,4 @@
-package com.sintongbantong.app
+package com.fortunefusion.fortune
 
 import org.json.JSONArray
 import org.json.JSONObject

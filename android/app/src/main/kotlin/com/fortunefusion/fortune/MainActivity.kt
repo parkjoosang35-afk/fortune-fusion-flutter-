@@ -1,4 +1,4 @@
-package com.sintongbantong.app
+package com.fortunefusion.fortune
 
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -11,3 +11,4 @@ class MainActivity : FlutterActivity() {
         WallpaperPlugin(this).register(flutterEngine)
     }
 }
+

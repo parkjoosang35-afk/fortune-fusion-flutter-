@@ -1,4 +1,4 @@
-package com.sintongbantong.app
+package com.fortunefusion.fortune
 
 import android.app.ActivityManager
 import android.app.WallpaperColors

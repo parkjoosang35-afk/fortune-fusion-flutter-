@@ -12,7 +12,7 @@ import 'wallpaper_manifest.dart';
 
 class WallpaperService {
   WallpaperService._();
-  static const _channel = MethodChannel('com.sintongbantong.app/wallpaper');
+  static const _channel = MethodChannel('com.fortunefusion.fortune/wallpaper');
 
   /// 현재 방 상태로 네이티브 라이브 배경화면이 그릴 레이어 명세를 갱신한다.
   /// §4.3 "동기화" — 앱 복귀/정성/레벨업 등으로 room이 바뀔 때마다 호출해두면

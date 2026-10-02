@@ -1,4 +1,4 @@
-package com.sintongbantong.app
+package com.fortunefusion.fortune
 
 import android.app.Activity
 import android.app.WallpaperManager
@@ -22,7 +22,7 @@ import io.flutter.plugin.common.MethodChannel.Result
 /**
  * [소원방 v2.6 배경화면] Flutter ↔ 네이티브 플랫폼 브리지.
  * docs/WALLPAPER.md §1 "플랫폼 브리지" — Flutter의 `wallpaper_service.dart`가
- * MethodChannel("com.sintongbantong.app/wallpaper")로 이 플러그인을 호출한다.
+ * MethodChannel("com.fortunefusion.fortune/wallpaper")로 이 플러그인을 호출한다.
  *
  * 지원 메서드:
  *  - setManifest(manifestJson): WishRoomWallpaperService가 그릴 레이어 명세를 저장.
@@ -116,6 +116,6 @@ class WallpaperPlugin(private val activity: Activity) : MethodCallHandler {
     }
 
     companion object {
-        const val CHANNEL = "com.sintongbantong.app/wallpaper"
+        const val CHANNEL = "com.fortunefusion.fortune/wallpaper"
     }
 }
