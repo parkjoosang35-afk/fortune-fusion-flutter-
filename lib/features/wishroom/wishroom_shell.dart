@@ -50,6 +50,20 @@ class _WishRoomShellState extends State<WishRoomShell> {
     if (tourRequested && _index != 0) {
       WidgetsBinding.instance.addPostFrameCallback((_) { if (mounted) setState(() => _index = 0); });
     }
+    // wallet_sheet.dart "소원방에서 쓰는 곳" 카드(꾸미기/선물하기) · "전체 내역 보기"가
+    // requestTab()으로 남긴 바텀탭 전환 요청을 소비한다(tourRequested와 동일 패턴).
+    final requestedTab = context.select<WishRoomProvider, int?>((p) => p.requestedTabIndex);
+    if (requestedTab != null && requestedTab != _index) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() => _index = requestedTab);
+        context.read<WishRoomProvider>().consumeTabRequest();
+      });
+    } else if (requestedTab != null && requestedTab == _index) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) context.read<WishRoomProvider>().consumeTabRequest();
+      });
+    }
     return Theme(
       data: wrThemeData(),
       child: Scaffold(

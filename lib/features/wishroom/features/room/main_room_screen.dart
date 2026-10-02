@@ -22,6 +22,7 @@ import '../../../../core/util/safe_share.dart';
 import '../guide/guide_prefs.dart';
 import '../guide/guide_sheet.dart';
 import '../wallpaper/wallpaper_screen.dart';
+import '../wallet/wallet_sheet.dart';
 
 class MainRoomScreen extends StatefulWidget {
   const MainRoomScreen({super.key});
@@ -385,14 +386,11 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
     ]);
   }
 
-  Widget _pouchPill(int pouch) => Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(color: const Color(0x8C1E0C18), borderRadius: BorderRadius.circular(999)),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        const Text('💰', style: TextStyle(fontSize: 16)),
-        const SizedBox(width: 6),
-        Text('$pouch', style: const TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 14, color: Colors.white)),
-      ]));
+  // [버그수정 — 전수 감사로 발견] 원본 app2/screens-a2.jsx › PouchPill({onClick:
+  // app.openWallet})은 탭하면 지갑 시트가 열리지만, 기존 구현은 탭 핸들러가 전혀
+  // 없는 정적 Container였다. _PouchPillTap으로 교체해 탭→openWalletSheet와
+  // 금액 변동 시 bump(확대/축소) 애니메이션을 더한다.
+  Widget _pouchPill(int pouch) => _PouchPillTap(pouch: pouch);
 
   Widget _levelBar(WishRoom room) => Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
@@ -862,6 +860,58 @@ class _ShareSheetState extends State<_ShareSheet> {
       Text(label, style: const TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 11.5, color: Colors.white)),
     ]),
   ));
+}
+
+/// 복주머니 pill — app2/screens-a2.jsx › PouchPill({onClick: app.openWallet}) 1:1.
+/// 탭하면 wallet_sheet.dart를 열고, 금액이 바뀔 때마다(정성·광고보상 등) 0.3초
+/// bump(확대 후 복귀) 애니메이션을 재생한다.
+class _PouchPillTap extends StatefulWidget {
+  const _PouchPillTap({required this.pouch});
+  final int pouch;
+  @override
+  State<_PouchPillTap> createState() => _PouchPillTapState();
+}
+
+class _PouchPillTapState extends State<_PouchPillTap> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(duration: const Duration(milliseconds: 300), vsync: this);
+  late int _prev = widget.pouch;
+
+  @override
+  void didUpdateWidget(covariant _PouchPillTap old) {
+    super.didUpdateWidget(old);
+    if (widget.pouch != _prev) {
+      _prev = widget.pouch;
+      _c.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() { _c.dispose(); super.dispose(); }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => openWalletSheet(context),
+      child: AnimatedBuilder(
+        animation: _c,
+        builder: (_, child) {
+          final t = _c.value;
+          // 0→.5에서 1 → 1.18로 커졌다가 .5→1에서 다시 1로 — 원본 "bump" 느낌.
+          final scale = 1 + 0.18 * (t < .5 ? (t / .5) : (1 - (t - .5) / .5));
+          return Transform.scale(scale: scale, child: child);
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(color: const Color(0x8C1E0C18), borderRadius: BorderRadius.circular(999)),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            const Text('💰', style: TextStyle(fontSize: 16)),
+            const SizedBox(width: 6),
+            Text('${widget.pouch}', style: const TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 14, color: Colors.white)),
+          ]),
+        ),
+      ),
+    );
+  }
 }
 
 /// 안내서 시트 — CHANGELOG '봉인 안내 문구' GUIDE 섹션(최소 구현).

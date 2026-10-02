@@ -61,6 +61,27 @@ class WishRoomProvider extends ChangeNotifier {
     tourRequested = false;
   }
 
+  // ── 바텀탭 전환 요청(지갑 시트 "소원방에서 쓰는 곳"·"전체 내역 보기" 등) ──
+  // IndexedStack 구조라 화면이 직접 바텀탭을 바꿀 수 없으므로, tourRequested와 같은
+  // 패턴으로 WishRoomShell이 이 플래그를 구독해 대신 전환한다. vaultSubTab이 같이
+  // 오면 보관함(탭4)의 내부 TabBarView(기록관/복주머니/응원보상)도 함께 전환한다.
+  int? requestedTabIndex;
+  int? requestedVaultSubTab;
+
+  void requestTab(int index, {int? vaultSubTab}) {
+    requestedTabIndex = index;
+    requestedVaultSubTab = vaultSubTab;
+    notifyListeners();
+  }
+
+  void consumeTabRequest() {
+    requestedTabIndex = null;
+  }
+
+  void consumeVaultSubTabRequest() {
+    requestedVaultSubTab = null;
+  }
+
   int get unreadCount => me?.unread ?? 0;
 
   /// docs/WALLPAPER.md §4.3 "동기화" — room(소원/장비/테마/레벨/상태)이 서버 응답으로

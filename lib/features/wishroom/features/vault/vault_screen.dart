@@ -41,6 +41,16 @@ class _VaultScreenState extends State<VaultScreen> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
+    // wallet_sheet.dart "전체 내역 보기"(복주머니 탭) 요청을 소비해 내부 TabBarView를
+    // 전환한다. tourRequested와 동일한 "Provider 플래그 → Shell/화면이 대신 처리" 패턴.
+    final subTab = context.select<WishRoomProvider, int?>((p) => p.requestedVaultSubTab);
+    if (subTab != null && subTab != _tabs.index) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _tabs.animateTo(subTab);
+        context.read<WishRoomProvider>().consumeVaultSubTabRequest();
+      });
+    }
     return Theme(data: wrThemeData(), child: Scaffold(
       backgroundColor: WrC.bg2,
       body: SafeArea(bottom: false, child: Column(children: [
