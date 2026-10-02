@@ -28,8 +28,15 @@ class WrDur {
   static const inkAppear = Duration(milliseconds: 1400);
   static const cameraIn = Duration(milliseconds: 2200);
   static const sheet = Duration(milliseconds: 500);
-  static const introFull = Duration(milliseconds: 3500); // §3
-  static const introShort = Duration(milliseconds: 1200);
+  // §3 Intro — 원본 screens-a2.jsx › Intro() setTimeout 체인과 1:1 일치시킨 값.
+  // full: 1000(스킵표시) → 1100(st1) → 2000(st2:문) → 3100(st3:리빌) → 4600(finish)
+  // short: 700(st3) → 1500(finish)
+  static const introFull = Duration(milliseconds: 4600); // §3 (원본과 일치하도록 수정됨 — 기존 3500ms는 오기)
+  static const introFullSt1 = Duration(milliseconds: 1100);
+  static const introFullSt2 = Duration(milliseconds: 2000);
+  static const introFullSt3 = Duration(milliseconds: 3100);
+  static const introShort = Duration(milliseconds: 1500); // (원본과 일치하도록 수정됨 — 기존 1200ms는 오기)
+  static const introShortSt3 = Duration(milliseconds: 700);
   static const introSkipShowAfter = Duration(seconds: 1);
   static const doorOpen = Duration(milliseconds: 1300);
   static const doorDelayFull = Duration(milliseconds: 1700);
