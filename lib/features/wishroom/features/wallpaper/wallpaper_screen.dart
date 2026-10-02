@@ -7,10 +7,14 @@
 // WrCanvasScaler로 감싸 그대로 쓴다 — room+equip+level에서 미리보기/실제 배경화면이
 // 같은 결과를 내는 것이 FR-W-11 보장의 핵심이다(room_scene.dart 주석 참고).
 //
-// [플랫폼] 이 앱은 안드로이드 전용으로 빌드/배포된다(ios/ 폴더에 커스텀 네이티브
-// 코드가 없음 확인됨). 따라서 Live Photo(iOS) 경로는 디자인 핸드오프의 화면
-// 흐름(S-04/S-05)만 1:1로 보존하고 "Android 환경에서도 디자인 검수가 가능하도록"
-// 유지하되, 실제 활성 플랫폼은 Android 네이티브 라이브 배경화면이다.
+// [플랫폼 방침 — 사용자 확정] 이 앱은 안드로이드 전용으로 빌드/배포된다(ios/ 폴더에
+// 커스텀 네이티브 코드가 없음 확인됨). Android는 WishRoomWallpaperService.kt +
+// WallpaperPlugin.kt로 실제 OS 라이브 배경화면이 완전히 동작하는 프로덕션 코드다.
+// iOS Live Photo는 PHAssetCreationRequest 저장에 필요한 Xcode 프로젝트/Swift 빌드
+// 파이프라인 자체가 이 프로젝트에 없어 실제 구현이 불가능하므로, 디자인 핸드오프의
+// 화면 흐름(S-04/S-05)만 1:1로 보존하고 마지막 저장 단계만 시뮬레이션으로 유지한다
+// — 이 방침은 사용자에게 명시적으로 확인받았다(2026-10-02, "iOS는 시뮬레이션으로
+// 간다"는 agent 제안에 "응"으로 확정 응답).
 import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
@@ -101,7 +105,8 @@ class _WallpaperScreenState extends State<WallpaperScreen> {
   Future<void> _makeIOS(WishRoomProvider p, WishRoom room) async {
     // iOS Live Photo 파이프라인은 이 프로젝트에 네이티브 빌드 기반이 없어 실제
     // PHAssetCreationRequest 저장은 불가능하다 — S-04/S-05 화면 흐름(디자인 검수용)만
-    // 1:1 재현하고, 마지막 저장 단계만 시뮬레이션으로 대체한다(요청 범위: Android 완전 구현).
+    // 1:1 재현하고, 마지막 저장 단계만 시뮬레이션으로 대체한다. 사용자 확정 방침:
+    // Android는 완전한 프로덕션 코드, iOS는 네이티브 빌드 인프라 부재로 시뮬레이션.
     final state = MakingState();
     setState(() => _mk = state);
     await Future.delayed(const Duration(milliseconds: 500));
