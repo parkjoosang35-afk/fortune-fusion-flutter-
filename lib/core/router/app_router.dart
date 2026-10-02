@@ -56,6 +56,7 @@ import '../../features/giftcard/domain/giftcard_model.dart';
 import '../../features/subscription/presentation/subscription_plans_screen.dart';
 import '../../features/subscription/presentation/my_subscription_screen.dart';
 import '../../features/wishroom/features/intro/wish_room_intro_screen.dart';
+import '../../features/wishroom/features/link/link_invite_screen.dart';
 import '../../features/shop/presentation/seal_shop_screen.dart';
 import '../../features/shop/presentation/candle_shop_screen.dart';
 import '../../features/shop/presentation/talisman_shop_screen.dart';
@@ -171,6 +172,19 @@ class AppRouter {
       final shareId = name.substring('/r/'.length);
       if (shareId.isNotEmpty) {
         return _page(SharedResultScreen(shareId: shareId));
+      }
+    }
+
+    // [소원방 v2.6] app2/capsule2.jsx › shell2.jsx의 `app.openLink(token)` →
+    // `<LinkInvite token={invite}/>`에 대응하는 named route. 웹 원본은
+    // `/w/{token}` 형태 공유 링크(shareLink() 로 발급)로 들어오면 이 화면이
+    // GET /share/{token}(API_CONTRACT.md S2)으로 방을 조회해 초대장을 보여준다.
+    // '/g/'·'/r/'과 동일한 패턴(와일드카드 선매칭)이며, OS 레벨 딥링크는
+    // GuinjiDeepLinkHandler가 host 'w'를 수신해 이 named route로 위임한다.
+    if (name.startsWith('/w/')) {
+      final token = name.substring('/w/'.length);
+      if (token.isNotEmpty) {
+        return _page(LinkInviteScreen(token: token));
       }
     }
 

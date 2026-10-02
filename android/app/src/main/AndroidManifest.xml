@@ -130,6 +130,10 @@
                      형태(guinji_deep_link_handler.dart가 수신, SharedResultScreen으로
                      라우팅). -->
                 <data android:scheme="fortunefusion" android:host="r"/>
+                <!-- [소원방 v2.6] app2/capsule2.jsx › ShareSheet 공유 링크.
+                     `fortunefusion://w/{token}` 형태(guinji_deep_link_handler.dart가
+                     수신, LinkInviteScreen으로 라우팅). -->
+                <data android:scheme="fortunefusion" android:host="w"/>
             </intent-filter>
             <!-- [Phase B] sintong.kr 운영 도메인 App Links (https).
                  assetlinks.json 검증에 성공하면 https://sintong.kr/g/{token}
@@ -159,6 +163,11 @@
                     android:scheme="https"
                     android:host="sintong.kr"
                     android:pathPrefix="/r"/>
+                <!-- [소원방 v2.6] https://sintong.kr/w/{token} 형태. -->
+                <data
+                    android:scheme="https"
+                    android:host="sintong.kr"
+                    android:pathPrefix="/w"/>
             </intent-filter>
             <!-- [카카오 간편로그인] 카카오톡 앱으로 로그인 시, 카카오톡 앱에서
                  인증을 마치고 우리 앱으로 돌아오기 위해 필요한 커스텀 스킴

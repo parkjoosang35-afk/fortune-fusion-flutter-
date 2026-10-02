@@ -151,11 +151,36 @@ class GuinjiDeepLinkHandler {
       shareId = uri.pathSegments[1];
     }
 
-    if (shareId == null || shareId.isEmpty) return;
+    if (shareId != null && shareId.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final navState = appNavigatorKey.currentState;
+        if (navState == null) return;
+        navState.pushNamed('/r/$shareId');
+      });
+      return;
+    }
+
+    // ── 5) 소원방 공유 링크(`w`) ─────────────────────────────────────
+    // [소원방 v2.6] app2/capsule2.jsx › ShareSheet가 shareLink()로 발급하는
+    // 공유 링크. `fortunefusion://w/{token}` / `https://sintong.kr/w/{token}`.
+    // AppRouter의 '/w/{token}' named route로 위임한다(LinkInviteScreen이
+    // GET /share/{token}으로 실제 조회를 담당).
+    String? wToken;
+    if (uri.scheme == 'fortunefusion' && uri.host == 'w') {
+      final segments = uri.pathSegments;
+      wToken = segments.isNotEmpty ? segments.first : null;
+    } else if (uri.scheme == 'https' &&
+        uri.host == 'sintong.kr' &&
+        uri.pathSegments.length >= 2 &&
+        uri.pathSegments[0] == 'w') {
+      wToken = uri.pathSegments[1];
+    }
+
+    if (wToken == null || wToken.isEmpty) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final navState = appNavigatorKey.currentState;
       if (navState == null) return;
-      navState.pushNamed('/r/$shareId');
+      navState.pushNamed('/w/$wToken');
     });
   }
 
