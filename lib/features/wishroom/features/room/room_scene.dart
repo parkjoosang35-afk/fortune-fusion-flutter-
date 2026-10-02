@@ -25,8 +25,11 @@ class RoomScene extends StatefulWidget {
   final double gold;        // 0~1 완료 연출 황금빛
   final bool lowFx, frozen, hideChar, charGlow;
   final List<Widget> fx;    // L8
+  /// SCR-10 완료 연출 전용 — `Math.max(r.level, levelOverride)` (원본 `{...r, level: st>=3 ? Math.max(r.level,10) : r.level}`).
+  /// Lv9+/Lv7+ 등 레벨 해금 연출을 완료 연출 중 강제로 끌어올릴 때만 사용.
+  final int? levelOverride;
   const RoomScene({super.key, required this.room, required this.items, this.pray = false, this.boost = 0, this.gold = 0,
-      this.lowFx = false, this.frozen = false, this.hideChar = false, this.charGlow = false, this.fx = const []});
+      this.lowFx = false, this.frozen = false, this.hideChar = false, this.charGlow = false, this.fx = const [], this.levelOverride});
   @override State<RoomScene> createState() => _RoomSceneState();
 }
 
@@ -44,7 +47,8 @@ class _RoomSceneState extends State<RoomScene> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final r = widget.room, cat = WrCatalog.I, lv = r.level;
+    final r = widget.room, cat = WrCatalog.I;
+    final lv = widget.levelOverride != null ? math.max(r.level, widget.levelOverride!) : r.level;
     final sacred = r.sacred;
     final bright = r.brightness;
     final light = math.min(1.6, bright + (lv >= 9 ? .3 : 0) + (widget.boost >= 2 ? .32 : widget.boost >= 1 ? .15 : 0));
