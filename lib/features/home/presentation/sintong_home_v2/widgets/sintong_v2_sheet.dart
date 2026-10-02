@@ -13,6 +13,16 @@
 //    [SintongFreePassBar](검정 pill + 자물쇠 아이콘 + 실시간 잔여시간
 //    + 초록 원형 화살표, AccessChecker 실시간 tick)를 그대로 재사용
 //    한다(다크 테마에서도 원래 검정 배경이라 잘 어울림).
+//
+// [전체보기 6섹션 개편 — design_handoff_main_all_sections.zip, 2026-10-02]
+// README.md가 요청한 두 가지만 변경:
+//  1. 그리드 뷰(_isGrid==true)의 카드 디자인을 "사진이 카드 전체를 채우는"
+//     2열×3행 포토 카드([SintongSectionPhotoGrid])로 교체. 3열 그리드 +
+//     흰 라벨박스 디자인은 완전히 대체됨(리스트 뷰는 기존 그대로 유지—
+//     토글 버튼 자체는 범위 밖이라 보존).
+//  2. 프리패스 바에서 카운트다운 시간 텍스트 제거 — "프리패스"만 노출.
+//     기존 [SintongFreePassBar](실시간 틱 로직 포함)는 계속 재사용하되,
+//     이 화면에서만 시간 텍스트를 감추는 옵션을 추가했다.
 // ═══════════════════════════════════════════════════════════════
 import 'package:flutter/material.dart';
 
@@ -20,6 +30,7 @@ import '../../sintong_home/widgets/sintong_free_pass_bar.dart';
 import '../sintong_home_v2_data.dart';
 import '../sintong_home_v2_routing.dart';
 import '../sintong_home_v2_tokens.dart';
+import 'sintong_section_photo_card.dart';
 
 class SintongV2Sheet extends StatefulWidget {
   const SintongV2Sheet({super.key});
@@ -90,24 +101,9 @@ class _SintongV2SheetState extends State<SintongV2Sheet> {
           ),
           const SizedBox(height: 8),
           _isGrid
-              ? LayoutBuilder(
-                  // 3열 고정 그리드 — 카드 개수가 3의 배수가 아니어도
-                  // 항상 왼쪽 정렬로 줄바꿈된다.
-                  builder: (context, constraints) {
-                    const gap = 9.0;
-                    final tileWidth = (constraints.maxWidth - gap * 2) / 3;
-                    return Wrap(
-                      spacing: gap,
-                      runSpacing: gap,
-                      children: [
-                        for (final card in sHomeV2SheetCards)
-                          SizedBox(
-                            width: tileWidth,
-                            child: _SheetCardGridTile(card: card),
-                          ),
-                      ],
-                    );
-                  },
+              // [전체보기 6섹션 개편] 2열×3행 포토 카드 그리드로 교체.
+              ? SintongSectionPhotoGrid(
+                  cards: buildSHomeV2PhotoCards(context),
                 )
               : Column(
                   children: [
@@ -123,59 +119,11 @@ class _SintongV2SheetState extends State<SintongV2Sheet> {
           // 실시간 잔여시간 + 초록 원형 화살표).
           const Padding(
             padding: EdgeInsets.only(bottom: 16),
-            child: SintongFreePassBar(),
+            // [전체보기 6섹션 개편] README "프리패스 바" — 카운트다운
+            // 텍스트 제거, "프리패스"만 노출.
+            child: SintongFreePassBar(showRemainingTime: false),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// 그리드형(3열) 카드 — 이미지 위 + 제목 아래, 정사각형에 가까운 비율.
-class _SheetCardGridTile extends StatelessWidget {
-  const _SheetCardGridTile({required this.card});
-  final SHomeV2SheetCard card;
-
-  void _onTap(BuildContext context) => card.customOnTap != null
-      ? card.customOnTap!(context)
-      : openSubScreen(context, card.category!);
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: SHomeV2Colors.cardBg,
-      borderRadius: BorderRadius.circular(SHomeV2Radii.card),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(SHomeV2Radii.card),
-        onTap: () => _onTap(context),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(SHomeV2Radii.card),
-              ),
-              child: Image.asset(
-                card.thumbAsset,
-                height: 82,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                alignment: card.imageAlignment,
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 11,
-                vertical: 10,
-              ),
-              child: Text(
-                card.title,
-                textAlign: TextAlign.center,
-                style: SHomeV2Text.cardTitle(),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

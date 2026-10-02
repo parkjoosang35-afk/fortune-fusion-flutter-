@@ -31,6 +31,7 @@ import '../../../wishroom/features/intro/wish_room_intro_screen.dart';
 import '../../../guinji/presentation/guinji_landing_screen.dart';
 import '../../domain/jeontong_eighty_matrix.dart';
 import 'sintong_home_v2_data.dart';
+import 'widgets/sintong_section_photo_card.dart';
 
 /// 홈 화면(히어로 슬라이드 탭, 칩 탭, 하단 시트 카드 탭)에서 해당
 /// 카테고리를 눌렀을 때 이동할 실제 기존 화면. v1 home_screen.dart의
@@ -86,11 +87,10 @@ void openPalmReading(BuildContext context) {
   );
 }
 
-/// 홈 하단 시트 "전체보기" 그리드 — 2행(3+3) 총 6칸.
-/// 1행: 소원방/타로/정통사주(README index.html 원본 순서 그대로).
-/// 2행: 귀인지도/관상/손금(사용자 요청으로 추가한 3칸 — 관상·손금은
-/// [SHomeV2Category.palm]의 통합 선택 시트를 거치지 않고 각각 곧장
-/// 촬영 화면으로 연결한다).
+/// [전체보기 6섹션 개편 — design_handoff_main_all_sections.zip]
+/// 2열×3행 사진 포토 카드 그리드 데이터. 순서/틴트/이미지는 README.md
+/// "섹션 매핑" 표 그대로: 소원방·타로 / 정통사주·귀인지도 / 관상·손금.
+/// 라우트는 기존 6칸([sHomeV2SheetCards])에 연결된 것과 완전히 동일.
 const List<SHomeV2SheetCard> sHomeV2SheetCards = [
   SHomeV2SheetCard(
     category: SHomeV2Category.wish,
@@ -128,5 +128,48 @@ const List<SHomeV2SheetCard> sHomeV2SheetCards = [
     thumbAsset: 'assets/images/sintong_home_v2/sheet-6-palm.jpg',
     title: '손금',
     customOnTap: openPalmReading,
+  ),
+];
+
+/// [전체보기 6섹션 개편 — design_handoff_main_all_sections.zip]
+/// 2열×3행 포토 카드(사진이 카드 전체를 채우는 디자인)에 쓰이는 데이터.
+/// 순서/틴트/이미지는 README.md "섹션 매핑" 표 그대로이며, 탭 목적지는
+/// 위 [sHomeV2SheetCards]와 완전히 동일한 기존 라우트를 재사용한다.
+List<SHomeV2PhotoCard> buildSHomeV2PhotoCards(BuildContext context) => [
+  SHomeV2PhotoCard(
+    title: '소원방',
+    asset: 'assets/images/sintong_home_v2/sections/section-wish.png',
+    tint: const Color(0xFFF3B3C8),
+    onTap: () => openSubScreen(context, SHomeV2Category.wish),
+  ),
+  SHomeV2PhotoCard(
+    title: '타로',
+    asset: 'assets/images/sintong_home_v2/sections/section-tarot.png',
+    tint: const Color(0xFFD6B4F2),
+    onTap: () => openSubScreen(context, SHomeV2Category.tarot),
+  ),
+  SHomeV2PhotoCard(
+    title: '정통사주',
+    asset: 'assets/images/sintong_home_v2/sections/section-saju.png',
+    tint: const Color(0xFFF5CF6A),
+    onTap: () => openSubScreen(context, SHomeV2Category.saju),
+  ),
+  SHomeV2PhotoCard(
+    title: '귀인지도',
+    asset: 'assets/images/sintong_home_v2/sections/section-guide.png',
+    tint: const Color(0xFFF3B3C8),
+    onTap: () => openSubScreen(context, SHomeV2Category.guide),
+  ),
+  SHomeV2PhotoCard(
+    title: '관상',
+    asset: 'assets/images/sintong_home_v2/sections/section-face.png',
+    tint: const Color(0xFFF6E2BF),
+    onTap: () => openFaceReading(context),
+  ),
+  SHomeV2PhotoCard(
+    title: '손금',
+    asset: 'assets/images/sintong_home_v2/sections/section-palm.png',
+    tint: const Color(0xFFBFE6CF),
+    onTap: () => openPalmReading(context),
   ),
 ];

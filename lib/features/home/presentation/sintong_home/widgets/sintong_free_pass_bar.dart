@@ -24,7 +24,13 @@ import '../../../../pass/presentation/pass_time_format.dart';
 import '../sintong_home_tokens.dart';
 
 class SintongFreePassBar extends StatefulWidget {
-  const SintongFreePassBar({super.key});
+  const SintongFreePassBar({super.key, this.showRemainingTime = true});
+
+  /// [전체보기 6섹션 개편 — design_handoff_main_all_sections.zip]
+  /// README.md "프리패스 바" 스펙 — `프리패스`만 노출(카운트다운 제거).
+  /// 기존 화면(v1 등)은 그대로 시간을 보여줄 수 있어 기본값은 true로
+  /// 유지하고, 신규 v2 시트에서만 false로 호출한다.
+  final bool showRemainingTime;
 
   @override
   State<SintongFreePassBar> createState() => _SintongFreePassBarState();
@@ -85,7 +91,7 @@ class _SintongFreePassBarState extends State<SintongFreePassBar> {
                 color: _fgBrown,
               ),
             ),
-            if (isActive && remainingLabel != null) ...[
+            if (widget.showRemainingTime && isActive && remainingLabel != null) ...[
               const SizedBox(width: 6),
               Text(
                 '· $remainingLabel',
