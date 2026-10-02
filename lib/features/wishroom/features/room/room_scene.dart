@@ -15,6 +15,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../data/models.dart';
 import '../../data/wr_catalog.dart';
+import '../../core/fx/wr_fx.dart';
 import 'room_layout.dart';
 
 class RoomScene extends StatefulWidget {
@@ -57,6 +58,7 @@ class _RoomSceneState extends State<RoomScene> with TickerProviderStateMixin {
     final glowC = _hex((candle?.raw('glow') as String?) ?? '#ffd98a');
     final decos = placeDecos(r.equip, widget.items, r.layout);
     final flower = _item(r.equip.flower);
+    final specialFx = _item(r.equip.special)?.fx;
     final ritualPose = Pose.values.byName(cat.ritual(r.theme)['pose'] as String);
     final poseImg = cat.poseImage(r.char, r.outfitNow, ritualPose);
 
@@ -86,6 +88,10 @@ class _RoomSceneState extends State<RoomScene> with TickerProviderStateMixin {
           decoration: BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [const Color(0xCCFFF0BE), glowC.withValues(alpha: .4), glowC.withValues(alpha: .08), Colors.transparent], stops: const [0, .22, .48, .66])))))); }),
       // ── L7 파티클 ── (CustomPainter 로 한 번에 그리면 성능 예산 §13.3 충족: 동시 ≤80, 저사양 ≤40)
       Positioned.fill(child: IgnorePointer(child: AnimatedBuilder(animation: loop, builder: (_, __) => CustomPaint(painter: _AmbientPainter(t: loop.value * 20, lv: lv, density: widget.lowFx ? .5 : 1))))),
+      // ── 꾸미기 SPECIAL 슬롯 9종 — app2/room2.jsx › SpecialFx()/special==='starrain'|
+      // 'butterfly'|'aura' 1:1. [버그수정 — 전수감사] 기존엔 이 레이어가 전혀 없었다.
+      if (specialFx != null && specialFx.isNotEmpty)
+        Positioned.fill(child: WrSpecialFx(fx: specialFx, density: widget.lowFx ? .5 : 1)),
       // ── L5 캐릭터 ──
       if (!widget.hideChar) Positioned(left: -2, top: 468, width: 162, height: 226, child: AnimatedBuilder(animation: breathe,
         builder: (_, c) => Transform.scale(alignment: Alignment.bottomCenter, scaleY: 1 + .012 * breathe.value, child: c),
