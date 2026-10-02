@@ -4052,6 +4052,11 @@ model WishRoom {
   // POST .../complete {cancel:true}로 되돌릴 수 없다(409 REVIEWED).
   reviewRewardGranted Boolean @default(false) @map("review_reward_granted")
 
+  // [배경화면 W1~W2, app/api.js r.wpVersion/r.wpKey 포팅] 렌더 결과가 바뀔 때만(§8 트리거)
+  // +1 되는 "바뀜 감지" 카운터. wpKey는 wallpaperRenderKey()가 만든 서명 문자열 스냅샷.
+  wpVersion Int     @default(0) @map("wp_version")
+  wpKey     String? @map("wp_key")
+
   // [공유 S1-S2]
   shareToken String? @unique @map("share_token")
 
@@ -4235,6 +4240,17 @@ model WishRoomUserState {
   skipIntro          Boolean  @default(false) @map("skip_intro") // PATCH /me/settings {skipIntro}
   firstRoomIntroDone Boolean  @default(false) @map("first_room_intro_done") // §0-2 마이그레이션된 사용자도 최초 1회 풀 인트로
   lastEnterDate      String?  @map("last_enter_date") // KST 'YYYY-MM-DD' — GET /wish-rooms/me의 introMode('short') 판정용(app/api.js db.me.lastEnterDate 포팅)
+
+  // [배경화면 W2~W5, docs/WALLPAPER.md] 1인 1설정 — roomId가 null이면 "설정 안 함"(Flutter
+  // WallpaperStatus.isSet getter와 동치: roomId != null). version/latestVersion 비교로
+  // needsUpdate 판정(§8 트리거 — 소원 등록·레벨업·꾸미기·특수효과·테마·FULFILLED일 때만
+  // latestVersion이 올라감. 촛불 감쇠는 매 요청 brightness로만 반영하고 버전에는 넣지 않음).
+  wallpaperRoomId          Int?     @map("wallpaper_room_id") // wish_rooms.id (내부 PK, wr_ 접두사 없이 저장)
+  wallpaperPlatform        String?  @map("wallpaper_platform") // android|ios
+  wallpaperTarget          String?  @map("wallpaper_target") // BOTH|HOME|LOCK
+  wallpaperVersion         Int      @default(0) @map("wallpaper_version") // PUT 시점에 기록한 버전(= 그때의 renderKey 버전)
+  wallpaperAutoSynced      Boolean  @default(true) @map("wallpaper_auto_synced") // Android는 syncManifest로 항상 자동 반영되므로 true 고정
+  wallpaperSeenLevelNotice Int      @default(0) @map("wallpaper_seen_level_notice") // W5 — 이 레벨까지는 S-07 안내를 이미 봤음
   createdAt          DateTime @default(now()) @map("created_at")
   updatedAt          DateTime @updatedAt @map("updated_at")
 

@@ -22,6 +22,7 @@ import {
   getOwnedOutfits,
   kstDate,
   meView,
+  buildWallpaperStatusView,
   type MeRow,
 } from "@/lib/wishroom-engine";
 
@@ -211,6 +212,8 @@ export async function buildMeView(tx: Tx, userId: number, nowMs: number = Date.n
     earnToday[row.source] = (earnToday[row.source] ?? 0) + 1; // EARN[].limit은 "횟수" 기준(app/api.js log[src.id] += 1과 동일)
   }
 
+  const wallpaper = await buildWallpaperStatusView(tx, state);
+
   const meRow: MeRow = {
     userId,
     nickname: user.nickname,
@@ -218,7 +221,7 @@ export async function buildMeView(tx: Tx, userId: number, nowMs: number = Date.n
     pouch: wallet?.balance ?? 0,
     repCharCode: state.repCharCode,
     skipIntro: state.skipIntro,
-    wallpaper: null,
+    wallpaper,
   };
 
   return meView(meRow, {

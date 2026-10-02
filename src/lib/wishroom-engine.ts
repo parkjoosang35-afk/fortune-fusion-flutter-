@@ -486,6 +486,67 @@ export function roomView(r: WishRoomRow, opts: RoomViewOptions) {
   };
 }
 
+// ---------------- 배경화면(W1~W5, docs/WALLPAPER.md) ----------------
+/**
+ * [SERVER] 배경화면 렌더 결과에 실제로 영향을 주는 필드(level·equip·char·완료여부·본문)만으로
+ * "서명"을 만든다 — §8 "version +1 트리거"(소원 등록·레벨업·꾸미기·특수효과·테마·FULFILLED)만
+ * 반영하고, 매 요청마다 바뀌는 촛불 감쇠(brightness)는 절대 넣지 않는다(그걸 넣으면 매일
+ * "업데이트" 배지가 뜨는 버그가 생김 — WALLPAPER.md §2 경고). 원본 app/wp-manifest.js의
+ * renderKey()와 1:1 동일한 설계 의도 — 문자열 그 자체를 wish_rooms.wp_key에 저장해두고,
+ * 다음 조회 때 바뀌었으면만 wp_version을 +1 한다(단순 해시가 아니라 "바뀜 감지 카운터").
+ */
+export function wallpaperRenderKey(r: { level: number; equipJson: string; charCode: string; status: string; text: string }): string {
+  const fulfilled = r.status === "ARCHIVED" || r.status === "COMPLETED";
+  return JSON.stringify([r.level, r.equipJson, r.charCode, fulfilled, r.text]);
+}
+
+/**
+ * W1/W2에서 호출 — 방의 renderKey가 마지막으로 저장된 wpKey와 다르면 wpVersion을 +1 하고
+ * DB에 반영한다(= 원본 r.wpVersion/r.wpKey 포팅). 호출부는 반환된 version을 그대로
+ * 매니페스트.version / latestVersion으로 사용하면 된다.
+ */
+export async function syncWallpaperVersion(tx: Tx, room: { id: number; level: number; equipJson: string; charCode: string; status: string; text: string; wpVersion: number; wpKey: string | null }): Promise<number> {
+  const key = wallpaperRenderKey(room);
+  if (room.wpKey === key) return room.wpVersion;
+  const nextVersion = (room.wpVersion || 0) + 1;
+  await tx.wishRoom.update({ where: { id: room.id }, data: { wpVersion: nextVersion, wpKey: key } });
+  return nextVersion;
+}
+
+/**
+ * W2(`GET /me/wallpaper`) 및 buildMeView()의 `me.wallpaper` 필드가 공유하는 뷰 빌더.
+ * state.wallpaperRoomId가 null이면 "설정 안 함"(null)을 반환한다 — Flutter
+ * WallpaperStatus.isSet getter(roomId != null)와 동치. 설정되어 있으면 그 방의
+ * 최신 wpVersion을 계산해 latestVersion/needsUpdate까지 채운다(app/api.js W2 1:1 포팅,
+ * `w.platform === 'ios' && latest > w.version`일 때만 needsUpdate — Android는
+ * syncManifest로 항상 자동 반영되므로 "배지"가 필요 없다).
+ */
+export async function buildWallpaperStatusView(tx: Tx, state: { wallpaperRoomId: number | null; wallpaperPlatform: string | null; wallpaperTarget: string | null; wallpaperVersion: number; wallpaperAutoSynced: boolean; wallpaperSeenLevelNotice: number }) {
+  if (state.wallpaperRoomId == null) return null;
+  const room = await tx.wishRoom.findUnique({ where: { id: state.wallpaperRoomId } });
+  let latestVersion = state.wallpaperVersion;
+  if (room && room.deletedAt == null) {
+    latestVersion = await syncWallpaperVersion(tx, room);
+  }
+  return {
+    roomId: toWishRoomPublicIdLocal(state.wallpaperRoomId),
+    platform: state.wallpaperPlatform,
+    target: state.wallpaperTarget,
+    version: state.wallpaperVersion,
+    latestVersion,
+    needsUpdate: state.wallpaperPlatform === "ios" && latestVersion > state.wallpaperVersion,
+    autoSynced: state.wallpaperPlatform === "android",
+    seenLevelNotice: state.wallpaperSeenLevelNotice,
+  };
+}
+
+// _shared.ts의 toWishRoomPublicId와 동일 규칙(wr_{dbId})을 wishroom-engine.ts 내부에서도
+// 써야 해서(순환 import 방지) 리터럴을 복제한다 — _shared.ts 주석의 CORS_HEADERS_LOCAL과
+// 같은 선례를 따름. 두 곳의 포맷이 어긋나면 안 되므로 반드시 함께 수정할 것.
+function toWishRoomPublicIdLocal(dbId: number): string {
+  return `wr_${dbId}`;
+}
+
 // ---------------- 공용 DB 조회 헬퍼 ----------------
 export async function getRoomOrThrow(tx: Tx, id: number) {
   const r = await tx.wishRoom.findUnique({ where: { id }, include: { user: { select: { nickname: true } } } });
