@@ -175,7 +175,8 @@ class _DecorScreenState extends State<DecorScreen> {
               Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(color: WrC.glass, borderRadius: BorderRadius.circular(999)),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  const Text('💰', style: TextStyle(fontSize: 14)),
+                  Image.asset('assets/wishroom/items/pouch.png', width: 16, height: 16,
+                      errorBuilder: (_, __, ___) => const Text('💰', style: TextStyle(fontSize: 14))),
                   const SizedBox(width: 5),
                   Text('${p.me?.pouch ?? 0}', style: const TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 13, color: Colors.white)),
                 ])),
@@ -420,7 +421,8 @@ class _DecorScreenState extends State<DecorScreen> {
               Row(mainAxisSize: MainAxisSize.min, children: [
                 if (!it.owned && it.price == null) Text('❤ 응원 ${it.reward}회', style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 11, color: WrC.glow))
                 else if (!it.owned) ...[
-                  const Text('💰', style: TextStyle(fontSize: 11)),
+                  Image.asset('assets/wishroom/items/pouch.png', width: 13, height: 13,
+                      errorBuilder: (_, __, ___) => const Text('💰', style: TextStyle(fontSize: 11))),
                   const SizedBox(width: 2),
                   Text('${it.price}', style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 11, color: WrC.glow)),
                 ] else Text(on ? '놓여 있음' : (it.reward != null ? '응원 보상' : '보유'), style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 11, color: WrC.muted)),

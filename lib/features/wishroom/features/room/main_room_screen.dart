@@ -916,7 +916,8 @@ class _PouchPillTapState extends State<_PouchPillTap> with SingleTickerProviderS
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(color: const Color(0x8C1E0C18), borderRadius: BorderRadius.circular(999)),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
-            const Text('💰', style: TextStyle(fontSize: 16)),
+            Image.asset('assets/wishroom/items/pouch.png', width: 18, height: 18,
+                errorBuilder: (_, __, ___) => const Text('💰', style: TextStyle(fontSize: 16))),
             const SizedBox(width: 6),
             Text('${widget.pouch}', style: const TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 14, color: Colors.white)),
           ]),

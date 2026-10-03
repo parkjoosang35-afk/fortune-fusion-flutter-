@@ -184,7 +184,8 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
                   Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(color: WrC.glass, borderRadius: BorderRadius.circular(999)),
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      const Text('💰', style: TextStyle(fontSize: 14)),
+                      Image.asset('assets/wishroom/items/pouch.png', width: 16, height: 16,
+                          errorBuilder: (_, __, ___) => const Text('💰', style: TextStyle(fontSize: 14))),
                       const SizedBox(width: 5),
                       Text('${p.me?.pouch ?? 0}', style: const TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 13, color: Colors.white)),
                     ])),
