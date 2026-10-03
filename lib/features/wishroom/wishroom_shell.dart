@@ -53,9 +53,11 @@ class _WishRoomShellState extends State<WishRoomShell> {
     // wallet_sheet.dart "소원방에서 쓰는 곳" 카드(꾸미기/선물하기) · "전체 내역 보기"가
     // requestTab()으로 남긴 바텀탭 전환 요청을 소비한다(tourRequested와 동일 패턴).
     final requestedTab = context.select<WishRoomProvider, int?>((p) => p.requestedTabIndex);
+    debugPrint('WR_PHASE shell.build requestedTab=$requestedTab _index=$_index');
     if (requestedTab != null && requestedTab != _index) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
+        debugPrint('WR_PHASE shell.applyTab -> $requestedTab');
         setState(() => _index = requestedTab);
         context.read<WishRoomProvider>().consumeTabRequest();
       });
