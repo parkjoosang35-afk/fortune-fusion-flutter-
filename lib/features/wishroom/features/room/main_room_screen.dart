@@ -407,8 +407,13 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
             Positioned.fill(child: WrUnsealBanner(room: room, onOpen: () => _openCapsule(room), onLater: () => setState(() => _capLater = true)))
           // [버그수정 — 전수감사] '나중에'를 고른 뒤 top 176에 남는 금 버튼이 전혀 없어
           // 봉인일이 지난 방을 다시 열 방법이 사라지는 버그였다.
+          // [버그수정 2] WrUnsealChip.build()는 Positioned를 최상위로 반환하므로 반드시 Stack의
+          // 직계 자식이어야 한다 — WrCanvasScaler(ClipRect>OverflowBox>Transform.scale)로 바로 감싸면
+          // "Incorrect use of ParentDataWidget" 런타임 에러로 전체 화면이 깨진다. 내부에 Stack을 한 겹 더 둔다.
           else if (room.capsuleDue && _capLater && !_capOpen)
-            SafeArea(child: WrCanvasScaler(child: WrUnsealChip(onOpen: () => _openCapsule(room)))),
+            Positioned.fill(child: SafeArea(child: WrCanvasScaler(child: Stack(children: [
+              WrUnsealChip(onOpen: () => _openCapsule(room)),
+            ])))),
           // app2/guide2.jsx › shell2.jsx {tour && <Tour .../>} — 둘러보기 6단계 코치마크.
           if (_tour) Positioned.fill(child: WrCanvasScaler(child: WrTour(onDone: () {
             setState(() => _tour = false);
