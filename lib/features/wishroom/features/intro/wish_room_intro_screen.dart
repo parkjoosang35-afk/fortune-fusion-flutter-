@@ -74,6 +74,7 @@ class _WishRoomIntroScreenState extends State<WishRoomIntroScreen> {
 
   void _enterShell() {
     if (!mounted) return;
+    debugPrint('WR_PHASE intro.end');
     Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const WishRoomShell()));
   }
 
@@ -200,9 +201,10 @@ class _FullIntroBodyState extends State<_FullIntroBody> with TickerProviderState
   void initState() {
     super.initState();
     // 원본: [1100:st1, 2000:st2, 3100:st3] (4600:finish는 상위 WishRoomIntroScreen이 담당)
-    _timers.add(Timer(WrDur.introFullSt1, () { if (mounted) setState(() => _st = 1); }));
-    _timers.add(Timer(WrDur.introFullSt2, () { if (mounted) setState(() => _st = 2); }));
-    _timers.add(Timer(WrDur.introFullSt3, () { if (mounted) setState(() => _st = 3); }));
+    debugPrint('WR_PHASE intro.st0');
+    _timers.add(Timer(WrDur.introFullSt1, () { if (mounted) { debugPrint('WR_PHASE intro.st1'); setState(() => _st = 1); } }));
+    _timers.add(Timer(WrDur.introFullSt2, () { if (mounted) { debugPrint('WR_PHASE intro.st2'); setState(() => _st = 2); } }));
+    _timers.add(Timer(WrDur.introFullSt3, () { if (mounted) { debugPrint('WR_PHASE intro.st3'); setState(() => _st = 3); } }));
   }
 
   @override
