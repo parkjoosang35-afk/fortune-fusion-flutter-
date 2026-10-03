@@ -49,15 +49,18 @@ class WrDur {
   static const push = Duration(milliseconds: 4200);
 }
 
-/// §6.1 정성 들이기 타임라인
+/// §6.1 정성 들이기 타임라인 — docs/screens/A_인트로_작성_메인.md `devote()` 표 1:1.
+/// t=0.0 shake+wash+ring3+gold버스트26+꽃잎버스트10(POST) · 0.3 boost1 · 0.7 burst18+spiral+plus-up+(아이템보너스)
+/// · 1.1 꽃잎22+나비4 · 1.7 boost2+wash+RITUAL.done캡션 · 2.3 말씀카드 · 2.9 연출끝.
 class DevotionTimeline {
-  static const shake = Duration.zero;                        // 흔들림 + POST
-  static const flame = Duration(milliseconds: 400);          // 불꽃 1.3배
-  static const dust = Duration(milliseconds: 800);           // 빛가루 12~20
-  static const petal = Duration(milliseconds: 1200);         // 꽃잎 · 레벨업 판정
-  static const light = Duration(milliseconds: 1800);         // 광량 +15% · 문구
-  static const end = Duration(milliseconds: 2600);
-  static const flameBoost = 1.3, lightBoost = 0.15, dustCount = 18, petalCount = 16;
+  static const shake = Duration.zero;                 // 0.0 — 흔들림+wash+ring+버스트, POST 요청
+  static const boost1 = Duration(milliseconds: 300);  // 0.3 — 촛불 광원 300→470
+  static const burst2 = Duration(milliseconds: 700);  // 0.7 — 버스트18+빛나선+plus-up+아이템보너스
+  static const petal = Duration(milliseconds: 1100);  // 1.1 — 꽃잎22+나비4
+  static const boost2 = Duration(milliseconds: 1700); // 1.7 — boost2+wash+RITUAL.done
+  static const quote = Duration(milliseconds: 2300);  // 2.3 — 말씀 카드
+  static const end = Duration(milliseconds: 2900);    // 2.9 — 연출 끝
+  static const lightBoost = 0.15;
 }
 
 /// §6.2 촛불 다시 밝히기

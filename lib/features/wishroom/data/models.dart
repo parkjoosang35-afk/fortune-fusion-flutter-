@@ -142,8 +142,27 @@ class MyRoomResponse {
 
 class DevotionResult {
   final WishRoom room; final int prevLevel, bonus; final bool leveledUp; final Me me;
+  final DevotionGain? gain;
   DevotionResult.fromJson(Map<String, dynamic> j)
-      : room = WishRoom.fromJson(j['room']), prevLevel = j['prevLevel'], leveledUp = j['leveledUp'], bonus = j['bonus'] ?? 0, me = Me.fromJson(j['me']);
+      : room = WishRoom.fromJson(j['room']), prevLevel = j['prevLevel'], leveledUp = j['leveledUp'], bonus = j['bonus'] ?? 0, me = Me.fromJson(j['me']),
+        gain = j['gain'] == null ? null : DevotionGain.fromJson(Map<String, dynamic>.from(j['gain']));
+}
+
+/// A-4 devote() 0.7s 단계 — "아이템 기운 보너스가 있으면 top 236 금→핑크 pill
+/// `✦ 아이템 기운 +n%` + 아래 아이템별 작은 칩" 연출용. 서버 응답 `gain.bonus`(비율,
+/// 예: 0.05 = 5%) · `gain.fx`(장착 아이템별 기운 목록).
+class DevotionGain {
+  final double bonus; // 소수(0.05 = +5%) — bonusPct = (bonus*100).round()
+  final List<DevotionGainItem> fx;
+  DevotionGain.fromJson(Map<String, dynamic> j)
+      : bonus = (j['bonus'] as num?)?.toDouble() ?? 0,
+        fx = (j['fx'] as List? ?? const []).map((e) => DevotionGainItem.fromJson(Map<String, dynamic>.from(e))).toList();
+}
+
+class DevotionGainItem {
+  final String id, name, type; final int v; final bool match;
+  DevotionGainItem.fromJson(Map<String, dynamic> j)
+      : id = j['id'] as String, name = j['name'] as String, type = j['type'] as String, v = (j['v'] as num).toInt(), match = j['match'] == true;
 }
 
 class ItemEffect { final String type; final int v; ItemEffect.fromJson(Map<String, dynamic> j) : type = j['type'], v = j['v']; }

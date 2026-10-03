@@ -25,9 +25,11 @@ String _fmtK(String? d) {
 
 /// app2/capsule2.jsx › UnsealBanner — 메인 화면 위에 뜨는 "봉인이 풀렸습니다" 안내 오버레이.
 class WrUnsealBanner extends StatelessWidget {
-  const WrUnsealBanner({super.key, required this.room, required this.onOpen});
+  const WrUnsealBanner({super.key, required this.room, required this.onOpen, this.onLater});
   final WishRoom room;
   final VoidCallback onOpen;
+  /// A-4 "봉인일 도래" 표 — "나중에" 선택 시 배너를 닫고 top 176 금 버튼으로 대체.
+  final VoidCallback? onLater;
 
   @override
   Widget build(BuildContext context) {
@@ -56,6 +58,10 @@ class WrUnsealBanner extends StatelessWidget {
             SizedBox(width: double.infinity, height: 54, child: DecoratedBox(decoration: WrDeco.btnGold,
               child: Material(color: Colors.transparent, child: InkWell(borderRadius: BorderRadius.circular(16), onTap: onOpen,
                 child: const Center(child: Text('🔓 소원 열어보기', style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 16, color: Color(0xFF4A2A10)))))))),
+            if (onLater != null) ...[
+              const SizedBox(height: 10),
+              TextButton(onPressed: onLater, child: Text('나중에', style: WrF.body(13, color: WrC.muted))),
+            ],
           ]),
         ),
       )),
@@ -76,6 +82,28 @@ class _BobIconState extends State<_BobIcon> with SingleTickerProviderStateMixin 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(animation: _c, builder: (_, __) =>
     Transform.translate(offset: Offset(0, -6 * Curves.easeInOut.transform(_c.value)), child: Text(widget.icon, style: TextStyle(fontSize: widget.fontSize))));
+}
+
+/// A-4 "봉인일 도래" 표 — UnsealBanner에서 "나중에"를 고른 뒤 top 176에 남는 금 버튼
+/// `🔓 소원 열어보기`(bob 2.4s). 탭하면 다시 CapsuleOpen으로 들어간다.
+class WrUnsealChip extends StatefulWidget {
+  const WrUnsealChip({super.key, required this.onOpen});
+  final VoidCallback onOpen;
+  @override
+  State<WrUnsealChip> createState() => _WrUnsealChipState();
+}
+class _WrUnsealChipState extends State<WrUnsealChip> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 2400))..repeat(reverse: true);
+  @override
+  void dispose() { _c.dispose(); super.dispose(); }
+  @override
+  Widget build(BuildContext context) => Positioned(top: 176, right: 14, child: AnimatedBuilder(animation: _c, builder: (_, child) =>
+    Transform.translate(offset: Offset(0, -4 * Curves.easeInOut.transform(_c.value)), child: child),
+    child: DecoratedBox(decoration: WrDeco.btnGold, child: Material(color: Colors.transparent, child: InkWell(
+      borderRadius: BorderRadius.circular(16), onTap: widget.onOpen,
+      child: const Padding(padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        child: Text('🔓 소원 열어보기', style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 12.5, color: Color(0xFF4A2A10)))),
+    )))));
 }
 
 /// app2/capsule2.jsx › CapsuleOpen — 전체 흐름 컨트롤러.
