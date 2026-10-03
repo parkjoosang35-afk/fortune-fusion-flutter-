@@ -217,6 +217,39 @@ class _WrWashState extends State<WrWash> with SingleTickerProviderStateMixin {
   }
 }
 
+/// LightRing — 촛불(204,330) 중심 900px 원형 빛 번짐(radial-gradient, screen 블렌드 근사),
+/// ring 2.2s cubic(.22,1,.36,1)(scale .2→2.6, opacity 1→0). rekindle() t1.3 "빛 나선 30 +
+/// 900px 빛 번짐" 중 번짐 부분. app2/screens-a2.jsx rekindle() 219줄 1:1.
+class WrLightRing extends StatefulWidget {
+  const WrLightRing({super.key, this.x = 204, this.y = 330, this.size = 900, this.durMs = 2200});
+  final double x, y, size;
+  final int durMs;
+  @override
+  State<WrLightRing> createState() => _WrLightRingState();
+}
+
+class _WrLightRingState extends State<WrLightRing> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(vsync: this, duration: Duration(milliseconds: widget.durMs))..forward();
+  @override
+  void dispose() { _c.dispose(); super.dispose(); }
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(left: widget.x - widget.size / 2, top: widget.y - widget.size / 2, child: IgnorePointer(child: AnimatedBuilder(
+      animation: _c, builder: (_, __) {
+        final t = const Cubic(.22, 1, .36, 1).transform(_c.value);
+        final scale = .2 + (2.6 - .2) * t;
+        final op = (1 - t).clamp(0.0, 1.0);
+        return Opacity(opacity: op, child: Transform.scale(scale: scale, child: Container(
+          width: widget.size, height: widget.size,
+          decoration: const BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(
+            colors: [Color(0x8CFFDC96), Color(0x33FFA0BE), Colors.transparent], stops: [0, .35, .6],
+          )),
+        )));
+      },
+    )));
+  }
+}
+
 /// CandleRings — 촛불(204,330) 둘레 140px 링 3개, 0/.15/.3s 스태거, 두께 3/2/1px ·
 /// 투명도 .95/.75/.55 차등. app2/screens-a2.jsx › devote() t0.0 1:1.
 /// ring keyframe: scale(.2→2.6), opacity(1→0).

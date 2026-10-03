@@ -202,6 +202,7 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
             sub: 'DEVOTION · ${res.room.devotionsToday.toString().padLeft(2, '0')} / ${res.room.dailyLimit}',
             body: is10th ? '복주머니 +${res.bonus}' : null,
             bonus: res.bonus,
+            cta: '확인', // A-4 devote() 보상시트 CTA — docs A_인트로…md 134줄(rekindle()의 '오늘도 정성 들이기'와 구분).
           ));
         }
       },
@@ -226,15 +227,25 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
     if (room == null || _rekindling) return;
     final absentDays = room.absentDays;
     setState(() { _rekindling = true; _rekindleBrightness = .06; _rekindleBoost = 0; });
+    // t0.6 — 주황 버스트12(x:204,y:318,spread:50,.9s) + 심지 불씨 16px pop(.6s 오버슛).
+    // app2/screens-a2.jsx rekindle() 218줄 1:1(기존엔 좌표/spread/dur 불일치 + 불씨 pop 누락).
     Timer(RekindleTimeline.spark, () {
       if (!mounted) return;
       setState(() => _rekindleBrightness = .14);
-      _addFx(const WrBurst(x: 204, y: 330, n: 12, spread: 90, color: Color(0xFFFFA84A)), life: 1400);
+      _addFx(Stack(children: const [
+        WrBurst(x: 204, y: 318, n: 12, spread: 50, color: Color(0xFFFFB060), dur: 900),
+        _WickEmber(x: 204, y: 318),
+      ]), life: 1400);
     });
+    // t1.3 — 빛나선30(Spiral) + 900px 빛번짐(WrLightRing, ring 2.2s). 219줄 1:1
+    // (기존엔 전혀 다른 WrBurst(n:30,spread:220)로 대체돼 있었음 — 명세 위반).
     Timer(RekindleTimeline.grow, () {
       if (!mounted) return;
       setState(() { _rekindleBrightness = .7; _rekindleBoost = 1; });
-      _addFx(const WrBurst(x: 204, y: 330, n: 30, spread: 220, color: Color(0xFFFFE6B0), dur: 1800), life: 2000);
+      _addFx(Stack(children: const [
+        WrSpiral(n: 30, x: 204, y: 330),
+        WrLightRing(x: 204, y: 330),
+      ]), life: 2600);
     });
     Timer(RekindleTimeline.bloom, () {
       if (!mounted) return;
@@ -756,6 +767,34 @@ class _PlusUpTextState extends State<_PlusUpText> with SingleTickerProviderState
 
 /// devote() 1.7s `RITUAL.done` / rekindle() 2.1s `{n}일 만에 다시 밝아졌어요` 캡션 —
 /// cap keyframe 1:1: 0%(op0,blur6px) → 30%~75%(op1,blur0) → 100%(op0). wr2.css › cap.
+/// rekindle() t0.6 심지 불씨 — 16px 원, pop .6s cubic(.34,1.56,.64,1)(scale .4→1.08→1).
+/// app2/screens-a2.jsx rekindle() 218줄 1:1.
+class _WickEmber extends StatefulWidget {
+  const _WickEmber({required this.x, required this.y});
+  final double x, y;
+  @override
+  State<_WickEmber> createState() => _WickEmberState();
+}
+class _WickEmberState extends State<_WickEmber> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 600))..forward();
+  @override
+  void dispose() { _c.dispose(); super.dispose(); }
+  @override
+  Widget build(BuildContext context) => Positioned(left: widget.x - 8, top: widget.y - 8, child: IgnorePointer(child: AnimatedBuilder(
+    animation: _c, builder: (_, __) {
+      final v = _c.value;
+      double op, scale;
+      if (v < .6) { final t = v / .6; op = t; scale = .4 + (1.08 - .4) * t; }
+      else { final t = (v - .6) / .4; op = 1; scale = 1.08 + (1 - 1.08) * t; }
+      return Opacity(opacity: op.clamp(0.0, 1.0), child: Transform.scale(scale: scale, child: Container(
+        width: 16, height: 16,
+        decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFFFFF4C0),
+          boxShadow: [BoxShadow(color: Color(0xFFFFB060), blurRadius: 20, spreadRadius: 8), BoxShadow(color: Color(0x99FF963C), blurRadius: 60, spreadRadius: 20)]),
+      )));
+    },
+  )));
+}
+
 class _CapText extends StatefulWidget {
   const _CapText({required this.text, this.fontSize = 15, this.durMs = 2400});
   final String text;
