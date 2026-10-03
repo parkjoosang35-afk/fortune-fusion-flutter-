@@ -10,6 +10,7 @@ import '../../application/wishroom_provider.dart';
 import '../../data/models.dart';
 import '../../data/wr_catalog.dart';
 import '../../core/theme/wr_theme.dart';
+import '../../core/wr_nav_pill.dart';
 import '../intro/wish_room_intro_screen.dart';
 import 'sealed_done_screen.dart';
 
@@ -112,13 +113,11 @@ class _ComposeScreenState extends State<ComposeScreen> {
             ),
           ),
           SafeArea(
+            bottom: false,
             child: Stack(children: [
               SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(18, 20, 18, 120),
+                padding: const EdgeInsets.fromLTRB(18, 86, 18, 120),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Row(children: [
-                    IconButton(onPressed: () => Navigator.of(context).maybePop(), icon: Icon(Icons.close, color: WrC.fg)),
-                  ]),
                   Text(hasHistory ? '새로운 마음을\n담아볼까요' : '소원을 담을\n준비가 되셨나요', style: WrF.display(26, height: 1.3)),
                   const SizedBox(height: 6),
                   Text('나의 소원을 정성스럽게 적어주세요.', style: WrF.body(13, color: WrC.muted)),
@@ -277,6 +276,21 @@ class _ComposeScreenState extends State<ComposeScreen> {
                   onCancel: () => setState(() => _asking = false),
                   onOk: () => _submit(),
                 ),
+              // [명세위반 수정 — 전수감사] TopBar(NavPill + 중앙 타이틀)가 통째로
+              // 누락돼 있었다. app2/fx2.jsx TopBar({title}) 1:1: absolute top:52,
+              // 좌 NavPill, 중앙 disp 18px 타이틀("새로운 소원방 시작"/"소원 작성").
+              Positioned(
+                left: 0, right: 0, top: 0, height: 44,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  child: Row(children: [
+                    WrNavPill(onBack: () => Navigator.of(context).maybePop(), onExitHome: () => Navigator.of(context).popUntil((r) => r.isFirst)),
+                    Expanded(child: Center(child: Text(hasHistory ? '새로운 소원방 시작' : '소원 작성',
+                        maxLines: 1, overflow: TextOverflow.ellipsis, style: WrF.display(18)))),
+                    const SizedBox(width: 60),
+                  ]),
+                ),
+              ),
             ]),
           ),
         ]),
