@@ -498,17 +498,12 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
     final bgColors = (pp['bg'] as List).map((e) => _hex(e as String)).toList();
     final inkColor = _hex(pp['ink'] as String);
     final subColor = _hex2((pp['sub'] as String?) ?? '');
-    final eff = room.effects;
-    final fxTags = <String>[
-      if (eff.devo > 0) '정성 +${eff.devo}%',
-      if (eff.support > 0) '응원 +${eff.support}%',
-      if (eff.cool > 0) '쿨타임 -${eff.cool}초',
-      if (eff.daily > 0) '일일 +${eff.daily}회',
-      if (eff.pouch > 0) '정성보너스 +${eff.pouch}',
-    ];
+    // [명세] jsx 344줄 1:1 — 집계 태그가 아니라 아이템별(src[]) 칩. 궁합(match)이면
+    // 금→핑크 그라디언트 배경 + 진한 글자, 아니면 반투명 검정 배경.
+    final effSrc = room.effects.src;
     return Stack(children: [
       Positioned.fill(child: GestureDetector(onTap: () => setState(() => _wishOpen = false),
-        child: Container(color: const Color(0x80000000)))),
+        child: Container(color: const Color(0x80080308)))), // .dim rgba(8,3,8,.5)
       Positioned(left: 14, right: 14, bottom: 96, child: Container(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
         decoration: BoxDecoration(
@@ -538,13 +533,18 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
           ConstrainedBox(constraints: const BoxConstraints(maxHeight: 150), child: SingleChildScrollView(
             child: Text(room.text, style: TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 16, height: 1.7, color: inkColor)),
           )),
-          if (fxTags.isNotEmpty) Container(
+          if (effSrc.isNotEmpty) Container(
             margin: const EdgeInsets.only(top: 12), padding: const EdgeInsets.only(top: 10),
-            decoration: BoxDecoration(border: Border(top: BorderSide(color: subColor.withValues(alpha: .4)))),
-            child: Wrap(spacing: 5, runSpacing: 5, children: fxTags.map((t) => Container(
+            decoration: BoxDecoration(border: Border(top: BorderSide(color: subColor.withValues(alpha: .4), width: 1 /* dashed 근사 */))),
+            child: Wrap(spacing: 5, runSpacing: 5, children: effSrc.map((s) => Container(
               padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-              decoration: BoxDecoration(color: const Color(0x14000000), borderRadius: BorderRadius.circular(999)),
-              child: Text(t, style: TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 10.5, color: inkColor)),
+              decoration: BoxDecoration(
+                gradient: s.match ? const LinearGradient(colors: [Color(0xFFFFE08A), Color(0xFFFFB0C8)]) : null,
+                color: s.match ? null : const Color(0x14000000),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text('${s.name} · ${_effectShort(s.type, s.v)}',
+                style: TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 10.5, color: s.match ? const Color(0xFF3A1A14) : inkColor)),
             )).toList()),
           ),
           const SizedBox(height: 14),
@@ -552,19 +552,19 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
             Expanded(child: SizedBox(height: 40, child: OutlinedButton(
               onPressed: () { setState(() => _wishOpen = false); _openShareSheet(room); },
               style: OutlinedButton.styleFrom(side: const BorderSide(color: WrC.line)),
-              child: Text('⤴ 공유', style: WrF.body(13, color: WrC.fg)),
+              child: Text('⤴ 공유', maxLines: 1, overflow: TextOverflow.ellipsis, style: WrF.body(13, color: WrC.fg)),
             ))),
             const SizedBox(width: 8),
             Expanded(child: SizedBox(height: 40, child: OutlinedButton(
               onPressed: () { setState(() => _wishOpen = false); _openCareSheet(room); },
-              style: OutlinedButton.styleFrom(side: const BorderSide(color: WrC.line)),
-              child: Text('소원방 돌보기', style: WrF.body(13, color: WrC.fg)),
+              style: OutlinedButton.styleFrom(side: const BorderSide(color: WrC.line), padding: const EdgeInsets.symmetric(horizontal: 4)),
+              child: Text('소원방 돌보기', maxLines: 1, overflow: TextOverflow.ellipsis, style: WrF.body(12, color: WrC.fg)),
             ))),
             const SizedBox(width: 8),
             Expanded(child: SizedBox(height: 40, child: ElevatedButton(
               onPressed: () => setState(() => _wishOpen = false),
               style: ElevatedButton.styleFrom(backgroundColor: WrC.blossom),
-              child: const Text('✿ 꾸미기', style: TextStyle(color: Colors.white, fontSize: 13)),
+              child: const Text('✿ 꾸미기', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.white, fontSize: 13)),
             ))),
           ]),
         ]),
@@ -670,8 +670,23 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
             child: Text(W != null ? (W['hanja'] as String) : '願', style: const TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFFFFF4E0)))),
           const SizedBox(width: 9),
           Expanded(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(labelText, maxLines: 1, overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 10, color: isDim ? const Color(0xFFB8442F) : subColor)),
+            Row(mainAxisSize: MainAxisSize.min, children: [
+              Flexible(child: Text(labelText, maxLines: 1, overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 10, color: isDim ? const Color(0xFFB8442F) : subColor))),
+              // [명세] jsx 313줄 1:1 — n(= effects.src.length) > 0 && !dim 일 때만 "기운 {n} · {...}" 칩.
+              // 우선순위: devo > support > cool > (그 외) '켜짐'.
+              if (room.effects.src.isNotEmpty && !isDim) Padding(
+                padding: const EdgeInsets.only(left: 5),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  decoration: BoxDecoration(color: (wColor ?? Colors.black).withValues(alpha: wColor != null ? .2 : .08), borderRadius: BorderRadius.circular(999)),
+                  child: Text(
+                    '기운 ${room.effects.src.length} · ${room.effects.devo > 0 ? '정성 +${room.effects.devo}%' : room.effects.support > 0 ? '응원 +${room.effects.support}%' : room.effects.cool > 0 ? '−${room.effects.cool}초' : '켜짐'}',
+                    maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w800, fontSize: 9.5, color: inkColor)),
+                ),
+              ),
+            ]),
             const SizedBox(height: 2),
             Text(room.text, maxLines: 1, overflow: TextOverflow.ellipsis,
               style: TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 13.5, color: inkColor)),
@@ -721,6 +736,19 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
         ),
       ),
     ]);
+  }
+
+  // [명세] app/data.js EFFECT_SHORT 1:1 — 아이템 칩에 쓰는 짧은 효과 표기.
+  String _effectShort(String type, int v) {
+    switch (type) {
+      case 'devo': return '정성 +$v%';
+      case 'support': return '응원 +$v%';
+      case 'cool': return '−$v초';
+      case 'daily': return '하루 +$v회';
+      case 'pouch': return '복 +$v';
+      case 'decay': return '불빛 $v%↑';
+      default: return '';
+    }
   }
 
   Color _hex(String s) { final h = s.replaceFirst('#', ''); return Color(int.parse('FF$h', radix: 16)); }

@@ -37,12 +37,25 @@ class Equip {
 class LayoutPos { final double x, y, s; const LayoutPos(this.x, this.y, this.s);
   factory LayoutPos.fromJson(Map<String, dynamic> j) => LayoutPos((j['x'] as num).toDouble(), (j['y'] as num).toDouble(), (j['s'] as num).toDouble()); }
 
+/// 장착 아이템 1개의 기운 상세 — wishroom-engine.ts effectsOf()의 `src[]` 1:1
+/// (id, name, type, v = 궁합 적용된 최종값, match = 소원 빛깔과 아이템 aura 일치 여부)
+class EffectSrc {
+  final String id, name, type;
+  final int v;
+  final bool match;
+  const EffectSrc({required this.id, required this.name, required this.type, required this.v, required this.match});
+  factory EffectSrc.fromJson(Map<String, dynamic> j) => EffectSrc(
+      id: j['id'] ?? '', name: j['name'] ?? '', type: j['type'] ?? '', v: (j['v'] as num?)?.toInt() ?? 0, match: j['match'] ?? false);
+}
+
 /// 장착 아이템 기운 합계 (서버 계산 · 상한 EFFECT_CAP)
 class Effects {
   final int devo, support, cool, daily, pouch, decay;
-  const Effects({this.devo = 0, this.support = 0, this.cool = 0, this.daily = 0, this.pouch = 0, this.decay = 0});
+  final List<EffectSrc> src;
+  const Effects({this.devo = 0, this.support = 0, this.cool = 0, this.daily = 0, this.pouch = 0, this.decay = 0, this.src = const []});
   factory Effects.fromJson(Map<String, dynamic>? j) => j == null ? const Effects() : Effects(
-      devo: j['devo'] ?? 0, support: j['support'] ?? 0, cool: j['cool'] ?? 0, daily: j['daily'] ?? 0, pouch: j['pouch'] ?? 0, decay: j['decay'] ?? 0);
+      devo: j['devo'] ?? 0, support: j['support'] ?? 0, cool: j['cool'] ?? 0, daily: j['daily'] ?? 0, pouch: j['pouch'] ?? 0, decay: j['decay'] ?? 0,
+      src: j['src'] == null ? const [] : (j['src'] as List).map((e) => EffectSrc.fromJson(Map<String, dynamic>.from(e))).toList());
 }
 
 class SupportRewardState {
