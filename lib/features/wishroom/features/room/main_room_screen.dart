@@ -139,6 +139,7 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
       // t0.0 — 화면전체 금빛 wash 1.2s + 촛불 링3개(140px, 0/.15/.3s 스태거) +
       // 금빛 버스트26(spread190,1.4s) + 꽃잎 버스트10(glyph). app2/screens-a2.jsx devote() 230-234줄 1:1.
       onShakeBurst: () {
+        debugPrint('WR_PHASE devote.shake');
         _addFx(Stack(children: const [
           WrWash(),
           WrCandleRings(x: 204, y: 330),
@@ -149,6 +150,7 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
       // t0.7 — 버스트18(spread130) + 빛나선26(Spiral) + `+1 {verb}`(plus-up) +
       // 정성 아이템별 fly-to(링+빛알갱이가 촛불로 날아감). 240-248줄 1:1.
       onItemBurst: (gain) {
+        debugPrint('WR_PHASE devote.burst2');
         setState(() => _lastGain = gain);
         final fxItems = (gain?.fx ?? const <DevotionGainItem>[]).where((f) => f.type == 'devo').toList();
         final cat2 = WrCatalog.I;
@@ -172,6 +174,7 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
         }
       },
       onPetalButterfly: () {
+        debugPrint('WR_PHASE devote.petal');
         _addFx(Stack(children: const [
           WrPetalRain(n: 22, dur: (2.0, 3.0), spread: .8),
           WrButterflies(x: 204, y: 380),
@@ -179,10 +182,12 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
       },
       // t1.7 — boost2 + 화면 wash 2s(강) + RITUAL.done 캡션(cap 블러해제 2.4s). 251줄 1:1.
       onWashDone: () {
+        debugPrint('WR_PHASE devote.boost2');
         _addFx(const WrWash(strong: true, durMs: 2000), life: 2000);
         setState(() => _capText = ritual['done'] as String? ?? '');
       },
       onQuote: () {
+        debugPrint('WR_PHASE devote.quote');
         final quotes = (ritual['quotes'] as List? ?? const []).cast<List>();
         if (quotes.isEmpty) return;
         final pick = quotes[math.Random().nextInt(quotes.length)];
@@ -191,6 +196,7 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
         setState(() => _quoteText = (text, src));
       },
       onDone: (res) {
+        debugPrint('WR_PHASE devote.end');
         setState(() { _capText = null; _quoteText = null; _lastGain = null; });
         p.applyDevotionResult(res);
         if (res.leveledUp) {
@@ -226,11 +232,13 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
     final room = p.room;
     if (room == null || _rekindling) return;
     final absentDays = room.absentDays;
+    debugPrint('WR_PHASE rekindle.dark');
     setState(() { _rekindling = true; _rekindleBrightness = .06; _rekindleBoost = 0; });
     // t0.6 — 주황 버스트12(x:204,y:318,spread:50,.9s) + 심지 불씨 16px pop(.6s 오버슛).
     // app2/screens-a2.jsx rekindle() 218줄 1:1(기존엔 좌표/spread/dur 불일치 + 불씨 pop 누락).
     Timer(RekindleTimeline.spark, () {
       if (!mounted) return;
+      debugPrint('WR_PHASE rekindle.spark');
       setState(() => _rekindleBrightness = .14);
       _addFx(Stack(children: const [
         WrBurst(x: 204, y: 318, n: 12, spread: 50, color: Color(0xFFFFB060), dur: 900),
@@ -241,6 +249,7 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
     // (기존엔 전혀 다른 WrBurst(n:30,spread:220)로 대체돼 있었음 — 명세 위반).
     Timer(RekindleTimeline.grow, () {
       if (!mounted) return;
+      debugPrint('WR_PHASE rekindle.grow');
       setState(() { _rekindleBrightness = .7; _rekindleBoost = 1; });
       _addFx(Stack(children: const [
         WrSpiral(n: 30, x: 204, y: 330),
@@ -249,6 +258,7 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
     });
     Timer(RekindleTimeline.bloom, () {
       if (!mounted) return;
+      debugPrint('WR_PHASE rekindle.bloom');
       setState(() { _rekindleBrightness = 1; _rekindleBoost = 2; _capText = '$absentDays일 만에 촛불이 다시 밝아졌어요'; });
       _addFx(Stack(children: const [
         WrPetalRain(n: 28, dur: (2.2, 3.4), spread: 1),
@@ -259,6 +269,7 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
     final ok = await p.rekindle(room.id);
     Timer(RekindleTimeline.end, () {
       if (!mounted) return;
+      debugPrint('WR_PHASE rekindle.end');
       setState(() { _rekindling = false; _rekindleBoost = 0; _capText = null; });
       if (ok) {
         setState(() => _justRekindled = true);
