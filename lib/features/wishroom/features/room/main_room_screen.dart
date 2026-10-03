@@ -6,6 +6,7 @@
 // app2/screens-a2.jsx › MainRoom() 1:1 이식.
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:provider/provider.dart';
@@ -17,6 +18,7 @@ import '../../core/motion/wr_motion.dart';
 import '../../core/wr_canvas.dart';
 import '../../core/fx/wr_fx.dart';
 import 'room_scene.dart';
+import 'room_layout.dart';
 import 'devotion_controller.dart';
 import '../complete/complete_screen.dart';
 import '../capsule/capsule_screen.dart';
@@ -134,17 +136,36 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
     final ritual = cat.ritual(room.theme);
     final verb = ritual['verb'] as String? ?? '정성';
     await _devotion.devote(room.id,
+      // t0.0 — 화면전체 금빛 wash 1.2s + 촛불 링3개(140px, 0/.15/.3s 스태거) +
+      // 금빛 버스트26(spread190,1.4s) + 꽃잎 버스트10(glyph). app2/screens-a2.jsx devote() 230-234줄 1:1.
       onShakeBurst: () {
         _addFx(Stack(children: const [
-          WrBurst(x: 204, y: 330, n: 26, spread: 140, color: Color(0xFFFFE08A), dur: 1300),
-          WrPetalRain(n: 10, dur: (1.4, 2.2), spread: .3),
-        ]), life: 1400);
+          WrWash(),
+          WrCandleRings(x: 204, y: 330),
+          WrBurst(x: 204, y: 330, n: 26, spread: 190, dur: 1400, color: Color(0xFFFFE7A0)),
+          WrBurst(x: 204, y: 330, n: 10, spread: 120, dur: 1600, glyph: '🌸'),
+        ]), life: 1800);
       },
+      // t0.7 — 버스트18(spread130) + 빛나선26(Spiral) + `+1 {verb}`(plus-up) +
+      // 정성 아이템별 fly-to(링+빛알갱이가 촛불로 날아감). 240-248줄 1:1.
       onItemBurst: (gain) {
         setState(() => _lastGain = gain);
+        final fxItems = (gain?.fx ?? const <DevotionGainItem>[]).where((f) => f.type == 'devo').toList();
+        final cat2 = WrCatalog.I;
+        final p2 = context.read<WishRoomProvider>();
+        final flyWidgets = <Widget>[];
+        for (var i = 0; i < fxItems.length; i++) {
+          final f = fxItems[i];
+          final it = cat2.items.where((x) => x.id == f.id).firstOrNull;
+          if (it == null) continue;
+          final at = focusOf(it, room.equip, p2.items, room.layout);
+          flyWidgets.add(_FlyToCandle(from: at, to: const Offset(204, 330), delayMs: 100 + i * 120));
+        }
         _addFx(Stack(children: [
           WrBurst(x: 204, y: 330, n: 18, spread: 130, color: const Color(0xFFFFE08A)),
-          Positioned(left: 0, right: 0, top: 70, child: Center(child: _PlusUpText(text: '+1 $verb'))),
+          const WrSpiral(x: 204, y: 330),
+          _PlusUpText(text: '+1 $verb'),
+          ...flyWidgets,
         ]), life: 1800);
         if (gain != null && gain.bonus > 0) {
           Timer(const Duration(milliseconds: 1800), () { if (mounted) setState(() => _lastGain = null); });
@@ -156,7 +177,11 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
           WrButterflies(x: 204, y: 380),
         ]), life: 3200);
       },
-      onWashDone: () => setState(() => _capText = ritual['done'] as String? ?? ''),
+      // t1.7 — boost2 + 화면 wash 2s(강) + RITUAL.done 캡션(cap 블러해제 2.4s). 251줄 1:1.
+      onWashDone: () {
+        _addFx(const WrWash(strong: true, durMs: 2000), life: 2000);
+        setState(() => _capText = ritual['done'] as String? ?? '');
+      },
       onQuote: () {
         final quotes = (ritual['quotes'] as List? ?? const []).cast<List>();
         if (quotes.isEmpty) return;
@@ -389,12 +414,16 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
             ))),
             // devote() 0.7s — 아이템 기운 보너스 pill(top 236) `✦ 아이템 기운 +n%` + 아이템별 칩 최대 4개.
             if (_lastGain != null && _lastGain!.bonus > 0) Positioned(left: 0, right: 0, top: 236, child: Center(child: _GainPill(gain: _lastGain!))),
-            // devote() 1.7s RITUAL.done / rekindle() 2.1s `{n}일 만에 다시 밝아졌어요` — top 520/500 캡션.
-            if (_capText != null) Positioned(left: 20, right: 20, top: _rekindling ? 500 : 520, child: Center(child: Text(_capText!,
-              textAlign: TextAlign.center, style: const TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white,
-                shadows: [Shadow(color: Color(0xFFFFE08A), blurRadius: 16)])))),
-            // devote() 2.3s 말씀 카드(RITUAL.quotes 랜덤 1개).
-            if (_quoteText != null) Positioned(left: 24, right: 24, top: 300, child: _QuoteCard(text: _quoteText!.$1, src: _quoteText!.$2)),
+            // devote() 1.7s RITUAL.done(`cap 2.4s`, 15px) / rekindle() 2.1s `{n}일 만에
+            // 다시 밝아졌어요`(`cap 2.6s`, 19px) — top 520/500 캡션. cap: 블러해제 페이드.
+            if (_capText != null) Positioned(key: ValueKey(_capText), left: 20, right: 20, top: _rekindling ? 500 : 520, child: Center(child: _CapText(
+              text: _capText!, fontSize: _rekindling ? 19 : 15, durMs: _rekindling ? 2600 : 2400,
+            ))),
+            // devote() 2.3s 말씀 카드(RITUAL.quotes 랜덤 1개, 테마별 디자인) — 탭하면 닫힘.
+            if (_quoteText != null) Positioned.fill(child: _QuoteCard(
+              text: _quoteText!.$1, src: _quoteText!.$2, theme: room.theme, icon: ritual['icon'] as String? ?? '✿',
+              onClose: () => setState(() => _quoteText = null),
+            )),
             // ── 하단 슬림 도크(58px) + 둥근 정성 버튼(66px) ──
             Positioned(left: 12, right: 12, top: 690, child: _bottomDock(
               room: room, cat: cat, isDim: isDim, busy: busyCooldown, done: done, deg: deg, ritual: ritual, used: used, lim: lim,
@@ -693,7 +722,9 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
 /// devote()/rekindle() 1회성 FX 오버레이 항목 — other_room_screen.dart `_FxEntry`와 동일 패턴.
 class _FxEntry { final Key key; final Widget widget; _FxEntry(this.key, this.widget); }
 
-/// devote() 0.7s `+1 {verb}` — 24px 흰색+핑크글로우, 1.8s에 걸쳐 위로 떠오르며 사라짐(plus-up).
+/// devote() 0.7s `+1 {verb}` — x=204(중앙고정) y=250, 24px 흰색+핑크글로우.
+/// plus-up keyframe 1:1: 0%(op0, scale.6, y+10) → 25%(op1, scale1.15, y-10) → 100%(op0, scale1, y-70).
+/// app2/fx2.jsx › PlusText({x:204,y:250}) · wr2.css plus-up.
 class _PlusUpText extends StatefulWidget {
   const _PlusUpText({required this.text});
   final String text;
@@ -705,12 +736,91 @@ class _PlusUpTextState extends State<_PlusUpText> with SingleTickerProviderState
   @override
   void dispose() { _c.dispose(); super.dispose(); }
   @override
+  Widget build(BuildContext context) => Positioned(left: 0, right: 0, top: 250, child: IgnorePointer(child: Center(
+    child: AnimatedBuilder(animation: _c, builder: (_, __) {
+      final v = _c.value;
+      double op, scale, dy;
+      if (v < .25) {
+        final t = v / .25;
+        op = t; scale = .6 + (1.15 - .6) * t; dy = 10 + (-10 - 10) * t;
+      } else {
+        final t = (v - .25) / .75;
+        op = 1 - t; scale = 1.15 + (1.0 - 1.15) * t; dy = -10 + (-70 - -10) * t;
+      }
+      return Opacity(opacity: op.clamp(0.0, 1.0), child: Transform.translate(offset: Offset(0, dy), child: Transform.scale(scale: scale,
+        child: Text(widget.text, style: const TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 24, color: Colors.white,
+          shadows: [Shadow(color: Color(0xFFFF8FB1), blurRadius: 14), Shadow(color: Color(0xB2F2628F), blurRadius: 26)])))));
+    }),
+  )));
+}
+
+/// devote() 1.7s `RITUAL.done` / rekindle() 2.1s `{n}일 만에 다시 밝아졌어요` 캡션 —
+/// cap keyframe 1:1: 0%(op0,blur6px) → 30%~75%(op1,blur0) → 100%(op0). wr2.css › cap.
+class _CapText extends StatefulWidget {
+  const _CapText({required this.text, this.fontSize = 15, this.durMs = 2400});
+  final String text;
+  final double fontSize;
+  final int durMs;
+  @override
+  State<_CapText> createState() => _CapTextState();
+}
+class _CapTextState extends State<_CapText> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(vsync: this, duration: Duration(milliseconds: widget.durMs))..forward();
+  @override
+  void dispose() { _c.dispose(); super.dispose(); }
+  @override
   Widget build(BuildContext context) => AnimatedBuilder(animation: _c, builder: (_, __) {
-    final t = Curves.easeOut.transform(_c.value);
-    return Opacity(opacity: (1 - t).clamp(0.0, 1.0), child: Transform.translate(offset: Offset(0, -40 * t),
-      child: Text(widget.text, style: const TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 24, color: Colors.white,
-        shadows: [Shadow(color: Color(0xFFFF8FB1), blurRadius: 16)]))));
+    final v = _c.value;
+    double op, blur;
+    if (v < .3) { final t = v / .3; op = t; blur = 6 * (1 - t); }
+    else if (v < .75) { op = 1; blur = 0; }
+    else { final t = (v - .75) / .25; op = 1 - t; blur = 0; }
+    final text = Text(widget.text, textAlign: TextAlign.center,
+      style: TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w700, fontSize: widget.fontSize, color: Colors.white,
+        shadows: const [Shadow(color: Color(0xFFFFE08A), blurRadius: 16)]));
+    return Opacity(opacity: op.clamp(0.0, 1.0), child: blur > .1
+      ? ImageFiltered(imageFilter: ui.ImageFilter.blur(sigmaX: blur, sigmaY: blur), child: text)
+      : text);
   });
+}
+
+/// devote() 0.7s 정성 아이템별 fly-to — 아이템 위치(from)에 링(60px,1s) + 빛알갱이(8px)가
+/// 촛불(to=204,330)로 날아가며 축소·소멸. app2/screens-a2.jsx devote() 245-248줄 1:1.
+class _FlyToCandle extends StatefulWidget {
+  const _FlyToCandle({required this.from, required this.to, this.delayMs = 0});
+  final Offset from, to;
+  final int delayMs;
+  @override
+  State<_FlyToCandle> createState() => _FlyToCandleState();
+}
+class _FlyToCandleState extends State<_FlyToCandle> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(vsync: this, duration: Duration(milliseconds: 900 + widget.delayMs))..forward();
+  @override
+  void dispose() { _c.dispose(); super.dispose(); }
+  @override
+  Widget build(BuildContext context) {
+    final delayFrac = widget.delayMs / (900 + widget.delayMs);
+    return AnimatedBuilder(animation: _c, builder: (_, __) {
+      final raw = ((_c.value - delayFrac) / (1 - delayFrac)).clamp(0.0, 1.0);
+      if (_c.value < delayFrac) return const SizedBox.shrink();
+      final ringT = Curves.easeOut.transform(raw.clamp(0.0, 1.0));
+      final ringOp = (1 - ringT).clamp(0.0, 1.0);
+      // fly-to: translate(0→(to-from)) scale(1→.3) opacity(1→0), cubic(.5,0,.6,1)
+      final flyT = const Cubic(.5, 0, .6, 1).transform(raw);
+      final dx = (widget.to.dx - widget.from.dx) * flyT, dy = (widget.to.dy - widget.from.dy) * flyT;
+      final scale = 1 - .7 * flyT, op = 1 - flyT;
+      return Positioned.fill(child: IgnorePointer(child: Stack(children: [
+        Positioned(left: widget.from.dx - 30, top: widget.from.dy - 30, child: Opacity(opacity: ringOp, child: Container(
+          width: 60, height: 60, decoration: BoxDecoration(shape: BoxShape.circle,
+            border: Border.all(color: const Color(0xE6FFE1A0), width: 2),
+            boxShadow: const [BoxShadow(color: Color(0xE6FFD282), blurRadius: 18)])))),
+        Positioned(left: widget.from.dx - 4 + dx, top: widget.from.dy - 4 + dy, child: Opacity(opacity: op.clamp(0.0, 1.0),
+          child: Transform.scale(scale: scale.clamp(0.0, 1.0), child: Container(width: 8, height: 8,
+            decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFFFFF4C0),
+              boxShadow: [BoxShadow(color: Color(0xFFFFD070), blurRadius: 12)]))))),
+      ])));
+    });
+  }
 }
 
 /// devote() 0.7s — "아이템 기운 보너스가 있으면 top 236 금→핑크 pill `✦ 아이템 기운 +n%`
@@ -743,26 +853,141 @@ class _GainPill extends StatelessWidget {
 }
 
 /// devote() 2.3s 말씀 카드 — RITUAL.quotes 중 랜덤 1개(문장 + 출처).
-class _QuoteCard extends StatelessWidget {
-  const _QuoteCard({required this.text, required this.src});
-  final String text, src;
+/// devote() 2.3s 말씀 카드 — docs A-5 1:1: 테마별 bg그라디언트/잉크색/머리말,
+/// 상단 -26px 52px 아이콘서클(pop .8s .4s), 본문 ink-in 1.6s .5s, 출처 fade 1s 1.2s,
+/// 테두리 반짝이 6개(twinkle), dim 포함 + 아무 곳 탭 → 닫기. app2/screens-a2.jsx QuoteCard() 1:1.
+class _QuoteCard extends StatefulWidget {
+  const _QuoteCard({required this.text, required this.src, required this.theme, required this.icon, required this.onClose});
+  final String text, src, icon;
+  final WrTheme theme;
+  final VoidCallback onClose;
+  @override
+  State<_QuoteCard> createState() => _QuoteCardState();
+}
+class _QuoteCardState extends State<_QuoteCard> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1100))..forward();
+  @override
+  void dispose() { _c.dispose(); super.dispose(); }
   @override
   Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1), duration: const Duration(milliseconds: 600), curve: WrCurves.overshoot,
-      builder: (_, t, child) => Opacity(opacity: t.clamp(0.0, 1.0), child: Transform.scale(scale: .85 + .15 * t, child: child)),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), color: const Color(0xE01E0C18),
-          border: Border.all(color: const Color(0x40FFE08A)),
-          boxShadow: const [BoxShadow(color: Color(0x80000000), blurRadius: 24, offset: Offset(0, 10))]),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text(text, textAlign: TextAlign.center, style: const TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 14, color: Colors.white, height: 1.5)),
-          if (src.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 8), child: Text(src, style: const TextStyle(fontFamily: 'IBMPlexMonoWish', fontSize: 10.5, color: Color(0xFFFFE08A)))),
-        ]),
-      ),
+    const bg = {
+      WrTheme.god: [Color(0xFFFFFAF0), Color(0xFFF3E6C8)],
+      WrTheme.buddha: [Color(0xFFFFF4DC), Color(0xFFF0D9A8)],
+      WrTheme.shaman: [Color(0xFFFFF1EA), Color(0xFFF3D2C4)],
+      WrTheme.free: [Color(0xFFFFF6FA), Color(0xFFF6DBE6)],
+    };
+    const ink = {WrTheme.god: Color(0xFF4A3510), WrTheme.buddha: Color(0xFF5A3510), WrTheme.shaman: Color(0xFF6A1A1A), WrTheme.free: Color(0xFF5A2A3A)};
+    const head = {WrTheme.god: '✝ 오늘의 말씀', WrTheme.buddha: '☸ 오늘의 법문', WrTheme.shaman: '❖ 오늘의 덕담', WrTheme.free: '✿ 오늘의 한마디'};
+    const accent = {WrTheme.god: Color(0xFFFFE6A8), WrTheme.buddha: Color(0xFFFFC870), WrTheme.shaman: Color(0xFFFF7A6A), WrTheme.free: Color(0xFFFF8FB1)};
+    final c = accent[widget.theme] ?? const Color(0xFFFFD98A);
+    final inkC = ink[widget.theme] ?? const Color(0xFF5A2A3A);
+    return GestureDetector(
+      onTap: widget.onClose,
+      behavior: HitTestBehavior.opaque,
+      child: Stack(children: [
+        // dim — fade .6s
+        TweenAnimationBuilder<double>(tween: Tween(begin: 0, end: 1), duration: const Duration(milliseconds: 600),
+          builder: (_, t, __) => Opacity(opacity: .7 * t, child: const DecoratedBox(decoration: BoxDecoration(color: Colors.black),
+            child: SizedBox.expand()))),
+        AnimatedBuilder(animation: _c, builder: (_, __) {
+          // quote-in: 0%(op0,y+30,scale.9,blur6) → 100%(op1,y0,scale1,blur0), cubic(.22,1,.36,1)
+          final t = WrCurves.out.transform(_c.value);
+          final op = t.clamp(0.0, 1.0);
+          final dy = 30 * (1 - t);
+          final scale = .9 + .1 * t;
+          final blur = 6 * (1 - t);
+          Widget card = Container(
+            padding: const EdgeInsets.fromLTRB(20, 22, 20, 18),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: bg[widget.theme] ?? bg[WrTheme.free]!),
+              boxShadow: [
+                BoxShadow(color: c.withValues(alpha: .67), blurRadius: 0, spreadRadius: 1.5),
+                BoxShadow(color: c.withValues(alpha: .53), blurRadius: 40),
+                const BoxShadow(color: Color(0x99000000), blurRadius: 50, offset: Offset(0, 20)),
+              ],
+            ),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Text(head[widget.theme] ?? '', style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 1.5, color: inkC.withValues(alpha: .7))),
+              const SizedBox(height: 10),
+              Text('"${widget.text}"', textAlign: TextAlign.center,
+                style: TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 17, height: 1.65, color: inkC)),
+              if (widget.src.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 10),
+                child: Text('— ${widget.src}', style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 12, color: inkC.withValues(alpha: .7)))),
+              const SizedBox(height: 16),
+              Text('눌러서 닫기', style: TextStyle(fontFamily: 'Pretendard', fontSize: 11, color: inkC.withValues(alpha: .5))),
+            ]),
+          );
+          if (blur > .1) card = ImageFiltered(imageFilter: ui.ImageFilter.blur(sigmaX: blur, sigmaY: blur), child: card);
+          return Positioned(left: 26, right: 26, top: 250, child: Opacity(opacity: op, child: Transform.translate(offset: Offset(0, dy),
+            child: Transform.scale(scale: scale, child: Stack(clipBehavior: Clip.none, children: [
+              card,
+              // twinkle 반짝이 6개 — 카드 상단 테두리를 따라 분산
+              for (var i = 0; i < 6; i++) Positioned(left: null, right: null, top: -4,
+                child: FractionallySizedBox(widthFactor: 1, child: Align(alignment: Alignment((i - 2.5) / 2.5, 0),
+                  child: _Twinkle(color: c, delayMs: i * 200, periodMs: (1400 + i * 300))))),
+              // 상단 아이콘 서클 — pop .8s .4s
+              Positioned(left: 0, right: 0, top: -26, child: Center(child: _IconPop(
+                delayMs: 400, child: Container(width: 52, height: 52,
+                  decoration: BoxDecoration(shape: BoxShape.circle,
+                    gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: bg[widget.theme] ?? bg[WrTheme.free]!),
+                    boxShadow: [BoxShadow(color: c.withValues(alpha: .67), blurRadius: 0, spreadRadius: 1.5), BoxShadow(color: c, blurRadius: 24)]),
+                  alignment: Alignment.center,
+                  child: Text(widget.icon, style: const TextStyle(fontSize: 26))),
+              ))),
+            ])),
+          )));
+        }),
+      ]),
     );
   }
+}
+
+/// 말씀카드 상단 아이콘 서클 pop-in — pop keyframe(scale.4→1.08→1), delayMs 뒤 시작.
+class _IconPop extends StatefulWidget {
+  const _IconPop({required this.child, this.delayMs = 0});
+  final Widget child;
+  final int delayMs;
+  @override
+  State<_IconPop> createState() => _IconPopState();
+}
+class _IconPopState extends State<_IconPop> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
+  @override
+  void initState() { super.initState(); Timer(Duration(milliseconds: widget.delayMs), () { if (mounted) _c.forward(); }); }
+  @override
+  void dispose() { _c.dispose(); super.dispose(); }
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(animation: _c, builder: (_, __) {
+    final v = _c.value;
+    double op, scale;
+    if (v < .6) { final t = v / .6; op = t; scale = .4 + (1.08 - .4) * t; }
+    else { final t = (v - .6) / .4; op = 1; scale = 1.08 + (1 - 1.08) * t; }
+    return Opacity(opacity: op.clamp(0.0, 1.0), child: Transform.scale(scale: scale, child: widget.child));
+  });
+}
+
+/// 말씀카드 테두리 반짝이 — twinkle(scale.6↔1.2, op.2↔1) 무한 반복.
+class _Twinkle extends StatefulWidget {
+  const _Twinkle({required this.color, this.delayMs = 0, this.periodMs = 1400});
+  final Color color;
+  final int delayMs, periodMs;
+  @override
+  State<_Twinkle> createState() => _TwinkleState();
+}
+class _TwinkleState extends State<_Twinkle> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(vsync: this, duration: Duration(milliseconds: widget.periodMs));
+  @override
+  void initState() { super.initState(); Timer(Duration(milliseconds: widget.delayMs), () { if (mounted) _c.repeat(reverse: true); }); }
+  @override
+  void dispose() { _c.dispose(); super.dispose(); }
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(animation: _c, builder: (_, __) {
+    final t = Curves.easeInOut.transform(_c.value);
+    final op = .2 + .8 * t, scale = .6 + .6 * t;
+    return Opacity(opacity: op, child: Transform.scale(scale: scale, child: Container(width: 5, height: 5,
+      decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFFFFF6D0), boxShadow: [BoxShadow(color: widget.color, blurRadius: 10)]))));
+  });
 }
 
 /// §5 레벨업 해금 UNLOCKS 텍스트 — room_layout.dart의 RoomLayout.unlocks를 그대로 노출.

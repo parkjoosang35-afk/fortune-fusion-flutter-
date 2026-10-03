@@ -181,6 +181,85 @@ class _WrSpiralState extends State<WrSpiral> with SingleTickerProviderStateMixin
 
 class _SpiralSpec { final double d, dl, w, s, m; _SpiralSpec({required this.d, required this.dl, required this.w, required this.s, required this.m}); }
 
+/// Wash — 화면 전체 금빛/핑크 radial wash, screen 블렌드 근사. app2/screens-a2.jsx › devote()
+/// t0.0(`radial-gradient(60% 45% at 52% 40%, rgba(255,230,160,.85)…)` wash 1.2s) ·
+/// t1.7(`radial-gradient(80% 55% at 50% 40%, rgba(255,215,150,.55)…)` wash 2s)와 1:1.
+/// wash keyframe: 0%op0 → 40%op1 → 100%op0(삼각형).
+class WrWash extends StatefulWidget {
+  const WrWash({super.key, this.strong = false, this.durMs = 1200});
+  /// strong=false → t0.0용(.85/.25 alpha, 60%×45% at 52%,40%) · strong=true → t1.7용(.55/.15, 80%×55% at 50%,40%)
+  final bool strong;
+  final int durMs;
+  @override
+  State<WrWash> createState() => _WrWashState();
+}
+
+class _WrWashState extends State<WrWash> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(vsync: this, duration: Duration(milliseconds: widget.durMs))..forward();
+  @override
+  void dispose() { _c.dispose(); super.dispose(); }
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(child: IgnorePointer(child: AnimatedBuilder(animation: _c, builder: (_, __) {
+      final t = _c.value;
+      final op = t < .4 ? t / .4 : (1 - t) / .6;
+      return Opacity(opacity: op.clamp(0.0, 1.0), child: DecoratedBox(decoration: BoxDecoration(
+        gradient: RadialGradient(
+          center: widget.strong ? const Alignment(0, -0.2) : const Alignment(0.04, -0.2),
+          radius: widget.strong ? .8 : .6,
+          colors: widget.strong
+            ? const [Color(0x8CFFD796), Color(0x26FF96BE), Colors.transparent]
+            : const [Color(0xD9FFE6A0), Color(0x40FF96BE), Colors.transparent],
+          stops: const [0, .5, .78],
+        ),
+      )));
+    })));
+  }
+}
+
+/// CandleRings — 촛불(204,330) 둘레 140px 링 3개, 0/.15/.3s 스태거, 두께 3/2/1px ·
+/// 투명도 .95/.75/.55 차등. app2/screens-a2.jsx › devote() t0.0 1:1.
+/// ring keyframe: scale(.2→2.6), opacity(1→0).
+class WrCandleRings extends StatefulWidget {
+  const WrCandleRings({super.key, this.x = 204, this.y = 330});
+  final double x, y;
+  @override
+  State<WrCandleRings> createState() => _WrCandleRingsState();
+}
+
+class _WrCandleRingsState extends State<WrCandleRings> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1600))..forward();
+  @override
+  void dispose() { _c.dispose(); super.dispose(); }
+  @override
+  Widget build(BuildContext context) {
+    const delays = [0.0, .15, .3]; // s
+    const widths = [3.0, 2.0, 1.0];
+    const alphas = [.95, .75, .55];
+    return Positioned(left: widget.x - 70, top: widget.y - 70, child: IgnorePointer(child: SizedBox(
+      width: 140, height: 140,
+      child: AnimatedBuilder(animation: _c, builder: (_, __) {
+        final now = _c.value * 1.6;
+        return Stack(children: [
+          for (var i = 0; i < 3; i++) () {
+            final raw = ((now - delays[i]) / 1.3).clamp(0.0, 1.0);
+            if (now < delays[i]) return const SizedBox.shrink();
+            final t = const Cubic(.22, 1, .36, 1).transform(raw);
+            final scale = .2 + (2.6 - .2) * t;
+            final op = (1 - t).clamp(0.0, 1.0);
+            return Center(child: Opacity(opacity: op, child: Transform.scale(scale: scale, child: Container(
+              width: 140, height: 140,
+              decoration: BoxDecoration(shape: BoxShape.circle,
+                border: Border.all(color: Color.fromRGBO(255, 225, 160, alphas[i]), width: widths[i]),
+                boxShadow: const [BoxShadow(color: Color(0xE6FFC878), blurRadius: 30)]),
+            ))));
+          }(),
+        ]);
+      }),
+    )));
+  }
+}
+
 /// 특별 효과 9종 (방 전체 지속 연출) — app2/room2.jsx › SpecialFx()/
 /// special==='starrain'|'butterfly'|'aura' 분기 1:1 이식. 꾸미기 SPECIAL 슬롯
 /// 아이템(s_firefly·s_sakura·s_snow·s_rain·s_butter·s_lantern·s_meteor·
