@@ -19,6 +19,8 @@ import '../room/room_scene.dart';
 import '../room/room_layout.dart' as layout;
 import '../guide/guide_sheet.dart';
 import '../../core/wr_nav_pill.dart';
+import '../wallet/wallet_sheet.dart';
+import '../../core/wr_ad_earn_button.dart';
 
 class DecorScreen extends StatefulWidget {
   const DecorScreen({super.key});
@@ -33,6 +35,7 @@ class _DecorScreenState extends State<DecorScreen> {
   _Placed? _placed; // 배치 성공 직후 PlaceFx 연출
   WrItem? _moving; // PlaceMode 진입 아이템
   ApiError? _shortErr;
+  WrItem? _shortItem; // app2/screens-b2.jsx › Shortage({name, icon}) — 부족한 아이템 자체(아이콘+이름 표시용)
   bool _busy = false;
 
   @override
@@ -94,7 +97,7 @@ class _DecorScreenState extends State<DecorScreen> {
       setState(() => _busy = false);
       final err = p.lastError;
       if (err?.code == 'INSUFFICIENT') {
-        setState(() => _shortErr = err);
+        setState(() { _shortErr = err; _shortItem = it; });
       } else if (err != null) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err.message)));
       }
@@ -172,14 +175,17 @@ class _DecorScreenState extends State<DecorScreen> {
                 decoration: BoxDecoration(color: WrC.glass, shape: BoxShape.circle, border: Border.all(color: WrC.line)),
                 child: const Text('?', style: TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 13, color: Colors.white)))),
               const Expanded(child: Center(child: Text('내 소원방 꾸미기', style: TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white)))),
-              Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              // app2/screens-b2.jsx › Decor() right={<PouchPill ... onClick={app.openWallet}/>} [버그수정 — 전수감사]
+              // 기존엔 탭 핸들러가 전혀 없는 정적 Container였다.
+              GestureDetector(onTap: () => openWalletSheet(context), child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(color: WrC.glass, borderRadius: BorderRadius.circular(999)),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                   Image.asset('assets/wishroom/items/pouch.png', width: 16, height: 16,
                       errorBuilder: (_, __, ___) => const Text('💰', style: TextStyle(fontSize: 14))),
                   const SizedBox(width: 5),
                   Text('${p.me?.pouch ?? 0}', style: const TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 13, color: Colors.white)),
-                ])),
+                ]),
+              )),
             ]))),
           ])),
           Expanded(child: Container(
@@ -249,7 +255,7 @@ class _DecorScreenState extends State<DecorScreen> {
                 }
               }
             }),
-          if (_shortErr != null) _shortageSheet(_shortErr!),
+          if (_shortErr != null) _shortageSheet(_shortErr!, _shortItem),
         ]));
       }),
     ));
@@ -572,9 +578,13 @@ class _DecorScreenState extends State<DecorScreen> {
     ]);
   }
 
-  Widget _shortageSheet(ApiError e) {
+  // app2/screens-b2.jsx › Shortage({app, name, icon, need, have, onClose}) 1:1 이식.
+  // [버그수정 — 전수감사] 기존엔 ApiError만 받아 부족한 아이템의 아이콘+이름 카드가
+  // 전혀 없었고(바로 "복주머니 n개 필요" 텍스트로 시작), "다른 방법으로 모으기" 버튼도
+  // 그냥 닫기만 했다. 원본은 onClose(); app.openWallet()으로 지갑 시트를 띄운다.
+  Widget _shortageSheet(ApiError e, WrItem? item) {
     return Stack(children: [
-      Positioned.fill(child: GestureDetector(onTap: () => setState(() => _shortErr = null), child: Container(color: const Color(0x80000000)))),
+      Positioned.fill(child: GestureDetector(onTap: () => setState(() { _shortErr = null; _shortItem = null; }), child: Container(color: const Color(0x80000000)))),
       Positioned(left: 10, right: 10, bottom: 22, child: Container(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
         decoration: WrDeco.sheet,
@@ -585,17 +595,37 @@ class _DecorScreenState extends State<DecorScreen> {
           const SizedBox(height: 4),
           Text('복주머니가 조금 부족해요', style: WrF.display(18, color: Colors.white)),
           const SizedBox(height: 14),
-          Text('복주머니 ${e.need ?? '-'}개 필요', style: WrF.body(12.5, color: WrC.muted)),
-          const SizedBox(height: 6),
+          if (item != null) Container(
+            padding: const EdgeInsets.all(14),
+            decoration: WrDeco.card,
+            child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+              SizedBox(width: 64, child: Center(child: ColorFiltered(
+                colorFilter: const ColorFilter.matrix(_grayscale30),
+                child: item.asset != null
+                    ? Image.asset(item.asset!, width: 48, height: 48, fit: BoxFit.contain, errorBuilder: (_, __, ___) => Text(item.glyph ?? '✦', style: const TextStyle(fontSize: 36)))
+                    : Text(item.glyph ?? '✦', style: const TextStyle(fontSize: 36)),
+              ))),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(item.name, style: WrF.body(14, w: FontWeight.w700, color: Colors.white)),
+                const SizedBox(height: 2),
+                Text('복주머니 ${e.need ?? '-'}개 필요', style: WrF.body(12.5, color: WrC.muted)),
+              ])),
+            ]),
+          ),
+          SizedBox(height: item != null ? 14 : 0),
           Text('지금 ${e.have ?? 0}개 · ${(e.need ?? 0) - (e.have ?? 0)}개 더 모으면 돼요', style: WrF.body(14, color: Colors.white, height: 1.7)),
           Container(margin: const EdgeInsets.only(top: 12), padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), border: Border.all(color: WrC.line, style: BorderStyle.solid)),
             child: Text('복주머니는 신통방통 어디서나 함께 쓰는 재화예요.\n출석, 정성, 짧은 영상으로 조금씩 담깁니다.', style: WrF.body(13, color: WrC.muted, height: 1.7))),
           const SizedBox(height: 16),
-          _AdEarnButton(onDone: () => setState(() => _shortErr = null)),
+          WrAdEarnButton(onDone: () => setState(() { _shortErr = null; _shortItem = null; })),
           const SizedBox(height: 8),
           SizedBox(width: double.infinity, height: 46, child: OutlinedButton(
-            onPressed: () => setState(() => _shortErr = null),
+            onPressed: () {
+              setState(() { _shortErr = null; _shortItem = null; });
+              openWalletSheet(context);
+            },
             style: OutlinedButton.styleFrom(side: const BorderSide(color: WrC.line)),
             child: Text('다른 방법으로 모으기', style: WrF.body(14, color: Colors.white)),
           )),
@@ -617,38 +647,6 @@ class _DecorScreenState extends State<DecorScreen> {
 class _Placed {
   final WrItem it; final Offset at; final int key; final WishRoom room; final bool bought, moved;
   _Placed({required this.it, required this.at, required this.key, required this.room, this.bought = false, this.moved = false});
-}
-
-/// 짧은 영상 보고 복주머니 받기 버튼 — AD_LIM(10회) 체크 포함(§11.2 EARN 'ad')
-class _AdEarnButton extends StatefulWidget {
-  const _AdEarnButton({required this.onDone});
-  final VoidCallback onDone;
-  @override
-  State<_AdEarnButton> createState() => _AdEarnButtonState();
-}
-
-class _AdEarnButtonState extends State<_AdEarnButton> {
-  bool _loading = false;
-  @override
-  Widget build(BuildContext context) {
-    final p = context.watch<WishRoomProvider>();
-    final used = p.me?.earnToday['ad'] ?? 0;
-    const lim = 10, amt = 30;
-    final full = used >= lim;
-    return SizedBox(width: double.infinity, height: 50, child: ElevatedButton(
-      onPressed: full || _loading ? null : () async {
-        setState(() => _loading = true);
-        final res = await p.earn('ad');
-        if (mounted) {
-          setState(() => _loading = false);
-          if (res != null) widget.onDone();
-        }
-      },
-      style: ElevatedButton.styleFrom(backgroundColor: full ? WrC.darkBtn : WrC.blossom),
-      child: Text(full ? '오늘 영상 보기를 모두 썼어요' : '▶ 짧은 영상 보고 복주머니 +$amt',
-        style: TextStyle(color: full ? Colors.white54 : Colors.white, fontWeight: FontWeight.w700)),
-    ));
-  }
 }
 
 /// 아이템을 방에 놓는 순간 — 빛 기둥 → 링 2겹 → 반짝이 버스트 → 이름 라벨. app2/screens-b2.jsx › PlaceFx
@@ -904,5 +902,13 @@ class _GridPainter extends CustomPainter {
 }
 
 Color _hex(String s) { final h = s.replaceFirst('#', ''); return Color(int.parse('FF$h', radix: 16)); }
+
+// CSS filter: grayscale(.3) 근사 행렬 — Shortage 시트의 아이템 아이콘에 적용(app2/screens-b2.jsx 1:1)
+const List<double> _grayscale30 = [
+  .76378, .21456, .02166, 0, 0,
+  .06378, .91456, .02166, 0, 0,
+  .06378, .21456, .72166, 0, 0,
+  0, 0, 0, 1, 0,
+];
 
 extension _Let<T> on T { R let<R>(R Function(T) f) => f(this); }

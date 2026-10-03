@@ -8,6 +8,8 @@ import '../../data/models.dart';
 import '../../data/wr_catalog.dart';
 import '../../core/theme/wr_theme.dart';
 import '../../core/wr_nav_pill.dart';
+import '../wallet/wallet_sheet.dart';
+import '../../core/wr_ad_earn_button.dart';
 
 class CharacterShopScreen extends StatefulWidget {
   const CharacterShopScreen({super.key});
@@ -24,6 +26,7 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
   bool _info = false;
   ApiError? _shortErr;
   String? _shortLabel;
+  String? _shortGlyph; // app2/screens-b2.jsx › Shortage({icon}) — 캤릭토/의상 아이콘(글프) 표시용
 
   @override
   void initState() {
@@ -62,7 +65,7 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
         setState(() => _busy = false);
         final err = p.lastError;
         if (err?.code == 'INSUFFICIENT') {
-          setState(() { _shortErr = err; _shortLabel = c.name; });
+          setState(() { _shortErr = err; _shortLabel = c.name; _shortGlyph = c.emblem; });
         } else if (err != null) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err.message)));
         }
@@ -97,7 +100,7 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
           final themeInfo = WrCatalog.I.themes.where((t) => t['id'] == o.theme.name).toList();
           final label = themeInfo.isNotEmpty ? themeInfo.first['label'] as String : '';
           if (err?.code == 'INSUFFICIENT') {
-            setState(() { _shortErr = err; _shortLabel = '$label 의상'; });
+            setState(() { _shortErr = err; _shortLabel = '$label 의상'; _shortGlyph = themeInfo.isNotEmpty ? themeInfo.first['glyph'] as String? : null; });
           } else if (err != null) {
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err.message)));
           }
@@ -181,14 +184,17 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
                 child: Row(children: [
                   WrNavPill(onBack: () => Navigator.of(context).maybePop(), onExitHome: () => wrExitHome(context)),
                   const Expanded(child: Center(child: Text('소원방 캐릭터', style: TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white)))),
-                  Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    // app2/screens-b2.jsx › CharShop() TopBar right={<PouchPill ... />} [버그수정 — 전수감사]
+                  // 기존엔 탭 핸들러가 전혀 없는 정적 Container였다.
+                  GestureDetector(onTap: () => openWalletSheet(context), child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(color: WrC.glass, borderRadius: BorderRadius.circular(999)),
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
                       Image.asset('assets/wishroom/items/pouch.png', width: 16, height: 16,
                           errorBuilder: (_, __, ___) => const Text('💰', style: TextStyle(fontSize: 14))),
                       const SizedBox(width: 5),
                       Text('${p.me?.pouch ?? 0}', style: const TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 13, color: Colors.white)),
-                    ])),
+                    ]),
+                  )),
                 ]),
               ))),
             ])),
@@ -215,7 +221,7 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
             )),
           ]),
           if (_info && c != null) _infoSheet(c),
-          if (_shortErr != null) _shortageSheet(_shortErr!, _shortLabel ?? ''),
+          if (_shortErr != null) _shortageSheet(_shortErr!, _shortLabel ?? '', _shortGlyph),
         ]);
       }),
     ));
@@ -430,9 +436,14 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
         Expanded(child: Text(v, style: WrF.body(12.5, w: FontWeight.w700, color: color ?? Colors.white))),
       ]));
 
-  Widget _shortageSheet(ApiError e, String name) {
+  // app2/screens-b2.jsx › Shortage({app, name, icon, need, have, onClose}) 1:1 이식.
+  // [버그수정 — 전수감사] 기존엔 원본 Shortage 대바 전역축소되어 있었다: 아이콘 없음,
+  // 점선 안내문 없음, 교개대 없음, 지갑 연결단끼세(단일 "복주머니 모으러 가기" 버튼이
+  // 그냥 닫어버림). decor_screen.dart의 _AdEarnButton(기능 동얼한 위젯)을 원본에 맞추어
+  // 전반 재생성했다.
+  Widget _shortageSheet(ApiError e, String name, String? glyph) {
     return Stack(children: [
-      Positioned.fill(child: GestureDetector(onTap: () => setState(() => _shortErr = null), child: Container(color: const Color(0x80000000)))),
+      Positioned.fill(child: GestureDetector(onTap: () => setState(() { _shortErr = null; _shortLabel = null; _shortGlyph = null; }), child: Container(color: const Color(0x80000000)))),
       Positioned(left: 10, right: 10, bottom: 22, child: Container(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
         decoration: WrDeco.sheet,
@@ -443,16 +454,37 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
           const SizedBox(height: 4),
           Text('복주머니가 조금 부족해요', style: WrF.display(18, color: Colors.white)),
           const SizedBox(height: 14),
-          Text(name, style: WrF.body(14, w: FontWeight.w700, color: Colors.white)),
-          const SizedBox(height: 4),
-          Text('복주머니 ${e.need ?? '-'}개 필요', style: WrF.body(12.5, color: WrC.muted)),
-          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: WrDeco.card,
+            child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+              SizedBox(width: 64, child: Center(child: ColorFiltered(
+                colorFilter: const ColorFilter.matrix(_grayscale30),
+                child: Text(glyph ?? '✦', style: const TextStyle(fontSize: 36)),
+              ))),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(name, style: WrF.body(14, w: FontWeight.w700, color: Colors.white)),
+                const SizedBox(height: 2),
+                Text('복주머니 ${e.need ?? '-'}개 필요', style: WrF.body(12.5, color: WrC.muted)),
+              ])),
+            ]),
+          ),
+          const SizedBox(height: 14),
           Text('지금 ${e.have ?? 0}개 · ${(e.need ?? 0) - (e.have ?? 0)}개 더 모으면 돼요', style: WrF.body(14, color: Colors.white, height: 1.7)),
+          Container(margin: const EdgeInsets.only(top: 12), padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), border: Border.all(color: WrC.line, style: BorderStyle.solid)),
+            child: Text('복주머니는 신통방통 어디서나 함께 쓰는 재화예요.\n출석, 정성, 짧은 영상으로 조금씩 담깁니다.', style: WrF.body(13, color: WrC.muted, height: 1.7))),
           const SizedBox(height: 16),
-          SizedBox(width: double.infinity, height: 48, child: ElevatedButton(
-            onPressed: () => setState(() => _shortErr = null),
-            style: ElevatedButton.styleFrom(backgroundColor: WrC.blossom),
-            child: const Text('복주머니 모으러 가기', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+          WrAdEarnButton(onDone: () => setState(() { _shortErr = null; _shortLabel = null; _shortGlyph = null; })),
+          const SizedBox(height: 8),
+          SizedBox(width: double.infinity, height: 46, child: OutlinedButton(
+            onPressed: () {
+              setState(() { _shortErr = null; _shortLabel = null; _shortGlyph = null; });
+              openWalletSheet(context);
+            },
+            style: OutlinedButton.styleFrom(side: const BorderSide(color: WrC.line)),
+            child: Text('다른 방법으로 모으기', style: WrF.body(14, color: Colors.white)),
           )),
         ]),
       )),
@@ -461,3 +493,11 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
 }
 
 Color _hex(String s) { final h = s.replaceFirst('#', ''); return Color(int.parse('FF$h', radix: 16)); }
+
+// CSS filter: grayscale(.3) 근사 행렬 — Shortage 시트의 아이콘에 적용(app2/screens-b2.jsx 1:1, decor_screen.dart와 동일)
+const List<double> _grayscale30 = [
+  .76378, .21456, .02166, 0, 0,
+  .06378, .91456, .02166, 0, 0,
+  .06378, .21456, .72166, 0, 0,
+  0, 0, 0, 1, 0,
+];
