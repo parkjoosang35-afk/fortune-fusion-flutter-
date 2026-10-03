@@ -10,6 +10,7 @@ import '../../data/wr_catalog.dart';
 import '../../core/theme/wr_theme.dart';
 import '../../core/fx/wr_fx.dart';
 import '../../core/wr_nav_pill.dart';
+import '../room/room_scene.dart';
 import 'other_room_screen.dart';
 
 class ExploreScreen extends StatefulWidget {
@@ -108,7 +109,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
         child: Row(children: [
           for (var i = 0; i < 3 && i < sorted.length; i++) Expanded(child: Padding(
             padding: EdgeInsets.only(right: i < 2 ? 8 : 0, bottom: 16),
-            child: _TopCard(room: sorted[i], rank: i + 1, onTap: () => _open(sorted[i])),
+            child: _TopCard(room: sorted[i], items: context.read<WishRoomProvider>().items, rank: i + 1, onTap: () => _open(sorted[i])),
           )),
         ]),
       )),
@@ -120,7 +121,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
             return const Padding(padding: EdgeInsets.only(top: 40), child: Center(
               child: Text('아직 소원방이 없어요', style: TextStyle(color: WrC.muted))));
           }
-          return Padding(padding: const EdgeInsets.only(bottom: 12), child: _FeedCard(room: rest[i], onTap: () => _open(rest[i])));
+          return Padding(padding: const EdgeInsets.only(bottom: 12), child: _FeedCard(room: rest[i], items: context.read<WishRoomProvider>().items, onTap: () => _open(rest[i])));
         }, childCount: (_hot ? (sorted.length - 3).clamp(0, 1 << 30) : sorted.length).clamp(1, 1 << 30))),
       ),
     ];
@@ -170,8 +171,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
 }
 
 class _TopCard extends StatelessWidget {
-  const _TopCard({required this.room, required this.rank, required this.onTap});
-  final WishRoom room; final int rank; final VoidCallback onTap;
+  const _TopCard({required this.room, required this.items, required this.rank, required this.onTap});
+  final WishRoom room; final List<WrItem> items; final int rank; final VoidCallback onTap;
   @override
   Widget build(BuildContext context) {
     final isFirst = rank == 1;
@@ -180,7 +181,10 @@ class _TopCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Stack(children: [
-          Container(height: 90, color: WrC.bg1, child: const Center(child: Icon(Icons.local_fire_department, color: Color(0x33FFFFFF), size: 28))),
+          // G-4 RoomThumb — app2/room2.jsx › RoomThumb() 공용 위젯. 탐색 TOP3 썸네일.
+          // [버그수정 — 전수감사] 기존엔 Icons.local_fire_department 더미 아이콘이었다.
+          SizedBox(height: 90, child: LayoutBuilder(builder: (context, c) =>
+            RoomThumb(room: room, items: items, w: c.maxWidth, h: 90, focus: .22, zoom: 1.5))),
           Positioned(top: 6, left: 6, child: Container(width: 22, height: 22, alignment: Alignment.center,
             decoration: BoxDecoration(
               gradient: isFirst ? const LinearGradient(colors: [Color(0xFFFFE7A0), Color(0xFFD9A53A)]) : null,
@@ -199,8 +203,8 @@ class _TopCard extends StatelessWidget {
 }
 
 class _FeedCard extends StatefulWidget {
-  const _FeedCard({required this.room, required this.onTap});
-  final WishRoom room; final VoidCallback onTap;
+  const _FeedCard({required this.room, required this.items, required this.onTap});
+  final WishRoom room; final List<WrItem> items; final VoidCallback onTap;
   @override
   State<_FeedCard> createState() => _FeedCardState();
 }
@@ -235,8 +239,8 @@ class _FeedCardState extends State<_FeedCard> {
       padding: const EdgeInsets.all(10),
       child: Stack(clipBehavior: Clip.none, children: [
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          ClipRRect(borderRadius: BorderRadius.circular(12), child: Container(width: 96, height: 112, color: WrC.bg1,
-            child: const Center(child: Icon(Icons.local_fire_department, color: Color(0x33FFFFFF), size: 32)))),
+          // G-4 RoomThumb 공용 썸네일 — [버그수정 — 전수감사] 기존 더미 아이콘 교체.
+          ClipRRect(borderRadius: BorderRadius.circular(12), child: RoomThumb(room: room, items: widget.items, w: 96, h: 112, focus: .22, zoom: 1.5)),
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [

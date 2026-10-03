@@ -7,7 +7,6 @@ import '../../application/wishroom_provider.dart';
 import '../../data/models.dart';
 import '../../data/wr_catalog.dart';
 import '../../core/theme/wr_theme.dart';
-import '../../core/wr_canvas.dart';
 import '../../core/fx/wr_fx.dart';
 import '../room/room_scene.dart';
 import '../explore/other_room_screen.dart';
@@ -101,7 +100,9 @@ class _LinkInviteScreenState extends State<LinkInviteScreen> {
             boxShadow: [BoxShadow(color: color.withValues(alpha: .27), blurRadius: 40), const BoxShadow(color: Color(0x80000000), blurRadius: 40, offset: Offset(0, 20))]),
           clipBehavior: Clip.antiAlias,
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            SizedBox(height: 200, child: WrCanvasScaler(child: RoomScene(room: room, items: const [], frozen: true, lowFx: true))),
+            // G-4 RoomThumb — [버그수정 — 전수감사] items:const[] 고정으로 장식이 전혀 반영되지 않던 버그.
+            SizedBox(height: 200, child: LayoutBuilder(builder: (context, c) =>
+              RoomThumb(room: room, items: context.read<WishRoomProvider>().items, w: c.maxWidth, h: 200, focus: .22, zoom: 1.5))),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFFBF1DC), Color(0xFFF1E0BD)])),

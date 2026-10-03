@@ -147,7 +147,7 @@ class _ArchiveTabState extends State<_ArchiveTab> {
                 );
               }
               final room = done[i];
-              return _ArchiveCard(room: room, onTap: () => _openReplay(context, room, p.items));
+              return _ArchiveCard(room: room, items: p.items, onTap: () => _openReplay(context, room, p.items));
             }, childCount: done.length + 1),
           )),
         if (!_ongoing && done.isEmpty) SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.only(top: 16),
@@ -195,8 +195,8 @@ class _CurrentRoomCard extends StatelessWidget {
 }
 
 class _ArchiveCard extends StatelessWidget {
-  const _ArchiveCard({required this.room, required this.onTap});
-  final WishRoom room; final VoidCallback onTap;
+  const _ArchiveCard({required this.room, required this.items, required this.onTap});
+  final WishRoom room; final List<WrItem> items; final VoidCallback onTap;
   String _d(DateTime? t) => t == null ? '' : '${t.year}.${t.month.toString().padLeft(2, '0')}.${t.day.toString().padLeft(2, '0')}';
   @override
   Widget build(BuildContext context) {
@@ -204,9 +204,11 @@ class _ArchiveCard extends StatelessWidget {
       decoration: BoxDecoration(color: WrC.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0x66F5CF6A))),
       padding: const EdgeInsets.all(10),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // G-4 RoomThumb 공용 썸네일 — [버그수정 — 전수감사] 기존 더미 아이콘 교체.
         Expanded(child: Stack(children: [
           Positioned.fill(child: ClipRRect(borderRadius: BorderRadius.circular(10),
-            child: ColoredBox(color: WrC.bg1, child: const Center(child: Icon(Icons.local_fire_department, color: Color(0x33FFFFFF), size: 36))))),
+            child: LayoutBuilder(builder: (context, c) =>
+              RoomThumb(room: room, items: items, w: c.maxWidth, h: c.maxHeight, focus: .22, zoom: 1.5)))),
           Positioned(right: 4, top: 4, child: Transform.rotate(angle: -6 * 3.14159 / 180, child: Container(
             width: 28, height: 28, alignment: Alignment.center,
             decoration: const BoxDecoration(color: WrC.accent, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Color(0x80C94A3B), blurRadius: 8)]),

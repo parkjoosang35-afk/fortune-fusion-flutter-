@@ -746,8 +746,10 @@ class _ShareSheetState extends State<_ShareSheet> {
           decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), border: Border.all(color: WrC.line),
             boxShadow: [BoxShadow(color: color.withValues(alpha: .2), blurRadius: 20)]),
           child: Column(children: [
+            // G-4 RoomThumb — [버그수정 — 전수감사] items:const[] 고정으로 장식이 전혀 반영되지 않던 버그.
             SizedBox(height: 110, child: Stack(children: [
-              Positioned.fill(child: WrCanvasScaler(child: RoomScene(room: room, items: const [], frozen: true, lowFx: true))),
+              Positioned.fill(child: LayoutBuilder(builder: (context, c) =>
+                RoomThumb(room: room, items: context.read<WishRoomProvider>().items, w: c.maxWidth, h: 110, focus: .22, zoom: 1.5))),
               Positioned(left: 10, top: 10, child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(color: const Color(0x80000000), borderRadius: BorderRadius.circular(999)),

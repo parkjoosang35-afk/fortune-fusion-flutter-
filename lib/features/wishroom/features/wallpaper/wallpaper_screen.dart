@@ -296,10 +296,10 @@ class _WallpaperScreenState extends State<WallpaperScreen> {
                 Text('이루어진 소원방도 배경화면으로 둘 수 있어요', style: WrF.body(12, color: WrC.muted)),
                 const SizedBox(height: 10),
                 if (p.room != null)
-                  _WPRoomRow(room: p.room!, on: _roomId == p.room!.id, set: isSet && st.roomId == p.room!.id,
+                  _WPRoomRow(room: p.room!, items: p.items, on: _roomId == p.room!.id, set: isSet && st.roomId == p.room!.id,
                       onTap: () => setState(() => _roomId = p.room!.id), label: '지금 밝히는 소원방'),
                 ...p.archiveRooms.map((r) => Padding(padding: const EdgeInsets.only(top: 8), child: _WPRoomRow(
-                    room: r, on: _roomId == r.id, set: isSet && st.roomId == r.id,
+                    room: r, items: p.items, on: _roomId == r.id, set: isSet && st.roomId == r.id,
                     onTap: () => setState(() => _roomId = r.id), label: '이루어진 소원방'))),
                 if (p.archiveRooms.isEmpty) Padding(padding: const EdgeInsets.only(top: 8), child: Container(
                   padding: const EdgeInsets.all(14),
@@ -341,8 +341,8 @@ class MakingState {
 }
 
 class _WPRoomRow extends StatelessWidget {
-  const _WPRoomRow({required this.room, required this.on, required this.set, required this.onTap, required this.label});
-  final WishRoom room; final bool on, set; final VoidCallback onTap; final String label;
+  const _WPRoomRow({required this.room, required this.items, required this.on, required this.set, required this.onTap, required this.label});
+  final WishRoom room; final List<WrItem> items; final bool on, set; final VoidCallback onTap; final String label;
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -358,9 +358,9 @@ class _WPRoomRow extends StatelessWidget {
           Container(
             width: 46, height: 72, clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: WrC.bg1),
+            // G-4 RoomThumb — [버그수정 — 전수감사] items:const[] 고정으로 장식이 전혀 반영되지 않던 버그.
             child: Stack(children: [
-              Positioned.fill(child: Transform.scale(scale: 72 / (844 * 46 / 390),
-                  child: SizedBox(width: 390, height: 844, child: RoomScene(room: room, items: const [], frozen: true, lowFx: true)))),
+              Positioned.fill(child: RoomThumb(room: room, items: items, w: 46, h: 72, focus: .22, zoom: 1.5)),
               if (room.status == RoomStatus.ARCHIVED) const Positioned(right: 2, bottom: 2, child: _MiniSeal()),
             ]),
           ),
@@ -657,8 +657,8 @@ class WPEntryCard extends StatelessWidget {
           Container(
             width: 34, height: 60, clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFF3A2C38), width: 2)),
-            child: Transform.scale(scale: 60 / (844 * 34 / 390),
-                child: SizedBox(width: 390, height: 844, child: RoomScene(room: room, items: const [], frozen: true, lowFx: true))),
+            // G-4 RoomThumb — [버그수정 — 전수감사] items:const[] 고정으로 장식이 전혀 반영되지 않던 버그.
+            child: RoomThumb(room: room, items: p.items, w: 34, h: 60, focus: .22, zoom: 1.5),
           ),
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
