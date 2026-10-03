@@ -1182,44 +1182,174 @@ class _CareSheet extends StatefulWidget {
 }
 
 class _CareSheetState extends State<_CareSheet> {
+  bool _confirm = false;
+  late Visibility _vis = widget.room.visibility;
+
+  // [명세위반 전면수정 — 전수감사] A-6 RoomMenu 7개 항목 중 4(공개범위 즉시
+  // PATCH)·5(공유버튼)·6(인트로생략 토글)·7(완료 2단계 확인)이 통째로 누락되고,
+  // Sheet 헤더(sub MY WISH ROOM/title 소원방 돌보기 + ✕닫기)도 없었다.
+  // app2/screens-a2.jsx › RoomMenu({app,room,close}) 1:1 재구현.
+  Future<void> _setVis(Visibility v) async {
+    if (v == _vis) return;
+    final p = context.read<WishRoomProvider>();
+    final ok = await p.updateVisibility(widget.room.id, v);
+    if (!mounted || !ok) return;
+    setState(() => _vis = v);
+  }
+
+  void _openShare() {
+    showModalBottomSheet(context: context, backgroundColor: Colors.transparent, isScrollControlled: true,
+      builder: (_) => _ShareSheet(room: widget.room));
+  }
+
   @override
   Widget build(BuildContext context) {
     final room = widget.room;
+    final p = context.watch<WishRoomProvider>();
+    final skipIntro = p.me?.skipIntro ?? false;
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
       decoration: WrDeco.sheet,
-      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Container(width: 36, height: 4, margin: const EdgeInsets.only(bottom: 16), alignment: Alignment.center,
-          decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
-        Text('Lv.${room.level} · ${room.levelName}', style: WrF.body(16, color: Colors.white)),
-        Text('${room.curLevelPts} / ${room.nextLevelPts ?? room.curLevelPts}', style: WrF.body(12, color: Colors.white54)),
-        const SizedBox(height: 16),
-        Row(children: [
-          _stat('정성', room.devotionCount),
-          _stat('응원', room.supportCount),
-          _stat('복주머니', room.pouchReceived),
+      child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // Sheet 헤더 — app2/fx2.jsx › Sheet({sub,title}) 1:1 (✕ 닫기 포함).
+        Stack(children: [
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('MY WISH ROOM', style: WrF.mono(size: 10, color: WrC.blossom2)),
+            const SizedBox(height: 6),
+            Text('소원방 돌보기', style: WrF.display(20, color: Colors.white)),
+          ]),
+          Positioned(right: 0, top: 0, child: GestureDetector(
+            onTap: () => Navigator.of(context).pop(),
+            child: Container(width: 32, height: 32, alignment: Alignment.center,
+              decoration: BoxDecoration(color: WrC.glass, shape: BoxShape.circle, border: Border.all(color: WrC.line)),
+              child: const Icon(Icons.close, size: 13, color: Colors.white)),
+          )),
         ]),
-        // S-01 — app2/screens-a2.jsx › RoomMenu 안 WPEntryCard 삽입 위치 1:1.
-        // docs/WALLPAPER.md §4 공통: "소원방 돌보기(⚙ 소원 카드 탭) 시트의
-        // 배경화면으로 설정 카드".
+        const SizedBox(height: 16),
+        // 1. 한지 카드 — Lv.n 레벨명 · 성장 {pt}[/{다음기준}] + 소원 14.5 + 인장 願.
+        Container(
+          padding: const EdgeInsets.all(14), decoration: WrDeco.hanji,
+          child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Lv.${room.level} ${room.levelName} · 성장 ${room.points.floor()}${room.nextLevelPts != null ? ' / ${room.nextLevelPts}' : ''}',
+                  style: WrF.body(11, w: FontWeight.w700, color: const Color(0x995A321E))),
+              const SizedBox(height: 4),
+              Text(room.text, style: WrF.body(14.5, w: FontWeight.w700, height: 1.5, color: const Color(0xFF3A1A14))),
+            ])),
+            const SizedBox(width: 10),
+            Container(width: 34, height: 34, alignment: Alignment.center,
+              decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFF8A3A2A)),
+              child: const Text('願', style: TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFFFFF4E0)))),
+          ]),
+        ),
+        const SizedBox(height: 10),
+        // 2. 3칸 카드 — 🙏 정성 n · ❤ 응원 n · 福 복주머니 n.
+        Row(children: [
+          _stat('🙏', '정성', room.devotionCount),
+          const SizedBox(width: 8),
+          _stat('❤', '응원', room.supportCount),
+          const SizedBox(width: 8),
+          _stat('福', '복주머니', room.pouchReceived),
+        ]),
+        // 3. 배경화면 진입 카드.
         WPEntryCard(room: room),
-        const SizedBox(height: 20),
-        SizedBox(width: double.infinity, height: 52, child: ElevatedButton(
-          onPressed: () {
-            Navigator.of(context).pop();
-            Navigator.of(context).push(MaterialPageRoute(builder: (_) => CompleteScreen(roomId: room.id)));
-          },
-          style: ElevatedButton.styleFrom(backgroundColor: WrC.glow),
-          child: const Text('✿ 소원이 이루어졌어요', style: TextStyle(color: Color(0xFF4A2A10), fontWeight: FontWeight.w700)),
-        )),
-      ]),
+        const SizedBox(height: 4),
+        // 4. 공개 범위 탭 — 선택 즉시 PATCH.
+        Text('공개 범위', style: WrF.body(14, w: FontWeight.w700, color: Colors.white)),
+        const SizedBox(height: 8),
+        Row(children: [
+          _visTab('모두에게', Visibility.PUBLIC),
+          const SizedBox(width: 6),
+          _visTab('링크로만', Visibility.LINK),
+          const SizedBox(width: 6),
+          _visTab('나만 보기', Visibility.PRIVATE),
+        ]),
+        // 5. (비공개 아님) 소원방 공유하기 버튼.
+        if (_vis != Visibility.PRIVATE) ...[
+          const SizedBox(height: 10),
+          SizedBox(width: double.infinity, height: 46, child: OutlinedButton(
+            onPressed: _openShare,
+            style: OutlinedButton.styleFrom(side: const BorderSide(color: WrC.line), backgroundColor: WrC.glass),
+            child: Text('⤴ 소원방 공유하기 · 링크 보내기', style: WrF.body(13.5, w: FontWeight.w700, color: Colors.white)),
+          )),
+        ],
+        const SizedBox(height: 12),
+        // 6. 입장 인트로 항상 생략 — 토글 카드.
+        GestureDetector(
+          onTap: () => context.read<WishRoomProvider>().setSkipIntro(!skipIntro),
+          child: Container(
+            width: double.infinity, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+            decoration: WrDeco.card,
+            child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              Text('입장 인트로 항상 생략', style: WrF.body(13.5, color: Colors.white)),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 400), width: 44, height: 26,
+                decoration: BoxDecoration(borderRadius: BorderRadius.circular(13), color: skipIntro ? WrC.blossom : Colors.white24),
+                child: AnimatedAlign(
+                  duration: const Duration(milliseconds: 400), curve: const Cubic(.34, 1.56, .64, 1),
+                  alignment: skipIntro ? Alignment.centerRight : Alignment.centerLeft,
+                  child: Container(width: 20, height: 20, margin: const EdgeInsets.symmetric(horizontal: 3),
+                    decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white)),
+                ),
+              ),
+            ]),
+          ),
+        ),
+        const SizedBox(height: 16),
+        // 7. 완료 버튼 — 2단계 확인(아직이에요 / 네, 이루어졌어요).
+        if (!_confirm)
+          SizedBox(width: double.infinity, height: 52, child: ElevatedButton(
+            onPressed: () => setState(() => _confirm = true),
+            style: ElevatedButton.styleFrom(backgroundColor: WrC.glow),
+            child: const Text('✿ 소원이 이루어졌어요', style: TextStyle(color: Color(0xFF4A2A10), fontWeight: FontWeight.w700)),
+          ))
+        else
+          Container(
+            padding: const EdgeInsets.all(14), decoration: WrDeco.card,
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('정말 이루어졌나요.', style: WrF.body(14, height: 1.6, color: Colors.white)),
+              Text('완료 후 7일 동안은 되돌릴 수 있어요.', style: WrF.body(12.5, color: WrC.muted)),
+              const SizedBox(height: 12),
+              Row(children: [
+                Expanded(child: SizedBox(height: 40, child: OutlinedButton(
+                  onPressed: () => setState(() => _confirm = false),
+                  style: OutlinedButton.styleFrom(side: const BorderSide(color: WrC.line)),
+                  child: Text('아직이에요', style: WrF.body(13, color: WrC.fg)),
+                ))),
+                const SizedBox(width: 8),
+                Expanded(child: SizedBox(height: 40, child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => CompleteScreen(roomId: room.id)));
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: WrC.glow),
+                  child: const Text('네, 이루어졌어요', style: TextStyle(color: Color(0xFF4A2A10), fontWeight: FontWeight.w700, fontSize: 13)),
+                ))),
+              ]),
+            ]),
+          ),
+      ])),
     );
   }
 
-  Widget _stat(String label, int v) => Expanded(child: Column(children: [
-        Text('$v', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700)),
-        Text(label, style: const TextStyle(color: Colors.white54, fontSize: 11)),
-      ]));
+  Widget _visTab(String label, Visibility v) {
+    final sel = _vis == v;
+    return Expanded(child: GestureDetector(onTap: () => _setVis(v), child: Container(
+      height: WrSize.tabH, alignment: Alignment.center,
+      decoration: sel ? WrDeco.tabOn : BoxDecoration(borderRadius: BorderRadius.circular(WrR.tab), color: WrC.chipBg),
+      child: Text(label, style: WrF.body(WrSize.tabFont, w: FontWeight.w700, color: sel ? Colors.white : WrC.muted)),
+    )));
+  }
+
+  Widget _stat(String glyph, String label, int v) => Expanded(child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10), decoration: WrDeco.card, alignment: Alignment.center,
+        child: Column(children: [
+          Text(glyph, style: const TextStyle(fontSize: 14)),
+          const SizedBox(height: 2),
+          Text('$v', style: WrF.display(17, color: Colors.white)),
+          Text(label, style: WrF.body(11, color: WrC.muted)),
+        ]),
+      ));
 }
 
 Color _shareHex(String s) { final h = s.replaceFirst('#', ''); return Color(int.parse('FF$h', radix: 16)); }
