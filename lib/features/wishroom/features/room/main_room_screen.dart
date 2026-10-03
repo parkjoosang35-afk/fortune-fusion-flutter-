@@ -363,7 +363,7 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
             // 레벨바
             Positioned(top: 100, left: 14, child: _levelBar(room)),
             // 우상단 알약 버튼 3개: 안내서 · 방만 보기 · 공유
-            if (!_devotion.busy && !_rekindling) Positioned(top: 100, right: 14, child: _pillBtn('? 안내서', () => _openGuide())),
+            if (!_devotion.busy && !_rekindling) Positioned(top: 100, right: 14, child: _pillBtn('안내서', () => _openGuide(), leading: _guideIcon())),
             // app2/guide2.jsx › FirstVisitChip — 처음 오셨나요 배너(top:140).
             if (_firstVisitReady && !_devotion.busy && !_rekindling)
               Positioned(top: 140, left: 0, right: 0, child: WrFirstVisitChip(onStartTour: () => setState(() => _tour = true))),
@@ -459,7 +459,7 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
             const SizedBox(width: 10),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(room.sealUntil != null && room.capsule == Capsule.LOCKED
-                  ? '🔐 ${room.sealUntil}까지 봉인 · D-${room.sealDaysLeft}'
+                  ? '🔐 ${fmtSealDot(room.sealUntil)}까지 봉인 · D-${room.sealDaysLeft}'
                   : '오늘의 소원 · ${room.daysLit}일째 밝히는 중',
                 style: TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 11, color: subColor)),
               if (W != null) Text('${W['label']}의 소원', style: TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 12, color: _hex(W['deep'] as String))),
@@ -526,11 +526,19 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
             valueColor: const AlwaysStoppedAnimation(WrC.blossom)))),
       ]));
 
-  Widget _pillBtn(String label, VoidCallback onTap) => GestureDetector(onTap: onTap, child: Container(
+  Widget _pillBtn(String label, VoidCallback onTap, {Widget? leading}) => GestureDetector(onTap: onTap, child: Container(
       padding: const EdgeInsets.fromLTRB(10, 5, 11, 5),
       decoration: BoxDecoration(color: WrC.glass, borderRadius: BorderRadius.circular(999), border: Border.all(color: WrC.line)),
-      child: Text(label, style: WrF.body(11.5, w: FontWeight.w700, color: WrC.fg)),
+      child: leading == null
+          ? Text(label, style: WrF.body(11.5, w: FontWeight.w700, color: WrC.fg))
+          : Row(mainAxisSize: MainAxisSize.min, children: [leading, const SizedBox(width: 6), Text(label, style: WrF.body(11.5, w: FontWeight.w700, color: WrC.fg))]),
     ));
+
+  // A-4: `? 안내서` — "?" 는 18px 핑크 원(배경 blossom, 글자 흰색) 안에 들어간다.
+  // (원본 screens-a2.jsx: <span style="width:18,height:18,borderRadius:50%,background:blossom">?</span>안내서)
+  Widget _guideIcon() => Container(width: 18, height: 18, alignment: Alignment.center,
+      decoration: const BoxDecoration(shape: BoxShape.circle, color: WrC.blossom),
+      child: const Text('?', style: TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 11, color: Colors.white)));
 
   // A-4 말풍선 문구 규칙(우선순위 순) 1:1 — ①4일+부재(dim) ②다시밝힌 직후 ③머금는 중
   // (충전 단계 0/1/2) ④평상시(3종 순환).
@@ -571,7 +579,7 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
     if (room.capsuleDue) {
       labelText = '🎁 소원 봉인이 풀렸어요';
     } else if (room.sealUntil != null && room.capsule == Capsule.LOCKED) {
-      labelText = '🔐 D-${room.sealDaysLeft} · ${room.sealUntil}';
+      labelText = '🔐 D-${room.sealDaysLeft} · ${fmtSealDot(room.sealUntil)}';
     } else if (isDim) {
       labelText = '🕯 촛불 ${(room.brightness * 100).round()}%';
     } else {

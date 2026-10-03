@@ -649,6 +649,10 @@ List<double> _brightSat(double b, double sat) {
   ];
 }
 Color _hex(String h) => Color(int.parse('FF${h.replaceFirst('#', '')}', radix: 16));
+// A-4/golden/01_main.png: 봉인일 표기는 'YYYY.MM.DD'(마침표) — 서버는 'YYYY-MM-DD' ISO로 내려줌.
+// capsule_screen.dart의 _fmtDot과 동일 로직을 공유 위젯(room_scene.dart) 쪽에도 노출해
+// main_room_screen.dart(도크·소원전문시트)가 재사용하도록 한다.
+String fmtSealDot(String? d) => d == null ? '' : d.replaceAll('-', '.');
 Color _rgba(String s) { final m = RegExp(r'rgba?\(([^)]+)\)').firstMatch(s); if (m == null) return Colors.transparent; final p = m.group(1)!.split(',').map((e) => double.parse(e.trim())).toList();
   return Color.fromRGBO(p[0].round(), p[1].round(), p[2].round(), p.length > 3 ? p[3] : 1); }
 
