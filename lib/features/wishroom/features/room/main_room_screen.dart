@@ -55,6 +55,11 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
   String? _capText;
   (String, String)? _quoteText; // (문장, 출처) — 빈 출처는 ''
   DevotionGain? _lastGain; // 0.7 단계 아이템 기운 보너스 pill(top 236)
+  // devote() 2.9s 보상시트 — [명세] 원본 jsx `{reward && <RewardSheet.../>}`는 quote와
+  // 독립적인 state라 동시에 공존 가능(quote z-index:95가 reward dim/sheet z-index:88/89보다
+  // 위에 겹쳐 보임). showModalBottomSheet(별도 Route)로는 이 레이어링을 재현할 수 없어
+  // Stack 내부 오버레이로 구현한다.
+  Map<String, dynamic>? _reward; // {title, sub, body, chips}
   // app2/screens-a2.jsx › MainRoom() capOpen/capLater — 타임캡슐(소원 봉인) 열기 오버레이 상태.
   bool _capOpen = false;
   bool _capLater = false;
@@ -197,19 +202,23 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
       },
       onDone: (res) {
         debugPrint('WR_PHASE devote.end');
-        setState(() { _capText = null; _quoteText = null; _lastGain = null; });
+        // [명세] 원본 jsx T(2900,...)는 setQuote(null)을 호출하지 않음 — 말씀 카드는
+        // 사용자가 직접 탭해서 닫을 때까지 화면에 남아있어야 함(_quoteText는 지우지 않음).
+        setState(() { _capText = null; _lastGain = null; });
         p.applyDevotionResult(res);
         if (res.leveledUp) {
           _showLevelUp(res.room.level);
         } else {
           final is10th = res.room.devotionsToday >= res.room.dailyLimit && res.bonus > 0;
-          showModalBottomSheet(context: context, backgroundColor: Colors.transparent, builder: (_) => _RewardSheet(
-            title: is10th ? '$verb 10회를 채웠어요' : '소원방이 더욱 빛나고 있어요',
-            sub: 'DEVOTION · ${res.room.devotionsToday.toString().padLeft(2, '0')} / ${res.room.dailyLimit}',
-            body: is10th ? '복주머니 +${res.bonus}' : null,
-            bonus: res.bonus,
-            cta: '확인', // A-4 devote() 보상시트 CTA — docs A_인트로…md 134줄(rekindle()의 '오늘도 정성 들이기'와 구분).
-          ));
+          // [명세] showModalBottomSheet 대신 Stack 오버레이로 설정 — quote(z95)가 이
+          // reward(z88/89) 위에 겹쳐 보이는 원본 레이어링을 재현하기 위함.
+          setState(() => _reward = {
+            'title': is10th ? '$verb 10회를 채웠어요' : '소원방이 더욱 빛나고 있어요',
+            'sub': 'DEVOTION · ${res.room.devotionsToday.toString().padLeft(2, '0')} / ${res.room.dailyLimit}',
+            'body': is10th ? '복주머니 +${res.bonus}' : null,
+            'bonus': res.bonus,
+            'cta': '확인', // A-4 devote() 보상시트 CTA — docs A_인트로…md 134줄(rekindle()의 '오늘도 정성 들이기'와 구분).
+          });
         }
       },
       onError: (e) {
@@ -274,12 +283,12 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
       if (ok) {
         setState(() => _justRekindled = true);
         Timer(const Duration(seconds: 8), () { if (mounted) setState(() => _justRekindled = false); });
-        showModalBottomSheet(context: context, backgroundColor: Colors.transparent, builder: (_) => _RewardSheet(
-          title: '촛불이 다시 환해졌어요',
-          sub: 'REKINDLED · 100%',
-          body: '$absentDays일 동안 소원방이 당신을 기다렸어요',
-          chips: const ['촛불 밝기 100%', '빛가루 +1'],
-        ));
+        setState(() => _reward = {
+          'title': '촛불이 다시 환해졌어요',
+          'sub': 'REKINDLED · 100%',
+          'body': '$absentDays일 동안 소원방이 당신을 기다렸어요',
+          'chips': const ['촛불 밝기 100%', '빛가루 +1'],
+        });
       }
     });
   }
@@ -441,6 +450,11 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
             if (_capText != null) Positioned(key: ValueKey(_capText), left: 20, right: 20, top: _rekindling ? 500 : 520, child: Center(child: _CapText(
               text: _capText!, fontSize: _rekindling ? 19 : 15, durMs: _rekindling ? 2600 : 2400,
             ))),
+            // devote() 2.9s / rekindle() 3.4s 보상시트 — [명세] quote보다 먼저(=아래) 배치해
+            // quote(z95)가 이 위에 겹쳐 보이는 원본 레이어링(dim z88/sheet z89 < quote z95)을 재현.
+            if (_reward != null) Positioned.fill(child: _RewardOverlay(
+              data: _reward!, onClose: () => setState(() => _reward = null),
+            )),
             // devote() 2.3s 말씀 카드(RITUAL.quotes 랜덤 1개, 테마별 디자인) — 탭하면 닫힘.
             if (_quoteText != null) Positioned.fill(child: _QuoteCard(
               text: _quoteText!.$1, src: _quoteText!.$2, theme: room.theme, icon: ritual['icon'] as String? ?? '✿',
@@ -1064,12 +1078,13 @@ class RoomLayoutUnlocks {
 /// rekindle: sub `REKINDLED · 100%` · 본문 `{n}일 동안 소원방이 당신을 기다렸어요` ·
 /// 칸 `촛불 밝기 100% · 빛가루 +1`.
 class _RewardSheet extends StatelessWidget {
-  const _RewardSheet({required this.title, required this.sub, this.body, this.bonus = 0, this.chips, this.cta = '오늘도 정성 들이기'});
+  const _RewardSheet({required this.title, required this.sub, this.body, this.bonus = 0, this.chips, this.cta = '오늘도 정성 들이기', this.onClose});
   final String title, sub;
   final String? body;
   final int bonus;
   final List<String>? chips;
   final String cta;
+  final VoidCallback? onClose;
   @override
   Widget build(BuildContext context) {
     final cc = chips ?? (bonus > 0 ? ['꽃잎 +1', '빛가루 +1', '복주머니 +$bonus'] : ['꽃잎 +1', '빛가루 +1', '연꽃잎 +1']);
@@ -1095,12 +1110,38 @@ class _RewardSheet extends StatelessWidget {
         ]),
         const SizedBox(height: 20),
         SizedBox(width: double.infinity, height: 50, child: ElevatedButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: onClose ?? () => Navigator.of(context).pop(),
           style: ElevatedButton.styleFrom(backgroundColor: WrC.blossom),
           child: Text(cta, style: const TextStyle(color: Colors.white)),
         )),
       ]),
     );
+  }
+}
+
+/// devote()/rekindle() 보상시트를 Stack 내부 오버레이로 띄우는 wrapper —
+/// [명세] 원본 jsx `.dim`(z88)+`.sheet`(bottom:22,z89) 1:1. showModalBottomSheet
+/// (별도 Route) 대신 사용해야 `_quoteText`(z95)가 이 위에 겹쳐 보이는 레이어링이 가능하다.
+class _RewardOverlay extends StatelessWidget {
+  const _RewardOverlay({required this.data, required this.onClose});
+  final Map<String, dynamic> data;
+  final VoidCallback onClose;
+  @override
+  Widget build(BuildContext context) {
+    final chips = data['chips'] as List<String>?;
+    return Stack(children: [
+      GestureDetector(onTap: onClose, behavior: HitTestBehavior.opaque,
+        child: Container(color: const Color(0x80080308))), // .dim rgba(8,3,8,.5)
+      Positioned(left: 10, right: 10, bottom: 22, child: _RewardSheet(
+        title: data['title'] as String,
+        sub: data['sub'] as String,
+        body: data['body'] as String?,
+        bonus: data['bonus'] as int? ?? 0,
+        chips: chips,
+        cta: data['cta'] as String? ?? '오늘도 정성 들이기',
+        onClose: onClose,
+      )),
+    ]);
   }
 }
 
