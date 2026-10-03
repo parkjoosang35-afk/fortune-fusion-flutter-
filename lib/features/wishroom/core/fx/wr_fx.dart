@@ -120,6 +120,67 @@ class _WrBurstState extends State<WrBurst> with SingleTickerProviderStateMixin {
 
 class _BurstParticle { final double bx, by, s, dl; _BurstParticle({required this.bx, required this.by, required this.s, required this.dl}); }
 
+/// Spiral({n,x,y}) — 빛 알갱이 n개가 지그재그(sp-x, 좌우 흔들림)로 솟아오르며
+/// 사라짐(sp-up). app2/fx2.jsx › Spiral() 1:1 이식. devote() t0.7 "빛 나선 26".
+class WrSpiral extends StatefulWidget {
+  const WrSpiral({super.key, this.n = 26, this.x = 204, this.y = 330});
+  final int n;
+  final double x, y;
+  @override
+  State<WrSpiral> createState() => _WrSpiralState();
+}
+
+class _WrSpiralState extends State<WrSpiral> with SingleTickerProviderStateMixin {
+  late final AnimationController _c;
+  late final List<_SpiralSpec> _ps;
+
+  @override
+  void initState() {
+    super.initState();
+    final rnd = math.Random();
+    _ps = List.generate(widget.n, (i) => _SpiralSpec(
+      d: 1.8 + rnd.nextDouble() * .8, dl: i * .06, w: 14 + rnd.nextDouble() * 20,
+      s: 3 + rnd.nextDouble() * 4, m: -6 + rnd.nextDouble() * 12,
+    ));
+    final maxTotal = _ps.map((p) => p.d + p.dl).fold<double>(0, math.max);
+    _c = AnimationController(vsync: this, duration: Duration(milliseconds: (maxTotal * 1000).round()))..forward();
+  }
+
+  @override
+  void dispose() { _c.dispose(); super.dispose(); }
+
+  @override
+  Widget build(BuildContext context) {
+    final total = _c.duration!.inMilliseconds / 1000.0;
+    return Positioned(left: widget.x, top: widget.y, child: IgnorePointer(child: SizedBox(
+      width: 1, height: 1,
+      child: AnimatedBuilder(animation: _c, builder: (_, __) {
+        final now = _c.value * total;
+        return Stack(clipBehavior: Clip.none, children: [
+          for (final p in _ps) () {
+            final raw = ((now - p.dl) / p.d).clamp(0.0, 1.0);
+            if (raw <= 0) return const SizedBox.shrink();
+            // sp-up: cubic(.3,.6,.4,1) 근사 easeOut, 0→-300px, 0%opacity→10%full→100%0
+            final t = const Cubic(.3, .6, .4, 1).transform(raw);
+            final dy = -300 * t;
+            final op = raw < .1 ? raw / .1 : (1 - raw);
+            // sp-x: .9s ease-in-out alternate 좌우 흔들림(진폭 w)
+            final xPhase = ((now - p.dl) / .9) % 2;
+            final xT = xPhase <= 1 ? xPhase : 2 - xPhase;
+            final dx = p.m + (-p.w + 2 * p.w * Curves.easeInOut.transform(xT));
+            return Positioned(left: dx - p.s / 2, top: dy - p.s / 2, child: Opacity(opacity: op.clamp(0.0, 1.0),
+              child: Container(width: p.s, height: p.s, decoration: BoxDecoration(shape: BoxShape.circle,
+                gradient: const RadialGradient(colors: [Colors.white, Color(0xFFFFD98A), Colors.transparent], stops: [0, .45, .72]),
+                boxShadow: const [BoxShadow(color: Color(0xFFFFCF6A), blurRadius: 8)]))));
+          }(),
+        ]);
+      }),
+    )));
+  }
+}
+
+class _SpiralSpec { final double d, dl, w, s, m; _SpiralSpec({required this.d, required this.dl, required this.w, required this.s, required this.m}); }
+
 /// 특별 효과 9종 (방 전체 지속 연출) — app2/room2.jsx › SpecialFx()/
 /// special==='starrain'|'butterfly'|'aura' 분기 1:1 이식. 꾸미기 SPECIAL 슬롯
 /// 아이템(s_firefly·s_sakura·s_snow·s_rain·s_butter·s_lantern·s_meteor·
