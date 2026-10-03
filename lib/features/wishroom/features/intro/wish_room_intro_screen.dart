@@ -92,7 +92,9 @@ class _WishRoomIntroScreenState extends State<WishRoomIntroScreen> {
       if (p.room == null) {
         return _WelcomeScreen(
           onCompose: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ComposeScreen())),
-          onExplore: _enterShell,
+          // [명세] A-2 "다른 소원방 둘러보기" → 탐색 탭(index 1)으로 진입해야 함(단순
+          // Shell 기본탭 0이 아님). requestTab(1) 예약 후 Shell 진입.
+          onExplore: () { p.requestTab(1); _enterShell(); },
           onBack: () => Navigator.of(context).maybePop(),
           onExitHome: _exitHome,
         );
