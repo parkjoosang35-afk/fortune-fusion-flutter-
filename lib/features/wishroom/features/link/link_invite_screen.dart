@@ -43,7 +43,7 @@ class _LinkInviteScreenState extends State<LinkInviteScreen> {
     final cat = WrCatalog.I;
     return Theme(data: wrThemeData(), child: Scaffold(backgroundColor: const Color(0xFF0C0408), body: Stack(children: [
       Container(decoration: const BoxDecoration(gradient: RadialGradient(center: Alignment(0, -.2), radius: 1.1, colors: [Color(0xFF4A2040), Color(0xFF0C0408)], stops: [0, .78]))),
-      const Positioned.fill(child: IgnorePointer(child: WrPetalRain(n: 10, dur: (8, 12), spread: 8))),
+      const WrPetalRain(n: 10, dur: (8, 12), spread: 8),
       if (_err != null) Positioned(left: 24, right: 24, top: 300, child: Column(children: [
         const Text('🔒', style: TextStyle(fontSize: 34)),
         const SizedBox(height: 10),

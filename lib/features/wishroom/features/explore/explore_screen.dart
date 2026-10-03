@@ -234,7 +234,9 @@ class _FeedCardState extends State<_FeedCard> {
     final room = _room;
     final wc = cat.wishColors.where((c) => c['id'] == room.wishColor).toList();
     final W = wc.isNotEmpty ? wc.first : null;
-    return GestureDetector(onTap: widget.onTap, child: Container(
+    return GestureDetector(onTap: widget.onTap, child: LayoutBuilder(builder: (context, constraints) {
+      final innerW = constraints.maxWidth - 20; // Container padding 10*2
+      return Container(
       decoration: WrDeco.card,
       padding: const EdgeInsets.all(10),
       child: Stack(clipBehavior: Clip.none, children: [
@@ -275,9 +277,10 @@ class _FeedCardState extends State<_FeedCard> {
             ]),
           ])),
         ]),
-        if (_heartKey > 0) Positioned(right: 20, top: 30, child: WrHearts(key: ValueKey(_heartKey), x: 0, y: 0, n: 8)),
+        if (_heartKey > 0) WrHearts(key: ValueKey(_heartKey), x: innerW - 20, y: 30, n: 8),
       ]),
-    ));
+    );
+    }));
   }
 }
 
@@ -291,6 +294,8 @@ class _StoryCard extends StatefulWidget {
 class _StoryCardState extends State<_StoryCard> {
   late WrReview _v = widget.v;
   int _pop = 0;
+  final GlobalKey _congratsBtnKey = GlobalKey();
+  double _congratsBtnWidth = 0;
 
   Future<void> _congrats() async {
     if (_v.mine) return;
@@ -299,7 +304,9 @@ class _StoryCardState extends State<_StoryCard> {
     if (!mounted) return;
     if (ok) {
       final fresh = p.reviewFeed.where((r) => r.id == _v.id).toList();
-      setState(() { if (fresh.isNotEmpty) _v = fresh.first; _pop++; });
+      final box = _congratsBtnKey.currentContext?.findRenderObject() as RenderBox?;
+      final w = box?.size.width ?? 0;
+      setState(() { if (fresh.isNotEmpty) _v = fresh.first; _congratsBtnWidth = w; _pop++; });
     }
   }
 
@@ -338,7 +345,7 @@ class _StoryCardState extends State<_StoryCard> {
             Text('${_v.author}${_v.mine ? ' · 나' : ''}', style: WrF.body(11.5, color: WrC.muted)),
             const Spacer(),
             GestureDetector(onTap: _v.mine ? null : _congrats, child: Opacity(opacity: _v.mine ? .6 : 1, child: Stack(clipBehavior: Clip.none, children: [
-              Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              Container(key: _congratsBtnKey, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(borderRadius: BorderRadius.circular(999),
                   gradient: _v.congratsByMe ? const LinearGradient(colors: [Color(0xFFFF9CBC), Color(0xFFF2628F)]) : null,
                   color: _v.congratsByMe ? null : const Color(0x14FFFFFF),
@@ -349,7 +356,7 @@ class _StoryCardState extends State<_StoryCard> {
                   Text('축하해요 ${_v.congrats}', style: WrF.body(12, w: FontWeight.w700, color: Colors.white)),
                 ]),
               ),
-              if (_pop > 0) Positioned(right: 0, top: 0, child: WrHearts(key: ValueKey(_pop), x: 0, y: 0, n: 6)),
+              if (_pop > 0) WrHearts(key: ValueKey(_pop), x: _congratsBtnWidth, y: 0, n: 6),
             ]))),
           ]),
         ]),

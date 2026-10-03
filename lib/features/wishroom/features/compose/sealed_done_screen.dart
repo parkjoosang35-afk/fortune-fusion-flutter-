@@ -46,7 +46,7 @@ class _SealedDoneScreenState extends State<SealedDoneScreen> with SingleTickerPr
       body: Container(
         decoration: const BoxDecoration(gradient: RadialGradient(center: Alignment(0, -.42), radius: 1.1, colors: [Color(0xFF3A1A34), Color(0xFF0C0408)], stops: [0, .75])),
         child: Stack(children: [
-          const Positioned.fill(child: IgnorePointer(child: WrPetalRain(n: 8, dur: (8, 12), spread: 8))),
+          const WrPetalRain(n: 8, dur: (8, 12), spread: 8),
           // 18개 방사형 광선 — halo-rays 40s
           Positioned(left: 0, right: 0, top: 245, child: Center(child: AnimatedBuilder(
             animation: _c,
@@ -113,7 +113,7 @@ class _SealedDoneScreenState extends State<SealedDoneScreen> with SingleTickerPr
               )));
             },
           ))),
-          if (_burst1) const Positioned(left: 195, top: 245, child: WrBurst(x: 0, y: 0, n: 24, spread: 150, color: Color(0xFFFFE0A0))),
+          if (_burst1) const WrBurst(x: 195, y: 245, n: 24, spread: 150, color: Color(0xFFFFE0A0)),
           // 문구
           Positioned(left: 24, right: 24, top: 360, child: AnimatedBuilder(
             animation: _c, builder: (_, __) {

@@ -148,7 +148,7 @@ class _WalletSheetState extends State<WalletSheet> {
             Row(children: [
               Stack(clipBehavior: Clip.none, children: [
                 const _BobbingPouchIcon(),
-                if (_gotKey > 0) Positioned(left: 39, top: 40, child: WrBurst(key: ValueKey(_gotKey), x: 0, y: 0, n: 16, glyph: '✨', spread: 90)),
+                if (_gotKey > 0) WrBurst(key: ValueKey(_gotKey), x: 39, y: 40, n: 16, glyph: '✨', spread: 90),
               ]),
               const SizedBox(width: 14),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

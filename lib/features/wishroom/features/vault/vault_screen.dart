@@ -250,7 +250,7 @@ class _ReplayOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     return Dialog(backgroundColor: Colors.black, insetPadding: EdgeInsets.zero, child: Stack(children: [
       Positioned.fill(child: WrCanvasScaler(child: RoomScene(room: room, items: items, gold: .25, frozen: true))),
-      const Positioned.fill(child: IgnorePointer(child: WrPetalRain(n: 16, dur: (6, 9), spread: 6))),
+      const WrPetalRain(n: 16, dur: (6, 9), spread: 6),
       SafeArea(child: Padding(padding: const EdgeInsets.fromLTRB(14, 8, 14, 0), child: Row(children: [
         GestureDetector(onTap: () => Navigator.of(context).pop(), child: Container(
           width: 32, height: 32, alignment: Alignment.center,
@@ -395,7 +395,7 @@ class _PouchTabState extends State<_PouchTab> {
           child: Row(children: [
             Stack(clipBehavior: Clip.none, children: [
               _BobbingPouch(key: const ValueKey('pouch')),
-              if (_gotKey > 0) Positioned(left: 42, top: 42, child: WrBurst(key: ValueKey(_gotKey), x: 0, y: 0, n: 16, glyph: '✨', spread: 90)),
+              if (_gotKey > 0) WrBurst(key: ValueKey(_gotKey), x: 42, y: 42, n: 16, glyph: '✨', spread: 90),
             ]),
             const SizedBox(width: 14),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

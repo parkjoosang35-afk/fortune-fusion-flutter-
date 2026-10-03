@@ -153,21 +153,25 @@ class _WrSpecialFxState extends State<WrSpecialFx> with SingleTickerProviderStat
     if (fx == null || fx.isEmpty) return const SizedBox.shrink();
     return IgnorePointer(child: SizedBox(
       width: widget.canvasW, height: widget.canvasH,
-      child: AnimatedBuilder(animation: _loop, builder: (_, __) {
-        final t = _loop.value * 20; // 초 단위 경과(루프마다 0→20 반복)
-        switch (fx) {
-          case 'firefly': return CustomPaint(size: Size(widget.canvasW, widget.canvasH), painter: _FireflyPainter(t: t, density: widget.density));
-          case 'sakura': return CustomPaint(size: Size(widget.canvasW, widget.canvasH), painter: _FallPainter(t: t, density: widget.density, kind: _FallKind.sakura));
-          case 'snow': return CustomPaint(size: Size(widget.canvasW, widget.canvasH), painter: _FallPainter(t: t, density: widget.density, kind: _FallKind.snow));
-          case 'lanterns': return CustomPaint(size: Size(widget.canvasW, widget.canvasH), painter: _LanternPainter(t: t, density: widget.density));
-          case 'meteor': return CustomPaint(size: Size(widget.canvasW, widget.canvasH), painter: _MeteorPainter(t: t, density: widget.density));
-          case 'aurora': return _AuroraBand(t: t);
-          case 'starrain': return CustomPaint(size: Size(widget.canvasW, widget.canvasH), painter: _StarRainPainter(t: t, density: widget.density));
-          case 'butterfly': return const _ButterflyRoam();
-          case 'aura': return const _GoldAura();
-          default: return const SizedBox.shrink();
-        }
-      }),
+      // Stack으로 감싸야 함: case 'aura'의 _GoldAura가 자체적으로 Positioned를 반환하므로
+      // SizedBox가 직접 부모가 되면 "ParentData is not a subtype of StackParentData" 런타임 에러 발생.
+      child: Stack(clipBehavior: Clip.none, children: [
+        AnimatedBuilder(animation: _loop, builder: (_, __) {
+          final t = _loop.value * 20; // 초 단위 경과(루프마다 0→20 반복)
+          switch (fx) {
+            case 'firefly': return CustomPaint(size: Size(widget.canvasW, widget.canvasH), painter: _FireflyPainter(t: t, density: widget.density));
+            case 'sakura': return CustomPaint(size: Size(widget.canvasW, widget.canvasH), painter: _FallPainter(t: t, density: widget.density, kind: _FallKind.sakura));
+            case 'snow': return CustomPaint(size: Size(widget.canvasW, widget.canvasH), painter: _FallPainter(t: t, density: widget.density, kind: _FallKind.snow));
+            case 'lanterns': return CustomPaint(size: Size(widget.canvasW, widget.canvasH), painter: _LanternPainter(t: t, density: widget.density));
+            case 'meteor': return CustomPaint(size: Size(widget.canvasW, widget.canvasH), painter: _MeteorPainter(t: t, density: widget.density));
+            case 'aurora': return _AuroraBand(t: t);
+            case 'starrain': return CustomPaint(size: Size(widget.canvasW, widget.canvasH), painter: _StarRainPainter(t: t, density: widget.density));
+            case 'butterfly': return const _ButterflyRoam();
+            case 'aura': return const _GoldAura();
+            default: return const SizedBox.shrink();
+          }
+        }),
+      ]),
     ));
   }
 }

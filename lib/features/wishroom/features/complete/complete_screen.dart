@@ -152,7 +152,7 @@ class _CompleteScreenState extends State<CompleteScreen> {
               ),
               if (st >= 1) const WrBurst(x: 204, y: 330, n: 24, spread: 180, color: Color(0xFFFFF2B8), dur: 1600),
               if (st >= 4) for (var i = 0; i < 7; i++) _LightPillar(index: i),
-              if (st >= 3) const Positioned.fill(child: IgnorePointer(child: WrPetalRain(n: 40, dur: (4, 7), spread: 3))),
+              if (st >= 3) const WrPetalRain(n: 40, dur: (4, 7), spread: 3),
               if (st >= 3) for (var i = 0; i < _lotusSpots.length; i++) _LotusPop(index: i, pos: _lotusSpots[i]),
               if (st >= 5) const WrButterflies(x: 204, y: 420),
             ]))),
@@ -313,7 +313,7 @@ class _SealedBody extends StatelessWidget {
       Positioned.fill(child: ImageFiltered(imageFilter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
         child: Image.asset('assets/wishroom/room-lv10.jpg', fit: BoxFit.cover))),
       Positioned.fill(child: Container(color: Colors.black.withValues(alpha: .55))),
-      const Positioned.fill(child: IgnorePointer(child: WrPetalRain(n: 14, dur: (7, 10), spread: 6))),
+      const WrPetalRain(n: 14, dur: (7, 10), spread: 6),
       SafeArea(child: Padding(padding: const EdgeInsets.all(26), child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [

@@ -152,7 +152,7 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
       },
       onPetalButterfly: () {
         _addFx(Stack(children: const [
-          Positioned.fill(child: WrPetalRain(n: 22, dur: (2.0, 3.0), spread: .8)),
+          WrPetalRain(n: 22, dur: (2.0, 3.0), spread: .8),
           WrButterflies(x: 204, y: 380),
         ]), life: 3200);
       },
@@ -215,7 +215,7 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
       if (!mounted) return;
       setState(() { _rekindleBrightness = 1; _rekindleBoost = 2; _capText = '$absentDays일 만에 촛불이 다시 밝아졌어요'; });
       _addFx(Stack(children: const [
-        Positioned.fill(child: WrPetalRain(n: 28, dur: (2.2, 3.4), spread: 1)),
+        WrPetalRain(n: 28, dur: (2.2, 3.4), spread: 1),
         WrButterflies(x: 204, y: 380),
         WrBurst(x: 204, y: 330, n: 24, spread: 180, color: Color(0xFFFFE08A)),
       ]), life: 3200);

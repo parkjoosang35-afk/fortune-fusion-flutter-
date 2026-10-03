@@ -301,7 +301,7 @@ class _SplashStageState extends State<_SplashStage> with SingleTickerProviderSta
       }),
       Positioned(left: 0, right: 0, top: MediaQuery.of(context).size.height * .42 - 210,
         child: const Center(child: _HaloRays())),
-      const Positioned.fill(child: WrPetalRain(n: 16, dur: (3.0, 5.0), spread: 1.5)),
+      const WrPetalRain(n: 16, dur: (3.0, 5.0), spread: 1.5),
       Positioned(left: 0, right: 0, top: 112, child: _InkTitleBlock(
         subtitle: '당신의 소원이 빛이 되는 곳',
       )),
@@ -354,7 +354,7 @@ class _GateStageState extends State<_GateStage> with TickerProviderStateMixin {
           child: Image.asset('assets/wishroom/gate.jpg', fit: BoxFit.cover, alignment: const Alignment(0, .1)),
         ));
       }),
-      Positioned.fill(child: WrPetalRain(n: 20, dur: (1.4, 2.4), spread: .4)),
+      WrPetalRain(n: 20, dur: (1.4, 2.4), spread: .4),
       // white-out: 0%op0 → 60%op1 → 100%op0, ease-in, radial-gradient + screen blend 근사.
       AnimatedBuilder(animation: _white, builder: (_, __) {
         final v = _white.value;
@@ -458,7 +458,7 @@ class _WelcomeScreen extends StatelessWidget {
       body: WrCanvasScaler(child: Stack(fit: StackFit.expand, children: [
         const _DriftBg(),
         Container(color: const Color(0x8A12060E)),
-        const Positioned.fill(child: WrPetalRain(n: 10, dur: (8.0, 12.0), spread: 8)),
+        const WrPetalRain(n: 10, dur: (8.0, 12.0), spread: 8),
         Positioned(left: 14, top: 52, child: WrNavPill(onBack: onBack, onExitHome: onExitHome)),
         Positioned(left: 0, right: 0, top: 110, child: _InkFade(
           duration: const Duration(milliseconds: 1600),

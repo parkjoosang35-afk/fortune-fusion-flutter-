@@ -81,7 +81,7 @@ class _ReviewWriteScreenState extends State<ReviewWriteScreen> {
         : Container(
           decoration: const BoxDecoration(gradient: RadialGradient(center: Alignment(0, -1), radius: 1.3, colors: [Color(0xFF4A2040), Color(0xFF12060E)], stops: [0, .7])),
           child: Stack(children: [
-            const Positioned.fill(child: IgnorePointer(child: WrPetalRain(n: 6, dur: (9, 13), spread: 8))),
+            const WrPetalRain(n: 6, dur: (9, 13), spread: 8),
             SafeArea(child: Column(children: [
               Expanded(child: SingleChildScrollView(padding: const EdgeInsets.fromLTRB(20, 20, 20, 150), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(children: [
@@ -214,7 +214,7 @@ class _RewardBodyState extends State<_RewardBody> with SingleTickerProviderState
     return Container(
       decoration: const BoxDecoration(gradient: RadialGradient(center: Alignment(0, -.2), radius: 1.2, colors: [Color(0xFF4A2040), Color(0xFF0C0408)], stops: [0, .78])),
       child: Stack(children: [
-        const Positioned.fill(child: IgnorePointer(child: WrPetalRain(n: 10, dur: (7, 11), spread: 6))),
+        const WrPetalRain(n: 10, dur: (7, 11), spread: 6),
         Positioned(left: 24, right: 24, top: 150, child: Column(children: [
           SizedBox(height: 140, child: Stack(alignment: Alignment.center, children: [
             Positioned(top: 10, child: AnimatedBuilder(animation: _c, builder: (_, __) => Opacity(opacity: .45,

@@ -193,7 +193,7 @@ class _CapsuleOpenScreenState extends State<CapsuleOpenScreen> {
     if (_step == _CapStep.ongoing) {
       return Theme(data: wrThemeData(), child: Scaffold(backgroundColor: const Color(0xFF0C0408), body: Stack(children: [
         Container(decoration: const BoxDecoration(gradient: RadialGradient(center: Alignment(0, -.45), radius: 1.1, colors: [Color(0xFF3A1A34), Color(0xFF0C0408)], stops: [0, .78]))),
-        const Positioned.fill(child: IgnorePointer(child: WrPetalRain(n: 6, dur: (9, 13), spread: 8))),
+        const WrPetalRain(n: 6, dur: (9, 13), spread: 8),
         Positioned(left: 26, right: 26, top: 240, child: Column(children: [
           const _BobIcon(icon: '🙏', fontSize: 44),
           const SizedBox(height: 14),
@@ -209,8 +209,8 @@ class _CapsuleOpenScreenState extends State<CapsuleOpenScreen> {
 
     return Theme(data: wrThemeData(), child: Scaffold(backgroundColor: const Color(0xFF0C0408), body: Stack(children: [
       Container(decoration: const BoxDecoration(gradient: RadialGradient(center: Alignment(0, -.5), radius: 1.1, colors: [Color(0xFF4A2040), Color(0xFF0C0408)], stops: [0, .78]))),
-      const Positioned.fill(child: IgnorePointer(child: WrPetalRain(n: 7, dur: (8, 12), spread: 8))),
-      const Positioned.fill(child: IgnorePointer(child: WrPetalRain(n: 10, dur: (9, 13), spread: 8))),
+      const WrPetalRain(n: 7, dur: (8, 12), spread: 8),
+      const WrPetalRain(n: 10, dur: (9, 13), spread: 8),
       // 깨지는 인장
       if (_step == _CapStep.open) Positioned(left: 0, right: 0, top: 220, child: Center(child: TweenAnimationBuilder<double>(
         tween: Tween(begin: 0, end: 1), duration: const Duration(milliseconds: 1200), curve: const Cubic(.6, 0, .4, 1),
@@ -226,7 +226,7 @@ class _CapsuleOpenScreenState extends State<CapsuleOpenScreen> {
           )));
         },
       ))),
-      if (_sealBreakDone) const Positioned(left: 195, top: 220, child: WrBurst(x: 0, y: 0, n: 26, spread: 170, color: Color(0xFFFFE0A0))),
+      if (_sealBreakDone) const WrBurst(x: 195, y: 220, n: 26, spread: 170, color: Color(0xFFFFE0A0)),
       Positioned(left: 0, right: 0, top: 86, child: Column(children: [
         Text('UNSEALED · ${_fmtDot(room.sealUntil)}', style: WrF.mono(size: 10, color: const Color(0xFFFFE08A))),
         const SizedBox(height: 6),
@@ -316,7 +316,7 @@ class _SealedDoneBody extends StatelessWidget {
     return Theme(data: wrThemeData(), child: Scaffold(backgroundColor: const Color(0xFF0C0408), body: Container(
       decoration: const BoxDecoration(gradient: RadialGradient(center: Alignment(0, -.42), radius: 1.1, colors: [Color(0xFF3A1A34), Color(0xFF0C0408)], stops: [0, .75])),
       child: Stack(children: [
-        const Positioned.fill(child: IgnorePointer(child: WrPetalRain(n: 8, dur: (8, 12), spread: 8))),
+        const WrPetalRain(n: 8, dur: (8, 12), spread: 8),
         Positioned(left: 0, right: 0, top: 260, child: Center(child: Container(width: 100, height: 100, alignment: Alignment.center,
           decoration: BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [color, color.withValues(alpha: 0)])),
           child: Text(hanja, style: const TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 40, color: Colors.white))))),
@@ -479,7 +479,7 @@ class _AchieveCinematicScreenState extends State<AchieveCinematicScreen> with Si
           Positioned(left: 0, right: 0, top: 100, child: Center(child: Container(width: 400, height: 400, decoration: const BoxDecoration(
             shape: BoxShape.circle, gradient: RadialGradient(colors: [Colors.white, Color(0xB3FFE6AA), Colors.transparent], stops: [0, .22, .62]))))),
           for (final d in [0.0, .25, .5]) _DelayedRing(delaySeconds: d),
-          const Positioned(left: 195, top: 300, child: WrBurst(x: 0, y: 0, n: 30, spread: 190, color: Color(0xFFFFE6B0))),
+          const WrBurst(x: 195, y: 300, n: 30, spread: 190, color: Color(0xFFFFE6B0)),
         ],
         // STEP3 — 소원 공개
         if (_t >= 3) Positioned(left: 26, right: 26, top: 190, child: TweenAnimationBuilder<double>(
@@ -506,7 +506,7 @@ class _AchieveCinematicScreenState extends State<AchieveCinematicScreen> with Si
           const SizedBox(height: 10),
           Text('오랫동안 간직했던 소원이\n현실이 되었습니다. 💛', textAlign: TextAlign.center, style: WrF.body(14, color: const Color(0xD9FFEEDC), height: 1.75)),
         ])),
-        if (_t >= 4) const Positioned.fill(child: IgnorePointer(child: WrPetalRain(n: 16, dur: (5, 8), spread: 4))),
+        if (_t >= 4) const WrPetalRain(n: 16, dur: (5, 8), spread: 4),
       ]))),
     );
   }
