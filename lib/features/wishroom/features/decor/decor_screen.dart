@@ -21,6 +21,8 @@ import '../guide/guide_sheet.dart';
 import '../../core/wr_nav_pill.dart';
 import '../wallet/wallet_sheet.dart';
 import '../../core/wr_ad_earn_button.dart';
+import 'dart:ui' as ui;
+import '../compose/compose_screen.dart';
 
 class DecorScreen extends StatefulWidget {
   const DecorScreen({super.key});
@@ -121,7 +123,10 @@ class _DecorScreenState extends State<DecorScreen> {
       backgroundColor: WrC.bg2,
       body: Consumer<WishRoomProvider>(builder: (context, p, __) {
         final room = p.room;
-        if (room == null) return const Center(child: CircularProgressIndicator(color: Color(0xFFF5CF6A)));
+        // app2/screens-b2.jsx › Decor() `if (!room) return <NoRoom app={app}/>` 1:1.
+        // [버그수정 — 전수감사] 기존엔 room==null일 때 단순 로딩 스피너만 표시했다
+        // (원본은 "아직 소원이 담기지 않았어요" 안내 + "첫 소원 담기" CTA).
+        if (room == null) return const _NoRoom();
         final cat = WrCatalog.I;
         final eq = room.equip;
         // 미리보기(미보유 선택) 반영한 가상 room
@@ -165,26 +170,35 @@ class _DecorScreenState extends State<DecorScreen> {
                 child: Text(t, style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w800, fontSize: 10.5, color: Color(0xFFFFE6B8))),
               )).toList(),
             )),
-            SafeArea(bottom: false, child: Padding(padding: const EdgeInsets.fromLTRB(14, 10, 14, 0), child: Row(children: [
-              // app2/screens-b2.jsx › Decor() TopBar(left=? 안내서버튼) — nav 기본값
-              // true로 NavPill이 그 왼쪽에 함께 온다. [버그수정 — 전수감사] 기존엔
-              // NavPill이 전혀 없었다.
-              WrNavPill(onBack: () => wrBackOrAskExit(context), onExitHome: () => wrExitHome(context)),
-              const SizedBox(width: 6),
-              GestureDetector(onTap: _openGuide, child: Container(width: 32, height: 32, alignment: Alignment.center,
-                decoration: BoxDecoration(color: WrC.glass, shape: BoxShape.circle, border: Border.all(color: WrC.line)),
-                child: const Text('?', style: TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 13, color: Colors.white)))),
-              const Expanded(child: Center(child: Text('내 소원방 꾸미기', style: TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white)))),
-              // app2/screens-b2.jsx › Decor() right={<PouchPill ... onClick={app.openWallet}/>} [버그수정 — 전수감사]
-              // 기존엔 탭 핸들러가 전혀 없는 정적 Container였다.
-              GestureDetector(onTap: () => openWalletSheet(context), child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(color: WrC.glass, borderRadius: BorderRadius.circular(999)),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Image.asset('assets/wishroom/items/pouch.png', width: 16, height: 16,
-                      errorBuilder: (_, __, ___) => const Text('💰', style: TextStyle(fontSize: 14))),
-                  const SizedBox(width: 5),
-                  Text('${p.me?.pouch ?? 0}', style: const TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 13, color: Colors.white)),
-                ]),
+            SafeArea(bottom: false, child: SizedBox(height: 44, child: Stack(children: [
+              // app2/fx2.jsx › TopBar() 제목은 left:104,right:104(화면폭 기준 중앙정렬)
+              // 고정값이다. [버그수정 — 전수감사] 기존엔 Expanded+Center라 NavPill+?버튼과
+              // PouchPill 사이 남은 공간 기준 중앙정렬이라 좌우 그룹 폭 차이만큼 어긋나 있었다.
+              const Positioned(top: 0, bottom: 0, left: 104, right: 104, child: Center(child: Text('내 소원방 꾸미기',
+                style: TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white),
+                maxLines: 1, overflow: TextOverflow.ellipsis))),
+              Positioned(left: 14, top: 0, bottom: 0, child: Row(children: [
+                // app2/screens-b2.jsx › Decor() TopBar(left=? 안내서버튼) — nav 기본값
+                // true로 NavPill이 그 왼쪽에 함께 온다. [버그수정 — 전수감사] 기존엔
+                // NavPill이 전혀 없었다.
+                WrNavPill(onBack: () => wrBackOrAskExit(context), onExitHome: () => wrExitHome(context)),
+                const SizedBox(width: 6),
+                GestureDetector(onTap: _openGuide, child: Container(width: 32, height: 32, alignment: Alignment.center,
+                  decoration: BoxDecoration(color: WrC.glass, shape: BoxShape.circle, border: Border.all(color: WrC.line)),
+                  child: const Text('?', style: TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 13, color: Colors.white)))),
+              ])),
+              Positioned(right: 14, top: 0, bottom: 0, child: Center(child:
+                // app2/screens-b2.jsx › Decor() right={<PouchPill ... onClick={app.openWallet}/>} [버그수정 — 전수감사]
+                // 기존엔 탭 핸들러가 전혀 없는 정적 Container였다.
+                GestureDetector(onTap: () => openWalletSheet(context), child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(color: WrC.glass, borderRadius: BorderRadius.circular(999)),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Image.asset('assets/wishroom/items/pouch.png', width: 16, height: 16,
+                        errorBuilder: (_, __, ___) => const Text('💰', style: TextStyle(fontSize: 14))),
+                    const SizedBox(width: 5),
+                    Text('${p.me?.pouch ?? 0}', style: const TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 13, color: Colors.white)),
+                  ]),
+                )),
               )),
             ]))),
           ])),
@@ -912,3 +926,48 @@ const List<double> _grayscale30 = [
 ];
 
 extension _Let<T> on T { R let<R>(R Function(T) f) => f(this); }
+
+// app2/screens-b2.jsx › NoRoom({app}) 1:1 — blur-room(room-lv1.jpg) 배경 +
+// 중앙 정렬 c_basic 아이콘(grayscale(.5) brightness(.7)) + 안내문 + "첫 소원 담기" CTA.
+// 소원방 모듈에서 아직 소원을 작성하지 않은 사용자가 꾸미기 탭에 들어왔을 때만 보인다.
+class _NoRoom extends StatelessWidget {
+  const _NoRoom();
+  @override
+  Widget build(BuildContext context) {
+    return Stack(children: [
+      Positioned.fill(child: ImageFiltered(
+        imageFilter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        child: Image.asset('assets/wishroom/room-lv1.jpg', fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => Container(color: WrC.bg2)),
+      )),
+      Positioned.fill(child: Container(color: const Color(0x66000000))),
+      Positioned.fill(child: Center(child: Padding(
+        padding: const EdgeInsets.all(40),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ColorFiltered(
+            colorFilter: const ColorFilter.matrix(_grayscale50Brightness70),
+            child: Image.asset('assets/wishroom/items/c_basic.png', width: 120,
+              errorBuilder: (_, __, ___) => const Icon(Icons.local_fire_department, size: 100, color: Colors.white38)),
+          ),
+          const SizedBox(height: 14),
+          Text('아직 소원이 담기지 않았어요', textAlign: TextAlign.center,
+            style: WrF.body(14, color: WrC.muted, height: 1.7)),
+          const SizedBox(height: 14),
+          SizedBox(width: 200, height: 52, child: ElevatedButton(
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ComposeScreen())),
+            style: ElevatedButton.styleFrom(backgroundColor: WrC.blossom, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+            child: const Text('첫 소원 담기', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+          )),
+        ]),
+      ))),
+    ]);
+  }
+}
+
+// CSS filter: grayscale(.5) brightness(.7) 근사 행렬 — NoRoom c_basic 아이콘 1:1(app2/screens-b2.jsx)
+const List<double> _grayscale50Brightness70 = [
+  .7735 * .7, .3575 * .7, .0361 * .7, 0, 0,
+  .1065 * .7, .8575 * .7, .0361 * .7, 0, 0,
+  .1065 * .7, .3575 * .7, .5361 * .7, 0, 0,
+  0, 0, 0, 1, 0,
+];
