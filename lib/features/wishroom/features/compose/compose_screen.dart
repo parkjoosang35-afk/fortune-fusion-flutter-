@@ -73,12 +73,15 @@ class _ComposeScreenState extends State<ComposeScreen> {
     if (ok) {
       // app2/capsule2.jsx SealedDone — 제출 성공 → 두루마리 말림/인장 연출 → "소원방 들어가기" → full 인트로.
       // 원본 submit(): setAsk(false) → setSealing(true) → 1.5s 뒤 setDone(true) → SealedDone onGo={reload('intro')}.
-      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => SealedDoneScreen(
+      // [버그수정] onGo 콜백이 바깥쪽(ComposeScreen, 곧 pushReplacement로 dispose됨)의 context를
+      // 캡처하면, 나중에 탭해도 Navigator.of(context)가 deactivated widget 조회로 조용히 실패해
+      // "클릭이 안 됨"처럼 보인다. 반드시 builder가 제공하는 새(SealedDoneScreen 자신의) context를 써야 한다.
+      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (sealedCtx) => SealedDoneScreen(
         date: _sealUntil!,
         text: _textCtrl.text.trim(),
         wishColor: _wishColor,
         onGo: () {
-          Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const WishRoomIntroScreen()));
+          Navigator.of(sealedCtx).pushReplacement(MaterialPageRoute(builder: (_) => const WishRoomIntroScreen()));
         },
       )));
       return;
