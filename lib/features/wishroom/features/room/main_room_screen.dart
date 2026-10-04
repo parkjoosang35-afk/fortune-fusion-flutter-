@@ -17,6 +17,7 @@ import '../../core/theme/wr_theme.dart';
 import '../../core/motion/wr_motion.dart';
 import '../../core/wr_canvas.dart';
 import '../../core/fx/wr_fx.dart';
+import '../../core/fx/wr_level_up.dart';
 import 'room_scene.dart';
 import 'room_layout.dart';
 import 'devotion_controller.dart';
@@ -61,6 +62,10 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
   // 위에 겹쳐 보임). showModalBottomSheet(별도 Route)로는 이 레이어링을 재현할 수 없어
   // Stack 내부 오버레이로 구현한다.
   Map<String, dynamic>? _reward; // {title, sub, body, chips}
+  // [버그수정 — 전수감사] fx2.jsx LevelUp()은 showDialog가 아니라 일반 z-85 전체화면
+  // 뷰라 다른 오버레이(quote z95 등)와 동일한 Stack 레이어링 안에서 공존해야 한다.
+  int? _levelUp;
+  String? _levelUpWpNotice;
   // app2/screens-a2.jsx › MainRoom() capOpen/capLater — 타임캡슐(소원 봉인) 열기 오버레이 상태.
   bool _capOpen = false;
   bool _capLater = false;
@@ -294,8 +299,11 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
     });
   }
 
+  // [버그수정 — 전수감사] app2/fx2.jsx › LevelUp() 93-126줄 1:1: showDialog가 아니라
+  // 일반 Stack 오버레이(WrLevelUp, 아래 build()에서 Positioned.fill)로 교체 —
+  // 원본은 halo-rays/PetalRain/Burst/fx별 배경효과/자동닫힘 타이머를 가진 전체화면
+  // 시네마틱이며, 평범한 텍스트 Dialog가 아니었다(명세 위반).
   void _showLevelUp(int lv) {
-    final unlock = RoomLayoutUnlocks.of(lv);
     // S-07 — app2/fx2.jsx › LevelUp() 116-122줄 1:1: me.wallpaper가 있고(배경화면을
     // 설정한 적 있고) 그 roomId가 지금 이 방이며, seenLevelNotice가 이 레벨보다
     // 낮을 때만 1회 안내 문구를 보여준 뒤 서버에 기록한다(다음부턴 다시 안 보임).
@@ -304,33 +312,10 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
     final room = p.room;
     final showWpNotice = w.isSet && room != null && w.roomId == room.id && w.seenLevelNotice < lv;
     if (showWpNotice) p.wallpaperLevelNotice(lv);
-    showDialog(context: context, barrierColor: const Color(0xCC000000), builder: (_) => Dialog(
-      backgroundColor: Colors.transparent,
-      child: Container(
-        padding: const EdgeInsets.all(28),
-        decoration: BoxDecoration(color: WrC.bg1, borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0x33F5CF6A))),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Text('LEVEL UP', style: TextStyle(color: Color(0xFFF5CF6A), fontSize: 14, letterSpacing: 4)),
-          const SizedBox(height: 8),
-          ShaderMask(shaderCallback: (b) => const LinearGradient(colors: [Color(0xFFFFF6D8), Color(0xFFF5CF6A), Color(0xFFFF8FB1)]).createShader(b),
-            child: Text('Lv.$lv', style: const TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 64, color: Colors.white))),
-          if (unlock != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(unlock['say'] as String,
-            textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFFF8F2E6), fontSize: 14))),
-          if (showWpNotice) Padding(padding: const EdgeInsets.only(top: 12), child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: const Color(0x8C140810),
-              border: Border.all(color: const Color(0x4DFFE6B4))),
-            child: Text(
-              w.platform == 'ios' ? '소원방이 자랐어요. 배경화면을 새로 만들 수 있어요' : '소원방이 자랐어요. 배경화면에도 반영돼요',
-              style: const TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 12.5, color: Color(0xFFF8F2E6)),
-            ),
-          )),
-          const SizedBox(height: 20),
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('확인')),
-        ]),
-      ),
-    ));
+    setState(() {
+      _levelUp = lv;
+      _levelUpWpNotice = showWpNotice ? (w.platform == 'ios' ? '소원방이 자랐어요. 배경화면을 새로 만들 수 있어요' : '소원방이 자랐어요. 배경화면에도 반영돼요') : null;
+    });
   }
 
   void _openCareSheet(WishRoom room) {
@@ -485,6 +470,12 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
             setState(() => _tour = false);
             GuidePrefs.I.setTourDone();
           }))),
+          // fx2.jsx › LevelUp() z85 — 전체화면 레벨업 시네마틱. 최상위(가장 나중에 그려짐)에
+          // 둬야 quote(위 WrCanvasScaler 내부 z95) 아래라도 그 외 모든 UI 위에 보인다.
+          if (_levelUp != null) Positioned.fill(child: WrCanvasScaler(child: WrLevelUp(
+            level: _levelUp!, wallpaperNotice: _levelUpWpNotice,
+            onDone: () => setState(() { _levelUp = null; _levelUpWpNotice = null; }),
+          ))),
         ]);
       }),
     ));
@@ -1081,24 +1072,6 @@ class _TwinkleState extends State<_Twinkle> with SingleTickerProviderStateMixin 
     return Opacity(opacity: op, child: Transform.scale(scale: scale, child: Container(width: 5, height: 5,
       decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFFFFF6D0), boxShadow: [BoxShadow(color: widget.color, blurRadius: 10)]))));
   });
-}
-
-/// §5 레벨업 해금 UNLOCKS 텍스트 — room_layout.dart의 RoomLayout.unlocks를 그대로 노출.
-class RoomLayoutUnlocks {
-  static Map<String, Object>? of(int lv) {
-    const unlocks = <int, Map<String, Object>>{
-      2: {'say': '창가에 첫 꽃잎이 날리기 시작했어요'},
-      3: {'say': '작은 향로에서 향이 피어올라요'},
-      4: {'say': '양쪽 기둥에 등불이 켜졌어요'},
-      5: {'say': '촛불 받침이 은은하게 빛나요'},
-      6: {'say': '창가에 연꽃등이 떠올랐어요'},
-      7: {'say': '천장에 별이 내려앉았어요'},
-      8: {'say': '기둥에 복주머니가 걸렸어요'},
-      9: {'say': '방 전체가 환하게 밝아졌어요'},
-      10: {'say': '당신의 소원방이 완성되었어요'},
-    };
-    return unlocks[lv];
-  }
 }
 
 /// A-4 보상 시트 — devote() 2.9s 또는 rekindle() 3.4s 끝에 표시.

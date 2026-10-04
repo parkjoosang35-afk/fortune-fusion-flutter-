@@ -43,8 +43,10 @@ class WrDur {
   // C · 행동
   static const burst = Duration(milliseconds: 1200);
   static const heartRise = Duration(milliseconds: 2200);
-  static const levelUp = Duration(milliseconds: 4200);
-  static const levelUpLv10 = Duration(milliseconds: 6200);
+  // [버그수정 — 전수감사] app2/fx2.jsx › LevelUp(): setTimeout(onDone, level===10?5600:3800).
+  // 기존 4200/6200ms는 원본과 불일치(오기)였음.
+  static const levelUp = Duration(milliseconds: 3800);
+  static const levelUpLv10 = Duration(milliseconds: 5600);
   static const toast = Duration(milliseconds: 2600);
   static const push = Duration(milliseconds: 4200);
 }
