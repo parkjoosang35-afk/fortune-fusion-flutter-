@@ -76,6 +76,16 @@ class _WalletSheetState extends State<WalletSheet> {
       if (overlay != null) {
         WrToast.showWithOverlay(overlay, id == 'devo10' ? '정성을 10번 채우면 자동으로 담겨요' : '미션을 마치면 복주머니가 담겨요');
       }
+      // [버그수정 — 전수감사] app2/pouch2.jsx `tap()`: devo10을 제외한 이동형
+      // 미션(m_visit/m_cheer/m_msg)은 "미션을 마치면 복주머니가 담겨요" 토스트를
+      // 띄운 뒤 `setTimeout(() => earn(src.id), 1800)`로 1.8초 뒤 자동으로 적립
+      // API를 호출한다(실제로는 이동한 화면에서 조건을 채웠는지와 무관하게 서버가
+      // 최종 검증). devo10은 정성 10회 완료 시 서버가 자동 지급하므로 제외.
+      // 시트는 이미 pop()됐어도 Provider는 위젯 트리 상위에서 계속 살아있으므로
+      // context 없이 p(이미 캡쳐된 WishRoomProvider)로 안전하게 호출 가능하다.
+      if (id != 'devo10') {
+        Future.delayed(const Duration(milliseconds: 1800), () => p.earn(id));
+      }
       return;
     }
     await _doEarn(id);
@@ -234,17 +244,17 @@ class _WalletSheetState extends State<WalletSheet> {
             Text('소원방에서 쓰는 곳', style: WrF.display(14)),
             const SizedBox(height: 8),
             Row(children: [
-              _UseCard(icon: '🪷', label: '수호자', value: '300~500', onTap: () {
+              _UseCard(asset: 'assets/wishroom/items/lotus.png', fallback: '🪷', label: '수호자', value: '300~500', onTap: () {
                 Navigator.of(context).pop();
                 Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CharacterShopScreen()));
               }),
               const SizedBox(width: 6),
-              _UseCard(icon: '🏮', label: '꾸미기', value: '50~200', onTap: () {
+              _UseCard(asset: 'assets/wishroom/items/lantern.png', fallback: '🏮', label: '꾸미기', value: '50~200', onTap: () {
                 Navigator.of(context).pop();
                 context.read<WishRoomProvider>().requestTab(_kTabDecor);
               }),
               const SizedBox(width: 6),
-              _UseCard(icon: '💰', label: '선물하기', value: '자유롭게', onTap: () {
+              _UseCard(asset: 'assets/wishroom/items/pouch.png', fallback: '💰', label: '선물하기', value: '자유롭게', onTap: () {
                 Navigator.of(context).pop();
                 context.read<WishRoomProvider>().requestTab(_kTabExplore);
               }),
@@ -285,8 +295,8 @@ class _BobbingPouchIconState extends State<_BobbingPouchIcon> with SingleTickerP
 }
 
 class _UseCard extends StatelessWidget {
-  const _UseCard({required this.icon, required this.label, required this.value, required this.onTap});
-  final String icon, label, value;
+  const _UseCard({required this.asset, required this.fallback, required this.label, required this.value, required this.onTap});
+  final String asset, fallback, label, value;
   final VoidCallback onTap;
   @override
   Widget build(BuildContext context) {
@@ -294,7 +304,7 @@ class _UseCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(color: WrC.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: WrC.cardBorder)),
       child: Column(children: [
-        Text(icon, style: const TextStyle(fontSize: 24)),
+        Image.asset(asset, width: 34, height: 34, errorBuilder: (_, __, ___) => Text(fallback, style: const TextStyle(fontSize: 24))),
         const SizedBox(height: 3),
         Text(label, style: WrF.body(12, w: FontWeight.w700, color: WrC.fg)),
         Text(value, style: WrF.body(10.5, color: WrC.glow)),
