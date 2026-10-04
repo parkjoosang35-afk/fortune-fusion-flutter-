@@ -83,19 +83,23 @@ class WrItemIcon extends StatelessWidget {
       ]));
     }
 
-    // BACKGROUND: 원형 창 썸네일(win 이미지 또는 기본 밤하늘) + tint 오버레이.
+    // BACKGROUND: 원형 창 썸네일(win 이미지 또는 기본 밤하늘, 230% 확대 + 50%/16%
+    // 위치) + tint 글로우. 원본 CSS `background-size:230%; background-position:50% 16%`
+    // 근사 — Transform.scale(2.3) + Alignment(0,-.68)로 "위쪽 중앙을 확대해 보여주는"
+    // 느낌을 재현한다.
     if (slot == 'BACKGROUND') {
       final win = _rawField('win') as String?;
       final tint = _rawField('tint') as String?;
+      final glowColor = tint != null ? _rgba(tint) : const Color(0x66B48CFF);
       final asset = win != null ? 'assets/wishroom/${win.replaceFirst('assets/', '')}' : 'assets/wishroom/room-empty.jpg';
       return Container(
         width: size, height: size,
         decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: const Color(0xFF6A3A22), width: 3),
-          boxShadow: const [BoxShadow(color: Color(0x59FFDCB4), blurRadius: 14)]),
+          boxShadow: [BoxShadow(color: glowColor, blurRadius: 14)]),
         child: ClipOval(child: Stack(fit: StackFit.expand, children: [
-          Image.asset(asset, fit: BoxFit.cover, alignment: const Alignment(0, -.68),
-            errorBuilder: (_, __, ___) => Container(color: const Color(0xFF2A1230))),
-          if (tint != null) DecoratedBox(decoration: BoxDecoration(color: _rgba(tint))),
+          Transform.scale(scale: 2.3, alignment: const Alignment(0, -.68),
+            child: Image.asset(asset, fit: BoxFit.cover, alignment: const Alignment(0, -.68),
+              errorBuilder: (_, __, ___) => Container(color: const Color(0xFF2A1230)))),
         ])),
       );
     }
