@@ -23,6 +23,7 @@ import '../wallet/wallet_sheet.dart';
 import '../../core/wr_ad_earn_button.dart';
 import 'dart:ui' as ui;
 import '../compose/compose_screen.dart';
+import '../../core/wr_toast.dart';
 
 class DecorScreen extends StatefulWidget {
   const DecorScreen({super.key});
@@ -69,7 +70,7 @@ class _DecorScreenState extends State<DecorScreen> {
     if (!mounted) return;
     if (!ok) {
       final err = p.lastError;
-      if (err != null) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err.message)));
+      if (err != null) WrToast.show(context, err.message);
       return;
     }
     setState(() { _preview = null; _card = null; });
@@ -101,7 +102,7 @@ class _DecorScreenState extends State<DecorScreen> {
       if (err?.code == 'INSUFFICIENT') {
         setState(() { _shortErr = err; _shortItem = it; });
       } else if (err != null) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err.message)));
+        WrToast.show(context, err.message);
       }
       return;
     }
@@ -395,9 +396,9 @@ class _DecorScreenState extends State<DecorScreen> {
     if (mounted) {
       setState(() => _busy = false);
       if (ok) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$label 소원방으로 바뀌었어요')));
+        WrToast.show(context, '$label 소원방으로 바뀌었어요');
       } else if (p.lastError != null) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(p.lastError!.message)));
+        WrToast.show(context, p.lastError!.message);
       }
     }
   }

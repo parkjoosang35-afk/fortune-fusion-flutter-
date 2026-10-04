@@ -28,6 +28,7 @@ import '../guide/guide_sheet.dart';
 import '../wallpaper/wallpaper_screen.dart';
 import '../wallet/wallet_sheet.dart';
 import '../../core/wr_nav_pill.dart';
+import '../../core/wr_toast.dart';
 
 class MainRoomScreen extends StatefulWidget {
   const MainRoomScreen({super.key});
@@ -224,11 +225,11 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
       onError: (e) {
         if (e.code == 'COOLDOWN' && e.retryAfter != null) {
           setState(() => _cooldownRemain = e.retryAfter!);
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('촛불이 $verb를 머금는 중이에요 · ${e.retryAfter}초')));
+          WrToast.show(context, '촛불이 $verb를 머금는 중이에요 · ${e.retryAfter}초');
         } else if (e.code == 'DAILY_LIMIT') {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('오늘의 정성을 모두 담았어요')));
+          WrToast.show(context, '오늘의 정성을 모두 담았어요');
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+          WrToast.show(context, e.message);
         }
       },
     );
@@ -1381,7 +1382,7 @@ class _ShareSheetState extends State<_ShareSheet> {
     if (!mounted) return;
     setState(() { _link = link; _loadingLink = false; });
     if (reissue && link != null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('새 링크를 만들었어요 · 이전 링크는 더 열리지 않아요')));
+      WrToast.show(context, '새 링크를 만들었어요 · 이전 링크는 더 열리지 않아요');
     }
   }
 
@@ -1512,8 +1513,8 @@ class _ShareSheetState extends State<_ShareSheet> {
           ),
           const SizedBox(height: 16),
           Row(children: [
-            _shareOpt('💬', const Color(0xFFFEE500), '카카오톡', () async { await _copy(); if (!mounted) return; ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('카카오톡 공유는 앱에서 열려요 · 링크를 복사해 두었어요'))); }),
-            _shareOpt('✉', const Color(0xFF3FAE55), '문자', () async { await _copy(); if (!mounted) return; ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('문자 앱으로 보내요 · 링크를 복사해 두었어요'))); }),
+            _shareOpt('💬', const Color(0xFFFEE500), '카카오톡', () async { await _copy(); if (!mounted) return; WrToast.show(context, '카카오톡 공유는 앱에서 열려요 · 링크를 복사해 두었어요'); }),
+            _shareOpt('✉', const Color(0xFF3FAE55), '문자', () async { await _copy(); if (!mounted) return; WrToast.show(context, '문자 앱으로 보내요 · 링크를 복사해 두었어요'); }),
             _shareOpt('⤴', const Color(0xFF4A7AD8), '더보기', _nativeShare),
             _shareOpt('⟳', Colors.white12, '새 링크', () => _loadLink(true)),
           ]),

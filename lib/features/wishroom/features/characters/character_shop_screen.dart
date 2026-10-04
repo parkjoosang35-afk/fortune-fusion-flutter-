@@ -10,6 +10,7 @@ import '../../core/theme/wr_theme.dart';
 import '../../core/wr_nav_pill.dart';
 import '../wallet/wallet_sheet.dart';
 import '../../core/wr_ad_earn_button.dart';
+import '../../core/wr_toast.dart';
 
 class CharacterShopScreen extends StatefulWidget {
   const CharacterShopScreen({super.key});
@@ -67,7 +68,7 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
         if (err?.code == 'INSUFFICIENT') {
           setState(() { _shortErr = err; _shortLabel = c.name; _shortGlyph = c.emblem; });
         } else if (err != null) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err.message)));
+          WrToast.show(context, err.message);
         }
         return;
       }
@@ -76,9 +77,9 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
     if (!mounted) return;
     setState(() => _busy = false);
     if (ok2) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${c.name}이(가) 소원방을 함께 지켜요')));
+      WrToast.show(context, '${c.name}이(가) 소원방을 함께 지켜요');
     } else if (p.lastError != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(p.lastError!.message)));
+      WrToast.show(context, p.lastError!.message);
     }
   }
 
@@ -86,7 +87,7 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
     if (_busy) return;
     final p = context.read<WishRoomProvider>();
     if (!(p.me?.ownedChars.contains(c.id) ?? false) && c.price != 0) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('먼저 이 수호자와 함께해 주세요')));
+      WrToast.show(context, '먼저 이 수호자와 함께해 주세요');
       return;
     }
     setState(() => _busy = true);
@@ -102,7 +103,7 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
           if (err?.code == 'INSUFFICIENT') {
             setState(() { _shortErr = err; _shortLabel = '$label 의상'; _shortGlyph = themeInfo.isNotEmpty ? themeInfo.first['glyph'] as String? : null; });
           } else if (err != null) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err.message)));
+            WrToast.show(context, err.message);
           }
           return;
         }
@@ -117,7 +118,7 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
       setState(() => _busy = false);
       final themeInfo = WrCatalog.I.themes.where((t) => t['id'] == o.theme.name).toList();
       final label = themeInfo.isNotEmpty ? themeInfo.first['label'] as String : '';
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${c.name} · $label 의상으로 갈아입었어요')));
+      WrToast.show(context, '${c.name} · $label 의상으로 갈아입었어요');
     } catch (e) {
       if (mounted) setState(() => _busy = false);
     }

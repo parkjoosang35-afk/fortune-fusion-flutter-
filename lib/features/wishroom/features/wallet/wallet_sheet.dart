@@ -16,6 +16,7 @@ import '../../core/theme/wr_theme.dart';
 import '../../core/fx/wr_fx.dart';
 import '../characters/character_shop_screen.dart';
 import '../../../ads_test/domain/admob_ad_ids.dart';
+import '../../core/wr_toast.dart';
 
 // 바텀탭 인덱스(wishroom_shell.dart `_tabs` 순서) 1:1 대응. VaultScreen(탭4) 내부
 // TabBarView 순서(소원 기록관=0·복주머니=1·응원 보상=2)도 함께 참조한다.
@@ -65,15 +66,16 @@ class _WalletSheetState extends State<WalletSheet> {
     final limit = (src['limit'] as num).toInt();
     if (go != null && (today[id] ?? 0) < limit) {
       // pop() 직후 이 시트의 context는 dispose되므로, 참조는 pop 이전에 미리 잡아둔다.
-      final messenger = ScaffoldMessenger.maybeOf(context);
+      final overlay = Overlay.maybeOf(context, rootOverlay: true);
       Navigator.of(context).pop();
       if (go == 'home') {
         p.requestTab(_kTabHome);
       } else {
         p.requestTab(_kTabExplore);
       }
-      messenger?.showSnackBar(SnackBar(content: Text(
-        id == 'devo10' ? '정성을 10번 채우면 자동으로 담겨요' : '미션을 마치면 복주머니가 담겨요')));
+      if (overlay != null) {
+        WrToast.showWithOverlay(overlay, id == 'devo10' ? '정성을 10번 채우면 자동으로 담겨요' : '미션을 마치면 복주머니가 담겨요');
+      }
       return;
     }
     await _doEarn(id);
@@ -81,7 +83,7 @@ class _WalletSheetState extends State<WalletSheet> {
 
   Future<void> _watchAd() async {
     if (!AdmobAdIds.isSupportedPlatform) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('이 플랫폼에서는 광고 시청을 지원하지 않아요')));
+      WrToast.show(context, '이 플랫폼에서는 광고 시청을 지원하지 않아요');
       return;
     }
     if (_adLoading) return;
@@ -107,7 +109,7 @@ class _WalletSheetState extends State<WalletSheet> {
         },
         onAdFailedToLoad: (_) {
           if (mounted) setState(() => _adLoading = false);
-          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('지금은 광고를 불러올 수 없어요')));
+          if (mounted) WrToast.show(context, '지금은 광고를 불러올 수 없어요');
         },
       ),
     );
@@ -121,7 +123,7 @@ class _WalletSheetState extends State<WalletSheet> {
       setState(() { _gotKey++; _gotAmount = res.$1; });
     } else if (p.lastError != null) {
       final msg = p.lastError!.code == 'EARN_LIMIT' ? '오늘은 모두 받았어요' : p.lastError!.message;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      WrToast.show(context, msg);
     }
   }
 

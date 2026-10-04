@@ -13,6 +13,7 @@ import '../../core/theme/wr_theme.dart';
 import '../../core/wr_nav_pill.dart';
 import '../intro/wish_room_intro_screen.dart';
 import 'sealed_done_screen.dart';
+import '../../core/wr_toast.dart';
 
 class ComposeScreen extends StatefulWidget {
   const ComposeScreen({super.key});
@@ -86,7 +87,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
     if (err?.code == 'PII_WARNING') {
       setState(() => _piiWarning = true);
     } else if (err != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err.message)));
+      WrToast.show(context, err.message);
     }
   }
 

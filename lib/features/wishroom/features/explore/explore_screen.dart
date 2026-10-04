@@ -13,6 +13,7 @@ import '../../core/wr_nav_pill.dart';
 import '../room/room_scene.dart';
 import '../review/review_write_screen.dart';
 import 'other_room_screen.dart';
+import '../../core/wr_toast.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key, this.initialTab = 'rooms'});
@@ -286,13 +287,13 @@ class _FeedCardState extends State<_FeedCard> {
     final reward = await p.support(_room.id);
     if (!mounted) return;
     if (p.lastError != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(p.lastError!.message)));
+      WrToast.show(context, p.lastError!.message);
       return;
     }
     final fresh = p.exploreFeed.where((r) => r.id == _room.id).toList();
     setState(() { if (fresh.isNotEmpty) _room = fresh.first; _heartKey++; });
     if (reward != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('응원 ${reward['at']}회 · ${reward['reward']}')));
+      WrToast.show(context, '응원 ${reward['at']}회 · ${reward['reward']}');
     }
   }
 
@@ -395,9 +396,9 @@ class _StoryCardState extends State<_StoryCard> {
     if (!mounted) return;
     if (ok) {
       setState(() => _gone = true);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('이야기를 지웠어요 · 받은 복주머니는 그대로예요')));
+      WrToast.show(context, '이야기를 지웠어요 · 받은 복주머니는 그대로예요');
     } else if (p.lastError != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(p.lastError!.message)));
+      WrToast.show(context, p.lastError!.message);
     }
   }
 
@@ -409,9 +410,9 @@ class _StoryCardState extends State<_StoryCard> {
     if (!mounted) return;
     if (ok) {
       setState(() => _gone = true);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('신고가 접수되어 숨겨졌어요')));
+      WrToast.show(context, '신고가 접수되어 숨겨졌어요');
     } else if (p.lastError != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(p.lastError!.message)));
+      WrToast.show(context, p.lastError!.message);
     }
   }
 

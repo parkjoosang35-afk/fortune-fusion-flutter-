@@ -16,6 +16,7 @@ import '../guide/guide_sheet.dart';
 import '../../core/wr_nav_pill.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../../../ads_test/domain/admob_ad_ids.dart';
+import '../../core/wr_toast.dart';
 
 class VaultScreen extends StatefulWidget {
   const VaultScreen({super.key});
@@ -145,7 +146,7 @@ class _ArchiveTabState extends State<_ArchiveTab> {
               if (i == done.length) {
                 return GestureDetector(
                   onTap: () => cur != null
-                      ? ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('진행 중인 소원이 이루어지면 새 소원방을 열 수 있어요')))
+                      ? WrToast.show(context, '진행 중인 소원이 이루어지면 새 소원방을 열 수 있어요')
                       : Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ComposeScreen())),
                   child: const DottedBox(),
                 );
@@ -328,7 +329,7 @@ class _PouchTabState extends State<_PouchTab> {
   Future<void> _earn(_EarnSection s) async {
     if (s.id == 'ad') {
       if (!AdmobAdIds.isSupportedPlatform) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('이 플랫폼에서는 광고 시청을 지원하지 않아요')));
+        WrToast.show(context, '이 플랫폼에서는 광고 시청을 지원하지 않아요');
         return;
       }
       if (_adLoading) return;
@@ -354,7 +355,7 @@ class _PouchTabState extends State<_PouchTab> {
           },
           onAdFailedToLoad: (_) {
             if (mounted) setState(() => _adLoading = false);
-            if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('지금은 광고를 불러올 수 없어요')));
+            if (mounted) WrToast.show(context, '지금은 광고를 불러올 수 없어요');
           },
         ),
       );
@@ -379,7 +380,7 @@ class _PouchTabState extends State<_PouchTab> {
       p.loadLedger();
     } else if (p.lastError != null) {
       final msg = p.lastError!.code == 'EARN_LIMIT' ? '오늘은 모두 받았어요' : p.lastError!.message;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      WrToast.show(context, msg);
     }
   }
 
@@ -629,7 +630,7 @@ class _RewardTabState extends State<_RewardTab> {
     if (res != null) {
       setState(() { _openKey++; _open = {'at': at, 'reward': r['reward'], 'item': res['item'], 'bonus': res['bonus']}; });
     } else if (p.lastError != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(p.lastError!.message)));
+      WrToast.show(context, p.lastError!.message);
     }
   }
 

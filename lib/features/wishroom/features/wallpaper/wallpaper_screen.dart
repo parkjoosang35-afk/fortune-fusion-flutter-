@@ -28,6 +28,7 @@ import '../../core/wr_canvas.dart';
 import '../room/room_scene.dart';
 import 'wallpaper_service.dart';
 import '../../core/wr_nav_pill.dart';
+import '../../core/wr_toast.dart';
 
 /// 지금 활성 플랫폼. 이 프로젝트는 Android 전용 빌드이므로 상수로 둔다(§4 공통 —
 /// ios/ 폴더에 실제 네이티브 빌드 파이프라인이 없어 Live Photo 경로는 화면
@@ -87,7 +88,7 @@ class _WallpaperScreenState extends State<WallpaperScreen> {
     if (ok) {
       setState(() => _done = (kind: 'android', target: target, thumb: null));
     } else if (p.lastError != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(p.lastError!.message)));
+      WrToast.show(context, p.lastError!.message);
     }
   }
 
@@ -130,7 +131,7 @@ class _WallpaperScreenState extends State<WallpaperScreen> {
     if (ok) {
       setState(() => _done = (kind: 'ios', target: null, thumb: thumb));
     } else if (p.lastError != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(p.lastError!.message)));
+      WrToast.show(context, p.lastError!.message);
     }
   }
 

@@ -15,6 +15,7 @@ import '../review/review_write_screen.dart';
 import '../explore/explore_screen.dart';
 import '../compose/compose_screen.dart' show WrSealDatePicker, WrSealConfirm;
 import '../compose/sealed_done_screen.dart';
+import '../../core/wr_toast.dart';
 
 Color _hex(String h) => Color(int.parse('FF${h.replaceFirst('#', '')}', radix: 16));
 String _fmtDot(String? d) => d == null ? '' : d.replaceAll('-', '.');
@@ -147,7 +148,7 @@ class _CapsuleOpenScreenState extends State<CapsuleOpenScreen> {
     if (!mounted) return;
     setState(() => _busy = false);
     if (!ok) {
-      if (p.lastError != null) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(p.lastError!.message)));
+      if (p.lastError != null) WrToast.show(context, p.lastError!.message);
       return;
     }
     if (o == Outcome.FULFILLED) {
@@ -175,7 +176,7 @@ class _CapsuleOpenScreenState extends State<CapsuleOpenScreen> {
       setState(() { _confirm = false; _step = _CapStep.sealed; });
     } else {
       setState(() => _busy = false);
-      if (p.lastError != null) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(p.lastError!.message)));
+      if (p.lastError != null) WrToast.show(context, p.lastError!.message);
     }
   }
 

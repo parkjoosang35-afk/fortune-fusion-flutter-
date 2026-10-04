@@ -17,6 +17,7 @@ import '../review/review_write_screen.dart';
 import '../explore/explore_screen.dart';
 import '../../wishroom_shell.dart';
 import '../../core/wr_nav_pill.dart';
+import '../../core/wr_toast.dart';
 
 class CompleteScreen extends StatefulWidget {
   const CompleteScreen({super.key, required this.roomId, this.already = false});
@@ -68,7 +69,7 @@ class _CompleteScreenState extends State<CompleteScreen> {
     final ok = await p.complete(widget.roomId);
     if (!mounted) return;
     if (!ok) {
-      if (p.lastError != null) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(p.lastError!.message)));
+      if (p.lastError != null) WrToast.show(context, p.lastError!.message);
       return;
     }
     _playReveal();
@@ -89,7 +90,7 @@ class _CompleteScreenState extends State<CompleteScreen> {
     if (ok) {
       Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const WishRoomShell()), (r) => false);
     } else if (p.lastError != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(p.lastError!.message)));
+      WrToast.show(context, p.lastError!.message);
     }
   }
 
@@ -102,7 +103,7 @@ class _CompleteScreenState extends State<CompleteScreen> {
       if (ok) {
         setState(() => _seal = 3);
       } else {
-        if (p.lastError != null) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(p.lastError!.message)));
+        if (p.lastError != null) WrToast.show(context, p.lastError!.message);
         setState(() => _seal = 0);
       }
     }));
@@ -121,7 +122,7 @@ class _CompleteScreenState extends State<CompleteScreen> {
   }
 
   void _shareImage() {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('기념 이미지를 저장했어요')));
+    WrToast.show(context, '기념 이미지를 저장했어요');
   }
 
   @override

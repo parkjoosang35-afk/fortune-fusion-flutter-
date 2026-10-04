@@ -13,6 +13,7 @@ import '../../core/wr_canvas.dart';
 import '../../core/fx/wr_fx.dart';
 import '../room/room_scene.dart';
 import '../../core/wr_nav_pill.dart';
+import '../../core/wr_toast.dart';
 
 class OtherRoomScreen extends StatefulWidget {
   const OtherRoomScreen({super.key, required this.roomId});
@@ -56,7 +57,7 @@ class _OtherRoomScreenState extends State<OtherRoomScreen> {
     final reward = await p.support(widget.roomId);
     if (!mounted) return;
     if (p.lastError != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(p.lastError!.message)));
+      WrToast.show(context, p.lastError!.message);
       return;
     }
     await p.loadViewedRoom(widget.roomId);
@@ -66,7 +67,7 @@ class _OtherRoomScreenState extends State<OtherRoomScreen> {
       const WrBurst(x: 204, y: 260, n: 14, color: Color(0xFFFF9AB8), spread: 110),
     ]));
     if (reward != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('응원 ${reward['at']}회 · ${reward['reward']}')));
+      WrToast.show(context, '응원 ${reward['at']}회 · ${reward['reward']}');
     }
   }
 
@@ -76,9 +77,9 @@ class _OtherRoomScreenState extends State<OtherRoomScreen> {
     if (!mounted) return;
     if (ok) {
       _addFx(const WrBurst(x: 204, y: 230, n: 14, glyph: '🌸', spread: 130, color: Color(0xFFF7A9C4)));
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('응원 메시지가 전해졌어요')));
+      WrToast.show(context, '응원 메시지가 전해졌어요');
     } else if (p.lastError != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(p.lastError!.message)));
+      WrToast.show(context, p.lastError!.message);
     }
   }
 
@@ -90,9 +91,9 @@ class _OtherRoomScreenState extends State<OtherRoomScreen> {
       await p.loadViewedRoom(widget.roomId);
       if (!mounted) return;
       _addFx(const WrBurst(x: 204, y: 260, n: 22, glyph: '🧧', spread: 150, dur: 1600), life: 2600);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('복주머니 $amount개가 닿았어요')));
+      WrToast.show(context, '복주머니 $amount개가 닿았어요');
     } else if (p.lastError != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(p.lastError!.message)));
+      WrToast.show(context, p.lastError!.message);
     }
   }
 
@@ -100,7 +101,7 @@ class _OtherRoomScreenState extends State<OtherRoomScreen> {
     final p = context.read<WishRoomProvider>();
     final ok = await p.report(roomId: commentId == null ? widget.roomId : null, commentId: commentId);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ok ? '신고가 접수되어 숨겨졌어요 · 24시간 안에 살펴볼게요' : '신고에 실패했어요')));
+    WrToast.show(context, ok ? '신고가 접수되어 숨겨졌어요 · 24시간 안에 살펴볼게요' : '신고에 실패했어요');
     if (ok && commentId == null) Navigator.of(context).maybePop();
   }
 
@@ -108,7 +109,7 @@ class _OtherRoomScreenState extends State<OtherRoomScreen> {
     final p = context.read<WishRoomProvider>();
     final ok = await p.block(ownerId);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ok ? '이 분과는 서로 보이지 않아요' : '차단에 실패했어요')));
+    WrToast.show(context, ok ? '이 분과는 서로 보이지 않아요' : '차단에 실패했어요');
     if (ok) Navigator.of(context).maybePop();
   }
 
