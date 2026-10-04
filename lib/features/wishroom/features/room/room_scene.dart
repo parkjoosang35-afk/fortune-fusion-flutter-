@@ -559,9 +559,17 @@ class _RevealOverlay extends StatelessWidget {
 }
 
 /// 자유 테마의 둥근 창 — BACKGROUND 아이템의 창밖 그림(win) 또는 기본 밤하늘, tint 로 방 조명 색
+///
+/// [버그수정 — 전수감사] app2/room2.jsx › WindowView(): `if (!bg || !bg.id ||
+/// bg.id === 'b_night') return null` — 배경 아이템을 장착 안 했거나 기본값
+/// b_night이면 오버레이 자체를 그리지 않는다(= 기본 room-empty.jpg에 이미
+/// 그려진 밤하늘 창문을 그대로 보여줌). Flutter는 이 조건이 없어 b_night에도
+/// 불필요한 원형 inset-shadow가 항상 덧씌워져 기본 창문을 불필요하게 어둡게
+/// 가리는 버그였다.
 class _WindowView extends StatelessWidget {
   final WrItem? bg; final double light; const _WindowView({required this.bg, required this.light});
   @override Widget build(BuildContext context) {
+    if (bg == null || bg!.id.isEmpty || bg!.id == 'b_night') return const SizedBox.shrink();
     final win = bg?.raw('win') as String?; final tint = bg?.raw('tint') as String?;
     return Stack(children: [
       Positioned(left: RoomLayout.windowCx - RoomLayout.windowR, top: RoomLayout.windowCy - RoomLayout.windowR, child: ClipOval(child: SizedBox(

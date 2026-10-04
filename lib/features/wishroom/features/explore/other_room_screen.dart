@@ -136,8 +136,11 @@ class _OtherRoomScreenState extends State<OtherRoomScreen> {
         return GestureDetector(
           onTap: _peek ? () => setState(() => _peek = false) : null,
           child: Stack(children: [
+            // [버그수정 — 전수감사] app2/screens-b2.jsx › OtherRoom(): `<Room ... entering
+            // charGlow={fx.length>0}>` — 타인의 방 입장 시 카메라인(cam-in 2.2s) 연출과
+            // 응원/선물 FX 재생 중 캐릭터 후광(charGlow)이 있었는데 둘 다 빠져 있었다.
             Positioned.fill(child: WrCanvasScaler(child: RoomScene(
-              room: room, items: p.items,
+              room: room, items: p.items, entering: true, charGlow: _fx.isNotEmpty,
               fx: _fx.map((e) => e.widget).toList(),
             ))),
             if (!_peek) SafeArea(child: WrCanvasScaler(child: Stack(children: [

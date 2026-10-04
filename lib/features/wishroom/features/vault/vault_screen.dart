@@ -257,7 +257,12 @@ class _ReplayOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dialog(backgroundColor: Colors.black, insetPadding: EdgeInsets.zero, child: Stack(children: [
-      Positioned.fill(child: WrCanvasScaler(child: RoomScene(room: room, items: items, gold: .25, frozen: true))),
+      // [버그수정 — 전수감사] app2/screens-c2.jsx › ArchivePlayer(): `<Room ... gold={.25}
+      // entering/>` — frozen 지정이 없다(= 평소처럼 drift/pulse/파티클이 계속 흐르는
+      // 채로 재생, 추가로 카메라인 2.2s 입장 연출). frozen:true로 모든 애니메이션을
+      // 멈춰버리고 entering도 빠져 있던 버그 — "그날의 모습 그대로"를 재생하는 연출
+      // 의도(살아있는 방)와 반대로 정지 스냅샷처럼 보였다.
+      Positioned.fill(child: WrCanvasScaler(child: RoomScene(room: room, items: items, gold: .25, entering: true))),
       const WrPetalRain(n: 16, dur: (6, 9), spread: 6),
       SafeArea(child: Padding(padding: const EdgeInsets.fromLTRB(14, 8, 14, 0), child: Row(children: [
         GestureDetector(onTap: () => Navigator.of(context).pop(), child: Container(
