@@ -1,12 +1,11 @@
 // SCR-08 알림 `/noti` (탭3) — docs/SCREENS.md §SCR-08 · app2/screens-c2.jsx › Noti() 1:1 이식
 // 필터 칩(전체·응원·복주머니·댓글·시스템) + 알림 행(44px 아이콘 타일 + 안읽음 dot + ago() 상대시간)
-// + "모두 읽음" + 빈 상태("아직 조용한 밤이에요"). 탭하면 읽음 처리 후 해당 방(OtherRoomScreen)으로 이동한다.
+// + "모두 읽음" + 빈 상태("아직 조용한 밤이에요"). 탭하면 읽음 처리 후 메인 탭으로 이동한다.
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../application/wishroom_provider.dart';
 import '../../data/models.dart';
 import '../../core/theme/wr_theme.dart';
-import '../explore/other_room_screen.dart';
 import '../../core/wr_nav_pill.dart';
 
 enum _NotiFilter { all, support, pouch, comment, system }
@@ -52,13 +51,14 @@ class _WrNotificationsScreenState extends State<WrNotificationsScreen> {
     return h < 24 ? '$h시간 전' : '${h ~/ 24}일 전';
   }
 
+  // app2/screens-c2.jsx › Noti() open(n) 1:1 — 읽음 처리 후 항상 메인 탭(app.go('home'))으로
+  // 이동한다. [버그수정 — 전수감사] 기존엔 roomId가 있으면 OtherRoomScreen으로 push했으나
+  // 원본은 그런 분기가 전혀 없다.
   Future<void> _open(WrNotification n) async {
     final p = context.read<WishRoomProvider>();
     if (!n.read) await p.readNotifications(id: n.id);
     if (!mounted) return;
-    if (n.roomId != null) {
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => OtherRoomScreen(roomId: n.roomId!)));
-    }
+    p.requestTab(0);
   }
 
   @override

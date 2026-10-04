@@ -55,34 +55,38 @@ class _VaultScreenState extends State<VaultScreen> with SingleTickerProviderStat
     return Theme(data: wrThemeData(), child: Scaffold(
       backgroundColor: WrC.bg2,
       body: SafeArea(bottom: false, child: Column(children: [
-        // app2/screens-c2.jsx › Vault() TopBar(title="보관함") nav 기본값 true로
-        // NavPill이 좌측에 온다. [버그수정 — 전수감사] 기존엔 전혀 없었다.
-        Padding(padding: const EdgeInsets.fromLTRB(16, 10, 16, 0), child: Row(children: [
-          WrNavPill(onBack: () => wrBackOrAskExit(context), onExitHome: () => wrExitHome(context)),
-          const SizedBox(width: 10),
-          Text('보관함', style: WrF.display(22)),
-          const Spacer(),
-          GestureDetector(
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CharacterShopScreen())),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(color: const Color(0x991E0C18), borderRadius: BorderRadius.circular(999), border: Border.all(color: WrC.line)),
-              child: Text('캐릭터', style: WrF.body(12, color: WrC.fg)),
+        // app2/fx2.jsx › TopBar() 제목은 left:104,right:104(화면폭 기준 중앙정렬) 고정값.
+        // [버그수정 — 전수감사] 기존엔 NavPill 바로 옆에 좌측정렬되어 화면 중심에서
+        // 벗어나 있었다. Stack+Positioned로 app2/fx2.jsx TopBar() 1:1 재구성.
+        SizedBox(height: 44, child: Stack(children: [
+          const Positioned(top: 0, bottom: 0, left: 104, right: 104, child: Center(child: Text('보관함',
+            style: TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 22, color: Colors.white),
+            maxLines: 1, overflow: TextOverflow.ellipsis))),
+          Positioned(left: 16, top: 0, bottom: 0, child: Center(child:
+            WrNavPill(onBack: () => wrBackOrAskExit(context), onExitHome: () => wrExitHome(context)))),
+          Positioned(right: 16, top: 0, bottom: 0, child: Center(child: Row(children: [
+            GestureDetector(
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CharacterShopScreen())),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(color: const Color(0x991E0C18), borderRadius: BorderRadius.circular(999), border: Border.all(color: WrC.line)),
+                child: Text('캐릭터', style: WrF.body(12, color: WrC.fg)),
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          // app2/screens-c2.jsx › TopBar right › app.openGuide('archive') 1:1.
-          // GuideBook의 "한 바퀴 둘러보기"는 app.room && 조건만 보므로 보관함에서도 항상
-          // 노출되고, 누르면 app.go('home') 후 startTour() — requestTour()로 셸이 대신한다.
-          GestureDetector(
-            onTap: () => showModalBottomSheet(context: context, backgroundColor: Colors.transparent, isScrollControlled: true,
-              builder: (_) => GuideBook(focus: 'archive', onStartTour: context.read<WishRoomProvider>().requestTour)),
-            child: Container(
-              width: 32, height: 32, alignment: Alignment.center,
-              decoration: BoxDecoration(color: const Color(0x991E0C18), shape: BoxShape.circle, border: Border.all(color: WrC.line)),
-              child: const Text('?', style: TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 13, color: Colors.white)),
+            const SizedBox(width: 8),
+            // app2/screens-c2.jsx › TopBar right › app.openGuide('archive') 1:1.
+            // GuideBook의 "한 바퀴 둘러보기"는 app.room && 조건만 보므로 보관함에서도 항상
+            // 노출되고, 누르면 app.go('home') 후 startTour() — requestTour()로 셸이 대신한다.
+            GestureDetector(
+              onTap: () => showModalBottomSheet(context: context, backgroundColor: Colors.transparent, isScrollControlled: true,
+                builder: (_) => GuideBook(focus: 'archive', onStartTour: context.read<WishRoomProvider>().requestTour)),
+              child: Container(
+                width: 32, height: 32, alignment: Alignment.center,
+                decoration: BoxDecoration(color: const Color(0x991E0C18), shape: BoxShape.circle, border: Border.all(color: WrC.line)),
+                child: const Text('?', style: TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 13, color: Colors.white)),
+              ),
             ),
-          ),
+          ]))),
         ])),
         Padding(padding: const EdgeInsets.fromLTRB(14, 12, 14, 0), child: Container(
           height: 40, padding: const EdgeInsets.all(3),
@@ -176,8 +180,11 @@ class _CurrentRoomCard extends StatelessWidget {
   final WishRoom room; final List<WrItem> items;
   @override
   Widget build(BuildContext context) {
+    // app2/screens-c2.jsx › Archive() f==='cur' 카드 onClick={() => app.go('home')} 1:1.
+    // [버그수정 — 전수감사] 기존엔 popUntil(isFirst)이라, Vault가 IndexedStack 탭(탭4)
+    // 안에 있을 땐 화면 스택만 pop될 뿐 바텀탭이 메인(탭0)으로 전환되지 않았다.
     return GestureDetector(
-      onTap: () => Navigator.of(context).popUntil((r) => r.isFirst),
+      onTap: () => context.read<WishRoomProvider>().requestTab(0),
       child: Container(
         decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), border: Border.all(color: WrC.blossom2)),
         clipBehavior: Clip.antiAlias,
@@ -353,7 +360,10 @@ class _PouchTabState extends State<_PouchTab> {
       );
       return;
     }
-    if (s.go == 'home') { Navigator.of(context).popUntil((r) => r.isFirst); return; }
+    // app2/screens-c2.jsx › PouchTab() EARN 'devo10' onClick={() => app.go('home')} 1:1.
+    // [버그수정 — 전수감사] 기존엔 popUntil(isFirst)이라 Vault 탭에서 메인 탭으로
+    // 전환되지 않았다.
+    if (s.go == 'home') { context.read<WishRoomProvider>().requestTab(0); return; }
     if (s.go == 'explore') { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('탐색 탭에서 다른 소원방을 둘러봐요'))); return; }
     await _doEarn(s.id);
   }
