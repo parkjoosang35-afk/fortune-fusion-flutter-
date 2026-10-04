@@ -14,6 +14,25 @@ import 'features/wishroom/data/wr_catalog.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // [버그수정 — "복주머니 탭 완전 빈 화면" 근본원인 진단용] 릴리즈 모드에서는
+  // 위젯 build() 중 예외가 나면 Flutter가 기본적으로 내용 없는 회색 박스를
+  // 보여주고 에러를 콘솔에만 찍는다(보안상 설계). 그래서 지금까지 "복주머니가
+  // 빈 화면"이라는 증상만 보일 뿐 진짜 원인(어떤 예외인지)이 전혀 드러나지
+  // 않았다. ErrorWidget.builder를 오버라이드해 릴리즈에서도 실제 에러 메시지를
+  // 화면에 표시하도록 해, 다음 테스트에서 진짜 원인을 즉시 특정할 수 있게 한다.
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    return Container(
+      color: const Color(0xFF12060E),
+      padding: const EdgeInsets.all(16),
+      alignment: Alignment.topLeft,
+      child: SingleChildScrollView(
+        child: Text(
+          '⚠️ 화면 오류\n\n${details.exceptionAsString()}\n\n${details.stack}',
+          style: const TextStyle(color: Colors.redAccent, fontSize: 11, fontFamily: 'monospace'),
+        ),
+      ),
+    );
+  };
   // [버그수정 — LateInitializationError] WrCatalog.I는 `static late` 필드라
   // WrCatalog.load()가 먼저 완료되지 않은 상태에서 어디서든(_PouchTab의
   // WrCatalog.I.earn 등) 접근하면 "Field '' has not been initialized" 크래시가
