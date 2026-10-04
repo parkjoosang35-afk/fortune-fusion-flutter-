@@ -788,7 +788,11 @@ class WrSealConfirm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final left = date.difference(DateTime.now()).inDays + 1;
+    // app2/capsule2.jsx › SealConfirm `API.dayDiff(API.kstDate(), date)` 1:1 —
+    // [버그수정 — 전수감사] 기존엔 DateTime.now()(시:분 포함)로 차를 구하고 +1까지
+    // 더해 SealDatePicker가 보여주는 D-값과 어긋났다(하루 밀림). 자정 기준 절삭 + +1 제거.
+    final today = DateTime.now();
+    final left = date.difference(DateTime(today.year, today.month, today.day)).inDays;
     return Stack(children: [
       GestureDetector(
         onTap: onCancel,

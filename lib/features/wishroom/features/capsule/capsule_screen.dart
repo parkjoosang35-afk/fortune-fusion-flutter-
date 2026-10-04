@@ -14,6 +14,7 @@ import '../../core/motion/wr_motion.dart';
 import '../review/review_write_screen.dart';
 import '../explore/explore_screen.dart';
 import '../compose/compose_screen.dart' show WrSealDatePicker, WrSealConfirm;
+import '../compose/sealed_done_screen.dart';
 
 Color _hex(String h) => Color(int.parse('FF${h.replaceFirst('#', '')}', radix: 16));
 String _fmtDot(String? d) => d == null ? '' : d.replaceAll('-', '.');
@@ -188,7 +189,12 @@ class _CapsuleOpenScreenState extends State<CapsuleOpenScreen> {
     final kept = (room.sealTotalDays ?? 1).clamp(1, 100000);
 
     if (_step == _CapStep.sealed) {
-      return _SealedDoneBody(date: _date!, text: _text, wishColor: room.wishColor, onGo: () => Navigator.of(context).pop());
+      // app2/capsule2.jsx › CapsuleOpen rewish() 성공 시 `<SealedDone date={date} text={text}
+      // wc={room.wishColor} onGo={onClose}/>` 1:1 — REWISH 경로도 최초 봉인 때와 동일한
+      // SealedDone 연출(두루마리 말림→인장 쾅→자물쇠 문구)을 그대로 재사용한다.
+      // [버그수정 — 전수감사] 기존엔 축약된 별도 위젯(_SealedDoneBody, 정적 원형 인장만
+      // 표시)을 새로 만들어 썼는데, 원본은 완전히 동일한 컴포넌트를 재사용한다.
+      return SealedDoneScreen(date: _date!, text: _text, wishColor: room.wishColor, onGo: () => Navigator.of(context).pop());
     }
     if (_step == _CapStep.ongoing) {
       return Theme(data: wrThemeData(), child: Scaffold(backgroundColor: const Color(0xFF0C0408), body: Stack(children: [
@@ -299,42 +305,6 @@ class _CapsuleOpenScreenState extends State<CapsuleOpenScreen> {
           Text(emoji, style: const TextStyle(fontSize: 18)), const SizedBox(width: 8),
           Text(label, style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 15, color: color)),
         ]))))));
-}
-
-/// app2/capsule2.jsx › SealedDone (REWISH 경로) — 전체화면 Scaffold로 감싼 축약 버전.
-/// compose_screen의 SealedDoneScreen과 연출은 동일하되, 여기선 CapsuleOpen 흐름 안에서 간단히 재사용한다.
-class _SealedDoneBody extends StatelessWidget {
-  const _SealedDoneBody({required this.date, required this.text, required this.wishColor, required this.onGo});
-  final DateTime date; final String text; final String wishColor; final VoidCallback onGo;
-  @override
-  Widget build(BuildContext context) {
-    final cat = WrCatalog.I;
-    final w = cat.wishColors.firstWhere((e) => e['id'] == wishColor, orElse: () => cat.wishColors.first);
-    final hanja = w['hanja'] as String;
-    final color = _hex(w['color'] as String);
-    final dateK = '${date.year}년 ${date.month}월 ${date.day}일';
-    return Theme(data: wrThemeData(), child: Scaffold(backgroundColor: const Color(0xFF0C0408), body: Container(
-      decoration: const BoxDecoration(gradient: RadialGradient(center: Alignment(0, -.42), radius: 1.1, colors: [Color(0xFF3A1A34), Color(0xFF0C0408)], stops: [0, .75])),
-      child: Stack(children: [
-        const WrPetalRain(n: 8, dur: (8, 12), spread: 8),
-        Positioned(left: 0, right: 0, top: 260, child: Center(child: Container(width: 100, height: 100, alignment: Alignment.center,
-          decoration: BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [color, color.withValues(alpha: 0)])),
-          child: Text(hanja, style: const TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 40, color: Colors.white))))),
-        Positioned(left: 24, right: 24, top: 390, child: Column(children: [
-          const Text('🔐', style: TextStyle(fontSize: 30)),
-          const SizedBox(height: 8),
-          Text('소원이 다시 봉인되었습니다.', style: WrF.display(22), textAlign: TextAlign.center),
-          const SizedBox(height: 14),
-          Text(dateK, style: const TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 22, color: Color(0xFFFFE08A))),
-          const SizedBox(height: 12),
-          Text('그날까지 소원을 소중히 간직하세요. ✨', textAlign: TextAlign.center, style: WrF.body(14, color: WrC.muted, height: 1.7)),
-        ])),
-        Positioned(left: 20, right: 20, bottom: 44, child: SizedBox(width: double.infinity, height: WrSize.btnH, child: DecoratedBox(decoration: WrDeco.btnPink,
-          child: Material(color: Colors.transparent, child: InkWell(borderRadius: BorderRadius.circular(16), onTap: onGo,
-            child: const Center(child: Text('소원방 들어가기', style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 16, color: Colors.white)))))))),
-      ]),
-    )));
-  }
 }
 
 // ============================================================
