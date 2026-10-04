@@ -432,13 +432,31 @@ class _OtherRoomScreenState extends State<OtherRoomScreen> {
       decoration: WrDeco.sheet,
       padding: WrSize.sheetHeaderPad,
       child: Column(mainAxisSize: MainAxisSize.min, children: [
+        // [버그수정 — 사용자 피드백 "글씨 좌표가 틀려"] 제목 Column에 우측 패딩이 없어
+        // Positioned 닫기 버튼(top:0,right:0)과 "이 소원방" 타이틀 텍스트가 겹쳤다.
+        // 타이틀 쪽에 닫기 버튼 너비만큼 우측 여백을 주고, 버튼은 Row 중앙 정렬로 맞춘다.
         Stack(children: [
-          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('SAFETY', style: WrF.mono(color: WrC.blossom2)),
-            const SizedBox(height: 6),
-            Text('이 소원방', style: WrF.display(20)),
-          ]),
-          Positioned(right: 0, top: 0, child: IconButton(onPressed: () => Navigator.of(sheetCtx).pop(), icon: const Icon(Icons.close, color: WrC.fg, size: 18))),
+          Padding(
+            padding: const EdgeInsets.only(right: 36),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('SAFETY', style: WrF.mono(color: WrC.blossom2)),
+              const SizedBox(height: 6),
+              Text('이 소원방', style: WrF.display(20)),
+            ]),
+          ),
+          Positioned(
+            right: 0,
+            top: 0,
+            child: SizedBox(
+              width: 32,
+              height: 32,
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                onPressed: () => Navigator.of(sheetCtx).pop(),
+                icon: const Icon(Icons.close, color: WrC.fg, size: 18),
+              ),
+            ),
+          ),
         ]),
         const SizedBox(height: 14),
         SizedBox(width: double.infinity, height: WrSize.btnH, child: ElevatedButton(

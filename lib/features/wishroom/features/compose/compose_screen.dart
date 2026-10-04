@@ -193,45 +193,6 @@ class _ComposeScreenState extends State<ComposeScreen> {
                       ),
                     ),
                   ),
-                  // [A-3 §7] 함께할 수호자 — 우측 "{테마글리프} {테마} 의상으로 입어요" 라벨.
-                  Padding(
-                    padding: const EdgeInsets.only(top: 22),
-                    child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, crossAxisAlignment: CrossAxisAlignment.end, children: [
-                      Text('함께할 수호자', style: WrF.display(16)),
-                      Text('${_curTheme['glyph']} ${_curTheme['label']} 의상으로 입어요', style: WrF.body(11, color: WrC.muted)),
-                    ]),
-                  ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    height: 120,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _myChars.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 10),
-                      itemBuilder: (_, i) {
-                        final ch = _myChars[i];
-                        final sel = _char == ch.id;
-                        return GestureDetector(
-                          onTap: () => setState(() => _char = ch.id),
-                          child: Container(
-                            width: 96,
-                            clipBehavior: Clip.antiAlias,
-                            decoration: BoxDecoration(
-                              color: sel ? WrC.card : Colors.transparent,
-                              border: Border.all(color: sel ? WrC.blossom2 : WrC.line, width: sel ? 2 : 1),
-                              borderRadius: BorderRadius.circular(14),
-                              boxShadow: sel ? [const BoxShadow(color: WrC.blossomShadow, blurRadius: 18)] : null,
-                            ),
-                            child: Column(children: [
-                              SizedBox(height: 104, width: double.infinity, child: Image.asset(cat.charImage(ch.id, _theme), fit: BoxFit.cover, alignment: Alignment.topCenter)),
-                              const SizedBox(height: 4),
-                              Text(ch.name, style: WrF.body(12.5, w: FontWeight.w700)),
-                            ]),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
                   _sec('공개 범위'),
                   const SizedBox(height: 10),
                   Row(children: [
@@ -335,11 +296,17 @@ class _ComposeScreenState extends State<ComposeScreen> {
   }
 
   /// [A-3 §3] 한지 카드 — 소원빛깔 그라디언트 + 종이색 배경, 1행(날짜+8색 종이원), textarea, 하단(글자수+인장).
+  /// [버그수정 — 사용자 피드백] 8가지 종이(한지/벚꽃/연두/하늘/연보라/금박/쪽빛/먹빛)를 고를 수 있는데도
+  /// 글자색이 늘 하드코딩된 갈색(#4A2A1C)이라 어두운 종이(쪽빛/먹빛)에서는 글씨가 거의 안 보이고,
+  /// 밝은 종이를 골라도 전부 "한지 느낌"처럼 보였다. 종이 JSON의 ink(주 글자색)/sub(보조 글자색,
+  /// rgba 문자열)를 실제로 반영해 종이마다 다른 색감이 나도록 한다.
   Widget _hanjiCard() {
     final wc = _curWishColor;
     final wishColor = _hex(wc['color'] as String);
     final paper = _curPaper;
     final bg = (paper['bg'] as List).cast<String>();
+    final ink = _hex(paper['ink'] as String);
+    final sub = _rgba(paper['sub'] as String);
     return AnimatedContainer(
       duration: const Duration(milliseconds: 800),
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
@@ -348,12 +315,14 @@ class _ComposeScreenState extends State<ComposeScreen> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [wishColor.withValues(alpha: .20), _hex(bg[0]), _hex(bg[1])],
-          stops: const [0, .45, 1],
+          // [버그수정 — 사용자 피드백] 소원의 빛깔을 바꿔도 체감이 거의 안 될 만큼 틴트가
+          // 옅었다(.20) — 선택한 빛깔이 한지 카드 전체에 확실히 드러나도록 농도를 올림.
+          colors: [wishColor.withValues(alpha: .38), _hex(bg[0]), _hex(bg[1])],
+          stops: const [0, .5, 1],
         ),
-        border: Border.all(color: wishColor.withValues(alpha: .55), width: 1.5),
+        border: Border.all(color: wishColor.withValues(alpha: .8), width: 2),
         boxShadow: [
-          BoxShadow(color: wishColor.withValues(alpha: .35), blurRadius: 26),
+          BoxShadow(color: wishColor.withValues(alpha: .5), blurRadius: 28),
           const BoxShadow(color: Color(0x66000000), blurRadius: 30, offset: Offset(0, 10)),
         ],
       ),
@@ -361,7 +330,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(
             child: Text('오늘의 소원 · ${_dateLabel()}',
-                style: const TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 11, color: Color(0x993C2D1E))),
+                style: TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 11, color: sub)),
           ),
           // [A-3 §3] 종이 8색 동그라미 20x20 — 선택 시 테두리2px + 빛깔 링 + scale 1.15.
           Row(children: [
@@ -374,7 +343,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
         const SizedBox(height: 4),
         Align(
           alignment: Alignment.centerRight,
-          child: Text('${paper['label']} 종이', style: const TextStyle(fontFamily: 'GowunBatangWish', fontSize: 10, color: Color(0x993C2D1E))),
+          child: Text('${paper['label']} 종이', style: TextStyle(fontFamily: 'GowunBatangWish', fontSize: 10, color: sub)),
         ),
         const SizedBox(height: 6),
         SizedBox(
@@ -385,17 +354,17 @@ class _ComposeScreenState extends State<ComposeScreen> {
             maxLines: 4,
             cursorColor: wishColor,
             onChanged: (_) => setState(() {}),
-            style: const TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 17, height: 1.65, color: Color(0xFF4A2A1C)),
-            decoration: const InputDecoration(
+            style: TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 17, height: 1.65, color: ink),
+            decoration: InputDecoration(
               border: InputBorder.none,
               hintText: '마음속 바람을 적어주세요\n예) 우리 가족 모두 건강하고 행복하게 해주세요.',
-              hintStyle: TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 15, height: 1.5, color: Color(0x663C2D1E)),
+              hintStyle: TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 15, height: 1.5, color: ink.withValues(alpha: .4)),
               counterText: '',
             ),
           ),
         ),
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text('${_textCtrl.text.length} / 100', style: WrF.mono(size: 10, color: const Color(0x993C2D1E))),
+          Text('${_textCtrl.text.length} / 100', style: WrF.mono(size: 10, color: sub)),
           Opacity(
             opacity: _textCtrl.text.trim().isEmpty ? .3 : 1,
             child: WrSealGlyph(glyph: wc['hanja'] as String),
@@ -425,6 +394,54 @@ class _ComposeScreenState extends State<ComposeScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  /// [A-3 §7] 함께할 수호자 — 우측 "{테마글리프} {테마} 의상으로 입어요" 라벨.
+  /// [버그수정 — 사용자 피드백] (1) 한지 카드(소원 작성) 바로 아래로 위치 이동.
+  /// (2) 카드 높이가 104(이미지)+4(간격)+이름 텍스트 한 줄(12.5pt 기준 약 18px) ≈ 126px인데
+  /// 바깥 SizedBox가 120px로 고정돼 있어 이름 텍스트 하단이 잘려 안 보였다 — 128px로 확장.
+  Widget _guardianSection() {
+    final cat = WrCatalog.I;
+    return Padding(
+      padding: const EdgeInsets.only(top: 22),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, crossAxisAlignment: CrossAxisAlignment.end, children: [
+          Text('함께할 수호자', style: WrF.display(16)),
+          Text('${_curTheme['glyph']} ${_curTheme['label']} 의상으로 입어요', style: WrF.body(11, color: WrC.muted)),
+        ]),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 128,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: _myChars.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            itemBuilder: (_, i) {
+              final ch = _myChars[i];
+              final sel = _char == ch.id;
+              return GestureDetector(
+                onTap: () => setState(() => _char = ch.id),
+                child: Container(
+                  width: 96,
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                    color: sel ? WrC.card : Colors.transparent,
+                    border: Border.all(color: sel ? WrC.blossom2 : WrC.line, width: sel ? 2 : 1),
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: sel ? [const BoxShadow(color: WrC.blossomShadow, blurRadius: 18)] : null,
+                  ),
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    SizedBox(height: 104, width: double.infinity, child: Image.asset(cat.charImage(ch.id, _theme), fit: BoxFit.cover, alignment: Alignment.topCenter)),
+                    const SizedBox(height: 4),
+                    Text(ch.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: WrF.body(12.5, w: FontWeight.w700)),
+                  ]),
+                ),
+              );
+            },
+          ),
+        ),
+      ]),
     );
   }
 
@@ -532,6 +549,18 @@ class _ComposeScreenState extends State<ComposeScreen> {
 }
 
 Color _hex(String h) => Color(int.parse('FF${h.replaceFirst('#', '')}', radix: 16));
+
+/// 종이 JSON의 `sub` 필드("rgba(90,50,30,.6)")를 Color로 변환.
+/// [버그수정 — 소원작성 종이색상] 하드코딩 대신 종이별 보조 글자색을 쓰기 위해 추가.
+Color _rgba(String s) {
+  final m = RegExp(r'rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*([\d.]+)\s*)?\)').firstMatch(s);
+  if (m == null) return const Color(0x993C2D1E);
+  final r = int.parse(m.group(1)!);
+  final g = int.parse(m.group(2)!);
+  final b = int.parse(m.group(3)!);
+  final a = m.group(4) != null ? double.parse(m.group(4)!) : 1.0;
+  return Color.fromRGBO(r, g, b, a);
+}
 
 /// [A-3 §2] 테마 글리프 — 선택 시 `bob 2.6s ∞` (상하 살짝 떠다니는 애니메이션).
 class _BobGlyph extends StatefulWidget {
