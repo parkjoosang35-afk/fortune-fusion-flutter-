@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'core/theme/wr_theme.dart';
 import 'application/wishroom_provider.dart';
+import 'core/wr_nav_pill.dart';
 import 'features/room/main_room_screen.dart';
 import 'features/explore/explore_screen.dart';
 import 'features/notifications/notifications_screen.dart';
@@ -123,73 +124,131 @@ class _WishRoomShellState extends State<WishRoomShell> {
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     for (var i = 0; i < _tabs.length; i++)
-                      GestureDetector(
-                        onTap: () {
-                          setState(() => _index = i);
-                          if (i == 2)
-                            context
-                                .read<WishRoomProvider>()
-                                .loadNotifications();
-                        },
-                        child: AnimatedScale(
-                          scale: i == _index ? 1.1 : 1,
-                          duration: const Duration(milliseconds: 500),
-                          curve: const Cubic(.34, 1.56, .64, 1),
+                      // [버그수정 — 사용자 리포트: "하단바 터치가 잘안됨"] 기존
+                      // GestureDetector가 Column(mainAxisSize: min)을 감싸고
+                      // 있어 히트박스가 텍스트 글자 크기(17px 이모지 +
+                      // 10px 라벨)만큼만 아주 작게 잡혔다. WrSize.navItemW
+                      // (디자인 토큰에 정의돼 있었지만 이 화면에서 전혀
+                      // 쓰이지 않았다)로 가로 58px, 세로도 패딩을 포함한
+                      // 고정 터치 영역을 명시하고 behavior: opaque로 탭
+                      // 아이템 전체(투명한 여백 포함)가 반응하도록 한다.
+                      SizedBox(
+                        width: WrSize.navItemW,
+                        height: 48,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            setState(() => _index = i);
+                            if (i == 2) {
+                              context
+                                  .read<WishRoomProvider>()
+                                  .loadNotifications();
+                            }
+                          },
+                          child: Center(
+                            child: AnimatedScale(
+                              scale: i == _index ? 1.1 : 1,
+                              duration: const Duration(milliseconds: 500),
+                              curve: const Cubic(.34, 1.56, .64, 1),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Stack(
+                                    clipBehavior: Clip.none,
+                                    children: [
+                                      Text(
+                                        _labels[i].$1,
+                                        style: TextStyle(
+                                          fontSize: 17,
+                                          color: i == _index
+                                              ? WrC.glow
+                                              : WrC.muted,
+                                        ),
+                                      ),
+                                      if (i == 2)
+                                        Consumer<WishRoomProvider>(
+                                          builder: (_, p, __) =>
+                                              p.unreadCount > 0
+                                              ? Positioned(
+                                                  right: -6,
+                                                  top: -3,
+                                                  child: Container(
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 4,
+                                                          vertical: 1,
+                                                        ),
+                                                    decoration: BoxDecoration(
+                                                      color: WrC.blossom,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            8,
+                                                          ),
+                                                    ),
+                                                    child: Text(
+                                                      '${p.unreadCount}',
+                                                      style: const TextStyle(
+                                                        fontSize: 9,
+                                                        color: Colors.white,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                )
+                                              : const SizedBox.shrink(),
+                                        ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    _labels[i].$2,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: i == _index ? WrC.fg : WrC.muted,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    // [버그수정 — 사용자 리포트: "하단바에 신통방통 메인으로
+                    // 들어가는 홈바가없고"] 소원방 모듈 5탭 어디에도 앱의
+                    // 메인 화면(신통방통 홈)으로 돌아가는 진입점이 바텀탭에
+                    // 없었다(각 화면 상단 WrNavPill의 홈 아이콘만 있었는데,
+                    // 스크롤하면 가려지거나 사용자가 찾지 못했다). 다른 탭과
+                    // 동일한 터치 영역/스타일로 "신통방통" 홈 탭을 추가해
+                    // wrExitHome()으로 앱 루트까지 pop한다.
+                    SizedBox(
+                      width: WrSize.navItemW,
+                      height: 48,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => wrExitHome(context),
+                        child: Center(
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Stack(
-                                clipBehavior: Clip.none,
-                                children: [
-                                  Text(
-                                    _labels[i].$1,
-                                    style: TextStyle(
-                                      fontSize: 17,
-                                      color: i == _index ? WrC.glow : WrC.muted,
-                                    ),
-                                  ),
-                                  if (i == 2)
-                                    Consumer<WishRoomProvider>(
-                                      builder: (_, p, __) => p.unreadCount > 0
-                                          ? Positioned(
-                                              right: -6,
-                                              top: -3,
-                                              child: Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 4,
-                                                      vertical: 1,
-                                                    ),
-                                                decoration: BoxDecoration(
-                                                  color: WrC.blossom,
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                ),
-                                                child: Text(
-                                                  '${p.unreadCount}',
-                                                  style: const TextStyle(
-                                                    fontSize: 9,
-                                                    color: Colors.white,
-                                                  ),
-                                                ),
-                                              ),
-                                            )
-                                          : const SizedBox.shrink(),
-                                    ),
-                                ],
+                              Text(
+                                '⌂',
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  color: WrC.muted,
+                                ),
                               ),
                               const SizedBox(height: 3),
                               Text(
-                                _labels[i].$2,
+                                '신통방통',
                                 style: TextStyle(
                                   fontSize: 10,
-                                  color: i == _index ? WrC.fg : WrC.muted,
+                                  color: WrC.muted,
                                 ),
                               ),
                             ],
                           ),
                         ),
                       ),
+                    ),
                   ],
                 ),
               ),

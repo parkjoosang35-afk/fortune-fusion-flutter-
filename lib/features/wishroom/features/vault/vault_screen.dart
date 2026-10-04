@@ -32,7 +32,19 @@ class _VaultScreenState extends State<VaultScreen> with SingleTickerProviderStat
     super.initState();
     _tabs = TabController(length: 3, vsync: this);
     final p = context.read<WishRoomProvider>();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // [버그수정 — 사용자 리포트: "복주머니는 아예 안보이고"] 이 화면은
+      // WishRoomShell의 IndexedStack 자식이라 Shell이 빌드되는 즉시(= 탭을
+      // 누르기 전부터) build()가 실행되고, 그 안의 _PouchTab이 곧바로
+      // `WrCatalog.I`(정적 카탈로그, EARN 목록 등)를 동기 참조한다. 정상
+      // 플로우에서는 인트로 화면(_boot())이 WishRoomShell을 push하기 전에
+      // WrCatalog.load()를 await하므로 안전하지만, 혹시라도 그 가드를
+      // 거치지 않고 이 화면에 먼저 도달하는 경로가 생기면
+      // `LateInitializationError`로 빌드 자체가 실패해 해당 탭이 완전히
+      // 빈 화면(검은 화면)으로 보인다. 방어적으로 한 번 더 보장한다 —
+      // 이미 로드됐으면 즉시 반환(멱등)이라 비용이 없다.
+      if (!WrCatalog.isLoaded) await WrCatalog.load();
+      if (!mounted) return;
       p.loadArchive();
       p.loadLedger();
     });
@@ -401,6 +413,16 @@ class _PouchTabState extends State<_PouchTab> {
 
   @override
   Widget build(BuildContext context) {
+    // [버그수정 — 사용자 리포트: "복주머니는 아예 안보이고"] VaultScreen은
+    // WishRoomShell의 IndexedStack 자식이라 이 build()는 보관함 탭을
+    // 선택하기 전부터(Shell 빌드 즉시) 실행된다. WrCatalog.I는 `static
+    // late` 필드라 WrCatalog.load()가 아직 끝나지 않은 극히 짧은 틈에
+    // 이 화면에 먼저 도달하면 LateInitializationError로 build() 전체가
+    // 실패해 탭이 완전히 빈 화면(검은 화면)으로 보인다. 로드 전이면
+    // 크래시 대신 로딩 스피너를 보여주고 안전하게 빠진다.
+    if (!WrCatalog.isLoaded) {
+      return const Center(child: CircularProgressIndicator(color: WrC.glow));
+    }
     return Consumer<WishRoomProvider>(builder: (context, p, __) {
       final me = p.me;
       final cat = WrCatalog.I;

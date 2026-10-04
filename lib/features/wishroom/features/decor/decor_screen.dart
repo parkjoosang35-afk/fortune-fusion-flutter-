@@ -250,7 +250,7 @@ class _DecorScreenState extends State<DecorScreen> {
             decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter,
               colors: [Colors.transparent, Color(0xFF1A0812)], stops: [0, .35])),
             child: SizedBox(height: 50, child: ElevatedButton(
-              onPressed: () => Navigator.of(context).maybePop(),
+              onPressed: () => context.read<WishRoomProvider>().requestTab(0),
               style: ElevatedButton.styleFrom(backgroundColor: WrC.blossom, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
               child: const Text('적용하고 소원방 보기', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
             )),

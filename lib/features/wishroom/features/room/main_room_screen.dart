@@ -7,9 +7,11 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../application/wishroom_provider.dart';
 import '../../data/models.dart';
 import '../../data/wr_catalog.dart';
@@ -544,17 +546,20 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
             Expanded(child: SizedBox(height: 40, child: OutlinedButton(
               onPressed: () { setState(() => _wishOpen = false); _openShareSheet(room); },
               style: OutlinedButton.styleFrom(side: const BorderSide(color: WrC.line)),
-              child: Text('⤴ 공유', maxLines: 1, overflow: TextOverflow.ellipsis, style: WrF.body(13, color: WrC.fg)),
+              child: Text('⤴ 공유', maxLines: 1, overflow: TextOverflow.ellipsis, style: WrF.body(13, color: inkColor)),
             ))),
             const SizedBox(width: 8),
             Expanded(child: SizedBox(height: 40, child: OutlinedButton(
               onPressed: () { setState(() => _wishOpen = false); _openCareSheet(room); },
               style: OutlinedButton.styleFrom(side: const BorderSide(color: WrC.line), padding: const EdgeInsets.symmetric(horizontal: 4)),
-              child: Text('소원방 돌보기', maxLines: 1, overflow: TextOverflow.ellipsis, style: WrF.body(12, color: WrC.fg)),
+              child: Text('소원방 돌보기', maxLines: 1, overflow: TextOverflow.ellipsis, style: WrF.body(12, color: inkColor)),
             ))),
             const SizedBox(width: 8),
             Expanded(child: SizedBox(height: 40, child: ElevatedButton(
-              onPressed: () => setState(() => _wishOpen = false),
+              onPressed: () {
+                setState(() => _wishOpen = false);
+                context.read<WishRoomProvider>().requestTab(3);
+              },
               style: ElevatedButton.styleFrom(backgroundColor: WrC.blossom),
               child: const Text('✿ 꾸미기', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.white, fontSize: 13)),
             ))),
@@ -1387,6 +1392,44 @@ class _ShareSheetState extends State<_ShareSheet> {
     await safeShareText(context, '$_shareMessage\n${_link!.url}');
   }
 
+  // [버그수정 — 사용자 리포트: "공유하기 안돼고"] 기존 카카오톡/문자 버튼은
+  // 실제로 어떤 앱도 열려는 시도조차 없이 클립보드 복사 + "앱에서
+  // 열려요"라는 오해를 부르는 토스트만 띄웠다(눌러도 아무 일도 안 일어나
+  // 보여 "안 된다"고 느껴짐). guinji_map_share_screen.dart의
+  // shareGuinjiMapInvite() 패턴을 따라, 문자는 `sms:` 스킴으로 실제 문자
+  // 앱을 직접 열도록 시도하고(네이티브에서만 — 웹은 스킴 처리 불가해
+  // ERR_UNKNOWN_URL_SCHEME로 깨지는 알려진 버그가 있어 곧바로 클립보드
+  // 폴백), 카카오톡은 네이티브 공유 시트(navigator.share/Share.share)를
+  // 먼저 시도해 대상 목록에 카카오톡이 뜨도록 한다. 모든 경로의 최종
+  // 실패 시에만 클립보드 복사로 폴백한다.
+  Future<void> _shareSms() async {
+    if (_link == null) return;
+    final text = '$_shareMessage\n${_link!.url}';
+    if (!kIsWeb) {
+      try {
+        final ok = await launchUrl(
+          Uri(scheme: 'sms', path: '', queryParameters: {'body': text}),
+          mode: LaunchMode.externalApplication,
+        );
+        if (ok) return;
+      } catch (_) {/* fall through to clipboard */}
+    }
+    await _copy();
+    if (!mounted) return;
+    WrToast.show(context, '문자 앱을 열 수 없어 링크를 복사했어요 · 문자 앱에 붙여넣어 주세요');
+  }
+
+  Future<void> _shareKakao() async {
+    if (_link == null) return;
+    final text = '$_shareMessage\n${_link!.url}';
+    await safeShareText(
+      context,
+      text,
+      copiedMessage: '카카오톡 공유를 열 수 없어 링크를 복사했어요 · 카카오톡에 붙여넣어 주세요',
+      failedMessage: '카카오톡 공유를 열 수 없어 링크를 복사했어요 · 카카오톡에 붙여넣어 주세요',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cat = WrCatalog.I;
@@ -1488,8 +1531,8 @@ class _ShareSheetState extends State<_ShareSheet> {
           ),
           const SizedBox(height: 16),
           Row(children: [
-            _shareOpt('💬', const Color(0xFFFEE500), '카카오톡', () async { await _copy(); if (!mounted) return; WrToast.show(context, '카카오톡 공유는 앱에서 열려요 · 링크를 복사해 두었어요'); }),
-            _shareOpt('✉', const Color(0xFF3FAE55), '문자', () async { await _copy(); if (!mounted) return; WrToast.show(context, '문자 앱으로 보내요 · 링크를 복사해 두었어요'); }),
+            _shareOpt('💬', const Color(0xFFFEE500), '카카오톡', _shareKakao),
+            _shareOpt('✉', const Color(0xFF3FAE55), '문자', _shareSms),
             _shareOpt('⤴', const Color(0xFF4A7AD8), '더보기', _nativeShare),
             _shareOpt('⟳', Colors.white12, '새 링크', () => _loadLink(true)),
           ]),
