@@ -101,8 +101,11 @@ class _LinkInviteScreenState extends State<LinkInviteScreen> {
           clipBehavior: Clip.antiAlias,
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             // G-4 RoomThumb — [버그수정 — 전수감사] items:const[] 고정으로 장식이 전혀 반영되지 않던 버그.
+            // [버그수정 — 전수감사] app2/capsule2.jsx › LinkInvite(): `<RoomThumb ... w={330}
+            // h={200} focus={.42} zoom={1.05}/>` — 다른 가로형 카드의 focus/zoom(.22/1.5)이
+            // 복붙되어 있어 크롭 위치/확대율이 원본과 달랐다.
             SizedBox(height: 200, child: LayoutBuilder(builder: (context, c) =>
-              RoomThumb(room: room, items: context.read<WishRoomProvider>().items, w: c.maxWidth, h: 200, focus: .22, zoom: 1.5))),
+              RoomThumb(room: room, items: context.read<WishRoomProvider>().items, w: c.maxWidth, h: 200, focus: .42, zoom: 1.05))),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFFBF1DC), Color(0xFFF1E0BD)])),

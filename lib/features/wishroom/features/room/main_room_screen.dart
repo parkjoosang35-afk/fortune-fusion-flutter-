@@ -1415,9 +1415,12 @@ class _ShareSheetState extends State<_ShareSheet> {
             boxShadow: [BoxShadow(color: color.withValues(alpha: .2), blurRadius: 20)]),
           child: Column(children: [
             // G-4 RoomThumb — [버그수정 — 전수감사] items:const[] 고정으로 장식이 전혀 반영되지 않던 버그.
+            // [버그수정 — 전수감사] app2/capsule2.jsx › ShareSheet(): `<RoomThumb ... w={342}
+            // h={110} focus={.42} zoom={1.05}/>` — 다른 가로형 카드의 focus/zoom(.22/1.5)이
+            // 복붙되어 있어 크롭 위치/확대율이 원본과 달랐다.
             SizedBox(height: 110, child: Stack(children: [
               Positioned.fill(child: LayoutBuilder(builder: (context, c) =>
-                RoomThumb(room: room, items: context.read<WishRoomProvider>().items, w: c.maxWidth, h: 110, focus: .22, zoom: 1.5))),
+                RoomThumb(room: room, items: context.read<WishRoomProvider>().items, w: c.maxWidth, h: 110, focus: .42, zoom: 1.05))),
               Positioned(left: 10, top: 10, child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(color: const Color(0x80000000), borderRadius: BorderRadius.circular(999)),
