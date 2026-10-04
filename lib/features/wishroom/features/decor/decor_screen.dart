@@ -24,6 +24,7 @@ import '../../core/wr_ad_earn_button.dart';
 import 'dart:ui' as ui;
 import '../compose/compose_screen.dart';
 import '../../core/wr_toast.dart';
+import '../../core/wr_item_icon.dart';
 
 class DecorScreen extends StatefulWidget {
   const DecorScreen({super.key});
@@ -431,9 +432,7 @@ class _DecorScreenState extends State<DecorScreen> {
           ),
           child: Stack(children: [
             Column(mainAxisSize: MainAxisSize.min, children: [
-              SizedBox(height: 56, child: Center(child: it.asset != null
-                  ? Image.asset(it.asset!, fit: BoxFit.contain, errorBuilder: (_, __, ___) => Text(it.glyph ?? '✦', style: const TextStyle(fontSize: 30)))
-                  : Text(it.glyph ?? '✦', style: const TextStyle(fontSize: 30)))),
+              SizedBox(height: 56, child: Center(child: WrItemIcon(it: it, size: 48))),
               const SizedBox(height: 3),
               Text(it.name, style: WrF.body(12, w: FontWeight.w700, color: WrC.fg), maxLines: 1, overflow: TextOverflow.ellipsis),
               if (it.tier != null) Text(_tierLabel(it.tier), style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 9.5, color: _tierColor(it.tier))),
@@ -534,7 +533,7 @@ class _DecorScreenState extends State<DecorScreen> {
             Container(width: 84, height: 84, alignment: Alignment.center,
               decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), border: Border.all(color: WrC.line),
                 gradient: RadialGradient(colors: [(C != null ? _hex(C['color'] as String).withValues(alpha: .25) : const Color(0x40FFDCA0)), Colors.transparent])),
-              child: it.asset != null ? Image.asset(it.asset!, fit: BoxFit.contain, errorBuilder: (_, __, ___) => Text(it.glyph ?? '✦', style: const TextStyle(fontSize: 42))) : Text(it.glyph ?? '✦', style: const TextStyle(fontSize: 42))),
+              child: WrItemIcon(it: it, size: 60)),
             const SizedBox(width: 14),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(C != null ? '${C['hanja']} · ${C['label']}의 기운' : '✦ 모든 소원의 기운',
@@ -616,9 +615,7 @@ class _DecorScreenState extends State<DecorScreen> {
             child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
               SizedBox(width: 64, child: Center(child: ColorFiltered(
                 colorFilter: const ColorFilter.matrix(_grayscale30),
-                child: item.asset != null
-                    ? Image.asset(item.asset!, width: 48, height: 48, fit: BoxFit.contain, errorBuilder: (_, __, ___) => Text(item.glyph ?? '✦', style: const TextStyle(fontSize: 36)))
-                    : Text(item.glyph ?? '✦', style: const TextStyle(fontSize: 36)),
+                child: WrItemIcon(it: item, size: 48),
               ))),
               const SizedBox(width: 12),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
