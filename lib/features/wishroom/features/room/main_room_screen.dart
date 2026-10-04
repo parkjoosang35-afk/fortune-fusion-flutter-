@@ -579,8 +579,7 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
         Text(room.levelName, style: WrF.body(12, w: FontWeight.w700, color: WrC.fg)),
         const SizedBox(width: 8),
         ClipRRect(borderRadius: BorderRadius.circular(2), child: SizedBox(width: 74, height: 4,
-          child: LinearProgressIndicator(value: room.levelProgress, backgroundColor: const Color(0x24FFFFFF),
-            valueColor: const AlwaysStoppedAnimation(WrC.blossom)))),
+          child: _ShimmerLevelBar(progress: room.levelProgress))),
       ]));
 
   Widget _pillBtn(String label, VoidCallback onTap, {Widget? leading}) => GestureDetector(onTap: onTap, child: Container(
@@ -1548,6 +1547,55 @@ class _ShareSheetState extends State<_ShareSheet> {
 /// 복주머니 pill — app2/screens-a2.jsx › PouchPill({onClick: app.openWallet}) 1:1.
 /// 탭하면 wallet_sheet.dart를 열고, 금액이 바뀔 때마다(정성·광고보상 등) 0.3초
 /// bump(확대 후 복귀) 애니메이션을 재생한다.
+/// [버그수정 — 전수감사] app2/screens-a2.jsx 293줄 레벨바: `background: linear-gradient(90deg,
+/// var(--blossom), #ffd98a, var(--blossom)); background-size: 200% 100%; animation: shimmer
+/// 2.6s linear infinite` (wr2.css `@keyframes shimmer { to { background-position: -200% 0 } }`)
+/// — 단순 LinearProgressIndicator로는 이 반짝이는 그라디언트 이동 효과가 전혀 재현되지 않는다.
+/// 채워진 부분(progress)만 2.6s 주기로 그라디언트가 흐르도록 CustomPaint로 1:1 재현.
+class _ShimmerLevelBar extends StatefulWidget {
+  const _ShimmerLevelBar({required this.progress});
+  final double progress;
+  @override
+  State<_ShimmerLevelBar> createState() => _ShimmerLevelBarState();
+}
+
+class _ShimmerLevelBarState extends State<_ShimmerLevelBar> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 2600))..repeat();
+  @override
+  void dispose() { _c.dispose(); super.dispose(); }
+  @override
+  Widget build(BuildContext context) {
+    return Stack(children: [
+      Container(decoration: BoxDecoration(color: const Color(0x24FFFFFF), borderRadius: BorderRadius.circular(2))),
+      FractionallySizedBox(widthFactor: widget.progress.clamp(0.0, 1.0), child: AnimatedBuilder(
+        animation: _c,
+        builder: (_, __) => CustomPaint(painter: _ShimmerPainter(t: _c.value), size: Size.infinite),
+      )),
+    ]);
+  }
+}
+
+class _ShimmerPainter extends CustomPainter {
+  _ShimmerPainter({required this.t});
+  final double t; // 0..1, shimmer 2.6s linear infinite
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.width <= 0 || size.height <= 0) return;
+    // background-size:200% 100% + background-position 0→-200% ≡ 그라디언트 폭을 2배로 두고
+    // 왼쪽으로 2배 폭만큼 흘려보내는 것과 동일.
+    final w = size.width * 2;
+    final dx = -w * t;
+    final rect = Rect.fromLTWH(dx, 0, w, size.height);
+    final paint = Paint()..shader = const LinearGradient(
+      colors: [WrC.blossom, Color(0xFFFFD98A), WrC.blossom],
+      stops: [0, .5, 1],
+    ).createShader(rect);
+    canvas.drawRRect(RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(2)), paint);
+  }
+  @override
+  bool shouldRepaint(covariant _ShimmerPainter old) => old.t != t;
+}
+
 class _PouchPillTap extends StatefulWidget {
   const _PouchPillTap({required this.pouch});
   final int pouch;
