@@ -226,6 +226,7 @@ model User {
   // [신통방통 소원방(WishRoom) v2.6 — 기존 Wish(소원성)와는 별도 기능]
   wishRooms                     WishRoom[]
   wishRoomSupports              WishRoomSupport[]
+  wishRoomVisits                WishRoomVisit[]
   wishRoomComments              WishRoomComment[]
   wishRoomGiftsSent             WishRoomGift[]
   wishRoomReviews               WishRoomReview[]
@@ -4070,6 +4071,7 @@ model WishRoom {
 
   user                User                          @relation(fields: [userId], references: [id])
   supports            WishRoomSupport[]
+  visits              WishRoomVisit[]
   comments            WishRoomComment[]
   gifts               WishRoomGift[]
   reviews             WishRoomReview[]
@@ -4079,6 +4081,25 @@ model WishRoom {
   @@index([visibility, status, createdAt])
   @@index([status, sealUntil])
   @@map("wish_rooms")
+}
+
+// ── 방문(§7 미션 04 "다른 소원방 3곳 둘러보기") — GET /wish-rooms/{id}(남의 방 상세
+// 조회)마다 기록. roomId+userId+날짜 유니크라 같은 방을 여러 번 봐도 1곳으로만 집계되므로
+// "서로 다른 3곳"을 봐야 미션이 채워진다(§8 버그수정 — 전수감사: 기존엔 이 테이블/기록
+// 로직 자체가 없어 /me/earn가 실제 방문 여부를 검증할 수 없었다).
+model WishRoomVisit {
+  id        Int      @id @default(autoincrement())
+  roomId    Int      @map("room_id")
+  userId    Int      @map("user_id") // 방문한 사람(방 주인이 아님)
+  dateKey   String   @map("date_key") // KST 'YYYY-MM-DD'
+  createdAt DateTime @default(now()) @map("created_at")
+
+  room WishRoom @relation(fields: [roomId], references: [id])
+  user User     @relation(fields: [userId], references: [id])
+
+  @@unique([roomId, userId, dateKey])
+  @@index([userId, dateKey])
+  @@map("wish_room_visits")
 }
 
 // ── 응원(§6) — 방문자가 하루 1회 누르는 응원. roomId+userId+날짜 유니크로 "오늘 이미 응원함"을 판정 ──

@@ -2,7 +2,7 @@
 // [원본] app/api.js 라우트 3(GET) · 보조(PATCH, 공개범위·DRAFT 편집).
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { buildRoomView, filterText, WishRoomError } from "@/lib/wishroom-engine";
+import { buildRoomView, filterText, kstDate, WishRoomError } from "@/lib/wishroom-engine";
 import { parseWishRoomDbId, requireUser, wishroomOptionsResponse, CORS_HEADERS, toErrorResponse } from "../../_shared";
 
 export const dynamic = "force-dynamic";
@@ -30,6 +30,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       }
       if (!isMine && room.visibility === "LINK" && via !== room.shareToken) {
         throw new WishRoomError(403, "LINK_ONLY", "링크를 받은 분만 볼 수 있어요");
+      }
+      // [버그수정 — 전수감사] 미션 04 "다른 소원방 3곳 둘러보기" 실제 행동 기록.
+      // 로그인 상태로 "남의" 방을 열람할 때만 기록(자기 방 반복 조회는 미션과 무관).
+      if (auth && !isMine) {
+        const dateKey = kstDate();
+        await tx.wishRoomVisit.upsert({
+          where: { roomId_userId_dateKey: { roomId: dbId, userId: auth.userId, dateKey } },
+          create: { roomId: dbId, userId: auth.userId, dateKey },
+          update: {},
+        });
       }
       return buildRoomView(tx, room, auth?.userId ?? null);
     });
