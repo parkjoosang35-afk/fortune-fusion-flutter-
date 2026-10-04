@@ -11,6 +11,7 @@ import '../../core/theme/wr_theme.dart';
 import '../../core/fx/wr_fx.dart';
 import '../../core/wr_nav_pill.dart';
 import '../room/room_scene.dart';
+import '../review/review_write_screen.dart';
 import 'other_room_screen.dart';
 
 class ExploreScreen extends StatefulWidget {
@@ -25,6 +26,9 @@ class ExploreScreen extends StatefulWidget {
 class _ExploreScreenState extends State<ExploreScreen> {
   late String _etab = widget.initialTab; // rooms | stories
   bool _hot = true; // 인기순(hot) / 최신순(new)
+  // app2/review2.jsx › Stories() `const [tab, setTab] = useState('all')` 1:1 —
+  // [버그수정 — 전수감사] 기존엔 '나의 이야기' 탭 자체가 없어 reviewFeed(= all)만 보여줬다.
+  String _storyTab = 'all'; // all | mine
 
   @override
   void initState() {
@@ -33,6 +37,33 @@ class _ExploreScreenState extends State<ExploreScreen> {
       context.read<WishRoomProvider>().loadExplore();
       context.read<WishRoomProvider>().loadReviewFeed();
     });
+  }
+
+  void _setStoryTab(String v) {
+    setState(() => _storyTab = v);
+    final p = context.read<WishRoomProvider>();
+    // app2/review2.jsx › Stories() `React.useEffect(load, [tab])` 1:1 — 탭 전환 시 재조회.
+    if (v == 'mine') {
+      p.loadMyReviews();
+    } else {
+      p.loadReviewFeed();
+    }
+  }
+
+  Future<void> _openWrite({WrReview? edit}) async {
+    final room = context.read<WishRoomProvider>().room;
+    if (room == null) return;
+    final result = await Navigator.of(context).push<Object?>(MaterialPageRoute(builder: (_) => ReviewWriteScreen(room: room, edit: edit)));
+    if (!mounted) return;
+    final p = context.read<WishRoomProvider>();
+    if (edit != null) {
+      // 고치기 완료(WrReview 반환) — 나의 이야기 탭 최신화.
+      if (result is WrReview) p.loadMyReviews();
+    } else if (result != null) {
+      // 신규 작성 완료("next"/"stories") — 두 탭 모두 최신화.
+      p.loadMyReviews();
+      p.loadReviewFeed();
+    }
   }
 
   @override
@@ -147,8 +178,15 @@ class _ExploreScreenState extends State<ExploreScreen> {
   }
 
   // ---------------- ✨ 이루어진 이야기(stories) 탭 ----------------
+  // app2/review2.jsx › Stories() `tab==='all' ? '/reviews' : '/reviews?mine=1'` 1:1.
+  // [버그수정 — 전수감사] 기존엔 '모두의 이야기/나의 이야기' 탭 자체가 없었다.
   List<Widget> _storiesSlivers(BuildContext context, WishRoomProvider p) {
-    final list = p.reviewFeed;
+    final list = _storyTab == 'mine' ? p.myReviews : p.reviewFeed;
+    final room = p.room;
+    // app2/review2.jsx › Stories() `canWrite` 1:1 — 내 방이 ACHIEVED이고, 그 방에 대한
+    // 내 후기가 아직 없고, '나의 이야기' 탭일 때만 금색 CTA를 보여준다.
+    final canWrite = room != null && room.wishStatus == WishStatus.ACHIEVED && _storyTab == 'mine' &&
+        !list.any((v) => v.mine && v.roomId == room.id);
     return [
       SliverToBoxAdapter(child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
@@ -162,17 +200,41 @@ class _ExploreScreenState extends State<ExploreScreen> {
           ]),
         ),
       )),
+      SliverToBoxAdapter(child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        child: Row(children: [
+          _storyTabBtn('모두의 이야기', 'all'),
+          const SizedBox(width: 8),
+          _storyTabBtn('나의 이야기', 'mine'),
+        ]),
+      )),
+      if (canWrite) SliverToBoxAdapter(child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        child: SizedBox(width: double.infinity, height: WrSize.btnH, child: DecoratedBox(decoration: WrDeco.btnGold,
+          child: Material(color: Colors.transparent, child: InkWell(borderRadius: BorderRadius.circular(16),
+            onTap: () => _openWrite(),
+            child: const Center(child: Text('💌 이루어진 이야기 남기기', style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 16, color: Color(0xFF4A2A10)))))))),
+      )),
       if (list.isEmpty)
-        const SliverFillRemaining(child: Center(child: Text('아직 나눠진 이야기가 없어요', style: TextStyle(color: WrC.muted))))
+        SliverFillRemaining(child: Center(child: Text(_storyTab == 'mine' ? '아직 남긴 이야기가 없어요' : '아직 나눠진 이야기가 없어요', style: const TextStyle(color: WrC.muted))))
       else
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
           sliver: SliverList(delegate: SliverChildBuilderDelegate((context, i) =>
-            Padding(padding: const EdgeInsets.only(bottom: 10), child: _StoryCard(v: list[i])),
+            Padding(padding: const EdgeInsets.only(bottom: 10), child: _StoryCard(v: list[i], onEdit: () => _openWrite(edit: list[i]))),
             childCount: list.length,
           )),
         ),
     ];
+  }
+
+  Widget _storyTabBtn(String label, String v) {
+    final sel = _storyTab == v;
+    return GestureDetector(onTap: () => _setStoryTab(v), child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: sel ? WrDeco.tabOn : WrDeco.chip,
+      child: Text(label, style: WrF.body(13, w: FontWeight.w700, color: sel ? Colors.white : WrC.fg)),
+    ));
   }
 }
 
@@ -295,8 +357,10 @@ class _FeedCardState extends State<_FeedCard> {
 }
 
 class _StoryCard extends StatefulWidget {
-  const _StoryCard({required this.v});
+  const _StoryCard({required this.v, required this.onEdit});
   final WrReview v;
+  /// app2/review2.jsx › StoryCard() `onEdit(v)` — 내 글 "고치기" 선택 시 ReviewWriteScreen(edit) 열기.
+  final VoidCallback onEdit;
   @override
   State<_StoryCard> createState() => _StoryCardState();
 }
@@ -304,6 +368,8 @@ class _StoryCard extends StatefulWidget {
 class _StoryCardState extends State<_StoryCard> {
   late WrReview _v = widget.v;
   int _pop = 0;
+  bool _menu = false;
+  bool _gone = false; // app2/review2.jsx `v._gone` — 삭제/신고 후 이 카드만 즉시 숨김.
   final GlobalKey _congratsBtnKey = GlobalKey();
   double _congratsBtnWidth = 0;
 
@@ -320,59 +386,124 @@ class _StoryCardState extends State<_StoryCard> {
     }
   }
 
+  // app2/review2.jsx › StoryCard() `del()` 1:1 — DELETE /reviews/{id} → 토스트 →
+  // onChange({...v, _gone:true}). 받은 복주머니는 회수하지 않는다는 안내 문구까지 동일.
+  Future<void> _delete() async {
+    setState(() => _menu = false);
+    final p = context.read<WishRoomProvider>();
+    final ok = await p.deleteReview(_v.id);
+    if (!mounted) return;
+    if (ok) {
+      setState(() => _gone = true);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('이야기를 지웠어요 · 받은 복주머니는 그대로예요')));
+    } else if (p.lastError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(p.lastError!.message)));
+    }
+  }
+
+  // app2/review2.jsx › StoryCard() `report()` 1:1 — POST /reviews/{id}/report {reason:'부적절'}.
+  Future<void> _report() async {
+    setState(() => _menu = false);
+    final p = context.read<WishRoomProvider>();
+    final ok = await p.reportReview(_v.id, '부적절');
+    if (!mounted) return;
+    if (ok) {
+      setState(() => _gone = true);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('신고가 접수되어 숨겨졌어요')));
+    } else if (p.lastError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(p.lastError!.message)));
+    }
+  }
+
+  String _fmtDate(DateTime? t) => t == null ? '' : '${t.year}.${t.month.toString().padLeft(2, '0')}.${t.day.toString().padLeft(2, '0')}';
+
   @override
   Widget build(BuildContext context) {
+    if (_gone) return const SizedBox.shrink();
     final cat = WrCatalog.I;
     final wc = cat.wishColors.where((c) => c['id'] == _v.wishColor).toList();
     final color = wc.isNotEmpty ? _hex(wc.first['color'] as String) : const Color(0xFFFFF0D8);
     return Container(
       decoration: WrDeco.card,
-      clipBehavior: Clip.antiAlias,
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-      child: Stack(children: [
-        Positioned(right: -30, top: -30, child: Container(width: 120, height: 120,
-          decoration: BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [color.withValues(alpha: .2), Colors.transparent])))),
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Text('🔓 소원 봉인 해제', style: WrF.body(11, w: FontWeight.w700, color: WrC.muted)),
-          ]),
-          const SizedBox(height: 8),
-          Text('"${_v.wishText}"', style: WrF.body(15, w: FontWeight.w700, color: WrC.fg, height: 1.5)),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(999),
-              gradient: const LinearGradient(colors: [Color(0x33F5CF6A), Color(0x26FF8FB1)]),
-              border: Border.all(color: const Color(0x66F5CF6A))),
-            child: Text('💛 소원이 이루어졌어요', style: WrF.body(11.5, w: FontWeight.w700, color: const Color(0xFFFFE08A))),
-          ),
-          if (_v.photo != null) Padding(padding: const EdgeInsets.only(top: 10), child: ClipRRect(borderRadius: BorderRadius.circular(12),
-            child: Image.network(_v.photo!, width: double.infinity, height: 170, fit: BoxFit.cover))),
-          const SizedBox(height: 10),
-          Text('"${_v.text}"', style: WrF.body(13.5, color: const Color(0xE6FFF0E4), height: 1.75)),
-          const SizedBox(height: 12),
-          Row(children: [
-            Text('${_v.author}${_v.mine ? ' · 나' : ''}', style: WrF.body(11.5, color: WrC.muted)),
-            const Spacer(),
-            GestureDetector(onTap: _v.mine ? null : _congrats, child: Opacity(opacity: _v.mine ? .6 : 1, child: Stack(clipBehavior: Clip.none, children: [
-              Container(key: _congratsBtnKey, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      clipBehavior: Clip.none,
+      child: ClipRRect(
+        borderRadius: const BorderRadius.all(Radius.circular(16)), // WrDeco.card radius 근사 — 아래 메뉴 오버플로우는 Clip.none Stack에서 허용.
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+          child: Stack(clipBehavior: Clip.none, children: [
+            Positioned(right: -30, top: -30, child: Container(width: 120, height: 120,
+              decoration: BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [color.withValues(alpha: .2), Colors.transparent])))),
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Text('🔓 소원 봉인 해제', style: WrF.body(11, w: FontWeight.w700, color: WrC.muted)),
+                const Spacer(),
+                Text(_fmtDate(_v.achievedAt), style: WrF.mono(size: 9.5, color: WrC.muted)),
+                GestureDetector(onTap: () => setState(() => _menu = !_menu),
+                  child: const SizedBox(width: 24, height: 24, child: Icon(Icons.more_horiz, size: 18, color: WrC.muted))),
+              ]),
+              const SizedBox(height: 8),
+              Text('"${_v.wishText}"', style: WrF.body(15, w: FontWeight.w700, color: WrC.fg, height: 1.5)),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                 decoration: BoxDecoration(borderRadius: BorderRadius.circular(999),
-                  gradient: _v.congratsByMe ? const LinearGradient(colors: [Color(0xFFFF9CBC), Color(0xFFF2628F)]) : null,
-                  color: _v.congratsByMe ? null : const Color(0x14FFFFFF),
-                  border: _v.congratsByMe ? null : Border.all(color: const Color(0x73FF8FB1))),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  const Text('❤', style: TextStyle(color: Colors.white, fontSize: 12)),
-                  const SizedBox(width: 5),
-                  Text('축하해요 ${_v.congrats}', style: WrF.body(12, w: FontWeight.w700, color: Colors.white)),
-                ]),
+                  gradient: const LinearGradient(colors: [Color(0x33F5CF6A), Color(0x26FF8FB1)]),
+                  border: Border.all(color: const Color(0x66F5CF6A))),
+                child: Text('💛 소원이 이루어졌어요', style: WrF.body(11.5, w: FontWeight.w700, color: const Color(0xFFFFE08A))),
               ),
-              if (_pop > 0) WrHearts(key: ValueKey(_pop), x: _congratsBtnWidth, y: 0, n: 6),
-            ]))),
+              if (_v.photo != null) Padding(padding: const EdgeInsets.only(top: 10), child: ClipRRect(borderRadius: BorderRadius.circular(12),
+                child: Image.network(_v.photo!, width: double.infinity, height: 170, fit: BoxFit.cover))),
+              const SizedBox(height: 10),
+              Text('"${_v.text}"', style: WrF.body(13.5, color: const Color(0xE6FFF0E4), height: 1.75)),
+              const SizedBox(height: 12),
+              Row(children: [
+                Text('${_v.author}${_v.mine ? ' · 나' : ''}', style: WrF.body(11.5, color: WrC.muted)),
+                // app2/review2.jsx › StoryCard() `v.mine && <span className="chip">{공개/나만 보기}</span>` 1:1.
+                if (_v.mine) ...[
+                  const SizedBox(width: 6),
+                  Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: WrDeco.chip,
+                    child: Text(_v.visibility == 'PUBLIC' ? '공개' : '나만 보기', style: WrF.body(10.5, color: WrC.fg))),
+                ],
+                const Spacer(),
+                GestureDetector(onTap: _v.mine ? null : _congrats, child: Opacity(opacity: _v.mine ? .6 : 1, child: Stack(clipBehavior: Clip.none, children: [
+                  Container(key: _congratsBtnKey, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(999),
+                      gradient: _v.congratsByMe ? const LinearGradient(colors: [Color(0xFFFF9CBC), Color(0xFFF2628F)]) : null,
+                      color: _v.congratsByMe ? null : const Color(0x14FFFFFF),
+                      border: _v.congratsByMe ? null : Border.all(color: const Color(0x73FF8FB1))),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      const Text('❤', style: TextStyle(color: Colors.white, fontSize: 12)),
+                      const SizedBox(width: 5),
+                      Text('축하해요 ${_v.congrats}', style: WrF.body(12, w: FontWeight.w700, color: Colors.white)),
+                    ]),
+                  ),
+                  if (_pop > 0) WrHearts(key: ValueKey(_pop), x: _congratsBtnWidth, y: 0, n: 6),
+                ]))),
+              ]),
+            ]),
+            // app2/review2.jsx › StoryCard() `{menu && <div>...}` 1:1 — 내 글: 고치기/지우기,
+            // 남의 글: 신고하기. right:12 top:40 드롭다운.
+            if (_menu) Positioned(right: 12, top: 40, child: Container(
+              decoration: BoxDecoration(color: const Color(0xFF2A1020), borderRadius: BorderRadius.circular(12), border: Border.all(color: WrC.line),
+                boxShadow: const [BoxShadow(color: Color(0x80000000), blurRadius: 20, offset: Offset(0, 8))]),
+              clipBehavior: Clip.antiAlias,
+              child: _v.mine
+                ? Column(mainAxisSize: MainAxisSize.min, children: [
+                    _menuItem('고치기', () { setState(() => _menu = false); widget.onEdit(); }),
+                    _menuItem('지우기', _delete, color: const Color(0xFFFF9A9A)),
+                  ])
+                : _menuItem('신고하기', _report),
+            )),
           ]),
-        ]),
-      ]),
+        ),
+      ),
     );
   }
+
+  Widget _menuItem(String label, VoidCallback onTap, {Color color = Colors.white}) => GestureDetector(
+    onTap: onTap,
+    child: Container(width: 120, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Text(label, style: WrF.body(13, color: color))));
 }
 
 Color _hex(String h) => Color(int.parse('FF${h.replaceFirst('#', '')}', radix: 16));

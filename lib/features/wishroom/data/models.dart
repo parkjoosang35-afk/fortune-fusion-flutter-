@@ -221,8 +221,15 @@ class WrComment {
 
 class WrReview {
   final String id, roomId, author, wishText, text, wishColor; final String? photo; final int congrats; final bool congratsByMe, mine; final String status;
+  // app2/review2.jsx › StoryCard() `v.visibility === 'PUBLIC' ? '공개' : '나만 보기'` 1:1 —
+  // [버그수정 — 전수감사] 기존엔 이 필드가 아예 없어 내 글 칩(공개/나만 보기)을
+  // 표시할 방법이 없었다.
+  final String visibility;
+  // app2/review2.jsx › StoryCard() `d(v.achievedAt)` (1행 날짜 mono 표기) 1:1.
+  final DateTime? achievedAt;
   WrReview.fromJson(Map<String, dynamic> j) : id = j['id'], roomId = j['roomId'], author = j['author'] ?? '', wishText = j['wishText'] ?? '', text = j['text'] ?? '',
-      wishColor = j['wishColor'] ?? 'hope', photo = j['photo'], congrats = j['congrats'] ?? 0, congratsByMe = j['congratsByMe'] ?? false, mine = j['mine'] ?? false, status = j['status'] ?? 'OK';
+      wishColor = j['wishColor'] ?? 'hope', photo = j['photo'], congrats = j['congrats'] ?? 0, congratsByMe = j['congratsByMe'] ?? false, mine = j['mine'] ?? false, status = j['status'] ?? 'OK',
+      visibility = j['visibility'] ?? 'PUBLIC', achievedAt = _ts(j['achievedAt']);
 }
 
 // ── 배경화면(W1~W5) — docs/WALLPAPER.md ──

@@ -646,16 +646,20 @@ class WishRoomProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> editReview(String id, {String? text, String? photo, bool? public}) async {
+  // app2/review2.jsx › ReviewWrite submit() edit 분기 `PATCH /reviews/{id}` 1:1.
+  // [버그수정 — 전수감사] 기존엔 bool만 반환해 호출부가 수정된 리뷰 내용을 알 수 없었다
+  // (화면에서 전혀 쓰이지 않던 죽은 코드였음) — WrReview?를 반환하도록 변경.
+  Future<WrReview?> editReview(String id, {String? text, String? photo, bool? public}) async {
     try {
       final r = await repo.editReview(id, text: text, photo: photo, public: public);
       myReviews = myReviews.map((x) => x.id == id ? r : x).toList();
+      reviewFeed = reviewFeed.map((x) => x.id == id ? r : x).toList();
       notifyListeners();
-      return true;
+      return r;
     } on ApiError catch (e) {
       lastError = e;
       notifyListeners();
-      return false;
+      return null;
     }
   }
 

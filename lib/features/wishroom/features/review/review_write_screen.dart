@@ -1,7 +1,8 @@
 // 성취 후기 — app2/review2.jsx › ReviewWrite()/ReviewReward() 1:1 이식.
 // docs/REVIEW.md · docs/CHANGELOG.md "소원 성취 & 후기(v2.4)" 참고.
 // SCR-10(Complete) 하단 "💌 후기" 버튼에서 진입 → 작성 → 제출 → 보상 연출 → pop(결과).
-// edit 모드는 이번 범위 밖(보관함 내 "고치기"는 추후). 여기서는 신규 작성만 구현.
+// edit != null 이면 app2/review2.jsx ReviewWrite({edit}) 수정 모드 1:1 —
+// PATCH /reviews/{id}, 보상 연출 없이 바로 pop(editedReview).
 import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
@@ -18,23 +19,26 @@ import '../../core/fx/wr_fx.dart';
 Color _hex(String h) => Color(int.parse('FF${h.replaceFirst('#', '')}', radix: 16));
 
 /// ReviewWrite + ReviewReward 를 하나의 화면 흐름으로 관리.
-/// pop 결과: null = 스킵("나중에 남길게요"/닫기, 제출 안 함) · 'next' = 제출 완료 후 계속하기 ·
-/// 'stories' = 제출 완료(공개) 후 "이야기 보기" 선택. 호출부(complete_screen)는 null 이 아니면
-/// reviewed=true 로 간주해 💌 후기/되돌리기 버튼을 숨긴다 — 원본 `reviewed` state 1:1.
+/// 신규 작성 pop 결과: null = 스킵("나중에 남길게요"/닫기, 제출 안 함) · 'next' = 제출 완료 후
+/// 계속하기 · 'stories' = 제출 완료(공개) 후 "이야기 보기" 선택. 호출부(complete_screen)는
+/// null 이 아니면 reviewed=true 로 간주해 💌 후기/되돌리기 버튼을 숨긴다 — 원본 `reviewed` 1:1.
+/// edit != null 이면 수정 모드 — pop 결과는 수정된 WrReview? (취소 시 null).
 class ReviewWriteScreen extends StatefulWidget {
-  const ReviewWriteScreen({super.key, required this.room});
+  const ReviewWriteScreen({super.key, required this.room, this.edit});
   final WishRoom room;
+  final WrReview? edit;
   @override
   State<ReviewWriteScreen> createState() => _ReviewWriteScreenState();
 }
 
 class _ReviewWriteScreenState extends State<ReviewWriteScreen> {
-  final _ctrl = TextEditingController();
-  String? _photoBase64;
-  bool _public = false; // 기본 '나만 보기' (PRIVATE) — docs/REVIEW.md
+  late final _ctrl = TextEditingController(text: widget.edit?.text ?? '');
+  late String? _photoBase64 = widget.edit?.photo;
+  late bool _public = widget.edit != null ? widget.edit!.visibility == 'PUBLIC' : false; // 기본 '나만 보기' — docs/REVIEW.md
   bool _busy = false;
   String? _err;
   Map<String, dynamic>? _result; // postReview 응답 → 보상 단계로 전환
+  bool get _isEdit => widget.edit != null;
 
   int get _len => _ctrl.text.replaceAll(RegExp(r'\s'), '').length;
   bool get _ok => _len >= 20;
@@ -59,6 +63,18 @@ class _ReviewWriteScreenState extends State<ReviewWriteScreen> {
     if (_busy || !_ok) return;
     setState(() { _busy = true; _err = null; });
     final p = context.read<WishRoomProvider>();
+    // app2/review2.jsx › ReviewWrite submit() — edit 모드는 PATCH 후 보상 연출 없이
+    // 바로 pop, 신규 작성은 POST 후 보상(res.reward)으로 _RewardBody 전환.
+    if (_isEdit) {
+      final r = await p.editReview(widget.edit!.id, text: _ctrl.text, photo: _photoBase64, public: _public);
+      if (!mounted) return;
+      if (r == null) {
+        setState(() { _busy = false; _err = p.lastError?.message ?? '이야기를 고치지 못했어요'; });
+        return;
+      }
+      Navigator.of(context).pop(r);
+      return;
+    }
     final res = await p.postReview(widget.room.id, text: _ctrl.text, photo: _photoBase64, public: _public);
     if (!mounted) return;
     if (res == null) {
@@ -87,7 +103,7 @@ class _ReviewWriteScreenState extends State<ReviewWriteScreen> {
                 Row(children: [
                   IconButton(onPressed: () => Navigator.of(context).pop(), icon: const Icon(Icons.close, color: Colors.white54)),
                 ]),
-                Text('FULFILLED · STORY', style: WrF.mono(size: 10, color: const Color(0xFFFFE08A))),
+                Text(_isEdit ? 'EDIT STORY' : 'FULFILLED · STORY', style: WrF.mono(size: 10, color: const Color(0xFFFFE08A))),
                 const SizedBox(height: 10),
                 Text('💌 소원이 이루어진 이야기를\n남겨주세요', style: WrF.display(23, color: Colors.white)),
                 const SizedBox(height: 8),
@@ -126,7 +142,11 @@ class _ReviewWriteScreenState extends State<ReviewWriteScreen> {
                 const SizedBox(height: 8),
                 _photoBase64 != null
                   ? Stack(children: [
-                      ClipRRect(borderRadius: BorderRadius.circular(14), child: Image.memory(_decodePhoto(_photoBase64!), width: 120, height: 120, fit: BoxFit.cover)),
+                      // edit 모드에서 widget.edit.photo는 서버가 보관 중인 네트워크 URL일 수
+                      // 있다(새로 고른 사진만 data: base64) — StoryCard의 Image.network와 동일하게 분기.
+                      ClipRRect(borderRadius: BorderRadius.circular(14), child: _photoBase64!.startsWith('data:')
+                        ? Image.memory(_decodePhoto(_photoBase64!), width: 120, height: 120, fit: BoxFit.cover)
+                        : Image.network(_photoBase64!, width: 120, height: 120, fit: BoxFit.cover)),
                       Positioned(right: 6, top: 6, child: GestureDetector(onTap: () => setState(() => _photoBase64 = null),
                         child: Container(width: 24, height: 24, alignment: Alignment.center, decoration: const BoxDecoration(color: Color(0x99000000), shape: BoxShape.circle),
                           child: const Icon(Icons.close, size: 13, color: Colors.white)))),
@@ -156,16 +176,21 @@ class _ReviewWriteScreenState extends State<ReviewWriteScreen> {
                           Text(v.$3, style: WrF.body(11.5, color: WrC.muted)),
                         ])),
                       ])))),
-                const SizedBox(height: 8),
-                Container(padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
-                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: WrC.line, style: BorderStyle.solid)),
-                  child: RichText(text: TextSpan(style: WrF.body(11.5, color: WrC.muted, height: 1.65), children: [
-                    const TextSpan(text: '· 후기를 남기면 복주머니 '),
-                    const TextSpan(text: '+30', style: TextStyle(color: WrC.glow, fontWeight: FontWeight.w700)),
-                    const TextSpan(text: ', 사진까지 첨부하면 '),
-                    const TextSpan(text: '+20', style: TextStyle(color: WrC.glow, fontWeight: FontWeight.w700)),
-                    const TextSpan(text: '을 더 드려요. 소원 하나에 한 번만 받을 수 있어요.\n· 같은 글자 반복, 의미 없는 글은 확인 후 보상이 드려질 수 있어요.'),
-                  ]))),
+                // app2/review2.jsx › ReviewWrite `{!edit && <div>...안내...</div>}` 1:1 —
+                // [버그수정 — 전수감사] 기존엔 edit 모드 자체가 없어 이 안내박스(보상 재지급
+                // 없는 수정 모드에서는 "복주머니 +30" 문구가 오해를 부를 수 있음)가 항상 떴다.
+                if (!_isEdit) ...[
+                  const SizedBox(height: 8),
+                  Container(padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: WrC.line, style: BorderStyle.solid)),
+                    child: RichText(text: TextSpan(style: WrF.body(11.5, color: WrC.muted, height: 1.65), children: [
+                      const TextSpan(text: '· 후기를 남기면 복주머니 '),
+                      const TextSpan(text: '+30', style: TextStyle(color: WrC.glow, fontWeight: FontWeight.w700)),
+                      const TextSpan(text: ', 사진까지 첨부하면 '),
+                      const TextSpan(text: '+20', style: TextStyle(color: WrC.glow, fontWeight: FontWeight.w700)),
+                      const TextSpan(text: '을 더 드려요. 소원 하나에 한 번만 받을 수 있어요.\n· 같은 글자 반복, 의미 없는 글은 확인 후 보상이 드려질 수 있어요.'),
+                    ]))),
+                ],
                 if (_err != null) Padding(padding: const EdgeInsets.only(top: 10), child: Text(_err!, style: const TextStyle(color: Color(0xFFFF9A9A), fontSize: 12.5))),
               ]))),
             ])),
@@ -176,8 +201,8 @@ class _ReviewWriteScreenState extends State<ReviewWriteScreen> {
                 SizedBox(width: double.infinity, height: WrSize.btnH, child: DecoratedBox(decoration: !_ok || _busy ? WrDeco.btnDark : WrDeco.btnPink,
                   child: Material(color: Colors.transparent, child: InkWell(borderRadius: BorderRadius.circular(16), onTap: !_ok || _busy ? null : _submit,
                     child: Center(child: _busy ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : Text('💌 이야기 남기기', style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: WrSize.btnFont, color: _ok ? Colors.white : WrC.muted))))))),
-                TextButton(onPressed: () => Navigator.of(context).pop(), child: Text('나중에 남길게요', style: WrF.body(12.5, color: WrC.muted))),
+                      : Text(_isEdit ? '고친 이야기 저장하기' : '💌 이야기 남기기', style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: WrSize.btnFont, color: _ok ? Colors.white : WrC.muted))))))),
+                TextButton(onPressed: () => Navigator.of(context).pop(), child: Text(_isEdit ? '취소' : '나중에 남길게요', style: WrF.body(12.5, color: WrC.muted))),
               ]),
             )),
           ]),
