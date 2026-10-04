@@ -360,8 +360,12 @@ class _WPRoomRow extends StatelessWidget {
             width: 46, height: 72, clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: WrC.bg1),
             // G-4 RoomThumb — [버그수정 — 전수감사] items:const[] 고정으로 장식이 전혀 반영되지 않던 버그.
+            // [버그수정 — 전수감사] app2/wallpaper2.jsx › WPRoomRow(): `<RoomThumb ... focus={.45}
+            // zoom={1}/>` — 세로가 긴 46×72 썸네일 전용 비율(focus:.22,zoom:1.5는 다른
+            // 가로형 카드 값)과 불일치했다. ARCHIVED(완성)는 `{...r,...s,brightness:1}`도 반영.
             child: Stack(children: [
-              Positioned.fill(child: RoomThumb(room: room, items: items, w: 46, h: 72, focus: .22, zoom: 1.5)),
+              Positioned.fill(child: RoomThumb(room: room, items: items, w: 46, h: 72, focus: .45, zoom: 1,
+                brightnessOverride: room.status == RoomStatus.ARCHIVED ? 1 : null)),
               if (room.status == RoomStatus.ARCHIVED) const Positioned(right: 2, bottom: 2, child: _MiniSeal()),
             ]),
           ),
@@ -659,7 +663,9 @@ class WPEntryCard extends StatelessWidget {
             width: 34, height: 60, clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFF3A2C38), width: 2)),
             // G-4 RoomThumb — [버그수정 — 전수감사] items:const[] 고정으로 장식이 전혀 반영되지 않던 버그.
-            child: RoomThumb(room: room, items: p.items, w: 34, h: 60, focus: .22, zoom: 1.5),
+            // [버그수정 — 전수감사] app2/wallpaper2.jsx › WPEntryCard(): `<RoomThumb ... focus={.45}
+            // zoom={1}/>` — 세로형 34×60 썸네일에 다른 카드의 focus/zoom 값이 섞여 있었다.
+            child: RoomThumb(room: room, items: p.items, w: 34, h: 60, focus: .45, zoom: 1),
           ),
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
