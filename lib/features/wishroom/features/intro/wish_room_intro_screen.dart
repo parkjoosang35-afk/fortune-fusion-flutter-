@@ -54,6 +54,7 @@ class _WishRoomIntroScreenState extends State<WishRoomIntroScreen> {
     // 안전하게 WrCatalog.I를 동기 참조할 수 있도록 보장한다.
     await Future.wait([p.loadMyRoom(), WrCatalog.load()]);
     if (!mounted) return;
+    _precacheThemeRooms();
     if (p.room == null) return; // Welcome 화면으로 자연 분기(build에서 처리)
     final mode = p.introMode;
     if (mode == IntroMode.none) {
@@ -70,6 +71,20 @@ class _WishRoomIntroScreenState extends State<WishRoomIntroScreen> {
     }
     final dur = mode == IntroMode.full ? WrDur.introFull : WrDur.introShort;
     _advanceTimer = Timer(dur, _enterShell);
+  }
+
+  // [신규 구현 — jsx 명시 이식 지시] app/room-layout.js 13-14줄: "테마 전환이 즉시
+  // 보이도록 테마 방 그림 미리 불러오기 (Flutter: precacheImage)" — 원본은
+  // setTimeout 1500ms 후 THEMES[].room 4장을 new Image()로 미리 로드한다.
+  // (README §8 "캐릭터·동작 그림"도 precache 대상이라 언급하지만 jsx 실제 구현에는
+  // 테마 방 4장만 존재함 — 원본 소스 우선 원칙에 따라 jsx를 ground truth로 따른다.)
+  void _precacheThemeRooms() {
+    Timer(const Duration(milliseconds: 1500), () {
+      if (!mounted) return;
+      for (final t in WrTheme.values) {
+        precacheImage(AssetImage(WrCatalog.I.roomImage(t)), context);
+      }
+    });
   }
 
   void _enterShell() {
