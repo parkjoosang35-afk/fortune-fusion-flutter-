@@ -16,6 +16,7 @@ import '../room/room_scene.dart';
 import '../review/review_write_screen.dart';
 import '../explore/explore_screen.dart';
 import '../../wishroom_shell.dart';
+import '../../core/wr_nav_pill.dart';
 
 class CompleteScreen extends StatefulWidget {
   const CompleteScreen({super.key, required this.roomId, this.already = false});
@@ -261,8 +262,11 @@ class _BottomCard extends StatelessWidget {
   final WishRoom room; final bool reviewed; final VoidCallback onUndo, onReview, onSeal, onShare;
   @override
   Widget build(BuildContext context) {
-    // 원본: !reviewed && !room.sealUntil 일 때만 되돌리기, !reviewed 일 때 💌 후기 노출.
-    final canUndo = !reviewed && room.cancelUntil != null && room.cancelUntil!.isAfter(DateTime.now());
+    // app2/screens-c2.jsx › Complete() !reviewed && !room.sealUntil 1:1.
+    // [버그수정 — 전수감사] 기존엔 room.cancelUntil(다른 의미의 필드)을 체크해서
+    // 되돌리기 버튼이 거의 항상 숨겨지는 버그가 있었다. 원본은 "이 방에 타임캡슐
+    // 봉인일(sealUntil)이 설정돼 있지 않은 경우"만 되돌리기를 허용한다.
+    final canUndo = !reviewed && room.sealUntil == null;
     return Column(children: [
       Container(
         padding: const EdgeInsets.all(14),
@@ -314,6 +318,10 @@ class _SealedBody extends StatelessWidget {
         child: Image.asset('assets/wishroom/room-lv10.jpg', fit: BoxFit.cover))),
       Positioned.fill(child: Container(color: Colors.black.withValues(alpha: .55))),
       const WrPetalRain(n: 14, dur: (7, 10), spread: 6),
+      // app2/screens-c2.jsx › Sealed() <NavPill style={{left:14, top:52}}/> 1:1.
+      // [버그수정 — 전수감사] 기존엔 전혀 없었다.
+      SafeArea(child: Padding(padding: const EdgeInsets.fromLTRB(14, 10, 0, 0), child: Align(alignment: Alignment.topLeft,
+        child: WrNavPill(onBack: () => wrBackOrAskExit(context), onExitHome: () => wrExitHome(context))))),
       SafeArea(child: Padding(padding: const EdgeInsets.all(26), child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [

@@ -360,11 +360,13 @@ class _PouchTabState extends State<_PouchTab> {
       );
       return;
     }
-    // app2/screens-c2.jsx › PouchTab() EARN 'devo10' onClick={() => app.go('home')} 1:1.
-    // [버그수정 — 전수감사] 기존엔 popUntil(isFirst)이라 Vault 탭에서 메인 탭으로
-    // 전환되지 않았다.
+    // app2/screens-c2.jsx › PouchTab() act() 1:1 — go 필드는 메타데이터일 뿐, 실제
+    // 클릭 동작은 devo10만 app.go('home')으로 분기하고 나머지(m_visit/m_cheer/m_msg
+    // 포함)는 go 값과 무관하게 전부 즉시 doEarn(S.id)를 호출한다.
+    // [버그수정 — 전수감사] 기존엔 go=='explore'일 때 적립 없이 안내 토스트만 띄웠다
+    // (원본엔 그런 분기가 없다). go=='home'도 popUntil(isFirst)이라 Vault 탭(IndexedStack)
+    // 안에서는 메인 탭으로 전환되지 않았다.
     if (s.go == 'home') { context.read<WishRoomProvider>().requestTab(0); return; }
-    if (s.go == 'explore') { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('탐색 탭에서 다른 소원방을 둘러봐요'))); return; }
     await _doEarn(s.id);
   }
 
@@ -720,10 +722,14 @@ class _RewardTabState extends State<_RewardTab> {
                     decoration: BoxDecoration(borderRadius: BorderRadius.circular(999),
                       gradient: const LinearGradient(colors: [Color(0xFFFFE7A0), WrC.glow, Color(0xFFD9A53A)])),
                     child: const Text('🎁 받기', style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 12.5, color: Color(0xFF4A2A10)))))
+                // app2/screens-c2.jsx › RewardTab() st==='claimed' 칩 onClick={() => app.go('decor')} 1:1.
+                // [버그수정 — 전수감사] 기존엔 탭 핸들러 없는 정적 Container + "✓ 받음"만
+                // 표시했다(원본은 "✓ 받음 · 꾸미기 ›" + 꾸미기 탭(탭3)으로 이동).
                 else if (claimed)
-                  Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  GestureDetector(onTap: () => context.read<WishRoomProvider>().requestTab(3), child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(color: WrC.glow, borderRadius: BorderRadius.circular(999)),
-                    child: const Text('✓ 받음', style: TextStyle(color: Color(0xFF4A2A10), fontSize: 11, fontWeight: FontWeight.w700)))
+                    child: const Text('✓ 받음 · 꾸미기 ›', style: TextStyle(color: Color(0xFF4A2A10), fontSize: 11, fontWeight: FontWeight.w700))))
                 else
                   Text('${at - n}회 남음', style: WrF.body(11, color: WrC.muted)),
               ]),
@@ -797,11 +803,15 @@ class _ClaimOverlayState extends State<_ClaimOverlay> with SingleTickerProviderS
               child: const Text('닫기', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700))))),
             if (item != null) ...[
               const SizedBox(width: 8),
+              // app2/screens-c2.jsx › RewardTab() 받기 연출 "방에 두기" onClick
+              // { setOpen(null); app.go('decor') } 1:1. [버그수정 — 전수감사]
+              // 기존엔 장착만 하고 꾸미기 탭으로 이동하지 않았다.
               Expanded(flex: 2, child: GestureDetector(onTap: () async {
                 final p = context.read<WishRoomProvider>();
                 final id = item['id'] as String?;
                 if (id != null) await p.equip(widget.room.id, id);
                 widget.onClose();
+                p.requestTab(3);
               }, child: Container(
                 height: 46, alignment: Alignment.center, decoration: WrDeco.btnPink,
                 child: const Text('방에 두기', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700))))),
