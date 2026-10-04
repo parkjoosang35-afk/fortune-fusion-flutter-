@@ -150,6 +150,9 @@ class _SharedResultScreenState extends State<SharedResultScreen> {
 
   String _typeLabel(ShareResultType type) {
     switch (type) {
+      // [하위호환] 기존에 이미 공유된 fortune 링크는 계속 "오늘의 운세"로
+      // 표시된다(신규 공유는 saju를 사용 — ShareResultType 주석 참고).
+      // ignore: deprecated_member_use_from_same_package
       case ShareResultType.fortune:
         return '오늘의 운세';
       case ShareResultType.tarot:
@@ -160,6 +163,10 @@ class _SharedResultScreenState extends State<SharedResultScreen> {
         return '손금';
       case ShareResultType.wish:
         return '소원방';
+      case ShareResultType.saju:
+        return '정통사주';
+      case ShareResultType.relationship:
+        return '귀인지도';
     }
   }
 }

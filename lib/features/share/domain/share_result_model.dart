@@ -1,15 +1,29 @@
 /// 결과 공유(Share Result) 기능 — 신통방통_결과공유_개발제안서(sintong-share-proposal.pdf)
 /// 대응 도메인 모델.
 ///
-/// [5개 결과 타입] 운세(fortune)/타로(tarot)/관상(face)/손금(palm)/소원성(wish).
-/// admin_web `src/app/api/public/share/_shared.ts`의 `SHARE_RESULT_TYPES`와
-/// 반드시 동일한 문자열 값을 사용해야 한다(서버가 화이트리스트로 검증).
+/// [2027-02 6개 카테고리 통일] 소원방(wish)/타로(tarot)/정통사주(saju)/
+/// 귀인지도(relationship)/관상(face)/손금(palm) 6종. admin_web
+/// `src/app/api/public/share/_shared.ts`의 `SHARE_RESULT_TYPES`(=중앙 설정
+/// `OG_CONFIG`의 키)와 반드시 동일한 문자열 값을 사용해야 한다(서버가
+/// 화이트리스트로 검증).
+///
+/// [하위 호환 — 절대 원칙] `fortune`은 과거(이 작업 이전) "오늘의 운세"
+/// 통합 화면이 공유에 사용했던 값으로, 기존에 이미 생성된 SharedResult
+/// 레코드와 `/r/{shareId}` 링크가 계속 정상 동작하도록 서버 화이트리스트에
+/// 영구 보존된다. **신규 코드는 절대 이 값을 쓰지 않고 [saju]를 사용할
+/// 것** — 신규 호출부에서 `ShareResultType.fortune`을 쓰면 안 된다.
 enum ShareResultType {
+  @Deprecated(
+    '레거시 전용 — 기존에 이미 생성된 공유 데이터의 하위호환을 위해서만 '
+    '유지한다. 신규 공유는 ShareResultType.saju를 사용할 것.',
+  )
   fortune,
   tarot,
   face,
   palm,
-  wish;
+  wish,
+  saju,
+  relationship;
 
   /// 서버 API에 실어 보내는 문자열 값(그대로 매칭).
   String get apiValue => name;
@@ -72,6 +86,7 @@ class SharedResultDto {
       shareId: json['shareId'] as String,
       resultType:
           ShareResultType.fromApiValue(json['resultType'] as String?) ??
+          // ignore: deprecated_member_use_from_same_package
           ShareResultType.fortune,
       title: json['title'] as String? ?? '',
       description: json['description'] as String? ?? '',

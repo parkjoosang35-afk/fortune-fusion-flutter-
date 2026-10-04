@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/config/env_config.dart';
@@ -10,6 +11,9 @@ import '../../../core/util/image_gallery_saver.dart';
 import '../../../core/util/safe_share.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../../core/theme/legacy_wish_room/wish_room_sigil.dart';
+import '../../share/application/share_service.dart';
+import '../../share/domain/share_result_model.dart';
+import '../application/guinji_provider.dart';
 import '../domain/guinji_person.dart';
 import '../theme/guinji_theme.dart';
 import '../widgets/guinji_bg_atmosphere.dart';
@@ -160,6 +164,105 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
     }
   }
 
+  /// [2027-02 귀인지도 링크 공유 추가] 기존 스크린샷 공유(RepaintBoundary→
+  /// PNG→Share.shareXFiles)는 그대로 유지하고, 별도로 서버 공유 시스템
+  /// (`/api/public/share` → `/r/{shareId}`)에 연결되는 "링크 공유"를
+  /// 추가한다.
+  ///
+  /// [공개 가능 여부 서버 검증] `POST /api/public/share`는 JWT 인증을
+  /// 요구하므로(`requireUser`), 이 메서드를 호출할 수 있는 것은 오직
+  /// **로그인한 본인**뿐이다. 이 화면의 [widget.people]은 항상 호출부
+  /// (랭킹 화면)가 [GuinjiProvider.people] — 즉 "로그인한 본인 소유"
+  /// 귀인지도 데이터만 전달하므로, 타인의 비공개 귀인지도를 이 경로로
+  /// 공유할 방법 자체가 없다(서버 JWT 소유자 확인 = 공개 가능 여부 검증).
+  /// payload에는 기존 비식별 원칙(이름 비노출, 관계유형별 인원수만)을
+  /// 그대로 적용해 집계값만 담는다 — 원본 생년월일/실명 등은 절대 포함하지
+  /// 않는다.
+  Future<void> _shareViaLink(int guin, int oreunpal, int horang) async {
+    if (_capturing) return;
+    setState(() => _capturing = true);
+    try {
+      final mapId = context.read<GuinjiProvider>().mapId;
+      await ShareService.shareResult(
+        context,
+        resultType: ShareResultType.relationship,
+        title: '${widget.ownerName}님의 귀인지도 · 신통방통',
+        description: '내 주변 귀인 $guin명을 신통방통이 찾아줬어요.',
+        payload: {
+          'category': '귀인지도',
+          'summary': '내 주변 귀인 $guin명을 신통방통이 찾아줬어요.',
+          'highlights': [
+            '귀인 $guin명',
+            '오른팔 $oreunpal명',
+            '호랑이 선생 $horang명',
+          ],
+        },
+        sourceRefId: mapId,
+      );
+    } finally {
+      if (mounted) setState(() => _capturing = false);
+    }
+  }
+
+  /// "공유하기" 버튼 탭 시 스크린샷 공유/링크 공유 중 하나를 고르는
+  /// 바텀시트. 기존 스크린샷 공유 흐름([_captureAndShare])은 그대로
+  /// 유지하면서, 신규 링크 공유([_shareViaLink])를 추가로 노출한다.
+  Future<void> _showShareOptions(int guin, int oreunpal, int horang) async {
+    if (_capturing) return;
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: GuinjiColors.surfaceCard,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              const Text(
+                '어떻게 공유할까요?',
+                style: TextStyle(
+                  fontFamily: GuinjiFonts.display,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                  color: GuinjiColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              ListTile(
+                leading: const Icon(
+                  Icons.image_outlined,
+                  color: GuinjiColors.lavender,
+                ),
+                title: const Text('이미지로 공유'),
+                subtitle: const Text('카드 이미지를 카카오톡·SNS로 바로 공유해요'),
+                onTap: () => Navigator.of(sheetContext).pop('image'),
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.link,
+                  color: GuinjiColors.lavender,
+                ),
+                title: const Text('링크로 공유'),
+                subtitle: const Text('누르면 결과 페이지로 연결되는 링크를 공유해요'),
+                onTap: () => Navigator.of(sheetContext).pop('link'),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+    if (!mounted || choice == null) return;
+    if (choice == 'image') {
+      await _captureAndShare(guin);
+    } else if (choice == 'link') {
+      await _shareViaLink(guin, oreunpal, horang);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final people = widget.people;
@@ -219,7 +322,8 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
                           label: _capturing ? '준비하는 중' : '공유하기',
                           onPressed: _capturing
                               ? () {}
-                              : () => _captureAndShare(guin),
+                              : () =>
+                                    _showShareOptions(guin, oreunpal, horang),
                         ),
                       ),
                     ],

@@ -1910,7 +1910,10 @@ void _shareJeontongV3Result(
 
   ShareService.shareResult(
     context,
-    resultType: ShareResultType.fortune,
+    // [fortune -> saju 전환 — 2027-02] 신규 공유는 반드시 'saju'(정통사주)
+    // 를 사용한다(사용자 지시사항 — 기존 fortune 값은 하위호환 전용으로만
+    // 보존되고 신규 호출부는 더 이상 사용하지 않는다).
+    resultType: ShareResultType.saju,
     title: '$displayName · ${entry.title} · 신통방통',
     description: description,
     payload: {
@@ -1946,7 +1949,9 @@ void _shareJeontongResult(
       .toList();
   ShareService.shareResult(
     context,
-    resultType: ShareResultType.fortune,
+    // [fortune -> saju 전환 — 2027-02] 위 _shareJeontongV3Result와 동일한
+    // 사유로 saju로 교체한다(신규 호출부는 fortune을 사용하지 않음).
+    resultType: ShareResultType.saju,
     title: '${entry.title} · 신통방통',
     description: report.hero.subDescription ?? report.hero.headline,
     payload: {

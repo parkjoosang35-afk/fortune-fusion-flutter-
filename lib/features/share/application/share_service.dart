@@ -75,6 +75,7 @@ class ShareService {
 
   static String _defaultSubject(ShareResultType type) {
     switch (type) {
+      // ignore: deprecated_member_use_from_same_package
       case ShareResultType.fortune:
         return '오늘의 운세 · 신통방통';
       case ShareResultType.tarot:
@@ -85,6 +86,10 @@ class ShareService {
         return '손금 결과 · 신통방통';
       case ShareResultType.wish:
         return '소원 성취 · 신통방통';
+      case ShareResultType.saju:
+        return '정통사주 결과 · 신통방통';
+      case ShareResultType.relationship:
+        return '귀인지도 결과 · 신통방통';
     }
   }
 }
