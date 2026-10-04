@@ -470,7 +470,7 @@ class _PouchTabState extends State<_PouchTab> {
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('오늘 모은 복주머니', style: WrF.body(12, color: WrC.muted)),
               const SizedBox(height: 2),
-              Row(crossAxisAlignment: CrossAxisAlignment.baseline, children: [
+              Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [
                 Text('$gotToday', style: WrF.display(22, color: WrC.glow)),
                 const SizedBox(width: 4),
                 Text('/ 최대 $total', style: WrF.body(12, color: WrC.muted)),
