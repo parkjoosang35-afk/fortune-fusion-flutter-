@@ -146,7 +146,10 @@ class _OtherRoomScreenState extends State<OtherRoomScreen> {
               Positioned(top: 52, left: 14, child: WrNavPill(
                 onBack: () => Navigator.of(context).maybePop(),
                 onExitHome: () => wrExitHome(context))),
-              Positioned(top: 58, left: 80, right: 60, child: Column(children: [
+              // app2/fx2.jsx › TopBar() 제목은 left:104,right:104(화면폭 기준 중앙정렬)
+              // 고정값이다. [버그수정 — 전수감사] 기존엔 left:80,right:60이라 NavPill
+              // 폭에 끌려가 중앙에서 벗어나 있었다.
+              Positioned(top: 58, left: 104, right: 104, child: Column(children: [
                 Text('${room.owner}님의 소원방', style: WrF.display(16), textAlign: TextAlign.center, overflow: TextOverflow.ellipsis),
                 Text('Lv.${room.level} ${room.levelName}', style: WrF.body(10.5, color: WrC.muted)),
               ])),

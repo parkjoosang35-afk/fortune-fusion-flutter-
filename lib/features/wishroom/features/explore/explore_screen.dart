@@ -49,34 +49,40 @@ class _ExploreScreenState extends State<ExploreScreen> {
               ? b.supportCount.compareTo(a.supportCount)
               : (b.createdAt ?? DateTime(2000)).compareTo(a.createdAt ?? DateTime(2000)));
         }
-        return RefreshIndicator(
-          onRefresh: () => p.loadExplore(),
-          child: CustomScrollView(slivers: [
-            SliverToBoxAdapter(child: SafeArea(bottom: false, child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                // app2/fx2.jsx › TopBar(title="모두의 소원방") 1:1 — nav 기본값 true로
-                // NavPill(뒤로가기+신통방통 홈)이 항상 포함된다.
-                // [버그수정 — 전수감사] 기존엔 NavPill이 전혀 없었다.
-                Row(children: [
-                  WrNavPill(onBack: () => wrBackOrAskExit(context), onExitHome: () => wrExitHome(context)),
-                  const SizedBox(width: 10),
-                  Text('모두의 소원방', style: WrF.display(22)),
-                ]),
-                const SizedBox(height: 10),
-                Row(children: [
-                  _tab('소원방', 'rooms'),
-                  const SizedBox(width: 8),
-                  _tab('✨ 이루어진 이야기', 'stories'),
-                ]),
-              ]),
-            ))),
-            if (_etab == 'stories')
-              ..._storiesSlivers(context, p)
-            else
-              ..._roomsSlivers(context, sorted),
-          ]),
-        );
+        // app2/fx2.jsx › TopBar(title="모두의 소원방") 1:1 — top:52 고정(화면 폭 기준
+        // 중앙정렬 제목) + `.scroll{padding-top:100}` 즉 TopBar는 스크롤되지 않고
+        // 탭/칩/TOP3/피드만 그 아래에서 스크롤된다.
+        // [버그수정 — 전수감사] 기존엔 NavPill+제목+탭 전체가 CustomScrollView 맨 앞
+        // 슬리버 안에 있어 스크롤하면 같이 사라졌고, 제목도 중앙정렬이 아니라
+        // NavPill 바로 옆(좌측)에 붙어 있었다. vault_screen.dart/notifications_screen.dart와
+        // 동일한 "고정 헤더 Column + Expanded 스크롤" 패턴으로 교체.
+        return SafeArea(bottom: false, child: Column(children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Row(children: [
+              WrNavPill(onBack: () => wrBackOrAskExit(context), onExitHome: () => wrExitHome(context)),
+              Expanded(child: Center(child: Text('모두의 소원방', style: WrF.display(22), overflow: TextOverflow.ellipsis))),
+              const SizedBox(width: 60), // NavPill과 시각적 균형
+            ]),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+            child: Row(children: [
+              _tab('소원방', 'rooms'),
+              const SizedBox(width: 8),
+              _tab('✨ 이루어진 이야기', 'stories'),
+            ]),
+          ),
+          Expanded(child: RefreshIndicator(
+            onRefresh: () => p.loadExplore(),
+            child: CustomScrollView(slivers: [
+              if (_etab == 'stories')
+                ..._storiesSlivers(context, p)
+              else
+                ..._roomsSlivers(context, sorted),
+            ]),
+          )),
+        ]));
       }),
     ));
   }
@@ -246,9 +252,13 @@ class _FeedCardState extends State<_FeedCard> {
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
-              Container(width: 30, height: 30, decoration: BoxDecoration(shape: BoxShape.circle, color: WrC.bg1,
-                border: Border.all(color: WrC.blossom2, width: 1.5)),
-                child: const Icon(Icons.person, size: 16, color: WrC.muted)),
+              // app2/screens-b2.jsx › FeedCard() <img src={charSrc(room.char)}/> 30px 원형
+              // 아바타 1:1. [버그수정 — 전수감사] 기존엔 Icons.person 더미 아이콘이었다.
+              Container(width: 30, height: 30, clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(shape: BoxShape.circle, color: WrC.bg1,
+                  border: Border.all(color: WrC.blossom2, width: 1.5)),
+                child: Image.asset(WrCatalog.I.charImage(room.char, WrTheme.free), fit: BoxFit.cover, alignment: Alignment.topCenter,
+                  errorBuilder: (_, __, ___) => const Icon(Icons.person, size: 16, color: WrC.muted))),
               const SizedBox(width: 8),
               Expanded(child: Text('${room.owner}님의 소원방', style: WrF.body(13, w: FontWeight.w700, color: WrC.fg), maxLines: 1, overflow: TextOverflow.ellipsis)),
             ]),
