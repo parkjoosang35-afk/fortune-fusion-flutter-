@@ -13,7 +13,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { readFile } from "fs/promises";
 import path from "path";
 import { prisma } from "@/lib/db";
-import { buildShareOgPng, type ShareResultTypeLabel } from "../buildShareOgPng";
+import { buildShareOgPng } from "../buildShareOgPng";
+import { isValidShareContentType, type ShareContentType } from "@/lib/share-og-config";
 
 export const dynamic = "force-dynamic";
 
@@ -47,8 +48,10 @@ async function serveStaticFallback(): Promise<NextResponse> {
   });
 }
 
-function isKnownResultType(v: string): v is ShareResultTypeLabel {
-  return ["fortune", "tarot", "face", "palm", "wish"].includes(v);
+// [2027-02 6개 카테고리 통일] 하드코딩 배열 대신 중앙 설정
+// (`@/lib/share-og-config`)의 화이트리스트 검증 함수를 그대로 사용한다.
+function isKnownResultType(v: string): v is ShareContentType {
+  return isValidShareContentType(v);
 }
 
 export async function GET(

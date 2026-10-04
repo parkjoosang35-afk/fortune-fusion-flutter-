@@ -1,6 +1,12 @@
 // 결과 공유 카톡 OG 카드 — 동적 PNG 생성기.
 // [설계] guinji `buildOgPng.tsx`(D2 화이트리스트 원칙)와 동일한 패턴을
-// 5종 결과 공유(운세/타로/관상/손금/소원성)에 맞게 일반화한다.
+// 6종 결과 공유(정통사주/타로/관상/손금/소원방/귀인지도, +레거시 fortune)에
+// 맞게 일반화한다.
+//
+// [2027-02 6개 카테고리 통일] 카테고리별 라벨/태그라인/이미지 경로는 더 이상
+// 이 파일에 직접 선언하지 않고, 중앙 설정 `@/lib/share-og-config`의
+// OG_CONFIG 하나를 참조한다(OG_CONFIG 중앙화 — 카테고리 변경 시 그 파일
+// 하나만 고치면 됨).
 //
 // [화이트리스트 원칙 — 반드시 지킬 것]
 //   1. 이미지 안에는 title(닉네임 포함 가능) + resultType 라벨 + tagline만
@@ -13,56 +19,25 @@
 import { ImageResponse } from "next/og";
 import { readFile } from "fs/promises";
 import path from "path";
+import { OG_CONFIG, ogImageAbsolutePath, type ShareContentType } from "@/lib/share-og-config";
 
-export type ShareResultTypeLabel = "fortune" | "tarot" | "face" | "palm" | "wish";
+/** @deprecated 중앙 설정의 ShareContentType을 그대로 재노출(기존 호출부 호환용 별칭). */
+export type ShareResultTypeLabel = ShareContentType;
 
 /** [화이트리스트] 이 카드에 그릴 수 있는 값은 이 3개뿐이다. */
 export type OgShareCardData = {
   /** 결과 타입(브랜드 라벨 텍스트 결정에만 사용, 원본 데이터 아님). */
-  resultType: ShareResultTypeLabel;
-  /** 카드에 표시할 제목(예: "지민님의 오늘의 운세"). 25자 초과 시 clamp. */
+  resultType: ShareContentType;
+  /** 카드에 표시할 제목(예: "지민님의 정통사주"). 25자 초과 시 clamp. */
   title: string;
-  /** 한 줄 카피. 미지정 시 resultType별 기본값. */
+  /** 한 줄 카피. 미지정 시 resultType별 기본값(OG_CONFIG.defaultTagline). */
   tagline?: string;
 };
 
-const RESULT_TYPE_LABEL: Record<ShareResultTypeLabel, string> = {
-  fortune: "신통방통 · 오늘의 운세",
-  tarot: "신통방통 · 타로",
-  face: "신통방통 · 관상",
-  palm: "신통방통 · 손금",
-  wish: "신통방통 · 소원방",
-};
-
-const DEFAULT_TAGLINE: Record<ShareResultTypeLabel, string> = {
-  fortune: "생년월일만 넣으면 바로 나와요",
-  tarot: "카드가 알려주는 오늘의 이야기",
-  face: "얼굴에 담긴 나의 이야기",
-  palm: "손금이 알려주는 나의 이야기",
-  wish: "소원을 빌고 함께 이뤄가요",
-};
-
 const FONTS_DIR = path.join(process.cwd(), "public", "fonts");
-const SHARE_OG_DIR = path.join(process.cwd(), "public", "share-og");
-
-// [카톡 OG 이미지 고정 버그 수정 — 2027-01] 기존에는 resultType과 무관하게
-// 항상 "한복 요정" 캐릭터(bangtong_fairy.png) 하나만 그려서, 타로 결과를
-// 공유해도 미리보기 이미지에 타로와 전혀 관련 없는 그림이 나왔다("타로을
-// 카톡으로 보내보니 og이미지가 타로을 보내는데 한복 이미지가 모냐 우리
-// 타로 이미지도 많은데" — 사용자 리포트). resultType별로 실제 테마에
-// 맞는 대표 이미지를 쓰도록 분기한다(모두 앱 assets에서 admin_web
-// public/share-og/로 복사해 둔 파일 — Flutter assets 디렉토리는
-// admin_web 프로세스가 직접 접근할 수 없어 사전 복사가 필요했다).
-const ILLUSTRATION_PATHS: Record<ShareResultTypeLabel, string> = {
-  fortune: path.join(SHARE_OG_DIR, "fortune.png"),
-  tarot: path.join(SHARE_OG_DIR, "tarot.png"),
-  face: path.join(SHARE_OG_DIR, "face.png"),
-  palm: path.join(SHARE_OG_DIR, "palm.png"),
-  wish: path.join(SHARE_OG_DIR, "wish.png"),
-};
 
 let cachedFonts: { name: string; data: Buffer; weight: 400 | 700; style: "normal" }[] | null = null;
-const cachedIllustrationDataUris = new Map<ShareResultTypeLabel, string>();
+const cachedIllustrationDataUris = new Map<ShareContentType, string>();
 
 async function loadFonts() {
   if (cachedFonts) return cachedFonts;
@@ -77,10 +52,10 @@ async function loadFonts() {
   return cachedFonts;
 }
 
-async function loadIllustrationDataUri(resultType: ShareResultTypeLabel) {
+async function loadIllustrationDataUri(resultType: ShareContentType) {
   const cached = cachedIllustrationDataUris.get(resultType);
   if (cached) return cached;
-  const buffer = await readFile(ILLUSTRATION_PATHS[resultType]);
+  const buffer = await readFile(ogImageAbsolutePath(resultType));
   const isJpeg = buffer[0] === 0xff && buffer[1] === 0xd8;
   const mime = isJpeg ? "image/jpeg" : "image/png";
   const dataUri = `data:${mime};base64,${buffer.toString("base64")}`;
@@ -104,9 +79,10 @@ export async function buildShareOgPng(data: OgShareCardData): Promise<ImageRespo
     loadIllustrationDataUri(data.resultType),
   ]);
 
-  const brandLabel = RESULT_TYPE_LABEL[data.resultType] ?? "신통방통";
+  const config = OG_CONFIG[data.resultType];
+  const brandLabel = config?.brandLabel ?? "신통방통";
   const title = clampLine(data.title);
-  const tagline = clampLine(data.tagline ?? DEFAULT_TAGLINE[data.resultType] ?? "");
+  const tagline = clampLine(data.tagline ?? config?.defaultTagline ?? "");
 
   return new ImageResponse(
     (

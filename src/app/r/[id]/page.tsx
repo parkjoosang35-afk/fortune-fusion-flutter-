@@ -17,6 +17,7 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { SharedResultView } from "./shared-result-view";
 import { SintongBottomNavBar } from "../../g/[token]/sintong-bottom-nav-bar";
+import { OG_CONFIG, isValidShareContentType } from "@/lib/share-og-config";
 
 export const dynamic = "force-dynamic";
 
@@ -24,13 +25,14 @@ type PageProps = {
   params: Promise<{ id: string }>;
 };
 
-const RESULT_TYPE_LABEL: Record<string, string> = {
-  fortune: "오늘의 운세",
-  tarot: "타로",
-  face: "관상",
-  palm: "손금",
-  wish: "소원방",
-};
+// [2027-02 central OG config] Display label mapping is no longer declared
+// directly here. It is looked up from the central config
+// (`@/lib/share-og-config`) OG_CONFIG.label (fortune remains included there
+// as legacy-only, so it still displays correctly as "오늘의 운세").
+function resultTypeLabelOf(resultType: string): string {
+  if (isValidShareContentType(resultType)) return OG_CONFIG[resultType].label;
+  return "결과";
+}
 
 async function loadSharedResult(shareId: string) {
   try {
@@ -113,7 +115,7 @@ export default async function SharedResultPage({ params }: PageProps) {
         description={shared.state === "ok" ? shared.description : undefined}
         resultType={shared.state === "ok" ? shared.resultType : undefined}
         resultTypeLabel={
-          shared.state === "ok" ? RESULT_TYPE_LABEL[shared.resultType] ?? "결과" : undefined
+          shared.state === "ok" ? resultTypeLabelOf(shared.resultType) : undefined
         }
         payload={shared.state === "ok" ? shared.payload : undefined}
         ownerNickname={shared.state === "ok" ? shared.ownerNickname : undefined}

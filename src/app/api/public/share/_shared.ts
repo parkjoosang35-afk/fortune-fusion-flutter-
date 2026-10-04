@@ -8,6 +8,11 @@
 import { NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { authenticateRequest } from "@/lib/user-auth";
+import {
+  SHARE_CONTENT_TYPES,
+  isValidShareContentType,
+  type ShareContentType,
+} from "@/lib/share-og-config";
 
 export const CORS_HEADERS = { "Access-Control-Allow-Origin": "*" };
 
@@ -17,19 +22,16 @@ export const CORS_HEADERS_WITH_AUTH = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
-/** 5종 결과 타입 화이트리스트. 이 외 값은 400으로 거부한다. */
-export const SHARE_RESULT_TYPES = [
-  "fortune",
-  "tarot",
-  "face",
-  "palm",
-  "wish",
-] as const;
-export type ShareResultType = (typeof SHARE_RESULT_TYPES)[number];
+/**
+ * [2027-02 6개 카테고리 통일] 결과 타입 화이트리스트 — 중앙 설정
+ * `@/lib/share-og-config`의 OG_CONFIG 키를 그대로 재노출한다(fortune은
+ * 레거시 하위호환 전용으로 포함되어 있음 — 상세 주석은 share-og-config.ts
+ * 참고). 이 배열 자체를 더 이상 여기서 직접 선언하지 않는다(중복 제거).
+ */
+export const SHARE_RESULT_TYPES = SHARE_CONTENT_TYPES;
+export type ShareResultType = ShareContentType;
 
-export function isValidResultType(v: unknown): v is ShareResultType {
-  return typeof v === "string" && (SHARE_RESULT_TYPES as readonly string[]).includes(v);
-}
+export const isValidResultType = isValidShareContentType;
 
 export async function requireUser(
   request: Request
