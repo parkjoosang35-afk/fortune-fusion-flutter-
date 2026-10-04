@@ -190,7 +190,12 @@ class _CurrentRoomCard extends StatelessWidget {
         decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), border: Border.all(color: WrC.blossom2)),
         clipBehavior: Clip.antiAlias,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          SizedBox(height: 150, child: WrCanvasScaler(child: RoomScene(room: room, items: items, frozen: true, lowFx: true))),
+          // [버그수정 — 전수감사] app2/screens-c2.jsx › Archive(): `<RoomThumb room={app.room}
+          // w={164} h={150} focus={.42}/>` — G-4 공용 썸네일(RoomThumb)이어야 하는데
+          // WrCanvasScaler+RoomScene(focus 없이 상단 고정 크롭)을 그대로 쓰고 있었다.
+          // 같은 파일의 _ArchiveCard는 이미 RoomThumb로 교체됐는데 이 카드만 누락된 것.
+          SizedBox(height: 150, child: LayoutBuilder(builder: (context, c) =>
+            RoomThumb(room: room, items: items, w: c.maxWidth, h: c.maxHeight, focus: .42))),
           Padding(padding: const EdgeInsets.fromLTRB(10, 8, 10, 10), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('현재 소원방', style: WrF.body(12.5, w: FontWeight.w700, color: WrC.fg)),
             const SizedBox(height: 2),
@@ -213,10 +218,13 @@ class _ArchiveCard extends StatelessWidget {
       padding: const EdgeInsets.all(10),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         // G-4 RoomThumb 공용 썸네일 — [버그수정 — 전수감사] 기존 더미 아이콘 교체.
+        // [버그수정 — 전수감사] app2/screens-c2.jsx › Archive(): `<RoomThumb room={{...r,
+        // ...s, brightness:1}}...>` — 완성된 소원은 미접속 감쇠(brightness)를 무시하고
+        // 항상 최대 밝기로 보여준다. brightnessOverride 누락.
         Expanded(child: Stack(children: [
           Positioned.fill(child: ClipRRect(borderRadius: BorderRadius.circular(10),
             child: LayoutBuilder(builder: (context, c) =>
-              RoomThumb(room: room, items: items, w: c.maxWidth, h: c.maxHeight, focus: .22, zoom: 1.5)))),
+              RoomThumb(room: room, items: items, w: c.maxWidth, h: c.maxHeight, focus: .22, zoom: 1.5, brightnessOverride: 1)))),
           Positioned(right: 4, top: 4, child: Transform.rotate(angle: -6 * 3.14159 / 180, child: Container(
             width: 28, height: 28, alignment: Alignment.center,
             decoration: const BoxDecoration(color: WrC.accent, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Color(0x80C94A3B), blurRadius: 8)]),
@@ -257,12 +265,14 @@ class _ReplayOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dialog(backgroundColor: Colors.black, insetPadding: EdgeInsets.zero, child: Stack(children: [
-      // [버그수정 — 전수감사] app2/screens-c2.jsx › ArchivePlayer(): `<Room ... gold={.25}
-      // entering/>` — frozen 지정이 없다(= 평소처럼 drift/pulse/파티클이 계속 흐르는
-      // 채로 재생, 추가로 카메라인 2.2s 입장 연출). frozen:true로 모든 애니메이션을
-      // 멈춰버리고 entering도 빠져 있던 버그 — "그날의 모습 그대로"를 재생하는 연출
-      // 의도(살아있는 방)와 반대로 정지 스냅샷처럼 보였다.
-      Positioned.fill(child: WrCanvasScaler(child: RoomScene(room: room, items: items, gold: .25, entering: true))),
+      // [버그수정 — 전수감사] app2/screens-c2.jsx › ArchivePlayer(): `<Room room={{...r,
+      // ...s, brightness:1}} gold={.25} entering/>` — frozen 지정이 없다(= 평소처럼
+      // drift/pulse/파티클이 계속 흐르는 채로 재생, 추가로 카메라인 2.2s 입장 연출)
+      // + brightness:1 강제(미접속 감쇠 무시, 항상 최대 밝기). frozen:true로 모든
+      // 애니메이션을 멈춰버리고 entering·brightnessOverride도 빠져 있던 버그 —
+      // "그날의 모습 그대로"를 재생하는 연출 의도(살아있는 방)와 반대로 정지된
+      // 흐릿한 스냅샷처럼 보였다.
+      Positioned.fill(child: WrCanvasScaler(child: RoomScene(room: room, items: items, gold: .25, entering: true, brightnessOverride: 1))),
       const WrPetalRain(n: 16, dur: (6, 9), spread: 6),
       SafeArea(child: Padding(padding: const EdgeInsets.fromLTRB(14, 8, 14, 0), child: Row(children: [
         GestureDetector(onTap: () => Navigator.of(context).pop(), child: Container(

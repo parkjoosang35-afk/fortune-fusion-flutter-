@@ -132,7 +132,7 @@ class _CompleteScreenState extends State<CompleteScreen> {
         body: Consumer<WishRoomProvider>(builder: (context, p, __) {
           final room = p.room;
           if (room == null) return const Center(child: CircularProgressIndicator(color: WrC.glow));
-          return _SealedBody(room: room);
+          return _SealedBody(room: room, items: p.items);
         })));
     }
     return Theme(data: wrThemeData(), child: Scaffold(
@@ -147,10 +147,13 @@ class _CompleteScreenState extends State<CompleteScreen> {
             duration: const Duration(milliseconds: 1400),
             curve: WrCurves.door,
             child: WrCanvasScaler(child: SizedBox(width: 390, height: 844, child: Stack(clipBehavior: Clip.none, children: [
+              // [버그수정 — 전수감사] app2/screens-c2.jsx › Complete(): `<Room room={{...r,
+              // level:..., brightness:1}} ...>` — 완료 연출 중에는 미접속 감쇠를 무시하고
+              // 항상 최대 밝기로 보여준다. brightnessOverride 누락.
               RoomScene(
                 room: room, items: p.items,
                 boost: st >= 1 ? 2 : 0, gold: st >= 2 ? .5 : 0, charGlow: st >= 5,
-                levelOverride: st >= 3 ? 10 : null,
+                levelOverride: st >= 3 ? 10 : null, brightnessOverride: 1,
               ),
               if (st >= 1) const WrBurst(x: 204, y: 330, n: 24, spread: 180, color: Color(0xFFFFF2B8), dur: 1600),
               if (st >= 4) for (var i = 0; i < 7; i++) _LightPillar(index: i),
@@ -308,8 +311,8 @@ class _BottomCard extends StatelessWidget {
 }
 
 class _SealedBody extends StatelessWidget {
-  const _SealedBody({required this.room});
-  final WishRoom room;
+  const _SealedBody({required this.room, required this.items});
+  final WishRoom room; final List<WrItem> items;
   @override
   Widget build(BuildContext context) {
     // 원본 `.blur-room { backgroundImage: room-lv10.jpg }` — 배경은 정적 Lv10 일러스트를 흐리게.
@@ -332,7 +335,11 @@ class _SealedBody extends StatelessWidget {
               decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), border: Border.all(color: WrC.glow, width: 2),
                 boxShadow: const [BoxShadow(color: Color(0x80F5CF6A), blurRadius: 40)]),
               clipBehavior: Clip.antiAlias,
-              child: WrCanvasScaler(child: SizedBox(width: 390, height: 844, child: RoomScene(room: room, items: const [], frozen: true, lowFx: true, hideChar: false, levelOverride: 10))),
+              // [버그수정 — 전수감사] app2/screens-c2.jsx › Sealed(): `<RoomThumb room={{...r,
+              // brightness:1}} w={170} h={210} focus={.44}/>` — G-4 공용 썸네일(RoomThumb,
+              // focus=.44)이어야 하는데 raw RoomScene(focus 없음, items 빈 배열 — 장식이
+              // 전혀 안 보임, brightness 미보정)을 그대로 쓰고 있었다.
+              child: RoomThumb(room: room, items: items, w: 170, h: 210, focus: .44, brightnessOverride: 1),
             ),
             Positioned(right: -10, bottom: -10, child: Container(
               width: 46, height: 46, alignment: Alignment.center,

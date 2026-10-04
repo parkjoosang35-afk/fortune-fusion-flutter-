@@ -48,9 +48,13 @@ class RoomScene extends StatefulWidget {
   /// SCR-10 완료 연출 전용 — `Math.max(r.level, levelOverride)` (원본 `{...r, level: st>=3 ? Math.max(r.level,10) : r.level}`).
   /// Lv9+/Lv7+ 등 레벨 해금 연출을 완료 연출 중 강제로 끌어올릴 때만 사용.
   final int? levelOverride;
+  /// [버그수정 — 전수감사] app2/screens-c2.jsx 전역 4곳 `{...r, brightness:1}` —
+  /// 완료/기록관/봉인 연출에서는 미접속 감쇠(brightness)를 무시하고 항상 최대 밝기로
+  /// 보여준다(이미 이룬 소원을 흐릿하게 보여줄 이유가 없음). 원본 param override 1:1.
+  final double? brightnessOverride;
   const RoomScene({super.key, required this.room, required this.items, this.pray = false, this.boost = 0, this.gold = 0,
       this.lowFx = false, this.frozen = false, this.hideChar = false, this.charGlow = false, this.entering = false,
-      this.shake = false, this.reveal, this.fx = const [], this.levelOverride});
+      this.shake = false, this.reveal, this.fx = const [], this.levelOverride, this.brightnessOverride});
   @override State<RoomScene> createState() => _RoomSceneState();
 }
 
@@ -97,7 +101,7 @@ class _RoomSceneState extends State<RoomScene> with TickerProviderStateMixin {
     final r = widget.room, cat = WrCatalog.I;
     final lv = widget.levelOverride != null ? math.max(r.level, widget.levelOverride!) : r.level;
     final sacred = r.sacred;
-    final bright = r.brightness;
+    final bright = widget.brightnessOverride ?? r.brightness;
     final light = math.min(1.6, bright + (lv >= 9 ? .3 : 0) + (widget.boost >= 2 ? .32 : widget.boost >= 1 ? .15 : 0));
     final roomImg = sacred ? cat.roomImage(r.theme) : RoomLayout.roomImg;
     final candle = _item(r.equip.candle);
@@ -669,15 +673,16 @@ extension on WrItem { Object? raw(String k) => WrCatalog.I.raw['ITEMS'].firstWhe
 /// ── G-4 RoomThumb({room,w,h,focus=.5,zoom=1.25}) — 탐색·기록관·배경화면 목록 공용 썸네일.
 /// `Room(scale=w/390*zoom, frozen=true, lowFx)`를 w×h 박스에 넣고 세로 focus 지점이 가운데 오게 이동.
 class RoomThumb extends StatelessWidget {
-  const RoomThumb({super.key, required this.room, required this.w, required this.h, this.items = const [], this.focus = .5, this.zoom = 1.25});
+  const RoomThumb({super.key, required this.room, required this.w, required this.h, this.items = const [], this.focus = .5, this.zoom = 1.25, this.brightnessOverride});
   final WishRoom room; final List<WrItem> items; final double w, h, focus, zoom;
+  final double? brightnessOverride;
   @override Widget build(BuildContext context) {
     final s = w / 390 * zoom;
     final top = -(844 * s * focus - h / 2);
     final left = -(390 * s - w) / 2;
     return ClipRect(child: SizedBox(width: w, height: h, child: Stack(children: [
       Positioned(left: left, top: top, child: Transform.scale(scale: s, alignment: Alignment.topLeft,
-        child: RoomScene(room: room, items: items, frozen: true, lowFx: true))),
+        child: RoomScene(room: room, items: items, frozen: true, lowFx: true, brightnessOverride: brightnessOverride))),
     ])));
   }
 }
