@@ -117,7 +117,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
             ),
           ),
           SafeArea(
-            bottom: false,
+            bottom: true,
             child: Stack(children: [
               SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(18, 86, 18, 120),
@@ -150,6 +150,9 @@ class _ComposeScreenState extends State<ComposeScreen> {
                   const SizedBox(height: 20),
                   // [A-3 §3] 한지 카드 — 소원빛깔 그라디언트 + 종이색 배경 + 8색 종이선택 통합.
                   _hanjiCard(),
+                  // [버그수정] "함께할 수호자"는 한지 카드(소원 작성) 바로 아래로 위치해야 한다는
+                  // 사용자 피드백 반영 — 기존엔 봉인일/소원빛깔 다음(화면 중하단)에 있었다.
+                  _guardianSection(),
                   if (_piiWarning)
                     Padding(
                       padding: const EdgeInsets.only(top: 14),
