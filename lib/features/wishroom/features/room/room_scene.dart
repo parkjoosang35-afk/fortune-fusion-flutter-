@@ -72,7 +72,18 @@ class _RoomSceneState extends State<RoomScene> with TickerProviderStateMixin {
 
   @override void initState() {
     super.initState();
-    if (!widget.frozen) { for (final c in [drift, flick, breathe, pulse, sigilSpin]) { c.repeat(reverse: c != sigilSpin); } loop.repeat(); }
+    // [F섹션 접근성 — "나머지 빨리 진행해" 중 신규 구현] jsx wr2.css 139줄
+    // `@media (prefers-reduced-motion: reduce) { animation-duration:.001s!important;
+    // animation-iteration-count:1!important }` — 시스템 "동작 줄이기"가 켜져 있으면
+    // 모든 CSS 애니메이션이 사실상 1프레임만 그리고 멈춘다. Flutter에는 CSS가
+    // 없으므로 동등한 의미로 "상시 반복 루프(drift/flick/breathe/pulse/sigilSpin/
+    // loop)를 시작하지 않고 정지 1프레임으로 둔다"로 재현한다(기존 frozen 파라미터와
+    // 동일한 효과이므로 별도 파라미터 추가 없이 MediaQuery.disableAnimations를
+    // 같이 체크 — 앱 전역에 이미 선례 있음: home_banner_carousel.dart 142줄).
+    // reveal/entering/shake처럼 "한 번만 재생되고 끝나는" 연출은 jsx의
+    // iteration-count:1과 의미가 같으므로 그대로 1회 재생한다(아래 분기 영향 없음).
+    final reduceMotion = MediaQuery.of(context).disableAnimations;
+    if (!widget.frozen && !reduceMotion) { for (final c in [drift, flick, breathe, pulse, sigilSpin]) { c.repeat(reverse: c != sigilSpin); } loop.repeat(); }
     if (widget.entering) { cameraIn.forward(); } else { cameraIn.value = 1; }
     if (widget.shake) { shakeCtrl.forward(from: 0); }
     _maybeStartReveal();
