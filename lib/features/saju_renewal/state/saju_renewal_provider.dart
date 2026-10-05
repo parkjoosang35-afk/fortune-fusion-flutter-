@@ -105,6 +105,13 @@ class SajuRenewalProvider extends ChangeNotifier {
   bool _isTopicsLoading = false;
   bool get isTopicsLoading => _isTopicsLoading;
 
+  /// [화면⑤/⑨ 다크 핸드오프 표시용] 지금까지 상세까지 완료한 이야기
+  /// 수를 그대로 노출한다(0부터 시작, 화면에서는 +1하여 "N번째"로 씀).
+  /// 서버 판단을 Flutter가 대체하지 않는다 — 단순 카운터 getter일 뿐,
+  /// [_viewedTopicIds] 자체의 용도(Exposure History exclude 참고 목록)는
+  /// 그대로 유지된다.
+  int get viewedStoryCount => _viewedTopicIds.length;
+
   void _setStatus(SajuRenewalFlowStatus next) {
     _status = next;
     notifyListeners();
