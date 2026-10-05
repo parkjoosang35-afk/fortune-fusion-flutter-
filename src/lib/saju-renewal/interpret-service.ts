@@ -29,6 +29,7 @@ import {
   type InterpretSummaryResult,
   type InterpretDetailResult,
   type QaCheckOptions,
+  type QaCheckResult,
 } from "./interpret-qa-check";
 import { KNOWN_TERM_KEYS } from "./interpret-term-dictionary";
 import { buildFallbackSummary, buildFallbackDetail } from "./interpret-fallback";
@@ -142,6 +143,25 @@ export interface GenerateInterpretOutcome {
   attemptLog: string[];
 }
 
+// [STEP5 — 중복 QA 금지 원칙의 "단일 진입점" 보강] 이전에는 runSingleAttempt()와
+// runFallbackWithQa() 두 곳에서 각각 QaCheckOptions를 조립하고 mode별로
+// checkInterpretSummary/checkInterpretDetail을 분기 호출했다. 실제 검증 함수
+// 자체는 이미 하나(interpret-qa-check.ts)를 공유하고 있었으나, "그 함수를 어떤
+// 옵션으로, 어떻게 호출하는지"가 두 곳에 복제되어 있어 한쪽만 수정되고 다른 쪽이
+// 누락될 위험(회귀 가능성)이 있었다. runQaCheck()로 이 호출 지점을 하나로
+// 합쳐, LLM 경로와 fallback 경로가 "항상 물리적으로 동일한 코드 한 줄"을 거치게
+// 한다(동작/결과는 기존과 100% 동일 — 순수 리팩토링, 로직 변경 없음).
+function runQaCheck(
+  mode: InterpretMode,
+  result: InterpretSummaryResult | InterpretDetailResult,
+  topic: PromptTopicInfo
+): QaCheckResult {
+  const qaOptions: QaCheckOptions = { expectedTopicId: topic.topicId, isTiming: topic.isTiming, knownTermKeys: KNOWN_TERM_KEYS };
+  return mode === "summary"
+    ? checkInterpretSummary(result as InterpretSummaryResult, qaOptions)
+    : checkInterpretDetail(result as InterpretDetailResult, qaOptions);
+}
+
 async function runSingleAttempt(
   mode: InterpretMode,
   topic: PromptTopicInfo,
@@ -173,8 +193,7 @@ async function runSingleAttempt(
     mode === "summary" ? (parsed ? normalizeSummaryJson(parsed, topic.topicId) : null) : parsed ? normalizeDetailJson(parsed, topic.topicId) : null;
   if (!normalized) return null;
 
-  const qaOptions: QaCheckOptions = { expectedTopicId: topic.topicId, isTiming: topic.isTiming, knownTermKeys: KNOWN_TERM_KEYS };
-  const qa = mode === "summary" ? checkInterpretSummary(normalized as InterpretSummaryResult, qaOptions) : checkInterpretDetail(normalized as InterpretDetailResult, qaOptions);
+  const qa = runQaCheck(mode, normalized, topic);
   if (!qa.ok) {
     return { result: normalized, failures: qa.failures.map((f) => `${f.code}: ${f.message}`) };
   }
@@ -210,11 +229,7 @@ export async function generateInterpretResult(params: GenerateInterpretParams): 
 
   function runFallbackWithQa(): GenerateInterpretOutcome {
     const fallbackResult = buildFallbackResult();
-    const qaOptions: QaCheckOptions = { expectedTopicId: topic.topicId, isTiming: topic.isTiming, knownTermKeys: KNOWN_TERM_KEYS };
-    const qa =
-      mode === "summary"
-        ? checkInterpretSummary(fallbackResult as InterpretSummaryResult, qaOptions)
-        : checkInterpretDetail(fallbackResult as InterpretDetailResult, qaOptions);
+    const qa = runQaCheck(mode, fallbackResult, topic);
     if (!qa.ok) {
       attemptLog.push(`fallback: QA_FAILED(${qa.failures.map((f) => `${f.code}: ${f.message}`).join(" | ")})`);
       throw new InterpretUnavailableError(
