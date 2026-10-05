@@ -29,7 +29,22 @@ class SajuRenewalApi {
 
   final String _baseUrl;
 
+  /// [버그 수정 — STEP D 1순위 검증 중 발견] summary/topics 요청의 기본 타임아웃.
+  /// 서버 측 summary LLM 타임아웃(SUMMARY_TIMEOUT_MS=8s, 최대 2회 재시도 =
+  /// 최악 16초)보다 여유 있게 20초로 유지한다.
   static const Duration _timeout = Duration(seconds: 20);
+
+  /// [버그 수정 — STEP D 1순위 검증 중 발견 — 근본 원인 확정]
+  /// 서버(admin_web `interpret-service.ts`)의 detail 모드는
+  /// `DETAIL_TIMEOUT_MS=15_000`(LLM 1회 호출 타임아웃) ×
+  /// `MAX_LLM_ATTEMPTS=2`(최대 재시도) 구조라서, LLM이 매번 타임아웃되면
+  /// fallback 생성까지 서버 처리 시간이 **최대 30초**(실측 21.9초)까지
+  /// 걸릴 수 있다. 기존에는 클라이언트 타임아웃이 20초로 더 짧아서,
+  /// 서버가 fallback으로 정상 200 응답을 완성하기 *전에* 클라이언트가
+  /// 먼저 포기하고 TimeoutException을 던지는 버그가 있었다(복주머니는
+  /// 이미 정상 차감된 뒤라 사용자에게는 "결제는 됐는데 결과를 못 보는"
+  /// 상황으로 나타남). 서버 최악 처리시간(30초)보다 여유 있게 40초로 설정.
+  static const Duration _detailTimeout = Duration(seconds: 40);
 
   /// POST /api/public/saju-renewal/topics/select
   ///
@@ -83,8 +98,11 @@ class SajuRenewalApi {
         TopicsSelectResult.fromJson(decoded['data'] as Map<String, dynamic>),
       );
     } catch (e) {
+      // [버그 수정 — STEP D 2순위 "내부 정보 비노출" 위반 사례 — interpret()와 동일한
+      // 원인으로 예외 원문을 사용자 메시지에 포함시키지 않도록 수정] 원본 예외는
+      // debugPrint로만 남기고, 사용자에게는 공통 안내 문구만 반환한다.
       debugPrint('[SajuRenewalApi] [selectTopics] 예외 -> $e');
-      return ApiResult.fail('사주 이야기를 불러오는 중 오류가 발생했습니다: $e');
+      return ApiResult.fail('사주 이야기를 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
     }
   }
 
@@ -160,6 +178,10 @@ class SajuRenewalApi {
     };
     debugPrint('[SajuRenewalApi] [interpret] 요청 -> $uri body=$body');
 
+    // [버그 수정 — STEP D 1순위] mode='detail'은 서버 최악 처리시간(30초)을
+    // 커버하는 더 긴 타임아웃을 사용한다(위 _detailTimeout 주석 참고).
+    final timeout = mode == 'detail' ? _detailTimeout : _timeout;
+
     try {
       final response = await http
           .post(
@@ -171,7 +193,7 @@ class SajuRenewalApi {
             },
             body: jsonEncode(body),
           )
-          .timeout(_timeout);
+          .timeout(timeout);
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
@@ -192,8 +214,14 @@ class SajuRenewalApi {
       }
       return ApiResult.ok(InterpretResponse.detailOf(data, cached: cached));
     } catch (e) {
+      // [버그 수정 — STEP D 2순위 "내부 정보 비노출" 위반 사례]
+      // 기존에는 '이야기를 불러오는 중 오류가 발생했습니다: $e' 형태로 Dart
+      // 예외 객체의 toString()을 그대로 사용자 메시지에 포함시켜,
+      // "TimeoutException after 0:00:20.000000: Future not completed" 같은
+      // 기술적 문구가 화면에 그대로 노출되는 버그가 있었다. 원본 예외는
+      // debugPrint로만 남기고, 사용자에게는 공통 안내 문구만 반환한다.
       debugPrint('[SajuRenewalApi] [interpret] 예외 -> $e');
-      return ApiResult.fail('이야기를 불러오는 중 오류가 발생했습니다: $e');
+      return ApiResult.fail('이야기를 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
     }
   }
 }

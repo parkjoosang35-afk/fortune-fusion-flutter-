@@ -58,7 +58,7 @@ class ResultAccessRepository {
       );
     } catch (e) {
       debugPrint('[ResultAccessRepository] [quote] 예외 -> $e');
-      return ApiResult.fail('결과보기 권한 정보를 불러오지 못했습니다: $e');
+      return ApiResult.fail('결과보기 권한 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
     }
   }
 
@@ -120,7 +120,7 @@ class ResultAccessRepository {
       );
     } catch (e) {
       debugPrint('[ResultAccessRepository] [begin] 예외 -> $e');
-      return ApiResult.fail('결과보기 권한 확인 중 오류가 발생했습니다: $e');
+      return ApiResult.fail('결과보기 권한 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
     }
   }
 
@@ -146,7 +146,7 @@ class ResultAccessRepository {
       return ApiResult.ok(data['sessionId'] as String);
     } catch (e) {
       debugPrint('[ResultAccessRepository] [ad-session/start] 예외 -> $e');
-      return ApiResult.fail('광고 세션을 시작하지 못했습니다: $e');
+      return ApiResult.fail('광고 세션을 시작하지 못했습니다. 잠시 후 다시 시도해주세요.');
     }
   }
 
@@ -177,7 +177,7 @@ class ResultAccessRepository {
       return ApiResult.ok(null);
     } catch (e) {
       debugPrint('[ResultAccessRepository] [ad-session/complete] 예외 -> $e');
-      return ApiResult.fail('광고 시청 완료 처리 중 오류가 발생했습니다: $e');
+      return ApiResult.fail('광고 시청 완료 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
     }
   }
 
@@ -213,7 +213,7 @@ class ResultAccessRepository {
       return ApiResult.ok(null);
     } catch (e) {
       debugPrint('[ResultAccessRepository] [complete] 예외 -> $e');
-      return ApiResult.fail('결과보기 완료 처리 중 오류가 발생했습니다: $e');
+      return ApiResult.fail('결과보기 완료 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
     }
   }
 
@@ -248,7 +248,7 @@ class ResultAccessRepository {
       return ApiResult.ok(null);
     } catch (e) {
       debugPrint('[ResultAccessRepository] [fail] 예외 -> $e');
-      return ApiResult.fail('결과보기 실패 처리 중 오류가 발생했습니다: $e');
+      return ApiResult.fail('결과보기 실패 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
     }
   }
 }
