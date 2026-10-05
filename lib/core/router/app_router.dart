@@ -104,6 +104,7 @@ import '../../features/share/presentation/shared_result_screen.dart';
 // 기존 정통사주 80종(jeontong_eighty_*, JeontongEightyMatrix.*Route)과는
 // 완전히 별개이며, 그 라우트/화면은 이 작업으로 절대 수정하지 않는다.
 import '../../features/fortune/saju_v3/presentation/saju_v3_home_screen.dart';
+import '../../features/saju_renewal/screens/saju_renewal_home_screen.dart';
 import 'package:provider/provider.dart';
 import '../auth/auth_token_store.dart';
 import 'app_navigator_key.dart';
@@ -222,9 +223,7 @@ class AppRouter {
         // 곧장 진입시키기 위해 int 인덱스를 arguments로 넘길 수 있다.
         // 기존처럼 arguments 없이 호출되면 그대로 0(홈)으로 시작한다.
         final homeArgs = settings.arguments;
-        return _page(
-          AppShell(initialIndex: homeArgs is int ? homeArgs : 0),
-        );
+        return _page(AppShell(initialIndex: homeArgs is int ? homeArgs : 0));
 
       // [귀인지도 Phase G-1: 라우트 스캐폴딩] 홈 배너 캐러셀 Slide 1
       // ("귀인지도") CTA의 진입점. 신통방통_귀인지도_최종_개발계획서_v2.0.md
@@ -390,9 +389,7 @@ class AppRouter {
                   final ok = await provider.deleteMember(memberId);
                   if (!ok && context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(provider.error ?? '삭제에 실패했습니다.'),
-                      ),
+                      SnackBar(content: Text(provider.error ?? '삭제에 실패했습니다.')),
                     );
                   }
                 },
@@ -531,6 +528,14 @@ class AppRouter {
       case '/saju/v3':
         return _page(const SajuV3HomeScreen());
 
+      // [신통방통 정통사주 리뉴얼 — STEP 6.5] Topic Engine 기반 신규 "사주
+      // 이야기" 흐름 진입점. STEP1~6 백엔드(saju_engine_v3.3/topics-select/
+      // interpret)는 무수정, 이 라우트는 그 결과를 소비하는 클라이언트
+      // 화면(SajuRenewalHomeScreen)만 연결한다. 기존 saju_v3('/saju/v3',
+      // 69종 그리드)와 완전히 별개이며 그 라우트/화면은 무수정.
+      case '/saju-renewal':
+        return _page(const SajuRenewalHomeScreen());
+
       // ── [운섹션 87 카테고리 통합] 공용 결과 화면 ──
       // 전용 화면이 아직 없는 카테고리(K/V/O 일부/X/G/B/D/R)의 단일 진입점.
       // arguments로 카테고리 id(String, 예: 'K-001')를 전달한다.
@@ -548,9 +553,7 @@ class AppRouter {
         {
           final args = settings.arguments;
           final initialType = args is CompatibilityType ? args : null;
-          return _page(
-            CompatibilityInputScreen(initialType: initialType),
-          );
+          return _page(CompatibilityInputScreen(initialType: initialType));
         }
       case '/compatibility/result':
         return _page(const CompatibilityResultScreen());

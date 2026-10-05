@@ -87,6 +87,12 @@ import 'features/pouch_box/application/pouch_box_provider.dart';
 import 'features/pouch_box/data/pouch_box_repository.dart';
 import 'features/result_access/application/result_access_provider.dart';
 import 'features/result_access/data/result_access_repository.dart';
+// [신통방통 정통사주 리뉴얼 — STEP 6.5] Topic Engine 기반 신규 "사주 이야기"
+// 흐름 전용 Provider. 기존 saju_v3/saju_repository(69종 그리드)와 완전히
+// 분리된 신규 feature이며, STEP1~6 백엔드(topics/select, interpret)는
+// 무수정 — 이 Provider는 그 결과를 소비하는 클라이언트 상태관리만 담당한다.
+import 'features/saju_renewal/state/saju_renewal_provider.dart';
+import 'features/saju_renewal/data/saju_renewal_api.dart';
 
 /// 07단계 §2.1 앱 루트 - MultiProvider 전역 등록 + MaterialApp 라우팅 연결
 /// 10단계(A안): 모든 Repository는 Mock 구현이며, 향후 실제 API 연동 시
@@ -290,6 +296,13 @@ class App extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => WishRoomProvider(ApiRepository()),
         ),
+        // [신통방통 정통사주 리뉴얼 — STEP 6.5] Topic Engine 기반 신규
+        // "사주 이야기" 흐름 전역 상태. baseUrl은 다른 신규 API Provider와
+        // 동일하게 EnvConfig.adminApiBaseUrl 기반으로 조립한다(하드코딩
+        // 금지). 기존 saju_v3/SajuProvider와 독립적으로 동작한다.
+        ChangeNotifierProvider(
+          create: (_) => SajuRenewalProvider(SajuRenewalApi()),
+        ),
       ],
       // [Stage2 결함수정 — 결함-A10-01] MultiProvider의 모든 Provider가
       // 트리에 생성된 직후(child 슬롯) 단 한 번, 개인정보/이력을 담은 각
@@ -301,31 +314,31 @@ class App extends StatelessWidget {
         child: Consumer<ThemeProvider>(
           builder: (context, themeProvider, _) {
             return MaterialApp(
-            navigatorKey: appNavigatorKey,
-            title: '신통방통',
-            debugShowCheckedModeBanner: false,
-            theme: AppTheme.light,
-            themeMode: themeProvider.mode,
-            initialRoute: '/splash',
-            onGenerateRoute: AppRouter.onGenerateRoute,
-            builder: (context, child) {
-              // [STEP9 §7 QA 전용] 웹 프리뷰 URL에 ?ts=1.3 같은 파라미터가
-              // 있을 때만 textScale을 오버라이드한다(없으면 null → 시스템
-              // 기본값 그대로, 즉 기존 프로덕션 동작과 완전히 동일).
-              final qaScale = readQaTextScaleOverride();
-              final content = LuckPouchToastOverlay(
-                child: child ?? const SizedBox.shrink(),
-              );
-              // [PC 웹 미리보기 개선] PC 브라우저처럼 화면이 넓을 때만
-              // 모바일 폭으로 중앙 고정한다(모바일/APK는 영향 없음).
-              final framed = WebMobileFrame(child: content);
-              if (qaScale == null) return framed;
-              return MediaQuery(
-                data: MediaQuery.of(
-                  context,
-                ).copyWith(textScaler: TextScaler.linear(qaScale)),
-                child: framed,
-              );
+              navigatorKey: appNavigatorKey,
+              title: '신통방통',
+              debugShowCheckedModeBanner: false,
+              theme: AppTheme.light,
+              themeMode: themeProvider.mode,
+              initialRoute: '/splash',
+              onGenerateRoute: AppRouter.onGenerateRoute,
+              builder: (context, child) {
+                // [STEP9 §7 QA 전용] 웹 프리뷰 URL에 ?ts=1.3 같은 파라미터가
+                // 있을 때만 textScale을 오버라이드한다(없으면 null → 시스템
+                // 기본값 그대로, 즉 기존 프로덕션 동작과 완전히 동일).
+                final qaScale = readQaTextScaleOverride();
+                final content = LuckPouchToastOverlay(
+                  child: child ?? const SizedBox.shrink(),
+                );
+                // [PC 웹 미리보기 개선] PC 브라우저처럼 화면이 넓을 때만
+                // 모바일 폭으로 중앙 고정한다(모바일/APK는 영향 없음).
+                final framed = WebMobileFrame(child: content);
+                if (qaScale == null) return framed;
+                return MediaQuery(
+                  data: MediaQuery.of(
+                    context,
+                  ).copyWith(textScaler: TextScaler.linear(qaScale)),
+                  child: framed,
+                );
               },
             );
           },
@@ -367,27 +380,19 @@ class _LogoutCallbackRegistrarState extends State<_LogoutCallbackRegistrar> {
 
     final auth = context.read<AuthProvider>();
     auth.registerLogoutCallback(context.read<WalletProvider>().clearOnLogout);
-    auth.registerLogoutCallback(
-      context.read<MissionProvider>().clearOnLogout,
-    );
+    auth.registerLogoutCallback(context.read<MissionProvider>().clearOnLogout);
     auth.registerLogoutCallback(
       context.read<SubscriptionProvider>().clearOnLogout,
     );
-    auth.registerLogoutCallback(
-      context.read<GiftcardProvider>().clearOnLogout,
-    );
+    auth.registerLogoutCallback(context.read<GiftcardProvider>().clearOnLogout);
     auth.registerLogoutCallback(
       context.read<AttendanceProvider>().clearOnLogout,
     );
     auth.registerLogoutCallback(
       context.read<NotificationProvider>().clearOnLogout,
     );
-    auth.registerLogoutCallback(
-      context.read<LuckyBagProvider>().clearOnLogout,
-    );
-    auth.registerLogoutCallback(
-      context.read<RankingProvider>().clearOnLogout,
-    );
+    auth.registerLogoutCallback(context.read<LuckyBagProvider>().clearOnLogout);
+    auth.registerLogoutCallback(context.read<RankingProvider>().clearOnLogout);
     auth.registerLogoutCallback(
       context.read<CompatibilityProvider>().clearOnLogout,
     );
@@ -402,8 +407,12 @@ class _LogoutCallbackRegistrarState extends State<_LogoutCallbackRegistrar> {
     // 취지로 로그아웃 시 v3 계산 결과/생년월일시 상태를 초기화한다.
     auth.registerLogoutCallback(context.read<SajuV3Provider>().clearOnLogout);
     // [소원방 v2.6 재구축]
+    auth.registerLogoutCallback(context.read<WishRoomProvider>().clearOnLogout);
+    // [신통방통 정통사주 리뉴얼 — STEP 6.5, 계정 격리 원칙] 사용자A의
+    // FACT/Topic Exposure 상태가 사용자B 화면에 섞이지 않도록 로그아웃
+    // 시 메모리 상태를 초기화한다.
     auth.registerLogoutCallback(
-      context.read<WishRoomProvider>().clearOnLogout,
+      context.read<SajuRenewalProvider>().clearOnLogout,
     );
   }
 

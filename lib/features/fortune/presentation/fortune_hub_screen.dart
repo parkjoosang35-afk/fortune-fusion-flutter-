@@ -124,6 +124,19 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
         route: JeontongEightyMatrix.gateRoute,
         requiresPass: true,
       ),
+      // [신통방통 정통사주 리뉴얼 — STEP 6.5] Topic Engine 기반 신규 "사주
+      // 이야기" 흐름 진입점. 기존 69종 그리드와 완전히 별개의 화면
+      // (SajuRenewalHomeScreen→...)으로 연결되며, Access Gate는 이 흐름
+      // 내부(story_preview_screen)에서 결과를 열 때만 별도로 뜬다 —
+      // 레거시 프리패스 게이트(navigateWithPassGate)는 여기서 적용하지
+      // 않는다(requiresPass:false).
+      _FortuneItem(
+        title: '내 사주 분석하기',
+        desc: '내 사주 속 오늘의 이야기를 하나씩 발견해보세요',
+        icon: Icons.auto_awesome_outlined,
+        route: '/saju-renewal',
+        requiresPass: false,
+      ),
     ],
   );
 
