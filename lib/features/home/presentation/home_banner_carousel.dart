@@ -2,8 +2,6 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../domain/jeontong_eighty_matrix.dart';
-
 
 /// [메인 UI 리디자인 - 귀인지도 배너 3장 롤링 캐러셀]
 ///
@@ -254,17 +252,17 @@ class _HomeBannerCarouselState extends State<HomeBannerCarousel> {
     //
     // [카드섹션 운세보기/궁합보기 연결] Slide 2("운세 보기")/Slide 3("궁합
     // 보기")는 개발 당시 연결될 백엔드/화면이 없어 안내 토스트로만
-    // 대신하였으나, 이제 둘 다 실제 화면이 있으므로 연결한다. "운세
-    // 보기"는 이미 안정적으로 동작 중인 정통사주 부적게이트
-    // (JeontongEightyMatrix.gateRoute)로, "궁합 보기"는 admin_web 실API
-    // 연동이 되어있는 궁합 입력 화면(`/compatibility/input`, 모듈 복원
-    // git 53ce1ff)으로 보낸다.
+    // 대신하였으나, 이제 둘 다 실제 화면이 있으므로 연결한다.
+    // [신통방통 정통사주 리뉴얼] "운세 보기"는 기존 정통사주 69종
+    // (jeontong_eighty) 대신 유일한 신규 정통사주(saju_renewal)로 연결한다.
+    // "궁합 보기"는 admin_web 실API 연동이 되어있는 궁합 입력 화면
+    // (`/compatibility/input`, 모듈 복원 git 53ce1ff)으로 보낸다.
     switch (data.route) {
       case '/guinji-map':
         Navigator.of(context).pushNamed('/guinji-map');
         return;
       case '/fortune/today':
-        Navigator.of(context).pushNamed(JeontongEightyMatrix.gateRoute);
+        Navigator.of(context).pushNamed('/saju-renewal');
         return;
       case '/fortune/compatibility':
         Navigator.of(context).pushNamed('/compatibility/input');

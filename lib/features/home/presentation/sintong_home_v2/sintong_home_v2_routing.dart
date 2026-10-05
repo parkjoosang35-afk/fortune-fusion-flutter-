@@ -29,7 +29,6 @@ import '../../../../core/router/app_router.dart' show AppRouter;
 import '../../../pass/presentation/pass_gate_helper.dart';
 import '../../../wishroom/features/intro/wish_room_intro_screen.dart';
 import '../../../guinji/presentation/guinji_landing_screen.dart';
-import '../../domain/jeontong_eighty_matrix.dart';
 import 'sintong_home_v2_data.dart';
 import 'widgets/sintong_section_photo_card.dart';
 
@@ -45,8 +44,9 @@ void openSubScreen(BuildContext context, SHomeV2Category category) {
         context,
       ).push(MaterialPageRoute(builder: (_) => const GuinjiLandingScreen()));
     case SHomeV2Category.saju:
-      // 정통사주 — 기존 서비스카드와 동일: 80종 매트릭스 게이트 화면.
-      Navigator.of(context).pushNamed(JeontongEightyMatrix.gateRoute);
+      // [신통방통 정통사주 리뉴얼] 정통사주 — 유일한 신규 정통사주(saju_renewal)로
+      // 연결한다(구 69종 매트릭스 게이트는 제거됨).
+      Navigator.of(context).pushNamed('/saju-renewal');
     case SHomeV2Category.tarot:
       // 타로 — 기존 서비스카드와 동일: 타로 인트로 화면.
       Navigator.of(context).pushNamed(AppRouter.tarotIntroRoute);

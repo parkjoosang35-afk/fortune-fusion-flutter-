@@ -17,14 +17,9 @@ import 'features/notification/notification_provider.dart';
 import 'features/notification/data/notification_repository.dart';
 import 'features/attendance/application/attendance_provider.dart';
 import 'features/attendance/data/attendance_repository.dart';
-import 'features/fortune/saju/application/saju_provider.dart';
-import 'features/fortune/saju/data/saju_repository.dart';
-// [정통사주 v3 연동 - 2차 지시서 옵션 2] 엔진 서버(69종 실계산 + AI 해석 폴백)
-// 전용 독립 Provider. 기존 saju(80종 로컬/AI 경로)와 완전히 분리된 신규 기능이며,
-// jeontong_eighty_*(기존 로컬 80종 계산기)는 이 작업 범위 밖이라 건드리지 않는다.
-import 'features/fortune/saju_v3/application/saju_v3_provider.dart';
-import 'features/fortune/saju_v3/data/saju_v3_api.dart';
-import 'core/config/env_config.dart';
+// [신통방통 정통사주 리뉴얼] 기존 saju(AI LLM)/saju_v3(죽은 베타) Provider는
+// 완전히 제거되었다. 사주는 이제 SajuRenewalProvider(아래 참조) 하나로
+// 통일된다.
 import 'features/fortune/tarot/application/tarot_provider.dart';
 import 'features/fortune/tarot/application/tarot_session_controller.dart';
 import 'features/fortune/tarot/application/tarot_audio_controller.dart';
@@ -197,28 +192,9 @@ class App extends StatelessWidget {
           update: (_, pass, __) => AccessChecker(pass: pass),
         ),
         // ── 기능별 Provider ──
-        ChangeNotifierProvider(create: (_) => SajuProvider(SajuRepository())),
-        // [정통사주 v3 - 4차 지시서 항목③ 인증 연결] 서버 엔진(69종
-        // 실계산) 전용 Provider. baseUrl은 EnvConfig.adminApiBaseUrl 기반으로
-        // 조립한다(하드코딩 금지). freePassProvider는 img2_인증연결가이드.png
-        // 그대로 EnvConfig.sajuFreePassToken(=--dart-define=SAJU_FREEPASS로만
-        // 주입되는 값)을 반환한다 — 앱의 표준 인증(AuthTokenStore, admin API용
-        // JWT Bearer)은 그대로 유지되고, 이 saju_v3 요청에만 X-Free-Pass가
-        // 추가로 실린다(두 인증 헤더는 서로 다른 서버/용도이므로 충돌 없음).
-        // 값이 비어 있으면(토큰 미주입) 헤더 자체가 생략되고 엔진 서버가
-        // 402로 안내한다 — 별도의 임시 우회 로직을 두지 않는다.
-        ChangeNotifierProvider(
-          create: (_) => SajuV3Provider(
-            SajuV3Api(
-              // SajuV3Api 내부 메서드가 이미 '/saju/v3/...' 전체 경로를 쓰므로
-              // 여기서는 admin_web 루트 도메인만 넘긴다(중복 접두 방지).
-              baseUrl: EnvConfig.adminApiBaseUrl,
-              freePassProvider: () => EnvConfig.sajuFreePassToken.isEmpty
-                  ? null
-                  : EnvConfig.sajuFreePassToken,
-            ),
-          ),
-        ),
+        // [신통방통 정통사주 리뉴얼] 여기 있던 SajuProvider(기존 AI LLM 사주)와
+        // SajuV3Provider(죽은 베타 69종 엔진 연동)는 완전히 제거되었다. 사주는
+        // SajuRenewalProvider(아래 참조, '/saju-renewal') 하나로 통일된다.
         ChangeNotifierProvider(create: (_) => TarotProvider(TarotRepository())),
         // [타로 리뉴얼] 타로 세션 흐름(카테고리 선택→질문→셔플→카드선택→결과)
         // 전용 상태머신. 기존 TarotProvider(결과 조회/히스토리)와 책임 분리.
@@ -402,10 +378,9 @@ class _LogoutCallbackRegistrarState extends State<_LogoutCallbackRegistrar> {
     auth.registerLogoutCallback(
       context.read<NameFortuneProvider>().clearOnLogout,
     );
-    auth.registerLogoutCallback(context.read<SajuProvider>().clearOnLogout);
-    // [정통사주 v3 - 개인정보(생년월일시) 잔존 방지] SajuProvider와 동일한
-    // 취지로 로그아웃 시 v3 계산 결과/생년월일시 상태를 초기화한다.
-    auth.registerLogoutCallback(context.read<SajuV3Provider>().clearOnLogout);
+    // [신통방통 정통사주 리뉴얼] SajuProvider/SajuV3Provider 로그아웃
+    // 콜백은 제거되었다 — 아래 SajuRenewalProvider.clearOnLogout이 동일한
+    // 역할(개인정보 잔존 방지)을 담당한다.
     // [소원방 v2.6 재구축]
     auth.registerLogoutCallback(context.read<WishRoomProvider>().clearOnLogout);
     // [신통방통 정통사주 리뉴얼 — STEP 6.5, 계정 격리 원칙] 사용자A의

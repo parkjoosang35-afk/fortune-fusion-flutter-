@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../features/guinji/presentation/guinji_map_guest_join_screen.dart';
-import '../../features/home/domain/jeontong_eighty_matrix.dart';
 import 'app_navigator_key.dart';
 import 'app_router.dart';
 
@@ -190,11 +189,11 @@ class GuinjiDeepLinkHandler {
   ///   - `wish-room`  → `/wish-room`(소원방 게이트, home_screen과 동일)
   ///   - `tarot`      → [AppRouter.tarotIntroRoute](타로 인트로 스플래시,
   ///                    home_screen 진입점과 동일)
-  ///   - `jeontong`   → [JeontongEightyMatrix.gateRoute](정통사주 부적
-  ///                    게이트, home_screen "정통사주" 카드와 동일)
-  ///   - `today`      → 오늘의 운세는 2026-08-13 결정으로 정통사주
-  ///                    80항목에 통합되었으므로(RemovedDailyFortuneStub
-  ///                    참고) 동일하게 정통사주 게이트로 보낸다.
+  ///   - `jeontong`   → [신통방통 정통사주 리뉴얼] 유일한 신규 정통사주(`/saju-renewal`,
+  ///                    saju_renewal)로 연결한다(구 69종 부적게이트는 제거됨).
+  ///   - `today`      → 오늘의 운세는 2026-08-13 결정으로 정통사주에
+  ///                    통합되었으므로(RemovedDailyFortuneStub 참고) 동일하게
+  ///                    saju_renewal로 보낸다.
   static String? _serviceRouteFor(String key) {
     switch (key) {
       case 'wish-room':
@@ -203,7 +202,7 @@ class GuinjiDeepLinkHandler {
         return AppRouter.tarotIntroRoute;
       case 'jeontong':
       case 'today':
-        return JeontongEightyMatrix.gateRoute;
+        return '/saju-renewal';
       default:
         return null;
     }

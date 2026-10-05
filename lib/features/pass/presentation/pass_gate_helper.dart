@@ -100,8 +100,11 @@ Future<void> navigateWithPassGate(
 ///     카테고리)이라 서버 개별 API(daily/route.ts)에 categoryKey 검증 로직이
 ///     아예 없다 — 게이트에서 categoryKey를 보내도 서버가 무시하지만, 굳이
 ///     보낼 필요가 없으므로 매핑을 생략한다.
+// [신통방통 정통사주 리뉴얼] '/ai-fortune/saju/input'(기존 AI 사주)은
+// app_router.dart에서 더 이상 실제 화면으로 연결되지 않고 '/saju-renewal'로
+// legacy redirect 처리된다. saju_renewal은 서버 게이트체크(checkOnly)를
+// 자체 흐름(story_preview_screen) 내부에서 수행하므로 이 매핑에서 제외한다.
 const Map<String, String> _categoryKeyByRoute = {
-  '/ai-fortune/saju/input': 'saju',
   '/ai-fortune/name/input': 'name',
   '/ai-fortune/face/capture': 'face',
   '/ai-fortune/palm/capture': 'palm',

@@ -182,12 +182,17 @@ class _MyScreenState extends State<MyScreen> {
               crossAxisSpacing: UnifiedTokens.spaceMd,
               childAspectRatio: 2.2,
               children: [
+                // [신통방통 정통사주 리뉴얼] 기존 AI 사주 히스토리
+                // (`/ai-fortune/saju/history`)는 제거되었다. saju_renewal은
+                // 전용 히스토리 화면(named route) 대신 "이야기 더보기"
+                // 흐름(MoreStoriesScreen, story_detail_screen 내부에서
+                // push)을 쓰므로, 여기서는 saju_renewal 홈으로 자연스럽게
+                // 이동시킨다.
                 _ArchiveCard(
                   icon: Icons.auto_stories_outlined,
                   label: '사주 히스토리',
-                  onTap: () => Navigator.of(
-                    context,
-                  ).pushNamed('/ai-fortune/saju/history'),
+                  onTap: () =>
+                      Navigator.of(context).pushNamed('/saju-renewal'),
                 ),
                 _ArchiveCard(
                   icon: Icons.style_outlined,

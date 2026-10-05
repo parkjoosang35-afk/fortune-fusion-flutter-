@@ -1,44 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/premium_card.dart';
 import '../../../core/widgets/premium_graphics.dart';
-import '../../fortune/saju/application/saju_provider.dart';
 
 /// [신규 화면 - 개운 아이템 · 행운 색·방위] 오행(목/화/토/금/수)별 색·방위·
 /// 맛·활동 정적 룰을 보여주는 화면.
 ///
-/// [원칙] 신규 Repository/API 호출을 전혀 추가하지 않는다(LuckyItemsRepository는
-/// 존재하지 않음을 grep으로 확인 완료). 대신:
-/// - 기존 [SajuProvider.state]를 read-only로 참고해, 이미 사주 분석 결과가
-///   있으면(state.data.fiveElements) 그 중 값이 가장 낮은 오행을 "부족 오행"으로
-///   자동 하이라이트한다.
-/// - 아직 사주 결과가 없으면(state가 initial/loading/error) 5개 오행을 모두
-///   평시 안내 톤으로 동일하게 보여준다("토오행 평균치" 폴백).
-/// - SajuProvider/SajuRepository 자체의 메서드·필드는 절대 수정하지 않는다
-///   (오직 읽기만 한다).
+/// [신통방통 정통사주 리뉴얼] 기존에는 [SajuProvider.state](AI LLM 사주)를
+/// read-only로 참조해 "부족 오행"을 자동 하이라이트했으나, SajuProvider가
+/// 완전히 제거되어 이 연동도 함께 제거한다. saju_renewal은 오행 데이터를
+/// 아직 이 화면과 공유하지 않으므로, 당분간 5개 오행을 모두 평시 안내
+/// 톤으로 동일하게 보여준다.
 class LuckyItemsScreen extends StatelessWidget {
   const LuckyItemsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // [read-only 참고] SajuProvider의 최근 결과가 있으면 부족 오행 판단에
-    // 사용한다. Provider가 앱에 등록되어 있지 않은 극단적인 경우에도
-    // 화면이 죽지 않도록 방어적으로 처리한다.
-    String? weakestElement;
-    try {
-      final sajuState = context.watch<SajuProvider>().state;
-      if (sajuState.isSuccess && sajuState.data != null) {
-        final elements = sajuState.data!.fiveElements;
-        if (elements.isNotEmpty) {
-          weakestElement = elements.entries
-              .reduce((a, b) => a.value <= b.value ? a : b)
-              .key;
-        }
-      }
-    } catch (_) {
-      weakestElement = null;
-    }
+    const String? weakestElement = null;
 
     return Scaffold(
       backgroundColor: UnifiedColors.bg,
