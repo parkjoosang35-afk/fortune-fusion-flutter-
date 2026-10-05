@@ -7,7 +7,9 @@
 //   - `npx next dev -p 3099`가 떠 있어야 함
 //   - saju_engine이 :8000에서 떠 있어야 함
 //   - ANTHROPIC_APP_API_KEY(.env)가 설정되어 있어야 함(실제 LLM 호출 테스트)
-//   - scripts/seed-test-prompt-templates.ts로 MONEY_002/LIFE_002 템플릿이 시딩되어 있어야 함
+//   - scripts/seed-topic-prompt-templates-full.ts로 MONEY_002/LIFE_002 등 전체 56개
+//     템플릿이 시딩되어 있어야 함(STEP6에서 STEP4 당시 임시 목업 scripts/seed-test-
+//     prompt-templates.ts를 대체 — 해당 레거시 스크립트는 삭제됨)
 import { prisma } from "../src/lib/db";
 import { SignJWT } from "jose";
 import { computeBirthKey } from "../src/lib/saju-renewal/saju-engine-client";

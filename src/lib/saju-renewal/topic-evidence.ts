@@ -190,8 +190,13 @@ const evalTALENT_002: TopicEvidenceEvaluator = (facts) => {
   const officer = countTenGodGroup(facts.ten_gods, TEN_GOD_GROUPS["관성"]);
   const output = countTenGodGroup(facts.ten_gods, TEN_GOD_GROUPS["식상"]);
   const combinedRatio = officer.ratio + output.ratio;
+  // [버그 수정 — STEP6 실제 해석 테스트] note에 소수점(`.toFixed(2)`)이 들어가면
+  // interpret-qa-check.ts의 checkRepetition()이 "."를 문장 구분자로 오인해 note를
+  // 둘로 쪼개고("비겁 0" + "43 vs 관성+식상 0" + "71"), 그 중간 조각이 fallback
+  // 템플릿의 여러 블록(①③)에 동일하게 삽입되어 REPEATED_SENTENCE로 오탐되는 실제
+  // 장애가 있었다(TALENT_002 detail 503). 소수점 대신 마침표 없는 퍼센트 정수로 표기.
   return [
-    { factKey: "peer_vs_officer_output", satisfied: peer.total > 0, confidence: peer.total > 0 ? 0.7 : 0, note: `비겁 ${peer.ratio.toFixed(2)} vs 관성+식상 ${combinedRatio.toFixed(2)}` },
+    { factKey: "peer_vs_officer_output", satisfied: peer.total > 0, confidence: peer.total > 0 ? 0.7 : 0, note: `비겁 ${Math.round(peer.ratio * 100)}% vs 관성+식상 ${Math.round(combinedRatio * 100)}%` },
   ];
 };
 
@@ -281,8 +286,12 @@ const evalRELATION_005: TopicEvidenceEvaluator = (facts) => {
 const evalLOVE_001: TopicEvidenceEvaluator = (facts) => {
   const output = countTenGodGroup(facts.ten_gods, TEN_GOD_GROUPS["식상"]);
   const officer = countTenGodGroup(facts.ten_gods, TEN_GOD_GROUPS["관성"]);
+  // [버그 수정 — STEP6 실제 해석 테스트, TALENT_002와 동일 원인] note의 소수점이
+  // checkRepetition()의 "." 문장 분리기를 오동작시켜 fallback 다중 블록에 동일 조각이
+  // 반복 삽입되고 REPEATED_SENTENCE로 오탐되어 LOVE_001 detail이 503이 나던 실제 장애를
+  // 수정(퍼센트 정수 표기로 소수점 제거, 다른 Topic/로직은 변경하지 않음).
   return [
-    { factKey: "output_vs_officer", satisfied: output.total > 0, confidence: output.total > 0 ? 0.65 : 0, note: `식상 ${output.ratio.toFixed(2)} vs 관성 ${officer.ratio.toFixed(2)}` },
+    { factKey: "output_vs_officer", satisfied: output.total > 0, confidence: output.total > 0 ? 0.65 : 0, note: `식상 ${Math.round(output.ratio * 100)}% vs 관성 ${Math.round(officer.ratio * 100)}%` },
     { factKey: "day_pillar_present", satisfied: !!facts.pillars?.day, confidence: facts.pillars?.day ? 0.6 : 0, note: "일지" },
   ];
 };
