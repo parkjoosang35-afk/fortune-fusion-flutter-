@@ -239,6 +239,11 @@ model User {
   wishRoomBlocksMade            WishRoomBlock[]          @relation("WishRoomBlocker")
   wishRoomBlocksReceived        WishRoomBlock[]          @relation("WishRoomBlocked")
   wishRoomActionLogs            WishRoomActionLog[]
+  // [정통사주 리뉴얼 v1.0] 신규 topic 기반 UX 전용 — 기존 jeontong_eighty(69종)/
+  // saju_v3 베타와는 완전히 분리된 신규 영역(saju_renewal). 계산은 여전히
+  // saju_engine(Python, 무상태)이 하고, 이 두 테이블만 admin_web DB에 둔다.
+  sajuFactsCaches                SajuFactsCache[]
+  topicExposureHistories         TopicExposureHistory[]
 
   @@map("users")
 }
@@ -4323,4 +4328,130 @@ model WishRoomActionLog {
 
   @@index([userId, action, createdAt])
   @@map("wish_room_action_logs")
+}
+
+// ════════════════════════════════════════════════════════════════
+// [정통사주 리뉴얼 v1.0 — "다크 세레모니" UX] 신규 도메인 (2026-)
+//
+// 기존 69종 그리드(jeontong_eighty*)/saju_v3 베타와는 완전히 분리된 신규 영역.
+// 계산 자체는 여전히 saju_engine(Python, 무상태, /saju/v3/facts)이 담당하며,
+// 이 영역은 그 결과를 캐시하고(SajuFactsCache), LLM 미사용 규칙기반으로
+// 이야기 후보를 선별하고(TopicCatalog/TopicCondition — topic-engine.ts),
+// 사용자가 이야기를 선택했을 때만 LLM 해석을 생성/캐시하는(TopicPromptTemplate)
+// 역할을 한다. 노출 이력(TopicExposureHistory)으로 "이미 본 이야기"를 추적한다.
+//
+// [절대 원칙] 69종 그리드/카테고리명/내부코드/점수/번호는 사용자에게 노출되지
+// 않는다(최종지시서 2장). 이 테이블들은 전부 새 topic_id(29종) 체계만 사용한다.
+// [7장 원칙] 점수 가중치(E/I/T/N/B/P)는 이 스키마에 하드코딩하지 않는다 —
+// TopicScoringConfig는 1차 구현에서 코드 상수(전부 0, topic-scoring-config.ts)로
+// 두고, 운영 반영 시점에 테이블화할지 결정한다(§7 "개발자 임의 결정 금지").
+// ════════════════════════════════════════════════════════════════
+
+// ── Fact 캐시 — 동일 출생정보 재계산 금지(지시서 5장) ──
+model SajuFactsCache {
+  id            Int       @id @default(autoincrement())
+  userId        Int?      @map("user_id") // 비로그인 세션 캐시도 허용하기 위해 nullable
+  // [2025 진행 승인 지시 §7 "캐시 판정 기준 반드시 검증" 반영] birthKey는 saju_engine
+  // BirthInputV3(api/saju_api.py)가 실제로 계산에 쓰는 입력값 전체의 해시여야 한다.
+  // zihour_policy(야자시 정책)는 일주/시주 산출 자체를 바꾸는 계산 입력값인데 최초
+  // 설계 시 빠져 있었다 — 이 필드가 빠지면 "같은 생년월일시, 다른 야자시 정책"
+  // 요청이 같은 캐시를 잘못 재사용하는 사고가 난다. true_solar/longitude/dayun_method/
+  // current_year는 saju_engine 호출부(saju-engine-client.ts)가 고정값만 쓰고 클라이언트가
+  // 바꿀 수 없으므로 캐시 키에 넣지 않는다(바뀔 수 없는 값은 키에 넣을 필요가 없음).
+  birthKey      String    @unique @map("birth_key") // sha256(birthDate|birthTime|isLunar|gender|zihourPolicy)
+  birthDate     String    @map("birth_date")
+  birthTime     String?   @map("birth_time")
+  isLunar       Boolean   @default(false) @map("is_lunar")
+  gender        String?
+  zihourPolicy  String    @default("traditional") @map("zihour_policy") // "traditional" | "legacy" — BirthInputV3.zihour_policy 원문 보존
+  factsJson     String    @map("facts_json") // POST /saju/v3/facts 원본 응답 전체(JSON 문자열, 재계산 없이 그대로 보관)
+  engineVersion String    @default("v3.3") @map("engine_version")
+  status        String    @default("active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("saju_facts_cache")
+}
+
+// ── 주제 카탈로그(29종: 릴리즈1 활성 26 + 폴백1 LIFE_000 + 2차 예정 2) ──
+model TopicCatalog {
+  id            Int       @id @default(autoincrement())
+  topicId       String    @unique @map("topic_id") // 예: MONEY_001, LOVE_005, LIFE_000(폴백)
+  topicName     String    @map("topic_name")
+  categoryGroup String    @map("category_group") // MONEY/TALENT/PERSONALITY/RELATION/LOVE/LIFE
+  isTiming      Boolean   @default(false) @map("is_timing") // 시기형 주제(세션당 최대 1개 노출)
+  isFallback    Boolean   @default(false) @map("is_fallback") // LIFE_000 폴백 주제 여부
+  releasePhase  Int       @default(1) @map("release_phase") // 1=1차 릴리즈(26종), 2=2차 예정(2종)
+  // [동점 처리 규칙 — 디자인팀 승인조건①] topic-engine.ts 정렬 1순위.
+  // 동점이면 sortOrder 오름차순 → 그래도 같으면 topicId 사전순(코드에서 고정 구현).
+  sortOrder     Int       @default(0) @map("sort_order")
+  status        String    @default("active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  conditions        TopicCondition[]
+  promptTemplates    TopicPromptTemplate[]
+  exposureHistories  TopicExposureHistory[]
+
+  @@map("topic_catalog")
+}
+
+// ── 주제별 노출 조건(필터 단계 — 점수와 무관, 디자인팀 승인조건② 그대로 구현) ──
+// conditionType 예:
+//   requires_evidence_key   : evidence/key_facts 생성 불가 주제 제외
+//   requires_birth_time     : 시간모름이면 시주필수주제 제외
+//   excludes_if_shown       : 노출이력 제외(exposure_history 참조는 코드에서 별도 처리, 이 조건은 보조용)
+model TopicCondition {
+  id             Int      @id @default(autoincrement())
+  topicId        String   @map("topic_id")
+  conditionType  String   @map("condition_type")
+  conditionValue String   @map("condition_value") // JSON 문자열(예: evidence_key 목록)
+  status         String   @default("active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  topic TopicCatalog @relation(fields: [topicId], references: [topicId])
+
+  @@index([topicId])
+  @@map("topic_conditions")
+}
+
+// ── 주제별 LLM 프롬프트 템플릿(summary/detail 모드별) ──
+// LLM은 사용자가 이야기를 "선택"했을 때만 호출된다(지시서 8장). 이 템플릿은
+// 그 호출의 system prompt + 실패시 폴백 상주문구(fallbackJson)를 보관한다.
+model TopicPromptTemplate {
+  id           Int      @id @default(autoincrement())
+  topicId      String   @map("topic_id")
+  mode         String   // summary | detail
+  systemPrompt String   @map("system_prompt")
+  fallbackJson String   @map("fallback_json") // docs/05 §2-4 "주제 템플릿 상주 문구" — LLM 실패시 즉시 사용
+  version      Int      @default(1)
+  status       String   @default("active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  topic TopicCatalog @relation(fields: [topicId], references: [topicId])
+
+  @@unique([topicId, mode, version])
+  @@map("topic_prompt_templates")
+}
+
+// ── 사용자별 노출 이력(이미 본 이야기 제외/후순위 — 지시서 13장) ──
+model TopicExposureHistory {
+  id       Int      @id @default(autoincrement())
+  userId   Int      @map("user_id")
+  topicId  String   @map("topic_id")
+  birthKey String   @map("birth_key") // 어떤 출생정보 기준으로 본 것인지(출생정보 변경시 구분해 재노출 허용)
+  viewedAt DateTime @default(now()) @map("viewed_at")
+
+  user  User         @relation(fields: [userId], references: [id])
+  topic TopicCatalog @relation(fields: [topicId], references: [topicId])
+
+  @@index([userId, birthKey])
+  @@map("topic_exposure_history")
 }
