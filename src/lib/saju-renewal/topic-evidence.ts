@@ -89,7 +89,17 @@ const evalLIFE_000: TopicEvidenceEvaluator = (facts) => [
     factKey: "pillars_present",
     satisfied: !!facts.pillars,
     confidence: facts.pillars ? 1 : 0,
-    note: "사주 명식 존재 — 폴백은 항상 활성(지시서 §8 폴백 보장)",
+    // [2026-10-05 수정 — 사용자 노출 디버그 문구 누출 수정] 기존 값
+    // "사주 명식 존재 — 폴백은 항상 활성(지시서 §8 폴백 보장)"은 괄호
+    // 안쪽(내부 감사용 주석)만 sanitizeEvidenceNote()가 제거하도록
+    // 설계되어 있어, 괄호 밖의 "폴백은 항상 활성"이라는 운영 메타
+    // 표현이 그대로 {{evidence_0}}에 치환되어 interpret(detail) 사용자
+    // 응답 본문에 노출되는 결함이 있었다(이 주제가 LLM 실패 시 fallback
+    // 경로로 빠지는 케이스에서 재현). 형제 항목(바로 아래 "용신 데이터
+    // 존재")과 동일한 순수 명사구 스타일로 교체해 운영 메타 표현을
+    // 완전히 제거한다 — 판정 로직(factKey/satisfied/confidence)은
+    // 무변경.
+    note: "사주 명식 존재",
   },
   {
     factKey: "yongshin_present",

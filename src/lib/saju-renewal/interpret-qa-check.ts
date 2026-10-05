@@ -62,6 +62,16 @@ export const DETAIL_TARGET_MIN = 1800;
 export const DETAIL_TARGET_MAX = 2200;
 
 // [STEP4 §11 내부 정보 절대 노출 금지] 69종/내부코드/DB/평가자 용어. 대소문자 무시.
+//
+// [2026-10-05 추가 — (c) QA 최종 방어선 보강] topic-evidence.ts의 EvidenceCheck.note
+// (satisfiedChecks[].note)는 "내부 감사용 설명"으로 설계되어 있으나, validateTopicForInterpret()가
+// 이를 evidenceNotes로 그대로 복사하고 interpret-fallback.ts의 fillTemplate()이 sanitize(괄호 안
+// 제거)만 거친 뒤 {{evidence_N}} 자리에 삽입하는 구조이기 때문에, note 작성 시 운영/디버그 메타
+// 표현이 섞이면 괄호 밖 텍스트가 그대로 사용자 응답에 노출될 수 있다(LIFE_000 재현 사례).
+// 근본 수정은 topic-evidence.ts의 note 콘텐츠 자체를 사실형 문장으로 고치는 것(STEP6.5 (a) 조치)
+// 이지만, 29종 Topic의 note 전체를 완벽히 통제하기 어려운 실수 가능성에 대비해 여기서도
+// "최종 방어선"으로 운영/개발 메타 키워드를 차단한다(사용자 승인 (c) 조치, (b) sanitize 단어
+// 추가는 근본 해결이 아니라는 이유로 보류됨).
 const INTERNAL_LEAK_PATTERNS: RegExp[] = [
   /\b69\s*종/i,
   /\bE0?\d{1,2}\b/, // E01, E1, E09 등 엣지케이스 코드
@@ -77,6 +87,21 @@ const INTERNAL_LEAK_PATTERNS: RegExp[] = [
   /\btopic\s*id\b/i,
   /\bscore\b/i,
   /\bconfidence\b/i,
+  // ↓ (c) 한글 운영/디버그/평가/개발 메타 키워드 방어선(2026-10-05 추가)
+  /폴백/,
+  /fallback/i,
+  /내부\s*디버그/,
+  /디버그/,
+  /감사용/,
+  /평가자/,
+  /evaluator/i,
+  /테스트용/,
+  /캐시\s*경로/,
+  /항상\s*활성/,
+  /지시서\s*§/, // "(지시서 §8 폴백 보장)" 류 내부 문서 참조 표현
+  /템플릿\s*경로/,
+  /운영\s*메타/,
+  /개발\s*메타/,
 ];
 
 // [STEP4 §12 "AI" 표현 금지] "AI"뿐 아니라 "인공지능" 등 동의어까지 포함.
