@@ -366,3 +366,51 @@ export function selectTopics(input: SelectTopicsInput): SelectTopicsResult {
 
 // 테스트/디버깅 용으로 내부 비교 함수도 함께 노출(단위 테스트에서 동점 규칙만 검증할 때 사용).
 export { compareTopicsForTie };
+
+/**
+ * [STEP 4 — Interpret API 전용 재검증] 사용자가 POST한 topic_id가 "지금 이
+ * FACT로 실제 선택 가능한 주제인지" 독립적으로 재검증한다. topics/select가 한 번
+ * 추천했다는 사실을 신뢰하지 않고, interpret 요청 시점에 다시 전체 조건을
+ * 확인한다(2025 진행 승인 지시 STEP 4 §3 "Topic Select API에서 한 번 추천됐다는
+ * 사실만 믿지 말고 Interpret API에서도 서버 측 재검증을 합니다").
+ *
+ * [검증 항목]
+ *   1) topicId가 TOPIC_CATALOG_SEED(29종)에 실제로 존재하는가
+ *   2) 1차 릴리즈 대상(releasePhase=1) 또는 폴백인가(2차 예정 종목은 아직 비노출)
+ *   3) evidence 평가자가 구현되어 있는가(topic-evidence.ts)
+ *   4) 현재 facts로 조건(충족 근거 ≥2 + confidence 가드레일)을 실제로 통과하는가
+ *
+ * [Scene 검증은 이 함수의 책임이 아님] scene 미확정(PERSONALITY_001 등) 판정은
+ * topic-contract-adapter.ts의 SCENE_UNRESOLVED_TOPIC_IDS/getTopicScene()이 전담한다
+ * (topic-engine.ts는 scene 개념을 모른다 — §8 설계 원칙 유지). 호출부(interpret
+ * route.ts)가 이 함수의 결과와 별개로 scene 검증을 반드시 함께 수행해야 한다.
+ */
+export interface TopicValidationResult {
+  valid: boolean;
+  /** valid=false일 때만 채워지는 사유(사용자 노출 금지, 서버 로그/에러코드 분기용). */
+  reason?: "TOPIC_NOT_FOUND" | "TOPIC_NOT_RELEASED" | "EVIDENCE_EVALUATOR_MISSING" | "CONDITION_NOT_SATISFIED";
+  /** valid=true일 때만 채워짐 — interpret 프롬프트 구성에 쓰는 통과 근거 키. */
+  evidenceFactKeys?: string[];
+  /** valid=true일 때만 채워짐 — 프롬프트에 함께 실을 근거 설명(내부 감사용, 사용자 비노출). */
+  evidenceNotes?: string[];
+  isTiming?: boolean;
+}
+
+export function validateTopicForInterpret(topicId: string, facts: SajuV3Facts): TopicValidationResult {
+  const topic = TOPIC_CATALOG_SEED.find((t) => t.topicId === topicId);
+  if (!topic) return { valid: false, reason: "TOPIC_NOT_FOUND" };
+  if (topic.releasePhase !== 1 && !topic.isFallback) {
+    return { valid: false, reason: "TOPIC_NOT_RELEASED" };
+  }
+
+  const evaluation = evaluateTopic(topic, facts);
+  if (!evaluation) return { valid: false, reason: "EVIDENCE_EVALUATOR_MISSING" };
+  if (!evaluation.passesConditionCheck) return { valid: false, reason: "CONDITION_NOT_SATISFIED" };
+
+  return {
+    valid: true,
+    evidenceFactKeys: evaluation.satisfiedChecks.map((c) => c.factKey),
+    evidenceNotes: evaluation.satisfiedChecks.map((c) => c.note),
+    isTiming: topic.isTiming,
+  };
+}

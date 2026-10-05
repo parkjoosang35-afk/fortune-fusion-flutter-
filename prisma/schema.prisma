@@ -244,6 +244,7 @@ model User {
   // saju_engine(Python, 무상태)이 하고, 이 두 테이블만 admin_web DB에 둔다.
   sajuFactsCaches                SajuFactsCache[]
   topicExposureHistories         TopicExposureHistory[]
+  topicInterpretResults          TopicInterpretResult[]
 
   @@map("users")
 }
@@ -4397,6 +4398,7 @@ model TopicCatalog {
   conditions        TopicCondition[]
   promptTemplates    TopicPromptTemplate[]
   exposureHistories  TopicExposureHistory[]
+  interpretResults   TopicInterpretResult[]
 
   @@map("topic_catalog")
 }
@@ -4454,4 +4456,34 @@ model TopicExposureHistory {
 
   @@index([userId, birthKey])
   @@map("topic_exposure_history")
+}
+
+// ── [STEP 4] Interpret 결과 캐시 + 멱등성 — 2025 진행 승인 지시 STEP4 §16·§17 ──
+// 이 테이블은 두 가지 역할을 동시에 한다:
+//   1) [§17 중복 요청 방지] (userId, topicId, mode, birthKey)가 같으면 이미 QA를
+//      통과해 저장된 resultJson을 그대로 재사용한다 — LLM을 다시 호출하지 않고,
+//      ExposureHistory도 다시 기록하지 않는다(진짜 멱등 — 재시도/중복탭에 안전).
+//   2) [docs/05 "interpret 결과는 topic_id × mode 단위로 세션 캐시(재열람 시 재호출
+//      금지)", E-13 "이미 해제된 주제 재진입 → 게이트 없이 07 직행"] 사용자가 이미
+//      게이트를 통과해 detail을 한 번 본 주제는, 나중에 다시 들어와도 LLM을 또
+//      호출하지 않고 저장된 결과를 그대로 보여준다.
+// [LLM 실패/QA 실패 결과는 저장하지 않음 — §16] 이 테이블에 행이 생긴다는 것 자체가
+// "정상적으로 완성되어 사용자에게 노출된 해석"이라는 의미다(route.ts가 QA 통과 후에만
+// upsert한다).
+model TopicInterpretResult {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @map("user_id")
+  topicId    String   @map("topic_id")
+  mode       String // summary | detail
+  birthKey   String   @map("birth_key")
+  resultJson String   @map("result_json") // 사용자에게 내려간 최종 응답 JSON 전체(QA 통과본)
+  source     String // llm | template(fallback)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  user  User         @relation(fields: [userId], references: [id])
+  topic TopicCatalog @relation(fields: [topicId], references: [topicId])
+
+  @@unique([userId, topicId, mode, birthKey])
+  @@map("topic_interpret_results")
 }

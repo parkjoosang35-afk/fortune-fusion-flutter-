@@ -261,13 +261,15 @@ export async function POST(request: NextRequest) {
 
     const keyFacts = extractKeyFacts(facts);
 
-    // [§5 노출 이력 기록] 이번에 선정된 first_topic을 노출 이력에 남긴다(다음 호출에서
-    // 후순위/제외되도록). candidates는 아직 "선택되어 본" 것이 아니라 후보로 제시된
-    // 것뿐이므로 기록하지 않는다(interpret에서 사용자가 실제로 선택했을 때 그 topic이
-    // 기록되는 것이 더 정확하나, STEP 3 범위는 first_topic 노출만 — §5 지시 반영).
-    await prisma.topicExposureHistory.create({
-      data: { userId, topicId: firstTopic.topic_id, birthKey },
-    });
+    // [STEP 4 승인 지시 §1 재검토 결론 — first_topic 기록 시점 변경]
+    // 과거(STEP 3)에는 이 API 호출 시점에 first_topic을 즉시 ExposureHistory에
+    // 기록했으나, 이는 "실제로 사용자 화면에 노출된 시점"과 일치하지 않는다 — 화면
+    // 흐름상 04(분석 완료)에서는 아직 제목만 보여줄 뿐, 실제 이야기 내용(summary)은
+    // 05(이야기 미리보기)에서 POST /v1/saju/interpret을 호출해야 비로소 열린다.
+    // 즉 first_topic도 candidates와 동일하게 "아직 본 것이 아니라 후보로 제시된 것"
+    // 일 뿐이다. 따라서 이 API에서는 어떤 topic도 기록하지 않고, interpret
+    // route.ts가 실제 해석에 성공했을 때만 그 topic_id를 기록한다(STEP4 §16 "실제
+    // 첫 이야기 화면이 노출된 경우 기록" 요건을 interpret 성공 시점으로 통일).
 
     return NextResponse.json(
       {
