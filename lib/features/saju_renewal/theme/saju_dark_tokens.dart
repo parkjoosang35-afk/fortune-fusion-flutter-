@@ -264,8 +264,12 @@ class SajuType {
   );
 
   /// T-mono — IBM Plex Mono, 영문 대문자 라벨(0.3em 트래킹).
+  /// [한자 폴백] "SINTONG · 正統四柱"처럼 모노 라벨에 한자가 섞이는
+  /// 경우가 있다 — IBM Plex Mono에는 한자 글리프가 없으므로(tofu box
+  /// 방지) NotoSerifKR을 폴백으로 지정한다.
   static const TextStyle mono10 = TextStyle(
     fontFamily: mono,
+    fontFamilyFallback: [serif],
     fontWeight: FontWeight.w500,
     fontSize: 10,
     letterSpacing: 0.3 * 10,
@@ -274,6 +278,7 @@ class SajuType {
 
   static const TextStyle mono9 = TextStyle(
     fontFamily: mono,
+    fontFamilyFallback: [serif],
     fontWeight: FontWeight.w500,
     fontSize: 9.5,
     letterSpacing: 0.3 * 9.5,

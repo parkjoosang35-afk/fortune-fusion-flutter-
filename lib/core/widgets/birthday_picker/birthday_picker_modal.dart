@@ -467,7 +467,7 @@ class _Header extends StatelessWidget {
                     sourceLabel ?? 'SAJU · 정보 입력',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontFamily: 'IBM Plex Mono',
+                      fontFamily: 'IBMPlexMono',
                       fontSize: 10,
                       letterSpacing: 3.5,
                       color: p.muted,
@@ -478,7 +478,7 @@ class _Header extends StatelessWidget {
                     'STEP $step · ${step == 1 ? '생년월일' : '태어난 시간'}',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontFamily: 'IBM Plex Mono',
+                      fontFamily: 'IBMPlexMono',
                       fontSize: 11,
                       letterSpacing: 2,
                       color: p.fg,
@@ -497,7 +497,7 @@ class _Header extends StatelessWidget {
           stepTitle.$1,
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontFamily: 'Noto Serif KR',
+            fontFamily: 'NotoSerifKR',
             fontWeight: FontWeight.w900,
             fontSize: 26,
             height: 1.25,
@@ -509,7 +509,7 @@ class _Header extends StatelessWidget {
           stepTitle.$2,
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontFamily: 'Noto Serif KR',
+            fontFamily: 'NotoSerifKR',
             fontWeight: FontWeight.w900,
             fontSize: 26,
             height: 1.25,
@@ -523,7 +523,7 @@ class _Header extends StatelessWidget {
           stepTitle.$3,
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontFamily: 'Gowun Batang',
+            fontFamily: 'GowunBatang',
             fontSize: 13,
             color: p.muted,
             letterSpacing: -0.1,
@@ -702,7 +702,7 @@ class _DateDisplay extends StatelessWidget {
           label,
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontFamily: 'IBM Plex Mono',
+            fontFamily: 'IBMPlexMono',
             fontSize: 10,
             letterSpacing: 2,
             color: p.slotHint,
@@ -731,7 +731,7 @@ class _DateDisplay extends StatelessWidget {
               child: Text(
                 ch,
                 style: TextStyle(
-                  fontFamily: 'Noto Serif KR',
+                  fontFamily: 'NotoSerifKR',
                   fontWeight: FontWeight.bold,
                   fontSize: big ? 36 : 34,
                   letterSpacing: -0.5,
@@ -744,7 +744,7 @@ class _DateDisplay extends StatelessWidget {
             Text(
               '0',
               style: TextStyle(
-                fontFamily: 'Noto Serif KR',
+                fontFamily: 'NotoSerifKR',
                 fontWeight: FontWeight.bold,
                 fontSize: big ? 36 : 34,
                 color: p.slotEmpty.withValues(alpha: (p.slotEmpty.a) * 0.55),
@@ -817,14 +817,14 @@ class _ResultBanner extends StatelessWidget {
       return Text(
         error!,
         textAlign: TextAlign.center,
-        style: TextStyle(fontFamily: 'Gowun Batang', fontSize: 13, color: p.errorColor),
+        style: TextStyle(fontFamily: 'GowunBatang', fontSize: 13, color: p.errorColor),
       );
     }
     if (!complete || y == null || m == null || d == null) {
       return Text(
         'YEAR · MONTH · DAY',
         style: TextStyle(
-          fontFamily: 'IBM Plex Mono',
+          fontFamily: 'IBMPlexMono',
           fontSize: 10,
           letterSpacing: 3,
           color: p.slotHint,
@@ -842,11 +842,11 @@ class _ResultBanner extends StatelessWidget {
             children: [
               TextSpan(
                 text: '${kBirthdayDayKoKr[wIdx]}요일',
-                style: TextStyle(fontFamily: 'Gowun Batang', fontSize: 14, color: p.fg.withValues(alpha: 0.9)),
+                style: TextStyle(fontFamily: 'GowunBatang', fontSize: 14, color: p.fg.withValues(alpha: 0.9)),
               ),
               TextSpan(
                 text: '  ${kBirthdayDayHanjaKr[wIdx]}',
-                style: TextStyle(fontFamily: 'Noto Serif KR', fontWeight: FontWeight.w900, color: p.glow),
+                style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, color: p.glow),
               ),
             ],
           ),
@@ -856,7 +856,7 @@ class _ResultBanner extends StatelessWidget {
         const SizedBox(width: 12),
         Text(
           '$age세',
-          style: TextStyle(fontFamily: 'IBM Plex Mono', fontSize: 11, letterSpacing: 2, color: p.muted),
+          style: TextStyle(fontFamily: 'IBMPlexMono', fontSize: 11, letterSpacing: 2, color: p.muted),
         ),
       ],
     );
@@ -923,7 +923,7 @@ class _Keypad extends StatelessWidget {
             ),
             child: Text(
               ctaLabel,
-              style: const TextStyle(fontFamily: 'Gowun Batang', fontSize: 16, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontFamily: 'GowunBatang', fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
         ),
@@ -970,7 +970,7 @@ class _Keypad extends StatelessWidget {
             child: Text(
               k,
               style: TextStyle(
-                fontFamily: 'Noto Serif KR',
+                fontFamily: 'NotoSerifKR',
                 fontSize: 26,
                 color: p.fg,
                 letterSpacing: -0.4,
@@ -1037,12 +1037,12 @@ class _Step2 extends StatelessWidget {
                   children: [
                     Text(
                       '선택하신 날짜',
-                      style: TextStyle(fontFamily: 'IBM Plex Mono', fontSize: 9, letterSpacing: 2, color: p.muted),
+                      style: TextStyle(fontFamily: 'IBMPlexMono', fontSize: 9, letterSpacing: 2, color: p.muted),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '$y년 $m월 $d일',
-                      style: TextStyle(fontFamily: 'Gowun Batang', fontSize: 15, fontWeight: FontWeight.bold, color: p.fg),
+                      style: TextStyle(fontFamily: 'GowunBatang', fontSize: 15, fontWeight: FontWeight.bold, color: p.fg),
                     ),
                   ],
                 ),
@@ -1086,7 +1086,7 @@ class _Step2 extends StatelessWidget {
             ),
             child: Text(
               ctaLabel,
-              style: const TextStyle(fontFamily: 'Gowun Batang', fontSize: 16, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontFamily: 'GowunBatang', fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
         ),
@@ -1156,7 +1156,7 @@ class _ZhiTimeGrid extends StatelessWidget {
                     const Text('◈ ', style: TextStyle(fontSize: 11)),
                     Text(
                       '태어난 시간을 잘 모르겠어요',
-                      style: TextStyle(fontFamily: 'Gowun Batang', fontSize: 13, fontWeight: FontWeight.w500),
+                      style: TextStyle(fontFamily: 'GowunBatang', fontSize: 13, fontWeight: FontWeight.w500),
                     ),
                   ],
                 ),
@@ -1202,7 +1202,7 @@ class _ZhiCell extends StatelessWidget {
                   Text(
                     z.hanja,
                     style: TextStyle(
-                      fontFamily: 'Noto Serif KR',
+                      fontFamily: 'NotoSerifKR',
                       fontWeight: FontWeight.w900,
                       fontSize: 20,
                       color: active ? p.ctaText : p.fg,
@@ -1212,7 +1212,7 @@ class _ZhiCell extends StatelessWidget {
                   Text(
                     z.label,
                     style: TextStyle(
-                      fontFamily: 'Gowun Batang',
+                      fontFamily: 'GowunBatang',
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
                       color: active ? p.ctaText : p.fg,
@@ -1224,7 +1224,7 @@ class _ZhiCell extends StatelessWidget {
               Text(
                 z.hint,
                 style: TextStyle(
-                  fontFamily: 'IBM Plex Mono',
+                  fontFamily: 'IBMPlexMono',
                   fontSize: 9,
                   letterSpacing: 1,
                   color: (active ? p.ctaText : p.muted).withValues(
@@ -1318,18 +1318,18 @@ class _SavedToastState extends State<_SavedToast> with TickerProviderStateMixin 
                 const SizedBox(height: 18),
                 Text(
                   'SAVED',
-                  style: TextStyle(fontFamily: 'IBM Plex Mono', fontSize: 10, letterSpacing: 4, color: p.glow),
+                  style: TextStyle(fontFamily: 'IBMPlexMono', fontSize: 10, letterSpacing: 4, color: p.glow),
                 ),
                 const SizedBox(height: 10),
                 Text(
                   '${widget.y}년 ${widget.m}월 ${widget.d}일',
-                  style: TextStyle(fontFamily: 'Noto Serif KR', fontWeight: FontWeight.w900, fontSize: 22, color: p.fg),
+                  style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 22, color: p.fg),
                 ),
                 if (widget.timeLabel != null) ...[
                   const SizedBox(height: 6),
                   Text(
                     widget.timeLabel!,
-                    style: TextStyle(fontFamily: 'Gowun Batang', fontSize: 14, color: p.muted),
+                    style: TextStyle(fontFamily: 'GowunBatang', fontSize: 14, color: p.muted),
                   ),
                 ],
               ],

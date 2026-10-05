@@ -1,24 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/birthday_picker/birthday_picker_modal.dart';
 import '../../auth/application/auth_provider.dart';
+import '../data/saju_visual_adapter.dart';
 import '../state/saju_renewal_provider.dart';
+import '../theme/saju_dark_tokens.dart';
+import '../widgets/saju_base_widgets.dart';
+import '../widgets/saju_visual_widgets.dart';
 import 'calculating_screen.dart';
 
-/// [신통방통 정통사주 리뉴얼 — STEP 6.5] 화면② 출생정보 입력.
+/// [신통방통 정통사주 리뉴얼 — 다크 디자인 핸드오프] 화면② 출생정보 입력.
+/// `design_files/saju/screens-a.jsx`의 `ScreenInput`을 재현한다 — 상단
+/// "태어난 순간을 정확히 알려주세요" 타이틀, 입력값으로 실시간 갱신되는
+/// 원국(사주 8자) 프리뷰 카드, 하단 고정 CTA.
+///
+/// [기존 모델 재사용] 생년월일/시간/성별의 실제 입력 UI는 디자인
+/// 핸드오프의 `Field`/`Seg`/`inputBox` 커스텀 컴포넌트를 새로 만들지
+/// 않고, 앱 전역이 공유하는 [showBirthdayPicker](BirthdayPickerModal,
+/// `midnight` 팔레트가 이미 다크 톤)를 그대로 재사용한다(매트릭스 문서
+/// #13 "기존 data/domain 계층 유지"와 동일 취지).
 ///
 /// [절대 금지] 생년월일/출생시간/성별을 topics/select API의 요청바디로
 /// 직접 보내지 않는다 — 서버가 User.profile(DB)에 저장된 값을 조회해
-/// 사용하도록 설계되어 있으므로(topics/select route.ts §10), 이 화면은
-/// 반드시 [AuthProvider.updateProfile]로 먼저 서버 프로필을 저장한 뒤에만
-/// 다음 단계(계산중 화면)로 진행해야 한다.
-///
-/// [기존 모델 재사용] 생년월일 입력 UI 자체는 전체 앱이 공유하는
-/// [showBirthdayPicker](BirthdayPickerModal)를 그대로 재사용한다(신규
-/// 생년월일 입력 위젯을 새로 만들지 않음 — 매트릭스 문서 #13 "기존
-/// data/domain 계층 유지" 원칙과 동일한 취지로 UI도 기존 공용 컴포넌트를
-/// 따른다).
+/// 사용하도록 설계되어 있으므로, 반드시 [AuthProvider.updateProfile]로
+/// 먼저 서버 프로필을 저장한 뒤에만 다음 단계(계산중 화면)로 진행한다.
 class BirthInputScreen extends StatefulWidget {
   const BirthInputScreen({super.key});
 
@@ -28,15 +33,14 @@ class BirthInputScreen extends StatefulWidget {
 
 class _BirthInputScreenState extends State<BirthInputScreen> {
   BirthdayPickerValue? _birthValue;
-  String _gender = 'male'; // 'male' | 'female'
+  String _gender = 'female'; // 'male' | 'female' — 디자인 기본값(Seg 첫 옵션)과 동일.
+  bool _isLunar = false;
   bool _submitting = false;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    // 로그인 사용자가 이미 프로필에 생년월일을 저장해둔 경우 초기값으로
-    // 채워 다시 입력하지 않게 한다(기존 saju_input_screen과 동일 관례).
     final user = context.read<AuthProvider>().currentUser;
     if (user?.birthDate != null) {
       final parts = user!.birthDate!.split('-');
@@ -86,6 +90,7 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
   Future<void> _openPicker() async {
     final result = await showBirthdayPicker(
       context,
+      palette: BirthdayPickerPalette.midnight,
       requireTime: false,
       initialValue: _birthValue,
       title: '태어난 날을 알려주세요',
@@ -94,10 +99,26 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
     setState(() => _birthValue = result);
   }
 
+  /// 입력값 기반 실시간 원국 프리뷰(가짜 데모 사주 금지 — 사용자가 아직
+  /// 날짜를 선택하지 않았으면 null 사주로 전부 빈 칸(—) 표시).
+  SajuVisualProfile? get _livePreview {
+    final v = _birthValue;
+    if (v == null) return null;
+    final dt = v.toDateTime();
+    final timeUnknown = v.time == null;
+    return SajuVisualAdapter.build(
+      kst: DateTime(dt.year, dt.month, dt.day, timeUnknown ? 0 : dt.hour, 0),
+      gender: _gender,
+      isLunar: _isLunar,
+      timeUnknown: timeUnknown,
+      referenceDate: DateTime.now(),
+    );
+  }
+
   Future<void> _submit() async {
     final value = _birthValue;
     if (value == null) {
-      setState(() => _error = '생년월일을 입력해주세요.');
+      setState(() => _error = '이 정보가 있어야 사주를 세울 수 있어요');
       return;
     }
     setState(() {
@@ -111,13 +132,11 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
         ? '${value.time!.rangeStart.toString().padLeft(2, '0')}:00'
         : null;
 
-    // [핵심] 서버 프로필에 먼저 저장한다 — topics/select가 이 값을 읽어
-    // 사용하므로, 저장 성공을 반드시 확인한 뒤에만 다음 단계로 간다.
     final auth = context.read<AuthProvider>();
     final ok = await auth.updateProfile(
       birthDate: birthDateStr,
       birthTime: birthTimeStr,
-      isLunar: false,
+      isLunar: _isLunar,
       birthTimeUnknown: birthTimeUnknown,
       gender: _gender,
     );
@@ -132,9 +151,6 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
     }
 
     setState(() => _submitting = false);
-    // 서버 프로필 저장이 끝난 뒤에만 계산중 화면으로 이동 →
-    // SajuRenewalProvider.startCalculating()이 실제 topics/select를
-    // 호출해 완료를 기다린다(단순 타이머가 아님).
     if (!mounted) return;
     Navigator.of(
       context,
@@ -144,110 +160,202 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final preview = _livePreview;
+    final timeUnknown = _birthValue?.time == null;
+
     return Scaffold(
-      backgroundColor: UnifiedColors.bg,
-      appBar: AppBar(
-        backgroundColor: UnifiedColors.bg,
-        elevation: 0,
-        title: Text('출생 정보 입력', style: UnifiedText.title()),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(UnifiedTokens.spaceXl),
+      body: SajuDarkBase(
+        child: SafeArea(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('생년월일', style: UnifiedText.body()),
-              const SizedBox(height: UnifiedTokens.spaceSm),
-              InkWell(
-                onTap: _openPicker,
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: UnifiedTokens.spaceLg,
-                    vertical: 18,
-                  ),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: UnifiedColors.border),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
+              SajuTopBar(
+                left: SajuIconButton(
+                  icon: '←',
+                  onTap: () => Navigator.of(context).maybePop(),
+                ),
+                title: 'BIRTH · 02',
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(22, 14, 22, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.calendar_today_outlined, size: 20),
-                      const SizedBox(width: UnifiedTokens.spaceSm),
-                      Text(
-                        _birthValue == null
-                            ? '생년월일을 선택해주세요'
-                            : '${_birthValue!.iso}'
-                                  '${_birthValue!.time != null ? ' · ${_birthValue!.time!.label}' : ' · 시간모름'}',
-                        style: UnifiedText.body(
-                          color: _birthValue == null
-                              ? UnifiedColors.textCaption
-                              : UnifiedColors.textPrimary,
+                      const Text(
+                        '태어난 순간을\n정확히 알려주세요',
+                        style: TextStyle(
+                          fontFamily: SajuType.serif,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 24,
+                          height: 1.35,
+                          letterSpacing: -0.02 * 24,
+                          color: SajuGold.g100,
                         ),
                       ),
+                      const SizedBox(height: 10),
+                      const Text(
+                        '시간이 정밀할수록 사주가 선명해집니다.',
+                        style: TextStyle(
+                          fontFamily: SajuType.body,
+                          fontSize: 14,
+                          height: 1.6,
+                          color: SajuText.muted,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      // 원국 프리뷰 카드.
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: SajuText.line),
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              SajuViolet.v700.withValues(alpha: 0.4),
+                              SajuInk.i900.withValues(alpha: 0.2),
+                            ],
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Center(
+                              child: SajuPillarGrid(
+                                pillars: preview?.pillars ??
+                                    const [null, null, null, null],
+                                cell: 44,
+                                gap: 10,
+                                reveal: 8,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            const Text(
+                              '입력한 순간이 여덟 글자로 새겨져요',
+                              style: TextStyle(
+                                fontFamily: SajuType.ui,
+                                fontSize: 11,
+                                color: SajuText.faint,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+
+                      _FieldLabel(label: '생년월일', done: _birthValue != null),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _InputBoxTap(
+                              onTap: _openPicker,
+                              child: Text(
+                                _birthValue == null
+                                    ? '생년월일을 선택해주세요'
+                                    : _birthValue!.iso.replaceAll('-', '. '),
+                                style: TextStyle(
+                                  fontFamily: SajuType.ui,
+                                  fontSize: 15,
+                                  color: _birthValue == null
+                                      ? SajuText.faint
+                                      : SajuGold.g100,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          SizedBox(
+                            width: 132,
+                            child: _SajuSeg(
+                              options: const ['양력', '음력'],
+                              value: _isLunar ? '음력' : '양력',
+                              onChange: (v) =>
+                                  setState(() => _isLunar = v == '음력'),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      _FieldLabel(label: '태어난 시간', done: !timeUnknown),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Opacity(
+                              opacity: timeUnknown ? 0.35 : 1,
+                              child: _InputBoxTap(
+                                onTap: _openPicker,
+                                child: Text(
+                                  timeUnknown
+                                      ? '— : —'
+                                      : (_birthValue?.time?.label ?? '— : —'),
+                                  style: const TextStyle(
+                                    fontFamily: SajuType.ui,
+                                    fontSize: 15,
+                                    color: SajuGold.g100,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          _TimeUnknownButton(
+                            active: timeUnknown,
+                            onTap: _openPicker,
+                          ),
+                        ],
+                      ),
+                      if (timeUnknown)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 8),
+                          child: Text(
+                            '시간을 몰라도 핵심 이야기는 볼 수 있습니다.',
+                            style: TextStyle(
+                              fontFamily: SajuType.ui,
+                              fontSize: 12,
+                              color: SajuGold.g300,
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 14),
+
+                      _FieldLabel(label: '성별', done: true),
+                      _SajuSeg(
+                        options: const ['여성', '남성'],
+                        value: _gender == 'male' ? '남성' : '여성',
+                        onChange: (v) =>
+                            setState(() => _gender = v == '남성' ? 'male' : 'female'),
+                      ),
+
+                      if (_error != null) ...[
+                        const SizedBox(height: 16),
+                        Text(
+                          _error!,
+                          style: const TextStyle(
+                            fontFamily: SajuType.ui,
+                            fontSize: 13,
+                            color: Color(0xFFE08A7E),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: UnifiedTokens.spaceXl),
-              Text('성별', style: UnifiedText.body()),
-              const SizedBox(height: UnifiedTokens.spaceSm),
-              Row(
-                children: [
-                  Expanded(
-                    child: _GenderChip(
-                      label: '남성',
-                      selected: _gender == 'male',
-                      onTap: () => setState(() => _gender = 'male'),
-                    ),
+              Container(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.transparent, SajuInk.i900],
+                    stops: [0.0, 0.5],
                   ),
-                  const SizedBox(width: UnifiedTokens.spaceSm),
-                  Expanded(
-                    child: _GenderChip(
-                      label: '여성',
-                      selected: _gender == 'female',
-                      onTap: () => setState(() => _gender = 'female'),
-                    ),
-                  ),
-                ],
-              ),
-              if (_error != null) ...[
-                const SizedBox(height: UnifiedTokens.spaceLg),
-                Text(_error!, style: UnifiedText.body(color: Colors.red)),
-              ],
-              const SizedBox(height: UnifiedTokens.spaceXl),
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: _submitting ? null : _submit,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: UnifiedColors.black,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                        UnifiedTokens.radiusPill,
-                      ),
-                    ),
-                  ),
-                  child: _submitting
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2.5,
-                          ),
-                        )
-                      : const Text(
-                          '입력완료',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
+                ),
+                child: SajuButton(
+                  label: '사주 분석 시작하기',
+                  loading: _submitting,
+                  onTap: _submitting ? null : _submit,
                 ),
               ),
             ],
@@ -258,40 +366,154 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
   }
 }
 
-class _GenderChip extends StatelessWidget {
-  const _GenderChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
+class _FieldLabel extends StatelessWidget {
+  const _FieldLabel({required this.label, required this.done});
   final String label;
-  final bool selected;
+  final bool done;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 7, top: 14),
+      child: Row(
+        children: [
+          Container(
+            width: 5,
+            height: 5,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: done ? SajuGold.g300 : SajuText.faint,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              fontFamily: SajuType.ui,
+              fontSize: 12,
+              color: SajuText.muted,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InputBoxTap extends StatelessWidget {
+  const _InputBoxTap({required this.onTap, required this.child});
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        height: 48,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        alignment: Alignment.centerLeft,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: SajuText.lineGold),
+          color: SajuText.fg.withValues(alpha: 0.035),
+        ),
+        child: child,
+      ),
+    );
+  }
+}
+
+class _TimeUnknownButton extends StatelessWidget {
+  const _TimeUnknownButton({required this.active, required this.onTap});
+  final bool active;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
+      borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        width: 92,
+        height: 48,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: selected ? UnifiedColors.black : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          color: active ? SajuGold.g100 : Colors.transparent,
           border: Border.all(
-            color: selected ? UnifiedColors.black : UnifiedColors.border,
+            color: active ? SajuGold.g100 : SajuText.line,
           ),
-          borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
         ),
         child: Text(
-          label,
+          '모름',
           style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: selected ? Colors.white : UnifiedColors.textPrimary,
+            fontFamily: SajuType.ui,
+            fontSize: 13,
+            color: active ? SajuInk.i900 : SajuText.muted,
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _SajuSeg extends StatelessWidget {
+  const _SajuSeg({
+    required this.options,
+    required this.value,
+    required this.onChange,
+  });
+
+  final List<String> options;
+  final String value;
+  final ValueChanged<String> onChange;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: SajuText.line),
+        color: SajuText.fg.withValues(alpha: 0.02),
+      ),
+      child: Row(
+        children: options.map((o) {
+          final selected = value == o;
+          return Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(right: o == options.last ? 0 : 6),
+              child: InkWell(
+                onTap: () => onChange(o),
+                borderRadius: BorderRadius.circular(9),
+                child: Container(
+                  height: 38,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(9),
+                    color: selected
+                        ? SajuText.fg.withValues(alpha: 0.12)
+                        : Colors.transparent,
+                    border: selected
+                        ? Border.all(color: SajuText.lineGold)
+                        : null,
+                  ),
+                  child: Text(
+                    o,
+                    style: TextStyle(
+                      fontFamily: SajuType.ui,
+                      fontSize: 14,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                      color: selected ? SajuGold.g100 : SajuText.muted,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
