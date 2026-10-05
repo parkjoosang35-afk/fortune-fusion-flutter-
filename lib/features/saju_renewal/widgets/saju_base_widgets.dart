@@ -1,0 +1,333 @@
+import 'dart:math' as math;
+import 'package:flutter/material.dart';
+import '../theme/saju_dark_tokens.dart';
+
+/// [신통방통 정통사주 리뉴얼 — 다크 핸드오프] 공용 베이스 위젯 모음.
+/// `design_handoff_jeongtong_saju_v3/design_files/saju/screens-a.jsx`의
+/// `DarkBase`/`StarField`/`SJTopBar`/`.sj-btn-*`을 1:1로 Flutter화.
+
+/// 고정 시드 기반 별 필드(의사난수 — 매 빌드마다 동일한 별 배치).
+class SajuStarField extends StatefulWidget {
+  const SajuStarField({
+    super.key,
+    this.count = 40,
+    this.seed = 3,
+    this.opacity = 1,
+  });
+
+  final int count;
+  final int seed;
+  final double opacity;
+
+  @override
+  State<SajuStarField> createState() => _SajuStarFieldState();
+}
+
+class _SajuStarFieldState extends State<SajuStarField>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final List<_StarSpec> _stars;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 7),
+    )..repeat();
+    _stars = List.generate(widget.count, (i) {
+      double r(int n) {
+        final v =
+            math.sin((i + 1) * 12.9898 * (n + widget.seed)) * 43758.5453;
+        return (v - v.floorToDouble());
+      }
+
+      return _StarSpec(
+        x: r(1),
+        y: r(2),
+        size: r(3) * 1.6 + 0.4,
+        delay: r(4) * 4,
+        period: 3 + r(5) * 4,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Opacity(
+        opacity: widget.opacity,
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, _) {
+            return CustomPaint(
+              size: Size.infinite,
+              painter: _StarFieldPainter(_stars, _controller.value),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _StarSpec {
+  _StarSpec({
+    required this.x,
+    required this.y,
+    required this.size,
+    required this.delay,
+    required this.period,
+  });
+  final double x, y, size, delay, period;
+}
+
+class _StarFieldPainter extends CustomPainter {
+  _StarFieldPainter(this.stars, this.t);
+  final List<_StarSpec> stars;
+  final double t;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = SajuGold.g100;
+    for (final s in stars) {
+      // twinkle: opacity .25<->1 over `period` seconds, offset by delay.
+      final elapsedSeconds = (t * 7) + s.delay;
+      final phase = (elapsedSeconds % s.period) / s.period;
+      final twinkle = 0.25 + 0.75 * (0.5 - 0.5 * math.cos(phase * 2 * math.pi));
+      paint.color = SajuGold.g100.withValues(alpha: twinkle.clamp(0.0, 1.0));
+      canvas.drawCircle(
+        Offset(s.x * size.width, s.y * size.height),
+        s.size,
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _StarFieldPainter oldDelegate) => true;
+}
+
+/// 다크 베이스 배경(ink.900 + 보라빛 radial glow + 별 필드).
+class SajuDarkBase extends StatelessWidget {
+  const SajuDarkBase({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: SajuInk.i900,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment(0, -0.3),
+                radius: 0.9,
+                colors: [Color(0xBF2A2640), Colors.transparent],
+                stops: [0.0, 0.7],
+              ),
+            ),
+          ),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment(0, 1),
+                radius: 0.7,
+                colors: [Color(0x802A2640), Colors.transparent],
+                stops: [0.0, 0.7],
+              ),
+            ),
+          ),
+          const SajuStarField(count: 36, seed: 7, opacity: 0.55),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+/// 공통 상단바 — 좌측 아이콘버튼 / 중앙 모노 타이틀 / 우측 슬롯.
+class SajuTopBar extends StatelessWidget {
+  const SajuTopBar({super.key, this.left, this.right, required this.title});
+
+  final Widget? left;
+  final Widget? right;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 44,
+      child: Row(
+        children: [
+          SizedBox(width: 36, child: left),
+          Expanded(
+            child: Center(
+              child: Text(
+                title,
+                style: SajuType.mono10,
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+          SizedBox(
+            width: 36,
+            child: Align(alignment: Alignment.centerRight, child: right),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 원형 아이콘 버튼(sj-icon-btn).
+class SajuIconButton extends StatelessWidget {
+  const SajuIconButton({
+    super.key,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      customBorder: const CircleBorder(),
+      child: Container(
+        width: 36,
+        height: 36,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: SajuText.card,
+          border: Border.all(color: SajuText.line),
+        ),
+        child: Text(
+          icon,
+          style: const TextStyle(color: SajuText.fg, fontSize: 15),
+        ),
+      ),
+    );
+  }
+}
+
+enum SajuButtonVariant { primary, secondary, ghost }
+
+/// 공용 버튼(.sj-btn-primary/secondary/ghost). 눌림 시 scale(.96).
+class SajuButton extends StatefulWidget {
+  const SajuButton({
+    super.key,
+    required this.label,
+    this.onTap,
+    this.variant = SajuButtonVariant.primary,
+    this.loading = false,
+    this.leading,
+    this.height = 56,
+  });
+
+  final String label;
+  final VoidCallback? onTap;
+  final SajuButtonVariant variant;
+  final bool loading;
+  final Widget? leading;
+  final double height;
+
+  @override
+  State<SajuButton> createState() => _SajuButtonState();
+}
+
+class _SajuButtonState extends State<SajuButton> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final disabled = widget.onTap == null || widget.loading;
+    Color bg;
+    Color fg;
+    Border? border;
+    List<BoxShadow>? shadow;
+    switch (widget.variant) {
+      case SajuButtonVariant.primary:
+        bg = SajuGold.g100;
+        fg = SajuInk.i900;
+        shadow = [
+          BoxShadow(color: SajuGold.glow, blurRadius: 24, offset: const Offset(0, 4)),
+        ];
+        break;
+      case SajuButtonVariant.secondary:
+        bg = SajuText.card;
+        fg = SajuText.fg;
+        border = Border.all(color: SajuText.lineGold);
+        break;
+      case SajuButtonVariant.ghost:
+        bg = Colors.transparent;
+        fg = SajuText.muted;
+        border = Border.all(color: SajuText.line);
+        break;
+    }
+    return Opacity(
+      opacity: disabled && widget.variant != SajuButtonVariant.primary ? 0.6 : 1,
+      child: GestureDetector(
+        onTapDown: disabled ? null : (_) => setState(() => _pressed = true),
+        onTapCancel: () => setState(() => _pressed = false),
+        onTapUp: (_) => setState(() => _pressed = false),
+        onTap: disabled ? null : widget.onTap,
+        child: AnimatedScale(
+          scale: _pressed ? 0.96 : 1,
+          duration: SajuMotion.press,
+          child: AnimatedContainer(
+            duration: SajuMotion.press,
+            width: double.infinity,
+            height: widget.height,
+            decoration: BoxDecoration(
+              color: disabled && widget.variant == SajuButtonVariant.primary
+                  ? bg.withValues(alpha: 0.5)
+                  : bg,
+              borderRadius: BorderRadius.circular(14),
+              border: border,
+              boxShadow: shadow,
+            ),
+            alignment: Alignment.center,
+            child: widget.loading
+                ? SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2.5, color: fg),
+                  )
+                : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (widget.leading != null) ...[
+                        widget.leading!,
+                        const SizedBox(width: 10),
+                      ],
+                      Text(
+                        widget.label,
+                        style: TextStyle(
+                          fontFamily: SajuType.ui,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                          letterSpacing: -0.16,
+                          color: fg,
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+}
