@@ -22,8 +22,8 @@ CREATE TABLE IF NOT EXISTS "consultation_reviews" (
     CONSTRAINT "consultation_reviews_session_id_fkey" FOREIGN KEY ("session_id") REFERENCES "consultation_sessions" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "consultation_reviews_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
-CREATE UNIQUE INDEX "consultation_reviews_session_id_key" ON "consultation_reviews"("session_id");
-CREATE INDEX "consultation_reviews_user_id_created_at_idx" ON "consultation_reviews"("user_id", "created_at");
+CREATE UNIQUE INDEX IF NOT EXISTS "consultation_reviews_session_id_key" ON "consultation_reviews"("session_id");
+CREATE INDEX IF NOT EXISTS "consultation_reviews_user_id_created_at_idx" ON "consultation_reviews"("user_id", "created_at");
 
 -- ── 상점 카탈로그(인장/촛불/부적 등) ──
 CREATE TABLE IF NOT EXISTS "shop_catalog_items" (
@@ -43,8 +43,8 @@ CREATE TABLE IF NOT EXISTS "shop_catalog_items" (
     "created_by" TEXT,
     "updated_by" TEXT
 );
-CREATE UNIQUE INDEX "shop_catalog_items_item_code_key" ON "shop_catalog_items"("item_code");
-CREATE INDEX "shop_catalog_items_item_type_is_active_idx" ON "shop_catalog_items"("item_type", "is_active");
+CREATE UNIQUE INDEX IF NOT EXISTS "shop_catalog_items_item_code_key" ON "shop_catalog_items"("item_code");
+CREATE INDEX IF NOT EXISTS "shop_catalog_items_item_type_is_active_idx" ON "shop_catalog_items"("item_type", "is_active");
 
 -- ── 사용자 보유 아이템(shop_catalog_items 참조) ──
 CREATE TABLE IF NOT EXISTS "user_inventory_items" (
@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS "user_inventory_items" (
     CONSTRAINT "user_inventory_items_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "user_inventory_items_catalog_item_id_fkey" FOREIGN KEY ("catalog_item_id") REFERENCES "shop_catalog_items" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
-CREATE INDEX "user_inventory_items_user_id_created_at_idx" ON "user_inventory_items"("user_id", "created_at");
+CREATE INDEX IF NOT EXISTS "user_inventory_items_user_id_created_at_idx" ON "user_inventory_items"("user_id", "created_at");
 
 -- ── 감사 인장(소원방) ──
 CREATE TABLE IF NOT EXISTS "gratitude_seals" (
@@ -70,8 +70,8 @@ CREATE TABLE IF NOT EXISTS "gratitude_seals" (
     CONSTRAINT "gratitude_seals_sender_id_fkey" FOREIGN KEY ("sender_id") REFERENCES "users" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "gratitude_seals_recipient_id_fkey" FOREIGN KEY ("recipient_id") REFERENCES "users" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
-CREATE INDEX "gratitude_seals_recipient_id_created_at_idx" ON "gratitude_seals"("recipient_id", "created_at");
-CREATE UNIQUE INDEX "gratitude_seals_source_pouch_id_key" ON "gratitude_seals"("source_pouch_id");
+CREATE INDEX IF NOT EXISTS "gratitude_seals_recipient_id_created_at_idx" ON "gratitude_seals"("recipient_id", "created_at");
+CREATE UNIQUE INDEX IF NOT EXISTS "gratitude_seals_source_pouch_id_key" ON "gratitude_seals"("source_pouch_id");
 
 -- ── 귀인지도(Guinji) 본체 ──
 CREATE TABLE IF NOT EXISTS "guinji_map" (
@@ -89,8 +89,8 @@ CREATE TABLE IF NOT EXISTS "guinji_map" (
     "deleted_at" DATETIME,
     CONSTRAINT "guinji_map_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "users" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
-CREATE UNIQUE INDEX "guinji_map_token_key" ON "guinji_map"("token");
-CREATE UNIQUE INDEX "guinji_map_owner_id_key" ON "guinji_map"("owner_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "guinji_map_token_key" ON "guinji_map"("token");
+CREATE UNIQUE INDEX IF NOT EXISTS "guinji_map_owner_id_key" ON "guinji_map"("owner_id");
 
 -- ── 귀인지도 구성원(guinji_map 참조) ──
 CREATE TABLE IF NOT EXISTS "map_member" (
@@ -110,7 +110,7 @@ CREATE TABLE IF NOT EXISTS "map_member" (
     CONSTRAINT "map_member_map_id_fkey" FOREIGN KEY ("map_id") REFERENCES "guinji_map" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "map_member_joined_user_id_fkey" FOREIGN KEY ("joined_user_id") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
-CREATE INDEX "map_member_map_id_status_idx" ON "map_member"("map_id", "status");
+CREATE INDEX IF NOT EXISTS "map_member_map_id_status_idx" ON "map_member"("map_id", "status");
 
 -- ── 귀인지도 관계 판정 결과(guinji_map, map_member 참조) ──
 CREATE TABLE IF NOT EXISTS "relationship" (
@@ -128,8 +128,8 @@ CREATE TABLE IF NOT EXISTS "relationship" (
     CONSTRAINT "relationship_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "users" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "relationship_member_id_fkey" FOREIGN KEY ("member_id") REFERENCES "map_member" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
-CREATE UNIQUE INDEX "relationship_member_id_key" ON "relationship"("member_id");
-CREATE INDEX "relationship_map_id_relation_type_idx" ON "relationship"("map_id", "relation_type");
+CREATE UNIQUE INDEX IF NOT EXISTS "relationship_member_id_key" ON "relationship"("member_id");
+CREATE INDEX IF NOT EXISTS "relationship_map_id_relation_type_idx" ON "relationship"("map_id", "relation_type");
 
 -- ── 귀인지도 공유 이벤트(guinji_map 참조) ──
 CREATE TABLE IF NOT EXISTS "share_event" (
@@ -144,8 +144,8 @@ CREATE TABLE IF NOT EXISTS "share_event" (
     CONSTRAINT "share_event_map_id_fkey" FOREIGN KEY ("map_id") REFERENCES "guinji_map" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "share_event_from_user_id_fkey" FOREIGN KEY ("from_user_id") REFERENCES "users" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
-CREATE INDEX "share_event_token_idx" ON "share_event"("token");
-CREATE INDEX "share_event_map_id_created_at_idx" ON "share_event"("map_id", "created_at");
+CREATE INDEX IF NOT EXISTS "share_event_token_idx" ON "share_event"("token");
+CREATE INDEX IF NOT EXISTS "share_event_map_id_created_at_idx" ON "share_event"("map_id", "created_at");
 
 -- ── 귀인지도 잠금해제 기록(map_member 참조) ──
 CREATE TABLE IF NOT EXISTS "unlock_record" (
@@ -158,8 +158,8 @@ CREATE TABLE IF NOT EXISTS "unlock_record" (
     CONSTRAINT "unlock_record_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "unlock_record_member_id_fkey" FOREIGN KEY ("member_id") REFERENCES "map_member" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
-CREATE INDEX "unlock_record_user_id_date_key_idx" ON "unlock_record"("user_id", "date_key");
-CREATE UNIQUE INDEX "unlock_record_user_id_member_id_key" ON "unlock_record"("user_id", "member_id");
+CREATE INDEX IF NOT EXISTS "unlock_record_user_id_date_key_idx" ON "unlock_record"("user_id", "date_key");
+CREATE UNIQUE INDEX IF NOT EXISTS "unlock_record_user_id_member_id_key" ON "unlock_record"("user_id", "member_id");
 
 -- ── 행운상자(복주머니 확장) 광고시청 개봉 로그 ──
 CREATE TABLE IF NOT EXISTS "pouch_box_open_logs" (
@@ -176,9 +176,9 @@ CREATE TABLE IF NOT EXISTS "pouch_box_open_logs" (
     "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "pouch_box_open_logs_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
-CREATE UNIQUE INDEX "pouch_box_open_logs_idempotency_key_key" ON "pouch_box_open_logs"("idempotency_key");
-CREATE INDEX "pouch_box_open_logs_user_id_created_at_idx" ON "pouch_box_open_logs"("user_id", "created_at");
-CREATE INDEX "pouch_box_open_logs_user_id_reward_status_created_at_idx" ON "pouch_box_open_logs"("user_id", "reward_status", "created_at");
+CREATE UNIQUE INDEX IF NOT EXISTS "pouch_box_open_logs_idempotency_key_key" ON "pouch_box_open_logs"("idempotency_key");
+CREATE INDEX IF NOT EXISTS "pouch_box_open_logs_user_id_created_at_idx" ON "pouch_box_open_logs"("user_id", "created_at");
+CREATE INDEX IF NOT EXISTS "pouch_box_open_logs_user_id_reward_status_created_at_idx" ON "pouch_box_open_logs"("user_id", "reward_status", "created_at");
 
 -- ── [정통사주 리뉴얼] 사주 계산 결과 캐시(saju_engine /saju/v3/facts 응답 캐시) ──
 -- 이 테이블이 바로 "주제를 불러오는 중 오류가 발생했습니다"(topics/select 500)의
@@ -200,5 +200,5 @@ CREATE TABLE IF NOT EXISTS "saju_facts_cache" (
     "deleted_at" DATETIME,
     CONSTRAINT "saju_facts_cache_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
-CREATE UNIQUE INDEX "saju_facts_cache_birth_key_key" ON "saju_facts_cache"("birth_key");
-CREATE INDEX "saju_facts_cache_user_id_idx" ON "saju_facts_cache"("user_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "saju_facts_cache_birth_key_key" ON "saju_facts_cache"("birth_key");
+CREATE INDEX IF NOT EXISTS "saju_facts_cache_user_id_idx" ON "saju_facts_cache"("user_id");
