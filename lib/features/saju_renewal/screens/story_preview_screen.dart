@@ -4,6 +4,7 @@ import '../../auth/application/auth_provider.dart';
 import '../../auth/domain/user_model.dart';
 import '../../result_access/presentation/result_access_gate_sheet.dart';
 import '../data/models/topic_card.dart';
+import '../data/saju_term_dictionary.dart';
 import '../data/saju_visual_adapter.dart';
 import '../state/saju_renewal_provider.dart';
 import '../theme/saju_dark_tokens.dart';
@@ -113,127 +114,143 @@ class _StoryPreviewScreenState extends State<StoryPreviewScreen> {
     final scene = topic?.scene;
 
     return Scaffold(
-      body: Container(
-        color: SajuInk.i900,
-        child: Stack(
-          children: [
-            if (scene != null)
-              Positioned.fill(child: SajuSceneBg(scene: scene)),
-            SafeArea(
-              child: Column(
-                children: [
-                  SajuTopBar(
-                    left: SajuIconButton(
-                      icon: '←',
-                      onTap: () => Navigator.of(context).maybePop(),
+      body: SajuTermScope(
+        onOpenTerm: (termKey) {
+          final term = sajuTermLookup(termKey);
+          if (term == null) return;
+          showSajuTermSheet(
+            context,
+            termLabel: term.sheetTitle,
+            definition: term.note,
+          );
+        },
+        child: Container(
+          color: SajuInk.i900,
+          child: Stack(
+            children: [
+              if (scene != null)
+                Positioned.fill(child: SajuSceneBg(scene: scene)),
+              SafeArea(
+                child: Column(
+                  children: [
+                    SajuTopBar(
+                      left: SajuIconButton(
+                        icon: '←',
+                        onTap: () => Navigator.of(context).maybePop(),
+                      ),
+                      title: ordinal > 1 ? 'STORY · 09' : 'PREVIEW · 05',
                     ),
-                    title: ordinal > 1 ? 'STORY · 09' : 'PREVIEW · 05',
-                  ),
-                  Expanded(
-                    child: Builder(
-                      builder: (context) {
-                        if (previewState.isLoading || previewState.isInitial) {
-                          return const Center(
-                            child: CircularProgressIndicator(
-                              color: SajuGold.g300,
-                            ),
-                          );
-                        }
-                        if (previewState.isError) {
-                          return Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(28),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    previewState.errorMessage ?? '이야기를 불러오지 못했습니다.',
-                                    style: SajuType.body14,
-                                    textAlign: TextAlign.center,
-                                  ),
-                                  const SizedBox(height: 20),
-                                  SajuButton(
-                                    label: '다시 시도',
-                                    variant: SajuButtonVariant.secondary,
-                                    height: 48,
-                                    onTap: () {
-                                      if (topic != null) {
-                                        provider.loadPreview(topic);
-                                      }
-                                    },
-                                  ),
-                                ],
+                    Expanded(
+                      child: Builder(
+                        builder: (context) {
+                          if (previewState.isLoading ||
+                              previewState.isInitial) {
+                            return const Center(
+                              child: CircularProgressIndicator(
+                                color: SajuGold.g300,
                               ),
-                            ),
-                          );
-                        }
+                            );
+                          }
+                          if (previewState.isError) {
+                            return Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(28),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      previewState.errorMessage ??
+                                          '이야기를 불러오지 못했습니다.',
+                                      style: SajuType.body14,
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 20),
+                                    SajuButton(
+                                      label: '다시 시도',
+                                      variant: SajuButtonVariant.secondary,
+                                      height: 48,
+                                      onTap: () {
+                                        if (topic != null) {
+                                          provider.loadPreview(topic);
+                                        }
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }
 
-                        final summary = previewState.data!;
-                        return SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(22, 24, 22, 200),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (scene != null)
-                                _SceneTag(scene: scene, ordinal: ordinal),
-                              const SizedBox(height: 14),
-                              Text(summary.title, style: SajuType.h1),
-                              const SizedBox(height: 18),
-                              Text(summary.summary, style: SajuType.body16),
-                              const SizedBox(height: 26),
-                              if (_profile != null)
-                                SajuEvidenceCard(
-                                  evidence: summary.evidence,
-                                  profile: _profile!,
+                          final summary = previewState.data!;
+                          return SingleChildScrollView(
+                            padding: const EdgeInsets.fromLTRB(22, 24, 22, 200),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (scene != null)
+                                  _SceneTag(scene: scene, ordinal: ordinal),
+                                const SizedBox(height: 14),
+                                Text(summary.title, style: SajuType.h1),
+                                const SizedBox(height: 18),
+                                SajuTermText(
+                                  text: summary.summary,
+                                  style: SajuType.body16,
                                 ),
-                              const SizedBox(height: 24),
-                              const Text(
-                                '더 자세한 이유와 시기를 확인해보세요.',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontFamily: SajuType.body,
-                                  fontSize: 14.5,
-                                  height: 1.6,
-                                  color: SajuText.muted,
+                                const SizedBox(height: 26),
+                                if (_profile != null)
+                                  SajuEvidenceCard(
+                                    evidence: summary.evidence,
+                                    profile: _profile!,
+                                  ),
+                                const SizedBox(height: 24),
+                                const Text(
+                                  '더 자세한 이유와 시기를 확인해보세요.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontFamily: SajuType.body,
+                                    fontSize: 14.5,
+                                    height: 1.6,
+                                    color: SajuText.muted,
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
+                              ],
+                            ),
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            // 하단 고정 CTA — 스크롤 콘텐츠 위로 그라데이션 페이드.
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: IgnorePointer(
-                ignoring: previewState.data == null,
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(20, 36, 20, 40),
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Colors.transparent, SajuInk.i900],
-                      stops: [0.0, 0.5],
+              // 하단 고정 CTA — 스크롤 콘텐츠 위로 그라데이션 페이드.
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: IgnorePointer(
+                  ignoring: previewState.data == null,
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(20, 36, 20, 40),
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.transparent, SajuInk.i900],
+                        stops: [0.0, 0.5],
+                      ),
                     ),
-                  ),
-                  child: SajuButton(
-                    label: '자세히 보기',
-                    loading: _gateOpening,
-                    onTap: (previewState.data == null || _gateOpening)
-                        ? null
-                        : _openAccessGate,
+                    child: SajuButton(
+                      label: '자세히 보기',
+                      loading: _gateOpening,
+                      onTap: (previewState.data == null || _gateOpening)
+                          ? null
+                          : _openAccessGate,
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
