@@ -20,7 +20,6 @@ import '../../wishroom/features/intro/wish_room_intro_screen.dart';
 import '../application/fortune_category_provider.dart';
 import '../domain/fortune_category_model.dart';
 import '../domain/fortune_matrix.dart';
-import '../domain/jeontong_eighty_matrix.dart';
 import 'widgets/fortune_matrix_section.dart';
 import '../../../core/router/app_router.dart' show AppRouter;
 
@@ -284,9 +283,13 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
   /// [미연동 콘텐츠 삭제] "테마 운세"(별자리/혈액형/꿈해몽 등 전부
   /// 미연동)와 "행운/정화"(행운의번호/살풀이 전부 미연동) 그룹은
   /// _categoryGroups에서 통째로 삭제했으므로 매핑도 함께 제거한다.
+  /// [신통방통 정통사주 리뉴얼] admin DB "saju" 그룹(재물운/직업운/애정운 등
+  /// 6개 카테고리)이 전부 구 AI 사주 라우트(`/ai-fortune/saju/input`)를
+  /// 가리키고 있어, 이 매핑을 남겨두면 방금 정리한 정적 "사주" 그룹(내 사주
+  /// 분석하기 1개)이 admin 데이터로 다시 덮어써져 중복 진입점이 재노출된다.
+  /// 따라서 '사주' 매핑은 의도적으로 제거해 정적 데이터만 사용하도록 한다.
   static const Map<String, String> _groupCodeByTitle = {
     '오늘/기간 운세': 'today',
-    '사주': 'saju',
     '타로': 'tarot',
     '얼굴/손금': 'face_palm',
   };
@@ -674,13 +677,9 @@ class _FeaturedGrid extends StatelessWidget {
   final bool busy;
   final void Function(String label, String route, bool requiresPass) onTap;
 
-  // [3단계 2차 실제 구조 정리 - 작업3 - 명칭/배선 수정] "정통사주" 카드가
-  // 실제로는 AI(LLM) 사주 라우트(`/ai-fortune/saju/input`)로 연결되어 있어
-  // PHASE1~4 엔진과 무관한 화면을 "정통사주"라고 잘못 안내하던 문제를 바로
-  // 잡는다. 라우트를 [JeontongEightyMatrix.browseRoute]로 교체해 실제
-  // 정통사주 69종 화면(JeontongEightyScreen)으로 연결한다.
-  // [부적게이트 재배치] "운세" 섹션 진입점이므로 목록 화면(browseRoute) 직행
-  // 대신 부적게이트([JeontongEightyMatrix.gateRoute])를 먼저 거친다.
+  // [신통방통 정통사주 리뉴얼] "정통사주" 대표카테고리 카드를 유일한 신규
+  // 정통사주(saju_renewal, `/saju-renewal`)로 연결한다. 기존 jeontong_eighty
+  // 69종 UI/saju_v3 데모/기존 AI 사주는 모두 제거되었다.
   static const _items = [
     (
       '오늘의 운세',
@@ -691,11 +690,11 @@ class _FeaturedGrid extends StatelessWidget {
       true,
     ),
     (
-      '정통사주',
+      '내 사주 분석하기',
       '타고난 기운과 인생의 방향',
       Icons.auto_stories_outlined,
-      JeontongEightyMatrix.gateRoute,
-      true,
+      '/saju-renewal',
+      false,
     ),
     (
       '이름 운세',
@@ -872,21 +871,15 @@ _categoryGroups = [
   // 명칭 혼선을 일으켰다. "정통사주"는 실제 PHASE1~4 화면으로, 나머지 하나는
   // "AI 사주"로 이름을 정정해 두 항목이 서로 다른 실제 화면을 가리키도록
   // 정리한다(라우트/화면 자체는 기존 것을 그대로 재사용, 신규 개발 없음).
+  // [신통방통 정통사주 리뉴얼] "정통사주"/"사주 해석"/"정통사주 v3(베타)"
+  // 3개로 나뉘어져 있던 "사주" 그룹을 유일한 신규 정통사주(saju_renewal)
+  // 하나로 통합한다.
   (
     icon: Icons.auto_stories_outlined,
     title: '사주',
-    desc: '타고난 기운과 흐름을 깊게 해석해보세요',
+    desc: '내 사주를 계산하고 내 사주 속 이야기를 발견해보세요',
     items: [
-      // [부적게이트 재배치] "운세" 섹션 진입점 — 목록 화면 직행 대신
-      // 부적게이트를 먼저 거친다.
-      (label: '정통사주', route: JeontongEightyMatrix.gateRoute, pass: true),
-      (label: '사주 해석', route: '/ai-fortune/saju/input', pass: true),
-      // [정통사주 v3 - 4차 지시서 항목②] 신규 엔진 서버(69종 실계산) 베타
-      // 진입점. 기존 "정통사주"(jeontong_eighty_*, 위 항목)와는 완전히
-      // 별개 화면/라우트이며, 그 항목은 이 추가와 무관하게 그대로 둔다.
-      // 엔진 자체 접근제어(X-Free-Pass)를 쓰므로 앱 프리패스 게이트는
-      // 통과시키지 않는다(pass: false).
-      (label: '정통사주 v3 (베타)', route: '/saju/v3', pass: false),
+      (label: '내 사주 분석하기', route: '/saju-renewal', pass: false),
     ],
   ),
   (

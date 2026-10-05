@@ -7,38 +7,28 @@ import '../../../core/widgets/premium_card.dart';
 import '../../../core/widgets/premium_badge.dart';
 import '../../../core/widgets/premium_graphics.dart';
 import '../../../core/widgets/app_toast.dart';
-import '../../home/domain/jeontong_eighty_matrix.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
 import '../../pass/presentation/pass_time_format.dart';
 import '../../../core/router/app_router.dart' show AppRouter;
 
-/// [3단계 2차 실제 구조 정리 - 작업1] 운세탭(FortuneHubScreen) 4분류 개편.
+/// [신통방통 정통사주 리뉴얼 — 기존 「AI 운세」 화면 정리] 운세탭(FortuneHubScreen)
+/// 3분류 구조.
 ///
-/// 기존(v2)에는 필터칩(전체/무료/사주/타로/손금) + 평면 카테고리 리스트
-/// 구조였고, "사주" 항목이 AI사주 라우트(`/ai-fortune/saju/input`)에만
-/// 연결되어 있어 정통사주(PHASE1~4, 69종) 진입점이 이 화면에 전혀 없었다.
+/// 기존에는 "정통운세" 영역에 "정통사주 69종"(jeontong_eighty, 클라이언트
+/// 로컬 룰베이스)과 "내 사주 분석하기"(saju_renewal)가 공존했고, "AI운세"
+/// 영역에는 "사주 해석"(기존 AI/LLM 사주, `/ai-fortune/saju/input`)과
+/// "궁합"이 함께 있었다. 사용자 최종 승인에 따라 중복 사주 진입점을 전부
+/// 제거하고, 사주는 신규 정통사주(saju_renewal) 하나로 통일한다.
 ///
-/// 이번 개편은 사용자가 확정한 4영역 구조를 그대로 반영한다.
-///   ① 정통운세 - 정통사주 69종
+///   ① 정통운세 - 내 사주 분석하기(saju_renewal)
 ///   ② 이미지운세 - 관상 / 손금
 ///   ③ 카드운세 - 타로
-///   ④ AI운세 - AI 사주 / AI 궁합
-///
-/// [2026-09 하단바 정리] 사용자 지시로 "AI 이름운세"/"AI 운세해석" 두
-/// 항목을 이 화면 진입점 목록에서 제거했다(기능 코드 자체 삭제 아님).
+///   ④ 종합운세 - 궁합
 ///
 /// [절대 원칙 준수]
-/// - PHASE1~4 계산엔진/SajuProfile/NarrativeGenerator는 전혀 건드리지
-///   않는다. 이 화면은 오직 기존 라우트로의 "진입 배선"만 다룬다.
-/// - 정통사주 69종 카테고리 자체(A~H, JeontongEightyMatrix)는 무수정.
-/// - 각 항목은 전부 기존에 이미 존재하는 라우트만 재사용한다(신규 화면
-///   생성 없음).
-/// - [상담 기능 완전 삭제] "AI 상담"(wish_counsel + consultation 두 시스템)은
-///   사용자 지시로 코드/라우트/화면이 전부 삭제되었다. 이 화면은 원래부터
-///   AI 상담 진입점을 노출하지 않았으므로 추가 변경이 필요 없다.
-/// - "오늘의 운세"는 2026-08-13 결정으로 이미 정통사주 69종에 통합되어
-///   `RemovedDailyFortuneStub`로 dead-letter 처리되어 있으므로, 이 화면의
-///   4영역 구조에도 별도 항목으로 다시 넣지 않는다(중복 노출 방지).
+/// - 관상/손금/궁합/타로는 건드리지 않는다.
+/// - "정통사주 69종", "사주 해석"(AI LLM) 항목은 완전히 제거되었다(화면
+///   자체가 삭제되었으므로 더 이상 유효한 라우트가 아니다).
 ///
 /// [주의] 진입 게이트체크 로직(navigateWithPassGate)과 PassProvider/
 /// AccessChecker는 기존 그대로 재사용한다 — 기능은 무변경, 배선/레이아웃만 정리.
@@ -105,34 +95,19 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
     super.dispose();
   }
 
-  /// ① 정통운세 - 정통사주 69종. PHASE1~4 계산엔진으로 이어지는 진입점은
-  /// 기존에 홈 화면 "운세" 카드가 이미 쓰고 있는 [JeontongEightyMatrix.
-  /// browseRoute](`/jeontong/eighty`, JeontongEightyScreen)를 그대로
-  /// 재사용한다. `JeontongEightyGridScreen`과의 최종 통합 여부는 작업4에서
-  /// 별도로 검토하며, 이번 작업에서는 화면을 새로 만들거나 교체하지 않는다.
-  /// [부적게이트 재배치] "운세" 섹션 진입점이므로 목록 화면(browseRoute)
-  /// 직행 대신 부적게이트([JeontongEightyMatrix.gateRoute])를 먼저 거친다.
+  /// ① 정통운세 - 내 사주 분석하기(saju_renewal). Topic Engine 기반 신규
+  /// "사주 이야기" 흐름 진입점. Access Gate는 이 흐름 내부
+  /// (story_preview_screen)에서 결과를 열 때만 별도로 뜬다 — 레거시
+  /// 프리패스 게이트(navigateWithPassGate)는 여기서 적용하지 않는다
+  /// (requiresPass:false).
   static const _traditionalSection = _FortuneSection(
     title: '정통운세',
-    subtitle: 'PHASE1~4 정통사주 69종 · 태어난 시간으로 보는 정통 명리',
+    subtitle: '태어난 시간으로 보는 정통 명리 · 내 사주 속 이야기',
     headerIcon: Icons.auto_stories_rounded,
     items: [
       _FortuneItem(
-        title: '정통사주 69종',
-        desc: '연월일시 명식으로 정통 이론에 따라 풀이하는 69가지 운세',
-        icon: Icons.auto_stories_outlined,
-        route: JeontongEightyMatrix.gateRoute,
-        requiresPass: true,
-      ),
-      // [신통방통 정통사주 리뉴얼 — STEP 6.5] Topic Engine 기반 신규 "사주
-      // 이야기" 흐름 진입점. 기존 69종 그리드와 완전히 별개의 화면
-      // (SajuRenewalHomeScreen→...)으로 연결되며, Access Gate는 이 흐름
-      // 내부(story_preview_screen)에서 결과를 열 때만 별도로 뜬다 —
-      // 레거시 프리패스 게이트(navigateWithPassGate)는 여기서 적용하지
-      // 않는다(requiresPass:false).
-      _FortuneItem(
         title: '내 사주 분석하기',
-        desc: '내 사주 속 오늘의 이야기를 하나씩 발견해보세요',
+        desc: '내 사주를 계산하고 내 사주 속 이야기를 발견해보세요',
         icon: Icons.auto_awesome_outlined,
         route: '/saju-renewal',
         requiresPass: false,
@@ -190,28 +165,16 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
     ],
   );
 
-  /// ④ AI운세 - AI 사주 / AI 궁합.
-  /// [2026-09 하단바 정리] 사용자 지시로 "AI 이름운세"와 "AI 운세해석"
-  /// 항목을 이 목록에서 완전히 제거했다(전용 화면/라우트 자체를 지우는
-  /// 것이 아니라, 이 진입점 목록에서만 배선을 뗀다 — name_fortune 기능
-  /// 코드 자체는 그대로 유지되어 있어 필요 시 즉시 재노출 가능).
-  /// [명칭 분리 원칙] 여기 "AI 사주"는 PHASE1~4 정통사주와 완전히 별개인
-  /// AI(LLM) 해석 화면(`/ai-fortune/saju/input`)이며, 절대 "정통사주"라는
-  /// 이름을 쓰지 않는다.
-  /// "AI 궁합"은 기존에 이미 라우팅되어 있는 `/compatibility/input`을 그대로
+  /// ④ 종합운세 - 궁합.
+  /// [신통방통 정통사주 리뉴얼] 기존 "AI 사주 해석"(`/ai-fortune/saju/
+  /// input`) 항목은 완전히 제거되었다(saju_renewal로 통합).
+  /// "궁합"은 기존에 이미 라우팅되어 있는 `/compatibility/input`을 그대로
   /// 재사용한다(신규 개발 없음).
   static const _aiSection = _FortuneSection(
     title: '종합운세',
-    subtitle: '분석하는 사주·궁합',
+    subtitle: '나와 상대방의 인연을 유형별로 풀이해보세요',
     headerIcon: Icons.auto_awesome_rounded,
     items: [
-      _FortuneItem(
-        title: '사주 해석',
-        desc: '분석하는 나의 사주 명식',
-        icon: Icons.psychology_outlined,
-        route: '/ai-fortune/saju/input',
-        requiresPass: true,
-      ),
       _FortuneItem(
         title: '궁합',
         desc: '나와 상대방의 인연을 유형별로 풀이해보세요',

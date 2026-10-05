@@ -9,10 +9,6 @@ import '../../features/fortune/shared/presentation/removed_daily_fortune_stub.da
 import '../../features/mypage/presentation/my_fortune_records_screen.dart';
 import '../../features/home/presentation/all_categories_screen.dart';
 import '../../features/fortune/generic/presentation/generic_fortune_result_screen.dart';
-import '../../features/fortune/saju/presentation/saju_input_screen.dart';
-import '../../features/fortune/saju/presentation/saju_loading_screen.dart';
-import '../../features/fortune/saju/presentation/saju_result_screen.dart';
-import '../../features/fortune/saju/presentation/saju_history_screen.dart';
 import '../../features/fortune/tarot/presentation/tarot_question_screen.dart';
 import '../../features/fortune/tarot/presentation/tarot_card_select_screen.dart';
 import '../../features/fortune/tarot/presentation/tarot_loading_screen.dart';
@@ -64,11 +60,6 @@ import '../../features/shop/presentation/treasure_box_screen.dart';
 import '../../features/categories/presentation/categories_grid_screen.dart';
 import '../../features/lucky/presentation/lucky_items_screen.dart';
 import '../../features/pass/presentation/free_pass_gate_screen.dart';
-import '../../features/home/presentation/jeontong_eighty_screen.dart';
-import '../../features/home/presentation/jeontong_eighty_result_screen.dart';
-import '../../features/home/presentation/jeontong_eighty_grid_screen.dart';
-import '../../features/home/presentation/jeontong_eighty_loading_screen.dart';
-import '../../features/home/presentation/jeontong_input_screen.dart';
 import '../../features/home/domain/jeontong_eighty_matrix.dart';
 import '../../features/guinji/presentation/guinji_map_screen.dart';
 import '../../features/guinji/presentation/guinji_join_screen.dart';
@@ -100,13 +91,11 @@ import '../../features/guinji/presentation/guinji_map_ranking_screen.dart';
 // 도착 화면. `/g/{token}`(귀인지도 게스트 참여)과 동일한 패턴으로 named
 // route 진입 전 별도 분기 처리한다(아래 참고).
 import '../../features/share/presentation/shared_result_screen.dart';
-// [정통사주 v3 - 4차 지시서 항목②] 신규 엔진 서버(69종 실계산) 연동 진입점.
-// 기존 정통사주 80종(jeontong_eighty_*, JeontongEightyMatrix.*Route)과는
-// 완전히 별개이며, 그 라우트/화면은 이 작업으로 절대 수정하지 않는다.
-import '../../features/fortune/saju_v3/presentation/saju_v3_home_screen.dart';
+// [신통방통 정통사주 리뉴얼] 유일한 신규 정통사주 화면. 죽은 saju_v3 및
+// 기존 jeontong_eighty UI는 삭제되었으며, 구 라우트들은 모두 이 화면으로
+// legacy redirect 처리된다.
 import '../../features/saju_renewal/screens/saju_renewal_home_screen.dart';
 import 'package:provider/provider.dart';
-import '../auth/auth_token_store.dart';
 import 'app_navigator_key.dart';
 
 /// 07단계 §3.2 라우팅 테이블 - Navigator 1.0(onGenerateRoute) 구현
@@ -443,90 +432,29 @@ class AppRouter {
       case '/free-pass-gate':
         return _page(const FreePassGateScreen());
 
-      // ── [정통사주 80종 개편] 홈 "운세" 카드 진입점 - 대카테고리/소카테고리
-      // 진열 화면 + 전용 결과 화면. AI 타로/관상/손금/상담 라우트는 이 작업과
-      // 무관하며 아래에 그대로 유지된다(변경 없음). ──
+      // ── [신통방통 정통사주 리뉴얼 — 기존 메뉴/시스템 정리] 아래 구
+      // 라우트들(기존 "정통사주 69종" jeontong_eighty UI + 죽은 베타
+      // saju_v3)은 신규 정통사주(saju_renewal) 하나로 완전히 통합되어
+      // 화면 자체는 삭제되었다. 과거 북마크/딥링크/
+      // `PendingResultAccessReturn.returnRoute` 복귀값 등으로 구 경로가
+      // 들어올 가능성이 있으므로, 깨지는 대신 안전하게 `/saju-renewal`로
+      // 리다이렉트하는 legacy fallback만 유지한다.
+      // (jeontong_eighty의 UI 레이어는 삭제되었지만, 귀인지도(guinji)가
+      // 실제로 의존하는 계산 엔진·공유 값 객체 레이어 — manseryeok 엔진,
+      // jeontong_eighty_matrix.dart의 JeontongCategoryEntry 타입,
+      // jeontong_eighty_report_builder.dart의
+      // buildProfileAndSajuResultViaPhase1to4() 등 — 는 그대로 보존됨)
       case JeontongEightyMatrix.browseRoute:
-        return _page(const JeontongEightyScreen());
-      // [부적게이트 제거 · 2026] 기존에는 "운세" 섹션 진입점(홈 카드/전체보기/
-      // 운세허브)에서 [browseRoute](69종 목록)로 가기 직전에 부적을 5번 탭해야
-      // 통과하는 인터랙티브 게이트([JeontongTalismanGateScreen])를 표시했으나,
-      // 사용자 요청으로 게이트 화면 자체를 제거하고 곧장 목록으로 이동한다.
-      // 호출부(홈 카드/전체보기/운세허브/배너 등)는 모두 그대로
-      // [JeontongEightyMatrix.gateRoute]를 pushNamed하고 있으므로, 각 호출부를
-      // 일일이 수정하는 대신 이 라우트 자체가 [JeontongEightyScreen]을 바로
-      // 반환하도록 바꿔 회귀 없이 게이트를 제거한다.
       case JeontongEightyMatrix.gateRoute:
-        return _page(const JeontongEightyScreen());
-      // [운세 섹션 4단계 흐름 - 화면3 로딩] "사주보기" 제출 직후 결과로
-      // 곧장 가지 않고 반드시 이 로딩 화면을 먼저 거친다(handoff 원본
-      // saju_loading_screen.dart 디자인 재현). arguments로 categoryId
-      // (String?)를 그대로 받아 결과 화면 이동 시 다시 전달한다. 이 화면은
-      // 부적게이트와 무관 — 애니메이션 완료 후 곧장 [resultRoute]로 이동한다.
       case JeontongEightyMatrix.loadingRoute:
-        {
-          // [결과보기 통합 권한 시스템 v1.0, §8 적용] 신규 호출부는
-          // JeontongLoadingRouteArgs(categoryId+transactionId)를 넘기지만,
-          // 혹시 남아있을 구 호출부(String만 넘김)도 하위호환으로 지원한다.
-          final args = settings.arguments;
-          final String? categoryId;
-          final String? transactionId;
-          if (args is JeontongLoadingRouteArgs) {
-            categoryId = args.categoryId;
-            transactionId = args.transactionId;
-          } else {
-            categoryId = args as String?;
-            transactionId = null;
-          }
-          return _page(
-            JeontongEightyLoadingScreen(
-              categoryId: categoryId,
-              transactionId: transactionId,
-            ),
-          );
-        }
       case JeontongEightyMatrix.resultRoute:
-        return _page(
-          JeontongEightyResultScreen(categoryId: settings.arguments as String?),
-        );
-      // [정통사주 80종 · MVP 라스트 마일 - Mission 1] 정통사주 전용 생년월일시
-      // 입력 화면. 이 라우트가 신설되기 전까지는 사용자가 자신의 생년월일시를
-      // 입력할 UI 자체가 없어 계산 엔진(SajuEngine)과 그리드 화면이 있어도
-      // "서비스"로 기능하지 못했다. 기존 `/jeontong/eighty`(browseRoute,
-      // 아코디언) 라우트/화면은 이 신설과 무관하게 그대로 둔다(회귀 방지).
       case '/jeontong/input':
-        return _page(
-          JeontongInputScreen(categoryId: settings.arguments as String?),
-        );
-
-      // [정통사주 80종 그리드 신설] 8개 섹션 카드가 항상 펼쳐진 상태로
-      // 80종 전체를 한 화면에서 훑어보는 신규 라우트. 기존 `/jeontong/eighty`
-      // (아코디언 방식, 홈 "운세" 카드가 이미 사용 중)와는 별개이며 그
-      // 라우트/화면은 무수정으로 그대로 둔다(회귀 방지).
       case '/jeontong/eighty/grid':
-        return _page(
-          JeontongEightyGridScreen(
-            userId:
-                (AuthTokenStore.cachedUserIdOrNull ??
-                        AuthTokenStore.fallbackUserId)
-                    .toString(),
-          ),
-        );
-
-      // [2026-11 홈 화면 정리] "/jeontong/overview"는 방금 제거한 "내 기록
-      // (읽기 전용)" 화면의 "한눈에 미리보기" 버튼에서만 진입 가능했던
-      // 라우트였다. 그 화면이 삭제되어 더 이상 진입 경로가 없으므로 함께
-      // 제거한다(HistoryJeontongOverviewScreen 파일 자체도 삭제).
+      case '/saju/v3':
+        return _page(const SajuRenewalHomeScreen());
 
       case '/my/fortune-records':
         return _page(const MyFortuneRecordsScreen());
-
-      // [정통사주 v3 - 4차 지시서 항목②] 신규 엔진 서버(69종 실계산) 연동
-      // 진입점. 기존 55개 case는 순서·내용 변경 없이 그대로 두고 이 1개만
-      // 추가한다(img1_라우트배치가이드.png 그대로). jeontong_eighty_*
-      // (기존 정통사주 80종)와는 완전히 별개이며 그 라우트/화면은 무수정.
-      case '/saju/v3':
-        return _page(const SajuV3HomeScreen());
 
       // [신통방통 정통사주 리뉴얼 — STEP 6.5] Topic Engine 기반 신규 "사주
       // 이야기" 흐름 진입점. STEP1~6 백엔드(saju_engine_v3.3/topics-select/
@@ -558,43 +486,17 @@ class AppRouter {
       case '/compatibility/result':
         return _page(const CompatibilityResultScreen());
 
-      // ── AI 사주 ──
+      // ── [신통방통 정통사주 리뉴얼 — 기존 AI 사주 정리] 기존 AI/LLM 기반
+      // 사주(`lib/features/fortune/saju/`)는 완전히 제거되었다. 과거
+      // 북마크, 마이페이지 "사주 히스토리", `PendingResultAccessReturn.
+      // returnRoute` 등에 남아있을 수 있는 구 경로를 전부 안전하게
+      // `/saju-renewal`로 리다이렉트한다(initialTopics/restoredInput 등
+      // 구 인자는 더 이상 사용하지 않고 무시한다).
       case '/ai-fortune/saju/input':
-        {
-          // [운세 카테고리 확장] 전체보기에서 관리자 카테고리를 탭했을 때
-          // {'initialTopics': ['재물', ...]} 형태의 인자로 딥링크된다.
-          // arguments가 없거나(기존 모든 진입 경로) 형식이 다르면 그대로
-          // null로 전달되어 기존 기본 동작(종합 선택)과 동일하다.
-          //
-          // [결과보기 통합 권한 시스템 v1.0, §7] 쿠팡 복귀 복원 흐름은
-          // {'restoredInput': {...}} 형태로 동일한 arguments 맵에 함께
-          // 실어 보낸다(기존 initialTopics 키와 공존).
-          final args = settings.arguments;
-          List<String>? initialTopics;
-          Map<String, dynamic>? restoredInput;
-          if (args is Map) {
-            final raw = args['initialTopics'];
-            if (raw is List) {
-              initialTopics = raw.map((e) => e.toString()).toList();
-            }
-            final restoredRaw = args['restoredInput'];
-            if (restoredRaw is Map) {
-              restoredInput = restoredRaw.cast<String, dynamic>();
-            }
-          }
-          return _page(
-            SajuInputScreen(
-              initialTopics: initialTopics,
-              restoredInput: restoredInput,
-            ),
-          );
-        }
       case '/ai-fortune/saju/loading':
-        return _page(const SajuLoadingScreen());
       case '/ai-fortune/saju/result':
-        return _page(SajuResultScreen(resultId: settings.arguments as String?));
       case '/ai-fortune/saju/history':
-        return _page(const SajuHistoryScreen());
+        return _page(const SajuRenewalHomeScreen());
 
       // ── AI 타로 [타로 섹션 전면 개편 §2 신규 진입점] ──
       // ①타로 메인 홈. 기존 홈/운세탭의 진입점(/ai-fortune/tarot/question)은
