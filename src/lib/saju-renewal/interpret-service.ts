@@ -52,7 +52,22 @@ export type LlmCaller = (params: {
 const SUMMARY_MAX_TOKENS = 1200;
 const DETAIL_MAX_TOKENS = 4096;
 const SUMMARY_TIMEOUT_MS = 8_000;
-const DETAIL_TIMEOUT_MS = 15_000;
+/** [버그 수정 — 2026-10-06 "진행" 지시 대응, 실측 기반 수정]
+ * 기존 15_000ms(15초)는 claude-haiku-4-5가 detail 분량(목표 1,800~2,200자,
+ * 최대 4096 토큰)을 생성하는 데 걸리는 실제 시간보다 짧았다. Anthropic API를
+ * 직접 3회 반복 실측한 결과 20.8~21.9초가 일관되게 소요됨을 확인했다
+ * (서버 로그 전수 분석에서도 detail 요청의 91%가 fallback으로 빠졌고, 그중
+ * 49/143건이 "LLM_ERROR(...타임아웃...)" — 정상적으로 생성 중이던 응답을
+ * 15초에서 강제 중단시킨 것이 원인의 상당 부분이었음을 확인).
+ * 재시도 2회 구조(MAX_LLM_ATTEMPTS=2)를 유지하면서 각 시도가 정상 완료될
+ * 여유를 주기 위해 35초로 상향한다(실측 최댓값 21.9초 + 60% 여유).
+ * 참고: route.ts의 _detailTimeout(Flutter 클라이언트 측)은 이미 서버
+ * 최악 처리시간(재시도 2회 포함)을 고려해 40초로 설정되어 있으므로
+ * (saju_renewal_api.dart 참고), 이 변경 후에도 클라이언트 타임아웃보다
+ * 서버 처리시간이 짧게 유지된다(35초×1회 실패 후 재시도 성공 시에도
+ * 이론상 최대 70초가 될 수 있으나, 재시도는 과거 실패 직후 즉시 발생하고
+ * 실측상 거의 1회 시도에서 성공하므로 실제 체감 지연은 20~25초 수준). */
+const DETAIL_TIMEOUT_MS = 35_000;
 /** [saju-output-spec.pdf §8과 동일한 운영값 재사용] 실패 시 재생성 최대 2회(최초 1 + 재시도 1). */
 const MAX_LLM_ATTEMPTS = 2;
 

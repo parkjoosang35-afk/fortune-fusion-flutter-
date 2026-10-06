@@ -44,6 +44,59 @@ function sanitizeEvidenceNote(note: string): string {
     .trim();
 }
 
+// [버그 수정 — 2026-10-06 "진행" 지시 대응] fallback 템플릿이 {{evidence_N}} 자리에
+// topic-evidence.ts의 note(예: "식상 존재", "겁재 존재", "일지")를 그대로 끼워 넣는데,
+// 템플릿 문장에는 그 뒤에 올 조사("이", "와", "은" 등)가 고정 하드코딩되어 있다. note가
+// 받침 없는 글자로 끝나면("존재" → "ㅖ"는 받침 없음) "존재이"처럼 비문이 생긴다
+// (실제 재현: MONEY_002 fallback "겁재 존재, 식상 존재이 이 특징이..."). note 콘텐츠가
+// 29종 모두 다르고 사람이 미리 알 수 없으므로, 템플릿 문장마다 조사를 일일이 고치는
+// 것은 근본 해결이 아니다(새 note 추가/수정 시 또 깨짐) — 치환 직후 "플레이스홀더+조사"
+// 패턴을 찾아 note의 마지막 글자 받침 유무로 조사 자체를 자동 교정한다.
+const HAS_BATCHIM_EXCEPTION_NONE = new Set(["ㄹ"]); // 종성 ㄹ은 "로" 계열에서 받침 있어도 "로" 사용
+
+/** 한 글자(음절)의 종성(받침) 유무를 판정한다. 받침 없으면 null, 있으면 해당 자모 문자. */
+function getFinalConsonant(char: string): string | null {
+  const code = char.charCodeAt(0);
+  if (code < 0xac00 || code > 0xd7a3) return null; // 한글 음절 범위 밖(숫자/영문/기호 등)은 받침 없음으로 취급
+  const finalIndex = (code - 0xac00) % 28;
+  if (finalIndex === 0) return null;
+  const FINALS = [
+    "", "ㄱ", "ㄲ", "ㄳ", "ㄴ", "ㄵ", "ㄶ", "ㄷ", "ㄹ", "ㄺ", "ㄻ", "ㄼ", "ㄽ", "ㄾ", "ㄿ", "ㅀ",
+    "ㅁ", "ㅂ", "ㅄ", "ㅅ", "ㅆ", "ㅇ", "ㅈ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ",
+  ];
+  return FINALS[finalIndex] || null;
+}
+
+/** josa 쌍(받침 없을 때 쓸 형태, 받침 있을 때 쓸 형태)을 받아, 주어진 word 끝 글자의
+ * 받침 유무에 맞는 올바른 형태를 돌려준다. */
+function pickJosa(word: string, noBatchim: string, withBatchim: string, rieulSpecial?: string): string {
+  const lastChar = word.trim().slice(-1);
+  const final = getFinalConsonant(lastChar);
+  if (final === null) return noBatchim;
+  if (rieulSpecial && final === "ㄹ" && !HAS_BATCHIM_EXCEPTION_NONE.has(final)) return rieulSpecial;
+  return withBatchim;
+}
+
+/** [조사 자동 교정 — 근본 수정] 플레이스홀더(`{{evidence_N}}` 등) 바로 뒤에 템플릿
+ * 작성자가 하드코딩해둔 조사(이/가, 은/는, 을/를, 와/과, 로/으로)가 있으면, 그 조사를
+ * 제거하고 실제로 치환될 note의 받침 유무에 맞는 올바른 조사를 새로 붙인다. 조사가
+ * 없으면(예: "{{evidence_0}} 역시") 그대로 note만 치환한다. 템플릿 작성자가 어떤
+ * 조사를 써두었든(심지어 틀리게 써두었든) 결과는 항상 올바르게 교정된다 — 29종
+ * 전체의 모든 note에 대해 한 곳에서만 고치면 되는 근본 수정. */
+function replacePlaceholderWithJosaFix(text: string, placeholder: string, note: string): string {
+  const escapedPlaceholder = placeholder.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(`${escapedPlaceholder}(이|가|은|는|을|를|와|과|으로|로)?`, "g");
+  return text.replace(pattern, (_m, josa?: string) => {
+    if (!josa) return note;
+    if (josa === "이" || josa === "가") return note + pickJosa(note, "가", "이");
+    if (josa === "은" || josa === "는") return note + pickJosa(note, "는", "은");
+    if (josa === "을" || josa === "를") return note + pickJosa(note, "를", "을");
+    if (josa === "와" || josa === "과") return note + pickJosa(note, "와", "과");
+    if (josa === "으로" || josa === "로") return note + pickJosa(note, "로", "으로", "로");
+    return note;
+  });
+}
+
 /** [기본 틀 — DB에 fallbackJson이 없거나 파싱 실패했을 때만 쓰는 최후 방어선]
  * STEP6 29종×2 전체 시딩 전까지, 또는 특정 Topic의 fallbackJson이 손상된 경우에도
  * 이 템플릿 하나로 모든 Topic의 fallback을 감당해야 한다. 따라서 "이 Topic이 정확히
@@ -110,12 +163,29 @@ function fillTemplate(template: string, evidenceNotesRaw: string[], timingNoteRa
   const timingNote = timingNoteRaw ? sanitizeEvidenceNote(timingNoteRaw) : undefined;
   let out = template;
   evidenceNotes.forEach((note, i) => {
-    out = out.replaceAll(`{{evidence_${i}}}`, note);
+    out = replacePlaceholderWithJosaFix(out, `{{evidence_${i}}}`, note);
   });
   // 남은 evidence_N 플레이스홀더는 마지막 근거로 채우거나(근거가 1개뿐일 때), 그래도
   // 없으면 "사주 전체의 흐름"이라는 중립 표현으로 치환한다(절대 새로운 사실을 만들지 않음).
-  out = out.replace(/\{\{evidence_\d+\}\}/g, evidenceNotes[0] ?? "사주 전체의 흐름");
-  out = out.replace(/\{\{evidence_timing\}\}/g, timingNote ?? evidenceNotes[0] ?? "지금 이어지는 흐름");
+  // 플레이스홀더 번호가 가변적이라 고정 문자열 치환이 불가능하므로 정규식으로 직접 처리한다.
+  out = out.replace(/\{\{evidence_\d+\}\}(이|가|은|는|을|를|와|과|으로|로)?/g, (_m, josa?: string) => {
+    const note = evidenceNotes[0] ?? "사주 전체의 흐름";
+    if (!josa) return note;
+    if (josa === "이" || josa === "가") return note + pickJosa(note, "가", "이");
+    if (josa === "은" || josa === "는") return note + pickJosa(note, "는", "은");
+    if (josa === "을" || josa === "를") return note + pickJosa(note, "를", "을");
+    if (josa === "와" || josa === "과") return note + pickJosa(note, "와", "과");
+    return note + pickJosa(note, "로", "으로", "로");
+  });
+  out = out.replace(/\{\{evidence_timing\}\}(이|가|은|는|을|를|와|과|으로|로)?/g, (_m, josa?: string) => {
+    const note = timingNote ?? evidenceNotes[0] ?? "지금 이어지는 흐름";
+    if (!josa) return note;
+    if (josa === "이" || josa === "가") return note + pickJosa(note, "가", "이");
+    if (josa === "은" || josa === "는") return note + pickJosa(note, "는", "은");
+    if (josa === "을" || josa === "를") return note + pickJosa(note, "를", "을");
+    if (josa === "와" || josa === "과") return note + pickJosa(note, "와", "과");
+    return note + pickJosa(note, "로", "으로", "로");
+  });
   return out.trim();
 }
 
