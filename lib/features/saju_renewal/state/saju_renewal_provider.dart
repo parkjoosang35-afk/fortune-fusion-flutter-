@@ -94,6 +94,23 @@ class SajuRenewalProvider extends ChangeNotifier {
   /// 뿐이며, Flutter가 임의로 후보를 걸러내지 않는다.
   final Set<String> _viewedTopicIds = {};
 
+  /// [버그 수정 — C-08b(docs/08) 결함 발견] 화면⑧ "[↻ 새로운 이야기]"로
+  /// 교체되어 현재 화면에서 사라진(=소비된) 후보 topic_id. "이미 상세까지
+  /// 본"(`_viewedTopicIds`)과는 다른 개념 — 아직 상세를 보지 않았어도
+  /// 카드 교체로 한 번 노출된 적이 있으면 같은 배치에서 다시 보여주지
+  /// 않기 위한 집합이다(docs/03_화면명세.md §08 "남은 후보로 교체" —
+  /// 같은 카드가 바로 다시 보이면 안 됨).
+  final Set<String> _shownCandidateIds = {};
+
+  /// [버그 수정 — C-08b(docs/08) 결함 발견] [loadMoreTopics] 재호출
+  /// 가드용(기존 `_isTopicsLoading`과 분리 — 그 플래그는 화면⑧ 전체를
+  /// 전면 스피너로 바꾸는 조건(`more_stories_screen.dart`
+  /// `topicsState.isLoading || provider.isTopicsLoading`)에도 쓰이므로,
+  /// 재호출 중에도 기존 카드 목록을 그대로 유지해야 하는 이번 버그
+  /// 수정에서는 재사용할 수 없다).
+  bool _isRefreshingCandidates = false;
+  bool get isRefreshingCandidates => _isRefreshingCandidates;
+
   /// [버그 수정 — C-08a(docs/08) 결함 발견] docs/03_화면명세.md §08
   /// "후보 = 받은 후보 − 이미 본 주제(세션 + 노출 이력). 표시 3장" 및
   /// docs/13_기획결정_서명지.md Q-06 최종 확정값("기본 3장, 후보 4개
@@ -104,10 +121,19 @@ class SajuRenewalProvider extends ChangeNotifier {
   /// 4개 이상이 표시될 수 있던 결함. 시기형 최대 1개 보장은 서버
   /// 책임(API 계약서 §2 "candidates: is_timing=true 최대 1개")이므로
   /// 재필터링하지 않는다(Flutter 임의 판단 금지 원칙).
+  ///
+  /// [C-08b 연계] "새로운 이야기"로 교체되어 [_shownCandidateIds]에
+  /// 들어간 후보도 제외한다 — 그래야 [loadMoreTopics]가 서버를 다시
+  /// 부르지 않고도 이미 받아둔 나머지 후보를 "다음 3장"으로 보여줄 수
+  /// 있다(로컬 교체, 0비용).
   List<TopicCard> get displayableCandidates {
     final raw = _topicsState.data?.candidates ?? const <TopicCard>[];
     final remaining = raw
-        .where((c) => !_viewedTopicIds.contains(c.topicId))
+        .where(
+          (c) =>
+              !_viewedTopicIds.contains(c.topicId) &&
+              !_shownCandidateIds.contains(c.topicId),
+        )
         .toList();
     return remaining.take(3).toList();
   }
