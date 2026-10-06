@@ -61,10 +61,12 @@ class OzTarotHomeScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: OzHomeColors.bgDeep,
       // [하단바 통일 작업] 타로 홈은 홈 화면 "타로" 카드에서 push로 열리는
-      // 별도 라우트(`/tarot/home`)라 AppShell 밖에 있다 — 전역 5탭
+      // 별도 라우트(`/tarot/home`)라 AppShell 밖에 있다 — 전역 4탭
       // 하단바가 보이지 않는다는 사용자 리포트를 해결하기 위해 동일한
-      // 하단바를 추가한다("운세" 탭 인덱스 1을 강조).
-      bottomNavigationBar: const MainBottomNavBar(currentIndex: 1),
+      // 하단바를 추가한다.
+      // [운세보기 섹션 삭제] "운세" 탭 자체가 없어졌으므로, 타로 화면이
+      // 속한 탭은 이제 0(홈)이다.
+      bottomNavigationBar: const MainBottomNavBar(currentIndex: 0),
       body: Stack(
         children: [
           // 1. Background layers

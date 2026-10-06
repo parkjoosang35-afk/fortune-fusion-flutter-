@@ -332,14 +332,15 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
   /// "다시 물어보기" 동작). 다만 스택 맨 밑(예: 히스토리에서 곧바로 진입한
   /// 경우 등)이라 canPop이 false일 수도 있으므로, 그 경우에는 앱 전역
   /// [MainBottomNavBar]와 동일한 패턴(`pushNamedAndRemoveUntil('/home', ...,
-  /// arguments: 1)`)으로 "운세" 탭으로 안전하게 복귀시킨다.
+  /// arguments: 0)`)으로 홈 탭으로 안전하게 복귀시킨다.
+  /// [운세보기 섹션 삭제] "운세" 탭 자체가 없어졌으므로 0(홈)으로 복귀.
   void _handleBack(BuildContext context) {
     if (Navigator.canPop(context)) {
       Navigator.of(context).pop();
     } else {
       Navigator.of(
         context,
-      ).pushNamedAndRemoveUntil('/home', (route) => false, arguments: 1);
+      ).pushNamedAndRemoveUntil('/home', (route) => false, arguments: 0);
     }
   }
 

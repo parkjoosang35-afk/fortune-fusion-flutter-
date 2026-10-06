@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
-/// 앱 전역 5탭(홈/운세/소원방/복주머니/마이) 하단 네비게이션 바를
+/// 앱 전역 4탭(홈/소원방/복주머니/마이) 하단 네비게이션 바를
 /// [AppShell] 바깥에서 push된 화면들(정통사주/타로/귀인지도/소원방 push
 /// 인스턴스)에도 동일하게 노출하기 위한 공유 위젯.
 ///
@@ -22,17 +22,23 @@ import '../theme/app_colors.dart';
 /// 스택을 정리한 뒤 새 [AppShell]을 `initialIndex`와 함께 생성한다(기존
 /// `jeontong_eighty_result_screen.dart`/`luckybag_result_screen.dart`의
 /// "홈으로 복귀" 선례와 동일한 패턴을 그대로 확장한 것).
+///
+/// [운세보기 섹션 삭제 — 사용자 요청] "그냥 운세보기 섹션을 삭제해버려
+/// 없어도돼" — _navItems에서 "운세" 탭을 제거해 4탭(홈/소원방/복주머니/
+/// 마이)으로 축소한다. 이에 따라 [currentIndex] 의미도 재해석된다:
+/// 0홈/1소원방/2복주머니/3마이. 운세 탭이 없어졌으니 정통사주·타로처럼
+/// 운세 탭에서 push되던 화면도 이제 0(홈)을 가리킨다.
 class MainBottomNavBar extends StatelessWidget {
   const MainBottomNavBar({super.key, required this.currentIndex});
 
-  /// 이 화면이 개념적으로 속한 탭 인덱스(0홈/1운세/2소원방/3복주머니/4마이).
-  /// 정통사주·타로 화면은 1(운세), 소원방(push) 화면은 2, 귀인지도는
+  /// 이 화면이 개념적으로 속한 탭 인덱스(0홈/1소원방/2복주머니/3마이).
+  /// 정통사주·타로 화면은 0(홈), 소원방(push) 화면은 1, 귀인지도는
   /// 홈 배너에서 진입하므로 0을 사용한다.
   final int currentIndex;
 
+  // [운세보기 섹션 삭제] "운세" 탭 항목 제거 → 4탭(홈/소원방/복주머니/마이).
   static const _navItems = [
     (Icons.home_outlined, Icons.home_rounded, '홈'),
-    (Icons.auto_awesome_outlined, Icons.auto_awesome, '운세'),
     (
       Icons.local_fire_department_outlined,
       Icons.local_fire_department_rounded,
@@ -40,7 +46,7 @@ class MainBottomNavBar extends StatelessWidget {
     ),
     // [2026-11 복주머니 아이콘 교체] 기본 Material 아이콘(선물상자 모양)
     // 대신, 실제 한국 전통 복주머니 모양으로 생성한 커스텀 이미지 에셋을
-    // 쓴다. 아래 items 빌더에서 인덱스 3번만 Image.asset으로 렌더링한다.
+    // 쓴다. 아래 items 빌더에서 인덱스 2번만 Image.asset으로 렌더링한다.
     (Icons.card_giftcard_outlined, Icons.card_giftcard_rounded, '복주머니'),
     (Icons.person_outline_rounded, Icons.person_rounded, '마이'),
   ];
@@ -98,8 +104,9 @@ class MainBottomNavBar extends StatelessWidget {
             items: _navItems.asMap().entries.map((entry) {
               final index = entry.key;
               final e = entry.value;
-              // 복주머니 탭(인덱스 3)만 커스텀 이미지 아이콘으로 교체.
-              if (index == 3) {
+              // 복주머니 탭(인덱스 2, 운세 탭 삭제로 인덱스 변경됨)만
+              // 커스텀 이미지 아이콘으로 교체.
+              if (index == 2) {
                 return BottomNavigationBarItem(
                   icon: _luckyBagIcon(selected: false),
                   activeIcon: _luckyBagIcon(selected: true),

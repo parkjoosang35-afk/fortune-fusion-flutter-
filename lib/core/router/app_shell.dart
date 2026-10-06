@@ -5,7 +5,6 @@ import '../theme/app_colors.dart';
 // home_screen.dart(화이트 프리미엄 CMS 동적 섹션)는 더 이상 이 탭에
 // 배선하지 않는다(파일 자체는 프로젝트 관례상 보존).
 import '../../features/home/presentation/sintong_home_v2/sintong_home_v2_screen.dart';
-import '../../features/fortune/presentation/fortune_hub_screen.dart';
 import '../../features/wishroom/features/intro/wish_room_intro_screen.dart';
 // [행운상자 - 복주머니 탭 신규 기능] 사용자 요청("복주머니 탭 자리에
 // 첨부한 행운상자 기능을 넣어달라, 하단바 라벨은 그대로 복주머니")에 따라
@@ -15,12 +14,22 @@ import '../../features/wishroom/features/intro/wish_room_intro_screen.dart';
 import '../../features/pouch_box/presentation/pouch_box_tab_screen.dart';
 import '../../features/mypage/presentation/my_screen.dart';
 
-/// 03단계 §3.1 5탭 하단내비게이션 + IndexedStack 앱쉘
-/// 홈 / 운세 / 커뮤니티 / 복주머니 / 마이
+/// 03단계 §3.1 4탭 하단내비게이션 + IndexedStack 앱쉘
+/// 홈 / 소원방 / 복주머니 / 마이
+///
+/// [운세보기 섹션 삭제 — 사용자 요청] "그냥 운세보기 섹션을 삭제해버려
+/// 없어도돼" — 기존 5탭(홈/운세/소원방/복주머니/마이) 중 "운세" 탭
+/// (정통운세/이미지운세/카드운세/종합운세 카테고리 목록을 보여주던
+/// FortuneHubScreen)을 완전히 제거하고 4탭으로 축소한다. 정통사주/타로/
+/// 관상/손금/궁합 등 실제 기능 화면 자체는 전혀 건드리지 않는다 — 전부
+/// 홈 화면의 카테고리 바로가기(히어로 캐러셀/대표카드/전체보기)로 이미
+/// 동일하게 접근 가능하므로 기능 접근성 손실이 없다. "운세" 탭 전용
+/// 화면이었던 `features/fortune/presentation/fortune_hub_screen.dart`는
+/// 다른 곳에서 전혀 참조되지 않아(단일 소비자였음) 파일 자체를 삭제했다.
 ///
 /// [Fortune Fusion 디자인 우선 리디자인 프롬프트] §7-9 하단 탭바를 화이트/연보라
 /// 톤으로 통일한다(홈 화면만 화이트로 바뀌었으므로 탭바도 함께 맞춰야 이질감이 없음).
-/// 다른 4개 탭(운세/커뮤니티/복주머니/마이)의 화면 내부는 아직 다크 우주 톤을
+/// 다른 3개 탭(소원방/복주머니/마이)의 화면 내부는 아직 다크 우주 톤을
 /// 유지하므로, 탭 전환 시 상단 배경색은 각 화면의 Scaffold.backgroundColor가
 /// 그대로 담당한다(이 파일은 탭바 자체만 화이트로 변경).
 class AppShell extends StatefulWidget {
@@ -47,12 +56,12 @@ class _AppShellState extends State<AppShell> {
   // 등 기존 다른 진입점들과 동일한 패턴(Navigator.push)으로 통일되는
   // 장점도 있다. 탭을 뒤로가기(pop)하면 직전 탭(기본 0=홈)으로 자동 복귀.
   //
-  // [탭(nav) 인덱스 vs 콘텐츠(tab) 인덱스 분리] `_navItems`는 기존 그대로
-  // 5개(홈/운세/소원방/복주머니/마이)를 유지하지만, `_tabs`(IndexedStack
-  // 콘텐츠)는 소원방 자리가 빠져 4개뿐이다. 그래서 nav 인덱스 ↔ tab 인덱스를
-  // 서로 변환하는 헬퍼가 필요하다: nav 2(소원방)는 콘텐츠가 없으므로 push만
+  // [탭(nav) 인덱스 vs 콘텐츠(tab) 인덱스 분리] [운세보기 섹션 삭제] 이후
+  // `_navItems`는 4개(홈/소원방/복주머니/마이)이고, `_tabs`(IndexedStack
+  // 콘텐츠)는 소원방 자리가 빠져 3개뿐이다. 그래서 nav 인덱스 ↔ tab 인덱스를
+  // 서로 변환하는 헬퍼가 필요하다: nav 1(소원방)은 콘텐츠가 없으므로 push만
   // 하고 `_index`(=선택 표시용 nav 인덱스)는 그대로 둔다.
-  static const int _wishRoomNavIndex = 2;
+  static const int _wishRoomNavIndex = 1;
 
   int _navToTab(int navIndex) {
     if (navIndex < _wishRoomNavIndex) return navIndex;
@@ -87,9 +96,9 @@ class _AppShellState extends State<AppShell> {
     );
   }
 
+  // [운세보기 섹션 삭제] FortuneHubScreen 탭 콘텐츠를 _tabs에서 제거.
   static const _tabs = [
     SintongHomeV2Screen(), // 🏠 홈 - 다크 히어로 캐러셀 v2(design_handoff_sintong_main)
-    FortuneHubScreen(), // 🔮 운세 - 7개 카테고리+비용뱃지
     // 🎁 복주머니 - [행운상자 - 복주머니 탭 신규 기능] 광고 시청으로 여는
     // 행운상자 그리드(하단바 라벨/아이콘은 그대로 "복주머니" 유지, 화면
     // 내용만 신규 행운상자 인터랙션으로 전면 교체됨).
@@ -97,9 +106,10 @@ class _AppShellState extends State<AppShell> {
     MyScreen(), // 👤 마이 - 프로필+등급뱃지+아카이브+설정
   ];
 
+  // [운세보기 섹션 삭제] "운세" 탭 항목을 _navItems에서 제거. 4탭(홈/소원방/
+  // 복주머니/마이)로 축소.
   static const _navItems = [
     (Icons.home_outlined, Icons.home_rounded, '홈'),
-    (Icons.auto_awesome_outlined, Icons.auto_awesome, '운세'),
     (
       Icons.local_fire_department_outlined,
       Icons.local_fire_department_rounded,
@@ -108,7 +118,7 @@ class _AppShellState extends State<AppShell> {
     // [2026-11 복주머니 아이콘 교체] main_bottom_nav_bar.dart와 동일하게,
     // 기본 Material 아이콘(선물상자 모양) 대신 실제 한국 전통 복주머니
     // 모양으로 생성한 커스텀 이미지 에셋을 쓴다. items 빌더에서 인덱스
-    // 3번만 Image.asset으로 렌더링한다.
+    // 2번만 Image.asset으로 렌더링한다.
     (Icons.card_giftcard_outlined, Icons.card_giftcard_rounded, '복주머니'),
     (Icons.person_outline_rounded, Icons.person_rounded, '마이'),
   ];
@@ -165,8 +175,9 @@ class _AppShellState extends State<AppShell> {
               items: _navItems.asMap().entries.map((entry) {
                 final index = entry.key;
                 final e = entry.value;
-                // 복주머니 탭(인덱스 3)만 커스텀 이미지 아이콘으로 교체.
-                if (index == 3) {
+                // 복주머니 탭(인덱스 2, 운세 삭제로 인덱스 변경됨)만 커스텀
+                // 이미지 아이콘으로 교체.
+                if (index == 2) {
                   return BottomNavigationBarItem(
                     icon: _luckyBagIcon(selected: false),
                     activeIcon: _luckyBagIcon(selected: true),
