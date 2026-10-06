@@ -22,13 +22,16 @@ import 'more_stories_screen.dart';
 /// 5단 서사(핵심·왜·생활·시기·포인트) + 목차 칩 + 블록 사이 근거 +
 /// 시기(n=4) 블록 전용 대운 스트림 카드.
 ///
-/// [블록 제목 — 서버 비전달 필드] [InterpretDetailBlock]에는 제목(JSX의
-/// `b.t`) 필드가 없다 — admin_web API 계약서(docs/11)에도 블록 제목은
-/// `n`(1~5) 순번만 내려주고, 화면이 고정 라벨 ['핵심','왜','생활','시기',
-/// '포인트']을 순번에 매핑해 표시하도록 설계되어 있다(JSX 원본도 동일하게
-/// `['핵심','왜','생활','시기','포인트'][b.n-1]`로 인덱스 매핑). 서버가
-/// 임의 문자열을 내려주는 게 아니므로 이 고정 라벨은 "Flutter 임의
-/// 판단"이 아니라 디자인 핸드오프 사양 그대로다.
+/// [블록 제목 — 서버 비전달 필드] [InterpretDetailBlock]에는 제목 필드가
+/// 없다 — admin_web API 계약서(docs/11) 111/117행: "블록 제목은
+/// 클라이언트 고정 문구(C-07-1~5) 사용 — 서버가 보내지 않음". 단,
+/// **목차 칩(C-07-5a: "핵심/왜/생활/시기/포인트")과 블록 제목
+/// 본문(C-07-1~5: "당신의 사주에서 보이는 핵심" 등 완전한 문장)은 서로
+/// 다른 문구다** — 목차 칩은 [_kChipLabels](단어), 블록 제목은
+/// [_kBlockTitles](완전한 문장)를 각각 써야 한다.
+/// [버그 수정 — C-07a(docs/08) 결함 발견] 기존 코드는 이 둘을 구분하지
+/// 않고 블록 제목에도 목차 칩과 동일한 단어 라벨을 재사용하던 결함이
+/// 있었다(docs/06_카피덱.md C-07-1~5 위반). 완전한 문장으로 교체한다.
 ///
 /// [내부 정보 비노출 — 절대 원칙] MONEY_002/LIFE_004 같은 topic_id,
 /// FACT 키, score, 69종 코드, evaluator, "AI" 표현 등을 이 화면에 절대
@@ -42,10 +45,48 @@ class StoryDetailScreen extends StatefulWidget {
   State<StoryDetailScreen> createState() => _StoryDetailScreenState();
 }
 
-const List<String> _kBlockLabels = ['핵심', '왜', '생활', '시기', '포인트'];
+/// docs/06_카피덱.md C-07-5a — 목차 칩 전용 단어 라벨.
+const List<String> _kChipLabels = ['핵심', '왜', '생활', '시기', '포인트'];
+
+/// docs/06_카피덱.md C-07-1~C-07-5 — 블록 제목 전용 완전한 문장(T-block).
+/// API 계약서(docs/11) 117행: "블록 제목은 클라이언트 고정 문구
+/// (C-07-1~5) 사용 — 서버가 보내지 않음".
+const List<String> _kBlockTitles = [
+  '당신의 사주에서 보이는 핵심',
+  '왜 이런 특징이 나타나는가',
+  '실제 생활에서는',
+  '어느 시기에 강한가',
+  '당신에게 중요한 포인트',
+];
 
 class _StoryDetailScreenState extends State<StoryDetailScreen> {
   SajuVisualProfile? _profile;
+
+  // [버그 수정 — C-07d(docs/08) 결함 발견] docs/03_화면명세.md §07
+  // 275행: "칩 탭 → 해당 블록으로 스크롤(상단바 높이 보정)" — 기존 코드는
+  // 목차 칩에 onTap 핸들러가 전혀 없어 탭해도 아무 반응이 없던 결함.
+  // 블록마다 GlobalKey를 부여해 Scrollable.ensureVisible로 스크롤한다.
+  // blocks.length가 바뀌지 않는 한(데이터 로드 후 고정) 같은 키 인스턴스를
+  // 재사용해야 GlobalKey가 동일 Element에 계속 연결된다.
+  List<GlobalKey> _blockKeys = const [];
+
+  void _ensureBlockKeys(int count) {
+    if (_blockKeys.length != count) {
+      _blockKeys = List.generate(count, (_) => GlobalKey());
+    }
+  }
+
+  void _scrollToBlock(int index) {
+    if (index < 0 || index >= _blockKeys.length) return;
+    final ctx = _blockKeys[index].currentContext;
+    if (ctx == null) return;
+    Scrollable.ensureVisible(
+      ctx,
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeInOut,
+      alignment: 0.05,
+    );
+  }
 
   @override
   void initState() {
@@ -182,6 +223,7 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
                     final blocks = detail.blocks
                         .where((b) => !(b.n == 4 && b.luckIndex == null))
                         .toList();
+                    _ensureBlockKeys(blocks.length);
 
                     return Column(
                       children: [
@@ -266,27 +308,31 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
                                     children: List.generate(blocks.length, (i) {
                                       final b = blocks[i];
                                       final label = (b.n >= 1 && b.n <= 5)
-                                          ? _kBlockLabels[b.n - 1]
+                                          ? _kChipLabels[b.n - 1]
                                           : '';
-                                      return Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 9,
-                                          vertical: 5,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(
-                                            999,
+                                      return GestureDetector(
+                                        behavior: HitTestBehavior.opaque,
+                                        onTap: () => _scrollToBlock(i),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 9,
+                                            vertical: 5,
                                           ),
-                                          border: Border.all(
-                                            color: SajuText.line,
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(
+                                              999,
+                                            ),
+                                            border: Border.all(
+                                              color: SajuText.line,
+                                            ),
                                           ),
-                                        ),
-                                        child: Text(
-                                          '${(i + 1).toString().padLeft(2, '0')} $label',
-                                          style: const TextStyle(
-                                            fontFamily: SajuType.ui,
-                                            fontSize: 11,
-                                            color: SajuText.muted,
+                                          child: Text(
+                                            '${(i + 1).toString().padLeft(2, '0')} $label',
+                                            style: const TextStyle(
+                                              fontFamily: SajuType.ui,
+                                              fontSize: 11,
+                                              color: SajuText.muted,
+                                            ),
                                           ),
                                         ),
                                       );
@@ -306,6 +352,7 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
                                     children: List.generate(blocks.length, (i) {
                                       final b = blocks[i];
                                       return _DetailBlockView(
+                                        key: _blockKeys[i],
                                         index: i,
                                         block: b,
                                         sceneTint: scene != null
@@ -460,6 +507,7 @@ class _SceneTag extends StatelessWidget {
 /// 블록 하나(제목·시기 카드·본문·근거·구분선).
 class _DetailBlockView extends StatelessWidget {
   const _DetailBlockView({
+    super.key,
     required this.index,
     required this.block,
     required this.sceneTint,
@@ -476,7 +524,7 @@ class _DetailBlockView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final label = (block.n >= 1 && block.n <= 5)
-        ? _kBlockLabels[block.n - 1]
+        ? _kBlockTitles[block.n - 1]
         : '';
     return Padding(
       padding: const EdgeInsets.only(top: 28),
