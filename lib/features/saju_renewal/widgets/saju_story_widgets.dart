@@ -1,9 +1,11 @@
 import 'dart:math' as math;
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../data/models/interpret_result.dart';
 import '../data/models/topic_card.dart' show SajuRenewalScene;
+import '../data/saju_term_dictionary.dart';
 import '../data/saju_visual_adapter.dart';
 import '../theme/saju_dark_tokens.dart';
 import 'saju_base_widgets.dart';
@@ -58,8 +60,7 @@ class SajuTermScope extends InheritedWidget {
   final void Function(String termKey) onOpenTerm;
 
   static void Function(String termKey)? maybeOf(BuildContext context) {
-    final scope = context
-        .dependOnInheritedWidgetOfExactType<SajuTermScope>();
+    final scope = context.dependOnInheritedWidgetOfExactType<SajuTermScope>();
     return scope?.onOpenTerm;
   }
 
@@ -70,6 +71,20 @@ class SajuTermScope extends InheritedWidget {
 
 /// `[[termKey|쉬운 표현]]` 마크업을 파싱해 밑줄+물음표 뱃지가 달린 탭 가능
 /// 텍스트로 렌더링한다. 매칭되지 않는 일반 텍스트는 [style] 그대로 출력.
+///
+/// [버그 수정 — C-05d(docs/08) 결함 2건 발견]
+/// 1) docs/02_컴포넌트.md §C-07 "점선 밑줄(주기 4pt 중 2pt 대시, 두께 1,
+///    gold.500, 텍스트 하단 1pt 아래)" 규정을 실선([Border])으로 구현해
+///    왔던 결함을 [_DashedUnderline]으로 교체해 수정한다.
+/// 2) docs/02_컴포넌트.md §C-07 "미등록 termKey: 밑줄·탭 없이 쉬운 표현만
+///    렌더 + 에러 로그(크래시 금지)" 및 docs/07_예외_엣지케이스.md E-24를
+///    전혀 구현하지 않아, 서버가 사전에 없는 termKey를 보내도 항상
+///    밑줄+탭 UI가 뜨던 결함을 [sajuTermLookup] 조회 분기로 수정한다
+///    (등록 안 됨 → 일반 텍스트만 출력 + `debugPrint` 에러 로그).
+/// 3) 추가로 발견한 E-25(docs/07_예외_엣지케이스.md) "마크업 깨짐(`[[`
+///    미닫힘) → 원문 그대로 출력하지 말고 `[[`, `]]`, `|키` 제거 후
+///    텍스트만" 미구현(원문이 그대로 노출됨)도 [_stripBrokenMarkup]으로
+///    같은 컴포넌트 범위에서 함께 수정한다.
 class SajuTermText extends StatelessWidget {
   const SajuTermText({
     super.key,
@@ -84,6 +99,19 @@ class SajuTermText extends StatelessWidget {
 
   static final RegExp _termPattern = RegExp(r'\[\[([^|\]]+)\|([^\]]+)\]\]');
 
+  // E-25/docs/07_예외_엣지케이스.md "마크업 깨짐(`[[` 미닫힘) → 원문
+  // 그대로 출력하지 말고 `[[`, `]]`, `|키` 제거 후 텍스트만" — 정규식이
+  // 매치하지 못한(=깨진) 구간에 남아 있는 `[[key|`/`[[`/`]]`/`]` 토큰을
+  // 제거해 사용자에게 마크업 원문이 노출되지 않게 한다.
+  static String _stripBrokenMarkup(String raw) {
+    var out = raw;
+    out = out.replaceAll(RegExp(r'\[\[[^|\]]*\|'), '');
+    out = out.replaceAll('[[', '');
+    out = out.replaceAll(']]', '');
+    out = out.replaceAll(']', '');
+    return out;
+  }
+
   @override
   Widget build(BuildContext context) {
     final opener = SajuTermScope.maybeOf(context);
@@ -92,10 +120,25 @@ class SajuTermText extends StatelessWidget {
     var last = 0;
     for (final m in _termPattern.allMatches(text)) {
       if (m.start > last) {
-        spans.add(TextSpan(text: text.substring(last, m.start)));
+        spans.add(
+          TextSpan(text: _stripBrokenMarkup(text.substring(last, m.start))),
+        );
       }
       final key = m.group(1)!;
       final label = m.group(2)!;
+
+      // E-24/docs/02 §C-07 "미등록 termKey: 밑줄·탭 없이 쉬운 표현만
+      // 렌더 + 에러 로그(크래시 금지)".
+      final registered = sajuTermLookup(key) != null;
+      if (!registered) {
+        if (kDebugMode) {
+          debugPrint('[SajuTermText] 미등록 termKey: "$key" (label="$label")');
+        }
+        spans.add(TextSpan(text: label, style: base));
+        last = m.end;
+        continue;
+      }
+
       spans.add(
         WidgetSpan(
           alignment: PlaceholderAlignment.middle,
@@ -103,12 +146,7 @@ class SajuTermText extends StatelessWidget {
             onTap: opener == null ? null : () => opener(key),
             child: MouseRegion(
               cursor: SystemMouseCursors.click,
-              child: DecoratedBox(
-                decoration: const BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(color: SajuGold.g500, width: 1),
-                  ),
-                ),
+              child: _DashedUnderline(
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 1),
                   child: RichText(
@@ -135,13 +173,52 @@ class SajuTermText extends StatelessWidget {
       last = m.end;
     }
     if (last < text.length) {
-      spans.add(TextSpan(text: text.substring(last)));
+      spans.add(TextSpan(text: _stripBrokenMarkup(text.substring(last))));
     }
     return RichText(
       textAlign: textAlign ?? TextAlign.start,
       text: TextSpan(style: base, children: spans),
     );
   }
+}
+
+/// docs/02_컴포넌트.md §C-07 "점선 밑줄(주기 4pt 중 2pt 대시, 두께 1,
+/// gold.500, 텍스트 하단 1pt 아래)" — [child] 하단에 점선을 그린다.
+class _DashedUnderline extends StatelessWidget {
+  const _DashedUnderline({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      foregroundPainter: const _DashedUnderlinePainter(),
+      child: child,
+    );
+  }
+}
+
+class _DashedUnderlinePainter extends CustomPainter {
+  const _DashedUnderlinePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = SajuGold.g500
+      ..strokeWidth = 1;
+    const dashWidth = 2.0;
+    const gapWidth = 2.0; // 주기 4pt 중 2pt 대시.
+    final y = size.height - 1; // 텍스트 하단 1pt 아래.
+    var x = 0.0;
+    while (x < size.width) {
+      final end = math.min(x + dashWidth, size.width);
+      canvas.drawLine(Offset(x, y), Offset(end, y), paint);
+      x += dashWidth + gapWidth;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedUnderlinePainter oldDelegate) => false;
 }
 
 /// 용어 바텀시트("근거는 항상 1클릭" 원칙) — 쉬운 설명 1~2문장 + 닫기.
@@ -191,7 +268,10 @@ Future<void> showSajuTermSheet(
               const SizedBox(height: 8),
               Text(termLabel, style: SajuType.h2),
               const SizedBox(height: 10),
-              Text(definition, style: SajuType.body14.copyWith(color: SajuText.fg2)),
+              Text(
+                definition,
+                style: SajuType.body14.copyWith(color: SajuText.fg2),
+              ),
               const SizedBox(height: 18),
               SajuButton(
                 label: '확인',
@@ -288,7 +368,10 @@ class SajuEvidenceCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Text('◆', style: TextStyle(color: SajuGold.g300, fontSize: 10)),
+              const Text(
+                '◆',
+                style: TextStyle(color: SajuGold.g300, fontSize: 10),
+              ),
               const SizedBox(width: 8),
               Text(
                 label,
@@ -414,22 +497,34 @@ class SajuSealedCard extends StatelessWidget {
           const Positioned(
             left: 18,
             top: 16,
-            child: Text('◆', style: TextStyle(color: SajuGold.g500, fontSize: 9)),
+            child: Text(
+              '◆',
+              style: TextStyle(color: SajuGold.g500, fontSize: 9),
+            ),
           ),
           const Positioned(
             right: 18,
             top: 16,
-            child: Text('◆', style: TextStyle(color: SajuGold.g500, fontSize: 9)),
+            child: Text(
+              '◆',
+              style: TextStyle(color: SajuGold.g500, fontSize: 9),
+            ),
           ),
           const Positioned(
             left: 18,
             bottom: 16,
-            child: Text('◆', style: TextStyle(color: SajuGold.g500, fontSize: 9)),
+            child: Text(
+              '◆',
+              style: TextStyle(color: SajuGold.g500, fontSize: 9),
+            ),
           ),
           const Positioned(
             right: 18,
             bottom: 16,
-            child: Text('◆', style: TextStyle(color: SajuGold.g500, fontSize: 9)),
+            child: Text(
+              '◆',
+              style: TextStyle(color: SajuGold.g500, fontSize: 9),
+            ),
           ),
           Positioned(
             top: small ? 22 : 34,
@@ -446,7 +541,11 @@ class SajuSealedCard extends StatelessWidget {
           Opacity(
             opacity: 0.55,
             child: IgnorePointer(
-              child: SajuBagua(size: width * 0.7, speedSeconds: 200, intensity: 0.8),
+              child: SajuBagua(
+                size: width * 0.7,
+                speedSeconds: 200,
+                intensity: 0.8,
+              ),
             ),
           ),
           // 금빛 밀봉 라인 — 열림 시 좌우로 갈라짐.
@@ -524,7 +623,10 @@ class SajuSealedCard extends StatelessWidget {
                       stops: [0.0, 0.45, 1.0],
                     ),
                     boxShadow: [
-                      BoxShadow(color: SajuGold.g300.withValues(alpha: 0.6), blurRadius: 24),
+                      BoxShadow(
+                        color: SajuGold.g300.withValues(alpha: 0.6),
+                        blurRadius: 24,
+                      ),
                     ],
                   ),
                   alignment: Alignment.center,
@@ -579,7 +681,11 @@ class _DashedRRectPainter extends CustomPainter {
       Rect.fromLTWH(0, 0, size.width, size.height),
       Radius.circular(radius),
     );
-    final path = _dashPath(Path()..addRRect(rrect), dashLength: 4, gapLength: 4);
+    final path = _dashPath(
+      Path()..addRRect(rrect),
+      dashLength: 4,
+      gapLength: 4,
+    );
     canvas.drawPath(
       path,
       Paint()
@@ -694,7 +800,11 @@ class _SajuSceneBgState extends State<SajuSceneBg>
                 builder: (context, _) {
                   return CustomPaint(
                     size: Size.infinite,
-                    painter: _scenePainterFor(widget.scene, tint, _controller.value),
+                    painter: _scenePainterFor(
+                      widget.scene,
+                      tint,
+                      _controller.value,
+                    ),
                   );
                 },
               ),
@@ -798,8 +908,22 @@ class _SceneTalentPainter extends _SceneBasePainter {
 
     final path = Path()
       ..moveTo(p(20, 250).dx, p(20, 250).dy)
-      ..cubicTo(p(120, 240).dx, p(120, 240).dy, p(160, 150).dx, p(160, 150).dy, p(250, 130).dx, p(250, 130).dy)
-      ..cubicTo(p(300, 120).dx, p(300, 120).dy, p(360, 110).dx, p(360, 110).dy, p(370, 70).dx, p(370, 70).dy);
+      ..cubicTo(
+        p(120, 240).dx,
+        p(120, 240).dy,
+        p(160, 150).dx,
+        p(160, 150).dy,
+        p(250, 130).dx,
+        p(250, 130).dy,
+      )
+      ..cubicTo(
+        p(300, 120).dx,
+        p(300, 120).dy,
+        p(360, 110).dx,
+        p(360, 110).dy,
+        p(370, 70).dx,
+        p(370, 70).dy,
+      );
     canvas.drawPath(
       path,
       Paint()
@@ -809,7 +933,11 @@ class _SceneTalentPainter extends _SceneBasePainter {
         ..shader = LinearGradient(
           begin: Alignment.bottomLeft,
           end: Alignment.topRight,
-          colors: [tint.withValues(alpha: 0), tint.withValues(alpha: 0.7), Colors.white],
+          colors: [
+            tint.withValues(alpha: 0),
+            tint.withValues(alpha: 0.7),
+            Colors.white,
+          ],
           stops: const [0.0, 0.6, 1.0],
         ).createShader(Rect.fromLTWH(0, 0, size.width, size.height)),
     );
@@ -825,7 +953,11 @@ class _SceneTalentPainter extends _SceneBasePainter {
     final tickPaint = Paint()
       ..style = PaintingStyle.stroke
       ..color = tint.withValues(alpha: 0.2);
-    for (final pos in const [[80.0, 280.0], [200.0, 290.0], [320.0, 286.0]]) {
+    for (final pos in const [
+      [80.0, 280.0],
+      [200.0, 290.0],
+      [320.0, 286.0],
+    ]) {
       canvas.drawLine(p(pos[0], pos[1]), p(pos[0] + 30, pos[1] - 4), tickPaint);
     }
   }
@@ -843,7 +975,12 @@ class _SceneLovePainter extends _SceneBasePainter {
 
     final path = Path()
       ..moveTo(p(110, 110).dx, p(110, 110).dy)
-      ..quadraticBezierTo(p(200, 190).dx, p(200, 190).dy, p(300, 90).dx, p(300, 90).dy);
+      ..quadraticBezierTo(
+        p(200, 190).dx,
+        p(200, 190).dy,
+        p(300, 90).dx,
+        p(300, 90).dy,
+      );
     canvas.drawPath(
       path,
       Paint()
@@ -852,7 +989,10 @@ class _SceneLovePainter extends _SceneBasePainter {
         ..color = tint.withValues(alpha: 0.7),
     );
 
-    for (final spec in const [[110.0, 110.0, 5.0, 3.0], [300.0, 90.0, 6.0, 4.0]]) {
+    for (final spec in const [
+      [110.0, 110.0, 5.0, 3.0],
+      [300.0, 90.0, 6.0, 4.0],
+    ]) {
       final c = p(spec[0], spec[1]);
       final baseR = spec[2] * math.min(sx, sy);
       canvas.drawCircle(
@@ -860,7 +1000,8 @@ class _SceneLovePainter extends _SceneBasePainter {
         baseR * 4,
         Paint()..color = tint.withValues(alpha: 0.08),
       );
-      final pulse = 0.7 + 0.3 * (0.5 - 0.5 * math.cos(t * 2 * math.pi * spec[3]));
+      final pulse =
+          0.7 + 0.3 * (0.5 - 0.5 * math.cos(t * 2 * math.pi * spec[3]));
       canvas.drawCircle(
         c,
         baseR * pulse,
@@ -885,10 +1026,18 @@ class _SceneLifePainter extends _SceneBasePainter {
       22 * math.min(sx, sy),
       Paint()..color = tint.withValues(alpha: 0.85),
     );
-    canvas.drawCircle(p(318, 64), 20 * math.min(sx, sy), Paint()..color = SajuInk.i850);
+    canvas.drawCircle(
+      p(318, 64),
+      20 * math.min(sx, sy),
+      Paint()..color = SajuInk.i850,
+    );
 
     Path ridge(List<List<double>> pts) {
-      final path = Path()..moveTo(p(pts.first[0], pts.first[1]).dx, p(pts.first[0], pts.first[1]).dy);
+      final path = Path()
+        ..moveTo(
+          p(pts.first[0], pts.first[1]).dx,
+          p(pts.first[0], pts.first[1]).dy,
+        );
       for (final pt in pts.skip(1)) {
         path.lineTo(p(pt[0], pt[1]).dx, p(pt[0], pt[1]).dy);
       }
@@ -899,18 +1048,47 @@ class _SceneLifePainter extends _SceneBasePainter {
     }
 
     canvas.drawPath(
-      ridge(const [[0, 230], [60, 190], [110, 215], [180, 160], [240, 205], [300, 175], [402, 225]]),
+      ridge(const [
+        [0, 230],
+        [60, 190],
+        [110, 215],
+        [180, 160],
+        [240, 205],
+        [300, 175],
+        [402, 225],
+      ]),
       Paint()..color = const Color(0xFF1D1C22),
     );
     canvas.drawPath(
-      ridge(const [[0, 260], [80, 232], [150, 250], [230, 220], [320, 248], [402, 236]]),
+      ridge(const [
+        [0, 260],
+        [80, 232],
+        [150, 250],
+        [230, 220],
+        [320, 248],
+        [402, 236],
+      ]),
       Paint()..color = const Color(0xFF17161B),
     );
 
     final trail = Path()
       ..moveTo(p(40, 300).dx, p(40, 300).dy)
-      ..cubicTo(p(120, 270).dx, p(120, 270).dy, p(150, 248).dx, p(150, 248).dy, p(200, 240).dx, p(200, 240).dy)
-      ..cubicTo(p(250, 234).dx, p(250, 234).dy, p(280, 226).dx, p(280, 226).dy, p(300, 214).dx, p(300, 214).dy);
+      ..cubicTo(
+        p(120, 270).dx,
+        p(120, 270).dy,
+        p(150, 248).dx,
+        p(150, 248).dy,
+        p(200, 240).dx,
+        p(200, 240).dy,
+      )
+      ..cubicTo(
+        p(250, 234).dx,
+        p(250, 234).dy,
+        p(280, 226).dx,
+        p(280, 226).dy,
+        p(300, 214).dx,
+        p(300, 214).dy,
+      );
     final dashed = _dashPath(trail, dashLength: 3, gapLength: 4);
     canvas.drawPath(
       dashed,
@@ -919,8 +1097,15 @@ class _SceneLifePainter extends _SceneBasePainter {
         ..strokeWidth = 1
         ..color = tint.withValues(alpha: 0.5),
     );
-    canvas.drawLine(p(300, 214), p(300, 200), Paint()..color = tint.withValues(alpha: 0.7));
-    canvas.drawRect(Rect.fromLTWH(p(300, 200).dx, p(300, 200).dy, 12 * sx, 6 * sy), Paint()..color = tint.withValues(alpha: 0.7));
+    canvas.drawLine(
+      p(300, 214),
+      p(300, 200),
+      Paint()..color = tint.withValues(alpha: 0.7),
+    );
+    canvas.drawRect(
+      Rect.fromLTWH(p(300, 200).dx, p(300, 200).dy, 12 * sx, 6 * sy),
+      Paint()..color = tint.withValues(alpha: 0.7),
+    );
   }
 }
 
@@ -940,13 +1125,22 @@ class _SceneGuinPainter extends _SceneBasePainter {
       90 * math.min(sx, sy) * flicker,
       Paint()..color = tint.withValues(alpha: 0.5 * flicker),
     );
-    canvas.drawLine(p(290, 70), p(290, 112), Paint()..color = tint.withValues(alpha: 0.5));
+    canvas.drawLine(
+      p(290, 70),
+      p(290, 112),
+      Paint()..color = tint.withValues(alpha: 0.5),
+    );
 
     final body = Path()
       ..moveTo(p(276, 112).dx, p(276, 112).dy)
       ..lineTo(p(304, 112).dx, p(304, 112).dy)
       ..lineTo(p(308, 150).dx, p(308, 150).dy)
-      ..quadraticBezierTo(p(290, 160).dx, p(290, 160).dy, p(272, 150).dx, p(272, 150).dy)
+      ..quadraticBezierTo(
+        p(290, 160).dx,
+        p(290, 160).dy,
+        p(272, 150).dx,
+        p(272, 150).dy,
+      )
       ..close();
     canvas.drawPath(body, Paint()..color = tint.withValues(alpha: 0.25));
     canvas.drawPath(
@@ -957,7 +1151,11 @@ class _SceneGuinPainter extends _SceneBasePainter {
     );
 
     canvas.drawOval(
-      Rect.fromCenter(center: p(290, 134), width: 12 * sx * flicker, height: 18 * sy * flicker),
+      Rect.fromCenter(
+        center: p(290, 134),
+        width: 12 * sx * flicker,
+        height: 18 * sy * flicker,
+      ),
       Paint()..color = const Color(0xFFFFF8DD),
     );
 
@@ -969,7 +1167,10 @@ class _SceneGuinPainter extends _SceneBasePainter {
           width: 520 * sx,
           height: 28 * sy,
         ),
-        Paint()..color = SajuGold.g100.withValues(alpha: (0.035 + i * 0.01) * (0.6 + 0.4 * fog)),
+        Paint()
+          ..color = SajuGold.g100.withValues(
+            alpha: (0.035 + i * 0.01) * (0.6 + 0.4 * fog),
+          ),
       );
     }
   }
@@ -1057,11 +1258,19 @@ class _GuideAvatarPainter extends CustomPainter {
       ..color = SajuText.fg.withValues(alpha: 0.04)
       ..strokeWidth = 4;
     for (double x = -size.height; x < size.width + size.height; x += 8) {
-      canvas.drawLine(Offset(x, size.height), Offset(x + size.height, 0), hatchPaint);
+      canvas.drawLine(
+        Offset(x, size.height),
+        Offset(x + size.height, 0),
+        hatchPaint,
+      );
     }
     canvas.restore();
 
-    final dashed = _dashPath(Path()..addOval(rect.deflate(0.5)), dashLength: 3, gapLength: 3);
+    final dashed = _dashPath(
+      Path()..addOval(rect.deflate(0.5)),
+      dashLength: 3,
+      gapLength: 3,
+    );
     canvas.drawPath(
       dashed,
       Paint()
@@ -1080,8 +1289,8 @@ class _GuideAvatarPainter extends CustomPainter {
 class SajuWebScrollBehavior extends MaterialScrollBehavior {
   @override
   Set<PointerDeviceKind> get dragDevices => {
-        PointerDeviceKind.touch,
-        PointerDeviceKind.mouse,
-        PointerDeviceKind.trackpad,
-      };
+    PointerDeviceKind.touch,
+    PointerDeviceKind.mouse,
+    PointerDeviceKind.trackpad,
+  };
 }
