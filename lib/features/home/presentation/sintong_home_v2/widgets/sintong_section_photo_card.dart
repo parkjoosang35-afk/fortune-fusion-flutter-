@@ -12,6 +12,14 @@ library;
 import 'package:flutter/material.dart';
 
 /// 포토 카드 1장의 데이터 — 섹션명/이미지/버튼 틴트/탭 콜백.
+///
+/// [onTap]이 [BuildContext]를 받는 이유: 정통사주 카드는 docs/03 §00
+/// "구현은 카드 중심 좌표를 원점으로" 요구사항에 따라 이 카드 자신의
+/// 화면상 중심 좌표([sajuCardCenterOf])가 필요한데, 이 좌표는 이 카드를
+/// 그리는 [_SectionPhotoCard]의 context에서만 구할 수 있다(그리드를
+/// 만드는 부모 context로는 개별 카드 위치를 알 수 없다). 그래서 콜백을
+/// `VoidCallback` 대신 `void Function(BuildContext)`로 받아 각 카드가
+/// 자신의 context를 그대로 넘겨주게 한다.
 class SHomeV2PhotoCard {
   const SHomeV2PhotoCard({
     required this.title,
@@ -23,7 +31,7 @@ class SHomeV2PhotoCard {
   final String title;
   final String asset;
   final Color tint;
-  final VoidCallback onTap;
+  final void Function(BuildContext context) onTap;
 }
 
 /// 2열 그리드, gap 9px, 카드 비율 1:0.82 — README "레이아웃" 표 그대로.
@@ -102,7 +110,7 @@ class _SectionPhotoCardState extends State<_SectionPhotoCard>
       child: SlideTransition(
         position: _slide,
         child: GestureDetector(
-          onTap: card.onTap,
+          onTap: () => card.onTap(context),
           onTapDown: (_) => setState(() => _pressed = true),
           onTapCancel: () => setState(() => _pressed = false),
           onTapUp: (_) => setState(() => _pressed = false),

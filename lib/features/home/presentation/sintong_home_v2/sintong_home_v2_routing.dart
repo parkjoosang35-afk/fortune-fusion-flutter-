@@ -27,6 +27,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/router/app_router.dart' show AppRouter;
 import '../../../pass/presentation/pass_gate_helper.dart';
+import '../../../saju_renewal/navigation/saju_dimension_transition.dart';
 import '../../../wishroom/features/intro/wish_room_intro_screen.dart';
 import '../../../guinji/presentation/guinji_landing_screen.dart';
 import 'sintong_home_v2_data.dart';
@@ -36,7 +37,16 @@ import 'widgets/sintong_section_photo_card.dart';
 /// 카테고리를 눌렀을 때 이동할 실제 기존 화면. v1 home_screen.dart의
 /// `_buildServiceSpecs()` onTap과 완전히 동일한 목적지를 그대로
 /// 재사용한다(신규 화면 없음).
-void openSubScreen(BuildContext context, SHomeV2Category category) {
+///
+/// [tapPosition] — docs/03 §00 "진입 전환" 전용 파라미터. 정통사주
+/// 카테고리를 탭한 지점의 전역 좌표를 넘기면 `/saju-renewal` 라우트가
+/// 그 지점을 원점으로 원형 확산 전환을 재생한다(app_router.dart 참고).
+/// 다른 카테고리에는 영향 없음(해당 사항 없으면 무시됨).
+void openSubScreen(
+  BuildContext context,
+  SHomeV2Category category, {
+  Offset? tapPosition,
+}) {
   switch (category) {
     case SHomeV2Category.guide:
       // 귀인지도 — 기존 홈 스토리히어로/귀인지도 CTA와 동일한 목적지.
@@ -46,7 +56,7 @@ void openSubScreen(BuildContext context, SHomeV2Category category) {
     case SHomeV2Category.saju:
       // [신통방통 정통사주 리뉴얼] 정통사주 — 유일한 신규 정통사주(saju_renewal)로
       // 연결한다(구 69종 매트릭스 게이트는 제거됨).
-      Navigator.of(context).pushNamed('/saju-renewal');
+      Navigator.of(context).pushNamed('/saju-renewal', arguments: tapPosition);
     case SHomeV2Category.tarot:
       // 타로 — 기존 서비스카드와 동일: 타로 인트로 화면.
       Navigator.of(context).pushNamed(AppRouter.tarotIntroRoute);
@@ -135,41 +145,52 @@ const List<SHomeV2SheetCard> sHomeV2SheetCards = [
 /// 2열×3행 포토 카드(사진이 카드 전체를 채우는 디자인)에 쓰이는 데이터.
 /// 순서/틴트/이미지는 README.md "섹션 매핑" 표 그대로이며, 탭 목적지는
 /// 위 [sHomeV2SheetCards]와 완전히 동일한 기존 라우트를 재사용한다.
+///
+/// [onTap 시그니처] 각 카드가 자신을 그리는 위젯의 [BuildContext]를
+/// 받는다(최상위 그리드 context가 아님) — 정통사주 카드가 docs/03 §00
+/// "구현은 카드 중심 좌표를 원점으로" 요구사항에 맞춰 자신의 화면상
+/// 중심 좌표([sajuCardCenterOf])를 구할 수 있어야 하기 때문이다. 나머지
+/// 카드는 이 인자를 그냥 전달만 하면 되므로(기존 `context`와 사실상
+/// 동일하게 동작) 동작 변화가 없다.
 List<SHomeV2PhotoCard> buildSHomeV2PhotoCards(BuildContext context) => [
   SHomeV2PhotoCard(
     title: '소원방',
     asset: 'assets/images/sintong_home_v2/sections/section-wish.png',
     tint: const Color(0xFFF3B3C8),
-    onTap: () => openSubScreen(context, SHomeV2Category.wish),
+    onTap: (ctx) => openSubScreen(ctx, SHomeV2Category.wish),
   ),
   SHomeV2PhotoCard(
     title: '타로',
     asset: 'assets/images/sintong_home_v2/sections/section-tarot.png',
     tint: const Color(0xFFD6B4F2),
-    onTap: () => openSubScreen(context, SHomeV2Category.tarot),
+    onTap: (ctx) => openSubScreen(ctx, SHomeV2Category.tarot),
   ),
   SHomeV2PhotoCard(
     title: '정통사주',
     asset: 'assets/images/sintong_home_v2/sections/section-saju.png',
     tint: const Color(0xFFF5CF6A),
-    onTap: () => openSubScreen(context, SHomeV2Category.saju),
+    onTap: (ctx) => openSubScreen(
+      ctx,
+      SHomeV2Category.saju,
+      tapPosition: sajuCardCenterOf(ctx),
+    ),
   ),
   SHomeV2PhotoCard(
     title: '귀인지도',
     asset: 'assets/images/sintong_home_v2/sections/section-guide.png',
     tint: const Color(0xFFF3B3C8),
-    onTap: () => openSubScreen(context, SHomeV2Category.guide),
+    onTap: (ctx) => openSubScreen(ctx, SHomeV2Category.guide),
   ),
   SHomeV2PhotoCard(
     title: '관상',
     asset: 'assets/images/sintong_home_v2/sections/section-face.png',
     tint: const Color(0xFFF6E2BF),
-    onTap: () => openFaceReading(context),
+    onTap: (ctx) => openFaceReading(ctx),
   ),
   SHomeV2PhotoCard(
     title: '손금',
     asset: 'assets/images/sintong_home_v2/sections/section-palm.png',
     tint: const Color(0xFFBFE6CF),
-    onTap: () => openPalmReading(context),
+    onTap: (ctx) => openPalmReading(ctx),
   ),
 ];

@@ -26,6 +26,7 @@
 // ═══════════════════════════════════════════════════════════════
 import 'package:flutter/material.dart';
 
+import '../../../../saju_renewal/navigation/saju_dimension_transition.dart';
 import '../../sintong_home/widgets/sintong_free_pass_bar.dart';
 import '../sintong_home_v2_data.dart';
 import '../sintong_home_v2_routing.dart';
@@ -64,9 +65,8 @@ class _SintongV2SheetState extends State<SintongV2Sheet> {
                   color: Colors.transparent,
                   child: InkWell(
                     borderRadius: BorderRadius.circular(8),
-                    onTap: () => Navigator.of(
-                      context,
-                    ).pushNamed('/home/all-categories'),
+                    onTap: () =>
+                        Navigator.of(context).pushNamed('/home/all-categories'),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 6,
@@ -89,9 +89,7 @@ class _SintongV2SheetState extends State<SintongV2Sheet> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
-                    _isGrid
-                        ? Icons.view_list_rounded
-                        : Icons.grid_view_rounded,
+                    _isGrid ? Icons.view_list_rounded : Icons.grid_view_rounded,
                     size: 14,
                     color: Colors.white,
                   ),
@@ -102,9 +100,7 @@ class _SintongV2SheetState extends State<SintongV2Sheet> {
           const SizedBox(height: 8),
           _isGrid
               // [전체보기 6섹션 개편] 2열×3행 포토 카드 그리드로 교체.
-              ? SintongSectionPhotoGrid(
-                  cards: buildSHomeV2PhotoCards(context),
-                )
+              ? SintongSectionPhotoGrid(cards: buildSHomeV2PhotoCards(context))
               : Column(
                   children: [
                     for (int i = 0; i < sHomeV2SheetCards.length; i++) ...[
@@ -135,9 +131,18 @@ class _SheetCardListTile extends StatelessWidget {
   const _SheetCardListTile({required this.card});
   final SHomeV2SheetCard card;
 
+  // [디자인 핸드오프 00 셸 — 진입 전환] 정통사주 카드만 이 타일 자신의
+  // 중심 좌표(docs/03 §00 "구현은 카드 중심 좌표를 원점으로")를 함께
+  // 넘겨, `/saju-renewal`이 그 지점에서 원형 확산 전환을 재생하게 한다.
   void _onTap(BuildContext context) => card.customOnTap != null
       ? card.customOnTap!(context)
-      : openSubScreen(context, card.category!);
+      : openSubScreen(
+          context,
+          card.category!,
+          tapPosition: card.category == SHomeV2Category.saju
+              ? sajuCardCenterOf(context)
+              : null,
+        );
 
   @override
   Widget build(BuildContext context) {
@@ -162,9 +167,7 @@ class _SheetCardListTile extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 14),
-              Expanded(
-                child: Text(card.title, style: SHomeV2Text.cardTitle()),
-              ),
+              Expanded(child: Text(card.title, style: SHomeV2Text.cardTitle())),
               Container(
                 width: 32,
                 height: 32,

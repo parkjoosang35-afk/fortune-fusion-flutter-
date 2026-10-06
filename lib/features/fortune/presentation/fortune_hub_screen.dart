@@ -9,6 +9,7 @@ import '../../../core/widgets/premium_graphics.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
 import '../../pass/presentation/pass_time_format.dart';
+import '../../saju_renewal/navigation/saju_dimension_transition.dart';
 import '../../../core/router/app_router.dart' show AppRouter;
 
 /// [신통방통 정통사주 리뉴얼 — 기존 「AI 운세」 화면 정리] 운세탭(FortuneHubScreen)
@@ -192,17 +193,25 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
     _aiSection,
   ];
 
-  Future<void> _handleTap(_FortuneItem item) async {
+  // [디자인 핸드오프 00 셸 — 진입 전환] docs/03 §00 "구현은 카드 중심
+  // 좌표를 원점으로" — [cardContext]는 탭된 `_FortuneCategoryCard` 자신의
+  // context(Builder로 감싸 전달받음)이며, 정통사주 항목일 때만
+  // sajuCardCenterOf로 좌표를 구해 `/saju-renewal`에 넘긴다.
+  Future<void> _handleTap(_FortuneItem item, BuildContext cardContext) async {
     if (item.route == null) {
       AppToast.show(context, '${item.title} · 준비 중이에요! 곧 만나볼 수 있어요 🙏');
       return;
     }
     if (item.requiresPass) setState(() => _checking = true);
+    final arguments = item.route == '/saju-renewal'
+        ? sajuCardCenterOf(cardContext)
+        : null;
     await navigateWithPassGate(
       context,
       title: item.title,
       route: item.route!,
       requiresPass: item.requiresPass,
+      arguments: arguments,
     );
     if (mounted && item.requiresPass) setState(() => _checking = false);
   }
@@ -276,13 +285,21 @@ class _FortuneHubScreenState extends State<FortuneHubScreen> {
                                 ? 0
                                 : UnifiedTokens.spaceMd,
                           ),
-                          child: _FortuneCategoryCard(
-                            title: item.title,
-                            desc: item.desc,
-                            icon: item.icon,
-                            badgeLabel: badgeLabel,
-                            badgeType: badgeType,
-                            onTap: _checking ? null : () => _handleTap(item),
+                          // [디자인 핸드오프 00 셸 — 진입 전환] Builder로
+                          // 감싸 _FortuneCategoryCard 자신의 context를
+                          // 얻는다(부모 context로는 이 카드의 중심 좌표를
+                          // 구할 수 없다 — sajuCardCenterOf 참고).
+                          child: Builder(
+                            builder: (cardContext) => _FortuneCategoryCard(
+                              title: item.title,
+                              desc: item.desc,
+                              icon: item.icon,
+                              badgeLabel: badgeLabel,
+                              badgeType: badgeType,
+                              onTap: _checking
+                                  ? null
+                                  : () => _handleTap(item, cardContext),
+                            ),
                           ),
                         );
                       }),

@@ -17,6 +17,7 @@
 // ═══════════════════════════════════════════════════════════════
 import 'package:flutter/material.dart';
 
+import '../../../../saju_renewal/navigation/saju_dimension_transition.dart';
 import '../sintong_home_v2_data.dart';
 import '../sintong_home_v2_routing.dart';
 import '../sintong_home_v2_tokens.dart';
@@ -34,26 +35,45 @@ class SintongChipRow extends StatelessWidget {
         itemCount: sHeroOrder.length,
         separatorBuilder: (_, __) => const SizedBox(width: 5),
         itemBuilder: (context, index) {
-          return GestureDetector(
-            onTap: () => openSubScreen(context, sHeroOrder[index]),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: SHomeV2Colors.chipBg,
-                borderRadius: BorderRadius.circular(SHomeV2Radii.pill),
-                border: Border.all(
-                  color: SHomeV2Colors.chipBorder,
-                  width: 0.5,
-                ),
-              ),
-              child: Text(
-                sHeroOrder[index].chipLabel,
-                style: SHomeV2Text.chip(color: Colors.white),
-              ),
-            ),
-          );
+          return _SintongChip(category: sHeroOrder[index]);
         },
+      ),
+    );
+  }
+}
+
+/// 칩 1개 — [GestureDetector.onTap]에 전달되는 [context]는 이 칩 자신의
+/// context이므로, [sajuCardCenterOf]를 호출하면 바로 이 칩의 화면상 중심
+/// 좌표를 얻을 수 있다(정통사주 칩만 해당, docs/03 §00 "구현은 카드 중심
+/// 좌표를 원점으로" 요구사항 참고). 탭 지점이 아니라 칩(카드) 중심을
+/// 쓰므로 별도 상태 보관(StatefulWidget)이 필요 없다.
+class _SintongChip extends StatelessWidget {
+  const _SintongChip({required this.category});
+
+  final SHomeV2Category category;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => openSubScreen(
+        context,
+        category,
+        tapPosition: category == SHomeV2Category.saju
+            ? sajuCardCenterOf(context)
+            : null,
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: SHomeV2Colors.chipBg,
+          borderRadius: BorderRadius.circular(SHomeV2Radii.pill),
+          border: Border.all(color: SHomeV2Colors.chipBorder, width: 0.5),
+        ),
+        child: Text(
+          category.chipLabel,
+          style: SHomeV2Text.chip(color: Colors.white),
+        ),
       ),
     );
   }

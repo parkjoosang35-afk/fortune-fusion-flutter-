@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/web_ads/web_ad_config.dart';
 import '../../../core/web_ads/widgets/web_ad_vignette.dart';
+import '../navigation/saju_dimension_transition.dart';
 import '../state/saju_renewal_provider.dart';
 import '../theme/saju_dark_tokens.dart';
 import '../widgets/saju_base_widgets.dart';
@@ -49,69 +50,88 @@ class _SajuRenewalHomeScreenState extends State<SajuRenewalHomeScreen> {
     ).push(MaterialPageRoute(builder: (_) => const BirthInputScreen()));
   }
 
+  /// docs/03 §00 "복귀 전환(300ms)" — 01 → 00(앱 셸)로 돌아갈 때,
+  /// 즉시 pop하는 대신 다크 오버레이 페이드아웃(M-02)을 먼저 재생한다.
+  /// 뒤로가기 버튼(←)과 시스템 백(아래 [PopScope]) 양쪽 모두 이 경로를
+  /// 거치도록 통일한다.
+  Future<void> _exitWithReturnTransition(BuildContext context) async {
+    if (!Navigator.of(context).canPop()) return;
+    await playSajuReturnOverlayThenPop(context);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SajuDarkBase(
-        child: SafeArea(
-          child: Column(
-            children: [
-              // [웹 AdSense — STEP E] 정통사주 플로우 진입점에서 1회만
-              // Vignette(전면 전환) 페이지 레벨 광고를 트리거한다. 레이아웃
-              // 공간을 차지하지 않는 순수 트리거이므로 어디에 둬도 무해하다.
-              const WebAdVignette(surface: WebAdSurface.sajuRenewal),
-              SajuTopBar(
-                left: SajuIconButton(
-                  icon: '←',
-                  onTap: () => Navigator.of(context).maybePop(),
-                ),
-                title: 'SINTONG · 正統四柱',
-              ),
-              const SizedBox(height: 34),
-              Column(
-                children: [
-                  Text('정통사주', style: SajuType.hero),
-                  const SizedBox(height: 16),
-                  Text(
-                    '당신의 사주에는,\n어떤 이야기가 숨어 있을까요?',
-                    textAlign: TextAlign.center,
-                    style: SajuType.body16,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          _exitWithReturnTransition(context);
+        }
+      },
+      child: Scaffold(
+        body: SajuDarkBase(
+          child: SafeArea(
+            child: Column(
+              children: [
+                // [웹 AdSense — STEP E] 정통사주 플로우 진입점에서 1회만
+                // Vignette(전면 전환) 페이지 레벨 광고를 트리거한다. 레이아웃
+                // 공간을 차지하지 않는 순수 트리거이므로 어디에 둬도 무해하다.
+                const WebAdVignette(surface: WebAdSurface.sajuRenewal),
+                SajuTopBar(
+                  left: SajuIconButton(
+                    icon: '←',
+                    onTap: () => _exitWithReturnTransition(context),
                   ),
-                ],
-              ),
-              const Expanded(
-                child: Center(child: SajuBagua(size: 290, speedSeconds: 120)),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 46),
-                child: Stack(
-                  clipBehavior: Clip.none,
+                  title: 'SINTONG · 正統四柱',
+                ),
+                const SizedBox(height: 34),
+                Column(
                   children: [
-                    SajuButton(
-                      label: '내 사주 분석하기',
-                      onTap: () => _start(context),
+                    Text('정통사주', style: SajuType.hero),
+                    const SizedBox(height: 16),
+                    Text(
+                      '당신의 사주에는,\n어떤 이야기가 숨어 있을까요?',
+                      textAlign: TextAlign.center,
+                      style: SajuType.body16,
                     ),
-                    Positioned(
-                      right: -4,
-                      bottom: 118,
-                      child: AnimatedOpacity(
-                        opacity: _showGuide ? 1 : 0,
-                        duration: SajuMotion.card,
-                        child: AnimatedSlide(
-                          offset: _showGuide ? Offset.zero : const Offset(0, 0.08),
+                  ],
+                ),
+                const Expanded(
+                  child: Center(child: SajuBagua(size: 290, speedSeconds: 120)),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 46),
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      SajuButton(
+                        label: '내 사주 분석하기',
+                        onTap: () => _start(context),
+                      ),
+                      Positioned(
+                        right: -4,
+                        bottom: 118,
+                        child: AnimatedOpacity(
+                          opacity: _showGuide ? 1 : 0,
                           duration: SajuMotion.card,
-                          child: IgnorePointer(
-                            child: SajuGuidePlaceholder(
-                              text: '어서 오세요. 여기부터는 당신의 여덟 글자가\n이야기를 들려줄 거예요.',
+                          child: AnimatedSlide(
+                            offset: _showGuide
+                                ? Offset.zero
+                                : const Offset(0, 0.08),
+                            duration: SajuMotion.card,
+                            child: IgnorePointer(
+                              child: SajuGuidePlaceholder(
+                                text: '어서 오세요. 여기부터는 당신의 여덟 글자가\n이야기를 들려줄 거예요.',
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

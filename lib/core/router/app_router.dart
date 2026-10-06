@@ -95,6 +95,7 @@ import '../../features/share/presentation/shared_result_screen.dart';
 // 기존 jeontong_eighty UI는 삭제되었으며, 구 라우트들은 모두 이 화면으로
 // legacy redirect 처리된다.
 import '../../features/saju_renewal/screens/saju_renewal_home_screen.dart';
+import '../../features/saju_renewal/navigation/saju_dimension_transition.dart';
 import 'package:provider/provider.dart';
 import 'app_navigator_key.dart';
 
@@ -461,8 +462,26 @@ class AppRouter {
       // interpret)는 무수정, 이 라우트는 그 결과를 소비하는 클라이언트
       // 화면(SajuRenewalHomeScreen)만 연결한다. 기존 saju_v3('/saju/v3',
       // 69종 그리드)와 완전히 별개이며 그 라우트/화면은 무수정.
+      //
+      // [디자인 핸드오프 00 셸 — 진입 전환] docs/03 §00 "진입 전환(300ms,
+      // ease.dimension)": 셸 화면 위에 01 화면이 "탭 지점을 원점으로"
+      // 원형 확산한다. 정통사주로 들어가는 진입점은 홈탭 칩/시트카드,
+      // 운세탭 카드, 전체보기 그리드, 마이페이지, 딥링크 등 여러 곳에
+      // 흩어져 있으므로(단일 "진입 카드" 하나가 아님), 각 호출부를 일일이
+      // 고치지 않고 이 라우트 한 곳에서 전환을 공통 적용한다. 호출부가
+      // `pushNamed('/saju-renewal', arguments: tapOffset)`처럼 탭 지점의
+      // 전역 좌표(Offset)를 넘기면 그 지점에서, 넘기지 않으면(기존 호출부
+      // 대부분) 문서가 명시한 기본값(가로 중앙, 세로 62%)에서 확산한다.
       case '/saju-renewal':
-        return _page(const SajuRenewalHomeScreen());
+        {
+          final origin = settings.arguments is Offset
+              ? settings.arguments as Offset
+              : null;
+          return sajuDimensionEnterRoute(
+            (_) => const SajuRenewalHomeScreen(),
+            origin: origin,
+          );
+        }
 
       // ── [운섹션 87 카테고리 통합] 공용 결과 화면 ──
       // 전용 화면이 아직 없는 카테고리(K/V/O 일부/X/G/B/D/R)의 단일 진입점.
