@@ -4,7 +4,6 @@ import '../../../core/web_ads/web_ad_config.dart';
 import '../../../core/web_ads/widgets/web_ad_banner.dart';
 import '../../auth/application/auth_provider.dart';
 import '../../auth/domain/user_model.dart';
-import '../../result_access/presentation/result_access_gate_sheet.dart';
 import '../data/models/topic_card.dart';
 import '../data/saju_term_dictionary.dart';
 import '../data/saju_visual_adapter.dart';
@@ -12,6 +11,7 @@ import '../state/saju_renewal_provider.dart';
 import '../theme/saju_dark_tokens.dart';
 import '../widgets/saju_base_widgets.dart';
 import '../widgets/saju_story_widgets.dart';
+import '../widgets/saju_result_access_gate_sheet.dart';
 import 'story_detail_screen.dart';
 import 'error_screen.dart';
 
@@ -20,14 +20,13 @@ import 'error_screen.dart';
 /// 재현한다 — "다른 사주 이야기" 선택 후 두 번째 이후 이야기(화면⑨)도
 /// 조명(SceneBg)만 바뀔 뿐 동일 화면을 재사용한다(지시서 §범위).
 ///
-/// [Access Gate — 절대 신규 위젯 금지] "자세히보기"를 누르면 기존
-/// [showResultAccessGateSheet]를 그대로 재사용한다(Wallet/복주머니/
-/// AdMob/FreePass/ResultAccessGate 전부 재사용, 신규 생성 금지 —
-/// 지시서 §Access Gate 요구사항). JSX 원안은 이 화면 하단에 "광고로
-/// 보기"/"복주머니로 보기" 두 버튼을 직접 노출하지만, 실제 결제수단
-/// 선택(프리패스/복주머니/광고/쿠팡)은 이미 [ResultAccessGateSheet] 내부
-/// 바텀시트가 전담하므로 — 그 책임을 중복 구현하지 않고 기존 설계
-/// 그대로 "자세히 보기" 단일 버튼만 다크 스타일로 재스킨한다.
+/// [Access Gate — docs/10 §2 "로직 재사용, 외형은 C-12로 교체 필수"]
+/// "자세히보기"를 누르면 [showSajuResultAccessGateSheet]를 띄운다. 이
+/// 시트는 기존 [ResultAccessProvider](quote/begin/광고/쿠팡 로직)를
+/// 100% 그대로 호출하되, 외형만 C-12/화면06 사양(다크 바텀시트·인용
+/// 마스킹 카드·GateOption 3행·금빛 프리패스 인장)으로 새로 그린
+/// 것이다 — 기존 라이트 테마 [ResultAccessGateSheet]를 그대로 띄우면
+/// 디자인 검수 반려 사유이므로(docs/12 확인②) 더는 사용하지 않는다.
 class StoryPreviewScreen extends StatefulWidget {
   const StoryPreviewScreen({super.key});
 
@@ -70,18 +69,35 @@ class _StoryPreviewScreenState extends State<StoryPreviewScreen> {
     );
   }
 
+  /// `[[termKey|쉬운 표현]]` 마크업을 제거하고 마지막 문장만 뽑아 인용
+  /// 카드(C-06-8)에 쓴다 — E-25 "마크업 깨짐" 처리 원칙과 동일하게 원문
+  /// 그대로 노출하지 않는다.
+  String? _extractLastSentence(String? summary) {
+    if (summary == null || summary.isEmpty) return null;
+    final plain = summary.replaceAllMapped(
+      RegExp(r'\[\[([^|\]]+)\|([^\]]+)\]\]'),
+      (m) => m.group(2) ?? '',
+    );
+    final sentences = plain
+        .split(RegExp(r'(?<=[.!?。？])\s+'))
+        .where((s) => s.trim().isNotEmpty)
+        .toList();
+    if (sentences.isEmpty) return plain.trim();
+    return sentences.last.trim();
+  }
+
   Future<void> _openAccessGate() async {
     if (_gateOpening) return; // [중복클릭 방어]
     setState(() => _gateOpening = true);
     final provider = context.read<SajuRenewalProvider>();
     final topic = provider.currentTopic;
+    final previewData = provider.previewState.data;
 
-    final beginResult = await showResultAccessGateSheet(
+    final beginResult = await showSajuResultAccessGateSheet(
       context,
-      contentType: 'saju_renewal',
-      categoryKey: 'saju_renewal',
       contentId: topic?.topicId,
       contentTitle: topic?.title ?? '사주 이야기',
+      quoteText: _extractLastSentence(previewData?.summary),
       returnRoute: '/saju-renewal',
     );
 
