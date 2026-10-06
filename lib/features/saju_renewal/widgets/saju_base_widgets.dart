@@ -37,8 +37,7 @@ class _SajuStarFieldState extends State<SajuStarField>
     )..repeat();
     _stars = List.generate(widget.count, (i) {
       double r(int n) {
-        final v =
-            math.sin((i + 1) * 12.9898 * (n + widget.seed)) * 43758.5453;
+        final v = math.sin((i + 1) * 12.9898 * (n + widget.seed)) * 43758.5453;
         return (v - v.floorToDouble());
       }
 
@@ -191,11 +190,7 @@ class SajuTopBar extends StatelessWidget {
 
 /// 원형 아이콘 버튼(sj-icon-btn).
 class SajuIconButton extends StatelessWidget {
-  const SajuIconButton({
-    super.key,
-    required this.icon,
-    required this.onTap,
-  });
+  const SajuIconButton({super.key, required this.icon, required this.onTap});
 
   final String icon;
   final VoidCallback onTap;
@@ -258,27 +253,55 @@ class _SajuButtonState extends State<SajuButton> {
     Color fg;
     Border? border;
     List<BoxShadow>? shadow;
+    // B-1(docs/08_QA_체크리스트.md) / docs/01_디자인토큰.md §2-2 `T-cta`
+    // ("Gowun Batang 700 16 −0.01em, 모든 CTA") · docs/02_컴포넌트.md
+    // C-01(Primary/Secondary 텍스트 = T-cta) · 원본
+    // `design_files/saju/saju-tokens.css` `.sj-btn`(font-family:
+    // var(--font-body)=Gowun Batang) — Primary/Secondary는 Gowun
+    // Batang 700 16을 쓴다. 단, Ghost는 원본
+    // `design_files/saju/screens-b.jsx`(↻ 새로운 이야기 버튼)가
+    // 인라인으로 `fontFamily: Pretendard, fontWeight: 500, fontSize:
+    // 14`를 명시적으로 오버라이드하므로 Ghost만 Pretendard 500 14를
+    // 쓴다(docs/02 C-01 Ghost 행: "Pretendard 500 14"와 일치).
+    String labelFontFamily;
+    FontWeight labelFontWeight;
+    double labelFontSize;
     switch (widget.variant) {
       case SajuButtonVariant.primary:
         bg = SajuGold.g100;
         fg = SajuInk.i900;
         shadow = [
-          BoxShadow(color: SajuGold.glow, blurRadius: 24, offset: const Offset(0, 4)),
+          BoxShadow(
+            color: SajuGold.glow,
+            blurRadius: 24,
+            offset: const Offset(0, 4),
+          ),
         ];
+        labelFontFamily = SajuType.body;
+        labelFontWeight = FontWeight.w700;
+        labelFontSize = 16;
         break;
       case SajuButtonVariant.secondary:
         bg = SajuText.card;
         fg = SajuText.fg;
         border = Border.all(color: SajuText.lineGold);
+        labelFontFamily = SajuType.body;
+        labelFontWeight = FontWeight.w700;
+        labelFontSize = 16;
         break;
       case SajuButtonVariant.ghost:
         bg = Colors.transparent;
         fg = SajuText.muted;
         border = Border.all(color: SajuText.line);
+        labelFontFamily = SajuType.ui;
+        labelFontWeight = FontWeight.w500;
+        labelFontSize = 14;
         break;
     }
     return Opacity(
-      opacity: disabled && widget.variant != SajuButtonVariant.primary ? 0.6 : 1,
+      opacity: disabled && widget.variant != SajuButtonVariant.primary
+          ? 0.6
+          : 1,
       child: GestureDetector(
         onTapDown: disabled ? null : (_) => setState(() => _pressed = true),
         onTapCancel: () => setState(() => _pressed = false),
@@ -304,7 +327,10 @@ class _SajuButtonState extends State<SajuButton> {
                 ? SizedBox(
                     width: 22,
                     height: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2.5, color: fg),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: fg,
+                    ),
                   )
                 : Row(
                     mainAxisSize: MainAxisSize.min,
@@ -316,10 +342,13 @@ class _SajuButtonState extends State<SajuButton> {
                       Text(
                         widget.label,
                         style: TextStyle(
-                          fontFamily: SajuType.ui,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16,
-                          letterSpacing: -0.16,
+                          fontFamily: labelFontFamily,
+                          fontWeight: labelFontWeight,
+                          fontSize: labelFontSize,
+                          letterSpacing:
+                              widget.variant == SajuButtonVariant.ghost
+                              ? 0
+                              : -0.16, // T-cta 자간 −0.01em(16px 기준)
                           color: fg,
                         ),
                       ),
