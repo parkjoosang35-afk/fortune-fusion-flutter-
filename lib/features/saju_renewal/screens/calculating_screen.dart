@@ -257,265 +257,282 @@ class _CalculatingScreenState extends State<CalculatingScreen>
               .reduce((a, b) => a > b ? a : b)
               .clamp(0.0001, 1000);
 
-    return Scaffold(
-      body: SajuDarkBase(
-        child: SafeArea(
-          child: Column(
-            children: [
-              SajuTopBar(
-                title:
-                    'ANALYSIS · ${displayStep.toString().padLeft(2, '0')} / 09',
-              ),
-              Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final cx = constraints.maxWidth / 2;
-                    final cy = constraints.maxHeight * 0.4;
-                    Widget anchored(Offset o, Widget child) {
-                      return Positioned(
-                        left: cx + o.dx,
-                        top: cy + o.dy,
-                        child: FractionalTranslation(
-                          translation: const Offset(-0.5, -0.5),
-                          child: child,
-                        ),
-                      );
-                    }
-
-                    // E-30(docs/07) — 작은 화면(높이 < 700): "03: 스테이지
-                    // 전체 scale (높이/874)". 기준 기기(402×874) 대비
-                    // 실제 화면 높이가 700pt 미만이면 전체 세레모니
-                    // 스테이지(이 Stack)를 화면 높이/874 비율로 축소해,
-                    // 작은 기기에서도 오브제가 잘려나가지 않게 한다.
-                    // 700pt 이상(일반 기기)에서는 scale=1로 기존과 동일.
-                    final screenHeight = MediaQuery.sizeOf(context).height;
-                    final stageScale = screenHeight < 700
-                        ? (screenHeight / 874).clamp(0.5, 1.0)
-                        : 1.0;
-
-                    final stage = Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        // 팔괘 오브제 = 진행 인디케이터.
-                        anchored(
-                          Offset.zero,
-                          AnimatedOpacity(
-                            opacity: step <= 1 ? 1 : (condense ? 0 : 0.32),
-                            duration: const Duration(milliseconds: 1200),
-                            child: SajuBagua(
-                              size: step <= 1 ? 300 : 360,
-                              speedSeconds: step <= 1 ? 30 : 60,
-                              lit: step.clamp(0, 8),
-                              intensity: 1.1,
-                            ),
+    // E-22(docs/07) / C-03a(docs/08) — "03 중 시스템 뒤로가기: 무시
+    // (스킵 불가)". 01(SajuRenewalHomeScreen)과 달리 03에서는 뒤로가기를
+    // 가로챈 뒤 아무 동작도 하지 않는다(복귀 전환 없음, 화면 유지) —
+    // 분석 세레모니를 사용자가 임의로 건너뛸 수 없게 한다.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        // 의도적으로 아무 동작도 하지 않음 — "무시(스킵 불가)".
+      },
+      child: Scaffold(
+        body: SajuDarkBase(
+          child: SafeArea(
+            child: Column(
+              children: [
+                SajuTopBar(
+                  title:
+                      'ANALYSIS · ${displayStep.toString().padLeft(2, '0')} / 09',
+                ),
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final cx = constraints.maxWidth / 2;
+                      final cy = constraints.maxHeight * 0.4;
+                      Widget anchored(Offset o, Widget child) {
+                        return Positioned(
+                          left: cx + o.dx,
+                          top: cy + o.dy,
+                          child: FractionalTranslation(
+                            translation: const Offset(-0.5, -0.5),
+                            child: child,
                           ),
-                        ),
+                        );
+                      }
 
-                        // 1 · 입력값이 빛점으로 흡수.
-                        if (step == 1) ..._buildInputAbsorb(anchored, noHour),
+                      // E-30(docs/07) — 작은 화면(높이 < 700): "03: 스테이지
+                      // 전체 scale (높이/874)". 기준 기기(402×874) 대비
+                      // 실제 화면 높이가 700pt 미만이면 전체 세레모니
+                      // 스테이지(이 Stack)를 화면 높이/874 비율로 축소해,
+                      // 작은 기기에서도 오브제가 잘려나가지 않게 한다.
+                      // 700pt 이상(일반 기기)에서는 scale=1로 기존과 동일.
+                      final screenHeight = MediaQuery.sizeOf(context).height;
+                      final stageScale = screenHeight < 700
+                          ? (screenHeight / 874).clamp(0.5, 1.0)
+                          : 1.0;
 
-                        // 원국 + 관계선(실데이터, 서버 완료 전엔 로컬 계산값).
-                        if (step >= 2)
+                      final stage = Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          // 팔괘 오브제 = 진행 인디케이터.
                           anchored(
-                            const Offset(0, -70),
+                            Offset.zero,
                             AnimatedOpacity(
-                              opacity: condense ? 0 : 1,
-                              duration: const Duration(milliseconds: 800),
-                              child: AnimatedScale(
-                                scale: condense ? 0.3 : 1,
-                                duration: const Duration(milliseconds: 1200),
-                                curve: SajuMotion.easeSj,
-                                child: SajuPillarGrid(
-                                  pillars: pillars,
-                                  cell: 56,
-                                  gap: 8,
-                                  reveal: step > 2 ? 8 : _reveal,
-                                  showRelations: step >= 5,
-                                  relations: relations,
-                                  dimAll: focus && !condense,
-                                ),
+                              opacity: step <= 1 ? 1 : (condense ? 0 : 0.32),
+                              duration: const Duration(milliseconds: 1200),
+                              child: SajuBagua(
+                                size: step <= 1 ? 300 : 360,
+                                speedSeconds: step <= 1 ? 30 : 60,
+                                lit: step.clamp(0, 8),
+                                intensity: 1.1,
                               ),
                             ),
                           ),
 
-                        // 3 · 오행 조각.
-                        if (step >= 3)
-                          ..._kShardPos.entries.map((entry) {
-                            final k = entry.key;
-                            final isTop = topTwo.contains(k);
-                            final base = entry.value;
-                            final pos = focus
-                                ? (isTop
-                                      ? Offset(k == topTwo.first ? -34 : 34, 0)
-                                      : Offset(base.dx * 1.1, base.dy * 1.1))
-                                : base;
-                            final w = elementsWeighted[k] ?? 0;
-                            final sz =
-                                18 +
-                                (w / maxWeight) * 26 +
-                                (focus && isTop ? 18 : 0);
-                            return anchored(
-                              pos,
+                          // 1 · 입력값이 빛점으로 흡수.
+                          if (step == 1) ..._buildInputAbsorb(anchored, noHour),
+
+                          // 원국 + 관계선(실데이터, 서버 완료 전엔 로컬 계산값).
+                          if (step >= 2)
+                            anchored(
+                              const Offset(0, -70),
                               AnimatedOpacity(
-                                opacity: condense
-                                    ? 0
-                                    : (focus && !isTop ? 0.2 : 1),
-                                duration: const Duration(milliseconds: 1000),
-                                child: AnimatedContainer(
+                                opacity: condense ? 0 : 1,
+                                duration: const Duration(milliseconds: 800),
+                                child: AnimatedScale(
+                                  scale: condense ? 0.3 : 1,
                                   duration: const Duration(milliseconds: 1200),
                                   curve: SajuMotion.easeSj,
-                                  child: SajuElementShard(
-                                    element: k,
-                                    size: sz,
-                                    glow: focus && isTop,
+                                  child: SajuPillarGrid(
+                                    pillars: pillars,
+                                    cell: 56,
+                                    gap: 8,
+                                    reveal: step > 2 ? 8 : _reveal,
+                                    showRelations: step >= 5,
+                                    relations: relations,
+                                    dimAll: focus && !condense,
                                   ),
                                 ),
                               ),
-                            );
-                          }),
+                            ),
 
-                        // 6 · 음양 균형.
-                        if (step >= 6)
-                          anchored(
-                            const Offset(0, 140),
-                            AnimatedOpacity(
-                              opacity: focus ? (condense ? 0 : 0.25) : 1,
-                              duration: const Duration(milliseconds: 800),
-                              child: SajuBalanceGauge(
-                                level: _profile?.balanceLevel ?? 2,
-                                width: 240,
+                          // 3 · 오행 조각.
+                          if (step >= 3)
+                            ..._kShardPos.entries.map((entry) {
+                              final k = entry.key;
+                              final isTop = topTwo.contains(k);
+                              final base = entry.value;
+                              final pos = focus
+                                  ? (isTop
+                                        ? Offset(
+                                            k == topTwo.first ? -34 : 34,
+                                            0,
+                                          )
+                                        : Offset(base.dx * 1.1, base.dy * 1.1))
+                                  : base;
+                              final w = elementsWeighted[k] ?? 0;
+                              final sz =
+                                  18 +
+                                  (w / maxWeight) * 26 +
+                                  (focus && isTop ? 18 : 0);
+                              return anchored(
+                                pos,
+                                AnimatedOpacity(
+                                  opacity: condense
+                                      ? 0
+                                      : (focus && !isTop ? 0.2 : 1),
+                                  duration: const Duration(milliseconds: 1000),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(
+                                      milliseconds: 1200,
+                                    ),
+                                    curve: SajuMotion.easeSj,
+                                    child: SajuElementShard(
+                                      element: k,
+                                      size: sz,
+                                      glow: focus && isTop,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }),
+
+                          // 6 · 음양 균형.
+                          if (step >= 6)
+                            anchored(
+                              const Offset(0, 140),
+                              AnimatedOpacity(
+                                opacity: focus ? (condense ? 0 : 0.25) : 1,
+                                duration: const Duration(milliseconds: 800),
+                                child: SajuBalanceGauge(
+                                  level: _profile?.balanceLevel ?? 2,
+                                  width: 240,
+                                ),
                               ),
                             ),
-                          ),
 
-                        // 7 · 대운 별줄기.
-                        if (step >= 7 && (_profile?.luck.isNotEmpty ?? false))
-                          anchored(
-                            const Offset(0, 230),
-                            AnimatedOpacity(
-                              opacity: focus ? (condense ? 0 : 0.25) : 1,
-                              duration: const Duration(milliseconds: 800),
-                              child: SajuLuckStream(
-                                luck: _profile!.luck,
-                                current: _profile!.luckCurrentIndex,
-                                width: 320,
+                          // 7 · 대운 별줄기.
+                          if (step >= 7 && (_profile?.luck.isNotEmpty ?? false))
+                            anchored(
+                              const Offset(0, 230),
+                              AnimatedOpacity(
+                                opacity: focus ? (condense ? 0 : 0.25) : 1,
+                                duration: const Duration(milliseconds: 800),
+                                child: SajuLuckStream(
+                                  luck: _profile!.luck,
+                                  current: _profile!.luckCurrentIndex,
+                                  width: 320,
+                                ),
                               ),
                             ),
-                          ),
 
-                        // 9 · 봉인된 책으로 응축.
-                        anchored(
-                          Offset.zero,
-                          AnimatedOpacity(
-                            opacity: condense ? 1 : 0,
-                            duration: const Duration(milliseconds: 1000),
-                            child: AnimatedScale(
-                              scale: condense ? 1 : 0.4,
+                          // 9 · 봉인된 책으로 응축.
+                          anchored(
+                            Offset.zero,
+                            AnimatedOpacity(
+                              opacity: condense ? 1 : 0,
                               duration: const Duration(milliseconds: 1000),
-                              curve: SajuMotion.easeSj,
-                              child: const SajuSealedCard(
-                                width: 180,
-                                small: true,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-
-                    // E-30 — stageScale < 1(작은 화면)일 때만 Transform으로
-                    // 스테이지 전체를 중앙 기준 축소한다. 일반 기기
-                    // (stageScale == 1)에서는 Transform.scale(1.0)이 사실상
-                    // no-op이므로 기존 렌더링과 동일하다.
-                    if (stageScale == 1.0) return stage;
-                    return Transform.scale(
-                      key: const ValueKey('e30_stage_scale'),
-                      scale: stageScale,
-                      alignment: Alignment.center,
-                      child: stage,
-                    );
-                  },
-                ),
-              ),
-
-              // 하단 단계 라벨.
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 48),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(9, (i) {
-                        final active = i + 1 == displayStep;
-                        final filled = i + 1 <= displayStep;
-                        return AnimatedContainer(
-                          duration: const Duration(milliseconds: 400),
-                          margin: const EdgeInsets.symmetric(horizontal: 3),
-                          width: active ? 18 : 6,
-                          height: 6,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(3),
-                            color: filled ? SajuGold.g300 : SajuText.line,
-                          ),
-                        );
-                      }),
-                    ),
-                    const SizedBox(height: 18),
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 500),
-                      child: Column(
-                        key: ValueKey(waitingForServer ? 'wait' : displayStep),
-                        children: [
-                          Text(
-                            waitingForServer
-                                ? 'STORY SELECT'
-                                : _kSteps[displayStep - 1].en,
-                            style: SajuType.mono10,
-                          ),
-                          const SizedBox(height: 8),
-                          SizedBox(
-                            height: 26,
-                            child: Text(
-                              waitingForServer
-                                  ? _kSteps.last.ko
-                                  : _kSteps[displayStep - 1].ko,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontFamily: SajuType.body,
-                                fontSize: 17,
-                                color: SajuGold.g100,
+                              child: AnimatedScale(
+                                scale: condense ? 1 : 0.4,
+                                duration: const Duration(milliseconds: 1000),
+                                curve: SajuMotion.easeSj,
+                                child: const SajuSealedCard(
+                                  width: 180,
+                                  small: true,
+                                ),
                               ),
                             ),
                           ),
                         ],
+                      );
+
+                      // E-30 — stageScale < 1(작은 화면)일 때만 Transform으로
+                      // 스테이지 전체를 중앙 기준 축소한다. 일반 기기
+                      // (stageScale == 1)에서는 Transform.scale(1.0)이 사실상
+                      // no-op이므로 기존 렌더링과 동일하다.
+                      if (stageScale == 1.0) return stage;
+                      return Transform.scale(
+                        key: const ValueKey('e30_stage_scale'),
+                        scale: stageScale,
+                        alignment: Alignment.center,
+                        child: stage,
+                      );
+                    },
+                  ),
+                ),
+
+                // 하단 단계 라벨.
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 48),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(9, (i) {
+                          final active = i + 1 == displayStep;
+                          final filled = i + 1 <= displayStep;
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 400),
+                            margin: const EdgeInsets.symmetric(horizontal: 3),
+                            width: active ? 18 : 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(3),
+                              color: filled ? SajuGold.g300 : SajuText.line,
+                            ),
+                          );
+                        }),
                       ),
-                    ),
-                    // docs/09 Q-10 / docs/03 §03 "(1단계 + 진태양시 On +
-                    // 시간 있음) 아래 8: '태어난 시각, 태양시 기준으로
-                    // 보정했습니다'" (C-03-11). 시간 모름이면 미표시(E-15).
-                    if (displayStep == 1 &&
-                        !noHour &&
-                        (_user?.birthPlace != null &&
-                            _user!.birthPlace!.isNotEmpty))
-                      const Padding(
-                        padding: EdgeInsets.only(top: 8),
-                        child: Text(
-                          '태어난 시각, 태양시 기준으로 보정했습니다',
-                          style: TextStyle(
-                            fontFamily: SajuType.ui,
-                            fontSize: 12,
-                            color: SajuText.muted,
+                      const SizedBox(height: 18),
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 500),
+                        child: Column(
+                          key: ValueKey(
+                            waitingForServer ? 'wait' : displayStep,
                           ),
+                          children: [
+                            Text(
+                              waitingForServer
+                                  ? 'STORY SELECT'
+                                  : _kSteps[displayStep - 1].en,
+                              style: SajuType.mono10,
+                            ),
+                            const SizedBox(height: 8),
+                            SizedBox(
+                              height: 26,
+                              child: Text(
+                                waitingForServer
+                                    ? _kSteps.last.ko
+                                    : _kSteps[displayStep - 1].ko,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontFamily: SajuType.body,
+                                  fontSize: 17,
+                                  color: SajuGold.g100,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    if (waitingForServer) ...[
-                      const SizedBox(height: 10),
-                      const _PulsingDot(),
+                      // docs/09 Q-10 / docs/03 §03 "(1단계 + 진태양시 On +
+                      // 시간 있음) 아래 8: '태어난 시각, 태양시 기준으로
+                      // 보정했습니다'" (C-03-11). 시간 모름이면 미표시(E-15).
+                      if (displayStep == 1 &&
+                          !noHour &&
+                          (_user?.birthPlace != null &&
+                              _user!.birthPlace!.isNotEmpty))
+                        const Padding(
+                          padding: EdgeInsets.only(top: 8),
+                          child: Text(
+                            '태어난 시각, 태양시 기준으로 보정했습니다',
+                            style: TextStyle(
+                              fontFamily: SajuType.ui,
+                              fontSize: 12,
+                              color: SajuText.muted,
+                            ),
+                          ),
+                        ),
+                      if (waitingForServer) ...[
+                        const SizedBox(height: 10),
+                        const _PulsingDot(),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
