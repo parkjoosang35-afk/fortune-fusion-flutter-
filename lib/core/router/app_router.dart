@@ -95,6 +95,7 @@ import '../../features/share/presentation/shared_result_screen.dart';
 // 기존 jeontong_eighty UI는 삭제되었으며, 구 라우트들은 모두 이 화면으로
 // legacy redirect 처리된다.
 import '../../features/saju_renewal/screens/saju_renewal_home_screen.dart';
+import '../../features/saju_renewal/screens/saju_intro_screen.dart';
 import '../../features/saju_renewal/navigation/saju_dimension_transition.dart';
 import 'package:provider/provider.dart';
 import 'app_navigator_key.dart';
@@ -472,13 +473,18 @@ class AppRouter {
       // `pushNamed('/saju-renewal', arguments: tapOffset)`처럼 탭 지점의
       // 전역 좌표(Offset)를 넘기면 그 지점에서, 넘기지 않으면(기존 호출부
       // 대부분) 문서가 명시한 기본값(가로 중앙, 세로 62%)에서 확산한다.
+      // [v4 디자인 핸드오프 — 00-I 정통사주 인트로 삽입점] docs/03 §00-I
+      // "노출: 정통사주 섹션 최초 진입 1회(영구 플래그 saju_intro_seen).
+      // 이후 셸 카드 → 01 직행." — 원형 확산(M-01) 전환 자체는 항상
+      // 동일하게 재생하고, 그 안에서 드러나는 화면만 [SajuEntryGate]가
+      // 플래그를 보고 00-I/01로 분기한다(최초 1회는 00-I, 이후는 01).
       case '/saju-renewal':
         {
           final origin = settings.arguments is Offset
               ? settings.arguments as Offset
               : null;
           return sajuDimensionEnterRoute(
-            (_) => const SajuRenewalHomeScreen(),
+            (_) => const SajuEntryGate(),
             origin: origin,
           );
         }
