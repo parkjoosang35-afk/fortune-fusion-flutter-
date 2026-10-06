@@ -198,12 +198,27 @@ class _CalculatingScreenState extends State<CalculatingScreen>
     }
   }
 
-  /// 실제 화면 전환 — [SajuRenewalProvider.status]만을 근거로 판단한다
-  /// (기존 로직 그대로 유지, 세레모니 타이머와 무관).
+  /// 실제 화면 전환 — [SajuRenewalProvider.status]를 근거로 판단한다.
+  ///
+  /// [버그 수정 — C-03f/C-03g(docs/08) 실제 테스트로 재현·확정]
+  /// 기존 코드는 provider.status만 보고 즉시 전환해, 서버가 캐시 히트로
+  /// 즉시 응답하면(실측 테스트 `calculating_screen_c03f_g_test.dart`
+  /// 'C-03f/C-03g' 케이스로 재현 — 2.5s 체류만에 03 화면이 사라짐)
+  /// docs/08 C-03f("캐시 히트여도 최소 3s")를 위반했다. 성공 경로
+  /// (factsReady/storyPreview)는 [_ceremonyReachedEnd](세레모니 STEP
+  /// 리듬이 9단계까지 도달 = 최소 3s 보장이 내장된 로컬 상태)가 true가
+  /// 될 때까지 네비게이션을 보류한다 — docs/04_모션.md §3-4
+  /// "단계 9: 진입 후 최소 STEP 유지 + topics/select 응답 도착 둘 다
+  /// 만족 시 완료 표시"와 정확히 대응한다. [_ceremonyReachedEnd]가
+  /// setState로 바뀔 때마다 build()가 다시 실행되어 이 메서드가 재호출
+  /// 되므로 별도 폴링 없이 자연히 재평가된다. 실패 경로(error)는 사용자
+  /// 경험상 즉시 안내해야 하므로(세레모니 리듬을 강제로 채울 이유가
+  /// 없음) 기존처럼 즉시 전환한다.
   void _maybeNavigate(SajuRenewalProvider provider) {
     if (_navigated) return;
     if (provider.status == SajuRenewalFlowStatus.storyPreview ||
         provider.status == SajuRenewalFlowStatus.factsReady) {
+      if (!_ceremonyReachedEnd) return; // 최소 3s 세레모니 리듬 대기.
       _navigated = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;

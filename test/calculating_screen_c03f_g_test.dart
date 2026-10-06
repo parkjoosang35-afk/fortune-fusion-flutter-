@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_app/features/auth/application/auth_provider.dart';
 import 'package:flutter_app/features/auth/data/auth_repository.dart';
 import 'package:flutter_app/features/saju_renewal/data/saju_renewal_api.dart';
@@ -28,6 +29,16 @@ import 'package:flutter_app/features/saju_renewal/state/saju_renewal_provider.da
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  // [원인 수정] AuthTokenStore.getCurrentUserId()가 내부적으로
+  // SharedPreferences.getInstance()를 호출하는데, 이를 목(mock)
+  // 초기화하지 않으면 플러그인 채널이 비어 있어 실제로는 값이 오지
+  // 않거나 예외가 삼켜져 selectTopics() 자체가 전혀 호출되지 않는다
+  // (그 결과 Provider가 계속 calculating 또는 idle에 머묾 — 이번
+  // 디버깅으로 실측 확인됨). 반드시 각 테스트 전에 초기화한다.
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
   http.Response _topicsSelectResponse() {
     final body = {
       'success': true,
@@ -44,23 +55,34 @@ void main() {
         'fact_schema_version': 'v1',
       },
     };
-    return http.Response(jsonEncode(body), 200);
+    return http.Response(
+      jsonEncode(body),
+      200,
+      headers: {'content-type': 'application/json; charset=utf-8'},
+    );
   }
 
   http.Response _interpretSummaryResponse() {
+    // [수정 — 최초 작성 버그] InterpretResponse.summaryOf()는
+    // decoded['data'] 전체를 InterpretSummaryResult.fromJson()에 바로
+    // 넘긴다(topic_id/title/summary/evidence가 data의 최상위 필드).
+    // 'summary' 키로 한 번 더 감싸면 안 된다 — 서버 실제 계약과
+    // saju_renewal_api.dart의 _interpret() 구현을 재확인해 수정함.
     final body = {
       'success': true,
       'data': {
-        'summary': {
-          'topic_id': 'MONEY_001',
-          'title': '테스트 이야기 제목',
-          'summary': '테스트 요약 내용입니다.',
-          'evidence': {'type': 'elements', 'text': '테스트 근거'},
-          'source': 'template',
-        },
+        'topic_id': 'MONEY_001',
+        'title': '테스트 이야기 제목',
+        'summary': '테스트 요약 내용입니다.',
+        'evidence': {'type': 'elements', 'text': '테스트 근거'},
+        'source': 'template',
       },
     };
-    return http.Response(jsonEncode(body), 200);
+    return http.Response(
+      jsonEncode(body),
+      200,
+      headers: {'content-type': 'application/json; charset=utf-8'},
+    );
   }
 
   /// 즉시(지연 없이) 응답하는 MockClient — "캐시 히트" 상황 재현.
@@ -143,7 +165,11 @@ void main() {
 
         // 최소 3s를 넘겨 9단계(완료 라벨 포함, 약 9.57s)까지 흘려보낸다.
         await tester.pump(const Duration(seconds: 7));
-        await tester.pump(const Duration(milliseconds: 100));
+        // addPostFrameCallback으로 예약된 Navigator.pushReplacement가
+        // 실제로 실행되려면 몇 차례의 추가 프레임(pump)이 필요하다.
+        for (var i = 0; i < 10; i++) {
+          await tester.pump(const Duration(milliseconds: 50));
+        }
 
         // 9단계 완료 후 AnalysisCompleteScreen으로 전환되었는지 확인
         // (= _maybeNavigate가 Provider 상태를 보고 실제로 전환을 수행).
@@ -215,8 +241,12 @@ void main() {
 
         // 이제 select 응답을 풀어준다 — 비로소 다음 화면으로 전환되어야 함.
         releaseTopics();
-        await tester.pump(const Duration(milliseconds: 50));
-        await tester.pump(const Duration(milliseconds: 50));
+        // select 완료 → loadPreview(interpretSummary) 체인까지 이어지고,
+        // addPostFrameCallback으로 실제 Navigator.pushReplacement가
+        // 실행되려면 몇 차례의 pump(프레임)가 필요하다.
+        for (var i = 0; i < 10; i++) {
+          await tester.pump(const Duration(milliseconds: 50));
+        }
 
         expect(
           find.byType(CalculatingScreen),
