@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/web_ads/web_ad_config.dart';
+import '../../../../core/web_ads/widgets/web_ad_banner.dart';
 import '../domain/tarot_category_model.dart';
 import 'oz/oz_theme.dart';
 import 'oz/widgets/oz_background.dart';
@@ -112,9 +114,7 @@ class _TarotHubScreenState extends State<TarotHubScreen> {
                                   child: Text(
                                     '전체 ${categories.length}개',
                                     style: OzTypography.body(
-                                      color: OzColors.fg.withValues(
-                                        alpha: 0.6,
-                                      ),
+                                      color: OzColors.fg.withValues(alpha: 0.6),
                                     ),
                                   ),
                                 ),
@@ -136,6 +136,20 @@ class _TarotHubScreenState extends State<TarotHubScreen> {
                                 const SizedBox(height: OzTokens.spaceSm),
                             ],
                           ],
+                        ),
+                      ),
+                      // [웹 광고 STEP G] 카테고리 리스트가 끝난 뒤, 다음
+                      // 카드 탭(카테고리 상세 CTA로 이어지는)과는 이미 이
+                      // 화면을 벗어난 뒤이므로 CTA 충돌이 없다. 리스트
+                      // 콘텐츠 소비가 끝나는 지점에 배너 1개만 배치한다.
+                      const SizedBox(height: OzTokens.spaceLg),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: OzTokens.spaceLg,
+                        ),
+                        child: const WebAdBanner(
+                          surface: WebAdSurface.tarot,
+                          adSlot: '',
                         ),
                       ),
                     ],

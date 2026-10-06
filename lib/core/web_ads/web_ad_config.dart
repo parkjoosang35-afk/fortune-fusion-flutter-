@@ -17,15 +17,7 @@ library;
 
 /// 서비스(페이지) 식별자 — WebAdService가 광고 노출 여부를 조회할 때
 /// 쓰는 키. 지시서 §6 "적용 대상" 6개 서비스 + 홈을 포함한다.
-enum WebAdSurface {
-  home,
-  sajuRenewal,
-  tarot,
-  wishRoom,
-  guinji,
-  face,
-  palm,
-}
+enum WebAdSurface { home, sajuRenewal, tarot, wishRoom, guinji, face, palm }
 
 /// AdSense가 지원하는 광고 포맷 중, 지시서 §1/§3이 언급하는 4종류.
 /// Auto ads(anchor/vignette/inPage)는 보통 Google이 자동으로 배치를
@@ -85,10 +77,15 @@ class WebAdConfig {
   static const Map<WebAdSurface, bool> _surfaceEnabled = {
     // [STEP E] 정통사주를 1번 적용 대상으로 삼는다(지시서 §6 ①, §11).
     WebAdSurface.sajuRenewal: true,
-    // [STEP G] 안정화 전까지는 꺼둔다 — 추후 순서대로 true로 전환.
-    WebAdSurface.home: false,
-    WebAdSurface.tarot: false,
+    // [STEP G] 타로를 2번 적용 대상으로 전환한다(일반 AdSense만, Rewarded는
+    // 별도로 보류 — WEB_AD_SCOPE_POLICY.md 참고).
+    WebAdSurface.tarot: true,
+    // [소원방 영구 제외 — 사용자 확정 지시, WEB_AD_SCOPE_POLICY.md]
+    // 소원방(wishRoom)은 어떤 이유로도 true로 전환하지 않는다. 향후 전체
+    // 웹 광고 확장 작업에서도 자동 적용 대상에 포함시키지 않는다.
     WebAdSurface.wishRoom: false,
+    // 아직 안정화 전 — 추후 순서대로(귀인지도→관상→손금) true로 전환.
+    WebAdSurface.home: false,
     WebAdSurface.guinji: false,
     WebAdSurface.face: false,
     WebAdSurface.palm: false,

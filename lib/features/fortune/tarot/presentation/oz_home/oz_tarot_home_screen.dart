@@ -40,6 +40,8 @@ import 'package:provider/provider.dart';
 
 import '../../../../../core/router/app_router.dart' show AppRouter;
 import '../../../../../core/router/main_bottom_nav_bar.dart';
+import '../../../../../core/web_ads/web_ad_config.dart';
+import '../../../../../core/web_ads/widgets/web_ad_vignette.dart';
 import '../../application/tarot_audio_controller.dart';
 import '../../domain/tarot_category_model.dart';
 import '../tarot_home_screen.dart' show enterTarotCategory;
@@ -72,6 +74,12 @@ class OzTarotHomeScreen extends StatelessWidget {
           SafeArea(
             child: CustomScrollView(
               slivers: [
+                // [웹 광고 STEP G] 타로 홈 = 타로 섹션의 진입점. 정통사주
+                // STEP E와 동일한 원칙으로 Vignette(페이지 전환형)만 1회
+                // 트리거한다 — 레이아웃 공간을 차지하지 않는다.
+                const SliverToBoxAdapter(
+                  child: WebAdVignette(surface: WebAdSurface.tarot),
+                ),
                 // ─ Topbar ─
                 SliverToBoxAdapter(
                   child: _OzHomeTopbar(
@@ -632,8 +640,9 @@ class _OzHomeCategoryBanner extends StatelessWidget {
       // 카테고리 목록이 일치하도록 data.id('popular'|'new')를 필터 인자로
       // 그대로 전달한다. 기존에는 인자 없이 이동해 전체 65개 카테고리가
       // 열려 배너의 "8개" 표기와 실제 노출 개수가 맞지 않았다.
-      onTap: () =>
-          Navigator.of(context).pushNamed(AppRouter.tarotHubRoute, arguments: data.id),
+      onTap: () => Navigator.of(
+        context,
+      ).pushNamed(AppRouter.tarotHubRoute, arguments: data.id),
       child: Container(
         height: 150,
         decoration: BoxDecoration(
@@ -707,18 +716,21 @@ class _OzHomeCategoryBanner extends StatelessWidget {
                         for (final line in data.titleLines)
                           Text(
                             line.text,
-                            style: OzHomeTypography.cardName(
-                              size: 17,
-                              color: line.accent ? _accentColor : Colors.white,
-                            ).copyWith(
-                              shadows: const [
-                                Shadow(
-                                  color: Color(0x80000000),
-                                  offset: Offset(0, 1),
-                                  blurRadius: 4,
+                            style:
+                                OzHomeTypography.cardName(
+                                  size: 17,
+                                  color: line.accent
+                                      ? _accentColor
+                                      : Colors.white,
+                                ).copyWith(
+                                  shadows: const [
+                                    Shadow(
+                                      color: Color(0x80000000),
+                                      offset: Offset(0, 1),
+                                      blurRadius: 4,
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
                           ),
                       ],
                     ),

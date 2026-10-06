@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_unified_style.dart';
+import '../../../../core/web_ads/web_ad_config.dart';
+import '../../../../core/web_ads/widgets/web_ad_in_page.dart';
 import '../../../../core/widgets/app_empty_state.dart';
 import '../application/tarot_provider.dart';
 
@@ -41,10 +43,19 @@ class _TarotHistoryScreenState extends State<TarotHistoryScreen> {
               )
             : ListView.separated(
                 padding: EdgeInsets.all(UnifiedTokens.screenPadding),
-                itemCount: history.length,
+                // [웹 광고 STEP G] 히스토리 리스트 끝에 광고 1개를 추가
+                // 아이템으로 덧붙인다(itemCount+1). 각 기록 탭의 CTA(상세
+                // 이동)와는 분리된 별도 아이템이라 혼동 우려가 없다.
+                itemCount: history.length + 1,
                 separatorBuilder: (_, __) =>
                     SizedBox(height: UnifiedTokens.spaceMd),
                 itemBuilder: (context, index) {
+                  if (index == history.length) {
+                    return const WebAdInPage(
+                      surface: WebAdSurface.tarot,
+                      adSlot: '',
+                    );
+                  }
                   final item = history[index];
                   return InkWell(
                     borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),

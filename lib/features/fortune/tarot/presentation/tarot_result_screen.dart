@@ -8,6 +8,8 @@ import '../../../../core/data/my_fortune_record_store.dart';
 import '../../../../core/util/safe_share.dart';
 import '../../../auth/application/auth_provider.dart';
 import '../../../../core/utils/load_state.dart';
+import '../../../../core/web_ads/web_ad_config.dart';
+import '../../../../core/web_ads/widgets/web_ad_in_page.dart';
 import '../../../../core/widgets/app_error_state.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../application/tarot_audio_controller.dart';
@@ -953,6 +955,15 @@ class _ResultContent extends StatelessWidget {
           ],
         ),
         const SizedBox(height: OzTokens.spaceMd),
+        // [웹 광고 STEP G] 상세 리딩(포지션 카드) 소비가 끝난 뒤, 다음
+        // 콘텐츠 섹션(오늘의 조언) 시작 전에 1개만 배치한다. 하단 고정
+        // 액션바(다시 뽑기/저장/공유/심화해석/히스토리)와는 이 리스트
+        // 패딩(bottom:110)으로 이미 충분히 떨어져 있어 CTA 혼동 우려가
+        // 없다 — 정통사주 StoryDetail과 동일한 "서사 블록 사이" 원칙.
+        Padding(
+          padding: const EdgeInsets.only(bottom: OzTokens.spaceMd),
+          child: const WebAdInPage(surface: WebAdSurface.tarot, adSlot: ''),
+        ),
         // ④ 오늘의 조언
         _Reveal(
           t: t,
