@@ -241,16 +241,21 @@ class _CalculatingScreenState extends State<CalculatingScreen>
     final relations = _profile?.relations ?? const [];
     final elementsWeighted =
         _profile?.elementsWeighted ??
-        const {'wood': 0.0, 'fire': 0.0, 'earth': 0.0, 'metal': 0.0, 'water': 0.0};
+        const {
+          'wood': 0.0,
+          'fire': 0.0,
+          'earth': 0.0,
+          'metal': 0.0,
+          'water': 0.0,
+        };
     final sortedEl = elementsWeighted.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     final topTwo = sortedEl.take(2).map((e) => e.key).toList();
     final maxWeight = elementsWeighted.values.isEmpty
         ? 1.0
-        : elementsWeighted.values.reduce((a, b) => a > b ? a : b).clamp(
-            0.0001,
-            1000,
-          );
+        : elementsWeighted.values
+              .reduce((a, b) => a > b ? a : b)
+              .clamp(0.0001, 1000);
 
     return Scaffold(
       body: SajuDarkBase(
@@ -277,7 +282,18 @@ class _CalculatingScreenState extends State<CalculatingScreen>
                       );
                     }
 
-                    return Stack(
+                    // E-30(docs/07) — 작은 화면(높이 < 700): "03: 스테이지
+                    // 전체 scale (높이/874)". 기준 기기(402×874) 대비
+                    // 실제 화면 높이가 700pt 미만이면 전체 세레모니
+                    // 스테이지(이 Stack)를 화면 높이/874 비율로 축소해,
+                    // 작은 기기에서도 오브제가 잘려나가지 않게 한다.
+                    // 700pt 이상(일반 기기)에서는 scale=1로 기존과 동일.
+                    final screenHeight = MediaQuery.sizeOf(context).height;
+                    final stageScale = screenHeight < 700
+                        ? (screenHeight / 874).clamp(0.5, 1.0)
+                        : 1.0;
+
+                    final stage = Stack(
                       clipBehavior: Clip.none,
                       children: [
                         // 팔괘 오브제 = 진행 인디케이터.
@@ -397,11 +413,26 @@ class _CalculatingScreenState extends State<CalculatingScreen>
                               scale: condense ? 1 : 0.4,
                               duration: const Duration(milliseconds: 1000),
                               curve: SajuMotion.easeSj,
-                              child: const SajuSealedCard(width: 180, small: true),
+                              child: const SajuSealedCard(
+                                width: 180,
+                                small: true,
+                              ),
                             ),
                           ),
                         ),
                       ],
+                    );
+
+                    // E-30 — stageScale < 1(작은 화면)일 때만 Transform으로
+                    // 스테이지 전체를 중앙 기준 축소한다. 일반 기기
+                    // (stageScale == 1)에서는 Transform.scale(1.0)이 사실상
+                    // no-op이므로 기존 렌더링과 동일하다.
+                    if (stageScale == 1.0) return stage;
+                    return Transform.scale(
+                      key: const ValueKey('e30_stage_scale'),
+                      scale: stageScale,
+                      alignment: Alignment.center,
+                      child: stage,
                     );
                   },
                 ),
@@ -510,10 +541,7 @@ class _CalculatingScreenState extends State<CalculatingScreen>
       Offset(125, 140),
     ];
     return List.generate(values.length, (i) {
-      return anchored(
-        positions[i],
-        Text(values[i], style: SajuType.mono10),
-      );
+      return anchored(positions[i], Text(values[i], style: SajuType.mono10));
     });
   }
 }

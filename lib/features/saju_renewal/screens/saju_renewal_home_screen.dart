@@ -264,8 +264,22 @@ class _SajuRenewalHomeScreenState extends State<SajuRenewalHomeScreen> {
                     ),
                   ],
                 ),
-                const Expanded(
-                  child: Center(child: SajuBagua(size: 290, speedSeconds: 120)),
+                // E-30(docs/07) — 작은 화면(높이 < 700): "01: Bagua를
+                // 남은 높이에 맞춰 축소(최소 200)". Expanded가 준 실제
+                // 가용 높이를 측정해 290(기본)과 200(최소) 사이로 줄인다.
+                // 화면이 충분히 크면(가용 높이 ≥ 290) 기존과 동일하게
+                // 290 그대로 유지되어 일반 기기에는 아무 영향이 없다.
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final baguaSize = constraints.hasBoundedHeight
+                          ? constraints.maxHeight.clamp(200.0, 290.0)
+                          : 290.0;
+                      return Center(
+                        child: SajuBagua(size: baguaSize, speedSeconds: 120),
+                      );
+                    },
+                  ),
                 ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 46),

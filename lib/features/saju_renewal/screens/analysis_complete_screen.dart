@@ -26,8 +26,7 @@ class AnalysisCompleteScreen extends StatefulWidget {
   const AnalysisCompleteScreen({super.key});
 
   @override
-  State<AnalysisCompleteScreen> createState() =>
-      _AnalysisCompleteScreenState();
+  State<AnalysisCompleteScreen> createState() => _AnalysisCompleteScreenState();
 }
 
 class _AnalysisCompleteScreenState extends State<AnalysisCompleteScreen> {
@@ -108,90 +107,117 @@ class _AnalysisCompleteScreenState extends State<AnalysisCompleteScreen> {
                   // 화면① 메인으로 복귀한다(error_screen.dart의
                   // "처음으로 돌아가기"와 동일한 패턴 재사용).
                   icon: '✕',
-                  onTap: () =>
-                      Navigator.of(context).popUntil((r) => r.isFirst),
+                  onTap: () => Navigator.of(context).popUntil((r) => r.isFirst),
                 ),
                 title: 'FOUND · 04',
               ),
               Expanded(
-                child: Stack(
-                  alignment: Alignment.topCenter,
-                  clipBehavior: Clip.none,
-                  children: [
-                    // 완성된 원국 — 배경 고정(흐릿하게).
-                    Positioned(
-                      top: 20,
-                      child: Opacity(
-                        opacity: 0.28,
-                        child: SajuPillarGrid(
-                          pillars: pillars,
-                          cell: 60,
-                          gap: 10,
-                          showRelations: true,
-                          relations: relations,
+                // E-30(docs/07) — 작은 화면(높이 < 700): "04: 카드 상단·
+                // 카피 위치를 비율로". 기준(874 높이) 디자인에서 이
+                // Expanded 영역 내 카드 top=52 · 카피 top=372는 고정
+                // 픽셀값이었다 — 일반 기기(>=700)에서는 그대로 두고,
+                // 작은 기기에서만 이 영역의 실제 가용 높이에 대한 비율
+                // (52/658, 372/658 — 기준 Expanded 높이 658 산정:
+                // 874 − 상단바 106 − 하단 CTA 영역 110)로 환산해
+                // 카드와 카피가 겹치거나 화면 밖으로 밀려나지 않게 한다.
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final screenHeight = MediaQuery.sizeOf(context).height;
+                    const refExpandedHeight = 658.0;
+                    const cardTopRatio = 52 / refExpandedHeight;
+                    const copyTopRatio = 372 / refExpandedHeight;
+                    final isSmall =
+                        screenHeight < 700 && constraints.hasBoundedHeight;
+                    final cardTop = isSmall
+                        ? constraints.maxHeight * cardTopRatio
+                        : 52.0;
+                    final copyTop = isSmall
+                        ? constraints.maxHeight * copyTopRatio
+                        : 372.0;
+
+                    return Stack(
+                      alignment: Alignment.topCenter,
+                      clipBehavior: Clip.none,
+                      children: [
+                        // 완성된 원국 — 배경 고정(흐릿하게).
+                        Positioned(
+                          top: 20,
+                          child: Opacity(
+                            opacity: 0.28,
+                            child: SajuPillarGrid(
+                              pillars: pillars,
+                              cell: 60,
+                              gap: 10,
+                              showRelations: true,
+                              relations: relations,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    Positioned(
-                      top: 42,
-                      child: Opacity(
-                        opacity: 0.18,
-                        child: SajuBagua(size: 340, speedSeconds: 200),
-                      ),
-                    ),
-                    // 봉인된 이야기 카드 — 열기 전까지 4초 주기로 떠다님.
-                    Positioned(
-                      top: 52,
-                      child: _FloatingSealedCard(
-                        opening: _opening,
-                        child: SajuSealedCard(width: 210, opening: _opening),
-                      ),
-                    ),
-                    // 카피(지시서 docs/06_카피덱.md — 한 글자도 바꾸지 않음).
-                    Positioned(
-                      top: 372,
-                      left: 28,
-                      right: 28,
-                      child: Column(
-                        children: [
-                          const Text(
-                            '당신의 사주에서 —\n특별한 이야기를 찾았습니다.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontFamily: SajuType.serif,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 23,
-                              height: 1.45,
-                              color: SajuGold.g100,
-                              letterSpacing: -0.02 * 23,
+                        Positioned(
+                          top: 42,
+                          child: Opacity(
+                            opacity: 0.18,
+                            child: SajuBagua(size: 340, speedSeconds: 200),
+                          ),
+                        ),
+                        // 봉인된 이야기 카드 — 열기 전까지 4초 주기로 떠다님.
+                        Positioned(
+                          top: cardTop,
+                          child: _FloatingSealedCard(
+                            opening: _opening,
+                            child: SajuSealedCard(
+                              width: 210,
+                              opening: _opening,
                             ),
                           ),
-                          const SizedBox(height: 14),
-                          const Text(
-                            '당신만을 위한 첫 번째 사주 이야기를 준비했습니다.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontFamily: SajuType.body,
-                              fontSize: 14.5,
-                              height: 1.6,
-                              color: SajuText.muted,
-                            ),
-                          ),
-                          if (topic == null) ...[
-                            const SizedBox(height: 22),
-                            const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.2,
-                                color: SajuGold.g300,
+                        ),
+                        // 카피(지시서 docs/06_카피덱.md — 한 글자도 바꾸지 않음).
+                        Positioned(
+                          top: copyTop,
+                          left: 28,
+                          right: 28,
+                          child: Column(
+                            children: [
+                              const Text(
+                                '당신의 사주에서 —\n특별한 이야기를 찾았습니다.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontFamily: SajuType.serif,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 23,
+                                  height: 1.45,
+                                  color: SajuGold.g100,
+                                  letterSpacing: -0.02 * 23,
+                                ),
                               ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
+                              const SizedBox(height: 14),
+                              const Text(
+                                '당신만을 위한 첫 번째 사주 이야기를 준비했습니다.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontFamily: SajuType.body,
+                                  fontSize: 14.5,
+                                  height: 1.6,
+                                  color: SajuText.muted,
+                                ),
+                              ),
+                              if (topic == null) ...[
+                                const SizedBox(height: 22),
+                                const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.2,
+                                    color: SajuGold.g300,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
               Padding(
