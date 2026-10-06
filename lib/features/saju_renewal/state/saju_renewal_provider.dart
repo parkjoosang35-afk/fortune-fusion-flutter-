@@ -94,6 +94,24 @@ class SajuRenewalProvider extends ChangeNotifier {
   /// 뿐이며, Flutter가 임의로 후보를 걸러내지 않는다.
   final Set<String> _viewedTopicIds = {};
 
+  /// [버그 수정 — C-08a(docs/08) 결함 발견] docs/03_화면명세.md §08
+  /// "후보 = 받은 후보 − 이미 본 주제(세션 + 노출 이력). 표시 3장" 및
+  /// docs/13_기획결정_서명지.md Q-06 최종 확정값("기본 3장, 후보 4개
+  /// 이상이면 4장 허용 안 함" — "회신 없으면 권고안으로 확정"되는
+  /// 최종 요약 문서이므로 이 값이 03의 "4장 허용" 초안보다 우선한다).
+  /// 기존 코드는 `topicsState.data.candidates`를 필터링·개수 제한
+  /// 없이 그대로 노출해, 이미 상세까지 본 주제가 08에 다시 나타나고
+  /// 4개 이상이 표시될 수 있던 결함. 시기형 최대 1개 보장은 서버
+  /// 책임(API 계약서 §2 "candidates: is_timing=true 최대 1개")이므로
+  /// 재필터링하지 않는다(Flutter 임의 판단 금지 원칙).
+  List<TopicCard> get displayableCandidates {
+    final raw = _topicsState.data?.candidates ?? const <TopicCard>[];
+    final remaining = raw
+        .where((c) => !_viewedTopicIds.contains(c.topicId))
+        .toList();
+    return remaining.take(3).toList();
+  }
+
   /// [중복 클릭 방어] summary/detail 요청이 진행 중인 동안 동일 요청이
   /// 중첩 실행되지 않도록 가드한다(§ "중복클릭" 요구사항 — 중복 LLM
   /// 호출/중복 Topic 기록 방지. 서버도 멱등 캐시로 이중 방어하지만,

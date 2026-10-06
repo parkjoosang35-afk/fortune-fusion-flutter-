@@ -153,8 +153,12 @@ class _MoreStoriesScreenState extends State<MoreStoriesScreen> {
                 );
               }
 
-              final data = topicsState.data;
-              final candidates = data?.candidates ?? const <TopicCard>[];
+              // [버그 수정 — C-08a(docs/08) 결함 발견] 기존에는
+              // `topicsState.data.candidates`를 그대로 노출해 이미
+              // 상세까지 본 주제가 다시 나타나고 4개 이상 표시될 수
+              // 있었다. Provider의 [displayableCandidates](이미 본
+              // 주제 제외 + 3장 cap, docs/13 Q-06)를 사용한다.
+              final candidates = provider.displayableCandidates;
 
               return SingleChildScrollView(
                 padding: const EdgeInsets.only(bottom: 40),
