@@ -15,6 +15,7 @@ import '../../wallet/application/wallet_provider.dart';
 import '../../wishroom/features/intro/wish_room_intro_screen.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
 import '../../pass/presentation/pass_time_format.dart';
+import '../../saju_renewal/navigation/saju_dimension_transition.dart';
 
 /// [9단계 - 마이 탭 정리] MyScreen - 마이 탭
 /// 프로필+등급뱃지 + [열림패스/복주머니/구독 요약(3축 정책 한눈에 보기)]
@@ -188,11 +189,20 @@ class _MyScreenState extends State<MyScreen> {
                 // 흐름(MoreStoriesScreen, story_detail_screen 내부에서
                 // push)을 쓰므로, 여기서는 saju_renewal 홈으로 자연스럽게
                 // 이동시킨다.
-                _ArchiveCard(
-                  icon: Icons.auto_stories_outlined,
-                  label: '사주 히스토리',
-                  onTap: () =>
-                      Navigator.of(context).pushNamed('/saju-renewal'),
+                // [디자인 핸드오프 00 셸 — 진입 전환] docs/03 §00 "구현은
+                // 카드 중심 좌표를 원점으로". Builder로 이 카드 자신의
+                // context를 얻어 sajuCardCenterOf로 중심 좌표를 구하고,
+                // `/saju-renewal`에 arguments로 실어 보낸다(그리드 전체의
+                // 부모 context로는 이 카드만의 위치를 알 수 없다).
+                Builder(
+                  builder: (cardContext) => _ArchiveCard(
+                    icon: Icons.auto_stories_outlined,
+                    label: '사주 히스토리',
+                    onTap: () => Navigator.of(cardContext).pushNamed(
+                      '/saju-renewal',
+                      arguments: sajuCardCenterOf(cardContext),
+                    ),
+                  ),
                 ),
                 _ArchiveCard(
                   icon: Icons.style_outlined,

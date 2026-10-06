@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../saju_renewal/navigation/saju_dimension_transition.dart';
+
 /// [메인 UI 리디자인 - 귀인지도 배너 3장 롤링 캐러셀]
 ///
 /// `design_handoff_home_redesign.zip`의 `BANNER_CAROUSEL.md` 스펙을 그대로
@@ -262,7 +264,13 @@ class _HomeBannerCarouselState extends State<HomeBannerCarousel> {
         Navigator.of(context).pushNamed('/guinji-map');
         return;
       case '/fortune/today':
-        Navigator.of(context).pushNamed('/saju-renewal');
+        // [디자인 핸드오프 00 셸 — 진입 전환] docs/03 §00 "구현은 카드
+        // 중심 좌표를 원점으로". 이 context는 PageView.builder의
+        // itemBuilder(context, i)가 제공하는 각 슬라이드 자신의
+        // context이므로 Builder 없이 그대로 sajuCardCenterOf에 쓸 수 있다.
+        Navigator.of(
+          context,
+        ).pushNamed('/saju-renewal', arguments: sajuCardCenterOf(context));
         return;
       case '/fortune/compatibility':
         Navigator.of(context).pushNamed('/compatibility/input');

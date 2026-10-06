@@ -22,6 +22,7 @@ import '../domain/fortune_category_model.dart';
 import '../domain/fortune_matrix.dart';
 import 'widgets/fortune_matrix_section.dart';
 import '../../../core/router/app_router.dart' show AppRouter;
+import '../../saju_renewal/navigation/saju_dimension_transition.dart';
 
 /// [전체보기 카테고리 허브] Fortune Fusion(신통방통) 앱 전체 카테고리를 한 화면에서
 /// 파악·탐색할 수 있게 만드는 허브 페이지.
@@ -71,6 +72,13 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
     required String label,
     String? route,
     bool requiresPass = false,
+    // [디자인 핸드오프 00 셸 — 진입 전환] docs/03 §00 "구현은 카드 중심
+    // 좌표를 원점으로". 호출부(카드/칩 자신의 context)에서 미리
+    // `sajuCardCenterOf(cardContext)`로 구한 좌표를 넘기면, route가
+    // `/saju-renewal`일 때만 그 좌표를 arguments로 실어 app_router.dart의
+    // `sajuDimensionEnterRoute`가 그 지점에서 원형 확산하게 한다. 다른
+    // 라우트는 이 값을 무시한다(기존 동작 그대로).
+    Offset? cardCenter,
   }) async {
     if (route == null) {
       AppToast.show(context, '$label · 준비 중이에요! 곧 만나볼 수 있어요 🙏');
@@ -81,11 +89,9 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
     // 등)를 탭한 경우, saju/tarot 공용 입력화면에 미리 선택된 토픽/스프레드를
     // 넘겨준다. 매칭되는 관리자 카테고리가 없으면(기존 정적 항목) null이라
     // 기존 동작과 완전히 동일하다.
-    final arguments = _resolveDeepLinkArguments(
-      context,
-      label: label,
-      route: route,
-    );
+    final arguments = route == '/saju-renewal'
+        ? cardCenter
+        : _resolveDeepLinkArguments(context, label: label, route: route);
     await navigateWithPassGate(
       context,
       title: label,
@@ -409,11 +415,12 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
               child: _FeaturedGrid(
                 pass: pass,
                 busy: _checking,
-                onTap: (label, route, requiresPass) => _open(
+                onTap: (label, route, requiresPass, cardCenter) => _open(
                   context,
                   label: label,
                   route: route,
                   requiresPass: requiresPass,
+                  cardCenter: cardCenter,
                 ),
               ),
             ),
@@ -435,12 +442,14 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                   delay: Duration(milliseconds: 40 * index),
                   child: _CategoryGroupCard(
                     group: group,
-                    onTapItem: (label, route, requiresPass) => _open(
-                      context,
-                      label: label,
-                      route: route,
-                      requiresPass: requiresPass,
-                    ),
+                    onTapItem: (label, route, requiresPass, cardCenter) =>
+                        _open(
+                          context,
+                          label: label,
+                          route: route,
+                          requiresPass: requiresPass,
+                          cardCenter: cardCenter,
+                        ),
                   ),
                 ),
               );
@@ -675,7 +684,15 @@ class _FeaturedGrid extends StatelessWidget {
 
   final PassProvider pass;
   final bool busy;
-  final void Function(String label, String route, bool requiresPass) onTap;
+  // [디자인 핸드오프 00 셸 — 진입 전환] cardCenter는 탭된 _FeaturedCard
+  // 자신의 context로 구한 중심 좌표(route가 '/saju-renewal'일 때만 유효).
+  final void Function(
+    String label,
+    String route,
+    bool requiresPass,
+    Offset? cardCenter,
+  )
+  onTap;
 
   // [신통방통 정통사주 리뉴얼] "정통사주" 대표카테고리 카드를 유일한 신규
   // 정통사주(saju_renewal, `/saju-renewal`)로 연결한다. 기존 jeontong_eighty
@@ -778,7 +795,13 @@ class _FeaturedCard extends StatelessWidget {
   final (String, String, IconData, String, bool) item;
   final PassProvider pass;
   final bool busy;
-  final void Function(String label, String route, bool requiresPass) onTap;
+  final void Function(
+    String label,
+    String route,
+    bool requiresPass,
+    Offset? cardCenter,
+  )
+  onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -800,7 +823,18 @@ class _FeaturedCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
         showShadow: false,
         padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
-        onTap: busy ? null : () => onTap(title, route, requiresPass),
+        // [디자인 핸드오프 00 셸 — 진입 전환] docs/03 §00 "구현은 카드
+        // 중심 좌표를 원점으로". 이 카드 자신의 build(context)가 바로 이
+        // 카드의 context이므로 Builder 없이 sajuCardCenterOf(context)를
+        // 그대로 쓸 수 있다. 정통사주 카드가 아니면 null(무시됨).
+        onTap: busy
+            ? null
+            : () => onTap(
+                title,
+                route,
+                requiresPass,
+                route == '/saju-renewal' ? sajuCardCenterOf(context) : null,
+              ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -878,9 +912,7 @@ _categoryGroups = [
     icon: Icons.auto_stories_outlined,
     title: '사주',
     desc: '내 사주를 계산하고 내 사주 속 이야기를 발견해보세요',
-    items: [
-      (label: '내 사주 분석하기', route: '/saju-renewal', pass: false),
-    ],
+    items: [(label: '내 사주 분석하기', route: '/saju-renewal', pass: false)],
   ),
   (
     icon: Icons.style_outlined,
@@ -926,7 +958,15 @@ class _CategoryGroupCard extends StatelessWidget {
     List<({String label, String? route, bool pass})> items,
   })
   group;
-  final void Function(String label, String? route, bool requiresPass) onTapItem;
+  // [디자인 핸드오프 00 셸 — 진입 전환] cardCenter는 탭된 _SubCategoryChip
+  // 자신의 context로 구한 중심 좌표(route가 '/saju-renewal'일 때만 유효).
+  final void Function(
+    String label,
+    String? route,
+    bool requiresPass,
+    Offset? cardCenter,
+  )
+  onTapItem;
 
   @override
   Widget build(BuildContext context) {
@@ -960,7 +1000,13 @@ class _CategoryGroupCard extends StatelessWidget {
                   (item) => _SubCategoryChip(
                     label: item.label,
                     isReady: item.route != null,
-                    onTap: () => onTapItem(item.label, item.route, item.pass),
+                    onTap: (cardCenter) => onTapItem(
+                      item.label,
+                      item.route,
+                      item.pass,
+                      cardCenter,
+                    ),
+                    isSajuRenewal: item.route == '/saju-renewal',
                   ),
                 )
                 .toList(),
@@ -978,16 +1024,21 @@ class _SubCategoryChip extends StatelessWidget {
     required this.label,
     required this.isReady,
     required this.onTap,
+    this.isSajuRenewal = false,
   });
 
   final String label;
   final bool isReady;
-  final VoidCallback onTap;
+  // [디자인 핸드오프 00 셸 — 진입 전환] onTap이 Offset?을 받는 이유: 이
+  // 칩 자신의 context에서 sajuCardCenterOf로 구한 중심 좌표를 그대로
+  // 넘겨준다(isSajuRenewal이 아니면 null).
+  final void Function(Offset? cardCenter) onTap;
+  final bool isSajuRenewal;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () => onTap(isSajuRenewal ? sajuCardCenterOf(context) : null),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
@@ -1039,15 +1090,14 @@ class _QuickEntryRow extends StatelessWidget {
         (ctx) => _QuickEntryCard(
           icon: Icons.auto_awesome_outlined,
           label: '행운의 번호',
-          onTap: () =>
-              AppToast.show(ctx, '오늘의 행운숫자는 홈 화면에서 곧 만나볼 수 있어요 ✨'),
+          onTap: () => AppToast.show(ctx, '오늘의 행운숫자는 홈 화면에서 곧 만나볼 수 있어요 ✨'),
         ),
       (ctx) => _QuickEntryCard(
         icon: Icons.star_border_rounded,
         label: '소원방',
-        onTap: () => Navigator.of(ctx).push(
-          MaterialPageRoute(builder: (_) => const WishRoomIntroScreen()),
-        ),
+        onTap: () => Navigator.of(
+          ctx,
+        ).push(MaterialPageRoute(builder: (_) => const WishRoomIntroScreen())),
       ),
     ];
     return SizedBox(
