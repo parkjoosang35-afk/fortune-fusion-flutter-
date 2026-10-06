@@ -71,6 +71,16 @@ class _CalculatingScreenState extends State<CalculatingScreen>
   int _step = 0; // 0 = 아직 시작 전, 1..9
   int _reveal = 0; // 0~8, 2단계(여덟 글자 새김) 진행도
   bool _ceremonyReachedEnd = false; // 9단계 STEP 시간 도달(= 최소 대기 충족)
+
+  // [버그 수정 — C-03h/docs/04 §3-1 "완료" 단계 전체 미구현]
+  // 원본 jsx(`screens-a.jsx` ScreenAnalyze)는 9단계 완료 후 라벨을
+  // "COMPLETE"/"나에게 맞는 사주 이야기를 찾았습니다"(C-03-10)로
+  // 바꾸고 1.4s 유지한 뒤에야 04로 넘어간다(`setTimeout(() =>
+  // go('04'), 1400)`, docs/04_모션.md §3-1 "완료 | 8.17s | ... |
+  // 1.4s 유지"). 기존 코드는 이 단계 자체가 없어 조건 충족 즉시
+  // 전환해버렸다 — 사용자가 "완료" 문구를 전혀 보지 못하는 결함.
+  bool _completeTriggered = false; // 완료 단계(1.4s 홀드) 진입 1회 가드.
+  bool _showComplete = false; // true면 하단 라벨이 COMPLETE 문구를 보여줌.
   bool _disposed = false;
   SajuVisualProfile? _profile;
   UserModel? _user;
@@ -209,23 +219,21 @@ class _CalculatingScreenState extends State<CalculatingScreen>
   /// 리듬이 9단계까지 도달 = 최소 3s 보장이 내장된 로컬 상태)가 true가
   /// 될 때까지 네비게이션을 보류한다 — docs/04_모션.md §3-4
   /// "단계 9: 진입 후 최소 STEP 유지 + topics/select 응답 도착 둘 다
-  /// 만족 시 완료 표시"와 정확히 대응한다. [_ceremonyReachedEnd]가
-  /// setState로 바뀔 때마다 build()가 다시 실행되어 이 메서드가 재호출
-  /// 되므로 별도 폴링 없이 자연히 재평가된다. 실패 경로(error)는 사용자
-  /// 경험상 즉시 안내해야 하므로(세레모니 리듬을 강제로 채울 이유가
-  /// 없음) 기존처럼 즉시 전환한다.
+  /// 만족 시 완료 표시"와 정확히 대응한다.
+  ///
+  /// [버그 수정 — C-03h/docs/04 §3-1 "완료" 단계] 조건이 충족되는
+  /// 즉시 Navigator로 넘어가지 않고, 먼저 [_enterCompleteThenNavigate]로
+  /// "완료" 라벨(COMPLETE / 나에게 맞는 사주 이야기를 찾았습니다)을
+  /// 1.4s 보여준 뒤에야 04로 전환한다(원본 jsx `setTimeout(() =>
+  /// go('04'), 1400)`과 1:1 대응). 실패 경로(error)는 사용자 경험상
+  /// 즉시 안내해야 하므로(완료 홀드를 강제로 넣을 이유가 없음) 기존처럼
+  /// 즉시 전환한다.
   void _maybeNavigate(SajuRenewalProvider provider) {
     if (_navigated) return;
     if (provider.status == SajuRenewalFlowStatus.storyPreview ||
         provider.status == SajuRenewalFlowStatus.factsReady) {
       if (!_ceremonyReachedEnd) return; // 최소 3s 세레모니 리듬 대기.
-      _navigated = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const AnalysisCompleteScreen()),
-        );
-      });
+      _enterCompleteThenNavigate();
     } else if (provider.status == SajuRenewalFlowStatus.error) {
       _navigated = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -235,6 +243,28 @@ class _CalculatingScreenState extends State<CalculatingScreen>
         );
       });
     }
+  }
+
+  /// C-03h/docs/04 §3-1 "완료" 단계 — "COMPLETE"/"나에게 맞는 사주
+  /// 이야기를 찾았습니다"(C-03-10) 라벨을 1.4s 보여준 뒤 04로 전환한다.
+  /// [_completeTriggered]로 중복 진입을 막는다(build()가 여러 번
+  /// 재호출돼도 이 홀드는 정확히 1회만 시작됨).
+  void _enterCompleteThenNavigate() {
+    if (_completeTriggered) return;
+    _completeTriggered = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (_disposed || !mounted) return;
+      setState(() => _showComplete = true);
+      // E-21과 동일하게 백그라운드 중에는 홀드 시간도 소비하지 않는다
+      // (일시정지, 복귀 시 이어서) — _runCeremony/_runReveal과 동일한
+      // 정책을 완료 홀드에도 일관되게 적용.
+      await _pausableDelay(const Duration(milliseconds: 1400));
+      if (_disposed || !mounted) return;
+      _navigated = true;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const AnalysisCompleteScreen()),
+      );
+    });
   }
 
   @override
@@ -493,23 +523,32 @@ class _CalculatingScreenState extends State<CalculatingScreen>
                       AnimatedSwitcher(
                         duration: const Duration(milliseconds: 500),
                         child: Column(
+                          // [버그 수정 — C-03h/C-03-10] 완료 단계에는 다른 코드
+                          // 경로(key 'complete') — docs/04 §3-1 "완료" 행과
+                          // 원본 jsx `done ? 'COMPLETE' : S.en`에 1:1 대응.
                           key: ValueKey(
-                            waitingForServer ? 'wait' : displayStep,
+                            _showComplete
+                                ? 'complete'
+                                : (waitingForServer ? 'wait' : displayStep),
                           ),
                           children: [
                             Text(
-                              waitingForServer
-                                  ? 'STORY SELECT'
-                                  : _kSteps[displayStep - 1].en,
+                              _showComplete
+                                  ? 'COMPLETE'
+                                  : (waitingForServer
+                                        ? 'STORY SELECT'
+                                        : _kSteps[displayStep - 1].en),
                               style: SajuType.mono10,
                             ),
                             const SizedBox(height: 8),
                             SizedBox(
                               height: 26,
                               child: Text(
-                                waitingForServer
-                                    ? _kSteps.last.ko
-                                    : _kSteps[displayStep - 1].ko,
+                                _showComplete
+                                    ? '나에게 맞는 사주 이야기를 찾았습니다'
+                                    : (waitingForServer
+                                          ? _kSteps.last.ko
+                                          : _kSteps[displayStep - 1].ko),
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   fontFamily: SajuType.body,

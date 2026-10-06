@@ -101,9 +101,7 @@ void main() {
   Widget wrap() {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(
-          create: (_) => AuthProvider(AuthRepository()),
-        ),
+        ChangeNotifierProvider(create: (_) => AuthProvider(AuthRepository())),
         ChangeNotifierProvider(
           create: (_) => SajuRenewalProvider(SajuRenewalApi()),
         ),
@@ -112,149 +110,162 @@ void main() {
     );
   }
 
-  testWidgets(
-    'C-03f/C-03g: topics/select + interpret(summary)이 즉시(0ms) 응답해도 '
-    '(= 캐시 히트), 03 화면은 최소 3s 세레모니 리듬을 지킨 뒤에만 '
-    '다음 화면으로 전환된다',
-    (tester) async {
-      await http.runWithClient(() async {
-        await tester.pumpWidget(wrap());
+  testWidgets('C-03f/C-03g: topics/select + interpret(summary)이 즉시(0ms) 응답해도 '
+      '(= 캐시 히트), 03 화면은 최소 3s 세레모니 리듬을 지킨 뒤에만 '
+      '다음 화면으로 전환된다', (tester) async {
+    await http.runWithClient(() async {
+      await tester.pumpWidget(wrap());
 
-        // 화면②에서 "입력완료"를 눌렀다고 가정하고 세레모니를 시작시킨다.
-        final context = tester.element(find.byType(CalculatingScreen));
-        // 실제 화면 플로우와 동일하게 Provider의 startCalculating()을
-        // 호출해 즉시-응답 MockClient로 select+interpret을 완료시킨다.
-        // (실제 앱에서는 birth_input_screen/home_screen이 호출함.)
-        unawaited(context.read<SajuRenewalProvider>().startCalculating());
+      // 화면②에서 "입력완료"를 눌렀다고 가정하고 세레모니를 시작시킨다.
+      final context = tester.element(find.byType(CalculatingScreen));
+      // 실제 화면 플로우와 동일하게 Provider의 startCalculating()을
+      // 호출해 즉시-응답 MockClient로 select+interpret을 완료시킨다.
+      // (실제 앱에서는 birth_input_screen/home_screen이 호출함.)
+      unawaited(context.read<SajuRenewalProvider>().startCalculating());
 
-        // Provider의 비동기 체인(즉시 응답이어도 Future 스케줄링은 몇
-        // microtask 필요)이 끝날 시간을 준다. 이 시점에 이미
-        // factsReady/storyPreview에 도달했을 것이다(즉시 응답이므로).
+      // Provider의 비동기 체인(즉시 응답이어도 Future 스케줄링은 몇
+      // microtask 필요)이 끝날 시간을 준다. 이 시점에 이미
+      // factsReady/storyPreview에 도달했을 것이다(즉시 응답이므로).
+      await tester.pump(const Duration(milliseconds: 50));
+
+      final provider = context.read<SajuRenewalProvider>();
+      expect(
+        provider.status == SajuRenewalFlowStatus.factsReady ||
+            provider.status == SajuRenewalFlowStatus.storyPreview,
+        isTrue,
+        reason:
+            'MockClient가 즉시 응답했으므로 50ms 안에 Provider가 '
+            'factsReady/storyPreview에 도달해야 함(현재: ${provider.status})',
+      );
+
+      // ── 핵심 검증: 서버가 이미 끝났어도(=0ms), 화면은 여전히 03에
+      // 머물러 있어야 한다(최소 3s 세레모니 리듬 보장, C-03f). ──
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(
+        find.byType(CalculatingScreen),
+        findsOneWidget,
+        reason:
+            'C-03f 위반 가능성: 서버 응답이 즉시 와도 03 화면이 '
+            '500ms 만에 이미 떠나 있음(최소 3s 보장 안 됨)',
+      );
+
+      await tester.pump(const Duration(milliseconds: 2000));
+      expect(
+        find.byType(CalculatingScreen),
+        findsOneWidget,
+        reason:
+            'C-03f 위반: 서버 응답이 즉시 와도(캐시 히트) 03 화면 '
+            '체류 시간이 2.5s(500+2000ms)에 불과한데, 이미 떠나 있음 '
+            '— "최소 3s" 보장 위반',
+      );
+
+      // 최소 3s를 넘겨 9단계까지 흘려보낸다.
+      await tester.pump(const Duration(seconds: 7));
+      // addPostFrameCallback으로 "완료" 단계(COMPLETE, 1.4s 유지 —
+      // C-03h/docs/04 §3-1)에 진입한 뒤에야 실제
+      // Navigator.pushReplacement가 실행된다.
+      for (var i = 0; i < 10; i++) {
         await tester.pump(const Duration(milliseconds: 50));
-
-        final provider = context.read<SajuRenewalProvider>();
-        expect(
-          provider.status == SajuRenewalFlowStatus.factsReady ||
-              provider.status == SajuRenewalFlowStatus.storyPreview,
-          isTrue,
-          reason:
-              'MockClient가 즉시 응답했으므로 50ms 안에 Provider가 '
-              'factsReady/storyPreview에 도달해야 함(현재: ${provider.status})',
-        );
-
-        // ── 핵심 검증: 서버가 이미 끝났어도(=0ms), 화면은 여전히 03에
-        // 머물러 있어야 한다(최소 3s 세레모니 리듬 보장, C-03f). ──
-        await tester.pump(const Duration(milliseconds: 500));
-        expect(
-          find.byType(CalculatingScreen),
-          findsOneWidget,
-          reason:
-              'C-03f 위반 가능성: 서버 응답이 즉시 와도 03 화면이 '
-              '500ms 만에 이미 떠나 있음(최소 3s 보장 안 됨)',
-        );
-
-        await tester.pump(const Duration(milliseconds: 2000));
-        expect(
-          find.byType(CalculatingScreen),
-          findsOneWidget,
-          reason:
-              'C-03f 위반: 서버 응답이 즉시 와도(캐시 히트) 03 화면 '
-              '체류 시간이 2.5s(500+2000ms)에 불과한데, 이미 떠나 있음 '
-              '— "최소 3s" 보장 위반',
-        );
-
-        // 최소 3s를 넘겨 9단계(완료 라벨 포함, 약 9.57s)까지 흘려보낸다.
-        await tester.pump(const Duration(seconds: 7));
-        // addPostFrameCallback으로 예약된 Navigator.pushReplacement가
-        // 실제로 실행되려면 몇 차례의 추가 프레임(pump)이 필요하다.
-        for (var i = 0; i < 10; i++) {
-          await tester.pump(const Duration(milliseconds: 50));
-        }
-
-        // 9단계 완료 후 AnalysisCompleteScreen으로 전환되었는지 확인
-        // (= _maybeNavigate가 Provider 상태를 보고 실제로 전환을 수행).
-        expect(
-          find.byType(CalculatingScreen),
-          findsNothing,
-          reason:
-              '9단계(최대 ~9.57s) 경과 후에도 03 화면에 머물러 있음 '
-              '— select 응답 도착 후 정상적으로 04로 전환되어야 함',
-        );
-      }, () => instantClient());
-    },
-  );
-
-  testWidgets(
-    'C-03g: select(topics) 응답이 아직 오지 않았으면, 세레모니가 9단계 '
-    'STEP 리듬을 모두 마쳐도 화면은 03에 머물며(대기 인디케이터), '
-    'select 응답이 도착해야만 비로소 다음 화면으로 전환된다',
-    (tester) async {
-      // 응답을 영원히 보류하는(테스트 종료까지) Completer 기반 MockClient.
-      final topicsCompleter = Completer<http.Response>();
-      void releaseTopics() {
-        if (!topicsCompleter.isCompleted) {
-          topicsCompleter.complete(_topicsSelectResponse());
-        }
       }
+      await tester.pump(const Duration(milliseconds: 1500)); // 완료 홀드 1.4s
+      // [주의] AnalysisCompleteScreen에는 4s 주기의 무한 반복
+      // AnimationController(repeat(reverse:true))가 있어
+      // pumpAndSettle()은 영원히 끝나지 않는다(타임아웃). 대신 기본
+      // MaterialPageRoute 전환 애니메이션(300ms)만큼만 추가로 pump한다.
+      await tester.pump(
+        const Duration(milliseconds: 350),
+      ); // 라우트 전환(300ms) 완료 대기
 
-      MockClient delayedClient() {
-        return MockClient((request) async {
-          if (request.url.path.contains('/topics/select')) {
-            return topicsCompleter.future;
-          }
-          if (request.url.path.contains('/interpret')) {
-            return _interpretSummaryResponse();
-          }
-          return http.Response('not found', 404);
-        });
+      // 9단계 완료 후 AnalysisCompleteScreen으로 전환되었는지 확인
+      // (= _maybeNavigate가 Provider 상태를 보고 실제로 전환을 수행).
+      expect(
+        find.byType(CalculatingScreen),
+        findsNothing,
+        reason:
+            '9단계(최대 ~9.57s) 경과 후에도 03 화면에 머물러 있음 '
+            '— select 응답 도착 후 정상적으로 04로 전환되어야 함',
+      );
+    }, () => instantClient());
+  });
+
+  testWidgets('C-03g: select(topics) 응답이 아직 오지 않았으면, 세레모니가 9단계 '
+      'STEP 리듬을 모두 마쳐도 화면은 03에 머물며(대기 인디케이터), '
+      'select 응답이 도착해야만 비로소 다음 화면으로 전환된다', (tester) async {
+    // 응답을 영원히 보류하는(테스트 종료까지) Completer 기반 MockClient.
+    final topicsCompleter = Completer<http.Response>();
+    void releaseTopics() {
+      if (!topicsCompleter.isCompleted) {
+        topicsCompleter.complete(_topicsSelectResponse());
       }
+    }
 
-      await http.runWithClient(() async {
-        await tester.pumpWidget(wrap());
-        final context = tester.element(find.byType(CalculatingScreen));
-        unawaited(context.read<SajuRenewalProvider>().startCalculating());
-        await tester.pump(const Duration(milliseconds: 10));
-
-        final provider = context.read<SajuRenewalProvider>();
-        expect(
-          provider.status,
-          SajuRenewalFlowStatus.calculating,
-          reason: 'select 응답을 보류 중이므로 Provider는 아직 calculating 상태여야 함',
-        );
-
-        // 9단계 전체 리듬(최대 9.57s)을 다 흘려보내도, select 응답이
-        // 아직 없으므로 03 화면에 머물러 있어야 한다(C-03g).
-        await tester.pump(const Duration(seconds: 9));
-        await tester.pump(const Duration(milliseconds: 700));
-        expect(
-          find.byType(CalculatingScreen),
-          findsOneWidget,
-          reason:
-              'C-03g 위반: select 응답이 아직 도착하지 않았는데도 '
-              '03 화면이 9단계 리듬 경과만으로 다음 화면으로 떠나버림',
-        );
-        expect(
-          provider.status,
-          SajuRenewalFlowStatus.calculating,
-          reason: '여전히 select 응답 대기 중이어야 함',
-        );
-
-        // 이제 select 응답을 풀어준다 — 비로소 다음 화면으로 전환되어야 함.
-        releaseTopics();
-        // select 완료 → loadPreview(interpretSummary) 체인까지 이어지고,
-        // addPostFrameCallback으로 실제 Navigator.pushReplacement가
-        // 실행되려면 몇 차례의 pump(프레임)가 필요하다.
-        for (var i = 0; i < 10; i++) {
-          await tester.pump(const Duration(milliseconds: 50));
+    MockClient delayedClient() {
+      return MockClient((request) async {
+        if (request.url.path.contains('/topics/select')) {
+          return topicsCompleter.future;
         }
+        if (request.url.path.contains('/interpret')) {
+          return _interpretSummaryResponse();
+        }
+        return http.Response('not found', 404);
+      });
+    }
 
-        expect(
-          find.byType(CalculatingScreen),
-          findsNothing,
-          reason: 'select 응답 도착 후에는 즉시(또는 postFrameCallback 직후) '
-              '04로 전환되어야 함(C-03g)',
-        );
-      }, delayedClient);
-    },
-  );
+    await http.runWithClient(() async {
+      await tester.pumpWidget(wrap());
+      final context = tester.element(find.byType(CalculatingScreen));
+      unawaited(context.read<SajuRenewalProvider>().startCalculating());
+      await tester.pump(const Duration(milliseconds: 10));
+
+      final provider = context.read<SajuRenewalProvider>();
+      expect(
+        provider.status,
+        SajuRenewalFlowStatus.calculating,
+        reason: 'select 응답을 보류 중이므로 Provider는 아직 calculating 상태여야 함',
+      );
+
+      // 9단계 전체 리듬(최대 9.57s)을 다 흘려보내도, select 응답이
+      // 아직 없으므로 03 화면에 머물러 있어야 한다(C-03g).
+      await tester.pump(const Duration(seconds: 9));
+      await tester.pump(const Duration(milliseconds: 700));
+      expect(
+        find.byType(CalculatingScreen),
+        findsOneWidget,
+        reason:
+            'C-03g 위반: select 응답이 아직 도착하지 않았는데도 '
+            '03 화면이 9단계 리듬 경과만으로 다음 화면으로 떠나버림',
+      );
+      expect(
+        provider.status,
+        SajuRenewalFlowStatus.calculating,
+        reason: '여전히 select 응답 대기 중이어야 함',
+      );
+
+      // 이제 select 응답을 풀어준다 — 비로소 다음 화면으로 전환되어야 함.
+      releaseTopics();
+      // select 완료 → loadPreview(interpretSummary) 체인까지 이어지고,
+      // addPostFrameCallback으로 "완료" 단계(COMPLETE, 1.4s 유지 —
+      // C-03h/docs/04 §3-1)에 진입한 뒤에야 실제
+      // Navigator.pushReplacement가 실행된다.
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      await tester.pump(const Duration(milliseconds: 1500)); // 완료 홀드 1.4s
+      // [주의] AnalysisCompleteScreen에는 4s 주기의 무한 반복
+      // AnimationController(repeat(reverse:true))가 있어
+      // pumpAndSettle()은 영원히 끝나지 않는다(타임아웃). 대신 기본
+      // MaterialPageRoute 전환 애니메이션(300ms)만큼만 추가로 pump한다.
+      await tester.pump(
+        const Duration(milliseconds: 350),
+      ); // 라우트 전환(300ms) 완료 대기
+
+      expect(
+        find.byType(CalculatingScreen),
+        findsNothing,
+        reason:
+            'select 응답 도착 후에는 즉시(또는 postFrameCallback 직후) '
+            '04로 전환되어야 함(C-03g)',
+      );
+    }, delayedClient);
+  });
 }
