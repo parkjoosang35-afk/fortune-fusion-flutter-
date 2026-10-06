@@ -1,9 +1,11 @@
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/web_ads/web_ad_config.dart';
 import '../../../core/web_ads/widgets/web_ad_in_page.dart';
 import '../data/models/interpret_result.dart';
 import '../data/models/topic_card.dart';
+import '../data/saju_recent_story_store.dart';
 import '../data/saju_term_dictionary.dart';
 import '../data/saju_visual_adapter.dart';
 import '../../auth/application/auth_provider.dart';
@@ -50,6 +52,27 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
     super.initState();
     final user = context.read<AuthProvider>().currentUser;
     _profile = _buildProfile(user);
+    _persistRecentStory();
+  }
+
+  /// docs/03 §01 "최근 본 이야기 카드" — 이 화면(화면⑦ 상세)에 도달했다는
+  /// 것 자체가 "이 이야기를 끝까지(봉인 해제 후) 봤다"는 뜻이므로, 다음
+  /// 번 화면①(메인) 재진입 때 재방문 카드로 보여줄 수 있도록 지금
+  /// 시점에 로컬에 기록한다.
+  void _persistRecentStory() {
+    final provider = context.read<SajuRenewalProvider>();
+    final topic = provider.currentTopic;
+    if (topic == null) return;
+    if (!provider.detailState.isSuccess) return;
+    SajuRecentStoryStore.save(
+      SajuRecentStory(
+        topicId: topic.topicId,
+        scene: topic.scene,
+        title: topic.title,
+        evidenceFactKeys: topic.evidenceFactKeys,
+        viewedAt: DateTime.now(),
+      ),
+    );
   }
 
   SajuVisualProfile? _buildProfile(UserModel? user) {
@@ -163,13 +186,14 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
                     return Column(
                       children: [
                         // 스크롤 아래에서도 떠 있는 상단바(JSX position:sticky
-                        // + backdrop-blur).
+                        // + backdrop-blur(6px)). [버그 수정] 이전에는
+                        // ColorFilter.mode(transparent, multiply)를 썼는데,
+                        // 이 필터는 실질적으로 아무 흐림 효과를 내지 않는다
+                        // (투명 색 x multiply = 결과가 항상 변화 없음) —
+                        // 실제 블러는 ImageFilter.blur로만 구현된다.
                         ClipRect(
                           child: BackdropFilter(
-                            filter: const ColorFilter.mode(
-                              Colors.transparent,
-                              BlendMode.multiply,
-                            ),
+                            filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
                             child: Container(
                               decoration: const BoxDecoration(
                                 gradient: LinearGradient(

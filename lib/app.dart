@@ -88,6 +88,7 @@ import 'features/result_access/data/result_access_repository.dart';
 // 무수정 — 이 Provider는 그 결과를 소비하는 클라이언트 상태관리만 담당한다.
 import 'features/saju_renewal/state/saju_renewal_provider.dart';
 import 'features/saju_renewal/data/saju_renewal_api.dart';
+import 'features/saju_renewal/data/saju_recent_story_store.dart';
 
 /// 07단계 §2.1 앱 루트 - MultiProvider 전역 등록 + MaterialApp 라우팅 연결
 /// 10단계(A안): 모든 Repository는 Mock 구현이며, 향후 실제 API 연동 시
@@ -389,6 +390,12 @@ class _LogoutCallbackRegistrarState extends State<_LogoutCallbackRegistrar> {
     auth.registerLogoutCallback(
       context.read<SajuRenewalProvider>().clearOnLogout,
     );
+    // [신통방통 정통사주 리뉴얼 — 화면① 재방문 카드] 사용자A가 마지막으로
+    // 본 이야기가 사용자B의 재방문 카드로 노출되면 안 된다(계정 격리
+    // 원칙과 동일 취지).
+    auth.registerLogoutCallback(() {
+      SajuRecentStoryStore.clear();
+    });
   }
 
   @override

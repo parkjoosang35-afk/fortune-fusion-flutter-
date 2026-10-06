@@ -405,6 +405,24 @@ class _CalculatingScreenState extends State<CalculatingScreen> {
                         ],
                       ),
                     ),
+                    // docs/09 Q-10 / docs/03 §03 "(1단계 + 진태양시 On +
+                    // 시간 있음) 아래 8: '태어난 시각, 태양시 기준으로
+                    // 보정했습니다'" (C-03-11). 시간 모름이면 미표시(E-15).
+                    if (displayStep == 1 &&
+                        !noHour &&
+                        (_user?.birthPlace != null &&
+                            _user!.birthPlace!.isNotEmpty))
+                      const Padding(
+                        padding: EdgeInsets.only(top: 8),
+                        child: Text(
+                          '태어난 시각, 태양시 기준으로 보정했습니다',
+                          style: TextStyle(
+                            fontFamily: SajuType.ui,
+                            fontSize: 12,
+                            color: SajuText.muted,
+                          ),
+                        ),
+                      ),
                     if (waitingForServer) ...[
                       const SizedBox(height: 10),
                       const _PulsingDot(),

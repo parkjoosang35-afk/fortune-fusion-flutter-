@@ -9,10 +9,29 @@ import '../widgets/saju_base_widgets.dart';
 import '../widgets/saju_visual_widgets.dart';
 import 'calculating_screen.dart';
 
+/// docs/09_기획검수_확인사항.md Q-10 "권고안대로 On"(진태양시 경도 보정
+/// 기본 적용 + 02/03 화면 안내 문구 노출)에 대응하는 국내 주요 도시 목록.
+/// 이 앱에는 아직 출생지 선택 UI가 없었으므로(birthPlace 필드는 서버
+/// 모델에는 있지만 02 화면 입력 폼에는 없었음), docs/03 §02 "태어난 곳"
+/// 필드를 이번에 최소 구현으로 추가한다.
+const List<String> _kBirthPlaceOptions = [
+  '서울',
+  '부산',
+  '인천',
+  '대구',
+  '대전',
+  '광주',
+  '울산',
+  '세종',
+  '수원',
+  '제주',
+];
+
 /// [신통방통 정통사주 리뉴얼 — 다크 디자인 핸드오프] 화면② 출생정보 입력.
 /// `design_files/saju/screens-a.jsx`의 `ScreenInput`을 재현한다 — 상단
 /// "태어난 순간을 정확히 알려주세요" 타이틀, 입력값으로 실시간 갱신되는
-/// 원국(사주 8자) 프리뷰 카드, 하단 고정 CTA.
+/// 원국(사주 8자) 프리뷰 카드, "태어난 곳" + 진태양시 보정 안내
+/// (C-02-6), 필드별 검증 UX(C-02-8), 하단 고정 CTA.
 ///
 /// [기존 모델 재사용] 생년월일/시간/성별의 실제 입력 UI는 디자인
 /// 핸드오프의 `Field`/`Seg`/`inputBox` 커스텀 컴포넌트를 새로 만들지
@@ -37,6 +56,18 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
   bool _isLunar = false;
   bool _submitting = false;
   String? _error;
+
+  /// docs/03 §02 "태어난 곳" — 기본값 서울(진태양시 보정 예시와 동일),
+  /// "변경"으로 다른 도시를 고를 수 있다.
+  String _birthPlace = '서울';
+
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey _birthDateFieldKey = GlobalKey();
+
+  /// docs/03 §02 "검증": "미입력 필드가 있으면 탭 시 해당 필드로 스크롤 +
+  /// 라벨 점 rel.chung 1초 + 필드 아래 ... 문구". 1초간 라벨 점을 강조색
+  /// (충/파 적선)으로 깜빡인 뒤 원래 상태로 되돌린다.
+  bool _birthDateBlinking = false;
 
   @override
   void initState() {
@@ -69,7 +100,16 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
       if (user.gender == 'male' || user.gender == 'female') {
         _gender = user.gender!;
       }
+      if (user.birthPlace != null && user.birthPlace!.isNotEmpty) {
+        _birthPlace = user.birthPlace!;
+      }
     }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   BirthdayPickerTimeValue? _zhiTimeForHour(int hour) {
@@ -96,7 +136,86 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
       title: '태어난 날을 알려주세요',
     );
     if (result == null) return;
-    setState(() => _birthValue = result);
+    setState(() {
+      _birthValue = result;
+      _error = null;
+    });
+  }
+
+  /// docs/03 §02 "태어난 곳 — 입력 박스(좌 지역명, 우 "변경")". 전용
+  /// 피커가 없었으므로, 기존 바텀시트 톤(SajuDarkBase 계열 다크 배경)에
+  /// 맞춘 최소 목록 선택 시트를 새로 만든다.
+  Future<void> _changeBirthPlace() async {
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: SajuInk.i900,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '태어난 곳을 선택해주세요',
+                  style: TextStyle(
+                    fontFamily: SajuType.serif,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 17,
+                    color: SajuGold.g100,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _kBirthPlaceOptions.map((place) {
+                    final selectedNow = place == _birthPlace;
+                    return InkWell(
+                      onTap: () => Navigator.of(sheetContext).pop(place),
+                      borderRadius: BorderRadius.circular(9),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(9),
+                          border: Border.all(
+                            color: selectedNow
+                                ? SajuText.lineGold
+                                : SajuText.line,
+                          ),
+                          color: selectedNow
+                              ? SajuText.fg.withValues(alpha: 0.12)
+                              : Colors.transparent,
+                        ),
+                        child: Text(
+                          place,
+                          style: TextStyle(
+                            fontFamily: SajuType.ui,
+                            fontSize: 14,
+                            color: selectedNow
+                                ? SajuGold.g100
+                                : SajuText.muted,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (selected == null) return;
+    setState(() => _birthPlace = selected);
   }
 
   /// 입력값 기반 실시간 원국 프리뷰(가짜 데모 사주 금지 — 사용자가 아직
@@ -115,10 +234,33 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
     );
   }
 
+  /// docs/03 §02 검증: 생년월일 미입력 시 해당 필드로 스크롤 + 라벨 점
+  /// 강조 + 필드 아래 안내 문구(C-02-8) — 화면 하단 공용 에러 1줄이
+  /// 아니라 "그 필드 바로 아래"에 보여준다.
+  Future<void> _highlightMissingBirthDate() async {
+    final ctx = _birthDateFieldKey.currentContext;
+    if (ctx != null) {
+      await Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+        alignment: 0.1,
+      );
+    }
+    if (!mounted) return;
+    setState(() {
+      _birthDateBlinking = true;
+      _error = '이 정보가 있어야 사주를 세울 수 있어요';
+    });
+    await Future.delayed(const Duration(milliseconds: 1000));
+    if (!mounted) return;
+    setState(() => _birthDateBlinking = false);
+  }
+
   Future<void> _submit() async {
     final value = _birthValue;
     if (value == null) {
-      setState(() => _error = '이 정보가 있어야 사주를 세울 수 있어요');
+      await _highlightMissingBirthDate();
       return;
     }
     setState(() {
@@ -138,6 +280,7 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
       birthTime: birthTimeStr,
       isLunar: _isLunar,
       birthTimeUnknown: birthTimeUnknown,
+      birthPlace: _birthPlace,
       gender: _gender,
     );
 
@@ -162,6 +305,10 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
   Widget build(BuildContext context) {
     final preview = _livePreview;
     final timeUnknown = _birthValue?.time == null;
+    // docs/09 Q-10: "권고안대로 On, 02(출생지 아래)·03(1단계)에 표시.
+    // 시간 모름이면 미표시" — E-15와 동일하게 시간 모름일 때는 진태양시
+    // 문구를 숨긴다(시간 자체를 안 쓰므로 보정 의미가 없음).
+    final showSolarTimeNote = !timeUnknown;
 
     return Scaffold(
       body: SajuDarkBase(
@@ -177,6 +324,7 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
               ),
               Expanded(
                 child: SingleChildScrollView(
+                  controller: _scrollController,
                   padding: const EdgeInsets.fromLTRB(22, 14, 22, 24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -244,7 +392,14 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
                       ),
                       const SizedBox(height: 18),
 
-                      _FieldLabel(label: '생년월일', done: _birthValue != null),
+                      KeyedSubtree(
+                        key: _birthDateFieldKey,
+                        child: _FieldLabel(
+                          label: '생년월일',
+                          done: _birthValue != null,
+                          blinking: _birthDateBlinking,
+                        ),
+                      ),
                       Row(
                         children: [
                           Expanded(
@@ -276,6 +431,20 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
                           ),
                         ],
                       ),
+                      // docs/03 §02 검증 — 생년월일 필드 바로 아래에
+                      // "이 정보가 있어야 사주를 세울 수 있어요"(C-02-8).
+                      if (_birthValue == null && _error != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            _error!,
+                            style: const TextStyle(
+                              fontFamily: SajuType.ui,
+                              fontSize: 12,
+                              color: Color(0xFFE08A7E),
+                            ),
+                          ),
+                        ),
 
                       _FieldLabel(label: '태어난 시간', done: !timeUnknown),
                       Row(
@@ -326,8 +495,72 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
                         onChange: (v) =>
                             setState(() => _gender = v == '남성' ? 'male' : 'female'),
                       ),
+                      const SizedBox(height: 14),
 
-                      if (_error != null) ...[
+                      // docs/03 §02 "태어난 곳" + 진태양시 보정 안내(C-02-6).
+                      _FieldLabel(label: '태어난 곳', done: true),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _InputBoxTap(
+                              onTap: _changeBirthPlace,
+                              child: Text(
+                                _birthPlace,
+                                style: const TextStyle(
+                                  fontFamily: SajuType.ui,
+                                  fontSize: 15,
+                                  color: SajuGold.g100,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          InkWell(
+                            onTap: _changeBirthPlace,
+                            child: const Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 14,
+                              ),
+                              child: Text(
+                                '변경',
+                                style: TextStyle(
+                                  fontFamily: SajuType.ui,
+                                  fontSize: 12,
+                                  color: SajuText.faint,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (showSolarTimeNote)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: RichText(
+                            text: TextSpan(
+                              style: const TextStyle(
+                                fontFamily: SajuType.ui,
+                                fontSize: 12,
+                                height: 1.5,
+                                color: SajuText.muted,
+                              ),
+                              children: [
+                                const TextSpan(
+                                  text: '☼ ',
+                                  style: TextStyle(color: SajuGold.g500),
+                                ),
+                                TextSpan(
+                                  text: '$_birthPlace 기준 태양시로 보정하여 계산합니다.',
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                      // [공통 저장 실패 안내] 생년월일 관련이 아닌 그 외
+                      // 실패(서버 오류 등)는 화면 하단에 그대로 노출한다.
+                      if (_error != null && _birthValue != null) ...[
                         const SizedBox(height: 16),
                         Text(
                           _error!,
@@ -367,9 +600,17 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
 }
 
 class _FieldLabel extends StatelessWidget {
-  const _FieldLabel({required this.label, required this.done});
+  const _FieldLabel({
+    required this.label,
+    required this.done,
+    this.blinking = false,
+  });
   final String label;
   final bool done;
+
+  /// docs/03 §02 검증 — 미입력 필드를 탭했을 때 라벨 점을 1초간
+  /// rel.chung(충/파 적선)으로 강조한다.
+  final bool blinking;
 
   @override
   Widget build(BuildContext context) {
@@ -377,12 +618,15 @@ class _FieldLabel extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 7, top: 14),
       child: Row(
         children: [
-          Container(
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
             width: 5,
             height: 5,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: done ? SajuGold.g300 : SajuText.faint,
+              color: blinking
+                  ? SajuRelationColor.chung
+                  : (done ? SajuGold.g300 : SajuText.faint),
             ),
           ),
           const SizedBox(width: 6),
