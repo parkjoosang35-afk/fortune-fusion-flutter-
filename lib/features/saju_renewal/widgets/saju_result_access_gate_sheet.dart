@@ -50,8 +50,7 @@ class SajuResultAccessGateSheet extends StatefulWidget {
 /// 06-D/06-E "수단 사용 중" 오버레이 연출 종류.
 enum _UsingOverlay { none, pass, pouch }
 
-class _SajuResultAccessGateSheetState
-    extends State<SajuResultAccessGateSheet> {
+class _SajuResultAccessGateSheetState extends State<SajuResultAccessGateSheet> {
   ResultAccessPaymentMethod? _processingMethod;
   bool _launchingCoupang = false;
   _UsingOverlay _overlay = _UsingOverlay.none;
@@ -94,7 +93,11 @@ class _SajuResultAccessGateSheetState
         _processingMethod = null;
         _overlay = _UsingOverlay.none;
       });
-      AppToast.show(context, provider.lastError ?? '결과보기에 실패했습니다.', isError: true);
+      AppToast.show(
+        context,
+        provider.lastError ?? '결과보기에 실패했습니다.',
+        isError: true,
+      );
       return;
     }
     Navigator.of(context).pop(result);
@@ -137,7 +140,11 @@ class _SajuResultAccessGateSheetState
     if (!mounted) return;
     if (sessionId == null) {
       setState(() => _processingMethod = null);
-      AppToast.show(context, provider.lastError ?? '광고를 시작할 수 없어요.', isError: true);
+      AppToast.show(
+        context,
+        provider.lastError ?? '광고를 시작할 수 없어요.',
+        isError: true,
+      );
       return;
     }
 
@@ -157,7 +164,11 @@ class _SajuResultAccessGateSheetState
               if (!mounted) return;
               if (!earned) {
                 setState(() => _processingMethod = null);
-                AppToast.show(context, '광고를 끝까지 시청해야 무료로 볼 수 있어요.', isError: true);
+                AppToast.show(
+                  context,
+                  '광고를 끝까지 시청해야 무료로 볼 수 있어요.',
+                  isError: true,
+                );
                 return;
               }
               final completed = await provider.completeAdSession(sessionId);
@@ -180,7 +191,11 @@ class _SajuResultAccessGateSheetState
               ad.dispose();
               if (!mounted) return;
               setState(() => _processingMethod = null);
-              AppToast.show(context, '광고 표시에 실패했어요. 잠시 후 다시 시도해주세요.', isError: true);
+              AppToast.show(
+                context,
+                '광고 표시에 실패했어요. 잠시 후 다시 시도해주세요.',
+                isError: true,
+              );
             },
           );
           ad.show(
@@ -192,7 +207,11 @@ class _SajuResultAccessGateSheetState
         onAdFailedToLoad: (error) {
           if (!mounted) return;
           setState(() => _processingMethod = null);
-          AppToast.show(context, '지금은 광고를 불러올 수 없어요. 잠시 후 다시 시도해주세요.', isError: true);
+          AppToast.show(
+            context,
+            '지금은 광고를 불러올 수 없어요. 잠시 후 다시 시도해주세요.',
+            isError: true,
+          );
         },
       ),
     );
@@ -246,9 +265,7 @@ class _SajuResultAccessGateSheetState
                 colors: [SajuViolet.v800, SajuInk.i900],
                 stops: [0.0, 0.7],
               ),
-              border: const Border(
-                top: BorderSide(color: SajuText.lineGold),
-              ),
+              border: const Border(top: BorderSide(color: SajuText.lineGold)),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.6),
@@ -316,9 +333,7 @@ class _SajuResultAccessGateSheetState
         ),
         // 06-D/06-E "수단 사용 중" 전체 오버레이.
         if (_overlay != _UsingOverlay.none)
-          Positioned.fill(
-            child: _UsingOverlayView(kind: _overlay),
-          ),
+          Positioned.fill(child: _UsingOverlayView(kind: _overlay)),
       ],
     );
   }
@@ -386,12 +401,15 @@ class _SajuResultAccessGateSheetState
       children: [
         _GateOption(
           leading: _PassMarkIcon(dim: !quote.freePassAvailable),
-          title: quote.freePassAvailable ? '프리패스로 보기' : '프리패스로 보기',
-          subtitle: quote.freePassAvailable
-              ? null
-              : '보유한 프리패스가 없어요',
-          trailing: quote.freePassHasLegacyUnlimited &&
-                  quote.freePassRemaining <= 0
+          title: '프리패스로 보기',
+          // [버그 수정 — C-06b(docs/08) 결함 발견] docs/06_카피덱.md
+          // C-06-3 및 원본 `screens-b.jsx` ScreenGate
+          // `sub={canPass ? '프리패스 1회 사용' : '보유한 프리패스가 없어요'}`
+          // — 활성 상태에도 부제("프리패스 1회 사용")가 있어야 하는데
+          // 기존 코드는 활성 시 subtitle을 null로 비워 두던 결함.
+          subtitle: quote.freePassAvailable ? '프리패스 1회 사용' : '보유한 프리패스가 없어요',
+          trailing:
+              quote.freePassHasLegacyUnlimited && quote.freePassRemaining <= 0
               ? null
               : '보유 ${quote.freePassRemaining}회',
           enabled: quote.freePassAvailable && !_busy,
@@ -402,8 +420,14 @@ class _SajuResultAccessGateSheetState
         _GateOption(
           leading: const MiniPouchIcon(size: 30),
           title: '복주머니로 보기',
+          // [버그 수정 — C-06b(docs/08) 결함 발견] docs/06_카피덱.md
+          // C-06-4 및 원본 jsx
+          // `sub={canPouch ? '복주머니 '+POUCH_COST+'개 사용' : POUCH_COST+'개가 필요해요'}`
+          // — 활성 상태 부제("복주머니 {COST}개 사용")가 null로 비어 있던 결함.
+          // 차감량은 서버 정책값([quote.pouchPrice])을 그대로 사용한다
+          // (C-06g "차감량·지급량은 서버 정책값 사용" 원칙 준수, 하드코딩 아님).
           subtitle: quote.pouchAvailable && quote.pouchSufficient
-              ? null
+              ? '복주머니 ${quote.pouchPrice}개 사용'
               : '${quote.pouchPrice}개가 필요해요',
           trailing: '보유 ${quote.pouchBalance}개',
           enabled: quote.pouchAvailable && quote.pouchSufficient && !_busy,
@@ -416,7 +440,8 @@ class _SajuResultAccessGateSheetState
           title: '광고 보고 무료로 보기',
           subtitle: '짧은 광고 한 편이면 열려요',
           trailing: '무료',
-          enabled: quote.adAvailable && AdmobAdIds.isSupportedPlatform && !_busy,
+          enabled:
+              quote.adAvailable && AdmobAdIds.isSupportedPlatform && !_busy,
           loading: _processingMethod == ResultAccessPaymentMethod.ad,
           onTap: _handleAd,
         ),
@@ -517,7 +542,10 @@ class _QuoteCard extends StatelessWidget {
           const SizedBox(height: 6),
           Row(
             children: [
-              const Text('◆', style: TextStyle(color: SajuGold.g500, fontSize: 8)),
+              const Text(
+                '◆',
+                style: TextStyle(color: SajuGold.g500, fontSize: 8),
+              ),
               const SizedBox(width: 6),
               const Text(
                 '정통사주 분석',
@@ -585,7 +613,10 @@ class _AdIcon extends StatelessWidget {
         shape: BoxShape.circle,
         border: Border.all(color: SajuText.lineGold),
       ),
-      child: const Text('☾', style: TextStyle(color: SajuGold.g300, fontSize: 16)),
+      child: const Text(
+        '☾',
+        style: TextStyle(color: SajuGold.g300, fontSize: 16),
+      ),
     );
   }
 }
@@ -717,10 +748,15 @@ class _UsingOverlayViewState extends State<_UsingOverlayView>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..forward();
+    // [버그 수정 — C-06d(docs/08) 결함 발견] docs/03_화면명세.md §06:
+    // "프리패스 사용(06-D): … 모션 1.2s" / "복주머니 사용(06-E): …
+    // 개봉 1.4s" — 서로 다른 지속시간인데 기존 코드는 kind와 무관하게
+    // 항상 1200ms로 고정되어 있었다. kind별로 정확한 시간을 적용한다.
+    final duration = widget.kind == _UsingOverlay.pass
+        ? const Duration(milliseconds: 1200)
+        : const Duration(milliseconds: 1400);
+    _controller = AnimationController(vsync: this, duration: duration)
+      ..forward();
   }
 
   @override
