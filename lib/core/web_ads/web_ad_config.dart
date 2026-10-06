@@ -84,11 +84,15 @@ class WebAdConfig {
     // 소원방(wishRoom)은 어떤 이유로도 true로 전환하지 않는다. 향후 전체
     // 웹 광고 확장 작업에서도 자동 적용 대상에 포함시키지 않는다.
     WebAdSurface.wishRoom: false,
-    // 아직 안정화 전 — 추후 순서대로(귀인지도→관상→손금) true로 전환.
+    // [웹 일반 AdSense 전체 확장 — 귀인지도/관상/손금] 정통사주(STEP E)·
+    // 타로(STEP G)에 이어 3번째 확장 대상. 이 세 서비스 모두 CTA/사진
+    // 촬영·분석 버튼 근접을 피해 WebAdVignette/WebAdBanner/WebAdInPage만
+    // 재사용한다(신규 광고 서비스 생성 없음).
+    WebAdSurface.guinji: true,
+    WebAdSurface.face: true,
+    WebAdSurface.palm: true,
+    // 홈은 아직 적용 대상이 아니다.
     WebAdSurface.home: false,
-    WebAdSurface.guinji: false,
-    WebAdSurface.face: false,
-    WebAdSurface.palm: false,
   };
 
   /// 포맷별 ON/OFF(지시서 §5 "우선 일반 광고부터" — 보상형은 별도 축인

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/web_ads/web_ad_config.dart';
+import '../../../../core/web_ads/widgets/web_ad_vignette.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../result_access/domain/result_access_model.dart';
 import '../../../result_access/presentation/result_access_gate_sheet.dart';
@@ -103,6 +105,10 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // [웹 일반 AdSense 전체 확장 — 관상] 이 화면이 관상 기능의
+                  // 진입점이므로 Vignette(페이지 전환형) 1회 트리거. 레이아웃
+                  // 공간을 차지하지 않아 촬영/분석 버튼과 전혀 겹치지 않는다.
+                  const WebAdVignette(surface: WebAdSurface.face),
                   _TopNav(
                     title: '觀相 · INTRO · 03',
                     onBack: () => Navigator.of(context).pop(),

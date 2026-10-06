@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/utils/load_state.dart';
+import '../../../../core/web_ads/web_ad_config.dart';
+import '../../../../core/web_ads/widgets/web_ad_banner.dart';
 import '../../../../core/widgets/app_error_state.dart';
 import '../../../../core/widgets/result_card_stack.dart';
 import '../../sintong/theme/sintong_colors.dart';
@@ -103,6 +105,10 @@ class _PalmResultScreenState extends State<PalmResultScreen> {
       heroCaption: '종합 손금 해석',
       heroSummary: result.summary,
       sectionTitle: '세부 리포트',
+      // [웹 일반 AdSense 전체 확장 — 손금] 히어로 카드(종합 손금 해석)와
+      // 세부 리포트 섹션 사이에 배치 — CTA("다시 분석하기"/"히스토리
+      // 보기")와는 섹션 전체 길이만큼 떨어져 있어 혼동 우려가 없다.
+      midAd: const WebAdBanner(surface: WebAdSurface.palm, adSlot: ''),
       sections: [
         ...result.lines.entries.map(
           (e) => ResultSection(title: e.key, body: e.value),

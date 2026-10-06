@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/router/main_bottom_nav_bar.dart';
+import '../../../core/web_ads/web_ad_config.dart';
+import '../../../core/web_ads/widgets/web_ad_in_page.dart';
 import '../application/guinji_provider.dart';
 import '../domain/guinji_owner_saju_summary.dart';
 import '../domain/guinji_person.dart';
@@ -310,6 +312,17 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
                 people: widget.people,
                 onSelect: _handleNodeTap,
                 emptyHint: '지인을 초대하면 여기에 표시돼요',
+              ),
+
+              // [웹 일반 AdSense 전체 확장 — 귀인지도] 노드 그래프(콘텐츠)와
+              // "가장 강한 인연" 리스트(콘텐츠) 사이 — CTA("친구 초대하고
+              // 지도 완성하기")와는 충분히 떨어져 있어 혼동 우려가 없다.
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                child: const WebAdInPage(
+                  surface: WebAdSurface.guinji,
+                  adSlot: '',
+                ),
               ),
 
               // 상위 3명

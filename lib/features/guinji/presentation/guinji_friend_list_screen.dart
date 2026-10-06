@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/web_ads/web_ad_config.dart';
+import '../../../core/web_ads/widgets/web_ad_banner.dart';
 import '../domain/guinji_person.dart';
 import '../domain/guinji_relation_meta.dart';
 import '../theme/guinji_map_theme.dart';
@@ -194,6 +196,13 @@ class _GuinjiFriendListScreenState extends State<GuinjiFriendListScreen> {
                       : () => _confirmDelete(context, entry),
                 ),
               ),
+            // [웹 일반 AdSense 전체 확장 — 귀인지도] 참여자 리스트 끝에
+            // 배너형 배치. 리스트가 비어 있을 때는 카드/콘텐츠를 가릴
+            // 요소가 없으므로 그대로 둔다.
+            if (_filtered.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              const WebAdBanner(surface: WebAdSurface.guinji, adSlot: ''),
+            ],
           ],
         ),
       ),

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/router/main_bottom_nav_bar.dart';
+import '../../../core/web_ads/web_ad_config.dart';
+import '../../../core/web_ads/widgets/web_ad_vignette.dart';
 import '../../auth/application/auth_provider.dart';
 import '../application/guinji_provider.dart';
 import '../theme/guinji_map_theme.dart';
@@ -111,6 +113,10 @@ class _GuinjiLandingScreenState extends State<GuinjiLandingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // [웹 일반 AdSense 전체 확장 — 귀인지도] 진입점 화면이므로
+              // Vignette(페이지 전환형) 1회 트리거. 레이아웃 공간을 차지하지
+              // 않아 CTA(아래 "내 사주 확인하기")와 겹치지 않는다.
+              const WebAdVignette(surface: WebAdSurface.guinji),
               const GmHeroSection(variant: GmHeroVariant.host, hostName: hostName),
               const GmPreviewCard(hostName: hostName),
               _GmInlineStartSection(

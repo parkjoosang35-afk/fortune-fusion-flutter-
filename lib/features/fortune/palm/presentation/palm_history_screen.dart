@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_unified_style.dart';
+import '../../../../core/web_ads/web_ad_config.dart';
+import '../../../../core/web_ads/widgets/web_ad_in_page.dart';
 import '../../../../core/widgets/app_empty_state.dart';
 import '../application/palm_provider.dart';
 
@@ -39,10 +41,18 @@ class _PalmHistoryScreenState extends State<PalmHistoryScreen> {
               )
             : ListView.separated(
                 padding: EdgeInsets.all(UnifiedTokens.screenPadding),
-                itemCount: history.length,
+                // [웹 일반 AdSense 전체 확장 — 손금] 히스토리 리스트 끝에
+                // 광고 아이템 1개 추가(기록이 있을 때만).
+                itemCount: history.length + 1,
                 separatorBuilder: (_, __) =>
                     SizedBox(height: UnifiedTokens.spaceMd),
                 itemBuilder: (context, index) {
+                  if (index == history.length) {
+                    return const WebAdInPage(
+                      surface: WebAdSurface.palm,
+                      adSlot: '',
+                    );
+                  }
                   final item = history[index];
                   return InkWell(
                     borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),

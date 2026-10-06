@@ -45,6 +45,7 @@ class ResultCardStack extends StatelessWidget {
     this.lockMessage,
     this.remainingLabel,
     this.sectionTitle = '세부 리포트',
+    this.midAd,
   });
 
   /// 히어로 카드 상단 캡션(예: "11월 3일의 운세")
@@ -76,6 +77,14 @@ class ResultCardStack extends StatelessWidget {
 
   /// 세부 리포트 섹션 상단 제목
   final String sectionTitle;
+
+  /// [웹 일반 AdSense 전체 확장 — 관상/손금] 히어로 카드(종합 해석)와
+  /// 세부 리포트 섹션 사이(콘텐츠-콘텐츠 사이)에 끼워 넣을 광고 위젯
+  /// (예: `WebAdBanner`). 하단 CTA(다시 분석하기/히스토리 보기)와는
+  /// 충분히 떨어져 있어 혼동 우려가 없다. null이면 기존과 동일하게
+  /// 아무것도 렌더링하지 않아 이 위젯을 공유하는 다른 화면(궁합/
+  /// 이름풀이)에는 영향이 없다.
+  final Widget? midAd;
 
   @override
   Widget build(BuildContext context) {
@@ -131,6 +140,11 @@ class ResultCardStack extends StatelessWidget {
               ],
             ),
           ),
+
+          if (midAd != null) ...[
+            const SizedBox(height: UnifiedTokens.spaceXxl),
+            midAd!,
+          ],
 
           if (sections.isNotEmpty) ...[
             const SizedBox(height: UnifiedTokens.spaceXxl),

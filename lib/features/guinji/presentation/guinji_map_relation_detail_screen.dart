@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/util/safe_share.dart';
+import '../../../core/web_ads/web_ad_config.dart';
+import '../../../core/web_ads/widgets/web_ad_in_page.dart';
 import '../application/guinji_provider.dart';
 import '../application/guinji_rewarded_ad_helper.dart';
 import '../domain/guinji_person.dart';
@@ -335,6 +337,13 @@ class _GuinjiMapRelationDetailScreenState
                     ],
                   ),
                 ),
+              const SizedBox(height: 12),
+
+              // [웹 일반 AdSense 전체 확장 — 귀인지도] "관계의 결"/"오행
+              // 근거"(콘텐츠) 다음, 스페셜 해설 잠금 카드(광고 보고 열기
+              // CTA 포함) 앞에 배치한다 — 해금 버튼과 직접 인접하지 않도록
+              // 위 SizedBox(12) 간격을 그대로 유지한 채 추가로 삽입한다.
+              const WebAdInPage(surface: WebAdSurface.guinji, adSlot: ''),
               const SizedBox(height: 12),
 
               // 스페셜 해설 잠금/해금.
