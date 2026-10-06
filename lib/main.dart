@@ -5,6 +5,7 @@ import 'package:kakao_flutter_sdk_common/kakao_flutter_sdk_common.dart';
 import 'app.dart';
 import 'core/config/social_auth_config.dart';
 import 'core/router/guinji_deep_link_handler.dart';
+import 'core/web_ads/web_ad_service.dart';
 import 'features/ads_test/domain/admob_ad_ids.dart';
 import 'features/ads_test/domain/admob_consent_service.dart';
 import 'features/home/domain/saju_fortune_rules.dart';
@@ -121,5 +122,12 @@ Future<void> main() async {
     nativeAppKey: SocialAuthConfig.kakaoNativeAppKey,
     javaScriptAppKey: SocialAuthConfig.kakaoJavaScriptAppKey,
   );
+  // [웹 AdSense 광고 시스템 — STEP C] Web 전용 중앙 광고 서비스 초기화.
+  // kIsWeb이 false인 Android/iOS 빌드에서는 내부적으로 완전히 no-op이며,
+  // 기존 AdMob 초기화(위 MobileAds.instance.initialize() 등)와는 전혀
+  // 무관하게 독립적으로 동작한다(지시서 §2 — 앱 AdMob 코드 수정 금지).
+  // enabled=false(기본값, AdSense 미승인 상태)이면 이 호출도 즉시
+  // 반환되어 아무 스크립트도 주입하지 않는다.
+  WebAdService.ensureInitialized();
   runApp(const App());
 }

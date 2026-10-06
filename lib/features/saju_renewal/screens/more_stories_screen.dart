@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/web_ads/web_ad_config.dart';
+import '../../../core/web_ads/widgets/web_ad_in_page.dart';
 import '../data/models/topic_card.dart';
 import '../state/saju_renewal_provider.dart';
 import '../theme/saju_dark_tokens.dart';
@@ -224,7 +226,17 @@ class _MoreStoriesScreenState extends State<MoreStoriesScreen> {
                                   if (i != candidates.length - 1)
                                     const SizedBox(height: 12),
                                 ],
-                                const SizedBox(height: 18),
+                                const SizedBox(height: 24),
+                                // [웹 AdSense — STEP E] 후보 카드 리스트와
+                                // "새로운 이야기" 버튼 사이, 충분한 여백을
+                                // 두고 배치한다. 카드와 디자인(테두리/배경)
+                                // 을 공유하지 않아 후보 카드로 오인되지
+                                // 않는다(지시서 §5 버튼/카드 비혼동 원칙).
+                                const WebAdInPage(
+                                  surface: WebAdSurface.sajuRenewal,
+                                  adSlot: '',
+                                ),
+                                const SizedBox(height: 24),
                                 SajuButton(
                                   label: '↻ 새로운 이야기',
                                   variant: SajuButtonVariant.ghost,

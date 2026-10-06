@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/web_ads/web_ad_config.dart';
+import '../../../core/web_ads/widgets/web_ad_in_page.dart';
 import '../data/models/interpret_result.dart';
 import '../data/models/topic_card.dart';
 import '../data/saju_term_dictionary.dart';
@@ -291,8 +293,25 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
                                     }),
                                   ),
                                 ),
+                                // [웹 AdSense — STEP E] 5단 서사 블록이 모두
+                                // 끝난 뒤, "이 이야기는 당신의 원국에서..."
+                                // 마무리 문구보다 앞에 배치한다. 해석 본문
+                                // 블록 사이에는 넣지 않아 콘텐츠 가독 흐름을
+                                // 끊지 않는다(지시서 §5 콘텐츠 비가림 원칙).
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    22,
+                                    36,
+                                    22,
+                                    0,
+                                  ),
+                                  child: const WebAdInPage(
+                                    surface: WebAdSurface.sajuRenewal,
+                                    adSlot: '',
+                                  ),
+                                ),
                                 const Padding(
-                                  padding: EdgeInsets.fromLTRB(22, 36, 22, 0),
+                                  padding: EdgeInsets.fromLTRB(22, 28, 22, 0),
                                   child: Text(
                                     '◆ 이 이야기는 당신의 원국에서 찾은 근거로만 쓰였어요',
                                     textAlign: TextAlign.center,

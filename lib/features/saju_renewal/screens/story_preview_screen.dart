@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/web_ads/web_ad_config.dart';
+import '../../../core/web_ads/widgets/web_ad_banner.dart';
 import '../../auth/application/auth_provider.dart';
 import '../../auth/domain/user_model.dart';
 import '../../result_access/presentation/result_access_gate_sheet.dart';
@@ -202,7 +204,17 @@ class _StoryPreviewScreenState extends State<StoryPreviewScreen> {
                                     evidence: summary.evidence,
                                     profile: _profile!,
                                   ),
-                                const SizedBox(height: 24),
+                                const SizedBox(height: 28),
+                                // [웹 AdSense — STEP E] 사주 이야기 본문과
+                                // 하단 고정 "자세히 보기" CTA 사이, 충분한
+                                // 여백을 두고 배치한다. CTA 버튼은 화면
+                                // 최하단에 별도 고정되어 있어 이 배너와
+                                // 겹치거나 혼동될 위치가 아니다.
+                                const WebAdBanner(
+                                  surface: WebAdSurface.sajuRenewal,
+                                  adSlot: '',
+                                ),
+                                const SizedBox(height: 28),
                                 const Text(
                                   '더 자세한 이유와 시기를 확인해보세요.',
                                   textAlign: TextAlign.center,

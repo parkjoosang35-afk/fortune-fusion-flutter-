@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/web_ads/web_ad_config.dart';
+import '../../../core/web_ads/widgets/web_ad_vignette.dart';
 import '../state/saju_renewal_provider.dart';
 import '../theme/saju_dark_tokens.dart';
 import '../widgets/saju_base_widgets.dart';
@@ -54,6 +56,10 @@ class _SajuRenewalHomeScreenState extends State<SajuRenewalHomeScreen> {
         child: SafeArea(
           child: Column(
             children: [
+              // [웹 AdSense — STEP E] 정통사주 플로우 진입점에서 1회만
+              // Vignette(전면 전환) 페이지 레벨 광고를 트리거한다. 레이아웃
+              // 공간을 차지하지 않는 순수 트리거이므로 어디에 둬도 무해하다.
+              const WebAdVignette(surface: WebAdSurface.sajuRenewal),
               SajuTopBar(
                 left: SajuIconButton(
                   icon: '←',
