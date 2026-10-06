@@ -112,6 +112,16 @@ class SajuRenewalProvider extends ChangeNotifier {
   /// 그대로 유지된다.
   int get viewedStoryCount => _viewedTopicIds.length;
 
+  /// [버그 수정 — C-05c(docs/08) 미구현 발견] docs/03_화면명세.md §05
+  /// "해제됨(05-C) | Primary [자세히 보기] → 07 직행(게이트 없음)" 및
+  /// 원본 `design_files/saju/screens-b.jsx` `ScreenPreview`의
+  /// `unlocked = app.unlocked.includes(app.topicId)` 분기를 그대로
+  /// 재현한다. 이 세션에서 이미 상세까지 완료한 topic(=
+  /// [_viewedTopicIds])이면 "해제됨" 상태로 간주해 05 화면이 게이트
+  /// 없이 바로 07로 보낼 수 있게 한다(C-06e "같은 주제 재열람 시
+  /// 게이트가 다시 뜨지 않는다"와 동일한 근거 데이터를 공유).
+  bool isTopicUnlocked(String topicId) => _viewedTopicIds.contains(topicId);
+
   void _setStatus(SajuRenewalFlowStatus next) {
     _status = next;
     notifyListeners();

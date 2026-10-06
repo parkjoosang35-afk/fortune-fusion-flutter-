@@ -120,6 +120,34 @@ class _StoryPreviewScreenState extends State<StoryPreviewScreen> {
     }
   }
 
+  /// [버그 수정 — C-05c(docs/08) 현더케이스에 전혀 없었던 분기 발견]
+  /// docs/03_화면명세.md §05 "해제됨(05-C) | Primary [자세히 보기]
+  /// → 07 직행(게이트 없음)" 및 원본 `screens-b.jsx` `ScreenPreview`의
+  /// `unlocked ? go('07') : go('06')` 분기를 그대로 재현한다. 이미
+  /// [onAccessGranted]로 상세까지 완료한 topic(=
+  /// [SajuRenewalProvider.isTopicUnlocked])이면 게이트를 다시 띄우지
+  /// 않고 서버 멑등 캐시(saju_renewal_api.dart "userId+topicId+mode
+  /// 조합 멑등 캐시")로 즉시 반환되는 interpretDetail을 재호출해
+  /// 바로 07로 보낸다.
+  Future<void> _openUnlockedDetail() async {
+    if (_gateOpening) return; // [중복클릭 방어]
+    setState(() => _gateOpening = true);
+    final provider = context.read<SajuRenewalProvider>();
+    await provider.onAccessGranted();
+    if (!mounted) return;
+    setState(() => _gateOpening = false);
+
+    if (provider.status == SajuRenewalFlowStatus.storyDetail) {
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const StoryDetailScreen()));
+    } else if (provider.status == SajuRenewalFlowStatus.error) {
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const ErrorScreen()));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<SajuRenewalProvider>();
@@ -130,6 +158,8 @@ class _StoryPreviewScreenState extends State<StoryPreviewScreen> {
     // 2 이상이면 재방문 이야기(화면⑨ "STORY · 09").
     final ordinal = provider.viewedStoryCount + 1;
     final scene = topic?.scene;
+    // C-05c/docs/03 §05 "해제됨" 분기 — 원본 jsx `unlocked`에 대응.
+    final unlocked = topic != null && provider.isTopicUnlocked(topic.topicId);
 
     return Scaffold(
       body: SajuTermScope(
@@ -267,13 +297,41 @@ class _StoryPreviewScreenState extends State<StoryPreviewScreen> {
                         stops: [0.0, 0.5],
                       ),
                     ),
-                    child: SajuButton(
-                      label: '자세히 보기',
-                      loading: _gateOpening,
-                      onTap: (previewState.data == null || _gateOpening)
-                          ? null
-                          : _openAccessGate,
-                    ),
+                    child: unlocked
+                        // C-05c "해제됨(05-C)" — Primary [자세히 보기] →
+                        // 게이트 없이 07 직행(docs/06 C-05-6).
+                        ? SajuButton(
+                            label: '자세히 보기',
+                            loading: _gateOpening,
+                            onTap: (previewState.data == null || _gateOpening)
+                                ? null
+                                : _openUnlockedDetail,
+                          )
+                        // C-05c "미해제(05-A)" — Primary [자세한 이야기
+                        // 열어 보기](C-05-4) + 안내(C-05-5).
+                        : Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SajuButton(
+                                label: '자세한 이야기 열어 보기',
+                                loading: _gateOpening,
+                                onTap:
+                                    (previewState.data == null || _gateOpening)
+                                    ? null
+                                    : _openAccessGate,
+                              ),
+                              const SizedBox(height: 10),
+                              const Text(
+                                '프리패스 · 복주머니 · 광고 중 하나로 열 수 있어요',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontFamily: SajuType.ui,
+                                  fontSize: 11.5,
+                                  color: SajuText.faint,
+                                ),
+                              ),
+                            ],
+                          ),
                   ),
                 ),
               ),
