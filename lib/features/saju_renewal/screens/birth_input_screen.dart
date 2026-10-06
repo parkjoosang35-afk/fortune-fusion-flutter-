@@ -11,9 +11,11 @@ import 'calculating_screen.dart';
 
 /// docs/09_기획검수_확인사항.md Q-10 "권고안대로 On"(진태양시 경도 보정
 /// 기본 적용 + 02/03 화면 안내 문구 노출)에 대응하는 국내 주요 도시 목록.
-/// 이 앱에는 아직 출생지 선택 UI가 없었으므로(birthPlace 필드는 서버
-/// 모델에는 있지만 02 화면 입력 폼에는 없었음), docs/03 §02 "태어난 곳"
-/// 필드를 이번에 최소 구현으로 추가한다.
+///
+/// [버그수정 — "경기도도 없음"] 기존 목록은 8대 광역시 중 7개 + 제주만
+/// 있고, 9개 광역도(경기/강원/충북/충남/전북/전남/경북/경남) 전체가
+/// 빠져 있었다. 전국 17개 광역시·도를 전부 포함하도록 확장한다 — 순서는
+/// 행정안전부 표기 순(특별시 → 광역시 → 도).
 const List<String> _kBirthPlaceOptions = [
   '서울',
   '부산',
@@ -23,7 +25,14 @@ const List<String> _kBirthPlaceOptions = [
   '광주',
   '울산',
   '세종',
-  '수원',
+  '경기',
+  '강원',
+  '충북',
+  '충남',
+  '전북',
+  '전남',
+  '경북',
+  '경남',
   '제주',
 ];
 
@@ -56,6 +65,15 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
   bool _isLunar = false;
   bool _submitting = false;
   String? _error;
+
+  /// [버그수정 — "이름 입력란이 없음"] 02 화면에 이름(닉네임) 입력/표시
+  /// 필드가 전혀 없었다. `UserModel.nickname`은 회원가입 시 이미 서버에
+  /// 저장되어 있지만, 여기서 다시 보여주고 고칠 수 있게 하고,
+  /// [AuthProvider.updateProfile]로 함께 저장한다.
+  final TextEditingController _nicknameController = TextEditingController();
+  final GlobalKey _nicknameFieldKey = GlobalKey();
+  bool _nicknameBlinking = false;
+  String? _nicknameError;
 
   /// docs/03 §02 "태어난 곳" — 기본값 서울(진태양시 보정 예시와 동일),
   /// "변경"으로 다른 도시를 고를 수 있다.
@@ -104,11 +122,17 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
         _birthPlace = user.birthPlace!;
       }
     }
+    // [버그수정 — 이름 입력란] 회원가입 시 받은 닉네임을 기본값으로 채워
+    // 보여준다(비어있지 않은 한 그대로 쓸 수 있고, 원하면 바로 고칠 수 있음).
+    if (user?.nickname != null && user!.nickname.trim().isNotEmpty) {
+      _nicknameController.text = user.nickname.trim();
+    }
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
+    _nicknameController.dispose();
     super.dispose();
   }
 
@@ -257,7 +281,37 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
     setState(() => _birthDateBlinking = false);
   }
 
+  /// [버그수정 — 이름 입력란] 생년월일 검증(_highlightMissingBirthDate)과
+  /// 동일한 UX 패턴(스크롤 + 라벨 점 강조 1초 + 필드 아래 문구)을 이름
+  /// 필드에도 그대로 적용한다.
+  Future<void> _highlightMissingNickname() async {
+    final ctx = _nicknameFieldKey.currentContext;
+    if (ctx != null) {
+      await Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+        alignment: 0.1,
+      );
+    }
+    if (!mounted) return;
+    setState(() {
+      _nicknameBlinking = true;
+      _nicknameError = '이름을 입력해주세요';
+    });
+    await Future.delayed(const Duration(milliseconds: 1000));
+    if (!mounted) return;
+    setState(() => _nicknameBlinking = false);
+  }
+
   Future<void> _submit() async {
+    // [버그수정 — 이름 입력란] 생년월일보다 먼저 이름을 검증한다(화면상
+    // 더 위에 있는 필드이므로 누락 시 그 필드로 먼저 스크롤).
+    final nickname = _nicknameController.text.trim();
+    if (nickname.isEmpty) {
+      await _highlightMissingNickname();
+      return;
+    }
     final value = _birthValue;
     if (value == null) {
       await _highlightMissingBirthDate();
@@ -266,6 +320,7 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
     setState(() {
       _submitting = true;
       _error = null;
+      _nicknameError = null;
     });
 
     final birthDateStr = value.iso;
@@ -282,6 +337,7 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
       birthTimeUnknown: birthTimeUnknown,
       birthPlace: _birthPlace,
       gender: _gender,
+      nickname: nickname,
     );
 
     if (!mounted) return;
@@ -351,6 +407,85 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
                         ),
                       ),
                       const SizedBox(height: 20),
+
+                      // [버그수정 — "이름 입력란이 없음"] docs/03 §02에
+                      // 명시되어 있지 않았지만, 사주 분석은 "누구의
+                      // 사주인지" 이름이 있어야 자연스러우므로 생년월일
+                      // 바로 앞에 추가한다.
+                      KeyedSubtree(
+                        key: _nicknameFieldKey,
+                        child: _FieldLabel(
+                          label: '이름',
+                          done: _nicknameController.text.trim().isNotEmpty,
+                          blinking: _nicknameBlinking,
+                        ),
+                      ),
+                      TextField(
+                        controller: _nicknameController,
+                        maxLength: 12,
+                        style: const TextStyle(
+                          fontFamily: SajuType.ui,
+                          fontSize: 15,
+                          color: SajuGold.g100,
+                        ),
+                        decoration: InputDecoration(
+                          isDense: true,
+                          counterText: '',
+                          hintText: '이름을 입력해주세요',
+                          hintStyle: const TextStyle(
+                            fontFamily: SajuType.ui,
+                            fontSize: 15,
+                            color: SajuText.faint,
+                          ),
+                          filled: true,
+                          fillColor: SajuText.fg.withValues(alpha: 0.035),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 14,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: SajuText.lineGold,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: SajuText.lineGold,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: SajuGold.g100,
+                              width: 1.4,
+                            ),
+                          ),
+                        ),
+                        onChanged: (_) {
+                          if (_nicknameError != null) {
+                            setState(() => _nicknameError = null);
+                          } else {
+                            // done 점 표시를 즉시 갱신.
+                            setState(() {});
+                          }
+                        },
+                      ),
+                      if (_nicknameError != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            _nicknameError!,
+                            style: const TextStyle(
+                              fontFamily: SajuType.ui,
+                              fontSize: 12,
+                              color: Color(0xFFE08A7E),
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 14),
+
                       // 원국 프리뷰 카드.
                       Container(
                         width: double.infinity,

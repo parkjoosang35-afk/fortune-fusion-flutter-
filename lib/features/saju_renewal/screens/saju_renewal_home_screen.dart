@@ -96,7 +96,97 @@ class _SajuRenewalHomeScreenState extends State<SajuRenewalHomeScreen> {
     return timeExplicit;
   }
 
-  void _start(BuildContext context) {
+  /// [버그 수정 — "출생정보 저장안됨" 근본 원인] 기존에는 로그인 여부를
+  /// 전혀 확인하지 않고 게스트도 곧장 02(BirthInputScreen)로 보냈다.
+  /// 02 화면에서 "사주 분석 시작하기"를 눌러 저장을 시도하면
+  /// AuthProvider.updateProfile()이 `currentUser == null`이라 항상 실패하고,
+  /// 사용자는 원인을 알 수 없는 폴백 에러만 보게 됐다. 02 화면 진입 전에
+  /// 로그인 여부를 먼저 확인해, 비로그인 사용자는 로그인/회원가입으로
+  /// 먼저 유도한다(로그인 완료 후 이 버튼을 다시 누르면 정상 진행).
+  Future<bool> _ensureLoggedIn(BuildContext context) async {
+    final auth = context.read<AuthProvider>();
+    if (auth.isLoggedIn) return true;
+    final goLogin = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: SajuInk.i900,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(22, 24, 22, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: SajuText.line,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const Text('🔮', style: TextStyle(fontSize: 32)),
+                const SizedBox(height: 12),
+                const Text(
+                  '사주 분석을 시작하려면\n로그인이 필요합니다',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: SajuType.serif,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 18,
+                    height: 1.4,
+                    color: SajuGold.g100,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  '출생정보를 안전하게 저장하려면\n로그인 후 이용해주세요.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: SajuType.ui,
+                    fontSize: 13,
+                    height: 1.5,
+                    color: SajuText.muted,
+                  ),
+                ),
+                const SizedBox(height: 22),
+                SajuButton(
+                  label: '로그인 / 회원가입',
+                  onTap: () => Navigator.of(sheetContext).pop(true),
+                ),
+                const SizedBox(height: 10),
+                TextButton(
+                  onPressed: () => Navigator.of(sheetContext).pop(false),
+                  child: const Text(
+                    '나중에 할게요',
+                    style: TextStyle(
+                      fontFamily: SajuType.ui,
+                      fontSize: 13,
+                      color: SajuText.faint,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (goLogin != true) return false;
+    if (!context.mounted) return false;
+    await Navigator.of(context).pushNamed('/login');
+    if (!context.mounted) return false;
+    // 로그인 화면은 성공 시 '/home'으로 스택을 교체하므로, 이 화면은 이미
+    // pop되어 있을 수 있다 — 그 경우 더 이상 진행할 필요가 없다.
+    return context.read<AuthProvider>().isLoggedIn;
+  }
+
+  Future<void> _start(BuildContext context) async {
+    final loggedIn = await _ensureLoggedIn(context);
+    if (!loggedIn || !context.mounted) return;
     final auth = context.read<AuthProvider>();
     final renewal = context.read<SajuRenewalProvider>();
     if (_isProfileComplete(auth.currentUser)) {

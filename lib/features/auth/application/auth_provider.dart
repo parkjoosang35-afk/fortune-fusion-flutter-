@@ -175,7 +175,19 @@ class AuthProvider extends ChangeNotifier {
     String? nickname,
   }) async {
     final user = currentUser;
-    if (user == null) return false;
+    if (user == null) {
+      // [버그 수정 — "출생정보 저장안됨" 원인] 이전에는 비로그인(게스트)
+      // 상태에서 호출되면 에러 메시지를 설정하지 않고 그냥 false만
+      // 반환해, 02 화면이 "출생정보를 저장하지 못했습니다. 다시
+      // 시도해주세요" 라는 원인을 알 수 없는 폴백 문구만 보여줬다.
+      // saju_renewal_home_screen._start()에 로그인 게이트를 추가해 이
+      // 경로로는 보통 도달하지 않지만, 혹시 다른 진입점(딥링크 등)으로
+      // 비로그인 상태에 02 화면에 도달하더라도 정확한 원인을 보여주기
+      // 위한 방어선으로 남겨둔다.
+      _lastProfileUpdateError = '로그인 후 이용할 수 있어요';
+      notifyListeners();
+      return false;
+    }
     final updated = user.copyWith(
       birthDate: birthDate,
       birthTime: birthTime,
