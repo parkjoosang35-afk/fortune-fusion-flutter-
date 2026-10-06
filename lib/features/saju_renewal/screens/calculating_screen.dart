@@ -63,7 +63,8 @@ const Map<String, Offset> _kShardPos = {
   'water': Offset(0, -124),
 };
 
-class _CalculatingScreenState extends State<CalculatingScreen> {
+class _CalculatingScreenState extends State<CalculatingScreen>
+    with WidgetsBindingObserver {
   bool _navigated = false;
 
   // 세레모니(시각 연출) 전용 로컬 상태 — 실제 화면 전환과는 분리된다.
@@ -74,9 +75,17 @@ class _CalculatingScreenState extends State<CalculatingScreen> {
   SajuVisualProfile? _profile;
   UserModel? _user;
 
+  // E-21(docs/07) — "03 중 앱 백그라운드: 타이머 일시정지, 복귀 시
+  // 이어서 (API는 계속)". 이 플래그는 오직 아래 [_pausableDelay]가
+  // 소비하는 "세레모니 로컬 연출" 타이머만 멈춘다 — Provider의 서버
+  // API 요청/polling은 build()의 context.watch<SajuRenewalProvider>()
+  // 를 통해 별도로 계속 진행되며 이 플래그와 무관하다.
+  bool _bgPaused = false;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final user = context.read<AuthProvider>().currentUser;
     _user = user;
     if (user != null && user.birthDate != null) {
@@ -109,7 +118,52 @@ class _CalculatingScreenState extends State<CalculatingScreen> {
   @override
   void dispose() {
     _disposed = true;
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  /// E-21 — 앱이 inactive/paused/hidden(화면이 가려짐)이 되면 세레모니
+  /// 로컬 타이머를 멈추고, resumed로 돌아오면 멈춘 지점부터 이어서
+  /// 진행한다. [SajuRenewalProvider]가 수행하는 실제 서버 API 호출은
+  /// 이 위젯의 build()/context.watch 바깥에서(Provider 자체의 생명주기로)
+  /// 계속되므로 전혀 영향을 받지 않는다.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.hidden:
+        if (!_bgPaused) {
+          setState(() => _bgPaused = true);
+        }
+        break;
+      case AppLifecycleState.resumed:
+        if (_bgPaused) {
+          setState(() => _bgPaused = false);
+        }
+        break;
+      case AppLifecycleState.detached:
+        break;
+    }
+  }
+
+  /// [_bgPaused]가 true인 동안은 대기하고, resumed가 되면 남은 지연을
+  /// 이어서 기다린다 — "타이머 일시정지, 복귀 시 이어서"(E-21)의
+  /// 핵심 구현. `Future.delayed`를 그대로 대체한다.
+  Future<void> _pausableDelay(Duration duration) async {
+    var remaining = duration;
+    const poll = Duration(milliseconds: 80);
+    while (remaining > Duration.zero) {
+      if (_disposed || !mounted) return;
+      if (_bgPaused) {
+        // 백그라운드 중에는 시간을 소비하지 않고 짧은 간격으로만 대기.
+        await Future.delayed(poll);
+        continue;
+      }
+      final step = remaining < poll ? remaining : poll;
+      await Future.delayed(step);
+      remaining -= step;
+    }
   }
 
   /// STEP(880ms) 리듬으로 1~9단계를 진행한다(docs/04_모션.md §3-4).
@@ -117,14 +171,14 @@ class _CalculatingScreenState extends State<CalculatingScreen> {
   /// 실제 다음 화면 전환은 여전히 [_maybeNavigate]가 Provider 상태를
   /// 보고 판단한다 — 이 메서드는 Navigator를 호출하지 않는다.
   Future<void> _runCeremony() async {
-    await Future.delayed(const Duration(milliseconds: 250));
+    await _pausableDelay(const Duration(milliseconds: 250));
     for (var s = 1; s <= 9; s++) {
       if (_disposed || !mounted) return;
       setState(() => _step = s);
       if (s == 2) {
         _runReveal();
       }
-      await Future.delayed(SajuMotion.step);
+      await _pausableDelay(SajuMotion.step);
     }
     if (_disposed || !mounted) return;
     setState(() => _ceremonyReachedEnd = true);
@@ -138,7 +192,7 @@ class _CalculatingScreenState extends State<CalculatingScreen> {
         .round();
     for (var r = 1; r <= 8; r++) {
       if (_disposed || !mounted) return;
-      await Future.delayed(Duration(milliseconds: interval));
+      await _pausableDelay(Duration(milliseconds: interval));
       if (_disposed || !mounted) return;
       setState(() => _reveal = r);
     }
