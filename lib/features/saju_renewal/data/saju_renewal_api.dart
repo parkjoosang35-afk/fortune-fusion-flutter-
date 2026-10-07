@@ -141,14 +141,25 @@ class SajuRenewalApi {
   /// (userId, topicId, mode, birthKey) 조합으로 멱등 캐시를 두므로, 동일
   /// 조합 재요청 시 LLM 재호출 없이 캐시된 결과가 즉시 반환된다(중복 클릭
   /// 방어는 이 캐시 + Flutter 측 버튼 disable 이중 방어).
+  ///
+  /// [버그 수정 — 결과보기 결제 게이트 우회 방어] mode="detail"의 최초 호출은
+  /// 반드시 Access Gate(ResultAccessProvider.begin())가 발급한
+  /// [transactionId]를 함께 보내야 한다. 서버가 이 거래가 실제로 "pending"
+  /// 상태이고 본인 소유인지 재검증하기 전에는 LLM을 호출하지 않는다(이전에는
+  /// 이 값을 전혀 보내지 않아 결제 없이도 이 API를 직접 호출하면 상세 해석이
+  /// 그대로 반환되는 결제 우회가 가능했다). 이미 해제된(캐시 적중) topic을
+  /// 재열람하는 경우([transactionId]가 null)에는 서버가 캐시를 먼저 확인해
+  /// 거래 검증 없이도 통과시킨다(게이트 재통과 요구 금지, docs/03 §05).
   Future<ApiResult<InterpretDetailResult>> interpretDetail({
     required String topicId,
     List<String>? evidenceFactKeys,
+    String? transactionId,
   }) async {
     final result = await _interpret(
       topicId: topicId,
       mode: 'detail',
       evidenceFactKeys: evidenceFactKeys,
+      transactionId: transactionId,
     );
     if (!result.success) {
       return ApiResult.fail(
@@ -167,6 +178,7 @@ class SajuRenewalApi {
     required String topicId,
     required String mode,
     List<String>? evidenceFactKeys,
+    String? transactionId,
   }) async {
     final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse('$_baseUrl/api/public/saju-renewal/interpret');
@@ -175,6 +187,7 @@ class SajuRenewalApi {
       'topic_id': topicId,
       'mode': mode,
       if (evidenceFactKeys != null) 'evidence_fact_keys': evidenceFactKeys,
+      if (transactionId != null) 'transaction_id': transactionId,
     };
     debugPrint('[SajuRenewalApi] [interpret] 요청 -> $uri body=$body');
 

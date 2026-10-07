@@ -174,6 +174,12 @@ class SajuRenewalProvider extends ChangeNotifier {
   bool _isTopicsLoading = false;
   bool get isTopicsLoading => _isTopicsLoading;
 
+  /// [버그 수정 — 결과보기 결제 게이트 우회 방어] 가장 최근 Access
+  /// Gate.begin()이 발급한 transactionId를 기억해, detail 로드가
+  /// 실패했을 때 [retry]가 동일 거래로 서버 재검증을 다시 통과하도록
+  /// 한다(거래를 매번 새로 만들지 않음 — §8.4 멱등성 원칙과 동일 맥락).
+  String? _lastAccessTransactionId;
+
   /// [화면⑤/⑨ 다크 핸드오프 표시용] 지금까지 상세까지 완료한 이야기
   /// 수를 그대로 노출한다(0부터 시작). 서버 판단을 Flutter가 대체하지
   /// 않는다 — 단순 카운터 getter일 뿐, [_viewedTopicIds] 자체의
@@ -483,7 +489,17 @@ class SajuRenewalProvider extends ChangeNotifier {
 
   /// Access Gate 통과(beginResult 수신) 직후 화면이 호출한다. 실제
   /// detail interpret 호출까지 수행한다.
-  Future<void> onAccessGranted() async {
+  ///
+  /// [버그 수정 — 결과보기 결제 게이트 우회 방어] [transactionId]는
+  /// ResultAccessProvider.begin()이 반환한 ResultAccessBeginResult.
+  /// transactionId를 그대로 넘겨야 한다. 서버가 이 거래를 재검증한 뒤에만
+  /// LLM을 호출하므로, 이 값을 넘기지 않으면(= Access Gate를 아예 거치지
+  /// 않은 상태) 서버가 TRANSACTION_ID_REQUIRED로 거부한다. 이미 해제된
+  /// topic을 캐시로 재열람하는 [_openUnlockedDetail] 경로에서는 null로
+  /// 호출해도 서버가 캐시를 먼저 확인해 통과시킨다(게이트 재통과 금지).
+  /// 에러 후 [retry]로 재호출할 때는 직전에 사용한 transactionId를
+  /// [_lastAccessTransactionId]에서 그대로 재사용한다(동일 거래로 재시도).
+  Future<void> onAccessGranted({String? transactionId}) async {
     final topic = _currentTopic;
     if (topic == null) {
       _errorMessage = '선택된 이야기를 찾을 수 없습니다. 처음부터 다시 시도해주세요.';
@@ -497,9 +513,13 @@ class SajuRenewalProvider extends ChangeNotifier {
     _detailState = const LoadState.loading();
     notifyListeners();
 
+    final effectiveTransactionId = transactionId ?? _lastAccessTransactionId;
+    _lastAccessTransactionId = effectiveTransactionId;
+
     final result = await _api.interpretDetail(
       topicId: topic.topicId,
       evidenceFactKeys: topic.evidenceFactKeys,
+      transactionId: effectiveTransactionId,
     );
     _isDetailLoading = false;
 
@@ -517,6 +537,7 @@ class SajuRenewalProvider extends ChangeNotifier {
 
     _detailState = LoadState.success(result.data!);
     _viewedTopicIds.add(topic.topicId);
+    _lastAccessTransactionId = null;
     _status = SajuRenewalFlowStatus.storyDetail;
     notifyListeners();
   }

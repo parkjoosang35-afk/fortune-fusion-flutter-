@@ -106,7 +106,10 @@ class _StoryPreviewScreenState extends State<StoryPreviewScreen> {
     if (beginResult == null) return; // 사용자가 취소함
 
     provider.requestAccess();
-    await provider.onAccessGranted();
+    // [버그 수정 — 결과보기 결제 게이트 우회 방어] Access Gate.begin()이
+    // 발급한 transactionId를 서버 재검증용으로 그대로 전달한다. 이게
+    // 없으면 서버가 TRANSACTION_ID_REQUIRED로 거부한다.
+    await provider.onAccessGranted(transactionId: beginResult.transactionId);
     if (!mounted) return;
 
     if (provider.status == SajuRenewalFlowStatus.storyDetail) {
