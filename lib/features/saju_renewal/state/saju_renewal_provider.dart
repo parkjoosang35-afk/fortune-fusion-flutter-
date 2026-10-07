@@ -175,11 +175,47 @@ class SajuRenewalProvider extends ChangeNotifier {
   bool get isTopicsLoading => _isTopicsLoading;
 
   /// [화면⑤/⑨ 다크 핸드오프 표시용] 지금까지 상세까지 완료한 이야기
-  /// 수를 그대로 노출한다(0부터 시작, 화면에서는 +1하여 "N번째"로 씀).
-  /// 서버 판단을 Flutter가 대체하지 않는다 — 단순 카운터 getter일 뿐,
-  /// [_viewedTopicIds] 자체의 용도(Exposure History exclude 참고 목록)는
-  /// 그대로 유지된다.
+  /// 수를 그대로 노출한다(0부터 시작). 서버 판단을 Flutter가 대체하지
+  /// 않는다 — 단순 카운터 getter일 뿐, [_viewedTopicIds] 자체의
+  /// 용도(Exposure History exclude 참고 목록)는 그대로 유지된다.
+  ///
+  /// [주의 — C-09a] 이 값은 "STORY · N°0X" 순번 계산에는 더 이상 쓰지
+  /// 않는다(아래 [ordinalOf] 참고) — 05/07 화면이 같은 이야기에 대해
+  /// 서로 다른 순번을 보여주는 결함이 있었다.
   int get viewedStoryCount => _viewedTopicIds.length;
+
+  /// [버그 수정 — C-09a(docs/08) 결함 발견] docs/03_화면명세.md §09
+  /// "SceneBg·tint·주제 태그·**순번만 교체**"(=05·07이 같은 주제를 보는
+  /// 동안은 순번이 바뀌면 안 됨) 및 원본
+  /// `design_files/saju/screens-b.jsx`를 정밀 대조한 결과(`pick()`,
+  /// 316행): `ordinal`은 **08에서 새 주제를 선택하는 순간에만** +1되고,
+  /// 05(미리보기)→07(상세)로 넘어가는 것 자체(=상세보기 **완료**)로는
+  /// 전혀 바뀌지 않는다.
+  ///
+  /// [기존 결함] 기존 코드는 `provider.viewedStoryCount + 1`
+  /// (=`_viewedTopicIds.length`, 상세보기 **완료** 횟수)을 그대로
+  /// ordinal로 썼다. `onAccessGranted()`가 07 렌더링 *직전에*
+  /// `_viewedTopicIds.add(topic.topicId)`를 실행하므로, 같은 이야기인데도
+  /// 05에서는 "N°01", 07에서는 "N°02"로 **1 증가해 보이는** 불일치가
+  /// 실제로 재현되었다(재현 테스트로 확인: 05 ordinal=1, 07 ordinal=2).
+  ///
+  /// [수정] "상세보기 완료 횟수"가 아니라 "이번 세션에서 미리보기를
+  /// 시작한(= [loadPreview] 호출된) 고유 topic_id의 등장 순서"로
+  /// 다시 계산한다 — topic_id는 05→07 전환 중에 바뀌지 않으므로 항상
+  /// 동일한 순번을 돌려준다.
+  int ordinalOf(String topicId) {
+    final idx = _topicOrder.indexOf(topicId);
+    if (idx >= 0) return idx + 1;
+    // 이론상 도달하지 않음(항상 loadPreview가 먼저 기록) — 방어적으로
+    // 다음 순번을 돌려준다.
+    return _topicOrder.length + 1;
+  }
+
+  /// [C-09a 연계] [ordinalOf]가 참조하는 등장 순서 기록(중복 없이, 처음
+  /// 본 순서 그대로). jsx 원본의 `app.ordinal`과 동일한 역할을 하되,
+  /// "상세보기 완료"가 아니라 "미리보기 시작"을 기준으로 삼는다(아래
+  /// [loadPreview]에서만 추가됨).
+  final List<String> _topicOrder = [];
 
   /// [버그 수정 — C-05c(docs/08) 미구현 발견] docs/03_화면명세.md §05
   /// "해제됨(05-C) | Primary [자세히 보기] → 07 직행(게이트 없음)" 및
@@ -333,6 +369,14 @@ class SajuRenewalProvider extends ChangeNotifier {
     _isPreviewLoading = true;
     _currentTopic = topic;
     _previewState = const LoadState.loading();
+    // [버그 수정 — C-09a] 이 주제를 "이번 세션에서 처음 미리보기하는"
+    // 시점에 등장 순서를 1회만 기록한다(jsx `pick()`의 `ordinal+1`과
+    // 동일 시점 — 상세보기 완료가 아니라 "주제 선택/미리보기 시작").
+    // 이미 기록된 topic_id(재방문)는 다시 추가하지 않아 순번이 밀리지
+    // 않는다.
+    if (!_topicOrder.contains(topic.topicId)) {
+      _topicOrder.add(topic.topicId);
+    }
     notifyListeners();
 
     final result = await _api.interpretSummary(
@@ -459,6 +503,7 @@ class SajuRenewalProvider extends ChangeNotifier {
     _viewedTopicIds.clear();
     _shownCandidateIds.clear();
     _candidateBatch = 0;
+    _topicOrder.clear();
     _isPreviewLoading = false;
     _isDetailLoading = false;
     _isTopicsLoading = false;
@@ -479,6 +524,7 @@ class SajuRenewalProvider extends ChangeNotifier {
     _viewedTopicIds.clear();
     _shownCandidateIds.clear();
     _candidateBatch = 0;
+    _topicOrder.clear();
     notifyListeners();
   }
 }

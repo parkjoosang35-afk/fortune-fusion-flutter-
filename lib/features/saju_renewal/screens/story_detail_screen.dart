@@ -145,7 +145,13 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
     final provider = context.watch<SajuRenewalProvider>();
     final detailState = provider.detailState;
     final topic = provider.currentTopic;
-    final ordinal = provider.viewedStoryCount + 1;
+    // [버그 수정 — C-09a] 05(미리보기)와 동일한 순번 계산 로직을
+    // 재사용한다(provider.ordinalOf) — 과거에는 `viewedStoryCount + 1`
+    // (상세보기 완료 횟수)을 썼는데, onAccessGranted()가 이 화면 렌더링
+    // 직전에 `_viewedTopicIds`를 채우는 바람에 같은 이야기인데도 05에서
+    // 본 순번보다 07에서 1 더 큰 값이 보이는 불일치가 있었다(재현
+    // 테스트로 확인: 05 ordinal=1, 07 ordinal=2).
+    final ordinal = topic != null ? provider.ordinalOf(topic.topicId) : 1;
     final scene = topic?.scene;
 
     return Scaffold(

@@ -153,10 +153,14 @@ class _StoryPreviewScreenState extends State<StoryPreviewScreen> {
     final provider = context.watch<SajuRenewalProvider>();
     final previewState = provider.previewState;
     final topic = provider.currentTopic;
-    // JSX `app.ordinal` — 지금까지 상세까지 완료한 이야기 수 + 1(지금
-    // 보고 있는 이야기 차수). 1이면 첫 이야기(화면⑤ "PREVIEW · 05"),
-    // 2 이상이면 재방문 이야기(화면⑨ "STORY · 09").
-    final ordinal = provider.viewedStoryCount + 1;
+    // [버그 수정 — C-09a] JSX `app.ordinal` — "이번 세션에서 몇 번째로
+    // 미리보기하는 주제인가"(상세보기 완료 여부와 무관, 05↔07 전환
+    // 중에도 불변). 1이면 첫 이야기(화면⑤ "PREVIEW · 05"), 2 이상이면
+    // 재방문 이야기(화면⑨ "STORY · 09"). 과거에는
+    // `viewedStoryCount + 1`(상세보기 완료 횟수)을 썼는데, 그러면 05에서
+    // 보여준 순번이 07에서 1 증가해 보이는 불일치가 있었다(재현 테스트로
+    // 확인).
+    final ordinal = topic != null ? provider.ordinalOf(topic.topicId) : 1;
     final scene = topic?.scene;
     // C-05c/docs/03 §05 "해제됨" 분기 — 원본 jsx `unlocked`에 대응.
     final unlocked = topic != null && provider.isTopicUnlocked(topic.topicId);
