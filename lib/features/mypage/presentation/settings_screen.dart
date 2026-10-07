@@ -13,6 +13,7 @@ import '../../pass/application/pass_provider.dart';
 import '../../ads_test/domain/admob_ad_ids.dart';
 import '../../ads_test/presentation/admob_test_rewarded_ad.dart';
 import '../../notification/data/notification_preference_repository.dart';
+import '../../saju_renewal/screens/birth_input_screen.dart';
 
 /// [Sowoon.kr 리디자인 프롬프트] 다크모드 토글 UI 완전 제거.
 /// 앱은 항상 화이트/골드 라이트 테마로만 동작한다(ThemeProvider는 ThemeMode.light 고정).
@@ -154,6 +155,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // [출생정보 수정 기능] 로그인한 사용자에게만 "출생정보 수정" 메뉴를
+    // 보여준다(비로그인 상태는 애초에 사주 분석을 시작할 수 없으므로
+    // 고칠 출생정보 자체가 없음).
+    final isLoggedIn = context.watch<AuthProvider>().isLoggedIn;
     return Scaffold(
       backgroundColor: UnifiedColors.bg,
       appBar: AppBar(
@@ -173,26 +178,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 border: Border.all(color: UnifiedColors.border),
                 borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
               ),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
-                onTap: () => _confirmWithdraw(context),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: UnifiedTokens.spaceLg,
-                    vertical: UnifiedTokens.spaceMd,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.person_remove_outlined,
-                        color: UnifiedColors.textSecondary,
-                        size: UnifiedTokens.iconLg,
+              child: Column(
+                children: [
+                  // [출생정보 수정 기능 — "처음에 잘못 입력한 사람은
+                  // 어떡하라는거야?"] 사용자가 명시적으로 요구한 기능.
+                  // BirthInputScreen을 isEditMode=true로 열면 기존 저장값이
+                  // 전부 프리필되고, 저장 후에는 03(계산중)으로 보내지 않고
+                  // 이 화면으로 되돌아온다.
+                  if (isLoggedIn)
+                    _PolicyLinkRow(
+                      icon: Icons.cake_outlined,
+                      title: '출생정보 수정',
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              const BirthInputScreen(isEditMode: true),
+                        ),
                       ),
-                      const SizedBox(width: UnifiedTokens.spaceMd),
-                      Text('회원탈퇴', style: UnifiedText.bodyStrong()),
-                    ],
+                      useExternalIcon: false,
+                    ),
+                  InkWell(
+                    borderRadius: BorderRadius.circular(
+                      UnifiedTokens.radiusMd,
+                    ),
+                    onTap: () => _confirmWithdraw(context),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: UnifiedTokens.spaceLg,
+                        vertical: UnifiedTokens.spaceMd,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.person_remove_outlined,
+                            color: UnifiedColors.textSecondary,
+                            size: UnifiedTokens.iconLg,
+                          ),
+                          const SizedBox(width: UnifiedTokens.spaceMd),
+                          Text('회원탈퇴', style: UnifiedText.bodyStrong()),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
             const SizedBox(height: UnifiedTokens.spaceXxl),
@@ -501,12 +529,17 @@ class _PolicyLinkRow extends StatelessWidget {
     required this.title,
     required this.onTap,
     this.showDivider = true,
+    // [출생정보 수정 기능] 이 행이 외부 브라우저(약관/정책)로 연결되는지,
+    // 앱 내부 화면(출생정보 수정)으로 이동하는지에 따라 우측 아이콘을
+    // 바꾼다 — 외부면 open_in_new, 내부면 일반 chevron.
+    this.useExternalIcon = true,
   });
 
   final IconData icon;
   final String title;
   final VoidCallback onTap;
   final bool showDivider;
+  final bool useExternalIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -534,7 +567,9 @@ class _PolicyLinkRow extends StatelessWidget {
             const SizedBox(width: UnifiedTokens.spaceMd),
             Expanded(child: Text(title, style: UnifiedText.bodyStrong())),
             Icon(
-              Icons.open_in_new_rounded,
+              useExternalIcon
+                  ? Icons.open_in_new_rounded
+                  : Icons.chevron_right_rounded,
               color: UnifiedColors.textCaption,
               size: UnifiedTokens.iconMd,
             ),

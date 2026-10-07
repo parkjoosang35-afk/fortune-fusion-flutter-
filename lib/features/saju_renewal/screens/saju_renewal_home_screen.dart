@@ -296,6 +296,33 @@ class _SajuRenewalHomeScreenState extends State<SajuRenewalHomeScreen> {
                             ),
                             const SizedBox(height: 12),
                           ],
+                          // [출생정보 수정 기능 — "처음에 잘못 입력한 사람은
+                          // 어떡하라는거야?"] 프로필이 이미 완전한 사용자는
+                          // CTA를 눌러도 02(BirthInputScreen)를 다시 보지
+                          // 못한다(03으로 직행) — 여기서 "내 출생정보: ..."
+                          // 요약 + 수정 링크를 눌러 언제든 02를 수정 모드로
+                          // 열 수 있게 한다. 사주를 보러 들어온 그 자리에서
+                          // 바로 고칠 수 있어야 자연스럽다.
+                          Consumer<AuthProvider>(
+                            builder: (context, auth, _) {
+                              if (!_isProfileComplete(auth.currentUser)) {
+                                return const SizedBox.shrink();
+                              }
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: _BirthInfoSummaryRow(
+                                  user: auth.currentUser!,
+                                  onTap: () => Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => const BirthInputScreen(
+                                        isEditMode: true,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
                           SajuButton(
                             label: '내 사주 분석하기',
                             onTap: () => _start(context),
@@ -418,6 +445,86 @@ class _RecentStoryCard extends StatelessWidget {
             const SizedBox(width: 8),
             const Text(
               '이어서 보기 →',
+              style: TextStyle(
+                fontFamily: SajuType.ui,
+                fontSize: 12,
+                color: SajuGold.g300,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// [출생정보 수정 기능] 프로필이 이미 완전해 02(BirthInputScreen)를
+/// 건너뛰는 사용자에게 "지금 저장되어 있는 출생정보가 이거다"를 한 줄로
+/// 보여주고, 탭하면 02를 수정 모드로 바로 연다. `_RecentStoryCard`와
+/// 동일한 다크 카드 톤(line/border + 반투명 배경)을 재사용해 화면 전체의
+/// 시각적 통일성을 유지한다.
+class _BirthInfoSummaryRow extends StatelessWidget {
+  const _BirthInfoSummaryRow({required this.user, required this.onTap});
+
+  final UserModel user;
+  final VoidCallback onTap;
+
+  String get _summaryText {
+    final date = (user.birthDate ?? '').replaceAll('-', '.');
+    final genderLabel = user.gender == 'male' ? '남성' : '여성';
+    final timeLabel = user.birthTimeUnknown
+        ? '시간모름'
+        : (user.birthTime ?? '시간모름');
+    final place = user.birthPlace ?? '';
+    return '$date · $timeLabel · $genderLabel · $place';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: SajuText.line),
+          color: const Color.fromRGBO(250, 243, 224, 0.03),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.cake_outlined, size: 16, color: SajuGold.g300),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    '내 출생정보',
+                    style: TextStyle(
+                      fontFamily: SajuType.ui,
+                      fontSize: 10.5,
+                      color: SajuText.muted,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _summaryText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontFamily: SajuType.ui,
+                      fontSize: 12.5,
+                      color: SajuGold.g100,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 6),
+            const Text(
+              '수정 →',
               style: TextStyle(
                 fontFamily: SajuType.ui,
                 fontSize: 12,

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/widgets/app_dialog.dart';
+import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/birthday_picker/birthday_picker_modal.dart';
 import '../../auth/application/auth_provider.dart';
 import '../data/saju_visual_adapter.dart';
@@ -52,8 +54,27 @@ const List<String> _kBirthPlaceOptions = [
 /// 직접 보내지 않는다 — 서버가 User.profile(DB)에 저장된 값을 조회해
 /// 사용하도록 설계되어 있으므로, 반드시 [AuthProvider.updateProfile]로
 /// 먼저 서버 프로필을 저장한 뒤에만 다음 단계(계산중 화면)로 진행한다.
+///
+/// [출생정보 수정 기능 — "처음에 잘못 입력한 사람은 어떡하라는거야?"]
+/// 이 화면은 두 가지 모드로 쓰인다:
+/// - 최초 입력(isEditMode=false, 기존 동작): 저장 후 03(계산중) 화면으로
+///   진행해 바로 사주를 계산한다.
+/// - 수정(isEditMode=true, 마이페이지/설정/정통사주 홈에서 진입): 이미
+///   저장된 값(initState에서 전부 프리필됨)을 고친 뒤 저장하면, 03으로
+///   강제 진행하지 않고 "저장되었습니다" 토스트만 띄우고 이전 화면으로
+///   돌아간다 — 설정을 고치러 온 사용자를 사주 분석 플로우에 가두지
+///   않는다. 생년월일/시간/음양력/성별 중 하나라도 바뀌면 서버의
+///   birthKey(사주 계산 입력값 해시)가 자동으로 달라져, 예전에 틀린
+///   정보로 생성된 이야기/상세해석은 더 이상 조회되지 않고 새 정보로
+///   완전히 새로 계산된다(별도 마이그레이션 불필요 — admin_web
+///   schema.prisma의 SajuFactsCache/TopicInterpretResult가 전부 birthKey
+///   unique 기준이기 때문).
 class BirthInputScreen extends StatefulWidget {
-  const BirthInputScreen({super.key});
+  const BirthInputScreen({super.key, this.isEditMode = false});
+
+  /// true면 "수정 모드"로 진입 — 타이틀/버튼 문구가 바뀌고, 저장 후
+  /// 03(계산중)으로 강제 이동하지 않고 이전 화면으로 돌아간다.
+  final bool isEditMode;
 
   @override
   State<BirthInputScreen> createState() => _BirthInputScreenState();
@@ -86,6 +107,14 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
   /// 라벨 점 rel.chung 1초 + 필드 아래 ... 문구". 1초간 라벨 점을 강조색
   /// (충/파 적선)으로 깜빡인 뒤 원래 상태로 되돌린다.
   bool _birthDateBlinking = false;
+
+  /// [출생정보 수정 기능] initState에서 프리필한 "원래 값"을 보관해,
+  /// 저장 시점에 실제로 값이 바뀌었는지 판단한다(수정 모드에서만 사용 —
+  /// 바뀐 경우에만 "기존 이야기는 새로 계산됩니다" 확인을 받는다).
+  String? _originalBirthDate;
+  String? _originalBirthTime;
+  bool _originalBirthTimeUnknown = false;
+  bool _originalIsLunar = false;
 
   @override
   void initState() {
@@ -121,6 +150,15 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
       if (user.birthPlace != null && user.birthPlace!.isNotEmpty) {
         _birthPlace = user.birthPlace!;
       }
+      // [출생정보 수정 기능 — 버그수정] 양력/음력(_isLunar) 프리필이
+      // 빠져 있었다 — 수정 모드로 재진입했을 때 음력으로 저장한 사용자가
+      // 항상 "양력"으로 되돌아와 보이는 문제가 있었다.
+      _isLunar = user.isLunar;
+      // [출생정보 수정 기능] "실제로 바뀌었는지" 판단용 원본값 보관.
+      _originalBirthDate = user.birthDate;
+      _originalBirthTime = user.birthTime;
+      _originalBirthTimeUnknown = user.birthTimeUnknown;
+      _originalIsLunar = user.isLunar;
     }
     // [버그수정 — 이름 입력란] 회원가입 시 받은 닉네임을 기본값으로 채워
     // 보여준다(비어있지 않은 한 그대로 쓸 수 있고, 원하면 바로 고칠 수 있음).
@@ -317,17 +355,41 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
       await _highlightMissingBirthDate();
       return;
     }
-    setState(() {
-      _submitting = true;
-      _error = null;
-      _nicknameError = null;
-    });
 
     final birthDateStr = value.iso;
     final birthTimeUnknown = value.time == null;
     final birthTimeStr = value.time != null
         ? '${value.time!.rangeStart.toString().padLeft(2, '0')}:00'
         : null;
+
+    // [출생정보 수정 기능] 사주 계산에 실제로 영향을 주는 값(생년월일/
+    // 시간/시간모름여부/음양력)이 바뀌었는지 확인한다. 수정 모드에서
+    // 이 값들이 바뀌면 서버 birthKey가 달라져 기존에 복주머니로 열어본
+    // 이야기는 더 이상 보이지 않고 새로 계산된다 — 결제한 사용자가
+    // 당황하지 않도록 저장 전에 미리 안내하고 확인을 받는다.
+    final birthRelatedChanged =
+        birthDateStr != _originalBirthDate ||
+        birthTimeStr != _originalBirthTime ||
+        birthTimeUnknown != _originalBirthTimeUnknown ||
+        _isLunar != _originalIsLunar;
+
+    if (widget.isEditMode && birthRelatedChanged) {
+      final confirmed = await showAppConfirmDialog(
+        context,
+        title: '출생정보를 변경하시겠어요?',
+        message: '생년월일시 정보를 바꾸면 사주가 다시 계산됩니다.\n'
+            '이전 정보로 보셨던 이야기는 더 이상 보이지 않고,\n'
+            '새 정보로 새롭게 이야기를 찾아드려요.',
+        confirmLabel: '변경하기',
+      );
+      if (!confirmed || !mounted) return;
+    }
+
+    setState(() {
+      _submitting = true;
+      _error = null;
+      _nicknameError = null;
+    });
 
     final auth = context.read<AuthProvider>();
     final ok = await auth.updateProfile(
@@ -351,6 +413,16 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
 
     setState(() => _submitting = false);
     if (!mounted) return;
+
+    if (widget.isEditMode) {
+      // [출생정보 수정 기능] 설정/마이페이지에서 고치러 온 사용자를 사주
+      // 분석 플로우에 강제로 태우지 않는다 — 저장만 하고 이전 화면으로
+      // 돌아간다.
+      AppToast.show(context, '출생정보를 저장했습니다.');
+      Navigator.of(context).pop();
+      return;
+    }
+
     Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => const CalculatingScreen()));
@@ -376,7 +448,7 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
                   icon: '←',
                   onTap: () => Navigator.of(context).maybePop(),
                 ),
-                title: 'BIRTH · 02',
+                title: widget.isEditMode ? '출생정보 수정' : 'BIRTH · 02',
               ),
               Expanded(
                 child: SingleChildScrollView(
@@ -385,9 +457,11 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        '태어난 순간을\n정확히 알려주세요',
-                        style: TextStyle(
+                      Text(
+                        widget.isEditMode
+                            ? '출생정보를\n다시 확인해주세요'
+                            : '태어난 순간을\n정확히 알려주세요',
+                        style: const TextStyle(
                           fontFamily: SajuType.serif,
                           fontWeight: FontWeight.w700,
                           fontSize: 24,
@@ -397,9 +471,11 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
                         ),
                       ),
                       const SizedBox(height: 10),
-                      const Text(
-                        '시간이 정밀할수록 사주가 선명해집니다.',
-                        style: TextStyle(
+                      Text(
+                        widget.isEditMode
+                            ? '처음에 잘못 입력했다면 지금 바로 고칠 수 있어요.'
+                            : '시간이 정밀할수록 사주가 선명해집니다.',
+                        style: const TextStyle(
                           fontFamily: SajuType.body,
                           fontSize: 14,
                           height: 1.6,
@@ -721,7 +797,7 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
                   ),
                 ),
                 child: SajuButton(
-                  label: '사주 분석 시작하기',
+                  label: widget.isEditMode ? '저장하기' : '사주 분석 시작하기',
                   loading: _submitting,
                   onTap: _submitting ? null : _submit,
                 ),
