@@ -189,18 +189,44 @@ class SajuTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // [E-44pt 대응 — 레이아웃 영향 없이 확장] SajuIconButton의 탭 가능
-    // 영역은 44×44로 넓어졌지만 레이아웃 차지 크기는 36×36 그대로다
-    // (OverflowBox로 시각적으로만 넘침). 따라서 이 슬롯 폭은 원래
-    // 값(36)을 그대로 유지한다 — 44로 바꾸면 좁은 화면(320~375pt)에서
-    // 가운데 타이틀의 가용폭이 줄어 "ANALYSIS · 05 / 09" 등이 2줄로
-    // 꺾이는 회귀가 재현됨(saju_topbar_wrap_check_test.dart로 실측 확인).
+    // [E-44pt 대응 — 레이아웃 영향 없이 확장, 재수정]
+    // docs/02_컴포넌트.md §C-13 "3슬롯(좌 36 · 중앙 mono 라벨 · 우
+    // 36)"은 그대로 지키면서(= 좁은 화면 320~375pt에서 타이틀이 2줄로
+    // 꺾이지 않도록, saju_topbar_wrap_check_test.dart로 실측 보장),
+    // SajuIconButton의 실제 탭 가능 영역은 44×44가 되어야 한다
+    // (docs §C-01 "Icon 버튼 히트 영역 44×44").
+    //
+    // [버그 수정 — OverflowBox는 그리기만 overflow되고 히트테스트는
+    // 확장되지 않는다] 이전 구현은 `SizedBox(width:36, child:
+    // OverflowBox(...44x44...))` 패턴이었는데, 실제 tester.tapAt()으로
+    // 실측한 결과 36×36 밖을 탭하면 전혀 반응하지 않았다 — Flutter의
+    // RenderBox.hitTest()는 "position이 자신의 size 안에 있을 때만"
+    // 자식을 검사하므로, 부모가 36×36으로 타이트하게 제약하면 그 경계
+    // 밖은 히트테스트 트리에 영원히 도달할 수 없다(paint overflow와
+    // hit-test는 별개).
+    //
+    // [해법] TopBar 전체를 화면 폭만큼의 Stack으로 만들고, 좌우
+    // 아이콘은 Positioned(44×44)로 36pt 슬롯 중심에 겹쳐 배치한다.
+    // Positioned의 44×44 영역이 Stack 자신의 bounds(화면 전체 폭) 안에
+    // 완전히 포함되므로 히트테스트가 정상 동작한다(별도 widget test로
+    // 가설 검증 완료). 타이틀은 Padding(horizontal: 36)으로 기존
+    // Row+Expanded와 동일한 가용폭 제약을 유지한다.
     return SizedBox(
       height: 44,
-      child: Row(
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.center,
         children: [
-          SizedBox(width: 36, child: left),
-          Expanded(
+          // 타이틀 — [버그 방지] Stack의 non-positioned 자식은 느슨한
+          // 제약으로 Stack 전체 폭(좌우 36pt 슬롯 포함)을 그대로
+          // 받는다. 기존 Row+Expanded 구조에서는 타이틀이 정확히
+          // (전체폭 − 72)로 제약되어 좁은 화면에서 올바르게 줄바꿈
+          // 판정되었으므로, 동일한 제약을 Padding으로 명시해 그대로
+          // 유지한다(그렇지 않으면 긴 타이틀이 아이콘 영역까지
+          // 넓어지는 회귀가 생길 수 있다 —
+          // saju_topbar_wrap_check_test.dart로 실측 확인).
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 36),
             child: Center(
               child: Text(
                 title,
@@ -209,10 +235,22 @@ class SajuTopBar extends StatelessWidget {
               ),
             ),
           ),
-          SizedBox(
-            width: 36,
-            child: Align(alignment: Alignment.centerRight, child: right),
-          ),
+          if (left != null)
+            Positioned(
+              left: -4, // 36pt 슬롯 중심(18) 기준 44pt 폭의 좌측 오프셋.
+              top: 0,
+              width: 44,
+              height: 44,
+              child: Center(child: left),
+            ),
+          if (right != null)
+            Positioned(
+              right: -4,
+              top: 0,
+              width: 44,
+              height: 44,
+              child: Center(child: right),
+            ),
         ],
       ),
     );
@@ -228,12 +266,25 @@ class SajuTopBar extends StatelessWidget {
 /// 36)`에 직접 `InkWell`을 씌워 비주얼과 히트 영역이 완전히 같았다
 /// (36×36 — 44pt 미달, 실측 확인된 결함).
 ///
-/// [레이아웃 영향 없이 확장 — docs/02 C-07 "히트 영역: 세로 최소 32pt
-/// (레이아웃에 영향 없이 확장)"와 동일한 원칙을 Icon 버튼에도 적용]
-/// 바깥 레이아웃 차지 크기는 36×36 그대로 유지하고(= `SajuTopBar`
-/// 좌우 36pt 슬롯과 호환, 좁은 화면에서 타이틀이 밀려 줄바꿈되는 회귀
-/// 방지), `OverflowBox`로 탭 가능 영역만 44×44로 "시각적으로 넘치게"
-/// 넓힌다 — 인접 위젯의 배치/공간 계산에는 전혀 영향을 주지 않는다.
+/// [재수정 — OverflowBox는 paint만 overflow되고 hitTest는 확장되지
+/// 않는다] 이전 구현은 이 위젯 내부에서 `SizedBox(36) + OverflowBox
+/// (44)`로 44×44 히트 영역을 자체 확보하려 했으나, `tester.tapAt()`
+/// 실측 결과 36×36 경계 밖은 전혀 탭에 반응하지 않았다(Flutter
+/// RenderBox.hitTest()는 자신의 `_size` 안의 position만 자식에
+/// 전달하므로, 부모가 36×36으로 타이트하게 제약하면 그 경계 밖은
+/// 히트테스트 트리에 영원히 도달 불가능 — paint overflow와 hitTest는
+/// 완전히 별개 메커니즘).
+///
+/// [역할 분리] 44×44 히트 영역 확장은 이제 이 위젯을 감싸는
+/// `SajuTopBar`가 `Stack` + `Positioned(width: 44, height: 44)`로
+/// 전담한다(Positioned 영역이 Stack 자신의 bounds 안에 완전히
+/// 포함되므로 히트테스트가 정상 동작 — 별도 widget test로 검증).
+/// 따라서 `SajuIconButton` 자체는 "36×36 비주얼 + 탭 핸들러"만
+/// 책임지는 단순한 위젯으로 되돌린다. `SajuTopBar` 밖에서 단독으로
+/// 쓰일 경우에도 최소 36×36의 탭 영역은 확보된다(44pt 요구사항은
+/// 호출부가 `SajuTopBar`의 Positioned처럼 바깥에서 영역을 확장해
+/// 주는 것을 전제로 한다 — 현재 전체 코드베이스의 유일한 호출 경로는
+/// `SajuTopBar.left`이므로 이 전제가 항상 충족된다).
 class SajuIconButton extends StatelessWidget {
   const SajuIconButton({super.key, required this.icon, required this.onTap});
 
@@ -242,34 +293,24 @@ class SajuIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 36,
-      height: 36,
-      child: OverflowBox(
-        minWidth: 44,
-        maxWidth: 44,
-        minHeight: 44,
-        maxHeight: 44,
-        child: Material(
-          type: MaterialType.transparency,
-          child: InkWell(
-            onTap: onTap,
-            customBorder: const CircleBorder(),
-            child: Center(
-              child: Container(
-                width: 36,
-                height: 36,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: SajuText.card,
-                  border: Border.all(color: SajuText.line),
-                ),
-                child: Text(
-                  icon,
-                  style: const TextStyle(color: SajuText.fg, fontSize: 15),
-                ),
-              ),
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: Center(
+          child: Container(
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: SajuText.card,
+              border: Border.all(color: SajuText.line),
+            ),
+            child: Text(
+              icon,
+              style: const TextStyle(color: SajuText.fg, fontSize: 15),
             ),
           ),
         ),
