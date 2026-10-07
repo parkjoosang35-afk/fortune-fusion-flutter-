@@ -13,6 +13,7 @@ import 'package:flutter_app/features/auth/data/auth_repository.dart';
 import 'package:flutter_app/features/saju_renewal/data/saju_renewal_api.dart';
 import 'package:flutter_app/features/saju_renewal/screens/story_detail_screen.dart';
 import 'package:flutter_app/features/saju_renewal/state/saju_renewal_provider.dart';
+import 'package:flutter_app/features/saju_renewal/widgets/saju_result_access_gate_sheet.dart';
 
 /// E-07(docs/07_예외_엣지케이스.md) — "interpret(상세) 실패 → 07 → 템플릿
 /// 상주 상세 → 없으면 요약+근거+C-07-9 [다시 시도]. 재게이트 금지."
@@ -184,25 +185,34 @@ void main() {
         // jsonDecode→provider 상태 반영→위젯 리빌드까지 끝났다는 보장은
         // 아니다 — 응답이 실제로 화면에 반영될 때까지 pump를 반복한다.
         await tester.tap(retryButton);
-        for (var i = 0; i < 20; i++) {
-          await tester.pump(const Duration(milliseconds: 50));
-          if (find.text('핵심 블록 본문').evaluate().isNotEmpty) break;
-        }
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 50));
+        await tester.pump();
+        await tester.pump();
 
         expect(
           detailCallCount,
           2,
           reason: 'E-07 위반: [다시 시도]가 interpretDetail을 재호출하지 않음',
         );
+        // [주의] 블록 본문은 SajuTermText(내부적으로 standalone
+        // RichText)로 렌더링되므로, find.text()의 기본값(findRichText:
+        // false)은 standalone RichText를 무시해 매칭에 실패한다 —
+        // findRichText: true로 명시해야 InlineSpan.toPlainText() 기준
+        // 비교가 이루어진다(참고:
+        // packages/flutter_test/lib/src/finders.dart `text()` 문서).
         expect(
-          find.text('핵심 블록 본문'),
+          find.text('핵심 블록 본문', findRichText: true),
           findsOneWidget,
           reason: 'E-07 위반: 재시도 성공 후 정상 상세 화면으로 전환되지 않음',
         );
-        // 재게이트 금지 확인 — Access Gate 바텀시트(모달)가 뜨지 않았어야
-        // 한다. 이 화면은애초에 Gate 위젯을 호출하지 않으므로, 여기서는
-        // ModalBarrier가 없음으로 간접 확인한다.
-        expect(find.byType(ModalBarrier), findsNothing);
+        // 재게이트 금지 확인 — [SajuResultAccessGateSheet](Access Gate
+        // 바텀시트)가 다시 열리지 않았어야 한다. 단순 `ModalBarrier`는
+        // 일반 `MaterialPageRoute`도 기본으로 깔고 있는 프레임워크 기본
+        // 요소라 이 화면 자체(최초 로드 시점)에도 항상 1개 존재하므로
+        // Gate 오픈 여부의 신호로 쓸 수 없다 — 실제 Gate 위젯 타입으로
+        // 직접 확인한다.
+        expect(find.byType(SajuResultAccessGateSheet), findsNothing);
       }, () => client);
     },
   );
