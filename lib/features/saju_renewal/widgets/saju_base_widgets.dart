@@ -189,14 +189,17 @@ class SajuTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // [E-44pt 대응] SajuIconButton의 히트 영역이 44×44로 커졌으므로
-    // (비주얼 36×36은 유지) 좌/우 슬롯 폭도 44로 맞춰 겹침/overflow 없이
-    // 수용한다. 44는 docs/02_컴포넌트.md 상단바 높이(44)와도 일치한다.
+    // [E-44pt 대응 — 레이아웃 영향 없이 확장] SajuIconButton의 탭 가능
+    // 영역은 44×44로 넓어졌지만 레이아웃 차지 크기는 36×36 그대로다
+    // (OverflowBox로 시각적으로만 넘침). 따라서 이 슬롯 폭은 원래
+    // 값(36)을 그대로 유지한다 — 44로 바꾸면 좁은 화면(320~375pt)에서
+    // 가운데 타이틀의 가용폭이 줄어 "ANALYSIS · 05 / 09" 등이 2줄로
+    // 꺾이는 회귀가 재현됨(saju_topbar_wrap_check_test.dart로 실측 확인).
     return SizedBox(
       height: 44,
       child: Row(
         children: [
-          SizedBox(width: 44, child: left),
+          SizedBox(width: 36, child: left),
           Expanded(
             child: Center(
               child: Text(
@@ -207,7 +210,7 @@ class SajuTopBar extends StatelessWidget {
             ),
           ),
           SizedBox(
-            width: 44,
+            width: 36,
             child: Align(alignment: Alignment.centerRight, child: right),
           ),
         ],
@@ -223,8 +226,14 @@ class SajuTopBar extends StatelessWidget {
 /// "Icon 36×36 원"(비주얼 크기)과 "Icon 버튼 히트 영역 44×44"(탭 가능
 /// 영역)를 별도로 규정한다. 기존 구현은 `Container(width: 36, height:
 /// 36)`에 직접 `InkWell`을 씌워 비주얼과 히트 영역이 완전히 같았다
-/// (36×36 — 44pt 미달, 실측 확인된 결함). 비주얼 36×36은 그대로 두고
-/// 바깥에 44×44 투명 히트 영역을 추가해 두 규정을 동시에 만족시킨다.
+/// (36×36 — 44pt 미달, 실측 확인된 결함).
+///
+/// [레이아웃 영향 없이 확장 — docs/02 C-07 "히트 영역: 세로 최소 32pt
+/// (레이아웃에 영향 없이 확장)"와 동일한 원칙을 Icon 버튼에도 적용]
+/// 바깥 레이아웃 차지 크기는 36×36 그대로 유지하고(= `SajuTopBar`
+/// 좌우 36pt 슬롯과 호환, 좁은 화면에서 타이틀이 밀려 줄바꿈되는 회귀
+/// 방지), `OverflowBox`로 탭 가능 영역만 44×44로 "시각적으로 넘치게"
+/// 넓힌다 — 인접 위젯의 배치/공간 계산에는 전혀 영향을 주지 않는다.
 class SajuIconButton extends StatelessWidget {
   const SajuIconButton({super.key, required this.icon, required this.onTap});
 
@@ -234,26 +243,32 @@ class SajuIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 44,
-      height: 44,
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          onTap: onTap,
-          customBorder: const CircleBorder(),
-          child: Center(
-            child: Container(
-              width: 36,
-              height: 36,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: SajuText.card,
-                border: Border.all(color: SajuText.line),
-              ),
-              child: Text(
-                icon,
-                style: const TextStyle(color: SajuText.fg, fontSize: 15),
+      width: 36,
+      height: 36,
+      child: OverflowBox(
+        minWidth: 44,
+        maxWidth: 44,
+        minHeight: 44,
+        maxHeight: 44,
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            onTap: onTap,
+            customBorder: const CircleBorder(),
+            child: Center(
+              child: Container(
+                width: 36,
+                height: 36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: SajuText.card,
+                  border: Border.all(color: SajuText.line),
+                ),
+                child: Text(
+                  icon,
+                  style: const TextStyle(color: SajuText.fg, fontSize: 15),
+                ),
               ),
             ),
           ),

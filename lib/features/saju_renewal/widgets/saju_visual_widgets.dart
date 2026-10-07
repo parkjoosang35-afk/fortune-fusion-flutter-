@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import '../../home/domain/saju_engine.dart' show ganElement, zhiElement;
+import '../../home/domain/saju_engine.dart'
+    show ganElement, zhiElement, ganKr, zhiKr;
 import '../theme/saju_dark_tokens.dart';
 import '../data/saju_visual_adapter.dart';
 import '../utils/saju_motion_prefs.dart';
@@ -34,6 +35,28 @@ String _elementKoToEn(String ko) {
       return 'water';
     default:
       return 'wood';
+  }
+}
+
+/// [E-Semantics] docs/01_디자인토큰.md §1-3 오행 한글 라벨은
+/// "나무/불/흙/쇠/물"(순우리말)이다. 기존 데이터 소스(ganElement/
+/// zhiElement)의 한자음 표기('목/화/토/금/수')는 시각적 라벨·색상
+/// 매핑에 그대로 쓰되, 스크린리더 Semantics 라벨은 docs 08_QA_체크
+/// 리스트.md 예시("천간 갑, 나무")와 동일하게 맞추기 위해 변환한다.
+String _elementKoToSemantic(String ko) {
+  switch (ko) {
+    case '목':
+      return '나무';
+    case '화':
+      return '불';
+    case '토':
+      return '흙';
+    case '금':
+      return '쇠';
+    case '수':
+      return '물';
+    default:
+      return ko;
   }
 }
 
@@ -255,12 +278,25 @@ class _BaguaPainter extends CustomPainter {
       ..strokeWidth = 1.2
       ..color = color.withValues(alpha: 0.7 * intensity);
     canvas.drawCircle(Offset.zero, 60, circlePaint);
-    final fillPaint = Paint()..color = color.withValues(alpha: 0.16 * intensity);
+    final fillPaint = Paint()
+      ..color = color.withValues(alpha: 0.16 * intensity);
     final path = Path()
       ..moveTo(0, -60)
-      ..arcToPoint(const Offset(0, 60), radius: const Radius.circular(60), clockwise: true)
-      ..arcToPoint(const Offset(0, 0), radius: const Radius.circular(30), clockwise: true)
-      ..arcToPoint(const Offset(0, -60), radius: const Radius.circular(30), clockwise: false)
+      ..arcToPoint(
+        const Offset(0, 60),
+        radius: const Radius.circular(60),
+        clockwise: true,
+      )
+      ..arcToPoint(
+        const Offset(0, 0),
+        radius: const Radius.circular(30),
+        clockwise: true,
+      )
+      ..arcToPoint(
+        const Offset(0, -60),
+        radius: const Radius.circular(30),
+        clockwise: false,
+      )
       ..close();
     canvas.drawPath(path, fillPaint);
     canvas.drawCircle(const Offset(0, -30), 6, Paint()..color = SajuInk.i900);
@@ -350,7 +386,8 @@ class SajuPillarGrid extends StatelessWidget {
                               ),
                             ),
                             TextSpan(
-                              text: ' ${_colLabelsKr[i].replaceFirst('태어난 ', '')}',
+                              text:
+                                  ' ${_colLabelsKr[i].replaceFirst('태어난 ', '')}',
                               style: const TextStyle(
                                 fontFamily: SajuType.ui,
                                 fontSize: 10,
@@ -374,17 +411,11 @@ class SajuPillarGrid extends StatelessWidget {
                 Column(
                   children: [
                     Row(
-                      children: List.generate(
-                        4,
-                        (col) => _cell(col, 0, width),
-                      ),
+                      children: List.generate(4, (col) => _cell(col, 0, width)),
                     ),
                     const SizedBox(height: 6),
                     Row(
-                      children: List.generate(
-                        4,
-                        (col) => _cell(col, 1, width),
-                      ),
+                      children: List.generate(4, (col) => _cell(col, 1, width)),
                     ),
                   ],
                 ),
@@ -424,62 +455,98 @@ class SajuPillarGrid extends StatelessWidget {
     final isHl = highlightColumns?.contains(col) ?? false;
     final dim = (highlightColumns != null && !isHl) || dimAll;
 
+    // [E-Semantics — docs/08_QA_체크리스트.md "VoiceOver/TalkBack: 원국
+    // 셀 '태어난 해, 천간 갑, 나무' 형식 라벨"] 열(col)은 화면 표시
+    // 순서([0=時,1=日,2=月,3=年])를 그대로 "태어난 시/날/달/해"로
+    // 치환하고, 행(row)은 "천간"(0)/"지지"(1)로, 글자는 한글 발음
+    // (ganKr/zhiKr)으로, 오행은 한글 그대로 조합해 문장형 라벨을 만든다.
+    // 아직 새겨지지 않은 칸(shown=false)은 "아직 비어 있음"으로,
+    // 시간 모름(ch==null)은 "정보 없음"으로 안내한다.
+    final colKo = _colLabelsKr[col]; // '태어난 시' 등.
+    final rowKo = row == 0 ? '천간' : '지지';
+    String semanticLabel;
+    if (ch == null) {
+      semanticLabel = '$colKo, $rowKo 정보 없음';
+    } else if (!shown) {
+      semanticLabel = '$colKo, $rowKo 아직 비어 있음';
+    } else {
+      final charKo = row == 0 ? (ganKr[ch] ?? ch) : (zhiKr[ch] ?? ch);
+      semanticLabel = elKo == null
+          ? '$colKo, $rowKo $charKo'
+          : '$colKo, $rowKo $charKo, ${_elementKoToSemantic(elKo)}';
+    }
+
     return Padding(
       padding: EdgeInsets.only(right: col < 3 ? gap : 0),
-      child: AnimatedOpacity(
-        duration: SajuMotion.card,
-        opacity: dim ? 0.32 : 1,
-        child: Container(
-          width: cell,
-          height: cell,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: isHl ? SajuText.fg.withValues(alpha: 0.7) : SajuText.lineGold,
+      child: Semantics(
+        label: semanticLabel,
+        excludeSemantics: true,
+        child: AnimatedOpacity(
+          duration: SajuMotion.card,
+          opacity: dim ? 0.32 : 1,
+          child: Container(
+            width: cell,
+            height: cell,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isHl
+                    ? SajuText.fg.withValues(alpha: 0.7)
+                    : SajuText.lineGold,
+              ),
+              color: isHl
+                  ? SajuText.fg.withValues(alpha: 0.08)
+                  : SajuText.fg.withValues(alpha: 0.025),
+              boxShadow: isHl
+                  ? [
+                      BoxShadow(
+                        color: SajuGold.g300.withValues(alpha: 0.28),
+                        blurRadius: 22,
+                      ),
+                    ]
+                  : null,
             ),
-            color: isHl ? SajuText.fg.withValues(alpha: 0.08) : SajuText.fg.withValues(alpha: 0.025),
-            boxShadow: isHl
-                ? [
-                    BoxShadow(
-                      color: SajuGold.g300.withValues(alpha: 0.28),
-                      blurRadius: 22,
+            child: ch == null
+                ? const Text(
+                    '—',
+                    style: TextStyle(
+                      fontFamily: SajuType.ui,
+                      fontSize: 10,
+                      color: SajuText.faint,
                     ),
-                  ]
-                : null,
-          ),
-          child: ch == null
-              ? const Text(
-                  '—',
-                  style: TextStyle(fontFamily: SajuType.ui, fontSize: 10, color: SajuText.faint),
-                )
-              : shown
-                  ? Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Text(ch, style: SajuType.hanja(cell * 0.5, highlight: isHl)),
-                        if (elColor != null)
-                          Positioned(
-                            bottom: 5,
-                            child: Container(
-                              width: cell * 0.22,
-                              height: 2,
-                              decoration: BoxDecoration(
-                                color: elColor.withValues(alpha: 0.9),
-                                borderRadius: BorderRadius.circular(2),
-                              ),
+                  )
+                : shown
+                ? Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Text(
+                        ch,
+                        style: SajuType.hanja(cell * 0.5, highlight: isHl),
+                      ),
+                      if (elColor != null)
+                        Positioned(
+                          bottom: 5,
+                          child: Container(
+                            width: cell * 0.22,
+                            height: 2,
+                            decoration: BoxDecoration(
+                              color: elColor.withValues(alpha: 0.9),
+                              borderRadius: BorderRadius.circular(2),
                             ),
                           ),
-                      ],
-                    )
-                  : Container(
-                      width: 3,
-                      height: 3,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: SajuText.faint,
-                      ),
+                        ),
+                    ],
+                  )
+                : Container(
+                    width: 3,
+                    height: 3,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: SajuText.faint,
                     ),
+                  ),
+          ),
         ),
       ),
     );
@@ -487,7 +554,11 @@ class SajuPillarGrid extends StatelessWidget {
 }
 
 class _RelationPainter extends CustomPainter {
-  _RelationPainter({required this.relations, required this.cell, required this.gap});
+  _RelationPainter({
+    required this.relations,
+    required this.cell,
+    required this.gap,
+  });
   final List<SajuVisualRelation> relations;
   final double cell;
   final double gap;
@@ -625,7 +696,10 @@ class _ShardPainter extends CustomPainter {
       ..lineTo(p(34, 33).dx, p(34, 33).dy)
       ..lineTo(p(20, 23).dx, p(20, 23).dy)
       ..close();
-    canvas.drawPath(sidePath, Paint()..color = Colors.black.withValues(alpha: 0.14));
+    canvas.drawPath(
+      sidePath,
+      Paint()..color = Colors.black.withValues(alpha: 0.14),
+    );
 
     canvas.drawLine(
       p(20, 2),
@@ -750,15 +824,27 @@ class SajuBalanceGauge extends StatelessWidget {
           Row(
             children: const [
               Expanded(
-                child: Text('약함', style: SajuType.ui12, textAlign: TextAlign.left),
+                child: Text(
+                  '약함',
+                  style: SajuType.ui12,
+                  textAlign: TextAlign.left,
+                ),
               ),
               Expanded(child: SizedBox()),
               Expanded(
-                child: Text('균형', style: SajuType.ui12, textAlign: TextAlign.center),
+                child: Text(
+                  '균형',
+                  style: SajuType.ui12,
+                  textAlign: TextAlign.center,
+                ),
               ),
               Expanded(child: SizedBox()),
               Expanded(
-                child: Text('강함', style: SajuType.ui12, textAlign: TextAlign.right),
+                child: Text(
+                  '강함',
+                  style: SajuType.ui12,
+                  textAlign: TextAlign.right,
+                ),
               ),
             ],
           ),
@@ -913,8 +999,7 @@ class _LuckLinePainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = isHl ? 1.4 : 1
         ..color = isHl ? SajuGold.g100 : SajuGold.g500;
-      final fill = Paint()
-        ..color = isCur ? SajuGold.g100 : Colors.transparent;
+      final fill = Paint()..color = isCur ? SajuGold.g100 : Colors.transparent;
       if (isCur) {
         canvas.drawShadow(
           Path()..addOval(Rect.fromCircle(center: Offset(x, 20), radius: 6)),

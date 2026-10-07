@@ -281,8 +281,7 @@ class _CalculatingScreenState extends State<CalculatingScreen>
     // 크로스페이드만 보여준다 — 9단계 STEP 리듬(타이밍 로직)과 표시
     // 순서·실데이터는 전혀 바꾸지 않는다.
     final reduceMotion = sajuReduceMotion(context);
-    Duration rm(Duration normal) =>
-        reduceMotion ? Duration.zero : normal;
+    Duration rm(Duration normal) => reduceMotion ? Duration.zero : normal;
 
     final step = _step.clamp(0, 9);
     final displayStep = step <= 1 ? 1 : step;
@@ -570,44 +569,60 @@ class _CalculatingScreenState extends State<CalculatingScreen>
                         }),
                       ),
                       const SizedBox(height: 18),
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 500),
-                        child: Column(
-                          // [버그 수정 — C-03h/C-03-10] 완료 단계에는 다른 코드
-                          // 경로(key 'complete') — docs/04 §3-1 "완료" 행과
-                          // 원본 jsx `done ? 'COMPLETE' : S.en`에 1:1 대응.
-                          key: ValueKey(
-                            _showComplete
-                                ? 'complete'
-                                : (waitingForServer ? 'wait' : displayStep),
-                          ),
-                          children: [
-                            Text(
+                      // [E-Semantics — docs/08_QA_체크리스트.md "03 단계
+                      // 문구 변경 시 announce"] 단계가 바뀔 때마다
+                      // 하단 한글 문구(C-03-n)를 스크린 리더가 자동으로
+                      // 읽어주도록 `Semantics(liveRegion: true)`로 감싼다.
+                      // `liveRegion`은 문구가 실제로 바뀔 때(= 이
+                      // Semantics 노드의 label이 변경될 때) TalkBack/
+                      // VoiceOver가 자동으로 재공지하게 하는 표준 플래그다.
+                      Semantics(
+                        liveRegion: true,
+                        label: _showComplete
+                            ? '나에게 맞는 사주 이야기를 찾았습니다'
+                            : (waitingForServer
+                                  ? _kSteps.last.ko
+                                  : _kSteps[displayStep - 1].ko),
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 500),
+                          child: Column(
+                            // [버그 수정 — C-03h/C-03-10] 완료 단계에는 다른
+                            // 코드 경로(key 'complete') — docs/04 §3-1
+                            // "완료" 행과 원본 jsx `done ? 'COMPLETE' :
+                            // S.en`에 1:1 대응.
+                            key: ValueKey(
                               _showComplete
-                                  ? 'COMPLETE'
-                                  : (waitingForServer
-                                        ? 'STORY SELECT'
-                                        : _kSteps[displayStep - 1].en),
-                              style: SajuType.mono10,
+                                  ? 'complete'
+                                  : (waitingForServer ? 'wait' : displayStep),
                             ),
-                            const SizedBox(height: 8),
-                            SizedBox(
-                              height: 26,
-                              child: Text(
+                            children: [
+                              Text(
                                 _showComplete
-                                    ? '나에게 맞는 사주 이야기를 찾았습니다'
+                                    ? 'COMPLETE'
                                     : (waitingForServer
-                                          ? _kSteps.last.ko
-                                          : _kSteps[displayStep - 1].ko),
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontFamily: SajuType.body,
-                                  fontSize: 17,
-                                  color: SajuGold.g100,
+                                          ? 'STORY SELECT'
+                                          : _kSteps[displayStep - 1].en),
+                                style: SajuType.mono10,
+                              ),
+                              const SizedBox(height: 8),
+                              SizedBox(
+                                height: 26,
+                                child: Text(
+                                  _showComplete
+                                      ? '나에게 맞는 사주 이야기를 찾았습니다'
+                                      : (waitingForServer
+                                            ? _kSteps.last.ko
+                                            : _kSteps[displayStep - 1].ko),
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontFamily: SajuType.body,
+                                    fontSize: 17,
+                                    color: SajuGold.g100,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                       // docs/09 Q-10 / docs/03 §03 "(1단계 + 진태양시 On +
