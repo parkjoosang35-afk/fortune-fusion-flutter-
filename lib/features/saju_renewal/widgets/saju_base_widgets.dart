@@ -211,6 +211,26 @@ class SajuTopBar extends StatelessWidget {
     // 완전히 포함되므로 히트테스트가 정상 동작한다(별도 widget test로
     // 가설 검증 완료). 타이틀은 Padding(horizontal: 36)으로 기존
     // Row+Expanded와 동일한 가용폭 제약을 유지한다.
+    //
+    // [버그 수정 — 재재수정: Positioned의 음수 오프셋도 Stack bounds
+    // 밖은 히트 불가능] 최초 수정에서는 `Positioned(left: -4, width:
+    // 44)`로 36pt 슬롯 "중심"에 맞춰 양쪽으로 4pt씩 걸치게 했으나,
+    // 실제 프로덕션 구조(SafeArea→Column, 화면 전체 폭, 좌우 여백
+    // 없음)로 `tester.tapAt()` 실측한 결과 x<0 구간(왼쪽 아이콘의
+    // 좌측 4pt)이 Stack bounds(screen width 안) 밖이라 전혀 도달하지
+    // 못해 유효 히트 폭이 40pt(44pt 요구사항 미달)로 줄어드는 결함이
+    // 재발했다(OverflowBox 때와 동일한 근본 원인 — RenderBox 계열은
+    // 모두 "자신의 size 안의 position만 자식에 전달"한다, Stack도
+    // 예외가 아니다). 오른쪽 아이콘도 `right: -4`가 화면 오른쪽 밖으로
+    // 넘쳐 동일하게 깨졌다.
+    //
+    // [올바른 해법] Positioned를 `left: 0`/`right: 0`(각각 Stack bounds
+    // 안쪽)으로 두어 44×44 히트 박스 전체가 Stack 범위 안에 완전히
+    // 포함되게 하고, 그 안에서 36×36 비주얼은 `Align`으로 화면 가장자리
+    // 쪽에 그대로 붙인다(왼쪽 아이콘은 `centerLeft`로 x=[0,36] 유지,
+    // 오른쪽 아이콘은 `centerRight`로 x=[width-36,width] 유지 — 기존
+    // Row(SizedBox(width:36)) 구조와 완전히 동일한 비주얼 위치, 히트
+    // 영역만 바깥쪽(안쪽 화면 중앙 방향)으로 8pt 확장됨).
     return SizedBox(
       height: 44,
       child: Stack(
@@ -237,19 +257,19 @@ class SajuTopBar extends StatelessWidget {
           ),
           if (left != null)
             Positioned(
-              left: -4, // 36pt 슬롯 중심(18) 기준 44pt 폭의 좌측 오프셋.
+              left: 0,
               top: 0,
               width: 44,
               height: 44,
-              child: Center(child: left),
+              child: Align(alignment: Alignment.centerLeft, child: left),
             ),
           if (right != null)
             Positioned(
-              right: -4,
+              right: 0,
               top: 0,
               width: 44,
               height: 44,
-              child: Center(child: right),
+              child: Align(alignment: Alignment.centerRight, child: right),
             ),
         ],
       ),
