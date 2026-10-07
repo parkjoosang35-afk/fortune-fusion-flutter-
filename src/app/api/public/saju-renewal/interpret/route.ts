@@ -43,6 +43,11 @@ import { getTopicScene, SCENE_UNRESOLVED_TOPIC_IDS } from "@/lib/saju-renewal/to
 import { TOPIC_CATALOG_SEED } from "@/lib/saju-renewal/topic-catalog-data";
 import type { PromptTopicInfo } from "@/lib/saju-renewal/interpret-prompt";
 import { generateInterpretResult, InterpretUnavailableError } from "@/lib/saju-renewal/interpret-service";
+import {
+  findResultAccessTransaction,
+  completeResultAccess,
+  failAndRefundResultAccess,
+} from "@/lib/result-access-service";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +78,16 @@ const ERROR_STATUS: Record<string, number> = {
   // QA에 실패하면(이론상 고정 템플릿 설계로는 발생하지 않아야 함) 503으로 명확히
   // 응답한다 — 품질 미달 결과를 "정상"으로 위장해 사용자에게 보여주지 않는다.
   INTERPRET_UNAVAILABLE: 503,
+  // [버그 수정 — 결과보기 결제 게이트 우회 방어, 2026-10-07] mode="detail"인데
+  // 유효한 결과보기 거래(transaction_id)가 없으면 거부한다. 이 콘텐츠는
+  // §8 공통 ResultAccessService(quote/begin)를 쓰지만, 기존에는 이 route.ts가
+  // begin()이 만든 transaction을 전혀 검증하지 않아 Access Gate를 완전히
+  // 건너뛰고 detail을 직접 호출해도 결제 없이 전체 해석이 그대로 반환되는
+  // 치명적 결제 우회 취약점이 있었다 — 아래 네 코드가 그 방어다.
+  TRANSACTION_ID_REQUIRED: 400,
+  TRANSACTION_NOT_FOUND: 404,
+  TRANSACTION_OWNER_MISMATCH: 400,
+  TRANSACTION_NOT_PENDING: 409,
 };
 
 const ERROR_MESSAGE: Record<string, string> = {
@@ -91,6 +106,12 @@ const ERROR_MESSAGE: Record<string, string> = {
   TOPIC_CONDITION_NOT_SATISFIED: "지금 사주에서는 이 이야기를 열어볼 수 없습니다. 다른 이야기를 선택해주세요.",
   EVIDENCE_EVALUATOR_MISSING: "이야기를 분석하는 중 오류가 발생했습니다.",
   INTERPRET_UNAVAILABLE: "지금은 이야기를 준비하지 못했습니다. 잠시 후 다시 시도해주세요.",
+  // [§11 내부 정보 비노출] transaction/결제 관련 문구도 내부 코드를 언급하지
+  // 않고 공통 안내만 노출한다.
+  TRANSACTION_ID_REQUIRED: "결과보기 권한 확인이 필요합니다. 처음부터 다시 시도해주세요.",
+  TRANSACTION_NOT_FOUND: "결과보기 권한 확인이 필요합니다. 처음부터 다시 시도해주세요.",
+  TRANSACTION_OWNER_MISMATCH: "잘못된 요청입니다.",
+  TRANSACTION_NOT_PENDING: "이미 처리된 요청입니다. 처음부터 다시 시도해주세요.",
 };
 
 interface RequestBody {
@@ -98,11 +119,21 @@ interface RequestBody {
   topic_id?: unknown;
   mode?: unknown;
   evidence_fact_keys?: unknown;
+  /** [버그 수정] mode="detail"일 때 Access Gate(ResultAccessProvider.begin())가
+   * 발급한 transactionId. Flutter의 SajuResultAccessGateSheet가 begin() 성공
+   * 응답(ResultAccessBeginResult.transactionId)을 그대로 돌려주므로, 이 값을
+   * 받아 여기서 "pending" 상태인지/본인 소유인지 재검증한다(§3 서버 재검증 원칙
+   * — Access Gate를 통과했다는 클라이언트 선언을 신뢰하지 않는다). 이미
+   * 해제된(캐시 적중) topic을 재열람할 때는 생략 가능하다(게이트 재통과 요구
+   * 금지, docs/03 §05 "해제됨 → 07 직행").
+   */
+  transaction_id?: unknown;
 }
 
 function validateBody(body: RequestBody, authenticatedUserId: number): {
   topicId: string;
   mode: "summary" | "detail";
+  transactionId: string | null;
 } {
   if (body.profile_id === undefined || body.profile_id === null) {
     throw new InterpretError("PROFILE_ID_REQUIRED", ERROR_MESSAGE.PROFILE_ID_REQUIRED);
@@ -121,7 +152,14 @@ function validateBody(body: RequestBody, authenticatedUserId: number): {
   if (body.evidence_fact_keys !== undefined && !Array.isArray(body.evidence_fact_keys)) {
     throw new InterpretError("INVALID_REQUEST_BODY", "evidence_fact_keys는 배열이어야 합니다.");
   }
-  return { topicId: body.topic_id.trim(), mode: body.mode };
+  let transactionId: string | null = null;
+  if (body.transaction_id !== undefined && body.transaction_id !== null) {
+    if (typeof body.transaction_id !== "string" || body.transaction_id.trim().length === 0) {
+      throw new InterpretError("INVALID_REQUEST_BODY", "transaction_id 형식이 올바르지 않습니다.");
+    }
+    transactionId = body.transaction_id.trim();
+  }
+  return { topicId: body.topic_id.trim(), mode: body.mode, transactionId };
 }
 
 function parseBirthDate(birthDate: string): { year: number; month: number; day: number } | null {
@@ -149,6 +187,8 @@ function toEngineGender(gender: string | null | undefined): "male" | "female" | 
 }
 
 export async function POST(request: NextRequest) {
+  // [버그 수정] catch 블록(환불 처리)에서도 참조해야 하므로 try 바깥에 선언한다.
+  let resultAccessTxn: { transactionId: string } | null = null;
   try {
     const auth = await requireUser(request);
     if (!auth) return unauthorizedResponse();
@@ -161,7 +201,7 @@ export async function POST(request: NextRequest) {
       throw new InterpretError("INVALID_REQUEST_BODY", ERROR_MESSAGE.INVALID_REQUEST_BODY);
     }
 
-    const { topicId, mode } = validateBody(rawBody, userId);
+    const { topicId, mode, transactionId } = validateBody(rawBody, userId);
 
     // ── 출생정보/profile 확인 ──
     const user = await prisma.user.findUnique({ where: { id: userId }, include: { profile: true } });
@@ -207,10 +247,47 @@ export async function POST(request: NextRequest) {
       where: { userId_topicId_mode_birthKey: { userId, topicId, mode, birthKey } },
     });
     if (cachedResult) {
+      // [2차 버그 수정] 캐시 히트여도 transactionId가 전달되어 있다면(=사용자가
+      // 방금 결제를 완료한 상태) 해당 거래를 확정 처리해야 한다. 그렇지 않으면
+      // beginResultAccess()에서 이미 차감된 재화에 대응하는 거래 기록이 영원히
+      // "pending" 상태로 고착되는 데이터 무결성 문제가 발생한다
+      // (실제 DB 조회로 재현 확인됨: 캐시 히트였던 거래가 success/refunded로
+      // 전이되지 않고 pending으로 영구 고착).
+      if (mode === "detail" && transactionId) {
+        const txn = await findResultAccessTransaction(transactionId);
+        if (txn && txn.userId === userId && txn.status === "pending") {
+          await completeResultAccess(txn.transactionId, null);
+        }
+      }
       return NextResponse.json(
         { success: true, data: JSON.parse(cachedResult.resultJson), cached: true },
         { headers: CORS_HEADERS }
       );
+    }
+
+    // ── [버그 수정 — 결과보기 결제 게이트 우회 방어] ──
+    // mode="detail"이고 캐시가 없다면(=아직 한 번도 생성된 적 없는 최초 상세
+    // 열람) 반드시 유효한 결과보기 거래(ResultAccessTransaction, status=
+    // "pending", 본인 소유)가 있어야만 LLM을 호출할 수 있다. 이 검증이
+    // 없으면 Access Gate(결제)를 완전히 건너뛰고 이 API를 직접 호출해도
+    // 결제 없이 전체 상세 해석이 그대로 반환되는 치명적 결제 우회가
+    // 가능했다(실제 curl 재현으로 확인됨). summary는 무료 미리보기이므로
+    // 이 검증을 적용하지 않는다.
+    if (mode === "detail") {
+      if (!transactionId) {
+        throw new InterpretError("TRANSACTION_ID_REQUIRED", ERROR_MESSAGE.TRANSACTION_ID_REQUIRED);
+      }
+      const txn = await findResultAccessTransaction(transactionId);
+      if (!txn) {
+        throw new InterpretError("TRANSACTION_NOT_FOUND", ERROR_MESSAGE.TRANSACTION_NOT_FOUND);
+      }
+      if (txn.userId !== userId) {
+        throw new InterpretError("TRANSACTION_OWNER_MISMATCH", ERROR_MESSAGE.TRANSACTION_OWNER_MISMATCH);
+      }
+      if (txn.status !== "pending") {
+        throw new InterpretError("TRANSACTION_NOT_PENDING", ERROR_MESSAGE.TRANSACTION_NOT_PENDING);
+      }
+      resultAccessTxn = { transactionId: txn.transactionId };
     }
 
     // ── [STEP4 §2·§3·§4 "요청 Topic 검증" + "Topic 조건 검증"] ──
@@ -295,11 +372,27 @@ export async function POST(request: NextRequest) {
       }
     });
 
+    // ── [버그 수정 — §8.5 마지막 단계] detail 생성이 성공했으므로 Access Gate가
+    // 만든 거래를 "success"로 최종 확정한다. 이걸 호출하지 않으면 재화는 이미
+    // 차감됐는데 거래 레코드만 영원히 "pending"으로 남는다(실제 발견된 증상).
+    if (resultAccessTxn) {
+      await completeResultAccess(resultAccessTxn.transactionId, null);
+    }
+
     return NextResponse.json(
       { success: true, data: finalResult, cached: false },
       { headers: CORS_HEADERS }
     );
   } catch (e) {
+    // ── [버그 수정 — §8.6] LLM/QA 단계에서 실패해 detail을 끝내 만들지 못했다면
+    // 이미 차감된 재화를 환불한다(실패 시 사용자가 돈만 잃는 것을 방지).
+    if (resultAccessTxn) {
+      try {
+        await failAndRefundResultAccess(resultAccessTxn.transactionId);
+      } catch (refundError) {
+        console.error("[POST /api/public/saju-renewal/interpret] 환불 처리 실패:", refundError);
+      }
+    }
     if (e instanceof InterpretError) {
       return NextResponse.json(
         { success: false, error: ERROR_MESSAGE[e.code] ?? e.message, reason: e.code },
