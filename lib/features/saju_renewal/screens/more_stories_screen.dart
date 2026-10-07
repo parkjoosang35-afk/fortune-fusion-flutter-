@@ -17,12 +17,20 @@ import 'error_screen.dart';
 ///
 /// [Flutter 임의선정 절대 금지] 이 화면은 Topic Engine이 이미 내려준
 /// `topicsState.data!.candidates`를 그대로 노출만 한다 — 후보를 다시
-/// 정렬/필터링/임의 추천하지 않는다(지시서 §흐름 요구사항). JSX 원안의
-/// `rotated`/`page` 클라이언트 측 후보 순환 로직은 포트하지 않는다 —
-/// "새로운 이야기" 요청은 실제로 서버에 [SajuRenewalProvider.loadMoreTopics]를
-/// 호출해 새 후보를 받아오는 기존 구조를 그대로 쓴다. "이미 본 이야기"
-/// 재노출 방지도 서버(Exposure History)가 최종 판단하며, Flutter는
-/// 지금까지 상세까지 완료한 topic_id만 `exclude_topic_ids`로 참고 전달한다.
+/// 정렬/필터링/임의 추천하지 않는다(지시서 §흐름 요구사항).
+///
+/// [버그 수정 — C-08b(docs/08) 결함 발견] 과거에는 이 주석이 "JSX
+/// 원안의 rotated/page 로컬 순환은 포트하지 않고, 항상 서버
+/// loadMoreTopics를 호출한다"고 적혀 있었으나, 이는
+/// docs/03_화면명세.md §08 "[새로운 이야기]: 남은 후보로 교체(애니 rise
+/// 재생). 남은 후보 < 3 → topics/select 재호출"과 §08 목적 "선택에만
+/// LLM 비용(후보 노출은 0비용)"을 위반하는 결함이었다(항상 서버
+/// 재호출 + 재호출마다 summary interpret까지 추가로 트리거됨). 이제는
+/// [SajuRenewalProvider.refreshCandidates]를 호출한다 — 이 메서드가
+/// 내부적으로 "남은 후보 ≥ 3장이면 로컬 교체(0비용), 미만이면만 서버
+/// 재호출" 분기를 담당한다. "이미 본 이야기" 재노출 방지는 여전히
+/// 서버(Exposure History)가 최종 판단하며, Flutter는 지금까지 상세까지
+/// 완료한 topic_id만 `exclude_topic_ids`로 참고 전달한다.
 ///
 /// [isTiming 필드 재사용] JSX는 `tp.evidence.type === 'luck'`로 "시기" 배지
 /// 여부를 추론하지만, Flutter 쪽 `TopicCard`는 서버가 이미 내려주는
@@ -58,11 +66,16 @@ class _MoreStoriesScreenState extends State<MoreStoriesScreen> {
     }
   }
 
+  /// [버그 수정 — C-08b(docs/08) 결함 발견] "[↻ 새로운 이야기]" 버튼 —
+  /// docs/03_화면명세.md §08 규칙 그대로
+  /// [SajuRenewalProvider.refreshCandidates]를 호출하면 Provider가
+  /// 로컬 교체(0비용)와 서버 재호출(남은 후보 < 3일 때만) 중 알맞은
+  /// 쪽을 스스로 선택한다. 화면은 그 결과(로딩 여부)만 반영한다.
   Future<void> _loadMore() async {
     if (_selecting || _loadingMore) return;
     setState(() => _loadingMore = true);
     final provider = context.read<SajuRenewalProvider>();
-    await provider.loadMoreTopics();
+    await provider.refreshCandidates();
     if (!mounted) return;
     setState(() => _loadingMore = false);
     if (provider.status == SajuRenewalFlowStatus.error) {
@@ -97,6 +110,13 @@ class _MoreStoriesScreenState extends State<MoreStoriesScreen> {
         child: SafeArea(
           child: Builder(
             builder: (context) {
+              // [버그 수정 — C-08b] `provider.isRefreshingCandidates`는
+              // 여기서 검사하지 않는다 — docs/03 §08 "재호출 중 버튼만
+              // disabled"이므로, 이 전면 스피너 분기는 최초 로드 실패
+              // 후 재조회처럼 topicsState 자체가 비어있는 경우에만
+              // 써야 한다. refreshCandidates 호출 중에는 기존 카드가
+              // 화면에 그대로 남아있어야 하므로 isRefreshingCandidates를
+              // 여기 조건에 추가하지 않는다(의도적).
               if (topicsState.isLoading || provider.isTopicsLoading) {
                 return Column(
                   children: [
@@ -159,6 +179,12 @@ class _MoreStoriesScreenState extends State<MoreStoriesScreen> {
               // 있었다. Provider의 [displayableCandidates](이미 본
               // 주제 제외 + 3장 cap, docs/13 Q-06)를 사용한다.
               final candidates = provider.displayableCandidates;
+              // [버그 수정 — C-08b] docs/04_모션.md §4-5 "08: 카드 rise
+              // 600, i×80ms. [새로운 이야기] 시 리스트 키 변경 → 재생" —
+              // jsx 원본 `<div key={page}>`와 동일한 역할. 배치가 바뀔
+              // 때마다(=[refreshCandidates] 성공) 이 값이 바뀌어 아래
+              // `_RiseIn`들이 매번 처음부터 다시 재생된다.
+              final batchKey = provider.candidateBatch;
 
               return SingleChildScrollView(
                 padding: const EdgeInsets.only(bottom: 40),
@@ -207,11 +233,10 @@ class _MoreStoriesScreenState extends State<MoreStoriesScreen> {
                                     textAlign: TextAlign.center,
                                   ),
                                   const SizedBox(height: 20),
-                                  SajuButton(
-                                    label: '↻ 새로운 이야기',
-                                    variant: SajuButtonVariant.ghost,
-                                    height: 48,
-                                    loading: _loadingMore,
+                                  _RefreshButton(
+                                    spinning:
+                                        _loadingMore ||
+                                        provider.isRefreshingCandidates,
                                     onTap: _loadMore,
                                   ),
                                 ],
@@ -220,12 +245,18 @@ class _MoreStoriesScreenState extends State<MoreStoriesScreen> {
                           : Column(
                               children: [
                                 for (int i = 0; i < candidates.length; i++) ...[
-                                  _CandidateCard(
-                                    candidate: candidates[i],
-                                    scene: _tokenOf(candidates[i].scene),
-                                    enabled: !_selecting,
-                                    onTap: () =>
-                                        _selectCandidate(candidates[i]),
+                                  _RiseIn(
+                                    key: ValueKey(
+                                      '$batchKey-${candidates[i].topicId}',
+                                    ),
+                                    delay: Duration(milliseconds: i * 80),
+                                    child: _CandidateCard(
+                                      candidate: candidates[i],
+                                      scene: _tokenOf(candidates[i].scene),
+                                      enabled: !_selecting,
+                                      onTap: () =>
+                                          _selectCandidate(candidates[i]),
+                                    ),
                                   ),
                                   if (i != candidates.length - 1)
                                     const SizedBox(height: 12),
@@ -241,11 +272,10 @@ class _MoreStoriesScreenState extends State<MoreStoriesScreen> {
                                   adSlot: '',
                                 ),
                                 const SizedBox(height: 24),
-                                SajuButton(
-                                  label: '↻ 새로운 이야기',
-                                  variant: SajuButtonVariant.ghost,
-                                  height: 48,
-                                  loading: _loadingMore,
+                                _RefreshButton(
+                                  spinning:
+                                      _loadingMore ||
+                                      provider.isRefreshingCandidates,
                                   onTap: _selecting ? null : _loadMore,
                                 ),
                               ],
@@ -399,6 +429,149 @@ class _CandidateCard extends StatelessWidget {
                     fontSize: 12,
                     color: SajuGold.g300,
                   ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// [버그 수정 — C-08b(docs/08) 결함 발견] docs/04_모션.md §4-5 "08: 카드
+/// rise 600, i×80ms"를 재현하는 등장 애니메이션. jsx 원본
+/// `animation: sj-rise .6s ${i*0.08}s var(--ease-sj) both`
+/// (`screens-b.jsx` `ScreenOthers`)와 1:1 대응 — 불투명도 0→1 +
+/// translateY(14px)→0을 지연(delay) 후 600ms에 걸쳐 재생한다. 이
+/// 화면에는 그런 등장 애니메이션 위젯이 전혀 없었다(기존 결함 —
+/// "카드 리스트가 아무 모션 없이 즉시 나타남").
+class _RiseIn extends StatefulWidget {
+  const _RiseIn({super.key, required this.child, this.delay = Duration.zero});
+
+  final Widget child;
+  final Duration delay;
+
+  @override
+  State<_RiseIn> createState() => _RiseInState();
+}
+
+class _RiseInState extends State<_RiseIn> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _fade;
+  late final Animation<Offset> _slide;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: SajuMotion.card, // 600ms — docs/04 "카드 rise 600".
+    );
+    _fade = CurvedAnimation(parent: _controller, curve: SajuMotion.easeSj);
+    _slide = Tween<Offset>(
+      begin: const Offset(0, 0.08), // CSS translateY(14px) 근사.
+      end: Offset.zero,
+    ).animate(_fade);
+    Future.delayed(widget.delay, () {
+      if (mounted) _controller.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _fade,
+      child: SlideTransition(position: _slide, child: widget.child),
+    );
+  }
+}
+
+/// [버그 수정 — C-08b(docs/08) 결함 발견] docs/03_화면명세.md §08
+/// "[새로운 이야기]: ... 재호출 중 버튼 disabled + **라벨 앞 글리프
+/// 회전**." — 기존 `SajuButton`에는 글리프 회전 기능이 없어 이 요구를
+/// 재현할 수 없었다(기존 `SajuButton.loading`은 전체 라벨을 스피너로
+/// 바꿔버려 "↻ 새로운 이야기" 문구 자체가 사라지는 다른 동작이었다).
+/// 전용 Ghost 버튼을 만들어 "↻" 글리프만 회전시키고 라벨은 그대로 둔다.
+class _RefreshButton extends StatefulWidget {
+  const _RefreshButton({required this.spinning, required this.onTap});
+
+  final bool spinning;
+  final VoidCallback? onTap;
+
+  @override
+  State<_RefreshButton> createState() => _RefreshButtonState();
+}
+
+class _RefreshButtonState extends State<_RefreshButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    if (widget.spinning) _controller.repeat();
+  }
+
+  @override
+  void didUpdateWidget(covariant _RefreshButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.spinning && !_controller.isAnimating) {
+      _controller.repeat();
+    } else if (!widget.spinning && _controller.isAnimating) {
+      _controller.stop();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final disabled = widget.onTap == null || widget.spinning;
+    return Opacity(
+      opacity: disabled ? 0.6 : 1,
+      child: GestureDetector(
+        onTap: disabled ? null : widget.onTap,
+        child: Container(
+          width: double.infinity,
+          height: 48,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: SajuText.line),
+          ),
+          alignment: Alignment.center,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              RotationTransition(
+                turns: _controller,
+                child: Text(
+                  '↻',
+                  style: TextStyle(fontSize: 14, color: SajuText.muted),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '새로운 이야기',
+                style: TextStyle(
+                  fontFamily: SajuType.ui,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
+                  color: SajuText.muted,
                 ),
               ),
             ],

@@ -102,7 +102,7 @@ class SajuRenewalProvider extends ChangeNotifier {
   /// 같은 카드가 바로 다시 보이면 안 됨).
   final Set<String> _shownCandidateIds = {};
 
-  /// [버그 수정 — C-08b(docs/08) 결함 발견] [loadMoreTopics] 재호출
+  /// [버그 수정 — C-08b(docs/08) 결함 발견] [refreshCandidates] 재호출
   /// 가드용(기존 `_isTopicsLoading`과 분리 — 그 플래그는 화면⑧ 전체를
   /// 전면 스피너로 바꾸는 조건(`more_stories_screen.dart`
   /// `topicsState.isLoading || provider.isTopicsLoading`)에도 쓰이므로,
@@ -110,6 +110,14 @@ class SajuRenewalProvider extends ChangeNotifier {
   /// 수정에서는 재사용할 수 없다).
   bool _isRefreshingCandidates = false;
   bool get isRefreshingCandidates => _isRefreshingCandidates;
+
+  /// [버그 수정 — C-08b] docs/04_모션.md §4-5 "08: 카드 rise 600,
+  /// i×80ms. [새로운 이야기] 시 **리스트 키 변경** → 재생." — jsx 원본
+  /// `ScreenOthers`의 `<div key={page} ...>`와 동일한 역할. 화면이 이
+  /// 값을 `AnimatedSwitcher`/`ValueKey`로 사용해 "새로운 이야기"를
+  /// 누를 때마다 카드 rise 애니메이션을 다시 재생하게 한다.
+  int _candidateBatch = 0;
+  int get candidateBatch => _candidateBatch;
 
   /// [버그 수정 — C-08a(docs/08) 결함 발견] docs/03_화면명세.md §08
   /// "후보 = 받은 후보 − 이미 본 주제(세션 + 노출 이력). 표시 3장" 및
@@ -123,7 +131,7 @@ class SajuRenewalProvider extends ChangeNotifier {
   /// 재필터링하지 않는다(Flutter 임의 판단 금지 원칙).
   ///
   /// [C-08b 연계] "새로운 이야기"로 교체되어 [_shownCandidateIds]에
-  /// 들어간 후보도 제외한다 — 그래야 [loadMoreTopics]가 서버를 다시
+  /// 들어간 후보도 제외한다 — 그래야 [refreshCandidates]가 서버를 다시
   /// 부르지 않고도 이미 받아둔 나머지 후보를 "다음 3장"으로 보여줄 수
   /// 있다(로컬 교체, 0비용).
   List<TopicCard> get displayableCandidates {
@@ -136,6 +144,23 @@ class SajuRenewalProvider extends ChangeNotifier {
         )
         .toList();
     return remaining.take(3).toList();
+  }
+
+  /// [버그 수정 — C-08b(docs/08) 결함 발견] docs/03_화면명세.md §08
+  /// "[새로운 이야기]: 남은 후보로 교체 ... 남은 후보 < 3 → topics/select
+  /// 재호출" 조건을 판단하기 위한 getter. "남은 후보"란
+  /// `raw candidates` 중 이미 본(detail 완료) 것도, 이미 교체로 소비된
+  /// 것도 아닌 나머지를 뜻한다(=다음 번 [displayableCandidates] 호출이
+  /// 돌려줄 수 있는 후보 수와 동일).
+  int get remainingLocalCandidateCount {
+    final raw = _topicsState.data?.candidates ?? const <TopicCard>[];
+    return raw
+        .where(
+          (c) =>
+              !_viewedTopicIds.contains(c.topicId) &&
+              !_shownCandidateIds.contains(c.topicId),
+        )
+        .length;
   }
 
   /// [중복 클릭 방어] summary/detail 요청이 진행 중인 동안 동일 요청이
@@ -185,12 +210,80 @@ class SajuRenewalProvider extends ChangeNotifier {
     await _loadTopics();
   }
 
-  /// 화면⑧ "다른 사주 이야기" — 현재까지 본 topic을 제외하고 새 후보를
-  /// 다시 조회한다. 서버의 Exposure History 정책을 그대로 신뢰하며,
-  /// Flutter는 "이미 상세까지 본 topic_id"만 참고로 추가 제외 요청한다.
-  Future<void> loadMoreTopics() async {
-    _setStatus(SajuRenewalFlowStatus.calculating);
-    await _loadTopics(excludeExtra: _viewedTopicIds.toList());
+  /// [버그 수정 — C-08b(docs/08) 결함 발견] 화면⑧ "[↻ 새로운 이야기]"
+  /// 버튼의 실제 동작. docs/03_화면명세.md §08 "[새로운 이야기]: 남은
+  /// 후보로 교체(애니 rise 재생). 남은 후보 < 3 → `topics/select`
+  /// 재호출(exclude=본 주제들). 재호출 중 버튼 disabled + 라벨 앞 글리프
+  /// 회전."을 그대로 재현한다.
+  ///
+  /// [기존 결함] 과거 `loadMoreTopics()`는 버튼을 누를 때마다 **항상**
+  /// `_loadTopics()`(= `topics/select` 서버 재호출)만 수행했다. 이는
+  /// 두 가지 문제가 있었다:
+  /// 1) docs/03 §08 "남은 후보로 교체" 로컬 스왑이 전혀 없어 후보가
+  ///    아직 여럿 남아있어도 매번 서버를 다시 불렀다.
+  /// 2) 더 심각하게, `_loadTopics()` 끝에서 항상
+  ///    `await loadPreview(data.firstTopic)`(=summary interpret, LLM
+  ///    호출)을 이어서 실행하므로, 화면⑧에서 후보를 "구경"만 해도
+  ///    버튼을 누를 때마다 LLM 비용이 발생했다 — docs/03 §08 "목적:
+  ///    **선택에만 LLM 비용(후보 노출은 0비용)**"을 정면 위반하는
+  ///    결함이었다.
+  ///
+  /// 이 메서드는 그 대신: 먼저 지금 화면에 보이는 후보를
+  /// [_shownCandidateIds]로 "소비 처리"하고, 그 뒤에도 로컬에 3장
+  /// 이상 남아있으면 서버를 전혀 부르지 않고 끝낸다(0비용). 3장
+  /// 미만일 때만 [_refreshCandidatesFromServer]로 서버를 재호출하되,
+  /// `_status`/`_currentTopic`을 건드리지 않고 `loadPreview`도 호출하지
+  /// 않는다 — 화면⑧은 그대로 머무르고 후보 목록만 갱신된다.
+  Future<void> refreshCandidates() async {
+    if (_isRefreshingCandidates) return;
+    // 지금 보여주고 있던 카드들을 "소비됨"으로 표시 — 다음 번
+    // displayableCandidates 계산에서 자동으로 걸러진다.
+    _shownCandidateIds.addAll(displayableCandidates.map((c) => c.topicId));
+    _candidateBatch++;
+    if (remainingLocalCandidateCount >= 3) {
+      // [로컬 교체 — 0비용] 서버를 다시 부르지 않고 남은 후보로 바로
+      // 바꾼다(docs/03 §08 "남은 후보로 교체").
+      notifyListeners();
+      return;
+    }
+    await _refreshCandidatesFromServer();
+  }
+
+  /// [버그 수정 — C-08b] docs/03_화면명세.md §08 "남은 후보 < 3 →
+  /// `topics/select` 재호출(exclude=본 주제들)". 전면 로딩 상태
+  /// (`_topicsState`를 loading으로 바꾸는 것)는 쓰지 않는다 — 그러면
+  /// `more_stories_screen.dart`가 "전체 화면 스피너"로 바뀌어 지금
+  /// 보이는 카드까지 사라지는데, 명세는 "재호출 중 **버튼만**
+  /// disabled"라고 못박고 있다. 대신 [_isRefreshingCandidates] 전용
+  /// 플래그만 켜서 버튼만 비활성화한다.
+  Future<void> _refreshCandidatesFromServer() async {
+    if (_isRefreshingCandidates) return;
+    _isRefreshingCandidates = true;
+    notifyListeners();
+
+    final result = await _api.selectTopics(
+      excludeTopicIds: _viewedTopicIds.isEmpty
+          ? null
+          : _viewedTopicIds.toList(),
+    );
+    _isRefreshingCandidates = false;
+
+    if (!result.success) {
+      _errorMessage = _friendlyErrorMessage(
+        result.errorCode,
+        result.errorMessage,
+      );
+      _errorReason = result.errorCode;
+      _status = SajuRenewalFlowStatus.error;
+      notifyListeners();
+      return;
+    }
+
+    // 새로 받은 후보 풀로 교체 — 이번 풀은 아직 한 번도 소비된 적이
+    // 없으므로 [_shownCandidateIds]를 비워 처음부터 다시 센다.
+    _topicsState = LoadState.success(result.data!);
+    _shownCandidateIds.clear();
+    notifyListeners();
   }
 
   Future<void> _loadTopics({List<String> excludeExtra = const []}) async {
@@ -221,6 +314,9 @@ class SajuRenewalProvider extends ChangeNotifier {
     final data = result.data!;
     _topicsState = LoadState.success(data);
     _currentTopic = data.firstTopic;
+    // [버그 수정 — C-08b] 완전히 새 후보 풀이므로 이전 풀의 소비 이력은
+    // 무의미하다 — 비워서 처음부터 다시 3장을 셀 수 있게 한다.
+    _shownCandidateIds.clear();
     _status = SajuRenewalFlowStatus.factsReady;
     notifyListeners();
 
@@ -313,8 +409,13 @@ class SajuRenewalProvider extends ChangeNotifier {
   }
 
   /// 화면⑦ "다른 사주 이야기" 버튼 — 화면⑧(후보 목록) 상태로 전환한다.
-  /// 이미 조회된 candidates를 그대로 보여주며, 전부 이미 본 topic이면
-  /// [loadMoreTopics]로 새 후보를 다시 조회해야 한다(화면이 판단).
+  /// 이미 조회된 candidates를 그대로 보여주며(단, [displayableCandidates]
+  /// getter가 [_viewedTopicIds]/[_shownCandidateIds]를 걸러주므로 방금
+  /// 상세까지 본 topic은 자동으로 빠진다 — C-08a), 후보가 부족하면
+  /// 화면 쪽에서 [remainingLocalCandidateCount] < 3을 보고 안내 문구와
+  /// 함께 "새로운 이야기" 버튼으로 [refreshCandidates]를 호출하게 한다
+  /// (서버 자동 선조회는 하지 않는다 — 사용자가 명시적으로 요청했을
+  /// 때만 네트워크를 쓴다는 기존 원칙 유지).
   void showMoreTopics() {
     _setStatus(SajuRenewalFlowStatus.moreTopics);
   }
@@ -356,9 +457,12 @@ class SajuRenewalProvider extends ChangeNotifier {
     _previewState = const LoadState.initial();
     _detailState = const LoadState.initial();
     _viewedTopicIds.clear();
+    _shownCandidateIds.clear();
+    _candidateBatch = 0;
     _isPreviewLoading = false;
     _isDetailLoading = false;
     _isTopicsLoading = false;
+    _isRefreshingCandidates = false;
     notifyListeners();
   }
 
@@ -373,6 +477,8 @@ class SajuRenewalProvider extends ChangeNotifier {
     _previewState = const LoadState.initial();
     _detailState = const LoadState.initial();
     _viewedTopicIds.clear();
+    _shownCandidateIds.clear();
+    _candidateBatch = 0;
     notifyListeners();
   }
 }
