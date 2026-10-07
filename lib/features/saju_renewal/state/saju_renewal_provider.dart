@@ -322,18 +322,87 @@ class SajuRenewalProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// [E-04 구현 — docs/07_예외_엣지케이스.md "topics/select 실패 | 03 |
+  /// 9단계 대기 상태로 재시도 1회 → 실패 시 `LIFE_000`을 첫 이야기로 04
+  /// 진행 | 없음"] 서버 `topic-catalog-data.ts`의 LIFE_000 레코드
+  /// (topicName: "평생 총론", categoryGroup: LIFE → scene.life — 서버가
+  /// 이미 확정해 둔 폴백 주제의 정적 메타데이터만 그대로 옮긴 것이며,
+  /// Flutter가 사주 해석 내용을 새로 만들지 않는다. 실제 이야기
+  /// summary/detail은 여전히 서버 interpret API가 생성한다)와 scene
+  /// 매핑(`topic-contract-adapter.ts`: LIFE_* 접두어 → life)을 그대로
+  /// 반영한 정적 상수.
+  static const TopicCard _life000Fallback = TopicCard(
+    topicId: 'LIFE_000',
+    scene: SajuRenewalScene.life,
+    title: '평생 총론',
+    isTiming: false,
+    evidenceFactKeys: [],
+  );
+
   Future<void> _loadTopics({List<String> excludeExtra = const []}) async {
     if (_isTopicsLoading) return;
     _isTopicsLoading = true;
     _topicsState = const LoadState.loading();
     notifyListeners();
 
-    final result = await _api.selectTopics(
+    var result = await _api.selectTopics(
       excludeTopicIds: excludeExtra.isEmpty ? null : excludeExtra,
     );
+
+    // [E-04] facts 자체가 명확히 불가(FACT_ENGINE_UNAVAILABLE — E-03
+    // 영역)이거나 인증 만료(UNAUTHORIZED — 재로그인 필요)인 경우는
+    // 재시도해도 동일한 이유로 또 실패할 것이 확실하므로 재시도/폴백
+    // 대상이 아니다. 그 외 모든 실패(일시적 네트워크 오류, 서버 처리
+    // 중 예외 등 — route.ts가 구체적 reason 코드를 내려주지 못하는
+    // 모든 경우)만 "select 실패"로 보고 1회 재시도한다.
+    final isRetryableFailure =
+        !result.success &&
+        result.errorCode != 'FACT_ENGINE_UNAVAILABLE' &&
+        result.errorCode != 'UNAUTHORIZED';
+
+    if (isRetryableFailure) {
+      debugPrint(
+        '[SajuRenewalProvider] [E-04] topics/select 1차 실패 -> 1회 재시도',
+      );
+      // [docs "9단계 대기 상태로"] 재시도하는 동안 _status는 건드리지
+      // 않는다(이미 calculating 상태 유지 중) — CalculatingScreen(03)은
+      // 이 재시도가 끝날 때까지 9단계 연출을 그대로 유지한다.
+      result = await _api.selectTopics(
+        excludeTopicIds: excludeExtra.isEmpty ? null : excludeExtra,
+      );
+    }
+
     _isTopicsLoading = false;
 
     if (!result.success) {
+      if (isRetryableFailure) {
+        // [E-04] 재시도까지 실패 — "빈 화면 금지" 원칙에 따라 오류
+        // 화면 대신 LIFE_000을 첫 이야기로 04까지 진행한다. candidates는
+        // 0건이지만, "후보 0건 구조적 불가" 서버 보장(docs/05 §2-2)은
+        // selectTopics() 성공 경로에만 해당하므로 여기서는 서버를 다시
+        // 부르지 않고 LIFE_000 단독으로 진행한다 — 08(다른 사주 이야기)
+        // 진입 시 [refreshCandidates]가 서버를 재호출해 정상 후보를
+        // 받아올 수 있다.
+        debugPrint(
+          '[SajuRenewalProvider] [E-04] 재시도도 실패 -> LIFE_000 폴백으로 04 진행',
+        );
+        _topicsState = const LoadState.success(
+          TopicsSelectResult(
+            firstTopic: _life000Fallback,
+            candidates: [],
+            keyFacts: [],
+            factSchemaVersion: '',
+          ),
+        );
+        _currentTopic = _life000Fallback;
+        _shownCandidateIds.clear();
+        _status = SajuRenewalFlowStatus.factsReady;
+        notifyListeners();
+        await loadPreview(_life000Fallback);
+        return;
+      }
+
+      // E-03(FACT_ENGINE_UNAVAILABLE) 또는 UNAUTHORIZED — 기존 동작 유지.
       _topicsState = LoadState.error(
         result.errorMessage ?? '사주 이야기를 불러오지 못했습니다.',
       );
