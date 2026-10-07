@@ -62,6 +62,10 @@ const List<String> _kBlockTitles = [
 class _StoryDetailScreenState extends State<StoryDetailScreen> {
   SajuVisualProfile? _profile;
 
+  /// [버그 수정 — E-07(docs/07) 결함 발견] "상세 실패" 재시도 버튼의
+  /// 중복클릭 방어 플래그(화면⑤ `_gateOpening`/`_retrying` 패턴과 동일).
+  bool _detailRetrying = false;
+
   // [버그 수정 — C-07d(docs/08) 결함 발견] docs/03_화면명세.md §07
   // 275행: "칩 탭 → 해당 블록으로 스크롤(상단바 높이 보정)" — 기존 코드는
   // 목차 칩에 onTap 핸들러가 전혀 없어 탭해도 아무 반응이 없던 결함.
@@ -144,6 +148,7 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
   Widget build(BuildContext context) {
     final provider = context.watch<SajuRenewalProvider>();
     final detailState = provider.detailState;
+    final previewState = provider.previewState;
     final topic = provider.currentTopic;
     // [버그 수정 — C-09a] 05(미리보기)와 동일한 순번 계산 로직을
     // 재사용한다(provider.ordinalOf) — 과거에는 `viewedStoryCount + 1`
@@ -197,6 +202,25 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
                       );
                     }
                     if (detailState.isError) {
+                      // [버그 수정 — E-07(docs/07) 결함 발견]
+                      // docs/03_화면명세.md §07 "규칙": "상세 실패 →
+                      // 템플릿 상주 상세 문구로 대체. 그것도 없으면 05의
+                      // 요약 + 근거 + "잠시 후 다시 열어 주세요"(C-07-9)
+                      // + [다시 시도]. 게이트 재통과 요구 금지(이미
+                      // 해제됨)." — 서버가 템플릿 상세조차 못 내려준
+                      // 경우(=이 detailState.isError 분기)에 대한 처리가
+                      // 전혀 없이 에러 메시지만 보여주고 재시도 버튼이
+                      // 없어 막다른 길에 갇히는 결함이었다(05/06에서는
+                      // 이미 재시도 버튼이 있는데 07에만 누락).
+                      //
+                      // [수정] 05에서 이미 받아둔 요약(previewState) +
+                      // 근거가 있으면 그대로 재사용해 보여주고, 그 아래
+                      // C-07-9 문구 + [다시 시도] 버튼을 추가한다.
+                      // [SajuRenewalProvider.retry]는 이미
+                      // `_detailState.isError`일 때 `onAccessGranted()`만
+                      // 재호출하므로(Access Gate 재오픈 없음) "게이트
+                      // 재통과 요구 금지" 요건도 자동으로 지켜진다.
+                      final summary = previewState.data;
                       return Column(
                         children: [
                           SajuTopBar(
@@ -207,15 +231,75 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
                             title: 'DETAIL · 07',
                           ),
                           Expanded(
-                            child: Center(
-                              child: Padding(
-                                padding: const EdgeInsets.all(28),
-                                child: Text(
-                                  detailState.errorMessage ??
-                                      '이야기를 불러오지 못했습니다.',
-                                  style: SajuType.body14,
-                                  textAlign: TextAlign.center,
-                                ),
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.fromLTRB(
+                                22,
+                                24,
+                                22,
+                                40,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (summary != null) ...[
+                                    Text(summary.title, style: SajuType.h1),
+                                    const SizedBox(height: 18),
+                                    SajuTermText(
+                                      text: summary.summary,
+                                      style: SajuType.body16,
+                                    ),
+                                    const SizedBox(height: 26),
+                                    if (_profile != null)
+                                      SajuEvidenceCard(
+                                        evidence: summary.evidence,
+                                        profile: _profile!,
+                                      ),
+                                    const SizedBox(height: 32),
+                                  ] else ...[
+                                    Text(
+                                      detailState.errorMessage ??
+                                          '이야기를 불러오지 못했습니다.',
+                                      style: SajuType.body14,
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 20),
+                                  ],
+                                  // C-07-9 "잠시 후 다시 열어 주세요".
+                                  Center(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          '잠시 후 다시 열어 주세요',
+                                          style: SajuType.body14,
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        const SizedBox(height: 20),
+                                        SajuButton(
+                                          label: '다시 시도',
+                                          variant: SajuButtonVariant.secondary,
+                                          height: 48,
+                                          loading: _detailRetrying,
+                                          onTap: _detailRetrying
+                                              ? null
+                                              : () async {
+                                                  setState(
+                                                    () =>
+                                                        _detailRetrying = true,
+                                                  );
+                                                  await provider.retry();
+                                                  if (mounted) {
+                                                    setState(
+                                                      () => _detailRetrying =
+                                                          false,
+                                                    );
+                                                  }
+                                                },
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
