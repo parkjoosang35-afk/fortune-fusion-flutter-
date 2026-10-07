@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../data/models/interpret_result.dart';
@@ -95,7 +96,7 @@ class _TermHitBox {
   final String termKey;
 }
 
-class SajuTermText extends StatelessWidget {
+class SajuTermText extends StatefulWidget {
   const SajuTermText({
     super.key,
     required this.text,
@@ -126,45 +127,93 @@ class SajuTermText extends StatelessWidget {
   // (레이아웃에 영향 없이 확장)"] 실측 결과 현재 비주얼 높이는 23.0pt로
   // 32pt에 미달한다(수정 전 결함).
   //
-  // [버그 발견 — RenderParagraph의 hitTestChildren()는 WidgetSpan에
-  // 도달하기 전에 인접 glyph의 TextSpan을 가로챈다] PillarGrid/TopBar에
-  // 적용했던 "Stack+Positioned" 패턴이나, WidgetSpan 자식을 감싸는
-  // 커스텀 RenderObject(hitTest 오버라이드)는 모두 실패로 확인됐다 —
+  // [버그 발견 1차 — RenderParagraph의 hitTestChildren()는 WidgetSpan에
+  // 도달하기 전에 인접 glyph의 TextSpan을 가로챈다] WidgetSpan 자식을
+  // 감싸는 커스텀 RenderObject(hitTest 오버라이드)는 실패로 확인됐다 —
   // `RenderParagraph.hitTestChildren()`은 탭 위치의 "가장 가까운
   // glyph"가 속한 span을 먼저 찾고, 일반 TextSpan은 항상
   // `HitTestTarget`을 구현하므로 WidgetSpan 자식에 결코 도달하지 못한
-  // 채 그 TextSpan에서 끝나버린다(디버그 테스트로 실측 확인: 용어
-  // 비주얼 바로 바깥 0.1pt도 전혀 도달하지 못함).
+  // 채 그 TextSpan에서 끝나버린다.
   //
-  // [해법] 이 문제는 "자식(WidgetSpan)을 확장"하는 접근으로는 풀 수
-  // 없고, 대신 "부모(RichText 전체)가 모든 탭을 먼저 가로채 수동으로
-  // 판정"하는 방식으로 우회해야 한다. 전체를
-  // `GestureDetector(behavior: translucent)`로 감싸면 RenderParagraph의
-  // 내부 라우팅과 무관하게 모든 탭의 글로벌 좌표를 얻을 수 있고,
-  // 이 좌표를 각 용어의 실제 RenderBox 사각형(세로만 32pt까지 수동
-  // 확장, 가로는 그대로)과 비교해 포함 여부를 직접 판정한다. 비주얼
-  // 레이아웃(36×23 그대로)에는 전혀 영향을 주지 않는다(별도 widget
-  // test로 가설 검증 완료: 경계 안쪽은 히트, 밖은 미스).
-  static const double _minTermHitHeight = 32;
+  // [버그 발견 2차 — GestureDetector(translucent)도 결국 size.contains()
+  // 게이트를 먼저 거친다] RichText 전체를 `GestureDetector(behavior:
+  // translucent)`로 감싸 모든 탭의 글로벌 좌표를 직접 판정하는 방식을
+  // 시도했으나, GestureDetector의 기반 RenderObject인
+  // `RenderProxyBoxWithHitTestBehavior.hitTest()`조차
+  // `if (size.contains(position)) { ... }`로 "자신의 size 경계 안"만
+  // 먼저 통과시킨 뒤에야 콜백을 실행한다. 한 줄 텍스트의 RichText 자체
+  // 렌더 높이가 23pt 안팎으로 작다 보니, 32pt 확장 영역이 그 size 경계
+  // 밖으로 나가는 순간 `onTapUp` 콜백 자체가 전혀 호출되지 않는다
+  // (OverflowBox·Positioned 음수 오프셋에서 겪은 것과 동일한 "자신의
+  // size 밖은 자식/콜백 모두 도달 불가" 패턴의 3번째 재현 — widget test
+  // 실측으로 FAIL 확인).
+  //
+  // [버그 발견 3차 — 커스텀 RenderProxyBox.hitTest() 오버라이드도
+  // 타이트하게 감싸는 "조상" 위젯에 막힌다] RichText를 직접 감싸는
+  // 커스텀 `RenderProxyBox`에서 공개 `hitTest()` 메서드 자체를
+  // 오버라이드해 size.contains() 체크를 생략하는 방식도 시도했으나,
+  // 이 위젯의 "부모"가 `SizedBox`처럼 자식 크기에 맞춰 타이트하게
+  // 감싸는 조상이면 그 부모의 hitTest()가 *자신의* size.contains()를
+  // 먼저 체크해 우리 위젯의 오버라이드에 도달하기도 전에 걸러진다 —
+  // 이는 위젯 자신을 고치는 것으로는 결코 풀 수 없는, 트리 어디에나
+  // 존재할 수 있는 조상 문제다(widget test 실측으로 FAIL 확인:
+  // `SizedBox(width: 320)`로 감싼 환경에서 32pt 확장 영역 탭 실패).
+  //
+  // [최종 해법 — 히트테스트 트리를 완전히 우회] `GestureBinding
+  // .instance.pointerRouter.addGlobalRoute()`로 앱 전역 포인터
+  // 이벤트를 위젯 트리의 히트테스트 결과와 무관하게 직접 수신한다.
+  // 이 라우터는 어떤 조상의 size나 레이아웃 경계와도 상관없이 모든
+  // 포인터 이벤트를 받으므로, 각 용어의 확장 Rect(세로만 32pt까지
+  // 수동 확장)와 이벤트의 글로벌 좌표를 직접 비교해 판정할 수 있다.
+  // 비주얼 레이아웃(36×23 그대로)에는 전혀 영향을 주지 않는다.
+  static const double minTermHitHeight = 32;
 
-  void _handleTapUp(
-    TapUpDetails details,
-    List<_TermHitBox> boxes,
-    void Function(String) opener,
-  ) {
-    for (final box in boxes) {
+  @override
+  State<SajuTermText> createState() => _SajuTermTextState();
+}
+
+class _SajuTermTextState extends State<SajuTermText> {
+  List<_TermHitBox> _termBoxes = const [];
+  void Function(String termKey)? _opener;
+
+  @override
+  void initState() {
+    super.initState();
+    GestureBinding.instance.pointerRouter.addGlobalRoute(
+      _handleGlobalPointerEvent,
+    );
+  }
+
+  @override
+  void dispose() {
+    GestureBinding.instance.pointerRouter.removeGlobalRoute(
+      _handleGlobalPointerEvent,
+    );
+    super.dispose();
+  }
+
+  /// 앱 전역 포인터 업(=탭 완료) 이벤트를 받아, 글로벌 좌표가 등록된
+  /// 용어 중 하나의 32pt 확장 영역에 포함되는지 직접 판정한다.
+  /// 위젯 트리의 히트테스트 경계(조상의 size.contains() 게이트)와
+  /// 완전히 무관하게 동작한다.
+  void _handleGlobalPointerEvent(PointerEvent event) {
+    if (event is! PointerUpEvent) return;
+    final opener = _opener;
+    if (opener == null || _termBoxes.isEmpty) return;
+    for (final box in _termBoxes) {
       final renderObject = box.boxKey.currentContext?.findRenderObject();
       if (renderObject is! RenderBox || !renderObject.attached) continue;
       final origin = renderObject.localToGlobal(Offset.zero);
       final size = renderObject.size;
-      final extra = math.max(0.0, _minTermHitHeight - size.height) / 2;
+      final extra =
+          math.max(0.0, SajuTermText.minTermHitHeight - size.height) / 2;
       final expanded = Rect.fromLTRB(
         origin.dx,
         origin.dy - extra,
         origin.dx + size.width,
         origin.dy + size.height + extra,
       );
-      if (expanded.contains(details.globalPosition)) {
+      if (expanded.contains(event.position)) {
         opener(box.termKey);
         return;
       }
@@ -174,14 +223,18 @@ class SajuTermText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final opener = SajuTermScope.maybeOf(context);
-    final base = style ?? SajuType.body14;
+    final base = widget.style ?? SajuType.body14;
     final spans = <InlineSpan>[];
     final termBoxes = <_TermHitBox>[];
     var last = 0;
-    for (final m in _termPattern.allMatches(text)) {
+    for (final m in SajuTermText._termPattern.allMatches(widget.text)) {
       if (m.start > last) {
         spans.add(
-          TextSpan(text: _stripBrokenMarkup(text.substring(last, m.start))),
+          TextSpan(
+            text: SajuTermText._stripBrokenMarkup(
+              widget.text.substring(last, m.start),
+            ),
+          ),
         );
       }
       final key = m.group(1)!;
@@ -233,21 +286,21 @@ class SajuTermText extends StatelessWidget {
       );
       last = m.end;
     }
-    if (last < text.length) {
-      spans.add(TextSpan(text: _stripBrokenMarkup(text.substring(last))));
+    if (last < widget.text.length) {
+      spans.add(
+        TextSpan(
+          text: SajuTermText._stripBrokenMarkup(widget.text.substring(last)),
+        ),
+      );
     }
     final richText = RichText(
-      textAlign: textAlign ?? TextAlign.start,
+      textAlign: widget.textAlign ?? TextAlign.start,
       text: TextSpan(style: base, children: spans),
     );
-    if (opener == null || termBoxes.isEmpty) {
-      return richText;
-    }
-    return GestureDetector(
-      behavior: HitTestBehavior.translucent,
-      onTapUp: (details) => _handleTapUp(details, termBoxes, opener),
-      child: richText,
-    );
+    // 다음 전역 포인터 이벤트 판정을 위해 최신 용어 박스/콜백을 저장.
+    _termBoxes = termBoxes;
+    _opener = opener;
+    return richText;
   }
 }
 
