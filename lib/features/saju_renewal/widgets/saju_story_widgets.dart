@@ -8,6 +8,7 @@ import '../data/models/topic_card.dart' show SajuRenewalScene;
 import '../data/saju_term_dictionary.dart';
 import '../data/saju_visual_adapter.dart';
 import '../theme/saju_dark_tokens.dart';
+import '../utils/saju_motion_prefs.dart';
 import 'saju_base_widgets.dart';
 import 'saju_visual_widgets.dart';
 
@@ -719,6 +720,7 @@ class SajuSceneBg extends StatefulWidget {
 class _SajuSceneBgState extends State<SajuSceneBg>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
+  bool _reduceMotionApplied = false;
 
   @override
   void initState() {
@@ -727,6 +729,24 @@ class _SajuSceneBgState extends State<SajuSceneBg>
       vsync: this,
       duration: const Duration(seconds: 9),
     )..repeat();
+  }
+
+  // [E-Reduce Motion — docs/04_모션.md §2 "A-05 장면 오브제 … 재물
+  // 물결 흐름 / 금가루 반짝임 / 재능 끝점 펄스 / 연애 별 펄스 / 귀인
+  // 불꽃·헤일로·안개" / §5 "A-01~A-07 정지(정지 프레임 = 각 루프의 0%
+  // 상태)"] 기존에는 disableAnimations를 전혀 조회하지 않았다.
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final reduce = sajuReduceMotion(context);
+    if (reduce && !_reduceMotionApplied) {
+      _reduceMotionApplied = true;
+      _controller.stop();
+      _controller.value = 0;
+    } else if (!reduce && _reduceMotionApplied) {
+      _reduceMotionApplied = false;
+      _controller.repeat();
+    }
   }
 
   @override
@@ -753,8 +773,13 @@ class _SajuSceneBgState extends State<SajuSceneBg>
   @override
   Widget build(BuildContext context) {
     final tint = _token.tint;
-    return IgnorePointer(
-      child: Stack(
+    // [E-Semantics — docs/08_QA_체크리스트.md "장식(Bagua·별·장면
+    // 오브제)은 접근성 트리에서 숨김"] 장면 배경 전체(그라데이션·별
+    // 필드·주제별 SVG 모티프)는 순수 장식이므로 스크린 리더 트리에서
+    // 제외한다.
+    return ExcludeSemantics(
+      child: IgnorePointer(
+        child: Stack(
         fit: StackFit.expand,
         children: [
           DecoratedBox(
@@ -811,6 +836,7 @@ class _SajuSceneBgState extends State<SajuSceneBg>
             ),
           ),
         ],
+        ),
       ),
     );
   }

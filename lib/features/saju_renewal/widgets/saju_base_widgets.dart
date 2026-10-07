@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../theme/saju_dark_tokens.dart';
+import '../utils/saju_motion_prefs.dart';
 
 /// [신통방통 정통사주 리뉴얼 — 다크 핸드오프] 공용 베이스 위젯 모음.
 /// `design_handoff_jeongtong_saju_v3/design_files/saju/screens-a.jsx`의
@@ -27,6 +28,7 @@ class _SajuStarFieldState extends State<SajuStarField>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final List<_StarSpec> _stars;
+  bool _reduceMotionApplied = false;
 
   @override
   void initState() {
@@ -51,6 +53,24 @@ class _SajuStarFieldState extends State<SajuStarField>
     });
   }
 
+  // [E-Reduce Motion — docs/04_모션.md §2 "A-03 별 필드 opacity .25↔1" /
+  // §5 "A-01~A-07 정지(정지 프레임 = 각 루프의 0% 상태)"] 기존에는
+  // disableAnimations를 전혀 조회하지 않아 별 반짝임이 항상 돌았다.
+  // Reduce Motion이면 컨트롤러를 0(= 각 루프의 0% 상태)에 고정한다.
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final reduce = sajuReduceMotion(context);
+    if (reduce && !_reduceMotionApplied) {
+      _reduceMotionApplied = true;
+      _controller.stop();
+      _controller.value = 0;
+    } else if (!reduce && _reduceMotionApplied) {
+      _reduceMotionApplied = false;
+      _controller.repeat();
+    }
+  }
+
   @override
   void dispose() {
     _controller.dispose();
@@ -59,17 +79,22 @@ class _SajuStarFieldState extends State<SajuStarField>
 
   @override
   Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: Opacity(
-        opacity: widget.opacity,
-        child: AnimatedBuilder(
-          animation: _controller,
-          builder: (context, _) {
-            return CustomPaint(
-              size: Size.infinite,
-              painter: _StarFieldPainter(_stars, _controller.value),
-            );
-          },
+    // [E-Semantics — docs/08_QA_체크리스트.md "장식(Bagua·별·장면
+    // 오브제)은 접근성 트리에서 숨김"] 순수 장식 요소이므로 스크린
+    // 리더 트리에서 완전히 제외한다.
+    return ExcludeSemantics(
+      child: IgnorePointer(
+        child: Opacity(
+          opacity: widget.opacity,
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, _) {
+              return CustomPaint(
+                size: Size.infinite,
+                painter: _StarFieldPainter(_stars, _controller.value),
+              );
+            },
+          ),
         ),
       ),
     );
@@ -164,11 +189,14 @@ class SajuTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // [E-44pt 대응] SajuIconButton의 히트 영역이 44×44로 커졌으므로
+    // (비주얼 36×36은 유지) 좌/우 슬롯 폭도 44로 맞춰 겹침/overflow 없이
+    // 수용한다. 44는 docs/02_컴포넌트.md 상단바 높이(44)와도 일치한다.
     return SizedBox(
       height: 44,
       child: Row(
         children: [
-          SizedBox(width: 36, child: left),
+          SizedBox(width: 44, child: left),
           Expanded(
             child: Center(
               child: Text(
@@ -179,7 +207,7 @@ class SajuTopBar extends StatelessWidget {
             ),
           ),
           SizedBox(
-            width: 36,
+            width: 44,
             child: Align(alignment: Alignment.centerRight, child: right),
           ),
         ],
@@ -189,6 +217,14 @@ class SajuTopBar extends StatelessWidget {
 }
 
 /// 원형 아이콘 버튼(sj-icon-btn).
+///
+/// [버그 수정 — E-44pt(docs/08_QA_체크리스트.md "터치 영역 최소
+/// 44pt(아이콘 버튼·용어 링크 포함)")] docs/02_컴포넌트.md §C-01은
+/// "Icon 36×36 원"(비주얼 크기)과 "Icon 버튼 히트 영역 44×44"(탭 가능
+/// 영역)를 별도로 규정한다. 기존 구현은 `Container(width: 36, height:
+/// 36)`에 직접 `InkWell`을 씌워 비주얼과 히트 영역이 완전히 같았다
+/// (36×36 — 44pt 미달, 실측 확인된 결함). 비주얼 36×36은 그대로 두고
+/// 바깥에 44×44 투명 히트 영역을 추가해 두 규정을 동시에 만족시킨다.
 class SajuIconButton extends StatelessWidget {
   const SajuIconButton({super.key, required this.icon, required this.onTap});
 
@@ -197,21 +233,30 @@ class SajuIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      customBorder: const CircleBorder(),
-      child: Container(
-        width: 36,
-        height: 36,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: SajuText.card,
-          border: Border.all(color: SajuText.line),
-        ),
-        child: Text(
-          icon,
-          style: const TextStyle(color: SajuText.fg, fontSize: 15),
+    return SizedBox(
+      width: 44,
+      height: 44,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: onTap,
+          customBorder: const CircleBorder(),
+          child: Center(
+            child: Container(
+              width: 36,
+              height: 36,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: SajuText.card,
+                border: Border.all(color: SajuText.line),
+              ),
+              child: Text(
+                icon,
+                style: const TextStyle(color: SajuText.fg, fontSize: 15),
+              ),
+            ),
+          ),
         ),
       ),
     );

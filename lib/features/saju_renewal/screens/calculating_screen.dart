@@ -5,6 +5,7 @@ import '../../auth/domain/user_model.dart';
 import '../data/saju_visual_adapter.dart';
 import '../state/saju_renewal_provider.dart';
 import '../theme/saju_dark_tokens.dart';
+import '../utils/saju_motion_prefs.dart';
 import '../widgets/saju_base_widgets.dart';
 import '../widgets/saju_story_widgets.dart';
 import '../widgets/saju_visual_widgets.dart';
@@ -272,6 +273,17 @@ class _CalculatingScreenState extends State<CalculatingScreen>
     final provider = context.watch<SajuRenewalProvider>();
     _maybeNavigate(provider);
 
+    // [E-Reduce Motion — docs/04_모션.md §5 "03: 위치 이동·응축 대신
+    // 각 단계 레이어를 300ms 크로스페이드. 순서·데이터·타이밍 로직은
+    // 동일"] Reduce Motion이면 각 레이어의 개별 opacity/scale 전환
+    // 지속시간을 0으로 만들어(위치 이동·응축 효과 자체를 없애고) 그
+    // 결과물을 [AnimatedSwitcher]로 묶어 단계 전환마다 300ms
+    // 크로스페이드만 보여준다 — 9단계 STEP 리듬(타이밍 로직)과 표시
+    // 순서·실데이터는 전혀 바꾸지 않는다.
+    final reduceMotion = sajuReduceMotion(context);
+    Duration rm(Duration normal) =>
+        reduceMotion ? Duration.zero : normal;
+
     final step = _step.clamp(0, 9);
     final displayStep = step <= 1 ? 1 : step;
     final condense = step >= 9 && _ceremonyReachedEnd;
@@ -347,7 +359,7 @@ class _CalculatingScreenState extends State<CalculatingScreen>
                           ? (screenHeight / 874).clamp(0.5, 1.0)
                           : 1.0;
 
-                      final stage = Stack(
+                      final stageInner = Stack(
                         clipBehavior: Clip.none,
                         children: [
                           // 팔괘 오브제 = 진행 인디케이터.
@@ -355,7 +367,7 @@ class _CalculatingScreenState extends State<CalculatingScreen>
                             Offset.zero,
                             AnimatedOpacity(
                               opacity: step <= 1 ? 1 : (condense ? 0 : 0.32),
-                              duration: const Duration(milliseconds: 1200),
+                              duration: rm(const Duration(milliseconds: 1200)),
                               child: SajuBagua(
                                 size: step <= 1 ? 300 : 360,
                                 speedSeconds: step <= 1 ? 30 : 60,
@@ -374,10 +386,12 @@ class _CalculatingScreenState extends State<CalculatingScreen>
                               const Offset(0, -70),
                               AnimatedOpacity(
                                 opacity: condense ? 0 : 1,
-                                duration: const Duration(milliseconds: 800),
+                                duration: rm(const Duration(milliseconds: 800)),
                                 child: AnimatedScale(
                                   scale: condense ? 0.3 : 1,
-                                  duration: const Duration(milliseconds: 1200),
+                                  duration: rm(
+                                    const Duration(milliseconds: 1200),
+                                  ),
                                   curve: SajuMotion.easeSj,
                                   child: SajuPillarGrid(
                                     pillars: pillars,
@@ -417,10 +431,12 @@ class _CalculatingScreenState extends State<CalculatingScreen>
                                   opacity: condense
                                       ? 0
                                       : (focus && !isTop ? 0.2 : 1),
-                                  duration: const Duration(milliseconds: 1000),
+                                  duration: rm(
+                                    const Duration(milliseconds: 1000),
+                                  ),
                                   child: AnimatedContainer(
-                                    duration: const Duration(
-                                      milliseconds: 1200,
+                                    duration: rm(
+                                      const Duration(milliseconds: 1200),
                                     ),
                                     curve: SajuMotion.easeSj,
                                     child: SajuElementShard(
@@ -439,7 +455,7 @@ class _CalculatingScreenState extends State<CalculatingScreen>
                               const Offset(0, 140),
                               AnimatedOpacity(
                                 opacity: focus ? (condense ? 0 : 0.25) : 1,
-                                duration: const Duration(milliseconds: 800),
+                                duration: rm(const Duration(milliseconds: 800)),
                                 child: SajuBalanceGauge(
                                   level: _profile?.balanceLevel ?? 2,
                                   width: 240,
@@ -453,7 +469,7 @@ class _CalculatingScreenState extends State<CalculatingScreen>
                               const Offset(0, 230),
                               AnimatedOpacity(
                                 opacity: focus ? (condense ? 0 : 0.25) : 1,
-                                duration: const Duration(milliseconds: 800),
+                                duration: rm(const Duration(milliseconds: 800)),
                                 child: SajuLuckStream(
                                   luck: _profile!.luck,
                                   current: _profile!.luckCurrentIndex,
@@ -467,10 +483,12 @@ class _CalculatingScreenState extends State<CalculatingScreen>
                             Offset.zero,
                             AnimatedOpacity(
                               opacity: condense ? 1 : 0,
-                              duration: const Duration(milliseconds: 1000),
+                              duration: rm(const Duration(milliseconds: 1000)),
                               child: AnimatedScale(
                                 scale: condense ? 1 : 0.4,
-                                duration: const Duration(milliseconds: 1000),
+                                duration: rm(
+                                  const Duration(milliseconds: 1000),
+                                ),
                                 curve: SajuMotion.easeSj,
                                 child: const SajuSealedCard(
                                   width: 180,
@@ -481,6 +499,38 @@ class _CalculatingScreenState extends State<CalculatingScreen>
                           ),
                         ],
                       );
+
+                      // [E-Reduce Motion — docs/04_모션.md §5 "03: 위치
+                      // 이동·응축 대신 각 단계 레이어를 300ms 크로스페이드.
+                      // 순서·데이터·타이밍 로직은 동일 유지"] 위에서 각
+                      // 레이어의 개별 전환을 rm()으로 0ms(즉시 점프)로
+                      // 만들었으므로, 대신 이 AnimatedSwitcher가 단계가
+                      // 바뀔 때마다(= step/condense 조합이 바뀔 때마다)
+                      // 전체 스테이지를 300ms(SajuMotion.screen)로
+                      // 크로스페이드한다. STEP 리듬·실데이터·표시 순서는
+                      // 전혀 바꾸지 않는다 — 오직 "어떻게 보여주는가"만
+                      // 교체.
+                      final stage = reduceMotion
+                          ? AnimatedSwitcher(
+                              duration: SajuMotion.screen,
+                              switchInCurve: Curves.easeIn,
+                              switchOutCurve: Curves.easeOut,
+                              layoutBuilder: (currentChild, previousChildren) {
+                                return Stack(
+                                  alignment: Alignment.center,
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    ...previousChildren,
+                                    if (currentChild != null) currentChild,
+                                  ],
+                                );
+                              },
+                              child: KeyedSubtree(
+                                key: ValueKey('rm_stage_${step}_$condense'),
+                                child: stageInner,
+                              ),
+                            )
+                          : stageInner;
 
                       // E-30 — stageScale < 1(작은 화면)일 때만 Transform으로
                       // 스테이지 전체를 중앙 기준 축소한다. 일반 기기

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../home/domain/saju_engine.dart' show ganElement, zhiElement;
 import '../theme/saju_dark_tokens.dart';
 import '../data/saju_visual_adapter.dart';
+import '../utils/saju_motion_prefs.dart';
 
 /// [신통방통 정통사주 리뉴얼 — 다크 핸드오프] 사주 시각화 컴포넌트.
 /// `design_files/saju/saju-components.jsx`의 Bagua/PillarGrid/ElementShard/
@@ -62,6 +63,7 @@ class SajuBagua extends StatefulWidget {
 class _SajuBaguaState extends State<SajuBagua>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
+  bool _reduceMotionApplied = false;
 
   @override
   void initState() {
@@ -70,6 +72,24 @@ class _SajuBaguaState extends State<SajuBagua>
       vsync: this,
       duration: Duration(milliseconds: (widget.speedSeconds * 1000).round()),
     )..repeat();
+  }
+
+  // [E-Reduce Motion — docs/04_모션.md §2 "A-01 Bagua 팔괘 링 … 회전" /
+  // "A-02 Bagua 음양 … 회전" / §5 "A-01~A-07 정지(정지 프레임 = 각 루프의
+  // 0% 상태)"] 기존에는 disableAnimations를 전혀 조회하지 않아 Bagua
+  // 회전이 Reduce Motion 설정과 무관하게 항상 돌았다.
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final reduce = sajuReduceMotion(context);
+    if (reduce && !_reduceMotionApplied) {
+      _reduceMotionApplied = true;
+      _controller.stop();
+      _controller.value = 0;
+    } else if (!reduce && _reduceMotionApplied) {
+      _reduceMotionApplied = false;
+      _controller.repeat();
+    }
   }
 
   @override
@@ -90,27 +110,34 @@ class _SajuBaguaState extends State<SajuBagua>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedScale(
-      scale: 1 - widget.collapse * 0.4,
-      duration: SajuMotion.card,
-      child: AnimatedOpacity(
-        opacity: 1 - widget.collapse,
+    // [E-Semantics — docs/08_QA_체크리스트.md "장식(Bagua·별·장면
+    // 오브제)은 접근성 트리에서 숨김"] Bagua는 03의 진행 인디케이터로도
+    // 쓰이지만, 실제 진행 정보는 하단 "ANALYSIS · 0n/09" 상단바 타이틀과
+    // 단계 라벨(Text)이 이미 전달하므로 이 오브제 자체는 순수 장식으로
+    // 취급해 스크린 리더 트리에서 제외한다.
+    return ExcludeSemantics(
+      child: AnimatedScale(
+        scale: 1 - widget.collapse * 0.4,
         duration: SajuMotion.card,
-        child: SizedBox(
-          width: widget.size,
-          height: widget.size,
-          child: AnimatedBuilder(
-            animation: _controller,
-            builder: (context, _) {
-              return CustomPaint(
-                painter: _BaguaPainter(
-                  t: _controller.value,
-                  intensity: widget.intensity,
-                  lit: widget.lit,
-                  color: widget.color,
-                ),
-              );
-            },
+        child: AnimatedOpacity(
+          opacity: 1 - widget.collapse,
+          duration: SajuMotion.card,
+          child: SizedBox(
+            width: widget.size,
+            height: widget.size,
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, _) {
+                return CustomPaint(
+                  painter: _BaguaPainter(
+                    t: _controller.value,
+                    intensity: widget.intensity,
+                    lit: widget.lit,
+                    color: widget.color,
+                  ),
+                );
+              },
+            ),
           ),
         ),
       ),

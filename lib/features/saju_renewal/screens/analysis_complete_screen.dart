@@ -5,6 +5,7 @@ import '../../auth/domain/user_model.dart';
 import '../data/saju_visual_adapter.dart';
 import '../state/saju_renewal_provider.dart';
 import '../theme/saju_dark_tokens.dart';
+import '../utils/saju_motion_prefs.dart';
 import '../widgets/saju_base_widgets.dart';
 import '../widgets/saju_story_widgets.dart';
 import '../widgets/saju_visual_widgets.dart';
@@ -250,6 +251,7 @@ class _FloatingSealedCard extends StatefulWidget {
 class _FloatingSealedCardState extends State<_FloatingSealedCard>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
+  bool _reduceMotionApplied = false;
 
   @override
   void initState() {
@@ -258,6 +260,23 @@ class _FloatingSealedCardState extends State<_FloatingSealedCard>
       vsync: this,
       duration: const Duration(seconds: 4),
     )..repeat(reverse: true);
+  }
+
+  // [E-Reduce Motion — docs/04_모션.md §2 "A-04 봉인 카드 부유
+  // translateY 0↔−8" / §5 "A-01~A-07 정지(정지 프레임 = 각 루프의 0%
+  // 상태)"] 기존에는 disableAnimations를 전혀 조회하지 않았다.
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final reduce = sajuReduceMotion(context);
+    if (reduce && !_reduceMotionApplied) {
+      _reduceMotionApplied = true;
+      _controller.stop();
+      _controller.value = 0;
+    } else if (!reduce && _reduceMotionApplied) {
+      _reduceMotionApplied = false;
+      _controller.repeat(reverse: true);
+    }
   }
 
   @override
