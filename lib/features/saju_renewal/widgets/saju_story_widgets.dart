@@ -86,6 +86,15 @@ class SajuTermScope extends InheritedWidget {
 ///    미닫힘) → 원문 그대로 출력하지 말고 `[[`, `]]`, `|키` 제거 후
 ///    텍스트만" 미구현(원문이 그대로 노출됨)도 [_stripBrokenMarkup]으로
 ///    같은 컴포넌트 범위에서 함께 수정한다.
+/// 등록된 용어 하나의 탭-가능 시각 영역을 추적하기 위한 내부 레코드.
+/// [boxKey]는 [_DashedUnderline]에 부여되어 실제 렌더 크기/위치를
+/// 조회하는 데 쓰인다.
+class _TermHitBox {
+  _TermHitBox({required this.boxKey, required this.termKey});
+  final GlobalKey boxKey;
+  final String termKey;
+}
+
 class SajuTermText extends StatelessWidget {
   const SajuTermText({
     super.key,
@@ -113,11 +122,61 @@ class SajuTermText extends StatelessWidget {
     return out;
   }
 
+  // [E-32pt — docs/02_컴포넌트.md §C-07 "히트 영역: 세로 최소 32pt
+  // (레이아웃에 영향 없이 확장)"] 실측 결과 현재 비주얼 높이는 23.0pt로
+  // 32pt에 미달한다(수정 전 결함).
+  //
+  // [버그 발견 — RenderParagraph의 hitTestChildren()는 WidgetSpan에
+  // 도달하기 전에 인접 glyph의 TextSpan을 가로챈다] PillarGrid/TopBar에
+  // 적용했던 "Stack+Positioned" 패턴이나, WidgetSpan 자식을 감싸는
+  // 커스텀 RenderObject(hitTest 오버라이드)는 모두 실패로 확인됐다 —
+  // `RenderParagraph.hitTestChildren()`은 탭 위치의 "가장 가까운
+  // glyph"가 속한 span을 먼저 찾고, 일반 TextSpan은 항상
+  // `HitTestTarget`을 구현하므로 WidgetSpan 자식에 결코 도달하지 못한
+  // 채 그 TextSpan에서 끝나버린다(디버그 테스트로 실측 확인: 용어
+  // 비주얼 바로 바깥 0.1pt도 전혀 도달하지 못함).
+  //
+  // [해법] 이 문제는 "자식(WidgetSpan)을 확장"하는 접근으로는 풀 수
+  // 없고, 대신 "부모(RichText 전체)가 모든 탭을 먼저 가로채 수동으로
+  // 판정"하는 방식으로 우회해야 한다. 전체를
+  // `GestureDetector(behavior: translucent)`로 감싸면 RenderParagraph의
+  // 내부 라우팅과 무관하게 모든 탭의 글로벌 좌표를 얻을 수 있고,
+  // 이 좌표를 각 용어의 실제 RenderBox 사각형(세로만 32pt까지 수동
+  // 확장, 가로는 그대로)과 비교해 포함 여부를 직접 판정한다. 비주얼
+  // 레이아웃(36×23 그대로)에는 전혀 영향을 주지 않는다(별도 widget
+  // test로 가설 검증 완료: 경계 안쪽은 히트, 밖은 미스).
+  static const double _minTermHitHeight = 32;
+
+  void _handleTapUp(
+    TapUpDetails details,
+    List<_TermHitBox> boxes,
+    void Function(String) opener,
+  ) {
+    for (final box in boxes) {
+      final renderObject = box.boxKey.currentContext?.findRenderObject();
+      if (renderObject is! RenderBox || !renderObject.attached) continue;
+      final origin = renderObject.localToGlobal(Offset.zero);
+      final size = renderObject.size;
+      final extra = math.max(0.0, _minTermHitHeight - size.height) / 2;
+      final expanded = Rect.fromLTRB(
+        origin.dx,
+        origin.dy - extra,
+        origin.dx + size.width,
+        origin.dy + size.height + extra,
+      );
+      if (expanded.contains(details.globalPosition)) {
+        opener(box.termKey);
+        return;
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final opener = SajuTermScope.maybeOf(context);
     final base = style ?? SajuType.body14;
     final spans = <InlineSpan>[];
+    final termBoxes = <_TermHitBox>[];
     var last = 0;
     for (final m in _termPattern.allMatches(text)) {
       if (m.start > last) {
@@ -140,30 +199,31 @@ class SajuTermText extends StatelessWidget {
         continue;
       }
 
+      final boxKey = GlobalKey();
+      termBoxes.add(_TermHitBox(boxKey: boxKey, termKey: key));
+
       spans.add(
         WidgetSpan(
           alignment: PlaceholderAlignment.middle,
-          child: GestureDetector(
-            onTap: opener == null ? null : () => opener(key),
-            child: MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: _DashedUnderline(
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 1),
-                  child: RichText(
-                    text: TextSpan(
-                      style: base.copyWith(color: SajuGold.g100),
-                      children: [
-                        TextSpan(text: label),
-                        TextSpan(
-                          text: ' ?',
-                          style: TextStyle(
-                            fontSize: (base.fontSize ?? 14) * 0.6,
-                            color: SajuGold.g500,
-                          ),
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: _DashedUnderline(
+              key: boxKey,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 1),
+                child: RichText(
+                  text: TextSpan(
+                    style: base.copyWith(color: SajuGold.g100),
+                    children: [
+                      TextSpan(text: label),
+                      TextSpan(
+                        text: ' ?',
+                        style: TextStyle(
+                          fontSize: (base.fontSize ?? 14) * 0.6,
+                          color: SajuGold.g500,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -176,9 +236,17 @@ class SajuTermText extends StatelessWidget {
     if (last < text.length) {
       spans.add(TextSpan(text: _stripBrokenMarkup(text.substring(last))));
     }
-    return RichText(
+    final richText = RichText(
       textAlign: textAlign ?? TextAlign.start,
       text: TextSpan(style: base, children: spans),
+    );
+    if (opener == null || termBoxes.isEmpty) {
+      return richText;
+    }
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTapUp: (details) => _handleTapUp(details, termBoxes, opener),
+      child: richText,
     );
   }
 }
@@ -186,7 +254,7 @@ class SajuTermText extends StatelessWidget {
 /// docs/02_컴포넌트.md §C-07 "점선 밑줄(주기 4pt 중 2pt 대시, 두께 1,
 /// gold.500, 텍스트 하단 1pt 아래)" — [child] 하단에 점선을 그린다.
 class _DashedUnderline extends StatelessWidget {
-  const _DashedUnderline({required this.child});
+  const _DashedUnderline({super.key, required this.child});
 
   final Widget child;
 
