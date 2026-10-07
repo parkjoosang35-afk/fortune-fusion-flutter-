@@ -36,6 +36,11 @@ class StoryPreviewScreen extends StatefulWidget {
 
 class _StoryPreviewScreenState extends State<StoryPreviewScreen> {
   bool _gateOpening = false;
+  // [버그 수정 — 결제 후 로딩 공백] interpret(mode=detail) LLM 생성이
+  // 진행 중인 동안(결제 완료 애니메이션 종료 ~ storyDetail/error 전환
+  // 직전) true. true면 [SajuDetailGeneratingOverlay]를 전체화면으로
+  // 띄운다 — "자세히 보기" 버튼 로딩만으로는 사용자가 알아채기 어려웠다.
+  bool _generatingDetail = false;
   SajuVisualProfile? _profile;
 
   @override
@@ -102,8 +107,21 @@ class _StoryPreviewScreenState extends State<StoryPreviewScreen> {
     );
 
     if (!mounted) return;
-    setState(() => _gateOpening = false);
-    if (beginResult == null) return; // 사용자가 취소함
+    if (beginResult == null) {
+      // 사용자가 취소함 — 버튼 로딩만 끄고 종료.
+      setState(() => _gateOpening = false);
+      return;
+    }
+
+    // [버그 수정 — "결제 후 아무 반응 없음" 체감 오류]
+    // 복주머니/프리패스/광고 소진 애니메이션이 끝난 뒤에도 서버가
+    // LLM으로 상세 해석을 생성하는 10~20초 구간이 남아있는데, 기존
+    // 코드는 여기서 _gateOpening을 꺼버려(버튼 로딩 종료) 화면에 아무
+    // 진행 표시도 남지 않았다. 사용자가 이 "조용한 대기 구간"을
+    // 멈춤/오류로 오인해 신고한 사례가 있어, 전체화면 오버레이
+    // ([_generatingDetail])로 그 구간을 명확히 표시한다. 버튼 로딩
+    // (_gateOpening)은 오버레이가 대신하므로 여기서는 끄지 않고 유지한다.
+    setState(() => _generatingDetail = true);
 
     provider.requestAccess();
     // [버그 수정 — 결과보기 결제 게이트 우회 방어] Access Gate.begin()이
@@ -111,6 +129,10 @@ class _StoryPreviewScreenState extends State<StoryPreviewScreen> {
     // 없으면 서버가 TRANSACTION_ID_REQUIRED로 거부한다.
     await provider.onAccessGranted(transactionId: beginResult.transactionId);
     if (!mounted) return;
+    setState(() {
+      _gateOpening = false;
+      _generatingDetail = false;
+    });
 
     if (provider.status == SajuRenewalFlowStatus.storyDetail) {
       Navigator.of(
@@ -134,11 +156,19 @@ class _StoryPreviewScreenState extends State<StoryPreviewScreen> {
   /// 바로 07로 보낸다.
   Future<void> _openUnlockedDetail() async {
     if (_gateOpening) return; // [중복클릭 방어]
-    setState(() => _gateOpening = true);
+    setState(() {
+      _gateOpening = true;
+      // 서버 멱등 캐시로 즉시 반환되는 경우가 많지만, 캐시 미스 시엔
+      // 이 경로도 LLM 생성 대기가 생길 수 있어 동일하게 오버레이를 띈다.
+      _generatingDetail = true;
+    });
     final provider = context.read<SajuRenewalProvider>();
     await provider.onAccessGranted();
     if (!mounted) return;
-    setState(() => _gateOpening = false);
+    setState(() {
+      _gateOpening = false;
+      _generatingDetail = false;
+    });
 
     if (provider.status == SajuRenewalFlowStatus.storyDetail) {
       Navigator.of(
@@ -342,6 +372,10 @@ class _StoryPreviewScreenState extends State<StoryPreviewScreen> {
                   ),
                 ),
               ),
+              // [버그 수정 — 결제 후 로딩 공백] detail interpret(LLM) 생성
+              // 중에는 Stack 최상단에 전체화면 오버레이를 띄워 "진행
+              // 중"임을 명확히 알린다.
+              if (_generatingDetail) const SajuDetailGeneratingOverlay(),
             ],
           ),
         ),

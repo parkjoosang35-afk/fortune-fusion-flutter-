@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../theme/saju_dark_tokens.dart';
@@ -476,6 +477,133 @@ class _SajuButtonState extends State<SajuButton> {
                     ],
                   ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// [버그 수정 — 결과보기 결제 후 "상세 해석 생성 중" 로딩 공백 해결]
+/// Access Gate 통과(복주머니/프리패스/광고 소진) 직후 서버가
+/// `interpret(mode=detail)`로 LLM 상세 해석을 생성하는 동안(통상
+/// 10~20초) 화면에 어떤 로딩 표시도 없어서, 사용자가 "멈췄다/오류"로
+/// 오인하는 문제가 실제로 보고되었다(복주머니 차감 애니메이션이 끝나는
+/// 즉시 버튼 로딩이 꺼지고, 그 뒤 LLM 생성 구간은 완전히 빈 대기였음).
+/// 이 전체화면 오버레이를 그 구간 내내(결제 로딩 애니메이션 종료 ~
+/// storyDetail/error 상태 전환 직전까지) 띄워 "진행 중"임을 명확히
+/// 알린다 — 다른 화면(③ 분석 세레모니)과 톤을 맞춘 심플한 버전.
+class SajuDetailGeneratingOverlay extends StatefulWidget {
+  const SajuDetailGeneratingOverlay({super.key});
+
+  @override
+  State<SajuDetailGeneratingOverlay> createState() =>
+      _SajuDetailGeneratingOverlayState();
+}
+
+class _SajuDetailGeneratingOverlayState
+    extends State<SajuDetailGeneratingOverlay>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _spin;
+
+  static const List<String> _messages = [
+    '당신만의 이야기를 쓰고 있어요',
+    '사주의 결을 하나씩 풀어내고 있어요',
+    '조금만 더 기다려 주세요',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _spin = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1600),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _spin.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: Material(
+        color: SajuInk.i900.withValues(alpha: 0.94),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              RotationTransition(
+                turns: _spin,
+                child: Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: SajuGold.g300.withValues(alpha: 0.85),
+                      width: 3,
+                    ),
+                    gradient: SweepGradient(
+                      colors: [
+                        SajuGold.g300.withValues(alpha: 0.0),
+                        SajuGold.g300.withValues(alpha: 0.9),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 28),
+              _CyclingMessage(messages: _messages),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CyclingMessage extends StatefulWidget {
+  const _CyclingMessage({required this.messages});
+  final List<String> messages;
+
+  @override
+  State<_CyclingMessage> createState() => _CyclingMessageState();
+}
+
+class _CyclingMessageState extends State<_CyclingMessage> {
+  int _idx = 0;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 3), (_) {
+      if (!mounted) return;
+      setState(() => _idx = (_idx + 1) % widget.messages.length);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 400),
+      child: Text(
+        widget.messages[_idx],
+        key: ValueKey(_idx),
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          fontFamily: SajuType.ui,
+          fontSize: 14.5,
+          color: SajuText.fg2,
         ),
       ),
     );
