@@ -5,6 +5,7 @@ import 'package:kakao_flutter_sdk_common/kakao_flutter_sdk_common.dart';
 import 'app.dart';
 import 'core/config/social_auth_config.dart';
 import 'core/router/guinji_deep_link_handler.dart';
+import 'core/web/browser_back_bridge.dart';
 import 'core/web/web_nav_bridge.dart';
 import 'core/web_ads/web_ad_service.dart';
 import 'features/ads_test/domain/admob_ad_ids.dart';
@@ -72,6 +73,16 @@ Future<void> main() async {
   // 비-웹 플랫폼에서는 no-op(web_nav_bridge_io.dart)이라 APK 빌드에는
   // 영향이 없다.
   initWebNavBridge();
+  // [버그수정 — 브라우저 뒤로가기 무반응] 이 앱의 Navigator 1.0 라우팅은
+  // 모든 Route의 settings.name이 null이라(AppRouter._page() 헬퍼가
+  // RouteSettings를 전달하지 않음) 화면 전환 시 브라우저 히스토리에 전혀
+  // 엔트리가 쌓이지 않는다. 그 결과 브라우저 자체의 뒤로가기 버튼(모바일
+  // 스와이프 제스처 포함)을 눌러도 되돌아갈 히스토리 엔트리가 없어 완전히
+  // 무반응이었다(정통사주 화면 등에서 실측 재현). 이 브릿지는 URL을 바꾸지
+  // 않으면서 히스토리에 가드 엔트리를 유지해, 뒤로가기를 Android
+  // 하드웨어 백버튼과 동일한 경로(앱 루트 Navigator.maybePop())로
+  // 연결한다. 비-웹 플랫폼에서는 no-op.
+  initBrowserBackBridge();
   // [Phase C-1] 저녁 7시 종소리 알림 — 플러그인 초기화 후, 사용자가 과거에
   // 옵트인했다면 예약을 다시 걸어준다(기기 재설치/데이터 초기화로 예약이
   // 사라졌을 가능성 보정). await 하지 않는 이유: 이 부가 기능이 앱 시작을
