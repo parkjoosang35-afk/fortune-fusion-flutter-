@@ -110,6 +110,25 @@ export interface SajuV3DayunPrecise {
   source?: string;
 }
 
+/**
+ * [TK-5 §5.1·6 — facts 스키마 표준화 도중 보강] 실제 `/saju/v3/facts` 응답을
+ * curl로 전수 조사해 발견했다 — 엔진은 이 필드를 항상 내려주지만 타입에는
+ * 등록되어 있지 않았다(SajuV3Facts의 `[key: string]: unknown` 인덱스
+ * 시그니처 때문에 컴파일 에러는 없었지만, topic-evidence.ts/interpret-prompt.ts가
+ * 이 값에 안전하게(타입 체크된 채로) 접근할 수 없었다).
+ * true_solar_warnings는 진태양시 보정이 적용되었는지/경도 보정값이 몇 분인지를
+ * 담고 있어, 향후 사용자에게 고지해야 할 필요가 있을 수 있다(docs/03 §02
+ * "☀ 서울 기준 태양시로 보정" 안내와 연동될 수 있음 — 현재는 미사용, 타입만 보강).
+ */
+export interface SajuV3Policy {
+  zihour?: string;
+  current_year?: number;
+  true_solar?: boolean;
+  longitude?: number;
+  dayun_method?: string;
+  true_solar_warnings?: string[];
+}
+
 /** `/saju/v3/facts` 응답 전체 — topic-evidence.ts가 조건 판정에 사용하는 부분만 타입화. */
 export interface SajuV3Facts {
   input?: Record<string, unknown>;
@@ -131,6 +150,7 @@ export interface SajuV3Facts {
   yongshin?: SajuV3Yongshin;
   strength_details?: string[];
   dayun_precise?: SajuV3DayunPrecise;
+  policy?: SajuV3Policy;
   fact_schema_version?: string;
   [key: string]: unknown;
 }

@@ -159,7 +159,14 @@ const evalMONEY_004: TopicEvidenceEvaluator = (facts) => {
   return [
     { factKey: "luck_wealth_inflow", satisfied: inflow || currentMatches, confidence: inflow || currentMatches ? 0.8 : 0.3, note: "대운에 재성 오행 유입(후반 또는 현재)" },
     { factKey: "wealth_yongshin_relation", satisfied: matchesYong, confidence: matchesYong ? 0.7 : 0.4, note: "재성-용신 관계" },
-    { factKey: "current_luck_present", satisfied: !!facts.current_luck, confidence: facts.current_luck ? 0.6 : 0, note: "세운(현재 대운) 데이터 존재" },
+    // [TK-5 용어 교정] 이전에는 note에 "세운(현재 대운)"이라 적혀 있었으나, 이는
+    // current_luck(10년 단위 "대운")을 가리킬 뿐 진짜 세운(연 단위 운세)이 아니다.
+    // saju_engine /saju/v3/facts는 세운을 전혀 제공하지 않는다(category69.py의
+    // _year_rows()에만 있고 facts 응답에는 없음 — §10.2 리스크 "세운(연도별)은
+    // facts 미포함 시 게이트가 검증 불가"와 정확히 일치). note는 사용자 비노출
+    // 내부 감사용(7장 원칙)이라 동작에는 영향 없지만, 용어를 정확히 고쳐 향후
+    // 혼동을 방지한다.
+    { factKey: "current_luck_present", satisfied: !!facts.current_luck, confidence: facts.current_luck ? 0.6 : 0, note: "현재 대운 데이터 존재" },
   ];
 };
 
@@ -410,7 +417,10 @@ const evalLIFE_004: TopicEvidenceEvaluator = (facts) => {
   const currentParsed = splitGanZhiKr(facts.current_luck?.gan_zhi_kr);
   const currentMatches = !!yong && (currentParsed?.ganElement === yong || currentParsed?.zhiElement === yong);
   return [
-    { factKey: "current_luck_vs_yongshin", satisfied: currentMatches, confidence: currentMatches ? 0.8 : 0.3, note: "현재 대운+세운 vs 용신(B01/B10 근거)" },
+    // [TK-5 용어 교정] "세운"은 current_luck(대운)이 아니라 연 단위 운세를
+    // 가리키는 별개 개념이다(위 evalMONEY_004 수정과 동일 이유). 이 evaluator는
+    // current_luck만 비교하므로 note에서 "세운" 표현을 제거한다.
+    { factKey: "current_luck_vs_yongshin", satisfied: currentMatches, confidence: currentMatches ? 0.8 : 0.3, note: "현재 대운 vs 용신(B01/B10 근거)" },
   ];
 };
 
