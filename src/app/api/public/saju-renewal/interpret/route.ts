@@ -39,6 +39,7 @@ import {
   type SajuBirthInput,
 } from "@/lib/saju-renewal/saju-engine-client";
 import { validateTopicForInterpret } from "@/lib/saju-renewal/topic-engine";
+import { applyBirthTimeUnknownGuard } from "@/lib/saju-renewal/saju-facts-time-guard";
 import { getTopicScene, SCENE_UNRESOLVED_TOPIC_IDS } from "@/lib/saju-renewal/topic-contract-adapter";
 import { TOPIC_CATALOG_SEED } from "@/lib/saju-renewal/topic-catalog-data";
 import type { PromptTopicInfo } from "@/lib/saju-renewal/interpret-prompt";
@@ -255,6 +256,13 @@ export async function POST(request: NextRequest) {
       }
       throw e;
     }
+
+    // [v2.0 §6.4 TK-6 — "출생시각 고지" / docs/03_화면명세.md line 104 서버측 계약]
+    // "birth_time = null, time_unknown = true → 시주 미사용 주제로 자동 조정(서버)".
+    // topics/select/route.ts와 동일한 이유로, 여기서도 시주를 "추정값"으로 LLM에게
+    // 노출하지 않도록 정제한다(validateTopicForInterpret의 조건 재검증과 이후
+    // buildInterpretPrompt()의 FACT 다이제스트 양쪽 모두 이 정제된 facts를 쓴다).
+    facts = applyBirthTimeUnknownGuard(facts, user.profile.birthTimeUnknown);
 
     // ── [STEP4 §16 세션 캐시/재열람 — docs/05 "재호출 금지", docs/07 E-13] ──
     // 이미 이 (userId, topicId, mode, birthKey)로 QA를 통과해 저장된 결과가 있으면

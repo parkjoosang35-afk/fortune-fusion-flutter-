@@ -33,6 +33,7 @@ import {
   type SajuBirthInput,
 } from "@/lib/saju-renewal/saju-engine-client";
 import { selectTopics, type ExposureRecord } from "@/lib/saju-renewal/topic-engine";
+import { applyBirthTimeUnknownGuard } from "@/lib/saju-renewal/saju-facts-time-guard";
 import {
   toTopicCard,
   extractKeyFacts,
@@ -246,6 +247,15 @@ export async function POST(request: NextRequest) {
       }
       throw e;
     }
+
+    // [v2.0 §6.4 TK-6 — "출생시각 고지" / docs/03_화면명세.md line 104 서버측 계약]
+    // "birth_time = null, time_unknown = true → 시주 미사용 주제로 자동 조정(서버)".
+    // getSajuFacts()가 반환한 facts는 engine이 hour 기본값(12:00)으로 채워 계산한
+    // 완전한 시주를 담고 있다 — birthTimeUnknown이 true면 이 값은 "실제 입력"이
+    // 아니라 "추정"이므로, 이후 모든 단계(주제 선정/LLM 프롬프트)가 시주를 실제
+    // FACT처럼 취급하지 않도록 여기서 한 번 정제한다(§4-C1 "FACTS에 없는 것을
+    // 생성하지 않는다" 원칙을 지키려면 LLM에게도 "없는 값"으로 보여야 한다).
+    facts = applyBirthTimeUnknownGuard(facts, user.profile.birthTimeUnknown);
 
     // [§5 TopicExposureHistory 반영] 이 사용자가 이 birthKey로 이미 본 주제 이력을
     // 조회한다. orderBy 없이 단순 where만 사용(복합 인덱스 필요 없는 안전한 쿼리 —
