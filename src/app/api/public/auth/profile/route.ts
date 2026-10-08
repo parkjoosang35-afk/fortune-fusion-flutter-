@@ -4,6 +4,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { authenticateRequest, toUserDto } from "@/lib/user-auth";
+import {
+  validateBirthDate,
+  parseBirthTimeString,
+  BirthDateValidationError,
+  BIRTH_DATE_ERROR_STATUS,
+} from "@/lib/saju-birth-date-validator";
 
 export const dynamic = "force-dynamic";
 
@@ -41,12 +47,47 @@ export async function PATCH(request: NextRequest) {
   }
 
   try {
-    const existing = await prisma.user.findUnique({ where: { id: payload.userId } });
+    const existing = await prisma.user.findUnique({
+      where: { id: payload.userId },
+      include: { profile: true },
+    });
     if (!existing || existing.status !== "active") {
       return NextResponse.json(
         { success: false, error: "유효하지 않은 계정입니다." },
         { status: 401, headers: CORS_HEADERS }
       );
+    }
+
+    // ── [신통방통 정통사주 생년월일검증·일일재조회·어뷰징방지 최종지시서 §4·§8·§10]
+    // 출생정보 "저장" 시점에도 서버 기준(KST) 검증을 수행한다 — 69종 레거시
+    // (fortune/saju)와 신규 29종(saju-renewal) 모두 이 UserProfile.birthDate를
+    // 그대로 읽어 쓰므로, 여기서 한 번만 막으면 두 레이어 모두 보호된다.
+    // birth_date가 이번 요청에서 명시적으로 설정될 때만 검증한다(기존 값을
+    // 건드리지 않는 부분 수정 요청에서는 재검증하지 않음 — §1 "범위를 임의로
+    // 확장하지 않는다"에 따라 과거 저장된 값을 소급 검증/수정하지 않는다).
+    if (body.birth_date) {
+      const isLunar = body.is_lunar !== undefined ? body.is_lunar : (existing.profile?.isLunar ?? false);
+      const birthTimeUnknown =
+        body.birth_time_unknown !== undefined
+          ? body.birth_time_unknown
+          : (existing.profile?.birthTimeUnknown ?? false);
+      const birthTime = body.birth_time !== undefined ? body.birth_time : existing.profile?.birthTime;
+      try {
+        await validateBirthDate({
+          birthDate: body.birth_date,
+          isLunar,
+          birthTimeUnknown,
+          ...parseBirthTimeString(birthTime),
+        });
+      } catch (e) {
+        if (e instanceof BirthDateValidationError) {
+          return NextResponse.json(
+            { success: false, error: e.message, reason: e.code },
+            { status: BIRTH_DATE_ERROR_STATUS[e.code], headers: CORS_HEADERS }
+          );
+        }
+        throw e;
+      }
     }
 
     if (body.nickname && body.nickname.trim() && body.nickname.trim() !== existing.nickname) {

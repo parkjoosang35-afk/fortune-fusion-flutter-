@@ -41,6 +41,11 @@ declare module "lunar-javascript" {
       minute: number,
       second: number
     ): Lunar;
+    // [신통방통 정통사주 생년월일검증 최종지시서 §4 — 음력 입력 검증] 시각 없이
+    // 날짜만으로 생성할 때 사용. 존재하지 않는 음력 날짜(윤달 아님 등)를 넣으면
+    // 라이브러리가 예외를 던진다(saju-birth-date-validator.ts가 이를 포착해
+    // DATE_NOT_EXIST로 변환).
+    static fromYmd(year: number, month: number, day: number): Lunar;
     getSolar(): Solar;
     getEightChar(): EightChar;
     toString(): string;
@@ -56,6 +61,10 @@ declare module "lunar-javascript" {
       second: number
     ): Solar;
     getLunar(): Lunar;
+    // [saju-birth-date-validator.ts — 음력→양력 변환 결과 연/월/일 추출]
+    getYear(): number;
+    getMonth(): number;
+    getDay(): number;
     toString(): string;
   }
 }

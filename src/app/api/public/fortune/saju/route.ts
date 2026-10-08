@@ -43,6 +43,12 @@ import { buildSajuJudgment, type SajuJudgment } from "@/lib/saju-judgment";
 import { checkSajuResult, type SajuLlmResult } from "@/lib/saju-qa-check";
 import { parseSajuLlmJson, renderSajuLlmResult } from "@/lib/saju-render";
 import {
+  validateBirthDate,
+  parseBirthTimeString,
+  BirthDateValidationError,
+  BIRTH_DATE_ERROR_STATUS,
+} from "@/lib/saju-birth-date-validator";
+import {
   beginResultAccess,
   completeResultAccess,
   failAndRefundResultAccess,
@@ -217,6 +223,27 @@ export async function POST(request: NextRequest) {
       { success: false, error: "birthDate가 필요합니다." },
       { status: 400, headers: CORS_HEADERS }
     );
+  }
+
+  // ── [신통방통 정통사주 생년월일검증·일일재조회·어뷰징방지 최종지시서 §4·§8·§10]
+  // 서버 기준(KST) 생년월일 검증 — 형식/존재날짜/미래날짜/범위/시간 순서대로 검사.
+  // "검증 실패 시 복주머니 차감, 광고 보상 지급, LLM 호출, 사주 계산보다 먼저
+  // 종료한다"(§4) — 따라서 이 검증은 반드시 checkDailyAbsoluteLimit/프리패스/
+  // 복주머니 등 보상·과금 로직보다 앞서 수행한다. ──
+  try {
+    await validateBirthDate({
+      birthDate,
+      isLunar,
+      ...parseBirthTimeString(birthTime),
+    });
+  } catch (e) {
+    if (e instanceof BirthDateValidationError) {
+      return NextResponse.json(
+        { success: false, error: e.message, reason: e.code },
+        { status: BIRTH_DATE_ERROR_STATUS[e.code], headers: CORS_HEADERS }
+      );
+    }
+    throw e;
   }
 
   // ── [어뷰징 방지 개편 §신규 ①] 유저별 절대 일일 AI 호출 상한(5회) 검사 ──
