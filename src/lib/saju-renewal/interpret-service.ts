@@ -33,6 +33,14 @@ import {
 } from "./interpret-qa-check";
 import { KNOWN_TERM_KEYS } from "./interpret-term-dictionary";
 import { buildFallbackSummary, buildFallbackDetail } from "./interpret-fallback";
+import { detectFindings, findForTopic, type Finding } from "./finding-detector";
+import {
+  runVerificationGate,
+  hasBlockingViolations,
+  formatViolationsForFeedback,
+  type GateProfile,
+  type Violation,
+} from "./interpret-verification-gate";
 
 /** [모킹 지점] route.ts의 completeText 호출과 동일한 시그니처. 테스트는 이 타입과
  * 호환되는 가짜 함수를 llmCaller로 주입해 timeout/빈응답/비정상JSON을 재현한다. */
@@ -177,13 +185,67 @@ function runQaCheck(
     : checkInterpretDetail(result as InterpretDetailResult, qaOptions);
 }
 
+/** [v2.0 §8 검증 게이트 연동] LLM 출력(JSON 구조)에서 나이·연도·간지·오행 주장을
+ * 대조할 "서술 본문 텍스트"만 추출한다. title/evidence.text도 LLM이 작성한
+ * 서술이므로 포함한다(§8.1 검증 대상이 "LLM이 쓴" 모든 텍스트이기 때문). */
+function extractNarrativeText(mode: InterpretMode, result: InterpretSummaryResult | InterpretDetailResult): string {
+  if (mode === "summary") {
+    const r = result as InterpretSummaryResult;
+    return [r.title, r.summary, r.evidence?.text].filter(Boolean).join(" ");
+  }
+  const r = result as InterpretDetailResult;
+  const blockTexts = r.blocks.flatMap((b) => [b.body, b.evidence?.text].filter(Boolean));
+  return [r.title, ...blockTexts].join(" ");
+}
+
+/** [v2.0 §8.5 게이트 프로파일 결정] 기존 29종 체계에는 gate_profile 필드가 없으므로
+ * (§5 스키마가 요구하는 동적 topic 객체가 아직 DB에 없음), topic.isTiming 플래그로
+ * 최소한의 매핑을 한다 — isTiming=true 주제는 §1 매트릭스상 전부 "기간 앵커링
+ * 필수" 범주(총운/재물/애정/건강/직업/대운)에 속하므로 time_scoped, isTiming=false는
+ * no_time(앵커 면제, 단 언급 시 대조)으로 처리한다. 신살 전용 topicId가 추가되면
+ * 이 함수에 "sinsal" 분기를 추가하면 된다(§8.5 "주제가 늘어나도 게이트를 새로
+ * 만들지 않는다"는 원칙을 그대로 따름 — 매핑만 확장).
+ */
+function resolveGateProfile(topic: PromptTopicInfo): GateProfile {
+  return topic.isTiming ? "time_scoped" : "no_time";
+}
+
+/** [v2.0 §8 검증 게이트 — 단일 진입점] QA를 이미 통과한 결과를 추가로 검증 게이트에
+ * 통과시킨다. §8.6 "위반 ≥1건 → 재생성"에 따라 차단(block) 등급 위반이 있으면
+ * 실패로 간주한다(경고 등급만 있으면 통과 처리 — VIOLATION_SEVERITY 참고). */
+function runGateCheck(
+  mode: InterpretMode,
+  result: InterpretSummaryResult | InterpretDetailResult,
+  topic: PromptTopicInfo,
+  facts: SajuV3Facts,
+  premise: Finding | null,
+  findings: Finding[]
+): { ok: boolean; violations: Violation[] } {
+  const text = extractNarrativeText(mode, result);
+  const violations = runVerificationGate({
+    facts,
+    topic: {
+      topicId: topic.topicId,
+      premiseRef: premise?.finding_id ?? null,
+      timeScoped: topic.isTiming,
+      gateProfile: resolveGateProfile(topic),
+    },
+    findings,
+    text,
+  });
+  return { ok: !hasBlockingViolations(violations), violations };
+}
+
 async function runSingleAttempt(
   mode: InterpretMode,
   topic: PromptTopicInfo,
   facts: SajuV3Facts,
   evidenceNotes: string[],
   systemPromptFromDb: string,
-  llmCaller: LlmCaller
+  llmCaller: LlmCaller,
+  premise: Finding | null,
+  findings: Finding[],
+  gateFeedback: string[]
 ): Promise<{ result: InterpretSummaryResult | InterpretDetailResult; failures: string[] } | null> {
   const { systemPrompt, userPrompt } = buildInterpretPrompt({
     mode,
@@ -191,6 +253,8 @@ async function runSingleAttempt(
     facts,
     evidence: { factKeys: [], notes: evidenceNotes },
     topicSpecificSystemPrompt: systemPromptFromDb,
+    premise,
+    gateFeedback,
   });
   const raw = await llmCaller({
     systemPrompt,
@@ -212,6 +276,16 @@ async function runSingleAttempt(
   if (!qa.ok) {
     return { result: normalized, failures: qa.failures.map((f) => `${f.code}: ${f.message}`) };
   }
+
+  // [v2.0 §8 검증 게이트 — QA 통과 후 추가 검증] 기존 QA(구조/분량/보안)를 통과한
+  // 결과라도 나이·연도·간지·오행 주장이 엔진 값과 다르면(§2.2 재현 결함과 동일
+  // 유형) 여기서 걸러낸다. 차단 등급 위반이 있으면 실패로 처리해 재시도를
+  // 트리거한다(§8.6 "위반 ≥1건 → 재생성").
+  const gate = runGateCheck(mode, normalized, topic, facts, premise, findings);
+  if (!gate.ok) {
+    return { result: normalized, failures: formatViolationsForFeedback(gate.violations) };
+  }
+
   return { result: normalized, failures: [] };
 }
 
@@ -224,6 +298,12 @@ async function runSingleAttempt(
 export async function generateInterpretResult(params: GenerateInterpretParams): Promise<GenerateInterpretOutcome> {
   const { mode, topic, facts, evidenceNotes, template, llmCaller = completeText } = params;
   const attemptLog: string[] = [];
+
+  // [v2.0 §5/§8 finding 전제 — 1회만 계산] detectFindings()는 순수 함수이므로
+  // 매 재시도마다 다시 계산해도 같은 값이지만(재요청 불변성), 굳이 반복 호출할
+  // 필요가 없어 파이프라인 진입 시 한 번만 계산해 전체 재시도 루프에 공유한다.
+  const findings = detectFindings(facts);
+  const premise = findForTopic(topic.topicId, facts);
 
   function buildFallbackResult(): InterpretSummaryResult | InterpretDetailResult {
     return mode === "summary"
@@ -252,6 +332,21 @@ export async function generateInterpretResult(params: GenerateInterpretParams): 
         attemptLog
       );
     }
+    // [v2.0 §8.6 실패 정책 "2) 폴백 — facts 기반 대운 브리핑 표 + 현재 대운 앵커만
+    // 노출(결정적 템플릿)"] fallback 템플릿은 고정 문구+facts 치환이라 정상적으로는
+    // 게이트도 항상 통과해야 한다. 혹시 템플릿 문구 자체가 결함(예: 존재하지 않는
+    // 간지를 하드코딩)을 안고 있는 경우를 대비해 여기서도 게이트를 돌려 로그만
+    // 남긴다(fallback까지 게이트로 차단하면 §8.6의 "최종 방어선" 역할을 못 하게
+    // 되므로, fallback 자체를 막지는 않고 운영 로그로만 가시화한다).
+    const gate = runGateCheck(mode, fallbackResult, topic, facts, premise, findings);
+    if (!gate.ok) {
+      console.warn(
+        `[interpret-service] fallback 결과가 검증 게이트 위반을 포함함(topic=${topic.topicId}): ${formatViolationsForFeedback(gate.violations).join(" | ")}`
+      );
+      attemptLog.push(`fallback: GATE_WARN(${formatViolationsForFeedback(gate.violations).join(" | ")})`);
+    } else {
+      attemptLog.push("fallback: GATE_PASSED");
+    }
     attemptLog.push("fallback: QA_PASSED");
     return { result: fallbackResult, source: "template", attemptLog };
   }
@@ -263,15 +358,31 @@ export async function generateInterpretResult(params: GenerateInterpretParams): 
   }
 
   // ── LLM 호출(최대 MAX_LLM_ATTEMPTS회) ──
+  // [v2.0 §8.2 재생성 루프] 직전 시도의 QA/게이트 위반 목록을 다음 시도의
+  // 프롬프트에 피드백으로 덧붙인다(Python 레퍼런스 generate_with_gate()의
+  // feedback 누적과 동일한 역할). QA 실패 메시지와 게이트 위반 메시지 모두
+  // outcome.failures에 섞여 들어오므로 동일하게 다음 시도 피드백으로 전달한다.
+  let gateFeedback: string[] = [];
   for (let attempt = 1; attempt <= MAX_LLM_ATTEMPTS; attempt++) {
     try {
-      const outcome = await runSingleAttempt(mode, topic, facts, evidenceNotes, template.systemPrompt, llmCaller);
+      const outcome = await runSingleAttempt(
+        mode,
+        topic,
+        facts,
+        evidenceNotes,
+        template.systemPrompt,
+        llmCaller,
+        premise,
+        findings,
+        gateFeedback
+      );
       if (!outcome) {
         attemptLog.push(`attempt${attempt}: LLM_EMPTY_OR_UNPARSEABLE_RESPONSE`);
         continue;
       }
       if (outcome.failures.length > 0) {
         attemptLog.push(`attempt${attempt}: QA_FAILED(${outcome.failures.join(" | ")})`);
+        gateFeedback = outcome.failures;
         continue;
       }
       attemptLog.push(`attempt${attempt}: SUCCESS`);
