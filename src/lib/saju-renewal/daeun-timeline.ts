@@ -120,3 +120,44 @@ export function renderAnchorSentence(timeline: DaeunTimeline): string | null {
   const e = timeline.currentEntry;
   return `지금 당신은 ${timeline.currentAge}세(세는나이), ${e.ganZhiKr} 대운(${e.startYear}~${e.endYear}) 구간에 있습니다.`;
 }
+
+/**
+ * [TK-7 — §4-C5 "주제별 대운 브리핑 표 UI" 구현] 지금까지 이 파일의 타임라인
+ * (entries)은 renderDaeunTableMarkdown()을 거쳐 "LLM 프롬프트 텍스트" 안에만
+ * 주입되고 있었다(interpret-prompt.ts buildTimeAnchoringSection()). 이는 LLM이
+ * 표를 "그대로 베껴 쓰라"는 지시일 뿐, 실제로 구조화된 형태로 API 응답에
+ * 실려 Flutter에 전달되지는 않았다 — Flutter 쪽에 facts 기반 타임라인 표를
+ * 렌더링할 데이터 자체가 없는 상태였다(이번 TK-7 조사로 확인한 근본 원인).
+ *
+ * C5 원문 "표 문자열을 새로 쓰지 말고 facts에서 복사"의 취지를 클라이언트까지
+ * 그대로 연장하는 방법은, LLM이 만든 서술(body)과 완전히 분리된 이 구조화
+ * 배열을 API 응답(InterpretDetailResult.daeun_timeline)에 별도 필드로 함께
+ * 내려주는 것이다 — Flutter는 LLM 본문 텍스트를 파싱할 필요 없이 이 배열을
+ * 그대로 표로 그리면 된다(facts→표 변환 로직이 서버 한 곳에만 존재하게 됨).
+ *
+ * snake_case로 변환하는 이유: 이 프로젝트의 모든 LLM/API JSON 필드(topic_id,
+ * gan_zhi_kr 등)가 snake_case 컨벤션을 쓰므로 일관성을 맞춘다(camelCase인
+ * DaeunTimelineEntry는 TypeScript 내부 전용, API 바깥으로 나가는 형태는 이
+ * 함수가 담당).
+ */
+export interface DaeunTimelineApiEntry {
+  gan_zhi_kr: string;
+  gan_zhi?: string;
+  start_year: number;
+  end_year: number;
+  start_age: number;
+  end_age: number;
+  tense: DaeunTense;
+}
+
+export function toDaeunTimelineApiEntries(timeline: DaeunTimeline): DaeunTimelineApiEntry[] {
+  return timeline.entries.map((e) => ({
+    gan_zhi_kr: e.ganZhiKr,
+    gan_zhi: e.ganZhi,
+    start_year: e.startYear,
+    end_year: e.endYear,
+    start_age: e.startAge,
+    end_age: e.endAge,
+    tense: e.tense,
+  }));
+}

@@ -37,11 +37,30 @@ export interface InterpretDetailBlock {
   timing?: { luck_index: number };
 }
 
+/**
+ * [TK-7 — §4-C5 "주제별 대운 브리핑 표 UI"] facts.luck_pillars를 그대로 옮긴
+ * 타임라인 한 구간. daeun-timeline.ts의 DaeunTimelineApiEntry와 1:1 대응 —
+ * LLM이 생성하지 않고(facts에서 그대로 복사) 서버가 직접 채워 넣으므로, QA
+ * 검증(checkInterpretDetail) 대상이 아니다(블록 body 텍스트만 검증 대상).
+ */
+export interface InterpretDaeunTimelineEntry {
+  gan_zhi_kr: string;
+  gan_zhi?: string;
+  start_year: number;
+  end_year: number;
+  start_age: number;
+  end_age: number;
+  tense: "past" | "now" | "future";
+}
+
 export interface InterpretDetailResult {
   topic_id: string;
   title: string;
   blocks: InterpretDetailBlock[];
   source: "llm" | "template";
+  /** [TK-7] isTiming 주제이고 facts에 대운 배열이 있을 때만 채워진다(없으면
+   * undefined — §4-C1 facts-only 원칙, 데이터 없는데 빈 표를 강제하지 않음). */
+  daeun_timeline?: InterpretDaeunTimelineEntry[];
 }
 
 export interface QaCheckOptions {

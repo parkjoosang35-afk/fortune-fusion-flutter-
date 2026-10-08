@@ -23,6 +23,7 @@
 import type { SajuV3Facts } from "./saju-facts-types";
 import { completeText, LlmClientError } from "@/lib/llm-client";
 import { buildInterpretPrompt, type PromptTopicInfo, type InterpretMode } from "./interpret-prompt";
+import { buildDaeunTimeline, toDaeunTimelineApiEntries } from "./daeun-timeline";
 import {
   checkInterpretSummary,
   checkInterpretDetail,
@@ -206,6 +207,29 @@ function extractNarrativeText(mode: InterpretMode, result: InterpretSummaryResul
  * 이 함수에 "sinsal" 분기를 추가하면 된다(§8.5 "주제가 늘어나도 게이트를 새로
  * 만들지 않는다"는 원칙을 그대로 따름 — 매핑만 확장).
  */
+/**
+ * [TK-7 — §4-C5 "주제별 대운 브리핑 표 UI"] detail 모드 + isTiming 주제일 때만
+ * facts.luck_pillars 기반 타임라인을 결과에 덧붙인다. LLM 응답/fallback
+ * 어느 경로든 이 함수를 거치게 해, "표는 LLM이 쓰지 않고 서버가 facts에서
+ * 그대로 복사한다"(C5 원문)는 원칙을 결과 조립 단계에서 강제한다 — 이미
+ * QA/게이트를 통과한 result 객체에 필드만 추가하는 것이므로 QA를 다시 돌릴
+ * 필요가 없다(QA는 body 텍스트만 검증 대상, daeun_timeline은 LLM이 작성한
+ * 텍스트가 아니라 엔진 facts를 그대로 옮긴 구조화 데이터이기 때문).
+ * 타임라인 entries가 비어 있으면(facts에 대운 배열 자체가 없음) 필드를
+ * 아예 생략한다(§4-C1 facts-only — 없는 데이터로 빈 표를 강제하지 않음).
+ */
+function attachDaeunTimelineIfApplicable(
+  mode: InterpretMode,
+  topic: PromptTopicInfo,
+  facts: SajuV3Facts,
+  result: InterpretSummaryResult | InterpretDetailResult
+): InterpretSummaryResult | InterpretDetailResult {
+  if (mode !== "detail" || !topic.isTiming) return result;
+  const timeline = buildDaeunTimeline(facts);
+  if (timeline.entries.length === 0) return result;
+  return { ...(result as InterpretDetailResult), daeun_timeline: toDaeunTimelineApiEntries(timeline) };
+}
+
 function resolveGateProfile(topic: PromptTopicInfo): GateProfile {
   return topic.isTiming ? "time_scoped" : "no_time";
 }
@@ -348,7 +372,11 @@ export async function generateInterpretResult(params: GenerateInterpretParams): 
       attemptLog.push("fallback: GATE_PASSED");
     }
     attemptLog.push("fallback: QA_PASSED");
-    return { result: fallbackResult, source: "template", attemptLog };
+    return {
+      result: attachDaeunTimelineIfApplicable(mode, topic, facts, fallbackResult),
+      source: "template",
+      attemptLog,
+    };
   }
 
   // ── 템플릿 자체가 없으면(STEP6 시딩 전) LLM 호출 없이 즉시 fallback ──
@@ -386,7 +414,11 @@ export async function generateInterpretResult(params: GenerateInterpretParams): 
         continue;
       }
       attemptLog.push(`attempt${attempt}: SUCCESS`);
-      return { result: outcome.result, source: "llm", attemptLog };
+      return {
+        result: attachDaeunTimelineIfApplicable(mode, topic, facts, outcome.result),
+        source: "llm",
+        attemptLog,
+      };
     } catch (e) {
       const msg = e instanceof LlmClientError ? e.message : String(e);
       attemptLog.push(`attempt${attempt}: LLM_ERROR(${msg})`);
