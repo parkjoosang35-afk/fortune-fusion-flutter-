@@ -25,7 +25,8 @@ import {
   toGuinjiMemberPublicId,
   unauthorizedResponse,
 } from "../../../_shared";
-import { GuinjiSajuInput, isValidGuinjiSajuInput, judgeGuinjiRelation } from "@/lib/guinji-relation-judger";
+import { GuinjiSajuInput, isValidGuinjiSajuInput } from "@/lib/guinji-relation-judger";
+import { judgeGuinjiRelationV2 } from "@/lib/guinji-v2/judge";
 
 export const dynamic = "force-dynamic";
 
@@ -106,7 +107,14 @@ export async function POST(
       }
 
       const ownerSaju = JSON.parse(map.ownerSajuParsed) as GuinjiSajuInput;
-      const judged = judgeGuinjiRelation(ownerSaju, guestSaju);
+      // [V2 전환 — 4단계] 기존 12종 judgeGuinjiRelation() 대신 V2 6종
+      // 엔진(computeRelation)을 어댑터(guinjiSajuInputToV2)로 감싼
+      // judgeGuinjiRelationV2()를 사용한다. 반환 모양({relationType,
+      // chemistryScore, ohaengEvidence})은 기존과 동일해 아래 저장 코드는
+      // 변경 없이 그대로 쓸 수 있다.
+      const judged = await judgeGuinjiRelationV2(ownerSaju, guestSaju, {
+        other: name,
+      });
 
       const member = await tx.guinjiMapMember.create({
         data: {

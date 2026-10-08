@@ -22,7 +22,8 @@
 // 정확도가 낮을 수 있음"을 안내한다(정직성 원칙 — 느낌표 없이 담담하게).
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { judgeGuinjiRelation } from "@/lib/guinji-relation-judger";
+import type { GuinjiSajuInput } from "@/lib/guinji-relation-judger";
+import { judgeGuinjiRelationV2 } from "@/lib/guinji-v2/judge";
 import { calculateSaju, guinjiSajuInputFromManseryeok } from "@/lib/saju-manseryeok-engine";
 
 export const dynamic = "force-dynamic";
@@ -131,7 +132,7 @@ export async function POST(
       );
     }
 
-    const ownerSaju = JSON.parse(map.ownerSajuParsed);
+    const ownerSaju = JSON.parse(map.ownerSajuParsed) as GuinjiSajuInput;
 
     let guestManseryeok;
     try {
@@ -149,7 +150,8 @@ export async function POST(
       );
     }
     const guestSaju = guinjiSajuInputFromManseryeok(guestManseryeok);
-    const judged = judgeGuinjiRelation(ownerSaju, guestSaju);
+    // [V2 전환 — 4단계] 기존 12종 judgeGuinjiRelation() 대신 V2 6종 엔진을 사용한다.
+    const judged = await judgeGuinjiRelationV2(ownerSaju, guestSaju);
 
     return NextResponse.json(
       {

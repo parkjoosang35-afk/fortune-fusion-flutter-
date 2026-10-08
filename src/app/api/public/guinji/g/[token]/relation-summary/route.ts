@@ -8,7 +8,7 @@
 // 동일한 화이트리스트 경계).
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { GUINJI_RELATION_TYPE_ORDER } from "@/lib/guinji-relation-judger";
+import { GUINJI_V2_RELATION_TYPE_ORDER } from "@/lib/guinji-v2/relation";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +42,7 @@ export async function GET(
 
 
     const counts: Record<string, number> = {};
-    for (const t of GUINJI_RELATION_TYPE_ORDER) counts[t] = 0;
+    for (const t of GUINJI_V2_RELATION_TYPE_ORDER) counts[t] = 0;
     for (const r of map.relationships) {
       if (counts[r.relationType] != null) counts[r.relationType] += 1;
     }

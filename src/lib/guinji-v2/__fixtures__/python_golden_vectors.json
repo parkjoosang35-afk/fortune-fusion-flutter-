@@ -1,0 +1,1983 @@
+[
+  {
+    "name": "C01",
+    "resultId": "gr_346c9f2ce86d5ce5",
+    "relationType": "HAP",
+    "score": 52,
+    "grade": "중",
+    "gradeCode": "C",
+    "ruleTrace": {
+      "S1_일간오행": {
+        "elementA": "목",
+        "elementB": "수",
+        "kind": "상생",
+        "direction": "in"
+      },
+      "S2_일지관계": {
+        "branchA": "해",
+        "branchB": "인",
+        "kind": "육합",
+        "desc": "육합"
+      },
+      "S3_오행보완": {
+        "lackingA": [
+          "토"
+        ],
+        "lackingB": [
+          "토"
+        ],
+        "supplyAtoB": 0,
+        "supplyBtoA": 0,
+        "score": 0
+      },
+      "S4_십성": {
+        "bIsToA": "정인",
+        "aIsToB": "상관",
+        "groupBIsToA": "인성",
+        "groupAIsToB": "식상"
+      },
+      "S5_합충계수": {
+        "hap": 4,
+        "chung": 4,
+        "hyung": 4,
+        "pairs": [
+          [
+            "사",
+            "신",
+            "합"
+          ],
+          [
+            "사",
+            "신",
+            "형"
+          ],
+          [
+            "사",
+            "해",
+            "충"
+          ],
+          [
+            "사",
+            "인",
+            "형"
+          ],
+          [
+            "신",
+            "인",
+            "충"
+          ],
+          [
+            "신",
+            "사",
+            "합"
+          ],
+          [
+            "신",
+            "사",
+            "형"
+          ],
+          [
+            "해",
+            "인",
+            "합"
+          ],
+          [
+            "해",
+            "사",
+            "충"
+          ],
+          [
+            "인",
+            "신",
+            "충"
+          ],
+          [
+            "인",
+            "해",
+            "합"
+          ],
+          [
+            "인",
+            "사",
+            "형"
+          ]
+        ]
+      },
+      "S6_점수": {
+        "score": 52,
+        "grade": "중",
+        "gradeCode": "C",
+        "breakdown": {
+          "일간기본": 30,
+          "일지": 25,
+          "오행보완": 0,
+          "합가점": 16,
+          "십성보정": 1,
+          "충형감점": -20
+        }
+      }
+    },
+    "fullTextLen": 866
+  },
+  {
+    "name": "C02",
+    "resultId": "gr_7721207faaeac00e",
+    "relationType": "SANG_GEUK",
+    "score": 61,
+    "grade": "중상",
+    "gradeCode": "B",
+    "ruleTrace": {
+      "S1_일간오행": {
+        "elementA": "수",
+        "elementB": "화",
+        "kind": "상극",
+        "direction": "out"
+      },
+      "S2_일지관계": {
+        "branchA": "묘",
+        "branchB": "진",
+        "kind": "무관",
+        "desc": "특별한 합충 없음"
+      },
+      "S3_오행보완": {
+        "lackingA": [
+          "토"
+        ],
+        "lackingB": [
+          "금",
+          "수"
+        ],
+        "supplyAtoB": 2,
+        "supplyBtoA": 1,
+        "score": 3
+      },
+      "S4_십성": {
+        "bIsToA": "정재",
+        "aIsToB": "정관",
+        "groupBIsToA": "재성",
+        "groupAIsToB": "관성"
+      },
+      "S5_합충계수": {
+        "hap": 8,
+        "chung": 0,
+        "hyung": 0,
+        "pairs": [
+          [
+            "유",
+            "축",
+            "합"
+          ],
+          [
+            "유",
+            "진",
+            "합"
+          ],
+          [
+            "자",
+            "축",
+            "합"
+          ],
+          [
+            "자",
+            "진",
+            "합"
+          ],
+          [
+            "묘",
+            "술",
+            "합"
+          ],
+          [
+            "묘",
+            "미",
+            "합"
+          ],
+          [
+            "오",
+            "술",
+            "합"
+          ],
+          [
+            "오",
+            "미",
+            "합"
+          ]
+        ]
+      },
+      "S6_점수": {
+        "score": 61,
+        "grade": "중상",
+        "gradeCode": "B",
+        "breakdown": {
+          "일간기본": 12,
+          "일지": 15,
+          "오행보완": 12,
+          "합가점": 16,
+          "십성보정": 6,
+          "충형감점": 0
+        }
+      }
+    },
+    "fullTextLen": 856
+  },
+  {
+    "name": "C03",
+    "resultId": "gr_cc9e998b8db02814",
+    "relationType": "SANG_SAENG",
+    "score": 30,
+    "grade": "중하",
+    "gradeCode": "D",
+    "ruleTrace": {
+      "S1_일간오행": {
+        "elementA": "목",
+        "elementB": "화",
+        "kind": "상생",
+        "direction": "out"
+      },
+      "S2_일지관계": {
+        "branchA": "유",
+        "branchB": "유",
+        "kind": "무관",
+        "desc": "특별한 합충 없음"
+      },
+      "S3_오행보완": {
+        "lackingA": [
+          "토"
+        ],
+        "lackingB": [
+          "금",
+          "수",
+          "토"
+        ],
+        "supplyAtoB": 1,
+        "supplyBtoA": 0,
+        "score": 1
+      },
+      "S4_십성": {
+        "bIsToA": "식신",
+        "aIsToB": "편인",
+        "groupBIsToA": "식상",
+        "groupAIsToB": "인성"
+      },
+      "S5_합충계수": {
+        "hap": 0,
+        "chung": 4,
+        "hyung": 2,
+        "pairs": [
+          [
+            "묘",
+            "유",
+            "충"
+          ],
+          [
+            "묘",
+            "자",
+            "형"
+          ],
+          [
+            "오",
+            "자",
+            "충"
+          ],
+          [
+            "유",
+            "묘",
+            "충"
+          ],
+          [
+            "자",
+            "묘",
+            "형"
+          ],
+          [
+            "자",
+            "오",
+            "충"
+          ]
+        ]
+      },
+      "S6_점수": {
+        "score": 30,
+        "grade": "중하",
+        "gradeCode": "D",
+        "breakdown": {
+          "일간기본": 30,
+          "일지": 15,
+          "오행보완": 4,
+          "합가점": 0,
+          "십성보정": 1,
+          "충형감점": -20
+        }
+      }
+    },
+    "fullTextLen": 842
+  },
+  {
+    "name": "C04",
+    "resultId": "gr_e96f9c122f14e964",
+    "relationType": "SANG_GEUK",
+    "score": 24,
+    "grade": "중하",
+    "gradeCode": "D",
+    "ruleTrace": {
+      "S1_일간오행": {
+        "elementA": "금",
+        "elementB": "화",
+        "kind": "상극",
+        "direction": "in"
+      },
+      "S2_일지관계": {
+        "branchA": "자",
+        "branchB": "유",
+        "kind": "파",
+        "desc": "파"
+      },
+      "S3_오행보완": {
+        "lackingA": [
+          "목",
+          "수",
+          "화"
+        ],
+        "lackingB": [
+          "금",
+          "수",
+          "토"
+        ],
+        "supplyAtoB": 2,
+        "supplyBtoA": 2,
+        "score": 4
+      },
+      "S4_십성": {
+        "bIsToA": "정관",
+        "aIsToB": "정재",
+        "groupBIsToA": "관성",
+        "groupAIsToB": "재성"
+      },
+      "S5_합충계수": {
+        "hap": 0,
+        "chung": 4,
+        "hyung": 2,
+        "pairs": [
+          [
+            "오",
+            "자",
+            "충"
+          ],
+          [
+            "유",
+            "묘",
+            "충"
+          ],
+          [
+            "자",
+            "묘",
+            "형"
+          ],
+          [
+            "자",
+            "오",
+            "충"
+          ],
+          [
+            "묘",
+            "유",
+            "충"
+          ],
+          [
+            "묘",
+            "자",
+            "형"
+          ]
+        ]
+      },
+      "S6_점수": {
+        "score": 24,
+        "grade": "중하",
+        "gradeCode": "D",
+        "breakdown": {
+          "일간기본": 12,
+          "일지": 10,
+          "오행보완": 16,
+          "합가점": 0,
+          "십성보정": 6,
+          "충형감점": -20
+        }
+      }
+    },
+    "fullTextLen": 838
+  },
+  {
+    "name": "C05",
+    "resultId": "gr_4fbc2dd61e1f49e6",
+    "relationType": "SANG_GEUK",
+    "score": 25,
+    "grade": "중하",
+    "gradeCode": "D",
+    "ruleTrace": {
+      "S1_일간오행": {
+        "elementA": "토",
+        "elementB": "목",
+        "kind": "상극",
+        "direction": "in"
+      },
+      "S2_일지관계": {
+        "branchA": "자",
+        "branchB": "자",
+        "kind": "무관",
+        "desc": "특별한 합충 없음"
+      },
+      "S3_오행보완": {
+        "lackingA": [
+          "금",
+          "목",
+          "수"
+        ],
+        "lackingB": [
+          "토"
+        ],
+        "supplyAtoB": 1,
+        "supplyBtoA": 2,
+        "score": 3
+      },
+      "S4_십성": {
+        "bIsToA": "편관",
+        "aIsToB": "편재",
+        "groupBIsToA": "관성",
+        "groupAIsToB": "재성"
+      },
+      "S5_합충계수": {
+        "hap": 0,
+        "chung": 4,
+        "hyung": 2,
+        "pairs": [
+          [
+            "오",
+            "자",
+            "충"
+          ],
+          [
+            "유",
+            "묘",
+            "충"
+          ],
+          [
+            "자",
+            "오",
+            "충"
+          ],
+          [
+            "자",
+            "묘",
+            "형"
+          ],
+          [
+            "묘",
+            "유",
+            "충"
+          ],
+          [
+            "묘",
+            "자",
+            "형"
+          ]
+        ]
+      },
+      "S6_점수": {
+        "score": 25,
+        "grade": "중하",
+        "gradeCode": "D",
+        "breakdown": {
+          "일간기본": 12,
+          "일지": 15,
+          "오행보완": 12,
+          "합가점": 0,
+          "십성보정": 6,
+          "충형감점": -20
+        }
+      }
+    },
+    "fullTextLen": 880
+  },
+  {
+    "name": "C06",
+    "resultId": "gr_27aa87f72bf05aba",
+    "relationType": "SANG_GEUK",
+    "score": 42,
+    "grade": "중",
+    "gradeCode": "C",
+    "ruleTrace": {
+      "S1_일간오행": {
+        "elementA": "화",
+        "elementB": "수",
+        "kind": "상극",
+        "direction": "in"
+      },
+      "S2_일지관계": {
+        "branchA": "진",
+        "branchB": "오",
+        "kind": "무관",
+        "desc": "특별한 합충 없음"
+      },
+      "S3_오행보완": {
+        "lackingA": [
+          "금",
+          "수"
+        ],
+        "lackingB": [
+          "목"
+        ],
+        "supplyAtoB": 1,
+        "supplyBtoA": 2,
+        "score": 3
+      },
+      "S4_십성": {
+        "bIsToA": "편관",
+        "aIsToB": "편재",
+        "groupBIsToA": "관성",
+        "groupAIsToB": "재성"
+      },
+      "S5_합충계수": {
+        "hap": 3,
+        "chung": 2,
+        "hyung": 1,
+        "pairs": [
+          [
+            "술",
+            "진",
+            "충"
+          ],
+          [
+            "술",
+            "오",
+            "합"
+          ],
+          [
+            "술",
+            "미",
+            "형"
+          ],
+          [
+            "축",
+            "사",
+            "합"
+          ],
+          [
+            "축",
+            "미",
+            "충"
+          ],
+          [
+            "미",
+            "오",
+            "합"
+          ]
+        ]
+      },
+      "S6_점수": {
+        "score": 42,
+        "grade": "중",
+        "gradeCode": "C",
+        "breakdown": {
+          "일간기본": 12,
+          "일지": 15,
+          "오행보완": 12,
+          "합가점": 12,
+          "십성보정": 6,
+          "충형감점": -15
+        }
+      }
+    },
+    "fullTextLen": 852
+  },
+  {
+    "name": "C07",
+    "resultId": "gr_62a5007e56bb2a90",
+    "relationType": "SANG_GEUK",
+    "score": 21,
+    "grade": "중하",
+    "gradeCode": "D",
+    "ruleTrace": {
+      "S1_일간오행": {
+        "elementA": "금",
+        "elementB": "목",
+        "kind": "상극",
+        "direction": "out"
+      },
+      "S2_일지관계": {
+        "branchA": "미",
+        "branchB": "미",
+        "kind": "무관",
+        "desc": "특별한 합충 없음"
+      },
+      "S3_오행보완": {
+        "lackingA": [
+          "목",
+          "화"
+        ],
+        "lackingB": [
+          "금",
+          "수",
+          "화"
+        ],
+        "supplyAtoB": 1,
+        "supplyBtoA": 1,
+        "score": 2
+      },
+      "S4_십성": {
+        "bIsToA": "편재",
+        "aIsToB": "편관",
+        "groupBIsToA": "재성",
+        "groupAIsToB": "관성"
+      },
+      "S5_합충계수": {
+        "hap": 0,
+        "chung": 2,
+        "hyung": 4,
+        "pairs": [
+          [
+            "축",
+            "술",
+            "형"
+          ],
+          [
+            "축",
+            "미",
+            "충"
+          ],
+          [
+            "술",
+            "축",
+            "형"
+          ],
+          [
+            "술",
+            "미",
+            "형"
+          ],
+          [
+            "미",
+            "축",
+            "충"
+          ],
+          [
+            "미",
+            "술",
+            "형"
+          ]
+        ]
+      },
+      "S6_점수": {
+        "score": 21,
+        "grade": "중하",
+        "gradeCode": "D",
+        "breakdown": {
+          "일간기본": 12,
+          "일지": 15,
+          "오행보완": 8,
+          "합가점": 0,
+          "십성보정": 6,
+          "충형감점": -20
+        }
+      }
+    },
+    "fullTextLen": 900
+  },
+  {
+    "name": "C08",
+    "resultId": "gr_9899dd48d4ecbe8f",
+    "relationType": "SANG_SAENG",
+    "score": 47,
+    "grade": "중",
+    "gradeCode": "C",
+    "ruleTrace": {
+      "S1_일간오행": {
+        "elementA": "목",
+        "elementB": "수",
+        "kind": "상생",
+        "direction": "in"
+      },
+      "S2_일지관계": {
+        "branchA": "사",
+        "branchB": "오",
+        "kind": "무관",
+        "desc": "특별한 합충 없음"
+      },
+      "S3_오행보완": {
+        "lackingA": [
+          "토"
+        ],
+        "lackingB": [
+          "목",
+          "토"
+        ],
+        "supplyAtoB": 1,
+        "supplyBtoA": 0,
+        "score": 1
+      },
+      "S4_십성": {
+        "bIsToA": "정인",
+        "aIsToB": "상관",
+        "groupBIsToA": "인성",
+        "groupAIsToB": "식상"
+      },
+      "S5_합충계수": {
+        "hap": 3,
+        "chung": 1,
+        "hyung": 2,
+        "pairs": [
+          [
+            "해",
+            "사",
+            "충"
+          ],
+          [
+            "인",
+            "오",
+            "합"
+          ],
+          [
+            "인",
+            "사",
+            "형"
+          ],
+          [
+            "인",
+            "오",
+            "합"
+          ],
+          [
+            "신",
+            "사",
+            "합"
+          ],
+          [
+            "신",
+            "사",
+            "형"
+          ]
+        ]
+      },
+      "S6_점수": {
+        "score": 47,
+        "grade": "중",
+        "gradeCode": "C",
+        "breakdown": {
+          "일간기본": 30,
+          "일지": 15,
+          "오행보완": 4,
+          "합가점": 12,
+          "십성보정": 1,
+          "충형감점": -15
+        }
+      }
+    },
+    "fullTextLen": 818
+  },
+  {
+    "name": "C09",
+    "resultId": "gr_8aa159766ed9432d",
+    "relationType": "HAP",
+    "score": 49,
+    "grade": "중",
+    "gradeCode": "C",
+    "ruleTrace": {
+      "S1_일간오행": {
+        "elementA": "수",
+        "elementB": "화",
+        "kind": "상극",
+        "direction": "out"
+      },
+      "S2_일지관계": {
+        "branchA": "오",
+        "branchB": "인",
+        "kind": "삼합",
+        "desc": "삼합(화국)"
+      },
+      "S3_오행보완": {
+        "lackingA": [
+          "목"
+        ],
+        "lackingB": [
+          "금"
+        ],
+        "supplyAtoB": 1,
+        "supplyBtoA": 1,
+        "score": 2
+      },
+      "S4_십성": {
+        "bIsToA": "편재",
+        "aIsToB": "편관",
+        "groupBIsToA": "재성",
+        "groupAIsToB": "관성"
+      },
+      "S5_합충계수": {
+        "hap": 4,
+        "chung": 2,
+        "hyung": 1,
+        "pairs": [
+          [
+            "진",
+            "자",
+            "합"
+          ],
+          [
+            "사",
+            "축",
+            "합"
+          ],
+          [
+            "사",
+            "인",
+            "형"
+          ],
+          [
+            "오",
+            "자",
+            "충"
+          ],
+          [
+            "오",
+            "인",
+            "합"
+          ],
+          [
+            "미",
+            "축",
+            "충"
+          ],
+          [
+            "미",
+            "묘",
+            "합"
+          ]
+        ]
+      },
+      "S6_점수": {
+        "score": 49,
+        "grade": "중",
+        "gradeCode": "C",
+        "breakdown": {
+          "일간기본": 12,
+          "일지": 22,
+          "오행보완": 8,
+          "합가점": 16,
+          "십성보정": 6,
+          "충형감점": -15
+        }
+      }
+    },
+    "fullTextLen": 895
+  },
+  {
+    "name": "C10",
+    "resultId": "gr_2b7ac9b39178553e",
+    "relationType": "HAP",
+    "score": 53,
+    "grade": "중",
+    "gradeCode": "C",
+    "ruleTrace": {
+      "S1_일간오행": {
+        "elementA": "금",
+        "elementB": "목",
+        "kind": "상극",
+        "direction": "out"
+      },
+      "S2_일지관계": {
+        "branchA": "신",
+        "branchB": "자",
+        "kind": "삼합",
+        "desc": "삼합(수국)"
+      },
+      "S3_오행보완": {
+        "lackingA": [
+          "목",
+          "수"
+        ],
+        "lackingB": [
+          "금",
+          "화"
+        ],
+        "supplyAtoB": 1,
+        "supplyBtoA": 2,
+        "score": 3
+      },
+      "S4_십성": {
+        "bIsToA": "편재",
+        "aIsToB": "편관",
+        "groupBIsToA": "재성",
+        "groupAIsToB": "관성"
+      },
+      "S5_합충계수": {
+        "hap": 4,
+        "chung": 2,
+        "hyung": 1,
+        "pairs": [
+          [
+            "오",
+            "술",
+            "합"
+          ],
+          [
+            "오",
+            "자",
+            "충"
+          ],
+          [
+            "미",
+            "술",
+            "형"
+          ],
+          [
+            "미",
+            "해",
+            "합"
+          ],
+          [
+            "미",
+            "축",
+            "충"
+          ],
+          [
+            "신",
+            "자",
+            "합"
+          ],
+          [
+            "유",
+            "축",
+            "합"
+          ]
+        ]
+      },
+      "S6_점수": {
+        "score": 53,
+        "grade": "중",
+        "gradeCode": "C",
+        "breakdown": {
+          "일간기본": 12,
+          "일지": 22,
+          "오행보완": 12,
+          "합가점": 16,
+          "십성보정": 6,
+          "충형감점": -15
+        }
+      }
+    },
+    "fullTextLen": 874
+  },
+  {
+    "name": "C11",
+    "resultId": "gr_ab584e3406258972",
+    "relationType": "BI_HWA",
+    "score": 33,
+    "grade": "중하",
+    "gradeCode": "D",
+    "ruleTrace": {
+      "S1_일간오행": {
+        "elementA": "목",
+        "elementB": "목",
+        "kind": "비화",
+        "direction": null
+      },
+      "S2_일지관계": {
+        "branchA": "사",
+        "branchB": "사",
+        "kind": "무관",
+        "desc": "특별한 합충 없음"
+      },
+      "S3_오행보완": {
+        "lackingA": [
+          "토"
+        ],
+        "lackingB": [
+          "토"
+        ],
+        "supplyAtoB": 0,
+        "supplyBtoA": 0,
+        "score": 0
+      },
+      "S4_십성": {
+        "bIsToA": "비견",
+        "aIsToB": "비견",
+        "groupBIsToA": "비겁",
+        "groupAIsToB": "비겁"
+      },
+      "S5_합충계수": {
+        "hap": 4,
+        "chung": 4,
+        "hyung": 4,
+        "pairs": [
+          [
+            "해",
+            "인",
+            "합"
+          ],
+          [
+            "해",
+            "사",
+            "충"
+          ],
+          [
+            "인",
+            "해",
+            "합"
+          ],
+          [
+            "인",
+            "사",
+            "형"
+          ],
+          [
+            "인",
+            "신",
+            "충"
+          ],
+          [
+            "사",
+            "해",
+            "충"
+          ],
+          [
+            "사",
+            "인",
+            "형"
+          ],
+          [
+            "사",
+            "신",
+            "합"
+          ],
+          [
+            "사",
+            "신",
+            "형"
+          ],
+          [
+            "신",
+            "인",
+            "충"
+          ],
+          [
+            "신",
+            "사",
+            "합"
+          ],
+          [
+            "신",
+            "사",
+            "형"
+          ]
+        ]
+      },
+      "S6_점수": {
+        "score": 33,
+        "grade": "중하",
+        "gradeCode": "D",
+        "breakdown": {
+          "일간기본": 22,
+          "일지": 15,
+          "오행보완": 0,
+          "합가점": 16,
+          "십성보정": 0,
+          "충형감점": -20
+        }
+      }
+    },
+    "fullTextLen": 825
+  },
+  {
+    "name": "C12",
+    "resultId": "gr_346c9f2ce86d5ce5",
+    "relationType": "HAP",
+    "score": 52,
+    "grade": "중",
+    "gradeCode": "C",
+    "ruleTrace": {
+      "S1_일간오행": {
+        "elementA": "목",
+        "elementB": "수",
+        "kind": "상생",
+        "direction": "in"
+      },
+      "S2_일지관계": {
+        "branchA": "해",
+        "branchB": "인",
+        "kind": "육합",
+        "desc": "육합"
+      },
+      "S3_오행보완": {
+        "lackingA": [
+          "토"
+        ],
+        "lackingB": [
+          "토"
+        ],
+        "supplyAtoB": 0,
+        "supplyBtoA": 0,
+        "score": 0
+      },
+      "S4_십성": {
+        "bIsToA": "정인",
+        "aIsToB": "상관",
+        "groupBIsToA": "인성",
+        "groupAIsToB": "식상"
+      },
+      "S5_합충계수": {
+        "hap": 4,
+        "chung": 4,
+        "hyung": 4,
+        "pairs": [
+          [
+            "사",
+            "신",
+            "합"
+          ],
+          [
+            "사",
+            "신",
+            "형"
+          ],
+          [
+            "사",
+            "해",
+            "충"
+          ],
+          [
+            "사",
+            "인",
+            "형"
+          ],
+          [
+            "신",
+            "인",
+            "충"
+          ],
+          [
+            "신",
+            "사",
+            "합"
+          ],
+          [
+            "신",
+            "사",
+            "형"
+          ],
+          [
+            "해",
+            "인",
+            "합"
+          ],
+          [
+            "해",
+            "사",
+            "충"
+          ],
+          [
+            "인",
+            "신",
+            "충"
+          ],
+          [
+            "인",
+            "해",
+            "합"
+          ],
+          [
+            "인",
+            "사",
+            "형"
+          ]
+        ]
+      },
+      "S6_점수": {
+        "score": 52,
+        "grade": "중",
+        "gradeCode": "C",
+        "breakdown": {
+          "일간기본": 30,
+          "일지": 25,
+          "오행보완": 0,
+          "합가점": 16,
+          "십성보정": 1,
+          "충형감점": -20
+        }
+      }
+    },
+    "fullTextLen": 866
+  },
+  {
+    "name": "C13",
+    "resultId": "gr_ff200aa7e98a2d2b",
+    "relationType": "HAP",
+    "score": 67,
+    "grade": "중상",
+    "gradeCode": "B",
+    "ruleTrace": {
+      "S1_일간오행": {
+        "elementA": "화",
+        "elementB": "목",
+        "kind": "상생",
+        "direction": "in"
+      },
+      "S2_일지관계": {
+        "branchA": "묘",
+        "branchB": "해",
+        "kind": "삼합",
+        "desc": "삼합(목국)"
+      },
+      "S3_오행보완": {
+        "lackingA": [
+          "금",
+          "수"
+        ],
+        "lackingB": [
+          "토"
+        ],
+        "supplyAtoB": 1,
+        "supplyBtoA": 1,
+        "score": 2
+      },
+      "S4_십성": {
+        "bIsToA": "편인",
+        "aIsToB": "식신",
+        "groupBIsToA": "인성",
+        "groupAIsToB": "식상"
+      },
+      "S5_합충계수": {
+        "hap": 4,
+        "chung": 1,
+        "hyung": 1,
+        "pairs": [
+          [
+            "축",
+            "사",
+            "합"
+          ],
+          [
+            "인",
+            "사",
+            "형"
+          ],
+          [
+            "인",
+            "신",
+            "충"
+          ],
+          [
+            "인",
+            "해",
+            "합"
+          ],
+          [
+            "묘",
+            "해",
+            "합"
+          ],
+          [
+            "진",
+            "신",
+            "합"
+          ]
+        ]
+      },
+      "S6_점수": {
+        "score": 67,
+        "grade": "중상",
+        "gradeCode": "B",
+        "breakdown": {
+          "일간기본": 30,
+          "일지": 22,
+          "오행보완": 8,
+          "합가점": 16,
+          "십성보정": 1,
+          "충형감점": -10
+        }
+      }
+    },
+    "fullTextLen": 847
+  },
+  {
+    "name": "C14",
+    "resultId": "gr_ea6aeb2da34ac20b",
+    "relationType": "HAP",
+    "score": 51,
+    "grade": "중",
+    "gradeCode": "C",
+    "ruleTrace": {
+      "S1_일간오행": {
+        "elementA": "금",
+        "elementB": "목",
+        "kind": "상극",
+        "direction": "out"
+      },
+      "S2_일지관계": {
+        "branchA": "오",
+        "branchB": "미",
+        "kind": "육합",
+        "desc": "육합"
+      },
+      "S3_오행보완": {
+        "lackingA": [
+          "목",
+          "수"
+        ],
+        "lackingB": [
+          "금",
+          "수",
+          "화"
+        ],
+        "supplyAtoB": 2,
+        "supplyBtoA": 1,
+        "score": 3
+      },
+      "S4_십성": {
+        "bIsToA": "정재",
+        "aIsToB": "정관",
+        "groupBIsToA": "재성",
+        "groupAIsToB": "관성"
+      },
+      "S5_합충계수": {
+        "hap": 5,
+        "chung": 2,
+        "hyung": 2,
+        "pairs": [
+          [
+            "진",
+            "술",
+            "충"
+          ],
+          [
+            "진",
+            "신",
+            "합"
+          ],
+          [
+            "사",
+            "축",
+            "합"
+          ],
+          [
+            "사",
+            "신",
+            "합"
+          ],
+          [
+            "사",
+            "신",
+            "형"
+          ],
+          [
+            "오",
+            "술",
+            "합"
+          ],
+          [
+            "오",
+            "미",
+            "합"
+          ],
+          [
+            "미",
+            "축",
+            "충"
+          ],
+          [
+            "미",
+            "술",
+            "형"
+          ]
+        ]
+      },
+      "S6_점수": {
+        "score": 51,
+        "grade": "중",
+        "gradeCode": "C",
+        "breakdown": {
+          "일간기본": 12,
+          "일지": 25,
+          "오행보완": 12,
+          "합가점": 16,
+          "십성보정": 6,
+          "충형감점": -20
+        }
+      }
+    },
+    "fullTextLen": 872
+  },
+  {
+    "name": "C15",
+    "resultId": "gr_c90bda59a0f1bc32",
+    "relationType": "HAP",
+    "score": 53,
+    "grade": "중",
+    "gradeCode": "C",
+    "ruleTrace": {
+      "S1_일간오행": {
+        "elementA": "수",
+        "elementB": "화",
+        "kind": "상극",
+        "direction": "out"
+      },
+      "S2_일지관계": {
+        "branchA": "술",
+        "branchB": "인",
+        "kind": "삼합",
+        "desc": "삼합(화국)"
+      },
+      "S3_오행보완": {
+        "lackingA": [
+          "목",
+          "화"
+        ],
+        "lackingB": [
+          "금"
+        ],
+        "supplyAtoB": 1,
+        "supplyBtoA": 2,
+        "score": 3
+      },
+      "S4_십성": {
+        "bIsToA": "편재",
+        "aIsToB": "편관",
+        "groupBIsToA": "재성",
+        "groupAIsToB": "관성"
+      },
+      "S5_합충계수": {
+        "hap": 6,
+        "chung": 2,
+        "hyung": 1,
+        "pairs": [
+          [
+            "신",
+            "자",
+            "합"
+          ],
+          [
+            "신",
+            "인",
+            "충"
+          ],
+          [
+            "유",
+            "축",
+            "합"
+          ],
+          [
+            "유",
+            "묘",
+            "충"
+          ],
+          [
+            "술",
+            "축",
+            "형"
+          ],
+          [
+            "술",
+            "인",
+            "합"
+          ],
+          [
+            "술",
+            "묘",
+            "합"
+          ],
+          [
+            "해",
+            "인",
+            "합"
+          ],
+          [
+            "해",
+            "묘",
+            "합"
+          ]
+        ]
+      },
+      "S6_점수": {
+        "score": 53,
+        "grade": "중",
+        "gradeCode": "C",
+        "breakdown": {
+          "일간기본": 12,
+          "일지": 22,
+          "오행보완": 12,
+          "합가점": 16,
+          "십성보정": 6,
+          "충형감점": -15
+        }
+      }
+    },
+    "fullTextLen": 886
+  },
+  {
+    "name": "C16",
+    "resultId": "gr_ba496358178f65a3",
+    "relationType": "HAP",
+    "score": 62,
+    "grade": "중상",
+    "gradeCode": "B",
+    "ruleTrace": {
+      "S1_일간오행": {
+        "elementA": "화",
+        "elementB": "토",
+        "kind": "상생",
+        "direction": "out"
+      },
+      "S2_일지관계": {
+        "branchA": "진",
+        "branchB": "신",
+        "kind": "삼합",
+        "desc": "삼합(수국)"
+      },
+      "S3_오행보완": {
+        "lackingA": [
+          "금",
+          "수"
+        ],
+        "lackingB": [
+          "목",
+          "수"
+        ],
+        "supplyAtoB": 1,
+        "supplyBtoA": 1,
+        "score": 2
+      },
+      "S4_십성": {
+        "bIsToA": "식신",
+        "aIsToB": "편인",
+        "groupBIsToA": "식상",
+        "groupAIsToB": "인성"
+      },
+      "S5_합충계수": {
+        "hap": 6,
+        "chung": 2,
+        "hyung": 1,
+        "pairs": [
+          [
+            "인",
+            "오",
+            "합"
+          ],
+          [
+            "인",
+            "신",
+            "충"
+          ],
+          [
+            "묘",
+            "미",
+            "합"
+          ],
+          [
+            "묘",
+            "유",
+            "충"
+          ],
+          [
+            "진",
+            "신",
+            "합"
+          ],
+          [
+            "진",
+            "유",
+            "합"
+          ],
+          [
+            "사",
+            "신",
+            "합"
+          ],
+          [
+            "사",
+            "신",
+            "형"
+          ],
+          [
+            "사",
+            "유",
+            "합"
+          ]
+        ]
+      },
+      "S6_점수": {
+        "score": 62,
+        "grade": "중상",
+        "gradeCode": "B",
+        "breakdown": {
+          "일간기본": 30,
+          "일지": 22,
+          "오행보완": 8,
+          "합가점": 16,
+          "십성보정": 1,
+          "충형감점": -15
+        }
+      }
+    },
+    "fullTextLen": 855
+  },
+  {
+    "name": "C17",
+    "resultId": "gr_6c4a9efbdb8efb58",
+    "relationType": "HAP",
+    "score": 62,
+    "grade": "중상",
+    "gradeCode": "B",
+    "ruleTrace": {
+      "S1_일간오행": {
+        "elementA": "목",
+        "elementB": "화",
+        "kind": "상생",
+        "direction": "out"
+      },
+      "S2_일지관계": {
+        "branchA": "인",
+        "branchB": "오",
+        "kind": "삼합",
+        "desc": "삼합(화국)"
+      },
+      "S3_오행보완": {
+        "lackingA": [
+          "금",
+          "화"
+        ],
+        "lackingB": [
+          "금",
+          "수"
+        ],
+        "supplyAtoB": 1,
+        "supplyBtoA": 1,
+        "score": 2
+      },
+      "S4_십성": {
+        "bIsToA": "식신",
+        "aIsToB": "편인",
+        "groupBIsToA": "식상",
+        "groupAIsToB": "인성"
+      },
+      "S5_합충계수": {
+        "hap": 4,
+        "chung": 2,
+        "hyung": 1,
+        "pairs": [
+          [
+            "자",
+            "진",
+            "합"
+          ],
+          [
+            "자",
+            "오",
+            "충"
+          ],
+          [
+            "축",
+            "사",
+            "합"
+          ],
+          [
+            "축",
+            "미",
+            "충"
+          ],
+          [
+            "인",
+            "사",
+            "형"
+          ],
+          [
+            "인",
+            "오",
+            "합"
+          ],
+          [
+            "묘",
+            "미",
+            "합"
+          ]
+        ]
+      },
+      "S6_점수": {
+        "score": 62,
+        "grade": "중상",
+        "gradeCode": "B",
+        "breakdown": {
+          "일간기본": 30,
+          "일지": 22,
+          "오행보완": 8,
+          "합가점": 16,
+          "십성보정": 1,
+          "충형감점": -15
+        }
+      }
+    },
+    "fullTextLen": 855
+  },
+  {
+    "name": "C18",
+    "resultId": "gr_7bfa974e27f86c0a",
+    "relationType": "HAP",
+    "score": 60,
+    "grade": "중상",
+    "gradeCode": "B",
+    "ruleTrace": {
+      "S1_일간오행": {
+        "elementA": "목",
+        "elementB": "수",
+        "kind": "상생",
+        "direction": "in"
+      },
+      "S2_일지관계": {
+        "branchA": "해",
+        "branchB": "인",
+        "kind": "육합",
+        "desc": "육합"
+      },
+      "S3_오행보완": {
+        "lackingA": [
+          "금",
+          "토",
+          "화"
+        ],
+        "lackingB": [
+          "금",
+          "토",
+          "화"
+        ],
+        "supplyAtoB": 0,
+        "supplyBtoA": 0,
+        "score": 0
+      },
+      "S4_십성": {
+        "bIsToA": "정인",
+        "aIsToB": "상관",
+        "groupBIsToA": "인성",
+        "groupAIsToB": "식상"
+      },
+      "S5_합충계수": {
+        "hap": 1,
+        "chung": 0,
+        "hyung": 0,
+        "pairs": [
+          [
+            "해",
+            "인",
+            "합"
+          ]
+        ]
+      },
+      "S6_점수": {
+        "score": 60,
+        "grade": "중상",
+        "gradeCode": "B",
+        "breakdown": {
+          "일간기본": 30,
+          "일지": 25,
+          "오행보완": 0,
+          "합가점": 4,
+          "십성보정": 1,
+          "충형감점": 0
+        }
+      }
+    },
+    "fullTextLen": 862
+  },
+  {
+    "name": "C19",
+    "resultId": "gr_e0c33778562b2181",
+    "relationType": "SANG_GEUK",
+    "score": 52,
+    "grade": "중",
+    "gradeCode": "C",
+    "ruleTrace": {
+      "S1_일간오행": {
+        "elementA": "수",
+        "elementB": "화",
+        "kind": "상극",
+        "direction": "out"
+      },
+      "S2_일지관계": {
+        "branchA": "오",
+        "branchB": "진",
+        "kind": "무관",
+        "desc": "특별한 합충 없음"
+      },
+      "S3_오행보완": {
+        "lackingA": [
+          "목"
+        ],
+        "lackingB": [
+          "금",
+          "수"
+        ],
+        "supplyAtoB": 2,
+        "supplyBtoA": 1,
+        "score": 3
+      },
+      "S4_십성": {
+        "bIsToA": "편재",
+        "aIsToB": "편관",
+        "groupBIsToA": "재성",
+        "groupAIsToB": "관성"
+      },
+      "S5_합충계수": {
+        "hap": 3,
+        "chung": 0,
+        "hyung": 1,
+        "pairs": [
+          [
+            "오",
+            "인",
+            "합"
+          ],
+          [
+            "사",
+            "인",
+            "형"
+          ],
+          [
+            "오",
+            "인",
+            "합"
+          ],
+          [
+            "미",
+            "묘",
+            "합"
+          ]
+        ]
+      },
+      "S6_점수": {
+        "score": 52,
+        "grade": "중",
+        "gradeCode": "C",
+        "breakdown": {
+          "일간기본": 12,
+          "일지": 15,
+          "오행보완": 12,
+          "합가점": 12,
+          "십성보정": 6,
+          "충형감점": -5
+        }
+      }
+    },
+    "fullTextLen": 867
+  },
+  {
+    "name": "C20",
+    "resultId": "gr_1567bd942be44a1c",
+    "relationType": "SANG_GEUK",
+    "score": 14,
+    "grade": "중하",
+    "gradeCode": "D",
+    "ruleTrace": {
+      "S1_일간오행": {
+        "elementA": "목",
+        "elementB": "토",
+        "kind": "상극",
+        "direction": "out"
+      },
+      "S2_일지관계": {
+        "branchA": "유",
+        "branchB": "묘",
+        "kind": "충",
+        "desc": "충"
+      },
+      "S3_오행보완": {
+        "lackingA": [
+          "수",
+          "화"
+        ],
+        "lackingB": [
+          "수"
+        ],
+        "supplyAtoB": 0,
+        "supplyBtoA": 0,
+        "score": 0
+      },
+      "S4_십성": {
+        "bIsToA": "편재",
+        "aIsToB": "편관",
+        "groupBIsToA": "재성",
+        "groupAIsToB": "관성"
+      },
+      "S5_합충계수": {
+        "hap": 6,
+        "chung": 4,
+        "hyung": 1,
+        "pairs": [
+          [
+            "미",
+            "축",
+            "충"
+          ],
+          [
+            "미",
+            "묘",
+            "합"
+          ],
+          [
+            "신",
+            "인",
+            "충"
+          ],
+          [
+            "신",
+            "진",
+            "합"
+          ],
+          [
+            "유",
+            "축",
+            "합"
+          ],
+          [
+            "유",
+            "묘",
+            "충"
+          ],
+          [
+            "유",
+            "진",
+            "합"
+          ],
+          [
+            "술",
+            "축",
+            "형"
+          ],
+          [
+            "술",
+            "인",
+            "합"
+          ],
+          [
+            "술",
+            "묘",
+            "합"
+          ],
+          [
+            "술",
+            "진",
+            "충"
+          ]
+        ]
+      },
+      "S6_점수": {
+        "score": 14,
+        "grade": "중하",
+        "gradeCode": "D",
+        "breakdown": {
+          "일간기본": 12,
+          "일지": 0,
+          "오행보완": 0,
+          "합가점": 16,
+          "십성보정": 6,
+          "충형감점": -20
+        }
+      }
+    },
+    "fullTextLen": 879
+  }
+]

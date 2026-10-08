@@ -30,7 +30,9 @@
 // `agreeAge14`(14세 이상 확인)가 모두 true가 아니면 참여를 거부한다.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { GUINJI_RELATION_TYPE_ORDER, GuinjiSajuInput, judgeGuinjiRelation } from "@/lib/guinji-relation-judger";
+import { GuinjiSajuInput } from "@/lib/guinji-relation-judger";
+import { judgeGuinjiRelationV2 } from "@/lib/guinji-v2/judge";
+import { GUINJI_V2_RELATION_TYPE_ORDER } from "@/lib/guinji-v2/relation";
 import { calculateSaju, guinjiSajuInputFromManseryeok } from "@/lib/saju-manseryeok-engine";
 
 export const dynamic = "force-dynamic";
@@ -170,7 +172,8 @@ export async function POST(
     }
     const guestSaju: GuinjiSajuInput = guinjiSajuInputFromManseryeok(guestManseryeok);
     const ownerSaju = JSON.parse(map.ownerSajuParsed) as GuinjiSajuInput;
-    const judged = judgeGuinjiRelation(ownerSaju, guestSaju);
+    // [V2 전환 — 4단계] 기존 12종 judgeGuinjiRelation() 대신 V2 6종 엔진을 사용한다.
+    const judged = await judgeGuinjiRelationV2(ownerSaju, guestSaju, { other: name });
 
     const outcome = await prisma.$transaction(async (tx) => {
       // [설계 결정 2] 동일 지도에 동일 (이름+생년월일) 활성 멤버가 이미
@@ -226,7 +229,7 @@ export async function POST(
       select: { relationType: true },
     });
     const rawCounts: Record<string, number> = {};
-    for (const t of GUINJI_RELATION_TYPE_ORDER) rawCounts[t] = 0;
+    for (const t of GUINJI_V2_RELATION_TYPE_ORDER) rawCounts[t] = 0;
     for (const r of allRelationships) {
       if (rawCounts[r.relationType] != null) rawCounts[r.relationType] += 1;
     }
