@@ -319,6 +319,21 @@ const TOPIC_TO_FINDING_CODE: Record<string, FindingCode> = {
   LOVE_006: "RELATION_WINDOW",
 };
 
+/** [TK-8 — §8.5 sinsal 게이트 프로파일 매핑] topic-catalog-data.ts의 requiredFacts
+ * 열을 전수 조사해 "신살"을 실제로 언급하는 topicId만 뽑았다(RELATION_002:
+ * "귀인계 신살 · 용신 오행", LOVE_006: "배우자성 대운 · 도화" — 도화도 신살의
+ * 한 종류). 이 두 topicId로 해석을 생성할 때만 interpret-verification-gate.ts의
+ * checkSinsalHallucination()(gateProfile==="sinsal"에서만 활성화)이 작동해야
+ * facts.sinsal에 없는 신살명(예: 화개·역마 등)을 LLM이 지어내는 것을 차단할 수
+ * 있다. interpret-service.ts의 resolveGateProfile()이 이 집합을 참조한다.
+ *
+ * [버그 발견 경위] checkSinsalHallucination() 자체와 GateProfile="sinsal" 타입은
+ * TK-2(커밋 4f5df89)에서 이미 구현되고 dev-test-verification-gate.ts 단위
+ * 테스트도 통과했지만, 이 매핑이 없어 interpret-service.ts의 resolveGateProfile()이
+ * 모든 topicId에 대해 "time_scoped"|"no_time"만 반환했다 — 즉 실제 해석 생성
+ * 경로에서는 sinsal 게이트가 단 한 번도 호출되지 않는 사각지대였다. */
+export const SINSAL_GATE_TOPIC_IDS = new Set<string>(["RELATION_002", "LOVE_006"]);
+
 /**
  * [findForTopic] interpret route.ts가 "이번 topicId 해석에 전제로 쓸 finding 1개"를
  * 조회할 때 쓰는 헬퍼. 매핑이 없거나(시기 무관 주제) 해당 code의 finding이 이 사람

@@ -450,3 +450,87 @@ export function hasBlockingViolations(violations: Violation[]): boolean {
 export function formatViolationsForFeedback(violations: Violation[]): string[] {
   return violations.map((v) => `- [${v.code}] ${v.detail} (근거: '${v.excerpt}')`);
 }
+
+// ════════════════════════════════════════════════════════════════
+// [TK-8 — §5.5·§8.5 "multi_subject(궁합)" 대상별 분리 검증] 신규 구현.
+//
+// [범위 확정 — 왜 "궁합 topic 자체"는 만들지 않는가]
+// 현재 topic-catalog-data.ts(30종)에는 궁합 topicId가 없고, saju-engine-client.ts
+// (getSajuFacts/callSajuEngineFacts)도 한 번에 1인분 출생정보만 받아 facts 1건을
+// 반환한다(엔진 자체는 임의의 두 출생정보 각각에 대해 별도 호출하면 각자의 facts를
+// 정상 산출할 수 있으므로 "엔진 한계"는 아니다 — TK-5가 확인한 세운(연도별) facts
+// 부재와는 성격이 다르다). 다만 "두 사람의 facts/서술을 하나의 궁합 해석으로
+// 조립해 LLM에 입력하고 결과를 받는" 궁합 전용 프롬프트·라우트·DB 스키마 자체가
+// v2.0 파이프라인에 전혀 없으므로(기존 "궁합" 기능은 /api/public/compatibility/*의
+// TOPIC_POOL 고정 문구 기반 완전 별개 레거시 — facts/finding/gate와 무관), 그
+// 전체를 새로 설계·구현하는 것은 이번 "진행" 지시의 범위를 벗어나는 신규 제품
+// 기능 추가에 해당한다.
+//
+// [이번에 구현하는 것] §8.5 원문 "대상별(subject_id) 분리 검증"이 요구하는 실제
+// 검증 능력 자체 — 즉 "두 사람(또는 N명)의 facts·text를 각각 독립적으로 기존
+// 게이트(runVerificationGate)에 통과시키고, 위반을 subject_id로 태깅해 합산하는"
+// 범용 오케스트레이터. 위 §62~65줄 주석("multi_subject는 이 함수가 처리하지
+// 않는다 — 호출부가 대상별로 분리해 이 게이트를 N회 호출해야 한다")이 이미
+// 예고한 "호출부"를 지금 구현한다. 향후 궁합 topic/route가 추가되면 이 함수를
+// 그대로 호출하면 되므로, §8.5 "주제가 늘어나도 게이트를 새로 만들지 않는다"는
+// 원칙을 지킨다.
+// ════════════════════════════════════════════════════════════════
+
+/** 대상 1명분 게이트 입력 — GateInput과 동일하나 subjectId로 어느 사람 것인지
+ * 식별한다(§5.5 "findings를 subject_id별로 산출"). */
+export interface MultiSubjectGateInput {
+  subjectId: string;
+  facts: SajuV3Facts;
+  topic: GateTopicInput;
+  findings: Finding[];
+  text: string;
+}
+
+/** Violation에 subjectId를 붙인 형태 — 호출부가 "어느 사람 서술에서 난 위반인지"를
+ * 구분해 피드백을 만들 수 있게 한다. */
+export interface MultiSubjectViolation extends Violation {
+  subjectId: string;
+}
+
+/**
+ * [메인 엔트리 — §8.5 multi_subject] N명분 입력을 각각 독립적으로
+ * runVerificationGate()에 통과시킨다. 한 사람의 facts로 다른 사람의 서술을
+ * 검증하는 교차 오염이 없도록(§5.5 "대상별 분리"), 이 함수는 각 입력의 facts와
+ * text를 1:1로만 짝지어 호출한다 — Python 레퍼런스에 없는 신규 로직이므로
+ * 동작은 "runVerificationGate를 N번 호출 + subjectId 태깅"으로 가장 단순하게
+ * 구현한다(새 판정 규칙을 추가하지 않음 — 기존 11개 검증 항목을 그대로 재사용).
+ *
+ * [gateProfile을 강제로 덮어쓰지 않음] §5.5 원문 "게이트도 대상별 분리
+ * (multi_subject)"는 "어떤 검증 항목을 켤지"가 아니라 "같은 게이트를 대상별로
+ * 나눠서 돌린다"는 뜻이다. 따라서 각 input.topic.gateProfile을 그대로
+ * 존중한다 — 예를 들어 궁합이면서 신살도 다루는 주제라면 호출부가 각 입력의
+ * gateProfile을 "sinsal"로 지정해 신살 환각 검사까지 함께 받을 수 있고, 시기
+ * 앵커링이 필요한 궁합 주제라면 "time_scoped"를 지정할 수 있다 — multi_subject
+ * "라는 프로파일 값 자체"는 이 함수를 거친다는 사실 자체로 이미 충족되므로
+ * GateTopicInput.gateProfile을 별도로 강제할 필요가 없다.
+ */
+export function runMultiSubjectGate(inputs: MultiSubjectGateInput[]): MultiSubjectViolation[] {
+  const all: MultiSubjectViolation[] = [];
+  for (const input of inputs) {
+    const violations = runVerificationGate({
+      facts: input.facts,
+      topic: input.topic,
+      findings: input.findings,
+      text: input.text,
+    });
+    all.push(...violations.map((v) => ({ ...v, subjectId: input.subjectId })));
+  }
+  return all;
+}
+
+/** hasBlockingViolations와 동일 기준(차단 등급 존재 여부)을 subjectId 태깅된
+ * 위반 목록에 적용한다. */
+export function hasBlockingMultiSubjectViolations(violations: MultiSubjectViolation[]): boolean {
+  return violations.some((v) => VIOLATION_SEVERITY[v.code] === "block");
+}
+
+/** formatViolationsForFeedback과 동일하되, 어느 subjectId에서 난 위반인지
+ * 재생성 피드백 문자열에 포함한다. */
+export function formatMultiSubjectViolationsForFeedback(violations: MultiSubjectViolation[]): string[] {
+  return violations.map((v) => `- [${v.subjectId}/${v.code}] ${v.detail} (근거: '${v.excerpt}')`);
+}

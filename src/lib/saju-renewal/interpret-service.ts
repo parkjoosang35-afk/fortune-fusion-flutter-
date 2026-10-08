@@ -34,7 +34,7 @@ import {
 } from "./interpret-qa-check";
 import { KNOWN_TERM_KEYS } from "./interpret-term-dictionary";
 import { buildFallbackSummary, buildFallbackDetail } from "./interpret-fallback";
-import { detectFindings, findForTopic, type Finding } from "./finding-detector";
+import { detectFindings, findForTopic, SINSAL_GATE_TOPIC_IDS, type Finding } from "./finding-detector";
 import {
   runVerificationGate,
   hasBlockingViolations,
@@ -203,9 +203,19 @@ function extractNarrativeText(mode: InterpretMode, result: InterpretSummaryResul
  * (§5 스키마가 요구하는 동적 topic 객체가 아직 DB에 없음), topic.isTiming 플래그로
  * 최소한의 매핑을 한다 — isTiming=true 주제는 §1 매트릭스상 전부 "기간 앵커링
  * 필수" 범주(총운/재물/애정/건강/직업/대운)에 속하므로 time_scoped, isTiming=false는
- * no_time(앵커 면제, 단 언급 시 대조)으로 처리한다. 신살 전용 topicId가 추가되면
- * 이 함수에 "sinsal" 분기를 추가하면 된다(§8.5 "주제가 늘어나도 게이트를 새로
- * 만들지 않는다"는 원칙을 그대로 따름 — 매핑만 확장).
+ * no_time(앵커 면제, 단 언급 시 대조)으로 처리한다.
+ *
+ * [TK-8 수정 — sinsal 분기 배선] SINSAL_GATE_TOPIC_IDS(finding-detector.ts, 신살을
+ * requiredFacts로 명시한 RELATION_002/LOVE_006)에 속한 topicId는 isTiming 여부와
+ * 무관하게 "sinsal" 프로파일을 최우선으로 반환한다. checkSinsalHallucination()
+ * (interpret-verification-gate.ts)은 gateProfile==="sinsal"일 때만 작동하는데,
+ * 이 분기가 없어 실제로는 단 한 번도 실행되지 못하고 있었다(TK-2에서 구현·
+ * 단위테스트까지 통과했지만 운영 경로에 배선이 빠진 사각지대였음). RELATION_002는
+ * isTiming=false이므로 기존 로직이면 no_time으로 빠졌을 것이고, LOVE_006은
+ * isTiming=true라 time_scoped로 빠졌을 것이다 — 둘 다 신살 환각 검사 없이
+ * 해석이 게시될 수 있었다는 뜻이므로, sinsal 분기를 time_scoped/no_time보다
+ * 먼저 검사한다(§8.5 "주제가 늘어나도 게이트를 새로 만들지 않는다"는 원칙대로
+ * 매핑만 확장 — 신규 신살 topicId 추가 시 SINSAL_GATE_TOPIC_IDS에만 추가하면 됨).
  */
 /**
  * [TK-7 — §4-C5 "주제별 대운 브리핑 표 UI"] detail 모드 + isTiming 주제일 때만
@@ -231,6 +241,7 @@ function attachDaeunTimelineIfApplicable(
 }
 
 function resolveGateProfile(topic: PromptTopicInfo): GateProfile {
+  if (SINSAL_GATE_TOPIC_IDS.has(topic.topicId)) return "sinsal";
   return topic.isTiming ? "time_scoped" : "no_time";
 }
 
