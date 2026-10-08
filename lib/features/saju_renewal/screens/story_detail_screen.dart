@@ -8,6 +8,7 @@ import '../data/models/topic_card.dart';
 import '../data/saju_recent_story_store.dart';
 import '../data/saju_term_dictionary.dart';
 import '../data/saju_visual_adapter.dart';
+import '../widgets/saju_daeun_timeline_table.dart';
 import '../../auth/application/auth_provider.dart';
 import '../../auth/domain/user_model.dart';
 import '../state/saju_renewal_provider.dart';
@@ -450,6 +451,7 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
                                             : SajuGold.g300,
                                         profile: _profile,
                                         isLast: i == blocks.length - 1,
+                                        daeunTimeline: detail.daeunTimeline,
                                       );
                                     }),
                                   ),
@@ -603,6 +605,7 @@ class _DetailBlockView extends StatelessWidget {
     required this.sceneTint,
     required this.profile,
     required this.isLast,
+    this.daeunTimeline,
   });
 
   final int index;
@@ -610,6 +613,10 @@ class _DetailBlockView extends StatelessWidget {
   final Color sceneTint;
   final SajuVisualProfile? profile;
   final bool isLast;
+
+  /// [TK-7 §4-C5] 서버 facts 기반 "대운 흐름" 표 데이터(LLM 본문과 무관,
+  /// InterpretDetailResult.daeunTimeline을 화면 트리 상위에서 그대로 전달).
+  final List<InterpretDaeunTimelineEntry>? daeunTimeline;
 
   @override
   Widget build(BuildContext context) {
@@ -700,6 +707,17 @@ class _DetailBlockView extends StatelessWidget {
                 ],
               ),
             ),
+            // [TK-7 §4-C5 "주제별 대운 브리핑 표(지난/현재/앞으로)"] 위
+            // LuckStream(그래픽 별줄기, 기존 디자인 컴포넌트)과는 별개로,
+            // 서버가 facts.luck_pillars를 그대로 옮긴 구조화 표를 추가로
+            // 보여준다 — "나이·연도·시제가 명시된 표"를 구체적인 숫자로
+            // 확인하고 싶은 사용자를 위한 보강이며, LLM 본문 텍스트가 아닌
+            // daeun_timeline 필드(facts 원본)만 사용한다.
+            if (daeunTimeline != null && daeunTimeline!.isNotEmpty)
+              SajuDaeunTimelineTable(
+                entries: daeunTimeline!,
+                accentColor: sceneTint,
+              ),
           ],
           SajuTermText(
             text: block.body,

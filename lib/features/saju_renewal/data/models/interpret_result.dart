@@ -97,6 +97,51 @@ class InterpretDetailBlock {
   }
 }
 
+/// [saju-handoff-spec.pdf v2.0 §4-C5 "주제별 대운 브리핑 표(지난/현재/앞으로)"
+/// — TK-7] admin_web `InterpretDaeunTimelineEntry`(daeun-timeline.ts
+/// `DaeunTimelineApiEntry`)에 1:1 대응. facts.luck_pillars를 서버가 그대로
+/// 옮긴 구조화 데이터로, LLM이 작성한 텍스트가 아니다 — "표 문자열을 새로
+/// 쓰지 말고 facts에서 복사"(C5 원문) 원칙을 클라이언트까지 그대로 연장한
+/// 필드. 화면은 이 배열을 그대로 표로 그리면 되고, LLM 본문 텍스트를 파싱할
+/// 필요가 없다.
+class InterpretDaeunTimelineEntry {
+  final String ganZhiKr;
+  final String? ganZhi;
+  final int startYear;
+  final int endYear;
+  final int startAge;
+  final int endAge;
+
+  /// "past" | "now" | "future" — §4-C3 시제 명시.
+  final String tense;
+
+  const InterpretDaeunTimelineEntry({
+    required this.ganZhiKr,
+    this.ganZhi,
+    required this.startYear,
+    required this.endYear,
+    required this.startAge,
+    required this.endAge,
+    required this.tense,
+  });
+
+  bool get isPast => tense == 'past';
+  bool get isNow => tense == 'now';
+  bool get isFuture => tense == 'future';
+
+  factory InterpretDaeunTimelineEntry.fromJson(Map<String, dynamic> json) {
+    return InterpretDaeunTimelineEntry(
+      ganZhiKr: json['gan_zhi_kr'] as String? ?? '',
+      ganZhi: json['gan_zhi'] as String?,
+      startYear: (json['start_year'] as num?)?.toInt() ?? 0,
+      endYear: (json['end_year'] as num?)?.toInt() ?? 0,
+      startAge: (json['start_age'] as num?)?.toInt() ?? 0,
+      endAge: (json['end_age'] as num?)?.toInt() ?? 0,
+      tense: json['tense'] as String? ?? 'future',
+    );
+  }
+}
+
 /// mode="detail" 응답(화면⑦ 상세 사주 이야기에서 사용).
 class InterpretDetailResult {
   final String topicId;
@@ -106,15 +151,22 @@ class InterpretDetailResult {
   /// "llm" | "template" — 내부 디버깅용, 화면에 노출 금지.
   final String source;
 
+  /// [TK-7 §4-C5] isTiming 주제이고 facts에 대운 배열이 있을 때만 채워진다
+  /// (서버가 데이터 없는데 빈 표를 강제하지 않으므로 null일 수 있다 — §4-C1
+  /// facts-only 원칙).
+  final List<InterpretDaeunTimelineEntry>? daeunTimeline;
+
   const InterpretDetailResult({
     required this.topicId,
     required this.title,
     required this.blocks,
     required this.source,
+    this.daeunTimeline,
   });
 
   factory InterpretDetailResult.fromJson(Map<String, dynamic> json) {
     final rawBlocks = json['blocks'];
+    final rawTimeline = json['daeun_timeline'];
     return InterpretDetailResult(
       topicId: json['topic_id'] as String? ?? '',
       title: json['title'] as String? ?? '',
@@ -127,6 +179,15 @@ class InterpretDetailResult {
                 .toList()
           : const [],
       source: json['source'] as String? ?? 'template',
+      daeunTimeline: rawTimeline is List
+          ? rawTimeline
+                .map(
+                  (e) => InterpretDaeunTimelineEntry.fromJson(
+                    e as Map<String, dynamic>,
+                  ),
+                )
+                .toList()
+          : null,
     );
   }
 }
