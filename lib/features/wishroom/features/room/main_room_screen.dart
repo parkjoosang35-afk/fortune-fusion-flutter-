@@ -32,6 +32,7 @@ import '../wallpaper/wallpaper_screen.dart';
 import '../wallet/wallet_sheet.dart';
 import '../../core/wr_nav_pill.dart';
 import '../../core/wr_toast.dart';
+import '../compose/compose_screen.dart';
 
 class MainRoomScreen extends StatefulWidget {
   const MainRoomScreen({super.key});
@@ -361,7 +362,21 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
       body: Consumer<WishRoomProvider>(builder: (context, p, __) {
         final room = p.room;
         if (room == null) {
-          return const Center(child: CircularProgressIndicator(color: Color(0xFFF5CF6A)));
+          // [버그수정 — 사용자 리포트: "비로그인 상태에서 다른 소원방 둘러보기 →
+          // 내 소원방 탭 클릭 시 안내창 없이 로딩만 영원히 돎"] 기존 코드는
+          // loadMyRoom()의 로딩 진행 중/완료 상태를 구분하지 않고 room==null이면
+          // 무조건 CircularProgressIndicator만 보여줬다. 비로그인(게스트) 사용자는
+          // 서버에 애초에 내 소원방이 없으므로(loadMyRoom()이 정상 응답해도
+          // res.room이 null) 로딩이 끝난 뒤에도 room은 영원히 null로 남아
+          // "로딩 스피너가 멈추지 않는 것처럼 보이는" 버그였다(실제로는 로딩이
+          // 끝났지만 그 사실을 알려줄 분기가 없었을 뿐). loadMyRoom()이 아직
+          // 끝나지 않았을 때만(p.isLoading && !p.loaded) 스피너를 보여주고,
+          // 로딩이 끝났는데도 room이 없으면(게스트이거나 서버 오류) decor_screen.dart
+          // _NoRoom과 동일한 패턴으로 안내 문구 + "첫 소원 담기" CTA를 보여준다.
+          if (p.isLoading && !p.loaded) {
+            return const Center(child: CircularProgressIndicator(color: Color(0xFFF5CF6A)));
+          }
+          return _NoRoomMain(onBack: _onBack, onExitHome: _onExitHome);
         }
         final cat = WrCatalog.I;
         final isDim = room.decayBadge && room.brightness < 1 && !_rekindling;
@@ -1691,3 +1706,41 @@ class _PouchPillTapState extends State<_PouchPillTap> with SingleTickerProviderS
 
 /// 안내서 시트 — CHANGELOG '봉인 안내 문구' GUIDE 섹션(최소 구현).
 
+/// [버그수정 — "내 소원방" 무한 로딩] decor_screen.dart의 `_NoRoom` 패턴을
+/// 메인 소원방 화면에도 적용한다. 비로그인(게스트) 사용자가 "다른 소원방
+/// 둘러보기"를 거쳐 이 탭으로 돌아왔을 때, 안내 없이 로딩만 영원히 도는
+/// 대신 "아직 소원이 담기지 않았어요" 안내와 "첫 소원 담기" CTA를 보여준다.
+class _NoRoomMain extends StatelessWidget {
+  const _NoRoomMain({required this.onBack, required this.onExitHome});
+  final VoidCallback onBack, onExitHome;
+  @override
+  Widget build(BuildContext context) {
+    return Stack(children: [
+      Positioned.fill(child: ImageFiltered(
+        imageFilter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        child: Image.asset('assets/wishroom/room-lv1.jpg', fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => Container(color: WrC.bg2)),
+      )),
+      Positioned.fill(child: Container(color: const Color(0x66000000))),
+      Positioned(left: 14, top: 52, child: WrNavPill(onBack: onBack, onExitHome: onExitHome)),
+      Positioned.fill(child: Center(child: Padding(
+        padding: const EdgeInsets.all(40),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Icon(Icons.local_fire_department, size: 100, color: Colors.white38),
+          const SizedBox(height: 14),
+          Text('아직 소원이 담기지 않았어요', textAlign: TextAlign.center,
+            style: WrF.body(14, color: WrC.muted, height: 1.7)),
+          const SizedBox(height: 6),
+          Text('첫 소원을 담으면 나만의 소원방이 만들어져요', textAlign: TextAlign.center,
+            style: WrF.body(12.5, color: WrC.muted, height: 1.6)),
+          const SizedBox(height: 18),
+          SizedBox(width: 200, height: 52, child: ElevatedButton(
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ComposeScreen())),
+            style: ElevatedButton.styleFrom(backgroundColor: WrC.blossom, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+            child: const Text('✿ 첫 소원 담기', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+          )),
+        ]),
+      ))),
+    ]);
+  }
+}
