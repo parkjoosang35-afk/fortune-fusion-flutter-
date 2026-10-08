@@ -99,6 +99,7 @@ import '../../features/saju_renewal/screens/saju_intro_screen.dart';
 import '../../features/saju_renewal/navigation/saju_dimension_transition.dart';
 import 'package:provider/provider.dart';
 import 'app_navigator_key.dart';
+import '../web/web_nav_bridge.dart';
 
 /// 07단계 §3.2 라우팅 테이블 - Navigator 1.0(onGenerateRoute) 구현
 /// 10단계(A안): AI 6대 기능(사주/타로/관상/손금/궁합/AI상담) + 리워드(미션/랭킹)까지
@@ -122,6 +123,14 @@ class AppRouter {
   static const String tarotIntroRoute = '/tarot/intro';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
+    // [PC 랜딩 연동 — 반대 방향 동기화] 앱 내부에서 어떤 라우트로든 이동할
+    // 때마다(Navigator.pushNamed 등) 항상 이 함수가 그 settings.name으로
+    // 호출되므로, 여기서 한 번 알려주면 모든 내부 네비게이션을 놓치지 않고
+    // 포착할 수 있다. 기존 `_page()` 헬퍼가 만드는 MaterialPageRoute에는
+    // settings가 안 실려 있어(NavigatorObserver로는 이름을 못 읽음) 이
+    // 진입점에서 직접 전달하는 방식을 택했다. 웹이 아니거나 standalone
+    // 실행이면 내부에서 조용히 no-op된다(web_nav_bridge.dart 참고).
+    notifyRouteName(settings.name);
     // [2026 디자인 핸드오프 — 게스트 딥링크 이중 진입점 통합] named route
     // 이름이 '/g/{token}' 형태로 직접 전달되는 경우(웹 URL 진입, 그리고
     // `GuinjiDeepLinkHandler`가 수신한 OS 레벨 딥링크 모두 최종적으로 이

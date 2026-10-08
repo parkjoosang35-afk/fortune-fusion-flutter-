@@ -5,6 +5,7 @@ import 'package:kakao_flutter_sdk_common/kakao_flutter_sdk_common.dart';
 import 'app.dart';
 import 'core/config/social_auth_config.dart';
 import 'core/router/guinji_deep_link_handler.dart';
+import 'core/web/web_nav_bridge.dart';
 import 'core/web_ads/web_ad_service.dart';
 import 'features/ads_test/domain/admob_ad_ids.dart';
 import 'features/ads_test/domain/admob_consent_service.dart';
@@ -65,6 +66,12 @@ Future<void> main() async {
   // 동작하도록 설계되어 있고(GuinjiDeepLinkHandler.init 내부에서 프레임 콜백
   // 사용), 앱 시작 자체를 블로킹할 필요는 없다.
   GuinjiDeepLinkHandler.init();
+  // [PC 랜딩 연동] sintong.kr/ 랜딩이 이 앱을 iframe(sintong.kr/app/)으로
+  // 띄운 상태에서 왼쪽 메뉴 클릭 시 postMessage로 라우트 이동을 지시하고,
+  // 반대로 앱 내부 네비게이션 변화를 랜딩에 알려 배경 테마를 동기화한다.
+  // 비-웹 플랫폼에서는 no-op(web_nav_bridge_io.dart)이라 APK 빌드에는
+  // 영향이 없다.
+  initWebNavBridge();
   // [Phase C-1] 저녁 7시 종소리 알림 — 플러그인 초기화 후, 사용자가 과거에
   // 옵트인했다면 예약을 다시 걸어준다(기기 재설치/데이터 초기화로 예약이
   // 사라졌을 가능성 보정). await 하지 않는 이유: 이 부가 기능이 앱 시작을

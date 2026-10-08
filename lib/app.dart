@@ -5,6 +5,7 @@ import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'core/router/app_router.dart';
 import 'core/router/app_navigator_key.dart';
+import 'core/web/web_nav_bridge.dart';
 import 'core/widgets/web_mobile_frame.dart';
 
 import 'features/auth/application/auth_provider.dart';
@@ -292,6 +293,9 @@ class App extends StatelessWidget {
           builder: (context, themeProvider, _) {
             return MaterialApp(
               navigatorKey: appNavigatorKey,
+              // [PC 랜딩 연동] 라우트 변화를 부모 윈도우(랜딩)에 알리기
+              // 위한 Observer. 비-웹 플랫폼에서는 빈 구현(no-op)이다.
+              navigatorObservers: [WebNavBridgeObserver()],
               title: '신통방통',
               debugShowCheckedModeBanner: false,
               theme: AppTheme.light,
