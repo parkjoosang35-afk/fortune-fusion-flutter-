@@ -67,13 +67,15 @@ class GuinjiFriendEntry {
   final String? memberId;
 }
 
+// [V2 전환] 폐기된 12종 코드(NA_SALRIDA/GACHI_BICH/JORYEOK/KKEURIDA/
+// JAGEUKJE)를 V2 6종으로 재매핑한 샘플 데이터.
 const _defaultFriends = [
   GuinjiFriendEntry(rank: 1, name: '수아', relationKey: 'CHEON_GWII', ohaengLabel: '火 오행', score: 92),
-  GuinjiFriendEntry(rank: 2, name: '민서', relationKey: 'NA_SALRIDA', ohaengLabel: '木 오행', score: 88),
-  GuinjiFriendEntry(rank: 3, name: '도윤', relationKey: 'GACHI_BICH', ohaengLabel: '金 오행', score: 84),
-  GuinjiFriendEntry(rank: 4, name: '유진', relationKey: 'JORYEOK', ohaengLabel: '水 오행', score: 81),
-  GuinjiFriendEntry(rank: 5, name: '하늘', relationKey: 'KKEURIDA', ohaengLabel: '木 오행', score: 76),
-  GuinjiFriendEntry(rank: 6, name: '지호', relationKey: 'JAGEUKJE', ohaengLabel: '金 오행', score: 67),
+  GuinjiFriendEntry(rank: 2, name: '민서', relationKey: 'SANG_SAENG', ohaengLabel: '木 오행', score: 88),
+  GuinjiFriendEntry(rank: 3, name: '도윤', relationKey: 'BI_HWA', ohaengLabel: '金 오행', score: 84),
+  GuinjiFriendEntry(rank: 4, name: '유진', relationKey: 'BI_HWA', ohaengLabel: '水 오행', score: 81),
+  GuinjiFriendEntry(rank: 5, name: '하늘', relationKey: 'HAP', ohaengLabel: '木 오행', score: 76),
+  GuinjiFriendEntry(rank: 6, name: '지호', relationKey: 'SANG_GEUK', ohaengLabel: '金 오행', score: 67),
 ];
 
 /// [귀인지도 실구현] [GuinjiProvider.people]을 실제 점수 내림차순으로

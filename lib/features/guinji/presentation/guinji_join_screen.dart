@@ -178,7 +178,10 @@ class _GuinjiJoinScreenState extends State<GuinjiJoinScreen> {
     }
 
     final relationship = result['relationship'] as Map<String, dynamic>?;
-    final relationType = relationship?['relationType'] as String? ?? 'JORYEOK';
+    // [V2 전환] 구형 12종 코드('JORYEOK')가 남아있던 폴백을 6종 중
+    // 하나인 'BI_HWA'로 교체 — 서버가 relationType을 내려주지 못한
+    // 극단적 예외 상황에서도 guinjiRelationTypes 조회가 항상 성공한다.
+    final relationType = relationship?['relationType'] as String? ?? 'BI_HWA';
     final chemistryScore =
         (relationship?['chemistryScore'] as num?)?.toInt() ?? 0;
     final meta = guinjiRelationTypes[relationType];

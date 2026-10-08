@@ -7,7 +7,10 @@ import '../domain/guinji_relation_meta.dart';
 import '../theme/guinji_theme.dart';
 
 /// 궤도(orbit) 반지름 — 안쪽(貴) → 바깥쪽(師), `GUINJI_SCREENS.md` 공통값.
-const List<double> guinjiOrbitRadii = [55, 84, 108, 130, 148];
+/// [V2 전환] 관계유형이 6종(orbit 0~5)이 되어 반지름도 6개로 확장함.
+/// (기존 5개였을 때는 orbit index 5가 범위를 벗어나 RangeError가
+/// 발생했음 — guinjiRelationTypes의 orbit 필드(0~5)와 1:1로 맞춘다.)
+const List<double> guinjiOrbitRadii = [55, 78, 100, 122, 144, 164];
 
 /// 사람 노드(person node) — 지도(S5)와 향후 관계상세(S6) 등에서 공용으로
 /// 재사용하는 위젯. 원본 `GuinjiComponents.jsx` → `PersonNode` 이식.
@@ -29,7 +32,9 @@ class GuinjiPersonNode extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final meta = person != null ? guinjiRelationTypes[person!.relation] : null;
+    // [V2 전환] 안전 헬퍼 사용 — 알 수 없는 relation 값이 들어와도
+    // null을 반환하지 않고 'BI_HWA'로 폴백해 링 색상이 항상 결정됨.
+    final meta = person != null ? guinjiRelationMetaOf(person!.relation) : null;
     final ringColor = isMe
         ? GuinjiColors.lavender
         : (meta?.color ?? GuinjiColors.surfaceCardBorder);
@@ -124,7 +129,7 @@ class GuinjiOrbitMap extends StatelessWidget {
     // 관계 유형(orbit index)별로 그룹화.
     final grouped = <int, List<GuinjiPerson>>{};
     for (final p in people) {
-      final orbit = guinjiRelationTypes[p.relation]?.orbit ?? 2;
+      final orbit = guinjiRelationMetaOf(p.relation).orbit;
       grouped.putIfAbsent(orbit, () => []).add(p);
     }
 

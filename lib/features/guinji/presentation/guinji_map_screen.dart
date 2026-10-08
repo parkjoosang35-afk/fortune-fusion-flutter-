@@ -150,14 +150,17 @@ class _GuinjiMapScreenState extends State<GuinjiMapScreen> {
                           onTap: () => setState(() => _filter = 'all'),
                         ),
                         const SizedBox(width: 6),
+                        // [V2 전환 — non-null assertion 제거] guinjiRelationOrder는
+                        // 항상 V2 6종 키이므로 이론상 안전하지만,
+                        // guinjiRelationMetaOf()로 통일해 일관된 안전 패턴을 쓴다.
                         for (final key in guinjiRelationOrder) ...[
                           _FilterChip(
                             label:
-                                '${guinjiRelationTypes[key]!.hanja} '
-                                '${guinjiRelationTypes[key]!.label} · '
+                                '${guinjiRelationMetaOf(key).hanja} '
+                                '${guinjiRelationMetaOf(key).label} · '
                                 '${widget.people.where((p) => p.relation == key).length}',
                             active: _filter == key,
-                            color: guinjiRelationTypes[key]!.color,
+                            color: guinjiRelationMetaOf(key).color,
                             onTap: () => setState(() => _filter = key),
                           ),
                           const SizedBox(width: 6),

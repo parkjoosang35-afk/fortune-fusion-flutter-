@@ -55,22 +55,21 @@ class GuinjiColors {
     colors: [backgroundSoft, backgroundDeep, backgroundDarker],
   );
 
-  /// 12라벨(貴人地圖 관계 라벨) 색상 — 로즈골드 아이보리 팔레트에 맞춰
-  /// 파스텔 웜톤으로 재조정(기존 다크 배경용 네온 파스텔 → 라이트 배경용
-  /// 저채도 톤). 관계 유형별 구분은 유지하면서 전체적으로 채도를 낮추고
-  /// 배경(아이보리)과 대비가 확보되도록 톤을 조정했다.
+  /// [V2 전환 — 4단계] 관계유형 6종(CHEON_GWII/HAP/SANG_SAENG/SANG_GEUK/
+  /// BI_HWA/CHUNG) 색상. 기존 12라벨 체계는 완전히 폐기되었다(병행노출
+  /// 금지 — admin_web 엔진이 12종을 더 이상 반환하지 않음). 색상 값은
+  /// 기존 12색 팔레트 중 의미가 가장 가까운 것을 그대로 재사용해(로즈골드
+  /// 아이보리 배경과의 대비·채도 검증이 이미 끝난 값이므로) 톤의 일관성을
+  /// 유지한다 — 재사용 매핑: CHEON_GWII←(그대로), HAP←구 KKEURIDA(緣,
+  /// 인연 개념 동일), SANG_SAENG←구 NA_SALRIDA(生, 상생 개념 동일),
+  /// SANG_GEUK←구 JAGEUKJE(剋/刺, 극 개념 동일), BI_HWA←구 JORYEOK(比肩,
+  /// 비화 개념 동일), CHUNG←구 GINGJANG(緊/沖, 충돌 개념 동일).
   static const relationCheonGwii = Color(0xFFC99B7F); // 천생귀인 (rose500)
-  static const relationNaSalrida = Color(0xFFD4A574); // 나를 살리는 사람 (gold)
-  static const relationJoryeok = Color(0xFF8FA68C); // 조력자 (세이지그린)
-  static const relationGachiGa = Color(0xFFA6795E); // 같이 가야 좋은 길 (rose700)
-  static const relationNaSaljinda = Color(0xFFE8B4A5); // 내가 살리는 사람 (blush)
-  static const relationChangGyim = Color(0xFFB58567); // 내가 챙기는 사람 (rose600)
-  static const relationGamjeong = Color(0xFFC9A5C9); // 감정 충전소 (더스티 라일락)
-  static const relationDeungdeung = Color(0xFF8B9DAE); // 든든한 등받이 (더스티 블루)
-  static const relationKkeurida = Color(0xFFD69175); // 끌리는 사람 (rose400)
-  static const relationGachiBich = Color(0xFFE8CBA0); // 같이 빛나는 사람 (goldLight)
-  static const relationJageukje = Color(0xFFCC8B5C); // 자극제 (버뮤트 오렌지)
-  static const relationGingjang = Color(0xFF9C8AA5); // 긴장 속 단짝 (더스티 퍼플)
+  static const relationHap = Color(0xFFD69175); // 인연합 (rose400)
+  static const relationSangSaeng = Color(0xFFD4A574); // 상생동행 (gold)
+  static const relationSangGeuk = Color(0xFFCC8B5C); // 상극조율 (버뮤트 오렌지)
+  static const relationBiHwa = Color(0xFF8FA68C); // 동류동반 (세이지그린)
+  static const relationChung = Color(0xFF9C8AA5); // 충돌극복 (더스티 퍼플)
 
   /// 오행(五行) 5색 — 로즈골드 아이보리 팔레트에 맞춘 저채도 톤.
   static const ohaengMok = Color(0xFF8FA68C); // 木 (세이지그린)

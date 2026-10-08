@@ -18,15 +18,17 @@ import 'guinji_share_screen.dart';
 class GuinjiEmptyMapScreen extends StatelessWidget {
   const GuinjiEmptyMapScreen({super.key});
 
-  /// 5유형(貴/同/緣/養/師) 링 반지름 순서 — RELATION_TYPES 정의 순서와
-  /// 동일(orbit 0→4, 안쪽→바깥쪽): guin, oreunpal, inyeon, salrim, horang.
-  static const List<double> _ringRadii = [55, 84, 108, 130, 148];
+  /// [V2 전환] 6종 관계유형(orbit 0→5, 안쪽→바깥쪽) 링 반지름/색상 순서.
+  /// 기존 12종 시절 상수(relationJoryeok 등, 폐기된 코드)를 참조하던
+  /// 자리를 V2 6종 색상으로 교체했다.
+  static const List<double> _ringRadii = [55, 78, 100, 122, 144, 164];
   static const List<Color> _ringColors = [
     GuinjiColors.relationCheonGwii,
-    GuinjiColors.relationJoryeok,
-    GuinjiColors.relationGachiGa,
-    GuinjiColors.relationNaSaljinda,
-    GuinjiColors.relationJageukje,
+    GuinjiColors.relationHap,
+    GuinjiColors.relationSangSaeng,
+    GuinjiColors.relationSangGeuk,
+    GuinjiColors.relationBiHwa,
+    GuinjiColors.relationChung,
   ];
 
   @override

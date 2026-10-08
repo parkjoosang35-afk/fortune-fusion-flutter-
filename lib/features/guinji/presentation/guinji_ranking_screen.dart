@@ -265,8 +265,10 @@ class _RankRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final relation = guinjiRelationTypes[person.relation]!;
-    final ohaeng = guinjiOhaengTypes[person.ohaeng]!;
+    // [V2 전환 — non-null assertion 제거] guinjiRelationMetaOf()로 교체해
+    // V2 6종이 아닌 값이 들어와도 크래시하지 않도록 한다.
+    final relation = guinjiRelationMetaOf(person.relation);
+    final ohaeng = guinjiOhaengTypes[person.ohaeng] ?? guinjiOhaengTypes['to']!;
     final top3 = rank <= 3;
 
     return Material(

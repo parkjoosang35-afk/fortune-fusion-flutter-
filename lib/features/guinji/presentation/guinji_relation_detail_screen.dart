@@ -84,8 +84,11 @@ class _GuinjiRelationDetailScreenState
   @override
   Widget build(BuildContext context) {
     final person = widget.person;
-    final relation = guinjiRelationTypes[person.relation]!;
-    final ohaeng = guinjiOhaengTypes[person.ohaeng]!;
+    // [V2 전환 — non-null assertion 제거] V2 6종 키가 아니면(구형 12종
+    // 잔존값 등) 즉시 크래시하던 `guinjiRelationTypes[...]!`를
+    // `guinjiRelationMetaOf()`로 교체 — 항상 안전한 폴백을 반환한다.
+    final relation = guinjiRelationMetaOf(person.relation);
+    final ohaeng = guinjiOhaengTypes[person.ohaeng] ?? guinjiOhaengTypes['to']!;
 
     return Scaffold(
       backgroundColor: GuinjiColors.backgroundDeep,

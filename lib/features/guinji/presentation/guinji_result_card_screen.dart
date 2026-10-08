@@ -266,9 +266,12 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
   @override
   Widget build(BuildContext context) {
     final people = widget.people;
+    // [V2 전환] 폐기된 12종 코드(JORYEOK/JAGEUKJE) 하드코딩 비교를
+    // V2 6종(SANG_SAENG/SANG_GEUK)으로 교체. 기존 "조력/자극제" 의미에
+    // 가장 가까운 V2 유형으로 매핑했다.
     final guin = people.where((p) => p.relation == 'CHEON_GWII').length;
-    final oreunpal = people.where((p) => p.relation == 'JORYEOK').length;
-    final horang = people.where((p) => p.relation == 'JAGEUKJE').length;
+    final oreunpal = people.where((p) => p.relation == 'SANG_SAENG').length;
+    final horang = people.where((p) => p.relation == 'SANG_GEUK').length;
 
     return Scaffold(
       backgroundColor: GuinjiColors.backgroundDeep,
