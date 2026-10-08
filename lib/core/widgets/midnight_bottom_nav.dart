@@ -16,6 +16,17 @@
 // 각 아이콘은 default/active 파일이 따로 있고, 이미 자체적으로 단색
 // 솔리드 색이 구워져 있다(default: #E8DCC8 불투명, active: #F5CF6A
 // 불투명 + 복주머니만 장식용 다이아몬드가 바 배경색(#0E0A14)으로 덮임).
+//
+// [버그수정 — 아이콘이 전부 검정으로 보이던 문제] 원본 핸드오프 SVG는
+// `fill="currentColor"` + 루트 `<svg>`의 `color="#XXXXXX"` 속성(브라우저
+// CSS 상속 트릭)으로 색을 입혔다. 이 패턴은 웹 브라우저에서는 동작하지만
+// `flutter_svg`는 SVG `color` 속성을 해석하지 않아 `currentColor`가
+// 기본값(검정)으로 렌더링됐다 — 그 결과 미선택 아이콘은 거의 안 보이고,
+// 선택 아이콘은 글로우 레이어(별도 colorFilter 강제 틴트)만 금빛으로
+// 보이는 "검은 아이콘 + 금빛 테두리"로 깨져 보였다. assets/icons/bottom_nav/
+// 의 8개 SVG는 `currentColor`를 실제 hex 값(default #E8DCC8 / active
+// #F5CF6A)으로 치환해 고정했다 — 복주머니 active의 마름모 `stroke="#0E0A14"`
+// (바 배경색 덮음)는 원래부터 currentColor가 아니었으므로 그대로 보존됨.
 // README는 "<img>로 쓰면 미선택 투명도는 opacity: 0.5로 맞추세요"라고
 // 명시한다 — 파일 자체는 완전 불투명이므로, 미선택 아이콘에만 추가로
 // Opacity(0.5)를 씌워 디자인 토큰(rgba(232,220,200,.50))과 맞춘다.
