@@ -4,7 +4,26 @@ import '../state/saju_renewal_provider.dart';
 import '../theme/saju_dark_tokens.dart';
 import '../widgets/saju_base_widgets.dart';
 import 'analysis_complete_screen.dart';
+import 'birth_input_screen.dart';
 import 'story_detail_screen.dart';
+
+/// [버그 수정 — saju-handoff-spec.pdf §6.4 R-D "추정 금지" 미이행 보완]
+/// 서버(TK-6, admin_web topics/select·interpret route.ts)는 성별/출생정보가
+/// 없으면 "성별을 입력해 주세요"(GENDER_REQUIRED) / "프로필을 먼저
+/// 입력해주세요"(BIRTH_INFO_REQUIRED) 상태를 reason 코드로 명확히 내려준다.
+/// 그런데 이 화면은 지금까지 이 reason을 전혀 구분하지 않고 모든 오류를
+/// 동일하게 "다시 시도"(provider.retry() = 같은 요청 재실행) 버튼 하나로만
+/// 처리했다 — 홈 화면의 `_isProfileComplete()` 사전 검사가 신규 흐름은
+/// 대부분 막아주지만, 클라이언트 캐시 user.gender와 서버 DB 값이 어긋나는
+/// 예외 상황(다른 기기 동기화 지연 등)에서는 서버가 실제로 이 reason을
+/// 반환할 수 있다. 이 경우 "다시 시도"를 눌러도 서버 DB 상태(성별 없음)가
+/// 그대로이므로 똑같은 실패가 반복되는 무한 루프가 되고, 사용자가 성별을
+/// 고칠 수 있는 화면으로 안내하는 경로가 전혀 없었다. §6.4 R-D는 "성별을
+/// 입력해 주세요 상태로 반환"하라고 명시하므로, 이 두 reason일 때만 버튼을
+/// "출생정보 입력하기"로 바꿔 BirthInputScreen(수정 모드)으로 보내고,
+/// 저장 후 돌아오면 자동으로 retry()를 호출해 사용자가 별도 조작 없이
+/// 바로 이어서 진행되게 한다.
+const Set<String> _kProfileFixReasons = {'GENDER_REQUIRED', 'BIRTH_INFO_REQUIRED'};
 
 /// [신통방통 정통사주 리뉴얼 — 다크 디자인 핸드오프] 공용 오류 화면.
 ///
@@ -51,12 +70,32 @@ class _ErrorScreenState extends State<ErrorScreen> {
     });
   }
 
+  /// §6.4 R-D 대응 — 출생정보 입력(수정 모드)으로 보낸 뒤, 저장을 마치고
+  /// 돌아오면 사용자가 다시 "다시 시도"를 누를 필요 없이 자동으로 재시도한다
+  /// (BirthInputScreen은 isEditMode=true일 때 저장 성공 시 그냥 pop만 하므로,
+  /// 이 화면이 돌아온 직후를 감지해 이어서 진행시켜야 한다).
+  Future<void> _goFixProfileThenRetry(BuildContext context) async {
+    setState(() => _retrying = true);
+    final provider = context.read<SajuRenewalProvider>();
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const BirthInputScreen(isEditMode: true)));
+    if (!mounted) return;
+    await provider.retry();
+    if (mounted) setState(() => _retrying = false);
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<SajuRenewalProvider>();
     _maybeNavigateAfterRetry(provider);
     final message =
         provider.errorMessage ?? '일시적으로 결과를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.';
+    // [§6.4 R-D] 성별/출생정보 누락은 "재시도"가 아니라 "입력 화면 이동"으로
+    // 풀어야 한다 — 서버 DB 상태(성별 없음)가 그대로인 한 단순 재시도는
+    // 똑같은 실패만 반복한다(추정 금지 원칙상 클라이언트가 임의로 기본값을
+    // 채워 보낼 수도 없음).
+    final needsProfileFix = _kProfileFixReasons.contains(provider.errorReason);
 
     return Scaffold(
       body: SajuDarkBase(
@@ -107,11 +146,15 @@ class _ErrorScreenState extends State<ErrorScreen> {
                   ),
                   const SizedBox(height: 32),
                   SajuButton(
-                    label: '다시 시도',
+                    label: needsProfileFix ? '출생정보 입력하기' : '다시 시도',
                     loading: _retrying,
                     onTap: _retrying
                         ? null
                         : () async {
+                            if (needsProfileFix) {
+                              await _goFixProfileThenRetry(context);
+                              return;
+                            }
                             setState(() => _retrying = true);
                             await context.read<SajuRenewalProvider>().retry();
                             if (mounted) setState(() => _retrying = false);
