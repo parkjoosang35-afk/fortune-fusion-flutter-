@@ -63,6 +63,10 @@ const ERROR_STATUS: Record<string, number> = {
   INVALID_EXCLUDE_TOPIC_IDS: 400,
   INVALID_LIMIT: 400,
   BIRTH_INFO_REQUIRED: 400,
+  // [v2.0 §6.4 입력 검증(원인 D) — TK-6] interpret/route.ts와 동일한 검증을 여기도
+  // 적용한다(§6.4 "전 주제 해석 생성 차단"은 topics/select 단계부터 적용되어야
+  // 사용자가 애초에 성별 없는 상태로 주제 후보 화면까지 진입하지 않는다).
+  GENDER_REQUIRED: 400,
   FACT_ENGINE_UNAVAILABLE: 503,
 };
 
@@ -73,6 +77,8 @@ const ERROR_MESSAGE: Record<string, string> = {
   INVALID_EXCLUDE_TOPIC_IDS: "exclude_topic_ids는 문자열 배열이어야 합니다.",
   INVALID_LIMIT: "limit은 1 이상의 숫자여야 합니다.",
   BIRTH_INFO_REQUIRED: "출생정보가 등록되어 있지 않습니다. 프로필을 먼저 입력해주세요.",
+  // [v2.0 §6.4 R-D 원문] "성별을 입력해 주세요" 상태로 반환 — 추정 금지.
+  GENDER_REQUIRED: "성별을 입력해 주세요. 성별 정보가 있어야 정확한 대운 방향을 계산할 수 있습니다.",
   FACT_ENGINE_UNAVAILABLE: "사주 계산 결과를 가져오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
 };
 
@@ -160,9 +166,13 @@ function parseBirthTime(
 }
 
 /** User.gender(문자열, "male"|"female"|"unspecified"|null) → SajuBirthInput.gender.
- * saju_engine BirthInputV3.gender 기본값은 "male"이다 — "unspecified"/null인 경우
- * 임의로 추정하지 않고 undefined를 반환해 엔진 기본값에 위임한다(이 라우트가 새로운
- * 판단을 추가하지 않음). */
+ * [v2.0 §6.4 TK-6 수정] 과거에는 "unspecified"/null일 때 undefined를 반환해
+ * saju_engine BirthInputV3.gender 기본값("male")에 조용히 위임했으나, 이는 §6.1
+ * "연간 음양+성별 조합"에 따라 대운 순행/역행이 전면 반전될 수 있는 값을 사용자
+ * 동의 없이 추정하는 것이라 §6.4 R-D("추정 금지")를 위반한다. 이 함수 자체는
+ * 여전히 "male"/"female"이 아니면 undefined를 반환하기만 하고, 그 undefined를
+ * 차단할지 말지는 호출부(POST 핸들러)가 §6.4 검증으로 결정한다(이 함수의 책임
+ * 범위는 "문자열 → 엔진 리터럴 변환"으로 좁게 유지). */
 function toEngineGender(gender: string | null | undefined): "male" | "female" | undefined {
   if (gender === "male" || gender === "female") return gender;
   return undefined;
@@ -199,13 +209,22 @@ export async function POST(request: NextRequest) {
     }
     const { hour, minute } = parseBirthTime(user.profile.birthTime, user.profile.birthTimeUnknown);
 
+    // [v2.0 §6.4 TK-6 — 성별 필수 검증] interpret/route.ts와 동일한 이유로 여기서도
+    // 차단한다 — 주제 후보 선정(selectTopics)은 아직 LLM/대운 계산을 직접 하지
+    // 않지만, 이 API가 반환하는 facts(및 대운 관련 key_facts)가 잘못된 추정
+    // 성별로 계산된 채 다음 단계(interpret)로 전달되는 것을 애초에 막는다.
+    const engineGender = toEngineGender(user.gender);
+    if (!engineGender) {
+      throw new TopicsSelectError("GENDER_REQUIRED", ERROR_MESSAGE.GENDER_REQUIRED);
+    }
+
     const birthInput: SajuBirthInput = {
       year: parsedDate.year,
       month: parsedDate.month,
       day: parsedDate.day,
       hour,
       minute,
-      gender: toEngineGender(user.gender),
+      gender: engineGender,
       isLunar: user.profile.isLunar,
       // zihourPolicy: UserProfile에 저장 필드가 없어 엔진 기본값("traditional")을
       // 그대로 사용한다(§11 "캐시 사용 원칙"과 무관 — 이 값은 saju-engine-client.ts의

@@ -68,6 +68,12 @@ const ERROR_STATUS: Record<string, number> = {
   TOPIC_ID_REQUIRED: 400,
   INVALID_MODE: 400,
   BIRTH_INFO_REQUIRED: 400,
+  // [v2.0 §6.4 입력 검증(원인 D) — TK-6] 성별이 없으면 대운(大運) 순행/역행 방향이
+  // 결정되지 않는다(§6.1 "연간 음양 + 성별 조합"). PDF §9 T4가 요구하는 "전 주제
+  // 해석 생성 차단, 상태값 반환(오류 아님)"을 BIRTH_INFO_REQUIRED와 동일한 400 +
+  // reason 코드 패턴으로 구현한다 — 클라이언트는 이 reason을 보고 "성별 입력"
+  // 화면으로 유도하면 된다(추정 금지 원칙 — R-D).
+  GENDER_REQUIRED: 400,
   FACT_ENGINE_UNAVAILABLE: 503,
   TOPIC_NOT_FOUND: 404,
   TOPIC_NOT_RELEASED: 404,
@@ -97,6 +103,8 @@ const ERROR_MESSAGE: Record<string, string> = {
   TOPIC_ID_REQUIRED: "topic_id는 필수입니다.",
   INVALID_MODE: "mode는 'summary' 또는 'detail'이어야 합니다.",
   BIRTH_INFO_REQUIRED: "출생정보가 등록되어 있지 않습니다. 프로필을 먼저 입력해주세요.",
+  // [v2.0 §6.4 R-D 원문] "성별을 입력해 주세요" 상태로 반환 — 추정 금지.
+  GENDER_REQUIRED: "성별을 입력해 주세요. 성별 정보가 있어야 정확한 대운 방향을 계산할 수 있습니다.",
   FACT_ENGINE_UNAVAILABLE: "사주 계산 결과를 가져오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
   // [§11 사용자 내부 정보 노출 금지] 거부 사유를 사용자에게 보일 때도 topic_id/
   // 내부 코드를 직접 언급하지 않는다 — 공통 안내 문구만 노출한다.
@@ -213,13 +221,23 @@ export async function POST(request: NextRequest) {
       throw new InterpretError("BIRTH_INFO_REQUIRED", ERROR_MESSAGE.BIRTH_INFO_REQUIRED);
     }
     const { hour, minute } = parseBirthTime(user.profile.birthTime, user.profile.birthTimeUnknown);
+    // [v2.0 §6.4 TK-6 — 성별 필수 검증] 성별이 "male"/"female"로 명확히 설정되어
+    // 있지 않으면(미입력 또는 "unspecified") 여기서 즉시 차단한다. 과거에는
+    // toEngineGender()가 undefined를 반환해 saju-engine-client.ts/엔진이 기본값
+    // "male"로 조용히 추정했는데, 이는 §6.1 "연간 음양+성별 조합"에 따라 대운
+    // 순행/역행이 전면 반전될 수 있는 값을 사용자 동의 없이 추정하는 것이므로
+    // §6.4 R-D("추정 금지")를 위반한다. 전 주제 해석 생성을 여기서 차단한다.
+    const engineGender = toEngineGender(user.gender);
+    if (!engineGender) {
+      throw new InterpretError("GENDER_REQUIRED", ERROR_MESSAGE.GENDER_REQUIRED);
+    }
     const birthInput: SajuBirthInput = {
       year: parsedDate.year,
       month: parsedDate.month,
       day: parsedDate.day,
       hour,
       minute,
-      gender: toEngineGender(user.gender),
+      gender: engineGender,
       isLunar: user.profile.isLunar,
     };
 
