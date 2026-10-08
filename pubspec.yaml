@@ -155,6 +155,12 @@ dependencies:
   # Min Dart SDK 3.3) 사용. Web/Android 모두 지원.
   package_info_plus: 9.0.1
 
+  # [하단바 리디자인 — design_handoff_bottom_nav.zip] 심야의 신전 테마
+  # 하단 탭바 아이콘(ic_nav_*.svg, 24x24 viewBox, currentColor 기반)을
+  # 벡터로 렌더링하기 위한 패키지. 미선택/선택 색상을 런타임에 ColorFilter로
+  # 바꿔 그려야 해서(기본 #E8DCC8/선택 #F5CF6A) PNG 대신 SVG를 쓴다.
+  flutter_svg: 2.0.10+1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -180,6 +186,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/icons/
+    - assets/icons/bottom_nav/
     - assets/images/
     - assets/images/sintong/
     - assets/images/sintong_home/

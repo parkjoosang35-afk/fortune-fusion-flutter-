@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
+import '../widgets/midnight_bottom_nav.dart';
 // [신통방통 홈 v2 전면 교체] 사용자 두 번째 디자인 핸드오프
 // (design_handoff_sintong_main.zip)로 전면 교체 — 기존 v1
 // home_screen.dart(화이트 프리미엄 CMS 동적 섹션)는 더 이상 이 탭에
@@ -27,11 +27,12 @@ import '../../features/mypage/presentation/my_screen.dart';
 /// 화면이었던 `features/fortune/presentation/fortune_hub_screen.dart`는
 /// 다른 곳에서 전혀 참조되지 않아(단일 소비자였음) 파일 자체를 삭제했다.
 ///
-/// [Fortune Fusion 디자인 우선 리디자인 프롬프트] §7-9 하단 탭바를 화이트/연보라
-/// 톤으로 통일한다(홈 화면만 화이트로 바뀌었으므로 탭바도 함께 맞춰야 이질감이 없음).
-/// 다른 3개 탭(소원방/복주머니/마이)의 화면 내부는 아직 다크 우주 톤을
-/// 유지하므로, 탭 전환 시 상단 배경색은 각 화면의 Scaffold.backgroundColor가
-/// 그대로 담당한다(이 파일은 탭바 자체만 화이트로 변경).
+/// [하단바 리디자인 — design_handoff_bottom_nav.zip "심야의 신전" Variant A]
+/// 기존에는 §7-9 지시로 하단 탭바를 화이트/연보라 톤(Material
+/// BottomNavigationBar)으로 통일했었으나, 새 디자인 핸드오프가 어두운 바
+/// 위에서 선택 탭만 금빛으로 켜지는 다크 테마로 전면 교체를 지시해
+/// [MidnightBottomNavBar] 공용 위젯으로 바꾼다. 탭 전환 로직(IndexedStack
+/// 인덱스, 소원방 push 분기 등)은 전혀 건드리지 않고 겉모습만 교체한다.
 class AppShell extends StatefulWidget {
   const AppShell({super.key, this.initialIndex = 0});
 
@@ -72,7 +73,7 @@ class _AppShellState extends State<AppShell> {
   @override
   void initState() {
     super.initState();
-    _index = widget.initialIndex.clamp(0, _navItems.length - 1);
+    _index = widget.initialIndex.clamp(0, kMidnightNavTabs.length - 1);
     if (_index == _wishRoomNavIndex) {
       // 홈 라우트에 arguments:2로 곧장 진입한 경우(예: MainBottomNavBar)에도
       // 동일하게 push 방식을 적용하기 위해 첫 프레임 이후 0(홈)으로
@@ -106,93 +107,18 @@ class _AppShellState extends State<AppShell> {
     MyScreen(), // 👤 마이 - 프로필+등급뱃지+아카이브+설정
   ];
 
-  // [운세보기 섹션 삭제] "운세" 탭 항목을 _navItems에서 제거. 4탭(홈/소원방/
-  // 복주머니/마이)로 축소.
-  static const _navItems = [
-    (Icons.home_outlined, Icons.home_rounded, '홈'),
-    (
-      Icons.local_fire_department_outlined,
-      Icons.local_fire_department_rounded,
-      '소원방',
-    ),
-    // [2026-11 복주머니 아이콘 교체] main_bottom_nav_bar.dart와 동일하게,
-    // 기본 Material 아이콘(선물상자 모양) 대신 실제 한국 전통 복주머니
-    // 모양으로 생성한 커스텀 이미지 에셋을 쓴다. items 빌더에서 인덱스
-    // 2번만 Image.asset으로 렌더링한다.
-    (Icons.card_giftcard_outlined, Icons.card_giftcard_rounded, '복주머니'),
-    (Icons.person_outline_rounded, Icons.person_rounded, '마이'),
-  ];
-
-  static const String _luckyBagIconAsset = 'assets/icons/luckybag_icon.png';
-
-  Widget _luckyBagIcon({required bool selected}) {
-    return ColorFiltered(
-      colorFilter: ColorFilter.mode(
-        selected ? const Color(0xFF111111) : const Color(0xFF9A9AA2),
-        BlendMode.srcIn,
-      ),
-      child: Image.asset(_luckyBagIconAsset, width: 22, height: 22),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(index: _navToTab(_index), children: _tabs),
-      // [홈 화면 최종 마감 정돈 프롬프트] 탭바 5개 완전 통일: 아이콘 22 고정,
-      // 두께/라벨 크기·자간을 모두 동일 규칙으로 통일하고 활성(#111111)/
-      // 비활성(#9A9AA2)은 색상 규칙으로만 구분한다(굵기/크기 차이 제거).
-      // 여기 쓰이는 색상 리터럴은 이 위젯 내부에서만 쓰이는 값이라 전역
-      // AppColors 상수를 바꾸지 않고 직접 지정해도 다른 화면에 영향이 없다.
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: AppColors.premiumBgSection,
-          border: Border(top: BorderSide(color: Color(0xFFECECEF), width: 1)),
-        ),
-        child: SafeArea(
-          child: SizedBox(
-            height: 60,
-            child: BottomNavigationBar(
-              currentIndex: _index,
-              onTap: _onTapNav,
-              backgroundColor: AppColors.premiumBgSection,
-              type: BottomNavigationBarType.fixed,
-              elevation: 0,
-              selectedItemColor: const Color(0xFF111111),
-              unselectedItemColor: const Color(0xFF9A9AA2),
-              selectedLabelStyle: const TextStyle(
-                fontFamily: 'Pretendard',
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                letterSpacing: -0.2,
-              ),
-              unselectedLabelStyle: const TextStyle(
-                fontFamily: 'Pretendard',
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                letterSpacing: -0.2,
-              ),
-              items: _navItems.asMap().entries.map((entry) {
-                final index = entry.key;
-                final e = entry.value;
-                // 복주머니 탭(인덱스 2, 운세 삭제로 인덱스 변경됨)만 커스텀
-                // 이미지 아이콘으로 교체.
-                if (index == 2) {
-                  return BottomNavigationBarItem(
-                    icon: _luckyBagIcon(selected: false),
-                    activeIcon: _luckyBagIcon(selected: true),
-                    label: e.$3,
-                  );
-                }
-                return BottomNavigationBarItem(
-                  icon: Icon(e.$1, size: 22),
-                  activeIcon: Icon(e.$2, size: 22),
-                  label: e.$3,
-                );
-              }).toList(),
-            ),
-          ),
-        ),
+      bottomNavigationBar: MidnightBottomNavBar(
+        currentIndex: _index,
+        onTap: _onTapNav,
+        // README "같은 탭 다시 탭" 규칙: 현재 탭을 다시 누르면 스크롤을
+        // 맨 위로. 현재 IndexedStack 탭 콘텐츠들은 전용 스크롤-투-탑 훅을
+        // 노출하지 않아(화면별 ScrollController 비공개) 당장은 no-op으로
+        // 남겨 둔다 — 각 탭 화면에 공개 컨트롤러가 추가되면 여기서 호출.
+        onReselected: (_) {},
       ),
     );
   }
