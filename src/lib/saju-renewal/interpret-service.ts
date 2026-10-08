@@ -240,7 +240,12 @@ function attachDaeunTimelineIfApplicable(
   return { ...(result as InterpretDetailResult), daeun_timeline: toDaeunTimelineApiEntries(timeline) };
 }
 
-function resolveGateProfile(topic: PromptTopicInfo): GateProfile {
+/** [TK-9 — export 근거] §9 T8(주제 교차 일관성) 골든셋 회귀 테스트가 "실제 운영
+ * 경로가 쓰는 프로파일 결정 로직 그대로"를 재사용해야 한다(테스트 쪽에서 같은
+ * 로직을 복제하면 두 로직이 따로 썩어 divergence를 놓칠 위험이 있다). 그래서
+ * 이 함수를 export해 scripts/dev-test-tk9-golden-regression.ts가 29종 전체
+ * topicId에 대해 production과 동일한 gateProfile을 그대로 조회하게 한다. */
+export function resolveGateProfile(topic: PromptTopicInfo): GateProfile {
   if (SINSAL_GATE_TOPIC_IDS.has(topic.topicId)) return "sinsal";
   return topic.isTiming ? "time_scoped" : "no_time";
 }
