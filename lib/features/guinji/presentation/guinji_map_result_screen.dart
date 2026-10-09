@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -11,6 +13,7 @@ import '../domain/guinji_relation_meta.dart';
 import '../theme/guinji_map_theme.dart';
 import '../theme/guinji_type_spec.dart';
 import '../widgets/guinji_animated_graph.dart';
+import '../widgets/guinji_arrival_overlay.dart';
 import '../widgets/guinji_map_widgets.dart';
 import 'guinji_map_relation_detail_screen.dart';
 import 'guinji_node_sheet.dart';
@@ -70,6 +73,16 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
   /// 지도에서 강조한다(다시 탭하면 해제). null = 필터 없음.
   String? _filter;
 
+  /// [05-4 지인 도착 애니메이션 연동] 이번에 "새로 도착"으로 판정된
+  /// 지인 목록 — 비어 있지 않으면 [GuinjiArrivalOverlay]를 Stack 맨 위에
+  /// 겹쳐 띄운다. 오버레이가 스스로 닫히거나 "왜 그런지 보기"를 누르면
+  /// 비운다([_dismissArrivalOverlay]).
+  List<GuinjiPerson> _pendingArrivals = const [];
+
+  /// 중복 조회 방지 — 직전에 비교했던 참여자 수(명단이 실제로 늘어난
+  /// 경우에만 [GuinjiArrivalSeenStore.findNewArrivals]를 다시 호출한다).
+  int? _lastCheckedPeopleCount;
+
   @override
   void initState() {
     super.initState();
@@ -79,6 +92,55 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
     // 다이얼로그를 1회 띄운다. 프레임이 그려진 뒤 확인해야
     // `ScaffoldMessenger`/`showDialog`가 안전하게 동작한다.
     WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowMilestoneCelebration());
+    unawaited(_checkArrivals());
+  }
+
+  @override
+  void didUpdateWidget(covariant GuinjiMapResultScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // [05-4] `GuinjiProvider.people`이 바뀌었을 때만(=새로고침으로 참여자
+    // 수가 달라졌을 때만) 다시 비교한다 — 매 리렌더마다 재조회하면
+    // 이미 띄워 둔 오버레이가 깜빡이며 리셋될 수 있다.
+    if (widget.people.length != oldWidget.people.length) {
+      unawaited(_checkArrivals());
+    }
+  }
+
+  /// [05-4 지인 도착 애니메이션] 핸드오프: "지도 화면에서 … GET /maps/me
+  /// 비교. 본 사람은 SharedPreferences: seenMemberIds에 저장" — 이
+  /// 화면은 [GuinjiProvider.people]이 바뀐 시점(= 최신 `/maps/me` 응답이
+  /// 반영된 시점)에 [GuinjiArrivalSeenStore]와 비교해 새로 합류한 지인을
+  /// 찾는다. 이미 오버레이가 떠 있으면(`_pendingArrivals`가 비어있지 않음)
+  /// 재생 중인 애니메이션을 방해하지 않도록 건너뛴다.
+  Future<void> _checkArrivals() async {
+    if (!mounted) return;
+    if (_pendingArrivals.isNotEmpty) return;
+    if (_lastCheckedPeopleCount == widget.people.length) return;
+    _lastCheckedPeopleCount = widget.people.length;
+
+    final arrivals = await GuinjiArrivalSeenStore.findNewArrivals(widget.people);
+    if (!mounted || arrivals.isEmpty) return;
+    setState(() => _pendingArrivals = arrivals);
+  }
+
+  /// 오버레이를 닫는다 — 본 사람으로 영속화한 뒤 목록을 비워 Stack에서
+  /// 제거되게 한다.
+  void _dismissArrivalOverlay() {
+    final ids = _pendingArrivals.map((p) => p.id).toList();
+    setState(() => _pendingArrivals = const []);
+    unawaited(GuinjiArrivalSeenStore.markSeen(ids));
+  }
+
+  /// 결과 카드 "왜 그런지 보기" — 오버레이를 닫고 곧바로 관계상세 화면으로
+  /// push한다(핸드오프 `CArrivalScreen`의 "왜 그런지 보기" 버튼 동작과
+  /// 동일 — 노드 바텀시트를 거치지 않고 바로 상세로 이동).
+  void _openArrivalRelation(GuinjiPerson person) {
+    _dismissArrivalOverlay();
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => GuinjiMapRelationDetailScreen(person: person),
+      ),
+    );
   }
 
   void _maybeShowMilestoneCelebration() {
@@ -218,6 +280,25 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
       ..sort((a, b) => b.score.compareTo(a.score));
     final topThree = top3.take(3).toList();
 
+    return Stack(
+      children: [
+        _buildScaffold(total, topThree),
+        // [05-4 지인 도착 애니메이션] 지도(M)를 보고 있을 때 새 멤버가
+        // 감지되면 화면 전체 위에 겹쳐 재생한다(핸드오프 "지도를 보고
+        // 있을 때 재생" — 지도 자체는 가리지 않고 그 위에 효과만 더함).
+        if (_pendingArrivals.isNotEmpty)
+          Positioned.fill(
+            child: GuinjiArrivalOverlay(
+              arrivals: _pendingArrivals,
+              onOpenRelation: _openArrivalRelation,
+              onClose: _dismissArrivalOverlay,
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildScaffold(int total, List<GuinjiPerson> topThree) {
     return Scaffold(
       backgroundColor: GmColors.bg,
       appBar: GmTopBar(
