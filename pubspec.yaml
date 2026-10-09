@@ -129,6 +129,9 @@ dependencies:
                                  # (kakao_flutter_sdk_user의 전이 의존성이지만
                                  # depend_on_referenced_packages 린트 규칙 준수를
                                  # 위해 명시적으로 선언).
+  kakao_flutter_sdk_share: 1.9.7+3 # [귀인지도 v2 리스킨] 카카오톡 FeedTemplate
+                                 # 공유(guinji_share_kakao.dart) — kakao_flutter_sdk_user와
+                                 # 동일 버전으로 고정(모노레포 버전 통일).
 
   # [귀인지도 결과카드 "이미지 저장" 버그수정 — 2026-11] 지금까지 "이미지
   # 저장" 버튼이 실제로는 "공유하기"와 완전히 동일한 Share.shareXFiles()를
