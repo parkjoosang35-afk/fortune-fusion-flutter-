@@ -80,12 +80,10 @@ import '../../features/guinji/presentation/guinji_input_screen.dart';
 import '../../features/guinji/presentation/guinji_calculating_screen.dart';
 import '../../features/guinji/presentation/guinji_map_result_screen.dart';
 import '../../features/guinji/presentation/guinji_map_share_screen.dart';
-import '../../features/guinji/presentation/guinji_friend_list_screen.dart';
 import '../../features/guinji/presentation/guinji_guest_result_screen.dart';
 import '../../features/guinji/presentation/guinji_map_guest_join_screen.dart';
 // [귀인지도 기능 정리 — 관계상세/랭킹] `/guinji-map/*` 신규 디자인 톤으로
 // 새로 만든 관계상세(N→상세)·랭킹 화면. M/F 화면에서 진입점으로 연결한다.
-import '../../features/guinji/presentation/guinji_map_relation_detail_screen.dart';
 import '../../features/guinji/presentation/guinji_map_ranking_screen.dart';
 // [결과 공유 기능 — sintong-share-proposal.pdf] `/r/{shareId}` 딥링크
 // 도착 화면. `/g/{token}`(귀인지도 게스트 참여)과 동일한 패턴으로 named
@@ -354,40 +352,21 @@ class AppRouter {
             },
           ),
         );
+      // [핸드오프 §05-3 `RankScreen` 1:1 이식] "유형별 목록"은 랭킹
+      // 화면의 두 번째 탭이다(기존 F화면과 통합) — 별도 화면이 아니므로
+      // `/guinji-map/m/friends`는 랭킹 화면을 `initialTab: 1`로 열도록
+      // 리다이렉트한다(구 라우트 경로 하위호환 유지).
       case '/guinji-map/m/friends':
         return _page(
           Builder(
             builder: (context) {
-              final people = context.watch<GuinjiProvider>().people;
-              // [귀인지도 기능 정리 — F화면 상세 연결] friends는 점수
-              // 내림차순으로 정렬된 GuinjiFriendEntry 목록이므로, 동일하게
-              // people을 점수 내림차순 정렬해두면 rank(1-base) - 1 인덱스로
-              // 원본 GuinjiPerson과 1:1 매핑된다(guinjiFriendEntriesFromPeople
-              // 내부 정렬 로직과 동일한 기준 재사용).
-              final sortedPeople = [...people]
-                ..sort((a, b) => b.score.compareTo(a.score));
-              return GuinjiFriendListScreen(
-                friends: guinjiFriendEntriesFromPeople(people),
-                onFriendTap: (entry) {
-                  final idx = entry.rank - 1;
-                  if (idx < 0 || idx >= sortedPeople.length) return;
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => GuinjiMapRelationDetailScreen(
-                        person: sortedPeople[idx],
-                      ),
-                    ),
-                  );
-                },
-                // [멤버 삭제 — "이름/생년월일을 잘못 넣어서 잘못 나올 때
-                // 삭제"] 지도 소유자가 F(친구목록) 화면에서 직접 삭제할
-                // 수 있게 한다. 확인 다이얼로그는 화면 내부(_confirmDelete)
-                // 에서 이미 거쳤으므로 여기서는 곧바로 서버 호출한다.
-                onFriendDelete: (entry) async {
-                  final memberId = entry.memberId;
-                  if (memberId == null) return;
-                  final provider = context.read<GuinjiProvider>();
-                  final ok = await provider.deleteMember(memberId);
+              final provider = context.watch<GuinjiProvider>();
+              return GuinjiMapRankingScreen(
+                people: provider.people,
+                ownerName: provider.mapName ?? '나',
+                initialTab: 1,
+                onMemberDelete: (person) async {
+                  final ok = await provider.deleteMember(person.id);
                   if (!ok && context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text(provider.error ?? '삭제에 실패했습니다.')),
@@ -409,6 +388,14 @@ class AppRouter {
               return GuinjiMapRankingScreen(
                 people: provider.people,
                 ownerName: provider.mapName ?? '나',
+                onMemberDelete: (person) async {
+                  final ok = await provider.deleteMember(person.id);
+                  if (!ok && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(provider.error ?? '삭제에 실패했습니다.')),
+                    );
+                  }
+                },
               );
             },
           ),

@@ -21,7 +21,7 @@ import 'package:flutter_app/features/guinji/presentation/guinji_input_screen.dar
 import 'package:flutter_app/features/guinji/presentation/guinji_calculating_screen.dart';
 import 'package:flutter_app/features/guinji/presentation/guinji_map_result_screen.dart';
 import 'package:flutter_app/features/guinji/presentation/guinji_map_share_screen.dart';
-import 'package:flutter_app/features/guinji/presentation/guinji_friend_list_screen.dart';
+import 'package:flutter_app/features/guinji/presentation/guinji_map_ranking_screen.dart';
 import 'package:flutter_app/features/guinji/presentation/guinji_guest_result_screen.dart';
 import 'package:flutter_app/features/guinji/presentation/guinji_map_guest_join_screen.dart';
 
@@ -189,25 +189,23 @@ void main() {
     expect(find.text('지도를 여는 중…'), findsOneWidget);
   });
 
-  testWidgets('F · Friend List 화면이 예외 없이 렌더된다(기본 목데이터)', (
+  // [핸드오프 §05-3 `RankScreen` 1:1 이식] "유형별 목록"은 더 이상 별도
+  // 화면(F · Friend List)이 아니라 랭킹 화면의 두 번째 탭이다.
+  testWidgets('F · 유형별 목록(랭킹 화면 2번째 탭)이 예외 없이 렌더된다(빈 목데이터)', (
     tester,
   ) async {
-    await tester.pumpWidget(_wrap(const GuinjiFriendListScreen()));
+    await tester.pumpWidget(
+      _wrap(const GuinjiMapRankingScreen(people: [], initialTab: 1)),
+    );
     await tester.pump();
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('F · Friend List 화면이 실제 people 기반 목록으로도 렌더된다', (
+  testWidgets('F · 유형별 목록이 실제 people 기반으로도 렌더된다', (
     tester,
   ) async {
-    final entries = guinjiFriendEntriesFromPeople(_samplePeople);
-    expect(entries.length, 2);
-    expect(entries.first.name, '수아'); // 점수 92 > 81 이므로 1위
-    expect(entries.first.rank, 1);
-    expect(entries.first.ohaengLabel, '火 오행');
-
     await tester.pumpWidget(
-      _wrap(GuinjiFriendListScreen(friends: entries)),
+      _wrap(GuinjiMapRankingScreen(people: _samplePeople, initialTab: 1)),
     );
     await tester.pump();
     expect(tester.takeException(), isNull);

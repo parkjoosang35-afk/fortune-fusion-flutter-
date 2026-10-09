@@ -452,7 +452,7 @@ class _StarsPainter extends CustomPainter {
       final localPhase = (phase * 6 + (i % 9) * 0.3) % (2 + (i % 5) * 0.7);
       final period = 2 + (i % 5) * 0.7;
       final t = (localPhase / period) * 2 * math.pi;
-      final opacity = 0.35 + 0.5 * (0.5 + 0.5 * math.sin(t));
+      final opacity = 0.525 + 0.375 * math.sin(t); // giTw: .15~.9
       final paint = Paint()..color = Colors.white.withValues(alpha: opacity);
       canvas.drawCircle(Offset(left, top), r, paint);
     }
@@ -631,6 +631,24 @@ class _ArrivalWidget extends StatelessWidget {
 
     final children = <Widget>[];
 
+    // 유성 꼬리(도착 직전, e∈(-500,20)) — JSX `giComet` offset-path 애니메이션.
+    if (e > -500 && e < 20) {
+      children.add(
+        _CometTrail(
+          cx: cx,
+          cy: cy,
+          scale: scale,
+          targetX: x,
+          targetY: y,
+          angle: a,
+          leftSide: leftSide,
+          index: index,
+          localMs: e + 500,
+          color: typeSpec.color,
+        ),
+      );
+    }
+
     // 충격파 2겹
     if (e >= 0 && e < 1200) {
       for (final d in [0, 160]) {
@@ -751,6 +769,73 @@ class _ArrivalWidget extends StatelessWidget {
     }
 
     return Stack(children: children);
+  }
+}
+
+/// 유성 꼬리 — JSX `giComet`(offset-path 곡선 이동) 재현.
+/// 화면 바깥(leftSide 쪽이면 -60, 아니면 450)에서 2차 베지어 곡선을 따라
+/// 도착 지점까지 날아오는 4개의 점(머리는 흰색, 꼬리 3개는 유형색).
+class _CometTrail extends StatelessWidget {
+  const _CometTrail({
+    required this.cx,
+    required this.cy,
+    required this.scale,
+    required this.targetX,
+    required this.targetY,
+    required this.angle,
+    required this.leftSide,
+    required this.index,
+    required this.localMs,
+    required this.color,
+  });
+  final double cx, cy, scale, targetX, targetY, angle;
+  final bool leftSide;
+  final int index, localMs;
+  final Color color;
+
+  static const _cometCurve = Cubic(0.5, 0, 0.8, 0.4);
+
+  @override
+  Widget build(BuildContext context) {
+    final sx = (leftSide ? -60.0 : 450.0) * scale;
+    final sy = (-40.0 - (index % 3) * 40.0) * scale;
+    final ctrlX = (sx + targetX) / 2;
+    final ctrlY = math.min(sy, targetY) - 50 * scale;
+
+    final dots = <Widget>[];
+    for (var k = 0; k < 4; k++) {
+      final delay = k * 25;
+      final raw = ((localMs - delay) / 500).clamp(0.0, 1.0);
+      if (localMs < delay) continue;
+      final te = _cometCurve.transform(raw);
+      final px = (1 - te) * (1 - te) * sx +
+          2 * (1 - te) * te * ctrlX +
+          te * te * targetX;
+      final py = (1 - te) * (1 - te) * sy +
+          2 * (1 - te) * te * ctrlY +
+          te * te * targetY;
+      final opacity = (te < 0.1 ? te / 0.1 : 1.0) * (1 - k * 0.2);
+      final dotSize = (8 - k * 1.5) * scale;
+      final dotColor = k == 0 ? Colors.white : color;
+      dots.add(
+        Positioned(
+          left: px - dotSize / 2,
+          top: py - dotSize / 2,
+          width: dotSize,
+          height: dotSize,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: dotColor.withValues(alpha: opacity),
+              boxShadow: [
+                BoxShadow(color: color.withValues(alpha: opacity), blurRadius: 14),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    return Stack(children: dots);
   }
 }
 
