@@ -1,41 +1,41 @@
-import 'package:flutter/foundation.dart' show kDebugMode;
+import 'dart:math' as math;
+import 'dart:ui' as ui;
+
+import 'package:flutter/foundation.dart' show kDebugMode, ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../intro/application/intro_state_provider.dart';
 import '../../intro/application/intro_config_provider.dart';
-import '../../intro/domain/intro_config_model.dart';
-import '../../intro/presentation/intro_palette.dart';
-import '../../intro/presentation/intro_text_styles.dart';
-import '../../intro/presentation/widgets/intro_eyebrow_label.dart';
 import '../../home/domain/jeontong_local_to_server_migration.dart';
 import '../../result_access/domain/pending_result_access_return.dart';
 import '../application/auth_provider.dart';
 
-/// [인트로 전면 개편 - 1단계 브랜드 스플래시]
-/// 중앙 로고 + "신통방통" + (선택)짧은 카피, fade-in/out, 1.0~1.5초.
+/// [2026-10 스플래시 디자인 교체 — "신통방통" 워드마크 애니메이션]
+/// `design_handoff_splash` 핸드오프(`splash.html`)를 그대로 이식한다.
 ///
-/// [2026-08-21 인트로 3종 색상 정리] 배경/로고 톤을 브랜드 컬러
-/// #90035C(IntroPalette) 기준으로 교체했다. 부트스트랩 로직과 진입 정책은
-/// 절대 손대지 않고 시각적 톤만 바꾼다(§7 계산/로직 불변 원칙과 동일한
-/// 정신 — 여기서는 "부트스트랩 로직 불변").
+/// 배경은 기존 로딩 화면(`sintong.kr/app/`)과 동일한 보라 그라데이션을
+/// 유지하고(핸드오프 §4-1, "변경 금지"), 중앙 컨텐츠만 "신통방통" 글자
+/// 4개의 3D 플립 → 인장(神通萬通) 4개 팝 → 가는 선 → 영문 스크램블 →
+/// 흰 빛 스윕 → 퇴장 순서로 재생되는 약 7.3초짜리 시퀀스로 교체했다.
 ///
-/// [2026 디자인 핸드오프 콘텐츠 전면 반영] 기존 UI는 색상/캐릭터 이미지만
-/// 핸드오프를 따르고 실제 카피/구조(eyebrow 라벨, 정확한 서브카피, 로딩닷)는
-/// 반영하지 않았던 문제를 바로잡는다. `screens/01_Intro.html` 페이지1
-/// (`eyebrow`="神通萬通 · SINTONG", 제목 "신통방통" 42px, 서브카피
-/// "하늘의 답을 / 신통도령이 전해드립니다", 하단 로딩닷 3개)을 그대로 이식했다.
-/// 부트스트랩 로직(`_bootstrap`)과 fade 애니메이션 컨트롤러는 절대 손대지 않는다.
+/// [기존 구조 재사용 원칙 유지] 부트스트랩 로직(`_bootstrap` — 세션 복원,
+/// 인트로 설정 로드, pending result-access 복원, introSeen 분기)은 과거
+/// 여러 차례 버그 수정을 거쳐 안정화된 코드이므로 전혀 손대지 않는다.
+/// 오직 `build()`의 시각적 내용만 교체한다.
 ///
-/// [기존 구조 재사용 원칙] 부트스트랩 로직(AuthProvider.restoreSession() 호출,
-/// introSeen 여부에 따른 분기)은 기존 SplashScreen 구조를 그대로 유지하고,
-/// 시각적 톤과 진입 정책만 개선한다.
+/// [고정 7.3초 애니메이션과 가변 부트스트랩 시간의 통합] 핸드오프 §6은
+/// "데이터 로딩은 스플래시와 병렬 진행. 7.3초 전에 끝나도 애니메이션은
+/// 끝까지 재생 권장. 로딩이 더 길면 퇴장(6.4s) 직전 최종 상태에서 대기
+/// 후 로딩 완료 시 퇴장 실행"을 명시한다. 이를 그대로 구현하기 위해
+/// 메인 타임라인 컨트롤러를 "등장(0~6.4s)"과 "퇴장(6.4~7.3s)" 두
+/// 구간으로 분리했다: 등장 애니메이션은 즉시 재생을 시작해 6.4s 지점
+/// (완성된 워드마크 상태)에서 자동으로 멈추고, 부트스트랩이 끝나는
+/// 시점에만 명시적으로 퇴장(0.9s)을 재생한 뒤 네비게이션한다.
 ///
-/// [진입 정책 변경 — 로그인 강제 제거] 기존에는 "온보딩 완료 + 비로그인"이면
-/// 무조건 /login으로 보냈으나, 이는 "회원가입 강제 없이 체험 가능"이라는 인트로
-/// 개편 핵심 원칙과 배치된다. 이제 introSeen(=기존 onboarding_completed)이면
-/// 로그인 여부와 무관하게 항상 /home(AppShell)으로 보낸다 — 홈 화면과 하위 화면은
-/// 이미 auth.isLoggedIn을 각자 체크해 비회원도 안전하게 탐색할 수 있도록 되어 있다.
+/// [접근성] `MediaQuery.disableAnimations`(OS의 "모션 줄이기" 설정)가
+/// 켜져 있으면 핸드오프 §6 "애니메이션 생략, 최종 상태 즉시 표시,
+/// 1.2초 후 종료"를 따른다.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -43,120 +43,161 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
+/// 핸드오프 §5 타임라인 각 요소의 시작 시각(초). 문서의 표를 그대로
+/// 상수화했다 — 값 자체를 바꾸지 않아야 "픽셀 단위로 동일하게 구현"
+/// 요구사항(§3)을 지킬 수 있다.
+class _SplashTiming {
+  _SplashTiming._();
+
+  static const double charFlip1 = 0.40;
+  static const double charFlip2 = 0.75;
+  static const double charFlip3 = 1.10;
+  static const double charFlip4 = 1.45;
+  static const double charFlipDuration = 2.1;
+
+  static const double settleStart = 2.60;
+  static const double settleDuration = 1.2;
+
+  static const double seal1 = 3.00;
+  static const double seal2 = 3.12;
+  static const double seal3 = 3.24;
+  static const double seal4 = 3.36;
+  static const double sealDuration = 0.7;
+
+  static const double ruleStart = 3.60;
+  static const double ruleDuration = 1.2;
+
+  static const double enFadeStart = 3.70;
+  static const double enFadeDuration = 0.3;
+  static const double scrambleStart = 3.70;
+  static const double scrambleDuration = 1.1;
+
+  static const double sweepLine1Start = 4.60;
+  static const double sweepLine2Start = 4.72;
+  static const double sweepDuration = 1.6;
+
+  /// 등장 시퀀스가 "완성된 상태"로 멈추는 지점 = 퇴장 시작 지점.
+  static const double outroStart = 6.40;
+  static const double outroDuration = 0.9;
+
+  // 전체 길이(등장 6.4s + 퇴장 0.9s) = 7.3s — 핸드오프 §1 "총 길이 약
+  // 7.3초"와 일치(값 자체는 outroStart + outroDuration로 유도 가능하므로
+  // 별도 상수로 두지 않음 — unused_field 경고 방지).
+}
+
 class _SplashScreenState extends State<SplashScreen>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _fade;
-  // [스플래시 히어로 이미지 미표시 버그 수정 - 2차, 근본 원인 해결]
-  // 1차 수정(precacheImage를 _bootstrap의 Future.wait에 포함)은
-  // "화면 전환 타이밍"만 늦출 뿐, 정작 첫 build() 호출 시점에 이미지가
-  // 아직 캐시에 없으면 그 프레임은 빈 이미지로 그려지는 문제를 막지
-  // 못했다(Playwright 정밀 캡처로 실제 확인 — 첫 페인트 프레임에
-  // 히어로 영역이 빈 그라디언트로 나가고, 폰트조차 tofu box로
-  // 깨져 있었음). 근본적으로는 "이미지가 준비되기 전에는 그 자리를
-  // 아예 투명하게 유지"해야 한다. _heroReady 플래그를 두어 build()에서
-  // AnimatedOpacity로 감싸고, precacheImage가 끝나야만(또는 타임아웃 시)
-  // 화면에 드러나도록 한다 — 레이아웃 높이(260px)는 항상 고정 유지되므로
-  // 다른 요소가 밀리는 점프는 없다.
-  Future<void>? _heroImagePrecache;
-  bool _heroReady = false;
+    with TickerProviderStateMixin {
+  /// 등장 구간(0~6.4s) 전용 컨트롤러. 6.4s 지점에서 자동 정지한 채
+  /// "완성된 워드마크" 상태를 부트스트랩이 끝날 때까지 유지한다.
+  late final AnimationController _introController;
+
+  /// 퇴장 구간(0.9s) 전용 컨트롤러. 부트스트랩 완료 직후에만 재생한다.
+  late final AnimationController _outroController;
+
+  /// OS 모션 줄이기 설정 여부(§6). didChangeDependencies에서 확정한다.
+  bool _reduceMotion = false;
+  bool _reduceMotionResolved = false;
+
+  // [영문 스크램블 — 핸드오프 §5 키프레임 ⑤] 매 프레임 텍스트를 직접
+  // 갱신해야 하므로 Text 위젯 상태를 별도 ValueNotifier로 들고 있다
+  // (AnimationController의 리빌드 주기와 분리해 스크램블 글자가 매
+  // 프레임 새로 랜덤 선택되도록 하기 위함).
+  static const String _finalEnglishText = 'SINTONG BANGTONG';
+  static const String _scrambleGlyphs =
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#*+/<>';
+  final ValueNotifier<String> _englishText = ValueNotifier<String>(
+    _finalEnglishText.replaceAll(RegExp(r'\S'), '·'),
+  );
+  final math.Random _random = math.Random();
 
   @override
   void initState() {
     super.initState();
-    // [스플래시 히어로 이미지 미표시 버그 수정 - 4차, 진짜 근본 원인 해결]
-    // 1~3차 수정은 모두 "setState와 네비게이션 사이의 프레임 레이스"를
-    // 의심했으나, 실제 디버그 로그(T0~T10 타임스탬프)를 웹 콘솔에서
-    // 직접 추적한 결과 전혀 다른 원인이 드러났다:
-    //
-    //   기존 _controller는 initState 시점부터 "고정 1300ms" 동안
-    //   fade-in(0~40%) -> hold(40~80%) -> fade-out(80~100%)을 자동으로
-    //   전부 재생하는 TweenSequence였다. 그런데 실제 부트스트랩
-    //   (세션 복원 + introConfig 로드 + 히어로 이미지 precache + 400ms
-    //   체류)은 이 환경에서 약 2.0~2.5초가 걸린다(T0=4.937s ~
-    //   T10=7.438s, 총 2501ms). 즉 화면 전체를 감싸는 FadeTransition은
-    //   1.3초 만에 이미 opacity=0(완전 투명)으로 끝나버리고, 그 안의
-    //   히어로 이미지가 `_heroReady=true`가 되어 실제로 그려지는 시점
-    //   (T7=6.950s, initState 대비 +2013ms)에는 이미 부모 전체가
-    //   투명해서 화면에 아무것도 보이지 않았던 것이다. setState/
-    //   endOfFrame 관련 수정(2~3차)은 이 문제와 무관했다.
-    //
-    //   근본 해결: 컨트롤러를 "고정 시간에 자동으로 사라지는 애니메이션"
-    //   이 아니라 "빠르게 페이드인한 뒤 부트스트랩이 끝날 때까지 완전히
-    //   보이는 상태(opacity=1)로 유지 -> 부트스트랩 완료 직후에만 명시적
-    //   으로 페이드아웃"하는 방식으로 재설계한다. forward()는 페이드인만
-    //   담당하고 끝나면 1.0에 멈춰 있으며, `_bootstrap()`의 네비게이션
-    //   직전에 `_controller.reverse()`를 await해 페이드아웃시킨다.
-    _controller = AnimationController(
+    _introController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 400),
-      reverseDuration: const Duration(milliseconds: 300),
+      duration: Duration(
+        milliseconds: (_SplashTiming.outroStart * 1000).round(),
+      ),
     );
-    _fade = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
-    _controller.forward();
-    // [스플래시 히어로 이미지 미표시 버그 수정] 첫 프레임이 끝난 직후
-    // (addPostFrameCallback) precacheImage를 시작해 다운로드를 최대한
-    // 앞당긴다. initState 시점에는 아직 BuildContext의 mediaquery 등이
-    // 완전히 준비되지 않을 수 있어 postFrameCallback에서 실행한다.
+    _outroController = AnimationController(
+      vsync: this,
+      duration: Duration(
+        milliseconds: (_SplashTiming.outroDuration * 1000).round(),
+      ),
+    );
+    // 영문 스크램블은 매 프레임 랜덤 글자를 다시 뽑아야 하므로, 등장
+    // 컨트롤러의 tick에 얹어 진행률을 직접 계산한다(키프레임 ⑤).
+    _introController.addListener(_onIntroTick);
+
+    // [스플래시 워드마크 애니메이션 시작] 기존 히어로 이미지/폰트 precache
+    // 로직은 전부 제거되었다(핸드오프는 이미지 에셋을 쓰지 않음 — §8).
+    // Google Fonts(Black Han Sans/Noto Serif HK/IBM Plex Mono)는 폭이
+    // 좁은 텍스트 몇 글자만 그리므로 별도 게이팅 없이 바로 재생해도
+    // tofu box가 체감될 정도로 노출되지 않는다(기존 "정통사주 폰트 tofu"
+    // 버그는 38px 큰 제목 텍스트였던 것과 다름).
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      // [스플래시 타이틀 폰트 tofu box 버그 수정 - 5차, 폰트 로딩도 이미지와
-      // 동일하게 게이팅한다] 근본 원인: IntroTextStyles.title()이 쓰는
-      // GoogleFonts.nanumMyeongjo()는 로컬 asset으로 번들되어 있지 않아
-      // (Pretendard/GowunBatang/IBMPlexMono와 달리) 웹에서 최초 호출 시마다
-      // fonts.gstatic.com으로 런타임 네트워크 다운로드가 필요하다. 그런데
-      // 기존 코드는 히어로 이미지만 _heroReady로 게이팅했고, 타이틀
-      // Text는 폰트 도착 여부와 무관하게 즉시 그려져 — 다운로드가 끝나기
-      // 전 첫 프레임에는 시스템 폴백 폰트(한글 글리프 없음)로 그려져
-      // tofu box(□□□□)가 노출됐다. 해결: 여기서 IntroTextStyles.title()을
-      // 한 번 호출해 폰트 로딩을 즉시 트리거하고, 그 직후
-      // GoogleFonts.pendingFonts()로 로딩 완료 Future를 확보한 뒤,
-      // 이미지 precache와 함께 Future.wait로 묶어 둘 다 끝나야만
-      // _heroReady=true가 되도록 한다 — build()에서도 히어로 이미지와
-      // 타이틀/서브카피를 하나의 AnimatedOpacity로 함께 묶어 폰트가
-      // 준비되기 전에는 텍스트도 투명하게 유지된다(FOUT 원천 차단).
-      IntroTextStyles.title(fontSize: 38); // 폰트 로딩 트리거(side-effect)
-      final fontsPending = GoogleFonts.pendingFonts();
-      _heroImagePrecache =
-          fontsPending
-          .timeout(
-            const Duration(milliseconds: 2500),
-            onTimeout: () {
-              if (kDebugMode) {
-                debugPrint(
-                  '[스플래시 히어로 이미지/폰트] precache 타임아웃(2.5초) — 계속 진행',
-                );
-              }
-              return <void>[];
-            },
-          ).whenComplete(() {
-            // [2차 수정 핵심] precache(이미지+폰트)가 끝나는 즉시(성공이든
-            // 타임아웃이든) setState로 _heroReady를 true로 바꿔, 그제서야
-            // 히어로 이미지 + 타이틀/서브카피가 함께 화면에 페이드인되도록
-            // 한다. 이 setState 시점에는 이미 이미지가 디코딩되고 폰트가
-            // FontLoader에 등록된 상태이므로, 다음 build()에서는 반드시
-            // 완성된 이미지와 정상 한글 폰트가 함께 그려진다.
-            if (mounted) {
-              setState(() => _heroReady = true);
-            }
-          });
+      _startSequence();
     });
-    // [버그 수정] initState 안에서 _bootstrap()을 곧바로 호출하면, 그 안의
-    // AuthProvider.restoreSession()이 첫 await 이전에 동기적으로
+
+    // [버그 수정 유지] initState 안에서 _bootstrap()을 곧바로 호출하면,
+    // 그 안의 AuthProvider.restoreSession()이 첫 await 이전에 동기적으로
     // notifyListeners()를 호출해 "setState() or markNeedsBuild() called
-    // during build" assertion을 유발한다(위젯 트리가 아직 최초 빌드 중인
-    // 시점에 상위 InheritedProvider를 갱신 요청하기 때문). release 빌드는
-    // assert가 제거돼 겉으로 드러나지 않았지만, widget test(debug 모드)에서는
-    // 항상 예외로 잡힌다. addPostFrameCallback으로 첫 프레임이 완전히 끝난
-    // 뒤에 실행하도록 미뤄 근본적으로 해결한다.
+    // during build" assertion을 유발한다. addPostFrameCallback으로 첫
+    // 프레임이 끝난 뒤에 실행한다(기존 수정 그대로 보존).
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _bootstrap();
     });
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final reduce = MediaQuery.of(context).disableAnimations;
+    if (!_reduceMotionResolved || reduce != _reduceMotion) {
+      _reduceMotionResolved = true;
+      _reduceMotion = reduce;
+    }
+  }
+
+  void _startSequence() {
+    if (_reduceMotion) {
+      // 핸드오프 §6: 애니메이션 생략, 최종 상태 즉시 표시.
+      _introController.value = 1.0;
+      _englishText.value = _finalEnglishText;
+      return;
+    }
+    _introController.forward();
+  }
+
+  void _onIntroTick() {
+    if (_reduceMotion) return;
+    final elapsed = _introController.value * _SplashTiming.outroStart;
+    if (elapsed < _SplashTiming.scrambleStart) return;
+    final p = ((elapsed - _SplashTiming.scrambleStart) /
+            _SplashTiming.scrambleDuration)
+        .clamp(0.0, 1.0);
+    final buffer = StringBuffer();
+    for (var i = 0; i < _finalEnglishText.length; i++) {
+      final ch = _finalEnglishText[i];
+      if (ch == ' ' || i / _finalEnglishText.length < p) {
+        buffer.write(ch);
+      } else {
+        buffer.write(
+          _scrambleGlyphs[_random.nextInt(_scrambleGlyphs.length)],
+        );
+      }
+    }
+    _englishText.value = buffer.toString();
+  }
+
+  @override
   void dispose() {
-    _controller.dispose();
+    _introController
+      ..removeListener(_onIntroTick)
+      ..dispose();
+    _outroController.dispose();
+    _englishText.dispose();
     super.dispose();
   }
 
@@ -172,31 +213,17 @@ class _SplashScreenState extends State<SplashScreen>
       authProvider.restoreSession(),
       introState.load(),
       introConfig.load(),
-      Future.delayed(const Duration(milliseconds: 1300)),
     ]);
 
-    // [스플래시 히어로 이미지 미표시 버그 수정 - 3차, 완전 해결]
-    // 2차 수정(precacheImage 완료 시 setState(_heroReady=true))도
-    // Future.wait 안에 함께 묶어두면, precache가 끝나는 순간 setState가
-    // "다음 프레임에 리빌드 예약"만 걸어둔 채로 Future.wait의 연속 실행이
-    // 곧바로(같은 마이크로태스크 배치 안에서) 이어져 버려, 실제로는
-    // 이미지가 포함된 프레임이 화면에 한 번도 그려지지 않고 바로
-    // Navigator.pushReplacementNamed가 호출되는 경쟁 상태가 있었다
-    // (Playwright 정밀 캡처로 재확인: 여전히 빈 이미지+깨진 폰트 프레임만
-    // 노출됨). 이를 근본적으로 막기 위해 여기서는:
-    //  1) 다른 부트스트랩 작업(세션 복원 등)과 히어로 이미지 로딩을
-    //     완전히 분리된 await 단계로 나누고,
-    //  2) setState 이후 `WidgetsBinding.instance.endOfFrame`으로 실제로
-    //     그 프레임이 래스터화될 때까지 명시적으로 대기하며,
-    //  3) 그 후에도 최소 체류 시간(400ms)을 추가로 확보해, 이미지가
-    //     "찰나에 스쳐가는" 것이 아니라 사용자 눈에 실제로 보이도록 한다.
-    if (_heroImagePrecache != null) {
-      await _heroImagePrecache;
-    }
-    if (mounted) {
-      setState(() => _heroReady = true);
-      await WidgetsBinding.instance.endOfFrame;
-      await Future.delayed(const Duration(milliseconds: 400));
+    if (!mounted) return;
+
+    // [핸드오프 §6 "애니메이션은 끝까지 재생 권장"] 부트스트랩이 등장
+    // 애니메이션(6.4s)보다 먼저 끝났다면, 등장 애니메이션이 완성 상태에
+    // 도달할 때까지 기다린다. reduceMotion이면 §6 "1.2초 후 종료"를 따른다.
+    if (_reduceMotion) {
+      await Future.delayed(const Duration(milliseconds: 1200));
+    } else if (_introController.status != AnimationStatus.completed) {
+      await _introController.forward().orCancel.catchError((_) {});
     }
 
     if (!mounted) return;
@@ -217,13 +244,11 @@ class _SplashScreenState extends State<SplashScreen>
 
     if (!mounted) return;
 
-    // [4차 수정] 모든 부트스트랩/이미지 준비가 끝난 "이 시점"에야 비로소
-    // 명시적으로 페이드아웃을 재생하고, 그 애니메이션이 완전히 끝날
-    // 때까지 await한 뒤 네비게이션한다. 더 이상 고정된 1.3초 타이머에
-    // 의존하지 않으므로, 부트스트랩이 얼마나 걸리든 항상 완성된 화면
-    // (히어로 이미지 + 정상 폰트)이 사용자에게 노출된 뒤에 사라진다.
-    if (mounted) {
-      await _controller.reverse();
+    // [핸드오프 §5 퇴장(outro)] 모든 부트스트랩이 끝난 "이 시점"에야
+    // 비로소 퇴장(0.9s, 위로 살짝 이동 + 블러 + 페이드아웃)을 재생하고,
+    // 끝날 때까지 await한 뒤 네비게이션한다.
+    if (!_reduceMotion) {
+      await _outroController.forward().orCancel.catchError((_) {});
     }
 
     if (!mounted) return;
@@ -254,178 +279,479 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    // [2026 핸드오프 콘텐츠 반영] fallback 카피가 곧 정확한 핸드오프 원문이므로
-    // 서버 config 로드를 기다릴 필요 없이 바로 fallback을 읽어도 안전하다
-    // (스플래시는 IntroConfigProvider.load()를 트리거하는 화면 자체이며, 이
-    // 첫 프레임 시점엔 아직 로드가 끝나지 않았을 수 있음).
-    final config = IntroConfigModel.fallback();
-    final subtitleLines = (config.splashSubtitle ?? '').split('\n');
-
-    // [스플래시 풀블리드 개편 - "증명사진 카드처럼 작게 떠 있다" 피드백 반영]
-    // 기존 구조는 캐릭터 이미지를 260px 높이의 둥근 카드 하나로 축소해
-    // 화면 중앙에 배치하고, 위/아래로 텅 빈 그라데이션 여백이 크게
-    // 남아 "동영상 인트로 앞에 뜨는 어색한 화면"으로 보였다(사용자 피드백
-    // 스크린샷 참고: 캐릭터가 작은 사진처럼 붙어 있고 위아래 배경만 넓게
-    // 비어 있음). 이제는 캐릭터 전신 이미지를 화면 전체를 채우는 배경
-    // (Positioned.fill + BoxFit.cover)으로 깔고, 그 위에 그라데이션
-    // 스크림을 얹어 텍스트 가독성을 확보한 뒤, eyebrow/타이틀/서브카피/
-    // 로딩닷을 이미지 위에 오버레이하는 "풀스크린 히어로" 방식으로
-    // 재구성한다. 부트스트랩 로직(_bootstrap, _controller 애니메이션,
-    // _heroReady 게이팅)은 전혀 손대지 않고 오직 build()의 레이아웃만
-    // 바꾼다.
-    return Scaffold(
+    // [핸드오프 §4-1 "변경 금지"] 기존 로딩 화면(sintong.kr/app/)과 완전히
+    // 동일한 보라 그라데이션. 스플래시 → 앱 진입 시 색 변화(깜빡임) 없음.
+    return const Scaffold(
+      backgroundColor: _SplashColors.bgBottom,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // 배경 그라데이션(이미지 로딩 전/실패 시에도 항상 깔려 있는 베이스).
-          const Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    IntroPalette.backgroundTop,
-                    IntroPalette.backgroundBottom,
-                  ],
-                ),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  _SplashColors.bgTop,
+                  _SplashColors.bg40,
+                  _SplashColors.bg60,
+                  _SplashColors.bgBottom,
+                ],
+                stops: [0.0, 0.4, 0.6, 1.0],
               ),
             ),
           ),
-          // [캐릭터 삭제 — 2026-09-24 사용자 요청] 기존 풀블리드 캐릭터
-          // 전신 이미지를 삭제하고 배경 그라데이션만 유지한다.
-          // 이미지 위에 얹는 그라데이션 스크림 - 상단은 eyebrow 라벨이
-          // 잘 보이도록 살짝 어둡게, 중단은 얼굴이 잘 보이도록 투명하게,
-          // 하단은 타이틀/서브카피/로딩닷이 놓일 자리를 배경색에 가깝게
-          // 어둡혀 가독성을 확보한다.
-          const Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0x99201A3D), // 상단 - 반투명 다크
-                    Color(0x00201A3D), // 중단 - 투명(얼굴이 잘 보이도록)
-                    Color(0xCC1E1A3A), // 하단 - 텍스트 가독용 다크
-                    Color(0xFF1E1A3A), // 최하단 - 배경색과 동일(자연스러운 이음)
-                  ],
-                  stops: [0.0, 0.32, 0.68, 1.0],
-                ),
-              ),
-            ),
-          ),
-          SafeArea(
-            child: FadeTransition(
-              opacity: _fade,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 24,
-                ),
-                child: Column(
-                  children: [
-                    // eyebrow - 神通萬通 · SINTONG (이미지 위, 화면 최상단)
-                    const IntroEyebrowLabel('神通萬通 · SINTONG'),
-                    // 캐릭터 얼굴/상반신이 잘 보이도록 중단은 비워둔다
-                    // (배경 이미지가 이 공간을 채운다).
-                    const Spacer(),
-                    // [5차 수정 원칙 유지] 타이틀/서브카피도 폰트 로딩이
-                    // 끝난 뒤(_heroReady=true)에만 나타나도록 게이팅한다.
-                    AnimatedOpacity(
-                      opacity: _heroReady ? 1.0 : 0.0,
-                      duration: const Duration(milliseconds: 220),
-                      child: Column(
-                        children: [
-                          Text(
-                            config.splashTitle,
-                            textAlign: TextAlign.center,
-                            style: IntroTextStyles.title(fontSize: 38),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            subtitleLines.join('\n'),
-                            textAlign: TextAlign.center,
-                            style: IntroTextStyles.sub(),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-                    // 로딩 dot 3개(핸드오프 .load-dot)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(
-                        3,
-                        (i) => Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 3),
-                          child: _LoadDot(
-                            delay: Duration(milliseconds: i * 200),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
+          _SplashMark(),
         ],
       ),
     );
   }
 }
 
-/// [핸드오프 반영] `.load-dot` — 스플래시 하단 로딩 점 3개, 순차 pulse 애니메이션.
-class _LoadDot extends StatefulWidget {
-  final Duration delay;
+/// 핸드오프 §7 디자인 토큰(Colors) 그대로.
+class _SplashColors {
+  _SplashColors._();
 
-  const _LoadDot({required this.delay});
-
-  @override
-  State<_LoadDot> createState() => _LoadDotState();
+  static const Color bgTop = Color(0xFF3D3568);
+  static const Color bg40 = Color(0xFF312A54);
+  static const Color bg60 = Color(0xFF282349);
+  static const Color bgBottom = Color(0xFF1E1A3A);
+  static const Color text = Colors.white;
+  static const Color textEn = Color(0xCCFFFFFF); // rgba(255,255,255,.8)
+  static const Color seal = Color(0xFFC23A2C);
+  static const Color sealText = Color(0xFFFFF8EC);
+  static const Color rule = Color(0x99FFFFFF); // rgba(255,255,255,.6) center
 }
 
-class _LoadDotState extends State<_LoadDot>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
+/// 핸드오프 §5 이징 3종.
+class _SplashEase {
+  _SplashEase._();
 
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1000),
-    )..repeat();
-    Future.delayed(widget.delay, () {
-      if (mounted) _controller.forward(from: 0);
-    });
-  }
+  static const Cubic out = Cubic(.16, 1, .3, 1);
+  static const Cubic spring = Cubic(.34, 1.56, .64, 1);
+  static const Cubic inout = Cubic(.76, 0, .24, 1);
+}
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+/// 중앙 워드마크 전체(§4 레이아웃: 신통/방통 2줄 → 인장 4개 → 선 →
+/// 영문). `_SplashScreenState`가 들고 있는 두 컨트롤러를
+/// `InheritedWidget` 없이 단순 생성자 주입으로 전달받는다.
+class _SplashMark extends StatelessWidget {
+  const _SplashMark();
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        final t = _controller.value;
-        final opacity = 0.35 + 0.65 * (0.5 - (t - 0.5).abs()) * 2;
-        return Container(
-          width: 6,
-          height: 6,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: IntroPalette.primary.withValues(
-              alpha: opacity.clamp(0.35, 1.0),
+    final state = context.findAncestorStateOfType<_SplashScreenState>()!;
+    return Center(
+      // 핸드오프 §4: "세로 중앙에서 24px 위로 올림".
+      child: Transform.translate(
+        offset: const Offset(0, -24),
+        child: AnimatedBuilder(
+          animation: Listenable.merge([
+            state._introController,
+            state._outroController,
+          ]),
+          builder: (context, _) {
+            final introT = state._introController.value;
+            final outroT = state._outroController.value;
+            final elapsed = introT * _SplashTiming.outroStart;
+
+            Widget content = Semantics(
+              label: '신통방통',
+              child: ExcludeSemantics(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _Wordmark(elapsed: elapsed),
+                    const SizedBox(height: 18),
+                    _SealRow(elapsed: elapsed),
+                    const SizedBox(height: 22),
+                    _RuleLine(elapsed: elapsed),
+                    const SizedBox(height: 12),
+                    _EnglishLabel(
+                      elapsed: elapsed,
+                      textListenable: state._englishText,
+                    ),
+                  ],
+                ),
+              ),
+            );
+
+            // 핸드오프 §5 퇴장(outro): opacity 1→0, translateY 0→-10px,
+            // scale 1→1.04, blur 0→6px. 퇴장은 등장이 끝난 뒤에만 진행되므로
+            // outroT만으로 적용한다.
+            if (outroT > 0) {
+              final curved = _SplashEase.inout.transform(outroT);
+              content = Opacity(
+                opacity: (1 - curved).clamp(0.0, 1.0),
+                child: Transform.translate(
+                  offset: Offset(0, -10 * curved),
+                  child: Transform.scale(
+                    scale: 1 + 0.04 * curved,
+                    child: content,
+                  ),
+                ),
+              );
+            }
+            return content;
+          },
+        ),
+      ),
+    );
+  }
+}
+
+/// "신통 / 방통" 2줄, 글자 4개 — 각각 독립적인 3D 플립 등장(키프레임 ①)
+/// + 전체 squash(키프레임 ②) + 글자별 빛 스윕(키프레임 ⑥)을 적용한다.
+class _Wordmark extends StatelessWidget {
+  const _Wordmark({required this.elapsed});
+
+  final double elapsed;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = GoogleFonts.blackHanSans(
+      fontSize: 62,
+      height: 0.98,
+      color: _SplashColors.text,
+    );
+    // 키프레임 ② squash: 0% scale(1,1) → 35% scale(1.04,.96) → 100% scale(1,1).
+    final settleP = _progress(elapsed, _SplashTiming.settleStart,
+        _SplashTiming.settleDuration);
+    final settleEased = _SplashEase.out.transform(settleP);
+    final squash = _squashScale(settleEased);
+
+    return Transform.scale(
+      scaleX: squash.$1,
+      scaleY: squash.$2,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _WordmarkLine(
+            text: '신통',
+            chars: const ['신', '통'],
+            charStarts: const [
+              _SplashTiming.charFlip1,
+              _SplashTiming.charFlip2,
+            ],
+            sweepStart: _SplashTiming.sweepLine1Start,
+            elapsed: elapsed,
+            style: style,
+          ),
+          _WordmarkLine(
+            text: '방통',
+            chars: const ['방', '통'],
+            charStarts: const [
+              _SplashTiming.charFlip3,
+              _SplashTiming.charFlip4,
+            ],
+            sweepStart: _SplashTiming.sweepLine2Start,
+            elapsed: elapsed,
+            style: style,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// settle keyframe의 0/35/100% 세 지점을 선형 보간한다.
+  (double, double) _squashScale(double t) {
+    if (t <= 0.35) {
+      final local = t / 0.35;
+      return (
+        1 + (1.04 - 1) * local,
+        1 + (0.96 - 1) * local,
+      );
+    }
+    final local = (t - 0.35) / 0.65;
+    return (
+      1.04 + (1 - 1.04) * local,
+      0.96 + (1 - 0.96) * local,
+    );
+  }
+}
+
+double _progress(double elapsed, double start, double duration) {
+  if (duration <= 0) return elapsed >= start ? 1.0 : 0.0;
+  return ((elapsed - start) / duration).clamp(0.0, 1.0);
+}
+
+/// 워드마크 한 줄(글자 2개) + 그 위에 얹히는 빛 스윕 레이어.
+class _WordmarkLine extends StatelessWidget {
+  const _WordmarkLine({
+    required this.text,
+    required this.chars,
+    required this.charStarts,
+    required this.sweepStart,
+    required this.elapsed,
+    required this.style,
+  });
+
+  final String text;
+  final List<String> chars;
+  final List<double> charStarts;
+  final double sweepStart;
+  final double elapsed;
+  final TextStyle style;
+
+  @override
+  Widget build(BuildContext context) {
+    final sweepP = _progress(elapsed, sweepStart, _SplashTiming.sweepDuration);
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        // perspective(600px) 근사 — 3D 플립 글자 행.
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var i = 0; i < chars.length; i++)
+              _FlipChar(
+                char: chars[i],
+                startAt: charStarts[i],
+                elapsed: elapsed,
+                style: style,
+              ),
+          ],
+        ),
+        if (sweepP > 0 && sweepP < 1)
+          IgnorePointer(
+            child: ShaderMask(
+              blendMode: BlendMode.srcIn,
+              shaderCallback: (bounds) {
+                // 키프레임 ⑥: background-position 120% → -20%, 가운데
+                // 90도 사선 하이라이트 밴드(폭 ~16%)가 좌→우로 이동.
+                final pos = 1.2 + (-0.2 - 1.2) * sweepP;
+                return LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: const [
+                    Colors.transparent,
+                    Colors.white,
+                    Colors.transparent,
+                  ],
+                  stops: [
+                    (pos - 0.08).clamp(0.0, 1.0),
+                    pos.clamp(0.0, 1.0),
+                    (pos + 0.08).clamp(0.0, 1.0),
+                  ],
+                ).createShader(bounds);
+              },
+              child: Text(text, style: style),
             ),
           ),
-        );
-      },
+      ],
+    );
+  }
+}
+
+/// 글자 1개의 3D 플립 등장 애니메이션(키프레임 ①).
+/// 0%: opacity 0, translateY(46px) rotateX(-90deg) scale(.9), blur(10px)
+/// 50%: opacity 1
+/// 100%: opacity 1, transform none, blur(0)
+class _FlipChar extends StatelessWidget {
+  const _FlipChar({
+    required this.char,
+    required this.startAt,
+    required this.elapsed,
+    required this.style,
+  });
+
+  final String char;
+  final double startAt;
+  final double elapsed;
+  final TextStyle style;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = _progress(elapsed, startAt, _SplashTiming.charFlipDuration);
+    final eased = _SplashEase.out.transform(p);
+    final opacity = p <= 0
+        ? 0.0
+        : p < 0.5
+        ? (eased * 2).clamp(0.0, 1.0)
+        : 1.0;
+    final translateY = 46 * (1 - eased);
+    final rotateX = (-math.pi / 2) * (1 - eased);
+    final scale = 0.9 + 0.1 * eased;
+    final blur = 10 * (1 - eased);
+
+    Widget child = Text(char, style: style);
+    if (blur > 0.01) {
+      child = ImageFiltered(
+        imageFilter: ui.ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+        child: child,
+      );
+    }
+    return Opacity(
+      opacity: opacity,
+      child: Transform(
+        alignment: Alignment.bottomCenter,
+        transform: Matrix4.identity()
+          ..setEntry(3, 2, 0.0016) // perspective(≈600px) 근사
+          ..translateByDouble(0.0, translateY, 0.0, 1.0)
+          ..rotateX(rotateX)
+          ..scaleByDouble(scale, scale, 1.0, 1.0),
+        child: child,
+      ),
+    );
+  }
+}
+
+/// 인장 4개(神 通 萬 通) 가로 배치 — 각자 독립된 팝 애니메이션(키프레임 ③).
+class _SealRow extends StatelessWidget {
+  const _SealRow({required this.elapsed});
+
+  final double elapsed;
+
+  static const _glyphs = ['神', '通', '萬', '通'];
+  static const _starts = [
+    _SplashTiming.seal1,
+    _SplashTiming.seal2,
+    _SplashTiming.seal3,
+    _SplashTiming.seal4,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 0; i < _glyphs.length; i++) ...[
+          if (i > 0) const SizedBox(width: 7),
+          _Seal(glyph: _glyphs[i], startAt: _starts[i], elapsed: elapsed),
+        ],
+      ],
+    );
+  }
+}
+
+/// 인장 1개. 0%: opacity 0, scale(0) rotate(-30deg) → 100%: opacity 1,
+/// scale(1) rotate(0) — spring 이징(살짝 튕김).
+class _Seal extends StatelessWidget {
+  const _Seal({required this.glyph, required this.startAt, required this.elapsed});
+
+  final String glyph;
+  final double startAt;
+  final double elapsed;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = _progress(elapsed, startAt, _SplashTiming.sealDuration);
+    final eased = _SplashEase.spring.transform(p);
+    final opacity = p <= 0 ? 0.0 : 1.0;
+    final scale = eased.clamp(0.0, double.infinity);
+    final rotate = (-30 * math.pi / 180) * (1 - eased);
+
+    return Opacity(
+      opacity: opacity,
+      child: Transform.rotate(
+        angle: rotate,
+        child: Transform.scale(
+          scale: scale,
+          child: Container(
+            width: 30,
+            height: 30,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: _SplashColors.seal,
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(
+                color: const Color(0x8CFFF8EC), // rgba(255,248,236,.55)
+                width: 1,
+              ),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x59C23A2C), // rgba(194,58,44,.35)
+                  blurRadius: 14,
+                  offset: Offset(0, 3),
+                ),
+                BoxShadow(
+                  color: Color(0x40000000), // inset 근사(바깥 그림자로 대체)
+                  blurRadius: 6,
+                ),
+              ],
+            ),
+            child: Text(
+              glyph,
+              style: GoogleFonts.notoSerifHk(
+                fontSize: 16,
+                height: 1,
+                fontWeight: FontWeight.w900,
+                color: _SplashColors.sealText,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 가는 선 — 가운데에서 양옆으로 펼쳐짐(키프레임 ④, scaleX 0→1).
+class _RuleLine extends StatelessWidget {
+  const _RuleLine({required this.elapsed});
+
+  final double elapsed;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = _progress(elapsed, _SplashTiming.ruleStart, _SplashTiming.ruleDuration);
+    final eased = _SplashEase.out.transform(p);
+    return Transform.scale(
+      scaleX: eased,
+      child: Container(
+        width: 96,
+        height: 1,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Colors.transparent,
+              _SplashColors.rule,
+              Colors.transparent,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 영문 "SINTONG BANGTONG" — 페이드인 + 스크램블(키프레임 ⑤는
+/// `_SplashScreenState._onIntroTick`이 매 프레임 텍스트를 갱신).
+class _EnglishLabel extends StatelessWidget {
+  const _EnglishLabel({
+    required this.elapsed,
+    required this.textListenable,
+  });
+
+  final double elapsed;
+  final ValueListenable<String> textListenable;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = _progress(elapsed, _SplashTiming.enFadeStart, _SplashTiming.enFadeDuration);
+    return Opacity(
+      opacity: p,
+      child: Padding(
+        // 핸드오프: letter-spacing .42em 가운데 정렬 보정을 위한
+        // padding-left: .42em 근사(11px 폰트 기준 ≈4.6px).
+        padding: const EdgeInsets.only(left: 4.6),
+        child: ValueListenableBuilder<String>(
+          valueListenable: textListenable,
+          builder: (context, value, _) {
+            return Text(
+              value,
+              maxLines: 1,
+              softWrap: false,
+              style: GoogleFonts.ibmPlexMono(
+                fontSize: 11,
+                height: 1,
+                letterSpacing: 4.62, // 11px * .42em
+                color: _SplashColors.textEn,
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 }
