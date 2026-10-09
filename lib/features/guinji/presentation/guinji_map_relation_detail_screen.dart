@@ -11,6 +11,7 @@ import '../domain/guinji_person.dart';
 import '../domain/guinji_relation_meta.dart';
 import '../theme/guinji_map_theme.dart';
 import '../widgets/guinji_map_widgets.dart';
+import 'guinji_deep_intro_screen.dart';
 import 'guinji_deep_result_screen.dart';
 
 /// 귀인지도(Guinji Map) — 관계 상세 화면 (`/guinji-map/*` 신규 디자인 톤).
@@ -44,6 +45,13 @@ class _GuinjiMapRelationDetailScreenState
   // 보이는 문제("한번 열어본거 계속 열려야됨")가 있었다.
   late bool _specialUnlocked = widget.person.unlocked;
   bool _unlocking = false;
+
+  // [핸드오프 `CMain` `unlocked` 상태 이식] 이번 화면 방문 중에 "방금"
+  // 해금한 경우에만 [GuinjiDeepIntroScreen]을 1회 보여주고, 이미 해금되어
+  // 있던 관계를 "다시 보기"할 때는(`widget.person.unlocked == true`로
+  // 시작한 경우) 곧바로 [GuinjiDeepResultScreen]으로 간다 — 핸드오프
+  // `unlocked.includes(selM.id) ? 'result' : 'pay'` 분기와 동일한 의도.
+  bool _justUnlocked = false;
 
   static String _goodMoment(String category) {
     switch (category) {
@@ -109,7 +117,10 @@ class _GuinjiMapRelationDetailScreenState
     if (!mounted) return;
     setState(() => _unlocking = false);
     if (ok) {
-      setState(() => _specialUnlocked = true);
+      setState(() {
+        _specialUnlocked = true;
+        _justUnlocked = true;
+      });
     } else {
       ScaffoldMessenger.of(
         context,
@@ -132,6 +143,29 @@ class _GuinjiMapRelationDetailScreenState
     final message = '${person.name}님과의 관계는 "${meta.label}"예요 · 신통방통 귀인지도';
     if (!mounted) return;
     await safeShareText(context, message, subject: '신통방통 귀인지도');
+  }
+
+  // [핸드오프 `CMain` `onDeep` 1:1 이식] 방금 해금했다면
+  // [GuinjiDeepIntroScreen](풀이 준비 애니메이션)을 먼저 보여주고, 이미
+  // 해금되어 있던 관계를 다시 볼 때는 인트로를 건너뛰고 곧바로
+  // [GuinjiDeepResultScreen]으로 이동한다.
+  void _openDeep() {
+    final ownerName = context.read<GuinjiProvider>().mapName ?? '나';
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => _justUnlocked
+            ? GuinjiDeepIntroScreen(
+                person: widget.person,
+                ownerName: ownerName,
+                onShare: _handleShare,
+              )
+            : GuinjiDeepResultScreen(
+                person: widget.person,
+                ownerName: ownerName,
+                onShare: _handleShare,
+              ),
+      ),
+    );
   }
 
   @override
@@ -363,27 +397,20 @@ class _GuinjiMapRelationDetailScreenState
               else
                 _SpecialUnlockedCard(person: person, meta: meta, ohaeng: ohaeng, color: color),
 
-              // [핸드오프 CDetail "자세한 관계 다시 보기" → DeepResult 이식]
-              // 해금 후에만 10장 장문 풀이 전체를 볼 수 있게 한다. 해금
-              // 전에는 위 [_SpecialLockedCard]의 광고/포인트 CTA가 먼저
-              // 나온다 — 핸드오프의 PaySheet(프리패스/복주머니/광고
-              // 3선택)는 이 화면의 2선택(광고/포인트) 해금 플로우로 이미
-              // 대체되어 있으므로 중복 결제 단계를 추가하지 않는다.
+              // [핸드오프 CDetail "자세한 관계 다시 보기" → DeepIntro/
+              // DeepResult 이식] 해금 후에만 10장 장문 풀이 전체를 볼 수
+              // 있게 한다. 해금 전에는 위 [_SpecialLockedCard]의 광고/포인트
+              // CTA가 먼저 나온다 — 핸드오프의 PaySheet(프리패스/복주머니/
+              // 광고 3선택)는 이 화면의 2선택(광고/포인트) 해금 플로우로
+              // 이미 대체되어 있으므로 중복 결제 단계를 추가하지 않는다.
+              // 방금 해금했다면 [GuinjiDeepIntroScreen]을 먼저 거친다
+              // ([_openDeep] 참고).
               if (_specialUnlocked) ...[
                 const SizedBox(height: 12),
                 GmRoseButton(
                   label: '자세한 관계 풀이 10장 전체 보기',
                   icon: Icons.menu_book_outlined,
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => GuinjiDeepResultScreen(
-                        person: person,
-                        ownerName:
-                            context.read<GuinjiProvider>().mapName ?? '나',
-                        onShare: _handleShare,
-                      ),
-                    ),
-                  ),
+                  onPressed: _openDeep,
                 ),
               ],
 
