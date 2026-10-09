@@ -64,25 +64,37 @@ export default async function RewardPassPoliciesPage({ searchParams }: PassPolic
         user: { select: { nickname: true } },
         policy: { select: { name: true, passType: true } },
       },
+      // grantedCount/remainingCount는 include에 따로 지정하지 않아도 findMany 기본
+      // 스칼라 scalar 필드로 함께 반환된다(아래 h.remainingCount로 바로 접근).
     }),
   ]);
   const historyTotalPages = Math.max(1, Math.ceil(historyTotal / HISTORY_PAGE_SIZE));
 
-  // ── 4) 요약 통계: 현재 활성중인 패스 수(expiresAt > now) ──
+  // ── 4) 요약 통계: 현재 활성중인 패스 수 ──
+  // [관리자 간소화·실운영 업데이트, 2026-10] 횟수제 건은 expiresAt만으로 판정하면
+  // 안 된다(위 발급이력 표와 동일한 이유) — remainingCount가 있는 건은 >0인 것만,
+  // 레거시 시간제 건(remainingCount=null)은 기존처럼 expiresAt 기준으로 카운트한다.
   const activeCount = await prisma.userPass.count({
-    where: { expiresAt: { gt: new Date() } },
+    where: {
+      expiresAt: { gt: new Date() },
+      OR: [{ remainingCount: null }, { remainingCount: { gt: 0 } }],
+    },
   });
 
   const activeBanner = openPassBanners.find((b) => b.isActive);
+  // [lint: react-hooks/purity] map 콜백 내부에서 Date.now()를 매번 호출하지 않도록
+  // 렌더 시작 시점 1회로 고정해 재사용한다.
+  const nowMs = Date.now();
 
   return (
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900">리워드 관리 — 프리패스</h1>
         <p className="mt-1 text-sm text-slate-500">
-          프리패스는 쿠팡 파트너스 광고 전용 기능으로 운영됩니다. 광고 이미지/쿠팡 광고
-          소스는 아래 &quot;프리패스 광고(CMS 배너)&quot; 섹션에서, 이용시간·대기시간은
-          &quot;프리패스 설정&quot;에서 관리하며 저장 즉시 앱/웹에 실시간 반영됩니다.
+          프리패스는 쿠팡 파트너스 광고를 통해 지급되는 횟수제 이용권입니다. 광고
+          이미지/쿠팡 광고 소스는 아래 &quot;프리패스 광고(CMS 배너)&quot; 섹션에서,
+          지급 횟수·일일 획득 제한·유효기간·대기시간은 &quot;프리패스 설정&quot;에서
+          관리하며 저장 즉시 앱/웹에 실시간 반영됩니다.
         </p>
       </div>
 
@@ -111,6 +123,9 @@ export default async function RewardPassPoliciesPage({ searchParams }: PassPolic
           adGuideTitle={settings.adGuideTitle}
           adGuideText={settings.adGuideText}
           categoryMaxUsage={settings.categoryMaxUsage}
+          grantCount={settings.grantCount}
+          dailyClaimLimit={settings.dailyClaimLimit}
+          validityDays={settings.validityDays}
         />
       </section>
 
@@ -172,6 +187,7 @@ export default async function RewardPassPoliciesPage({ searchParams }: PassPolic
                 <th className="px-4 py-3">회원</th>
                 <th className="px-4 py-3">정책</th>
                 <th className="px-4 py-3">발급경로</th>
+                <th className="px-4 py-3">잔여횟수</th>
                 <th className="px-4 py-3">만료일시</th>
                 <th className="px-4 py-3">상태</th>
               </tr>
@@ -179,13 +195,19 @@ export default async function RewardPassPoliciesPage({ searchParams }: PassPolic
             <tbody>
               {histories.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-slate-500">
+                  <td colSpan={7} className="px-4 py-10 text-center text-slate-500">
                     발급 이력이 없습니다.
                   </td>
                 </tr>
               )}
               {histories.map((h) => {
-                const isActive = h.expiresAt.getTime() > Date.now();
+                // [관리자 간소화·실운영 업데이트, 2026-10] 횟수제 건(remainingCount != null)은
+                // expiresAt이 사실상 만료되지 않는 sentinel(100년 후)이므로 시간만으로
+                // "활성중"을 판정하면 이미 전부 소진된 건도 항상 활성중으로 보인다.
+                // remainingCount가 0이면 "소진됨"으로, null이면(레거시 시간제) 기존처럼
+                // expiresAt 기준으로 판정한다.
+                const isDepleted = h.remainingCount != null && h.remainingCount <= 0;
+                const isActive = !isDepleted && h.expiresAt.getTime() > nowMs;
                 return (
                   <tr key={h.id} className="border-b border-slate-200/60 hover:bg-slate-100/40">
                     <td className="px-4 py-3 text-slate-500">
@@ -195,12 +217,19 @@ export default async function RewardPassPoliciesPage({ searchParams }: PassPolic
                     <td className="px-4 py-3 text-slate-600">{h.policy.name}</td>
                     <td className="px-4 py-3 font-mono text-slate-500">{h.sourceType}</td>
                     <td className="px-4 py-3 text-slate-500">
+                      {h.remainingCount != null ? `${h.remainingCount} / ${h.grantedCount ?? "-"}` : "-"}
+                    </td>
+                    <td className="px-4 py-3 text-slate-500">
                       {h.expiresAt.toISOString().slice(0, 19).replace("T", " ")}
                     </td>
                     <td className="px-4 py-3">
                       {isActive ? (
                         <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">
                           활성중
+                        </span>
+                      ) : isDepleted ? (
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-700">
+                          소진됨
                         </span>
                       ) : (
                         <span className="rounded-full bg-white px-2 py-0.5 text-xs text-slate-500">

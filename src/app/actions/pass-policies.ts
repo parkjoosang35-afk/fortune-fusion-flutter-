@@ -303,13 +303,13 @@ export async function deletePassPolicy(
 // operationLog 등 참조 무결성을 깨지 않고, 화면만 단순화할 수 있다.
 // ────────────────────────────────────────────────────────────────
 
-const OPEN_PASS_DURATION_OPTIONS = [30, 60, 120, 180, 1440] as const;
+// [관리자 간소화·실운영 업데이트, 2026-10] OPEN_PASS_DURATION_OPTIONS/
+// CATEGORY_MAX_USAGE_OPTIONS(레거시 시간제 검증용)는 더 이상 OpenPassSettingsSchema가
+// durationMin/categoryMaxUsage를 받지 않으므로 이 파일에서는 사용하지 않는다.
+// DB 컬럼 자체는 보존되므로(§9.2) 상수를 완전히 지우지 않고, 레거시 데이터 조회 시
+// 참고용으로 필요하면 schema.prisma 주석을 참고한다 — 다만 미사용 경고를 없애기
+// 위해 여기서는 제거하고 그 값 정보를 주석으로만 남긴다(30/60/120/180/1440분, 1/2/3/5/10회).
 const OPEN_PASS_WAIT_SECONDS_OPTIONS = [4, 5, 10] as const;
-
-// [신통방통 기존시스템유지+프리패스 카테고리별 이용횟수 제한] §6/§27
-// 관리자가 설정하는 "카테고리별 최대 이용횟수"(기본 2회) 선택 옵션. null(무제한)도
-// 허용해 운영 중 필요 시 제한을 완전히 끌 수 있게 한다.
-const CATEGORY_MAX_USAGE_OPTIONS = [1, 2, 3, 5, 10] as const;
 
 export interface OpenPassSettings {
   id: number;
@@ -320,6 +320,15 @@ export interface OpenPassSettings {
   adGuideTitle: string;
   adGuideText: string;
   categoryMaxUsage: number | null;
+  // [관리자 간소화·실운영 업데이트, 2026-10] §2/§3 쿠팡 프리패스 "횟수제" 실제
+  // 지급 파라미터. claim-ad.ts → claimCoupangDailyPass()가 실제로 읽는 값은
+  // durationMin/categoryMaxUsage가 아니라 이 3개 필드다(policy.grantCount != null
+  // 이면 시간제 로직을 완전히 건너뛴다). 지금까지 이 3개가 admin 폼에 노출되지
+  // 않아 "설정 화면은 있지만 실제로는 어떤 값을 바꿔도 쿠팡 프리패스 지급량/
+  // 제한/유효기간이 바뀌지 않는" 구조적 결함이 있었다 — 이번에 실제 연동한다.
+  grantCount: number | null;
+  dailyClaimLimit: number | null;
+  validityDays: number | null;
 }
 
 // [프리패스 UI 문구 관리자 연동] 관리자가 아직 값을 입력하지 않았을 때 사용할
@@ -345,6 +354,9 @@ export async function getOrCreateOpenPassSettings(): Promise<OpenPassSettings> {
       adGuideTitle: existing.adGuideTitle ?? DEFAULT_AD_GUIDE_TITLE,
       adGuideText: existing.adGuideText ?? DEFAULT_AD_GUIDE_TEXT,
       categoryMaxUsage: existing.categoryMaxUsage ?? null,
+      grantCount: existing.grantCount ?? null,
+      dailyClaimLimit: existing.dailyClaimLimit ?? null,
+      validityDays: existing.validityDays ?? null,
     };
   }
 
@@ -360,6 +372,10 @@ export async function getOrCreateOpenPassSettings(): Promise<OpenPassSettings> {
       adHelpMessage: DEFAULT_AD_HELP_MESSAGE,
       adGuideTitle: DEFAULT_AD_GUIDE_TITLE,
       adGuideText: DEFAULT_AD_GUIDE_TEXT,
+      // 신규 생성 시에도 횟수제 기본값으로 만든다(레거시 시간제로 새로 만들 일은 없음).
+      grantCount: 2,
+      dailyClaimLimit: 1,
+      validityDays: null,
     },
   });
   return {
@@ -371,16 +387,23 @@ export async function getOrCreateOpenPassSettings(): Promise<OpenPassSettings> {
     adGuideTitle: created.adGuideTitle ?? DEFAULT_AD_GUIDE_TITLE,
     adGuideText: created.adGuideText ?? DEFAULT_AD_GUIDE_TEXT,
     categoryMaxUsage: created.categoryMaxUsage ?? null,
+    grantCount: created.grantCount ?? null,
+    dailyClaimLimit: created.dailyClaimLimit ?? null,
+    validityDays: created.validityDays ?? null,
   };
 }
 
+// [관리자 간소화·실운영 업데이트, 2026-10] durationMin/categoryMaxUsage는 이 단일
+// 정책(policy 11, grantCount != null)에서는 claimCoupangDailyPass()가 전혀 읽지
+// 않는 레거시 시간제 전용 필드임을 schema.prisma 주석(§9.2)으로 확정했다. DB
+// 컬럼/값 자체는 보존하되(삭제 금지), 이 폼에서는 더 이상 수정 대상으로 받지
+// 않는다(저장 시 기존 값 그대로 유지). 대신 실제 지급 로직이 참조하는
+// grantCount/dailyClaimLimit/validityDays를 신규로 받는다.
+const GRANT_COUNT_OPTIONS = [1, 2, 3, 5] as const;
+const DAILY_CLAIM_LIMIT_OPTIONS = [1, 2, 3] as const;
+const VALIDITY_DAYS_OPTIONS = [1, 3, 7, 30] as const; // 빈 값 = 무제한(null)
+
 const OpenPassSettingsSchema = z.object({
-  durationMin: z.coerce
-    .number()
-    .int()
-    .refine((v) => (OPEN_PASS_DURATION_OPTIONS as readonly number[]).includes(v), {
-      message: "이용시간은 30/60/120/180/1440분 중 하나여야 합니다.",
-    }),
   adWaitSeconds: z.coerce
     .number()
     .int()
@@ -391,13 +414,26 @@ const OpenPassSettingsSchema = z.object({
   adHelpMessage: z.string().min(1, "도움말 안내 문구를 입력해주세요."),
   adGuideTitle: z.string().min(1, "안내 제목을 입력해주세요."),
   adGuideText: z.string().min(1, "안내 문구를 입력해주세요."),
-  // categoryMaxUsage: "무제한"(빈 값)이면 null, 아니면 옵션 중 하나여야 함.
-  categoryMaxUsage: z
+  // ── [§2/§3 쿠팡 프리패스 횟수제 실제 파라미터] ──
+  grantCount: z.coerce
+    .number()
+    .int()
+    .refine((v) => (GRANT_COUNT_OPTIONS as readonly number[]).includes(v), {
+      message: "지급 횟수는 1/2/3/5회 중 하나여야 합니다.",
+    }),
+  dailyClaimLimit: z.coerce
+    .number()
+    .int()
+    .refine((v) => (DAILY_CLAIM_LIMIT_OPTIONS as readonly number[]).includes(v), {
+      message: "일일 획득 제한은 1/2/3회 중 하나여야 합니다.",
+    }),
+  // validityDays: "무제한"(빈 값)이면 null, 아니면 옵션 중 하나여야 함.
+  validityDays: z
     .union([z.coerce.number().int(), z.null()])
     .optional()
     .refine(
-      (v) => v == null || (CATEGORY_MAX_USAGE_OPTIONS as readonly number[]).includes(v),
-      { message: "카테고리별 최대 이용횟수는 1/2/3/5/10회 또는 무제한 중 하나여야 합니다." }
+      (v) => v == null || (VALIDITY_DAYS_OPTIONS as readonly number[]).includes(v),
+      { message: "유효기간은 1/3/7/30일 또는 무제한 중 하나여야 합니다." }
     ),
 });
 
@@ -415,15 +451,16 @@ export async function updateOpenPassSettings(
     return { error: "이 작업을 수행할 권한이 없습니다." };
   }
 
-  const categoryMaxUsageRaw = formData.get("categoryMaxUsage");
+  const validityDaysRaw = formData.get("validityDays");
   const parsed = OpenPassSettingsSchema.safeParse({
-    durationMin: formData.get("durationMin"),
     adWaitSeconds: formData.get("adWaitSeconds"),
     isActive: formData.get("isActive") === "on" || formData.get("isActive") === "true",
     adHelpMessage: formData.get("adHelpMessage"),
     adGuideTitle: formData.get("adGuideTitle"),
     adGuideText: formData.get("adGuideText"),
-    categoryMaxUsage: categoryMaxUsageRaw === "" || categoryMaxUsageRaw == null ? null : categoryMaxUsageRaw,
+    grantCount: formData.get("grantCount"),
+    dailyClaimLimit: formData.get("dailyClaimLimit"),
+    validityDays: validityDaysRaw === "" || validityDaysRaw == null ? null : validityDaysRaw,
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "입력값이 올바르지 않습니다." };
@@ -432,20 +469,24 @@ export async function updateOpenPassSettings(
   const settings = await getOrCreateOpenPassSettings();
 
   const before = {
-    durationMin: settings.durationMin,
     adWaitSeconds: settings.adWaitSeconds,
-    categoryMaxUsage: settings.categoryMaxUsage,
+    grantCount: settings.grantCount,
+    dailyClaimLimit: settings.dailyClaimLimit,
+    validityDays: settings.validityDays,
   };
+  // [§2/§3] durationMin/categoryMaxUsage는 이 폼이 더 이상 다루지 않으므로 update
+  // data에 포함하지 않는다 — 기존 값 그대로 보존(레거시 데이터 삭제/변경 금지).
   await prisma.passPolicy.update({
     where: { id: settings.id },
     data: {
-      durationMin: parsed.data.durationMin,
       adWaitSeconds: parsed.data.adWaitSeconds,
       isActive: parsed.data.isActive,
       adHelpMessage: parsed.data.adHelpMessage,
       adGuideTitle: parsed.data.adGuideTitle,
       adGuideText: parsed.data.adGuideText,
-      categoryMaxUsage: parsed.data.categoryMaxUsage ?? null,
+      grantCount: parsed.data.grantCount,
+      dailyClaimLimit: parsed.data.dailyClaimLimit,
+      validityDays: parsed.data.validityDays ?? null,
       updatedBy: session.email,
     },
   });
