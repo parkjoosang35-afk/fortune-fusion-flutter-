@@ -1,154 +1,58 @@
+// lib/features/guinji_map/theme/guinji_map_theme.dart
+// 최종(v2) 토큰 — 기존 GmColors/GmText 상수만 교체하면 전 화면 반영 (명세서 §8)
+// guinji_theme.dart 의 GuinjiColors 도 같은 값으로 맞출 것
 import 'package:flutter/material.dart';
 
-/// [2026-09 새 디자인 리스킨] `/guinji-map/*` 8화면(L/I/C/M/N/F/S/Y) 전용
-/// 아이보리 + 로즈골드 팔레트. 기존 `guinji_theme.dart`의 `GuinjiColors`
-/// (다크/라벤더 톤, `/guinji/*` 프로덕션 화면 및 이전 리스킨 버전에서 사용)
-/// 와는 완전히 분리된 네임스페이스다. 절대 혼용하지 말 것.
-///
-/// 새 디자인 zip `lib/guiindo/theme/colors.dart`의 `AppColors`를 그대로
-/// 이식한 값이며, 색상 하나하나 동일하다.
 class GmColors {
-  GmColors._();
-
-  // 배경
-  static const bgIvory = Color(0xFFFBF7EF);
-  static const bgCream = Color(0xFFF5EBDC);
-  static const parchment = Color(0xFFF0E4D0);
-
-  // 로즈골드
-  static const rose50 = Color(0xFFFBEFE8);
-  static const rose100 = Color(0xFFF5D9C9);
-  static const rose200 = Color(0xFFEFC4AB);
-  static const rose300 = Color(0xFFE2A88A);
-  static const rose400 = Color(0xFFD69175);
-  static const rose500 = Color(0xFFC99B7F);
-  static const rose600 = Color(0xFFB58567);
-  static const rose700 = Color(0xFFA6795E);
-  static const rose800 = Color(0xFF7E5A47);
-  static const rose900 = Color(0xFF5A4131);
-
-  // Accent
-  static const blush = Color(0xFFE8B4A5);
-  static const gold = Color(0xFFD4A574);
-  static const goldLight = Color(0xFFE8CBA0);
-
-  // 텍스트
-  static const ink = Color(0xFF2A2438);
-  static const inkSoft = Color(0xFF6E5A54);
-  static const inkFaint = Color(0xFFA08C82);
-  static const ivory = Color(0xFFFBF7EF);
-
-  // 라인
-  static const line = Color(0xFFE8DDD0);
-  static const lineSoft = Color(0xFFF0E7DA);
-
-  // 카테고리별 색상(귀인/인연/보완/조심) — GuinjiRelationMeta.category와 매핑.
-  static const categoryBoost = rose500; // 귀인
-  static const categoryPath = gold; // 인연
-  static const categoryWarm = blush; // 보완
-  static const categoryCare = rose800; // 조심
-
-  // 그라디언트
-  static const gradientDark = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xFF2A2438), Color(0xFF4A3A4A)],
-  );
-
-  static const gradientRose = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [rose400, rose500],
-  );
-
-  static const gradientRoseText = LinearGradient(
-    begin: Alignment.centerLeft,
-    end: Alignment.centerRight,
-    colors: [rose700, blush],
-  );
-
-  /// [GuinjiRelationMeta.category] → 카테고리 대표 색상.
-  static Color categoryColor(String category) {
-    switch (category) {
-      case 'boost':
-        return categoryBoost;
-      case 'path':
-        return categoryPath;
-      case 'warm':
-        return categoryWarm;
-      case 'care':
-        return categoryCare;
-    }
-    return categoryBoost;
-  }
-}
-
-/// 폰트 패밀리 — 기존 `GuinjiFonts`와 동일한 실제 폰트 리소스(NotoSerifKR /
-/// Pretendard)를 가리키므로 새로 등록할 필요 없이 이름만 다시 노출한다.
-class GmFonts {
-  GmFonts._();
-  static const serif = 'NotoSerifKR';
-  static const sans = 'Pretendard';
+  static const bg      = Color(0xFF0B0B0D); // 전 화면 배경 (단색 · 그라데이션/별 없음)
+  static const card    = Color(0xFF161618); // 캐릭터 카드 · 카드
+  static const sheet   = Color(0xFF111113); // 바텀시트 (결제 · 공유)
+  static const tabBar  = Color(0xFF18181B);
+  static const fg      = Color(0xFFF2F0EC); // 본문 · 흰 알약 버튼 배경
+  static const onFg    = Color(0xFF0B0B0D); // 흰 버튼 위 글자
+  static const muted   = Color(0x85F2F0EC); // 52%
+  static const dim     = Color(0x52F2F0EC); // 32%
+  static const line    = Color(0x29FFFFFF); // 16% 테두리
+  static const hair    = Color(0x14FFFFFF); // 8% 헤어라인
+  static const gold    = Color(0xFFE9C46A); // 강조 (랭킹 1위 · 마일스톤 · 인트로 CTA · 프리패스)
+  static const goldTop = Color(0xFFF7E4AE); // 인트로 CTA 그라데이션 위
+  static const mapLine = Color(0x38FFFFFF); // 지도 방사선 22%
+  static const mapWeb  = Color(0x1AFFFFFF); // 같은 유형 이웃선 10%
+  static const danger  = Color(0xFFEF7A55); // 삭제 · 공유 중단
 }
 
 class GmText {
-  GmText._();
+  static const display = 'NotoSerifKR';  // 타이틀 · 이름(카드) · 점수 숫자 · 한자
+  static const body    = 'GowunBatang';  // 장문 풀이 본문 16/1.85
+  static const ui      = 'Pretendard';   // 버튼 · 라벨 · 노드 이름
+  static const mono    = 'IBMPlexMono';  // S1~S5 배지 · 영문 메타 (대문자, 자간 0.3em)
 
-  static const display = TextStyle(
-    fontFamily: GmFonts.serif,
-    fontSize: 44,
-    height: 1.15,
-    letterSpacing: -0.88,
-    fontWeight: FontWeight.w700,
-    color: GmColors.ink,
-  );
-
-  static const h1 = TextStyle(
-    fontFamily: GmFonts.serif,
-    fontSize: 32,
-    height: 1.2,
-    fontWeight: FontWeight.w700,
-    color: GmColors.ink,
-  );
-
-  static const h2 = TextStyle(
-    fontFamily: GmFonts.serif,
-    fontSize: 24,
-    height: 1.3,
-    fontWeight: FontWeight.w700,
-    color: GmColors.ink,
-  );
-
-  static const h3 = TextStyle(
-    fontFamily: GmFonts.serif,
-    fontSize: 20,
-    height: 1.35,
-    fontWeight: FontWeight.w600,
-    color: GmColors.ink,
-  );
-
-  static const body = TextStyle(fontSize: 15, height: 1.6, color: GmColors.ink);
-
-  static const bodySoft = TextStyle(
-    fontSize: 13.5,
-    height: 1.6,
-    color: GmColors.inkSoft,
-  );
-
-  static const small = TextStyle(fontSize: 13, height: 1.5, color: GmColors.inkSoft);
-
-  static const micro = TextStyle(
-    fontSize: 11,
-    height: 1.4,
-    letterSpacing: 0.44,
-    color: GmColors.inkFaint,
-  );
-
-  static const labelMini = TextStyle(
-    fontSize: 10,
-    height: 1,
-    letterSpacing: 1.2,
-    color: GmColors.rose700,
-    fontWeight: FontWeight.w600,
-  );
+  static const mapTitle   = TextStyle(fontFamily: display, fontSize: 30, fontWeight: FontWeight.w500, letterSpacing: -0.6, color: GmColors.fg);
+  static const mapSub     = TextStyle(fontFamily: ui, fontSize: 13.5, color: GmColors.muted);
+  static const nodeName   = TextStyle(fontFamily: ui, fontSize: 12.5, fontWeight: FontWeight.w500, color: Color(0xC7F2F0EC)); // 11명+: 11.5
+  static const nodeType   = TextStyle(fontFamily: ui, fontSize: 11, fontWeight: FontWeight.w500);                           // 유형색 · 11명+: 10.5
+  static const cardName   = TextStyle(fontFamily: display, fontSize: 30, fontWeight: FontWeight.w600, letterSpacing: -0.6, color: GmColors.fg);
+  static const cardScore  = TextStyle(fontFamily: display, fontSize: 34, fontWeight: FontWeight.w600);
+  static const typeBig    = TextStyle(fontFamily: display, fontSize: 30, fontWeight: FontWeight.w600, letterSpacing: -0.6);
+  static const deepTitle  = TextStyle(fontFamily: display, fontSize: 30, fontWeight: FontWeight.w600, letterSpacing: -0.75, height: 1.3);
+  static const chapter    = TextStyle(fontFamily: display, fontSize: 20, fontWeight: FontWeight.w600, letterSpacing: -0.4, height: 1.35);
+  static const deepBody   = TextStyle(fontFamily: body, fontSize: 16, height: 1.85, color: Color(0xDBF2F0EC));
+  static const button     = TextStyle(fontFamily: ui, fontSize: 15, fontWeight: FontWeight.w600, color: GmColors.onFg);
+  static const caption    = TextStyle(fontFamily: ui, fontSize: 12.5, fontWeight: FontWeight.w500, color: GmColors.dim);
 }
+
+class GmRadius {
+  static const pill = 999.0;   // 모든 버튼 · 칩
+  static const card = 34.0;    // 인물 캐릭터 카드
+  static const sheet = 28.0;   // 바텀시트 상단
+  static const box = 16.0;     // 일반 카드 · 링크 행
+  static const phoneSafeBottom = 34.0;
+}
+
+/// 공통 버튼: 높이 52~54 · 흰 알약(primary) / 테두리(ghost)
+ButtonStyle gmPrimary() => ElevatedButton.styleFrom(
+  backgroundColor: GmColors.fg, foregroundColor: GmColors.onFg, elevation: 0,
+  minimumSize: const Size.fromHeight(54), shape: const StadiumBorder(), textStyle: GmText.button);
+ButtonStyle gmGhost() => OutlinedButton.styleFrom(
+  foregroundColor: GmColors.fg, side: const BorderSide(color: GmColors.line),
+  minimumSize: const Size.fromHeight(54), shape: const StadiumBorder(), textStyle: GmText.button);

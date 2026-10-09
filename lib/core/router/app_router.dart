@@ -300,8 +300,8 @@ class AppRouter {
         // 유지된다 — 회귀 없음.
         return _page(
           GuinjiCalculatingScreen(
-            title: '내 사주를\n정성껏 살펴보고 있어요',
-            subtitle: '만세력을 계산하고\n오행·십성·합충을 분석 중입니다',
+            title: '내 지도를\n펼치고 있어요',
+            subtitle: '사주 여덟 글자를 읽는 중',
             onComplete: () => appNavigatorKey.currentState
                 ?.pushReplacementNamed('/guinji-map/m'),
           ),

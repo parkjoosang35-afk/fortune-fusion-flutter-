@@ -4,12 +4,13 @@ import 'package:flutter/material.dart';
 
 import '../theme/guinji_map_theme.dart';
 
-/// [2026-09 새 디자인 리스킨] `/guinji-map/*` 8화면 전용 공용 위젯 모음.
-/// 새 디자인 zip `lib/guiindo/widgets/*`의 구조를 그대로 이식했다. 기존
-/// `guinji_ui_kit.dart`(다크·라벤더 톤)와는 완전히 분리된 새 컴포넌트다.
+/// [2026 디자인 핸드오프] `/guinji-map/*` 전체 화면 공용 위젯 모음.
+/// 핸드오프 최종(v2) 검정(#0B0B0D) 테마에 맞춰 전면 재작성했다. 위젯
+/// 클래스 이름/생성자 파라미터(API)는 기존과 동일하게 유지해, 이 파일을
+/// import하는 모든 화면이 수정 없이 새 테마 색을 그대로 받도록 한다.
 
 /// ─────────────────────────────────────────────────────────────
-/// 상단 바 — 새 디자인 `GuiindoTopBar`.
+/// 상단 바 — 검정 배경 + 흐린 하단 선.
 /// ─────────────────────────────────────────────────────────────
 class GmTopBar extends StatelessWidget implements PreferredSizeWidget {
   const GmTopBar({
@@ -33,9 +34,9 @@ class GmTopBar extends StatelessWidget implements PreferredSizeWidget {
     return Container(
       height: 56,
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      decoration: const BoxDecoration(
-        color: Color(0xD9FBF7EF),
-        border: Border(bottom: BorderSide(color: GmColors.line)),
+      decoration: BoxDecoration(
+        color: GmColors.bg.withValues(alpha: 0.92),
+        border: const Border(bottom: BorderSide(color: GmColors.hair)),
       ),
       child: Row(
         children: [
@@ -46,7 +47,7 @@ class GmTopBar extends StatelessWidget implements PreferredSizeWidget {
                     padding: EdgeInsets.zero,
                     icon: const Icon(
                       Icons.arrow_back,
-                      color: GmColors.ink,
+                      color: GmColors.fg,
                       size: 20,
                     ),
                     onPressed: onBack ?? () => Navigator.of(context).maybePop(),
@@ -60,14 +61,14 @@ class GmTopBar extends StatelessWidget implements PreferredSizeWidget {
                         decoration: const BoxDecoration(
                           shape: BoxShape.circle,
                           gradient: LinearGradient(
-                            colors: [GmColors.rose300, GmColors.rose600],
+                            colors: [GmColors.goldTop, GmColors.gold],
                           ),
                         ),
                         alignment: Alignment.center,
                         child: const Text(
                           '신',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: GmColors.onFg,
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
                             height: 1,
@@ -78,10 +79,10 @@ class GmTopBar extends StatelessWidget implements PreferredSizeWidget {
                       const Text(
                         '신통방통',
                         style: TextStyle(
-                          fontFamily: GmFonts.serif,
+                          fontFamily: GmText.display,
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
-                          color: GmColors.ink,
+                          color: GmColors.fg,
                         ),
                       ),
                     ],
@@ -92,10 +93,10 @@ class GmTopBar extends StatelessWidget implements PreferredSizeWidget {
               child: Text(
                 title ?? '',
                 style: const TextStyle(
-                  fontFamily: GmFonts.serif,
+                  fontFamily: GmText.display,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: GmColors.ink,
+                  color: GmColors.fg,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -108,7 +109,7 @@ class GmTopBar extends StatelessWidget implements PreferredSizeWidget {
                     padding: EdgeInsets.zero,
                     icon: const Icon(
                       Icons.ios_share,
-                      color: GmColors.ink,
+                      color: GmColors.fg,
                       size: 18,
                     ),
                     onPressed: onShare,
@@ -122,7 +123,7 @@ class GmTopBar extends StatelessWidget implements PreferredSizeWidget {
 }
 
 /// ─────────────────────────────────────────────────────────────
-/// 로즈골드 chip — 새 디자인 `ChipPill`/`LabelMini`.
+/// 금색 chip — `ChipPill`/`LabelMini`.
 /// ─────────────────────────────────────────────────────────────
 class GmChip extends StatelessWidget {
   const GmChip({
@@ -149,7 +150,7 @@ class GmChip extends StatelessWidget {
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: background ?? GmColors.bgCream,
+        color: background ?? GmColors.card,
         border: Border.all(color: borderColor ?? GmColors.line),
         borderRadius: BorderRadius.circular(9999),
       ),
@@ -161,7 +162,7 @@ class GmChip extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: fontSize,
-              color: foreground ?? GmColors.inkSoft,
+              color: foreground ?? GmColors.muted,
               height: 1.2,
               fontWeight: FontWeight.w500,
             ),
@@ -186,7 +187,7 @@ class GmLabelMini extends StatelessWidget {
         fontSize: 10,
         height: 1,
         letterSpacing: 1.2,
-        color: color ?? GmColors.rose700,
+        color: color ?? GmColors.gold,
         fontWeight: FontWeight.w600,
       ),
     );
@@ -194,7 +195,7 @@ class GmLabelMini extends StatelessWidget {
 }
 
 class GmDot extends StatelessWidget {
-  const GmDot({super.key, this.color = GmColors.rose500, this.size = 6});
+  const GmDot({super.key, this.color = GmColors.gold, this.size = 6});
 
   final Color color;
   final double size;
@@ -208,7 +209,7 @@ class GmDot extends StatelessWidget {
 }
 
 /// ─────────────────────────────────────────────────────────────
-/// 은은한 별 배경 — 새 디자인 `StarsBackground`.
+/// 은은한 별 배경 — 금색/골드톱 2색 혼합 점.
 /// ─────────────────────────────────────────────────────────────
 class GmStarsBackground extends StatelessWidget {
   const GmStarsBackground({super.key, this.opacity = 0.7});
@@ -231,7 +232,7 @@ class _GmStarsPainter extends CustomPainter {
       dx: _rand.nextDouble(),
       dy: _rand.nextDouble(),
       r: 0.7 + _rand.nextDouble() * 0.9,
-      color: i.isEven ? GmColors.gold : GmColors.blush,
+      color: i.isEven ? GmColors.gold : GmColors.goldTop,
     );
   });
 
@@ -260,8 +261,7 @@ class _GmDotSpec {
 }
 
 /// ─────────────────────────────────────────────────────────────
-/// 다크 그라디언트 CTA 카드(별배경 포함) — L의 UpsellCTA, M/N의
-/// ResultAppHandoff에서 공용으로 사용하는 컨테이너 셸.
+/// 다크 그라디언트 CTA 카드(별배경 포함) — 업셀 / 핸드오프 류 공용 셸.
 /// ─────────────────────────────────────────────────────────────
 class GmDarkCtaShell extends StatelessWidget {
   const GmDarkCtaShell({
@@ -280,7 +280,13 @@ class GmDarkCtaShell extends StatelessWidget {
       child: Stack(
         children: [
           Container(
-            decoration: const BoxDecoration(gradient: GmColors.gradientDark),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [GmColors.card, GmColors.bg],
+              ),
+            ),
             padding: padding,
             width: double.infinity,
             child: child,
@@ -329,7 +335,7 @@ class GmFreeBadge extends StatelessWidget {
 }
 
 /// ─────────────────────────────────────────────────────────────
-/// 입력 필드(라벨 + 컨테이너) — I 화면에서 사용.
+/// 입력 필드(라벨 + 컨테이너) — 02 정보입력 화면에서 사용.
 /// ─────────────────────────────────────────────────────────────
 class GmFieldLabel extends StatelessWidget {
   const GmFieldLabel(this.text, {super.key});
@@ -342,7 +348,7 @@ class GmFieldLabel extends StatelessWidget {
     style: const TextStyle(
       fontSize: 11,
       fontWeight: FontWeight.w500,
-      color: GmColors.inkSoft,
+      color: GmColors.muted,
     ),
   );
 }
@@ -359,7 +365,7 @@ class GmFieldShell extends StatelessWidget {
       padding:
           padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.8),
+        color: GmColors.card,
         border: Border.all(color: GmColors.line),
         borderRadius: BorderRadius.circular(16),
       ),
@@ -387,9 +393,9 @@ class GmPrimaryButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: loading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: GmColors.ink,
-          foregroundColor: GmColors.ivory,
-          disabledBackgroundColor: GmColors.ink.withValues(alpha: 0.4),
+          backgroundColor: GmColors.fg,
+          foregroundColor: GmColors.onFg,
+          disabledBackgroundColor: GmColors.fg.withValues(alpha: 0.4),
           elevation: 0,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -400,7 +406,7 @@ class GmPrimaryButton extends StatelessWidget {
                 height: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.4,
-                  color: GmColors.ivory,
+                  color: GmColors.onFg,
                 ),
               )
             : Text(
@@ -430,14 +436,16 @@ class GmRoseButton extends StatelessWidget {
       width: double.infinity,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          gradient: GmColors.gradientRose,
+          gradient: const LinearGradient(
+            colors: [GmColors.goldTop, GmColors.gold],
+          ),
           borderRadius: BorderRadius.circular(16),
         ),
         child: TextButton(
           onPressed: onPressed,
           style: TextButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 14),
-            foregroundColor: Colors.white,
+            foregroundColor: GmColors.onFg,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
           child: Row(
@@ -448,12 +456,12 @@ class GmRoseButton extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: Colors.white,
+                  color: GmColors.onFg,
                 ),
               ),
               if (icon != null) ...[
                 const SizedBox(width: 6),
-                Icon(icon, size: 16, color: Colors.white),
+                Icon(icon, size: 16, color: GmColors.onFg),
               ],
             ],
           ),

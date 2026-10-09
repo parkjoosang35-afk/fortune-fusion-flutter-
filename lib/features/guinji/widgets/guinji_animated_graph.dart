@@ -45,8 +45,8 @@ List<GuinjiGraphNode> layoutGuinjiGraphNodes(
     final p = e.value;
     final angle = (i / total) * math.pi * 2 - math.pi / 2;
     final r = 60 + (100 - p.score) * 1.6;
-    final meta = guinjiRelationTypes[p.relation];
-    final color = meta != null ? GmColors.categoryColor(meta.category) : GmColors.rose500;
+    final meta = guinjiRelationMetaOf(p.relation);
+    final color = meta.color;
     return GuinjiGraphNode(
       x: cx + math.cos(angle) * r,
       y: cy + math.sin(angle) * r,
@@ -291,7 +291,7 @@ class _GuinjiAnimatedRelationGraphState
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [GmColors.bgIvory, GmColors.bgCream.withValues(alpha: 0.6)],
+          colors: [GmColors.bg, GmColors.card.withValues(alpha: 0.6)],
         ),
         border: Border.all(color: GmColors.line),
         borderRadius: BorderRadius.circular(24),
@@ -307,7 +307,7 @@ class _GuinjiAnimatedRelationGraphState
                 child: Text(
                   widget.emptyHint!,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 12.5, color: GmColors.inkFaint),
+                  style: const TextStyle(fontSize: 12.5, color: GmColors.dim),
                 ),
               ),
             ),
@@ -343,7 +343,7 @@ class _GmGraphZoomControls extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.9),
+        color: GmColors.card.withValues(alpha: 0.9),
         border: Border.all(color: GmColors.line),
         borderRadius: BorderRadius.circular(12),
       ),
@@ -362,7 +362,7 @@ class _GmGraphZoomControls extends StatelessWidget {
   Widget _btn(IconData i, VoidCallback tap) => InkWell(
     onTap: tap,
     borderRadius: BorderRadius.circular(8),
-    child: SizedBox(width: 28, height: 28, child: Icon(i, size: 14, color: GmColors.ink)),
+    child: SizedBox(width: 28, height: 28, child: Icon(i, size: 14, color: GmColors.fg)),
   );
 }
 
@@ -374,7 +374,7 @@ class _GmGraphLegend extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.9),
+        color: GmColors.card.withValues(alpha: 0.9),
         border: Border.all(color: GmColors.line),
         borderRadius: BorderRadius.circular(12),
       ),
@@ -383,18 +383,15 @@ class _GmGraphLegend extends StatelessWidget {
         children: [
           const Text(
             '거리 = 관계 거리',
-            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: GmColors.inkSoft),
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: GmColors.muted),
           ),
           const SizedBox(height: 6),
           Row(
             children: [
-              _swatch(GmColors.categoryBoost, '귀인'),
-              const SizedBox(width: 8),
-              _swatch(GmColors.categoryPath, '인연'),
-              const SizedBox(width: 8),
-              _swatch(GmColors.categoryWarm, '보완'),
-              const SizedBox(width: 8),
-              _swatch(GmColors.categoryCare, '조심'),
+              for (final cat in guinjiCategoryOrder) ...[
+                _swatch(_categoryColor(cat.key), cat.title),
+                const SizedBox(width: 8),
+              ],
             ],
           ),
         ],
@@ -407,9 +404,17 @@ class _GmGraphLegend extends StatelessWidget {
     children: [
       Container(width: 8, height: 8, decoration: BoxDecoration(color: c, shape: BoxShape.circle)),
       const SizedBox(width: 4),
-      Text(label, style: const TextStyle(fontSize: 10, color: GmColors.ink)),
+      Text(label, style: const TextStyle(fontSize: 10, color: GmColors.fg)),
     ],
   );
+}
+
+/// 카테고리(boost/path/care) 대표 색상 — 해당 카테고리에 속한 첫 관계
+/// 유형의 색을 그대로 사용한다(V2 6종, 2종씩 묶음).
+Color _categoryColor(String category) {
+  final keys = guinjiRelationKeysByCategory[category];
+  if (keys == null || keys.isEmpty) return GmColors.gold;
+  return guinjiRelationMetaOf(keys.first).color;
 }
 
 /// [GuinjiAnimatedRelationGraph]의 실제 렌더링을 담당하는 CustomPainter.
@@ -457,7 +462,7 @@ class GuinjiGraphPainter extends CustomPainter {
         Offset(s.dx * size.width, s.dy * size.height),
         s.radius * (0.6 + tw * 0.4),
         Paint()
-          ..color = (s.gold ? GmColors.gold : GmColors.rose400)
+          ..color = (s.gold ? GmColors.gold : GmColors.fg)
               .withValues(alpha: opacity),
       );
     }
@@ -477,7 +482,7 @@ class GuinjiGraphPainter extends CustomPainter {
         rotation: time * _twoPi * 0.5);
     _dashed(canvas, Offset(cx, cy), 140, ringBase..color = GmColors.line,
         rotation: -time * _twoPi * 0.32);
-    _dashed(canvas, Offset(cx, cy), 200, ringBase..color = GmColors.lineSoft,
+    _dashed(canvas, Offset(cx, cy), 200, ringBase..color = GmColors.hair,
         rotation: time * _twoPi * 0.2);
 
     // ── 중심에서 퍼져나가는 레이더 펄스(radar ping) ──
@@ -492,7 +497,7 @@ class GuinjiGraphPainter extends CustomPainter {
           Paint()
             ..style = PaintingStyle.stroke
             ..strokeWidth = 1.4
-            ..color = GmColors.rose400.withValues(alpha: pulseOpacity),
+            ..color = GmColors.gold.withValues(alpha: pulseOpacity),
         );
       }
     }
@@ -531,8 +536,8 @@ class GuinjiGraphPainter extends CustomPainter {
       40 * ownerBreath,
       Paint()..color = GmColors.gold.withValues(alpha: 0.14),
     );
-    canvas.drawCircle(Offset(cx, cy), 34 * ownerBreath, Paint()..color = GmColors.ink);
-    _text(canvas, Offset(cx, cy - 3), centerTitle, 10, GmColors.ivory, weight: FontWeight.w700);
+    canvas.drawCircle(Offset(cx, cy), 34 * ownerBreath, Paint()..color = GmColors.card);
+    _text(canvas, Offset(cx, cy - 3), centerTitle, 10, GmColors.fg, weight: FontWeight.w700);
     if (centerSubtitle.isNotEmpty) {
       _text(canvas, Offset(cx, cy + 10), centerSubtitle, 8, GmColors.gold);
     }
