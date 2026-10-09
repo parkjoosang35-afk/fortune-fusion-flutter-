@@ -1,11 +1,12 @@
 import { prisma } from "@/lib/db";
 import { verifyAdminSession } from "@/lib/dal";
-import { canAccessMenu, RBAC_MATRIX } from "@/lib/rbac";
+import { canAccessMenu, canWriteMenu, RBAC_MATRIX } from "@/lib/rbac";
 import { redirect } from "next/navigation";
 import { todayRangeKst } from "@/lib/luck-pouch-engine";
 import RewardSubNav from "@/components/RewardSubNav";
 import FortuneAdCreateForm from "@/components/FortuneAdCreateForm";
 import FortuneAdRow from "@/components/FortuneAdRow";
+import { AdmobConfigCard, AdsenseConfigCard } from "@/components/AdPlatformConfigPanel";
 
 // [신통방통 복주머니 광고 적립 시스템] 관리자 광고 관리 화면.
 // open-pass-ad-sources/page.tsx 패턴을 그대로 재사용.
@@ -20,6 +21,14 @@ export default async function FortuneAdsPage() {
   const roleMatrix = RBAC_MATRIX.reward[session.roleCode as keyof typeof RBAC_MATRIX.reward];
   const canWrite = !!roleMatrix?.write;
   const canDelete = !!roleMatrix?.delete;
+  // [task 4 "광고관리 통합메뉴"] AdMob/AdSense 설정 저장 권한은 신규 메뉴코드
+  // ad_management 기준(현재 reward와 동일 권한값으로 미러링되어 있음).
+  const canWriteAdPlatform = canWriteMenu(session.roleCode, "ad_management");
+
+  const [admobConfig, adsenseConfig] = await Promise.all([
+    prisma.adPlatformConfig.findUnique({ where: { platform: "admob" } }),
+    prisma.adPlatformConfig.findUnique({ where: { platform: "adsense" } }),
+  ]);
 
   const ads = await prisma.fortuneAd.findMany({
     where: { deletedAt: null },
@@ -73,6 +82,22 @@ export default async function FortuneAdsPage() {
         </div>
       </div>
 
+      {/* [task 4 "광고관리 통합메뉴"] FortuneAd(복주머니 보상형 광고)는 아래에서
+          기존 그대로 운영하고, 그 위에 AdMob/AdSense 플랫폼 원격설정 카드를
+          추가한다. 화면만 있는 것이 아니라 저장 즉시 /api/public/ad-config를
+          통해 실제 서비스(Flutter 앱/웹)에 반영된다. */}
+      <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {admobConfig && <AdmobConfigCard config={admobConfig} canWrite={canWriteAdPlatform} />}
+        {adsenseConfig && <AdsenseConfigCard config={adsenseConfig} canWrite={canWriteAdPlatform} />}
+        {(!admobConfig || !adsenseConfig) && (
+          <p className="col-span-full rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            AdMob/AdSense 설정 데이터가 없습니다. 서버에서 시드 스크립트(scripts/seed-ad-platform-config.ts)를
+            먼저 실행해주세요.
+          </p>
+        )}
+      </div>
+
+      <h2 className="mb-3 text-lg font-semibold text-slate-900">FortuneAd — 보상형 광고(복주머니 적립)</h2>
       <FortuneAdCreateForm canWrite={canWrite} />
 
       <div className="overflow-x-auto rounded-xl border border-slate-200">

@@ -2734,6 +2734,50 @@ model SystemSetting {
 }
 
 // ══════════════════════════════════════════════════════════════════
+// [신통방통 관리자 통합 간소화 실행 지시서 - task 4 "광고관리 통합메뉴"]
+// 앱 AdMob / 웹 AdSense 광고 원격 설정 — 1행당 1 플랫폼(platform 유니크)을
+// 저장하는 key-value형 테이블(SystemSetting/WishConfig와 동일 패턴).
+//
+// [AdMob - 안전상 "킬스위치"로만 설계] 기존 admob_ad_ids.dart는 실제
+// Ad Unit ID 전환을 오직 `--dart-define=ADMOB_USE_REAL_IDS=true` 빌드타임
+// 플래그로만 허용한다(무효 트래픽→계정정지 위험을 코드 주석에서 명시적으로
+// 경고). 이 안전장치를 관리자 원격설정으로 우회시키는 것은 사장님이 이미
+// 명시한 리스크를 재도입하는 것이므로, AdMob에 대해서는 ad unit ID 자체가
+// 아니라 "광고 노출 여부(isEnabled)"만 원격 제어한다 — 광고를 당장 끄고
+// 싶을 때 재배포 없이 끌 수 있는 실질적 레버이되, 실제 ID 전환 안전장치는
+// 그대로 둔다.
+//
+// [AdSense - 완전 원격 제어] 기존 web_ad_config.dart(WebAdConfig)는 전체
+// enabled/publisherId/서비스별 노출/포맷별 노출을 전부 `bool.fromEnvironment`
+// 컴파일타임 상수로 하드코딩하고 있어, 관리자가 바꿔도 재빌드 전까지 전혀
+// 반영되지 않는 구조였다(사장님 지시서 "설정변경이 실제 서비스에 반영
+// 안되는 구조 금지"에 정확히 해당하는 결함). 이 테이블의 adsense 행이
+// 퍼블리셔ID/서비스별·포맷별 ON-OFF를 모두 담당하며, Flutter
+// AdRemoteConfigService가 앱 시작 시 공개 API(/api/public/ad-config)로
+// 조회해 WebAdConfig의 컴파일타임 기본값을 런타임에 덮어쓴다(조회 실패 시
+// 기존 컴파일타임 기본값으로 안전하게 폴백 — 절대 더 나빠지지 않음).
+model AdPlatformConfig {
+  id        Int     @id @default(autoincrement())
+  platform  String  @unique // "admob" | "adsense"
+  isEnabled Boolean @default(false) @map("is_enabled")
+
+  // ── AdSense(웹) 전용 필드 — admob 행에서는 전부 null ──
+  publisherId                 String? @map("publisher_id") // ca-pub-XXXXXXXXXXXXXXXX
+  showPlaceholderWhenDisabled Boolean @default(true) @map("show_placeholder_when_disabled")
+  // {"home":false,"sajuRenewal":true,"tarot":true,"wishRoom":false,"guinji":true,"face":true,"palm":true}
+  surfaceConfigJson String? @map("surface_config_json")
+  // {"banner":true,"inPage":true,"anchor":true,"vignette":true}
+  formatConfigJson  String? @map("format_config_json")
+
+  note      String? // 관리자 참고 메모(예: AdMob 행에는 실제 Ad Unit ID 전환 방법 안내) — SQLite는 @db.Text 네이티브 타입 미지원이라 일반 String? 사용
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  updatedBy String?   @map("updated_by")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@map("ad_platform_configs")
+}
+
+// ══════════════════════════════════════════════════════════════════
 // 05§3.11 "시스템 설정" — 2차 소단위: 접근/에러 로그 조회
 // (access_logs, error_logs — 04A상 관리자 CUD 스펙 없음, 조회 전용)
 // ══════════════════════════════════════════════════════════════════
