@@ -6,10 +6,12 @@ import '../../../core/web_ads/web_ad_config.dart';
 import '../../../core/web_ads/widgets/web_ad_in_page.dart';
 import '../application/guinji_provider.dart';
 import '../application/guinji_rewarded_ad_helper.dart';
+import '../deep/guinji_reasons.dart';
 import '../domain/guinji_person.dart';
 import '../domain/guinji_relation_meta.dart';
 import '../theme/guinji_map_theme.dart';
 import '../widgets/guinji_map_widgets.dart';
+import 'guinji_deep_result_screen.dart';
 
 /// 귀인지도(Guinji Map) — 관계 상세 화면 (`/guinji-map/*` 신규 디자인 톤).
 ///
@@ -278,6 +280,13 @@ class _GuinjiMapRelationDetailScreenState
               ),
               const SizedBox(height: 12),
 
+              // [핸드오프 CDetail "이렇게 판정했어요" 이식] S1~S5 룰트레이스를
+              // 사람이 읽을 수 있는 문장으로 보여준다(`guinjiReasons`, 관계
+              // 유형별 고정 3줄). 지금까지 `guinji_reasons.dart`가 작성만
+              // 되어 있고 실제 화면 어디에서도 쓰이지 않던 누락을 해소한다.
+              _ReasonsCard(relationKey: person.relation),
+              const SizedBox(height: 12),
+
               // 오행 근거.
               if (ohaeng != null)
                 Container(
@@ -354,6 +363,30 @@ class _GuinjiMapRelationDetailScreenState
               else
                 _SpecialUnlockedCard(person: person, meta: meta, ohaeng: ohaeng, color: color),
 
+              // [핸드오프 CDetail "자세한 관계 다시 보기" → DeepResult 이식]
+              // 해금 후에만 10장 장문 풀이 전체를 볼 수 있게 한다. 해금
+              // 전에는 위 [_SpecialLockedCard]의 광고/포인트 CTA가 먼저
+              // 나온다 — 핸드오프의 PaySheet(프리패스/복주머니/광고
+              // 3선택)는 이 화면의 2선택(광고/포인트) 해금 플로우로 이미
+              // 대체되어 있으므로 중복 결제 단계를 추가하지 않는다.
+              if (_specialUnlocked) ...[
+                const SizedBox(height: 12),
+                GmRoseButton(
+                  label: '자세한 관계 풀이 10장 전체 보기',
+                  icon: Icons.menu_book_outlined,
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => GuinjiDeepResultScreen(
+                        person: person,
+                        ownerName:
+                            context.read<GuinjiProvider>().mapName ?? '나',
+                        onShare: _handleShare,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+
               const SizedBox(height: 16),
               GmRoseButton(
                 label: '이 관계 공유하기',
@@ -369,6 +402,69 @@ class _GuinjiMapRelationDetailScreenState
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// [핸드오프 CDetail "이렇게 판정했어요" 1:1 이식] `guinjiReasons`(S1~S5
+/// 룰트레이스를 미리 풀어쓴 문장, 유형별 고정 3줄)를 S코드 배지 + 문장으로
+/// 나열한다. 알 수 없는 키가 와도 빈 리스트 폴백으로 크래시하지 않는다.
+class _ReasonsCard extends StatelessWidget {
+  const _ReasonsCard({required this.relationKey});
+
+  final String relationKey;
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = guinjiReasons[relationKey] ?? const [];
+    if (rows.isEmpty) return const SizedBox.shrink();
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: GmColors.card,
+        border: Border.all(color: GmColors.line),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const GmLabelMini('이렇게 판정했어요'),
+          const SizedBox(height: 10),
+          for (final row in rows)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 26,
+                    child: Text(
+                      row[0],
+                      style: const TextStyle(
+                        fontFamily: GmText.mono,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w500,
+                        color: GmColors.dim,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      row[1],
+                      style: const TextStyle(
+                        fontSize: 13,
+                        height: 1.5,
+                        color: GmColors.fg,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }
