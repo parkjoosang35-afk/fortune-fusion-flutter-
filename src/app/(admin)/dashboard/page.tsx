@@ -85,7 +85,14 @@ export default async function DashboardPage() {
     prisma.giftcardIssue.count({ where: { issuedAt: { gte: today }, status: "issued" } }),
     prisma.wish.count({ where: { createdAt: { gte: today } } }),
     prisma.matchingPair.count({ where: { matchedAt: { gte: today }, status: "active" } }),
-    prisma.report.count({ where: { status: "pending" } }),
+    // [승인 지시 §3] community/reports(레거시 post/comment/wish/user/fortune_result
+    // 신고 처리함)를 삭제하면서, 이 위젯이 가리키는 "신고 및 이상 징후" 화면은
+    // 이제 wishroom/reports 하나뿐이다. 집계 대상을 wishroom 3종 target_type으로
+    // 한정해 위젯 숫자와 클릭 시 이동하는 화면의 실제 표시 건수를 일치시킨다
+    // (레거시 신고 레코드는 화면이 없어졌을 뿐 reports 테이블 자체는 그대로 보존됨).
+    prisma.report.count({
+      where: { status: "pending", targetType: { in: ["wish_room", "wish_room_comment", "wish_room_review"] } },
+    }),
     prisma.errorLog.count({ where: { severity: "critical", createdAt: { gte: dayAgo } } }),
     prisma.payment.findMany({ where: { status: "paid", createdAt: { gte: today } }, select: { amount: true } }),
     prisma.pointHistory.findMany({ where: { createdAt: { gte: today } }, select: { amount: true, type: true } }),
@@ -227,9 +234,9 @@ export default async function DashboardPage() {
             <p className="mt-2 text-2xl font-bold text-slate-900">{matchingToday.toLocaleString()}건</p>
           </div>
 
-          {/* 신고 및 이상 징후 */}
+          {/* 신고 및 이상 징후 — [승인 지시 §3] community/reports 삭제로 wishroom/reports로 연결 */}
           <Link
-            href="/community/reports"
+            href="/wishroom/reports"
             className="rounded-xl border border-slate-200 bg-white p-4 transition hover:border-rose-300 hover:bg-rose-100"
           >
             <p className="text-sm text-slate-500">🚨 신고 및 이상 징후</p>

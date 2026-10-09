@@ -61,14 +61,26 @@ export interface AdminMenuGroup {
 //   - payments(결제/구독 관리): 행복머니/구독/결제를 비활성화하는 재화구조 원칙(§2단계)에
 //     따라 실제 결제 플로우가 앱에 없다.
 //   - community(커뮤니티 관리): [신통방통 관리자 통합 간소화 실행 지시서] 전수조사 결과
-//     posts/comments/reports/likes/files 5개 하위 화면 전부 Flutter 앱에서 참조하는
-//     api/public 엔드포인트가 없고(community API 자체는 /api/public/community가 아닌
-//     구버전 흔적만 존재), 앱 어디서도 커뮤니티 진입점이 없어 완전 미사용 확정.
-//     matching/payments와 동일한 전례(유지→수정→통합→off→삭제 중 "off") 적용.
-//     [승인 지시 §3] 다만 community가 참조하는 Comment/Like/Report/File 모델은
-//     wishroom(소원방, 현재 라이브) 신고·댓글·응원과 polymorphic(targetType)
-//     테이블을 공유하므로 "off"에서 더 나아간 완전 삭제는 보류한다(다음 세부
-//     작업에서 화면 코드 삭제 여부만 별도 재검토, 테이블/데이터는 유지).
+//     boards/posts/comments/reports/likes/files 6개 하위 화면 전부 Flutter 앱에서
+//     참조하는 api/public 엔드포인트가 없음을 재확인(ReportTargetType enum,
+//     POST /api/public/reports, community/posts 등 레거시 커뮤니티 API 호출 코드가
+//     lib 전체에 0건 — grep 전수 검색). community_posts(129건)/comments(wish 제외
+//     127건)/reports(wish 제외 14건) 데이터도 전부 2026-05~09월 과거 흔적으로,
+//     현재 라이브인 wish_room은 1건뿐이라 운영 중 데이터가 아님을 확인했다.
+//     [승인 지시 §3, 2단계 진행] 위 "off"(사이드바 노출만 제거) 조치에서 한 단계
+//     더 나아가, boards/posts/comments/reports/likes/files 6개 page.tsx와 전용
+//     서버 액션(actions/community.ts, actions/comments.ts, actions/files.ts) +
+//     전용 컴포넌트(CommunityBoardCreateForm/CommunityBoardRow/CommunityPostRow/
+//     CommentRow/FileRow)를 실제로 삭제했다("off"→"삭제" 전환, 화면 코드 한정).
+//     [DB/공용 코드 보존 — 절대 삭제 금지] Comment/Like/Report/File 4개 Prisma
+//     모델·테이블은 wishroom(소원방, 현재 라이브)의 신고·댓글·응원 기능과
+//     polymorphic(targetType/ownerType) 테이블을 공유하므로 데이터는 전혀
+//     건드리지 않았다. actions/reports.ts(assignReportToMe/actionReport/
+//     rejectReport)와 components/ReportRow.tsx도 wishroom/reports 화면이 동일
+//     코드를 재사용 중이라 그대로 보존했다 — RBAC_MATRIX.community 엔트리 역시
+//     이 파일의 canWriteReports()가 "community 또는 wishroom 둘 중 하나만
+//     접근 가능해도 허용"하는 판정에 실제로 참조하므로 삭제하지 않는다(고아
+//     권한코드가 아니라 wishroom 신고처리 권한 판정 로직의 일부로 계속 필요).
 //
 // [신통방통 관리자 통합 간소화 실행 지시서 - 목표 6+1 구조 1단계] 사장님 운영 실체(콘텐츠6개
 // /프리패스/복주머니/광고/회원)에 맞춰 최상위 메뉴를 재편한다:
