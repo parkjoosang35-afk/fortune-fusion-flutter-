@@ -8,6 +8,7 @@ import 'core/router/guinji_deep_link_handler.dart';
 import 'core/web/browser_back_bridge.dart';
 import 'core/web/web_nav_bridge.dart';
 import 'core/web_ads/web_ad_service.dart';
+import 'core/ad_remote_config/ad_remote_config_service.dart';
 import 'features/ads_test/domain/admob_ad_ids.dart';
 import 'features/ads_test/domain/admob_consent_service.dart';
 import 'features/home/domain/saju_fortune_rules.dart';
@@ -61,6 +62,14 @@ Future<void> main() async {
   // 실계산 경로로 전환된다(jeontong_eighty_report_builder.dart 참고).
   SajuRules.preload();
   SajuFortuneRules.preload();
+  // [신통방통 관리자 통합 간소화 실행 지시서 - task 4 "광고관리 통합메뉴"]
+  // admin_web의 AdMob isEnabled / AdSense(퍼블리셔ID+서비스별+포맷별) 원격
+  // 설정을 앱 시작 시 조회한다. await 하지 않는 이유: 네트워크 응답을
+  // 기다리며 앱 시작을 블로킹하면 안 되고, 조회가 끝나기 전까지는 기존
+  // 컴파일타임 기본값이 안전하게 사용되기 때문이다(AdRemoteConfigService
+  // 주석 참고). 조회가 끝나는 즉시(보통 수백ms~수초 이내) 이후의 광고 노출
+  // 판단부터 자동으로 원격값이 반영된다.
+  AdRemoteConfigService.load();
   // [귀인지도 딥링크 버그수정 — Phase A] `fortunefusion://g/{token}` 커스텀
   // 스킴 딥링크 수신을 앱 부팅 시점에 등록한다. await 하지 않는 이유: 이
   // 초기화가 runApp보다 늦게 끝나도(콜드 스타트 초기 링크 처리) 문제없이

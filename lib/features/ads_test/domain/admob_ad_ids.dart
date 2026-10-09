@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import '../../../core/ad_remote_config/ad_remote_config_service.dart';
 
 /// [애드몹 App ID/Ad Unit ID 모음 — 테스트/실제 자동 전환]
 ///
@@ -73,8 +74,16 @@ class AdmobAdIds {
 
   /// 현재 플랫폼에서 애드몹 SDK를 사용할 수 있는지 여부.
   /// Web은 지원하지 않으므로 항상 false, Android/iOS만 true.
+  ///
+  /// [task 4 "광고관리 통합메뉴"] admin_web의 AdPlatformConfig(admob 행)
+  /// isEnabled가 원격으로 꺼지면(AdRemoteConfigService.admobEnabled=false)
+  /// 재배포 없이 광고 노출을 즉시 중단할 수 있는 킬스위치를 추가한다.
+  /// 조회 전/실패 시에는 기본값 true이므로 기존 동작과 동일하다 — 실제
+  /// Ad Unit ID 전환(useRealAds) 안전장치는 이 체크와 무관하게 그대로 유지.
   static bool get isSupportedPlatform =>
-      !kIsWeb && (defaultTargetPlatform == TargetPlatform.android);
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android) &&
+      AdRemoteConfigService.admobEnabled;
 
   static String get bannerUnitId => useRealAds ? _realBannerId : _testBannerId;
   static String get interstitialUnitId =>
