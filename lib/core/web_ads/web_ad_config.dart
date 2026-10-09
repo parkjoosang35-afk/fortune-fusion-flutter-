@@ -73,9 +73,24 @@ class WebAdConfig {
   /// 두어, 승인/퍼블리셔 ID 발급이 끝난 뒤 명시적으로 true로 전환한다.
   /// (task 4) admin_web에서 isEnabled를 원격으로 켜면 재배포 없이 true로
   /// 전환된다 — _remoteEnabled가 null(조회 전/실패)이면 기존 기본값 사용.
-  static bool get enabled =>
-      _remoteEnabled ??
-      bool.fromEnvironment('WEB_ADS_ENABLED', defaultValue: false);
+  // [버그 수정 — 앱 전체 먹통(스플래시에서 멈춤)] `bool.fromEnvironment`는
+  // Dart 언어 규칙상 반드시 `const` 컨텍스트에서만 호출할 수 있는 상수
+  // 생성자다(컴파일 타임에 `--dart-define` 값을 심는 특수 생성자이므로
+  // 런타임 호출을 허용하지 않음). 이 getter가 `const` 없이 일반 함수처럼
+  // 호출되고 있어, 매번 "Unsupported operation: bool.fromEnvironment can
+  // only be used as a const constructor" 예외를 던졌다. `main.dart`의
+  // `WebAdService.ensureInitialized()` → `WebAdConfig.enabled` 호출
+  // 경로에서 이 예외가 catch되지 않아 `runApp()` 자체가 실행되지 못하고
+  // 앱이 로딩 스피너 화면에서 영원히 멈추는 심각한 버그였다(정통사주
+  // 뒤로가기 버그/스플래시 교체 작업과 무관하게 이미 존재하던 결함 —
+  // 2026-10-09 프리뷰 검증 중 발견). `const` 키워드를 추가해 컴파일
+  // 타임 상수로 평가되도록 고친다.
+  static const bool _webAdsEnabledDefault = bool.fromEnvironment(
+    'WEB_ADS_ENABLED',
+    defaultValue: false,
+  );
+
+  static bool get enabled => _remoteEnabled ?? _webAdsEnabledDefault;
 
   /// AdSense 퍼블리셔 ID(ca-pub-XXXXXXXXXXXXXXXX). 승인 전에는 빈 문자열
   /// — [WebAdService]가 이 값이 비어 있으면 스크립트 자체를 주입하지
@@ -102,9 +117,15 @@ class WebAdConfig {
   /// `--dart-define=WEB_AD_SHOW_PLACEHOLDER=false`로 꺼서 실제 사용자
   /// 화면에는 아무 것도 보이지 않게 한다.
   /// (task 4) 원격값이 설정되어 있으면 우선 사용, 없으면 기존 dart-define 기본값.
+  // [버그 수정 — 위 `enabled`와 동일 원인] 이 getter도 `bool.fromEnvironment`를
+  // `const` 없이 호출해 같은 예외를 던지고 있었다.
+  static const bool _showPlaceholderDefault = bool.fromEnvironment(
+    'WEB_AD_SHOW_PLACEHOLDER',
+    defaultValue: true,
+  );
+
   static bool get showPlaceholderWhenDisabled =>
-      _remoteShowPlaceholder ??
-      bool.fromEnvironment('WEB_AD_SHOW_PLACEHOLDER', defaultValue: true);
+      _remoteShowPlaceholder ?? _showPlaceholderDefault;
 
   /// 서비스별 ON/OFF. 지시서 §10 STEP E~G 순서(정통사주 먼저 → 안정화
   /// 후 나머지)를 코드로 강제한다 — 아직 적용하지 않은 서비스는 이 맵에서
