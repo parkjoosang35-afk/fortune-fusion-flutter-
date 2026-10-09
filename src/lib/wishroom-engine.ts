@@ -15,6 +15,7 @@
 // ══════════════════════════════════════════════════════════════════
 import type { Prisma } from "@/generated/prisma/client";
 import wishroomData from "@/data/wishroom_data.json";
+import { earnLuckPouch } from "./luck-pouch-engine";
 
 type Tx = Prisma.TransactionClient;
 
@@ -283,6 +284,28 @@ export function reviewAbuseFlags(text: string, recentTexts: string[], recentCoun
   if (recentTexts.some((r) => r.replace(/\s/g, "") === s)) flags.push("DUPLICATE");
   if (recentCount60s >= 2) flags.push("RAPID");
   return [...new Set(flags)];
+}
+
+// ---------------- 어뷰징 의심 후기 관리자 승인 [SERVER, task 6 "소원방 WishConfig admin 운영설정화면"] ----------------
+// [배경] POST /wish-rooms/{id}/review 등록 시 reviewAbuseFlags()가 의심 신호를 감지하면
+// status="review"(보상 보류)로 저장되는데, 지금까지 이 "review" 상태를 승인(보상 지급 후
+// visible 전환)하거나 반려(hidden_by_report 전환)할 관리자 기능이 전혀 없어 영구히 보류
+// 상태로 멈춰 있었다. [id]/review/route.ts의 status==="visible" 분기(보상 계산: base
+// 30 + 사진첨부 20)를 그대로 재사용해 수치를 중복 유지하지 않는다 — 운영 승인도 "진짜
+// 등록 성공"과 동일한 보상을 받는다.
+export async function grantReviewReward(
+  tx: Tx,
+  review: { id: number; roomId: number; userId: number; photoUrl: string | null }
+): Promise<{ base: number; photo: number }> {
+  const base = 30;
+  const photoBonus = review.photoUrl ? 20 : 0;
+  await earnLuckPouch(tx, { userId: review.userId, amount: base, sourceType: "wishroom_review", sourceId: review.roomId, memo: "소원 성취 후기(관리자 승인)" });
+  if (photoBonus) {
+    await earnLuckPouch(tx, { userId: review.userId, amount: photoBonus, sourceType: "wishroom_review_photo", sourceId: review.roomId, memo: "후기 사진 첨부(관리자 승인)" });
+  }
+  await tx.wishRoomReview.update({ where: { id: review.id }, data: { status: "visible", rewardGranted: true } });
+  await tx.wishRoom.update({ where: { id: review.roomId }, data: { reviewRewardGranted: true } });
+  return { base, photo: photoBonus };
 }
 
 // ---------------- 분당 요청 제한 [SERVER] — 호출부가 최근 타임스탬프 배열을 관리 ----------------

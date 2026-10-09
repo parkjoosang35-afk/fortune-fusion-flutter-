@@ -31,6 +31,13 @@ const TARGET_TYPE_LABEL: Record<string, string> = {
   wish: "소원",
   user: "회원",
   fortune_result: "운세결과",
+  // [task 6 소원방 운영] wish(레거시 소원게시판)와 구분되는 소원방(WishRoom v2.6)
+  // 전용 신고 대상 3종. schema.prisma Report.targetType 주석에 이미 화이트리스트로
+  // 명시되어 있었으나 이 컴포넌트에는 라벨이 없어 신고 목록에 원본 코드값(wish_room 등)
+  // 그대로 노출되던 문제를 해결한다.
+  wish_room: "소원방",
+  wish_room_comment: "소원방 댓글",
+  wish_room_review: "소원방 후기",
 };
 
 const STATUS_LABEL: Record<string, { label: string; cls: string }> = {

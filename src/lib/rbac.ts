@@ -66,6 +66,11 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
   { code: "pass", label: "프리패스관리", path: "/reward/pass-policies", icon: "Ticket" },
   { code: "pouch", label: "복주머니관리", path: "/reward/luck-pouch-rules", icon: "Gift" },
   { code: "ai_content", label: "6개콘텐츠관리", path: "/ai-content/prompts", icon: "Sparkles" },
+  // [신통방통 관리자 통합 간소화 실행 지시서 task 6] 소원방(WishRoom) 운영 관리 —
+  // 신고 처리함(wish_room/wish_room_comment/wish_room_review)과 어뷰징 의심 후기
+  // 승인 큐 2개 화면을 신설. task 8에서 6개콘텐츠관리 허브로 통합 예정이지만,
+  // 그 전까지는 ai_content와 분리된 전용 메뉴코드로 가드해 책임 범위를 명확히 한다.
+  { code: "wishroom", label: "소원방 운영", path: "/wishroom/reports", icon: "Heart" },
   { code: "ad_management", label: "광고관리", path: "/reward/fortune-ads", icon: "Megaphone" },
   { code: "users", label: "회원·이용내역", path: "/users", icon: "Users" },
   // [§8단계] 상점 관리 진입점을 부적(amulets, 앱 진입경로 없는 죽은 기능)에서
@@ -90,6 +95,9 @@ export const RBAC_MATRIX: Record<string, Record<AdminRoleCode, Perm>> = {
   dashboard: { super_admin: RWD, operator: R, cs: R, content_manager: R },
   users: { super_admin: RWD, operator: RW, cs: RW, content_manager: R },
   ai_content: { super_admin: RWD, operator: R, cs: R, content_manager: RW },
+  // [task 6] 소원방 운영(신고처리/어뷰징후기승인) — community(신고처리함)와 동일하게
+  // cs도 write(조치/반려) 가능해야 하므로 community와 동일한 권한셋을 사용한다.
+  wishroom: { super_admin: RWD, operator: RW, cs: RW, content_manager: R },
   reward: { super_admin: RWD, operator: RW, cs: R, content_manager: R },
   // [관리자 통합 간소화 - 목표 6+1 구조] 사이드바 전용 신규 메뉴코드. 실제 하위 페이지는
   // 전부 canAccessMenu(roleCode,"reward") 가드를 그대로 쓰므로, 여기서는 "reward"와

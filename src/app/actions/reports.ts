@@ -29,8 +29,14 @@ import { prisma } from "@/lib/db";
 import { verifyAdminSession } from "@/lib/dal";
 import { canAccessMenu } from "@/lib/rbac";
 
+// [task 6 "소원방 운영"] 이 파일의 assignReportToMe/actionReport/rejectReport는
+// targetType에 대해 폴리모픽 중립적이라 community/reports(레거시 5종)와
+// wishroom/reports(wish_room* 3종) 양쪽 화면에서 그대로 재사용한다. 따라서
+// write 권한도 두 메뉴(community 또는 wishroom) 중 하나만 접근 가능해도 허용한다
+// (어느 화면에서 호출됐는지는 서버 액션 입장에서 구분할 필요가 없음 — 신고 대상
+// targetType 자체가 이미 두 화면의 책임 범위를 분리하고 있다).
 function canWriteReports(roleCode: string): boolean {
-  if (!canAccessMenu(roleCode, "community")) return false;
+  if (!canAccessMenu(roleCode, "community") && !canAccessMenu(roleCode, "wishroom")) return false;
   // 05§5.2: 신고처리는 super_admin(RWD)/operator(RW)/cs(RW, 신고처리 한정)까지
   // write 가능. content_manager는 community=R이므로 제외.
   return roleCode === "super_admin" || roleCode === "operator" || roleCode === "cs";
@@ -42,6 +48,9 @@ export interface ReportFormState {
 }
 
 const REVALIDATE_PATH = "/community/reports";
+// [task 6 "소원방 운영"] 이 파일의 액션들은 wishroom/reports 화면에서도 호출되므로
+// 두 경로 모두 재검증해야 한다(폴리모픽 targetType에 따라 호출 화면이 다름).
+const WISHROOM_REVALIDATE_PATH = "/wishroom/reports";
 
 // ══════════════════════════════════════════════════════════
 // 담당자 배정 — 05§6 요구사항, reports.assigned_admin_id
@@ -95,6 +104,7 @@ export async function assignReportToMe(
   });
 
   revalidatePath(REVALIDATE_PATH);
+  revalidatePath(WISHROOM_REVALIDATE_PATH);
   return { success: true };
 }
 
@@ -165,6 +175,25 @@ export async function actionReport(
         where: { id: before.targetId },
         data: { status: "deleted_by_admin", deletedAt: new Date(), updatedBy: session.email },
       });
+    } else if (before.targetType === "wish_room") {
+      // [task 6 "소원방 WishConfig admin 운영설정화면"] 소원방(WishRoom) 자체 신고 —
+      // reports/route.ts(POST .../reports { roomId })가 이미 이 target_type으로
+      // 기록하고 있었으나(wishroom-engine.ts 포팅 시점부터), 조치 실행 로직이 없어
+      // 영구히 "접수"에서 멈춰 있었다. 소프트 삭제(ARCHIVED 전환) 처리.
+      await prisma.wishRoom.update({
+        where: { id: before.targetId },
+        data: { status: "ARCHIVED", deletedAt: new Date() },
+      });
+    } else if (before.targetType === "wish_room_comment") {
+      await prisma.wishRoomComment.update({
+        where: { id: before.targetId },
+        data: { status: "deleted_by_admin", deletedAt: new Date() },
+      });
+    } else if (before.targetType === "wish_room_review") {
+      await prisma.wishRoomReview.update({
+        where: { id: before.targetId },
+        data: { status: "deleted_by_admin", deletedAt: new Date() },
+      });
     }
   } else if (action === "suspended") {
     let targetUserId: number | null = null;
@@ -185,6 +214,15 @@ export async function actionReport(
         include: { request: { select: { userId: true } } },
       });
       targetUserId = result?.request.userId ?? null;
+    } else if (before.targetType === "wish_room") {
+      const room = await prisma.wishRoom.findUnique({ where: { id: before.targetId } });
+      targetUserId = room?.userId ?? null;
+    } else if (before.targetType === "wish_room_comment") {
+      const comment = await prisma.wishRoomComment.findUnique({ where: { id: before.targetId } });
+      targetUserId = comment?.userId ?? null;
+    } else if (before.targetType === "wish_room_review") {
+      const review = await prisma.wishRoomReview.findUnique({ where: { id: before.targetId } });
+      targetUserId = review?.userId ?? null;
     }
     if (targetUserId) {
       await prisma.user.update({
@@ -217,6 +255,7 @@ export async function actionReport(
   });
 
   revalidatePath(REVALIDATE_PATH);
+  revalidatePath(WISHROOM_REVALIDATE_PATH);
   return { success: true };
 }
 
@@ -271,5 +310,6 @@ export async function rejectReport(
   });
 
   revalidatePath(REVALIDATE_PATH);
+  revalidatePath(WISHROOM_REVALIDATE_PATH);
   return { success: true };
 }
