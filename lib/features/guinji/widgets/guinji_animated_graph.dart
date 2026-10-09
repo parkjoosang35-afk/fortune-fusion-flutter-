@@ -1,10 +1,15 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
+import '../character/guinji_character.dart';
 import '../domain/guinji_person.dart';
 import '../domain/guinji_relation_meta.dart';
 import '../theme/guinji_map_theme.dart';
+import '../theme/guinji_type_spec.dart';
+import 'guinji_layout.dart';
 
 /// [바이럴 페이지 개편 — 2026] `/guinji-map/m`(M·My Map)의 관계 그래프에
 /// 쓰던 애니메이션 로직을 공용 위젯으로 추출했다. M화면(pan/zoom/drag
@@ -24,37 +29,86 @@ class GuinjiGraphNode {
     required this.r,
     required this.color,
     required this.person,
+    required this.labelTop,
+    this.facePath,
   });
 
   double x, y, r;
   final Color color;
   final GuinjiPerson person;
+
+  /// handoff `n.side === 'top'` — true면 이름표가 노드 위쪽(노드가 지도
+  /// 하반부에 있을 때), false면 아래쪽.
+  final bool labelTop;
+
+  /// 캐릭터 얼굴 에셋 경로(`assets/images/guinji/chars/*_face.jpg`).
+  /// 생년월일을 파싱할 수 없으면 null — 폴백(색상 원+이니셜)으로 렌더.
+  final String? facePath;
 }
 
-/// [people]을 절차적으로 배치한다: 각도는 인덱스 균등분배(12시 방향부터
-/// 시계방향), 중심 거리(r)와 노드 반지름은 점수에 반비례/비례한다.
-List<GuinjiGraphNode> layoutGuinjiGraphNodes(
+/// 지도 배치 결과 — 노드 목록 + 실제 중심 좌표(핸드오프 `GJ.layout()`의
+/// `cx,cy`와 동일한 공식으로 계산됨, size.width/2·height/2와는 padT/padB
+/// 만큼 미세하게 다를 수 있어 별도로 전달한다).
+class GuinjiGraphLayoutResult {
+  GuinjiGraphLayoutResult(this.nodes, this.center);
+  final List<GuinjiGraphNode> nodes;
+  final Offset center;
+}
+
+/// "YYYY·MM·DD" 형식의 [GuinjiPerson.birth] 문자열을 [DateTime]으로
+/// 변환한다. 파싱할 수 없으면 null(캐릭터 사진 없이 폴백 렌더).
+DateTime? parseGuinjiBirthLabel(String label) {
+  final parts = label.split('·');
+  if (parts.length != 3) return null;
+  final y = int.tryParse(parts[0]);
+  final m = int.tryParse(parts[1]);
+  final d = int.tryParse(parts[2]);
+  if (y == null || m == null || d == null) return null;
+  try {
+    return DateTime(y, m, d);
+  } catch (_) {
+    return null;
+  }
+}
+
+/// [people]을 핸드오프 원본 `GJ.layout()`(`guinji_layout.dart`
+/// `computeGuinjiLayout`)과 동일한 알고리즘으로 배치한다: ①각도는
+/// 관계유형별 부채꼴(천생귀인 12시부터 시계방향) ②거리는 점수(높을수록
+/// 중심 가까이) ③중심에서 뻗는 직선이라 교차 불가 ④라벨은 위/아래 노드
+/// 측면 자동 배정 ⑤노드·라벨·중앙·경계 충돌을 2D로 밀어내기(최대 400회).
+GuinjiGraphLayoutResult layoutGuinjiGraphNodes(
   List<GuinjiPerson> people,
-  double cx,
-  double cy,
+  Size size,
 ) {
-  if (people.isEmpty) return const [];
-  final total = people.length;
-  return people.asMap().entries.map((e) {
-    final i = e.key;
-    final p = e.value;
-    final angle = (i / total) * math.pi * 2 - math.pi / 2;
-    final r = 60 + (100 - p.score) * 1.6;
+  if (people.isEmpty || size.width <= 0 || size.height <= 0) {
+    return GuinjiGraphLayoutResult(
+      const [],
+      Offset(size.width / 2, size.height / 2),
+    );
+  }
+  final nodeIns = people
+      .map((p) => GuinjiNodeIn(p.id, p.name, p.relation, p.score))
+      .toList();
+  final layout = computeGuinjiLayout(nodeIns, size);
+  final byId = {for (final p in people) p.id: p};
+  final nodes = layout.nodes.map((n) {
+    final p = byId[n.m.id]!;
     final meta = guinjiRelationMetaOf(p.relation);
-    final color = meta.color;
+    final birth = parseGuinjiBirthLabel(p.birth);
+    final facePath = birth == null
+        ? null
+        : GuinjiCharacter.of(birth: birth, stableKey: p.id).face;
     return GuinjiGraphNode(
-      x: cx + math.cos(angle) * r,
-      y: cy + math.sin(angle) * r,
-      r: 22 + (p.score - 50) * 0.25,
-      color: color,
+      x: n.x,
+      y: n.y,
+      r: layout.d.nodeD / 2,
+      color: meta.color,
       person: p,
+      labelTop: n.labelTop,
+      facePath: facePath,
     );
   }).toList();
+  return GuinjiGraphLayoutResult(nodes, layout.center);
 }
 
 /// 배경 반짝임용 별 하나의 사양(위치는 컨테이너 크기에 대한 0~1 비율).
@@ -104,6 +158,7 @@ class GuinjiAnimatedRelationGraph extends StatefulWidget {
     this.showLegend = true,
     this.height = 380,
     this.emptyHint,
+    this.filter,
   });
 
   final List<GuinjiPerson> people;
@@ -130,6 +185,11 @@ class GuinjiAnimatedRelationGraph extends StatefulWidget {
   /// people이 빈 배열일 때 중앙에 표시할 안내 문구. null이면 표시하지 않음.
   final String? emptyHint;
 
+  /// [핸드오프 `CMain` filter 상태 이식] 관계 유형(6종 키) 하나를 지정하면
+  /// 해당 유형의 노드/방사선만 강조하고, 나머지는 흐리게 처리한다. null이면
+  /// 필터 없음(전체 표시). 외부(M화면의 유형 칩)에서 제어한다.
+  final String? filter;
+
   @override
   State<GuinjiAnimatedRelationGraph> createState() =>
       _GuinjiAnimatedRelationGraphState();
@@ -142,10 +202,16 @@ class _GuinjiAnimatedRelationGraphState
   double _panX = 0, _panY = 0;
   double _pinchStart = 1;
   final _nodes = <GuinjiGraphNode>[];
+  Offset _center = Offset.zero;
   GuinjiGraphNode? _dragging;
   bool _panning = false;
   bool _moved = false;
   int _lastNodeCount = -1;
+
+  /// [핸드오프 `sel` 상태 이식] 탭으로 선택된 노드 — 드래그 종료 후에도
+  /// 유지되어(onSelect 콜백이 N·Sheet을 띄우고 닫혀도) 방사선/링 강조가
+  /// 계속 표시된다. 다시 탭하면 토글(선택 해제).
+  GuinjiPerson? _selected;
 
   /// 연속 "시계" — 12초 주기로 0→1 반복. 링 회전/펄스/호흡/에너지 흐름이
   /// 모두 이 값에서 서로 다른 배속으로 파생된다.
@@ -155,6 +221,15 @@ class _GuinjiAnimatedRelationGraphState
   late final AnimationController _entranceController;
 
   late final List<GuinjiGraphStarSpec> _starSpecs;
+
+  /// [핸드오프 `Face` 이식 — 사진 노드] 캐릭터 얼굴 jpg를 미리 디코드해
+  /// 캐시한다(CustomPainter는 동기 렌더만 가능하므로, 로드 완료 후
+  /// setState로 다시 그린다). 키 = facePath.
+  final Map<String, ui.Image> _faceImageCache = {};
+  final Set<String> _faceLoading = {};
+
+  /// 소유자("나") 얼굴 캐시 — 데모 고정 ID.
+  ui.Image? _ownerFaceImage;
 
   @override
   void initState() {
@@ -169,6 +244,7 @@ class _GuinjiAnimatedRelationGraphState
     );
     _starSpecs = generateGuinjiGraphStars();
     WidgetsBinding.instance.addPostFrameCallback((_) => _rebuildLayout());
+    _loadFaceImage('assets/images/guinji/chars/f30_face.jpg', isOwner: true);
   }
 
   @override
@@ -188,16 +264,43 @@ class _GuinjiAnimatedRelationGraphState
     final box = _key.currentContext?.findRenderObject() as RenderBox?;
     if (box == null) return;
     final size = box.size;
-    final cx = size.width / 2;
-    final cy = size.height / 2;
+    final result = layoutGuinjiGraphNodes(widget.people, size);
     _nodes
       ..clear()
-      ..addAll(layoutGuinjiGraphNodes(widget.people, cx, cy));
+      ..addAll(result.nodes);
+    _center = result.center;
     if (_nodes.isNotEmpty && _nodes.length != _lastNodeCount) {
       _lastNodeCount = _nodes.length;
       _entranceController.forward(from: 0);
     }
+    for (final n in _nodes) {
+      final path = n.facePath;
+      if (path != null) _loadFaceImage(path);
+    }
     if (mounted) setState(() {});
+  }
+
+  /// [핸드오프 `Face` 이식] 에셋 jpg를 [ui.Image]로 비동기 디코드해
+  /// 캐시한다. 이미 캐시되었거나 로딩 중이면 중복 로드하지 않는다.
+  Future<void> _loadFaceImage(String assetPath, {bool isOwner = false}) async {
+    if (_faceImageCache.containsKey(assetPath) || _faceLoading.contains(assetPath)) {
+      return;
+    }
+    _faceLoading.add(assetPath);
+    try {
+      final data = await rootBundle.load(assetPath);
+      final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
+      final frame = await codec.getNextFrame();
+      if (!mounted) return;
+      setState(() {
+        _faceImageCache[assetPath] = frame.image;
+        if (isOwner) _ownerFaceImage = frame.image;
+      });
+    } catch (_) {
+      // 에셋이 없으면 폴백(색상 원+이니셜) 렌더로 자연스럽게 이어진다.
+    } finally {
+      _faceLoading.remove(assetPath);
+    }
   }
 
   GuinjiGraphNode? _hitTest(Offset local) {
@@ -223,6 +326,7 @@ class _GuinjiAnimatedRelationGraphState
             return CustomPaint(
               painter: GuinjiGraphPainter(
                 nodes: _nodes,
+                center: _center,
                 centerTitle: widget.centerTitle,
                 centerSubtitle: widget.centerSubtitle,
                 scale: _scale,
@@ -232,6 +336,10 @@ class _GuinjiAnimatedRelationGraphState
                 entrance: _entranceController.value,
                 draggingPerson: _dragging?.person,
                 stars: _starSpecs,
+                faceImages: _faceImageCache,
+                ownerFaceImage: _ownerFaceImage,
+                selectedPerson: _selected,
+                filter: widget.filter,
               ),
               size: Size.infinite,
             );
@@ -274,8 +382,12 @@ class _GuinjiAnimatedRelationGraphState
               });
             },
             onScaleEnd: (details) {
-              if (_dragging != null && !_moved && widget.onSelect != null) {
-                widget.onSelect!(_dragging!.person);
+              if (_dragging != null && !_moved) {
+                final tapped = _dragging!.person;
+                setState(() {
+                  _selected = _selected == tapped ? null : tapped;
+                });
+                widget.onSelect?.call(tapped);
               }
               _dragging = null;
               _panning = false;
@@ -418,11 +530,16 @@ Color _categoryColor(String category) {
 }
 
 /// [GuinjiAnimatedRelationGraph]의 실제 렌더링을 담당하는 CustomPainter.
-/// 회전 궤도 링·레이더 펄스·호흡하는 중심/노드·에너지 흐름 입자·순차
-/// 등장(stagger) 애니메이션 + 배경 별빛 반짝임을 그린다.
+///
+/// [핸드오프 `CleanMap` 1:1 이식] 중심에서 뻗는 방사선(흰색 22%) + 같은
+/// 유형끼리의 이웃 연결선(그물망, 흰색 10%) + 사진 노드(원형 얼굴, 선택
+/// 시 유형색 링+글로우+1.12배 확대) + 이름+한자/유형 라벨(노드 위/아래
+/// 자동 배정) 위에, 기존에 만들어둔 회전 궤도 링·레이더 펄스·호흡·에너지
+/// 흐름 애니메이션을 그대로 겹쳐 그린다(핸드오프에는 없는 추가 생동감).
 class GuinjiGraphPainter extends CustomPainter {
   GuinjiGraphPainter({
     required this.nodes,
+    required this.center,
     required this.centerTitle,
     required this.centerSubtitle,
     required this.scale,
@@ -431,10 +548,17 @@ class GuinjiGraphPainter extends CustomPainter {
     required this.time,
     required this.entrance,
     required this.stars,
+    required this.faceImages,
+    this.ownerFaceImage,
     this.draggingPerson,
+    this.selectedPerson,
+    this.filter,
   });
 
   final List<GuinjiGraphNode> nodes;
+
+  /// 레이아웃이 계산한 실제 중심 좌표(핸드오프 `GJ.layout()`의 cx,cy).
+  final Offset center;
   final String centerTitle;
   final String centerSubtitle;
   final double scale, panX, panY;
@@ -447,10 +571,32 @@ class GuinjiGraphPainter extends CustomPainter {
 
   final List<GuinjiGraphStarSpec> stars;
 
+  /// facePath → 디코드된 이미지 캐시(공유 — 매 프레임 재디코드하지 않음).
+  final Map<String, ui.Image> faceImages;
+
+  /// "나" 중앙 노드 얼굴(없으면 골드 원+이니셜 폴백).
+  final ui.Image? ownerFaceImage;
+
   /// 현재 드래그 중인 노드 — breathing/float을 잠시 멈춘다.
   final GuinjiPerson? draggingPerson;
 
+  /// 현재 선택된 노드(탭/드래그로 선택) — 핸드오프 `sel` 상태와 동일하게
+  /// 링+글로우+확대 및 방사선 강조 처리.
+  final GuinjiPerson? selectedPerson;
+
+  /// [핸드오프 `filter` 상태 이식] 특정 관계유형 키만 강조(`off(n)` 로직:
+  /// 선택 또는 필터와 무관한 노드는 opacity 0.28로 흐리게 처리).
+  final String? filter;
+
   static const _twoPi = math.pi * 2;
+
+  /// 핸드오프 `off(n)` — 선택된 노드가 있는데 이 노드가 아니거나, 필터가
+  /// 지정됐는데 이 노드 유형이 아니면 흐리게 처리해야 함.
+  bool _isOff(GuinjiGraphNode n) {
+    if (selectedPerson != null && selectedPerson != n.person) return true;
+    if (filter != null && filter != n.person.relation) return true;
+    return false;
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -471,8 +617,20 @@ class GuinjiGraphPainter extends CustomPainter {
     canvas.translate(panX, panY);
     canvas.scale(scale);
 
-    final cx = size.width / 2;
-    final cy = size.height / 2;
+    final cx = center.dx;
+    final cy = center.dy;
+
+    // ── 중앙 광량(핸드오프: radial-gradient 흰색 9% → 투명, 반경 130) ──
+    canvas.drawCircle(
+      Offset(cx, cy),
+      130,
+      Paint()
+        ..shader = ui.Gradient.radial(
+          Offset(cx, cy),
+          130,
+          [Colors.white.withValues(alpha: 0.09), Colors.white.withValues(alpha: 0)],
+        ),
+    );
 
     // ── 회전하는 궤도 링(반지름별로 속도를 달리해 정교함을 살린다) ──
     final ringBase = Paint()
@@ -502,19 +660,53 @@ class GuinjiGraphPainter extends CustomPainter {
       }
     }
 
-    // ── 중심→노드 연결선 + 흐르는 에너지 입자 ──
+    // ── [핸드오프 `webs`] 같은 유형끼리 정렬 순서로 인접한 노드를 연결하는
+    // 그물망(흰색 10%, 선택/필터 중엔 무관한 쪽 0.04로 더 흐리게) ──
+    for (final t in guinjiTypeOrder) {
+      final group = nodes.where((n) => n.person.relation == t).toList();
+      for (var i = 0; i < group.length - 1; i++) {
+        final a = group[i], b = group[i + 1];
+        final ae = _entranceForNode(a, entrance);
+        final be = _entranceForNode(b, entrance);
+        if (ae < 0.98 || be < 0.98) continue;
+        final dimmed = (selectedPerson != null || filter != null) &&
+            !((selectedPerson != null && (selectedPerson == a.person || selectedPerson == b.person)) ||
+                filter == t);
+        canvas.drawLine(
+          Offset(a.x, a.y),
+          Offset(b.x, b.y),
+          Paint()
+            ..color = Colors.white.withValues(alpha: dimmed ? 0.04 : 0.1)
+            ..strokeWidth = 1,
+        );
+      }
+    }
+
+    // ── 중심→노드 방사선(핸드오프: 흰색 22%, 선택/필터 시 유형색 강조,
+    // 무관한 노드는 0.05로 흐리게) + 흐르는 에너지 입자 ──
     for (final n in nodes) {
       final nodeEntrance = _entranceForNode(n, entrance);
       final ex = cx + (n.x - cx) * nodeEntrance;
       final ey = cy + (n.y - cy) * nodeEntrance;
+      final isSelected = selectedPerson == n.person;
+      final isFiltered = filter != null && filter == n.person.relation;
+      final off = _isOff(n);
+      final lineAlpha = isSelected
+          ? 0.9
+          : isFiltered
+              ? 0.6
+              : off
+                  ? 0.05
+                  : 0.22;
       canvas.drawLine(
         Offset(cx, cy),
         Offset(ex, ey),
         Paint()
-          ..color = n.color.withValues(alpha: 0.4 * nodeEntrance)
-          ..strokeWidth = 1,
+          ..color = (isSelected || isFiltered ? n.color : Colors.white)
+              .withValues(alpha: lineAlpha * nodeEntrance)
+          ..strokeWidth = isSelected ? 2 : 1,
       );
-      if (nodeEntrance > 0.98) {
+      if (nodeEntrance > 0.98 && !off) {
         for (int k = 0; k < 2; k++) {
           final flow = ((time * (0.7 + k * 0.15)) + k * 0.5) % 1.0;
           final fx = cx + (n.x - cx) * flow;
@@ -529,24 +721,31 @@ class GuinjiGraphPainter extends CustomPainter {
       }
     }
 
-    // ── 중앙 노드: 은은한 호흡(scale) + 오라 ──
+    // ── 중앙 노드("나"): 사진(있으면) + 은은한 호흡(scale) + 오라 ──
     final ownerBreath = 1 + math.sin(time * _twoPi * 0.5) * 0.035;
+    const ownerR = 34.0;
     canvas.drawCircle(
       Offset(cx, cy),
-      40 * ownerBreath,
+      (ownerR + 6) * ownerBreath,
       Paint()..color = GmColors.gold.withValues(alpha: 0.14),
     );
-    canvas.drawCircle(Offset(cx, cy), 34 * ownerBreath, Paint()..color = GmColors.card);
-    _text(canvas, Offset(cx, cy - 3), centerTitle, 10, GmColors.fg, weight: FontWeight.w700);
+    if (ownerFaceImage != null) {
+      _drawFaceImage(canvas, ownerFaceImage!, Offset(cx, cy), ownerR * ownerBreath, 1.0,
+          ringColor: Colors.white.withValues(alpha: 0.7));
+    } else {
+      canvas.drawCircle(Offset(cx, cy), ownerR * ownerBreath, Paint()..color = GmColors.card);
+    }
+    _text(canvas, Offset(cx, cy + ownerR * ownerBreath + 16), centerTitle, 11, GmColors.fg, weight: FontWeight.w600);
     if (centerSubtitle.isNotEmpty) {
-      _text(canvas, Offset(cx, cy + 10), centerSubtitle, 8, GmColors.gold);
+      _text(canvas, Offset(cx, cy + ownerR * ownerBreath + 30), centerSubtitle, 9, GmColors.muted);
     }
 
-    // ── 인물 노드: 등장(scale+fade) + 호흡 + 미세 플로팅 ──
+    // ── 인물 노드: 등장(scale+fade) + 호흡 + 미세 플로팅 + 사진 + 라벨 ──
     for (final n in nodes) {
       final nodeEntrance = _entranceForNode(n, entrance);
       if (nodeEntrance <= 0.001) continue;
       final isDragging = draggingPerson == n.person;
+      final isSelected = selectedPerson == n.person;
       final seedOffset = n.person.name.hashCode % 1000 / 1000.0;
       final breathe = isDragging
           ? 1.0
@@ -556,30 +755,95 @@ class GuinjiGraphPainter extends CustomPainter {
           : math.sin(time * _twoPi * 0.45 + seedOffset * _twoPi) * 2.5;
       final ox = n.x;
       final oy = n.y + floatY;
-      final r = n.r * breathe * nodeEntrance.clamp(0.0, 1.0);
-      final alpha = nodeEntrance.clamp(0.0, 1.0);
+      final selScale = isSelected ? 1.12 : 1.0;
+      final r = n.r * breathe * selScale * nodeEntrance.clamp(0.0, 1.0);
+      // [핸드오프 off(n)] 선택/필터와 무관한 노드는 투명도 0.28로 흐리게.
+      final offAlpha = _isOff(n) ? 0.28 : 1.0;
+      final alpha = nodeEntrance.clamp(0.0, 1.0) * offAlpha;
+      final faceImage = n.facePath != null ? faceImages[n.facePath] : null;
 
-      canvas.drawCircle(
-        Offset(ox, oy),
-        r + 4,
-        Paint()..color = n.color.withValues(alpha: 0.15 * alpha),
-      );
-      canvas.drawCircle(Offset(ox, oy), r, Paint()..color = n.color.withValues(alpha: alpha));
-      canvas.drawCircle(
-        Offset(ox, oy),
-        r,
-        Paint()
-          ..color = Colors.white.withValues(alpha: alpha)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2,
-      );
+      if (isSelected) {
+        canvas.drawCircle(
+          Offset(ox, oy),
+          r + 10,
+          Paint()..color = n.color.withValues(alpha: 0.26 * alpha),
+        );
+      }
+
+      if (faceImage != null) {
+        _drawFaceImage(
+          canvas,
+          faceImage,
+          Offset(ox, oy),
+          r,
+          alpha,
+          ringColor: (isSelected ? n.color : Colors.white.withValues(alpha: 0.18)),
+          ringWidth: isSelected ? 1.5 : 1,
+        );
+      } else {
+        // 폴백: 핸드오프 사진 에셋이 아직 없을 때 — 유형색 원 + 이니셜.
+        canvas.drawCircle(Offset(ox, oy), r, Paint()..color = n.color.withValues(alpha: alpha));
+        canvas.drawCircle(
+          Offset(ox, oy),
+          r,
+          Paint()
+            ..color = Colors.white.withValues(alpha: alpha * (isSelected ? 1 : 0.5))
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = isSelected ? 1.5 : 1,
+        );
+        if (alpha > 0.5 && n.person.name.isNotEmpty) {
+          _text(canvas, Offset(ox, oy), n.person.name.substring(0, 1), r * 0.7,
+              Colors.white.withValues(alpha: alpha), weight: FontWeight.w700);
+        }
+      }
+
       if (alpha > 0.6) {
-        _text(canvas, Offset(ox, oy - 1), n.person.name, 10, Colors.white.withValues(alpha: alpha), weight: FontWeight.w700);
-        _text(canvas, Offset(ox, oy + 10), '${n.person.score}', 8, Colors.white.withValues(alpha: alpha * 0.85));
+        final spec = guinjiTypeOf(n.person.relation);
+        final labelY = n.labelTop ? oy - r - 8 : oy + r + 8;
+        final nameY = n.labelTop ? labelY - 14 : labelY + 7;
+        final typeY = n.labelTop ? labelY : labelY + 21;
+        _text(canvas, Offset(ox, nameY), n.person.name, 11,
+            (isSelected ? GmColors.fg : const Color(0xC7F2F0EC)).withValues(alpha: alpha),
+            weight: FontWeight.w600);
+        _text(canvas, Offset(ox, typeY), '${spec.hanja} ${spec.short}', 9.5,
+            n.color.withValues(alpha: alpha * 0.92), weight: FontWeight.w600);
       }
     }
 
     canvas.restore();
+  }
+
+  /// [핸드오프 `Face` 이식] 원형으로 클리핑한 캐릭터 얼굴 이미지를 그린다.
+  /// 테두리(ring)와 중심 좌표 기준 글로우를 함께 처리한다.
+  void _drawFaceImage(
+    Canvas canvas,
+    ui.Image image,
+    Offset o,
+    double r,
+    double alpha, {
+    Color? ringColor,
+    double ringWidth = 1,
+  }) {
+    if (r <= 0) return;
+    final rect = Rect.fromCircle(center: o, radius: r);
+    canvas.save();
+    canvas.clipPath(Path()..addOval(rect));
+    // 이미지를 커버 방식으로 중앙 정사각 크롭해 원형 안에 그린다.
+    final src = Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble());
+    final srcSize = image.width < image.height ? image.width.toDouble() : image.height.toDouble();
+    final srcSquare = Rect.fromCenter(center: src.center, width: srcSize, height: srcSize);
+    canvas.drawImageRect(image, srcSquare, rect, Paint()..color = Colors.white.withValues(alpha: alpha));
+    canvas.restore();
+    if (ringColor != null) {
+      canvas.drawCircle(
+        o,
+        r,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = ringWidth
+          ..color = ringColor.withValues(alpha: ringColor.a * alpha),
+      );
+    }
   }
 
   /// 노드별로 등장 시작 시점을 살짝 엇갈리게(stagger) 만들어 순차적으로

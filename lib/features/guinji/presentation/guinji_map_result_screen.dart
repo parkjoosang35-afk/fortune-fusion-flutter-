@@ -9,6 +9,7 @@ import '../domain/guinji_owner_saju_summary.dart';
 import '../domain/guinji_person.dart';
 import '../domain/guinji_relation_meta.dart';
 import '../theme/guinji_map_theme.dart';
+import '../theme/guinji_type_spec.dart';
 import '../widgets/guinji_animated_graph.dart';
 import '../widgets/guinji_map_widgets.dart';
 import 'guinji_map_relation_detail_screen.dart';
@@ -65,6 +66,10 @@ class GuinjiMapResultScreen extends StatefulWidget {
 }
 
 class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
+  /// [핸드오프 `CMain` filter 상태 이식] 유형 칩을 탭하면 해당 유형만
+  /// 지도에서 강조한다(다시 탭하면 해제). null = 필터 없음.
+  String? _filter;
+
   @override
   void initState() {
     super.initState();
@@ -312,7 +317,21 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
                 people: widget.people,
                 onSelect: _handleNodeTap,
                 emptyHint: '지인을 초대하면 여기에 표시돼요',
+                filter: _filter,
               ),
+
+              // [핸드오프 `CMain` 유형 필터 칩 이식] 실제 참여한 관계유형만
+              // 칩으로 노출하고, 탭하면 지도에서 해당 유형만 강조한다.
+              if (widget.people.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                  child: _GmTypeFilterRow(
+                    people: widget.people,
+                    selected: _filter,
+                    onSelect: (key) =>
+                        setState(() => _filter = _filter == key ? null : key),
+                  ),
+                ),
 
               // [웹 일반 AdSense 전체 확장 — 귀인지도] 노드 그래프(콘텐츠)와
               // "가장 강한 인연" 리스트(콘텐츠) 사이 — CTA("친구 초대하고
@@ -410,6 +429,80 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// [핸드오프 `CMain` 유형 필터 칩 이식] 실제 참여한 관계유형만 한 줄로
+/// 보여주고, 탭하면 지도에서 해당 유형만 강조(`GuinjiAnimatedRelationGraph.
+/// filter`)한다. 다시 탭하면 해제.
+class _GmTypeFilterRow extends StatelessWidget {
+  const _GmTypeFilterRow({
+    required this.people,
+    required this.selected,
+    required this.onSelect,
+  });
+
+  final List<GuinjiPerson> people;
+  final String? selected;
+  final void Function(String key) onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final counts = <String, int>{};
+    for (final p in people) {
+      counts[p.relation] = (counts[p.relation] ?? 0) + 1;
+    }
+    final keys = guinjiTypeOrder.where((t) => (counts[t] ?? 0) > 0).toList();
+    if (keys.isEmpty) return const SizedBox.shrink();
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (final key in keys) ...[
+            _buildChip(key, counts[key]!),
+            const SizedBox(width: 6),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChip(String key, int count) {
+    final spec = guinjiTypeOf(key);
+    final on = selected == key;
+    return GestureDetector(
+      onTap: () => onSelect(key),
+      child: Container(
+        height: 30,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          color: on ? spec.color.withValues(alpha: 0.12) : Colors.transparent,
+          border: Border.all(color: on ? spec.color : Colors.transparent),
+          borderRadius: BorderRadius.circular(15),
+        ),
+        alignment: Alignment.center,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(color: spec.color, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 5),
+            Text(
+              '${spec.short} $count',
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w500,
+                color: on ? spec.color : GmColors.muted,
+              ),
+            ),
+          ],
         ),
       ),
     );
