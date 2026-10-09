@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { DOMAIN_LABEL } from "@/lib/ai-prompt-domain-meta";
 import FortuneCategoryToggleButton from "@/components/FortuneCategoryToggleButton";
 import FortuneCategoryReorderButtons from "@/components/FortuneCategoryReorderButtons";
+import AiContentSubNav from "@/components/AiContentSubNav";
 
 // [운세 카테고리 확장] 운세 카테고리 마스터 관리
 // "전체보기 화면(all_categories_screen.dart)"에 노출되는 카테고리를 그룹별로
@@ -46,9 +47,12 @@ export default async function FortuneCategoriesPage() {
 
   return (
     <div>
+      <div className="mb-6">
+        <AiContentSubNav />
+      </div>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">운세 카테고리 관리</h1>
+          <h1 className="text-2xl font-bold text-slate-900">6개콘텐츠관리 — 운세 카테고리 관리</h1>
           <p className="mt-1 text-sm text-slate-500">
             전체보기(all-categories) 화면에 노출되는 그룹/카테고리의 노출·정렬·추천 여부를
             관리합니다. 결과 텍스트/버전 배포는{" "}

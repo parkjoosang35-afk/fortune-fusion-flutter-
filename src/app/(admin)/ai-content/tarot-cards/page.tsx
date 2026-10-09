@@ -5,6 +5,7 @@ import { canAccessMenu, RBAC_MATRIX } from "@/lib/rbac";
 import { redirect } from "next/navigation";
 import TarotCardCreateForm from "@/components/TarotCardCreateForm";
 import TarotCardRow from "@/components/TarotCardRow";
+import AiContentSubNav from "@/components/AiContentSubNav";
 
 // 05_Admin_System_Design.md §3.2 "타로카드/스프레드 마스터 관리"
 // 04A E-5 tarot_cards CRUD. 스프레드(E-6)는 이번 화면에서는 읽기 전용 요약만 노출.
@@ -31,9 +32,12 @@ export default async function TarotCardsPage() {
 
   return (
     <div>
+      <div className="mb-6">
+        <AiContentSubNav />
+      </div>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">타로카드 마스터 관리</h1>
+          <h1 className="text-2xl font-bold text-slate-900">6개콘텐츠관리 — 타로카드 마스터 관리</h1>
           <p className="mt-1 text-sm text-slate-500">
             타로 리딩에 사용되는 카드 마스터 데이터를 관리합니다. 총 {cards.length}장
           </p>

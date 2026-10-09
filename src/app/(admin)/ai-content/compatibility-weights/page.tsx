@@ -2,8 +2,8 @@ import { prisma } from "@/lib/db";
 import { verifyAdminSession } from "@/lib/dal";
 import { canAccessMenu, canWriteMenu } from "@/lib/rbac";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import CompatibilityWeightTable from "@/components/CompatibilityWeightTable";
+import AiContentSubNav from "@/components/AiContentSubNav";
 
 // 05_Admin_System_Design.md §3.6 "매칭/궁합 관리" — 5차 소단위(도메인 F 1단계): 궁합 요소 가중치 설정
 // 04A F-3 compatibility_factor_weights 조회 + 정책 수치(weight) 조정 +
@@ -48,23 +48,14 @@ export default async function CompatibilityWeightsPage() {
   return (
     <div>
       <div className="mb-6">
+        <AiContentSubNav />
+      </div>
+      <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900">6개콘텐츠관리 — 궁합 요소 가중치 설정</h1>
         <p className="mt-1 text-sm text-slate-500">
           AI 궁합 계산에 사용되는 사주/MBTI/취미/가치관/활동패턴 요소별 가중치를 조정합니다.
           활성 요소의 가중치 합계는 1.00을 권장합니다(04A F-3 명시, 강제 아님).
         </p>
-        <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
-          <Link href="/ai-content/prompts" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            프롬프트 템플릿
-          </Link>
-          <Link href="/ai-content/categories" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            운세 카테고리
-          </Link>
-          <span className="border-b-2 border-indigo-500 px-3 py-2 text-slate-900">궁합 요소 가중치</span>
-          <Link href="/ai-content/compatibility-stats" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            궁합 통계
-          </Link>
-        </nav>
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-4 text-sm text-slate-500">

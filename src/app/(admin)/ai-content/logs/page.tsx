@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { verifyAdminSession } from "@/lib/dal";
 import { canAccessMenu } from "@/lib/rbac";
 import { redirect } from "next/navigation";
+import AiContentSubNav from "@/components/AiContentSubNav";
 
 // 05_Admin_System_Design.md §3.2 "AI 호출 로그 / 비용 대시보드"
 // 04A G-4 ai_request_logs 기반. 09_AI_System_Design.md §9 비용/사용량 모니터링 반영.
@@ -107,7 +108,10 @@ export default async function AiLogsPage({ searchParams }: AiLogsPageProps) {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">AI 호출 로그 / 비용 대시보드</h1>
+        <AiContentSubNav />
+      </div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-slate-900">6개콘텐츠관리 — AI 호출 로그 / 비용 대시보드</h1>
         <p className="mt-1 text-sm text-slate-500">
           최근 14일 기준 AI 호출량, 예상 비용, 실패율을 확인하고 상세 로그를 조회합니다.
         </p>

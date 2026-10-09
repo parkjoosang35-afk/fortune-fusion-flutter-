@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db";
 import { verifyAdminSession } from "@/lib/dal";
 import { canAccessMenu } from "@/lib/rbac";
 import { redirect } from "next/navigation";
-import Link from "next/link";
+import AiContentSubNav from "@/components/AiContentSubNav";
 
 // 05_Admin_System_Design.md §3.6 "매칭/궁합 관리" — 6차(마지막) 소단위:
 //   F-1/F-2 궁합 요청/결과 통계 (04A F도메인)
@@ -105,23 +105,14 @@ export default async function CompatibilityStatsPage() {
   return (
     <div>
       <div className="mb-6">
+        <AiContentSubNav />
+      </div>
+      <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900">6개콘텐츠관리 — 궁합 요청/결과 통계</h1>
         <p className="mt-1 text-sm text-slate-500">
           회원의 궁합 요청(compatibility_requests)과 AI 산출 결과(compatibility_results)를
           집계 조회합니다(조회 전용).
         </p>
-        <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
-          <Link href="/ai-content/prompts" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            프롬프트 템플릿
-          </Link>
-          <Link href="/ai-content/categories" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            운세 카테고리
-          </Link>
-          <Link href="/ai-content/compatibility-weights" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            궁합 요소 가중치
-          </Link>
-          <span className="border-b-2 border-indigo-500 px-3 py-2 text-slate-900">궁합 통계</span>
-        </nav>
       </div>
 
       <section className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">

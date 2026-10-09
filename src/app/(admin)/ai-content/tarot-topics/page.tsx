@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { verifyAdminSession } from "@/lib/dal";
 import { canAccessMenu } from "@/lib/rbac";
 import { redirect } from "next/navigation";
+import AiContentSubNav from "@/components/AiContentSubNav";
 
 // [신통방통 타로 65종 주제 연동 지시서 - ④ 관리자 CMS]
 // tarot_topics 65개 주제 목록. category_group별로 묶어 fortune-categories 목록
@@ -46,11 +47,14 @@ export default async function TarotTopicsPage() {
 
   return (
     <div>
+      <div className="mb-6">
+        <AiContentSubNav />
+      </div>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">타로 65개 주제 관리</h1>
+          <h1 className="text-2xl font-bold text-slate-900">6개콘텐츠관리 — 타로 65개 주제 관리</h1>
           <p className="mt-1 text-sm text-slate-500">
-            "신통방통 타로 65종 주제 연동" 설계표 기준 65개 주제 각각의 질문유형·허용
+            &ldquo;신통방통 타로 65종 주제 연동&rdquo; 설계표 기준 65개 주제 각각의 질문유형·허용
             스프레드·YES/NO·A/B 양자택일 여부와, 주제×스프레드별 포지션(카드 자리) 해석
             목적을 관리합니다. 총 {topics.length}개 주제.
           </p>
