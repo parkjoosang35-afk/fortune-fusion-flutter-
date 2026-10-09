@@ -141,6 +141,7 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
   // page.tsx 진입 시 /shop/luckybag로 리다이렉트하도록 처리했다(라우트/서버
   // 액션/Prisma 모델은 전부 보존). shop 메뉴 자체는 luckybag+giftcards 2개
   // 하위 화면이 각각 실사용 데이터와 Flutter 연동이 확인되어 그대로 유지한다.
+  { code: "shop", label: "상점 관리", path: "/shop/luckybag", icon: "Store" },
   // [신통방통 관리자 최종 간소화 실행 지시서 §3 "공지사항·FAQ·이벤트·팝업 비노출"]
   // [재확인] Flutter 앱에 /api/public/notices, /api/public/faqs,
   // /api/public/events, /api/public/popups를 호출하는 코드가 전혀 없어(0건)
