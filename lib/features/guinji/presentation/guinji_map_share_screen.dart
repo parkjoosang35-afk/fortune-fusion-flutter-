@@ -305,7 +305,7 @@ class _GuinjiMapShareScreenState extends State<GuinjiMapShareScreen> {
     final remaining = (widget.retentionGoal - widget.joinedCount).clamp(0, widget.retentionGoal);
 
     return Scaffold(
-      backgroundColor: GmColors.bgIvory,
+      backgroundColor: GmColors.bg,
       appBar: GmTopBar(back: true, title: '친구 초대'),
       body: SingleChildScrollView(
         child: ConstrainedBox(
@@ -331,10 +331,10 @@ class _GuinjiMapShareScreenState extends State<GuinjiMapShareScreen> {
                   '친구를 초대해\n지도를 완성해보세요',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontFamily: GmFonts.serif,
+                    fontFamily: GmText.display,
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
-                    color: GmColors.ink,
+                    color: GmColors.fg,
                     height: 1.3,
                   ),
                 ),
@@ -342,7 +342,7 @@ class _GuinjiMapShareScreenState extends State<GuinjiMapShareScreen> {
                 const Text(
                   '더 많은 친구가 참여할수록\n내 관계 지도가 선명해져요.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: GmColors.inkSoft, height: 1.5),
+                  style: TextStyle(fontSize: 12, color: GmColors.muted, height: 1.5),
                 ),
                 const SizedBox(height: 20),
 
@@ -390,14 +390,14 @@ class _GuinjiMapShareScreenState extends State<GuinjiMapShareScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: GmColors.bgCream.withValues(alpha: 0.6),
+                    color: GmColors.card.withValues(alpha: 0.6),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Text.rich(
                     TextSpan(
-                      style: TextStyle(fontSize: 11, color: GmColors.inkSoft, height: 1.5),
+                      style: TextStyle(fontSize: 11, color: GmColors.muted, height: 1.5),
                       children: [
-                        TextSpan(text: 'Tip. ', style: TextStyle(fontWeight: FontWeight.w700, color: GmColors.ink)),
+                        TextSpan(text: 'Tip. ', style: TextStyle(fontWeight: FontWeight.w700, color: GmColors.fg)),
                         TextSpan(text: '이 링크는 만료 없이 계속 사용할 수 있어요. 그만 받고 싶다면 링크를 중단할 수 있어요.'),
                       ],
                     ),
@@ -437,7 +437,7 @@ class _LinkManagementSectionDivider extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Text(
             '링크 관리',
-            style: TextStyle(fontSize: 11, color: GmColors.inkSoft, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: 11, color: GmColors.muted, fontWeight: FontWeight.w600),
           ),
         ),
         Expanded(child: Divider(color: GmColors.line)),
@@ -477,7 +477,7 @@ class _LinkManagementSection extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: isRevoked
-                  ? GmColors.inkSoft.withValues(alpha: 0.08)
+                  ? GmColors.muted.withValues(alpha: 0.08)
                   : GmColors.gold.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(10),
             ),
@@ -486,7 +486,7 @@ class _LinkManagementSection extends StatelessWidget {
                 Icon(
                   isRevoked ? Icons.link_off : Icons.link,
                   size: 16,
-                  color: isRevoked ? GmColors.inkSoft : GmColors.gold,
+                  color: isRevoked ? GmColors.muted : GmColors.gold,
                 ),
                 const SizedBox(width: 6),
                 Expanded(
@@ -499,7 +499,7 @@ class _LinkManagementSection extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 11.5,
                       fontWeight: FontWeight.w600,
-                      color: isRevoked ? GmColors.inkSoft : GmColors.ink,
+                      color: isRevoked ? GmColors.muted : GmColors.fg,
                     ),
                   ),
                 ),
@@ -515,7 +515,7 @@ class _LinkManagementSection extends StatelessWidget {
                 icon: const Icon(Icons.autorenew, size: 16),
                 label: const Text('새 링크 만들기'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: GmColors.ink,
+                  foregroundColor: GmColors.fg,
                   side: BorderSide(color: GmColors.line),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
@@ -545,7 +545,7 @@ class _LinkManagementSection extends StatelessWidget {
 }
 
 /// 새 디자인 `_KakaoOgPreview` 이식 — OG standard aspect ratio(1200:630)
-/// 미리보기 카드. [GmStarsBackground] + [GmColors.gradientDark] 사용.
+/// 미리보기 카드. [GmStarsBackground] + [LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [GmColors.card, GmColors.bg])] 사용.
 class _KakaoOgPreview extends StatelessWidget {
   const _KakaoOgPreview({required this.ownerName, required this.guinjiCount});
 
@@ -568,7 +568,7 @@ class _KakaoOgPreview extends StatelessWidget {
               aspectRatio: 1200 / 630,
               child: Stack(
                 children: [
-                  Container(decoration: const BoxDecoration(gradient: GmColors.gradientDark)),
+                  Container(decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [GmColors.card, GmColors.bg]))),
                   const Positioned.fill(child: GmStarsBackground(opacity: 0.7)),
                   // [캐릭터 삭제 — 사용자 요청] 기존 우측 반신 캐릭터
                   // 패널(ShaderMask+Image.asset)을 삭제했다. 텍스트 우측
@@ -604,7 +604,7 @@ class _KakaoOgPreview extends StatelessWidget {
                               Text(
                                 '$ownerName님의\n귀인지도',
                                 style: const TextStyle(
-                                  fontFamily: GmFonts.serif,
+                                  fontFamily: GmText.display,
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
                                   color: Colors.white,
@@ -675,12 +675,12 @@ class _ShareLinkRow extends StatelessWidget {
             child: Text(
               link,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 11, letterSpacing: 0.2, color: GmColors.ink),
+              style: const TextStyle(fontSize: 11, letterSpacing: 0.2, color: GmColors.fg),
             ),
           ),
           const SizedBox(width: 8),
           Material(
-            color: GmColors.rose500,
+            color: GmColors.gold,
             borderRadius: BorderRadius.circular(8),
             child: InkWell(
               onTap: onCopy,
@@ -732,7 +732,7 @@ class _ShareOption extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(icon, size: 22, color: iconColor ?? GmColors.ink),
+            Icon(icon, size: 22, color: iconColor ?? GmColors.fg),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -743,7 +743,7 @@ class _ShareOption extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13.5,
                       fontWeight: FontWeight.w700,
-                      color: isKakao ? const Color(0xFF3A1D1D) : GmColors.ink,
+                      color: isKakao ? const Color(0xFF3A1D1D) : GmColors.fg,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -751,7 +751,7 @@ class _ShareOption extends StatelessWidget {
                     desc,
                     style: TextStyle(
                       fontSize: 10.5,
-                      color: isKakao ? const Color(0xFF3A1D1D).withValues(alpha: 0.7) : GmColors.inkSoft,
+                      color: isKakao ? const Color(0xFF3A1D1D).withValues(alpha: 0.7) : GmColors.muted,
                     ),
                   ),
                 ],
@@ -795,9 +795,9 @@ class _RetentionBanner extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: (reached ? GmColors.rose500 : GmColors.gold).withValues(alpha: 0.12),
+        color: (reached ? GmColors.gold : GmColors.gold).withValues(alpha: 0.12),
         border: Border.all(
-          color: (reached ? GmColors.rose500 : GmColors.gold).withValues(alpha: 0.35),
+          color: (reached ? GmColors.gold : GmColors.gold).withValues(alpha: 0.35),
         ),
         borderRadius: BorderRadius.circular(12),
       ),
@@ -808,7 +808,7 @@ class _RetentionBanner extends StatelessWidget {
             height: 32,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: reached ? GmColors.rose500 : GmColors.gold,
+              color: reached ? GmColors.gold : GmColors.gold,
               shape: BoxShape.circle,
             ),
             child: reached
@@ -831,7 +831,7 @@ class _RetentionBanner extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                     fontSize: 12,
                     height: 1.3,
-                    color: GmColors.ink,
+                    color: GmColors.fg,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -839,7 +839,7 @@ class _RetentionBanner extends StatelessWidget {
                   reached
                       ? '친구 $joined명이 함께해 주었어요. 고마운 마음을 담았어요.'
                       : '지금 $joined명 · $remaining명 더 필요해요',
-                  style: const TextStyle(fontSize: 10, height: 1.3, color: GmColors.inkSoft),
+                  style: const TextStyle(fontSize: 10, height: 1.3, color: GmColors.muted),
                 ),
               ],
             ),

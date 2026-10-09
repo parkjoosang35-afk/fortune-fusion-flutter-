@@ -171,7 +171,7 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: GmColors.bgIvory,
+      backgroundColor: GmColors.bg,
       appBar: GmTopBar(
         back: true,
         title: '귀인지도 참여',
@@ -188,16 +188,16 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
             const Text(
               '당신의 사주',
               style: TextStyle(
-                fontFamily: GmFonts.serif,
+                fontFamily: GmText.display,
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
-                color: GmColors.ink,
+                color: GmColors.fg,
               ),
             ),
             const SizedBox(height: 4),
             const Text(
               '내 정보를 입력하면 초대한 친구와의 관계가 채워져요.',
-              style: TextStyle(fontSize: 12, color: GmColors.inkSoft),
+              style: TextStyle(fontSize: 12, color: GmColors.muted),
             ),
             const SizedBox(height: 24),
 
@@ -208,12 +208,12 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
               child: TextField(
                 controller: _nameController,
                 maxLength: 24,
-                style: const TextStyle(fontSize: 14, color: GmColors.ink),
+                style: const TextStyle(fontSize: 14, color: GmColors.fg),
                 decoration: const InputDecoration(
                   isDense: true,
                   counterText: '',
                   hintText: '어떻게 불릴까요',
-                  hintStyle: TextStyle(color: GmColors.inkFaint),
+                  hintStyle: TextStyle(color: GmColors.dim),
                   border: InputBorder.none,
                 ),
               ),
@@ -221,7 +221,7 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
             const SizedBox(height: 4),
             const Text(
               '지도 소유자에게만 표시돼요.',
-              style: TextStyle(fontSize: 10.5, color: GmColors.inkFaint),
+              style: TextStyle(fontSize: 10.5, color: GmColors.dim),
             ),
             const SizedBox(height: 12),
 
@@ -281,7 +281,7 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
               children: [
                 Checkbox(
                   value: _timeUnknown,
-                  activeColor: GmColors.rose500,
+                  activeColor: GmColors.gold,
                   onChanged: (v) => setState(() => _timeUnknown = v ?? false),
                 ),
                 const Expanded(
@@ -289,7 +289,7 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
                     padding: EdgeInsets.only(top: 12),
                     child: Text(
                       '태어난 시간을 몰라요 (3기둥으로 계산, 정확도 다소 낮아짐)',
-                      style: TextStyle(fontSize: 11.5, color: GmColors.inkSoft, height: 1.5),
+                      style: TextStyle(fontSize: 11.5, color: GmColors.muted, height: 1.5),
                     ),
                   ),
                 ),
@@ -350,7 +350,7 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
                 onPressed: () => Navigator.of(context).pushNamed('/guinji-map'),
                 child: const Text(
                   '나도 내 지도 만들기',
-                  style: TextStyle(fontSize: 12.5, color: GmColors.rose700),
+                  style: TextStyle(fontSize: 12.5, color: GmColors.gold),
                 ),
               ),
             ),
@@ -359,7 +359,7 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
               '입력한 정보는 지도 소유자에게만 공유돼요.\n'
               '상대방의 개인정보는 동의 없이 입력하지 말아 주세요.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 10, height: 1.5, color: GmColors.inkFaint),
+              style: TextStyle(fontSize: 10, height: 1.5, color: GmColors.dim),
             ),
           ],
         ),
@@ -380,7 +380,7 @@ class _GreetingCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.85),
+        color: GmColors.card.withValues(alpha: 0.85),
         border: Border.all(color: GmColors.line),
         borderRadius: BorderRadius.circular(24),
         boxShadow: const [
@@ -397,7 +397,7 @@ class _GreetingCard extends StatelessWidget {
               fit: BoxFit.contain,
               errorBuilder: (_, __, ___) => const Icon(
                 Icons.favorite,
-                color: GmColors.rose500,
+                color: GmColors.gold,
                 size: 32,
               ),
             ),
@@ -407,10 +407,10 @@ class _GreetingCard extends StatelessWidget {
             child: Text(
               '친구가 당신을\n귀인지도에 초대했어요',
               style: TextStyle(
-                fontFamily: GmFonts.serif,
+                fontFamily: GmText.display,
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
-                color: GmColors.ink,
+                color: GmColors.fg,
                 height: 1.4,
               ),
             ),
@@ -437,12 +437,12 @@ class _NumberBox extends StatelessWidget {
         keyboardType: TextInputType.number,
         maxLength: maxLength,
         textAlign: TextAlign.center,
-        style: const TextStyle(fontSize: 14, color: GmColors.ink),
+        style: const TextStyle(fontSize: 14, color: GmColors.fg),
         decoration: InputDecoration(
           isDense: true,
           counterText: '',
           hintText: placeholder,
-          hintStyle: const TextStyle(color: GmColors.inkFaint),
+          hintStyle: const TextStyle(color: GmColors.dim),
           border: InputBorder.none,
         ),
       ),
@@ -463,9 +463,9 @@ class _ChoiceChip extends StatelessWidget {
       onTap: onTap,
       child: GmChip(
         label: label,
-        background: active ? GmColors.ink : Colors.white,
-        foreground: active ? GmColors.ivory : GmColors.inkSoft,
-        borderColor: active ? GmColors.ink : GmColors.line,
+        background: active ? GmColors.fg : GmColors.card,
+        foreground: active ? GmColors.onFg : GmColors.muted,
+        borderColor: active ? GmColors.fg : GmColors.line,
       ),
     );
   }
@@ -491,7 +491,7 @@ class _ConsentCheckbox extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.85),
+          color: GmColors.card.withValues(alpha: 0.85),
           border: Border.all(color: GmColors.line),
           borderRadius: BorderRadius.circular(10),
         ),
@@ -502,9 +502,9 @@ class _ConsentCheckbox extends StatelessWidget {
               height: 18,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: value ? GmColors.rose500 : Colors.transparent,
+                color: value ? GmColors.gold : Colors.transparent,
                 border: Border.all(
-                  color: value ? GmColors.rose500 : GmColors.inkSoft,
+                  color: value ? GmColors.gold : GmColors.muted,
                   width: 1.5,
                 ),
                 borderRadius: BorderRadius.circular(4),
@@ -525,7 +525,7 @@ class _ConsentCheckbox extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: const TextStyle(fontSize: 12, color: GmColors.ink),
+                style: const TextStyle(fontSize: 12, color: GmColors.fg),
               ),
             ),
           ],

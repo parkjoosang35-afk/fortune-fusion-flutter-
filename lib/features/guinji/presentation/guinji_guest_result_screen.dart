@@ -69,16 +69,11 @@ class GuinjiGuestResultScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final meta = guinjiRelationTypes[relationKey];
-    final category = meta?.category ?? 'boost';
-    final color = GmColors.categoryColor(category);
-    final label = meta?.label ?? relationKey;
-    final hanja = meta?.hanja ?? '?';
-    final body =
-        narratorText ??
-        meta?.long ??
-        '$hostName님의 결을 강하게 살려주는 결이에요. '
-            '두 분이 함께 있으면 서로의 부족한 흐름이 채워집니다.';
+    final meta = guinjiRelationMetaOf(relationKey);
+    final color = meta.color;
+    final label = meta.label;
+    final hanja = meta.hanja;
+    final body = narratorText ?? meta.long;
 
     // [바이럴 페이지 개편 — "메인귀인지도 기능들이 다 나옴"] 게스트 본인을
     // 중심(center)에 두고, 초대한 호스트를 관계 노드 1개로 표시하는 미니
@@ -98,7 +93,7 @@ class GuinjiGuestResultScreen extends StatelessWidget {
     final centerName = (guestName == null || guestName!.isEmpty) ? '나' : guestName!;
 
     return Scaffold(
-      backgroundColor: GmColors.bgIvory,
+      backgroundColor: GmColors.bg,
       appBar: GmTopBar(
         back: true,
         title: '게스트 결과',
@@ -130,11 +125,11 @@ class GuinjiGuestResultScreen extends StatelessWidget {
               '당신은 $hostName에게',
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontFamily: GmFonts.serif,
+                fontFamily: GmText.display,
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
                 height: 1.3,
-                color: GmColors.ink,
+                color: GmColors.fg,
               ),
             ),
             Text.rich(
@@ -147,11 +142,11 @@ class GuinjiGuestResultScreen extends StatelessWidget {
                   const TextSpan(text: '이에요'),
                 ],
                 style: const TextStyle(
-                  fontFamily: GmFonts.serif,
+                  fontFamily: GmText.display,
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
                   height: 1.3,
-                  color: GmColors.ink,
+                  color: GmColors.fg,
                 ),
               ),
               textAlign: TextAlign.center,
@@ -174,16 +169,16 @@ class GuinjiGuestResultScreen extends StatelessWidget {
                   : '당신의 지도에는 누가 있을까요',
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontFamily: GmFonts.sans,
+                fontFamily: GmText.ui,
                 fontWeight: FontWeight.w700,
                 fontSize: 13,
-                color: GmColors.ink,
+                color: GmColors.fg,
               ),
             ),
             const SizedBox(height: 4),
             const Text(
               '노드를 눌러 관계 상세를 확인하세요',
-              style: TextStyle(fontSize: 10.5, color: GmColors.inkFaint),
+              style: TextStyle(fontSize: 10.5, color: GmColors.dim),
             ),
             const SizedBox(height: 12),
             // [바이럴 페이지 개편] 회원가입한 사용자의 "내 귀인지도"(M화면)와
@@ -223,10 +218,10 @@ class GuinjiGuestResultScreen extends StatelessWidget {
                   const Text(
                     '신통방통에서\n더 많은 운세를 만나보세요',
                     style: TextStyle(
-                      fontFamily: GmFonts.serif,
+                      fontFamily: GmText.display,
                       fontSize: 19,
                       fontWeight: FontWeight.w700,
-                      color: GmColors.ivory,
+                      color: GmColors.fg,
                       height: 1.25,
                     ),
                   ),
@@ -329,7 +324,7 @@ class _GuestResultCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.85),
+        color: GmColors.card.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: color.withValues(alpha: 0.35)),
         gradient: RadialGradient(
@@ -358,7 +353,7 @@ class _GuestResultCard extends StatelessWidget {
               Text(
                 '$score',
                 style: TextStyle(
-                  fontFamily: GmFonts.serif,
+                  fontFamily: GmText.display,
                   fontSize: 40,
                   fontWeight: FontWeight.w700,
                   color: color,
@@ -371,7 +366,7 @@ class _GuestResultCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: GmColors.inkSoft,
+                  color: GmColors.muted,
                 ),
               ),
             ],
@@ -379,7 +374,7 @@ class _GuestResultCard extends StatelessWidget {
           const SizedBox(height: 4),
           const Text(
             '관계 케미 점수',
-            style: TextStyle(fontSize: 10.5, color: GmColors.inkFaint),
+            style: TextStyle(fontSize: 10.5, color: GmColors.dim),
           ),
           const SizedBox(height: 14),
           Text(
@@ -388,7 +383,7 @@ class _GuestResultCard extends StatelessWidget {
             style: const TextStyle(
               fontSize: 11.5,
               height: 1.5,
-              color: GmColors.inkSoft,
+              color: GmColors.muted,
             ),
           ),
           const SizedBox(height: 10),
@@ -398,7 +393,7 @@ class _GuestResultCard extends StatelessWidget {
             style: const TextStyle(
               fontSize: 13,
               height: 1.65,
-              color: GmColors.ink,
+              color: GmColors.fg,
             ),
           ),
         ],

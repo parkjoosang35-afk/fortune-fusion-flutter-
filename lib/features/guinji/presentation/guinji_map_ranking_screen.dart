@@ -38,7 +38,7 @@ class GuinjiMapRankingScreen extends StatelessWidget {
     final third = sorted.length > 2 ? sorted[2] : null;
 
     return Scaffold(
-      backgroundColor: GmColors.bgIvory,
+      backgroundColor: GmColors.bg,
       appBar: const GmTopBar(back: true, title: '케미 랭킹'),
       body: sorted.isEmpty
           ? const _EmptyRanking()
@@ -54,19 +54,19 @@ class GuinjiMapRankingScreen extends StatelessWidget {
                           const Text(
                             '나에게 1등 귀인은',
                             style: TextStyle(
-                              fontFamily: GmFonts.serif,
+                              fontFamily: GmText.display,
                               fontSize: 15,
-                              color: GmColors.inkSoft,
+                              color: GmColors.muted,
                             ),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             first?.name ?? '-',
                             style: const TextStyle(
-                              fontFamily: GmFonts.serif,
+                              fontFamily: GmText.display,
                               fontWeight: FontWeight.w700,
                               fontSize: 26,
-                              color: GmColors.rose700,
+                              color: GmColors.gold,
                             ),
                           ),
                         ],
@@ -136,7 +136,7 @@ class _EmptyRanking extends StatelessWidget {
         child: Text(
           '아직 랭킹을 볼 수 없어요.\n지인을 초대하면 케미 랭킹이 만들어져요.',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 13, height: 1.6, color: GmColors.inkFaint),
+          style: TextStyle(fontSize: 13, height: 1.6, color: GmColors.dim),
         ),
       ),
     );
@@ -154,8 +154,8 @@ class _PodiumSlot extends StatelessWidget {
     if (person == null) {
       return const SizedBox(width: 76);
     }
-    final meta = guinjiRelationTypes[person!.relation];
-    final color = meta != null ? GmColors.categoryColor(meta.category) : GmColors.rose500;
+    final meta = guinjiRelationMetaOf(person!.relation);
+    final color = meta.color;
     final isFirst = place == 1;
     final initial = person!.name.isNotEmpty ? person!.name.substring(0, 1) : '?';
 
@@ -178,7 +178,7 @@ class _PodiumSlot extends StatelessWidget {
             child: Text(
               initial,
               style: TextStyle(
-                fontFamily: GmFonts.serif,
+                fontFamily: GmText.display,
                 fontSize: isFirst ? 22 : 16,
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
@@ -188,21 +188,21 @@ class _PodiumSlot extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             person!.name,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: GmColors.ink),
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: GmColors.fg),
           ),
           Text(
             '${person!.score}pt',
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: isFirst ? GmColors.rose700 : GmColors.inkSoft,
+              color: isFirst ? GmColors.gold : GmColors.muted,
             ),
           ),
           const SizedBox(height: 4),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
-              color: isFirst ? GmColors.rose600 : GmColors.bgCream,
+              color: isFirst ? GmColors.gold : GmColors.card,
               borderRadius: BorderRadius.circular(999),
             ),
             child: Text(
@@ -211,7 +211,7 @@ class _PodiumSlot extends StatelessWidget {
                 fontSize: 9,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1.0,
-                color: isFirst ? Colors.white : GmColors.inkSoft,
+                color: isFirst ? Colors.white : GmColors.muted,
               ),
             ),
           ),
@@ -230,9 +230,9 @@ class _RankRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final meta = guinjiRelationTypes[person.relation];
-    final color = meta != null ? GmColors.categoryColor(meta.category) : GmColors.rose500;
-    final label = meta?.label ?? person.relation;
+    final meta = guinjiRelationMetaOf(person.relation);
+    final color = meta.color;
+    final label = meta.label;
     final top3 = rank <= 3;
     final initial = person.name.isNotEmpty ? person.name.substring(0, 1) : '?';
 
@@ -242,7 +242,7 @@ class _RankRow extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.85),
+          color: GmColors.card.withValues(alpha: 0.85),
           border: Border.all(color: GmColors.line),
           borderRadius: BorderRadius.circular(16),
         ),
@@ -256,7 +256,7 @@ class _RankRow extends StatelessWidget {
                 style: TextStyle(
                   fontWeight: FontWeight.w700,
                   fontSize: 12,
-                  color: top3 ? GmColors.rose700 : GmColors.inkFaint,
+                  color: top3 ? GmColors.gold : GmColors.dim,
                 ),
               ),
             ),
@@ -272,7 +272,7 @@ class _RankRow extends StatelessWidget {
               child: Text(
                 initial,
                 style: TextStyle(
-                  fontFamily: GmFonts.serif,
+                  fontFamily: GmText.display,
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: color,
@@ -286,7 +286,7 @@ class _RankRow extends StatelessWidget {
                 children: [
                   Text(
                     person.name,
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: GmColors.ink),
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: GmColors.fg),
                   ),
                   const SizedBox(height: 3),
                   GmChip(
@@ -302,7 +302,7 @@ class _RankRow extends StatelessWidget {
             ),
             Text(
               '${person.score}',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: GmColors.ink),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: GmColors.fg),
             ),
           ],
         ),

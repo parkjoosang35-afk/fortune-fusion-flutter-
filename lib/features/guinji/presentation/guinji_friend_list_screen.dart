@@ -113,7 +113,7 @@ class _GuinjiFriendListScreenState extends State<GuinjiFriendListScreen> {
   /// 탭 인덱스 → 카테고리 키(전체는 null).
   static final _catByIdx = <String?>[null, ...guinjiCategoryOrder.map((c) => c.key)];
 
-  String? _categoryOf(String relationKey) => guinjiRelationTypes[relationKey]?.category;
+  String? _categoryOf(String relationKey) => guinjiRelationMetaOf(relationKey).category;
 
   /// [멤버 삭제 확인 다이얼로그] "잘못 입력했을 때 삭제" 요구사항 —
   /// 실수로 지우는 걸 막기 위해 반드시 확인을 거친다. 느낌표 금지
@@ -150,7 +150,7 @@ class _GuinjiFriendListScreenState extends State<GuinjiFriendListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: GmColors.bgIvory,
+      backgroundColor: GmColors.bg,
       appBar: GmTopBar(back: true, title: '참여자 ${widget.friends.length}명'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
@@ -168,9 +168,9 @@ class _GuinjiFriendListScreenState extends State<GuinjiFriendListScreen> {
                       onTap: () => setState(() => _tab = i),
                       child: GmChip(
                         label: _tabs[i],
-                        background: active ? GmColors.ink : Colors.white,
-                        foreground: active ? GmColors.ivory : GmColors.inkSoft,
-                        borderColor: active ? GmColors.ink : GmColors.line,
+                        background: active ? GmColors.fg : GmColors.card,
+                        foreground: active ? GmColors.onFg : GmColors.muted,
+                        borderColor: active ? GmColors.fg : GmColors.line,
                       ),
                     ),
                   );
@@ -184,7 +184,7 @@ class _GuinjiFriendListScreenState extends State<GuinjiFriendListScreen> {
                 child: Center(
                   child: Text(
                     '해당 카테고리 참여자가 없어요',
-                    style: TextStyle(fontSize: 12, color: GmColors.inkFaint),
+                    style: TextStyle(fontSize: 12, color: GmColors.dim),
                   ),
                 ),
               )
@@ -222,9 +222,9 @@ class _GmFriendRowTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final meta = guinjiRelationTypes[entry.relationKey];
-    final color = meta != null ? GmColors.categoryColor(meta.category) : GmColors.rose500;
-    final label = meta?.label ?? entry.relationKey;
+    final meta = guinjiRelationMetaOf(entry.relationKey);
+    final color = meta.color;
+    final label = meta.label;
     final initial = entry.name.isNotEmpty ? entry.name.substring(0, 1) : '?';
 
     return InkWell(
@@ -234,7 +234,7 @@ class _GmFriendRowTile extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.85),
+          color: GmColors.card.withValues(alpha: 0.85),
           border: Border.all(color: GmColors.line),
           borderRadius: BorderRadius.circular(20),
         ),
@@ -249,7 +249,7 @@ class _GmFriendRowTile extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                   fontSize: 11,
                   letterSpacing: 1.2,
-                  color: GmColors.inkFaint,
+                  color: GmColors.dim,
                 ),
               ),
             ),
@@ -265,7 +265,7 @@ class _GmFriendRowTile extends StatelessWidget {
               child: Text(
                 initial,
                 style: TextStyle(
-                  fontFamily: GmFonts.serif,
+                  fontFamily: GmText.display,
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
                   color: color,
@@ -284,7 +284,7 @@ class _GmFriendRowTile extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 13.5,
                           fontWeight: FontWeight.w600,
-                          color: GmColors.ink,
+                          color: GmColors.fg,
                         ),
                       ),
                       const SizedBox(width: 6),
@@ -300,8 +300,8 @@ class _GmFriendRowTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${meta?.short ?? ''} · ${entry.ohaengLabel}',
-                    style: const TextStyle(fontSize: 10.5, color: GmColors.inkSoft),
+                    '${meta.short} · ${entry.ohaengLabel}',
+                    style: const TextStyle(fontSize: 10.5, color: GmColors.muted),
                   ),
                 ],
               ),
@@ -316,7 +316,7 @@ class _GmFriendRowTile extends StatelessWidget {
                 ),
                 const Text(
                   'SCORE',
-                  style: TextStyle(fontSize: 9, letterSpacing: 1, color: GmColors.inkFaint),
+                  style: TextStyle(fontSize: 9, letterSpacing: 1, color: GmColors.dim),
                 ),
               ],
             ),
@@ -327,7 +327,7 @@ class _GmFriendRowTile extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
                 child: const Padding(
                   padding: EdgeInsets.all(6),
-                  child: Icon(Icons.close, size: 16, color: GmColors.inkFaint),
+                  child: Icon(Icons.close, size: 16, color: GmColors.dim),
                 ),
               ),
             ],

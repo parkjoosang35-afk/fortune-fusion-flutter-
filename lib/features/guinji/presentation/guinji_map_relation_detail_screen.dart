@@ -126,8 +126,8 @@ class _GuinjiMapRelationDetailScreenState
   // 사용해 웹에서는 Share.share() 자체를 시도하지 않는다.
   Future<void> _handleShare() async {
     final person = widget.person;
-    final meta = guinjiRelationTypes[person.relation];
-    final message = '${person.name}님과의 관계는 "${meta?.label ?? ''}"예요 · 신통방통 귀인지도';
+    final meta = guinjiRelationMetaOf(person.relation);
+    final message = '${person.name}님과의 관계는 "${meta.label}"예요 · 신통방통 귀인지도';
     if (!mounted) return;
     await safeShareText(context, message, subject: '신통방통 귀인지도');
   }
@@ -135,16 +135,14 @@ class _GuinjiMapRelationDetailScreenState
   @override
   Widget build(BuildContext context) {
     final person = widget.person;
-    final meta = guinjiRelationTypes[person.relation];
+    final meta = guinjiRelationMetaOf(person.relation);
     final ohaeng = guinjiOhaengTypes[person.ohaeng];
-    final color = meta != null
-        ? GmColors.categoryColor(meta.category)
-        : GmColors.rose500;
+    final color = meta.color;
     final initial = person.name.isNotEmpty ? person.name.substring(0, 1) : '?';
-    final category = meta?.category ?? 'boost';
+    final category = meta.category;
 
     return Scaffold(
-      backgroundColor: GmColors.bgIvory,
+      backgroundColor: GmColors.bg,
       appBar: GmTopBar(back: true, title: '${person.name}님과의 관계'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
@@ -158,7 +156,7 @@ class _GuinjiMapRelationDetailScreenState
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.85),
+                  color: GmColors.card,
                   border: Border.all(color: GmColors.line),
                   borderRadius: BorderRadius.circular(24),
                 ),
@@ -184,7 +182,7 @@ class _GuinjiMapRelationDetailScreenState
                       child: Text(
                         initial,
                         style: const TextStyle(
-                          fontFamily: GmFonts.serif,
+                          fontFamily: GmText.display,
                           fontSize: 30,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,
@@ -193,7 +191,7 @@ class _GuinjiMapRelationDetailScreenState
                     ),
                     const SizedBox(height: 12),
                     GmChip(
-                      label: meta != null ? '${meta.hanja} ${meta.label}' : person.relation,
+                      label: '${meta.hanja} ${meta.label}',
                       background: color.withValues(alpha: 0.12),
                       foreground: color,
                       borderColor: color.withValues(alpha: 0.25),
@@ -202,16 +200,16 @@ class _GuinjiMapRelationDetailScreenState
                     Text(
                       person.name,
                       style: const TextStyle(
-                        fontFamily: GmFonts.serif,
+                        fontFamily: GmText.display,
                         fontSize: 22,
                         fontWeight: FontWeight.w700,
-                        color: GmColors.ink,
+                        color: GmColors.fg,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       person.birth,
-                      style: const TextStyle(fontSize: 11, color: GmColors.inkFaint),
+                      style: const TextStyle(fontSize: 11, color: GmColors.dim),
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -231,14 +229,14 @@ class _GuinjiMapRelationDetailScreenState
                         const SizedBox(width: 4),
                         const Text(
                           '/ 100',
-                          style: TextStyle(fontSize: 13, color: GmColors.inkSoft),
+                          style: TextStyle(fontSize: 13, color: GmColors.muted),
                         ),
                       ],
                     ),
                     const SizedBox(height: 2),
                     const Text(
                       '관계 케미 점수',
-                      style: TextStyle(fontSize: 10.5, color: GmColors.inkFaint),
+                      style: TextStyle(fontSize: 10.5, color: GmColors.dim),
                     ),
                   ],
                 ),
@@ -250,7 +248,7 @@ class _GuinjiMapRelationDetailScreenState
                 width: double.infinity,
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.85),
+                  color: GmColors.card,
                   border: Border.all(color: GmColors.line),
                   borderRadius: BorderRadius.circular(20),
                 ),
@@ -260,8 +258,8 @@ class _GuinjiMapRelationDetailScreenState
                     const GmLabelMini('관계의 결'),
                     const SizedBox(height: 10),
                     Text(
-                      meta?.long ?? meta?.description ?? '두 분의 관계를 살펴보고 있어요.',
-                      style: const TextStyle(fontSize: 13.5, height: 1.7, color: GmColors.ink),
+                      meta.long,
+                      style: const TextStyle(fontSize: 13.5, height: 1.7, color: GmColors.fg),
                     ),
                     const SizedBox(height: 14),
                     _MomentRow(
@@ -271,7 +269,7 @@ class _GuinjiMapRelationDetailScreenState
                     ),
                     const SizedBox(height: 8),
                     _MomentRow(
-                      color: GmColors.rose800,
+                      color: GmColors.danger,
                       label: '조심할 순간',
                       desc: _carefulMoment(category),
                     ),
@@ -286,7 +284,7 @@ class _GuinjiMapRelationDetailScreenState
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.85),
+                    color: GmColors.card,
                     border: Border.all(color: GmColors.line),
                     borderRadius: BorderRadius.circular(20),
                   ),
@@ -304,7 +302,7 @@ class _GuinjiMapRelationDetailScreenState
                         child: Text(
                           ohaeng.label,
                           style: TextStyle(
-                            fontFamily: GmFonts.serif,
+                            fontFamily: GmText.display,
                             fontWeight: FontWeight.w700,
                             fontSize: 18,
                             color: ohaeng.color,
@@ -321,14 +319,14 @@ class _GuinjiMapRelationDetailScreenState
                               style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: GmColors.ink,
+                                color: GmColors.fg,
                               ),
                             ),
                             if (person.note.isNotEmpty) ...[
                               const SizedBox(height: 2),
                               Text(
                                 person.note,
-                                style: const TextStyle(fontSize: 11, color: GmColors.inkSoft),
+                                style: const TextStyle(fontSize: 11, color: GmColors.muted),
                               ),
                             ],
                           ],
@@ -366,7 +364,7 @@ class _GuinjiMapRelationDetailScreenState
               const Text(
                 '"재미·참고용" 콘텐츠. 절대적 판단이 아니에요.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 10, color: GmColors.inkFaint),
+                style: TextStyle(fontSize: 10, color: GmColors.dim),
               ),
             ],
           ),
@@ -397,11 +395,11 @@ class _MomentRow extends StatelessWidget {
         Expanded(
           child: RichText(
             text: TextSpan(
-              style: const TextStyle(fontSize: 12, height: 1.55, color: GmColors.inkSoft),
+              style: const TextStyle(fontSize: 12, height: 1.55, color: GmColors.muted),
               children: [
                 TextSpan(
                   text: '$label · ',
-                  style: const TextStyle(fontWeight: FontWeight.w700, color: GmColors.ink),
+                  style: const TextStyle(fontWeight: FontWeight.w700, color: GmColors.fg),
                 ),
                 TextSpan(text: desc),
               ],
@@ -437,7 +435,7 @@ class _SpecialLockedCard extends StatelessWidget {
           radius: 1.0,
           colors: [
             GmColors.gold.withValues(alpha: 0.14),
-            Colors.white.withValues(alpha: 0.85),
+            GmColors.card.withValues(alpha: 0.85),
           ],
           stops: const [0.0, 0.5],
         ),
@@ -445,16 +443,16 @@ class _SpecialLockedCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const GmLabelMini('SPECIAL · 스페셜 해설', color: GmColors.rose700),
+          const GmLabelMini('SPECIAL · 스페셜 해설', color: GmColors.gold),
           const SizedBox(height: 6),
           const Text(
             '이 관계, 어떻게 대해야 할까',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: GmColors.ink),
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: GmColors.fg),
           ),
           const SizedBox(height: 4),
           const Text(
             '사주 4기둥을 근거로 자세히 풀어드립니다.',
-            style: TextStyle(fontSize: 12, height: 1.5, color: GmColors.inkSoft),
+            style: TextStyle(fontSize: 12, height: 1.5, color: GmColors.muted),
           ),
           const SizedBox(height: 12),
           if (unlocking)
@@ -464,7 +462,7 @@ class _SpecialLockedCard extends StatelessWidget {
                 child: SizedBox(
                   width: 18,
                   height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: GmColors.rose600),
+                  child: CircularProgressIndicator(strokeWidth: 2, color: GmColors.gold),
                 ),
               ),
             )
@@ -476,7 +474,7 @@ class _SpecialLockedCard extends StatelessWidget {
                     onPressed: onUnlockPouch,
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: GmColors.line),
-                      foregroundColor: GmColors.ink,
+                      foregroundColor: GmColors.fg,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
@@ -493,13 +491,15 @@ class _SpecialLockedCard extends StatelessWidget {
                     height: 44,
                     child: DecoratedBox(
                       decoration: BoxDecoration(
-                        gradient: GmColors.gradientRose,
+                        gradient: const LinearGradient(
+                          colors: [GmColors.goldTop, GmColors.gold],
+                        ),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: TextButton(
                         onPressed: onUnlockAd,
                         style: TextButton.styleFrom(
-                          foregroundColor: Colors.white,
+                          foregroundColor: GmColors.onFg,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -534,25 +534,24 @@ class _SpecialUnlockedCard extends StatelessWidget {
   });
 
   final GuinjiPerson person;
-  final GuinjiRelationMeta? meta;
+  final GuinjiRelationMeta meta;
   final GuinjiOhaengMeta? ohaeng;
   final Color color;
 
   @override
   Widget build(BuildContext context) {
-    final label = meta?.label ?? person.relation;
+    final label = meta.label;
     final ohaengText = ohaeng != null ? '${ohaeng!.name}(${ohaeng!.label})' : '오행';
-    // [스페셜 해설 콘텐츠 풍부화 — 2026-09] 관계 유형(12종)별 실제 심층
-    // 해설/팁을 사용한다("내용이 빈약하다" 리포트 대응). meta가 null인
-    // 경우(이론상 발생하지 않지만 방어적으로)에만 기본 문구로 폴백한다.
-    final insight = meta?.specialInsight ??
-        '두 분의 관계는 사주 4기둥을 근거로 풀이한 특별한 결을 지니고 있어요.';
-    final tips = meta?.tips ?? const ['결정이 흔들릴 때 이 사람에게 먼저 물어보세요.'];
+    // [스페셜 해설 콘텐츠 풍부화 — 2026-09] 관계 유형(V2 6종)별 실제 심층
+    // 해설/팁을 사용한다("내용이 빈약하다" 리포트 대응). guinjiRelationMetaOf()가
+    // 항상 유효한 meta를 반환하므로 null 폴백은 더 이상 필요하지 않다.
+    final insight = meta.specialInsight;
+    final tips = meta.tips;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.9),
+        color: GmColors.card,
         border: Border.all(color: GmColors.line),
         borderRadius: BorderRadius.circular(20),
       ),
@@ -563,13 +562,13 @@ class _SpecialUnlockedCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text.rich(
             TextSpan(
-              style: const TextStyle(fontSize: 13, height: 1.65, color: GmColors.ink),
+              style: const TextStyle(fontSize: 13, height: 1.65, color: GmColors.fg),
               children: [
                 const TextSpan(text: '두 분은 '),
                 TextSpan(text: label, style: TextStyle(color: color, fontWeight: FontWeight.w700)),
                 const TextSpan(text: '의 결이에요. '),
                 TextSpan(text: '${person.name}님이 지닌 '),
-                TextSpan(text: ohaengText, style: const TextStyle(color: GmColors.rose700)),
+                TextSpan(text: ohaengText, style: const TextStyle(color: GmColors.gold)),
                 const TextSpan(text: '의 기운을 함께 지녔어요.\n\n'),
                 TextSpan(text: insight),
               ],
@@ -583,15 +582,15 @@ class _SpecialUnlockedCard extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: GmColors.rose700.withValues(alpha: 0.06),
-                  border: Border.all(color: GmColors.rose700.withValues(alpha: 0.18)),
+                  color: GmColors.gold.withValues(alpha: 0.06),
+                  border: Border.all(color: GmColors.gold.withValues(alpha: 0.18)),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text.rich(
                   TextSpan(
-                    style: const TextStyle(fontSize: 11, height: 1.5, color: GmColors.inkSoft),
+                    style: const TextStyle(fontSize: 11, height: 1.5, color: GmColors.muted),
                     children: [
-                      const TextSpan(text: 'Tip. ', style: TextStyle(color: GmColors.rose700)),
+                      const TextSpan(text: 'Tip. ', style: TextStyle(color: GmColors.gold)),
                       TextSpan(text: tip),
                     ],
                   ),

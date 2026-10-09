@@ -95,7 +95,7 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
         child: Container(
           padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
           decoration: BoxDecoration(
-            color: GmColors.bgIvory,
+            color: GmColors.card,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
@@ -111,25 +111,25 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
               const Text(
                 '축하 이벤트 달성',
                 style: TextStyle(
-                  fontFamily: GmFonts.serif,
+                  fontFamily: GmText.display,
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  color: GmColors.ink,
+                  color: GmColors.fg,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 '친구 3명이 귀인지도에 모였어요.\n고마운 마음을 담아 복주머니 ${rewardPoint > 0 ? rewardPoint : 30}개를 보내드려요.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 13, height: 1.5, color: GmColors.inkSoft),
+                style: const TextStyle(fontSize: 13, height: 1.5, color: GmColors.muted),
               ),
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: GmColors.rose500,
-                    foregroundColor: Colors.white,
+                    backgroundColor: GmColors.gold,
+                    foregroundColor: GmColors.onFg,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
@@ -152,7 +152,7 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
       widget.onNodeTap!(person);
       return;
     }
-    final meta = guinjiRelationTypes[person.relation];
+    final meta = guinjiRelationMetaOf(person.relation);
     final ohaengMeta = guinjiOhaengTypes[person.ohaeng];
     showGuinjiNodeSheet(
       context: context,
@@ -161,7 +161,7 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
       relationKey: person.relation,
       score: person.score,
       narratorText:
-          '${person.name}님은 ${meta?.description ?? "특별한 인연"}. 곁에 두면 결이 자연스레 풀리는 관계예요.',
+          '${person.name}님은 ${meta.description}. 곁에 두면 결이 자연스레 풀리는 관계예요.',
       evidenceRows: [
         ('오행', '${ohaengMeta?.label ?? ''} ${ohaengMeta?.name ?? ''}'.trim()),
         if (person.note.isNotEmpty) ('판정 근거', person.note),
@@ -214,7 +214,7 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
     final topThree = top3.take(3).toList();
 
     return Scaffold(
-      backgroundColor: GmColors.bgIvory,
+      backgroundColor: GmColors.bg,
       appBar: GmTopBar(
         back: true,
         title: '${widget.ownerName}님의 귀인 지도',
@@ -243,19 +243,19 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
                               children: [
                                 const TextSpan(
                                   text: '지금 ',
-                                  style: TextStyle(fontSize: 11, color: GmColors.inkSoft),
+                                  style: TextStyle(fontSize: 11, color: GmColors.muted),
                                 ),
                                 TextSpan(
                                   text: '$total명',
                                   style: const TextStyle(
                                     fontSize: 11,
-                                    color: GmColors.rose700,
+                                    color: GmColors.gold,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
                                 const TextSpan(
                                   text: '이 함께해요',
-                                  style: TextStyle(fontSize: 11, color: GmColors.inkSoft),
+                                  style: TextStyle(fontSize: 11, color: GmColors.muted),
                                 ),
                               ],
                             ),
@@ -263,7 +263,7 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
                           const SizedBox(height: 2),
                           const Text(
                             '노드를 눌러 관계 상세를 확인하세요',
-                            style: TextStyle(fontSize: 10.5, color: GmColors.inkFaint),
+                            style: TextStyle(fontSize: 10.5, color: GmColors.dim),
                           ),
                         ],
                       ),
@@ -271,8 +271,8 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
                     OutlinedButton(
                       onPressed: _openRanking,
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: GmColors.rose700,
-                        side: BorderSide(color: GmColors.rose300),
+                        foregroundColor: GmColors.gold,
+                        side: const BorderSide(color: GmColors.line),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9999)),
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                       ),
@@ -282,7 +282,7 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
                     OutlinedButton(
                       onPressed: _openFriends,
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: GmColors.inkSoft,
+                        foregroundColor: GmColors.muted,
                         side: const BorderSide(color: GmColors.line),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9999)),
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -332,14 +332,14 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
                   children: [
                     const Text(
                       '가장 강한 인연',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: GmColors.ink),
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: GmColors.fg),
                     ),
                     const Spacer(),
                     TextButton(
                       onPressed: _openFriends,
                       child: const Text(
                         '전체 보기',
-                        style: TextStyle(fontSize: 11, color: GmColors.rose700),
+                        style: TextStyle(fontSize: 11, color: GmColors.gold),
                       ),
                     ),
                   ],
@@ -350,7 +350,7 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
                   padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                   child: Text(
                     '지인을 초대하면 여기에 표시돼요',
-                    style: TextStyle(fontSize: 12, color: GmColors.inkFaint),
+                    style: TextStyle(fontSize: 12, color: GmColors.dim),
                   ),
                 )
               else
@@ -390,10 +390,10 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
                       const Text(
                         '내 귀인지도를 신통방통에서\n더 깊게 이어보세요',
                         style: TextStyle(
-                          fontFamily: GmFonts.serif,
+                          fontFamily: GmText.display,
                           fontSize: 19,
                           fontWeight: FontWeight.w700,
-                          color: GmColors.ivory,
+                          color: GmColors.fg,
                           height: 1.25,
                         ),
                       ),
@@ -425,9 +425,9 @@ class _GmFriendRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final meta = guinjiRelationTypes[person.relation];
-    final color = meta != null ? GmColors.categoryColor(meta.category) : GmColors.rose500;
-    final label = meta?.label ?? person.relation;
+    final meta = guinjiRelationMetaOf(person.relation);
+    final color = meta.color;
+    final label = meta.label;
     final initial = person.name.isNotEmpty ? person.name.substring(0, 1) : '?';
 
     return InkWell(
@@ -449,7 +449,7 @@ class _GmFriendRow extends StatelessWidget {
               child: Text(
                 initial,
                 style: TextStyle(
-                  fontFamily: GmFonts.serif,
+                  fontFamily: GmText.display,
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                   color: color,
@@ -468,7 +468,7 @@ class _GmFriendRow extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 13.5,
                           fontWeight: FontWeight.w700,
-                          color: GmColors.ink,
+                          color: GmColors.fg,
                         ),
                       ),
                       const SizedBox(width: 6),
@@ -484,10 +484,10 @@ class _GmFriendRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    meta?.short ?? person.note,
+                    meta.short,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 11, color: GmColors.inkFaint),
+                    style: const TextStyle(fontSize: 11, color: GmColors.dim),
                   ),
                 ],
               ),
@@ -501,7 +501,7 @@ class _GmFriendRow extends StatelessWidget {
                 ),
                 const Text(
                   'SCORE',
-                  style: TextStyle(fontSize: 8, letterSpacing: 0.6, color: GmColors.inkFaint),
+                  style: TextStyle(fontSize: 8, letterSpacing: 0.6, color: GmColors.dim),
                 ),
               ],
             ),
@@ -528,16 +528,22 @@ class _GmOwnerSajuCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
       decoration: BoxDecoration(
-        color: GmColors.bgCream,
+        color: GmColors.card,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: GmColors.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             '나는 어떤 사람인지',
-            style: GmText.labelMini.copyWith(color: GmColors.rose700),
+            style: TextStyle(
+              fontSize: 10,
+              height: 1,
+              letterSpacing: 1.2,
+              color: GmColors.gold,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 10),
           Row(
@@ -549,18 +555,18 @@ class _GmOwnerSajuCard extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: GmColors.rose100,
-                  border: Border.all(color: GmColors.rose300),
+                  color: GmColors.gold.withValues(alpha: 0.15),
+                  border: Border.all(color: GmColors.gold.withValues(alpha: 0.4)),
                 ),
                 child: Text(
                   summary.dayMasterKr.isNotEmpty
                       ? summary.dayMasterKr.substring(0, 1)
                       : '?',
                   style: const TextStyle(
-                    fontFamily: GmFonts.serif,
+                    fontFamily: GmText.display,
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
-                    color: GmColors.rose700,
+                    color: GmColors.gold,
                   ),
                 ),
               ),
@@ -577,7 +583,7 @@ class _GmOwnerSajuCard extends StatelessWidget {
                             style: const TextStyle(
                               fontSize: 14.5,
                               fontWeight: FontWeight.w700,
-                              color: GmColors.ink,
+                              color: GmColors.fg,
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -588,9 +594,9 @@ class _GmOwnerSajuCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     GmChip(
                       label: summary.strengthLevelKr,
-                      background: GmColors.rose50,
-                      foreground: GmColors.rose700,
-                      borderColor: GmColors.rose200,
+                      background: GmColors.gold.withValues(alpha: 0.12),
+                      foreground: GmColors.gold,
+                      borderColor: GmColors.gold.withValues(alpha: 0.3),
                       fontSize: 10.5,
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     ),
@@ -600,11 +606,14 @@ class _GmOwnerSajuCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Text(summary.nature, style: GmText.bodySoft),
+          Text(
+            summary.nature,
+            style: const TextStyle(fontSize: 13.5, height: 1.6, color: GmColors.fg),
+          ),
           const SizedBox(height: 8),
           Text(
             summary.personality,
-            style: const TextStyle(fontSize: 13, height: 1.6, color: GmColors.inkSoft),
+            style: const TextStyle(fontSize: 13, height: 1.6, color: GmColors.muted),
           ),
         ],
       ),
