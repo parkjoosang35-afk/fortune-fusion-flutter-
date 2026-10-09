@@ -136,10 +136,10 @@ export default async function MatchingChatsPage() {
             친구/팔로우
           </Link>
           <span className="border-b-2 border-indigo-500 px-3 py-2 text-slate-900">채팅 모니터링</span>
-          <Link href="/matching/compatibility-weights" className="px-3 py-2 text-slate-500 hover:text-slate-900">
+          <Link href="/ai-content/compatibility-weights" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             궁합 요소 가중치
           </Link>
-          <Link href="/matching/compatibility-stats" className="px-3 py-2 text-slate-500 hover:text-slate-900">
+          <Link href="/ai-content/compatibility-stats" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             궁합 통계
           </Link>
         </nav>

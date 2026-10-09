@@ -36,9 +36,13 @@ export interface AdminMenuGroup {
 //     기능 진입점이 없어(consultation_type_screen 등에서 이미 정리됨) 관리할 실사용 데이터가
 //     없다. api/public/matching/like, api/public/compatibility/request 라우트도 이미
 //     §3단계에서 완전 무료화되어 포인트 정책 연동이 끊어진 상태. (단, compatibility —
-//     궁합 — 자체는 Flutter에 실사용 화면이 있어 삭제 대상이 아니다. matching 그룹 안의
-//     compatibility-weights/compatibility-stats만 "매칭 삭제, 궁합은 유지" 원칙에 따라
-//     추후 콘텐츠관리 허브로 재배치 예정 — 신통방통 관리자 통합 간소화 실행 지시서 task 7.)
+//     궁합 — 자체는 Flutter에 실사용 화면이 있어 삭제 대상이 아니다. [task 7 완료]
+//     compatibility-weights/compatibility-stats 2개 화면은 matching 디렉터리에서
+//     ai-content(6개콘텐츠관리) 아래로 실제 이동했다 — canAccessMenu 가드를
+//     matching→ai_content로 전환, 경로를 /ai-content/compatibility-weights,
+//     /ai-content/compatibility-stats로 변경, actions/compatibility-weights.ts의
+//     write 권한도 ai_content 기준으로 전환. "매칭 삭제, 궁합은 콘텐츠관리로 이전"
+//     원칙을 실제 라우트/권한 구조에 반영 완료.)
 //   - payments(결제/구독 관리): 행복머니/구독/결제를 비활성화하는 재화구조 원칙(§2단계)에
 //     따라 실제 결제 플로우가 앱에 없다.
 //   - community(커뮤니티 관리): [신통방통 관리자 통합 간소화 실행 지시서] 전수조사 결과

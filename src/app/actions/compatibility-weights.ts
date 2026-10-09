@@ -16,6 +16,10 @@
 //   벗어나면 FormState.warning으로 경고 메시지를 반환하여 관리자에게 알린다
 //   (원칙② 설계충돌 방지 — 04A 원문 "권장" 표현을 그대로 존중).
 // [RBAC] matching.ts의 canWriteMatching과 동일 원칙(cs 제외, super_admin/operator만 write).
+// [신통방통 관리자 통합 간소화 실행 지시서 task 7] 화면이 matching→ai-content로
+// 이동함에 따라 권한 체크도 ai_content 메뉴코드 기준으로 전환한다(ai_content는
+// content_manager에게도 write 권한이 있어 — RBAC_MATRIX 참조 — matching 시절보다
+// write 가능 역할이 1개 늘어난다. 콘텐츠 허브 통합 취지에 부합하는 자연스러운 변화).
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
@@ -28,10 +32,10 @@ export interface CompatibilityWeightFormState {
   warning?: string;
 }
 
-const REVALIDATE_PATH = "/matching/compatibility-weights";
+const REVALIDATE_PATH = "/ai-content/compatibility-weights";
 
 function canWriteMatching(roleCode: string): boolean {
-  return canWriteMenu(roleCode, "matching");
+  return canWriteMenu(roleCode, "ai_content");
 }
 
 async function buildWeightSumWarning(): Promise<string | undefined> {

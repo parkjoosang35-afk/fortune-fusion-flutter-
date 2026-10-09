@@ -13,6 +13,13 @@ import CompatibilityWeightTable from "@/components/CompatibilityWeightTable";
 //   activity_pattern)로 이미 UQ 제약이 걸려 있어, 신규 생성/삭제 UI는
 //   제공하지 않는다(초기 시딩으로 5건 고정, 수치 조정과 활성토글만 관리자
 //   가능 — actions 파일의 범위 결정 참조).
+//
+// [신통방통 관리자 통합 간소화 실행 지시서 task 7] matching(매칭/궁합 관리)은
+// 매칭 기능 자체가 앱에서 완전히 제거되어 사이드바에서 off 처리되었지만,
+// "궁합"은 Flutter에 실사용 화면(features/compatibility)이 있어 삭제 대상이
+// 아니다(rbac.ts ADMIN_MENU_GROUPS 주석 참조). 이 화면을 matching 디렉터리에서
+// ai-content(6개콘텐츠관리) 아래로 옮겨 "매칭 삭제, 궁합은 콘텐츠로 유지"
+// 원칙을 실제 라우트 구조에 반영한다(가드도 matching→ai_content로 전환).
 export const dynamic = "force-dynamic";
 
 const FACTOR_LABEL: Record<string, string> = {
@@ -23,12 +30,12 @@ const FACTOR_LABEL: Record<string, string> = {
   activity_pattern: "활동패턴",
 };
 
-export default async function MatchingCompatibilityWeightsPage() {
+export default async function CompatibilityWeightsPage() {
   const session = await verifyAdminSession();
-  if (!canAccessMenu(session.roleCode, "matching")) {
+  if (!canAccessMenu(session.roleCode, "ai_content")) {
     redirect("/dashboard");
   }
-  const canWrite = canWriteMenu(session.roleCode, "matching");
+  const canWrite = canWriteMenu(session.roleCode, "ai_content");
 
   const items = await prisma.compatibilityFactorWeight.findMany({
     where: { deletedAt: null },
@@ -41,26 +48,20 @@ export default async function MatchingCompatibilityWeightsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">매칭/궁합 관리 — 궁합 요소 가중치 설정</h1>
+        <h1 className="text-2xl font-bold text-slate-900">6개콘텐츠관리 — 궁합 요소 가중치 설정</h1>
         <p className="mt-1 text-sm text-slate-500">
           AI 궁합 계산에 사용되는 사주/MBTI/취미/가치관/활동패턴 요소별 가중치를 조정합니다.
           활성 요소의 가중치 합계는 1.00을 권장합니다(04A F-3 명시, 강제 아님).
         </p>
         <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
-          <Link href="/matching/profiles" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            매칭 프로필
+          <Link href="/ai-content/prompts" className="px-3 py-2 text-slate-500 hover:text-slate-900">
+            프롬프트 템플릿
           </Link>
-          <Link href="/matching/likes-pairs" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            매칭 성사 이력
-          </Link>
-          <Link href="/matching/friends-follows" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            친구/팔로우
-          </Link>
-          <Link href="/matching/chats" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            채팅 모니터링
+          <Link href="/ai-content/categories" className="px-3 py-2 text-slate-500 hover:text-slate-900">
+            운세 카테고리
           </Link>
           <span className="border-b-2 border-indigo-500 px-3 py-2 text-slate-900">궁합 요소 가중치</span>
-          <Link href="/matching/compatibility-stats" className="px-3 py-2 text-slate-500 hover:text-slate-900">
+          <Link href="/ai-content/compatibility-stats" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             궁합 통계
           </Link>
         </nav>

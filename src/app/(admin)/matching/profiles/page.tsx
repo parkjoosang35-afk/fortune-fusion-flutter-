@@ -74,10 +74,10 @@ export default async function MatchingProfilesPage() {
           <Link href="/matching/chats" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             채팅 모니터링
           </Link>
-          <Link href="/matching/compatibility-weights" className="px-3 py-2 text-slate-500 hover:text-slate-900">
+          <Link href="/ai-content/compatibility-weights" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             궁합 요소 가중치
           </Link>
-          <Link href="/matching/compatibility-stats" className="px-3 py-2 text-slate-500 hover:text-slate-900">
+          <Link href="/ai-content/compatibility-stats" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             궁합 통계
           </Link>
         </nav>

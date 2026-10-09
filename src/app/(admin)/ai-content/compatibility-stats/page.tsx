@@ -21,6 +21,11 @@ import Link from "next/link";
 //   네이티브 미지원으로 String(JSON 문자열)에 매핑했으므로(schema.prisma
 //   CompatibilityRequest/CompatibilityResult 모델 주석과 동일 근거),
 //   화면에서 JSON.parse로 역직렬화하여 표시한다.
+//
+// [신통방통 관리자 통합 간소화 실행 지시서 task 7] matching 디렉터리에서
+// ai-content(6개콘텐츠관리) 아래로 이동(궁합은 Flutter에 실사용 화면이 있어
+// 삭제 대상이 아니고, matching 자체가 사이드바에서 off 처리되었기 때문 —
+// rbac.ts ADMIN_MENU_GROUPS 주석 참조). 가드도 matching→ai_content로 전환.
 export const dynamic = "force-dynamic";
 
 const TYPE_LABEL: Record<string, string> = {
@@ -41,9 +46,9 @@ function scoreBand(score: number): string {
   return "0-39";
 }
 
-export default async function MatchingCompatibilityStatsPage() {
+export default async function CompatibilityStatsPage() {
   const session = await verifyAdminSession();
-  if (!canAccessMenu(session.roleCode, "matching")) {
+  if (!canAccessMenu(session.roleCode, "ai_content")) {
     redirect("/dashboard");
   }
 
@@ -100,25 +105,19 @@ export default async function MatchingCompatibilityStatsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">매칭/궁합 관리 — 궁합 요청/결과 통계</h1>
+        <h1 className="text-2xl font-bold text-slate-900">6개콘텐츠관리 — 궁합 요청/결과 통계</h1>
         <p className="mt-1 text-sm text-slate-500">
           회원의 궁합 요청(compatibility_requests)과 AI 산출 결과(compatibility_results)를
           집계 조회합니다(조회 전용).
         </p>
         <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
-          <Link href="/matching/profiles" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            매칭 프로필
+          <Link href="/ai-content/prompts" className="px-3 py-2 text-slate-500 hover:text-slate-900">
+            프롬프트 템플릿
           </Link>
-          <Link href="/matching/likes-pairs" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            매칭 성사 이력
+          <Link href="/ai-content/categories" className="px-3 py-2 text-slate-500 hover:text-slate-900">
+            운세 카테고리
           </Link>
-          <Link href="/matching/friends-follows" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            친구/팔로우
-          </Link>
-          <Link href="/matching/chats" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            채팅 모니터링
-          </Link>
-          <Link href="/matching/compatibility-weights" className="px-3 py-2 text-slate-500 hover:text-slate-900">
+          <Link href="/ai-content/compatibility-weights" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             궁합 요소 가중치
           </Link>
           <span className="border-b-2 border-indigo-500 px-3 py-2 text-slate-900">궁합 통계</span>
