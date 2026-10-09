@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/util/safe_share.dart';
 import '../../../core/web_ads/web_ad_config.dart';
 import '../../../core/web_ads/widgets/web_ad_in_page.dart';
+import '../../result_access/application/result_access_provider.dart';
 import '../application/guinji_provider.dart';
 import '../application/guinji_rewarded_ad_helper.dart';
 import '../deep/guinji_reasons.dart';
@@ -24,9 +27,17 @@ import 'guinji_deep_result_screen.dart';
 /// 기존 `guinji_relation_detail_screen.dart`(다크·라벤더 톤, `/guinji/*`
 /// 구계열 전용)는 그대로 두고 건드리지 않는다 — 완전히 별개의 화면이다.
 ///
-/// [스페셜 해설 잠금해제] "광고 보고 열기"/"복주머니 50P로 열기"는 실제
-/// 서버 API(`POST /guinji/unlocks`, [GuinjiProvider.unlock])를 그대로
-/// 호출한다 — 구계열 상세화면과 동일한 백엔드 연동, UI만 새 디자인으로.
+/// [스페셜 해설 잠금해제 — 06 결제 시트 3택, 2026-12] 핸드오프 `PaySheet`의
+/// "프리패스로 보기 / 복주머니로 보기 / 광고 보고 무료로 보기" 3택을 그대로
+/// 구현한다. 셋 다 동일한 서버 API(`POST /guinji/unlocks`,
+/// [GuinjiProvider.unlock], `method: 'freepass'|'point'|'ad'`)를 호출한다 —
+/// 구계열 상세화면과 동일한 백엔드 연동, UI만 새 디자인으로. 프리패스
+/// 잔여횟수 표시만 앱 전역 공용 "결과보기 통합 권한 시스템"
+/// ([ResultAccessProvider.loadQuote], `contentType: 'guinji'`)을 재사용한다 —
+/// 프리패스는 콘텐츠 종류와 무관한 전역 자산(UserPass)이라 별도 조회 API를
+/// 새로 만들지 않는다. 복주머니는 귀인지도 전용 가격(고정 50P,
+/// `PointPolicy('guinji_unlock_special')`)이라 공용 quote의 가격을 쓰지 않고
+/// 기존 고정 문구를 그대로 둔다.
 class GuinjiMapRelationDetailScreen extends StatefulWidget {
   const GuinjiMapRelationDetailScreen({super.key, required this.person});
 
@@ -52,6 +63,20 @@ class _GuinjiMapRelationDetailScreenState
   // 시작한 경우) 곧바로 [GuinjiDeepResultScreen]으로 간다 — 핸드오프
   // `unlocked.includes(selM.id) ? 'result' : 'pay'` 분기와 동일한 의도.
   bool _justUnlocked = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // [프리패스 잔여횟수 조회] 06 결제 시트가 열리기 전에 미리 조회해 두면
+    // "보유 N회" 표시가 버튼이 보이는 즉시 나타난다(§8.3 서버 재검증 —
+    // 실제 차감은 unlock() 호출 시 서버가 다시 확정한다, 여기서는 표시용).
+    if (!_specialUnlocked) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        context.read<ResultAccessProvider>().loadQuote(contentType: 'guinji');
+      });
+    }
+  }
 
   static String _goodMoment(String category) {
     switch (category) {
@@ -121,6 +146,14 @@ class _GuinjiMapRelationDetailScreenState
         _specialUnlocked = true;
         _justUnlocked = true;
       });
+      // [프리패스 차감 반영] 방금 freepass로 해금했다면 전역 quote를
+      // 다시 조회해 다른 화면(06 결제 시트 등)의 "보유 N회" 표시도
+      // 즉시 최신 상태로 맞춘다.
+      if (method == 'freepass' && mounted) {
+        unawaited(
+          context.read<ResultAccessProvider>().loadQuote(contentType: 'guinji'),
+        );
+      }
     } else {
       ScaffoldMessenger.of(
         context,
@@ -387,22 +420,32 @@ class _GuinjiMapRelationDetailScreenState
               const WebAdInPage(surface: WebAdSurface.guinji, adSlot: ''),
               const SizedBox(height: 12),
 
-              // 스페셜 해설 잠금/해금.
+              // 스페셜 해설 잠금/해금 — 06 결제 시트 3택(프리패스/복주머니/광고).
               if (!_specialUnlocked)
-                _SpecialLockedCard(
-                  unlocking: _unlocking,
-                  onUnlockAd: () => _handleUnlock('ad'),
-                  onUnlockPouch: () => _handleUnlock('point'),
+                Consumer<ResultAccessProvider>(
+                  builder: (context, resultAccess, _) {
+                    final quote = resultAccess.quote;
+                    return _SpecialLockedCard(
+                      unlocking: _unlocking,
+                      freePassRemaining: quote?.freePassRemaining ?? 0,
+                      freePassHasLegacyUnlimited:
+                          quote?.freePassHasLegacyUnlimited ?? false,
+                      freePassAvailable: quote?.freePassAvailable ?? false,
+                      onUnlockFreePass: () => _handleUnlock('freepass'),
+                      onUnlockAd: () => _handleUnlock('ad'),
+                      onUnlockPouch: () => _handleUnlock('point'),
+                    );
+                  },
                 )
               else
                 _SpecialUnlockedCard(person: person, meta: meta, ohaeng: ohaeng, color: color),
 
               // [핸드오프 CDetail "자세한 관계 다시 보기" → DeepIntro/
               // DeepResult 이식] 해금 후에만 10장 장문 풀이 전체를 볼 수
-              // 있게 한다. 해금 전에는 위 [_SpecialLockedCard]의 광고/포인트
-              // CTA가 먼저 나온다 — 핸드오프의 PaySheet(프리패스/복주머니/
-              // 광고 3선택)는 이 화면의 2선택(광고/포인트) 해금 플로우로
-              // 이미 대체되어 있으므로 중복 결제 단계를 추가하지 않는다.
+              // 있게 한다. 해금 전에는 위 [_SpecialLockedCard]의 06 결제
+              // 시트 3택(프리패스/복주머니/광고) CTA가 먼저 나온다 — 핸드오프
+              // `PaySheet`를 1:1로 이 카드에 이식했다(별도 모달 결제 시트
+              // 화면을 새로 만들지 않고, 관계 상세 안에 인라인으로 둔다).
               // 방금 해금했다면 [GuinjiDeepIntroScreen]을 먼저 거친다
               // ([_openDeep] 참고).
               if (_specialUnlocked) ...[
@@ -534,16 +577,78 @@ class _MomentRow extends StatelessWidget {
   }
 }
 
-class _SpecialLockedCard extends StatelessWidget {
+/// [핸드오프 `PaySheet`(06 결제 시트) 1:1 이식] "여는 방법을 골라 주세요"
+/// 3택 — ① 通 프리패스로 보기 ② 福 복주머니로 보기 ③ ☾ 광고 보고 무료로
+/// 보기. 핸드오프는 별도 바텀시트 화면(`PaySheet`)이지만, 이 화면에서는
+/// 기존 인라인 잠금 카드 안에 그대로 3개 옵션 행으로 배치한다(동일한
+/// 선택→해금 흐름, 모달을 한 겹 더 띄우지 않아 더 빠르게 열림).
+class _SpecialLockedCard extends StatefulWidget {
   const _SpecialLockedCard({
+    required this.onUnlockFreePass,
     required this.onUnlockAd,
     required this.onUnlockPouch,
+    required this.freePassRemaining,
+    required this.freePassHasLegacyUnlimited,
+    required this.freePassAvailable,
     this.unlocking = false,
   });
 
+  final VoidCallback onUnlockFreePass;
   final VoidCallback onUnlockAd;
   final VoidCallback onUnlockPouch;
+
+  /// [ResultAccessProvider.quote] 공용 조회 결과 — 프리패스는 콘텐츠와
+  /// 무관한 전역 자산이라 귀인지도 전용 조회 API를 새로 만들지 않는다.
+  final int freePassRemaining;
+  final bool freePassHasLegacyUnlimited;
+  final bool freePassAvailable;
   final bool unlocking;
+
+  @override
+  State<_SpecialLockedCard> createState() => _SpecialLockedCardState();
+}
+
+/// 핸드오프 `PaySheet`의 `pick` 상태(기본 선택 'pass') — 선택한 항목만
+/// 금색 테두리로 강조되고, 광고/프리패스 선택에 따라 하단 CTA 문구가
+/// "프리패스 1회로 열기" / "광고 보고 열기"로 바뀐다. 복주머니는 핸드오프와
+/// 동일하게 누르는 즉시 해금(별도 확정 버튼을 거치지 않음) — 기존
+/// 귀인지도 해금 플로우(`_handleUnlock`)와 그대로 맞춘다.
+enum _PayPick { freepass, ad }
+
+class _SpecialLockedCardState extends State<_SpecialLockedCard> {
+  _PayPick _pick = _PayPick.freepass;
+
+  String get _freePassSubLabel {
+    if (widget.freePassHasLegacyUnlimited && widget.freePassRemaining <= 0) {
+      return '프리패스 1회 사용 · 무제한 이용중';
+    }
+    return '프리패스 1회 사용';
+  }
+
+  String get _freePassRightLabel {
+    if (widget.freePassHasLegacyUnlimited && widget.freePassRemaining <= 0) {
+      return '보유중';
+    }
+    return '보유 ${widget.freePassRemaining}회';
+  }
+
+  @override
+  void didUpdateWidget(covariant _SpecialLockedCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 프리패스를 쓸 수 없게 되면(조회 완료 후 0회) 기본 선택을 광고로
+    // 옮겨 둔다 — 비활성 옵션이 선택된 채로 남아 있지 않도록.
+    if (!widget.freePassAvailable && _pick == _PayPick.freepass) {
+      _pick = _PayPick.ad;
+    }
+  }
+
+  void _handlePrimaryCta() {
+    if (_pick == _PayPick.freepass) {
+      widget.onUnlockFreePass();
+    } else {
+      widget.onUnlockAd();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -577,10 +682,15 @@ class _SpecialLockedCard extends StatelessWidget {
             '사주 4기둥을 근거로 자세히 풀어드립니다.',
             style: TextStyle(fontSize: 12, height: 1.5, color: GmColors.muted),
           ),
-          const SizedBox(height: 12),
-          if (unlocking)
+          const SizedBox(height: 14),
+          const Text(
+            '여는 방법을 골라 주세요',
+            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: GmColors.dim),
+          ),
+          const SizedBox(height: 8),
+          if (widget.unlocking)
             const Padding(
-              padding: EdgeInsets.symmetric(vertical: 6),
+              padding: EdgeInsets.symmetric(vertical: 16),
               child: Center(
                 child: SizedBox(
                   width: 18,
@@ -589,60 +699,265 @@ class _SpecialLockedCard extends StatelessWidget {
                 ),
               ),
             )
-          else
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: onUnlockPouch,
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: GmColors.line),
-                      foregroundColor: GmColors.fg,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: const Text(
-                      '복주머니\n50P로 열기',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 11, height: 1.3, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: SizedBox(
-                    height: 44,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [GmColors.goldTop, GmColors.gold],
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: TextButton(
-                        onPressed: onUnlockAd,
-                        style: TextButton.styleFrom(
-                          foregroundColor: GmColors.onFg,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: const Text(
-                          '광고 보고\n지금 열기',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 11,
-                            height: 1.3,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+          else ...[
+            // ① 通 프리패스로 보기.
+            _PayOptionTile(
+              icon: const _IcoPass(),
+              title: '프리패스로 보기',
+              sub: _freePassSubLabel,
+              right: _freePassRightLabel,
+              selected: _pick == _PayPick.freepass,
+              disabled: !widget.freePassAvailable,
+              onTap: () => setState(() => _pick = _PayPick.freepass),
             ),
+            const SizedBox(height: 8),
+            // ② 福 복주머니로 보기 — 귀인지도 전용 고정가(50P). 핸드오프
+            // s11 "복주머니 정책: 잔액 UI에 '+충전' 버튼 금지"를 그대로
+            // 지켜 부족해도 충전 버튼을 달지 않고 비활성 문구만 보여준다.
+            _PayOptionTile(
+              icon: const _IcoPouch(),
+              title: '복주머니로 보기',
+              sub: '50개가 필요해요',
+              right: '',
+              selected: false,
+              disabled: false,
+              onTap: widget.onUnlockPouch,
+            ),
+            const SizedBox(height: 8),
+            // ③ ☾ 광고 보고 무료로 보기.
+            _PayOptionTile(
+              icon: const _IcoAd(),
+              title: '광고 보고 무료로 보기',
+              sub: '짧은 광고 한 편이면 열려요',
+              right: '무료',
+              selected: _pick == _PayPick.ad,
+              disabled: false,
+              onTap: () => setState(() => _pick = _PayPick.ad),
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [GmColors.goldTop, GmColors.gold],
+                  ),
+                  borderRadius: BorderRadius.circular(25),
+                ),
+                child: TextButton(
+                  onPressed: _handlePrimaryCta,
+                  style: TextButton.styleFrom(
+                    foregroundColor: GmColors.onFg,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                  ),
+                  child: Text(
+                    _pick == _PayPick.freepass ? '프리패스 1회로 열기' : '광고 보고 열기',
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
+      ),
+    );
+  }
+}
+
+/// 핸드오프 `PayOption` 1:1 이식 — 아이콘 + 제목/부제 + 우측 보유정보,
+/// 선택 시 금색 테두리+그라데이션 배경, 비활성 시 반투명 처리.
+class _PayOptionTile extends StatelessWidget {
+  const _PayOptionTile({
+    required this.icon,
+    required this.title,
+    required this.sub,
+    required this.right,
+    required this.selected,
+    required this.disabled,
+    required this.onTap,
+  });
+
+  final Widget icon;
+  final String title;
+  final String sub;
+  final String right;
+  final bool selected;
+  final bool disabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: disabled ? 0.5 : 1,
+      child: InkWell(
+        onTap: disabled ? null : onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            color: selected
+                ? GmColors.gold.withValues(alpha: 0.12)
+                : Colors.white.withValues(alpha: 0.03),
+            border: Border.all(
+              color: selected ? GmColors.gold.withValues(alpha: 0.55) : GmColors.hair,
+            ),
+          ),
+          child: Row(
+            children: [
+              icon,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: GmColors.fg,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      sub,
+                      style: const TextStyle(fontSize: 11.5, color: GmColors.muted),
+                    ),
+                  ],
+                ),
+              ),
+              if (right.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: Text(
+                    right,
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: selected ? GmColors.fg : GmColors.dim,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 通 프리패스 아이콘 — 핸드오프 `IcoPass`(금색 그라데이션 정사각 배지).
+class _IcoPass extends StatelessWidget {
+  const _IcoPass();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 40,
+      height: 40,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(11),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFF3D48A), Color(0xFFC9973E)],
+        ),
+      ),
+      child: const Text(
+        '通',
+        style: TextStyle(
+          fontFamily: GmText.display,
+          fontSize: 19,
+          fontWeight: FontWeight.w900,
+          color: Color(0xFF3A2508),
+        ),
+      ),
+    );
+  }
+}
+
+/// 福 복주머니 아이콘 — 핸드오프 `IcoPouch`(붉은 복주머니 + 한자 인장).
+class _IcoPouch extends StatelessWidget {
+  const _IcoPouch();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 40,
+      height: 40,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: 30,
+            height: 28,
+            margin: const EdgeInsets.only(top: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFC0332B),
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+          Positioned(
+            top: 2,
+            child: Container(
+              width: 14,
+              height: 6,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE9C46A),
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 7,
+            child: Container(
+              width: 16,
+              height: 16,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFFE9C46A), width: 1.1),
+              ),
+              child: const Text(
+                '福',
+                style: TextStyle(
+                  fontFamily: GmText.display,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFFE9C46A),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// ☾ 광고 아이콘 — 핸드오프 `IcoAd`(테두리 원 + 달 기호).
+class _IcoAd extends StatelessWidget {
+  const _IcoAd();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 40,
+      height: 40,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: GmColors.line),
+      ),
+      child: const Text(
+        '☾',
+        style: TextStyle(fontSize: 17, color: GmColors.muted),
       ),
     );
   }
