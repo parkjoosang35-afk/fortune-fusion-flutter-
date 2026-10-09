@@ -200,6 +200,7 @@ flutter:
     - assets/images/home/doryeong/
     - assets/images/guinji/doryeong/
     - assets/images/guinji/seonnyeo/
+    - assets/images/guinji/chars/
     - assets/audio/tarot/
     - assets/audio/pouch_box/
     - assets/tarot/cards/majors/
