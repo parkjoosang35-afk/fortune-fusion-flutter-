@@ -1,11 +1,17 @@
 // lib/features/guinji/widgets/guinji_arrival_overlay.dart
 // [귀인지도_최종_핸드오프.html s01 변경파일총괄표 — 신규] 05-4 지인 도착
-// 애니메이션(`guinji-arrival.jsx` `CArrivalScreen`/`Arrival` 1:1 이식).
+// 애니메이션(`guinji-arrival.jsx` `CArrivalScreen`/`Arrival`/`Dust`/
+// `Sparks`/`CountUp` 1:1 이식). [재작성 — 1차 구현 디자인 불일치 수정]
+// 1차 구현에서 빠뜨렸던 요소를 전부 복원한다: 푸시 토스트, 금빛 먼지,
+// 빈 슬롯 "+" 하이라이트, 전체화면 충돌 플래시, 화면 흔들림, 중심/소유자
+// 글로우의 도착 인원 비례 강화, 헤더 문구, 인장 낙관 좌표/크기, "지인
+// 초대하기" 버튼 — 모두 원본 JSX 수치·문구 그대로.
 //
 // [배치] 지도(M, `/guinji-map/m`)를 보고 있을 때 새 멤버가 감지되면
 // 재생한다 — 별도 화면으로 이동하지 않고, 호출부(`guinji_map_result_screen.dart`)가
-// 자신의 Stack 맨 위에 이 위젯을 겹쳐 띄운다(핸드오프 "지도를 보고 있을 때
-// 재생"이라는 설명과 일치 — 지도 자체를 가리지 않고 그 위에 효과만 더한다).
+// 자신의 Stack 맨 위에 이 위젯을 겹쳐 띄운다. 원본 프로토타입은 전체
+// 화면 자체(CPhone)가 이 연출이므로, 배경은 지도 화면과 동일한
+// `GmColors.bg` 단색(반투명 딤 없음)으로 맞춰 이질감이 없게 한다.
 //
 // [감지 방식] 핸드오프 s05-4: "FCM 데이터 메시지 type=guinji_member_joined,
 // memberId 또는 지도 화면에서 30초마다 GET /maps/me 비교. 본 사람은
@@ -21,6 +27,7 @@
 // 충격파·흔들림을 생략하고 페이드만 재생한다(핸드오프 명시 사항).
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -82,6 +89,36 @@ class GuinjiArrivalSeenStore {
   }
 }
 
+/// 사람 1명의 시각 요소(캐릭터 얼굴/유형색/한자) — 토스트·슬롯 하이라이트·
+/// 비행 연출 여러 곳에서 공통으로 쓰므로 한 번만 계산해 재사용한다.
+class _PersonVisual {
+  const _PersonVisual({required this.character, required this.color, required this.hanja});
+
+  final GuinjiCharacter? character;
+  final Color color;
+  final String hanja;
+}
+
+_PersonVisual _visualFor(GuinjiPerson person) {
+  final meta = guinjiRelationMetaOf(person.relation);
+  final birth = parseGuinjiBirthLabel(person.birth);
+  final character = birth == null ? null : GuinjiCharacter.of(birth: birth, stableKey: person.id);
+  return _PersonVisual(character: character, color: meta.color, hanja: meta.hanja);
+}
+
+/// 핸드오프 각 사람 기준 누적 시점(ms) — `guinji-arrival.jsx` `Arrival()`의
+/// `COMET=0, HIT=900, POP=960, STAMP=1350, LINE=1700, PULSE=2350, DONE=2900`을
+/// 그대로 사용한다(네이밍은 [ArrivalTiming] 상수와 동일한 값).
+const int _kHit = 900;
+const int _kPop = 960;
+const int _kStamp = 1350;
+const int _kLine = 1700;
+const int _kPulse = 2350;
+const int _kDone = 2900;
+
+/// 인물 슬롯/얼굴 반지름(핸드오프 `R = 23`).
+const double _kFaceRadius = 23;
+
 /// 지인 도착 애니메이션 오버레이 — 호출부가 `Stack`의 마지막 자식으로
 /// 겹쳐 띄운다(`Positioned.fill` 권장). 애니메이션이 끝나고 사용자가
 /// 결과 카드를 닫거나 "왜 그런지 보기"를 누르면 [onOpenRelation]/
@@ -116,9 +153,6 @@ class GuinjiArrivalOverlay extends StatefulWidget {
   State<GuinjiArrivalOverlay> createState() => _GuinjiArrivalOverlayState();
 }
 
-/// 각 도착자의 로컬 타임라인 길이(핸드오프 `DONE=2900` + 여유 900ms).
-const int _kCycleMs = 3800;
-
 class _GuinjiArrivalOverlayState extends State<GuinjiArrivalOverlay>
     with SingleTickerProviderStateMixin {
   late final List<GuinjiPerson> _sequential;
@@ -132,8 +166,47 @@ class _GuinjiArrivalOverlayState extends State<GuinjiArrivalOverlay>
 
   int get _totalSequentialMs {
     if (_sequential.isEmpty) return 0;
-    return (_sequential.length - 1) * ArrivalTiming.between.inMilliseconds +
-        _kCycleMs;
+    return (_sequential.length - 1) * ArrivalTiming.between.inMilliseconds + _kDone + 900;
+  }
+
+  /// index [i]의 사람 기준 로컬 경과시간(= 핸드오프 `now - t0`).
+  int _localElapsed(int i) {
+    if (_reduceMotion) return _kDone + 1;
+    return _elapsedMs - i * ArrivalTiming.between.inMilliseconds;
+  }
+
+  /// 핸드오프 `arrived = seq.filter(s => now >= s.at + 900).length` —
+  /// 이미 충돌(HIT)을 지난 사람 수. [_restRevealed]면 나머지도 즉시
+  /// "연결된" 것으로 합산해 헤더 인원수가 정확히 커지게 한다.
+  int get _arrivedCount {
+    var n = 0;
+    for (var i = 0; i < _sequential.length; i++) {
+      if (_localElapsed(i) >= _kHit) n++;
+    }
+    if (_restRevealed) n += _rest.length;
+    return n;
+  }
+
+  /// 핸드오프 `toastFor = seq.find(s => now>=s.at-900 && now<s.at+2200)` —
+  /// 도착 0.9초 전부터 2.2초 후까지(총 3.1초) 토스트가 노출될 사람.
+  (GuinjiPerson, int)? get _toast {
+    for (var i = 0; i < _sequential.length; i++) {
+      final e = _localElapsed(i);
+      if (e >= -ArrivalTiming.toastLead.inMilliseconds && e < 2200) {
+        return (_sequential[i], e);
+      }
+    }
+    return null;
+  }
+
+  /// 핸드오프 `shaking = seq.some(s => now>=s.at+900 && now<s.at+1250)`.
+  bool get _shaking {
+    if (_reduceMotion) return false;
+    for (var i = 0; i < _sequential.length; i++) {
+      final e = _localElapsed(i);
+      if (e >= _kHit && e < _kHit + 350) return true;
+    }
+    return false;
   }
 
   @override
@@ -182,17 +255,24 @@ class _GuinjiArrivalOverlayState extends State<GuinjiArrivalOverlay>
     super.dispose();
   }
 
-  /// 지금 화면에 "결과 카드"로 보여줄 마지막 정착(settle) 완료 도착자.
+  /// 지금 화면에 "결과 카드"로 보여줄 마지막 정착(settle) 완료 도착자
+  /// (핸드오프 `settled[settled.length-1]`).
   GuinjiPerson? get _settledLast {
     GuinjiPerson? last;
     for (var i = 0; i < _sequential.length; i++) {
-      final localStart = i * ArrivalTiming.between.inMilliseconds;
-      final e = _reduceMotion ? 999999 : _elapsedMs - localStart;
-      if (e >= ArrivalTiming.card.inMilliseconds) {
+      if (_localElapsed(i) >= _kDone) {
         last = _sequential[i];
       }
     }
     return last;
+  }
+
+  /// 작은 흔들림(핸드오프 `gjaShake 300ms`: ±2px) — 현재 프레임 시각을
+  /// 기준으로 근사한다(픽셀 단위 일치보다 "흔들리는 느낌" 재현이 목적).
+  Offset get _shakeOffset {
+    if (!_shaking) return Offset.zero;
+    final t = _elapsedMs.toDouble();
+    return Offset(2 * math.sin(t * 0.9), -1 * math.cos(t * 1.3));
   }
 
   @override
@@ -206,137 +286,496 @@ class _GuinjiArrivalOverlayState extends State<GuinjiArrivalOverlay>
     });
 
     final last = _settledLast;
-    final total = _sequential.length + _rest.length;
+    final arrived = _arrivedCount;
+    final toast = _toast;
+    final shakeOffset = _shakeOffset;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: last != null ? widget.onClose : null,
-      child: Container(
-        color: GmColors.bg.withValues(alpha: 0.72),
+      // [핸드오프 CPhone 배경] 반투명 딤이 아닌 지도 화면과 동일한 단색
+      // 배경 — 원본 프로토타입은 전체 화면 자체가 이 연출이라 딤 효과가
+      // 없다.
+      child: ColoredBox(
+        color: GmColors.bg,
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // 중심(나) + 빈 슬롯 점선(아직 도착 전 자리).
-            CustomPaint(
-              painter: _ArrivalSlotsPainter(
-                center: Offset(cx, cy),
-                slots: slots,
-                sequential: _sequential,
-                reduceMotion: _reduceMotion,
-                elapsedMs: _elapsedMs,
-              ),
-            ),
+            // 중심 배경 글로우 — 도착 인원이 늘수록 밝아짐(핸드오프
+            // `radial-gradient(circle, rgba(255,255,255,${0.06+arrived*0.04}))`).
             Positioned(
-              left: cx - 36,
-              top: cy - 36,
-              child: _OwnerAvatar(facePath: widget.ownerFacePath),
-            ),
-
-            // 각 도착자의 비행·충돌·연결 연출.
-            for (var i = 0; i < _sequential.length; i++)
-              _ArrivalFlight(
-                key: ValueKey('arrival_${_sequential[i].id}'),
-                person: _sequential[i],
-                slot: slots[i % slots.length],
-                center: Offset(cx, cy),
-                fromLeft: i.isOdd,
-                localElapsedMs: _reduceMotion
-                    ? ArrivalTiming.card.inMilliseconds + 1
-                    : _elapsedMs - i * ArrivalTiming.between.inMilliseconds,
-                reduceMotion: _reduceMotion,
-                screenWidth: size.width,
-              ),
-
-            // 나머지(4명째~)는 핸드오프 명세대로 한 번에 페이드 인만.
-            if (_restRevealed && _rest.isNotEmpty)
-              Positioned(
-                top: cy + 160,
-                left: 24,
-                right: 24,
-                child: AnimatedOpacity(
-                  opacity: 1,
-                  duration: const Duration(milliseconds: 500),
-                  child: Text(
-                    '${_rest.length}명이 더 연결되었어요',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontFamily: GmText.ui,
-                      fontSize: 13,
-                      color: GmColors.gold,
-                      fontWeight: FontWeight.w600,
+              left: cx - 130,
+              top: cy - 130,
+              width: 260,
+              height: 260,
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        Colors.white.withValues(alpha: (0.06 + arrived * 0.04).clamp(0.0, 1.0)),
+                        Colors.white.withValues(alpha: 0),
+                      ],
+                      stops: const [0, 0.65],
                     ),
                   ),
                 ),
               ),
+            ),
 
-            // 상단 진행 안내.
-            Positioned(
-              top: 24,
-              left: 0,
-              right: 0,
-              child: Column(
+            // 흔들리는 본체(지도·슬롯·얼굴 등) — 충돌 순간 ±2px 흔들림.
+            Transform.translate(
+              offset: shakeOffset,
+              child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  const Text(
-                    '귀인 지도',
-                    style: TextStyle(
-                      fontFamily: GmText.display,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w600,
-                      color: GmColors.fg,
+                  // 중심 → 빈 슬롯 점선 가이드라인(아직 도착 전인 슬롯만).
+                  CustomPaint(
+                    painter: _GuideLinesPainter(
+                      center: Offset(cx, cy),
+                      slots: slots,
+                      sequential: _sequential,
+                      localElapsedOf: _localElapsed,
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    total == 1 ? '새 귀인이 도착했어요' : '$total명의 귀인이 도착했어요',
-                    style: const TextStyle(
-                      fontFamily: GmText.ui,
-                      fontSize: 13,
-                      color: GmColors.gold,
-                      fontWeight: FontWeight.w600,
+
+                  // 빈 슬롯 "+" 표시(다가오는 중이면 유형색으로 확대·발광).
+                  for (var i = 0; i < slots.length; i++)
+                    _buildSlotMarker(i, slots[i]),
+
+                  // 금빛 먼지(도착 후 계속 떠오름).
+                  CustomPaint(
+                    painter: _DustPainter(
+                      center: Offset(cx, cy),
+                      elapsedMs: _elapsedMs,
+                      visible: arrived > 0 && !_reduceMotion,
+                    ),
+                  ),
+
+                  // 나(소유자) — 도착 인원이 늘수록 금빛 글로우 강화.
+                  Positioned(
+                    left: cx - 36,
+                    top: cy - 36,
+                    child: _OwnerAvatar(facePath: widget.ownerFacePath, arrived: arrived),
+                  ),
+
+                  // 아직 아무도 도착하지 않았을 때 안내 문구(핸드오프
+                  // `CEmpty` 1:1).
+                  if (arrived == 0)
+                    Positioned(
+                      top: cy + 180,
+                      left: 24,
+                      right: 24,
+                      child: const Text(
+                        '링크를 받은 지인이 생년월일을 입력하면\n이곳에 한 명씩 연결돼요',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontFamily: GmText.ui, fontSize: 15, height: 1.6, color: GmColors.muted),
+                      ),
+                    ),
+
+                  // 각 도착자의 비행·충돌·연결 연출.
+                  for (var i = 0; i < _sequential.length; i++)
+                    _ArrivalFlight(
+                      key: ValueKey('arrival_${_sequential[i].id}'),
+                      person: _sequential[i],
+                      slot: slots[i % slots.length],
+                      center: Offset(cx, cy),
+                      fromLeft: i.isOdd,
+                      localElapsedMs: _localElapsed(i),
+                      reduceMotion: _reduceMotion,
+                      screenSize: size,
+                    ),
+
+                  // 나머지(4명째~)는 핸드오프 명세대로 한 번에 페이드 인만
+                  // ("최대 3명 순차" 범위를 넘는 추가 인원 — 원본 데모는
+                  // 2명 고정이라 등장하지 않지만, 실제 지도는 인원 수가
+                  // 가변적이므로 핸드오프 문구를 그대로 살려 보강한다).
+                  if (_restRevealed && _rest.isNotEmpty)
+                    Positioned(
+                      top: cy + 170,
+                      left: 24,
+                      right: 24,
+                      child: AnimatedOpacity(
+                        opacity: 1,
+                        duration: const Duration(milliseconds: 500),
+                        child: Text(
+                          '${_rest.length}명이 더 연결되었어요',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontFamily: GmText.ui,
+                            fontSize: 13,
+                            color: GmColors.gold,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  // 헤더(핸드오프 1:1 문구).
+                  Positioned(
+                    top: 56,
+                    left: 24,
+                    right: 24,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '귀인 지도',
+                          style: TextStyle(
+                            fontFamily: GmText.display,
+                            fontSize: 30,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: -0.6,
+                            color: GmColors.fg,
+                          ),
+                        ),
+                        const SizedBox(height: 9),
+                        Text(
+                          arrived > 0 ? '$arrived명과 연결되어 있어요' : '아직 연결된 사람이 없어요',
+                          style: TextStyle(
+                            fontFamily: GmText.ui,
+                            fontSize: 13.5,
+                            color: arrived > 0 ? GmColors.gold : GmColors.muted,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
 
-            // 결과 카드 — 마지막으로 정착한 사람 기준(핸드오프 `last`).
+            // 결과 카드(정착 완료) 또는 "지인 초대하기"(아직 아무도 정착
+            // 전) — 핸드오프 `{last ? <카드> : <지인 초대하기 버튼>}`.
             if (last != null)
               Positioned(
-                left: 16,
-                right: 16,
+                left: 14,
+                right: 14,
                 bottom: 32,
                 child: _ArrivalResultCard(
                   person: last,
                   onOpen: () => widget.onOpenRelation(last),
                   reduceMotion: _reduceMotion,
                 ),
+              )
+            else
+              Positioned(
+                left: 24,
+                right: 24,
+                bottom: 40,
+                child: GmRoseButton(label: '지인 초대하기', onPressed: widget.onClose),
               ),
+
+            // 푸시 토스트 — 도착 0.9초 전부터 3.1초간 상단 노출(핸드오프
+            // 1:1 문구 "{이름}님이 지도에 들어왔어요 · 방금 · 생년월일을
+            // 입력했어요").
+            if (toast != null)
+              _ArrivalToast(key: ValueKey('toast_${toast.$1.id}'), person: toast.$1, localElapsedMs: toast.$2),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSlotMarker(int i, Offset slot) {
+    // 이 슬롯에 배정된 도착자(최대 `_sequential.length`개 슬롯만 사용).
+    final personIndex = i < _sequential.length ? i : -1;
+    if (personIndex < 0) {
+      // 배정되지 않은 빈 슬롯 — 항상 수수한 점선 "+"만 표시.
+      return Positioned(
+        left: slot.dx - 23,
+        top: slot.dy - 23,
+        child: _SlotPlusMark(color: Colors.white.withValues(alpha: 0.22), highlighted: false),
+      );
+    }
+    final e = _localElapsed(personIndex);
+    // 핸드오프: `now >= target.at + 900`이면 슬롯 자체를 제거(얼굴로 대체됨).
+    if (e >= _kHit) return const SizedBox.shrink();
+    // 핸드오프: `incoming = now >= target.at && now < target.at+900`.
+    final incoming = e >= 0 && e < _kHit;
+    final color = _visualFor(_sequential[personIndex]).color;
+    return Positioned(
+      left: slot.dx - 23,
+      top: slot.dy - 23,
+      child: _SlotPlusMark(
+        color: incoming ? color : Colors.white.withValues(alpha: 0.22),
+        highlighted: incoming,
+      ),
+    );
+  }
+}
+
+/// 빈 슬롯 "+" 마커 — 핸드오프: 점선 원 46×46 + "+" 글자, 다가오는 중이면
+/// 유형색 테두리·확대(1.15배)·발광.
+class _SlotPlusMark extends StatelessWidget {
+  const _SlotPlusMark({required this.color, required this.highlighted});
+
+  final Color color;
+  final bool highlighted;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedScale(
+      scale: highlighted ? 1.15 : 1.0,
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeOut,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 400),
+        width: 46,
+        height: 46,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: color, width: 1),
+          boxShadow: highlighted
+              ? [BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 20)]
+              : const [],
+        ),
+        child: Text(
+          '+',
+          style: TextStyle(fontSize: 18, color: color, fontWeight: FontWeight.w500),
         ),
       ),
     );
   }
 }
 
-/// 나(소유자) 아바타 — `guinji_deep_intro_screen.dart`의 `_IntroFace`와
-/// 동일한 원형+폴백 패턴을 재사용한다(별도 위젯으로 중복 정의 — private
-/// 클래스라 교차 파일 재사용이 불가능해 최소 복제).
-class _OwnerAvatar extends StatelessWidget {
-  const _OwnerAvatar({required this.facePath});
+/// 중심 → 아직 도착 전인 슬롯으로 이어지는 점선 가이드(핸드오프
+/// `<line stroke="#fff" strokeOpacity=".12" strokeDasharray="3 5"/>`).
+class _GuideLinesPainter extends CustomPainter {
+  _GuideLinesPainter({
+    required this.center,
+    required this.slots,
+    required this.sequential,
+    required this.localElapsedOf,
+  });
 
-  final String facePath;
+  final Offset center;
+  final List<Offset> slots;
+  final List<GuinjiPerson> sequential;
+  final int Function(int index) localElapsedOf;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1
+      ..color = Colors.white.withValues(alpha: 0.12);
+    for (var i = 0; i < slots.length; i++) {
+      final personIndex = i < sequential.length ? i : -1;
+      if (personIndex >= 0 && localElapsedOf(personIndex) >= _kHit) continue;
+      _dashedLine(canvas, center, slots[i], paint);
+    }
+  }
+
+  void _dashedLine(Canvas canvas, Offset a, Offset b, Paint paint) {
+    const dashLen = 3.0, gapLen = 5.0;
+    final total = (b - a).distance;
+    final dir = (b - a) / (total == 0 ? 1 : total);
+    var dist = 0.0;
+    while (dist < total) {
+      final start = a + dir * dist;
+      final end = a + dir * math.min(dist + dashLen, total);
+      canvas.drawLine(start, end, paint);
+      dist += dashLen + gapLen;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _GuideLinesPainter oldDelegate) => true;
+}
+
+/// 금빛 먼지 — 핸드오프 `Dust`: 16개, 계속 위로 떠오르며 페이드.
+class _DustPainter extends CustomPainter {
+  _DustPainter({required this.center, required this.elapsedMs, required this.visible});
+
+  final Offset center;
+  final int elapsedMs;
+  final bool visible;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (!visible) return;
+    final cx = center.dx;
+    final cy = center.dy;
+    for (var i = 0; i < 16; i++) {
+      final baseLeft = cx - 110 + ((i * 53) % 220);
+      final baseTop = cy + 40 + ((i * 29) % 90);
+      final dur = 3200 + (i % 5) * 500;
+      final delay = (i % 8) * 380;
+      final effective = elapsedMs - delay;
+      if (effective < 0) continue;
+      final p = (effective % dur) / dur;
+      double opacity;
+      if (p < 0.15) {
+        opacity = (p / 0.15);
+      } else {
+        opacity = 1 - ((p - 0.15) / 0.85);
+      }
+      opacity = opacity.clamp(0.0, 1.0);
+      if (opacity <= 0) continue;
+      final dy = -120 * Curves.easeOut.transform(p);
+      final d = 2.0 + (i % 2);
+      canvas.drawCircle(
+        Offset(baseLeft, baseTop + dy),
+        d / 2,
+        Paint()
+          ..color = GmColors.gold.withValues(alpha: opacity)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DustPainter oldDelegate) =>
+      oldDelegate.elapsedMs != elapsedMs || oldDelegate.visible != visible;
+}
+
+/// 푸시 토스트 — 핸드오프 1:1: 상단, 둥근 알약, 블러 배경, 얼굴+텍스트.
+/// `gjaToast` 키프레임(0%: y -120%·op0 → 12%: y0·op1 → 82%: y0·op1 →
+/// 100%: y -120%·op0, 총 3100ms)을 로컬 경과시간으로 근사한다.
+class _ArrivalToast extends StatelessWidget {
+  const _ArrivalToast({super.key, required this.person, required this.localElapsedMs});
+
+  final GuinjiPerson person;
+
+  /// [GuinjiArrivalOverlay._toast]가 넘겨준 로컬 경과시간(-900~2200ms 범위).
+  final int localElapsedMs;
 
   @override
   Widget build(BuildContext context) {
+    // 전체 노출 구간을 0..1로 정규화(시작 -900ms, 끝 +2200ms, 총 3100ms).
+    final t = ((localElapsedMs + 900) / 3100).clamp(0.0, 1.0);
+    double opacity;
+    double translateFactor; // 0 = 제자리, 1 = 위로 사라짐.
+    if (t < 0.12) {
+      final p = t / 0.12;
+      opacity = p;
+      translateFactor = 1 - p;
+    } else if (t < 0.82) {
+      opacity = 1;
+      translateFactor = 0;
+    } else {
+      final p = (t - 0.82) / 0.18;
+      opacity = 1 - p;
+      translateFactor = p;
+    }
+    final visual = _visualFor(person);
+
+    return Positioned(
+      top: 54,
+      left: 0,
+      right: 0,
+      child: IgnorePointer(
+        child: Center(
+          child: Opacity(
+            opacity: opacity.clamp(0.0, 1.0),
+            child: Transform.translate(
+              offset: Offset(0, -40 * translateFactor),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 350),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xE01E1E20),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 36,
+                            height: 36,
+                            clipBehavior: Clip.antiAlias,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: visual.color, width: 1.5),
+                            ),
+                            child: visual.character == null
+                                ? Container(
+                                    color: visual.color.withValues(alpha: 0.22),
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      visual.hanja,
+                                      style: TextStyle(
+                                        fontFamily: GmText.display,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 14,
+                                        color: visual.color,
+                                      ),
+                                    ),
+                                  )
+                                : Image.asset(
+                                    visual.character!.face,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Container(color: visual.color.withValues(alpha: 0.22)),
+                                  ),
+                          ),
+                          const SizedBox(width: 10),
+                          Flexible(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  '${person.name}님이 지도에 들어왔어요',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontFamily: GmText.ui,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: GmColors.fg,
+                                  ),
+                                ),
+                                const Text(
+                                  '방금 · 생년월일을 입력했어요',
+                                  style: TextStyle(fontFamily: GmText.ui, fontSize: 12.5, color: GmColors.muted),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 나(소유자) 아바타 — 도착 인원이 늘수록 금빛 글로우가 강해진다(핸드오프
+/// `glow={rgba(233,196,106,${0.15+arrived*0.15})}`).
+class _OwnerAvatar extends StatelessWidget {
+  const _OwnerAvatar({required this.facePath, required this.arrived});
+
+  final String facePath;
+  final int arrived;
+
+  @override
+  Widget build(BuildContext context) {
+    final glowAlpha = (0.15 + arrived * 0.15).clamp(0.0, 1.0);
     return Column(
       children: [
-        Container(
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 600),
           width: 72,
           height: 72,
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white.withValues(alpha: 0.7), width: 1.5),
+            boxShadow: [BoxShadow(color: GmColors.gold.withValues(alpha: glowAlpha), blurRadius: 28)],
           ),
           child: Image.asset(
             facePath,
@@ -356,71 +795,16 @@ class _OwnerAvatar extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 6),
-        const Text('나', style: TextStyle(fontFamily: GmText.ui, fontSize: 12, color: GmColors.muted)),
+        const SizedBox(height: 7),
+        const Text('나', style: TextStyle(fontFamily: GmText.ui, fontSize: 12.5, color: GmColors.muted)),
       ],
     );
   }
 }
 
-/// 빈 슬롯 점선(아직 비행 중/도착 전 자리에만 보임) + 중심-슬롯 점선.
-class _ArrivalSlotsPainter extends CustomPainter {
-  _ArrivalSlotsPainter({
-    required this.center,
-    required this.slots,
-    required this.sequential,
-    required this.reduceMotion,
-    required this.elapsedMs,
-  });
-
-  final Offset center;
-  final List<Offset> slots;
-  final List<GuinjiPerson> sequential;
-  final bool reduceMotion;
-  final int elapsedMs;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final dashed = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1
-      ..color = Colors.white.withValues(alpha: 0.18);
-    for (var i = 0; i < slots.length; i++) {
-      // 이 슬롯에 배정된 도착자가 이미 "충돌(HIT)"을 지났으면 더 이상
-      // 빈 슬롯을 그리지 않는다(핸드오프: 도착 후 슬롯은 사라짐).
-      final personIndex = sequential.length > i ? i : -1;
-      if (personIndex >= 0) {
-        final localStart = personIndex * ArrivalTiming.between.inMilliseconds;
-        final e = reduceMotion ? 999999 : elapsedMs - localStart;
-        if (e >= ArrivalTiming.impact.inMilliseconds) continue;
-      }
-      _dashedCircle(canvas, slots[i], 23, dashed);
-    }
-  }
-
-  void _dashedCircle(Canvas canvas, Offset c, double r, Paint paint) {
-    const dashCount = 18;
-    for (var i = 0; i < dashCount; i++) {
-      final a0 = i / dashCount * 2 * math.pi;
-      final a1 = a0 + (2 * math.pi / dashCount) * 0.55;
-      canvas.drawArc(
-        Rect.fromCircle(center: c, radius: r),
-        a0,
-        a1 - a0,
-        false,
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _ArrivalSlotsPainter oldDelegate) =>
-      oldDelegate.elapsedMs != elapsedMs;
-}
-
 /// 도착자 1인의 전체 연출(핸드오프 `Arrival` 1:1 이식) — 유성 비행 →
-/// 충돌(플래시·링·불꽃) → 얼굴 팝 → 인장 낙관 → 연결선 → 중심으로 흐르는
-/// 기운(pulse).
+/// 충돌(전체화면 플래시·충격파 3겹·불꽃 22개) → 얼굴 팝 → 인장 낙관 →
+/// 연결선 → 중심으로 흐르는 기운(pulse).
 class _ArrivalFlight extends StatelessWidget {
   const _ArrivalFlight({
     super.key,
@@ -430,7 +814,7 @@ class _ArrivalFlight extends StatelessWidget {
     required this.fromLeft,
     required this.localElapsedMs,
     required this.reduceMotion,
-    required this.screenWidth,
+    required this.screenSize,
   });
 
   final GuinjiPerson person;
@@ -439,35 +823,25 @@ class _ArrivalFlight extends StatelessWidget {
   final bool fromLeft;
   final int localElapsedMs;
   final bool reduceMotion;
-  final double screenWidth;
-
-  static const _hit = 900;
-  static const _pop = 960;
-  static const _stamp = 1350;
-  static const _line = 1700;
-  static const _pulse = 2350;
-  static const _done = 2900;
+  final Size screenSize;
 
   @override
   Widget build(BuildContext context) {
     final e = localElapsedMs;
     if (e < 0) return const SizedBox.shrink();
-    final meta = guinjiRelationMetaOf(person.relation);
-    final color = meta.color;
-    final birth = parseGuinjiBirthLabel(person.birth);
-    final character =
-        birth == null ? null : GuinjiCharacter.of(birth: birth, stableKey: person.id);
+    final visual = _visualFor(person);
+    final color = visual.color;
 
     if (reduceMotion) {
       // 동작 줄이기: 유성/충격 생략, 얼굴만 제자리에서 페이드 인.
       return Positioned(
-        left: slot.dx - 23,
-        top: slot.dy - 23,
-        child: _ArrivalFace(character: character, color: color, name: person.name, hanja: meta.hanja),
+        left: slot.dx - _kFaceRadius,
+        top: slot.dy - _kFaceRadius,
+        child: _ArrivalFace(character: visual.character, color: color, name: person.name, hanja: visual.hanja),
       );
     }
 
-    final from = fromLeft ? Offset(screenWidth + 40, -60) : const Offset(-40, -80);
+    final from = fromLeft ? Offset(screenSize.width + 40, -60) : const Offset(-40, -80);
     final ctrl = Offset(
       (from.dx + slot.dx) / 2 + (fromLeft ? -80 : 80),
       math.min(from.dy, slot.dy) - 60,
@@ -476,90 +850,125 @@ class _ArrivalFlight extends StatelessWidget {
     return Stack(
       children: [
         // 유성 꼬리 — 충돌 전까지만.
-        if (e < _hit + 40)
+        if (e < _kHit + 40)
           CustomPaint(
             painter: _CometPainter(
               from: from,
               ctrl: ctrl,
               to: slot,
-              progress: (e / _hit).clamp(0.0, 1.0),
+              progress: (e / _kHit).clamp(0.0, 1.0),
               color: color,
             ),
           ),
-        // 충돌 플래시 + 링 3겹 + 불꽃.
-        if (e >= _hit && e < _hit + 1600)
-          CustomPaint(
-            painter: _ImpactPainter(
-              center: slot,
-              color: color,
-              localMs: e - _hit,
+        // 충돌: 전체 화면 플래시(핸드오프 `inset:-200` radial-gradient) +
+        // 충격파 3겹 + 불꽃.
+        if (e >= _kHit && e < _kHit + 1600)
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _ImpactPainter(
+                center: slot,
+                color: color,
+                localMs: e - _kHit,
+                screenSize: screenSize,
+              ),
             ),
           ),
         // 연결선 — 슬롯 → 중심.
-        if (e >= _line)
+        if (e >= _kLine)
           CustomPaint(
             painter: _ConnectLinePainter(
               from: slot,
               to: center,
               color: color,
-              done: e >= _done,
-              progress: ((e - _line) / 650).clamp(0.0, 1.0),
+              done: e >= _kDone,
+              progress: ((e - _kLine) / 650).clamp(0.0, 1.0),
             ),
           ),
-        // 중심으로 흐르는 기운(pulse) — 선을 따라 중심으로 작은 빛 3개.
-        if (e >= _pulse && e < _pulse + 900)
+        // 중심으로 흐르는 기운(pulse) — 선을 따라 중심으로 작은 빛 3개
+        // + 중심 링 파동(핸드오프 `gjaCore`).
+        if (e >= _kPulse && e < _kPulse + 900)
           CustomPaint(
             painter: _PulsePainter(
               from: slot,
               to: center,
               color: color,
-              localMs: e - _pulse,
+              localMs: e - _kPulse,
             ),
+          ),
+        if (e >= _kPulse + 500 && e < _kPulse + 1600)
+          Positioned(
+            left: center.dx - 36,
+            top: center.dy - 36,
+            child: _CoreRing(color: color, localMs: e - (_kPulse + 500)),
           ),
         // 얼굴 + 이름/유형.
-        if (e >= _pop)
+        if (e >= _kPop)
           Positioned(
-            left: slot.dx - 23,
-            top: slot.dy - 23,
-            child: AnimatedScale(
-              scale: 1,
-              duration: const Duration(milliseconds: 1),
-              child: _ArrivalFace(
-                character: character,
-                color: color,
-                name: person.name,
-                hanja: meta.hanja,
-                glow: e < _done,
-              ),
+            left: slot.dx - _kFaceRadius,
+            top: slot.dy - _kFaceRadius,
+            child: _ArrivalFace(
+              character: visual.character,
+              color: color,
+              name: person.name,
+              hanja: visual.hanja,
+              glow: e < _kDone,
             ),
           ),
-        // 인장 낙관.
-        if (e >= _stamp && e < _done + 400)
+        // 인장 낙관(핸드오프 좌표: `x + R*0.95, y - R*0.9`, 크기 30×30).
+        if (e >= _kStamp && e < _kDone + 400)
           Positioned(
-            left: slot.dx + 23 * 0.95,
-            top: slot.dy - 23 * 0.9 - 15,
+            left: slot.dx + _kFaceRadius * 0.95,
+            top: slot.dy - _kFaceRadius * 0.9,
             child: Container(
-              width: 28,
-              height: 28,
+              width: 30,
+              height: 30,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: color,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: GmColors.bg, width: 2),
-                boxShadow: [BoxShadow(color: color.withValues(alpha: 0.6), blurRadius: 16)],
+                boxShadow: [
+                  const BoxShadow(color: GmColors.bg, blurRadius: 0, spreadRadius: 2),
+                  BoxShadow(color: color.withValues(alpha: 0.7), blurRadius: 20),
+                ],
               ),
               child: Text(
-                meta.hanja,
+                visual.hanja,
                 style: const TextStyle(
                   fontFamily: GmText.display,
                   fontWeight: FontWeight.w800,
-                  fontSize: 15,
+                  fontSize: 17,
                   color: GmColors.onFg,
                 ),
               ),
             ),
           ),
       ],
+    );
+  }
+}
+
+/// 중심 링 파동(핸드오프 `gjaCore`: scale 1→2.6, opacity .9→0, 900ms).
+class _CoreRing extends StatelessWidget {
+  const _CoreRing({required this.color, required this.localMs});
+
+  final Color color;
+  final int localMs;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = (localMs / 900).clamp(0.0, 1.0);
+    final scale = 1 + t * 1.6;
+    final opacity = (0.9 * (1 - t)).clamp(0.0, 0.9);
+    return Transform.scale(
+      scale: scale,
+      child: Container(
+        width: 72,
+        height: 72,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: color.withValues(alpha: opacity), width: 2),
+        ),
+      ),
     );
   }
 }
@@ -591,7 +1000,7 @@ class _ArrivalFace extends StatelessWidget {
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(color: color, blurRadius: 0, spreadRadius: 1.5),
-              if (glow) BoxShadow(color: color.withValues(alpha: 0.6), blurRadius: 24),
+              BoxShadow(color: color.withValues(alpha: glow ? 0.67 : 0.27), blurRadius: glow ? 30 : 12),
             ],
           ),
           child: character == null
@@ -679,23 +1088,33 @@ class _CometPainter extends CustomPainter {
 }
 
 class _ImpactPainter extends CustomPainter {
-  _ImpactPainter({required this.center, required this.color, required this.localMs});
+  _ImpactPainter({
+    required this.center,
+    required this.color,
+    required this.localMs,
+    required this.screenSize,
+  });
 
   final Offset center;
   final Color color;
   final int localMs;
+  final Size screenSize;
 
   @override
   void paint(Canvas canvas, Size size) {
-    // 플래시(0~700ms).
+    // 전체 화면 플래시(0~700ms) — 핸드오프 `inset:-200` radial-gradient를
+    // 화면 대각선 길이 기준 반지름으로 재현.
     if (localMs < 700) {
       final flashOpacity = (0.35 * (1 - localMs / 700)).clamp(0.0, 0.35);
+      final radius = screenSize.longestSide;
       canvas.drawCircle(
         center,
-        160,
+        radius,
         Paint()
-          ..color = color.withValues(alpha: flashOpacity)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 60),
+          ..shader = RadialGradient(
+            colors: [color.withValues(alpha: flashOpacity), color.withValues(alpha: 0)],
+            stops: const [0, 0.4],
+          ).createShader(Rect.fromCircle(center: center, radius: radius)),
       );
     }
     // 충격파 3겹(0/140/300ms 지연, 1100ms 지속).
