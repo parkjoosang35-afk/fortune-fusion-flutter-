@@ -338,6 +338,7 @@ class AppRouter {
                   context,
                   provider.mapToken,
                   target: GuinjiShareTarget.kakao,
+                  hostName: provider.mapName,
                 ),
                 onSmsShare: () => shareGuinjiMapInvite(
                   context,

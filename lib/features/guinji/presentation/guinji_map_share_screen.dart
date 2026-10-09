@@ -1,12 +1,14 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:kakao_flutter_sdk_share/kakao_flutter_sdk_share.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/util/safe_share.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../application/guinji_provider.dart';
+import '../share/guinji_share_kakao.dart' show guinjiInviteTemplate;
 import '../theme/guinji_map_theme.dart';
 import '../widgets/guinji_map_widgets.dart';
 import 'guinji_share_screen.dart' show buildGuinjiInviteLink;
@@ -48,6 +50,11 @@ Future<void> shareGuinjiMapInvite(
   BuildContext context,
   String? token, {
   GuinjiShareTarget target = GuinjiShareTarget.more,
+  // [귀인지도 v2 리스킨 — 핸드오프 이식] 카카오톡 FeedTemplate 타이틀에
+  // 쓸 지도 소유자 표시 이름(`guinjiInviteTemplate`의 `host` 인자). 호출부가
+  // 넘겨주지 않으면(예: 기존 GuinjiShareScreen 경로) 안전한 기본값으로
+  // 떨어진다 — 시그니처 변경 없이 하위 호환.
+  String? hostName,
 }) async {
   if (token == null || token.isEmpty) return;
   final link = buildGuinjiInviteLink(token);
@@ -95,6 +102,32 @@ Future<void> shareGuinjiMapInvite(
       return;
 
     case GuinjiShareTarget.kakao:
+      // [귀인지도 v2 리스킨 — 핸드오프 이식, 죽은 코드 연결] `guinji_share_kakao.dart`의
+      // [guinjiInviteTemplate]이 지금까지 정의만 되어 있고 실제로 호출되는
+      // 곳이 없어("카카오톡으로 공유" 버튼을 눌러도 핸드오프가 의도한 OG
+      // 카드형 FeedTemplate이 아니라 그냥 일반 공유 시트/클립보드로만
+      // 동작) — 발견 즉시 연결한다.
+      //
+      // [웹 미지원] `kakao_flutter_sdk_share`의 web 플랫폼 구현은
+      // 메서드 채널을 등록하지 않아(패키지 자체가 네이티브 전용 Talk
+      // 공유만 지원) 웹에서 `ShareClient.instance.shareDefault()`를 호출하면
+      // `MissingPluginException`이 발생한다. 따라서 네이티브(Android/iOS)
+      // 에서만 시도하고, 실패하거나 웹이면 기존 폴백(아래 safeShareText)
+      // 으로 떨어진다 — 기존 SMS/더보기 동작은 전혀 바꾸지 않는다.
+      if (!kIsWeb) {
+        try {
+          final available = await ShareClient.instance.isKakaoTalkSharingAvailable();
+          if (available) {
+            await ShareClient.instance.shareDefault(
+              template: guinjiInviteTemplate(host: hostName ?? '친구', token: token),
+            );
+            return;
+          }
+        } catch (_) {
+          // 카카오톡 미설치/전송 실패 — 아래 공통 폴백으로 넘어간다.
+        }
+      }
+      break;
     case GuinjiShareTarget.more:
       break;
   }
