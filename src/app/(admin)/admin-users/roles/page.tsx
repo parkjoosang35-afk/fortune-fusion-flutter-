@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { verifyAdminSession } from "@/lib/dal";
 import { canAccessMenu, canWriteMenu, ADMIN_MENU_GROUPS } from "@/lib/rbac";
 import PermissionMatrixCell from "@/components/PermissionMatrixCell";
+import OpsSystemSubNav from "@/components/OpsSystemSubNav";
 
 // 05_Admin_System_Design.md §3.10 "운영/보안" — 2차 소단위: "역할/권한 매트릭스"
 // (04A B-2 admin_roles, B-3 admin_permissions — 메뉴별 read/write/delete 체크박스 매트릭스 편집)
@@ -19,6 +19,7 @@ export default async function AdminRolesPermissionsPage() {
     redirect("/dashboard");
   }
   const canWrite = canWriteMenu(session.roleCode, "ops_security");
+  const canAccessSystemSettings = canAccessMenu(session.roleCode, "system_settings");
 
   const [roles, permissions] = await Promise.all([
     prisma.adminRole.findMany({ where: { deletedAt: null }, orderBy: { id: "asc" } }),
@@ -34,32 +35,17 @@ export default async function AdminRolesPermissionsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">운영/보안 — 역할/권한 매트릭스</h1>
+        <h1 className="text-2xl font-bold text-slate-900">운영·시스템관리 — 역할/권한 매트릭스</h1>
         <p className="mt-1 text-sm text-slate-500">
           역할(admin_roles)별 메뉴 접근 권한(admin_permissions: read/write/delete)을 조회하고
           편집합니다.
         </p>
-        <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
-          <Link href="/admin-users" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            관리자 계정 관리
-          </Link>
-          <Link
-            href="/admin-users/roles"
-            className="px-3 py-2 font-medium text-slate-900 border-b-2 border-indigo-500"
-          >
-            역할/권한 매트릭스
-          </Link>
-          <Link
-            href="/admin-users/login-logs"
-            className="px-3 py-2 text-slate-500 hover:text-slate-900"
-          >
-            관리자 로그인 이력
-          </Link>
-          <Link href="/audit-logs" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            감사로그(Audit) 조회
-          </Link>
-        </nav>
       </div>
+
+      <OpsSystemSubNav
+        canAccessOpsSecurity={true}
+        canAccessSystemSettings={canAccessSystemSettings}
+      />
 
       <div className="mb-4 rounded-lg border border-amber-300 bg-amber-100 px-4 py-3 text-xs text-amber-800">
         ⚠ 주의: 이 화면에서 저장한 권한 값은 <span className="font-semibold">admin_permissions</span> 테이블에는

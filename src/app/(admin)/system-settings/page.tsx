@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { verifyAdminSession } from "@/lib/dal";
 import { canAccessMenu, canWriteMenu, canDeleteMenu } from "@/lib/rbac";
 import SystemSettingCreateForm from "@/components/SystemSettingCreateForm";
 import SystemSettingRow from "@/components/SystemSettingRow";
+import OpsSystemSubNav from "@/components/OpsSystemSubNav";
 
 // 05_Admin_System_Design.md §3.11 "시스템 설정" — 1차 소단위: "전역 설정값 관리"
 // (04A O-1 system_settings CRUD — 서비스 점검모드 on/off, 최소 앱버전 등)
@@ -19,6 +19,7 @@ export default async function SystemSettingsPage() {
 
   const canWrite = canWriteMenu(session.roleCode, "system_settings");
   const canDelete = canDeleteMenu(session.roleCode, "system_settings");
+  const canAccessOpsSecurity = canAccessMenu(session.roleCode, "ops_security");
 
   const settings = await prisma.systemSetting.findMany({
     where: { deletedAt: null },
@@ -28,28 +29,16 @@ export default async function SystemSettingsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">시스템 설정 — 전역 설정값 관리</h1>
+        <h1 className="text-2xl font-bold text-slate-900">운영·시스템관리 — 전역 설정값 관리</h1>
         <p className="mt-1 text-sm text-slate-500">
           서비스 점검모드 on/off, 최소 앱버전 등 전역 설정값(key-value)을 관리합니다.
         </p>
-        <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
-          <Link
-            href="/system-settings"
-            className="px-3 py-2 font-medium text-slate-900 border-b-2 border-indigo-500"
-          >
-            전역 설정값 관리
-          </Link>
-          <Link href="/system-settings/logs" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            접근/에러 로그 조회
-          </Link>
-          <Link
-            href="/system-settings/statistics"
-            className="px-3 py-2 text-slate-500 hover:text-slate-900"
-          >
-            통계 스냅샷 관리
-          </Link>
-        </nav>
       </div>
+
+      <OpsSystemSubNav
+        canAccessOpsSecurity={canAccessOpsSecurity}
+        canAccessSystemSettings={true}
+      />
 
       <SystemSettingCreateForm canWrite={canWrite} />
 

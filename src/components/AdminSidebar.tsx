@@ -69,8 +69,14 @@ export default function AdminSidebar({
         <ul className="space-y-1">
           {menus.map((menu) => {
             const Icon = ICON_MAP[menu.icon] ?? LayoutDashboard;
-            const active =
-              pathname === menu.path || pathname.startsWith(menu.path + "/");
+            // [task 10 "운영/보안+시스템설정 통합"] matchPrefixes가 있으면(현재
+            // ops_system 메뉴만 해당) 여러 경로 중 하나라도 매치되면 활성 처리한다
+            // (운영·시스템관리 1개 사이드바 행이 /admin-users, /audit-logs,
+            // /system-settings, /ops 4개 prefix 전부에서 하이라이트되도록).
+            const prefixes = menu.matchPrefixes ?? [menu.path];
+            const active = prefixes.some(
+              (p) => pathname === p || pathname.startsWith(p + "/")
+            );
             return (
               <li key={menu.code}>
                 <Link

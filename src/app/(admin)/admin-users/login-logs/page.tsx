@@ -3,6 +3,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { verifyAdminSession } from "@/lib/dal";
 import { canAccessMenu } from "@/lib/rbac";
+import OpsSystemSubNav from "@/components/OpsSystemSubNav";
 
 // 05_Admin_System_Design.md §3.10 "운영/보안" — 3차 소단위: "관리자 로그인 이력"
 // (04A B-4 admin_login_logs — Append-only, 조회 전용)
@@ -20,6 +21,7 @@ export default async function AdminLoginLogsPage({
   if (!canAccessMenu(session.roleCode, "ops_security")) {
     redirect("/dashboard");
   }
+  const canAccessSystemSettings = canAccessMenu(session.roleCode, "system_settings");
 
   const sp = await searchParams;
   const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
@@ -69,29 +71,17 @@ export default async function AdminLoginLogsPage({
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">운영/보안 — 관리자 로그인 이력</h1>
+        <h1 className="text-2xl font-bold text-slate-900">운영·시스템관리 — 관리자 로그인 이력</h1>
         <p className="mt-1 text-sm text-slate-500">
           관리자 계정의 로그인 시도 이력(admin_login_logs)을 조회합니다. 성공/실패 모두
           기록되는 Append-only 로그입니다.
         </p>
-        <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
-          <Link href="/admin-users" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            관리자 계정 관리
-          </Link>
-          <Link href="/admin-users/roles" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            역할/권한 매트릭스
-          </Link>
-          <Link
-            href="/admin-users/login-logs"
-            className="px-3 py-2 font-medium text-slate-900 border-b-2 border-indigo-500"
-          >
-            관리자 로그인 이력
-          </Link>
-          <Link href="/audit-logs" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            감사로그(Audit) 조회
-          </Link>
-        </nav>
       </div>
+
+      <OpsSystemSubNav
+        canAccessOpsSecurity={true}
+        canAccessSystemSettings={canAccessSystemSettings}
+      />
 
       <form className="mb-4 flex flex-wrap gap-3 rounded-xl border border-slate-200 bg-white p-4">
         <select

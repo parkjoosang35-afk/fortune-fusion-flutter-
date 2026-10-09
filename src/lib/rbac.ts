@@ -24,6 +24,12 @@ export interface AdminMenuGroup {
   path: string;
   icon: string;
   children?: AdminMenuItem[];
+  // [신통방통 관리자 통합 간소화 실행 지시서 task 10] 사이드바 "표시 전용"
+  // 다중 경로 활성(active) 판정 필드. AdminSidebar.tsx가 ops_security+
+  // system_settings 2개 메뉴 코드를 "운영·시스템관리" 1개 사이드바 행으로
+  // 시각적으로 병합할 때만 사용한다(RBAC_MATRIX/canAccessMenu/getVisibleMenusForRole
+  // 등 실제 권한 판정 로직에는 전혀 관여하지 않음 — 순수 하이라이트 표시용).
+  matchPrefixes?: string[];
 }
 
 // 05_Admin_System_Design.md §2 "전체 메뉴 구조 (좌측 사이드바)" — 0~11번, 11개 메뉴 그룹
@@ -90,8 +96,30 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
   { code: "shop", label: "상점 관리", path: "/shop/luckybag", icon: "Store" },
   { code: "cms", label: "CMS", path: "/cms/banners", icon: "FileText" },
   { code: "notifications", label: "알림 관리", path: "/notifications/templates", icon: "Bell" },
-  { code: "ops_security", label: "운영/보안", path: "/admin-users", icon: "ShieldCheck" },
-  { code: "system_settings", label: "시스템 설정", path: "/system-settings", icon: "Settings" },
+  // [신통방통 관리자 통합 간소화 실행 지시서 task 10 "운영/보안+시스템설정 최소
+  // 메뉴로 통합"] 기존 "운영/보안"(ops_security, super_admin 전용)과 "시스템 설정"
+  // (system_settings, super_admin+operator 열람 가능) 2개 최상위 사이드바 항목을
+  // "운영·시스템관리" 1개 행으로 합친다.
+  // [주의 — 권한 레벨 불일치 회귀 방지] 두 메뉴는 RBAC 권한 레벨이 다르다
+  // (ops_security는 operator가 X, system_settings는 operator가 R). 사이드바 code를
+  // 그대로 "ops_security"로 두면 operator가 system_settings 3개 화면으로 가는
+  // 사이드바 진입점 자체를 완전히 잃는 회귀가 발생한다. 이를 막기 위해 "pass"/
+  // "pouch"/"ad_management"가 "reward" 권한을 미러링하는 기존 패턴과 동일하게,
+  // 사이드바 전용 신규 가상 코드 "ops_system"을 RBAC_MATRIX에 추가해 두 메뉴의
+  // 열람 권한 합집합(super_admin: 전체, operator: system_settings만)을 미러링한다.
+  // 랜딩 경로는 "/ops"(신규, 역할별로 /admin-users 또는 /system-settings로 즉시
+  // 리다이렉트하는 서버 컴포넌트 — src/app/(admin)/ops/page.tsx 참고)로 설정해
+  // super_admin/operator 모두 권한이 있는 첫 화면으로 바로 떨어지게 한다.
+  // 7개 하위 page.tsx의 실제 접근 가드(canAccessMenu(roleCode,"ops_security"|
+  // "system_settings"))와 RBAC_MATRIX.ops_security/system_settings 엔트리는 전혀
+  // 변경하지 않았다(회귀 위험 제로 — 권한 소스는 기존 두 코드 그대로 유지).
+  {
+    code: "ops_system",
+    label: "운영·시스템관리",
+    path: "/ops",
+    icon: "ShieldCheck",
+    matchPrefixes: ["/admin-users", "/audit-logs", "/system-settings", "/ops"],
+  },
 ];
 
 // 05_Admin_System_Design.md §5.2 메뉴별 권한 매트릭스 (요약표 그대로 반영)
@@ -127,6 +155,13 @@ export const RBAC_MATRIX: Record<string, Record<AdminRoleCode, Perm>> = {
   notifications: { super_admin: RWD, operator: RW, cs: R, content_manager: RW },
   ops_security: { super_admin: RWD, operator: X, cs: X, content_manager: X },
   system_settings: { super_admin: RWD, operator: R, cs: X, content_manager: X },
+  // [task 10] 사이드바 전용 신규 메뉴코드 — ops_security(super_admin만 R)와
+  // system_settings(super_admin+operator R)의 합집합을 미러링한다("pass"/"pouch"/
+  // "ad_management"가 "reward"를 미러링하는 기존 패턴과 동일). 실제 7개 하위
+  // page.tsx의 접근 가드는 전부 canAccessMenu(roleCode,"ops_security") 또는
+  // canAccessMenu(roleCode,"system_settings")를 그대로 쓰므로, 이 값은 사이드바
+  // 노출 여부에만 영향을 준다(권한 소스 이원화 없음).
+  ops_system: { super_admin: RWD, operator: R, cs: X, content_manager: X },
 };
 
 export function canAccessMenu(roleCode: string, menuCode: string): boolean {

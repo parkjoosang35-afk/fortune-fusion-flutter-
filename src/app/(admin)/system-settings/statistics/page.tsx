@@ -3,6 +3,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { verifyAdminSession } from "@/lib/dal";
 import { canAccessMenu } from "@/lib/rbac";
+import OpsSystemSubNav from "@/components/OpsSystemSubNav";
 
 // 05_Admin_System_Design.md §3.11 "시스템 설정" — 3차(마지막) 소단위: "통계 스냅샷 관리"
 // (04A O-5 statistics_snapshots — 배치 실행 상태 확인, 조회 전용)
@@ -46,6 +47,7 @@ export default async function StatisticsSnapshotsPage({
   if (!canAccessMenu(session.roleCode, "system_settings")) {
     redirect("/dashboard");
   }
+  const canAccessOpsSecurity = canAccessMenu(session.roleCode, "ops_security");
 
   const sp = await searchParams;
   const PAGE_SIZE = 20;
@@ -84,25 +86,16 @@ export default async function StatisticsSnapshotsPage({
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">시스템 설정 — 통계 스냅샷 관리</h1>
+        <h1 className="text-2xl font-bold text-slate-900">운영·시스템관리 — 통계 스냅샷 관리</h1>
         <p className="mt-1 text-sm text-slate-500">
           지표별(metric_code) 배치 집계 결과(statistics_snapshots)와 실행 상태를 확인합니다.
         </p>
-        <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
-          <Link href="/system-settings" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            전역 설정값 관리
-          </Link>
-          <Link href="/system-settings/logs" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            접근/에러 로그 조회
-          </Link>
-          <Link
-            href="/system-settings/statistics"
-            className="px-3 py-2 font-medium text-slate-900 border-b-2 border-indigo-500"
-          >
-            통계 스냅샷 관리
-          </Link>
-        </nav>
       </div>
+
+      <OpsSystemSubNav
+        canAccessOpsSecurity={canAccessOpsSecurity}
+        canAccessSystemSettings={true}
+      />
 
       {/* 배치 실행 상태 요약 카드 */}
       <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">

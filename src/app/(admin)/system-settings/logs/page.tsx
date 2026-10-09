@@ -3,6 +3,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { verifyAdminSession } from "@/lib/dal";
 import { canAccessMenu } from "@/lib/rbac";
+import OpsSystemSubNav from "@/components/OpsSystemSubNav";
 
 // 05_Admin_System_Design.md §3.11 "시스템 설정" — 2차 소단위: "접근/에러 로그 조회"
 // (04A O-3 access_logs, O-4 error_logs — Append-only, 조회 전용, critical 필터)
@@ -38,6 +39,7 @@ export default async function SystemLogsPage({
   if (!canAccessMenu(session.roleCode, "system_settings")) {
     redirect("/dashboard");
   }
+  const canAccessOpsSecurity = canAccessMenu(session.roleCode, "ops_security");
 
   const sp = await searchParams;
   const tab = sp.tab === "error" ? "error" : "access"; // 기본 탭: access_logs
@@ -104,29 +106,17 @@ export default async function SystemLogsPage({
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">시스템 설정 — 접근/에러 로그 조회</h1>
+        <h1 className="text-2xl font-bold text-slate-900">운영·시스템관리 — 접근/에러 로그 조회</h1>
         <p className="mt-1 text-sm text-slate-500">
           서버 접근 로그(access_logs)와 시스템 에러 로그(error_logs)를 조회합니다. critical
           등급 에러는 운영팀 알림 연계 대상입니다.
         </p>
-        <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
-          <Link href="/system-settings" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            전역 설정값 관리
-          </Link>
-          <Link
-            href="/system-settings/logs"
-            className="px-3 py-2 font-medium text-slate-900 border-b-2 border-indigo-500"
-          >
-            접근/에러 로그 조회
-          </Link>
-          <Link
-            href="/system-settings/statistics"
-            className="px-3 py-2 text-slate-500 hover:text-slate-900"
-          >
-            통계 스냅샷 관리
-          </Link>
-        </nav>
       </div>
+
+      <OpsSystemSubNav
+        canAccessOpsSecurity={canAccessOpsSecurity}
+        canAccessSystemSettings={true}
+      />
 
       <div className="mb-4 flex gap-2 text-sm">
         <Link
