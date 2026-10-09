@@ -64,7 +64,14 @@ export interface AdminMenuGroup {
 //   - "AI 콘텐츠 관리" → "6개콘텐츠관리"로 라벨만 변경(코드/경로 불변). 귀인지도/소원방/
 //     궁합을 이 허브로 통합하는 작업은 신규 admin 화면 구현이 필요해 task 5~8에서 진행한다.
 //   - "회원 관리" → "회원·이용내역"으로 라벨 변경(회원 상세 페이지에 이미 프리패스·카테고리별
-//     이용현황이 포함되어 있어 코드 변경 없이 명칭만 실태에 맞춘다).
+//     이용현황이 포함되어 있어 코드 변경 없이 명칭만 실태에 맞춘다). [task 9 완료] 다만
+//     전수조사 결과 회원 상세 화면에 복주머니(Wallet POINT) 잔액/내역이 전혀 없어
+//     "이용내역"이라는 라벨과 실제 내용이 불일치했다 — 회원 상세에 복주머니 잔액 +
+//     최근 PointHistory 10건 섹션을 신규 추가하고, /reward/operation-logs(복주머니관리
+//     하위)의 회원 닉네임을 /users/[id]로, 회원 상세의 "전체 내역 조회"를
+//     /reward/operation-logs?historyUserId=로 서로 연결해 "복주머니관리"와
+//     "회원·이용내역" 두 메뉴를 양방향 링크로 통합했다(별도 메뉴 신설/삭제 없음 —
+//     기존 두 화면 사이의 누락된 연결고리만 보강).
 export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
   { code: "dashboard", label: "대시보드", path: "/dashboard", icon: "LayoutDashboard" },
   { code: "pass", label: "프리패스관리", path: "/reward/pass-policies", icon: "Ticket" },

@@ -55,6 +55,18 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
         take: 10,
         include: { policy: true, categoryUsages: true },
       },
+      // [신통방통 관리자 통합 간소화 실행 지시서 task 9 "복주머니/회원 이용내역
+      // 메뉴 통합 정리"] 기존에는 이 화면에 프리패스 이용현황만 있고 복주머니
+      // (Wallet currencyType=POINT) 잔액/적립·사용 내역이 전혀 노출되지 않아
+      // "회원 이용내역"이라는 메뉴 라벨(task 3)과 실제 화면 내용이 불일치했다.
+      // 복주머니관리(/reward/operation-logs)는 전체 회원 통합 조회만 가능하고
+      // 이 화면과 연결고리가 없었으므로, 해당 회원의 Wallet(POINT)과 최근
+      // PointHistory 10건을 함께 조회해 이 화면에서도 바로 확인 가능하게 한다.
+      wallets: { where: { currencyType: "POINT" }, select: { balance: true } },
+      pointHistories: {
+        orderBy: { createdAt: "desc" },
+        take: 10,
+      },
     },
   });
 
@@ -256,6 +268,80 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
                 );
               })}
             </div>
+          </section>
+
+          {/* [task 9 "복주머니/회원 이용내역 통합"] 복주머니 잔액 + 최근 적립/사용 내역 */}
+          <section className="rounded-xl border border-slate-200 bg-white p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-slate-900">
+                복주머니 잔액 &amp; 최근 내역 (최근 10건)
+              </h2>
+              <Link
+                href={`/reward/operation-logs?historyUserId=${user.id}`}
+                className="text-xs text-indigo-700 hover:underline"
+              >
+                전체 내역 조회 →
+              </Link>
+            </div>
+            <p className="mb-4 text-sm text-slate-700">
+              현재 보유{" "}
+              <span className="text-lg font-bold text-amber-700">
+                {(user.wallets[0]?.balance ?? 0).toLocaleString()}개
+              </span>
+            </p>
+            {user.pointHistories.length === 0 ? (
+              <p className="py-4 text-center text-sm text-slate-500">
+                적립/사용 내역이 없습니다.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
+                    <tr>
+                      <th className="py-2 pr-4">일시</th>
+                      <th className="py-2 pr-4">구분</th>
+                      <th className="py-2 pr-4">source_type</th>
+                      <th className="py-2 pr-4">개수</th>
+                      <th className="py-2 pr-4">처리후 보유개수</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {user.pointHistories.map((h) => (
+                      <tr key={h.id} className="border-b border-slate-200/60">
+                        <td className="py-2 pr-4 text-slate-500">
+                          {h.createdAt.toISOString().slice(0, 19).replace("T", " ")}
+                        </td>
+                        <td className="py-2 pr-4">
+                          {h.type === "earn" ? (
+                            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">
+                              적립
+                            </span>
+                          ) : (
+                            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-700">
+                              차감
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2 pr-4 font-mono text-xs text-slate-500">
+                          {h.sourceType}
+                        </td>
+                        <td
+                          className={`py-2 pr-4 font-medium ${
+                            h.amount > 0 ? "text-emerald-700" : "text-red-700"
+                          }`}
+                        >
+                          {h.amount > 0 ? "+" : ""}
+                          {h.amount.toLocaleString()}개
+                        </td>
+                        <td className="py-2 pr-4 text-slate-600">
+                          {h.balanceAfter.toLocaleString()}개
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </section>
 
           {/* 로그인 이력 — 04A A-4 user_login_logs */}

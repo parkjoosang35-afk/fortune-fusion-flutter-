@@ -87,7 +87,13 @@ export default async function RewardOperationLogsPage({
           <Link href="/audit-logs" className="text-indigo-700 hover:underline">
             운영/보안 &gt; 감사로그
           </Link>
-          에서 확인할 수 있습니다.
+          에서 확인할 수 있습니다. 회원 닉네임을 클릭하면 해당 회원의{" "}
+          <Link href="/users" className="text-indigo-700 hover:underline">
+            회원·이용내역
+          </Link>{" "}
+          상세 화면(복주머니/프리패스 포함)으로 이동합니다.
+          {/* [task 9] 회원 상세 화면에서도 /reward/operation-logs?historyUserId=로
+              역방향 링크가 걸려 있어, 두 화면이 양방향으로 연결된다. */}
         </p>
       </div>
 
@@ -161,7 +167,14 @@ export default async function RewardOperationLogsPage({
                   <td className="px-4 py-3 text-slate-500">
                     {h.createdAt.toISOString().slice(0, 19).replace("T", " ")}
                   </td>
-                  <td className="px-4 py-3 text-slate-700">{h.user.nickname}</td>
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/users/${h.userId}`}
+                      className="font-medium text-slate-700 hover:text-indigo-700 hover:underline"
+                    >
+                      {h.user.nickname}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3">
                     {h.type === "earn" ? (
                       <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">
@@ -238,7 +251,14 @@ export default async function RewardOperationLogsPage({
                   <td className="px-4 py-3 text-slate-500">
                     {p.createdAt.toISOString().slice(0, 19).replace("T", " ")}
                   </td>
-                  <td className="px-4 py-3 text-slate-700">{p.user.nickname}</td>
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/users/${p.userId}`}
+                      className="font-medium text-slate-700 hover:text-indigo-700 hover:underline"
+                    >
+                      {p.user.nickname}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3 text-slate-700">{p.policy.name}</td>
                   <td className="px-4 py-3 font-mono text-slate-500">{p.sourceType}</td>
                   <td className="px-4 py-3 text-slate-500">
