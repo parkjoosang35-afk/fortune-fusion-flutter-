@@ -1,13 +1,19 @@
-import { prisma } from "@/lib/db";
 import { verifyAdminSession } from "@/lib/dal";
-import { canAccessMenu, RBAC_MATRIX } from "@/lib/rbac";
+import { canAccessMenu } from "@/lib/rbac";
 import { redirect } from "next/navigation";
-import Link from "next/link";
-import FaqCreateForm from "@/components/FaqCreateForm";
-import FaqRow from "@/components/FaqRow";
 
 // 05_Admin_System_Design.md §3.8 "CMS" — "FAQ 관리" (04A N-10 faqs CRUD,
 // 카테고리/정렬순서). notices 화면 패턴을 재사용한다.
+//
+// [신통방통 관리자 최종 간소화 실행 지시서 §3 "공지사항·FAQ·이벤트·팝업"]
+// notices/events/page.tsx와 동일한 근거로 비노출 처리한다 — Flutter 앱(lib/)
+// 전체에 대응 공개 API(/api/public/faqs)를 호출하는 코드가 0건이라 운영자가
+// FAQ를 작성해도 회원에게 노출할 경로 자체가 없는 완전히 도달 불가능한
+// 화면이었다. CMS 서브탭(banners 등 다른 page.tsx의 <nav>)에서도 이 화면
+// 링크를 제거했다. 이 페이지는 접근 시 /cms/banners로 즉시 리다이렉트한다 —
+// 서버 액션(actions/faqs.ts)과 Faq Prisma 모델/데이터는 전혀 삭제하지 않는다.
+// 원본 UI 코드(FaqCreateForm/FaqRow 렌더링, 카테고리별 정렬 로직)는 git
+// 히스토리(이 커밋 이전 버전)에서 그대로 복원 가능하다.
 export const dynamic = "force-dynamic";
 
 export default async function CmsFaqsPage() {
@@ -15,88 +21,5 @@ export default async function CmsFaqsPage() {
   if (!canAccessMenu(session.roleCode, "cms")) {
     redirect("/dashboard");
   }
-
-  const canWrite = !!RBAC_MATRIX.cms[session.roleCode as keyof typeof RBAC_MATRIX.cms]?.write;
-  const canDelete = !!RBAC_MATRIX.cms[session.roleCode as keyof typeof RBAC_MATRIX.cms]?.delete;
-
-  const faqs = await prisma.faq.findMany({ where: { deletedAt: null } });
-  // 카테고리별, 카테고리 내 정렬순서(메모리 정렬 — 복합 orderBy 인덱스 의존 회피 전례 재사용)
-  const sorted = [...faqs].sort((a, b) => {
-    if (a.category !== b.category) return a.category.localeCompare(b.category);
-    return a.sortOrder - b.sortOrder;
-  });
-
-  const categories = [...new Set(faqs.map((f) => f.category))];
-
-  return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">CMS — FAQ 관리</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          자주 묻는 질문을 카테고리별로 등록/관리합니다. 정렬 순서로 카테고리 내 노출 순서를
-          조정할 수 있습니다.
-        </p>
-        <nav className="mt-4 flex gap-2 border-b border-slate-200 text-sm">
-          <Link href="/cms/banners" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            배너 관리
-          </Link>
-          <Link href="/cms/notices" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            공지사항 관리
-          </Link>
-          <Link
-            href="/cms/faqs"
-            className="px-3 py-2 font-medium text-slate-900 border-b-2 border-indigo-500"
-          >
-            FAQ 관리
-          </Link>
-          <Link href="/cms/events" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            이벤트 관리
-          </Link>
-          <Link href="/cms/lucky-number" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            오늘의 행운숫자
-          </Link>
-          <Link href="/cms/healing-quotes" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            힐링 문구
-          </Link>
-          <Link href="/cms/page-configs/home" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            메인화면 편집
-          </Link>
-          <Link href="/cms/intro-config" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            인트로 관리
-          </Link>
-        </nav>
-      </div>
-
-      <FaqCreateForm canWrite={canWrite} />
-
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
-            <tr>
-              <th className="px-4 py-3">카테고리</th>
-              <th className="px-4 py-3">질문/답변</th>
-              <th className="px-4 py-3">순서</th>
-              <th className="px-4 py-3">관리</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sorted.length === 0 && (
-              <tr>
-                <td colSpan={4} className="px-4 py-10 text-center text-slate-500">
-                  등록된 FAQ가 없습니다.
-                </td>
-              </tr>
-            )}
-            {sorted.map((f) => (
-              <FaqRow key={f.id} faq={f} canWrite={canWrite} canDelete={canDelete} />
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <p className="mt-2 text-xs text-slate-500">
-        총 {faqs.length}건 · 카테고리 {categories.length}개
-      </p>
-    </div>
-  );
+  redirect("/cms/banners");
 }

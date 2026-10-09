@@ -58,8 +58,19 @@ export interface AdminMenuGroup {
 //     ChatMessage 등 Prisma 모델·테이블은 전혀 건드리지 않았다 — 특히
 //     MatchingProfile은 lib/account-purge.ts(회원탈퇴 개인정보 파기)가 실제
 //     참조 중이라 데이터 보존이 필수다.
-//   - payments(결제/구독 관리): 행복머니/구독/결제를 비활성화하는 재화구조 원칙(§2단계)에
-//     따라 실제 결제 플로우가 앱에 없다.
+//   - payments(결제/구독 관리): [신통방통 관리자 최종 간소화 실행 지시서 §3
+//     "결제·구독 관리: 현재 구독 서비스를 운영하지 않으므로 노출하지 말 것"]
+//     지시에 따라 비노출을 유지한다. [재확인 메모 — 과거 "실제 결제 플로우가
+//     앱에 없다"는 기록은 부정확했다. 전수조사 결과 Flutter 앱에 /my/subscription,
+//     /my/subscription/plans 화면과 SubscriptionRepository(→/api/public/subscription/
+//     plans·my·subscribe·cancel·payments 5개 라이브 API)가 실제로 존재하고,
+//     payments 14건·user_subscriptions 10건의 결제/구독 데이터도 DB에 있다.
+//     즉 코드·API·DB는 전부 살아있는 기능이지만, 사용자가 "현재 구독 서비스를
+//     운영하지 않는다"고 명시적으로 판단해 메뉴 노출 여부만 별도로 결정한
+//     것이다(코드/DB 보존 ≠ 메뉴 노출). payments/list·plans·refunds·
+//     revenue-report·subscriptions 5개 page.tsx와 RBAC_MATRIX.payments 엔트리는
+//     전혀 수정하지 않았다 — URL을 알면 super_admin/operator가 여전히 접근
+//     가능하고, 필요해지면 ADMIN_MENU_GROUPS에 1줄만 추가하면 즉시 복원된다.
 //   - community(커뮤니티 관리): [신통방통 관리자 통합 간소화 실행 지시서] 전수조사 결과
 //     boards/posts/comments/reports/likes/files 6개 하위 화면 전부 Flutter 앱에서
 //     참조하는 api/public 엔드포인트가 없음을 재확인(ReportTargetType enum,
@@ -92,8 +103,11 @@ export interface AdminMenuGroup {
 //     (/reward/fortune-ads, FortuneAd 테이블)을 1차 진입점으로 연결한다. 앱 AdMob 광고단위/
 //     웹 AdSense 설정 화면은 DB 모델이 아직 없어(task 4) 별도로 신설해 이 메뉴에 통합할
 //     예정이다.
-//   - "AI 콘텐츠 관리" → "6개콘텐츠관리"로 라벨만 변경(코드/경로 불변). 귀인지도/소원방/
-//     궁합을 이 허브로 통합하는 작업은 신규 admin 화면 구현이 필요해 task 5~8에서 진행한다.
+//   - "AI 콘텐츠 관리" → "6개콘텐츠관리"로 라벨만 변경(코드/경로 불변). 소원방/궁합은
+//     task 5~8에서 허브로 통합 완료. [신통방통 관리자 최종 간소화 실행 지시서 §2]
+//     귀인지도는 관리 화면이 전혀 없는 공백이었던 것을 재확인해 /ai-content/guinji
+//     (조회 전용 — 지도/멤버/관계판정/바이럴 공유 현황)를 신설하고 AiContentSubNav에
+//     탭을 추가했다(ai_content 권한코드 그대로 재사용, RBAC_MATRIX 변경 없음).
 //   - "회원 관리" → "회원·이용내역"으로 라벨 변경(회원 상세 페이지에 이미 프리패스·카테고리별
 //     이용현황이 포함되어 있어 코드 변경 없이 명칭만 실태에 맞춘다). [task 9 완료] 다만
 //     전수조사 결과 회원 상세 화면에 복주머니(Wallet POINT) 잔액/내역이 전혀 없어
@@ -118,7 +132,25 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
   // [§8단계] 상점 관리 진입점을 부적(amulets, 앱 진입경로 없는 죽은 기능)에서
   // 복주머니뽑기(luckybag, 실제 앱에서 라이브 사용 중)로 변경한다.
   // [task 9 예고] luckybag은 "복주머니를 써서 뽑는" 기능이라 추후 복주머니관리로 통합 검토 대상.
-  { code: "shop", label: "상점 관리", path: "/shop/luckybag", icon: "Store" },
+  // [신통방통 관리자 최종 간소화 실행 지시서 §3 "실제 사용하는 상품 기능만"]
+  // [재확인] /shop/amulets는 사이드바/서브탭 어디에도 연결되어 있지 않은
+  // 독립 URL이었고, Flutter 앱의 부적 상점 화면(talisman_shop_screen.dart)은
+  // 이 화면이 다루는 AmuletItem/UserAmulet이 아니라 별도 모델(ShopCatalogItem
+  // itemType="talisman" + UserInventoryItem)을 쓴다 — /api/public/amulets/*
+  // 6개 API가 구현되어 있지만 Flutter 코드 전체에서 호출 0건. shop/amulets/
+  // page.tsx 진입 시 /shop/luckybag로 리다이렉트하도록 처리했다(라우트/서버
+  // 액션/Prisma 모델은 전부 보존). shop 메뉴 자체는 luckybag+giftcards 2개
+  // 하위 화면이 각각 실사용 데이터와 Flutter 연동이 확인되어 그대로 유지한다.
+  // [신통방통 관리자 최종 간소화 실행 지시서 §3 "공지사항·FAQ·이벤트·팝업 비노출"]
+  // [재확인] Flutter 앱에 /api/public/notices, /api/public/faqs,
+  // /api/public/events, /api/public/popups를 호출하는 코드가 전혀 없어(0건)
+  // 4개 화면 모두 도달 불가능한 CMS였다. CMS 서브탭(각 page.tsx의 <nav>)에서
+  // 공지사항/FAQ/이벤트 3개 링크를 제거하고(popups는 이미 이전 작업에서
+  // 제거되어 있었음), notices/faqs/events 3개 page.tsx는 URL 직접 접근 시에도
+  // /cms/banners로 리다이렉트하도록 처리했다 — 라우트 파일/서버 액션/Prisma
+  // 모델(Notice/Faq/Event/EventParticipation/Popup)은 전혀 삭제하지 않았다.
+  // 배너/행운숫자/힐링문구/인트로설정/메인화면편집 5개는 전부 대응 공개 API와
+  // Flutter 실소비 코드가 확인되어 그대로 유지한다.
   { code: "cms", label: "CMS", path: "/cms/banners", icon: "FileText" },
   { code: "notifications", label: "알림 관리", path: "/notifications/templates", icon: "Bell" },
   // [신통방통 관리자 통합 간소화 실행 지시서 task 10 "운영/보안+시스템설정 최소

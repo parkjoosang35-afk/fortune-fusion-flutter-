@@ -40,15 +40,6 @@ export default async function CmsHealingQuotesPage() {
           <Link href="/cms/banners" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             배너 관리
           </Link>
-          <Link href="/cms/notices" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            공지사항 관리
-          </Link>
-          <Link href="/cms/faqs" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            FAQ 관리
-          </Link>
-          <Link href="/cms/events" className="px-3 py-2 text-slate-500 hover:text-slate-900">
-            이벤트 관리
-          </Link>
           <Link href="/cms/lucky-number" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             오늘의 행운숫자
           </Link>

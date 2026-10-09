@@ -15,8 +15,10 @@ import { usePathname } from "next/navigation";
 // cs 역할도 write 가능해야 하는 등 ai_content와 권한 프로파일이 다르기 때문에
 // 권한 체크 자체는 통합하지 않고, "탭으로 모아서 보여주는" 수준의 UI 통합만
 // 수행한다(RewardSubNav의 fortune-categories external 탭과 동일한 패턴).
-// 귀인지도는 디자인 변경 작업과 충돌을 피하기 위해 이번 허브 통합에서 제외한다
-// (신통방통 관리자 통합 간소화 실행 지시서 task 5가 별도로 처리 예정).
+// [신통방통 관리자 최종 간소화 실행 지시서 §2 "콘텐츠 관리"] 귀인지도는
+// 과거 "디자인 변경 작업과 충돌 피하려 허브 통합에서 제외"된 채 관리 화면이
+// 전혀 없는 상태로 방치되어 있었다 — 6개 필수 콘텐츠 중 유일한 공백이라
+// /ai-content/guinji(조회 전용) 최소 관리 화면을 신설해 탭에 추가했다.
 interface SubTab {
   href: string;
   label: string;
@@ -27,6 +29,7 @@ interface SubTab {
 const TABS: SubTab[] = [
   { href: "/ai-content/prompts", label: "AI 프롬프트 템플릿" },
   { href: "/ai-content/categories", label: "운세 카테고리" },
+  { href: "/ai-content/guinji", label: "귀인지도" },
   { href: "/ai-content/tarot-cards", label: "타로카드 마스터" },
   { href: "/ai-content/tarot-topics", label: "타로 65개 주제" },
   { href: "/ai-content/compatibility-weights", label: "궁합 요소 가중치" },
