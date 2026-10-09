@@ -29,24 +29,49 @@ export interface AdminMenuGroup {
 // 05_Admin_System_Design.md §2 "전체 메뉴 구조 (좌측 사이드바)" — 0~11번, 11개 메뉴 그룹
 //
 // [무료 광고형 구조 재정비 §8단계 - 관리자 축소] "유지→수정→통합→off→삭제" 원칙에 따라
-// 사이드바 노출 목록에서만 아래 2개 최상위 메뉴를 제거한다(라우트 파일/RBAC_MATRIX 엔트리/
+// 사이드바 노출 목록에서만 아래 최상위 메뉴를 제거한다(라우트 파일/RBAC_MATRIX 엔트리/
 // DB 테이블은 전부 보존 — URL을 직접 입력하면 페이지 자체의 canAccessMenu 가드는 여전히
 // 그대로 작동한다. 데이터가 필요해지면 이 배열에 다시 추가하기만 하면 즉시 복원됨):
 //   - matching(매칭/궁합 관리): "프리패스+복주머니" 2-자산 구조 확정 이후 앱에 매칭/궁합
 //     기능 진입점이 없어(consultation_type_screen 등에서 이미 정리됨) 관리할 실사용 데이터가
 //     없다. api/public/matching/like, api/public/compatibility/request 라우트도 이미
-//     §3단계에서 완전 무료화되어 포인트 정책 연동이 끊어진 상태.
+//     §3단계에서 완전 무료화되어 포인트 정책 연동이 끊어진 상태. (단, compatibility —
+//     궁합 — 자체는 Flutter에 실사용 화면이 있어 삭제 대상이 아니다. matching 그룹 안의
+//     compatibility-weights/compatibility-stats만 "매칭 삭제, 궁합은 유지" 원칙에 따라
+//     추후 콘텐츠관리 허브로 재배치 예정 — 신통방통 관리자 통합 간소화 실행 지시서 task 7.)
 //   - payments(결제/구독 관리): 행복머니/구독/결제를 비활성화하는 재화구조 원칙(§2단계)에
 //     따라 실제 결제 플로우가 앱에 없다.
+//   - community(커뮤니티 관리): [신통방통 관리자 통합 간소화 실행 지시서] 전수조사 결과
+//     posts/comments/reports/likes/files 5개 하위 화면 전부 Flutter 앱에서 참조하는
+//     api/public 엔드포인트가 없고(community API 자체는 /api/public/community가 아닌
+//     구버전 흔적만 존재), 앱 어디서도 커뮤니티 진입점이 없어 완전 미사용 확정.
+//     matching/payments와 동일한 전례(유지→수정→통합→off→삭제 중 "off") 적용.
+//
+// [신통방통 관리자 통합 간소화 실행 지시서 - 목표 6+1 구조 1단계] 사장님 운영 실체(콘텐츠6개
+// /프리패스/복주머니/광고/회원)에 맞춰 최상위 메뉴를 재편한다:
+//   - "리워드 관리(reward)" 1개 메뉴를 "프리패스관리"/"복주머니관리" 2개로 분리 노출한다.
+//     하위 14개 페이지 파일은 전부 canAccessMenu(roleCode,"reward")로 가드되어 있어 그대로
+//     두고(회귀 위험 최소화), 사이드바 전용 신규 코드 pass/pouch는 RBAC_MATRIX에서 reward와
+//     동일 권한을 미러링한다(실제 접근 제어는 각 페이지의 "reward" 가드가 최종 담당).
+//   - "광고관리(ad_management)" 신규: 기존 실동작 중인 쿠팡/AdMob 리워드 광고 관리 화면
+//     (/reward/fortune-ads, FortuneAd 테이블)을 1차 진입점으로 연결한다. 앱 AdMob 광고단위/
+//     웹 AdSense 설정 화면은 DB 모델이 아직 없어(task 4) 별도로 신설해 이 메뉴에 통합할
+//     예정이다.
+//   - "AI 콘텐츠 관리" → "6개콘텐츠관리"로 라벨만 변경(코드/경로 불변). 귀인지도/소원방/
+//     궁합을 이 허브로 통합하는 작업은 신규 admin 화면 구현이 필요해 task 5~8에서 진행한다.
+//   - "회원 관리" → "회원·이용내역"으로 라벨 변경(회원 상세 페이지에 이미 프리패스·카테고리별
+//     이용현황이 포함되어 있어 코드 변경 없이 명칭만 실태에 맞춘다).
 export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
   { code: "dashboard", label: "대시보드", path: "/dashboard", icon: "LayoutDashboard" },
-  { code: "users", label: "회원 관리", path: "/users", icon: "Users" },
-  { code: "ai_content", label: "AI 콘텐츠 관리", path: "/ai-content/prompts", icon: "Sparkles" },
-  { code: "reward", label: "리워드 관리", path: "/reward/policies", icon: "Gift" },
+  { code: "pass", label: "프리패스관리", path: "/reward/pass-policies", icon: "Ticket" },
+  { code: "pouch", label: "복주머니관리", path: "/reward/luck-pouch-rules", icon: "Gift" },
+  { code: "ai_content", label: "6개콘텐츠관리", path: "/ai-content/prompts", icon: "Sparkles" },
+  { code: "ad_management", label: "광고관리", path: "/reward/fortune-ads", icon: "Megaphone" },
+  { code: "users", label: "회원·이용내역", path: "/users", icon: "Users" },
   // [§8단계] 상점 관리 진입점을 부적(amulets, 앱 진입경로 없는 죽은 기능)에서
   // 복주머니뽑기(luckybag, 실제 앱에서 라이브 사용 중)로 변경한다.
+  // [task 9 예고] luckybag은 "복주머니를 써서 뽑는" 기능이라 추후 복주머니관리로 통합 검토 대상.
   { code: "shop", label: "상점 관리", path: "/shop/luckybag", icon: "Store" },
-  { code: "community", label: "커뮤니티 관리", path: "/community/posts", icon: "MessageSquare" },
   { code: "cms", label: "CMS", path: "/cms/banners", icon: "FileText" },
   { code: "notifications", label: "알림 관리", path: "/notifications/templates", icon: "Bell" },
   { code: "ops_security", label: "운영/보안", path: "/admin-users", icon: "ShieldCheck" },
@@ -66,6 +91,15 @@ export const RBAC_MATRIX: Record<string, Record<AdminRoleCode, Perm>> = {
   users: { super_admin: RWD, operator: RW, cs: RW, content_manager: R },
   ai_content: { super_admin: RWD, operator: R, cs: R, content_manager: RW },
   reward: { super_admin: RWD, operator: RW, cs: R, content_manager: R },
+  // [관리자 통합 간소화 - 목표 6+1 구조] 사이드바 전용 신규 메뉴코드. 실제 하위 페이지는
+  // 전부 canAccessMenu(roleCode,"reward") 가드를 그대로 쓰므로, 여기서는 "reward"와
+  // 동일 권한을 미러링해 사이드바 노출 여부만 "reward" 접근 가능 역할과 일치시킨다
+  // (권한 소스를 이원화하지 않기 위해 값도 reward와 동일하게 유지).
+  pass: { super_admin: RWD, operator: RW, cs: R, content_manager: R },
+  pouch: { super_admin: RWD, operator: RW, cs: R, content_manager: R },
+  // [관리자 통합 간소화] 광고관리 허브 — 1차 진입점은 기존 reward/fortune-ads(이미
+  // canAccessMenu(roleCode,"reward")로 가드됨)이므로 reward와 동일 권한.
+  ad_management: { super_admin: RWD, operator: RW, cs: R, content_manager: R },
   shop: { super_admin: RWD, operator: RW, cs: R, content_manager: R },
   community: { super_admin: RWD, operator: RW, cs: RW, content_manager: R },
   matching: { super_admin: RWD, operator: RW, cs: R, content_manager: R },

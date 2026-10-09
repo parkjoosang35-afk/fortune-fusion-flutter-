@@ -15,6 +15,8 @@ import {
   Bell,
   ShieldCheck,
   Settings,
+  Ticket,
+  Megaphone,
   LogOut,
   ExternalLink,
   type LucideIcon,
@@ -35,6 +37,9 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Bell,
   ShieldCheck,
   Settings,
+  // [관리자 통합 간소화 - 목표 6+1 구조] 프리패스관리/광고관리 신규 사이드바 아이콘.
+  Ticket,
+  Megaphone,
 };
 
 interface AdminSidebarProps {
