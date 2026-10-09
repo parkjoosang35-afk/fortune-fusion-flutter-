@@ -7,7 +7,6 @@ import '../../auth/application/auth_provider.dart';
 import '../../auth/domain/user_model.dart';
 import '../data/models/topic_card.dart';
 import '../data/saju_recent_story_store.dart';
-import '../navigation/saju_dimension_transition.dart';
 import '../state/saju_renewal_provider.dart';
 import '../theme/saju_dark_tokens.dart';
 import '../widgets/saju_base_widgets.dart';
@@ -217,13 +216,23 @@ class _SajuRenewalHomeScreenState extends State<SajuRenewalHomeScreen> {
     ).push(MaterialPageRoute(builder: (_) => const StoryPreviewScreen()));
   }
 
-  /// docs/03 §00 "복귀 전환(300ms)" — 01 → 00(앱 셸)로 돌아갈 때,
-  /// 즉시 pop하는 대신 다크 오버레이 페이드아웃(M-02)을 먼저 재생한다.
-  /// 뒤로가기 버튼(←)과 시스템 백(아래 [PopScope]) 양쪽 모두 이 경로를
-  /// 거치도록 통일한다.
-  Future<void> _exitWithReturnTransition(BuildContext context) async {
-    if (!Navigator.of(context).canPop()) return;
-    await playSajuReturnOverlayThenPop(context);
+  /// [버그 수정 — "← 버튼 탭 시 RangeError: Maximum call stack size
+  /// exceeded"] 이 화면은 정통사주 흐름의 "맨 처음"(진입점) 화면이라서,
+  /// 이 화면에 도달하는 경로가 여러 갈래(①`/saju-renewal`→
+  /// `sajuDimensionEnterRoute`+`SajuEntryGate` 경유, ②다수의 레거시
+  /// 라우트→`_page()`로 직접 진입)로 나뉘어 있다. 그래서 `Navigator.pop()`
+  /// 기반의 복귀 애니메이션(`playSajuReturnOverlayThenPop` —
+  /// Overlay + AnimationController(vsync: navigator) 재생 후 pop)이 스택
+  /// 상태에 따라 재귀적으로 꼬이면서 스택오버플로우를 일으켰다.
+  ///
+  /// 근본적으로 "되돌아갈 이전 화면"을 애니메이션으로 되짚어갈 필요가
+  /// 없는 진입점 화면이므로, pop을 전혀 시도하지 않고 홈(`/home`)으로
+  /// 곧장 이동한다 — 스택을 모두 비우고 교체해(`pushNamedAndRemoveUntil`)
+  /// 어떤 경로로 들어왔든 항상 안전하게 홈으로 도착하게 한다.
+  void _exitToHome(BuildContext context) {
+    Navigator.of(
+      context,
+    ).pushNamedAndRemoveUntil('/home', (route) => false);
   }
 
   @override
@@ -233,7 +242,7 @@ class _SajuRenewalHomeScreenState extends State<SajuRenewalHomeScreen> {
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) {
-          _exitWithReturnTransition(context);
+          _exitToHome(context);
         }
       },
       child: Scaffold(
@@ -248,7 +257,7 @@ class _SajuRenewalHomeScreenState extends State<SajuRenewalHomeScreen> {
                 SajuTopBar(
                   left: SajuIconButton(
                     icon: '←',
-                    onTap: () => _exitWithReturnTransition(context),
+                    onTap: () => _exitToHome(context),
                   ),
                   title: 'SINTONG · 正統四柱',
                 ),
