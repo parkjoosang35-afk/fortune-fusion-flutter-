@@ -412,14 +412,18 @@ class _GuinjiAnimatedRelationGraphState
       child: Stack(
         children: [
           Positioned.fill(child: gestureWrapped),
+          // [핸드오프 `CEmpty` 이식] 6슬롯 점선 방사형 비주얼은
+          // [GuinjiGraphPainter]가 캔버스 위에 직접 그린다(위 CustomPaint).
+          // 여기서는 그 아래(하단)에 안내 문구만 겹치지 않게 배치한다.
           if (widget.people.isEmpty && widget.emptyHint != null)
-            Center(
+            Align(
+              alignment: const Alignment(0, 0.72),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 32),
                 child: Text(
                   widget.emptyHint!,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 12.5, color: GmColors.dim),
+                  style: const TextStyle(fontSize: 12.5, color: GmColors.dim, height: 1.5),
                 ),
               ),
             ),
@@ -660,6 +664,34 @@ class GuinjiGraphPainter extends CustomPainter {
       }
     }
 
+    // ── [핸드오프 `CEmpty` 이식] 지인이 한 명도 없을 때, 6개의 점선
+    // 슬롯("＋")을 중심에서 방사형으로 배치해 "앞으로 채워질 자리"임을
+    // 보여준다. 원본 좌표(CW=390 기준 `cx+cos(a)*125, cy+sin(a)*135`,
+    // 각도 `-90°+i*60°+0.2rad`)를 현재 캔버스 폭 비율로 스케일링한다.
+    if (nodes.isEmpty) {
+      final emptyScale = (size.width / 390.0).clamp(0.6, 1.4);
+      final dashedPaint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = Colors.white.withValues(alpha: 0.22);
+      for (int i = 0; i < 6; i++) {
+        final angle = -math.pi / 2 + i * math.pi / 3 + 0.2;
+        final sx = cx + math.cos(angle) * 125 * emptyScale;
+        final sy = cy + math.sin(angle) * 135 * emptyScale;
+        _dashedLine(
+          canvas,
+          Offset(cx, cy),
+          Offset(sx, sy),
+          Paint()
+            ..strokeWidth = 1
+            ..color = Colors.white.withValues(alpha: 0.12),
+        );
+        _dashed(canvas, Offset(sx, sy), 23 * emptyScale, dashedPaint);
+        _text(canvas, Offset(sx, sy), '+', 15 * emptyScale, GmColors.dim,
+            weight: FontWeight.w400);
+      }
+    }
+
     // ── [핸드오프 `webs`] 같은 유형끼리 정렬 순서로 인접한 노드를 연결하는
     // 그물망(흰색 10%, 선택/필터 중엔 무관한 쪽 0.04로 더 흐리게) ──
     for (final t in guinjiTypeOrder) {
@@ -865,6 +897,22 @@ class GuinjiGraphPainter extends CustomPainter {
         Offset(center.dx + math.cos(a + step) * radius, center.dy + math.sin(a + step) * radius),
         p,
       );
+    }
+  }
+
+  /// [핸드오프 `CEmpty` 이식] 두 점을 잇는 점선(`stroke-dasharray: 3 5`에
+  /// 해당하는 느낌의 짧은 선분 반복). `_dashed`는 원(링)용이라 직선에는
+  /// 쓸 수 없어 별도 헬퍼를 둔다.
+  void _dashedLine(Canvas c, Offset from, Offset to, Paint p) {
+    const dashLen = 4.0, gapLen = 5.0;
+    final total = (to - from).distance;
+    if (total <= 0) return;
+    final dir = (to - from) / total;
+    double covered = 0;
+    while (covered < total) {
+      final segEnd = math.min(covered + dashLen, total);
+      c.drawLine(from + dir * covered, from + dir * segEnd, p);
+      covered += dashLen + gapLen;
     }
   }
 

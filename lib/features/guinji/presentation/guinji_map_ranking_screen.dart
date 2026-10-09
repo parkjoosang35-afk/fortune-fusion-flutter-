@@ -40,8 +40,11 @@ class GuinjiMapRankingScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: GmColors.bg,
       appBar: const GmTopBar(back: true, title: '케미 랭킹'),
-      body: sorted.isEmpty
-          ? const _EmptyRanking()
+      // [핸드오프 `RankScreen` `list.length < 3` 분기 이식] 참여자가
+      // 3명 미만이면 포디움/전체순위 대신 "지인 3명이 모이면 케미 랭킹이
+      // 열려요" 안내 + 초대 CTA를 보여준다.
+      body: sorted.length < 3
+          ? _EmptyRanking(count: sorted.length)
           : SafeArea(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
@@ -125,18 +128,63 @@ class GuinjiMapRankingScreen extends StatelessWidget {
   }
 }
 
+/// [핸드오프 `RankScreen` "list.length < 3" 분기 1:1 이식] 왕관(♛,
+/// 반투명) + "지인 3명이 모이면 케미 랭킹이 열려요" + 현재 인원/남은
+/// 인원 안내 + "지인 초대하기" CTA.
 class _EmptyRanking extends StatelessWidget {
-  const _EmptyRanking();
+  const _EmptyRanking({required this.count});
+
+  final int count;
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    final remain = 3 - count;
+    return Center(
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 32),
-        child: Text(
-          '아직 랭킹을 볼 수 없어요.\n지인을 초대하면 케미 랭킹이 만들어져요.',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 13, height: 1.6, color: GmColors.dim),
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '♛',
+              style: TextStyle(
+                fontFamily: GmText.display,
+                fontSize: 40,
+                fontWeight: FontWeight.w700,
+                color: GmColors.gold.withValues(alpha: 0.5),
+              ),
+            ),
+            const SizedBox(height: 18),
+            const Text(
+              '지인 3명이 모이면\n케미 랭킹이 열려요',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: GmText.display,
+                fontSize: 20,
+                height: 1.4,
+                fontWeight: FontWeight.w600,
+                color: GmColors.fg,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              remain > 0
+                  ? '지금 $count명 · $remain명만 더 초대해 보세요'
+                  : '지금 $count명이 함께하고 있어요',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 14, height: 1.6, color: GmColors.muted),
+            ),
+            const SizedBox(height: 22),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: gmPrimary(),
+                onPressed: () =>
+                    Navigator.of(context).pushNamed('/guinji-map/m/share'),
+                child: const Text('지인 초대하기'),
+              ),
+            ),
+          ],
         ),
       ),
     );

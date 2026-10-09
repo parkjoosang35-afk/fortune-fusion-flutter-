@@ -316,7 +316,8 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
                 centerSubtitle: '나',
                 people: widget.people,
                 onSelect: _handleNodeTap,
-                emptyHint: '지인을 초대하면 여기에 표시돼요',
+                // [핸드오프 `CEmpty` 안내문구 1:1 이식]
+                emptyHint: '링크를 받은 지인이 생년월일을 입력하면\n이곳에 한 명씩 연결돼요',
                 filter: _filter,
               ),
 
@@ -331,6 +332,16 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
                     onSelect: (key) =>
                         setState(() => _filter = _filter == key ? null : key),
                   ),
+                ),
+
+              // [핸드오프 `CMain` 3명 미만 배너 이식, `top:584`] 원본은
+              // 고정 캔버스(CW×CH) 위에 절대좌표로 지도와 겹쳐 배치되지만,
+              // 이 화면은 스크롤 레이아웃이라 같은 의도(지도 바로 아래,
+              // "가장 강한 인연" 리스트보다 먼저)로 그래프 직후에 둔다.
+              if (widget.people.isNotEmpty && widget.people.length < 3)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                  child: _GmFewMembersBanner(count: widget.people.length),
                 ),
 
               // [웹 일반 AdSense 전체 확장 — 귀인지도] 노드 그래프(콘텐츠)와
@@ -707,6 +718,76 @@ class _GmOwnerSajuCard extends StatelessWidget {
           Text(
             summary.personality,
             style: const TextStyle(fontSize: 13, height: 1.6, color: GmColors.muted),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// [핸드오프 `CMain` 3명 미만 배너 1:1 이식] "N명만 더 모이면 축하
+/// 이벤트와 랭킹이 열려요" + 0/1/2 진행 막대(골드로 채워짐). 원본
+/// `{3 - members.length}명만 더 모이면...`, `{members.length}/3` 문구와
+/// `[0,1,2].map(i => i < members.length ? 채움 : 안채움)` 로직을 그대로
+/// 따른다.
+class _GmFewMembersBanner extends StatelessWidget {
+  const _GmFewMembersBanner({required this.count});
+
+  /// 현재 참여자 수(0~2 범위에서만 렌더됨 — 호출부에서 `< 3` 체크).
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final remain = 3 - count;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 11, 14, 11),
+      decoration: BoxDecoration(
+        color: GmColors.gold.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: GmColors.gold.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            children: [
+              Expanded(
+                child: Text(
+                  '$remain명만 더 모이면 축하 이벤트와 랭킹이 열려요',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    height: 1.3,
+                    fontWeight: FontWeight.w500,
+                    color: GmColors.fg,
+                  ),
+                ),
+              ),
+              Text(
+                '$count/3',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: GmColors.gold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: List.generate(3, (i) {
+              final filled = i < count;
+              return Expanded(
+                child: Container(
+                  height: 4,
+                  margin: EdgeInsets.only(right: i < 2 ? 5 : 0),
+                  decoration: BoxDecoration(
+                    color: filled ? GmColors.gold : Colors.white.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              );
+            }),
           ),
         ],
       ),

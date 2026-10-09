@@ -119,19 +119,34 @@ class _GuinjiFriendListScreenState extends State<GuinjiFriendListScreen> {
   /// 실수로 지우는 걸 막기 위해 반드시 확인을 거친다. 느낌표 금지
   /// 원칙에 따라 문구에 느낌표를 쓰지 않는다.
   Future<void> _confirmDelete(BuildContext context, GuinjiFriendEntry entry) async {
+    // [핸드오프 `RankScreen` 삭제 확인 모달 문구 1:1 이식] "OO님을 지도에서
+    // 뺄까요" + "관계 결과와 열어 둔 풀이도 함께 사라져요" + 취소/빼기.
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('멤버 삭제'),
-        content: Text('"${entry.name}" 님을 지도에서 삭제할까요.\n삭제하면 관계·랭킹 집계에서도 제외돼요.'),
+        backgroundColor: GmColors.card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        title: Text(
+          '${entry.name}님을 지도에서 뺄까요',
+          style: const TextStyle(
+            fontFamily: GmText.display,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: GmColors.fg,
+          ),
+        ),
+        content: const Text(
+          '관계 결과와 열어 둔 풀이도 함께 사라져요',
+          style: TextStyle(fontSize: 13.5, height: 1.55, color: GmColors.muted),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('취소'),
+            child: const Text('취소', style: TextStyle(color: GmColors.fg)),
           ),
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('삭제', style: TextStyle(color: Colors.red)),
+            child: const Text('빼기', style: TextStyle(color: GmColors.danger)),
           ),
         ],
       ),
