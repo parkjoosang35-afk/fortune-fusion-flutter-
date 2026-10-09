@@ -49,6 +49,15 @@ export interface AdminMenuGroup {
 //     /ai-content/compatibility-stats로 변경, actions/compatibility-weights.ts의
 //     write 권한도 ai_content 기준으로 전환. "매칭 삭제, 궁합은 콘텐츠관리로 이전"
 //     원칙을 실제 라우트/권한 구조에 반영 완료.)
+//     [신통방통 관리자 통합 간소화 실행 지시서 — 승인 지시 §2, 2단계 진행]
+//     위 "off"(사이드바 노출만 제거) 조치에서 한 단계 더 나아가, 전수조사로
+//     실사용 0건임을 재확인한 뒤 matching/profiles·likes-pairs·friends-follows·
+//     chats 4개 page.tsx와 전용 컴포넌트/서버 액션을 실제로 삭제했다("off"→
+//     "삭제" 전환). RBAC_MATRIX.matching 엔트리도 더는 참조하는 화면이 없어
+//     함께 삭제. MatchingProfile/MatchingLike/MatchingPair/Friend/ChatRoom/
+//     ChatMessage 등 Prisma 모델·테이블은 전혀 건드리지 않았다 — 특히
+//     MatchingProfile은 lib/account-purge.ts(회원탈퇴 개인정보 파기)가 실제
+//     참조 중이라 데이터 보존이 필수다.
 //   - payments(결제/구독 관리): 행복머니/구독/결제를 비활성화하는 재화구조 원칙(§2단계)에
 //     따라 실제 결제 플로우가 앱에 없다.
 //   - community(커뮤니티 관리): [신통방통 관리자 통합 간소화 실행 지시서] 전수조사 결과
@@ -56,6 +65,10 @@ export interface AdminMenuGroup {
 //     api/public 엔드포인트가 없고(community API 자체는 /api/public/community가 아닌
 //     구버전 흔적만 존재), 앱 어디서도 커뮤니티 진입점이 없어 완전 미사용 확정.
 //     matching/payments와 동일한 전례(유지→수정→통합→off→삭제 중 "off") 적용.
+//     [승인 지시 §3] 다만 community가 참조하는 Comment/Like/Report/File 모델은
+//     wishroom(소원방, 현재 라이브) 신고·댓글·응원과 polymorphic(targetType)
+//     테이블을 공유하므로 "off"에서 더 나아간 완전 삭제는 보류한다(다음 세부
+//     작업에서 화면 코드 삭제 여부만 별도 재검토, 테이블/데이터는 유지).
 //
 // [신통방통 관리자 통합 간소화 실행 지시서 - 목표 6+1 구조 1단계] 사장님 운영 실체(콘텐츠6개
 // /프리패스/복주머니/광고/회원)에 맞춰 최상위 메뉴를 재편한다:
@@ -147,9 +160,21 @@ export const RBAC_MATRIX: Record<string, Record<AdminRoleCode, Perm>> = {
   // [관리자 통합 간소화] 광고관리 허브 — 1차 진입점은 기존 reward/fortune-ads(이미
   // canAccessMenu(roleCode,"reward")로 가드됨)이므로 reward와 동일 권한.
   ad_management: { super_admin: RWD, operator: RW, cs: R, content_manager: R },
+  // [§8단계] 쿠폰 관리 화면을 삭제하며 RBAC_MATRIX.coupons 같은 별도 엔트리는
+  // 애초에 없었다(쿠폰은 "shop" 메뉴코드 하위 화면이었음 — shop은 amulets/
+  // luckybag/giftcards 3개 화면이 여전히 쓰므로 그대로 유지).
   shop: { super_admin: RWD, operator: RW, cs: R, content_manager: R },
   community: { super_admin: RWD, operator: RW, cs: RW, content_manager: R },
-  matching: { super_admin: RWD, operator: RW, cs: R, content_manager: R },
+  // [신통방통 관리자 통합 간소화 실행 지시서 — 승인 지시 §2 "매칭 관리"]
+  // matching_profiles/likes-pairs/friends-follows/chats 4개 관리자 화면(및
+  // 전용 컴포넌트 MatchingProfileRow.tsx, 서버 액션 actions/matching.ts)을
+  // 완전 삭제했다(Flutter 앱에 매칭 진입점이 없어 관리할 실사용 데이터가
+  // 없음을 전수조사로 재확인, api/public/matching/* 라우트도 이미 §3단계에서
+  // 무료화되어 사용되지 않음). "matching" RBAC_MATRIX 엔트리를 참조하는
+  // 화면이 더는 없으므로 이 엔트리 자체도 함께 제거한다(고아 권한코드 방지).
+  // [DB 보존] MatchingProfile 모델/테이블은 lib/account-purge.ts의 회원탈퇴
+  // 개인정보 파기 로직(prisma.matchingProfile.updateMany)이 실제로 참조하므로
+  // prisma/schema.prisma에서 절대 삭제하지 않는다 — 관리자 "화면"만 제거했다.
   payments: { super_admin: RWD, operator: R, cs: R, content_manager: X },
   cms: { super_admin: RWD, operator: RW, cs: R, content_manager: RW },
   notifications: { super_admin: RWD, operator: RW, cs: R, content_manager: RW },
