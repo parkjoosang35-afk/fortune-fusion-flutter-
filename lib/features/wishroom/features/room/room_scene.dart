@@ -198,7 +198,10 @@ class _RoomSceneState extends State<RoomScene> with TickerProviderStateMixin, Wi
       },
         child: AnimatedSwitcher(duration: const Duration(milliseconds: 2400), child: ColorFiltered(key: ValueKey('$roomImg$light'),
           colorFilter: ColorFilter.matrix(_brightSat(.22 + .78 * math.min(1, light) + (light > 1 ? (light - 1) * .5 : 0), .6 + .4 * math.min(1, light))),
-          child: Image.asset(roomImg, width: 390, height: 844, fit: BoxFit.cover, alignment: const Alignment(0, -.2))))),
+          child: Image.asset(roomImg, width: 390, height: 844, fit: BoxFit.cover, alignment: const Alignment(0, -.2),
+            // [W-10] 방 자산 디코딩 실패 시 검은 화면 대신 야간 톤 단색으로 대체 —
+            // 마지막 정상 장면이 없는 최초 로드 실패 상황의 최소 안전망.
+            errorBuilder: (_, __, ___) => const ColoredBox(color: Color(0xFF1A1226)))))),
       if (!sacred) _WindowView(bg: bgItem, light: light),
       if (!sacred && (bgItem?.raw('wx') as String?) != null)
         _WeatherFx(wx: bgItem!.raw('wx') as String, density: widget.lowFx ? .5 : 1, clock: loop),
@@ -253,8 +256,11 @@ class _RoomSceneState extends State<RoomScene> with TickerProviderStateMixin, Wi
         builder: (_, c) => Transform.scale(alignment: Alignment.bottomCenter, scaleY: 1 + .012 * breathe.value, child: c),
         child: ShaderMask(shaderCallback: (b) => const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.black, Colors.black, Colors.transparent], stops: [0, .7, 1]).createShader(b), blendMode: BlendMode.dstIn,
           child: ColorFiltered(colorFilter: ColorFilter.matrix(_brightness(widget.charGlow ? 1.1 : .4 + .6 * math.min(1, bright))), child: Stack(fit: StackFit.expand, children: [
-            AnimatedOpacity(opacity: widget.pray && poseImg != null ? 0 : 1, duration: const Duration(milliseconds: 700), child: Image.asset(cat.charImage(r.char, r.outfitNow), fit: BoxFit.contain, alignment: Alignment.bottomCenter)),
-            if (poseImg != null) AnimatedOpacity(opacity: widget.pray ? 1 : 0, duration: const Duration(milliseconds: 700), child: Image.asset(poseImg, fit: BoxFit.contain, alignment: Alignment.bottomCenter)),
+            AnimatedOpacity(opacity: widget.pray && poseImg != null ? 0 : 1, duration: const Duration(milliseconds: 700), child: Image.asset(cat.charImage(r.char, r.outfitNow), fit: BoxFit.contain, alignment: Alignment.bottomCenter,
+              // [W-10] 캐릭터 자산 디코딩 실패 — 빈 영역 대신 자리표시 아이콘으로 "캐릭터가 사라짐"을 숨기지 않는다.
+              errorBuilder: (_, __, ___) => const SizedBox.shrink())),
+            if (poseImg != null) AnimatedOpacity(opacity: widget.pray ? 1 : 0, duration: const Duration(milliseconds: 700), child: Image.asset(poseImg, fit: BoxFit.contain, alignment: Alignment.bottomCenter,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink())),
             if (widget.pray) Positioned(left: 162 * .64 - 50, top: 226 * .40 - 50, child: IgnorePointer(child: FadeTransition(opacity: Tween(begin: .6, end: 1.0).animate(pulse),
               child: Container(width: 100, height: 100, decoration: const BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [Color(0x80FFE1A0), Colors.transparent], stops: [0, .65])))))),
             if (widget.pray) _PoseFx(pose: ritualPose, clock: pulse),
@@ -655,7 +661,9 @@ class _WindowView extends StatelessWidget {
         width: RoomLayout.windowR * 2, height: RoomLayout.windowR * 2,
         child: Stack(children: [
           if (win != null) ColorFiltered(colorFilter: ColorFilter.matrix(_brightness(.3 + .7 * math.min(1, light))),
-            child: Image.asset('assets/wishroom/${win.replaceFirst('assets/', '')}', width: RoomLayout.windowR * 2, height: RoomLayout.windowR * 2, fit: BoxFit.cover)),
+            child: Image.asset('assets/wishroom/${win.replaceFirst('assets/', '')}', width: RoomLayout.windowR * 2, height: RoomLayout.windowR * 2, fit: BoxFit.cover,
+              // [W-10] 창밖 그림 디코딩 실패 — 기본 밤하늘(아래 비네트)만 보이도록 투명 처리, 검은 원 금지.
+              errorBuilder: (_, __, ___) => const SizedBox.shrink())),
           const DecoratedBox(decoration: BoxDecoration(boxShadow: [BoxShadow(color: Color(0xBF281208), blurRadius: 18, spreadRadius: -12, offset: Offset(0, 0))])),
         ]),
       ))),
