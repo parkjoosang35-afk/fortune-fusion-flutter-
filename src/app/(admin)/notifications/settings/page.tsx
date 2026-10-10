@@ -10,10 +10,15 @@ import Link from "next/link";
 // 한다(원칙② 준수: 04A에 관리자 CUD 스펙 없음). Server Actions 없음.
 export const dynamic = "force-dynamic";
 
+// [신통방통 관리자 최종 정리 지시서 §3 "알림 관리"] "matching" 카테고리는
+// 서버 어디서도 실제 알림을 생성하지 않는 죽은 선택지로 확인되어
+// /api/public/notifications/preferences 화이트리스트에서 제거했다(공개 API
+// 참조). 과거 저장된 matching 레코드는 삭제하지 않았으므로 이 라벨맵에
+// 없는 카테고리 값이 조회될 수 있으나, 집계 루프는 CATEGORY_LABEL의 키만
+// 순회하므로 화면에는 더 이상 노출되지 않는다.
 const CATEGORY_LABEL: Record<string, string> = {
   marketing: "마케팅",
   fortune_update: "운세 업데이트",
-  matching: "매칭",
   community: "커뮤니티",
 };
 

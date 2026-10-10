@@ -4,10 +4,18 @@
 // (/notifications/settings)가 있었으나, 회원 앱(Flutter)이 직접 자신의
 // 설정을 읽고 바꿀 수 있는 공개 API는 없었다(04A N-3 명시: "회원 앱에서
 // 직접 설정하는 값이므로 관리자는 조회만 한다" — 즉 CUD는 회원 앱의 몫).
-// 화이트리스트(marketing/fortune_update/matching/community)는
-// seed_notification_settings.ts와 동일하게 재사용한다(신규 카테고리 없음).
 //
-// GET: 로그인 사용자의 4개 카테고리 설정을 전부 반환한다(레코드가 없는
+// [신통방통 관리자 최종 정리 지시서 §3 "알림 관리"] 원래 화이트리스트는
+// marketing/fortune_update/matching/community 4종이었으나, "matching"은
+// 서버 어디에서도 createNotification(category:"matching")으로 알림을
+// 생성하는 코드가 0건(매칭 기능 자체가 이미 삭제됨 — 위시룸/커뮤니티 알림은
+// 전부 "community" 카테고리만 사용)으로 확인되어, 회원이 이 토글을 켜고
+// 꺼도 아무 알림에도 영향이 없는 죽은 선택지였다. GET 응답에서 더 이상
+// "matching"을 반환하지 않도록 화이트리스트에서 제거한다(PUT도 자동으로
+// 거부됨). 기존에 "matching" 카테고리로 저장된 NotificationPreference
+// 레코드는 삭제하지 않고 DB에 그대로 보존한다(원칙: 유지→off, 데이터 보존).
+//
+// GET: 로그인 사용자의 3개 카테고리 설정을 전부 반환한다(레코드가 없는
 //      카테고리는 기본값 isEnabled=true로 채워서 반환 — schema.prisma의
 //      @default(true)와 동일한 원칙, 클라이언트가 "아직 한번도 안 건드림"과
 //      "명시적으로 켬"을 구분할 필요가 없도록 단순화).
@@ -18,7 +26,7 @@ import { CORS_HEADERS, requireUser, unauthorizedResponse } from "../../wishes/_s
 
 export const dynamic = "force-dynamic";
 
-const CATEGORIES = ["marketing", "fortune_update", "matching", "community"] as const;
+const CATEGORIES = ["marketing", "fortune_update", "community"] as const;
 type Category = (typeof CATEGORIES)[number];
 
 function isValidCategory(value: unknown): value is Category {

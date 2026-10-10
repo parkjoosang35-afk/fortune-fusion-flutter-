@@ -49,22 +49,27 @@ const GROUPS: NavGroup[] = [
     key: "luckpouch",
     label: "복주머니관리",
     href: "/reward/luck-pouch-rules",
+    // [신통방통 관리자 최종 정리 지시서 §3 "복주머니관리"] achievements(업적,
+    // 대응 공개 API 0건 — 완전히 죽은 기능)와 feature-bindings(기능-자산매핑,
+    // API는 있으나 Flutter AccessChecker가 전혀 참조하지 않는 죽은 연동)는
+    // 탭에서 제거한다(라우트 자체는 /reward/luck-pouch-rules로 리다이렉트
+    // 처리, Prisma 모델/데이터는 보존). 광고관리는 사이드바 최상위
+    // "광고관리"(ad_management) 메뉴와 동일 경로(/reward/fortune-ads)를
+    // 가리키는 중복 진입점이지만, 복주머니 적립 수단이라는 맥락상 여기 탭도
+    // 유지해 "복주머니 적립, 사용, 회원별 잔액, 적립·사용 내역" 기준을
+    // 충족시킨다(코드/라우트 변경 없이 문서화만).
     matchPrefixes: [
       "/reward/luck-pouch-rules",
       "/reward/policies",
       "/reward/missions",
-      "/reward/achievements",
       "/reward/ranking",
-      "/reward/feature-bindings",
       "/reward/fortune-ads",
     ],
     children: [
       { href: "/reward/luck-pouch-rules", label: "적립/사용 규칙" },
       { href: "/reward/policies", label: "경제 정책(일일상한)" },
       { href: "/reward/missions", label: "출석/미션" },
-      { href: "/reward/achievements", label: "업적" },
       { href: "/reward/ranking", label: "랭킹 보상" },
-      { href: "/reward/feature-bindings", label: "기능-자산 매핑" },
       // [복주머니 광고 적립 시스템 - 2026-08] 광고 시청→복주머니 지급 관리 화면.
       { href: "/reward/fortune-ads", label: "광고관리" },
       { href: "/reward/fortune-ads/logs", label: "시청내역" },

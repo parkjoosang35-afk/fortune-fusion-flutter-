@@ -1,11 +1,15 @@
-import { prisma } from "@/lib/db";
 import { verifyAdminSession } from "@/lib/dal";
 import { canAccessMenu } from "@/lib/rbac";
 import { redirect } from "next/navigation";
-import RewardSubNav from "@/components/RewardSubNav";
-import OpenPassBindingsPanel from "@/components/OpenPassBindingsPanel";
 
-// [사용자 요청: 열림패스 상품-첨부파일/광고소스 바인딩] §5/§6-4
+// [신통방통 관리자 최종 정리 지시서 §3 "프리패스관리"]
+// 프리패스는 쿠팡파트너스 전용 4항목(광고이미지/쿠팡파트너스소스/이용시간/
+// 대기시간)으로 이미 단순화되어 pass-policies 화면 하나로 통합되었다. 이
+// 화면(PassPolicy-Attachment-AdSource N:M 바인딩)은 RewardSubNav 어디에도
+// 링크되지 않아 URL 직접 입력으로만 도달 가능한 완전히 고립된 화면이었다.
+// 접근 시 /reward/pass-policies로 리다이렉트한다. 관련 Prisma 모델/서버
+// 액션은 전혀 삭제하지 않는다. 원본 UI 코드는 git 히스토리(이 커밋 이전
+// 버전)에서 복원 가능하다.
 export const dynamic = "force-dynamic";
 
 export default async function OpenPassBindingsPage() {
@@ -13,47 +17,5 @@ export default async function OpenPassBindingsPage() {
   if (!canAccessMenu(session.roleCode, "reward")) {
     redirect("/dashboard");
   }
-
-  const [policies, attachments, adSources] = await Promise.all([
-    prisma.passPolicy.findMany({
-      where: { deletedAt: null },
-      orderBy: [{ id: "asc" }],
-      select: {
-        id: true,
-        name: true,
-        isActive: true,
-        happyMoneyPrice: true,
-        heroAttachmentId: true,
-        promoAttachmentId: true,
-        fallbackAttachmentId: true,
-      },
-    }),
-    prisma.openPassAttachment.findMany({
-      where: { deletedAt: null, isActive: true },
-      orderBy: { id: "asc" },
-      select: { id: true, fileName: true, fileType: true, purpose: true },
-    }),
-    prisma.openPassAdSource.findMany({
-      where: { deletedAt: null },
-      orderBy: { priority: "asc" },
-      select: { id: true, sourceName: true, sourceType: true, isActive: true },
-    }),
-  ]);
-
-  return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">리워드 관리 — 프리패스 상품연결</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          프리패스 상품 하나에 여러 첨부파일과 여러 광고소스를 N:M으로 연결합니다.
-          앱은 usageType/platform별 &quot;대표(isPrimary) 1개&quot;를 우선 사용하며, 이 화면에서 지정한 값이
-          그대로 Flutter 앱 노출/광고 요청/보상 흐름에 반영됩니다.
-        </p>
-      </div>
-
-      <RewardSubNav />
-
-      <OpenPassBindingsPanel policies={policies} attachments={attachments} adSources={adSources} />
-    </div>
-  );
+  redirect("/reward/pass-policies");
 }

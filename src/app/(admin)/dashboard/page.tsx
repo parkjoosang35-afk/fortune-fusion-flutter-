@@ -70,7 +70,7 @@ export default async function DashboardPage() {
     amuletToday,
     giftcardToday,
     wishToday,
-    matchingToday,
+    compatibilityToday,
     reportsPending,
     errorCritical24h,
     paymentsToday,
@@ -84,7 +84,14 @@ export default async function DashboardPage() {
     prisma.userAmulet.count({ where: { acquiredAt: { gte: today } } }),
     prisma.giftcardIssue.count({ where: { issuedAt: { gte: today }, status: "issued" } }),
     prisma.wish.count({ where: { createdAt: { gte: today } } }),
-    prisma.matchingPair.count({ where: { matchedAt: { gte: today }, status: "active" } }),
+    // [신통방통 관리자 최종 정리 지시서 - 대시보드 데이터소스 오류 수정]
+    // 기존에는 matchingPair.count()를 사용했으나, MatchingPair는 이미 삭제된
+    // "매칭(친구찾기/좋아요)" 기능의 모델이며 Flutter 앱 어디서도 호출되지
+    // 않는 죽은 테이블이다. 라벨("궁합 매칭")과 실제 작동 중인 "궁합"
+    // 기능(/api/public/compatibility)이 쓰는 모델은 CompatibilityRequest이므로
+    // 위젯 집계 대상을 여기로 교체해 라벨과 실데이터를 일치시킨다.
+    // (MatchingPair 모델/API는 삭제하지 않고 그대로 보존)
+    prisma.compatibilityRequest.count({ where: { createdAt: { gte: today }, deletedAt: null } }),
     // [승인 지시 §3] community/reports(레거시 post/comment/wish/user/fortune_result
     // 신고 처리함)를 삭제하면서, 이 위젯이 가리키는 "신고 및 이상 징후" 화면은
     // 이제 wishroom/reports 하나뿐이다. 집계 대상을 wishroom 3종 target_type으로
@@ -231,7 +238,7 @@ export default async function DashboardPage() {
           {/* 오늘 성사된 궁합 매칭 */}
           <div className="rounded-xl border border-slate-200 bg-white p-4">
             <p className="text-sm text-slate-500">🤝 오늘 성사된 궁합 매칭</p>
-            <p className="mt-2 text-2xl font-bold text-slate-900">{matchingToday.toLocaleString()}건</p>
+            <p className="mt-2 text-2xl font-bold text-slate-900">{compatibilityToday.toLocaleString()}건</p>
           </div>
 
           {/* 신고 및 이상 징후 — [승인 지시 §3] community/reports 삭제로 wishroom/reports로 연결 */}
