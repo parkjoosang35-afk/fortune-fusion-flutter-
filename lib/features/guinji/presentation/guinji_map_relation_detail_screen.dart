@@ -440,29 +440,52 @@ class _GuinjiMapRelationDetailScreenState
               else
                 _SpecialUnlockedCard(person: person, meta: meta, ohaeng: ohaeng, color: color),
 
-              // [핸드오프 CDetail "자세한 관계 다시 보기" → DeepIntro/
-              // DeepResult 이식] 해금 후에만 10장 장문 풀이 전체를 볼 수
-              // 있게 한다. 해금 전에는 위 [_SpecialLockedCard]의 06 결제
-              // 시트 3택(프리패스/복주머니/광고) CTA가 먼저 나온다 — 핸드오프
-              // `PaySheet`를 1:1로 이 카드에 이식했다(별도 모달 결제 시트
-              // 화면을 새로 만들지 않고, 관계 상세 안에 인라인으로 둔다).
-              // 방금 해금했다면 [GuinjiDeepIntroScreen]을 먼저 거친다
-              // ([_openDeep] 참고).
-              if (_specialUnlocked) ...[
-                const SizedBox(height: 12),
-                GmRoseButton(
-                  label: '자세한 관계 풀이 10장 전체 보기',
-                  icon: Icons.menu_book_outlined,
-                  onPressed: _openDeep,
-                ),
-              ],
-
+              // [핸드오프 CDetail 하단 버튼 1:1 이식] JSX는 "공유"(좌측
+              // 104px, 테두리만)과 "더 자세한 관계 보기"/"자세한 관계 다시
+              // 보기"(우측 flex:1, 채움)를 **항상 나란히** 배치한다(해금
+              // 전후 모두 버튼은 1쌍만 존재, 레이블만 바뀐다). 해금 전에는
+              // 위 [_SpecialLockedCard]가 핸드오프 `PaySheet`(모달)를
+              // 인라인 카드로 이미 펼쳐 보여주므로, "더보기" 버튼은 해금
+              // 후(`_openDeep`, 10장 풀이로 이동)에만 의미가 있다 —
+              // 잠금 상태에서는 "공유" 버튼만 전체 폭으로 둔다.
               const SizedBox(height: 16),
-              GmRoseButton(
-                label: '이 관계 공유하기',
-                icon: Icons.ios_share,
-                onPressed: _handleShare,
-              ),
+              if (_specialUnlocked)
+                Row(
+                  children: [
+                    SizedBox(
+                      width: 104,
+                      child: OutlinedButton(
+                        onPressed: _handleShare,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: GmColors.fg,
+                          side: const BorderSide(color: GmColors.line),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(27),
+                          ),
+                        ),
+                        child: const Text(
+                          '공유',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: GmRoseButton(
+                        label: '자세한 관계 풀이 10장 전체 보기',
+                        icon: Icons.menu_book_outlined,
+                        onPressed: _openDeep,
+                      ),
+                    ),
+                  ],
+                )
+              else
+                GmRoseButton(
+                  label: '이 관계 공유하기',
+                  icon: Icons.ios_share,
+                  onPressed: _handleShare,
+                ),
               const SizedBox(height: 12),
               const Text(
                 '"재미·참고용" 콘텐츠. 절대적 판단이 아니에요.',

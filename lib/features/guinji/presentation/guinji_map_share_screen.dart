@@ -419,6 +419,52 @@ class _GuinjiMapShareScreenState extends State<GuinjiMapShareScreen> {
                   rewardPoint: widget.milestoneRewardPoint,
                 ),
 
+                // [핸드오프 `AppShareSheet` invite 모드 전용 배너 1:1 이식]
+                // "+20P 지인이 앱으로 참여하면 포인트가 쌓여요. 웹에서
+                // 참여하면 지도에만 표시돼요" — 포인트 적립 조건(앱 참여만
+                // 해당)을 공유 전에 미리 알려주는 순수 안내 문구다. 실제
+                // 포인트 지급 로직/수치(+20P)는 서버가 결정하고 이미 다른
+                // 화면 주석에 명시돼 있다(이 배너는 그 기존 정책을 그대로
+                // 노출만 할 뿐, 정책 자체를 바꾸지 않는다).
+                const SizedBox(height: 10),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: GmColors.line, style: BorderStyle.solid),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '+20P',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: GmColors.gold,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text.rich(
+                          TextSpan(
+                            style: const TextStyle(fontSize: 12, height: 1.5, color: GmColors.muted),
+                            children: [
+                              const TextSpan(text: '지인이 '),
+                              const TextSpan(
+                                text: '앱으로',
+                                style: TextStyle(color: GmColors.fg, fontWeight: FontWeight.w600),
+                              ),
+                              const TextSpan(text: ' 참여하면 포인트가 쌓여요. 웹에서 참여하면 지도에만 표시돼요.'),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
                 const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.all(12),
