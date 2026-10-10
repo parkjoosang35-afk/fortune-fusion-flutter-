@@ -16,6 +16,8 @@ import '../theme/saju_dark_tokens.dart';
 import '../widgets/saju_base_widgets.dart';
 import '../widgets/saju_story_widgets.dart';
 import '../widgets/saju_visual_widgets.dart';
+import '../../share/application/share_service.dart';
+import '../../share/domain/share_result_model.dart';
 import 'more_stories_screen.dart';
 
 /// [신통방통 정통사주 리뉴얼 — 다크 디자인 핸드오프] 화면⑦ 상세 사주
@@ -142,6 +144,54 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
       timeUnknown: timeUnknown,
       referenceDate: DateTime.now(),
       isLeapMonth: user.isLeapMonth,
+    );
+  }
+
+  /// [결과 공유 기능 — 정통사주 누락 보완] `POST /api/public/share`로 공유
+  /// 링크를 생성한 뒤 OS 공유 시트로 전달한다. 다른 5개 서비스(타로/관상/
+  /// 손금/귀인지도/소원방)와 동일한 [ShareService] 공통 경로를 사용한다.
+  ///
+  /// [PII 미포함 원칙] payload에는 [InterpretDetailResult.title]과 각
+  /// 블록의 고정 제목([_kBlockTitles]) + 해석 본문([InterpretDetailBlock.body])만
+  /// 담는다 — 생년월일 원본/실명 등 사용자 개인정보는 애초에 이 모델에
+  /// 존재하지 않는다(topic_id 등 내부 식별자도 제외).
+  ///
+  /// [payload 상한 방어 — admin_web `SHARE_PAYLOAD_MAX_LENGTH=4000자`]
+  /// 서버는 payload가 4000자를 넘으면 공유 생성 자체를 400으로 거부한다
+  /// (타로/관상과 달리 사주는 5블록 "전체 해석 문장"이라 블록당 글자수가
+  /// 길어 합산 시 상한을 넘길 위험이 있다 — 다른 서비스의 "요약 몇 줄"
+  /// 패턴을 그대로 가져오면 안전하지 않음). 블록당 280자로 잘라 5블록
+  /// 합계가 항상 상한 안에 들어오도록 보장한다(지시서 §3-1 "긴 해석의
+  /// 마지막 항목까지 웹에서 표시" 요건과 "공유가 아예 실패하면 안 된다"는
+  /// 요건을 함께 만족시키기 위한 절충 — 전체 해석은 `/r/{id}` 랜딩에서
+  /// 서버가 반환한 payload를 그대로 보여주므로, 여기서 잘라도 웹에서는
+  /// 각 블록의 핵심이 모두 노출된다).
+  static const int _kHighlightBodyMax = 280;
+
+  void _shareResult(BuildContext context, InterpretDetailResult detail) {
+    final highlights = <String>[];
+    for (final b in detail.blocks) {
+      final body = b.body.length > _kHighlightBodyMax
+          ? '${b.body.substring(0, _kHighlightBodyMax)}…'
+          : b.body;
+      if (b.n >= 1 && b.n <= 5) {
+        highlights.add('${_kBlockTitles[b.n - 1]}: $body');
+      } else {
+        highlights.add(body);
+      }
+    }
+    final summary = detail.blocks.isNotEmpty
+        ? (detail.blocks.first.body.length > _kHighlightBodyMax
+              ? '${detail.blocks.first.body.substring(0, _kHighlightBodyMax)}…'
+              : detail.blocks.first.body)
+        : '';
+    ShareService.shareResult(
+      context,
+      resultType: ShareResultType.saju,
+      title: detail.title,
+      description: summary,
+      payload: {'summary': summary, 'highlights': highlights},
+      sourceRefId: detail.topicId,
     );
   }
 
@@ -344,6 +394,10 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
                                   onTap: () => Navigator.of(context).maybePop(),
                                 ),
                                 title: 'DETAIL · 07',
+                                right: SajuIconButton(
+                                  icon: '⤴',
+                                  onTap: () => _shareResult(context, detail),
+                                ),
                               ),
                             ),
                           ),
