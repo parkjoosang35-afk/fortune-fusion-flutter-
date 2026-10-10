@@ -18,6 +18,8 @@ import '../explore/explore_screen.dart';
 import '../../wishroom_shell.dart';
 import '../../core/wr_nav_pill.dart';
 import '../../core/wr_toast.dart';
+import '../../../share/application/share_service.dart';
+import '../../../share/domain/share_result_model.dart';
 
 class CompleteScreen extends StatefulWidget {
   const CompleteScreen({super.key, required this.roomId, this.already = false});
@@ -121,8 +123,43 @@ class _CompleteScreenState extends State<CompleteScreen> {
     }
   }
 
-  void _shareImage() {
-    WrToast.show(context, '기념 이미지를 저장했어요');
+  /// [앱·웹 공유 구조 확정 — 소원방 "결과 공유" 신설] 기존에는 이 버튼이
+  /// `_shareImage()`(토스트만 띄우는 스텁)에 연결되어 있어 실제로 아무것도
+  /// 공유하지 않았다 — 운영 DB에 쌓인 `ShareResultType.wish` 레코드가 전부
+  /// QA 수동 테스트 데이터였던 이유(실사용 진입점이 전혀 없었음).
+  ///
+  /// [초대(`/w/{token}`)와의 구분 — 지시서 원칙] 이 공유는 방 진행 중
+  /// 참여를 유도하는 "초대"(main_room_screen.dart `_ShareSheet`,
+  /// `/w/{token}`)와 다른 "완성된 소원 성취 결과"를 공유하는 것이다.
+  /// 같은 공통 `ShareService`/`POST /api/public/share` 경로를 타지만
+  /// `ShareResultType.wish`로 생성되어 `/r/{shareId}`로 열리므로 서로
+  /// 겹치지 않는다(admin_web `/w/[token]`은 그대로 초대 전용 유지).
+  ///
+  /// [PII 미포함 원칙] 소원 원문(text)은 사용자가 직접 쓴 자유 입력이라
+  /// 민감정보가 섞일 수 있어 payload에 원문 그대로 담지 않고, 레벨/점등
+  /// 일수/색상 등 공개 가능한 집계값만 전달한다.
+  void _shareResult(WishRoom room) {
+    ShareService.shareResult(
+      context,
+      resultType: ShareResultType.wish,
+      title: '${room.owner}님의 소원이 이루어졌어요 · 신통방통',
+      description: '${room.daysLit}일 동안 밝혔던 소원이 하늘에 닿았어요.',
+      payload: {
+        'kind': 'wish',
+        'ownerName': room.owner,
+        'levelName': room.levelName,
+        'level': room.level,
+        'daysLit': room.daysLit,
+        'wishColor': room.wishColor,
+        'summary': '${room.daysLit}일 동안 밝혔던 소원이 하늘에 닿았어요.',
+        'highlights': [
+          '레벨: ${room.levelName}',
+          '점등일수: ${room.daysLit}일',
+          '소원 빛깔: ${room.wishColor}',
+        ],
+      },
+      sourceRefId: room.id,
+    );
   }
 
   @override
@@ -182,7 +219,7 @@ class _CompleteScreenState extends State<CompleteScreen> {
             onUndo: () => _cancel(p),
             onReview: () => _openReview(room),
             onSeal: () => _doSeal(p),
-            onShare: _shareImage,
+            onShare: () => _shareResult(room),
           )),
         ]);
       }),

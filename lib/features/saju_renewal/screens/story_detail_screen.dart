@@ -185,12 +185,30 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
               ? '${detail.blocks.first.body.substring(0, _kHighlightBodyMax)}…'
               : detail.blocks.first.body)
         : '';
+    // [앱·웹 공유 구조 확정] admin_web 전용 렌더러가 5단 서사(핵심/왜/
+    // 생활/시기/포인트)를 구획으로 나눠 보여줄 수 있도록 구조화 배열도
+    // 함께 전달한다(highlights는 구버전/범용 폴백 호환용으로 유지).
+    final blocks = <Map<String, String>>[];
+    for (final b in detail.blocks) {
+      final body = b.body.length > _kHighlightBodyMax
+          ? '${b.body.substring(0, _kHighlightBodyMax)}…'
+          : b.body;
+      blocks.add({
+        'title': (b.n >= 1 && b.n <= 5) ? _kBlockTitles[b.n - 1] : '',
+        'body': body,
+      });
+    }
     ShareService.shareResult(
       context,
       resultType: ShareResultType.saju,
       title: detail.title,
       description: summary,
-      payload: {'summary': summary, 'highlights': highlights},
+      payload: {
+        'kind': 'saju',
+        'blocks': blocks,
+        'summary': summary,
+        'highlights': highlights,
+      },
       sourceRefId: detail.topicId,
     );
   }

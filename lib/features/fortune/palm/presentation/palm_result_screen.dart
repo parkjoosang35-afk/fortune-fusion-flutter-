@@ -161,6 +161,12 @@ class _PalmResultScreenState extends State<PalmResultScreen> {
       title: '손금 결과 · 신통방통',
       description: result.summary,
       payload: {
+        // [앱·웹 공유 구조 확정] admin_web 전용 렌더러가 생명선/두뇌선/
+        // 감정선/운명선과 주제별 운세를 구획으로 나눠 보여줄 수 있도록
+        // 구조화 필드를 추가한다(face_result_screen.dart와 동일 패턴).
+        'kind': 'palm',
+        'lines': result.lines,
+        'topicResults': result.topicResults,
         'summary': result.summary,
         'highlights': [...lineLines, ...topicLines],
       },

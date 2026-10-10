@@ -189,6 +189,12 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
         title: '${widget.ownerName}님의 귀인지도 · 신통방통',
         description: '내 주변 귀인 $guin명을 신통방통이 찾아줬어요.',
         payload: {
+          // [앱·웹 공유 구조 확정] admin_web 전용 렌더러가 관계유형별
+          // 인원수를 카드형 집계로 보여줄 수 있도록 구조화 필드를
+          // 추가한다(비식별 원칙 유지 — 이름 비노출, 인원수 집계만).
+          'kind': 'relationship',
+          'ownerName': widget.ownerName,
+          'counts': {'guin': guin, 'oreunpal': oreunpal, 'horang': horang},
           'category': '귀인지도',
           'summary': '내 주변 귀인 $guin명을 신통방통이 찾아줬어요.',
           'highlights': [

@@ -250,9 +250,28 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
       title: '${view.heroCard.nameKr} · 신통방통 타로',
       description: view.oneLiner,
       payload: {
+        // [앱·웹 공유 구조 확정] admin_web 전용 렌더러가 카드별 스프레드
+        // (포지션 라벨/카드명/정역방향/해석)를 구획으로 나눠 보여줄 수
+        // 있도록 구조화 배열을 추가한다. 카드 실물 이미지는 앱에도 없고
+        // (이모지 아이콘만 사용) 웹도 동일하게 카드명+정역방향 텍스트로
+        // 표시한다.
+        'kind': 'tarot',
         'question': result.question,
         'cardName':
             '${view.heroCard.nameKr}${view.heroCard.isReversed ? " (역방향)" : ""}',
+        'positions': result.positions
+            .map(
+              (p) => {
+                'label': p.label,
+                'cardName': p.card.nameKr,
+                'isReversed': p.card.isReversed,
+                'interpretation': p.interpretation,
+              },
+            )
+            .toList(),
+        'advice': {'label': view.adviceLabel, 'text': view.advice},
+        'luckyColor': view.luckyColorName,
+        'luckyNumber': view.luckyNumber,
         'summary': result.summary,
         'highlights': [
           ...positionHighlights,

@@ -166,6 +166,15 @@ class _FaceResultScreenState extends State<FaceResultScreen> {
       title: '관상 결과 · 신통방통',
       description: result.summary,
       payload: {
+        // [앱·웹 공유 구조 확정 — 웹 전용 결과페이지용 구조화 필드]
+        // admin_web `/r/[id]`가 서비스별 전용 렌더러로 부위별 특징
+        // (이마/눈/코/입/턱)과 주제별 운세(재물/애정/직업/건강)를
+        // 각각 구획으로 나눠 보여줄 수 있도록 Map 구조 그대로 전달한다.
+        // highlights(문자열 나열)는 구버전 웹/범용 폴백 렌더러 호환을
+        // 위해 함께 유지한다(하위 호환 — 기존 필드 제거하지 않음).
+        'kind': 'face',
+        'features': result.features,
+        'topicResults': result.topicResults,
         'summary': result.summary,
         'highlights': [...featureLines, ...topicLines],
       },
