@@ -69,11 +69,18 @@ class _WallpaperScreenState extends State<WallpaperScreen> {
   }
 
   Future<void> _applyAndroid(WishRoomProvider p, WishRoom room, String target) async {
-    // §4 Android — BOTH: ACTION_CHANGE_LIVE_WALLPAPER 시스템 미리보기로 이동(네이티브가
-    // 이미 syncManifest로 최신 상태를 쥐고 있음). HOME/LOCK: 정지 프레임을 캡처해
-    // WallpaperManager.setBitmap(FLAG_SYSTEM|FLAG_LOCK)으로 직접 설정(Q5 확정 가정).
+    // §4 Android — BOTH: ACTION_CHANGE_LIVE_WALLPAPER 시스템 미리보기로 이동.
+    // [버그2 수정 — 검은 미리보기] 과거엔 "네이티브가 이미 syncManifest로 최신
+    // 상태를 쥐고 있다"고 가정했으나, 실제로는 room 변경 이벤트가 없으면
+    // syncManifest가 호출된 적이 없을 수 있다(특히 캐시된 세션/딥링크 진입).
+    // WishRoomWallpaperService.WpEngine.render()는 manifest == null이면
+    // #12060E 단색만 그리고 즉시 리턴하므로, Intent를 쏘기 "직전"에 반드시
+    // 한 번 더 명시적으로 동기화해 SharedPreferences에 최신 JSON이 커밋된
+    // 뒤에 시스템 미리보기 화면이 뜨도록 순서를 보장한다.
+    // HOME/LOCK: 정지 프레임을 캡처해 WallpaperManager.setBitmap(FLAG_SYSTEM|FLAG_LOCK)으로 직접 설정(Q5 확정 가정).
     bool nativeOk;
     if (target == 'BOTH') {
+      await WallpaperService.syncManifest(room, p.items);
       nativeOk = await WallpaperService.requestChangeLiveWallpaper();
     } else {
       final bytes = await _captureStillFrame();

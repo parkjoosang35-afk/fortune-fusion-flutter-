@@ -45,10 +45,17 @@ class WallpaperPlugin(private val activity: Activity) : MethodCallHandler {
     override fun onMethodCall(call: MethodCall, result: Result) {
         when (call.method) {
             "setManifest" -> {
+                // [버그2 수정 — 검은 미리보기] apply()는 비동기 디스크 쓰기라
+                // result.success(true)가 실제 반영 전에 반환될 수 있다. Flutter
+                // 쪽(_applyAndroid)이 이 호출의 완료를 기다린 "직후" 곧바로
+                // ACTION_CHANGE_LIVE_WALLPAPER Intent를 쏘므로, 여기서는 commit()으로
+                // 동기 반영을 보장해 시스템 미리보기 Engine.onCreate()가 항상 최신
+                // manifest_json을 읽도록 한다(값 하나만 쓰는 가벼운 작업이라
+                // 메인 스레드 블로킹 영향은 무시할 수준).
                 val json = call.argument<String>("manifestJson")
                 val prefs = context.getSharedPreferences(WishRoomWallpaperService.PREFS_NAME, Context.MODE_PRIVATE)
-                prefs.edit().putString(WishRoomWallpaperService.KEY_MANIFEST, json).apply()
-                result.success(true)
+                val ok = prefs.edit().putString(WishRoomWallpaperService.KEY_MANIFEST, json).commit()
+                result.success(ok)
             }
             "isActive" -> {
                 result.success(isThisLiveWallpaperActive())
