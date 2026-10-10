@@ -97,6 +97,9 @@ class ApiRepository implements WrRepository {
       case 'PATCH':
         res = await http.patch(uri, headers: headers, body: body == null ? null : jsonEncode(body)).timeout(const Duration(seconds: 10));
         break;
+      case 'PUT':
+        res = await http.put(uri, headers: headers, body: body == null ? null : jsonEncode(body)).timeout(const Duration(seconds: 10));
+        break;
       case 'DELETE':
         res = await http.delete(uri, headers: headers).timeout(const Duration(seconds: 10));
         break;
