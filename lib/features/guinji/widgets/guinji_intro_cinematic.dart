@@ -321,38 +321,61 @@ class _GuinjiIntroCinematicState extends State<GuinjiIntroCinematic>
               ),
             ),
 
-          // 타이틀
+          // [2026-12 겹침 버그수정] 타이틀과 CTA를 각각 독립된 고정
+          // 좌표(`top: 556*scale` / `bottom: 40*scale`)로 따로 배치했던
+          // 기존 구조는, 디자인 기준 화면 비율(iPhone 844px 기준)보다
+          // 실제 기기/브라우저의 가용 높이가 낮으면 두 블록이 서로
+          // 겹치는 결함이 있었다(사용자 리포트: "밑에 글씨가 가려져
+          // 있다" — 안드로이드 기기 스크린샷에서 타이틀 2번째 줄과
+          // 안내 문구가 CTA 버튼 뒤로 숨는 것을 확인). 이제 타이틀+CTA를
+          // 하나의 상향 정렬 Column으로 묶어 `bottom` 한 좌표만 기준으로
+          // 삼는다 — 두 블록은 항상 Column 내부에서 순서대로 쌓이므로
+          // 화면 높이와 무관하게 절대 겹치지 않는다. 또한 Column이 화면
+          // 밖으로 넘치는 극단적인 저해상도 상황까지 대비해
+          // SingleChildScrollView로 감싸 스크롤 가능하게 한다(평소
+          // 레이아웃/애니메이션 타이밍에는 영향 없음 — 콘텐츠가 다
+          // 들어가면 스크롤이 발생하지 않는다).
           Positioned(
-            left: 28,
-            right: 28,
-            top: 556 * scale,
-            child: Opacity(
-              opacity: (tt > _titleAt || !_firstLoop) ? 1 : 0,
-              child: _IntroTitle(
-                tt: tt,
-                firstLoop: _firstLoop,
-                counter: _counter,
-              ),
-            ),
-          ),
-
-          // CTA
-          Positioned(
-            left: 24,
-            right: 24,
-            bottom: 40 * scale,
-            child: AnimatedOpacity(
-              opacity: (tt > _titleAt + 500 || !_firstLoop) ? 1 : 0,
-              duration: const Duration(milliseconds: 600),
-              child: AnimatedSlide(
-                offset: (tt > _titleAt + 500 || !_firstLoop)
-                    ? Offset.zero
-                    : const Offset(0, 0.08),
-                duration: const Duration(milliseconds: 600),
-                child: _IntroCta(
-                  breath: _ctaBreath,
-                  sheen: _ctaSheen,
-                  onTap: _go,
+            left: 0,
+            right: 0,
+            bottom: 24 * scale,
+            top: h * 0.56,
+            child: SingleChildScrollView(
+              reverse: true,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 28),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Opacity(
+                      opacity: (tt > _titleAt || !_firstLoop) ? 1 : 0,
+                      child: _IntroTitle(
+                        tt: tt,
+                        firstLoop: _firstLoop,
+                        counter: _counter,
+                      ),
+                    ),
+                    SizedBox(height: 22 * scale),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: AnimatedOpacity(
+                        opacity: (tt > _titleAt + 500 || !_firstLoop) ? 1 : 0,
+                        duration: const Duration(milliseconds: 600),
+                        child: AnimatedSlide(
+                          offset: (tt > _titleAt + 500 || !_firstLoop)
+                              ? Offset.zero
+                              : const Offset(0, 0.08),
+                          duration: const Duration(milliseconds: 600),
+                          child: _IntroCta(
+                            breath: _ctaBreath,
+                            sheen: _ctaSheen,
+                            onTap: _go,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
