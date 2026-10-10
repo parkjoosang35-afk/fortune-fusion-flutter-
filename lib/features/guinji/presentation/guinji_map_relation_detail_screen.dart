@@ -35,9 +35,11 @@ import 'guinji_deep_result_screen.dart';
 /// 잔여횟수 표시만 앱 전역 공용 "결과보기 통합 권한 시스템"
 /// ([ResultAccessProvider.loadQuote], `contentType: 'guinji'`)을 재사용한다 —
 /// 프리패스는 콘텐츠 종류와 무관한 전역 자산(UserPass)이라 별도 조회 API를
-/// 새로 만들지 않는다. 복주머니는 귀인지도 전용 가격(고정 50P,
-/// `PointPolicy('guinji_unlock_special')`)이라 공용 quote의 가격을 쓰지 않고
-/// 기존 고정 문구를 그대로 둔다.
+/// 새로 만들지 않는다. 복주머니는 귀인지도 전용 가격(서버
+/// `PointPolicy('guinji_unlock_special')`이 단독으로 결정·차감)이라 공용
+/// quote를 쓰지 않는다. [2026-12 사용자 지시] 가격 숫자를 화면에 노출하지
+/// 않도록 "복주머니로 바로 열어요"로 문구를 단순화했다 — 정책/차감 로직은
+/// 전혀 변경하지 않았다.
 class GuinjiMapRelationDetailScreen extends StatefulWidget {
   const GuinjiMapRelationDetailScreen({super.key, required this.person});
 
@@ -734,13 +736,17 @@ class _SpecialLockedCardState extends State<_SpecialLockedCard> {
               onTap: () => setState(() => _pick = _PayPick.freepass),
             ),
             const SizedBox(height: 8),
-            // ② 福 복주머니로 보기 — 귀인지도 전용 고정가(50P). 핸드오프
-            // s11 "복주머니 정책: 잔액 UI에 '+충전' 버튼 금지"를 그대로
-            // 지켜 부족해도 충전 버튼을 달지 않고 비활성 문구만 보여준다.
+            // ② 福 복주머니로 보기 — [2026-12 사용자 지시로 가격 숫자 UI
+            // 삭제] 화면에 하드코딩된 "50개가 필요해요" 문구를 제거한다
+            // (실제 차감 가격은 여전히 서버 `PointPolicy('guinji_unlock_
+            // special')`이 단독으로 결정·검증하며, 이 UI 텍스트 변경은
+            // 그 정책/금액 자체를 전혀 바꾸지 않는다 — 단지 가격을 화면에
+            // 노출하지 않을 뿐). 핸드오프 s11 "복주머니 정책: 잔액 UI에
+            // '+충전' 버튼 금지"는 그대로 지켜 충전 버튼은 달지 않는다.
             _PayOptionTile(
               icon: const _IcoPouch(),
               title: '복주머니로 보기',
-              sub: '50개가 필요해요',
+              sub: '복주머니로 바로 열어요',
               right: '',
               selected: false,
               disabled: false,
