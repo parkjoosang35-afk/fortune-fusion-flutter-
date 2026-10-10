@@ -29,6 +29,7 @@ import '../room/room_scene.dart';
 import 'wallpaper_service.dart';
 import '../../core/wr_nav_pill.dart';
 import '../../core/wr_toast.dart';
+import '../../../../core/util/image_gallery_saver.dart';
 
 /// 지금 활성 플랫폼. 이 프로젝트는 Android 전용 빌드이므로 상수로 둔다(§4 공통 —
 /// ios/ 폴더에 실제 네이티브 빌드 파이프라인이 없어 Live Photo 경로는 화면
@@ -41,22 +42,71 @@ class WallpaperScreen extends StatefulWidget {
   State<WallpaperScreen> createState() => _WallpaperScreenState();
 }
 
-class _WallpaperScreenState extends State<WallpaperScreen> {
+class _WallpaperScreenState extends State<WallpaperScreen> with WidgetsBindingObserver {
   String? _roomId;
   bool _full = false;
   MakingState? _mk;
   ({String kind, String? target, Uint8List? thumb})? _done;
   final _previewKey = GlobalKey();
 
+  // [v2.0 §3 동선 4·5 — 선택기 호출 성공 ≠ 적용 성공] 시스템 선택기(Intent)를
+  // 연 "직후"에는 사용자가 아직 '설정'을 누르지 않았을 수 있다. 여기서는
+  // '설정됨'으로 바로 표시하지 않고, 앱이 다시 보이게 될 때(didChangeAppLifecycleState
+  // resumed) 네이티브의 실제 활성 상태를 다시 확인한 뒤에만 완료로 반영한다.
+  bool _awaitingConfirm = false;
+  WishRoom? _pendingRoom;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final p = context.read<WishRoomProvider>();
     _roomId = p.room?.id;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       p.loadWallpaperStatus();
       if (p.archiveRooms.isEmpty) p.loadArchive();
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // §3 동선 5 — "앱 복귀 시 시스템의 현재 서비스 정보와 엔진의 활성 방 정보를
+    // 다시 확인한다". 선택기를 띄운 뒤 resumed로 돌아왔을 때만 확인하고,
+    // 다른 화면을 오가며 발생하는 resumed는 _awaitingConfirm이 false라 무시된다.
+    if (state == AppLifecycleState.resumed && _awaitingConfirm) {
+      _confirmAfterPicker();
+    }
+  }
+
+  Future<void> _confirmAfterPicker() async {
+    final room = _pendingRoom;
+    if (!mounted || room == null) {
+      _awaitingConfirm = false;
+      return;
+    }
+    final p = context.read<WishRoomProvider>();
+    final active = await WallpaperService.isLiveWallpaperActive();
+    if (!mounted) return;
+    setState(() => _awaitingConfirm = false);
+    if (!active) {
+      // 사용자가 선택기에서 취소했거나 다른 라이브 배경화면을 선택함 — §3 동선 4.
+      // '설정됨'으로 표시하지 않고 조용히 안내만 남긴다.
+      return;
+    }
+    final ok = await p.setWallpaper(room.id, platform: 'android', target: 'BOTH', version: 1);
+    if (!mounted) return;
+    if (ok) {
+      WrToast.show(context, '내 소원방이 라이브 배경화면으로 설정됐어요');
+      setState(() => _done = (kind: 'android', target: 'BOTH', thumb: null));
+    } else if (p.lastError != null) {
+      WrToast.show(context, p.lastError!.message);
+    }
   }
 
   WishRoom? _roomFor(WishRoomProvider p) {
@@ -68,8 +118,12 @@ class _WallpaperScreenState extends State<WallpaperScreen> {
     return null;
   }
 
-  Future<void> _applyAndroid(WishRoomProvider p, WishRoom room, String target) async {
-    // §4 Android — BOTH: ACTION_CHANGE_LIVE_WALLPAPER 시스템 미리보기로 이동.
+  // [v2.0 §3 "홈 화면·잠금 화면 버튼 정책 수정"] 라이브 배경화면이 지원하는 적용
+  // 범위(홈만/잠금만/둘 다)는 기기·제조사 선택기에 따라 달라지므로, 이 앱에서
+  // 임의로 세 버튼을 만들어 보장하지 않는다. 단 하나의 '라이브 배경화면 설정'
+  // 동선만 제공하고, 실제 적용 범위 선택은 시스템 선택기에 맡긴다.
+  Future<void> _applyAndroid(WishRoomProvider p, WishRoom room) async {
+    // §4 Android — ACTION_CHANGE_LIVE_WALLPAPER 시스템 미리보기로 이동.
     // [버그2 수정 — 검은 미리보기] 과거엔 "네이티브가 이미 syncManifest로 최신
     // 상태를 쥐고 있다"고 가정했으나, 실제로는 room 변경 이벤트가 없으면
     // syncManifest가 호출된 적이 없을 수 있다(특히 캐시된 세션/딥링크 진입).
@@ -77,26 +131,36 @@ class _WallpaperScreenState extends State<WallpaperScreen> {
     // #12060E 단색만 그리고 즉시 리턴하므로, Intent를 쏘기 "직전"에 반드시
     // 한 번 더 명시적으로 동기화해 SharedPreferences에 최신 JSON이 커밋된
     // 뒤에 시스템 미리보기 화면이 뜨도록 순서를 보장한다.
-    // HOME/LOCK: 정지 프레임을 캡처해 WallpaperManager.setBitmap(FLAG_SYSTEM|FLAG_LOCK)으로 직접 설정(Q5 확정 가정).
-    bool nativeOk;
-    if (target == 'BOTH') {
-      await WallpaperService.syncManifest(room, p.items);
-      nativeOk = await WallpaperService.requestChangeLiveWallpaper();
-    } else {
-      final bytes = await _captureStillFrame();
-      nativeOk = bytes != null && await WallpaperService.setStaticWallpaper(bytes, target: target);
-    }
+    await WallpaperService.syncManifest(room, p.items);
+    final nativeOk = await WallpaperService.requestChangeLiveWallpaper();
     if (!mounted) return;
-    if (!nativeOk && target == 'BOTH') {
-      // 웹 프리뷰 등 네이티브 채널이 없는 환경에서도 디자인 검수 흐름은 계속 보여준다.
+    if (!nativeOk) {
+      // §8 "지원 오류" — 네이티브가 구분해 둔 WpErrorCode를 사용자 재시도 안내로
+      // 변환한다. '지원하지 않는 요청 방식입니다' 같은 뭉뚱그린 문구는 더 쓰지 않는다.
+      final code = WallpaperService.lastErrorCode;
+      WrToast.show(context, code?.userMessage ?? '배경화면 설정 화면을 열 수 없어요. 다시 시도해주세요.');
+      return;
     }
-    final ok = await p.setWallpaper(room.id, platform: 'android', target: target, version: 1);
+    // 선택기는 열렸지만 아직 사용자가 '설정'을 누르지 않은 상태(§3 동선 3·4).
+    // 즉시 '설정 완료'로 바꾸지 않고, 시스템 화면에서 할 일을 안내만 한다.
+    _pendingRoom = room;
+    setState(() => _awaitingConfirm = true);
+    WrToast.show(context, '시스템 화면에서 배경화면 설정을 눌러 주세요');
+  }
+
+  /// §8 "정지 이미지 저장" — 배경화면 설정과 분리된 보조 메뉴. 실제 OS
+  /// 배경화면을 바꾸지 않고 현재 소원방의 정지 프레임만 갤러리(사진 앱)에
+  /// 저장한다. 성공 문구는 '이미지가 저장됐어요'로 한정(§8 표).
+  Future<void> _saveStillImage(WishRoom room) async {
+    final bytes = await _captureStillFrame();
     if (!mounted) return;
-    if (ok) {
-      setState(() => _done = (kind: 'android', target: target, thumb: null));
-    } else if (p.lastError != null) {
-      WrToast.show(context, p.lastError!.message);
+    if (bytes == null) {
+      WrToast.show(context, '이미지를 만들지 못했어요. 다시 시도해주세요.');
+      return;
     }
+    final ok = await saveImageBytesToGallery(bytes, name: 'wishroom_${room.id}_${DateTime.now().millisecondsSinceEpoch}');
+    if (!mounted) return;
+    WrToast.show(context, ok ? '이미지가 저장됐어요' : '이미지 저장에 실패했어요. 권한을 확인해주세요.');
   }
 
   Future<Uint8List?> _captureStillFrame() async {
@@ -165,7 +229,8 @@ class _WallpaperScreenState extends State<WallpaperScreen> {
                 child: Row(children: [
                   WrNavPill(onBack: () => Navigator.of(context).maybePop(), onExitHome: () => wrExitHome(context)),
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
-                    Text('소원방 배경화면', style: WrF.display(16)),
+                    // [v2.0 §8 "화면·문구·오류 수정" 진입 제목] '소원방 배경화면' → '내 소원방 배경화면'.
+                    Text('내 소원방 배경화면', style: WrF.display(16)),
                     if (room != null) Text('${room.levelName} · v1', style: WrF.mono()),
                   ])),
                   const SizedBox(width: 48),
@@ -232,9 +297,13 @@ class _WallpaperScreenState extends State<WallpaperScreen> {
                     )),
                     const SizedBox(width: 10),
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      // [v2.0 §8 "완료 상태" 문구] 시스템 서비스·활성 스냅샷 확인 후에만
+                      // 노출되는 st(=wallpaperStatus)를 기준으로 '라이브 배경화면으로
+                      // 설정됐어요'라고 표시한다 — 선택기를 연 것만으로는 isSet이 true가
+                      // 되지 않는다(서버 PUT은 네이티브 적용 확인 이후에만 호출됨).
                       Text(
                         isSet
-                            ? (st.platform == 'ios' ? 'Live Photo 로 저장됨' : '배경화면으로 설정됨 · ${_targetLabel(st.target)}')
+                            ? (st.platform == 'ios' ? 'Live Photo 로 저장됨' : '내 소원방이 라이브 배경화면으로 설정됐어요')
                             : '아직 배경화면이 아니에요',
                         style: WrF.body(13, w: FontWeight.w700),
                       ),
@@ -257,26 +326,32 @@ class _WallpaperScreenState extends State<WallpaperScreen> {
                 const SizedBox(height: 14),
 
                 // ── 주 버튼 ──
+                // [v2.0 §3 "홈 화면·잠금 화면 버튼 정책 수정"] 적용 위치는 OS·제조사
+                // 선택기의 지원 범위에 따라 달라지므로, 이 앱이 임의로 '홈만/잠금만'을
+                // 보장하는 버튼을 만들지 않는다. 단일 '라이브 배경화면 설정' 버튼 +
+                // 안내 문구만 제공하고, 실제 적용 위치 선택은 시스템 선택기에 맡긴다.
                 if (!_kIosFlow) ...[
                   SizedBox(width: double.infinity, height: 54, child: ElevatedButton(
-                    onPressed: room == null ? null : () => _applyAndroid(p, room, 'BOTH'),
+                    onPressed: room == null || _awaitingConfirm ? null : () => _applyAndroid(p, room),
                     style: ElevatedButton.styleFrom(backgroundColor: WrC.blossom, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-                    child: Text(isSet ? '다시 설정하기' : '홈 화면 + 잠금 화면에 설정', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+                    child: Text(
+                      _awaitingConfirm ? '시스템 화면에서 설정해주세요…' : (isSet ? '다시 설정하기' : '움직이는 배경화면으로 설정'),
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16),
+                    ),
                   )),
                   const SizedBox(height: 8),
-                  Row(children: [
-                    Expanded(child: SizedBox(height: 40, child: OutlinedButton(
-                      onPressed: room == null ? null : () => _applyAndroid(p, room, 'HOME'),
-                      style: OutlinedButton.styleFrom(side: BorderSide(color: WrC.line), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                      child: Text('홈 화면에만', style: WrF.body(13.5, color: WrC.fg, w: FontWeight.w700)),
-                    ))),
-                    const SizedBox(width: 8),
-                    Expanded(child: SizedBox(height: 40, child: OutlinedButton(
-                      onPressed: room == null ? null : () => _applyAndroid(p, room, 'LOCK'),
-                      style: OutlinedButton.styleFrom(side: BorderSide(color: WrC.line), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                      child: Text('잠금 화면에만', style: WrF.body(13.5, color: WrC.fg, w: FontWeight.w700)),
-                    ))),
-                  ]),
+                  Text('다음 화면에서 적용 위치를 선택해 주세요. 선택지는 기기에 따라 달라요',
+                      textAlign: TextAlign.center, style: WrF.body(11.5, color: WrC.muted, height: 1.5)),
+                  const SizedBox(height: 10),
+                  Center(child: GestureDetector(
+                    onTap: room == null ? null : () => _saveStillImage(room),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
+                      decoration: WrDeco.chip,
+                      // §8 "정지 이미지 저장" — 배경화면 설정과 분리된 보조 메뉴.
+                      child: Text('정지 이미지 저장', style: WrF.body(12, color: WrC.fg)),
+                    ),
+                  )),
                 ] else ...[
                   SizedBox(width: double.infinity, height: 54, child: ElevatedButton(
                     onPressed: room == null ? null : () => _makeIOS(p, room),
@@ -336,7 +411,6 @@ class _WallpaperScreenState extends State<WallpaperScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4), decoration: WrDeco.chip,
       child: Text(t, style: WrF.body(10.5, color: WrC.fg)));
 
-  String _targetLabel(String? t) => switch (t) { 'BOTH' => '홈 + 잠금', 'HOME' => '홈 화면', 'LOCK' => '잠금 화면', _ => '' };
 }
 
 /// S-04 Live Photo 진행 상태 — WallpaperScreen과 WPMaking이 함께 참조하므로
