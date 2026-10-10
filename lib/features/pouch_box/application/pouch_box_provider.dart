@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../../../core/api/api_result.dart';
+import '../../../core/auth/auth_token_store.dart';
 import '../data/pouch_box_repository.dart';
 import '../domain/pouch_box_model.dart';
 
@@ -30,6 +31,17 @@ class PouchBoxProvider extends ChangeNotifier {
       _state = result.data!;
     } else {
       _error = result.errorMessage;
+      // [비회원 둘러보기 결함수정 — 복주머니(pouch_box) 화면 비회원 오표시]
+      // 조회 실패 시 과거에는 `_state`를 그대로 방치해, 직전에 유지되던
+      // 낙관적 기본값([PouchBoxState.initial], watchable:true)이 화면에
+      // 계속 노출되는 문제가 있었다. 실패 시점에 비회원임이 확인되면
+      // (네트워크 오류 등 다른 이유로 실패했더라도) 안전한 "미로그인"
+      // 상태로 명시적으로 되돌려, 비회원이 정상 회원처럼 보이는 일이
+      // 없도록 한다. 정상 회원의 실패 처리(예: 네트워크 일시 오류)는
+      // 기존처럼 _state를 유지한 채 _error만 노출한다(회귀 방지).
+      if (!await AuthTokenStore.isLoggedIn()) {
+        _state = PouchBoxState.notLoggedIn;
+      }
     }
     _isLoading = false;
     notifyListeners();

@@ -16,7 +16,19 @@ class PouchBoxRepository {
   /// [Stage2 결함수정 — 결함-A04-01] 서버가 `requireUser()`로 JWT 필수인증을
   /// 강제하도록 변경되었으므로 Authorization 헤더를 반드시 포함한다. userId
   /// query는 서버가 더 이상 신뢰하지 않지만 하위 호환을 위해 값은 유지한다.
+  ///
+  /// [비회원 둘러보기 결함수정 — 복주머니(pouch_box) 화면 비회원 오표시]
+  /// [AuthTokenStore.getCurrentUserId]는 비로그인 시에도 폴백값(userId=1)을
+  /// 반환하는데, 과거에는 이 값으로 그대로 서버를 호출한 뒤 서버가 401을
+  /// 반환해도 Provider가 화면 상태를 초기화하지 않아 "비회원인데도 5/5회
+  /// 지급 가능"처럼 보이는 버그가 있었다(실사용 재현으로 확정).
+  /// [WalletRepository.getBalance]가 이미 쓰고 있는 것과 동일한 패턴으로,
+  /// 실제 로그인 여부를 먼저 확인해 비로그인이면 네트워크 호출 없이 안전한
+  /// "미로그인" 상태를 즉시 반환한다(정상 회원 흐름/서버 API는 변경 없음).
   Future<ApiResult<PouchBoxState>> getState() async {
+    if (!await AuthTokenStore.isLoggedIn()) {
+      return ApiResult.ok(PouchBoxState.notLoggedIn);
+    }
     final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/pouch-box/state',
