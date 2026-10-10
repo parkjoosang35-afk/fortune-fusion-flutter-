@@ -18,9 +18,11 @@
 import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../application/wishroom_provider.dart';
 import '../../data/models.dart';
 import '../../core/theme/wr_theme.dart';
@@ -35,6 +37,20 @@ import '../../../../core/util/image_gallery_saver.dart';
 /// ios/ 폴더에 실제 네이티브 빌드 파이프라인이 없어 Live Photo 경로는 화면
 /// 흐름만 보존하고 비활성 처리). 추후 iOS 네이티브 빌드가 추가되면 Platform.isIOS로 교체.
 const bool _kIosFlow = false;
+
+/// [v2.1 §14.4] 웹에서 "앱에서 라이브 배경화면 설정"을 눌렀을 때 쓰는 두 상수.
+/// Android build.gradle.kts의 applicationId·guinji_share_kakao.dart의
+/// playPackage와 동일한 값이어야 한다(패키지명 불일치 금지 — 다른 파일에
+/// 이미 있는 상수를 임포트해 교차 기능 결합을 만들지 않고, 이 화면 전용
+/// 상수로 복제해 둔다. 값 변경 시 두 곳 모두 갱신 필요).
+const String _kPlayPackage = 'com.fortunefusion.fortune';
+String get _kPlayStoreUrl => 'https://play.google.com/store/apps/details?id=$_kPlayPackage';
+
+/// 앱의 `fortunefusion://svc/wish-room` 커스텀 스킴(AndroidManifest.xml ·
+/// guinji_deep_link_handler.dart에 이미 등록된 `svc` host, key='wish-room' →
+/// '/wish-room' 라우트로 매핑됨)과 동일한 딥링크. 웹에서 이 링크를 열면
+/// 앱이 설치돼 있을 때 같은 계정의 소원방 게이트로 바로 이동한다.
+const String _kAppDeepLink = 'fortunefusion://svc/wish-room';
 
 class WallpaperScreen extends StatefulWidget {
   const WallpaperScreen({super.key});
@@ -55,6 +71,11 @@ class _WallpaperScreenState extends State<WallpaperScreen> with WidgetsBindingOb
   // resumed) 네이티브의 실제 활성 상태를 다시 확인한 뒤에만 완료로 반영한다.
   bool _awaitingConfirm = false;
   WishRoom? _pendingRoom;
+
+  // [v2.1 §14.4 "앱 미설치·연결 실패"] 웹에서 커스텀 스킴 딥링크가 열리지
+  // 않았을 때만 true가 되어 승인된 설치 안내 시트를 띄운다. 네이티브
+  // Android 경로(_applyAndroid)에는 영향이 없다.
+  bool _showInstallGuide = false;
 
   @override
   void initState() {
@@ -148,9 +169,34 @@ class _WallpaperScreenState extends State<WallpaperScreen> with WidgetsBindingOb
     WrToast.show(context, '시스템 화면에서 배경화면 설정을 눌러 주세요');
   }
 
+  /// [v2.1 §14.4 "Android 배경화면 설정"] 웹에서는 네이티브 WallpaperService
+  /// 채널이 존재하지 않으므로 `_applyAndroid`를 그대로 호출할 수 없다. 대신
+  /// 앱의 커스텀 스킴 딥링크(`fortunefusion://svc/wish-room`)를 열어 "같은
+  /// 방"으로 이동을 시도하고, 앱이 설치돼 있지 않거나 열기에 실패하면
+  /// 승인된 설치 안내 시트로 폴백한다 — 웹에서 OS 배경화면을 직접 적용한
+  /// 것처럼 표시하지 않는다(§14.4 마지막 문단).
+  Future<void> _applyFromWeb(WishRoom room) async {
+    bool opened = false;
+    try {
+      opened = await launchUrl(Uri.parse(_kAppDeepLink), mode: LaunchMode.externalApplication);
+    } catch (_) {
+      opened = false;
+    }
+    if (!mounted) return;
+    if (opened) {
+      WrToast.show(context, '앱에서 같은 소원방을 열었는지 확인해 주세요');
+      return;
+    }
+    // 커스텀 스킴을 열 수 없음 = 앱 미설치이거나 이 브라우저가 스킴 처리를
+    // 지원하지 않음. 두 경우 모두 "연결 실패"로 간주해 설치 안내를 보여준다.
+    setState(() => _showInstallGuide = true);
+  }
+
   /// §8 "정지 이미지 저장" — 배경화면 설정과 분리된 보조 메뉴. 실제 OS
-  /// 배경화면을 바꾸지 않고 현재 소원방의 정지 프레임만 갤러리(사진 앱)에
-  /// 저장한다. 성공 문구는 '이미지가 저장됐어요'로 한정(§8 표).
+  /// 배경화면을 바꾸지 않고 현재 소원방의 정지 프레임만 갤러리(사진 앱,
+  /// 웹은 브라우저 다운로드)에 저장한다. 성공 문구는 앱에서는 '이미지가
+  /// 저장됐어요'(§8 표), 웹에서는 '정지 이미지가 저장됐어요'(§14.4 표)로
+  /// 서로 다르게 한정한다 — 두 문구를 섞어 쓰지 않는다.
   Future<void> _saveStillImage(WishRoom room) async {
     final bytes = await _captureStillFrame();
     if (!mounted) return;
@@ -160,7 +206,8 @@ class _WallpaperScreenState extends State<WallpaperScreen> with WidgetsBindingOb
     }
     final ok = await saveImageBytesToGallery(bytes, name: 'wishroom_${room.id}_${DateTime.now().millisecondsSinceEpoch}');
     if (!mounted) return;
-    WrToast.show(context, ok ? '이미지가 저장됐어요' : '이미지 저장에 실패했어요. 권한을 확인해주세요.');
+    final successMsg = kIsWeb ? '정지 이미지가 저장됐어요' : '이미지가 저장됐어요';
+    WrToast.show(context, ok ? successMsg : '이미지 저장에 실패했어요. 권한을 확인해주세요.');
   }
 
   Future<Uint8List?> _captureStillFrame() async {
@@ -330,25 +377,38 @@ class _WallpaperScreenState extends State<WallpaperScreen> with WidgetsBindingOb
                 // 선택기의 지원 범위에 따라 달라지므로, 이 앱이 임의로 '홈만/잠금만'을
                 // 보장하는 버튼을 만들지 않는다. 단일 '라이브 배경화면 설정' 버튼 +
                 // 안내 문구만 제공하고, 실제 적용 위치 선택은 시스템 선택기에 맡긴다.
+                //
+                // [v2.1 §14.4] 웹(kIsWeb)에서는 네이티브 채널이 없으므로 같은
+                // 버튼이 "앱에서 라이브 배경화면 설정"으로 문구가 바뀌고
+                // _applyFromWeb(딥링크 시도 → 실패 시 설치 안내)로 동작한다.
+                // 웹에서 OS 배경화면을 직접 적용한 것처럼 보이는 문구("설정 중",
+                // "설정됨")는 쓰지 않는다.
                 if (!_kIosFlow) ...[
                   SizedBox(width: double.infinity, height: 54, child: ElevatedButton(
-                    onPressed: room == null || _awaitingConfirm ? null : () => _applyAndroid(p, room),
+                    onPressed: room == null || _awaitingConfirm ? null
+                        : (kIsWeb ? () => _applyFromWeb(room) : () => _applyAndroid(p, room)),
                     style: ElevatedButton.styleFrom(backgroundColor: WrC.blossom, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
                     child: Text(
-                      _awaitingConfirm ? '시스템 화면에서 설정해주세요…' : (isSet ? '다시 설정하기' : '움직이는 배경화면으로 설정'),
+                      kIsWeb
+                          ? '앱에서 라이브 배경화면 설정'
+                          : (_awaitingConfirm ? '시스템 화면에서 설정해주세요…' : (isSet ? '다시 설정하기' : '움직이는 배경화면으로 설정')),
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16),
                     ),
                   )),
                   const SizedBox(height: 8),
-                  Text('다음 화면에서 적용 위치를 선택해 주세요. 선택지는 기기에 따라 달라요',
-                      textAlign: TextAlign.center, style: WrF.body(11.5, color: WrC.muted, height: 1.5)),
+                  Text(
+                    kIsWeb
+                        ? '앱이 설치돼 있으면 같은 소원방으로 바로 이동해요'
+                        : '다음 화면에서 적용 위치를 선택해 주세요. 선택지는 기기에 따라 달라요',
+                    textAlign: TextAlign.center, style: WrF.body(11.5, color: WrC.muted, height: 1.5),
+                  ),
                   const SizedBox(height: 10),
                   Center(child: GestureDetector(
                     onTap: room == null ? null : () => _saveStillImage(room),
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
                       decoration: WrDeco.chip,
-                      // §8 "정지 이미지 저장" — 배경화면 설정과 분리된 보조 메뉴.
+                      // §8/§14.4 "정지 이미지 저장" — 배경화면 설정과 분리된 보조 메뉴.
                       child: Text('정지 이미지 저장', style: WrF.body(12, color: WrC.fg)),
                     ),
                   )),
@@ -401,6 +461,11 @@ class _WallpaperScreenState extends State<WallpaperScreen> with WidgetsBindingOb
               WPIosDone(thumb: _done!.thumb, room: room, items: p.items, onClose: () => setState(() => _done = null)),
             if (_done != null && _done!.kind == 'android' && room != null)
               WPApplied(room: room, items: p.items, target: _done!.target, onClose: () => setState(() => _done = null)),
+            // [v2.1 §14.4 "앱 미설치·연결 실패"] 웹에서 딥링크가 열리지 않았을
+            // 때만 노출. 승인된 Play 스토어 주소만 사용하고, 임의 주소를
+            // 만들지 않는다(guinji_share_kakao.dart의 playPackage와 동일 값).
+            if (_showInstallGuide)
+              WPWebInstallGuide(onClose: () => setState(() => _showInstallGuide = false)),
           ]);
         }),
       ),
@@ -720,6 +785,53 @@ class _WPAppliedState extends State<WPApplied> {
   }
 }
 
+// ─────────────────── [v2.1 §14.4] 웹 전용 "앱 미설치·연결 실패" 설치 안내 ───────────────────
+// 승인된 Play 스토어 주소(_kPlayStoreUrl, guinji_share_kakao.dart의 playPackage와
+// 같은 패키지명)만 사용한다. 임의 설치 주소를 만들지 않는다 — §14.4 마지막 문단.
+class WPWebInstallGuide extends StatelessWidget {
+  const WPWebInstallGuide({super.key, required this.onClose});
+  final VoidCallback onClose;
+
+  Future<void> _openStore() async {
+    try {
+      await launchUrl(Uri.parse(_kPlayStoreUrl), mode: LaunchMode.externalApplication);
+    } catch (_) {/* 스토어를 열 수 없어도 시트는 유지해 사용자가 다시 시도할 수 있게 한다 */}
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(children: [
+      GestureDetector(onTap: onClose, child: Container(color: const Color(0x99000000))),
+      Center(child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 32), padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
+        decoration: WrDeco.sheet,
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('앱 연결이 필요해요', style: WrF.display(18)),
+          const SizedBox(height: 8),
+          Text(
+            '라이브 배경화면은 휴대폰에 설치된 신통방통 앱이 직접 설정해요.\n'
+            '앱이 없거나 열리지 않았다면 아래에서 설치한 뒤, 같은 계정으로 들어와\n'
+            '같은 소원방을 다시 확인해 주세요.',
+            style: WrF.body(12.5, color: WrC.muted, height: 1.6),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(width: double.infinity, height: 48, child: ElevatedButton(
+            onPressed: _openStore,
+            style: ElevatedButton.styleFrom(backgroundColor: WrC.blossom, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+            child: const Text('앱 설치하러 가기', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14.5)),
+          )),
+          const SizedBox(height: 8),
+          SizedBox(width: double.infinity, child: OutlinedButton(
+            onPressed: onClose,
+            style: OutlinedButton.styleFrom(side: BorderSide(color: WrC.line)),
+            child: const Text('나중에 하기'),
+          )),
+        ]),
+      )),
+    ]);
+  }
+}
+
 // ─────────────────── S-01 진입 카드(RoomMenu · 소원방 돌보기 시트) ───────────────────
 class WPEntryCard extends StatelessWidget {
   const WPEntryCard({super.key, required this.room});
@@ -752,8 +864,17 @@ class WPEntryCard extends StatelessWidget {
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('배경화면으로 설정', style: WrF.body(13.5, w: FontWeight.w700)),
             const SizedBox(height: 2),
-            Text(set ? '설정됨 · 소원방과 함께 자라요' : hot ? '지금 소원방이 가장 예쁠 때예요' : '앱을 열지 않아도 매일 보여요',
-                style: WrF.body(11, color: WrC.muted)),
+            // [v2.1 §14.4] 웹에서는 이 카드가 곧바로 OS 배경화면을 바꾸지
+            // 않고 "앱에서 라이브 배경화면 설정" 화면으로 안내하므로 문구를
+            // 구분한다(set 상태는 플랫폼과 무관하게 서버 st 기준 그대로 유지).
+            Text(
+              set
+                  ? '설정됨 · 소원방과 함께 자라요'
+                  : hot
+                      ? '지금 소원방이 가장 예쁠 때예요'
+                      : (kIsWeb ? '앱에서 매일 보이는 배경화면으로 설정해요' : '앱을 열지 않아도 매일 보여요'),
+              style: WrF.body(11, color: WrC.muted),
+            ),
           ])),
           if (set) Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),

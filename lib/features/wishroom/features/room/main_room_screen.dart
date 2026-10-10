@@ -440,6 +440,14 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
               Positioned(top: 140, left: 0, right: 0, child: WrFirstVisitChip(onStartTour: () => setState(() => _tour = true))),
             if (!_devotion.busy && !_rekindling) Positioned(top: 136, right: 14, child: _pillBtn('◉ 방만 보기', () => setState(() => _peek = true))),
             if (!_devotion.busy && !_rekindling) Positioned(top: 172, right: 14, child: _pillBtn('⤴ 공유', () => _openShareSheet(room))),
+            // [v2.1 §14.4] 웹에서만 노출되는 "움직임 재생·정지" 토글 — 이 페이지
+            // 안의 동작(RoomScene의 반복 애니메이션)만 멈추는 로컬 한정 기능이며
+            // 서버에 저장되지 않는다. 앱 빌드에서는 노출되지 않는다.
+            if (kIsWeb && !_devotion.busy && !_rekindling)
+              Positioned(top: 208, right: 14, child: _pillBtn(
+                _webPaused ? '▶ 움직임 재생' : '❚❚ 움직임 정지',
+                () => setState(() => _webPaused = !_webPaused),
+              )),
             // 말풍선
             Positioned(left: 14, top: 400, child: GestureDetector(
               onTap: () => setState(() => _speechIdx++),
