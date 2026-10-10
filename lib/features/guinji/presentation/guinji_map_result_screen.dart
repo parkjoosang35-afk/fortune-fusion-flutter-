@@ -316,64 +316,52 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // 헤더
+              // [핸드오프 `CMain` 헤더 1:1 이식] 원본은 "{members.length}명과
+              // 연결되어 있어요" 문구 + 버튼 2개(♛ 랭킹 / ＋ 초대)만 있다.
+              // "목록 보기"는 CMain 헤더에 없는 버튼이었다(유형별 목록은
+              // 랭킹 화면의 두 번째 탭으로만 진입 가능) — ＋ 초대로 교체.
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
                 child: Row(
                   children: [
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text.rich(
-                            TextSpan(
-                              children: [
-                                const TextSpan(
-                                  text: '지금 ',
-                                  style: TextStyle(fontSize: 11, color: GmColors.muted),
-                                ),
-                                TextSpan(
-                                  text: '$total명',
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    color: GmColors.gold,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                const TextSpan(
-                                  text: '이 함께해요',
-                                  style: TextStyle(fontSize: 11, color: GmColors.muted),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          const Text(
-                            '노드를 눌러 관계 상세를 확인하세요',
-                            style: TextStyle(fontSize: 10.5, color: GmColors.dim),
-                          ),
-                        ],
+                      child: Text(
+                        '$total명과 연결되어 있어요',
+                        style: const TextStyle(fontSize: 13.5, color: GmColors.muted),
                       ),
                     ),
                     OutlinedButton(
                       onPressed: _openRanking,
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: GmColors.gold,
+                        foregroundColor: GmColors.fg,
                         side: const BorderSide(color: GmColors.line),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9999)),
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                       ),
-                      child: const Text('랭킹', style: TextStyle(fontSize: 12)),
+                      child: const Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(text: '♛ ', style: TextStyle(color: GmColors.gold)),
+                            TextSpan(text: '랭킹'),
+                          ],
+                        ),
+                        style: TextStyle(fontSize: 13),
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    OutlinedButton(
-                      onPressed: _openFriends,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: GmColors.muted,
-                        side: const BorderSide(color: GmColors.line),
+                    const SizedBox(width: 6),
+                    ElevatedButton(
+                      onPressed: _openShareSheet,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: GmColors.fg,
+                        foregroundColor: GmColors.onFg,
+                        elevation: 0,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9999)),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                       ),
-                      child: const Text('목록 보기', style: TextStyle(fontSize: 12)),
+                      child: const Text(
+                        '＋ 초대',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                      ),
                     ),
                   ],
                 ),
