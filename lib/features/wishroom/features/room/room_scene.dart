@@ -58,7 +58,7 @@ class RoomScene extends StatefulWidget {
   @override State<RoomScene> createState() => _RoomSceneState();
 }
 
-class _RoomSceneState extends State<RoomScene> with TickerProviderStateMixin {
+class _RoomSceneState extends State<RoomScene> with TickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController drift = AnimationController(vsync: this, duration: const Duration(seconds: 24));
   late final AnimationController flick = AnimationController(vsync: this, duration: const Duration(milliseconds: 2600));
   late final AnimationController breathe = AnimationController(vsync: this, duration: const Duration(milliseconds: 4200));
@@ -70,8 +70,38 @@ class _RoomSceneState extends State<RoomScene> with TickerProviderStateMixin {
   int? _revealedFor;
   late final AnimationController shakeCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 420));
 
+  // [v2.1 §14.3 "웹 수명주기·반응형·접근성" — 탭 숨김·재개(W-07) / 재진입·중복
+  // 루프 방지(W-08)] 탭이 백그라운드로 가면 Flutter 웹 엔진이
+  // didChangeAppLifecycleState(hidden/paused)로 알려준다(flutter_web_sdk의
+  // visibilitychange 리스너 → AppLifecycleState.hidden 매핑). SchedulerBinding은
+  // 이때 framesEnabled=false로 전체 프레임을 멈추지만, repeat()로 돌리던
+  // AnimationController는 "마지막 시점에 멈춰 있다가 다시 프레임이 허용될 때
+  // 그 시점부터 이어서 진행"하므로(시간 자체가 정지되어 있어 문제가 없지만),
+  // 탭이 오래 숨겨져 있다가 돌아왔을 때 시간 경과만큼 파티클이 순간이동하지
+  // 않도록(§14.3 "긴 비활성 시간 뒤 파티클 순간이동 방지"), 숨겨질 때 명시적으로
+  // stop()하고 돌아올 때 동일한 위치에서 repeat()로 다시 시작한다(위상·value는
+  // 유지되므로 순간이동으로 보이지 않는다). 앱(Android/iOS) 빌드에서는 paused가
+  // 이미 정상 동작(백그라운드 전환)이므로 같은 처리가 안전하다.
+  bool _loopsRunning = false;
+
+  void _startLoops() {
+    if (_loopsRunning) return;
+    _loopsRunning = true;
+    for (final c in [drift, flick, breathe, pulse, sigilSpin]) { c.repeat(reverse: c != sigilSpin); }
+    loop.repeat();
+  }
+
+  void _stopLoops() {
+    if (!_loopsRunning) return;
+    _loopsRunning = false;
+    for (final c in [drift, flick, breathe, pulse, sigilSpin, loop]) { c.stop(); }
+  }
+
+  bool get _shouldAnimate => !widget.frozen && !MediaQuery.of(context).disableAnimations;
+
   @override void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // [F섹션 접근성 — "나머지 빨리 진행해" 중 신규 구현] jsx wr2.css 139줄
     // `@media (prefers-reduced-motion: reduce) { animation-duration:.001s!important;
     // animation-iteration-count:1!important }` — 시스템 "동작 줄이기"가 켜져 있으면
@@ -82,17 +112,46 @@ class _RoomSceneState extends State<RoomScene> with TickerProviderStateMixin {
     // 같이 체크 — 앱 전역에 이미 선례 있음: home_banner_carousel.dart 142줄).
     // reveal/entering/shake처럼 "한 번만 재생되고 끝나는" 연출은 jsx의
     // iteration-count:1과 의미가 같으므로 그대로 1회 재생한다(아래 분기 영향 없음).
-    final reduceMotion = MediaQuery.of(context).disableAnimations;
-    if (!widget.frozen && !reduceMotion) { for (final c in [drift, flick, breathe, pulse, sigilSpin]) { c.repeat(reverse: c != sigilSpin); } loop.repeat(); }
+    if (_shouldAnimate) { _startLoops(); }
     if (widget.entering) { cameraIn.forward(); } else { cameraIn.value = 1; }
     if (widget.shake) { shakeCtrl.forward(from: 0); }
     _maybeStartReveal();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // §14.3 "탭이 숨겨지거나 소원방이 화면 밖이면 자체 예약 루프를 중단하고
+    // 돌아오면 재개한다". resumed/inactive는 프레임이 허용되는 상태
+    // (SchedulerBinding._setFramesEnabledState(true))라 재개 대상, hidden/
+    // paused/detached는 중단 대상이다.
+    switch (state) {
+      case AppLifecycleState.resumed:
+      case AppLifecycleState.inactive:
+        if (_shouldAnimate) { _startLoops(); }
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+        _stopLoops();
+    }
   }
 
   @override void didUpdateWidget(RoomScene old) {
     super.didUpdateWidget(old);
     if (widget.shake && !old.shake) { shakeCtrl.forward(from: 0); }
     _maybeStartReveal();
+    // §14.4 "움직임 재생·정지" 토글 — frozen이 외부에서 바뀔 때(사용자의 정지
+    // 모드 토글) 루프를 즉시 대응시킨다. 이전엔 frozen이 initState 시점에만
+    // 확인되어 생성 후 바뀌면 반영되지 않는 문제가 있었다.
+    if (widget.frozen != old.frozen) {
+      if (_shouldAnimate) { _startLoops(); } else { _stopLoops(); }
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // MediaQuery.disableAnimations(동작 줄이기)가 실행 중 바뀔 때도 대응.
+    if (_shouldAnimate) { _startLoops(); } else { _stopLoops(); }
   }
 
   void _maybeStartReveal() {
@@ -103,7 +162,12 @@ class _RoomSceneState extends State<RoomScene> with TickerProviderStateMixin {
     }
   }
 
-  @override void dispose() { for (final c in [drift, flick, breathe, pulse, loop, sigilSpin, cameraIn, shakeCtrl]) { c.dispose(); } _revealCtrl?.dispose(); super.dispose(); }
+  @override void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    for (final c in [drift, flick, breathe, pulse, loop, sigilSpin, cameraIn, shakeCtrl]) { c.dispose(); }
+    _revealCtrl?.dispose();
+    super.dispose();
+  }
 
   WrItem? _item(String? id) => id == null ? null : widget.items.where((i) => i.id == id).firstOrNull;
 

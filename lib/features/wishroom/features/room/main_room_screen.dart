@@ -51,6 +51,14 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
   int _speechIdx = 0;
   Timer? _speechTimer;
   bool _peek = false; // '◉ 방만 보기'
+  // [v2.1 §14.4 "웹의 설정 버튼과 안내 문구" — "내 소원방" / "움직임 재생·정지"]
+  // 웹에서만 노출되는 애니메이션 재생/정지 토글. true가 되면 RoomScene에
+  // frozen을 전달해 L2~L7 동적 레이어(촛불·호흡·파티클 등)를 멈춘다. 앱
+  // (Android/iOS)에는 이 버튼 자체가 보이지 않는다 — 웹 전용 감상 기능이며,
+  // "웹이 정지라도 다른 기기의 앱 설정을 임의로 변경하지 않는다"(§13.1
+  // 접근성·정지 모드 행)는 원칙대로 이 상태는 로컬(이 탭) 한정이고 서버에
+  // 저장하지 않는다.
+  bool _webPaused = false;
   bool _wishOpen = false; // 소원 전문 펼침
   bool _armed = false; // 쿨타임 완료 후 탭 대기(버튼 맥동)
   int _prevCooldown = 0;
@@ -406,6 +414,10 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
               pray: _devotion.busy || busyCooldown,
               boost: boost,
               shake: _devotion.shaking,
+              // §14.4 "움직임 재생·정지" — 웹에서만 사용자가 로컬로 정지할 수
+              // 있다. 앱 빌드에서는 _webPaused가 항상 false로 고정되어 기존
+              // 동작(정성·흔들림 등 실시간 연출)에 영향이 없다.
+              frozen: kIsWeb && _webPaused,
             ),
           ))),
           // devote()/rekindle() 1회성 FX 오버레이(버스트·꽃잎비·나비 등) — WrCanvasScaler로
