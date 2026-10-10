@@ -330,7 +330,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(
             child: Text('오늘의 소원 · ${_dateLabel()}',
-                style: TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 11, color: sub)),
+                style: TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 11, color: sub)),
           ),
           // [A-3 §3] 종이 8색 동그라미 20x20 — 선택 시 테두리2px + 빛깔 링 + scale 1.15.
           Row(children: [
@@ -343,7 +343,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
         const SizedBox(height: 4),
         Align(
           alignment: Alignment.centerRight,
-          child: Text('${paper['label']} 종이', style: TextStyle(fontFamily: 'GowunBatangWish', fontSize: 10, color: sub)),
+          child: Text('${paper['label']} 종이', style: TextStyle(fontFamily: 'GowunBatang', fontSize: 10, color: sub)),
         ),
         const SizedBox(height: 6),
         SizedBox(
@@ -354,11 +354,11 @@ class _ComposeScreenState extends State<ComposeScreen> {
             maxLines: 4,
             cursorColor: wishColor,
             onChanged: (_) => setState(() {}),
-            style: TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 17, height: 1.65, color: ink),
+            style: TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 17, height: 1.65, color: ink),
             decoration: InputDecoration(
               border: InputBorder.none,
               hintText: '마음속 바람을 적어주세요\n예) 우리 가족 모두 건강하고 행복하게 해주세요.',
-              hintStyle: TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 15, height: 1.5, color: ink.withValues(alpha: .4)),
+              hintStyle: TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 15, height: 1.5, color: ink.withValues(alpha: .4)),
               counterText: '',
             ),
           ),
@@ -479,7 +479,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
             border: sel ? Border.all(color: color, width: 2) : null,
             boxShadow: sel ? [BoxShadow(color: color.withValues(alpha: .6), blurRadius: 10)] : null,
           ),
-          child: Text(w['hanja'] as String, style: const TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 13, color: Color(0xFF2A1F14))),
+          child: Text(w['hanja'] as String, style: const TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 13, color: Color(0xFF2A1F14))),
         ),
         const SizedBox(height: 4),
         Text(w['label'] as String, style: WrF.body(11, w: sel ? FontWeight.w700 : FontWeight.w400, color: sel ? WrC.fg : WrC.muted)),

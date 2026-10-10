@@ -229,7 +229,7 @@ class _CapsuleOpenScreenState extends State<CapsuleOpenScreen> {
             decoration: BoxDecoration(borderRadius: BorderRadius.circular(10),
               gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [color, deep]),
               boxShadow: [BoxShadow(color: color, blurRadius: 30)]),
-            child: Text(hanja, style: const TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 32, color: Color(0xFFFFF4E0))),
+            child: Text(hanja, style: const TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 32, color: Color(0xFFFFF4E0))),
           )));
         },
       ))),
@@ -253,14 +253,14 @@ class _CapsuleOpenScreenState extends State<CapsuleOpenScreen> {
           child: _step == _CapStep.rewish
             ? TextField(controller: TextEditingController(text: _text)..selection = TextSelection.collapsed(offset: _text.length),
                 maxLength: 100, maxLines: 4, onChanged: (v) => _text = v,
-                style: const TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 16, height: 1.65, color: Color(0xFF4A2A1C)),
+                style: const TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 16, height: 1.65, color: Color(0xFF4A2A1C)),
                 decoration: const InputDecoration(border: InputBorder.none, counterText: ''))
             : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(room.text, style: const TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 17, height: 1.75, color: Color(0xFF4A2A1C))),
+                Text(room.text, style: const TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 17, height: 1.75, color: Color(0xFF4A2A1C))),
                 const SizedBox(height: 8),
                 Align(alignment: Alignment.centerRight, child: Container(width: 30, height: 30, alignment: Alignment.center,
                   decoration: BoxDecoration(color: deep.withValues(alpha: .85), borderRadius: BorderRadius.circular(6)),
-                  child: Text(hanja, style: const TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 15, color: Colors.white)))),
+                  child: Text(hanja, style: const TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 15, color: Colors.white)))),
               ]),
         ),
         Container(height: 14, decoration: BoxDecoration(borderRadius: BorderRadius.circular(7),
@@ -441,10 +441,10 @@ class _AchieveCinematicScreenState extends State<AchieveCinematicScreen> with Si
               decoration: BoxDecoration(borderRadius: BorderRadius.circular(12),
                 gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [color, deep]),
                 boxShadow: [BoxShadow(color: color, blurRadius: glow)]),
-              child: Text(hanja, style: const TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 34, color: Color(0xFFFFF4E0))))));
+              child: Text(hanja, style: const TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 34, color: Color(0xFFFFF4E0))))));
           },
         ))),
-        if (_t < 2) const Positioned(left: 0, right: 0, top: 370, child: Center(child: Text('🔐 봉인된 소원', style: TextStyle(fontFamily: 'GowunBatangWish', fontSize: 13, color: Color(0xB3FFEBD2))))),
+        if (_t < 2) const Positioned(left: 0, right: 0, top: 370, child: Center(child: Text('🔐 봉인된 소원', style: TextStyle(fontFamily: 'GowunBatang', fontSize: 13, color: Color(0xB3FFEBD2))))),
         // STEP2 — 해제의 빛
         if (_t >= 2 && _t < 4) ...[
           Positioned(left: 0, right: 0, top: 100, child: Center(child: Container(width: 400, height: 400, decoration: const BoxDecoration(
@@ -463,14 +463,14 @@ class _AchieveCinematicScreenState extends State<AchieveCinematicScreen> with Si
               decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter,
                 colors: [_hex((pp['bg'] as List)[0] as String), _hex((pp['bg'] as List)[1] as String)]),
                 boxShadow: [BoxShadow(color: color.withValues(alpha: .53), blurRadius: 40), const BoxShadow(color: Color(0x80000000), blurRadius: 30, offset: Offset(0, 14))]),
-              child: Text('"${room.text}"', textAlign: TextAlign.center, style: const TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 17, height: 1.7, color: Color(0xFF4A2A1C)))),
+              child: Text('"${room.text}"', textAlign: TextAlign.center, style: const TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 17, height: 1.7, color: Color(0xFF4A2A1C)))),
             Container(height: 12, decoration: BoxDecoration(borderRadius: BorderRadius.circular(6),
               gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF5A3418), Color(0xFF8A5A34)]))),
           ]),
         )),
         if (_t >= 3) Positioned(left: 0, right: 0, top: 420, child: Center(child: ShaderMask(
           shaderCallback: (b) => const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFFFF8E0), Color(0xFFFFD98A), Color(0xFFF5A86A)]).createShader(b),
-          child: const Text('✨ 소원이 이루어졌어요', style: TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 30, color: Colors.white, letterSpacing: -.5))))),
+          child: const Text('✨ 소원이 이루어졌어요', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 30, color: Colors.white, letterSpacing: -.5))))),
         // STEP4 — 축하
         if (_t >= 4) Positioned(left: 24, right: 24, top: 480, child: Column(children: [
           Text('정말 축하합니다.', style: WrF.display(19), textAlign: TextAlign.center),

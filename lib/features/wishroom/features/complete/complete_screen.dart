@@ -206,7 +206,7 @@ class _CompleteScreenState extends State<CompleteScreen> {
             ])),
             Padding(padding: const EdgeInsets.only(top: 12), child: Column(children: [
               ShaderMask(shaderCallback: (b) => const LinearGradient(colors: [Color(0xFFFFF6D8), Color(0xFFF5CF6A), Color(0xFFFF8FB1)]).createShader(b),
-                child: const Text('축하합니다', style: TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 34, color: Colors.white))),
+                child: const Text('축하합니다', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 34, color: Colors.white))),
               const SizedBox(height: 8),
               Padding(padding: const EdgeInsets.symmetric(horizontal: 32), child: Text(
                 '${room.daysLit}일 동안 밝혔던 당신의 소원이\n하늘에 닿았어요',
@@ -287,12 +287,12 @@ class _SealingOverlay extends StatelessWidget {
       Container(width: 130, height: 130, alignment: Alignment.center,
         decoration: BoxDecoration(color: const Color(0xFFC94A3B), borderRadius: BorderRadius.circular(16),
           boxShadow: const [BoxShadow(color: Color(0xB3C94A3B), blurRadius: 40)]),
-        child: const Text('成', style: TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 70, color: Color(0xFFFFF9E8)))),
+        child: const Text('成', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 70, color: Color(0xFFFFF9E8)))),
       if (sealing == 2) ...[
         const SizedBox(height: 36),
         const SizedBox(width: 1, height: 1, child: Stack(clipBehavior: Clip.none, children: [WrBurst(x: 0, y: 0, n: 28, spread: 200)])),
         const SizedBox(height: 36),
-        const Text('봉인하는 중', style: TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 20, color: Colors.white)),
+        const Text('봉인하는 중', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 20, color: Colors.white)),
       ],
     ]))));
   }
@@ -313,10 +313,10 @@ class _BottomCard extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         decoration: WrDeco.hanji,
         child: Row(children: [
-          const Text('成', style: TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 42, color: Color(0xFFC94A3B))),
+          const Text('成', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 42, color: Color(0xFFC94A3B))),
           const SizedBox(width: 10),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(room.text, style: const TextStyle(fontFamily: 'GowunBatangWish', fontSize: 14, color: Color(0xFF4A2A1C)), maxLines: 1, overflow: TextOverflow.ellipsis),
+            Text(room.text, style: const TextStyle(fontFamily: 'GowunBatang', fontSize: 14, color: Color(0xFF4A2A1C)), maxLines: 1, overflow: TextOverflow.ellipsis),
             const SizedBox(height: 4),
             Text('❤ ${room.supportCount} · 福 ${room.pouchReceived} · ${room.daysLit}일', style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 11.5, color: Color(0xFF8A4A3A))),
           ])),
@@ -381,7 +381,7 @@ class _SealedBody extends StatelessWidget {
             Positioned(right: -10, bottom: -10, child: Container(
               width: 46, height: 46, alignment: Alignment.center,
               decoration: const BoxDecoration(color: WrC.accent, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Color(0x80C94A3B), blurRadius: 8)]),
-              child: const Text('成', style: TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 24, color: Color(0xFFFFF9E8))))),
+              child: const Text('成', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 24, color: Color(0xFFFFF9E8))))),
           ])),
           const SizedBox(height: 34),
           Text('소원 기록관에\n영원히 머뭅니다', textAlign: TextAlign.center, style: WrF.display(26, color: Colors.white, height: 1.35)),

@@ -4,7 +4,7 @@
 //
 // [폰트 소스 변경] 핸드오프 원본은 google_fonts 패키지(네트워크 다운로드)를 쓰지만,
 // 이 프로젝트는 동일 폰트 파일을 assets/fonts/wish_room/ 에 번들해 pubspec.yaml 에
-// NotoSerifKRWish/GowunBatangWish/IBMPlexMonoWish 패밀리로 등록해두었다(상담 모듈과 공용).
+// NotoSerifKR/GowunBatang/IBMPlexMono 패밀리로 등록해두었다(상담 모듈과 공용).
 // 네트워크 의존 없이 그 번들 폰트를 그대로 쓴다 — 오프라인에서도 동작하고 웹 빌드 크기도 줄어든다.
 // 값(크기/굵기/자간/색)은 원본과 1:1 동일, 폰트 조달 방식만 다르다.
 import 'package:flutter/material.dart';
@@ -39,14 +39,14 @@ class WrC {
 
 class WrF {
   static TextStyle display(double size, {Color color = WrC.fg, double? height}) => TextStyle(
-      fontFamily: 'NotoSerifKRWish', fontSize: size, fontWeight: FontWeight.w900, letterSpacing: -.02 * size, color: color, height: height);
+      fontFamily: 'NotoSerifKR', fontSize: size, fontWeight: FontWeight.w900, letterSpacing: -.02 * size, color: color, height: height);
   static TextStyle body(double size, {FontWeight w = FontWeight.w400, Color color = WrC.fg, double? height}) =>
-      TextStyle(fontFamily: 'GowunBatangWish', fontSize: size, fontWeight: w, color: color, height: height);
+      TextStyle(fontFamily: 'GowunBatang', fontSize: size, fontWeight: w, color: color, height: height);
   static TextStyle ui(double size, {FontWeight w = FontWeight.w500, Color color = WrC.fg}) =>
       TextStyle(fontFamily: 'Pretendard', fontSize: size, fontWeight: w, color: color);
   /// .mono — 500 10px IBM Plex Mono, letter-spacing .28em, 대문자
   static TextStyle mono({double size = 10, Color color = WrC.muted}) =>
-      TextStyle(fontFamily: 'IBMPlexMonoWish', fontSize: size, fontWeight: FontWeight.w500, letterSpacing: .28 * size, color: color);
+      TextStyle(fontFamily: 'IBMPlexMono', fontSize: size, fontWeight: FontWeight.w500, letterSpacing: .28 * size, color: color);
 }
 
 class WrR { static const seal = 6.0, chip = 999.0, tab = 10.0, tabs = 14.0, card = 16.0, btn = 16.0, btnSm = 12.0, panel = 20.0, sheet = 26.0; }

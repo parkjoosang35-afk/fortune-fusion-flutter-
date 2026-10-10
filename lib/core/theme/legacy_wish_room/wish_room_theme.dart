@@ -101,16 +101,16 @@ extension WishGrowthStageX on double {
 
 /// [디자인 핸드오프 적용] 판타지 신전 테마 타이포그래피.
 ///
-/// 3개 폰트 패밀리(NotoSerifKRWish/GowunBatangWish/IBMPlexMonoWish)는 별도
+/// 3개 폰트 패밀리(NotoSerifKR/GowunBatang/IBMPlexMono)는 별도
 /// 자산 등록 없이 시스템 fallback으로 렌더되며(폰트 파일 미등록 시 fontFamily
 /// 지정만 무시되고 기본 폰트로 표시), 값 자체는 원본 핸드오프 스펙을 그대로
 /// 유지해 추후 실제 폰트 자산을 추가하기만 하면 즉시 반영되도록 한다.
 class WishRoomTextStyles {
   WishRoomTextStyles._();
 
-  static const _serif = 'NotoSerifKRWish';
-  static const _batang = 'GowunBatangWish';
-  static const _mono = 'IBMPlexMonoWish';
+  static const _serif = 'NotoSerifKR';
+  static const _batang = 'GowunBatang';
+  static const _mono = 'IBMPlexMono';
 
   static const heroTitle = TextStyle(
     fontFamily: _serif,

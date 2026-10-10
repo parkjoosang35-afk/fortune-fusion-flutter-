@@ -79,7 +79,7 @@ class _SealedDoneScreenState extends State<SealedDoneScreen> with SingleTickerPr
                     gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFFBF1DC), Color(0xFFF1E0BD)]),
                     boxShadow: const [BoxShadow(color: Color(0x80000000), blurRadius: 30, offset: Offset(0, 10))]),
                   child: Text(widget.text, maxLines: 5, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 14, height: 1.6, color: Color(0xFF4A2A1C))),
+                    style: const TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 14, height: 1.6, color: Color(0xFF4A2A1C))),
                 )));
             },
           )),
@@ -109,7 +109,7 @@ class _SealedDoneScreenState extends State<SealedDoneScreen> with SingleTickerPr
                 decoration: BoxDecoration(borderRadius: BorderRadius.circular(10),
                   gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [color, deep]),
                   boxShadow: [BoxShadow(color: color, blurRadius: 30)]),
-                child: Text(hanja, style: const TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 30, color: Color(0xFFFFF4E0))),
+                child: Text(hanja, style: const TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 30, color: Color(0xFFFFF4E0))),
               )));
             },
           ))),
@@ -124,7 +124,7 @@ class _SealedDoneScreenState extends State<SealedDoneScreen> with SingleTickerPr
                 const SizedBox(height: 8),
                 Text('소원이 봉인되었습니다.', textAlign: TextAlign.center, style: WrF.display(24)),
                 const SizedBox(height: 16),
-                Text(_dateK, style: const TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 22, color: Color(0xFFFFE08A))),
+                Text(_dateK, style: const TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 22, color: Color(0xFFFFE08A))),
                 const SizedBox(height: 12),
                 Text('그날까지 소원을 소중히 간직하세요. ✨', textAlign: TextAlign.center, style: WrF.body(14, color: WrC.muted, height: 1.7)),
                 const SizedBox(height: 14),

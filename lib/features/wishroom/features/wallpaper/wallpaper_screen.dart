@@ -397,7 +397,7 @@ class _MiniSeal extends StatelessWidget {
   Widget build(BuildContext context) => Container(
       width: 16, height: 16, alignment: Alignment.center,
       decoration: const BoxDecoration(color: WrC.accent, shape: BoxShape.circle),
-      child: const Text('成', style: TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 9, color: Color(0xFFFFF9E8))));
+      child: const Text('成', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 9, color: Color(0xFFFFF9E8))));
 }
 
 // ─────────────────── S-03 전체 미리보기(정지 프레임 · 안전영역) ───────────────────
@@ -422,7 +422,7 @@ class _WPFullPreviewState extends State<WPFullPreview> {
           ),
           alignment: Alignment.bottomRight,
           padding: const EdgeInsets.only(right: 12, bottom: 6),
-          child: const Text('SAFE TOP · 14% · 시계', style: TextStyle(fontFamily: 'IBMPlexMonoWish', fontSize: 9, color: Color(0xFFCDEEFF))),
+          child: const Text('SAFE TOP · 14% · 시계', style: TextStyle(fontFamily: 'IBMPlexMono', fontSize: 9, color: Color(0xFFCDEEFF))),
         )),
         Positioned(left: 0, right: 0, bottom: 0, height: 0.08 * MediaQuery.of(context).size.height, child: Container(
           decoration: const BoxDecoration(
@@ -431,7 +431,7 @@ class _WPFullPreviewState extends State<WPFullPreview> {
           ),
           alignment: Alignment.topRight,
           padding: const EdgeInsets.only(right: 12, top: 6),
-          child: const Text('SAFE BOTTOM · 8% · 독', style: TextStyle(fontFamily: 'IBMPlexMonoWish', fontSize: 9, color: Color(0xFFCDEEFF))),
+          child: const Text('SAFE BOTTOM · 8% · 독', style: TextStyle(fontFamily: 'IBMPlexMono', fontSize: 9, color: Color(0xFFCDEEFF))),
         )),
       ],
       Positioned(left: 14, right: 14, bottom: MediaQuery.of(context).size.height * .1, child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -532,7 +532,7 @@ class WPIosDone extends StatelessWidget {
               child: Row(children: [
                 Container(width: 22, height: 22, alignment: Alignment.center,
                   decoration: BoxDecoration(shape: BoxShape.circle, color: i == 3 ? WrC.glow : const Color(0x40F2628F)),
-                  child: Text('${i + 1}', style: TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 11, color: i == 3 ? const Color(0xFF2A1A14) : Colors.white))),
+                  child: Text('${i + 1}', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 11, color: i == 3 ? const Color(0xFF2A1A14) : Colors.white))),
                 const SizedBox(width: 10),
                 Expanded(child: Text.rich(TextSpan(children: [
                   TextSpan(text: a, style: const TextStyle(fontWeight: FontWeight.w700)),

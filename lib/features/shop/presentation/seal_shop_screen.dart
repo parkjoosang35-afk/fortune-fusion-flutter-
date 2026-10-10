@@ -215,7 +215,7 @@ class _SealTile extends StatelessWidget {
             Text(
               item.nameKo,
               style: const TextStyle(
-                fontFamily: 'GowunBatangWish',
+                fontFamily: 'GowunBatang',
                 fontWeight: FontWeight.w700,
                 fontSize: 13,
                 color: WishRoomColors.textPrimary,

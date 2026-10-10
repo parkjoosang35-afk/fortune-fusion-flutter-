@@ -73,7 +73,7 @@ class _VaultScreenState extends State<VaultScreen> with SingleTickerProviderStat
         // 벗어나 있었다. Stack+Positioned로 app2/fx2.jsx TopBar() 1:1 재구성.
         SizedBox(height: 44, child: Stack(children: [
           const Positioned(top: 0, bottom: 0, left: 104, right: 104, child: Center(child: Text('보관함',
-            style: TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 22, color: Colors.white),
+            style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 22, color: Colors.white),
             maxLines: 1, overflow: TextOverflow.ellipsis))),
           Positioned(left: 16, top: 0, bottom: 0, child: Center(child:
             WrNavPill(onBack: () => wrBackOrAskExit(context), onExitHome: () => wrExitHome(context)))),
@@ -96,7 +96,7 @@ class _VaultScreenState extends State<VaultScreen> with SingleTickerProviderStat
               child: Container(
                 width: 32, height: 32, alignment: Alignment.center,
                 decoration: BoxDecoration(color: const Color(0x991E0C18), shape: BoxShape.circle, border: Border.all(color: WrC.line)),
-                child: const Text('?', style: TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 13, color: Colors.white)),
+                child: const Text('?', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 13, color: Colors.white)),
               ),
             ),
           ]))),
@@ -240,7 +240,7 @@ class _ArchiveCard extends StatelessWidget {
           Positioned(right: 4, top: 4, child: Transform.rotate(angle: -6 * 3.14159 / 180, child: Container(
             width: 28, height: 28, alignment: Alignment.center,
             decoration: const BoxDecoration(color: WrC.accent, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Color(0x80C94A3B), blurRadius: 8)]),
-            child: const Text('成', style: TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFFFFF9E8)))))),
+            child: const Text('成', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFFFFF9E8)))))),
         ])),
         const SizedBox(height: 6),
         Text('완성', style: WrF.body(12.5, w: FontWeight.w700, color: WrC.glow)),
@@ -294,9 +294,9 @@ class _ReplayOverlay extends StatelessWidget {
         const Spacer(),
       ]))),
       const Positioned(left: 0, right: 0, top: 58, child: Center(child: Column(children: [
-        Text('이루어진 소원방', style: TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 18, color: Colors.white)),
+        Text('이루어진 소원방', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 18, color: Colors.white)),
         SizedBox(height: 1),
-        Text('그날의 모습 그대로', style: TextStyle(fontFamily: 'GowunBatangWish', fontSize: 11, color: Color(0xA8FFECDC))),
+        Text('그날의 모습 그대로', style: TextStyle(fontFamily: 'GowunBatang', fontSize: 11, color: Color(0xA8FFECDC))),
       ]))),
       Positioned(left: 16, right: 16, bottom: 44, child: Container(
         padding: const EdgeInsets.all(16), decoration: WrDeco.hanji,
@@ -304,12 +304,12 @@ class _ReplayOverlay extends StatelessWidget {
           Row(children: [
             Container(width: 28, height: 28, alignment: Alignment.center,
               decoration: const BoxDecoration(color: WrC.accent, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Color(0x80C94A3B), blurRadius: 8)]),
-              child: const Text('成', style: TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFFFFF9E8)))),
+              child: const Text('成', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFFFFF9E8)))),
             const SizedBox(width: 10),
             Text('${_d(room.createdAt)} → ${_d(room.completedAt)} · ${room.daysLit}일', style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 11.5, color: Color(0xA65A321E))),
           ]),
           const SizedBox(height: 10),
-          Text(room.text, style: const TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 16, color: WrC.hanjiInk, height: 1.5)),
+          Text(room.text, style: const TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 16, color: WrC.hanjiInk, height: 1.5)),
           const SizedBox(height: 10),
           Row(children: [
             Text('Lv.${room.level}', style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 12, color: Color(0xFF8A4A3A))),
@@ -515,7 +515,7 @@ class _PouchTabState extends State<_PouchTab> {
                 const SizedBox(width: 12),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(children: [
-                    Text(s.no, style: TextStyle(fontFamily: 'IBMPlexMonoWish', fontSize: 9.5, letterSpacing: 1.5, color: s.c1)),
+                    Text(s.no, style: TextStyle(fontFamily: 'IBMPlexMono', fontSize: 9.5, letterSpacing: 1.5, color: s.c1)),
                     const SizedBox(width: 6),
                     Expanded(child: Text(s.title, style: WrF.body(s.big ? 15 : 13.5, w: FontWeight.w700, color: WrC.fg), maxLines: 2)),
                   ]),
@@ -534,7 +534,7 @@ class _PouchTabState extends State<_PouchTab> {
               Row(children: [
                 Image.asset('assets/wishroom/items/pouch.png', width: 16, errorBuilder: (_, __, ___) => const Text('💰', style: TextStyle(fontSize: 13))),
                 const SizedBox(width: 4),
-                Text('+$amount', style: TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: s.big ? 18 : 15, color: done ? WrC.muted : WrC.glow)),
+                Text('+$amount', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: s.big ? 18 : 15, color: done ? WrC.muted : WrC.glow)),
                 const SizedBox(width: 6),
                 Expanded(child: Text(
                   limit > 1 ? '· $n/$limit회 · 하루 최대 +${amount * limit}' : (done ? '· 받음' : s.id.startsWith('m_') ? '· 오늘의 미션' : '· 하루 1회'),
@@ -811,7 +811,7 @@ class _ClaimOverlayState extends State<_ClaimOverlay> with SingleTickerProviderS
           border: Border.all(color: const Color(0x73FFDC96)),
           boxShadow: const [BoxShadow(color: Color(0x4DFFC878), blurRadius: 60), BoxShadow(color: Color(0x99000000), blurRadius: 50, offset: Offset(0, 24))]),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text('SUPPORT × $at', style: TextStyle(fontFamily: 'IBMPlexMonoWish', fontSize: 10, letterSpacing: 3, color: const Color(0xFFFFE08A))),
+          Text('SUPPORT × $at', style: TextStyle(fontFamily: 'IBMPlexMono', fontSize: 10, letterSpacing: 3, color: const Color(0xFFFFE08A))),
           SizedBox(height: 150, child: Stack(alignment: Alignment.topCenter, clipBehavior: Clip.none, children: [
             AnimatedBuilder(animation: _c, builder: (_, __) {
               final t = Curves.easeOut.transform(_c.value);

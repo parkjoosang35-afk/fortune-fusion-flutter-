@@ -231,13 +231,13 @@ class _OtherRoomScreenState extends State<OtherRoomScreen> {
                         Container(width: 30, height: 30, alignment: Alignment.center,
                           decoration: BoxDecoration(color: W != null ? _hex(W['deep'] as String) : const Color(0xFFC94A3B),
                             borderRadius: BorderRadius.circular(6)),
-                          child: Text(W != null ? W['hanja'] as String : '願', style: const TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFFFFF9E8)))),
+                          child: Text(W != null ? W['hanja'] as String : '願', style: const TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFFFFF9E8)))),
                         const SizedBox(width: 9),
                         Expanded(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
                           Text('${room.region} · ${room.daysLit}일째 밝히는 중${W != null ? ' · ${W['label']}' : ''}',
-                            style: TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 10, color: _paperInk(paper).withValues(alpha: .6)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                            style: TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 10, color: _paperInk(paper).withValues(alpha: .6)), maxLines: 1, overflow: TextOverflow.ellipsis),
                           const SizedBox(height: 2),
-                          Text(room.text, style: TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 13.5, color: _paperInk(paper), height: 1.35), maxLines: 1, overflow: TextOverflow.ellipsis),
+                          Text(room.text, style: TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 13.5, color: _paperInk(paper), height: 1.35), maxLines: 1, overflow: TextOverflow.ellipsis),
                         ])),
                         Text('▲', style: TextStyle(fontSize: 10, color: _paperInk(paper).withValues(alpha: .5))),
                       ]),
@@ -296,11 +296,11 @@ class _OtherRoomScreenState extends State<OtherRoomScreen> {
           Row(children: [
             Container(width: 34, height: 34, alignment: Alignment.center,
               decoration: BoxDecoration(color: W != null ? _hex(W['deep'] as String) : const Color(0xFFC94A3B), borderRadius: BorderRadius.circular(6)),
-              child: Text(W != null ? W['hanja'] as String : '願', style: const TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 18, color: Color(0xFFFFF9E8)))),
+              child: Text(W != null ? W['hanja'] as String : '願', style: const TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 18, color: Color(0xFFFFF9E8)))),
             const SizedBox(width: 8),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('${room.owner}님 · ${room.region} · ${room.daysLit}일째', style: TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 11, color: _paperInk(paper).withValues(alpha: .6))),
-              Text(W != null ? '${W['label']}의 소원' : '', style: TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 12, color: W != null ? _hex(W['deep'] as String) : _paperInk(paper))),
+              Text('${room.owner}님 · ${room.region} · ${room.daysLit}일째', style: TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 11, color: _paperInk(paper).withValues(alpha: .6))),
+              Text(W != null ? '${W['label']}의 소원' : '', style: TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 12, color: W != null ? _hex(W['deep'] as String) : _paperInk(paper))),
             ])),
             GestureDetector(onTap: () => setState(() => _wishOpen = false), child: Container(
               width: 30, height: 30, decoration: BoxDecoration(color: Colors.black.withValues(alpha: .08), shape: BoxShape.circle),
@@ -308,7 +308,7 @@ class _OtherRoomScreenState extends State<OtherRoomScreen> {
           ]),
           const SizedBox(height: 12),
           ConstrainedBox(constraints: const BoxConstraints(maxHeight: 150), child: SingleChildScrollView(
-            child: Text(room.text, style: TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 16, height: 1.7, color: _paperInk(paper))))),
+            child: Text(room.text, style: TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 16, height: 1.7, color: _paperInk(paper))))),
           const SizedBox(height: 14),
           Row(children: [
             Expanded(child: SizedBox(height: 44, child: ElevatedButton(

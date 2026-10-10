@@ -112,7 +112,7 @@ class _LinkInviteScreenState extends State<LinkInviteScreen> {
               child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Container(width: 30, height: 30, alignment: Alignment.center,
                   decoration: BoxDecoration(color: deep, borderRadius: BorderRadius.circular(6)),
-                  child: Text(hanja, style: const TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 15, color: Colors.white))),
+                  child: Text(hanja, style: const TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 15, color: Colors.white))),
                 const SizedBox(width: 10),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text('${room.daysLit}일째 밝히는 중 · Lv.${room.level}', style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 11, color: Color(0x995A321E))),

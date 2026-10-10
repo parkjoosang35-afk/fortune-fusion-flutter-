@@ -125,7 +125,7 @@ class _TreasureBoxScreenState extends State<TreasureBoxScreen> {
                                     Text(
                                       '◇ $totalOwned / $total  ·  인장 $ownedSeals · 촛불 $ownedCandles · 부적 $ownedTalismans',
                                       style: const TextStyle(
-                                        fontFamily: 'IBMPlexMonoWish',
+                                        fontFamily: 'IBMPlexMono',
                                         fontSize: 10,
                                         letterSpacing: 2,
                                         color: WishRoomColors.textSecondary,
@@ -217,7 +217,7 @@ class _SectionLabel extends StatelessWidget {
       child: Text(
         text,
         style: const TextStyle(
-          fontFamily: 'GowunBatangWish',
+          fontFamily: 'GowunBatang',
           fontWeight: FontWeight.w700,
           fontSize: 13,
           color: WishRoomColors.textPrimary,
@@ -284,7 +284,7 @@ class _SealGrid extends StatelessWidget {
                 : Text(
                     visual.glyph,
                     style: TextStyle(
-                      fontFamily: 'NotoSerifKRWish',
+                      fontFamily: 'NotoSerifKR',
                       fontWeight: FontWeight.w900,
                       fontSize: 22,
                       color: WishRoomColors.textSecondary.withValues(

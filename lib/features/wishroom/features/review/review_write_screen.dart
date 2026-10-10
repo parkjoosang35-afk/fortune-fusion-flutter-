@@ -115,7 +115,7 @@ class _ReviewWriteScreenState extends State<ReviewWriteScreen> {
                   child: Row(children: [
                     Container(width: 30, height: 30, alignment: Alignment.center,
                       decoration: BoxDecoration(color: _hex(w['deep'] as String), borderRadius: BorderRadius.circular(6)),
-                      child: Text(w['hanja'] as String, style: const TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 16, color: Colors.white))),
+                      child: Text(w['hanja'] as String, style: const TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 16, color: Colors.white))),
                     const SizedBox(width: 10),
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       const Text('💛 이루어진 소원', style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 10.5, color: Color(0xFFFFE08A))),
@@ -130,7 +130,7 @@ class _ReviewWriteScreenState extends State<ReviewWriteScreen> {
                   child: Column(children: [
                     TextField(controller: _ctrl, maxLength: 500, maxLines: 6, minLines: 6, onChanged: (_) => setState(() {}),
                       decoration: const InputDecoration(border: InputBorder.none, counterText: '', hintText: '소원이 이루어진 이야기를 자유롭게 적어주세요.', hintStyle: TextStyle(color: Color(0x994A2A1C))),
-                      style: const TextStyle(fontFamily: 'GowunBatangWish', fontSize: 15, height: 1.7, color: Color(0xFF4A2A1C))),
+                      style: const TextStyle(fontFamily: 'GowunBatang', fontSize: 15, height: 1.7, color: Color(0xFF4A2A1C))),
                     Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                       Text(_ok ? '✓ 좋아요' : '${20 - _len}자 더 적어주세요', style: WrF.mono(size: 10.5, color: _ok ? const Color(0xD92F7A52) : const Color(0x8C5A321E))),
                       Text('${_ctrl.text.length} / 500', style: WrF.mono(size: 10.5, color: const Color(0x8C5A321E))),

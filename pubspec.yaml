@@ -264,32 +264,16 @@ flutter:
           weight: 700
         - asset: assets/fonts/Pretendard-ExtraBold.ttf
           weight: 800
-    # [상담(Midnight Comfort) 전용 폰트 3종] wish_counsel 모듈 내부에서만
-    # 참조하며(WishCounselText), 앱 전역 Pretendard 체계와는 별도로 둔다.
-    - family: NotoSerifKRWish
-      fonts:
-        - asset: assets/fonts/wish_room/NotoSerifKR-Bold.ttf
-          weight: 700
-        - asset: assets/fonts/wish_room/NotoSerifKR-Black.ttf
-          weight: 900
-    - family: GowunBatangWish
-      fonts:
-        - asset: assets/fonts/wish_room/GowunBatang-Regular.ttf
-          weight: 400
-        - asset: assets/fonts/wish_room/GowunBatang-Bold.ttf
-          weight: 700
-    - family: IBMPlexMonoWish
-      fonts:
-        - asset: assets/fonts/wish_room/IBMPlexMono-Regular.ttf
-          weight: 400
-        - asset: assets/fonts/wish_room/IBMPlexMono-Medium.ttf
-          weight: 500
-    # [관상·손금 신통방통 "새벽 한지" 리스킨] 전용 폰트 3종.
+    # [관상·손금 신통방통 "새벽 한지" 리스킨 + 상담(Midnight Comfort)] 전용 폰트 3종.
     # [용량 최적화 2026-09-15] wish_room과 100% 동일한 바이트의 .ttf 파일이
     # assets/fonts/sintong/ 에도 중복 보관되어 있어 APK/웹 빌드에 약 45MB가
     # 낭비되고 있었다(다운로드 실패 리포트의 원인 중 하나). family 이름
     # (NotoSerifKR/GowunBatang/IBMPlexMono)은 핸드오프 코드가 그대로 참조하므로
     # 유지하되, 실제 파일은 wish_room/ 폴더의 동일 파일을 가리키도록 통합한다.
+    # [로딩 성능 최적화 2026-10-10] 기존에는 동일 파일을 'NotoSerifKRWish' 등
+    # *Wish 접미사 family로 한 번 더 중복 선언해, 웹에서 같은 폰트 파일을
+    # 2번씩 다운로드하는 문제가 있었다(총 로딩시간 +수 초). family를 통합하고
+    # 코드 쪽 fontFamily 참조도 전부 비(非)Wish 이름으로 교체했다.
     - family: NotoSerifKR
       fonts:
         - asset: assets/fonts/wish_room/NotoSerifKR-Bold.ttf

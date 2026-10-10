@@ -51,7 +51,7 @@ class WishRoomSeal extends StatelessWidget {
         child: Text(
           text,
           style: TextStyle(
-            fontFamily: 'NotoSerifKRWish',
+            fontFamily: 'NotoSerifKR',
             fontWeight: FontWeight.w900,
             fontSize: size * 0.55,
             color: const Color(0xFFFFF9E8),

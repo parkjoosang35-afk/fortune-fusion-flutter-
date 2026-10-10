@@ -177,7 +177,7 @@ class _DecorScreenState extends State<DecorScreen> {
               // 고정값이다. [버그수정 — 전수감사] 기존엔 Expanded+Center라 NavPill+?버튼과
               // PouchPill 사이 남은 공간 기준 중앙정렬이라 좌우 그룹 폭 차이만큼 어긋나 있었다.
               const Positioned(top: 0, bottom: 0, left: 104, right: 104, child: Center(child: Text('내 소원방 꾸미기',
-                style: TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white),
+                style: TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white),
                 maxLines: 1, overflow: TextOverflow.ellipsis))),
               Positioned(left: 14, top: 0, bottom: 0, child: Row(children: [
                 // app2/screens-b2.jsx › Decor() TopBar(left=? 안내서버튼) — nav 기본값
@@ -187,7 +187,7 @@ class _DecorScreenState extends State<DecorScreen> {
                 const SizedBox(width: 6),
                 GestureDetector(onTap: _openGuide, child: Container(width: 32, height: 32, alignment: Alignment.center,
                   decoration: BoxDecoration(color: WrC.glass, shape: BoxShape.circle, border: Border.all(color: WrC.line)),
-                  child: const Text('?', style: TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 13, color: Colors.white)))),
+                  child: const Text('?', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 13, color: Colors.white)))),
               ])),
               Positioned(right: 14, top: 0, bottom: 0, child: Center(child:
                 // app2/screens-b2.jsx › Decor() right={<PouchPill ... onClick={app.openWallet}/>} [버그수정 — 전수감사]
@@ -198,7 +198,7 @@ class _DecorScreenState extends State<DecorScreen> {
                     Image.asset('assets/wishroom/items/pouch.png', width: 16, height: 16,
                         errorBuilder: (_, __, ___) => const Text('💰', style: TextStyle(fontSize: 14))),
                     const SizedBox(width: 5),
-                    Text('${p.me?.pouch ?? 0}', style: const TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 13, color: Colors.white)),
+                    Text('${p.me?.pouch ?? 0}', style: const TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 13, color: Colors.white)),
                   ]),
                 )),
               )),
@@ -758,7 +758,7 @@ class _EffectOnState extends State<_EffectOn> with SingleTickerProviderStateMixi
       final show = t > .4;
       return Positioned.fill(child: IgnorePointer(child: Opacity(opacity: show ? ((t - .4) / .2).clamp(0.0, 1.0) : 0, child: Stack(children: [
         Positioned(left: 0, right: 0, top: 150, child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text('EFFECT ON', style: TextStyle(fontFamily: 'IBMPlexMonoWish', fontWeight: FontWeight.w500, fontSize: 11, letterSpacing: 3, color: col)),
+          Text('EFFECT ON', style: TextStyle(fontFamily: 'IBMPlexMono', fontWeight: FontWeight.w500, fontSize: 11, letterSpacing: 3, color: col)),
           const SizedBox(height: 6),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -856,7 +856,7 @@ class _PlaceModeViewState extends State<_PlaceModeView> {
             SizedBox(width: 34, child: Text('크기', style: WrF.body(12, color: WrC.muted))),
             Expanded(child: Slider(value: _s.clamp(24.0, maxS), min: 24, max: maxS, activeColor: WrC.blossom,
               onChanged: (v) => setState(() => _s = v))),
-            SizedBox(width: 34, child: Text('${_s.round()}', textAlign: TextAlign.right, style: const TextStyle(fontFamily: 'IBMPlexMonoWish', fontWeight: FontWeight.w700, fontSize: 12, color: Colors.white))),
+            SizedBox(width: 34, child: Text('${_s.round()}', textAlign: TextAlign.right, style: const TextStyle(fontFamily: 'IBMPlexMono', fontWeight: FontWeight.w700, fontSize: 12, color: Colors.white))),
           ]),
           const SizedBox(height: 10),
           Row(children: [

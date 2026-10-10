@@ -216,7 +216,7 @@ class _TalismanTile extends StatelessWidget {
                   Text(
                     item.nameKo,
                     style: const TextStyle(
-                      fontFamily: 'GowunBatangWish',
+                      fontFamily: 'GowunBatang',
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
                       color: WishRoomColors.textPrimary,

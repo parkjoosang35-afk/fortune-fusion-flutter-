@@ -106,7 +106,7 @@ class _PouchChip extends StatelessWidget {
           Text(
             '$balance',
             style: const TextStyle(
-              fontFamily: 'IBMPlexMonoWish',
+              fontFamily: 'IBMPlexMono',
               fontSize: 11,
               fontWeight: FontWeight.w600,
               color: WishRoomColors.glow,
@@ -179,7 +179,7 @@ class ShopSubNav extends StatelessWidget {
               child: Text(
                 tab.$2,
                 style: TextStyle(
-                  fontFamily: 'GowunBatangWish',
+                  fontFamily: 'GowunBatang',
                   fontSize: 12,
                   fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
                   color: isActive
@@ -262,7 +262,7 @@ class ShortageDialog extends StatelessWidget {
                 child: const Text(
                   '확인',
                   style: TextStyle(
-                    fontFamily: 'GowunBatangWish',
+                    fontFamily: 'GowunBatang',
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF2A1A3A),
                   ),
@@ -339,7 +339,7 @@ class PurchaseConfirmSheet extends StatelessWidget {
                 Text(
                   '${item.price}',
                   style: const TextStyle(
-                    fontFamily: 'IBMPlexMonoWish',
+                    fontFamily: 'IBMPlexMono',
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: WishRoomColors.glow,
@@ -363,7 +363,7 @@ class PurchaseConfirmSheet extends StatelessWidget {
               child: const Text(
                 '구매하기',
                 style: TextStyle(
-                  fontFamily: 'GowunBatangWish',
+                  fontFamily: 'GowunBatang',
                   fontWeight: FontWeight.w700,
                   fontSize: 14,
                   color: Color(0xFF2A1A3A),
@@ -431,7 +431,7 @@ class ShopPriceBadge extends StatelessWidget {
         child: Text(
           ownedLabel,
           style: const TextStyle(
-            fontFamily: 'IBMPlexMonoWish',
+            fontFamily: 'IBMPlexMono',
             fontSize: 10,
             letterSpacing: 1.5,
             color: WishRoomColors.textSecondary,
@@ -454,7 +454,7 @@ class ShopPriceBadge extends StatelessWidget {
           Text(
             '$price',
             style: const TextStyle(
-              fontFamily: 'IBMPlexMonoWish',
+              fontFamily: 'IBMPlexMono',
               fontSize: 11,
               fontWeight: FontWeight.w600,
               color: WishRoomColors.glow,
@@ -617,7 +617,7 @@ class ShopGuideDialog extends StatelessWidget {
                           Text(
                             step.title,
                             style: const TextStyle(
-                              fontFamily: 'GowunBatangWish',
+                              fontFamily: 'GowunBatang',
                               fontWeight: FontWeight.w700,
                               fontSize: 13,
                               color: WishRoomColors.textPrimary,
@@ -653,7 +653,7 @@ class ShopGuideDialog extends StatelessWidget {
                 child: const Text(
                   '알겠어요',
                   style: TextStyle(
-                    fontFamily: 'GowunBatangWish',
+                    fontFamily: 'GowunBatang',
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF2A1A3A),
                   ),

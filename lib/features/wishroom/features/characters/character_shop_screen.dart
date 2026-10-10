@@ -166,7 +166,7 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
                 else if (c.grade == 'event') _gradeChip('이벤트', const [Color(0xFFF5CF6A), Color(0xFFFF8FB1)])
                 else _gradeChip('기본', null),
                 const SizedBox(height: 10),
-                Text(c.name, style: const TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 30, color: Colors.white)),
+                Text(c.name, style: const TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 30, color: Colors.white)),
                 Text(c.title, style: WrF.body(13, color: WrC.muted)),
                 Padding(padding: const EdgeInsets.only(top: 12), child: GestureDetector(
                   onTap: () => setState(() => _info = true),
@@ -184,7 +184,7 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
                 padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
                 child: Row(children: [
                   WrNavPill(onBack: () => Navigator.of(context).maybePop(), onExitHome: () => wrExitHome(context)),
-                  const Expanded(child: Center(child: Text('소원방 캐릭터', style: TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white)))),
+                  const Expanded(child: Center(child: Text('소원방 캐릭터', style: TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white)))),
     // app2/screens-b2.jsx › CharShop() TopBar right={<PouchPill ... />} [버그수정 — 전수감사]
                   // 기존엔 탭 핸들러가 전혀 없는 정적 Container였다.
                   GestureDetector(onTap: () => openWalletSheet(context), child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -193,7 +193,7 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
                       Image.asset('assets/wishroom/items/pouch.png', width: 16, height: 16,
                           errorBuilder: (_, __, ___) => const Text('💰', style: TextStyle(fontSize: 14))),
                       const SizedBox(width: 5),
-                      Text('${p.me?.pouch ?? 0}', style: const TextStyle(fontFamily: 'NotoSerifKRWish', fontWeight: FontWeight.w900, fontSize: 13, color: Colors.white)),
+                      Text('${p.me?.pouch ?? 0}', style: const TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 13, color: Colors.white)),
                     ]),
                   )),
                 ]),
@@ -425,7 +425,7 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
               child: Text('✦ ${behaviorLabel[b] ?? ''}', style: WrF.body(11, color: WrC.fg)),
             )).toList())),
           Padding(padding: const EdgeInsets.only(top: 16), child: Center(child: Text('"${c.line}"',
-            style: const TextStyle(fontFamily: 'GowunBatangWish', fontWeight: FontWeight.w700, fontSize: 14, color: Color(0xFFFFE6D0))))),
+            style: const TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 14, color: Color(0xFFFFE6D0))))),
         ]),
       )),
     ]);
