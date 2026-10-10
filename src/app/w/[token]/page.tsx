@@ -89,7 +89,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title,
       description,
       url: pageUrl,
-      images: [{ url: `${baseUrl}/guinji/og-guinji-1200x630.png`, width: 1200, height: 630 }],
+      // [버그 수정 — 지시서 §5 "서비스별 이미지와 설명은 구분"] 기존에는
+      // 소원방 전용 이미지(public/share-og/wish.png)가 이미 존재하는데도
+      // 귀인지도 이미지(og-guinji-1200x630.png)를 그대로 재사용하고
+      // 있었다. 소원방 전용 이미지로 교체한다.
+      images: [{ url: `${baseUrl}/share-og/wish.png`, width: 1200, height: 630 }],
       type: "website",
     },
     twitter: {

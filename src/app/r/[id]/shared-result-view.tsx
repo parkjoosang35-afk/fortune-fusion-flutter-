@@ -11,7 +11,22 @@
 // "앱에서 보기" 버튼은 커스텀 스킴(`fortunefusion://r/{shareId}`)을 먼저
 // 시도해, 실제로 앱이 설치돼 있는데 App Links 검증만 실패한 케이스도
 // 구제한다(guinji `g` host와 동일한 폴백 스킴 컨벤션).
+//
+// [앱·웹 공유 구조 전면 정리 — 서비스별 전용 렌더러] 기존에는 단 하나의
+// 범용 템플릿(summary + highlights 텍스트 나열)이 6개 서비스 전부를
+// 처리했으나("제목+요약만 있는 흰색 공통 카드"), 이는 최종 완성으로
+// 인정되지 않는다는 지시에 따라 `resultType`별로 서비스 특화 콘텐츠
+// 컴포넌트(`./content/*`)에 위임한다. 공통 셸(설치 배너, 브랜드 헤더,
+// 뱃지, title, "앱에서 보기" 버튼, footer)은 그대로 유지하고, 본문
+// 콘텐츠 영역만 분기한다. 알 수 없는/레거시 resultType('fortune' 등)은
+// 기존 summary+highlights 범용 폴백을 그대로 사용해 하위 호환을 보장한다.
 import { useState } from "react";
+import { TarotContent } from "./content/tarot-content";
+import { FacePalmContent } from "./content/face-palm-content";
+import { RelationshipContent } from "./content/relationship-content";
+import { SajuContent } from "./content/saju-content";
+import { WishContent } from "./content/wish-content";
+import { SharePayload, asStringList } from "./content/types";
 
 type ViewState = "ok" | "not_found" | "error";
 
@@ -33,38 +48,64 @@ function tryOpenApp(shareId: string) {
   window.location.href = `fortunefusion://r/${shareId}`;
 }
 
-/** payload는 결과 타입별로 자유 형식이므로, 알려진 키만 골라 안전하게
- * 화면에 나열한다(임의 객체를 그대로 JSON.stringify해 노출하지 않음 —
- * 혹시 모를 예기치 않은 필드 노출을 방지하는 최소한의 안전장치).
- *
- * [결과 공유 링크 콘텐츠 부실 버그 수정 — 2027-01] 기존에는 summary +
- * highlights(최대 6줄)만 보여줘, 앱이 설치되지 않은 사람이 링크를 받아도
- * 결과의 극히 일부만 보고 "이게 뭐지?"하게 되는 문제가 있었다("자기 타로
- * 보고 잘 맞는다하고 지인들한테 보내는건데 받은 사람들은 이게 모지?하고
- * 하겟지" — 사용자 리포트). question/cardName(타로 전용 키)도 인식하고,
- * highlights의 6줄 상한도 제거해(서버 payload 자체가 이미 4000자
- * 상한으로 보호됨) 앱 내 [SharedResultScreen]과 동등한 정보량을
- * 비설치자에게도 그대로 전달한다. */
-type PayloadLines = {
-  question?: string;
-  cardName?: string;
-  lines: string[];
-};
+/** [하위 호환 범용 폴백] resultType이 없거나 알려지지 않은 값(레거시
+ * 'fortune' 포함)일 때만 사용한다. summary + highlights를 그대로 나열한다
+ * (서버 payload 자체가 4000자 상한으로 보호되므로 줄 수 제한은 두지 않음). */
+function GenericContent({ payload, description }: { payload: SharePayload; description?: string }) {
+  const summary = typeof payload.summary === "string" ? payload.summary : undefined;
+  const highlights = asStringList(payload.highlights) ?? [];
+  // description이 있으면 그것을 본문 리드문으로 쓰고, summary는 중복이므로
+  // highlights만 아래에 나열한다. description이 없으면 summary부터 포함.
+  const lines = description ? highlights : [...(summary ? [summary] : []), ...highlights];
 
-function renderPayloadLines(payload: unknown): PayloadLines {
-  if (!payload || typeof payload !== "object") return { lines: [] };
-  const obj = payload as Record<string, unknown>;
-  const question = typeof obj.question === "string" && obj.question ? obj.question : undefined;
-  const cardName = typeof obj.cardName === "string" && obj.cardName ? obj.cardName : undefined;
-  const lines: string[] = [];
-  if (typeof obj.summary === "string" && obj.summary) lines.push(obj.summary);
-  if (Array.isArray(obj.highlights)) {
-    for (const h of obj.highlights) {
-      if (typeof h === "string") lines.push(h);
-    }
+  return (
+    <div className="space-y-3">
+      {description && <p className="text-[14px] leading-relaxed text-[#6E5A54]">{description}</p>}
+      {lines.length > 0 && (
+        <div className="space-y-2 rounded-3xl border border-[#E8DDD0] bg-white/85 p-4 shadow-[0_4px_20px_-8px_rgba(166,121,94,0.15)]">
+          {lines.map((line, i) => (
+            <p key={i} className="text-[13.5px] leading-relaxed text-[#2A2438]">
+              {line}
+            </p>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** resultType에 따라 서비스 전용 콘텐츠 컴포넌트로 분기한다. */
+function ResultContent({
+  resultType,
+  payload,
+  description,
+}: {
+  resultType?: string;
+  payload: unknown;
+  description?: string;
+}) {
+  const safePayload: SharePayload =
+    payload && typeof payload === "object" && !Array.isArray(payload)
+      ? (payload as SharePayload)
+      : {};
+
+  switch (resultType) {
+    case "tarot":
+      return <TarotContent payload={safePayload} description={description} />;
+    case "face":
+      return <FacePalmContent payload={safePayload} partKind="face" description={description} />;
+    case "palm":
+      return <FacePalmContent payload={safePayload} partKind="palm" description={description} />;
+    case "relationship":
+      return <RelationshipContent payload={safePayload} description={description} />;
+    case "saju":
+      return <SajuContent payload={safePayload} description={description} />;
+    case "wish":
+      return <WishContent payload={safePayload} description={description} />;
+    default:
+      // 레거시 'fortune' 및 그 외 알 수 없는 값 — 범용 폴백 유지(하위 호환).
+      return <GenericContent payload={safePayload} description={description} />;
   }
-  if (typeof obj.category === "string" && obj.category) lines.push(`카테고리: ${obj.category}`);
-  return { question, cardName, lines };
 }
 
 export function SharedResultView({
@@ -72,11 +113,11 @@ export function SharedResultView({
   state,
   title,
   description,
+  resultType,
   resultTypeLabel,
   payload,
 }: SharedResultViewProps) {
   const [attemptedAppOpen, setAttemptedAppOpen] = useState(false);
-  const { question, cardName, lines: payloadLines } = renderPayloadLines(payload);
 
   if (state !== "ok") {
     return (
@@ -147,29 +188,14 @@ export function SharedResultView({
 
           <h1
             style={{ fontFamily: SERIF }}
-            className="mb-3 text-[28px] font-bold leading-[1.3] tracking-tight text-[#2A2438]"
+            className="mb-4 text-[28px] font-bold leading-[1.3] tracking-tight text-[#2A2438]"
           >
             {title}
           </h1>
-          {cardName && (
-            <p className="mb-1 text-[14px] font-bold text-[#2A2438]">카드: {cardName}</p>
-          )}
-          {question && (
-            <p className="mb-3 text-[13px] leading-relaxed text-[#8A7468]">질문: {question}</p>
-          )}
-          {description && (
-            <p className="mb-5 text-[14px] leading-relaxed text-[#6E5A54]">{description}</p>
-          )}
 
-          {payloadLines.length > 0 && (
-            <div className="mb-5 space-y-2 rounded-3xl border border-[#E8DDD0] bg-white/85 p-4 shadow-[0_4px_20px_-8px_rgba(166,121,94,0.15)]">
-              {payloadLines.map((line, i) => (
-                <p key={i} className="text-[13.5px] leading-relaxed text-[#2A2438]">
-                  {line}
-                </p>
-              ))}
-            </div>
-          )}
+          <div className="mb-5">
+            <ResultContent resultType={resultType} payload={payload} description={description} />
+          </div>
 
           <button
             onClick={() => {
