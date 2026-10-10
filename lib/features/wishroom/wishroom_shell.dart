@@ -104,7 +104,23 @@ class _WishRoomShellState extends State<WishRoomShell> {
           backgroundColor: WrC.bg2,
           body: SafeArea(
             top: false,
-            child: IndexedStack(index: _index, children: _tabs),
+            // [v2.1 §14.3 "탭 숨김·재개"/"소원방이 화면 밖으로 나가면"] IndexedStack은
+            // 비활성 탭도 트리에 계속 살려두므로, 브라우저 탭 전환(RoomScene의
+            // didChangeAppLifecycleState)만으로는 "내 소원방"이 아닌 다른 탭(탐색·
+            // 꾸미기 등)으로 전환됐을 때 RoomScene의 반복 애니메이션이 보이지 않는
+            // 곳에서도 계속 틱(tick)하는 누락이 있었다. Flutter 표준 TickerMode로
+            // 비활성 탭의 모든 AnimationController(TickerProviderStateMixin 기반,
+            // RoomScene 포함)를 muted 처리한다 — stop()과 달리 값·위상이 보존되므로
+            // 돌아왔을 때 순간이동 없이 그 자리에서 이어서 재생된다(§14.3 "긴 비활성
+            // 시간 뒤 파티클 순간이동 방지"). 앱(Android/iOS) 빌드에도 동일하게
+            // 적용되며 부작용 없이 배경 탭의 불필요한 렌더 비용만 줄어든다.
+            child: IndexedStack(
+              index: _index,
+              children: [
+                for (var i = 0; i < _tabs.length; i++)
+                  TickerMode(enabled: i == _index, child: _tabs[i]),
+              ],
+            ),
           ),
           extendBody: true,
           bottomNavigationBar: DecoratedBox(
