@@ -32,8 +32,13 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   // [알림 실제 발송 연동] 카테고리별 on/off 토글. admin_web
-  // `notification_preferences` 테이블의 04A N-3 확정 화이트리스트
-  // (marketing/fortune_update/matching/community)를 그대로 노출한다.
+  // `notification_preferences` 테이블의 화이트리스트를 그대로 노출한다.
+  // [신통방통 관리자 최종 정리 지시서 §3 "알림 관리"] "matching" 카테고리는
+  // 서버 어디서도 실제 알림을 생성하지 않는 죽은 선택지로 확인되어
+  // 서버 API(/api/public/notifications/preferences) 화이트리스트에서
+  // 제거되었다. 이 화면은 서버가 반환하는 카테고리 목록을 그대로 렌더링하는
+  // 구조이므로 별도 코드 변경 없이 "매칭 알림" 토글이 자동으로 사라진다.
+  // (marketing/fortune_update/community 3종만 노출됨)
   final _notificationPrefRepo = NotificationPreferenceRepository();
   List<NotificationPreferenceItem> _notificationPrefs = [];
   bool _notificationPrefsLoading = true;
@@ -51,7 +56,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   static const Map<String, String> _categoryLabels = {
     'community': '소원방 응원 · 댓글 · 복주머니',
     'fortune_update': '운세 업데이트',
-    'matching': '매칭 알림',
     'marketing': '이벤트 · 마케팅',
   };
 
