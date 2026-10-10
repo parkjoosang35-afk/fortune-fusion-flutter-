@@ -15,6 +15,7 @@ import '../../intro/presentation/widgets/intro_title_text.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
 import '../../wallet/application/wallet_provider.dart';
 import '../../result_access/presentation/result_access_gate_sheet.dart';
+import '../../saju_renewal/screens/birth_input_screen.dart';
 import '../application/auth_provider.dart';
 import 'widgets/auth_checkbox.dart';
 import 'widgets/auth_form_field.dart';
@@ -147,6 +148,7 @@ class _SignupScreenState extends State<SignupScreen> {
       replayPendingGuinjiJoin();
       replayPendingGuinjiOnboarding();
       replayPendingGuinjiMapEntry();
+      replayPendingSajuEntry();
     } else {
       AppToast.show(
         context,

@@ -12,6 +12,7 @@ import '../../intro/presentation/intro_text_styles.dart';
 import '../../intro/presentation/widgets/intro_title_text.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
 import '../../result_access/presentation/result_access_gate_sheet.dart';
+import '../../saju_renewal/screens/birth_input_screen.dart';
 import '../application/auth_provider.dart';
 import '../data/social_auth_service.dart';
 import 'find_email_screen.dart';
@@ -161,6 +162,7 @@ class _LoginScreenState extends State<LoginScreen> {
         replayPendingGuinjiJoin();
         replayPendingGuinjiOnboarding();
         replayPendingGuinjiMapEntry();
+        replayPendingSajuEntry();
       } else {
         AppToast.show(
           context,

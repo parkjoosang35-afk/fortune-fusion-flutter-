@@ -1,15 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/router/app_navigator_key.dart';
 import '../../../core/widgets/app_dialog.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/birthday_picker/birthday_picker_modal.dart';
 import '../../auth/application/auth_provider.dart';
 import '../data/saju_visual_adapter.dart';
+import '../domain/pending_saju_entry.dart';
 import '../state/saju_renewal_provider.dart';
 import '../theme/saju_dark_tokens.dart';
 import '../widgets/saju_base_widgets.dart';
 import '../widgets/saju_visual_widgets.dart';
 import 'calculating_screen.dart';
+
+/// [비회원 둘러보기 및 로그인 연속성 — 정통사주] 로그인 완료 후 저장된 02
+/// (출생정보 입력) 화면 재진입 요청이 있으면, 원래 입력하던 값 그대로
+/// [BirthInputScreen]으로 자동 복귀시킨다. `guinji_input_screen.dart`의
+/// [replayPendingGuinjiMapEntry]와 동일한 타이밍(로그인 화면이 '/home'으로
+/// 스택을 교체한 *다음 프레임*)에 호출해야 한다.
+void replayPendingSajuEntry() {
+  final draft = PendingSajuEntryStore.consume();
+  if (draft == null) return;
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    final navState = appNavigatorKey.currentState;
+    if (navState == null) return;
+    navState.push(
+      MaterialPageRoute(
+        builder: (_) => BirthInputScreen(initialDraft: draft),
+      ),
+    );
+  });
+}
 
 /// docs/09_기획검수_확인사항.md Q-10 "권고안대로 On"(진태양시 경도 보정
 /// 기본 적용 + 02/03 화면 안내 문구 노출)에 대응하는 국내 주요 도시 목록.
@@ -70,11 +91,17 @@ const List<String> _kBirthPlaceOptions = [
 ///   schema.prisma의 SajuFactsCache/TopicInterpretResult가 전부 birthKey
 ///   unique 기준이기 때문).
 class BirthInputScreen extends StatefulWidget {
-  const BirthInputScreen({super.key, this.isEditMode = false});
+  const BirthInputScreen({super.key, this.isEditMode = false, this.initialDraft});
 
   /// true면 "수정 모드"로 진입 — 타이틀/버튼 문구가 바뀌고, 저장 후
   /// 03(계산중)으로 강제 이동하지 않고 이전 화면으로 돌아간다.
   final bool isEditMode;
+
+  /// [비회원 둘러보기 및 로그인 연속성] 로그인 리다이렉트 전에 저장해 둔
+  /// 입력값(있으면 복원, 없으면 기존처럼 [AuthProvider.currentUser] 기준
+  /// 프리필 또는 빈 폼). `isEditMode`와는 함께 쓰이지 않는다(수정 모드는
+  /// 이미 로그인된 사용자만 진입하는 경로이므로 draft 복원이 필요 없음).
+  final SajuEntryDraft? initialDraft;
 
   @override
   State<BirthInputScreen> createState() => _BirthInputScreenState();
@@ -164,6 +191,29 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
     // 보여준다(비어있지 않은 한 그대로 쓸 수 있고, 원하면 바로 고칠 수 있음).
     if (user?.nickname != null && user!.nickname.trim().isNotEmpty) {
       _nicknameController.text = user.nickname.trim();
+    }
+
+    // [비회원 둘러보기 및 로그인 연속성 — 정통사주] 로그인 리다이렉트 전에
+    // 입력해 둔 값이 있으면(=게스트가 입력 중 로그인하러 보내진 경우),
+    // 그 값이 서버 프로필 기반 프리필보다 사용자의 "방금 직접 입력한"
+    // 최신 의도를 더 정확히 반영하므로 덮어써서 복원한다.
+    final draft = widget.initialDraft;
+    if (draft != null) {
+      BirthdayPickerTimeValue? time;
+      if (draft.timeRangeStart != null) {
+        time = _zhiTimeForHour(draft.timeRangeStart!);
+      }
+      _birthValue = BirthdayPickerValue(
+        year: draft.year,
+        month: draft.month,
+        day: draft.day,
+        weekday: DateTime(draft.year, draft.month, draft.day).weekday % 7,
+        time: time,
+      );
+      _gender = draft.gender;
+      _isLunar = draft.isLunar;
+      _birthPlace = draft.birthPlace;
+      _nicknameController.text = draft.nickname;
     }
   }
 
@@ -362,6 +412,33 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
         ? '${value.time!.rangeStart.toString().padLeft(2, '0')}:00'
         : null;
 
+    // [비회원 둘러보기 및 로그인 연속성 — 정통사주, 귀인지도 패턴 적용]
+    // 로그인 게이트를 화면 "진입 시점"(SajuRenewalHomeScreen._start())이
+    // 아니라 여기 "제출 시점"으로 옮겼다 — 게스트도 02 화면에 들어와 자유롭게
+    // 입력해볼 수 있어야 하고, 실제로 서버 저장(updateProfile)이 필요한
+    // 바로 이 순간에만 로그인을 확인한다. 비로그인이면 지금까지 입력한
+    // 값을 그대로 [PendingSajuEntryStore]에 담아 두고 `/login`으로 보낸다
+    // — 로그인/회원가입이 끝나면 [replayPendingSajuEntry]가 이 화면을
+    // 동일한 입력값으로 다시 열어준다(guinji_input_screen.dart의
+    // `_handleSubmit()` 비로그인 분기와 동일한 구조).
+    final auth = context.read<AuthProvider>();
+    if (!auth.isLoggedIn) {
+      PendingSajuEntryStore.save(
+        SajuEntryDraft(
+          nickname: nickname,
+          year: value.year,
+          month: value.month,
+          day: value.day,
+          timeRangeStart: value.time?.rangeStart,
+          gender: _gender,
+          isLunar: _isLunar,
+          birthPlace: _birthPlace,
+        ),
+      );
+      Navigator.of(context).pushNamed('/login');
+      return;
+    }
+
     // [출생정보 수정 기능] 사주 계산에 실제로 영향을 주는 값(생년월일/
     // 시간/시간모름여부/음양력)이 바뀌었는지 확인한다. 수정 모드에서
     // 이 값들이 바뀌면 서버 birthKey가 달라져 기존에 복주머니로 열어본
@@ -391,7 +468,6 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
       _nicknameError = null;
     });
 
-    final auth = context.read<AuthProvider>();
     final ok = await auth.updateProfile(
       birthDate: birthDateStr,
       birthTime: birthTimeStr,

@@ -95,13 +95,16 @@ class _SajuRenewalHomeScreenState extends State<SajuRenewalHomeScreen> {
     return timeExplicit;
   }
 
-  /// [버그 수정 — "출생정보 저장안됨" 근본 원인] 기존에는 로그인 여부를
-  /// 전혀 확인하지 않고 게스트도 곧장 02(BirthInputScreen)로 보냈다.
-  /// 02 화면에서 "사주 분석 시작하기"를 눌러 저장을 시도하면
-  /// AuthProvider.updateProfile()이 `currentUser == null`이라 항상 실패하고,
-  /// 사용자는 원인을 알 수 없는 폴백 에러만 보게 됐다. 02 화면 진입 전에
-  /// 로그인 여부를 먼저 확인해, 비로그인 사용자는 로그인/회원가입으로
-  /// 먼저 유도한다(로그인 완료 후 이 버튼을 다시 누르면 정상 진행).
+  /// [비회원 둘러보기 및 로그인 연속성 — 정통사주, 귀인지도 패턴 적용]
+  /// @deprecated 기존에는 이 함수가 02(BirthInputScreen) 진입 *전*에 로그인을
+  /// 강제해, 게스트는 사주 입력 자체를 시작조차 해볼 수 없었다. 귀인지도
+  /// (`GuinjiInputScreen._handleSubmit()`)와 동일하게, 로그인 게이트는 실제로
+  /// 서버 저장이 필요한 "제출 시점"([BirthInputScreen._submit])으로 옮겼다 —
+  /// 게스트도 02 화면에 자유롭게 들어와 입력할 수 있고, "사주 분석 시작하기"를
+  /// 눌렀을 때만 비로그인이면 입력값을 보존한 채 로그인으로 보낸다. 이 함수는
+  /// 더 이상 호출되지 않지만, 혹시 다른 곳에서 동일한 바텀시트 UX가 필요할
+  /// 경우를 위해 참고용으로 남겨둔다.
+  // ignore: unused_element
   Future<bool> _ensureLoggedIn(BuildContext context) async {
     final auth = context.read<AuthProvider>();
     if (auth.isLoggedIn) return true;
@@ -183,9 +186,12 @@ class _SajuRenewalHomeScreenState extends State<SajuRenewalHomeScreen> {
     return context.read<AuthProvider>().isLoggedIn;
   }
 
+  /// [비회원 둘러보기 및 로그인 연속성 — 정통사주, 귀인지도 패턴 적용]
+  /// 더 이상 진입 시점에 로그인을 강제하지 않는다 — 게스트도 프로필이
+  /// 당연히 미완성(`_isProfileComplete`가 false)이므로 02(BirthInputScreen)로
+  /// 바로 진행하며, 그 화면에서 자유롭게 입력할 수 있다. 로그인 필요 여부는
+  /// 02 화면의 "사주 분석 시작하기"(`_submit()`) 제출 시점에만 확인된다.
   Future<void> _start(BuildContext context) async {
-    final loggedIn = await _ensureLoggedIn(context);
-    if (!loggedIn || !context.mounted) return;
     final auth = context.read<AuthProvider>();
     final renewal = context.read<SajuRenewalProvider>();
     if (_isProfileComplete(auth.currentUser)) {
