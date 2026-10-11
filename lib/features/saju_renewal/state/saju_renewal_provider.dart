@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
+import '../../../core/api/api_result.dart';
 import '../../../core/utils/load_state.dart';
 import '../data/saju_renewal_api.dart';
 import '../data/models/topic_card.dart';
@@ -110,6 +112,24 @@ class SajuRenewalProvider extends ChangeNotifier {
   /// 수정에서는 재사용할 수 없다).
   bool _isRefreshingCandidates = false;
   bool get isRefreshingCandidates => _isRefreshingCandidates;
+
+  /// [MORE·08 버그 수정 개발지시서 2026-10-11 REQ-02/03/04] 화면⑧
+  /// "새로운 이야기" 재호출이 실패했거나(네트워크/서버 오류), 후보를 모두
+  /// 소진해 더 보여줄 이야기가 없는 상태를 화면에 알리기 위한 전용 플래그.
+  /// 기존 결함: 이 두 경우 모두 `candidates.isEmpty`로만 떨어져 "새로운
+  /// 사주 이야기를 찾고 있어요." 로딩류 문구가 재시도 수단 없이 영구히
+  /// 남아있었다(사용자 체감상 "먹통"). [_status]를 error로 바꾸지 않는
+  /// 이유는 §08 "재호출 실패가 화면 전체 전환이 아니라 그 화면 안에서
+  /// 안내+재시도로 끝나야 한다"는 요구 때문 — ErrorScreen 전체화면 전환은
+  /// 최초 진입 실패(`_loadTopics`)에만 쓴다.
+  bool _candidatesRefreshFailed = false;
+  bool get candidatesRefreshFailed => _candidatesRefreshFailed;
+
+  /// REQ-04 "후보가 소진되는 경우 모든 이야기를 다 보셨어요 안내" — 서버
+  /// 재호출까지 했는데도 후보가 0건으로 돌아온 경우에만 true가 된다(단순
+  /// 로컬 소진은 바로 서버를 재호출하므로 이 플래그와 무관).
+  bool _candidatesExhausted = false;
+  bool get candidatesExhausted => _candidatesExhausted;
 
   /// [버그 수정 — C-08b] docs/04_모션.md §4-5 "08: 카드 rise 600,
   /// i×80ms. [새로운 이야기] 시 **리스트 키 변경** → 재생." — jsx 원본
@@ -276,8 +296,18 @@ class SajuRenewalProvider extends ChangeNotifier {
   /// 미만일 때만 [_refreshCandidatesFromServer]로 서버를 재호출하되,
   /// `_status`/`_currentTopic`을 건드리지 않고 `loadPreview`도 호출하지
   /// 않는다 — 화면⑧은 그대로 머무르고 후보 목록만 갱신된다.
+  ///
+  /// [MORE·08 버그 수정 개발지시서 2026-10-11 REQ-01] "탭 횟수 제한 없이
+  /// 반복 탭 가능해야 하며, 반복 탭은 정상 사용으로 취급한다" — 재호출
+  /// 진행 중이 아니면 몇 번을 눌러도 매번 정상적으로 요청을 실행한다
+  /// (버튼 자체는 `_isRefreshingCandidates`로 재호출 중에만 비활성화).
   Future<void> refreshCandidates() async {
     if (_isRefreshingCandidates) return;
+    // [REQ-02/03] 새 시도를 시작하면 직전 실패/소진 안내는 지운다 —
+    // 재탭이 "정상 사용"으로 취급되므로 이전 실패 상태가 화면에 남아
+    // 혼동을 주면 안 된다.
+    _candidatesRefreshFailed = false;
+    _candidatesExhausted = false;
     // 지금 보여주고 있던 카드들을 "소비됨"으로 표시 — 다음 번
     // displayableCandidates 계산에서 자동으로 걸러진다.
     _shownCandidateIds.addAll(displayableCandidates.map((c) => c.topicId));
@@ -298,31 +328,81 @@ class SajuRenewalProvider extends ChangeNotifier {
   /// 보이는 카드까지 사라지는데, 명세는 "재호출 중 **버튼만**
   /// disabled"라고 못박고 있다. 대신 [_isRefreshingCandidates] 전용
   /// 플래그만 켜서 버튼만 비활성화한다.
-  Future<void> _refreshCandidatesFromServer() async {
+  ///
+  /// [MORE·08 버그 수정 개발지시서 2026-10-11 — 핵심 버그 수정]
+  /// 기존 결함(C2에 해당): 이 서버 재호출이 실패하거나(네트워크 단절 등)
+  /// 성공했는데도 후보가 0건으로 돌아오면, 화면은 여전히
+  /// `candidates.isEmpty` 분기를 그대로 타서 "새로운 사주 이야기를 찾고
+  /// 있어요." 로딩류 문구만 계속 보여주고 실패/소진을 알리는 분기 자체가
+  /// 없었다 — 재시도 수단도 없이 영구히 먹통처럼 보이는 버그(지시서
+  /// §2 "로딩 문구에 머무름").
+  ///
+  /// 수정 내용:
+  /// - REQ-02: 서버 응답을 최대 10초만 기다린다(SajuRenewalApi 자체
+  ///   타임아웃은 20초로 더 길어 UI 요구사항을 못 맞추므로, 여기서 더
+  ///   짧은 타임아웃을 별도로 덧씌운다). 10초 초과 시 반드시 로딩을
+  ///   해제하고 실패로 전환한다.
+  /// - REQ-03: 실패 시 `_status`를 error로 바꿔 전체화면 ErrorScreen으로
+  ///   내보내지 않는다 — [_candidatesRefreshFailed]만 세워 이 화면
+  ///   (MORE·08) 안에서 안내+[다시 시도]를 보여준다. 화면 전환이 없으므로
+  ///   좌상단 뒤로가기(←)는 항상 그대로 동작한다(기존 사주 결과 화면
+  ///   복귀 경로 보존).
+  /// - REQ-04: 제외 목록(`_viewedTopicIds`)까지 반영한 재호출인데도 후보가
+  ///   0건이면 "모든 이야기를 다 보셨어요" 상태로 간주해 제외 목록을
+  ///   리셋한 뒤 한 번 더 조회한다(초기화 정책). 리셋 후에도 0건이면
+  ///   (전체 후보 풀 자체가 고갈) 그 결과를 그대로 받아들여 무한 재귀를
+  ///   방지한다.
+  Future<void> _refreshCandidatesFromServer({
+    bool isExhaustionRetry = false,
+  }) async {
     if (_isRefreshingCandidates) return;
     _isRefreshingCandidates = true;
     notifyListeners();
 
-    final result = await _api.selectTopics(
-      excludeTopicIds: _viewedTopicIds.isEmpty
-          ? null
-          : _viewedTopicIds.toList(),
-    );
-    _isRefreshingCandidates = false;
+    ApiResult<TopicsSelectResult> result;
+    try {
+      result = await _api
+          .selectTopics(
+            excludeTopicIds: _viewedTopicIds.isEmpty
+                ? null
+                : _viewedTopicIds.toList(),
+          )
+          .timeout(const Duration(seconds: 10));
+    } on TimeoutException {
+      debugPrint(
+        '[SajuRenewalProvider] [refreshCandidates] 10초 초과 -> 실패 안내 전환',
+      );
+      _isRefreshingCandidates = false;
+      _candidatesRefreshFailed = true;
+      notifyListeners();
+      return;
+    }
 
     if (!result.success) {
-      _errorMessage = _friendlyErrorMessage(
-        result.errorCode,
-        result.errorMessage,
+      debugPrint(
+        '[SajuRenewalProvider] [refreshCandidates] 실패 -> ${result.errorMessage}',
       );
-      _errorReason = result.errorCode;
-      _status = SajuRenewalFlowStatus.error;
+      _isRefreshingCandidates = false;
+      _candidatesRefreshFailed = true;
       notifyListeners();
+      return;
+    }
+
+    final newCandidates = result.data!.candidates;
+    if (newCandidates.isEmpty && !isExhaustionRetry) {
+      // [REQ-04] 제외 목록까지 적용했는데도 후보 0건 — "모든 이야기를
+      // 다 보셨어요" 상태. 제외 목록을 리셋해 처음부터 다시 보여줄 수
+      // 있도록 한 번 더 조회한다.
+      _candidatesExhausted = true;
+      _viewedTopicIds.clear();
+      _isRefreshingCandidates = false;
+      await _refreshCandidatesFromServer(isExhaustionRetry: true);
       return;
     }
 
     // 새로 받은 후보 풀로 교체 — 이번 풀은 아직 한 번도 소비된 적이
     // 없으므로 [_shownCandidateIds]를 비워 처음부터 다시 센다.
+    _isRefreshingCandidates = false;
     _topicsState = LoadState.success(result.data!);
     _shownCandidateIds.clear();
     notifyListeners();
@@ -551,6 +631,11 @@ class SajuRenewalProvider extends ChangeNotifier {
   /// (서버 자동 선조회는 하지 않는다 — 사용자가 명시적으로 요청했을
   /// 때만 네트워크를 쓴다는 기존 원칙 유지).
   void showMoreTopics() {
+    // [MORE·08 버그 수정 개발지시서 2026-10-11] 이전에 08을 방문했을 때
+    // 남겨진 실패/소진 안내가 이번 재진입에도 그대로 보이면 혼동을 주므로
+    // 화면③⑦에서 새로 08로 들어올 때마다 지운다.
+    _candidatesRefreshFailed = false;
+    _candidatesExhausted = false;
     _setStatus(SajuRenewalFlowStatus.moreTopics);
   }
 
@@ -598,6 +683,8 @@ class SajuRenewalProvider extends ChangeNotifier {
     _isDetailLoading = false;
     _isTopicsLoading = false;
     _isRefreshingCandidates = false;
+    _candidatesRefreshFailed = false;
+    _candidatesExhausted = false;
     notifyListeners();
   }
 
@@ -615,6 +702,8 @@ class SajuRenewalProvider extends ChangeNotifier {
     _shownCandidateIds.clear();
     _candidateBatch = 0;
     _topicOrder.clear();
+    _candidatesRefreshFailed = false;
+    _candidatesExhausted = false;
     notifyListeners();
   }
 }

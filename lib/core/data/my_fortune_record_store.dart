@@ -96,6 +96,14 @@ class MyFortuneRecordStore {
     return all.where((e) => e.categoryLabel == categoryLabel).toList();
   }
 
+  /// [MORE·08 저장 기능 개발지시서 2026-10-11 REQ-07] 동일 id 레코드가 이미
+  /// 저장돼 있는지 확인한다 — 호출부가 "이미 저장된 이야기예요." 중복 안내를
+  /// 내보낼지 판단하는 용도. 신규 저장소를 만들지 않고 기존 [list]를 재사용.
+  static Future<bool> exists(String id) async {
+    final all = await list();
+    return all.any((e) => e.id == id);
+  }
+
   /// 이미 같은 id가 있으면 갱신, 없으면 새로 추가.
   static Future<void> save(SavedFortuneRecord record) async {
     final prefs = await SharedPreferences.getInstance();
