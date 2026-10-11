@@ -2,25 +2,32 @@
 // [신통방통_귀인지도_최종_개발계획서_v2.0.md §6-5] `POST /guinji/unlocks`.
 //
 // [흐름] S6 "이 관계, 어떻게 대해야 할까" 잠금 카드에서 지도 소유자(owner)가
-// 특정 멤버의 스페셜 해설을 해금한다. 해금 경로는 2가지:
-//   - method="ad"  : 리워드 광고 1회 시청 완료 → 해금 (포인트 차감 없음)
-//   - method="point": 복주머니 50P 차감 → 해금 (PointPolicy 'guinji_unlock_special')
+// 특정 멤버의 스페셜 해설을 해금한다. 해금 경로는 3가지:
+//   - method="ad"      : 리워드 광고 1회 시청 완료 → 해금 (포인트 차감 없음)
+//   - method="point"   : 복주머니 50P 차감 → 해금 (PointPolicy 'guinji_unlock_special')
+//   - method="freepass": 프리패스 1회 차감 → 해금 [핸드오프 06 결제 시트 3택
+//     이식, 2026-12] 프리패스는 콘텐츠 종류와 무관한 전역 자산(UserPass)이라,
+//     §8.1 공통화 원칙에 따라 result-access-service.ts의
+//     consumeFreePassOnce()를 그대로 재사용한다(귀인지도 전용 프리패스
+//     차감 로직을 새로 만들지 않음 — 잔액/소비 단위가 전역과 완전히 동일).
 // [M12] 멱등: unlock_record.@@unique([userId, memberId])로 "멤버당 1회만 해금"을
 //   구조적으로 보장 — 이미 해금된 멤버 재요청은 에러가 아니라 unlocked:true를
-//   그대로 반환한다(중복 과금/중복 광고 방지).
+//   그대로 반환한다(중복 과금/중복 광고/중복 프리패스 차감 방지).
 // [일 5회 한도] PointPolicy('guinji_unlock_special').dailyLimit(=5)을 기준으로
-//   오늘(KST) 신규 해금 건수를 카운트해 초과 시 429.
+//   오늘(KST) 신규 해금 건수를 카운트해 초과 시 429(freepass 포함 모든 방식 공통).
 //
 // [권한] 스페셜 해설은 "내 지도"의 관계를 보는 기능(S6는 owner 전용 화면)이므로
 // member.map.ownerId === 요청자여야 한다(타인 지도 멤버 해금 시도는 FORBIDDEN).
 //
-// [요청] {memberId: "m_xxx", method: "ad"|"point"}
-// [응답] {unlocked: true, remainingToday: number}
+// [요청] {memberId: "m_xxx", method: "ad"|"point"|"freepass"}
+// [응답] {unlocked: true, remainingToday: number, freePassRemaining?: number}
 // [에러 매핑] MEMBER_NOT_FOUND(404) / FORBIDDEN(403) / LIMIT_REACHED(429)
 //   / INSUFFICIENT_BALANCE(400, point 방식 잔액 부족)
+//   / NO_FREEPASS_BALANCE(403, freepass 방식인데 보유 프리패스 없음)
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { spendLuckPouch } from "@/lib/luck-pouch-engine";
+import { consumeFreePassOnce } from "@/lib/result-access-service";
 import {
   CORS_HEADERS,
   CORS_HEADERS_WITH_AUTH,
@@ -55,7 +62,14 @@ export async function POST(request: NextRequest) {
   }
 
   const memberDbId = body.memberId ? parseGuinjiMemberDbId(body.memberId) : null;
-  const method = body.method === "point" ? "point" : body.method === "ad" ? "ad" : null;
+  const method =
+    body.method === "point"
+      ? "point"
+      : body.method === "ad"
+        ? "ad"
+        : body.method === "freepass"
+          ? "freepass"
+          : null;
 
   if (memberDbId === null || method === null) {
     return NextResponse.json(
@@ -108,6 +122,7 @@ export async function POST(request: NextRequest) {
       // 리워드 광고 시청 완료 콜백을 마친 뒤 이 API를 호출한다고 신뢰한다(광고 SDK
       // 서버측 콜백 검증 자체는 이번 Phase 범위 밖 — fortune_ad_watch_logs 패턴과
       // 동일 수준의 세션 검증은 후속 Phase 과제로 남긴다).
+      let freePassRemaining: number | undefined;
       if (method === "point" && unlockAmount > 0) {
         const spendResult = await spendLuckPouch(tx, {
           userId: auth.userId,
@@ -119,6 +134,14 @@ export async function POST(request: NextRequest) {
         if (!spendResult.ok) {
           throw new Error("INSUFFICIENT_BALANCE");
         }
+      } else if (method === "freepass") {
+        // [핸드오프 06 결제 시트 ① 프리패스로 보기] 전역 UserPass에서 1회 소비.
+        // 레거시 시간제 패스가 활성 상태면 차감 없이 통과(§9.2 기존 회원 보존).
+        const consumed = await consumeFreePassOnce(tx, auth.userId);
+        if (!consumed.ok) {
+          throw new Error("NO_FREEPASS_BALANCE");
+        }
+        freePassRemaining = consumed.remainingAfter;
       }
 
       await tx.guinjiUnlockRecord.create({
@@ -130,11 +153,24 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      return { alreadyUnlocked: false, remainingToday: Math.max(0, dailyLimit - (todayCount + 1)) };
+      return {
+        alreadyUnlocked: false,
+        remainingToday: Math.max(0, dailyLimit - (todayCount + 1)),
+        freePassRemaining,
+      };
     });
 
     return NextResponse.json(
-      { success: true, data: { unlocked: true, remainingToday: outcome.remainingToday } },
+      {
+        success: true,
+        data: {
+          unlocked: true,
+          remainingToday: outcome.remainingToday,
+          ...(outcome.freePassRemaining !== undefined
+            ? { freePassRemaining: outcome.freePassRemaining }
+            : {}),
+        },
+      },
       { headers: CORS_HEADERS }
     );
   } catch (e) {
@@ -144,6 +180,7 @@ export async function POST(request: NextRequest) {
       FORBIDDEN: { status: 403, error: "내 지도의 관계만 해금할 수 있어요." },
       LIMIT_REACHED: { status: 429, error: "오늘의 해금 횟수를 모두 사용했어요." },
       INSUFFICIENT_BALANCE: { status: 400, error: "복주머니가 부족해요." },
+      NO_FREEPASS_BALANCE: { status: 403, error: "사용 가능한 프리패스가 없어요." },
     };
     const mapped = errorMap[message];
     if (mapped) {

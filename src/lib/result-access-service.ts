@@ -177,8 +177,13 @@ export async function findResultAccessTransaction(transactionId: string) {
  *
  * updateMany(where remainingCount > 0)의 count로 동시성 충돌을 감지해 재시도하는
  * 패턴은 fortune-ad-service.ts의 PENDING→COMPLETED 원자적 전환과 동일하다.
+ *
+ * [귀인지도 프리패스 해금 연동, 2026-12] `/api/public/guinji/unlocks`
+ * (method="freepass")가 §8.1 공통화 원칙에 따라 이 함수를 그대로 재사용할 수
+ * 있도록 export한다 — 귀인지도 전용 프리패스 소비 로직을 별도로 만들지 않는다.
+ * 프리패스는 콘텐츠 종류와 무관한 전역 자산(UserPass)이므로 안전하게 공유 가능.
  */
-async function consumeFreePassOnce(
+export async function consumeFreePassOnce(
   tx: Tx,
   userId: number
 ): Promise<{ ok: boolean; userPassId: number | null; remainingAfter?: number }> {
