@@ -68,9 +68,18 @@ class MyFortuneRecordStore {
 
   static const _key = 'my_fortune_records_v1';
 
-  static Future<List<SavedFortuneRecord>> list() async {
+  /// [MORE·08 버그 수정 개발지시서 2026-10-11 REQ-08] 비로그인(게스트)
+  /// 상태에서 저장한 기록을 담는 별도 버킷. 기본안(8절 Q2)은 "기기 로컬
+  /// 저장 후 로그인 시 히스토리로 이관(동기화)"이므로, 게스트 저장을
+  /// 곧바로 메인 저장소([_key])에 섞지 않고 이 임시 버킷에 모아둔다 —
+  /// 그래야 로그인 전까지는 "내 기록"이 아니라 "이 기기에 임시로 남은
+  /// 기록"으로 명확히 구분되고, 로그인 시 [migrateGuestRecordsToAccount]가
+  /// 안전하게 메인 저장소로 옮길 수 있다.
+  static const _guestKey = 'my_fortune_records_guest_v1';
+
+  static Future<List<SavedFortuneRecord>> _readKey(String key) async {
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getStringList(_key) ?? const [];
+    final raw = prefs.getStringList(key) ?? const [];
     return raw
         .map((e) {
           try {
@@ -82,8 +91,23 @@ class MyFortuneRecordStore {
           }
         })
         .whereType<SavedFortuneRecord>()
-        .toList()
-      ..sort((a, b) => b.savedAt.compareTo(a.savedAt));
+        .toList();
+  }
+
+  static Future<void> _writeKey(
+    String key,
+    List<SavedFortuneRecord> records,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(
+      key,
+      records.map((e) => jsonEncode(e.toJson())).toList(),
+    );
+  }
+
+  static Future<List<SavedFortuneRecord>> list() async {
+    final all = await _readKey(_key);
+    return all..sort((a, b) => b.savedAt.compareTo(a.savedAt));
   }
 
   /// [마이페이지 리뉴얼 · 2026-10-11] 사주 히스토리 목록 화면에서 "사주"
@@ -98,47 +122,85 @@ class MyFortuneRecordStore {
 
   /// [MORE·08 저장 기능 개발지시서 2026-10-11 REQ-07] 동일 id 레코드가 이미
   /// 저장돼 있는지 확인한다 — 호출부가 "이미 저장된 이야기예요." 중복 안내를
-  /// 내보낼지 판단하는 용도. 신규 저장소를 만들지 않고 기존 [list]를 재사용.
-  static Future<bool> exists(String id) async {
+  /// 내보낼지 판단하는 용도.
+  ///
+  /// [REQ-08] `includeGuest`가 true(기본값)면 게스트 버킷도 함께 확인한다 —
+  /// 비로그인 상태로 같은 이야기를 두 번 저장하려 할 때도 "이미 저장된
+  /// 이야기예요."가 정상적으로 뜨도록 한다(REQ-07과 REQ-08의 상호작용).
+  static Future<bool> exists(String id, {bool includeGuest = true}) async {
     final all = await list();
-    return all.any((e) => e.id == id);
+    if (all.any((e) => e.id == id)) return true;
+    if (!includeGuest) return false;
+    final guest = await _readKey(_guestKey);
+    return guest.any((e) => e.id == id);
   }
 
   /// 이미 같은 id가 있으면 갱신, 없으면 새로 추가.
-  static Future<void> save(SavedFortuneRecord record) async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getStringList(_key) ?? const [];
-    final list = raw
-        .map((e) {
-          try {
-            return SavedFortuneRecord.fromJson(
-              jsonDecode(e) as Map<String, dynamic>,
-            );
-          } catch (_) {
-            return null;
-          }
-        })
-        .whereType<SavedFortuneRecord>()
-        .where((e) => e.id != record.id)
-        .toList();
+  ///
+  /// [MORE·08 버그 수정 개발지시서 2026-10-11 REQ-08] `asGuest: true`로
+  /// 호출하면 메인 저장소가 아니라 게스트 임시 버킷([_guestKey])에 쓴다 —
+  /// 호출부(`more_stories_screen.dart`)가 저장 시점의 로그인 상태에 따라
+  /// 분기한다. 기본값(false)은 기존 동작(로그인 사용자의 정상 저장)과
+  /// 완전히 동일하므로 다른 호출부(타로/관상/손금 등) 동작은 바뀌지 않는다.
+  static Future<void> save(
+    SavedFortuneRecord record, {
+    bool asGuest = false,
+  }) async {
+    final key = asGuest ? _guestKey : _key;
+    final list = (await _readKey(key)).where((e) => e.id != record.id).toList();
     list.insert(0, record);
-    await prefs.setStringList(
-      _key,
-      list.map((e) => jsonEncode(e.toJson())).toList(),
-    );
+    await _writeKey(key, list);
   }
 
   static Future<void> remove(String id) async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getStringList(_key) ?? const [];
-    final filtered = raw.where((e) {
-      try {
-        final json = jsonDecode(e) as Map<String, dynamic>;
-        return json['id'] != id;
-      } catch (_) {
-        return true;
-      }
-    }).toList();
-    await prefs.setStringList(_key, filtered);
+    final list = (await _readKey(_key)).where((e) => e.id != id).toList();
+    await _writeKey(_key, list);
+  }
+
+  /// [MORE·08 버그 수정 개발지시서 2026-10-11 REQ-08 — 기본안 "기기 로컬
+  /// 저장 후 로그인 시 히스토리로 이관(동기화)"]
+  ///
+  /// 게스트 버킷([_guestKey])에 쌓인 기록을 로그인 성공 직후 메인
+  /// 저장소([_key])로 옮긴다. `AuthProvider.login`/`signup`/
+  /// `loginWithSocial`이 성공한 직후 호출하는 것을 전제로 한다(로그아웃 시
+  /// 호출 대상이 아님 — 로그아웃 콜백과는 반대 방향).
+  ///
+  /// 이관 규칙:
+  /// - 게스트 버킷에 있던 레코드를 메인 저장소로 병합한다. 동일 id가 메인
+  ///   저장소에 이미 있으면(예: 같은 기기에서 로그인 상태로 한 번 저장한
+  ///   뒤 로그아웃하고 같은 이야기를 게스트로 다시 저장한 드문 경우)
+  ///   **게스트 쪽을 버리고 기존 메인 레코드를 그대로 유지**한다 — 로그인
+  ///   사용자가 서버에 이미 가진 정식 기록을 게스트 임시 기록으로
+  ///   덮어쓰지 않기 위함(데이터 손실 방지 원칙).
+  /// - 이관이 끝나면 게스트 버킷은 비운다(같은 기기에서 다른 계정으로 또
+  ///   로그인했을 때 앞선 손님 기록이 새 계정으로 잘못 이관되지 않도록).
+  /// - 게스트 버킷이 비어 있으면(가장 흔한 경우) 아무 작업도 하지 않고
+  ///   조용히 반환한다.
+  ///
+  /// 반환값: 실제로 이관된 레코드 수(0이면 호출부가 토스트 등 후속 UX를
+  /// 생략할 수 있음).
+  static Future<int> migrateGuestRecordsToAccount() async {
+    final guestRecords = await _readKey(_guestKey);
+    if (guestRecords.isEmpty) return 0;
+
+    final mainRecords = await _readKey(_key);
+    final mainIds = mainRecords.map((e) => e.id).toSet();
+    final toMigrate = guestRecords.where((e) => !mainIds.contains(e.id));
+
+    final merged = [...mainRecords, ...toMigrate]
+      ..sort((a, b) => b.savedAt.compareTo(a.savedAt));
+
+    await _writeKey(_key, merged);
+    await _writeKey(_guestKey, const []); // 게스트 버킷 비우기(계정 혼선 방지).
+
+    return merged.length - mainRecords.length;
+  }
+
+  /// [REQ-08 보조] 현재 기기에 이관 대기 중인 게스트 기록이 있는지(배지
+  /// 노출 등에 쓸 수 있도록 공개 — 당장은 내부 로직에서만 쓰여도 향후
+  /// UI에서 활용 가능하도록 공개 API로 둔다).
+  static Future<bool> hasPendingGuestRecords() async {
+    final guest = await _readKey(_guestKey);
+    return guest.isNotEmpty;
   }
 }

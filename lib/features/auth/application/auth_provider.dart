@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../../../core/data/my_fortune_record_store.dart';
 import '../../../core/utils/load_state.dart';
 import '../data/auth_repository.dart';
 import '../data/grade_repository.dart';
@@ -83,6 +84,30 @@ class AuthProvider extends ChangeNotifier {
     _currentGrade = await _gradeRepository.getGradeByCode(user.grade);
   }
 
+  /// [MORE·08 버그 수정 개발지시서 2026-10-11 REQ-08 — 8절 Q2 기본안
+  /// "기기 로컬 저장 후 로그인 시 히스토리로 이관(동기화)"]
+  ///
+  /// 로그인/회원가입/소셜로그인이 **성공**한 직후(= `_state`가
+  /// `LoadState.success`로 바뀐 바로 다음) 호출해, 이 기기에 비로그인
+  /// 상태로 저장돼 있던 사주 이야기 기록
+  /// ([MyFortuneRecordStore]의 게스트 버킷)을 방금 로그인한 계정의 정식
+  /// 히스토리로 옮긴다. 실패해도(예: SharedPreferences 접근 오류) 로그인
+  /// 자체를 막아서는 안 되므로 예외를 삼키고 디버그 로그만 남긴다 —
+  /// 저장/이관은 로그인 플로우의 필수 조건이 아닌 부가 기능이다.
+  Future<void> _migrateGuestFortuneRecords() async {
+    try {
+      final migrated =
+          await MyFortuneRecordStore.migrateGuestRecordsToAccount();
+      if (kDebugMode && migrated > 0) {
+        debugPrint('[AuthProvider] REQ-08: 게스트 사주 기록 $migrated건 이관 완료');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[AuthProvider] REQ-08: 게스트 기록 이관 실패(무시): $e');
+      }
+    }
+  }
+
   Future<void> restoreSession() async {
     _state = const LoadState.loading();
     notifyListeners();
@@ -119,6 +144,7 @@ class AuthProvider extends ChangeNotifier {
       await _loadGrade(result.data!);
       _state = LoadState.success(result.data!);
       notifyListeners();
+      await _migrateGuestFortuneRecords(); // [REQ-08]
       return true;
     }
     _state = LoadState.error(result.errorMessage ?? '회원가입에 실패했습니다.');
@@ -134,6 +160,7 @@ class AuthProvider extends ChangeNotifier {
       await _loadGrade(result.data!);
       _state = LoadState.success(result.data!);
       notifyListeners();
+      await _migrateGuestFortuneRecords(); // [REQ-08]
       return true;
     }
     _state = LoadState.error(result.errorMessage ?? '로그인에 실패했습니다.');
@@ -157,6 +184,7 @@ class AuthProvider extends ChangeNotifier {
       await _loadGrade(result.data!);
       _state = LoadState.success(result.data!);
       notifyListeners();
+      await _migrateGuestFortuneRecords(); // [REQ-08]
       return true;
     }
     _state = LoadState.error(result.errorMessage ?? '로그인에 실패했습니다.');

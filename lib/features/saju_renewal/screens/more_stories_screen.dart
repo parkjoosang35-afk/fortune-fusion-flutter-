@@ -4,6 +4,7 @@ import '../../../core/data/my_fortune_record_store.dart';
 import '../../../core/web_ads/web_ad_config.dart';
 import '../../../core/web_ads/widgets/web_ad_in_page.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../../auth/application/auth_provider.dart';
 import '../data/models/topic_card.dart';
 import '../state/saju_renewal_provider.dart';
 import '../theme/saju_dark_tokens.dart';
@@ -106,18 +107,34 @@ class _MoreStoriesScreenState extends State<MoreStoriesScreen> {
   /// 상세까지 열람해 다시 저장할 때 새 레코드가 아니라 기존 레코드가
   /// 갱신되므로(저장소의 "같은 id면 갱신" 정책), 중복 항목 없이 정합성이
   /// 유지된다(REQ-06 "동일한 저장 규격 사용").
+  ///
+  /// [MORE·08 버그 수정 개발지시서 2026-10-11 REQ-08 — 8절 Q2 기본안
+  /// "기기 로컬 저장 후 로그인 시 히스토리로 이관(동기화)"] 비로그인
+  /// 상태에서도 저장 버튼은 동일하게 동작하되(로그인 유도 팝업으로
+  /// 막지 않음 — 사주 분석 자체의 비회원 둘러보기 원칙과 동일 기조),
+  /// 결과를 메인 저장소가 아니라 게스트 임시 버킷에 담는다
+  /// (`MyFortuneRecordStore.save(asGuest: true)`). 이후 로그인/회원가입에
+  /// 성공하면 `AuthProvider.login`/`signup`/`loginWithSocial`이
+  /// [MyFortuneRecordStore.migrateGuestRecordsToAccount]를 호출해 이
+  /// 임시 기록을 계정의 정식 히스토리로 옮긴다(REQ-08 동기화 로직 본체는
+  /// auth_provider.dart에 있다 — 이 화면은 "게스트면 임시 버킷에 쓴다"는
+  /// 저장 시점 분기만 담당). 중복 저장 판정(REQ-07)은 게스트/로그인 버킷을
+  /// 모두 확인하는 [MyFortuneRecordStore.exists]의 기본 동작을 그대로
+  /// 사용한다.
   Future<void> _toggleSave(TopicCard candidate, SajuScene scene) async {
     final id = 'saju_${candidate.topicId}';
     if (_savingTopicIds.contains(id)) return;
     setState(() => _savingTopicIds.add(id));
     try {
-      // [REQ-07] 이미 저장된 이야기면 추가 생성하지 않고 안내만 한다.
+      // [REQ-07] 이미 저장된 이야기면(게스트 버킷 포함) 추가 생성하지
+      // 않고 안내만 한다.
       final already = await MyFortuneRecordStore.exists(id);
       if (!mounted) return;
       if (already) {
         AppToast.show(context, '이미 저장된 이야기예요.');
         return;
       }
+      final isGuest = !context.read<AuthProvider>().isLoggedIn;
       await MyFortuneRecordStore.save(
         SavedFortuneRecord(
           id: id,
@@ -129,9 +146,16 @@ class _MoreStoriesScreenState extends State<MoreStoriesScreen> {
           date: DateTime.now(),
           savedAt: DateTime.now(),
         ),
+        asGuest: isGuest,
       );
       if (!mounted) return;
-      AppToast.show(context, '저장되었어요.');
+      // [REQ-08] 게스트는 "이 기기에만" 저장됐음과 로그인 시 자동으로
+      // 보관된다는 점을 짧게 안내한다 — 로그인 사용자의 기존 문구("저장
+      // 되었어요.")는 그대로 유지한다(동작 변화 없음 요구사항).
+      AppToast.show(
+        context,
+        isGuest ? '이 기기에 저장했어요. 로그인하면 계정에 보관돼요.' : '저장되었어요.',
+      );
     } finally {
       if (mounted) setState(() => _savingTopicIds.remove(id));
     }
