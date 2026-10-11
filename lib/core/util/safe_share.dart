@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
@@ -81,10 +81,19 @@ Future<void> safeShareText(
   try {
     final result = await Share.share(text, subject: subject);
     if (result.status == ShareResultStatus.unavailable) {
+      if (kDebugMode) {
+        debugPrint('[safeShareText] Share.share() unavailable — 클립보드로 폴백');
+      }
       if (!context.mounted) return;
       await copyAndToast(copiedMessage);
     }
-  } catch (_) {
+  } catch (e) {
+    // [2026-12 버그수정 — guinji-invite-fix 지시서 R3] 이전에는 모든 예외를
+    // 무음으로 삼켰다. 디버그 빌드에서만 원인을 남기고, 사용자에게 보여주는
+    // 동작(클립보드 폴백 + 토스트)은 그대로 유지한다.
+    if (kDebugMode) {
+      debugPrint('[safeShareText] Share.share() 실패: $e — 클립보드로 폴백');
+    }
     if (!context.mounted) return;
     await copyAndToast(failedMessage);
   }

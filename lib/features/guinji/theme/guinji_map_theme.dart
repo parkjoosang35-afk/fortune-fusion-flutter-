@@ -19,6 +19,17 @@ class GmColors {
   static const mapLine = Color(0x38FFFFFF); // 지도 방사선 22%
   static const mapWeb  = Color(0x1AFFFFFF); // 같은 유형 이웃선 10%
   static const danger  = Color(0xFFEF7A55); // 삭제 · 공유 중단
+
+  // [2026-12 버그수정 — 귀인지도 공유 화면 공유옵션 대비 문제]
+  // `fg`/`muted`는 다크 배경(`bg`/`card`/`sheet`) 전용 글자색으로 설계됐다.
+  // 공유 화면의 "문자(SMS)로 공유"/"더보기" 버튼은 카카오 버튼과 레이아웃을
+  // 맞추려고 컨테이너 배경을 `Colors.white`(흰색)로 하드코딩했는데, 글자색은
+  // 그대로 `fg`(#F2F0EC, 거의 흰색)/`muted`(#F2F0EC 52%)를 썼다 — 흰 배경 위에
+  // 거의 흰 글자라 실측 대비 1.34~3.20:1로 WCAG AA(4.5:1) 미달, 사용자가
+  // "글씨가 안 보인다"고 리포트. 흰(라이트) 배경 전용 글자색을 별도로 정의해
+  // 이런 라이트 카드에서만 사용한다(다크 배경 쪽 `fg`/`muted`는 그대로 유지).
+  static const fgOnLight    = Color(0xFF2A2438); // 라이트 카드 제목 — 대비 ~13.6:1
+  static const mutedOnLight = Color(0xFF6E5A54); // 라이트 카드 설명 — 대비 ~5.2:1
 }
 
 class GmText {

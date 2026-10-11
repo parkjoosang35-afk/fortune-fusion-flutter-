@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kakao_flutter_sdk_share/kakao_flutter_sdk_share.dart';
@@ -71,7 +71,13 @@ Future<void> shareGuinjiMapInvite(
   Future<bool> tryLaunch(Uri uri) async {
     try {
       return await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } catch (_) {
+    } catch (e) {
+      // [2026-12 버그수정 — guinji-invite-fix 지시서 R3] 이전에는 실패를
+      // 완전히 무음으로 삼켜서 "왜 안 열리는지" 원인 추적이 불가능했다.
+      // 디버그 빌드에서만 원인을 로그로 남긴다(릴리즈에는 영향 없음).
+      if (kDebugMode) {
+        debugPrint('[GuinjiShare] launchUrl($uri) 실패: $e');
+      }
       return false;
     }
   }
@@ -117,13 +123,27 @@ Future<void> shareGuinjiMapInvite(
       if (!kIsWeb) {
         try {
           final available = await ShareClient.instance.isKakaoTalkSharingAvailable();
-          if (available) {
+          if (!available) {
+            if (kDebugMode) {
+              debugPrint('[GuinjiShare] 카카오톡 미설치/공유 불가 — 공통 폴백으로 전환');
+            }
+          } else {
             await ShareClient.instance.shareDefault(
               template: guinjiInviteTemplate(host: hostName ?? '친구', token: token),
             );
             return;
           }
-        } catch (_) {
+        } catch (e) {
+          // [2026-12 버그수정 — guinji-invite-fix 지시서 R3] "카카오톡
+          // 공유 실패" 리포트의 원인 추적을 위해 디버그 빌드에서 예외를
+          // 로그로 남긴다. 흔한 원인: JS 키 미등록/플랫폼 도메인 미등록,
+          // SDK 미초기화(KakaoSdk.init 누락/중복 호출), FeedTemplate
+          // 파라미터 오류(이미지 URL 접근 불가 등) — PDF 6단계 체크리스트
+          // 참고. 사용자에게는 여전히 조용히 아래 공통 폴백(클립보드 복사
+          // 등)으로 넘어간다 — UX는 바꾸지 않는다.
+          if (kDebugMode) {
+            debugPrint('[GuinjiShare] 카카오톡 공유 실패: $e — 공통 폴백으로 전환');
+          }
           // 카카오톡 미설치/전송 실패 — 아래 공통 폴백으로 넘어간다.
         }
       }
@@ -335,8 +355,6 @@ class _GuinjiMapShareScreenState extends State<GuinjiMapShareScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final remaining = (widget.retentionGoal - widget.joinedCount).clamp(0, widget.retentionGoal);
-
     return Scaffold(
       backgroundColor: GmColors.bg,
       appBar: GmTopBar(back: true, title: '친구 초대'),
@@ -410,15 +428,16 @@ class _GuinjiMapShareScreenState extends State<GuinjiMapShareScreen> {
                   onTap: widget.onMoreShare,
                 ),
 
-                const SizedBox(height: 16),
-                _RetentionBanner(
-                  goal: widget.retentionGoal,
-                  joined: widget.joinedCount,
-                  remaining: remaining,
-                  reached: widget.milestoneReached,
-                  rewardPoint: widget.milestoneRewardPoint,
-                ),
-
+                // [2026-12 버그수정 — guinji-invite-fix 지시서 R2] "N명
+                // 모으면 축하 이벤트가 열려요" 배너(`_RetentionBanner`)의
+                // UI 렌더링만 제거한다. 참여자 카운트 집계(`joinedCount`,
+                // `GuinjiProvider.people.length`)와 실제 마일스톤 보상
+                // 지급(서버 `milestoneJustReached` → 결과 화면
+                // `_maybeShowMilestoneCelebration()` 축하 다이얼로그 +
+                // 복주머니 지급)은 이 배너와 완전히 별개의 경로이므로 전혀
+                // 영향받지 않는다 — 이 화면에서 "모으는 중" 안내 문구만
+                // 사라질 뿐, 집계/보상 로직은 그대로 유지된다.
+                //
                 // [2026-12 사용자 지시로 삭제] 이전에 핸드오프 `AppShareSheet`
                 // invite 모드의 "+20P" 배너를 1:1 이식했으나, 신통방통에는
                 // "P(포인트)" 단위 자체가 존재하지 않는다(재화는 "복주머니"
@@ -773,7 +792,11 @@ class _ShareOption extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(icon, size: 22, color: iconColor ?? GmColors.fg),
+            // [2026-12 버그수정] 카카오(bg != null)는 기존처럼 전용 진한
+            // 갈색(#3A1D1D)을 쓰고, SMS/더보기(bg == null, 흰 카드)는
+            // 다크 배경 전용 `GmColors.fg`가 아니라 라이트 카드 전용
+            // `fgOnLight`을 써야 대비가 확보된다.
+            Icon(icon, size: 22, color: iconColor ?? GmColors.fgOnLight),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -784,7 +807,7 @@ class _ShareOption extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13.5,
                       fontWeight: FontWeight.w700,
-                      color: isKakao ? const Color(0xFF3A1D1D) : GmColors.fg,
+                      color: isKakao ? const Color(0xFF3A1D1D) : GmColors.fgOnLight,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -792,7 +815,7 @@ class _ShareOption extends StatelessWidget {
                     desc,
                     style: TextStyle(
                       fontSize: 10.5,
-                      color: isKakao ? const Color(0xFF3A1D1D).withValues(alpha: 0.7) : GmColors.muted,
+                      color: isKakao ? const Color(0xFF3A1D1D).withValues(alpha: 0.7) : GmColors.mutedOnLight,
                     ),
                   ),
                 ],
@@ -805,88 +828,12 @@ class _ShareOption extends StatelessWidget {
   }
 }
 
-/// [친구 초대 마일스톤 실기능화] 기존에는 "N명 모으면 축하 이벤트가
-/// 열려요"라는 문구만 있고 실제로 연결된 기능이 전혀 없던 순수 장식
-/// 배너였다("3명 모이면 이벤트가 있어요는 도대체 뭐야?" 사용자 지적).
-/// 이제 서버가 실제로 복주머니 30개를 지급하는 마일스톤과 연동해, 달성 여부에 따라
-/// 문구와 아이콘이 전환된다.
-class _RetentionBanner extends StatelessWidget {
-  const _RetentionBanner({
-    required this.goal,
-    required this.joined,
-    required this.remaining,
-    this.reached = false,
-    this.rewardPoint = 0,
-  });
-
-  final int goal;
-  final int joined;
-  final int remaining;
-
-  /// 이미 목표 인원에 도달했는지(서버 `GuinjiProvider.milestoneReached`).
-  final bool reached;
-
-  /// 마일스톤 보너스 복주머니 개수(예: 30). 달성 문구에 노출.
-  final int rewardPoint;
-
-  @override
-  Widget build(BuildContext context) {
-    final displayPoint = rewardPoint > 0 ? rewardPoint : 30;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: (reached ? GmColors.gold : GmColors.gold).withValues(alpha: 0.12),
-        border: Border.all(
-          color: (reached ? GmColors.gold : GmColors.gold).withValues(alpha: 0.35),
-        ),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: reached ? GmColors.gold : GmColors.gold,
-              shape: BoxShape.circle,
-            ),
-            child: reached
-                ? const Icon(Icons.celebration, size: 16, color: Colors.white)
-                : Text(
-                    '$goal',
-                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Colors.white),
-                  ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  reached
-                      ? '축하 이벤트가 열렸어요 · 복주머니 +$displayPoint개 지급'
-                      : '$goal명 모으면 축하 이벤트가 열려요',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12,
-                    height: 1.3,
-                    color: GmColors.fg,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  reached
-                      ? '친구 $joined명이 함께해 주었어요. 고마운 마음을 담았어요.'
-                      : '지금 $joined명 · $remaining명 더 필요해요',
-                  style: const TextStyle(fontSize: 10, height: 1.3, color: GmColors.muted),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+// [2026-12 버그수정 — guinji-invite-fix 지시서 R2, 완전 삭제]
+// "N명 모으면 축하 이벤트가 열려요" 배너(`_RetentionBanner`)를 화면에서
+// 완전히 제거했다. 이 배너는 공유 화면에만 존재하는 순수 표시용 위젯이고,
+// 실제 마일스톤 보상 지급(복주머니 N개)은 `GuinjiProvider.milestoneReached`
+// /`milestoneJustReached` → 결과 화면(`guinji_map_result_screen.dart`의
+// `_maybeShowMilestoneCelebration()`) 경로로 완전히 분리되어 있어 이 배너
+// 삭제와 무관하게 그대로 동작한다. 참여자 수 집계(`GuinjiProvider.people`,
+// `joinedCount`)도 이 배너와 무관하게 계속 유지된다 — 지워진 것은 오직
+// "모으는 중 / N명 더 필요해요" 안내 UI뿐이다.
