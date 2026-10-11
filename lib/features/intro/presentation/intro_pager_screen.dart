@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -7,7 +9,6 @@ import '../application/intro_state_provider.dart';
 import 'intro_palette.dart';
 import 'intro_text_styles.dart';
 import 'widgets/intro_eyebrow_label.dart';
-import 'widgets/intro_gradient_text.dart';
 import 'widgets/onboarding_action_buttons.dart';
 import 'widgets/onboarding_hero_frame.dart';
 import 'widgets/onboarding_notice_sheet.dart';
@@ -155,6 +156,13 @@ class _IntroPagerScreenState extends State<IntroPagerScreen>
 
   @override
   Widget build(BuildContext context) {
+    // [온보딩 화면 교체 2026-10-11] config.ctaTitle/ctaSubtitle(admin 설정 카피)은
+    // 이 화면에서 더 이상 사용하지 않는다. 핸드오프 요구사항이 "H1/부제 문구와
+    // 강조색(당신의 이야기)까지 Onboarding.html 원문과 정확히 일치"를 요구하며,
+    // 관리자 입력값으로는 강조 스팬 위치나 줄바꿈 지점을 재현할 방법이 없기
+    // 때문이다. featureItems(페이지3)가 이미 같은 이유로 fallback 고정값만 쓰는
+    // 전례를 그대로 따른다 — admin_web의 ctaTitle/ctaSubtitle 필드 자체는 하위
+    // 호환을 위해 스키마에 유지하되, 실제로는 이 화면이 참조하지 않는다.
     final config = context.watch<IntroConfigProvider>().config;
     final showReduced = _reduceMotion || _skipEntryAnimation;
 
@@ -193,8 +201,6 @@ class _IntroPagerScreenState extends State<IntroPagerScreen>
                     return _OnboardingContent(
                       elapsedSeconds: elapsed,
                       reduceMotion: showReduced,
-                      title: config.ctaTitle,
-                      subtitle: config.ctaSubtitle,
                       showGuestHint: config.showGuestHint,
                       onSignup: _goSignup,
                       onLogin: _goLogin,
@@ -254,8 +260,6 @@ class _OnboardingContent extends StatelessWidget {
   const _OnboardingContent({
     required this.elapsedSeconds,
     required this.reduceMotion,
-    required this.title,
-    required this.subtitle,
     required this.showGuestHint,
     required this.onSignup,
     required this.onLogin,
@@ -265,8 +269,6 @@ class _OnboardingContent extends StatelessWidget {
 
   final double elapsedSeconds;
   final bool reduceMotion;
-  final String title;
-  final String subtitle;
   final bool showGuestHint;
   final VoidCallback onSignup;
   final VoidCallback onLogin;
@@ -275,28 +277,24 @@ class _OnboardingContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
     final height = MediaQuery.of(context).size.height;
     final isCompact = height <= 720; // README §반응형.
     final heroWidthFactor = isCompact ? 0.64 : 0.78;
     final heroMaxWidth = isCompact ? 250.0 : 300.0;
     final titleFontSize = isCompact ? 26.0 : 30.0;
     final copyTopGap = isCompact ? 18.0 : 26.0;
+    // README §반응형 — `.hero{width:min(64vw,250px)}` 그대로 min()으로 계산.
+    final heroWidth = math.min(heroMaxWidth, screenWidth * heroWidthFactor);
 
     return Column(
       children: [
-        ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: heroMaxWidth),
-          child: FractionallySizedBox(
-            widthFactor: 1,
-            child: SizedBox(
-              width: (MediaQuery.of(context).size.width - 48) *
-                  heroWidthFactor,
-              child: OnboardingHeroFrame(
-                heroAsset: 'assets/images/intro/hero-fullbody.png',
-                elapsedSeconds: elapsedSeconds,
-                reduceMotion: reduceMotion,
-              ),
-            ),
+        SizedBox(
+          width: heroWidth,
+          child: OnboardingHeroFrame(
+            heroAsset: 'assets/images/intro/hero-fullbody.png',
+            elapsedSeconds: elapsedSeconds,
+            reduceMotion: reduceMotion,
           ),
         ),
         SizedBox(height: copyTopGap),
@@ -311,11 +309,33 @@ class _OnboardingContent extends StatelessWidget {
           elapsedSeconds: elapsedSeconds,
           startSeconds: _OnboardingTiming.h1Start,
           durationSeconds: _OnboardingTiming.riseDuration,
-          child: Text(
-            '이제, 당신의 이야기를\n펼쳐볼까요',
+          // Onboarding.html: `이제, <span class="g">당신의 이야기</span>를<br>펼쳐볼까요`.
+          // `.g{color:var(--glow);text-shadow:0 0 22px var(--glow-shadow)}` —
+          // 그라디언트가 아니라 단색 강조 + glow shadow이므로 RichText/TextSpan으로
+          // 재현한다(기본 h1 자체에는 text-shadow가 없어 base 스타일에서 title()의
+          // 기본 shadows를 제거한다).
+          child: RichText(
             textAlign: TextAlign.center,
-            style: IntroTextStyles.title(fontSize: titleFontSize).copyWith(
-              // "당신의 이야기"만 강조색 — 아래 RichText로 재구성.
+            text: TextSpan(
+              style: IntroTextStyles.title(
+                fontSize: titleFontSize,
+              ).copyWith(shadows: const []),
+              children: [
+                const TextSpan(text: '이제, '),
+                TextSpan(
+                  text: '당신의 이야기',
+                  style: TextStyle(
+                    color: IntroPalette.primary,
+                    shadows: const [
+                      Shadow(
+                        color: IntroPalette.glowShadow,
+                        blurRadius: 22,
+                      ),
+                    ],
+                  ),
+                ),
+                const TextSpan(text: '를\n펼쳐볼까요'),
+              ],
             ),
           ),
         ),
