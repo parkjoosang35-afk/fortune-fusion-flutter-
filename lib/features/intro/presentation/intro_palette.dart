@@ -77,4 +77,27 @@ class IntroPalette {
   /// 웰컴 리워드 팝업 stage 배경(핸드오프 `html, body { background: #0a0716 }`).
   /// 팝업 백드롭(반투명 흑자색 + blur)의 기저색으로 사용한다.
   static const Color voidBlack = Color(0xFF0A0716);
+
+  // ───────────────────────── [온보딩 화면 교체 2026-10-11 반영] ─────────────────────────
+  // `design_handoff_onboarding_redesign.zip`(Onboarding.html)의 Design Tokens
+  // 중 기존 상수와 값이 다르거나 없던 것만 추가한다. 배경 3단
+  // 그라디언트(--bg-1/--bg-mid/--bg-2)의 --bg-1/--bg-2는 기존
+  // backgroundTop/backgroundBottom과 동일값이라 재사용하고, 중간톤만
+  // 아래 [backgroundMid]로 추가한다.
+
+  /// 배경 그라디언트 중간톤(핸드오프 --bg-mid #2c2650, 45% 지점).
+  static const Color backgroundMid = Color(0xFF2C2650);
+
+  /// Primary 버튼 그라디언트 상단(핸드오프 --glow-light #f2dcfb).
+  /// 기존 [primary](#e8c8f5)는 그라디언트 하단에 그대로 쓰인다.
+  static const Color glowLight = Color(0xFFF2DCFB);
+
+  /// 벚꽃 꽃잎 색(핸드오프 --petal #f6b9cf).
+  static const Color petal = Color(0xFFF6B9CF);
+
+  /// 바텀시트 배경 그라디언트 상단(핸드오프 --sheet 3a3264→241f45).
+  static const Color sheetTop = Color(0xFF3A3264);
+
+  /// 바텀시트 배경 그라디언트 하단.
+  static const Color sheetBottom = Color(0xFF241F45);
 }
