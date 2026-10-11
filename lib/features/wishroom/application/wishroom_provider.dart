@@ -6,6 +6,7 @@
 import 'package:flutter/foundation.dart';
 import '../data/models.dart';
 import '../data/wr_api.dart';
+import '../data/wr_local_cache.dart';
 import '../features/wallpaper/wallpaper_service.dart';
 import '../features/wallpaper/wish_action_sync.dart';
 
@@ -115,6 +116,12 @@ class WishRoomProvider extends ChangeNotifier {
     isLoading = false;
     loaded = false;
     lastError = null;
+    _cacheHydrated = false;
+    // [비용 최소화 §3] 로그아웃 시 이전 계정의 "마지막 정상 방 데이터" 캐시를
+    // 반드시 비운다 — 다음 계정이 로그인했을 때 콜드 스타트 1차 렌더에서
+    // 타인의 방이 잠깐이라도 노출되는 것을 막는다(샘플/타인 데이터 노출 금지
+    // 원칙과 동일 취지). best-effort이며 완료를 기다리지 않는다.
+    WrLocalCache.clear();
     items = [];
     characters = [];
     catalogLoaded = false;
@@ -132,10 +139,42 @@ class WishRoomProvider extends ChangeNotifier {
 
   // ═══════════════════════════ 내 소원방 ═══════════════════════════
 
+  /// [비용 최소화 §3] 콜드 스타트 시 캐시된 마지막 정상 방 데이터를 먼저
+  /// 화면에 띄웠는지 여부 — true가 되면 이후 호출에서는 다시 시도하지 않는다
+  /// (한 세션에 1회만 "즉시 표시"하면 충분하고, 그 뒤는 서버 응답이 진실).
+  bool _cacheHydrated = false;
+
   /// SCR-01/03 공용 — 내 방 + 내 정보 + 인트로 모드를 한 번에 로드.
+  ///
+  /// [비용 최소화 §3 "홈 화면을 켤 때마다 서버를 조회하지 마세요. 마지막
+  /// 정상 방 데이터를 즉시 표시하고, 동기화는 방 변경·치성 완료·필요한 앱
+  /// 진입 등 정해진 시점에만 수행하세요."] 이 메서드 자체는 여전히 1회
+  /// 네트워크 요청을 보낸다(main_room_screen.dart가 `room == null`일 때만
+  /// 호출하도록 이미 가드하고 있어 화면 재진입마다 반복 호출되지 않음 —
+  /// 즉 "정해진 시점"의 동기화다). 다만 room이 아직 비어있는 "첫 호출"
+  /// 구간에서는 네트워크 응답을 기다리는 동안 빈 화면 대신, 로컬에 저장된
+  /// 마지막 정상 데이터를 즉시 room/me에 채워 화면을 먼저 그리게 한다.
   Future<void> loadMyRoom() async {
     isLoading = true;
     lastError = null;
+    // 아직 메모리에 room이 없고(이번 프로세스에서 처음) 캐시도 아직 안
+    // 썼다면, 네트워크 왕복을 기다리지 않고 캐시를 먼저 적용한다.
+    if (room == null && !_cacheHydrated) {
+      _cacheHydrated = true;
+      final cachedJson = await WrLocalCache.loadMyRoomJson();
+      if (cachedJson != null) {
+        try {
+          final cached = MyRoomResponse.fromJson(cachedJson);
+          room = cached.room;
+          me = cached.me;
+          introMode = cached.introMode;
+          _syncNativeWallpaper();
+          notifyListeners(); // 캐시만으로 1차 렌더 — 아래에서 실제 서버 응답으로 덮어씀.
+        } catch (_) {
+          // 캐시 포맷이 모델 변경 등으로 깨졌으면 조용히 무시하고 네트워크만 믿는다.
+        }
+      }
+    }
     notifyListeners();
     try {
       final res = await repo.myRoom();
