@@ -1,6 +1,7 @@
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/data/my_fortune_record_store.dart';
 import '../../../core/web_ads/web_ad_config.dart';
 import '../../../core/web_ads/widgets/web_ad_in_page.dart';
 import '../data/models/interpret_result.dart';
@@ -101,12 +102,41 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
     final user = context.read<AuthProvider>().currentUser;
     _profile = _buildProfile(user);
     _persistRecentStory();
+    _persistFortuneRecord();
   }
 
   /// docs/03 §01 "최근 본 이야기 카드" — 이 화면(화면⑦ 상세)에 도달했다는
   /// 것 자체가 "이 이야기를 끝까지(봉인 해제 후) 봤다"는 뜻이므로, 다음
   /// 번 화면①(메인) 재진입 때 재방문 카드로 보여줄 수 있도록 지금
   /// 시점에 로컬에 기록한다.
+  /// [마이페이지 리뉴얼 · DEV 2026-10-11 버그 수정] 마이페이지 "사주
+  /// 히스토리" 카드가 전용 기록 목록 화면으로 연결되도록 바뀌었으므로,
+  /// 그 목록을 채울 데이터가 필요하다. 타로/일반 운세 결과 화면과 동일한
+  /// 공용 저장소([MyFortuneRecordStore])에 이 사주 이야기 상세 열람
+  /// 기록을 저장한다(신규 저장소/신규 화면을 따로 만들지 않고 기존
+  /// 인프라를 재사용 — B안 범위 최소화 원칙). saju_renewal에는 점수
+  /// 개념이 없으므로 score는 전달하지 않는다(nullable).
+  void _persistFortuneRecord() {
+    final provider = context.read<SajuRenewalProvider>();
+    final topic = provider.currentTopic;
+    if (topic == null) return;
+    final detail = provider.detailState.data;
+    if (detail == null) return;
+    final firstBlockBody = detail.blocks.isNotEmpty
+        ? detail.blocks.first.body
+        : '';
+    MyFortuneRecordStore.save(
+      SavedFortuneRecord(
+        id: 'saju_${topic.topicId}',
+        categoryLabel: '사주',
+        title: topic.title,
+        summary: firstBlockBody,
+        date: DateTime.now(),
+        savedAt: DateTime.now(),
+      ),
+    );
+  }
+
   void _persistRecentStory() {
     final provider = context.read<SajuRenewalProvider>();
     final topic = provider.currentTopic;

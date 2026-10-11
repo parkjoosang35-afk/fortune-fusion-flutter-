@@ -11,7 +11,7 @@ class SavedFortuneRecord {
     required this.categoryLabel,
     required this.title,
     required this.summary,
-    required this.score,
+    this.score,
     required this.date,
     required this.savedAt,
     this.cardImageAssetPath,
@@ -23,7 +23,12 @@ class SavedFortuneRecord {
   final String categoryLabel;
   final String title;
   final String summary;
-  final int score;
+
+  /// [마이페이지 리뉴얼 · 2026-10-11] 시안 "사주 히스토리" 연결 요구에 따라
+  /// 사주(saju_renewal) 기록도 이 공용 저장소에 저장한다. saju_renewal은
+  /// 점수(score) 개념이 없으므로 nullable로 바꾼다(기존 타로/일반 운세는
+  /// 여전히 int를 전달하므로 동작 변화 없음).
+  final int? score;
   final DateTime date;
   final DateTime savedAt;
 
@@ -38,7 +43,7 @@ class SavedFortuneRecord {
     'categoryLabel': categoryLabel,
     'title': title,
     'summary': summary,
-    'score': score,
+    if (score != null) 'score': score,
     'date': date.toIso8601String(),
     'savedAt': savedAt.toIso8601String(),
     if (cardImageAssetPath != null) 'cardImageAssetPath': cardImageAssetPath,
@@ -50,7 +55,7 @@ class SavedFortuneRecord {
       categoryLabel: json['categoryLabel'] as String,
       title: json['title'] as String,
       summary: json['summary'] as String,
-      score: json['score'] as int,
+      score: json['score'] as int?,
       date: DateTime.parse(json['date'] as String),
       savedAt: DateTime.parse(json['savedAt'] as String),
       cardImageAssetPath: json['cardImageAssetPath'] as String?,
@@ -79,6 +84,16 @@ class MyFortuneRecordStore {
         .whereType<SavedFortuneRecord>()
         .toList()
       ..sort((a, b) => b.savedAt.compareTo(a.savedAt));
+  }
+
+  /// [마이페이지 리뉴얼 · 2026-10-11] 사주 히스토리 목록 화면에서 "사주"
+  /// 카테고리만 따로 조회할 수 있도록 카테고리 필터 조회를 추가한다(기존
+  /// [list]는 그대로 두고 신규 메서드만 더함 — 다른 호출부 영향 없음).
+  static Future<List<SavedFortuneRecord>> listByCategory(
+    String categoryLabel,
+  ) async {
+    final all = await list();
+    return all.where((e) => e.categoryLabel == categoryLabel).toList();
   }
 
   /// 이미 같은 id가 있으면 갱신, 없으면 새로 추가.

@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import '../../../core/domain/assets/open_pass_state.dart';
 import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/premium_card.dart';
-import '../../../core/widgets/app_shortcut_row.dart';
 import '../../auth/application/auth_provider.dart';
 import '../../auth/domain/grade_model.dart';
 import '../../pass/application/pass_provider.dart';
@@ -15,7 +14,7 @@ import '../../wallet/application/wallet_provider.dart';
 import '../../wishroom/features/intro/wish_room_intro_screen.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
 import '../../pass/presentation/pass_time_format.dart';
-import '../../saju_renewal/navigation/saju_dimension_transition.dart';
+import 'my_fortune_records_screen.dart';
 
 /// [9단계 - 마이 탭 정리] MyScreen - 마이 탭
 /// 프로필+등급뱃지 + [열림패스/복주머니/구독 요약(3축 정책 한눈에 보기)]
@@ -156,19 +155,38 @@ class _MyScreenState extends State<MyScreen> {
             // [무료 광고형 구조 재정비 §2/§7] 사용자에게는 "프리패스 + 복주머니"
             // 2축만 보이게 정리한다. 구독 요약 카드는 삭제하지 않고 렌더링만
             // 끈다(off — §13 레거시 단계적 처리 원칙: 삭제보다 숨김을 우선).
-            const _SectionTitle(title: '내 혜택 요약'),
+            //
+            // [마이페이지 리뉴얼 · DEV 2026-10-11 §2] 시안 "바뀐 점" 1행:
+            // "혜택 카드가 세로 2줄이라 스크롤이 김" → "가로 2열 컴팩트
+            // 카드"로 교체해 스크롤 길이를 줄인다. 카드 내부 구성(버튼/문구)
+            // 자체는 그대로 유지하고, 두 카드를 Row로 나란히 배치하도록
+            // _PassSummaryCard/_WalletSummaryCard 내부 레이아웃만 컴팩트
+            // 세로형으로 바꾼다.
+            const _SectionTitle(title: '내 혜택'),
             const SizedBox(height: UnifiedTokens.spaceMd),
-            _PassSummaryCard(
-              pass: pass,
-              isLoading: pass.isLoading,
-              onAcquireTap: () =>
-                  showPassRequiredSheet(context, categoryTitle: '마이페이지'),
-            ),
-            const SizedBox(height: UnifiedTokens.spaceMd),
-            _WalletSummaryCard(
-              balance: wallet.balance,
-              isLoading: wallet.isLoading,
-              onTap: () => Navigator.of(context).pushNamed('/reward/wallet'),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _PassSummaryCard(
+                    pass: pass,
+                    isLoading: pass.isLoading,
+                    onAcquireTap: () => showPassRequiredSheet(
+                      context,
+                      categoryTitle: '마이페이지',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: UnifiedTokens.spaceMd),
+                Expanded(
+                  child: _WalletSummaryCard(
+                    balance: wallet.balance,
+                    isLoading: wallet.isLoading,
+                    onTap: () =>
+                        Navigator.of(context).pushNamed('/reward/wallet'),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: UnifiedTokens.spaceXxl),
 
@@ -183,24 +201,22 @@ class _MyScreenState extends State<MyScreen> {
               crossAxisSpacing: UnifiedTokens.spaceMd,
               childAspectRatio: 2.2,
               children: [
-                // [신통방통 정통사주 리뉴얼] 기존 AI 사주 히스토리
-                // (`/ai-fortune/saju/history`)는 제거되었다. saju_renewal은
-                // 전용 히스토리 화면(named route) 대신 "이야기 더보기"
-                // 흐름(MoreStoriesScreen, story_detail_screen 내부에서
-                // push)을 쓰므로, 여기서는 saju_renewal 홈으로 자연스럽게
-                // 이동시킨다.
-                // [디자인 핸드오프 00 셸 — 진입 전환] docs/03 §00 "구현은
-                // 카드 중심 좌표를 원점으로". Builder로 이 카드 자신의
-                // context를 얻어 sajuCardCenterOf로 중심 좌표를 구하고,
-                // `/saju-renewal`에 arguments로 실어 보낸다(그리드 전체의
-                // 부모 context로는 이 카드만의 위치를 알 수 없다).
-                Builder(
-                  builder: (cardContext) => _ArchiveCard(
-                    icon: Icons.auto_stories_outlined,
-                    label: '사주 히스토리',
-                    onTap: () => Navigator.of(cardContext).pushNamed(
-                      '/saju-renewal',
-                      arguments: sajuCardCenterOf(cardContext),
+                // [마이페이지 리뉴얼 · DEV 2026-10-11 버그 수정] 기존에는
+                // 이 카드를 누르면 정통사주 "실행 화면"(`/saju-renewal`)으로
+                // 바로 이동해, 지금까지 본 기록 목록이 전혀 보이지 않는
+                // 버그가 있었다(시안 §"꼭 고쳐야 할 것 - 사주 히스토리
+                // 연결"). 타로/관상/손금과 동일한 패턴으로 "전용 기록
+                // 목록 화면"으로 연결하도록 수정한다. 정통사주 실행
+                // 화면으로 가는 길은 그 목록이 비어있을 때 뜨는 빈 상태의
+                // "정통사주 보러가기" 버튼으로만 남긴다
+                // (MyFortuneRecordsScreen._buildEmptyState 참고).
+                _ArchiveCard(
+                  icon: Icons.auto_stories_outlined,
+                  label: '사주 히스토리',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          const MyFortuneRecordsScreen(categoryFilter: '사주'),
                     ),
                   ),
                 ),
@@ -423,24 +439,36 @@ class _PassSummaryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppShortcutRow(
-            emoji: '🔔',
-            accentColor: UnifiedColors.textPrimary,
-            icon: Icons.lock_clock_outlined,
-            iconColor: UnifiedColors.textPrimary,
-            circleColor: UnifiedColors.bg,
-            circleSize: UnifiedTokens.iconCircleLg,
-            spacing: UnifiedTokens.spaceMd,
-            titleStyle: UnifiedText.bodyStrong(),
-            subtitleStyle: UnifiedText.caption(),
-            arrowColor: UnifiedColors.textCaption,
-            arrowSize: UnifiedTokens.iconMd,
-            title: '프리패스',
-            subtitle: isLoading
+          // [DEV-2026-1011 benefit-card] AppShortcutRow(좌측 아이콘 + 제목/
+          // 부제목 + 우측 화살표가 한 줄로 늘어서는 가로형)는 Row 폭이 좁은
+          // Expanded 안에 들어가면 글자가 잘리거나 레이아웃이 깨지는 위험이
+          // 있어, 시안의 .benefit-card 패턴(아이콘 작은 원 -> 제목 -> 상태
+          // 문구를 세로로 쌓는 컴팩트형)으로 교체한다.
+          Container(
+            width: UnifiedTokens.iconCircleMd,
+            height: UnifiedTokens.iconCircleMd,
+            decoration: const BoxDecoration(
+              color: UnifiedColors.bg,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.lock_clock_outlined,
+              size: UnifiedTokens.iconMd,
+              color: UnifiedColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: UnifiedTokens.spaceSm),
+          Text('프리패스', style: UnifiedText.bodyStrong()),
+          const SizedBox(height: 2),
+          Text(
+            isLoading
                 ? '불러오는 중...'
                 : isActive
                 ? '남은 시간 ${_formatRemaining(remainingSec)}'
                 : '보유한 프리패스가 없어요',
+            style: UnifiedText.caption(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: UnifiedTokens.spaceMd),
           // [무료 광고형 구조 재정비 §2 / 프리패스 2회지급 전환 §5.4]
@@ -454,11 +482,19 @@ class _PassSummaryCard extends StatelessWidget {
               style: OutlinedButton.styleFrom(
                 foregroundColor: UnifiedColors.textPrimary,
                 side: const BorderSide(color: UnifiedColors.border),
+                padding: const EdgeInsets.symmetric(
+                  vertical: UnifiedTokens.spaceSm,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
                 ),
               ),
-              child: Text(acquireLabel),
+              child: Text(
+                acquireLabel,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
             ),
           ),
           const SizedBox(height: UnifiedTokens.spaceSm),
@@ -508,22 +544,29 @@ class _WalletSummaryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppShortcutRow(
-            emoji: '🍀',
-            accentColor: UnifiedColors.textPrimary,
-            icon: Icons.eco_outlined,
-            iconColor: UnifiedColors.textPrimary,
-            circleColor: UnifiedColors.bg,
-            circleSize: UnifiedTokens.iconCircleLg,
-            spacing: UnifiedTokens.spaceMd,
-            titleStyle: UnifiedText.bodyStrong(),
-            subtitleStyle: UnifiedText.caption(),
-            arrowColor: UnifiedColors.textCaption,
-            arrowSize: UnifiedTokens.iconMd,
-            title: '복주머니',
-            subtitle: isLoading
-                ? '불러오는 중...'
-                : '${_formatBalance(balance)}개 보유 중',
+          // [DEV-2026-1011 benefit-card] 프리패스 카드와 동일하게 세로형
+          // 컴팩트 레이아웃으로 교체(가로형 AppShortcutRow 제거).
+          Container(
+            width: UnifiedTokens.iconCircleMd,
+            height: UnifiedTokens.iconCircleMd,
+            decoration: const BoxDecoration(
+              color: UnifiedColors.bg,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.eco_outlined,
+              size: UnifiedTokens.iconMd,
+              color: UnifiedColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: UnifiedTokens.spaceSm),
+          Text('복주머니', style: UnifiedText.bodyStrong()),
+          const SizedBox(height: 2),
+          Text(
+            isLoading ? '불러오는 중...' : '${_formatBalance(balance)}개 보유 중',
+            style: UnifiedText.caption(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: UnifiedTokens.spaceMd),
           // [무료 광고형 구조 재정비 §4] "충전"(유료 결제) 버튼은 off — 복주머니는
@@ -535,11 +578,19 @@ class _WalletSummaryCard extends StatelessWidget {
               style: OutlinedButton.styleFrom(
                 foregroundColor: UnifiedColors.textPrimary,
                 side: const BorderSide(color: UnifiedColors.border),
+                padding: const EdgeInsets.symmetric(
+                  vertical: UnifiedTokens.spaceSm,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
                 ),
               ),
-              child: const Text('내역 보기'),
+              child: const Text(
+                '내역 보기',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
             ),
           ),
           const SizedBox(height: UnifiedTokens.spaceSm),
