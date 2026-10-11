@@ -33,6 +33,8 @@ import io.flutter.plugin.common.MethodChannel.Result
  *    setBitmap(FLAG_SYSTEM|FLAG_LOCK)으로 직접 설정한다(라이브 배경화면은
  *    홈/잠금을 따로 지정할 수 없다는 플랫폼 제약 때문 — Q5 확정 가정 그대로).
  *  - clear(): 배경화면 해제(§W4 DELETE 대응 — 실제로는 기본 배경화면으로 되돌림).
+ *  - drainPendingActions(): §4.1 WishAction(네이티브→앱) 큐를 읽어온다(비우지 않음).
+ *  - acknowledgeActions(ids): 서버 전송에 실제로 성공한 id만 큐에서 제거한다.
  */
 class WallpaperPlugin(private val activity: Activity) : MethodCallHandler {
 
@@ -106,6 +108,26 @@ class WallpaperPlugin(private val activity: Activity) : MethodCallHandler {
                     result.success(true)
                 } catch (e: Exception) {
                     result.error("CLEAR_FAILED", e.message, null)
+                }
+            }
+            // [§4.1 WishAction 네이티브→앱] 조작판 위젯(WishRoomWidgetProvider)의
+            // 치성 버튼 탭이 쌓아 둔 행동 기록을 그대로 JSON 문자열로 반환한다.
+            // 큐 자체는 비우지 않는다(서버 전송 성공 여부를 네이티브는 모른다).
+            "drainPendingActions" -> {
+                try {
+                    result.success(WishActionQueue.peekAll(context))
+                } catch (e: Exception) {
+                    result.error("DRAIN_FAILED", e.message, null)
+                }
+            }
+            // 서버 전송에 실제로 성공한 id 목록만 큐에서 제거한다.
+            "acknowledgeActions" -> {
+                try {
+                    val ids = call.argument<List<String>>("ids") ?: emptyList()
+                    WishActionQueue.acknowledge(context, ids)
+                    result.success(true)
+                } catch (e: Exception) {
+                    result.error("ACK_FAILED", e.message, null)
                 }
             }
             else -> result.notImplemented()

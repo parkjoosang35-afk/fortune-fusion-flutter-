@@ -29,6 +29,7 @@ import 'package:flutter/material.dart';
 import '../../data/models.dart';
 import '../../data/wr_catalog.dart';
 import '../../core/fx/wr_fx.dart';
+import '../../core/motion/wr_motion.dart';
 import 'room_layout.dart';
 
 class RoomScene extends StatefulWidget {
@@ -60,8 +61,9 @@ class RoomScene extends StatefulWidget {
 
 class _RoomSceneState extends State<RoomScene> with TickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController drift = AnimationController(vsync: this, duration: const Duration(seconds: 24));
-  late final AnimationController flick = AnimationController(vsync: this, duration: const Duration(milliseconds: 2600));
-  late final AnimationController breathe = AnimationController(vsync: this, duration: const Duration(milliseconds: 4200));
+  // [v2.0 배경화면 기획서 §6.1 반영] 촛불 900ms / 캐릭터 호흡 3.6s로 수정.
+  late final AnimationController flick = AnimationController(vsync: this, duration: WrDur.flameFlicker);
+  late final AnimationController breathe = AnimationController(vsync: this, duration: WrDur.breathe);
   late final AnimationController pulse = AnimationController(vsync: this, duration: const Duration(seconds: 6));
   late final AnimationController loop = AnimationController(vsync: this, duration: const Duration(seconds: 20)); // 파티클 공용 시계
   late final AnimationController sigilSpin = AnimationController(vsync: this, duration: const Duration(seconds: 60));

@@ -1,6 +1,5 @@
 package com.fortunefusion.fortune
 
-import android.app.ActivityManager
 import android.app.WallpaperColors
 import android.content.Context
 import android.content.SharedPreferences
@@ -14,9 +13,11 @@ import android.graphics.PorterDuff
 import android.graphics.PorterDuffColorFilter
 import android.graphics.RadialGradient
 import android.graphics.Shader
+import android.os.BatteryManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
 import android.provider.Settings
 import android.service.wallpaper.WallpaperService
 import android.view.SurfaceHolder
@@ -56,7 +57,10 @@ class WishRoomWallpaperService : WallpaperService() {
         private val bitmapCache = HashMap<String, Bitmap?>()
         private var manifest: WpManifest? = null
         private var startTime = System.currentTimeMillis()
-        private var lastVisibleAt = System.currentTimeMillis()
+        /** 마지막으로 "보이기 시작한" 시각(§4.3 "5분 이상 30fps 유지" 판정 기준). */
+        private var visibleSince = System.currentTimeMillis()
+        /** 이번 프레임을 "정지 장면 + 촛불만"으로 그릴지(§4.3 배터리15%↓·절전모드). */
+        private var renderFrozen = false
         private val random = Random(7)
 
         private val prefs: SharedPreferences by lazy {
@@ -87,9 +91,14 @@ class WishRoomWallpaperService : WallpaperService() {
         override fun onVisibilityChanged(v: Boolean) {
             visible = v
             if (v) {
-                lastVisibleAt = System.currentTimeMillis()
-                handler.post(drawRunner)
+                // §4.3 "홈 화면으로 돌아오면 다음 프레임 안에 재개한다" — 보이기
+                // 시작한 시각을 지금으로 재설정해 "5분 경과" 판정을 0부터 다시
+                // 센다(화면을 벗어났다 돌아온 것은 새로운 가시 구간이다).
+                visibleSince = System.currentTimeMillis()
+                handler.post(drawRunner) // 지연 없이 즉시 1프레임 — "복귀 첫 프레임이 늦으면 멈췄다고 보인다".
             } else {
+                // §4.3 "다른 앱을 쓰는 동안과 화면이 꺼져 있을 때는 렌더 루프를
+                // 완전히 멈춘다(0fps)" — postDelayed 예약 자체를 끊는다.
                 handler.removeCallbacks(drawRunner)
             }
         }
@@ -116,21 +125,61 @@ class WishRoomWallpaperService : WallpaperService() {
             }
         }
 
-        /** §4 "4. fps": 30 visible / 24 idle(8초 무입력) / 15 isLowRamDevice. */
+        /**
+         * [v2.0 배경화면 기획서 §4.3 "수명주기와 배터리" 1:1 반영]
+         *
+         *  - 홈 화면이 보일 때만 최대 30fps.
+         *  - 안 보일 때(0fps)는 onVisibilityChanged(false)에서 postDelayed 자체를
+         *    끊으므로 이 함수는 호출되지 않는다 — 이 함수는 "보이는 동안"의
+         *    fps만 결정한다.
+         *  - 5분 이상 30fps를 유지하면 20fps로 낮춘다.
+         *  - 배터리 15% 이하·절전 모드에서는 "정지 장면에 촛불만" 남긴다 —
+         *    이 조건은 render()가 참조하는 [renderFrozen] 플래그로 전달하고,
+         *    프레임 자체는 1fps로 거의 멈춘 것처럼 낮춘다(완전한 0fps는 "안
+         *    보일 때"로 기획서가 한정하므로, 보이는 동안은 1fps로 "정지"를
+         *    흉내내되 draw()는 계속 호출해 renderFrozen 레이아웃을 그린다).
+         *
+         * [수정 전] "8초 무입력 → 24fps"는 이 기획서 어디에도 없는 독자 추가
+         * 사양이었다 — 사용자 지적대로 기획서 기준으로 교체한다. "무입력"
+         * 개념 자체도 기획서에 없다(배경화면은 터치 입력을 상시 받지 않음).
+         */
         private fun frameDelayMs(): Long {
-            // 모션 줄이기(FR-W-34): 애니메이터 배율 0이면 사실상 정지(저빈도로만 갱신).
+            renderFrozen = false
+
+            // 모션 줄이기(시스템 접근성 설정) — 애니메이터 배율 0이면 정지에 준해 처리.
             val animatorScale = try {
                 Settings.Global.getFloat(contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
             } catch (_: Throwable) {
                 1f
             }
-            if (animatorScale == 0f) return 1000L
-            val am = applicationContext.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
-            val lowRam = am?.isLowRamDevice == true
-            if (lowRam) return (1000L / 15)
-            val idleMs = System.currentTimeMillis() - lastVisibleAt
-            val fps = if (idleMs > 8000) 24 else 30
+            if (animatorScale == 0f) {
+                renderFrozen = true
+                return 1000L
+            }
+
+            // §4.3 "배터리 15% 이하·절전 모드에서는 정지 장면에 촛불만 남긴다".
+            if (isBatteryLowOrPowerSave()) {
+                renderFrozen = true
+                return 1000L
+            }
+
+            // §4.3 "5분 이상 30fps를 유지하면 20fps로 낮춘다".
+            val visibleMs = System.currentTimeMillis() - visibleSince
+            val fps = if (visibleMs > 5 * 60 * 1000L) 20 else 30
             return (1000L / fps)
+        }
+
+        /** 배터리 15% 이하이거나 시스템 절전 모드가 켜져 있는지(§4.3). */
+        private fun isBatteryLowOrPowerSave(): Boolean {
+            return try {
+                val bm = applicationContext.getSystemService(Context.BATTERY_SERVICE) as? BatteryManager
+                val pct = bm?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY) ?: 100
+                if (pct in 0..15) return true
+                val pm = applicationContext.getSystemService(Context.POWER_SERVICE) as? PowerManager
+                pm?.isPowerSaveMode == true
+            } catch (_: Throwable) {
+                false
+            }
         }
 
         private fun bitmapOf(assetPath: String?): Bitmap? {
@@ -153,7 +202,7 @@ class WishRoomWallpaperService : WallpaperService() {
             try {
                 canvas = holder.lockCanvas()
                 if (canvas != null) {
-                    render(canvas)
+                    render(canvas, renderFrozen)
                 }
             } catch (_: Exception) {
                 // 서피스가 사라지는 순간(화면 전환) 예외가 날 수 있다 — 조용히 무시.
@@ -167,7 +216,14 @@ class WishRoomWallpaperService : WallpaperService() {
             }
         }
 
-        private fun render(canvas: Canvas) {
+        /**
+         * [v2.0 §4.3] [frozen]=true일 때는 "정지 장면에 촛불만" 남긴다 — 별빛
+         * 반짝임·장식 흔들림·오라 펄스·캐릭터 호흡 등 부가 모션 계산을 멈추고
+         * (static 대신 alpha/각도를 t=0 고정값으로 그려 같은 비용으로 매 프레임
+         * 다시 계산하지 않게 한다), 촛불 불꽃만 계속 흔들리게 유지한다 — 치성의
+         * 중심 오브젝트인 촛불까지 멈추면 "꺼진 화면"처럼 보이기 때문이다.
+         */
+        private fun render(canvas: Canvas, frozen: Boolean) {
             val w = canvas.width.toFloat()
             val h = canvas.height.toFloat()
             canvas.drawColor(Color.parseColor("#12060E"))
@@ -186,7 +242,10 @@ class WishRoomWallpaperService : WallpaperService() {
             canvas.translate(offX, offY)
             canvas.scale(scale, scale)
 
-            val t = (System.currentTimeMillis() - startTime) / 1000.0
+            val tReal = (System.currentTimeMillis() - startTime) / 1000.0
+            // frozen 상태에서는 촛불을 뺀 모든 주기 모션을 t=0 고정값으로 그려
+            // "정지 장면"을 만든다(§4.3). 촛불은 tReal을 그대로 써서 계속 흔들린다.
+            val t = if (frozen) 0.0 else tReal
 
             // ── L1 방 일러스트 + 밝기 ──
             bitmapOf(m.roomAsset)?.let { bmp ->
@@ -235,9 +294,14 @@ class WishRoomWallpaperService : WallpaperService() {
             }
 
             // ── 촛불(candle) — 흔들리는 불꽃 + 광원 ──
+            // [v2.0 배경화면 기획서 §6.1 "움직임 명세 — 승인값 유지"] 촛불 불꽃
+            // 주기 900ms(각속도 2π/0.9s ≈ 6.981 rad/s)로 동기화. 기존 2.4는
+            // 이 문서 이전의 오기 값이었다(Flutter room_scene.dart flick
+            // AnimationController와 같은 주기여야 §9 "애니메이션 일치" 기준을 만족).
             m.candle?.let { c ->
                 val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-                val flick = 1f + 0.08f * sin(t * 2.4).toFloat()
+                // frozen(§4.3 "정지 장면에 촛불만")이어도 촛불은 tReal로 계속 흔들린다.
+                val flick = 1f + 0.08f * sin(tReal * 6.981).toFloat()
                 val glowR = 150f * flick * (0.6f + 0.4f * m.brightness)
                 glowPaint.shader = RadialGradient(c.x, c.y - c.s * 0.4f, glowR, intArrayOf(Color.parseColor("#CCFFF0BE"), Color.parseColor("#66FFD98A"), Color.TRANSPARENT), floatArrayOf(0f, 0.4f, 1f), Shader.TileMode.CLAMP)
                 canvas.drawCircle(c.x, c.y - c.s * 0.4f, glowR, glowPaint)
@@ -249,10 +313,12 @@ class WishRoomWallpaperService : WallpaperService() {
             }
 
             // ── 캐릭터(character) — 숨쉬는 느낌의 미세한 스케일 ──
+            // [v2.0 §6.1] 캐릭터 호흡 주기 3.6s(각속도 2π/3.6s ≈ 1.745 rad/s)로
+            // 동기화 — Flutter room_scene.dart breathe AnimationController와 동일.
             m.character?.let { ch ->
                 bitmapOf(ch.asset)?.let { bmp ->
                     canvas.save()
-                    val breathe = 1f + 0.01f * sin(t * 1.5).toFloat()
+                    val breathe = 1f + 0.008f * sin(t * 1.745).toFloat()
                     canvas.translate(ch.x, ch.y)
                     canvas.scale(breathe, breathe, 0f, 0f)
                     val paint = Paint(Paint.ANTI_ALIAS_FLAG)

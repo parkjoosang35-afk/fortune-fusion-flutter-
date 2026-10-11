@@ -10,14 +10,19 @@ class WrCurves {
 
 class WrDur {
   // A · 상시
-  static const flameFlicker = Duration(milliseconds: 2600);
+  // [v2.0 배경화면 기획서 §6.1 "움직임 명세 — 승인값 유지" 반영] 촛불 불꽃
+  // 900ms(높이 ±28%, 기울기 ±4.5°) · 캐릭터 호흡 3.6s(±0.8%)로 수정.
+  // 기존 2600ms/4200ms는 이 문서가 등장하기 전 값(오기)이었음 — §9 "애니메이션:
+  // 종류·주기·진폭·위상·시작점"이 세 플랫폼(Android 네이티브·웹·앱)의 일치
+  // 기준이므로 WishRoomWallpaperService.kt의 sin 계수도 함께 동기화했다.
+  static const flameFlicker = Duration(milliseconds: 900);
   static const haloPulse = Duration(milliseconds: 3400);
   static const glowPulse = Duration(milliseconds: 2400);
   static const moonPulse = Duration(seconds: 6);
   static const sigilSlow = Duration(seconds: 120);
   static const sigilMid = Duration(seconds: 60);
   static const sigilFast = Duration(seconds: 30);
-  static const breathe = Duration(milliseconds: 4200);
+  static const breathe = Duration(milliseconds: 3600);
   static const blink = Duration(seconds: 5);
   static const lanternSway = Duration(seconds: 5);
   static const bellSway = Duration(milliseconds: 3600);
