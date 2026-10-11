@@ -89,6 +89,33 @@
 
 ---
 
+## 부록: 버그1(CORS) 근본 원인 발견 및 수정 완료
+
+이전 세션부터 "서버팀 전달 대기"로 보류되어 있던 v2.0 자료2·3 "지원하지 않는 요청 방식입니다"
+오류의 근본 원인을 이번 세션에서 직접 특정하고 수정·배포까지 완료했다.
+
+- **원인**: `admin_web/src/app/api/public/wishroom/_shared.ts`의 `wishroomOptionsResponse()`
+  (전체 45개 wishroom 라우트가 공유하는 CORS 프리플라이트 공용 헬퍼)가
+  `Access-Control-Allow-Methods: GET, POST, PATCH, DELETE, OPTIONS`만 반환해 **PUT이 누락**되어 있었다.
+- **영향 경로**: Flutter 웹의 `setWallpaper()`(배경화면 설정 버튼의 핵심 동작)가
+  `PUT /api/public/wishroom/me/wallpaper`를 호출하는데, 브라우저가 프리플라이트 응답에서
+  PUT이 허용 목록에 없음을 확인하고 실제 요청 자체를 차단 — 이것이 웹에서 "지원하지 않는 요청
+  방식입니다"로 보이던 현상의 서버 측 근본 원인이다(클라이언트 `_req()`의 `default: throw
+  ApiError(0, 'UNKNOWN_METHOD', '지원하지 않는 요청 방식입니다')` 문구와 우연히 유사해
+  클라이언트 버그로 오인되기 쉬웠다).
+- **수정**: 허용 메서드 목록에 `PUT` 추가(`GET, POST, PUT, PATCH, DELETE, OPTIONS`). 공용
+  헬퍼 1곳만 수정해 기존 GET/POST/PATCH/DELETE 전용 라우트 44개에는 영향 없음.
+- **배포**: 운영 서버(`sintong.kr`, SSH 접근 가능)에 직접 반영 — 재빌드(`npm run build`) +
+  `pm2 restart admin_web` 완료. 배포 후 스모크 테스트:
+  - PUT 프리플라이트: `access-control-allow-methods`에 `PUT` 포함 확인 ✅
+  - 기존 기능 회귀 없음: `/api/public/banners` → 200, `/api/public/wishroom/wish-rooms/me` → 401(정상) ✅
+- **admin_web 커밋**: `d7957fe` "fix(wishroom): /me/wallpaper PUT 요청 CORS 프리플라이트 차단 버그 수정"
+
+**결론**: v2.0/v2.1 문서에서 "서버팀 전달" 대기 상태였던 버그1이 이번 세션에서 **원인 특정 + 수정 +
+실제 운영 배포까지 완료**되었다. 더 이상 보류 항목이 아니다.
+
+---
+
 ## 종합 현황
 
 | 구분 | 총 항목 | 코드 근거 충족 | 실측(녹화/실기기)만 필요 | 미구현 |
