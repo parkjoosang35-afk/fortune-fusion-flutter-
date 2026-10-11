@@ -95,13 +95,21 @@ export function parseWrNotificationDeepLink(deepLink: string | null): { roomId: 
   return { roomId: roomId || null, type };
 }
 
-/** OPTIONS 프리플라이트 공용 응답(shop/purchase/route.ts 패턴과 동일). */
+/**
+ * OPTIONS 프리플라이트 공용 응답(shop/purchase/route.ts 패턴과 동일).
+ *
+ * [버그수정 — v2.1 §14.4 웹 배경화면 설정 CORS 오류] `/me/wallpaper`의 W3(PUT,
+ * setWallpaper)가 허용 메서드 목록에 PUT이 빠져 있어 브라우저가 프리플라이트
+ * 단계에서 실제 PUT 요청을 차단했다(Flutter 웹에서 "배경화면 설정" 버튼이
+ * CORS 오류로 실패하던 원인). 이 헬퍼는 모든 wishroom 라우트가 공유하므로
+ * PUT을 추가해도 기존 GET/POST/PATCH/DELETE 전용 라우트에는 영향이 없다.
+ */
 export function wishroomOptionsResponse() {
   return new NextResponse(null, {
     status: 200,
     headers: {
       "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type, Authorization",
     },
   });
