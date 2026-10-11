@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 방 썸네일 위에 깔아 글자 가독성을 확보하는 하단 강조 스크림. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient
+        android:angle="90"
+        android:startColor="#00000000"
+        android:centerColor="#55000000"
+        android:endColor="#CC000000" />
+</shape>

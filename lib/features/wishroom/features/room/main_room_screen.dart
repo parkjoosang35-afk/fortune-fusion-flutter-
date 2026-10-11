@@ -40,7 +40,7 @@ class MainRoomScreen extends StatefulWidget {
   State<MainRoomScreen> createState() => _MainRoomScreenState();
 }
 
-class _MainRoomScreenState extends State<MainRoomScreen> {
+class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObserver {
   late DevotionController _devotion;
   Timer? _cooldownTicker;
   int _cooldownRemain = 0;
@@ -89,6 +89,10 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
   @override
   void initState() {
     super.initState();
+    // [§6 WishAction 드레인] 앱이 포그라운드로 돌아올 때마다(onboarding →
+    // 내 소원방이 아니라, 홈 조작판에서 치성을 남기고 다시 앱을 연 "복귀"
+    // 시점) 조작판 위젯이 쌓아 둔 행동을 서버로 전송한다.
+    WidgetsBinding.instance.addObserver(this);
     final p = context.read<WishRoomProvider>();
     _devotion = DevotionController(p.repo);
     // [버그수정 — 전수 감사로 발견] DevotionController는 ChangeNotifier인데 아무도
@@ -114,10 +118,22 @@ class _MainRoomScreenState extends State<MainRoomScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _devotion.dispose();
     _cooldownTicker?.cancel();
     _speechTimer?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // [§6 "다음 실행·허용된 백그라운드 작업에서 읽어 전송"] 홈 조작판에서
+    // 치성을 남긴 뒤 앱으로 돌아온 시점(resumed)마다 네이티브 WishAction
+    // 큐를 드레인한다 — "앱을 한 번도 열지 않으면 기록이 사라진다"는
+    // 실패를 막기 위한 두 번째 진입점(첫 번째는 loadMyRoom() 성공 직후).
+    if (state == AppLifecycleState.resumed) {
+      context.read<WishRoomProvider>().drainPendingWishActions();
+    }
   }
 
   void _startCooldownTicker() {

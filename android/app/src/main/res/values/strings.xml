@@ -2,4 +2,17 @@
 <resources>
     <!-- [소원방 v2.6 배경화면] 시스템 '배경화면 설정' 목록에서 보여줄 설명 문구. -->
     <string name="wallpaper_description">내 소원방을 그대로, 매일 보이는 곳에 — 촛불이 흔들리고 꽃잎이 내려요.</string>
+
+    <!-- [소원방 배경화면 v2.0 §5 조작판 위젯] -->
+    <string name="widget_wishroom_description">내 소원방 조작판 — 소원 확인·치성·바로가기</string>
+    <string name="widget_devote_button">촛불 켜고 치성 들이기</string>
+    <string name="widget_shortcut_room">내 소원방</string>
+    <string name="widget_shortcut_decor">꾸미기</string>
+    <string name="widget_shortcut_vault">보관함</string>
+    <string name="widget_shortcut_home">신통방통</string>
+    <string name="widget_placeholder_level">불러오는 중…</string>
+    <string name="widget_placeholder_progress">오늘의 정성 0/10</string>
+    <string name="widget_devote_done_toast">치성을 드렸어요 🕯</string>
+    <string name="widget_devote_limit_toast">오늘의 정성은 모두 담았어요. 내일 다시 밝혀주세요</string>
+    <string name="widget_devote_cooldown_toast">촛불이 정성을 머금는 중이에요</string>
 </resources>

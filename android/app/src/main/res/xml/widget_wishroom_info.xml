@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- [소원방 배경화면 v2.0 §5 "홈 화면 구성 — 생활형 배치" / §4.4 "홈 화면
+     조작판(위젯)이 기본 진입점"] 생활형 배치(소원 카드 + 치성 + 바로가기
+     4개) 1종을 1단계 범위로 구현한다(§5.1 "설치형 3종" 중 "생활형(추천)").
+     감상형·집중형은 2차 과제로 보고서에 명시한다. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="250dp"
+    android:minHeight="180dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="3"
+    android:updatePeriodMillis="1800000"
+    android:previewImage="@drawable/wallpaper_thumbnail"
+    android:initialLayout="@layout/widget_wishroom"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+    android:description="@string/widget_wishroom_description" />

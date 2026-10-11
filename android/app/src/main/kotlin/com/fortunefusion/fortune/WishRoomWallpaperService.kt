@@ -4,27 +4,15 @@ import android.app.WallpaperColors
 import android.content.Context
 import android.content.SharedPreferences
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.LinearGradient
-import android.graphics.Paint
-import android.graphics.PorterDuff
-import android.graphics.PorterDuffColorFilter
-import android.graphics.RadialGradient
-import android.graphics.Shader
 import android.os.BatteryManager
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
 import android.provider.Settings
 import android.service.wallpaper.WallpaperService
 import android.view.SurfaceHolder
-import kotlin.math.max
-import kotlin.math.min
-import kotlin.math.sin
-import kotlin.random.Random
 
 /**
  * [소원방 v2.6 배경화면 — Android 실제 라이브 배경화면]
@@ -61,7 +49,6 @@ class WishRoomWallpaperService : WallpaperService() {
         private var visibleSince = System.currentTimeMillis()
         /** 이번 프레임을 "정지 장면 + 촛불만"으로 그릴지(§4.3 배터리15%↓·절전모드). */
         private var renderFrozen = false
-        private val random = Random(7)
 
         private val prefs: SharedPreferences by lazy {
             applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -185,15 +172,10 @@ class WishRoomWallpaperService : WallpaperService() {
         private fun bitmapOf(assetPath: String?): Bitmap? {
             if (assetPath.isNullOrEmpty()) return null
             bitmapCache[assetPath]?.let { return it }
-            return try {
-                // Flutter가 build 시 모든 asset을 `flutter_assets/<pubspec경로>`로 APK에
-                // 번들한다(FlutterLoader 표준 레이아웃). asset_bitmap_paths로 넘어오는
-                // 값은 pubspec 기준 상대경로(e.g. "assets/wishroom/rooms/room-free.jpg")다.
-                val lookup = "flutter_assets/$assetPath"
-                applicationContext.assets.open(lookup).use { BitmapFactory.decodeStream(it) }
-            } catch (_: Exception) {
-                null
-            }.also { bitmapCache[assetPath] = it }
+            // [리팩토링 — WpRenderer 공용화] asset 디코딩 로직은 WpRenderer.decodeFlutterAsset()로
+            // 추출되었다(위젯 썸네일과 동일 코드를 공유하기 위함). 이 서비스는 디코딩
+            // 결과의 캐시(bitmapCache)만 관리한다 — 디코딩 자체는 더 이상 중복 구현하지 않는다.
+            return WpRenderer.decodeFlutterAsset(applicationContext, assetPath).also { bitmapCache[assetPath] = it }
         }
 
         private fun draw() {
@@ -217,144 +199,27 @@ class WishRoomWallpaperService : WallpaperService() {
         }
 
         /**
-         * [v2.0 §4.3] [frozen]=true일 때는 "정지 장면에 촛불만" 남긴다 — 별빛
-         * 반짝임·장식 흔들림·오라 펄스·캐릭터 호흡 등 부가 모션 계산을 멈추고
-         * (static 대신 alpha/각도를 t=0 고정값으로 그려 같은 비용으로 매 프레임
-         * 다시 계산하지 않게 한다), 촛불 불꽃만 계속 흔들리게 유지한다 — 치성의
-         * 중심 오브젝트인 촛불까지 멈추면 "꺼진 화면"처럼 보이기 때문이다.
+         * [리팩토링 — WpRenderer 공용화] 실제 그리기 로직은 전부 WpRenderer.render()로
+         * 추출되었다(위젯 썸네일과 라이브 배경화면이 "같은 그리기 코드"를 공유하도록 —
+         * WpRenderer.kt 상단 주석 참조). 이 함수는 (1) frozen 판정에 따른 t/tReal 계산,
+         * (2) manifest 부재 시 짙은 배경만 그리는 예외 처리만 담당한다.
+         *
+         * [v2.0 §4.3] [frozen]=true일 때는 "정지 장면에 촛불만" 남긴다 — WpRenderer가
+         * 받는 [t]를 0.0 고정값으로 넘겨 별빛·장식·오라·캐릭터 호흡 등 모든 주기
+         * 모션을 멈추고, 촛불만은 별도 인자 [tReal]로 계속 흔들리게 한다.
          */
         private fun render(canvas: Canvas, frozen: Boolean) {
-            val w = canvas.width.toFloat()
-            val h = canvas.height.toFloat()
-            canvas.drawColor(Color.parseColor("#12060E"))
             val m = manifest
             if (m == null) {
                 // 매니페스트가 아직 없으면(최초 설정 직후 동기화 전) 짙은 배경만.
+                canvas.drawColor(Color.parseColor("#12060E"))
                 return
             }
-            // 390×844 기준 캔버스를 화면에 꽉 채우도록 cover 스케일.
-            val baseW = 390f
-            val baseH = 844f
-            val scale = max(w / baseW, h / baseH)
-            val offX = (w - baseW * scale) / 2f
-            val offY = (h - baseH * scale) / 2f
-            canvas.save()
-            canvas.translate(offX, offY)
-            canvas.scale(scale, scale)
-
             val tReal = (System.currentTimeMillis() - startTime) / 1000.0
             // frozen 상태에서는 촛불을 뺀 모든 주기 모션을 t=0 고정값으로 그려
             // "정지 장면"을 만든다(§4.3). 촛불은 tReal을 그대로 써서 계속 흔들린다.
             val t = if (frozen) 0.0 else tReal
-
-            // ── L1 방 일러스트 + 밝기 ──
-            bitmapOf(m.roomAsset)?.let { bmp ->
-                val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-                paint.colorFilter = brightnessFilter(m.brightness)
-                val srcRatio = bmp.width.toFloat() / bmp.height.toFloat()
-                val dstRatio = baseW / baseH
-                val dw: Float; val dh: Float
-                if (srcRatio > dstRatio) { dh = baseH; dw = baseH * srcRatio } else { dw = baseW; dh = baseW / srcRatio }
-                val dx = (baseW - dw) / 2f; val dy = (baseH - dh) / 2f
-                canvas.drawBitmap(bmp, null, android.graphics.RectF(dx, dy, dx + dw, dy + dh), paint)
-            }
-
-            // ── 밴드별 별빛(간이: 정적 반짝 점) ──
-            val starCount = when (m.band) { "B4" -> 90; "B3" -> 80; "B2" -> 70; else -> 60 }
-            val starPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#FFFFF6D0") }
-            val starRnd = Random(13)
-            for (i in 0 until min(starCount, 40)) { // 성능 예산 고려해 화면엔 최대 40개만 실제로 그림
-                val sx = 16f + starRnd.nextFloat() * 356f
-                val sy = 40f + (i * 23f) % 180f
-                val phase = sin(t * 1.2 + i) * 0.5 + 0.5
-                starPaint.alpha = (120 + phase * 135).toInt().coerceIn(0, 255)
-                canvas.drawCircle(sx, sy, 1.6f + (i % 3) * 0.8f, starPaint)
-            }
-
-            // ── 장식(decorations) — 매달린 것은 sway, 나머지 고정 ──
-            val decoPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-            for (d in m.decorations) {
-                bitmapOf(d.asset)?.let { bmp ->
-                    canvas.save()
-                    val sway = sin(t * 1.4 + d.x) * 2.2 // 매달린 장식 느낌의 미세한 흔들림(도)
-                    canvas.translate(d.x, d.y)
-                    canvas.rotate((d.rotateDeg + sway).toFloat())
-                    val rect = android.graphics.RectF(-d.s / 2, -d.s, d.s / 2, 0f)
-                    canvas.drawBitmap(bmp, null, rect, decoPaint)
-                    canvas.restore()
-                }
-            }
-
-            // ── 금빛 오라(Lv9+) ──
-            if (m.auraGold) {
-                val auraPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-                val cx = baseW / 2f; val cy = baseH * 0.3f
-                auraPaint.shader = RadialGradient(cx, cy, 220f, Color.parseColor("#52FFDC96"), Color.TRANSPARENT, Shader.TileMode.CLAMP)
-                canvas.drawRect(0f, 0f, baseW, baseH, auraPaint)
-            }
-
-            // ── 촛불(candle) — 흔들리는 불꽃 + 광원 ──
-            // [v2.0 배경화면 기획서 §6.1 "움직임 명세 — 승인값 유지"] 촛불 불꽃
-            // 주기 900ms(각속도 2π/0.9s ≈ 6.981 rad/s)로 동기화. 기존 2.4는
-            // 이 문서 이전의 오기 값이었다(Flutter room_scene.dart flick
-            // AnimationController와 같은 주기여야 §9 "애니메이션 일치" 기준을 만족).
-            m.candle?.let { c ->
-                val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-                // frozen(§4.3 "정지 장면에 촛불만")이어도 촛불은 tReal로 계속 흔들린다.
-                val flick = 1f + 0.08f * sin(tReal * 6.981).toFloat()
-                val glowR = 150f * flick * (0.6f + 0.4f * m.brightness)
-                glowPaint.shader = RadialGradient(c.x, c.y - c.s * 0.4f, glowR, intArrayOf(Color.parseColor("#CCFFF0BE"), Color.parseColor("#66FFD98A"), Color.TRANSPARENT), floatArrayOf(0f, 0.4f, 1f), Shader.TileMode.CLAMP)
-                canvas.drawCircle(c.x, c.y - c.s * 0.4f, glowR, glowPaint)
-                bitmapOf(c.asset)?.let { bmp ->
-                    val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-                    val rect = android.graphics.RectF(c.x - c.s / 2, c.y - c.s, c.x + c.s / 2, c.y)
-                    canvas.drawBitmap(bmp, null, rect, paint)
-                }
-            }
-
-            // ── 캐릭터(character) — 숨쉬는 느낌의 미세한 스케일 ──
-            // [v2.0 §6.1] 캐릭터 호흡 주기 3.6s(각속도 2π/3.6s ≈ 1.745 rad/s)로
-            // 동기화 — Flutter room_scene.dart breathe AnimationController와 동일.
-            m.character?.let { ch ->
-                bitmapOf(ch.asset)?.let { bmp ->
-                    canvas.save()
-                    val breathe = 1f + 0.008f * sin(t * 1.745).toFloat()
-                    canvas.translate(ch.x, ch.y)
-                    canvas.scale(breathe, breathe, 0f, 0f)
-                    val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-                    val rect = android.graphics.RectF(-ch.s / 2, -ch.s, ch.s / 2, 0f)
-                    canvas.drawBitmap(bmp, null, rect, paint)
-                    canvas.restore()
-                }
-            }
-
-            // ── 감쇠 비네트 ──
-            if (m.brightness < 1f) {
-                val vignette = Paint(Paint.ANTI_ALIAS_FLAG)
-                val alpha = ((1f - m.brightness) * 1.2f).coerceIn(0f, 1f)
-                vignette.shader = RadialGradient(baseW / 2f, baseH * 0.4f, baseH * 0.8f, Color.TRANSPARENT, Color.argb((alpha * 160).toInt(), 5, 2, 8), Shader.TileMode.CLAMP)
-                canvas.drawRect(0f, 0f, baseW, baseH, vignette)
-            }
-
-            // ── 이루어진 소원방 — 은은한 금빛 리본 느낌(상단 바) ──
-            if (m.fulfilled) {
-                val ribbon = Paint(Paint.ANTI_ALIAS_FLAG)
-                ribbon.shader = LinearGradient(0f, 0f, baseW, 0f, Color.parseColor("#F5CF6A"), Color.parseColor("#FF8FB1"), Shader.TileMode.CLAMP)
-                ribbon.alpha = (120 + 60 * sin(t * 1.1)).toInt().coerceIn(60, 180)
-                canvas.drawRect(0f, 0f, baseW, 6f, ribbon)
-            }
-
-            canvas.restore()
-        }
-
-        private fun brightnessFilter(b: Float): PorterDuffColorFilter? {
-            // 간단한 밝기 다운틴트 — 정확한 ColorMatrix 대신 PorterDuff DARKEN으로
-            // 감쇠(decay) 느낌만 근사한다(네이티브 엔진은 미리보기와 완전히 동일한
-            // 픽셀을 요구하지 않음 — WALLPAPER.md는 "수식" 일치를 요구하지 Canvas
-            // API 결과물의 완전한 동일성을 요구하지 않는다).
-            if (b >= 0.98f) return null
-            val v = (b.coerceIn(0.15f, 1f) * 255).toInt()
-            return PorterDuffColorFilter(Color.argb(255 - v, 0, 0, 0), PorterDuff.Mode.DARKEN)
+            WpRenderer.render(canvas, canvas.width.toFloat(), canvas.height.toFloat(), m, t, tReal) { assetPath -> bitmapOf(assetPath) }
         }
     }
 }

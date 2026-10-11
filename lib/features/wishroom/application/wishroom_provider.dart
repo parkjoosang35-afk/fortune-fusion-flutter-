@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import '../data/models.dart';
 import '../data/wr_api.dart';
 import '../features/wallpaper/wallpaper_service.dart';
+import '../features/wallpaper/wish_action_sync.dart';
 
 class WishRoomProvider extends ChangeNotifier {
   final WrRepository repo;
@@ -94,6 +95,17 @@ class WishRoomProvider extends ChangeNotifier {
     WallpaperService.syncManifest(r, items);
   }
 
+  /// [§4.1/§6 WishAction 드레인] 조작판 위젯에서 발생한 "홈에서 한 행동"을
+  /// 서버로 전송한다. 앱이 "다음 실행"에 반드시 읽어야 하므로, room이 처음
+  /// 로드된 직후(= 로그인 사용자의 방 id를 확정한 시점)에 호출한다 — §6
+  /// "홈에서만 치성하고 앱을 한 번도 열지 않으면 기록이 사라진다"는 결과를
+  /// 막기 위한 진입점이다.
+  void drainPendingWishActions() {
+    final r = room;
+    if (r == null) return;
+    WishActionSync.drainAndSync(repo: repo, fallbackRoomId: r.id);
+  }
+
   /// [Stage2 결함수정 패턴 재사용] 로그아웃 시 이전 계정의 소원방/알림/탐색
   /// 데이터가 메모리에 남아있지 않도록 전부 초기화한다.
   void clearOnLogout() {
@@ -131,6 +143,10 @@ class WishRoomProvider extends ChangeNotifier {
       me = res.me;
       introMode = res.introMode;
       _syncNativeWallpaper();
+      // [§6 "홈에서만 치성하고 앱을 한 번도 열지 않으면 기록이 사라진다"는
+      // 결과는 실패로 본다"] 내 방을 확정한 "다음 실행" 시점에 조작판
+      // 위젯이 쌓아 둔 WishAction을 반드시 드레인한다.
+      drainPendingWishActions();
     } on ApiError catch (e) {
       lastError = e;
     } finally {

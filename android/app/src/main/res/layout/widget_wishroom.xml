@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- [소원방 배경화면 v2.0 §5 "홈 화면 구성 — 생활형 배치"] 조작판 위젯 레이아웃.
+     RemoteViews 제약(커스텀 뷰 불가, 제스처는 터치뿐 — §4.4 "위젯에서 쓸 수
+     있는 제스처는 터치와 세로 스와이프뿐")을 감안해 표준 위젯만 사용한다.
+     구성: 방 썸네일 배경 + 소원 카드(한자 배지·남은 날짜·진행) + 치성 버튼 +
+     바로가기 4종(내 소원방·꾸미기·보관함·신통방통). -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_wishroom_bg">
+
+    <!-- 방 썸네일(사용자의 실제 방 캡처 PNG) — WidgetUpdateWorker가 setImageViewBitmap으로
+         주입한다. 아직 캡처가 없으면(최초 설치 직후) widget_wishroom_bg의 그라디언트만 보인다
+         (샘플 방 대체 금지 — 기획서 "내 방"과 다른 그림을 보여주지 않는다). -->
+    <ImageView
+        android:id="@+id/wr_widget_room_thumb"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:contentDescription="@string/widget_wishroom_description" />
+
+    <!-- 어둡게 깔아 글자 가독성 확보 -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/widget_scrim" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <!-- ── 소원 카드 ── -->
+        <LinearLayout
+            android:id="@+id/wr_widget_wish_card"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center_vertical"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp">
+
+            <TextView
+                android:id="@+id/wr_widget_level"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#FFFFF0BE"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:text="@string/widget_placeholder_level" />
+
+            <TextView
+                android:id="@+id/wr_widget_devo_progress"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="#FFFFFFFF"
+                android:textSize="13sp"
+                android:text="@string/widget_placeholder_progress" />
+        </LinearLayout>
+
+        <!-- ── 치성 버튼 — 조작판의 주 버튼(§5 "치성 버튼: 진행 표시와 함께
+             홈에서 바로 실행"). 탭 즉시 처리는 WishRoomWidgetProvider가
+             담당(트램펄린 액티비티 없이, §4.4 "위젯 조작 예외" 활용). -->
+        <Button
+            android:id="@+id/wr_widget_devote_btn"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/widget_devote_btn_bg"
+            android:textColor="#FFFFFFFF"
+            android:textSize="13sp"
+            android:textAllCaps="false"
+            android:text="@string/widget_devote_button" />
+
+        <!-- ── 바로가기 4종 — 내 소원방·꾸미기·보관함·신통방통 (§5 "바로가기") ── -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:weightSum="4">
+
+            <LinearLayout
+                android:id="@+id/wr_widget_shortcut_room"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="@drawable/widget_shortcut_ripple">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🕯"
+                    android:textSize="18sp" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/widget_shortcut_room"
+                    android:textColor="#FFFFFFFF"
+                    android:textSize="10sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/wr_widget_shortcut_decor"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="@drawable/widget_shortcut_ripple">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="✿"
+                    android:textSize="18sp" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/widget_shortcut_decor"
+                    android:textColor="#FFFFFFFF"
+                    android:textSize="10sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/wr_widget_shortcut_vault"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="@drawable/widget_shortcut_ripple">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="◈"
+                    android:textSize="18sp" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/widget_shortcut_vault"
+                    android:textColor="#FFFFFFFF"
+                    android:textSize="10sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/wr_widget_shortcut_home"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="@drawable/widget_shortcut_ripple">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⛩"
+                    android:textSize="18sp" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/widget_shortcut_home"
+                    android:textColor="#FFFFFFFF"
+                    android:textSize="10sp" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>
