@@ -428,6 +428,11 @@ class AppRouter {
         return _page(const CategoriesGridScreen());
       case '/lucky-items':
         return _page(const LuckyItemsScreen());
+      // [프리패스 진입 화면 개편 · DEV-2026-1011-01, 2026-10-11] §5.1
+      // 전수조사 결과 이 라우트로 들어오는 진입점은 현재 코드베이스에
+      // 없다(과거 유일한 진입점이었던 sintong_free_pass_bar.dart가
+      // showPassRequiredSheet()[쿠팡파트너스 팝업] 직접 호출로 변경됨).
+      // 라우트/화면 파일 자체는 삭제하지 않는다(리소스 정리는 별도 이슈).
       case '/free-pass-gate':
         return _page(const FreePassGateScreen());
 

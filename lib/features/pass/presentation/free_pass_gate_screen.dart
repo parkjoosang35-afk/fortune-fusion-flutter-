@@ -25,6 +25,13 @@ import 'pass_gate_helper.dart';
 /// - "지금 프리패스 열어보기" 버튼은 기존 [showPassRequiredSheet]를 그대로
 ///   호출해, 실제 발급 플로우(쿠팡파트너스 단일 흐름)는 그 기존 함수가
 ///   전담한다(이 화면에서 새로 만들지 않음).
+///
+/// [프리패스 진입 화면 개편 · DEV-2026-1011-01, 2026-10-11] REQ-02 §5.1
+/// 전수조사 결과, 이 화면으로 들어오는 유일한 진입점이었던 홈 하단
+/// 프리패스 버튼(`SintongFreePassBar`)이 쿠팡파트너스 팝업 직접 호출로
+/// 변경되면서, 현재 코드베이스에는 이 화면에 도달하는 경로가 없다
+/// (도달 불가 코드, dead code). '/free-pass-gate' 라우트와 이 파일은
+/// 지시서에 따라 삭제하지 않고 그대로 유지한다(리소스 정리는 별도 이슈).
 class FreePassGateScreen extends StatefulWidget {
   const FreePassGateScreen({super.key});
 

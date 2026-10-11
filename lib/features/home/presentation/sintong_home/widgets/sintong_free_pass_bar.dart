@@ -20,8 +20,19 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../../core/domain/access/access_checker.dart';
+import '../../../../pass/presentation/pass_gate_helper.dart';
 import '../../../../pass/presentation/pass_time_format.dart';
 import '../sintong_home_tokens.dart';
+
+// [프리패스 진입 화면 개편 · DEV-2026-1011-01, 2026-10-11] REQ-01/02
+// 기존에는 탭 시 '/free-pass-gate'(FreePassGateScreen, 잔여시간 카드 +
+// 혜택안내 페이지)로 이동한 뒤, 그 화면에서 다시 "지금 프리패스 열어보기"를
+// 눌러야 쿠팡파트너스 팝업([showPassRequiredSheet] → [showCoupangPassSheet])
+// 이 떴다. 이 중간 안내 페이지가 전환 동선을 가로막는다는 지시에 따라,
+// 탭 즉시 쿠팡파트너스 팝업을 직접 노출하도록 변경한다.
+// [REQ-02] FreePassGateScreen 파일/'/free-pass-gate' 라우트 자체는 삭제하지
+// 않는다(§5.1: 전수조사 결과 이 화면으로의 진입 경로는 본 위젯이 유일했으며,
+// 다른 진입 경로는 없음을 확인함). 화면 리소스 정리는 별도 이슈로 분리한다.
 
 class SintongFreePassBar extends StatefulWidget {
   const SintongFreePassBar({super.key, this.showRemainingTime = true});
@@ -66,7 +77,10 @@ class _SintongFreePassBarState extends State<SintongFreePassBar> {
         : null;
 
     return GestureDetector(
-      onTap: () => Navigator.of(context).pushNamed('/free-pass-gate'),
+      // [프리패스 진입 화면 개편 · DEV-2026-1011-01] REQ-01: 안내 페이지를
+      // 거치지 않고 쿠팡파트너스 팝업을 즉시 노출한다.
+      onTap: () =>
+          showPassRequiredSheet(context, categoryTitle: '프리패스'),
       child: Container(
         height: 50,
         padding: const EdgeInsets.symmetric(horizontal: 16),
