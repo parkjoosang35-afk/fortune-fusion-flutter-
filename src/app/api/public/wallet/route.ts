@@ -36,10 +36,23 @@ export async function GET(request: NextRequest) {
   });
 
   // 지갑이 아직 없는 유저(예: 신규 시딩 유저)는 0P로 즉석 생성한다.
+  // [경제 감사 2026-10-12 N-4] 동시 첫 요청이 유니크 제약(P2002) 충돌로
+  // 500을 반환하던 경합을 제거한다 — 충돌 시 재조회로 수렴한다.
   if (!wallet) {
-    wallet = await prisma.wallet.create({
-      data: { userId, currencyType: "POINT", balance: 0, balanceSyncedAt: new Date() },
-    });
+    try {
+      wallet = await prisma.wallet.create({
+        data: { userId, currencyType: "POINT", balance: 0, balanceSyncedAt: new Date() },
+      });
+    } catch (e) {
+      if (typeof e === "object" && e !== null && (e as { code?: string }).code === "P2002") {
+        wallet = await prisma.wallet.findFirst({
+          where: { userId, currencyType: "POINT", deletedAt: null },
+        });
+      } else {
+        throw e;
+      }
+    }
+    if (!wallet) throw new Error("WALLET_CREATE_FAILED");
   }
 
   const histories = await prisma.pointHistory.findMany({

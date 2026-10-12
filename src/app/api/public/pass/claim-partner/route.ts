@@ -46,21 +46,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (policy.dailyLimit != null) {
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
-      const todayCount = await prisma.userPass.count({
-        where: { userId, policyId: policy.id, createdAt: { gte: todayStart } },
-      });
-      if (todayCount >= policy.dailyLimit) {
-        return NextResponse.json(
-          { success: false, error: "오늘의 파트너 프리패스 발급 한도를 초과했습니다." },
-          { status: 429, headers: CORS_HEADERS }
-        );
-      }
-    }
-
+    // [경제 감사 2026-10-12 M-4] 일일 한도 체크를 트랜잭션 밖에서 읽던 기존
+    // 구조는 병렬 요청이 모두 count=0을 읽고 각각 발급받는 경합이 있었다.
+    // 체크를 발급과 같은 트랜잭션 안으로 이동한다(SQLite 단일 쓰기 직렬화와
+    // 결합해 체크-생성이 원자적으로 처리된다).
     const result = await prisma.$transaction(async (tx) => {
+      if (policy.dailyLimit != null) {
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const todayCount = await tx.userPass.count({
+          where: { userId, policyId: policy.id, createdAt: { gte: todayStart } },
+        });
+        if (todayCount >= policy.dailyLimit) {
+          throw new Error("DAILY_LIMIT_EXCEEDED");
+        }
+      }
       const now = new Date();
       const expiresAt = new Date(now.getTime() + policy.durationMin * 60 * 1000);
 
@@ -103,6 +103,13 @@ export async function POST(request: NextRequest) {
       { headers: CORS_HEADERS }
     );
   } catch (e) {
+    const message = e instanceof Error ? e.message : "UNKNOWN";
+    if (message === "DAILY_LIMIT_EXCEEDED") {
+      return NextResponse.json(
+        { success: false, error: "오늘의 파트너 프리패스 발급 한도를 초과했습니다." },
+        { status: 429, headers: CORS_HEADERS }
+      );
+    }
     console.error("[POST /api/public/pass/claim-partner] 실패:", e);
     return NextResponse.json(
       { success: false, error: "파트너 프리패스 발급 중 오류가 발생했습니다." },
