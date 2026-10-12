@@ -18,7 +18,7 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { SharedResultView } from "./shared-result-view";
-import { ServiceResultView, isStructuredPayload, BRAND_BG, SERIF } from "./service-result-view";
+import { ServiceResultView, isStructuredPayload, BRAND_BG, GOLD, SERIF } from "./service-result-view";
 import { WebShareButton } from "./web-share-button";
 import { SintongBottomNavBar } from "../../g/[token]/sintong-bottom-nav-bar";
 import { OG_CONFIG, isValidShareContentType } from "@/lib/share-og-config";
