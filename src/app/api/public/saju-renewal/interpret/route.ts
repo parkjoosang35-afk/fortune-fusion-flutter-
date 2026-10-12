@@ -112,6 +112,7 @@ const ERROR_MESSAGE: Record<string, string> = {
   TRANSACTION_NOT_FOUND: "결과보기 권한 확인이 필요합니다. 처음부터 다시 시도해주세요.",
   TRANSACTION_OWNER_MISMATCH: "잘못된 요청입니다.",
   TRANSACTION_NOT_PENDING: "이미 처리된 요청입니다. 처음부터 다시 시도해주세요.",
+  TRANSACTION_CONTENT_MISMATCH: "이 거래로는 해당 결과를 열람할 수 없습니다.",
 };
 
 interface RequestBody {
@@ -256,7 +257,31 @@ export async function POST(request: NextRequest) {
       if (mode === "detail" && transactionId) {
         const txn = await findResultAccessTransaction(transactionId);
         if (txn && txn.userId === userId && txn.status === "pending") {
-          await completeResultAccess(txn.transactionId, null);
+          // [전수검수 2026-10-12 ① 콘텐츠 바인딩 검증] 거래가 이 (contentType,
+          // contentId=topicId)에 대해 begin된 것인지 확인한다. 검증이 없으면
+          // 타 콘텐츠용으로 begin한 pending 거래 1건으로 임의 saju topic의
+          // 유료 detail 열람이 가능했다(1결제→아무 콘텐츠 1열람 치환).
+          if (txn.contentType !== "saju_renewal" || txn.contentId !== topicId) {
+            throw new InterpretError("TRANSACTION_CONTENT_MISMATCH", "이 거래로는 해당 결과를 열람할 수 없습니다.");
+          }
+          // [전수검수 2026-10-12 ② 이중 차감 방지] 같은 (userId, saju,
+          // topicId)에 이미 success 거래가 있으면 이 콘텐츠는 과거에 결제되어
+          // 캐시로 무료 재열람 가능한 상태다. 새 거래를 확정(2차 차감)하지
+          // 말고 환불로 종결한다(클라 타임아웃 후 재시도 시나리오 방어).
+          const priorSuccess = await prisma.resultAccessTransaction.findFirst({
+            where: {
+              userId,
+              contentType: "saju_renewal",
+              contentId: topicId,
+              status: "success",
+              transactionId: { not: txn.transactionId },
+            },
+          });
+          if (priorSuccess) {
+            await failAndRefundResultAccess(txn.transactionId);
+          } else {
+            await completeResultAccess(txn.transactionId, null);
+          }
         }
       }
       return NextResponse.json(
@@ -286,6 +311,11 @@ export async function POST(request: NextRequest) {
       }
       if (txn.status !== "pending") {
         throw new InterpretError("TRANSACTION_NOT_PENDING", ERROR_MESSAGE.TRANSACTION_NOT_PENDING);
+      }
+      // [전수검수 2026-10-12 ① 콘텐츠 바인딩 검증] 비캐시 최초 생성 경로에도
+      // 동일 적용 — 거래가 이 topic의 detail 열람용인지 확인한다.
+      if (txn.contentType !== "saju_renewal" || txn.contentId !== topicId) {
+        throw new InterpretError("TRANSACTION_CONTENT_MISMATCH", "이 거래로는 해당 결과를 열람할 수 없습니다.");
       }
       resultAccessTxn = { transactionId: txn.transactionId };
     }
@@ -364,20 +394,29 @@ export async function POST(request: NextRequest) {
       });
       // ExposureHistory는 "이 주제를 본 적 있는지"만 의미하므로 mode(summary/detail)
       // 구분 없이 topicId당 1건만 유지한다 — 이미 기록이 있으면 추가하지 않는다.
-      const existingExposure = await tx.topicExposureHistory.findFirst({
-        where: { userId, topicId, birthKey },
+      // [③] 유니크 제약과 짝을 이루는 upsert — 동시 요청에도 1건만 유지된다.
+      await tx.topicExposureHistory.upsert({
+        where: { userId_topicId_birthKey: { userId, topicId, birthKey } },
+        create: { userId, topicId, birthKey },
+        update: {},
       });
-      if (!existingExposure) {
-        await tx.topicExposureHistory.create({ data: { userId, topicId, birthKey } });
+      // [전수검수 2026-10-12 ④ 환불 누수 제거] 거래 확정을 결과 저장과 같은
+      // $transaction으로 묶는다. 기존에는 저장 성공 후 별도 complete이 실패하면
+      // catch의 환불로 "결과는 캐시에 남고 재화는 환불"되는 누수가 있었다 —
+      // 원자적으로 묶으면 저장 실패 시 확정도 함께 롤백되고, catch 환불은
+      // 캐시가 없는(롤백된) 상태에서만 발생한다.
+      if (resultAccessTxn) {
+        await tx.resultAccessTransaction.updateMany({
+          where: { transactionId: resultAccessTxn.transactionId, status: "pending" },
+          data: { status: "success", fortuneRequestId: null },
+        });
       }
     });
 
     // ── [버그 수정 — §8.5 마지막 단계] detail 생성이 성공했으므로 Access Gate가
     // 만든 거래를 "success"로 최종 확정한다. 이걸 호출하지 않으면 재화는 이미
     // 차감됐는데 거래 레코드만 영원히 "pending"으로 남는다(실제 발견된 증상).
-    if (resultAccessTxn) {
-      await completeResultAccess(resultAccessTxn.transactionId, null);
-    }
+    // [④] complete은 위 $transaction 안에서 원자 처리되므로 별도 호출 제거.
 
     return NextResponse.json(
       { success: true, data: finalResult, cached: false },

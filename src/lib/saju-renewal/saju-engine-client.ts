@@ -57,7 +57,16 @@ const DEFAULT_TIMEOUT_MS = 15_000; // docs/11_API_계약서.md §5 "facts | 03 �
  * 인프라팀 확인이 필요한 별도 사항이다(이 파일이 임의로 운영 보안을 결정하지 않음).
  */
 const DEFAULT_FREE_PASS_TOKEN =
-  process.env.SAJU_ENGINE_FREE_PASS_TOKEN ?? "STB-internal-server-call-00000000000000";
+  process.env.SAJU_ENGINE_FREE_PASS_TOKEN ??
+  // [전수검수 2026-10-12 ⑦] 운영 환경에서 토큰 미설정은 기동 즉시 실패시킨다
+  // — 고정 데모 토큰으로 무음 실행되는 사고를 원천 차단. 로컬 개발만 폴백 유지.
+  (process.env.NODE_ENV === "production"
+    ? (() => {
+        throw new Error(
+          "[SAJU_ENGINE] SAJU_ENGINE_FREE_PASS_TOKEN 환경변수가 설정되지 않았습니다 — 운영 배포 전 필수 설정입니다."
+        );
+      })()
+    : "STB-internal-server-call-00000000000000");
 
 export class SajuEngineClientError extends Error {
   constructor(

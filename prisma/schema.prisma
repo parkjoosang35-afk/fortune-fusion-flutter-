@@ -4454,6 +4454,7 @@ model TopicExposureHistory {
   user  User         @relation(fields: [userId], references: [id])
   topic TopicCatalog @relation(fields: [topicId], references: [topicId])
 
+  @@unique([userId, topicId, birthKey])
   @@index([userId, birthKey])
   @@map("topic_exposure_history")
 }

@@ -496,7 +496,7 @@ export function calculateSaju(opts: CalculateSajuOptions): SajuManseryeokResult 
 
   return {
     gender,
-    birthSolar: `${pad(year, 4)}-${pad(month)}-${pad(day)} ${pad(hour)}:${pad(minute)}`,
+    birthSolar: `${pad(year, 4)}-${month < 0 ? `(윤)${pad(-month)}` : pad(month)}-${pad(day)} ${pad(hour)}:${pad(minute)}`,
     birthLunar: lunar.toString(),
     pillars: {
       year: yearPillarObj,
