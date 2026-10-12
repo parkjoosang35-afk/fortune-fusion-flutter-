@@ -366,6 +366,9 @@ class SajuRenewalProvider extends ChangeNotifier {
   }) async {
     if (_isRefreshingCandidates) return;
     _isRefreshingCandidates = true;
+    // [전수검수 보강 2026-10-12] 재조회가 0건으로 돌아올 경우 "처음부터 다시
+    // 보여주기"에 쓰기 위해 직전 후보 풀을 보관한다(아래 소진 재조회 분기).
+    final previousState = _topicsState;
     notifyListeners();
 
     ApiResult<TopicsSelectResult> result;
@@ -422,6 +425,30 @@ class SajuRenewalProvider extends ChangeNotifier {
       _viewedTopicIds.clear();
       _isRefreshingCandidates = false;
       await _refreshCandidatesFromServer(isExhaustionRetry: true);
+      return;
+    }
+
+    if (newCandidates.isEmpty && isExhaustionRetry) {
+      // [전수검수 보강 2026-10-12 — "새로운 이야기" 버튼이 다시 0건일 때]
+      // 클라 제외 목록은 리셋됐지만 서버는 DB 노출 이력(topic_exposure_history)으로
+      // 이미 본 주제를 계속 제외하기 때문에, 전량 시청한 사용자의 재조회는 항상
+      // 0건으로 돌아온다(실기기 재현: 버튼을 눌러도 빈 상태 지속). REQ-04
+      // 초기화 정책("처음부터 다시 보여드려요")에 따라 직전 후보 풀을 복원해
+      // 카드를 처음부터 다시 보여준다 — 카드는 제목 목록일 뿐이고, 본문은
+      // interpret 멱등 캐시로 무료 재열람된다(재결제 없음, D-1과 정합).
+      final hadPreviousPool = previousState.data?.candidates.isNotEmpty ?? false;
+      _isRefreshingCandidates = false;
+      if (hadPreviousPool) {
+        _topicsState = previousState;
+        _shownCandidateIds.clear();
+        _candidatesExhausted = true; // "모든 이야기를 다 보셨어요. 처음부터 다시 보여드려요." 안내를 카드와 함께 표시
+        notifyListeners();
+        return;
+      }
+      // 직전 풀도 비어 있으면(진짜 최초 0건) 그 결과를 그대로 받아들인다 —
+      // 무한 재귀 방지(기존 동작 유지).
+      _topicsState = LoadState.success(result.data!);
+      notifyListeners();
       return;
     }
 

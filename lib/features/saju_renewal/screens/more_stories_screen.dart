@@ -370,13 +370,101 @@ class _MoreStoriesScreenState extends State<MoreStoriesScreen> {
                                     ),
                                   ] else if (provider
                                       .candidatesExhausted) ...[
-                                    const Text(
-                                      '모든 이야기를 다 보셨어요.',
-                                      style: SajuType.body14,
-                                      textAlign: TextAlign.center,
+                                    // [소진 화면 디자인 업그레이드 2026-10-12]
+                                    // "텍스트 한 줄 + 회색 버튼"뿐이던 소진
+                                    // 상태를 카드 디자인 언어(보라 그라데이션
+                                    // + 금 테두리 + 발광 글리프)의 완결
+                                    // 패널로 승격한다. 안내 3종(감상 수·
+                                    // 7일 재후보화 일정·무료 재열람)을 한
+                                    // 곳에 모아 사용자가 "끝"이 아니라
+                                    // "일주일 뒤 리필 + 지금은 무료 복습"임을
+                                    // 정확히 알게 한다. 7일 기준은 서버
+                                    // topic-engine의 recentlyShown 감쇠
+                                    // 정책과 동일하다.
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.all(24),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(18),
+                                        border: Border.all(
+                                          color: SajuText.lineGold,
+                                        ),
+                                        gradient: LinearGradient(
+                                          begin: Alignment.topCenter,
+                                          end: Alignment.bottomCenter,
+                                          colors: [
+                                            SajuViolet.v800,
+                                            SajuViolet.v900,
+                                          ],
+                                        ),
+                                      ),
+                                      child: Column(
+                                        children: [
+                                          // 발광 별 글리프 — 카드의 장면
+                                          // 글리프와 같은 글로우 처리.
+                                          Text(
+                                            '✦',
+                                            style: TextStyle(
+                                              fontSize: 30,
+                                              color: SajuGold.g100.withValues(
+                                                alpha: 0.9,
+                                              ),
+                                              shadows: [
+                                                Shadow(
+                                                  color: SajuGold.g300,
+                                                  blurRadius: 18,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(height: 14),
+                                          const Text(
+                                            '모든 이야기를 다 보셨어요',
+                                            style: TextStyle(
+                                              fontFamily: SajuType.body,
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 18,
+                                              color: SajuGold.g100,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          // [viewedStoryCount] 이번 세션에서
+                                          // 상세까지 감상한 이야기 수 —
+                                          // 성취감을 주는 한 줄.
+                                          Text(
+                                            '지금까지 ${provider.viewedStoryCount}편의 이야기를 감상했어요.',
+                                            style: SajuType.body14,
+                                            textAlign: TextAlign.center,
+                                          ),
+                                          const SizedBox(height: 18),
+                                          Container(
+                                            width: 56,
+                                            height: 1,
+                                            color: SajuText.lineGold,
+                                          ),
+                                          const SizedBox(height: 18),
+                                          const Text(
+                                            '일주일 뒤면 이야기들이\n새 후보로 다시 찾아와요.',
+                                            style: SajuType.body14,
+                                            textAlign: TextAlign.center,
+                                          ),
+                                          const SizedBox(height: 8),
+                                          const Text(
+                                            '그때까지는 아래 버튼으로 본 이야기를\n처음부터 다시 볼 수 있어요. 다시 볼 때는 무료예요.',
+                                            style: TextStyle(
+                                              fontFamily: SajuType.body,
+                                              fontSize: 13,
+                                              height: 1.6,
+                                              color: SajuText.muted,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                     const SizedBox(height: 20),
                                     _RefreshButton(
+                                      label: '처음부터 다시 보기',
                                       spinning:
                                           _loadingMore ||
                                           provider.isRefreshingCandidates,
@@ -421,7 +509,8 @@ class _MoreStoriesScreenState extends State<MoreStoriesScreen> {
                                       ),
                                     ),
                                     child: const Text(
-                                      '모든 이야기를 다 보셨어요. 처음부터 다시 보여드려요.',
+                                      '모든 이야기를 다 보셨어요. 처음부터 다시 보여드려요.\n'
+                                      '다시 볼 때는 무료예요 · 일주일 뒤면 새 후보로 다시 찾아와요.',
                                       style: SajuType.body14,
                                       textAlign: TextAlign.center,
                                     ),
@@ -737,10 +826,19 @@ class _RiseInState extends State<_RiseIn> with SingleTickerProviderStateMixin {
 /// 바꿔버려 "↻ 새로운 이야기" 문구 자체가 사라지는 다른 동작이었다).
 /// 전용 Ghost 버튼을 만들어 "↻" 글리프만 회전시키고 라벨은 그대로 둔다.
 class _RefreshButton extends StatefulWidget {
-  const _RefreshButton({required this.spinning, required this.onTap});
+  const _RefreshButton({
+    required this.spinning,
+    required this.onTap,
+    this.label = '새로운 이야기',
+  });
 
   final bool spinning;
   final VoidCallback? onTap;
+
+  /// [소진 화면 디자인 업그레이드 2026-10-12] 소진 상태에선 "새로운
+  /// 이야기"가 아니라 "처음부터 다시 보기"가 맞는 라벨 — 상태별로
+  /// 라벨을 바꿔 기대와 동작을 일치시킨다.
+  final String label;
 
   @override
   State<_RefreshButton> createState() => _RefreshButtonState();
@@ -803,7 +901,7 @@ class _RefreshButtonState extends State<_RefreshButton>
               ),
               const SizedBox(width: 6),
               Text(
-                '새로운 이야기',
+                widget.label,
                 style: TextStyle(
                   fontFamily: SajuType.ui,
                   fontWeight: FontWeight.w500,

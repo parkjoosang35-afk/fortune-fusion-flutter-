@@ -267,25 +267,48 @@ class _StoryPreviewScreenState extends State<StoryPreviewScreen> {
                           }
 
                           final summary = previewState.data!;
+                          // [재열람 UX 보강 2026-10-12 — "짜르륵" 연출]
+                          // 본문 섹션(장면 태그 → 제목 → 본문 → 근거
+                          // 카드)이 90ms 간격으로 순차적으로 떠오른다.
+                          // 첫 조회든 캐시로 즉시 반환되는 재열람이든
+                          // 동일하게 재생된다 — 카드를 눌러 들어온
+                          // 사용자에게 "전에 본 내용이 펼쳐지는" 감각을
+                          // 준다. 모션 스펙은 docs/04 카드 rise(600ms,
+                          // ease-sj)와 동일.
                           return SingleChildScrollView(
                             padding: const EdgeInsets.fromLTRB(22, 24, 22, 200),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 if (scene != null)
-                                  _SceneTag(scene: scene, ordinal: ordinal),
+                                  _StaggerIn(
+                                    delay: Duration.zero,
+                                    child: _SceneTag(
+                                      scene: scene,
+                                      ordinal: ordinal,
+                                    ),
+                                  ),
                                 const SizedBox(height: 14),
-                                Text(summary.title, style: SajuType.h1),
+                                _StaggerIn(
+                                  delay: const Duration(milliseconds: 90),
+                                  child: Text(summary.title, style: SajuType.h1),
+                                ),
                                 const SizedBox(height: 18),
-                                SajuTermText(
-                                  text: summary.summary,
-                                  style: SajuType.body16,
+                                _StaggerIn(
+                                  delay: const Duration(milliseconds: 180),
+                                  child: SajuTermText(
+                                    text: summary.summary,
+                                    style: SajuType.body16,
+                                  ),
                                 ),
                                 const SizedBox(height: 26),
                                 if (_profile != null)
-                                  SajuEvidenceCard(
-                                    evidence: summary.evidence,
-                                    profile: _profile!,
+                                  _StaggerIn(
+                                    delay: const Duration(milliseconds: 270),
+                                    child: SajuEvidenceCard(
+                                      evidence: summary.evidence,
+                                      profile: _profile!,
+                                    ),
                                   ),
                                 const SizedBox(height: 28),
                                 // [웹 AdSense — STEP E] 사주 이야기 본문과
@@ -380,6 +403,60 @@ class _StoryPreviewScreenState extends State<StoryPreviewScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// [재열람 UX 보강 2026-10-12 — "짜르륵" 연출] 미리보기 본문 섹션이
+/// 지연(delay)을 두고 순차적으로 떠오르는 등장 애니메이션.
+/// more_stories_screen.dart의 _RiseIn과 동일한 모션 스펙 — docs/04
+/// "카드 rise 600, i×80ms"(jsx 원본 `sj-rise .6s` ease-sj)를 이
+/// 화면의 섹션 단위로 적용한 것이다. 이 화면에는 등장 애니메이션이
+/// 전혀 없어 본문이 아무 모션 없이 즉시 나타났던 것이 기존 결함.
+class _StaggerIn extends StatefulWidget {
+  const _StaggerIn({super.key, required this.child, this.delay = Duration.zero});
+
+  final Widget child;
+  final Duration delay;
+
+  @override
+  State<_StaggerIn> createState() => _StaggerInState();
+}
+
+class _StaggerInState extends State<_StaggerIn>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _fade;
+  late final Animation<Offset> _slide;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: SajuMotion.card, // 600ms — docs/04 "카드 rise 600".
+    );
+    _fade = CurvedAnimation(parent: _controller, curve: SajuMotion.easeSj);
+    _slide = Tween<Offset>(
+      begin: const Offset(0, 0.08),
+      end: Offset.zero,
+    ).animate(_fade);
+    Future.delayed(widget.delay, () {
+      if (mounted) _controller.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _fade,
+      child: SlideTransition(position: _slide, child: widget.child),
     );
   }
 }
