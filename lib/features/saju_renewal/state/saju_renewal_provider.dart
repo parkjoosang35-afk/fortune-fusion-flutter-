@@ -5,6 +5,7 @@ import '../../../core/utils/load_state.dart';
 import '../data/saju_renewal_api.dart';
 import '../data/models/topic_card.dart';
 import '../data/models/interpret_result.dart';
+import '../domain/saju_exhaustion_notification_service.dart';
 
 /// [신통방통 정통사주 리뉴얼 — STEP 6.5] 화면 전환만으로 데이터를 임시
 /// 전달하지 않도록(지시서 §상태관리 요구사항), 사용자 흐름 전체를 명확한
@@ -395,9 +396,7 @@ class SajuRenewalProvider extends ChangeNotifier {
       // true로 고정됐다. 그러면 08의 빈 목록 분기가 "새로운 사주 이야기를 찾고
       // 있어요." 문구에 영원히 머무른다(실기기 리포트 2026-10-12). 어떤 예외가
       // 나도 반드시 실패 안내+[다시 시도]로 전환된다.
-      debugPrint(
-        '[SajuRenewalProvider] [refreshCandidates] 예외 -> $e',
-      );
+      debugPrint('[SajuRenewalProvider] [refreshCandidates] 예외 -> $e');
       _isRefreshingCandidates = false;
       _candidatesRefreshFailed = true;
       notifyListeners();
@@ -420,6 +419,14 @@ class SajuRenewalProvider extends ChangeNotifier {
       // 다 보셨어요" 상태. 제외 목록을 리셋해 처음부터 다시 보여줄 수
       // 있도록 한 번 더 조회한다.
       _candidatesExhausted = true;
+      // [다음 클라 배치 2026-10-12 — 소진 복귀 유도] 소진이 "처음"
+      // 감지되는 시점에 +7일 로컬 알림을 예약한다. 서비스 내부가
+      // SharedPreferences 플래그로 멱등 가드하므로, 사용자가 "새로운
+      // 이야기" 버튼을 반복해 눌러 이 분기를 다시 타도 중복 예약되지
+      // 않는다("소진 화면을 열 때마다"가 아니라 실제 첫 전환 시점에만
+      // 1회) — await 하지 않는 이유: 알림 예약 실패/지연이 소진 안내
+      // UI 흐름 자체를 블로킹하면 안 된다(evening_bell과 동일 설계).
+      unawaited(SajuExhaustionNotificationService.scheduleOnFirstExhaustion());
       // [D-1] exclude용 노출 이력만 리셋한다 — _unlockedTopicIds(개봉 이력)는
       // 의도적으로 보존해 이미 결제한 이야기의 재결제를 막는다.
       _viewedTopicIds.clear();
@@ -436,12 +443,14 @@ class SajuRenewalProvider extends ChangeNotifier {
       // 초기화 정책("처음부터 다시 보여드려요")에 따라 직전 후보 풀을 복원해
       // 카드를 처음부터 다시 보여준다 — 카드는 제목 목록일 뿐이고, 본문은
       // interpret 멱등 캐시로 무료 재열람된다(재결제 없음, D-1과 정합).
-      final hadPreviousPool = previousState.data?.candidates.isNotEmpty ?? false;
+      final hadPreviousPool =
+          previousState.data?.candidates.isNotEmpty ?? false;
       _isRefreshingCandidates = false;
       if (hadPreviousPool) {
         _topicsState = previousState;
         _shownCandidateIds.clear();
-        _candidatesExhausted = true; // "모든 이야기를 다 보셨어요. 처음부터 다시 보여드려요." 안내를 카드와 함께 표시
+        _candidatesExhausted =
+            true; // "모든 이야기를 다 보셨어요. 처음부터 다시 보여드려요." 안내를 카드와 함께 표시
         notifyListeners();
         return;
       }
@@ -457,6 +466,12 @@ class SajuRenewalProvider extends ChangeNotifier {
     _isRefreshingCandidates = false;
     _topicsState = LoadState.success(result.data!);
     _shownCandidateIds.clear();
+    // [다음 클라 배치 2026-10-12 — 소진 복귀 유도] 서버가 실제로 새
+    // 후보(newCandidates.isNotEmpty)를 내려준 시점 = "재후보화 확인"이다.
+    // 이전에 소진 알림이 예약돼 있었다면 취소한다(서비스 내부가 예약이
+    // 없었어도 안전하게 no-op 처리하므로, 애초에 소진이 아니었던 일반
+    // 재호출 성공 경로에서도 그냥 호출해도 무해하다).
+    unawaited(SajuExhaustionNotificationService.cancelOnRecovery());
     notifyListeners();
   }
 
@@ -499,9 +514,7 @@ class SajuRenewalProvider extends ChangeNotifier {
         result.errorCode != 'UNAUTHORIZED';
 
     if (isRetryableFailure) {
-      debugPrint(
-        '[SajuRenewalProvider] [E-04] topics/select 1차 실패 -> 1회 재시도',
-      );
+      debugPrint('[SajuRenewalProvider] [E-04] topics/select 1차 실패 -> 1회 재시도');
       // [docs "9단계 대기 상태로"] 재시도하는 동안 _status는 건드리지
       // 않는다(이미 calculating 상태 유지 중) — CalculatingScreen(03)은
       // 이 재시도가 끝날 때까지 9단계 연출을 그대로 유지한다.
@@ -738,6 +751,11 @@ class SajuRenewalProvider extends ChangeNotifier {
     _isRefreshingCandidates = false;
     _candidatesRefreshFailed = false;
     _candidatesExhausted = false;
+    // [다음 클라 배치 2026-10-12 — 계정 격리] 소진 알림은 "이 계정의
+    // 소진 상태"에 종속된 예약이므로, 로그아웃 시 취소해 사용자A의 예약이
+    // 사용자B 기기 세션에 잘못 울리는 일을 막는다(이 Provider의 기존
+    // 계정 격리 원칙과 동일).
+    unawaited(SajuExhaustionNotificationService.cancelOnLogout());
     notifyListeners();
   }
 
