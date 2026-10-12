@@ -6,6 +6,7 @@ import '../widgets/saju_base_widgets.dart';
 import 'analysis_complete_screen.dart';
 import 'birth_input_screen.dart';
 import 'story_detail_screen.dart';
+import 'story_preview_screen.dart';
 
 /// [버그 수정 — saju-handoff-spec.pdf §6.4 R-D "추정 금지" 미이행 보완]
 /// 서버(TK-6, admin_web topics/select·interpret route.ts)는 성별/출생정보가
@@ -59,6 +60,12 @@ class _ErrorScreenState extends State<ErrorScreen> {
       if (provider.status == SajuRenewalFlowStatus.storyDetail) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const StoryDetailScreen()),
+        );
+      } else if (provider.status == SajuRenewalFlowStatus.storyPreview) {
+        // [전수검수 2026-10-12 D-3] 미리보기 오류의 재시도 성공은 05 직행 —
+        // 기존엔 04(분석완료) 우회로 "이야기 열어 보기"를 한 번 더 눌러야 했다.
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const StoryPreviewScreen()),
         );
       } else {
         // factsReady/storyPreview 등 — 분석완료 화면으로 복귀(그 화면이

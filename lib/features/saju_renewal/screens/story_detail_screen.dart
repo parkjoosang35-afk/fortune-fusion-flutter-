@@ -121,7 +121,7 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
     final topic = provider.currentTopic;
     if (topic == null) return;
     final detail = provider.detailState.data;
-    if (detail == null) return;
+    if (detail == null || !provider.detailState.isSuccess) return; // [D-6] _persistRecentStory와 동일한 성공 기준
     final firstBlockBody = detail.blocks.isNotEmpty
         ? detail.blocks.first.body
         : '';
