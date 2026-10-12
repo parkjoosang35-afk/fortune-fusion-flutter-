@@ -251,7 +251,16 @@ class SajuRenewalProvider extends ChangeNotifier {
   /// [_viewedTopicIds])이면 "해제됨" 상태로 간주해 05 화면이 게이트
   /// 없이 바로 07로 보낼 수 있게 한다(C-06e "같은 주제 재열람 시
   /// 게이트가 다시 뜨지 않는다"와 동일한 근거 데이터를 공유).
-  bool isTopicUnlocked(String topicId) => _viewedTopicIds.contains(topicId);
+  /// [전수검수 2026-10-12 D-1] 이번 세션에서 detail까지 성공적으로 연 주제의
+  /// 개봉 이력 — 후보 소진 리셋(_viewedTopicIds.clear())으로 지우지 않는
+  /// 별도 집합. 리셋 후 재노출된 기시청 주제가 다시 유료 게이트에 걸려
+  /// 복주머니/프리패스가 재차감되는 사고를 막는다.
+  final Set<String> _unlockedTopicIds = {};
+
+  /// "해제됨" 판정은 세션 개봉 이력을 우선 확인한다(C-06e "같은 주제
+  /// 재열람 시 게이트가 다시 뜨지 않는다").
+  bool isTopicUnlocked(String topicId) =>
+      _unlockedTopicIds.contains(topicId) || _viewedTopicIds.contains(topicId);
 
   void _setStatus(SajuRenewalFlowStatus next) {
     _status = next;
@@ -394,6 +403,8 @@ class SajuRenewalProvider extends ChangeNotifier {
       // 다 보셨어요" 상태. 제외 목록을 리셋해 처음부터 다시 보여줄 수
       // 있도록 한 번 더 조회한다.
       _candidatesExhausted = true;
+      // [D-1] exclude용 노출 이력만 리셋한다 — _unlockedTopicIds(개봉 이력)는
+      // 의도적으로 보존해 이미 결제한 이야기의 재결제를 막는다.
       _viewedTopicIds.clear();
       _isRefreshingCandidates = false;
       await _refreshCandidatesFromServer(isExhaustionRetry: true);
@@ -617,6 +628,7 @@ class SajuRenewalProvider extends ChangeNotifier {
 
     _detailState = LoadState.success(result.data!);
     _viewedTopicIds.add(topic.topicId);
+    _unlockedTopicIds.add(topic.topicId); // [D-1] 리셋에도 유지되는 개봉 이력
     _lastAccessTransactionId = null;
     _status = SajuRenewalFlowStatus.storyDetail;
     notifyListeners();
