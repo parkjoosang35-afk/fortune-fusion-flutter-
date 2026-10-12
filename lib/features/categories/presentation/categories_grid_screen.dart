@@ -74,6 +74,18 @@ class _CategoriesGridScreenState extends State<CategoriesGridScreen> {
   /// 없이 이 화면에서도 동일하게 동작하도록 한다.
   Future<void> _openEntry(FortuneCategoryEntry entry) async {
     setState(() => _checking = true);
+    // [전수검수 2026-10-12 F2] 게이트 판정/패스 소비 중 예외가 던져져도
+    // 전면 로딩 오버레이가 영구 고정되지 않도록 보장한다 — 기존에는 성공
+    // 경로에서만 _checking이 해제돼, 예외 하나로 그리드가 통째로 막혔다.
+    try {
+      await _openEntryChecked(entry);
+    } catch (e) {
+      debugPrint('[CategoriesGrid] 진입 게이트 예외 -> $e');
+      if (mounted) setState(() => _checking = false);
+    }
+  }
+
+  Future<void> _openEntryChecked(FortuneCategoryEntry entry) async {
     final access = context.read<AccessChecker>();
     final decision = await CategoryGate.decide(entry, access);
     if (!mounted) return;

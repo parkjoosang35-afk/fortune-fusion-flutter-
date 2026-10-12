@@ -37,30 +37,21 @@ class GiftcardDetailScreen extends StatelessWidget {
     );
     if (!confirmed || !context.mounted) return;
 
-    // 02§14 사용자흐름: 교환신청 → 복주머니차감 → 발급대기 → 발급완료/실패.
-    // WalletService.spend 단일 인터페이스 원칙(02§1.2)에 따라 화면 레이어에서
-    // 먼저 복주머니를 차감하고, 발급이 실패하면 즉시 환불(earn)로 보상 처리한다.
-    final spent = await wallet.spend(
-      product.requiredPoint,
-      '상품권 교환 - ${product.name}',
-      sourceType: 'giftcard',
-    );
-    if (!spent) {
-      if (!context.mounted) return;
-      AppToast.show(context, '복주머니 차감에 실패했습니다.', isError: true);
-      return;
-    }
-
-    final issue = await giftcard.orderProduct(product.id);
+    // 02§14 사용자흐름: 교환신청 → 발급대기 → 발급완료/실패.
+    // [전수검수 2026-10-12 C-2/GIFTCARD-01] 차감·재고·발급을 서버 단일
+    // 트랜잭션으로 이관한다(chargeMode: server) — 기존 클라이언트
+    // 오케스트레이션은 (a) spend 대기 구간의 이중 탭으로 중복 차감이
+    // 가능했고(GIFTCARD-01) (b) orderProduct 직접 호출로 무료 발급이
+    // 가능한 서버 구멍(C-2)의 원인이었다.
+    final issue = await giftcard.orderProduct(product.id, chargeMode: 'server');
+    wallet.load(); // 성공/실패 무관 서버 차감·환원 결과를 즉시 반영.
     if (!context.mounted) return;
 
     if (issue == null || issue.status == GiftcardIssueStatus.failed) {
-      // 발급 실패 - 복주머니 자동 환불(트랜잭션 보상처리, 02§14 예외처리)
-      await wallet.earn(
-        product.requiredPoint,
-        '상품권 발급 실패 환불 - ${product.name}',
-        sourceType: 'refund',
-      );
+      // [전수검수 2026-10-12] 발급 실패 시 차감도 서버 트랜잭션이 함께
+      // 롤백하므로 클라이언트 환불(earn) 경로는 제거됐다 — 지갑은 위
+      // load()로 최신화된다(WALLET-01/GIFTCARD-02 무음 환불 유실 결함도
+      // 이 경로 삭제로 함께 소멸).
       if (!context.mounted) return;
       await giftcard.loadProducts();
       if (!context.mounted) return;

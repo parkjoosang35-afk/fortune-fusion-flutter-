@@ -400,6 +400,10 @@ class _LogoutCallbackRegistrarState extends State<_LogoutCallbackRegistrar> {
     auth.registerLogoutCallback(() {
       SajuRecentStoryStore.clear();
     });
+    // [전수검수 2026-10-12 F1] 귀인지도 Provider도 계정 격리 원칙에 포함한다
+    // — 기존에는 등록이 누락돼 로그아웃 후에도 이전 계정의 지도 메타와
+    // 멤버(이름·생년월일) 정보가 메모리에 잔존했다.
+    auth.registerLogoutCallback(context.read<GuinjiProvider>().clearOnLogout);
   }
 
   @override
