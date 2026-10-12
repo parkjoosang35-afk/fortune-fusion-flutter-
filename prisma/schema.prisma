@@ -236,15 +236,15 @@ model User {
   wishRoomOutfitsOwned          WishRoomOutfitOwned[]
   wishRoomUserState             WishRoomUserState?
   wishRoomEarnLogs              WishRoomEarnLog[]
-  wishRoomBlocksMade            WishRoomBlock[]          @relation("WishRoomBlocker")
-  wishRoomBlocksReceived        WishRoomBlock[]          @relation("WishRoomBlocked")
+  wishRoomBlocksMade            WishRoomBlock[]           @relation("WishRoomBlocker")
+  wishRoomBlocksReceived        WishRoomBlock[]           @relation("WishRoomBlocked")
   wishRoomActionLogs            WishRoomActionLog[]
   // [정통사주 리뉴얼 v1.0] 신규 topic 기반 UX 전용 — 기존 jeontong_eighty(69종)/
   // saju_v3 베타와는 완전히 분리된 신규 영역(saju_renewal). 계산은 여전히
   // saju_engine(Python, 무상태)이 하고, 이 두 테이블만 admin_web DB에 둔다.
-  sajuFactsCaches                SajuFactsCache[]
-  topicExposureHistories         TopicExposureHistory[]
-  topicInterpretResults          TopicInterpretResult[]
+  sajuFactsCaches               SajuFactsCache[]
+  topicExposureHistories        TopicExposureHistory[]
+  topicInterpretResults         TopicInterpretResult[]
 
   @@map("users")
 }
@@ -2765,14 +2765,14 @@ model AdPlatformConfig {
   publisherId                 String? @map("publisher_id") // ca-pub-XXXXXXXXXXXXXXXX
   showPlaceholderWhenDisabled Boolean @default(true) @map("show_placeholder_when_disabled")
   // {"home":false,"sajuRenewal":true,"tarot":true,"wishRoom":false,"guinji":true,"face":true,"palm":true}
-  surfaceConfigJson String? @map("surface_config_json")
+  surfaceConfigJson           String? @map("surface_config_json")
   // {"banner":true,"inPage":true,"anchor":true,"vignette":true}
-  formatConfigJson  String? @map("format_config_json")
+  formatConfigJson            String? @map("format_config_json")
 
   note      String? // 관리자 참고 메모(예: AdMob 행에는 실제 Ad Unit ID 전환 방법 안내) — SQLite는 @db.Text 네이티브 타입 미지원이라 일반 String? 사용
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  updatedBy String?   @map("updated_by")
-  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedBy String?  @map("updated_by")
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@map("ad_platform_configs")
 }
@@ -3796,12 +3796,12 @@ model GuinjiMap {
   // active=정상 노출/참여가능, revoked=소유자가 링크를 일시 중단(지도 삭제 아님).
   // SQLite는 네이티브 enum을 지원하지 않아(schema 전체 컨벤션과 동일하게)
   // String으로 관리한다: "active" | "revoked".
-  inviteStatus  String    @default("active") @map("invite_status")
+  inviteStatus    String    @default("active") @map("invite_status")
   // 현재 token 값이 발급(또는 재발급)된 시각. 재발급 시 token과 함께 갱신되어
   // 만료 로직 비활성화 이후에도 "토큰이 언제 바뀌었는지" 추적 용도로 보존.
-  tokenIssuedAt DateTime  @default(now()) @map("token_issued_at")
+  tokenIssuedAt   DateTime  @default(now()) @map("token_issued_at")
   // inviteStatus가 revoked로 전환된 시각(재활성화 시 null로 리셋).
-  revokedAt     DateTime? @map("revoked_at")
+  revokedAt       DateTime? @map("revoked_at")
   // [API §6 구현 - 사주 아키텍처 B안 보완] 지도 생성 시 클라이언트가 계산해
   // 전달한 owner 본인의 사주 JSON 캐시. 멤버 추가(POST .../members)마다
   // RelationJudger가 owner↔member를 즉시 대조 판정해야 하므로, 매 요청마다
@@ -4047,14 +4047,14 @@ model WishRoom {
   userId Int @map("user_id") // 소원방 주인
 
   // [SCR-02 소원 작성]
-  charCode   String @default("F00") @map("char_code") // WrCharacter.id (예: "F00")
+  charCode   String  @default("F00") @map("char_code") // WrCharacter.id (예: "F00")
   text       String // 소원 본문
-  theme      String @default("free") // free/god/buddha/shaman (THEMES.id)
+  theme      String  @default("free") // free/god/buddha/shaman (THEMES.id)
   outfit     String? // 사용자가 고른 의상 테마. null=테마를 그대로 따라감
-  wishColor  String @default("hope") @map("wish_color") // WISH_COLORS.id
-  paper      String @default("hanji") // PAPERS.id
-  visibility String @default("PUBLIC") // PUBLIC/LINK/PRIVATE
-  region     String @default("") // 표시용 지역(선택)
+  wishColor  String  @default("hope") @map("wish_color") // WISH_COLORS.id
+  paper      String  @default("hanji") // PAPERS.id
+  visibility String  @default("PUBLIC") // PUBLIC/LINK/PRIVATE
+  region     String  @default("") // 표시용 지역(선택)
 
   // [상태 머신 §6] DRAFT→ACTIVE→GROWING→COMPLETED→(SEALED)→ARCHIVED
   status String @default("ACTIVE")
@@ -4076,9 +4076,9 @@ model WishRoom {
   // [정성 제한 §6] 하루 10회(KST 자정 리셋)·쿨타임 30초. 아이템 기운(effects.daily/cool)으로 보정.
   devotionsToday     Int       @default(0) @map("devotions_today")
   devotionsResetDate String?   @map("devotions_reset_date") // KST 'YYYY-MM-DD' — 날짜 바뀌면 devotionsToday를 0으로 리셋
-  lastDevotionAt      DateTime? @map("last_devotion_at") // 쿨타임 계산 기준
+  lastDevotionAt     DateTime? @map("last_devotion_at") // 쿨타임 계산 기준
   // [감쇠 §6] absentDays = today - lastActiveAt(KST, 날짜 단위). "다시 밝히기" 시 lastActiveAt=now로 갱신.
-  lastActiveAt         DateTime  @default(now()) @map("last_active_at")
+  lastActiveAt       DateTime  @default(now()) @map("last_active_at")
 
   // [꾸미기 §6] 슬롯 7종(CANDLE1·FLOWER1·DECORATION5·BACKGROUND1·SPECIAL1·SEAL3·THEME5)
   // Equip{candle,flower,background,special,decoration[],seal[],theme[]} JSON 문자열(SQLite 네이티브 JSONB 없음, 기존 전례 동일)
@@ -4091,10 +4091,10 @@ model WishRoom {
   cancelUntil DateTime? @map("cancel_until")
 
   // [타임캡슐 C1-C2] 작성 시 정한 봉인일(KST 'YYYY-MM-DD') → 그날 캡슐 오픈
-  sealUntil  String? @map("seal_until")
-  capsule    String? @default("LOCKED") // LOCKED/OPENED
-  outcome    String? // FULFILLED/ONGOING/REWISH (POST .../outcome)
-  wishStatus String? @default("IN_PROGRESS") @map("wish_status") // IN_PROGRESS/ACHIEVED
+  sealUntil      String? @map("seal_until")
+  capsule        String? @default("LOCKED") // LOCKED/OPENED
+  outcome        String? // FULFILLED/ONGOING/REWISH (POST .../outcome)
+  wishStatus     String? @default("IN_PROGRESS") @map("wish_status") // IN_PROGRESS/ACHIEVED
   // [알림 1회 트리거 플래그, app/api.js r.unsealNotified / r.decayNotified 포팅]
   unsealNotified Boolean @default(false) @map("unseal_notified") // GET /wish-rooms/me에서 UNSEAL 알림 중복 발송 방지
   decayNotified  Boolean @default(false) @map("decay_notified") // POST .../enter에서 STATUS(감쇠) 알림 중복 발송 방지. absentDays<4로 복귀 시 false로 리셋
@@ -4119,7 +4119,7 @@ model WishRoom {
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
-  user                User                          @relation(fields: [userId], references: [id])
+  user                User                         @relation(fields: [userId], references: [id])
   supports            WishRoomSupport[]
   visits              WishRoomVisit[]
   comments            WishRoomComment[]
@@ -4229,16 +4229,16 @@ model WishRoomReview {
   congratsCount Int       @default(0) @map("congrats_count")
   // [SERVER 어뷰징 검사, app/api.js reviewAbuse() 포팅] 통과: visible(보상 즉시 지급) ·
   // 의심 플래그 있음: review(보상 보류 + 관리자 검토) · hidden_by_report(신고 3회 누적) · deleted_by_admin
-  status      String  @default("visible")
-  flagsJson   String  @default("[]") @map("flags_json") // reviewAbuseFlags() 결과(TOO_SHORT/REPEAT_CHAR/... 문자열 배열의 JSON)
-  reportCount Int     @default(0) @map("report_count")
-  rewardGranted Boolean @default(false) @map("reward_granted") // grantReviewReward() idempotency(복주머니 중복 지급 방지)
+  status        String    @default("visible")
+  flagsJson     String    @default("[]") @map("flags_json") // reviewAbuseFlags() 결과(TOO_SHORT/REPEAT_CHAR/... 문자열 배열의 JSON)
+  reportCount   Int       @default(0) @map("report_count")
+  rewardGranted Boolean   @default(false) @map("reward_granted") // grantReviewReward() idempotency(복주머니 중복 지급 방지)
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
   deletedAt     DateTime? @map("deleted_at")
 
-  room     WishRoom                   @relation(fields: [roomId], references: [id])
-  user     User                       @relation(fields: [userId], references: [id])
+  room     WishRoom                 @relation(fields: [roomId], references: [id])
+  user     User                     @relation(fields: [userId], references: [id])
   congrats WishRoomReviewCongrats[]
 
   @@index([roomId])
@@ -4305,12 +4305,12 @@ model WishRoomOutfitOwned {
 
 // ── 사용자별 소원방 설정/상태(1:1) ── 대표캐릭터·인트로 생략 여부 등
 model WishRoomUserState {
-  id                 Int      @id @default(autoincrement())
-  userId             Int      @unique @map("user_id")
-  repCharCode        String   @default("F00") @map("rep_char_code") // 대표(장착) 캐릭터
-  skipIntro          Boolean  @default(false) @map("skip_intro") // PATCH /me/settings {skipIntro}
-  firstRoomIntroDone Boolean  @default(false) @map("first_room_intro_done") // §0-2 마이그레이션된 사용자도 최초 1회 풀 인트로
-  lastEnterDate      String?  @map("last_enter_date") // KST 'YYYY-MM-DD' — GET /wish-rooms/me의 introMode('short') 판정용(app/api.js db.me.lastEnterDate 포팅)
+  id                 Int     @id @default(autoincrement())
+  userId             Int     @unique @map("user_id")
+  repCharCode        String  @default("F00") @map("rep_char_code") // 대표(장착) 캐릭터
+  skipIntro          Boolean @default(false) @map("skip_intro") // PATCH /me/settings {skipIntro}
+  firstRoomIntroDone Boolean @default(false) @map("first_room_intro_done") // §0-2 마이그레이션된 사용자도 최초 1회 풀 인트로
+  lastEnterDate      String? @map("last_enter_date") // KST 'YYYY-MM-DD' — GET /wish-rooms/me의 introMode('short') 판정용(app/api.js db.me.lastEnterDate 포팅)
 
   // [배경화면 W2~W5, docs/WALLPAPER.md] 1인 1설정 — roomId가 null이면 "설정 안 함"(Flutter
   // WallpaperStatus.isSet getter와 동치: roomId != null). version/latestVersion 비교로
@@ -4322,8 +4322,8 @@ model WishRoomUserState {
   wallpaperVersion         Int      @default(0) @map("wallpaper_version") // PUT 시점에 기록한 버전(= 그때의 renderKey 버전)
   wallpaperAutoSynced      Boolean  @default(true) @map("wallpaper_auto_synced") // Android는 syncManifest로 항상 자동 반영되므로 true 고정
   wallpaperSeenLevelNotice Int      @default(0) @map("wallpaper_seen_level_notice") // W5 — 이 레벨까지는 S-07 안내를 이미 봤음
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt @map("updated_at")
+  createdAt                DateTime @default(now()) @map("created_at")
+  updatedAt                DateTime @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id])
 
@@ -4347,10 +4347,10 @@ model WishRoomEarnLog {
 
 // ── 소원방 사용자 차단(§4 B — "신고하지 않고 차단만") ── 내가 차단한 상대의 방/댓글을 explore·comments에서 숨김
 model WishRoomBlock {
-  id          Int      @id @default(autoincrement())
-  blockerId   Int      @map("blocker_id") // 차단한 사람
-  blockedId   Int      @map("blocked_id") // 차단당한 사람
-  createdAt   DateTime @default(now()) @map("created_at")
+  id        Int      @id @default(autoincrement())
+  blockerId Int      @map("blocker_id") // 차단한 사람
+  blockedId Int      @map("blocked_id") // 차단당한 사람
+  createdAt DateTime @default(now()) @map("created_at")
 
   blocker User @relation("WishRoomBlocker", fields: [blockerId], references: [id])
   blocked User @relation("WishRoomBlocked", fields: [blockedId], references: [id])
@@ -4440,9 +4440,9 @@ model TopicCatalog {
   deletedAt     DateTime? @map("deleted_at")
 
   conditions        TopicCondition[]
-  promptTemplates    TopicPromptTemplate[]
-  exposureHistories  TopicExposureHistory[]
-  interpretResults   TopicInterpretResult[]
+  promptTemplates   TopicPromptTemplate[]
+  exposureHistories TopicExposureHistory[]
+  interpretResults  TopicInterpretResult[]
 
   @@map("topic_catalog")
 }
@@ -4473,7 +4473,7 @@ model TopicCondition {
 model TopicPromptTemplate {
   id           Int      @id @default(autoincrement())
   topicId      String   @map("topic_id")
-  mode         String   // summary | detail
+  mode         String // summary | detail
   systemPrompt String   @map("system_prompt")
   fallbackJson String   @map("fallback_json") // docs/05 §2-4 "주제 템플릿 상주 문구" — LLM 실패시 즉시 사용
   version      Int      @default(1)
@@ -4530,4 +4530,25 @@ model TopicInterpretResult {
 
   @@unique([userId, topicId, mode, birthKey])
   @@map("topic_interpret_results")
+}
+
+// [귀인지도 v2 — 성장 퍼널 측정 2026-10-13] 초대 링크가 "공유→후킹→참가→
+// 재공유→설치→수익화" 루프의 어느 단계에서 끊기는지 측정하기 위한 익명
+// 이벤트 로그. 기획서 §7 (guinji-map-v2-spec). 개인정보(생년월일·이름·
+// 사주)는 절대 저장하지 않는다 — 익명ID + 이벤트명 + 선택 컨텍스트뿐.
+//
+// [배포 방식 — B안: db push] 이 모델은 `prisma db push`로만 반영한다.
+// migrations/ 폴더에 대응하는 SQL 파일을 만들지 않는다 — 손으로 쓴
+// migration SQL과 schema.prisma가 동시에 진실원이 되어 어긋나는 것을
+// 막기 위함(통합 작업 지시서 2026-10-13 §변경1).
+model FunnelEvent {
+  id          Int      @id @default(autoincrement())
+  eventName   String   @map("event_name") // 허용 목록은 라우트의 FUNNEL_EVENTS (7종)
+  anonymousId String   @map("anonymous_id") // 클라 생성 랜덤 ID (설치/브라우저 세션 단위)
+  mapToken    String?  @map("map_token") // 어떤 초대 링크에서 발생했는지(있을 때만)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([eventName, createdAt])
+  @@index([mapToken])
+  @@map("funnel_events")
 }
