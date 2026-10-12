@@ -228,6 +228,19 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
         'body': body,
       });
     }
+    // [계산 흔적 노출 2026-10-12 — 신뢰 자산] 웹(/r/) 결과 카드에
+    // "정통 만세력 계산" 배지로 노출될 실측 명식 한 줄을 payload에
+    // 추가한다. 일주 = _profile.pillars[1](화면 순서 0=時 1=日 2=月
+    // 3=年). 생년월일 등 원시 PII는 여전히 전달하지 않는다(개인정보
+    // 원칙 유지) — 계산 "결과값"만 표시로 전달한다. profile이 없거나
+    // 일주 기둥이 비어 있으면(비로그인 등) trace를 아예 넣지 않고,
+    // 웹은 trace 없는 링크(legacy 포함)에서 배지를 렌더하지 않는다.
+    final pillars = _profile?.pillars;
+    final dayPillar =
+        (pillars != null && pillars.length > 1) ? pillars[1] : null;
+    final String? trace = dayPillar == null
+        ? null
+        : '일주 ${dayPillar.stemHanja}${dayPillar.branchHanja}';
     ShareService.shareResult(
       context,
       resultType: ShareResultType.saju,
@@ -235,6 +248,7 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
       description: summary,
       payload: {
         'kind': 'saju',
+        if (trace != null) 'trace': trace,
         'blocks': blocks,
         'summary': summary,
         'highlights': highlights,
