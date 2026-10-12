@@ -591,8 +591,8 @@ class _LinkManagementSection extends StatelessWidget {
                 icon: Icon(isRevoked ? Icons.play_circle_outline : Icons.pause_circle_outline, size: 16),
                 label: Text(isRevoked ? '중단 해제' : '링크 중단'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: isRevoked ? GmColors.gold : Colors.redAccent,
-                  side: BorderSide(color: isRevoked ? GmColors.gold : Colors.redAccent.withValues(alpha: 0.4)),
+                  foregroundColor: isRevoked ? GmColors.gold : GmColors.danger,
+                  side: BorderSide(color: isRevoked ? GmColors.gold : GmColors.danger.withValues(alpha: 0.4)),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
@@ -619,8 +619,12 @@ class _KakaoOgPreview extends StatelessWidget {
       child: Container(
         constraints: const BoxConstraints(maxWidth: 320),
         decoration: BoxDecoration(
-          color: const Color(0xFFFBFBFB),
-          border: Border.all(color: const Color(0xFFE5E5E5)),
+          // [P3 공유 화면 정합화 — 2026-12] 인트로·지도·OG 이미지와 같은
+          // 다크 프리미엄 톤으로 전환(이 카드가 실제 공유 이미지의
+          // 축소판이라 브랜드 톤을 실어야 함). 기존 라이트 카드(#FBFBFB/
+          // #E5E5E5)는 본체(GmColors 다크 테마)와 이질적이었다.
+          color: GmColors.card,
+          border: Border.all(color: GmColors.gold, width: 1.5),
         ),
         child: Column(
           children: [
@@ -667,14 +671,14 @@ class _KakaoOgPreview extends StatelessWidget {
                                   fontFamily: GmText.display,
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
-                                  color: Colors.white,
+                                  color: GmColors.fg,
                                   height: 1.25,
                                 ),
                               ),
                               const SizedBox(height: 2),
                               Text(
                                 '귀인 $guinjiCount명이 밝히는 중',
-                                style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.7)),
+                                style: const TextStyle(fontSize: 10, color: GmColors.muted),
                               ),
                             ],
                           ),
@@ -694,12 +698,17 @@ class _KakaoOgPreview extends StatelessWidget {
                     '$ownerName님의 귀인지도',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.black),
+                    style: const TextStyle(
+                      fontFamily: GmText.display,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: GmColors.fg,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   const Text(
                     '나는 이 사람에게 어떤 사람일까?',
-                    style: TextStyle(fontSize: 10.5, color: Colors.grey),
+                    style: TextStyle(fontFamily: GmText.body, fontSize: 10.5, color: GmColors.muted),
                   ),
                 ],
               ),
@@ -735,7 +744,10 @@ class _ShareLinkRow extends StatelessWidget {
             child: Text(
               link,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 11, letterSpacing: 0.2, color: GmColors.fg),
+              // [P3 — 2026-12 대비 규칙] 이 행의 배경은 밝은 흰색 계열이라
+              // 다크 배경 전용 GmColors.fg(거의 흰색)를 쓰면 글자가 거의
+              // 보이지 않았다(라이트 카드 전용 토큰으로 교체).
+              style: const TextStyle(fontSize: 11, letterSpacing: 0.2, color: GmColors.fgOnLight),
             ),
           ),
           const SizedBox(width: 8),
