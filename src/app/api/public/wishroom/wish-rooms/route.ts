@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { WR, WishRoomError, buildRoomView, checkSealDate, filterText, serializeEquip, type EquipShape } from "@/lib/wishroom-engine";
-import { getOrCreateUserState, requireUser, unauthorizedResponse, wishroomOptionsResponse, CORS_HEADERS, toErrorResponse } from "../_shared";
+import { getOrCreateUserState, getOwnedCharacterIds, requireUser, unauthorizedResponse, wishroomOptionsResponse, CORS_HEADERS, toErrorResponse } from "../_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -50,12 +50,20 @@ export async function POST(request: NextRequest) {
       const sealUntil = isDraft ? null : checkSealDate(body.sealUntil ?? undefined);
 
       const state = await getOrCreateUserState(tx, auth.userId);
+      // [전수검수 2026-10-12 — MEDIUM] 방 생성 시 캐릭터 소유를 검증하지 않아
+      // 미보유 유료 캐릭터 코드로 방을 만들 수 있었다(PATCH /me/character는
+      // NOT_OWNED 검사를 함 — 동일 기준을 생성에도 적용). 미지정 시는 기존대로
+      // repCharCode 기본값을 사용하되, 지정값이 미보유면 403으로 거부한다.
+      const wantedChar = body.char || state.repCharCode;
+      if (body.char && !(await getOwnedCharacterIds(tx, auth.userId)).has(body.char)) {
+        throw new WishRoomError(403, "NOT_OWNED", "아직 함께하지 않는 캐릭터예요");
+      }
       const theme = WR.THEMES.some((t) => t.id === body.theme) ? (body.theme as string) : "free";
 
       const room = await tx.wishRoom.create({
         data: {
           userId: auth.userId,
-          charCode: body.char || state.repCharCode,
+          charCode: wantedChar,
           text,
           theme,
           wishColor: body.wishColor || "hope",

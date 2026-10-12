@@ -41,14 +41,22 @@ export async function POST(request: NextRequest) {
         const comment = await tx.wishRoomComment.findUnique({ where: { id: commentDbId } });
         if (!comment || comment.deletedAt != null) throw new WishRoomError(404, "NOT_FOUND", "댓글을 찾을 수 없어요");
 
-        const newCount = comment.reportCount + 1;
-        await tx.wishRoomComment.update({
-          where: { id: commentDbId },
-          data: { reportCount: newCount, status: newCount >= HIDE_THRESHOLD ? "hidden_by_report" : comment.status },
+        // [전수검수 2026-10-12 — HIGH] 동일 사용자가 같은 대상을 반복 신고해도
+        // reportCount가 매번 +1 → 계정 1개로 "신고 3회 자동 숨김"을 조작할 수
+        // 있었다. 1인 1회만 집계한다(이미 신고한 대상이면 집계/기록 없이 통과).
+        const priorCommentReport = await tx.report.findFirst({
+          where: { targetType: "wish_room_comment", targetId: commentDbId, reporterId: auth.userId },
         });
-        await tx.report.create({
-          data: { targetType: "wish_room_comment", targetId: commentDbId, reporterId: auth.userId, reason },
-        });
+        if (!priorCommentReport) {
+          const newCount = comment.reportCount + 1;
+          await tx.wishRoomComment.update({
+            where: { id: commentDbId },
+            data: { reportCount: newCount, status: newCount >= HIDE_THRESHOLD ? "hidden_by_report" : comment.status },
+          });
+          await tx.report.create({
+            data: { targetType: "wish_room_comment", targetId: commentDbId, reporterId: auth.userId, reason },
+          });
+        }
       }
 
       if (body.roomId) {
@@ -57,10 +65,16 @@ export async function POST(request: NextRequest) {
         const room = await tx.wishRoom.findUnique({ where: { id: roomDbId } });
         if (!room || room.deletedAt != null) throw new WishRoomError(404, "NOT_FOUND", "소원방을 찾을 수 없어요");
 
-        await tx.wishRoom.update({ where: { id: roomDbId }, data: { reportCount: { increment: 1 } } });
-        await tx.report.create({
-          data: { targetType: "wish_room", targetId: roomDbId, reporterId: auth.userId, reason },
+        // [전수검수 2026-10-12 — HIGH] 동일 사용자 중복 신고 1인 1회 집계.
+        const priorRoomReport = await tx.report.findFirst({
+          where: { targetType: "wish_room", targetId: roomDbId, reporterId: auth.userId },
         });
+        if (!priorRoomReport) {
+          await tx.wishRoom.update({ where: { id: roomDbId }, data: { reportCount: { increment: 1 } } });
+          await tx.report.create({
+            data: { targetType: "wish_room", targetId: roomDbId, reporterId: auth.userId, reason },
+          });
+        }
       }
     });
 

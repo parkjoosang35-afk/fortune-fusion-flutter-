@@ -113,7 +113,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       });
 
       let reward: { base: number; photo: number } | null = null;
-      if (status === "visible") {
+      // [전수검수 2026-10-12 — HIGH] 후기 삭제→재작성으로 리워드가 재지급되는
+      // 무한 적립 루프 차단. 기존 중복 검사는 `deletedAt: null`인 행만 보므로
+      // soft-delete 후 재POST하면 보상이 다시 지급됐다. 방 단위
+      // reviewRewardGranted 플래그(완료-취소 차단에 이미 사용)를 보상 지급
+      // 게이트로 함께 요구한다 — 1개 방당 후기 리워드는 평생 1회.
+      if (status === "visible" && !room.reviewRewardGranted) {
         const base = 30;
         const photoBonus = body.photo ? 20 : 0;
         await earnLuckPouch(tx, { userId: auth.userId, amount: base, sourceType: "wishroom_review", sourceId: room.id, memo: "소원 성취 후기" });
