@@ -11,6 +11,7 @@ import android.graphics.PorterDuff
 import android.graphics.PorterDuffColorFilter
 import android.graphics.RadialGradient
 import android.graphics.Shader
+import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
@@ -137,6 +138,77 @@ object WpRenderer {
             }
         }
 
+        // [버그수정 — "배경화면이 정지 이미지처럼 보임"] room_scene.dart L6 끝부분의
+        // 상시 온기 글로우(AnimatedBuilder(animation: flick, ...))는 촛불 장착 여부와
+        // 무관하게 항상 (204,330) 기준으로 그려지는데, 이 글로우가 네이티브에서는
+        // m.candle?.let{} 안에만 있어 기본 양초(c_basic, 레이어 없음)일 때 통째로
+        // 사라져 있었다 — 대부분의 신규 사용자(기본 장비) 화면이 거의 완전한
+        // 정지 화면으로 보이던 핵심 원인. tReal 기반으로 항상 그린다(§4.3 저전력
+        // 때도 촛불과 같은 취급 — "정지 장면 + 촛불만"의 "촛불"에 해당하는 효과).
+        run {
+            val flick = 1f + 0.03f * sin(tReal * 6.981).toFloat()
+            val baseS = 300f
+            val gs = baseS * flick
+            val glowC = Color.parseColor("#FFD98A")
+            val op = (0.4f + 0.6f * min(1f, m.brightness)).coerceIn(0f, 1f)
+            val warmPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+            warmPaint.shader = RadialGradient(
+                204f, 330f, gs / 2f,
+                intArrayOf(
+                    withAlpha(Color.parseColor("#FFF0BE"), 0.80f),
+                    withAlpha(glowC, 0.40f),
+                    withAlpha(glowC, 0.08f),
+                    Color.TRANSPARENT,
+                ),
+                floatArrayOf(0f, 0.22f, 0.48f, 0.66f),
+                Shader.TileMode.CLAMP,
+            )
+            warmPaint.alpha = (op * 255).toInt().coerceIn(0, 255)
+            canvas.drawCircle(204f, 330f, gs / 2f, warmPaint)
+        }
+
+        // ── L7 상시 파티클 — room_scene.dart _AmbientPainter 1:1 이식(빛먼지16·
+        // 꽃잎7(Lv2+)·반딧불2(Lv4+)). frozen일 때는 [t]=0 고정이라 자연히 멈춘다. ──
+        run {
+            val rnd = kotlin.random.Random(5)
+            val motePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#FFFFF6D0") }
+            for (i in 0 until 16) {
+                val d = 7 + i % 5
+                val ph = ((t + rnd.nextDouble() * 10.0) % d) / d
+                val cx = BASE_W * (0.08 + rnd.nextDouble() * 0.84) + (if (i % 2 == 1) 1 else -1) * 20.0 * ph
+                val cy = 360.0 + (i * 37) % 280 - 260.0 * ph
+                motePaint.alpha = (sin(ph * Math.PI) * 0.9 * 255).toInt().coerceIn(0, 255)
+                canvas.drawCircle(cx.toFloat(), cy.toFloat(), (1.4 + (i % 3) * 0.7).toFloat(), motePaint)
+            }
+            if (m.level >= 2) {
+                val petalPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+                val n = 7
+                for (i in 0 until n) {
+                    val d = 12 + (i % 4) * 2.4
+                    val ph = ((t + rnd.nextDouble() * 16.0) % d) / d
+                    canvas.save()
+                    val px = BASE_W * rnd.nextDouble() + (rnd.nextDouble() - 0.5) * 120.0 * ph
+                    val py = -20.0 + (BASE_H + 40.0) * ph
+                    canvas.translate(px.toFloat(), py.toFloat())
+                    canvas.rotate((ph * 6.28 * 1.5).toFloat())
+                    petalPaint.color = withAlpha(Color.parseColor("#F7A9C4"), sin(ph * Math.PI).toFloat().coerceIn(0f, 1f))
+                    canvas.drawOval(android.graphics.RectF(-5.5f, -4f, 5.5f, 4f), petalPaint)
+                    canvas.restore()
+                }
+            }
+            if (m.level >= 4) {
+                val fireflyPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = Color.parseColor("#FFF4B0")
+                    maskFilter = android.graphics.BlurMaskFilter(5f, android.graphics.BlurMaskFilter.Blur.NORMAL)
+                }
+                val spots = listOf(Triple(300.0, 420.0, 11.0), Triple(70.0, 250.0, 14.0))
+                for ((fx, fy, fd) in spots) {
+                    val ph = (t % fd) / fd * 6.28
+                    canvas.drawCircle((fx + 30.0 * sin(ph)).toFloat(), (fy + 20.0 * cos(ph * 1.3)).toFloat(), 3f, fireflyPaint)
+                }
+            }
+        }
+
         // ── 캐릭터(character) — §6.1 호흡 주기 3.6s(각속도 2π/3.6s≈1.745 rad/s). ──
         m.character?.let { ch ->
             bitmapOf(ch.asset)?.let { bmpChar ->
@@ -168,6 +240,12 @@ object WpRenderer {
         }
 
         canvas.restore()
+    }
+
+    /** [a]（0~1）를 적용한 ARGB 색상값 — RadialGradient 색상 배열에 직접 쓰기 위한 헬퍼. */
+    private fun withAlpha(color: Int, a: Float): Int {
+        val alpha = (a.coerceIn(0f, 1f) * 255).toInt()
+        return Color.argb(alpha, Color.red(color), Color.green(color), Color.blue(color))
     }
 
     private fun brightnessFilter(b: Float): PorterDuffColorFilter? {

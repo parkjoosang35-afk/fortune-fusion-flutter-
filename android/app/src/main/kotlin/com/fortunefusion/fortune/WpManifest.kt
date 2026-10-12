@@ -22,6 +22,7 @@ data class WpManifest(
     val roomAsset: String,
     val brightness: Float,
     val band: String, // B1~B4 — 별빛/반딧불 개수 결정
+    val level: Int, // [버그수정] room_scene.dart L7 파티클(lv>=2 꽃잎·lv>=4 반딧불) 조건 재현용.
     val fulfilled: Boolean,
     val candle: WpLayer?,
     val character: WpLayer?,
@@ -54,6 +55,7 @@ data class WpManifest(
                     roomAsset = o.optString("roomAsset"),
                     brightness = o.optDouble("brightness", 1.0).toFloat(),
                     band = o.optString("band", "B1"),
+                    level = o.optInt("level", 1),
                     fulfilled = o.optBoolean("fulfilled", false),
                     candle = layer("candle"),
                     character = layer("character"),

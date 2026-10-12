@@ -87,6 +87,11 @@ String buildNativeManifestJson(WishRoom room, List<WrItem> items) {
     'roomAsset': roomAsset,
     'brightness': room.brightness,
     'band': band,
+    // [버그수정 — "배경화면이 정지 이미지처럼 보임"] WpRenderer.kt가 room_scene.dart의
+    // lv>=2(꽃잎)/lv>=4(반딧불) 조건을 band만으로는 정확히 재현할 수 없었다
+    // (band는 lv>=3/5/7 경계라 lv=2 구간을 구분 못함). 정확한 레벨 값을 그대로
+    // 내려줘 네이티브가 Flutter와 동일한 파티클 조건을 쓰게 한다.
+    'level': lv,
     'fulfilled': room.status == RoomStatus.ARCHIVED,
     'candle': candleLayer?.toJson(),
     'character': charLayer.toJson(),
