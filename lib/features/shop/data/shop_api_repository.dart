@@ -32,7 +32,9 @@ class ApiShopRepository implements ShopRepository {
   Future<List<ShopCatalogItem>> _fetchCatalog(String path) async {
     final uri = Uri.parse('$_shopBase/$path');
     try {
-      final res = await http.get(uri);
+      final res = await http
+          .get(uri)
+          .timeout(const Duration(seconds: 10)); // [전수검수 2026-10-12 SHOP-01]
       final body =
           jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
       if (res.statusCode != 200 || body['success'] != true) {
@@ -61,7 +63,9 @@ class ApiShopRepository implements ShopRepository {
   Future<List<InventoryItem>> fetchInventory() async {
     final uri = Uri.parse(_inventoryBase);
     try {
-      final res = await http.get(uri, headers: await _authHeaders());
+      final res = await http
+          .get(uri, headers: await _authHeaders())
+          .timeout(const Duration(seconds: 10)); // [전수검수 2026-10-12 SHOP-01]
       final body =
           jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
       if (res.statusCode != 200 || body['success'] != true) {
@@ -90,7 +94,7 @@ class ApiShopRepository implements ShopRepository {
         headers: await _authHeaders(json: true),
         // [가격 신뢰 원칙] price는 절대 전달하지 않는다 — 서버가 재조회한다.
         body: jsonEncode({'itemType': itemType.apiValue, 'itemCode': itemCode}),
-      );
+      ).timeout(const Duration(seconds: 10)); // [전수검수 2026-10-12 SHOP-01]
     } catch (e) {
       throw ShopException(
         ShopPurchaseFailureReason.unknown,

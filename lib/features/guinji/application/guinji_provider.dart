@@ -79,6 +79,25 @@ class GuinjiProvider extends ChangeNotifier {
   int get milestoneRewardPoint => _milestoneRewardPoint;
   int _milestoneRewardPoint = 0;
 
+  /// [전수검수 2026-10-12 F1] 로그아웃/회원탈퇴 시 메모리 상태를 완전히
+  /// 초기화한다 — app.dart에 등록된 다른 Provider들과 동일한 계정 격리
+  /// 원칙. 기존에는 이 Provider의 등록이 누락돼 로그아웃 후에도 이전
+  /// 계정의 지도 메타와 멤버(이름·생년월일) 정보가 메모리에 잔존해 다음
+  /// 로그인 계정 화면에 섞일 수 있었다.
+  void clearOnLogout() {
+    _isLoading = false;
+    _error = null;
+    _errorCode = null;
+    _map = null;
+    _members = const [];
+    _relationships = const [];
+    _ownerSajuSummary = null;
+    _milestoneJustReached = false;
+    _milestoneRewardPoint = 0;
+    _inviteStatus = null;
+    notifyListeners();
+  }
+
   /// 축하 다이얼로그를 1회 소비 처리한다 — 이후 재렌더에서는 다시 뜨지 않음.
   void consumeMilestoneJustReached() {
     if (!_milestoneJustReached) return;

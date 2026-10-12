@@ -19,7 +19,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<NotificationProvider>().markAllRead();
+      // [전수검수 2026-10-12 F4] 진입 시 목록을 먼저 로드한 뒤 전체 읽음을
+      // 처리한다 — 기존에는 load() 없이 markAllRead()만 호출해, 첫 진입이면
+      // 빈 목록에 "알림이 없어요"가 뜨고 재시도도 불가했다.
+      final provider = context.read<NotificationProvider>();
+      provider.load().then((_) => provider.markAllRead());
     });
   }
 

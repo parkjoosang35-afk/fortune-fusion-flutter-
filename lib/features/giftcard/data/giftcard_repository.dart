@@ -39,7 +39,13 @@ class GiftcardRepository {
   /// WalletProvider.spend와 orchestrate, 02번§1.2 WalletService 단일 인터페이스 원칙).
   /// 재고소진 시에도 서버는 status:"failed" 레코드를 생성해 success:true로 응답한다
   /// (Flutter의 issue.status==failed 감지 → 환불 처리 흐름과 정합성 유지 - 설계결정 참조).
-  Future<ApiResult<GiftcardIssueModel>> orderProduct(String productId) async {
+  /// [전수검수 2026-10-12 C-2] chargeMode: 'server' — 차감을 서버 단일
+  /// 트랜잭션에서 처리하도록 요청한다(무료 발급 구멍 차단). 미지정 시
+  /// 기존(레거시) 클라이언트 오케스트레이션 경로로 동작한다.
+  Future<ApiResult<GiftcardIssueModel>> orderProduct(
+    String productId, {
+    String? chargeMode,
+  }) async {
     final uri = Uri.parse('$_base/orders');
     try {
       final response = await http
@@ -49,7 +55,10 @@ class GiftcardRepository {
               'Content-Type': 'application/json',
               ...await AuthTokenStore.authHeader(),
             },
-            body: jsonEncode({'productId': productId}),
+            body: jsonEncode({
+              'productId': productId,
+              if (chargeMode != null) 'chargeMode': chargeMode,
+            }),
           )
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
