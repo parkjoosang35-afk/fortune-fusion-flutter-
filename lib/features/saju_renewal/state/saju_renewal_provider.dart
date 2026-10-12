@@ -385,6 +385,20 @@ class SajuRenewalProvider extends ChangeNotifier {
       _candidatesRefreshFailed = true;
       notifyListeners();
       return;
+    } catch (e) {
+      // [전수검수 보강 2026-10-14 — 잔여 무한 로딩 경로 차단] TimeoutException
+      // 이외의 전송 계층 예외(SocketException 등 — 모바일 데이터망에서 흔함)는
+      // 여기서 받지 않으면 await 아래 코드가 실행되지 않아 _isRefreshingCandidates가
+      // true로 고정됐다. 그러면 08의 빈 목록 분기가 "새로운 사주 이야기를 찾고
+      // 있어요." 문구에 영원히 머무른다(실기기 리포트 2026-10-12). 어떤 예외가
+      // 나도 반드시 실패 안내+[다시 시도]로 전환된다.
+      debugPrint(
+        '[SajuRenewalProvider] [refreshCandidates] 예외 -> $e',
+      );
+      _isRefreshingCandidates = false;
+      _candidatesRefreshFailed = true;
+      notifyListeners();
+      return;
     }
 
     if (!result.success) {
