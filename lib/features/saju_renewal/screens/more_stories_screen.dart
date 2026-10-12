@@ -54,6 +54,37 @@ class _MoreStoriesScreenState extends State<MoreStoriesScreen> {
   /// 연속으로 눌러 중복 저장/중복 토스트가 뜨지 않도록 막는다.
   final Set<String> _savingTopicIds = {};
 
+  /// [MORE·08 무한 로딩 근본 수정 2026-10-12 — "에러 분기 부재" 마감]
+  /// 첫 topics/select가 두 번 모두 실패해 E-04의 LIFE_000 폴백(후보 0건)
+  /// 로 진행된 사용자가 상세까지 본 뒤 "또 다른 이야기 보기"로 이 화면에
+  /// 진입하면, 기존에는 아무 재조회도 트리거되지 않았다 — 후보 0건 +
+  /// candidatesRefreshFailed/candidatesExhausted 플래그 모두 false(한 번도
+  /// refreshCandidates를 호출한 적 없음) 상태라, build()의 빈 목록 분기
+  /// 중 "새로운 사주 이야기를 찾고 있어요." 문구가 **실제 로딩 없이**
+  /// 영구히 남는 무한 로딩(먹통)이 됐다.
+  ///
+  /// 수정: 이 화면 진입 직후 첫 프레임에서 위 정체 상태를 감지해 1회
+  /// 자동 재조회(_loadMore)를 트리거한다. 성공하면 카드가 채워지고,
+  /// 실패하면 Provider의 candidatesRefreshFailed 플래그가 서서 실패
+  /// 안내+[다시 시도] 분기로 전환된다 — 어떤 경로로 와도 "정체 상태"가
+  /// 남지 않는다. 로딩/재조회 중이거나 플래그가 이미 서 있으면(기존
+  /// 수정분이 처리) 아무것도 하지 않는다(중복 호출 방지).
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final provider = context.read<SajuRenewalProvider>();
+      final stuckOnEmpty =
+          provider.displayableCandidates.isEmpty &&
+          !provider.candidatesRefreshFailed &&
+          !provider.candidatesExhausted &&
+          !provider.isRefreshingCandidates &&
+          !provider.isTopicsLoading;
+      if (stuckOnEmpty) _loadMore();
+    });
+  }
+
   Future<void> _selectCandidate(TopicCard candidate) async {
     if (_selecting) return; // [중복클릭 방어]
     setState(() => _selecting = true);
