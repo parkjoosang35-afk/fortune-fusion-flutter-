@@ -1,9 +1,10 @@
 // 관계 지도 네트워크 그래프 — 사용자 요구("4번째 레퍼런스처럼 나와야 바이럴이
-// 된다")의 핵심 신규 시각화. 중앙 "나" 노드 + 관계유형(12라벨)별 위성
+// 된다")의 핵심 신규 시각화. 중앙 "나" 노드 + 관계유형(V2 6종)별 위성
 // 노드 + 연결선으로 구성된 별자리 스타일 SVG.
 //
-// [2026-09 전면 재작성 — 12라벨 체계] key 타입을 기존 5종 리터럴 유니언
-// 에서 `GuinjiRelationType`(12종)으로 교체한다.
+// [2026-10-13 통합 — 12종→V2 6종 전환] key 타입을 기존 12종 리터럴
+// 유니언에서 `GuinjiV2RelationType`(6종, `@/lib/guinji-v2/relation`)으로
+// 교체한다.
 //
 // [비식별 원칙] 이 컴포넌트는 멤버 이름/생년월일 등 어떤 개인정보도 받지
 // 않는다 — props는 오직 "관계유형별 인원수(집계)"뿐이다. 로그인 없는
@@ -24,10 +25,10 @@
 //   2) 위성 노드 — 각자 다른 delay로 pulse (별이 반짝이는 느낌)
 //   3) 연결선 — stroke-dasharray 애니메이션으로 빛이 흐르는 느낌
 //   4) 배경 궤도 원 2개 — 아주 느리게 회전(오브젝트가 살아있는 느낌)
-import type { GuinjiRelationType } from "@/lib/guinji-relation-judger";
+import type { GuinjiV2RelationType } from "@/lib/guinji-v2/relation";
 
 export interface RelationCount {
-  key: GuinjiRelationType;
+  key: GuinjiV2RelationType;
   label: string;
   hanja: string;
   color: string;
@@ -72,14 +73,14 @@ export function RelationNetworkGraph({
   });
 
   return (
-    <div className="rounded-3xl border border-[#E8DDD0] bg-white/85 p-5 shadow-[0_4px_20px_-8px_rgba(166,121,94,0.15)]">
+    <div className="rounded-3xl border border-[#2A2A2E] bg-[#161618] p-5 shadow-[0_4px_20px_-8px_rgba(166,121,94,0.15)]">
       <div className="mb-3 flex items-baseline justify-between">
-        <h2 style={{ fontFamily: "'Noto Serif KR', serif" }} className="text-base font-bold text-[#2A2438]">관계 지도</h2>
-        <span className="text-sm font-medium text-[#6E5A54]">{total}명</span>
+        <h2 style={{ fontFamily: "'Noto Serif KR', serif" }} className="text-base font-bold text-[#F2F0EC]">관계 지도</h2>
+        <span className="text-sm font-medium text-[#8A8880]">{total}명</span>
       </div>
 
       {total === 0 ? (
-        <p className="py-8 text-center text-sm text-[#A08C82]">
+        <p className="py-8 text-center text-sm text-[#575650]">
           아직 지도에 오른 사람이 없어요.
           <br />
           가장 먼저 이름을 올려 보세요.
@@ -122,7 +123,7 @@ export function RelationNetworkGraph({
             cy={CENTER}
             r={SATELLITE_RADIUS_BASE}
             fill="none"
-            stroke="#E8DDD0"
+            stroke="#2A2A2E"
             strokeDasharray="2 4"
             strokeWidth={1}
           />
@@ -175,20 +176,22 @@ export function RelationNetworkGraph({
 
           {/* 중앙 "나" 노드 — 은은하게 숨쉬듯 glow pulse */}
           <g className="gm-center-node">
-            <circle cx={CENTER} cy={CENTER} r={CENTER_RADIUS} fill="#2A2438" />
-            <text x={CENTER} y={CENTER + 5} textAnchor="middle" fontSize={15} fontWeight={700} fill="#FBF7EF">
+            <circle cx={CENTER} cy={CENTER} r={CENTER_RADIUS} fill="#F2F0EC" />
+            <text x={CENTER} y={CENTER + 5} textAnchor="middle" fontSize={15} fontWeight={700} fill="#0B0B0D">
               나
             </text>
           </g>
         </svg>
       )}
 
-      {/* 오행/관계유형 12분류 요약 카드 */}
-      <div className="mt-4 grid grid-cols-4 gap-1.5">
+      {/* 오행/관계유형 6분류 요약 카드 */}
+      {/* [2026-10-13 통합] 12종(4열×3행) 기준이던 그리드를 6종(3열×2행)에
+          맞춰 조정 — 4열이면 6개가 4+2로 어색하게 배치된다. */}
+      <div className="mt-4 grid grid-cols-3 gap-1.5">
         {counts.map((c) => (
           <div
             key={c.key}
-            className="flex flex-col items-center rounded-xl border border-[#E8DDD0] bg-white px-1 py-2"
+            className="flex flex-col items-center rounded-xl border border-[#2A2A2E] bg-[#1C1C1F] px-1 py-2"
           >
             <span
               className="mb-1 flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold text-white"
@@ -196,8 +199,8 @@ export function RelationNetworkGraph({
             >
               {c.hanja}
             </span>
-            <span className="text-[11px] text-[#6E5A54]">{c.label}</span>
-            <span className="text-sm font-bold text-[#2A2438]">{c.count}</span>
+            <span className="text-[11px] text-[#8A8880]">{c.label}</span>
+            <span className="text-sm font-bold text-[#F2F0EC]">{c.count}</span>
           </div>
         ))}
       </div>
