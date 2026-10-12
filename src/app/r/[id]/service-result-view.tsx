@@ -337,5 +337,5 @@ export function isWebShareSource(v: string | undefined): boolean {
   return v === "web";
 }
 
-export { BRAND_BG, GOLD };
+export { BRAND_BG, GOLD, SERIF };
 export const _unusedLink = Link;
