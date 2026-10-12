@@ -12,7 +12,8 @@
 // 하나의 클라이언트 상태로 묶어, `/api/public/guinji/g/{token}/join`
 // (신설 — 로그인 없이 실제로 DB에 기록하는 API) 호출이 성공하면 즉시
 // `counts` state를 갱신해 그래프가 새로고침 없이 바뀌게 한다.
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { track } from "./funnel";
 import { GUINJI_RELATION_TYPES } from "./relation-meta";
 import { RelationNetworkGraph, type RelationCount } from "./relation-network-graph";
 import { GUINJI_RELATION_TYPE_ORDER } from "@/lib/guinji-relation-judger";
@@ -99,6 +100,11 @@ export function GuinjiInviteInteractive({
   // 성공 시 서버 응답의 mapSummary로 바로 교체한다(새로고침 불필요).
   const [counts, setCounts] = useState<RelationCount[]>(initialCounts);
 
+  // [귀인지도 v2 퍼널 ①] 초대 링크가 실제로 열렸음을 기록(6단 루프의 시작점).
+  useEffect(() => {
+    track("share_og_open", token);
+  }, [token]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -152,6 +158,7 @@ export function GuinjiInviteInteractive({
         return;
       }
       setResult(json.data);
+      track("join_done", token); // [귀인지도 v2 퍼널 ③] 참가 완료
       // [핵심] 서버가 돌려준 최신 집계로 그래프를 즉시 갱신 — 새로고침 없이
       // "지도에 이름이 올라간" 상태를 그 자리에서 보여준다.
       setCounts(countsToRelationCounts(json.data.mapSummary.counts));
