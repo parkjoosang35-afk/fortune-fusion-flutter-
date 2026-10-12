@@ -181,14 +181,26 @@ function TarotView({ p }: { p: AnyObj }) {
 }
 
 // ---------- 정통사주 (5절: 구성 요약 · 엔진 해석 요약 · 생성 일시) ----------
+// [계산 흔적 노출 2026-10-12 — 신뢰 자산] 앱이 payload.trace로 실측
+// 명식 한 줄(일주·용신 등)을 보내주면 결과 최상단에 배지로 노출한다 —
+// 공유받은 사람이 열기 전에 "실제로 사주를 계산해서 해석하는 앱"임을
+// 먼저 느끼게 한다. 값은 앱이 계산한 표시값만 전달하며(생년월일 등 PII
+// 금지 원칙 유지), legacy 링크처럼 trace가 없으면 이 줄 자체가
+// 렌더되지 않는다(하위 호환).
 function SajuView({ p, createdAt }: { p: AnyObj; createdAt: string | null }) {
   const blocks = asList(p.blocks).map(asObj).filter((x): x is AnyObj => !!x);
   const summary = pickStr(p, ["summary"]);
+  const trace = pickStr(p, ["trace"]);
   return (
     <Shell
       label="정통사주"
       footer={createdAt ? <p style={{ marginTop: 22, fontSize: 12, color: "#8F857A" }}>생성 일시 · {createdAt}</p> : undefined}
     >
+      {trace ? (
+        <div style={{ margin: "0 0 14px", display: "inline-flex", alignItems: "center", gap: 7, border: `1px solid ${GOLD}55`, borderRadius: 999, padding: "6px 14px", fontSize: 12.5, fontWeight: 700, color: GOLD }}>
+          <span aria-hidden="true">⚖️</span> 정통 만세력 계산 · {trace}
+        </div>
+      ) : null}
       {summary ? <Section title="한 줄 요약">{summary}</Section> : null}
       {blocks.map((b, i) => {
         const title = pickStr(b, ["title", "name", "label"]) ?? `해석 ${i + 1}`;
