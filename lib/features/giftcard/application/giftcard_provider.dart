@@ -52,11 +52,17 @@ class GiftcardProvider extends ChangeNotifier {
   /// 이 메서드 호출 전에 화면 레이어에서 먼저 성공을 확인한 뒤 호출해야 한다.
   /// 발급 실패(Mock 10%) 시에도 복주머니는 이미 차감되었으므로, 화면 레이어에서
   /// 실패 결과를 받으면 WalletProvider.earn()으로 환불 처리해야 한다(02§14 예외처리).
-  Future<GiftcardIssueModel?> orderProduct(String productId) async {
+  Future<GiftcardIssueModel?> orderProduct(
+    String productId, {
+    String? chargeMode,
+  }) async {
     _actionError = null;
     _isOrdering = true;
     notifyListeners();
-    final result = await _repository.orderProduct(productId);
+    final result = await _repository.orderProduct(
+      productId,
+      chargeMode: chargeMode,
+    );
     _isOrdering = false;
     if (result.success && result.data != null) {
       notifyListeners();
