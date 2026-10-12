@@ -24,7 +24,11 @@ export async function GET(
     const map = await prisma.guinjiMap.findUnique({
       where: { token },
       include: {
+        // [2026-10-12 전수검수 수정] join/route.ts 집계와 동일하게 삭제(소프트)된
+        // 멤버의 관계는 제외한다. 없으면 소유자가 멤버를 지워도 공개 링크의
+        // "N명 참여" 숫자와 라벨 분포가 줄지 않았다(E2E로 재현됨).
         relationships: {
+          where: { member: { status: "active" } },
           select: { relationType: true },
         },
       },
