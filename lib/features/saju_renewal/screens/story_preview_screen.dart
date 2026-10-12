@@ -414,6 +414,12 @@ class _StoryPreviewScreenState extends State<StoryPreviewScreen> {
 /// 화면의 섹션 단위로 적용한 것이다. 이 화면에는 등장 애니메이션이
 /// 전혀 없어 본문이 아무 모션 없이 즉시 나타났던 것이 기존 결함.
 class _StaggerIn extends StatefulWidget {
+  // [경고 청소 2026-10-12] 이 화면의 4개 호출부는 리스트 재정렬 등 key가
+  // 실제로 필요한 상황이 아니라 어디서도 key를 넘기지 않는다. 그래도
+  // StatefulWidget 관례(use_key_in_widget_constructors)상 key는 유지해야
+  // 하므로 super.key는 그대로 두고, "한 번도 공급되지 않음"만 감지하는
+  // unused_element_parameter의 이 지점 오탐만 좁게 억제한다.
+  // ignore: unused_element_parameter
   const _StaggerIn({super.key, required this.child, this.delay = Duration.zero});
 
   final Widget child;
