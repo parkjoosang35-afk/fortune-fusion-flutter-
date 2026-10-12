@@ -67,9 +67,7 @@ class _WishRoomShellState extends State<WishRoomShell> {
     final requestedTab = context.select<WishRoomProvider, int?>(
       (p) => p.requestedTabIndex,
     );
-    debugPrint(
-      'WR_PHASE shell.build requestedTab=$requestedTab _index=$_index',
-    );
+    // [전수검수 2026-10-12 — MINOR] 매 빌드마다 찍히던 디버그 로그 제거.
     if (requestedTab != null && requestedTab != _index) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;

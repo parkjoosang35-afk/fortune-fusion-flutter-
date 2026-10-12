@@ -122,6 +122,11 @@ enum _CapStep { open, ask, rewish, sealed, ongoing }
 class _CapsuleOpenScreenState extends State<CapsuleOpenScreen> {
   _CapStep _step = _CapStep.open;
   late String _text = widget.room.text;
+  // [전수검수 2026-10-12 — MAJOR] 기존엔 build마다 새 TextEditingController를
+  // 만들어 입력 상태가 재빌드마다 리셋될 수 있었고, onChanged가 setState 없이
+  // _text만 갱신해 "소원 봉인하기" 버튼 활성화가 즉시 반영되지 않았다.
+  // 컨트롤러는 state 필드로 1회 생성하고, 변경 시 setState로 반영한다.
+  late final TextEditingController _rewishCtrl = TextEditingController(text: _text);
   DateTime? _date;
   bool _confirm = false;
   bool _busy = false;
@@ -137,6 +142,13 @@ class _CapsuleOpenScreenState extends State<CapsuleOpenScreen> {
     });
     Timer(const Duration(milliseconds: 1300), () { if (mounted) setState(() => _sealBreakDone = true); });
     Timer(const Duration(milliseconds: 3000), () { if (mounted && _step == _CapStep.open) setState(() => _step = _CapStep.ask); });
+  }
+
+  @override
+  void dispose() {
+    // [전수검수 2026-10-12] state 필드로 승격한 컨트롤러 해제.
+    _rewishCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _choose(Outcome o) async {
@@ -251,8 +263,8 @@ class _CapsuleOpenScreenState extends State<CapsuleOpenScreen> {
             boxShadow: [BoxShadow(color: color.withValues(alpha: .27), blurRadius: 30), const BoxShadow(color: Color(0x80000000), blurRadius: 30, offset: Offset(0, 14))],
           ),
           child: _step == _CapStep.rewish
-            ? TextField(controller: TextEditingController(text: _text)..selection = TextSelection.collapsed(offset: _text.length),
-                maxLength: 100, maxLines: 4, onChanged: (v) => _text = v,
+            ? TextField(controller: _rewishCtrl,
+                maxLength: 100, maxLines: 4, onChanged: (v) => setState(() => _text = v),
                 style: const TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 16, height: 1.65, color: Color(0xFF4A2A1C)),
                 decoration: const InputDecoration(border: InputBorder.none, counterText: ''))
             : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

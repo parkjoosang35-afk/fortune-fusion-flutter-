@@ -44,6 +44,11 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
   late DevotionController _devotion;
   Timer? _cooldownTicker;
   int _cooldownRemain = 0;
+  // [전수검수 2026-10-12 — MAJOR] 서버가 쿨다운 중에도 cooldownUntil을
+  // 응답에 항상 담아주지 않는다. COOLDOWN 오류(retryAfter)로 받은 만료
+  // 시각을 로컬로 보관해, 서버 값이 없을 때 티커가 이 값으로 카운트다운을
+  // 유지하게 한다(기존엔 즉시 0으로 리셋돼 데드코드였음).
+  DateTime? _cooldownDeadline;
   int _cooldownTotal = 30;
   bool _rekindling = false;
   double _rekindleBrightness = 1;
@@ -140,12 +145,23 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
     _cooldownTicker = Timer.periodic(const Duration(seconds: 1), (_) {
       final room = context.read<WishRoomProvider>().room;
       if (room?.cooldownUntil == null) {
+        // [전수검수 2026-10-12] 서버 값이 없어도 로컬 deadline(COOLDOWN
+        // 오류 시 세움)이 살아있으면 그 값으로 카운트다운을 유지한다 —
+        // 기존엔 여기서 즉시 0으로 리셋돼 "몇 초 후" 안내가 사라졌다.
+        if (_cooldownDeadline != null) {
+          final local = _cooldownDeadline!.difference(DateTime.now()).inSeconds;
+          final nextLocal = local > 0 ? local : 0;
+          if (nextLocal == 0) _cooldownDeadline = null;
+          if (mounted) setState(() => _cooldownRemain = nextLocal);
+          return;
+        }
         if (_cooldownRemain != 0 && mounted) setState(() => _cooldownRemain = 0);
         return;
       }
       _cooldownTotal = room!.cooldownSec > 0 ? room.cooldownSec : 30;
       final remain = room.cooldownUntil!.difference(DateTime.now()).inSeconds;
       final next = remain > 0 ? remain : 0;
+      if (next == 0) _cooldownDeadline = null;
       // 쿨타임이 막 끝난 순간(0 도달) → '가득 찼어요' 강한 피드백 1.6s
       if (_prevCooldown > 0 && next == 0 && room.devotionsRemaining > 0) {
         if (mounted) setState(() { _armed = true; });
@@ -257,6 +273,9 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
       onError: (e) {
         if (e.code == 'COOLDOWN' && e.retryAfter != null) {
           setState(() => _cooldownRemain = e.retryAfter!);
+          // [전수검수 2026-10-12] 로컬 쿨다운 deadline 기록 — 서버가
+          // cooldownUntil 없이 거부할 때 티커가 이 값을 쓴다.
+          _cooldownDeadline = DateTime.now().add(Duration(seconds: e.retryAfter!));
           WrToast.show(context, '촛불이 $verb를 머금는 중이에요 · ${e.retryAfter}초');
         } else if (e.code == 'DAILY_LIMIT') {
           WrToast.show(context, '오늘의 정성을 모두 담았어요');
@@ -322,6 +341,13 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
           'body': '$absentDays일 동안 소원방이 당신을 기다렸어요',
           'chips': const ['촛불 밝기 100%', '빛가루 +1'],
         });
+      } else {
+        // [전수검수 2026-10-12 — MAJOR] 재점화가 서버에서 거부됐을 때 피드백이
+        // 전혀 없어 연출만 "밝아졌다가" 원상복귀됐다 — 실패 안내를 추가한다.
+        if (mounted) {
+          final err = context.read<WishRoomProvider>().lastError;
+          WrToast.show(context, err?.message ?? '재점화에 실패했어요 · 잠시 후 다시 시도해주세요');
+        }
       }
     });
   }

@@ -156,6 +156,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
         sliver: SliverList(delegate: SliverChildBuilderDelegate((context, i) {
           final rest = _hot ? sorted.skip(3).toList() : sorted;
           if (rest.isEmpty) {
+            // [전수검수 2026-10-12 — MINOR] 인기순에서 방이 정확히 3개면
+            // 피드(4위 이하)가 비어도 방 자체는 있는 것이므로 빈 문구를
+            // 보여주지 않는다(기존엔 "아직 소원방이 없어요" 오표시).
+            if (sorted.isNotEmpty) return const SizedBox.shrink();
             return const Padding(padding: EdgeInsets.only(top: 40), child: Center(
               child: Text('아직 소원방이 없어요', style: TextStyle(color: WrC.muted))));
           }

@@ -89,24 +89,35 @@ class ApiRepository implements WrRepository {
     final uri = _u(path);
     final headers = await _headers(json: body != null);
     http.Response res;
-    switch (method) {
-      case 'GET':
-        res = await http.get(uri, headers: headers).timeout(const Duration(seconds: 10));
-        break;
-      case 'POST':
-        res = await http.post(uri, headers: headers, body: body == null ? null : jsonEncode(body)).timeout(const Duration(seconds: 10));
-        break;
-      case 'PATCH':
-        res = await http.patch(uri, headers: headers, body: body == null ? null : jsonEncode(body)).timeout(const Duration(seconds: 10));
-        break;
-      case 'PUT':
-        res = await http.put(uri, headers: headers, body: body == null ? null : jsonEncode(body)).timeout(const Duration(seconds: 10));
-        break;
-      case 'DELETE':
-        res = await http.delete(uri, headers: headers).timeout(const Duration(seconds: 10));
-        break;
-      default:
-        throw ApiError(0, 'UNKNOWN_METHOD', '지원하지 않는 요청 방식입니다');
+    try {
+      switch (method) {
+        case 'GET':
+          res = await http.get(uri, headers: headers).timeout(const Duration(seconds: 10));
+          break;
+        case 'POST':
+          res = await http.post(uri, headers: headers, body: body == null ? null : jsonEncode(body)).timeout(const Duration(seconds: 10));
+          break;
+        case 'PATCH':
+          res = await http.patch(uri, headers: headers, body: body == null ? null : jsonEncode(body)).timeout(const Duration(seconds: 10));
+          break;
+        case 'PUT':
+          res = await http.put(uri, headers: headers, body: body == null ? null : jsonEncode(body)).timeout(const Duration(seconds: 10));
+          break;
+        case 'DELETE':
+          res = await http.delete(uri, headers: headers).timeout(const Duration(seconds: 10));
+          break;
+        default:
+          throw ApiError(0, 'UNKNOWN_METHOD', '지원하지 않는 요청 방식입니다');
+      }
+    } catch (e) {
+      // [전수검수 2026-10-12 — CRITICAL] TimeoutException/SocketException 등
+      // 전송 계층 예외는 ApiError가 아니라서 호출부의 `on ApiError catch`를
+      // 통과했다. 그러면 await 이후 코드가 실행되지 않아 busy 플래그(치성
+      // phase, 봉인/재점화/보상 수령 등)가 영구 고정됐다 — 네트워크가 느려지면
+      // 소원방 핵심 기능 전체가 앱 재실행 없이 잠겼다. 전송 계층 예외를 전부
+      // ApiError로 변환해 호출부가 정상 분기하도록 한다.
+      if (e is ApiError) rethrow;
+      throw ApiError(0, 'NETWORK', '네트워크 상태가 좋지 않아요 · 잠시 후 다시 시도해주세요');
     }
     Map<String, dynamic> decoded;
     try {

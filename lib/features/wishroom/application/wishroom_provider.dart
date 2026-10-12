@@ -129,6 +129,11 @@ class WishRoomProvider extends ChangeNotifier {
     exploreFeed = [];
     archiveRooms = [];
     ledger = [];
+    // [전수검수 2026-10-12 — MAJOR] 다른 캐시는 전부 초기화하면서
+    // _outfitCache만 누락돼 있었다 — 로그아웃 후 다른 계정 로그인 시 이전
+    // 계정의 꾸미기 owned 플래그가 메모리에 잔존해 미구매 아이템이
+    // "보유"로 보일 수 있다.
+    _outfitCache = [];
     myReviews = [];
     reviewFeed = [];
     viewedRoom = null;
@@ -272,7 +277,12 @@ class WishRoomProvider extends ChangeNotifier {
     lastError = null;
     try {
       final (r, reward) = await repo.support(id);
-      room = r;
+      // [전수검수 2026-10-12 — CRITICAL] 응원 대상이 타인의 방이면 내 방
+      // 상태를 절대 덮어쓰지 않는다. 기존엔 무조건 `room = r`라서 탐색 탭에서
+      // 응원 한 번으로 IndexedStack에 살아있는 내 소원방(탭 0)이 타인의 방으로
+      // 치환됐고, 이후 치성(POST /devote)이 타인의 room id로 나가는 데이터
+      // 오염으로 이어졌다. gift()의 `if (room?.id == id)` 가드와 동일하게 맞춘다.
+      if (room?.id == id) room = r;
       notifyListeners();
       return reward;
     } on ApiError catch (e) {
@@ -598,7 +608,15 @@ class WishRoomProvider extends ChangeNotifier {
     try {
       final c = await repo.postComment(roomId, text);
       viewedComments = [...viewedComments, c];
-      if (viewedRoom?.id == roomId) viewedRoom = await repo.room(roomId);
+      // [전수검수 2026-10-12 — MAJOR] 댓글 POST는 성공했다. 이후의 방 재조회가
+      // 실패했다고 "전송 실패"로 처리하면 사용자가 같은 메시지를 중복 전송하게
+      // 된다(댓글은 이미 등록됨). 재조회 실패는 마지막 오류만 남기고 성공으로
+      // 마무리한다 — 목록은 다음 로드 시 서버 값으로 동기화된다.
+      try {
+        if (viewedRoom?.id == roomId) viewedRoom = await repo.room(roomId);
+      } on ApiError catch (e) {
+        lastError = e;
+      }
       notifyListeners();
       return true;
     } on ApiError catch (e) {

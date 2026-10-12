@@ -52,48 +52,72 @@ class _OtherRoomScreenState extends State<OtherRoomScreen> {
     });
   }
 
+  // [전수검수 2026-10-12 — 중복 POST 방지] 응원/메시지/선물 버튼의
+  // in-flight 가드. supportedToday 갱신이 서버 왕복보다 늦는 창에서
+  // 더블탭하면 요청이 이중으로 나갈 수 있다(서버가 유니크 제약·멱등으로
+  // 보호하는 부분도 있지만, 불필요한 요청과 토스트 중복을 막는다).
+  bool _actionBusy = false;
+
   Future<void> _cheer() async {
-    final p = context.read<WishRoomProvider>();
-    final reward = await p.support(widget.roomId);
-    if (!mounted) return;
-    if (p.lastError != null) {
-      WrToast.show(context, p.lastError!.message);
-      return;
-    }
-    await p.loadViewedRoom(widget.roomId);
-    if (!mounted) return;
-    _addFx(Stack(children: [
-      const WrHearts(x: 330, y: 500, n: 14),
-      const WrBurst(x: 204, y: 260, n: 14, color: Color(0xFFFF9AB8), spread: 110),
-    ]));
-    if (reward != null) {
-      WrToast.show(context, '응원 ${reward['at']}회 · ${reward['reward']}');
+    if (_actionBusy) return;
+    _actionBusy = true;
+    try {
+      final p = context.read<WishRoomProvider>();
+      final reward = await p.support(widget.roomId);
+      if (!mounted) return;
+      if (p.lastError != null) {
+        WrToast.show(context, p.lastError!.message);
+        return;
+      }
+      await p.loadViewedRoom(widget.roomId);
+      if (!mounted) return;
+      _addFx(Stack(children: [
+        const WrHearts(x: 330, y: 500, n: 14),
+        const WrBurst(x: 204, y: 260, n: 14, color: Color(0xFFFF9AB8), spread: 110),
+      ]));
+      if (reward != null) {
+        WrToast.show(context, '응원 ${reward['at']}회 · ${reward['reward']}');
+      }
+    } finally {
+      _actionBusy = false;
     }
   }
 
   Future<void> _sendMessage(String text) async {
-    final p = context.read<WishRoomProvider>();
-    final ok = await p.postComment(widget.roomId, text);
-    if (!mounted) return;
-    if (ok) {
-      _addFx(const WrBurst(x: 204, y: 230, n: 14, glyph: '🌸', spread: 130, color: Color(0xFFF7A9C4)));
-      WrToast.show(context, '응원 메시지가 전해졌어요');
-    } else if (p.lastError != null) {
-      WrToast.show(context, p.lastError!.message);
+    if (_actionBusy) return;
+    _actionBusy = true;
+    try {
+      final p = context.read<WishRoomProvider>();
+      final ok = await p.postComment(widget.roomId, text);
+      if (!mounted) return;
+      if (ok) {
+        _addFx(const WrBurst(x: 204, y: 230, n: 14, glyph: '🌸', spread: 130, color: Color(0xFFF7A9C4)));
+        WrToast.show(context, '응원 메시지가 전해졌어요');
+      } else if (p.lastError != null) {
+        WrToast.show(context, p.lastError!.message);
+      }
+    } finally {
+      _actionBusy = false;
     }
   }
 
   Future<void> _gift(int amount) async {
-    final p = context.read<WishRoomProvider>();
-    final ok = await p.gift(widget.roomId, amount);
-    if (!mounted) return;
-    if (ok) {
-      await p.loadViewedRoom(widget.roomId);
+    if (_actionBusy) return;
+    _actionBusy = true;
+    try {
+      final p = context.read<WishRoomProvider>();
+      final ok = await p.gift(widget.roomId, amount);
       if (!mounted) return;
-      _addFx(const WrBurst(x: 204, y: 260, n: 22, glyph: '🧧', spread: 150, dur: 1600), life: 2600);
-      WrToast.show(context, '복주머니 $amount개가 닿았어요');
-    } else if (p.lastError != null) {
-      WrToast.show(context, p.lastError!.message);
+      if (ok) {
+        await p.loadViewedRoom(widget.roomId);
+        if (!mounted) return;
+        _addFx(const WrBurst(x: 204, y: 260, n: 22, glyph: '🧧', spread: 150, dur: 1600), life: 2600);
+        WrToast.show(context, '복주머니 $amount개가 닿았어요');
+      } else if (p.lastError != null) {
+        WrToast.show(context, p.lastError!.message);
+      }
+    } finally {
+      _actionBusy = false;
     }
   }
 
