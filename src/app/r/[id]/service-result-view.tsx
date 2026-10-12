@@ -45,6 +45,37 @@ function pickNum(o: AnyObj | null, keys: string[]): number | null {
   }
   return null;
 }
+type Entry = { key: string | null; obj: AnyObj };
+
+/** [전수검수 피드백 반영 — Map/배열 겸용 파서] Flutter FaceResultModel/
+ * PalmResultModel은 features·topicResults·lines를 Map<String,String>으로
+ * 직렬화한다({"이마": "텍스트"} 형태). 기존 asList() 전용 파싱은 이 구조에서
+ * 항상 빈 배열을 반환해 관상·손금 콘텐츠가 통째로 누락됐다(실증 테스트로
+ * 확인 — 코드개발자 검증 보고 2026-10-12). Map과 배열을 모두 받아
+ * {key, obj} 엔트리로 정규화한다. 배열 항목의 제목 키는 앱 payload 관행
+ * (region/title/name/label/part/topic/line)에서 찾는다. */
+function entriesOf(v: unknown): Entry[] {
+  if (Array.isArray(v)) {
+    return v
+      .map((x): Entry | null => {
+        const o = asObj(x);
+        if (!o) return null;
+        const key = pickStr(o, ["region", "title", "name", "label", "part", "topic", "line"]);
+        return { key, obj: o };
+      })
+      .filter((x): x is Entry => !!x);
+  }
+  const m = asObj(v);
+  if (!m) return [];
+  return Object.entries(m)
+    .map(([k, val]): Entry | null => {
+      if (typeof val === "string") return { key: k, obj: { text: val } as AnyObj };
+      const o = asObj(val);
+      return o ? { key: k, obj: o } : null;
+    })
+    .filter((x): x is Entry => !!x);
+}
+
 function pickBool(o: AnyObj | null, keys: string[]): boolean | null {
   if (!o) return null;
   for (const k of keys) if (typeof o[k] === "boolean") return o[k] as boolean;
@@ -171,8 +202,8 @@ function SajuView({ p, createdAt }: { p: AnyObj; createdAt: string | null }) {
 
 // ---------- 관상 (5절: 유형·점수 · 부위별 해석 · 얼굴 구역 도식) ----------
 function FaceView({ p }: { p: AnyObj }) {
-  const features = asList(p.features).map(asObj).filter((x): x is AnyObj => !!x);
-  const topics = asList(p.topicResults).map(asObj).filter((x): x is AnyObj => !!x);
+  const features = entriesOf(p.features);
+  const topics = entriesOf(p.topicResults);
   const summary = pickStr(p, ["summary"]);
   const typeStr = pickStr(p, ["faceType", "type", "typeName"]);
   const totalScore = pickNum(p, ["score", "totalScore", "faceScore"]);
@@ -202,15 +233,15 @@ function FaceView({ p }: { p: AnyObj }) {
         </svg>
       </div>
       {features.map((f, i) => (
-        <Section key={i} title={pickStr(f, ["region", "title", "name", "label", "part"]) ?? `특징 ${i + 1}`}>
-          {pickStr(f, ["text", "description", "interpretation", "body", "content"]) ?? "해석 정보가 없어요"}
+        <Section key={i} title={f.key ?? pickStr(f.obj, ["region", "title", "name", "label", "part"]) ?? `특징 ${i + 1}`}>
+          {pickStr(f.obj, ["text", "description", "interpretation", "body", "content"]) ?? "해석 정보가 없어요"}
         </Section>
       ))}
       {topics.map((t, i) => {
-        const score = pickNum(t, ["score", "point", "value"]);
+        const score = pickNum(t.obj, ["score", "point", "value"]);
         return (
-          <Section key={i} title={`${pickStr(t, ["topic", "title", "name", "label"]) ?? `운세 ${i + 1}`}${score != null ? ` · ${score}점` : ""}`}>
-            {pickStr(t, ["text", "description", "interpretation", "body"]) ?? "해석 정보가 없어요"}
+          <Section key={i} title={`${t.key ?? pickStr(t.obj, ["topic", "title", "name", "label"]) ?? `운세 ${i + 1}`}${score != null ? ` · ${score}점` : ""}`}>
+            {pickStr(t.obj, ["text", "description", "interpretation", "body"]) ?? "해석 정보가 없어요"}
           </Section>
         );
       })}
@@ -222,8 +253,8 @@ function FaceView({ p }: { p: AnyObj }) {
 
 // ---------- 손금 (5절: 주요 라인 분석 · 점수 · 손 라인 도식) ----------
 function PalmView({ p }: { p: AnyObj }) {
-  const lines = asList(p.lines).map(asObj).filter((x): x is AnyObj => !!x);
-  const topics = asList(p.topicResults).map(asObj).filter((x): x is AnyObj => !!x);
+  const lines = entriesOf(p.lines);
+  const topics = entriesOf(p.topicResults);
   const summary = pickStr(p, ["summary"]);
   const lineNames = ["생명선", "두뇌선", "감정선", "운명선"];
   return (
@@ -243,18 +274,18 @@ function PalmView({ p }: { p: AnyObj }) {
         </svg>
       </div>
       {lines.map((l, i) => {
-        const score = pickNum(l, ["score", "point", "value"]);
+        const score = pickNum(l.obj, ["score", "point", "value"]);
         return (
-          <Section key={i} title={`${pickStr(l, ["name", "title", "label", "line"]) ?? lineNames[i] ?? `라인 ${i + 1}`}${score != null ? ` · ${score}점` : ""}`}>
-            {pickStr(l, ["text", "description", "interpretation", "body"]) ?? "해석 정보가 없어요"}
+          <Section key={i} title={`${l.key ?? pickStr(l.obj, ["name", "title", "label", "line"]) ?? lineNames[i] ?? `라인 ${i + 1}`}${score != null ? ` · ${score}점` : ""}`}>
+            {pickStr(l.obj, ["text", "description", "interpretation", "body"]) ?? "해석 정보가 없어요"}
           </Section>
         );
       })}
       {topics.map((t, i) => {
-        const score = pickNum(t, ["score", "point", "value"]);
+        const score = pickNum(t.obj, ["score", "point", "value"]);
         return (
-          <Section key={i} title={`${pickStr(t, ["topic", "title", "name", "label"]) ?? `운세 ${i + 1}`}${score != null ? ` · ${score}점` : ""}`}>
-            {pickStr(t, ["text", "description", "interpretation", "body"]) ?? "해석 정보가 없어요"}
+          <Section key={i} title={`${t.key ?? pickStr(t.obj, ["topic", "title", "name", "label"]) ?? `운세 ${i + 1}`}${score != null ? ` · ${score}점` : ""}`}>
+            {pickStr(t.obj, ["text", "description", "interpretation", "body"]) ?? "해석 정보가 없어요"}
           </Section>
         );
       })}
