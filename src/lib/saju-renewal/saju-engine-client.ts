@@ -56,17 +56,21 @@ const DEFAULT_TIMEOUT_MS = 15_000; // docs/11_API_계약서.md §5 "facts | 03 �
  * 교체해야 한다 — 코드에 고정값을 두는 것은 로컬 개발 전용이며, 실서비스 반영 전
  * 인프라팀 확인이 필요한 별도 사항이다(이 파일이 임의로 운영 보안을 결정하지 않음).
  */
+function resolveFallbackFreePassToken(): string {
+  // [전수검수 2026-10-12 ⑦] 운영(NODE_ENV=production)에서 토큰 미설정 시 실제
+  // 사용 시점에 실패한다 — 모듈 임포트 시점 throw는 next build의 page-data
+  // 수집까지 깨뜨리므로(재현 확인) 요청 시점으로 옮겼다. 빌드는 유지되고,
+  // 운영에서 토큰이 없으면 첫 호출이 명확한 오류로 실패해 무음 무단 사용을 막는다.
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "[SAJU_ENGINE] SAJU_ENGINE_FREE_PASS_TOKEN 환경변수가 설정되지 않았습니다 — 운영 배포 전 필수 설정입니다."
+    );
+  }
+  return "STB-internal-server-call-00000000000000";
+}
+
 const DEFAULT_FREE_PASS_TOKEN =
-  process.env.SAJU_ENGINE_FREE_PASS_TOKEN ??
-  // [전수검수 2026-10-12 ⑦] 운영 환경에서 토큰 미설정은 기동 즉시 실패시킨다
-  // — 고정 데모 토큰으로 무음 실행되는 사고를 원천 차단. 로컬 개발만 폴백 유지.
-  (process.env.NODE_ENV === "production"
-    ? (() => {
-        throw new Error(
-          "[SAJU_ENGINE] SAJU_ENGINE_FREE_PASS_TOKEN 환경변수가 설정되지 않았습니다 — 운영 배포 전 필수 설정입니다."
-        );
-      })()
-    : "STB-internal-server-call-00000000000000");
+  process.env.SAJU_ENGINE_FREE_PASS_TOKEN ?? resolveFallbackFreePassToken();
 
 export class SajuEngineClientError extends Error {
   constructor(
