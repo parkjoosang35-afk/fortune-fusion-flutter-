@@ -142,22 +142,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 1일 발급 한도 체크(dailyLimit이 있는 경우)
-    if (policy.dailyLimit != null) {
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
-      const todayCount = await prisma.userPass.count({
-        where: { userId, policyId: policy.id, createdAt: { gte: todayStart } },
-      });
-      if (todayCount >= policy.dailyLimit) {
-        return NextResponse.json(
-          { success: false, error: "오늘의 광고 프리패스 발급 한도를 초과했습니다." },
-          { status: 429, headers: CORS_HEADERS }
-        );
-      }
-    }
-
+    // [경제 감사 2026-10-12 M-3] 일일 한도 체크를 트랜잭션 안으로 이동한다 —
+    // 기존에는 체크(바깥)와 생성(안)이 분리돼 병렬 요청이 한도를 초과 발급
+    // 받을 수 있었다. 5초 멱등 윈도우는 정상 재시청 충전을 보장하던 기존
+    // 동작 그대로 유지한다.
     const result = await prisma.$transaction(async (tx) => {
+      if (policy.dailyLimit != null) {
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const todayCount = await tx.userPass.count({
+          where: { userId, policyId: policy.id, createdAt: { gte: todayStart } },
+        });
+        if (todayCount >= policy.dailyLimit) {
+          throw new Error("DAILY_LIMIT_EXCEEDED");
+        }
+      }
       const now = new Date();
       const expiresAt = new Date(now.getTime() + policy.durationMin * 60 * 1000);
 
@@ -200,6 +199,13 @@ export async function POST(request: NextRequest) {
       { headers: CORS_HEADERS }
     );
   } catch (e) {
+    const message = e instanceof Error ? e.message : "UNKNOWN";
+    if (message === "DAILY_LIMIT_EXCEEDED") {
+      return NextResponse.json(
+        { success: false, error: "오늘의 광고 프리패스 발급 한도를 초과했습니다." },
+        { status: 429, headers: CORS_HEADERS }
+      );
+    }
     console.error("[POST /api/public/pass/claim-ad] 실패:", e);
     return NextResponse.json(
       { success: false, error: "광고 프리패스 발급 중 오류가 발생했습니다." },

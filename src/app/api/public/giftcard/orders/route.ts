@@ -1,4 +1,4 @@
-// 공개(비인증) 상품권 교환(발급) API — GiftcardRepository.orderProduct() 대응.
+// 공개 상품권 교환(발급) API — GiftcardRepository.orderProduct() 대응.
 //
 // [설계결정 - 포인트 오케스트레이션 분리] giftcard_detail_screen.dart는 이미
 // WalletProvider.spend() → orderProduct() → 실패시 WalletProvider.earn()(환불)으로
@@ -6,8 +6,15 @@
 // 다루지 않고, 순수 재고 차감 + giftcard_issues 레코드 생성만 담당한다
 // (02번§1.2 WalletService 단일 인터페이스 원칙 — wallet/spend, wallet/earn을 그대로
 // 재사용, 중복 트랜잭션 로직 구현 방지).
+//
+// [경제 감사 2026-10-12 C-2] 위 설계의 구멍 — 이 라우트만 직접 호출하면
+// 지갑 차감 없이 무료로 상품권을 발급받을 수 있었다. 클라이언트가
+// `chargeMode: "server"`를 보내면 차감+재고+발급을 하나의 트랜잭션으로
+// 원자 처리한다(새 클라이언트 플로우). chargeMode가 없는 기존 클라이언트는
+// 하위 호환을 위해 기존 클라이언트 오케스트레이션 경로를 그대로 유지한다.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { spendLuckPouch } from "@/lib/luck-pouch-engine";
 import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
@@ -84,7 +91,7 @@ function toIssueDto(issue: {
 }
 
 export async function POST(request: NextRequest) {
-  let body: { userId?: number; productId?: string };
+  let body: { userId?: number; productId?: string; chargeMode?: string };
   try {
     body = await request.json();
   } catch {
@@ -112,6 +119,18 @@ export async function POST(request: NextRequest) {
       });
       if (!product) throw new Error("PRODUCT_NOT_FOUND");
       if (product.stockCount <= 0) throw new Error("OUT_OF_STOCK");
+
+      // [경제 감사 2026-10-12 C-2] 서버 차감 모드 — 차감+재고+발급이 하나의
+      // 트랜잭션으로 원자 처리된다. 잔액 부족 시 전체 롤백(재고도 환원).
+      if (body.chargeMode === "server") {
+        const spend = await spendLuckPouch(tx, {
+          userId,
+          amount: product.requiredPoint,
+          sourceType: "giftcard",
+          memo: `상품권 교환: ${product.name}`,
+        });
+        if (!spend.ok) throw new Error("INSUFFICIENT_BALANCE");
+      }
 
       await tx.giftcardProduct.update({
         where: { id: product.id },
@@ -141,6 +160,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { success: false, error: "존재하지 않는 상품입니다." },
         { status: 404, headers: CORS_HEADERS }
+      );
+    }
+    if (message === "INSUFFICIENT_BALANCE") {
+      return NextResponse.json(
+        { success: false, error: "복주머니 포인트가 부족합니다." },
+        { status: 400, headers: CORS_HEADERS }
       );
     }
     if (message === "OUT_OF_STOCK") {

@@ -1,7 +1,12 @@
-// 공개(비인증) 상품권 사용처리 API — GiftcardRepository.useIssue() 대응.
+// 공개 상품권 사용처리 API — GiftcardRepository.useIssue() 대응.
 // giftcard_usages(J-3) UQ(issue_id) 제약 반영: 이미 사용된 건은 재사용 불가.
+// [경제 감사 2026-10-12 C-3] 기존에는 인증·소유권 검증이 전혀 없어 순차적
+// issue id만 알면 타인의 미사용 상품권을 사용 처리할 수 있었다. 이제
+// requireUser로 JWT 인증을 강제하고 소유자(userId) 일치 건만 조회한다 —
+// 타인의 상품권은 NOT_FOUND(404)로 응답해 존재 여부도 유출하지 않는다.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorizedResponse } from "../../../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -39,10 +44,13 @@ export async function POST(
     );
   }
 
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+
   try {
     const result = await prisma.$transaction(async (tx) => {
-      const issue = await tx.giftcardIssue.findUnique({
-        where: { id: issueId },
+      const issue = await tx.giftcardIssue.findFirst({
+        where: { id: issueId, userId: auth.userId },
         include: { product: true, usage: true },
       });
       if (!issue) throw new Error("NOT_FOUND");

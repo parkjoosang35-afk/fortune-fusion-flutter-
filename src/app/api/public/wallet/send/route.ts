@@ -150,6 +150,14 @@ export async function POST(request: NextRequest) {
       }
 
       // 5) 받는 사람: 지갑 없으면 즉석 생성 후 전액 적립
+      // [경제 감사 2026-10-12 N-5] 존재하지 않는 toUserId에 대한 create는
+      // FK 위반(P2003)으로 catch-all 500에 새어나갔다 — 트랜잭션 초입에서
+      // 수신자 존재를 검증해 404로 명확히 응답한다.
+      const toUser = await tx.user.findUnique({
+        where: { id: toUserId },
+        select: { id: true },
+      });
+      if (!toUser) throw new Error("USER_NOT_FOUND");
       let toWallet = await tx.wallet.findFirst({
         where: { userId: toUserId, currencyType: "POINT", deletedAt: null },
       });
@@ -215,6 +223,12 @@ export async function POST(request: NextRequest) {
     if (message === "WALLET_NOT_FOUND") {
       return NextResponse.json(
         { success: false, error: "지갑을 찾을 수 없습니다." },
+        { status: 404, headers: CORS_HEADERS }
+      );
+    }
+    if (message === "USER_NOT_FOUND") {
+      return NextResponse.json(
+        { success: false, error: "받을 유저를 찾을 수 없습니다." },
         { status: 404, headers: CORS_HEADERS }
       );
     }

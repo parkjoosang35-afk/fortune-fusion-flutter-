@@ -10,6 +10,7 @@
 // 클라이언트가 "본인에게는 보낼 수 없다"는 메시지를 바로 보여줄 수 있게 한다.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,11 @@ const CORS_HEADERS = {
 };
 
 export async function GET(request: NextRequest) {
+  // [경제 감사 2026-10-12 N-7] 비인증 주체가 닉네임→userId를 무단 열거하던
+  // 통로를 닫는다 — 복 나누기 대상 조회는 로그인 사용자만 필요하다.
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+
   const { searchParams } = new URL(request.url);
   const nickname = searchParams.get("nickname")?.trim();
 

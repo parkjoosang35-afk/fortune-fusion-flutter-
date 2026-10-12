@@ -47,6 +47,10 @@ export async function POST(request: NextRequest) {
       });
       if (!base) throw new Error("NOT_FOUND");
       if (!base.isAiGenerated) throw new Error("NOT_AI_GENERATED");
+      // [경제 감사 2026-10-12 M-5] 유료 카탈로그 상품(pricePoint > 0)을
+      // 대가 없이 무료 발급하던 경제 누수 차단 — 유료 상품은 반드시
+      // amulets/purchase(지갑 차감) 경로를 사용하도록 강제한다.
+      if (base.pricePoint > 0) throw new Error("PAID_ITEM");
 
       const userAmulet = await tx.userAmulet.create({
         data: {
@@ -94,6 +98,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { success: false, error: "AI 생성 가능한 상품이 아닙니다." },
         { status: 400, headers: CORS_HEADERS }
+      );
+    }
+    if (message === "PAID_ITEM") {
+      return NextResponse.json(
+        { success: false, error: "구매가 필요한 부적입니다. 상점에서 구매해 주세요." },
+        { status: 400, headers: CORS_HEADERS }
+      );
+    }
+    // [경제 감사 2026-10-12 M-5] 항목당 1회 유니크 제약(@@unique) 충돌을
+    // 명시적으로 409로 매핑한다 — 기존에는 catch-all 500으로 새어나갔다.
+    if (typeof e === "object" && e !== null && (e as { code?: string }).code === "P2002") {
+      return NextResponse.json(
+        { success: false, error: "이미 보유한 부적입니다." },
+        { status: 409, headers: CORS_HEADERS }
       );
     }
     console.error("[POST /api/public/amulets/generate] 실패:", e);

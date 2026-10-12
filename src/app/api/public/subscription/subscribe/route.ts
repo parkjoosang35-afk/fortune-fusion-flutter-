@@ -121,6 +121,17 @@ export async function POST(request: NextRequest) {
           wallet = await tx.wallet.create({ data: { userId, currencyType: "POINT", balance: 0 } });
         }
         if (passPolicy.bonusPoint > 0) {
+          // [경제 감사 2026-10-12 M-2] 구독→해지→재구독 루프로 보너스 포인트를
+          // 무한 파밍하던 구멍을 막는다 — 동일 유저에게 pass_subscription_bonus
+          // 원장이 하나라도 있으면 재지급하지 않는다(평생 1회). 구독 자체와
+          // 알림패스 발급은 정상 계속된다.
+          const priorBonus = await tx.pointHistory.findFirst({
+            where: { userId, sourceType: "pass_subscription_bonus" },
+            select: { id: true },
+          });
+          if (priorBonus) {
+            // 이미 수령한 이력이 있으면 포인트 지급만 생략한다.
+          } else {
           const balanceAfter = wallet.balance + passPolicy.bonusPoint;
           await tx.wallet.update({
             where: { id: wallet.id },
@@ -138,6 +149,7 @@ export async function POST(request: NextRequest) {
               memo: `구독 알림패스 지급 보너스: ${passPolicy.name}`,
             },
           });
+          }
         }
 
         await tx.operationLog.create({

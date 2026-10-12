@@ -38,13 +38,37 @@ export async function POST(request: NextRequest) {
   const userId = auth.userId;
   const amount = Number(body.amount);
   const reason = body.reason ?? "적립";
-  const sourceType = body.sourceType ?? "admin_adjust";
+  const sourceType = body.sourceType;
   const sourceId = Number.isInteger(body.sourceId) ? Number(body.sourceId) : undefined;
-  const scope = body.scope ?? (LIFETIME_SCOPE_SOURCE_TYPES.has(sourceType) ? "lifetime" : "daily");
+  // [경제 감사 2026-10-12 C-1] scope를 클라이언트가 지정하지 못하게 한다 —
+  // 기존에는 body.scope로 signup_reward(평생 1회)의 판정 범위를 매일 1회로
+  // 우회할 수 있었다. 판정 범위는 서버가 sourceType으로부터만 결정한다.
+  const scope = LIFETIME_SCOPE_SOURCE_TYPES.has(sourceType ?? "") ? "lifetime" : "daily";
 
-  if (!Number.isInteger(amount) || amount <= 0) {
+  // [경제 감사 2026-10-12 C-1] 무제한 포인트 발행 차단 — 상한 면제 계열
+  // sourceType(CAP_EXEMPT_SOURCE_TYPES: admin_adjust/admin_grant/manual/
+  // signup_reward/first_login_reward)은 클라이언트 호출로 허용하면
+  // `POST /wallet/earn {"sourceType":"admin_adjust","amount":999999}`로
+  // 일일 상한(80/120)조차 우회된다. 이 계열은 서버 내부 경로(회원가입
+  // 시딩, 관리자 지급)에서만 발행해야 하며, 이 라우트는 명시적 sourceType
+  // 없이도 호출할 수 없다(기존 기본값 "admin_adjust" 위임 제거).
+  const BLOCKED_CLIENT_SOURCE_TYPES = new Set([
+    "admin_adjust",
+    "admin_grant",
+    "manual",
+    "signup_reward",
+    "first_login_reward",
+  ]);
+  if (!sourceType || BLOCKED_CLIENT_SOURCE_TYPES.has(sourceType)) {
     return NextResponse.json(
-      { success: false, error: "amount는 1 이상의 정수여야 합니다." },
+      { success: false, error: "호출할 수 없는 sourceType입니다." },
+      { status: 403, headers: CORS_HEADERS }
+    );
+  }
+
+  if (!Number.isInteger(amount) || amount <= 0 || amount > 1_000_000) {
+    return NextResponse.json(
+      { success: false, error: "amount는 1 이상 1,000,000 이하의 정수여야 합니다." },
       { status: 400, headers: CORS_HEADERS }
     );
   }

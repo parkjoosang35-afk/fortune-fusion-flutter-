@@ -1,7 +1,12 @@
-// 공개(비인증) 부적 사용 처리 API — Flutter AmuletRepository.use() 대응.
+// 공개 부적 사용 처리 API — Flutter AmuletRepository.use() 대응.
 // user_amulets.status를 used로 변경하고 amulet_usage_logs에 사용 이력을 남긴다.
+// [경제 감사 2026-10-12 C-4] 기존에는 인증·소유권 검증이 없어 임의의
+// userAmuletId로 타인의 보유 부적을 used로 마킹할 수 있었다(같은 파일군의
+// amulets/gift는 userId 조건이 있었는데 use에만 누락). requireUser 강제 +
+// 소유자 조건 추가로 gift 라우트와 동일한 패턴으로 수렴시킨다.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -33,10 +38,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+
   try {
     await prisma.$transaction(async (tx) => {
       const userAmulet = await tx.userAmulet.findFirst({
-        where: { id: userAmuletId, deletedAt: null },
+        where: { id: userAmuletId, deletedAt: null, userId: auth.userId },
       });
       if (!userAmulet) {
         throw new Error("NOT_FOUND");
