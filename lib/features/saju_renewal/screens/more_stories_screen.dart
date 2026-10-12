@@ -370,8 +370,16 @@ class _MoreStoriesScreenState extends State<MoreStoriesScreen> {
                                     ),
                                   ] else if (provider
                                       .candidatesExhausted) ...[
+                                    // [UX 보강 2026-10-12] 소진 안내에 7일
+                                    // 재후보화 일정을 알려준다 — 서버
+                                    // topic-engine의 recentlyShown 7일
+                                    // 감쇠 정책과 동일한 기준이며, 재후보
+                                    // 시점부터는 interpret 캐시 덕에 재열람도
+                                    // 무료다.
                                     const Text(
-                                      '모든 이야기를 다 보셨어요.',
+                                      '모든 이야기를 다 보셨어요.\n'
+                                      '일주일 뒤면 이야기들이 새 후보로 다시 찾아와요.\n'
+                                      '그 전까지는 버튼을 눌러 본 이야기를 처음부터 다시 보여드려요.',
                                       style: SajuType.body14,
                                       textAlign: TextAlign.center,
                                     ),
@@ -421,7 +429,8 @@ class _MoreStoriesScreenState extends State<MoreStoriesScreen> {
                                       ),
                                     ),
                                     child: const Text(
-                                      '모든 이야기를 다 보셨어요. 처음부터 다시 보여드려요.',
+                                      '모든 이야기를 다 보셨어요. 처음부터 다시 보여드려요.\n'
+                                      '일주일 뒤면 이야기들이 새 후보로 다시 찾아와요.',
                                       style: SajuType.body14,
                                       textAlign: TextAlign.center,
                                     ),
