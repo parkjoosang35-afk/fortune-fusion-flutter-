@@ -34,9 +34,9 @@ type ServiceKey = "wish-room" | "tarot" | "jeontong" | "today";
 // (/tmp/sg_test/test4.png). "마음의 방향을" → "마음속 답을"(6글자)로
 // 줄여 다른 카드 첫 줄과 길이를 맞췄다.
 const SERVICES: { key: ServiceKey; title: string; desc: string; color: string; url: string }[] = [
-  { key: "wish-room", title: "소원방", desc: "소망을 담아\n빌어보세요", color: "#E8B4A5", url: SINTONG_WEB_URLS.wishRoom },
-  { key: "tarot", title: "타로", desc: "마음속 답을\n찾아보세요", color: "#D4A574", url: SINTONG_WEB_URLS.tarot },
-  { key: "jeontong", title: "정통사주", desc: "만세력 기반\n사주 풀이", color: "#C99B7F", url: SINTONG_WEB_URLS.jeontong },
+  { key: "wish-room", title: "소원방", desc: "소망을 담아\n빌어보세요", color: "#E9C46A", url: SINTONG_WEB_URLS.wishRoom },
+  { key: "tarot", title: "타로", desc: "마음속 답을\n찾아보세요", color: "#E9C46A", url: SINTONG_WEB_URLS.tarot },
+  { key: "jeontong", title: "정통사주", desc: "만세력 기반\n사주 풀이", color: "#E9C46A", url: SINTONG_WEB_URLS.jeontong },
   { key: "today", title: "오늘 운세", desc: "매일 새롭게\n갱신돼요", color: "#7E5A47", url: SINTONG_WEB_URLS.todayFortune },
 ];
 
@@ -69,9 +69,9 @@ const ICONS: Record<ServiceKey, ReactElement> = {
 
 export function ServiceGrid() {
   return (
-    <div className="rounded-3xl border border-[#E8DDD0] bg-white/85 p-5 shadow-[0_4px_20px_-8px_rgba(166,121,94,0.15)]">
+    <div className="rounded-3xl border border-[#2A2A2E] bg-[#161618] p-5 shadow-[0_4px_20px_-8px_rgba(166,121,94,0.15)]">
       <div className="mb-4 text-center">
-        <div className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-[#A6795E]">
+        <div className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-[#E9C46A]">
           신통방통 다른 서비스
         </div>
         {/* [2026-12 균형 버그수정] 440px 폭에서 자동 줄바꿈에 맡기면
@@ -79,7 +79,7 @@ export function ServiceGrid() {
             끊겨 어색했다(headless 검증으로 확인). 의미 단위("~에서 더
             많은" / "운세를 만나보세요")로 끊어지도록 명시적 줄바꿈을
             넣는다. */}
-        <h3 style={{ fontFamily: "'Noto Serif KR', serif" }} className="text-[16px] font-bold text-[#2A2438]">
+        <h3 style={{ fontFamily: "'Noto Serif KR', serif" }} className="text-[16px] font-bold text-[#F2F0EC]">
           신통방통에서 더 많은
           <br />
           운세를 만나보세요
@@ -93,9 +93,9 @@ export function ServiceGrid() {
             // [균형 버그수정] flex-col + 고정 높이 텍스트 박스로, 카드마다
             // 실제 텍스트 줄 수(1줄/2줄)가 달라도 아이콘·제목·설명·
             // "바로가기"의 세로 위치가 4개 카드에서 항상 동일하게 정렬된다.
-            className="group relative flex flex-col items-center rounded-2xl border border-[#E8DDD0] bg-white p-3 text-center transition hover:shadow-[0_8px_32px_-12px_rgba(166,121,94,0.22)]"
+            className="group relative flex flex-col items-center rounded-2xl border border-[#2A2A2E] bg-[#1C1C1F] p-3 text-center transition hover:shadow-[0_8px_32px_-12px_rgba(166,121,94,0.22)]"
           >
-            <span className="absolute right-2 top-2 rounded-full bg-[#C99B7F] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-white">
+            <span className="absolute right-2 top-2 rounded-full bg-[#E9C46A] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-white">
               Free
             </span>
             <div
@@ -106,20 +106,20 @@ export function ServiceGrid() {
             </div>
             {/* 제목: 1줄 고정(넘치면 말줄임) — "오늘 운세"처럼 4글자라도
                 카드 폭에서 재줄바꿈되지 않도록 nowrap+ellipsis. */}
-            <div className="mb-0.5 w-full truncate whitespace-nowrap text-[12px] font-semibold text-[#2A2438]">
+            <div className="mb-0.5 w-full truncate whitespace-nowrap text-[12px] font-semibold text-[#F2F0EC]">
               {s.title}
             </div>
             {/* 설명: 항상 2줄 높이(leading-tight 9.5px * 2 ≈ 24px)만
                 차지하도록 고정 높이 박스에 담아, 실제 줄 수가 1줄이든
                 2줄이든 아래 "바로가기"가 카드마다 밀리지 않게 한다. */}
-            <div className="flex h-6 w-full items-start justify-center whitespace-pre-line text-[9.5px] leading-tight text-[#6E5A54]">
+            <div className="flex h-6 w-full items-start justify-center whitespace-pre-line text-[9.5px] leading-tight text-[#8A8880]">
               {s.desc}
             </div>
-            <div className="mt-auto pt-1.5 text-[9.5px] text-[#A6795E]">바로가기 →</div>
+            <div className="mt-auto pt-1.5 text-[9.5px] text-[#E9C46A]">바로가기 →</div>
           </a>
         ))}
       </div>
-      <p className="mt-3 text-center text-[11px] text-[#A08C82]">
+      <p className="mt-3 text-center text-[11px] text-[#575650]">
         설치 없이 바로 열려요 · 신통방통 웹
       </p>
     </div>

@@ -79,7 +79,7 @@ const NAV_ITEMS: { key: string; label: string; href: string; icon: React.ReactNo
 export function SintongBottomNavBar() {
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-[#ECECEF] bg-white/95 backdrop-blur-sm"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-[#ECECEF] bg-[#161618] backdrop-blur-sm"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       aria-label="신통방통 하단 내비게이션"
     >
@@ -88,7 +88,7 @@ export function SintongBottomNavBar() {
           <a
             key={item.key}
             href={item.href}
-            className="flex flex-1 flex-col items-center justify-center gap-0.5 text-[#9A9AA2] transition hover:text-[#A6795E]"
+            className="flex flex-1 flex-col items-center justify-center gap-0.5 text-[#9A9AA2] transition hover:text-[#E9C46A]"
           >
             {item.icon}
             <span

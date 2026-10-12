@@ -72,14 +72,14 @@ export function RelationNetworkGraph({
   });
 
   return (
-    <div className="rounded-3xl border border-[#E8DDD0] bg-white/85 p-5 shadow-[0_4px_20px_-8px_rgba(166,121,94,0.15)]">
+    <div className="rounded-3xl border border-[#2A2A2E] bg-[#161618] p-5 shadow-[0_4px_20px_-8px_rgba(166,121,94,0.15)]">
       <div className="mb-3 flex items-baseline justify-between">
-        <h2 style={{ fontFamily: "'Noto Serif KR', serif" }} className="text-base font-bold text-[#2A2438]">관계 지도</h2>
-        <span className="text-sm font-medium text-[#6E5A54]">{total}명</span>
+        <h2 style={{ fontFamily: "'Noto Serif KR', serif" }} className="text-base font-bold text-[#F2F0EC]">관계 지도</h2>
+        <span className="text-sm font-medium text-[#8A8880]">{total}명</span>
       </div>
 
       {total === 0 ? (
-        <p className="py-8 text-center text-sm text-[#A08C82]">
+        <p className="py-8 text-center text-sm text-[#575650]">
           아직 지도에 오른 사람이 없어요.
           <br />
           가장 먼저 이름을 올려 보세요.
@@ -122,7 +122,7 @@ export function RelationNetworkGraph({
             cy={CENTER}
             r={SATELLITE_RADIUS_BASE}
             fill="none"
-            stroke="#E8DDD0"
+            stroke="#2A2A2E"
             strokeDasharray="2 4"
             strokeWidth={1}
           />
@@ -175,8 +175,8 @@ export function RelationNetworkGraph({
 
           {/* 중앙 "나" 노드 — 은은하게 숨쉬듯 glow pulse */}
           <g className="gm-center-node">
-            <circle cx={CENTER} cy={CENTER} r={CENTER_RADIUS} fill="#2A2438" />
-            <text x={CENTER} y={CENTER + 5} textAnchor="middle" fontSize={15} fontWeight={700} fill="#FBF7EF">
+            <circle cx={CENTER} cy={CENTER} r={CENTER_RADIUS} fill="#F2F0EC" />
+            <text x={CENTER} y={CENTER + 5} textAnchor="middle" fontSize={15} fontWeight={700} fill="#0B0B0D">
               나
             </text>
           </g>
@@ -188,7 +188,7 @@ export function RelationNetworkGraph({
         {counts.map((c) => (
           <div
             key={c.key}
-            className="flex flex-col items-center rounded-xl border border-[#E8DDD0] bg-white px-1 py-2"
+            className="flex flex-col items-center rounded-xl border border-[#2A2A2E] bg-[#1C1C1F] px-1 py-2"
           >
             <span
               className="mb-1 flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold text-white"
@@ -196,8 +196,8 @@ export function RelationNetworkGraph({
             >
               {c.hanja}
             </span>
-            <span className="text-[11px] text-[#6E5A54]">{c.label}</span>
-            <span className="text-sm font-bold text-[#2A2438]">{c.count}</span>
+            <span className="text-[11px] text-[#8A8880]">{c.label}</span>
+            <span className="text-sm font-bold text-[#F2F0EC]">{c.count}</span>
           </div>
         ))}
       </div>

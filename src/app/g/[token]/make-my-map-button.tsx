@@ -16,7 +16,7 @@ export function MakeMyMapButton() {
         window.location.href = SINTONG_WEB_URLS.guinji;
       }}
       className="mt-5 w-full rounded-2xl px-4 py-3 text-[14px] font-semibold text-white shadow-[0_4px_16px_-4px_rgba(166,121,94,0.4)]"
-      style={{ backgroundImage: "linear-gradient(135deg, #E2A88A, #A6795E)" }}
+      style={{ backgroundImage: "linear-gradient(135deg, #F7E4AE, #E9C46A)" }}
     >
       나도 내 귀인 지도 만들기
     </button>
