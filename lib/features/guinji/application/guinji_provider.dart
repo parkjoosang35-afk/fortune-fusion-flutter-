@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../../auth/domain/user_model.dart';
@@ -6,6 +8,7 @@ import '../../home/domain/manseryeok/saju_profile.dart';
 import '../../home/domain/saju_engine.dart' show SajuResult;
 import '../../home/domain/saju_interpreter.dart';
 import '../../home/domain/user_profile_to_jeontong_adapter.dart';
+import '../data/funnel_tracker.dart';
 import '../data/guinji_repository.dart';
 import '../domain/guinji_owner_saju_summary.dart';
 import '../domain/guinji_person.dart';
@@ -415,6 +418,14 @@ class GuinjiProvider extends ChangeNotifier {
     // false/0을 반환해 축하 UI가 절대 뜨지 않는다).
     _milestoneJustReached = _map?['milestoneJustReached'] as bool? ?? false;
     _milestoneRewardPoint = _map?['milestoneRewardPoint'] as int? ?? 0;
+    // [P3 앱 퍼널 이벤트 배선 — 2026-12] 서버가 이번 조회에서 막
+    // 마일스톤을 달성했다고 알려준 시점에만 1회 기록한다(화면의
+    // consumeMilestoneJustReached()와 별개 — 그 메서드는 UI 다이얼로그
+    // 1회성 소비용이고, 이 기록은 그보다 먼저 데이터가 갱신되는 시점에
+    // 걸어 fire-and-forget으로 보낸다).
+    if (_milestoneJustReached) {
+      unawaited(FunnelTracker.track(FunnelTracker.milestoneReached, mapToken: mapToken));
+    }
     _isLoading = false;
     notifyListeners();
     return true;
@@ -662,6 +673,12 @@ class GuinjiProvider extends ChangeNotifier {
       _error = result.errorMessage ?? '해금에 실패했습니다.';
       notifyListeners();
       return false;
+    }
+    // [P3 앱 퍼널 이벤트 배선 — 2026-12] 광고 시청으로 해금에 성공한
+    // 경우에만 기록한다(결제/프리패스 해금은 퍼널 계약상 집계 대상이
+    // 아님). fire-and-forget — 실패해도 해금 자체는 이미 완료된 상태.
+    if (method == 'ad') {
+      unawaited(FunnelTracker.track(FunnelTracker.unlockAdWatched, mapToken: mapToken));
     }
     return true;
   }
