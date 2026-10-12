@@ -4,7 +4,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { WR, WishRoomError, buildRoomView, checkSealDate, filterText, serializeEquip, type EquipShape } from "@/lib/wishroom-engine";
-import { getOrCreateUserState, getOwnedCharacterIds, requireUser, unauthorizedResponse, wishroomOptionsResponse, CORS_HEADERS, toErrorResponse } from "../_shared";
+import { getOrCreateUserState, requireUser, unauthorizedResponse, wishroomOptionsResponse, CORS_HEADERS, toErrorResponse } from "../_shared";
+import { getOwnedCharacterIds } from "@/lib/wishroom-engine";
 
 export const dynamic = "force-dynamic";
 
