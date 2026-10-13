@@ -39,6 +39,31 @@ object WpRenderer {
     private const val BASE_H = 844f
 
     /**
+     * [v2.7 오버레이 터치 영역] 홈 화면 터치를 판정하는 기준 좌표(390×844)
+     * 영역 목록. 실제 배경화면 서비스가 화면 좌표를 [mapTouchToBase]로
+     * 기준 좌표로 바꾼 뒤 이 영역과 비교한다 — 렌더와 터치가 "같은 좌표"
+     * 원칙(§3)을 공유해 영역이 어긋나지 않는다.
+     *  - clock/bubble/card: 신통방통 앱 바로 열기.
+     *  - devotion: 치성(WishActionQueue 기록 + 캐릭터 기도 연출).
+     */
+    data class WpZone(val id: String, val left: Float, val top: Float, val right: Float, val bottom: Float)
+
+    fun overlayZones(): List<WpZone> = listOf(
+        WpZone("clock", 110f, 20f, 280f, 132f),
+        WpZone("bubble", 20f, 386f, 250f, 446f),
+        WpZone("card", 16f, 702f, 262f, 792f),
+        WpZone("devotion", 276f, 700f, 368f, 794f),
+    )
+
+    /** 화면 좌표 [x],[y]를 기준 캔버스(390×844) 좌표로 환산한다. */
+    fun mapTouchToBase(w: Float, h: Float, x: Float, y: Float): Pair<Float, Float> {
+        val scale = max(w / BASE_W, h / BASE_H)
+        val offX = (w - BASE_W * scale) / 2f
+        val offY = (h - BASE_H * scale) / 2f
+        return Pair((x - offX) / scale, (y - offY) / scale)
+    }
+
+    /**
      * [m]을 [w]×[h] 크기의 새 Bitmap에 그려 반환한다. [t]는 초 단위 애니메이션
      * 시점(라이브 배경화면은 실시간 경과 시간, 위젯 썸네일은 보통 0.0 고정).
      * [bitmapOf]는 호출자가 캐시를 관리할 수 있도록 외부에서 주입한다.
@@ -65,6 +90,14 @@ object WpRenderer {
         m: WpManifest,
         t: Double,
         tReal: Double,
+        // [v2.7 오버레이] 위젯 썸네일 등 기존 호출자는 기본값(null/false)이라
+        // 시그니처 변경 영향 없이 HUD 없이 그려진다.
+        clock: String? = null,
+        dateLabel: String? = null,
+        bubble: String? = null,
+        devotionLabel: String? = null,
+        praying: Boolean = false,
+        prayerT: Double = 0.0,
         bitmapOf: (String?) -> Bitmap?,
     ) {
         canvas.drawColor(Color.parseColor("#12060E"))
@@ -210,16 +243,24 @@ object WpRenderer {
         }
 
         // ── 캐릭터(character) — §6.1 호흡 주기 3.6s(각속도 2π/3.6s≈1.745 rad/s). ──
+        // [v2.7 기도 연출] 치성 탭 뒤 2.6초 동안 캐릭터가 절제된 큰절을 흉내
+        // 낸다(살짝 내려앉았다 올라오는 곡선) + 머리 위 금빛 후광 링.
         m.character?.let { ch ->
             bitmapOf(ch.asset)?.let { bmpChar ->
+                val bowPhase = if (praying) sin(Math.PI * min(1.0, prayerT / 2.6)).toFloat() else 0f
                 canvas.save()
                 val breathe = 1f + 0.008f * sin(t * 1.745).toFloat()
-                canvas.translate(ch.x, ch.y)
-                canvas.scale(breathe, breathe, 0f, 0f)
+                canvas.translate(ch.x, ch.y + 10f * bowPhase)
+                canvas.scale(breathe * (1f - 0.02f * bowPhase), breathe, 0f, 0f)
                 val paint = Paint(Paint.ANTI_ALIAS_FLAG)
                 val rect = android.graphics.RectF(-ch.s / 2, -ch.s, ch.s / 2, 0f)
                 canvas.drawBitmap(bmpChar, null, rect, paint)
                 canvas.restore()
+                if (bowPhase > 0.01f) {
+                    val halo = Paint(Paint.ANTI_ALIAS_FLAG)
+                    halo.shader = RadialGradient(ch.x, ch.y - ch.s - 10f, 60f + 30f * bowPhase, withAlpha(Color.parseColor("#FFE9A8"), 0.55f * bowPhase), Color.TRANSPARENT, Shader.TileMode.CLAMP)
+                    canvas.drawCircle(ch.x, ch.y - ch.s - 10f, 60f + 30f * bowPhase, halo)
+                }
             }
         }
 
@@ -237,6 +278,92 @@ object WpRenderer {
             ribbon.shader = LinearGradient(0f, 0f, BASE_W, 0f, Color.parseColor("#F5CF6A"), Color.parseColor("#FF8FB1"), Shader.TileMode.CLAMP)
             ribbon.alpha = (120 + 60 * sin(t * 1.1)).toInt().coerceIn(60, 180)
             canvas.drawRect(0f, 0f, BASE_W, 6f, ribbon)
+        }
+
+        // ── v2.7 HUD 오버레이 — 시계·날짜·말풍선·소원카드·치성 버튼 ──
+        // [사용자 피드백] 참고 이미지(소원방 홈) 1:1 지향. 절제된 크기로
+        // 방 일러스트를 가리지 않게 위에만 얹는다. 터치 영역은
+        // overlayZones()가 렌더와 같은 좌표로 관리한다.
+        if (m.overlay) {
+            if (clock != null) {
+                val shadow = Paint(Paint.ANTI_ALIAS_FLAG)
+                shadow.color = Color.argb(150, 0, 0, 0)
+                shadow.textSize = 36f
+                shadow.textAlign = Paint.Align.CENTER
+                shadow.isFakeBoldText = true
+                canvas.drawText(clock, BASE_W / 2f + 1.5f, 67.5f, shadow)
+                val timePaint = Paint(Paint.ANTI_ALIAS_FLAG)
+                timePaint.color = Color.WHITE
+                timePaint.textSize = 36f
+                timePaint.textAlign = Paint.Align.CENTER
+                timePaint.isFakeBoldText = true
+                canvas.drawText(clock, BASE_W / 2f, 66f, timePaint)
+                if (dateLabel != null) {
+                    val dShadow = Paint(Paint.ANTI_ALIAS_FLAG)
+                    dShadow.color = Color.argb(150, 0, 0, 0)
+                    dShadow.textSize = 13f
+                    dShadow.textAlign = Paint.Align.CENTER
+                    canvas.drawText(dateLabel, BASE_W / 2f + 1f, 95f, dShadow)
+                    val datePaint = Paint(Paint.ANTI_ALIAS_FLAG)
+                    datePaint.color = Color.parseColor("#F2ECE2")
+                    datePaint.textSize = 13f
+                    datePaint.textAlign = Paint.Align.CENTER
+                    canvas.drawText(dateLabel, BASE_W / 2f, 94f, datePaint)
+                }
+            }
+            if (bubble != null) {
+                val textPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+                textPaint.color = Color.parseColor("#4A3223")
+                textPaint.textSize = 13f
+                val tw = textPaint.measureText(bubble)
+                val bl = (BASE_W - tw - 28f) / 2f
+                hudPaint.color = withAlpha(Color.WHITE, 0.94f)
+                canvas.drawRoundRect(android.graphics.RectF(bl, 396f, bl + tw + 28f, 440f), 21f, 21f, hudPaint)
+                canvas.drawText(bubble, bl + 14f, 423f, textPaint)
+            }
+            // 소원 카드(좌하단) — 탭하면 앱 진입.
+            val cardRect = android.graphics.RectF(16f, 702f, 262f, 792f)
+            hudPaint.color = withAlpha(Color.parseColor("#FFF4D8"), 0.95f)
+            canvas.drawRoundRect(cardRect, 18f, 18f, hudPaint)
+            val border = Paint(Paint.ANTI_ALIAS_FLAG)
+            border.style = Paint.Style.STROKE
+            border.strokeWidth = 1.2f
+            border.color = withAlpha(Color.parseColor("#E9C46A"), 0.8f)
+            canvas.drawRoundRect(cardRect, 18f, 18f, border)
+            hudPaint.color = withAlpha(Color.parseColor("#E9C46A"), 0.28f)
+            canvas.drawCircle(52f, 747f, 21f, hudPaint)
+            val sealText = Paint(Paint.ANTI_ALIAS_FLAG)
+            sealText.color = Color.parseColor("#B8860B")
+            sealText.textSize = 24f
+            sealText.textAlign = Paint.Align.CENTER
+            sealText.isFakeBoldText = true
+            canvas.drawText("財", 52f, 756f, sealText)
+            val cardText = Paint(Paint.ANTI_ALIAS_FLAG)
+            cardText.color = Color.parseColor("#4A3223")
+            cardText.textSize = 14f
+            val wish = m.wishText?.takeIf { it.isNotEmpty() } ?: "소원을 빌러 오세요"
+            canvas.drawText(if (wish.length > 16) wish.take(16) + "…" else wish, 88f, 742f, cardText)
+            val subText = Paint(Paint.ANTI_ALIAS_FLAG)
+            subText.color = Color.parseColor("#8A7350")
+            subText.textSize = 11f
+            canvas.drawText("터치해서 소원방 열기", 88f, 766f, subText)
+            // 치성 버튼(우하단) — 탭하면 기록 + 기도 연출.
+            val btn = Paint(Paint.ANTI_ALIAS_FLAG)
+            btn.color = withAlpha(Color.parseColor("#FF7FA8"), if (praying) 0.95f else 0.88f)
+            canvas.drawCircle(322f, 747f, 44f, btn)
+            val btnText = Paint(Paint.ANTI_ALIAS_FLAG)
+            btnText.color = Color.WHITE
+            btnText.textSize = 14f
+            btnText.textAlign = Paint.Align.CENTER
+            btnText.isFakeBoldText = true
+            canvas.drawText("치성", 322f, 744f, btnText)
+            if (devotionLabel != null) {
+                val cnt = Paint(Paint.ANTI_ALIAS_FLAG)
+                cnt.color = withAlpha(Color.WHITE, 0.9f)
+                cnt.textSize = 11f
+                cnt.textAlign = Paint.Align.CENTER
+                canvas.drawText(devotionLabel, 322f, 762f, cnt)
+            }
         }
 
         canvas.restore()

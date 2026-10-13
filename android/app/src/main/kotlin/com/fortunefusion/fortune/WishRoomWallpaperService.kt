@@ -11,7 +11,12 @@ import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
 import android.provider.Settings
+import android.content.Intent
 import android.service.wallpaper.WallpaperService
+import android.view.MotionEvent
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import android.view.SurfaceHolder
 
 /**
@@ -49,6 +54,10 @@ class WishRoomWallpaperService : WallpaperService() {
         private var visibleSince = System.currentTimeMillis()
         /** 이번 프레임을 "정지 장면 + 촛불만"으로 그릴지(§4.3 배터리15%↓·절전모드). */
         private var renderFrozen = false
+        // [v2.7 오버레이] 치성 탭 기도 연출 시점(tReal 초)·로컬 가산치·앱 재실행 억제.
+        private var prayerSince = -100.0
+        private var localDevotionBonus = 0
+        private var lastLaunchMs = 0L
 
         private val prefs: SharedPreferences by lazy {
             applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -57,6 +66,8 @@ class WishRoomWallpaperService : WallpaperService() {
             if (key == KEY_MANIFEST || key == KEY_ASSET_MAP) {
                 manifest = WpManifest.parse(p.getString(KEY_MANIFEST, null))
                 bitmapCache.clear()
+                // 서버 동기화로 치성 수가 갱신됐으니 로컬 가산치는 초기화.
+                localDevotionBonus = 0
             }
         }
 
@@ -102,6 +113,45 @@ class WishRoomWallpaperService : WallpaperService() {
             prefs.unregisterOnSharedPreferenceChangeListener(prefsListener)
             bitmapCache.values.forEach { it?.recycle() }
             bitmapCache.clear()
+        }
+
+        /**
+         * [v2.7 오버레이 터치 — 사용자 피드백] 홈 배경화면에서 바로 앱 진입·치성.
+         * 시계·말풍선·소원카드 탭 → 신통방통 앱 실행(NEW_TASK, 1.2초 억제).
+         * 치성 버튼 탭 → WishActionQueue 기록(§4.1 네이티브→앱 큐, 배경화면은
+         * 서버 통신 없음 — 앱이 drain해 전송) + 기도 연출.
+         */
+        override fun onTouchEvent(event: MotionEvent): Boolean {
+            if (event.action == MotionEvent.ACTION_DOWN) {
+                val m = manifest
+                if (m != null && m.overlay) {
+                    val frame = surfaceHolder.surfaceFrame
+                    val (bx, by) = WpRenderer.mapTouchToBase(frame.width().toFloat(), frame.height().toFloat(), event.x, event.y)
+                    val zone = WpRenderer.overlayZones().firstOrNull { bx >= it.left && bx <= it.right && by >= it.top && by <= it.bottom }
+                    if (zone != null) {
+                        if (zone.id == "devotion") {
+                            WishActionQueue.append(applicationContext, WishActionQueue.Kind.CANDLE, m.roomId)
+                            localDevotionBonus += 1
+                            prayerSince = (System.currentTimeMillis() - startTime) / 1000.0
+                            handler.post(drawRunner)
+                        } else {
+                            val now = System.currentTimeMillis()
+                            if (now - lastLaunchMs > 1200L) {
+                                lastLaunchMs = now
+                                try {
+                                    applicationContext.startActivity(
+                                        Intent(applicationContext, MainActivity::class.java)
+                                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                                    )
+                                } catch (_: Exception) {
+                                    // 아이콘 비활성 등 실행 실패는 조용히 무시.
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            return super.onTouchEvent(event)
         }
 
         override fun onComputeColors(): WallpaperColors? {
@@ -219,7 +269,23 @@ class WishRoomWallpaperService : WallpaperService() {
             // frozen 상태에서는 촛불을 뺀 모든 주기 모션을 t=0 고정값으로 그려
             // "정지 장면"을 만든다(§4.3). 촛불은 tReal을 그대로 써서 계속 흔들린다.
             val t = if (frozen) 0.0 else tReal
-            WpRenderer.render(canvas, canvas.width.toFloat(), canvas.height.toFloat(), m, t, tReal) { assetPath -> bitmapOf(assetPath) }
+            // [v2.7 오버레이] 시계·날짜는 매 프레임 현재 시각, 치성 횟수는
+            // 서버 값 + 로컬 탭 가산치. 기도 연출은 탭 뒤 2.6초.
+            val praying = m.overlay && (tReal - prayerSince) < 2.6
+            var clock: String? = null
+            var dateLabel: String? = null
+            var devotionLabel: String? = null
+            if (m.overlay) {
+                clock = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+                dateLabel = SimpleDateFormat("yyyy. MM. dd (E)", Locale.KOREA).format(Date())
+                if (m.devotionCount >= 0) devotionLabel = "${m.devotionCount + localDevotionBonus}회"
+            }
+            val bubble = if (praying) "치성이 올라갔어요" else m.bubbleText
+            WpRenderer.render(
+                canvas, canvas.width.toFloat(), canvas.height.toFloat(), m, t, tReal,
+                clock = clock, dateLabel = dateLabel, bubble = bubble,
+                devotionLabel = devotionLabel, praying = praying, prayerT = tReal - prayerSince,
+            ) { assetPath -> bitmapOf(assetPath) }
         }
     }
 }

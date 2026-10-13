@@ -28,6 +28,13 @@ data class WpManifest(
     val character: WpLayer?,
     val decorations: List<WpLayer>,
     val auraGold: Boolean,
+    // [v2.7 오버레이 — 사용자 피드백] 홈 화면에서 바로 소원방 정보를 보고
+    // 앱으로 들어올 수 있게 하는 HUD 레이어 명세.
+    val roomId: String? = null, // 치성 기록(WishActionQueue)이 귀속될 방.
+    val wishText: String? = null, // 소원 카드에 그릴 원문(길면 말줄임).
+    val bubbleText: String? = null, // 캐릭터 머리 위 말풍선 문구.
+    val devotionCount: Int = -1, // -1이면 치성 횟수 표시를 숨긴다.
+    val overlay: Boolean = true, // false면 기존 장면만(오버레이·터치 진입 없음).
 ) {
     companion object {
         fun parse(json: String?): WpManifest? {
@@ -61,6 +68,11 @@ data class WpManifest(
                     character = layer("character"),
                     decorations = decos,
                     auraGold = o.optBoolean("auraGold", false),
+                    roomId = o.optString("roomId").ifEmpty { null },
+                    wishText = o.optString("wishText").ifEmpty { null },
+                    bubbleText = o.optString("bubbleText").ifEmpty { null },
+                    devotionCount = o.optInt("devotionCount", -1),
+                    overlay = o.optBoolean("overlay", true),
                 )
             } catch (_: Exception) {
                 null

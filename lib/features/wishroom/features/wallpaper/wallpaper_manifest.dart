@@ -11,8 +11,20 @@ import '../room/room_layout.dart';
 class WpNativeLayer {
   final String asset;
   final double x, y, s, rotateDeg;
-  const WpNativeLayer({required this.asset, required this.x, required this.y, required this.s, this.rotateDeg = 0});
-  Map<String, dynamic> toJson() => {'asset': asset, 'x': x, 'y': y, 's': s, 'rotateDeg': rotateDeg};
+  const WpNativeLayer({
+    required this.asset,
+    required this.x,
+    required this.y,
+    required this.s,
+    this.rotateDeg = 0,
+  });
+  Map<String, dynamic> toJson() => {
+    'asset': asset,
+    'x': x,
+    'y': y,
+    's': s,
+    'rotateDeg': rotateDeg,
+  };
 }
 
 /// WishRoom + 카탈로그로부터 네이티브가 그릴 레이어 명세(JSON)를 만든다.
@@ -35,14 +47,27 @@ String buildNativeManifestJson(WishRoom room, List<WrItem> items) {
 
   final candleItem = itemOf(room.equip.candle);
   WpNativeLayer? candleLayer;
-  if (!sacred && candleItem != null && candleItem.id != 'c_basic' && candleItem.asset != null) {
-    candleLayer = WpNativeLayer(asset: candleItem.asset!, x: RoomLayout.candle.x, y: RoomLayout.candle.y, s: RoomLayout.candle.s);
+  if (!sacred &&
+      candleItem != null &&
+      candleItem.id != 'c_basic' &&
+      candleItem.asset != null) {
+    candleLayer = WpNativeLayer(
+      asset: candleItem.asset!,
+      x: RoomLayout.candle.x,
+      y: RoomLayout.candle.y,
+      s: RoomLayout.candle.s,
+    );
   }
 
   // 캐릭터 레이어 — room_scene.dart L5 위치(left:-2, top:468, width:162, height:226)를
   // "바닥 중심" 좌표(x,y,s)로 환산: x = left + width/2, y = top + height(바닥선), s = width.
   final charAsset = cat.charImage(room.char, room.outfitNow);
-  final charLayer = WpNativeLayer(asset: charAsset, x: -2.0 + 162.0 / 2, y: 468.0 + 226.0, s: 162.0);
+  final charLayer = WpNativeLayer(
+    asset: charAsset,
+    x: -2.0 + 162.0 / 2,
+    y: 468.0 + 226.0,
+    s: 162.0,
+  );
 
   final decos = placeDecos(room.equip, items, room.layout);
   final decoLayers = <WpNativeLayer>[
@@ -51,7 +76,9 @@ String buildNativeManifestJson(WishRoom room, List<WrItem> items) {
         WpNativeLayer(
           asset: d.item.asset!,
           x: d.x,
-          y: d.kind == 'float' ? d.y : d.y, // float은 중심 좌표, 나머지는 바닥 좌표 — 네이티브 쪽에서 kind 구분 없이 bottom-anchor로 단순화해 그린다.
+          y: d.kind == 'float'
+              ? d.y
+              : d.y, // float은 중심 좌표, 나머지는 바닥 좌표 — 네이티브 쪽에서 kind 구분 없이 bottom-anchor로 단순화해 그린다.
           s: d.s,
         ),
   ];
@@ -60,12 +87,21 @@ String buildNativeManifestJson(WishRoom room, List<WrItem> items) {
     final fx = room.layout[flowerItem!.id]?.x ?? RoomLayout.flower.x;
     final fy = room.layout[flowerItem.id]?.y ?? RoomLayout.flower.y;
     final fs = room.layout[flowerItem.id]?.s ?? RoomLayout.flower.s;
-    decoLayers.add(WpNativeLayer(asset: flowerItem.asset!, x: fx, y: fy, s: fs));
+    decoLayers.add(
+      WpNativeLayer(asset: flowerItem.asset!, x: fx, y: fy, s: fs),
+    );
   }
   if (!sacred) {
     for (final e in RoomLayout.unlocks.entries.where((e) => lv >= e.key)) {
       for (final it in (e.value['items'] as List).cast<Map>()) {
-        decoLayers.add(WpNativeLayer(asset: 'assets/wishroom/items/${it['img']}.png', x: (it['x'] as num).toDouble(), y: (it['y'] as num).toDouble(), s: (it['s'] as num).toDouble()));
+        decoLayers.add(
+          WpNativeLayer(
+            asset: 'assets/wishroom/items/${it['img']}.png',
+            x: (it['x'] as num).toDouble(),
+            y: (it['y'] as num).toDouble(),
+            s: (it['s'] as num).toDouble(),
+          ),
+        );
       }
     }
   }
@@ -93,6 +129,12 @@ String buildNativeManifestJson(WishRoom room, List<WrItem> items) {
     // 내려줘 네이티브가 Flutter와 동일한 파티클 조건을 쓰게 한다.
     'level': lv,
     'fulfilled': room.status == RoomStatus.ARCHIVED,
+    // [v2.7 오버레이 — 사용자 피드백] 홈 배경화면에서 시계·말풍선·소원카드·
+    // 치성 횟수를 그리고, 카드/시계 탭으로 앱에 바로 들어올 수 있게 한다.
+    'roomId': room.id,
+    'wishText': room.text,
+    'bubbleText': '오늘도 좋은 기운이 모이고 있어요',
+    'devotionCount': room.devotionCount,
     'candle': candleLayer?.toJson(),
     'character': charLayer.toJson(),
     'decorations': decoLayers.map((d) => d.toJson()).toList(),
