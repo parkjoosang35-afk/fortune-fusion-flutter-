@@ -199,6 +199,11 @@ class _GuinjiInputScreenState extends State<GuinjiInputScreen> {
       _submitting = true;
       _formError = null;
     });
+    // [백지 화면 버그수정 — 사용자 피드백] createMapWithInput 내부의 전통사주
+    // 엔진(Phase 1→4)은 수 초간 동기로 도는 무거운 작업이라, 웹(CanvasKit)
+    // 에서는 로딩 상태가 그려지기도 전에 메인 스레드가 봉쇄돼 아이보리 백지
+    // 화면이 노출됐다. 로딩 프레임을 먼저 제출한 뒤 계산에 들어간다.
+    await WidgetsBinding.instance.endOfFrame;
 
     final provider = context.read<GuinjiProvider>();
     final ok = await provider.createMapWithInput(
