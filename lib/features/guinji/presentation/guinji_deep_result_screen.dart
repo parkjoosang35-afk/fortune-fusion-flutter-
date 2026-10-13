@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import '../character/guinji_character.dart';
 import '../deep/guinji_deep_text.dart';
@@ -34,7 +35,7 @@ class GuinjiDeepResultScreen extends StatelessWidget {
   /// [P4-hotfix] 카드 스크린샷을 갤러리에 저장(무료·광고 없음).
   Future<void> _saveCardToGallery(BuildContext context) async {
     final obj = context.findRenderObject();
-    if (obj is! RenderRepaintBoundary) return;
+    if (obj == null || obj is! RenderRepaintBoundary) return;
     final image = await obj.toImage(pixelRatio: 3.0);
     final data = await image.toByteData(format: ui.ImageByteFormat.png);
     if (data == null) return;
