@@ -25,6 +25,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
+import { countPassGrantFields, OpenPassServiceError } from "@/lib/open-pass-service";
 import { earnLuckPouch } from "@/lib/luck-pouch-engine";
 import {
   hashPassword,
@@ -148,13 +149,14 @@ export async function POST(request: NextRequest) {
       // UserPass 생성 패턴(activatedAt=now, expiresAt=now+durationMin분).
       let expiresAt: Date | null = null;
       if (signupPassPolicy) {
-        expiresAt = new Date(now.getTime() + signupPassPolicy.durationMin * 60 * 1000);
+        const grantFields = countPassGrantFields(signupPassPolicy, now);
+        expiresAt = grantFields.expiresAt;
         const userPass = await tx.userPass.create({
           data: {
             userId: user.id,
             policyId: signupPassPolicy.id,
             activatedAt: now,
-            expiresAt,
+            ...grantFields,
             sourceType: "signup",
           },
         });
@@ -194,6 +196,9 @@ export async function POST(request: NextRequest) {
       { headers: CORS_HEADERS }
     );
   } catch (e: unknown) {
+    if (e instanceof OpenPassServiceError) {
+      return NextResponse.json({ success: false, error: e.message, code: e.code }, { status: 409, headers: CORS_HEADERS });
+    }
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
       const fields = extractUniqueConstraintFields(e);
       const error = fields.includes("email")

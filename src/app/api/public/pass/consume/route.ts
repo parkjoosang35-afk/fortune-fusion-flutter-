@@ -21,7 +21,7 @@
 // checkOnly가 없거나 false인 과거 호출자(하위호환)는 기존과 동일하게 체크+증가를 모두 수행한다.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { checkCategoryUsage, consumeCategoryUsage } from "@/lib/open-pass-service";
+import { getActiveUserPass, checkCategoryUsage, consumeCategoryUsage } from "@/lib/open-pass-service";
 import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
@@ -56,11 +56,10 @@ export async function POST(request: NextRequest) {
 
   try {
     const now = new Date();
-    const activePass = await prisma.userPass.findFirst({
-      where: { userId, expiresAt: { gt: now } },
-      orderBy: { expiresAt: "desc" },
-      include: { policy: true },
-    });
+    const activePass = await getActiveUserPass(userId);
+    if (activePass?.remainingCount != null && !checkOnly) {
+      return NextResponse.json({ success: false, error: "횟수제 결과보기는 거래 식별자가 있는 공용 결과보기 경로를 사용해주세요.", reason: "RESULT_ACCESS_REQUIRED" }, { status: 409, headers: CORS_HEADERS });
+    }
 
     if (!activePass) {
       return NextResponse.json(

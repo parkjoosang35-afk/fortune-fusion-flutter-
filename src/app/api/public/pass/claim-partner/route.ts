@@ -3,6 +3,7 @@
 // passType="partner" 정책을 사용한다(문서3 정책표: 3시간, 1일 1회, 보너스 10P).
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { countPassGrantFields, OpenPassServiceError } from "@/lib/open-pass-service";
 import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
@@ -62,14 +63,15 @@ export async function POST(request: NextRequest) {
         }
       }
       const now = new Date();
-      const expiresAt = new Date(now.getTime() + policy.durationMin * 60 * 1000);
+      const grantFields = countPassGrantFields(policy, now);
+      const expiresAt = grantFields.expiresAt;
 
       const userPass = await tx.userPass.create({
         data: {
           userId,
           policyId: policy.id,
           activatedAt: now,
-          expiresAt,
+          ...grantFields,
           sourceType: "partner",
         },
       });
@@ -103,6 +105,9 @@ export async function POST(request: NextRequest) {
       { headers: CORS_HEADERS }
     );
   } catch (e) {
+    if (e instanceof OpenPassServiceError) {
+      return NextResponse.json({ success: false, error: e.message, code: e.code }, { status: 409, headers: CORS_HEADERS });
+    }
     const message = e instanceof Error ? e.message : "UNKNOWN";
     if (message === "DAILY_LIMIT_EXCEEDED") {
       return NextResponse.json(

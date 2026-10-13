@@ -6,6 +6,7 @@
 // 시간제 이용권이므로 구매 시 별도의 상시 적립/보너스를 붙이지 않는다.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { countPassGrantFields, OpenPassServiceError } from "@/lib/open-pass-service";
 import { spendLuckPouch } from "@/lib/luck-pouch-engine";
 import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 
@@ -71,14 +72,15 @@ export async function POST(request: NextRequest) {
       }
 
       const now = new Date();
-      const expiresAt = new Date(now.getTime() + policy.durationMin * 60 * 1000);
+      const grantFields = countPassGrantFields(policy, now);
+      const expiresAt = grantFields.expiresAt;
 
       const userPass = await tx.userPass.create({
         data: {
           userId,
           policyId: policy.id,
           activatedAt: now,
-          expiresAt,
+          ...grantFields,
           sourceType: "luck_pouch_purchase",
         },
       });
@@ -128,6 +130,9 @@ export async function POST(request: NextRequest) {
       { headers: CORS_HEADERS }
     );
   } catch (e) {
+    if (e instanceof OpenPassServiceError) {
+      return NextResponse.json({ success: false, error: e.message, code: e.code }, { status: 409, headers: CORS_HEADERS });
+    }
     console.error("[POST /api/public/pass/purchase-with-luck-pouch] 실패:", e);
     return NextResponse.json(
       { success: false, error: "프리패스 구매 중 오류가 발생했습니다." },

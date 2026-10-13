@@ -13,6 +13,9 @@ import { earnLuckPouch } from "../src/lib/luck-pouch-engine";
 import { randomUUID } from "crypto";
 
 async function main() {
+  if (process.env.REGRESSION_LOCAL_DB !== "1" || !process.env.DATABASE_URL?.includes("/home/user/workspace/")) {
+    throw new Error("샌드박스 DB에서만 REGRESSION_LOCAL_DB=1로 실행하세요");
+  }
   console.log("=== ResultAccessService 검증 시작 ===");
 
   // 1) 테스트용 임시 유저 생성(nickname/email 모두 매 실행마다 고유값 — 재실행 시 충돌 방지)
@@ -30,28 +33,17 @@ async function main() {
 
   try {
     // 2) 신규 횟수제 프리패스 정책 확보(쿠팡 정책 id=11 재사용 또는 임시 정책 생성)
-    let policy = await prisma.passPolicy.findFirst({ where: { grantCount: { not: null } } });
-    if (!policy) throw new Error("횟수제 정책이 없습니다(백필 확인 필요)");
+    const policy = await prisma.passPolicy.create({ data: {
+      name: `검증용 횟수제 ${suffix}`, passType: "event", durationMin: 1,
+      grantCount: 2, validityDays: 1, isActive: false,
+    } });
     console.log("사용할 정책:", policy.id, policy.name, "grantCount=", policy.grantCount);
 
-    // 3) 프리패스 2회 지급 (grantOpenPass는 durationMin 기반 expiresAt만 다루므로
-    //    신규 횟수제 필드는 여기서 직접 채워서 테스트한다 — Phase3에서 전용 지급
-    //    함수로 대체될 예정)
-    const now = new Date();
-    const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    const userPass = await prisma.userPass.create({
-      data: {
-        userId,
-        policyId: policy.id,
-        activatedAt: now,
-        expiresAt,
-        sourceType: "test_mode",
-        status: "active",
-        grantedCount: 2,
-        remainingCount: 2,
-        grantSource: "COUPANG_DAILY",
-      },
-    });
+    // 3) 실제 공용 지급함수를 검증한다. 운영 정책 값을 바꾸지 않고 2회 정책을 선택한다.
+    const { userPass } = await grantOpenPass({ userId, policyId: policy.id, sourceType: "test_mode" });
+    if (userPass.grantedCount !== 2 || userPass.remainingCount !== 2) {
+      throw new Error("FAIL: 실제 지급함수가 횟수제 2회를 지급하지 않음");
+    }
     console.log("UserPass 생성(횟수제 2회):", userPass.id);
 
     // 4) 복주머니 100개 이상 적립
@@ -93,6 +85,14 @@ async function main() {
       throw new Error(`FAIL: 멱등 재호출로 중복 차감됨 remainingCount=${passAfterIdempotent?.remainingCount}`);
     }
     console.log("OK: 멱등 재호출로 중복 차감 없음 확인");
+
+    // 실패 시 프리패스 1회를 정확히 복구하고, 중복 복구는 하지 않는다.
+    await failAndRefundResultAccess(tx1);
+    await failAndRefundResultAccess(tx1);
+    const restored = await prisma.userPass.findUnique({ where: { id: userPass.id } });
+    if (restored?.remainingCount !== 2) throw new Error("FAIL: 프리패스 실패 복구 또는 중복복구 오류");
+    const replacement = await beginResultAccess({ userId, transactionId: `test_replacement_${randomUUID()}`, contentType: "saju", paymentMethod: "FREEPASS" });
+    if (replacement.freePassRemaining !== 1) throw new Error("FAIL: 복구 후 재소비 오류");
 
     // 8) FREEPASS로 결과보기 2회차 -> remainingCount 1->0, 이걸 완료 처리
     const tx2 = `test_tx_${randomUUID()}`;

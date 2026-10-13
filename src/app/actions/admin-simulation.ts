@@ -19,6 +19,7 @@ import { verifyAdminSession } from "@/lib/dal";
 import { canWriteMenu } from "@/lib/rbac";
 import {
   grantOpenPass,
+  countPassGrantFields,
   OpenPassServiceError,
   checkAdRewardEligibility,
   resolveFallbackAttachment,
@@ -458,13 +459,13 @@ export async function adminSimulatePurchaseOpenPassViaHappyMoney(input: {
     const newBalance = await prisma.$transaction(async (tx) => {
       const balance = await spendHappyMoneyInternal(tx, input.userId, policy.happyMoneyPrice!, "purchase", `열림패스 구매: ${policy.name}`);
       const now = new Date();
-      const expiresAt = new Date(now.getTime() + policy.durationMin * 60_000);
+      const grantFields = countPassGrantFields(policy, now);
       await tx.userPass.create({
         data: {
           userId: input.userId,
           policyId: policy.id,
           activatedAt: now,
-          expiresAt,
+          ...grantFields,
           sourceType: "subscription",
           status: "active",
         },
@@ -998,33 +999,16 @@ export async function adminSetOpenPassRemainingMinutes(input: {
   const targetExpiresAt = new Date(now.getTime() + input.remainingMinutes * 60_000);
 
   const activePass = await prisma.userPass.findFirst({
-    where: { userId: input.userId, status: "active", expiresAt: { gt: now } },
+    where: { userId: input.userId, status: "active", expiresAt: { gt: now }, remainingCount: null },
     orderBy: { expiresAt: "desc" },
   });
 
-  let userPassId: number;
-  if (activePass) {
-    const updated = await prisma.userPass.update({
-      where: { id: activePass.id },
-      data: { expiresAt: targetExpiresAt },
-    });
-    userPassId = updated.id;
-  } else {
-    const policy = await prisma.passPolicy.findUnique({ where: { id: input.policyId } });
-    if (!policy || policy.deletedAt) return { success: false, message: "존재하지 않는 프리패스 정책입니다." };
-    const created = await prisma.userPass.create({
-      data: {
-        userId: input.userId,
-        policyId: input.policyId,
-        activatedAt: now,
-        expiresAt: targetExpiresAt,
-        sourceType: "test_mode",
-        status: "active",
-        grantedByAdminId: auth.session.adminUserId,
-      },
-    });
-    userPassId = created.id;
-  }
+  if (!activePass) return { success: false, message: "신규 시간제 패스는 발급하지 않습니다. 기존 시간제 보유 건만 만료시간을 조정할 수 있습니다." };
+  const updated = await prisma.userPass.update({
+    where: { id: activePass.id },
+    data: { expiresAt: targetExpiresAt },
+  });
+  const userPassId = updated.id;
 
   await logAdminAction({
     adminId: auth.session.adminUserId,

@@ -6,8 +6,8 @@
 // 받을 수 있게 한다(activePass가 있을 때만 채워짐 — 없으면 빈 배열). 기존
 // 필드(isActive/policyName/remainingSec 등)는 그대로 유지해 하위호환을 보장한다.
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
-import { getCategoryUsageSummary } from "@/lib/open-pass-service";
+import { getActiveUserPass, getCategoryUsageSummary } from "@/lib/open-pass-service";
+import { getFreePassSummary } from "@/lib/result-access-service";
 import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
@@ -29,15 +29,12 @@ export async function GET(request: NextRequest) {
 
   try {
     const now = new Date();
-    const activePass = await prisma.userPass.findFirst({
-      where: { userId, expiresAt: { gt: now } },
-      orderBy: { expiresAt: "desc" },
-      include: { policy: true },
-    });
+    const activePass = await getActiveUserPass(userId);
+    const summary = await getFreePassSummary(userId);
 
     if (!activePass) {
       return NextResponse.json(
-        { success: true, data: { isActive: false } },
+        { success: true, data: { isActive: false, remainingCount: 0, hasLegacyUnlimited: false } },
         { headers: CORS_HEADERS }
       );
     }
@@ -49,6 +46,8 @@ export async function GET(request: NextRequest) {
         success: true,
         data: {
           isActive: true,
+          remainingCount: summary.remainingCount,
+          hasLegacyUnlimited: summary.hasLegacyUnlimited,
           userPassId: activePass.id,
           policyId: activePass.policyId,
           policyName: activePass.policy.name,

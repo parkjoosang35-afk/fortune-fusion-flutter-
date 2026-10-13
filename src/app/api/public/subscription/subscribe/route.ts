@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { prisma } from "@/lib/db";
+import { countPassGrantFields, OpenPassServiceError } from "@/lib/open-pass-service";
 import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
@@ -103,13 +104,14 @@ export async function POST(request: NextRequest) {
         orderBy: { id: "asc" },
       });
       if (passPolicy) {
-        const passExpiresAt = new Date(now.getTime() + passPolicy.durationMin * 60 * 1000);
+        const grantFields = countPassGrantFields(passPolicy, now);
+        const passExpiresAt = grantFields.expiresAt;
         const userPass = await tx.userPass.create({
           data: {
             userId,
             policyId: passPolicy.id,
             activatedAt: now,
-            expiresAt: passExpiresAt,
+            ...grantFields,
             sourceType: "subscription",
           },
         });
@@ -213,6 +215,9 @@ export async function POST(request: NextRequest) {
       { headers: CORS_HEADERS }
     );
   } catch (e) {
+    if (e instanceof OpenPassServiceError) {
+      return NextResponse.json({ success: false, error: e.message, code: e.code }, { status: 409, headers: CORS_HEADERS });
+    }
     const message = e instanceof Error ? e.message : "UNKNOWN";
     if (message === "PLAN_NOT_FOUND") {
       return NextResponse.json(

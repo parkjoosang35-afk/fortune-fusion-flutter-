@@ -113,9 +113,6 @@ function drawLegacyCards(question: string, count: number) {
   });
 }
 
-const FALLBACK_SUMMARY =
-  "카드가 전하는 흐름을 천천히 따라가 보면, 지금의 선택이 앞으로의 방향을 결정짓게 됩니다. 조급해하지 말고 마음의 소리에 귀 기울여 보세요.";
-
 export async function POST(request: NextRequest) {
   let body: {
     userId?: number;
@@ -253,7 +250,73 @@ export async function POST(request: NextRequest) {
         ? "tarot_love"
         : "tarot";
 
+  // 입력 오류로 400/500을 반환하는 경우에는 차감 전에 종료한다.
+  if (pilotTopic) {
+    const validSpread = ["one_card", "three_card", "five_card", "yes_no", "choice_ab"].includes(spreadType);
+    const validTopicSpread = pilotTopic.allowedSpreads.includes(spreadType);
+    const validYesNo = spreadType !== "yes_no" || pilotTopic.yesNoEnabled;
+    const validChoice = spreadType !== "choice_ab" || (pilotTopic.isChoiceAb && !!optionA && !!optionB);
+    if (!validSpread || !validTopicSpread || !validYesNo || !validChoice) {
+      return NextResponse.json({ success: false, error: "스프레드와 선택지 입력을 확인해주세요.", reason: "INVALID_SPREAD" }, { status: 400, headers: CORS_HEADERS });
+    }
+    if (!pilotTopic.positionsBySpread[spreadType]?.length) {
+      return NextResponse.json({ success: false, error: "이 주제의 포지션 구성을 찾을 수 없습니다." }, { status: 503, headers: CORS_HEADERS });
+    }
+  }
+
+  // 동일 거래로 생성까지 다시 실행하지 않는다. 진행 중 요청은 재차감/재생성하지 않는다.
+  if (useResultAccessService) {
+    const existing = await prisma.resultAccessTransaction.findUnique({
+      where: { transactionId: resultAccessTransactionId! },
+      include: { fortuneRequest: { include: { result: true } } },
+    });
+    if (existing) {
+      if (existing.userId !== userId || existing.contentType !== "tarot") {
+        return NextResponse.json({ success: false, reason: "TRANSACTION_OWNER_MISMATCH", error: "잘못된 요청입니다." }, { status: 400, headers: CORS_HEADERS });
+      }
+      const saved = existing.fortuneRequest;
+      if (existing.status === "success" && saved?.result) {
+        const input = JSON.parse(saved.inputPayload);
+        const meta = JSON.parse(saved.result.resultMeta ?? "{}");
+        return NextResponse.json({ success: true, data: {
+          ...input, ...meta, id: `tarot_${saved.id}`, summary: saved.result.resultText,
+          createdAt: saved.createdAt.toISOString(), pointSpent: saved.pointSpent,
+          resultAccess: { transactionId: existing.transactionId, paymentMethod: existing.paymentMethod, amount: existing.amount, idempotent: true },
+        } }, { headers: CORS_HEADERS });
+      }
+      // 앱의 공용 게이트가 먼저 begin한 pending 거래는 이 API가 이어서 처리한다.
+      if (existing.status !== "pending") {
+        return NextResponse.json({ success: false, error: "이미 종료된 요청입니다.", reason: "TRANSACTION_ALREADY_PROCESSED" }, { status: 409, headers: CORS_HEADERS });
+      }
+      if (existing.paymentMethod !== resultAccessPaymentMethod) {
+        return NextResponse.json({ success: false, error: "결제수단이 일치하지 않습니다.", reason: "PAYMENT_METHOD_MISMATCH" }, { status: 400, headers: CORS_HEADERS });
+      }
+    }
+  }
+
+  // 프롬프트가 없으면 결과를 저장할 FK도 없다. 고정 문구로 성공을 가장하지 않는다.
+  const configuredTemplate = await prisma.aiPromptTemplate.findFirst({
+    where: { fortuneTypeOrDomain: pilotTopic?.promptDomain ?? categoryKey, isActive: true, deletedAt: null },
+    orderBy: { version: "desc" },
+    select: { id: true, version: true, templateBody: true },
+  });
+  if (!configuredTemplate) {
+    if (useResultAccessService) {
+      const pending = await prisma.resultAccessTransaction.findUnique({ where: { transactionId: resultAccessTransactionId! } });
+      if (pending?.userId === userId && pending.contentType === "tarot" && pending.status === "pending" && pending.contentId == null) {
+        await failAndRefundResultAccess(resultAccessTransactionId!);
+      }
+    }
+    return NextResponse.json({ success: false, error: "타로 해석 설정이 준비되지 않았습니다. 잠시 후 다시 이용해주세요.", reason: "PROMPT_NOT_CONFIGURED" }, { status: 503, headers: CORS_HEADERS });
+  }
+
   // ── [레거시 경로] 프리패스 카테고리별 이용횟수 검증(§8 통합 이전 방식) ──
+  if (!useResultAccessService) {
+    const legacyPass = await prisma.userPass.findFirst({ where: { userId, status: "active", expiresAt: { gt: new Date() }, remainingCount: null } });
+    if (!legacyPass) {
+      return NextResponse.json({ success: false, error: "공용 결과보기 요청 정보가 필요합니다.", reason: "RESULT_ACCESS_REQUIRED" }, { status: 409, headers: CORS_HEADERS });
+    }
+  }
   const usageCheck = useResultAccessService ? null : await checkCategoryUsage(userId, categoryKey);
   if (usageCheck && !usageCheck.allowed) {
     return NextResponse.json(
@@ -310,11 +373,21 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  if (useResultAccessService && resultAccessBegin) {
+    const claim = await prisma.resultAccessTransaction.updateMany({
+      where: { transactionId: resultAccessBegin.transactionId, userId, status: "pending", contentId: null },
+      data: { contentId: "tarot:generating" },
+    });
+    if (claim.count !== 1) {
+      return NextResponse.json({ success: false, error: "리딩을 처리 중입니다. 잠시 후 다시 확인해주세요.", reason: "GENERATION_IN_PROGRESS" }, { status: 409, headers: CORS_HEADERS });
+    }
+  }
+
   try {
     let positions: { label: string; card: { id: string; name: string; nameKr: string; isReversed: boolean; meaning?: string }; interpretation: string }[];
     let answer: string | undefined;
-    let summary = FALLBACK_SUMMARY;
-    let template: { id: number; version: number; templateBody: string } | null = null;
+    let summary = "";
+    const template = configuredTemplate;
 
     if (pilotTopic) {
       // ══════════════════════════════════════════════════════════════
@@ -395,10 +468,7 @@ export async function POST(request: NextRequest) {
 
       // 2) AI Narrative Engine — topic/position 전체 메타데이터를 프롬프트에 담아 전달.
       // AI는 이미 확정된 카드에 대한 해석 텍스트만 생성하며, 카드 자체를 바꿀 수 없다.
-      template = await prisma.aiPromptTemplate.findFirst({
-        where: { fortuneTypeOrDomain: pilotTopic.promptDomain, isActive: true },
-        select: { id: true, version: true, templateBody: true },
-      });
+      // 위에서 활성 프롬프트를 확인한 후에만 지급 차감/생성을 진행한다.
 
       if (template) {
         const userPrompt = buildTopicSummaryPrompt({
@@ -414,7 +484,7 @@ export async function POST(request: NextRequest) {
         try {
           summary = await completeText({ systemPrompt: template.templateBody, userPrompt });
         } catch (e) {
-          console.error("[POST /api/public/fortune/tarot] (신규경로) LLM 호출 실패:", e);
+          throw e;
         }
       }
     } else {
@@ -448,16 +518,7 @@ export async function POST(request: NextRequest) {
       answer =
         spreadType === "yes_no" ? (drawn[0].isReversed ? "NO" : "YES") : undefined;
 
-      const domain =
-        spreadType === "yes_no"
-          ? "tarot_yesno"
-          : LOVE_TOPICS.has(topic)
-            ? "tarot_love"
-            : "tarot";
-      template = await prisma.aiPromptTemplate.findFirst({
-        where: { fortuneTypeOrDomain: domain, isActive: true },
-        select: { id: true, version: true, templateBody: true },
-      });
+      // configuredTemplate는 categoryKey 도메인의 활성 버전을 사용한다.
 
       if (template) {
         const cardsDesc = positions
@@ -498,7 +559,7 @@ export async function POST(request: NextRequest) {
         try {
           summary = await completeText({ systemPrompt: template.templateBody, userPrompt });
         } catch (e) {
-          console.error("[POST /api/public/fortune/tarot] LLM 호출 실패:", e);
+          throw e;
         }
       }
     }
@@ -514,7 +575,7 @@ export async function POST(request: NextRequest) {
       });
       if (!wallet) throw new Error("WALLET_NOT_FOUND");
 
-      // [무료 광고형 구조 재정비 §신규발견] 타로 리딩은 완전 무료 — 차감/환급 없음.
+      // 이용권 차감은 공용 결과보기 거래가 담당한다. 이 트랜잭션에서는 재차감하지 않는다.
       const balance = wallet.balance;
       const cost = 0;
       const refundAmount = 0;
@@ -530,20 +591,17 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      let fortuneResult = null;
-      if (template) {
-        fortuneResult = await tx.fortuneResult.create({
-          data: {
-            requestId: fortuneRequest.id,
-            resultText: summary,
-            resultMeta: JSON.stringify({ positions, answer }),
-            aiModel: "claude-haiku-4-5",
-            promptTemplateId: template.id,
-            promptVersion: template.version,
-            status: "active",
-          },
-        });
-      }
+      const fortuneResult = await tx.fortuneResult.create({
+        data: {
+          requestId: fortuneRequest.id,
+          resultText: summary,
+          resultMeta: JSON.stringify({ positions, answer }),
+          aiModel: "claude-haiku-4-5",
+          promptTemplateId: template.id,
+          promptVersion: template.version,
+          status: "active",
+        },
+      });
 
       return { requestId: fortuneRequest.id, createdAt: fortuneRequest.createdAt, balance, refundAmount, cost, fortuneResult };
     });

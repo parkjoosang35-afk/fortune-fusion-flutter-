@@ -133,7 +133,19 @@ async function main() {
       },
     });
   }
-  console.log("[seed_tarot_full_deck] 메이저 22장 name/nameKr/basicMeaning 정규화 완료");
+  // 빈 DB에서도 22장이 생성돼야 한다. 기존 코드는 업데이트만 해서 마이너 56장만 남았다.
+  for (let sortOrder = 0; sortOrder < MAJOR.length; sortOrder++) {
+    const card = MAJOR[sortOrder];
+    const existing = await prisma.tarotCard.findUnique({ where: { name: card.name } });
+    if (existing) continue;
+    await prisma.tarotCard.create({ data: {
+      name: card.name, nameKr: card.nameKr, basicMeaning: card.basicMeaning,
+      uprightMeaning: card.upright, reversedMeaning: card.reversed,
+      arcanaType: "major", sortOrder, createdBy: "system_seed_tarot_full_deck",
+      updatedBy: "system_seed_tarot_full_deck",
+    } });
+  }
+  console.log("[seed_tarot_full_deck] 메이저 22장 정규화 및 누락 보충 완료");
 
   // 2) 마이너 56장 신규 insert (이미 존재하면 스킵, 재실행 안전성 보장)
   const minorDeck = buildMinorDeck();

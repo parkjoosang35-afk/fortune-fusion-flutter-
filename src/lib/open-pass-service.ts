@@ -13,6 +13,24 @@
 import { prisma } from "@/lib/db";
 import { isMockAdSourceType } from "@/lib/open-pass-constants";
 
+// 신규 발급은 횟수제로만 허용한다. 기존 시간제 행은 변경하지 않는다.
+export function countPassGrantFields(
+  policy: { grantCount: number | null; validityDays: number | null },
+  now = new Date(),
+) {
+  if (policy.grantCount == null || !Number.isInteger(policy.grantCount) || policy.grantCount <= 0) {
+    throw new OpenPassServiceError("COUNT_POLICY_REQUIRED", "프리패스 지급 횟수를 관리자에서 설정해주세요.");
+  }
+  if (policy.validityDays != null && (!Number.isFinite(policy.validityDays) || policy.validityDays <= 0)) {
+    throw new OpenPassServiceError("INVALID_VALIDITY", "프리패스 유효기간 설정을 확인해주세요.");
+  }
+  return {
+    grantedCount: policy.grantCount,
+    remainingCount: policy.grantCount,
+    expiresAt: new Date(now.getTime() + (policy.validityDays ?? 36500) * 86400000),
+  };
+}
+
 export class OpenPassServiceError extends Error {
   code: string;
   constructor(code: string, message: string) {
@@ -36,11 +54,7 @@ export class OpenPassServiceError extends Error {
  * 건너뛰어야 한다.
  */
 export async function isOpenPassActive(userId: number): Promise<boolean> {
-  const now = new Date();
-  const activePass = await prisma.userPass.findFirst({
-    where: { userId, expiresAt: { gt: now } },
-  });
-  return !!activePass;
+  return (await getActiveUserPass(userId)) != null;
 }
 
 /**
@@ -53,8 +67,8 @@ export async function isOpenPassActive(userId: number): Promise<boolean> {
 export async function getActiveUserPass(userId: number) {
   const now = new Date();
   return prisma.userPass.findFirst({
-    where: { userId, expiresAt: { gt: now } },
-    orderBy: { expiresAt: "desc" },
+    where: { userId, status: "active", expiresAt: { gt: now }, OR: [{ remainingCount: null }, { remainingCount: { gt: 0 } }] },
+    orderBy: { expiresAt: "asc" },
     include: { policy: true },
   });
 }
@@ -286,30 +300,18 @@ export async function grantOpenPass(params: {
   const policy = await prisma.passPolicy.findUnique({ where: { id: params.policyId } });
   if (!policy || policy.deletedAt) throw new OpenPassServiceError("POLICY_NOT_FOUND", "존재하지 않는 열림패스 정책입니다.");
 
-  const durationMin = params.durationOverrideMin ?? policy.durationMin;
+  if (params.durationOverrideMin != null) {
+    throw new OpenPassServiceError("TIME_OVERRIDE_DISABLED", "신규 프리패스는 시간 대신 정책의 지급 횟수를 사용합니다.");
+  }
   const now = new Date();
-
-  // ── [프리패스 테스트 인프라] §7 "이미 활성 상태일 때 추가 지급" 누적 정책 ──
-  // 기본 추천안(§7): 남은 시간이 있는 상태에서 추가 지급되면 "이어붙이기"로 합산한다.
-  // 예: 남은 20분 상태에서 30분 지급 → 총 50분. 정책(policyId)과 무관하게 해당 유저의
-  // "현재 시각 이후에 만료되는 active 패스" 중 가장 늦은 만료시각을 기준시각으로 삼아
-  // 그 위에 새 duration을 더한다(먼저 만료되는 패스가 있어도, 가장 오래 남은 것 기준).
-  // 이렇게 하면 /api/public/pass/status가 그대로 사용하는
-  // "orderBy: { expiresAt: 'desc' }" 조회 로직을 전혀 건드리지 않고도, 새로 만들어지는
-  // UserPass 행의 expiresAt 자체가 이미 누적된 값이 되어 자동으로 상태 API에 반영된다.
-  const activePass = await prisma.userPass.findFirst({
-    where: { userId: params.userId, status: "active", expiresAt: { gt: now } },
-    orderBy: { expiresAt: "desc" },
-  });
-  const baseTime = activePass ? activePass.expiresAt : now;
-  const expiresAt = new Date(baseTime.getTime() + durationMin * 60_000);
+  const grantFields = countPassGrantFields(policy, now);
 
   const created = await prisma.userPass.create({
     data: {
       userId: params.userId,
       policyId: params.policyId,
       activatedAt: now,
-      expiresAt,
+      ...grantFields,
       sourceType: params.sourceType,
       status: "active",
       scope: params.scopeOverride ?? null,
@@ -317,14 +319,7 @@ export async function grantOpenPass(params: {
     },
   });
 
-  // [재화 구조 정리 - 프리패스 상시 적립 제거]
-  // 과거에는 policy.bonusPoint > 0 이면 "패스 지급 = 항상 복주머니(구 행복머니) 적립"이
-  // 자동으로 붙었다. 프리패스는 순수 "시간제 이용권"이며 상시 적립/할인/전환 정책을
-  // 가질 수 없다는 최종 정책에 따라 이 자동 적립 블록은 완전히 제거한다.
-  // policy.bonusPoint 필드 자체는 스키마 마이그레이션 리스크를 피하기 위해 남겨두되,
-  // 더 이상 어떤 코드에서도 읽지 않는다(값이 있어도 무시). 이벤트성 보너스가 필요하면
-  // 운영자가 /reward/luck-pouch-rules 에서 ruleType="earn", actionType="event"로
-  // 별도 수동 지급하거나, admin-simulation.ts의 "이벤트 보상" 액션을 사용해야 한다.
+  // 이 공용 지급함수는 횟수제 이용권만 지급하며 별도 복주머니 적립을 붙이지 않는다.
 
   return { userPass: created, policy };
 }
@@ -333,10 +328,8 @@ export async function grantOpenPass(params: {
 // [결과보기 통합 권한 시스템 v1.0, 2026-09-28] §3.2~§3.4 쿠팡 프리패스
 // "하루 1회 획득 → +N회 지급" 원자적 지급의 단일 진입점.
 //
-// grantOpenPass()(레거시 시간제, "이어붙이기" 정책)와는 판정 기준이 근본적으로
-// 다르므로 별도 함수로 분리한다 — grantOpenPass를 이 목적으로 확장하면 시간제/
-// 횟수제 두 판정이 한 함수에 뒤섞여 §15(정책 불일치 금지)를 오히려 어길 위험이
-// 있다. 이 함수는 policy.grantCount != null인 "횟수제 정책"에만 사용해야 한다.
+// 공용 횟수제 필드 계산은 grantOpenPass와 공유하되, 하루 한 번 획득의
+// 고유 제약 및 지급 로그는 이 함수에서 별도로 유지한다.
 //
 // [원자성 보장, §3.4] CoupangPassClaimLog에 걸린 @@unique([userId, policyId,
 // claimDateKey]) 제약이 유일한 진실이다. INSERT를 먼저 시도해 성공 여부로
@@ -408,21 +401,16 @@ export async function claimCoupangDailyPass(params: {
       // NOT NULL 컬럼임을 고려해 사실상 만료되지 않는 충분히 먼 미래 시각(100년
       // 후)을 sentinel로 사용한다(§9.2 기존 컬럼/제약을 깨지 않는 최소 변경).
       const now = new Date();
-      const expiresAt =
-        policy.validityDays != null
-          ? new Date(now.getTime() + policy.validityDays * 24 * 60 * 60 * 1000)
-          : new Date(now.getTime() + 100 * 365 * 24 * 60 * 60 * 1000);
+      const grantFields = countPassGrantFields(policy, now);
 
       const userPass = await tx.userPass.create({
         data: {
           userId: params.userId,
           policyId: policy.id,
           activatedAt: now,
-          expiresAt,
+          ...grantFields,
           sourceType: "ad",
           status: "active",
-          grantedCount,
-          remainingCount: grantedCount,
           grantSource: "COUPANG_DAILY",
         },
       });
