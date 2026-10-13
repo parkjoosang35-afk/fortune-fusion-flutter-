@@ -298,7 +298,18 @@ class App extends StatelessWidget {
               navigatorObservers: [WebNavBridgeObserver()],
               title: '신통방통',
               debugShowCheckedModeBanner: false,
-              theme: AppTheme.light,
+              // [다크 베이스 — 사용자 피드백] 화면 전환 순간 흰/아이보리로
+              // 번쩍이던 것은 MaterialPageRoute의 새 페이지 베이스색이
+              // AppTheme.light(흰색)였기 때문. 베이스 스캐폴드 배경을
+              // 메인페이지(#0B0B0D)로 내려 전환 플래시와 미지정 배경을 모두
+              // 다크로 통일한다. 화면별 명시 색상은 그대로 유지된다.
+              theme: AppTheme.light.copyWith(
+                scaffoldBackgroundColor: const Color(0xFF0B0B0D),
+                colorScheme: AppTheme.light.colorScheme.copyWith(
+                  surface: const Color(0xFF0B0B0D),
+                  brightness: Brightness.dark,
+                ),
+              ),
               themeMode: themeProvider.mode,
               initialRoute: '/splash',
               onGenerateRoute: AppRouter.onGenerateRoute,
