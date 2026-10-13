@@ -476,37 +476,7 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
                 ),
               ),
 
-              // ★ 결과 화면(M/N) 전용 신통방통 이관 CTA — 새 디자인
-              // `ResultAppHandoff` 재현(다른 화면에는 사용하지 않는다).
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-                child: GmDarkCtaShell(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const GmFreeBadge(label: '신통방통에서 계속'),
-                      const SizedBox(height: 12),
-                      const Text(
-                        '내 귀인지도를 신통방통에서\n더 깊게 이어보세요',
-                        style: TextStyle(
-                          fontFamily: GmText.display,
-                          fontSize: 19,
-                          fontWeight: FontWeight.w700,
-                          color: GmColors.fg,
-                          height: 1.25,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      GmRoseButton(
-                        label: '신통방통에서 내 귀인지도 만들기',
-                        icon: Icons.arrow_forward,
-                        onPressed: () =>
-                            Navigator.of(context).pushNamed('/guinji-map'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              const SizedBox(height: 32),
             ],
           ),
         ),
@@ -711,7 +681,7 @@ class _GmOwnerSajuCard extends StatelessWidget {
           const Text(
             '나는 어떤 사람인지',
             style: TextStyle(
-              fontSize: 10,
+              fontSize: 11.5,
               height: 1,
               letterSpacing: 1.2,
               color: GmColors.gold,
@@ -754,7 +724,7 @@ class _GmOwnerSajuCard extends StatelessWidget {
                           child: Text(
                             '$ownerName님은 ${summary.dayMasterKr} · ${summary.dayMasterImage}',
                             style: const TextStyle(
-                              fontSize: 14.5,
+                              fontSize: 17,
                               fontWeight: FontWeight.w700,
                               color: GmColors.fg,
                             ),
@@ -779,14 +749,32 @@ class _GmOwnerSajuCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
+          // [100자 요약 + 가독성 확대 — 사용자 피드백] 본문(일간 본성+성격
+          // 해설)에 룰 DB의 강점·유의 키워드를 합쳐 100자 내외로 구성하고,
+          // 글씨를 13px대 → 15.5/13.5px로 키운다. 하단에 근거(일간·신강약)
+          // 한 줄을 명시해 "왜 이런 말이 나왔는지"가 화면에 보이게 한다.
           Text(
-            summary.nature,
-            style: const TextStyle(fontSize: 13.5, height: 1.6, color: GmColors.fg),
+            '${summary.nature}\n${summary.personality}',
+            style: const TextStyle(fontSize: 15.5, height: 1.7, color: GmColors.fg),
           ),
-          const SizedBox(height: 8),
+          if (summary.strengths.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              '강점 · ${summary.strengths.take(3).join(' · ')}',
+              style: const TextStyle(fontSize: 13.5, height: 1.6, color: GmColors.fg),
+            ),
+          ],
+          if (summary.weaknesses.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              '유의 · ${summary.weaknesses.take(2).join(' · ')}',
+              style: const TextStyle(fontSize: 13.5, height: 1.6, color: GmColors.muted),
+            ),
+          ],
+          const SizedBox(height: 10),
           Text(
-            summary.personality,
-            style: const TextStyle(fontSize: 13, height: 1.6, color: GmColors.muted),
+            summary.basisLabel,
+            style: const TextStyle(fontSize: 11.5, height: 1.5, color: GmColors.dim),
           ),
         ],
       ),

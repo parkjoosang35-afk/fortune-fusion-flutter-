@@ -18,6 +18,8 @@ class GuinjiOwnerSajuSummary {
     required this.strengthLevelKr,
     required this.nature,
     required this.personality,
+    this.strengths = const [],
+    this.weaknesses = const [],
   });
 
   /// 일간 한글 표기(예: "갑목").
@@ -34,6 +36,15 @@ class GuinjiOwnerSajuSummary {
 
   /// 신강/중화/신약 단계별 성격 해설(가장 핵심 문구).
   final String personality;
+
+  /// [100자 요약 확장 — 사용자 피드백] 룰 DB의 강점/유의 키워드(일간별 고정
+  /// 문구) — "나는 어떤 사람인지" 본문을 근거 포함 100자 내외로 구성할 때 쓴다.
+  final List<String> strengths;
+  final List<String> weaknesses;
+
+  /// 근거 요약 한 줄(일간 + 신강약) — 본문 하단에 그대로 노출한다.
+  String get basisLabel =>
+      '근거 · 일간 $dayMasterKr($dayMasterImage) · $strengthLevelKr';
 
   /// [SajuResult] + 룰 DB로부터 실계산 요약을 만든다. 이미 검증된
   /// [SajuInterpreter.interpretDayMaster]를 그대로 재호출할 뿐, 새로운
@@ -55,6 +66,8 @@ class GuinjiOwnerSajuSummary {
       strengthLevelKr: levelKr,
       nature: interp.nature,
       personality: interp.personality,
+      strengths: List<String>.from(interp.strengths),
+      weaknesses: List<String>.from(interp.weaknesses),
     );
   }
 
@@ -64,6 +77,8 @@ class GuinjiOwnerSajuSummary {
     'strengthLevelKr': strengthLevelKr,
     'nature': nature,
     'personality': personality,
+    'strengths': strengths,
+    'weaknesses': weaknesses,
   };
 
   factory GuinjiOwnerSajuSummary.fromJson(Map<String, dynamic> json) {
@@ -73,6 +88,8 @@ class GuinjiOwnerSajuSummary {
       strengthLevelKr: json['strengthLevelKr'] as String? ?? '',
       nature: json['nature'] as String? ?? '',
       personality: json['personality'] as String? ?? '',
+      strengths: (json['strengths'] as List?)?.cast<String>() ?? const [],
+      weaknesses: (json['weaknesses'] as List?)?.cast<String>() ?? const [],
     );
   }
 

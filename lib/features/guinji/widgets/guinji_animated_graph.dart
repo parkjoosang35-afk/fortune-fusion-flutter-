@@ -156,7 +156,7 @@ class GuinjiAnimatedRelationGraph extends StatefulWidget {
     this.interactive = true,
     this.showControls = true,
     this.showLegend = true,
-    this.height = 380,
+    this.height = 500, // [사용자 피드백 — 지도를 더 크게] 기본 380 → 500
     this.emptyHint,
     this.filter,
   });
@@ -466,7 +466,7 @@ class _GmGraphZoomControls extends StatelessWidget {
       child: Column(
         children: [
           _btn(Icons.add, onZoomIn),
-          const SizedBox(height: 4),
+          const SizedBox(height: 4.0),
           _btn(Icons.remove, onZoomOut),
           const SizedBox(height: 4),
           _btn(Icons.restart_alt, onReset),

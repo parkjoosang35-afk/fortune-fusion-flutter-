@@ -203,38 +203,7 @@ class GuinjiGuestResultScreen extends StatelessWidget {
                   onCreateOwnMap ?? () => Navigator.of(context).pushNamed('/guinji-map'),
             ),
             const SizedBox(height: 24),
-            // [바이럴 페이지 개편 — "신통방통과 연결"] 사용자가 명시적으로
-            // 요구한 CTA: 게스트가 결과를 다 본 뒤, 신통방통 메인 앱(오늘의
-            // 운세·타로·사주 등)으로 자연스럽게 넘어갈 수 있는 통로. M화면
-            // 전용이라던 `ResultAppHandoff` 재현(`GmDarkCtaShell`)을 여기서도
-            // 동일하게 사용한다 — Y화면 역시 결과 화면이므로 그 제약 범위
-            // 안에 있다.
-            GmDarkCtaShell(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const GmFreeBadge(label: '신통방통에서 계속'),
-                  const SizedBox(height: 12),
-                  const Text(
-                    '신통방통에서\n더 많은 운세를 만나보세요',
-                    style: TextStyle(
-                      fontFamily: GmText.display,
-                      fontSize: 19,
-                      fontWeight: FontWeight.w700,
-                      color: GmColors.fg,
-                      height: 1.25,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  GmRoseButton(
-                    label: '신통방통 메인으로 가기',
-                    icon: Icons.arrow_forward,
-                    onPressed: () => Navigator.of(context)
-                        .pushNamedAndRemoveUntil('/home', (route) => false),
-                  ),
-                ],
-              ),
-            ),
+            const SizedBox(height: 24),
           ],
         ),
       ),
