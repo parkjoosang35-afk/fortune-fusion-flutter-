@@ -3,7 +3,7 @@
 // 그려야 하므로, Flutter가 이 화면을 열기 전에 먼저 호출해 프리패스/복주머니/광고
 // 가용 상태를 한 번에 받아온다. 실제 차감은 절대 하지 않는다(조회 전용).
 import { NextRequest, NextResponse } from "next/server";
-import { getResultAccessQuote } from "@/lib/result-access-service";
+import { getResultAccessQuote, recoverExpiredCompatibilityTransactions } from "@/lib/result-access-service";
 import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
   const categoryKey = searchParams.get("categoryKey");
 
   try {
+    await recoverExpiredCompatibilityTransactions(userId);
     const quote = await getResultAccessQuote(userId, contentType, categoryKey);
     return NextResponse.json({ success: true, data: quote }, { headers: CORS_HEADERS });
   } catch (e) {

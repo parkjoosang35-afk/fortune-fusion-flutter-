@@ -16,6 +16,7 @@ import {
   CORS_HEADERS_WITH_AUTH,
   requireUser,
   unauthorizedResponse,
+  hasOriginalImage, readOriginalPng, removeOriginalPng,
 } from "../_shared";
 
 export const dynamic = "force-dynamic";
@@ -39,6 +40,16 @@ export async function GET(
       );
     }
 
+    if (_request.nextUrl.searchParams.get('original') === '1') {
+      if (!hasOriginalImage(shared.imageUrl, shareId)) return new NextResponse(null, { status: 404 });
+      try {
+        const bytes = await readOriginalPng(shareId);
+        return new NextResponse(new Uint8Array(bytes), { headers: {
+          ...CORS_HEADERS, 'Content-Type': 'image/png', 'Cache-Control': 'private, no-store',
+          'X-Content-Type-Options': 'nosniff', 'Content-Disposition': `inline; filename="sintong_${shareId}.png"`,
+        } });
+      } catch { return new NextResponse(null, { status: 404, headers: { ...CORS_HEADERS, 'Cache-Control': 'no-store' } }); }
+    }
     // 조회수 증가는 응답을 막지 않도록 결과 반환 후에도 무방하지만, 이
     // 단순 카운터 업데이트는 실패해도 조회 자체를 막을 이유가 없으므로
     // best-effort로 처리한다(실패해도 원본 조회는 이미 성공).
@@ -63,6 +74,7 @@ export async function GET(
           description: shared.description,
           payload,
           imageUrl: shared.imageUrl,
+          originalImageUrl: hasOriginalImage(shared.imageUrl, shareId) ? new URL(shared.imageUrl!, process.env.PUBLIC_BASE_URL ?? _request.nextUrl.origin).toString() : null,
           ownerNickname: shared.user.nickname,
           viewCount: shared.viewCount,
           createdAt: shared.createdAt.toISOString(),
@@ -108,6 +120,9 @@ export async function DELETE(
       data: { status: "removed", deletedAt: new Date() },
     });
 
+    if (hasOriginalImage(shared.imageUrl, shareId)) {
+      await removeOriginalPng(shareId).catch(error => console.error('[share] 원본 정리 실패:', error));
+    }
     return NextResponse.json({ success: true }, { headers: CORS_HEADERS });
   } catch (e) {
     console.error("[DELETE /api/public/share/[shareId]] 실패:", e);

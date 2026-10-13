@@ -17,6 +17,7 @@
 // 서로 다르다). 초대 페이지(/w/[token])는 이번 작업에서 손대지 않았다.
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
+import { hasOriginalImage } from '@/app/api/public/share/_shared';
 import { SharedResultView } from "./shared-result-view";
 import { ServiceResultView, isStructuredPayload, BRAND_BG, GOLD, SERIF } from "./service-result-view";
 import { WebShareButton } from "./web-share-button";
@@ -88,7 +89,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const brandFallback = `${baseUrl}/share-og/brand.png`;
   const ogImageUrl =
     shared.state === "ok"
-      ? shared.imageUrl ?? `${baseUrl}/api/public/og/share/${id}.png`
+       ? (hasOriginalImage(shared.imageUrl, id) ? `${baseUrl}/api/public/og/share/${id}.png` : shared.imageUrl ?? `${baseUrl}/api/public/og/share/${id}.png`)
       : brandFallback;
 
   return {
@@ -150,6 +151,21 @@ export default async function SharedResultPage({ params }: PageProps) {
     );
   }
 
+  if (hasOriginalImage(shared.imageUrl, shared.shareId)) {
+    return (
+      <main style={outer}>
+        <div style={{ width: '100%', maxWidth: 480 }}>
+          {/* 원본 PNG는 재배치/요약/잘라내지 않는다. 공유 도구는 이미지 밖에 둔다. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={shared.imageUrl!} alt={`${shared.title} · 원래 결과 전체`} style={{ display: 'block', width: '100%', height: 'auto' }} />
+          <div style={{ padding: 20 }}>
+            <a href={shared.imageUrl!} download={`sintong_${shared.shareId}.png`} style={{ color: GOLD }}>원본 결과 저장</a>
+            <WebShareButton shareUrl={`${baseUrl}/r/${shared.shareId}?src=web`} title={shared.title} description={shared.description} />
+          </div>
+        </div>
+      </main>
+    );
+  }
   const label = resultTypeLabelOf(shared.resultType);
   const structured = isStructuredPayload(shared.payload, shared.resultType);
   const createdAt = shared.createdAt ? new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" }).format(shared.createdAt) : null;

@@ -7,6 +7,9 @@
 // 없다(shareId는 이미 crypto 랜덤 문자열).
 import { NextResponse } from "next/server";
 import { randomBytes } from "crypto";
+import { mkdir, readFile, writeFile, unlink } from "node:fs/promises";
+import path from "node:path";
+import sharp from "sharp";
 import { authenticateRequest } from "@/lib/user-auth";
 import {
   SHARE_CONTENT_TYPES,
@@ -70,6 +73,46 @@ export function generateShareId(length = 10): string {
  * 막아 DB 부하 및 실수로 원본 민감정보(사진 base64 등)가 통째로 들어가는
  * 사고를 1차 방어한다(가벼운 화이트리스트 표시값만 들어와야 정상).
  */
-export const SHARE_PAYLOAD_MAX_LENGTH = 4000;
+// 전체 결과 텍스트를 보존한다. OG 설명 120자 제한은 그대로 별도 적용한다.
+// 이미지 base64 업로드 용도가 아닌 텍스트 JSON의 유한 상한.
+export const SHARE_PAYLOAD_MAX_LENGTH = 200000;
 export const SHARE_TITLE_MAX_LENGTH = 60;
 export const SHARE_DESCRIPTION_MAX_LENGTH = 120;
+
+// 비공개 디렉터리: 반드시 공유 레코드 활성 상태를 검사하는 GET을 통해서만 제공.
+export const ORIGINAL_PNG_MAX_BYTES = 8 * 1024 * 1024;
+const snapshotDirectory = () => process.env.SHARE_SNAPSHOT_DIR ?? path.join(process.cwd(), 'var', 'share-snapshots');
+const snapshotPath = (shareId: string) => {
+  if (!/^[23456789abcdefghjkmnpqrstuvwxyzACDEFGHJKLMNPQRSTUVWXYZ]{10}$/.test(shareId)) throw new Error('INVALID_SHARE_ID');
+  return path.join(snapshotDirectory(), `${shareId}.png`);
+};
+export function originalImagePath(shareId: string) {
+  return `/api/public/share/${shareId}?original=1`;
+}
+export function hasOriginalImage(imageUrl: string | null, shareId: string) {
+  if (!imageUrl) return false;
+  try {
+    const url = new URL(imageUrl, 'http://localhost');
+    return url.pathname === `/api/public/share/${shareId}` && url.search === '?original=1';
+  } catch { return false; }
+}
+export async function validateOriginalPng(value: unknown): Promise<Buffer> {
+  if (typeof value !== 'string' || value.length === 0 || value.length > Math.ceil(ORIGINAL_PNG_MAX_BYTES / 3) * 4 || !/^[A-Za-z0-9+/]+={0,2}$/.test(value)) throw new Error('INVALID_ORIGINAL_PNG');
+  const bytes = Buffer.from(value, 'base64');
+  if (bytes.length > ORIGINAL_PNG_MAX_BYTES || bytes.toString('base64') !== value || !bytes.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10]))) throw new Error('INVALID_ORIGINAL_PNG');
+  const image = sharp(bytes, { limitInputPixels: 24000000 });
+  const metadata = await image.metadata();
+  if (metadata.format !== 'png' || !metadata.width || !metadata.height || metadata.width * metadata.height > 24000000 || (metadata.pages ?? 1) !== 1) throw new Error('INVALID_ORIGINAL_PNG');
+  await image.stats(); // 끝까지 실제 디코딩하여 손상 이미지 거절. 저장 바이트는 변경하지 않는다.
+  return bytes;
+}
+export async function writeOriginalPng(shareId: string, bytes: Buffer) {
+  await mkdir(snapshotDirectory(), { recursive: true, mode: 0o700 });
+  await writeFile(snapshotPath(shareId), bytes, { flag: 'wx', mode: 0o600 });
+}
+export const readOriginalPng = (shareId: string) => readFile(snapshotPath(shareId));
+export async function removeOriginalPng(shareId: string) {
+  try { await unlink(snapshotPath(shareId)); } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+  }
+}

@@ -31,6 +31,7 @@
 import { prisma } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
 import { spendLuckPouch } from "@/lib/luck-pouch-engine";
+import { checkDailyAbsoluteLimit } from "@/lib/open-pass-service";
 
 type Tx = Prisma.TransactionClient;
 
@@ -414,6 +415,31 @@ export async function beginResultAccess(
   throw new ResultAccessError("INVALID_PAYMENT_METHOD", "잘못된 결제수단입니다.");
 }
 
+export async function reserveResultGeneration(userId: number, transactionId: string, contentType: "compatibility" | "tarot"): Promise<boolean> {
+  return prisma.$transaction(async tx => {
+    const claim = await tx.resultAccessTransaction.updateMany({
+      where: { transactionId, userId, contentType, status: "pending", contentId: null },
+      data: { contentId: `${contentType}:generating` },
+    });
+    if (claim.count !== 1) return false;
+    const limit = await checkDailyAbsoluteLimit(userId, tx, transactionId);
+    if (!limit.allowed) throw new ResultAccessError("DAILY_ABSOLUTE_LIMIT_REACHED", "오늘 이용 가능한 AI 운세 횟수를 모두 사용했습니다.");
+    return true;
+  });
+}
+
+// 궁합은 3개 LLM을 병렬 호출한다. 5분은 호출 제한보다 긴 보수적 생성 임대 시간이다.
+// 앱 복귀/견적 조회 때만 복구하며 이 함수 자체가 백그라운드 작업을 예약하지는 않는다.
+export const COMPATIBILITY_PENDING_TIMEOUT_MS = 5 * 60 * 1000;
+export async function recoverExpiredCompatibilityTransactions(userId: number): Promise<void> {
+  const cutoff = new Date(Date.now() - COMPATIBILITY_PENDING_TIMEOUT_MS);
+  const stale = await prisma.resultAccessTransaction.findMany({
+    where: { userId, contentType: { in: ["compatibility", "tarot"] }, status: "pending", updatedAt: { lte: cutoff } },
+    select: { transactionId: true }, orderBy: { updatedAt: "asc" }, take: 100,
+  });
+  for (const row of stale) await failAndRefundResultAccess(row.transactionId, cutoff);
+}
+
 /** §8.5 — AI 결과 생성이 성공한 뒤 거래를 최종 확정한다. */
 export async function completeResultAccess(
   transactionId: string,
@@ -430,10 +456,18 @@ export async function completeResultAccess(
  * transaction_id 기준으로 status가 여전히 "pending"인 경우에만 복구를 수행하고,
  * 이미 success/failed/refunded로 종결된 거래는 그대로 둔다(중복 복구 방지, §14.8).
  */
-export async function failAndRefundResultAccess(transactionId: string): Promise<void> {
+export async function failAndRefundResultAccess(transactionId: string, expiredBefore?: Date): Promise<void> {
   await prisma.$transaction(async (tx) => {
     const txn = await tx.resultAccessTransaction.findUnique({ where: { transactionId } });
     if (!txn || txn.status !== "pending") return;
+    // 환불 상태를 먼저 원자적으로 점유한다. 성공 확정·다른 복구와 경쟁해도 1회만 복구.
+    const claimed = await tx.resultAccessTransaction.updateMany({
+      where: { transactionId, status: "pending", ...(expiredBefore ? {
+        contentType: { in: ["compatibility", "tarot"] }, updatedAt: { lte: expiredBefore },
+      } : {}) },
+      data: { status: "refunded", refundedAt: new Date() },
+    });
+    if (claimed.count !== 1) return;
 
     if (txn.paymentMethod === "FREEPASS" && txn.userPassId != null) {
       // 레거시 시간제 소비(userPassId는 있지만 remainingCount가 null인 케이스)는
@@ -474,9 +508,6 @@ export async function failAndRefundResultAccess(transactionId: string): Promise<
     }
     // AD는 차감한 자산이 없으므로 복구할 것이 없다 — 상태만 종결시킨다.
 
-    await tx.resultAccessTransaction.update({
-      where: { transactionId },
-      data: { status: "refunded", refundedAt: new Date() },
-    });
+    // 위 상태 전환과 잔액 복구는 같은 트랜잭션이다. 실패하면 함께 롤백한다.
   });
 }

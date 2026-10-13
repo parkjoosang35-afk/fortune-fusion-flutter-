@@ -25,6 +25,7 @@ import {
   isValidResultType,
   requireUser,
   unauthorizedResponse,
+  validateOriginalPng, writeOriginalPng, removeOriginalPng, originalImagePath,
 } from "./_shared";
 
 export const dynamic = "force-dynamic";
@@ -36,6 +37,8 @@ type CreateShareBody = {
   payload?: unknown;
   imageUrl?: unknown;
   sourceRefId?: unknown;
+  originalPngBase64?: unknown;
+  originalShareConsent?: unknown;
 };
 
 export async function POST(request: NextRequest) {
@@ -44,7 +47,22 @@ export async function POST(request: NextRequest) {
 
   let body: CreateShareBody;
   try {
-    body = await request.json();
+    const reader = request.body?.getReader();
+    if (!reader) throw new Error('EMPTY_BODY');
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > 12 * 1024 * 1024) {
+        await reader.cancel();
+        return NextResponse.json({ success: false, error: '공유 이미지가 너무 큽니다.' }, { status: 413, headers: CORS_HEADERS });
+      }
+      chunks.push(value);
+    }
+    body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error('INVALID_BODY');
   } catch {
     return NextResponse.json(
       { success: false, error: "요청 본문이 올바르지 않습니다." },
@@ -87,16 +105,38 @@ export async function POST(request: NextRequest) {
       { status: 400, headers: CORS_HEADERS }
     );
   }
-  const imageUrl = typeof body.imageUrl === "string" ? body.imageUrl : null;
+  try {
+    const parsed = JSON.parse(payloadStr);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("INVALID_PAYLOAD");
+  } catch {
+    return NextResponse.json({ success: false, error: "결과 데이터는 JSON 객체여야 합니다." }, { status: 400, headers: CORS_HEADERS });
+  }
+  let originalPng: Buffer | null = null;
+  if (body.originalPngBase64 != null) {
+    if (body.originalShareConsent !== true) return NextResponse.json({ success: false, error: '원본 결과 공개 동의가 필요합니다.' }, { status: 400, headers: CORS_HEADERS });
+    try { originalPng = await validateOriginalPng(body.originalPngBase64); }
+    catch { return NextResponse.json({ success: false, error: '원본 PNG가 손상되었거나 저장 한도를 초과했습니다.' }, { status: 400, headers: CORS_HEADERS }); }
+  }
+  // 내부 원본 경로는 서버만 만들 수 있다. 기존 외부 OG 이미지와 별도 취급.
+  const imageUrl = typeof body.imageUrl === "string" && /^https?:\/\//.test(body.imageUrl) && !body.imageUrl.includes('/api/public/share/') ? body.imageUrl : null;
   const sourceRefId = typeof body.sourceRefId === "string" ? body.sourceRefId : null;
 
   try {
+    if (originalPng) {
+      const recent = await prisma.sharedResult.count({ where: { userId: auth.userId, createdAt: { gte: new Date(Date.now() - 3600000) } } });
+      if (recent >= 20) return NextResponse.json({ success: false, error: '잠시 후 다시 공유해주세요.' }, { status: 429, headers: CORS_HEADERS });
+    }
     // shareId 충돌은 사실상 발생하지 않지만(62^10 공간), unique 제약이
     // 있으므로 방어적으로 재시도한다(guinji generateGuinjiToken()과 동일 패턴).
     let created: { shareId: string } | null = null;
     for (let attempt = 0; attempt < 3 && !created; attempt++) {
       const shareId = generateShareId();
+      let snapshotWritten = false;
       try {
+        if (originalPng) {
+          await writeOriginalPng(shareId, originalPng);
+          snapshotWritten = true;
+        }
         created = await prisma.sharedResult.create({
           data: {
             shareId,
@@ -106,13 +146,14 @@ export async function POST(request: NextRequest) {
             title,
             description,
             payload: payloadStr,
-            imageUrl,
+            imageUrl: originalPng ? originalImagePath(shareId) : imageUrl,
           },
           select: { shareId: true },
         });
       } catch (e) {
+        if (snapshotWritten) await removeOriginalPng(shareId);
         const code = (e as { code?: string }).code;
-        if (code !== "P2002") throw e;
+        if (code !== "P2002" && code !== 'EEXIST') throw e;
         // shareId 충돌 — 루프 재시도.
       }
     }

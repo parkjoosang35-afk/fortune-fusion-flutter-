@@ -48,7 +48,9 @@ import { validateTarotQuestion } from "@/lib/tarot/question-guard";
 import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
 import {
   beginResultAccess,
-  completeResultAccess,
+  reserveResultGeneration,
+  recoverExpiredCompatibilityTransactions,
+  COMPATIBILITY_PENDING_TIMEOUT_MS,
   failAndRefundResultAccess,
   ResultAccessError,
   type ResultAccessPaymentMethod,
@@ -202,8 +204,20 @@ export async function POST(request: NextRequest) {
   // ── [어뷰징 방지 개편 §신규 ①] 유저별 절대 일일 AI 호출 상한(5회) 검사 ──
   // 프리패스 카테고리별 제한(아래)과 완전히 독립적인 2중 방어선. 프리패스를 재발급받아도
   // 이 상한은 우회되지 않는다(하루 전체 fortuneRequest 성공 건수 기준).
-  const dailyLimitCheck = await checkDailyAbsoluteLimit(userId);
+  // 성공 거래 재열람은 일일 한도로 막지 않는다. 새 생성은 원자적 예약에서 재검사.
+  if (useResultAccessService) await recoverExpiredCompatibilityTransactions(userId);
+  const priorAccess = useResultAccessService ? await prisma.resultAccessTransaction.findUnique({ where: { transactionId: resultAccessTransactionId! } }) : null;
+  const dailyLimitCheck = priorAccess?.userId === userId && priorAccess.contentType === "tarot" && priorAccess.status === "success"
+    ? { allowed: true, usageCount: 0, maxUsage: 5 }
+    : await checkDailyAbsoluteLimit(userId);
   if (!dailyLimitCheck.allowed) {
+    if (priorAccess?.userId === userId && priorAccess.contentType === "tarot" && priorAccess.status === "pending" && priorAccess.contentId == null) {
+      const rejected = await prisma.resultAccessTransaction.updateMany({
+        where: { transactionId: resultAccessTransactionId!, userId, contentType: "tarot", status: "pending", contentId: null },
+        data: { contentId: "tarot:generating" },
+      });
+      if (rejected.count === 1) await failAndRefundResultAccess(resultAccessTransactionId!);
+    }
     return NextResponse.json(
       {
         success: false,
@@ -271,7 +285,7 @@ export async function POST(request: NextRequest) {
       include: { fortuneRequest: { include: { result: true } } },
     });
     if (existing) {
-      if (existing.userId !== userId || existing.contentType !== "tarot") {
+      if (existing.userId !== userId || existing.contentType !== "tarot" || existing.paymentMethod !== resultAccessPaymentMethod) {
         return NextResponse.json({ success: false, reason: "TRANSACTION_OWNER_MISMATCH", error: "잘못된 요청입니다." }, { status: 400, headers: CORS_HEADERS });
       }
       const saved = existing.fortuneRequest;
@@ -374,11 +388,17 @@ export async function POST(request: NextRequest) {
   }
 
   if (useResultAccessService && resultAccessBegin) {
-    const claim = await prisma.resultAccessTransaction.updateMany({
-      where: { transactionId: resultAccessBegin.transactionId, userId, status: "pending", contentId: null },
-      data: { contentId: "tarot:generating" },
-    });
-    if (claim.count !== 1) {
+    let claimed = false;
+    try {
+      claimed = await reserveResultGeneration(userId, resultAccessBegin.transactionId, "tarot");
+    } catch (e) {
+      if (e instanceof ResultAccessError && e.code === "DAILY_ABSOLUTE_LIMIT_REACHED") {
+        await failAndRefundResultAccess(resultAccessBegin.transactionId);
+        return NextResponse.json({ success: false, error: e.message, reason: e.code }, { status: 403, headers: CORS_HEADERS });
+      }
+      throw e;
+    }
+    if (!claimed) {
       return NextResponse.json({ success: false, error: "리딩을 처리 중입니다. 잠시 후 다시 확인해주세요.", reason: "GENERATION_IN_PROGRESS" }, { status: 409, headers: CORS_HEADERS });
     }
   }
@@ -580,6 +600,16 @@ export async function POST(request: NextRequest) {
       const cost = 0;
       const refundAmount = 0;
 
+      if (resultAccessBegin) {
+        const lock = await tx.resultAccessTransaction.updateMany({
+          where: { transactionId: resultAccessBegin.transactionId, userId, status: "pending", contentId: "tarot:generating",
+            updatedAt: { gt: new Date(Date.now() - COMPATIBILITY_PENDING_TIMEOUT_MS) } },
+          data: { contentId: "tarot:generating" },
+        });
+        if (lock.count !== 1) throw new Error("TRANSACTION_FINALIZATION_FAILED");
+        const finalLimit = await checkDailyAbsoluteLimit(userId, tx, resultAccessBegin.transactionId);
+        if (!finalLimit.allowed) throw new ResultAccessError("DAILY_ABSOLUTE_LIMIT_REACHED", "오늘 이용 가능한 AI 운세 횟수를 모두 사용했습니다.");
+      }
       const fortuneRequest = await tx.fortuneRequest.create({
         data: {
           userId,
@@ -603,6 +633,10 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      if (resultAccessBegin) {
+        await tx.resultAccessTransaction.update({ where: { transactionId: resultAccessBegin.transactionId },
+          data: { status: "success", fortuneRequestId: fortuneRequest.id, contentId: `tarot_${fortuneRequest.id}` } });
+      }
       return { requestId: fortuneRequest.id, createdAt: fortuneRequest.createdAt, balance, refundAmount, cost, fortuneResult };
     });
 
@@ -612,9 +646,7 @@ export async function POST(request: NextRequest) {
     }
 
     // ── [신규] §8.5 마지막 단계: AI 생성 성공 → 거래 최종 확정(status: pending→success) ──
-    if (useResultAccessService && resultAccessBegin) {
-      await completeResultAccess(resultAccessBegin.transactionId, outcome.requestId);
-    }
+    // 공용 거래 성공 확정은 결과 저장과 같은 DB 트랜잭션에서 처리했다.
 
     return NextResponse.json(
       {

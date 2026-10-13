@@ -11,6 +11,7 @@
 // Server Action/Route Handler 양쪽에서 호출되는 공용 헬퍼이기 때문).
 // ══════════════════════════════════════════════════════════════════
 import { prisma } from "@/lib/db";
+import type { Prisma } from "@/generated/prisma/client";
 import { isMockAdSourceType } from "@/lib/open-pass-constants";
 
 // 신규 발급은 횟수제로만 허용한다. 기존 시간제 행은 변경하지 않는다.
@@ -97,8 +98,7 @@ function todayKstKey(): string {
 }
 
 /** KST 기준 "오늘" 하루의 시작/끝을 UTC Date로 반환한다(fortuneRequest.createdAt 범위 조회용). */
-function todayRangeKst(): { start: Date; end: Date } {
-  const now = new Date();
+export function todayRangeKst(now = new Date()): { start: Date; end: Date } {
   const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
   const y = kstNow.getUTCFullYear();
   const m = kstNow.getUTCMonth();
@@ -153,16 +153,34 @@ export interface DailyAbsoluteLimitResult {
  * 그대로 유지) 이 카운트도 "라우트 호출 1회 = 1"로 집계된다. daily route처럼
  * checkCategoryUsage를 쓰지 않는 라우트도 이 절대 상한 검사는 동일하게 받아야 한다.
  */
-export async function checkDailyAbsoluteLimit(userId: number): Promise<DailyAbsoluteLimitResult> {
-  const { start, end } = todayRangeKst();
-  const usageCount = await prisma.fortuneRequest.count({
-    where: {
-      userId,
-      status: "success",
-      deletedAt: null,
-      createdAt: { gte: start, lt: end },
-    },
-  });
+export async function checkDailyAbsoluteLimit(
+  userId: number,
+  db: Prisma.TransactionClient = prisma,
+  excludeTransactionId?: string,
+  now = new Date(),
+): Promise<DailyAbsoluteLimitResult> {
+  const { start, end } = todayRangeKst(now);
+  // 궁합은 별도 요청 테이블을 사용하므로 같은 일일 상한에 함께 집계한다.
+  const [fortuneCount, compatibilityCount, reservedCount] = await Promise.all([
+    db.fortuneRequest.count({ where: {
+      userId, status: "success", deletedAt: null, createdAt: { gte: start, lt: end },
+    } }),
+    db.compatibilityRequest.count({ where: {
+      requesterUserId: userId, deletedAt: null, createdAt: { gte: start, lt: end },
+      result: { is: { deletedAt: null, status: "active" } },
+    } }),
+    // 생성 점유만 예약으로 센다. 게이트 선차감·실패·환불은 이용 건수가 아니다.
+    db.resultAccessTransaction.count({ where: {
+      userId, status: "pending", OR: [
+        { contentType: "compatibility", contentId: "compatibility:generating" },
+        { contentType: "tarot", contentId: "tarot:generating" },
+      ],
+      // 자정 직전 예약도 현재 진행 중이면 다음날 완료 슬롯을 차지한다.
+      updatedAt: { gt: new Date(now.getTime() - 5 * 60 * 1000), lte: now },
+      ...(excludeTransactionId ? { transactionId: { not: excludeTransactionId } } : {}),
+    } }),
+  ]);
+  const usageCount = fortuneCount + compatibilityCount + reservedCount;
   if (isUnlimitedTestUser(userId)) {
     // 화이트리스트에 등록된 테스트 계정은 usageCount를 그대로 보여주되(참고용),
     // allowed는 항상 true로 반환해 일일 상한 차단을 받지 않는다.

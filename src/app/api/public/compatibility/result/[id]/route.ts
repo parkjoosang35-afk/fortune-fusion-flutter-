@@ -2,6 +2,7 @@
 // id는 "compat_{requestId}" 형식(Flutter 표시용 접두사) 또는 순수 숫자 모두 허용.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorizedResponse } from "../../../wishes/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -14,9 +15,11 @@ function parseRequestId(raw: string): number | null {
 }
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
   const { id } = await params;
   const requestId = parseRequestId(id);
   if (requestId == null) {
@@ -28,7 +31,7 @@ export async function GET(
 
   try {
     const compatRequest = await prisma.compatibilityRequest.findFirst({
-      where: { id: requestId, deletedAt: null },
+      where: { id: requestId, requesterUserId: auth.userId, deletedAt: null, result: { is: { deletedAt: null } } },
       include: { result: true },
     });
     if (!compatRequest || !compatRequest.result) {

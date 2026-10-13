@@ -49,6 +49,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (["compatibility", "tarot"].includes(txn.contentType)) {
+      // 실행 중 궁합을 클라이언트 선언만으로 환불하면 무료 결과 생성 경합이 생긴다.
+      return NextResponse.json({ success: false, reason: "SERVER_MANAGED_TRANSACTION", error: "서버 생성 거래는 서버의 생성·복구 절차로 처리됩니다." }, { status: 409, headers: CORS_HEADERS });
+    }
     await failAndRefundResultAccess(transactionId);
     return NextResponse.json({ success: true }, { headers: CORS_HEADERS });
   } catch (e) {

@@ -52,6 +52,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (["compatibility", "tarot"].includes(txn.contentType)) {
+      return NextResponse.json({ success: false, reason: "SERVER_MANAGED_TRANSACTION", error: "서버 생성 결과는 저장 후 확정됩니다." }, { status: 409, headers: CORS_HEADERS });
+    }
     await completeResultAccess(transactionId, null);
     return NextResponse.json({ success: true }, { headers: CORS_HEADERS });
   } catch (e) {
