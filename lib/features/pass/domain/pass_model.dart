@@ -113,6 +113,10 @@ class PassStatusModel {
   final DateTime? activatedAt;
   final DateTime? expiresAt;
   final int remainingSec;
+  final int? remainingCount;
+  final bool hasLegacyUnlimited;
+
+  bool get isCountBased => remainingCount != null;
 
   const PassStatusModel({
     required this.isActive,
@@ -123,6 +127,8 @@ class PassStatusModel {
     this.activatedAt,
     this.expiresAt,
     this.remainingSec = 0,
+    this.remainingCount,
+    this.hasLegacyUnlimited = false,
   });
 
   factory PassStatusModel.inactive() => const PassStatusModel(isActive: false);
@@ -145,6 +151,8 @@ class PassStatusModel {
           ? DateTime.parse(json['expiresAt'] as String)
           : null,
       remainingSec: json['remainingSec'] as int? ?? 0,
+      remainingCount: json['remainingCount'] as int?,
+      hasLegacyUnlimited: json['hasLegacyUnlimited'] as bool? ?? false,
     );
   }
 }

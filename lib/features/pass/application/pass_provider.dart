@@ -140,16 +140,19 @@ class PassProvider extends ChangeNotifier {
   /// 결과이므로 서버가 내려준 값을 그대로 신뢰하고 재검증하지 않는다.
   void applyOpenPassRewardGrant(OpenPassRewardGrantModel grant) {
     _status = PassStatusModel(
-      isActive: true,
+      isActive: grant.remainingCount == null || grant.remainingCount! > 0,
       userPassId: grant.userPassId,
       policyId: grant.policyId,
       policyName: grant.policyName,
       passType: PassType.ad,
       expiresAt: grant.expiresAt,
       remainingSec: grant.remainingSec,
+      remainingCount: grant.remainingCount,
     );
     _lastError = null;
     notifyListeners();
+    // 지급 1건 표시 후 전체 잔여 합계를 다시 동기화한다.
+    load();
   }
 
   // [자율 정리 - 죽은 기능 제거] 과거 "복주머니로 프리패스 구매"
