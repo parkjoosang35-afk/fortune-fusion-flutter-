@@ -93,7 +93,6 @@ class _GuinjiDeepIntroScreenState extends State<GuinjiDeepIntroScreen>
         builder: (_) => GuinjiDeepResultScreen(
           person: widget.person,
           ownerName: widget.ownerName,
-          onShare: widget.onShare,
         ),
       ),
     );
