@@ -13,6 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  // [애드센스 소유 인증 — 2026-10-13] 게시자 ca-pub-4640621040048656.
+  verification: { google: "ca-pub-4640621040048656" },
   title: "Fortune Fusion Admin",
   description: "Fortune Fusion 관리자 시스템",
 };
