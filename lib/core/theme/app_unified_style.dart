@@ -10,7 +10,10 @@
 /// `UnifiedText`/`UnifiedTokens`를 새 참조 대상으로 두고, 서브 화면 각각에서
 /// 하드코딩된 색/폰트/여백을 이 토큰으로 교체해 나간다.
 ///
-/// 값은 홈 화면과 완전히 동일하며 절대 변형하지 않는다.
+/// [다크 전환 — 2026-10-13 사용자 피드백] 서브 화면(지갑·알림·마이·
+/// 결과 등)이 흰 바탕이라 메인페이지(다크)와 이어지지 않는 문제를 해결하기
+/// 위해 팔레트를 메인페이지 톤(bg #0B0B0D + 카드 #161618 계열 + 밝은 글자)
+/// 으로 통일했다. 개별 화면의 하드코딩 색은 별도 과제로 남긴다.
 library;
 
 import 'package:flutter/material.dart';
@@ -20,30 +23,30 @@ class UnifiedColors {
   UnifiedColors._();
 
   // 화면 배경
-  static const Color bg = Color(0xFFFFFFFF);
+  static const Color bg = Color(0xFF0B0B0D); // [다크 전환 — 사용자 피드백] 메인페이지와 동일 배경
 
   // 카드 배경(카드 종류별 지정)
-  static const Color cardMain = Color(0xFFF0EEFB); // 메인/히어로 카드
-  static const Color cardWish = Color(0xFFF5F3FB); // 소원게시판/소원방 계열
-  static const Color cardAllMenu = Color(0xFFF3F1F9); // 전체보기/카테고리 카드
-  static const Color cardBanner = Color(0xFFF2F0FA); // 배너 계열
-  static const Color cardSection = Color(0xFFF6F5FA); // 결과 페이지 섹션 카드
+  static const Color cardMain = Color(0xFF1C1C1F); // 메인/히어로 카드 [다크 전환]
+  static const Color cardWish = Color(0xFF161618); // 소원게시판/소원방 계열 [다크 전환]
+  static const Color cardAllMenu = Color(0xFF1A1A1E); // 전체보기/카테고리 카드 [다크 전환]
+  static const Color cardBanner = Color(0xFF19191D); // 배너 계열 [다크 전환]
+  static const Color cardSection = Color(0xFF161618); // 결과 페이지 섹션 카드 [다크 전환]
   static const Color passBar = Color(0xFF111111); // 열림패스 바
 
   /// 비활성 칩 배경(카드 팔레트와 같은 계열로 통일)
-  static const Color chipInactiveBg = Color(0xFFF6F5FA);
+  static const Color chipInactiveBg = Color(0xFF1C1C1F); // [다크 전환]
 
   // 포인트
   static const Color neon = Color(0xFFC6F24E); // 형광 옐로우그린(최소 사용)
-  static const Color black = Color(0xFF111111); // 블랙 포인트/CTA
+  static const Color black = Color(0xFFE9C46A); // [다크 전환] CTA → 골드 포인트
 
   // 텍스트
-  static const Color textPrimary = Color(0xFF111111);
-  static const Color textSecondary = Color(0xFF6B6B75);
-  static const Color textCaption = Color(0xFF9A9AA2);
+  static const Color textPrimary = Color(0xFFF2F0EC); // [다크 전환] 밝은 글자
+  static const Color textSecondary = Color(0xFFB9B5AC); // [다크 전환]
+  static const Color textCaption = Color(0xFF8A8880); // [다크 전환]
 
   // 테두리(사용 최소화)
-  static const Color border = Color(0xFFECECEF);
+  static const Color border = Color(0xFF2A2A2E); // [다크 전환]
 }
 
 /// 폰트 시스템(Pretendard 단일, 홈 화면과 완전 동일한 Type Scale)
