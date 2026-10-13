@@ -367,7 +367,10 @@ export function serializeLayout(l: Record<string, LayoutPosShape>): string {
 export function outfitNowOf(params: { charCode: string; outfit: string | null; theme: string; ownedOutfits: string[]; isOwner: boolean }): string {
   const want = params.outfit || params.theme || "free";
   const art = WR.OUTFIT_ART[params.charCode] && WR.OUTFIT_ART[params.charCode][want];
-  const own = want === "free" || params.ownedOutfits.includes(`${params.charCode}:${want}`) || !params.isOwner;
+  // [버그수정 — 사용자 피드백] 소원방 테마(하느님방/부처님방/무소인방)를 고르면 수호자가 그 의상을
+  // 입은 채로 방에 남아야 한다. 테마 의상은 방 자체의 선택이므로 소유와 무관하게 항상 허용하고,
+  // 상점에서 산 의상(outfit 지정)은 기존대로 소유자만 입는다.
+  const own = want === "free" || want === params.theme || params.ownedOutfits.includes(`${params.charCode}:${want}`) || !params.isOwner;
   return art && own ? want : "free";
 }
 
