@@ -12,7 +12,11 @@ Future<Uint8List> captureOriginalResult(
   List<GlobalKey> trailingKeys = const [],
   List<GlobalKey> overlayKeys = const [],
 }) async {
-  await WidgetsBinding.instance.endOfFrame;
+  // [실기기 LateInitializationError 대응] 프레임 대기 자체가 일부 환경에서
+  // 실패해도 이미 그려진 마지막 프레임으로 계속 진행한다.
+  try {
+    await WidgetsBinding.instance.endOfFrame;
+  } catch (_) {}
   final boundaries = <RenderRepaintBoundary>[];
   for (final part in [...leadingKeys, key, ...trailingKeys]) {
     final object = part.currentContext?.findRenderObject();
@@ -49,11 +53,21 @@ Future<Uint8List> captureOriginalResult(
   ui.Picture? picture;
   ui.Image? combined;
   try {
-    for (final part in boundaries) {
-      images.add(await part.toImage(pixelRatio: ratio));
-    }
-    for (final overlay in overlays) {
-      overlayImages.add(await overlay.toImage(pixelRatio: ratio));
+    try {
+      for (final part in boundaries) {
+        images.add(await part.toImage(pixelRatio: ratio));
+      }
+      for (final overlay in overlays) {
+        overlayImages.add(await overlay.toImage(pixelRatio: ratio));
+      }
+    } catch (_) {
+      // [실기기 대응 — 사용자 폰 결함] 일부 영역 캡처가 실패하면 결과 전체를
+      // 포기하지 않고 본문 단독이라도 성공시켜 저장·공유가 이어지게 한다.
+      images.clear();
+      overlayImages.clear();
+      images.add(
+        await boundaries[leadingKeys.length].toImage(pixelRatio: ratio),
+      );
     }
     if (images.length == 1 && overlayImages.isEmpty) {
       combined = images.single;
