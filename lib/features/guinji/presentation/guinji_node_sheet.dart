@@ -339,15 +339,18 @@ class GuinjiNodeSheet extends StatelessWidget {
                                       color: GmColors.muted,
                                     ),
                                   ),
-                                  Text(
+                                  Expanded(
+                                  child: Text(
                                     value,
+                                    textAlign: TextAlign.right,
                                     style: const TextStyle(
                                       fontFamily: GmText.ui,
                                       fontSize: 11,
                                       fontWeight: FontWeight.w700,
                                       color: GmColors.fg,
                                     ),
-                                  ),
+                                  )
+                                ),
                                 ],
                               ),
                             ),

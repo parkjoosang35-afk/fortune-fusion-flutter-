@@ -1,4 +1,5 @@
 import 'dart:ui' as ui;
+import '../../../core/util/image_gallery_saver.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -54,21 +55,76 @@ class GuinjiDeepResultScreen extends StatelessWidget {
   /// 않는 죽은 버튼이었다(Gradle 빌드 실패 이전에 로직 자체가 깨져
   /// 있었음). `_captureKey`로 본문 스크롤 영역 전체를 RepaintBoundary로
   /// 감싸 캡처 대상을 명확히 했다.
+  /// [전체 페이지 저장 — 사용자 피드백] 기존 캡처는 RepaintBoundary가 스크롤
+  /// 뷰포트만 그려 화면에 보이는 부분만 저장됐다. 스크롤 위치를 이동시켜
+  /// 가며 여러 장 캡처한 뒤 하나로 이어 붙여(스티치), 10장 풀이 "페이지
+  /// 전체"가 한 장의 이미지로 저장되게 한다.
   Future<void> _saveCardToGallery(BuildContext context) async {
-    final obj = _captureKey.currentContext?.findRenderObject();
-    if (obj == null || obj is! RenderRepaintBoundary) return;
-    final image = await obj.toImage(pixelRatio: 3.0);
-    final data = await image.toByteData(format: ui.ImageByteFormat.png);
-    if (data == null) return;
-    final ok = await saveImageBytesToGallery(
-      data.buffer.asUint8List(),
-      name: 'sintong_guinji_${DateTime.now().millisecondsSinceEpoch}',
-    );
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(ok ? '갤러리에 저장했어요 ✦' : '저장에 실패했어요. 권한을 확인해주세요.')),
-      );
+    final boundaryObj = _captureKey.currentContext?.findRenderObject();
+    if (boundaryObj is! RenderRepaintBoundary) return;
+    final boundary = boundaryObj;
+
+    ui.Image? stitched;
+    try {
+      final scrollable = Scrollable.of(context);
+      final position = scrollable.position;
+      final start = position.pixels;
+      final vp = position.viewportDimension;
+      final max = position.maxScrollExtent;
+      const pixelRatio = 2.0;
+
+      final shots = <ui.Image>[];
+      double off = 0;
+      while (shots.length < 12) {
+        final target = off >= max ? max : off;
+        position.jumpTo(target);
+        await WidgetsBinding.instance.endOfFrame;
+        await WidgetsBinding.instance.endOfFrame;
+        shots.add(await boundary.toImage(pixelRatio: pixelRatio));
+        if (target >= max) break;
+        off += vp;
+      }
+      position.jumpTo(start);
+
+      if (shots.isEmpty) return;
+      final w = shots.first.width;
+      final ph = ((max + vp) * pixelRatio).round();
+      final recorder = ui.PictureRecorder();
+      final canvas = ui.Canvas(recorder, ui.Rect.fromLTWH(0, 0, w.toDouble(), ph.toDouble()));
+      canvas.drawColor(GmColors.bg, ui.BlendMode.srcOver);
+      double y = 0;
+      for (final img in shots) {
+        final drawH = (ph - y).clamp(0.0, img.height.toDouble());
+        if (drawH <= 0) break;
+        canvas.drawImageRect(
+          img,
+          ui.Rect.fromLTWH(0, 0, img.width.toDouble(), drawH),
+          ui.Rect.fromLTWH(0, y, img.width.toDouble(), drawH),
+          ui.Paint(),
+        );
+        y += drawH;
+      }
+      final picture = recorder.endRecording();
+      stitched = await picture.toImage(w, ph);
+      for (final img in shots) {
+        img.dispose();
+      }
+    } catch (_) {
+      // 스티치 실패 시 — 화면에 보이는 영역이라도 저장되도록 폴백한다.
+      try {
+        stitched = await boundary.toImage(pixelRatio: 3.0);
+      } catch (_) {
+        return;
+      }
     }
+
+    final bytes = await stitched.toByteData(format: ui.ImageByteFormat.png);
+    if (bytes == null) return;
+    final ok = await saveImageBytesToGallery(bytes.buffer.asUint8List(), name: 'sintong_guinji_deep');
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(ok ? '페이지 전체를 갤러리에 저장했어요 ✦' : '저장에 실패했어요. 권한을 확인해주세요.')),
+    );
   }
 
   @override
@@ -472,7 +528,7 @@ class GuinjiDeepResultScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                '"${_fill(deep.letter)}"',
+                                '"${_fill(pickLetter(defaultLetter: deep.letter, seedKey: person.id.toString()))}"',
                                 style: const TextStyle(
                                   fontFamily: GmText.body,
                                   fontSize: 16,

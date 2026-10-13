@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/util/safe_share.dart';
+import '../../share/application/share_service.dart';
+import '../../share/domain/share_result_model.dart';
 import '../../../core/web_ads/web_ad_config.dart';
 import '../../../core/web_ads/widgets/web_ad_in_page.dart';
 import '../../result_access/application/result_access_provider.dart';
@@ -177,7 +179,25 @@ class _GuinjiMapRelationDetailScreenState
     final meta = guinjiRelationMetaOf(person.relation);
     final message = '${person.name}님과의 관계는 "${meta.label}"예요 · 신통방통 귀인지도';
     if (!mounted) return;
-    await safeShareText(context, message, subject: '신통방통 귀인지도');
+    // [카카오 OG 결과페이지 공유 — 사용자 피드백] 텍스트만 보내면 카톡에
+    // 링크 미리보기(OG)가 붙지 않는다. 서버 공유 시스템(/r/{shareId})에
+    // 결과 페이지를 만들어 링크째 공유하고, 실패 시에만 텍스트 공유로 폴백.
+    try {
+      await ShareService.shareResult(
+        context,
+        resultType: ShareResultType.relationship,
+        title: message,
+        description: '${meta.label} · 신통방통 귀인지도',
+        payload: {
+          for (final key in guinjiRelationOrder)
+            key: key == person.relation ? 1 : 0,
+        },
+        subject: '신통방통 귀인지도',
+      );
+    } catch (_) {
+      // 링크 생성 실패 시에만 텍스트 공유로 폴백.
+      await safeShareText(context, message, subject: '신통방통 귀인지도');
+    }
   }
 
   // [핸드오프 `CMain` `onDeep` 1:1 이식] 방금 해금했다면

@@ -15,7 +15,24 @@ class GuinjiDeep {
   const GuinjiDeep({required this.title, required this.summary, required this.first, required this.energy, required this.bond, required this.role, required this.together, required this.caution, required this.seasons, required this.keywords, required this.tips, required this.letter});
 }
 
-String fill(String s, {required String n, required String me}) => s.replaceAll('{n}', n).replaceAll('{me}', me);
+/// [어뷰징 방지 — 사용자 피드백] 사용자 입력 이름이 편지·해설에 그대로
+/// 들어가는 지점을 한 곳으로 모은다. URL 차단, 제어문자 제거, 12자 상한,
+/// 기본 비속어 마스킹을 적용한다.
+String sanitizeName(String raw) {
+  var v = raw
+      .replaceAll(RegExp(r'https?://\S+'), '')
+      .replaceAll(RegExp(r'[\x00-\x1F\x7F]'), '');
+  const blocked = ['씨발', '시발', '병신', '좆', '존나', '개새', '미친', '쓰레기', '니미', 'fuck'];
+  for (final b in blocked) {
+    v = v.replaceAll(b, '﹡');
+  }
+  v = v.trim();
+  if (v.length > 12) v = v.substring(0, 12);
+  return v;
+}
+
+String fill(String s, {required String n, required String me}) =>
+    s.replaceAll('{n}', sanitizeName(n)).replaceAll('{me}', sanitizeName(me));
 
 const guinjiDeepText = <String, GuinjiDeep>{
   'CHEON_GWII': GuinjiDeep(
@@ -103,3 +120,32 @@ const guinjiDeepText = <String, GuinjiDeep>{
     letter: '{me}님, 우리 자주 부딪혔지만 그 덕분에 저는 조금 더 단단해졌어요. 당신이 아니었다면 몰랐을 저의 모습도 알게 됐어요. 고마워요.',
   ),
 };
+
+// [편지 무한 복제 방지 — 사용자 피드백] 관계 유형당 편지 1종이던 기존 구조를
+// "기본 1종 + 신규 2종" 기본문 3종 × 마무리 4종 = 12가지 조합으로 확장하고,
+// 사람별 시드(멤버 id)로 조합을 골라 같은 유형이라도 사람마다 다른 편지가
+// 담기게 한다. 문구는 전부 템플릿 고정 텍스트라 어뷰징 입력이 들어갈 자리가
+// 이름뿐이고, 이름은 [sanitizeName]으로 살균된다.
+final Map<String, List<String>> guinjiLetterVariants = <String, List<String>>{
+  "{me}님, 우리가 처음 만났을 때부터 이상하게 편했어요. 당신은 늘 제가 생각보다 더 괜찮은 사람이라고 믿게 해 줬어요. 앞으로도 서로의 가장 좋은 모습을 먼저 알아봐 주는 사이였으면 해요.": ["{me}님, 우리가 처음 만났을 때부터 이상하게 편했어요. 당신은 늘 제가 생각보다 더 괜찮은 사람이라고 믿게 해 줬어요. 앞으로도 서로의 가장 좋은 모습을 먼저 알아봐 주는 사이였으면 해요.", "{me}님은 제게 운명 같은 사람이에요. 힘든 결정을 앞두고도 {me}님과 이야기하면 길이 보였어요. 앞으로도 서로의 길을 비춰 주는 사이였으면 해요.", "{me}님, 만나면 왠지 좋은 일이 생기던 날들이 생각나요. {me}님은 제 결정에 항상 힘을 실어 주는 사람이에요. 그 고마움을 오래 간직할게요.", "{me}님 덕분에 제가 이렇게 잘 자랐어요. 길을 잃을 때마다 {me}님이 먼저 손을 내밀었죠. 저도 {me}님의 귀인이 될게요."],
+  "{me}님, 우리는 특별한 이유 없이도 자꾸 만나게 되는 사이 같아요. 같이 있으면 시간이 빨리 가고, 헤어지고 나면 또 생각나요. 그게 저는 참 좋아요. 앞으로도 지금처럼 편하게, 오래 곁에 있어요.": ["{me}님, 우리는 특별한 이유 없이도 자꾸 만나게 되는 사이 같아요. 같이 있으면 시간이 빨리 가고, 헤어지고 나면 또 생각나요. 그게 저는 참 좋아요. 앞으로도 지금처럼 편하게, 오래 곁에 있어요.", "{me}님과는 첫날부터 이야기가 잘 통했어요. 특별한 이유 없이 마음이 닿는 사람은 또 없을 것 같아요. 오래오래 편하게 지내요.", "{me}님, 같이 있으면 어깨에 힘이 빠져요. 설명하지 않아도 알아주는 사람이 있다는 게 저의 큰 복이에요. 자주 보아요.", "{me}님과의 하루하루가 조용히 쌓여 제 소중한 추억이 됐어요. 변함없이 곁에 있어서 고마워요. 앞으로도 우리 그대로예요."],
+  "{me}님, 당신이 한 걸음씩 나아가는 걸 보는 게 저에겐 큰 기쁨이에요. 제가 건넨 말이 조금이라도 힘이 됐다면 그걸로 충분해요. 언제든 필요하면 불러 주세요.": ["{me}님, 당신이 한 걸음씩 나아가는 걸 보는 게 저에겐 큰 기쁨이에요. 제가 건넨 말이 조금이라도 힘이 됐다면 그걸로 충분해요. 언제든 필요하면 불러 주세요.", "{me}님 곁에서 저는 많이 자랐어요. {me}님이 봐준 가능성, 이제 제가 결과로 보여드릴게요. 늘 믿어줘서 고마워요.", "{me}님은 제 선생 같은 사람이에요. 막히던 일도 {me}님 한마디에 굴러갔어요. 이 배움을 다른 분들에게도 나눌게요.", "{me}님과 함께라 시작이 무섭지 않았어요. 앞으로도 서로의 속도에 맞춰 한 걸음씩, 오래 걷는 동행이었으면 해요."],
+  "{me}님, 당신이랑 있으면 굳이 설명하지 않아도 돼서 좋아요. 같은 곳에서 웃고 같은 곳에서 멈추는 사람이 있다는 게 든든해요. 앞으로도 나란히 걸어요.": ["{me}님, 당신이랑 있으면 굳이 설명하지 않아도 돼서 좋아요. 같은 곳에서 웃고 같은 곳에서 멈추는 사람이 있다는 게 든든해요. 앞으로도 나란히 걸어요.", "{me}님과는 말이 필요 없어요. 같은 것을 보고 같은 곳에서 웃으니 마음이 편안해요. 나란히, 오래오래 걸어요.", "{me}님, 취미도 입장도 닮아서 새로운 설명이 필요 없었어요. 편안한 사람 덕분에 일상이 잘 풀려요. 고마워요.", "{me}님과의 시간은 쉼표 같아요. 같은 곳에서 같은 속도로 쉬어 가요. 그 편안함을 오래 지켜요."],
+  "{me}님, 우리는 자주 다르지만 그래서 배운 것도 많아요. 당신 덕분에 제가 보지 못한 것을 보게 됐어요. 천천히, 서로의 속도를 맞춰 가요.": ["{me}님, 우리는 자주 다르지만 그래서 배운 것도 많아요. 당신 덕분에 제가 보지 못한 것을 보게 됐어요. 천천히, 서로의 속도를 맞춰 가요.", "{me}님과 부딪히며 저는 단단해졌어요. 다르니까 오히려 빈틈이 채워져요. 서로의 속도를 지켜 주며 오래 가요.", "{me}님, 사소한 다툼도 결국 우리를 이해하게 만들었어요. 이제는 부딪히는 법도 부드러워졌어요. 그만큼 가까워졌다는 뜻이겠죠.", "{me}님 덕분에 제 모습을 더 잘 알게 됐어요. 틀어진 날에도 돌아올 곳이 있어 든든했어요. 앞으로도 서로 바퀴를 맞춰가요."],
+  "{me}님, 우리 자주 부딪혔지만 그 덕분에 저는 조금 더 단단해졌어요. 당신이 아니었다면 몰랐을 저의 모습도 알게 됐어요. 고마워요.": ["{me}님, 우리 자주 부딪혔지만 그 덕분에 저는 조금 더 단단해졌어요. 당신이 아니었다면 몰랐을 저의 모습도 알게 됐어요. 고마워요.", "{me}님과 충돌할 때마다 저는 조금씩 어른이 됐어요. 부딪혀도 끝나지 않는 관계라는 게 저의 힘이에요. 고마워요.", "{me}님, 서로 다른 점이 많아 뜨거웠지만, 그 덕에 제 한계를 알게 됐어요. 이제는 다투는 법도 부드러워졌어요.", "{me}님 덕분에 휘어지지 않는 저의 모습을 알게 됐어요. 충돌도 관계의 한 부분이었다는 걸 우리는 증명했어요."],
+};
+
+const guinjiLetterClosers = <String>[
+  '앞으로도 오래 함께해요.',
+  '언제나 고마워요.',
+  '다음에 만나면 더 많이 웃아요.',
+  '우리, 잘하고 있어요.',
+];
+
+String pickLetter({required String defaultLetter, required String seedKey}) {
+  final bases = guinjiLetterVariants[defaultLetter] ?? [defaultLetter];
+  final seed = seedKey.hashCode.abs();
+  final base = bases[seed % bases.length];
+  final closer = guinjiLetterClosers[(seed ~/ bases.length) % guinjiLetterClosers.length];
+  return '$base $closer';
+}
