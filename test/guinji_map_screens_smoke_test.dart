@@ -9,6 +9,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:flutter_app/features/auth/application/auth_provider.dart';
 import 'package:flutter_app/features/auth/data/auth_repository.dart';
@@ -59,6 +60,9 @@ const _samplePeople = [
 ];
 
 void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
   testWidgets('L · Landing 화면이 예외 없이 렌더된다', (tester) async {
     await tester.pumpWidget(_wrap(const GuinjiLandingScreen()));
     await tester.pump();
@@ -70,7 +74,7 @@ void main() {
     await tester.pump();
     expect(tester.takeException(), isNull);
     // 폼 요소가 실제로 그려지는지 확인.
-    expect(find.text('다음'), findsOneWidget);
+    expect(find.text('지도 만들기'), findsOneWidget);
   });
 
   // [버그 수정 회귀 방지 — 사주 재입력] "회원가입/로그인을 안 하고 내
@@ -144,6 +148,24 @@ void main() {
     expect(find.text('민서'), findsOneWidget);
   });
 
+  for (final count in [1, 3]) {
+    testWidgets('M · $count명 지도 렌더 및 복귀가 예외 없이 동작한다', (tester) async {
+      final people = [
+        ..._samplePeople.take(count),
+        if (count == 3) const GuinjiPerson(id: 'p3', name: '지우', birth: '1998·01·02', ohaeng: 'su', relation: 'HAP', score: 75, note: '합'),
+      ];
+      await tester.pumpWidget(_wrap(GuinjiMapResultScreen(ownerName: '나', people: people)));
+      await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(tester.takeException(), isNull);
+      for (final person in people) {
+        expect(find.text(person.name), findsOneWidget);
+      }
+    });
+  }
+
   testWidgets('M 화면 노드 탭 시 N 바텀시트가 크래시 없이 뜬다', (tester) async {
     await tester.pumpWidget(
       _wrap(
@@ -154,6 +176,8 @@ void main() {
       ),
     );
     await tester.pump();
+    await tester.ensureVisible(find.text('수아'));
+    await tester.pump();
     await tester.tap(find.text('수아'));
     // 화면에 무한 반복(repeat()) 애니메이션이 있어 pumpAndSettle()은
     // 절대 안정 상태에 도달하지 못하고 타임아웃된다. 바텀시트 열림
@@ -161,8 +185,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pump(const Duration(milliseconds: 300));
     expect(tester.takeException(), isNull);
-    // 바텀시트 안 "이 관계 공유하기" 버튼이 보여야 한다.
-    expect(find.text('이 관계 공유하기'), findsOneWidget);
+    // 현재 바텀시트의 공유 버튼이 실제로 그려져야 한다.
+    expect(find.text('공유'), findsOneWidget);
   });
 
   testWidgets('S · Share 화면이 예외 없이 렌더된다', (tester) async {
