@@ -116,18 +116,8 @@ class PassRepository {
         return ApiResult.fail(error);
       }
 
-      final data = decoded['data'] as Map<String, dynamic>;
-      final expiresAt = DateTime.parse(data['expiresAt'] as String);
-      return ApiResult.ok(
-        PassStatusModel(
-          isActive: true,
-          userPassId: data['userPassId'] as int?,
-          policyId: data['policyId'] as int?,
-          policyName: data['policyName'] as String?,
-          expiresAt: expiresAt,
-          remainingSec: expiresAt.difference(DateTime.now()).inSeconds,
-        ),
-      );
+      // 지급 1건의 잔여값이 아닌 사용자 전체 잔여 합계를 다시 조회한다.
+      return await getStatus();
     } catch (e) {
       debugPrint('[PassRepository] [$endpoint] 예외 -> $e');
       return ApiResult.fail('프리패스 발급 중 오류가 발생했습니다: $e');
@@ -161,6 +151,7 @@ class PassRepository {
               'Content-Type': 'application/json',
               ...await AuthTokenStore.authHeader(),
             },
+            body: jsonEncode({}),
           )
           .timeout(const Duration(seconds: 10));
 

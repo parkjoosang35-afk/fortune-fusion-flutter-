@@ -395,9 +395,6 @@ class _PassSummaryCard extends StatelessWidget {
   final bool isLoading;
   final VoidCallback onAcquireTap;
 
-  // [프리패스 단순화 - 쿠팡파트너스 전용] §6 — HH:MM:SS 형식으로 통일.
-  String _formatRemaining(int sec) => formatPassHms(Duration(seconds: sec));
-
   String _formatExpiry(DateTime dt) {
     return '${dt.month}월 ${dt.day}일 ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
@@ -420,16 +417,15 @@ class _PassSummaryCard extends StatelessWidget {
     final liveState = OpenPassState.fromModel(pass.status);
     final status = pass.status;
     final isActive = liveState.isActive;
-    final remainingSec = liveState.remaining.inSeconds;
     final adPolicy = _adPolicy();
     final grantCount = adPolicy?.grantCount;
     final isCountBased = grantCount != null;
     final acquireLabel = isCountBased
         ? '광고 보고 ${formatPassGrantCount(grantCount)} 받기'
-        : '광고 보고 1시간 열기';
+        : '프리패스 지급 준비 중';
     final guideText = isCountBased
         ? '쿠팡 파트너스 광고를 확인하면 결과보기 ${formatPassGrantCount(grantCount)}가 지급되어 무료로 이용할 수 있어요.'
-        : '광고 1회 시청으로 1시간 동안 모든 운세를 볼 수 있어요.';
+        : '지급 횟수 설정이 준비되면 프리패스를 받을 수 있어요.';
     return PremiumCard(
       backgroundColor: UnifiedColors.cardAllMenu,
       borderColor: Colors.transparent,
@@ -464,7 +460,7 @@ class _PassSummaryCard extends StatelessWidget {
             isLoading
                 ? '불러오는 중...'
                 : isActive
-                ? '남은 시간 ${_formatRemaining(remainingSec)}'
+                ? liveState.remainingLabel ?? '기존 시간제 이용권 보유'
                 : '보유한 프리패스가 없어요',
             style: UnifiedText.caption(),
             maxLines: 1,
@@ -478,7 +474,7 @@ class _PassSummaryCard extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: OutlinedButton(
-              onPressed: onAcquireTap,
+              onPressed: grantCount != null && grantCount > 0 ? onAcquireTap : null,
               style: OutlinedButton.styleFrom(
                 foregroundColor: UnifiedColors.textPrimary,
                 side: const BorderSide(color: UnifiedColors.border),

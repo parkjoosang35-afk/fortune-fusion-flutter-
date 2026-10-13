@@ -6,6 +6,7 @@ import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../ads_test/domain/admob_ad_ids.dart';
 import '../../pass/presentation/coupang_pass_sheet.dart';
+import '../../pass/application/pass_provider.dart';
 import '../application/result_access_provider.dart';
 import '../data/result_access_repository.dart';
 import '../domain/pending_result_access_return.dart';
@@ -179,6 +180,8 @@ class _ResultAccessGateSheetState extends State<ResultAccessGateSheet> {
       AppToast.show(context, provider.lastError ?? '결과보기에 실패했습니다.', isError: true);
       return;
     }
+    // 차감된 잔여 횟수를 마이페이지/홈 상태에도 반영한다.
+    context.read<PassProvider>().load();
     Navigator.of(context).pop(result);
   }
 
