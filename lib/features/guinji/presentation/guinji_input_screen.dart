@@ -91,7 +91,7 @@ class _GuinjiInputScreenState extends State<GuinjiInputScreen> {
 
   GuinjiGender _seedGender() {
     try {
-      final g = context.read<AuthProvider>().user?.gender;
+      final g = context.read<AuthProvider>().currentUser?.gender;
       if (g == 'M' || g == 'male') return GuinjiGender.male;
     } catch (_) {}
     return GuinjiGender.female;
