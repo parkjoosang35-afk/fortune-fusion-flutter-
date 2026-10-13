@@ -51,7 +51,7 @@ const _demoArrivals = [
 const _demoOwnerCharId = 'f30';
 
 class _GuinjiIntroCinematicState extends State<GuinjiIntroCinematic>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final Ticker _ticker;
   Duration _elapsedAtLoopStart = Duration.zero;
   int _tMs = 0; // 이번 루프 시작 이후 경과(ms)

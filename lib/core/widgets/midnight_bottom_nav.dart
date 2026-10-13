@@ -278,7 +278,7 @@ class _MidnightNavTabState extends State<_MidnightNavTab> {
                     AnimatedContainer(
                       duration: MidnightNavTokens.colorTransition,
                       curve: MidnightNavTokens.colorCurve,
-                      margin: const EdgeInsets.only(top: -1),
+                      margin: EdgeInsets.zero,
                       width: MidnightNavTokens.dotSize,
                       height: MidnightNavTokens.dotSize,
                       decoration: BoxDecoration(
