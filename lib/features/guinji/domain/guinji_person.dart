@@ -1,3 +1,4 @@
+import 'dart:convert';
 /// 귀인지도(Guinji Map) 참여자(지인) 데이터 모델.
 ///
 /// [Phase G-3] 아직 백엔드 신규 테이블(guinji_map/map_member/relationship
@@ -67,10 +68,15 @@ class GuinjiPerson {
         ? '${birthParts[0]}·${birthParts[1]}·${birthParts[2]}'
         : birthDate;
 
-    final relationType = relation?['relationType'] as String? ?? 'BI_HWA';
+    // [P4-hotfix 2026-10-13] 레거시 관계 키(구 5종 guin/oreunpal/horang·
+    // 12종)가 남아 있는 운영 DB row를 V2 6종으로 정규화 — 알 수 없는 키는
+    // BI_HWA 폴백. 지도/노드/시트 어디서도 크래시하지 않는다.
+    final relationType = _normalizeRelationType(relation?['relationType']?.toString());
     final chemistryScore = (relation?['chemistryScore'] as num?)?.toInt() ?? 0;
-    final ohaengEvidence =
-        relation?['ohaengEvidence'] as Map<String, dynamic>? ?? const {};
+    // [P4-hotfix 2026-10-13] V2 엔진의 ohaengEvidence는 직렬화 경로에 따라
+    // Map/List/String 어느 형태로든 올 수 있다 — 어떤 형태가 와도 안전하게
+    // Map으로 강등(실패 시 빈 Map). 기존 `as Map` 캐스트가 크래시 원인이었다.
+    final ohaengEvidence = _asSafeMap(relation?['ohaengEvidence']);
     final reason = ohaengEvidence['reason'] as String? ?? '';
     final otherElements =
         ohaengEvidence['other'] as Map<String, dynamic>? ?? const {};
@@ -90,6 +96,41 @@ class GuinjiPerson {
   /// 한글 오행 카운트 맵(예: {'목': 2, '화': 1, ...})에서 최댓값 오행을 찾아
   /// 화면 표시용 영문 키(mok/hwa/to/geum/su)로 변환한다. 값이 모두 0이거나
   /// 비어 있으면 기본값 'to'(토)로 폴백한다.
+  /// [P4-hotfix] 어떤 JSON 값이 와도 안전하게 Map<String,dynamic>으로 강등.
+  static Map<String, dynamic> _asSafeMap(dynamic v) {
+    if (v is Map<String, dynamic>) return v;
+    if (v is Map) {
+      return v.map((k, val) => MapEntry(k.toString(), val));
+    }
+    if (v is String && v.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(v);
+        if (decoded is Map) {
+          return decoded.map((k, val) => MapEntry(k.toString(), val));
+        }
+      } catch (_) {}
+    }
+    return const {};
+  }
+
+  /// [P4-hotfix] 레거시 관계 키(구 5종/12종) → V2 6종 정규화.
+  static String _normalizeRelationType(String? raw) {
+    const v2 = {'CHEON_GWII', 'HAP', 'SANG_SAENG', 'SANG_GEUK', 'BI_HWA', 'CHUNG'};
+    if (raw != null && v2.contains(raw)) return raw;
+    const alias = {
+      'guin': 'CHEON_GWII', '귀인': 'CHEON_GWII', 'GACHI_BICH': 'CHEON_GWII',
+      'oreunpal': 'HAP', '오른팔': 'HAP', 'inyeon': 'HAP', '인연': 'HAP',
+      'JORYEOK': 'HAP', 'GACHI_GA': 'HAP', 'KKEURIDA': 'HAP',
+      'salrim': 'SANG_SAENG', '살림': 'SANG_SAENG',
+      'NA_SALRIDA': 'SANG_SAENG', 'NA_SALJINDA': 'SANG_SAENG',
+      'DEUNGDEUNG': 'SANG_SAENG', 'CHANG_GYIM': 'SANG_SAENG',
+      'horang': 'SANG_GEUK', '호랑이': 'SANG_GEUK', 'JAGEUKJE': 'SANG_GEUK',
+      'GAMJEONG': 'BI_HWA', 'GINGJANG': 'CHUNG',
+    };
+    if (raw != null && alias.containsKey(raw)) return alias[raw]!;
+    return 'BI_HWA';
+  }
+
   static String _dominantOhaengKey(Map<String, dynamic> koreanCounts) {
     const koreanToKey = {
       '목': 'mok',
