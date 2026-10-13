@@ -17,6 +17,7 @@ Future<Uint8List> captureOriginalResult(
   try {
     await WidgetsBinding.instance.endOfFrame;
   } catch (_) {}
+  final bodyIndex = leadingKeys.length;
   final boundaries = <RenderRepaintBoundary>[];
   for (final part in [...leadingKeys, key, ...trailingKeys]) {
     final object = part.currentContext?.findRenderObject();
@@ -43,60 +44,60 @@ Future<Uint8List> captureOriginalResult(
     if (object is! RenderRepaintBoundary ||
         object.debugNeedsPaint ||
         object.size.width > width ||
-        object.size.height > boundaries[leadingKeys.length].size.height) {
+        object.size.height > boundaries[bodyIndex].size.height) {
       throw StateError('겹침 영역 준비가 끝난 뒤 다시 시도해주세요.');
     }
     overlays.add(object);
   }
   final overlayImages = <ui.Image>[];
-  final images = <ui.Image>[];
+  final slots = List<ui.Image?>.filled(boundaries.length, null);
   ui.Picture? picture;
   ui.Image? combined;
   try {
-    try {
-      for (final part in boundaries) {
-        images.add(await part.toImage(pixelRatio: ratio));
-      }
-      for (final overlay in overlays) {
-        overlayImages.add(await overlay.toImage(pixelRatio: ratio));
-      }
-    } catch (_) {
-      // [실기기 대응 — 사용자 폰 결함] 일부 영역 캡처가 실패하면 결과 전체를
-      // 포기하지 않고 본문 단독이라도 성공시켜 저장·공유가 이어지게 한다.
-      images.clear();
-      overlayImages.clear();
-      images.add(
-        await boundaries[leadingKeys.length].toImage(pixelRatio: ratio),
-      );
+    // [실기기 대응 — 본문 우선] 본문 캡처 성공이 곧 결과 보장. 상단·하단·겹침
+    // 영역은 추가로 시도하고 하나가 실패해도 무시하고 진행한다.
+    slots[bodyIndex] = await boundaries[bodyIndex].toImage(pixelRatio: ratio);
+    for (var i = 0; i < boundaries.length; i++) {
+      if (i == bodyIndex) continue;
+      try {
+        slots[i] = await boundaries[i].toImage(pixelRatio: ratio);
+      } catch (_) {}
     }
-    if (images.length == 1 && overlayImages.isEmpty) {
-      combined = images.single;
+    for (final overlay in overlays) {
+      try {
+        overlayImages.add(await overlay.toImage(pixelRatio: ratio));
+      } catch (_) {}
+    }
+    final captured = slots.whereType<ui.Image>().toList();
+    if (captured.length == 1 && overlayImages.isEmpty) {
+      combined = captured.single;
     } else {
       final recorder = ui.PictureRecorder();
       final canvas = Canvas(recorder);
       double y = 0;
-      for (final image in images) {
+      double overlayTop = 0;
+      for (var i = 0; i < slots.length; i++) {
+        final image = slots[i];
+        if (image == null) continue;
+        if (i == bodyIndex) overlayTop = y;
         canvas.drawImage(image, Offset(0, y), Paint());
         y += image.height;
       }
-      final overlayTop = images
-          .take(leadingKeys.length)
-          .fold<double>(0, (sum, image) => sum + image.height);
       for (final overlay in overlayImages) {
         canvas.drawImage(overlay, Offset(0, overlayTop), Paint());
       }
       picture = recorder.endRecording();
-      combined = await picture.toImage(images.last.width, y.toInt());
+      combined = await picture.toImage(slots[bodyIndex]!.width, y.toInt());
     }
     final data = await combined.toByteData(format: ui.ImageByteFormat.png);
     if (data == null) throw StateError('전체 이미지 변환 실패');
     return data.buffer.asUint8List();
   } finally {
-    if (images.length > 1 || overlayImages.isNotEmpty) combined?.dispose();
-    for (final image in overlayImages) {
-      image.dispose();
+    if (picture != null) combined?.dispose();
+    for (final image in slots) {
+      image?.dispose();
     }
-    for (final image in images) {
+    for (final image in overlayImages) {
       image.dispose();
     }
     picture?.dispose();
