@@ -8,7 +8,13 @@
 // 선택/결과 화면까지 도달할 수 없다. 이 테스트는 TarotProvider/
 // TarotSessionController에 결과 데이터를 직접 주입해, 로그인·백엔드 없이도
 // 위젯 트리 레벨에서 3가지 변경사항이 실제로 렌더링되는지 검증한다.
+import 'dart:ui' as ui;
+import 'dart:io' show Platform, File;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_app/core/util/original_result_capture.dart';
 import 'package:flutter_app/features/fortune/tarot/application/tarot_audio_controller.dart';
 import 'package:flutter_app/features/fortune/tarot/application/tarot_provider.dart';
 import 'package:flutter_app/features/fortune/tarot/application/tarot_session_controller.dart';
@@ -78,6 +84,43 @@ Widget _wrapWithProviders(Widget child) {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(() async {
+    final icons = FontLoader('MaterialIcons')
+      ..addFont(
+        File(
+          '/home/user/flutter/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf',
+        ).readAsBytes().then((bytes) => ByteData.sublistView(bytes)),
+      );
+    await icons.load();
+    // 위젯시험 기본 Ahem 대신 앱 번들 한글 폰트를 기본 폴백에 로드. 운영 설정은 변경하지 않음.
+    final fallback = FontLoader('Roboto')
+      ..addFont(rootBundle.load('assets/fonts/Pretendard-Regular.ttf'));
+    await fallback.load();
+    final korean = FontLoader('Pretendard')
+      ..addFont(rootBundle.load('assets/fonts/Pretendard-Regular.ttf'));
+    await korean.load();
+  });
+  setUp(() {
+    for (final channel in [
+      'xyz.luan/audioplayers.global',
+      'xyz.luan/audioplayers',
+      'xyz.luan/audioplayers.global/events',
+    ]) {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(MethodChannel(channel), (call) async {
+            if (call.method == 'create') {
+              final id = (call.arguments as Map)['playerId'];
+              TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+                  .setMockMethodCallHandler(
+                    MethodChannel('xyz.luan/audioplayers/events/$id'),
+                    (_) async => null,
+                  );
+            }
+            return null;
+          });
+    }
+  });
   group('[진행] 타로 결과화면 - AI 리딩 문구 교체 + 탭-확대 상세', () {
     testWidgets('① "AI 리딩"/"AI 한마디" 문구가 화면 어디에도 남아있지 않다', (tester) async {
       final result = _buildFixtureResult();
@@ -116,6 +159,116 @@ void main() {
       // 여기서는 검증 대상에서 제외한다 - AI 한마디 카드 자체는 🌙 아이콘 +
       // aiClosing 본문만 그려지고 별도 라벨 텍스트를 그리지 않는다.)
       expect(find.textContaining('카드 풀이'), findsWidgets);
+      await tester.runAsync(() async {
+        await GoogleFonts.pendingFonts();
+        final context = tester.element(find.byType(TarotResultScreen));
+        for (final position in result.positions) {
+          await precacheImage(
+            AssetImage(position.card.thumbAssetPath),
+            context,
+          );
+        }
+      });
+      await tester.pump();
+      final body = tester.widget<OriginalResultBody>(
+        find.byType(OriginalResultBody),
+      );
+      final footer = tester.widget<OriginalResultScene>(
+        find.byType(OriginalResultScene),
+      );
+      final bodySize =
+          (body.captureKey.currentContext!.findRenderObject()
+                  as RenderRepaintBoundary)
+              .size;
+      final footerSize =
+          (footer.captureKey.currentContext!.findRenderObject()
+                  as RenderRepaintBoundary)
+              .size;
+      // Tooltip을 포함하는 기존 투명 상단 RepaintBoundary만 선택.
+      final overlayFinder = find
+          .ancestor(
+            of: find.byTooltip('뒤로가기'),
+            matching: find.byWidgetPredicate(
+              (widget) => widget is RepaintBoundary && widget.key is GlobalKey,
+            ),
+          )
+          .first;
+      expect(overlayFinder, findsOneWidget);
+      final overlay =
+          tester.widget<RepaintBoundary>(overlayFinder).key! as GlobalKey;
+      final png = captureOriginalResult(
+        body.captureKey,
+        trailingKeys: [footer.captureKey],
+        overlayKeys: [overlay],
+      );
+      await tester.pump();
+      await tester.runAsync(() async {
+        final bytes = await png;
+        if (Platform.environment['EXPORT_TAROT_FIXTURE'] == '1') {
+          await File(
+            '/tmp/opencode/tarot-result-fixture.png',
+          ).writeAsBytes(bytes);
+        }
+        final codec = await ui.instantiateImageCodec(bytes);
+        final image = (await codec.getNextFrame()).image;
+        expect(image.width, (bodySize.width * 1.5).ceil());
+        expect(
+          image.height,
+          (bodySize.height * 1.5).ceil() + (footerSize.height * 1.5).ceil(),
+        );
+        expect(image.height, greaterThan(900));
+        final output = (await image.toByteData(
+          format: ui.ImageByteFormat.rawRgba,
+        ))!.buffer.asUint8List();
+        final originalBody =
+            await (body.captureKey.currentContext!.findRenderObject()
+                    as RenderRepaintBoundary)
+                .toImage(pixelRatio: 1.5);
+        final originalFooter =
+            await (footer.captureKey.currentContext!.findRenderObject()
+                    as RenderRepaintBoundary)
+                .toImage(pixelRatio: 1.5);
+        final originalOverlay =
+            await (overlay.currentContext!.findRenderObject()
+                    as RenderRepaintBoundary)
+                .toImage(pixelRatio: 1.5);
+        try {
+          final bodyPixels = (await originalBody.toByteData(
+            format: ui.ImageByteFormat.rawRgba,
+          ))!.buffer.asUint8List();
+          final footerPixels = (await originalFooter.toByteData(
+            format: ui.ImageByteFormat.rawRgba,
+          ))!.buffer.asUint8List();
+          final overlayPixels = (await originalOverlay.toByteData(
+            format: ui.ImageByteFormat.rawRgba,
+          ))!.buffer.asUint8List();
+          // 상단 겹침 영역 밖 본문과 하단은 모든 RGBA 바이트를 비교한다.
+          final bodyStart = originalOverlay.height * image.width * 4;
+          final bodyEnd = originalBody.height * image.width * 4;
+          expect(
+            output.sublist(bodyStart, bodyEnd),
+            orderedEquals(bodyPixels.sublist(bodyStart)),
+          );
+          expect(output.sublist(bodyEnd), orderedEquals(footerPixels));
+          int opaque = 0;
+          for (int i = 0; i < overlayPixels.length; i += 4) {
+            if (overlayPixels[i + 3] != 255) continue;
+            opaque++;
+            expect(
+              output.sublist(i, i + 4),
+              orderedEquals(overlayPixels.sublist(i, i + 4)),
+            );
+          }
+          expect(opaque, greaterThan(0));
+        } finally {
+          originalBody.dispose();
+          originalFooter.dispose();
+          originalOverlay.dispose();
+        }
+        image.dispose();
+        codec.dispose();
+      });
+      expect(tester.takeException(), null);
     });
 
     testWidgets('② 과거/현재/미래 포지션 카드를 탭하면 확대된 상세 시트가 열린다', (tester) async {
@@ -145,10 +298,7 @@ void main() {
       expect(pastLabelFinder, findsWidgets);
 
       final pastCardFinder = find
-          .ancestor(
-            of: pastLabelFinder.first,
-            matching: find.byType(InkWell),
-          )
+          .ancestor(of: pastLabelFinder.first, matching: find.byType(InkWell))
           .first;
       // [진행] 결과화면 콘텐츠는 ListView(가상 스크롤)로 렌더링되므로, "과거"
       // 포지션 카드가 위젯 트리에는 존재하더라도 현재 뷰포트 밖(스크롤 필요)에
@@ -220,8 +370,13 @@ void main() {
         await tester.pump(const Duration(seconds: 2));
 
         // 실제로 화면에 78개의 카드 뒷면 위젯이 모두 그려졌는지 확인한다.
+        // [정정] 진열 타일은 리팩터링으로 OzFaceDownCardArt(테두리 없는 순수
+        // 뒷면 아트)를 렌더한다. 이전 위젯명 기대는 시험만 늦게 따라온 것으로,
+        // 앱 렌더가 아니라 시험 기대가 오래된 것이었다(78개 0관측 원인).
         final faceDownFinder = find.byWidgetPredicate(
-          (widget) => widget.runtimeType.toString() == 'OzFaceDownCard',
+          (widget) =>
+              widget.runtimeType.toString() == 'OzFaceDownCard' ||
+              widget.runtimeType.toString() == 'OzFaceDownCardArt',
         );
         expect(faceDownFinder, findsNWidgets(78));
       },

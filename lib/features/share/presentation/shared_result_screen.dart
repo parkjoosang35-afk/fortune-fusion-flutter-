@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show Uint8List;
 import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/app_error_state.dart';
 import '../data/share_api_service.dart';
 import '../domain/share_result_model.dart';
+import 'full_result_sheet.dart';
 
 /// [결과 공유 기능] `/r/{shareId}` 딥링크(앱 설치 상태에서 App Links로
 /// 직접 열렸거나, `GuinjiDeepLinkHandler`가 커스텀 스킴/https 링크를
@@ -33,6 +35,7 @@ class _SharedResultScreenState extends State<SharedResultScreen> {
   bool _loading = true;
   String? _error;
   SharedResultDto? _shared;
+  Uint8List? _originalPng;
 
   @override
   void initState() {
@@ -46,11 +49,23 @@ class _SharedResultScreenState extends State<SharedResultScreen> {
       _error = null;
     });
     final result = await _api.fetchSharedResult(widget.shareId);
+    Uint8List? originalPng;
+    String? originalError;
+    if (result.success && result.data?.originalImageUrl != null) {
+      final image = await _api.fetchOriginalPng(widget.shareId);
+      if (image.success) {
+        originalPng = image.data;
+      } else {
+        originalError = image.errorMessage ?? '원본 결과를 불러오지 못했어요.';
+      }
+    }
     if (!mounted) return;
     setState(() {
       _loading = false;
       if (result.success && result.data != null) {
         _shared = result.data;
+        _originalPng = originalPng;
+        _error = originalError;
       } else {
         _error = result.errorMessage ?? '공유된 결과를 찾을 수 없어요.';
       }
@@ -77,6 +92,27 @@ class _SharedResultScreenState extends State<SharedResultScreen> {
   }
 
   Widget _buildResult(BuildContext context, SharedResultDto shared) {
+    if (_originalPng != null) {
+      return ListView(
+        children: [
+          Image.memory(
+            _originalPng!,
+            width: double.infinity,
+            fit: BoxFit.fitWidth,
+          ),
+          FilledButton(
+            onPressed: () => showFullResultSheet(
+              context,
+              title: shared.title,
+              shareUrl: 'https://sintong.kr/r/${shared.shareId}',
+              payload: shared.payload ?? const {},
+              originalPng: _originalPng,
+            ),
+            child: const Text('원본 저장 · 공유'),
+          ),
+        ],
+      );
+    }
     // [결과 공유 링크 콘텐츠 부실 버그 수정] 기존에는 highlights만 단순
     // 나열해, 타로의 question/cardName처럼 서버 payload를 확장하며 새로
     // 추가한 키들이 화면에 전혀 표시되지 않았다("자기 타로 보고 잘
@@ -87,9 +123,9 @@ class _SharedResultScreenState extends State<SharedResultScreen> {
     // (기존 6줄 상한 없이 전부 표시 — 앱 쪽은 SSR 웹처럼 초기 로딩
     // 대역폭 제약이 없으므로 굳이 자르지 않는다).
     final payload = shared.payload ?? const {};
-    final highlights = (payload['highlights'] as List?)
-        ?.map((e) => e.toString())
-        .toList();
+    final highlights = fullResultSections(
+      payload,
+    ).map((section) => '${section['title']}\n${section['body']}').toList();
     final question = payload['question'] as String?;
     final cardName = payload['cardName'] as String?;
     return ListView(
@@ -123,7 +159,7 @@ class _SharedResultScreenState extends State<SharedResultScreen> {
           ),
           child: Text(shared.description, style: UnifiedText.body()),
         ),
-        if (highlights != null && highlights.isNotEmpty) ...[
+        if (highlights.isNotEmpty) ...[
           const SizedBox(height: UnifiedTokens.spaceMd),
           ...highlights.map(
             (h) => Padding(
@@ -132,6 +168,15 @@ class _SharedResultScreenState extends State<SharedResultScreen> {
             ),
           ),
         ],
+        FilledButton(
+          onPressed: () => showFullResultSheet(
+            context,
+            title: shared.title,
+            shareUrl: 'https://sintong.kr/r/${shared.shareId}',
+            payload: payload,
+          ),
+          child: const Text('전체 저장 · 공유'),
+        ),
         const SizedBox(height: UnifiedTokens.spaceXl),
         if (shared.ownerNickname != null)
           Text('${shared.ownerNickname}님이 공유했어요', style: UnifiedText.caption()),

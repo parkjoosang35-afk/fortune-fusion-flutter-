@@ -2,6 +2,13 @@
 /// 절대 호출되지 않는다(호출부인 `safe_share.dart`가 `kIsWeb`으로 이미
 /// 분기하기 때문). 조건부 export가 항상 하나의 구현을 요구하므로 안전한
 /// 기본값(false)만 반환하는 자리채움 구현이다.
-Future<bool> tryNativeWebShare(String text, {String? subject}) async {
-  return false;
+library;
+
+import 'web_share_outcome.dart';
+
+Future<NativeWebShareOutcome> tryNativeWebShare(
+  String text, {
+  String? subject,
+}) async {
+  return NativeWebShareOutcome.unavailable;
 }

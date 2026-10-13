@@ -6,5 +6,8 @@
 /// false를 반환하는 스텁(`web_native_share_io.dart`)을 사용한다 —
 /// 네이티브 플랫폼은 이미 `share_plus`의 `Share.share()`가 정상 동작
 /// 하므로 이 헬퍼가 개입할 필요가 없다.
+library;
+
+export 'web_share_outcome.dart';
 export 'web_native_share_io.dart'
     if (dart.library.html) 'web_native_share_web.dart';

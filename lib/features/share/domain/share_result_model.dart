@@ -64,6 +64,7 @@ class SharedResultDto {
   final String description;
   final Map<String, dynamic>? payload;
   final String? imageUrl;
+  final String? originalImageUrl;
   final String? ownerNickname;
   final int viewCount;
   final DateTime createdAt;
@@ -75,6 +76,7 @@ class SharedResultDto {
     required this.description,
     required this.payload,
     required this.imageUrl,
+    this.originalImageUrl,
     required this.ownerNickname,
     required this.viewCount,
     required this.createdAt,
@@ -92,6 +94,7 @@ class SharedResultDto {
       description: json['description'] as String? ?? '',
       payload: rawPayload is Map<String, dynamic> ? rawPayload : null,
       imageUrl: json['imageUrl'] as String?,
+      originalImageUrl: json['originalImageUrl'] as String?,
       ownerNickname: json['ownerNickname'] as String?,
       viewCount: (json['viewCount'] as num?)?.toInt() ?? 0,
       createdAt:

@@ -13,6 +13,7 @@ import '../../../share/application/share_service.dart';
 import '../../../share/domain/share_result_model.dart';
 import '../application/face_provider.dart';
 import '../domain/face_model.dart';
+import '../../../../core/util/original_result_capture.dart';
 
 /// [관상·손금 신통방통 "새벽 한지" 리스킨] 관상 결과 화면.
 ///
@@ -38,6 +39,8 @@ const Map<String, IconData> _topicIcons = {
 };
 
 class _FaceResultScreenState extends State<FaceResultScreen> {
+  final _originalResultKey = GlobalKey();
+  final _originalHeaderKey = GlobalKey();
   @override
   void initState() {
     super.initState();
@@ -64,31 +67,56 @@ class _FaceResultScreenState extends State<FaceResultScreen> {
           SafeArea(
             child: Column(
               children: [
-                _ResultTopBar(
-                  hanja: '觀',
-                  hanjaColor: SintongColors.stampGuan,
-                  title: '觀相 · REPORT',
-                  onBack: canGoBack ? () => Navigator.of(context).pop() : null,
-                  onShare: state.isSuccess
-                      ? () => _shareResult(context, state.data!)
-                      : null,
+                OriginalResultScene(
+                  captureKey: _originalHeaderKey,
+                  background: SintongColors.bg1,
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: ClipRect(
+                          child: OverflowBox(
+                            alignment: Alignment.topCenter,
+                            minHeight: MediaQuery.sizeOf(context).height,
+                            maxHeight: MediaQuery.sizeOf(context).height,
+                            child: const SintongScreenBg(),
+                          ),
+                        ),
+                      ),
+                      _ResultTopBar(
+                        hanja: '觀',
+                        hanjaColor: SintongColors.stampGuan,
+                        title: '觀相 · REPORT',
+                        onBack: canGoBack
+                            ? () => Navigator.of(context).pop()
+                            : null,
+                        onShare: state.isSuccess
+                            ? () => _shareResult(context, state.data!)
+                            : null,
+                      ),
+                    ],
+                  ),
                 ),
                 Expanded(
-                  child: _PaperSheet(
-                    child: switch (state.status) {
-                      LoadStatus.loading => const Center(
-                        child: CircularProgressIndicator(),
-                      ),
-                      LoadStatus.error => AppErrorState(
-                        message: state.errorMessage ?? '분석에 실패했습니다.',
-                        onRetry: () => provider.retry(),
-                      ),
-                      LoadStatus.success => _buildResult(context, state.data!),
-                      LoadStatus.initial => const AppErrorState(
-                        message: '입력 정보가 없습니다.',
-                      ),
-                    },
-                  ),
+                  child: state.isSuccess
+                      ? _buildResult(context, state.data!)
+                      : _PaperSheet(
+                          child: switch (state.status) {
+                            LoadStatus.loading => const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                            LoadStatus.error => AppErrorState(
+                              message: state.errorMessage ?? '분석에 실패했습니다.',
+                              onRetry: () => provider.retry(),
+                            ),
+                            LoadStatus.success => _buildResult(
+                              context,
+                              state.data!,
+                            ),
+                            LoadStatus.initial => const AppErrorState(
+                              message: '입력 정보가 없습니다.',
+                            ),
+                          },
+                        ),
                 ),
               ],
             ),
@@ -104,6 +132,8 @@ class _FaceResultScreenState extends State<FaceResultScreen> {
         .toList();
 
     return ResultCardStack(
+      captureKey: _originalResultKey,
+      captureFrame: (child) => _PaperSheet(child: child),
       heroCaption: '종합 관상 해석',
       heroSummary: result.summary,
       sectionTitle: '세부 리포트',
@@ -128,6 +158,16 @@ class _FaceResultScreenState extends State<FaceResultScreen> {
       // 보기")와는 섹션 전체 길이만큼 떨어져 있어 혼동 우려가 없다.
       midAd: const WebAdBanner(surface: WebAdSurface.face, adSlot: ''),
       ctas: [
+        ResultCta(
+          label: '결과페이지 그대로 저장',
+          icon: Icons.download_rounded,
+          onTap: () => saveOriginalResult(
+            context,
+            _originalResultKey,
+            name: 'sintong_face_${result.id}',
+            leadingKeys: [_originalHeaderKey],
+          ),
+        ),
         ResultCta(
           label: '다시 분석하기',
           icon: Icons.refresh_rounded,
@@ -179,6 +219,8 @@ class _FaceResultScreenState extends State<FaceResultScreen> {
         'highlights': [...featureLines, ...topicLines],
       },
       sourceRefId: result.id,
+      originalResultKey: _originalResultKey,
+      originalLeadingKeys: [_originalHeaderKey],
     );
   }
 }

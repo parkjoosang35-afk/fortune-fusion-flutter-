@@ -11,8 +11,8 @@ import '../domain/compatibility_model.dart';
 /// admin_web에 이미 완성되어 있던 `/api/public/compatibility/*` 3종
 /// (request/result/history)을 호출한다 — 이름 운세 Repository와 동일한
 /// http 호출 패턴을 그대로 재사용한다(신규 구조 없음, 기존 패턴 재사용).
-/// 궁합은 admin_web 쪽에서 이미 "완전 무료"(복주머니 차감 없음) 정책으로
-/// 구현되어 있으므로, 클라이언트에서도 별도 과금 로직을 추가하지 않는다.
+/// 신규 생성은 공용 결과보기 게이트의 거래 정보를 서버에 전달한다.
+/// 이력 조회와 같은 거래 재요청은 새 거래/차감을 만들지 않는다.
 class CompatibilityRepository {
   final List<CompatibilityResultModel> _history = [];
 
@@ -22,6 +22,9 @@ class CompatibilityRepository {
     required String nameB,
     required String birthDateA,
     required String birthDateB,
+    required String paymentMethod,
+    required String transactionId,
+    String? adSessionId,
   }) async {
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/compatibility/request',
@@ -44,20 +47,24 @@ class CompatibilityRepository {
               'nameB': nameB,
               'birthDateA': birthDateA,
               'birthDateB': birthDateB,
+              'paymentMethod': paymentMethod,
+              'transactionId': transactionId,
+              if (adSessionId != null) 'adSessionId': adSessionId,
             }),
           )
-          .timeout(const Duration(seconds: 30));
+          .timeout(const Duration(seconds: 90));
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
         final error = decoded['error'] as String? ?? '궁합 분석에 실패했습니다.';
         debugPrint('[CompatibilityRepository] [request] 실패 -> $error');
-        return ApiResult.fail(error);
+        return ApiResult.fail(error, code: decoded['reason'] as String?);
       }
 
       final result = CompatibilityResultModel.fromJson(
         decoded['data'] as Map<String, dynamic>,
       );
+      _history.removeWhere((item) => item.id == result.id);
       _history.insert(0, result);
       return ApiResult.ok(result);
     } catch (e) {
@@ -84,8 +91,7 @@ class CompatibilityRepository {
       }
       final list = (decoded['data'] as List<dynamic>)
           .map(
-            (e) =>
-                CompatibilityResultModel.fromJson(e as Map<String, dynamic>),
+            (e) => CompatibilityResultModel.fromJson(e as Map<String, dynamic>),
           )
           .toList();
       return ApiResult.ok(list);

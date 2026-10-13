@@ -27,7 +27,11 @@ class ShareApiService {
     required Map<String, dynamic> payload,
     String? imageUrl,
     String? sourceRefId,
+    Uint8List? originalPng,
   }) async {
+    if (originalPng != null && originalPng.length > 8 * 1024 * 1024) {
+      return ApiResult.fail('원본 이미지가 공유 한도를 초과했습니다. 기기에 저장해주세요.');
+    }
     final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/share');
     debugPrint('[ShareApiService] [createShareLink] 요청 -> $uri');
 
@@ -43,10 +47,13 @@ class ShareApiService {
               'description': description,
               'payload': payload,
               if (imageUrl != null) 'imageUrl': imageUrl,
+              if (originalPng != null)
+                'originalPngBase64': base64Encode(originalPng),
+              if (originalPng != null) 'originalShareConsent': true,
               if (sourceRefId != null) 'sourceRefId': sourceRefId,
             }),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(Duration(seconds: originalPng == null ? 15 : 60));
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode >= 400 || decoded['success'] != true) {
@@ -87,6 +94,25 @@ class ShareApiService {
     } catch (e) {
       debugPrint('[ShareApiService] [fetchSharedResult] 예외 -> $e');
       return ApiResult.fail('공유된 결과 조회 중 오류가 발생했습니다: $e');
+    }
+  }
+
+  /// 서버가 안내한 원본만 같은 출처의 고정 경로에서 읽는다.
+  Future<ApiResult<Uint8List>> fetchOriginalPng(String shareId) async {
+    try {
+      final uri = Uri.parse(
+        '${EnvConfig.adminApiBaseUrl}/api/public/share/${Uri.encodeComponent(shareId)}?original=1',
+      );
+      final response = await http.get(uri).timeout(const Duration(seconds: 30));
+      final bytes = response.bodyBytes;
+      if (response.statusCode != 200 ||
+          response.headers['content-type']?.split(';').first != 'image/png' ||
+          bytes.length > 8 * 1024 * 1024) {
+        return ApiResult.fail('원본 결과를 불러오지 못했어요.');
+      }
+      return ApiResult.ok(bytes);
+    } catch (_) {
+      return ApiResult.fail('원본 결과를 불러오지 못했어요.');
     }
   }
 

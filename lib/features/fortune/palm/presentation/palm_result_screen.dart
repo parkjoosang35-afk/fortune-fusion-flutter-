@@ -13,6 +13,7 @@ import '../../../share/application/share_service.dart';
 import '../../../share/domain/share_result_model.dart';
 import '../application/palm_provider.dart';
 import '../domain/palm_model.dart';
+import '../../../../core/util/original_result_capture.dart';
 
 /// [관상·손금 신통방통 "새벽 한지" 리스킨] 손금 결과 화면.
 ///
@@ -39,6 +40,8 @@ const Map<String, IconData> _topicIcons = {
 };
 
 class _PalmResultScreenState extends State<PalmResultScreen> {
+  final _originalResultKey = GlobalKey();
+  final _originalHeaderKey = GlobalKey();
   @override
   void initState() {
     super.initState();
@@ -62,31 +65,56 @@ class _PalmResultScreenState extends State<PalmResultScreen> {
           SafeArea(
             child: Column(
               children: [
-                _ResultTopBar(
-                  hanja: '紋',
-                  hanjaColor: SintongColors.stampMun,
-                  title: '手紋 · REPORT',
-                  onBack: canGoBack ? () => Navigator.of(context).pop() : null,
-                  onShare: state.isSuccess
-                      ? () => _shareResult(context, state.data!)
-                      : null,
+                OriginalResultScene(
+                  captureKey: _originalHeaderKey,
+                  background: SintongColors.bg1,
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: ClipRect(
+                          child: OverflowBox(
+                            alignment: Alignment.topCenter,
+                            minHeight: MediaQuery.sizeOf(context).height,
+                            maxHeight: MediaQuery.sizeOf(context).height,
+                            child: const SintongScreenBg(),
+                          ),
+                        ),
+                      ),
+                      _ResultTopBar(
+                        hanja: '紋',
+                        hanjaColor: SintongColors.stampMun,
+                        title: '手紋 · REPORT',
+                        onBack: canGoBack
+                            ? () => Navigator.of(context).pop()
+                            : null,
+                        onShare: state.isSuccess
+                            ? () => _shareResult(context, state.data!)
+                            : null,
+                      ),
+                    ],
+                  ),
                 ),
                 Expanded(
-                  child: _PaperSheet(
-                    child: switch (state.status) {
-                      LoadStatus.loading => const Center(
-                        child: CircularProgressIndicator(),
-                      ),
-                      LoadStatus.error => AppErrorState(
-                        message: state.errorMessage ?? '분석에 실패했습니다.',
-                        onRetry: () => provider.retry(),
-                      ),
-                      LoadStatus.success => _buildResult(context, state.data!),
-                      LoadStatus.initial => const AppErrorState(
-                        message: '입력 정보가 없습니다.',
-                      ),
-                    },
-                  ),
+                  child: state.isSuccess
+                      ? _buildResult(context, state.data!)
+                      : _PaperSheet(
+                          child: switch (state.status) {
+                            LoadStatus.loading => const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                            LoadStatus.error => AppErrorState(
+                              message: state.errorMessage ?? '분석에 실패했습니다.',
+                              onRetry: () => provider.retry(),
+                            ),
+                            LoadStatus.success => _buildResult(
+                              context,
+                              state.data!,
+                            ),
+                            LoadStatus.initial => const AppErrorState(
+                              message: '입력 정보가 없습니다.',
+                            ),
+                          },
+                        ),
                 ),
               ],
             ),
@@ -102,6 +130,8 @@ class _PalmResultScreenState extends State<PalmResultScreen> {
         .toList();
 
     return ResultCardStack(
+      captureKey: _originalResultKey,
+      captureFrame: (child) => _PaperSheet(child: child),
       heroCaption: '종합 손금 해석',
       heroSummary: result.summary,
       sectionTitle: '세부 리포트',
@@ -126,6 +156,16 @@ class _PalmResultScreenState extends State<PalmResultScreen> {
         ),
       ],
       ctas: [
+        ResultCta(
+          label: '결과페이지 그대로 저장',
+          icon: Icons.download_rounded,
+          onTap: () => saveOriginalResult(
+            context,
+            _originalResultKey,
+            name: 'sintong_palm_${result.id}',
+            leadingKeys: [_originalHeaderKey],
+          ),
+        ),
         ResultCta(
           label: '다시 분석하기',
           icon: Icons.refresh_rounded,
@@ -171,6 +211,8 @@ class _PalmResultScreenState extends State<PalmResultScreen> {
         'highlights': [...lineLines, ...topicLines],
       },
       sourceRefId: result.id,
+      originalResultKey: _originalResultKey,
+      originalLeadingKeys: [_originalHeaderKey],
     );
   }
 }

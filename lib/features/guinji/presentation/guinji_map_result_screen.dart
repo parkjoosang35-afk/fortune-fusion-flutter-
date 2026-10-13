@@ -91,7 +91,9 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
     // `loadMyMap` 호출에서) 마일스톤 보너스를 지급했다면 여기서 축하
     // 다이얼로그를 1회 띄운다. 프레임이 그려진 뒤 확인해야
     // `ScaffoldMessenger`/`showDialog`가 안전하게 동작한다.
-    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowMilestoneCelebration());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _maybeShowMilestoneCelebration(),
+    );
     unawaited(_checkArrivals());
   }
 
@@ -118,7 +120,9 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
     if (_lastCheckedPeopleCount == widget.people.length) return;
     _lastCheckedPeopleCount = widget.people.length;
 
-    final arrivals = await GuinjiArrivalSeenStore.findNewArrivals(widget.people);
+    final arrivals = await GuinjiArrivalSeenStore.findNewArrivals(
+      widget.people,
+    );
     if (!mounted || arrivals.isEmpty) return;
     setState(() => _pendingArrivals = arrivals);
   }
@@ -188,7 +192,11 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
               Text(
                 '친구 3명이 귀인지도에 모였어요.\n고마운 마음을 담아 복주머니 ${rewardPoint > 0 ? rewardPoint : 30}개를 보내드려요.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 13, height: 1.5, color: GmColors.muted),
+                style: const TextStyle(
+                  fontSize: 13,
+                  height: 1.5,
+                  color: GmColors.muted,
+                ),
               ),
               const SizedBox(height: 20),
               SizedBox(
@@ -198,10 +206,15 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
                     backgroundColor: GmColors.gold,
                     foregroundColor: GmColors.onFg,
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: const Text('좋아요', style: TextStyle(fontWeight: FontWeight.w700)),
+                  child: const Text(
+                    '좋아요',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
                 ),
               ),
             ],
@@ -327,7 +340,10 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
                     Expanded(
                       child: Text(
                         '$total명과 연결되어 있어요',
-                        style: const TextStyle(fontSize: 13.5, color: GmColors.muted),
+                        style: const TextStyle(
+                          fontSize: 13.5,
+                          color: GmColors.muted,
+                        ),
                       ),
                     ),
                     OutlinedButton(
@@ -335,13 +351,21 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
                       style: OutlinedButton.styleFrom(
                         foregroundColor: GmColors.fg,
                         side: const BorderSide(color: GmColors.line),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9999)),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(9999),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
                       ),
                       child: const Text.rich(
                         TextSpan(
                           children: [
-                            TextSpan(text: '♛ ', style: TextStyle(color: GmColors.gold)),
+                            TextSpan(
+                              text: '♛ ',
+                              style: TextStyle(color: GmColors.gold),
+                            ),
                             TextSpan(text: '랭킹'),
                           ],
                         ),
@@ -355,12 +379,20 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
                         backgroundColor: GmColors.fg,
                         foregroundColor: GmColors.onFg,
                         elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9999)),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(9999),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 4,
+                        ),
                       ),
                       child: const Text(
                         '＋ 초대',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],
@@ -431,7 +463,11 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
                   children: [
                     const Text(
                       '가장 강한 인연',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: GmColors.fg),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: GmColors.fg,
+                      ),
                     ),
                     const Spacer(),
                     TextButton(
@@ -541,7 +577,10 @@ class _GmTypeFilterRow extends StatelessWidget {
             Container(
               width: 6,
               height: 6,
-              decoration: BoxDecoration(color: spec.color, shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                color: spec.color,
+                shape: BoxShape.circle,
+              ),
             ),
             const SizedBox(width: 5),
             Text(
@@ -621,7 +660,10 @@ class _GmFriendRow extends StatelessWidget {
                         foreground: color,
                         borderColor: color.withValues(alpha: 0.25),
                         fontSize: 10,
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
                       ),
                     ],
                   ),
@@ -640,11 +682,19 @@ class _GmFriendRow extends StatelessWidget {
               children: [
                 Text(
                   '${person.score}',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: color),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: color,
+                  ),
                 ),
                 const Text(
                   'SCORE',
-                  style: TextStyle(fontSize: 8, letterSpacing: 0.6, color: GmColors.dim),
+                  style: TextStyle(
+                    fontSize: 8,
+                    letterSpacing: 0.6,
+                    color: GmColors.dim,
+                  ),
                 ),
               ],
             ),
@@ -699,7 +749,9 @@ class _GmOwnerSajuCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: GmColors.gold.withValues(alpha: 0.15),
-                  border: Border.all(color: GmColors.gold.withValues(alpha: 0.4)),
+                  border: Border.all(
+                    color: GmColors.gold.withValues(alpha: 0.4),
+                  ),
                 ),
                 child: Text(
                   summary.dayMasterKr.isNotEmpty
@@ -741,7 +793,10 @@ class _GmOwnerSajuCard extends StatelessWidget {
                       foreground: GmColors.gold,
                       borderColor: GmColors.gold.withValues(alpha: 0.3),
                       fontSize: 10.5,
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                     ),
                   ],
                 ),
@@ -755,26 +810,42 @@ class _GmOwnerSajuCard extends StatelessWidget {
           // 한 줄을 명시해 "왜 이런 말이 나왔는지"가 화면에 보이게 한다.
           Text(
             '${summary.nature}\n${summary.personality}',
-            style: const TextStyle(fontSize: 15.5, height: 1.7, color: GmColors.fg),
+            style: const TextStyle(
+              fontSize: 15.5,
+              height: 1.7,
+              color: GmColors.fg,
+            ),
           ),
           if (summary.strengths.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(
               '강점 · ${summary.strengths.take(3).join(' · ')}',
-              style: const TextStyle(fontSize: 13.5, height: 1.6, color: GmColors.fg),
+              style: const TextStyle(
+                fontSize: 13.5,
+                height: 1.6,
+                color: GmColors.fg,
+              ),
             ),
           ],
           if (summary.weaknesses.isNotEmpty) ...[
             const SizedBox(height: 4),
             Text(
               '유의 · ${summary.weaknesses.take(2).join(' · ')}',
-              style: const TextStyle(fontSize: 13.5, height: 1.6, color: GmColors.muted),
+              style: const TextStyle(
+                fontSize: 13.5,
+                height: 1.6,
+                color: GmColors.muted,
+              ),
             ),
           ],
           const SizedBox(height: 10),
           Text(
             summary.basisLabel,
-            style: const TextStyle(fontSize: 11.5, height: 1.5, color: GmColors.dim),
+            style: const TextStyle(
+              fontSize: 11.5,
+              height: 1.5,
+              color: GmColors.dim,
+            ),
           ),
         ],
       ),
@@ -839,7 +910,9 @@ class _GmFewMembersBanner extends StatelessWidget {
                   height: 4,
                   margin: EdgeInsets.only(right: i < 2 ? 5 : 0),
                   decoration: BoxDecoration(
-                    color: filled ? GmColors.gold : Colors.white.withValues(alpha: 0.1),
+                    color: filled
+                        ? GmColors.gold
+                        : Colors.white.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),

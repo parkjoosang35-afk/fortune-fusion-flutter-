@@ -87,8 +87,8 @@ class PendingResultAccessReturn {
       userInput: (json['userInput'] as Map?)?.cast<String, dynamic>() ?? {},
       resultRequestId: json['resultRequestId'] as String?,
       returnRoute: json['returnRoute'] as String,
-      savedAt: DateTime.tryParse(json['savedAt'] as String? ?? '') ??
-          DateTime.now(),
+      savedAt:
+          DateTime.tryParse(json['savedAt'] as String? ?? '') ?? DateTime.now(),
       contentTitle: json['contentTitle'] as String?,
       categoryKey: json['categoryKey'] as String?,
     );
@@ -119,12 +119,19 @@ class PendingResultAccessReturnStore {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_kKey);
     if (raw == null) return null;
-    await prefs.remove(_kKey);
     try {
       final state = PendingResultAccessReturn.fromJson(
         jsonDecode(raw) as Map<String, dynamic>,
       );
-      if (DateTime.now().difference(state.savedAt) > _maxAge) return null;
+      // 이미 차감 요청한 궁합 거래는 오래되어도 서버 상태 확인·복구를 해야 한다.
+      if (state.contentType == 'compatibility' &&
+          state.userInput.containsKey('_resultAccess')) {
+        return state; // 결과/환불 확인 전에는 소비 삭제하지 않는다.
+      }
+      await prefs.remove(_kKey);
+      if (DateTime.now().difference(state.savedAt) > _maxAge) {
+        return null;
+      }
       return state;
     } catch (_) {
       return null;
@@ -136,6 +143,28 @@ class PendingResultAccessReturnStore {
   static Future<bool> hasPending() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.containsKey(_kKey);
+  }
+
+  /// 진행 거래는 조회만 한다. 응답 확인 전에는 삭제하지 않아 재시작을 견딘다.
+  static Future<PendingResultAccessReturn?> peek() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_kKey);
+    if (raw == null) return null;
+    try {
+      return PendingResultAccessReturn.fromJson(
+        jsonDecode(raw) as Map<String, dynamic>,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<void> clearTransaction(String transactionId) async {
+    final saved = await peek();
+    final access = saved?.userInput['_resultAccess'];
+    if (access is Map && access['transactionId'] == transactionId) {
+      await clear();
+    }
   }
 
   static Future<void> clear() async {

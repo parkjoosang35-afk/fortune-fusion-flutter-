@@ -1,6 +1,9 @@
 // ignore_for_file: no_leading_underscores_for_local_identifiers
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ui' as ui;
+import 'package:flutter/rendering.dart';
+import 'package:flutter_app/core/util/original_result_capture.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -184,6 +187,43 @@ void main() {
     await http.runWithClient(() async {
       await pumpToDetail(tester, _interpretDetailFullResponse);
 
+      final header = tester.widget<OriginalResultScene>(
+        find.byType(OriginalResultScene),
+      );
+      final body = tester.widget<OriginalResultBody>(
+        find.byType(OriginalResultBody),
+      );
+      expect(
+        find.descendant(
+          of: find.byType(OriginalResultScene),
+          matching: find.text('DETAIL · 07'),
+        ),
+        findsOneWidget,
+      );
+      final headerSize =
+          (header.captureKey.currentContext!.findRenderObject()
+                  as RenderRepaintBoundary)
+              .size;
+      final bodySize =
+          (body.captureKey.currentContext!.findRenderObject()
+                  as RenderRepaintBoundary)
+              .size;
+      final png = captureOriginalResult(
+        body.captureKey,
+        leadingKeys: [header.captureKey],
+      );
+      await tester.pump();
+      await tester.runAsync(() async {
+        final codec = await ui.instantiateImageCodec(await png);
+        final image = (await codec.getNextFrame()).image;
+        expect(image.width, (bodySize.width * 1.5).ceil());
+        expect(
+          image.height,
+          (headerSize.height * 1.5).ceil() + (bodySize.height * 1.5).ceil(),
+        );
+        image.dispose();
+        codec.dispose();
+      });
       // 블록 제목(완전한 문장) — C-07-1~5.
       expect(
         find.text('당신의 사주에서 보이는 핵심'),

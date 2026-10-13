@@ -7,14 +7,21 @@ import 'dart:typed_data';
 /// web 없음), 브라우저 표준 방식(Blob URL + 임시 `<a download>` 클릭)으로
 /// PNG 파일 다운로드를 트리거한다. 사용자의 브라우저 "다운로드" 폴더에
 /// 저장되며, 이는 웹에서 "갤러리 저장"에 대응하는 가장 표준적인 동작이다.
-Future<bool> saveImageBytesToGallery(Uint8List bytes, {required String name}) async {
+Future<bool> saveImageBytesToGallery(
+  Uint8List bytes, {
+  required String name,
+}) async {
   try {
     final blob = html.Blob([bytes], 'image/png');
     final url = html.Url.createObjectUrlFromBlob(blob);
     html.AnchorElement(href: url)
-      ..setAttribute('download', name)
+      ..setAttribute('download', name.endsWith('.png') ? name : '$name.png')
       ..click();
-    html.Url.revokeObjectUrl(url);
+    // 다운로드가 Blob을 읽기 전에 URL을 제거하지 않는다.
+    Future<void>.delayed(
+      const Duration(seconds: 30),
+      () => html.Url.revokeObjectUrl(url),
+    );
     return true;
   } catch (_) {
     return false;

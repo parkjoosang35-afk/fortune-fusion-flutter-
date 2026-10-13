@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/util/original_result_capture.dart';
 import '../../../core/util/safe_share.dart';
 import '../../share/application/share_service.dart';
 import '../../share/domain/share_result_model.dart';
@@ -165,6 +166,11 @@ class _GuinjiMapRelationDetailScreenState
     }
   }
 
+  // [관계 결과 원본 캡처] 공유 링크가 재구성 화면이 아니라 이 화면 그대로
+  // 열리도록 전체 본문을 캡처하는 경계. 상대 이름·생년 등 화면에 보이는
+  // 정보가 이미지에 그대로 담기므로 공유 전 별도 공개 동의를 받는다.
+  final _originalResultKey = GlobalKey();
+
   // [공유하기 버튼 버그수정 — 2026-09, 근본 수정 2026-12] 기존에는
   // Share.share()를 결과를 기다리지 않고 fire-and-forget으로 호출해, 웹에서
   // navigator.share 미지원/실패 시(또는 Android에서 공유 대상 앱이 없을 때)
@@ -193,10 +199,13 @@ class _GuinjiMapRelationDetailScreenState
             key: key == person.relation ? 1 : 0,
         },
         subject: '신통방통 귀인지도',
+        originalResultKey: _originalResultKey,
       );
     } catch (_) {
       // 링크 생성 실패 시에만 텍스트 공유로 폴백.
-      await safeShareText(context, message, subject: '신통방통 귀인지도');
+      if (mounted) {
+        await safeShareText(context, message, subject: '신통방통 귀인지도');
+      }
     }
   }
 
@@ -217,7 +226,6 @@ class _GuinjiMapRelationDetailScreenState
             : GuinjiDeepResultScreen(
                 person: widget.person,
                 ownerName: ownerName,
-                onShare: _handleShare,
               ),
       ),
     );
@@ -235,7 +243,9 @@ class _GuinjiMapRelationDetailScreenState
     return Scaffold(
       backgroundColor: GmColors.bg,
       appBar: GmTopBar(back: true, title: '${person.name}님과의 관계'),
-      body: SingleChildScrollView(
+      body: OriginalResultBody(
+        captureKey: _originalResultKey,
+        background: GmColors.bg,
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 440),
@@ -245,7 +255,10 @@ class _GuinjiMapRelationDetailScreenState
               // Hero — 아바타 + 이름 + 관계 라벨 + 점수.
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 28,
+                  horizontal: 20,
+                ),
                 decoration: BoxDecoration(
                   color: GmColors.card,
                   border: Border.all(color: GmColors.line),
@@ -350,7 +363,11 @@ class _GuinjiMapRelationDetailScreenState
                     const SizedBox(height: 10),
                     Text(
                       meta.long,
-                      style: const TextStyle(fontSize: 13.5, height: 1.7, color: GmColors.fg),
+                      style: const TextStyle(
+                        fontSize: 13.5,
+                        height: 1.7,
+                        color: GmColors.fg,
+                      ),
                     ),
                     const SizedBox(height: 14),
                     _MomentRow(
@@ -394,7 +411,9 @@ class _GuinjiMapRelationDetailScreenState
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
                           color: ohaeng.color.withValues(alpha: 0.16),
-                          border: Border.all(color: ohaeng.color.withValues(alpha: 0.5)),
+                          border: Border.all(
+                            color: ohaeng.color.withValues(alpha: 0.5),
+                          ),
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Text(
@@ -424,7 +443,10 @@ class _GuinjiMapRelationDetailScreenState
                               const SizedBox(height: 2),
                               Text(
                                 person.note,
-                                style: const TextStyle(fontSize: 11, color: GmColors.muted),
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: GmColors.muted,
+                                ),
                               ),
                             ],
                           ],
@@ -460,7 +482,12 @@ class _GuinjiMapRelationDetailScreenState
                   },
                 )
               else
-                _SpecialUnlockedCard(person: person, meta: meta, ohaeng: ohaeng, color: color),
+                _SpecialUnlockedCard(
+                  person: person,
+                  meta: meta,
+                  ohaeng: ohaeng,
+                  color: color,
+                ),
 
               // [핸드오프 CDetail 하단 버튼 1:1 이식] JSX는 "공유"(좌측
               // 104px, 테두리만)과 "더 자세한 관계 보기"/"자세한 관계 다시
@@ -488,7 +515,10 @@ class _GuinjiMapRelationDetailScreenState
                         ),
                         child: const Text(
                           '공유',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
@@ -586,7 +616,11 @@ class _ReasonsCard extends StatelessWidget {
 }
 
 class _MomentRow extends StatelessWidget {
-  const _MomentRow({required this.color, required this.label, required this.desc});
+  const _MomentRow({
+    required this.color,
+    required this.label,
+    required this.desc,
+  });
 
   final Color color;
   final String label;
@@ -606,11 +640,18 @@ class _MomentRow extends StatelessWidget {
         Expanded(
           child: RichText(
             text: TextSpan(
-              style: const TextStyle(fontSize: 12, height: 1.55, color: GmColors.muted),
+              style: const TextStyle(
+                fontSize: 12,
+                height: 1.55,
+                color: GmColors.muted,
+              ),
               children: [
                 TextSpan(
                   text: '$label · ',
-                  style: const TextStyle(fontWeight: FontWeight.w700, color: GmColors.fg),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: GmColors.fg,
+                  ),
                 ),
                 TextSpan(text: desc),
               ],
@@ -720,7 +761,11 @@ class _SpecialLockedCardState extends State<_SpecialLockedCard> {
           const SizedBox(height: 6),
           const Text(
             '이 관계, 어떻게 대해야 할까',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: GmColors.fg),
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: GmColors.fg,
+            ),
           ),
           const SizedBox(height: 4),
           const Text(
@@ -730,7 +775,11 @@ class _SpecialLockedCardState extends State<_SpecialLockedCard> {
           const SizedBox(height: 14),
           const Text(
             '여는 방법을 골라 주세요',
-            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: GmColors.dim),
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+              color: GmColors.dim,
+            ),
           ),
           const SizedBox(height: 8),
           if (widget.unlocking)
@@ -740,7 +789,10 @@ class _SpecialLockedCardState extends State<_SpecialLockedCard> {
                 child: SizedBox(
                   width: 18,
                   height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: GmColors.gold),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: GmColors.gold,
+                  ),
                 ),
               ),
             )
@@ -804,7 +856,10 @@ class _SpecialLockedCardState extends State<_SpecialLockedCard> {
                   ),
                   child: Text(
                     _pick == _PayPick.freepass ? '프리패스 1회로 열기' : '광고 보고 열기',
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ),
@@ -853,7 +908,9 @@ class _PayOptionTile extends StatelessWidget {
                 ? GmColors.gold.withValues(alpha: 0.12)
                 : Colors.white.withValues(alpha: 0.03),
             border: Border.all(
-              color: selected ? GmColors.gold.withValues(alpha: 0.55) : GmColors.hair,
+              color: selected
+                  ? GmColors.gold.withValues(alpha: 0.55)
+                  : GmColors.hair,
             ),
           ),
           child: Row(
@@ -875,7 +932,10 @@ class _PayOptionTile extends StatelessWidget {
                     const SizedBox(height: 3),
                     Text(
                       sub,
-                      style: const TextStyle(fontSize: 11.5, color: GmColors.muted),
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        color: GmColors.muted,
+                      ),
                     ),
                   ],
                 ),
@@ -1028,7 +1088,9 @@ class _SpecialUnlockedCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final label = meta.label;
-    final ohaengText = ohaeng != null ? '${ohaeng!.name}(${ohaeng!.label})' : '오행';
+    final ohaengText = ohaeng != null
+        ? '${ohaeng!.name}(${ohaeng!.label})'
+        : '오행';
     // [스페셜 해설 콘텐츠 풍부화 — 2026-09] 관계 유형(V2 6종)별 실제 심층
     // 해설/팁을 사용한다("내용이 빈약하다" 리포트 대응). guinjiRelationMetaOf()가
     // 항상 유효한 meta를 반환하므로 null 폴백은 더 이상 필요하지 않다.
@@ -1049,13 +1111,23 @@ class _SpecialUnlockedCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text.rich(
             TextSpan(
-              style: const TextStyle(fontSize: 13, height: 1.65, color: GmColors.fg),
+              style: const TextStyle(
+                fontSize: 13,
+                height: 1.65,
+                color: GmColors.fg,
+              ),
               children: [
                 const TextSpan(text: '두 분은 '),
-                TextSpan(text: label, style: TextStyle(color: color, fontWeight: FontWeight.w700)),
+                TextSpan(
+                  text: label,
+                  style: TextStyle(color: color, fontWeight: FontWeight.w700),
+                ),
                 const TextSpan(text: '의 결이에요. '),
                 TextSpan(text: '${person.name}님이 지닌 '),
-                TextSpan(text: ohaengText, style: const TextStyle(color: GmColors.gold)),
+                TextSpan(
+                  text: ohaengText,
+                  style: const TextStyle(color: GmColors.gold),
+                ),
                 const TextSpan(text: '의 기운을 함께 지녔어요.\n\n'),
                 TextSpan(text: insight),
               ],
@@ -1070,14 +1142,23 @@ class _SpecialUnlockedCard extends StatelessWidget {
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: GmColors.gold.withValues(alpha: 0.06),
-                  border: Border.all(color: GmColors.gold.withValues(alpha: 0.18)),
+                  border: Border.all(
+                    color: GmColors.gold.withValues(alpha: 0.18),
+                  ),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text.rich(
                   TextSpan(
-                    style: const TextStyle(fontSize: 11, height: 1.5, color: GmColors.muted),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      height: 1.5,
+                      color: GmColors.muted,
+                    ),
                     children: [
-                      const TextSpan(text: 'Tip. ', style: TextStyle(color: GmColors.gold)),
+                      const TextSpan(
+                        text: 'Tip. ',
+                        style: TextStyle(color: GmColors.gold),
+                      ),
                       TextSpan(text: tip),
                     ],
                   ),

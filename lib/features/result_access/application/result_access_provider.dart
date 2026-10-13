@@ -44,6 +44,7 @@ class ResultAccessProvider extends ChangeNotifier {
       _quote = result.data;
       _lastErrorReason = null;
     } else {
+      _quote = null; // 다른 계정/이전 성공 견적을 로그인 필요 화면에 남기지 않는다.
       _lastError = result.errorMessage;
       // [비로그인 결과보기 복귀 지시서 R1/R4] getQuote() 실패(주로 401
       // UNAUTHORIZED)도 begin()과 동일하게 errorCode를 lastErrorReason에

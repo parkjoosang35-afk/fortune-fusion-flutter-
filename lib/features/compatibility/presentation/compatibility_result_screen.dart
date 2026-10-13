@@ -6,6 +6,8 @@ import '../../../core/widgets/app_error_state.dart';
 import '../../../core/widgets/result_card_stack.dart';
 import '../application/compatibility_provider.dart';
 import '../domain/compatibility_model.dart';
+import '../../result_access/presentation/result_access_gate_sheet.dart';
+import '../../pass/application/pass_provider.dart';
 
 /// [궁합(C그룹) 신규 구현] CompatibilityResultScreen - 결과형 패턴.
 ///
@@ -15,6 +17,27 @@ import '../domain/compatibility_model.dart';
 /// 목록으로 매핑한다.
 class CompatibilityResultScreen extends StatelessWidget {
   const CompatibilityResultScreen({super.key});
+
+  Future<void> _retry(
+    BuildContext context,
+    CompatibilityProvider provider,
+  ) async {
+    if (provider.needsNewAccess) {
+      final access = await showResultAccessGateSheet(
+        context,
+        contentType: 'compatibility',
+        categoryKey: 'compatibility',
+        contentTitle: '궁합 보기',
+        returnRoute: '/compatibility/input',
+        userInputForRestore: provider.inputForRestore,
+      );
+      if (!context.mounted || access == null) return;
+      await provider.retry(access: access);
+    } else {
+      await provider.retry();
+    }
+    if (context.mounted) context.read<PassProvider>().load();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +56,7 @@ class CompatibilityResultScreen extends StatelessWidget {
           LoadStatus.loading => const _CompatibilityLoading(),
           LoadStatus.error => AppErrorState(
             message: state.errorMessage ?? '분석에 실패했습니다.',
-            onRetry: () => provider.retry(),
+            onRetry: () => _retry(context, provider),
           ),
           LoadStatus.success => _buildResult(context, state.data!),
           LoadStatus.initial => const AppErrorState(message: '입력 정보가 없습니다.'),
@@ -53,9 +76,7 @@ class CompatibilityResultScreen extends StatelessWidget {
     return ResultCardStack(
       heroCaption: '${result.nameA} × ${result.nameB} · $typeLabel',
       heroSummary: result.summary,
-      heroChips: [
-        _ScoreChip(score: result.score),
-      ],
+      heroChips: [_ScoreChip(score: result.score)],
       sectionTitle: '항목별 궁합',
       sections: [
         for (final entry in result.topicResults.entries)

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:kakao_flutter_sdk_common/kakao_flutter_sdk_common.dart';
 import 'app.dart';
@@ -18,6 +19,10 @@ import 'features/wishroom/data/wr_catalog.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  LicenseRegistry.addLicense(() async* {
+    final text = await rootBundle.loadString('assets/fonts/wish_room/NotoSansKR-OFL.txt');
+    yield LicenseEntryWithLineBreaks(['Noto Sans KR'], text);
+  });
   // [버그수정 — "복주머니 탭 완전 빈 화면" 근본원인 진단용] 릴리즈 모드에서는
   // 위젯 build() 중 예외가 나면 Flutter가 기본적으로 내용 없는 회색 박스를
   // 보여주고 에러를 콘솔에만 찍는다(보안상 설계). 그래서 지금까지 "복주머니가

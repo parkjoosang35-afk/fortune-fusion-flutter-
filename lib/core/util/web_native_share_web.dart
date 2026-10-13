@@ -1,4 +1,6 @@
 import 'dart:js_interop';
+import 'dart:js_interop_unsafe';
+import 'web_share_outcome.dart';
 import 'package:web/web.dart' as web;
 
 /// [결과 공유 UX 불일치 버그 수정]
@@ -19,10 +21,12 @@ import 'package:web/web.dart' as web;
 /// `navigator.canShare()`로 지원 여부를 먼저 확인한 뒤에만
 /// `navigator.share()`를 시도한다 — canShare()가 없거나 false인
 /// 브라우저에서는 절대 시도하지 않으므로 기존에 고쳤던 `mailto:` 버그가
-/// 재발하지 않는다. 성공하면 true, 실패(canShare 미지원/false/사용자
-/// 취소/기타 예외)하면 false를 돌려주어 호출부(`safe_share.dart`)가
-/// 안전하게 클립보드 폴백을 이어가게 한다.
-Future<bool> tryNativeWebShare(String text, {String? subject}) async {
+/// 재발하지 않는다. 성공·취소·미지원 결과를 구분하여 취소에는
+/// 자동 복사가 발생하지 않도록 한다.
+Future<NativeWebShareOutcome> tryNativeWebShare(
+  String text, {
+  String? subject,
+}) async {
   try {
     final navigator = web.window.navigator;
     final data = (subject != null && subject.isNotEmpty)
@@ -30,14 +34,19 @@ Future<bool> tryNativeWebShare(String text, {String? subject}) async {
         : web.ShareData(text: text);
 
     final canShare = navigator.canShare(data);
-    if (!canShare) return false;
+    if (!canShare) return NativeWebShareOutcome.unavailable;
 
     await navigator.share(data).toDart;
-    return true;
-  } catch (_) {
-    // canShare/share가 아예 없는 구형 브라우저(NoSuchMethodError)나
-    // 사용자가 공유 시트를 취소한 경우(AbortError) 모두 여기로 온다 —
-    // 두 경우 모두 호출부가 클립보드로 안전하게 폴백해야 하므로 false.
-    return false;
+    return NativeWebShareOutcome.shared;
+  } catch (error) {
+    try {
+      final name = (error as JSObject)
+          .getProperty<JSAny?>('name'.toJS)
+          ?.dartify();
+      if (name == 'AbortError') return NativeWebShareOutcome.cancelled;
+    } catch (_) {
+      /* JS가 아닌 예외는 미지원 처리 */
+    }
+    return NativeWebShareOutcome.unavailable;
   }
 }

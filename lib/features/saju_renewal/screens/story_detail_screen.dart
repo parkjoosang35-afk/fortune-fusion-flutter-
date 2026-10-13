@@ -20,6 +20,7 @@ import '../widgets/saju_visual_widgets.dart';
 import '../../share/application/share_service.dart';
 import '../../share/domain/share_result_model.dart';
 import 'more_stories_screen.dart';
+import '../../../core/util/original_result_capture.dart';
 
 /// [신통방통 정통사주 리뉴얼 — 다크 디자인 핸드오프] 화면⑦ 상세 사주
 /// 해석. `design_files/saju/screens-b.jsx`의 `ScreenDetail`을 재현한다 —
@@ -65,6 +66,8 @@ const List<String> _kBlockTitles = [
 
 class _StoryDetailScreenState extends State<StoryDetailScreen> {
   SajuVisualProfile? _profile;
+  final _originalResultKey = GlobalKey();
+  final _originalHeaderKey = GlobalKey();
 
   /// [버그 수정 — E-07(docs/07) 결함 발견] "상세 실패" 재시도 버튼의
   /// 중복클릭 방어 플래그(화면⑤ `_gateOpening`/`_retrying` 패턴과 동일).
@@ -121,7 +124,9 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
     final topic = provider.currentTopic;
     if (topic == null) return;
     final detail = provider.detailState.data;
-    if (detail == null || !provider.detailState.isSuccess) return; // [D-6] _persistRecentStory와 동일한 성공 기준
+    if (detail == null || !provider.detailState.isSuccess) {
+      return; // [D-6] _persistRecentStory와 동일한 성공 기준
+    }
     final firstBlockBody = detail.blocks.isNotEmpty
         ? detail.blocks.first.body
         : '';
@@ -186,7 +191,9 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
   /// 담는다 — 생년월일 원본/실명 등 사용자 개인정보는 애초에 이 모델에
   /// 존재하지 않는다(topic_id 등 내부 식별자도 제외).
   ///
-  /// [payload 상한 방어 — admin_web `SHARE_PAYLOAD_MAX_LENGTH=4000자`]
+  /// [전체 결과 공유] OG 설명 길이와 결과 본문 길이는 별도로 취급한다.
+  /// 아래 이전 280자 절단은 제거하고 모든 표시 블록 본문을 보존한다.
+  /// [이전 제한 설명 — 현재 미적용]
   /// 서버는 payload가 4000자를 넘으면 공유 생성 자체를 400으로 거부한다
   /// (타로/관상과 달리 사주는 5블록 "전체 해석 문장"이라 블록당 글자수가
   /// 길어 합산 시 상한을 넘길 위험이 있다 — 다른 서비스의 "요약 몇 줄"
@@ -196,33 +203,29 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
   /// 요건을 함께 만족시키기 위한 절충 — 전체 해석은 `/r/{id}` 랜딩에서
   /// 서버가 반환한 payload를 그대로 보여주므로, 여기서 잘라도 웹에서는
   /// 각 블록의 핵심이 모두 노출된다).
-  static const int _kHighlightBodyMax = 280;
+  // 공유 본문은 절단하지 않는다. 서버가 크기 초과를 명시적으로 거절한다.
 
   void _shareResult(BuildContext context, InterpretDetailResult detail) {
     final highlights = <String>[];
-    for (final b in detail.blocks) {
-      final body = b.body.length > _kHighlightBodyMax
-          ? '${b.body.substring(0, _kHighlightBodyMax)}…'
-          : b.body;
+    for (final b in detail.blocks.where(
+      (b) => !(b.n == 4 && b.luckIndex == null),
+    )) {
+      final body = b.body;
       if (b.n >= 1 && b.n <= 5) {
         highlights.add('${_kBlockTitles[b.n - 1]}: $body');
       } else {
         highlights.add(body);
       }
     }
-    final summary = detail.blocks.isNotEmpty
-        ? (detail.blocks.first.body.length > _kHighlightBodyMax
-              ? '${detail.blocks.first.body.substring(0, _kHighlightBodyMax)}…'
-              : detail.blocks.first.body)
-        : '';
+    final summary = detail.blocks.isNotEmpty ? detail.blocks.first.body : '';
     // [앱·웹 공유 구조 확정] admin_web 전용 렌더러가 5단 서사(핵심/왜/
     // 생활/시기/포인트)를 구획으로 나눠 보여줄 수 있도록 구조화 배열도
     // 함께 전달한다(highlights는 구버전/범용 폴백 호환용으로 유지).
     final blocks = <Map<String, String>>[];
-    for (final b in detail.blocks) {
-      final body = b.body.length > _kHighlightBodyMax
-          ? '${b.body.substring(0, _kHighlightBodyMax)}…'
-          : b.body;
+    for (final b in detail.blocks.where(
+      (b) => !(b.n == 4 && b.luckIndex == null),
+    )) {
+      final body = b.body;
       blocks.add({
         'title': (b.n >= 1 && b.n <= 5) ? _kBlockTitles[b.n - 1] : '',
         'body': body,
@@ -236,8 +239,9 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
     // 일주 기둥이 비어 있으면(비로그인 등) trace를 아예 넣지 않고,
     // 웹은 trace 없는 링크(legacy 포함)에서 배지를 렌더하지 않는다.
     final pillars = _profile?.pillars;
-    final dayPillar =
-        (pillars != null && pillars.length > 1) ? pillars[1] : null;
+    final dayPillar = (pillars != null && pillars.length > 1)
+        ? pillars[1]
+        : null;
     final String? trace = dayPillar == null
         ? null
         : '일주 ${dayPillar.stemHanja}${dayPillar.branchHanja}';
@@ -254,6 +258,8 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
         'highlights': highlights,
       },
       sourceRefId: detail.topicId,
+      originalResultKey: _originalResultKey,
+      originalLeadingKeys: [_originalHeaderKey],
     );
   }
 
@@ -436,36 +442,43 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
                         // 이 필터는 실질적으로 아무 흐림 효과를 내지 않는다
                         // (투명 색 x multiply = 결과가 항상 변화 없음) —
                         // 실제 블러는 ImageFilter.blur로만 구현된다.
-                        ClipRect(
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-                            child: Container(
-                              decoration: const BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    Color(0xEB111111),
-                                    Colors.transparent,
-                                  ],
+                        OriginalResultScene(
+                          captureKey: _originalHeaderKey,
+                          background: SajuInk.i900,
+                          child: ClipRect(
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                              child: Container(
+                                decoration: const BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      Color(0xEB111111),
+                                      Colors.transparent,
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              child: SajuTopBar(
-                                left: SajuIconButton(
-                                  icon: '←',
-                                  onTap: () => Navigator.of(context).maybePop(),
-                                ),
-                                title: 'DETAIL · 07',
-                                right: SajuIconButton(
-                                  icon: '⤴',
-                                  onTap: () => _shareResult(context, detail),
+                                child: SajuTopBar(
+                                  left: SajuIconButton(
+                                    icon: '←',
+                                    onTap: () =>
+                                        Navigator.of(context).maybePop(),
+                                  ),
+                                  title: 'DETAIL · 07',
+                                  right: SajuIconButton(
+                                    icon: '⤴',
+                                    onTap: () => _shareResult(context, detail),
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
                         Expanded(
-                          child: SingleChildScrollView(
+                          child: OriginalResultBody(
+                            captureKey: _originalResultKey,
+                            background: SajuInk.i900,
                             padding: const EdgeInsets.only(bottom: 160),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -588,6 +601,16 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
                                     surface: WebAdSurface.sajuRenewal,
                                     adSlot: '',
                                   ),
+                                ),
+                                TextButton.icon(
+                                  onPressed: () => saveOriginalResult(
+                                    context,
+                                    _originalResultKey,
+                                    name: 'sintong_saju_${detail.topicId}',
+                                    leadingKeys: [_originalHeaderKey],
+                                  ),
+                                  icon: const Icon(Icons.download_rounded),
+                                  label: const Text('결과페이지 그대로 저장'),
                                 ),
                                 const Padding(
                                   padding: EdgeInsets.fromLTRB(22, 28, 22, 0),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../core/util/safe_share.dart';
+import 'package:flutter/foundation.dart' show Uint8List;
+import '../../../core/util/original_result_capture.dart';
+import '../presentation/full_result_sheet.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../data/share_api_service.dart';
 import '../domain/share_result_model.dart';
@@ -19,9 +21,9 @@ import '../domain/share_result_model.dart';
 /// 공유 시트(안드로이드에서는 카카오톡이 대상 목록에 자연히 노출됨)로
 /// 동일한 목적을 달성한다 — 이 한계는 사용자에게 별도 고지가 필요하다.
 ///
-/// [PII 미포함 원칙 — 호출부 책임] [payload]에는 화면 표시에 필요한 값만
-/// 담아야 하며, 원본 생년월일/실명/촬영 사진/전화번호/이메일/소원 원문
-/// 등을 절대 포함하지 않는다(제안서 (h)절 보안 원칙).
+/// 구조화 payload에는 불필요한 원본 개인정보를 추가하지 않는다.
+/// 원본 이미지 공유는 화면에 보이는 정보를 포함하므로 업로드 전에
+/// 공개 안내와 별도 동의를 받는다.
 class ShareService {
   ShareService._();
 
@@ -40,7 +42,51 @@ class ShareService {
     String? imageUrl,
     String? sourceRefId,
     String? subject,
+    GlobalKey? originalResultKey,
+    List<GlobalKey> originalLeadingKeys = const [],
+    List<GlobalKey> originalTrailingKeys = const [],
+    List<GlobalKey> originalOverlayKeys = const [],
+    Uint8List? preCapturedPng,
   }) async {
+    Uint8List? originalPng = preCapturedPng;
+    if (originalPng == null && originalResultKey != null) {
+      try {
+        originalPng = await captureOriginalResult(
+          originalResultKey,
+          leadingKeys: originalLeadingKeys,
+          trailingKeys: originalTrailingKeys,
+          overlayKeys: originalOverlayKeys,
+        );
+      } catch (error) {
+        if (context.mounted) {
+          AppToast.show(context, '원래 결과 준비 실패: $error', isError: true);
+        }
+        return;
+      }
+    }
+    if (!context.mounted) return;
+    if (originalPng != null) {
+      final approved = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('이 결과 그대로 공개할까요?'),
+          content: const Text(
+            '공유 링크를 가진 사람은 결과 화면에 보이는 이름·질문·사진·본문을 모두 볼 수 있어요. 공개하고 싶지 않은 내용이 있다면 취소해주세요.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('취소'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('그대로 공유'),
+            ),
+          ],
+        ),
+      );
+      if (approved != true || !context.mounted) return;
+    }
     final result = await _api.createShareLink(
       resultType: resultType,
       title: title,
@@ -48,6 +94,7 @@ class ShareService {
       payload: payload,
       imageUrl: imageUrl,
       sourceRefId: sourceRefId,
+      originalPng: originalPng,
     );
 
     if (!result.success || result.data == null) {
@@ -61,18 +108,17 @@ class ShareService {
     }
 
     final shareUrl = result.data!.shareUrl;
-    final message = '$title\n$description\n$shareUrl';
-
     if (!context.mounted) return;
-    await safeShareText(
+    await showFullResultSheet(
       context,
-      message,
-      subject: subject ?? _defaultSubject(resultType),
-      copiedMessage: '공유 링크를 복사했어요. 원하는 앱에 붙여넣어 전달해 주세요.',
-      failedMessage: '공유 시트를 열 수 없어 링크를 복사했어요.',
+      title: title,
+      shareUrl: shareUrl,
+      payload: payload,
+      originalPng: originalPng,
     );
   }
 
+  // ignore: unused_element
   static String _defaultSubject(ShareResultType type) {
     switch (type) {
       // ignore: deprecated_member_use_from_same_package

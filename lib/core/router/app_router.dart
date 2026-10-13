@@ -508,7 +508,18 @@ class AppRouter {
         {
           final args = settings.arguments;
           final initialType = args is CompatibilityType ? args : null;
-          return _page(CompatibilityInputScreen(initialType: initialType));
+          final restoredInput = args is Map<String, dynamic>
+              ? args['restoredInput'] as Map<String, dynamic>?
+              : null;
+          return _page(
+            CompatibilityInputScreen(
+              initialType: initialType,
+              restoredInput: restoredInput,
+              resumeResultAccess:
+                  args is Map<String, dynamic> &&
+                  args['resumeResultAccess'] == true,
+            ),
+          );
         }
       case '/compatibility/result':
         return _page(const CompatibilityResultScreen());

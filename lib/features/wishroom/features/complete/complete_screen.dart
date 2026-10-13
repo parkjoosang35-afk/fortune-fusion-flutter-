@@ -20,10 +20,12 @@ import '../../core/wr_nav_pill.dart';
 import '../../core/wr_toast.dart';
 import '../../../share/application/share_service.dart';
 import '../../../share/domain/share_result_model.dart';
+import '../../../../core/util/original_result_capture.dart';
 
 class CompleteScreen extends StatefulWidget {
   const CompleteScreen({super.key, required this.roomId, this.already = false});
   final String roomId;
+
   /// capsule2.jsx `app.go('complete', {already:true})` — 이미 ACHIEVED/COMPLETED 상태에서
   /// 진입(연출 재생 없이 바로 최종 상태로 보여줌). 원본 `Complete({already})` 의 st 초기값 로직.
   final bool already;
@@ -37,12 +39,16 @@ class _CompleteScreenState extends State<CompleteScreen> {
   int _seal = 0; // 0 없음 · 1 수축 중 · 2 stamp+봉인중 · 3 완료(Sealed 전환)
   bool _reviewed = false; // 원본 reviewed state — 후기 제출 완료 시 되돌리기/💌후기 버튼 숨김
   final List<Timer> _timers = [];
+  final _originalResultKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
     if (widget.already) {
       _st = 6;
+      if (context.read<WishRoomProvider>().room?.status == RoomStatus.SEALED) {
+        _seal = 3;
+      }
     } else {
       WidgetsBinding.instance.addPostFrameCallback((_) => _boot());
     }
@@ -50,7 +56,9 @@ class _CompleteScreenState extends State<CompleteScreen> {
 
   @override
   void dispose() {
-    for (final t in _timers) { t.cancel(); }
+    for (final t in _timers) {
+      t.cancel();
+    }
     super.dispose();
   }
 
@@ -82,7 +90,11 @@ class _CompleteScreenState extends State<CompleteScreen> {
   void _playReveal() {
     final steps = CompleteTimeline.steps;
     for (var i = 0; i < steps.length; i++) {
-      _timers.add(Timer(Duration(milliseconds: steps[i]), () { if (mounted) setState(() => _st = i + 1); }));
+      _timers.add(
+        Timer(Duration(milliseconds: steps[i]), () {
+          if (mounted) setState(() => _st = i + 1);
+        }),
+      );
     }
   }
 
@@ -90,7 +102,10 @@ class _CompleteScreenState extends State<CompleteScreen> {
     final ok = await p.complete(widget.roomId, cancel: true);
     if (!mounted) return;
     if (ok) {
-      Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const WishRoomShell()), (r) => false);
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const WishRoomShell()),
+        (r) => false,
+      );
     } else if (p.lastError != null) {
       WrToast.show(context, p.lastError!.message);
     }
@@ -98,28 +113,43 @@ class _CompleteScreenState extends State<CompleteScreen> {
 
   void _doSeal(WishRoomProvider p) {
     setState(() => _seal = 1);
-    _timers.add(Timer(const Duration(milliseconds: 1400), () { if (mounted) setState(() => _seal = 2); }));
-    _timers.add(Timer(const Duration(milliseconds: 2700), () async {
-      final ok = await p.seal(widget.roomId);
-      if (!mounted) return;
-      if (ok) {
-        setState(() => _seal = 3);
-      } else {
-        if (p.lastError != null) WrToast.show(context, p.lastError!.message);
-        setState(() => _seal = 0);
-      }
-    }));
+    _timers.add(
+      Timer(const Duration(milliseconds: 1400), () {
+        if (mounted) setState(() => _seal = 2);
+      }),
+    );
+    _timers.add(
+      Timer(const Duration(milliseconds: 2700), () async {
+        final ok = await p.seal(widget.roomId);
+        if (!mounted) return;
+        if (ok) {
+          setState(() => _seal = 3);
+        } else {
+          if (p.lastError != null) WrToast.show(context, p.lastError!.message);
+          setState(() => _seal = 0);
+        }
+      }),
+    );
   }
 
   Future<void> _openReview(WishRoom room) async {
-    final go = await Navigator.of(context).push<String>(MaterialPageRoute(builder: (_) => ReviewWriteScreen(room: room), fullscreenDialog: true));
+    final go = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => ReviewWriteScreen(room: room),
+        fullscreenDialog: true,
+      ),
+    );
     if (!mounted) return;
     if (go == null) return; // 스킵("나중에 남길게요") — reviewed 상태 변경 없음
     setState(() => _reviewed = true);
     if (go == 'stories') {
       // "이야기 보기" → capsule2.jsx `app.go('explore', {tab:'stories'})` 1:1 — 탐색 stories 탭으로 이동.
       if (!mounted) return;
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ExploreScreen(initialTab: 'stories')));
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => const ExploreScreen(initialTab: 'stories'),
+        ),
+      );
     }
   }
 
@@ -139,6 +169,10 @@ class _CompleteScreenState extends State<CompleteScreen> {
   /// 민감정보가 섞일 수 있어 payload에 원문 그대로 담지 않고, 레벨/점등
   /// 일수/색상 등 공개 가능한 집계값만 전달한다.
   void _shareResult(WishRoom room) {
+    if ((_st < 6 && _seal != 3) || (_seal > 0 && _seal < 3)) {
+      WrToast.show(context, '완료 연출이 끝난 뒤 공유해주세요.');
+      return;
+    }
     ShareService.shareResult(
       context,
       resultType: ShareResultType.wish,
@@ -159,75 +193,214 @@ class _CompleteScreenState extends State<CompleteScreen> {
         ],
       },
       sourceRefId: room.id,
+      originalResultKey: _originalResultKey,
     );
   }
 
   @override
   Widget build(BuildContext context) {
     if (_seal == 3) {
-      return Theme(data: wrThemeData(), child: Scaffold(backgroundColor: Colors.black,
-        body: Consumer<WishRoomProvider>(builder: (context, p, __) {
-          final room = p.room;
-          if (room == null) return const Center(child: CircularProgressIndicator(color: WrC.glow));
-          return _SealedBody(room: room, items: p.items);
-        })));
+      return Theme(
+        data: wrThemeData(),
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          body: Consumer<WishRoomProvider>(
+            builder: (context, p, __) {
+              final room = p.room;
+              if (room == null) {
+                return const Center(
+                  child: CircularProgressIndicator(color: WrC.glow),
+                );
+              }
+              return OriginalResultScene(
+                captureKey: _originalResultKey,
+                background: Colors.black,
+                child: _SealedBody(
+                  room: room,
+                  items: p.items,
+                  onSave: () => saveOriginalResult(
+                    context,
+                    _originalResultKey,
+                    name: 'sintong_wish_${room.id}',
+                  ),
+                  onShare: () => _shareResult(room),
+                ),
+              );
+            },
+          ),
+        ),
+      );
     }
-    return Theme(data: wrThemeData(), child: Scaffold(
-      backgroundColor: Colors.black,
-      body: Consumer<WishRoomProvider>(builder: (context, p, __) {
-        final room = p.room;
-        if (room == null) return const Center(child: CircularProgressIndicator(color: WrC.glow));
-        final st = _st;
-        return Stack(children: [
-          Positioned.fill(child: AnimatedScale(
-            scale: _seal > 0 ? .02 : 1,
-            duration: const Duration(milliseconds: 1400),
-            curve: WrCurves.door,
-            child: WrCanvasScaler(child: SizedBox(width: 390, height: 844, child: Stack(clipBehavior: Clip.none, children: [
-              // [버그수정 — 전수감사] app2/screens-c2.jsx › Complete(): `<Room room={{...r,
-              // level:..., brightness:1}} ...>` — 완료 연출 중에는 미접속 감쇠를 무시하고
-              // 항상 최대 밝기로 보여준다. brightnessOverride 누락.
-              RoomScene(
-                room: room, items: p.items,
-                boost: st >= 1 ? 2 : 0, gold: st >= 2 ? .5 : 0, charGlow: st >= 5,
-                levelOverride: st >= 3 ? 10 : null, brightnessOverride: 1,
+    return Theme(
+      data: wrThemeData(),
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: Consumer<WishRoomProvider>(
+          builder: (context, p, __) {
+            final room = p.room;
+            if (room == null) {
+              return const Center(
+                child: CircularProgressIndicator(color: WrC.glow),
+              );
+            }
+            final st = _st;
+            return OriginalResultScene(
+              captureKey: _originalResultKey,
+              background: Colors.black,
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: AnimatedScale(
+                      scale: _seal > 0 ? .02 : 1,
+                      duration: const Duration(milliseconds: 1400),
+                      curve: WrCurves.door,
+                      child: WrCanvasScaler(
+                        child: SizedBox(
+                          width: 390,
+                          height: 844,
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              // [버그수정 — 전수감사] app2/screens-c2.jsx › Complete(): `<Room room={{...r,
+                              // level:..., brightness:1}} ...>` — 완료 연출 중에는 미접속 감쇠를 무시하고
+                              // 항상 최대 밝기로 보여준다. brightnessOverride 누락.
+                              RoomScene(
+                                room: room,
+                                items: p.items,
+                                boost: st >= 1 ? 2 : 0,
+                                gold: st >= 2 ? .5 : 0,
+                                charGlow: st >= 5,
+                                levelOverride: st >= 3 ? 10 : null,
+                                brightnessOverride: 1,
+                              ),
+                              if (st >= 1)
+                                const WrBurst(
+                                  x: 204,
+                                  y: 330,
+                                  n: 24,
+                                  spread: 180,
+                                  color: Color(0xFFFFF2B8),
+                                  dur: 1600,
+                                ),
+                              if (st >= 4)
+                                for (var i = 0; i < 7; i++)
+                                  _LightPillar(index: i),
+                              if (st >= 3)
+                                const WrPetalRain(
+                                  n: 40,
+                                  dur: (4, 7),
+                                  spread: 3,
+                                ),
+                              if (st >= 3)
+                                for (var i = 0; i < _lotusSpots.length; i++)
+                                  _LotusPop(index: i, pos: _lotusSpots[i]),
+                              if (st >= 5) const WrButterflies(x: 204, y: 420),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (_seal > 0 && _seal < 3) _SealingOverlay(sealing: _seal),
+                  if (st >= 6 && _seal == 0)
+                    SafeArea(
+                      child: Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                            child: Row(
+                              children: [
+                                IconButton(
+                                  onPressed: () =>
+                                      Navigator.of(context).maybePop(),
+                                  icon: const Icon(
+                                    Icons.close,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: Column(
+                              children: [
+                                ShaderMask(
+                                  shaderCallback: (b) => const LinearGradient(
+                                    colors: [
+                                      Color(0xFFFFF6D8),
+                                      Color(0xFFF5CF6A),
+                                      Color(0xFFFF8FB1),
+                                    ],
+                                  ).createShader(b),
+                                  child: const Text(
+                                    '축하합니다',
+                                    style: TextStyle(
+                                      fontFamily: 'NotoSerifKR',
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 34,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 32,
+                                  ),
+                                  child: Text(
+                                    '${room.daysLit}일 동안 밝혔던 당신의 소원이\n하늘에 닿았어요',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      height: 1.5,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Spacer(),
+                        ],
+                      ),
+                    ),
+                  if (st >= 6 && _seal == 0)
+                    Positioned(
+                      left: 14,
+                      right: 14,
+                      bottom: 34,
+                      child: _BottomCard(
+                        room: room,
+                        reviewed: _reviewed,
+                        onUndo: () => _cancel(p),
+                        onReview: () => _openReview(room),
+                        onSeal: () => _doSeal(p),
+                        onShare: () => _shareResult(room),
+                        onSave: () => saveOriginalResult(
+                          context,
+                          _originalResultKey,
+                          name: 'sintong_wish_${room.id}',
+                        ),
+                      ),
+                    ),
+                ],
               ),
-              if (st >= 1) const WrBurst(x: 204, y: 330, n: 24, spread: 180, color: Color(0xFFFFF2B8), dur: 1600),
-              if (st >= 4) for (var i = 0; i < 7; i++) _LightPillar(index: i),
-              if (st >= 3) const WrPetalRain(n: 40, dur: (4, 7), spread: 3),
-              if (st >= 3) for (var i = 0; i < _lotusSpots.length; i++) _LotusPop(index: i, pos: _lotusSpots[i]),
-              if (st >= 5) const WrButterflies(x: 204, y: 420),
-            ]))),
-          )),
-          if (_seal > 0 && _seal < 3) _SealingOverlay(sealing: _seal),
-          if (st >= 6 && _seal == 0) SafeArea(child: Column(children: [
-            Padding(padding: const EdgeInsets.fromLTRB(16, 8, 16, 0), child: Row(children: [
-              IconButton(onPressed: () => Navigator.of(context).maybePop(), icon: const Icon(Icons.close, color: Colors.white)),
-            ])),
-            Padding(padding: const EdgeInsets.only(top: 12), child: Column(children: [
-              ShaderMask(shaderCallback: (b) => const LinearGradient(colors: [Color(0xFFFFF6D8), Color(0xFFF5CF6A), Color(0xFFFF8FB1)]).createShader(b),
-                child: const Text('축하합니다', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 34, color: Colors.white))),
-              const SizedBox(height: 8),
-              Padding(padding: const EdgeInsets.symmetric(horizontal: 32), child: Text(
-                '${room.daysLit}일 동안 밝혔던 당신의 소원이\n하늘에 닿았어요',
-                textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 14, height: 1.5))),
-            ])),
-            const Spacer(),
-          ])),
-          if (st >= 6 && _seal == 0) Positioned(left: 14, right: 14, bottom: 34, child: _BottomCard(
-            room: room, reviewed: _reviewed,
-            onUndo: () => _cancel(p),
-            onReview: () => _openReview(room),
-            onSeal: () => _doSeal(p),
-            onShare: () => _shareResult(room),
-          )),
-        ]);
-      }),
-    ));
+            );
+          },
+        ),
+      ),
+    );
   }
 }
 
-const _lotusSpots = [Offset(40, 560), Offset(300, 600), Offset(170, 650), Offset(90, 470), Offset(280, 470)];
+const _lotusSpots = [
+  Offset(40, 560),
+  Offset(300, 600),
+  Offset(170, 650),
+  Offset(90, 470),
+  Offset(280, 470),
+];
 
 class _LightPillar extends StatefulWidget {
   const _LightPillar({required this.index});
@@ -236,45 +409,108 @@ class _LightPillar extends StatefulWidget {
   State<_LightPillar> createState() => _LightPillarState();
 }
 
-class _LightPillarState extends State<_LightPillar> with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(vsync: this, duration: Duration(milliseconds: ((2.2 + (widget.index % 3) * .5) * 1000).round()))..repeat();
+class _LightPillarState extends State<_LightPillar>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: Duration(
+      milliseconds: ((2.2 + (widget.index % 3) * .5) * 1000).round(),
+    ),
+  )..repeat();
   @override
-  void dispose() { _c.dispose(); super.dispose(); }
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final i = widget.index;
     final w = 6.0 + (i % 3) * 4;
-    return Positioned(left: 50 + i * 48, bottom: 100, child: AnimatedBuilder(animation: _c, builder: (_, __) {
-      final dl = (i * .15 / (2.2 + (i % 3) * .5)).clamp(0.0, 1.0);
-      final raw = ((_c.value - dl) % 1 + 1) % 1;
-      final op = (1 - raw).clamp(0.0, 1.0) * .9;
-      return IgnorePointer(child: Opacity(opacity: op, child: Container(width: w, height: 340, decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        gradient: const LinearGradient(begin: Alignment.bottomCenter, end: Alignment.topCenter, colors: [Colors.transparent, Color(0xE6FFE6A0), Colors.transparent])))));
-    }));
+    return Positioned(
+      left: 50 + i * 48,
+      bottom: 100,
+      child: AnimatedBuilder(
+        animation: _c,
+        builder: (_, __) {
+          final dl = (i * .15 / (2.2 + (i % 3) * .5)).clamp(0.0, 1.0);
+          final raw = ((_c.value - dl) % 1 + 1) % 1;
+          final op = (1 - raw).clamp(0.0, 1.0) * .9;
+          return IgnorePointer(
+            child: Opacity(
+              opacity: op,
+              child: Container(
+                width: w,
+                height: 340,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  gradient: const LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      Colors.transparent,
+                      Color(0xE6FFE6A0),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 }
 
 class _LotusPop extends StatefulWidget {
   const _LotusPop({required this.index, required this.pos});
-  final int index; final Offset pos;
+  final int index;
+  final Offset pos;
   @override
   State<_LotusPop> createState() => _LotusPopState();
 }
 
-class _LotusPopState extends State<_LotusPop> with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200));
+class _LotusPopState extends State<_LotusPop>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1200),
+  );
   @override
-  void initState() { super.initState(); Future.delayed(Duration(milliseconds: (widget.index * 140).round()), () { if (mounted) _c.forward(); }); }
+  void initState() {
+    super.initState();
+    Future.delayed(Duration(milliseconds: (widget.index * 140).round()), () {
+      if (mounted) _c.forward();
+    });
+  }
+
   @override
-  void dispose() { _c.dispose(); super.dispose(); }
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Positioned(left: widget.pos.dx, top: widget.pos.dy, child: IgnorePointer(child: ScaleTransition(
-      scale: CurvedAnimation(parent: _c, curve: WrCurves.overshoot),
-      child: FadeTransition(opacity: _c, child: Image.asset('assets/wishroom/items/lotus.png', width: 70,
-        errorBuilder: (_, __, ___) => const Text('🪷', style: TextStyle(fontSize: 44)))),
-    )));
+    return Positioned(
+      left: widget.pos.dx,
+      top: widget.pos.dy,
+      child: IgnorePointer(
+        child: ScaleTransition(
+          scale: CurvedAnimation(parent: _c, curve: WrCurves.overshoot),
+          child: FadeTransition(
+            opacity: _c,
+            child: Image.asset(
+              'assets/wishroom/items/lotus.png',
+              width: 70,
+              errorBuilder: (_, __, ___) =>
+                  const Text('🪷', style: TextStyle(fontSize: 44)),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -283,24 +519,76 @@ class _SealingOverlay extends StatelessWidget {
   final int sealing; // 1 수축 중 · 2 stamp
   @override
   Widget build(BuildContext context) {
-    return Positioned.fill(child: Container(color: Colors.black38, child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-      Container(width: 130, height: 130, alignment: Alignment.center,
-        decoration: BoxDecoration(color: const Color(0xFFC94A3B), borderRadius: BorderRadius.circular(16),
-          boxShadow: const [BoxShadow(color: Color(0xB3C94A3B), blurRadius: 40)]),
-        child: const Text('成', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 70, color: Color(0xFFFFF9E8)))),
-      if (sealing == 2) ...[
-        const SizedBox(height: 36),
-        const SizedBox(width: 1, height: 1, child: Stack(clipBehavior: Clip.none, children: [WrBurst(x: 0, y: 0, n: 28, spread: 200)])),
-        const SizedBox(height: 36),
-        const Text('봉인하는 중', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 20, color: Colors.white)),
-      ],
-    ]))));
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black38,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 130,
+                height: 130,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFC94A3B),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: const [
+                    BoxShadow(color: Color(0xB3C94A3B), blurRadius: 40),
+                  ],
+                ),
+                child: const Text(
+                  '成',
+                  style: TextStyle(
+                    fontFamily: 'NotoSerifKR',
+                    fontWeight: FontWeight.w900,
+                    fontSize: 70,
+                    color: Color(0xFFFFF9E8),
+                  ),
+                ),
+              ),
+              if (sealing == 2) ...[
+                const SizedBox(height: 36),
+                const SizedBox(
+                  width: 1,
+                  height: 1,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [WrBurst(x: 0, y: 0, n: 28, spread: 200)],
+                  ),
+                ),
+                const SizedBox(height: 36),
+                const Text(
+                  '봉인하는 중',
+                  style: TextStyle(
+                    fontFamily: 'NotoSerifKR',
+                    fontWeight: FontWeight.w900,
+                    fontSize: 20,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
 class _BottomCard extends StatelessWidget {
-  const _BottomCard({required this.room, required this.reviewed, required this.onUndo, required this.onReview, required this.onSeal, required this.onShare});
-  final WishRoom room; final bool reviewed; final VoidCallback onUndo, onReview, onSeal, onShare;
+  const _BottomCard({
+    required this.room,
+    required this.reviewed,
+    required this.onUndo,
+    required this.onReview,
+    required this.onSeal,
+    required this.onShare,
+    required this.onSave,
+  });
+  final WishRoom room;
+  final bool reviewed;
+  final VoidCallback onUndo, onReview, onSeal, onShare, onSave;
   @override
   Widget build(BuildContext context) {
     // app2/screens-c2.jsx › Complete() !reviewed && !room.sealUntil 1:1.
@@ -308,100 +596,336 @@ class _BottomCard extends StatelessWidget {
     // 되돌리기 버튼이 거의 항상 숨겨지는 버그가 있었다. 원본은 "이 방에 타임캡슐
     // 봉인일(sealUntil)이 설정돼 있지 않은 경우"만 되돌리기를 허용한다.
     final canUndo = !reviewed && room.sealUntil == null;
-    return Column(children: [
-      Container(
-        padding: const EdgeInsets.all(14),
-        decoration: WrDeco.hanji,
-        child: Row(children: [
-          const Text('成', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 42, color: Color(0xFFC94A3B))),
-          const SizedBox(width: 10),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(room.text, style: const TextStyle(fontFamily: 'GowunBatang', fontSize: 14, color: Color(0xFF4A2A1C)), maxLines: 1, overflow: TextOverflow.ellipsis),
-            const SizedBox(height: 4),
-            Text('❤ ${room.supportCount} · 福 ${room.pouchReceived} · ${room.daysLit}일', style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 11.5, color: Color(0xFF8A4A3A))),
-          ])),
-        ]),
-      ),
-      const SizedBox(height: 10),
-      // 원본 flex 비율: 되돌리기 1 · 💌 후기 1.4 · 봉인하기 2 (되돌리기·💌후기는 !reviewed 일 때만 노출)
-      Row(children: [
-        if (canUndo) ...[
-          Expanded(flex: 10, child: _actionBtn('되돌리기', WrDeco.btnDark, Colors.white, onUndo)),
-          const SizedBox(width: 8),
-        ],
-        if (!reviewed) ...[
-          Expanded(flex: 14, child: _actionBtn('💌 후기', WrDeco.btnGold, const Color(0xFF4A2A10), onReview)),
-          const SizedBox(width: 8),
-        ],
-        Expanded(flex: 20, child: _actionBtn('成 소원방 봉인하기', WrDeco.btnPink, Colors.white, onSeal)),
-      ]),
-      const SizedBox(height: 10),
-      TextButton(onPressed: onShare, child: Text('기념 이미지 공유하기', style: WrF.body(12.5, color: WrC.muted))),
-    ]);
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: WrDeco.hanji,
+          child: Row(
+            children: [
+              const Text(
+                '成',
+                style: TextStyle(
+                  fontFamily: 'NotoSerifKR',
+                  fontWeight: FontWeight.w900,
+                  fontSize: 42,
+                  color: Color(0xFFC94A3B),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      room.text,
+                      style: const TextStyle(
+                        fontFamily: 'GowunBatang',
+                        fontSize: 14,
+                        color: Color(0xFF4A2A1C),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '❤ ${room.supportCount} · 福 ${room.pouchReceived} · ${room.daysLit}일',
+                      style: const TextStyle(
+                        fontFamily: 'Pretendard',
+                        fontWeight: FontWeight.w700,
+                        fontSize: 11.5,
+                        color: Color(0xFF8A4A3A),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        // 원본 flex 비율: 되돌리기 1 · 💌 후기 1.4 · 봉인하기 2 (되돌리기·💌후기는 !reviewed 일 때만 노출)
+        Row(
+          children: [
+            if (canUndo) ...[
+              Expanded(
+                flex: 10,
+                child: _actionBtn('되돌리기', WrDeco.btnDark, Colors.white, onUndo),
+              ),
+              const SizedBox(width: 8),
+            ],
+            if (!reviewed) ...[
+              Expanded(
+                flex: 14,
+                child: _actionBtn(
+                  '💌 후기',
+                  WrDeco.btnGold,
+                  const Color(0xFF4A2A10),
+                  onReview,
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
+            Expanded(
+              flex: 20,
+              child: _actionBtn(
+                '成 소원방 봉인하기',
+                WrDeco.btnPink,
+                Colors.white,
+                onSeal,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            TextButton(
+              onPressed: onSave,
+              child: Text('결과 그대로 저장', style: WrF.body(12.5, color: WrC.muted)),
+            ),
+            TextButton(
+              onPressed: onShare,
+              child: Text(
+                '기념 이미지 공유하기',
+                style: WrF.body(12.5, color: WrC.muted),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
-  Widget _actionBtn(String label, BoxDecoration deco, Color color, VoidCallback onTap) => SizedBox(
+  Widget _actionBtn(
+    String label,
+    BoxDecoration deco,
+    Color color,
+    VoidCallback onTap,
+  ) => SizedBox(
     height: WrSize.btnSmH,
-    child: DecoratedBox(decoration: deco, child: Material(color: Colors.transparent, child: InkWell(borderRadius: BorderRadius.circular(16), onTap: onTap,
-      child: Center(child: Text(label, style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: WrSize.btnSmFont, color: color), maxLines: 1, overflow: TextOverflow.ellipsis))))),
+    child: DecoratedBox(
+      decoration: deco,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontWeight: FontWeight.w700,
+                fontSize: WrSize.btnSmFont,
+                color: color,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ),
+      ),
+    ),
   );
 }
 
 class _SealedBody extends StatelessWidget {
-  const _SealedBody({required this.room, required this.items});
-  final WishRoom room; final List<WrItem> items;
+  const _SealedBody({
+    required this.room,
+    required this.items,
+    required this.onSave,
+    required this.onShare,
+  });
+  final WishRoom room;
+  final List<WrItem> items;
+  final VoidCallback onSave, onShare;
   @override
   Widget build(BuildContext context) {
     // 원본 `.blur-room { backgroundImage: room-lv10.jpg }` — 배경은 정적 Lv10 일러스트를 흐리게.
     // (RoomThumb 라이브 렌더는 카드 쪽에서만, 배경까지 RoomScene 2중 렌더하면 애니메이션 비용이 커진다.)
-    return Stack(children: [
-      Positioned.fill(child: ImageFiltered(imageFilter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-        child: Image.asset('assets/wishroom/room-lv10.jpg', fit: BoxFit.cover))),
-      Positioned.fill(child: Container(color: Colors.black.withValues(alpha: .55))),
-      const WrPetalRain(n: 14, dur: (7, 10), spread: 6),
-      // app2/screens-c2.jsx › Sealed() <NavPill style={{left:14, top:52}}/> 1:1.
-      // [버그수정 — 전수감사] 기존엔 전혀 없었다.
-      SafeArea(child: Padding(padding: const EdgeInsets.fromLTRB(14, 10, 0, 0), child: Align(alignment: Alignment.topLeft,
-        child: WrNavPill(onBack: () => wrBackOrAskExit(context), onExitHome: () => wrExitHome(context))))),
-      SafeArea(child: Padding(padding: const EdgeInsets.all(26), child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SizedBox(width: 170, height: 210, child: Stack(clipBehavior: Clip.none, alignment: Alignment.center, children: [
-            Container(
-              width: 170, height: 210,
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), border: Border.all(color: WrC.glow, width: 2),
-                boxShadow: const [BoxShadow(color: Color(0x80F5CF6A), blurRadius: 40)]),
-              clipBehavior: Clip.antiAlias,
-              // [버그수정 — 전수감사] app2/screens-c2.jsx › Sealed(): `<RoomThumb room={{...r,
-              // brightness:1}} w={170} h={210} focus={.44}/>` — G-4 공용 썸네일(RoomThumb,
-              // focus=.44)이어야 하는데 raw RoomScene(focus 없음, items 빈 배열 — 장식이
-              // 전혀 안 보임, brightness 미보정)을 그대로 쓰고 있었다.
-              child: RoomThumb(room: room, items: items, w: 170, h: 210, focus: .44, brightnessOverride: 1),
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: ImageFiltered(
+            imageFilter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+            child: Image.asset(
+              'assets/wishroom/room-lv10.jpg',
+              fit: BoxFit.cover,
             ),
-            Positioned(right: -10, bottom: -10, child: Container(
-              width: 46, height: 46, alignment: Alignment.center,
-              decoration: const BoxDecoration(color: WrC.accent, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Color(0x80C94A3B), blurRadius: 8)]),
-              child: const Text('成', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 24, color: Color(0xFFFFF9E8))))),
-          ])),
-          const SizedBox(height: 34),
-          Text('소원 기록관에\n영원히 머뭅니다', textAlign: TextAlign.center, style: WrF.display(26, color: Colors.white, height: 1.35)),
-          const SizedBox(height: 10),
-          Text('완성된 소원은 보관하고,\n이제 새로운 소원을 시작할 수 있어요', textAlign: TextAlign.center, style: WrF.body(13.5, color: WrC.muted, height: 1.7)),
-          const SizedBox(height: 28),
-          _sealedBtn('+ 새로운 소원방 만들기', WrDeco.btnPink, Colors.white,
-            () => Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const WishRoomShell()), (r) => false)),
-          const SizedBox(height: 10),
-          _sealedBtn('소원 기록관 보기', WrDeco.btnDark, Colors.white,
-            () => Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const WishRoomShell(initialIndex: 4)), (r) => false)),
-        ],
-      ))),
-    ]);
+          ),
+        ),
+        Positioned.fill(
+          child: Container(color: Colors.black.withValues(alpha: .55)),
+        ),
+        const WrPetalRain(n: 14, dur: (7, 10), spread: 6),
+        // app2/screens-c2.jsx › Sealed() <NavPill style={{left:14, top:52}}/> 1:1.
+        // [버그수정 — 전수감사] 기존엔 전혀 없었다.
+        SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 0, 0),
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: WrNavPill(
+                onBack: () => wrBackOrAskExit(context),
+                onExitHome: () => wrExitHome(context),
+              ),
+            ),
+          ),
+        ),
+        SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(26),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 170,
+                  height: 210,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    alignment: Alignment.center,
+                    children: [
+                      Container(
+                        width: 170,
+                        height: 210,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: WrC.glow, width: 2),
+                          boxShadow: const [
+                            BoxShadow(color: Color(0x80F5CF6A), blurRadius: 40),
+                          ],
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        // [버그수정 — 전수감사] app2/screens-c2.jsx › Sealed(): `<RoomThumb room={{...r,
+                        // brightness:1}} w={170} h={210} focus={.44}/>` — G-4 공용 썸네일(RoomThumb,
+                        // focus=.44)이어야 하는데 raw RoomScene(focus 없음, items 빈 배열 — 장식이
+                        // 전혀 안 보임, brightness 미보정)을 그대로 쓰고 있었다.
+                        child: RoomThumb(
+                          room: room,
+                          items: items,
+                          w: 170,
+                          h: 210,
+                          focus: .44,
+                          brightnessOverride: 1,
+                        ),
+                      ),
+                      Positioned(
+                        right: -10,
+                        bottom: -10,
+                        child: Container(
+                          width: 46,
+                          height: 46,
+                          alignment: Alignment.center,
+                          decoration: const BoxDecoration(
+                            color: WrC.accent,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Color(0x80C94A3B),
+                                blurRadius: 8,
+                              ),
+                            ],
+                          ),
+                          child: const Text(
+                            '成',
+                            style: TextStyle(
+                              fontFamily: 'NotoSerifKR',
+                              fontWeight: FontWeight.w900,
+                              fontSize: 24,
+                              color: Color(0xFFFFF9E8),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 34),
+                Text(
+                  '소원 기록관에\n영원히 머뭅니다',
+                  textAlign: TextAlign.center,
+                  style: WrF.display(26, color: Colors.white, height: 1.35),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  '완성된 소원은 보관하고,\n이제 새로운 소원을 시작할 수 있어요',
+                  textAlign: TextAlign.center,
+                  style: WrF.body(13.5, color: WrC.muted, height: 1.7),
+                ),
+                const SizedBox(height: 28),
+                _sealedBtn(
+                  '+ 새로운 소원방 만들기',
+                  WrDeco.btnPink,
+                  Colors.white,
+                  () => Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const WishRoomShell()),
+                    (r) => false,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                _sealedBtn(
+                  '소원 기록관 보기',
+                  WrDeco.btnDark,
+                  Colors.white,
+                  () => Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(
+                      builder: (_) => const WishRoomShell(initialIndex: 4),
+                    ),
+                    (r) => false,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    TextButton(
+                      onPressed: onSave,
+                      child: const Text('결과 그대로 저장'),
+                    ),
+                    TextButton(
+                      onPressed: onShare,
+                      child: const Text('기념 이미지 공유하기'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
-  Widget _sealedBtn(String label, BoxDecoration deco, Color color, VoidCallback onTap) => SizedBox(
-    width: double.infinity, height: WrSize.btnH,
-    child: DecoratedBox(decoration: deco, child: Material(color: Colors.transparent,
-      child: InkWell(borderRadius: BorderRadius.circular(16), onTap: onTap,
-        child: Center(child: Text(label, style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: WrSize.btnFont, color: color))))),
-    ));
+  Widget _sealedBtn(
+    String label,
+    BoxDecoration deco,
+    Color color,
+    VoidCallback onTap,
+  ) => SizedBox(
+    width: double.infinity,
+    height: WrSize.btnH,
+    child: DecoratedBox(
+      decoration: deco,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontWeight: FontWeight.w700,
+                fontSize: WrSize.btnFont,
+                color: color,
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
 }

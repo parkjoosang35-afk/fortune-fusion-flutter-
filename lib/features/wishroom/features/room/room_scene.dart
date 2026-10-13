@@ -114,7 +114,7 @@ class _RoomSceneState extends State<RoomScene> with TickerProviderStateMixin, Wi
     // 같이 체크 — 앱 전역에 이미 선례 있음: home_banner_carousel.dart 142줄).
     // reveal/entering/shake처럼 "한 번만 재생되고 끝나는" 연출은 jsx의
     // iteration-count:1과 의미가 같으므로 그대로 1회 재생한다(아래 분기 영향 없음).
-    if (_shouldAnimate) { _startLoops(); }
+    // MediaQuery 의존성은 initState가 끝난 뒤 등록한다.
     if (widget.entering) { cameraIn.forward(); } else { cameraIn.value = 1; }
     if (widget.shake) { shakeCtrl.forward(from: 0); }
     _maybeStartReveal();

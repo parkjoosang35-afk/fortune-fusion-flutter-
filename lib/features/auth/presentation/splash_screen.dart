@@ -174,18 +174,17 @@ class _SplashScreenState extends State<SplashScreen>
     if (_reduceMotion) return;
     final elapsed = _introController.value * _SplashTiming.outroStart;
     if (elapsed < _SplashTiming.scrambleStart) return;
-    final p = ((elapsed - _SplashTiming.scrambleStart) /
-            _SplashTiming.scrambleDuration)
-        .clamp(0.0, 1.0);
+    final p =
+        ((elapsed - _SplashTiming.scrambleStart) /
+                _SplashTiming.scrambleDuration)
+            .clamp(0.0, 1.0);
     final buffer = StringBuffer();
     for (var i = 0; i < _finalEnglishText.length; i++) {
       final ch = _finalEnglishText[i];
       if (ch == ' ' || i / _finalEnglishText.length < p) {
         buffer.write(ch);
       } else {
-        buffer.write(
-          _scrambleGlyphs[_random.nextInt(_scrambleGlyphs.length)],
-        );
+        buffer.write(_scrambleGlyphs[_random.nextInt(_scrambleGlyphs.length)]);
       }
     }
     _englishText.value = buffer.toString();
@@ -263,7 +262,11 @@ class _SplashScreenState extends State<SplashScreen>
     if (pendingReturn != null) {
       Navigator.of(context).pushReplacementNamed(
         pendingReturn.returnRoute,
-        arguments: {'restoredInput': pendingReturn.userInput},
+        arguments: {
+          'restoredInput': pendingReturn.userInput,
+          if (pendingReturn.contentType == 'compatibility')
+            'resumeResultAccess': true,
+        },
       );
       return;
     }
@@ -415,8 +418,11 @@ class _Wordmark extends StatelessWidget {
       color: _SplashColors.text,
     );
     // 키프레임 ② squash: 0% scale(1,1) → 35% scale(1.04,.96) → 100% scale(1,1).
-    final settleP = _progress(elapsed, _SplashTiming.settleStart,
-        _SplashTiming.settleDuration);
+    final settleP = _progress(
+      elapsed,
+      _SplashTiming.settleStart,
+      _SplashTiming.settleDuration,
+    );
     final settleEased = _SplashEase.out.transform(settleP);
     final squash = _squashScale(settleEased);
 
@@ -457,16 +463,10 @@ class _Wordmark extends StatelessWidget {
   (double, double) _squashScale(double t) {
     if (t <= 0.35) {
       final local = t / 0.35;
-      return (
-        1 + (1.04 - 1) * local,
-        1 + (0.96 - 1) * local,
-      );
+      return (1 + (1.04 - 1) * local, 1 + (0.96 - 1) * local);
     }
     final local = (t - 0.35) / 0.65;
-    return (
-      1.04 + (1 - 1.04) * local,
-      0.96 + (1 - 0.96) * local,
-    );
+    return (1.04 + (1 - 1.04) * local, 0.96 + (1 - 0.96) * local);
   }
 }
 
@@ -627,7 +627,11 @@ class _SealRow extends StatelessWidget {
 /// 인장 1개. 0%: opacity 0, scale(0) rotate(-30deg) → 100%: opacity 1,
 /// scale(1) rotate(0) — spring 이징(살짝 튕김).
 class _Seal extends StatelessWidget {
-  const _Seal({required this.glyph, required this.startAt, required this.elapsed});
+  const _Seal({
+    required this.glyph,
+    required this.startAt,
+    required this.elapsed,
+  });
 
   final String glyph;
   final double startAt;
@@ -694,7 +698,11 @@ class _RuleLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final p = _progress(elapsed, _SplashTiming.ruleStart, _SplashTiming.ruleDuration);
+    final p = _progress(
+      elapsed,
+      _SplashTiming.ruleStart,
+      _SplashTiming.ruleDuration,
+    );
     final eased = _SplashEase.out.transform(p);
     return Transform.scale(
       scaleX: eased,
@@ -718,17 +726,18 @@ class _RuleLine extends StatelessWidget {
 /// 영문 "SINTONG BANGTONG" — 페이드인 + 스크램블(키프레임 ⑤는
 /// `_SplashScreenState._onIntroTick`이 매 프레임 텍스트를 갱신).
 class _EnglishLabel extends StatelessWidget {
-  const _EnglishLabel({
-    required this.elapsed,
-    required this.textListenable,
-  });
+  const _EnglishLabel({required this.elapsed, required this.textListenable});
 
   final double elapsed;
   final ValueListenable<String> textListenable;
 
   @override
   Widget build(BuildContext context) {
-    final p = _progress(elapsed, _SplashTiming.enFadeStart, _SplashTiming.enFadeDuration);
+    final p = _progress(
+      elapsed,
+      _SplashTiming.enFadeStart,
+      _SplashTiming.enFadeDuration,
+    );
     return Opacity(
       opacity: p,
       child: Padding(

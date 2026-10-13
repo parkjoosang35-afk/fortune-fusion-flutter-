@@ -148,7 +148,7 @@ class OzTypography {
     fontWeight: FontWeight.w500,
     letterSpacing: letterSpacing,
     color: color,
-  );
+  ).copyWith(fontFamilyFallback: const ['Pretendard']);
 
   /// CTA 버튼 라벨(고밀도 골드 배경 위 다크 텍스트).
   static TextStyle ctaLabel({

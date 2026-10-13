@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../../core/data/my_fortune_record_store.dart';
 import '../../../../core/util/safe_share.dart';
+import '../../../../core/util/original_result_capture.dart';
 import '../../../auth/application/auth_provider.dart';
 import '../../../../core/utils/load_state.dart';
 import '../../../../core/web_ads/web_ad_config.dart';
@@ -45,6 +46,9 @@ class TarotResultScreen extends StatefulWidget {
 
 class _TarotResultScreenState extends State<TarotResultScreen> {
   final _shareCardKey = GlobalKey();
+  final _originalResultKey = GlobalKey();
+  final _originalFooterKey = GlobalKey();
+  final _originalOverlayKey = GlobalKey();
   bool _justSaved = false;
 
   @override
@@ -82,6 +86,14 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
   }
 
   Future<void> _onSave(TarotResultView view) async {
+    final saved = await saveOriginalResult(
+      context,
+      _originalResultKey,
+      name: 'sintong_tarot_${view.result.id}',
+      trailingKeys: [_originalFooterKey],
+      overlayKeys: [_originalOverlayKey],
+    );
+    if (!mounted || !saved) return;
     context.read<TarotSessionController>().markSaved();
     context.read<TarotAudioController>().playSaveConfirm();
     await MyFortuneRecordStore.save(
@@ -105,6 +117,12 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
   }
 
   Future<void> _onShare(TarotResultView view) async {
+    _shareResultLink(view);
+  }
+
+  // 기존 이미지 전용 시트는 전체 결과 공유의 기본 진입점에서 제외한다.
+  // ignore: unused_element
+  Future<void> _legacyImageShare(TarotResultView view) async {
     // [공유카드 회원 닉네임 표시] 로그인 사용자의 닉네임을 공유 이미지에
     // 함께 노출한다(비로그인/게스트면 null → TarotShareCard가 기존 문구로
     // 자동 폴백하므로 이 화면에서 별도 분기 처리는 필요 없다).
@@ -281,6 +299,9 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
         ],
       },
       sourceRefId: view.result.id,
+      originalResultKey: _originalResultKey,
+      originalTrailingKeys: [_originalFooterKey],
+      originalOverlayKeys: [_originalOverlayKey],
     );
   }
 
@@ -394,6 +415,7 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
               LoadStatus.success => _TarotResultCinematic(
                 key: ValueKey(state.data!.id),
                 result: state.data!,
+                captureKey: _originalResultKey,
               ),
               LoadStatus.initial => const AppErrorState(
                 message: '입력 정보가 없습니다.',
@@ -409,67 +431,75 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
           if (state.isSuccess || state.isError)
             SafeArea(
               bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  OzTokens.spaceMd,
-                  OzTokens.spaceSm,
-                  OzTokens.spaceMd,
-                  0,
-                ),
-                child: Row(
-                  children: [
-                    _TopCircleIconButton(
-                      icon: Icons.arrow_back_ios_new_rounded,
-                      tooltip: '뒤로가기',
-                      onTap: () => _handleBack(context),
-                    ),
-                    const SizedBox(width: OzTokens.spaceSm),
-                    _TopCircleIconButton(
-                      icon: Icons.home_rounded,
-                      tooltip: '홈으로 가기',
-                      onTap: () => _handleHome(context),
-                    ),
-                  ],
+              child: RepaintBoundary(
+                key: _originalOverlayKey,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    OzTokens.spaceMd,
+                    OzTokens.spaceSm,
+                    OzTokens.spaceMd,
+                    0,
+                  ),
+                  child: Row(
+                    children: [
+                      _TopCircleIconButton(
+                        icon: Icons.arrow_back_ios_new_rounded,
+                        tooltip: '뒤로가기',
+                        onTap: () => _handleBack(context),
+                      ),
+                      const SizedBox(width: OzTokens.spaceSm),
+                      _TopCircleIconButton(
+                        icon: Icons.home_rounded,
+                        tooltip: '홈으로 가기',
+                        onTap: () => _handleHome(context),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
         ],
       ),
       bottomNavigationBar: state.isSuccess
-          ? SafeArea(
-              top: false,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: OzTokens.spaceSm,
-                  vertical: OzTokens.spaceSm,
-                ),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      OzColors.bgDeep.withValues(alpha: 0.7),
-                      OzColors.bgDeep.withValues(alpha: 0.97),
-                    ],
+          ? OriginalResultScene(
+              captureKey: _originalFooterKey,
+              background: OzColors.bgDeep,
+              child: SafeArea(
+                top: false,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: OzTokens.spaceSm,
+                    vertical: OzTokens.spaceSm,
                   ),
-                  border: Border(top: BorderSide(color: OzColors.borderSoft)),
-                ),
-                child: Row(
-                  children: TarotResultAction.values
-                      .map(
-                        (action) => Expanded(
-                          child: _ResultActionButton(
-                            action: action,
-                            saved:
-                                action == TarotResultAction.save && _justSaved,
-                            onTap: () => _handleAction(
-                              action,
-                              TarotResultView.fromResult(state.data!),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        OzColors.bgDeep.withValues(alpha: 0.7),
+                        OzColors.bgDeep.withValues(alpha: 0.97),
+                      ],
+                    ),
+                    border: Border(top: BorderSide(color: OzColors.borderSoft)),
+                  ),
+                  child: Row(
+                    children: TarotResultAction.values
+                        .map(
+                          (action) => Expanded(
+                            child: _ResultActionButton(
+                              action: action,
+                              saved:
+                                  action == TarotResultAction.save &&
+                                  _justSaved,
+                              onTap: () => _handleAction(
+                                action,
+                                TarotResultView.fromResult(state.data!),
+                              ),
                             ),
                           ),
-                        ),
-                      )
-                      .toList(),
+                        )
+                        .toList(),
+                  ),
                 ),
               ),
             )
@@ -584,7 +614,12 @@ double _lerpRange(
 /// (타이밍/컨트롤러 구조는 기존과 완전히 동일)
 class _TarotResultCinematic extends StatefulWidget {
   final TarotResultModel result;
-  const _TarotResultCinematic({super.key, required this.result});
+  final GlobalKey captureKey;
+  const _TarotResultCinematic({
+    super.key,
+    required this.result,
+    required this.captureKey,
+  });
 
   @override
   State<_TarotResultCinematic> createState() => _TarotResultCinematicState();
@@ -653,6 +688,7 @@ class _TarotResultCinematicState extends State<_TarotResultCinematic>
               view: _view,
               progress: _contentController.value,
               started: _contentStarted,
+              captureKey: widget.captureKey,
             );
           },
         ),
@@ -862,10 +898,12 @@ class _ResultContent extends StatelessWidget {
   final TarotResultView view;
   final double progress;
   final bool started;
+  final GlobalKey captureKey;
   const _ResultContent({
     required this.view,
     required this.progress,
     required this.started,
+    required this.captureKey,
   });
 
   @override
@@ -874,153 +912,159 @@ class _ResultContent extends StatelessWidget {
     final t = progress;
     final result = view.result;
 
-    return ListView(
+    return OriginalResultBody(
+      captureKey: progress >= 1 ? captureKey : GlobalKey(),
+      background: Colors.transparent,
+      frame: (child) => Stack(children: [const OzBackground(), child]),
       padding: const EdgeInsets.fromLTRB(
         OzTokens.spaceLg,
         OzTokens.spaceMd,
         OzTokens.spaceLg,
         110,
       ),
-      children: [
-        _Reveal(
-          t: t,
-          start: 0.0,
-          child: _QuestionBanner(question: result.question),
-        ),
-        // [65종 타로 리딩엔진 §계획2 - 자유질문 자동매칭] 사용자가 주제를
-        // 직접 고르지 않은 자유질문이 서버에서 65개 주제 중 하나로 자동
-        // 매칭되었을 때만 노출되는 안내 배너. 매칭이 없었던 기존 흐름에는
-        // 영향이 없다(autoMatchedTopicName이 항상 null).
-        if (result.autoMatchedTopicName != null) ...[
-          const SizedBox(height: OzTokens.spaceSm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
           _Reveal(
             t: t,
-            start: 0.02,
-            child: _AutoMatchedTopicBanner(
-              topicName: result.autoMatchedTopicName!,
+            start: 0.0,
+            child: _QuestionBanner(question: result.question),
+          ),
+          // [65종 타로 리딩엔진 §계획2 - 자유질문 자동매칭] 사용자가 주제를
+          // 직접 고르지 않은 자유질문이 서버에서 65개 주제 중 하나로 자동
+          // 매칭되었을 때만 노출되는 안내 배너. 매칭이 없었던 기존 흐름에는
+          // 영향이 없다(autoMatchedTopicName이 항상 null).
+          if (result.autoMatchedTopicName != null) ...[
+            const SizedBox(height: OzTokens.spaceSm),
+            _Reveal(
+              t: t,
+              start: 0.02,
+              child: _AutoMatchedTopicBanner(
+                topicName: result.autoMatchedTopicName!,
+              ),
+            ),
+          ],
+          if (result.answer != null) ...[
+            const SizedBox(height: OzTokens.spaceMd),
+            _Reveal(
+              t: t,
+              start: 0.04,
+              child: _YesNoBadge(answer: result.answer!),
+            ),
+          ],
+          // [65종 타로 리딩엔진 §계획1 - choice_ab] A/B 양자택일 스프레드는
+          // 사용자가 입력한 두 선택지를 카드 결과 위에 다시 보여줘, 5장의
+          // 포지션(선택A 현재/결과흐름/선택B 현재/결과흐름/최종조언)이 각각
+          // 어느 선택지에 대한 것인지 헷갈리지 않게 한다.
+          if (result.spreadType == 'choice_ab' &&
+              result.optionA != null &&
+              result.optionB != null) ...[
+            const SizedBox(height: OzTokens.spaceMd),
+            _Reveal(
+              t: t,
+              start: 0.04,
+              child: _ChoiceAbOptionsBanner(
+                optionA: result.optionA!,
+                optionB: result.optionB!,
+              ),
+            ),
+          ],
+          const SizedBox(height: OzTokens.spaceXl),
+          // ① 카드 이름
+          _Reveal(
+            t: t,
+            start: 0.08,
+            child: _SectionHeaderCard(
+              heroCard: view.heroCard,
+              multi: result.positions.length > 1,
             ),
           ),
-        ],
-        if (result.answer != null) ...[
-          const SizedBox(height: OzTokens.spaceMd),
+          const SizedBox(height: OzTokens.spaceLg),
+          // ② 한 줄 운세
           _Reveal(
             t: t,
-            start: 0.04,
-            child: _YesNoBadge(answer: result.answer!),
+            start: 0.20,
+            child: _OneLinerCard(text: view.oneLiner),
           ),
-        ],
-        // [65종 타로 리딩엔진 §계획1 - choice_ab] A/B 양자택일 스프레드는
-        // 사용자가 입력한 두 선택지를 카드 결과 위에 다시 보여줘, 5장의
-        // 포지션(선택A 현재/결과흐름/선택B 현재/결과흐름/최종조언)이 각각
-        // 어느 선택지에 대한 것인지 헷갈리지 않게 한다.
-        if (result.spreadType == 'choice_ab' &&
-            result.optionA != null &&
-            result.optionB != null) ...[
-          const SizedBox(height: OzTokens.spaceMd),
+          const SizedBox(height: OzTokens.spaceLg),
+          // AI 리딩 텍스트(총평)
           _Reveal(
             t: t,
-            start: 0.04,
-            child: _ChoiceAbOptionsBanner(
-              optionA: result.optionA!,
-              optionB: result.optionB!,
+            start: 0.27,
+            child: _AiReadingCard(
+              text: result.summary,
+              label: view.aiReadingLabel,
             ),
           ),
-        ],
-        const SizedBox(height: OzTokens.spaceXl),
-        // ① 카드 이름
-        _Reveal(
-          t: t,
-          start: 0.08,
-          child: _SectionHeaderCard(
-            heroCard: view.heroCard,
-            multi: result.positions.length > 1,
-          ),
-        ),
-        const SizedBox(height: OzTokens.spaceLg),
-        // ② 한 줄 운세
-        _Reveal(
-          t: t,
-          start: 0.20,
-          child: _OneLinerCard(text: view.oneLiner),
-        ),
-        const SizedBox(height: OzTokens.spaceLg),
-        // AI 리딩 텍스트(총평)
-        _Reveal(
-          t: t,
-          start: 0.27,
-          child: _AiReadingCard(
-            text: result.summary,
-            label: view.aiReadingLabel,
-          ),
-        ),
-        const SizedBox(height: OzTokens.spaceLg),
-        // ③ 상세 리딩
-        Column(
-          children: [
-            for (var i = 0; i < result.positions.length; i++)
-              Padding(
-                padding: const EdgeInsets.only(bottom: OzTokens.spaceMd),
-                child: _Reveal(
-                  t: t,
-                  start: 0.34 + i * 0.04,
-                  fadeSpan: 0.14,
-                  child: _PositionCard(
-                    position: result.positions[i],
-                    index: i,
-                    topic: result.topic,
-                    resultId: result.id,
+          const SizedBox(height: OzTokens.spaceLg),
+          // ③ 상세 리딩
+          Column(
+            children: [
+              for (var i = 0; i < result.positions.length; i++)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: OzTokens.spaceMd),
+                  child: _Reveal(
+                    t: t,
+                    start: 0.34 + i * 0.04,
+                    fadeSpan: 0.14,
+                    child: _PositionCard(
+                      position: result.positions[i],
+                      index: i,
+                      topic: result.topic,
+                      resultId: result.id,
+                    ),
                   ),
                 ),
-              ),
-          ],
-        ),
-        const SizedBox(height: OzTokens.spaceMd),
-        // [웹 광고 STEP G] 상세 리딩(포지션 카드) 소비가 끝난 뒤, 다음
-        // 콘텐츠 섹션(오늘의 조언) 시작 전에 1개만 배치한다. 하단 고정
-        // 액션바(다시 뽑기/저장/공유/심화해석/히스토리)와는 이 리스트
-        // 패딩(bottom:110)으로 이미 충분히 떨어져 있어 CTA 혼동 우려가
-        // 없다 — 정통사주 StoryDetail과 동일한 "서사 블록 사이" 원칙.
-        Padding(
-          padding: const EdgeInsets.only(bottom: OzTokens.spaceMd),
-          child: const WebAdInPage(surface: WebAdSurface.tarot, adSlot: ''),
-        ),
-        // ④ 오늘의 조언
-        _Reveal(
-          t: t,
-          start: 0.58,
-          child: _InfoTile(
-            icon: '🧭',
-            label: view.adviceLabel,
-            content: view.advice,
-          ),
-        ),
-        const SizedBox(height: OzTokens.spaceMd),
-        // ⑤ 행운의 색 / ⑥ 행운의 숫자
-        _Reveal(
-          t: t,
-          start: 0.70,
-          child: Row(
-            children: [
-              Expanded(
-                child: _LuckyColorTile(
-                  name: view.luckyColorName,
-                  color: view.luckyColor,
-                ),
-              ),
-              const SizedBox(width: OzTokens.spaceMd),
-              Expanded(child: _LuckyNumberTile(number: view.luckyNumber)),
             ],
           ),
-        ),
-        const SizedBox(height: OzTokens.spaceXl),
-        // ⑦ AI 한마디
-        _Reveal(
-          t: t,
-          start: 0.84,
-          fadeSpan: 0.18,
-          child: _AiClosingCard(text: view.aiClosing),
-        ),
-      ],
+          const SizedBox(height: OzTokens.spaceMd),
+          // [웹 광고 STEP G] 상세 리딩(포지션 카드) 소비가 끝난 뒤, 다음
+          // 콘텐츠 섹션(오늘의 조언) 시작 전에 1개만 배치한다. 하단 고정
+          // 액션바(다시 뽑기/저장/공유/심화해석/히스토리)와는 이 리스트
+          // 패딩(bottom:110)으로 이미 충분히 떨어져 있어 CTA 혼동 우려가
+          // 없다 — 정통사주 StoryDetail과 동일한 "서사 블록 사이" 원칙.
+          Padding(
+            padding: const EdgeInsets.only(bottom: OzTokens.spaceMd),
+            child: const WebAdInPage(surface: WebAdSurface.tarot, adSlot: ''),
+          ),
+          // ④ 오늘의 조언
+          _Reveal(
+            t: t,
+            start: 0.58,
+            child: _InfoTile(
+              icon: '🧭',
+              label: view.adviceLabel,
+              content: view.advice,
+            ),
+          ),
+          const SizedBox(height: OzTokens.spaceMd),
+          // ⑤ 행운의 색 / ⑥ 행운의 숫자
+          _Reveal(
+            t: t,
+            start: 0.70,
+            child: Row(
+              children: [
+                Expanded(
+                  child: _LuckyColorTile(
+                    name: view.luckyColorName,
+                    color: view.luckyColor,
+                  ),
+                ),
+                const SizedBox(width: OzTokens.spaceMd),
+                Expanded(child: _LuckyNumberTile(number: view.luckyNumber)),
+              ],
+            ),
+          ),
+          const SizedBox(height: OzTokens.spaceXl),
+          // ⑦ AI 한마디
+          _Reveal(
+            t: t,
+            start: 0.84,
+            fadeSpan: 0.18,
+            child: _AiClosingCard(text: view.aiClosing),
+          ),
+        ],
+      ),
     );
   }
 }

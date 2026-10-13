@@ -60,9 +60,26 @@ Future<void> safeShareText(
   String failedMessage = '공유하기를 지원하지 않는 환경입니다.',
 }) async {
   Future<void> copyAndToast(String message) async {
-    await Clipboard.setData(ClipboardData(text: text));
-    if (!context.mounted) return;
-    AppToast.show(context, message);
+    try {
+      await Clipboard.setData(ClipboardData(text: text));
+      if (!context.mounted) return;
+      AppToast.show(context, message);
+    } catch (_) {
+      if (!context.mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('직접 복사해서 전달해주세요'),
+          content: SingleChildScrollView(child: SelectableText(text)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('닫기'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   if (kIsWeb) {
@@ -71,9 +88,8 @@ Future<void> safeShareText(
     // `tryNativeWebShare()`로 `navigator.canShare()`를 먼저 확인해 안전한
     // 경우에만 네이티브 공유 시트를 띄운다.
     final shared = await tryNativeWebShare(text, subject: subject);
-    if (shared) return;
-    // 네이티브 공유가 지원되지 않거나(구형 브라우저) 사용자가 취소한
-    // 경우에만 클립보드로 확정적으로 폴백한다.
+    if (!needsShareCopy(shared)) return;
+    // 실제 실패·미지원만 복사한다. 사용자가 취소한 경우 종료한다.
     await copyAndToast(copiedMessage);
     return;
   }

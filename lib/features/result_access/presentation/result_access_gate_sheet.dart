@@ -3,6 +3,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_unified_style.dart';
+import '../../../core/auth/auth_token_store.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../ads_test/domain/admob_ad_ids.dart';
 import '../../pass/presentation/coupang_pass_sheet.dart';
@@ -41,6 +42,18 @@ Future<bool> restorePendingResultAccessAfterLogin(BuildContext context) async {
   final pending = await PendingResultAccessReturnStore.consume();
   if (pending == null) return false;
   if (!context.mounted) return false;
+
+  if (pending.contentType == 'compatibility') {
+    // 라우트 Future는 화면이 닫힐 때 완료된다. 기다리지 말고 복원 화면이 게이트를 소유한다.
+    Navigator.of(context).pushReplacementNamed(
+      pending.returnRoute,
+      arguments: {
+        'restoredInput': pending.userInput,
+        'resumeResultAccess': true,
+      },
+    );
+    return true;
+  }
 
   // [뒤로가기 시 로그인 화면으로 돌아가지 않도록] replace로 원래 화면에
   // 복귀한다 — 로그인 화면(및 그 이전 결과보기 시트를 띄웠던 화면)은
@@ -165,7 +178,47 @@ class _ResultAccessGateSheetState extends State<ResultAccessGateSheet> {
     String? adSessionId,
   }) async {
     final provider = context.read<ResultAccessProvider>();
+    final pending = widget.contentType == 'compatibility'
+        ? await PendingResultAccessReturnStore.peek()
+        : null;
+    final savedAccess = pending?.userInput['_resultAccess'];
+    final sameOwner =
+        pending?.userInput['_ownerUserId'] ==
+        await AuthTokenStore.getCurrentUserId();
+    if (savedAccess is Map && sameOwner) {
+      // begin 응답 유실 뒤 다른 선택으로 재차감하지 않고 먼저 같은 거래를 확인한다.
+      if (mounted) {
+        Navigator.of(context).pop(
+          ResultAccessBeginResult.fromJson(savedAccess.cast<String, dynamic>()),
+        );
+      }
+      return;
+    }
     final transactionId = generateResultAccessTransactionId();
+    if (widget.contentType == 'compatibility') {
+      // begin 응답 유실/앱 종료 전에도 같은 거래 번호를 복원할 수 있도록 요청 전에 저장.
+      await PendingResultAccessReturnStore.save(
+        PendingResultAccessReturn(
+          contentType: widget.contentType,
+          returnRoute: widget.returnRoute,
+          savedAt: DateTime.now(),
+          contentTitle: widget.contentTitle,
+          categoryKey: widget.categoryKey,
+          userInput: {
+            ...widget.userInputForRestore,
+            '_ownerUserId': await AuthTokenStore.getCurrentUserId(),
+            '_resultAccess': {
+              'transactionId': transactionId,
+              'paymentMethod': method.code,
+              'status': 'pending',
+              'amount': 0,
+              'idempotent': true,
+            },
+            if (adSessionId != null) '_adSessionId': adSessionId,
+          },
+        ),
+      );
+    }
     final result = await provider.begin(
       transactionId: transactionId,
       contentType: widget.contentType,
@@ -176,8 +229,17 @@ class _ResultAccessGateSheetState extends State<ResultAccessGateSheet> {
     );
     if (!mounted) return;
     if (result == null) {
+      // 서버 거절이 명확할 때만 저장 제거. 네트워크 오류는 같은 거래 확인용으로 유지.
+      if (provider.lastErrorReason != null) {
+        await PendingResultAccessReturnStore.clearTransaction(transactionId);
+      }
+      if (!mounted) return;
       setState(() => _processingMethod = null);
-      AppToast.show(context, provider.lastError ?? '결과보기에 실패했습니다.', isError: true);
+      AppToast.show(
+        context,
+        provider.lastError ?? '결과보기에 실패했습니다.',
+        isError: true,
+      );
       return;
     }
     // 차감된 잔여 횟수를 마이페이지/홈 상태에도 반영한다.
@@ -214,7 +276,11 @@ class _ResultAccessGateSheetState extends State<ResultAccessGateSheet> {
     if (!mounted) return;
     if (sessionId == null) {
       setState(() => _processingMethod = null);
-      AppToast.show(context, provider.lastError ?? '광고를 시작할 수 없어요.', isError: true);
+      AppToast.show(
+        context,
+        provider.lastError ?? '광고를 시작할 수 없어요.',
+        isError: true,
+      );
       return;
     }
 
@@ -263,7 +329,11 @@ class _ResultAccessGateSheetState extends State<ResultAccessGateSheet> {
               ad.dispose();
               if (!mounted) return;
               setState(() => _processingMethod = null);
-              AppToast.show(context, '광고 표시에 실패했어요. 잠시 후 다시 시도해주세요.', isError: true);
+              AppToast.show(
+                context,
+                '광고 표시에 실패했어요. 잠시 후 다시 시도해주세요.',
+                isError: true,
+              );
             },
           );
           ad.show(
@@ -276,7 +346,11 @@ class _ResultAccessGateSheetState extends State<ResultAccessGateSheet> {
         onAdFailedToLoad: (error) {
           if (!mounted) return;
           setState(() => _processingMethod = null);
-          AppToast.show(context, '지금은 광고를 불러올 수 없어요. 잠시 후 다시 시도해주세요.', isError: true);
+          AppToast.show(
+            context,
+            '지금은 광고를 불러올 수 없어요. 잠시 후 다시 시도해주세요.',
+            isError: true,
+          );
         },
       ),
     );
@@ -338,7 +412,8 @@ class _ResultAccessGateSheetState extends State<ResultAccessGateSheet> {
           left: UnifiedTokens.spaceXl,
           right: UnifiedTokens.spaceXl,
           top: UnifiedTokens.spaceLg,
-          bottom: UnifiedTokens.spaceXl + MediaQuery.of(context).viewInsets.bottom,
+          bottom:
+              UnifiedTokens.spaceXl + MediaQuery.of(context).viewInsets.bottom,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -472,8 +547,7 @@ class _ResultAccessGateSheetState extends State<ResultAccessGateSheet> {
   }
 
   Widget _buildOptions(ResultAccessQuote quote) {
-    final showCoupangClaim =
-        !quote.freePassAvailable && !quote.todayClaimed;
+    final showCoupangClaim = !quote.freePassAvailable && !quote.todayClaimed;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -488,7 +562,8 @@ class _ResultAccessGateSheetState extends State<ResultAccessGateSheet> {
         SizedBox(height: UnifiedTokens.spaceSm),
         _GateOptionButton(
           icon: Icons.savings_rounded,
-          label: '복주머니로 보기 (-${quote.pouchPrice}개)'
+          label:
+              '복주머니로 보기 (-${quote.pouchPrice}개)'
               '${quote.pouchAvailable ? '' : ' · 이용 불가'}',
           subLabel: '보유 ${quote.pouchBalance}개',
           enabled: quote.pouchAvailable && quote.pouchSufficient && !_busy,
@@ -499,7 +574,8 @@ class _ResultAccessGateSheetState extends State<ResultAccessGateSheet> {
         _GateOptionButton(
           icon: Icons.smart_display_rounded,
           label: '광고 보고 무료로 보기',
-          enabled: quote.adAvailable && AdmobAdIds.isSupportedPlatform && !_busy,
+          enabled:
+              quote.adAvailable && AdmobAdIds.isSupportedPlatform && !_busy,
           loading: _processingMethod == ResultAccessPaymentMethod.ad,
           onTap: _handleAd,
         ),
@@ -605,10 +681,7 @@ class _GateOptionButton extends StatelessWidget {
                   ),
                   if (subLabel != null) ...[
                     SizedBox(width: UnifiedTokens.spaceXs),
-                    Text(
-                      '($subLabel)',
-                      style: UnifiedText.caption(color: fg),
-                    ),
+                    Text('($subLabel)', style: UnifiedText.caption(color: fg)),
                   ],
                 ],
               ),

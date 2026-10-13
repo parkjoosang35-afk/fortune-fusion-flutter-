@@ -18,22 +18,26 @@ class ResultAccessRepository {
     required String contentType,
     String? categoryKey,
   }) async {
-    final uri = Uri.parse(
-      '${EnvConfig.adminApiBaseUrl}/api/public/result-access/quote',
-    ).replace(
-      queryParameters: {
-        'contentType': contentType,
-        if (categoryKey != null) 'categoryKey': categoryKey,
-      },
-    );
+    final uri =
+        Uri.parse(
+          '${EnvConfig.adminApiBaseUrl}/api/public/result-access/quote',
+        ).replace(
+          queryParameters: {
+            'contentType': contentType,
+            if (categoryKey != null) 'categoryKey': categoryKey,
+          },
+        );
     debugPrint('[ResultAccessRepository] [quote] 요청 -> $uri');
 
     try {
       final response = await http
-          .get(uri, headers: {
-            'Accept': 'application/json',
-            ...await AuthTokenStore.authHeader(),
-          })
+          .get(
+            uri,
+            headers: {
+              'Accept': 'application/json',
+              ...await AuthTokenStore.authHeader(),
+            },
+          )
           .timeout(const Duration(seconds: 10));
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
@@ -105,7 +109,9 @@ class ResultAccessRepository {
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
         final error = decoded['error'] as String? ?? '결과보기 권한 확인에 실패했습니다.';
-        debugPrint('[ResultAccessRepository] [begin] 실패 -> $error (reason=${decoded['reason']})');
+        debugPrint(
+          '[ResultAccessRepository] [begin] 실패 -> $error (reason=${decoded['reason']})',
+        );
         // [비로그인 결과보기 복귀 지시서 R1/R4] getQuote()와 동일하게 401은
         // unauthorizedResponse()가 내려준 고정 응답이라 'reason' 필드가
         // 없다 — statusCode로 판정해 'UNAUTHORIZED'를 부여한다(그 외에는
@@ -116,7 +122,9 @@ class ResultAccessRepository {
         return ApiResult.fail(error, code: code);
       }
       return ApiResult.ok(
-        ResultAccessBeginResult.fromJson(decoded['data'] as Map<String, dynamic>),
+        ResultAccessBeginResult.fromJson(
+          decoded['data'] as Map<String, dynamic>,
+        ),
       );
     } catch (e) {
       debugPrint('[ResultAccessRepository] [begin] 예외 -> $e');
@@ -132,10 +140,13 @@ class ResultAccessRepository {
     );
     try {
       final response = await http
-          .post(uri, headers: {
-            'Content-Type': 'application/json',
-            ...await AuthTokenStore.authHeader(),
-          })
+          .post(
+            uri,
+            headers: {
+              'Content-Type': 'application/json',
+              ...await AuthTokenStore.authHeader(),
+            },
+          )
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
