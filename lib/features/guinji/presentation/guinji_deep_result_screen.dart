@@ -31,6 +31,25 @@ class GuinjiDeepResultScreen extends StatelessWidget {
   /// `fillName(s, m, me)` 1:1 이식 — {n}=상대 이름, {me}=나(소유자) 이름.
   String _fill(String s) => fill(s, n: person.name, me: ownerName);
 
+  /// [P4-hotfix] 카드 스크린샷을 갤러리에 저장(무료·광고 없음).
+  Future<void> _saveCardToGallery(BuildContext context) async {
+    final obj = context.findRenderObject();
+    if (obj is! RenderRepaintBoundary) return;
+    final image = await obj.toImage(pixelRatio: 3.0);
+    final data = await image.toByteData(format: ui.ImageByteFormat.png);
+    if (data == null) return;
+    await ImageGallerySaver.saveImage(
+      data.buffer.asUint8List(),
+      quality: 100,
+      name: 'sintong_guinji_${DateTime.now().millisecondsSinceEpoch}',
+    );
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('갤러리에 저장했어요 ✦')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final meta = guinjiRelationMetaOf(person.relation);
