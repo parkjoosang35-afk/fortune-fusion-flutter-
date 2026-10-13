@@ -1,9 +1,9 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:flutter/rendering.dart';
 
+import '../../../core/util/image_gallery_saver.dart';
 import '../character/guinji_character.dart';
 import '../deep/guinji_deep_text.dart';
 import '../domain/guinji_person.dart';
@@ -21,7 +21,7 @@ import '../widgets/guinji_animated_graph.dart' show parseGuinjiBirthLabel;
 /// `tips` 2개 필드만 간접 사용되고 나머지는 완전히 미사용 상태였다. 이
 /// 화면이 그 10개 필드를 핸드오프와 동일한 순서·구성으로 전부 사용한다.
 class GuinjiDeepResultScreen extends StatelessWidget {
-  const GuinjiDeepResultScreen({
+  GuinjiDeepResultScreen({
     super.key,
     required this.person,
     this.ownerName = '나',
@@ -32,24 +32,41 @@ class GuinjiDeepResultScreen extends StatelessWidget {
   final String ownerName;
   final VoidCallback? onShare;
 
+  /// [P4-hotfix / 2026-10-13] 카드 스크린샷 캡처 대상을 가리키는 키.
+  /// StatelessWidget이라도 이 위젯 인스턴스는 route마다 새로 생성되므로
+  /// (호출부가 const 생성자를 쓰지 않음) 필드로 선언해도 키 중복 문제가
+  /// 없다.
+  final GlobalKey _captureKey = GlobalKey();
+
   /// `fillName(s, m, me)` 1:1 이식 — {n}=상대 이름, {me}=나(소유자) 이름.
   String _fill(String s) => fill(s, n: person.name, me: ownerName);
 
-  /// [P4-hotfix] 카드 스크린샷을 갤러리에 저장(무료·광고 없음).
+  /// [P4-hotfix / 2026-10-13 재정정] 카드 스크린샷을 갤러리에 저장(무료·광고
+  /// 없음). 폐기된 image_gallery_saver(Gradle namespace/JVM-target/Kotlin
+  /// Registrar 호환성 문제로 빌드 불가 확인됨) 대신, 이미 프로젝트에서
+  /// 검증되어 쓰이고 있는 gal 기반 `saveImageBytesToGallery` 헬퍼
+  /// (guinji_result_card_screen.dart, wallpaper_screen.dart와 동일 패턴)를
+  /// 재사용한다.
+  ///
+  /// [버그수정] 이전 구현은 `context.findRenderObject()`로 자기 자신을
+  /// 캡처했는데, 이 화면 트리 어디에도 RepaintBoundary가 없어 캐스트가
+  /// 항상 실패하고(obj is! RenderRepaintBoundary) 조용히 아무 동작도 하지
+  /// 않는 죽은 버튼이었다(Gradle 빌드 실패 이전에 로직 자체가 깨져
+  /// 있었음). `_captureKey`로 본문 스크롤 영역 전체를 RepaintBoundary로
+  /// 감싸 캡처 대상을 명확히 했다.
   Future<void> _saveCardToGallery(BuildContext context) async {
-    final obj = context.findRenderObject();
+    final obj = _captureKey.currentContext?.findRenderObject();
     if (obj == null || obj is! RenderRepaintBoundary) return;
     final image = await obj.toImage(pixelRatio: 3.0);
     final data = await image.toByteData(format: ui.ImageByteFormat.png);
     if (data == null) return;
-    await ImageGallerySaver.saveImage(
+    final ok = await saveImageBytesToGallery(
       data.buffer.asUint8List(),
-      quality: 100,
       name: 'sintong_guinji_${DateTime.now().millisecondsSinceEpoch}',
     );
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('갤러리에 저장했어요 ✦')),
+        SnackBar(content: Text(ok ? '갤러리에 저장했어요 ✦' : '저장에 실패했어요. 권한을 확인해주세요.')),
       );
     }
   }
@@ -86,8 +103,11 @@ class GuinjiDeepResultScreen extends StatelessWidget {
       backgroundColor: GmColors.bg,
       body: Stack(
         children: [
-          // 본문 스크롤 영역.
-          SingleChildScrollView(
+          // 본문 스크롤 영역. [P4-hotfix] RepaintBoundary로 감싸 '저장'
+          // 버튼이 캡처할 대상을 명확히 지정한다.
+          RepaintBoundary(
+            key: _captureKey,
+            child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -479,6 +499,7 @@ class GuinjiDeepResultScreen extends StatelessWidget {
                 ),
               ],
             ),
+          ),
           ),
 
           // 상단 고정 바(뒤로가기).
