@@ -15,6 +15,12 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        source: "/preview/:path*",
+        headers: [
+          { key: "Cache-Control", value: "no-store, must-revalidate" },
+        ],
+      },
+      {
         source: "/uploads/:path*",
         headers: [
           { key: "Access-Control-Allow-Origin", value: "*" },
