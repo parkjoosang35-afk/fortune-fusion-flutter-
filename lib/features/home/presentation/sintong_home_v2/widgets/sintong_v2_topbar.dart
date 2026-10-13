@@ -92,7 +92,7 @@ class SintongV2TopBar extends StatelessWidget {
               context,
             ).pushNamed(auth.isLoggedIn ? '/my/settings' : '/login'),
             child: const Icon(
-              Icons.person_rounded,
+              Icons.settings_rounded,
               size: 16,
               color: Colors.white,
             ),

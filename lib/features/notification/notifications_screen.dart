@@ -5,6 +5,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/app_empty_state.dart';
 import '../wishroom/features/explore/other_room_screen.dart';
 import 'notification_provider.dart';
+import '../../core/theme/dark_page_theme.dart';
 
 /// 03단계 §3.3 마이 탭 - NotificationsScreen(인앱 알림 목록)
 class NotificationsScreen extends StatefulWidget {
@@ -31,7 +32,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget build(BuildContext context) {
     final items = context.watch<NotificationProvider>().items;
 
-    return Scaffold(
+    return DarkPage(
+      child: Scaffold(
       appBar: AppBar(title: const Text('알림')),
       body: SafeArea(
         child: items.isEmpty
@@ -94,7 +96,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 },
               ),
       ),
-    );
+    ),
+    );;
   }
 
   /// [알림 실제 발송 연동] 탭 시 서버가 내려준 deepLink("wish:w_123")를 파싱해

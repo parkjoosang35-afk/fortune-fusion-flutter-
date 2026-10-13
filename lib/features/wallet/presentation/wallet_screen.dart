@@ -4,6 +4,7 @@ import '../../../core/theme/app_unified_style.dart';
 import '../application/wallet_provider.dart';
 import '../../fortune_ad/application/fortune_ad_provider.dart';
 import 'wallet_content.dart';
+import '../../../core/theme/dark_page_theme.dart';
 
 /// 03단계 §3.3 리워드 탭 - WalletScreen(복주머니 잔액/적립·차감 내역)
 ///
@@ -34,7 +35,8 @@ class _WalletScreenState extends State<WalletScreen> {
   Widget build(BuildContext context) {
     final wallet = context.watch<WalletProvider>();
 
-    return Scaffold(
+    return DarkPage(
+      child: Scaffold(
       backgroundColor: UnifiedColors.bg,
       appBar: AppBar(title: const Text('복주머니 지갑')),
       body: SafeArea(
@@ -46,6 +48,7 @@ class _WalletScreenState extends State<WalletScreen> {
           ),
         ),
       ),
-    );
+    ),
+    );;
   }
 }

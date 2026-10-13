@@ -14,6 +14,7 @@ import '../../ads_test/domain/admob_ad_ids.dart';
 import '../../ads_test/presentation/admob_test_rewarded_ad.dart';
 import '../../notification/data/notification_preference_repository.dart';
 import '../../saju_renewal/screens/birth_input_screen.dart';
+import '../../../core/theme/dark_page_theme.dart';
 
 /// [Sowoon.kr 리디자인 프롬프트] 다크모드 토글 UI 완전 제거.
 /// 앱은 항상 화이트/골드 라이트 테마로만 동작한다(ThemeProvider는 ThemeMode.light 고정).
@@ -163,7 +164,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // 보여준다(비로그인 상태는 애초에 사주 분석을 시작할 수 없으므로
     // 고칠 출생정보 자체가 없음).
     final isLoggedIn = context.watch<AuthProvider>().isLoggedIn;
-    return Scaffold(
+    return DarkPage(
+      child: Scaffold(
       backgroundColor: UnifiedColors.bg,
       appBar: AppBar(
         backgroundColor: UnifiedColors.bg,
@@ -437,7 +439,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
         ),
       ),
-    );
+    ),
+    );;
   }
 
   /// [애드몹 테스트 연동] "테스트 리워드 광고 보기" 버튼 탭 핸들러.
