@@ -497,7 +497,17 @@ class GuinjiDeepResultScreen extends StatelessWidget {
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () {},
+                        onPressed: () async {
+                        try {
+                          await _saveCardToGallery(context);
+                        } catch (_) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('저장에 실패했어요. 다시 시도해 주세요.')),
+                            );
+                          }
+                        }
+                      },
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: GmColors.line),
                           foregroundColor: GmColors.fg,
