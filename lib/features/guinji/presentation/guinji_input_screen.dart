@@ -83,7 +83,19 @@ class _GuinjiInputScreenState extends State<GuinjiInputScreen> {
   late bool _timeUnknown = widget.initialDraft?.timeUnknown ?? false;
 
   /// [신규] 성별 — 캐릭터 미리보기 전용(엔진 입력 아님).
-  GuinjiGender _gender = GuinjiGender.female;
+  /// [P4-hotfix 2026-10-13] 기본값을 하드코딩 female에서 사용자 프로필
+  /// 성별로 시드한다 — 회원가입에서 남자를 골랐는데 지도 입력 화면이 항상
+  /// '여성'으로 시작해 캐릭터가 여자로 바뀌어 보이던 버그.
+  /// 프로필 성별이 없으면(null) 기존 기본값 female 유지.
+  late GuinjiGender _gender = _seedGender();
+
+  GuinjiGender _seedGender() {
+    try {
+      final g = context.read<AuthProvider>().user?.gender;
+      if (g == 'M' || g == 'male') return GuinjiGender.male;
+    } catch (_) {}
+    return GuinjiGender.female;
+  }
 
   bool _submitting = false;
   String? _formError;
