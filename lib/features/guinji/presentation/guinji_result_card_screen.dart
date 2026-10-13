@@ -15,6 +15,7 @@ import '../../share/application/share_service.dart';
 import '../../share/domain/share_result_model.dart';
 import '../application/guinji_provider.dart';
 import '../domain/guinji_person.dart';
+import '../domain/guinji_relation_meta.dart';
 import '../theme/guinji_theme.dart';
 import '../widgets/guinji_bg_atmosphere.dart';
 
@@ -178,29 +179,53 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
   /// payload에는 기존 비식별 원칙(이름 비노출, 관계유형별 인원수만)을
   /// 그대로 적용해 집계값만 담는다 — 원본 생년월일/실명 등은 절대 포함하지
   /// 않는다.
-  Future<void> _shareViaLink(int guin, int oreunpal, int horang) async {
+  ///
+  /// [2026-10-13 V2 6종 전환] 공유 payload의 관계유형 집계를 구 5종
+  /// (guin/oreunpal/horang)에서 V2 6종(CHEON_GWII/HAP/SANG_SAENG/
+  /// SANG_GEUK/BI_HWA/CHUNG)으로 전환한다. 집계 대상인 [widget.people]의
+  /// `relation` 필드는 [GuinjiPerson.fromServerJson]에서 이미 서버 응답
+  /// `relation.relationType`을 그대로 옮겨 담은 값이므로(`guinji_person.dart`
+  /// 참고), 여기서는 그 값을 유형별로 세기만 할 뿐 클라이언트가 관계를
+  /// 재판정하지 않는다.
+  ///
+  /// [웹 하위호환 — 수정 불필요] admin_web `RelationshipView`는 레거시
+  /// `guin/oreunpal/horang` 키가 있으면 카드형 집계로, 없으면 `highlights`
+  /// 리스트로 폴백 렌더링하도록 이미 설계돼 있다(`service-result-view.tsx`
+  /// §RelationshipView). 이번 전환으로 신규 공유분은 그 키를 보내지 않으므로
+  /// 자동으로 `highlights` 폴백 경로를 타며, 기존에 이미 생성된 레거시
+  /// 공유 링크는 여전히 `guin/oreunpal/horang` payload 그대로 보존되어
+  /// 카드형 렌더가 깨지지 않는다 — 웹 쪽 코드 변경이 필요 없다.
+  Future<void> _shareViaLink() async {
     if (_capturing) return;
     setState(() => _capturing = true);
     try {
       final mapId = context.read<GuinjiProvider>().mapId;
+      final people = widget.people;
+
+      // 서버가 내려준 relationType(V2 6종) 값을 유형별로 집계만 한다.
+      final relationCounts = <String, int>{
+        for (final key in guinjiRelationOrder)
+          key: people.where((p) => p.relation == key).length,
+      };
+      final cheonGwii = relationCounts['CHEON_GWII'] ?? 0;
+
       await ShareService.shareResult(
         context,
         resultType: ShareResultType.relationship,
         title: '${widget.ownerName}님의 귀인지도 · 신통방통',
-        description: '내 주변 귀인 $guin명을 신통방통이 찾아줬어요.',
+        description: '내 주변 귀인 $cheonGwii명을 포함해 신통방통이 관계유형을 찾아줬어요.',
         payload: {
           // [앱·웹 공유 구조 확정] admin_web 전용 렌더러가 관계유형별
           // 인원수를 카드형 집계로 보여줄 수 있도록 구조화 필드를
           // 추가한다(비식별 원칙 유지 — 이름 비노출, 인원수 집계만).
           'kind': 'relationship',
           'ownerName': widget.ownerName,
-          'counts': {'guin': guin, 'oreunpal': oreunpal, 'horang': horang},
+          'relationCounts': relationCounts,
           'category': '귀인지도',
-          'summary': '내 주변 귀인 $guin명을 신통방통이 찾아줬어요.',
+          'summary': '내 주변 귀인 $cheonGwii명을 포함해 신통방통이 관계유형을 찾아줬어요.',
           'highlights': [
-            '귀인 $guin명',
-            '오른팔 $oreunpal명',
-            '호랑이 선생 $horang명',
+            for (final key in guinjiRelationOrder)
+              '${guinjiRelationMetaOf(key).label} ${relationCounts[key]}명',
           ],
         },
         sourceRefId: mapId,
@@ -213,7 +238,7 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
   /// "공유하기" 버튼 탭 시 스크린샷 공유/링크 공유 중 하나를 고르는
   /// 바텀시트. 기존 스크린샷 공유 흐름([_captureAndShare])은 그대로
   /// 유지하면서, 신규 링크 공유([_shareViaLink])를 추가로 노출한다.
-  Future<void> _showShareOptions(int guin, int oreunpal, int horang) async {
+  Future<void> _showShareOptions(int guin) async {
     if (_capturing) return;
     final choice = await showModalBottomSheet<String>(
       context: context,
@@ -265,7 +290,7 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
     if (choice == 'image') {
       await _captureAndShare(guin);
     } else if (choice == 'link') {
-      await _shareViaLink(guin, oreunpal, horang);
+      await _shareViaLink();
     }
   }
 
@@ -331,8 +356,7 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
                           label: _capturing ? '준비하는 중' : '공유하기',
                           onPressed: _capturing
                               ? () {}
-                              : () =>
-                                    _showShareOptions(guin, oreunpal, horang),
+                              : () => _showShareOptions(guin),
                         ),
                       ),
                     ],
