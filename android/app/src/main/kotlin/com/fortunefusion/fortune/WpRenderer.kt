@@ -285,6 +285,7 @@ object WpRenderer {
         // 방 일러스트를 가리지 않게 위에만 얹는다. 터치 영역은
         // overlayZones()가 렌더와 같은 좌표로 관리한다.
         if (m.overlay) {
+            val hudPaint = Paint(Paint.ANTI_ALIAS_FLAG)
             if (clock != null) {
                 val shadow = Paint(Paint.ANTI_ALIAS_FLAG)
                 shadow.color = Color.argb(150, 0, 0, 0)

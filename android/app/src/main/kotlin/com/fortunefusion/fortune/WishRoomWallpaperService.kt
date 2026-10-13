@@ -121,7 +121,7 @@ class WishRoomWallpaperService : WallpaperService() {
          * 치성 버튼 탭 → WishActionQueue 기록(§4.1 네이티브→앱 큐, 배경화면은
          * 서버 통신 없음 — 앱이 drain해 전송) + 기도 연출.
          */
-        override fun onTouchEvent(event: MotionEvent): Boolean {
+        override fun onTouchEvent(event: MotionEvent) {
             if (event.action == MotionEvent.ACTION_DOWN) {
                 val m = manifest
                 if (m != null && m.overlay) {
@@ -151,7 +151,7 @@ class WishRoomWallpaperService : WallpaperService() {
                     }
                 }
             }
-            return super.onTouchEvent(event)
+            super.onTouchEvent(event)
         }
 
         override fun onComputeColors(): WallpaperColors? {
