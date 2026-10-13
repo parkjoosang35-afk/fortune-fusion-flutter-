@@ -44,7 +44,8 @@ export async function POST(request: NextRequest) {
     // 현재 유효한(만료되지 않은) 모든 UserPass를 조회한다(정상적으로는 1건이지만
     // 방어적으로 all-match 처리 — 과거 동시발급 등 예외 상황 대비).
     const activePasses = await prisma.userPass.findMany({
-      where: { userId, expiresAt: { gt: now } },
+      // 횟수제는 사용자 자산이므로 로그아웃만으로 회수하지 않는다.
+      where: { userId, status: "active", expiresAt: { gt: now }, remainingCount: null },
     });
 
     if (activePasses.length === 0) {

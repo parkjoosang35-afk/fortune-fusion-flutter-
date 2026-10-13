@@ -276,6 +276,9 @@ export async function beginResultAccess(
     if (existing.userId !== userId) {
       throw new ResultAccessError("TRANSACTION_OWNER_MISMATCH", "잘못된 요청입니다.");
     }
+    if (existing.contentType !== contentType || existing.paymentMethod !== paymentMethod) {
+      throw new ResultAccessError("TRANSACTION_CONTEXT_MISMATCH", "다른 콘텐츠 또는 결제수단의 거래를 재사용할 수 없습니다.");
+    }
     return {
       transactionId: existing.transactionId,
       paymentMethod: existing.paymentMethod as ResultAccessPaymentMethod,

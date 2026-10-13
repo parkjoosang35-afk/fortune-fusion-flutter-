@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     // ── 카테고리별 이용횟수 검증(categoryKey가 전달된 경우에만) ──
     let categoryUsageInfo: { usageCount: number; maxUsage: number | null } | null = null;
     if (categoryKey) {
-      const usageCheck = await checkCategoryUsage(userId, categoryKey);
+      const usageCheck = await checkCategoryUsage(userId, categoryKey, checkOnly);
       if (!usageCheck.allowed) {
         return NextResponse.json(
           {

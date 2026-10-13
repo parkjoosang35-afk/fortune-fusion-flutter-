@@ -75,7 +75,7 @@ export async function getActiveUserPass(userId: number) {
 
 export interface CategoryUsageCheckResult {
   allowed: boolean;
-  reason?: "NO_ACTIVE_PASS" | "CATEGORY_LIMIT_REACHED";
+  reason?: "NO_ACTIVE_PASS" | "CATEGORY_LIMIT_REACHED" | "RESULT_ACCESS_REQUIRED";
   usageCount: number;
   maxUsage: number | null;
   userPassId: number | null;
@@ -196,9 +196,18 @@ export async function checkDailyAbsoluteLimit(userId: number): Promise<DailyAbso
  */
 export async function checkCategoryUsage(
   userId: number,
-  categoryKey: string
+  categoryKey: string,
+  checkOnly = false,
 ): Promise<CategoryUsageCheckResult> {
-  const activePass = await getActiveUserPass(userId);
+  const legacyPass = await prisma.userPass.findFirst({
+    where: { userId, status: "active", expiresAt: { gt: new Date() }, remainingCount: null },
+    orderBy: { expiresAt: "asc" }, include: { policy: true },
+  });
+  const activePass = legacyPass ?? await getActiveUserPass(userId);
+  if (activePass?.remainingCount != null) {
+    // 화면 진입은 확인만 허용. 실제 생성은 거래 식별자가 있는 ResultAccess 경로 필수.
+    return { allowed: checkOnly, reason: checkOnly ? undefined : "RESULT_ACCESS_REQUIRED", usageCount: 0, maxUsage: null, userPassId: activePass.id };
+  }
   if (!activePass) {
     return { allowed: false, reason: "NO_ACTIVE_PASS", usageCount: 0, maxUsage: null, userPassId: null };
   }

@@ -97,6 +97,8 @@ export async function POST(request: NextRequest) {
         success: true,
         data: {
           userPassId: result.userPass.id,
+          grantedCount: result.userPass.grantedCount,
+          remainingCount: result.userPass.remainingCount,
           policyId: policy.id,
           policyName: policy.name,
           expiresAt: result.expiresAt.toISOString(),

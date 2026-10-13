@@ -8,7 +8,14 @@ import {
   getResultAccessQuote,
   ResultAccessError,
 } from "../src/lib/result-access-service";
-import { grantOpenPass } from "../src/lib/open-pass-service";
+import { grantOpenPass, checkCategoryUsage } from "../src/lib/open-pass-service";
+import { NextRequest } from "next/server";
+import { signUserToken } from "../src/lib/user-auth";
+import { POST as logoutPass } from "../src/app/api/public/pass/expire-on-logout/route";
+import { POST as nameRoute } from "../src/app/api/public/fortune/name/route";
+import { POST as faceRoute } from "../src/app/api/public/fortune/face/route";
+import { POST as palmRoute } from "../src/app/api/public/fortune/palm/route";
+import { POST as compatibilityRoute } from "../src/app/api/public/compatibility/request/route";
 import { earnLuckPouch } from "../src/lib/luck-pouch-engine";
 import { randomUUID } from "crypto";
 
@@ -45,6 +52,34 @@ async function main() {
       throw new Error("FAIL: 실제 지급함수가 횟수제 2회를 지급하지 않음");
     }
     console.log("UserPass 생성(횟수제 2회):", userPass.id);
+    for (const category of ["saju", "name", "face", "palm", "compatibility", "tarot"]) {
+      const legacy = await checkCategoryUsage(userId, category);
+      if (legacy.allowed || legacy.reason !== "RESULT_ACCESS_REQUIRED") throw new Error(`FAIL: ${category} 레거시 무차감 우회 허용`);
+      const preview = await checkCategoryUsage(userId, category, true);
+      if (!preview.allowed) throw new Error(`FAIL: ${category} 화면 진입 확인 차단`);
+    }
+    const token = await signUserToken({ userId, nickname: testUser.nickname });
+    const routeCases = [
+      { name: "name", route: nameRoute, body: { name: "검증사용자" } },
+      { name: "face", route: faceRoute, body: { image: "a".repeat(120) } },
+      { name: "palm", route: palmRoute, body: { image: "a".repeat(120) } },
+      { name: "compatibility", route: compatibilityRoute, body: { birthDateA: "1990-01-01", birthDateB: "1991-02-02" } },
+    ];
+    for (const test of routeCases) {
+      const response = await test.route(new NextRequest(`http://localhost/api/public/${test.name}`, {
+        method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(test.body),
+      }));
+      const payload = await response.json();
+      if (response.status !== 403 || payload.reason !== "RESULT_ACCESS_REQUIRED") throw new Error(`FAIL: ${test.name} 실제 라우트 무차감 우회 차단 실패`);
+    }
+    console.log("OK: 이름·관상·손금·궁합 실제 라우트가 무차감 생성 요청을 차단");
+    const logoutResponse = await logoutPass(new NextRequest("http://localhost/api/public/pass/expire-on-logout", {
+      method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: "{}",
+    }));
+    if (logoutResponse.status !== 200) throw new Error("FAIL: 로그아웃 처리 실패");
+    const afterLogout = await prisma.userPass.findUniqueOrThrow({ where: { id: userPass.id } });
+    if (afterLogout.status !== "active" || afterLogout.remainingCount !== 2) throw new Error("FAIL: 로그아웃으로 횟수제 자산 소멸");
+    console.log("OK: 6개 카테고리 레거시 우회 차단·진입 확인 허용·로그아웃 횟수제 보존");
 
     // 4) 복주머니 100개 이상 적립
     await prisma.$transaction(async (tx) => {
@@ -85,6 +120,13 @@ async function main() {
       throw new Error(`FAIL: 멱등 재호출로 중복 차감됨 remainingCount=${passAfterIdempotent?.remainingCount}`);
     }
     console.log("OK: 멱등 재호출로 중복 차감 없음 확인");
+    for (const mismatch of [{ contentType: "tarot", paymentMethod: "FREEPASS" as const }, { contentType: "saju", paymentMethod: "POUCH" as const }]) {
+      let blocked = false;
+      try { await beginResultAccess({ userId, transactionId: tx1, ...mismatch }); }
+      catch (e) { blocked = e instanceof ResultAccessError && e.code === "TRANSACTION_CONTEXT_MISMATCH"; }
+      if (!blocked) throw new Error("FAIL: 다른 콘텐츠/결제수단 거래 재사용 허용");
+    }
+    console.log("OK: 다른 콘텐츠·결제수단 거래 재사용 차단");
 
     // 실패 시 프리패스 1회를 정확히 복구하고, 중복 복구는 하지 않는다.
     await failAndRefundResultAccess(tx1);
