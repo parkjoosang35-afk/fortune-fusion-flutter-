@@ -515,6 +515,11 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
             if (_capText != null) Positioned(key: ValueKey(_capText), left: 20, right: 20, top: _rekindling ? 500 : 520, child: Center(child: _CapText(
               text: _capText!, fontSize: _rekindling ? 19 : 15, durMs: _rekindling ? 2600 : 2400,
             ))),
+            // ── 하단 슬림 도크(58px) + 둥근 정성 버튼(66px) ──
+            Positioned(left: 12, right: 12, top: 690, child: _bottomDock(
+              room: room, cat: cat, isDim: isDim, busy: busyCooldown, done: done, deg: deg, ritual: ritual, used: used, lim: lim,
+            )),
+
             // devote() 2.9s / rekindle() 3.4s 보상시트 — [명세] quote보다 먼저(=아래) 배치해
             // quote(z95)가 이 위에 겹쳐 보이는 원본 레이어링(dim z88/sheet z89 < quote z95)을 재현.
             if (_reward != null) Positioned.fill(child: _RewardOverlay(
@@ -524,10 +529,6 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
             if (_quoteText != null) Positioned.fill(child: _QuoteCard(
               text: _quoteText!.$1, src: _quoteText!.$2, theme: room.theme, icon: ritual['icon'] as String? ?? '✿',
               onClose: () => setState(() => _quoteText = null),
-            )),
-            // ── 하단 슬림 도크(58px) + 둥근 정성 버튼(66px) ──
-            Positioned(left: 12, right: 12, top: 690, child: _bottomDock(
-              room: room, cat: cat, isDim: isDim, busy: busyCooldown, done: done, deg: deg, ritual: ritual, used: used, lim: lim,
             )),
           ]))),
           if (_wishOpen) _wishFullCard(room, cat),

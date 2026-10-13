@@ -38,6 +38,19 @@ class _ComposeScreenState extends State<ComposeScreen> {
   _ComposeScreenState() : _piiWarning = false;
 
   @override
+  void initState() {
+    super.initState();
+    // [안내창 — 사용자 피드백 5] 완료된 소원방은 되돌릴 수 있도록 완료 후 7일간 남아
+    // 있고, 그동안 서버가 새 봉인을 409 ROOM_EXISTS로 막는다. 이유를 모르면
+    // "버튼이 먹통"으로 보이므로 작성 화면 진입 시점에 미리 안내한다.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final r = context.read<WishRoomProvider>().room;
+      if (r != null && r.status.name == 'COMPLETED') _showCompletedNotice();
+    });
+  }
+
+  @override
   void dispose() {
     _textCtrl.dispose();
     super.dispose();
@@ -49,6 +62,28 @@ class _ComposeScreenState extends State<ComposeScreen> {
     final all = WrCatalog.I.characters;
     final list = all.where((c) => owned.contains(c.id)).toList();
     return list.isEmpty ? all.take(2).toList() : list;
+  }
+
+
+  void _showCompletedNotice() {
+    showDialog<void>(
+      context: context,
+      builder: (dCtx) => AlertDialog(
+        backgroundColor: WrC.card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: const BorderSide(color: WrC.line)),
+        title: Text('새 소원은 조금 뒤에 봉인할 수 있어요', style: WrF.body(16.5, w: FontWeight.w800, color: WrC.fg)),
+        content: Text(
+          '소원이 이루어진 방은 되돌릴 수 있도록 완료 후 7일간 소원방에 그대로 남아 있어요.\n\n이 유예 기간이 끝나면 새로운 소원을 봉인할 수 있어요. 그때까지 이루어진 소원의 기운이 방을 지켜줍니다.',
+          style: WrF.body(13.5, height: 1.6, color: WrC.muted),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dCtx).pop(),
+            child: Text('알겠어요', style: WrF.body(14, w: FontWeight.w700, color: WrC.blossom)),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _submit({bool force = false}) async {
@@ -71,6 +106,16 @@ class _ComposeScreenState extends State<ComposeScreen> {
     setState(() => _submitting = false);
     if (!mounted) return;
     if (ok) {
+      // [버그수정 — 사용자 피드백 1] 소원방 테마(하느님방 등)를 골랐으면 수호자가 그
+      // 의상을 입은 채로 방에 남아야 한다. 작성 미리보기는 _theme 의상을 보여주지만
+      // 방 생성만으로는 방의 outfit이 확정되지 않아 기본 의상으로 돌아갔다 —
+      // 생성 직후 방 outfit을 선택 테마로 확정한다(실패해도 봉인 흐름은 막지 않는다).
+      if (_theme != WrTheme.free) {
+        final roomId = context.read<WishRoomProvider>().room?.id;
+        if (roomId != null) {
+          try { await context.read<WishRoomProvider>().setOutfit(roomId, _theme); } catch (_) {}
+        }
+      }
       // app2/capsule2.jsx SealedDone — 제출 성공 → 두루마리 말림/인장 연출 → "소원방 들어가기" → full 인트로.
       // 원본 submit(): setAsk(false) → setSealing(true) → 1.5s 뒤 setDone(true) → SealedDone onGo={reload('intro')}.
       // [버그수정] onGo 콜백이 바깥쪽(ComposeScreen, 곧 pushReplacement로 dispose됨)의 context를
@@ -89,6 +134,10 @@ class _ComposeScreenState extends State<ComposeScreen> {
     final err = p.lastError;
     if (err?.code == 'PII_WARNING') {
       setState(() => _piiWarning = true);
+    } else if (err?.code == 'ROOM_EXISTS') {
+      // [안내창 — 사용자 피드백 5] "진행 중인 소원방이 있어요" 토스트 대신
+      // 이유와 해제 시점을 알려주는 안내창을 보여준다.
+      _showCompletedNotice();
     } else if (err != null) {
       WrToast.show(context, err.message);
     }
@@ -315,10 +364,11 @@ class _ComposeScreenState extends State<ComposeScreen> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          // [버그수정 — 사용자 피드백] 소원의 빛깔을 바꿔도 체감이 거의 안 될 만큼 틴트가
-          // 옅었다(.20) — 선택한 빛깔이 한지 카드 전체에 확실히 드러나도록 농도를 올림.
-          colors: [wishColor.withValues(alpha: .38), _hex(bg[0]), _hex(bg[1])],
-          stops: const [0, .5, 1],
+          // [버그수정 — 사용자 피드백 2] 빛깔 틴트가 카드 상단 .5 지점에서 끊겨 글씨 영역
+          // 배경은 종이색 그대로였다 — 종이색을 빛깔과 섞어 카드 전체(글씨 배경 포함)가
+          // 눈에 보이게 변경. 농도 상단 .5 / 중간 lerp .42 / 하단 lerp .28.
+          colors: [wishColor.withValues(alpha: .5), Color.lerp(_hex(bg[0]), wishColor, .42)!, Color.lerp(_hex(bg[1]), wishColor, .28)!],
+          stops: const [0, .45, 1],
         ),
         border: Border.all(color: wishColor.withValues(alpha: .8), width: 2),
         boxShadow: [

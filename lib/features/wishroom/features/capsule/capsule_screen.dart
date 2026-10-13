@@ -482,7 +482,7 @@ class _AchieveCinematicScreenState extends State<AchieveCinematicScreen> with Si
         )),
         if (_t >= 3) Positioned(left: 0, right: 0, top: 420, child: Center(child: ShaderMask(
           shaderCallback: (b) => const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFFFF8E0), Color(0xFFFFD98A), Color(0xFFF5A86A)]).createShader(b),
-          child: const Text('✨ 소원이 이루어졌어요', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 30, color: Colors.white, letterSpacing: -.5))))),
+          child: FittedBox(fit: BoxFit.scaleDown, child: const Text('✨ 소원이 이루어졌어요', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 30, color: Colors.white, letterSpacing: -.5, height: 1.0)))))),
         // STEP4 — 축하
         if (_t >= 4) Positioned(left: 24, right: 24, top: 480, child: Column(children: [
           Text('정말 축하합니다.', style: WrF.display(19), textAlign: TextAlign.center),
