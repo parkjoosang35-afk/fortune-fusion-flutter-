@@ -4,7 +4,6 @@ import '../../../core/util/image_gallery_saver.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
-import '../../../core/util/image_gallery_saver.dart';
 import '../character/guinji_character.dart';
 import '../deep/guinji_deep_text.dart';
 import '../domain/guinji_person.dart';
