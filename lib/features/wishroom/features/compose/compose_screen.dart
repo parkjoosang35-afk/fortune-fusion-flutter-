@@ -14,6 +14,7 @@ import '../../core/wr_nav_pill.dart';
 import '../intro/wish_room_intro_screen.dart';
 import 'sealed_done_screen.dart';
 import '../../core/wr_toast.dart';
+import '../characters/character_shop_screen.dart';
 
 class ComposeScreen extends StatefulWidget {
   const ComposeScreen({super.key});
@@ -644,16 +645,10 @@ class _ComposeScreenState extends State<ComposeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text('함께할 수호자', style: WrF.display(16)),
-              Text(
-                '${_curTheme['glyph']} ${_curTheme['label']} 의상으로 입어요',
-                style: WrF.body(11, color: WrC.muted),
-              ),
-            ],
+          WrGuardianOutfitLauncher(
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const CharacterShopScreen()),
+            ),
           ),
           const SizedBox(height: 10),
           SizedBox(
@@ -973,6 +968,27 @@ class WrSealOrOrb extends StatelessWidget {
       ),
     );
   }
+}
+
+/// [수호자 문구 클릭 — 사용자 지시 2026-10-14]
+/// '함께할 수호자' 옆 문구를 "함께할 수호자 및 자유의상 입어요"로 바꾸고,
+/// 탭하면 캐릭터·의상 화면(CharacterShopScreen)으로 넘어간다.
+class WrGuardianOutfitLauncher extends StatelessWidget {
+  const WrGuardianOutfitLauncher({super.key, required this.onTap});
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    behavior: HitTestBehavior.opaque,
+    onTap: onTap,
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('함께할 수호자 및 자유의상 입어요', style: WrF.display(16)),
+        const SizedBox(width: 2),
+        const Icon(Icons.chevron_right, size: 18, color: WrC.muted),
+      ],
+    ),
+  );
 }
 
 /// 한지 카드 우상단 願 인장 — WrDeco.seal 1:1.
