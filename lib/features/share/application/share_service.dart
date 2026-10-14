@@ -95,6 +95,14 @@ class ShareService {
   }) async {
     Uint8List? originalPng = preCapturedPng;
     if (originalPng == null && originalResultKey != null) {
+      // [웹 공유 LateInitializationError 재발 대응 — 2026-10] 과거 3개
+      // 안전망 적용(d0c39a74/d68ee136/f5447ec) 이후에도 웹 릴리스 빌드에서
+      // 동일 토스트가 재발했고, 우리 코드 전수 추적으로는 해당 메시지와
+      // 일치하는 `late` 선언을 찾지 못했다 — 즉 원인은 앱 코드가 아니라
+      // 엔진/플랫폼 뷰 합성 타이밍의 1회성 경쟁 상태일 가능성이 높다.
+      // 1회성 경쟁이라면 "조금 뒤 다시 캡처"만으로 해결되므로, 사용자에게
+      // 실패 토스트를 보여주기 전에 짧은 지연 후 1회 자동 재시도한다 —
+      // 두 번째 시도까지 실패할 때만 실제 오류로 간주해 안내한다.
       try {
         originalPng = await captureOriginalResult(
           originalResultKey,
@@ -102,11 +110,22 @@ class ShareService {
           trailingKeys: originalTrailingKeys,
           overlayKeys: originalOverlayKeys,
         );
-      } catch (error) {
-        if (context.mounted) {
-          AppToast.show(context, '원래 결과 준비 실패: $error', isError: true);
+      } catch (_) {
+        try {
+          await Future<void>.delayed(const Duration(milliseconds: 400));
+          if (!context.mounted) return;
+          originalPng = await captureOriginalResult(
+            originalResultKey,
+            leadingKeys: originalLeadingKeys,
+            trailingKeys: originalTrailingKeys,
+            overlayKeys: originalOverlayKeys,
+          );
+        } catch (error) {
+          if (context.mounted) {
+            AppToast.show(context, '원래 결과 준비 실패: $error', isError: true);
+          }
+          return;
         }
-        return;
       }
     }
     if (!context.mounted) return;

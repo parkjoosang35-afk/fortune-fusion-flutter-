@@ -13,10 +13,24 @@ Future<Uint8List> captureOriginalResult(
   List<GlobalKey> trailingKeys = const [],
   List<GlobalKey> overlayKeys = const [],
 }) async {
-  // [실기기 LateInitializationError 대응] 프레임 대기 자체가 일부 환경에서
-  // 실패해도 이미 그려진 마지막 프레임으로 계속 진행한다.
+  // [웹 공유 LateInitializationError 대응 — 2026-10 재발] 프레임 대기 자체가
+  // 일부 환경에서 실패해도 이미 그려진 마지막 프레임으로 계속 진행한다.
+  // 과거(d0c39a74/d68ee136/f5447ec) 안전망 적용 후에도 웹 릴리스(AOT) 빌드
+  // 에서 동일 토스트가 재발 — 코드 전수 추적 결과 우리 코드에 해당 메시지와
+  // 일치하는 `late` 변수가 전혀 없어, 캡처 영역 내부에 배치된 AdSense
+  // `HtmlElementView`(플랫폼 뷰, platform_view 비동기 등록)가 아직 완전히
+  // 자리잡기 전에 `toImage()`가 호출되는 타이밍 경쟁이 유력한 원인으로
+  // 추정된다. 단일 프레임 대기로는 플랫폼 뷰 합성이 끝났음을 보장하지
+  // 못하므로, 연속 3프레임 대기 + 짧은 유예시간을 추가해 레이아웃/합성이
+  // 완전히 안정된 뒤 캡처를 시작하도록 강화한다(부작용 없음 — 수십~백 ms
+  // 지연만 추가).
+  for (var i = 0; i < 3; i++) {
+    try {
+      await WidgetsBinding.instance.endOfFrame;
+    } catch (_) {}
+  }
   try {
-    await WidgetsBinding.instance.endOfFrame;
+    await Future<void>.delayed(const Duration(milliseconds: 120));
   } catch (_) {}
   final bodyIndex = leadingKeys.length;
   final boundaries = <RenderRepaintBoundary?>[];
