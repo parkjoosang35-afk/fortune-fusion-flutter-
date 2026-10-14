@@ -2,7 +2,7 @@
 // [원본] app/api.js T3 · POST /outfits/purchase { char, theme }.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getOwnedCharacterIds, getOwnedOutfits, isAlwaysOwnedCharacter, WishRoomError, WR } from "@/lib/wishroom-engine";
+import { getOwnedCharacterIds, getOwnedOutfits, isAlwaysOwnedCharacter, WishRoomError, WR, namedOutfitFor } from "@/lib/wishroom-engine";
 import { spendLuckPouch } from "@/lib/luck-pouch-engine";
 import { requireUser, unauthorizedResponse, wishroomOptionsResponse, CORS_HEADERS, toErrorResponse, buildMeView } from "../../_shared";
 
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
   const auth = await requireUser(request);
   if (!auth) return unauthorizedResponse();
 
-  let body: { char?: string; theme?: string };
+  let body: { char?: string; theme?: string; outfitId?: string };
   try {
     body = await request.json();
   } catch {
@@ -22,8 +22,10 @@ export async function POST(request: NextRequest) {
   try {
     const data = await prisma.$transaction(async (tx) => {
       const char = body.char ?? "";
-      const theme = body.theme ?? "";
-      const price = WR.OUTFIT_PRICE[theme];
+      const named = body.outfitId ? namedOutfitFor(char, body.outfitId) : null;
+      if (body.outfitId && !named) throw new WishRoomError(403, 'INCOMPATIBLE', '하린·준 전용 의상이에요');
+      const theme = named?.id ?? body.theme ?? "";
+      const price = named?.price ?? WR.OUTFIT_PRICE[theme];
       if (price == null) throw new WishRoomError(400, "INVALID", "없는 의상이에요");
 
       // [캐릭터 보유 확인] F00/M00 등 price===0인 "항상 보유" 캐릭터는 구매 기록 없이도 보유로 취급한다.
@@ -35,19 +37,19 @@ export async function POST(request: NextRequest) {
       }
       if (!hasChar) throw new WishRoomError(403, "NO_CHAR", "먼저 캐릭터와 함께해야 해요");
 
-      const hasArt = !!(WR.OUTFIT_ART[char] && WR.OUTFIT_ART[char][theme]);
+      const hasArt = !!named || !!(WR.OUTFIT_ART[char] && WR.OUTFIT_ART[char][theme]);
       if (!hasArt && theme !== "free") throw new WishRoomError(409, "NOT_READY", "이 의상은 아직 준비 중이에요");
 
       const ownedOutfits = await getOwnedOutfits(tx, auth.userId);
       const key = `${char}:${theme}`;
-      if (theme === "free" || ownedOutfits.includes(key)) throw new WishRoomError(409, "OWNED", "이미 가지고 있어요");
+      if (theme === "free" || ownedOutfits.includes(key)) return { me: await buildMeView(tx, auth.userId) };
 
       const themeDef = WR.THEMES.find((t) => t.id === theme);
       const spendResult = await spendLuckPouch(tx, {
         userId: auth.userId,
         amount: price,
         sourceType: "wishroom_outfit_purchase",
-        memo: `의상 · ${themeDef?.label ?? theme} (${char})`,
+        memo: `의상 · ${named?.name ?? themeDef?.label ?? theme} (${char})`,
       });
       if (!spendResult.ok) throw new WishRoomError(402, "INSUFFICIENT", "복주머니가 부족해요", { need: price, have: spendResult.balanceAfter ?? 0 });
 

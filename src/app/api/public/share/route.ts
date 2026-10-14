@@ -162,7 +162,7 @@ export async function POST(request: NextRequest) {
     }
 
     const baseUrl = process.env.PUBLIC_BASE_URL ?? "http://localhost:3000";
-    const shareUrl = `${baseUrl}/r/${created.shareId}`;
+    const shareUrl = `${baseUrl}/web-result/${created.shareId}`;
 
     return NextResponse.json(
       { success: true, data: { shareId: created.shareId, shareUrl } },

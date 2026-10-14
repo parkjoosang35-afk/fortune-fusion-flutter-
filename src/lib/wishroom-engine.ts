@@ -15,6 +15,12 @@
 // ══════════════════════════════════════════════════════════════════
 import type { Prisma } from "@/generated/prisma/client";
 import wishroomData from "@/data/wishroom_data.json";
+import newOutfits from "@/data/outfits20.json";
+
+export const NEW_OUTFITS = newOutfits;
+export function namedOutfitFor(char: string, id: string) {
+  return NEW_OUTFITS.find((o) => o.id === id && char === (o.gender === 'F' ? 'F00' : 'M00'));
+}
 import { earnLuckPouch } from "./luck-pouch-engine";
 
 type Tx = Prisma.TransactionClient;
@@ -366,6 +372,8 @@ export function serializeLayout(l: Record<string, LayoutPosShape>): string {
 /** Room.outfitNow = (outfit ?? theme) 의상 그림이 있고 보유했으면 그 테마, 아니면 free. */
 export function outfitNowOf(params: { charCode: string; outfit: string | null; theme: string; ownedOutfits: string[]; isOwner: boolean }): string {
   const want = params.outfit || params.theme || "free";
+  const named = namedOutfitFor(params.charCode, want);
+  if (named) return named.theme === params.theme && (params.ownedOutfits.includes(`${params.charCode}:${want}`) || !params.isOwner) ? named.theme : 'free';
   const art = WR.OUTFIT_ART[params.charCode] && WR.OUTFIT_ART[params.charCode][want];
   // [버그수정 — 사용자 피드백] 소원방 테마(하느님방/부처님방/무소인방)를 고르면 수호자가 그 의상을
   // 입은 채로 방에 남아야 한다. 테마 의상은 방 자체의 선택이므로 소유와 무관하게 항상 허용하고,
@@ -459,6 +467,7 @@ export function roomView(r: WishRoomRow, opts: RoomViewOptions) {
     theme: r.theme,
     outfit: r.outfit,
     outfitNow,
+    outfitId: r.outfit && namedOutfitFor(r.charCode, r.outfit)?.theme === r.theme && (opts.ownedOutfits.includes(`${r.charCode}:${r.outfit}`) || !isMine) ? r.outfit : null,
     wishColor: r.wishColor,
     paper: r.paper,
     devotionCount: r.devotionCount,

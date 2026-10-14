@@ -112,7 +112,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function SharedResultPage({ params }: PageProps) {
+export default async function SharedResultPage({ params, webOnly = false }: PageProps & { webOnly?: boolean }) {
   const { id } = await params;
   const shared = await loadSharedResult(id);
   const baseUrl = process.env.PUBLIC_BASE_URL ?? "http://localhost:3000";
@@ -160,7 +160,7 @@ export default async function SharedResultPage({ params }: PageProps) {
           <img src={shared.imageUrl!} alt={`${shared.title} · 원래 결과 전체`} style={{ display: 'block', width: '100%', height: 'auto' }} />
           <div style={{ padding: 20 }}>
             <a href={shared.imageUrl!} download={`sintong_${shared.shareId}.png`} style={{ color: GOLD }}>원본 결과 저장</a>
-            <WebShareButton shareUrl={`${baseUrl}/r/${shared.shareId}?src=web`} title={shared.title} description={shared.description} />
+            <WebShareButton shareUrl={`${baseUrl}/web-result/${shared.shareId}`} title={shared.title} description={shared.description} />
           </div>
         </div>
       </main>
@@ -193,16 +193,17 @@ export default async function SharedResultPage({ params }: PageProps) {
             resultTypeLabel={label}
             payload={shared.payload}
             ownerNickname={shared.ownerNickname}
+            webOnly={webOnly}
           />
         )}
         <WebShareButton
-          shareUrl={`${baseUrl}/r/${shared.shareId}?src=web`}
+          shareUrl={`${baseUrl}/web-result/${shared.shareId}`}
           title={shared.title}
           description={shared.description}
         />
-        <p style={{ marginTop: 18, fontSize: 12, color: "#8F857A", textAlign: "center" }}>
+        {!webOnly && <p style={{ marginTop: 18, fontSize: 12, color: "#8F857A", textAlign: "center" }}>
           앱에서 보면 더 자세한 결과를 볼 수 있어요
-        </p>
+        </p>}
       </div>
       <SintongBottomNavBar />
     </main>

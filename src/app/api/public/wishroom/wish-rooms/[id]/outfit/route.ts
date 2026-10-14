@@ -3,7 +3,7 @@
 // theme=null 이면 방 테마(room.theme)를 그대로 따라간다(roomView의 outfitNowOf 계산).
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { buildRoomView, getOwnedOutfits, WishRoomError } from "@/lib/wishroom-engine";
+import { buildRoomView, getOwnedOutfits, WishRoomError, namedOutfitFor, WR } from "@/lib/wishroom-engine";
 import { requireUser, unauthorizedResponse, wishroomOptionsResponse, CORS_HEADERS, toErrorResponse, parseWishRoomDbId } from "../../../_shared";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +17,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const auth = await requireUser(request);
   if (!auth) return unauthorizedResponse();
 
-  let body: { theme?: string | null };
+  let body: { theme?: string | null; outfitId?: string };
   try {
     body = await request.json();
   } catch {
@@ -30,7 +30,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       if (!room || room.deletedAt != null) throw new WishRoomError(404, "NOT_FOUND", "소원방을 찾을 수 없어요");
       if (room.userId !== auth.userId) throw new WishRoomError(403, "NOT_OWNER", "방 주인만 바꿀 수 있어요");
 
-      const theme = body.theme || null;
+      if (['SEALED', 'ARCHIVED'].includes(room.status)) throw new WishRoomError(409, 'READ_ONLY', '보관된 방은 바꿀 수 없어요');
+      const named = body.outfitId ? namedOutfitFor(room.charCode, body.outfitId) : null;
+      if (body.outfitId && !named) throw new WishRoomError(403, 'INCOMPATIBLE', '하린·준 전용 의상이에요');
+      const theme = named?.id ?? body.theme ?? null;
+      if (theme && !named && !WR.THEMES.some((t) => t.id === theme)) throw new WishRoomError(400, 'INVALID', '없는 의상이에요');
+      if (named && named.theme !== room.theme) throw new WishRoomError(409, 'THEME_MISMATCH', '소원방 테마에 맞는 의상을 선택해 주세요');
       if (theme && theme !== "free") {
         const ownedOutfits = await getOwnedOutfits(tx, auth.userId);
         if (!ownedOutfits.includes(`${room.charCode}:${theme}`)) {

@@ -39,6 +39,7 @@ type SharedResultViewProps = {
   resultTypeLabel?: string;
   payload?: unknown;
   ownerNickname?: string;
+  webOnly?: boolean;
 };
 
 const SERIF = "'Noto Serif KR', serif";
@@ -116,6 +117,7 @@ export function SharedResultView({
   resultType,
   resultTypeLabel,
   payload,
+  webOnly = false,
 }: SharedResultViewProps) {
   const [attemptedAppOpen, setAttemptedAppOpen] = useState(false);
 
@@ -151,7 +153,7 @@ export function SharedResultView({
     <>
       {/* [설치 유도 배너] App Links 검증 실패/미설치 상태에서만 이 페이지가
           보이므로 항상 상단에 노출한다. */}
-      <div className="sticky top-0 z-10 flex items-center justify-between gap-3 bg-[#2A2438] px-4 py-2.5 text-white">
+      {!webOnly && <div className="sticky top-0 z-10 flex items-center justify-between gap-3 bg-[#2A2438] px-4 py-2.5 text-white">
         <span className="text-[12px] leading-snug">
           신통방통 앱에서 더 다양한 운세를 만나보세요
         </span>
@@ -161,7 +163,7 @@ export function SharedResultView({
         >
           앱 설치
         </a>
-      </div>
+      </div>}
 
       <section className="relative overflow-hidden">
         <div className="relative mx-auto w-full max-w-[440px] px-5 pt-6 pb-6">
@@ -197,7 +199,7 @@ export function SharedResultView({
             <ResultContent resultType={resultType} payload={payload} description={description} />
           </div>
 
-          <button
+          {!webOnly && <button
             onClick={() => {
               setAttemptedAppOpen(true);
               tryOpenApp(shareId);
@@ -206,7 +208,7 @@ export function SharedResultView({
             style={{ backgroundImage: "linear-gradient(90deg, #A6795E, #E8B4A5)" }}
           >
             앱에서 전체 결과 보기
-          </button>
+          </button>}
           {attemptedAppOpen && (
             <p className="mt-2 text-center text-[11px] text-[#A08C82]">
               앱이 설치되어 있지 않다면 위 설치 버튼을 눌러주세요.
