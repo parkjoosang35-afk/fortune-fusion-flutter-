@@ -5,6 +5,9 @@ import 'package:flutter_app/core/util/image_gallery_saver_io.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test('빈 이미지 저장은 권한이나 저장 호출 없이 실패한다', () async {
+    expect(await saveImageBytesToGallery(Uint8List(0),name:'empty'),false);
+  });
   for (final scenario in ['허용됨','요청 후 허용','권한 거부','저장 오류']) {
     test('갤러리 저장 $scenario: 실제 권한·저장 호출과 반환값', () async {
       final calls=<String>[];

@@ -11,12 +11,16 @@ Future<bool> saveImageBytesToGallery(
   Uint8List bytes, {
   required String name,
 }) async {
+  if (bytes.isEmpty) return false;
   try {
     final blob = html.Blob([bytes], 'image/png');
     final url = html.Url.createObjectUrlFromBlob(blob);
-    html.AnchorElement(href: url)
+    final anchor = html.AnchorElement(href: url)
       ..setAttribute('download', name.endsWith('.png') ? name : '$name.png')
-      ..click();
+      ..style.display = 'none';
+    html.document.body?.append(anchor);
+    anchor.click();
+    anchor.remove();
     // 다운로드가 Blob을 읽기 전에 URL을 제거하지 않는다.
     Future<void>.delayed(
       const Duration(seconds: 30),

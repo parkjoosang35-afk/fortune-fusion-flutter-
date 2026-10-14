@@ -206,7 +206,7 @@ class _WallpaperScreenState extends State<WallpaperScreen> with WidgetsBindingOb
     }
     final ok = await saveImageBytesToGallery(bytes, name: 'wishroom_${room.id}_${DateTime.now().millisecondsSinceEpoch}');
     if (!mounted) return;
-    final successMsg = kIsWeb ? '정지 이미지가 저장됐어요' : '이미지가 저장됐어요';
+    final successMsg = kIsWeb ? '정지 이미지 파일 다운로드를 요청했어요.' : '이미지가 갤러리에 저장됐어요.';
     WrToast.show(context, ok ? successMsg : '이미지 저장에 실패했어요. 권한을 확인해주세요.');
   }
 

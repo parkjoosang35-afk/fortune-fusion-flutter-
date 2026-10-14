@@ -10,7 +10,7 @@ void main() {
     expect(link.query, isEmpty);
     expect(link.fragment, isEmpty);
   });
-  test('다운로드 안내 주소는 별도 설정이 없으면 API 환경을 따른다', () {
-    expect(EnvConfig.appDownloadUrl, EnvConfig.adminApiBaseUrl);
+  test('스토어 미설정은 홈페이지 주소로 대체하지 않는다', () {
+    expect(EnvConfig.appDownloadUrl, isEmpty);
   });
 }

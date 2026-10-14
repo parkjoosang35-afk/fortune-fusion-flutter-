@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../core/util/image_gallery_saver_io.dart'
     if (dart.library.html) '../../../core/util/image_gallery_saver_web.dart';
-import '../../../core/util/safe_share.dart';
+
 import '../application/share_service.dart';
 import '../../../core/util/original_result_capture.dart';
 import '../../../core/widgets/app_toast.dart';
@@ -110,7 +110,7 @@ class _FullResultSheetState extends State<FullResultSheet> {
   Future<void> _share() async {
     if (_sharing) return;
     if (kIsWeb) {
-      await safeShareText(context, '${widget.title}\n${widget.shareUrl}', subject: '신통방통 전체 결과');
+      await ShareService.shareWebPage(context, title: widget.title, url: widget.shareUrl);
       return;
     }
     setState(() => _sharing = true);
@@ -128,11 +128,9 @@ class _FullResultSheetState extends State<FullResultSheet> {
     if (_saving) return;
     setState(() => _saving = true);
     try {
-      if (widget.originalPng == null) {
-        throw StateError('원래 결과 페이지에서 저장해주세요.');
-      }
+      final png = widget.originalPng ?? await captureOriginalResult(_capture);
       final ok = await saveImageBytesToGallery(
-        widget.originalPng!,
+        png,
         name: 'sintong_original_${DateTime.now().millisecondsSinceEpoch}',
       );
       if (!ok) throw StateError('원본 결과 저장 실패');

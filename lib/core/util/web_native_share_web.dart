@@ -29,9 +29,11 @@ Future<NativeWebShareOutcome> tryNativeWebShare(
 }) async {
   try {
     final navigator = web.window.navigator;
-    final data = (subject != null && subject.isNotEmpty)
-        ? web.ShareData(title: subject, text: text)
-        : web.ShareData(text: text);
+    // 웹 공유는 URL 필드를 명시해 브라우저가 홈페이지/결과페이지로 인식한다.
+    final candidate = RegExp(r'https?://[^\s]+').firstMatch(text)?.group(0);
+    final data = web.ShareData(text: text);
+    if (subject != null && subject.isNotEmpty) data.title = subject;
+    if (candidate != null) data.url = candidate;
 
     final canShare = navigator.canShare(data);
     if (!canShare) return NativeWebShareOutcome.unavailable;

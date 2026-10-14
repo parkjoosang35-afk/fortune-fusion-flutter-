@@ -7,15 +7,17 @@ import '../presentation/full_result_sheet.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../data/share_api_service.dart';
 import '../domain/share_result_model.dart';
+import '../../../core/util/safe_share.dart';
 
 
 /// 결과 공유(Share Result) — 5개 결과 화면(운세/타로/관상/손금/소원성)이
 /// 공통으로 호출하는 공유 트리거 헬퍼.
 ///
-/// [흐름] ①서버에 공유 링크 생성 요청(`POST /api/public/share`) → ②성공하면
-/// `https://sintong.kr/r/{shareId}` 링크가 포함된 문구를 [safeShareText]로
-/// 전달(OS 공유 시트/클립보드 복사 — 카카오톡·SMS·더보기 모두 이 표준
-/// 경로로 처리됨, guinji_map_share_screen.dart와 동일한 최종 폴백 전략).
+/// 확정된 공유·저장 계약:
+/// 앱 결과 = 전체 PNG를 OS 공유창으로 전달. 설치 안내는 확인된 Play Store만.
+/// 웹 결과 = 공개 동의 후 /web-result/{id} 웹 결과페이지 링크 전달.
+/// 홈페이지 = 홈페이지 URL. 초대 = 기존 참여 토큰 링크(결과와 혼동 금지).
+/// 저장 = 앱 갤러리 / 웹 파일 다운로드. 취소·실패를 성공으로 표시하지 않는다.
 ///
 /// [카카오 SDK 미탑재 안내] `kakao_flutter_sdk_share` 패키지가 설치되어
 /// 있지 않고(Flutter 3.35.4/Dart 3.9.2 락 환경과의 호환성 확인 전이라 임의
@@ -32,11 +34,51 @@ class ShareService {
 
   static final ShareApiService _api = ShareApiService();
 
+  /// 홈페이지·이미 존재하는 공개 웹 결과는 그 페이지 주소를 공유한다.
+  /// 초대 토큰 링크는 기존 초대 서비스가 담당하며 이 경로로 생성하지 않는다.
+  static Future<void> shareWebPage(BuildContext context, {required String title, required String url}) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null || !['http', 'https'].contains(uri.scheme) || uri.host.isEmpty) {
+      if (context.mounted) AppToast.show(context, '공유할 페이지 주소가 올바르지 않아요.', isError: true);
+      return;
+    }
+    await safeShareText(context, '$title\n$uri', subject: title);
+  }
+
   /// 공유 링크를 생성하고 곧바로 OS 공유 시트/클립보드로 전달한다.
   ///
   /// [subject]는 카카오톡 등 일부 타깃에서 부제목으로 쓰일 수 있는 값이며,
   /// 생략 시 결과 타입별 기본값을 사용한다.
+  static final _resultSharing = Expando<bool>();
   static Future<void> shareResult(
+    BuildContext context, {
+    required ShareResultType resultType,
+    required String title,
+    required String description,
+    required Map<String, dynamic> payload,
+    String? imageUrl,
+    String? sourceRefId,
+    String? subject,
+    GlobalKey? originalResultKey,
+    List<GlobalKey> originalLeadingKeys = const [],
+    List<GlobalKey> originalTrailingKeys = const [],
+    List<GlobalKey> originalOverlayKeys = const [],
+    Uint8List? preCapturedPng,
+  }) async {
+    if (!context.mounted || _resultSharing[context] == true) return;
+    _resultSharing[context] = true;
+    try {
+      await _shareResult(context, resultType: resultType, title: title, description: description,
+        payload: payload, imageUrl: imageUrl, sourceRefId: sourceRefId, subject: subject,
+        originalResultKey: originalResultKey, originalLeadingKeys: originalLeadingKeys,
+        originalTrailingKeys: originalTrailingKeys, originalOverlayKeys: originalOverlayKeys,
+        preCapturedPng: preCapturedPng);
+    } catch (_) {
+      if (context.mounted) AppToast.show(context, '결과 공유에 실패했어요. 다시 시도해주세요.', isError: true);
+    } finally { _resultSharing[context] = false; }
+  }
+
+  static Future<void> _shareResult(
     BuildContext context, {
     required ShareResultType resultType,
     required String title,
@@ -138,12 +180,32 @@ class ShareService {
   /// [앱 전용 — 이미지 직접 공유] 원본 결과 이미지를 OS 공유 시트로 바로
   /// 전송한다. 미지원·실패는 오류로 알리며 텍스트 공유로 대체하지 않는다.
   /// 공유창 종료는 수신 앱의 실제 전달 완료를 보장하지 않는다.
-  static Future<void> shareImageDirectly(
+  static final _imageSharing = Expando<bool>();
+  static Future<void> shareImageDirectly(BuildContext context, String title, Uint8List png) async {
+    if (_imageSharing[context] == true || !context.mounted) return;
+    _imageSharing[context] = true;
+    try { await _sendImage(context, title, png); }
+    finally { _imageSharing[context] = false; }
+  }
+
+  static Future<void> _sendImage(
     BuildContext context,
     String title,
     Uint8List png,
   ) async {
-    final shareText = '$title\n신통방통에서 확인했어요. 앱 다운로드: ${EnvConfig.appDownloadUrl}';
+    if (kIsWeb) {
+      if (context.mounted) AppToast.show(context, '웹에서는 결과페이지 링크로 공유해주세요.', isError: true);
+      return;
+    }
+    if (png.isEmpty) {
+      AppToast.show(context, '결과 이미지가 비어 있어요. 다시 시도해주세요.', isError: true);
+      return;
+    }
+    // 확정 기준: 앱 결과는 PNG, 웹 결과는 웹 결과 URL, 초대는 별도 링크.
+    // 설치 안내는 확인된 Play Store 설정이 있을 때만 붙인다. 홈페이지로 대체하지 않는다.
+    final store = Uri.tryParse(EnvConfig.appDownloadUrl);
+    final storeReady = store?.scheme == 'https' && store?.host == 'play.google.com' && store?.path == '/store/apps/details' && store!.queryParameters['id']?.isNotEmpty == true;
+    final shareText = '$title\n신통방통에서 확인했어요.${storeReady ? '\n앱 설치: $store' : ''}';
     void reportFailure() {
       if (!context.mounted) return;
       AppToast.show(context, '결과 이미지를 공유하지 못했어요. 이미지를 저장한 뒤 첨부하거나 다시 시도해주세요.', isError: true);

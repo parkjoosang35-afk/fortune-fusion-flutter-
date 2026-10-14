@@ -1,11 +1,11 @@
 import 'dart:math';
-import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
+
 import '../../../../core/data/my_fortune_record_store.dart';
-import '../../../../core/util/safe_share.dart';
+
 import '../../../../core/util/original_result_capture.dart';
 import '../../../auth/application/auth_provider.dart';
 import '../../../../core/utils/load_state.dart';
@@ -332,25 +332,14 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
         AppToast.show(context, '공유 이미지를 준비하지 못했어요. 다시 시도해주세요.');
         return;
       }
-      final image = await boundary.toImage(
-        pixelRatio: TarotShareReportCard.capturePixelRatio,
-      );
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      final bytes = byteData!.buffer.asUint8List();
+      final bytes = await captureOriginalResult(_shareCardKey);
 
       // 캡처가 끝났으니 이제 바텀시트를 닫는다.
       if (sheetContext.mounted) Navigator.of(sheetContext).pop();
       popped = true;
 
-      final file = XFile.fromData(
-        bytes,
-        mimeType: 'image/png',
-        name: 'tarot_share_${DateTime.now().millisecondsSinceEpoch}.png',
-      );
-
-      await Share.shareXFiles([
-        file,
-      ], text: '타로 카드 풀이 결과를 확인해보세요! · Fortune Fusion');
+      if (!mounted) return;
+      await ShareService.shareImageDirectly(context, '신통방통 타로 결과', bytes);
     } catch (e) {
       if (!popped && sheetContext.mounted) {
         Navigator.of(sheetContext).pop();
@@ -362,7 +351,7 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
       // 에러 화면을 유발하는 것을 확인했다(core/util/safe_share.dart 문서
       // 참고). 공통 헬퍼로 교체해 웹에서는 곧바로 클립보드 복사로 폴백한다.
       if (!mounted) return;
-      await safeShareText(context, '타로 카드 풀이 결과를 확인해보세요! · Fortune Fusion');
+      AppToast.show(context, '결과 이미지를 준비하지 못했어요. 다시 시도해주세요.', isError: true);
     }
   }
 

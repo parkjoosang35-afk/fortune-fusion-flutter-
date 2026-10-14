@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/util/original_result_capture.dart';
-import '../../../core/util/safe_share.dart';
+
 import '../../share/application/share_service.dart';
 import '../../share/domain/share_result_model.dart';
 import '../../../core/web_ads/web_ad_config.dart';
@@ -204,7 +204,7 @@ class _GuinjiMapRelationDetailScreenState
     } catch (_) {
       // 링크 생성 실패 시에만 텍스트 공유로 폴백.
       if (mounted) {
-        await safeShareText(context, message, subject: '신통방통 귀인지도');
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('결과 공유에 실패했어요. 다시 시도해주세요.')));
       }
     }
   }

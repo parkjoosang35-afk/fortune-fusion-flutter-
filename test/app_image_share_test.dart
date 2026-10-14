@@ -79,7 +79,8 @@ void main() {
               '${call.arguments is Map ? (call.arguments as Map)['text'] ?? '' : ''}',
         )
         .join('\n');
-    expect(textParam, contains(EnvConfig.appDownloadUrl));
+    expect(textParam, contains('신통방통에서 확인했어요'));
+    if (EnvConfig.appDownloadUrl.isEmpty) expect(textParam, isNot(contains('앱 설치:')));
     expect(tester.takeException(), null);
   });
 

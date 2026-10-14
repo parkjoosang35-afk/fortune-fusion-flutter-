@@ -1,7 +1,8 @@
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import '../../../core/util/image_gallery_saver.dart';
-import '../../../core/util/safe_share.dart';
+import '../../../core/util/original_result_capture.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../share/application/share_service.dart';
 import '../../share/domain/share_result_model.dart';
 
@@ -63,6 +64,12 @@ class GuinjiDeepResultScreen extends StatelessWidget {
   /// [관계 결과 원본 공유·저장 — 사용자 피드백] 이 화면(10장 풀이+편지) 전체를
   /// 한 장의 PNG로 캡처한다. 저장과 공유가 같은 바이트를 쓴다.
   Future<Uint8List?> _captureFullPagePng(BuildContext context) async {
+    try { return await captureOriginalResult(_captureKey); }
+    catch (_) { return null; }
+  }
+
+  // ignore: unused_element
+  Future<Uint8List?> _legacyViewportStitch(BuildContext context) async {
     final boundaryObj = _captureKey.currentContext?.findRenderObject();
     if (boundaryObj is! RenderRepaintBoundary) return null;
     final boundary = boundaryObj;
@@ -132,7 +139,10 @@ class GuinjiDeepResultScreen extends StatelessWidget {
 
   Future<void> _savePageToGallery(BuildContext context) async {
     final bytes = await _captureFullPagePng(context);
-    if (bytes == null) return;
+    if (bytes == null) {
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('전체 결과 이미지를 준비하지 못했어요. 다시 시도해주세요.')));
+      return;
+    }
     final ok = await saveImageBytesToGallery(
       bytes,
       name: 'sintong_guinji_deep',
@@ -140,7 +150,7 @@ class GuinjiDeepResultScreen extends StatelessWidget {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(ok ? '페이지 전체를 갤러리에 저장했어요 ✦' : '저장에 실패했어요. 권한을 확인해주세요.'),
+        content: Text(ok ? (kIsWeb ? '전체 결과 파일 다운로드를 요청했어요.' : '페이지 전체를 갤러리에 저장했어요.') : '저장에 실패했어요. 권한을 확인해주세요.'),
       ),
     );
   }
@@ -167,7 +177,7 @@ class GuinjiDeepResultScreen extends StatelessWidget {
       );
     } catch (_) {
       if (context.mounted) {
-        await safeShareText(context, message, subject: '신통방통 귀인지도');
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('결과 공유에 실패했어요. 다시 시도해주세요.')));
       }
     }
   }
@@ -208,10 +218,10 @@ class GuinjiDeepResultScreen extends StatelessWidget {
         children: [
           // 본문 스크롤 영역. [P4-hotfix] RepaintBoundary로 감싸 '저장'
           // 버튼이 캡처할 대상을 명확히 지정한다.
-          RepaintBoundary(
-            key: _captureKey,
-            child: SingleChildScrollView(
-              child: Column(
+          SingleChildScrollView(
+            child: RepaintBoundary(
+              key: _captureKey,
+              child: ColoredBox(color: GmColors.bg, child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _DeepHero(
@@ -609,7 +619,7 @@ class GuinjiDeepResultScreen extends StatelessWidget {
                     ),
                   ),
                 ],
-              ),
+              )),
             ),
           ),
 

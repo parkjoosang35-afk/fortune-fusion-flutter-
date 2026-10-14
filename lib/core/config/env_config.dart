@@ -22,10 +22,10 @@ class EnvConfig {
       .replace(path: '/web-result/${Uri.encodeComponent(shareId)}', query: null, fragment: null)
       .toString();
 
-  /// 운영은 기본 API 주소, 검수는 검수 서버 주소를 사용한다.
-  /// 정식 스토어 주소가 확정되면 APP_DOWNLOAD_URL로 명시한다.
+  /// 확인된 정식 Play Store 주소만 APP_DOWNLOAD_URL로 명시한다.
+  /// 미설정이면 설치 링크를 생략하며 홈페이지나 검수 서버로 대체하지 않는다.
   static const String appDownloadUrl = String.fromEnvironment(
-    'APP_DOWNLOAD_URL', defaultValue: adminApiBaseUrl,
+    'APP_DOWNLOAD_URL', defaultValue: '',
   );
 
   /// [정통사주 v3 - 4차 지시서 항목③ 인증 연결] saju_v3 엔진 서버 전용

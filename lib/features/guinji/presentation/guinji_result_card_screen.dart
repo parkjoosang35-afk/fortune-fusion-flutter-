@@ -1,14 +1,15 @@
 import 'dart:typed_data';
-import 'dart:ui' as ui;
+
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
 
-import '../../../core/config/env_config.dart';
+
+
 import '../../../core/util/image_gallery_saver.dart';
-import '../../../core/util/safe_share.dart';
+import '../../../core/util/original_result_capture.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../../core/widgets/app_toast.dart';
 import '../../../core/theme/legacy_wish_room/wish_room_sigil.dart';
 import '../../share/application/share_service.dart';
@@ -86,9 +87,7 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
     final boundary =
         _cardKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
     if (boundary == null) return null;
-    final image = await boundary.toImage(pixelRatio: 3.0);
-    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-    return byteData?.buffer.asUint8List();
+    return captureOriginalResult(_cardKey);
   }
 
   /// [비식별 원칙] 카드에 이름을 노출하지 않는 원칙은 그대로 유지하되,
@@ -96,11 +95,7 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
   /// "무엇을 공유받았는지" 한눈에 알 수 있도록 소유자 이름·귀인 수·앱
   /// 안내를 구체적으로 담는다. 기존 '나의 귀인지도 · 신통방통' 한 줄만으로는
   /// "뭘 공유한 건지 모르겠다"는 사용자 불만으로 이어졌었다.
-  String _shareMessage(int guin) {
-    return '${widget.ownerName}님의 귀인지도 결과예요! 🔮\n'
-        '내 주변 귀인 $guin명을 신통방통이 찾아줬어요.\n'
-        '나의 귀인지도도 무료로 확인해보세요 👉 ${EnvConfig.adminApiBaseUrl}';
-  }
+
 
   /// [2026-11 버그수정 — "이미지 저장이 뭘 하는지 모르겠다"] 캡처한 카드를
   /// 곧바로 기기 갤러리(Android: gal / Web: 브라우저 다운로드)에 저장한다.
@@ -123,7 +118,7 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
       if (!mounted) return;
       AppToast.show(
         context,
-        ok ? '카드 이미지를 저장했어요 🖼️' : '이미지 저장에 실패했어요. 권한을 확인해주세요.',
+        ok ? (kIsWeb ? '카드 파일 다운로드를 요청했어요.' : '카드 이미지를 갤러리에 저장했어요.') : '이미지 저장에 실패했어요. 권한을 확인해주세요.',
       );
     } catch (_) {
       if (!mounted) return;
@@ -144,13 +139,8 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
         return;
       }
 
-      final file = XFile.fromData(
-        bytes,
-        mimeType: 'image/png',
-        name: 'guinji_result_${DateTime.now().millisecondsSinceEpoch}.png',
-      );
-
-      await Share.shareXFiles([file], text: _shareMessage(guin));
+      if (!mounted) return;
+      await ShareService.shareImageDirectly(context, '${widget.ownerName}님의 귀인지도', bytes);
     } catch (_) {
       // [근본 수정 — 2026-12] 이미지 첨부 공유(shareXFiles)가 실패했을 때의
       // 텍스트 전용 폴백에서 예전에는 `Share.share()`를 직접 호출했다.
@@ -159,7 +149,7 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
       // 에러 화면을 유발하는 것을 확인했다(core/util/safe_share.dart 문서
       // 참고). 공통 헬퍼로 교체해 웹에서는 곧바로 클립보드 복사로 폴백한다.
       if (!mounted) return;
-      await safeShareText(context, _shareMessage(guin));
+      AppToast.show(context, '결과 이미지를 준비하지 못했어요. 다시 시도해주세요.', isError: true);
     } finally {
       if (mounted) setState(() => _capturing = false);
     }
@@ -229,6 +219,7 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
           ],
         },
         sourceRefId: mapId,
+        originalResultKey: _cardKey,
       );
     } finally {
       if (mounted) setState(() => _capturing = false);
@@ -240,55 +231,9 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
   /// 유지하면서, 신규 링크 공유([_shareViaLink])를 추가로 노출한다.
   Future<void> _showShareOptions(int guin) async {
     if (_capturing) return;
-    final choice = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: GuinjiColors.surfaceCard,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 12),
-              const Text(
-                '어떻게 공유할까요?',
-                style: TextStyle(
-                  fontFamily: GuinjiFonts.display,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 15,
-                  color: GuinjiColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 12),
-              ListTile(
-                leading: const Icon(
-                  Icons.image_outlined,
-                  color: GuinjiColors.lavender,
-                ),
-                title: const Text('이미지로 공유'),
-                subtitle: const Text('카드 이미지를 카카오톡·SNS로 바로 공유해요'),
-                onTap: () => Navigator.of(sheetContext).pop('image'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.link, color: GuinjiColors.lavender),
-                title: const Text('링크로 공유'),
-                subtitle: const Text('누르면 결과 페이지로 연결되는 링크를 공유해요'),
-                onTap: () => Navigator.of(sheetContext).pop('link'),
-              ),
-              const SizedBox(height: 8),
-            ],
-          ),
-        );
-      },
-    );
-    if (!mounted || choice == null) return;
-    if (choice == 'image') {
-      await _captureAndShare(guin);
-    } else if (choice == 'link') {
-      await _shareViaLink();
-    }
+    // 플랫폼별 경로는 사용자가 매번 선택하지 않아도 일정하게 유지한다.
+    if (kIsWeb) { await _shareViaLink(); } else { await _captureAndShare(guin); }
+
   }
 
   @override

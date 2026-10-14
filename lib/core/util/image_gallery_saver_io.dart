@@ -7,6 +7,7 @@ import 'package:gal/gal.dart';
 /// 저장 성공 여부를 bool로 반환해 호출부가 사용자에게 정확한 안내 문구를
 /// 보여줄 수 있게 한다(권한 거부/공간 부족 등은 false로 폴백).
 Future<bool> saveImageBytesToGallery(Uint8List bytes, {required String name}) async {
+  if (bytes.isEmpty) return false;
   try {
     if (!await Gal.hasAccess()) {
       await Gal.requestAccess();
