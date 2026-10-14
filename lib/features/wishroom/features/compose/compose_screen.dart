@@ -646,9 +646,23 @@ class _ComposeScreenState extends State<ComposeScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           WrGuardianOutfitLauncher(
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const CharacterShopScreen()),
-            ),
+            // [자연스러운 복귀 — 사용자 지적 2026-10-14] 작성란은 push로 열려
+            // 스택에 살아있고 샵 구매는 이동 없이 토스트만 있어 사라지지 않는다.
+            // 복귀 순간 갱신해 새로 함께한 수호자·착용 캐릭터가 카드에 바로 반영.
+            onTap: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const CharacterShopScreen()),
+              );
+              if (!mounted) return;
+              setState(() {
+                final room = context.read<WishRoomProvider>().room;
+                if (_char == null &&
+                    room != null &&
+                    _myChars.any((c) => c.id == room.char)) {
+                  _char = room.char; // 샵에서 입혀놓은 수호자로 미리보기 정렬
+                }
+              });
+            },
           ),
           const SizedBox(height: 10),
           SizedBox(
