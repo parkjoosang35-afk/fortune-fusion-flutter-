@@ -21,7 +21,7 @@ const String tarotThumbsBasePath = 'assets/tarot/thumbs';
 /// 매핑이 없거나 이미지 파일이 아직 준비되지 않았을 때 사용할 기본 뒷면
 /// 이미지. 실제로는 각 위젯의 `errorBuilder`가 이모지로 폴백하므로 이
 /// 경로가 그림으로 노출될 일은 거의 없지만, 안전망으로 유지한다.
-const String tarotDefaultBackAsset = 'assets/tarot/backs/back_default.webp';
+const String tarotDefaultBackAsset = 'assets/tarot/oz/card-back.png';
 
 /// name → 파일명 매핑(78장 전체).
 ///

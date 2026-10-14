@@ -59,6 +59,12 @@ class BangtongFairyAvatar extends StatelessWidget {
             fit: BoxFit.cover,
             // 이미지가 얼굴 중심에 잡히도록
             alignment: const Alignment(0, -0.4),
+            // 원본 자산 누락 시 오류 UI 대신 중립적인 안내 아이콘 표시.
+            // 다른 캐릭터 그림으로 임의 대체하지 않는다.
+            errorBuilder: (_, __, ___) => ColoredBox(
+              color: SintongColors.accent.withValues(alpha: 0.12),
+              child: Icon(Icons.person_outline, size: size * .55, color: SintongColors.accent),
+            ),
           ),
         ),
       ),
