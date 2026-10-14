@@ -47,7 +47,18 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
     if (!mounted) return;
     if (p.me == null) await p.loadMyRoom();
     if (!mounted || p.characters.isEmpty) return;
-    final id = p.me?.repChar ?? p.characters.first.id;
+    // [버그수정 — 코드방 2026-10-14, "캐릭터 빈 화면"] repChar가 null이 아니기만
+    // 하면 그대로 썼기 때문에, 서버가 보내준 repChar 값이 현재 캐릭터 카탈로그에
+    // 더 이상 존재하지 않는 경우(예: 캐릭터 목록 변경, 오래된 로컬 캐시 등) 그
+    // 유효하지 않은 id가 _selId에 고정됐다. build()의 `c`(선택된 캐릭터) 조회가
+    // 계속 null이 되어 무대(캐릭터 그림·이름·칭호·대사)와 CTA 버튼이 전부
+    // SizedBox.shrink()로 사라지는 빈 화면 증상으로 이어진다. repChar가 실제
+    // 카탈로그에 존재하는지 검증한 뒤에만 사용하고, 아니면 보유 목록의 첫 캐릭터로
+    // 안전하게 폴백한다.
+    final repChar = p.me?.repChar;
+    final repCharValid =
+        repChar != null && p.characters.any((ch) => ch.id == repChar);
+    final id = repCharValid ? repChar : p.characters.first.id;
     setState(() {
       _selId = id;
       _gender = id.startsWith('M') ? 'M' : 'F';
@@ -232,10 +243,27 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
             final genderList = p.characters
                 .where((ch) => ch.gender == _gender)
                 .toList();
-            final id =
-                _selId ??
-                p.me?.repChar ??
-                (genderList.isNotEmpty ? genderList.first.id : null);
+            // [버그수정 — 코드방 2026-10-14, "캐릭터 빈 화면"] _selId/repChar
+            // 둘 다 "null이 아니면 그대로 신뢰"하는 체인이었다. 두 값 모두 null이
+            // 아니어도 현재 카탈로그(p.characters)에 없는 id일 수 있고(캐릭터 목록
+            // 변경, 오래된 상태값 등), 그 경우 아래 `c`가 계속 null이 되어 무대·CTA
+            // 영역이 전부 SizedBox.shrink()로 사라진다. 각 후보가 실제 캐릭터
+            // 목록에 존재하는지 검증한 뒤에만 채택하고, 전부 무효하면 제네더 목록 →
+            // 전체 목록 순으로 안전하게 폴백한다.
+            final selIdValid =
+                _selId != null && p.characters.any((ch) => ch.id == _selId);
+            final repChar = p.me?.repChar;
+            final repCharValid =
+                repChar != null && p.characters.any((ch) => ch.id == repChar);
+            final id = selIdValid
+                ? _selId
+                : (repCharValid
+                      ? repChar
+                      : (genderList.isNotEmpty
+                            ? genderList.first.id
+                            : (p.characters.isNotEmpty
+                                  ? p.characters.first.id
+                                  : null)));
             final c = p.characters.where((ch) => ch.id == id).firstOrNull;
             final owned =
                 c != null &&
