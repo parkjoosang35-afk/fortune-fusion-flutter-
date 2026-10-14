@@ -110,11 +110,9 @@ class ShareService {
       }
     }
     if (!context.mounted) return;
-    // [앱·웹 공유 분리 — 2026-10-14 사용자 결정] 앱은 결과 원본 이미지를
-    // 공유 시트로 직접 전송한다(서버 업로드·/r 링크 생성·공개 동의 팝업
-    // 없음 — 이미지를 받는 상대는 공유 시트 수신자뿐). 웹은 기존대로
-    // 업로드 후 /r/{id} 결과 페이지 링크로 공유한다. 앱 공유 문구 링크는
-    // 스토어 등록 전까지 https://sintong.kr(등록 후 교체 예정).
+    // 앱은 원본 PNG를 OS 공유창에 전달하며 서버에 업로드하지 않는다.
+    // 웹은 공개 동의 후 업로드한 /web-result/{id} 결과페이지를 공유한다.
+    // 설치 안내는 확인된 Play Store 설정만 사용하고 홈페이지로 대체하지 않는다.
     if (!kIsWeb) {
       if (originalPng == null) {
         AppToast.show(context, '결과 이미지가 준비되지 않았어요. 다시 시도해주세요.', isError: true);

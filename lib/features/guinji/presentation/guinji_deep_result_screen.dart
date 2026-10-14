@@ -1,5 +1,4 @@
 import 'dart:typed_data';
-import 'dart:ui' as ui;
 import '../../../core/util/image_gallery_saver.dart';
 import '../../../core/util/original_result_capture.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -7,7 +6,6 @@ import '../../share/application/share_service.dart';
 import '../../share/domain/share_result_model.dart';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 
 import '../character/guinji_character.dart';
 import '../deep/guinji_deep_text.dart';
@@ -44,97 +42,14 @@ class GuinjiDeepResultScreen extends StatelessWidget {
   /// `fillName(s, m, me)` 1:1 이식 — {n}=상대 이름, {me}=나(소유자) 이름.
   String _fill(String s) => fill(s, n: person.name, me: ownerName);
 
-  /// [P4-hotfix / 2026-10-13 재정정] 카드 스크린샷을 갤러리에 저장(무료·광고
-  /// 없음). 폐기된 image_gallery_saver(Gradle namespace/JVM-target/Kotlin
-  /// Registrar 호환성 문제로 빌드 불가 확인됨) 대신, 이미 프로젝트에서
-  /// 검증되어 쓰이고 있는 gal 기반 `saveImageBytesToGallery` 헬퍼
-  /// (guinji_result_card_screen.dart, wallpaper_screen.dart와 동일 패턴)를
-  /// 재사용한다.
-  ///
-  /// [버그수정] 이전 구현은 `context.findRenderObject()`로 자기 자신을
-  /// 캡처했는데, 이 화면 트리 어디에도 RepaintBoundary가 없어 캐스트가
-  /// 항상 실패하고(obj is! RenderRepaintBoundary) 조용히 아무 동작도 하지
-  /// 않는 죽은 버튼이었다(Gradle 빌드 실패 이전에 로직 자체가 깨져
-  /// 있었음). `_captureKey`로 본문 스크롤 영역 전체를 RepaintBoundary로
-  /// 감싸 캡처 대상을 명확히 했다.
-  /// [전체 페이지 저장 — 사용자 피드백] 기존 캡처는 RepaintBoundary가 스크롤
-  /// 뷰포트만 그려 화면에 보이는 부분만 저장됐다. 스크롤 위치를 이동시켜
-  /// 가며 여러 장 캡처한 뒤 하나로 이어 붙여(스티치), 10장 풀이 "페이지
-  /// 전체"가 한 장의 이미지로 저장되게 한다.
-  /// [관계 결과 원본 공유·저장 — 사용자 피드백] 이 화면(10장 풀이+편지) 전체를
-  /// 한 장의 PNG로 캡처한다. 저장과 공유가 같은 바이트를 쓴다.
+  /// 10장 풀이와 편지를 포함한 전체 본문을 공통 캡처기로 처리한다.
+  /// 화면 일부만 캡처하는 폴백은 사용하지 않는다.
   Future<Uint8List?> _captureFullPagePng(BuildContext context) async {
-    try { return await captureOriginalResult(_captureKey); }
-    catch (_) { return null; }
-  }
-
-  // ignore: unused_element
-  Future<Uint8List?> _legacyViewportStitch(BuildContext context) async {
-    final boundaryObj = _captureKey.currentContext?.findRenderObject();
-    if (boundaryObj is! RenderRepaintBoundary) return null;
-    final boundary = boundaryObj;
-
-    ui.Image? stitched;
     try {
-      final scrollable = Scrollable.of(context);
-      final position = scrollable.position;
-      final start = position.pixels;
-      final vp = position.viewportDimension;
-      final max = position.maxScrollExtent;
-      const pixelRatio = 2.0;
-
-      final shots = <ui.Image>[];
-      double off = 0;
-      while (shots.length < 12) {
-        final target = off >= max ? max : off;
-        position.jumpTo(target);
-        await WidgetsBinding.instance.endOfFrame;
-        await WidgetsBinding.instance.endOfFrame;
-        shots.add(await boundary.toImage(pixelRatio: pixelRatio));
-        if (target >= max) break;
-        off += vp;
-      }
-      position.jumpTo(start);
-
-      if (shots.isEmpty) return null;
-      final w = shots.first.width;
-      final ph = ((max + vp) * pixelRatio).round();
-      final recorder = ui.PictureRecorder();
-      final canvas = ui.Canvas(
-        recorder,
-        ui.Rect.fromLTWH(0, 0, w.toDouble(), ph.toDouble()),
-      );
-      canvas.drawColor(GmColors.bg, ui.BlendMode.srcOver);
-      double y = 0;
-      for (final img in shots) {
-        final drawH = (ph - y).clamp(0.0, img.height.toDouble());
-        if (drawH <= 0) break;
-        canvas.drawImageRect(
-          img,
-          ui.Rect.fromLTWH(0, 0, img.width.toDouble(), drawH),
-          ui.Rect.fromLTWH(0, y, img.width.toDouble(), drawH),
-          ui.Paint(),
-        );
-        y += drawH;
-      }
-      final picture = recorder.endRecording();
-      stitched = await picture.toImage(w, ph);
-      picture.dispose();
-      for (final img in shots) {
-        img.dispose();
-      }
+      return await captureOriginalResult(_captureKey);
     } catch (_) {
-      // 스티치 실패 시 — 화면에 보이는 영역이라도 저장되도록 폴백한다.
-      try {
-        stitched = await boundary.toImage(pixelRatio: 3.0);
-      } catch (_) {
-        return null;
-      }
+      return null;
     }
-
-    final bytes = await stitched.toByteData(format: ui.ImageByteFormat.png);
-    stitched.dispose();
-    return bytes?.buffer.asUint8List();
   }
 
   Future<void> _savePageToGallery(BuildContext context) async {
@@ -156,7 +71,7 @@ class GuinjiDeepResultScreen extends StatelessWidget {
   }
 
   /// [공유 — 사용자 피드백] 초대가 아니라 상대방과의 관계 결과 페이지 공유.
-  /// 캡처한 원본 PNG를 서버에 올려 /r 링크가 이 화면 그대로 열리게 한다.
+  /// 앱은 전체 PNG를 직접 전달하고 웹은 공개 동의 후 결과페이지를 생성한다.
   Future<void> _shareDeep(BuildContext context) async {
     final meta = guinjiRelationMetaOf(person.relation);
     final message = '${person.name}님과의 관계는 "${meta.label}"예요 · 신통방통 귀인지도';

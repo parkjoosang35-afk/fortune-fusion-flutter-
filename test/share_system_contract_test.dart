@@ -30,6 +30,7 @@ void main() {
       final executable=text.split('\n').where((line)=>!line.trimLeft().startsWith('//')).join('\n');
       expect(executable, isNot(contains('await Share.shareXFiles')),reason:path);
       expect(executable, isNot(contains('await safeShareText')),reason:path);
+      expect(executable, isNot(contains('_legacyViewportStitch')),reason:path);
     }
   });
 }
