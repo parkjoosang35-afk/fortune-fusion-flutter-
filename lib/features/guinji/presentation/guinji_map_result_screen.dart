@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../navigation/guinji_page_route.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/web_ads/web_ad_config.dart';
@@ -142,9 +143,7 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
   void _openArrivalRelation(GuinjiPerson person) {
     _dismissArrivalOverlay();
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => GuinjiMapRelationDetailScreen(person: person),
-      ),
+      guinjiPageRoute(GuinjiMapRelationDetailScreen(person: person)),
     );
   }
 
@@ -257,9 +256,7 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
       onSeeMore: () {
         Navigator.of(context).maybePop();
         Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => GuinjiMapRelationDetailScreen(person: person),
-          ),
+          guinjiPageRoute(GuinjiMapRelationDetailScreen(person: person)),
         );
       },
     );

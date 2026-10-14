@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import '../navigation/guinji_page_route.dart';
 
 import '../character/guinji_character.dart';
 import '../domain/guinji_person.dart';
@@ -89,8 +90,8 @@ class _GuinjiDeepIntroScreenState extends State<GuinjiDeepIntroScreen>
   void _goToResult() {
     if (!_done) return;
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => GuinjiDeepResultScreen(
+      guinjiPageRoute(
+        GuinjiDeepResultScreen(
           person: widget.person,
           ownerName: widget.ownerName,
         ),
