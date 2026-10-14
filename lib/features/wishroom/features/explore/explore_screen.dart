@@ -141,22 +141,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
                               ),
                             ),
                           ),
-                          if (_etab == 'rooms')
-                            Positioned(
-                              top: 0,
-                              bottom: 0,
-                              right: 0,
-                              child: Center(
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    _sortChip('인기순', true),
-                                    const SizedBox(width: 6),
-                                    _sortChip('최신순', false),
-                                  ],
-                                ),
-                              ),
-                            ),
                         ],
                       ),
                     ),
@@ -168,6 +152,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         _tab('소원방', 'rooms'),
                         const SizedBox(width: 8),
                         _tab('✨ 이루어진 이야기', 'stories'),
+                        // [정렬칩 재배치 — 사용자 지시 2026-10-14] 인기순·최신순은 최상단 헤더가
+                        // 아니라 '✨ 이루어진 이야기' 탭 옆(탭 행 우측)에 놓는다.
+                        const Spacer(),
+                        if (_etab == 'rooms') ...[
+                          _sortChip('인기순', true),
+                          const SizedBox(width: 6),
+                          _sortChip('최신순', false),
+                        ],
                       ],
                     ),
                   ),
