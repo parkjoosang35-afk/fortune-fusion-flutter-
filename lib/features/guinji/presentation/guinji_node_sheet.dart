@@ -156,7 +156,11 @@ class GuinjiNodeSheet extends StatelessWidget {
                           colors: [color, color.withValues(alpha: 0.75)],
                         ),
                         boxShadow: [
-                          BoxShadow(color: color.withValues(alpha: 0.35), blurRadius: 24, spreadRadius: 2),
+                          BoxShadow(
+                            color: color.withValues(alpha: 0.35),
+                            blurRadius: 24,
+                            spreadRadius: 2,
+                          ),
                         ],
                       ),
                       alignment: Alignment.center,
@@ -186,14 +190,14 @@ class GuinjiNodeSheet extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      Text(
-                        name,
-                        style: GmText.cardName,
-                      ),
+                      Text(name, style: GmText.cardName),
                       const SizedBox(height: 2),
                       Text(
                         birthLabel,
-                        style: const TextStyle(fontSize: 11, color: GmColors.dim),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: GmColors.dim,
+                        ),
                       ),
                       const SizedBox(height: 14),
                       Row(
@@ -225,10 +229,15 @@ class GuinjiNodeSheet extends StatelessWidget {
                       ),
                       const SizedBox(height: 10),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: color.withValues(alpha: 0.14),
-                          border: Border.all(color: color.withValues(alpha: 0.3)),
+                          border: Border.all(
+                            color: color.withValues(alpha: 0.3),
+                          ),
                           borderRadius: BorderRadius.circular(9999),
                         ),
                         child: Row(
@@ -328,7 +337,8 @@ class GuinjiNodeSheet extends StatelessWidget {
                             Padding(
                               padding: const EdgeInsets.symmetric(vertical: 4),
                               child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
                                     rowLabel,
@@ -340,17 +350,17 @@ class GuinjiNodeSheet extends StatelessWidget {
                                     ),
                                   ),
                                   Expanded(
-                                  child: Text(
-                                    value,
-                                    textAlign: TextAlign.right,
-                                    style: const TextStyle(
-                                      fontFamily: GmText.ui,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: GmColors.fg,
+                                    child: Text(
+                                      value,
+                                      textAlign: TextAlign.right,
+                                      style: const TextStyle(
+                                        fontFamily: GmText.ui,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: GmColors.fg,
+                                      ),
                                     ),
-                                  )
-                                ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -405,7 +415,11 @@ class GuinjiNodeSheet extends StatelessWidget {
 }
 
 class _MomentRow extends StatelessWidget {
-  const _MomentRow({required this.color, required this.label, required this.desc});
+  const _MomentRow({
+    required this.color,
+    required this.label,
+    required this.desc,
+  });
 
   final Color color;
   final String label;
@@ -434,7 +448,10 @@ class _MomentRow extends StatelessWidget {
               children: [
                 TextSpan(
                   text: '$label · ',
-                  style: const TextStyle(fontWeight: FontWeight.w700, color: GmColors.fg),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: GmColors.fg,
+                  ),
                 ),
                 TextSpan(text: desc),
               ],

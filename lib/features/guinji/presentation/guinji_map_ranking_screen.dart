@@ -8,6 +8,7 @@ import '../widgets/guinji_animated_graph.dart' show parseGuinjiBirthLabel;
 import '../widgets/guinji_map_widgets.dart';
 import 'guinji_map_relation_detail_screen.dart';
 import 'guinji_result_card_screen.dart';
+import '../navigation/guinji_page_route.dart';
 
 /// 랭킹 · 유형별 목록 — `/guinji-map/m/ranking` (`/guinji-map/*` 신규 디자인).
 ///
@@ -57,9 +58,9 @@ class _GuinjiMapRankingScreenState extends State<GuinjiMapRankingScreen> {
       [...widget.people]..sort((a, b) => b.score.compareTo(a.score));
 
   void _openDetail(GuinjiPerson p) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => GuinjiMapRelationDetailScreen(person: p)),
-    );
+    Navigator.of(
+      context,
+    ).push(guinjiPageRoute(GuinjiMapRelationDetailScreen(person: p)));
   }
 
   Future<void> _confirmDelete(GuinjiPerson p) async {
@@ -120,8 +121,20 @@ class _GuinjiMapRankingScreenState extends State<GuinjiMapRankingScreen> {
                 ),
                 child: Row(
                   children: [
-                    Expanded(child: _TabButton(label: '랭킹', active: _tab == 0, onTap: () => setState(() => _tab = 0))),
-                    Expanded(child: _TabButton(label: '유형별 목록', active: _tab == 1, onTap: () => setState(() => _tab = 1))),
+                    Expanded(
+                      child: _TabButton(
+                        label: '랭킹',
+                        active: _tab == 0,
+                        onTap: () => setState(() => _tab = 0),
+                      ),
+                    ),
+                    Expanded(
+                      child: _TabButton(
+                        label: '유형별 목록',
+                        active: _tab == 1,
+                        onTap: () => setState(() => _tab = 1),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -131,17 +144,20 @@ class _GuinjiMapRankingScreenState extends State<GuinjiMapRankingScreen> {
                   ? _RankTab(
                       sorted: sorted,
                       onPick: _openDetail,
-                      onInvite: widget.onInvite ??
-                          () => Navigator.of(context).pushNamed('/guinji-map/m/share'),
+                      onInvite:
+                          widget.onInvite ??
+                          () => Navigator.of(
+                            context,
+                          ).pushNamed('/guinji-map/m/share'),
                       onShare: sorted.length >= 3
                           ? () => Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => GuinjiResultCardScreen(
-                                    people: widget.people,
-                                    ownerName: widget.ownerName,
-                                  ),
+                              MaterialPageRoute(
+                                builder: (_) => GuinjiResultCardScreen(
+                                  people: widget.people,
+                                  ownerName: widget.ownerName,
                                 ),
-                              )
+                              ),
+                            )
                           : null,
                     )
                   : _ListTab(
@@ -149,7 +165,9 @@ class _GuinjiMapRankingScreenState extends State<GuinjiMapRankingScreen> {
                       filter: _filter,
                       onFilter: (t) => setState(() => _filter = t),
                       onPick: _openDetail,
-                      onDelete: widget.onMemberDelete == null ? null : _confirmDelete,
+                      onDelete: widget.onMemberDelete == null
+                          ? null
+                          : _confirmDelete,
                     ),
             ),
           ],
@@ -160,7 +178,11 @@ class _GuinjiMapRankingScreenState extends State<GuinjiMapRankingScreen> {
 }
 
 class _TabButton extends StatelessWidget {
-  const _TabButton({required this.label, required this.active, required this.onTap});
+  const _TabButton({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
   final String label;
   final bool active;
   final VoidCallback onTap;
@@ -241,7 +263,12 @@ class _RankTab extends StatelessWidget {
               Text(
                 '지금 ${sorted.length}명 · $remain명만 더 초대해 보세요',
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontFamily: GmText.ui, fontSize: 14, height: 1.6, color: GmColors.muted),
+                style: const TextStyle(
+                  fontFamily: GmText.ui,
+                  fontSize: 14,
+                  height: 1.6,
+                  color: GmColors.muted,
+                ),
               ),
               const SizedBox(height: 22),
               SizedBox(
@@ -280,7 +307,11 @@ class _RankTab extends StatelessWidget {
                   Expanded(
                     child: p == null
                         ? const SizedBox.shrink()
-                        : _PodiumSlot(person: p, rank: sorted.indexOf(p) + 1, onTap: () => onPick(p)),
+                        : _PodiumSlot(
+                            person: p,
+                            rank: sorted.indexOf(p) + 1,
+                            onTap: () => onPick(p),
+                          ),
                   ),
               ],
             ),
@@ -289,11 +320,19 @@ class _RankTab extends StatelessWidget {
               padding: EdgeInsets.fromLTRB(4, 0, 4, 0),
               child: Text(
                 '전체 순위 · 케미 점수 높은 순',
-                style: TextStyle(fontFamily: GmText.ui, fontSize: 12.5, color: GmColors.dim),
+                style: TextStyle(
+                  fontFamily: GmText.ui,
+                  fontSize: 12.5,
+                  color: GmColors.dim,
+                ),
               ),
             ),
             for (var i = 0; i < rest.length; i++)
-              _RankRow(rank: i + 4, person: rest[i], onTap: () => onPick(rest[i])),
+              _RankRow(
+                rank: i + 4,
+                person: rest[i],
+                onTap: () => onPick(rest[i]),
+              ),
           ],
         ),
         if (onShare != null)
@@ -316,7 +355,11 @@ class _RankTab extends StatelessWidget {
 }
 
 class _PodiumSlot extends StatelessWidget {
-  const _PodiumSlot({required this.person, required this.rank, required this.onTap});
+  const _PodiumSlot({
+    required this.person,
+    required this.rank,
+    required this.onTap,
+  });
   final GuinjiPerson person;
   final int rank;
   final VoidCallback onTap;
@@ -346,7 +389,12 @@ class _PodiumSlot extends StatelessWidget {
                     top: 0,
                     child: Text(
                       '♛',
-                      style: TextStyle(fontFamily: GmText.display, fontSize: 18, fontWeight: FontWeight.w700, color: GmColors.gold),
+                      style: TextStyle(
+                        fontFamily: GmText.display,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: GmColors.gold,
+                      ),
                     ),
                   ),
                 Positioned(
@@ -361,9 +409,17 @@ class _PodiumSlot extends StatelessWidget {
                         fit: BoxFit.cover,
                         onError: (_, _) {},
                       ),
-                      border: Border.all(color: big ? GmColors.gold : type.color, width: 1.5),
+                      border: Border.all(
+                        color: big ? GmColors.gold : type.color,
+                        width: 1.5,
+                      ),
                       boxShadow: big
-                          ? [BoxShadow(color: GmColors.gold.withValues(alpha: 0.4), blurRadius: 20)]
+                          ? [
+                              BoxShadow(
+                                color: GmColors.gold.withValues(alpha: 0.4),
+                                blurRadius: 20,
+                              ),
+                            ]
                           : null,
                     ),
                   ),
@@ -397,12 +453,22 @@ class _PodiumSlot extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             person.name,
-            style: TextStyle(fontFamily: GmText.ui, fontSize: big ? 16 : 14, fontWeight: FontWeight.w600, color: GmColors.fg),
+            style: TextStyle(
+              fontFamily: GmText.ui,
+              fontSize: big ? 16 : 14,
+              fontWeight: FontWeight.w600,
+              color: GmColors.fg,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             type.label,
-            style: TextStyle(fontFamily: GmText.ui, fontSize: 11.5, fontWeight: FontWeight.w500, color: type.color),
+            style: TextStyle(
+              fontFamily: GmText.ui,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w500,
+              color: type.color,
+            ),
           ),
           Container(
             margin: const EdgeInsets.only(top: 10),
@@ -411,13 +477,21 @@ class _PodiumSlot extends StatelessWidget {
             alignment: Alignment.topCenter,
             padding: const EdgeInsets.only(top: 10),
             decoration: BoxDecoration(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(12),
+              ),
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: big
-                    ? [GmColors.gold.withValues(alpha: 0.28), GmColors.gold.withValues(alpha: 0.04)]
-                    : [Colors.white.withValues(alpha: 0.08), Colors.white.withValues(alpha: 0.01)],
+                    ? [
+                        GmColors.gold.withValues(alpha: 0.28),
+                        GmColors.gold.withValues(alpha: 0.04),
+                      ]
+                    : [
+                        Colors.white.withValues(alpha: 0.08),
+                        Colors.white.withValues(alpha: 0.01),
+                      ],
               ),
             ),
             child: Text(
@@ -437,7 +511,12 @@ class _PodiumSlot extends StatelessWidget {
 }
 
 class _RankRow extends StatelessWidget {
-  const _RankRow({this.rank, required this.person, required this.onTap, this.onDelete});
+  const _RankRow({
+    this.rank,
+    required this.person,
+    required this.onTap,
+    this.onDelete,
+  });
   final int? rank;
   final GuinjiPerson person;
   final VoidCallback onTap;
@@ -447,13 +526,17 @@ class _RankRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final type = guinjiTypeOf(person.relation);
     final birth = parseGuinjiBirthLabel(person.birth);
-    final character = birth == null ? null : GuinjiCharacter.of(birth: birth, stableKey: person.id);
+    final character = birth == null
+        ? null
+        : GuinjiCharacter.of(birth: birth, stableKey: person.id);
 
     return InkWell(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 4),
-        decoration: const BoxDecoration(border: Border(top: BorderSide(color: GmColors.hair))),
+        decoration: const BoxDecoration(
+          border: Border(top: BorderSide(color: GmColors.hair)),
+        ),
         child: Row(
           children: [
             // [핸드오프 `Row({ rank })`] rank가 null이면(유형별 목록 탭)
@@ -464,7 +547,12 @@ class _RankRow extends StatelessWidget {
                 child: Text(
                   '$rank',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontFamily: GmText.display, fontSize: 15, fontWeight: FontWeight.w600, color: GmColors.dim),
+                  style: const TextStyle(
+                    fontFamily: GmText.display,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: GmColors.dim,
+                  ),
                 ),
               ),
             if (rank != null) const SizedBox(width: 12),
@@ -476,7 +564,11 @@ class _RankRow extends StatelessWidget {
                 color: const Color(0xFF222222),
                 image: character == null
                     ? null
-                    : DecorationImage(image: AssetImage(character.face), fit: BoxFit.cover, onError: (_, _) {}),
+                    : DecorationImage(
+                        image: AssetImage(character.face),
+                        fit: BoxFit.cover,
+                        onError: (_, _) {},
+                      ),
                 border: Border.all(color: type.color, width: 1.5),
               ),
             ),
@@ -487,23 +579,42 @@ class _RankRow extends StatelessWidget {
                 children: [
                   Text(
                     person.name,
-                    style: const TextStyle(fontFamily: GmText.ui, fontSize: 15.5, fontWeight: FontWeight.w600, color: GmColors.fg),
+                    style: const TextStyle(
+                      fontFamily: GmText.ui,
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w600,
+                      color: GmColors.fg,
+                    ),
                   ),
                   const SizedBox(height: 5),
                   Row(
                     children: [
                       Text(
                         type.hanja,
-                        style: TextStyle(fontFamily: GmText.display, fontSize: 12, fontWeight: FontWeight.w700, color: type.color),
+                        style: TextStyle(
+                          fontFamily: GmText.display,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: type.color,
+                        ),
                       ),
                       const SizedBox(width: 4),
                       Text(
                         type.label,
-                        style: TextStyle(fontFamily: GmText.ui, fontSize: 12, fontWeight: FontWeight.w500, color: type.color),
+                        style: TextStyle(
+                          fontFamily: GmText.ui,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: type.color,
+                        ),
                       ),
                       Text(
                         character != null ? ' · ${character.band}' : '',
-                        style: const TextStyle(fontFamily: GmText.ui, fontSize: 12, color: GmColors.dim),
+                        style: const TextStyle(
+                          fontFamily: GmText.ui,
+                          fontSize: 12,
+                          color: GmColors.dim,
+                        ),
                       ),
                     ],
                   ),
@@ -521,7 +632,12 @@ class _RankRow extends StatelessWidget {
                 child: FractionallySizedBox(
                   alignment: Alignment.centerLeft,
                   widthFactor: (person.score / 100).clamp(0.0, 1.0),
-                  child: DecoratedBox(decoration: BoxDecoration(color: type.color, borderRadius: BorderRadius.circular(2))),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: type.color,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -531,13 +647,22 @@ class _RankRow extends StatelessWidget {
               child: Text(
                 '${person.score}',
                 textAlign: TextAlign.right,
-                style: const TextStyle(fontFamily: GmText.display, fontSize: 17, fontWeight: FontWeight.w600, color: GmColors.fg),
+                style: const TextStyle(
+                  fontFamily: GmText.display,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  color: GmColors.fg,
+                ),
               ),
             ),
             if (onDelete != null)
               IconButton(
                 onPressed: onDelete,
-                icon: const Icon(Icons.more_horiz, color: GmColors.dim, size: 18),
+                icon: const Icon(
+                  Icons.more_horiz,
+                  color: GmColors.dim,
+                  size: 18,
+                ),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
               ),
@@ -603,15 +728,30 @@ class _ListTab extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 14),
-        for (final t in guinjiTypeOrder.where((t) => filter == null || filter == t))
-          _TypeGroup(type: t, members: list.where((p) => p.relation == t).toList()..sort((a, b) => b.score.compareTo(a.score)), showEmptyNotice: filter != null, onPick: onPick, onDelete: onDelete),
+        for (final t in guinjiTypeOrder.where(
+          (t) => filter == null || filter == t,
+        ))
+          _TypeGroup(
+            type: t,
+            members: list.where((p) => p.relation == t).toList()
+              ..sort((a, b) => b.score.compareTo(a.score)),
+            showEmptyNotice: filter != null,
+            onPick: onPick,
+            onDelete: onDelete,
+          ),
       ],
     );
   }
 }
 
 class _FilterChip extends StatelessWidget {
-  const _FilterChip({required this.label, required this.hanja, required this.color, required this.active, required this.onTap});
+  const _FilterChip({
+    required this.label,
+    required this.hanja,
+    required this.color,
+    required this.active,
+    required this.onTap,
+  });
   final String label;
   final String? hanja;
   final Color color;
@@ -629,7 +769,9 @@ class _FilterChip extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: active ? color : GmColors.line),
-          color: active ? (hanja != null ? color.withValues(alpha: 0.13) : GmColors.fg) : Colors.transparent,
+          color: active
+              ? (hanja != null ? color.withValues(alpha: 0.13) : GmColors.fg)
+              : Colors.transparent,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -637,7 +779,15 @@ class _FilterChip extends StatelessWidget {
             if (hanja != null)
               Padding(
                 padding: const EdgeInsets.only(right: 4),
-                child: Text(hanja!, style: TextStyle(fontFamily: GmText.display, fontWeight: FontWeight.w700, fontSize: 13, color: active ? color : GmColors.muted)),
+                child: Text(
+                  hanja!,
+                  style: TextStyle(
+                    fontFamily: GmText.display,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: active ? color : GmColors.muted,
+                  ),
+                ),
               ),
             Text(
               label,
@@ -645,7 +795,9 @@ class _FilterChip extends StatelessWidget {
                 fontFamily: GmText.ui,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: active ? (hanja != null ? color : GmColors.onFg) : GmColors.muted,
+                color: active
+                    ? (hanja != null ? color : GmColors.onFg)
+                    : GmColors.muted,
               ),
             ),
           ],
@@ -678,7 +830,12 @@ class _TypeGroup extends StatelessWidget {
         child: Center(
           child: Text(
             '해당 유형의 참여자가 아직 없어요',
-            style: TextStyle(fontFamily: GmText.ui, fontSize: 14.5, height: 1.6, color: GmColors.muted),
+            style: TextStyle(
+              fontFamily: GmText.ui,
+              fontSize: 14.5,
+              height: 1.6,
+              color: GmColors.muted,
+            ),
           ),
         ),
       );
@@ -699,15 +856,43 @@ class _TypeGroup extends StatelessWidget {
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(color: spec.color),
                 ),
-                child: Text(spec.hanja, style: TextStyle(fontFamily: GmText.display, fontWeight: FontWeight.w700, fontSize: 12, color: spec.color)),
+                child: Text(
+                  spec.hanja,
+                  style: TextStyle(
+                    fontFamily: GmText.display,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                    color: spec.color,
+                  ),
+                ),
               ),
               const SizedBox(width: 8),
-              Text(spec.label, style: const TextStyle(fontFamily: GmText.display, fontSize: 15, fontWeight: FontWeight.w600, color: GmColors.fg)),
+              Text(
+                spec.label,
+                style: const TextStyle(
+                  fontFamily: GmText.display,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: GmColors.fg,
+                ),
+              ),
               const SizedBox(width: 6),
-              Text('${members.length}명', style: const TextStyle(fontFamily: GmText.ui, fontSize: 12.5, color: GmColors.dim)),
+              Text(
+                '${members.length}명',
+                style: const TextStyle(
+                  fontFamily: GmText.ui,
+                  fontSize: 12.5,
+                  color: GmColors.dim,
+                ),
+              ),
             ],
           ),
-          for (final m in members) _RankRow(person: m, onTap: () => onPick(m), onDelete: onDelete == null ? null : () => onDelete!(m)),
+          for (final m in members)
+            _RankRow(
+              person: m,
+              onTap: () => onPick(m),
+              onDelete: onDelete == null ? null : () => onDelete!(m),
+            ),
         ],
       ),
     );

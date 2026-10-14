@@ -35,7 +35,9 @@ class _GuinjiLandingScreenState extends State<GuinjiLandingScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeRedirectToMyMap());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _maybeRedirectToMyMap(),
+    );
   }
 
   Future<void> _maybeRedirectToMyMap() async {

@@ -272,10 +272,7 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
                 onTap: () => Navigator.of(sheetContext).pop('image'),
               ),
               ListTile(
-                leading: const Icon(
-                  Icons.link,
-                  color: GuinjiColors.lavender,
-                ),
+                leading: const Icon(Icons.link, color: GuinjiColors.lavender),
                 title: const Text('링크로 공유'),
                 subtitle: const Text('누르면 결과 페이지로 연결되는 링크를 공유해요'),
                 onTap: () => Navigator.of(sheetContext).pop('link'),

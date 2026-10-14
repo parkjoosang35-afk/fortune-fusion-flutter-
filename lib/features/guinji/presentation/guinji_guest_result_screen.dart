@@ -90,7 +90,9 @@ class GuinjiGuestResultScreen extends StatelessWidget {
       score: score,
       note: evidenceSummary,
     );
-    final centerName = (guestName == null || guestName!.isEmpty) ? '나' : guestName!;
+    final centerName = (guestName == null || guestName!.isEmpty)
+        ? '나'
+        : guestName!;
 
     return Scaffold(
       backgroundColor: GmColors.bg,
@@ -109,11 +111,7 @@ class GuinjiGuestResultScreen extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
         child: Column(
           children: [
-            const SizedBox(
-              width: 120,
-              height: 120,
-              child: _BobbingSeonnyeo(),
-            ),
+            const SizedBox(width: 120, height: 120, child: _BobbingSeonnyeo()),
             const SizedBox(height: 4),
             const GmLabelMini('▸ 방통선녀 · RESULT'),
             const SizedBox(height: 10),
@@ -200,7 +198,8 @@ class GuinjiGuestResultScreen extends StatelessWidget {
               label: '내 지도 만들기 · 무료',
               icon: Icons.arrow_forward,
               onPressed:
-                  onCreateOwnMap ?? () => Navigator.of(context).pushNamed('/guinji-map'),
+                  onCreateOwnMap ??
+                  () => Navigator.of(context).pushNamed('/guinji-map'),
             ),
             const SizedBox(height: 24),
             const SizedBox(height: 24),
@@ -299,10 +298,7 @@ class _GuestResultCard extends StatelessWidget {
         gradient: RadialGradient(
           center: const Alignment(-0.4, -0.6),
           radius: 1.1,
-          colors: [
-            color.withValues(alpha: 0.14),
-            Colors.transparent,
-          ],
+          colors: [color.withValues(alpha: 0.14), Colors.transparent],
         ),
       ),
       child: Column(

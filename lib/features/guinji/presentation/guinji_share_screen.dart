@@ -9,7 +9,8 @@ import '../../../core/widgets/app_toast.dart';
 import '../application/guinji_provider.dart';
 import '../theme/guinji_theme.dart';
 import '../widgets/guinji_bg_atmosphere.dart';
-import 'guinji_map_share_screen.dart' show GuinjiShareTarget, shareGuinjiMapInvite;
+import 'guinji_map_share_screen.dart'
+    show GuinjiShareTarget, shareGuinjiMapInvite;
 
 /// [카톡 공유 OG 캐시버스팅 — 결정 매모 D6/1-1] 짧은 캐시버스팅 코드 생성기.
 ///
@@ -24,7 +25,10 @@ final math.Random _shareCodeRandom = math.Random();
 String generateGuinjiShareCode({int length = 6}) {
   return List.generate(
     length,
-    (_) => _kShareCodeAlphabet[_shareCodeRandom.nextInt(_kShareCodeAlphabet.length)],
+    (_) =>
+        _kShareCodeAlphabet[_shareCodeRandom.nextInt(
+          _kShareCodeAlphabet.length,
+        )],
   ).join();
 }
 
@@ -203,7 +207,11 @@ class _GuinjiShareScreenState extends State<GuinjiShareScreen> {
                           label: '카톡',
                           icon: Icons.chat_bubble,
                           color: const Color(0xFFFEE500),
-                          onTap: () => _shareInvite(context, token, target: GuinjiShareTarget.kakao),
+                          onTap: () => _shareInvite(
+                            context,
+                            token,
+                            target: GuinjiShareTarget.kakao,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -212,7 +220,11 @@ class _GuinjiShareScreenState extends State<GuinjiShareScreen> {
                           label: '문자',
                           icon: Icons.sms_outlined,
                           color: GuinjiColors.aqua,
-                          onTap: () => _shareInvite(context, token, target: GuinjiShareTarget.sms),
+                          onTap: () => _shareInvite(
+                            context,
+                            token,
+                            target: GuinjiShareTarget.sms,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -221,7 +233,11 @@ class _GuinjiShareScreenState extends State<GuinjiShareScreen> {
                           label: '더보기',
                           icon: Icons.more_horiz,
                           color: GuinjiColors.textPrimary,
-                          onTap: () => _shareInvite(context, token, target: GuinjiShareTarget.more),
+                          onTap: () => _shareInvite(
+                            context,
+                            token,
+                            target: GuinjiShareTarget.more,
+                          ),
                         ),
                       ),
                     ],

@@ -102,8 +102,7 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
       return;
     }
 
-    final birthDate =
-        '$year-${month.padLeft(2, '0')}-${day.padLeft(2, '0')}';
+    final birthDate = '$year-${month.padLeft(2, '0')}-${day.padLeft(2, '0')}';
     String? birthTime;
     if (!_timeUnknown && _hourController.text.trim().isNotEmpty) {
       final hh = _hourController.text.trim().padLeft(2, '0');
@@ -231,17 +230,29 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
               children: [
                 Expanded(
                   flex: 7,
-                  child: _NumberBox(controller: _yearController, placeholder: '2003', maxLength: 4),
+                  child: _NumberBox(
+                    controller: _yearController,
+                    placeholder: '2003',
+                    maxLength: 4,
+                  ),
                 ),
                 const SizedBox(width: 6),
                 Expanded(
                   flex: 5,
-                  child: _NumberBox(controller: _monthController, placeholder: '05', maxLength: 2),
+                  child: _NumberBox(
+                    controller: _monthController,
+                    placeholder: '05',
+                    maxLength: 2,
+                  ),
                 ),
                 const SizedBox(width: 6),
                 Expanded(
                   flex: 5,
-                  child: _NumberBox(controller: _dayController, placeholder: '14', maxLength: 2),
+                  child: _NumberBox(
+                    controller: _dayController,
+                    placeholder: '14',
+                    maxLength: 2,
+                  ),
                 ),
               ],
             ),
@@ -268,11 +279,19 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
             Row(
               children: [
                 Expanded(
-                  child: _NumberBox(controller: _hourController, placeholder: '09', maxLength: 2),
+                  child: _NumberBox(
+                    controller: _hourController,
+                    placeholder: '09',
+                    maxLength: 2,
+                  ),
                 ),
                 const SizedBox(width: 6),
                 Expanded(
-                  child: _NumberBox(controller: _minuteController, placeholder: '20', maxLength: 2),
+                  child: _NumberBox(
+                    controller: _minuteController,
+                    placeholder: '20',
+                    maxLength: 2,
+                  ),
                 ),
               ],
             ),
@@ -289,7 +308,11 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
                     padding: EdgeInsets.only(top: 12),
                     child: Text(
                       '태어난 시간을 몰라요 (3기둥으로 계산, 정확도 다소 낮아짐)',
-                      style: TextStyle(fontSize: 11.5, color: GmColors.muted, height: 1.5),
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: GmColors.muted,
+                        height: 1.5,
+                      ),
                     ),
                   ),
                 ),
@@ -384,7 +407,11 @@ class _GreetingCard extends StatelessWidget {
         border: Border.all(color: GmColors.line),
         borderRadius: BorderRadius.circular(24),
         boxShadow: const [
-          BoxShadow(color: Color(0x26A6795E), blurRadius: 20, offset: Offset(0, 4)),
+          BoxShadow(
+            color: Color(0x26A6795E),
+            blurRadius: 20,
+            offset: Offset(0, 4),
+          ),
         ],
       ),
       child: Row(
@@ -395,11 +422,8 @@ class _GreetingCard extends StatelessWidget {
             child: Image.asset(
               'assets/images/guinji/seonnyeo/greeting.png',
               fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => const Icon(
-                Icons.favorite,
-                color: GmColors.gold,
-                size: 32,
-              ),
+              errorBuilder: (_, __, ___) =>
+                  const Icon(Icons.favorite, color: GmColors.gold, size: 32),
             ),
           ),
           const SizedBox(width: 14),
@@ -422,7 +446,11 @@ class _GreetingCard extends StatelessWidget {
 }
 
 class _NumberBox extends StatelessWidget {
-  const _NumberBox({required this.controller, required this.placeholder, required this.maxLength});
+  const _NumberBox({
+    required this.controller,
+    required this.placeholder,
+    required this.maxLength,
+  });
 
   final TextEditingController controller;
   final String placeholder;
@@ -451,7 +479,11 @@ class _NumberBox extends StatelessWidget {
 }
 
 class _ChoiceChip extends StatelessWidget {
-  const _ChoiceChip({required this.label, required this.active, required this.onTap});
+  const _ChoiceChip({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
 
   final String label;
   final bool active;

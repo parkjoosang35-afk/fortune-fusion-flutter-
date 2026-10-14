@@ -104,8 +104,9 @@ class _GuinjiDeepIntroScreenState extends State<GuinjiDeepIntroScreen>
     final meta = guinjiRelationMetaOf(person.relation);
     final color = meta.color;
     final birth = parseGuinjiBirthLabel(person.birth);
-    final theirCharacter =
-        birth == null ? null : GuinjiCharacter.of(birth: birth, stableKey: person.id);
+    final theirCharacter = birth == null
+        ? null
+        : GuinjiCharacter.of(birth: birth, stableKey: person.id);
     // [핸드오프 `GJ.charFor(me)`] "나"(소유자) 얼굴 — 이 화면 컨텍스트에는
     // 실제 소유자 생년월일이 전달되지 않으므로(엔진/모델 변경 금지 원칙),
     // 지도 그래프 중앙 노드와 동일한 데모 자산을 재사용한다
@@ -141,7 +142,10 @@ class _GuinjiDeepIntroScreenState extends State<GuinjiDeepIntroScreen>
                 width: 320,
                 height: 320,
                 child: AnimatedBuilder(
-                  animation: Listenable.merge([_spinController, _drawController]),
+                  animation: Listenable.merge([
+                    _spinController,
+                    _drawController,
+                  ]),
                   builder: (context, _) {
                     return CustomPaint(
                       painter: _DeepIntroPainter(
@@ -262,7 +266,9 @@ class _GuinjiDeepIntroScreenState extends State<GuinjiDeepIntroScreen>
                                     _lines[i],
                                     style: TextStyle(
                                       fontSize: 13,
-                                      color: i < _step ? GmColors.muted : GmColors.dim,
+                                      color: i < _step
+                                          ? GmColors.muted
+                                          : GmColors.dim,
                                     ),
                                   ),
                                 ],
@@ -329,7 +335,11 @@ class _IntroFace extends StatelessWidget {
         boxShadow: [
           BoxShadow(color: ringColor, blurRadius: 0, spreadRadius: 1.5),
           if (glowColor != null)
-            BoxShadow(color: glowColor!.withValues(alpha: 0.35), blurRadius: 24, spreadRadius: 2),
+            BoxShadow(
+              color: glowColor!.withValues(alpha: 0.35),
+              blurRadius: 24,
+              spreadRadius: 2,
+            ),
         ],
       ),
       clipBehavior: Clip.antiAlias,
@@ -436,7 +446,10 @@ class _DeepIntroPainter extends CustomPainter {
       )..layout();
       tp.paint(
         canvas,
-        Offset(math.cos(a) * 128 - tp.width / 2, math.sin(a) * 128 - tp.height / 2),
+        Offset(
+          math.cos(a) * 128 - tp.width / 2,
+          math.sin(a) * 128 - tp.height / 2,
+        ),
       );
     }
     canvas.restore();
@@ -455,6 +468,8 @@ class _DeepIntroPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _DeepIntroPainter oldDelegate) {
-    return oldDelegate.spin != spin || oldDelegate.draw != draw || oldDelegate.color != color;
+    return oldDelegate.spin != spin ||
+        oldDelegate.draw != draw ||
+        oldDelegate.color != color;
   }
 }

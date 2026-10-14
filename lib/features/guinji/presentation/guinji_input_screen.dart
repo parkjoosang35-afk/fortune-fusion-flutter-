@@ -19,9 +19,7 @@ void replayPendingGuinjiMapEntry() {
     final navState = appNavigatorKey.currentState;
     if (navState == null) return;
     navState.push(
-      MaterialPageRoute(
-        builder: (_) => GuinjiInputScreen(initialDraft: draft),
-      ),
+      MaterialPageRoute(builder: (_) => GuinjiInputScreen(initialDraft: draft)),
     );
   });
 }
@@ -234,7 +232,11 @@ class _GuinjiInputScreenState extends State<GuinjiInputScreen> {
 
     return Scaffold(
       backgroundColor: GmColors.bg,
-      appBar: GmTopBar(back: true, title: '정보 입력', onBack: () => Navigator.of(context).maybePop()),
+      appBar: GmTopBar(
+        back: true,
+        title: '정보 입력',
+        onBack: () => Navigator.of(context).maybePop(),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
         child: Column(
@@ -261,11 +263,8 @@ class _GuinjiInputScreenState extends State<GuinjiInputScreen> {
                     width: 52,
                     height: 52,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      width: 52,
-                      height: 52,
-                      color: GmColors.card,
-                    ),
+                    errorBuilder: (_, __, ___) =>
+                        Container(width: 52, height: 52, color: GmColors.card),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -305,7 +304,11 @@ class _GuinjiInputScreenState extends State<GuinjiInputScreen> {
               child: TextField(
                 controller: _nicknameController,
                 maxLength: 24,
-                style: const TextStyle(fontFamily: GmText.ui, fontSize: 14, color: GmColors.fg),
+                style: const TextStyle(
+                  fontFamily: GmText.ui,
+                  fontSize: 14,
+                  color: GmColors.fg,
+                ),
                 decoration: const InputDecoration(
                   isDense: true,
                   counterText: '',
@@ -342,17 +345,29 @@ class _GuinjiInputScreenState extends State<GuinjiInputScreen> {
               children: [
                 Expanded(
                   flex: 7,
-                  child: _NumberBox(controller: _yearController, placeholder: '1998', maxLength: 4),
+                  child: _NumberBox(
+                    controller: _yearController,
+                    placeholder: '1998',
+                    maxLength: 4,
+                  ),
                 ),
                 const SizedBox(width: 6),
                 Expanded(
                   flex: 5,
-                  child: _NumberBox(controller: _monthController, placeholder: '05', maxLength: 2),
+                  child: _NumberBox(
+                    controller: _monthController,
+                    placeholder: '05',
+                    maxLength: 2,
+                  ),
                 ),
                 const SizedBox(width: 6),
                 Expanded(
                   flex: 5,
-                  child: _NumberBox(controller: _dayController, placeholder: '14', maxLength: 2),
+                  child: _NumberBox(
+                    controller: _dayController,
+                    placeholder: '14',
+                    maxLength: 2,
+                  ),
                 ),
               ],
             ),
@@ -458,7 +473,11 @@ class _GuinjiInputScreenState extends State<GuinjiInputScreen> {
 }
 
 class _GenderSegment extends StatelessWidget {
-  const _GenderSegment({required this.label, required this.active, required this.onTap});
+  const _GenderSegment({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
 
   final String label;
   final bool active;
@@ -516,7 +535,11 @@ class _NumberBox extends StatelessWidget {
           keyboardType: TextInputType.number,
           maxLength: maxLength,
           textAlign: TextAlign.center,
-          style: const TextStyle(fontFamily: GmText.ui, fontSize: 14, color: GmColors.fg),
+          style: const TextStyle(
+            fontFamily: GmText.ui,
+            fontSize: 14,
+            color: GmColors.fg,
+          ),
           decoration: InputDecoration(
             isDense: true,
             counterText: '',
@@ -531,7 +554,11 @@ class _NumberBox extends StatelessWidget {
 }
 
 class _CalendarChip extends StatelessWidget {
-  const _CalendarChip({required this.label, required this.active, required this.onTap});
+  const _CalendarChip({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
 
   final String label;
   final bool active;

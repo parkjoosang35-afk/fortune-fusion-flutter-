@@ -9,6 +9,7 @@ import '../domain/pending_guinji_join.dart';
 import '../theme/guinji_theme.dart';
 import '../widgets/guinji_bg_atmosphere.dart';
 import 'guinji_onboarding_screen.dart';
+import '../navigation/guinji_page_route.dart';
 
 /// [버그 수정 — 딥링크 비로그인 진입] 로그인 완료 후 저장된 귀인지도 참여
 /// 요청(공유 링크 토큰)이 있으면, 원래 열려던 참여 화면([GuinjiJoinScreen])
@@ -26,9 +27,7 @@ void replayPendingGuinjiJoin() {
   WidgetsBinding.instance.addPostFrameCallback((_) {
     final navState = appNavigatorKey.currentState;
     if (navState == null) return;
-    navState.push(
-      MaterialPageRoute(builder: (_) => GuinjiJoinScreen(inviteToken: token)),
-    );
+    navState.push(guinjiPageRoute(GuinjiJoinScreen(inviteToken: token)));
   });
 }
 

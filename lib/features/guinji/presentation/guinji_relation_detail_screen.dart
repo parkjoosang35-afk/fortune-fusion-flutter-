@@ -332,29 +332,29 @@ class _TypeDescriptionCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text: '${relation.hanja} ${relation.label} · ',
-                        style: const TextStyle(
-                          fontFamily: GuinjiFonts.body,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                          color: GuinjiColors.textPrimary,
-                        ),
-                      ),
-                      TextSpan(
-                        text: relation.subtitle,
-                        style: const TextStyle(
-                          fontFamily: GuinjiFonts.body,
-                          fontWeight: FontWeight.w400,
-                          fontSize: 15,
-                          color: GuinjiColors.textSecondary,
-                        ),
-                      ),
-                    ],
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: '${relation.hanja} ${relation.label} · ',
+                  style: const TextStyle(
+                    fontFamily: GuinjiFonts.body,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                    color: GuinjiColors.textPrimary,
                   ),
                 ),
+                TextSpan(
+                  text: relation.subtitle,
+                  style: const TextStyle(
+                    fontFamily: GuinjiFonts.body,
+                    fontWeight: FontWeight.w400,
+                    fontSize: 15,
+                    color: GuinjiColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 6),
           Text(
             relation.description,

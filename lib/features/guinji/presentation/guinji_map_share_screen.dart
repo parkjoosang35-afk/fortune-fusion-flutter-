@@ -122,14 +122,18 @@ Future<void> shareGuinjiMapInvite(
       // 으로 떨어진다 — 기존 SMS/더보기 동작은 전혀 바꾸지 않는다.
       if (!kIsWeb) {
         try {
-          final available = await ShareClient.instance.isKakaoTalkSharingAvailable();
+          final available = await ShareClient.instance
+              .isKakaoTalkSharingAvailable();
           if (!available) {
             if (kDebugMode) {
               debugPrint('[GuinjiShare] 카카오톡 미설치/공유 불가 — 공통 폴백으로 전환');
             }
           } else {
             await ShareClient.instance.shareDefault(
-              template: guinjiInviteTemplate(host: hostName ?? '친구', token: token),
+              template: guinjiInviteTemplate(
+                host: hostName ?? '친구',
+                token: token,
+              ),
             );
             return;
           }
@@ -393,12 +397,19 @@ class _GuinjiMapShareScreenState extends State<GuinjiMapShareScreen> {
                 const Text(
                   '더 많은 친구가 참여할수록\n내 관계 지도가 선명해져요.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: GmColors.muted, height: 1.5),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: GmColors.muted,
+                    height: 1.5,
+                  ),
                 ),
                 const SizedBox(height: 20),
 
                 // 카카오 OG 미리보기
-                _KakaoOgPreview(ownerName: widget.ownerName, guinjiCount: widget.guinjiCount),
+                _KakaoOgPreview(
+                  ownerName: widget.ownerName,
+                  guinjiCount: widget.guinjiCount,
+                ),
                 const SizedBox(height: 16),
 
                 // 실제 초대 링크 복사 행
@@ -455,10 +466,23 @@ class _GuinjiMapShareScreenState extends State<GuinjiMapShareScreen> {
                   ),
                   child: const Text.rich(
                     TextSpan(
-                      style: TextStyle(fontSize: 11, color: GmColors.muted, height: 1.5),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: GmColors.muted,
+                        height: 1.5,
+                      ),
                       children: [
-                        TextSpan(text: 'Tip. ', style: TextStyle(fontWeight: FontWeight.w700, color: GmColors.fg)),
-                        TextSpan(text: '이 링크는 만료 없이 계속 사용할 수 있어요. 그만 받고 싶다면 링크를 중단할 수 있어요.'),
+                        TextSpan(
+                          text: 'Tip. ',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: GmColors.fg,
+                          ),
+                        ),
+                        TextSpan(
+                          text:
+                              '이 링크는 만료 없이 계속 사용할 수 있어요. 그만 받고 싶다면 링크를 중단할 수 있어요.',
+                        ),
                       ],
                     ),
                   ),
@@ -497,7 +521,11 @@ class _LinkManagementSectionDivider extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Text(
             '링크 관리',
-            style: TextStyle(fontSize: 11, color: GmColors.muted, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: 11,
+              color: GmColors.muted,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
         Expanded(child: Divider(color: GmColors.line)),
@@ -587,12 +615,23 @@ class _LinkManagementSection extends StatelessWidget {
                 // [멱등 액션 전환] 이미 중단 상태면 버튼이 "중단 해제"로
                 // 바뀐다(§05 #3 reactivate) — 별도 화면 없이 같은 자리에서
                 // 토글.
-                onPressed: loading ? null : (isRevoked ? onReactivate : onRevoke),
-                icon: Icon(isRevoked ? Icons.play_circle_outline : Icons.pause_circle_outline, size: 16),
+                onPressed: loading
+                    ? null
+                    : (isRevoked ? onReactivate : onRevoke),
+                icon: Icon(
+                  isRevoked
+                      ? Icons.play_circle_outline
+                      : Icons.pause_circle_outline,
+                  size: 16,
+                ),
                 label: Text(isRevoked ? '중단 해제' : '링크 중단'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: isRevoked ? GmColors.gold : GmColors.danger,
-                  side: BorderSide(color: isRevoked ? GmColors.gold : GmColors.danger.withValues(alpha: 0.4)),
+                  side: BorderSide(
+                    color: isRevoked
+                        ? GmColors.gold
+                        : GmColors.danger.withValues(alpha: 0.4),
+                  ),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
@@ -632,7 +671,15 @@ class _KakaoOgPreview extends StatelessWidget {
               aspectRatio: 1200 / 630,
               child: Stack(
                 children: [
-                  Container(decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [GmColors.card, GmColors.bg]))),
+                  Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [GmColors.card, GmColors.bg],
+                      ),
+                    ),
+                  ),
                   const Positioned.fill(child: GmStarsBackground(opacity: 0.7)),
                   // [캐릭터 삭제 — 사용자 요청] 기존 우측 반신 캐릭터
                   // 패널(ShaderMask+Image.asset)을 삭제했다. 텍스트 우측
@@ -678,7 +725,10 @@ class _KakaoOgPreview extends StatelessWidget {
                               const SizedBox(height: 2),
                               Text(
                                 '귀인 $guinjiCount명이 밝히는 중',
-                                style: const TextStyle(fontSize: 10, color: GmColors.muted),
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: GmColors.muted,
+                                ),
                               ),
                             ],
                           ),
@@ -708,7 +758,11 @@ class _KakaoOgPreview extends StatelessWidget {
                   const SizedBox(height: 2),
                   const Text(
                     '나는 이 사람에게 어떤 사람일까?',
-                    style: TextStyle(fontFamily: GmText.body, fontSize: 10.5, color: GmColors.muted),
+                    style: TextStyle(
+                      fontFamily: GmText.body,
+                      fontSize: 10.5,
+                      color: GmColors.muted,
+                    ),
                   ),
                 ],
               ),
@@ -723,7 +777,11 @@ class _KakaoOgPreview extends StatelessWidget {
 /// 실제 초대 링크 복사 행 — 기존 [buildGuinjiInviteLink] 기반 실링크를
 /// 그대로 보여주고 복사한다.
 class _ShareLinkRow extends StatelessWidget {
-  const _ShareLinkRow({required this.link, required this.copied, required this.onCopy});
+  const _ShareLinkRow({
+    required this.link,
+    required this.copied,
+    required this.onCopy,
+  });
 
   final String link;
   final bool copied;
@@ -747,7 +805,11 @@ class _ShareLinkRow extends StatelessWidget {
               // [P3 — 2026-12 대비 규칙] 이 행의 배경은 밝은 흰색 계열이라
               // 다크 배경 전용 GmColors.fg(거의 흰색)를 쓰면 글자가 거의
               // 보이지 않았다(라이트 카드 전용 토큰으로 교체).
-              style: const TextStyle(fontSize: 11, letterSpacing: 0.2, color: GmColors.fgOnLight),
+              style: const TextStyle(
+                fontSize: 11,
+                letterSpacing: 0.2,
+                color: GmColors.fgOnLight,
+              ),
             ),
           ),
           const SizedBox(width: 8),
@@ -758,10 +820,17 @@ class _ShareLinkRow extends StatelessWidget {
               onTap: onCopy,
               borderRadius: BorderRadius.circular(8),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 child: Text(
                   copied ? '복사됨' : '복사',
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: Colors.white),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 11,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),
@@ -819,7 +888,9 @@ class _ShareOption extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13.5,
                       fontWeight: FontWeight.w700,
-                      color: isKakao ? const Color(0xFF3A1D1D) : GmColors.fgOnLight,
+                      color: isKakao
+                          ? const Color(0xFF3A1D1D)
+                          : GmColors.fgOnLight,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -827,7 +898,9 @@ class _ShareOption extends StatelessWidget {
                     desc,
                     style: TextStyle(
                       fontSize: 10.5,
-                      color: isKakao ? const Color(0xFF3A1D1D).withValues(alpha: 0.7) : GmColors.mutedOnLight,
+                      color: isKakao
+                          ? const Color(0xFF3A1D1D).withValues(alpha: 0.7)
+                          : GmColors.mutedOnLight,
                     ),
                   ),
                 ],

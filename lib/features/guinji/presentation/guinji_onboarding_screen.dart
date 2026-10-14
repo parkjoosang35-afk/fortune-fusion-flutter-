@@ -8,6 +8,7 @@ import '../domain/pending_guinji_join.dart';
 import '../theme/guinji_theme.dart';
 import '../widgets/guinji_bg_atmosphere.dart';
 import 'guinji_loading_screen.dart';
+import '../navigation/guinji_page_route.dart';
 
 /// [버그 수정 — 온보딩 비로그인/프로필 미완성 진입] 로그인 완료 후(또는
 /// 프로필 완성 후) 저장된 "귀인지도 지도 만들기 재시도" 요청이 있으면,
@@ -21,9 +22,7 @@ void replayPendingGuinjiOnboarding() {
   WidgetsBinding.instance.addPostFrameCallback((_) {
     final navState = appNavigatorKey.currentState;
     if (navState == null) return;
-    navState.push(
-      MaterialPageRoute(builder: (_) => const GuinjiOnboardingScreen()),
-    );
+    navState.push(guinjiPageRoute(const GuinjiOnboardingScreen()));
   });
 }
 
@@ -192,7 +191,8 @@ class _GuinjiOnboardingScreenState extends State<GuinjiOnboardingScreen> {
                     Expanded(
                       child: _GateCard(
                         title: '생년월일을 알려주면\n귀인지도를 열어드려요',
-                        message: '지도를 만들려면 생년월일이 필요해요.\n아래 버튼을 누르면 바로 입력할 수 있어요.',
+                        message:
+                            '지도를 만들려면 생년월일이 필요해요.\n아래 버튼을 누르면 바로 입력할 수 있어요.',
                         ctaLabel: '프로필 완성하기',
                         onPressed: () => _goToProfileCheck(),
                         isLoading: _isSavingProfile,

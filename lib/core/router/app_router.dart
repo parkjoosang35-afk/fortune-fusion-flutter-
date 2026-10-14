@@ -82,6 +82,7 @@ import '../../features/guinji/presentation/guinji_map_result_screen.dart';
 import '../../features/guinji/presentation/guinji_map_share_screen.dart';
 import '../../features/guinji/presentation/guinji_guest_result_screen.dart';
 import '../../features/guinji/presentation/guinji_map_guest_join_screen.dart';
+import '../../features/guinji/navigation/guinji_page_route.dart';
 // [귀인지도 기능 정리 — 관계상세/랭킹] `/guinji-map/*` 신규 디자인 톤으로
 // 새로 만든 관계상세(N→상세)·랭킹 화면. M/F 화면에서 진입점으로 연결한다.
 import '../../features/guinji/presentation/guinji_map_ranking_screen.dart';
@@ -285,9 +286,9 @@ class AppRouter {
       //   /guinji-map/guest/result → Y · Guest Result
       // ══════════════════════════════════════════════════════════════
       case '/guinji-map':
-        return _page(const GuinjiLandingScreen());
+        return _guinjiPage(const GuinjiLandingScreen());
       case '/guinji-map/new':
-        return _page(const GuinjiInputScreen());
+        return _guinjiPage(const GuinjiInputScreen());
       case '/guinji-map/calc':
         // [흐름 정합성] 이 라우트는 호스트가 I(입력)에서 자기 정보만 제출한
         // 직후(createMapWithInput 성공)에만 진입한다 — 아직 지인이 참여하지
@@ -296,7 +297,7 @@ class AppRouter {
         // (guinji_map_guest_join_screen.dart)은 이 라우트를 타지 않고 직접
         // MaterialPageRoute로 push하므로 기본값(관계 계산 문구)이 그대로
         // 유지된다 — 회귀 없음.
-        return _page(
+        return _guinjiPage(
           GuinjiCalculatingScreen(
             title: '내 지도를\n펼치고 있어요',
             subtitle: '사주 여덟 글자를 읽는 중',
@@ -305,7 +306,7 @@ class AppRouter {
           ),
         );
       case '/guinji-map/m':
-        return _page(
+        return _guinjiPage(
           Builder(
             builder: (context) {
               final provider = context.watch<GuinjiProvider>();
@@ -321,7 +322,7 @@ class AppRouter {
           ),
         );
       case '/guinji-map/m/share':
-        return _page(
+        return _guinjiPage(
           Builder(
             builder: (context) {
               final provider = context.watch<GuinjiProvider>();
@@ -357,7 +358,7 @@ class AppRouter {
       // `/guinji-map/m/friends`는 랭킹 화면을 `initialTab: 1`로 열도록
       // 리다이렉트한다(구 라우트 경로 하위호환 유지).
       case '/guinji-map/m/friends':
-        return _page(
+        return _guinjiPage(
           Builder(
             builder: (context) {
               final provider = context.watch<GuinjiProvider>();
@@ -381,7 +382,7 @@ class AppRouter {
         // [귀인지도 기능 정리 — 랭킹] 신규 디자인 계열 최초의 랭킹
         // 진입점. 구계열(`/guinji/ranking`)과 동일하게 전역
         // [GuinjiProvider]에서 실제 people을 읽어 전달한다.
-        return _page(
+        return _guinjiPage(
           Builder(
             builder: (context) {
               final provider = context.watch<GuinjiProvider>();
@@ -401,7 +402,7 @@ class AppRouter {
           ),
         );
       case '/guinji-map/guest/result':
-        return _page(
+        return _guinjiPage(
           const GuinjiGuestResultScreen(
             hostName: '지민',
             relationKey: 'CHEON_GWII',
@@ -734,6 +735,11 @@ class AppRouter {
     }
   }
 
+  /// [귀인지도 전환 배경 플래시 수정] `/guinji-map/*`는 전부 다크(#0B0B0D)
+  /// 화면이므로, 페이드 스루 전환에서 앱 전역 흰 배경이 비치지 않도록
+  /// 슬라이드 불투명 전환으로 교체한다. 원인 분석은 guinji_page_route.dart.
+  static Route<dynamic> _guinjiPage(Widget child) =>
+      guinjiPageRoute<dynamic>(child);
   static PageRoute<dynamic> _page(Widget child) {
     return MaterialPageRoute(builder: (_) => child);
   }
