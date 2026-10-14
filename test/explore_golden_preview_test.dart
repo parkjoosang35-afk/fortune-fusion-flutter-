@@ -1,8 +1,7 @@
 // [미리보기 — 사용자 요청 2026-10-14] 모두의 소원방 실렌더 골든.
-// 리포지터리를 "끝나지 않는 스텁"으로 대체해 로딩 상태에서도 헤더·탭 행·
-// 정렬칩·빛깔 칩 레이아웃을 그대로 본다.
+// 네트워크 없이 빈 목록을 반환하는 타입 지정 스텁으로 헤더·탭 행·
+// 정렬칩·빛깔 칩의 실제 배치를 검증한다.
 // 갱신: flutter test --update-goldens test/explore_golden_preview_test.dart
-import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -12,13 +11,20 @@ import 'package:provider/provider.dart';
 
 import 'package:flutter_app/features/wishroom/application/wishroom_provider.dart';
 import 'package:flutter_app/features/wishroom/data/wr_api.dart';
+import 'package:flutter_app/features/wishroom/data/models.dart';
 import 'package:flutter_app/features/wishroom/data/wr_catalog.dart';
 import 'package:flutter_app/features/wishroom/features/explore/explore_screen.dart';
 
 /// 모든 메서드가 절대 끝나지 않는 Future — 실네트워크가 FakeAsync를 막는 문제 차단.
 class _NeverRepo implements WrRepository {
   @override
-  dynamic noSuchMethod(Invocation i) => Completer().future;
+  Future<List<WishRoom>> explore({String? cursor}) async => [];
+
+  @override
+  Future<List<WrReview>> reviews({bool mine = false}) async => [];
+
+  @override
+  dynamic noSuchMethod(Invocation i) => throw UnsupportedError(i.memberName.toString());
 }
 
 Future<ByteData> _fontData() async {

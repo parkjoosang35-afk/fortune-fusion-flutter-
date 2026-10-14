@@ -1,4 +1,5 @@
 import 'dart:ui' as ui;
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/foundation.dart';
@@ -18,24 +19,31 @@ Future<Uint8List> captureOriginalResult(
     await WidgetsBinding.instance.endOfFrame;
   } catch (_) {}
   final bodyIndex = leadingKeys.length;
-  final boundaries = <RenderRepaintBoundary>[];
-  for (final part in [...leadingKeys, key, ...trailingKeys]) {
-    final object = part.currentContext?.findRenderObject();
-    if (object is! RenderRepaintBoundary || object.debugNeedsPaint) {
+  final boundaries = <RenderRepaintBoundary?>[];
+  final parts = [...leadingKeys, key, ...trailingKeys];
+  for (var index = 0; index < parts.length; index++) {
+    final object = parts[index].currentContext?.findRenderObject();
+    final ready = object is RenderRepaintBoundary && !object.debugNeedsPaint && object.hasSize;
+    if (!ready && index == bodyIndex) {
       throw StateError('결과 화면 준비가 끝난 뒤 다시 시도해주세요.');
     }
-    boundaries.add(object);
+    boundaries.add(ready ? object as RenderRepaintBoundary : null);
   }
-  const ratio = 1.5;
-  final width = boundaries.last.size.width;
+  final body = boundaries[bodyIndex]!;
+  final width = body.size.width;
   final height = boundaries.fold<double>(
     0,
-    (total, part) => total + part.size.height,
+    (total, part) => total + (part?.size.height ?? 0),
   );
+  // 긴 결과는 픽셀 비율을 낮춰 메모리 한도 안에서 전체 본문을 보존한다.
+  final ratio = width > 0 && height > 0
+      ? (24000000 / (width * height)).clamp(0.01, 2.25).toDouble()
+      : 0.0;
+  final pixelRatio = ratio > 0 ? math.sqrt(ratio) : 0.0;
   if (width <= 0 ||
       height <= 0 ||
-      width * height * ratio * ratio > 24000000 ||
-      boundaries.any((part) => (part.size.width - width).abs() > 0.5)) {
+      pixelRatio < 0.25 ||
+      boundaries.whereType<RenderRepaintBoundary>().any((part) => (part.size.width - width).abs() > 0.5)) {
     throw StateError('전체 페이지 크기 또는 저장 한도를 확인해주세요.');
   }
   final overlays = <RenderRepaintBoundary>[];
@@ -44,8 +52,8 @@ Future<Uint8List> captureOriginalResult(
     if (object is! RenderRepaintBoundary ||
         object.debugNeedsPaint ||
         object.size.width > width ||
-        object.size.height > boundaries[bodyIndex].size.height) {
-      throw StateError('겹침 영역 준비가 끝난 뒤 다시 시도해주세요.');
+        object.size.height > body.size.height) {
+      continue;
     }
     overlays.add(object);
   }
@@ -56,16 +64,17 @@ Future<Uint8List> captureOriginalResult(
   try {
     // [실기기 대응 — 본문 우선] 본문 캡처 성공이 곧 결과 보장. 상단·하단·겹침
     // 영역은 추가로 시도하고 하나가 실패해도 무시하고 진행한다.
-    slots[bodyIndex] = await boundaries[bodyIndex].toImage(pixelRatio: ratio);
+    slots[bodyIndex] = await body.toImage(pixelRatio: pixelRatio);
     for (var i = 0; i < boundaries.length; i++) {
       if (i == bodyIndex) continue;
       try {
-        slots[i] = await boundaries[i].toImage(pixelRatio: ratio);
+        final boundary = boundaries[i];
+        if (boundary != null) slots[i] = await boundary.toImage(pixelRatio: pixelRatio);
       } catch (_) {}
     }
     for (final overlay in overlays) {
       try {
-        overlayImages.add(await overlay.toImage(pixelRatio: ratio));
+        overlayImages.add(await overlay.toImage(pixelRatio: pixelRatio));
       } catch (_) {}
     }
     final captured = slots.whereType<ui.Image>().toList();

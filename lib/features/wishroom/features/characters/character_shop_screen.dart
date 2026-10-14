@@ -23,8 +23,8 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
   String _gender = 'F';
   String? _selId; // sel
   String _ptab = 'char'; // char | outfit
-  WrTheme? _wear; // 의상 미리보기(아직 저장 안함)
-  int _variant = 0; // [의상 20종 확장] 테마 안 색조 변형 선택
+    WrTheme? _wear; // 의상 미리보기(아직 저장 안함)
+  int _variant = 0; // 실제 의상 카드 선택 인덱스
   bool _busy = false;
   bool _info = false;
   ApiError? _shortErr;
@@ -40,10 +40,12 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final me = context.read<WishRoomProvider>().me;
       if (me != null) {
-        setState(() {
-          _selId = me.repChar;
-          _gender = _selId!.startsWith('M') ? 'M' : 'F';
-        });
+          setState(() {
+            _selId = me.repChar;
+            _gender = _selId!.startsWith('M') ? 'M' : 'F';
+            final room = context.read<WishRoomProvider>().room;
+            _wear = room?.char == me.repChar ? room!.outfitNow : WrTheme.free;
+          });
         _loadOutfits(_selId!);
       }
     });
@@ -84,6 +86,7 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
       }
     }
     final ok2 = await p.setCharacter(c.id);
+    if (ok2 && p.room != null) await p.loadMyRoom();
     if (!mounted) return;
     setState(() => _busy = false);
     if (ok2) {
@@ -131,8 +134,18 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
       }
       final room = p.room;
       if (room != null) {
-        if (room.char != c.id) await p.setCharacter(c.id);
-        await p.setOutfit(room.id, o.theme);
+        if (room.char != c.id && !await p.setCharacter(c.id)) {
+          if (!mounted) return;
+          setState(() => _busy = false);
+          WrToast.show(context, p.lastError?.message ?? '수호자 변경에 실패했어요.');
+          return;
+        }
+        if (!await p.setOutfit(room.id, o.theme)) {
+          if (!mounted) return;
+          setState(() => _busy = false);
+          WrToast.show(context, p.lastError?.message ?? '의상 적용에 실패했어요.');
+          return;
+        }
       }
       if (!mounted) return;
       setState(() => _busy = false);
@@ -647,7 +660,11 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
 
   Widget _outfitGrid(WishRoomProvider p, WrCharacter? c) {
     final cat = WrCatalog.I;
-    final variants = wrExpandOutfitVariants(p.outfitOffers);
+    // 실제 제공되는 의상만 노출한다. 같은 그림에 색조를 씌운 카드를
+    // 별도 의상처럼 중복 표시하지 않는다.
+    final variants = p.outfitOffers
+        .map((offer) => WrOutfitVariant(offer, 0, '기본', null))
+        .toList();
     final room = p.room;
     if (c == null) return const SizedBox.shrink();
     return SingleChildScrollView(
@@ -807,7 +824,7 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '${T['label']} 의상 · ${v.label}',
+                              '${T['label']} 의상',
                               style: WrF.body(
                                 13,
                                 w: FontWeight.w700,

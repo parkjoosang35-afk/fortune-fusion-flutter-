@@ -186,6 +186,9 @@ void main() {
         await tester.pump(const Duration(milliseconds: 200));
         await tester.pump(const Duration(milliseconds: 200));
 
+        for (var frame = 0; frame < 12; frame++) {
+          await tester.pump(const Duration(milliseconds: 50));
+        }
         // [실측 핵심] docs는 "[다시 시도] → 03 처음부터"를 요구하지만,
         // 실제 구현은 ErrorScreen에 머문 채 Provider.retry()만
         // 호출하고 성공하면 _maybeNavigateAfterRetry가 바로
@@ -245,6 +248,9 @@ void main() {
           findsOneWidget,
           reason: 'E-03 위반: [나가기]가 01(스택 최초 화면)로 돌아가지 않음',
         );
+        for (var frame = 0; frame < 10; frame++) {
+          await tester.pump(const Duration(milliseconds: 50));
+        }
         expect(find.byType(ErrorScreen), findsNothing);
         expect(find.byType(CalculatingScreen), findsNothing);
       }, () => failingClient);

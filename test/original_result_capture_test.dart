@@ -57,6 +57,20 @@ class _UnusedWishRepository implements WrRepository {
 }
 
 void main() {
+  testWidgets('부가 캡처 키가 없어도 준비된 본문은 저장한다', (tester) async {
+    final body = GlobalKey();
+    final missing = GlobalKey();
+    await tester.pumpWidget(MaterialApp(home: RepaintBoundary(
+      key: body, child: const SizedBox(width: 200, height: 300, child: ColoredBox(color: Colors.blue)),
+    )));
+    await tester.pump();
+    final pending = captureOriginalResult(body, leadingKeys: [missing], overlayKeys: [missing]);
+    await tester.pump();
+    final bytes = await tester.runAsync(() => pending);
+    expect(bytes, isNotNull);
+    expect(bytes!.isNotEmpty, isTrue);
+  });
+
   testWidgets('투명 상단 버튼 캡처는 본문 위에 겹치고 전체 높이를 늘리지 않는다', (tester) async {
     final body = GlobalKey();
     final overlay = GlobalKey();

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/web_ads/web_ad_config.dart';
@@ -434,6 +435,7 @@ class _StaggerInState extends State<_StaggerIn>
   late final AnimationController _controller;
   late final Animation<double> _fade;
   late final Animation<Offset> _slide;
+  Timer? _startTimer;
 
   @override
   void initState() {
@@ -447,13 +449,14 @@ class _StaggerInState extends State<_StaggerIn>
       begin: const Offset(0, 0.08),
       end: Offset.zero,
     ).animate(_fade);
-    Future.delayed(widget.delay, () {
+    _startTimer = Timer(widget.delay, () {
       if (mounted) _controller.forward();
     });
   }
 
   @override
   void dispose() {
+    _startTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }

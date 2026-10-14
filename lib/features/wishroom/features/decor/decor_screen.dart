@@ -205,6 +205,9 @@ class _DecorScreenState extends State<DecorScreen> {
                     duration: const Duration(milliseconds: 280),
                     curve: Curves.easeOutCubic,
                     height: _previewCollapsed ? 76 : 400,
+                    // Container의 clipping은 decoration이 있어야 안전하다.
+                    // 투명 장식을 지정해 펼침/접힘 모두 같은 영역을 잘라낸다.
+                    decoration: const BoxDecoration(),
                     clipBehavior: Clip.hardEdge,
                     alignment: Alignment.topCenter,
                     child: Stack(

@@ -191,13 +191,18 @@ class _ExploreScreenState extends State<ExploreScreen> {
       onTap: () => setState(() => _etab = v),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: sel ? WrDeco.tabOn : WrDeco.chip,
+        decoration: sel
+            ? BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                color: WrC.fg,
+              )
+            : WrDeco.chip,
         child: Text(
           label,
           style: WrF.body(
             13,
             w: FontWeight.w700,
-            color: sel ? Colors.white : WrC.fg,
+            color: sel ? WrC.bg2 : WrC.fg,
           ),
         ),
       ),
@@ -333,13 +338,18 @@ class _ExploreScreenState extends State<ExploreScreen> {
         onTap: () => setState(() => _color = id),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: sel ? WrDeco.chipOn : WrDeco.chip,
+          decoration: sel
+              ? BoxDecoration(
+                  borderRadius: BorderRadius.circular(999),
+                  color: WrC.fg,
+                )
+              : WrDeco.chip,
           child: Text(
             label,
             style: WrF.body(
               12,
               w: FontWeight.w700,
-              color: sel ? Colors.white : WrC.fg,
+              color: sel ? WrC.bg2 : WrC.fg,
             ),
           ),
         ),
@@ -468,13 +478,18 @@ class _ExploreScreenState extends State<ExploreScreen> {
       onTap: () => _setStoryTab(v),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: sel ? WrDeco.tabOn : WrDeco.chip,
+        decoration: sel
+            ? BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                color: WrC.fg,
+              )
+            : WrDeco.chip,
         child: Text(
           label,
           style: WrF.body(
             13,
             w: FontWeight.w700,
-            color: sel ? Colors.white : WrC.fg,
+            color: sel ? WrC.bg2 : WrC.fg,
           ),
         ),
       ),

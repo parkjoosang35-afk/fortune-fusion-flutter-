@@ -8,6 +8,10 @@ import 'package:gal/gal.dart';
 /// 보여줄 수 있게 한다(권한 거부/공간 부족 등은 false로 폴백).
 Future<bool> saveImageBytesToGallery(Uint8List bytes, {required String name}) async {
   try {
+    if (!await Gal.hasAccess()) {
+      await Gal.requestAccess();
+      if (!await Gal.hasAccess()) return false;
+    }
     await Gal.putImageBytes(bytes, name: name);
     return true;
   } catch (_) {

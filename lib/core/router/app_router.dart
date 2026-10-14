@@ -324,6 +324,7 @@ class AppRouter {
                 // "나는 어떤 사람인지" 카드에 전달한다. 아직 계산되지
                 // 않았거나 SajuRules 미로드 시 null → 섹션 자동 숨김.
                 ownerSajuSummary: provider.ownerSajuSummary,
+                ownerFacePath: provider.ownerFacePath,
               );
             },
           ),

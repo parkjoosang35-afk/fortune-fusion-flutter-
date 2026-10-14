@@ -35,6 +35,7 @@ class GuinjiMapResultScreen extends StatefulWidget {
     this.ownerName = '나',
     this.people = const [],
     this.ownerSajuSummary,
+    this.ownerFacePath,
     this.onNodeTap,
     this.onInvite,
     this.onOpenFriends,
@@ -43,6 +44,7 @@ class GuinjiMapResultScreen extends StatefulWidget {
   static const routeName = '/guinji-map/m';
 
   final String ownerName;
+  final String? ownerFacePath;
 
   /// 실제 참여자 목록(`GuinjiProvider.people`에서 전달). 비어 있으면
   /// "아직 참여한 귀인이 없어요" 안내를 보여준다.
@@ -411,6 +413,7 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
               GuinjiAnimatedRelationGraph(
                 centerTitle: '${widget.ownerName}님',
                 centerSubtitle: '나',
+                ownerFacePath: widget.ownerFacePath,
                 people: widget.people,
                 onSelect: _handleNodeTap,
                 // [핸드오프 `CEmpty` 안내문구 1:1 이식]

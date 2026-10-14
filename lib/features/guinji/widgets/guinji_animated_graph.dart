@@ -159,6 +159,7 @@ class GuinjiAnimatedRelationGraph extends StatefulWidget {
     required this.people,
     this.centerTitle = '나',
     this.centerSubtitle = '',
+    this.ownerFacePath,
     this.onSelect,
     this.interactive = true,
     this.showControls = true,
@@ -175,6 +176,9 @@ class GuinjiAnimatedRelationGraph extends StatefulWidget {
 
   /// 중앙 노드 아래쪽 보조 텍스트(예: "나").
   final String centerSubtitle;
+
+  /// 입력 화면에서 선택된 소유자의 얼굴. 참여자 얼굴과 분리한다.
+  final String? ownerFacePath;
 
   final void Function(GuinjiPerson person)? onSelect;
 
@@ -259,6 +263,10 @@ class _GuinjiAnimatedRelationGraphState
   void didUpdateWidget(covariant GuinjiAnimatedRelationGraph oldWidget) {
     super.didUpdateWidget(oldWidget);
     _rebuildLayout();
+    if (oldWidget.ownerFacePath != widget.ownerFacePath) {
+      _ownerFaceImage = null;
+      _loadFaceImage(_ownerFaceAsset(fallback: 'assets/images/guinji/chars/f30_face.jpg'), isOwner: true);
+    }
   }
 
   @override
@@ -291,30 +299,18 @@ class _GuinjiAnimatedRelationGraphState
   /// [핸드오프 `Face` 이식] 에셋 jpg를 [ui.Image]로 비동기 디코드해
   /// 캐시한다. 이미 캐시되었거나 로딩 중이면 중복 로드하지 않는다.
   String _ownerFaceAsset({required String fallback}) {
-    // [성별 캐릭터 버그 수정 — 2026-10-14] 하드코딩된 여성 얼굴(f30) 대신
-    // 소유자 GuinjiPerson의 birth+gender로 캐릭터를 산출한다(지도에 소유자가
-    // 없으면 기존 기본값 유지). 가운데 표시 문자는 '나' 고정 관례를 따른다.
-    try {
-      final people = widget.people;
-      if (people.isEmpty) return fallback;
-      final owner = people.where((p0) => p0.id == 'owner').firstOrNull ?? people.first;
-      final birth = parseGuinjiBirthLabel(owner.birth);
-      if (birth == null) return fallback;
-      return GuinjiCharacter.of(
-        birth: birth,
-        gender: GuinjiCharacter.fromKey(owner.gender),
-        stableKey: owner.id,
-      ).face;
-    } catch (_) {
-      return fallback;
-    }
+    // 소유자는 people에 포함되지 않는다. 입력 화면의 얼굴 경로를 사용한다.
+    // 아직 저장된 소유자 얼굴이 없는 이전 지도만 기본 얼굴을 사용한다.
+    return widget.ownerFacePath ?? fallback;
   }
 
   Future<void> _loadFaceImage(String assetPath, {bool isOwner = false}) async {
-    if (_faceImageCache.containsKey(assetPath) ||
-        _faceLoading.contains(assetPath)) {
+    final cached = _faceImageCache[assetPath];
+    if (cached != null) {
+      if (isOwner && mounted) setState(() => _ownerFaceImage = cached);
       return;
     }
+    if (_faceLoading.contains(assetPath)) return;
     _faceLoading.add(assetPath);
     try {
       final data = await rootBundle.load(assetPath);

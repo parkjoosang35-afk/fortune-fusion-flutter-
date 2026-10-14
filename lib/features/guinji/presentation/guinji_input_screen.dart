@@ -212,6 +212,7 @@ class _GuinjiInputScreenState extends State<GuinjiInputScreen> {
       // [성별 캐릭터 버그 수정 — 2026-10-14] 미리보기에서 고른 성별을 지도
       // 생성에도 그대로 전달한다(기존엔 버려져서 지도가 항상 폴백 성별로 생성).
       gender: _gender == GuinjiGender.male ? 'male' : 'female',
+      ownerFacePath: _previewCharacter.face,
     );
 
     if (!mounted) return;

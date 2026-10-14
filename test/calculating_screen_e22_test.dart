@@ -63,6 +63,9 @@ void main() {
         findsOneWidget,
         reason: '03 화면이 정상적으로 push되어 있어야 함',
       );
+      for (var frame = 0; frame < 10; frame++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
       expect(find.byType(_FakePreviousScreen), findsNothing);
 
       // ── 실제 시스템 뒤로가기 경로를 그대로 호출 ──────────────────

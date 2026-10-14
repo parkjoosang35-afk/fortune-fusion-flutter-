@@ -11,14 +11,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:flutter_app/app.dart';
+import 'package:flutter_app/features/auth/presentation/splash_screen.dart';
 
 void main() {
   testWidgets('App boots and shows splash screen', (WidgetTester tester) async {
     await tester.pumpWidget(const App());
     await tester.pump();
 
-    expect(find.text('신통방통'), findsOneWidget);
-    expect(find.byIcon(Icons.auto_awesome_rounded), findsOneWidget);
+    // 최신 스플래시는 네 글자 워드마크를 개별 위젯으로 표시한다.
+    expect(find.byType(SplashScreen), findsOneWidget);
+    expect(find.bySemanticsLabel('신통방통'), findsOneWidget);
 
     // [타이머 정리] SplashScreen._bootstrap()이 addPostFrameCallback으로 예약한
     // Future.wait(...Future.delayed(1300ms)...)이 테스트 종료 시점까지 남아있으면

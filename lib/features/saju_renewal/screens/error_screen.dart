@@ -51,9 +51,18 @@ class ErrorScreen extends StatefulWidget {
 class _ErrorScreenState extends State<ErrorScreen> {
   bool _retrying = false;
   bool _navigated = false;
+  late final bool _retryingTopics;
+
+  @override
+  void initState() {
+    super.initState();
+    _retryingTopics = context.read<SajuRenewalProvider>().topicsState.isError;
+  }
 
   void _maybeNavigateAfterRetry(SajuRenewalProvider provider) {
-    if (_navigated || provider.status == SajuRenewalFlowStatus.error) return;
+    if (_navigated ||
+        !{SajuRenewalFlowStatus.factsReady, SajuRenewalFlowStatus.storyPreview,
+          SajuRenewalFlowStatus.storyDetail}.contains(provider.status)) return;
     _navigated = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -61,7 +70,7 @@ class _ErrorScreenState extends State<ErrorScreen> {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const StoryDetailScreen()),
         );
-      } else if (provider.status == SajuRenewalFlowStatus.storyPreview) {
+      } else if (provider.status == SajuRenewalFlowStatus.storyPreview && !_retryingTopics) {
         // [전수검수 2026-10-12 D-3] 미리보기 오류의 재시도 성공은 05 직행 —
         // 기존엔 04(분석완료) 우회로 "이야기 열어 보기"를 한 번 더 눌러야 했다.
         Navigator.of(context).pushReplacement(

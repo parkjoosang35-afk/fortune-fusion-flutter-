@@ -176,6 +176,10 @@ void main() {
         const Duration(milliseconds: 350),
       ); // 라우트 전환(300ms) 완료 대기
 
+      // 최신 Flutter의 라우트 첫 프레임 이후 전환 애니메이션까지 진행한다.
+      for (var frame = 0; frame < 40; frame++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
       // 9단계 완료 후 AnalysisCompleteScreen으로 전환되었는지 확인
       // (= _maybeNavigate가 Provider 상태를 보고 실제로 전환을 수행).
       expect(
@@ -243,6 +247,9 @@ void main() {
 
       // 이제 select 응답을 풀어준다 — 비로소 다음 화면으로 전환되어야 함.
       releaseTopics();
+      for (var frame = 0; frame < 30; frame++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
       // select 완료 → loadPreview(interpretSummary) 체인까지 이어지고,
       // addPostFrameCallback으로 "완료" 단계(COMPLETE, 1.4s 유지 —
       // C-03h/docs/04 §3-1)에 진입한 뒤에야 실제

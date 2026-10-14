@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../auth/domain/user_model.dart';
 import '../../home/domain/jeontong_eighty_report_builder.dart';
@@ -50,6 +51,8 @@ class GuinjiProvider extends ChangeNotifier {
   /// 지도 생성 시 기록되고, 소유자 캐릭터 렌더가 참조한다.
   String? _ownerGender;
   String? get ownerGender => _ownerGender;
+  String? _ownerFacePath;
+  String? get ownerFacePath => _ownerFacePath;
 
   bool get isLoading => _isLoading;
   String? get error => _error;
@@ -100,6 +103,8 @@ class GuinjiProvider extends ChangeNotifier {
     _members = const [];
     _relationships = const [];
     _ownerSajuSummary = null;
+    _ownerGender = null;
+    _ownerFacePath = null;
     _milestoneJustReached = false;
     _milestoneRewardPoint = 0;
     _inviteStatus = null;
@@ -360,6 +365,7 @@ class GuinjiProvider extends ChangeNotifier {
     required DateTime birthDate,
     String? birthTime, // 'HH:mm', null이면 시간 미상
     String gender = 'female', // [성별 캐릭터 버그 수정] 'male' | 'female'
+    String? ownerFacePath,
   }) async {
     _isLoading = true;
     _error = null;
@@ -390,8 +396,6 @@ class GuinjiProvider extends ChangeNotifier {
       );
       final sajuJson = guinjiSajuInputFromProfile(built.profile);
       _cacheOwnerSajuSummary(built.saju);
-      _ownerGender = gender;
-
       final result = await _repository.createMap(
         name: name,
         gender: gender,
@@ -404,7 +408,18 @@ class GuinjiProvider extends ChangeNotifier {
         return false;
       }
 
-      return await loadMyMap();
+      _ownerGender = gender;
+      _ownerFacePath = ownerFacePath;
+      final loaded = await loadMyMap();
+      if (loaded && mapId != null && ownerFacePath != null) {
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('guinji.ownerFace.$mapId', ownerFacePath);
+        } catch (e) {
+          debugPrint('[GuinjiProvider] 얼굴 로컬 저장 실패: $e');
+        }
+      }
+      return loaded;
     } catch (e) {
       _isLoading = false;
       _error = '사주 계산 중 오류가 발생했습니다: $e';
@@ -439,7 +454,20 @@ class GuinjiProvider extends ChangeNotifier {
       return true;
     }
 
+    final previousMapId = mapId;
     _map = data['map'] as Map<String, dynamic>?;
+    if (previousMapId != null && previousMapId != mapId) {
+      _ownerFacePath = null;
+      _ownerGender = null;
+    }
+    if (_ownerFacePath == null && mapId != null) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        _ownerFacePath = prefs.getString('guinji.ownerFace.$mapId');
+      } catch (e) {
+        debugPrint('[GuinjiProvider] 얼굴 로컬 복원 실패: $e');
+      }
+    }
     _members = (data['members'] as List<dynamic>? ?? const [])
         .cast<Map<String, dynamic>>();
     _relationships = (data['relationships'] as List<dynamic>? ?? const [])
