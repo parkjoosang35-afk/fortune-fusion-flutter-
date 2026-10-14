@@ -86,13 +86,34 @@ Widget _wrapWithProviders(Widget child) {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(() async {
-    final icons = FontLoader('MaterialIcons')
-      ..addFont(
-        File(
-          '/home/user/flutter/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf',
-        ).readAsBytes().then((bytes) => ByteData.sublistView(bytes)),
+    // Flutter SDK 루트를 현재 실행 중인 dart-sdk 경로에서 동적으로 유도한다.
+    // 샌드박스/로컬/CI마다 SDK 설치 위치(/opt/flutter, /home/user/flutter 등)가
+    // 다를 수 있으므로 절대경로를 하드코딩하지 않는다.
+    // 예: .../flutter/bin/cache/dart-sdk/bin/dart -> .../flutter
+    final dartExe = Platform.resolvedExecutable.replaceAll('\\', '/');
+    const marker = '/bin/cache/dart-sdk/bin/dart';
+    final flutterRoot = dartExe.endsWith(marker)
+        ? dartExe.substring(0, dartExe.length - marker.length)
+        : null;
+    // 이 테스트는 find.byIcon(IconData)으로만 아이콘을 검증하며 이는 실제 글리프
+    // 렌더링이 필요 없다. MaterialIcons 폰트 로드는 시각 검증 보강용 선택 사항이므로
+    // 경로를 찾지 못하거나 파일이 없어도 테스트 전체를 막지 않는다.
+    if (flutterRoot != null) {
+      final fontFile = File(
+        '$flutterRoot/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf',
       );
-    await icons.load();
+      if (fontFile.existsSync()) {
+        try {
+          final icons = FontLoader('MaterialIcons')
+            ..addFont(
+              fontFile.readAsBytes().then((bytes) => ByteData.sublistView(bytes)),
+            );
+          await icons.load();
+        } catch (_) {
+          // 폰트 로드 실패는 치명적이지 않음(아이콘 매칭은 IconData 기반).
+        }
+      }
+    }
     // 위젯시험 기본 Ahem 대신 앱 번들 한글 폰트를 기본 폴백에 로드. 운영 설정은 변경하지 않음.
     final fallback = FontLoader('Roboto')
       ..addFont(rootBundle.load('assets/fonts/Pretendard-Regular.ttf'));
