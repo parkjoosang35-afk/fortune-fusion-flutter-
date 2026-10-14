@@ -83,6 +83,7 @@ import '../../features/guinji/presentation/guinji_map_share_screen.dart';
 import '../../features/guinji/presentation/guinji_guest_result_screen.dart';
 import '../../features/guinji/presentation/guinji_map_guest_join_screen.dart';
 import '../../features/guinji/navigation/guinji_page_route.dart';
+import 'global_bottom_nav_shell.dart';
 // [귀인지도 기능 정리 — 관계상세/랭킹] `/guinji-map/*` 신규 디자인 톤으로
 // 새로 만든 관계상세(N→상세)·랭킹 화면. M/F 화면에서 진입점으로 연결한다.
 import '../../features/guinji/presentation/guinji_map_ranking_screen.dart';
@@ -190,7 +191,7 @@ class AppRouter {
 
     switch (settings.name) {
       case '/splash':
-        return _page(const SplashScreen());
+        return _pageNamed('/splash', const SplashScreen());
       // [인트로 전면 개편] 4단계 인트로(카드1/카드2/CTA) 페이저. 스플래시 이후
       // introSeen=false인 첫 실행 사용자에게만 노출된다.
       //
@@ -201,20 +202,20 @@ class AppRouter {
       // 분기한다(카드 인트로 자체의 introSeen 분기는 SplashScreen이 기존
       // 그대로 담당 — 이중 분기 로직이 아니라 한 단계 더 얹는 방식).
       case '/intro':
-        return _page(const OnboardingGateScreen());
+        return _pageNamed('/intro', const OnboardingGateScreen());
       // [6-5-D] 구 3페이지 온보딩(OnboardingScreen)은 신규 IntroPagerScreen이
       // 완전히 대체했고, 이 named route를 호출하는 코드가 앱 전체(딥링크 포함)
       // 어디에도 없음을 확인해 죽은 라우트만 제거한다. 화면 파일 자체
       // (onboarding_screen.dart)는 향후 참조 가능성을 배제할 수 없어 보존한다.
       case '/login':
-        return _page(const LoginScreen());
+        return _pageNamed('/login', const LoginScreen());
       case '/signup':
-        return _page(const SignupScreen());
+        return _pageNamed('/signup', const SignupScreen());
       // [2026 디자인 핸드오프 콘텐츠 반영] 인트로 페이지4 CTA 링크
       // `"재미·참고용" 콘텐츠 안내` 대상 라우트(핸드오프 §라우팅
       // onDisclaimerTap()과 동일한 경로 문자열).
       case '/policy/notice':
-        return _page(const PolicyNoticeScreen());
+        return _pageNamed('/policy/notice', const PolicyNoticeScreen());
 
       case '/home':
         // [하단바 통일 작업] 정통사주/타로/소원방/귀인지도 등 AppShell
@@ -231,25 +232,28 @@ class AppRouter {
       // 후속 Phase). go_router가 아닌 기존 Navigator(onGenerateRoute) 관례를
       // 그대로 따른다.
       case '/guinji':
-        return _page(const GuinjiOnboardingScreen());
+        return _pageNamed('/guinji', const GuinjiOnboardingScreen());
       // [Phase G-3] 지도 메인(S5) — 참여자가 1명 이상 생겼을 때의 코어
       // 화면. 백엔드 API가 아직 없어 실제 진입 흐름(참여 발생 시 자동
       // 전환)은 연결되어 있지 않고, 현재는 빈지도(S4) 화면의 임시 데모
       // 링크로만 접근 가능하다(§검토용, 후속 Phase에서 실데이터 연동).
       case '/guinji/map':
-        return _page(const GuinjiMapScreen());
+        return _pageNamed('/guinji/map', const GuinjiMapScreen());
       // [Phase G-6] 공유(S8) — 지도메인/빈지도의 초대 CTA에서 이동한다.
       case '/guinji/share':
-        return _page(const GuinjiShareScreen());
+        return _pageNamed('/guinji/share', const GuinjiShareScreen());
       // [Phase G-7] 지인 참여(S9) — 지인이 초대 링크로 들어와 자신의
       // 사주를 입력하는 화면. 실제 딥링크 파라미터(초대자 ID 등)는
       // 백엔드 §5 완성 후 연결한다.
       case '/guinji/join':
-        return _page(const GuinjiJoinScreen());
+        return _pageNamed('/guinji/join', const GuinjiJoinScreen());
       // [Phase G-8] 결과 카드(S10) — 랭킹(S7)의 "결과 카드로 공유하기"
       // CTA에서 이동한다. 10화면 로드맵의 마지막 화면.
       case '/guinji/result-card':
-        return _page(const GuinjiResultCardScreen());
+        return _pageNamed(
+          '/guinji/result-card',
+          const GuinjiResultCardScreen(),
+        );
       // [귀인지도 실구현 — 딥링크/랭킹 라우트 등록] 이전까지 랭킹(S7)은
       // 지도메인(S5) 내부에서 `people`을 직접 전달받는 MaterialPageRoute로만
       // push 가능해 named route(`/guinji/ranking`)가 없었다. 딥링크나 다른
@@ -257,7 +261,8 @@ class AppRouter {
       // 직접 읽어오는 named route를 추가한다(지도메인 내부 push는 계속
       // 인자를 넘기는 기존 방식을 유지 — 회귀 없음, 이 라우트는 추가 진입점).
       case '/guinji/ranking':
-        return _page(
+        return _pageNamed(
+          '/guinji/ranking',
           Builder(
             builder: (context) {
               final people = context.watch<GuinjiProvider>().people;
@@ -286,9 +291,9 @@ class AppRouter {
       //   /guinji-map/guest/result → Y · Guest Result
       // ══════════════════════════════════════════════════════════════
       case '/guinji-map':
-        return _guinjiPage(const GuinjiLandingScreen());
+        return _guinjiNamed('/guinji-map', const GuinjiLandingScreen());
       case '/guinji-map/new':
-        return _guinjiPage(const GuinjiInputScreen());
+        return _guinjiNamed('/guinji-map/new', const GuinjiInputScreen());
       case '/guinji-map/calc':
         // [흐름 정합성] 이 라우트는 호스트가 I(입력)에서 자기 정보만 제출한
         // 직후(createMapWithInput 성공)에만 진입한다 — 아직 지인이 참여하지
@@ -297,7 +302,8 @@ class AppRouter {
         // (guinji_map_guest_join_screen.dart)은 이 라우트를 타지 않고 직접
         // MaterialPageRoute로 push하므로 기본값(관계 계산 문구)이 그대로
         // 유지된다 — 회귀 없음.
-        return _guinjiPage(
+        return _guinjiNamed(
+          '/guinji-map/calc',
           GuinjiCalculatingScreen(
             title: '내 지도를\n펼치고 있어요',
             subtitle: '사주 여덟 글자를 읽는 중',
@@ -306,7 +312,8 @@ class AppRouter {
           ),
         );
       case '/guinji-map/m':
-        return _guinjiPage(
+        return _guinjiNamed(
+          '/guinji-map/m',
           Builder(
             builder: (context) {
               final provider = context.watch<GuinjiProvider>();
@@ -322,7 +329,8 @@ class AppRouter {
           ),
         );
       case '/guinji-map/m/share':
-        return _guinjiPage(
+        return _guinjiNamed(
+          '/guinji-map/m/share',
           Builder(
             builder: (context) {
               final provider = context.watch<GuinjiProvider>();
@@ -358,7 +366,8 @@ class AppRouter {
       // `/guinji-map/m/friends`는 랭킹 화면을 `initialTab: 1`로 열도록
       // 리다이렉트한다(구 라우트 경로 하위호환 유지).
       case '/guinji-map/m/friends':
-        return _guinjiPage(
+        return _guinjiNamed(
+          '/guinji-map/m/friends',
           Builder(
             builder: (context) {
               final provider = context.watch<GuinjiProvider>();
@@ -382,7 +391,8 @@ class AppRouter {
         // [귀인지도 기능 정리 — 랭킹] 신규 디자인 계열 최초의 랭킹
         // 진입점. 구계열(`/guinji/ranking`)과 동일하게 전역
         // [GuinjiProvider]에서 실제 people을 읽어 전달한다.
-        return _guinjiPage(
+        return _guinjiNamed(
+          '/guinji-map/m/ranking',
           Builder(
             builder: (context) {
               final provider = context.watch<GuinjiProvider>();
@@ -402,7 +412,8 @@ class AppRouter {
           ),
         );
       case '/guinji-map/guest/result':
-        return _guinjiPage(
+        return _guinjiNamed(
+          '/guinji-map/guest/result',
           const GuinjiGuestResultScreen(
             hostName: '지민',
             relationKey: 'CHEON_GWII',
@@ -413,29 +424,41 @@ class AppRouter {
       // 두고, 새 4단계 플로우의 진입 화면(intro)으로 라우팅한다.
       case '/home/daily-fortune-detail':
       case '/fortune/today/intro':
-        return _page(const RemovedDailyFortuneStub());
+        return _pageNamed(
+          '/fortune/today/intro',
+          const RemovedDailyFortuneStub(),
+        );
       case '/fortune/today/input':
-        return _page(const RemovedDailyFortuneStub());
+        return _pageNamed(
+          '/fortune/today/input',
+          const RemovedDailyFortuneStub(),
+        );
       case '/fortune/today/loading':
-        return _page(const RemovedDailyFortuneStub());
+        return _pageNamed(
+          '/fortune/today/loading',
+          const RemovedDailyFortuneStub(),
+        );
       case '/fortune/today/result':
-        return _page(const RemovedDailyFortuneStub());
+        return _pageNamed(
+          '/fortune/today/result',
+          const RemovedDailyFortuneStub(),
+        );
       case '/home/all-categories':
-        return _page(const AllCategoriesScreen());
+        return _pageNamed('/home/all-categories', const AllCategoriesScreen());
 
       // ── [신규 화면 3개] 80종 전체 보기 / 개운 아이템 / 프리패스 안내 ──
       // 기존 55개 case는 순서·내용 변경 없이 그대로 두고, 이 3개만 삽입한다.
       case '/categories-grid':
-        return _page(const CategoriesGridScreen());
+        return _pageNamed('/categories-grid', const CategoriesGridScreen());
       case '/lucky-items':
-        return _page(const LuckyItemsScreen());
+        return _pageNamed('/lucky-items', const LuckyItemsScreen());
       // [프리패스 진입 화면 개편 · DEV-2026-1011-01, 2026-10-11] §5.1
       // 전수조사 결과 이 라우트로 들어오는 진입점은 현재 코드베이스에
       // 없다(과거 유일한 진입점이었던 sintong_free_pass_bar.dart가
       // showPassRequiredSheet()[쿠팡파트너스 팝업] 직접 호출로 변경됨).
       // 라우트/화면 파일 자체는 삭제하지 않는다(리소스 정리는 별도 이슈).
       case '/free-pass-gate':
-        return _page(const FreePassGateScreen());
+        return _pageNamed('/free-pass-gate', const FreePassGateScreen());
 
       // ── [신통방통 정통사주 리뉴얼 — 기존 메뉴/시스템 정리] 아래 구
       // 라우트들(기존 "정통사주 69종" jeontong_eighty UI + 죽은 베타
@@ -456,10 +479,13 @@ class AppRouter {
       case '/jeontong/input':
       case '/jeontong/eighty/grid':
       case '/saju/v3':
-        return _page(const SajuRenewalHomeScreen());
+        return _pageNamed('/saju/v3', const SajuRenewalHomeScreen());
 
       case '/my/fortune-records':
-        return _page(const MyFortuneRecordsScreen());
+        return _pageNamed(
+          '/my/fortune-records',
+          const MyFortuneRecordsScreen(),
+        );
 
       // [신통방통 정통사주 리뉴얼 — STEP 6.5] Topic Engine 기반 신규 "사주
       // 이야기" 흐름 진입점. STEP1~6 백엔드(saju_engine_v3.3/topics-select/
@@ -496,7 +522,8 @@ class AppRouter {
       // 전용 화면이 아직 없는 카테고리(K/V/O 일부/X/G/B/D/R)의 단일 진입점.
       // arguments로 카테고리 id(String, 예: 'K-001')를 전달한다.
       case '/fortune/category':
-        return _page(
+        return _pageNamed(
+          '/fortune/category',
           GenericFortuneResultScreen(categoryId: settings.arguments as String?),
         );
 
@@ -523,7 +550,10 @@ class AppRouter {
           );
         }
       case '/compatibility/result':
-        return _page(const CompatibilityResultScreen());
+        return _pageNamed(
+          '/compatibility/result',
+          const CompatibilityResultScreen(),
+        );
 
       // ── [신통방통 정통사주 리뉴얼 — 기존 AI 사주 정리] 기존 AI/LLM 기반
       // 사주(`lib/features/fortune/saju/`)는 완전히 제거되었다. 과거
@@ -535,7 +565,10 @@ class AppRouter {
       case '/ai-fortune/saju/loading':
       case '/ai-fortune/saju/result':
       case '/ai-fortune/saju/history':
-        return _page(const SajuRenewalHomeScreen());
+        return _pageNamed(
+          '/ai-fortune/saju/history',
+          const SajuRenewalHomeScreen(),
+        );
 
       // ── AI 타로 [타로 섹션 전면 개편 §2 신규 진입점] ──
       // ①타로 메인 홈. 기존 홈/운세탭의 진입점(/ai-fortune/tarot/question)은
@@ -546,15 +579,16 @@ class AppRouter {
         // 교체한다. 기존 [TarotHomeScreen] 위젯 자체는 [enterTarotCategory]
         // 공용 함수(화면02 TarotHubScreen이 참조)를 여전히 정의하고 있어
         // 파일을 삭제하지 않고 그대로 보존한다(다른 화면 영향 없음).
-        return _page(const OzTarotHomeScreen());
+        return _pageNamed('/tarot/home', const OzTarotHomeScreen());
       // [타로 인트로 핸드오프 이식] 타로 메인 진입 직전 표시하는 스플래시.
       // 카운트다운 완료 시 이 화면 자신이 [tarotHomeRoute]로 이동한다.
       case tarotIntroRoute:
-        return _page(const TarotIntroScreen());
+        return _pageNamed('/tarot/intro', const TarotIntroScreen());
       // ②서브 카테고리 허브. arguments로 TarotCategoryGroup을 받으면 해당
       // 그룹 칩이 선택된 상태로 시작하고, 없으면(직접 진입) 전체를 보여준다.
       case tarotHubRoute:
-        return _page(
+        return _pageNamed(
+          '/tarot/hub',
           TarotHubScreen(
             initialGroup: settings.arguments is TarotCategoryGroup
                 ? settings.arguments as TarotCategoryGroup
@@ -568,7 +602,8 @@ class AppRouter {
         );
       // ③카테고리 상세 진입. arguments로 카테고리 id(String)를 받는다.
       case tarotCategoryDetailRoute:
-        return _page(
+        return _pageNamed(
+          '/tarot/category',
           TarotCategoryDetailScreen(categoryId: settings.arguments as String?),
         );
 
@@ -597,35 +632,66 @@ class AppRouter {
       // UI로 옮긴 화면으로, 별도 인자 없이 전역 TarotSessionController
       // 상태만 참조한다.
       case tarotCardSelectRoute:
-        return _page(const TarotCardSelectScreen());
+        return _pageNamed('/tarot/card-select', const TarotCardSelectScreen());
       case '/ai-fortune/tarot/loading':
-        return _page(const TarotLoadingScreen());
+        return _pageNamed(
+          '/ai-fortune/tarot/loading',
+          const TarotLoadingScreen(),
+        );
       case '/ai-fortune/tarot/result':
-        return _page(
+        return _pageNamed(
+          '/ai-fortune/tarot/result',
           TarotResultScreen(resultId: settings.arguments as String?),
         );
       case '/ai-fortune/tarot/history':
-        return _page(const TarotHistoryScreen());
+        return _pageNamed(
+          '/ai-fortune/tarot/history',
+          const TarotHistoryScreen(),
+        );
 
       // ── AI 관상 ──
       case '/ai-fortune/face/capture':
-        return _page(const FaceCaptureScreen());
+        return _pageNamed(
+          '/ai-fortune/face/capture',
+          const FaceCaptureScreen(),
+        );
       case '/ai-fortune/face/analyzing':
-        return _page(const FaceAnalyzingScreen());
+        return _pageNamed(
+          '/ai-fortune/face/analyzing',
+          const FaceAnalyzingScreen(),
+        );
       case '/ai-fortune/face/result':
-        return _page(FaceResultScreen(resultId: settings.arguments as String?));
+        return _pageNamed(
+          '/ai-fortune/face/result',
+          FaceResultScreen(resultId: settings.arguments as String?),
+        );
       case '/ai-fortune/face/history':
-        return _page(const FaceHistoryScreen());
+        return _pageNamed(
+          '/ai-fortune/face/history',
+          const FaceHistoryScreen(),
+        );
 
       // ── AI 손금 ──
       case '/ai-fortune/palm/capture':
-        return _page(const PalmCaptureScreen());
+        return _pageNamed(
+          '/ai-fortune/palm/capture',
+          const PalmCaptureScreen(),
+        );
       case '/ai-fortune/palm/analyzing':
-        return _page(const PalmAnalyzingScreen());
+        return _pageNamed(
+          '/ai-fortune/palm/analyzing',
+          const PalmAnalyzingScreen(),
+        );
       case '/ai-fortune/palm/result':
-        return _page(PalmResultScreen(resultId: settings.arguments as String?));
+        return _pageNamed(
+          '/ai-fortune/palm/result',
+          PalmResultScreen(resultId: settings.arguments as String?),
+        );
       case '/ai-fortune/palm/history':
-        return _page(const PalmHistoryScreen());
+        return _pageNamed(
+          '/ai-fortune/palm/history',
+          const PalmHistoryScreen(),
+        );
 
       // ── 이름 운세(성명학) [운세 카테고리 확장 - 신규] ──
       case '/ai-fortune/name/input':
@@ -643,21 +709,28 @@ class AppRouter {
           return _page(NameFortuneInputScreen(restoredInput: restoredInput));
         }
       case '/ai-fortune/name/result':
-        return _page(const NameFortuneResultScreen());
+        return _pageNamed(
+          '/ai-fortune/name/result',
+          const NameFortuneResultScreen(),
+        );
 
       // ── 리워드 ──
       case '/reward/wallet':
-        return _page(const WalletScreen());
+        return _pageNamed('/reward/wallet', const WalletScreen());
       case '/reward/attendance':
         // [복주머니 화면 재구성] 미션/복주머니열기/개봉이력 삭제 후
         // 출석체크만 남기면서 신설한 "이번 달 출석 달력" 화면.
-        return _page(const AttendanceCalendarScreen());
+        return _pageNamed(
+          '/reward/attendance',
+          const AttendanceCalendarScreen(),
+        );
       case '/reward/missions':
-        return _page(const MissionScreen());
+        return _pageNamed('/reward/missions', const MissionScreen());
       case '/reward/ranking':
-        return _page(const RankingScreen());
+        return _pageNamed('/reward/ranking', const RankingScreen());
       case '/reward/luckybag/open':
-        return _page(
+        return _pageNamed(
+          '/reward/luckybag/open',
           LuckyBagOpenAnimationScreen(
             product: settings.arguments as LuckyBagProductModel,
           ),
@@ -671,31 +744,39 @@ class AppRouter {
           ),
         );
       case '/reward/luckybag/history':
-        return _page(const LuckyBagHistoryScreen());
+        return _pageNamed(
+          '/reward/luckybag/history',
+          const LuckyBagHistoryScreen(),
+        );
       case '/reward/giftcard':
-        return _page(const GiftcardCatalogScreen());
+        return _pageNamed('/reward/giftcard', const GiftcardCatalogScreen());
       case '/reward/giftcard/detail':
-        return _page(
+        return _pageNamed(
+          '/reward/giftcard/detail',
           GiftcardDetailScreen(
             product: settings.arguments as GiftcardProductModel,
           ),
         );
       case '/reward/giftcard/result':
-        return _page(
+        return _pageNamed(
+          '/reward/giftcard/result',
           GiftcardResultScreen(issue: settings.arguments as GiftcardIssueModel),
         );
       case '/reward/giftcard/my':
-        return _page(const MyGiftcardsScreen());
+        return _pageNamed('/reward/giftcard/my', const MyGiftcardsScreen());
 
       // ── 마이 ──
       case '/my/notifications':
-        return _page(const NotificationsScreen());
+        return _pageNamed('/my/notifications', const NotificationsScreen());
       case '/my/settings':
-        return _page(const SettingsScreen());
+        return _pageNamed('/my/settings', const SettingsScreen());
       case '/my/subscription/plans':
-        return _page(const SubscriptionPlansScreen());
+        return _pageNamed(
+          '/my/subscription/plans',
+          const SubscriptionPlansScreen(),
+        );
       case '/my/subscription':
-        return _page(const MySubscriptionScreen());
+        return _pageNamed('/my/subscription', const MySubscriptionScreen());
 
       // ── 소원방 v2.6 [전면 재구축 완료] design_handoff_sintong_wishroom_flutter.zip
       // 기반 신규 모듈(lib/features/wishroom/)로 완전히 교체되었다. 구버전
@@ -708,7 +789,7 @@ class AppRouter {
       case '/wish-room':
       case '/wish-wall':
       case '/onboarding':
-        return _page(const WishRoomIntroScreen());
+        return _pageNamed('/onboarding', const WishRoomIntroScreen());
 
       // ── 상점(복주머니 확장 Phase02-B) [인장/촛불/부적 3개 상점 + 보물함]
       // admin_web `/api/public/shop/*`, `/api/public/inventory` 실 API 연동.
@@ -716,13 +797,13 @@ class AppRouter {
       // 앱에 존재하지 않는 레거시 기획문서 네이밍이어서, 기존
       // 라우팅 컨벤션(`/shop/...`)을 따라 신규 정의한다.
       case '/shop/seals':
-        return _page(const SealShopScreen());
+        return _pageNamed('/shop/seals', const SealShopScreen());
       case '/shop/candles':
-        return _page(const CandleShopScreen());
+        return _pageNamed('/shop/candles', const CandleShopScreen());
       case '/shop/talismans':
-        return _page(const TalismanShopScreen());
+        return _pageNamed('/shop/talismans', const TalismanShopScreen());
       case '/shop/treasure':
-        return _page(const TreasureBoxScreen());
+        return _pageNamed('/shop/treasure', const TreasureBoxScreen());
 
       // [2026-11 홈 화면 정리] "내 기록 (읽기 전용)" 진입점(홈 화면 시계
       // 아이콘) 및 이 라우트를 사용자 요청으로 완전히 제거했다.
@@ -743,4 +824,13 @@ class AppRouter {
   static PageRoute<dynamic> _page(Widget child) {
     return MaterialPageRoute(builder: (_) => child);
   }
+
+  /// [전역 하단바 자동 부착 — 사용자 요청 2026-10-14] named route로 열리는
+  /// 화면은 여기서 한 번에 전역 하단바 셸로 감싼다(제외 목록은 셸 참고).
+  /// 직접 MaterialPageRoute로 push되는 화면은 기존 수동 하단바를 유지.
+  static Route<dynamic> _pageNamed(String name, Widget child) =>
+      _page(wrapWithGlobalBottomNav(name, child));
+
+  static Route<dynamic> _guinjiNamed(String name, Widget child) =>
+      _guinjiPage(wrapWithGlobalBottomNav(name, child));
 }

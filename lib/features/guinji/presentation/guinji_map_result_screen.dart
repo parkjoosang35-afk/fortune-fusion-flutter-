@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/router/main_bottom_nav_bar.dart';
 import '../../../core/web_ads/web_ad_config.dart';
 import '../../../core/web_ads/widgets/web_ad_in_page.dart';
 import '../application/guinji_provider.dart';
@@ -319,9 +318,6 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
         title: '${widget.ownerName}님의 귀인 지도',
         onShare: _openShareSheet,
       ),
-      // [하단바 통일 작업] 결과(지도) 화면도 귀인지도 흐름의 메인 화면
-      // 중 하나이므로 랜딩 화면과 동일하게 전역 5탭 하단바를 추가한다.
-      bottomNavigationBar: const MainBottomNavBar(currentIndex: 0),
       body: SingleChildScrollView(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 440),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/router/main_bottom_nav_bar.dart';
 import '../domain/guinji_person.dart';
 import '../domain/guinji_relation_meta.dart';
 import '../theme/guinji_map_theme.dart';
@@ -101,12 +100,6 @@ class GuinjiGuestResultScreen extends StatelessWidget {
         title: '게스트 결과',
         onBack: () => Navigator.of(context).maybePop(),
       ),
-      // [바이럴 페이지 개편 — 하단바] 바이럴 웹페이지는 신통방통과 같은
-      // 도메인(Flutter Web 빌드)에서 서빙되므로, 하단바 탭을 누르면 곧바로
-      // 신통방통 메인 앱(홈/운세/소원방/복주머니/마이)으로 연결된다. 이것이
-      // "바이럴 페이지는 웹이고 신통방통은 도메인으로 움직이기에 가능하다"는
-      // 사용자 설명의 실제 구현이다.
-      bottomNavigationBar: const MainBottomNavBar(currentIndex: 0),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
         child: Column(
