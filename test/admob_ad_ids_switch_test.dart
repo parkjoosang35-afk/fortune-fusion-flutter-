@@ -20,6 +20,6 @@ void main() {
   });
 
   test('App ID는 항상 사장님의 실제 신통방통 App ID를 가리킨다', () {
-    expect(AdmobAdIds.androidAppId, 'ca-app-pub-2370852566371234~8570397726');
+    expect(AdmobAdIds.androidAppId, 'ca-app-pub-4640621040048656~2796265243');
   });
 }
