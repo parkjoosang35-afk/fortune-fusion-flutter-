@@ -90,7 +90,7 @@ class _WishRoomIntroScreenState extends State<WishRoomIntroScreen> {
   void _enterShell() {
     if (!mounted) return;
     debugPrint('WR_PHASE intro.end');
-    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const WishRoomShell()));
+    Navigator.of(context).pushReplacement(MaterialPageRoute(settings: const RouteSettings(name: '/wishroom-shell'), builder: (_) => const WishRoomShell()));
   }
 
   void _exitHome() {

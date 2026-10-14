@@ -199,8 +199,7 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
         bottomNavigationBar: SafeArea(top: false, child: Row(children: [
           for (final tab in [(0, Icons.home_outlined, '내 소원방'), (1, Icons.explore_outlined, '소원방'), (2, Icons.notifications_outlined, '알림'), (3, Icons.palette_outlined, '꾸미기'), (4, Icons.inventory_2_outlined, '보관함')])
             Expanded(child: TextButton(onPressed: () {
-              context.read<WishRoomProvider>().requestTab(tab.$1);
-              Navigator.of(context).maybePop();
+              wrReturnToTab(context, tab.$1);
             }, child: Column(mainAxisSize: MainAxisSize.min, children: [
               Icon(tab.$2, size: 22, color: WrC.fg),
               Text(tab.$3, style: const TextStyle(fontSize: 10, color: WrC.fg)),

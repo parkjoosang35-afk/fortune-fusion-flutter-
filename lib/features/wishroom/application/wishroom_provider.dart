@@ -27,6 +27,7 @@ class WishRoomProvider extends ChangeNotifier {
   List<WrItem> items = [];
   List<WrCharacter> characters = [];
   bool catalogLoaded = false;
+  int _catalogGeneration = 0;
 
   // ── 알림 ──
   List<WrNotification> notifications = [];
@@ -126,6 +127,8 @@ class WishRoomProvider extends ChangeNotifier {
     items = [];
     characters = [];
     catalogLoaded = false;
+    _catalogGeneration++;
+    catalogLoading = false;
     catalogError = null;
     notifications = [];
     exploreFeed = [];
@@ -525,6 +528,8 @@ class WishRoomProvider extends ChangeNotifier {
   bool catalogLoading = false;
   Future<void> loadCatalog() async {
     if (catalogLoading) return;
+    final generation = _catalogGeneration;
+    bool isCurrent() => generation == _catalogGeneration;
     catalogLoading = true;
     catalogError = null;
     // 일부 기존 화면이 initState에서 호출하므로 첫 프레임 중 알림은 보내지 않는다.
@@ -532,27 +537,37 @@ class WishRoomProvider extends ChangeNotifier {
     var itemsOk = false;
     var charactersOk = false;
     Future<void> fetchItems() async {
-      try { items = await repo.items(); itemsOk = true; }
-      on ApiError catch (e) { catalogError ??= e; }
-      catch (_) { catalogError ??= ApiError(0, 'CATALOG_PARSE', '꾸미기 정보를 읽지 못했어요'); }
+      try {
+        final result = await repo.items();
+        if (!isCurrent()) return;
+        items = result;
+        itemsOk = true;
+      }
+      on ApiError catch (e) { if (isCurrent()) catalogError ??= e; }
+      catch (_) { if (isCurrent()) catalogError ??= ApiError(0, 'CATALOG_PARSE', '꾸미기 정보를 읽지 못했어요'); }
     }
     Future<void> fetchCharacters() async {
       try {
-        characters = await repo.characters();
+        final result = await repo.characters();
+        if (!isCurrent()) return;
+        characters = result;
         charactersOk = characters.isNotEmpty;
         if (!charactersOk) catalogError ??= ApiError(0, 'EMPTY_CHARACTERS', '캐릭터 목록이 비어 있어요');
       }
-      on ApiError catch (e) { catalogError ??= e; }
-      catch (_) { catalogError ??= ApiError(0, 'CATALOG_PARSE', '캐릭터 정보를 읽지 못했어요'); }
+      on ApiError catch (e) { if (isCurrent()) catalogError ??= e; }
+      catch (_) { if (isCurrent()) catalogError ??= ApiError(0, 'CATALOG_PARSE', '캐릭터 정보를 읽지 못했어요'); }
     }
     try {
       await Future.wait([fetchItems(), fetchCharacters()]);
+      if (!isCurrent()) return;
       catalogLoaded = itemsOk && charactersOk;
       if (catalogError != null) lastError = catalogError;
       _syncNativeWallpaper();
     } finally {
-      catalogLoading = false;
-      notifyListeners();
+      if (isCurrent()) {
+        catalogLoading = false;
+        notifyListeners();
+      }
     }
   }
 

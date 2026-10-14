@@ -14,12 +14,30 @@
 //     전체 종료, popUntil(isFirst)).
 import 'package:flutter/material.dart';
 import '../core/theme/wr_theme.dart';
+import '../application/wishroom_provider.dart';
+import 'package:provider/provider.dart';
 
 export '../features/intro/wish_room_intro_screen.dart' show WrNavPill;
 
 /// 소원방 모듈 전체를 벗어나 앱 홈으로. app2 exitHome() 1:1.
 void wrExitHome(BuildContext context) {
   Navigator.of(context).popUntil((r) => r.isFirst);
+}
+
+/// 작성 화면 등 중첩 경로에서도 캐릭터 창 하나만 닫지 않고 탭 셸로 복귀한다.
+void wrReturnToTab(BuildContext context, int index) {
+  final provider = context.read<WishRoomProvider>();
+  provider.requestTab(index);
+  var foundShell = false;
+  final navigator = Navigator.of(context);
+  navigator.popUntil((route) {
+    foundShell = route.settings.name == '/wishroom-shell';
+    return foundShell || route.isFirst;
+  });
+  if (!foundShell) {
+    // 첫 인트로에서 작성 화면으로 진입했다면 아직 셸이 없으므로 게이트로 이동.
+    navigator.pushNamed('/wish-room');
+  }
 }
 
 /// 탭 루트(= 더 이상 pop할 화면이 없음)에서 호출되는 뒤로가기.

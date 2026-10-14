@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_app/features/wishroom/application/wishroom_provider.dart';
 import 'package:flutter_app/features/wishroom/data/wr_api.dart';
@@ -16,7 +17,23 @@ class Repo implements WrRepository {
   }
   @override dynamic noSuchMethod(Invocation i) => throw UnsupportedError('${i.memberName}');
 }
+class DelayedRepo extends Repo {
+  final pending = Completer<List<WrCharacter>>();
+  @override Future<List<WrCharacter>> characters() => pending.future;
+}
 void main() {
+  test('로그아웃 전 시작한 카탈로그 응답은 계정 초기화 뒤 폐기한다', () async {
+    final repo = DelayedRepo()..failItems = false;
+    final p = WishRoomProvider(repo);
+    final request = p.loadCatalog();
+    p.clearOnLogout();
+    repo.pending.complete([WrCharacter.fromJson({'id':'F00','name':'이전 계정','gender':'F','price':0,'title':'수호자','grade':'기본'})]);
+    await request;
+    expect(p.characters, isEmpty);
+    expect(p.catalogLoaded, false);
+    expect(p.catalogLoading, false);
+    expect(p.catalogError, null);
+  });
   test('아이템 실패에도 성공한 캐릭터 목록 보존하고 재시도 복구', () async {
     final repo = Repo();
     final p = WishRoomProvider(repo);
