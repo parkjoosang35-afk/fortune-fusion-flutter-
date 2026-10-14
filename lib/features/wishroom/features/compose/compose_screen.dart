@@ -137,6 +137,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
       // [버그수정] onGo 콜백이 바깥쪽(ComposeScreen, 곧 pushReplacement로 dispose됨)의 context를
       // 캡처하면, 나중에 탭해도 Navigator.of(context)가 deactivated widget 조회로 조용히 실패해
       // "클릭이 안 됨"처럼 보인다. 반드시 builder가 제공하는 새(SealedDoneScreen 자신의) context를 써야 한다.
+      if (!mounted) return; // 의상 저장을 기다리는 동안 작성 화면을 나간 경우
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (sealedCtx) => SealedDoneScreen(
