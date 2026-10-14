@@ -304,13 +304,20 @@ class _ExploreScreenState extends State<ExploreScreen> {
       onTap: () => setState(() => _hot = hot),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
-        decoration: sel ? WrDeco.chipOn : WrDeco.chip,
+        // [분홍 제거 — 사용자 지시 2026-10-14] 정렬칩 활성색을 분홍(blossom)에서
+        // 밝은 중립(fg)으로 교체 — 텍스트는 어두운 색으로 반전.
+        decoration: sel
+            ? BoxDecoration(
+                borderRadius: BorderRadius.circular(999),
+                color: WrC.fg,
+              )
+            : WrDeco.chip,
         child: Text(
           label,
           style: WrF.body(
             12,
             w: FontWeight.w700,
-            color: sel ? Colors.white : WrC.fg,
+            color: sel ? WrC.bg2 : WrC.fg, // [분홍 제거] 선택 시 어두운 글자 — 흰 배경에서 가독
           ),
         ),
       ),
