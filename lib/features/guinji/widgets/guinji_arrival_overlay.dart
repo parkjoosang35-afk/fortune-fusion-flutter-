@@ -60,7 +60,8 @@ class GuinjiArrivalSeenStore {
     final ids = memberIds.toList();
     if (ids.isEmpty) return;
     final prefs = await SharedPreferences.getInstance();
-    final existing = (prefs.getStringList(_prefsKey) ?? const <String>[]).toSet();
+    final existing = (prefs.getStringList(_prefsKey) ?? const <String>[])
+        .toSet();
     existing.addAll(ids);
     await prefs.setStringList(_prefsKey, existing.toList());
   }
@@ -92,7 +93,11 @@ class GuinjiArrivalSeenStore {
 /// 사람 1명의 시각 요소(캐릭터 얼굴/유형색/한자) — 토스트·슬롯 하이라이트·
 /// 비행 연출 여러 곳에서 공통으로 쓰므로 한 번만 계산해 재사용한다.
 class _PersonVisual {
-  const _PersonVisual({required this.character, required this.color, required this.hanja});
+  const _PersonVisual({
+    required this.character,
+    required this.color,
+    required this.hanja,
+  });
 
   final GuinjiCharacter? character;
   final Color color;
@@ -102,8 +107,18 @@ class _PersonVisual {
 _PersonVisual _visualFor(GuinjiPerson person) {
   final meta = guinjiRelationMetaOf(person.relation);
   final birth = parseGuinjiBirthLabel(person.birth);
-  final character = birth == null ? null : GuinjiCharacter.of(birth: birth, stableKey: person.id);
-  return _PersonVisual(character: character, color: meta.color, hanja: meta.hanja);
+  final character = birth == null
+      ? null
+      : GuinjiCharacter.of(
+          birth: birth,
+          gender: GuinjiCharacter.fromKey(person.gender),
+          stableKey: person.id,
+        );
+  return _PersonVisual(
+    character: character,
+    color: meta.color,
+    hanja: meta.hanja,
+  );
 }
 
 /// 핸드오프 각 사람 기준 누적 시점(ms) — `guinji-arrival.jsx` `Arrival()`의
@@ -166,7 +181,9 @@ class _GuinjiArrivalOverlayState extends State<GuinjiArrivalOverlay>
 
   int get _totalSequentialMs {
     if (_sequential.isEmpty) return 0;
-    return (_sequential.length - 1) * ArrivalTiming.between.inMilliseconds + _kDone + 900;
+    return (_sequential.length - 1) * ArrivalTiming.between.inMilliseconds +
+        _kDone +
+        900;
   }
 
   /// index [i]의 사람 기준 로컬 경과시간(= 핸드오프 `now - t0`).
@@ -314,7 +331,9 @@ class _GuinjiArrivalOverlayState extends State<GuinjiArrivalOverlay>
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        Colors.white.withValues(alpha: (0.06 + arrived * 0.04).clamp(0.0, 1.0)),
+                        Colors.white.withValues(
+                          alpha: (0.06 + arrived * 0.04).clamp(0.0, 1.0),
+                        ),
                         Colors.white.withValues(alpha: 0),
                       ],
                       stops: const [0, 0.65],
@@ -357,7 +376,10 @@ class _GuinjiArrivalOverlayState extends State<GuinjiArrivalOverlay>
                   Positioned(
                     left: cx - 36,
                     top: cy - 36,
-                    child: _OwnerAvatar(facePath: widget.ownerFacePath, arrived: arrived),
+                    child: _OwnerAvatar(
+                      facePath: widget.ownerFacePath,
+                      arrived: arrived,
+                    ),
                   ),
 
                   // 아직 아무도 도착하지 않았을 때 안내 문구(핸드오프
@@ -370,7 +392,12 @@ class _GuinjiArrivalOverlayState extends State<GuinjiArrivalOverlay>
                       child: const Text(
                         '링크를 받은 지인이 생년월일을 입력하면\n이곳에 한 명씩 연결돼요',
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontFamily: GmText.ui, fontSize: 15, height: 1.6, color: GmColors.muted),
+                        style: TextStyle(
+                          fontFamily: GmText.ui,
+                          fontSize: 15,
+                          height: 1.6,
+                          color: GmColors.muted,
+                        ),
                       ),
                     ),
 
@@ -432,7 +459,9 @@ class _GuinjiArrivalOverlayState extends State<GuinjiArrivalOverlay>
                         ),
                         const SizedBox(height: 9),
                         Text(
-                          arrived > 0 ? '$arrived명과 연결되어 있어요' : '아직 연결된 사람이 없어요',
+                          arrived > 0
+                              ? '$arrived명과 연결되어 있어요'
+                              : '아직 연결된 사람이 없어요',
                           style: TextStyle(
                             fontFamily: GmText.ui,
                             fontSize: 13.5,
@@ -464,14 +493,21 @@ class _GuinjiArrivalOverlayState extends State<GuinjiArrivalOverlay>
                 left: 24,
                 right: 24,
                 bottom: 40,
-                child: GmRoseButton(label: '지인 초대하기', onPressed: widget.onClose),
+                child: GmRoseButton(
+                  label: '지인 초대하기',
+                  onPressed: widget.onClose,
+                ),
               ),
 
             // 푸시 토스트 — 도착 0.9초 전부터 3.1초간 상단 노출(핸드오프
             // 1:1 문구 "{이름}님이 지도에 들어왔어요 · 방금 · 생년월일을
             // 입력했어요").
             if (toast != null)
-              _ArrivalToast(key: ValueKey('toast_${toast.$1.id}'), person: toast.$1, localElapsedMs: toast.$2),
+              _ArrivalToast(
+                key: ValueKey('toast_${toast.$1.id}'),
+                person: toast.$1,
+                localElapsedMs: toast.$2,
+              ),
           ],
         ),
       ),
@@ -486,7 +522,10 @@ class _GuinjiArrivalOverlayState extends State<GuinjiArrivalOverlay>
       return Positioned(
         left: slot.dx - 23,
         top: slot.dy - 23,
-        child: _SlotPlusMark(color: Colors.white.withValues(alpha: 0.22), highlighted: false),
+        child: _SlotPlusMark(
+          color: Colors.white.withValues(alpha: 0.22),
+          highlighted: false,
+        ),
       );
     }
     final e = _localElapsed(personIndex);
@@ -534,7 +573,11 @@ class _SlotPlusMark extends StatelessWidget {
         ),
         child: Text(
           '+',
-          style: TextStyle(fontSize: 18, color: color, fontWeight: FontWeight.w500),
+          style: TextStyle(
+            fontSize: 18,
+            color: color,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ),
     );
@@ -588,7 +631,11 @@ class _GuideLinesPainter extends CustomPainter {
 
 /// 금빛 먼지 — 핸드오프 `Dust`: 16개, 계속 위로 떠오르며 페이드.
 class _DustPainter extends CustomPainter {
-  _DustPainter({required this.center, required this.elapsedMs, required this.visible});
+  _DustPainter({
+    required this.center,
+    required this.elapsedMs,
+    required this.visible,
+  });
 
   final Offset center;
   final int elapsedMs;
@@ -636,7 +683,11 @@ class _DustPainter extends CustomPainter {
 /// `gjaToast` 키프레임(0%: y -120%·op0 → 12%: y0·op1 → 82%: y0·op1 →
 /// 100%: y -120%·op0, 총 3100ms)을 로컬 경과시간으로 근사한다.
 class _ArrivalToast extends StatelessWidget {
-  const _ArrivalToast({super.key, required this.person, required this.localElapsedMs});
+  const _ArrivalToast({
+    super.key,
+    required this.person,
+    required this.localElapsedMs,
+  });
 
   final GuinjiPerson person;
 
@@ -680,11 +731,16 @@ class _ArrivalToast extends StatelessWidget {
                   child: BackdropFilter(
                     filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xE01E1E20),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.08),
+                        ),
                       ),
                       child: Row(
                         children: [
@@ -694,7 +750,10 @@ class _ArrivalToast extends StatelessWidget {
                             clipBehavior: Clip.antiAlias,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              border: Border.all(color: visual.color, width: 1.5),
+                              border: Border.all(
+                                color: visual.color,
+                                width: 1.5,
+                              ),
                             ),
                             child: visual.character == null
                                 ? Container(
@@ -713,7 +772,11 @@ class _ArrivalToast extends StatelessWidget {
                                 : Image.asset(
                                     visual.character!.face,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => Container(color: visual.color.withValues(alpha: 0.22)),
+                                    errorBuilder: (_, __, ___) => Container(
+                                      color: visual.color.withValues(
+                                        alpha: 0.22,
+                                      ),
+                                    ),
                                   ),
                           ),
                           const SizedBox(width: 10),
@@ -735,7 +798,11 @@ class _ArrivalToast extends StatelessWidget {
                                 ),
                                 const Text(
                                   '방금 · 생년월일을 입력했어요',
-                                  style: TextStyle(fontFamily: GmText.ui, fontSize: 12.5, color: GmColors.muted),
+                                  style: TextStyle(
+                                    fontFamily: GmText.ui,
+                                    fontSize: 12.5,
+                                    color: GmColors.muted,
+                                  ),
                                 ),
                               ],
                             ),
@@ -774,8 +841,16 @@ class _OwnerAvatar extends StatelessWidget {
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withValues(alpha: 0.7), width: 1.5),
-            boxShadow: [BoxShadow(color: GmColors.gold.withValues(alpha: glowAlpha), blurRadius: 28)],
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.7),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: GmColors.gold.withValues(alpha: glowAlpha),
+                blurRadius: 28,
+              ),
+            ],
           ),
           child: Image.asset(
             facePath,
@@ -796,7 +871,14 @@ class _OwnerAvatar extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 7),
-        const Text('나', style: TextStyle(fontFamily: GmText.ui, fontSize: 12.5, color: GmColors.muted)),
+        const Text(
+          '나',
+          style: TextStyle(
+            fontFamily: GmText.ui,
+            fontSize: 12.5,
+            color: GmColors.muted,
+          ),
+        ),
       ],
     );
   }
@@ -837,11 +919,18 @@ class _ArrivalFlight extends StatelessWidget {
       return Positioned(
         left: slot.dx - _kFaceRadius,
         top: slot.dy - _kFaceRadius,
-        child: _ArrivalFace(character: visual.character, color: color, name: person.name, hanja: visual.hanja),
+        child: _ArrivalFace(
+          character: visual.character,
+          color: color,
+          name: person.name,
+          hanja: visual.hanja,
+        ),
       );
     }
 
-    final from = fromLeft ? Offset(screenSize.width + 40, -60) : const Offset(-40, -80);
+    final from = fromLeft
+        ? Offset(screenSize.width + 40, -60)
+        : const Offset(-40, -80);
     final ctrl = Offset(
       (from.dx + slot.dx) / 2 + (fromLeft ? -80 : 80),
       math.min(from.dy, slot.dy) - 60,
@@ -927,8 +1016,15 @@ class _ArrivalFlight extends StatelessWidget {
                 color: color,
                 borderRadius: BorderRadius.circular(8),
                 boxShadow: [
-                  const BoxShadow(color: GmColors.bg, blurRadius: 0, spreadRadius: 2),
-                  BoxShadow(color: color.withValues(alpha: 0.7), blurRadius: 20),
+                  const BoxShadow(
+                    color: GmColors.bg,
+                    blurRadius: 0,
+                    spreadRadius: 2,
+                  ),
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.7),
+                    blurRadius: 20,
+                  ),
                 ],
               ),
               child: Text(
@@ -1000,7 +1096,10 @@ class _ArrivalFace extends StatelessWidget {
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(color: color, blurRadius: 0, spreadRadius: 1.5),
-              BoxShadow(color: color.withValues(alpha: glow ? 0.67 : 0.27), blurRadius: glow ? 30 : 12),
+              BoxShadow(
+                color: color.withValues(alpha: glow ? 0.67 : 0.27),
+                blurRadius: glow ? 30 : 12,
+              ),
             ],
           ),
           child: character == null
@@ -1038,7 +1137,11 @@ class _ArrivalFace extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           name,
-          style: const TextStyle(fontFamily: GmText.ui, fontSize: 11, color: GmColors.fg),
+          style: const TextStyle(
+            fontFamily: GmText.ui,
+            fontSize: 11,
+            color: GmColors.fg,
+          ),
         ),
       ],
     );
@@ -1076,7 +1179,9 @@ class _CometPainter extends CustomPainter {
       final p = _quadBezier(Curves.easeIn.transform(t));
       final r = 5.0 - k * 0.65;
       final paint = Paint()
-        ..color = (k == 0 ? Colors.white : color).withValues(alpha: 1 - k * 0.15)
+        ..color = (k == 0 ? Colors.white : color).withValues(
+          alpha: 1 - k * 0.15,
+        )
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, 4 + k * 0.5);
       canvas.drawCircle(p, r.clamp(1.0, 5.0), paint);
     }
@@ -1112,7 +1217,10 @@ class _ImpactPainter extends CustomPainter {
         radius,
         Paint()
           ..shader = RadialGradient(
-            colors: [color.withValues(alpha: flashOpacity), color.withValues(alpha: 0)],
+            colors: [
+              color.withValues(alpha: flashOpacity),
+              color.withValues(alpha: 0),
+            ],
             stops: const [0, 0.4],
           ).createShader(Rect.fromCircle(center: center, radius: radius)),
       );
@@ -1137,20 +1245,28 @@ class _ImpactPainter extends CustomPainter {
       final t = (localMs / 760).clamp(0.0, 1.0);
       for (var i = 0; i < 22; i++) {
         final angle = (i / 22) * 2 * math.pi + (i % 3) * 0.2;
-        final dist = 70 * (0.55 + ((i * 37) % 10) / 20) * Curves.easeOut.transform(t);
-        final p = Offset(center.dx + math.cos(angle) * dist, center.dy + math.sin(angle) * dist);
+        final dist =
+            70 * (0.55 + ((i * 37) % 10) / 20) * Curves.easeOut.transform(t);
+        final p = Offset(
+          center.dx + math.cos(angle) * dist,
+          center.dy + math.sin(angle) * dist,
+        );
         final size_ = (2 + (i % 3)).toDouble();
         canvas.drawCircle(
           p,
           size_ * (1 - t * 0.9),
-          Paint()..color = (i % 4 == 0 ? Colors.white : color).withValues(alpha: (1 - t)),
+          Paint()
+            ..color = (i % 4 == 0 ? Colors.white : color).withValues(
+              alpha: (1 - t),
+            ),
         );
       }
     }
   }
 
   @override
-  bool shouldRepaint(covariant _ImpactPainter oldDelegate) => oldDelegate.localMs != localMs;
+  bool shouldRepaint(covariant _ImpactPainter oldDelegate) =>
+      oldDelegate.localMs != localMs;
 }
 
 class _ConnectLinePainter extends CustomPainter {
@@ -1183,7 +1299,9 @@ class _ConnectLinePainter extends CustomPainter {
       from,
       end,
       Paint()
-        ..color = (done ? Colors.white : color).withValues(alpha: done ? 0.3 : 0.95)
+        ..color = (done ? Colors.white : color).withValues(
+          alpha: done ? 0.3 : 0.95,
+        )
         ..strokeWidth = done ? 1 : 1.6,
     );
   }
@@ -1194,7 +1312,12 @@ class _ConnectLinePainter extends CustomPainter {
 }
 
 class _PulsePainter extends CustomPainter {
-  _PulsePainter({required this.from, required this.to, required this.color, required this.localMs});
+  _PulsePainter({
+    required this.from,
+    required this.to,
+    required this.color,
+    required this.localMs,
+  });
 
   final Offset from;
   final Offset to;
@@ -1219,7 +1342,8 @@ class _PulsePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _PulsePainter oldDelegate) => oldDelegate.localMs != localMs;
+  bool shouldRepaint(covariant _PulsePainter oldDelegate) =>
+      oldDelegate.localMs != localMs;
 }
 
 /// 결과 카드 — 핸드오프 `CArrivalScreen`의 하단 카드(`{이름}님은 나에게 /
@@ -1249,11 +1373,14 @@ class _ArrivalResultCardState extends State<_ArrivalResultCard>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: widget.reduceMotion ? Duration.zero : const Duration(milliseconds: 1100),
+      duration: widget.reduceMotion
+          ? Duration.zero
+          : const Duration(milliseconds: 1100),
     );
-    _count = IntTween(begin: 0, end: widget.person.score).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
+    _count = IntTween(
+      begin: 0,
+      end: widget.person.score,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
     _controller.forward();
   }
 
@@ -1285,7 +1412,11 @@ class _ArrivalResultCardState extends State<_ArrivalResultCard>
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: color.withValues(alpha: 0.35)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 32, offset: const Offset(0, 10)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.5),
+            blurRadius: 32,
+            offset: const Offset(0, 10),
+          ),
           BoxShadow(color: color.withValues(alpha: 0.15), blurRadius: 30),
         ],
       ),
@@ -1300,7 +1431,11 @@ class _ArrivalResultCardState extends State<_ArrivalResultCard>
                   children: [
                     Text(
                       '${widget.person.name}님은 나에게',
-                      style: const TextStyle(fontFamily: GmText.ui, fontSize: 11.5, color: GmColors.muted),
+                      style: const TextStyle(
+                        fontFamily: GmText.ui,
+                        fontSize: 11.5,
+                        color: GmColors.muted,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -1330,7 +1465,14 @@ class _ArrivalResultCardState extends State<_ArrivalResultCard>
                       ),
                     ),
                   ),
-                  const Text('케미 점수', style: TextStyle(fontFamily: GmText.ui, fontSize: 10, color: GmColors.dim)),
+                  const Text(
+                    '케미 점수',
+                    style: TextStyle(
+                      fontFamily: GmText.ui,
+                      fontSize: 10,
+                      color: GmColors.dim,
+                    ),
+                  ),
                 ],
               ),
             ],

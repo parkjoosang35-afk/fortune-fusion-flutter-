@@ -24,7 +24,13 @@ class GuinjiNodeIn {
 
 class GuinjiDensity {
   final double nodeD, centerD, nameFs, typeFs, labelH;
-  const GuinjiDensity(this.nodeD, this.centerD, this.nameFs, this.typeFs, this.labelH);
+  const GuinjiDensity(
+    this.nodeD,
+    this.centerD,
+    this.nameFs,
+    this.typeFs,
+    this.labelH,
+  );
 
   /// 최종 v2 값: 10명 이하 42/58, 11명 이상 34/50.
   factory GuinjiDensity.of(int n) => n <= 10
@@ -39,8 +45,8 @@ class PlacedNode {
   final bool labelTop;
   final double labelW;
   PlacedNode(this.m, this.x, this.y, this.labelTop, this.labelW)
-      : hx = x,
-        hy = y;
+    : hx = x,
+      hy = y;
 }
 
 class GuinjiLayout {
@@ -74,18 +80,25 @@ GuinjiLayout computeGuinjiLayout(
   final rxOut = math.max(60.0, w / 2 - padX - math.max(r, 34) - 2);
   final ryOut = math.max(60.0, (h - padT - padB) / 2 - r - d.labelH * 0.6 - 6);
   final rMin = d.centerD / 2 + r + 26;
-  Offset ell(double t) => Offset(rMin + (rxOut - rMin) * t, rMin + (ryOut - rMin) * t);
+  Offset ell(double t) =>
+      Offset(rMin + (rxOut - rMin) * t, rMin + (ryOut - rMin) * t);
 
-  final sorted = [...members]..sort((a, b) {
-    final o = guinjiTypeOrder.indexOf(a.type).compareTo(guinjiTypeOrder.indexOf(b.type));
-    return o != 0 ? o : b.score.compareTo(a.score);
-  });
+  final sorted = [...members]
+    ..sort((a, b) {
+      final o = guinjiTypeOrder
+          .indexOf(a.type)
+          .compareTo(guinjiTypeOrder.indexOf(b.type));
+      return o != 0 ? o : b.score.compareTo(a.score);
+    });
   final groups = [
     for (final t in guinjiTypeOrder) sorted.where((s) => s.type == t).toList(),
   ]..removeWhere((g) => g.isEmpty);
   final gap = groups.length > 1 ? 0.7 : 0.0;
   final step = 2 * math.pi / math.max(sorted.length + groups.length * gap, 1);
-  var cur = -math.pi / 2 - (groups.isEmpty ? 0 : groups.first.length * step / 2) - gap * step / 2;
+  var cur =
+      -math.pi / 2 -
+      (groups.isEmpty ? 0 : groups.first.length * step / 2) -
+      gap * step / 2;
 
   final nodes = <PlacedNode>[];
   for (final g in groups) {
@@ -103,7 +116,10 @@ GuinjiLayout computeGuinjiLayout(
         a += (((m.score * 7) % 11) - 5) / 60;
       }
       final e = ell(t);
-      final lw = math.max(m.name.length * d.nameFs * 1.02 + 6, (d.typeFs * 2.1) + 18);
+      final lw = math.max(
+        m.name.length * d.nameFs * 1.02 + 6,
+        (d.typeFs * 2.1) + 18,
+      );
       nodes.add(
         PlacedNode(
           m,
@@ -122,7 +138,12 @@ GuinjiLayout computeGuinjiLayout(
     final half = math.max(r, n.labelW / 2);
     return n.labelTop
         ? Rect.fromLTRB(n.x - half, n.y - r - 5 - d.labelH, n.x + half, n.y + r)
-        : Rect.fromLTRB(n.x - half, n.y - r, n.x + half, n.y + r + 5 + d.labelH);
+        : Rect.fromLTRB(
+            n.x - half,
+            n.y - r,
+            n.x + half,
+            n.y + r + 5 + d.labelH,
+          );
   }
 
   const margin = 5.0;
@@ -133,8 +154,14 @@ GuinjiLayout computeGuinjiLayout(
       for (var j = i + 1; j < nodes.length; j++) {
         final a = nodes[i], b = nodes[j];
         final boxA = box(a), boxB = box(b);
-        final ox = math.min(boxA.right, boxB.right) - math.max(boxA.left, boxB.left) + margin;
-        final oy = math.min(boxA.bottom, boxB.bottom) - math.max(boxA.top, boxB.top) + margin;
+        final ox =
+            math.min(boxA.right, boxB.right) -
+            math.max(boxA.left, boxB.left) +
+            margin;
+        final oy =
+            math.min(boxA.bottom, boxB.bottom) -
+            math.max(boxA.top, boxB.top) +
+            margin;
         if (ox > 0 && oy > 0) {
           moved++;
           if (ox < oy) {
@@ -142,7 +169,8 @@ GuinjiLayout computeGuinjiLayout(
             a.x += s;
             b.x -= s;
           } else {
-            final s = ((boxA.top + boxA.bottom) < (boxB.top + boxB.bottom) ? -1 : 1) *
+            final s =
+                ((boxA.top + boxA.bottom) < (boxB.top + boxB.bottom) ? -1 : 1) *
                 math.min(oy, 6) /
                 2;
             a.y += s;
@@ -157,7 +185,9 @@ GuinjiLayout computeGuinjiLayout(
       final dist = math.sqrt(math.pow(nx - cx, 2) + math.pow(ny - cy, 2));
       if (dist < cr) {
         moved++;
-        final l = math.sqrt(math.pow(n.x - cx, 2) + math.pow(n.y - cy, 2)).clamp(1.0, double.infinity);
+        final l = math
+            .sqrt(math.pow(n.x - cx, 2) + math.pow(n.y - cy, 2))
+            .clamp(1.0, double.infinity);
         n.x += (n.x - cx) / l * math.min(4, cr - dist);
         n.y += (n.y - cy) / l * math.min(4, cr - dist);
       }

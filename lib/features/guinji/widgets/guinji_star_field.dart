@@ -118,8 +118,9 @@ class _GuinjiStarFieldState extends State<GuinjiStarField>
               final star = _stars[i];
               // [V2 전환] 폐기된 12종 상수(relationNaSaljinda) 대신
               // V2 6종 색상(relationSangSaeng)으로 교체.
-              final starColor =
-                  i.isEven ? GuinjiColors.gold : GuinjiColors.relationSangSaeng;
+              final starColor = i.isEven
+                  ? GuinjiColors.gold
+                  : GuinjiColors.relationSangSaeng;
               return Positioned(
                 left: star.left * constraints.maxWidth - star.size / 2,
                 top: star.top * constraints.maxHeight - star.size / 2,

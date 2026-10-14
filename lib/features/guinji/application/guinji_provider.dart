@@ -46,6 +46,11 @@ class GuinjiProvider extends ChangeNotifier {
   /// 값을 그대로 읽어 "귀인지도" 관계 그래프보다 먼저 "나"를 보여준다.
   GuinjiOwnerSajuSummary? _ownerSajuSummary;
 
+  /// [성별 캐릭터 버그 수정 — 2026-10-14] 나의정보에서 고른 성별('male'/'female').
+  /// 지도 생성 시 기록되고, 소유자 캐릭터 렌더가 참조한다.
+  String? _ownerGender;
+  String? get ownerGender => _ownerGender;
+
   bool get isLoading => _isLoading;
   String? get error => _error;
 
@@ -227,7 +232,7 @@ class GuinjiProvider extends ChangeNotifier {
     final relationByMemberId = {
       for (final r in _relationships) r['memberId'] as String: r,
     };
-    return _members
+    var result = _members
         .map(
           (m) => GuinjiPerson.fromServerJson(
             member: m,
@@ -235,6 +240,27 @@ class GuinjiProvider extends ChangeNotifier {
           ),
         )
         .toList();
+
+    // [성별 캐릭터 버그 수정 — 2026-10-14] 나의정보에서 고른 성별을 소유자
+    // 캐릭터에 반영한다(서버 멤버 응답에 성별이 없어 해시 폴백으로 그려지던 문제).
+    if (_ownerGender != null) {
+      result = result
+          .map((person) => person.id == 'owner'
+              ? GuinjiPerson(
+                  id: person.id,
+                  name: person.name,
+                  birth: person.birth,
+                  ohaeng: person.ohaeng,
+                  relation: person.relation,
+                  score: person.score,
+                  note: person.note,
+                  unlocked: person.unlocked,
+                  gender: _ownerGender,
+                )
+              : person)
+          .toList();
+    }
+    return result;
   }
 
   bool get isEmpty => _members.isEmpty;
@@ -333,6 +359,7 @@ class GuinjiProvider extends ChangeNotifier {
     required bool isLunar,
     required DateTime birthDate,
     String? birthTime, // 'HH:mm', null이면 시간 미상
+    String gender = 'female', // [성별 캐릭터 버그 수정] 'male' | 'female'
   }) async {
     _isLoading = true;
     _error = null;
@@ -356,15 +383,20 @@ class GuinjiProvider extends ChangeNotifier {
 
       final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
         kst: kst,
-        gender: 'male', // RelationJudger는 gender를 사용하지 않음(joinMap과 동일 관례).
+        gender: gender, // [성별 버그 수정] 화면에서 고른 성별 사용(대운 방향 외 엔진 영향 없음).
         isLunar: isLunar,
         isLeapMonth: false,
         referenceDate: DateTime.now(),
       );
       final sajuJson = guinjiSajuInputFromProfile(built.profile);
       _cacheOwnerSajuSummary(built.saju);
+      _ownerGender = gender;
 
-      final result = await _repository.createMap(name: name, saju: sajuJson);
+      final result = await _repository.createMap(
+        name: name,
+        gender: gender,
+        saju: sajuJson,
+      );
       if (!result.success) {
         _isLoading = false;
         _error = result.errorMessage ?? '지도 생성에 실패했습니다.';
@@ -424,7 +456,9 @@ class GuinjiProvider extends ChangeNotifier {
     // 1회성 소비용이고, 이 기록은 그보다 먼저 데이터가 갱신되는 시점에
     // 걸어 fire-and-forget으로 보낸다).
     if (_milestoneJustReached) {
-      unawaited(FunnelTracker.track(FunnelTracker.milestoneReached, mapToken: mapToken));
+      unawaited(
+        FunnelTracker.track(FunnelTracker.milestoneReached, mapToken: mapToken),
+      );
     }
     _isLoading = false;
     notifyListeners();
@@ -678,7 +712,9 @@ class GuinjiProvider extends ChangeNotifier {
     // 경우에만 기록한다(결제/프리패스 해금은 퍼널 계약상 집계 대상이
     // 아님). fire-and-forget — 실패해도 해금 자체는 이미 완료된 상태.
     if (method == 'ad') {
-      unawaited(FunnelTracker.track(FunnelTracker.unlockAdWatched, mapToken: mapToken));
+      unawaited(
+        FunnelTracker.track(FunnelTracker.unlockAdWatched, mapToken: mapToken),
+      );
     }
     return true;
   }

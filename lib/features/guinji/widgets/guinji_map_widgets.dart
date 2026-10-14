@@ -398,7 +398,9 @@ class GmPrimaryButton extends StatelessWidget {
           disabledBackgroundColor: GmColors.fg.withValues(alpha: 0.4),
           elevation: 0,
           padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
         ),
         child: loading
             ? const SizedBox(
@@ -411,7 +413,10 @@ class GmPrimaryButton extends StatelessWidget {
               )
             : Text(
                 label,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
       ),
     );
@@ -446,7 +451,9 @@ class GmRoseButton extends StatelessWidget {
           style: TextButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 14),
             foregroundColor: GmColors.onFg,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,

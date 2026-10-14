@@ -28,10 +28,12 @@ String inviteUrl(String token) => buildGuinjiInviteLink(token);
 
 /// OG 공유 이미지 URL. 서버(admin_web) `/g/[token]/page.tsx`가 생성하는
 /// 동적 OG 이미지 경로를 그대로 따른다(가로 1200×630).
-String ogInviteUrl(String token) => '${_webOrigin(token)}/og/guinji/$token/${generateGuinjiShareCode()}.png';
+String ogInviteUrl(String token) =>
+    '${_webOrigin(token)}/og/guinji/$token/${generateGuinjiShareCode()}.png';
 
 /// 결과 카드 OG 이미지 URL(관계 상세 공유용).
-String ogResultUrl(String token) => '${_webOrigin(token)}/og/guinji/$token/result.png';
+String ogResultUrl(String token) =>
+    '${_webOrigin(token)}/og/guinji/$token/result.png';
 
 String playStoreUrl(String token) =>
     'https://play.google.com/store/apps/details?id=$playPackage&referrer=g_$token'; // Install Referrer로 token 복원
@@ -42,26 +44,35 @@ String _webOrigin(String token) {
   return '${uri.scheme}://${uri.host}${uri.hasPort ? ':${uri.port}' : ''}';
 }
 
-FeedTemplate guinjiInviteTemplate({required String host, required String token}) => FeedTemplate(
-      content: Content(
-        title: '$host님이 당신과의 인연을 궁금해해요', // K-1 ≤24자
-        description: '생년월일만 넣으면 두 사람이 어떤 인연인지 30초 만에 알려드려요', // K-2 ≤40자
-        imageUrl: Uri.parse(ogInviteUrl(token)),
-        imageWidth: 1200,
-        imageHeight: 630,
-        link: Link(webUrl: Uri.parse(inviteUrl(token)), mobileWebUrl: Uri.parse(inviteUrl(token))),
+FeedTemplate guinjiInviteTemplate({
+  required String host,
+  required String token,
+}) => FeedTemplate(
+  content: Content(
+    title: '$host님이 당신과의 인연을 궁금해해요', // K-1 ≤24자
+    description: '생년월일만 넣으면 두 사람이 어떤 인연인지 30초 만에 알려드려요', // K-2 ≤40자
+    imageUrl: Uri.parse(ogInviteUrl(token)),
+    imageWidth: 1200,
+    imageHeight: 630,
+    link: Link(
+      webUrl: Uri.parse(inviteUrl(token)),
+      mobileWebUrl: Uri.parse(inviteUrl(token)),
+    ),
+  ),
+  buttons: [
+    Button(
+      title: '내 인연 확인하기', // K-3
+      link: Link(
+        webUrl: Uri.parse(inviteUrl(token)),
+        mobileWebUrl: Uri.parse(inviteUrl(token)),
       ),
-      buttons: [
-        Button(
-          title: '내 인연 확인하기', // K-3
-          link: Link(webUrl: Uri.parse(inviteUrl(token)), mobileWebUrl: Uri.parse(inviteUrl(token))),
-        ),
-        Button(
-          title: '앱에서 열기', // K-4 · 미설치 시 카카오가 마켓으로 이동
-          link: Link(androidExecutionParams: {'g': token}),
-        ),
-      ],
-    );
+    ),
+    Button(
+      title: '앱에서 열기', // K-4 · 미설치 시 카카오가 마켓으로 이동
+      link: Link(androidExecutionParams: {'g': token}),
+    ),
+  ],
+);
 
 // 공유 시트 버튼 (앱 · !kIsWeb): 카카오톡 · 문자(sms:) · 더보기(OS 공유) + 링크 복사
 //   (인스타그램 버튼은 공개 공유 API 부재로 기존 프로젝트에서 이미 제거됨

@@ -109,7 +109,8 @@ class PendingGuinjiMapEntryStore {
   /// [하위 호환] draft 없이 단순 플래그로만 저장하고 싶은 호출부를 위해
   /// 남겨둔다(현재는 [GuinjiInputScreen]이 항상 draft를 채워 호출한다).
   static void save([GuinjiMapEntryDraft? draft]) {
-    _draft = draft ??
+    _draft =
+        draft ??
         const GuinjiMapEntryDraft(
           nickname: '',
           year: '',

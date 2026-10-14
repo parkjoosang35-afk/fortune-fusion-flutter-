@@ -106,7 +106,11 @@ class _GuinjiDeepIntroScreenState extends State<GuinjiDeepIntroScreen>
     final birth = parseGuinjiBirthLabel(person.birth);
     final theirCharacter = birth == null
         ? null
-        : GuinjiCharacter.of(birth: birth, stableKey: person.id);
+        : GuinjiCharacter.of(
+            birth: birth,
+            gender: GuinjiCharacter.fromKey(person.gender),
+            stableKey: person.id,
+          );
     // [핸드오프 `GJ.charFor(me)`] "나"(소유자) 얼굴 — 이 화면 컨텍스트에는
     // 실제 소유자 생년월일이 전달되지 않으므로(엔진/모델 변경 금지 원칙),
     // 지도 그래프 중앙 노드와 동일한 데모 자산을 재사용한다

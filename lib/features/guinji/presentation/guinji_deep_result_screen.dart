@@ -181,7 +181,11 @@ class GuinjiDeepResultScreen extends StatelessWidget {
     final birth = parseGuinjiBirthLabel(person.birth);
     final character = birth == null
         ? null
-        : GuinjiCharacter.of(birth: birth, stableKey: person.id);
+        : GuinjiCharacter.of(
+            birth: birth,
+            gender: GuinjiCharacter.fromKey(person.gender),
+            stableKey: person.id,
+          );
     final color = meta.color;
 
     // [핸드오프 bars 1:1 이식] S1~S5 고정 베이스값을 점수로 보정.

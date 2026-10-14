@@ -97,7 +97,11 @@ GuinjiGraphLayoutResult layoutGuinjiGraphNodes(
     final birth = parseGuinjiBirthLabel(p.birth);
     final facePath = birth == null
         ? null
-        : GuinjiCharacter.of(birth: birth, stableKey: p.id).face;
+        : GuinjiCharacter.of(
+            birth: birth,
+            gender: GuinjiCharacter.fromKey(p.gender),
+            stableKey: p.id,
+          ).face;
     return GuinjiGraphNode(
       x: n.x,
       y: n.y,
@@ -127,7 +131,10 @@ class GuinjiGraphStarSpec {
   final bool gold;
 }
 
-List<GuinjiGraphStarSpec> generateGuinjiGraphStars({int count = 18, int seed = 7}) {
+List<GuinjiGraphStarSpec> generateGuinjiGraphStars({
+  int count = 18,
+  int seed = 7,
+}) {
   final rnd = math.Random(seed);
   return List.generate(count, (i) {
     return GuinjiGraphStarSpec(
@@ -196,7 +203,8 @@ class GuinjiAnimatedRelationGraph extends StatefulWidget {
 }
 
 class _GuinjiAnimatedRelationGraphState
-    extends State<GuinjiAnimatedRelationGraph> with TickerProviderStateMixin {
+    extends State<GuinjiAnimatedRelationGraph>
+    with TickerProviderStateMixin {
   final _key = GlobalKey();
   double _scale = 1;
   double _panX = 0, _panY = 0;
@@ -244,7 +252,7 @@ class _GuinjiAnimatedRelationGraphState
     );
     _starSpecs = generateGuinjiGraphStars();
     WidgetsBinding.instance.addPostFrameCallback((_) => _rebuildLayout());
-    _loadFaceImage('assets/images/guinji/chars/f30_face.jpg', isOwner: true);
+    _loadFaceImage(_ownerFaceAsset(fallback: 'assets/images/guinji/chars/f30_face.jpg'), isOwner: true);
   }
 
   @override
@@ -282,8 +290,29 @@ class _GuinjiAnimatedRelationGraphState
 
   /// [핸드오프 `Face` 이식] 에셋 jpg를 [ui.Image]로 비동기 디코드해
   /// 캐시한다. 이미 캐시되었거나 로딩 중이면 중복 로드하지 않는다.
+  String _ownerFaceAsset({required String fallback}) {
+    // [성별 캐릭터 버그 수정 — 2026-10-14] 하드코딩된 여성 얼굴(f30) 대신
+    // 소유자 GuinjiPerson의 birth+gender로 캐릭터를 산출한다(지도에 소유자가
+    // 없으면 기존 기본값 유지). 가운데 표시 문자는 '나' 고정 관례를 따른다.
+    try {
+      final people = widget.people;
+      if (people.isEmpty) return fallback;
+      final owner = people.where((p0) => p0.id == 'owner').firstOrNull ?? people.first;
+      final birth = parseGuinjiBirthLabel(owner.birth);
+      if (birth == null) return fallback;
+      return GuinjiCharacter.of(
+        birth: birth,
+        gender: GuinjiCharacter.fromKey(owner.gender),
+        stableKey: owner.id,
+      ).face;
+    } catch (_) {
+      return fallback;
+    }
+  }
+
   Future<void> _loadFaceImage(String assetPath, {bool isOwner = false}) async {
-    if (_faceImageCache.containsKey(assetPath) || _faceLoading.contains(assetPath)) {
+    if (_faceImageCache.containsKey(assetPath) ||
+        _faceLoading.contains(assetPath)) {
       return;
     }
     _faceLoading.add(assetPath);
@@ -423,7 +452,11 @@ class _GuinjiAnimatedRelationGraphState
                 child: Text(
                   widget.emptyHint!,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 12.5, color: GmColors.dim, height: 1.5),
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    color: GmColors.dim,
+                    height: 1.5,
+                  ),
                 ),
               ),
             ),
@@ -432,8 +465,10 @@ class _GuinjiAnimatedRelationGraphState
               top: 12,
               right: 12,
               child: _GmGraphZoomControls(
-                onZoomIn: () => setState(() => _scale = (_scale + 0.2).clamp(0.6, 2.5)),
-                onZoomOut: () => setState(() => _scale = (_scale - 0.2).clamp(0.6, 2.5)),
+                onZoomIn: () =>
+                    setState(() => _scale = (_scale + 0.2).clamp(0.6, 2.5)),
+                onZoomOut: () =>
+                    setState(() => _scale = (_scale - 0.2).clamp(0.6, 2.5)),
                 onReset: () => setState(() {
                   _scale = 1;
                   _panX = 0;
@@ -450,7 +485,11 @@ class _GuinjiAnimatedRelationGraphState
 }
 
 class _GmGraphZoomControls extends StatelessWidget {
-  const _GmGraphZoomControls({required this.onZoomIn, required this.onZoomOut, required this.onReset});
+  const _GmGraphZoomControls({
+    required this.onZoomIn,
+    required this.onZoomOut,
+    required this.onReset,
+  });
 
   final VoidCallback onZoomIn, onZoomOut, onReset;
 
@@ -478,7 +517,11 @@ class _GmGraphZoomControls extends StatelessWidget {
   Widget _btn(IconData i, VoidCallback tap) => InkWell(
     onTap: tap,
     borderRadius: BorderRadius.circular(8),
-    child: SizedBox(width: 28, height: 28, child: Icon(i, size: 14, color: GmColors.fg)),
+    child: SizedBox(
+      width: 28,
+      height: 28,
+      child: Icon(i, size: 14, color: GmColors.fg),
+    ),
   );
 }
 
@@ -499,7 +542,11 @@ class _GmGraphLegend extends StatelessWidget {
         children: [
           const Text(
             '거리 = 관계 거리',
-            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: GmColors.muted),
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: GmColors.muted,
+            ),
           ),
           const SizedBox(height: 6),
           Row(
@@ -518,7 +565,11 @@ class _GmGraphLegend extends StatelessWidget {
   Widget _swatch(Color c, String label) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      Container(width: 8, height: 8, decoration: BoxDecoration(color: c, shape: BoxShape.circle)),
+      Container(
+        width: 8,
+        height: 8,
+        decoration: BoxDecoration(color: c, shape: BoxShape.circle),
+      ),
       const SizedBox(width: 4),
       Text(label, style: const TextStyle(fontSize: 10, color: GmColors.fg)),
     ],
@@ -612,8 +663,9 @@ class GuinjiGraphPainter extends CustomPainter {
         Offset(s.dx * size.width, s.dy * size.height),
         s.radius * (0.6 + tw * 0.4),
         Paint()
-          ..color = (s.gold ? GmColors.gold : GmColors.fg)
-              .withValues(alpha: opacity),
+          ..color = (s.gold ? GmColors.gold : GmColors.fg).withValues(
+            alpha: opacity,
+          ),
       );
     }
 
@@ -629,23 +681,37 @@ class GuinjiGraphPainter extends CustomPainter {
       Offset(cx, cy),
       130,
       Paint()
-        ..shader = ui.Gradient.radial(
-          Offset(cx, cy),
-          130,
-          [Colors.white.withValues(alpha: 0.09), Colors.white.withValues(alpha: 0)],
-        ),
+        ..shader = ui.Gradient.radial(Offset(cx, cy), 130, [
+          Colors.white.withValues(alpha: 0.09),
+          Colors.white.withValues(alpha: 0),
+        ]),
     );
 
     // ── 회전하는 궤도 링(반지름별로 속도를 달리해 정교함을 살린다) ──
     final ringBase = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
-    _dashed(canvas, Offset(cx, cy), 80, ringBase..color = GmColors.line,
-        rotation: time * _twoPi * 0.5);
-    _dashed(canvas, Offset(cx, cy), 140, ringBase..color = GmColors.line,
-        rotation: -time * _twoPi * 0.32);
-    _dashed(canvas, Offset(cx, cy), 200, ringBase..color = GmColors.hair,
-        rotation: time * _twoPi * 0.2);
+    _dashed(
+      canvas,
+      Offset(cx, cy),
+      80,
+      ringBase..color = GmColors.line,
+      rotation: time * _twoPi * 0.5,
+    );
+    _dashed(
+      canvas,
+      Offset(cx, cy),
+      140,
+      ringBase..color = GmColors.line,
+      rotation: -time * _twoPi * 0.32,
+    );
+    _dashed(
+      canvas,
+      Offset(cx, cy),
+      200,
+      ringBase..color = GmColors.hair,
+      rotation: time * _twoPi * 0.2,
+    );
 
     // ── 중심에서 퍼져나가는 레이더 펄스(radar ping) ──
     for (int i = 0; i < 2; i++) {
@@ -687,8 +753,14 @@ class GuinjiGraphPainter extends CustomPainter {
             ..color = Colors.white.withValues(alpha: 0.12),
         );
         _dashed(canvas, Offset(sx, sy), 23 * emptyScale, dashedPaint);
-        _text(canvas, Offset(sx, sy), '+', 15 * emptyScale, GmColors.dim,
-            weight: FontWeight.w400);
+        _text(
+          canvas,
+          Offset(sx, sy),
+          '+',
+          15 * emptyScale,
+          GmColors.dim,
+          weight: FontWeight.w400,
+        );
       }
     }
 
@@ -701,8 +773,11 @@ class GuinjiGraphPainter extends CustomPainter {
         final ae = _entranceForNode(a, entrance);
         final be = _entranceForNode(b, entrance);
         if (ae < 0.98 || be < 0.98) continue;
-        final dimmed = (selectedPerson != null || filter != null) &&
-            !((selectedPerson != null && (selectedPerson == a.person || selectedPerson == b.person)) ||
+        final dimmed =
+            (selectedPerson != null || filter != null) &&
+            !((selectedPerson != null &&
+                    (selectedPerson == a.person ||
+                        selectedPerson == b.person)) ||
                 filter == t);
         canvas.drawLine(
           Offset(a.x, a.y),
@@ -726,10 +801,10 @@ class GuinjiGraphPainter extends CustomPainter {
       final lineAlpha = isSelected
           ? 0.9
           : isFiltered
-              ? 0.6
-              : off
-                  ? 0.05
-                  : 0.22;
+          ? 0.6
+          : off
+          ? 0.05
+          : 0.22;
       canvas.drawLine(
         Offset(cx, cy),
         Offset(ex, ey),
@@ -762,14 +837,37 @@ class GuinjiGraphPainter extends CustomPainter {
       Paint()..color = GmColors.gold.withValues(alpha: 0.14),
     );
     if (ownerFaceImage != null) {
-      _drawFaceImage(canvas, ownerFaceImage!, Offset(cx, cy), ownerR * ownerBreath, 1.0,
-          ringColor: Colors.white.withValues(alpha: 0.7));
+      _drawFaceImage(
+        canvas,
+        ownerFaceImage!,
+        Offset(cx, cy),
+        ownerR * ownerBreath,
+        1.0,
+        ringColor: Colors.white.withValues(alpha: 0.7),
+      );
     } else {
-      canvas.drawCircle(Offset(cx, cy), ownerR * ownerBreath, Paint()..color = GmColors.card);
+      canvas.drawCircle(
+        Offset(cx, cy),
+        ownerR * ownerBreath,
+        Paint()..color = GmColors.card,
+      );
     }
-    _text(canvas, Offset(cx, cy + ownerR * ownerBreath + 16), centerTitle, 11, GmColors.fg, weight: FontWeight.w600);
+    _text(
+      canvas,
+      Offset(cx, cy + ownerR * ownerBreath + 16),
+      centerTitle,
+      11,
+      GmColors.fg,
+      weight: FontWeight.w600,
+    );
     if (centerSubtitle.isNotEmpty) {
-      _text(canvas, Offset(cx, cy + ownerR * ownerBreath + 30), centerSubtitle, 9, GmColors.muted);
+      _text(
+        canvas,
+        Offset(cx, cy + ownerR * ownerBreath + 30),
+        centerSubtitle,
+        9,
+        GmColors.muted,
+      );
     }
 
     // ── 인물 노드: 등장(scale+fade) + 호흡 + 미세 플로팅 + 사진 + 라벨 ──
@@ -809,23 +907,37 @@ class GuinjiGraphPainter extends CustomPainter {
           Offset(ox, oy),
           r,
           alpha,
-          ringColor: (isSelected ? n.color : Colors.white.withValues(alpha: 0.18)),
+          ringColor: (isSelected
+              ? n.color
+              : Colors.white.withValues(alpha: 0.18)),
           ringWidth: isSelected ? 1.5 : 1,
         );
       } else {
         // 폴백: 핸드오프 사진 에셋이 아직 없을 때 — 유형색 원 + 이니셜.
-        canvas.drawCircle(Offset(ox, oy), r, Paint()..color = n.color.withValues(alpha: alpha));
+        canvas.drawCircle(
+          Offset(ox, oy),
+          r,
+          Paint()..color = n.color.withValues(alpha: alpha),
+        );
         canvas.drawCircle(
           Offset(ox, oy),
           r,
           Paint()
-            ..color = Colors.white.withValues(alpha: alpha * (isSelected ? 1 : 0.5))
+            ..color = Colors.white.withValues(
+              alpha: alpha * (isSelected ? 1 : 0.5),
+            )
             ..style = PaintingStyle.stroke
             ..strokeWidth = isSelected ? 1.5 : 1,
         );
         if (alpha > 0.5 && n.person.name.isNotEmpty) {
-          _text(canvas, Offset(ox, oy), n.person.name.substring(0, 1), r * 0.7,
-              Colors.white.withValues(alpha: alpha), weight: FontWeight.w700);
+          _text(
+            canvas,
+            Offset(ox, oy),
+            n.person.name.substring(0, 1),
+            r * 0.7,
+            Colors.white.withValues(alpha: alpha),
+            weight: FontWeight.w700,
+          );
         }
       }
 
@@ -834,11 +946,24 @@ class GuinjiGraphPainter extends CustomPainter {
         final labelY = n.labelTop ? oy - r - 8 : oy + r + 8;
         final nameY = n.labelTop ? labelY - 14 : labelY + 7;
         final typeY = n.labelTop ? labelY : labelY + 21;
-        _text(canvas, Offset(ox, nameY), n.person.name, 11,
-            (isSelected ? GmColors.fg : const Color(0xC7F2F0EC)).withValues(alpha: alpha),
-            weight: FontWeight.w600);
-        _text(canvas, Offset(ox, typeY), '${spec.hanja} ${spec.short}', 9.5,
-            n.color.withValues(alpha: alpha * 0.92), weight: FontWeight.w600);
+        _text(
+          canvas,
+          Offset(ox, nameY),
+          n.person.name,
+          11,
+          (isSelected ? GmColors.fg : const Color(0xC7F2F0EC)).withValues(
+            alpha: alpha,
+          ),
+          weight: FontWeight.w600,
+        );
+        _text(
+          canvas,
+          Offset(ox, typeY),
+          '${spec.hanja} ${spec.short}',
+          9.5,
+          n.color.withValues(alpha: alpha * 0.92),
+          weight: FontWeight.w600,
+        );
       }
     }
 
@@ -861,10 +986,26 @@ class GuinjiGraphPainter extends CustomPainter {
     canvas.save();
     canvas.clipPath(Path()..addOval(rect));
     // 이미지를 커버 방식으로 중앙 정사각 크롭해 원형 안에 그린다.
-    final src = Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble());
-    final srcSize = image.width < image.height ? image.width.toDouble() : image.height.toDouble();
-    final srcSquare = Rect.fromCenter(center: src.center, width: srcSize, height: srcSize);
-    canvas.drawImageRect(image, srcSquare, rect, Paint()..color = Colors.white.withValues(alpha: alpha));
+    final src = Rect.fromLTWH(
+      0,
+      0,
+      image.width.toDouble(),
+      image.height.toDouble(),
+    );
+    final srcSize = image.width < image.height
+        ? image.width.toDouble()
+        : image.height.toDouble();
+    final srcSquare = Rect.fromCenter(
+      center: src.center,
+      width: srcSize,
+      height: srcSize,
+    );
+    canvas.drawImageRect(
+      image,
+      srcSquare,
+      rect,
+      Paint()..color = Colors.white.withValues(alpha: alpha),
+    );
     canvas.restore();
     if (ringColor != null) {
       canvas.drawCircle(
@@ -889,12 +1030,24 @@ class GuinjiGraphPainter extends CustomPainter {
     return Curves.easeOutCubic.transform(local);
   }
 
-  void _dashed(Canvas c, Offset center, double radius, Paint p, {double rotation = 0}) {
+  void _dashed(
+    Canvas c,
+    Offset center,
+    double radius,
+    Paint p, {
+    double rotation = 0,
+  }) {
     const step = 6 / 180 * math.pi;
     for (double a = rotation; a < _twoPi + rotation; a += step * 2) {
       c.drawLine(
-        Offset(center.dx + math.cos(a) * radius, center.dy + math.sin(a) * radius),
-        Offset(center.dx + math.cos(a + step) * radius, center.dy + math.sin(a + step) * radius),
+        Offset(
+          center.dx + math.cos(a) * radius,
+          center.dy + math.sin(a) * radius,
+        ),
+        Offset(
+          center.dx + math.cos(a + step) * radius,
+          center.dy + math.sin(a + step) * radius,
+        ),
         p,
       );
     }
@@ -916,9 +1069,19 @@ class GuinjiGraphPainter extends CustomPainter {
     }
   }
 
-  void _text(Canvas c, Offset o, String s, double size, Color color, {FontWeight weight = FontWeight.w600}) {
+  void _text(
+    Canvas c,
+    Offset o,
+    String s,
+    double size,
+    Color color, {
+    FontWeight weight = FontWeight.w600,
+  }) {
     final tp = TextPainter(
-      text: TextSpan(text: s, style: TextStyle(fontSize: size, color: color, fontWeight: weight)),
+      text: TextSpan(
+        text: s,
+        style: TextStyle(fontSize: size, color: color, fontWeight: weight),
+      ),
       textDirection: TextDirection.ltr,
       textAlign: TextAlign.center,
     );

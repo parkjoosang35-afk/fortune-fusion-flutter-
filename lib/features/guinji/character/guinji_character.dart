@@ -16,14 +16,17 @@ class GuinjiCharacter {
   final String band; // 표시용 '30대'
   const GuinjiCharacter(this.id, this.band);
 
-  String get face => 'assets/images/guinji/chars/${id}_face.jpg'; // 256×256 (원형 크롭)
-  String get body => 'assets/images/guinji/chars/${id}_body.jpg'; // 600×800 (상반신)
+  String get face =>
+      'assets/images/guinji/chars/${id}_face.jpg'; // 256×256 (원형 크롭)
+  String get body =>
+      'assets/images/guinji/chars/${id}_body.jpg'; // 600×800 (상반신)
 
   /// 만 나이 → 연령대 키.
   static String bandKey(DateTime birth, {DateTime? now}) {
     final n = now ?? DateTime.now();
     var age = n.year - birth.year;
-    if (n.month < birth.month || (n.month == birth.month && n.day < birth.day)) {
+    if (n.month < birth.month ||
+        (n.month == birth.month && n.day < birth.day)) {
       age--;
     }
     if (age < 20) return '10';
@@ -64,6 +67,14 @@ class GuinjiCharacter {
     return h;
   }
 
+  /// [성별 캐릭터 버그 수정 — 2026-10-14] 서버/화면 문자열('male'/'female')을
+  /// [GuinjiGender]로 변환한다. 모르는 값·null은 null(해시 폴백 유지).
+  static GuinjiGender? fromKey(String? g) {
+    if (g == 'male') return GuinjiGender.male;
+    if (g == 'female') return GuinjiGender.female;
+    return null;
+  }
+
   /// [stableKey] = memberId (없으면 이름). 같은 사람은 항상 같은 얼굴.
   /// [gender]가 null이면 해시 짝/홀로 성별 폴백.
   /// [overrideId] = 사용자가 '바꾸기'로 직접 고른 캐릭터.
@@ -75,7 +86,8 @@ class GuinjiCharacter {
     DateTime? now,
   }) {
     final band = bandKey(birth, now: now);
-    if (overrideId != null) return GuinjiCharacter(overrideId, _bandLabel[band]!);
+    if (overrideId != null)
+      return GuinjiCharacter(overrideId, _bandLabel[band]!);
     final h = _hash(stableKey);
     final g = gender ?? (h % 2 == 0 ? GuinjiGender.female : GuinjiGender.male);
     final base = _fileA[(g == GuinjiGender.female ? 'F' : 'M') + band]!;

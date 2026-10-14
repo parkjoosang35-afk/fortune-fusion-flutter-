@@ -90,21 +90,31 @@ const guinjiTypes = <String, GuinjiTypeSpec>{
     [9, 7],
     '서로 극하는 기운으로 긴장과 조율이 공존하는 관계',
   ),
-  'CHUNG': GuinjiTypeSpec(
-    'CHUNG',
-    '충돌극복',
-    '극복',
-    '衝',
-    Color(0xFFEF7A55),
-    [2, 7],
-    '일지가 충하여 부딪히지만 그만큼 성장을 만드는 관계',
-  ),
+  'CHUNG': GuinjiTypeSpec('CHUNG', '충돌극복', '극복', '衝', Color(0xFFEF7A55), [
+    2,
+    7,
+  ], '일지가 충하여 부딪히지만 그만큼 성장을 만드는 관계'),
 };
 
 /// 알 수 없는 값(레거시 12종 등)이 와도 크래시 없이 폴백.
 GuinjiTypeSpec guinjiTypeOf(String? code) =>
     guinjiTypes[code] ??
-    const GuinjiTypeSpec('UNKNOWN', '인연', '인연', '人', Color(0xFF9A9AA0), null, '');
+    const GuinjiTypeSpec(
+      'UNKNOWN',
+      '인연',
+      '인연',
+      '人',
+      Color(0xFF9A9AA0),
+      null,
+      '',
+    );
 
-String gradeOf(int score) =>
-    score >= 90 ? 'S' : score >= 75 ? 'A' : score >= 60 ? 'B' : score >= 45 ? 'C' : 'D';
+String gradeOf(int score) => score >= 90
+    ? 'S'
+    : score >= 75
+    ? 'A'
+    : score >= 60
+    ? 'B'
+    : score >= 45
+    ? 'C'
+    : 'D';

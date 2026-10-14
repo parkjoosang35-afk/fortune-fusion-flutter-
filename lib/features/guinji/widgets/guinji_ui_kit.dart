@@ -204,7 +204,10 @@ class GuinjiTitleBlock extends StatelessWidget {
 /// title 중 `.accent` 구간(골드→라벤더 그라디언트 텍스트) — 단순화하여
 /// 라벤더 색으로 표시.
 TextSpan guinjiAccentSpan(String text) {
-  return TextSpan(text: text, style: const TextStyle(color: GuinjiColors.lavender));
+  return TextSpan(
+    text: text,
+    style: const TextStyle(color: GuinjiColors.lavender),
+  );
 }
 
 /// `.field` + `.field-label` + `.field-input-wrap` + `.field-input` +
@@ -226,6 +229,7 @@ class GuinjiField extends StatelessWidget {
   final String label;
   final bool required;
   final String? hint;
+
   /// 커스텀 입력 위젯(예: 3분할 생년월일)을 넣고 싶을 때 사용. 지정 시
   /// controller/placeholder 등 단일 입력 필드 관련 파라미터는 무시된다.
   final Widget? child;
@@ -614,7 +618,9 @@ class GuinjiStatRow extends StatelessWidget {
     return Row(
       children: [
         for (final (num, label) in items) ...[
-          Expanded(child: _Stat(num: num, label: label)),
+          Expanded(
+            child: _Stat(num: num, label: label),
+          ),
           if (items.last.$1 != num || items.last.$2 != label)
             const SizedBox(width: 8),
         ],

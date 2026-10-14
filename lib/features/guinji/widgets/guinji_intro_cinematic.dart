@@ -148,14 +148,14 @@ class _GuinjiIntroCinematicState extends State<GuinjiIntroCinematic>
             alignment: Alignment.center,
             transform: _warping
                 ? (Matrix4.identity()
-                  ..translateByDouble(cx, cy, 0, 1)
-                  ..scaleByDouble(
-                    1.0 + (tt / 1100).clamp(0.0, 1.0) * 5.0,
-                    1.0 + (tt / 1100).clamp(0.0, 1.0) * 5.0,
-                    1.0,
-                    1.0,
-                  )
-                  ..translateByDouble(-cx, -cy, 0, 1))
+                    ..translateByDouble(cx, cy, 0, 1)
+                    ..scaleByDouble(
+                      1.0 + (tt / 1100).clamp(0.0, 1.0) * 5.0,
+                      1.0 + (tt / 1100).clamp(0.0, 1.0) * 5.0,
+                      1.0,
+                      1.0,
+                    )
+                    ..translateByDouble(-cx, -cy, 0, 1))
                 : Matrix4.identity(),
             child: Stack(
               fit: StackFit.expand,
@@ -186,7 +186,13 @@ class _GuinjiIntroCinematicState extends State<GuinjiIntroCinematic>
 
                 // 오행 원
                 if (tt > 700)
-                  _WuxingCircle(cx: cx, cy: cy, scale: scale, tt: tt, done: _done),
+                  _WuxingCircle(
+                    cx: cx,
+                    cy: cy,
+                    scale: scale,
+                    tt: tt,
+                    done: _done,
+                  ),
 
                 // 연결선
                 CustomPaint(
@@ -214,7 +220,13 @@ class _GuinjiIntroCinematicState extends State<GuinjiIntroCinematic>
 
                 // 완성 — 빛 폭발 + 스트릭
                 if (tt >= _done && tt < _done + 1400)
-                  _BurstEffect(cx: cx, cy: cy, scale: scale, tt: tt, done: _done),
+                  _BurstEffect(
+                    cx: cx,
+                    cy: cy,
+                    scale: scale,
+                    tt: tt,
+                    done: _done,
+                  ),
 
                 // 나
                 Positioned(
@@ -307,9 +319,7 @@ class _GuinjiIntroCinematicState extends State<GuinjiIntroCinematic>
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 400),
                 child: Text(
-                  tt < _arrive0
-                      ? '어둠 속에 당신이라는 별 하나'
-                      : '하나둘, 인연이 당신에게 닿고 있어요',
+                  tt < _arrive0 ? '어둠 속에 당신이라는 별 하나' : '하나둘, 인연이 당신에게 닿고 있어요',
                   key: ValueKey(tt < _arrive0),
                   textAlign: TextAlign.center,
                   style: const TextStyle(
@@ -533,7 +543,10 @@ class _WuxingPainter extends CustomPainter {
       final len = i % 5 == 0 ? 8.0 * scale : 3.0 * scale;
       final opacity = tt > 1500 ? 0.4 : 0.0;
       final p1 = Offset(cx + math.cos(a) * r, cy + math.sin(a) * r);
-      final p2 = Offset(cx + math.cos(a) * (r - len), cy + math.sin(a) * (r - len));
+      final p2 = Offset(
+        cx + math.cos(a) * (r - len),
+        cy + math.sin(a) * (r - len),
+      );
       final tickPaint = Paint()
         ..color = GmColors.gold.withValues(alpha: opacity)
         ..strokeWidth = 1;
@@ -573,7 +586,10 @@ class _WuxingPainter extends CustomPainter {
       final path = Path();
       for (var i = 0; i < 6; i++) {
         final a = -math.pi / 2 + i * math.pi / 3;
-        final pt = Offset(cx + math.cos(a) * 128 * scale, cy + math.sin(a) * 128 * scale);
+        final pt = Offset(
+          cx + math.cos(a) * 128 * scale,
+          cy + math.sin(a) * 128 * scale,
+        );
         if (i == 0) {
           path.moveTo(pt.dx, pt.dy);
         } else {
@@ -718,14 +734,10 @@ class _ArrivalWidget extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 image: DecorationImage(
-                  image: AssetImage(
-                    GuinjiCharacter(arrival.charId, '').face,
-                  ),
+                  image: AssetImage(GuinjiCharacter(arrival.charId, '').face),
                   fit: BoxFit.cover,
                 ),
-                boxShadow: [
-                  BoxShadow(color: typeSpec.color, blurRadius: 18),
-                ],
+                boxShadow: [BoxShadow(color: typeSpec.color, blurRadius: 18)],
                 border: Border.all(color: typeSpec.color, width: 1.5),
               ),
             ),
@@ -751,9 +763,7 @@ class _ArrivalWidget extends StatelessWidget {
               decoration: BoxDecoration(
                 color: typeSpec.color,
                 borderRadius: BorderRadius.circular(7),
-                boxShadow: [
-                  BoxShadow(color: typeSpec.color, blurRadius: 16),
-                ],
+                boxShadow: [BoxShadow(color: typeSpec.color, blurRadius: 16)],
                 border: Border.all(color: GmColors.bg, width: 2),
               ),
               child: Text(
@@ -831,10 +841,12 @@ class _CometTrail extends StatelessWidget {
       final raw = ((localMs - delay) / 500).clamp(0.0, 1.0);
       if (localMs < delay) continue;
       final te = _cometCurve.transform(raw);
-      final px = (1 - te) * (1 - te) * sx +
+      final px =
+          (1 - te) * (1 - te) * sx +
           2 * (1 - te) * te * ctrlX +
           te * te * targetX;
-      final py = (1 - te) * (1 - te) * sy +
+      final py =
+          (1 - te) * (1 - te) * sy +
           2 * (1 - te) * te * ctrlY +
           te * te * targetY;
       final opacity = (te < 0.1 ? te / 0.1 : 1.0) * (1 - k * 0.2);
@@ -851,7 +863,10 @@ class _CometTrail extends StatelessWidget {
               shape: BoxShape.circle,
               color: dotColor.withValues(alpha: opacity),
               boxShadow: [
-                BoxShadow(color: color.withValues(alpha: opacity), blurRadius: 14),
+                BoxShadow(
+                  color: color.withValues(alpha: opacity),
+                  blurRadius: 14,
+                ),
               ],
             ),
           ),
@@ -941,9 +956,9 @@ class _BurstEffect extends StatelessWidget {
                         gradient: LinearGradient(
                           colors: [
                             Colors.transparent,
-                            const Color(0xFFFFF3C8).withValues(
-                              alpha: (1 - prog).clamp(0.0, 1.0),
-                            ),
+                            const Color(
+                              0xFFFFF3C8,
+                            ).withValues(alpha: (1 - prog).clamp(0.0, 1.0)),
                           ],
                         ),
                       ),
@@ -987,7 +1002,8 @@ class _DustDot extends StatefulWidget {
   State<_DustDot> createState() => _DustDotState();
 }
 
-class _DustDotState extends State<_DustDot> with SingleTickerProviderStateMixin {
+class _DustDotState extends State<_DustDot>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _c = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 3600),
@@ -1022,7 +1038,12 @@ class _DustDotState extends State<_DustDot> with SingleTickerProviderStateMixin 
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: GmColors.gold.withValues(alpha: opacity),
-              boxShadow: [BoxShadow(color: GmColors.gold.withValues(alpha: opacity), blurRadius: 6)],
+              boxShadow: [
+                BoxShadow(
+                  color: GmColors.gold.withValues(alpha: opacity),
+                  blurRadius: 6,
+                ),
+              ],
             ),
           ),
         );

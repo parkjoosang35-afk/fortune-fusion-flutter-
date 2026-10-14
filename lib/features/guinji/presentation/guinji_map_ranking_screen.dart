@@ -528,7 +528,11 @@ class _RankRow extends StatelessWidget {
     final birth = parseGuinjiBirthLabel(person.birth);
     final character = birth == null
         ? null
-        : GuinjiCharacter.of(birth: birth, stableKey: person.id);
+        : GuinjiCharacter.of(
+            birth: birth,
+            gender: GuinjiCharacter.fromKey(person.gender),
+            stableKey: person.id,
+          );
 
     return InkWell(
       onTap: onTap,

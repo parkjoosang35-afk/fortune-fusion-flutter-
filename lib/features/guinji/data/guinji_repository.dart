@@ -30,6 +30,7 @@ class GuinjiRepository {
   /// 반환: {mapId, token, isNew}
   Future<ApiResult<Map<String, dynamic>>> createMap({
     String? name,
+    String? gender, // 'male' | 'female' — 나의정보에서 고른 성별
     required Map<String, dynamic> saju,
   }) async {
     final uri = Uri.parse(
@@ -43,7 +44,11 @@ class GuinjiRepository {
           .post(
             uri,
             headers: {'Content-Type': 'application/json', ...authHeader},
-            body: jsonEncode({if (name != null) 'name': name, 'saju': saju}),
+            body: jsonEncode({
+              if (name != null) 'name': name,
+              if (gender != null) 'gender': gender,
+              'saju': saju,
+            }),
           )
           .timeout(const Duration(seconds: 15));
 
@@ -307,7 +312,9 @@ class GuinjiRepository {
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/guinji/g/$token/relation-summary',
     );
-    debugPrint('[GuinjiRepository] [fetchRelationSummary] 요청 -> $uri (인증 헤더 없음)');
+    debugPrint(
+      '[GuinjiRepository] [fetchRelationSummary] 요청 -> $uri (인증 헤더 없음)',
+    );
 
     try {
       final response = await http
@@ -353,7 +360,10 @@ class GuinjiRepository {
     try {
       final authHeader = await AuthTokenStore.authHeader();
       final response = await http
-          .delete(uri, headers: {'Content-Type': 'application/json', ...authHeader})
+          .delete(
+            uri,
+            headers: {'Content-Type': 'application/json', ...authHeader},
+          )
           .timeout(const Duration(seconds: 15));
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
@@ -391,7 +401,10 @@ class GuinjiRepository {
     try {
       final authHeader = await AuthTokenStore.authHeader();
       final response = await http
-          .post(uri, headers: {'Content-Type': 'application/json', ...authHeader})
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json', ...authHeader},
+          )
           .timeout(const Duration(seconds: 15));
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
@@ -428,7 +441,10 @@ class GuinjiRepository {
     try {
       final authHeader = await AuthTokenStore.authHeader();
       final response = await http
-          .post(uri, headers: {'Content-Type': 'application/json', ...authHeader})
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json', ...authHeader},
+          )
           .timeout(const Duration(seconds: 15));
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
@@ -464,7 +480,10 @@ class GuinjiRepository {
     try {
       final authHeader = await AuthTokenStore.authHeader();
       final response = await http
-          .post(uri, headers: {'Content-Type': 'application/json', ...authHeader})
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json', ...authHeader},
+          )
           .timeout(const Duration(seconds: 15));
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
