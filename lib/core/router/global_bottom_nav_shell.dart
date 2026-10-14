@@ -31,6 +31,7 @@ Widget wrapWithGlobalBottomNav(String? routeName, Widget child) {
     return child;
   }
   return Scaffold(
+    backgroundColor: routeName.startsWith('/guinji') ? const Color(0xFF0B0B0D) : null,
     body: child,
     bottomNavigationBar: const MainBottomNavBar(currentIndex: 0),
   );

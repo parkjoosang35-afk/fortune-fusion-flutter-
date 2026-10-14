@@ -27,12 +27,15 @@ Route<T> guinjiPageRoute<T extends Object?>(Widget child) {
         parent: animation,
         curve: Curves.easeOutCubic,
       );
-      return SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(0, 0.08),
-          end: Offset.zero,
-        ).animate(curved),
-        child: child,
+      return ColoredBox(
+        color: const Color(0xFF0B0B0D),
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 0.08),
+            end: Offset.zero,
+          ).animate(curved),
+          child: child,
+        ),
       );
     },
   );
