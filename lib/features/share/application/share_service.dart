@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show Uint8List;
+import 'package:share_plus/share_plus.dart';
+import 'package:flutter/foundation.dart' show Uint8List, kIsWeb;
 import '../../../core/util/original_result_capture.dart';
 import '../presentation/full_result_sheet.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../data/share_api_service.dart';
 import '../domain/share_result_model.dart';
+import '../../../core/util/safe_share.dart';
 
 /// 결과 공유(Share Result) — 5개 결과 화면(운세/타로/관상/손금/소원성)이
 /// 공통으로 호출하는 공유 트리거 헬퍼.
@@ -65,6 +67,15 @@ class ShareService {
       }
     }
     if (!context.mounted) return;
+    // [앱·웹 공유 분리 — 2026-10-14 사용자 결정] 앱은 결과 원본 이미지를
+    // 공유 시트로 직접 전송한다(서버 업로드·/r 링크 생성·공개 동의 팝업
+    // 없음 — 이미지를 받는 상대는 공유 시트 수신자뿐). 웹은 기존대로
+    // 업로드 후 /r/{id} 결과 페이지 링크로 공유한다. 앱 공유 문구 링크는
+    // 스토어 등록 전까지 https://sintong.kr(등록 후 교체 예정).
+    if (!kIsWeb && originalPng != null) {
+      await _shareImageDirectly(context, title, originalPng);
+      return;
+    }
     if (originalPng != null) {
       final approved = await showDialog<bool>(
         context: context,
@@ -116,6 +127,40 @@ class ShareService {
       payload: payload,
       originalPng: originalPng,
     );
+  }
+
+  /// [앱 전용 — 이미지 직접 공유] 원본 결과 이미지를 OS 공유 시트로 바로
+  /// 전송한다. 미지원·실패 시 기존 safeShareText(텍스트+클립보드 폴백)로
+  /// 귀결시켜 어느 환경에서도 공유가 끊기지 않게 한다.
+  static Future<void> _shareImageDirectly(
+    BuildContext context,
+    String title,
+    Uint8List png,
+  ) async {
+    final shareText = '$title\n신통방통에서 확인했어요. 앱 다운로드: https://sintong.kr';
+    Future<void> textFallback() async {
+      if (!context.mounted) return;
+      await safeShareText(context, shareText, subject: '신통방통 결과');
+    }
+
+    try {
+      final result = await Share.shareXFiles(
+        [
+          XFile.fromData(
+            png,
+            name: 'sintong_result_${DateTime.now().millisecondsSinceEpoch}.png',
+            mimeType: 'image/png',
+          ),
+        ],
+        text: shareText,
+        subject: '신통방통 결과',
+      );
+      if (result.status == ShareResultStatus.unavailable) {
+        await textFallback();
+      }
+    } catch (_) {
+      await textFallback();
+    }
   }
 
   // ignore: unused_element
