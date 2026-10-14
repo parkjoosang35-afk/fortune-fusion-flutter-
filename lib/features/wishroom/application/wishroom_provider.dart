@@ -6,6 +6,7 @@
 import 'package:flutter/foundation.dart';
 import '../data/models.dart';
 import '../data/wr_api.dart';
+import '../data/wr_catalog.dart';
 import '../data/wr_local_cache.dart';
 import '../features/wallpaper/wallpaper_service.dart';
 import '../features/wallpaper/wish_action_sync.dart';
@@ -447,9 +448,56 @@ class WishRoomProvider extends ChangeNotifier {
   List<OutfitOffer> _outfitCache = [];
   List<OutfitOffer> get outfitOffers => _outfitCache;
 
+  Future<bool> wearNamedOutfit(String char, OutfitOffer offer) async {
+    lastError = null;
+    if (room == null) {
+      lastError = ApiError(409, 'NO_ROOM', '먼저 소원방을 만들어 주세요');
+      notifyListeners();
+      return false;
+    }
+    if (!offer.compatible || offer.id == null) {
+      lastError = ApiError(403, 'NO_CHAR', '하린·준 전용 의상이에요');
+      notifyListeners();
+      return false;
+    }
+    if (offer.theme != room!.theme) {
+      lastError = ApiError(409, 'THEME_MISMATCH', '소원방 테마에 맞는 의상을 선택해 주세요');
+      notifyListeners();
+      return false;
+    }
+    try {
+      if (!offer.owned) me = await repo.buyNamedOutfit(char, offer.id!);
+      if (room!.char != char) {
+        me = await repo.setCharacter(char);
+        await loadMyRoom();
+        if (room?.char != char) throw ApiError(409, 'CHAR_CHANGED', '수호자 변경을 확인하지 못했어요');
+      }
+      room = await repo.setNamedOutfit(room!.id, offer.id!);
+      if (room!.outfitId != offer.id) throw ApiError(409, 'NOT_APPLIED', '의상 적용을 확인하지 못했어요');
+      await loadOutfits(char);
+      _syncNativeWallpaper();
+      notifyListeners();
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<void> loadOutfits(String char) async {
     try {
-      _outfitCache = await repo.outfits(char);
+      final serverOffers = await repo.outfits(char);
+      await WrCatalog.load();
+      _outfitCache = [
+        ...serverOffers.where((o) => !o.isNew),
+        for (final data in WrCatalog.I.newOutfits)
+          serverOffers.where((o) => o.id == data['id']).firstOrNull ?? OutfitOffer.fromJson({
+            ...data, 'hasArt': true,
+            'compatible': char == (data['gender'] == 'F' ? 'F00' : 'M00'),
+            'owned': me?.ownedOutfits.contains('$char:${data['id']}') ?? false,
+          }),
+      ];
       notifyListeners();
     } on ApiError catch (e) {
       lastError = e;

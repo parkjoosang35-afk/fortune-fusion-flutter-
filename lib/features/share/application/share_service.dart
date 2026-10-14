@@ -6,7 +6,7 @@ import '../presentation/full_result_sheet.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../data/share_api_service.dart';
 import '../domain/share_result_model.dart';
-import '../../../core/util/safe_share.dart';
+
 
 /// 결과 공유(Share Result) — 5개 결과 화면(운세/타로/관상/손금/소원성)이
 /// 공통으로 호출하는 공유 트리거 헬퍼.
@@ -72,7 +72,11 @@ class ShareService {
     // 없음 — 이미지를 받는 상대는 공유 시트 수신자뿐). 웹은 기존대로
     // 업로드 후 /r/{id} 결과 페이지 링크로 공유한다. 앱 공유 문구 링크는
     // 스토어 등록 전까지 https://sintong.kr(등록 후 교체 예정).
-    if (!kIsWeb && originalPng != null) {
+    if (!kIsWeb) {
+      if (originalPng == null) {
+        AppToast.show(context, '결과 이미지가 준비되지 않았어요. 다시 시도해주세요.', isError: true);
+        return;
+      }
       await _shareImageDirectly(context, title, originalPng);
       return;
     }
@@ -118,7 +122,8 @@ class ShareService {
       return;
     }
 
-    final shareUrl = result.data!.shareUrl;
+    final shareUri = Uri.parse(result.data!.shareUrl);
+    final shareUrl = shareUri.replace(path: shareUri.path.replaceFirst(RegExp(r'^/r/'), '/web-result/'), query: null).toString();
     if (!context.mounted) return;
     await showFullResultSheet(
       context,
@@ -130,17 +135,17 @@ class ShareService {
   }
 
   /// [앱 전용 — 이미지 직접 공유] 원본 결과 이미지를 OS 공유 시트로 바로
-  /// 전송한다. 미지원·실패 시 기존 safeShareText(텍스트+클립보드 폴백)로
-  /// 귀결시켜 어느 환경에서도 공유가 끊기지 않게 한다.
+  /// 전송한다. 미지원·실패는 오류로 알리며 텍스트 공유로 대체하지 않는다.
+  /// 공유창 종료는 수신 앱의 실제 전달 완료를 보장하지 않는다.
   static Future<void> _shareImageDirectly(
     BuildContext context,
     String title,
     Uint8List png,
   ) async {
     final shareText = '$title\n신통방통에서 확인했어요. 앱 다운로드: https://sintong.kr';
-    Future<void> textFallback() async {
+    void reportFailure() {
       if (!context.mounted) return;
-      await safeShareText(context, shareText, subject: '신통방통 결과');
+      AppToast.show(context, '결과 이미지를 공유하지 못했어요. 이미지를 저장한 뒤 첨부하거나 다시 시도해주세요.', isError: true);
     }
 
     try {
@@ -156,10 +161,10 @@ class ShareService {
         subject: '신통방통 결과',
       );
       if (result.status == ShareResultStatus.unavailable) {
-        await textFallback();
+        reportFailure();
       }
     } catch (_) {
-      await textFallback();
+      reportFailure();
     }
   }
 

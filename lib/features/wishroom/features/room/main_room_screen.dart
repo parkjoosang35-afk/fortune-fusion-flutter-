@@ -841,7 +841,7 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
     return WishRoom.fromJson({
       'id': r.id, 'ownerId': r.ownerId, 'owner': r.owner, 'region': r.region, 'text': r.text, 'char': r.char,
       'status': r.status.name, 'visibility': r.visibility.name, 'theme': r.theme.name,
-      'outfit': r.outfit?.name, 'outfitNow': r.outfitNow.name, 'wishColor': r.wishColor, 'paper': r.paper,
+      'outfit': r.outfit?.name, 'outfitNow': r.outfitNow.name, 'outfitId': r.outfitId, 'wishColor': r.wishColor, 'paper': r.paper,
       'devotionCount': r.devotionCount, 'supportCount': r.supportCount, 'pouchReceived': r.pouchReceived,
       'level': r.level, 'commentCount': r.commentCount, 'points': r.points, 'levelName': r.levelName,
       'curLevelPts': r.curLevelPts, 'nextLevelPts': r.nextLevelPts, 'brightness': b, 'decayLabel': r.decayLabel,

@@ -70,6 +70,7 @@ class WishRoom {
   final WrTheme theme;           // 방 테마
   final WrTheme? outfit;         // 사용자가 고른 의상 (null = 테마 따라감)
   final WrTheme outfitNow;       // [SERVER] 실제 표시할 의상 (그림 있고 보유했을 때만, 아니면 free)
+  final String? outfitId; // 서버에서 검증한 신규 의상 번호
   final String wishColor, paper; // 소원 빛깔(康財緣…) · 한지 색
   final int devotionCount, supportCount, pouchReceived, level, commentCount;
   final double points;
@@ -102,6 +103,7 @@ class WishRoom {
         theme = _enum(WrTheme.values, j['theme'], WrTheme.free),
         outfit = j['outfit'] == null ? null : _enum(WrTheme.values, j['outfit'], WrTheme.free),
         outfitNow = _enum(WrTheme.values, j['outfitNow'], WrTheme.free),
+        outfitId = j['outfitId'] as String?,
         wishColor = j['wishColor'] ?? 'hope', paper = j['paper'] ?? 'hanji',
         devotionCount = (j['devotionCount'] as num).toInt(), supportCount = (j['supportCount'] as num).toInt(),
         pouchReceived = (j['pouchReceived'] as num).toInt(), level = j['level'], commentCount = j['commentCount'] ?? 0,
@@ -205,8 +207,19 @@ class WrCharacter {
         job = j['job'], type = j['type'], personality = j['personality'], likes = j['likes'], aura = j['aura'], line = j['line'];
 }
 
-class OutfitOffer { final WrTheme theme; final int price; final bool hasArt, owned;
-  OutfitOffer.fromJson(Map<String, dynamic> j) : theme = _enum(WrTheme.values, j['theme'], WrTheme.free), price = j['price'] ?? 0, hasArt = j['hasArt'] ?? false, owned = j['owned'] ?? false; }
+class OutfitOffer {
+  final WrTheme theme;
+  final int price;
+  final bool hasArt, owned, compatible;
+  final String? id, name, gender;
+  OutfitOffer.fromJson(Map<String, dynamic> j)
+      : theme = _enum(WrTheme.values, j['theme'], WrTheme.free),
+        price = j['price'] ?? 0, hasArt = j['hasArt'] ?? false,
+        owned = j['owned'] ?? false, compatible = j['compatible'] ?? true,
+        id = j['id'], name = j['name'], gender = j['gender'];
+  bool get isNew => id != null;
+  String get asset => 'assets/wishroom/outfits/$id.png';
+}
 
 class WrNotification {
   final String id, text; final NotiType type; final String? roomId; final DateTime at; final bool read;

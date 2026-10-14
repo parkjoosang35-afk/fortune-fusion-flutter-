@@ -49,7 +49,7 @@ void main() {
     expect(find.textContaining('장미빛'), findsNothing);
     expect(find.textContaining('달빛'), findsNothing);
     final grid = tester.widget<GridView>(find.byType(GridView));
-    expect(grid.childrenDelegate.estimatedChildCount, 4);
+    expect(grid.childrenDelegate.estimatedChildCount, 9); // 기존 4종 + 현재 테마의 신규 5벌
     await tester.tap(find.text('하나님 의상'));
     await tester.pump();
     final stageImages = tester.widgetList<Image>(find.byType(Image)).where((image) => image.height == 320);

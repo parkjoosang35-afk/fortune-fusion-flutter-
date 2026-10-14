@@ -23,6 +23,7 @@ class WrCatalog {
   static Future<void> load() async {
     if (_loaded) return;
     I = WrCatalog._(jsonDecode(await rootBundle.loadString('assets/wishroom/data/wishroom_data.json')));
+    I.raw['NEW_OUTFITS'] = jsonDecode(await rootBundle.loadString('assets/wishroom/data/outfits20.json'));
     _loaded = true;
   }
 
@@ -48,7 +49,12 @@ class WrCatalog {
   String roomImage(WrTheme t) => 'assets/wishroom/${(themes.firstWhere((x) => x['id'] == t.name)['room'] as String).replaceFirst('assets/', '')}';
 
   /// 캐릭터 이미지 (의상 반영). 웹 room2.jsx › charSrc() 와 동일 규칙
-  String charImage(String code, WrTheme outfit) {
+  List<Map<String, dynamic>> get newOutfits => _list('NEW_OUTFITS');
+
+  String charImage(String code, WrTheme outfit, {String? outfitId}) {
+    if (outfitId != null && newOutfits.any((o) => o['id'] == outfitId && code == (o['gender'] == 'F' ? 'F00' : 'M00'))) {
+      return 'assets/wishroom/outfits/$outfitId.png';
+    }
     final art = raw['OUTFIT_ART'][code];
     if (art != null && art[outfit.name] != null) return 'assets/wishroom/${(art[outfit.name] as String).replaceFirst('assets/', '')}';
     if (code == 'F01') return 'assets/wishroom/char-f-sm.png';

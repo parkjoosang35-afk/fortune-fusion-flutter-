@@ -53,6 +53,8 @@ abstract class WrRepository {
   Future<WishRoom> setTheme(String id, WrTheme theme);                                                          // T1 PATCH /wish-rooms/{id}/theme
   Future<List<OutfitOffer>> outfits(String char);                                                               // T2 GET /outfits?char=
   Future<Me> buyOutfit(String char, WrTheme theme);                                                             // T3 POST /outfits/purchase
+  Future<Me> buyNamedOutfit(String char, String outfitId) => throw ApiError(409, 'NOT_READY', '신규 의상 서버 연결이 필요해요');
+  Future<WishRoom> setNamedOutfit(String id, String outfitId) => throw ApiError(409, 'NOT_READY', '신규 의상 서버 연결이 필요해요');
   Future<WishRoom> setOutfit(String id, WrTheme? theme);                                                        // T4 PATCH /wish-rooms/{id}/outfit
   Future<WishRoom> unseal(String id);                                                                           // C1 POST /wish-rooms/{id}/unseal
   Future<WishRoom> outcome(String id, Outcome o, {String? text, String? sealUntil});                            // C2 POST /wish-rooms/{id}/outcome
@@ -182,6 +184,8 @@ class ApiRepository implements WrRepository {
   @override Future<WishRoom> setPaper(String id, String paper) async => WishRoom.fromJson(_m(await _req('PATCH', '/wish-rooms/$id/paper', {'paper': paper})));
   @override Future<WishRoom> setTheme(String id, WrTheme theme) async => WishRoom.fromJson(_m(await _req('PATCH', '/wish-rooms/$id/theme', {'theme': theme.name})));
   @override Future<List<OutfitOffer>> outfits(String char) async => _l(await _req('GET', '/outfits?char=$char'), OutfitOffer.fromJson);
+  @override Future<Me> buyNamedOutfit(String char, String outfitId) async => Me.fromJson(_m(_m(await _req('POST', '/outfits/purchase', {'char': char, 'outfitId': outfitId}))['me']));
+  @override Future<WishRoom> setNamedOutfit(String id, String outfitId) async => WishRoom.fromJson(_m(await _req('PATCH', '/wish-rooms/$id/outfit', {'outfitId': outfitId})));
   @override Future<Me> buyOutfit(String char, WrTheme theme) async => Me.fromJson(_m(_m(await _req('POST', '/outfits/purchase', {'char': char, 'theme': theme.name}))['me']));
   @override Future<WishRoom> setOutfit(String id, WrTheme? theme) async => WishRoom.fromJson(_m(await _req('PATCH', '/wish-rooms/$id/outfit', {'theme': theme?.name})));
   @override Future<WishRoom> unseal(String id) async => WishRoom.fromJson(_m(await _req('POST', '/wish-rooms/$id/unseal')));

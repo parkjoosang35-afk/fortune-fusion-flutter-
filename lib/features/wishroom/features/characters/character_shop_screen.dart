@@ -24,6 +24,7 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
   String? _selId; // sel
   String _ptab = 'char'; // char | outfit
     WrTheme? _wear; // 의상 미리보기(아직 저장 안함)
+  String? _newOutfitId;
   int _variant = 0; // 실제 의상 카드 선택 인덱스
   bool _busy = false;
   bool _info = false;
@@ -44,7 +45,8 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
             _selId = me.repChar;
             _gender = _selId!.startsWith('M') ? 'M' : 'F';
             final room = context.read<WishRoomProvider>().room;
-            _wear = room?.char == me.repChar ? room!.outfitNow : WrTheme.free;
+             _wear = room?.char == me.repChar ? room!.outfitNow : WrTheme.free;
+             _newOutfitId = room?.char == me.repChar ? room?.outfitId : null;
           });
         _loadOutfits(_selId!);
       }
@@ -59,6 +61,7 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
     setState(() {
       _selId = ch.id;
       _wear = null;
+      _newOutfitId = null;
     });
     _loadOutfits(ch.id);
   }
@@ -99,6 +102,27 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
   Future<void> _wearOutfit(WrCharacter c, OutfitOffer o) async {
     if (_busy) return;
     final p = context.read<WishRoomProvider>();
+    if (o.isNew) {
+      if (!o.compatible) {
+        WrToast.show(context, '하린·준 전용 의상이에요');
+        return;
+      }
+      setState(() => _busy = true);
+      try {
+        final ok = await p.wearNamedOutfit(c.id, o);
+        if (!mounted) return;
+        if (ok) {
+          WrToast.show(context, '${o.name}으로 갈아입었어요');
+        } else if (p.lastError?.code == 'INSUFFICIENT') {
+          setState(() { _shortErr = p.lastError; _shortLabel = o.name; });
+        } else {
+          WrToast.show(context, p.lastError?.message ?? '의상 적용에 실패했어요');
+        }
+      } finally {
+        if (mounted) setState(() => _busy = false);
+      }
+      return;
+    }
     if (!(p.me?.ownedChars.contains(c.id) ?? false) && c.price != 0) {
       WrToast.show(context, '먼저 이 수호자와 함께해 주세요');
       return;
@@ -269,10 +293,11 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
                                 child: Opacity(
                                   opacity: owned ? 1 : .6,
                                   child: Image.asset(
-                                    cat.charImage(c.id, outfitTheme),
+                                    cat.charImage(c.id, outfitTheme, outfitId: _newOutfitId),
                                     height: 320,
-                                    width: 229,
-                                    fit: BoxFit.cover,
+                                     width: 229,
+                                     fit: _newOutfitId == null ? BoxFit.cover : BoxFit.contain,
+                                     alignment: Alignment.bottomCenter,
                                     errorBuilder: (_, __, ___) => SizedBox(
                                       width: 229,
                                       height: 320,
@@ -663,7 +688,8 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
     // 실제 제공되는 의상만 노출한다. 같은 그림에 색조를 씌운 카드를
     // 별도 의상처럼 중복 표시하지 않는다.
     final variants = p.outfitOffers
-        .map((offer) => WrOutfitVariant(offer, 0, '기본', null))
+        .where((offer) => !offer.isNew || offer.theme == (p.room?.theme ?? WrTheme.free))
+        .map((offer) => WrOutfitVariant(offer, 0, offer.name ?? '기본', null))
         .toList();
     final room = p.room;
     if (c == null) return const SizedBox.shrink();
@@ -681,7 +707,7 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
                   style: WrF.body(12, w: FontWeight.w700, color: WrC.fg),
                 ),
                 const TextSpan(
-                  text: '의 테마 의상 · 소원방 테마에 맞는 의상을 입으면 방 분위기와 잘 어울려요',
+                   text: '의 의상 · 신규 20벌은 하린·준 전용이며 현재 방 테마의 5벌을 표시해요',
                 ),
               ],
             ),
@@ -695,7 +721,7 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
               crossAxisCount: 2,
               mainAxisSpacing: 9,
               crossAxisSpacing: 9,
-              childAspectRatio: 1.35,
+               childAspectRatio: .64,
             ),
             itemBuilder: (_, i) {
               final v = variants[i];
@@ -708,14 +734,21 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
               final cur =
                   room != null &&
                   room.char == c.id &&
-                  room.outfitNow == o.theme;
-              final pv = _wear == o.theme && _variant == v.index;
+                   (o.isNew ? room.outfitId == o.id : room.outfitId == null && room.outfitNow == o.theme);
+               final pv = o.isNew ? _newOutfitId == o.id : _newOutfitId == null && _wear == o.theme && _variant == v.index;
               final tColor = _hex(T['color'] as String);
               return GestureDetector(
-                onTap: () => setState(() {
-                  _wear = o.theme;
-                  _variant = v.index;
-                }),
+                 onTap: () {
+                   if (!o.compatible) {
+                     WrToast.show(context, '${o.gender == 'F' ? '하린' : '준'} 전용 의상이에요');
+                     return;
+                   }
+                   setState(() {
+                     _wear = o.theme;
+                     _newOutfitId = o.id;
+                     _variant = v.index;
+                   });
+                 },
                 child: Container(
                   decoration: BoxDecoration(
                     color: WrC.card,
@@ -754,12 +787,11 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
                             ),
                             Positioned.fill(
                               child: Opacity(
-                                opacity: o.hasArt || o.theme == WrTheme.free
-                                    ? 1
-                                    : .4,
-                                child: Image.asset(
-                                  cat.charImage(c.id, o.theme),
-                                  fit: BoxFit.cover,
+                                 opacity: !o.compatible ? .35 : (o.hasArt || o.theme == WrTheme.free ? 1 : .4),
+                                 child: Image.asset(
+                                   o.isNew ? o.asset : cat.charImage(c.id, o.theme),
+                                   fit: BoxFit.contain,
+                                   alignment: Alignment.bottomCenter,
                                   errorBuilder: (_, __, ___) => Center(
                                     child: Text(
                                       T['glyph'] as String,
@@ -824,7 +856,7 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '${T['label']} 의상',
+                               o.name ?? '${T['label']} 의상',
                               style: WrF.body(
                                 13,
                                 w: FontWeight.w700,
@@ -833,7 +865,7 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              T['outfitHint'] as String? ?? '',
+                               o.isNew ? '${o.gender == 'F' ? '하린' : '준'} 전용 · ${T['label']}' : T['outfitHint'] as String? ?? '',
                               style: WrF.body(
                                 10.5,
                                 color: WrC.muted,
@@ -844,8 +876,10 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              cur
-                                  ? '✓ 입고 있어요'
+                               !o.compatible
+                                   ? '잠김 · 다른 수호자 전용'
+                                   : cur
+                                   ? '✓ 입고 있어요'
                                   : o.owned
                                   ? '보유'
                                   : (o.hasArt ? '🧧 ${o.price}' : '곧 만나요'),
@@ -881,7 +915,7 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
     if (c == null) return const SizedBox.shrink();
     if (_ptab == 'outfit') {
       final offer = p.outfitOffers
-          .where((o) => o.theme == (_wear ?? WrTheme.free))
+           .where((o) => _newOutfitId != null ? o.id == _newOutfitId : !o.isNew && o.theme == (_wear ?? WrTheme.free))
           .firstOrNull;
       if (offer == null) return const SizedBox.shrink();
       final themeInfo = WrCatalog.I.themes
@@ -911,8 +945,8 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
           style: ElevatedButton.styleFrom(backgroundColor: WrC.blossom),
           child: Text(
             offer.owned
-                ? '${T['glyph']} ${T['label']} 의상 입기'
-                : '🧧 ${offer.price} · ${T['label']} 의상 입기',
+                 ? '${offer.name ?? '${T['label']} 의상'} 입기'
+                 : '🧧 ${offer.price} · ${offer.name ?? '${T['label']} 의상'} 입기',
             style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w700,

@@ -684,7 +684,8 @@ class _FeedCardState extends State<_FeedCard> {
                                 child: Image.asset(
                                   WrCatalog.I.charImage(
                                     room.char,
-                                    WrTheme.free,
+                                    room.outfitNow,
+                                    outfitId: room.outfitId,
                                   ),
                                   fit: BoxFit.cover,
                                   alignment: Alignment.topCenter,

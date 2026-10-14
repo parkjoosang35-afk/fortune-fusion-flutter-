@@ -15,7 +15,7 @@ void main() {
     Future<Object?>? Function(MethodCall)? handler;
     handler = (call) async {
       calls.add(call);
-      return const {'status': 'success'};
+      return 'success';
     };
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
@@ -69,7 +69,9 @@ void main() {
   testWidgets('앱에서는 공개 동의 팝업 없이 이미지 공유 채널로 바로 전송한다', (tester) async {
     final calls = await pumpAndTapShare(tester);
     expect(find.text('이 결과 그대로 공개할까요?'), findsNothing);
-    expect(calls, isNotEmpty);
+    expect(calls.length, 1);
+    expect(calls.single.method, 'shareFiles');
+    expect((calls.single.arguments as Map)['paths'], isNotEmpty);
     final textParam = calls
         .map(
           (call) =>
@@ -80,16 +82,28 @@ void main() {
     expect(tester.takeException(), null);
   });
 
-  testWidgets('앱 이미지 공유가 미지원이면 텍스트 폴백 후 원문 복사 다이얼로그로 귀결된다', (tester) async {
+  testWidgets('앱 이미지 공유 예외는 실패 안내하며 문구 공유와 복사로 대체하지 않는다', (tester) async {
+    final attempts = <MethodCall>[];
+    var copies = 0;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('plugins.flutter.io/path_provider'), (_) async => '/tmp',
+    );
+    addTearDown(() => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('plugins.flutter.io/path_provider'), null,
+    ));
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
           const MethodChannel('dev.fluttercommunity.plus/share'),
-          (_) async => throw PlatformException(code: 'unsupported'),
+           (call) async {
+             attempts.add(call);
+             throw PlatformException(code: 'unsupported');
+           },
         );
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(SystemChannels.platform, (call) async {
           if (call.method == 'Clipboard.setData') {
-            throw PlatformException(code: 'denied');
+             copies++;
+             throw PlatformException(code: 'denied');
           }
           return null;
         });
@@ -126,8 +140,10 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 800));
     });
     await tester.pumpAndSettle();
-    expect(find.text('직접 복사해서 전달해주세요'), findsOneWidget);
-    expect(find.byType(SelectableText), findsOneWidget);
+    expect(find.textContaining('결과 이미지를 공유하지 못했어요'), findsOneWidget);
+    expect(attempts.length, 1);
+    expect(copies, 0);
+    expect(find.text('직접 복사해서 전달해주세요'), findsNothing);
     expect(find.text('이 결과 그대로 공개할까요?'), findsNothing);
     expect(tester.takeException(), null);
   });

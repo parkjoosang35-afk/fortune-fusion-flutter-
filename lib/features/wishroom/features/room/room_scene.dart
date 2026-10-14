@@ -188,7 +188,7 @@ class _RoomSceneState extends State<RoomScene> with TickerProviderStateMixin, Wi
     final bgItem = _item(r.equip.background);
     final specialFx = _item(r.equip.special)?.fx;
     final ritualPose = Pose.values.byName(cat.ritual(r.theme)['pose'] as String);
-    final poseImg = cat.poseImage(r.char, r.outfitNow, ritualPose);
+    final poseImg = r.outfitId == null ? cat.poseImage(r.char, r.outfitNow, ritualPose) : null;
     final hasArt = true; // THEMES[].room 은 4종 모두 존재(assets/wishroom/rooms/room-*.jpg) — §G-2 roomFor() 항상 그림 반환
 
     Widget scene = ClipRect(child: Stack(clipBehavior: Clip.hardEdge, children: [
@@ -258,7 +258,7 @@ class _RoomSceneState extends State<RoomScene> with TickerProviderStateMixin, Wi
         builder: (_, c) => Transform.scale(alignment: Alignment.bottomCenter, scaleY: 1 + .012 * breathe.value, child: c),
         child: ShaderMask(shaderCallback: (b) => const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.black, Colors.black, Colors.transparent], stops: [0, .7, 1]).createShader(b), blendMode: BlendMode.dstIn,
           child: ColorFiltered(colorFilter: ColorFilter.matrix(_brightness(widget.charGlow ? 1.1 : .4 + .6 * math.min(1, bright))), child: Stack(fit: StackFit.expand, children: [
-            AnimatedOpacity(opacity: widget.pray && poseImg != null ? 0 : 1, duration: const Duration(milliseconds: 700), child: Image.asset(cat.charImage(r.char, r.outfitNow), fit: BoxFit.contain, alignment: Alignment.bottomCenter,
+            AnimatedOpacity(opacity: widget.pray && poseImg != null ? 0 : 1, duration: const Duration(milliseconds: 700), child: Image.asset(cat.charImage(r.char, r.outfitNow, outfitId: r.outfitId), fit: BoxFit.contain, alignment: Alignment.bottomCenter,
               // [W-10] 캐릭터 자산 디코딩 실패 — 빈 영역 대신 자리표시 아이콘으로 "캐릭터가 사라짐"을 숨기지 않는다.
               errorBuilder: (_, __, ___) => const SizedBox.shrink())),
             if (poseImg != null) AnimatedOpacity(opacity: widget.pray ? 1 : 0, duration: const Duration(milliseconds: 700), child: Image.asset(poseImg, fit: BoxFit.contain, alignment: Alignment.bottomCenter,

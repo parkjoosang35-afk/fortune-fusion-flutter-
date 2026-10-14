@@ -61,7 +61,7 @@ String buildNativeManifestJson(WishRoom room, List<WrItem> items) {
 
   // 캐릭터 레이어 — room_scene.dart L5 위치(left:-2, top:468, width:162, height:226)를
   // "바닥 중심" 좌표(x,y,s)로 환산: x = left + width/2, y = top + height(바닥선), s = width.
-  final charAsset = cat.charImage(room.char, room.outfitNow);
+  final charAsset = cat.charImage(room.char, room.outfitNow, outfitId: room.outfitId);
   final charLayer = WpNativeLayer(
     asset: charAsset,
     x: -2.0 + 162.0 / 2,
