@@ -144,7 +144,12 @@ class ApiRepository implements WrRepository {
   @override Future<WishRoom> createRoom({required String text, required String char, required String sealUntil, Visibility visibility = Visibility.PUBLIC, WrTheme theme = WrTheme.free, String wishColor = 'hope', String paper = 'hanji', bool force = false}) async =>
       WishRoom.fromJson(_m(await _req('POST', '/wish-rooms', {'text': text, 'char': char, 'sealUntil': sealUntil, 'visibility': visibility.name, 'theme': theme.name, 'wishColor': wishColor, 'paper': paper, 'force': force})));
   @override Future<MyRoomResponse> myRoom() async {
+    final requestUser = await AuthTokenStore.getCurrentUserId();
+    final requestToken = await AuthTokenStore.getToken();
     final raw = _m(await _req('GET', '/wish-rooms/me'));
+    if (requestUser != await AuthTokenStore.getCurrentUserId() || requestToken != await AuthTokenStore.getToken()) {
+      throw ApiError(409, 'SESSION_CHANGED', '로그인 상태가 변경되어 이전 응답을 폐기했어요');
+    }
     // [비용 최소화 §3] 성공한 원본 응답을 그대로 로컬 캐시에 남긴다 — 다음
     // 콜드 스타트/오프라인 시 Provider가 네트워크 응답을 기다리지 않고
     // 이 값을 먼저 화면에 띄울 수 있게 한다(best-effort, 실패해도 무시).

@@ -166,6 +166,8 @@ class WishRoomProvider extends ChangeNotifier {
   /// 구간에서는 네트워크 응답을 기다리는 동안 빈 화면 대신, 로컬에 저장된
   /// 마지막 정상 데이터를 즉시 room/me에 채워 화면을 먼저 그리게 한다.
   Future<void> loadMyRoom() async {
+    final generation = _catalogGeneration;
+    bool isCurrent() => generation == _catalogGeneration;
     isLoading = true;
     lastError = null;
     // 아직 메모리에 room이 없고(이번 프로세스에서 처음) 캐시도 아직 안
@@ -173,6 +175,7 @@ class WishRoomProvider extends ChangeNotifier {
     if (room == null && !_cacheHydrated) {
       _cacheHydrated = true;
       final cachedJson = await WrLocalCache.loadMyRoomJson();
+      if (!isCurrent()) return;
       if (cachedJson != null) {
         try {
           final cached = MyRoomResponse.fromJson(cachedJson);
@@ -189,6 +192,7 @@ class WishRoomProvider extends ChangeNotifier {
     notifyListeners();
     try {
       final res = await repo.myRoom();
+      if (!isCurrent()) return;
       room = res.room;
       me = res.me;
       introMode = res.introMode;
@@ -198,11 +202,13 @@ class WishRoomProvider extends ChangeNotifier {
       // 위젯이 쌓아 둔 WishAction을 반드시 드레인한다.
       drainPendingWishActions();
     } on ApiError catch (e) {
-      lastError = e;
+      if (isCurrent()) lastError = e;
     } finally {
-      isLoading = false;
-      loaded = true;
-      notifyListeners();
+      if (isCurrent()) {
+        isLoading = false;
+        loaded = true;
+        notifyListeners();
+      }
     }
   }
 

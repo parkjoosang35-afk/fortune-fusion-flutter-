@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_app/features/wishroom/application/wishroom_provider.dart';
 import 'package:flutter_app/features/wishroom/data/wr_api.dart';
 import 'package:flutter_app/features/wishroom/data/models.dart';
@@ -21,7 +22,30 @@ class DelayedRepo extends Repo {
   final pending = Completer<List<WrCharacter>>();
   @override Future<List<WrCharacter>> characters() => pending.future;
 }
+class DelayedRoomRepo extends Repo {
+  final pending = Completer<MyRoomResponse>();
+  final started = Completer<void>();
+  @override Future<MyRoomResponse> myRoom() {
+    started.complete();
+    return pending.future;
+  }
+}
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  test('로그아웃 뒤 늦게 온 내 방 응답은 잔액과 계정 정보를 복구하지 않는다', () async {
+    SharedPreferences.setMockInitialValues({});
+    final repo = DelayedRoomRepo();
+    final p = WishRoomProvider(repo);
+    final request = p.loadMyRoom();
+    await repo.started.future;
+    p.clearOnLogout();
+    repo.pending.complete(MyRoomResponse.fromJson({'room':null,'me':{'id':'old','nick':'이전 계정','repChar':'F00','pouch':9999}}));
+    await request;
+    expect(p.me, null);
+    expect(p.room, null);
+    expect(p.loaded, false);
+    expect(p.isLoading, false);
+  });
   test('로그아웃 전 시작한 카탈로그 응답은 계정 초기화 뒤 폐기한다', () async {
     final repo = DelayedRepo()..failItems = false;
     final p = WishRoomProvider(repo);
