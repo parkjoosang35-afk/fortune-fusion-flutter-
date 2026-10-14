@@ -539,7 +539,8 @@ class AppRouter {
           final restoredInput = args is Map<String, dynamic>
               ? args['restoredInput'] as Map<String, dynamic>?
               : null;
-          return _page(
+          return _pageNamed(
+            '/compatibility/input',
             CompatibilityInputScreen(
               initialType: initialType,
               restoredInput: restoredInput,
@@ -621,7 +622,8 @@ class AppRouter {
             initialSpreadType = args['initialSpreadType'] as String?;
             initialTopic = args['initialTopic'] as String?;
           }
-          return _page(
+          return _pageNamed(
+            '/ai-fortune/tarot/question',
             TarotQuestionScreen(
               initialSpreadType: initialSpreadType,
               initialTopic: initialTopic,
@@ -706,7 +708,10 @@ class AppRouter {
               restoredInput = restoredRaw.cast<String, dynamic>();
             }
           }
-          return _page(NameFortuneInputScreen(restoredInput: restoredInput));
+          return _pageNamed(
+            '/ai-fortune/name/input',
+            NameFortuneInputScreen(restoredInput: restoredInput),
+          );
         }
       case '/ai-fortune/name/result':
         return _pageNamed(
@@ -737,7 +742,8 @@ class AppRouter {
         );
       case '/reward/luckybag/result':
         final args = settings.arguments as Map<String, dynamic>;
-        return _page(
+        return _pageNamed(
+          '/reward/luckybag/result',
           LuckyBagResultScreen(
             result: args['result'] as LuckyBagOpenResult,
             product: args['product'] as LuckyBagProductModel,
