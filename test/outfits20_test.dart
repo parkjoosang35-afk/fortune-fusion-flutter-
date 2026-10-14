@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -37,9 +38,30 @@ class Repo implements WrRepository {
   }
   @override dynamic noSuchMethod(Invocation i) => throw UnsupportedError('${i.memberName}');
 }
+class DelayedOutfitRepo extends Repo {
+  final pending = <String, Completer<List<OutfitOffer>>>{};
+  @override Future<List<OutfitOffer>> outfits(String char) => (pending[char] = Completer<List<OutfitOffer>>()).future;
+}
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(() async => WrCatalog.load());
+  test('의상 조회는 마지막 선택만 반영하고 로그아웃 후 응답은 폐기한다', () async {
+    final repo = DelayedOutfitRepo();
+    final p = WishRoomProvider(repo)..me = user();
+    final first = p.loadOutfits('F00');
+    final second = p.loadOutfits('M00');
+    repo.pending['M00']!.complete([]);
+    await second;
+    expect(p.outfitOffers.firstWhere((o) => o.id == 'O_free_02').compatible, true);
+    repo.pending['F00']!.complete([]);
+    await first;
+    expect(p.outfitOffers.firstWhere((o) => o.id == 'O_free_02').compatible, true);
+    final late = p.loadOutfits('F00');
+    p.clearOnLogout();
+    repo.pending['F00']!.complete([]);
+    await late;
+    expect(p.outfitOffers, isEmpty);
+  });
   test('신규 20벌의 원본 자산·테마·성별·캐릭터 제한 검증', () async {
     final all = WrCatalog.I.newOutfits;
     expect(all.length, 20);
@@ -82,6 +104,8 @@ void main() {
     repo.failEquip = true;
     expect(await p.wearNamedOutfit('F00', good), false);
     expect(p.lastError!.code, 'TEST_FAILURE');
+    expect(p.outfitOffers.firstWhere((o) => o.id == 'O_free_01').owned, true);
+    expect(p.me!.ownedOutfits, contains('F00:O_free_01'));
     p.room = null;
     expect(await p.wearNamedOutfit('F00', good), false);
     expect(p.lastError!.code, 'NO_ROOM');

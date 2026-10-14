@@ -117,8 +117,8 @@ class _ComposeScreenState extends State<ComposeScreen> {
       paper: _paper,
       force: force,
     );
-    setState(() => _submitting = false);
     if (!mounted) return;
+    setState(() => _submitting = false);
     if (ok) {
       // [버그수정 — 사용자 피드백 1] 소원방 테마(하느님방 등)를 골랐으면 수호자가 그
       // 의상을 입은 채로 방에 남아야 한다. 작성 미리보기는 _theme 의상을 보여주지만

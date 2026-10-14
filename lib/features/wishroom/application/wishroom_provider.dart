@@ -139,6 +139,7 @@ class WishRoomProvider extends ChangeNotifier {
     // 계정의 꾸미기 owned 플래그가 메모리에 잔존해 미구매 아이템이
     // "보유"로 보일 수 있다.
     _outfitCache = [];
+    _outfitRequest++;
     myReviews = [];
     reviewFeed = [];
     viewedRoom = null;
@@ -450,6 +451,7 @@ class WishRoomProvider extends ChangeNotifier {
   }
 
   List<OutfitOffer> _outfitCache = [];
+  int _outfitRequest = 0;
   List<OutfitOffer> get outfitOffers => _outfitCache;
 
   Future<bool> wearNamedOutfit(String char, OutfitOffer offer) async {
@@ -469,8 +471,13 @@ class WishRoomProvider extends ChangeNotifier {
       notifyListeners();
       return false;
     }
+    var purchased = false;
     try {
-      if (!offer.owned) me = await repo.buyNamedOutfit(char, offer.id!);
+      if (!offer.owned) {
+        me = await repo.buyNamedOutfit(char, offer.id!);
+        purchased = true;
+        notifyListeners();
+      }
       if (room!.char != char) {
         me = await repo.setCharacter(char);
         await loadMyRoom();
@@ -483,6 +490,7 @@ class WishRoomProvider extends ChangeNotifier {
       notifyListeners();
       return true;
     } on ApiError catch (e) {
+      if (purchased) await loadOutfits(char);
       lastError = e;
       notifyListeners();
       return false;
@@ -490,9 +498,15 @@ class WishRoomProvider extends ChangeNotifier {
   }
 
   Future<void> loadOutfits(String char) async {
+    final request = ++_outfitRequest;
+    final generation = _catalogGeneration;
+    bool isCurrent() => request == _outfitRequest && generation == _catalogGeneration;
+    _outfitCache = [];
+    notifyListeners();
     try {
       final serverOffers = await repo.outfits(char);
       await WrCatalog.load();
+      if (!isCurrent()) return;
       _outfitCache = [
         ...serverOffers.where((o) => !o.isNew),
         for (final data in WrCatalog.I.newOutfits)
@@ -504,6 +518,7 @@ class WishRoomProvider extends ChangeNotifier {
       ];
       notifyListeners();
     } on ApiError catch (e) {
+      if (!isCurrent()) return;
       lastError = e;
       notifyListeners();
     }
