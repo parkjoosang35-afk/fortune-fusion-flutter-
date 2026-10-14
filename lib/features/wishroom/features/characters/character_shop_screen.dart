@@ -11,6 +11,7 @@ import '../../core/wr_nav_pill.dart';
 import '../wallet/wallet_sheet.dart';
 import '../../core/wr_ad_earn_button.dart';
 import '../../core/wr_toast.dart';
+import 'outfit_variants.dart';
 
 class CharacterShopScreen extends StatefulWidget {
   const CharacterShopScreen({super.key});
@@ -23,6 +24,7 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
   String? _selId; // sel
   String _ptab = 'char'; // char | outfit
   WrTheme? _wear; // 의상 미리보기(아직 저장 안함)
+  int _variant = 0; // [의상 20종 확장] 테마 안 색조 변형 선택
   bool _busy = false;
   bool _info = false;
   ApiError? _shortErr;
@@ -645,7 +647,7 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
 
   Widget _outfitGrid(WishRoomProvider p, WrCharacter? c) {
     final cat = WrCatalog.I;
-    final offers = p.outfitOffers;
+    final variants = wrExpandOutfitVariants(p.outfitOffers);
     final room = p.room;
     if (c == null) return const SizedBox.shrink();
     return SingleChildScrollView(
@@ -671,7 +673,7 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: offers.length,
+            itemCount: variants.length,
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               mainAxisSpacing: 9,
@@ -679,7 +681,8 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
               childAspectRatio: 1.35,
             ),
             itemBuilder: (_, i) {
-              final o = offers[i];
+              final v = variants[i];
+              final o = v.offer;
               final themeInfo = cat.themes
                   .where((t) => t['id'] == o.theme.name)
                   .toList();
@@ -689,10 +692,13 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
                   room != null &&
                   room.char == c.id &&
                   room.outfitNow == o.theme;
-              final pv = _wear == o.theme;
+              final pv = _wear == o.theme && _variant == v.index;
               final tColor = _hex(T['color'] as String);
               return GestureDetector(
-                onTap: () => setState(() => _wear = o.theme),
+                onTap: () => setState(() {
+                  _wear = o.theme;
+                  _variant = v.index;
+                }),
                 child: Container(
                   decoration: BoxDecoration(
                     color: WrC.card,
@@ -768,6 +774,22 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
                                   ),
                                 ),
                               ),
+                            if (v.tint != null)
+                              Positioned.fill(
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        v.tint!.withValues(alpha: .30),
+                                        v.tint!.withValues(alpha: .10),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+
                             Positioned(
                               left: 8,
                               top: 8,
@@ -785,7 +807,7 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '${T['label']} 의상',
+                              '${T['label']} 의상 · ${v.label}',
                               style: WrF.body(
                                 13,
                                 w: FontWeight.w700,
