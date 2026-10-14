@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/config/env_config.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter/foundation.dart' show Uint8List, kIsWeb;
 import '../../../core/util/original_result_capture.dart';
@@ -142,7 +143,7 @@ class ShareService {
     String title,
     Uint8List png,
   ) async {
-    final shareText = '$title\n신통방통에서 확인했어요. 앱 다운로드: https://sintong.kr';
+    final shareText = '$title\n신통방통에서 확인했어요. 앱 다운로드: ${EnvConfig.appDownloadUrl}';
     void reportFailure() {
       if (!context.mounted) return;
       AppToast.show(context, '결과 이미지를 공유하지 못했어요. 이미지를 저장한 뒤 첨부하거나 다시 시도해주세요.', isError: true);

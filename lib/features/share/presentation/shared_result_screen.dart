@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/config/env_config.dart';
 import 'package:flutter/foundation.dart' show Uint8List;
 import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/app_error_state.dart';
@@ -104,7 +105,7 @@ class _SharedResultScreenState extends State<SharedResultScreen> {
             onPressed: () => showFullResultSheet(
               context,
               title: shared.title,
-              shareUrl: 'https://sintong.kr/r/${shared.shareId}',
+              shareUrl: EnvConfig.webResultUrl(shared.shareId),
               payload: shared.payload ?? const {},
               originalPng: _originalPng,
             ),
@@ -172,7 +173,7 @@ class _SharedResultScreenState extends State<SharedResultScreen> {
           onPressed: () => showFullResultSheet(
             context,
             title: shared.title,
-            shareUrl: 'https://sintong.kr/r/${shared.shareId}',
+            shareUrl: EnvConfig.webResultUrl(shared.shareId),
             payload: payload,
           ),
           child: const Text('전체 저장 · 공유'),

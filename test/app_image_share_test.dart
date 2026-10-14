@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_app/core/config/env_config.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_app/features/share/application/share_service.dart';
@@ -78,7 +79,7 @@ void main() {
               '${call.arguments is Map ? (call.arguments as Map)['text'] ?? '' : ''}',
         )
         .join('\n');
-    expect(textParam, contains('sintong.kr'));
+    expect(textParam, contains(EnvConfig.appDownloadUrl));
     expect(tester.takeException(), null);
   });
 

@@ -17,6 +17,17 @@ class EnvConfig {
     defaultValue: 'https://sintong.kr',
   );
 
+  /// 공유 링크와 API가 서로 다른 운영/검수 환경을 가리키지 않게 한다.
+  static String webResultUrl(String shareId) => Uri.parse(adminApiBaseUrl)
+      .replace(path: '/web-result/${Uri.encodeComponent(shareId)}', query: null, fragment: null)
+      .toString();
+
+  /// 운영은 기본 API 주소, 검수는 검수 서버 주소를 사용한다.
+  /// 정식 스토어 주소가 확정되면 APP_DOWNLOAD_URL로 명시한다.
+  static const String appDownloadUrl = String.fromEnvironment(
+    'APP_DOWNLOAD_URL', defaultValue: adminApiBaseUrl,
+  );
+
   /// [정통사주 v3 - 4차 지시서 항목③ 인증 연결] saju_v3 엔진 서버 전용
   /// X-Free-Pass 토큰. img2_인증연결가이드.png의 의도대로 앱의 표준 인증
   /// (`AuthTokenStore.authHeader()` → `Authorization: Bearer <JWT>`, admin
