@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../core/util/image_gallery_saver_io.dart'
     if (dart.library.html) '../../../core/util/image_gallery_saver_web.dart';
 import '../../../core/util/safe_share.dart';
+import '../application/share_service.dart';
+import '../../../core/util/original_result_capture.dart';
 import '../../../core/widgets/app_toast.dart';
 
 /// 앱·공유 수신 화면이 같은 전체 결과 데이터를 사용한다. 본문 절단 없음.
@@ -103,6 +105,25 @@ class FullResultSheet extends StatefulWidget {
 class _FullResultSheetState extends State<FullResultSheet> {
   final _capture = GlobalKey();
   bool _saving = false;
+  bool _sharing = false;
+
+  Future<void> _share() async {
+    if (_sharing) return;
+    if (kIsWeb) {
+      await safeShareText(context, '${widget.title}\n${widget.shareUrl}', subject: '신통방통 전체 결과');
+      return;
+    }
+    setState(() => _sharing = true);
+    try {
+      final png = widget.originalPng ?? await captureOriginalResult(_capture);
+      if (!mounted) return;
+      await ShareService.shareImageDirectly(context, widget.title, png);
+    } catch (_) {
+      if (mounted) AppToast.show(context, '결과 이미지가 준비되지 않았어요. 다시 시도해주세요.', isError: true);
+    } finally {
+      if (mounted) setState(() => _sharing = false);
+    }
+  }
   Future<void> _save() async {
     if (_saving) return;
     setState(() => _saving = true);
@@ -152,9 +173,9 @@ class _FullResultSheetState extends State<FullResultSheet> {
             ],
           ),
         ),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16),
-          child: Text('전송하면 링크를 가진 사람이 아래 결과를 볼 수 있어요.'),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(kIsWeb ? '전송하면 링크를 가진 사람이 아래 결과를 볼 수 있어요.' : '아래 결과를 이미지로 공유합니다.'),
         ),
         Expanded(
           child: SingleChildScrollView(
@@ -235,12 +256,8 @@ class _FullResultSheetState extends State<FullResultSheet> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: FilledButton(
-                    onPressed: () => safeShareText(
-                      context,
-                      '${widget.title}\n${widget.shareUrl}',
-                      subject: '신통방통 전체 결과',
-                    ),
-                    child: const Text('링크 전송'),
+                    onPressed: _sharing ? null : _share,
+                    child: Text(_sharing ? '이미지 준비 중' : kIsWeb ? '링크 전송' : '이미지 전송'),
                   ),
                 ),
               ],

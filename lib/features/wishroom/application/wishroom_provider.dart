@@ -126,6 +126,7 @@ class WishRoomProvider extends ChangeNotifier {
     items = [];
     characters = [];
     catalogLoaded = false;
+    catalogError = null;
     notifications = [];
     exploreFeed = [];
     archiveRooms = [];
@@ -520,19 +521,37 @@ class WishRoomProvider extends ChangeNotifier {
 
   // ── 아이템/캐릭터 카탈로그(SCR-04/05) ──
 
+  ApiError? catalogError;
+  bool catalogLoading = false;
   Future<void> loadCatalog() async {
+    if (catalogLoading) return;
+    catalogLoading = true;
+    catalogError = null;
+    // 일부 기존 화면이 initState에서 호출하므로 첫 프레임 중 알림은 보내지 않는다.
+    // 서로 독립된 목록: 아이템 실패가 성공한 캐릭터 목록까지 버리지 않게 한다.
+    var itemsOk = false;
+    var charactersOk = false;
+    Future<void> fetchItems() async {
+      try { items = await repo.items(); itemsOk = true; }
+      on ApiError catch (e) { catalogError ??= e; }
+      catch (_) { catalogError ??= ApiError(0, 'CATALOG_PARSE', '꾸미기 정보를 읽지 못했어요'); }
+    }
+    Future<void> fetchCharacters() async {
+      try {
+        characters = await repo.characters();
+        charactersOk = characters.isNotEmpty;
+        if (!charactersOk) catalogError ??= ApiError(0, 'EMPTY_CHARACTERS', '캐릭터 목록이 비어 있어요');
+      }
+      on ApiError catch (e) { catalogError ??= e; }
+      catch (_) { catalogError ??= ApiError(0, 'CATALOG_PARSE', '캐릭터 정보를 읽지 못했어요'); }
+    }
     try {
-      final results = await Future.wait([repo.items(), repo.characters()]);
-      items = results[0] as List<WrItem>;
-      characters = results[1] as List<WrCharacter>;
-      catalogLoaded = true;
-      // room이 loadMyRoom()으로 먼저 로드되고 카탈로그가 나중에 끝나는 순서도
-      // 있으므로(initState에서 두 호출을 거의 동시에 발사), 카탈로그 로딩이
-      // 끝나는 시점에도 한 번 더 동기화해 아이템 asset 정보 누락을 방지한다.
+      await Future.wait([fetchItems(), fetchCharacters()]);
+      catalogLoaded = itemsOk && charactersOk;
+      if (catalogError != null) lastError = catalogError;
       _syncNativeWallpaper();
-      notifyListeners();
-    } on ApiError catch (e) {
-      lastError = e;
+    } finally {
+      catalogLoading = false;
       notifyListeners();
     }
   }

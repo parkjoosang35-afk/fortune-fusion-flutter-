@@ -36,21 +36,25 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
   @override
   void initState() {
     super.initState();
-    final p = context.read<WishRoomProvider>();
-    if (!p.catalogLoaded) p.loadCatalog();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final me = context.read<WishRoomProvider>().me;
-      if (me != null) {
-          setState(() {
-            _selId = me.repChar;
-            _gender = _selId!.startsWith('M') ? 'M' : 'F';
-            final room = context.read<WishRoomProvider>().room;
-             _wear = room?.char == me.repChar ? room!.outfitNow : WrTheme.free;
-             _newOutfitId = room?.char == me.repChar ? room?.outfitId : null;
-          });
-        _loadOutfits(_selId!);
-      }
+      if (mounted) _initializeShop();
     });
+  }
+
+  Future<void> _initializeShop() async {
+    final p = context.read<WishRoomProvider>();
+    if (!p.catalogLoaded) await p.loadCatalog();
+    if (!mounted) return;
+    if (p.me == null) await p.loadMyRoom();
+    if (!mounted || p.characters.isEmpty) return;
+    final id = p.me?.repChar ?? p.characters.first.id;
+    setState(() {
+      _selId = id;
+      _gender = id.startsWith('M') ? 'M' : 'F';
+      _wear = p.room?.char == id ? p.room!.outfitNow : WrTheme.free;
+      _newOutfitId = p.room?.char == id ? p.room?.outfitId : null;
+    });
+    await p.loadOutfits(id);
   }
 
   Future<void> _loadOutfits(String char) async {
@@ -192,8 +196,40 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
       data: wrThemeData(),
       child: Scaffold(
         backgroundColor: WrC.bg2,
+        bottomNavigationBar: SafeArea(top: false, child: Row(children: [
+          for (final tab in [(0, Icons.home_outlined, '내 소원방'), (1, Icons.explore_outlined, '소원방'), (2, Icons.notifications_outlined, '알림'), (3, Icons.palette_outlined, '꾸미기'), (4, Icons.inventory_2_outlined, '보관함')])
+            Expanded(child: TextButton(onPressed: () {
+              context.read<WishRoomProvider>().requestTab(tab.$1);
+              Navigator.of(context).maybePop();
+            }, child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Icon(tab.$2, size: 22, color: WrC.fg),
+              Text(tab.$3, style: const TextStyle(fontSize: 10, color: WrC.fg)),
+            ]))),
+        ])),
         body: Consumer<WishRoomProvider>(
           builder: (context, p, __) {
+            if (p.characters.isEmpty) {
+              return SafeArea(child: Column(children: [
+                Padding(padding: const EdgeInsets.all(14), child: Row(children: [
+                  WrNavPill(onBack: () => Navigator.of(context).maybePop(), onExitHome: () => wrExitHome(context)),
+                  const SizedBox(width: 16),
+                  const Text('소원방 캐릭터', style: TextStyle(color: Colors.white)),
+                ])),
+                Expanded(child: Center(child: Padding(padding: const EdgeInsets.all(24), child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (p.catalogError == null) const CircularProgressIndicator()
+                    else ...[
+                      const Text('캐릭터 정보를 불러오지 못했어요', style: TextStyle(color: Colors.white, fontSize: 18)),
+                      const SizedBox(height: 12),
+                      Text(p.catalogError!.message, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)),
+                      const SizedBox(height: 16),
+                      FilledButton(onPressed: _initializeShop, child: const Text('다시 불러오기')),
+                    ],
+                  ],
+                )))),
+              ]));
+            }
             final genderList = p.characters
                 .where((ch) => ch.gender == _gender)
                 .toList();

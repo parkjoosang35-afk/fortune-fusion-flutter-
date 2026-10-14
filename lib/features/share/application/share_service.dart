@@ -78,7 +78,7 @@ class ShareService {
         AppToast.show(context, '결과 이미지가 준비되지 않았어요. 다시 시도해주세요.', isError: true);
         return;
       }
-      await _shareImageDirectly(context, title, originalPng);
+      await shareImageDirectly(context, title, originalPng);
       return;
     }
     if (originalPng != null) {
@@ -138,7 +138,7 @@ class ShareService {
   /// [앱 전용 — 이미지 직접 공유] 원본 결과 이미지를 OS 공유 시트로 바로
   /// 전송한다. 미지원·실패는 오류로 알리며 텍스트 공유로 대체하지 않는다.
   /// 공유창 종료는 수신 앱의 실제 전달 완료를 보장하지 않는다.
-  static Future<void> _shareImageDirectly(
+  static Future<void> shareImageDirectly(
     BuildContext context,
     String title,
     Uint8List png,

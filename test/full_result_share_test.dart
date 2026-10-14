@@ -66,7 +66,8 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('전체 저장'), findsOneWidget);
-    expect(find.text('링크 전송'), findsOneWidget);
+    expect(find.text('이미지 전송'), findsOneWidget);
+    expect(find.text('링크 전송'), findsNothing);
     await tester.scrollUntilVisible(
       find.text('블록11'),
       500,
