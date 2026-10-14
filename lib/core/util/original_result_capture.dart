@@ -20,15 +20,13 @@ Future<Uint8List> captureOriginalResult(
   // 일치하는 `late` 변수가 전혀 없어, 캡처 영역 내부에 배치된 AdSense
   // `HtmlElementView`(플랫폼 뷰, platform_view 비동기 등록)가 아직 완전히
   // 자리잡기 전에 `toImage()`가 호출되는 타이밍 경쟁이 유력한 원인으로
-  // 추정된다. 단일 프레임 대기로는 플랫폼 뷰 합성이 끝났음을 보장하지
-  // 못하므로, 연속 3프레임 대기 + 짧은 유예시간을 추가해 레이아웃/합성이
-  // 완전히 안정된 뒤 캡처를 시작하도록 강화한다(부작용 없음 — 수십~백 ms
-  // 지연만 추가).
-  for (var i = 0; i < 3; i++) {
-    try {
-      await WidgetsBinding.instance.endOfFrame;
-    } catch (_) {}
-  }
+  // 추정된다. 기존 테스트 하네스(widget test의 수동 pump 사이클)와의
+  // 호환을 위해 endOfFrame 대기 자체는 1회로 유지하고, 그 뒤에 짧은
+  // 유예시간만 추가해 플랫폼 뷰 합성이 안정될 시간을 더 준다(부작용 없음 —
+  // 수십~백 ms 지연만 추가, runAsync 환경의 실제 타이머에서만 유효).
+  try {
+    await WidgetsBinding.instance.endOfFrame;
+  } catch (_) {}
   try {
     await Future<void>.delayed(const Duration(milliseconds: 120));
   } catch (_) {}
