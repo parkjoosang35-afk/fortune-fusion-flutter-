@@ -603,6 +603,23 @@ class GuinjiProvider extends ChangeNotifier {
     }
   }
 
+  /// GET /guinji/g/{token}/profile — 게스트(비로그인) 호스트 프로필
+  /// 미리보기. [fetchInvite]와 달리 로그인이 필요 없어 초대장 화면
+  /// (제출 전)에서 호출할 수 있다. 실패해도 조용히 무시 가능(반환 null이면
+  /// 호출부가 일반화된 문구로 폴백).
+  ///
+  /// 반환: {ownerName, characterType: {...} | null}
+  Future<Map<String, dynamic>?> fetchHostProfile(String token) async {
+    final result = await _repository.fetchHostProfile(token);
+    if (!result.success) {
+      debugPrint(
+        '[GuinjiProvider] [fetchHostProfile] 실패(무시 가능) -> ${result.errorMessage}',
+      );
+      return null;
+    }
+    return result.data;
+  }
+
   /// GET /guinji/g/{token} — 딥링크 초대 유효성 확인.
   Future<Map<String, dynamic>?> fetchInvite(String token) async {
     _isLoading = true;

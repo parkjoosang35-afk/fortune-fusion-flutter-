@@ -188,6 +188,47 @@ class GuinjiRepository {
     }
   }
 
+  /// GET /guinji/g/{token}/profile — 게스트(비로그인) 호스트 프로필 미리보기.
+  ///
+  /// [2026-10 초대장 리디자인 v2 — "나는 OOO님에게 어떤 사람일까?"] 제출
+  /// *전*에 초대장 화면에 호스트 이름과 "캐릭터 유형"(예: "큰 나무형")을
+  /// 보여주기 위한 전용 조회 API(admin_web
+  /// `g/[token]/profile/route.ts` 참고 — 인증 불필요, 화이트리스트
+  /// 2필드만 반환: ownerName/characterType). [fetchInvite]와 달리 로그인을
+  /// 요구하지 않는다 — 비로그인 게스트가 초대장 카드를 보는 시점에 호출.
+  /// 실패해도 화면 전체를 막지 않도록 호출부에서 조용히 무시할 수 있다
+  /// (반환 null이면 일반화된 문구로 폴백).
+  ///
+  /// 반환: {ownerName, characterType: {element, hanja, title, tagline,
+  /// description, color} | null}
+  Future<ApiResult<Map<String, dynamic>>> fetchHostProfile(
+    String token,
+  ) async {
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/guinji/g/$token/profile',
+    );
+    debugPrint('[GuinjiRepository] [fetchHostProfile] 요청 -> $uri (인증 헤더 없음)');
+
+    try {
+      final response = await http
+          .get(uri, headers: {'Accept': 'application/json'})
+          .timeout(const Duration(seconds: 15));
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode >= 400 || decoded['success'] != true) {
+        final error = decoded['error'] as String? ?? '호스트 정보 조회에 실패했습니다.';
+        debugPrint('[GuinjiRepository] [fetchHostProfile] 실패 -> $error');
+        return ApiResult.fail(error, code: decoded['code'] as String?);
+      }
+
+      final data = decoded['data'] as Map<String, dynamic>;
+      return ApiResult.ok(data);
+    } catch (e) {
+      debugPrint('[GuinjiRepository] [fetchHostProfile] 예외 -> $e');
+      return ApiResult.fail('호스트 정보 조회 중 오류가 발생했습니다: $e');
+    }
+  }
+
   /// POST /guinji/g/{token}/join — 게스트(비로그인) 웹 참여.
   ///
   /// [바이럴 게스트 원칙 — 절대] 이 메서드는 [AuthTokenStore.authHeader]를

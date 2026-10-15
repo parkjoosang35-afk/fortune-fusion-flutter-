@@ -81,12 +81,35 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
   String? _formError;
   bool _topBarSolid = false;
 
+  // [2026-10 추가 — 경쟁사 레퍼런스 반영] 제출 전 초대장 카드를 개인화하기
+  // 위한 호스트 프로필(이름 + 오행 캐릭터 유형). `GET
+  // /guinji/g/{token}/profile`은 비로그인 전용 API라 initState에서 바로
+  // 호출할 수 있다(기존 [fetchInvite]와 달리 401 제약이 없음). 실패해도
+  // 화면 전체를 막지 않는다 — null이면 GuinjiInvitationLetter가 알아서
+  // 기존 일반화된 문구로 폴백한다.
+  String? _hostName;
+  GuinjiHostCharacterType? _hostCharacterType;
+
   static const _calendarChips = ['양력', '음력'];
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_handleScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadHostProfile());
+  }
+
+  Future<void> _loadHostProfile() async {
+    final provider = context.read<GuinjiProvider>();
+    final data = await provider.fetchHostProfile(widget.token);
+    if (!mounted || data == null) return;
+    final characterJson = data['characterType'] as Map<String, dynamic>?;
+    setState(() {
+      _hostName = data['ownerName'] as String?;
+      _hostCharacterType = characterJson == null
+          ? null
+          : GuinjiHostCharacterType.fromJson(characterJson);
+    });
   }
 
   void _handleScroll() {
@@ -327,7 +350,10 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         // [B] InvitationLetter
-                        const GuinjiInvitationLetter(),
+                        GuinjiInvitationLetter(
+                          hostName: _hostName,
+                          characterType: _hostCharacterType,
+                        ),
                         // [C] SajuForm
                         Padding(
                           padding: const EdgeInsets.fromLTRB(20, 34, 20, 0),
@@ -409,6 +435,15 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
             height: 1.6,
           ),
         ),
+        const SizedBox(height: 18),
+
+        // [2026-10 추가 — 경쟁사 레퍼런스 반영, 사용자 명시 요청]
+        // "🙋 나는 OOO님에게 어떤 사람일까?" 설명 박스. 생년월일만 넣으면
+        // 바로 관계가 나온다는 점과, 연주·월주·일주(생년월일)는 관계
+        // 판정 기준이고 태어난 시간은 호스트가 보는 귀인 궁합(상세 해설)에
+        // 반영된다는 점을 안내한다. 호스트 이름을 알면 문구에 반영하고,
+        // 모르면 "친구"로 일반화한다.
+        _GiExplainCard(hostName: _hostName),
         const SizedBox(height: 22),
 
         _GiFieldLabel('이름 · 닉네임'),
@@ -768,6 +803,63 @@ class _TopBarBackButton extends StatelessWidget {
             child: const Icon(Icons.arrow_back, size: 16, color: GiColors.fg),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// [2026-10 추가] "🙋 나는 OOO님에게 어떤 사람일까?" 설명 카드 —
+/// 경쟁사 레퍼런스의 동일 섹션을 참고해 사용자가 명시적으로 요청한 문구.
+class _GiExplainCard extends StatelessWidget {
+  const _GiExplainCard({required this.hostName});
+
+  final String? hostName;
+
+  @override
+  Widget build(BuildContext context) {
+    final name = (hostName != null && hostName!.isNotEmpty) ? hostName! : '친구';
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: GiColors.card,
+        borderRadius: BorderRadius.circular(GiRadius.consentCard),
+        border: Border.all(color: GiColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text('🙋', style: TextStyle(fontSize: 15)),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  '나는 $name님에게 어떤 사람일까?',
+                  style: const TextStyle(
+                    fontFamily: GiFonts.ui,
+                    fontFamilyFallback: [GiFonts.body],
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: GiColors.fg,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '생일만 넣으면 바로 나와요. 지도 관계는 연주·월주·일주를 '
+            '기준으로 보고, 태어난 시간은 $name님이 나와의 귀인 궁합을 '
+            '볼 때 반영돼요.',
+            style: const TextStyle(
+              fontFamily: GiFonts.body,
+              fontSize: 12.5,
+              height: 1.6,
+              color: GiColors.muted,
+            ),
+          ),
+        ],
       ),
     );
   }
