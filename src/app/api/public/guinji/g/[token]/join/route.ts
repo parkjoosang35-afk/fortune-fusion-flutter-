@@ -130,7 +130,7 @@ export async function POST(
   try {
     const map = await prisma.guinjiMap.findUnique({
       where: { token },
-      include: { owner: { select: { nickname: true } } },
+      include: { owner: { select: { nickname: true, gender: true } } },
     });
 
     if (!map || map.deletedAt != null || map.status !== "active") {
@@ -239,6 +239,11 @@ export async function POST(
         success: true,
         data: {
           ownerName: map.owner.nickname,
+          // [귀인지도 초대장 리디자인 — 초대한사람 캐릭터 부여] 결과 화면에서
+          // 호스트(초대한 사람) 성별에 맞는 캐릭터(도령/선녀)를 보여주기 위해
+          // 추가. User.gender는 선택 입력 필드라 비어있을 수 있어(null),
+          // 클라이언트는 null일 때 중립/기본 캐릭터로 폴백해야 한다.
+          ownerGender: map.owner.gender ?? null,
           relationType: outcome.relationship.relationType,
           chemistryScore: outcome.relationship.chemistryScore,
           timeUnknown: guestManseryeok.timeUnknown,
