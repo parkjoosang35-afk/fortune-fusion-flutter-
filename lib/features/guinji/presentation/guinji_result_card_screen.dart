@@ -128,6 +128,7 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
     }
   }
 
+  // ignore: unused_element
   Future<void> _captureAndShare(int guin) async {
     if (_capturing) return;
     setState(() => _capturing = true);
@@ -226,14 +227,20 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
     }
   }
 
-  /// "공유하기" 버튼 탭 시 스크린샷 공유/링크 공유 중 하나를 고르는
-  /// 바텀시트. 기존 스크린샷 공유 흐름([_captureAndShare])은 그대로
-  /// 유지하면서, 신규 링크 공유([_shareViaLink])를 추가로 노출한다.
+  /// "공유하기" 버튼 탭.
+  ///
+  /// [신통방통 앱·웹 공유 근본 정상화 — 2026-11] 과거에는 웹만
+  /// [_shareViaLink]( /r/{id} 서버 공유 링크 생성 )를 쓰고 앱은
+  /// [_captureAndShare](이미지만 OS 공유 시트로 전송, 공유 링크 없음)를
+  /// 써서 — 앱에서 공유받은 사람은 애초에 특정 결과로 돌아올 링크 자체가
+  /// 없었다(§3-A 위반). `ShareService.shareResult()`가 이제 플랫폼 공통으로
+  /// 서버 공유 링크를 만들고 앱에서는 이미지+`/r/{id}` 딥링크를 함께
+  /// 전송하도록 고쳐졌으므로, 여기서도 플랫폼 분기 없이 항상
+  /// [_shareViaLink]만 사용한다. (레거시 [_captureAndShare]는 더 이상
+  /// 호출되지 않지만, 과거 코드 경로 회귀 추적을 위해 일단 남겨둔다.)
   Future<void> _showShareOptions(int guin) async {
     if (_capturing) return;
-    // 플랫폼별 경로는 사용자가 매번 선택하지 않아도 일정하게 유지한다.
-    if (kIsWeb) { await _shareViaLink(); } else { await _captureAndShare(guin); }
-
+    await _shareViaLink();
   }
 
   @override

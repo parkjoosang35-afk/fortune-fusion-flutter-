@@ -129,17 +129,13 @@ class ShareService {
       }
     }
     if (!context.mounted) return;
-    // 앱은 원본 PNG를 OS 공유창에 전달하며 서버에 업로드하지 않는다.
-    // 웹은 공개 동의 후 업로드한 /web-result/{id} 결과페이지를 공유한다.
-    // 설치 안내는 확인된 Play Store 설정만 사용하고 홈페이지로 대체하지 않는다.
-    if (!kIsWeb) {
-      if (originalPng == null) {
-        AppToast.show(context, '결과 이미지가 준비되지 않았어요. 다시 시도해주세요.', isError: true);
-        return;
-      }
-      await shareImageDirectly(context, title, originalPng);
-      return;
-    }
+    // [신통방통 앱·웹 공유 근본 정상화 — 2026-11] 공유 링크는 플랫폼 공통으로
+    // 서버(POST /api/public/share, 원칙 3: 기존 백엔드 재사용)에 생성한다.
+    // 과거에는 !kIsWeb 분기가 여기서 바로 return 하며 createShareLink()를
+    // 전혀 호출하지 않아 앱 공유에는 공유 링크 자체가 없었다(핵심 버그).
+    // 이제 앱도 원본 이미지를 함께 업로드해 /r/{id} 딥링크를 만들고,
+    // 웹은 지금처럼 /web-result/{id}만 사용한다 — 동의 절차도 플랫폼
+    // 공통으로 적용해 앱에서도 서버 업로드 전 동일한 공개 동의를 받는다.
     if (originalPng != null) {
       final approved = await showDialog<bool>(
         context: context,
@@ -182,8 +178,28 @@ class ShareService {
       return;
     }
 
-    final shareUri = Uri.parse(result.data!.shareUrl);
-    final shareUrl = shareUri.replace(path: shareUri.path.replaceFirst(RegExp(r'^/r/'), '/web-result/'), query: null).toString();
+    final shareId = result.data!.shareId;
+
+    if (!kIsWeb) {
+      // [앱 전용 — §3-A] /r/{id}는 Android App Links 대상 주소다. 받는 사람
+      // 기기에 신통방통 앱이 설치·검증되어 있으면 OS가 바로 앱의
+      // SharedResultScreen으로 연결하고, 그렇지 않으면 동일 경로의 웹 결과
+      // 페이지(/r/[id] SSR)로 자연스럽게 폴백한다(AndroidManifest.xml
+      // pathPrefix="/r" 참고). 절대 /web-result로 바꿔치기하지 않는다 —
+      // 그러면 App Links 인터셉트가 발생하지 않아 앱 설치자도 웹으로만
+      // 빠지게 된다.
+      final deepLinkUrl = EnvConfig.resultDeepLinkUrl(shareId);
+      if (!context.mounted) return;
+      if (originalPng != null) {
+        await _sendImage(context, title, originalPng, shareUrl: deepLinkUrl);
+      } else {
+        await safeShareText(context, '$title\n$deepLinkUrl', subject: subject ?? title);
+      }
+      return;
+    }
+
+    // [웹 전용 — §3-B] 앱 설치를 유도하지 않는 /web-result/{id} 주소만 쓴다.
+    final shareUrl = EnvConfig.webResultUrl(shareId);
     if (!context.mounted) return;
     await showFullResultSheet(
       context,
@@ -198,18 +214,19 @@ class ShareService {
   /// 전송한다. 미지원·실패는 오류로 알리며 텍스트 공유로 대체하지 않는다.
   /// 공유창 종료는 수신 앱의 실제 전달 완료를 보장하지 않는다.
   static final _imageSharing = Expando<bool>();
-  static Future<void> shareImageDirectly(BuildContext context, String title, Uint8List png) async {
+  static Future<void> shareImageDirectly(BuildContext context, String title, Uint8List png, {String? shareUrl}) async {
     if (_imageSharing[context] == true || !context.mounted) return;
     _imageSharing[context] = true;
-    try { await _sendImage(context, title, png); }
+    try { await _sendImage(context, title, png, shareUrl: shareUrl); }
     finally { _imageSharing[context] = false; }
   }
 
   static Future<void> _sendImage(
     BuildContext context,
     String title,
-    Uint8List png,
-  ) async {
+    Uint8List png, {
+    String? shareUrl,
+  }) async {
     if (kIsWeb) {
       if (context.mounted) AppToast.show(context, '웹에서는 결과페이지 링크로 공유해주세요.', isError: true);
       return;
@@ -218,11 +235,15 @@ class ShareService {
       AppToast.show(context, '결과 이미지가 비어 있어요. 다시 시도해주세요.', isError: true);
       return;
     }
-    // 확정 기준: 앱 결과는 PNG, 웹 결과는 웹 결과 URL, 초대는 별도 링크.
+    // 확정 기준: 앱 결과는 PNG+공유링크, 웹 결과는 웹 결과 URL, 초대는 별도 링크.
     // 설치 안내는 확인된 Play Store 설정이 있을 때만 붙인다. 홈페이지로 대체하지 않는다.
     final store = Uri.tryParse(EnvConfig.appDownloadUrl);
     final storeReady = store?.scheme == 'https' && store?.host == 'play.google.com' && store?.path == '/store/apps/details' && store!.queryParameters['id']?.isNotEmpty == true;
-    final shareText = '$title\n신통방통에서 확인했어요.${storeReady ? '\n앱 설치: $store' : ''}';
+    // [신통방통 공유 근본 정상화] 공유 링크(shareUrl)가 있으면 이미지와 함께
+    // 반드시 본문에 포함한다 — 링크가 없으면 받는 사람이 특정 결과로
+    // 돌아올 방법이 없어 §3-A 요구사항(해당 결과로 연결)을 만족하지 못한다.
+    final linkLine = shareUrl != null ? '\n$shareUrl' : '';
+    final shareText = '$title$linkLine\n신통방통에서 확인했어요.${storeReady ? '\n앱 설치: $store' : ''}';
     void reportFailure() {
       if (!context.mounted) return;
       AppToast.show(context, '결과 이미지를 공유하지 못했어요. 이미지를 저장한 뒤 첨부하거나 다시 시도해주세요.', isError: true);
