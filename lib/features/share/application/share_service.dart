@@ -93,16 +93,21 @@ class ShareService {
     List<GlobalKey> originalOverlayKeys = const [],
     Uint8List? preCapturedPng,
   }) async {
-    Uint8List? originalPng = preCapturedPng;
-    if (originalPng == null && originalResultKey != null) {
-      // [웹 공유 LateInitializationError 재발 대응 — 2026-10] 과거 3개
-      // 안전망 적용(d0c39a74/d68ee136/f5447ec) 이후에도 웹 릴리스 빌드에서
-      // 동일 토스트가 재발했고, 우리 코드 전수 추적으로는 해당 메시지와
-      // 일치하는 `late` 선언을 찾지 못했다 — 즉 원인은 앱 코드가 아니라
-      // 엔진/플랫폼 뷰 합성 타이밍의 1회성 경쟁 상태일 가능성이 높다.
-      // 1회성 경쟁이라면 "조금 뒤 다시 캡처"만으로 해결되므로, 사용자에게
-      // 실패 토스트를 보여주기 전에 짧은 지연 후 1회 자동 재시도한다 —
-      // 두 번째 시도까지 실패할 때만 실제 오류로 간주해 안내한다.
+    // [웹·앱 공유 캡처 경로 근본 분리 — 2026-11] 웹은 이미 공개적으로 열람
+    // 가능한 /web-result/{id} 결과 페이지가 존재하므로 "결과 = 그 페이지
+    // 주소"다. 화면을 캡처해 이미지로 바꿔 보내는 것은 앱(= 받는 사람이
+    // 열람할 수 있는 공개 웹페이지가 없어 이미지가 유일한 대안)에만
+    // 필요한 대체 수단이며, 웹에서 굳이 같은 캡처 경로를 타던 것이
+    // `LateInitializationError` 토스트 재발의 근본 원인이었다(엔진/광고
+    // 위젯 합성 타이밍 경쟁 상태 — 재시도로는 근본 해결 불가, 애초에 웹은
+    // 캡처를 시도하지 않아야 함). 웹은 원본 PNG 없이 `payload`(설계상 이미
+    // 비민감 정보만 담음 — ShareApiService 주석 참고)만으로 링크를 만들고
+    // 그 주소를 그대로 전달한다 — `_sendImage`의 기존 안내
+    // ("웹에서는 결과페이지 링크로 공유해주세요")와 동일한 원칙이다.
+    Uint8List? originalPng = kIsWeb ? null : preCapturedPng;
+    if (!kIsWeb && originalPng == null && originalResultKey != null) {
+      // [앱 전용] 캡처 1회 실패 시 짧은 지연 후 1회 자동 재시도 — 두 번째
+      // 시도까지 실패할 때만 실제 오류로 간주해 안내한다.
       try {
         originalPng = await captureOriginalResult(
           originalResultKey,

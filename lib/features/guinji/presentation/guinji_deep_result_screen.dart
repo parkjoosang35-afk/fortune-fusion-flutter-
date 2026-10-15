@@ -76,7 +76,11 @@ class GuinjiDeepResultScreen extends StatelessWidget {
     final meta = guinjiRelationMetaOf(person.relation);
     final message = '${person.name}님과의 관계는 "${meta.label}"예요 · 신통방통 귀인지도';
     try {
-      final png = await _captureFullPagePng(context);
+      // [웹·앱 공유 캡처 경로 근본 분리 — 2026-11] 웹은 /web-result/{id}
+      // 링크만 전달하므로 캡처가 불필요하다 — `ShareService.shareResult`가
+      // kIsWeb이면 preCapturedPng를 무시하지만, 애초에 웹에서 무거운 10장
+      // 전체 페이지 캡처를 시도하지 않도록 여기서도 막는다.
+      final png = kIsWeb ? null : await _captureFullPagePng(context);
       if (!context.mounted) return;
       await ShareService.shareResult(
         context,
