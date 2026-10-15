@@ -202,12 +202,26 @@ class _GuinjiMapRelationDetailScreenState
         // 전문은 무단 공개가 되므로 넣지 않고, 관계 유형 자체의 공개
         // 소개(meta.long/specialInsight/tips — 유형 설명이지 개인 풀이가
         // 아님)만 요약으로 전달한다.
+        // [공유 콘텐츠 부실 버그 근본 수정 — "결과페이지 그대로 가라" 2027-02]
+        // 기존에는 관계 유형(TYPE) 공통 설명만 보냈다 — 받는 사람이 보는
+        // 화면이 실제 이 화면(아바타·이름·점수·오행·판정근거)과 전혀 다른
+        // "공유된 결과"라는 텍스트 요약으로 뜨는 근본 원인이었다. 이제
+        // person 인스턴스 데이터(이름/생년/점수/오행 키)까지 함께 보내
+        // [SharedResultScreen]이 이 화면과 동일한 카드 레이아웃을 그대로
+        // 재구성할 수 있게 한다. 원본 사진/연락처 등 민감정보는 포함하지
+        // 않는다(이름·생년 표시 문자열 자체는 이 화면에서도 이미 공개로
+        // 보여주는 정보).
         payload: {
           'kind': 'relationship',
           'relationType': meta.key,
           'relationLabel': meta.label,
           'summary': meta.long,
           'highlights': [meta.specialInsight, ...meta.tips],
+          'personName': person.name,
+          'personBirth': person.birth,
+          'score': person.score,
+          'ohaeng': person.ohaeng,
+          'note': person.note,
         },
         subject: '신통방통 귀인지도',
         originalResultKey: _originalResultKey,
