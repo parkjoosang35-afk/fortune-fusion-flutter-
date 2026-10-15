@@ -308,38 +308,53 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // [A] StoryHero — 풀블리드, 높이 430. 아래 Padding(bottom:-70)
-                  // 트릭으로 [B] InvitationLetter가 자연스럽게 70px 겹친다.
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: -70),
-                    child: const GuinjiInvitationStoryHero(),
-                  ),
-                  // [B] InvitationLetter
-                  const GuinjiInvitationLetter(),
-                  // [C] SajuForm
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 34, 20, 0),
-                    child: _buildSajuForm(),
-                  ),
-                  // [D] CTA + 보조 링크
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
-                    child: _buildCta(),
-                  ),
-                  // [E] 하단 인용구
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(20, 30, 20, 8),
-                    child: Text(
-                      '"닿을 인연은, 결국 닿게 되어 있어요"',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontFamily: GiFonts.body,
-                        fontSize: 12.5,
-                        color: Color(0x66E8DCC8),
-                      ),
+                  // [A] StoryHero — 풀블리드, 높이 430.
+                  const GuinjiInvitationStoryHero(),
+                  // [주의 — 음수 Padding 크래시 방지] 원래 "Hero 아래
+                  // Padding(bottom:-70)으로 Letter를 70px 겹친다"는 방식은
+                  // Flutter의 `Padding`이 음수 값을 허용하지 않아
+                  // (`assert(padding.isNonNegative)`) debug/테스트 빌드에서
+                  // 크래시를 일으킨다(release에선 assert가 꺼져 있어 겉으로는
+                  // 안 보일 뿐, 근본적으로 잘못된 코드). 대신 [B] 이하 전체를
+                  // `Transform.translate(-70)`로 위로 당겨 Hero와 70px 겹치게
+                  // 한다 — Column 레이아웃 계산(픽셀 예약)은 그대로 유지한 채
+                  // 페인트 위치만 옮기므로, 최종 스크롤 영역 맨 아래에 70px
+                  // 여백이 조금 더 생기는 정도의 아주 미세한 트레이드오프만
+                  // 남고 크래시 위험은 완전히 제거된다.
+                  Transform.translate(
+                    offset: const Offset(0, -70),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // [B] InvitationLetter
+                        const GuinjiInvitationLetter(),
+                        // [C] SajuForm
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 34, 20, 0),
+                          child: _buildSajuForm(),
+                        ),
+                        // [D] CTA + 보조 링크
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
+                          child: _buildCta(),
+                        ),
+                        // [E] 하단 인용구
+                        const Padding(
+                          padding: EdgeInsets.fromLTRB(20, 30, 20, 8),
+                          child: Text(
+                            '"닿을 인연은, 결국 닿게 되어 있어요"',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontFamily: GiFonts.body,
+                              fontSize: 12.5,
+                              color: Color(0x66E8DCC8),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 24),
                 ],
               ),
             ),
