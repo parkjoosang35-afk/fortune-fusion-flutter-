@@ -144,10 +144,20 @@ class _GuinjiInvitationLetterState extends State<GuinjiInvitationLetter>
                           color: GiColors.hanjiMeta,
                         ),
                       ),
+                      // [한글 깨짐 버그 수정 — 2026-10 운영 배포 검증] dateTag는
+                      // "2026 · 10 · 15 · 木" 형태로 끝에 한자 요일이 섞여
+                      // 들어간다. IBMPlexMono는 영문 전용 모노스페이스
+                      // 폰트라 한자 글리프가 없어 네모(tofu)로 깨졌었다
+                      // (sintong.kr 실제 배포 후 Playwright 스크린샷에서
+                      // 발견). fontFamilyFallback으로 한글 지원 폰트를
+                      // 추가해 모노 폰트에 없는 글리프만 자동으로 대체
+                      // 렌더링되게 한다 — 영문 숫자 부분의 모노스페이스
+                      // 스타일은 그대로 유지된다.
                       Text(
                         dateTag,
                         style: const TextStyle(
                           fontFamily: GiFonts.mono,
+                          fontFamilyFallback: [GiFonts.body],
                           fontSize: 9,
                           letterSpacing: 9 * 0.2,
                           color: GiColors.hanjiMeta,
@@ -225,6 +235,8 @@ class _GuinjiInvitationLetterState extends State<GuinjiInvitationLetter>
                     ),
                   ),
                   // 4) 보낸 사람 — 익명 원칙(이름 노출 금지)
+                  // [한글 깨짐 버그 수정] sigText("FROM · 익명의 친구")도
+                  // 한글이 섞여 있어 같은 이유로 fontFamilyFallback 필요.
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
                     child: Text(
@@ -232,6 +244,7 @@ class _GuinjiInvitationLetterState extends State<GuinjiInvitationLetter>
                       textAlign: TextAlign.right,
                       style: const TextStyle(
                         fontFamily: GiFonts.mono,
+                        fontFamilyFallback: [GiFonts.body],
                         fontSize: 9.5,
                         letterSpacing: 9.5 * 0.25,
                         color: GiColors.hanjiMeta,
