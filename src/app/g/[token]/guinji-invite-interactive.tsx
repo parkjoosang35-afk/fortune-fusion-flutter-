@@ -15,7 +15,8 @@
 import { useEffect, useState } from "react";
 import { track } from "./funnel";
 import { GUINJI_RELATION_TYPES } from "./relation-meta";
-import { RelationNetworkGraph, type RelationCount } from "./relation-network-graph";
+import { type RelationCount } from "./relation-network-graph";
+import { GuinjiOrbitMap, type SelfNode } from "./guinji-orbit-map";
 import { GUINJI_V2_RELATION_TYPE_ORDER } from "@/lib/guinji-v2/relation";
 import { SINTONG_WEB_URLS } from "./sintong-web-urls";
 import { buildRelationNarrative, type OhaengEvidenceLike } from "./relation-narrative";
@@ -93,6 +94,14 @@ export function GuinjiInviteInteractive({
   // [핵심] 그래프 데이터를 이 화면(클라이언트) state로 끌어올려, 폼 제출
   // 성공 시 서버 응답의 mapSummary로 바로 교체한다(새로고침 불필요).
   const [counts, setCounts] = useState<RelationCount[]>(initialCounts);
+  // [2026-11 신설 — "들어온 사람은 지도에 자기가 있는게 보일거구" 지시 반영]
+  // 폼 제출이 성공하면, 방금 제출한 본인의 이름+관계유형을 이 state에
+  // 담아 GuinjiOrbitMap에 넘긴다 — 지도 위에 "✦ 당신" 노드로 표시된다.
+  // 서버 응답(JoinResult)에는 이미 본인이 입력한 이름을 돌려주지 않지만,
+  // 이름은 어차피 이 컴포넌트가 로컬 `name` state로 이미 갖고 있으므로
+  // 새 API 필드를 추가할 필요가 없다(기존 응답만으로 충분 — "기존 구현
+  // 재사용" 원칙).
+  const [self, setSelf] = useState<SelfNode | null>(null);
 
   // [귀인지도 v2 퍼널 ①] 초대 링크가 실제로 열렸음을 기록(6단 루프의 시작점).
   useEffect(() => {
@@ -156,6 +165,9 @@ export function GuinjiInviteInteractive({
       // [핵심] 서버가 돌려준 최신 집계로 그래프를 즉시 갱신 — 새로고침 없이
       // "지도에 이름이 올라간" 상태를 그 자리에서 보여준다.
       setCounts(countsToRelationCounts(json.data.mapSummary.counts));
+      // [핵심 신설] 본인 노드 하이라이트 — 방금 제출한 이름(로컬 state)과
+      // 서버가 판정한 관계유형으로 "✦ 당신" 노드를 지도에 등록한다.
+      setSelf({ name: name.trim(), relationType: json.data.relationType });
     } catch {
       setError("네트워크 오류가 발생했어요. 잠시 후 다시 시도해 주세요.");
     } finally {
@@ -313,9 +325,12 @@ export function GuinjiInviteInteractive({
         )}
       </div>
 
-      {/* 관계 지도 네트워크 그래프 — 제출 성공 시 counts state가 갱신되어
-          이 컴포넌트가 새로고침 없이 즉시 다시 그려진다. */}
-      <RelationNetworkGraph counts={counts} ownerName={ownerName} />
+      {/* [2026-11 교체 — 동심원 궤도 지도] 기존 위성형 RelationNetworkGraph
+          대신, 사용자가 첨부한 앱 스크린샷(guinji_orbit_map.dart)과 같은
+          동심원 궤도 비주얼로 교체한다. 제출 성공 시 counts/self state가
+          갱신되어 새로고침 없이 즉시 다시 그려지고, 본인은 "✦ 당신" 노드로
+          자기 자리를 확인할 수 있다. */}
+      <GuinjiOrbitMap counts={counts} ownerName={ownerName} self={self} />
     </>
   );
 }
