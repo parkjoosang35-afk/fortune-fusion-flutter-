@@ -87,9 +87,16 @@ class GuinjiDeepResultScreen extends StatelessWidget {
         resultType: ShareResultType.relationship,
         title: message,
         description: '${meta.label} · 신통방통 귀인지도',
+        // [웹 결과페이지 빈 화면 버그 수정 — 2026-11] 과거에는 0/1 플래그만
+        // 보내 웹에서 빈 화면("관계 분석 내용이 준비되지 않았어요")만 떴다.
+        // 10장 유료 풀이(guinji_deep_text.dart) 전문은 무단 공개가 되므로
+        // payload에 넣지 않고, 관계 유형 자체의 공개 소개만 전달한다.
         payload: {
-          for (final key in guinjiRelationOrder)
-            key: key == person.relation ? 1 : 0,
+          'kind': 'relationship',
+          'relationType': meta.key,
+          'relationLabel': meta.label,
+          'summary': meta.long,
+          'highlights': [meta.specialInsight, ...meta.tips],
         },
         subject: '신통방통 귀인지도',
         preCapturedPng: png,

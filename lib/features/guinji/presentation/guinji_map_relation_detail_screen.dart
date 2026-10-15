@@ -194,9 +194,20 @@ class _GuinjiMapRelationDetailScreenState
         resultType: ShareResultType.relationship,
         title: message,
         description: '${meta.label} · 신통방통 귀인지도',
+        // [웹 결과페이지 빈 화면 버그 수정 — 2026-11] 과거에는 각 관계
+        // 유형 키에 0/1 플래그만 담아 보냈는데, admin_web 웹 렌더러
+        // (RelationshipView)는 사람이 읽을 요약 텍스트(summary)나
+        // 하이라이트 문자열을 기대한다 — 플래그만으로는 "관계 분석 내용이
+        // 준비되지 않았어요"만 뜬다. 유료 10장 풀이(guinji_deep_text.dart)
+        // 전문은 무단 공개가 되므로 넣지 않고, 관계 유형 자체의 공개
+        // 소개(meta.long/specialInsight/tips — 유형 설명이지 개인 풀이가
+        // 아님)만 요약으로 전달한다.
         payload: {
-          for (final key in guinjiRelationOrder)
-            key: key == person.relation ? 1 : 0,
+          'kind': 'relationship',
+          'relationType': meta.key,
+          'relationLabel': meta.label,
+          'summary': meta.long,
+          'highlights': [meta.specialInsight, ...meta.tips],
         },
         subject: '신통방통 귀인지도',
         originalResultKey: _originalResultKey,
