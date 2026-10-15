@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../widgets/app_toast.dart';
+import 'web_copy_fallback.dart';
 import 'web_native_share.dart';
 
 /// [공유 페이지 net::ERR_UNKNOWN_URL_SCHEME 버그 근본 수정 — 2026-12]
@@ -64,7 +65,24 @@ Future<void> safeShareText(
       await Clipboard.setData(ClipboardData(text: text));
       if (!context.mounted) return;
       AppToast.show(context, message);
+      return;
     } catch (_) {
+      // [PC 웹 결과 공유 버그 수정 — 2027-03] 비동기 Clipboard API
+      // (navigator.clipboard.writeText)가 실패했을 때, 웹에서는 곧바로
+      // 수동 복사 다이얼로그로 포기하지 않고 레거시 동기식 API
+      // (document.execCommand('copy'))로 한 번 더 시도한다. PC 브라우저
+      // (navigator.share 미지원)에서 "결과 공유하기"를 눌렀을 때, 이 앱이
+      // sintong.kr 랜딩 페이지의 동일 출처 iframe 안에서 열린 경우
+      // Permissions Policy/권한 프롬프트 때문에 비동기 Clipboard API가
+      // `NotAllowedError`로 거부되는 경우가 있었다(Playwright 실제 iframe
+      // 재현으로 확인 — "PC버젼에서 결과페이지 공유하게 해줘" 사용자
+      // 요청 대응). execCommand('copy')는 동일 상황에서도 사용자 제스처
+      // (클릭) 핸들러 안에서 동기 호출되기만 하면 성공한다.
+      if (kIsWeb && tryLegacyExecCommandCopy(text)) {
+        if (!context.mounted) return;
+        AppToast.show(context, message);
+        return;
+      }
       if (!context.mounted) return;
       await showDialog<void>(
         context: context,
