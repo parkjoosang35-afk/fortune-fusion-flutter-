@@ -51,6 +51,19 @@ dependencies:
   # (OS 네이티브 카메라 앱 호출 - 웹에서는 <input capture> 방식으로 폴백)로 통일한다.
   image_picker: 1.2.2          # 갤러리 선택 + 카메라 촬영(OS 네이티브 카메라 호출)
 
+  # [복주머니 마케팅 쿠폰 — QR 스캔] Android는 CameraX/ML Kit, Web은 zxing-js
+  # 기반(6.0.11 changelog: jsqr → zxing-js 교체로 전체 바코드 포맷 지원)으로
+  # 두 플랫폼 모두 지원하는 유일한 성숙한 QR 스캐너 패키지. Dart 3.9.2 고정
+  # 환경과 호환되는 최신판(7.x는 Dart 3.7.0+ 요구하나 pubspec 하한 자체는
+  # 문제 없음 — 다만 안정성 검증된 6.x 계열로 고정해 7.x의 breaking
+  # change/회귀 위험을 피한다). 카메라 권한은 AndroidManifest.xml에 기존
+  # image_picker용으로 이미 선언되어 있어 추가 설정이 필요 없다. 위
+  # "camera 패키지 초기화 실패" 주석은 실시간 미리보기 범용 패키지(camera)에
+  # 대한 과거 이슈이며, mobile_scanner는 전용 QR 디코딩 레이어까지 포함한
+  # 별개 패키지라 동일 문제가 재현되지 않는다(필요 시 수동 코드입력
+  # ([BokjuCouponEntryScreen])으로 항상 폴백 가능 — 카메라 의존이 아님).
+  mobile_scanner: 6.0.11
+
   # CMS 제휴광고(배너) 클릭 시 외부 제휴 링크(쿠팡파트너스 등)를 열기 위한 패키지
   url_launcher: 6.3.1
 

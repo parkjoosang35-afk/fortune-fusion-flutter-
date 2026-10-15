@@ -7,6 +7,7 @@ import '../domain/point_history_model.dart';
 import '../../fortune_ad/application/fortune_ad_provider.dart';
 import '../../fortune_ad/domain/fortune_ad_model.dart';
 import '../../fortune_ad/presentation/fortune_ad_watch_dialog.dart';
+import '../../bokju_coupon/presentation/bokju_coupon_scan_screen.dart';
 
 /// [복주머니 화면 재구성] `WalletScreen`(/reward/wallet)과 하단바 "복주머니" 탭
 /// (`LuckyBagScreen`)이 동일한 콘텐츠(잔액 + 무료 충전 카드들 + 적립/사용 내역)를
@@ -29,7 +30,11 @@ class WalletContent extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _BalanceCard(balance: wallet.balance, isLoading: wallet.isLoading),
-        const SizedBox(height: UnifiedTokens.spaceXl),
+        const SizedBox(height: UnifiedTokens.spaceMd),
+        // [복주머니 마케팅 쿠폰] QR 스캔/코드입력으로 쿠폰을 등록하는
+        // 진입점. 딥링크로 들어오지 않은 사용자를 위한 디스커버리 버튼.
+        const _CouponEntryButton(),
+        const SizedBox(height: UnifiedTokens.spaceLg),
         // 관리자가 등록한 광고 수만큼 "복주머니 무료 충전" 카드가 늘어난다.
         for (final ad in adProvider.ads) ...[
           _FortuneAdCard(ad: ad),
@@ -312,6 +317,52 @@ class _HistoryTile extends StatelessWidget {
             Text(
               '${isEarn ? '+' : '-'}${item.amount}개',
               style: UnifiedText.bodyStrong(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// [복주머니 마케팅 쿠폰] 지갑 화면 상단의 "쿠폰 등록" 디스커버리 버튼.
+/// 딥링크/QR로 직접 들어오지 않은 사용자도 발견할 수 있도록 지갑 화면에
+/// 상시 노출한다. 탭하면 QR 스캔 화면([BokjuCouponScanScreen], 카메라
+/// 실패 시 코드 직접입력으로 자동 폴백)으로 이동한다.
+class _CouponEntryButton extends StatelessWidget {
+  const _CouponEntryButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
+      onTap: () => Navigator.of(context).pushNamed('/reward/coupon/scan'),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(
+          horizontal: UnifiedTokens.spaceLg,
+          vertical: UnifiedTokens.spaceMd,
+        ),
+        decoration: BoxDecoration(
+          color: UnifiedColors.cardMain,
+          borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
+          border: Border.all(color: UnifiedColors.border),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.qr_code_scanner_rounded,
+              color: UnifiedColors.black,
+              size: UnifiedTokens.iconLg,
+            ),
+            const SizedBox(width: UnifiedTokens.spaceMd),
+            Expanded(
+              child: Text('쿠폰 등록하기', style: UnifiedText.bodyStrong()),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: UnifiedColors.textCaption,
+              size: UnifiedTokens.iconLg,
             ),
           ],
         ),

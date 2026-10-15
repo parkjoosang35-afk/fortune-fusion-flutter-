@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/config/env_config.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../../bokju_coupon/presentation/bokju_coupon_resolve_screen.dart';
 import '../../guinji/presentation/guinji_input_screen.dart';
 import '../../guinji/presentation/guinji_join_screen.dart';
 import '../../guinji/presentation/guinji_onboarding_screen.dart';
@@ -149,6 +150,7 @@ class _SignupScreenState extends State<SignupScreen> {
       replayPendingGuinjiOnboarding();
       replayPendingGuinjiMapEntry();
       replayPendingSajuEntry();
+      replayPendingBokjuCoupon();
     } else {
       AppToast.show(
         context,

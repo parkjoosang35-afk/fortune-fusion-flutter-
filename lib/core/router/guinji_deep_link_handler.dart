@@ -175,11 +175,36 @@ class GuinjiDeepLinkHandler {
       wToken = uri.pathSegments[1];
     }
 
-    if (wToken == null || wToken.isEmpty) return;
+    if (wToken != null && wToken.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final navState = appNavigatorKey.currentState;
+        if (navState == null) return;
+        navState.pushNamed('/w/$wToken');
+      });
+      return;
+    }
+
+    // ── 6) 복주머니 마케팅 쿠폰(`coupon`) ──────────────────────────
+    // [복주머니 마케팅 쿠폰] `fortunefusion://coupon/{token}` /
+    // `https://sintong.kr/coupon/{token}`. '/g'·'/r'·'/w'와 동일한 패턴으로
+    // AppRouter의 '/coupon/{token}' named route로 위임한다
+    // ([BokjuCouponResolveScreen]이 실제 미리보기/등록을 담당).
+    String? couponToken;
+    if (uri.scheme == 'fortunefusion' && uri.host == 'coupon') {
+      final segments = uri.pathSegments;
+      couponToken = segments.isNotEmpty ? segments.first : null;
+    } else if (uri.scheme == 'https' &&
+        uri.host == 'sintong.kr' &&
+        uri.pathSegments.length >= 2 &&
+        uri.pathSegments[0] == 'coupon') {
+      couponToken = uri.pathSegments[1];
+    }
+
+    if (couponToken == null || couponToken.isEmpty) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final navState = appNavigatorKey.currentState;
       if (navState == null) return;
-      navState.pushNamed('/w/$wToken');
+      navState.pushNamed('/coupon/$couponToken');
     });
   }
 

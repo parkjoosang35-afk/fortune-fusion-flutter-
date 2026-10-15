@@ -97,6 +97,11 @@ import '../../features/share/presentation/shared_result_screen.dart';
 import '../../features/saju_renewal/screens/saju_renewal_home_screen.dart';
 import '../../features/saju_renewal/screens/saju_intro_screen.dart';
 import '../../features/saju_renewal/navigation/saju_dimension_transition.dart';
+// [복주머니 마케팅 쿠폰] QR 스캔/딥링크/수동입력 공용 흐름. `/g/`·`/r/`·
+// `/w/`와 동일한 와일드카드 선매칭 패턴으로 `/coupon/{token}`을 처리한다.
+import '../../features/bokju_coupon/presentation/bokju_coupon_resolve_screen.dart';
+import '../../features/bokju_coupon/presentation/bokju_coupon_scan_screen.dart';
+import '../../features/bokju_coupon/presentation/bokju_coupon_history_screen.dart';
 import 'package:provider/provider.dart';
 import 'app_navigator_key.dart';
 import '../web/web_nav_bridge.dart';
@@ -186,6 +191,18 @@ class AppRouter {
       final token = name.substring('/w/'.length);
       if (token.isNotEmpty) {
         return _page(LinkInviteScreen(token: token));
+      }
+    }
+
+    // [복주머니 마케팅 쿠폰] `/coupon/{token}` — QR 딥링크(웹 URL 진입) 및
+    // `GuinjiDeepLinkHandler`가 수신한 OS 레벨 딥링크(`fortunefusion://coupon/{token}`,
+    // `https://sintong.kr/coupon/{token}`) 모두 최종적으로 이 경로를 통해
+    // [BokjuCouponResolveScreen]으로 도달한다('/g/'·'/r/'·'/w/'와 동일한
+    // 와일드카드 선매칭 패턴).
+    if (name.startsWith('/coupon/')) {
+      final token = name.substring('/coupon/'.length);
+      if (token.isNotEmpty) {
+        return _pageNamed('/coupon', BokjuCouponResolveScreen(token: token));
       }
     }
 
@@ -771,6 +788,15 @@ class AppRouter {
         );
       case '/reward/giftcard/my':
         return _pageNamed('/reward/giftcard/my', const MyGiftcardsScreen());
+
+      // ── [복주머니 마케팅 쿠폰] QR 스캔 진입점 + 내 쿠폰함 ──
+      // 지갑 화면("쿠폰 등록" 버튼 등)에서 이 라우트로 진입해 카메라
+      // 스캔(실패 시 수동 코드입력으로 자동 폴백)을 시작한다. 스캔/입력
+      // 완료 후에는 '/coupon/{token}' 경로(위 와일드카드 분기)로 이어진다.
+      case '/reward/coupon/scan':
+        return _pageNamed('/reward/coupon/scan', const BokjuCouponScanScreen());
+      case '/reward/coupon/my':
+        return _pageNamed('/reward/coupon/my', const BokjuCouponHistoryScreen());
 
       // ── 마이 ──
       case '/my/notifications':

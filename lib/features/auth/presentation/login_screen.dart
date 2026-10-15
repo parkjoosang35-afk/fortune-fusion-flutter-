@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/luck_pouch_toast.dart';
 import '../../wallet/application/wallet_provider.dart';
+import '../../bokju_coupon/presentation/bokju_coupon_resolve_screen.dart';
 import '../../guinji/presentation/guinji_input_screen.dart';
 import '../../guinji/presentation/guinji_join_screen.dart';
 import '../../guinji/presentation/guinji_onboarding_screen.dart';
@@ -111,6 +112,7 @@ class _LoginScreenState extends State<LoginScreen> {
       replayPendingGuinjiJoin();
       replayPendingGuinjiOnboarding();
       replayPendingGuinjiMapEntry();
+      replayPendingBokjuCoupon();
     } else {
       AppToast.show(
         context,
@@ -163,6 +165,7 @@ class _LoginScreenState extends State<LoginScreen> {
         replayPendingGuinjiOnboarding();
         replayPendingGuinjiMapEntry();
         replayPendingSajuEntry();
+        replayPendingBokjuCoupon();
       } else {
         AppToast.show(
           context,

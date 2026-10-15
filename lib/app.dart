@@ -12,6 +12,8 @@ import 'features/auth/application/auth_provider.dart';
 import 'features/auth/data/auth_repository.dart';
 import 'features/wallet/application/wallet_provider.dart';
 import 'features/wallet/data/wallet_repository.dart';
+import 'features/bokju_coupon/application/bokju_coupon_provider.dart';
+import 'features/bokju_coupon/data/bokju_coupon_repository.dart';
 import 'features/fortune_ad/application/fortune_ad_provider.dart';
 import 'features/fortune_ad/data/fortune_ad_repository.dart';
 import 'features/notification/notification_provider.dart';
@@ -182,6 +184,17 @@ class App extends StatelessWidget {
             previous!.updateWallet(wallet);
             return previous;
           },
+        ),
+        // [복주머니 마케팅 쿠폰 — Flutter 연동] QR 스캔/딥링크로 받은 쿠폰
+        // 등록(redeem) 흐름 전용 상태. 등록 성공 시 WalletProvider.load()를
+        // 호출해 지갑 잔액 표시를 재조회하므로 WalletProvider에 의존한다
+        // (LuckPouchProvider와 동일한 ProxyProvider 패턴 — identity 유지).
+        ChangeNotifierProxyProvider<WalletProvider, BokjuCouponProvider>(
+          create: (context) => BokjuCouponProvider(
+            BokjuCouponRepository(),
+            context.read<WalletProvider>(),
+          ),
+          update: (_, __, previous) => previous!,
         ),
         // [재화 구조 정리 및 재연결] 열림패스 접근 체크 로직.
         // 과거 "3대 자산(열림패스/행복머니/복주머니)" 설계 잔재로 WalletProvider·
