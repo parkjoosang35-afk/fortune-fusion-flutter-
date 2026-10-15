@@ -345,34 +345,77 @@ function WishResultView({ p }: { p: AnyObj }) {
 }
 
 // ---------- 귀인지도 관계 결과 ----------
-// [레거시 payload 주의 — 2026-10-13 통합 작업 중 발견] 이 화면이 받는
-// payload(`guinji_result_card_screen.dart`가 `kind:'relationship'`으로
-// 전송)는 귀인지도 V2 6종 체계(CHEON_GWII/HAP/SANG_SAENG/BI_HWA/
-// SANG_GEUK/CHUNG)로 전환되지 않았고, 여전히 구 5종 체계 중 3종만
-// 쓰는 레거시 집계(guin=귀인/oreunpal=오른팔/horang=호랑이 선생)를
-// 그대로 보낸다. 57c2c8b(V2 6종 전환 커밋)는 g/[token] 랜딩과
-// relation-summary API 등 4개 라우트만 다뤘고 이 화면(앱의 결과 공유
-// 버튼)은 범위 밖이었다. Flutter 쪽 payload 계약을 깨지 않기 위해
-// 여기서는 main의 기존 로직을 그대로 이식한다(6종 전환 아님) —
-// 별도 이슈로 보고 필요.
+// [V2 6종 전환 — 2026-11] 기존에는 구 5종 체계 중 3종만 쓰는 레거시
+// 집계(guin=귀인/oreunpal=오른팔/horang=호랑이 선생)만 지원했는데, Flutter
+// 쪽 화면(`guinji_result_card_screen.dart`)은 V2 6종(CHEON_GWII/HAP/
+// SANG_SAENG/SANG_GEUK/BI_HWA/CHUNG) 집계 맵을 `relationCounts` 필드로
+// 보낸 지 오래라 실제로는 항상 폴백(summary/highlights)만 타고 있었다.
+// `relationCounts`를 최우선으로 읽어 V2 6종 카드형 집계를 그리고, 레거시
+// `guin/oreunpal/horang`(이미 생성된 과거 공유 링크 보존용)은 하위
+// 호환으로만 유지한다. 1:1 관계 상세 공유(관계 유형 하나만 담긴
+// `relationType`/`relationLabel`)는 집계가 아니라 그 유형 하나의 소개를
+// 보여준다.
+const V2_RELATION_LABELS: Record<string, string> = {
+  CHEON_GWII: "천생귀인",
+  HAP: "인연합",
+  SANG_SAENG: "상생동행",
+  SANG_GEUK: "상극조율",
+  BI_HWA: "동류동반",
+  CHUNG: "충돌극복",
+};
+const V2_RELATION_ORDER = ["CHEON_GWII", "HAP", "SANG_SAENG", "SANG_GEUK", "BI_HWA", "CHUNG"];
+const V2_RELATION_COLORS: Record<string, string> = {
+  CHEON_GWII: "#F5CF6A",
+  HAP: "#6FD3A0",
+  SANG_SAENG: "#7FB5FF",
+  SANG_GEUK: "#FF8E8E",
+  BI_HWA: "#B59CF0",
+  CHUNG: "#E7975A",
+};
+
+function asRelationCounts(v: unknown): Record<string, number> | null {
+  const o = asObj(v);
+  if (!o) return null;
+  const out: Record<string, number> = {};
+  for (const key of V2_RELATION_ORDER) {
+    const n = pickNum(o, [key]);
+    if (n !== null) out[key] = n;
+  }
+  return Object.keys(out).length > 0 ? out : null;
+}
+
 function RelationshipView({ p }: { p: AnyObj }) {
+  const summary = pickStr(p, ["summary"]);
+  const highlights = asList(p.highlights).filter((h): h is string => typeof h === "string");
+  const relationLabel = pickStr(p, ["relationLabel"]);
+
+  // 1) V2 6종 집계(귀인지도 전체 지도 공유 — `relationCounts` 맵).
+  const v2Counts = asRelationCounts(p.relationCounts);
+  // 2) 레거시 구 3종 집계(과거 생성된 공유 링크 하위 호환).
   const guin = pickNum(p, ["guin"]);
   const oreunpal = pickNum(p, ["oreunpal"]);
   const horang = pickNum(p, ["horang"]);
-  const summary = pickStr(p, ["summary"]);
-  const highlights = asList(p.highlights).filter((h): h is string => typeof h === "string");
-
-  const cards = [
+  const legacyCards = [
     { label: "귀인", value: guin, color: "#F5CF6A" },
     { label: "오른팔", value: oreunpal, color: "#6FD3A0" },
     { label: "호랑이 선생", value: horang, color: "#B59CF0" },
   ].filter((c) => c.value !== null);
 
+  const v2Cards = v2Counts
+    ? V2_RELATION_ORDER.filter((k) => v2Counts[k] !== undefined).map((k) => ({
+        label: V2_RELATION_LABELS[k],
+        value: v2Counts[k],
+        color: V2_RELATION_COLORS[k],
+      }))
+    : [];
+
+  const cards = v2Cards.length > 0 ? v2Cards : legacyCards;
+
   return (
-    <Shell label="귀인지도">
+    <Shell label={relationLabel ? `귀인지도 · ${relationLabel}` : "귀인지도"}>
       {summary ? <p style={{ margin: "0 0 14px", fontSize: 14, lineHeight: 1.7, color: "#C9BFAF" }}>{summary}</p> : null}
       {cards.length > 0 ? (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(cards.length, 3)}, 1fr)`, gap: 10 }}>
           {cards.map((c) => (
             <div
               key={c.label}
