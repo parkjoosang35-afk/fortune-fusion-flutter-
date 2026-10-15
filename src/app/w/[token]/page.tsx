@@ -1,33 +1,23 @@
-// 소원방 공유 링크 — 공개 웹 랜딩페이지.
-// [소원방 공유 랜딩 신설 — 사용자 리포트 "공유가 엉뚱한 화면으로 감" /
-// 카카오 공유 404 버그 수정]
+// 소원방 초대 링크 — 공개 웹 랜딩페이지.
 //
-// [배경] Flutter `main_room_screen.dart`의 `_ShareSheet`가 발급하는
-// 공유 URL은 `POST /wish-rooms/{id}/share-link`(share-link/route.ts)가
-// 반환하는 `https://sintong.kr/w/{token}`이다. 그런데 이 라우트
-// (`/w/[token]`)가 admin_web에 전혀 존재하지 않아, 앱이 설치되지
-// 않았거나 App Links 검증이 안 된 환경(카카오톡 인앱 브라우저 등)에서
-// 이 링크를 열면 그대로 404 페이지가 떴다 — "공유하기가 엉뚱한 화면으로
-// 간다"는 사용자 리포트의 가장 유력한 원인. `/g/[token]`(귀인지도),
-// `/r/[id]`(결과 공유)와 동일한 2단계 구조(App Links 검증 성공 시 앱
-// 직행, 실패/미설치 시 이 SSR 랜딩 + 설치 유도 배너 + "앱에서 열기"
-// 버튼)를 그대로 적용해 신설한다.
+// [2026-10, 앱·웹 분리 개발 전면 폐기 — 사용자 명시 지시 재확인]
+// 과거 이 페이지는 `LinkInviteView`(admin_web 자체 제작 초대장 카드 +
+// 응원/메시지/복주머니 게이트 패널)를 직접 렌더링했다 — 이는 귀인지도와
+// 똑같은 "앱·웹 분리 중복 개발" 실수였다. `https://sintong.kr/app/`
+// (Flutter 웹앱)에는 이미 `/w/{token}` named route가 완전히 구현되어
+// 있다 — LinkInviteScreen(초대장) → OtherRoomScreen(실제 소원방, 촛불,
+// 응원·메시지·복주머니, 비로그인 차단까지 전부 native). 자세한 배경은
+// `redirect-to-app.tsx` 상단 주석 참고.
 //
-// [SSR 필수] 카카오톡 링크-미리보기 크롤러는 JS를 실행하지 않으므로
-// `generateMetadata()`(Server Component)로만 OG 태그를 만들어야 한다.
-//
-// [API 재사용] `GET /api/public/wishroom/share/{token}`가 이미 동일한
-// shareToken 조회 로직(LINK_INVALID 404 처리 포함)을 갖고 있지만, 그
-// 핸들러는 `buildRoomView()`(로그인 세션/오늘 응원여부 등 풀 뷰 의존성)를
-// 거치므로 이 공개 랜딩페이지가 필요로 하는 "제목/본문/레벨/점등일수"
-// 수준의 가벼운 정보만 보여주기 위해 이 페이지에서는 Prisma로 직접
-// 필요한 필드만 조회한다(완전한 중복이 아니라 요구사항이 다름 — 풀
-// WishRoom view가 아니라 OG 메타 + 미리보기 카드 수준).
+// 이 파일이 서버에서 하는 유일한 일은 카카오톡 등 SNS 크롤러를 위한
+// `generateMetadata()` OG 태그 생성뿐이다(크롤러는 JS를 실행하지 않아
+// Flutter SPA의 동적 내용을 볼 수 없으므로 SSR 메타가 필수). 실제 사람
+// 방문자는 `RedirectToApp`이 즉시 `https://sintong.kr/app/#/w/{token}`
+// 으로 보낸다.
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { levelDef } from "@/lib/wishroom-engine";
-import { LinkInviteView } from "./link-invite-view";
-import { SintongBottomNavBar } from "../../g/[token]/sintong-bottom-nav-bar";
+import { RedirectToApp } from "./redirect-to-app";
 
 export const dynamic = "force-dynamic";
 
@@ -106,20 +96,5 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function LinkInvitePage({ params }: PageProps) {
   const { token } = await params;
-  const room = await loadRoomByToken(token);
-
-  return (
-    <div className="min-h-screen bg-[#FBF7EF] pb-[76px]">
-      <LinkInviteView
-        token={token}
-        state={room.state}
-        ownerNickname={room.state === "ok" ? room.ownerNickname : undefined}
-        text={room.state === "ok" ? room.text : undefined}
-        level={room.state === "ok" ? room.level : undefined}
-        levelName={room.state === "ok" ? room.levelName : undefined}
-        daysLit={room.state === "ok" ? room.daysLit : undefined}
-      />
-      <SintongBottomNavBar />
-    </div>
-  );
+  return <RedirectToApp token={token} />;
 }

@@ -1,82 +1,37 @@
 "use client";
 
-// [2026-09, 바이럴 흐름 근본 수정 — 핵심 신설 컴포넌트] 사용자가 격노하며
-// 지적한 문제를 그대로 해결한다: "링크를 받은 사람이 이름+생년월일을
-// 한 번만 입력하면 (1) 그 자리에서 관계 결과가 나오고 (2) 동시에 지도에
-// 실제로 추가되고 (3) 관계 지도 그래프가 새로고침 없이 그 자리에서
-// 갱신되어야 한다."
+// [2026-10-15, 사용자 격노 정정 — 근본 재설계] 직전 세션은 "결과를 이
+// 페이지 안에서 완결"하라는 지시를 "admin_web에 Flutter 궤도맵의 사본을
+// 새로 만들어 보여준다"로 잘못 해석했다. 사용자의 실제 지시는 정반대:
+//   "귀인지도 초대장을 보내면 초대장에서 생년월일 넣고 관계보기을 누르면
+//    결과가 https://sintong.kr/?s=guinji 여기로 바로 들어와야 한다"
+// 즉 "웹"이란 admin_web이 그린 커스텀 결과 화면이 아니라, 이미
+// `sintong.kr/app/`에 배포되어 있는 **진짜 Flutter 앱**이다. 그리고
+// `https://sintong.kr/?s=guinji`는 임의로 지어낸 URL이 아니라 PC 랜딩
+// (`sintong_pc_landing/src/landing-v7.js` §7-4)이 이미 구현해 둔 정식
+// 메커니즘이다 — 쿼리 `?s=테마`를 읽어 iframe을 그 테마의 실제 앱 라우트
+// (`/app/#/guinji-map`)로 띄운다. 모바일(카톡 인앱 브라우저 등)에서는
+// `index.html`의 리다이렉트가 이 쿼리를 그대로 `/app/` 뒤에 해시로 붙여
+// 전달하도록 이번에 함께 고쳤다(기존엔 쿼리가 유실되는 버그가 있었음).
 //
-// 기존 구조는 폼(`GuinjiPreviewForm`)과 그래프(`RelationNetworkGraph`)가
-// 완전히 분리된 서버 컴포넌트 트리(`page.tsx`)에 나란히 렌더링되어 있어,
-// 폼 제출 결과가 그래프에 반영될 방법이 없었다. 이 컴포넌트가 그 둘을
-// 하나의 클라이언트 상태로 묶어, `/api/public/guinji/g/{token}/join`
-// (신설 — 로그인 없이 실제로 DB에 기록하는 API) 호출이 성공하면 즉시
-// `counts` state를 갱신해 그래프가 새로고침 없이 바뀌게 한다.
+// [유지되는 부분] 이름+생년월일 입력 폼과 `/api/public/guinji/g/{token}/join`
+// 호출은 그대로 둔다 — "지도에 이름이 올라간다"(DB 반영)는 실제로 필요한
+// 요구사항이고, 이미 정상 동작하는 코드이기 때문이다. 바뀌는 것은 오직
+// "성공 이후 무엇을 보여주는가" 뿐이다: 이 페이지 안에 커스텀 결과
+// 카드/지도를 그리는 대신, 제출이 성공하면 곧바로
+// `https://sintong.kr/?s=guinji`로 이동한다 — admin_web 쪽 커스텀 결과
+// 렌더링(ResultCard/RelationNetworkGraph/GuinjiOrbitMap)은 전부 제거.
 import { useEffect, useState } from "react";
 import { track } from "./funnel";
-import { GUINJI_RELATION_TYPES } from "./relation-meta";
-import { type RelationCount } from "./relation-network-graph";
-import { GuinjiOrbitMap, type SelfNode } from "./guinji-orbit-map";
-import { GUINJI_V2_RELATION_TYPE_ORDER } from "@/lib/guinji-v2/relation";
-import { SINTONG_WEB_URLS } from "./sintong-web-urls";
-import { buildRelationNarrative, type OhaengEvidenceLike } from "./relation-narrative";
 
-// [2026-09, 웹 전환 원칙 최종 확정 — 사용자 명시 지시] 신통방통은 원래
-// 앱이지만, 지금은 `https://sintong.kr/app/` 경로에 Flutter Web 빌드가
-// 이미 배포되어 있어 "앱 설치 없이도" 브라우저에서 즉시 신통방통 메인을
-// 그대로 열 수 있다. 이 페이지는 웹이므로, 커스텀 URI 스킴
-// (`fortunefusion://`)으로 앱을 열려 시도했다가 실패하면 플레이스토어로
-// 유도하던 기존 "딥링크+폴백" 패턴을 전부 제거하고, "내 지도 만들기" 버튼을
-// 누르면 곧바로 웹 신통방통 메인의 귀인지도 화면(SINTONG_WEB_URLS.guinji)
-// 으로 이동한다 — 앱 설치를 요구하지 않는다.
-function goToSintongWeb(url: string) {
-  window.location.href = url;
-}
-
-type JoinResult = {
-  ownerName: string;
-  relationType: string;
-  chemistryScore: number;
-  timeUnknown: boolean;
-  dayMasterKr?: string;
-  dayMasterElement?: string;
-  // [2026-11 추가 — "같은 귀인 4명이 다 똑같다" 버그 수정] 사람마다 다른
-  // 오행/합충/방향성 계산 근거. ResultCard가 이 값으로 개인화된 서술을
-  // 만든다(관계유형만으로는 알 수 없는, 사람별 차이의 진짜 원천).
-  ohaengEvidence?: OhaengEvidenceLike;
-  mapSummary: { total: number; counts: Record<string, number> };
-};
-
-// [PRD p.38 LABEL_HUE tone → HEX, `guinji_design_handoff/DEV_SPEC.md` Dart
-// RelationLabel enum과 동일한 색상값] page.tsx의 RELATION_COLOR와 가지를 맞춰야 하묀로
-// 동일한 값을 사용한다.
-const RELATION_COLOR: Record<string, string> = {
-  CHEON_GWII: "#F5CF6A",
-  HAP: "#F08AA6",
-  SANG_SAENG: "#6FD3A0",
-  BI_HWA: "#8DBFD6",
-  SANG_GEUK: "#B59CF0",
-  CHUNG: "#EF7A55",
-};
-
-function countsToRelationCounts(counts: Record<string, number>): RelationCount[] {
-  return GUINJI_V2_RELATION_TYPE_ORDER.map((key) => ({
-    key,
-    label: GUINJI_RELATION_TYPES[key].label,
-    hanja: GUINJI_RELATION_TYPES[key].hanja,
-    color: RELATION_COLOR[key],
-    count: counts[key] ?? 0,
-  }));
-}
+const SINTONG_GUINJI_WEB_URL = "https://sintong.kr/?s=guinji";
 
 export function GuinjiInviteInteractive({
   token,
   ownerName,
-  initialCounts,
 }: {
   token: string;
   ownerName: string;
-  initialCounts: RelationCount[];
 }) {
   const [name, setName] = useState("");
   const [year, setYear] = useState("");
@@ -89,19 +44,8 @@ export function GuinjiInviteInteractive({
   const [agreePolicy, setAgreePolicy] = useState(false);
   const [agreeAge14, setAgreeAge14] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<JoinResult | null>(null);
-  // [핵심] 그래프 데이터를 이 화면(클라이언트) state로 끌어올려, 폼 제출
-  // 성공 시 서버 응답의 mapSummary로 바로 교체한다(새로고침 불필요).
-  const [counts, setCounts] = useState<RelationCount[]>(initialCounts);
-  // [2026-11 신설 — "들어온 사람은 지도에 자기가 있는게 보일거구" 지시 반영]
-  // 폼 제출이 성공하면, 방금 제출한 본인의 이름+관계유형을 이 state에
-  // 담아 GuinjiOrbitMap에 넘긴다 — 지도 위에 "✦ 당신" 노드로 표시된다.
-  // 서버 응답(JoinResult)에는 이미 본인이 입력한 이름을 돌려주지 않지만,
-  // 이름은 어차피 이 컴포넌트가 로컬 `name` state로 이미 갖고 있으므로
-  // 새 API 필드를 추가할 필요가 없다(기존 응답만으로 충분 — "기존 구현
-  // 재사용" 원칙).
-  const [self, setSelf] = useState<SelfNode | null>(null);
 
   // [귀인지도 v2 퍼널 ①] 초대 링크가 실제로 열렸음을 기록(6단 루프의 시작점).
   useEffect(() => {
@@ -158,268 +102,174 @@ export function GuinjiInviteInteractive({
       const json = await res.json();
       if (!res.ok || !json.success) {
         setError(json.error ?? "결과를 확인할 수 없어요.");
+        setSubmitting(false);
         return;
       }
-      setResult(json.data);
       track("join_done", token); // [귀인지도 v2 퍼널 ③] 참가 완료
-      // [핵심] 서버가 돌려준 최신 집계로 그래프를 즉시 갱신 — 새로고침 없이
-      // "지도에 이름이 올라간" 상태를 그 자리에서 보여준다.
-      setCounts(countsToRelationCounts(json.data.mapSummary.counts));
-      // [핵심 신설] 본인 노드 하이라이트 — 방금 제출한 이름(로컬 state)과
-      // 서버가 판정한 관계유형으로 "✦ 당신" 노드를 지도에 등록한다.
-      setSelf({ name: name.trim(), relationType: json.data.relationType });
+      // [2026-10-15, 사용자 명시 지시 — 최종 확정] 참여 등록(DB 반영)은
+      // 위 join API 호출로 이미 끝났다. 결과 확인은 admin_web이 아니라
+      // PC 랜딩의 `?s=` 공유 메커니즘을 타고 신통방통 "웹"(진짜 Flutter
+      // 앱) 귀인지도 화면으로 즉시 이동해서 보여준다.
+      setRedirecting(true);
+      window.location.href = SINTONG_GUINJI_WEB_URL;
     } catch {
       setError("네트워크 오류가 발생했어요. 잠시 후 다시 시도해 주세요.");
-    } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <>
-      <div className="rounded-3xl border border-[#2A2A2E] bg-[#161618] p-6 shadow-[0_4px_20px_-8px_rgba(166,121,94,0.15)]">
-        <p className="mb-1 flex items-center justify-center gap-1.5 text-center text-[13px] text-[#8A8880]">
-          <span className="text-[#E9C46A]">✦</span>
-          나는 {ownerName}님에게 어떤 사람일까?
-          <span className="text-[#E9C46A]">✦</span>
-        </p>
-
-        {result ? (
-          <ResultCard ownerName={ownerName} result={result} />
-        ) : (
-          <form onSubmit={handleSubmit} className="mt-4">
-            <p className="mb-3 text-center text-xs text-[#575650]">
-              이름과 생년월일을 입력하면, 바로 결과가 나오고 지도에 이름이 올라가요.
-            </p>
-
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="이름(닉네임도 괜찮아요)"
-              maxLength={20}
-              className="mb-3 w-full rounded-2xl border border-[#2A2A2E] bg-[#1C1C1F] px-3 py-2.5 text-center text-sm text-[#F2F0EC] placeholder:text-[#575650] focus:border-[#E9C46A] focus:outline-none focus:ring-2 focus:ring-[#FBEFE8]"
-            />
-
-            {/* 음력/양력 토글 */}
-            <div className="mb-3 flex justify-center gap-2">
-              {(["solar", "lunar"] as const).map((v) => (
-                <button
-                  key={v}
-                  type="button"
-                  onClick={() => setCalendarType(v)}
-                  className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${
-                    calendarType === v
-                      ? "bg-[#E9C46A] text-white"
-                      : "bg-[#1C1C1F] text-[#8A8880] border border-[#2A2A2E]"
-                  }`}
-                >
-                  {v === "solar" ? "양력" : "음력"}
-                </button>
-              ))}
-            </div>
-
-            <div className="mb-3 flex gap-2">
-              <input
-                value={year}
-                onChange={(e) => setYear(e.target.value)}
-                placeholder="년(예: 1998)"
-                inputMode="numeric"
-                maxLength={4}
-                className="w-1/3 rounded-2xl border border-[#2A2A2E] bg-[#1C1C1F] px-3 py-2.5 text-center text-sm text-[#F2F0EC] placeholder:text-[#575650] focus:border-[#E9C46A] focus:outline-none focus:ring-2 focus:ring-[#FBEFE8]"
-              />
-              <input
-                value={month}
-                onChange={(e) => setMonth(e.target.value)}
-                placeholder="월"
-                inputMode="numeric"
-                maxLength={2}
-                className="w-1/3 rounded-2xl border border-[#2A2A2E] bg-[#1C1C1F] px-3 py-2.5 text-center text-sm text-[#F2F0EC] placeholder:text-[#575650] focus:border-[#E9C46A] focus:outline-none focus:ring-2 focus:ring-[#FBEFE8]"
-              />
-              <input
-                value={day}
-                onChange={(e) => setDay(e.target.value)}
-                placeholder="일"
-                inputMode="numeric"
-                maxLength={2}
-                className="w-1/3 rounded-2xl border border-[#2A2A2E] bg-[#1C1C1F] px-3 py-2.5 text-center text-sm text-[#F2F0EC] placeholder:text-[#575650] focus:border-[#E9C46A] focus:outline-none focus:ring-2 focus:ring-[#FBEFE8]"
-              />
-            </div>
-
-            {/* 시간 알음/모름 토글 */}
-            <div className="mb-3 flex justify-center gap-2">
-              <button
-                type="button"
-                onClick={() => setTimeKnown(false)}
-                className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${
-                  !timeKnown ? "bg-[#E9C46A] text-white" : "bg-[#1C1C1F] text-[#8A8880] border border-[#2A2A2E]"
-                }`}
-              >
-                시간 모름
-              </button>
-              <button
-                type="button"
-                onClick={() => setTimeKnown(true)}
-                className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${
-                  timeKnown ? "bg-[#E9C46A] text-white" : "bg-[#1C1C1F] text-[#8A8880] border border-[#2A2A2E]"
-                }`}
-              >
-                시간 입력
-              </button>
-            </div>
-
-            {timeKnown && (
-              <div className="mb-3 flex justify-center gap-2">
-                <input
-                  value={hour}
-                  onChange={(e) => setHour(e.target.value)}
-                  placeholder="시(0~23)"
-                  inputMode="numeric"
-                  maxLength={2}
-                  className="w-1/2 max-w-[120px] rounded-2xl border border-[#2A2A2E] bg-[#1C1C1F] px-3 py-2.5 text-center text-sm text-[#F2F0EC] placeholder:text-[#575650] focus:border-[#E9C46A] focus:outline-none focus:ring-2 focus:ring-[#FBEFE8]"
-                />
-                <input
-                  value={minute}
-                  onChange={(e) => setMinute(e.target.value)}
-                  placeholder="분"
-                  inputMode="numeric"
-                  maxLength={2}
-                  className="w-1/2 max-w-[120px] rounded-2xl border border-[#2A2A2E] bg-[#1C1C1F] px-3 py-2.5 text-center text-sm text-[#F2F0EC] placeholder:text-[#575650] focus:border-[#E9C46A] focus:outline-none focus:ring-2 focus:ring-[#FBEFE8]"
-                />
-              </div>
-            )}
-
-            {/* 동의 체크박스 — 개인정보처리방침 / 14세 이상 확인 (필수) */}
-            <div className="mb-3 space-y-1.5 text-left">
-              <label className="flex items-center gap-2 text-xs text-[#8A8880]">
-                <input
-                  type="checkbox"
-                  checked={agreePolicy}
-                  onChange={(e) => setAgreePolicy(e.target.checked)}
-                  className="h-4 w-4 accent-[#E9C46A]"
-                />
-                (필수) 개인정보처리방침에 동의합니다.
-              </label>
-              <label className="flex items-center gap-2 text-xs text-[#8A8880]">
-                <input
-                  type="checkbox"
-                  checked={agreeAge14}
-                  onChange={(e) => setAgreeAge14(e.target.checked)}
-                  className="h-4 w-4 accent-[#E9C46A]"
-                />
-                (필수) 만 14세 이상입니다.
-              </label>
-            </div>
-
-            {error && <p className="mb-3 text-center text-xs text-[#EF7A55]">{error}</p>}
-            <button
-              type="submit"
-              disabled={submitting}
-              className="mb-2 block w-full rounded-2xl bg-[#E9C46A] px-4 py-3.5 text-sm font-bold text-white shadow-[0_8px_32px_-12px_rgba(166,121,94,0.22)] transition-transform active:scale-[0.98] hover:bg-[#F2D488] disabled:opacity-60"
-            >
-              {submitting ? "확인하는 중" : `${ownerName}님과 나의 관계 보기`}
-            </button>
-            <p className="text-center text-xs text-[#575650]">
-              결과 확인과 동시에 지도에 이름이 올라가요. 다시 입력할 필요 없어요.
-            </p>
-          </form>
-        )}
-      </div>
-
-      {/* [2026-11 교체 — 동심원 궤도 지도] 기존 위성형 RelationNetworkGraph
-          대신, 사용자가 첨부한 앱 스크린샷(guinji_orbit_map.dart)과 같은
-          동심원 궤도 비주얼로 교체한다. 제출 성공 시 counts/self state가
-          갱신되어 새로고침 없이 즉시 다시 그려지고, 본인은 "✦ 당신" 노드로
-          자기 자리를 확인할 수 있다. */}
-      <GuinjiOrbitMap counts={counts} ownerName={ownerName} self={self} />
-    </>
-  );
-}
-
-function ResultCard({
-  ownerName,
-  result,
-}: {
-  ownerName: string;
-  result: JoinResult;
-}) {
-  const meta = (GUINJI_RELATION_TYPES as Record<string, (typeof GUINJI_RELATION_TYPES)[keyof typeof GUINJI_RELATION_TYPES] | undefined>)[
-    result.relationType
-  ];
-
-  // [2026-11 추가 -- "같은 귀인 4명이 다 똑같다" 버그 수정, 사용자 격노
-  // 피드백 직접 반영] meta.description(관계유형 12종당 고정 문구 1개)만
-  // 보여주면 같은 유형으로 판정된 모든 사람이 완전히 동일한 텍스트를
-  // 보게 된다 -- 이게 "사기 아니냐"는 지적의 근본 원인이었다.
-  // buildRelationNarrative()가 이 관계에서 실제로 계산된 오행/합충/
-  // 방향성/케미점수/게스트 본인 일간오행을 근거로 문단을 이어붙여,
-  // 같은 유형이라도 계산값이 다르면 서술이 달라지게 한다(어뷰징 없이 --
-  // 완전 무작위가 아니라 실제 사주 계산 결과 기반). 동시에 문단 수를
-  // 늘려 결과 화면의 텍스트 총량도 함께 늘린다("글을 좀 더 많이
-  // 넣으라"는 반복 요청 반영).
-  const narrative = buildRelationNarrative({
-    baseDescription: meta?.description ?? "",
-    chemistryScore: result.chemistryScore,
-    dayMasterElement: result.dayMasterElement,
-    ohaengEvidence: result.ohaengEvidence,
-  });
-
-  // [핵심] 자동 리다이렉트 없음. 결과·관계 지도는 이 페이지(웹) 안에서
-  // 이미 완결된다(바로 아래 RelationNetworkGraph에 자기 이름이 올라간
-  // 지도가 실시간으로 보인다) — 게스트는 회원가입도, 앱 설치도 강요받지
-  // 않는다. 아래 CTA는 "본인이 스스로 원할 때"만 누르는 선택적 다음
-  // 단계인데, 이 서비스는 이미 웹으로도 완전히 동작하므로 눌렀을 때
-  // 앱 설치가 아니라 웹 신통방통 메인 귀인지도로 바로 이동한다.
-  return (
-    <div className="mt-4 rounded-2xl border border-[#2A2A2E] bg-[#111113] p-6 text-center">
-      <p className="mb-1 text-xs text-[#575650]">
-        {result.dayMasterKr ? `나의 일간 · ${result.dayMasterKr}(${result.dayMasterElement})` : "관계 결과"}
+    <div className="rounded-3xl border border-[#2A2A2E] bg-[#161618] p-6 shadow-[0_4px_20px_-8px_rgba(166,121,94,0.15)]">
+      <p className="mb-1 flex items-center justify-center gap-1.5 text-center text-[13px] text-[#8A8880]">
+        <span className="text-[#E9C46A]">✦</span>
+        나는 {ownerName}님에게 어떤 사람일까?
+        <span className="text-[#E9C46A]">✦</span>
       </p>
-      <p style={{ fontFamily: "'Noto Serif KR', serif" }} className="mb-3 text-3xl font-bold text-[#E9C46A]">
-        {meta?.hanja} {meta?.label}
-      </p>
-      <p className="mb-4 text-sm text-[#8A8880]">
-        {result.ownerName ?? ownerName}님과 당신은{" "}
-        <span className="font-medium text-[#E9C46A]">{meta?.subtitle}</span>의 결이에요.
-      </p>
-      {/* [2026-11 수정 — "같은 귀인 4명이 다 똑같다" 버그 수정] 관계유형
-          고정 문구 1개(meta.description)만 보여주던 자리를, 이 관계의
-          실제 계산값(오행/합충/방향성/케미점수/게스트 본인 오행)을
-          근거로 만든 여러 문단(narrative)으로 교체한다. 같은 관계유형
-          이어도 계산값이 다르면 문단 내용이 달라지고, 문단 수가 늘어
-          텍스트 총량도 함께 늘어난다. */}
-      <div className="mb-3 space-y-2 text-left">
-        {narrative.map((p, i) => (
-          <p key={i} className="text-xs leading-relaxed text-[#8A8880]">
-            {p}
+
+      {redirecting ? (
+        <div className="mt-6 flex flex-col items-center gap-3 py-6 text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#2A2A2E] border-t-[#E9C46A]" />
+          <p className="text-sm text-[#8A8880]">
+            신통방통 웹에서 결과를 확인하고 있어요...
           </p>
-        ))}
-      </div>
-      {result.timeUnknown && (
-        <p className="mb-3 text-xs leading-relaxed text-[#575650]">
-          태어난 시간을 입력하지 않아 정오(12:00) 기준으로 계산했어요.
-        </p>
-      )}
-      <p className="mb-4 rounded-xl bg-[#7BA05B]/10 px-3 py-2 text-xs font-medium text-[#5A7A43]">
-        지도에 이름이 올라갔어요. 아래 관계 지도에서 바로 확인해 보세요.
-      </p>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="mt-4">
+          <p className="mb-3 text-center text-xs text-[#575650]">
+            이름과 생년월일을 입력하면, 신통방통 웹에서 바로 결과를 볼 수 있어요.
+          </p>
 
-      {/* [핵심] 여기까지가 게스트에게 강요되는 흐름의 끝이다 — 결과 확인,
-          지도 반영 모두 이 웹 페이지 안에서 완결됐다(회원가입 없음).
-          아래는 "본인이 스스로 원할 때"만 누르는 선택적 다음 단계다.
-          (design_handoff_guinji_web README Y·Guest Result 스펙:
-          서브 카피 "당신의 지도에는 누가 있을까요" + Primary CTA
-          "✧ 내 지도 만들기 · 무료") */}
-      <p className="mb-2 text-xs text-[#575650]">당신의 지도에는 누가 있을까요</p>
-      <button
-        type="button"
-        onClick={() => goToSintongWeb(SINTONG_WEB_URLS.guinji)}
-        className="block w-full rounded-2xl bg-[#E9C46A] px-4 py-3.5 text-sm font-bold text-white shadow-[0_8px_32px_-12px_rgba(166,121,94,0.22)] transition-transform active:scale-[0.98] hover:bg-[#F2D488]"
-      >
-        ✧ 내 지도 만들기 · 무료
-      </button>
-      <p className="mt-2 text-center text-[11px] text-[#575650]">
-        설치 없이 바로 열려요 · 신통방통 웹
-      </p>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="이름(닉네임도 괜찮아요)"
+            maxLength={20}
+            className="mb-3 w-full rounded-2xl border border-[#2A2A2E] bg-[#1C1C1F] px-3 py-2.5 text-center text-sm text-[#F2F0EC] placeholder:text-[#575650] focus:border-[#E9C46A] focus:outline-none focus:ring-2 focus:ring-[#FBEFE8]"
+          />
+
+          {/* 음력/양력 토글 */}
+          <div className="mb-3 flex justify-center gap-2">
+            {(["solar", "lunar"] as const).map((v) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => setCalendarType(v)}
+                className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${
+                  calendarType === v
+                    ? "bg-[#E9C46A] text-white"
+                    : "bg-[#1C1C1F] text-[#8A8880] border border-[#2A2A2E]"
+                }`}
+              >
+                {v === "solar" ? "양력" : "음력"}
+              </button>
+            ))}
+          </div>
+
+          <div className="mb-3 flex gap-2">
+            <input
+              value={year}
+              onChange={(e) => setYear(e.target.value)}
+              placeholder="년(예: 1998)"
+              inputMode="numeric"
+              maxLength={4}
+              className="w-1/3 rounded-2xl border border-[#2A2A2E] bg-[#1C1C1F] px-3 py-2.5 text-center text-sm text-[#F2F0EC] placeholder:text-[#575650] focus:border-[#E9C46A] focus:outline-none focus:ring-2 focus:ring-[#FBEFE8]"
+            />
+            <input
+              value={month}
+              onChange={(e) => setMonth(e.target.value)}
+              placeholder="월"
+              inputMode="numeric"
+              maxLength={2}
+              className="w-1/3 rounded-2xl border border-[#2A2A2E] bg-[#1C1C1F] px-3 py-2.5 text-center text-sm text-[#F2F0EC] placeholder:text-[#575650] focus:border-[#E9C46A] focus:outline-none focus:ring-2 focus:ring-[#FBEFE8]"
+            />
+            <input
+              value={day}
+              onChange={(e) => setDay(e.target.value)}
+              placeholder="일"
+              inputMode="numeric"
+              maxLength={2}
+              className="w-1/3 rounded-2xl border border-[#2A2A2E] bg-[#1C1C1F] px-3 py-2.5 text-center text-sm text-[#F2F0EC] placeholder:text-[#575650] focus:border-[#E9C46A] focus:outline-none focus:ring-2 focus:ring-[#FBEFE8]"
+            />
+          </div>
+
+          {/* 시간 알음/모름 토글 */}
+          <div className="mb-3 flex justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => setTimeKnown(false)}
+              className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${
+                !timeKnown ? "bg-[#E9C46A] text-white" : "bg-[#1C1C1F] text-[#8A8880] border border-[#2A2A2E]"
+              }`}
+            >
+              시간 모름
+            </button>
+            <button
+              type="button"
+              onClick={() => setTimeKnown(true)}
+              className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${
+                timeKnown ? "bg-[#E9C46A] text-white" : "bg-[#1C1C1F] text-[#8A8880] border border-[#2A2A2E]"
+              }`}
+            >
+              시간 입력
+            </button>
+          </div>
+
+          {timeKnown && (
+            <div className="mb-3 flex justify-center gap-2">
+              <input
+                value={hour}
+                onChange={(e) => setHour(e.target.value)}
+                placeholder="시(0~23)"
+                inputMode="numeric"
+                maxLength={2}
+                className="w-1/2 max-w-[120px] rounded-2xl border border-[#2A2A2E] bg-[#1C1C1F] px-3 py-2.5 text-center text-sm text-[#F2F0EC] placeholder:text-[#575650] focus:border-[#E9C46A] focus:outline-none focus:ring-2 focus:ring-[#FBEFE8]"
+              />
+              <input
+                value={minute}
+                onChange={(e) => setMinute(e.target.value)}
+                placeholder="분"
+                inputMode="numeric"
+                maxLength={2}
+                className="w-1/2 max-w-[120px] rounded-2xl border border-[#2A2A2E] bg-[#1C1C1F] px-3 py-2.5 text-center text-sm text-[#F2F0EC] placeholder:text-[#575650] focus:border-[#E9C46A] focus:outline-none focus:ring-2 focus:ring-[#FBEFE8]"
+              />
+            </div>
+          )}
+
+          {/* 동의 체크박스 — 개인정보처리방침 / 14세 이상 확인 (필수) */}
+          <div className="mb-3 space-y-1.5 text-left">
+            <label className="flex items-center gap-2 text-xs text-[#8A8880]">
+              <input
+                type="checkbox"
+                checked={agreePolicy}
+                onChange={(e) => setAgreePolicy(e.target.checked)}
+                className="h-4 w-4 accent-[#E9C46A]"
+              />
+              (필수) 개인정보처리방침에 동의합니다.
+            </label>
+            <label className="flex items-center gap-2 text-xs text-[#8A8880]">
+              <input
+                type="checkbox"
+                checked={agreeAge14}
+                onChange={(e) => setAgreeAge14(e.target.checked)}
+                className="h-4 w-4 accent-[#E9C46A]"
+              />
+              (필수) 만 14세 이상입니다.
+            </label>
+          </div>
+
+          {error && <p className="mb-3 text-center text-xs text-[#EF7A55]">{error}</p>}
+          <button
+            type="submit"
+            disabled={submitting}
+            className="mb-2 block w-full rounded-2xl bg-[#E9C46A] px-4 py-3.5 text-sm font-bold text-white shadow-[0_8px_32px_-12px_rgba(166,121,94,0.22)] transition-transform active:scale-[0.98] hover:bg-[#F2D488] disabled:opacity-60"
+          >
+            {submitting ? "확인하는 중" : `${ownerName}님과 나의 관계 보기`}
+          </button>
+          <p className="text-center text-xs text-[#575650]">
+            결과는 설치 없이 신통방통 웹에서 바로 보여요.
+          </p>
+        </form>
+      )}
     </div>
   );
 }
