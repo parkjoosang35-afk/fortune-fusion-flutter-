@@ -3,7 +3,6 @@ import '../../../core/config/env_config.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter/foundation.dart' show Uint8List, kIsWeb;
 import '../../../core/util/original_result_capture.dart';
-import '../presentation/full_result_sheet.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../data/share_api_service.dart';
 import '../domain/share_result_model.dart';
@@ -203,16 +202,20 @@ class ShareService {
       return;
     }
 
-    // [웹 전용 — §3-B] 앱 설치를 유도하지 않는 /web-result/{id} 주소만 쓴다.
+    // [웹 전용 — §3-B, 2027-02 중복 단계 제거] 받는 사람이 열어볼 완전한
+    // 결과 페이지(/web-result/{id})는 서버가 이미 만들어뒀다 — 공유
+    // 버튼을 누른 행위 자체가 이미 "이 링크를 보는 사람에게 보여주겠다"는
+    // 동의이므로, 그 위에 또 "이 결과 그대로 공개할까요?" 확인 팝업이나
+    // 결과를 다시 렌더링해 보여주는 바텀시트(FullResultSheet)를 거치게
+    // 하는 건 의미 없는 2중 작업이다("공유하기 눌렀는데 왜 또 한 번
+    // '전송' 버튼을 눌러야 하냐" — 사용자 명시 지적). 링크 생성 즉시
+    // OS 공유 시트(또는 클립보드 폴백)로 바로 넘긴다 — 결과 페이지
+    // 자체를 재구성해서 보여줄 필요가 전혀 없다. 받는 사람은 그 주소를
+    // 열면 완전한 결과를 바로 본다(한 번만 보면 되는 열람자 — 중간에
+    // 거쳐야 할 단계가 없어야 한다).
     final shareUrl = EnvConfig.webResultUrl(shareId);
     if (!context.mounted) return;
-    await showFullResultSheet(
-      context,
-      title: title,
-      shareUrl: shareUrl,
-      payload: payload,
-      originalPng: originalPng,
-    );
+    await safeShareText(context, '$title\n$shareUrl', subject: subject ?? title);
   }
 
   /// [앱 전용 — 이미지 직접 공유] 원본 결과 이미지를 OS 공유 시트로 바로
