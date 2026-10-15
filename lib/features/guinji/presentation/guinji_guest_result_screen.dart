@@ -32,6 +32,7 @@ class GuinjiGuestResultScreen extends StatelessWidget {
   const GuinjiGuestResultScreen({
     super.key,
     required this.hostName,
+    this.hostGender,
     required this.relationKey,
     required this.score,
     this.evidenceSummary = '오행 보충도 +0.82 · 희신 일치 · 합 2',
@@ -45,6 +46,15 @@ class GuinjiGuestResultScreen extends StatelessWidget {
 
   /// 지도 소유자(호스트) 이름.
   final String hostName;
+
+  /// [초대장 리디자인 — 초대한사람 캐릭터 부여] 지도 소유자(호스트)의
+  /// 성별('male'/'female'). `joinAnonymous` 응답의 `ownerGender` 필드를
+  /// 그대로 전달받는다(백엔드 `User.gender`가 선택 입력이라 비어있으면
+  /// null — 이 경우 [_BobbingHostMascot]이 중립 기본값(선녀)으로
+  /// 표시한다). `GET /guinji/g/{token}`은 인증이 필요해 제출 전에는 이
+  /// 값을 알 수 없으므로, 호스트 캐릭터는 이 화면(제출 *이후*)에서만
+  /// 노출한다 — [GuinjiMapGuestJoinScreen]에는 넣지 않는다.
+  final String? hostGender;
   final String relationKey;
   final int score;
   final String evidenceSummary;
@@ -104,9 +114,15 @@ class GuinjiGuestResultScreen extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
         child: Column(
           children: [
-            const SizedBox(width: 120, height: 120, child: _BobbingSeonnyeo()),
+            SizedBox(
+              width: 120,
+              height: 120,
+              child: _BobbingHostMascot(gender: hostGender),
+            ),
             const SizedBox(height: 4),
-            const GmLabelMini('▸ 방통선녀 · RESULT'),
+            GmLabelMini(
+              hostGender == 'male' ? '▸ 방통도령 · RESULT' : '▸ 방통선녀 · RESULT',
+            ),
             const SizedBox(height: 10),
             // [렌더 버그 방지] 줄바꿈이 들어가는 첫 줄과 색상이 다른
             // TextSpan을 한 Text.rich 트리에 섞으면 Flutter Web(CanvasKit)
@@ -203,16 +219,26 @@ class GuinjiGuestResultScreen extends StatelessWidget {
   }
 }
 
-/// 방통선녀 이미지의 위상 단독 bob 애니메이션(3.6s). [2026-09 새 디자인
-/// 리스킨] 애니메이션 로직은 그대로 유지, 에셋 경로도 동일하다.
-class _BobbingSeonnyeo extends StatefulWidget {
-  const _BobbingSeonnyeo();
+/// 호스트(초대한 사람) 캐릭터의 위상 단독 bob 애니메이션(3.6s).
+///
+/// [2026-10 초대장 리디자인 — 초대한사람 캐릭터 부여] 기존에는
+/// `seonnyeo/celebrating.png`(여성 캐릭터)가 성별과 무관하게 항상
+/// 고정으로 표시되는 결함이 있었다. [gender]가 'male'이면 도령(남성)
+/// 캐릭터 세트를, 그 외(female 또는 서버에 성별이 없어 null)는 선녀(여성)
+/// 캐릭터 세트를 사용한다 — `doryeong/`은 celebrating 포함 7종이 모두
+/// 있지만 `seonnyeo/`는 3종(celebrating 포함)뿐이라, 두 세트 모두 공통으로
+/// 가진 `celebrating.png`를 사용해 균형을 맞춘다.
+class _BobbingHostMascot extends StatefulWidget {
+  const _BobbingHostMascot({this.gender});
+
+  /// 'male' | 'female' | null(미입력 — 선녀로 폴백).
+  final String? gender;
 
   @override
-  State<_BobbingSeonnyeo> createState() => _BobbingSeonnyeoState();
+  State<_BobbingHostMascot> createState() => _BobbingHostMascotState();
 }
 
-class _BobbingSeonnyeoState extends State<_BobbingSeonnyeo>
+class _BobbingHostMascotState extends State<_BobbingHostMascot>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
 
@@ -249,7 +275,9 @@ class _BobbingSeonnyeoState extends State<_BobbingSeonnyeo>
           child: Transform.rotate(
             angle: rot * (3.14159265 / 180),
             child: Image.asset(
-              'assets/images/guinji/seonnyeo/celebrating.png',
+              widget.gender == 'male'
+                  ? 'assets/images/guinji/doryeong/celebrating.png'
+                  : 'assets/images/guinji/seonnyeo/celebrating.png',
               fit: BoxFit.contain,
             ),
           ),
