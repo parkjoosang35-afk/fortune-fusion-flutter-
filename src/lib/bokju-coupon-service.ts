@@ -1,0 +1,647 @@
+// ══════════════════════════════════════════════════════════════════
+// BokjuCouponService — 복주머니 마케팅 쿠폰(제휴업체 QR → 회원 등록 → 복주머니
+// 적립) 공용 로직의 단일 소스.
+//
+// [출처] 외부에서 전달받은 Express+PostgreSQL 독립 서버 패키지
+// (sintong-coupon-kit)의 핵심 도메인 로직(상태 전이표, 중복 등록 차단,
+// 멱등성 처리, 업체 배정/회수)을 이 프로젝트의 실제 운영 스택
+// (Next.js App Router + Prisma + SQLite)에 맞게 새로 이식한 것이다.
+// 원본은 독립 Express 서버 + PostgreSQL 전제라 "app.ts 2줄 추가"로 끝나지
+// 않았고(이 프로젝트엔 Express 서버 자체가 없음), 지갑 적립도 원본이
+// 가정한 wallet_ledger 테이블이 아니라 기존 Wallet/PointHistory 원장을
+// 그대로 써야 해서 전면 재작성했다.
+//
+// [지갑 연동 원칙 — 반드시 지킬 것]
+//   복주머니 적립은 항상 luck-pouch-engine.ts의 earnLuckPouch()를 통해서만
+//   한다. 이중 적립 차단은 PointHistory(sourceType="bokju_coupon",
+//   sourceId=coupon.id)의 "존재 여부 선확인 + requestId 유니크 제약"
+//   조합으로 보장한다(SQLite는 부분 유니크 인덱스를 지원하지 않으므로,
+//   원본의 WHERE절 유니크 인덱스 대신 애플리케이션 레벨 체크를 쓴다).
+//
+// [상태 전이 — 20장 전이표 대응]
+//   CREATED → ISSUED → ALLOCATED → DELIVERED → REDEEMED
+//                 └──────────────→ ASSIGNED ──┘
+//   REDEEMED/EXPIRED/REVOKED는 종료 상태(전이 불가).
+//   ★ ISSUED 상태도 등록(redeem) 가능해야 한다 — 업체를 거치지 않는
+//     직접배포(DIRECT) 쿠폰이 여기 빠지면 영원히 등록할 수 없다
+//     (원본 패키지가 실행 검증 중 발견했다고 밝힌 치명적 버그 #1).
+// ══════════════════════════════════════════════════════════════════
+import { randomBytes, createHash, randomUUID } from "node:crypto";
+import { prisma } from "@/lib/db";
+import type { Prisma } from "@/generated/prisma/client";
+import { earnLuckPouch } from "@/lib/luck-pouch-engine";
+
+type Tx = Prisma.TransactionClient;
+
+export class BokjuCouponError extends Error {
+  code: string;
+  details?: unknown;
+  constructor(code: string, message: string, details?: unknown) {
+    super(message);
+    this.code = code;
+    this.details = details;
+  }
+}
+
+const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // 혼동 문자(I,O,0,1) 제외
+const COUPON_PREFIX = process.env.BOKJU_COUPON_PREFIX ?? "ST";
+
+/** 등록(redeem) 가능 상태 — ISSUED가 빠지면 직접배포 쿠폰이 영원히 등록 불가(버그 #1 재발 방지). */
+const REDEEMABLE_FROM = new Set(["ISSUED", "ALLOCATED", "DELIVERED", "ASSIGNED"]);
+
+const SOURCE_TYPE = "bokju_coupon";
+
+// ────────────────────────────────────────────────────────── 발급
+export interface CreateCampaignInput {
+  title: string;
+  grantAmount: number;
+  issueType?: "INDIVIDUAL" | "SHARED";
+  targetAudience?: "ALL" | "NEW" | "EXISTING";
+  useLimitPerMember?: number;
+  sharedTotalLimit?: number;
+  validFrom: Date;
+  validTo: Date;
+  guideText?: string;
+  distributionMethod?: "DIRECT" | "PARTNER" | "GIFT";
+}
+
+export async function createCampaign(input: CreateCampaignInput, actorId: string) {
+  if (input.validTo <= input.validFrom) {
+    throw new BokjuCouponError("INVALID_PERIOD", "사용 만료일은 시작일보다 뒤여야 합니다.");
+  }
+  if (input.issueType === "SHARED" && !input.sharedTotalLimit) {
+    throw new BokjuCouponError("SHARED_LIMIT_REQUIRED", "공용번호 쿠폰은 총 사용 한도가 필요합니다.");
+  }
+  const campaign = await prisma.bokjuCouponCampaign.create({
+    data: {
+      title: input.title,
+      grantAmount: input.grantAmount,
+      issueType: input.issueType ?? "INDIVIDUAL",
+      targetAudience: input.targetAudience ?? "ALL",
+      useLimitPerMember: input.useLimitPerMember ?? 1,
+      sharedTotalLimit: input.issueType === "SHARED" ? input.sharedTotalLimit : null,
+      validFrom: input.validFrom,
+      validTo: input.validTo,
+      guideText: input.guideText,
+      distributionMethod: input.distributionMethod ?? "PARTNER",
+      status: "DRAFT",
+      createdBy: actorId,
+    },
+  });
+  return { campaignId: campaign.id };
+}
+
+function generateCouponNo(): string {
+  const body = Array.from(randomBytes(12)).map((b) => ALPHABET[b % ALPHABET.length]).join("");
+  const checksum = createHash("sha1").update(body).digest("hex").slice(0, 2).toUpperCase();
+  return `${COUPON_PREFIX}-${body}-${checksum}`;
+}
+
+/**
+ * 쿠폰 대량 발행. SQLite는 PostgreSQL의 `ON CONFLICT DO NOTHING`처럼 다중
+ * 유니크 제약을 한 INSERT 문으로 동시에 흡수하는 깔끔한 수단이 없으므로,
+ * 건별로 create()하고 유니크 제약 충돌(P2002)만 재시도로 흡수한다
+ * (원본 버그 #2 — "INSERT 하나에 ON CONFLICT 두 번 불가"와 동일한 문제의식을
+ * SQLite 방식으로 재구현한 것).
+ */
+export async function issueCoupons(campaignId: number, count: number, actorId: string) {
+  const campaign = await prisma.bokjuCouponCampaign.findUnique({ where: { id: campaignId } });
+  if (!campaign) throw new BokjuCouponError("CAMPAIGN_NOT_FOUND", "캠페인을 찾을 수 없습니다.");
+  if (campaign.status !== "ACTIVE") {
+    throw new BokjuCouponError("CAMPAIGN_NOT_ACTIVE", "ACTIVE 상태의 캠페인만 발행할 수 있습니다.");
+  }
+  if (count < 1 || count > 1_000_000) {
+    throw new BokjuCouponError("INVALID_COUNT", "발행 수량은 1 ~ 1,000,000 사이여야 합니다.");
+  }
+
+  let created = 0;
+  let attempt = 0;
+  while (created < count && attempt < count * 3 + 10) {
+    attempt += 1;
+    try {
+      await prisma.bokjuCoupon.create({
+        data: {
+          campaignId,
+          couponNo: generateCouponNo(),
+          redeemToken: randomBytes(16).toString("hex"),
+          status: "ISSUED",
+          expiresAt: campaign.validTo,
+        },
+      });
+      created += 1;
+    } catch (e) {
+      // P2002 = 유니크 제약 충돌(coupon_no/redeem_token 우연히 중복) → 새 번호로 재시도
+      if ((e as { code?: string }).code !== "P2002") throw e;
+    }
+  }
+  if (created < count) {
+    throw new BokjuCouponError("ISSUE_INCOMPLETE", `요청 ${count}건 중 ${created}건만 생성되었습니다.`);
+  }
+
+  await prisma.bokjuCouponCampaign.update({
+    where: { id: campaignId },
+    data: { issuedCount: { increment: count } },
+  });
+
+  return { issued: created };
+}
+
+export async function revokeCoupon(couponId: number, reason: string) {
+  return prisma.$transaction(async (tx) => {
+    const coupon = await tx.bokjuCoupon.findUnique({ where: { id: couponId } });
+    if (!coupon) throw new BokjuCouponError("COUPON_NOT_FOUND", "쿠폰을 찾을 수 없습니다.");
+    if (coupon.status === "REDEEMED") {
+      throw new BokjuCouponError(
+        "ALREADY_REDEEMED",
+        "이미 적립된 쿠폰은 사용 중지할 수 없습니다. 적립 정정은 지갑 도메인 절차로 처리하세요."
+      );
+    }
+    await tx.bokjuCoupon.update({
+      where: { id: couponId },
+      data: { status: "REVOKED", revokedAt: new Date(), revokedReason: reason, rowVersion: { increment: 1 } },
+    });
+    return { couponId, status: "REVOKED" };
+  });
+}
+
+// ────────────────────────────────────────────────────────── 업체 배정
+export async function registerPartner(input: { name: string; managerName?: string; managerContact?: string }) {
+  const partner = await prisma.bokjuPartner.create({ data: input });
+  return { partnerId: partner.id };
+}
+
+export interface PartnerScope {
+  partnerId: number;
+  accountId: number;
+  role: "PARTNER_ADMIN" | "PARTNER_STAFF";
+}
+
+export async function allocateToPartner(
+  input: { campaignId: number; partnerId: number; qty: number; distributeDeadline?: Date },
+  actorId: string
+) {
+  return prisma.$transaction(async (tx) => {
+    const campaign = await tx.bokjuCouponCampaign.findUnique({ where: { id: input.campaignId } });
+    if (!campaign) throw new BokjuCouponError("CAMPAIGN_NOT_FOUND", "캠페인을 찾을 수 없습니다.");
+
+    const availableCoupons = await tx.bokjuCoupon.findMany({
+      where: { campaignId: input.campaignId, status: "ISSUED" },
+      take: input.qty,
+      orderBy: { id: "asc" },
+    });
+    if (availableCoupons.length < input.qty) {
+      throw new BokjuCouponError(
+        "ALLOCATION_EXCEEDED",
+        `미배정 수량이 부족합니다. 가용 ${availableCoupons.length}장 / 요청 ${input.qty}장`
+      );
+    }
+
+    const allocation = await tx.bokjuCouponAllocation.create({
+      data: {
+        campaignId: input.campaignId,
+        partnerId: input.partnerId,
+        allocatedQty: input.qty,
+        distributeDeadline: input.distributeDeadline,
+        createdBy: actorId,
+      },
+    });
+
+    // ★ 부분 배정을 조용히 넘기지 않는다 — 건별 UPDATE가 모두 적용됐는지 결과로 확인.
+    const result = await tx.bokjuCoupon.updateMany({
+      where: { id: { in: availableCoupons.map((c) => c.id) }, status: "ISSUED" },
+      data: { status: "ALLOCATED", partnerId: input.partnerId, allocationId: allocation.id },
+    });
+    if (result.count !== input.qty) {
+      throw new BokjuCouponError(
+        "ALLOCATION_EXCEEDED",
+        `배정 가능한 쿠폰이 부족합니다. 요청 ${input.qty}장 / 실제 ${result.count}장`
+      );
+    }
+
+    await tx.bokjuCouponCampaign.update({
+      where: { id: input.campaignId },
+      data: { allocatedCount: { increment: input.qty } },
+    });
+
+    return { allocationId: allocation.id };
+  });
+}
+
+export async function markDelivered(allocationId: number) {
+  return prisma.$transaction(async (tx) => {
+    const result = await tx.bokjuCouponAllocation.updateMany({
+      where: { id: allocationId, status: "ALLOCATED" },
+      data: { deliveredAt: new Date(), status: "DELIVERED" },
+    });
+    if (result.count === 0) throw new BokjuCouponError("INVALID_ALLOCATION_STATE", "배정 상태가 아닙니다.");
+    await tx.bokjuCoupon.updateMany({
+      where: { allocationId, status: "ALLOCATED" },
+      data: { status: "DELIVERED" },
+    });
+    return { allocationId, status: "DELIVERED" };
+  });
+}
+
+export async function listMyAllocations(scope: PartnerScope) {
+  const allocations = await prisma.bokjuCouponAllocation.findMany({
+    where: { partnerId: scope.partnerId },
+    include: { campaign: true, reports: true },
+    orderBy: { createdAt: "desc" },
+  });
+  return Promise.all(
+    allocations.map(async (a) => {
+      const redeemedQty = await prisma.bokjuCoupon.count({
+        where: { allocationId: a.id, status: "REDEEMED" },
+      });
+      const reportedQty = a.reports.reduce((sum, r) => sum + r.reportedQty, 0);
+      return {
+        allocationId: a.id,
+        campaignId: a.campaignId,
+        title: a.campaign.title,
+        allocatedQty: a.allocatedQty,
+        deliveredAt: a.deliveredAt,
+        acknowledgedAt: a.acknowledgedAt,
+        distributeDeadline: a.distributeDeadline,
+        status: a.status,
+        redeemedQty,
+        reportedQty,
+      };
+    })
+  );
+}
+
+export async function acknowledgeAllocation(scope: PartnerScope, allocationId: number) {
+  const result = await prisma.bokjuCouponAllocation.updateMany({
+    where: { id: allocationId, partnerId: scope.partnerId },
+    data: { acknowledgedAt: new Date() },
+  });
+  if (result.count === 0) throw new BokjuCouponError("PARTNER_FORBIDDEN", "본인 업체의 배정이 아닙니다.");
+  return { allocationId, acknowledged: true };
+}
+
+export async function reportDistribution(
+  scope: PartnerScope,
+  allocationId: number,
+  input: { qty: number; date: Date; method: string; note?: string }
+) {
+  return prisma.$transaction(async (tx) => {
+    const allocation = await tx.bokjuCouponAllocation.findUnique({ where: { id: allocationId } });
+    if (!allocation || allocation.partnerId !== scope.partnerId) {
+      throw new BokjuCouponError("PARTNER_FORBIDDEN", "본인 업체의 배정이 아닙니다.");
+    }
+    const existing = await tx.bokjuCouponDeliveryReport.aggregate({
+      where: { allocationId },
+      _sum: { reportedQty: true },
+    });
+    const prevTotal = existing._sum.reportedQty ?? 0;
+    const nextTotal = prevTotal + input.qty;
+    if (nextTotal > allocation.allocatedQty) {
+      throw new BokjuCouponError(
+        "REPORT_EXCEEDED",
+        `보고 합계가 배정 수량을 초과합니다. 배정 ${allocation.allocatedQty}장 / 누적 보고 ${prevTotal}장 / 잔여 ${allocation.allocatedQty - prevTotal}장`
+      );
+    }
+    const report = await tx.bokjuCouponDeliveryReport.create({
+      data: {
+        allocationId,
+        partnerId: scope.partnerId,
+        reportedQty: input.qty,
+        reportedDate: input.date,
+        method: input.method,
+        note: input.note,
+        createdBy: String(scope.accountId),
+      },
+    });
+    await tx.bokjuCouponAllocation.update({ where: { id: allocationId }, data: { status: "REPORTED" } });
+    return { reportId: report.id, cumulative: nextTotal };
+  });
+}
+
+/** 업체 보고 수치(reportedQty)와 시스템이 실제 확인한 등록 수치(redeemedQty)는 항상 분리해서 반환한다 — 절대 합치지 않는다. */
+export async function myStats(scope: PartnerScope, allocationId: number) {
+  const allocation = await prisma.bokjuCouponAllocation.findUnique({ where: { id: allocationId } });
+  if (!allocation || allocation.partnerId !== scope.partnerId) {
+    throw new BokjuCouponError("PARTNER_FORBIDDEN", "본인 업체의 배정이 아닙니다.");
+  }
+  const [reportAgg, redeemedQty, remainingQty] = await Promise.all([
+    prisma.bokjuCouponDeliveryReport.aggregate({ where: { allocationId }, _sum: { reportedQty: true } }),
+    prisma.bokjuCoupon.count({ where: { allocationId, status: "REDEEMED" } }),
+    prisma.bokjuCoupon.count({ where: { allocationId, status: { in: ["ALLOCATED", "DELIVERED"] } } }),
+  ]);
+  const allocatedQty = allocation.allocatedQty;
+  return {
+    allocatedQty,
+    reportedQty: reportAgg._sum.reportedQty ?? 0, // ★ 업체가 제출한 수치
+    redeemedQty, // ★ 시스템이 확인한 실제 등록 — reportedQty와 혼동 금지
+    remainingQty,
+    redemptionRate: allocatedQty ? +((redeemedQty / allocatedQty) * 100).toFixed(1) : 0,
+    measuredAt: new Date().toISOString(), // ★ 집계 시점을 항상 함께 표시
+  };
+}
+
+// ────────────────────────────────────────────────────────── 회수/재배정
+export async function recallUnregistered(allocationId: number, confirm = false) {
+  return prisma.$transaction(async (tx) => {
+    const allocation = await tx.bokjuCouponAllocation.findUnique({ where: { id: allocationId } });
+    if (!allocation) throw new BokjuCouponError("ALLOCATION_NOT_FOUND", "배정을 찾을 수 없습니다.");
+
+    const targets = await tx.bokjuCoupon.findMany({
+      where: {
+        allocationId,
+        status: { in: ["ALLOCATED", "DELIVERED"] },
+        redeemedAt: null,
+        assignedUserId: null,
+      },
+    });
+
+    const reportAgg = await tx.bokjuCouponDeliveryReport.aggregate({
+      where: { allocationId },
+      _sum: { reportedQty: true },
+    });
+    const reportedTotal = reportAgg._sum.reportedQty ?? 0;
+
+    if (!confirm && reportedTotal > targets.length) {
+      throw new BokjuCouponError(
+        "RECALL_CONFIRM_REQUIRED",
+        `업체 보고 ${reportedTotal}장 중 미등록은 ${targets.length}장입니다. ` +
+          `고객이 받았지만 아직 등록하지 않았을 수 있으니 확인 후 진행하세요.`,
+        { reportedQty: reportedTotal, unregistered: targets.length }
+      );
+    }
+
+    if (targets.length === 0) return { recalledQty: 0, couponIds: [] as number[] };
+
+    const ids = targets.map((t) => t.id);
+    await tx.bokjuCoupon.updateMany({
+      where: { id: { in: ids } },
+      data: { status: "RECALLED", rowVersion: { increment: 1 } },
+    });
+    await tx.bokjuCouponAllocation.update({
+      where: { id: allocationId },
+      data: { recalledQty: { increment: ids.length }, status: "RECALLED" },
+    });
+    return { recalledQty: ids.length, couponIds: ids };
+  });
+}
+
+// ────────────────────────────────────────────────────────── 등록(redeem) — 심장부
+export interface RedeemInput {
+  userId: number;
+  token: string;
+  idempotencyKey: string;
+  isNewMember?: boolean;
+}
+
+export type RedeemResult =
+  | {
+      ok: true;
+      code: "SUCCESS";
+      grantedAmount: number;
+      balanceAfter: number;
+      couponNoMasked: string;
+      redeemedAt: string;
+      replayed: boolean;
+    }
+  | { ok: false; code: string; message: string };
+
+function maskCouponNo(couponNo: string): string {
+  const parts = couponNo.split("-");
+  if (parts.length < 3) return couponNo.slice(0, 2) + "****";
+  return `${parts[0]}-****-${parts[parts.length - 1].slice(-4)}`;
+}
+
+function failure(code: string, message: string): RedeemResult {
+  return { ok: false, code, message };
+}
+
+/**
+ * 쿠폰 등록 — 복주머니 적립까지 한 트랜잭션으로 처리한다.
+ *
+ * 동시성/중복 방지 설계(SQLite 전용, 원본의 PostgreSQL 부분 유니크 인덱스를
+ * 대체):
+ *   1) 먼저 idempotencyKey(=requestId)로 재전송 여부를 확인 → 재전송이면
+ *      최초 결과를 그대로 반환(재지급 없음).
+ *   2) 트랜잭션 내부에서 coupon.status가 REDEEMABLE_FROM에 속하는지 재확인한
+ *      뒤, BokjuCouponRedemption(requestId UNIQUE)을 먼저 insert해 멱등성을
+ *      확보하고, 이어서 coupon.status를 REDEEMED로 조건부 UPDATE
+ *      (WHERE status IN REDEEMABLE_FROM AND rowVersion=기존값)한다. 이
+ *      UPDATE가 0행이면 동시에 다른 요청이 먼저 성공한 것이므로 전체
+ *      롤백하고 ALREADY_USED로 처리한다 — Prisma($transaction, SQLite는
+ *      기본적으로 트랜잭션을 직렬화하므로 "먼저 커밋한 쪽이 이긴다"가
+ *      그대로 성립한다.
+ *   3) 복주머니 적립은 반드시 earnLuckPouch()를 통하고, sourceId=coupon.id로
+ *      귀속시켜 나중에 PointHistory만 보고도 어느 쿠폰 적립인지 추적 가능.
+ */
+export async function redeemCoupon(input: RedeemInput): Promise<RedeemResult> {
+  const { userId, token, idempotencyKey } = input;
+
+  // ── 0) 멱등키 재전송이면 최초 결과를 그대로 반환
+  const replay = await prisma.bokjuCouponRedemption.findUnique({ where: { requestId: idempotencyKey } });
+  if (replay) {
+    if (replay.result !== "SUCCESS") return failure("ALREADY_USED", "이미 처리된 요청입니다.");
+    const coupon = replay.couponId ? await prisma.bokjuCoupon.findUnique({ where: { id: replay.couponId } }) : null;
+    return {
+      ok: true,
+      code: "SUCCESS",
+      grantedAmount: replay.grantedAmount ?? 0,
+      balanceAfter: replay.balanceAfter ?? 0,
+      couponNoMasked: coupon ? maskCouponNo(coupon.couponNo) : "",
+      redeemedAt: replay.createdAt.toISOString(),
+      replayed: true,
+    };
+  }
+
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const now = new Date();
+      const coupon = await tx.bokjuCoupon.findUnique({
+        where: { redeemToken: token },
+        include: { campaign: true },
+      });
+
+      if (!coupon) {
+        await logAttempt(tx, null, null, userId, "INVALID", "COUPON_NOT_FOUND", idempotencyKey);
+        return failure("INVALID", "존재하지 않거나 사용할 수 없는 쿠폰입니다.");
+      }
+
+      if (coupon.campaign.status === "PAUSED" || coupon.campaign.status === "CLOSED") {
+        await logAttempt(tx, coupon.id, coupon.campaignId, userId, "REVOKED", "CAMPAIGN_PAUSED", idempotencyKey);
+        return failure("REVOKED", "중지된 이벤트의 쿠폰입니다.");
+      }
+      if (coupon.status === "REDEEMED") {
+        await logAttempt(tx, coupon.id, coupon.campaignId, userId, "DUPLICATE", "ALREADY_REDEEMED", idempotencyKey);
+        return failure("ALREADY_USED", "이미 등록된 쿠폰입니다.");
+      }
+      if (coupon.status === "REVOKED" || coupon.status === "RECALLED") {
+        await logAttempt(tx, coupon.id, coupon.campaignId, userId, "REVOKED", coupon.status, idempotencyKey);
+        return failure("REVOKED", "사용이 중지되었거나 회수된 쿠폰입니다.");
+      }
+      if (coupon.status === "EXPIRED" || coupon.expiresAt <= now) {
+        await logAttempt(tx, coupon.id, coupon.campaignId, userId, "EXPIRED", "EXPIRED", idempotencyKey);
+        return failure("EXPIRED", "사용 기간이 만료된 쿠폰입니다.");
+      }
+      if (!REDEEMABLE_FROM.has(coupon.status)) {
+        await logAttempt(tx, coupon.id, coupon.campaignId, userId, "INVALID", `STATUS_${coupon.status}`, idempotencyKey);
+        return failure("INVALID", "아직 등록할 수 없는 쿠폰입니다.");
+      }
+      if (coupon.assignedUserId && coupon.assignedUserId !== userId) {
+        await logAttempt(tx, coupon.id, coupon.campaignId, userId, "NOT_TARGET", "NOT_ASSIGNED", idempotencyKey);
+        return failure("NOT_TARGET", "본인에게 배정된 쿠폰이 아닙니다.");
+      }
+      if (!isEligible(coupon.campaign.targetAudience, input.isNewMember, coupon.assignedUserId, userId)) {
+        await logAttempt(tx, coupon.id, coupon.campaignId, userId, "NOT_TARGET", "AUDIENCE_MISMATCH", idempotencyKey);
+        return failure("NOT_TARGET", "이 쿠폰의 사용 대상이 아닙니다.");
+      }
+
+      // 회원당 사용 제한
+      const usedCount = await tx.bokjuCouponRedemption.count({
+        where: { userId, campaignId: coupon.campaignId, result: "SUCCESS" },
+      });
+      if (usedCount >= coupon.campaign.useLimitPerMember) {
+        await logAttempt(tx, coupon.id, coupon.campaignId, userId, "NOT_TARGET", "LIMIT_EXCEEDED", idempotencyKey);
+        return failure("LIMIT_EXCEEDED", `이 쿠폰은 회원당 ${coupon.campaign.useLimitPerMember}회까지 사용할 수 있습니다.`);
+      }
+
+      // ── 유형별 사용권 확보
+      if (coupon.campaign.issueType === "SHARED") {
+        try {
+          await tx.bokjuCouponSharedUsage.create({
+            data: { campaignId: coupon.campaignId, couponNo: coupon.couponNo, userId },
+          });
+        } catch (e) {
+          if ((e as { code?: string }).code === "P2002") {
+            await logAttempt(tx, coupon.id, coupon.campaignId, userId, "DUPLICATE", "ALREADY_REDEEMED", idempotencyKey);
+            return failure("ALREADY_USED", "이미 등록된 쿠폰입니다.");
+          }
+          throw e;
+        }
+        const limit = coupon.campaign.sharedTotalLimit ?? 0;
+        const updated = await tx.bokjuCouponCampaign.updateMany({
+          where: { id: coupon.campaignId, usedCount: { lt: limit } },
+          data: { usedCount: { increment: 1 } },
+        });
+        if (updated.count === 0) {
+          throw new BokjuCouponError("SHARED_LIMIT_EXCEEDED", "이벤트 참여 한도가 모두 소진되었습니다.");
+        }
+        await tx.bokjuCouponRedemption.create({
+          data: { couponId: null, campaignId: coupon.campaignId, userId, result: "SUCCESS", requestId: idempotencyKey },
+        });
+      } else {
+        // 개별번호/지정 쿠폰: coupon.status 조건부 UPDATE가 동시 요청을 차단하는 핵심 방어선
+        const claimed = await tx.bokjuCoupon.updateMany({
+          where: { id: coupon.id, status: coupon.status, rowVersion: coupon.rowVersion },
+          data: { status: "REDEEMED", redeemedAt: now, redeemedBy: userId, rowVersion: { increment: 1 } },
+        });
+        if (claimed.count === 0) {
+          // 다른 트랜잭션이 먼저 성공 — 전체 롤백 후 바깥에서 ALREADY_USED로 기록
+          throw new DuplicateClaimError();
+        }
+        await tx.bokjuCouponRedemption.create({
+          data: { couponId: coupon.id, campaignId: coupon.campaignId, userId, result: "SUCCESS", requestId: idempotencyKey },
+        });
+      }
+
+      // ── 복주머니 적립 — 반드시 기존 지갑 엔진을 통해서만
+      const earnOutcome = await earnLuckPouch(tx, {
+        userId,
+        amount: coupon.campaign.grantAmount,
+        sourceType: SOURCE_TYPE,
+        sourceId: coupon.id,
+        memo: `쿠폰 등록 ${maskCouponNo(coupon.couponNo)}`,
+      });
+      if (earnOutcome.grantedAmount <= 0) {
+        // 일일 상한 등으로 실제 지급액이 0이면 쿠폰을 소모 처리하지 않고 롤백한다
+        // (쿠폰만 태우고 복주머니를 못 받는 상황 방지).
+        throw new BokjuCouponError("WALLET_DAILY_CAP_REACHED", "오늘 복주머니 적립 한도에 도달해 등록할 수 없습니다. 내일 다시 시도해 주세요.");
+      }
+
+      const balanceAfter = earnOutcome.balanceAfter ?? 0;
+      await tx.bokjuCouponRedemption.update({
+        where: { requestId: idempotencyKey },
+        data: { grantedAmount: earnOutcome.grantedAmount, balanceAfter },
+      });
+      if (coupon.campaign.issueType !== "SHARED") {
+        await tx.bokjuCouponCampaign.update({
+          where: { id: coupon.campaignId },
+          data: { redeemedCount: { increment: 1 } },
+        });
+      }
+
+      return {
+        ok: true,
+        code: "SUCCESS",
+        grantedAmount: earnOutcome.grantedAmount,
+        balanceAfter,
+        couponNoMasked: maskCouponNo(coupon.couponNo),
+        redeemedAt: now.toISOString(),
+        replayed: false,
+      };
+    });
+  } catch (err) {
+    if (err instanceof DuplicateClaimError) {
+      await logFailureOutsideTx(userId, null, null, "DUPLICATE", "ALREADY_REDEEMED", idempotencyKey);
+      return failure("ALREADY_USED", "이미 등록된 쿠폰입니다.");
+    }
+    if (err instanceof BokjuCouponError) throw err;
+    throw err;
+  }
+}
+
+class DuplicateClaimError extends Error {}
+
+function isEligible(
+  audience: string,
+  isNewMember: boolean | undefined,
+  assignedUserId: number | null,
+  userId: number
+): boolean {
+  switch (audience) {
+    case "ALL":
+      return true;
+    case "NEW":
+      return isNewMember === true;
+    case "EXISTING":
+      return isNewMember === false;
+    case "SPECIFIC":
+      return !!assignedUserId && assignedUserId === userId;
+    default:
+      return false;
+  }
+}
+
+async function logAttempt(
+  tx: Tx,
+  couponId: number | null,
+  campaignId: number | null,
+  userId: number | null,
+  result: string,
+  reason: string,
+  requestId: string
+): Promise<void> {
+  try {
+    await tx.bokjuCouponRedemption.create({
+      data: { couponId, campaignId, userId, result, failReason: reason, requestId },
+    });
+  } catch (e) {
+    if ((e as { code?: string }).code !== "P2002") throw e; // requestId 중복이면 이미 기록된 것이므로 무시
+  }
+}
+
+async function logFailureOutsideTx(
+  userId: number | null,
+  couponId: number | null,
+  campaignId: number | null,
+  result: string,
+  reason: string,
+  requestId: string
+): Promise<void> {
+  try {
+    await prisma.bokjuCouponRedemption.create({
+      data: { couponId, campaignId, userId, result, failReason: reason, requestId },
+    });
+  } catch {
+    /* 로그 실패가 본 흐름을 막지 않도록 무시 */
+  }
+}
+
+export { randomUUID };

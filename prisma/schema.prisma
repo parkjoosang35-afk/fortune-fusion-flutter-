@@ -1502,6 +1502,189 @@ model CouponIssue {
 }
 
 // ══════════════════════════════════════════════════════════════════
+// [복주머니 마케팅 쿠폰 - 신규] 신통방통 복주머니 지급용 이벤트 쿠폰.
+//
+// [네이밍 주의] 위의 Coupon/CouponIssue 모델은 "할인쿠폰"(discount_type/
+// discount_value) 용도로 이미 사용 중이라 이름이 겹친다. 완전히 다른 도메인
+// (업체 제휴 QR 쿠폰 → 복주머니 적립)이므로 BokjuCoupon* 접두사로 새 모델을
+// 만든다(기존 Coupon 모델 재설계/재사용 금지 — 필드 의미가 전혀 다름).
+//
+// [지갑 연동 원칙] 복주머니 적립은 반드시 기존 luck-pouch-engine.ts의
+// earnLuckPouch()(Wallet/PointHistory, currencyType="POINT")를 통해서만
+// 이루어진다. LuckPouchWallet/LuckPouchHistory 모델은 open-pass-service.ts
+// 주석에 "실제 앱 어떤 화면도 읽지 않는 죽은 테이블"로 명시되어 있어
+// 절대 사용하지 않는다. 이중 적립 차단은 PointHistory(sourceType="bokju_coupon",
+// sourceId=bokjuCouponId) 조합의 유니크 인덱스로 DB 차원에서 보장한다.
+// ══════════════════════════════════════════════════════════════════
+model BokjuCouponCampaign {
+  id                Int       @id @default(autoincrement())
+  title             String
+  grantAmount       Int       @map("grant_amount") // 등록 시 지급할 복주머니 수량
+  issueType         String    @default("INDIVIDUAL") @map("issue_type") // INDIVIDUAL/SHARED
+  targetAudience    String    @default("ALL") @map("target_audience") // ALL/NEW/EXISTING
+  useLimitPerMember Int       @default(1) @map("use_limit_per_member")
+  sharedTotalLimit  Int?      @map("shared_total_limit")
+  validFrom         DateTime  @map("valid_from")
+  validTo           DateTime  @map("valid_to")
+  guideText         String?   @map("guide_text")
+  distributionMethod String   @default("PARTNER") @map("distribution_method") // DIRECT/PARTNER/GIFT
+  status            String    @default("DRAFT") // DRAFT/ACTIVE/PAUSED/CLOSED
+  issuedCount       Int       @default(0) @map("issued_count")
+  allocatedCount    Int       @default(0) @map("allocated_count")
+  redeemedCount     Int       @default(0) @map("redeemed_count")
+  usedCount         Int       @default(0) @map("used_count") // SHARED 전용 누적 참여 수
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  createdBy         String?   @map("created_by")
+
+  coupons       BokjuCoupon[]
+  allocations   BokjuCouponAllocation[]
+  redemptions   BokjuCouponRedemption[]
+  sharedUsages  BokjuCouponSharedUsage[]
+
+  @@map("bokju_coupon_campaigns")
+}
+
+model BokjuPartner {
+  id             Int       @id @default(autoincrement())
+  name           String
+  managerName    String?   @map("manager_name")
+  managerContact String?   @map("manager_contact")
+  status         String    @default("ACTIVE")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  accounts    BokjuPartnerAccount[]
+  allocations BokjuCouponAllocation[]
+
+  @@map("bokju_partners")
+}
+
+/** 업체 전용 로그인 계정 — 기존 AdminUser/User 인증 체계와 별개(제휴업체는 회원도 관리자도 아님). */
+model BokjuPartnerAccount {
+  id              Int       @id @default(autoincrement())
+  partnerId       Int       @map("partner_id")
+  loginId         String    @unique @map("login_id")
+  passwordHash    String    @map("password_hash")
+  role            String    @default("PARTNER_ADMIN") // PARTNER_ADMIN/PARTNER_STAFF
+  inviteToken     String?   @map("invite_token")
+  inviteExpiresAt DateTime? @map("invite_expires_at")
+  lastLoginAt     DateTime? @map("last_login_at")
+  status          String    @default("ACTIVE")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  partner BokjuPartner @relation(fields: [partnerId], references: [id])
+
+  @@index([partnerId])
+  @@map("bokju_partner_accounts")
+}
+
+model BokjuCoupon {
+  id               Int       @id @default(autoincrement())
+  campaignId       Int       @map("campaign_id")
+  couponNo         String    @unique @map("coupon_no")
+  redeemToken      String    @unique @map("redeem_token")
+  status           String    @default("CREATED") // CREATED/ISSUED/ALLOCATED/DELIVERED/ASSIGNED/REDEEMED/EXPIRED/REVOKED/RECALLED
+  partnerId        Int?      @map("partner_id")
+  allocationId     Int?      @map("allocation_id")
+  assignedUserId   Int?      @map("assigned_user_id")
+  issuedAt         DateTime  @default(now()) @map("issued_at")
+  expiresAt        DateTime  @map("expires_at")
+  redeemedAt       DateTime? @map("redeemed_at")
+  redeemedBy       Int?      @map("redeemed_by")
+  revokedAt        DateTime? @map("revoked_at")
+  revokedReason    String?   @map("revoked_reason")
+  rowVersion       Int       @default(0) @map("row_version")
+
+  campaign BokjuCouponCampaign @relation(fields: [campaignId], references: [id])
+
+  @@index([campaignId, status])
+  @@index([partnerId, status])
+  @@index([allocationId])
+  @@map("bokju_coupons")
+}
+
+/** 공용번호(SHARED) 쿠폰의 "회원당 1회" 강제. coupon_no는 BokjuCoupon과 별개로 캠페인당 1개만 존재. */
+model BokjuCouponSharedUsage {
+  id         Int      @id @default(autoincrement())
+  campaignId Int      @map("campaign_id")
+  couponNo   String   @map("coupon_no")
+  userId     Int      @map("user_id")
+  usedAt     DateTime @default(now()) @map("used_at")
+
+  campaign BokjuCouponCampaign @relation(fields: [campaignId], references: [id])
+
+  @@unique([campaignId, userId])
+  @@map("bokju_coupon_shared_usages")
+}
+
+model BokjuCouponAllocation {
+  id                 Int       @id @default(autoincrement())
+  campaignId         Int       @map("campaign_id")
+  partnerId          Int       @map("partner_id")
+  allocatedQty       Int       @map("allocated_qty")
+  deliveredAt        DateTime? @map("delivered_at")
+  acknowledgedAt     DateTime? @map("acknowledged_at")
+  distributeDeadline DateTime? @map("distribute_deadline")
+  recalledQty        Int       @default(0) @map("recalled_qty")
+  status             String    @default("ALLOCATED") // ALLOCATED/DELIVERED/REPORTED/CLOSED/RECALLED
+  createdBy          String?   @map("created_by")
+  createdAt          DateTime  @default(now()) @map("created_at")
+
+  campaign BokjuCouponCampaign @relation(fields: [campaignId], references: [id])
+  partner  BokjuPartner        @relation(fields: [partnerId], references: [id])
+  reports  BokjuCouponDeliveryReport[]
+
+  @@index([partnerId, status])
+  @@index([campaignId])
+  @@map("bokju_coupon_allocations")
+}
+
+/** 업체가 "실제로 몇 장 나눠줬는지" 자체 보고하는 수치. 시스템이 집계한 redeemedQty와는 분리해서 관리(§실적 분리 원칙). */
+model BokjuCouponDeliveryReport {
+  id           Int      @id @default(autoincrement())
+  allocationId Int      @map("allocation_id")
+  partnerId    Int      @map("partner_id")
+  reportedQty  Int      @map("reported_qty")
+  reportedDate DateTime @map("reported_date")
+  method       String   // OFFLINE/SNS/SMS/ETC
+  note         String?
+  createdBy    String?  @map("created_by")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  allocation BokjuCouponAllocation @relation(fields: [allocationId], references: [id])
+
+  @@index([allocationId])
+  @@map("bokju_coupon_delivery_reports")
+}
+
+/**
+ * 쿠폰 등록(적립) 시도 이력 — 성공/실패 모두 기록한다.
+ * ★ 이중 적립 차단의 핵심: (couponId, result='SUCCESS') 조합과
+ *   (sourceType='bokju_coupon', sourceId=coupon.id) 조합의 PointHistory 유니크
+ *   인덱스 두 겹으로 동시 요청을 막는다(SQLite는 WHERE절 부분 유니크 인덱스를
+ *   지원하지 않으므로, 애플리케이션 레벨에서 result='SUCCESS' 행 존재 여부를
+ *   트랜잭션 내 먼저 확인 + requestId 유니크 제약으로 재시도 안전성을 보장한다).
+ */
+model BokjuCouponRedemption {
+  id            Int       @id @default(autoincrement())
+  couponId      Int?      @map("coupon_id") // INVALID(쿠폰 자체를 못 찾음) 시 NULL
+  campaignId    Int?      @map("campaign_id")
+  userId        Int?      @map("user_id")
+  result        String    // SUCCESS/DUPLICATE/EXPIRED/REVOKED/NOT_TARGET/INVALID
+  failReason    String?   @map("fail_reason")
+  requestId     String    @unique @map("request_id") // 멱등키(Idempotency-Key)
+  grantedAmount Int?      @map("granted_amount")
+  balanceAfter  Int?      @map("balance_after")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  campaign BokjuCouponCampaign? @relation(fields: [campaignId], references: [id])
+
+  @@index([userId, campaignId, result])
+  @@index([campaignId, result])
+  @@map("bokju_coupon_redemptions")
+}
+
+// ══════════════════════════════════════════════════════════════════
 // 05§3.5 "커뮤니티 관리" — 1차 소단위: L-1/L-2/L-3 게시판/게시글/소원 관리
 // [범위 결정] 원칙⑤(소단위 개발): 05§3.5 6개 화면 중 "게시판 관리"(community_boards
 //   CRUD) + "게시글/소원 관리"(community_posts, wishes 목록/숨김/삭제) 2개 화면을
