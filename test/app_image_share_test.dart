@@ -39,8 +39,6 @@ void main() {
       // 진짜 어서션 실패 원인이 토스트 뒤에 숨어버린다 — 요청은 캡처만
       // 해두고 실제 검증은 테스트 본문에서 수행한다.
       capturedRequests?.add(request);
-      // ignore: avoid_print
-      print('MOCK_CLIENT_HIT ${request.method} ${request.url}');
       return http.Response(
         jsonEncode({
           'success': true,
@@ -105,17 +103,33 @@ void main() {
       ),
     );
     await http.runWithClient(() async {
-      await tester.tap(find.text('공유'));
+      // [Zone 핵심] Dart에서 `await expr`의 연속(continuation)이 어느 Zone에서
+      // 실행되는지는 그 await가 "등록되는 시점"에 Zone.current가 무엇이었는지로
+      // 고정된다 — 나중에 Future를 완료(complete)시키는 쪽이 어느 Zone에
+      // 있는지는 무관하다. onPressed(() => ShareService.shareResult(...))는
+      // 첫 번째 탭(아래)이 디스패치되는 Zone에서 동기적으로 실행을 시작해
+      // 첫 await(showDialog)에 도달하므로, 그 탭이 FakeAsync Zone(runAsync
+      // 밖)에서 일어나면 이후 모든 연쇄 await(동의 다이얼로그 →
+      // createShareLink HTTP → Share.shareXFiles의 실제 임시파일 IO)가
+      // 전부 FakeAsync Zone에 고정돼버려, 중간에 아무리 tester.runAsync()로
+      // 감싸도 "소급 이동"이 되지 않는다. 따라서 첫 번째 탭 자체를
+      // tester.runAsync() 안에서 실행해 전체 연쇄가 처음부터 "진짜" 비동기
+      // Zone(실제 Timer/IO가 완료되는 Zone)에서 돌게 만든다. 이 Zone은
+      // Zone.current.fork()로 만들어지므로 http.runWithClient()가 심어둔
+      // zoneValues(#_clientToken)는 그대로 상속되어 MockClient 조회도
+      // 똑같이 동작한다(이미 MOCK_CLIENT_HIT으로 확인됨).
+      await tester.runAsync(() async {
+        await tester.tap(find.text('공유'));
+      });
+      await tester.pump();
       await tester.pumpAndSettle();
       // [신통방통 공유 근본 정상화] 앱도 웹과 동일하게 원본 공개 동의
       // 팝업을 먼저 보여준다 — 서버에 이미지를 업로드하기 전이므로.
       expect(find.text('이 결과 그대로 공개할까요?'), findsOneWidget);
-      // 다이얼로그 pop(동기) 직후 createShareLink() 네트워크 호출이
-      // 시작되도록 한 프레임 먼저 흘려보낸 뒤, shareXFiles의 실제 임시
-      // 파일 IO까지 끝나도록 runAsync 안에서 지연을 기다린다.
+      // 두 번째 탭(다이얼로그 확인)은 단지 showDialog의 Future를
+      // 완료시키는 역할만 하므로 어느 Zone에서 디스패치되든 무방하다 —
+      // 이미 고정된 연속 실행 Zone은 위에서 설정된 real-async Zone이다.
       await tester.tap(find.text('그대로 공유'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
       await tester.runAsync(() async {
         await Future<void>.delayed(const Duration(milliseconds: 1500));
       });
@@ -238,12 +252,19 @@ void main() {
       ),
     );
     await http.runWithClient(() async {
-      await tester.tap(find.text('공유'));
+      // [Zone 핵심 — 위 테스트와 동일 이유] 첫 번째 탭을 runAsync 안에서
+      // 실행해야 onPressed의 전체 await 체인(HTTP→파일IO→MethodChannel
+      // 예외)이 처음부터 real-async Zone에서 돌아간다.
+      await tester.runAsync(() async {
+        await tester.tap(find.text('공유'));
+      });
+      await tester.pump();
       await tester.pumpAndSettle();
       await tester.tap(find.text('그대로 공유'));
       await tester.runAsync(() async {
         await Future<void>.delayed(const Duration(milliseconds: 800));
       });
+      await tester.pump();
       await tester.pumpAndSettle();
     }, () => shareLinkClient(shareId: 'appQaShare02'));
     expect(find.textContaining('결과 이미지를 공유하지 못했어요'), findsOneWidget);
