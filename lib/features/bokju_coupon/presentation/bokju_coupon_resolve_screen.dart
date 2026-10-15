@@ -35,7 +35,7 @@ void replayPendingBokjuCoupon() {
 ///   2) named route `/coupon/{token}` — 웹 URL로 직접 진입(App Router
 ///      '/g/', '/r/', '/w/'와 동일한 와일드카드 선매칭 패턴).
 ///   3) 카메라 QR 스캔([BokjuCouponScanScreen]) 또는 수동 코드 입력
-///      ([BokjuCouponEntryScreen]) — 모두 token을 얻은 �이 이 화면을 push.
+///      ([BokjuCouponEntryScreen]) — 모두 token을 얻은 뒤 이 화면을 push.
 ///
 /// [비로그인 처리] 서버 `resolve`/`redeem` 모두 로그인을 강제한다. 토큰을
 /// 들고 왔지만 비로그인 상태면 [PendingBokjuCouponStore]에 토큰을 저장해두고
