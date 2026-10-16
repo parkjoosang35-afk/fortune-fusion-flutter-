@@ -56,6 +56,18 @@ class CompatibilityProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// [테스트 전용 — 외부 검수 지시 ③ Task 5] 실제 서버 왕복(POST
+  /// /api/public/compatibility/request) 없이 [CompatibilityResultScreen]
+  /// 위젯 트리를 결과 성공 상태로 곧바로 전환하기 위한 헬퍼.
+  /// TarotProvider.debugInjectResult와 동일한 패턴 — 위젯 테스트 전용이며
+  /// 앱 정상 동작 경로(request/retry/loadHistory)에는 전혀 영향을 주지
+  /// 않는다.
+  @visibleForTesting
+  void debugInjectResult(CompatibilityResultModel result) {
+    _state = LoadState.success(result);
+    notifyListeners();
+  }
+
   Future<void> request({
     required CompatibilityType type,
     required String nameA,
