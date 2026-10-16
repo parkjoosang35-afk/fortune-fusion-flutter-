@@ -139,6 +139,14 @@
                      `fortunefusion://w/{token}` 형태(guinji_deep_link_handler.dart가
                      수신, LinkInviteScreen으로 라우팅). -->
                 <data android:scheme="fortunefusion" android:host="w"/>
+                <!-- [복주머니 마케팅 쿠폰 — 카카오톡 링크 공유 지시서 §5] QR코드나
+                     카카오톡 공유 버튼에서 커스텀 스킴으로 쿠폰 등록 화면을 바로
+                     열 때 쓰는 폴백 경로. `fortunefusion://coupon/{redeemToken}`
+                     형태(guinji_deep_link_handler.dart가 이미 이 host를 파싱해
+                     BokjuCouponResolveScreen으로 라우팅하도록 구현되어 있었으나,
+                     이 매니페스트에 host 등록이 누락되어 있어 실제로는 한 번도
+                     발동한 적이 없었다 — 이번에 함께 추가). -->
+                <data android:scheme="fortunefusion" android:host="coupon"/>
             </intent-filter>
             <!-- [Phase B] sintong.kr 운영 도메인 App Links (https).
                  assetlinks.json 검증에 성공하면 https://sintong.kr/g/{token}
@@ -173,6 +181,19 @@
                     android:scheme="https"
                     android:host="sintong.kr"
                     android:pathPrefix="/w"/>
+                <!-- [복주머니 마케팅 쿠폰 — 카카오톡 링크 공유 지시서 §1/§5, 핵심 버그 수정]
+                     https://sintong.kr/coupon/{redeemToken} 형태. 카카오톡 메시지로
+                     공유된 쿠폰 등록 링크를 클릭했을 때, 앱이 설치되어 있고 이
+                     App Links 검증이 성공한 상태라면 중간 웹페이지 없이 즉시
+                     앱의 쿠폰 등록 화면(BokjuCouponResolveScreen)이 열린다.
+                     이 pathPrefix 등록이 누락되어 있던 것이 "QR/링크를 눌러도
+                     앱으로 연결되지 않는다" 문제의 핵심 원인 중 하나였다 —
+                     guinji_deep_link_handler.dart의 파싱 로직 자체는 이미 완성돼
+                     있었지만 OS가 애초에 이 경로를 앱으로 가로채지 않았다. -->
+                <data
+                    android:scheme="https"
+                    android:host="sintong.kr"
+                    android:pathPrefix="/coupon"/>
             </intent-filter>
             <!-- [카카오 간편로그인] 카카오톡 앱으로 로그인 시, 카카오톡 앱에서
                  인증을 마치고 우리 앱으로 돌아오기 위해 필요한 커스텀 스킴
