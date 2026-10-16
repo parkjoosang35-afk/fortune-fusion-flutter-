@@ -1,20 +1,35 @@
-// 공개(비인증) "AI 손금" 분석 API — 실사진 분석 버전.
+// 공개(비인증) "AI 손금" 분석 API — 전문 분석 체계 적용 버전.
 //
-// [버그 수정 배경] face/route.ts와 동일한 문제. 기존 구현은 completeText()
-// (텍스트 전용 LLM)만 사용해 실제 업로드된 손바닥 사진을 전혀 서버로
-// 전송/분석하지 않고, 로그인 사용자의 생년월일/성별과 결정론적 시드로
-// 고른 하드코딩 문구만 반환했다. 얼굴/사물 등 손바닥이 아닌 사진을 올려도
-// 항상 "그럴듯한" 손금 결과가 나오는 문제가 있었다(사용자 리포트로 발견).
+// [버그 수정 배경 — 유지] face/route.ts와 동일한 문제. Vision 모델 연동
+// (completeVisionJson)으로 실사진 미반영 문제는 이미 해결되어 있었다.
 //
-// [수정 내용] completeVisionJson()으로 실제 이미지(base64 data URL)를 Vision
-// 모델(claude-haiku-4-5)에 함께 전송해:
-//   1) 사진이 실제로 손바닥인지 먼저 검증하고(valid=false면 즉시 에러 응답),
-//   2) 유효한 경우 사진에서 실제로 관찰되는 손금선을 근거로 해석을 생성한다.
+// [손금 hand 파라미터 반영] 클라이언트(palm_repository.dart)는 이미
+// 'right'|'left' 문자열을 body.hand로 전송 중이었으나, 서버가 이를 전혀
+// 읽지 않아 좌/우 구분이 분석에 반영되지 않는 버그가 있었다. 이번 개편에서
+// hand를 관찰 프롬프트와 판정 레이어(palm-judgment.ts)에 모두 반영한다.
+//
+// [관상·손금 후속 개발 — 전수 검수 보고서 기준, 3단계 파이프라인 적용]
+// face/route.ts와 동일한 구조:
+//   ① 관찰 레이어(Vision LLM) — 사진+hand를 보고 주요 손금(생명선/두뇌선/
+//      감정선/운명선)·보조 손금(태양선/수성선/결혼선)의 "선택지 강제" 질문에만
+//      답한다(해석 금지, 관찰만). 응답 스키마는 PalmObserved.
+//   ② 판정 레이어(palm-judgment.ts, buildPalmJudgment) — PalmObserved(hand
+//      포함)만 입력받아 순수 함수로 주요선 등급/4대 주제 verdict를 결정론적
+//      으로 산출한다. LLM을 호출하지 않으며, hand가 다르면 hook 문구의
+//      해석 관점(선천/후천)이 달라진다(동일 관찰값이라도 hand 반영 확인 가능).
+//   ③ 표현 레이어(LLM) — 판정 JSON만 근거로 문장을 쓴다. AiPromptTemplate.
+//      templateBody를 시스템 프롬프트 톤 가이드로 실제 사용한다.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { completeVisionJson, LlmClientError } from "@/lib/llm-client";
+import {
+  completeVisionJsonWithUsage,
+  completeTextWithUsage,
+  LlmClientError,
+} from "@/lib/llm-client";
 import { checkCategoryUsage, checkDailyAbsoluteLimit, consumeCategoryUsage } from "@/lib/open-pass-service";
 import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
+import { buildPalmJudgment, type PalmObserved, type PalmJudgment, type PalmHand } from "@/lib/palm-judgment";
+import { checkFacePalmText } from "@/lib/face-palm-qa-check";
 import {
   beginResultAccess,
   completeResultAccess,
@@ -26,6 +41,8 @@ import {
 export const dynamic = "force-dynamic";
 
 const CORS_HEADERS = { "Access-Control-Allow-Origin": "*" };
+
+const MAX_EXPRESSION_ATTEMPTS = 2;
 
 const TOPIC_FALLBACK: Record<string, string> = {
   재물: "운명선과 생명선의 조화가 좋아 꾸준한 재물 축적이 가능한 손금입니다.",
@@ -42,41 +59,74 @@ const LINE_FALLBACK: Record<string, string> = {
   운명선: "운명선의 흐름이 안정적인 인상입니다.",
 };
 
-const SYSTEM_PROMPT = `당신은 AI 손금 분석 전문가입니다. 사용자가 업로드한 이미지를 실제로 확인하고 아래 규칙을 반드시 따르세요.
+type NormalizedHand = PalmHand;
+function normalizeHand(value: string | undefined): NormalizedHand {
+  return value === "left" ? "left" : "right";
+}
+function handLabelKo(hand: NormalizedHand): string {
+  return hand === "left" ? "왼손" : "오른손";
+}
+
+// ── ① 관찰 레이어: 선택지 강제 프롬프트(해석 금지, 관찰만) ──
+function buildObservationSystemPrompt(hand: NormalizedHand): string {
+  return `당신은 사진 속 손바닥의 손금을 객관적으로 관찰해 분류하는 역할만 수행합니다.
+이 사진은 사용자가 촬영 화면에서 "${handLabelKo(hand)}"으로 직접 선택하고 찍은 손입니다.
+절대로 운명/길흉을 해석하지 마세요 — 오직 "무엇이 보이는가"만 미리 정해진 선택지 중에서 고르세요.
 
 [1단계 - 사진 검증 (가장 중요)]
 - 이미지에 사람의 손바닥(손금이 보이는 손 안쪽 면)이 명확하게 나와 있는지 먼저 확인하세요.
 - 손바닥 사진이 아니거나(예: 얼굴, 손등, 사물, 풍경, 동물, 음식, 텍스트/스크린샷, 만화/캐릭터 등),
-  손바닥이 너무 작거나 흐릿하거나 가려져서 생명선/두뇌선/감정선/운명선을 확인할 수 없는 경우
+  손바닥이 너무 작거나 흐릿하거나 가려져서 아래 항목들을 확인할 수 없는 경우
   반드시 "valid"를 false로 설정하고 "invalidReason"에 구체적인 이유를 한국어로 작성하세요.
-- 절대로 손바닥이 아닌 사진에 대해 손금 분석 내용을 만들어내지 마세요. 확실하지 않으면 false로 처리하세요.
+- 절대로 손바닥이 아닌 사진에 대해 관찰 내용을 만들어내지 마세요. 확실하지 않으면 false로 처리하세요.
 
-[2단계 - 실제 사진 기반 분석 (valid가 true인 경우만)]
-- 사진에서 실제로 관찰되는 손금선(생명선/두뇌선/감정선/운명선)의 굵기, 길이, 곡선 형태 등을 근거로 서술하세요. 추측하지 말고 실제로 보이는 내용만 설명하세요.
-- 부정적으로 단정하는 표현은 피하고, 항상 따뜻하고 긍정적인 어투를 사용하세요.
-- 전통 손금학의 일반적인 해석을 참고용으로 곁들이되, 실제 운명/건강/능력을 사실처럼 단정하지 마세요.
-- 사용자의 생년월일/성별 정보가 주어지면 재물/애정/직업/건강 해석에 자연스럽게 참고하세요.
+[2단계 - 객관적 관찰만 (valid가 true인 경우만)]
+사진에서 실제로 보이는 모습을 아래 스키마의 선택지 중 하나로만 고르세요. 해석이나 평가 문구는 절대 쓰지 말고, 선택지 값만 채우세요.
 
 [출력 형식 - 반드시 아래 JSON 객체만 응답하세요. 다른 설명, 인사말, 마크다운 코드펜스를 절대 포함하지 마세요]
 {
   "valid": boolean,
   "invalidReason": string 또는 null,
+  "majorLines": {
+    "생명선": { "length": "긺"|"보통"|"짧음", "depth": "깊음"|"보통"|"옅음", "shape": "직선형"|"곡선형"|"끊어짐"|"갈라짐(지선)" },
+    "두뇌선": { "length": "긺"|"보통"|"짧음", "depth": "깊음"|"보통"|"옅음", "shape": "직선형"|"곡선형"|"끊어짐"|"갈라짐(지선)" },
+    "감정선": { "length": "긺"|"보통"|"짧음", "depth": "깊음"|"보통"|"옅음", "shape": "직선형"|"곡선형"|"끊어짐"|"갈라짐(지선)" },
+    "운명선": { "presence": "뚜렷함"|"흐릿함"|"없음", "shape": "직선형"|"곡선형"|"끊어짐"|"갈라짐(지선)" }
+  },
+  "minorLines": {
+    "태양선": { "presence": "뚜렷함"|"흐릿함"|"없음" },
+    "수성선": { "presence": "뚜렷함"|"흐릿함"|"없음" },
+    "결혼선": { "presence": "뚜렷함"|"흐릿함"|"없음", "count": "없음"|"1개"|"2개 이상" }
+  }
+}
+- 반드시 제시된 선택지 문자열 중 하나만 정확히 사용하세요(다른 표현 금지).`;
+}
+
+// ── ③ 표현 레이어 ──
+function buildExpressionSystemPrompt(adminTemplateBody: string): string {
+  return `${adminTemplateBody}
+
+---
+[필수 규칙 — 위 지침과 함께 반드시 지키세요]
+- 아래 [판정 근거] JSON에 이미 계산된 주요 손금/보조 손금 판정만 근거로 사용하세요. 새로운 관찰 내용을 지어내지 마세요.
+- "hand_interpretation_note"에 명시된 왼손(선천)/오른손(후천) 해석 관점을 자연스럽게 반영하세요.
+- 부정적으로 단정하는 표현은 피하고, 항상 따뜻하고 긍정적인 어투를 사용하세요.
+- 실제 운명/건강/능력을 사실처럼 단정하지 마세요("반드시", "절대", "100%" 등 확정 표현 금지).
+- 출력은 반드시 아래 JSON 객체 하나만 작성하세요. 다른 설명, 마크다운 코드펜스를 포함하지 마세요.
+{
   "lines": { "생명선": string, "두뇌선": string, "감정선": string, "운명선": string },
   "topicResults": { "재물": string, "애정": string, "직업": string, "건강": string, "종합": string }
 }
-
-- valid가 false이면 lines와 topicResults는 빈 객체 {}로 두세요.
-- valid가 true이면 lines/topicResults의 모든 항목을 2~4문장으로 구체적으로 작성하세요.
+- lines/topicResults의 모든 항목을 2~4문장으로 구체적으로 작성하세요.
 - "종합"은 위 모든 분석을 아우르는 3~5문장의 총평으로 작성하세요.`;
+}
 
 function buildDataUrl(image: string): string {
   if (image.startsWith("data:")) return image;
   return `data:image/jpeg;base64,${image}`;
 }
 
-interface PalmVisionResponse {
-  valid: boolean;
-  invalidReason?: string | null;
+interface ExpressionResponse {
   lines?: Record<string, string>;
   topicResults?: Record<string, string>;
 }
@@ -88,6 +138,7 @@ export async function POST(request: NextRequest) {
     paymentMethod?: string;
     transactionId?: string;
     adSessionId?: string;
+    hand?: string;
   };
   try {
     body = await request.json();
@@ -109,6 +160,7 @@ export async function POST(request: NextRequest) {
   }
 
   const image = body.image;
+  const hand = normalizeHand(body.hand);
   const resultAccessTransactionId = body.transactionId?.trim() || null;
   const resultAccessPaymentMethod = body.paymentMethod as ResultAccessPaymentMethod | undefined;
   const useResultAccessService = Boolean(resultAccessTransactionId && resultAccessPaymentMethod);
@@ -119,7 +171,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // ── [어뷰징 방지 개편 §신규 ①] 유저별 절대 일일 AI 호출 상한(5회) 검사 ──
   const dailyLimitCheck = await checkDailyAbsoluteLimit(userId);
   if (!dailyLimitCheck.allowed) {
     return NextResponse.json(
@@ -134,7 +185,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // ── [레거시 경로] 프리패스 카테고리별 이용횟수 검증 ──
   const usageCheck = useResultAccessService ? null : await checkCategoryUsage(userId, "palm");
   if (usageCheck && !usageCheck.allowed) {
     return NextResponse.json(
@@ -190,6 +240,31 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  async function logAiRequest(params: {
+    aiModel: string;
+    status: "success" | "failed" | "timeout";
+    latencyMs: number;
+    tokenUsage?: number;
+    costEstimate?: number;
+    requestRefId?: number | null;
+  }) {
+    try {
+      await prisma.aiRequestLog.create({
+        data: {
+          domain: "palm",
+          requestRefId: params.requestRefId ?? null,
+          aiModel: params.aiModel,
+          latencyMs: params.latencyMs,
+          tokenUsage: params.tokenUsage ?? null,
+          costEstimate: params.costEstimate ?? null,
+          status: params.status,
+        },
+      });
+    } catch (e) {
+      console.error("[POST /api/public/fortune/palm] AiRequestLog 기록 실패:", e);
+    }
+  }
+
   try {
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -199,29 +274,40 @@ export async function POST(request: NextRequest) {
     const birthDate = user.profile?.birthDate ?? null;
     const gender = user.gender ?? null;
 
-    // fortune_results.prompt_template_id는 NOT NULL이라 palm 도메인 활성 템플릿을
-    // 참조 용도로만 가져온다(실제 시스템 프롬프트는 SYSTEM_PROMPT를 사용).
     const template = await prisma.aiPromptTemplate.findFirst({
       where: { fortuneTypeOrDomain: "palm", isActive: true },
-      select: { id: true, version: true },
+      select: { id: true, version: true, templateBody: true },
     });
     if (!template) throw new Error("NO_TEMPLATE");
 
-    const userPrompt = [
-      "이 사진이 사람의 손바닥 사진인지 먼저 확인한 뒤, 맞다면 손금을 분석해주세요.",
-      `참고 - 사용자 생년월일: ${birthDate ?? "미상"}`,
-      `참고 - 성별: ${gender ?? "미상"}`,
-    ].join("\n");
+    // ── ① 관찰 레이어 ──
+    const obsStarted = Date.now();
+    let observed: PalmObserved;
+    try {
+      const obsResult = await completeVisionJsonWithUsage<Omit<PalmObserved, "hand">>({
+        systemPrompt: buildObservationSystemPrompt(hand),
+        userPrompt: "이 사진이 사람의 손바닥 사진인지 먼저 확인한 뒤, 맞다면 주요 손금과 보조 손금 항목을 선택지 중에서만 골라 관찰 결과를 작성해주세요.",
+        imageDataUrl: buildDataUrl(image),
+        timeoutMs: 40_000,
+      });
+      observed = { ...obsResult.data, hand };
+      await logAiRequest({
+        aiModel: `${obsResult.usage.model}-vision-observe`,
+        status: "success",
+        latencyMs: Date.now() - obsStarted,
+        tokenUsage: obsResult.usage.inputTokens + obsResult.usage.outputTokens,
+        costEstimate: obsResult.usage.costEstimateUsd,
+      });
+    } catch (e) {
+      await logAiRequest({
+        aiModel: "claude-haiku-4-5-vision-observe",
+        status: "failed",
+        latencyMs: Date.now() - obsStarted,
+      });
+      throw e;
+    }
 
-    const vision = await completeVisionJson<PalmVisionResponse>({
-      systemPrompt: SYSTEM_PROMPT,
-      userPrompt,
-      imageDataUrl: buildDataUrl(image),
-      timeoutMs: 40_000,
-    });
-
-    // [사진 검증 실패] 손바닥이 아닌 사진 -> 기록 남기지 않고 즉시 에러 응답
-    if (!vision.valid) {
+    if (!observed.valid) {
       if (useResultAccessService && resultAccessBegin) {
         try {
           await failAndRefundResultAccess(resultAccessBegin.transactionId);
@@ -232,24 +318,75 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: vision.invalidReason || "손바닥이 잘 보이는 사진으로 다시 촬영해주세요.",
+          error: observed.invalidReason || "손바닥이 잘 보이는 사진으로 다시 촬영해주세요.",
         },
         { status: 422, headers: CORS_HEADERS }
       );
     }
 
+    // ── ② 판정 레이어(순수 함수, LLM 비개입, hand 반영) ──
+    const judgment: PalmJudgment = buildPalmJudgment(observed);
+
+    // ── ③ 표현 레이어 ──
+    const expressionUserPrompt = [
+      `사용자 생년월일: ${birthDate ?? "미상"}`,
+      `성별: ${gender ?? "미상"}`,
+      `촬영한 손: ${handLabelKo(hand)}`,
+      "",
+      "[판정 근거] 아래 JSON은 사진 관찰 + 전통 수상학 주요선/보조선 규칙으로 이미 계산된 결과입니다. 새로 관찰하지 말고 이 근거만 사용해 문장을 작성하세요:",
+      JSON.stringify({ observed: { majorLines: observed.majorLines, minorLines: observed.minorLines }, judgment }),
+    ].join("\n");
+
+    let expression: ExpressionResponse | null = null;
+    let expressionUsage: { model: string; inputTokens: number; outputTokens: number; costEstimateUsd: number } | null = null;
+    const expStarted = Date.now();
+    for (let attempt = 1; attempt <= MAX_EXPRESSION_ATTEMPTS; attempt++) {
+      try {
+        const { text, usage } = await completeTextWithUsage({
+          systemPrompt: buildExpressionSystemPrompt(template.templateBody),
+          userPrompt: expressionUserPrompt,
+          maxTokens: 1500,
+          temperature: 0.7,
+        });
+        expressionUsage = usage;
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) continue;
+        const parsed = JSON.parse(jsonMatch[0]) as ExpressionResponse;
+        const allTexts = [
+          ...Object.values(parsed.lines ?? {}),
+          ...Object.values(parsed.topicResults ?? {}),
+        ];
+        const problems = checkFacePalmText(allTexts);
+        if (problems.length > 0) {
+          console.error("[POST /api/public/fortune/palm] 표현레이어 QA 실패:", problems);
+          continue;
+        }
+        expression = parsed;
+        break;
+      } catch (e) {
+        console.error(`[POST /api/public/fortune/palm] 표현레이어 시도 ${attempt} 실패:`, e);
+      }
+    }
+    await logAiRequest({
+      aiModel: expressionUsage?.model ? `${expressionUsage.model}-express` : "claude-haiku-4-5-express",
+      status: expression ? "success" : "failed",
+      latencyMs: Date.now() - expStarted,
+      tokenUsage: expressionUsage ? expressionUsage.inputTokens + expressionUsage.outputTokens : undefined,
+      costEstimate: expressionUsage?.costEstimateUsd,
+    });
+
     const lines: Record<string, string> = {
-      생명선: vision.lines?.["생명선"] || LINE_FALLBACK["생명선"],
-      두뇌선: vision.lines?.["두뇌선"] || LINE_FALLBACK["두뇌선"],
-      감정선: vision.lines?.["감정선"] || LINE_FALLBACK["감정선"],
-      운명선: vision.lines?.["운명선"] || LINE_FALLBACK["운명선"],
+      생명선: expression?.lines?.["생명선"] || LINE_FALLBACK["생명선"],
+      두뇌선: expression?.lines?.["두뇌선"] || LINE_FALLBACK["두뇌선"],
+      감정선: expression?.lines?.["감정선"] || LINE_FALLBACK["감정선"],
+      운명선: expression?.lines?.["운명선"] || LINE_FALLBACK["운명선"],
     };
     const topicResults: Record<string, string> = {
-      재물: vision.topicResults?.["재물"] || TOPIC_FALLBACK["재물"],
-      애정: vision.topicResults?.["애정"] || TOPIC_FALLBACK["애정"],
-      직업: vision.topicResults?.["직업"] || TOPIC_FALLBACK["직업"],
-      건강: vision.topicResults?.["건강"] || TOPIC_FALLBACK["건강"],
-      종합: vision.topicResults?.["종합"] || TOPIC_FALLBACK["종합"],
+      재물: expression?.topicResults?.["재물"] || TOPIC_FALLBACK["재물"],
+      애정: expression?.topicResults?.["애정"] || TOPIC_FALLBACK["애정"],
+      직업: expression?.topicResults?.["직업"] || TOPIC_FALLBACK["직업"],
+      건강: expression?.topicResults?.["건강"] || TOPIC_FALLBACK["건강"],
+      종합: expression?.topicResults?.["종합"] || TOPIC_FALLBACK["종합"],
     };
     const summary = topicResults["종합"];
 
@@ -258,7 +395,7 @@ export async function POST(request: NextRequest) {
         data: {
           userId,
           fortuneType: "palm",
-          inputPayload: JSON.stringify({ birthDate, gender, hasImage: true }),
+          inputPayload: JSON.stringify({ birthDate, gender, hasImage: true, hand }),
           sourceType: "ai_generated",
           pointSpent: 0,
           status: "success",
@@ -269,8 +406,8 @@ export async function POST(request: NextRequest) {
         data: {
           requestId: fortuneRequest.id,
           resultText: summary,
-          resultMeta: JSON.stringify({ lines, topicResults, summary }),
-          aiModel: "claude-haiku-4-5-vision",
+          resultMeta: JSON.stringify({ lines, topicResults, summary, hand, observed, judgment }),
+          aiModel: "claude-haiku-4-5-vision+judgment",
           promptTemplateId: template.id,
           promptVersion: template.version,
           status: "active",
@@ -280,7 +417,6 @@ export async function POST(request: NextRequest) {
       return { requestId: fortuneRequest.id, createdAt: fortuneRequest.createdAt, fortuneResult };
     });
 
-    // ── [STEP8/레거시] 실제 분석 성공 후에만 카테고리 이용횟수 +1 ──
     if (!useResultAccessService && usageCheck?.userPassId != null) {
       await consumeCategoryUsage(usageCheck.userPassId, userId, "palm");
     }
@@ -294,6 +430,7 @@ export async function POST(request: NextRequest) {
         success: true,
         data: {
           id: `palm_${outcome.requestId}`,
+          hand,
           lines,
           topicResults,
           summary,

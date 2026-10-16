@@ -56,9 +56,45 @@ interface AnthropicContentBlock {
   text?: string;
 }
 
+interface AnthropicUsage {
+  input_tokens?: number;
+  output_tokens?: number;
+}
+
 interface AnthropicMessageResponse {
   content?: AnthropicContentBlock[];
+  usage?: AnthropicUsage;
   error?: { type?: string; message?: string };
+}
+
+/** 호출부(route.ts)가 AiRequestLog에 기록할 수 있도록 토큰/비용 정보를 함께 반환한다. */
+export interface LlmUsageInfo {
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  costEstimateUsd: number;
+}
+
+// [비용 추적 연동] claude-haiku-4-5 공개 요금(2026-01 기준, 백만 토큰당 USD).
+// 모델이 바뀌면 이 표만 갱신하면 된다 — route.ts는 model 문자열만 넘기면 된다.
+const MODEL_PRICE_USD_PER_MTOK: Record<string, { input: number; output: number }> = {
+  "claude-haiku-4-5": { input: 1.0, output: 5.0 },
+};
+
+function estimateCostUsd(model: string, inputTokens: number, outputTokens: number): number {
+  const price = MODEL_PRICE_USD_PER_MTOK[model] ?? MODEL_PRICE_USD_PER_MTOK["claude-haiku-4-5"];
+  return (inputTokens / 1_000_000) * price.input + (outputTokens / 1_000_000) * price.output;
+}
+
+function buildUsageInfo(model: string, usage: AnthropicUsage | undefined): LlmUsageInfo {
+  const inputTokens = usage?.input_tokens ?? 0;
+  const outputTokens = usage?.output_tokens ?? 0;
+  return {
+    model,
+    inputTokens,
+    outputTokens,
+    costEstimateUsd: estimateCostUsd(model, inputTokens, outputTokens),
+  };
 }
 
 function extractTextFromAnthropicResponse(parsed: AnthropicMessageResponse): string | null {
@@ -138,6 +174,63 @@ export async function completeText({
     }
 
     return content;
+  } catch (e) {
+    if (e instanceof LlmClientError) throw e;
+    if (e instanceof Error && e.name === "AbortError") {
+      throw new LlmClientError(`LLM 호출이 ${timeoutMs}ms 내에 완료되지 않았습니다(타임아웃).`);
+    }
+    throw new LlmClientError(`LLM 호출 중 알 수 없는 오류: ${e instanceof Error ? e.message : String(e)}`);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// [관상/손금 비용·사용량 로그 연동] 기존 completeText() 시그니처(string 반환)를
+// 바꾸면 saju/tarot/name/compatibility 등 기존 호출부가 전부 영향을 받으므로,
+// 반환값만 확장한 별도 함수를 추가한다(기존 함수는 내부적으로 재사용하지 않고
+// 완전히 동일한 요청을 한 번 더 구성한다 — 호출 횟수를 늘리지 않기 위해
+// completeText 내부 로직을 공유하는 대신 여기서 자체적으로 fetch한다).
+export async function completeTextWithUsage(
+  options: CompleteOptions
+): Promise<{ text: string; usage: LlmUsageInfo }> {
+  const { systemPrompt, userPrompt, model = DEFAULT_MODEL, timeoutMs = DEFAULT_TIMEOUT_MS, maxTokens = DEFAULT_MAX_TOKENS, temperature } = options;
+  if (!ANTHROPIC_API_KEY) {
+    throw new LlmClientError("ANTHROPIC_API_KEY 환경변수가 설정되어 있지 않습니다.");
+  }
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(`${ANTHROPIC_BASE_URL}/messages`, {
+      method: "POST",
+      headers: {
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": ANTHROPIC_VERSION,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: maxTokens,
+        system: systemPrompt,
+        messages: [{ role: "user", content: userPrompt }],
+        ...(temperature !== undefined ? { temperature } : {}),
+      }),
+      signal: controller.signal,
+    });
+    const raw = await response.text();
+    if (!response.ok) {
+      throw new LlmClientError(`LLM 호출 실패(HTTP ${response.status}): ${raw.slice(0, 300)}`, response.status);
+    }
+    let parsed: AnthropicMessageResponse;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      throw new LlmClientError("LLM 응답을 JSON으로 해석할 수 없습니다.");
+    }
+    const content = extractTextFromAnthropicResponse(parsed);
+    if (!content) {
+      throw new LlmClientError("LLM 응답에 유효한 content가 없습니다.");
+    }
+    return { text: content, usage: buildUsageInfo(model, parsed.usage) };
   } catch (e) {
     if (e instanceof LlmClientError) throw e;
     if (e instanceof Error && e.name === "AbortError") {
@@ -259,6 +352,79 @@ export async function completeVisionJson<T = Record<string, unknown>>({
         `LLM이 반환한 JSON 파싱 실패: ${e instanceof Error ? e.message : String(e)}`
       );
     }
+  } catch (e) {
+    if (e instanceof LlmClientError) throw e;
+    if (e instanceof Error && e.name === "AbortError") {
+      throw new LlmClientError(`LLM 비전 호출이 ${timeoutMs}ms 내에 완료되지 않았습니다(타임아웃).`);
+    }
+    throw new LlmClientError(`LLM 비전 호출 중 알 수 없는 오류: ${e instanceof Error ? e.message : String(e)}`);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// [관상/손금 비용·사용량 로그 연동] completeVisionJson()과 동일한 요청을 수행하되,
+// 토큰 사용량(usage)까지 함께 반환한다. 기존 completeVisionJson() 호출부(없음 —
+// face/palm route.ts만 사용하며, 이번 작업에서 이 함수로 교체한다)에는 영향 없음.
+export async function completeVisionJsonWithUsage<T = Record<string, unknown>>(
+  options: VisionJsonOptions
+): Promise<{ data: T; usage: LlmUsageInfo }> {
+  const { systemPrompt, userPrompt, imageDataUrl, model = DEFAULT_MODEL, timeoutMs = DEFAULT_TIMEOUT_MS, maxTokens = DEFAULT_MAX_TOKENS } = options;
+  if (!ANTHROPIC_API_KEY) {
+    throw new LlmClientError("ANTHROPIC_API_KEY 환경변수가 설정되어 있지 않습니다.");
+  }
+  const { mediaType, data: imageBase64 } = parseDataUrl(imageDataUrl);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(`${ANTHROPIC_BASE_URL}/messages`, {
+      method: "POST",
+      headers: {
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": ANTHROPIC_VERSION,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: maxTokens,
+        system: systemPrompt,
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "image", source: { type: "base64", media_type: mediaType, data: imageBase64 } },
+              { type: "text", text: userPrompt },
+            ],
+          },
+        ],
+      }),
+      signal: controller.signal,
+    });
+    const raw = await response.text();
+    if (!response.ok) {
+      throw new LlmClientError(`LLM 비전 호출 실패(HTTP ${response.status}): ${raw.slice(0, 300)}`, response.status);
+    }
+    let parsed: AnthropicMessageResponse;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      throw new LlmClientError("LLM 응답을 JSON으로 해석할 수 없습니다.");
+    }
+    const content = extractTextFromAnthropicResponse(parsed);
+    if (!content) {
+      throw new LlmClientError("LLM 응답에 유효한 content가 없습니다.");
+    }
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new LlmClientError(`LLM 응답에서 JSON 객체를 찾을 수 없습니다: ${content.slice(0, 200)}`);
+    }
+    let parsedJson: T;
+    try {
+      parsedJson = JSON.parse(jsonMatch[0]) as T;
+    } catch (e) {
+      throw new LlmClientError(`LLM이 반환한 JSON 파싱 실패: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    return { data: parsedJson, usage: buildUsageInfo(model, parsed.usage) };
   } catch (e) {
     if (e instanceof LlmClientError) throw e;
     if (e instanceof Error && e.name === "AbortError") {

@@ -32,7 +32,12 @@ export async function GET(request: NextRequest) {
     const data = requests
       .filter((r) => r.result)
       .map((r) => {
-        let meta: { lines?: Record<string, string>; topicResults?: Record<string, string>; summary?: string } = {};
+        let meta: {
+          lines?: Record<string, string>;
+          topicResults?: Record<string, string>;
+          summary?: string;
+          hand?: string;
+        } = {};
         try {
           meta = r.result?.resultMeta ? JSON.parse(r.result.resultMeta) : {};
         } catch {
@@ -40,6 +45,7 @@ export async function GET(request: NextRequest) {
         }
         return {
           id: `palm_${r.id}`,
+          hand: meta.hand ?? "right",
           lines: meta.lines ?? {},
           topicResults: meta.topicResults ?? {},
           summary: meta.summary ?? r.result?.resultText ?? "",
