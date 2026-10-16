@@ -612,6 +612,18 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
                                   icon: const Icon(Icons.download_rounded),
                                   label: const Text('결과페이지 그대로 저장'),
                                 ),
+                                // [엔진 통합 지시문 STEP 3 — 2탭 도달성]
+                                // 타로/관상/손금/궁합 결과화면과 동일한
+                                // 패턴으로 교차검증 화면 진입점을 추가한다.
+                                TextButton.icon(
+                                  onPressed: () => Navigator.of(
+                                    context,
+                                  ).pushNamed('/cross-check/result'),
+                                  icon: const Icon(
+                                    Icons.compare_arrows_rounded,
+                                  ),
+                                  label: const Text('다른 운세와 비교해보기'),
+                                ),
                                 const Padding(
                                   padding: EdgeInsets.fromLTRB(22, 28, 22, 0),
                                   child: Text(
