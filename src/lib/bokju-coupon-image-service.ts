@@ -337,6 +337,39 @@ async function buildZip(campaignId: number, couponIds: number[]): Promise<string
   return `/uploads/bokju-coupons/campaign_${campaignId}/${fileName}`;
 }
 
+/**
+ * [업체 전용 다운로드] 특정 배정(allocation)에 속한 쿠폰 이미지만 묶어 ZIP으로
+ * 반환한다. 캠페인 전체 ZIP(buildZip)을 그대로 주면 다른 업체에 배정된 쿠폰까지
+ * 노출되므로, 업체 화면에서는 반드시 이 함수를 통해 본인 배정분만 받는다.
+ * 이미지가 아직 생성되지 않은 쿠폰은 건너뛴다(관리자가 이미지 생성을 먼저 해야 함).
+ */
+export async function buildAllocationZip(
+  campaignId: number,
+  allocationId: number,
+  couponIds: number[]
+): Promise<Buffer> {
+  const dir = campaignDir(campaignId);
+  const archive = archiver("zip", { zlib: { level: 9 } });
+  const chunks: Buffer[] = [];
+  const done = new Promise<Buffer>((resolve, reject) => {
+    archive.on("data", (chunk: Buffer) => chunks.push(chunk));
+    archive.on("end", () => resolve(Buffer.concat(chunks)));
+    archive.on("error", (err) => reject(err));
+  });
+  for (const id of couponIds) {
+    const imgPath = path.join(dir, "images", `${id}.png`);
+    try {
+      await readFile(imgPath);
+      archive.file(imgPath, { name: `${id}.png` });
+    } catch {
+      // 해당 쿠폰 이미지가 아직 생성되지 않음 — 건너뜀
+    }
+  }
+  void archive.finalize();
+  void allocationId; // 파일명에는 쓰지 않지만 호출부 로깅/추적용으로 인자 유지
+  return done;
+}
+
 export async function getImageJob(jobId: number) {
   return prisma.bokjuCouponImageJob.findUnique({ where: { id: jobId } });
 }
