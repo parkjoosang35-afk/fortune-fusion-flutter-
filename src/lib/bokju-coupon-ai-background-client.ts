@@ -96,8 +96,13 @@ export async function generateCouponBackground(
 
   const safePrompt = buildSafePrompt(trimmed);
 
+  // [2026-10-16 운영 배포 후 실측] gpt-image-1은 고품질 1024x1536 이미지 생성 시
+  // 60초를 초과하는 경우가 흔해(운영 서버 실측 60초 타임아웃 재현), 기존 60초는
+  // 너무 짧았다. 120초로 늘리고, nginx proxy_read_timeout도 동일하게 맞춘다
+  // (nginx가 먼저 끊으면 이 AbortController가 뭘 하든 504로 끊기므로 반드시
+  // 같이 늘려야 함 — /etc/nginx/sites-enabled/sintong.kr 참고).
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 60_000);
+  const timer = setTimeout(() => controller.abort(), 120_000);
   let imageBuffer: Buffer;
   try {
     const response = await fetch(`${baseUrl.replace(/\/$/, "")}/images/generations`, {
@@ -147,7 +152,7 @@ export async function generateCouponBackground(
   } catch (e) {
     if (e instanceof AiBackgroundError) throw e;
     if (e instanceof Error && e.name === "AbortError") {
-      throw new AiBackgroundError("AI_TIMEOUT", "AI 배경 생성이 60초 내에 완료되지 않았습니다(타임아웃).");
+      throw new AiBackgroundError("AI_TIMEOUT", "AI 배경 생성이 120초 내에 완료되지 않았습니다(타임아웃).");
     }
     throw new AiBackgroundError(
       "AI_CALL_FAILED",
