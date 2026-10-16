@@ -64,14 +64,17 @@ void main() {
       key: body, child: const SizedBox(width: 200, height: 300, child: ColoredBox(color: Colors.blue)),
     )));
     await tester.pump();
-    // [행잉 버그 수정 — 외부 검수 지시 ④] captureOriginalResult 내부에
-    // Future.delayed(120ms)(커밋 6bf2f13)가 추가된 뒤로는, runAsync() 밖에서
-    // 호출부터 만들고 결과만 안에서 await하는 과거 패턴이 FakeAsync 타임존에
-    // 타이머를 등록해버려 해당 타이머가 영원히 발동하지 않아 테스트가
-    // 무한 행(hang)된다. 반드시 호출 자체를 runAsync() 콜백 안으로 옮겨야 한다.
-    final bytes = await tester.runAsync(
-      () => captureOriginalResult(body, leadingKeys: [missing], overlayKeys: [missing]),
-    );
+    // [행잉 버그 수정 — 외부 검수 지시 ④, 재조사 후 최종 수정]
+    // captureOriginalResult 내부에 Future.delayed(120ms)(커밋 6bf2f13)가
+    // 추가된 뒤로는, 호출 직후 명시적 시간 전진(pump(duration)) 없이 바로
+    // runAsync()로 결과만 await하면 그 120ms 타이머가 FakeAsync 타임존에
+    // 묶인 채 전진하지 않아 테스트가 무한 행(hang)된다. 최소 수정은 호출
+    // 위치를 그대로 두고, pump(150ms)로 타이머를 실제로 흘려보낸 뒤
+    // runAsync()로 결과를 받는 것이다(미니멀 재현으로 검증 완료).
+    final pending = captureOriginalResult(body, leadingKeys: [missing], overlayKeys: [missing]);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+    final bytes = await tester.runAsync(() => pending);
     expect(bytes, isNotNull);
     expect(bytes!.isNotEmpty, isTrue);
   });
@@ -110,10 +113,11 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    // [행잉 버그 수정 — 외부 검수 지시 ④] 아래 §1 설명과 동일한 이유로
-    // captureOriginalResult() 호출을 runAsync() 콜백 안으로 이동.
+    // [행잉 버그 수정 — 외부 검수 지시 ④, 재조사 후 최종 수정] 상단 §1 설명 참고.
+    final capture = captureOriginalResult(body, overlayKeys: [overlay]);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
     await tester.runAsync(() async {
-      final capture = captureOriginalResult(body, overlayKeys: [overlay]);
       final codec = await ui.instantiateImageCodec(await capture);
       final image = (await codec.getNextFrame()).image;
       expect(image.height, 1800);
@@ -154,10 +158,11 @@ void main() {
       find.descendant(of: find.byKey(key), matching: find.byType(OzStarField)),
       findsOneWidget,
     );
-    // [행잉 버그 수정 — 외부 검수 지시 ④] captureOriginalResult() 호출을
-    // runAsync() 콜백 안으로 이동(상단 §1 설명 참고).
+    // [행잉 버그 수정 — 외부 검수 지시 ④, 재조사 후 최종 수정] 상단 §1 설명 참고.
+    final capture = captureOriginalResult(key);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
     await tester.runAsync(() async {
-      final capture = captureOriginalResult(key);
       final codec = await ui.instantiateImageCodec(await capture);
       final image = (await codec.getNextFrame()).image;
       final pixels = (await image.toByteData(
@@ -210,10 +215,11 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    // [행잉 버그 수정 — 외부 검수 지시 ④] captureOriginalResult() 호출을
-    // runAsync() 콜백 안으로 이동(상단 §1 설명 참고).
+    // [행잉 버그 수정 — 외부 검수 지시 ④, 재조사 후 최종 수정] 상단 §1 설명 참고.
+    final capture = captureOriginalResult(body, trailingKeys: [footer]);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
     await tester.runAsync(() async {
-      final capture = captureOriginalResult(body, trailingKeys: [footer]);
       final codec = await ui.instantiateImageCodec(await capture);
       final image = (await codec.getNextFrame()).image;
       expect(image.width, 450);
@@ -294,13 +300,14 @@ void main() {
               .size;
       expect(headerSize.width, bodySize.width);
       expect(bodySize.height, greaterThan(844));
-      // [행잉 버그 수정 — 외부 검수 지시 ④] captureOriginalResult() 호출을
-      // runAsync() 콜백 안으로 이동(상단 §1 설명 참고).
+      // [행잉 버그 수정 — 외부 검수 지시 ④, 재조사 후 최종 수정] 상단 §1 설명 참고.
+      final capture = captureOriginalResult(
+        stack.captureKey!,
+        leadingKeys: [scene.captureKey],
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 150));
       await tester.runAsync(() async {
-        final capture = captureOriginalResult(
-          stack.captureKey!,
-          leadingKeys: [scene.captureKey],
-        );
         final codec = await ui.instantiateImageCodec(await capture);
         final image = (await codec.getNextFrame()).image;
         expect(image.width, 585);
@@ -342,10 +349,11 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    // [행잉 버그 수정 — 외부 검수 지시 ④] captureOriginalResult() 호출을
-    // runAsync() 콜백 안으로 이동(상단 §1 설명 참고).
+    // [행잉 버그 수정 — 외부 검수 지시 ④, 재조사 후 최종 수정] 상단 §1 설명 참고.
+    final capture = captureOriginalResult(body, leadingKeys: [header]);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
     await tester.runAsync(() async {
-      final capture = captureOriginalResult(body, leadingKeys: [header]);
       final bytes = await capture;
       final codec = await ui.instantiateImageCodec(bytes);
       final image = (await codec.getNextFrame()).image;
