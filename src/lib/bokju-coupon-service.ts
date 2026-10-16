@@ -30,6 +30,7 @@ import { randomBytes, createHash, randomUUID } from "node:crypto";
 import { prisma } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
 import { earnLuckPouch } from "@/lib/luck-pouch-engine";
+import { createNotification } from "@/lib/notification-engine";
 
 type Tx = Prisma.TransactionClient;
 
@@ -161,6 +162,233 @@ export async function revokeCoupon(couponId: number, reason: string) {
       data: { status: "REVOKED", revokedAt: new Date(), revokedReason: reason, rowVersion: { increment: 1 } },
     });
     return { couponId, status: "REVOKED" };
+  });
+}
+
+// ────────────────────────────────────────────────────────── 회원 푸시 발송
+// [최종본 §10 "기존 회원 푸시 알림" + §22.5 "배정 우선, 발송 실패는 배정을 취소하지 않음"]
+// 이 프로젝트에는 FCM 발송 서비스 계정이 없으므로(별도 FCM 전용 서버를 새로
+// 만들지 않는다는 notification-engine.ts의 기존 원칙과 동일하게), "실제 푸시
+// 디바이스 발송" 대신 이미 존재하는 알림센터(Notification 테이블)에 실제로
+// 쌓이는 것으로 구현한다. sendMode="BROADCAST"는 대상 조건(전체/신규/기존/지정)에
+// 맞는 회원들에게 "이벤트 안내" 알림만 보낸다(개인별 쿠폰 사전 배정 없음 —
+// 회원은 알림을 보고 평소처럼 QR/링크로 등록한다). sendMode="INDIVIDUAL"(개별
+// 선물)은 원본 pseudocode(22.5 send_gift_push)와 동일하게 ① 쿠폰을 회원에게
+// 먼저 배정하고 커밋한 뒤 ② 그 쿠폰의 등록 링크를 담아 알림을 보낸다 — 알림
+// 발송(2단계)이 실패해도 ①의 배정은 되돌리지 않는다(쿠폰이 사라지면 안 됨).
+const NEW_MEMBER_WINDOW_DAYS = 7; // resolve/redeem route와 동일 기준(신규회원 판정)
+
+/** 알림 탭 시 이동할 딥링크 포맷 — wishDeepLink(notification-engine.ts)와 동일한 "type:id" 관례. */
+function couponRedeemDeepLink(redeemToken: string): string {
+  return `bokju_coupon:${redeemToken}`;
+}
+function couponCampaignDeepLink(campaignId: number): string {
+  return `bokju_coupon_campaign:${campaignId}`;
+}
+
+export interface CreatePushJobInput {
+  campaignId: number;
+  sendMode: "BROADCAST" | "INDIVIDUAL";
+  targetFilter?: "ALL" | "NEW" | "EXISTING" | "SPECIFIC";
+  targetUserIds?: number[];
+  title: string;
+  body: string;
+  scheduledAt?: Date;
+  isTest?: boolean;
+}
+
+/** BROADCAST 대상 회원 ID 목록 조회(삭제/비활성 제외). SPECIFIC은 targetUserIds를 그대로 검증만 한다. */
+async function resolveBroadcastAudience(
+  filter: "ALL" | "NEW" | "EXISTING" | "SPECIFIC",
+  targetUserIds: number[] | undefined
+): Promise<number[]> {
+  if (filter === "SPECIFIC") {
+    if (!targetUserIds || targetUserIds.length === 0) {
+      throw new BokjuCouponError("TARGET_REQUIRED", "지정 회원 발송은 회원 ID 목록이 필요합니다.");
+    }
+    const found = await prisma.user.findMany({
+      where: { id: { in: targetUserIds }, deletedAt: null },
+      select: { id: true },
+    });
+    return found.map((u) => u.id);
+  }
+  const where: Prisma.UserWhereInput = { deletedAt: null, status: "active" };
+  if (filter === "NEW" || filter === "EXISTING") {
+    const cutoff = new Date(Date.now() - NEW_MEMBER_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+    where.createdAt = filter === "NEW" ? { gte: cutoff } : { lt: cutoff };
+  }
+  const users = await prisma.user.findMany({ where, select: { id: true } });
+  return users.map((u) => u.id);
+}
+
+/**
+ * 푸시(알림) 작업 생성. 즉시 테스트 발송(isTest)이 아니면 작업 레코드를 만들고
+ * 실제 발송은 백그라운드(runPushJob)로 넘긴 뒤 jobId를 즉시 반환한다
+ * (이미지 생성 작업과 동일한 "202 + polling" 패턴 — bokju-coupon-image-service.ts 참고).
+ */
+export async function createPushJob(input: CreatePushJobInput, actorId: string) {
+  const campaign = await prisma.bokjuCouponCampaign.findUnique({ where: { id: input.campaignId } });
+  if (!campaign) throw new BokjuCouponError("CAMPAIGN_NOT_FOUND", "캠페인을 찾을 수 없습니다.");
+  if (!input.title.trim()) throw new BokjuCouponError("TITLE_REQUIRED", "푸시 제목은 필수입니다.");
+  if (!input.body.trim()) throw new BokjuCouponError("BODY_REQUIRED", "푸시 내용은 필수입니다.");
+
+  if (input.sendMode === "INDIVIDUAL" && (!input.targetUserIds || input.targetUserIds.length === 0)) {
+    throw new BokjuCouponError("TARGET_REQUIRED", "개별 선물 발송은 대상 회원을 선택해야 합니다.");
+  }
+
+  // ── 테스트 발송: 집계에 남기지 않고 지정한 1명에게만 즉시 보낸다(관리자 기기 확인 목적).
+  if (input.isTest) {
+    const testUserId = input.targetUserIds?.[0];
+    if (!testUserId) {
+      throw new BokjuCouponError("TEST_TARGET_REQUIRED", "테스트 발송은 확인할 회원 1명을 지정해야 합니다.");
+    }
+    const user = await prisma.user.findUnique({ where: { id: testUserId }, select: { id: true, deletedAt: true } });
+    if (!user || user.deletedAt) throw new BokjuCouponError("USER_NOT_FOUND", "테스트 대상 회원을 찾을 수 없습니다.");
+
+    const result = await prisma.$transaction((tx) =>
+      createNotification(tx, {
+        userId: testUserId,
+        category: "marketing",
+        title: `[테스트] ${input.title}`,
+        body: input.body,
+        deepLink: couponCampaignDeepLink(input.campaignId),
+      })
+    );
+    return { test: true, targetCount: 1, created: result.created };
+  }
+
+  const job = await prisma.bokjuCouponPushJob.create({
+    data: {
+      campaignId: input.campaignId,
+      sendMode: input.sendMode,
+      targetFilter: input.sendMode === "INDIVIDUAL" ? "SPECIFIC" : input.targetFilter ?? "ALL",
+      targetUserIds:
+        input.sendMode === "INDIVIDUAL" || input.targetFilter === "SPECIFIC"
+          ? JSON.stringify(input.targetUserIds ?? [])
+          : null,
+      title: input.title,
+      body: input.body,
+      deepLink: input.sendMode === "BROADCAST" ? couponCampaignDeepLink(input.campaignId) : null,
+      scheduledAt: input.scheduledAt ?? null,
+      status: "PENDING",
+      createdBy: actorId,
+    },
+  });
+
+  // 백그라운드 실행(await하지 않음) — generate-images와 동일한 비동기 작업 패턴.
+  // 발송 시점="예약"(scheduledAt이 미래)인 경우, 원본 pseudocode의 워커 루프
+  // (WHERE scheduled_at IS NULL OR scheduled_at <= now())를 별도 큐/크론 없이도
+  // 만족시키기 위해 setTimeout으로 실제 실행을 그 시각까지 지연시킨다. 즉시 발송
+  // ("즉시" 또는 scheduledAt 미지정/과거)은 지금까지와 동일하게 바로 실행한다.
+  const delayMs = job.scheduledAt ? job.scheduledAt.getTime() - Date.now() : 0;
+  if (delayMs > 0) {
+    setTimeout(() => {
+      void runPushJob(job.id).catch((e) => {
+        console.error(`[BokjuCouponPushJob ${job.id}] 예약 실행 중 예외:`, e);
+      });
+    }, delayMs);
+  } else {
+    void runPushJob(job.id).catch((e) => {
+      console.error(`[BokjuCouponPushJob ${job.id}] 실행 중 예외:`, e);
+    });
+  }
+
+  return { pushJobId: job.id };
+}
+
+/**
+ * INDIVIDUAL(선물) 1명분 — 쿠폰을 먼저 배정하고 "반드시 커밋"한다.
+ * 조건부 UPDATE(상태=ISSUED인 것 중 1건)로 동시 발송 작업끼리 같은 쿠폰을
+ * 집어가는 경합을 방지한다(allocateToPartner와 동일한 원리, 단 배정 단위는
+ * 1건·대상은 회원이라는 점만 다르다).
+ */
+async function assignOneCouponToMember(campaignId: number, userId: number): Promise<{ redeemToken: string } | null> {
+  return prisma.$transaction(async (tx) => {
+    const candidate = await tx.bokjuCoupon.findFirst({
+      where: { campaignId, status: "ISSUED" },
+      orderBy: { id: "asc" },
+      select: { id: true, rowVersion: true, redeemToken: true },
+    });
+    if (!candidate) return null;
+    const claimed = await tx.bokjuCoupon.updateMany({
+      where: { id: candidate.id, status: "ISSUED", rowVersion: candidate.rowVersion },
+      data: { status: "ASSIGNED", assignedUserId: userId, rowVersion: { increment: 1 } },
+    });
+    if (claimed.count === 0) return null; // 다른 트랜잭션이 먼저 가져감 — 이번 대상은 실패 처리(호출부에서 재시도)
+    return { redeemToken: candidate.redeemToken };
+  });
+}
+
+/** 백그라운드 발송 루프. 대상별 성공/실패만 집계하고(원본 push_target 상세 테이블은 범위 밖), 실패해도 이미 배정된 쿠폰은 그대로 둔다. */
+async function runPushJob(jobId: number): Promise<void> {
+  const job = await prisma.bokjuCouponPushJob.findUnique({ where: { id: jobId } });
+  if (!job) return;
+
+  await prisma.bokjuCouponPushJob.update({ where: { id: jobId }, data: { status: "SENDING" } });
+
+  let targetIds: number[];
+  if (job.sendMode === "INDIVIDUAL" || job.targetFilter === "SPECIFIC") {
+    targetIds = job.targetUserIds ? (JSON.parse(job.targetUserIds) as number[]) : [];
+  } else {
+    targetIds = await resolveBroadcastAudience(
+      job.targetFilter as "ALL" | "NEW" | "EXISTING",
+      undefined
+    );
+  }
+
+  let success = 0;
+  let fail = 0;
+
+  for (const userId of targetIds) {
+    try {
+      let deepLink = job.deepLink ?? couponCampaignDeepLink(job.campaignId);
+
+      if (job.sendMode === "INDIVIDUAL") {
+        // ① 쿠폰 배정 — 커밋 완료(이 시점부터 쿠폰은 회원 소유, 아래 알림이 실패해도 유지).
+        const assigned = await assignOneCouponToMember(job.campaignId, userId);
+        if (!assigned) {
+          fail += 1; // 배정할 ISSUED 쿠폰이 소진됨 — 알림도 보내지 않는다(22.5 발송 순서 원칙).
+          continue;
+        }
+        deepLink = couponRedeemDeepLink(assigned.redeemToken);
+      }
+
+      // ② 알림 발송(실패해도 위 배정은 되돌리지 않음 — 별도 트랜잭션).
+      await prisma.$transaction((tx) =>
+        createNotification(tx, {
+          userId,
+          category: "marketing",
+          title: job.title,
+          body: job.body,
+          deepLink,
+        })
+      );
+      success += 1;
+    } catch (e) {
+      console.error(`[BokjuCouponPushJob ${jobId}] 대상 회원 ${userId} 처리 실패:`, e);
+      fail += 1;
+    }
+  }
+
+  await prisma.bokjuCouponPushJob.update({
+    where: { id: jobId },
+    data: {
+      status: fail > 0 ? (success > 0 ? "PARTIAL" : "FAILED") : "COMPLETED",
+      successCount: success,
+      failCount: fail,
+      completedAt: new Date(),
+    },
+  });
+}
+
+export async function getPushJob(jobId: number) {
+  return prisma.bokjuCouponPushJob.findUnique({ where: { id: jobId } });
+}
+
+export async function listPushJobsForCampaign(campaignId: number) {
+  return prisma.bokjuCouponPushJob.findMany({
+    where: { campaignId },
+    orderBy: { createdAt: "desc" },
   });
 }
 
